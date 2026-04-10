@@ -47,6 +47,7 @@ class TriangularGame:
         self.grid = {}  # Dictionary to store point states: (x, y) -> PointState
         self.current_player = Player.BLACK
         self.game_over = False
+        self.consecutive_skips = 0  # Counts consecutive skips; game ends when both players skip
         
         # Initialize grid points
         self._init_grid()
@@ -55,6 +56,9 @@ class TriangularGame:
         self.grid[(0, 0)] = PointState.BLACK_NODE
         self.grid[(8, 0)] = PointState.WHITE_NODE
         
+        # Skip button
+        self.skip_button_rect = pygame.Rect(650, 540, 120, 40)
+
         # Game clock
         self.clock = pygame.time.Clock()
         
@@ -346,31 +350,106 @@ class TriangularGame:
             self._restore_connections_after_removal(removed_positions, attacking_player)
     
     def _handle_blocking_attack(self, new_pos: Tuple[int, int], player: Player, original_state: PointState):
-        """Handle blocking and elimination when a new node is placed"""
+        """Handle an attack: a new node placed on opponent's line.
+
+        Step 1 – Delete line points: from the attack point, sweep each direction.
+                 Skip the direction if the adjacent point is not an opponent line.
+                 Otherwise delete consecutive opponent line points until hitting an
+                 opponent NODE (preserve the node, stop there).
+        Step 2 – Delete isolated nodes: remove opponent nodes that can no longer
+                 reach their starting point via any path.
+        Step 3 – Clean up orphaned lines: delete line segments whose BOTH endpoint
+                 nodes were removed in step 2.
+        Step 4 – Restore connections: re-establish valid direct connections for
+                 both the attacker and the defender.
+        """
         opponent = Player.WHITE if player == Player.BLACK else Player.BLACK
-        opponent_node = PointState.WHITE_NODE if player == Player.BLACK else PointState.BLACK_NODE
-        opponent_line = PointState.WHITE_LINE if player == Player.BLACK else PointState.BLACK_LINE
-        
-        # If the new node was placed on an opponent line, remove segments between white nodes
-        if original_state == opponent_line:
-            # Find all opponent nodes
-            opponent_nodes = [pos for pos, state in self.grid.items() if state == opponent_node]
-            
-            # Find pairs of opponent nodes that form a line through the new position
-            for i in range(len(opponent_nodes)):
-                for j in range(i + 1, len(opponent_nodes)):
-                    node1, node2 = opponent_nodes[i], opponent_nodes[j]
-                    if self._can_connect(node1, node2):
-                        line_points = self._get_line_points(node1, node2)
-                        if new_pos in line_points:
-                            # Only remove the line segment between these two specific nodes
-                            for point in line_points:
-                                if point != node1 and point != node2 and self.grid[point] == opponent_line:
-                                    self.grid[point] = PointState.EMPTY
-        
-        # Remove disconnected components
-        self._remove_disconnected_components(opponent)
+        opp_line = PointState.WHITE_LINE if player == Player.BLACK else PointState.BLACK_LINE
+
+        if original_state != opp_line:
+            return
+
+        # ── Step 1 ──────────────────────────────────────────────────────────────
+        # Sweep each direction. Only delete collected line cells if the sweep
+        # terminates at an opponent NODE — that confirms they belong to the same
+        # line segment being attacked. If the sweep ends at OOB/empty the cells
+        # belong to a perpendicular segment and must NOT be deleted here.
+        x0, y0 = new_pos
+        opp_node_state = PointState.WHITE_NODE if player == Player.BLACK else PointState.BLACK_NODE
+        directions = [(1, 0), (-1, 0), (0, 1), (0, -1), (1, -1), (-1, 1)]
+        for dx, dy in directions:
+            nx, ny = x0 + dx, y0 + dy
+            if (nx, ny) not in self.grid or self.grid[(nx, ny)] != opp_line:
+                continue  # no opponent line adjacent in this direction — skip
+            cells_to_delete = []
+            while (nx, ny) in self.grid and self.grid[(nx, ny)] == opp_line:
+                cells_to_delete.append((nx, ny))
+                nx += dx
+                ny += dy
+            # Only delete if sweep ended at an opponent node (same segment confirmed)
+            if (nx, ny) in self.grid and self.grid[(nx, ny)] == opp_node_state:
+                for cell in cells_to_delete:
+                    self.grid[cell] = PointState.EMPTY
+
+        # ── Step 2 ──────────────────────────────────────────────────────────────
+        opp_start = (8, 0) if player == Player.BLACK else (0, 0)
+        deleted_nodes: set = set()
+        for node in self._get_player_nodes(opponent):
+            if node != opp_start and not self._is_connected_to_initial(node, opponent):
+                self.grid[node] = PointState.EMPTY
+                deleted_nodes.add(node)
+
+        # ── Step 3 ──────────────────────────────────────────────────────────────
+        # Remove orphaned line points.
+        # A line point is valid only if it lies on an intact segment between two
+        # SURVIVING opponent nodes (all cells on that segment are still opp_node/opp_line).
+        # This handles both the "both endpoints deleted" case and the "ray" case
+        # (one endpoint deleted) without over-deleting lines still anchored to start.
+        opp_node_state = PointState.WHITE_NODE if opponent == Player.WHITE else PointState.BLACK_NODE
+        surviving_nodes = self._get_player_nodes(opponent)  # after Step 2
+
+        for line_pt in list(self.grid.keys()):
+            if self.grid[line_pt] != opp_line:
+                continue
+            protected = False
+            for i in range(len(surviving_nodes)):
+                if protected:
+                    break
+                for j in range(i + 1, len(surviving_nodes)):
+                    n1, n2 = surviving_nodes[i], surviving_nodes[j]
+                    if not self._can_connect(n1, n2):
+                        continue
+                    pts = self._get_line_points(n1, n2)
+                    if line_pt not in pts:
+                        continue
+                    # Segment is intact if every cell on it is still opponent-owned
+                    if all(self.grid[p] in (opp_node_state, opp_line) for p in pts):
+                        protected = True
+                        break
+            if not protected:
+                self.grid[line_pt] = PointState.EMPTY
+
+        # ── Step 4 ──────────────────────────────────────────────────────────────
+        self._reconnect_player_nodes(player)    # attacker may gain new connections
+        self._reconnect_player_nodes(opponent)  # defender may regain connections after node removals
     
+    def _reconnect_player_nodes(self, player: Player):
+        """Re-establish connections between own nodes that became possible after an attack removed blocking pieces"""
+        player_nodes = self._get_player_nodes(player)
+        node_state = PointState.BLACK_NODE if player == Player.BLACK else PointState.WHITE_NODE
+        line_state = PointState.BLACK_LINE if player == Player.BLACK else PointState.WHITE_LINE
+
+        for i in range(len(player_nodes)):
+            for j in range(i + 1, len(player_nodes)):
+                node1, node2 = player_nodes[i], player_nodes[j]
+                if self._can_connect_with_blocking(node1, node2, player):
+                    line_points = self._get_line_points(node1, node2)
+                    for point in line_points:
+                        if point == node1 or point == node2:
+                            self.grid[point] = node_state
+                        elif self.grid[point] == PointState.EMPTY:
+                            self.grid[point] = line_state
+
     def _add_node(self, pos: Tuple[int, int]) -> bool:
         """Add a new node for the current player and handle auto-connection"""
         if pos not in self.grid:
@@ -422,26 +501,100 @@ class TriangularGame:
         
         # Handle blocking and elimination after successful placement
         self._handle_blocking_attack(pos, self.current_player, original_state)
-        
+
         return True
     
     def _switch_player(self):
         """Switch to the other player"""
         self.current_player = Player.WHITE if self.current_player == Player.BLACK else Player.BLACK
-    
+
+    def _has_valid_moves(self, player: Player) -> bool:
+        """Return True if the given player has at least one legal move."""
+        opponent_line = PointState.WHITE_LINE if player == Player.BLACK else PointState.BLACK_LINE
+        existing_nodes = self._get_player_nodes(player)
+        for pos, state in self.grid.items():
+            if state not in [PointState.EMPTY, PointState.WHITE_LINE, PointState.BLACK_LINE]:
+                continue
+            if self._is_in_protection_zone(pos, player):
+                continue
+            is_attacking = (state == opponent_line)
+            if not is_attacking and not self._check_three_point_limitation(pos, player):
+                continue
+            for node_pos in existing_nodes:
+                if node_pos != pos and self._can_connect_with_blocking(pos, node_pos, player):
+                    return True
+        return False
+
+    def _check_and_auto_skip(self):
+        """If the current player has no valid moves, auto-skip them (up to game end)."""
+        if self.game_over:
+            return
+        if not self._has_valid_moves(self.current_player):
+            self.consecutive_skips += 1
+            if self.consecutive_skips >= 2:
+                self.game_over = True
+            else:
+                self._switch_player()
+                self._check_and_auto_skip()  # check the newly active player too
+
+    def handle_skip(self):
+        """Current player skips their turn. If both players skip consecutively, game ends."""
+        if self.game_over:
+            return
+        self.consecutive_skips += 1
+        if self.consecutive_skips >= 2:
+            self.game_over = True
+        else:
+            self._switch_player()
+            self._check_and_auto_skip()
+
     def handle_click(self, pos: Tuple[int, int]):
         """Handle mouse click at screen position"""
         if self.game_over:
             return
-        
+
+        # Check skip button
+        if self.skip_button_rect.collidepoint(pos[0], pos[1]):
+            self.handle_skip()
+            return
+
         grid_pos = self._get_grid_pos(pos[0], pos[1])
         if grid_pos and self._add_node(grid_pos):
+            self.consecutive_skips = 0  # Reset skip counter on a real move
             self._switch_player()
+            self._check_and_auto_skip()
     
     def draw(self):
         """Draw the game state"""
         self.screen.fill(self.WHITE)
         
+        # Draw connections as direct lines between node pairs.
+        # Iterating adjacent grid points would create spurious triangles at corners,
+        # so instead we draw one segment per connected node pair with no intermediate nodes.
+        for player_enum in [Player.BLACK, Player.WHITE]:
+            p_nodes = self._get_player_nodes(player_enum)
+            node_st = PointState.BLACK_NODE if player_enum == Player.BLACK else PointState.WHITE_NODE
+            line_st = PointState.BLACK_LINE if player_enum == Player.BLACK else PointState.WHITE_LINE
+            owned = [node_st, line_st]
+            seg_color = self.BLUE if player_enum == Player.BLACK else self.RED
+
+            for i in range(len(p_nodes)):
+                for j in range(i + 1, len(p_nodes)):
+                    n1, n2 = p_nodes[i], p_nodes[j]
+                    if not self._can_connect(n1, n2):
+                        continue
+                    pts = self._get_line_points(n1, n2)
+                    # Only draw if every point on the segment is owned by this player
+                    if not all(self.grid[p] in owned for p in pts):
+                        continue
+                    # Skip if there's an intermediate node — that shorter pair will draw it
+                    if any(self.grid[p] == node_st for p in pts if p != n1 and p != n2):
+                        continue
+                    pygame.draw.line(self.screen, seg_color,
+                                     self._get_screen_pos(*n1),
+                                     self._get_screen_pos(*n2),
+                                     self.LINE_WIDTH)
+
         # Draw grid points
         for (x, y), state in self.grid.items():
             screen_x, screen_y = self._get_screen_pos(x, y)
@@ -467,8 +620,28 @@ class TriangularGame:
         color = self.BLUE if self.current_player == Player.BLACK else self.RED
         text_surface = font.render(player_text, True, color)
         self.screen.blit(text_surface, (10, 10))
-        
-        
+
+        # Draw skip button
+        pygame.draw.rect(self.screen, self.GRAY, self.skip_button_rect, border_radius=6)
+        pygame.draw.rect(self.screen, self.BLACK, self.skip_button_rect, 2, border_radius=6)
+        skip_label = font.render("Skip", True, self.WHITE)
+        label_rect = skip_label.get_rect(center=self.skip_button_rect.center)
+        self.screen.blit(skip_label, label_rect)
+
+        # Draw game over overlay
+        if self.game_over:
+            overlay = pygame.Surface((self.SCREEN_WIDTH, self.SCREEN_HEIGHT), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 160))
+            self.screen.blit(overlay, (0, 0))
+            big_font = pygame.font.Font(None, 72)
+            over_text = big_font.render("Game Over", True, self.WHITE)
+            over_rect = over_text.get_rect(center=(self.SCREEN_WIDTH // 2, self.SCREEN_HEIGHT // 2 - 30))
+            self.screen.blit(over_text, over_rect)
+            sub_font = pygame.font.Font(None, 36)
+            sub_text = sub_font.render("Both players passed – game ended", True, self.LIGHT_GRAY)
+            sub_rect = sub_text.get_rect(center=(self.SCREEN_WIDTH // 2, self.SCREEN_HEIGHT // 2 + 30))
+            self.screen.blit(sub_text, sub_rect)
+
         pygame.display.flip()
     
     def run(self):
