@@ -4,6 +4,7 @@ import math
 from enum import Enum
 from typing import Dict, List, Tuple, Optional
 
+
 class PointState(Enum):
     EMPTY = 0
     BLACK_NODE = 1
@@ -162,6 +163,168 @@ class TriangularGame:
         target_state = PointState.BLACK_LINE if player == Player.BLACK else PointState.WHITE_LINE
         return [pos for pos, state in self.grid.items() if state == target_state]
     
+    def _compute_inner_hull(self, player: Player):
+        """Compute the inner convex hull for a player's territory.
+
+        Algorithm:
+          1. Compute the convex hull of all friendly grid positions (vertices
+             are already lattice points).
+          2. For each consecutive pair of hull vertices, find the shortest path
+             between them on the triangular grid (A*) that avoids enemy grid
+             positions.
+          3. Concatenate these paths to form a simple closed polygon whose
+             vertices are all on lattice points and that routes around enemies
+             without ever creating holes or MultiPolygons.
+
+        Returns (screen_coord_list, area_in_triangle_units) or (None, 0.0).
+        """
+        try:
+            import numpy as np
+            from scipy.spatial import ConvexHull
+        except ImportError:
+            return None, 0.0
+
+        node_st = PointState.BLACK_NODE if player == Player.BLACK else PointState.WHITE_NODE
+        line_st = PointState.BLACK_LINE if player == Player.BLACK else PointState.WHITE_LINE
+        opp_node = PointState.WHITE_NODE if player == Player.BLACK else PointState.BLACK_NODE
+        opp_line = PointState.WHITE_LINE if player == Player.BLACK else PointState.BLACK_LINE
+
+        friendly_grid: List[Tuple[int, int]] = []
+        enemy_grid: set = set()
+
+        for pos, state in self.grid.items():
+            if state in (node_st, line_st):
+                friendly_grid.append(pos)
+            elif state in (opp_node, opp_line):
+                enemy_grid.add(pos)
+
+        if len(friendly_grid) < 3:
+            return None, 0.0
+
+        friendly_screen = np.array(
+            [self._get_screen_pos(*p) for p in friendly_grid], dtype=float
+        )
+        try:
+            hull = ConvexHull(friendly_screen)
+        except Exception:
+            return None, 0.0
+
+        # Hull vertices in order; each index refers to friendly_grid
+        hull_grid_verts = [friendly_grid[i] for i in hull.vertices]
+
+        # Build polygon boundary: for each hull edge route along the grid,
+        # detouring around any enemy positions.
+        poly_grid: List[Tuple[int, int]] = []
+        n = len(hull_grid_verts)
+        for i in range(n):
+            v_start = hull_grid_verts[i]
+            v_end   = hull_grid_verts[(i + 1) % n]
+            path    = self._astar_grid(v_start, v_end, enemy_grid)
+            poly_grid.extend(path[:-1])   # endpoint becomes start of next segment
+
+        if len(poly_grid) < 3:
+            return None, 0.0
+
+        # Convert to screen coordinates
+        screen_pts = [self._get_screen_pos(*p) for p in poly_grid]
+
+        # Area via shoelace formula
+        area_px = 0.0
+        m = len(screen_pts)
+        for i in range(m):
+            x1, y1 = screen_pts[i]
+            x2, y2 = screen_pts[(i + 1) % m]
+            area_px += x1 * y2 - x2 * y1
+        area_px = abs(area_px) / 2.0
+
+        # Convert pixel area → equilateral-triangle units (1 △ = (√3/4)·cell²)
+        tri_unit = (math.sqrt(3) / 4.0) * self.cell_size ** 2
+        area = area_px / tri_unit
+
+        return screen_pts, area
+
+    def _astar_grid(self, start: Tuple[int, int], end: Tuple[int, int],
+                    avoid: set) -> List[Tuple[int, int]]:
+        """A* shortest path on the triangular grid from start to end.
+
+        Avoids positions in 'avoid'. Returns the full path including both
+        endpoints. Falls back to [start, end] when no path is found.
+        """
+        import heapq
+
+        if start == end:
+            return [start]
+
+        ex, ey = self._get_screen_pos(*end)
+
+        def h(pos: Tuple[int, int]) -> float:
+            sx, sy = self._get_screen_pos(*pos)
+            return math.hypot(sx - ex, sy - ey)
+
+        counter = 0
+        open_heap: list = [(h(start), counter, start)]
+        came_from: Dict[Tuple[int, int], Optional[Tuple[int, int]]] = {start: None}
+        g_score: Dict[Tuple[int, int], float] = {start: 0.0}
+
+        while open_heap:
+            _, _, current = heapq.heappop(open_heap)
+
+            if current == end:
+                path: List[Tuple[int, int]] = []
+                node: Optional[Tuple[int, int]] = current
+                while node is not None:
+                    path.append(node)
+                    node = came_from[node]
+                return list(reversed(path))
+
+            for nb in self._get_adjacent_positions(current):
+                if nb in avoid:
+                    continue
+                new_g = g_score[current] + 1.0
+                if new_g < g_score.get(nb, float('inf')):
+                    came_from[nb] = current
+                    g_score[nb]   = new_g
+                    counter += 1
+                    heapq.heappush(open_heap, (new_g + h(nb), counter, nb))
+
+        # No path found — direct edge as fallback
+        return [start, end]
+
+    def _draw_territory_hulls(self):
+        """Render inner-convex-hull territory overlays with 50 % transparency.
+
+        Blue (Black player) hull on the left; Red (White player) hull on the right.
+        Area labels are shown at the bottom of each side.
+        """
+        overlay = pygame.Surface((self.SCREEN_WIDTH, self.SCREEN_HEIGHT), pygame.SRCALPHA)
+
+        results = {}
+        for player, fill_col, border_col in [
+            (Player.BLACK, (30,  80, 255, 128), (0,   0, 200, 220)),
+            (Player.WHITE, (255, 50, 50,  128), (200, 0,   0, 220)),
+        ]:
+            coords, area = self._compute_inner_hull(player)
+            results[player] = (coords, area)
+            if coords and len(coords) >= 3:
+                pygame.draw.polygon(overlay, fill_col, coords)
+                pygame.draw.polygon(overlay, border_col, coords, 2)
+
+        self.screen.blit(overlay, (0, 0))
+
+        # Area labels: Blue on left, Red on right
+        font = pygame.font.Font(None, 28)
+        black_coords, black_area = results[Player.BLACK]
+        white_coords, white_area = results[Player.WHITE]
+
+        if black_coords:
+            label = font.render(f"Blue territory: {black_area:.1f} △", True, (0, 0, 200))
+            self.screen.blit(label, (10, self.SCREEN_HEIGHT - 30))
+
+        if white_coords:
+            label = font.render(f"Red territory:  {white_area:.1f} △", True, (200, 0, 0))
+            lw = label.get_width()
+            self.screen.blit(label, (self.SCREEN_WIDTH - lw - 10, self.SCREEN_HEIGHT - 30))
+
     def _get_adjacent_positions(self, pos: Tuple[int, int]) -> List[Tuple[int, int]]:
         """Get all adjacent positions to a given position"""
         x, y = pos
@@ -567,7 +730,10 @@ class TriangularGame:
     def draw(self):
         """Draw the game state"""
         self.screen.fill(self.WHITE)
-        
+
+        # Draw territory hulls behind everything else
+        self._draw_territory_hulls()
+
         # Draw connections as direct lines between node pairs.
         # Iterating adjacent grid points would create spurious triangles at corners,
         # so instead we draw one segment per connected node pair with no intermediate nodes.
