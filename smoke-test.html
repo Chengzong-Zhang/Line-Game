@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smoke Test</title>
+    <style>
+      body { margin: 0; font-family: sans-serif; }
+      #root { display: grid; grid-template-columns: 1fr 320px; gap: 16px; padding: 16px; }
+      canvas { width: 900px; height: 700px; display: block; background: #f5efe4; }
+      pre { margin: 0; white-space: pre-wrap; }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <canvas id="board"></canvas>
+      <pre id="output">running...</pre>
+    </div>
+    <script type="module">
+      import GameController from "./GameController.js";
+
+      const canvas = document.getElementById("board");
+      const output = document.getElementById("output");
+      const controller = new GameController(canvas);
+      controller.init();
+
+      const before = controller.getGameState();
+      const firstMove = before.legalMoves[0]?.point;
+
+      let after = before;
+      let result = { success: false, reason: "NO_MOVE" };
+
+      if (firstMove) {
+        const pixel = controller.renderer.getPointPixelCoordinates(firstMove);
+        const rect = canvas.getBoundingClientRect();
+        const event = new MouseEvent("click", {
+          bubbles: true,
+          clientX: rect.left + pixel.x,
+          clientY: rect.top + pixel.y,
+        });
+        canvas.dispatchEvent(event);
+        after = controller.getGameState();
+        result = {
+          success: before.turnCount !== after.turnCount,
+          chosenPoint: firstMove,
+          beforeTurn: before.turnCount,
+          afterTurn: after.turnCount,
+          beforePlayer: before.currentPlayer,
+          afterPlayer: after.currentPlayer,
+          beforeMoves: before.legalMoves.length,
+          afterMoves: after.legalMoves.length,
+        };
+      }
+
+      output.textContent = JSON.stringify({
+        result,
+        gameOver: after.gameOver,
+        scores: after.scores,
+      }, null, 2);
+    </script>
+  </body>
+</html>
