@@ -62,7 +62,17 @@ class TriangularGame:
 
         # Game clock
         self.clock = pygame.time.Clock()
-        
+
+        # Hull caches — only recomputed after each state change, not every frame
+        self._hull_black: Tuple[Optional[list], float] = (None, 0.0)
+        self._hull_white: Tuple[Optional[list], float] = (None, 0.0)
+
+        # Pre-built fonts (Font() is slow; create once, reuse every frame)
+        self._font_sm  = pygame.font.Font(None, 28)
+        self._font_md  = pygame.font.Font(None, 32)
+        self._font_lg  = pygame.font.Font(None, 36)
+        self._font_xl  = pygame.font.Font(None, 72)
+
     def _init_grid(self):
         """Initialize the triangular grid with empty points"""
         for y in range(self.GRID_SIZE):
@@ -163,148 +173,173 @@ class TriangularGame:
         target_state = PointState.BLACK_LINE if player == Player.BLACK else PointState.WHITE_LINE
         return [pos for pos, state in self.grid.items() if state == target_state]
     
+    def _is_on_segment(self, p: Tuple[int, int], a: Tuple[int, int], b: Tuple[int, int]) -> bool:
+        """检查点 p 是否在线段 ab 上（适用网格坐标）"""
+        cross = (p[1] - a[1]) * (b[0] - a[0]) - (p[0] - a[0]) * (b[1] - a[1])
+        if cross != 0: 
+            return False
+        return min(a[0], b[0]) <= p[0] <= max(a[0], b[0]) and min(a[1], b[1]) <= p[1] <= max(a[1], b[1])
+
+    def _polygon_contains_all(self, polygon: List[Tuple[int, int]], friendlies: set) -> bool:
+        """射线法结合边界检查，确保所有友方点都在多边形内或边界上"""
+        n = len(polygon)
+        if n < 3: 
+            return False
+            
+        for pt in friendlies:
+            if pt in polygon:
+                continue
+                
+            on_boundary = False
+            for i in range(n):
+                if self._is_on_segment(pt, polygon[i], polygon[(i + 1) % n]):
+                    on_boundary = True
+                    break
+            if on_boundary:
+                continue
+                
+            x, y = pt
+            inside = False
+            p1x, p1y = polygon[0]
+            for i in range(1, n + 1):
+                p2x, p2y = polygon[i % n]
+                if y > min(p1y, p2y):
+                    if y <= max(p1y, p2y):
+                        if x <= max(p1x, p2x):
+                            if p1y != p2y:
+                                xinters = (y - p1y) * (p2x - p1x) / (p2y - p1y) + p1x
+                            if p1x == p2x or x <= xinters:
+                                inside = not inside
+                p1x, p1y = p2x, p2y
+                
+            if not inside:
+                return False
+                
+        return True
+
+    def _calculate_polygon_area(self, polygon: List[Tuple[int, int]]) -> float:
+        """使用斜坐标系下的 Shoelace 公式，返回值恰好等于等边三角形的个数"""
+        area = 0
+        n = len(polygon)
+        for i in range(n):
+            x1, y1 = polygon[i]
+            x2, y2 = polygon[(i + 1) % n]
+            area += (x1 * y2 - x2 * y1)
+        return float(abs(area))
+
+    def _get_all_shortest_grid_paths(self, start: Tuple[int, int], end: Tuple[int, int], enemies: set) -> List[List[Tuple[int, int]]]:
+        """BFS寻路：获取避开敌军的所有等长最短格点路径"""
+        if start == end:
+            return [[start]]
+            
+        queue = [[start]]
+        shortest_paths = []
+        min_length = float('inf')
+        visited_at_depth = {start: 0}
+        
+        while queue:
+            path = queue.pop(0)
+            current = path[-1]
+            
+            if len(path) > min_length:
+                continue
+                
+            if current == end:
+                shortest_paths.append(path)
+                min_length = len(path)
+                continue
+                
+            for nxt in self._get_adjacent_positions(current):
+                if nxt in enemies:
+                    continue
+                depth = len(path)
+                # 允许等长的不同路径交汇
+                if nxt not in visited_at_depth or visited_at_depth[nxt] >= depth:
+                    visited_at_depth[nxt] = depth
+                    queue.append(path + [nxt])
+                    
+        return shortest_paths
+
     def _compute_inner_hull(self, player: Player):
-        """Compute the inner convex hull for a player's territory.
+        """核心重构：执行领土的四步计算法"""
+        opp = Player.WHITE if player == Player.BLACK else Player.BLACK
+        friendlies = set(self._get_player_nodes(player) + self._get_player_lines(player))
+        enemies = set(self._get_player_nodes(opp) + self._get_player_lines(opp))
 
-        Algorithm:
-          1. Compute the convex hull of all friendly grid positions (vertices
-             are already lattice points).
-          2. For each consecutive pair of hull vertices, find the shortest path
-             between them on the triangular grid (A*) that avoids enemy grid
-             positions.
-          3. Concatenate these paths to form a simple closed polygon whose
-             vertices are all on lattice points and that routes around enemies
-             without ever creating holes or MultiPolygons.
+        if len(friendlies) < 3:
+            return None, 0.0
 
-        Returns (screen_coord_list, area_in_triangle_units) or (None, 0.0).
-        """
+        import numpy as np
         try:
-            import numpy as np
             from scipy.spatial import ConvexHull
         except ImportError:
             return None, 0.0
 
-        node_st = PointState.BLACK_NODE if player == Player.BLACK else PointState.WHITE_NODE
-        line_st = PointState.BLACK_LINE if player == Player.BLACK else PointState.WHITE_LINE
-        opp_node = PointState.WHITE_NODE if player == Player.BLACK else PointState.BLACK_NODE
-        opp_line = PointState.WHITE_LINE if player == Player.BLACK else PointState.BLACK_LINE
-
-        friendly_grid: List[Tuple[int, int]] = []
-        enemy_grid: set = set()
-
-        for pos, state in self.grid.items():
-            if state in (node_st, line_st):
-                friendly_grid.append(pos)
-            elif state in (opp_node, opp_line):
-                enemy_grid.add(pos)
-
-        if len(friendly_grid) < 3:
-            return None, 0.0
-
-        friendly_screen = np.array(
-            [self._get_screen_pos(*p) for p in friendly_grid], dtype=float
-        )
+        friendly_list = list(friendlies)
+        screen_pts = np.array([self._get_screen_pos(*p) for p in friendly_list], dtype=float)
+        
         try:
-            hull = ConvexHull(friendly_screen)
+            # Step 1: 屏幕坐标求欧几里得凸包，获取顶点的逆时针顺序
+            hull = ConvexHull(screen_pts)
+            hull_verts = [friendly_list[i] for i in hull.vertices]
         except Exception:
             return None, 0.0
 
-        # Hull vertices in order; each index refers to friendly_grid
-        hull_grid_verts = [friendly_grid[i] for i in hull.vertices]
-
-        # Build polygon boundary: for each hull edge route along the grid,
-        # detouring around any enemy positions.
-        poly_grid: List[Tuple[int, int]] = []
-        n = len(hull_grid_verts)
+        # Step 2: 路由 - 寻找相邻凸包顶点之间的所有网格最短路
+        segments_paths = []
+        n = len(hull_verts)
         for i in range(n):
-            v_start = hull_grid_verts[i]
-            v_end   = hull_grid_verts[(i + 1) % n]
-            path    = self._astar_grid(v_start, v_end, enemy_grid)
-            poly_grid.extend(path[:-1])   # endpoint becomes start of next segment
+            start = hull_verts[i]
+            end = hull_verts[(i + 1) % n]
+            paths = self._get_all_shortest_grid_paths(start, end, enemies)
+            
+            if not paths:
+                # 极端情况：敌方将阵地彻底锁死，无法形成闭合回路
+                return None, 0.0
+            segments_paths.append(paths)
 
-        if len(poly_grid) < 3:
+        import itertools
+        best_polygon = None
+        min_area = float('inf')
+        
+        # Step 3 & 4: 选路与面积 - 遍历所有相邻段的路径组合
+        for path_combination in itertools.product(*segments_paths):
+            polygon = []
+            for path in path_combination:
+                polygon.extend(path[:-1])  # 拼合路径，舍去重复的连接点
+                
+            # 若内凹太深导致友方节点被漏在圈外，则丢弃该组合
+            if not self._polygon_contains_all(polygon, friendlies):
+                continue
+                
+            area = self._calculate_polygon_area(polygon)
+            if area < min_area:
+                min_area = area
+                best_polygon = polygon
+                
+        if best_polygon is None:
             return None, 0.0
-
-        # Convert to screen coordinates
-        screen_pts = [self._get_screen_pos(*p) for p in poly_grid]
-
-        # Area via shoelace formula
-        area_px = 0.0
-        m = len(screen_pts)
-        for i in range(m):
-            x1, y1 = screen_pts[i]
-            x2, y2 = screen_pts[(i + 1) % m]
-            area_px += x1 * y2 - x2 * y1
-        area_px = abs(area_px) / 2.0
-
-        # Convert pixel area → equilateral-triangle units (1 △ = (√3/4)·cell²)
-        tri_unit = (math.sqrt(3) / 4.0) * self.cell_size ** 2
-        area = area_px / tri_unit
-
-        return screen_pts, area
-
-    def _astar_grid(self, start: Tuple[int, int], end: Tuple[int, int],
-                    avoid: set) -> List[Tuple[int, int]]:
-        """A* shortest path on the triangular grid from start to end.
-
-        Avoids positions in 'avoid'. Returns the full path including both
-        endpoints. Falls back to [start, end] when no path is found.
-        """
-        import heapq
-
-        if start == end:
-            return [start]
-
-        ex, ey = self._get_screen_pos(*end)
-
-        def h(pos: Tuple[int, int]) -> float:
-            sx, sy = self._get_screen_pos(*pos)
-            return math.hypot(sx - ex, sy - ey)
-
-        counter = 0
-        open_heap: list = [(h(start), counter, start)]
-        came_from: Dict[Tuple[int, int], Optional[Tuple[int, int]]] = {start: None}
-        g_score: Dict[Tuple[int, int], float] = {start: 0.0}
-
-        while open_heap:
-            _, _, current = heapq.heappop(open_heap)
-
-            if current == end:
-                path: List[Tuple[int, int]] = []
-                node: Optional[Tuple[int, int]] = current
-                while node is not None:
-                    path.append(node)
-                    node = came_from[node]
-                return list(reversed(path))
-
-            for nb in self._get_adjacent_positions(current):
-                if nb in avoid:
-                    continue
-                new_g = g_score[current] + 1.0
-                if new_g < g_score.get(nb, float('inf')):
-                    came_from[nb] = current
-                    g_score[nb]   = new_g
-                    counter += 1
-                    heapq.heappush(open_heap, (new_g + h(nb), counter, nb))
-
-        # No path found — direct edge as fallback
-        return [start, end]
+            
+        screen_polygon = [self._get_screen_pos(*p) for p in best_polygon]
+        return screen_polygon, min_area
+    
+    def _update_hulls(self):
+        """Recompute both players' inner hull and cache the results.
+        Call once after every state change instead of every frame."""
+        self._hull_black = self._compute_inner_hull(Player.BLACK)
+        self._hull_white = self._compute_inner_hull(Player.WHITE)
 
     def _draw_territory_hulls(self):
-        """Render inner-convex-hull territory overlays with 50 % transparency.
-
-        Blue (Black player) hull on the left; Red (White player) hull on the right.
-        Area labels are shown at the bottom of each side.
-        """
+        """Render cached inner-convex-hull territory overlays with 50 % transparency."""
         overlay = pygame.Surface((self.SCREEN_WIDTH, self.SCREEN_HEIGHT), pygame.SRCALPHA)
 
-        results = {}
-        for player, fill_col, border_col in [
-            (Player.BLACK, (30,  80, 255, 128), (0,   0, 200, 220)),
-            (Player.WHITE, (255, 50, 50,  128), (200, 0,   0, 220)),
+        black_coords, black_area = self._hull_black
+        white_coords, white_area = self._hull_white
+
+        for coords, fill_col, border_col in [
+            (black_coords, (30,  80, 255, 128), (0,   0, 200, 220)),
+            (white_coords, (255, 50, 50,  128), (200, 0,   0, 220)),
         ]:
-            coords, area = self._compute_inner_hull(player)
-            results[player] = (coords, area)
             if coords and len(coords) >= 3:
                 pygame.draw.polygon(overlay, fill_col, coords)
                 pygame.draw.polygon(overlay, border_col, coords, 2)
@@ -312,16 +347,11 @@ class TriangularGame:
         self.screen.blit(overlay, (0, 0))
 
         # Area labels: Blue on left, Red on right
-        font = pygame.font.Font(None, 28)
-        black_coords, black_area = results[Player.BLACK]
-        white_coords, white_area = results[Player.WHITE]
-
         if black_coords:
-            label = font.render(f"Blue territory: {black_area:.1f} △", True, (0, 0, 200))
+            label = self._font_sm.render(f"Blue territory: {black_area:.1f} △", True, (0, 0, 200))
             self.screen.blit(label, (10, self.SCREEN_HEIGHT - 30))
-
         if white_coords:
-            label = font.render(f"Red territory:  {white_area:.1f} △", True, (200, 0, 0))
+            label = self._font_sm.render(f"Red territory:  {white_area:.1f} △", True, (200, 0, 0))
             lw = label.get_width()
             self.screen.blit(label, (self.SCREEN_WIDTH - lw - 10, self.SCREEN_HEIGHT - 30))
 
@@ -710,6 +740,7 @@ class TriangularGame:
         else:
             self._switch_player()
             self._check_and_auto_skip()
+        self._update_hulls()
 
     def handle_click(self, pos: Tuple[int, int]):
         """Handle mouse click at screen position"""
@@ -726,6 +757,7 @@ class TriangularGame:
             self.consecutive_skips = 0  # Reset skip counter on a real move
             self._switch_player()
             self._check_and_auto_skip()
+            self._update_hulls()
     
     def draw(self):
         """Draw the game state"""
@@ -781,16 +813,15 @@ class TriangularGame:
                 pygame.draw.circle(self.screen, self.RED, (screen_x, screen_y), self.POINT_RADIUS // 2, 2)
         
         # Draw current player indicator
-        font = pygame.font.Font(None, 36)
         player_text = "Blue's Turn" if self.current_player == Player.BLACK else "Red's Turn"
         color = self.BLUE if self.current_player == Player.BLACK else self.RED
-        text_surface = font.render(player_text, True, color)
+        text_surface = self._font_lg.render(player_text, True, color)
         self.screen.blit(text_surface, (10, 10))
 
         # Draw skip button
         pygame.draw.rect(self.screen, self.GRAY, self.skip_button_rect, border_radius=6)
         pygame.draw.rect(self.screen, self.BLACK, self.skip_button_rect, 2, border_radius=6)
-        skip_label = font.render("Skip", True, self.WHITE)
+        skip_label = self._font_lg.render("Skip", True, self.WHITE)
         label_rect = skip_label.get_rect(center=self.skip_button_rect.center)
         self.screen.blit(skip_label, label_rect)
 
@@ -799,14 +830,28 @@ class TriangularGame:
             overlay = pygame.Surface((self.SCREEN_WIDTH, self.SCREEN_HEIGHT), pygame.SRCALPHA)
             overlay.fill((0, 0, 0, 160))
             self.screen.blit(overlay, (0, 0))
-            big_font = pygame.font.Font(None, 72)
-            over_text = big_font.render("Game Over", True, self.WHITE)
-            over_rect = over_text.get_rect(center=(self.SCREEN_WIDTH // 2, self.SCREEN_HEIGHT // 2 - 30))
+
+            black_area = self._hull_black[1]
+            white_area = self._hull_white[1]
+            if black_area > white_area:
+                winner_text, winner_color = "Blue Wins!", (120, 160, 255)
+            elif white_area > black_area:
+                winner_text, winner_color = "Red Wins!",  (255, 120, 120)
+            else:
+                winner_text, winner_color = "Draw!",      (200, 200, 200)
+
+            over_text = self._font_xl.render("Game Over", True, self.WHITE)
+            over_rect = over_text.get_rect(center=(self.SCREEN_WIDTH // 2, self.SCREEN_HEIGHT // 2 - 55))
             self.screen.blit(over_text, over_rect)
-            sub_font = pygame.font.Font(None, 36)
-            sub_text = sub_font.render("Both players passed – game ended", True, self.LIGHT_GRAY)
-            sub_rect = sub_text.get_rect(center=(self.SCREEN_WIDTH // 2, self.SCREEN_HEIGHT // 2 + 30))
-            self.screen.blit(sub_text, sub_rect)
+
+            winner_surf = self._font_xl.render(winner_text, True, winner_color)
+            winner_rect = winner_surf.get_rect(center=(self.SCREEN_WIDTH // 2, self.SCREEN_HEIGHT // 2 + 10))
+            self.screen.blit(winner_surf, winner_rect)
+
+            area_text = f"Blue {black_area:.1f} △   vs   Red {white_area:.1f} △"
+            area_surf = self._font_md.render(area_text, True, self.LIGHT_GRAY)
+            area_rect = area_surf.get_rect(center=(self.SCREEN_WIDTH // 2, self.SCREEN_HEIGHT // 2 + 62))
+            self.screen.blit(area_surf, area_rect)
 
         pygame.display.flip()
     
