@@ -1,3 +1,4 @@
+
 import pygame
 import sys
 import math
@@ -180,30 +181,6 @@ class TriangularGame:
             return False
         return min(a[0], b[0]) <= p[0] <= max(a[0], b[0]) and min(a[1], b[1]) <= p[1] <= max(a[1], b[1])
 
-    def _is_point_in_poly_grid(self, pt: Tuple[int, int], polygon: List[Tuple[int, int]]) -> bool:
-        """射线法检查单个格点是否在多边形内或边界上（格坐标系，线性双射保证正确）"""
-        n = len(polygon)
-        if n < 3:
-            return False
-        for i in range(n):
-            if self._is_on_segment(pt, polygon[i], polygon[(i + 1) % n]):
-                return True
-        x, y = pt
-        inside = False
-        xinters = 0.0
-        p1x, p1y = polygon[0]
-        for i in range(1, n + 1):
-            p2x, p2y = polygon[i % n]
-            if y > min(p1y, p2y):
-                if y <= max(p1y, p2y):
-                    if x <= max(p1x, p2x):
-                        if p1y != p2y:
-                            xinters = (y - p1y) * (p2x - p1x) / (p2y - p1y) + p1x
-                        if p1x == p2x or x <= xinters:
-                            inside = not inside
-            p1x, p1y = p2x, p2y
-        return inside
-
     def _polygon_contains_all(self, polygon: List[Tuple[int, int]], friendlies: set) -> bool:
         """射线法结合边界检查，确保所有友方点都在多边形内或边界上"""
         n = len(polygon)
@@ -251,53 +228,41 @@ class TriangularGame:
             area += (x1 * y2 - x2 * y1)
         return float(abs(area))
 
-    def _get_dist_map(self, target: Tuple[int, int], enemies: set) -> dict:
-        """预计算终点到所有可达点的最短安全跳数，用于寻路时的极速剪枝"""
-        from collections import deque
-        dist = {target: 0}
-        queue = deque([target])
+    def _get_all_shortest_grid_paths(self, start: Tuple[int, int], end: Tuple[int, int], enemies: set) -> List[List[Tuple[int, int]]]:
+        """BFS寻路：获取避开敌军的所有等长最短格点路径"""
+        if start == end:
+            return [[start]]
+            
+        queue = [[start]]
+        shortest_paths = []
+        min_length = float('inf')
+        visited_at_depth = {start: 0}
+        
         while queue:
-            curr = queue.popleft()
-            d = dist[curr]
-            for nxt in self._get_adjacent_positions(curr):
-                if nxt not in enemies and nxt not in dist:
-                    dist[nxt] = d + 1
-                    queue.append(nxt)
-        return dist
-
-    def _get_paths_of_exact_length(self, start: Tuple[int, int], end: Tuple[int, int],
-                                    enemies: set, target_len: int) -> List[List[Tuple[int, int]]]:
-        """带强力剪枝的精确长度 DFS 寻路"""
-        dist_map = self._get_dist_map(end, enemies)
-        if start not in dist_map or dist_map[start] > target_len:
-            return []
-
-        result: List[List[Tuple[int, int]]] = []
-        stack = [([start], {start})]
-
-        while stack:
-            path, path_set = stack.pop()
-            curr = path[-1]
-            depth = len(path) - 1
-
-            if depth == target_len:
-                if curr == end:
-                    result.append(path)
-                    if len(result) >= 300:
-                        return result
+            path = queue.pop(0)
+            current = path[-1]
+            
+            if len(path) > min_length:
                 continue
-
-            for nxt in self._get_adjacent_positions(curr):
-                if nxt in enemies or nxt in path_set:
+                
+            if current == end:
+                shortest_paths.append(path)
+                min_length = len(path)
+                continue
+                
+            for nxt in self._get_adjacent_positions(current):
+                if nxt in enemies:
                     continue
-                # 剪枝：剩余步数不足以到达终点则跳过
-                if nxt in dist_map and depth + 1 + dist_map[nxt] <= target_len:
-                    stack.append((path + [nxt], path_set | {nxt}))
-
-        return result
+                depth = len(path)
+                # 允许等长的不同路径交汇
+                if nxt not in visited_at_depth or visited_at_depth[nxt] >= depth:
+                    visited_at_depth[nxt] = depth
+                    queue.append(path + [nxt])
+                    
+        return shortest_paths
 
     def _compute_inner_hull(self, player: Player):
-        """核心：领土计算（凸包 + 精确长度寻路 + 双重质检 + 面积最小化）"""
+        """核心重构：执行领土的四步计算法"""
         opp = Player.WHITE if player == Player.BLACK else Player.BLACK
         friendlies = set(self._get_player_nodes(player) + self._get_player_lines(player))
         enemies = set(self._get_player_nodes(opp) + self._get_player_lines(opp))
@@ -306,74 +271,58 @@ class TriangularGame:
             return None, 0.0
 
         import numpy as np
-        import itertools
         try:
             from scipy.spatial import ConvexHull
-            friendly_list = list(friendlies)
-            screen_pts = np.array([self._get_screen_pos(*p) for p in friendly_list], dtype=float)
+        except ImportError:
+            return None, 0.0
+
+        friendly_list = list(friendlies)
+        screen_pts = np.array([self._get_screen_pos(*p) for p in friendly_list], dtype=float)
+        
+        try:
+            # Step 1: 屏幕坐标求欧几里得凸包，获取顶点的逆时针顺序
             hull = ConvexHull(screen_pts)
             hull_verts = [friendly_list[i] for i in hull.vertices]
         except Exception:
             return None, 0.0
 
+        # Step 2: 路由 - 寻找相邻凸包顶点之间的所有网格最短路
+        segments_paths = []
         n = len(hull_verts)
-        segments_paths: List[List[List[Tuple[int, int]]]] = []
-        MAX_EXTRA = 12
-
         for i in range(n):
-            A = hull_verts[i]
-            B = hull_verts[(i + 1) % n]
-            rest_hull = [hull_verts[(i + 1 + k) % n] for k in range(n - 1)]
-
-            dist_map = self._get_dist_map(B, enemies)
-            if A not in dist_map:
+            start = hull_verts[i]
+            end = hull_verts[(i + 1) % n]
+            paths = self._get_all_shortest_grid_paths(start, end, enemies)
+            
+            if not paths:
+                # 极端情况：敌方将阵地彻底锁死，无法形成闭合回路
                 return None, 0.0
+            segments_paths.append(paths)
 
-            min_len = dist_map[A]
-            max_limit = min_len + MAX_EXTRA
-            valid_segment_paths: List[List[Tuple[int, int]]] = []
-            target_len = min_len
-
-            while not valid_segment_paths and target_len <= max_limit:
-                paths = self._get_paths_of_exact_length(A, B, enemies, target_len)
-                for path in paths:
-                    test_poly = path[:-1] + rest_hull
-                    # 质检A：必须覆盖所有己方棋子（防止向内切）
-                    if not self._polygon_contains_all(test_poly, friendlies):
-                        continue
-                    # 质检B：不得把敌方棋子包进去
-                    if any(self._is_point_in_poly_grid(e, test_poly) for e in enemies):
-                        continue
-                    valid_segment_paths.append(path)
-                target_len += 1
-
-            if not valid_segment_paths:
-                return None, 0.0
-
-            segments_paths.append(valid_segment_paths[:3])
-
+        import itertools
         best_polygon = None
         min_area = float('inf')
-
+        
+        # Step 3 & 4: 选路与面积 - 遍历所有相邻段的路径组合
         for path_combination in itertools.product(*segments_paths):
-            polygon: List[Tuple[int, int]] = []
+            polygon = []
             for path in path_combination:
-                polygon.extend(path[:-1])
-
+                polygon.extend(path[:-1])  # 拼合路径，舍去重复的连接点
+                
+            # 若内凹太深导致友方节点被漏在圈外，则丢弃该组合
             if not self._polygon_contains_all(polygon, friendlies):
                 continue
-            if any(self._is_point_in_poly_grid(e, polygon) for e in enemies):
-                continue
-
+                
             area = self._calculate_polygon_area(polygon)
             if area < min_area:
                 min_area = area
                 best_polygon = polygon
-
+                
         if best_polygon is None:
             return None, 0.0
-
-        return [self._get_screen_pos(*p) for p in best_polygon], min_area
+            
+        screen_polygon = [self._get_screen_pos(*p) for p in best_polygon]
+        return screen_polygon, min_area
     
     def _update_hulls(self):
         """Recompute both players' inner hull and cache the results.
@@ -927,3 +876,4 @@ class TriangularGame:
 if __name__ == "__main__":
     game = TriangularGame()
     game.run()
+
