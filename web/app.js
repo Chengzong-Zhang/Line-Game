@@ -4,7 +4,7 @@ import {
   onMounted,
   ref,
 } from "https://unpkg.com/vue@3/dist/vue.esm-browser.prod.js";
-import GameController from "./GameController.js";
+import GameController from "../GameController.js";
 import { Player } from "./GameEngine.js";
 
 function createDefaultGameState() {
