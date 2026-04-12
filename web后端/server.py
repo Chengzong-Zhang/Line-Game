@@ -1,0 +1,498 @@
+import asyncio
+import time
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Dict, Optional
+from uuid import uuid4
+
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
+
+ROOM_SIZE = 2
+ROOM_CODE_LENGTH = 4
+ROOM_TTL_SECONDS = 300
+PLAYER_BLACK = "BLACK"
+PLAYER_WHITE = "WHITE"
+
+
+@dataclass
+class PlayerSession:
+    player_id: str
+    color: str
+    websocket: Optional[WebSocket] = None
+    connected: bool = False
+    last_seen: float = field(default_factory=time.time)
+
+
+@dataclass
+class Room:
+    room_id: str
+    players: Dict[str, PlayerSession] = field(default_factory=dict)
+    created_at: float = field(default_factory=time.time)
+    updated_at: float = field(default_factory=time.time)
+
+    def connected_players(self) -> list[PlayerSession]:
+        return [player for player in self.players.values() if player.connected and player.websocket is not None]
+
+    def active_player_count(self) -> int:
+        return len(self.players)
+
+    def has_connected_player(self) -> bool:
+        return any(player.connected for player in self.players.values())
+
+    def available_color(self) -> str:
+        used_colors = {player.color for player in self.players.values()}
+        return PLAYER_WHITE if PLAYER_BLACK in used_colors else PLAYER_BLACK
+
+
+class ConnectionManager:
+    def __init__(self) -> None:
+        self.rooms: Dict[str, Room] = {}
+        self.websocket_index: Dict[WebSocket, tuple[str, str]] = {}
+        self.lock = asyncio.Lock()
+
+    async def connect(self, websocket: WebSocket) -> None:
+        await websocket.accept()
+
+    async def handle_message(self, websocket: WebSocket, message: Dict[str, Any]) -> None:
+        message_type = message.get("type")
+
+        if message_type == "create_room":
+            await self.create_room(websocket)
+            return
+
+        if message_type == "join_room":
+            room_id = str(message.get("roomId", "")).strip()
+            player_id = message.get("playerId")
+            await self.join_room(websocket, room_id=room_id, player_id=player_id)
+            return
+
+        if message_type == "player_move":
+            point = message.get("point")
+            await self.forward_move(websocket, point)
+            return
+
+        if message_type == "player_leave":
+            await self.player_leave(websocket, reason="player_leave")
+            return
+
+        await self.send_json(
+            websocket,
+            {
+                "type": "ERROR",
+                "code": "UNKNOWN_MESSAGE_TYPE",
+                "message": f"Unsupported message type: {message_type!r}",
+            },
+        )
+
+    async def create_room(self, websocket: WebSocket) -> None:
+        async with self.lock:
+            current_room_id, current_player_id = self.websocket_index.get(websocket, (None, None))
+            if current_room_id and current_player_id:
+                await self._detach_player(
+                    current_room_id,
+                    current_player_id,
+                    notify_opponent=True,
+                    leave_reason="switch_room",
+                    remove_player=True,
+                )
+
+            room_id = self._generate_room_id()
+            player_id = self._new_player_id()
+            player = PlayerSession(
+                player_id=player_id,
+                color=PLAYER_BLACK,
+                websocket=websocket,
+                connected=True,
+            )
+            room = Room(room_id=room_id, players={player_id: player})
+            self.rooms[room_id] = room
+            self.websocket_index[websocket] = (room_id, player_id)
+
+        await self.send_json(
+            websocket,
+            {
+                "type": "ROOM_CREATED",
+                "roomId": room_id,
+                "playerId": player_id,
+                "color": player.color,
+                "status": "WAITING",
+            },
+        )
+
+    async def join_room(self, websocket: WebSocket, room_id: str, player_id: Optional[str] = None) -> None:
+        if not room_id:
+            await self.send_json(
+                websocket,
+                {
+                    "type": "ERROR",
+                    "code": "ROOM_ID_REQUIRED",
+                    "message": "roomId is required.",
+                },
+            )
+            return
+
+        reconnected = False
+        async with self.lock:
+            self._cleanup_stale_rooms_locked()
+            room = self.rooms.get(room_id)
+
+            if room is None:
+                await self.send_json(
+                    websocket,
+                    {
+                        "type": "ERROR",
+                        "code": "ROOM_NOT_FOUND",
+                        "message": f"Room {room_id} does not exist.",
+                    },
+                )
+                return
+
+            existing_room_id, existing_player_id = self.websocket_index.get(websocket, (None, None))
+            if existing_room_id and existing_player_id and existing_room_id != room_id:
+                await self._detach_player(
+                    existing_room_id,
+                    existing_player_id,
+                    notify_opponent=True,
+                    leave_reason="switch_room",
+                    remove_player=True,
+                )
+
+            session: Optional[PlayerSession] = None
+            if player_id and player_id in room.players:
+                candidate = room.players[player_id]
+                if candidate.connected and candidate.websocket is not websocket:
+                    await self.send_json(
+                        websocket,
+                        {
+                            "type": "ERROR",
+                            "code": "PLAYER_ALREADY_CONNECTED",
+                            "message": "This player session is already connected.",
+                        },
+                    )
+                    return
+                session = candidate
+                reconnected = True
+
+            if session is None:
+                if room.active_player_count() >= ROOM_SIZE:
+                    await self.send_json(
+                        websocket,
+                        {
+                            "type": "ERROR",
+                            "code": "ROOM_FULL",
+                            "message": f"Room {room_id} is full.",
+                        },
+                    )
+                    return
+
+                assigned_color = room.available_color()
+                session = PlayerSession(
+                    player_id=self._new_player_id(),
+                    color=assigned_color,
+                    websocket=websocket,
+                    connected=True,
+                )
+                room.players[session.player_id] = session
+
+            session.websocket = websocket
+            session.connected = True
+            session.last_seen = time.time()
+            room.updated_at = time.time()
+            self.websocket_index[websocket] = (room_id, session.player_id)
+            room_snapshot = self._room_snapshot(room)
+
+        await self.send_json(
+            websocket,
+            {
+                "type": "ROOM_JOINED",
+                "roomId": room_id,
+                "playerId": session.player_id,
+                "color": session.color,
+                "status": "READY" if len(room_snapshot["players"]) == ROOM_SIZE else "WAITING",
+                "reconnected": reconnected,
+            },
+        )
+
+        if len(room_snapshot["players"]) == ROOM_SIZE:
+            await self.broadcast_room_ready(room_id, reconnected_player_id=session.player_id if reconnected else None)
+
+    async def forward_move(self, websocket: WebSocket, point: Any) -> None:
+        if not self._is_valid_point(point):
+            await self.send_json(
+                websocket,
+                {
+                    "type": "ERROR",
+                    "code": "INVALID_POINT",
+                    "message": "point must be a two-item integer array like [x, y].",
+                },
+            )
+            return
+
+        room_and_player = self.websocket_index.get(websocket)
+        if room_and_player is None:
+            await self.send_json(
+                websocket,
+                {
+                    "type": "ERROR",
+                    "code": "NOT_IN_ROOM",
+                    "message": "Join or create a room before sending moves.",
+                },
+            )
+            return
+
+        room_id, sender_id = room_and_player
+        async with self.lock:
+            room = self.rooms.get(room_id)
+            if room is None or sender_id not in room.players:
+                await self.send_json(
+                    websocket,
+                    {
+                        "type": "ERROR",
+                        "code": "ROOM_NOT_FOUND",
+                        "message": "The room no longer exists.",
+                    },
+                )
+                return
+
+            sender = room.players[sender_id]
+            sender.last_seen = time.time()
+            room.updated_at = time.time()
+            opponent = self._find_opponent(room, sender_id)
+
+        if opponent is None or opponent.websocket is None or not opponent.connected:
+            await self.send_json(
+                websocket,
+                {
+                    "type": "ERROR",
+                    "code": "OPPONENT_OFFLINE",
+                    "message": "The opponent is not connected.",
+                },
+            )
+            return
+
+        await self.send_json(
+            opponent.websocket,
+            {
+                "type": "OPPONENT_MOVE",
+                "roomId": room_id,
+                "point": [int(point[0]), int(point[1])],
+                "playerId": sender.player_id,
+                "color": sender.color,
+            },
+        )
+
+    async def player_leave(self, websocket: WebSocket, reason: str = "player_leave") -> None:
+        async with self.lock:
+            room_and_player = self.websocket_index.get(websocket)
+            if room_and_player is None:
+                return
+
+            room_id, player_id = room_and_player
+            await self._detach_player(room_id, player_id, notify_opponent=True, leave_reason=reason, remove_player=True)
+
+    async def disconnect(self, websocket: WebSocket) -> None:
+        async with self.lock:
+            room_and_player = self.websocket_index.get(websocket)
+            if room_and_player is None:
+                return
+
+            room_id, player_id = room_and_player
+            await self._detach_player(room_id, player_id, notify_opponent=True, leave_reason="disconnect", remove_player=False)
+
+    async def broadcast_room_ready(self, room_id: str, reconnected_player_id: Optional[str] = None) -> None:
+        async with self.lock:
+            room = self.rooms.get(room_id)
+            if room is None:
+                return
+
+            room.updated_at = time.time()
+            payloads = []
+            players = [
+                {
+                    "playerId": player.player_id,
+                    "color": player.color,
+                    "connected": player.connected,
+                }
+                for player in room.players.values()
+            ]
+
+            for player in room.connected_players():
+                payloads.append(
+                    (
+                        player.websocket,
+                        {
+                            "type": "ROOM_READY",
+                            "roomId": room_id,
+                            "yourPlayerId": player.player_id,
+                            "yourColor": player.color,
+                            "players": players,
+                            "reconnectedPlayerId": reconnected_player_id,
+                        },
+                    )
+                )
+
+        for websocket, payload in payloads:
+            if websocket is not None:
+                await self.send_json(websocket, payload)
+
+    async def send_json(self, websocket: WebSocket, payload: Dict[str, Any]) -> None:
+        await websocket.send_json(payload)
+
+    async def _detach_player(
+        self,
+        room_id: str,
+        player_id: str,
+        notify_opponent: bool,
+        leave_reason: str = "leave",
+        remove_player: bool = False,
+    ) -> None:
+        room = self.rooms.get(room_id)
+        if room is None:
+            return
+
+        player = room.players.get(player_id)
+        if player is None:
+            return
+
+        websocket = player.websocket
+        opponent = self._find_opponent(room, player_id)
+
+        if websocket in self.websocket_index:
+            self.websocket_index.pop(websocket, None)
+
+        player.websocket = None
+        player.connected = False
+        player.last_seen = time.time()
+        room.updated_at = time.time()
+
+        if remove_player:
+            room.players.pop(player_id, None)
+
+        if notify_opponent and opponent and opponent.connected and opponent.websocket is not None:
+            await self.send_json(
+                opponent.websocket,
+                {
+                    "type": "PLAYER_LEFT",
+                    "roomId": room_id,
+                    "playerId": player_id,
+                    "reason": leave_reason,
+                    "canReconnect": not remove_player,
+                },
+            )
+
+        if not room.players:
+            self.rooms.pop(room_id, None)
+            return
+
+        if remove_player and not room.has_connected_player():
+            self.rooms.pop(room_id, None)
+            return
+
+        self._cleanup_stale_rooms_locked()
+
+    def _find_opponent(self, room: Room, player_id: str) -> Optional[PlayerSession]:
+        for other_id, other_player in room.players.items():
+            if other_id != player_id:
+                return other_player
+        return None
+
+    def _generate_room_id(self) -> str:
+        while True:
+            room_id = f"{uuid4().int % 10000:0{ROOM_CODE_LENGTH}d}"
+            if room_id not in self.rooms:
+                return room_id
+
+    def _new_player_id(self) -> str:
+        return uuid4().hex
+
+    def _cleanup_stale_rooms_locked(self) -> None:
+        now = time.time()
+        expired_room_ids = []
+
+        for room_id, room in self.rooms.items():
+            if room.has_connected_player():
+                continue
+            if now - room.updated_at > ROOM_TTL_SECONDS:
+                expired_room_ids.append(room_id)
+
+        for room_id in expired_room_ids:
+            self.rooms.pop(room_id, None)
+
+    def _is_valid_point(self, point: Any) -> bool:
+        if not isinstance(point, list) or len(point) != 2:
+            return False
+        return all(isinstance(value, int) for value in point)
+
+    def _room_snapshot(self, room: Room) -> Dict[str, Any]:
+        return {
+            "roomId": room.room_id,
+            "players": [
+                {
+                    "playerId": player.player_id,
+                    "color": player.color,
+                    "connected": player.connected,
+                }
+                for player in room.players.values()
+            ],
+        }
+
+
+app = FastAPI(title="TriAxis Relay Server")
+manager = ConnectionManager()
+
+BASE_DIR = Path(__file__).resolve().parent
+FRONTEND_DIR = BASE_DIR if (BASE_DIR / "index.html").exists() else (BASE_DIR.parent / "web前端")
+INDEX_FILE = FRONTEND_DIR / "index.html"
+
+
+@app.get("/")
+async def serve_index() -> FileResponse:
+    return FileResponse(INDEX_FILE)
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket) -> None:
+    await manager.connect(websocket)
+
+    try:
+        while True:
+            message = await websocket.receive_json()
+            if not isinstance(message, dict):
+                await manager.send_json(
+                    websocket,
+                    {
+                        "type": "ERROR",
+                        "code": "INVALID_MESSAGE",
+                        "message": "WebSocket payload must be a JSON object.",
+                    },
+                )
+                continue
+
+            await manager.handle_message(websocket, message)
+    except WebSocketDisconnect:
+        await manager.disconnect(websocket)
+    except Exception as exc:
+        try:
+            await manager.send_json(
+                websocket,
+                {
+                    "type": "ERROR",
+                    "code": "SERVER_ERROR",
+                    "message": str(exc),
+                },
+            )
+        except Exception:
+            pass
+        await manager.disconnect(websocket)
+
+
+app.mount("/", StaticFiles(directory=FRONTEND_DIR), name="static")
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)

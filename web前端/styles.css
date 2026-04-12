@@ -377,3 +377,89 @@ body::before {
     width: 100%;
   }
 }
+
+.panel-network {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 247, 233, 0.92)),
+    var(--panel);
+}
+
+.field-label {
+  display: block;
+  margin: 0 0 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7f6650;
+}
+
+.input-field {
+  width: 100%;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(90, 72, 52, 0.16);
+  border-radius: 16px;
+  background: rgba(255, 252, 247, 0.9);
+  color: var(--ink);
+  font: inherit;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.input-field:focus {
+  outline: 2px solid rgba(43, 111, 255, 0.18);
+  border-color: rgba(43, 111, 255, 0.35);
+}
+
+.actions-stack {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.action-button-ghost {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow: inset 0 0 0 1px rgba(90, 72, 52, 0.12);
+}
+
+.network-meta {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.status-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(255, 251, 243, 0.95);
+  box-shadow: inset 0 0 0 1px rgba(90, 72, 52, 0.14);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.room-copy {
+  margin-bottom: 0;
+}
+
+.error-copy {
+  margin: 14px 0 0;
+  color: #a03333;
+  font-weight: 700;
+}
+
+.board-note {
+  margin: 16px 2px 0;
+  color: var(--ink-soft);
+  line-height: 1.6;
+}
