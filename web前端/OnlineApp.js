@@ -32,6 +32,10 @@ function createDefaultGameState() {
     isLocalTurn: false,
     interactionLocked: false,
     interactionLockReason: null,
+    skipLocked: false,
+    skipLockReason: null,
+    resetLocked: false,
+    resetLockReason: null,
   };
 }
 
@@ -244,13 +248,25 @@ const ControlPanel = {
   name: "ControlPanel",
   emits: ["skip", "reset"],
   props: {
-    disabled: {
+    skipDisabled: {
+      type: Boolean,
+      default: false,
+    },
+    resetDisabled: {
       type: Boolean,
       default: false,
     },
     multiplayerEnabled: {
       type: Boolean,
       default: false,
+    },
+    resetLabel: {
+      type: String,
+      default: "Reset Board",
+    },
+    helpText: {
+      type: String,
+      default: "",
     },
   },
   template: `
@@ -260,21 +276,14 @@ const ControlPanel = {
         <h2>Local Controls</h2>
       </div>
       <div class="actions">
-        <button class="action-button action-button-primary" :disabled="disabled" @click="$emit('skip')">
+        <button class="action-button action-button-primary" :disabled="skipDisabled" @click="$emit('skip')">
           Skip Turn
         </button>
-        <button class="action-button action-button-secondary" :disabled="disabled" @click="$emit('reset')">
-          Reset Board
+        <button class="action-button action-button-secondary" :disabled="resetDisabled" @click="$emit('reset')">
+          {{ resetLabel }}
         </button>
       </div>
-      <p class="help-copy">
-        <span v-if="multiplayerEnabled">
-          Online mode currently relays moves only, so skip and reset stay disabled to avoid desync.
-        </span>
-        <span v-else>
-          In solo mode you can click the board, skip a turn, or reset the match at any time.
-        </span>
-      </p>
+      <p class="help-copy">{{ helpText }}</p>
     </section>
   `,
 };
@@ -290,6 +299,10 @@ const ResultModal = {
     allowReset: {
       type: Boolean,
       default: true,
+    },
+    resetLabel: {
+      type: String,
+      default: "Start New Solo Match",
     },
   },
   setup(props) {
@@ -315,7 +328,7 @@ const ResultModal = {
             :disabled="!allowReset"
             @click="$emit('reset')"
           >
-            Start New Solo Match
+            {{ resetLabel }}
           </button>
         </div>
       </div>
@@ -531,21 +544,46 @@ const App = {
       }
     };
 
-    const handleSkip = () => {
-      if (!controller.value || roomStatus.value !== "solo") {
+    const handleSkip = async () => {
+      if (!controller.value) {
         return;
       }
 
-      const result = controller.value.skipTurn();
-      gameState.value = result.state;
+      if (roomStatus.value === "solo") {
+        const result = controller.value.skipTurn();
+        gameState.value = result.state;
+        return;
+      }
+
+      networkBusy.value = true;
+      networkError.value = "";
+      try {
+        const result = await controller.value.requestSkipTurn();
+        gameState.value = result.state;
+      } finally {
+        networkBusy.value = false;
+      }
     };
 
-    const handleReset = () => {
-      if (!controller.value || roomStatus.value !== "solo") {
+    const handleReset = async () => {
+      if (!controller.value) {
         return;
       }
 
-      gameState.value = controller.value.resetGame();
+      if (roomStatus.value === "solo") {
+        gameState.value = controller.value.resetGame();
+        return;
+      }
+
+      networkBusy.value = true;
+      networkError.value = "";
+      try {
+        gameState.value = await controller.value.requestResetMatch({
+          reason: gameState.value.gameOver ? "normal_restart" : "resign_restart",
+        });
+      } finally {
+        networkBusy.value = false;
+      }
     };
 
     const statusText = computed(() => {
@@ -563,8 +601,8 @@ const App = {
 
       if (roomStatus.value === "ready") {
         return gameState.value.isLocalTurn
-          ? `Your turn as ${formatPlayerName(session.value.color)}. Click a valid point to play and relay the move.`
-          : "Opponent turn. Input stays locked until their move arrives through WebSocket.";
+          ? `Your turn as ${formatPlayerName(session.value.color)}. Click a valid point to play, skip the turn, or resign and restart.`
+          : "Opponent turn. Board input stays locked until their move arrives through WebSocket.";
       }
 
       return gameState.value.currentPlayer === Player.BLACK
@@ -590,14 +628,58 @@ const App = {
       }
 
       if (gameState.value.multiplayerEnabled) {
-        return "When it is your turn, local validation runs first and the move is relayed right after rendering.";
+        return "Skip is synchronized for both players. Restarting an unfinished online match counts as a resignation for the player who clicked it.";
       }
 
       return "Solo mode is still available. Click a vertex to place a node.";
     });
 
-    const localControlsDisabled = computed(() => {
-      return !controller.value || gameState.value.gameOver || roomStatus.value !== "solo";
+    const skipDisabled = computed(() => {
+      if (!controller.value || networkBusy.value) {
+        return true;
+      }
+
+      if (roomStatus.value === "solo") {
+        return gameState.value.gameOver;
+      }
+
+      return gameState.value.skipLocked;
+    });
+
+    const resetDisabled = computed(() => {
+      if (!controller.value || networkBusy.value) {
+        return true;
+      }
+
+      if (roomStatus.value === "solo") {
+        return false;
+      }
+
+      return gameState.value.resetLocked;
+    });
+
+    const resetLabel = computed(() => {
+      if (roomStatus.value === "solo") {
+        return gameState.value.gameOver ? "Start New Solo Match" : "Reset Board";
+      }
+
+      return gameState.value.gameOver ? "Start Next Online Match" : "Resign And Restart";
+    });
+
+    const controlsHelpText = computed(() => {
+      if (roomStatus.value === "solo") {
+        return "In solo mode you can click the board, skip a turn, or reset the match at any time.";
+      }
+
+      if (gameState.value.gameOver) {
+        return "This online round is over. Starting the next round keeps the same room and player colors.";
+      }
+
+      return "Either side can skip on their own turn. If one side has no legal moves, the engine auto-skips that turn. Restarting mid-match is treated as a resignation.";
+    });
+
+    const resultResetAllowed = computed(() => {
+      return !resetDisabled.value;
     });
 
     unsubscribers.push(
@@ -670,6 +752,13 @@ const App = {
     );
 
     unsubscribers.push(
+      networkManager.on(ServerEvent.MATCH_RESET, () => {
+        networkError.value = "";
+        roomStatus.value = "ready";
+      }),
+    );
+
+    unsubscribers.push(
       networkManager.on(ServerEvent.ERROR, (payload) => {
         handleNetworkError(new Error(payload.message ?? payload.code ?? "Unknown relay server error."));
       }),
@@ -696,7 +785,11 @@ const App = {
       networkError,
       statusText,
       boardHint,
-      localControlsDisabled,
+      skipDisabled,
+      resetDisabled,
+      resetLabel,
+      controlsHelpText,
+      resultResetAllowed,
       handleControllerReady,
       handleStateChange,
       handleConnect,
@@ -750,8 +843,11 @@ const App = {
           <ScorePanel :game-state="gameState" :session="session" />
 
           <ControlPanel
-            :disabled="localControlsDisabled"
+            :skip-disabled="skipDisabled"
+            :reset-disabled="resetDisabled"
             :multiplayer-enabled="roomStatus !== 'solo'"
+            :reset-label="resetLabel"
+            :help-text="controlsHelpText"
             @skip="handleSkip"
             @reset="handleReset"
           />
@@ -760,7 +856,8 @@ const App = {
 
       <ResultModal
         :game-state="gameState"
-        :allow-reset="roomStatus === 'solo'"
+        :allow-reset="resultResetAllowed"
+        :reset-label="resetLabel"
         @reset="handleReset"
       />
     </main>

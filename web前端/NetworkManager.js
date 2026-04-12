@@ -5,6 +5,8 @@ const ServerEvent = Object.freeze({
   ROOM_JOINED: "ROOM_JOINED",
   ROOM_READY: "ROOM_READY",
   OPPONENT_MOVE: "OPPONENT_MOVE",
+  TURN_SKIPPED: "TURN_SKIPPED",
+  MATCH_RESET: "MATCH_RESET",
   PLAYER_LEFT: "PLAYER_LEFT",
   ERROR: "ERROR",
 });
@@ -199,6 +201,26 @@ export class NetworkManager {
       playerId: this.playerId,
       point: clonePoint(point),
     };
+  }
+
+  async sendSkip() {
+    await this._ensureOpen();
+    return this._sendRequest(
+      { type: "player_skip" },
+      [ServerEvent.TURN_SKIPPED],
+    );
+  }
+
+  async sendReset(reason = "resign_restart") {
+    const normalizedReason = reason === "normal_restart" ? "normal_restart" : "resign_restart";
+    await this._ensureOpen();
+    return this._sendRequest(
+      {
+        type: "player_reset",
+        reason: normalizedReason,
+      },
+      [ServerEvent.MATCH_RESET],
+    );
   }
 
   async leaveRoom() {

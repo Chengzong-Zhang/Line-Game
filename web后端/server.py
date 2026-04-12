@@ -74,6 +74,14 @@ class ConnectionManager:
             await self.forward_move(websocket, point)
             return
 
+        if message_type == "player_skip":
+            await self.forward_skip(websocket)
+            return
+
+        if message_type == "player_reset":
+            await self.forward_reset(websocket, message.get("reason"))
+            return
+
         if message_type == "player_leave":
             await self.player_leave(websocket, reason="player_leave")
             return
@@ -284,6 +292,56 @@ class ConnectionManager:
             },
         )
 
+    async def forward_skip(self, websocket: WebSocket) -> None:
+        async with self.lock:
+            action = self._prepare_room_action_locked(websocket)
+            if action["error"] is not None:
+                error_payload = action["error"]
+                payloads = []
+            else:
+                payload = {
+                    "type": "TURN_SKIPPED",
+                    "roomId": action["room_id"],
+                    "playerId": action["sender"].player_id,
+                    "color": action["sender"].color,
+                }
+                payloads = self._connected_room_payloads(action["room"], payload)
+                error_payload = None
+
+        if error_payload is not None:
+            await self.send_json(websocket, error_payload)
+            return
+
+        for target_websocket, payload in payloads:
+            await self.send_json(target_websocket, payload)
+
+    async def forward_reset(self, websocket: WebSocket, reason: Any) -> None:
+        normalized_reason = reason if reason == "normal_restart" else "resign_restart"
+
+        async with self.lock:
+            action = self._prepare_room_action_locked(websocket)
+            if action["error"] is not None:
+                error_payload = action["error"]
+                payloads = []
+            else:
+                payload = {
+                    "type": "MATCH_RESET",
+                    "roomId": action["room_id"],
+                    "playerId": action["sender"].player_id,
+                    "color": action["sender"].color,
+                    "reason": normalized_reason,
+                    "winnerColor": action["opponent"].color if normalized_reason == "resign_restart" else None,
+                }
+                payloads = self._connected_room_payloads(action["room"], payload)
+                error_payload = None
+
+        if error_payload is not None:
+            await self.send_json(websocket, error_payload)
+            return
+
+        for target_websocket, payload in payloads:
+            await self.send_json(target_websocket, payload)
+
     async def player_leave(self, websocket: WebSocket, reason: str = "player_leave") -> None:
         async with self.lock:
             room_and_player = self.websocket_index.get(websocket)
@@ -399,6 +457,56 @@ class ConnectionManager:
                 return other_player
         return None
 
+    def _prepare_room_action_locked(self, websocket: WebSocket) -> Dict[str, Any]:
+        room_and_player = self.websocket_index.get(websocket)
+        if room_and_player is None:
+            return {
+                "error": {
+                    "type": "ERROR",
+                    "code": "NOT_IN_ROOM",
+                    "message": "Join or create a room before sending room actions.",
+                },
+            }
+
+        room_id, sender_id = room_and_player
+        room = self.rooms.get(room_id)
+        if room is None or sender_id not in room.players:
+            return {
+                "error": {
+                    "type": "ERROR",
+                    "code": "ROOM_NOT_FOUND",
+                    "message": "The room no longer exists.",
+                },
+            }
+
+        sender = room.players[sender_id]
+        sender.last_seen = time.time()
+        room.updated_at = time.time()
+        opponent = self._find_opponent(room, sender_id)
+        if opponent is None or opponent.websocket is None or not opponent.connected:
+            return {
+                "error": {
+                    "type": "ERROR",
+                    "code": "OPPONENT_OFFLINE",
+                    "message": "The opponent is not connected.",
+                },
+            }
+
+        return {
+            "error": None,
+            "room_id": room_id,
+            "room": room,
+            "sender": sender,
+            "opponent": opponent,
+        }
+
+    def _connected_room_payloads(self, room: Room, payload: Dict[str, Any]) -> list[tuple[WebSocket, Dict[str, Any]]]:
+        payloads = []
+        for player in room.connected_players():
+            if player.websocket is not None:
+                payloads.append((player.websocket, dict(payload)))
+        return payloads
+
     def _generate_room_id(self) -> str:
         while True:
             room_id = f"{uuid4().int % 10000:0{ROOM_CODE_LENGTH}d}"
@@ -444,7 +552,24 @@ app = FastAPI(title="TriAxis Relay Server")
 manager = ConnectionManager()
 
 BASE_DIR = Path(__file__).resolve().parent
-FRONTEND_DIR = BASE_DIR if (BASE_DIR / "index.html").exists() else (BASE_DIR.parent / "web前端")
+
+
+def _resolve_frontend_dir() -> Path:
+    if (BASE_DIR / "index.html").exists():
+        return BASE_DIR
+
+    sibling_dir = BASE_DIR.parent / "web前端"
+    if (sibling_dir / "index.html").exists():
+        return sibling_dir
+
+    for candidate in BASE_DIR.parent.iterdir():
+        if candidate.is_dir() and (candidate / "index.html").exists():
+            return candidate
+
+    raise FileNotFoundError("Could not locate the frontend directory with index.html.")
+
+
+FRONTEND_DIR = _resolve_frontend_dir()
 INDEX_FILE = FRONTEND_DIR / "index.html"
 
 
@@ -495,4 +620,4 @@ app.mount("/", StaticFiles(directory=FRONTEND_DIR), name="static")
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=False)

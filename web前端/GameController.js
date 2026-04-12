@@ -147,6 +147,18 @@ export class GameController {
     );
 
     this._networkUnsubscribers.push(
+      this.networkManager.on(ServerEvent.TURN_SKIPPED, () => {
+        this.applyRemoteSkip();
+      }),
+    );
+
+    this._networkUnsubscribers.push(
+      this.networkManager.on(ServerEvent.MATCH_RESET, () => {
+        this.applyRemoteReset();
+      }),
+    );
+
+    this._networkUnsubscribers.push(
       this.networkManager.on(ServerEvent.PLAYER_LEFT, () => {
         this.setMultiplayerState({
           enabled: true,
@@ -229,6 +241,8 @@ export class GameController {
     const black = snapshot.territories?.[Player.BLACK] ?? { area: 0, polygon: null };
     const white = snapshot.territories?.[Player.WHITE] ?? { area: 0, polygon: null };
     const interactionLockReason = this._getInteractionLockReason(snapshot);
+    const skipLockReason = this._getSkipLockReason(snapshot);
+    const resetLockReason = this._getResetLockReason(snapshot);
 
     return {
       currentPlayer: snapshot.currentPlayer,
@@ -250,6 +264,10 @@ export class GameController {
       isLocalTurn: isKnownPlayer(this.localPlayer) && snapshot.currentPlayer === this.localPlayer,
       interactionLocked: Boolean(interactionLockReason),
       interactionLockReason,
+      skipLocked: Boolean(skipLockReason),
+      skipLockReason,
+      resetLocked: Boolean(resetLockReason),
+      resetLockReason,
     };
   }
 
@@ -333,10 +351,56 @@ export class GameController {
     return null;
   }
 
+  _getSkipLockReason(snapshot = this.engine.getSnapshot()) {
+    if (snapshot.gameOver) {
+      return "GAME_OVER";
+    }
+
+    if (!this.multiplayerEnabled) {
+      return null;
+    }
+
+    return this._getInteractionLockReason(snapshot);
+  }
+
+  _getResetLockReason(snapshot = this.engine.getSnapshot()) {
+    if (!this.multiplayerEnabled) {
+      return null;
+    }
+
+    if (!this.roomReady) {
+      return "ROOM_NOT_READY";
+    }
+
+    if (!this.opponentConnected) {
+      return "OPPONENT_OFFLINE";
+    }
+
+    if (!isKnownPlayer(this.localPlayer)) {
+      return "LOCAL_PLAYER_UNASSIGNED";
+    }
+
+    if (!this.networkManager || typeof this.networkManager.sendReset !== "function") {
+      return "NETWORK_UNAVAILABLE";
+    }
+
+    if (typeof this.networkManager.isConnected === "function" && !this.networkManager.isConnected()) {
+      return "NETWORK_UNAVAILABLE";
+    }
+
+    return null;
+  }
+
   _syncCanvasInteractivity(snapshot = this.engine.getSnapshot()) {
     const locked = Boolean(this._getInteractionLockReason(snapshot));
     this.canvas.style.cursor = locked ? "not-allowed" : "pointer";
     this.canvas.setAttribute("aria-disabled", locked ? "true" : "false");
+  }
+
+  _syncSnapshot(snapshot) {
+    this.renderer.render(snapshot);
+    this._syncCanvasInteractivity(snapshot);
+    this._emitStateChange(snapshot);
   }
 
   _applyMove(point) {
@@ -344,9 +408,7 @@ export class GameController {
     const result = this.engine.playMove(normalizedPoint);
 
     if (result.success) {
-      this.renderer.render(result.snapshot);
-      this._syncCanvasInteractivity(result.snapshot);
-      this._emitStateChange(result.snapshot);
+      this._syncSnapshot(result.snapshot);
     }
 
     return {
@@ -435,6 +497,25 @@ export class GameController {
     return result;
   }
 
+  applyRemoteSkip() {
+    const result = this.engine.skipTurn();
+    if (result.success) {
+      this._syncSnapshot(result.snapshot);
+    } else {
+      this._reportNetworkError(new Error(`Remote skip could not be applied: ${result.reason}`));
+    }
+
+    return {
+      success: result.success,
+      reason: result.reason,
+      state: this._buildGameState(result.snapshot),
+    };
+  }
+
+  applyRemoteReset() {
+    return this.resetGame({ force: true });
+  }
+
   skipTurn() {
     if (this.multiplayerEnabled) {
       return {
@@ -446,15 +527,57 @@ export class GameController {
 
     const result = this.engine.skipTurn();
     if (result.success) {
-      this.renderer.render(result.snapshot);
-      this._syncCanvasInteractivity(result.snapshot);
-      this._emitStateChange(result.snapshot);
+      this._syncSnapshot(result.snapshot);
     }
     return {
       success: result.success,
       reason: result.reason,
       state: this._buildGameState(result.snapshot),
     };
+  }
+
+  async requestSkipTurn() {
+    const lockReason = this._getSkipLockReason();
+    if (lockReason) {
+      return {
+        success: false,
+        reason: lockReason,
+        state: this.getGameState(),
+      };
+    }
+
+    try {
+      await this.networkManager.sendSkip();
+      return {
+        success: true,
+        reason: null,
+        state: this.getGameState(),
+      };
+    } catch (error) {
+      this._reportNetworkError(error);
+      return {
+        success: false,
+        reason: "NETWORK_ERROR",
+        state: this.getGameState(),
+      };
+    }
+  }
+
+  async requestResetMatch(options = {}) {
+    const lockReason = this._getResetLockReason();
+    if (lockReason) {
+      return this.getGameState();
+    }
+
+    const reason = options.reason === "normal_restart" ? "normal_restart" : "resign_restart";
+
+    try {
+      await this.networkManager.sendReset(reason);
+    } catch (error) {
+      this._reportNetworkError(error);
+    }
+
+    return this.getGameState();
   }
 
   resetGame(options = {}) {
@@ -464,9 +587,7 @@ export class GameController {
 
     this.engine = new GameEngine(this.options.engine ?? {});
     const snapshot = this.engine.getSnapshot();
-    this.renderer.render(snapshot);
-    this._syncCanvasInteractivity(snapshot);
-    this._emitStateChange(snapshot);
+    this._syncSnapshot(snapshot);
     return this._buildGameState(snapshot);
   }
 
