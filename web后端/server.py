@@ -36,6 +36,7 @@ class PlayerSession:
 class Room:
     room_id: str
     players: Dict[str, PlayerSession] = field(default_factory=dict)
+    actions: list[Dict[str, Any]] = field(default_factory=list)
     created_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
 
@@ -161,6 +162,7 @@ class ConnectionManager:
                 "playerId": player_id,
                 "color": player.color,
                 "status": "WAITING",
+                "matchState": self._match_state(room),
             },
         )
         logger.info("room created room=%s player=%s color=%s", room_id, player_id, player.color)
@@ -252,6 +254,7 @@ class ConnectionManager:
                 "color": session.color,
                 "status": "READY" if len(room_snapshot["players"]) == ROOM_SIZE else "WAITING",
                 "reconnected": reconnected,
+                "matchState": self._match_state(room),
             },
         )
         logger.info(
@@ -325,6 +328,14 @@ class ConnectionManager:
             sender = room.players[sender_id]
             sender.last_seen = time.time()
             room.updated_at = time.time()
+            room.actions.append(
+                {
+                    "type": "player_move",
+                    "point": [int(point[0]), int(point[1])],
+                    "playerId": sender.player_id,
+                    "color": sender.color,
+                }
+            )
             opponent = self._find_opponent(room, sender_id)
 
         if opponent is None or opponent.websocket is None or not opponent.connected:
@@ -362,6 +373,13 @@ class ConnectionManager:
                     "playerId": action["sender"].player_id,
                     "color": action["sender"].color,
                 }
+                action["room"].actions.append(
+                    {
+                        "type": "player_skip",
+                        "playerId": action["sender"].player_id,
+                        "color": action["sender"].color,
+                    }
+                )
                 payloads = self._connected_room_payloads(action["room"], payload)
                 error_payload = None
 
@@ -381,6 +399,7 @@ class ConnectionManager:
                 error_payload = action["error"]
                 payloads = []
             else:
+                action["room"].actions = []
                 payload = {
                     "type": "MATCH_RESET",
                     "roomId": action["room_id"],
@@ -445,6 +464,7 @@ class ConnectionManager:
                             "yourColor": player.color,
                             "players": players,
                             "reconnectedPlayerId": reconnected_player_id,
+                            "matchState": self._match_state(room),
                         },
                     )
                 )
@@ -639,6 +659,11 @@ class ConnectionManager:
                 }
                 for player in room.players.values()
             ],
+        }
+
+    def _match_state(self, room: Room) -> Dict[str, Any]:
+        return {
+            "actions": [dict(action) for action in room.actions],
         }
 
 

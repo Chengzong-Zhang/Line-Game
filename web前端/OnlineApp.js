@@ -10,6 +10,7 @@ import { Player } from "./GameEngine.js";
 import NetworkManager, { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js";
 
 const LANGUAGE_STORAGE_KEY = "triaxis-language";
+const SESSION_STORAGE_KEY = "triaxis-online-session";
 
 function createDefaultGameState() {
   return {
@@ -50,6 +51,41 @@ function createEmptySession() {
     color: null,
     connected: false,
   };
+}
+
+function loadStoredSession() {
+  try {
+    const raw = globalThis.localStorage?.getItem(SESSION_STORAGE_KEY);
+    if (!raw) {
+      return createEmptySession();
+    }
+
+    const parsed = JSON.parse(raw);
+    return {
+      ...createEmptySession(),
+      ...parsed,
+      connected: false,
+    };
+  } catch {
+    return createEmptySession();
+  }
+}
+
+function persistSession(session) {
+  const normalized = {
+    url: session?.url ?? null,
+    roomId: session?.roomId ?? null,
+    playerId: session?.playerId ?? null,
+    color: session?.color ?? null,
+  };
+
+  const hasRoomContext = normalized.url || normalized.roomId || normalized.playerId || normalized.color;
+  if (!hasRoomContext) {
+    globalThis.localStorage?.removeItem(SESSION_STORAGE_KEY);
+    return;
+  }
+
+  globalThis.localStorage?.setItem(SESSION_STORAGE_KEY, JSON.stringify(normalized));
 }
 
 function formatArea(value) {
@@ -717,13 +753,15 @@ const App = {
     ScorePanel,
   },
   setup() {
+    const storedSession = loadStoredSession();
     const controller = ref(null);
     const gameState = ref(createDefaultGameState());
     const language = ref(getInitialLanguage());
     const networkManager = new NetworkManager();
-    const serverUrl = ref(resolveWebSocketUrl());
-    const roomIdInput = ref("");
-    const session = ref(createEmptySession());
+    networkManager.hydrateSession(storedSession);
+    const serverUrl = ref(storedSession.url || resolveWebSocketUrl());
+    const roomIdInput = ref(storedSession.roomId || "");
+    const session = ref(networkManager.getSession());
     const connectionState = ref("idle");
     const roomStatus = ref("solo");
     const networkBusy = ref(false);
@@ -744,6 +782,7 @@ const App = {
         ...createEmptySession(),
         ...networkManager.getSession(),
       };
+      persistSession(session.value);
     };
 
     const clearReconnectTimer = () => {
@@ -798,6 +837,9 @@ const App = {
         roomStatus.value = payload.status === "READY" ? "ready" : "waiting";
         syncSession();
         enableOnlineController(payload, payload.status === "READY");
+        if (payload.matchState && controller.value) {
+          gameState.value = controller.value.restoreMatchState(payload.matchState);
+        }
         networkError.value = "";
         reconnectAttempt = 0;
       } catch (error) {
@@ -877,6 +919,9 @@ const App = {
           controller.value.resetGame({ force: true });
         }
         enableOnlineController(payload, false);
+        if (payload.matchState && controller.value) {
+          gameState.value = controller.value.restoreMatchState(payload.matchState);
+        }
       } catch (error) {
         handleNetworkError(error);
       } finally {
@@ -906,6 +951,9 @@ const App = {
           controller.value.resetGame({ force: true });
         }
         enableOnlineController(payload, payload.status === "READY");
+        if (payload.matchState && controller.value) {
+          gameState.value = controller.value.restoreMatchState(payload.matchState);
+        }
       } catch (error) {
         handleNetworkError(error);
       } finally {
@@ -927,6 +975,7 @@ const App = {
           controller.value.disableMultiplayer();
           gameState.value = controller.value.resetGame({ force: true });
         }
+        persistSession(createEmptySession());
       } catch (error) {
         handleNetworkError(error);
       } finally {
@@ -1126,6 +1175,9 @@ const App = {
         roomIdInput.value = payload.roomId ?? roomIdInput.value;
         syncSession();
         enableOnlineController(payload, false);
+        if (payload.matchState && controller.value) {
+          gameState.value = controller.value.restoreMatchState(payload.matchState);
+        }
         reconnectAttempt = 0;
       }),
     );
@@ -1137,6 +1189,9 @@ const App = {
         roomIdInput.value = payload.roomId ?? roomIdInput.value;
         syncSession();
         enableOnlineController(payload, ready);
+        if (payload.matchState && controller.value) {
+          gameState.value = controller.value.restoreMatchState(payload.matchState);
+        }
         reconnectAttempt = 0;
       }),
     );
@@ -1146,6 +1201,9 @@ const App = {
         roomStatus.value = "ready";
         syncSession();
         enableOnlineController(payload, true);
+        if (payload.matchState && controller.value) {
+          gameState.value = controller.value.restoreMatchState(payload.matchState);
+        }
         reconnectAttempt = 0;
       }),
     );
@@ -1190,6 +1248,13 @@ const App = {
         }
       }
       networkManager.disconnect();
+    });
+
+    onMounted(() => {
+      if (storedSession.roomId && storedSession.playerId && storedSession.url) {
+        roomStatus.value = "offline";
+        void attemptReconnect();
+      }
     });
 
     return {

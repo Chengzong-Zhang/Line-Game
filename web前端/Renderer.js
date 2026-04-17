@@ -33,6 +33,29 @@ function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
+function subtractPoints(a, b) {
+  return [a[0] - b[0], a[1] - b[1]];
+}
+
+function normalizeVector(vector) {
+  const length = Math.hypot(vector[0], vector[1]) || 1;
+  return [vector[0] / length, vector[1] / length];
+}
+
+function lineIntersection(lineA, lineB) {
+  const determinant = lineA.direction[0] * lineB.direction[1] - lineA.direction[1] * lineB.direction[0];
+  if (Math.abs(determinant) < 1e-6) {
+    return null;
+  }
+
+  const delta = subtractPoints(lineB.point, lineA.point);
+  const t = (delta[0] * lineB.direction[1] - delta[1] * lineB.direction[0]) / determinant;
+  return [
+    lineA.point[0] + lineA.direction[0] * t,
+    lineA.point[1] + lineA.direction[1] * t,
+  ];
+}
+
 export class Renderer {
   constructor(canvas, options = {}) {
     if (!(canvas instanceof HTMLCanvasElement)) {
@@ -340,14 +363,27 @@ export class Renderer {
     const centerX = corners.reduce((sum, [x]) => sum + x, 0) / corners.length;
     const centerY = corners.reduce((sum, [, y]) => sum + y, 0) / corners.length;
     const borderInset = layout.pointRadius * 1.6;
-    const expandedCorners = corners.map(([x, y]) => {
-      const dx = x - centerX;
-      const dy = y - centerY;
-      const length = Math.hypot(dx, dy) || 1;
-      return [
-        x + (dx / length) * borderInset,
-        y + (dy / length) * borderInset,
-      ];
+    const offsetLines = corners.map((point, index) => {
+      const nextPoint = corners[(index + 1) % corners.length];
+      const edge = subtractPoints(nextPoint, point);
+      const unitDirection = normalizeVector(edge);
+      let normal = normalizeVector([unitDirection[1], -unitDirection[0]]);
+      const midpoint = [(point[0] + nextPoint[0]) * 0.5, (point[1] + nextPoint[1]) * 0.5];
+      const toCenter = [centerX - midpoint[0], centerY - midpoint[1]];
+      if (normal[0] * toCenter[0] + normal[1] * toCenter[1] > 0) {
+        normal = [-normal[0], -normal[1]];
+      }
+      return {
+        point: [
+          point[0] + normal[0] * borderInset,
+          point[1] + normal[1] * borderInset,
+        ],
+        direction: unitDirection,
+      };
+    });
+    const expandedCorners = offsetLines.map((line, index) => {
+      const previousLine = offsetLines[(index + offsetLines.length - 1) % offsetLines.length];
+      return lineIntersection(previousLine, line) ?? corners[index];
     });
 
     ctx.beginPath();
@@ -492,13 +528,18 @@ export class Renderer {
     const ctx = this.ctx;
     const legalMoves = Array.isArray(snapshot.legalMoves) ? snapshot.legalMoves : [];
 
-    for (const point of legalMoves) {
+    for (const candidate of legalMoves) {
+      const point = Array.isArray(candidate) ? candidate : candidate?.point;
+      if (!Array.isArray(point) || point.length !== 2) {
+        continue;
+      }
+
       const [x, y] = this._gridToPixel(point[0], point[1], layout);
       ctx.beginPath();
       ctx.arc(x, y, layout.legalMoveRadius, 0, Math.PI * 2);
       ctx.fillStyle = this.theme.legalMoveFill;
       ctx.fill();
-      ctx.lineWidth = Math.max(1, layout.guideLineWidth * 1.5);
+      ctx.lineWidth = Math.max(1.25, layout.guideLineWidth * 1.8);
       ctx.strokeStyle = this.theme.legalMoveStroke;
       ctx.stroke();
     }

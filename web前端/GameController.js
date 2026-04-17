@@ -516,6 +516,38 @@ export class GameController {
     return this.resetGame({ force: true });
   }
 
+  restoreMatchState(matchState = null) {
+    const actions = Array.isArray(matchState?.actions) ? matchState.actions : [];
+    this.engine = new GameEngine(this.options.engine ?? {});
+
+    for (const action of actions) {
+      if (!action || typeof action.type !== "string") {
+        continue;
+      }
+
+      if (action.type === "player_move" && isGridPoint(action.point)) {
+        const result = this.engine.playMove(clonePoint(action.point));
+        if (!result.success) {
+          this._reportNetworkError(new Error(`Replay move failed: ${result.reason}`));
+          break;
+        }
+        continue;
+      }
+
+      if (action.type === "player_skip") {
+        const result = this.engine.skipTurn();
+        if (!result.success) {
+          this._reportNetworkError(new Error(`Replay skip failed: ${result.reason}`));
+          break;
+        }
+      }
+    }
+
+    const snapshot = this.engine.getSnapshot();
+    this._syncSnapshot(snapshot);
+    return this._buildGameState(snapshot);
+  }
+
   skipTurn() {
     if (this.multiplayerEnabled) {
       return {

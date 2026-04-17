@@ -1,6 +1,6 @@
 const DEFAULT_REQUEST_TIMEOUT = 10000;
-const DEFAULT_HEARTBEAT_INTERVAL = 10000;
-const DEFAULT_HEARTBEAT_TIMEOUT = 30000;
+const DEFAULT_HEARTBEAT_INTERVAL = 4000;
+const DEFAULT_HEARTBEAT_TIMEOUT = 12000;
 
 const ServerEvent = Object.freeze({
   ROOM_CREATED: "ROOM_CREATED",
@@ -286,6 +286,13 @@ export class NetworkManager {
       color: this.color,
       connected: this.isConnected(),
     };
+  }
+
+  hydrateSession(sessionLike = {}) {
+    this.url = sessionLike.url ?? this.url;
+    this.roomId = sessionLike.roomId ?? this.roomId;
+    this.playerId = sessionLike.playerId ?? this.playerId;
+    this.color = sessionLike.color ?? this.color;
   }
 
   _handleMessage(event) {
