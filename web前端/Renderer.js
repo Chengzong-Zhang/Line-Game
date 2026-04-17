@@ -13,10 +13,14 @@ const DEFAULT_THEME = Object.freeze({
   blueLine: "#1f4fba",
   redNode: "#e44b4b",
   redLine: "#a83434",
+  purpleNode: "#8b5cf6",
+  purpleLine: "#6d28d9",
   blueTerritoryFill: "rgba(43, 111, 255, 0.18)",
   blueTerritoryStroke: "rgba(31, 79, 186, 0.75)",
   redTerritoryFill: "rgba(228, 75, 75, 0.18)",
   redTerritoryStroke: "rgba(168, 52, 52, 0.75)",
+  purpleTerritoryFill: "rgba(139, 92, 246, 0.18)",
+  purpleTerritoryStroke: "rgba(109, 40, 217, 0.75)",
   legalMoveFill: "#2fba63",
   legalMoveStroke: "rgba(17, 84, 40, 0.35)",
 });
@@ -269,17 +273,33 @@ export class Renderer {
   }
 
   _getOwnedStates(player) {
-    return player === Player.BLACK
-      ? [PointState.BLACK_NODE, PointState.BLACK_LINE]
-      : [PointState.WHITE_NODE, PointState.WHITE_LINE];
+    if (player === Player.BLACK) {
+      return [PointState.BLACK_NODE, PointState.BLACK_LINE];
+    }
+    if (player === Player.WHITE) {
+      return [PointState.WHITE_NODE, PointState.WHITE_LINE];
+    }
+    return [PointState.PURPLE_NODE, PointState.PURPLE_LINE];
   }
 
   _getNodeState(player) {
-    return player === Player.BLACK ? PointState.BLACK_NODE : PointState.WHITE_NODE;
+    if (player === Player.BLACK) {
+      return PointState.BLACK_NODE;
+    }
+    if (player === Player.WHITE) {
+      return PointState.WHITE_NODE;
+    }
+    return PointState.PURPLE_NODE;
   }
 
   _getLineState(player) {
-    return player === Player.BLACK ? PointState.BLACK_LINE : PointState.WHITE_LINE;
+    if (player === Player.BLACK) {
+      return PointState.BLACK_LINE;
+    }
+    if (player === Player.WHITE) {
+      return PointState.WHITE_LINE;
+    }
+    return PointState.PURPLE_LINE;
   }
 
   _collectBoardData(snapshot) {
@@ -289,6 +309,7 @@ export class Renderer {
     const nodes = {
       [Player.BLACK]: [],
       [Player.WHITE]: [],
+      [Player.PURPLE]: [],
     };
     const pointStates = new Map();
 
@@ -300,6 +321,8 @@ export class Renderer {
         nodes[Player.BLACK].push(point);
       } else if (state === PointState.WHITE_NODE) {
         nodes[Player.WHITE].push(point);
+      } else if (state === PointState.PURPLE_NODE) {
+        nodes[Player.PURPLE].push(point);
       }
     }
 
@@ -431,9 +454,10 @@ export class Renderer {
     const styles = {
       [Player.BLACK]: this.theme.blueLine,
       [Player.WHITE]: this.theme.redLine,
+      [Player.PURPLE]: this.theme.purpleLine,
     };
 
-    for (const player of [Player.BLACK, Player.WHITE]) {
+    for (const player of [Player.BLACK, Player.WHITE, Player.PURPLE]) {
       const segments = this._collectRenderableSegments(player, boardData);
       ctx.strokeStyle = styles[player];
       ctx.lineCap = "round";
@@ -463,6 +487,11 @@ export class Renderer {
         data: snapshot.territories?.[Player.WHITE],
         fill: this.theme.redTerritoryFill,
         stroke: this.theme.redTerritoryStroke,
+      },
+      {
+        data: snapshot.territories?.[Player.PURPLE],
+        fill: this.theme.purpleTerritoryFill,
+        stroke: this.theme.purpleTerritoryStroke,
       },
     ];
 
@@ -502,6 +531,10 @@ export class Renderer {
       },
       [PointState.WHITE_NODE]: {
         fill: this.theme.redNode,
+        stroke: this.theme.outline,
+      },
+      [PointState.PURPLE_NODE]: {
+        fill: this.theme.purpleNode,
         stroke: this.theme.outline,
       },
     };

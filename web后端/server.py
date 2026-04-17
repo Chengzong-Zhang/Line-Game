@@ -11,13 +11,14 @@ from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 
-ROOM_SIZE = 2
+ROOM_SIZE = 3
 ROOM_CODE_LENGTH = 4
 ROOM_TTL_SECONDS = 300
 HEARTBEAT_TIMEOUT_SECONDS = 35
 HEARTBEAT_SWEEP_SECONDS = 5
 PLAYER_BLACK = "BLACK"
 PLAYER_WHITE = "WHITE"
+PLAYER_PURPLE = "PURPLE"
 
 
 logger = logging.getLogger("uvicorn.error")
@@ -51,7 +52,10 @@ class Room:
 
     def available_color(self) -> str:
         used_colors = {player.color for player in self.players.values()}
-        return PLAYER_WHITE if PLAYER_BLACK in used_colors else PLAYER_BLACK
+        for color in (PLAYER_BLACK, PLAYER_WHITE, PLAYER_PURPLE):
+            if color not in used_colors:
+                return color
+        raise ValueError("No available color remaining in this room.")
 
 
 class ConnectionManager:
@@ -336,29 +340,32 @@ class ConnectionManager:
                     "color": sender.color,
                 }
             )
-            opponent = self._find_opponent(room, sender_id)
+            recipients = [
+                other_player
+                for other_player in self._find_other_players(room, sender_id)
+                if other_player.websocket is not None and other_player.connected
+            ]
 
-        if opponent is None or opponent.websocket is None or not opponent.connected:
+        if not recipients:
             await self.send_json(
                 websocket,
                 {
                     "type": "ERROR",
                     "code": "OPPONENT_OFFLINE",
-                    "message": "The opponent is not connected.",
+                    "message": "No other player is connected.",
                 },
             )
             return
 
-        await self.send_json(
-            opponent.websocket,
-            {
-                "type": "OPPONENT_MOVE",
-                "roomId": room_id,
-                "point": [int(point[0]), int(point[1])],
-                "playerId": sender.player_id,
-                "color": sender.color,
-            },
-        )
+        payload = {
+            "type": "OPPONENT_MOVE",
+            "roomId": room_id,
+            "point": [int(point[0]), int(point[1])],
+            "playerId": sender.player_id,
+            "color": sender.color,
+        }
+        for recipient in recipients:
+            await self.send_json(recipient.websocket, dict(payload))
 
     async def forward_skip(self, websocket: WebSocket) -> None:
         async with self.lock:
@@ -406,7 +413,7 @@ class ConnectionManager:
                     "playerId": action["sender"].player_id,
                     "color": action["sender"].color,
                     "reason": normalized_reason,
-                    "winnerColor": action["opponent"].color if normalized_reason == "resign_restart" else None,
+                    "winnerColor": None if normalized_reason == "normal_restart" else None,
                 }
                 payloads = self._connected_room_payloads(action["room"], payload)
                 error_payload = None
@@ -530,7 +537,7 @@ class ConnectionManager:
             return
 
         websocket = player.websocket
-        opponent = self._find_opponent(room, player_id)
+        other_players = self._find_other_players(room, player_id)
 
         if websocket in self.websocket_index:
             self.websocket_index.pop(websocket, None)
@@ -543,17 +550,19 @@ class ConnectionManager:
         if remove_player:
             room.players.pop(player_id, None)
 
-        if notify_opponent and opponent and opponent.connected and opponent.websocket is not None:
-            await self.send_json(
-                opponent.websocket,
-                {
-                    "type": "PLAYER_LEFT",
-                    "roomId": room_id,
-                    "playerId": player_id,
-                    "reason": leave_reason,
-                    "canReconnect": not remove_player,
-                },
-            )
+        if notify_opponent:
+            for other_player in other_players:
+                if other_player.connected and other_player.websocket is not None:
+                    await self.send_json(
+                        other_player.websocket,
+                        {
+                            "type": "PLAYER_LEFT",
+                            "roomId": room_id,
+                            "playerId": player_id,
+                            "reason": leave_reason,
+                            "canReconnect": not remove_player,
+                        },
+                    )
 
         if not room.players:
             self.rooms.pop(room_id, None)
@@ -565,11 +574,8 @@ class ConnectionManager:
 
         self._cleanup_stale_rooms_locked()
 
-    def _find_opponent(self, room: Room, player_id: str) -> Optional[PlayerSession]:
-        for other_id, other_player in room.players.items():
-            if other_id != player_id:
-                return other_player
-        return None
+    def _find_other_players(self, room: Room, player_id: str) -> list[PlayerSession]:
+        return [other_player for other_id, other_player in room.players.items() if other_id != player_id]
 
     def _prepare_room_action_locked(self, websocket: WebSocket) -> Dict[str, Any]:
         room_and_player = self.websocket_index.get(websocket)
@@ -596,13 +602,17 @@ class ConnectionManager:
         sender = room.players[sender_id]
         sender.last_seen = time.time()
         room.updated_at = time.time()
-        opponent = self._find_opponent(room, sender_id)
-        if opponent is None or opponent.websocket is None or not opponent.connected:
+        opponents = [
+            player
+            for player in self._find_other_players(room, sender_id)
+            if player.websocket is not None and player.connected
+        ]
+        if not opponents:
             return {
                 "error": {
                     "type": "ERROR",
                     "code": "OPPONENT_OFFLINE",
-                    "message": "The opponent is not connected.",
+                    "message": "No other player is connected.",
                 },
             }
 
@@ -611,7 +621,7 @@ class ConnectionManager:
             "room_id": room_id,
             "room": room,
             "sender": sender,
-            "opponent": opponent,
+            "opponents": opponents,
         }
 
     def _connected_room_payloads(self, room: Room, payload: Dict[str, Any]) -> list[tuple[WebSocket, Dict[str, Any]]]:

@@ -3,6 +3,7 @@ const GRID_SIZE = 9;
 export const Player = Object.freeze({
   BLACK: "BLACK",
   WHITE: "WHITE",
+  PURPLE: "PURPLE",
 });
 
 export const PointState = Object.freeze({
@@ -11,9 +12,11 @@ export const PointState = Object.freeze({
   BLACK_LINE: 2,
   WHITE_NODE: 3,
   WHITE_LINE: 4,
+  PURPLE_NODE: 5,
+  PURPLE_LINE: 6,
 });
 
-const PLAYER_ORDER = [Player.BLACK, Player.WHITE];
+const PLAYER_ORDER = [Player.BLACK, Player.WHITE, Player.PURPLE];
 const DIRECTIONS = Object.freeze([
   [1, 0],
   [-1, 0],
@@ -25,7 +28,8 @@ const DIRECTIONS = Object.freeze([
 
 const INITIAL_POSITIONS = Object.freeze({
   [Player.BLACK]: Object.freeze([0, 0]),
-  [Player.WHITE]: Object.freeze([8, 0]),
+  [Player.WHITE]: Object.freeze([0, 8]),
+  [Player.PURPLE]: Object.freeze([8, 0]),
 });
 
 const PLAYER_POINT_STATES = Object.freeze({
@@ -36,6 +40,10 @@ const PLAYER_POINT_STATES = Object.freeze({
   [Player.WHITE]: Object.freeze({
     node: PointState.WHITE_NODE,
     line: PointState.WHITE_LINE,
+  }),
+  [Player.PURPLE]: Object.freeze({
+    node: PointState.PURPLE_NODE,
+    line: PointState.PURPLE_LINE,
   }),
 });
 
@@ -131,22 +139,27 @@ export class GameEngine {
     if (this.gridSize !== GRID_SIZE) {
       throw new Error("Only a 9x9 triangular grid is currently supported.");
     }
+    this.playerCount = options.playerCount ?? 2;
+    if (this.playerCount !== 2 && this.playerCount !== 3) {
+      throw new Error("Only 2-player and 3-player modes are supported.");
+    }
+    this.activePlayers = PLAYER_ORDER.slice(0, this.playerCount);
 
     this.validPositions = [];
     this.positionKeys = new Set();
     this.grid = new Map();
-    this.currentPlayer = Player.BLACK;
+    this.currentPlayer = this.activePlayers[0];
     this.gameOver = false;
     this.consecutiveSkips = 0;
     this.turnCount = 0;
-    this.cachedTerritories = {
-      [Player.BLACK]: { polygon: null, area: 0 },
-      [Player.WHITE]: { polygon: null, area: 0 },
-    };
+    this.cachedTerritories = Object.fromEntries(
+      this.activePlayers.map((player) => [player, { polygon: null, area: 0 }]),
+    );
 
     this._initGrid();
-    this._setState(INITIAL_POSITIONS[Player.BLACK], PointState.BLACK_NODE);
-    this._setState(INITIAL_POSITIONS[Player.WHITE], PointState.WHITE_NODE);
+    for (const player of this.activePlayers) {
+      this._setState(INITIAL_POSITIONS[player], this._getPlayerStates(player).node);
+    }
     this._updateTerritories();
   }
 
@@ -184,8 +197,12 @@ export class GameEngine {
     return PLAYER_POINT_STATES[player];
   }
 
-  _getOpponent(player) {
-    return player === Player.BLACK ? Player.WHITE : Player.BLACK;
+  _getOpponents(player) {
+    return this.activePlayers.filter((candidate) => candidate !== player);
+  }
+
+  _getPlayerByLineState(lineState) {
+    return this.activePlayers.find((player) => this._getPlayerStates(player).line === lineState) ?? null;
   }
 
   _getInitialPosition(player) {
@@ -220,31 +237,32 @@ export class GameEngine {
   }
 
   getScoreboard() {
-    return {
-      [Player.BLACK]: { ...this.cachedTerritories[Player.BLACK] },
-      [Player.WHITE]: { ...this.cachedTerritories[Player.WHITE] },
-    };
+    return Object.fromEntries(
+      this.activePlayers.map((player) => [player, { ...this.cachedTerritories[player] }]),
+    );
   }
 
   getSnapshot() {
     const scores = this.getScoreboard();
+    const territories = Object.fromEntries(
+      this.activePlayers.map((player) => [
+        player,
+        {
+          area: scores[player].area,
+          polygon: scores[player].polygon ? scores[player].polygon.map(clonePoint) : null,
+        },
+      ]),
+    );
     return {
       gridSize: this.gridSize,
+      playerCount: this.playerCount,
+      players: [...this.activePlayers],
       currentPlayer: this.currentPlayer,
       gameOver: this.gameOver,
       consecutiveSkips: this.consecutiveSkips,
       turnCount: this.turnCount,
       boardMatrix: this.getBoardMatrix(),
-      territories: {
-        [Player.BLACK]: {
-          area: scores[Player.BLACK].area,
-          polygon: scores[Player.BLACK].polygon ? scores[Player.BLACK].polygon.map(clonePoint) : null,
-        },
-        [Player.WHITE]: {
-          area: scores[Player.WHITE].area,
-          polygon: scores[Player.WHITE].polygon ? scores[Player.WHITE].polygon.map(clonePoint) : null,
-        },
-      },
+      territories,
       winner: this.getWinner(),
       legalMoves: this.getLegalMoves(this.currentPlayer),
     };
@@ -255,15 +273,22 @@ export class GameEngine {
       return null;
     }
 
-    const blackArea = this.cachedTerritories[Player.BLACK].area;
-    const whiteArea = this.cachedTerritories[Player.WHITE].area;
-    if (blackArea > whiteArea) {
-      return Player.BLACK;
+    let winner = null;
+    let bestArea = Number.NEGATIVE_INFINITY;
+    let isDraw = false;
+
+    for (const player of this.activePlayers) {
+      const area = this.cachedTerritories[player].area;
+      if (area > bestArea) {
+        bestArea = area;
+        winner = player;
+        isDraw = false;
+      } else if (area === bestArea) {
+        isDraw = true;
+      }
     }
-    if (whiteArea > blackArea) {
-      return Player.WHITE;
-    }
-    return "DRAW";
+
+    return isDraw ? "DRAW" : winner;
   }
 
   _getPlayerNodes(player) {
@@ -339,8 +364,6 @@ export class GameEngine {
       return false;
     }
 
-    const opponent = this._getOpponent(player);
-    const opponentStates = this._getPlayerStates(opponent);
     const linePoints = this.getLinePoints(pointA, pointB);
 
     for (const point of linePoints) {
@@ -348,8 +371,11 @@ export class GameEngine {
         continue;
       }
       const state = this._getState(point);
-      if (state === opponentStates.node || state === opponentStates.line) {
-        return false;
+      for (const opponent of this._getOpponents(player)) {
+        const opponentStates = this._getPlayerStates(opponent);
+        if (state === opponentStates.node || state === opponentStates.line) {
+          return false;
+        }
       }
     }
     return true;
@@ -375,9 +401,10 @@ export class GameEngine {
   }
 
   _isInProtectionZone(point, player) {
-    const opponent = this._getOpponent(player);
-    const protectedPoints = this.getAdjacentPositions(this._getInitialPosition(opponent));
-    return protectedPoints.some((protectedPoint) => pointEquals(protectedPoint, point));
+    return this._getOpponents(player).some((opponent) => {
+      const protectedPoints = this.getAdjacentPositions(this._getInitialPosition(opponent));
+      return protectedPoints.some((protectedPoint) => pointEquals(protectedPoint, point));
+    });
   }
 
   _isConnectedToInitial(point, player) {
@@ -449,13 +476,11 @@ export class GameEngine {
   }
 
   _handleBlockingAttack(newPoint, player, originalState) {
-    const opponent = this._getOpponent(player);
-    const opponentStates = this._getPlayerStates(opponent);
-    const attackingOpponentLine = this._getPlayerStates(opponent).line;
-
-    if (originalState !== attackingOpponentLine) {
+    const opponent = this._getPlayerByLineState(originalState);
+    if (!opponent || opponent === player) {
       return;
     }
+    const opponentStates = this._getPlayerStates(opponent);
 
     const [x0, y0] = newPoint;
     for (const [dx, dy] of DIRECTIONS) {
@@ -674,15 +699,16 @@ export class GameEngine {
   }
 
   _computeTerritory(player) {
-    const opponent = this._getOpponent(player);
     const friendlyPoints = dedupePoints([
       ...this._getPlayerNodes(player),
       ...this._getPlayerLines(player),
     ]);
-    const enemyPoints = dedupePoints([
-      ...this._getPlayerNodes(opponent),
-      ...this._getPlayerLines(opponent),
-    ]);
+    const enemyPoints = dedupePoints(
+      this._getOpponents(player).flatMap((opponent) => [
+        ...this._getPlayerNodes(opponent),
+        ...this._getPlayerLines(opponent),
+      ]),
+    );
 
     if (friendlyPoints.length < 3) {
       return { polygon: null, area: 0 };
@@ -735,26 +761,26 @@ export class GameEngine {
   }
 
   _updateTerritories() {
-    this.cachedTerritories[Player.BLACK] = this._computeTerritory(Player.BLACK);
-    this.cachedTerritories[Player.WHITE] = this._computeTerritory(Player.WHITE);
+    for (const player of this.activePlayers) {
+      this.cachedTerritories[player] = this._computeTerritory(player);
+    }
   }
 
   _switchPlayer() {
-    const currentIndex = PLAYER_ORDER.indexOf(this.currentPlayer);
-    this.currentPlayer = PLAYER_ORDER[(currentIndex + 1) % PLAYER_ORDER.length];
+    const currentIndex = this.activePlayers.indexOf(this.currentPlayer);
+    this.currentPlayer = this.activePlayers[(currentIndex + 1) % this.activePlayers.length];
   }
 
   _hasValidMoves(player) {
     const existingNodes = this._getPlayerNodes(player);
-    const opponentLineState = this._getPlayerStates(this._getOpponent(player)).line;
+    const attackableLineStates = new Set(
+      this._getOpponents(player).map((opponent) => this._getPlayerStates(opponent).line),
+    );
+    const occupiableLineStates = new Set(this.activePlayers.map((candidate) => this._getPlayerStates(candidate).line));
 
     for (const point of this.validPositions) {
       const state = this._getState(point);
-      if (
-        state !== PointState.EMPTY &&
-        state !== PointState.BLACK_LINE &&
-        state !== PointState.WHITE_LINE
-      ) {
+      if (state !== PointState.EMPTY && !occupiableLineStates.has(state)) {
         continue;
       }
 
@@ -762,7 +788,7 @@ export class GameEngine {
         continue;
       }
 
-      const isAttackingMove = state === opponentLineState;
+      const isAttackingMove = attackableLineStates.has(state);
       if (!isAttackingMove && !this._checkThreePointLimitation(point, player)) {
         continue;
       }
@@ -779,16 +805,15 @@ export class GameEngine {
 
   getLegalMoves(player = this.currentPlayer) {
     const existingNodes = this._getPlayerNodes(player);
-    const opponentLineState = this._getPlayerStates(this._getOpponent(player)).line;
+    const attackableLineStates = new Set(
+      this._getOpponents(player).map((opponent) => this._getPlayerStates(opponent).line),
+    );
+    const occupiableLineStates = new Set(this.activePlayers.map((candidate) => this._getPlayerStates(candidate).line));
     const result = [];
 
     for (const point of this.validPositions) {
       const state = this._getState(point);
-      if (
-        state !== PointState.EMPTY &&
-        state !== PointState.BLACK_LINE &&
-        state !== PointState.WHITE_LINE
-      ) {
+      if (state !== PointState.EMPTY && !occupiableLineStates.has(state)) {
         continue;
       }
 
@@ -796,7 +821,7 @@ export class GameEngine {
         continue;
       }
 
-      const isAttackingMove = state === opponentLineState;
+      const isAttackingMove = attackableLineStates.has(state);
       if (!isAttackingMove && !this._checkThreePointLimitation(point, player)) {
         continue;
       }
@@ -821,7 +846,7 @@ export class GameEngine {
 
     if (!this._hasValidMoves(this.currentPlayer)) {
       this.consecutiveSkips += 1;
-      if (this.consecutiveSkips >= PLAYER_ORDER.length) {
+      if (this.consecutiveSkips >= 3) {
         this.gameOver = true;
       } else {
         this._switchPlayer();
@@ -836,11 +861,8 @@ export class GameEngine {
     }
 
     const originalState = this._getState(point);
-    if (
-      originalState !== PointState.EMPTY &&
-      originalState !== PointState.BLACK_LINE &&
-      originalState !== PointState.WHITE_LINE
-    ) {
+    const occupiableLineStates = new Set(this.activePlayers.map((player) => this._getPlayerStates(player).line));
+    if (originalState !== PointState.EMPTY && !occupiableLineStates.has(originalState)) {
       return false;
     }
 
@@ -849,8 +871,10 @@ export class GameEngine {
     }
 
     const currentStates = this._getPlayerStates(this.currentPlayer);
-    const opponentLineState = this._getPlayerStates(this._getOpponent(this.currentPlayer)).line;
-    const isAttackingMove = originalState === opponentLineState;
+    const attackableLineStates = new Set(
+      this._getOpponents(this.currentPlayer).map((opponent) => this._getPlayerStates(opponent).line),
+    );
+    const isAttackingMove = attackableLineStates.has(originalState);
 
     if (!isAttackingMove && !this._checkThreePointLimitation(point, this.currentPlayer)) {
       return false;
@@ -931,7 +955,7 @@ export class GameEngine {
     }
 
     this.consecutiveSkips += 1;
-    if (this.consecutiveSkips >= PLAYER_ORDER.length) {
+    if (this.consecutiveSkips >= 3) {
       this.gameOver = true;
     } else {
       this._switchPlayer();
