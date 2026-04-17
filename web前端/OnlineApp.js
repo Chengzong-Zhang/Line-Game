@@ -16,6 +16,7 @@ if (!globalThis.Vue) {
 
 const LANGUAGE_STORAGE_KEY = "triaxis-language";
 const SESSION_STORAGE_KEY = "triaxis-online-session";
+const ALL_PLAYERS = Object.freeze([Player.BLACK, Player.WHITE, Player.PURPLE]);
 
 function createDefaultGameState() {
   return {
@@ -27,10 +28,12 @@ function createDefaultGameState() {
     scores: {
       [Player.BLACK]: 0,
       [Player.WHITE]: 0,
+      [Player.PURPLE]: 0,
     },
     territories: {
       [Player.BLACK]: { area: 0, polygon: null },
       [Player.WHITE]: { area: 0, polygon: null },
+      [Player.PURPLE]: { area: 0, polygon: null },
     },
     legalMoves: [],
     snapshot: null,
@@ -133,6 +136,7 @@ function getTexts(language) {
       legalMoves: "Legal Moves",
       blueTerritory: "Blue Territory",
       redTerritory: "Red Territory",
+      purpleTerritory: "Purple Territory",
       area: "Area",
       turnSuffix: "Turn",
       gameOver: "Game Over",
@@ -158,18 +162,19 @@ function getTexts(language) {
       inProgress: "In Progress",
       draw: "Draw",
       unassigned: "Unassigned",
-      waitingStatus: (roomId) => `Room ${roomId ?? "--"} is ready and waiting for the second player.`,
+      waitingStatus: (roomId) => `Room ${roomId ?? "--"} is waiting for more players.`,
       offlineStatus: "Connection was lost. Reconnect to the relay server before continuing the online match.",
-      finalStatus: (winner, blueScore, redScore) => `${winner}. Final score: Blue ${blueScore}, Red ${redScore}.`,
+      finalStatus: (winner, scoreLine) => `${winner}. Final score: ${scoreLine}.`,
       localTurnStatus: (side) => `It is your turn as ${side}. Click a legal point to play, skip the turn, or resign and restart.`,
-      remoteTurnStatus: "It is the opponent's turn. The board stays locked until their move arrives through WebSocket.",
+      remoteTurnStatus: "It is another player's turn. The board stays locked until their move arrives through WebSocket.",
       soloBlueStatus: "Solo mode: Blue to move.",
       soloRedStatus: "Solo mode: Red to move.",
+      soloPurpleStatus: "Solo mode: Purple to move.",
       waitingHint: "The room exists, but the board stays locked until both players are present.",
-      notYourTurnHint: "It is the opponent's turn. Their move will be applied to your local board automatically.",
+      notYourTurnHint: "It is another player's turn. Their move will be applied to your local board automatically.",
       networkUnavailableHint: "Network unavailable. Reconnect before continuing the online match.",
-      opponentOfflineHint: "The opponent disconnected, so the board stays locked until the room is ready again.",
-      multiplayerHint: "Skipping is synchronized for both players. Restarting an unfinished online match counts as a resignation by the player who clicked restart.",
+      opponentOfflineHint: "Another player disconnected, so the board stays locked until the room is ready again.",
+      multiplayerHint: "Skipping is synchronized for everyone in the room. Restarting an unfinished online match counts as a resignation by the player who clicked restart.",
       soloHint: "Solo mode is still available. Click a board vertex to place a node.",
       joinRoomRequired: "Please enter a 4-digit room ID before joining.",
       invalidWebSocket: "Please enter a valid WebSocket address.",
@@ -183,7 +188,7 @@ function getTexts(language) {
       roomNotFound: (roomId) => `Room ${roomId} does not exist. Check the room ID and try again.`,
       roomFull: (roomId) => `Room ${roomId} is full.`,
       playerAlreadyConnected: "This player session is already connected elsewhere.",
-      opponentLeft: "The opponent left the room. Waiting for a new player or a reconnect.",
+      opponentLeft: "A player left the room. Waiting for the room to fill again or for a reconnect.",
       unknownServer: "The server returned an unknown error.",
       continueMatch: "Continue Match",
       resignedSummary: (winner, loser) => `${winner}. ${loser} resigned and the board has been reset.`,
@@ -284,6 +289,9 @@ function formatPlayerName(player, language = "zh") {
   if (player === Player.WHITE) {
     return language === "en" ? "Red" : "红方";
   }
+  if (player === Player.PURPLE) {
+    return language === "en" ? "Purple" : "Purple";
+  }
   return texts.unassigned;
 }
 
@@ -294,6 +302,9 @@ function formatWinner(winner, language = "zh") {
   }
   if (winner === Player.WHITE) {
     return language === "en" ? "Red Wins" : "红方获胜";
+  }
+  if (winner === Player.PURPLE) {
+    return language === "en" ? "Purple Wins" : "Purple Wins";
   }
   if (winner === "DRAW") {
     return texts.draw;
@@ -306,14 +317,18 @@ function formatConnectionState(state, language = "zh") {
   return texts[state] ?? state;
 }
 
-function getOpponentPlayer(player) {
-  if (player === Player.BLACK) {
-    return Player.WHITE;
+function getNextPlayer(player) {
+  const currentIndex = ALL_PLAYERS.indexOf(player);
+  if (currentIndex < 0) {
+    return null;
   }
-  if (player === Player.WHITE) {
-    return Player.BLACK;
-  }
-  return null;
+  return ALL_PLAYERS[(currentIndex + 1) % ALL_PLAYERS.length];
+}
+
+function formatScoreLine(scores, language = "zh") {
+  return ALL_PLAYERS
+    .map((player) => `${formatPlayerName(player, language)} ${formatArea(scores?.[player])}`)
+    .join(language === "en" ? ", " : " / ");
 }
 
 function localizeErrorMessage(message, language = "zh") {
@@ -381,6 +396,15 @@ const ScorePanel = {
     const currentPlayerLabel = computed(() => formatPlayerName(props.gameState.currentPlayer, props.language));
     const localRoleLabel = computed(() => formatPlayerName(props.session.color, props.language));
     const winnerLabel = computed(() => formatWinner(props.gameState.winner, props.language));
+    const turnBannerClass = computed(() => {
+      if (props.gameState.currentPlayer === Player.BLACK) {
+        return "is-blue";
+      }
+      if (props.gameState.currentPlayer === Player.WHITE) {
+        return "is-red";
+      }
+      return "is-purple";
+    });
 
     return {
       Player,
@@ -388,6 +412,7 @@ const ScorePanel = {
       currentPlayerLabel,
       localRoleLabel,
       winnerLabel,
+      turnBannerClass,
       formatArea,
     };
   },
@@ -398,7 +423,7 @@ const ScorePanel = {
         <h2>{{ texts.boardStatus }}</h2>
       </div>
 
-      <div class="turn-banner" :class="gameState.currentPlayer === Player.BLACK ? 'is-blue' : 'is-red'">
+      <div class="turn-banner" :class="turnBannerClass">
         <span class="turn-dot"></span>
         <strong>{{ currentPlayerLabel }} {{ texts.turnSuffix }}</strong>
         <small>{{ winnerLabel }}</small>
@@ -413,6 +438,11 @@ const ScorePanel = {
         <article class="score-card score-card-red">
           <p>{{ texts.redTerritory }}</p>
           <strong>{{ formatArea(gameState.scores[Player.WHITE]) }}</strong>
+          <span>{{ texts.area }}</span>
+        </article>
+        <article class="score-card score-card-purple">
+          <p>{{ texts.purpleTerritory || 'Purple Territory' }}</p>
+          <strong>{{ formatArea(gameState.scores[Player.PURPLE]) }}</strong>
           <span>{{ texts.area }}</span>
         </article>
       </div>
@@ -635,8 +665,9 @@ const ResultModal = {
 
       const blueScore = formatArea(props.gameState.scores[Player.BLACK]);
       const redScore = formatArea(props.gameState.scores[Player.WHITE]);
+      const purpleScore = formatArea(props.gameState.scores[Player.PURPLE]);
       return props.language === "en"
-        ? `Blue ${blueScore} vs Red ${redScore}`
+        ? `Blue ${blueScore}, Red ${redScore}, Purple ${purpleScore}`
         : `蓝方 ${blueScore} 对 红方 ${redScore}`;
     });
 
@@ -697,6 +728,9 @@ const BoardCanvas = {
 
     onMounted(() => {
       controller = new GameController(canvasRef.value, {
+        engine: {
+          playerCount: 3,
+        },
         onStateChange: handleStateChange,
       });
       emit("controller-ready", controller);
@@ -1027,7 +1061,7 @@ const App = {
       if (roomStatus.value === "solo") {
         if (!gameState.value.gameOver) {
           overlayResult.value = {
-            winner: getOpponentPlayer(gameState.value.currentPlayer),
+            winner: getNextPlayer(gameState.value.currentPlayer),
             loser: gameState.value.currentPlayer,
             resetAfterClose: true,
           };
@@ -1062,8 +1096,8 @@ const App = {
       if (gameState.value.gameOver) {
         return texts.finalStatus(
           formatWinner(gameState.value.winner, language.value),
-          formatArea(gameState.value.scores[Player.BLACK]),
-          formatArea(gameState.value.scores[Player.WHITE]),
+          formatScoreLine(gameState.value.scores, language.value),
+          "",
         );
       }
 
@@ -1075,7 +1109,9 @@ const App = {
 
       return gameState.value.currentPlayer === Player.BLACK
         ? texts.soloBlueStatus
-        : texts.soloRedStatus;
+        : gameState.value.currentPlayer === Player.WHITE
+          ? texts.soloRedStatus
+          : (texts.soloPurpleStatus ?? "Purple to move.");
     });
 
     const boardHint = computed(() => {

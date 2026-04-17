@@ -13,7 +13,7 @@ function distanceBetween(a, b) {
 }
 
 function isKnownPlayer(player) {
-  return player === Player.BLACK || player === Player.WHITE;
+  return player === Player.BLACK || player === Player.WHITE || player === Player.PURPLE;
 }
 
 function isGridPoint(point) {
@@ -240,6 +240,7 @@ export class GameController {
   _buildGameState(snapshot = this.engine.getSnapshot()) {
     const black = snapshot.territories?.[Player.BLACK] ?? { area: 0, polygon: null };
     const white = snapshot.territories?.[Player.WHITE] ?? { area: 0, polygon: null };
+    const purple = snapshot.territories?.[Player.PURPLE] ?? { area: 0, polygon: null };
     const interactionLockReason = this._getInteractionLockReason(snapshot);
     const skipLockReason = this._getSkipLockReason(snapshot);
     const resetLockReason = this._getResetLockReason(snapshot);
@@ -253,10 +254,13 @@ export class GameController {
       scores: {
         [Player.BLACK]: black.area,
         [Player.WHITE]: white.area,
+        [Player.PURPLE]: purple.area,
       },
       territories: snapshot.territories,
       legalMoves: snapshot.legalMoves,
       snapshot,
+      players: Array.isArray(snapshot.players) ? [...snapshot.players] : [Player.BLACK, Player.WHITE, Player.PURPLE],
+      playerCount: snapshot.playerCount ?? 3,
       multiplayerEnabled: this.multiplayerEnabled,
       localPlayer: this.localPlayer,
       roomReady: this.roomReady,
