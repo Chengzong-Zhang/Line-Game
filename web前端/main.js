@@ -3,6 +3,7 @@ const VUE_CDN_URLS = [
   "https://unpkg.com/vue@3/dist/vue.global.prod.js",
   "https://fastly.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js",
 ];
+const APP_ASSET_VERSION = "20260417b";
 
 function showBootError(message) {
   const mountPoint = document.querySelector("#app");
@@ -54,7 +55,7 @@ async function ensureVueRuntime() {
 async function bootstrap() {
   try {
     const Vue = await ensureVueRuntime();
-    const { default: App } = await import("./OnlineApp.js");
+    const { default: App } = await import(`./OnlineApp.js?v=${APP_ASSET_VERSION}`);
     Vue.createApp(App).mount("#app");
   } catch (error) {
     console.error("TriAxis bootstrap failed:", error);

@@ -1,6 +1,6 @@
-import GameController from "./GameController.js";
-import { Player } from "./GameEngine.js";
-import NetworkManager, { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js";
+import GameController from "./GameController.js?v=20260417b";
+import { Player } from "./GameEngine.js?v=20260417b";
+import NetworkManager, { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js?v=20260417b";
 
 const {
   computed,

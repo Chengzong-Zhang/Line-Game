@@ -1,4 +1,4 @@
-import { Player, PointState } from "./GameEngine.js";
+import { Player, PointState } from "./GameEngine.js?v=20260417b";
 
 const SQRT3_OVER_2 = Math.sqrt(3) / 2;
 

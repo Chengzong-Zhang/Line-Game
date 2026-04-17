@@ -1,6 +1,6 @@
-import GameEngine, { Player } from "./GameEngine.js";
-import Renderer from "./Renderer.js";
-import { ClientEvent, ServerEvent } from "./NetworkManager.js";
+import GameEngine, { Player } from "./GameEngine.js?v=20260417b";
+import Renderer from "./Renderer.js?v=20260417b";
+import { ClientEvent, ServerEvent } from "./NetworkManager.js?v=20260417b";
 
 function clonePoint(point) {
   return [point[0], point[1]];
