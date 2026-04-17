@@ -1,8 +1,15 @@
 $ErrorActionPreference = "Stop"
 
 $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$backendDir = Join-Path $projectRoot "web后端"
 $serverUrl = "http://127.0.0.1:8000/"
+
+$backendDir = Get-ChildItem -Path $projectRoot -Directory |
+  Where-Object { Test-Path (Join-Path $_.FullName "server.py") } |
+  Select-Object -First 1 -ExpandProperty FullName
+
+if (-not $backendDir) {
+  throw "Could not locate the backend directory containing server.py."
+}
 
 function Test-ServerReady {
   try {
@@ -48,7 +55,7 @@ for ($i = 0; $i -lt 20; $i += 1) {
 }
 
 if (-not $ready) {
-  throw "The online server did not start successfully. Check web后端/server.py and port 8000."
+  throw "The online server did not start successfully. Check the backend server.py and port 8000."
 }
 
 Start-Process $serverUrl | Out-Null
