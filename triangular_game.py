@@ -228,99 +228,196 @@ class TriangularGame:
             area += (x1 * y2 - x2 * y1)
         return float(abs(area))
 
-    def _get_all_shortest_grid_paths(self, start: Tuple[int, int], end: Tuple[int, int], enemies: set) -> List[List[Tuple[int, int]]]:
-        """BFS寻路：获取避开敌军的所有等长最短格点路径"""
+    def _get_all_shortest_grid_paths(self, start: Tuple[int, int], end: Tuple[int, int],
+                                     enemies: set, max_paths: int = 50) -> List[List[Tuple[int, int]]]:
+        """BFS寻路：获取避开敌军的所有等长最短格点路径（上限 max_paths 条）"""
         if start == end:
             return [[start]]
-            
+
         queue = [[start]]
         shortest_paths = []
         min_length = float('inf')
         visited_at_depth = {start: 0}
-        
+
         while queue:
             path = queue.pop(0)
             current = path[-1]
-            
+
             if len(path) > min_length:
                 continue
-                
+            if len(shortest_paths) >= max_paths:
+                break
+
             if current == end:
                 shortest_paths.append(path)
                 min_length = len(path)
                 continue
-                
+
             for nxt in self._get_adjacent_positions(current):
                 if nxt in enemies:
                     continue
                 depth = len(path)
-                # 允许等长的不同路径交汇
                 if nxt not in visited_at_depth or visited_at_depth[nxt] >= depth:
                     visited_at_depth[nxt] = depth
                     queue.append(path + [nxt])
-                    
+
         return shortest_paths
 
+    # ------------------------------------------------------------------
+    # 右手摸墙法 + 拐点提取
+    # ------------------------------------------------------------------
+    # 6个方向向量，按屏幕坐标顺时针排列：E, SE, SW, W, NW, NE
+    _DIRS_CW = [(1, 0), (0, 1), (-1, 1), (-1, 0), (0, -1), (1, -1)]
+
+    def _get_outer_contour(self, player: Player) -> List[Tuple[int, int]]:
+        """右手摸墙法：获取己方棋子的外轮廓点列表（闭合环路，不含重复终点）。
+        起点 = x 最小（相同取 y 最小）的己方节点，假定从正左方进入。"""
+        DIRS = self._DIRS_CW
+        friendlies = set(self._get_player_nodes(player) + self._get_player_lines(player))
+        if not friendlies:
+            return []
+
+        nodes = self._get_player_nodes(player)
+        if not nodes:
+            return []
+        start = min(nodes, key=lambda p: (p[0], p[1]))
+
+        if len(friendlies) == 1:
+            return [start]
+
+        backtrack = 3                       # 初始：从正左方（西）进入
+        contour: List[Tuple[int, int]] = []
+        current = start
+        first_out_dir = None
+        max_steps = len(friendlies) * 6 + 10   # 安全上限
+
+        for _ in range(max_steps):
+            # 从 (backtrack+1)%6 开始顺时针扫描 6 个方向
+            out_dir = None
+            for i in range(6):
+                d = (backtrack + 1 + i) % 6
+                dx, dy = DIRS[d]
+                nxt = (current[0] + dx, current[1] + dy)
+                if nxt in friendlies:
+                    out_dir = d
+                    break
+
+            if out_dir is None:
+                contour.append(current)     # 孤立点
+                break
+
+            # 终止条件：回到起点且准备迈出的方向与第一步完全相同
+            if first_out_dir is None:
+                first_out_dir = out_dir
+                contour.append(current)
+            elif current == start and out_dir == first_out_dir:
+                break                       # 闭合完成
+            else:
+                contour.append(current)
+
+            # 移动
+            dx, dy = DIRS[out_dir]
+            current = (current[0] + dx, current[1] + dy)
+            backtrack = (out_dir + 3) % 6
+
+        return contour
+
+    def _extract_contour_vertices(self, contour: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
+        """从轮廓环路中提取拐点（方向变化的顶点），并去除半岛导致的重复。"""
+        n = len(contour)
+        if n <= 2:
+            return contour[:]
+
+        # 提取方向变化的拐点
+        corners: List[Tuple[int, int]] = []
+        for i in range(n):
+            prev_pt = contour[(i - 1) % n]
+            curr_pt = contour[i]
+            next_pt = contour[(i + 1) % n]
+            d_in  = (curr_pt[0] - prev_pt[0], curr_pt[1] - prev_pt[1])
+            d_out = (next_pt[0] - curr_pt[0], next_pt[1] - curr_pt[1])
+            if d_in != d_out:
+                corners.append(curr_pt)
+
+        if len(corners) < 3:
+            return corners
+
+        # 去重：只保留每个点的首次出现（处理半岛 / 窄桥回折）
+        seen: set = set()
+        deduped: List[Tuple[int, int]] = []
+        for pt in corners:
+            if pt not in seen:
+                seen.add(pt)
+                deduped.append(pt)
+
+        return deduped
+
+    # ------------------------------------------------------------------
+
     def _compute_inner_hull(self, player: Player):
-        """核心重构：执行领土的四步计算法"""
+        """核心：领土四步计算（右手摸墙 → 路由 → 面积 → 选路）"""
         opp = Player.WHITE if player == Player.BLACK else Player.BLACK
         friendlies = set(self._get_player_nodes(player) + self._get_player_lines(player))
-        enemies = set(self._get_player_nodes(opp) + self._get_player_lines(opp))
+        enemies    = set(self._get_player_nodes(opp)    + self._get_player_lines(opp))
 
         if len(friendlies) < 3:
             return None, 0.0
 
-        import numpy as np
-        try:
-            from scipy.spatial import ConvexHull
-        except ImportError:
+        # Step 1: 右手摸墙法 → 外轮廓 → 拐点
+        contour = self._get_outer_contour(player)
+        if len(contour) < 3:
             return None, 0.0
 
-        friendly_list = list(friendlies)
-        screen_pts = np.array([self._get_screen_pos(*p) for p in friendly_list], dtype=float)
-        
-        try:
-            # Step 1: 屏幕坐标求欧几里得凸包，获取顶点的逆时针顺序
-            hull = ConvexHull(screen_pts)
-            hull_verts = [friendly_list[i] for i in hull.vertices]
-        except Exception:
+        hull_verts = self._extract_contour_vertices(contour)
+        if len(hull_verts) < 3:
             return None, 0.0
 
-        # Step 2: 路由 - 寻找相邻凸包顶点之间的所有网格最短路
-        segments_paths = []
+        # Step 2: 路由 — 寻找相邻拐点之间的所有最短格点路径
+        segments_paths: list = []
         n = len(hull_verts)
         for i in range(n):
-            start = hull_verts[i]
-            end = hull_verts[(i + 1) % n]
-            paths = self._get_all_shortest_grid_paths(start, end, enemies)
-            
+            seg_s = hull_verts[i]
+            seg_e = hull_verts[(i + 1) % n]
+            paths = self._get_all_shortest_grid_paths(seg_s, seg_e, enemies)
             if not paths:
-                # 极端情况：敌方将阵地彻底锁死，无法形成闭合回路
                 return None, 0.0
             segments_paths.append(paths)
+
+        # 限制组合总数，防止指数爆炸
+        total = 1
+        for sp in segments_paths:
+            total *= len(sp)
+            if total > 50000:
+                break
+        if total > 50000:
+            segments_paths = [sp[:3] for sp in segments_paths]
+            total = 1
+            for sp in segments_paths:
+                total *= len(sp)
+        if total > 50000:
+            segments_paths = [sp[:1] for sp in segments_paths]
 
         import itertools
         best_polygon = None
         min_area = float('inf')
-        
-        # Step 3 & 4: 选路与面积 - 遍历所有相邻段的路径组合
-        for path_combination in itertools.product(*segments_paths):
-            polygon = []
-            for path in path_combination:
-                polygon.extend(path[:-1])  # 拼合路径，舍去重复的连接点
-                
-            # 若内凹太深导致友方节点被漏在圈外，则丢弃该组合
+
+        # Step 3 & 4: 遍历路径组合，取面积最小的合法多边形
+        for combo in itertools.product(*segments_paths):
+            polygon: List[Tuple[int, int]] = []
+            for path in combo:
+                polygon.extend(path[:-1])
+
             if not self._polygon_contains_all(polygon, friendlies):
                 continue
-                
+
             area = self._calculate_polygon_area(polygon)
             if area < min_area:
                 min_area = area
                 best_polygon = polygon
-                
+
         if best_polygon is None:
             return None, 0.0
-            
+
         screen_polygon = [self._get_screen_pos(*p) for p in best_polygon]
         return screen_polygon, min_area
     
