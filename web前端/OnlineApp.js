@@ -111,7 +111,7 @@ function getTexts(language) {
       heroCopy: "Rules still run in the browser. The FastAPI relay server only creates rooms and forwards match actions.",
       statusLabel: "Match Feed",
       boardTitle: "Triangular Board",
-      boardEyebrow: "Canvas Board",
+      boardEyebrow: "Board",
       boardAriaLabel: "TriAxis triangular board",
       localControls: "Local Controls",
       controlsEyebrow: "Local Controls",
@@ -197,7 +197,7 @@ function getTexts(language) {
     heroCopy: "规则运算仍在浏览器中完成，FastAPI 中继服务只负责创建房间并转发对局操作。",
     statusLabel: "对局播报",
     boardTitle: "三角棋盘",
-    boardEyebrow: "Canvas 棋盘",
+    boardEyebrow: "棋盘",
     boardAriaLabel: "TriAxis 三角棋盘",
     localControls: "本地操作",
     controlsEyebrow: "本地操作",
@@ -304,6 +304,16 @@ function formatWinner(winner, language = "zh") {
 function formatConnectionState(state, language = "zh") {
   const texts = getTexts(language);
   return texts[state] ?? state;
+}
+
+function getOpponentPlayer(player) {
+  if (player === Player.BLACK) {
+    return Player.WHITE;
+  }
+  if (player === Player.WHITE) {
+    return Player.BLACK;
+  }
+  return null;
 }
 
 function localizeErrorMessage(message, language = "zh") {
@@ -1015,6 +1025,15 @@ const App = {
       }
 
       if (roomStatus.value === "solo") {
+        if (!gameState.value.gameOver) {
+          overlayResult.value = {
+            winner: getOpponentPlayer(gameState.value.currentPlayer),
+            loser: gameState.value.currentPlayer,
+            resetAfterClose: true,
+          };
+          return;
+        }
+
         gameState.value = controller.value.resetGame();
         return;
       }
@@ -1136,6 +1155,9 @@ const App = {
 
     const handleResultAction = async () => {
       if (overlayResult.value) {
+        if (overlayResult.value.resetAfterClose && controller.value) {
+          gameState.value = controller.value.resetGame();
+        }
         overlayResult.value = null;
         return;
       }
