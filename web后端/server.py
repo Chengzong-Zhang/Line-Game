@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -15,6 +16,9 @@ ROOM_CODE_LENGTH = 4
 ROOM_TTL_SECONDS = 300
 PLAYER_BLACK = "BLACK"
 PLAYER_WHITE = "WHITE"
+
+
+logger = logging.getLogger("uvicorn.error")
 
 
 @dataclass
@@ -58,6 +62,14 @@ class ConnectionManager:
 
     async def handle_message(self, websocket: WebSocket, message: Dict[str, Any]) -> None:
         message_type = message.get("type")
+        room_id, player_id = self.websocket_index.get(websocket, (None, None))
+        logger.info(
+            "incoming message type=%s room=%s player=%s payload=%s",
+            message_type,
+            room_id,
+            player_id,
+            message,
+        )
 
         if message_type == "create_room":
             await self.create_room(websocket)
@@ -129,6 +141,7 @@ class ConnectionManager:
                 "status": "WAITING",
             },
         )
+        logger.info("room created room=%s player=%s color=%s", room_id, player_id, player.color)
 
     async def join_room(self, websocket: WebSocket, room_id: str, player_id: Optional[str] = None) -> None:
         if not room_id:
@@ -222,6 +235,14 @@ class ConnectionManager:
                 "status": "READY" if len(room_snapshot["players"]) == ROOM_SIZE else "WAITING",
                 "reconnected": reconnected,
             },
+        )
+        logger.info(
+            "room joined room=%s player=%s color=%s ready=%s reconnected=%s",
+            room_id,
+            session.player_id,
+            session.color,
+            len(room_snapshot["players"]) == ROOM_SIZE,
+            reconnected,
         )
 
         if len(room_snapshot["players"]) == ROOM_SIZE:
@@ -397,6 +418,7 @@ class ConnectionManager:
                 await self.send_json(websocket, payload)
 
     async def send_json(self, websocket: WebSocket, payload: Dict[str, Any]) -> None:
+        logger.info("outgoing payload=%s", payload)
         await websocket.send_json(payload)
 
     async def _detach_player(
