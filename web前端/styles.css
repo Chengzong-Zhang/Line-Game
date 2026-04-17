@@ -63,7 +63,7 @@ body::before {
 
 .hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.9fr);
+  grid-template-columns: 1fr;
   gap: 18px;
   align-items: stretch;
   margin-bottom: 22px;

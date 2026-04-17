@@ -17,6 +17,8 @@ const DEFAULT_THEME = Object.freeze({
   blueTerritoryStroke: "rgba(31, 79, 186, 0.75)",
   redTerritoryFill: "rgba(228, 75, 75, 0.18)",
   redTerritoryStroke: "rgba(168, 52, 52, 0.75)",
+  legalMoveFill: "#2fba63",
+  legalMoveStroke: "rgba(17, 84, 40, 0.35)",
 });
 
 function pointKey(point) {
@@ -161,6 +163,7 @@ export class Renderer {
       lineWidth: Math.max(3, scale * 0.08),
       guideLineWidth: Math.max(1, scale * 0.028),
       territoryLineWidth: Math.max(2, scale * 0.05),
+      legalMoveRadius: Math.max(4, scale * 0.08),
       normalizedBounds: { minNX, maxNX, minNY, maxNY },
     };
   }
@@ -329,14 +332,28 @@ export class Renderer {
     ctx.fillStyle = this.theme.background;
     ctx.fillRect(0, 0, layout.cssWidth, layout.cssHeight);
 
-    const top = this._gridToPixel(0, 0, layout);
-    const right = this._gridToPixel(layout.gridSize - 1, 0, layout);
-    const bottom = this._gridToPixel(0, layout.gridSize - 1, layout);
+    const corners = [
+      this._gridToPixel(0, 0, layout),
+      this._gridToPixel(layout.gridSize - 1, 0, layout),
+      this._gridToPixel(0, layout.gridSize - 1, layout),
+    ];
+    const centerX = corners.reduce((sum, [x]) => sum + x, 0) / corners.length;
+    const centerY = corners.reduce((sum, [, y]) => sum + y, 0) / corners.length;
+    const borderInset = layout.pointRadius * 1.6;
+    const expandedCorners = corners.map(([x, y]) => {
+      const dx = x - centerX;
+      const dy = y - centerY;
+      const length = Math.hypot(dx, dy) || 1;
+      return [
+        x + (dx / length) * borderInset,
+        y + (dy / length) * borderInset,
+      ];
+    });
 
     ctx.beginPath();
-    ctx.moveTo(top[0], top[1] - layout.pointRadius * 1.2);
-    ctx.lineTo(right[0] + layout.pointRadius * 1.2, right[1] + layout.pointRadius * 0.6);
-    ctx.lineTo(bottom[0], bottom[1] + layout.pointRadius * 1.5);
+    ctx.moveTo(expandedCorners[0][0], expandedCorners[0][1]);
+    ctx.lineTo(expandedCorners[1][0], expandedCorners[1][1]);
+    ctx.lineTo(expandedCorners[2][0], expandedCorners[2][1]);
     ctx.closePath();
     ctx.fillStyle = this.theme.boardFill;
     ctx.strokeStyle = this.theme.boardStroke;
@@ -471,6 +488,22 @@ export class Renderer {
     }
   }
 
+  _drawLegalMoves(snapshot, layout) {
+    const ctx = this.ctx;
+    const legalMoves = Array.isArray(snapshot.legalMoves) ? snapshot.legalMoves : [];
+
+    for (const point of legalMoves) {
+      const [x, y] = this._gridToPixel(point[0], point[1], layout);
+      ctx.beginPath();
+      ctx.arc(x, y, layout.legalMoveRadius, 0, Math.PI * 2);
+      ctx.fillStyle = this.theme.legalMoveFill;
+      ctx.fill();
+      ctx.lineWidth = Math.max(1, layout.guideLineWidth * 1.5);
+      ctx.strokeStyle = this.theme.legalMoveStroke;
+      ctx.stroke();
+    }
+  }
+
   render(snapshot) {
     if (!snapshot || !snapshot.boardMatrix) {
       throw new Error("Renderer.render(snapshot) requires a valid GameEngine snapshot.");
@@ -485,6 +518,7 @@ export class Renderer {
     this._drawGridSkeleton(boardData, this.layout);
     this._drawSegments(snapshot, boardData, this.layout);
     this._drawTerritories(snapshot, this.layout);
+    this._drawLegalMoves(snapshot, this.layout);
     this._drawNodes(boardData, this.layout);
   }
 }

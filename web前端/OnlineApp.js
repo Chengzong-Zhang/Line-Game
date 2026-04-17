@@ -53,7 +53,7 @@ function createEmptySession() {
 }
 
 function formatArea(value) {
-  return Number(value ?? 0).toFixed(1);
+  return String(Math.round(Number(value ?? 0)));
 }
 
 function getInitialLanguage() {
@@ -107,6 +107,7 @@ function getTexts(language) {
       idle: "Idle",
       connecting: "Connecting",
       connected: "Connected",
+      reconnecting: "Reconnecting",
       disconnected: "Disconnected",
       error: "Connection Error",
       solo: "Solo Mode",
@@ -143,6 +144,8 @@ function getTexts(language) {
       playerAlreadyConnected: "This player session is already connected elsewhere.",
       opponentLeft: "The opponent left the room. Waiting for a new player or a reconnect.",
       unknownServer: "The server returned an unknown error.",
+      continueMatch: "Continue Match",
+      resignedSummary: (winner, loser) => `${winner}. ${loser} resigned and the board has been reset.`,
     };
   }
 
@@ -190,6 +193,7 @@ function getTexts(language) {
     idle: "未连接",
     connecting: "连接中",
     connected: "已连接",
+    reconnecting: "重连中",
     disconnected: "已断开",
     error: "连接异常",
     solo: "本地模式",
@@ -226,6 +230,8 @@ function getTexts(language) {
     playerAlreadyConnected: "这个玩家会话已经在别处连接。",
     opponentLeft: "对手已离开房间，正在等待新玩家加入或重新连接。",
     unknownServer: "服务器返回了未知错误。",
+    continueMatch: "继续对局",
+    resignedSummary: (winner, loser) => `${winner}，${loser}认输，棋盘已重置。`,
   };
 }
 
@@ -435,11 +441,6 @@ const RoomPanel = {
         <h2>{{ texts.onlineMatch }}</h2>
       </div>
 
-      <div class="callout-box">
-        <p class="callout-title">{{ texts.whatIsConnect }}</p>
-        <p class="help-copy callout-copy">{{ texts.connectExplanation }}</p>
-      </div>
-
       <label class="field-label" for="server-url">{{ texts.serverAddress }}</label>
       <input
         id="server-url"
@@ -542,7 +543,7 @@ const ControlPanel = {
 
 const ResultModal = {
   name: "ResultModal",
-  emits: ["reset"],
+  emits: ["action"],
   props: {
     gameState: {
       type: Object,
@@ -560,11 +561,27 @@ const ResultModal = {
       type: String,
       required: true,
     },
+    overlayResult: {
+      type: Object,
+      default: null,
+    },
   },
   setup(props) {
     const texts = computed(() => getTexts(props.language));
-    const title = computed(() => formatWinner(props.gameState.winner, props.language));
+    const title = computed(() => {
+      if (props.overlayResult) {
+        return formatWinner(props.overlayResult.winner, props.language);
+      }
+      return formatWinner(props.gameState.winner, props.language);
+    });
     const summary = computed(() => {
+      if (props.overlayResult) {
+        return texts.value.resignedSummary(
+          formatPlayerName(props.overlayResult.winner, props.language),
+          formatPlayerName(props.overlayResult.loser, props.language),
+        );
+      }
+
       const blueScore = formatArea(props.gameState.scores[Player.BLACK]);
       const redScore = formatArea(props.gameState.scores[Player.WHITE]);
       return props.language === "en"
@@ -572,7 +589,15 @@ const ResultModal = {
         : `蓝方 ${blueScore} 对 红方 ${redScore}`;
     });
 
+    const actionLabel = computed(() => {
+      if (props.overlayResult) {
+        return texts.value.continueMatch;
+      }
+      return props.resetLabel;
+    });
+
     return {
+      actionLabel,
       texts,
       title,
       summary,
@@ -580,17 +605,17 @@ const ResultModal = {
   },
   template: `
     <transition name="fade">
-      <div v-if="gameState.gameOver" class="result-overlay" role="dialog" aria-modal="true">
+      <div v-if="overlayResult || gameState.gameOver" class="result-overlay" role="dialog" aria-modal="true">
         <div class="result-card">
           <p class="eyebrow">{{ texts.gameOver }}</p>
           <h2>{{ title }}</h2>
           <p class="result-summary">{{ summary }}</p>
           <button
             class="action-button action-button-primary"
-            :disabled="!allowReset"
-            @click="$emit('reset')"
+            :disabled="overlayResult ? false : !allowReset"
+            @click="$emit('action')"
           >
-            {{ resetLabel }}
+            {{ actionLabel }}
           </button>
         </div>
       </div>
@@ -703,7 +728,10 @@ const App = {
     const roomStatus = ref("solo");
     const networkBusy = ref(false);
     const networkError = ref("");
+    const overlayResult = ref(null);
     const unsubscribers = [];
+    let reconnectTimerId = null;
+    let reconnectAttempt = 0;
 
     watch(language, (value) => {
       globalThis.localStorage?.setItem(LANGUAGE_STORAGE_KEY, value);
@@ -716,6 +744,13 @@ const App = {
         ...createEmptySession(),
         ...networkManager.getSession(),
       };
+    };
+
+    const clearReconnectTimer = () => {
+      if (reconnectTimerId !== null) {
+        globalThis.clearTimeout(reconnectTimerId);
+        reconnectTimerId = null;
+      }
     };
 
     const handleNetworkError = (error) => {
@@ -740,6 +775,50 @@ const App = {
         roomReady: ready,
         opponentConnected: ready,
       });
+    };
+
+    const attemptReconnect = async () => {
+      if (roomStatus.value === "solo") {
+        return;
+      }
+
+      clearReconnectTimer();
+      connectionState.value = "reconnecting";
+
+      try {
+        await ensureConnected();
+        syncSession();
+
+        if (!session.value.roomId) {
+          reconnectAttempt = 0;
+          return;
+        }
+
+        const payload = await networkManager.joinRoom(session.value.roomId, session.value.playerId);
+        roomStatus.value = payload.status === "READY" ? "ready" : "waiting";
+        syncSession();
+        enableOnlineController(payload, payload.status === "READY");
+        networkError.value = "";
+        reconnectAttempt = 0;
+      } catch (error) {
+        handleNetworkError(error);
+        reconnectAttempt += 1;
+        const delay = Math.min(8000, 1000 * reconnectAttempt);
+        reconnectTimerId = globalThis.setTimeout(() => {
+          void attemptReconnect();
+        }, delay);
+      }
+    };
+
+    const scheduleReconnect = () => {
+      if (roomStatus.value === "solo") {
+        return;
+      }
+
+      clearReconnectTimer();
+      reconnectTimerId = globalThis.setTimeout(() => {
+        void attemptReconnect();
+      }, 1200);
     };
 
     const ensureConnected = async () => {
@@ -767,9 +846,12 @@ const App = {
     const handleConnect = async () => {
       networkBusy.value = true;
       networkError.value = "";
+      overlayResult.value = null;
+      clearReconnectTimer();
 
       try {
         await ensureConnected();
+        reconnectAttempt = 0;
       } catch (error) {
         connectionState.value = "disconnected";
         handleNetworkError(error);
@@ -781,6 +863,8 @@ const App = {
     const handleCreateRoom = async () => {
       networkBusy.value = true;
       networkError.value = "";
+      overlayResult.value = null;
+      clearReconnectTimer();
 
       try {
         await ensureConnected();
@@ -809,6 +893,8 @@ const App = {
 
       networkBusy.value = true;
       networkError.value = "";
+      overlayResult.value = null;
+      clearReconnectTimer();
 
       try {
         await ensureConnected();
@@ -830,6 +916,8 @@ const App = {
     const handleLeaveRoom = async () => {
       networkBusy.value = true;
       networkError.value = "";
+      overlayResult.value = null;
+      clearReconnectTimer();
 
       try {
         await networkManager.leaveRoom();
@@ -992,9 +1080,19 @@ const App = {
       return !resetDisabled.value;
     });
 
+    const handleResultAction = async () => {
+      if (overlayResult.value) {
+        overlayResult.value = null;
+        return;
+      }
+
+      await handleReset();
+    };
+
     unsubscribers.push(
       networkManager.on(ClientEvent.OPEN, () => {
         connectionState.value = "connected";
+        clearReconnectTimer();
         syncSession();
       }),
     );
@@ -1011,6 +1109,7 @@ const App = {
             roomReady: false,
             opponentConnected: false,
           });
+          scheduleReconnect();
         }
       }),
     );
@@ -1027,6 +1126,7 @@ const App = {
         roomIdInput.value = payload.roomId ?? roomIdInput.value;
         syncSession();
         enableOnlineController(payload, false);
+        reconnectAttempt = 0;
       }),
     );
 
@@ -1037,6 +1137,7 @@ const App = {
         roomIdInput.value = payload.roomId ?? roomIdInput.value;
         syncSession();
         enableOnlineController(payload, ready);
+        reconnectAttempt = 0;
       }),
     );
 
@@ -1045,6 +1146,7 @@ const App = {
         roomStatus.value = "ready";
         syncSession();
         enableOnlineController(payload, true);
+        reconnectAttempt = 0;
       }),
     );
 
@@ -1062,9 +1164,15 @@ const App = {
     );
 
     unsubscribers.push(
-      networkManager.on(ServerEvent.MATCH_RESET, () => {
+      networkManager.on(ServerEvent.MATCH_RESET, (payload) => {
         networkError.value = "";
         roomStatus.value = "ready";
+        if (payload.reason === "resign_restart" && payload.winnerColor && payload.color) {
+          overlayResult.value = {
+            winner: payload.winnerColor,
+            loser: payload.color,
+          };
+        }
       }),
     );
 
@@ -1075,6 +1183,7 @@ const App = {
     );
 
     onBeforeUnmount(() => {
+      clearReconnectTimer();
       for (const unsubscribe of unsubscribers) {
         if (typeof unsubscribe === "function") {
           unsubscribe();
@@ -1095,6 +1204,7 @@ const App = {
       roomStatus,
       networkBusy,
       networkError,
+      overlayResult,
       statusText,
       boardHint,
       skipDisabled,
@@ -1102,6 +1212,7 @@ const App = {
       resetLabel,
       controlsHelpText,
       resultResetAllowed,
+      handleResultAction,
       handleControllerReady,
       handleStateChange,
       handleConnect,
@@ -1122,10 +1233,6 @@ const App = {
           <p class="hero-copy">
             {{ getTexts(language).heroCopy }}
           </p>
-        </div>
-        <div class="hero-status">
-          <p class="status-label">{{ getTexts(language).statusLabel }}</p>
-          <p class="status-copy">{{ statusText }}</p>
         </div>
       </section>
 
@@ -1173,8 +1280,9 @@ const App = {
         :language="language"
         :game-state="gameState"
         :allow-reset="resultResetAllowed"
+        :overlay-result="overlayResult"
         :reset-label="resetLabel"
-        @reset="handleReset"
+        @action="handleResultAction"
       />
     </main>
   `,

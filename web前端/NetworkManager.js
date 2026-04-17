@@ -1,4 +1,6 @@
 const DEFAULT_REQUEST_TIMEOUT = 10000;
+const DEFAULT_HEARTBEAT_INTERVAL = 10000;
+const DEFAULT_HEARTBEAT_TIMEOUT = 30000;
 
 const ServerEvent = Object.freeze({
   ROOM_CREATED: "ROOM_CREATED",
@@ -8,6 +10,7 @@ const ServerEvent = Object.freeze({
   TURN_SKIPPED: "TURN_SKIPPED",
   MATCH_RESET: "MATCH_RESET",
   PLAYER_LEFT: "PLAYER_LEFT",
+  PONG: "PONG",
   ERROR: "ERROR",
 });
 
@@ -55,6 +58,9 @@ export class NetworkManager {
     this._listeners = new Map();
     this._pendingRequests = [];
     this._connectPromise = null;
+    this._heartbeatTimerId = null;
+    this._heartbeatWatchdogId = null;
+    this._lastPongAt = 0;
 
     if (options.handlers && typeof options.handlers === "object") {
       for (const [eventName, handler] of Object.entries(options.handlers)) {
@@ -89,6 +95,8 @@ export class NetworkManager {
 
       socket.addEventListener("open", () => {
         this._connectPromise = null;
+        this._lastPongAt = Date.now();
+        this._startHeartbeat();
         this._emit(ClientEvent.OPEN, {
           type: ClientEvent.OPEN,
           url: this.url,
@@ -110,6 +118,7 @@ export class NetworkManager {
       socket.addEventListener("close", (event) => {
         const wasCurrentSocket = this.socket === socket;
         this._connectPromise = null;
+        this._stopHeartbeat();
 
         if (wasCurrentSocket) {
           this.socket = null;
@@ -135,6 +144,7 @@ export class NetworkManager {
   }
 
   disconnect(code = 1000, reason = "client_disconnect") {
+    this._stopHeartbeat();
     if (!this.socket) {
       return;
     }
@@ -310,6 +320,12 @@ export class NetworkManager {
       this.roomId = payload.roomId ?? this.roomId;
       this.playerId = payload.playerId ?? this.playerId;
       this.color = payload.color ?? this.color;
+    } else if (payload.type === ServerEvent.ROOM_READY) {
+      this.roomId = payload.roomId ?? this.roomId;
+      this.playerId = payload.yourPlayerId ?? this.playerId;
+      this.color = payload.yourColor ?? this.color;
+    } else if (payload.type === ServerEvent.PONG) {
+      this._lastPongAt = Date.now();
     } else if (payload.type === ServerEvent.PLAYER_LEFT) {
       if (payload.playerId && payload.playerId !== this.playerId) {
         // Preserve local session; only the opponent left.
@@ -408,6 +424,55 @@ export class NetworkManager {
     this.roomId = null;
     this.playerId = null;
     this.color = null;
+  }
+
+  _startHeartbeat() {
+    this._stopHeartbeat();
+
+    const interval = this.options.heartbeatInterval ?? DEFAULT_HEARTBEAT_INTERVAL;
+    const timeout = this.options.heartbeatTimeout ?? DEFAULT_HEARTBEAT_TIMEOUT;
+    this._lastPongAt = Date.now();
+
+    this._heartbeatTimerId = globalThis.setInterval(() => {
+      if (!this.isConnected()) {
+        return;
+      }
+
+      try {
+        this._send({
+          type: "ping",
+          timestamp: Date.now(),
+        });
+      } catch (error) {
+        this._emit(ServerEvent.ERROR, {
+          type: ServerEvent.ERROR,
+          code: "PING_FAILED",
+          message: error?.message ?? "Ping failed.",
+        });
+      }
+    }, interval);
+
+    this._heartbeatWatchdogId = globalThis.setInterval(() => {
+      if (!this.isConnected()) {
+        return;
+      }
+
+      if (Date.now() - this._lastPongAt > timeout) {
+        this.disconnect(4000, "heartbeat_timeout");
+      }
+    }, Math.max(1000, Math.floor(interval / 2)));
+  }
+
+  _stopHeartbeat() {
+    if (this._heartbeatTimerId !== null) {
+      globalThis.clearInterval(this._heartbeatTimerId);
+      this._heartbeatTimerId = null;
+    }
+
+    if (this._heartbeatWatchdogId !== null) {
+      globalThis.clearInterval(this._heartbeatWatchdogId);
+      this._heartbeatWatchdogId = null;
+    }
   }
 }
 

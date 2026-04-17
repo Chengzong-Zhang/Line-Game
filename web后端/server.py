@@ -14,6 +14,8 @@ from fastapi.staticfiles import StaticFiles
 ROOM_SIZE = 2
 ROOM_CODE_LENGTH = 4
 ROOM_TTL_SECONDS = 300
+HEARTBEAT_TIMEOUT_SECONDS = 35
+HEARTBEAT_SWEEP_SECONDS = 5
 PLAYER_BLACK = "BLACK"
 PLAYER_WHITE = "WHITE"
 
@@ -56,9 +58,25 @@ class ConnectionManager:
         self.rooms: Dict[str, Room] = {}
         self.websocket_index: Dict[WebSocket, tuple[str, str]] = {}
         self.lock = asyncio.Lock()
+        self._heartbeat_task: Optional[asyncio.Task[Any]] = None
 
     async def connect(self, websocket: WebSocket) -> None:
         await websocket.accept()
+
+    async def start(self) -> None:
+        if self._heartbeat_task is None or self._heartbeat_task.done():
+            self._heartbeat_task = asyncio.create_task(self._heartbeat_loop())
+
+    async def stop(self) -> None:
+        if self._heartbeat_task is None:
+            return
+
+        self._heartbeat_task.cancel()
+        try:
+            await self._heartbeat_task
+        except asyncio.CancelledError:
+            pass
+        self._heartbeat_task = None
 
     async def handle_message(self, websocket: WebSocket, message: Dict[str, Any]) -> None:
         message_type = message.get("type")
@@ -96,6 +114,10 @@ class ConnectionManager:
 
         if message_type == "player_leave":
             await self.player_leave(websocket, reason="player_leave")
+            return
+
+        if message_type == "ping":
+            await self.handle_ping(websocket, message.get("timestamp"))
             return
 
         await self.send_json(
@@ -184,16 +206,12 @@ class ConnectionManager:
             session: Optional[PlayerSession] = None
             if player_id and player_id in room.players:
                 candidate = room.players[player_id]
-                if candidate.connected and candidate.websocket is not websocket:
-                    await self.send_json(
-                        websocket,
-                        {
-                            "type": "ERROR",
-                            "code": "PLAYER_ALREADY_CONNECTED",
-                            "message": "This player session is already connected.",
-                        },
-                    )
-                    return
+                if candidate.connected and candidate.websocket is not websocket and candidate.websocket is not None:
+                    self.websocket_index.pop(candidate.websocket, None)
+                    try:
+                        await candidate.websocket.close(code=4001, reason="session_replaced")
+                    except Exception:
+                        pass
                 session = candidate
                 reconnected = True
 
@@ -247,6 +265,24 @@ class ConnectionManager:
 
         if len(room_snapshot["players"]) == ROOM_SIZE:
             await self.broadcast_room_ready(room_id, reconnected_player_id=session.player_id if reconnected else None)
+
+    async def handle_ping(self, websocket: WebSocket, timestamp: Any) -> None:
+        async with self.lock:
+            room_and_player = self.websocket_index.get(websocket)
+            if room_and_player is not None:
+                room_id, player_id = room_and_player
+                room = self.rooms.get(room_id)
+                if room is not None and player_id in room.players:
+                    room.players[player_id].last_seen = time.time()
+                    room.updated_at = time.time()
+
+        await self.send_json(
+            websocket,
+            {
+                "type": "PONG",
+                "timestamp": timestamp,
+            },
+        )
 
     async def forward_move(self, websocket: WebSocket, point: Any) -> None:
         if not self._is_valid_point(point):
@@ -421,6 +457,42 @@ class ConnectionManager:
         logger.info("outgoing payload=%s", payload)
         await websocket.send_json(payload)
 
+    async def _heartbeat_loop(self) -> None:
+        while True:
+            await asyncio.sleep(HEARTBEAT_SWEEP_SECONDS)
+            stale_connections: list[WebSocket] = []
+
+            async with self.lock:
+                now = time.time()
+                for websocket, room_and_player in list(self.websocket_index.items()):
+                    room_id, player_id = room_and_player
+                    room = self.rooms.get(room_id)
+                    if room is None:
+                        continue
+
+                    player = room.players.get(player_id)
+                    if player is None or not player.connected:
+                        continue
+
+                    if now - player.last_seen <= HEARTBEAT_TIMEOUT_SECONDS:
+                        continue
+
+                    logger.info("heartbeat timeout room=%s player=%s", room_id, player_id)
+                    await self._detach_player(
+                        room_id,
+                        player_id,
+                        notify_opponent=True,
+                        leave_reason="heartbeat_timeout",
+                        remove_player=False,
+                    )
+                    stale_connections.append(websocket)
+
+            for websocket in stale_connections:
+                try:
+                    await websocket.close(code=4000, reason="heartbeat_timeout")
+                except Exception:
+                    pass
+
     async def _detach_player(
         self,
         room_id: str,
@@ -593,6 +665,16 @@ def _resolve_frontend_dir() -> Path:
 
 FRONTEND_DIR = _resolve_frontend_dir()
 INDEX_FILE = FRONTEND_DIR / "index.html"
+
+
+@app.on_event("startup")
+async def on_startup() -> None:
+    await manager.start()
+
+
+@app.on_event("shutdown")
+async def on_shutdown() -> None:
+    await manager.stop()
 
 
 @app.get("/")
