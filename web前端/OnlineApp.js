@@ -1,13 +1,18 @@
-import {
+import GameController from "./GameController.js";
+import { Player } from "./GameEngine.js";
+import NetworkManager, { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js";
+
+const {
   computed,
   onBeforeUnmount,
   onMounted,
   ref,
   watch,
-} from "https://unpkg.com/vue@3/dist/vue.esm-browser.prod.js";
-import GameController from "./GameController.js";
-import { Player } from "./GameEngine.js";
-import NetworkManager, { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js";
+} = globalThis.Vue ?? {};
+
+if (!globalThis.Vue) {
+  throw new Error("Vue runtime is not available on window.Vue.");
+}
 
 const LANGUAGE_STORAGE_KEY = "triaxis-language";
 const SESSION_STORAGE_KEY = "triaxis-online-session";
