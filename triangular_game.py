@@ -270,17 +270,14 @@ class TriangularGame:
     _DIRS_CW = [(1, 0), (0, 1), (-1, 1), (-1, 0), (0, -1), (1, -1)]
 
     def _get_outer_contour(self, player: Player) -> List[Tuple[int, int]]:
-        """右手摸墙法：获取己方棋子的外轮廓点列表（闭合环路，不含重复终点）。
-        起点 = x 最小（相同取 y 最小）的己方节点，假定从正左方进入。"""
+        """右手摸墙法：获取己方棋子的外轮廓点列表（闭合环路，不去重）。
+        起点 = x 最小（相同取 y 最小）的己方点，假定从正左方进入。"""
         DIRS = self._DIRS_CW
         friendlies = set(self._get_player_nodes(player) + self._get_player_lines(player))
         if not friendlies:
             return []
 
-        nodes = self._get_player_nodes(player)
-        if not nodes:
-            return []
-        start = min(nodes, key=lambda p: (p[0], p[1]))
+        start = min(friendlies, key=lambda p: (p[0], p[1]))
 
         if len(friendlies) == 1:
             return [start]
@@ -322,104 +319,128 @@ class TriangularGame:
 
         return contour
 
-    def _extract_contour_vertices(self, contour: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
-        """从轮廓环路中提取拐点（方向变化的顶点），并去除半岛导致的重复。"""
-        n = len(contour)
-        if n <= 2:
-            return contour[:]
-
-        # 提取方向变化的拐点
-        corners: List[Tuple[int, int]] = []
-        for i in range(n):
-            prev_pt = contour[(i - 1) % n]
-            curr_pt = contour[i]
-            next_pt = contour[(i + 1) % n]
-            d_in  = (curr_pt[0] - prev_pt[0], curr_pt[1] - prev_pt[1])
-            d_out = (next_pt[0] - curr_pt[0], next_pt[1] - curr_pt[1])
-            if d_in != d_out:
-                corners.append(curr_pt)
-
-        if len(corners) < 3:
-            return corners
-
-        # 去重：只保留每个点的首次出现（处理半岛 / 窄桥回折）
-        seen: set = set()
-        deduped: List[Tuple[int, int]] = []
-        for pt in corners:
-            if pt not in seen:
-                seen.add(pt)
-                deduped.append(pt)
-
-        return deduped
-
     # ------------------------------------------------------------------
 
     def _compute_inner_hull(self, player: Player):
-        """核心：领土四步计算（右手摸墙 → 路由 → 面积 → 选路）"""
+        """核心：领土计算（右手摸墙 → 动态贪心修剪）"""
         opp = Player.WHITE if player == Player.BLACK else Player.BLACK
         friendlies = set(self._get_player_nodes(player) + self._get_player_lines(player))
-        enemies    = set(self._get_player_nodes(opp)    + self._get_player_lines(opp))
+        enemies = set(self._get_player_nodes(opp) + self._get_player_lines(opp))
+        friendly_nodes = set(self._get_player_nodes(player))
 
-        if len(friendlies) < 3:
+        if not friendlies:
             return None, 0.0
 
-        # Step 1: 右手摸墙法 → 外轮廓 → 拐点
-        contour = self._get_outer_contour(player)
-        if len(contour) < 3:
-            return None, 0.0
+        # 辅助：临时闭合多边形（首尾唯一，计算前补齐）
+        def get_closed(poly):
+            if poly and poly[0] != poly[-1]:
+                return poly + [poly[0]]
+            return poly
 
-        hull_verts = self._extract_contour_vertices(contour)
-        if len(hull_verts) < 3:
-            return None, 0.0
+        # Step 1: 右手摸墙法获取外轮廓（隐式闭合，列表内节点绝对唯一）
+        start_node = min(friendlies, key=lambda p: (p[0], p[1]))
+        DIRS = self._DIRS_CW
+        backtrack = 3
+        current_poly: List[Tuple[int, int]] = []
+        current = start_node
+        first_out_dir = None
+        max_steps = len(friendlies) * 6 + 10
 
-        # Step 2: 路由 — 寻找相邻拐点之间的所有最短格点路径
-        segments_paths: list = []
-        n = len(hull_verts)
-        for i in range(n):
-            seg_s = hull_verts[i]
-            seg_e = hull_verts[(i + 1) % n]
-            paths = self._get_all_shortest_grid_paths(seg_s, seg_e, enemies)
-            if not paths:
-                return None, 0.0
-            segments_paths.append(paths)
+        for _ in range(max_steps):
+            out_dir = None
+            for i in range(6):
+                d = (backtrack + 1 + i) % 6
+                dx, dy = DIRS[d]
+                nxt = (current[0] + dx, current[1] + dy)
+                if nxt in friendlies:
+                    out_dir = d
+                    break
 
-        # 限制组合总数，防止指数爆炸
-        total = 1
-        for sp in segments_paths:
-            total *= len(sp)
-            if total > 50000:
+            if out_dir is None:
+                current_poly.append(current)
                 break
-        if total > 50000:
-            segments_paths = [sp[:3] for sp in segments_paths]
-            total = 1
-            for sp in segments_paths:
-                total *= len(sp)
-        if total > 50000:
-            segments_paths = [sp[:1] for sp in segments_paths]
 
-        import itertools
-        best_polygon = None
-        min_area = float('inf')
+            if first_out_dir is None:
+                first_out_dir = out_dir
+                current_poly.append(current)
+            elif current == start_node and out_dir == first_out_dir:
+                break  # 闭合完成，不重复追加起点
+            else:
+                current_poly.append(current)
 
-        # Step 3 & 4: 遍历路径组合，取面积最小的合法多边形
-        for combo in itertools.product(*segments_paths):
-            polygon: List[Tuple[int, int]] = []
-            for path in combo:
-                polygon.extend(path[:-1])
+            dx, dy = DIRS[out_dir]
+            current = (current[0] + dx, current[1] + dy)
+            backtrack = (out_dir + 3) % 6
 
-            if not self._polygon_contains_all(polygon, friendlies):
-                continue
-
-            area = self._calculate_polygon_area(polygon)
-            if area < min_area:
-                min_area = area
-                best_polygon = polygon
-
-        if best_polygon is None:
+        if len(current_poly) < 3:
             return None, 0.0
 
-        screen_polygon = [self._get_screen_pos(*p) for p in best_polygon]
-        return screen_polygon, min_area
+        # Step 2: 动态贪心修剪（周长比较基于唯一点数，面积/覆盖测试前临时闭合）
+        while True:
+            n = len(current_poly)
+            if n < 3:
+                break
+            cur_perim = n
+            cur_area = self._calculate_polygon_area(get_closed(current_poly))
+            improved = False
+
+            for i in range(n):
+                for j in range(n - 1, i + 1, -1):
+                    if j - i <= 1:
+                        continue
+
+                    paths = self._get_all_shortest_grid_paths(
+                        current_poly[i], current_poly[j], enemies, max_paths=50)
+                    if not paths:
+                        continue
+
+                    for path in paths:
+                        # A：用捷径替换 i→j 弧段，保留首尾段
+                        test_poly_A = current_poly[:i] + path + current_poly[j + 1:]
+                        # B：保留 i→j 弧段，用反向捷径替换首尾段（覆盖接缝盲区）
+                        test_poly_B = current_poly[i:j + 1] + path[::-1][1:-1]
+
+                        for test_poly in (test_poly_A, test_poly_B):
+                            new_perim = len(test_poly)  # 唯一点数，绝对公平
+
+                            if new_perim > cur_perim:
+                                continue
+
+                            closed_test = get_closed(test_poly)
+                            new_area = self._calculate_polygon_area(closed_test)
+
+                            if new_perim == cur_perim and new_area >= cur_area:
+                                continue
+
+                            if not self._polygon_contains_all(closed_test, friendly_nodes):
+                                continue
+
+                            enemy_inside = False
+                            for e in enemies:
+                                if self._polygon_contains_all(closed_test, {e}):
+                                    enemy_inside = True
+                                    break
+                            if enemy_inside:
+                                continue
+
+                            current_poly = test_poly
+                            improved = True
+                            break
+
+                        if improved: break
+                    if improved: break
+                if improved: break
+
+            if not improved:
+                break
+
+        if len(current_poly) < 3:
+            return None, 0.0
+
+        final_closed = get_closed(current_poly)
+        screen_polygon = [self._get_screen_pos(*p) for p in final_closed]
+        area = self._calculate_polygon_area(final_closed)
+        return screen_polygon, area
     
     def _update_hulls(self):
         """Recompute both players' inner hull and cache the results.
