@@ -1,4 +1,6 @@
-const GRID_SIZE = 9;
+const DEFAULT_GRID_SIZE = 9;
+const MIN_GRID_SIZE = 5;
+const MAX_GRID_SIZE = 15;
 
 export const Player = Object.freeze({
   BLACK: "BLACK",
@@ -26,12 +28,6 @@ const DIRECTIONS = Object.freeze([
   [-1, 1],
 ]);
 
-const INITIAL_POSITIONS = Object.freeze({
-  [Player.BLACK]: Object.freeze([0, 0]),
-  [Player.WHITE]: Object.freeze([0, 8]),
-  [Player.PURPLE]: Object.freeze([8, 0]),
-});
-
 const PLAYER_POINT_STATES = Object.freeze({
   [Player.BLACK]: Object.freeze({
     node: PointState.BLACK_NODE,
@@ -46,6 +42,21 @@ const PLAYER_POINT_STATES = Object.freeze({
     line: PointState.PURPLE_LINE,
   }),
 });
+
+function buildInitialPositions(gridSize, playerCount) {
+  if (playerCount === 2) {
+    return Object.freeze({
+      [Player.BLACK]: Object.freeze([0, 0]),
+      [Player.WHITE]: Object.freeze([gridSize - 1, 0]),
+    });
+  }
+
+  return Object.freeze({
+    [Player.BLACK]: Object.freeze([0, 0]),
+    [Player.WHITE]: Object.freeze([0, gridSize - 1]),
+    [Player.PURPLE]: Object.freeze([gridSize - 1, 0]),
+  });
+}
 
 function clonePoint(point) {
   return [point[0], point[1]];
@@ -135,15 +146,16 @@ function buildConvexHull(points) {
 
 export class GameEngine {
   constructor(options = {}) {
-    this.gridSize = options.gridSize ?? GRID_SIZE;
-    if (this.gridSize !== GRID_SIZE) {
-      throw new Error("Only a 9x9 triangular grid is currently supported.");
+    this.gridSize = options.gridSize ?? DEFAULT_GRID_SIZE;
+    if (!Number.isInteger(this.gridSize) || this.gridSize < MIN_GRID_SIZE || this.gridSize > MAX_GRID_SIZE) {
+      throw new Error(`gridSize must be an integer between ${MIN_GRID_SIZE} and ${MAX_GRID_SIZE}.`);
     }
     this.playerCount = options.playerCount ?? 2;
     if (this.playerCount !== 2 && this.playerCount !== 3) {
       throw new Error("Only 2-player and 3-player modes are supported.");
     }
     this.activePlayers = PLAYER_ORDER.slice(0, this.playerCount);
+    this.initialPositions = buildInitialPositions(this.gridSize, this.playerCount);
 
     this.validPositions = [];
     this.positionKeys = new Set();
@@ -158,7 +170,7 @@ export class GameEngine {
 
     this._initGrid();
     for (const player of this.activePlayers) {
-      this._setState(INITIAL_POSITIONS[player], this._getPlayerStates(player).node);
+      this._setState(this.initialPositions[player], this._getPlayerStates(player).node);
     }
     this._updateTerritories();
   }
@@ -206,7 +218,7 @@ export class GameEngine {
   }
 
   _getInitialPosition(player) {
-    return clonePoint(INITIAL_POSITIONS[player]);
+    return clonePoint(this.initialPositions[player]);
   }
 
   getCurrentPlayer() {
@@ -846,7 +858,7 @@ export class GameEngine {
 
     if (!this._hasValidMoves(this.currentPlayer)) {
       this.consecutiveSkips += 1;
-      if (this.consecutiveSkips >= 3) {
+      if (this.consecutiveSkips >= this.activePlayers.length) {
         this.gameOver = true;
       } else {
         this._switchPlayer();
@@ -955,7 +967,7 @@ export class GameEngine {
     }
 
     this.consecutiveSkips += 1;
-    if (this.consecutiveSkips >= 3) {
+    if (this.consecutiveSkips >= this.activePlayers.length) {
       this.gameOver = true;
     } else {
       this._switchPlayer();

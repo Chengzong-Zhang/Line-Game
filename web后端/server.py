@@ -16,6 +16,8 @@ ROOM_CODE_LENGTH = 4
 ROOM_TTL_SECONDS = 300
 HEARTBEAT_TIMEOUT_SECONDS = 35
 HEARTBEAT_SWEEP_SECONDS = 5
+MIN_GRID_SIZE = 5
+MAX_GRID_SIZE = 15
 PLAYER_BLACK = "BLACK"
 PLAYER_WHITE = "WHITE"
 PLAYER_PURPLE = "PURPLE"
@@ -38,6 +40,7 @@ class Room:
     room_id: str
     players: Dict[str, PlayerSession] = field(default_factory=dict)
     actions: list[Dict[str, Any]] = field(default_factory=list)
+    settings: Dict[str, Any] = field(default_factory=dict)
     created_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
 
@@ -50,9 +53,13 @@ class Room:
     def has_connected_player(self) -> bool:
         return any(player.connected for player in self.players.values())
 
+    def player_capacity(self) -> int:
+        return int(self.settings.get("playerCount", 2))
+
     def available_color(self) -> str:
         used_colors = {player.color for player in self.players.values()}
-        for color in (PLAYER_BLACK, PLAYER_WHITE, PLAYER_PURPLE):
+        allowed_colors = (PLAYER_BLACK, PLAYER_WHITE, PLAYER_PURPLE)[:self.player_capacity()]
+        for color in allowed_colors:
             if color not in used_colors:
                 return color
         raise ValueError("No available color remaining in this room.")
@@ -95,7 +102,7 @@ class ConnectionManager:
         )
 
         if message_type == "create_room":
-            await self.create_room(websocket)
+            await self.create_room(websocket, message.get("settings"))
             return
 
         if message_type == "join_room":
@@ -134,7 +141,8 @@ class ConnectionManager:
             },
         )
 
-    async def create_room(self, websocket: WebSocket) -> None:
+    async def create_room(self, websocket: WebSocket, settings: Optional[Dict[str, Any]] = None) -> None:
+        normalized_settings = self._normalize_room_settings(settings)
         async with self.lock:
             current_room_id, current_player_id = self.websocket_index.get(websocket, (None, None))
             if current_room_id and current_player_id:
@@ -154,7 +162,7 @@ class ConnectionManager:
                 websocket=websocket,
                 connected=True,
             )
-            room = Room(room_id=room_id, players={player_id: player})
+            room = Room(room_id=room_id, players={player_id: player}, settings=normalized_settings)
             self.rooms[room_id] = room
             self.websocket_index[websocket] = (room_id, player_id)
 
@@ -166,6 +174,7 @@ class ConnectionManager:
                 "playerId": player_id,
                 "color": player.color,
                 "status": "WAITING",
+                "settings": dict(room.settings),
                 "matchState": self._match_state(room),
             },
         )
@@ -222,7 +231,7 @@ class ConnectionManager:
                 reconnected = True
 
             if session is None:
-                if room.active_player_count() >= ROOM_SIZE:
+                if room.active_player_count() >= room.player_capacity():
                     await self.send_json(
                         websocket,
                         {
@@ -256,8 +265,9 @@ class ConnectionManager:
                 "roomId": room_id,
                 "playerId": session.player_id,
                 "color": session.color,
-                "status": "READY" if len(room_snapshot["players"]) == ROOM_SIZE else "WAITING",
+                "status": "READY" if len(room_snapshot["players"]) == room.player_capacity() else "WAITING",
                 "reconnected": reconnected,
+                "settings": dict(room.settings),
                 "matchState": self._match_state(room),
             },
         )
@@ -266,11 +276,11 @@ class ConnectionManager:
             room_id,
             session.player_id,
             session.color,
-            len(room_snapshot["players"]) == ROOM_SIZE,
+            len(room_snapshot["players"]) == room.player_capacity(),
             reconnected,
         )
 
-        if len(room_snapshot["players"]) == ROOM_SIZE:
+        if len(room_snapshot["players"]) == room.player_capacity():
             await self.broadcast_room_ready(room_id, reconnected_player_id=session.player_id if reconnected else None)
 
     async def handle_ping(self, websocket: WebSocket, timestamp: Any) -> None:
@@ -471,6 +481,7 @@ class ConnectionManager:
                             "yourColor": player.color,
                             "players": players,
                             "reconnectedPlayerId": reconnected_player_id,
+                            "settings": dict(room.settings),
                             "matchState": self._match_state(room),
                         },
                     )
@@ -658,9 +669,27 @@ class ConnectionManager:
             return False
         return all(isinstance(value, int) for value in point)
 
+    def _normalize_room_settings(self, settings: Any) -> Dict[str, Any]:
+        if not isinstance(settings, dict):
+            settings = {}
+
+        player_count = settings.get("playerCount", 2)
+        grid_size = settings.get("gridSize", 9)
+
+        if player_count not in (2, 3):
+            player_count = 2
+        if not isinstance(grid_size, int) or grid_size < MIN_GRID_SIZE or grid_size > MAX_GRID_SIZE:
+            grid_size = 9
+
+        return {
+            "playerCount": player_count,
+            "gridSize": grid_size,
+        }
+
     def _room_snapshot(self, room: Room) -> Dict[str, Any]:
         return {
             "roomId": room.room_id,
+            "settings": dict(room.settings),
             "players": [
                 {
                     "playerId": player.player_id,
@@ -673,6 +702,7 @@ class ConnectionManager:
 
     def _match_state(self, room: Room) -> Dict[str, Any]:
         return {
+            "settings": dict(room.settings),
             "actions": [dict(action) for action in room.actions],
         }
 

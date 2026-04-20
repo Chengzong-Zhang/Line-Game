@@ -160,10 +160,14 @@ export class NetworkManager {
     }
   }
 
-  async createRoom() {
+  async createRoom(settings = null) {
     await this._ensureOpen();
+    const payloadToSend = { type: "create_room" };
+    if (settings && typeof settings === "object") {
+      payloadToSend.settings = settings;
+    }
     const payload = await this._sendRequest(
-      { type: "create_room" },
+      payloadToSend,
       [ServerEvent.ROOM_CREATED],
     );
 

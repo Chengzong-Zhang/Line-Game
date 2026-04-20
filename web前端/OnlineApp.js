@@ -17,6 +17,8 @@ if (!globalThis.Vue) {
 const LANGUAGE_STORAGE_KEY = "triaxis-language";
 const SESSION_STORAGE_KEY = "triaxis-online-session";
 const ALL_PLAYERS = Object.freeze([Player.BLACK, Player.WHITE, Player.PURPLE]);
+const PLAYER_COUNT_OPTIONS = Object.freeze([2, 3]);
+const GRID_SIZE_OPTIONS = Object.freeze(Array.from({ length: 11 }, (_, index) => index + 5));
 
 function createDefaultGameState() {
   return {
@@ -58,6 +60,7 @@ function createEmptySession() {
     playerId: null,
     color: null,
     connected: false,
+    settings: normalizeGameSettings(),
   };
 }
 
@@ -85,6 +88,7 @@ function persistSession(session) {
     roomId: session?.roomId ?? null,
     playerId: session?.playerId ?? null,
     color: session?.color ?? null,
+    settings: normalizeGameSettings(session?.settings),
   };
 
   const hasRoomContext = normalized.url || normalized.roomId || normalized.playerId || normalized.color;
@@ -98,6 +102,16 @@ function persistSession(session) {
 
 function formatArea(value) {
   return String(Math.round(Number(value ?? 0)));
+}
+
+function normalizeGameSettings(settings = {}) {
+  const playerCount = Number(settings?.playerCount);
+  const gridSize = Number(settings?.gridSize);
+
+  return {
+    playerCount: PLAYER_COUNT_OPTIONS.includes(playerCount) ? playerCount : 2,
+    gridSize: GRID_SIZE_OPTIONS.includes(gridSize) ? gridSize : 9,
+  };
 }
 
 function getInitialLanguage() {
@@ -131,12 +145,16 @@ function getTexts(language) {
       roomPlaceholder: "Enter 4-digit room ID",
       roomLabel: "Room",
       playerLabel: "Player",
+      playerCountLabel: "Players",
+      gridSizeLabel: "Board Size",
       yourSide: "Your Side",
       turnCount: "Turn Count",
       legalMoves: "Legal Moves",
       blueTerritory: "Blue Territory",
       redTerritory: "Red Territory",
       purpleTerritory: "Purple Territory",
+      setupLabel: "Match Setup",
+      lockedLabel: "Locked",
       area: "Area",
       turnSuffix: "Turn",
       gameOver: "Game Over",
@@ -290,7 +308,7 @@ function formatPlayerName(player, language = "zh") {
     return language === "en" ? "Red" : "红方";
   }
   if (player === Player.PURPLE) {
-    return language === "en" ? "Purple" : "Purple";
+    return language === "en" ? "Purple" : "紫方";
   }
   return texts.unassigned;
 }
@@ -304,7 +322,7 @@ function formatWinner(winner, language = "zh") {
     return language === "en" ? "Red Wins" : "红方获胜";
   }
   if (winner === Player.PURPLE) {
-    return language === "en" ? "Purple Wins" : "Purple Wins";
+    return language === "en" ? "Purple Wins" : "紫方获胜";
   }
   if (winner === "DRAW") {
     return texts.draw;
@@ -441,7 +459,7 @@ const ScorePanel = {
           <span>{{ texts.area }}</span>
         </article>
         <article class="score-card score-card-purple">
-          <p>{{ texts.purpleTerritory || 'Purple Territory' }}</p>
+          <p>{{ texts.purpleTerritory || '紫方领地' }}</p>
           <strong>{{ formatArea(gameState.scores[Player.PURPLE]) }}</strong>
           <span>{{ texts.area }}</span>
         </article>
@@ -467,7 +485,16 @@ const ScorePanel = {
 
 const RoomPanel = {
   name: "RoomPanel",
-  emits: ["connect", "create-room", "join-room", "leave-room", "update:server-url", "update:room-id"],
+  emits: [
+    "connect",
+    "create-room",
+    "join-room",
+    "leave-room",
+    "update:server-url",
+    "update:room-id",
+    "update:player-count",
+    "update:grid-size",
+  ],
   props: {
     serverUrl: {
       type: String,
@@ -501,6 +528,18 @@ const RoomPanel = {
       type: String,
       required: true,
     },
+    playerCount: {
+      type: Number,
+      required: true,
+    },
+    gridSize: {
+      type: Number,
+      required: true,
+    },
+    settingsLocked: {
+      type: Boolean,
+      default: false,
+    },
   },
   setup(props) {
     const texts = computed(() => getTexts(props.language));
@@ -513,6 +552,8 @@ const RoomPanel = {
       roleLabel,
       connectionLabel,
       roomStatusLabel,
+      PLAYER_COUNT_OPTIONS,
+      GRID_SIZE_OPTIONS,
     };
   },
   template: `
@@ -541,6 +582,39 @@ const RoomPanel = {
         :disabled="busy"
         @input="$emit('update:room-id', $event.target.value)"
       />
+
+      <div class="settings-cluster">
+        <div class="settings-cluster-head">
+          <p class="eyebrow">{{ texts.setupLabel || '对局设置' }}</p>
+          <span class="settings-lock" v-if="settingsLocked">{{ texts.lockedLabel || '已锁定' }}</span>
+        </div>
+        <div class="settings-grid">
+          <div>
+            <label class="field-label" for="player-count">{{ texts.playerCountLabel || '玩家人数' }}</label>
+            <select
+              id="player-count"
+              class="input-field input-field-compact"
+              :value="playerCount"
+              :disabled="busy || settingsLocked"
+              @change="$emit('update:player-count', Number($event.target.value))"
+            >
+              <option v-for="count in PLAYER_COUNT_OPTIONS" :key="count" :value="count">{{ count }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label" for="grid-size">{{ texts.gridSizeLabel || '棋盘边长' }}</label>
+            <select
+              id="grid-size"
+              class="input-field input-field-compact"
+              :value="gridSize"
+              :disabled="busy || settingsLocked"
+              @change="$emit('update:grid-size', Number($event.target.value))"
+            >
+              <option v-for="size in GRID_SIZE_OPTIONS" :key="size" :value="size">{{ size }}</option>
+            </select>
+          </div>
+        </div>
+      </div>
 
       <div class="actions actions-stack">
         <button class="action-button action-button-primary" :disabled="busy" @click="$emit('connect')">
@@ -728,9 +802,6 @@ const BoardCanvas = {
 
     onMounted(() => {
       controller = new GameController(canvasRef.value, {
-        engine: {
-          playerCount: 3,
-        },
         onStateChange: handleStateChange,
       });
       emit("controller-ready", controller);
@@ -803,6 +874,7 @@ const App = {
   },
   setup() {
     const storedSession = loadStoredSession();
+    const initialSettings = normalizeGameSettings(storedSession.settings);
     const controller = ref(null);
     const gameState = ref(createDefaultGameState());
     const language = ref(getInitialLanguage());
@@ -810,6 +882,8 @@ const App = {
     networkManager.hydrateSession(storedSession);
     const serverUrl = ref(storedSession.url || resolveWebSocketUrl());
     const roomIdInput = ref(storedSession.roomId || "");
+    const selectedPlayerCount = ref(initialSettings.playerCount);
+    const selectedGridSize = ref(initialSettings.gridSize);
     const session = ref(networkManager.getSession());
     const connectionState = ref("idle");
     const roomStatus = ref("solo");
@@ -819,6 +893,7 @@ const App = {
     const unsubscribers = [];
     let reconnectTimerId = null;
     let reconnectAttempt = 0;
+    let syncingRemoteSettings = false;
 
     watch(language, (value) => {
       globalThis.localStorage?.setItem(LANGUAGE_STORAGE_KEY, value);
@@ -826,12 +901,51 @@ const App = {
       document.title = getTexts(value).pageTitle;
     }, { immediate: true });
 
+    watch([selectedPlayerCount, selectedGridSize], ([playerCount, gridSize]) => {
+      if (syncingRemoteSettings) {
+        return;
+      }
+
+      const normalized = normalizeGameSettings({ playerCount, gridSize });
+      selectedPlayerCount.value = normalized.playerCount;
+      selectedGridSize.value = normalized.gridSize;
+      syncSession();
+
+      if (roomStatus.value === "solo" && controller.value) {
+        gameState.value = controller.value.setGameConfig(normalized, true);
+      }
+    });
+
     const syncSession = () => {
       session.value = {
         ...createEmptySession(),
         ...networkManager.getSession(),
+        settings: {
+          playerCount: selectedPlayerCount.value,
+          gridSize: selectedGridSize.value,
+        },
       };
       persistSession(session.value);
+    };
+
+    const currentGameSettings = () => ({
+      playerCount: selectedPlayerCount.value,
+      gridSize: selectedGridSize.value,
+    });
+
+    const applySettingsToController = (settings, reset = true) => {
+      const normalized = normalizeGameSettings(settings);
+      selectedPlayerCount.value = normalized.playerCount;
+      selectedGridSize.value = normalized.gridSize;
+      syncSession();
+
+      if (!controller.value) {
+        return;
+      }
+
+      syncingRemoteSettings = true;
+      controller.value.setGameConfig(normalized, reset);
+      syncingRemoteSettings = false;
     };
 
     const clearReconnectTimer = () => {
@@ -884,6 +998,7 @@ const App = {
 
         const payload = await networkManager.joinRoom(session.value.roomId, session.value.playerId);
         roomStatus.value = payload.status === "READY" ? "ready" : "waiting";
+        applySettingsToController(payload.settings ?? payload.matchState?.settings ?? currentGameSettings(), true);
         syncSession();
         enableOnlineController(payload, payload.status === "READY");
         if (payload.matchState && controller.value) {
@@ -927,7 +1042,7 @@ const App = {
     const handleControllerReady = (instance) => {
       controller.value = instance;
       controller.value.setNetworkErrorListener(handleNetworkError);
-      gameState.value = instance.getGameState();
+      gameState.value = instance.setGameConfig(currentGameSettings(), true);
     };
 
     const handleStateChange = (nextState) => {
@@ -959,9 +1074,10 @@ const App = {
 
       try {
         await ensureConnected();
-        const payload = await networkManager.createRoom();
+        const payload = await networkManager.createRoom(currentGameSettings());
         roomIdInput.value = payload.roomId ?? roomIdInput.value;
         roomStatus.value = "waiting";
+        applySettingsToController(payload.settings ?? currentGameSettings(), true);
         syncSession();
 
         if (controller.value) {
@@ -994,6 +1110,7 @@ const App = {
         await ensureConnected();
         const payload = await networkManager.joinRoom(normalizedRoomId);
         roomStatus.value = payload.status === "READY" ? "ready" : "waiting";
+        applySettingsToController(payload.settings ?? payload.matchState?.settings ?? currentGameSettings(), true);
         syncSession();
 
         if (controller.value) {
@@ -1185,6 +1302,8 @@ const App = {
       return texts.onlinePlayHelp;
     });
 
+    const settingsLocked = computed(() => roomStatus.value !== "solo" || networkBusy.value);
+
     const resultResetAllowed = computed(() => {
       return !resetDisabled.value;
     });
@@ -1236,6 +1355,7 @@ const App = {
       networkManager.on(ServerEvent.ROOM_CREATED, (payload) => {
         roomStatus.value = "waiting";
         roomIdInput.value = payload.roomId ?? roomIdInput.value;
+        applySettingsToController(payload.settings ?? currentGameSettings(), true);
         syncSession();
         enableOnlineController(payload, false);
         if (payload.matchState && controller.value) {
@@ -1250,6 +1370,7 @@ const App = {
         const ready = payload.status === "READY";
         roomStatus.value = ready ? "ready" : "waiting";
         roomIdInput.value = payload.roomId ?? roomIdInput.value;
+        applySettingsToController(payload.settings ?? payload.matchState?.settings ?? currentGameSettings(), true);
         syncSession();
         enableOnlineController(payload, ready);
         if (payload.matchState && controller.value) {
@@ -1262,6 +1383,7 @@ const App = {
     unsubscribers.push(
       networkManager.on(ServerEvent.ROOM_READY, (payload) => {
         roomStatus.value = "ready";
+        applySettingsToController(payload.settings ?? payload.matchState?.settings ?? currentGameSettings(), true);
         syncSession();
         enableOnlineController(payload, true);
         if (payload.matchState && controller.value) {
@@ -1327,6 +1449,8 @@ const App = {
       language,
       serverUrl,
       roomIdInput,
+      selectedPlayerCount,
+      selectedGridSize,
       session,
       connectionState,
       roomStatus,
@@ -1339,6 +1463,7 @@ const App = {
       resetDisabled,
       resetLabel,
       controlsHelpText,
+      settingsLocked,
       resultResetAllowed,
       handleResultAction,
       handleControllerReady,
@@ -1389,6 +1514,9 @@ const App = {
             :language="language"
             :server-url="serverUrl"
             :room-id="roomIdInput"
+            :player-count="selectedPlayerCount"
+            :grid-size="selectedGridSize"
+            :settings-locked="settingsLocked"
             :connection-state="connectionState"
             :room-status="roomStatus"
             :session="session"
@@ -1396,6 +1524,8 @@ const App = {
             :busy="networkBusy"
             @update:server-url="serverUrl = $event"
             @update:room-id="roomIdInput = $event"
+            @update:player-count="selectedPlayerCount = $event"
+            @update:grid-size="selectedGridSize = $event"
             @connect="handleConnect"
             @create-room="handleCreateRoom"
             @join-room="handleJoinRoom"

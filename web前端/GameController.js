@@ -2,6 +2,11 @@ import GameEngine, { Player } from "./GameEngine.js?v=20260417b";
 import Renderer from "./Renderer.js?v=20260417b";
 import { ClientEvent, ServerEvent } from "./NetworkManager.js?v=20260417b";
 
+const DEFAULT_ENGINE_OPTIONS = Object.freeze({
+  playerCount: 2,
+  gridSize: 9,
+});
+
 function clonePoint(point) {
   return [point[0], point[1]];
 }
@@ -30,8 +35,14 @@ export class GameController {
     }
 
     this.canvas = canvas;
-    this.options = options;
-    this.engine = new GameEngine(options.engine ?? {});
+    this.options = {
+      ...options,
+      engine: {
+        ...DEFAULT_ENGINE_OPTIONS,
+        ...(options.engine ?? {}),
+      },
+    };
+    this.engine = new GameEngine(this.options.engine);
     this.renderer = new Renderer(canvas, options.renderer ?? {});
     this.stateChangeListener = typeof options.onStateChange === "function" ? options.onStateChange : null;
     this.networkErrorListener = typeof options.onNetworkError === "function" ? options.onNetworkError : null;
@@ -88,6 +99,23 @@ export class GameController {
 
   setNetworkErrorListener(listener) {
     this.networkErrorListener = typeof listener === "function" ? listener : null;
+  }
+
+  setGameConfig(engineOptions = {}, reset = true) {
+    this.options.engine = {
+      ...DEFAULT_ENGINE_OPTIONS,
+      ...this.options.engine,
+      ...(engineOptions ?? {}),
+    };
+
+    if (!reset) {
+      return this.options.engine;
+    }
+
+    this.engine = new GameEngine(this.options.engine);
+    const snapshot = this.engine.getSnapshot();
+    this._syncSnapshot(snapshot);
+    return this._buildGameState(snapshot);
   }
 
   setNetworkManager(networkManager) {
@@ -259,8 +287,10 @@ export class GameController {
       territories: snapshot.territories,
       legalMoves: snapshot.legalMoves,
       snapshot,
-      players: Array.isArray(snapshot.players) ? [...snapshot.players] : [Player.BLACK, Player.WHITE, Player.PURPLE],
-      playerCount: snapshot.playerCount ?? 3,
+      players: Array.isArray(snapshot.players)
+        ? [...snapshot.players]
+        : [Player.BLACK, Player.WHITE, Player.PURPLE].slice(0, snapshot.playerCount ?? this.options.engine.playerCount),
+      playerCount: snapshot.playerCount ?? this.options.engine.playerCount,
       multiplayerEnabled: this.multiplayerEnabled,
       localPlayer: this.localPlayer,
       roomReady: this.roomReady,
@@ -522,6 +552,10 @@ export class GameController {
 
   restoreMatchState(matchState = null) {
     const actions = Array.isArray(matchState?.actions) ? matchState.actions : [];
+    const incomingSettings = matchState?.settings;
+    if (incomingSettings && typeof incomingSettings === "object") {
+      this.setGameConfig(incomingSettings, false);
+    }
     this.engine = new GameEngine(this.options.engine ?? {});
 
     for (const action of actions) {
