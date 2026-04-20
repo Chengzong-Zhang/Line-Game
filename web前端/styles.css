@@ -445,6 +445,12 @@ body::before {
     var(--panel);
 }
 
+.panel-setup {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(244, 237, 225, 0.94)),
+    var(--panel);
+}
+
 .field-label {
   display: block;
   margin: 0 0 8px;
@@ -485,6 +491,14 @@ body::before {
     linear-gradient(160deg, rgba(43, 111, 255, 0.06), transparent 52%),
     linear-gradient(340deg, rgba(139, 92, 246, 0.08), transparent 60%),
     rgba(255, 251, 243, 0.88);
+}
+
+.settings-cluster-standalone {
+  margin-bottom: 0;
+}
+
+.settings-cluster-hidden {
+  display: none;
 }
 
 .settings-cluster-head {

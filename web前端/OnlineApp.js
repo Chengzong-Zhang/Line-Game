@@ -104,6 +104,21 @@ function formatArea(value) {
   return String(Math.round(Number(value ?? 0)));
 }
 
+function formatFinalScoreLine(scores, language = "zh", players = ALL_PLAYERS) {
+  const parts = players
+    .filter((player) => scores && Object.prototype.hasOwnProperty.call(scores, player))
+    .map((player) => `${formatPlayerName(player, language)}${language === "en" ? " " : ""}${formatArea(scores[player])}`);
+
+  return parts.join(language === "en" ? ", " : "，");
+}
+
+function formatResetVoteMessage(confirmedVotes, requiredVotes, language = "zh") {
+  if (language === "en") {
+    return `Reset confirmed ${confirmedVotes}/${requiredVotes}. Waiting for the remaining players.`;
+  }
+  return `重置已确认 ${confirmedVotes}/${requiredVotes}，等待其余玩家确认。`;
+}
+
 function normalizeGameSettings(settings = {}) {
   const playerCount = Number(settings?.playerCount);
   const gridSize = Number(settings?.gridSize);
@@ -483,6 +498,83 @@ const ScorePanel = {
   `,
 };
 
+const SetupPanel = {
+  name: "SetupPanel",
+  emits: ["update:player-count", "update:grid-size"],
+  props: {
+    language: {
+      type: String,
+      required: true,
+    },
+    playerCount: {
+      type: Number,
+      required: true,
+    },
+    gridSize: {
+      type: Number,
+      required: true,
+    },
+    settingsLocked: {
+      type: Boolean,
+      default: false,
+    },
+    busy: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  setup(props) {
+    const texts = computed(() => getTexts(props.language));
+
+    return {
+      texts,
+      PLAYER_COUNT_OPTIONS,
+      GRID_SIZE_OPTIONS,
+    };
+  },
+  template: `
+    <section class="panel panel-setup">
+      <div class="panel-head">
+        <p class="eyebrow">{{ texts.setupLabel || '对局设置' }}</p>
+        <h2>{{ texts.setupLabel || '对局设置' }}</h2>
+      </div>
+
+      <div class="settings-cluster settings-cluster-standalone">
+        <div class="settings-cluster-head">
+          <p class="eyebrow">{{ texts.boardStatusEyebrow }}</p>
+          <span class="settings-lock" v-if="settingsLocked">{{ texts.lockedLabel || '已锁定' }}</span>
+        </div>
+        <div class="settings-grid">
+          <div>
+            <label class="field-label" for="player-count">{{ texts.playerCountLabel || '玩家人数' }}</label>
+            <select
+              id="player-count"
+              class="input-field input-field-compact"
+              :value="playerCount"
+              :disabled="busy || settingsLocked"
+              @change="$emit('update:player-count', Number($event.target.value))"
+            >
+              <option v-for="count in PLAYER_COUNT_OPTIONS" :key="count" :value="count">{{ count }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label" for="grid-size">{{ texts.gridSizeLabel || '棋盘边长' }}</label>
+            <select
+              id="grid-size"
+              class="input-field input-field-compact"
+              :value="gridSize"
+              :disabled="busy || settingsLocked"
+              @change="$emit('update:grid-size', Number($event.target.value))"
+            >
+              <option v-for="size in GRID_SIZE_OPTIONS" :key="size" :value="size">{{ size }}</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </section>
+  `,
+};
+
 const RoomPanel = {
   name: "RoomPanel",
   emits: [
@@ -583,7 +675,7 @@ const RoomPanel = {
         @input="$emit('update:room-id', $event.target.value)"
       />
 
-      <div class="settings-cluster">
+      <div class="settings-cluster settings-cluster-hidden">
         <div class="settings-cluster-head">
           <p class="eyebrow">{{ texts.setupLabel || '对局设置' }}</p>
           <span class="settings-lock" v-if="settingsLocked">{{ texts.lockedLabel || '已锁定' }}</span>
@@ -730,11 +822,18 @@ const ResultModal = {
       return formatWinner(props.gameState.winner, props.language);
     });
     const summary = computed(() => {
+      if (props.overlayResult?.scoreLine) {
+        return props.overlayResult.scoreLine;
+      }
       if (props.overlayResult) {
         return texts.value.resignedSummary(
           formatPlayerName(props.overlayResult.winner, props.language),
           formatPlayerName(props.overlayResult.loser, props.language),
         );
+      }
+
+      if (props.language !== "en") {
+        return formatFinalScoreLine(props.gameState.scores, props.language, props.gameState.players);
       }
 
       const blueScore = formatArea(props.gameState.scores[Player.BLACK]);
@@ -871,6 +970,7 @@ const App = {
     ResultModal,
     RoomPanel,
     ScorePanel,
+    SetupPanel,
   },
   setup() {
     const storedSession = loadStoredSession();
@@ -1211,11 +1311,12 @@ const App = {
       }
 
       if (gameState.value.gameOver) {
-        return texts.finalStatus(
-          formatWinner(gameState.value.winner, language.value),
-          formatScoreLine(gameState.value.scores, language.value),
-          "",
-        );
+        return language.value === "en"
+          ? texts.finalStatus(
+            formatWinner(gameState.value.winner, language.value),
+            formatFinalScoreLine(gameState.value.scores, language.value, gameState.value.players),
+          )
+          : `${formatWinner(gameState.value.winner, language.value)}，${formatFinalScoreLine(gameState.value.scores, language.value, gameState.value.players)}`;
       }
 
       if (roomStatus.value === "ready") {
@@ -1407,10 +1508,25 @@ const App = {
     );
 
     unsubscribers.push(
+      networkManager.on(ServerEvent.RESET_STATUS, (payload) => {
+        networkError.value = formatResetVoteMessage(
+          payload.confirmedVotes ?? 0,
+          payload.requiredVotes ?? 0,
+          language.value,
+        );
+      }),
+    );
+
+    unsubscribers.push(
       networkManager.on(ServerEvent.MATCH_RESET, (payload) => {
         networkError.value = "";
         roomStatus.value = "ready";
-        if (payload.reason === "resign_restart" && payload.winnerColor && payload.color) {
+        if (payload.reason === "consensus_restart" && payload.winnerColor) {
+          overlayResult.value = {
+            winner: payload.winnerColor,
+            scoreLine: formatFinalScoreLine(gameState.value.scores, language.value, gameState.value.players),
+          };
+        } else if (payload.reason === "resign_restart" && payload.winnerColor && payload.color) {
           overlayResult.value = {
             winner: payload.winnerColor,
             loser: payload.color,
@@ -1498,6 +1614,16 @@ const App = {
         />
 
         <aside class="sidebar">
+          <SetupPanel
+            :language="language"
+            :player-count="selectedPlayerCount"
+            :grid-size="selectedGridSize"
+            :settings-locked="settingsLocked"
+            :busy="networkBusy"
+            @update:player-count="selectedPlayerCount = $event"
+            @update:grid-size="selectedGridSize = $event"
+          />
+
           <ControlPanel
             :language="language"
             :skip-disabled="skipDisabled"

@@ -8,6 +8,7 @@ const ServerEvent = Object.freeze({
   ROOM_READY: "ROOM_READY",
   OPPONENT_MOVE: "OPPONENT_MOVE",
   TURN_SKIPPED: "TURN_SKIPPED",
+  RESET_STATUS: "RESET_STATUS",
   MATCH_RESET: "MATCH_RESET",
   PLAYER_LEFT: "PLAYER_LEFT",
   PONG: "PONG",
@@ -233,7 +234,7 @@ export class NetworkManager {
         type: "player_reset",
         reason: normalizedReason,
       },
-      [ServerEvent.MATCH_RESET],
+      [ServerEvent.RESET_STATUS, ServerEvent.MATCH_RESET],
     );
   }
 

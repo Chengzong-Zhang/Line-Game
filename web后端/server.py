@@ -41,6 +41,7 @@ class Room:
     players: Dict[str, PlayerSession] = field(default_factory=dict)
     actions: list[Dict[str, Any]] = field(default_factory=list)
     settings: Dict[str, Any] = field(default_factory=dict)
+    reset_votes: set[str] = field(default_factory=set)
     created_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
 
@@ -255,6 +256,7 @@ class ConnectionManager:
             session.connected = True
             session.last_seen = time.time()
             room.updated_at = time.time()
+            room.reset_votes.clear()
             self.websocket_index[websocket] = (room_id, session.player_id)
             room_snapshot = self._room_snapshot(room)
 
@@ -350,6 +352,7 @@ class ConnectionManager:
                     "color": sender.color,
                 }
             )
+            room.reset_votes.clear()
             recipients = [
                 other_player
                 for other_player in self._find_other_players(room, sender_id)
@@ -397,6 +400,7 @@ class ConnectionManager:
                         "color": action["sender"].color,
                     }
                 )
+                action["room"].reset_votes.clear()
                 payloads = self._connected_room_payloads(action["room"], payload)
                 error_payload = None
 
@@ -408,24 +412,38 @@ class ConnectionManager:
             await self.send_json(target_websocket, payload)
 
     async def forward_reset(self, websocket: WebSocket, reason: Any) -> None:
-        normalized_reason = reason if reason == "normal_restart" else "resign_restart"
-
         async with self.lock:
             action = self._prepare_room_action_locked(websocket)
             if action["error"] is not None:
                 error_payload = action["error"]
                 payloads = []
             else:
-                action["room"].actions = []
-                payload = {
-                    "type": "MATCH_RESET",
+                room = action["room"]
+                room.reset_votes.add(action["sender"].player_id)
+                vote_payload = {
+                    "type": "RESET_STATUS",
                     "roomId": action["room_id"],
                     "playerId": action["sender"].player_id,
                     "color": action["sender"].color,
-                    "reason": normalized_reason,
-                    "winnerColor": None if normalized_reason == "normal_restart" else None,
+                    "requiredVotes": room.player_capacity(),
+                    "confirmedVotes": len(room.reset_votes),
+                    "confirmedPlayerIds": list(room.reset_votes),
                 }
-                payloads = self._connected_room_payloads(action["room"], payload)
+
+                if len(room.reset_votes) >= room.player_capacity():
+                    room.actions = []
+                    room.reset_votes.clear()
+                    payload = {
+                        "type": "MATCH_RESET",
+                        "roomId": action["room_id"],
+                        "playerId": action["sender"].player_id,
+                        "color": action["sender"].color,
+                        "reason": "consensus_restart",
+                        "winnerColor": action["sender"].color,
+                    }
+                    payloads = self._connected_room_payloads(room, payload)
+                else:
+                    payloads = self._connected_room_payloads(room, vote_payload)
                 error_payload = None
 
         if error_payload is not None:
@@ -557,9 +575,12 @@ class ConnectionManager:
         player.connected = False
         player.last_seen = time.time()
         room.updated_at = time.time()
+        room.reset_votes.clear()
 
         if remove_player:
             room.players.pop(player_id, None)
+            room.reset_votes.discard(player_id)
+            room.reset_votes.clear()
 
         if notify_opponent:
             for other_player in other_players:
