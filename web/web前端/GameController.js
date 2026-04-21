@@ -1,11 +1,10 @@
-import GameEngine, { Player } from "./GameEngine.js?v=20260421a";
-import Renderer from "./Renderer.js?v=20260421a";
-import { ClientEvent, ServerEvent } from "./NetworkManager.js?v=20260421a";
+﻿import GameEngine, { Player } from "./GameEngine.js?v=20260421b";
+import Renderer from "./Renderer.js?v=20260421b";
+import { ClientEvent, ServerEvent } from "./NetworkManager.js?v=20260421b";
 
-// GameController 是前端的“胶水层”：
-// 它把 Model(GameEngine)、View(Renderer) 和联机层(NetworkManager) 串起来，
-// 对外暴露统一的游戏状态与操作接口，尽量不让 Vue 直接碰底层细节。
-
+// GameController 鏄墠绔殑鈥滆兌姘村眰鈥濓細
+// 瀹冩妸 Model(GameEngine)銆乂iew(Renderer) 鍜岃仈鏈哄眰(NetworkManager) 涓茶捣鏉ワ紝
+// 瀵瑰鏆撮湶缁熶竴鐨勬父鎴忕姸鎬佷笌鎿嶄綔鎺ュ彛锛屽敖閲忎笉璁?Vue 鐩存帴纰板簳灞傜粏鑺傘€?
 const DEFAULT_ENGINE_OPTIONS = Object.freeze({
   playerCount: 2,
   gridSize: 9,
@@ -57,6 +56,7 @@ export class GameController {
     this.roomReady = false;
     this.opponentConnected = false;
     this.networkManager = null;
+    this.lastAction = null;
     this._networkUnsubscribers = [];
 
     this._isInitialized = false;
@@ -118,6 +118,7 @@ export class GameController {
     }
 
     this.engine = new GameEngine(this.options.engine);
+    this._setLastAction(null);
     const snapshot = this.engine.getSnapshot();
     this._syncSnapshot(snapshot);
     return this._buildGameState(snapshot);
@@ -135,7 +136,7 @@ export class GameController {
       return;
     }
 
-    // Controller 监听的是“语义事件”，Vue 层无需关心底层 WebSocket 原始消息。
+    // Controller 监听的是语义事件，Vue 层无需关心底层 WebSocket 原始消息。
     this._networkUnsubscribers.push(
       this.networkManager.on(ServerEvent.ROOM_CREATED, (payload) => {
         this.setMultiplayerState({
@@ -271,8 +272,32 @@ export class GameController {
     }
   }
 
+  _cloneLastAction() {
+    if (!this.lastAction) {
+      return null;
+    }
+
+    return {
+      ...this.lastAction,
+      point: Array.isArray(this.lastAction.point) ? [...this.lastAction.point] : null,
+    };
+  }
+
+  _setLastAction(action = null) {
+    if (!action) {
+      this.lastAction = null;
+      return;
+    }
+
+    this.lastAction = {
+      type: action.type ?? null,
+      player: action.player ?? null,
+      point: Array.isArray(action.point) ? [...action.point] : null,
+    };
+  }
+
   _buildGameState(snapshot = this.engine.getSnapshot()) {
-    // 这里把底层快照补齐成 UI 直接可用的状态，包含联机锁定原因等派生字段。
+    // 这里把底层快照补齐成 UI 可直接消费的状态，包含联机锁定原因等派生字段。
     const black = snapshot.territories?.[Player.BLACK] ?? { area: 0, polygon: null };
     const white = snapshot.territories?.[Player.WHITE] ?? { area: 0, polygon: null };
     const purple = snapshot.territories?.[Player.PURPLE] ?? { area: 0, polygon: null };
@@ -294,6 +319,7 @@ export class GameController {
       territories: snapshot.territories,
       legalMoves: snapshot.legalMoves,
       snapshot,
+      lastAction: this._cloneLastAction(),
       players: Array.isArray(snapshot.players)
         ? [...snapshot.players]
         : [Player.BLACK, Player.WHITE, Player.PURPLE].slice(0, snapshot.playerCount ?? this.options.engine.playerCount),
@@ -439,16 +465,25 @@ export class GameController {
   }
 
   _syncSnapshot(snapshot) {
-    this.renderer.render(snapshot);
+    this.renderer.render({
+      ...snapshot,
+      lastAction: this._cloneLastAction(),
+    });
     this._syncCanvasInteractivity(snapshot);
     this._emitStateChange(snapshot);
   }
 
   _applyMove(point) {
     const normalizedPoint = clonePoint(point);
+    const actingPlayer = this.engine.getSnapshot().currentPlayer;
     const result = this.engine.playMove(normalizedPoint);
 
     if (result.success) {
+      this._setLastAction({
+        type: "move",
+        player: actingPlayer,
+        point: normalizedPoint,
+      });
       this._syncSnapshot(result.snapshot);
     }
 
@@ -539,8 +574,14 @@ export class GameController {
   }
 
   applyRemoteSkip() {
+    const actingPlayer = this.engine.getSnapshot().currentPlayer;
     const result = this.engine.skipTurn();
     if (result.success) {
+      this._setLastAction({
+        type: "skip",
+        player: actingPlayer,
+        point: null,
+      });
       this._syncSnapshot(result.snapshot);
     } else {
       this._reportNetworkError(new Error(`Remote skip could not be applied: ${result.reason}`));
@@ -565,6 +606,7 @@ export class GameController {
       this.setGameConfig(incomingSettings, false);
     }
     this.engine = new GameEngine(this.options.engine ?? {});
+    this._setLastAction(null);
 
     for (const action of actions) {
       if (!action || typeof action.type !== "string") {
@@ -572,20 +614,32 @@ export class GameController {
       }
 
       if (action.type === "player_move" && isGridPoint(action.point)) {
+        const actingPlayer = this.engine.getSnapshot().currentPlayer;
         const result = this.engine.playMove(clonePoint(action.point));
         if (!result.success) {
           this._reportNetworkError(new Error(`Replay move failed: ${result.reason}`));
           break;
         }
+        this._setLastAction({
+          type: "move",
+          player: actingPlayer,
+          point: action.point,
+        });
         continue;
       }
 
       if (action.type === "player_skip") {
+        const actingPlayer = this.engine.getSnapshot().currentPlayer;
         const result = this.engine.skipTurn();
         if (!result.success) {
           this._reportNetworkError(new Error(`Replay skip failed: ${result.reason}`));
           break;
         }
+        this._setLastAction({
+          type: "skip",
+          player: actingPlayer,
+          point: null,
+        });
       }
     }
 
@@ -603,8 +657,14 @@ export class GameController {
       };
     }
 
+    const actingPlayer = this.engine.getSnapshot().currentPlayer;
     const result = this.engine.skipTurn();
     if (result.success) {
+      this._setLastAction({
+        type: "skip",
+        player: actingPlayer,
+        point: null,
+      });
       this._syncSnapshot(result.snapshot);
     }
     return {
@@ -650,7 +710,7 @@ export class GameController {
     const reason = options.reason === "normal_restart" ? "normal_restart" : "resign_restart";
 
     try {
-      // 三人模式下这里会先收到 RESET_STATUS，等全员确认后才会真正 MATCH_RESET。
+      // 三人模式下这里会先收到 RESET_STATUS，等全员确认后才会真正收到 MATCH_RESET。
       await this.networkManager.sendReset(reason);
     } catch (error) {
       this._reportNetworkError(error);
@@ -665,6 +725,7 @@ export class GameController {
     }
 
     this.engine = new GameEngine(this.options.engine ?? {});
+    this._setLastAction(null);
     const snapshot = this.engine.getSnapshot();
     this._syncSnapshot(snapshot);
     return this._buildGameState(snapshot);
@@ -685,3 +746,4 @@ export class GameController {
 }
 
 export default GameController;
+

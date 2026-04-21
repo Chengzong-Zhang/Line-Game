@@ -1,13 +1,13 @@
-const DEFAULT_REQUEST_TIMEOUT = 10000;
+﻿const DEFAULT_REQUEST_TIMEOUT = 10000;
 const DEFAULT_HEARTBEAT_INTERVAL = 4000;
 const DEFAULT_HEARTBEAT_TIMEOUT = 12000;
 
-// NetworkManager 负责把“请求-响应”和“广播事件”混合在同一条 WebSocket 上管理起来。
-// 上层只需要订阅事件或调用 sendXxx，无需直接操作 socket。
-
+// NetworkManager 璐熻矗鎶娾€滆姹?鍝嶅簲鈥濆拰鈥滃箍鎾簨浠垛€濇贩鍚堝湪鍚屼竴鏉?WebSocket 涓婄鐞嗚捣鏉ャ€?// 涓婂眰鍙渶瑕佽闃呬簨浠舵垨璋冪敤 sendXxx锛屾棤闇€鐩存帴鎿嶄綔 socket銆?
 const ServerEvent = Object.freeze({
   ROOM_CREATED: "ROOM_CREATED",
   ROOM_JOINED: "ROOM_JOINED",
+  ROOM_STATE: "ROOM_STATE",
+  ROOM_COUNTDOWN: "ROOM_COUNTDOWN",
   ROOM_READY: "ROOM_READY",
   OPPONENT_MOVE: "OPPONENT_MOVE",
   TURN_SKIPPED: "TURN_SKIPPED",
@@ -273,6 +273,30 @@ export class NetworkManager {
     );
   }
 
+  async sendReady(ready) {
+    await this._ensureOpen();
+    this._send({
+      type: "player_ready",
+      ready: Boolean(ready),
+    });
+  }
+
+  async updateRoomSettings(settings) {
+    await this._ensureOpen();
+    this._send({
+      type: "update_room_settings",
+      settings,
+    });
+  }
+
+  async updateStartPlayer(startPlayer) {
+    await this._ensureOpen();
+    this._send({
+      type: "update_start_player",
+      startPlayer,
+    });
+  }
+
   async leaveRoom() {
     if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
       this._clearSession();
@@ -367,6 +391,10 @@ export class NetworkManager {
       this.roomId = payload.roomId ?? this.roomId;
       this.playerId = payload.playerId ?? this.playerId;
       this.color = payload.color ?? this.color;
+    } else if (payload.type === ServerEvent.ROOM_STATE || payload.type === ServerEvent.ROOM_COUNTDOWN) {
+      this.roomId = payload.roomId ?? this.roomId;
+      this.playerId = payload.yourPlayerId ?? payload.playerId ?? this.playerId;
+      this.color = payload.yourColor ?? payload.color ?? this.color;
     } else if (payload.type === ServerEvent.ROOM_READY) {
       this.roomId = payload.roomId ?? this.roomId;
       this.playerId = payload.yourPlayerId ?? this.playerId;
@@ -409,7 +437,7 @@ export class NetworkManager {
   }
 
   _sendRequest(payload, expectedTypes) {
-    // 某些操作需要“发请求后等待指定事件返回”，例如建房、入房、重置投票。
+    // Wait for a specific server event after sending a request.
     return new Promise((resolve, reject) => {
       const timeoutId = globalThis.setTimeout(() => {
         this._pendingRequests = this._pendingRequests.filter((request) => request !== requestRecord);
@@ -480,8 +508,7 @@ export class NetworkManager {
     const interval = this.options.heartbeatInterval ?? DEFAULT_HEARTBEAT_INTERVAL;
     const timeout = this.options.heartbeatTimeout ?? DEFAULT_HEARTBEAT_TIMEOUT;
     this._lastPongAt = Date.now();
-
-    // 心跳分成两段：定时发 ping + 看门狗检查 pong 是否超时。
+    // Heartbeat sends ping on an interval and monitors pong timeouts.
     this._heartbeatTimerId = globalThis.setInterval(() => {
       if (!this.isConnected()) {
         return;
@@ -528,3 +555,5 @@ export class NetworkManager {
 export { ClientEvent, ServerEvent };
 export { resolveWebSocketUrl };
 export default NetworkManager;
+
+

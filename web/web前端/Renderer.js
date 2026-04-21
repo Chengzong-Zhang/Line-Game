@@ -581,6 +581,37 @@ export class Renderer {
     }
   }
 
+  _drawLastAction(snapshot, layout) {
+    const action = snapshot?.lastAction;
+    if (!action || action.type !== "move" || !Array.isArray(action.point) || action.point.length !== 2) {
+      return;
+    }
+
+    const ctx = this.ctx;
+    const playerColors = {
+      [Player.BLACK]: this.theme.blueLine,
+      [Player.WHITE]: this.theme.redLine,
+      [Player.PURPLE]: this.theme.purpleLine,
+    };
+    const [x, y] = this._gridToPixel(action.point[0], action.point[1], layout);
+    const stroke = playerColors[action.player] ?? this.theme.outline;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x, y, layout.pointRadius + Math.max(6, layout.pointRadius * 0.55), 0, Math.PI * 2);
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = Math.max(2.5, layout.lineWidth * 0.3);
+    ctx.shadowColor = "rgba(255, 255, 255, 0.95)";
+    ctx.shadowBlur = Math.max(8, layout.pointRadius * 1.4);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(x, y, Math.max(2.5, layout.pointRadius * 0.28), 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255, 255, 255, 0.96)";
+    ctx.fill();
+    ctx.restore();
+  }
+
   render(snapshot) {
     if (!snapshot || !snapshot.boardMatrix) {
       throw new Error("Renderer.render(snapshot) requires a valid GameEngine snapshot.");
@@ -597,6 +628,7 @@ export class Renderer {
     this._drawTerritories(snapshot, this.layout);
     this._drawLegalMoves(snapshot, this.layout);
     this._drawNodes(boardData, this.layout);
+    this._drawLastAction(snapshot, this.layout);
   }
 }
 

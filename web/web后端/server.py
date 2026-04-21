@@ -37,6 +37,7 @@ ROOM_CODE_LENGTH = 4
 ROOM_TTL_SECONDS = 300
 HEARTBEAT_TIMEOUT_SECONDS = 35
 HEARTBEAT_SWEEP_SECONDS = 5
+READY_COUNTDOWN_SECONDS = 3
 MIN_GRID_SIZE = 5
 MAX_GRID_SIZE = 15
 PLAYER_BLACK = "BLACK"
@@ -129,7 +130,12 @@ class Room:
     players: Dict[str, PlayerSession] = field(default_factory=dict)
     actions: list[Dict[str, Any]] = field(default_factory=list)
     settings: Dict[str, Any] = field(default_factory=dict)
+    host_player_id: Optional[str] = None
     reset_votes: set[str] = field(default_factory=set)
+    ready_players: set[str] = field(default_factory=set)
+    match_started: bool = False
+    countdown_started_at: Optional[float] = None
+    countdown_task: Optional[asyncio.Task[Any]] = None
     created_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
 
@@ -223,6 +229,18 @@ class ConnectionManager:
             await self.forward_reset(websocket, message.get("reason"))
             return
 
+        if message_type == "player_ready":
+            await self.set_player_ready(websocket, message.get("ready"))
+            return
+
+        if message_type == "update_room_settings":
+            await self.update_room_settings(websocket, message.get("settings"))
+            return
+
+        if message_type == "update_start_player":
+            await self.update_start_player(websocket, message.get("startPlayer"))
+            return
+
         if message_type == "player_leave":
             await self.player_leave(websocket, reason="player_leave")
             return
@@ -265,23 +283,17 @@ class ConnectionManager:
                 websocket=websocket,
                 connected=True,
             )
-            room = Room(room_id=room_id, players={username: player}, settings=normalized_settings)
+            room = Room(
+                room_id=room_id,
+                players={username: player},
+                settings=normalized_settings,
+                host_player_id=username,
+            )
             self.rooms[room_id] = room
             self.websocket_index[websocket] = (room_id, username)
             self.player_room_index[username] = room_id
 
-        await self.send_json(
-            websocket,
-            {
-                "type": "ROOM_CREATED",
-                "roomId": room_id,
-                "playerId": username,
-                "color": player.color,
-                "status": "WAITING",
-                "settings": dict(room.settings),
-                "matchState": self._match_state(room),
-            },
-        )
+        await self.send_json(websocket, self._room_payload("ROOM_CREATED", room, your_player_id=username))
         logger.info("room created room=%s player=%s color=%s", room_id, username, player.color)
 
     async def join_room(self, websocket: WebSocket, room_id: str, username: str) -> None:
@@ -362,32 +374,26 @@ class ConnectionManager:
             room.reset_votes.clear()
             self.websocket_index[websocket] = (room_id, session.player_id)
             self.player_room_index[session.player_id] = room_id
-            room_snapshot = self._room_snapshot(room)
+            direct_payload = self._room_payload("ROOM_JOINED", room, your_player_id=session.player_id)
+            direct_payload["reconnected"] = reconnected
+            broadcast_payloads = self._connected_room_payloads(
+                room,
+                self._room_payload("ROOM_STATE", room),
+            )
 
-        await self.send_json(
-            websocket,
-            {
-                "type": "ROOM_JOINED",
-                "roomId": room_id,
-                "playerId": session.player_id,
-                "color": session.color,
-                "status": "READY" if len(room_snapshot["players"]) == room.player_capacity() else "WAITING",
-                "reconnected": reconnected,
-                "settings": dict(room.settings),
-                "matchState": self._match_state(room),
-            },
-        )
+        await self.send_json(websocket, direct_payload)
         logger.info(
             "room joined room=%s player=%s color=%s ready=%s reconnected=%s",
             room_id,
             session.player_id,
             session.color,
-            len(room_snapshot["players"]) == room.player_capacity(),
+            room.active_player_count() == room.player_capacity(),
             reconnected,
         )
-
-        if len(room_snapshot["players"]) == room.player_capacity():
-            await self.broadcast_room_ready(room_id, reconnected_player_id=session.player_id if reconnected else None)
+        for target_websocket, payload in broadcast_payloads:
+            if target_websocket is websocket:
+                continue
+            await self.send_json(target_websocket, payload)
 
     async def handle_ping(self, websocket: WebSocket, timestamp: Any) -> None:
         async with self.lock:
@@ -523,7 +529,7 @@ class ConnectionManager:
                 payloads = []
             else:
                 room = action["room"]
-                # 鑱旀満閲嶅紑閲囩敤鈥滃叏鍛樼‘璁も€濇満鍒讹紝鏈€鍚庝竴浣嶇‘璁よ€呰璁颁负杩欎竴杞殑鑾疯儨鏂广€?                room.reset_votes.add(action["sender"].player_id)
+                room.reset_votes.add(action["sender"].player_id)
                 vote_payload = {
                     "type": "RESET_STATUS",
                     "roomId": action["room_id"],
@@ -536,7 +542,10 @@ class ConnectionManager:
 
                 if len(room.reset_votes) >= room.player_capacity():
                     room.actions = []
+                    room.match_started = False
+                    room.ready_players.clear()
                     room.reset_votes.clear()
+                    self._cancel_countdown_locked(room)
                     payload = {
                         "type": "MATCH_RESET",
                         "roomId": action["room_id"],
@@ -544,6 +553,19 @@ class ConnectionManager:
                         "color": action["sender"].color,
                         "reason": "consensus_restart",
                         "winnerColor": action["sender"].color,
+                        "status": self._room_status(room),
+                        "settings": dict(room.settings),
+                        "players": [
+                            {
+                                "playerId": player.player_id,
+                                "color": player.color,
+                                "connected": player.connected,
+                                "ready": player.player_id in room.ready_players,
+                                "isHost": player.player_id == room.host_player_id,
+                            }
+                            for player in room.players.values()
+                        ],
+                        "matchState": self._match_state(room),
                     }
                     payloads = self._connected_room_payloads(room, payload)
                 else:
@@ -575,43 +597,271 @@ class ConnectionManager:
             room_id, player_id = room_and_player
             await self._detach_player(room_id, player_id, notify_opponent=True, leave_reason="disconnect", remove_player=False)
 
-    async def broadcast_room_ready(self, room_id: str, reconnected_player_id: Optional[str] = None) -> None:
+    async def set_player_ready(self, websocket: WebSocket, ready: Any) -> None:
+        async with self.lock:
+            action = self._prepare_room_member_locked(websocket)
+            if action["error"] is not None:
+                error_payload = action["error"]
+                payloads = []
+            else:
+                room = action["room"]
+                sender = action["sender"]
+                desired_ready = bool(ready)
+                if desired_ready:
+                    room.ready_players.add(sender.player_id)
+                else:
+                    room.ready_players.discard(sender.player_id)
+
+                room.updated_at = time.time()
+                payloads = []
+                error_payload = None
+
+                if room.active_player_count() < room.player_capacity():
+                    self._cancel_countdown_locked(room)
+                    payloads = self._connected_room_payloads(room, self._room_payload("ROOM_STATE", room))
+                elif len(room.ready_players) >= room.player_capacity():
+                    if room.countdown_started_at is None and not room.match_started:
+                        self._start_countdown_locked(room)
+                    payloads = self._connected_room_payloads(room, self._room_payload("ROOM_COUNTDOWN", room))
+                else:
+                    self._cancel_countdown_locked(room)
+                    payloads = self._connected_room_payloads(room, self._room_payload("ROOM_STATE", room))
+
+        if error_payload is not None:
+            await self.send_json(websocket, error_payload)
+            return
+
+        for target_websocket, payload in payloads:
+            await self.send_json(target_websocket, payload)
+
+    async def update_room_settings(self, websocket: WebSocket, settings: Any) -> None:
+        async with self.lock:
+            action = self._prepare_room_member_locked(websocket)
+            if action["error"] is not None:
+                error_payload = action["error"]
+                payloads = []
+            else:
+                room = action["room"]
+                sender = action["sender"]
+                if sender.player_id != room.host_player_id:
+                    error_payload = {
+                        "type": "ERROR",
+                        "code": "HOST_ONLY_ACTION",
+                        "message": "Only the host can update room settings.",
+                    }
+                    payloads = []
+                else:
+                    normalized_settings = self._normalize_room_settings(settings)
+                    allowed_colors = (PLAYER_BLACK, PLAYER_WHITE, PLAYER_PURPLE)[: int(normalized_settings["playerCount"])]
+                    if len(room.players) > int(normalized_settings["playerCount"]) or any(
+                        player.color not in allowed_colors for player in room.players.values()
+                    ):
+                        error_payload = {
+                            "type": "ERROR",
+                            "code": "ROOM_CAPACITY_CONFLICT",
+                            "message": "The new player count is smaller than the current room roster.",
+                        }
+                        payloads = []
+                    else:
+                        room.settings = normalized_settings
+                        room.actions = []
+                        room.match_started = False
+                        room.ready_players.clear()
+                        room.reset_votes.clear()
+                        self._cancel_countdown_locked(room)
+                        room.updated_at = time.time()
+                        payloads = self._connected_room_payloads(
+                            room,
+                            self._room_payload("ROOM_STATE", room, reason="settings_updated"),
+                        )
+                        error_payload = None
+
+        if error_payload is not None:
+            await self.send_json(websocket, error_payload)
+            return
+
+        for target_websocket, payload in payloads:
+            await self.send_json(target_websocket, payload)
+
+    async def update_start_player(self, websocket: WebSocket, start_player: Any) -> None:
+        async with self.lock:
+            action = self._prepare_room_member_locked(websocket)
+            if action["error"] is not None:
+                error_payload = action["error"]
+                payloads = []
+            else:
+                room = action["room"]
+                sender = action["sender"]
+                if sender.player_id != room.host_player_id:
+                    error_payload = {
+                        "type": "ERROR",
+                        "code": "HOST_ONLY_ACTION",
+                        "message": "Only the host can update room settings.",
+                    }
+                    payloads = []
+                else:
+                    normalized_settings = self._normalize_room_settings(
+                        {
+                            **room.settings,
+                            "startPlayer": start_player,
+                        }
+                    )
+                    room.settings = normalized_settings
+                    room.ready_players.clear()
+                    room.reset_votes.clear()
+                    self._cancel_countdown_locked(room)
+                    room.updated_at = time.time()
+                    payloads = self._connected_room_payloads(
+                        room,
+                        self._room_payload("ROOM_STATE", room, reason="settings_updated"),
+                    )
+                    error_payload = None
+
+        if error_payload is not None:
+            await self.send_json(websocket, error_payload)
+            return
+
+        for target_websocket, payload in payloads:
+            await self.send_json(target_websocket, payload)
+
+    async def broadcast_room_ready(self, room_id: str) -> None:
         async with self.lock:
             room = self.rooms.get(room_id)
             if room is None:
                 return
 
             room.updated_at = time.time()
-            payloads = []
-            players = [
-                {
-                    "playerId": player.player_id,
-                    "color": player.color,
-                    "connected": player.connected,
-                }
-                for player in room.players.values()
-            ]
-
-            for player in room.connected_players():
-                payloads.append(
-                    (
-                        player.websocket,
-                        {
-                            "type": "ROOM_READY",
-                            "roomId": room_id,
-                            "yourPlayerId": player.player_id,
-                            "yourColor": player.color,
-                            "players": players,
-                            "reconnectedPlayerId": reconnected_player_id,
-                            "settings": dict(room.settings),
-                            "matchState": self._match_state(room),
-                        },
-                    )
-                )
+            payloads = self._connected_room_payloads(room, self._room_payload("ROOM_READY", room))
 
         for websocket, payload in payloads:
             if websocket is not None:
                 await self.send_json(websocket, payload)
+
+    def _prepare_room_member_locked(self, websocket: WebSocket) -> Dict[str, Any]:
+        room_and_player = self.websocket_index.get(websocket)
+        if room_and_player is None:
+            return {
+                "error": {
+                    "type": "ERROR",
+                    "code": "NOT_IN_ROOM",
+                    "message": "Join or create a room before sending room actions.",
+                },
+            }
+
+        room_id, sender_id = room_and_player
+        room = self.rooms.get(room_id)
+        if room is None or sender_id not in room.players:
+            return {
+                "error": {
+                    "type": "ERROR",
+                    "code": "ROOM_NOT_FOUND",
+                    "message": "The room no longer exists.",
+                },
+            }
+
+        sender = room.players[sender_id]
+        sender.last_seen = time.time()
+        room.updated_at = time.time()
+        return {
+            "error": None,
+            "room_id": room_id,
+            "room": room,
+            "sender": sender,
+        }
+
+    def _room_status(self, room: Room) -> str:
+        if room.active_player_count() < room.player_capacity():
+            return "WAITING"
+        if room.countdown_started_at is not None and self._countdown_ends_at_ms(room) is not None:
+            return "COUNTDOWN"
+        if room.match_started:
+            return "READY"
+        return "LOBBY"
+
+    def _countdown_ends_at_ms(self, room: Room) -> Optional[int]:
+        if room.countdown_started_at is None:
+            return None
+        ends_at = room.countdown_started_at + READY_COUNTDOWN_SECONDS
+        if ends_at <= time.time():
+            return None
+        return int(ends_at * 1000)
+
+    def _room_payload(
+        self,
+        event_type: str,
+        room: Room,
+        your_player_id: Optional[str] = None,
+        reason: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        players = [
+            {
+                "playerId": player.player_id,
+                "color": player.color,
+                "connected": player.connected,
+                "ready": player.player_id in room.ready_players,
+                "isHost": player.player_id == room.host_player_id,
+            }
+            for player in room.players.values()
+        ]
+        payload = {
+            "type": event_type,
+            "roomId": room.room_id,
+            "status": self._room_status(room),
+            "hostPlayerId": room.host_player_id,
+            "settings": dict(room.settings),
+            "players": players,
+            "matchState": self._match_state(room),
+            "countdownEndsAt": self._countdown_ends_at_ms(room),
+        }
+        if reason:
+            payload["reason"] = reason
+        if your_player_id and your_player_id in room.players:
+            payload["yourPlayerId"] = your_player_id
+            payload["playerId"] = your_player_id
+            payload["yourColor"] = room.players[your_player_id].color
+            payload["color"] = room.players[your_player_id].color
+        return payload
+
+    def _cancel_countdown_locked(self, room: Room) -> None:
+        if room.countdown_task is not None:
+            room.countdown_task.cancel()
+            room.countdown_task = None
+        room.countdown_started_at = None
+
+    def _start_countdown_locked(self, room: Room) -> None:
+        self._cancel_countdown_locked(room)
+        room.countdown_started_at = time.time()
+        room.countdown_task = asyncio.create_task(self._run_countdown(room.room_id, room.countdown_started_at))
+
+    async def _run_countdown(self, room_id: str, countdown_started_at: float) -> None:
+        try:
+            await asyncio.sleep(READY_COUNTDOWN_SECONDS)
+            async with self.lock:
+                room = self.rooms.get(room_id)
+                if room is None:
+                    return
+                if room.countdown_started_at != countdown_started_at:
+                    return
+                if room.active_player_count() < room.player_capacity():
+                    self._cancel_countdown_locked(room)
+                    return
+                if len(room.ready_players) < room.player_capacity():
+                    self._cancel_countdown_locked(room)
+                    return
+
+                room.actions = []
+                room.match_started = True
+                room.ready_players.clear()
+                room.reset_votes.clear()
+                room.updated_at = time.time()
+                room.countdown_started_at = None
+                room.countdown_task = None
+                payloads = self._connected_room_payloads(room, self._room_payload("ROOM_READY", room))
+        except asyncio.CancelledError:
+            return
+
+        for target_websocket, payload in payloads:
+            await self.send_json(target_websocket, payload)
 
     async def send_json(self, websocket: WebSocket, payload: Dict[str, Any]) -> None:
         logger.info("outgoing payload=%s", payload)
@@ -686,13 +936,19 @@ class ConnectionManager:
         player.last_seen = time.time()
         room.updated_at = time.time()
         room.reset_votes.clear()
+        room.ready_players.discard(player_id)
+        room.match_started = False
+        self._cancel_countdown_locked(room)
 
         if remove_player:
             room.players.pop(player_id, None)
             if self.player_room_index.get(player_id) == room_id:
                 self.player_room_index.pop(player_id, None)
             room.reset_votes.discard(player_id)
+            room.ready_players.discard(player_id)
             room.reset_votes.clear()
+            if room.host_player_id == player_id:
+                room.host_player_id = next(iter(room.players.keys()), None)
 
         if notify_opponent:
             for other_player in other_players:
@@ -707,6 +963,7 @@ class ConnectionManager:
                             "canReconnect": not remove_player,
                         },
                     )
+                    await self.send_json(other_player.websocket, self._room_payload("ROOM_STATE", room))
 
         if not room.players:
             self.rooms.pop(room_id, None)
@@ -749,6 +1006,14 @@ class ConnectionManager:
         sender = room.players[sender_id]
         sender.last_seen = time.time()
         room.updated_at = time.time()
+        if not room.match_started:
+            return {
+                "error": {
+                    "type": "ERROR",
+                    "code": "ROOM_NOT_READY",
+                    "message": "The room is still in the lobby. Wait for everyone to get ready.",
+                },
+            }
         opponents = [
             player
             for player in self._find_other_players(room, sender_id)
@@ -818,15 +1083,20 @@ class ConnectionManager:
 
         player_count = settings.get("playerCount", 2)
         grid_size = settings.get("gridSize", 9)
+        start_player = settings.get("startPlayer", PLAYER_BLACK)
 
         if player_count not in (2, 3):
             player_count = 2
         if not isinstance(grid_size, int) or grid_size < MIN_GRID_SIZE or grid_size > MAX_GRID_SIZE:
             grid_size = 9
+        allowed_players = (PLAYER_BLACK, PLAYER_WHITE, PLAYER_PURPLE)[:player_count]
+        if start_player not in allowed_players:
+            start_player = allowed_players[0]
 
         return {
             "playerCount": player_count,
             "gridSize": grid_size,
+            "startPlayer": start_player,
         }
 
     def _room_snapshot(self, room: Room) -> Dict[str, Any]:

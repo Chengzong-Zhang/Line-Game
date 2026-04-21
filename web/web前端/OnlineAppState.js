@@ -13,10 +13,14 @@ export const GRID_SIZE_OPTIONS = Object.freeze(Array.from({ length: 11 }, (_, in
 export function normalizeGameSettings(settings = {}) {
   const playerCount = Number(settings?.playerCount);
   const gridSize = Number(settings?.gridSize);
+  const nextPlayerCount = PLAYER_COUNT_OPTIONS.includes(playerCount) ? playerCount : 2;
+  const allowedPlayers = ALL_PLAYERS.slice(0, nextPlayerCount);
+  const startPlayer = allowedPlayers.includes(settings?.startPlayer) ? settings.startPlayer : allowedPlayers[0];
 
   return {
-    playerCount: PLAYER_COUNT_OPTIONS.includes(playerCount) ? playerCount : 2,
+    playerCount: nextPlayerCount,
     gridSize: GRID_SIZE_OPTIONS.includes(gridSize) ? gridSize : 9,
+    startPlayer,
   };
 }
 
@@ -40,6 +44,7 @@ export function createDefaultGameState() {
     },
     legalMoves: [],
     snapshot: null,
+    lastAction: null,
     multiplayerEnabled: false,
     localPlayer: null,
     roomReady: false,

@@ -1,6 +1,6 @@
-﻿import GameController from "./GameController.js?v=20260421a";
-import { Player } from "./GameEngine.js?v=20260421a";
-import NetworkManager, { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js?v=20260421a";
+﻿import GameController from "./GameController.js?v=20260421b";
+import { Player } from "./GameEngine.js?v=20260421c";
+import NetworkManager, { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js?v=20260421c";
 import {
   createEmptyAuth as createAppEmptyAuth,
   GRID_SIZE_OPTIONS as APP_GRID_SIZE_OPTIONS,
@@ -12,7 +12,7 @@ import {
   normalizeGameSettings as normalizeAppGameSettings,
   persistAuth as persistAppAuth,
   persistSession as persistAppSession,
-} from "./OnlineAppState.js?v=20260421a";
+} from "./OnlineAppState.js?v=20260421c";
 import {
   formatArea as formatAppArea,
   formatConnectionState as formatAppConnectionState,
@@ -24,7 +24,7 @@ import {
   getTexts as getAppTexts,
   getNextPlayer as getAppNextPlayer,
   localizeErrorMessage as localizeAppErrorMessage,
-} from "./OnlineAppI18n.js?v=20260421a";
+} from "./OnlineAppI18n.js?v=20260421c";
 
 const {
   computed,
@@ -88,6 +88,23 @@ async function postAuthJson(serverUrl, path, payload) {
   return data;
 }
 
+const TURN_COUNTDOWN_SECONDS = 20;
+
+function createEmptyRoomInfo() {
+  return {
+    status: "solo",
+    hostPlayerId: null,
+    players: [],
+    settings: normalizeAppGameSettings(),
+    countdownEndsAt: null,
+  };
+}
+
+function normalizeRoomStatus(status) {
+  const normalized = String(status ?? "").trim().toLowerCase();
+  return normalized || "solo";
+}
+
 
 const ScorePanel = {
   name: "ScorePanel",
@@ -104,6 +121,10 @@ const ScorePanel = {
       type: String,
       required: true,
     },
+    statusText: {
+      type: String,
+      default: "",
+    },
   },
   setup(props) {
     const texts = computed(() => getAppTexts(props.language));
@@ -119,6 +140,38 @@ const ScorePanel = {
       }
       return "is-purple";
     });
+    const scoreCards = computed(() => {
+      const players = Array.isArray(props.gameState.players) && props.gameState.players.length
+        ? props.gameState.players
+        : [Player.BLACK, Player.WHITE];
+
+      return players.map((player) => {
+        if (player === Player.BLACK) {
+          return {
+            key: player,
+            label: texts.value.blueTerritory,
+            value: props.gameState.scores?.[Player.BLACK],
+            className: "score-card-blue",
+          };
+        }
+
+        if (player === Player.WHITE) {
+          return {
+            key: player,
+            label: texts.value.redTerritory,
+            value: props.gameState.scores?.[Player.WHITE],
+            className: "score-card-red",
+          };
+        }
+
+        return {
+          key: player,
+          label: texts.value.purpleTerritory,
+          value: props.gameState.scores?.[Player.PURPLE],
+          className: "score-card-purple",
+        };
+      });
+    });
 
     return {
       Player,
@@ -127,6 +180,7 @@ const ScorePanel = {
       localRoleLabel,
       winnerLabel,
       turnBannerClass,
+      scoreCards,
       formatArea: formatAppArea,
     };
   },
@@ -137,6 +191,8 @@ const ScorePanel = {
         <h2>{{ texts.boardStatus }}</h2>
       </div>
 
+      <p class="status-copy panel-status-copy">{{ statusText }}</p>
+
       <div class="turn-banner" :class="turnBannerClass">
         <span class="turn-dot"></span>
         <strong>{{ currentPlayerLabel }} {{ texts.turnSuffix }}</strong>
@@ -144,19 +200,14 @@ const ScorePanel = {
       </div>
 
       <div class="score-grid">
-        <article class="score-card score-card-blue">
-          <p>{{ texts.blueTerritory }}</p>
-          <strong>{{ formatArea(gameState.scores[Player.BLACK]) }}</strong>
-          <span>{{ texts.area }}</span>
-        </article>
-        <article class="score-card score-card-red">
-          <p>{{ texts.redTerritory }}</p>
-          <strong>{{ formatArea(gameState.scores[Player.WHITE]) }}</strong>
-          <span>{{ texts.area }}</span>
-        </article>
-        <article class="score-card score-card-purple">
-          <p>{{ texts.purpleTerritory }}</p>
-          <strong>{{ formatArea(gameState.scores[Player.PURPLE]) }}</strong>
+        <article
+          v-for="card in scoreCards"
+          :key="card.key"
+          class="score-card"
+          :class="card.className"
+        >
+          <p>{{ card.label }}</p>
+          <strong>{{ formatArea(card.value) }}</strong>
           <span>{{ texts.area }}</span>
         </article>
       </div>
@@ -214,65 +265,68 @@ const SetupPanel = {
     };
   },
   template: `
-    <section class="panel panel-setup">
-      <div class="panel-head">
-        <p class="eyebrow">{{ texts.setupLabel || '对局设置' }}</p>
-        <h2>{{ texts.setupLabel || '对局设置' }}</h2>
-      </div>
+    <section class="panel panel-setup panel-sidebar-card">
+      <details class="sidebar-details" open>
+        <summary class="sidebar-summary">
+          <div class="panel-head panel-head-compact">
+            <p class="eyebrow">{{ texts.setupLabel || '对局设置' }}</p>
+            <h2>{{ texts.setupLabel || '对局设置' }}</h2>
+          </div>
+          <span class="sidebar-summary-badge" v-if="settingsLocked">{{ texts.lockedLabel || '已锁定' }}</span>
+        </summary>
 
-      <div class="settings-cluster settings-cluster-standalone">
-        <div class="settings-cluster-head">
-          <p class="eyebrow">{{ texts.boardStatusEyebrow }}</p>
-          <span class="settings-lock" v-if="settingsLocked">{{ texts.lockedLabel || '已锁定' }}</span>
-        </div>
-        <div class="settings-grid">
-          <div>
-            <label class="field-label">{{ texts.languageLabel || '语言' }}</label>
-            <div id="language-select" class="language-switcher language-switcher-inline" role="group" :aria-label="texts.languageLabel">
-              <button
-                class="language-button"
-                :class="{ 'is-active': language === 'zh' }"
-                :disabled="busy"
-                @click="$emit('update:language', 'zh')"
-              >
-                中文
-              </button>
-              <button
-                class="language-button"
-                :class="{ 'is-active': language === 'en' }"
-                :disabled="busy"
-                @click="$emit('update:language', 'en')"
-              >
-                English
-              </button>
+        <div class="sidebar-body">
+          <div class="settings-cluster settings-cluster-standalone">
+            <div class="settings-grid">
+              <div>
+                <label class="field-label">{{ texts.languageLabel || '语言' }}</label>
+                <div id="language-select" class="language-switcher language-switcher-inline" role="group" :aria-label="texts.languageLabel">
+                  <button
+                    class="language-button"
+                    :class="{ 'is-active': language === 'zh' }"
+                    :disabled="busy"
+                    @click="$emit('update:language', 'zh')"
+                  >
+                    中文
+                  </button>
+                  <button
+                    class="language-button"
+                    :class="{ 'is-active': language === 'en' }"
+                    :disabled="busy"
+                    @click="$emit('update:language', 'en')"
+                  >
+                    English
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label class="field-label" for="player-count">{{ texts.playerCountLabel || '玩家人数' }}</label>
+                <select
+                  id="player-count"
+                  class="input-field input-field-compact"
+                  :value="playerCount"
+                  :disabled="busy || settingsLocked"
+                  @change="$emit('update:player-count', Number($event.target.value))"
+                >
+                  <option v-for="count in PLAYER_COUNT_OPTIONS" :key="count" :value="count">{{ count }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="field-label" for="grid-size">{{ texts.gridSizeLabel || '棋盘边长' }}</label>
+                <select
+                  id="grid-size"
+                  class="input-field input-field-compact"
+                  :value="gridSize"
+                  :disabled="busy || settingsLocked"
+                  @change="$emit('update:grid-size', Number($event.target.value))"
+                >
+                  <option v-for="size in GRID_SIZE_OPTIONS" :key="size" :value="size">{{ size }}</option>
+                </select>
+              </div>
             </div>
           </div>
-          <div>
-            <label class="field-label" for="player-count">{{ texts.playerCountLabel || '玩家人数' }}</label>
-            <select
-              id="player-count"
-              class="input-field input-field-compact"
-              :value="playerCount"
-              :disabled="busy || settingsLocked"
-              @change="$emit('update:player-count', Number($event.target.value))"
-            >
-              <option v-for="count in PLAYER_COUNT_OPTIONS" :key="count" :value="count">{{ count }}</option>
-            </select>
-          </div>
-          <div>
-            <label class="field-label" for="grid-size">{{ texts.gridSizeLabel || '棋盘边长' }}</label>
-            <select
-              id="grid-size"
-              class="input-field input-field-compact"
-              :value="gridSize"
-              :disabled="busy || settingsLocked"
-              @change="$emit('update:grid-size', Number($event.target.value))"
-            >
-              <option v-for="size in GRID_SIZE_OPTIONS" :key="size" :value="size">{{ size }}</option>
-            </select>
-          </div>
         </div>
-      </div>
+      </details>
     </section>
   `,
 };
@@ -330,76 +384,83 @@ const AuthPanel = {
     };
   },
   template: `
-    <section class="panel panel-auth">
-      <div class="panel-head">
-        <p class="eyebrow">{{ texts.authEyebrow }}</p>
-        <h2>{{ texts.authTitle }}</h2>
-      </div>
+    <section class="panel panel-auth panel-sidebar-card">
+      <details class="sidebar-details">
+        <summary class="sidebar-summary">
+          <div class="panel-head panel-head-compact">
+            <p class="eyebrow">{{ texts.authEyebrow }}</p>
+            <h2>{{ texts.authTitle }}</h2>
+          </div>
+          <span class="sidebar-summary-badge" v-if="isAuthenticated">{{ auth.username }}</span>
+        </summary>
 
-      <template v-if="isAuthenticated">
-        <div class="auth-welcome">
-          <p class="auth-welcome-label">{{ texts.authLoggedIn }}</p>
-          <strong>{{ auth.username }}</strong>
-          <p class="help-copy auth-help">{{ texts.authRequired }}</p>
+        <div class="sidebar-body">
+          <template v-if="isAuthenticated">
+            <div class="auth-welcome">
+              <p class="auth-welcome-label">{{ texts.authLoggedIn }}</p>
+              <strong>{{ auth.username }}</strong>
+              <p class="help-copy auth-help">{{ texts.authRequired }}</p>
+            </div>
+
+            <div class="actions">
+              <button class="action-button action-button-ghost" :disabled="busy" @click="$emit('logout')">
+                {{ texts.authLogout }}
+              </button>
+            </div>
+          </template>
+
+          <template v-else>
+            <div class="auth-tabs" role="tablist" :aria-label="texts.authTitle">
+              <button
+                class="language-button auth-tab"
+                :class="{ 'is-active': mode === 'login' }"
+                :disabled="busy"
+                @click="$emit('update:mode', 'login')"
+              >
+                {{ texts.authLoginTab }}
+              </button>
+              <button
+                class="language-button auth-tab"
+                :class="{ 'is-active': mode === 'register' }"
+                :disabled="busy"
+                @click="$emit('update:mode', 'register')"
+              >
+                {{ texts.authRegisterTab }}
+              </button>
+            </div>
+
+            <label class="field-label" for="auth-username">{{ texts.authUsername }}</label>
+            <input
+              id="auth-username"
+              class="input-field"
+              autocomplete="username"
+              :value="username"
+              :disabled="busy"
+              @input="$emit('update:username', $event.target.value)"
+            />
+
+            <label class="field-label" for="auth-password">{{ texts.authPassword }}</label>
+            <input
+              id="auth-password"
+              class="input-field"
+              type="password"
+              autocomplete="current-password"
+              :value="password"
+              :disabled="busy"
+              @input="$emit('update:password', $event.target.value)"
+              @keydown.enter="$emit('submit')"
+            />
+
+            <div class="actions">
+              <button class="action-button action-button-primary" :disabled="busy" @click="$emit('submit')">
+                {{ mode === 'login' ? texts.authLoginAction : texts.authRegisterAction }}
+              </button>
+            </div>
+          </template>
+
+          <p v-if="error" :class="feedbackTone === 'success' ? 'success-copy' : 'error-copy'">{{ error }}</p>
         </div>
-
-        <div class="actions">
-          <button class="action-button action-button-ghost" :disabled="busy" @click="$emit('logout')">
-            {{ texts.authLogout }}
-          </button>
-        </div>
-      </template>
-
-      <template v-else>
-        <div class="auth-tabs" role="tablist" :aria-label="texts.authTitle">
-          <button
-            class="language-button auth-tab"
-            :class="{ 'is-active': mode === 'login' }"
-            :disabled="busy"
-            @click="$emit('update:mode', 'login')"
-          >
-            {{ texts.authLoginTab }}
-          </button>
-          <button
-            class="language-button auth-tab"
-            :class="{ 'is-active': mode === 'register' }"
-            :disabled="busy"
-            @click="$emit('update:mode', 'register')"
-          >
-            {{ texts.authRegisterTab }}
-          </button>
-        </div>
-
-        <label class="field-label" for="auth-username">{{ texts.authUsername }}</label>
-        <input
-          id="auth-username"
-          class="input-field"
-          autocomplete="username"
-          :value="username"
-          :disabled="busy"
-          @input="$emit('update:username', $event.target.value)"
-        />
-
-        <label class="field-label" for="auth-password">{{ texts.authPassword }}</label>
-        <input
-          id="auth-password"
-          class="input-field"
-          type="password"
-          autocomplete="current-password"
-          :value="password"
-          :disabled="busy"
-          @input="$emit('update:password', $event.target.value)"
-          @keydown.enter="$emit('submit')"
-        />
-
-        <div class="actions">
-          <button class="action-button action-button-primary" :disabled="busy" @click="$emit('submit')">
-            {{ mode === 'login' ? texts.authLoginAction : texts.authRegisterAction }}
-          </button>
-        </div>
-      </template>
-
-      <p v-if="error" :class="feedbackTone === 'success' ? 'success-copy' : 'error-copy'">{{ error }}</p>
+      </details>
     </section>
   `,
 };
@@ -411,6 +472,9 @@ const RoomPanel = {
     "create-room",
     "join-room",
     "leave-room",
+    "toggle-ready",
+    "update:start-player",
+    "close-prompt",
     "update:server-url",
     "update:room-id",
   ],
@@ -451,83 +515,185 @@ const RoomPanel = {
       type: String,
       required: true,
     },
+    roomInfo: {
+      type: Object,
+      required: true,
+    },
+    isHost: {
+      type: Boolean,
+      default: false,
+    },
+    localReady: {
+      type: Boolean,
+      default: false,
+    },
+    readyDisabled: {
+      type: Boolean,
+      default: false,
+    },
+    starterLocked: {
+      type: Boolean,
+      default: false,
+    },
+    startPlayer: {
+      type: String,
+      default: "",
+    },
+    starterOptions: {
+      type: Array,
+      default: () => [],
+    },
+    showClosePrompt: {
+      type: Boolean,
+      default: false,
+    },
   },
   setup(props) {
     const texts = computed(() => getAppTexts(props.language));
     const roleLabel = computed(() => formatAppPlayerName(props.session.color, props.language));
     const connectionLabel = computed(() => formatAppConnectionState(props.connectionState, props.language));
     const roomStatusLabel = computed(() => formatAppConnectionState(props.roomStatus, props.language));
+    const roomPlayers = computed(() => Array.isArray(props.roomInfo?.players) ? props.roomInfo.players : []);
 
     return {
       texts,
       roleLabel,
       connectionLabel,
       roomStatusLabel,
+      roomPlayers,
+      formatPlayerName: formatAppPlayerName,
     };
   },
   template: `
-    <section class="panel panel-network">
-      <div class="panel-head">
-        <p class="eyebrow">{{ texts.onlineEyebrow }}</p>
-        <h2>{{ texts.onlineMatch }}</h2>
-      </div>
+    <section class="panel panel-network panel-sidebar-card">
+      <details class="sidebar-details" open>
+        <summary class="sidebar-summary">
+          <div class="panel-head panel-head-compact">
+            <p class="eyebrow">{{ texts.onlineEyebrow }}</p>
+            <h2>{{ texts.onlineMatch }}</h2>
+          </div>
+          <span class="sidebar-summary-badge">{{ roomStatusLabel }}</span>
+        </summary>
 
-      <label class="field-label" for="server-url">{{ texts.serverAddress }}</label>
-      <input
-        id="server-url"
-        class="input-field"
-        :value="serverUrl"
-        :disabled="busy"
-        @input="$emit('update:server-url', $event.target.value)"
-      />
+        <div class="sidebar-body">
+          <label class="field-label" for="server-url">{{ texts.serverAddress }}</label>
+          <input
+            id="server-url"
+            class="input-field"
+            :value="serverUrl"
+            :disabled="busy"
+            @input="$emit('update:server-url', $event.target.value)"
+          />
 
-      <label class="field-label" for="room-id">{{ texts.roomId }}</label>
-      <input
-        id="room-id"
-        class="input-field"
-        maxlength="4"
-        :placeholder="texts.roomPlaceholder"
-        :value="roomId"
-        :disabled="busy"
-        @input="$emit('update:room-id', $event.target.value)"
-      />
+          <label class="field-label" for="room-id">{{ texts.roomId }}</label>
+          <input
+            id="room-id"
+            class="input-field"
+            maxlength="4"
+            :placeholder="texts.roomPlaceholder"
+            :value="roomId"
+            :disabled="busy"
+            @input="$emit('update:room-id', $event.target.value)"
+          />
 
-      <div class="actions actions-stack">
-        <button class="action-button action-button-primary" :disabled="busy || !authenticated" @click="$emit('connect')">
-          {{ texts.connectServer }}
-        </button>
-        <button class="action-button action-button-secondary" :disabled="busy || !authenticated" @click="$emit('create-room')">
-          {{ texts.createRoom }}
-        </button>
-        <button class="action-button action-button-secondary" :disabled="busy || !authenticated" @click="$emit('join-room')">
-          {{ texts.joinRoom }}
-        </button>
-        <button class="action-button action-button-ghost" :disabled="busy || !authenticated || !session.roomId" @click="$emit('leave-room')">
-          {{ texts.leaveRoom }}
-        </button>
-      </div>
+          <div class="actions actions-stack">
+            <button class="action-button action-button-primary" :disabled="busy || !authenticated" @click="$emit('connect')">
+              {{ texts.connectServer }}
+            </button>
+            <button class="action-button action-button-secondary" :disabled="busy || !authenticated" @click="$emit('create-room')">
+              {{ texts.createRoom }}
+            </button>
+            <button class="action-button action-button-secondary" :disabled="busy || !authenticated" @click="$emit('join-room')">
+              {{ texts.joinRoom }}
+            </button>
+            <button class="action-button action-button-ghost" :disabled="busy || !authenticated || !session.roomId" @click="$emit('leave-room')">
+              {{ texts.leaveRoom }}
+            </button>
+          </div>
 
-      <div class="network-meta">
-        <div class="status-pill-row">
-          <span class="status-pill">{{ connectionLabel }}</span>
-          <span class="status-pill">{{ roomStatusLabel }}</span>
-          <span class="status-pill" v-if="session.color">{{ roleLabel }}</span>
+          <div class="room-lobby" v-if="session.roomId">
+            <div class="panel-subhead">
+              <p class="eyebrow">{{ texts.roomLobby }}</p>
+              <h3>{{ texts.roomPlayers }}</h3>
+            </div>
+
+            <div class="status-pill-row room-action-row">
+              <button
+                class="action-button action-button-primary"
+                :disabled="readyDisabled"
+                @click="$emit('toggle-ready', !localReady)"
+              >
+                {{ localReady ? texts.cancelReadyAction : texts.readyAction }}
+              </button>
+              <button
+                v-if="showClosePrompt"
+                class="action-button action-button-ghost"
+                :disabled="busy"
+                @click="$emit('close-prompt')"
+              >
+                {{ texts.closePrompt }}
+              </button>
+            </div>
+
+            <div class="room-player-list">
+              <article v-for="player in roomPlayers" :key="player.playerId" class="room-player-card">
+                <div>
+                  <strong>{{ formatPlayerName(player.color, language) }}</strong>
+                  <span class="room-player-meta" v-if="player.playerId === session.playerId">{{ texts.roomYou }}</span>
+                  <span class="room-player-meta" v-if="player.isHost">{{ texts.roomHost }}</span>
+                </div>
+                <span
+                  class="status-pill"
+                  :class="player.connected ? (player.ready ? 'status-pill-success' : 'status-pill-warn') : 'status-pill-muted'"
+                >
+                  {{ player.connected ? (player.ready ? texts.roomReadyTag : texts.roomIdleTag) : texts.roomOfflineTag }}
+                </span>
+              </article>
+            </div>
+
+            <div v-if="isHost" class="host-controls">
+              <div class="panel-subhead">
+                <p class="eyebrow">{{ texts.roomControls }}</p>
+                <h3>{{ texts.starterLabel }}</h3>
+              </div>
+              <label class="field-label" for="room-starter">{{ texts.starterLabel }}</label>
+              <select
+                id="room-starter"
+                class="input-field input-field-compact"
+                :value="startPlayer"
+                :disabled="starterLocked"
+                @change="$emit('update:start-player', $event.target.value)"
+              >
+                <option v-for="option in starterOptions" :key="option.value" :value="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div class="network-meta">
+            <div class="status-pill-row">
+              <span class="status-pill">{{ connectionLabel }}</span>
+              <span class="status-pill">{{ roomStatusLabel }}</span>
+              <span class="status-pill" v-if="session.color">{{ roleLabel }}</span>
+            </div>
+            <p class="help-copy room-copy">
+              {{ texts.roomLabel }}: <strong>{{ session.roomId || "--" }}</strong><br />
+              {{ texts.playerLabel }}: <strong>{{ session.playerId || "--" }}</strong>
+            </p>
+          </div>
+
+          <p v-if="networkError" class="error-copy">{{ networkError }}</p>
+          <p v-else-if="!authenticated" class="help-copy">{{ texts.authRequired }}</p>
         </div>
-        <p class="help-copy room-copy">
-          {{ texts.roomLabel }}: <strong>{{ session.roomId || "--" }}</strong><br />
-          {{ texts.playerLabel }}: <strong>{{ session.playerId || "--" }}</strong>
-        </p>
-      </div>
-
-      <p v-if="networkError" class="error-copy">{{ networkError }}</p>
-      <p v-else-if="!authenticated" class="help-copy">{{ texts.authRequired }}</p>
+      </details>
     </section>
   `,
 };
 
 const ControlPanel = {
   name: "ControlPanel",
-  emits: ["skip", "reset"],
+  emits: ["skip", "reset", "concede"],
   props: {
     skipDisabled: {
       type: Boolean,
@@ -538,6 +704,22 @@ const ControlPanel = {
       default: false,
     },
     resetLabel: {
+      type: String,
+      default: "",
+    },
+    concedeDisabled: {
+      type: Boolean,
+      default: false,
+    },
+    showConcede: {
+      type: Boolean,
+      default: false,
+    },
+    countdownText: {
+      type: String,
+      default: "",
+    },
+    skipNotice: {
       type: String,
       default: "",
     },
@@ -560,12 +742,24 @@ const ControlPanel = {
         <p class="eyebrow">{{ texts.controlsEyebrow }}</p>
         <h2>{{ texts.localControls }}</h2>
       </div>
+      <div class="control-topline">
+        <span class="status-pill status-pill-live">{{ countdownText }}</span>
+      </div>
+      <p v-if="skipNotice" class="skip-alert">{{ skipNotice }}</p>
       <div class="actions">
         <button class="action-button action-button-primary" :disabled="skipDisabled" @click="$emit('skip')">
           {{ language === 'en' ? 'Skip Turn' : '跳过回合' }}
         </button>
         <button class="action-button action-button-secondary" :disabled="resetDisabled" @click="$emit('reset')">
           {{ resetLabel }}
+        </button>
+        <button
+          v-if="showConcede"
+          class="action-button action-button-ghost"
+          :disabled="concedeDisabled"
+          @click="$emit('concede')"
+        >
+          {{ texts.concedeAction }}
         </button>
       </div>
       <p class="help-copy">{{ helpText }}</p>
@@ -575,7 +769,7 @@ const ControlPanel = {
 
 const ResultModal = {
   name: "ResultModal",
-  emits: ["action"],
+  emits: ["action", "close"],
   props: {
     gameState: {
       type: Object,
@@ -596,6 +790,14 @@ const ResultModal = {
     overlayResult: {
       type: Object,
       default: null,
+    },
+    visible: {
+      type: Boolean,
+      default: true,
+    },
+    closeLabel: {
+      type: String,
+      default: "",
     },
   },
   setup(props) {
@@ -635,7 +837,7 @@ const ResultModal = {
   },
   template: `
     <transition name="fade">
-      <div v-if="overlayResult || gameState.gameOver" class="result-overlay" role="dialog" aria-modal="true">
+      <div v-if="visible && (overlayResult || gameState.gameOver)" class="result-overlay" role="dialog" aria-modal="true">
         <div class="result-card">
           <p class="eyebrow">{{ texts.gameOver }}</p>
           <h2>{{ title }}</h2>
@@ -646,6 +848,9 @@ const ResultModal = {
             @click="$emit('action')"
           >
             {{ actionLabel }}
+          </button>
+          <button class="action-button action-button-ghost" @click="$emit('close')">
+            {{ closeLabel }}
           </button>
         </div>
       </div>
@@ -741,14 +946,19 @@ const App = {
     const authFeedbackTone = ref("error");
     const selectedPlayerCount = ref(initialSettings.playerCount);
     const selectedGridSize = ref(initialSettings.gridSize);
+    const selectedStartPlayer = ref(initialSettings.startPlayer);
     const session = ref(networkManager.getSession());
     const connectionState = ref("idle");
     const roomStatus = ref("solo");
+    const roomInfo = ref(createEmptyRoomInfo());
     const networkBusy = ref(false);
     const networkError = ref("");
     const overlayResult = ref(null);
+    const resultModalDismissed = ref(false);
+    const turnCountdown = ref(TURN_COUNTDOWN_SECONDS);
     const unsubscribers = [];
     let reconnectTimerId = null;
+    let turnCountdownTimerId = null;
     let reconnectAttempt = 0;
     let syncingRemoteSettings = false;
 
@@ -769,19 +979,46 @@ const App = {
       authFeedbackTone.value = "error";
     });
 
-    watch([selectedPlayerCount, selectedGridSize], ([playerCount, gridSize]) => {
+    watch([selectedPlayerCount, selectedGridSize, selectedStartPlayer], ([
+      playerCount,
+      gridSize,
+      startPlayer,
+    ], [
+      previousPlayerCount,
+      previousGridSize,
+      previousStartPlayer,
+    ] = []) => {
       if (syncingRemoteSettings) {
         return;
       }
 
       // 本地模式下改设置立即重建棋盘；联机模式下设置以房间配置为准。
-      const normalized = normalizeAppGameSettings({ playerCount, gridSize });
+      const normalized = normalizeAppGameSettings({ playerCount, gridSize, startPlayer });
       selectedPlayerCount.value = normalized.playerCount;
       selectedGridSize.value = normalized.gridSize;
+      selectedStartPlayer.value = normalized.startPlayer;
       syncSession();
 
       if (roomStatus.value === "solo" && controller.value) {
         gameState.value = controller.value.setGameConfig(normalized, true);
+        return;
+      }
+
+      if (isHost.value && roomStatus.value !== "solo" && roomStatus.value !== "ready" && roomStatus.value !== "countdown") {
+        const settingsChanged = normalized.playerCount !== previousPlayerCount || normalized.gridSize !== previousGridSize;
+        const starterChanged = normalized.startPlayer !== previousStartPlayer;
+
+        if (settingsChanged) {
+          void networkManager.updateRoomSettings(normalized).catch(handleNetworkError);
+        } else if (starterChanged) {
+          void networkManager.updateStartPlayer(normalized.startPlayer).catch(handleNetworkError);
+        }
+      }
+    });
+
+    watch(() => gameState.value.gameOver, (isGameOver) => {
+      if (!isGameOver) {
+        resultModalDismissed.value = false;
       }
     });
 
@@ -793,6 +1030,7 @@ const App = {
         settings: {
           playerCount: selectedPlayerCount.value,
           gridSize: selectedGridSize.value,
+          startPlayer: selectedStartPlayer.value,
         },
       };
       persistAppSession(session.value);
@@ -818,26 +1056,47 @@ const App = {
     };
 
     const isAuthenticated = computed(() => Boolean(auth.value.token && auth.value.username));
+    const isHost = computed(() => Boolean(session.value.playerId && roomInfo.value.hostPlayerId === session.value.playerId));
+    const localReady = computed(() => {
+      return Boolean(
+        session.value.playerId
+          && roomInfo.value.players?.some((player) => player.playerId === session.value.playerId && player.ready),
+      );
+    });
+    const starterOptions = computed(() => {
+      const sourcePlayers = Array.isArray(roomInfo.value.players) && roomInfo.value.players.length
+        ? roomInfo.value.players.map((player) => player.color)
+        : [Player.BLACK, Player.WHITE, Player.PURPLE].slice(0, selectedPlayerCount.value);
+      return sourcePlayers.map((color) => ({
+        value: color,
+        label: formatAppPlayerName(color, language.value),
+      }));
+    });
 
     const currentGameSettings = () => ({
       playerCount: selectedPlayerCount.value,
       gridSize: selectedGridSize.value,
+      startPlayer: selectedStartPlayer.value,
     });
 
     const applySettingsToController = (settings, reset = true) => {
       const normalized = normalizeAppGameSettings(settings);
-      selectedPlayerCount.value = normalized.playerCount;
-      selectedGridSize.value = normalized.gridSize;
-      syncSession();
-
-      if (!controller.value) {
-        return;
-      }
-
       syncingRemoteSettings = true;
-      // 远端同步设置时先打标记，避免 watch 把这次被动更新误判为用户主动修改。
-      controller.value.setGameConfig(normalized, reset);
-      syncingRemoteSettings = false;
+      try {
+        // 远端同步设置时先打标记，避免 watch 把这次被动更新误判为用户主动修改。
+        selectedPlayerCount.value = normalized.playerCount;
+        selectedGridSize.value = normalized.gridSize;
+        selectedStartPlayer.value = normalized.startPlayer;
+        syncSession();
+
+        if (!controller.value) {
+          return;
+        }
+
+        controller.value.setGameConfig(normalized, reset);
+      } finally {
+        syncingRemoteSettings = false;
+      }
     };
 
     const clearReconnectTimer = () => {
@@ -847,8 +1106,87 @@ const App = {
       }
     };
 
+    const clearTurnCountdown = () => {
+      if (turnCountdownTimerId !== null) {
+        globalThis.clearInterval(turnCountdownTimerId);
+        turnCountdownTimerId = null;
+      }
+    };
+
+    const restartTurnCountdown = () => {
+      clearTurnCountdown();
+      turnCountdown.value = TURN_COUNTDOWN_SECONDS;
+
+      if (
+        gameState.value.gameOver
+        || overlayResult.value
+        || roomStatus.value === "waiting"
+        || roomStatus.value === "lobby"
+        || roomStatus.value === "offline"
+      ) {
+        return;
+      }
+
+      if (roomStatus.value === "countdown") {
+        turnCountdown.value = Math.max(
+          0,
+          Math.ceil(((roomInfo.value.countdownEndsAt ?? Date.now()) - Date.now()) / 1000),
+        );
+        turnCountdownTimerId = globalThis.setInterval(() => {
+          turnCountdown.value = Math.max(
+            0,
+            Math.ceil(((roomInfo.value.countdownEndsAt ?? Date.now()) - Date.now()) / 1000),
+          );
+        }, 250);
+        return;
+      }
+
+      turnCountdownTimerId = globalThis.setInterval(() => {
+        if (turnCountdown.value > 0) {
+          turnCountdown.value -= 1;
+        }
+      }, 1000);
+    };
+
+    watch(
+      () => [
+        gameState.value.turnCount,
+        gameState.value.currentPlayer,
+        gameState.value.gameOver,
+        Boolean(overlayResult.value),
+        roomStatus.value,
+        roomInfo.value.countdownEndsAt,
+      ],
+      () => {
+        restartTurnCountdown();
+      },
+      { immediate: true },
+    );
+
     const handleNetworkError = (error) => {
       networkError.value = localizeAppErrorMessage(error?.message ?? String(error), language.value);
+    };
+
+    const applyRoomPayload = (payload) => {
+      const nextStatus = normalizeRoomStatus(payload?.status ?? roomStatus.value);
+      roomStatus.value = nextStatus || roomStatus.value;
+      roomInfo.value = {
+        ...createEmptyRoomInfo(),
+        status: nextStatus || roomInfo.value.status,
+        hostPlayerId: payload?.hostPlayerId ?? roomInfo.value.hostPlayerId,
+        players: Array.isArray(payload?.players) ? payload.players : roomInfo.value.players,
+        settings: normalizeAppGameSettings(payload?.settings ?? roomInfo.value.settings),
+        countdownEndsAt: payload?.countdownEndsAt ?? null,
+      };
+      resultModalDismissed.value = false;
+    };
+
+    const resetRoomContext = () => {
+      roomStatus.value = "solo";
+      roomInfo.value = createEmptyRoomInfo();
+      roomIdInput.value = "";
+      overlayResult.value = null;
+      resultModalDismissed.value = false;
     };
 
     const syncControllerState = (partial) => {
@@ -858,17 +1196,38 @@ const App = {
       gameState.value = controller.value.setMultiplayerState(partial);
     };
 
-    const enableOnlineController = (payload, ready) => {
+    const syncOnlineController = (payload = null) => {
       if (!controller.value) {
         return;
       }
 
+      const normalizedSettings = normalizeAppGameSettings(payload?.settings ?? roomInfo.value.settings);
+      const players = Array.isArray(payload?.players) ? payload.players : roomInfo.value.players;
+      const normalizedStatus = normalizeRoomStatus(payload?.status ?? roomStatus.value);
+      const everyoneConnected = Array.isArray(players)
+        && players.length >= normalizedSettings.playerCount
+        && players.every((player) => player.connected);
+
       gameState.value = controller.value.enableMultiplayer({
         networkManager,
         localPlayer: payload?.yourColor ?? payload?.color ?? session.value.color,
-        roomReady: ready,
-        opponentConnected: ready,
+        roomReady: normalizedStatus === "ready",
+        opponentConnected: everyoneConnected,
       });
+    };
+
+    const applyRoomSnapshot = (payload, resetController = true) => {
+      applyRoomPayload(payload);
+      roomIdInput.value = payload?.roomId ?? roomIdInput.value;
+      applySettingsToController(payload?.settings ?? payload?.matchState?.settings ?? currentGameSettings(), resetController);
+      syncSession();
+      syncOnlineController(payload);
+
+      if (payload?.matchState && controller.value) {
+        gameState.value = controller.value.restoreMatchState(payload.matchState);
+      }
+
+      reconnectAttempt = 0;
     };
 
     const attemptReconnect = async () => {
@@ -890,15 +1249,8 @@ const App = {
         }
 
         const payload = await networkManager.joinRoom(session.value.roomId, session.value.playerId);
-        roomStatus.value = payload.status === "READY" ? "ready" : "waiting";
-        applySettingsToController(payload.settings ?? payload.matchState?.settings ?? currentGameSettings(), true);
-        syncSession();
-        enableOnlineController(payload, payload.status === "READY");
-        if (payload.matchState && controller.value) {
-          gameState.value = controller.value.restoreMatchState(payload.matchState);
-        }
+        applyRoomSnapshot(payload, true);
         networkError.value = "";
-        reconnectAttempt = 0;
       } catch (error) {
         handleNetworkError(error);
         reconnectAttempt += 1;
@@ -941,10 +1293,10 @@ const App = {
 
       try {
         clearReconnectTimer();
-        roomStatus.value = "solo";
+        resetRoomContext();
         connectionState.value = "idle";
-        networkManager.disconnect(1000, "logout");
         await networkManager.leaveRoom();
+        networkManager.disconnect(1000, "logout");
         networkManager.clearAuthToken();
         networkManager.url = null;
         networkManager.roomId = null;
@@ -954,7 +1306,6 @@ const App = {
           controller.value.disableMultiplayer();
           gameState.value = controller.value.resetGame({ force: true });
         }
-        roomIdInput.value = "";
         persistAppSession(createAppEmptySession());
         syncSession();
         clearAuthState();
@@ -1042,24 +1393,14 @@ const App = {
     const handleCreateRoom = async () => {
       networkBusy.value = true;
       networkError.value = "";
+      resultModalDismissed.value = false;
       overlayResult.value = null;
       clearReconnectTimer();
 
       try {
         await ensureConnected();
         const payload = await networkManager.createRoom(currentGameSettings());
-        roomIdInput.value = payload.roomId ?? roomIdInput.value;
-        roomStatus.value = "waiting";
-        applySettingsToController(payload.settings ?? currentGameSettings(), true);
-        syncSession();
-
-        if (controller.value) {
-          controller.value.resetGame({ force: true });
-        }
-        enableOnlineController(payload, false);
-        if (payload.matchState && controller.value) {
-          gameState.value = controller.value.restoreMatchState(payload.matchState);
-        }
+        applyRoomSnapshot(payload, true);
       } catch (error) {
         handleNetworkError(error);
       } finally {
@@ -1082,17 +1423,7 @@ const App = {
       try {
         await ensureConnected();
         const payload = await networkManager.joinRoom(normalizedRoomId);
-        roomStatus.value = payload.status === "READY" ? "ready" : "waiting";
-        applySettingsToController(payload.settings ?? payload.matchState?.settings ?? currentGameSettings(), true);
-        syncSession();
-
-        if (controller.value) {
-          controller.value.resetGame({ force: true });
-        }
-        enableOnlineController(payload, payload.status === "READY");
-        if (payload.matchState && controller.value) {
-          gameState.value = controller.value.restoreMatchState(payload.matchState);
-        }
+        applyRoomSnapshot(payload, true);
       } catch (error) {
         handleNetworkError(error);
       } finally {
@@ -1104,11 +1435,12 @@ const App = {
       networkBusy.value = true;
       networkError.value = "";
       overlayResult.value = null;
+      resultModalDismissed.value = false;
       clearReconnectTimer();
 
       try {
         await networkManager.leaveRoom();
-        roomStatus.value = "solo";
+        resetRoomContext();
         syncSession();
         if (controller.value) {
           controller.value.disableMultiplayer();
@@ -1149,17 +1481,9 @@ const App = {
       }
 
       if (roomStatus.value === "solo") {
-        if (!gameState.value.gameOver) {
-          // 本地模式中途重开，UI 用一个临时 overlay 表示“当前行动方认输”。
-          overlayResult.value = {
-            winner: getAppNextPlayer(gameState.value.currentPlayer),
-            loser: gameState.value.currentPlayer,
-            resetAfterClose: true,
-          };
-          return;
-        }
-
         gameState.value = controller.value.resetGame();
+        overlayResult.value = null;
+        resultModalDismissed.value = false;
         return;
       }
 
@@ -1174,10 +1498,59 @@ const App = {
       }
     };
 
+    const handleConcede = () => {
+      if (!controller.value || roomStatus.value !== "solo" || gameState.value.gameOver) {
+        return;
+      }
+
+      resultModalDismissed.value = false;
+      overlayResult.value = {
+        winner: getAppNextPlayer(gameState.value.currentPlayer),
+        loser: gameState.value.currentPlayer,
+        resetAfterClose: true,
+      };
+    };
+
+    const handleToggleReady = async (ready) => {
+      if (!session.value.roomId) {
+        return;
+      }
+
+      networkBusy.value = true;
+      networkError.value = "";
+      try {
+        await networkManager.sendReady(ready);
+      } catch (error) {
+        handleNetworkError(error);
+      } finally {
+        networkBusy.value = false;
+      }
+    };
+
+    const handleStartPlayerChange = (value) => {
+      selectedStartPlayer.value = value;
+    };
+
+    const handleClosePrompt = () => {
+      if (overlayResult.value?.resetAfterClose && controller.value) {
+        gameState.value = controller.value.resetGame();
+      }
+      overlayResult.value = null;
+      resultModalDismissed.value = true;
+    };
+
     const statusText = computed(() => {
       const texts = getAppTexts(language.value);
       if (roomStatus.value === "waiting") {
         return texts.waitingStatus(session.value.roomId);
+      }
+
+      if (roomStatus.value === "lobby") {
+        return texts.lobbyStatus;
+      }
+
+      if (roomStatus.value === "countdown") {
+        return texts.countdownStatus(turnCountdown.value);
       }
 
       if (roomStatus.value === "offline") {
@@ -1215,6 +1588,10 @@ const App = {
         return texts.waitingHint;
       }
 
+      if (roomStatus.value === "lobby" || roomStatus.value === "countdown") {
+        return texts.roomNeedReady;
+      }
+
       if (gameState.value.interactionLockReason === "NOT_YOUR_TURN") {
         return texts.notYourTurnHint;
       }
@@ -1232,6 +1609,38 @@ const App = {
       }
 
       return texts.soloHint;
+    });
+
+    const countdownText = computed(() => {
+      const texts = getAppTexts(language.value);
+      if (roomStatus.value === "waiting" || roomStatus.value === "offline" || roomStatus.value === "lobby") {
+        return texts.countdownPaused;
+      }
+
+      if (overlayResult.value) {
+        return texts.countdownPaused;
+      }
+
+      if (roomStatus.value === "countdown") {
+        return texts.countdownLabel(turnCountdown.value);
+      }
+
+      if (gameState.value.gameOver) {
+        return texts.countdownFinished;
+      }
+
+      return texts.countdownLabel(turnCountdown.value);
+    });
+
+    const skipNoticeText = computed(() => {
+      const lastAction = gameState.value.lastAction;
+      if (!lastAction || lastAction.type !== "skip") {
+        return "";
+      }
+
+      return getAppTexts(language.value).skipNotice(
+        formatAppPlayerName(lastAction.player, language.value),
+      );
     });
 
     const skipDisabled = computed(() => {
@@ -1258,6 +1667,19 @@ const App = {
       return gameState.value.resetLocked;
     });
 
+    const showConcede = computed(() => roomStatus.value === "solo" && !gameState.value.gameOver);
+    const concedeDisabled = computed(() => !controller.value || networkBusy.value || !showConcede.value);
+    const readyDisabled = computed(() => {
+      return !session.value.roomId
+        || networkBusy.value
+        || roomStatus.value === "waiting"
+        || roomStatus.value === "offline"
+        || roomStatus.value === "ready"
+        || roomStatus.value === "countdown";
+    });
+    const starterLocked = computed(() => !isHost.value || networkBusy.value || roomStatus.value === "ready" || roomStatus.value === "countdown");
+    const showClosePrompt = computed(() => Boolean(overlayResult.value || (gameState.value.gameOver && !resultModalDismissed.value)));
+
     const resetLabel = computed(() => {
       const texts = getAppTexts(language.value);
       if (roomStatus.value === "solo") {
@@ -1273,6 +1695,10 @@ const App = {
         return texts.soloHelp;
       }
 
+      if (roomStatus.value === "lobby" || roomStatus.value === "countdown") {
+        return texts.roomNeedReady;
+      }
+
       if (gameState.value.gameOver) {
         return texts.onlineOverHelp;
       }
@@ -1280,7 +1706,15 @@ const App = {
       return texts.onlinePlayHelp;
     });
 
-    const settingsLocked = computed(() => roomStatus.value !== "solo" || networkBusy.value);
+    const settingsLocked = computed(() => {
+      if (networkBusy.value) {
+        return true;
+      }
+      if (roomStatus.value === "solo") {
+        return false;
+      }
+      return !isHost.value || roomStatus.value === "ready" || roomStatus.value === "countdown";
+    });
 
     const resultResetAllowed = computed(() => {
       return !resetDisabled.value;
@@ -1337,43 +1771,35 @@ const App = {
 
     unsubscribers.push(
       networkManager.on(ServerEvent.ROOM_CREATED, (payload) => {
-        roomStatus.value = "waiting";
-        roomIdInput.value = payload.roomId ?? roomIdInput.value;
-        applySettingsToController(payload.settings ?? currentGameSettings(), true);
-        syncSession();
-        enableOnlineController(payload, false);
-        if (payload.matchState && controller.value) {
-          gameState.value = controller.value.restoreMatchState(payload.matchState);
-        }
-        reconnectAttempt = 0;
+        applyRoomSnapshot(payload, true);
       }),
     );
 
     unsubscribers.push(
       networkManager.on(ServerEvent.ROOM_JOINED, (payload) => {
-        const ready = payload.status === "READY";
-        roomStatus.value = ready ? "ready" : "waiting";
-        roomIdInput.value = payload.roomId ?? roomIdInput.value;
-        applySettingsToController(payload.settings ?? payload.matchState?.settings ?? currentGameSettings(), true);
-        syncSession();
-        enableOnlineController(payload, ready);
-        if (payload.matchState && controller.value) {
-          gameState.value = controller.value.restoreMatchState(payload.matchState);
+        applyRoomSnapshot(payload, true);
+      }),
+    );
+
+    unsubscribers.push(
+      networkManager.on(ServerEvent.ROOM_STATE, (payload) => {
+        applyRoomSnapshot(payload, true);
+        if (payload?.reason === "settings_updated") {
+          networkError.value = getAppTexts(language.value).roomSettingsChanged;
         }
-        reconnectAttempt = 0;
+      }),
+    );
+
+    unsubscribers.push(
+      networkManager.on(ServerEvent.ROOM_COUNTDOWN, (payload) => {
+        applyRoomSnapshot(payload, true);
       }),
     );
 
     unsubscribers.push(
       networkManager.on(ServerEvent.ROOM_READY, (payload) => {
-        roomStatus.value = "ready";
-        applySettingsToController(payload.settings ?? payload.matchState?.settings ?? currentGameSettings(), true);
-        syncSession();
-        enableOnlineController(payload, true);
-        if (payload.matchState && controller.value) {
-          gameState.value = controller.value.restoreMatchState(payload.matchState);
-        }
-        reconnectAttempt = 0;
+        networkError.value = "";
+        applyRoomSnapshot(payload, true);
       }),
     );
 
@@ -1403,7 +1829,8 @@ const App = {
     unsubscribers.push(
       networkManager.on(ServerEvent.MATCH_RESET, (payload) => {
         networkError.value = "";
-        roomStatus.value = "ready";
+        resultModalDismissed.value = false;
+        applyRoomSnapshot(payload, true);
         // 联机重置后，服务端不会回传整盘棋，而是让前端自己重建空盘并展示结算 overlay。
         if (payload.reason === "consensus_restart" && payload.winnerColor) {
           overlayResult.value = {
@@ -1427,6 +1854,7 @@ const App = {
 
     onBeforeUnmount(() => {
       clearReconnectTimer();
+      clearTurnCountdown();
       for (const unsubscribe of unsubscribers) {
         if (typeof unsubscribe === "function") {
           unsubscribe();
@@ -1459,16 +1887,28 @@ const App = {
       roomIdInput,
       selectedPlayerCount,
       selectedGridSize,
+      selectedStartPlayer,
       session,
       connectionState,
       roomStatus,
+      roomInfo,
+      isHost,
+      localReady,
+      readyDisabled,
+      starterLocked,
+      starterOptions,
+      showClosePrompt,
       networkBusy,
       networkError,
       overlayResult,
       statusText,
       boardHint,
+      countdownText,
+      skipNoticeText,
       skipDisabled,
       resetDisabled,
+      showConcede,
+      concedeDisabled,
       resetLabel,
       controlsHelpText,
       settingsLocked,
@@ -1482,8 +1922,12 @@ const App = {
       handleCreateRoom,
       handleJoinRoom,
       handleLeaveRoom,
+      handleToggleReady,
+      handleStartPlayerChange,
       handleSkip,
       handleReset,
+      handleConcede,
+      handleClosePrompt,
     };
   },
   template: `
@@ -1498,15 +1942,81 @@ const App = {
         </div>
       </section>
 
-      <section class="layout-grid">
-        <BoardCanvas
-          :language="language"
-          :hint-text="boardHint"
-          @controller-ready="handleControllerReady"
-          @state-change="handleStateChange"
-        />
+      <section class="workspace">
+        <section class="main-stage">
+          <div class="status-column">
+            <ScorePanel
+              :game-state="gameState"
+              :session="session"
+              :language="language"
+              :status-text="statusText"
+            />
+
+            <ControlPanel
+              :language="language"
+              :skip-disabled="skipDisabled"
+              :reset-disabled="resetDisabled"
+              :concede-disabled="concedeDisabled"
+              :show-concede="showConcede"
+              :countdown-text="countdownText"
+              :skip-notice="skipNoticeText"
+              :reset-label="resetLabel"
+              :help-text="controlsHelpText"
+              @skip="handleSkip"
+              @reset="handleReset"
+              @concede="handleConcede"
+            />
+          </div>
+
+          <BoardCanvas
+            :language="language"
+            :hint-text="boardHint"
+            @controller-ready="handleControllerReady"
+            @state-change="handleStateChange"
+          />
+        </section>
 
         <aside class="sidebar">
+          <SetupPanel
+            :language="language"
+            :player-count="selectedPlayerCount"
+            :grid-size="selectedGridSize"
+            :settings-locked="settingsLocked"
+            :busy="networkBusy"
+            @update:language="language = $event"
+            @update:player-count="selectedPlayerCount = $event"
+            @update:grid-size="selectedGridSize = $event"
+          />
+
+          <RoomPanel
+            :language="language"
+            :server-url="serverUrl"
+            :room-id="roomIdInput"
+            :connection-state="connectionState"
+            :room-status="roomStatus"
+            :session="session"
+            :network-error="networkError"
+            :authenticated="isAuthenticated"
+            :busy="networkBusy"
+            :room-info="roomInfo"
+            :is-host="isHost"
+            :local-ready="localReady"
+            :ready-disabled="readyDisabled"
+            :starter-locked="starterLocked"
+            :start-player="selectedStartPlayer"
+            :starter-options="starterOptions"
+            :show-close-prompt="showClosePrompt"
+            @update:server-url="serverUrl = $event"
+            @update:room-id="roomIdInput = $event"
+            @connect="handleConnect"
+            @create-room="handleCreateRoom"
+            @join-room="handleJoinRoom"
+            @leave-room="handleLeaveRoom"
+            @toggle-ready="handleToggleReady"
+            @update:start-player="handleStartPlayerChange"
+            @close-prompt="handleClosePrompt"
+          />
+
           <AuthPanel
             :language="language"
             :auth="auth"
@@ -1522,47 +2032,6 @@ const App = {
             @submit="handleAuthSubmit"
             @logout="handleLogout"
           />
-
-          <SetupPanel
-            :language="language"
-            :player-count="selectedPlayerCount"
-            :grid-size="selectedGridSize"
-            :settings-locked="settingsLocked"
-            :busy="networkBusy"
-            @update:language="language = $event"
-            @update:player-count="selectedPlayerCount = $event"
-            @update:grid-size="selectedGridSize = $event"
-          />
-
-          <ControlPanel
-            :language="language"
-            :skip-disabled="skipDisabled"
-            :reset-disabled="resetDisabled"
-            :reset-label="resetLabel"
-            :help-text="controlsHelpText"
-            @skip="handleSkip"
-            @reset="handleReset"
-          />
-
-          <ScorePanel :game-state="gameState" :session="session" :language="language" />
-
-          <RoomPanel
-            :language="language"
-            :server-url="serverUrl"
-            :room-id="roomIdInput"
-            :connection-state="connectionState"
-            :room-status="roomStatus"
-            :session="session"
-            :network-error="networkError"
-            :authenticated="isAuthenticated"
-            :busy="networkBusy"
-            @update:server-url="serverUrl = $event"
-            @update:room-id="roomIdInput = $event"
-            @connect="handleConnect"
-            @create-room="handleCreateRoom"
-            @join-room="handleJoinRoom"
-            @leave-room="handleLeaveRoom"
-          />
         </aside>
       </section>
 
@@ -1571,14 +2040,18 @@ const App = {
         :game-state="gameState"
         :allow-reset="resultResetAllowed"
         :overlay-result="overlayResult"
+        :visible="showClosePrompt"
         :reset-label="resetLabel"
+        :close-label="getTexts(language).closePrompt"
         @action="handleResultAction"
+        @close="handleClosePrompt"
       />
     </main>
   `,
 };
 
 export default App;
+
 
 
 
