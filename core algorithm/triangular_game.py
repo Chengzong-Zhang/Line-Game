@@ -2,6 +2,7 @@
 import pygame
 import sys
 import math
+from collections import deque
 from enum import Enum
 from typing import Dict, List, Tuple, Optional
 
@@ -228,6 +229,34 @@ class TriangularGame:
             area += (x1 * y2 - x2 * y1)
         return float(abs(area))
 
+    def _get_covered_points(self, polygon: List[Tuple[int, int]]) -> set:
+        """泛洪法：从棋盘物理边缘注水，被多边形围住的点即为领土。
+        返回：多边形轮廓点本身 + 其包围的所有内部网格点。
+        支持自交多边形，不依赖射线法。"""
+        wall_set = set(polygon)
+        water_reached: set = set()
+        queue: deque = deque()
+
+        # 从三角形网格的三条物理边缘注水（x==0, y==0, x+y==8）
+        for y in range(9):
+            for x in range(9 - y):
+                if x == 0 or y == 0 or x + y == 8:
+                    if (x, y) not in wall_set:
+                        water_reached.add((x, y))
+                        queue.append((x, y))
+
+        # BFS 蔓延：遇到轮廓点停止
+        while queue:
+            curr = queue.popleft()
+            for nxt in self._get_adjacent_positions(curr):
+                if nxt not in wall_set and nxt not in water_reached:
+                    water_reached.add(nxt)
+                    queue.append(nxt)
+
+        # 全图所有点 - 被水淹点 = 领土（含轮廓墙体）
+        all_points = {(x, y) for y in range(9) for x in range(9 - y)}
+        return all_points - water_reached
+
     def _get_all_shortest_grid_paths(self, start: Tuple[int, int], end: Tuple[int, int],
                                      enemies: set, max_paths: int = 50) -> List[List[Tuple[int, int]]]:
         """BFS寻路：获取避开敌军的所有等长最短格点路径（上限 max_paths 条）"""
@@ -375,14 +404,18 @@ class TriangularGame:
         if len(current_poly) < 3:
             return None, 0.0
 
-        # Step 2: 动态贪心修剪（周长比较基于唯一点数，面积/覆盖测试前临时闭合）
+        # Step 2: 动态贪心修剪（泛洪法校验版，彻底替代射线法）
         while True:
             n = len(current_poly)
             if n < 3:
                 break
             cur_perim = n
-            cur_area = self._calculate_polygon_area(get_closed(current_poly))
-            improved = False
+            cur_area = len(self._get_covered_points(current_poly))
+
+            # 全局最优解追踪器
+            best_overall_cand = None
+            best_cand_perim = cur_perim
+            best_cand_area = cur_area
 
             for i in range(n):
                 for j in range(n - 1, i + 1, -1):
@@ -390,7 +423,7 @@ class TriangularGame:
                         continue
 
                     paths = self._get_all_shortest_grid_paths(
-                        current_poly[i], current_poly[j], enemies, max_paths=50)
+                        current_poly[i], current_poly[j], enemies, max_paths=100)
                     if not paths:
                         continue
 
@@ -398,58 +431,51 @@ class TriangularGame:
                         cand_A = current_poly[:i] + path + current_poly[j + 1:]
                         cand_B = current_poly[i:j + 1] + path[::-1][1:-1]
 
-                        # 称重法则：先算面积，永远只把面积更大的那块作为"主体"候选
-                        # 面积相等时取顶点更多的（保留主体，拒绝废料）
-                        area_A = self._calculate_polygon_area(get_closed(cand_A))
-                        area_B = self._calculate_polygon_area(get_closed(cand_B))
-                        if area_A > area_B:
-                            test_poly = cand_A
-                        elif area_B > area_A:
-                            test_poly = cand_B
-                        else:
-                            test_poly = cand_A if len(cand_A) >= len(cand_B) else cand_B
+                        for cand in (cand_A, cand_B):
+                            # 去除相邻重复顶点，防止周长被假性放大
+                            cand = [p for k, p in enumerate(cand) if k == 0 or p != cand[k - 1]]
+                            if len(cand) < 3:
+                                continue
 
-                        if len(test_poly) < 3:
-                            continue
+                            cand_perim = len(cand)
+                            # 连全场最优周长都比不过，直接淘汰
+                            if cand_perim > best_cand_perim:
+                                continue
 
-                        new_perim = len(test_poly)
-                        if new_perim > cur_perim:
-                            continue
+                            # 泛洪法计算真实领土（自动处理自交情形）
+                            covered = self._get_covered_points(cand)
+                            cand_area = len(covered)
 
-                        closed_test = get_closed(test_poly)
-                        new_area = self._calculate_polygon_area(closed_test)
-                        if new_perim == cur_perim and new_area >= cur_area:
-                            continue
+                            # 周长相等时领土点数没有更小，淘汰
+                            if cand_perim == best_cand_perim and cand_area >= best_cand_area:
+                                continue
 
-                        # 只保护核心节点；允许切掉外围冗余线点
-                        if not self._polygon_contains_all(closed_test, friendly_nodes):
-                            continue
+                            # 核心资产保护：己方所有节点必须在领土内
+                            if not friendly_nodes.issubset(covered):
+                                continue
 
-                        # 避障测试：主体内不能包含任何敌方点
-                        enemy_inside = False
-                        for e in enemies:
-                            if self._polygon_contains_all(closed_test, {e}):
-                                enemy_inside = True
-                                break
-                        if enemy_inside:
-                            continue
+                            # 避障测试：领土内不能包含任何敌方点
+                            if any(e in covered for e in enemies):
+                                continue
 
-                        current_poly = test_poly
-                        improved = True
-                        break
+                            # 当前全场第一名，更新追踪器
+                            best_cand_perim = cand_perim
+                            best_cand_area = cand_area
+                            best_overall_cand = cand
 
-                    if improved: break
-                if improved: break
-
-            if not improved:
+            # 所有锚点对遍历完毕后统一结算
+            if best_overall_cand is not None:
+                current_poly = best_overall_cand
+            else:
                 break
 
         if len(current_poly) < 3:
             return None, 0.0
 
+        final_covered = self._get_covered_points(current_poly)
         final_closed = get_closed(current_poly)
         screen_polygon = [self._get_screen_pos(*p) for p in final_closed]
-        area = self._calculate_polygon_area(final_closed)
+        area = len(final_covered)
         return screen_polygon, area
     
     def _update_hulls(self):
@@ -477,10 +503,10 @@ class TriangularGame:
 
         # Area labels: Blue on left, Red on right
         if black_coords:
-            label = self._font_sm.render(f"Blue territory: {black_area:.1f} △", True, (0, 0, 200))
+            label = self._font_sm.render(f"Blue territory: {black_area} pts", True, (0, 0, 200))
             self.screen.blit(label, (10, self.SCREEN_HEIGHT - 30))
         if white_coords:
-            label = self._font_sm.render(f"Red territory:  {white_area:.1f} △", True, (200, 0, 0))
+            label = self._font_sm.render(f"Red territory:  {white_area} pts", True, (200, 0, 0))
             lw = label.get_width()
             self.screen.blit(label, (self.SCREEN_WIDTH - lw - 10, self.SCREEN_HEIGHT - 30))
 
