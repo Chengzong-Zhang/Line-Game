@@ -146,7 +146,8 @@ class Room:
         return int(self.settings.get("playerCount", 2))
 
     def available_color(self) -> str:
-        # 棰滆壊鍒嗛厤椤哄簭蹇呴』绋冲畾锛屽墠绔墠鑳藉彲闈犲湴鎶婇鑹叉槧灏勫埌璧峰瑙掑拰 UI 涓婚銆?        used_colors = {player.color for player in self.players.values()}
+        # Keep color assignment order stable so the frontend can map colors consistently.
+        used_colors = {player.color for player in self.players.values()}
         allowed_colors = (PLAYER_BLACK, PLAYER_WHITE, PLAYER_PURPLE)[:self.player_capacity()]
         for color in allowed_colors:
             if color not in used_colors:
