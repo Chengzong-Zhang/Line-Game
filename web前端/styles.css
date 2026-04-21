@@ -83,10 +83,16 @@ body::before {
   box-shadow: 0 10px 24px rgba(64, 42, 18, 0.08);
 }
 
-.language-label {
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: var(--ink-soft);
+.language-switcher-inline {
+  display: flex;
+  width: 100%;
+  margin-bottom: 0;
+  padding: 6px;
+  gap: 6px;
+}
+
+.language-switcher-inline .language-button {
+  flex: 1;
 }
 
 .language-button {
@@ -497,10 +503,6 @@ body::before {
   margin-bottom: 0;
 }
 
-.settings-cluster-hidden {
-  display: none;
-}
-
 .settings-cluster-head {
   display: flex;
   align-items: center;
@@ -529,7 +531,7 @@ body::before {
 
 .settings-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
 }
 
