@@ -15,6 +15,8 @@ server.log
 
 phase4-check.png
 smoke-test.png
+*.db
+*.db-journal
 
 .DS_Store
 Thumbs.db

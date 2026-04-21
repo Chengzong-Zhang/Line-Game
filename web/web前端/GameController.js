@@ -1,6 +1,10 @@
-import GameEngine, { Player } from "./GameEngine.js?v=20260417b";
-import Renderer from "./Renderer.js?v=20260417b";
-import { ClientEvent, ServerEvent } from "./NetworkManager.js?v=20260417b";
+import GameEngine, { Player } from "./GameEngine.js?v=20260421a";
+import Renderer from "./Renderer.js?v=20260421a";
+import { ClientEvent, ServerEvent } from "./NetworkManager.js?v=20260421a";
+
+// GameController 是前端的“胶水层”：
+// 它把 Model(GameEngine)、View(Renderer) 和联机层(NetworkManager) 串起来，
+// 对外暴露统一的游戏状态与操作接口，尽量不让 Vue 直接碰底层细节。
 
 const DEFAULT_ENGINE_OPTIONS = Object.freeze({
   playerCount: 2,
@@ -42,6 +46,7 @@ export class GameController {
         ...(options.engine ?? {}),
       },
     };
+    // 只要配置变化需要立即生效，就整体重建引擎，避免残留旧棋盘状态。
     this.engine = new GameEngine(this.options.engine);
     this.renderer = new Renderer(canvas, options.renderer ?? {});
     this.stateChangeListener = typeof options.onStateChange === "function" ? options.onStateChange : null;
@@ -130,6 +135,7 @@ export class GameController {
       return;
     }
 
+    // Controller 监听的是“语义事件”，Vue 层无需关心底层 WebSocket 原始消息。
     this._networkUnsubscribers.push(
       this.networkManager.on(ServerEvent.ROOM_CREATED, (payload) => {
         this.setMultiplayerState({
@@ -266,6 +272,7 @@ export class GameController {
   }
 
   _buildGameState(snapshot = this.engine.getSnapshot()) {
+    // 这里把底层快照补齐成 UI 直接可用的状态，包含联机锁定原因等派生字段。
     const black = snapshot.territories?.[Player.BLACK] ?? { area: 0, polygon: null };
     const white = snapshot.territories?.[Player.WHITE] ?? { area: 0, polygon: null };
     const purple = snapshot.territories?.[Player.PURPLE] ?? { area: 0, polygon: null };
@@ -551,6 +558,7 @@ export class GameController {
   }
 
   restoreMatchState(matchState = null) {
+    // 联机重连后，前端通过回放动作日志重建棋盘，避免服务端维护整块棋盘矩阵。
     const actions = Array.isArray(matchState?.actions) ? matchState.actions : [];
     const incomingSettings = matchState?.settings;
     if (incomingSettings && typeof incomingSettings === "object") {
@@ -642,6 +650,7 @@ export class GameController {
     const reason = options.reason === "normal_restart" ? "normal_restart" : "resign_restart";
 
     try {
+      // 三人模式下这里会先收到 RESET_STATUS，等全员确认后才会真正 MATCH_RESET。
       await this.networkManager.sendReset(reason);
     } catch (error) {
       this._reportNetworkError(error);

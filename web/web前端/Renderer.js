@@ -1,6 +1,9 @@
-import { Player, PointState } from "./GameEngine.js?v=20260417b";
+import { Player, PointState } from "./GameEngine.js?v=20260421a";
 
 const SQRT3_OVER_2 = Math.sqrt(3) / 2;
+
+// Renderer 只负责把快照绘制到 Canvas，不做规则判断。
+// 这样无论是本地模式还是联机回放，都能共享完全一致的渲染逻辑。
 
 const DEFAULT_THEME = Object.freeze({
   background: "#f6f1e8",

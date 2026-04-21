@@ -1,5 +1,7 @@
-import { Player } from "./GameEngine.js?v=20260420a";
-import { ALL_PLAYERS } from "./OnlineAppState.js?v=20260420a";
+﻿import { Player } from "./GameEngine.js?v=20260421a";
+import { ALL_PLAYERS } from "./OnlineAppState.js?v=20260421a";
+
+// 文案、比分格式化和错误提示都集中放在这里，避免 UI 文件里散落大量字符串。
 
 const EN_TEXTS = Object.freeze({
   pageTitle: "TriAxis Web Arena",
@@ -16,6 +18,18 @@ const EN_TEXTS = Object.freeze({
   boardStatusEyebrow: "Match State",
   onlineMatch: "Online Match",
   onlineEyebrow: "Relay Room",
+  authEyebrow: "Account",
+  authTitle: "Player Login",
+  authLoggedIn: "Welcome",
+  authRequired: "Log in before connecting to online rooms.",
+  authUsername: "Username",
+  authPassword: "Password",
+  authLoginTab: "Login",
+  authRegisterTab: "Register",
+  authLoginAction: "Log In",
+  authRegisterAction: "Create Account",
+  authLogout: "Log Out",
+  authRegisterSuccess: "Registration succeeded. Please log in with your new account.",
   connectServer: "Connect Server",
   createRoom: "Create Room",
   joinRoom: "Join Room",
@@ -38,7 +52,7 @@ const EN_TEXTS = Object.freeze({
   area: "Area",
   turnSuffix: "Turn",
   gameOver: "Game Over",
-  whatIsConnect: "What does \"Connect Server\" do?",
+  whatIsConnect: 'What does "Connect Server" do?',
   connectExplanation: "It connects to the WebSocket address above so you can create rooms, join rooms, and sync moves. This stays as a separate button because solo play does not need the network, and you may want to edit the local or cloud server address before opening the connection.",
   soloHelp: "In solo mode you can click the board, skip a turn, or reset the match at any time.",
   onlineOverHelp: "This online round is over. Starting the next round keeps the same room and all players.",
@@ -86,6 +100,11 @@ const EN_TEXTS = Object.freeze({
   roomNotFound: (roomId) => `Room ${roomId} does not exist. Check the room ID and try again.`,
   roomFull: (roomId) => `Room ${roomId} is full.`,
   playerAlreadyConnected: "This player session is already connected elsewhere.",
+  authTokenRequired: "Please log in before connecting to an online room.",
+  authInvalidToken: "Your login has expired or is invalid. Please log in again.",
+  authUsernameExists: "That username is already taken.",
+  authInvalidCredentials: "Incorrect username or password.",
+  authUsernameEmpty: "Username cannot be empty.",
   opponentLeft: "A player left the room. Waiting for the room to fill again or for a reconnect.",
   unknownServer: "The server returned an unknown error.",
   continueMatch: "Continue Match",
@@ -107,6 +126,18 @@ const ZH_TEXTS = Object.freeze({
   boardStatusEyebrow: "对局状态",
   onlineMatch: "联机对局",
   onlineEyebrow: "联机房间",
+  authEyebrow: "账号系统",
+  authTitle: "玩家登录",
+  authLoggedIn: "欢迎",
+  authRequired: "进入联机房间前，请先登录账号。",
+  authUsername: "用户名",
+  authPassword: "密码",
+  authLoginTab: "登录",
+  authRegisterTab: "注册",
+  authLoginAction: "登录",
+  authRegisterAction: "创建账号",
+  authLogout: "退出登录",
+  authRegisterSuccess: "注册成功，请使用新账号登录。",
   connectServer: "连接服务器",
   createRoom: "创建房间",
   joinRoom: "加入房间",
@@ -132,8 +163,8 @@ const ZH_TEXTS = Object.freeze({
   whatIsConnect: "“连接服务器”是做什么的？",
   connectExplanation: "它会连接上方填写的 WebSocket 地址，用来创建房间、加入房间并同步联机对局。之所以保留单独的连接按钮，是因为本地模式不需要联网，而且你可能会先修改本地或云端地址，再决定何时连接。",
   soloHelp: "本地模式下，你可以随时点击棋盘、跳过回合，或直接重开一局。",
-  onlineOverHelp: "这一局联机对战已经结束。开始下一局时会保留当前房间和玩家。",
-  onlinePlayHelp: "所有玩家都可以在自己的回合选择跳过。若一方没有合法落点，引擎会自动跳过。联机中途重开需要所有玩家确认。",
+  onlineOverHelp: "这一局联机对战已经结束。开始下一局时会保留当前房间和所有玩家。",
+  onlinePlayHelp: "所有玩家都可以在自己的回合选择跳过。若一方没有合法落点，引擎会自动跳过。联机中途重开会被视为发起重置确认。",
   startNewSolo: "开始新的本地对局",
   resetBoard: "重置棋盘",
   startNextOnline: "开始下一局联机对战",
@@ -177,6 +208,11 @@ const ZH_TEXTS = Object.freeze({
   roomNotFound: (roomId) => `房间 ${roomId} 不存在，请检查房间号。`,
   roomFull: (roomId) => `房间 ${roomId} 已满。`,
   playerAlreadyConnected: "这个玩家会话已经在别处连接。",
+  authTokenRequired: "进入联机房间前，请先登录账号。",
+  authInvalidToken: "登录状态已失效，请重新登录。",
+  authUsernameExists: "这个用户名已经被占用。",
+  authInvalidCredentials: "用户名或密码错误。",
+  authUsernameEmpty: "用户名不能为空。",
   opponentLeft: "有玩家离开了房间，正在等待重新加入或新的连接。",
   unknownServer: "服务器返回了未知错误。",
   continueMatch: "继续",
@@ -295,6 +331,21 @@ export function localizeErrorMessage(message, language = "zh") {
   }
   if (message === "Player session is already connected.") {
     return texts.playerAlreadyConnected;
+  }
+  if (message === "Authentication token is required. Please log in first.") {
+    return texts.authTokenRequired;
+  }
+  if (message === "WebSocket closed: 4401 invalid_token" || message === "WebSocket closed: 4401 missing_token") {
+    return texts.authInvalidToken;
+  }
+  if (message === "Username already exists.") {
+    return texts.authUsernameExists;
+  }
+  if (message === "Invalid username or password.") {
+    return texts.authInvalidCredentials;
+  }
+  if (message === "Username cannot be empty.") {
+    return texts.authUsernameEmpty;
   }
   return message;
 }

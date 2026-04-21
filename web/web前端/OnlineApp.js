@@ -1,15 +1,18 @@
-﻿import GameController from "./GameController.js?v=20260420a";
-import { Player } from "./GameEngine.js?v=20260420a";
-import NetworkManager, { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js?v=20260420a";
+﻿import GameController from "./GameController.js?v=20260421a";
+import { Player } from "./GameEngine.js?v=20260421a";
+import NetworkManager, { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js?v=20260421a";
 import {
+  createEmptyAuth as createAppEmptyAuth,
   GRID_SIZE_OPTIONS as APP_GRID_SIZE_OPTIONS,
   PLAYER_COUNT_OPTIONS as APP_PLAYER_COUNT_OPTIONS,
   createDefaultGameState as createAppDefaultGameState,
   createEmptySession as createAppEmptySession,
+  loadStoredAuth as loadAppStoredAuth,
   loadStoredSession as loadAppStoredSession,
   normalizeGameSettings as normalizeAppGameSettings,
+  persistAuth as persistAppAuth,
   persistSession as persistAppSession,
-} from "./OnlineAppState.js?v=20260420a";
+} from "./OnlineAppState.js?v=20260421a";
 import {
   formatArea as formatAppArea,
   formatConnectionState as formatAppConnectionState,
@@ -21,7 +24,7 @@ import {
   getTexts as getAppTexts,
   getNextPlayer as getAppNextPlayer,
   localizeErrorMessage as localizeAppErrorMessage,
-} from "./OnlineAppI18n.js?v=20260420a";
+} from "./OnlineAppI18n.js?v=20260421a";
 
 const {
   computed,
@@ -33,6 +36,56 @@ const {
 
 if (!globalThis.Vue) {
   throw new Error("Vue runtime is not available on window.Vue.");
+}
+
+// OnlineApp 是联机版页面入口。
+// 组件定义和业务流程都放在这里，但通用状态工具与文案已经拆到独立模块。
+
+function resolveApiBaseUrl(serverUrl, locationLike = globalThis.location) {
+  const fallbackOrigin = locationLike?.origin ?? "http://localhost:8000";
+  const rawUrl = String(serverUrl ?? "").trim();
+
+  if (!rawUrl) {
+    return fallbackOrigin;
+  }
+
+  try {
+    const parsed = new URL(rawUrl, fallbackOrigin);
+    parsed.protocol = parsed.protocol === "wss:" ? "https:" : "http:";
+
+    if (parsed.pathname.endsWith("/ws")) {
+      parsed.pathname = parsed.pathname.slice(0, -3) || "/";
+    }
+
+    parsed.search = "";
+    parsed.hash = "";
+    return parsed.toString().replace(/\/$/, "");
+  } catch {
+    return fallbackOrigin;
+  }
+}
+
+async function postAuthJson(serverUrl, path, payload) {
+  const response = await fetch(`${resolveApiBaseUrl(serverUrl)}${path}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  let data = null;
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+
+  if (!response.ok) {
+    throw new Error(data?.detail ?? `HTTP ${response.status}`);
+  }
+
+  return data;
 }
 
 
@@ -224,6 +277,133 @@ const SetupPanel = {
   `,
 };
 
+const AuthPanel = {
+  name: "AuthPanel",
+  emits: [
+    "update:mode",
+    "update:username",
+    "update:password",
+    "submit",
+    "logout",
+  ],
+  props: {
+    language: {
+      type: String,
+      required: true,
+    },
+    auth: {
+      type: Object,
+      required: true,
+    },
+    mode: {
+      type: String,
+      required: true,
+    },
+    username: {
+      type: String,
+      required: true,
+    },
+    password: {
+      type: String,
+      required: true,
+    },
+    busy: {
+      type: Boolean,
+      default: false,
+    },
+    error: {
+      type: String,
+      default: "",
+    },
+    feedbackTone: {
+      type: String,
+      default: "error",
+    },
+  },
+  setup(props) {
+    const texts = computed(() => getAppTexts(props.language));
+    const isAuthenticated = computed(() => Boolean(props.auth?.token && props.auth?.username));
+
+    return {
+      texts,
+      isAuthenticated,
+    };
+  },
+  template: `
+    <section class="panel panel-auth">
+      <div class="panel-head">
+        <p class="eyebrow">{{ texts.authEyebrow }}</p>
+        <h2>{{ texts.authTitle }}</h2>
+      </div>
+
+      <template v-if="isAuthenticated">
+        <div class="auth-welcome">
+          <p class="auth-welcome-label">{{ texts.authLoggedIn }}</p>
+          <strong>{{ auth.username }}</strong>
+          <p class="help-copy auth-help">{{ texts.authRequired }}</p>
+        </div>
+
+        <div class="actions">
+          <button class="action-button action-button-ghost" :disabled="busy" @click="$emit('logout')">
+            {{ texts.authLogout }}
+          </button>
+        </div>
+      </template>
+
+      <template v-else>
+        <div class="auth-tabs" role="tablist" :aria-label="texts.authTitle">
+          <button
+            class="language-button auth-tab"
+            :class="{ 'is-active': mode === 'login' }"
+            :disabled="busy"
+            @click="$emit('update:mode', 'login')"
+          >
+            {{ texts.authLoginTab }}
+          </button>
+          <button
+            class="language-button auth-tab"
+            :class="{ 'is-active': mode === 'register' }"
+            :disabled="busy"
+            @click="$emit('update:mode', 'register')"
+          >
+            {{ texts.authRegisterTab }}
+          </button>
+        </div>
+
+        <label class="field-label" for="auth-username">{{ texts.authUsername }}</label>
+        <input
+          id="auth-username"
+          class="input-field"
+          autocomplete="username"
+          :value="username"
+          :disabled="busy"
+          @input="$emit('update:username', $event.target.value)"
+        />
+
+        <label class="field-label" for="auth-password">{{ texts.authPassword }}</label>
+        <input
+          id="auth-password"
+          class="input-field"
+          type="password"
+          autocomplete="current-password"
+          :value="password"
+          :disabled="busy"
+          @input="$emit('update:password', $event.target.value)"
+          @keydown.enter="$emit('submit')"
+        />
+
+        <div class="actions">
+          <button class="action-button action-button-primary" :disabled="busy" @click="$emit('submit')">
+            {{ mode === 'login' ? texts.authLoginAction : texts.authRegisterAction }}
+          </button>
+        </div>
+      </template>
+
+      <p v-if="error" :class="feedbackTone === 'success' ? 'success-copy' : 'error-copy'">{{ error }}</p>
+    </section>
+  `,
+};
+
 const RoomPanel = {
   name: "RoomPanel",
   emits: [
@@ -260,6 +440,10 @@ const RoomPanel = {
       default: "",
     },
     busy: {
+      type: Boolean,
+      default: false,
+    },
+    authenticated: {
       type: Boolean,
       default: false,
     },
@@ -309,16 +493,16 @@ const RoomPanel = {
       />
 
       <div class="actions actions-stack">
-        <button class="action-button action-button-primary" :disabled="busy" @click="$emit('connect')">
+        <button class="action-button action-button-primary" :disabled="busy || !authenticated" @click="$emit('connect')">
           {{ texts.connectServer }}
         </button>
-        <button class="action-button action-button-secondary" :disabled="busy" @click="$emit('create-room')">
+        <button class="action-button action-button-secondary" :disabled="busy || !authenticated" @click="$emit('create-room')">
           {{ texts.createRoom }}
         </button>
-        <button class="action-button action-button-secondary" :disabled="busy" @click="$emit('join-room')">
+        <button class="action-button action-button-secondary" :disabled="busy || !authenticated" @click="$emit('join-room')">
           {{ texts.joinRoom }}
         </button>
-        <button class="action-button action-button-ghost" :disabled="busy || !session.roomId" @click="$emit('leave-room')">
+        <button class="action-button action-button-ghost" :disabled="busy || !authenticated || !session.roomId" @click="$emit('leave-room')">
           {{ texts.leaveRoom }}
         </button>
       </div>
@@ -336,6 +520,7 @@ const RoomPanel = {
       </div>
 
       <p v-if="networkError" class="error-copy">{{ networkError }}</p>
+      <p v-else-if="!authenticated" class="help-copy">{{ texts.authRequired }}</p>
     </section>
   `,
 };
@@ -527,6 +712,7 @@ const BoardCanvas = {
 const App = {
   name: "TriangularGameOnlineApp",
   components: {
+    AuthPanel,
     BoardCanvas,
     ControlPanel,
     ResultModal,
@@ -535,15 +721,24 @@ const App = {
     SetupPanel,
   },
   setup() {
+    const storedAuth = loadAppStoredAuth();
     const storedSession = loadAppStoredSession();
     const initialSettings = normalizeAppGameSettings(storedSession.settings);
     const controller = ref(null);
     const gameState = ref(createAppDefaultGameState());
     const language = ref(getAppInitialLanguage());
     const networkManager = new NetworkManager();
+    networkManager.setAuthToken(storedAuth.token);
     networkManager.hydrateSession(storedSession);
     const serverUrl = ref(storedSession.url || resolveWebSocketUrl());
     const roomIdInput = ref(storedSession.roomId || "");
+    const auth = ref(storedAuth);
+    const authMode = ref("login");
+    const authUsername = ref(storedAuth.username || "");
+    const authPassword = ref("");
+    const authBusy = ref(false);
+    const authError = ref("");
+    const authFeedbackTone = ref("error");
     const selectedPlayerCount = ref(initialSettings.playerCount);
     const selectedGridSize = ref(initialSettings.gridSize);
     const session = ref(networkManager.getSession());
@@ -563,11 +758,23 @@ const App = {
       document.title = getAppTexts(value).pageTitle;
     }, { immediate: true });
 
+    watch(auth, (value) => {
+      persistAppAuth(value);
+      networkManager.setAuthToken(value?.token ?? null);
+    }, { deep: true, immediate: true });
+
+    watch(authMode, () => {
+      authError.value = "";
+      authPassword.value = "";
+      authFeedbackTone.value = "error";
+    });
+
     watch([selectedPlayerCount, selectedGridSize], ([playerCount, gridSize]) => {
       if (syncingRemoteSettings) {
         return;
       }
 
+      // 本地模式下改设置立即重建棋盘；联机模式下设置以房间配置为准。
       const normalized = normalizeAppGameSettings({ playerCount, gridSize });
       selectedPlayerCount.value = normalized.playerCount;
       selectedGridSize.value = normalized.gridSize;
@@ -579,6 +786,7 @@ const App = {
     });
 
     const syncSession = () => {
+      // UI 自己维护“期望中的设置”，并把它和房间上下文合并后持久化。
       session.value = {
         ...createAppEmptySession(),
         ...networkManager.getSession(),
@@ -589,6 +797,27 @@ const App = {
       };
       persistAppSession(session.value);
     };
+
+    const setAuthState = (nextAuth) => {
+      auth.value = {
+        ...createAppEmptyAuth(),
+        ...nextAuth,
+      };
+    };
+
+    const clearAuthState = () => {
+      setAuthState(createAppEmptyAuth());
+      authPassword.value = "";
+      authError.value = "";
+      authFeedbackTone.value = "error";
+    };
+
+    const handleAuthError = (error) => {
+      authFeedbackTone.value = "error";
+      authError.value = localizeAppErrorMessage(error?.message ?? String(error), language.value);
+    };
+
+    const isAuthenticated = computed(() => Boolean(auth.value.token && auth.value.username));
 
     const currentGameSettings = () => ({
       playerCount: selectedPlayerCount.value,
@@ -606,6 +835,7 @@ const App = {
       }
 
       syncingRemoteSettings = true;
+      // 远端同步设置时先打标记，避免 watch 把这次被动更新误判为用户主动修改。
       controller.value.setGameConfig(normalized, reset);
       syncingRemoteSettings = false;
     };
@@ -646,6 +876,7 @@ const App = {
         return;
       }
 
+      // 断线重连的核心思路：重新入房，然后用服务端的 matchState 回放棋盘。
       clearReconnectTimer();
       connectionState.value = "reconnecting";
 
@@ -695,10 +926,41 @@ const App = {
         return;
       }
 
+      if (!auth.value.token) {
+        throw new Error("Authentication token is required. Please log in first.");
+      }
+
       connectionState.value = "connecting";
-      await networkManager.connect(serverUrl.value.trim());
+      await networkManager.connect(serverUrl.value.trim(), auth.value.token);
       connectionState.value = "connected";
       syncSession();
+    };
+
+    const handleLogout = async () => {
+      authBusy.value = true;
+
+      try {
+        clearReconnectTimer();
+        roomStatus.value = "solo";
+        connectionState.value = "idle";
+        networkManager.disconnect(1000, "logout");
+        await networkManager.leaveRoom();
+        networkManager.clearAuthToken();
+        networkManager.url = null;
+        networkManager.roomId = null;
+        networkManager.playerId = null;
+        networkManager.color = null;
+        if (controller.value) {
+          controller.value.disableMultiplayer();
+          gameState.value = controller.value.resetGame({ force: true });
+        }
+        roomIdInput.value = "";
+        persistAppSession(createAppEmptySession());
+        syncSession();
+        clearAuthState();
+      } finally {
+        authBusy.value = false;
+      }
     };
 
     const handleControllerReady = (instance) => {
@@ -709,6 +971,55 @@ const App = {
 
     const handleStateChange = (nextState) => {
       gameState.value = nextState;
+    };
+
+    const handleAuthSubmit = async () => {
+      const username = authUsername.value.trim();
+      const password = authPassword.value;
+
+      authBusy.value = true;
+      authError.value = "";
+      authFeedbackTone.value = "error";
+
+      try {
+        if (!username) {
+          throw new Error("Username cannot be empty.");
+        }
+
+        if (authMode.value === "register") {
+          await postAuthJson(serverUrl.value, "/api/register", {
+            username,
+            password,
+          });
+          authMode.value = "login";
+          authPassword.value = "";
+          authFeedbackTone.value = "success";
+          authError.value = getAppTexts(language.value).authRegisterSuccess;
+          return;
+        }
+
+        const payload = await postAuthJson(serverUrl.value, "/api/login", {
+          username,
+          password,
+        });
+        setAuthState({
+          token: payload.token ?? null,
+          username: payload.username ?? username,
+        });
+        authUsername.value = payload.username ?? username;
+        authPassword.value = "";
+        authError.value = "";
+        authFeedbackTone.value = "error";
+        networkError.value = "";
+        if (session.value.roomId && session.value.playerId && session.value.url) {
+          roomStatus.value = "offline";
+          void attemptReconnect();
+        }
+      } catch (error) {
+        handleAuthError(error);
+      } finally {
+        authBusy.value = false;
+      }
     };
 
     const handleConnect = async () => {
@@ -839,6 +1150,7 @@ const App = {
 
       if (roomStatus.value === "solo") {
         if (!gameState.value.gameOver) {
+          // 本地模式中途重开，UI 用一个临时 overlay 表示“当前行动方认输”。
           overlayResult.value = {
             winner: getAppNextPlayer(gameState.value.currentPlayer),
             loser: gameState.value.currentPlayer,
@@ -995,9 +1307,15 @@ const App = {
     );
 
     unsubscribers.push(
-      networkManager.on(ClientEvent.CLOSE, () => {
+      networkManager.on(ClientEvent.CLOSE, (payload) => {
         connectionState.value = "disconnected";
         syncSession();
+        if (payload?.code === 4401) {
+          networkError.value = localizeAppErrorMessage(`WebSocket closed: ${payload.code} ${payload.reason}`, language.value);
+          clearReconnectTimer();
+          void handleLogout();
+          return;
+        }
         if (roomStatus.value !== "solo") {
           roomStatus.value = "offline";
           syncControllerState({
@@ -1086,6 +1404,7 @@ const App = {
       networkManager.on(ServerEvent.MATCH_RESET, (payload) => {
         networkError.value = "";
         roomStatus.value = "ready";
+        // 联机重置后，服务端不会回传整盘棋，而是让前端自己重建空盘并展示结算 overlay。
         if (payload.reason === "consensus_restart" && payload.winnerColor) {
           overlayResult.value = {
             winner: payload.winnerColor,
@@ -1117,16 +1436,24 @@ const App = {
     });
 
     onMounted(() => {
-      if (storedSession.roomId && storedSession.playerId && storedSession.url) {
+      if (storedAuth.token && storedSession.roomId && storedSession.playerId && storedSession.url) {
         roomStatus.value = "offline";
         void attemptReconnect();
       }
     });
 
     return {
+      auth,
+      authBusy,
+      authError,
+      authFeedbackTone,
+      authMode,
+      authPassword,
+      authUsername,
       controller,
       gameState,
       getTexts: getAppTexts,
+      isAuthenticated,
       language,
       serverUrl,
       roomIdInput,
@@ -1148,6 +1475,8 @@ const App = {
       resultResetAllowed,
       handleResultAction,
       handleControllerReady,
+      handleAuthSubmit,
+      handleLogout,
       handleStateChange,
       handleConnect,
       handleCreateRoom,
@@ -1178,6 +1507,22 @@ const App = {
         />
 
         <aside class="sidebar">
+          <AuthPanel
+            :language="language"
+            :auth="auth"
+            :mode="authMode"
+            :username="authUsername"
+            :password="authPassword"
+            :busy="authBusy"
+            :error="authError"
+            :feedback-tone="authFeedbackTone"
+            @update:mode="authMode = $event"
+            @update:username="authUsername = $event"
+            @update:password="authPassword = $event"
+            @submit="handleAuthSubmit"
+            @logout="handleLogout"
+          />
+
           <SetupPanel
             :language="language"
             :player-count="selectedPlayerCount"
@@ -1209,6 +1554,7 @@ const App = {
             :room-status="roomStatus"
             :session="session"
             :network-error="networkError"
+            :authenticated="isAuthenticated"
             :busy="networkBusy"
             @update:server-url="serverUrl = $event"
             @update:room-id="roomIdInput = $event"
@@ -1233,6 +1579,7 @@ const App = {
 };
 
 export default App;
+
 
 
 

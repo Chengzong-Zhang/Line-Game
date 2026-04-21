@@ -2,6 +2,10 @@ const DEFAULT_GRID_SIZE = 9;
 const MIN_GRID_SIZE = 5;
 const MAX_GRID_SIZE = 15;
 
+// GameEngine 只关心规则状态，不关心 Canvas、Vue 或 WebSocket。
+// 双人/三人模式的差异主要体现在玩家枚举、初始落点和轮换顺序上，
+// 边界、面积、碰撞等几何逻辑尽量保持与玩家数量解耦。
+
 export const Player = Object.freeze({
   BLACK: "BLACK",
   WHITE: "WHITE",
@@ -44,6 +48,7 @@ const PLAYER_POINT_STATES = Object.freeze({
 });
 
 function buildInitialPositions(gridSize, playerCount) {
+  // 三人模式占据三角棋盘的三个角，避免开局就出现强烈的位置偏置。
   if (playerCount === 2) {
     return Object.freeze({
       [Player.BLACK]: Object.freeze([0, 0]),
@@ -154,6 +159,7 @@ export class GameEngine {
     if (this.playerCount !== 2 && this.playerCount !== 3) {
       throw new Error("Only 2-player and 3-player modes are supported.");
     }
+    // activePlayers 是后续所有“轮换/结算/合法行动”逻辑的统一来源。
     this.activePlayers = PLAYER_ORDER.slice(0, this.playerCount);
     this.initialPositions = buildInitialPositions(this.gridSize, this.playerCount);
 
@@ -255,6 +261,7 @@ export class GameEngine {
   }
 
   getSnapshot() {
+    // Snapshot 是前端渲染和联机同步的唯一读取视图，尽量保持纯数据结构。
     const scores = this.getScoreboard();
     const territories = Object.fromEntries(
       this.activePlayers.map((player) => [
@@ -773,6 +780,7 @@ export class GameEngine {
   }
 
   _updateTerritories() {
+    // 领地结果会被频繁读取，所以这里统一缓存，避免 View 层重复做重计算。
     for (const player of this.activePlayers) {
       this.cachedTerritories[player] = this._computeTerritory(player);
     }
@@ -967,6 +975,7 @@ export class GameEngine {
     }
 
     this.consecutiveSkips += 1;
+    // 终局条件与当前参与人数绑定：双人连跳 2 次，三人连跳 3 次。
     if (this.consecutiveSkips >= this.activePlayers.length) {
       this.gameOver = true;
     } else {

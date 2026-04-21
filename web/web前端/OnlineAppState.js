@@ -1,7 +1,11 @@
-import { Player } from "./GameEngine.js?v=20260420a";
+import { Player } from "./GameEngine.js?v=20260421a";
+
+// 这个文件专门存放“可复用的前端状态工具”，
+// 避免 OnlineApp.js 再次膨胀成一个超大工具箱文件。
 
 export const LANGUAGE_STORAGE_KEY = "triaxis-language";
 export const SESSION_STORAGE_KEY = "triaxis-online-session";
+export const AUTH_STORAGE_KEY = "triaxis-auth";
 export const ALL_PLAYERS = Object.freeze([Player.BLACK, Player.WHITE, Player.PURPLE]);
 export const PLAYER_COUNT_OPTIONS = Object.freeze([2, 3]);
 export const GRID_SIZE_OPTIONS = Object.freeze(Array.from({ length: 11 }, (_, index) => index + 5));
@@ -17,6 +21,7 @@ export function normalizeGameSettings(settings = {}) {
 }
 
 export function createDefaultGameState() {
+  // 这里定义的是 Vue 层期望拿到的基础状态骨架。
   return {
     currentPlayer: Player.BLACK,
     gameOver: false,
@@ -60,7 +65,15 @@ export function createEmptySession() {
   };
 }
 
+export function createEmptyAuth() {
+  return {
+    token: null,
+    username: null,
+  };
+}
+
 export function loadStoredSession() {
+  // 会话只恢复“房间上下文”，不会直接恢复 socket 连接本身。
   try {
     const raw = globalThis.localStorage?.getItem(SESSION_STORAGE_KEY);
     if (!raw) {
@@ -79,6 +92,7 @@ export function loadStoredSession() {
 }
 
 export function persistSession(session) {
+  // 没有房间上下文时直接清空，避免本地存储里残留过期房间信息。
   const normalized = {
     url: session?.url ?? null,
     roomId: session?.roomId ?? null,
@@ -94,4 +108,35 @@ export function persistSession(session) {
   }
 
   globalThis.localStorage?.setItem(SESSION_STORAGE_KEY, JSON.stringify(normalized));
+}
+
+export function loadStoredAuth() {
+  try {
+    const raw = globalThis.localStorage?.getItem(AUTH_STORAGE_KEY);
+    if (!raw) {
+      return createEmptyAuth();
+    }
+
+    const parsed = JSON.parse(raw);
+    return {
+      ...createEmptyAuth(),
+      ...parsed,
+    };
+  } catch {
+    return createEmptyAuth();
+  }
+}
+
+export function persistAuth(auth) {
+  const normalized = {
+    token: auth?.token ?? null,
+    username: auth?.username ?? null,
+  };
+
+  if (!normalized.token || !normalized.username) {
+    globalThis.localStorage?.removeItem(AUTH_STORAGE_KEY);
+    return;
+  }
+
+  globalThis.localStorage?.setItem(AUTH_STORAGE_KEY, JSON.stringify(normalized));
 }

@@ -395,39 +395,49 @@ class TriangularGame:
                         continue
 
                     for path in paths:
-                        # A：用捷径替换 i→j 弧段，保留首尾段
-                        test_poly_A = current_poly[:i] + path + current_poly[j + 1:]
-                        # B：保留 i→j 弧段，用反向捷径替换首尾段（覆盖接缝盲区）
-                        test_poly_B = current_poly[i:j + 1] + path[::-1][1:-1]
+                        cand_A = current_poly[:i] + path + current_poly[j + 1:]
+                        cand_B = current_poly[i:j + 1] + path[::-1][1:-1]
 
-                        for test_poly in (test_poly_A, test_poly_B):
-                            new_perim = len(test_poly)  # 唯一点数，绝对公平
+                        # 称重法则：先算面积，永远只把面积更大的那块作为"主体"候选
+                        # 面积相等时取顶点更多的（保留主体，拒绝废料）
+                        area_A = self._calculate_polygon_area(get_closed(cand_A))
+                        area_B = self._calculate_polygon_area(get_closed(cand_B))
+                        if area_A > area_B:
+                            test_poly = cand_A
+                        elif area_B > area_A:
+                            test_poly = cand_B
+                        else:
+                            test_poly = cand_A if len(cand_A) >= len(cand_B) else cand_B
 
-                            if new_perim > cur_perim:
-                                continue
+                        if len(test_poly) < 3:
+                            continue
 
-                            closed_test = get_closed(test_poly)
-                            new_area = self._calculate_polygon_area(closed_test)
+                        new_perim = len(test_poly)
+                        if new_perim > cur_perim:
+                            continue
 
-                            if new_perim == cur_perim and new_area >= cur_area:
-                                continue
+                        closed_test = get_closed(test_poly)
+                        new_area = self._calculate_polygon_area(closed_test)
+                        if new_perim == cur_perim and new_area >= cur_area:
+                            continue
 
-                            if not self._polygon_contains_all(closed_test, friendly_nodes):
-                                continue
+                        # 只保护核心节点；允许切掉外围冗余线点
+                        if not self._polygon_contains_all(closed_test, friendly_nodes):
+                            continue
 
-                            enemy_inside = False
-                            for e in enemies:
-                                if self._polygon_contains_all(closed_test, {e}):
-                                    enemy_inside = True
-                                    break
-                            if enemy_inside:
-                                continue
+                        # 避障测试：主体内不能包含任何敌方点
+                        enemy_inside = False
+                        for e in enemies:
+                            if self._polygon_contains_all(closed_test, {e}):
+                                enemy_inside = True
+                                break
+                        if enemy_inside:
+                            continue
 
-                            current_poly = test_poly
-                            improved = True
-                            break
+                        current_poly = test_poly
+                        improved = True
+                        break
 
-                        if improved: break
                     if improved: break
                 if improved: break
 

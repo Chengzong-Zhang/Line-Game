@@ -1,16 +1,37 @@
-import asyncio
+﻿import asyncio
 import logging
+import os
 import time
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Generator, Optional
 from uuid import uuid4
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+import jwt
+from fastapi import Depends, FastAPI, HTTPException, WebSocket, WebSocketDisconnect, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
+from passlib.context import CryptContext
+from pydantic import BaseModel, Field
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+
+try:
+    from .database import SessionLocal, init_db  # type: ignore
+except ImportError:
+    from database import SessionLocal, init_db
+
+try:
+    from .models import User  # type: ignore
+except ImportError:
+    from models import User
 
 
+# 这个服务负责账号、静态资源、房间、连接和动作同步，
+# 但不负责棋盘几何规则判定；胜负与面积仍由浏览器端 GameEngine 计算。
 ROOM_SIZE = 3
 ROOM_CODE_LENGTH = 4
 ROOM_TTL_SECONDS = 300
@@ -21,9 +42,76 @@ MAX_GRID_SIZE = 15
 PLAYER_BLACK = "BLACK"
 PLAYER_WHITE = "WHITE"
 PLAYER_PURPLE = "PURPLE"
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "replace-this-with-a-long-random-secret-key")
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRE_DAYS = 7
 
 
 logger = logging.getLogger("uvicorn.error")
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+class RegisterRequest(BaseModel):
+    username: str = Field(..., min_length=1, max_length=50)
+    password: str = Field(..., min_length=1, max_length=128)
+
+
+class LoginRequest(BaseModel):
+    username: str = Field(..., min_length=1, max_length=50)
+    password: str = Field(..., min_length=1, max_length=128)
+
+
+class RegisterResponse(BaseModel):
+    message: str
+    username: str
+
+
+class LoginResponse(BaseModel):
+    token: str
+    username: str
+    token_type: str
+    expires_in: int
+
+
+def get_db() -> Generator[Session, None, None]:
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
+
+
+def verify_password(password: str, password_hash: str) -> bool:
+    return pwd_context.verify(password, password_hash)
+
+
+def create_access_token(username: str) -> str:
+    expires_at = datetime.now(timezone.utc) + timedelta(days=JWT_EXPIRE_DAYS)
+    payload = {
+        "sub": username,
+        "username": username,
+        "exp": expires_at,
+    }
+    return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+
+
+def decode_access_token(token: str) -> str:
+    try:
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+    except jwt.ExpiredSignatureError as exc:
+        raise ValueError("Token has expired.") from exc
+    except jwt.PyJWTError as exc:
+        raise ValueError("Invalid token.") from exc
+
+    username = str(payload.get("username") or payload.get("sub") or "").strip()
+    if not username:
+        raise ValueError("Token payload missing username.")
+
+    return username
 
 
 @dataclass
@@ -58,7 +146,7 @@ class Room:
         return int(self.settings.get("playerCount", 2))
 
     def available_color(self) -> str:
-        used_colors = {player.color for player in self.players.values()}
+        # 棰滆壊鍒嗛厤椤哄簭蹇呴』绋冲畾锛屽墠绔墠鑳藉彲闈犲湴鎶婇鑹叉槧灏勫埌璧峰瑙掑拰 UI 涓婚銆?        used_colors = {player.color for player in self.players.values()}
         allowed_colors = (PLAYER_BLACK, PLAYER_WHITE, PLAYER_PURPLE)[:self.player_capacity()]
         for color in allowed_colors:
             if color not in used_colors:
@@ -70,10 +158,12 @@ class ConnectionManager:
     def __init__(self) -> None:
         self.rooms: Dict[str, Room] = {}
         self.websocket_index: Dict[WebSocket, tuple[str, str]] = {}
+        self.player_room_index: Dict[str, str] = {}
         self.lock = asyncio.Lock()
         self._heartbeat_task: Optional[asyncio.Task[Any]] = None
 
-    async def connect(self, websocket: WebSocket) -> None:
+    async def connect(self, websocket: WebSocket, username: str) -> None:
+        websocket.state.username = username
         await websocket.accept()
 
     async def start(self) -> None:
@@ -103,13 +193,20 @@ class ConnectionManager:
         )
 
         if message_type == "create_room":
-            await self.create_room(websocket, message.get("settings"))
+            await self.create_room(
+                websocket,
+                username=self._authenticated_username(websocket),
+                settings=message.get("settings"),
+            )
             return
 
         if message_type == "join_room":
             room_id = str(message.get("roomId", "")).strip()
-            player_id = message.get("playerId")
-            await self.join_room(websocket, room_id=room_id, player_id=player_id)
+            await self.join_room(
+                websocket,
+                room_id=room_id,
+                username=self._authenticated_username(websocket),
+            )
             return
 
         if message_type == "player_move":
@@ -142,46 +239,51 @@ class ConnectionManager:
             },
         )
 
-    async def create_room(self, websocket: WebSocket, settings: Optional[Dict[str, Any]] = None) -> None:
+    async def create_room(
+        self,
+        websocket: WebSocket,
+        username: str,
+        settings: Optional[Dict[str, Any]] = None,
+    ) -> None:
         normalized_settings = self._normalize_room_settings(settings)
         async with self.lock:
-            current_room_id, current_player_id = self.websocket_index.get(websocket, (None, None))
-            if current_room_id and current_player_id:
+            current_room_id = self.player_room_index.get(username)
+            if current_room_id:
                 await self._detach_player(
                     current_room_id,
-                    current_player_id,
+                    username,
                     notify_opponent=True,
                     leave_reason="switch_room",
                     remove_player=True,
                 )
 
             room_id = self._generate_room_id()
-            player_id = self._new_player_id()
             player = PlayerSession(
-                player_id=player_id,
+                player_id=username,
                 color=PLAYER_BLACK,
                 websocket=websocket,
                 connected=True,
             )
-            room = Room(room_id=room_id, players={player_id: player}, settings=normalized_settings)
+            room = Room(room_id=room_id, players={username: player}, settings=normalized_settings)
             self.rooms[room_id] = room
-            self.websocket_index[websocket] = (room_id, player_id)
+            self.websocket_index[websocket] = (room_id, username)
+            self.player_room_index[username] = room_id
 
         await self.send_json(
             websocket,
             {
                 "type": "ROOM_CREATED",
                 "roomId": room_id,
-                "playerId": player_id,
+                "playerId": username,
                 "color": player.color,
                 "status": "WAITING",
                 "settings": dict(room.settings),
                 "matchState": self._match_state(room),
             },
         )
-        logger.info("room created room=%s player=%s color=%s", room_id, player_id, player.color)
+        logger.info("room created room=%s player=%s color=%s", room_id, username, player.color)
 
-    async def join_room(self, websocket: WebSocket, room_id: str, player_id: Optional[str] = None) -> None:
+    async def join_room(self, websocket: WebSocket, room_id: str, username: str) -> None:
         if not room_id:
             await self.send_json(
                 websocket,
@@ -209,19 +311,19 @@ class ConnectionManager:
                 )
                 return
 
-            existing_room_id, existing_player_id = self.websocket_index.get(websocket, (None, None))
-            if existing_room_id and existing_player_id and existing_room_id != room_id:
+            existing_room_id = self.player_room_index.get(username)
+            if existing_room_id and existing_room_id != room_id:
                 await self._detach_player(
                     existing_room_id,
-                    existing_player_id,
+                    username,
                     notify_opponent=True,
                     leave_reason="switch_room",
                     remove_player=True,
                 )
 
             session: Optional[PlayerSession] = None
-            if player_id and player_id in room.players:
-                candidate = room.players[player_id]
+            if username in room.players:
+                candidate = room.players[username]
                 if candidate.connected and candidate.websocket is not websocket and candidate.websocket is not None:
                     self.websocket_index.pop(candidate.websocket, None)
                     try:
@@ -245,7 +347,7 @@ class ConnectionManager:
 
                 assigned_color = room.available_color()
                 session = PlayerSession(
-                    player_id=self._new_player_id(),
+                    player_id=username,
                     color=assigned_color,
                     websocket=websocket,
                     connected=True,
@@ -258,6 +360,7 @@ class ConnectionManager:
             room.updated_at = time.time()
             room.reset_votes.clear()
             self.websocket_index[websocket] = (room_id, session.player_id)
+            self.player_room_index[session.player_id] = room_id
             room_snapshot = self._room_snapshot(room)
 
         await self.send_json(
@@ -419,7 +522,7 @@ class ConnectionManager:
                 payloads = []
             else:
                 room = action["room"]
-                room.reset_votes.add(action["sender"].player_id)
+                # 鑱旀満閲嶅紑閲囩敤鈥滃叏鍛樼‘璁も€濇満鍒讹紝鏈€鍚庝竴浣嶇‘璁よ€呰璁颁负杩欎竴杞殑鑾疯儨鏂广€?                room.reset_votes.add(action["sender"].player_id)
                 vote_payload = {
                     "type": "RESET_STATUS",
                     "roomId": action["room_id"],
@@ -513,6 +616,12 @@ class ConnectionManager:
         logger.info("outgoing payload=%s", payload)
         await websocket.send_json(payload)
 
+    def _authenticated_username(self, websocket: WebSocket) -> str:
+        username = str(getattr(websocket.state, "username", "")).strip()
+        if not username:
+            raise ValueError("WebSocket connection is not authenticated.")
+        return username
+
     async def _heartbeat_loop(self) -> None:
         while True:
             await asyncio.sleep(HEARTBEAT_SWEEP_SECONDS)
@@ -579,6 +688,8 @@ class ConnectionManager:
 
         if remove_player:
             room.players.pop(player_id, None)
+            if self.player_room_index.get(player_id) == room_id:
+                self.player_room_index.pop(player_id, None)
             room.reset_votes.discard(player_id)
             room.reset_votes.clear()
 
@@ -601,6 +712,9 @@ class ConnectionManager:
             return
 
         if remove_player and not room.has_connected_player():
+            for remaining_player_id in list(room.players.keys()):
+                if self.player_room_index.get(remaining_player_id) == room_id:
+                    self.player_room_index.pop(remaining_player_id, None)
             self.rooms.pop(room_id, None)
             return
 
@@ -683,7 +797,13 @@ class ConnectionManager:
                 expired_room_ids.append(room_id)
 
         for room_id in expired_room_ids:
-            self.rooms.pop(room_id, None)
+            room = self.rooms.pop(room_id, None)
+            if room is None:
+                continue
+
+            for player_id in room.players.keys():
+                if self.player_room_index.get(player_id) == room_id:
+                    self.player_room_index.pop(player_id, None)
 
     def _is_valid_point(self, point: Any) -> bool:
         if not isinstance(point, list) or len(point) != 2:
@@ -691,6 +811,7 @@ class ConnectionManager:
         return all(isinstance(value, int) for value in point)
 
     def _normalize_room_settings(self, settings: Any) -> Dict[str, Any]:
+        # 服务端再次兜底校验，避免客户端绕过前端限制传入非法人数或棋盘尺寸。
         if not isinstance(settings, dict):
             settings = {}
 
@@ -722,6 +843,7 @@ class ConnectionManager:
         }
 
     def _match_state(self, room: Room) -> Dict[str, Any]:
+        # 服务端只保存“设置 + 动作日志”，由前端回放恢复棋盘。
         return {
             "settings": dict(room.settings),
             "actions": [dict(action) for action in room.actions],
@@ -729,6 +851,13 @@ class ConnectionManager:
 
 
 app = FastAPI(title="TriAxis Relay Server")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 manager = ConnectionManager()
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -738,7 +867,7 @@ def _resolve_frontend_dir() -> Path:
     if (BASE_DIR / "index.html").exists():
         return BASE_DIR
 
-    sibling_dir = BASE_DIR.parent / "web前端"
+    sibling_dir = BASE_DIR.parent / "web鍓嶇"
     if (sibling_dir / "index.html").exists():
         return sibling_dir
 
@@ -755,6 +884,7 @@ INDEX_FILE = FRONTEND_DIR / "index.html"
 
 @app.on_event("startup")
 async def on_startup() -> None:
+    init_db()
     await manager.start()
 
 
@@ -783,9 +913,83 @@ async def serve_index() -> Response:
     return response
 
 
+@app.post("/api/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
+def register_user(payload: RegisterRequest, db: Session = Depends(get_db)) -> RegisterResponse:
+    username = payload.username.strip()
+    if not username:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username cannot be empty.",
+        )
+
+    existing_user = db.execute(select(User).where(User.username == username)).scalar_one_or_none()
+    if existing_user is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username already exists.",
+        )
+
+    user = User(
+        username=username,
+        password_hash=hash_password(payload.password),
+    )
+    db.add(user)
+
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username already exists.",
+        ) from None
+
+    return RegisterResponse(
+        message="User registered successfully.",
+        username=user.username,
+    )
+
+
+@app.post("/api/login", response_model=LoginResponse)
+def login_user(payload: LoginRequest, db: Session = Depends(get_db)) -> LoginResponse:
+    username = payload.username.strip()
+    if not username:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username cannot be empty.",
+        )
+
+    user = db.execute(select(User).where(User.username == username)).scalar_one_or_none()
+    if user is None or not verify_password(payload.password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid username or password.",
+        )
+
+    token = create_access_token(user.username)
+    return LoginResponse(
+        token=token,
+        username=user.username,
+        token_type="bearer",
+        expires_in=JWT_EXPIRE_DAYS * 24 * 60 * 60,
+    )
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket) -> None:
-    await manager.connect(websocket)
+    token = websocket.query_params.get("token")
+    if not token:
+        await websocket.close(code=4401, reason="missing_token")
+        return
+
+    try:
+        username = decode_access_token(token)
+    except ValueError as exc:
+        logger.warning("websocket auth failed: %s", exc)
+        await websocket.close(code=4401, reason="invalid_token")
+        return
+
+    await manager.connect(websocket, username=username)
 
     try:
         while True:

@@ -2,6 +2,11 @@
 
 TriAxis 是一个基于三角网格的圈地策略游戏，支持本地模式与基于 WebSocket 的联机模式。
 
+## 文档
+
+- `docs/algorithm-requirements.md`
+  三角网格圈地博弈游戏核心算法需求文档
+
 ## 当前能力
 
 - 支持双人或三人对战

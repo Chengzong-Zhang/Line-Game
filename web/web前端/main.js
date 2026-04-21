@@ -3,7 +3,11 @@
   "https://unpkg.com/vue@3/dist/vue.global.prod.js",
   "https://fastly.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js",
 ];
-const APP_ASSET_VERSION = "20260420a";
+const APP_ASSET_VERSION = "20260421a";
+
+// main.js 只做两件事：
+// 1. 确保浏览器拿到 Vue 运行时
+// 2. 加载真正的应用入口 OnlineApp.js
 
 function showBootError(message) {
   const mountPoint = document.querySelector("#app");
@@ -33,6 +37,7 @@ function loadScript(url) {
 }
 
 async function ensureVueRuntime() {
+  // 运行时优先复用 window.Vue，失败时再按 CDN 列表兜底。
   if (globalThis.Vue?.createApp) {
     return globalThis.Vue;
   }

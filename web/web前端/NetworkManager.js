@@ -2,6 +2,9 @@ const DEFAULT_REQUEST_TIMEOUT = 10000;
 const DEFAULT_HEARTBEAT_INTERVAL = 4000;
 const DEFAULT_HEARTBEAT_TIMEOUT = 12000;
 
+// NetworkManager 负责把“请求-响应”和“广播事件”混合在同一条 WebSocket 上管理起来。
+// 上层只需要订阅事件或调用 sendXxx，无需直接操作 socket。
+
 const ServerEvent = Object.freeze({
   ROOM_CREATED: "ROOM_CREATED",
   ROOM_JOINED: "ROOM_JOINED",
@@ -47,11 +50,27 @@ function resolveWebSocketUrl(locationLike = globalThis.location) {
   return `${protocol}//${host}/ws`;
 }
 
+function appendTokenToWebSocketUrl(url, token) {
+  if (!token) {
+    return url;
+  }
+
+  try {
+    const parsed = new URL(url, globalThis.location?.href ?? "http://localhost:8000/");
+    parsed.searchParams.set("token", token);
+    return parsed.toString();
+  } catch {
+    const separator = url.includes("?") ? "&" : "?";
+    return `${url}${separator}token=${encodeURIComponent(token)}`;
+  }
+}
+
 export class NetworkManager {
   constructor(options = {}) {
     this.options = options;
     this.socket = null;
     this.url = null;
+    this.authToken = null;
     this.roomId = null;
     this.playerId = null;
     this.color = null;
@@ -72,10 +91,24 @@ export class NetworkManager {
     }
   }
 
-  async connect(url) {
+  setAuthToken(token) {
+    this.authToken = token || null;
+  }
+
+  clearAuthToken() {
+    this.authToken = null;
+  }
+
+  async connect(url, authToken = this.authToken) {
     if (!url || typeof url !== "string") {
       throw new Error("connect(url) requires a valid WebSocket URL.");
     }
+
+    if (!authToken || typeof authToken !== "string") {
+      throw new Error("Authentication token is required. Please log in first.");
+    }
+
+    this.authToken = authToken;
 
     if (this.socket && this.socket.readyState === WebSocket.OPEN && this.url === url) {
       return this;
@@ -90,8 +123,10 @@ export class NetworkManager {
     }
 
     this.url = url;
+    const socketUrl = appendTokenToWebSocketUrl(url, this.authToken);
     this._connectPromise = new Promise((resolve, reject) => {
-      const socket = new WebSocket(url);
+      // 同一时刻只允许存在一个激活连接，避免旧 socket 残留事件污染当前房间状态。
+      const socket = new WebSocket(socketUrl);
       this.socket = socket;
 
       socket.addEventListener("open", () => {
@@ -374,6 +409,7 @@ export class NetworkManager {
   }
 
   _sendRequest(payload, expectedTypes) {
+    // 某些操作需要“发请求后等待指定事件返回”，例如建房、入房、重置投票。
     return new Promise((resolve, reject) => {
       const timeoutId = globalThis.setTimeout(() => {
         this._pendingRequests = this._pendingRequests.filter((request) => request !== requestRecord);
@@ -445,6 +481,7 @@ export class NetworkManager {
     const timeout = this.options.heartbeatTimeout ?? DEFAULT_HEARTBEAT_TIMEOUT;
     this._lastPongAt = Date.now();
 
+    // 心跳分成两段：定时发 ping + 看门狗检查 pong 是否超时。
     this._heartbeatTimerId = globalThis.setInterval(() => {
       if (!this.isConnected()) {
         return;
