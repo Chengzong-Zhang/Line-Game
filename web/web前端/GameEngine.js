@@ -172,6 +172,9 @@ export class GameEngine {
     this.cachedTerritories = Object.fromEntries(
       this.activePlayers.map((player) => [player, { polygon: null, area: 0 }]),
     );
+    // 显式边集合：每条边的 key = 两个节点 pointKey 升序排列后用 | 拼接
+    // 仅用于连通性判断，渲染仍依赖 this.grid
+    this.edges = Object.fromEntries(this.activePlayers.map((player) => [player, new Set()]));
 
     this._initGrid();
     for (const player of this.activePlayers) {
@@ -426,43 +429,81 @@ export class GameEngine {
     });
   }
 
+  // ── 边集合辅助方法 ────────────────────────────────────────────────────
+
+  /** 生成两节点的规范边 key（与顺序无关）*/
+  _edgeKey(a, b) {
+    const ka = pointKey(a);
+    const kb = pointKey(b);
+    return ka < kb ? `${ka}|${kb}` : `${kb}|${ka}`;
+  }
+
+  /** 返回对应玩家的显式边集合 */
+  _getEdges(player) {
+    return this.edges[player];
+  }
+
+  /** 移除因线点被删除而断裂的边 */
+  _cleanupBrokenEdges(player) {
+    const { node: nodeState, line: lineState } = this._getPlayerStates(player);
+    const edgeSet = this._getEdges(player);
+    for (const ek of [...edgeSet]) {
+      const [ka, kb] = ek.split("|");
+      const linePoints = this.getLinePoints(keyToPoint(ka), keyToPoint(kb));
+      const intact = linePoints.every((p) => {
+        const s = this._getState(p);
+        return s === nodeState || s === lineState;
+      });
+      if (!intact) {
+        edgeSet.delete(ek);
+      }
+    }
+  }
+
+  /** 移除所有经过指定节点的边 */
+  _removeNodeEdges(node, player) {
+    const nk = pointKey(node);
+    const edgeSet = this._getEdges(player);
+    for (const ek of [...edgeSet]) {
+      const [ka, kb] = ek.split("|");
+      if (ka === nk || kb === nk) {
+        edgeSet.delete(ek);
+      }
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+
+  /** 通过显式边图（BFS）判断节点是否连通到起始节点 */
   _isConnectedToInitial(point, player) {
     const initial = this._getInitialPosition(player);
-    const visited = new Set();
-    const stack = [initial];
-    const { node: nodeState, line: lineState } = this._getPlayerStates(player);
+    if (pointEquals(point, initial)) {
+      return true;
+    }
 
-    while (stack.length > 0) {
-      const current = stack.pop();
-      const currentKey = pointKey(current);
-      if (pointEquals(current, point)) {
-        return true;
-      }
-      if (visited.has(currentKey)) {
-        continue;
-      }
-      visited.add(currentKey);
+    const edgeSet = this._getEdges(player);
+    // 从边集合构建邻接表
+    const adj = new Map();
+    for (const ek of edgeSet) {
+      const [ka, kb] = ek.split("|");
+      if (!adj.has(ka)) adj.set(ka, []);
+      if (!adj.has(kb)) adj.set(kb, []);
+      adj.get(ka).push(kb);
+      adj.get(kb).push(ka);
+    }
 
-      for (const candidate of this.validPositions) {
-        const candidateKey = pointKey(candidate);
-        const state = this._getState(candidate);
-        if (visited.has(candidateKey)) {
-          continue;
-        }
-        if (state !== nodeState && state !== lineState) {
-          continue;
-        }
-        if (!this.canConnectWithBlocking(current, candidate, player)) {
-          continue;
-        }
+    const targetKey = pointKey(point);
+    const initialKey = pointKey(initial);
+    const visited = new Set([initialKey]);
+    const queue = [initialKey];
 
-        const linePoints = this.getLinePoints(current, candidate);
-        const lineIntact = linePoints.every((segmentPoint) => {
-          const segmentState = this._getState(segmentPoint);
-          return segmentState === nodeState || segmentState === lineState;
-        });
-        if (lineIntact) {
-          stack.push(candidate);
+    while (queue.length > 0) {
+      const curr = queue.shift();
+      if (curr === targetKey) return true;
+      for (const nxt of (adj.get(curr) ?? [])) {
+        if (!visited.has(nxt)) {
+          visited.add(nxt);
+          queue.push(nxt);
         }
       }
     }
@@ -490,6 +531,8 @@ export class GameEngine {
             this._setState(point, lineState);
           }
         }
+        // 记录显式边
+        this._getEdges(player).add(this._edgeKey(nodeA, nodeB));
       }
     }
   }
@@ -525,6 +568,9 @@ export class GameEngine {
       }
     }
 
+    // Step 1.5: 清理因线点删除而断裂的对手边
+    this._cleanupBrokenEdges(opponent);
+
     const opponentStart = this._getInitialPosition(opponent);
     for (const node of this._getPlayerNodes(opponent)) {
       if (pointEquals(node, opponentStart)) {
@@ -532,6 +578,7 @@ export class GameEngine {
       }
       if (!this._isConnectedToInitial(node, opponent)) {
         this._setState(node, PointState.EMPTY);
+        this._removeNodeEdges(node, opponent); // 移除该孤立节点的所有边
       }
     }
 
@@ -922,6 +969,8 @@ export class GameEngine {
           this._setState(linePoint, currentStates.line);
         }
       }
+      // 记录显式边
+      this._getEdges(this.currentPlayer).add(this._edgeKey(point, node));
     }
 
     if (!connected) {
