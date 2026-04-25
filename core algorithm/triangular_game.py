@@ -51,6 +51,10 @@ class TriangularGame:
         self.current_player = Player.BLACK
         self.game_over = False
         self.consecutive_skips = 0  # Counts consecutive skips; game ends when both players skip
+
+        # 显式边集合：frozenset({node1, node2})，仅用于连通性判断，渲染仍依赖 self.grid
+        self.black_edges: set = set()
+        self.white_edges: set = set()
         
         # Initialize grid points
         self._init_grid()
@@ -210,8 +214,8 @@ class TriangularGame:
                         if x <= max(p1x, p2x):
                             if p1y != p2y:
                                 xinters = (y - p1y) * (p2x - p1x) / (p2y - p1y) + p1x
-                            if p1x == p2x or x <= xinters:
-                                inside = not inside
+                                if p1x == p2x or x <= xinters:
+                                    inside = not inside
                 p1x, p1y = p2x, p2y
                 
             if not inside:
@@ -566,38 +570,53 @@ class TriangularGame:
         
         return pos in protected_positions
     
+    # ── 边集合辅助方法 ─────────────────────────────────────────────────────
+
+    def _get_edges(self, player: Player) -> set:
+        """返回对应玩家的显式边集合"""
+        return self.black_edges if player == Player.BLACK else self.white_edges
+
+    def _cleanup_broken_edges(self, player: Player):
+        """移除因线点被删除而断裂的边（线段上有点不再属于该玩家）"""
+        edges = self._get_edges(player)
+        node_st = PointState.BLACK_NODE if player == Player.BLACK else PointState.WHITE_NODE
+        line_st = PointState.BLACK_LINE if player == Player.BLACK else PointState.WHITE_LINE
+        broken = {e for e in edges
+                  if not all(self.grid.get(p) in (node_st, line_st)
+                             for p in self._get_line_points(*tuple(e)))}
+        edges -= broken
+
+    def _remove_node_edges(self, node: Tuple[int, int], player: Player):
+        """移除所有经过指定节点的边"""
+        edges = self._get_edges(player)
+        edges -= {e for e in edges if node in e}
+
+    # ──────────────────────────────────────────────────────────────────────
+
     def _is_connected_to_initial(self, pos: Tuple[int, int], player: Player) -> bool:
-        """Check if a position is connected to the initial node through a path"""
+        """通过显式边图（BFS）判断节点是否连通到起始节点"""
         initial_pos = (0, 0) if player == Player.BLACK else (8, 0)
-        visited = set()
-        stack = [initial_pos]
-        
-        player_node = PointState.BLACK_NODE if player == Player.BLACK else PointState.WHITE_NODE
-        player_line = PointState.BLACK_LINE if player == Player.BLACK else PointState.WHITE_LINE
-        
-        while stack:
-            current = stack.pop()
-            if current == pos:
+        if pos == initial_pos:
+            return True
+
+        edges = self._get_edges(player)
+        # 从边集合构建邻接表
+        adj: dict = {}
+        for edge in edges:
+            a, b = tuple(edge)
+            adj.setdefault(a, []).append(b)
+            adj.setdefault(b, []).append(a)
+
+        visited = {initial_pos}
+        queue = deque([initial_pos])
+        while queue:
+            curr = queue.popleft()
+            if curr == pos:
                 return True
-            
-            if current in visited:
-                continue
-            visited.add(current)
-            
-            # Find all connected points
-            for grid_pos, state in self.grid.items():
-                if state in [player_node, player_line] and grid_pos not in visited:
-                    if self._can_connect_with_blocking(current, grid_pos, player):
-                        # Check if the line is not broken
-                        line_points = self._get_line_points(current, grid_pos)
-                        line_intact = True
-                        for point in line_points:
-                            if self.grid[point] not in [player_node, player_line]:
-                                line_intact = False
-                                break
-                        if line_intact:
-                            stack.append(grid_pos)
-        
+            for nxt in adj.get(curr, []):
+                if nxt not in visited:
+                    visited.add(nxt)
+                    queue.append(nxt)
         return False
     
     def _restore_connections_after_removal(self, removed_positions: List[Tuple[int, int]], attacking_player: Player):
@@ -639,6 +658,8 @@ class TriangularGame:
                                     self.grid[point] = attacking_node_state
                                 elif self.grid[point] == PointState.EMPTY:
                                     self.grid[point] = attacking_line_state
+                            # 记录显式边
+                            self._get_edges(attacking_player).add(frozenset({node1, node2}))
     
     def _remove_disconnected_components(self, player: Player):
         """Remove nodes and lines that are no longer connected to the initial node"""
@@ -739,6 +760,9 @@ class TriangularGame:
                 for cell in cells_to_delete:
                     self.grid[cell] = PointState.EMPTY
 
+        # ── Step 1.5 ── 清理因线点删除而断裂的对手边 ────────────────────────────
+        self._cleanup_broken_edges(opponent)
+
         # ── Step 2 ──────────────────────────────────────────────────────────────
         opp_start = (8, 0) if player == Player.BLACK else (0, 0)
         deleted_nodes: set = set()
@@ -746,6 +770,7 @@ class TriangularGame:
             if node != opp_start and not self._is_connected_to_initial(node, opponent):
                 self.grid[node] = PointState.EMPTY
                 deleted_nodes.add(node)
+                self._remove_node_edges(node, opponent)  # 移除该孤立节点的所有边
 
         # ── Step 3 ──────────────────────────────────────────────────────────────
         # Remove orphaned line points.
@@ -797,6 +822,8 @@ class TriangularGame:
                             self.grid[point] = node_state
                         elif self.grid[point] == PointState.EMPTY:
                             self.grid[point] = line_state
+                    # 记录显式边
+                    self._get_edges(player).add(frozenset({node1, node2}))
 
     def _add_node(self, pos: Tuple[int, int]) -> bool:
         """Add a new node for the current player and handle auto-connection"""
@@ -841,6 +868,8 @@ class TriangularGame:
                     # Keep nodes as nodes
                     if point == pos or point == node_pos:
                         self.grid[point] = node_state
+                # 记录显式边
+                self._get_edges(self.current_player).add(frozenset({pos, node_pos}))
         
         if not connected:
             # Revert the node placement if no connection was made
