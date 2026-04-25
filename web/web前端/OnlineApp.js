@@ -1129,7 +1129,11 @@ const App = {
     const isNetworkPanelOpen = computed(() => activeUtilityPanel.value === "network");
     const connectionStateLabel = computed(() => formatAppConnectionState(connectionState.value, language.value));
     const roomStatusLabel = computed(() => formatAppConnectionState(roomStatus.value, language.value));
-    const boardPanelBadge = computed(() => `${selectedPlayerCount.value}P / ${selectedGridSize.value}`);
+    const boardPanelBadge = computed(() => (
+      language.value === "en"
+        ? `${selectedPlayerCount.value}P / ${selectedGridSize.value}`
+        : `${selectedPlayerCount.value}人 / ${selectedGridSize.value}`
+    ));
     const networkPanelBadge = computed(() => {
       if (session.value.roomId) {
         return `#${session.value.roomId}`;
