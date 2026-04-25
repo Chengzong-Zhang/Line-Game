@@ -70,7 +70,29 @@ body::before {
 .app-shell-focus {
   width: min(1440px, calc(100vw - 32px));
   min-height: 100vh;
-  padding: 32px 0 48px;
+  padding: 24px 0 48px;
+}
+
+.stage-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 18px;
+  align-items: start;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.board-column {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.dock-column {
+  display: grid;
+  gap: 14px;
+  position: sticky;
+  top: 18px;
 }
 
 .hero {
@@ -293,6 +315,36 @@ body::before {
   margin-bottom: 18px;
 }
 
+.duel-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.duel-copy {
+  min-width: 0;
+}
+
+.duel-label {
+  margin: 0 0 10px;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.duel-turn-banner {
+  margin-bottom: 0;
+}
+
+.duel-actions {
+  justify-content: flex-end;
+}
+
+.duel-actions .action-button {
+  min-width: 140px;
+}
+
 .workspace-focus {
   display: block;
 }
@@ -496,6 +548,100 @@ body::before {
 
 .modal-panel {
   padding: 22px;
+}
+
+.dock-folder {
+  overflow: hidden;
+  border: 1px solid rgba(88, 61, 31, 0.08);
+  border-radius: 24px;
+  background: rgba(255, 250, 241, 0.88);
+  box-shadow: 0 18px 38px rgba(64, 42, 18, 0.12);
+  backdrop-filter: blur(14px);
+}
+
+.dock-folder > summary {
+  list-style: none;
+}
+
+.dock-folder > summary::-webkit-details-marker {
+  display: none;
+}
+
+.dock-folder-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  padding: 16px 18px;
+}
+
+.dock-folder-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dock-folder-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.dock-folder-title {
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+}
+
+.dock-folder-summary::after {
+  content: ">";
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  color: var(--ink-soft);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: inset 0 0 0 1px rgba(90, 72, 52, 0.12);
+  transition: transform 180ms ease, color 180ms ease;
+}
+
+.dock-folder[open] .dock-folder-summary::after {
+  transform: rotate(90deg);
+  color: var(--ink);
+}
+
+.dock-folder-icon {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(232, 217, 190, 0.92));
+  box-shadow:
+    inset 0 0 0 1px rgba(90, 72, 52, 0.12),
+    0 8px 18px rgba(64, 42, 18, 0.1);
+}
+
+.dock-folder-icon svg {
+  width: 20px;
+  height: 20px;
+  fill: #4a3928;
+}
+
+.dock-folder-body {
+  padding: 0 16px 16px;
+}
+
+.dock-stack {
+  display: grid;
+  gap: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
 }
 
 .edge-trigger {
@@ -815,6 +961,10 @@ body::before {
 }
 
 @media (max-width: 1180px) {
+  .stage-layout {
+    grid-template-columns: 1fr 248px;
+  }
+
   .main-stage {
     grid-template-columns: 1fr;
   }
@@ -832,7 +982,15 @@ body::before {
 
   .app-shell-focus {
     width: min(100vw - 22px, 1440px);
-    padding-top: 88px;
+    padding-top: 18px;
+  }
+
+  .stage-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .dock-column {
+    position: static;
   }
 
   .workspace {
@@ -851,6 +1009,15 @@ body::before {
 
   .canvas-frame {
     min-height: 360px;
+  }
+
+  .duel-strip {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .duel-actions {
+    justify-content: stretch;
   }
 
   .edge-trigger {
@@ -909,6 +1076,16 @@ body::before {
 
   .panel-board-focus .canvas-frame {
     min-height: 280px;
+  }
+
+  .dock-folder-summary,
+  .dock-folder-body {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .dock-stack {
+    padding-top: 14px;
   }
 
   .actions {

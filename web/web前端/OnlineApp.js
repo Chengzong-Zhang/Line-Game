@@ -22,9 +22,8 @@ import {
   formatWinner as formatAppWinner,
   getInitialLanguage as getAppInitialLanguage,
   getTexts as getAppTexts,
-  getNextPlayer as getAppNextPlayer,
   localizeErrorMessage as localizeAppErrorMessage,
-} from "./OnlineAppI18n.js?v=20260425a";
+} from "./OnlineAppI18n.js?v=20260425b";
 
 const {
   computed,
@@ -681,8 +680,12 @@ const RoomPanel = {
 
 const ControlPanel = {
   name: "ControlPanel",
-  emits: ["skip", "reset", "concede"],
+  emits: ["skip", "reset"],
   props: {
+    gameState: {
+      type: Object,
+      required: true,
+    },
     skipDisabled: {
       type: Boolean,
       default: false,
@@ -695,26 +698,6 @@ const ControlPanel = {
       type: String,
       default: "",
     },
-    concedeDisabled: {
-      type: Boolean,
-      default: false,
-    },
-    showConcede: {
-      type: Boolean,
-      default: false,
-    },
-    countdownText: {
-      type: String,
-      default: "",
-    },
-    skipNotice: {
-      type: String,
-      default: "",
-    },
-    helpText: {
-      type: String,
-      default: "",
-    },
     language: {
       type: String,
       required: true,
@@ -722,35 +705,41 @@ const ControlPanel = {
   },
   setup(props) {
     const texts = computed(() => getAppTexts(props.language));
-    return { texts };
+    const currentPlayerLabel = computed(() => formatAppPlayerName(props.gameState.currentPlayer, props.language));
+    const turnBannerClass = computed(() => {
+      if (props.gameState.currentPlayer === Player.BLACK) {
+        return "is-blue";
+      }
+      if (props.gameState.currentPlayer === Player.WHITE) {
+        return "is-red";
+      }
+      return "is-purple";
+    });
+
+    return {
+      currentPlayerLabel,
+      texts,
+      turnBannerClass,
+    };
   },
   template: `
-    <section class="panel panel-controls">
-      <div class="panel-head">
-        <p class="eyebrow">{{ texts.controlsEyebrow }}</p>
-        <h2>{{ texts.localControls }}</h2>
+    <section class="panel panel-controls duel-strip">
+      <div class="duel-copy">
+        <p class="eyebrow">{{ texts.duelDeskTitle }}</p>
+        <p class="duel-label">{{ texts.currentTurnLabel }}</p>
+        <div class="turn-banner duel-turn-banner" :class="turnBannerClass">
+          <span class="turn-dot"></span>
+          <strong>{{ currentPlayerLabel }} {{ texts.turnSuffix }}</strong>
+        </div>
       </div>
-      <div class="control-topline">
-        <span class="status-pill status-pill-live">{{ countdownText }}</span>
-      </div>
-      <p v-if="skipNotice" class="skip-alert">{{ skipNotice }}</p>
-      <div class="actions">
+      <div class="actions duel-actions">
         <button class="action-button action-button-primary" :disabled="skipDisabled" @click="$emit('skip')">
           {{ language === 'en' ? 'Skip Turn' : '跳过回合' }}
         </button>
         <button class="action-button action-button-secondary" :disabled="resetDisabled" @click="$emit('reset')">
           {{ resetLabel }}
         </button>
-        <button
-          v-if="showConcede"
-          class="action-button action-button-ghost"
-          :disabled="concedeDisabled"
-          @click="$emit('concede')"
-        >
-          {{ texts.concedeAction }}
-        </button>
       </div>
-      <p class="help-copy">{{ helpText }}</p>
     </section>
   `,
 };
@@ -846,73 +835,37 @@ const ResultModal = {
   `,
 };
 
-const UtilityModal = {
-  name: "UtilityModal",
-  emits: ["close"],
+const DockDirectory = {
+  name: "DockDirectory",
   props: {
-    visible: {
-      type: Boolean,
-      default: false,
-    },
     variant: {
       type: String,
       default: "board",
-    },
-    eyebrow: {
-      type: String,
-      default: "",
     },
     title: {
       type: String,
       default: "",
     },
-    description: {
-      type: String,
-      default: "",
-    },
-    closeLabel: {
-      type: String,
-      default: "",
-    },
   },
   template: `
-    <transition :name="variant === 'network' ? 'drawer' : 'fade-up'">
-      <div
-        v-if="visible"
-        class="utility-overlay"
-        :class="'utility-overlay-' + variant"
-        @click.self="$emit('close')"
-      >
-        <section
-          class="utility-modal"
-          :class="'utility-modal-' + variant"
-          role="dialog"
-          aria-modal="true"
-          :aria-label="title"
-        >
-          <header class="utility-header">
-            <div class="panel-head panel-head-inline utility-head-copy">
-              <div>
-                <p class="eyebrow">{{ eyebrow }}</p>
-                <h2>{{ title }}</h2>
-              </div>
-            </div>
-            <button
-              class="utility-close"
-              type="button"
-              :aria-label="closeLabel || title"
-              @click="$emit('close')"
-            >
-              <span aria-hidden="true">×</span>
-            </button>
-          </header>
-          <p v-if="description" class="utility-description">{{ description }}</p>
-          <div class="utility-body">
-            <slot></slot>
-          </div>
-        </section>
+    <details class="dock-folder" :class="'dock-folder-' + variant">
+      <summary class="dock-folder-summary">
+        <span class="dock-folder-head">
+          <span class="dock-folder-icon" :class="'dock-folder-icon-' + variant" aria-hidden="true">
+            <span v-if="variant === 'board'" class="triangle-glyph"></span>
+            <svg v-else viewBox="0 0 24 24" focusable="false">
+              <path d="M19.43 12.98c.04-.32.07-.65.07-.98s-.03-.66-.08-.98l2.11-1.65a.5.5 0 0 0 .12-.64l-2-3.46a.5.5 0 0 0-.6-.22l-2.49 1a7.2 7.2 0 0 0-1.69-.98l-.38-2.65A.5.5 0 0 0 14 1h-4a.5.5 0 0 0-.49.42l-.38 2.65c-.61.24-1.18.56-1.69.98l-2.49-1a.5.5 0 0 0-.6.22l-2 3.46a.5.5 0 0 0 .12.64l2.11 1.65c-.05.32-.08.65-.08.98s.03.66.08.98L2.47 14.63a.5.5 0 0 0-.12.64l2 3.46a.5.5 0 0 0 .6.22l2.49-1c.51.42 1.08.74 1.69.98l.38 2.65A.5.5 0 0 0 10 23h4a.5.5 0 0 0 .49-.42l.38-2.65c.61-.24 1.18-.56 1.69-.98l2.49 1a.5.5 0 0 0 .6-.22l2-3.46a.5.5 0 0 0-.12-.64l-2.1-1.65ZM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5Z" />
+            </svg>
+          </span>
+          <span class="dock-folder-title-wrap">
+            <strong class="dock-folder-title">{{ title }}</strong>
+          </span>
+        </span>
+      </summary>
+      <div class="dock-folder-body">
+        <slot></slot>
       </div>
-    </transition>
+    </details>
   `,
 };
 
@@ -960,10 +913,6 @@ const BoardCanvas = {
   },
   template: `
     <section class="board-shell panel panel-board-focus">
-      <div class="panel-head">
-        <p class="eyebrow">{{ texts.boardEyebrow }}</p>
-        <h2>{{ texts.boardTitle }}</h2>
-      </div>
       <div class="canvas-frame">
         <canvas ref="canvasRef" class="game-canvas" :aria-label="texts.boardAriaLabel"></canvas>
       </div>
@@ -978,11 +927,11 @@ const App = {
     AuthPanel,
     BoardCanvas,
     ControlPanel,
+    DockDirectory,
     ResultModal,
     RoomPanel,
     ScorePanel,
     SetupPanel,
-    UtilityModal,
   },
   setup() {
     const storedAuth = loadAppStoredAuth();
@@ -1015,7 +964,6 @@ const App = {
     const overlayResult = ref(null);
     const resultModalDismissed = ref(false);
     const turnCountdown = ref(TURN_COUNTDOWN_SECONDS);
-    const activeUtilityPanel = ref("");
     const unsubscribers = [];
     let reconnectTimerId = null;
     let turnCountdownTimerId = null;
@@ -1110,14 +1058,6 @@ const App = {
       authFeedbackTone.value = "error";
     };
 
-    const openUtilityPanel = (panelName) => {
-      activeUtilityPanel.value = panelName;
-    };
-
-    const closeUtilityPanel = () => {
-      activeUtilityPanel.value = "";
-    };
-
     const handleAuthError = (error) => {
       authFeedbackTone.value = "error";
       authError.value = localizeAppErrorMessage(error?.message ?? String(error), language.value);
@@ -1125,26 +1065,6 @@ const App = {
 
     const isAuthenticated = computed(() => Boolean(auth.value.token && auth.value.username));
     const isHost = computed(() => Boolean(session.value.playerId && roomInfo.value.hostPlayerId === session.value.playerId));
-    const isBoardPanelOpen = computed(() => activeUtilityPanel.value === "board");
-    const isNetworkPanelOpen = computed(() => activeUtilityPanel.value === "network");
-    const connectionStateLabel = computed(() => formatAppConnectionState(connectionState.value, language.value));
-    const roomStatusLabel = computed(() => formatAppConnectionState(roomStatus.value, language.value));
-    const boardPanelBadge = computed(() => (
-      language.value === "en"
-        ? `${selectedPlayerCount.value}P / ${selectedGridSize.value}`
-        : `${selectedPlayerCount.value}人 / ${selectedGridSize.value}`
-    ));
-    const networkPanelBadge = computed(() => {
-      if (session.value.roomId) {
-        return `#${session.value.roomId}`;
-      }
-
-      if (auth.value.username) {
-        return auth.value.username;
-      }
-
-      return connectionStateLabel.value;
-    });
     const localReady = computed(() => {
       return Boolean(
         session.value.playerId
@@ -1586,19 +1506,6 @@ const App = {
       }
     };
 
-    const handleConcede = () => {
-      if (!controller.value || roomStatus.value !== "solo" || gameState.value.gameOver) {
-        return;
-      }
-
-      resultModalDismissed.value = false;
-      overlayResult.value = {
-        winner: getAppNextPlayer(gameState.value.currentPlayer),
-        loser: gameState.value.currentPlayer,
-        resetAfterClose: true,
-      };
-    };
-
     const handleToggleReady = async (ready) => {
       if (!session.value.roomId) {
         return;
@@ -1699,38 +1606,6 @@ const App = {
       return texts.soloHint;
     });
 
-    const countdownText = computed(() => {
-      const texts = getAppTexts(language.value);
-      if (roomStatus.value === "waiting" || roomStatus.value === "offline" || roomStatus.value === "lobby") {
-        return texts.countdownPaused;
-      }
-
-      if (overlayResult.value) {
-        return texts.countdownPaused;
-      }
-
-      if (roomStatus.value === "countdown") {
-        return texts.countdownLabel(turnCountdown.value);
-      }
-
-      if (gameState.value.gameOver) {
-        return texts.countdownFinished;
-      }
-
-      return texts.countdownLabel(turnCountdown.value);
-    });
-
-    const skipNoticeText = computed(() => {
-      const lastAction = gameState.value.lastAction;
-      if (!lastAction || lastAction.type !== "skip") {
-        return "";
-      }
-
-      return getAppTexts(language.value).skipNotice(
-        formatAppPlayerName(lastAction.player, language.value),
-      );
-    });
-
     const skipDisabled = computed(() => {
       if (!controller.value || networkBusy.value) {
         return true;
@@ -1755,8 +1630,6 @@ const App = {
       return gameState.value.resetLocked;
     });
 
-    const showConcede = computed(() => roomStatus.value === "solo" && !gameState.value.gameOver);
-    const concedeDisabled = computed(() => !controller.value || networkBusy.value || !showConcede.value);
     const readyDisabled = computed(() => {
       return !session.value.roomId
         || networkBusy.value
@@ -1768,12 +1641,6 @@ const App = {
     const starterLocked = computed(() => !isHost.value || networkBusy.value || roomStatus.value === "ready" || roomStatus.value === "countdown");
     const showClosePrompt = computed(() => Boolean(overlayResult.value || (gameState.value.gameOver && !resultModalDismissed.value)));
 
-    watch(showClosePrompt, (visible) => {
-      if (visible) {
-        closeUtilityPanel();
-      }
-    });
-
     const resetLabel = computed(() => {
       const texts = getAppTexts(language.value);
       if (roomStatus.value === "solo") {
@@ -1781,23 +1648,6 @@ const App = {
       }
 
       return gameState.value.gameOver ? texts.startNextOnline : texts.resignAndRestart;
-    });
-
-    const controlsHelpText = computed(() => {
-      const texts = getAppTexts(language.value);
-      if (roomStatus.value === "solo") {
-        return texts.soloHelp;
-      }
-
-      if (roomStatus.value === "lobby" || roomStatus.value === "countdown") {
-        return texts.roomNeedReady;
-      }
-
-      if (gameState.value.gameOver) {
-        return texts.onlineOverHelp;
-      }
-
-      return texts.onlinePlayHelp;
     });
 
     const settingsLocked = computed(() => {
@@ -1814,8 +1664,8 @@ const App = {
       return !resetDisabled.value;
     });
 
-    watch([activeUtilityPanel, showClosePrompt], ([panelName, promptVisible]) => {
-      document.body.classList.toggle("modal-open", Boolean(panelName || promptVisible));
+    watch(showClosePrompt, (promptVisible) => {
+      document.body.classList.toggle("modal-open", Boolean(promptVisible));
     }, { immediate: true });
 
     const handleEscapeKeydown = (event) => {
@@ -1825,11 +1675,6 @@ const App = {
 
       if (showClosePrompt.value) {
         handleClosePrompt();
-        return;
-      }
-
-      if (activeUtilityPanel.value) {
-        closeUtilityPanel();
       }
     };
 
@@ -1994,20 +1839,11 @@ const App = {
       authMode,
       authPassword,
       authUsername,
-      activeUtilityPanel,
-      boardPanelBadge,
-      closeUtilityPanel,
-      connectionStateLabel,
       controller,
       gameState,
       getTexts: getAppTexts,
       isAuthenticated,
-      isBoardPanelOpen,
-      isNetworkPanelOpen,
       language,
-      networkPanelBadge,
-      openUtilityPanel,
-      roomStatusLabel,
       serverUrl,
       roomIdInput,
       selectedPlayerCount,
@@ -2028,14 +1864,9 @@ const App = {
       overlayResult,
       statusText,
       boardHint,
-      countdownText,
-      skipNoticeText,
       skipDisabled,
       resetDisabled,
-      showConcede,
-      concedeDisabled,
       resetLabel,
-      controlsHelpText,
       settingsLocked,
       resultResetAllowed,
       handleResultAction,
@@ -2051,182 +1882,110 @@ const App = {
       handleStartPlayerChange,
       handleSkip,
       handleReset,
-      handleConcede,
       handleClosePrompt,
     };
   },
   template: `
     <main class="app-shell app-shell-focus">
-      <button
-        class="edge-trigger edge-trigger-board"
-        :class="{ 'is-active': isBoardPanelOpen }"
-        type="button"
-        @click="isBoardPanelOpen ? closeUtilityPanel() : openUtilityPanel('board')"
-      >
-        <span class="edge-trigger-icon edge-trigger-icon-triangle" aria-hidden="true">
-          <span class="triangle-glyph"></span>
-        </span>
-        <span class="edge-trigger-copy">
-          <strong>{{ getTexts(language).boardDockTitle }}</strong>
-          <small>{{ getTexts(language).boardDockCopy }}</small>
-        </span>
-        <span class="edge-trigger-badge">{{ boardPanelBadge }}</span>
-      </button>
-
-      <button
-        class="edge-trigger edge-trigger-network"
-        :class="{ 'is-active': isNetworkPanelOpen }"
-        type="button"
-        @click="isNetworkPanelOpen ? closeUtilityPanel() : openUtilityPanel('network')"
-      >
-        <span class="edge-trigger-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" focusable="false">
-            <path d="M19.43 12.98c.04-.32.07-.65.07-.98s-.03-.66-.08-.98l2.11-1.65a.5.5 0 0 0 .12-.64l-2-3.46a.5.5 0 0 0-.6-.22l-2.49 1a7.2 7.2 0 0 0-1.69-.98l-.38-2.65A.5.5 0 0 0 14 1h-4a.5.5 0 0 0-.49.42l-.38 2.65c-.61.24-1.18.56-1.69.98l-2.49-1a.5.5 0 0 0-.6.22l-2 3.46a.5.5 0 0 0 .12.64l2.11 1.65c-.05.32-.08.65-.08.98s.03.66.08.98L2.47 14.63a.5.5 0 0 0-.12.64l2 3.46a.5.5 0 0 0 .6.22l2.49-1c.51.42 1.08.74 1.69.98l.38 2.65A.5.5 0 0 0 10 23h4a.5.5 0 0 0 .49-.42l.38-2.65c.61-.24 1.18-.56 1.69-.98l2.49 1a.5.5 0 0 0 .6-.22l2-3.46a.5.5 0 0 0-.12-.64l-2.1-1.65ZM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5Z" />
-          </svg>
-        </span>
-        <span class="edge-trigger-copy">
-          <strong>{{ getTexts(language).networkDockTitle }}</strong>
-          <small>{{ getTexts(language).networkDockCopy }}</small>
-        </span>
-        <span class="edge-trigger-badge">{{ networkPanelBadge }}</span>
-      </button>
-
-      <section class="hero hero-focus">
-        <div class="hero-card">
-          <p class="eyebrow">{{ getTexts(language).stageFocusEyebrow }}</p>
-          <h1>{{ getTexts(language).heroTitle }}</h1>
-          <p class="hero-copy">
-            {{ getTexts(language).heroCopy }}
-          </p>
-          <div class="hero-pills">
-            <span class="status-pill status-pill-live">{{ countdownText }}</span>
-            <span class="status-pill">{{ connectionStateLabel }}</span>
-            <span class="status-pill">{{ roomStatusLabel }}</span>
-          </div>
-        </div>
-      </section>
-
-      <section class="workspace workspace-focus">
-        <section class="main-stage main-stage-focus">
-          <article class="focus-brief panel">
-            <div class="panel-head panel-head-compact">
-              <p class="eyebrow">{{ getTexts(language).statusLabel }}</p>
-            </div>
-            <p class="status-copy">{{ statusText }}</p>
-          </article>
-
+      <section class="stage-layout">
+        <section class="board-column">
           <BoardCanvas
             :language="language"
             :hint-text="boardHint"
             @controller-ready="handleControllerReady"
             @state-change="handleStateChange"
           />
+
+          <ControlPanel
+            :game-state="gameState"
+            :language="language"
+            :skip-disabled="skipDisabled"
+            :reset-disabled="resetDisabled"
+            :reset-label="resetLabel"
+            @skip="handleSkip"
+            @reset="handleReset"
+          />
         </section>
+
+        <aside class="dock-column">
+          <DockDirectory
+            variant="board"
+            :title="getTexts(language).boardDockTitle"
+          >
+            <div class="dock-stack">
+              <SetupPanel
+                :language="language"
+                :player-count="selectedPlayerCount"
+                :grid-size="selectedGridSize"
+                :settings-locked="settingsLocked"
+                :busy="networkBusy"
+                @update:language="language = $event"
+                @update:player-count="selectedPlayerCount = $event"
+                @update:grid-size="selectedGridSize = $event"
+              />
+
+              <ScorePanel
+                :game-state="gameState"
+                :session="session"
+                :language="language"
+                :status-text="statusText"
+              />
+            </div>
+          </DockDirectory>
+
+          <DockDirectory
+            variant="network"
+            :title="getTexts(language).networkDockTitle"
+          >
+            <div class="dock-stack">
+              <RoomPanel
+                :language="language"
+                :server-url="serverUrl"
+                :room-id="roomIdInput"
+                :connection-state="connectionState"
+                :room-status="roomStatus"
+                :session="session"
+                :network-error="networkError"
+                :authenticated="isAuthenticated"
+                :busy="networkBusy"
+                :room-info="roomInfo"
+                :is-host="isHost"
+                :local-ready="localReady"
+                :ready-disabled="readyDisabled"
+                :starter-locked="starterLocked"
+                :start-player="selectedStartPlayer"
+                :starter-options="starterOptions"
+                :show-close-prompt="showClosePrompt"
+                @update:server-url="serverUrl = $event"
+                @update:room-id="roomIdInput = $event"
+                @connect="handleConnect"
+                @create-room="handleCreateRoom"
+                @join-room="handleJoinRoom"
+                @leave-room="handleLeaveRoom"
+                @toggle-ready="handleToggleReady"
+                @update:start-player="handleStartPlayerChange"
+                @close-prompt="handleClosePrompt"
+              />
+
+              <AuthPanel
+                :language="language"
+                :auth="auth"
+                :mode="authMode"
+                :username="authUsername"
+                :password="authPassword"
+                :busy="authBusy"
+                :error="authError"
+                :feedback-tone="authFeedbackTone"
+                @update:mode="authMode = $event"
+                @update:username="authUsername = $event"
+                @update:password="authPassword = $event"
+                @submit="handleAuthSubmit"
+                @logout="handleLogout"
+              />
+            </div>
+          </DockDirectory>
+        </aside>
       </section>
-
-      <UtilityModal
-        :visible="isBoardPanelOpen"
-        variant="board"
-        :eyebrow="getTexts(language).boardDockTitle"
-        :title="getTexts(language).boardStatus"
-        :description="getTexts(language).boardDockCopy"
-        :close-label="getTexts(language).closePanel"
-        @close="closeUtilityPanel"
-      >
-        <div class="utility-grid utility-grid-board">
-          <SetupPanel
-            :language="language"
-            :player-count="selectedPlayerCount"
-            :grid-size="selectedGridSize"
-            :settings-locked="settingsLocked"
-            :busy="networkBusy"
-            @update:language="language = $event"
-            @update:player-count="selectedPlayerCount = $event"
-            @update:grid-size="selectedGridSize = $event"
-          />
-
-          <div class="utility-stack">
-            <ScorePanel
-              :game-state="gameState"
-              :session="session"
-              :language="language"
-              :status-text="statusText"
-            />
-
-            <ControlPanel
-              :language="language"
-              :skip-disabled="skipDisabled"
-              :reset-disabled="resetDisabled"
-              :concede-disabled="concedeDisabled"
-              :show-concede="showConcede"
-              :countdown-text="countdownText"
-              :skip-notice="skipNoticeText"
-              :reset-label="resetLabel"
-              :help-text="controlsHelpText"
-              @skip="handleSkip"
-              @reset="handleReset"
-              @concede="handleConcede"
-            />
-          </div>
-        </div>
-      </UtilityModal>
-
-      <UtilityModal
-        :visible="isNetworkPanelOpen"
-        variant="network"
-        :eyebrow="getTexts(language).networkDockTitle"
-        :title="getTexts(language).onlineMatch"
-        :description="getTexts(language).networkDockCopy"
-        :close-label="getTexts(language).closePanel"
-        @close="closeUtilityPanel"
-      >
-        <div class="utility-stack">
-          <RoomPanel
-            :language="language"
-            :server-url="serverUrl"
-            :room-id="roomIdInput"
-            :connection-state="connectionState"
-            :room-status="roomStatus"
-            :session="session"
-            :network-error="networkError"
-            :authenticated="isAuthenticated"
-            :busy="networkBusy"
-            :room-info="roomInfo"
-            :is-host="isHost"
-            :local-ready="localReady"
-            :ready-disabled="readyDisabled"
-            :starter-locked="starterLocked"
-            :start-player="selectedStartPlayer"
-            :starter-options="starterOptions"
-            :show-close-prompt="showClosePrompt"
-            @update:server-url="serverUrl = $event"
-            @update:room-id="roomIdInput = $event"
-            @connect="handleConnect"
-            @create-room="handleCreateRoom"
-            @join-room="handleJoinRoom"
-            @leave-room="handleLeaveRoom"
-            @toggle-ready="handleToggleReady"
-            @update:start-player="handleStartPlayerChange"
-            @close-prompt="handleClosePrompt"
-          />
-
-          <AuthPanel
-            :language="language"
-            :auth="auth"
-            :mode="authMode"
-            :username="authUsername"
-            :password="authPassword"
-            :busy="authBusy"
-            :error="authError"
-            :feedback-tone="authFeedbackTone"
-            @update:mode="authMode = $event"
-            @update:username="authUsername = $event"
-            @update:password="authPassword = $event"
-            @submit="handleAuthSubmit"
-            @logout="handleLogout"
-          />
-        </div>
-      </UtilityModal>
 
       <ResultModal
         :language="language"
