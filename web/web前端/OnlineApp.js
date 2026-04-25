@@ -24,7 +24,7 @@ import {
   getTexts as getAppTexts,
   getNextPlayer as getAppNextPlayer,
   localizeErrorMessage as localizeAppErrorMessage,
-} from "./OnlineAppI18n.js?v=20260421c";
+} from "./OnlineAppI18n.js?v=20260425a";
 
 const {
   computed,
@@ -265,68 +265,64 @@ const SetupPanel = {
     };
   },
   template: `
-    <section class="panel panel-setup panel-sidebar-card">
-      <details class="sidebar-details" open>
-        <summary class="sidebar-summary">
-          <div class="panel-head panel-head-compact">
-            <p class="eyebrow">{{ texts.setupLabel || '对局设置' }}</p>
-            <h2>{{ texts.setupLabel || '对局设置' }}</h2>
-          </div>
-          <span class="sidebar-summary-badge" v-if="settingsLocked">{{ texts.lockedLabel || '已锁定' }}</span>
-        </summary>
+    <section class="panel panel-setup modal-panel">
+      <div class="panel-head panel-head-inline">
+        <div>
+          <p class="eyebrow">{{ texts.setupLabel || '对局设置' }}</p>
+          <h2>{{ texts.setupLabel || '对局设置' }}</h2>
+        </div>
+        <span class="panel-head-badge" v-if="settingsLocked">{{ texts.lockedLabel || '已锁定' }}</span>
+      </div>
 
-        <div class="sidebar-body">
-          <div class="settings-cluster settings-cluster-standalone">
-            <div class="settings-grid">
-              <div>
-                <label class="field-label">{{ texts.languageLabel || '语言' }}</label>
-                <div id="language-select" class="language-switcher language-switcher-inline" role="group" :aria-label="texts.languageLabel">
-                  <button
-                    class="language-button"
-                    :class="{ 'is-active': language === 'zh' }"
-                    :disabled="busy"
-                    @click="$emit('update:language', 'zh')"
-                  >
-                    中文
-                  </button>
-                  <button
-                    class="language-button"
-                    :class="{ 'is-active': language === 'en' }"
-                    :disabled="busy"
-                    @click="$emit('update:language', 'en')"
-                  >
-                    English
-                  </button>
-                </div>
-              </div>
-              <div>
-                <label class="field-label" for="player-count">{{ texts.playerCountLabel || '玩家人数' }}</label>
-                <select
-                  id="player-count"
-                  class="input-field input-field-compact"
-                  :value="playerCount"
-                  :disabled="busy || settingsLocked"
-                  @change="$emit('update:player-count', Number($event.target.value))"
-                >
-                  <option v-for="count in PLAYER_COUNT_OPTIONS" :key="count" :value="count">{{ count }}</option>
-                </select>
-              </div>
-              <div>
-                <label class="field-label" for="grid-size">{{ texts.gridSizeLabel || '棋盘边长' }}</label>
-                <select
-                  id="grid-size"
-                  class="input-field input-field-compact"
-                  :value="gridSize"
-                  :disabled="busy || settingsLocked"
-                  @change="$emit('update:grid-size', Number($event.target.value))"
-                >
-                  <option v-for="size in GRID_SIZE_OPTIONS" :key="size" :value="size">{{ size }}</option>
-                </select>
-              </div>
+      <div class="settings-cluster settings-cluster-standalone">
+        <div class="settings-grid">
+          <div>
+            <label class="field-label">{{ texts.languageLabel || '语言' }}</label>
+            <div id="language-select" class="language-switcher language-switcher-inline" role="group" :aria-label="texts.languageLabel">
+              <button
+                class="language-button"
+                :class="{ 'is-active': language === 'zh' }"
+                :disabled="busy"
+                @click="$emit('update:language', 'zh')"
+              >
+                中文
+              </button>
+              <button
+                class="language-button"
+                :class="{ 'is-active': language === 'en' }"
+                :disabled="busy"
+                @click="$emit('update:language', 'en')"
+              >
+                English
+              </button>
             </div>
           </div>
+          <div>
+            <label class="field-label" for="player-count">{{ texts.playerCountLabel || '玩家人数' }}</label>
+            <select
+              id="player-count"
+              class="input-field input-field-compact"
+              :value="playerCount"
+              :disabled="busy || settingsLocked"
+              @change="$emit('update:player-count', Number($event.target.value))"
+            >
+              <option v-for="count in PLAYER_COUNT_OPTIONS" :key="count" :value="count">{{ count }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label" for="grid-size">{{ texts.gridSizeLabel || '棋盘边长' }}</label>
+            <select
+              id="grid-size"
+              class="input-field input-field-compact"
+              :value="gridSize"
+              :disabled="busy || settingsLocked"
+              @change="$emit('update:grid-size', Number($event.target.value))"
+            >
+              <option v-for="size in GRID_SIZE_OPTIONS" :key="size" :value="size">{{ size }}</option>
+            </select>
+          </div>
         </div>
-      </details>
+      </div>
     </section>
   `,
 };
@@ -384,83 +380,79 @@ const AuthPanel = {
     };
   },
   template: `
-    <section class="panel panel-auth panel-sidebar-card">
-      <details class="sidebar-details">
-        <summary class="sidebar-summary">
-          <div class="panel-head panel-head-compact">
-            <p class="eyebrow">{{ texts.authEyebrow }}</p>
-            <h2>{{ texts.authTitle }}</h2>
-          </div>
-          <span class="sidebar-summary-badge" v-if="isAuthenticated">{{ auth.username }}</span>
-        </summary>
-
-        <div class="sidebar-body">
-          <template v-if="isAuthenticated">
-            <div class="auth-welcome">
-              <p class="auth-welcome-label">{{ texts.authLoggedIn }}</p>
-              <strong>{{ auth.username }}</strong>
-              <p class="help-copy auth-help">{{ texts.authRequired }}</p>
-            </div>
-
-            <div class="actions">
-              <button class="action-button action-button-ghost" :disabled="busy" @click="$emit('logout')">
-                {{ texts.authLogout }}
-              </button>
-            </div>
-          </template>
-
-          <template v-else>
-            <div class="auth-tabs" role="tablist" :aria-label="texts.authTitle">
-              <button
-                class="language-button auth-tab"
-                :class="{ 'is-active': mode === 'login' }"
-                :disabled="busy"
-                @click="$emit('update:mode', 'login')"
-              >
-                {{ texts.authLoginTab }}
-              </button>
-              <button
-                class="language-button auth-tab"
-                :class="{ 'is-active': mode === 'register' }"
-                :disabled="busy"
-                @click="$emit('update:mode', 'register')"
-              >
-                {{ texts.authRegisterTab }}
-              </button>
-            </div>
-
-            <label class="field-label" for="auth-username">{{ texts.authUsername }}</label>
-            <input
-              id="auth-username"
-              class="input-field"
-              autocomplete="username"
-              :value="username"
-              :disabled="busy"
-              @input="$emit('update:username', $event.target.value)"
-            />
-
-            <label class="field-label" for="auth-password">{{ texts.authPassword }}</label>
-            <input
-              id="auth-password"
-              class="input-field"
-              type="password"
-              autocomplete="current-password"
-              :value="password"
-              :disabled="busy"
-              @input="$emit('update:password', $event.target.value)"
-              @keydown.enter="$emit('submit')"
-            />
-
-            <div class="actions">
-              <button class="action-button action-button-primary" :disabled="busy" @click="$emit('submit')">
-                {{ mode === 'login' ? texts.authLoginAction : texts.authRegisterAction }}
-              </button>
-            </div>
-          </template>
-
-          <p v-if="error" :class="feedbackTone === 'success' ? 'success-copy' : 'error-copy'">{{ error }}</p>
+    <section class="panel panel-auth modal-panel">
+      <div class="panel-head panel-head-inline">
+        <div>
+          <p class="eyebrow">{{ texts.authEyebrow }}</p>
+          <h2>{{ texts.authTitle }}</h2>
         </div>
-      </details>
+        <span class="panel-head-badge" v-if="isAuthenticated">{{ auth.username }}</span>
+      </div>
+
+      <template v-if="isAuthenticated">
+        <div class="auth-welcome">
+          <p class="auth-welcome-label">{{ texts.authLoggedIn }}</p>
+          <strong>{{ auth.username }}</strong>
+          <p class="help-copy auth-help">{{ texts.authRequired }}</p>
+        </div>
+
+        <div class="actions">
+          <button class="action-button action-button-ghost" :disabled="busy" @click="$emit('logout')">
+            {{ texts.authLogout }}
+          </button>
+        </div>
+      </template>
+
+      <template v-else>
+        <div class="auth-tabs" role="tablist" :aria-label="texts.authTitle">
+          <button
+            class="language-button auth-tab"
+            :class="{ 'is-active': mode === 'login' }"
+            :disabled="busy"
+            @click="$emit('update:mode', 'login')"
+          >
+            {{ texts.authLoginTab }}
+          </button>
+          <button
+            class="language-button auth-tab"
+            :class="{ 'is-active': mode === 'register' }"
+            :disabled="busy"
+            @click="$emit('update:mode', 'register')"
+          >
+            {{ texts.authRegisterTab }}
+          </button>
+        </div>
+
+        <label class="field-label" for="auth-username">{{ texts.authUsername }}</label>
+        <input
+          id="auth-username"
+          class="input-field"
+          autocomplete="username"
+          :value="username"
+          :disabled="busy"
+          @input="$emit('update:username', $event.target.value)"
+        />
+
+        <label class="field-label" for="auth-password">{{ texts.authPassword }}</label>
+        <input
+          id="auth-password"
+          class="input-field"
+          type="password"
+          autocomplete="current-password"
+          :value="password"
+          :disabled="busy"
+          @input="$emit('update:password', $event.target.value)"
+          @keydown.enter="$emit('submit')"
+        />
+
+        <div class="actions">
+          <button class="action-button action-button-primary" :disabled="busy" @click="$emit('submit')">
+            {{ mode === 'login' ? texts.authLoginAction : texts.authRegisterAction }}
+          </button>
+        </div>
+      </template>
+
+      <p v-if="error" :class="feedbackTone === 'success' ? 'success-copy' : 'error-copy'">{{ error }}</p>
     </section>
   `,
 };
@@ -565,128 +557,124 @@ const RoomPanel = {
     };
   },
   template: `
-    <section class="panel panel-network panel-sidebar-card">
-      <details class="sidebar-details" open>
-        <summary class="sidebar-summary">
-          <div class="panel-head panel-head-compact">
-            <p class="eyebrow">{{ texts.onlineEyebrow }}</p>
-            <h2>{{ texts.onlineMatch }}</h2>
-          </div>
-          <span class="sidebar-summary-badge">{{ roomStatusLabel }}</span>
-        </summary>
-
-        <div class="sidebar-body">
-          <label class="field-label" for="server-url">{{ texts.serverAddress }}</label>
-          <input
-            id="server-url"
-            class="input-field"
-            :value="serverUrl"
-            :disabled="busy"
-            @input="$emit('update:server-url', $event.target.value)"
-          />
-
-          <label class="field-label" for="room-id">{{ texts.roomId }}</label>
-          <input
-            id="room-id"
-            class="input-field"
-            maxlength="4"
-            :placeholder="texts.roomPlaceholder"
-            :value="roomId"
-            :disabled="busy"
-            @input="$emit('update:room-id', $event.target.value)"
-          />
-
-          <div class="actions actions-stack">
-            <button class="action-button action-button-primary" :disabled="busy || !authenticated" @click="$emit('connect')">
-              {{ texts.connectServer }}
-            </button>
-            <button class="action-button action-button-secondary" :disabled="busy || !authenticated" @click="$emit('create-room')">
-              {{ texts.createRoom }}
-            </button>
-            <button class="action-button action-button-secondary" :disabled="busy || !authenticated" @click="$emit('join-room')">
-              {{ texts.joinRoom }}
-            </button>
-            <button class="action-button action-button-ghost" :disabled="busy || !authenticated || !session.roomId" @click="$emit('leave-room')">
-              {{ texts.leaveRoom }}
-            </button>
-          </div>
-
-          <div class="room-lobby" v-if="session.roomId">
-            <div class="panel-subhead">
-              <p class="eyebrow">{{ texts.roomLobby }}</p>
-              <h3>{{ texts.roomPlayers }}</h3>
-            </div>
-
-            <div class="status-pill-row room-action-row">
-              <button
-                class="action-button action-button-primary"
-                :disabled="readyDisabled"
-                @click="$emit('toggle-ready', !localReady)"
-              >
-                {{ localReady ? texts.cancelReadyAction : texts.readyAction }}
-              </button>
-              <button
-                v-if="showClosePrompt"
-                class="action-button action-button-ghost"
-                :disabled="busy"
-                @click="$emit('close-prompt')"
-              >
-                {{ texts.closePrompt }}
-              </button>
-            </div>
-
-            <div class="room-player-list">
-              <article v-for="player in roomPlayers" :key="player.playerId" class="room-player-card">
-                <div>
-                  <strong>{{ formatPlayerName(player.color, language) }}</strong>
-                  <span class="room-player-meta" v-if="player.playerId === session.playerId">{{ texts.roomYou }}</span>
-                  <span class="room-player-meta" v-if="player.isHost">{{ texts.roomHost }}</span>
-                </div>
-                <span
-                  class="status-pill"
-                  :class="player.connected ? (player.ready ? 'status-pill-success' : 'status-pill-warn') : 'status-pill-muted'"
-                >
-                  {{ player.connected ? (player.ready ? texts.roomReadyTag : texts.roomIdleTag) : texts.roomOfflineTag }}
-                </span>
-              </article>
-            </div>
-
-            <div v-if="isHost" class="host-controls">
-              <div class="panel-subhead">
-                <p class="eyebrow">{{ texts.roomControls }}</p>
-                <h3>{{ texts.starterLabel }}</h3>
-              </div>
-              <label class="field-label" for="room-starter">{{ texts.starterLabel }}</label>
-              <select
-                id="room-starter"
-                class="input-field input-field-compact"
-                :value="startPlayer"
-                :disabled="starterLocked"
-                @change="$emit('update:start-player', $event.target.value)"
-              >
-                <option v-for="option in starterOptions" :key="option.value" :value="option.value">
-                  {{ option.label }}
-                </option>
-              </select>
-            </div>
-          </div>
-
-          <div class="network-meta">
-            <div class="status-pill-row">
-              <span class="status-pill">{{ connectionLabel }}</span>
-              <span class="status-pill">{{ roomStatusLabel }}</span>
-              <span class="status-pill" v-if="session.color">{{ roleLabel }}</span>
-            </div>
-            <p class="help-copy room-copy">
-              {{ texts.roomLabel }}: <strong>{{ session.roomId || "--" }}</strong><br />
-              {{ texts.playerLabel }}: <strong>{{ session.playerId || "--" }}</strong>
-            </p>
-          </div>
-
-          <p v-if="networkError" class="error-copy">{{ networkError }}</p>
-          <p v-else-if="!authenticated" class="help-copy">{{ texts.authRequired }}</p>
+    <section class="panel panel-network modal-panel">
+      <div class="panel-head panel-head-inline">
+        <div>
+          <p class="eyebrow">{{ texts.onlineEyebrow }}</p>
+          <h2>{{ texts.onlineMatch }}</h2>
         </div>
-      </details>
+        <span class="panel-head-badge">{{ roomStatusLabel }}</span>
+      </div>
+
+      <label class="field-label" for="server-url">{{ texts.serverAddress }}</label>
+      <input
+        id="server-url"
+        class="input-field"
+        :value="serverUrl"
+        :disabled="busy"
+        @input="$emit('update:server-url', $event.target.value)"
+      />
+
+      <label class="field-label" for="room-id">{{ texts.roomId }}</label>
+      <input
+        id="room-id"
+        class="input-field"
+        maxlength="4"
+        :placeholder="texts.roomPlaceholder"
+        :value="roomId"
+        :disabled="busy"
+        @input="$emit('update:room-id', $event.target.value)"
+      />
+
+      <div class="actions actions-stack">
+        <button class="action-button action-button-primary" :disabled="busy || !authenticated" @click="$emit('connect')">
+          {{ texts.connectServer }}
+        </button>
+        <button class="action-button action-button-secondary" :disabled="busy || !authenticated" @click="$emit('create-room')">
+          {{ texts.createRoom }}
+        </button>
+        <button class="action-button action-button-secondary" :disabled="busy || !authenticated" @click="$emit('join-room')">
+          {{ texts.joinRoom }}
+        </button>
+        <button class="action-button action-button-ghost" :disabled="busy || !authenticated || !session.roomId" @click="$emit('leave-room')">
+          {{ texts.leaveRoom }}
+        </button>
+      </div>
+
+      <div class="room-lobby" v-if="session.roomId">
+        <div class="panel-subhead">
+          <p class="eyebrow">{{ texts.roomLobby }}</p>
+          <h3>{{ texts.roomPlayers }}</h3>
+        </div>
+
+        <div class="status-pill-row room-action-row">
+          <button
+            class="action-button action-button-primary"
+            :disabled="readyDisabled"
+            @click="$emit('toggle-ready', !localReady)"
+          >
+            {{ localReady ? texts.cancelReadyAction : texts.readyAction }}
+          </button>
+          <button
+            v-if="showClosePrompt"
+            class="action-button action-button-ghost"
+            :disabled="busy"
+            @click="$emit('close-prompt')"
+          >
+            {{ texts.closePrompt }}
+          </button>
+        </div>
+
+        <div class="room-player-list">
+          <article v-for="player in roomPlayers" :key="player.playerId" class="room-player-card">
+            <div>
+              <strong>{{ formatPlayerName(player.color, language) }}</strong>
+              <span class="room-player-meta" v-if="player.playerId === session.playerId">{{ texts.roomYou }}</span>
+              <span class="room-player-meta" v-if="player.isHost">{{ texts.roomHost }}</span>
+            </div>
+            <span
+              class="status-pill"
+              :class="player.connected ? (player.ready ? 'status-pill-success' : 'status-pill-warn') : 'status-pill-muted'"
+            >
+              {{ player.connected ? (player.ready ? texts.roomReadyTag : texts.roomIdleTag) : texts.roomOfflineTag }}
+            </span>
+          </article>
+        </div>
+
+        <div v-if="isHost" class="host-controls">
+          <div class="panel-subhead">
+            <p class="eyebrow">{{ texts.roomControls }}</p>
+            <h3>{{ texts.starterLabel }}</h3>
+          </div>
+          <label class="field-label" for="room-starter">{{ texts.starterLabel }}</label>
+          <select
+            id="room-starter"
+            class="input-field input-field-compact"
+            :value="startPlayer"
+            :disabled="starterLocked"
+            @change="$emit('update:start-player', $event.target.value)"
+          >
+            <option v-for="option in starterOptions" :key="option.value" :value="option.value">
+              {{ option.label }}
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <div class="network-meta">
+        <div class="status-pill-row">
+          <span class="status-pill">{{ connectionLabel }}</span>
+          <span class="status-pill">{{ roomStatusLabel }}</span>
+          <span class="status-pill" v-if="session.color">{{ roleLabel }}</span>
+        </div>
+        <p class="help-copy room-copy">
+          {{ texts.roomLabel }}: <strong>{{ session.roomId || "--" }}</strong><br />
+          {{ texts.playerLabel }}: <strong>{{ session.playerId || "--" }}</strong>
+        </p>
+      </div>
+
+      <p v-if="networkError" class="error-copy">{{ networkError }}</p>
+      <p v-else-if="!authenticated" class="help-copy">{{ texts.authRequired }}</p>
     </section>
   `,
 };
@@ -858,6 +846,76 @@ const ResultModal = {
   `,
 };
 
+const UtilityModal = {
+  name: "UtilityModal",
+  emits: ["close"],
+  props: {
+    visible: {
+      type: Boolean,
+      default: false,
+    },
+    variant: {
+      type: String,
+      default: "board",
+    },
+    eyebrow: {
+      type: String,
+      default: "",
+    },
+    title: {
+      type: String,
+      default: "",
+    },
+    description: {
+      type: String,
+      default: "",
+    },
+    closeLabel: {
+      type: String,
+      default: "",
+    },
+  },
+  template: `
+    <transition :name="variant === 'network' ? 'drawer' : 'fade-up'">
+      <div
+        v-if="visible"
+        class="utility-overlay"
+        :class="'utility-overlay-' + variant"
+        @click.self="$emit('close')"
+      >
+        <section
+          class="utility-modal"
+          :class="'utility-modal-' + variant"
+          role="dialog"
+          aria-modal="true"
+          :aria-label="title"
+        >
+          <header class="utility-header">
+            <div class="panel-head panel-head-inline utility-head-copy">
+              <div>
+                <p class="eyebrow">{{ eyebrow }}</p>
+                <h2>{{ title }}</h2>
+              </div>
+            </div>
+            <button
+              class="utility-close"
+              type="button"
+              :aria-label="closeLabel || title"
+              @click="$emit('close')"
+            >
+              <span aria-hidden="true">×</span>
+            </button>
+          </header>
+          <p v-if="description" class="utility-description">{{ description }}</p>
+          <div class="utility-body">
+            <slot></slot>
+          </div>
+        </section>
+      </div>
+    </transition>
+  `,
+};
+
 const BoardCanvas = {
   name: "BoardCanvas",
   props: {
@@ -901,7 +959,7 @@ const BoardCanvas = {
     };
   },
   template: `
-    <section class="board-shell panel">
+    <section class="board-shell panel panel-board-focus">
       <div class="panel-head">
         <p class="eyebrow">{{ texts.boardEyebrow }}</p>
         <h2>{{ texts.boardTitle }}</h2>
@@ -924,6 +982,7 @@ const App = {
     RoomPanel,
     ScorePanel,
     SetupPanel,
+    UtilityModal,
   },
   setup() {
     const storedAuth = loadAppStoredAuth();
@@ -956,6 +1015,7 @@ const App = {
     const overlayResult = ref(null);
     const resultModalDismissed = ref(false);
     const turnCountdown = ref(TURN_COUNTDOWN_SECONDS);
+    const activeUtilityPanel = ref("");
     const unsubscribers = [];
     let reconnectTimerId = null;
     let turnCountdownTimerId = null;
@@ -1050,6 +1110,14 @@ const App = {
       authFeedbackTone.value = "error";
     };
 
+    const openUtilityPanel = (panelName) => {
+      activeUtilityPanel.value = panelName;
+    };
+
+    const closeUtilityPanel = () => {
+      activeUtilityPanel.value = "";
+    };
+
     const handleAuthError = (error) => {
       authFeedbackTone.value = "error";
       authError.value = localizeAppErrorMessage(error?.message ?? String(error), language.value);
@@ -1057,6 +1125,22 @@ const App = {
 
     const isAuthenticated = computed(() => Boolean(auth.value.token && auth.value.username));
     const isHost = computed(() => Boolean(session.value.playerId && roomInfo.value.hostPlayerId === session.value.playerId));
+    const isBoardPanelOpen = computed(() => activeUtilityPanel.value === "board");
+    const isNetworkPanelOpen = computed(() => activeUtilityPanel.value === "network");
+    const connectionStateLabel = computed(() => formatAppConnectionState(connectionState.value, language.value));
+    const roomStatusLabel = computed(() => formatAppConnectionState(roomStatus.value, language.value));
+    const boardPanelBadge = computed(() => `${selectedPlayerCount.value}P / ${selectedGridSize.value}`);
+    const networkPanelBadge = computed(() => {
+      if (session.value.roomId) {
+        return `#${session.value.roomId}`;
+      }
+
+      if (auth.value.username) {
+        return auth.value.username;
+      }
+
+      return connectionStateLabel.value;
+    });
     const localReady = computed(() => {
       return Boolean(
         session.value.playerId
@@ -1680,6 +1764,12 @@ const App = {
     const starterLocked = computed(() => !isHost.value || networkBusy.value || roomStatus.value === "ready" || roomStatus.value === "countdown");
     const showClosePrompt = computed(() => Boolean(overlayResult.value || (gameState.value.gameOver && !resultModalDismissed.value)));
 
+    watch(showClosePrompt, (visible) => {
+      if (visible) {
+        closeUtilityPanel();
+      }
+    });
+
     const resetLabel = computed(() => {
       const texts = getAppTexts(language.value);
       if (roomStatus.value === "solo") {
@@ -1719,6 +1809,25 @@ const App = {
     const resultResetAllowed = computed(() => {
       return !resetDisabled.value;
     });
+
+    watch([activeUtilityPanel, showClosePrompt], ([panelName, promptVisible]) => {
+      document.body.classList.toggle("modal-open", Boolean(panelName || promptVisible));
+    }, { immediate: true });
+
+    const handleEscapeKeydown = (event) => {
+      if (event.key !== "Escape") {
+        return;
+      }
+
+      if (showClosePrompt.value) {
+        handleClosePrompt();
+        return;
+      }
+
+      if (activeUtilityPanel.value) {
+        closeUtilityPanel();
+      }
+    };
 
     const handleResultAction = async () => {
       if (overlayResult.value) {
@@ -1855,6 +1964,8 @@ const App = {
     onBeforeUnmount(() => {
       clearReconnectTimer();
       clearTurnCountdown();
+      document.body.classList.remove("modal-open");
+      globalThis.removeEventListener("keydown", handleEscapeKeydown);
       for (const unsubscribe of unsubscribers) {
         if (typeof unsubscribe === "function") {
           unsubscribe();
@@ -1864,6 +1975,7 @@ const App = {
     });
 
     onMounted(() => {
+      globalThis.addEventListener("keydown", handleEscapeKeydown);
       if (storedAuth.token && storedSession.roomId && storedSession.playerId && storedSession.url) {
         roomStatus.value = "offline";
         void attemptReconnect();
@@ -1878,11 +1990,20 @@ const App = {
       authMode,
       authPassword,
       authUsername,
+      activeUtilityPanel,
+      boardPanelBadge,
+      closeUtilityPanel,
+      connectionStateLabel,
       controller,
       gameState,
       getTexts: getAppTexts,
       isAuthenticated,
+      isBoardPanelOpen,
+      isNetworkPanelOpen,
       language,
+      networkPanelBadge,
+      openUtilityPanel,
+      roomStatusLabel,
       serverUrl,
       roomIdInput,
       selectedPlayerCount,
@@ -1931,20 +2052,96 @@ const App = {
     };
   },
   template: `
-    <main class="app-shell">
-      <section class="hero">
-        <div>
-          <p class="eyebrow">Vue 3 + Canvas + WebSocket</p>
+    <main class="app-shell app-shell-focus">
+      <button
+        class="edge-trigger edge-trigger-board"
+        :class="{ 'is-active': isBoardPanelOpen }"
+        type="button"
+        @click="isBoardPanelOpen ? closeUtilityPanel() : openUtilityPanel('board')"
+      >
+        <span class="edge-trigger-icon edge-trigger-icon-triangle" aria-hidden="true">
+          <span class="triangle-glyph"></span>
+        </span>
+        <span class="edge-trigger-copy">
+          <strong>{{ getTexts(language).boardDockTitle }}</strong>
+          <small>{{ getTexts(language).boardDockCopy }}</small>
+        </span>
+        <span class="edge-trigger-badge">{{ boardPanelBadge }}</span>
+      </button>
+
+      <button
+        class="edge-trigger edge-trigger-network"
+        :class="{ 'is-active': isNetworkPanelOpen }"
+        type="button"
+        @click="isNetworkPanelOpen ? closeUtilityPanel() : openUtilityPanel('network')"
+      >
+        <span class="edge-trigger-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <path d="M19.43 12.98c.04-.32.07-.65.07-.98s-.03-.66-.08-.98l2.11-1.65a.5.5 0 0 0 .12-.64l-2-3.46a.5.5 0 0 0-.6-.22l-2.49 1a7.2 7.2 0 0 0-1.69-.98l-.38-2.65A.5.5 0 0 0 14 1h-4a.5.5 0 0 0-.49.42l-.38 2.65c-.61.24-1.18.56-1.69.98l-2.49-1a.5.5 0 0 0-.6.22l-2 3.46a.5.5 0 0 0 .12.64l2.11 1.65c-.05.32-.08.65-.08.98s.03.66.08.98L2.47 14.63a.5.5 0 0 0-.12.64l2 3.46a.5.5 0 0 0 .6.22l2.49-1c.51.42 1.08.74 1.69.98l.38 2.65A.5.5 0 0 0 10 23h4a.5.5 0 0 0 .49-.42l.38-2.65c.61-.24 1.18-.56 1.69-.98l2.49 1a.5.5 0 0 0 .6-.22l2-3.46a.5.5 0 0 0-.12-.64l-2.1-1.65ZM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5Z" />
+          </svg>
+        </span>
+        <span class="edge-trigger-copy">
+          <strong>{{ getTexts(language).networkDockTitle }}</strong>
+          <small>{{ getTexts(language).networkDockCopy }}</small>
+        </span>
+        <span class="edge-trigger-badge">{{ networkPanelBadge }}</span>
+      </button>
+
+      <section class="hero hero-focus">
+        <div class="hero-card">
+          <p class="eyebrow">{{ getTexts(language).stageFocusEyebrow }}</p>
           <h1>{{ getTexts(language).heroTitle }}</h1>
           <p class="hero-copy">
             {{ getTexts(language).heroCopy }}
           </p>
+          <div class="hero-pills">
+            <span class="status-pill status-pill-live">{{ countdownText }}</span>
+            <span class="status-pill">{{ connectionStateLabel }}</span>
+            <span class="status-pill">{{ roomStatusLabel }}</span>
+          </div>
         </div>
       </section>
 
-      <section class="workspace">
-        <section class="main-stage">
-          <div class="status-column">
+      <section class="workspace workspace-focus">
+        <section class="main-stage main-stage-focus">
+          <article class="focus-brief panel">
+            <div class="panel-head panel-head-compact">
+              <p class="eyebrow">{{ getTexts(language).statusLabel }}</p>
+            </div>
+            <p class="status-copy">{{ statusText }}</p>
+          </article>
+
+          <BoardCanvas
+            :language="language"
+            :hint-text="boardHint"
+            @controller-ready="handleControllerReady"
+            @state-change="handleStateChange"
+          />
+        </section>
+      </section>
+
+      <UtilityModal
+        :visible="isBoardPanelOpen"
+        variant="board"
+        :eyebrow="getTexts(language).boardDockTitle"
+        :title="getTexts(language).boardStatus"
+        :description="getTexts(language).boardDockCopy"
+        :close-label="getTexts(language).closePanel"
+        @close="closeUtilityPanel"
+      >
+        <div class="utility-grid utility-grid-board">
+          <SetupPanel
+            :language="language"
+            :player-count="selectedPlayerCount"
+            :grid-size="selectedGridSize"
+            :settings-locked="settingsLocked"
+            :busy="networkBusy"
+            @update:language="language = $event"
+            @update:player-count="selectedPlayerCount = $event"
+            @update:grid-size="selectedGridSize = $event"
+          />
+
+          <div class="utility-stack">
             <ScorePanel
               :game-state="gameState"
               :session="session"
@@ -1967,27 +2164,19 @@ const App = {
               @concede="handleConcede"
             />
           </div>
+        </div>
+      </UtilityModal>
 
-          <BoardCanvas
-            :language="language"
-            :hint-text="boardHint"
-            @controller-ready="handleControllerReady"
-            @state-change="handleStateChange"
-          />
-        </section>
-
-        <aside class="sidebar">
-          <SetupPanel
-            :language="language"
-            :player-count="selectedPlayerCount"
-            :grid-size="selectedGridSize"
-            :settings-locked="settingsLocked"
-            :busy="networkBusy"
-            @update:language="language = $event"
-            @update:player-count="selectedPlayerCount = $event"
-            @update:grid-size="selectedGridSize = $event"
-          />
-
+      <UtilityModal
+        :visible="isNetworkPanelOpen"
+        variant="network"
+        :eyebrow="getTexts(language).networkDockTitle"
+        :title="getTexts(language).onlineMatch"
+        :description="getTexts(language).networkDockCopy"
+        :close-label="getTexts(language).closePanel"
+        @close="closeUtilityPanel"
+      >
+        <div class="utility-stack">
           <RoomPanel
             :language="language"
             :server-url="serverUrl"
@@ -2032,8 +2221,8 @@ const App = {
             @submit="handleAuthSubmit"
             @logout="handleLogout"
           />
-        </aside>
-      </section>
+        </div>
+      </UtilityModal>
 
       <ResultModal
         :language="language"

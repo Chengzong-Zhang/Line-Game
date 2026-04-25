@@ -179,59 +179,6 @@ class TriangularGame:
         target_state = PointState.BLACK_LINE if player == Player.BLACK else PointState.WHITE_LINE
         return [pos for pos, state in self.grid.items() if state == target_state]
     
-    def _is_on_segment(self, p: Tuple[int, int], a: Tuple[int, int], b: Tuple[int, int]) -> bool:
-        """检查点 p 是否在线段 ab 上（适用网格坐标）"""
-        cross = (p[1] - a[1]) * (b[0] - a[0]) - (p[0] - a[0]) * (b[1] - a[1])
-        if cross != 0: 
-            return False
-        return min(a[0], b[0]) <= p[0] <= max(a[0], b[0]) and min(a[1], b[1]) <= p[1] <= max(a[1], b[1])
-
-    def _polygon_contains_all(self, polygon: List[Tuple[int, int]], friendlies: set) -> bool:
-        """射线法结合边界检查，确保所有友方点都在多边形内或边界上"""
-        n = len(polygon)
-        if n < 3: 
-            return False
-            
-        for pt in friendlies:
-            if pt in polygon:
-                continue
-                
-            on_boundary = False
-            for i in range(n):
-                if self._is_on_segment(pt, polygon[i], polygon[(i + 1) % n]):
-                    on_boundary = True
-                    break
-            if on_boundary:
-                continue
-                
-            x, y = pt
-            inside = False
-            p1x, p1y = polygon[0]
-            for i in range(1, n + 1):
-                p2x, p2y = polygon[i % n]
-                if y > min(p1y, p2y):
-                    if y <= max(p1y, p2y):
-                        if x <= max(p1x, p2x):
-                            if p1y != p2y:
-                                xinters = (y - p1y) * (p2x - p1x) / (p2y - p1y) + p1x
-                                if p1x == p2x or x <= xinters:
-                                    inside = not inside
-                p1x, p1y = p2x, p2y
-                
-            if not inside:
-                return False
-                
-        return True
-
-    def _calculate_polygon_area(self, polygon: List[Tuple[int, int]]) -> float:
-        """使用斜坐标系下的 Shoelace 公式，返回值恰好等于等边三角形的个数"""
-        area = 0
-        n = len(polygon)
-        for i in range(n):
-            x1, y1 = polygon[i]
-            x2, y2 = polygon[(i + 1) % n]
-            area += (x1 * y2 - x2 * y1)
-        return float(abs(area))
 
     def _get_covered_points(self, polygon: List[Tuple[int, int]]) -> set:
         """泛洪法：从棋盘物理边缘注水，被多边形围住的点即为领土。
@@ -370,40 +317,8 @@ class TriangularGame:
                 return poly + [poly[0]]
             return poly
 
-        # Step 1: 右手摸墙法获取外轮廓（隐式闭合，列表内节点绝对唯一）
-        start_node = min(friendlies, key=lambda p: (p[0], p[1]))
-        DIRS = self._DIRS_CW
-        backtrack = 3
-        current_poly: List[Tuple[int, int]] = []
-        current = start_node
-        first_out_dir = None
-        max_steps = len(friendlies) * 6 + 10
-
-        for _ in range(max_steps):
-            out_dir = None
-            for i in range(6):
-                d = (backtrack + 1 + i) % 6
-                dx, dy = DIRS[d]
-                nxt = (current[0] + dx, current[1] + dy)
-                if nxt in friendlies:
-                    out_dir = d
-                    break
-
-            if out_dir is None:
-                current_poly.append(current)
-                break
-
-            if first_out_dir is None:
-                first_out_dir = out_dir
-                current_poly.append(current)
-            elif current == start_node and out_dir == first_out_dir:
-                break  # 闭合完成，不重复追加起点
-            else:
-                current_poly.append(current)
-
-            dx, dy = DIRS[out_dir]
-            current = (current[0] + dx, current[1] + dy)
-            backtrack = (out_dir + 3) % 6
+        # Step 1: 直接调用封装好的右手摸墙法获取外轮廓
+        current_poly = self._get_outer_contour(player)
 
         if len(current_poly) < 3:
             return None, 0.0
