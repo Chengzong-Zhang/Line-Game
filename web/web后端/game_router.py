@@ -10,6 +10,7 @@ game_router.py — 三角网格圈地博弈 FastAPI 路由
 
 from __future__ import annotations
 
+import hashlib
 import uuid
 from collections import deque
 from enum import Enum
@@ -94,6 +95,15 @@ class GameStateResponse(BaseModel):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# 自定义异常
+# ─────────────────────────────────────────────────────────────────────────────
+
+class SuperkoViolationError(Exception):
+    """落子后局面哈希已存在于历史记录中，触发全局同形再现禁手（Superko Rule）。"""
+    pass
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # 无渲染纯逻辑游戏引擎
 # （从 triangular_game.py 剥离 pygame 依赖后的后端专用版本）
 # ─────────────────────────────────────────────────────────────────────────────
@@ -124,9 +134,15 @@ class HeadlessGameEngine:
         self._hull_black: Tuple[Set[Tuple[int, int]], int] = (set(), 0)
         self._hull_white: Tuple[Set[Tuple[int, int]], int] = (set(), 0)
 
+        # 全局同形再现禁手：记录历史局面哈希，防止打劫循环
+        self.history_hashes: Set[str] = set()
+
         self._init_grid()
         self.grid[(0, 0)] = PointState.BLACK_NODE
         self.grid[(8, 0)] = PointState.WHITE_NODE
+
+        # 将初始局面写入历史，防止任何操作回到起始状态
+        self.history_hashes.add(self._compute_state_hash(PlayerSide.BLACK))
 
     # ── 初始化 ──────────────────────────────────────────────────────────
 
@@ -134,6 +150,31 @@ class HeadlessGameEngine:
         for y in range(self.GRID_SIZE):
             for x in range(self.GRID_SIZE - y):
                 self.grid[(x, y)] = PointState.EMPTY
+
+    # ── 局面哈希（Superko 用）────────────────────────────────────────────
+
+    def _compute_state_hash(self, next_player: PlayerSide) -> str:
+        """将当前棋盘状态 + 即将行棋方序列化为确定性哈希字符串。
+
+        包含：
+        - 所有非空格点的坐标与归属（排序后）
+        - black_edges / white_edges 中的所有连线关系（排序后）
+        - 即将行棋方（即落子方切换后的下一手玩家）
+
+        哈希相等 ⟺ 局面完全相同（全局同形再现禁手判定依据）。
+        """
+        # 网格层：仅序列化非空点，(x, y, state_value) 升序排列
+        grid_entries = sorted(
+            (x, y, state.value)
+            for (x, y), state in self.grid.items()
+            if state != PointState.EMPTY
+        )
+        # 逻辑拓扑层：每条边规范化为 (min_node, max_node)，整体升序排列
+        black_edge_list = sorted(tuple(sorted(e)) for e in self.black_edges)
+        white_edge_list = sorted(tuple(sorted(e)) for e in self.white_edges)
+
+        raw = repr((next_player.value, grid_entries, black_edge_list, white_edge_list))
+        return hashlib.sha256(raw.encode()).hexdigest()
 
     # ── 坐标与邻接 ──────────────────────────────────────────────────────
 
@@ -340,6 +381,11 @@ class HeadlessGameEngine:
         if not is_attack and not self._check_three_point_limitation(pos, self.current_player):
             return False
 
+        # ── 快照当前状态，用于 Superko 违规时回滚 ───────────────────────
+        grid_snapshot = dict(self.grid)
+        black_edges_snapshot = set(self.black_edges)
+        white_edges_snapshot = set(self.white_edges)
+
         node_st = PointState.BLACK_NODE if self.current_player == PlayerSide.BLACK else PointState.WHITE_NODE
         line_st = PointState.BLACK_LINE if self.current_player == PlayerSide.BLACK else PointState.WHITE_LINE
         self.grid[pos] = node_st
@@ -361,6 +407,22 @@ class HeadlessGameEngine:
             return False
 
         self._handle_blocking_attack(pos, self.current_player, original_state)
+
+        # ── Superko 检查：计算结算后（切换玩家前）局面的哈希 ────────────
+        next_player = (PlayerSide.WHITE
+                       if self.current_player == PlayerSide.BLACK
+                       else PlayerSide.BLACK)
+        state_hash = self._compute_state_hash(next_player)
+        if state_hash in self.history_hashes:
+            # 局面重复 → 回滚所有变更，抛出禁手异常
+            self.grid = grid_snapshot
+            self.black_edges = black_edges_snapshot
+            self.white_edges = white_edges_snapshot
+            raise SuperkoViolationError(
+                f"落子 {pos} 导致局面与历史某一手完全相同，触发全局同形再现禁手（Superko Rule）。"
+            )
+
+        self.history_hashes.add(state_hash)
         return True
 
     # ── 回合控制 ─────────────────────────────────────────────────────────
@@ -665,7 +727,14 @@ def make_move(game_id: str, req: MoveRequest) -> GameStateResponse:
     pos = (req.x, req.y)
 
     # 执行落子（引擎内部完成所有结算）
-    success = engine.add_node(pos)
+    try:
+        success = engine.add_node(pos)
+    except SuperkoViolationError as e:
+        return engine.to_state_response(
+            game_id,
+            message=f"SUPERKO_VIOLATION: 落子 ({req.x}, {req.y}) 触发全局同形再现禁手，该手被拒绝。"
+        )
+
     if not success:
         return engine.to_state_response(
             game_id,

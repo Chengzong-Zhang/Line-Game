@@ -1,4 +1,5 @@
 
+import hashlib
 import pygame
 import sys
 import math
@@ -17,6 +18,11 @@ class PointState(Enum):
 class Player(Enum):
     BLACK = 1
     WHITE = 2
+
+class SuperkoViolationError(Exception):
+    """落子后局面哈希已存在于历史记录中，触发全局同形再现禁手（Superko Rule）。"""
+    pass
+
 
 class TriangularGame:
     def __init__(self):
@@ -55,13 +61,19 @@ class TriangularGame:
         # 显式边集合：frozenset({node1, node2})，仅用于连通性判断，渲染仍依赖 self.grid
         self.black_edges: set = set()
         self.white_edges: set = set()
-        
+
+        # 全局同形再现禁手：记录历史局面哈希，防止打劫循环
+        self.history_hashes: set = set()
+
         # Initialize grid points
         self._init_grid()
-        
+
         # Set initial positions
         self.grid[(0, 0)] = PointState.BLACK_NODE
         self.grid[(8, 0)] = PointState.WHITE_NODE
+
+        # 将初始局面写入历史，防止任何操作回到起始状态
+        self.history_hashes.add(self._compute_state_hash(Player.BLACK))
         
         # Skip button
         self.skip_button_rect = pygame.Rect(650, 540, 120, 40)
@@ -84,7 +96,32 @@ class TriangularGame:
         for y in range(self.GRID_SIZE):
             for x in range(self.GRID_SIZE - y):
                 self.grid[(x, y)] = PointState.EMPTY
-    
+
+    # ── 局面哈希（Superko 用）────────────────────────────────────────────
+
+    def _compute_state_hash(self, next_player: Player) -> str:
+        """将当前棋盘状态 + 即将行棋方序列化为确定性哈希字符串。
+
+        包含：
+        - 所有非空格点的坐标与归属（排序后）
+        - black_edges / white_edges 中的所有连线关系（排序后）
+        - 即将行棋方（即落子方切换后的下一手玩家）
+
+        哈希相等 ⟺ 局面完全相同（全局同形再现禁手判定依据）。
+        """
+        # 网格层：仅序列化非空点，(x, y, state_value) 升序排列
+        grid_entries = sorted(
+            (x, y, state.value)
+            for (x, y), state in self.grid.items()
+            if state != PointState.EMPTY
+        )
+        # 逻辑拓扑层：每条边规范化为 (min_node, max_node)，整体升序排列
+        black_edge_list = sorted(tuple(sorted(e)) for e in self.black_edges)
+        white_edge_list = sorted(tuple(sorted(e)) for e in self.white_edges)
+
+        raw = repr((next_player.value, grid_entries, black_edge_list, white_edge_list))
+        return hashlib.sha256(raw.encode()).hexdigest()
+
     def _get_screen_pos(self, grid_x: int, grid_y: int) -> Tuple[int, int]:
         """Convert grid coordinates to screen coordinates"""
         # For triangular grid, each row is offset
@@ -760,16 +797,21 @@ class TriangularGame:
         if not is_attacking_move and not self._check_three_point_limitation(pos, self.current_player):
             return False
         
+        # ── 快照当前状态，用于 Superko 违规时回滚 ───────────────────────
+        grid_snapshot = dict(self.grid)
+        black_edges_snapshot = set(self.black_edges)
+        white_edges_snapshot = set(self.white_edges)
+
         # Set the new node
         node_state = PointState.BLACK_NODE if self.current_player == Player.BLACK else PointState.WHITE_NODE
         line_state = PointState.BLACK_LINE if self.current_player == Player.BLACK else PointState.WHITE_LINE
-        
+
         self.grid[pos] = node_state
-        
+
         # Find all existing nodes of the current player
         existing_nodes = self._get_player_nodes(self.current_player)
         existing_nodes.remove(pos)  # Remove the newly added node
-        
+
         # Check for connections using blocking-aware connection check
         connected = False
         for node_pos in existing_nodes:
@@ -785,15 +827,28 @@ class TriangularGame:
                         self.grid[point] = node_state
                 # 记录显式边
                 self._get_edges(self.current_player).add(frozenset({pos, node_pos}))
-        
+
         if not connected:
             # Revert the node placement if no connection was made
             self.grid[pos] = original_state
             return False
-        
+
         # Handle blocking and elimination after successful placement
         self._handle_blocking_attack(pos, self.current_player, original_state)
 
+        # ── Superko 检查：计算结算后（切换玩家前）局面的哈希 ────────────
+        next_player = Player.WHITE if self.current_player == Player.BLACK else Player.BLACK
+        state_hash = self._compute_state_hash(next_player)
+        if state_hash in self.history_hashes:
+            # 局面重复 → 回滚所有变更，抛出禁手异常
+            self.grid = grid_snapshot
+            self.black_edges = black_edges_snapshot
+            self.white_edges = white_edges_snapshot
+            raise SuperkoViolationError(
+                f"落子 {pos} 导致局面与历史某一手完全相同，触发全局同形再现禁手（Superko Rule）。"
+            )
+
+        self.history_hashes.add(state_hash)
         return True
     
     def _switch_player(self):
@@ -852,11 +907,16 @@ class TriangularGame:
             return
 
         grid_pos = self._get_grid_pos(pos[0], pos[1])
-        if grid_pos and self._add_node(grid_pos):
-            self.consecutive_skips = 0  # Reset skip counter on a real move
-            self._switch_player()
-            self._check_and_auto_skip()
-            self._update_hulls()
+        if grid_pos:
+            try:
+                success = self._add_node(grid_pos)
+            except SuperkoViolationError:
+                success = False  # 全局同形再现禁手：静默拒绝，棋盘状态已由 _add_node 自动回滚
+            if success:
+                self.consecutive_skips = 0  # Reset skip counter on a real move
+                self._switch_player()
+                self._check_and_auto_skip()
+                self._update_hulls()
     
     def draw(self):
         """Draw the game state"""

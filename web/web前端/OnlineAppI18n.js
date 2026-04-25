@@ -4,15 +4,16 @@ import { ALL_PLAYERS } from "./OnlineAppState.js?v=20260421a";
 // 文案、比分格式化和错误提示都集中放在这里，避免 UI 文件里散落大量字符串。
 
 const EN_TEXTS = Object.freeze({
-  pageTitle: "TriAxis Web Arena",
+  pageTitle: "LIFELINE",
   languageLabel: "Language",
-  heroTitle: "TriAxis Web Arena",
+  heroTitle: "LIFELINE",
   heroCopy: "Rules still run in the browser. The FastAPI relay server only creates rooms and forwards match actions.",
   statusLabel: "Match Feed",
   stageFocusEyebrow: "Center Stage",
   boardDockTitle: "Board Deck",
   boardDockCopy: "Setup, status, and local actions",
   networkDockTitle: "Lobby Deck",
+  localShort: "Local",
   networkDockCopy: "Online rooms and account",
   closePanel: "Close Panel",
   boardTitle: "Triangular Board",
@@ -146,15 +147,16 @@ const EN_TEXTS = Object.freeze({
 });
 
 const ZH_TEXTS = Object.freeze({
-  pageTitle: "TriAxis 网页版",
+  pageTitle: "LIFELINE",
   languageLabel: "语言",
-  heroTitle: "TriAxis 网页版",
+  heroTitle: "LIFELINE",
   heroCopy: "规则计算仍在浏览器内完成，FastAPI 中继服务只负责创建房间、同步状态和转发对局操作。",
   statusLabel: "对局播报",
   stageFocusEyebrow: "核心棋盘",
   boardDockTitle: "棋盘舱",
   boardDockCopy: "收纳设置、状态与本地操作",
   networkDockTitle: "联机舱",
+  localShort: "本地",
   networkDockCopy: "收纳联机对局与账号系统",
   closePanel: "关闭面板",
   boardTitle: "三角棋盘",

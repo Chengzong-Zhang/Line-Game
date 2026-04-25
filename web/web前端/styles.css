@@ -88,6 +88,20 @@ body::before {
   min-width: 0;
 }
 
+.stage-heading {
+  padding: 4px 2px 0;
+}
+
+.stage-title {
+  margin: 0;
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: clamp(2.3rem, 4.5vw, 4rem);
+  line-height: 0.92;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #2b2118;
+}
+
 .dock-column {
   display: grid;
   gap: 14px;
@@ -386,7 +400,11 @@ body::before {
 }
 
 .panel-board-focus .canvas-frame {
-  min-height: clamp(440px, 64vh, 760px);
+  width: min(100%, calc((100vh - 230px) * 4 / 3));
+  min-height: 0;
+  max-width: 100%;
+  max-height: calc(100vh - 230px);
+  margin: 0 auto;
   background:
     radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.82), transparent 44%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(232, 217, 190, 0.72));
@@ -592,6 +610,20 @@ body::before {
 .dock-folder-title {
   font-size: 1rem;
   letter-spacing: 0.04em;
+}
+
+.dock-folder-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 11px;
+  border-radius: 999px;
+  color: white;
+  background: linear-gradient(135deg, #2b2a28 0%, #5a4834 100%);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
 }
 
 .dock-folder-summary::after {
@@ -1011,6 +1043,11 @@ body::before {
     min-height: 360px;
   }
 
+  .panel-board-focus .canvas-frame {
+    width: min(100%, calc((100vh - 250px) * 4 / 3));
+    max-height: calc(100vh - 250px);
+  }
+
   .duel-strip {
     flex-direction: column;
     align-items: stretch;
@@ -1075,7 +1112,9 @@ body::before {
   }
 
   .panel-board-focus .canvas-frame {
+    width: 100%;
     min-height: 280px;
+    max-height: none;
   }
 
   .dock-folder-summary,

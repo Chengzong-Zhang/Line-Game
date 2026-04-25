@@ -23,7 +23,7 @@ import {
   getInitialLanguage as getAppInitialLanguage,
   getTexts as getAppTexts,
   localizeErrorMessage as localizeAppErrorMessage,
-} from "./OnlineAppI18n.js?v=20260425b";
+} from "./OnlineAppI18n.js?v=20260425c";
 
 const {
   computed,
@@ -846,6 +846,10 @@ const DockDirectory = {
       type: String,
       default: "",
     },
+    badge: {
+      type: String,
+      default: "",
+    },
   },
   template: `
     <details class="dock-folder" :class="'dock-folder-' + variant">
@@ -861,6 +865,7 @@ const DockDirectory = {
             <strong class="dock-folder-title">{{ title }}</strong>
           </span>
         </span>
+        <span v-if="badge" class="dock-folder-badge">{{ badge }}</span>
       </summary>
       <div class="dock-folder-body">
         <slot></slot>
@@ -1065,6 +1070,18 @@ const App = {
 
     const isAuthenticated = computed(() => Boolean(auth.value.token && auth.value.username));
     const isHost = computed(() => Boolean(session.value.playerId && roomInfo.value.hostPlayerId === session.value.playerId));
+    const boardDockBadge = computed(() => (
+      language.value === "en"
+        ? `${selectedPlayerCount.value}P / ${selectedGridSize.value}`
+        : `${selectedPlayerCount.value}人 / ${selectedGridSize.value}`
+    ));
+    const networkDockBadge = computed(() => {
+      if (session.value.roomId) {
+        return `#${session.value.roomId}`;
+      }
+
+      return getAppTexts(language.value).localShort;
+    });
     const localReady = computed(() => {
       return Boolean(
         session.value.playerId
@@ -1839,11 +1856,13 @@ const App = {
       authMode,
       authPassword,
       authUsername,
+      boardDockBadge,
       controller,
       gameState,
       getTexts: getAppTexts,
       isAuthenticated,
       language,
+      networkDockBadge,
       serverUrl,
       roomIdInput,
       selectedPlayerCount,
@@ -1889,6 +1908,10 @@ const App = {
     <main class="app-shell app-shell-focus">
       <section class="stage-layout">
         <section class="board-column">
+          <header class="stage-heading">
+            <h1 class="stage-title">LIFELINE</h1>
+          </header>
+
           <BoardCanvas
             :language="language"
             :hint-text="boardHint"
@@ -1911,6 +1934,7 @@ const App = {
           <DockDirectory
             variant="board"
             :title="getTexts(language).boardDockTitle"
+            :badge="boardDockBadge"
           >
             <div class="dock-stack">
               <SetupPanel
@@ -1936,6 +1960,7 @@ const App = {
           <DockDirectory
             variant="network"
             :title="getTexts(language).networkDockTitle"
+            :badge="networkDockBadge"
           >
             <div class="dock-stack">
               <RoomPanel
