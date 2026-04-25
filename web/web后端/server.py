@@ -1,4 +1,5 @@
 ﻿import asyncio
+import hashlib
 import logging
 import os
 import time
@@ -8,12 +9,12 @@ from pathlib import Path
 from typing import Any, Dict, Generator, Optional
 from uuid import uuid4
 
+import bcrypt
 import jwt
 from fastapi import Depends, FastAPI, HTTPException, WebSocket, WebSocketDisconnect, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
-from passlib.context import CryptContext
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -46,10 +47,10 @@ PLAYER_PURPLE = "PURPLE"
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "replace-this-with-a-long-random-secret-key")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_DAYS = 7
+PASSWORD_HASH_PREFIX = "bcrypt_sha256$"
 
 
 logger = logging.getLogger("uvicorn.error")
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 class RegisterRequest(BaseModel):
@@ -83,11 +84,25 @@ def get_db() -> Generator[Session, None, None]:
 
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    password_bytes = _derive_password_bytes(password)
+    password_hash = bcrypt.hashpw(password_bytes, bcrypt.gensalt())
+    return f"{PASSWORD_HASH_PREFIX}{password_hash.decode('utf-8')}"
 
 
 def verify_password(password: str, password_hash: str) -> bool:
-    return pwd_context.verify(password, password_hash)
+    try:
+        if password_hash.startswith(PASSWORD_HASH_PREFIX):
+            stored_hash = password_hash[len(PASSWORD_HASH_PREFIX) :].encode("utf-8")
+            return bcrypt.checkpw(_derive_password_bytes(password), stored_hash)
+
+        # Keep legacy bcrypt users working after removing passlib.
+        return bcrypt.checkpw(password.encode("utf-8")[:72], password_hash.encode("utf-8"))
+    except ValueError:
+        return False
+
+
+def _derive_password_bytes(password: str) -> bytes:
+    return hashlib.sha256(password.encode("utf-8")).digest()
 
 
 def create_access_token(username: str) -> str:
