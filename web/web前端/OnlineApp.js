@@ -67,6 +67,25 @@ function resolveApiBaseUrl(serverUrl, locationLike = globalThis.location) {
   }
 }
 
+function resolveInitialServerUrl(storedUrl, locationLike = globalThis.location) {
+  const dynamicUrl = resolveWebSocketUrl(locationLike);
+  const rawUrl = String(storedUrl ?? "").trim();
+
+  if (!rawUrl) {
+    return dynamicUrl;
+  }
+
+  try {
+    const parsed = new URL(rawUrl, dynamicUrl);
+    if (locationLike?.protocol === "https:" && parsed.protocol === "ws:") {
+      return dynamicUrl;
+    }
+    return parsed.toString();
+  } catch {
+    return dynamicUrl;
+  }
+}
+
 async function postAuthJson(serverUrl, path, payload) {
   const response = await fetch(`${resolveApiBaseUrl(serverUrl)}${path}`, {
     method: "POST",
@@ -1181,15 +1200,20 @@ const App = {
   setup() {
     const storedAuth = loadAppStoredAuth();
     const storedSession = loadAppStoredSession();
-    const initialSettings = normalizeAppGameSettings(storedSession.settings);
+    const initialServerUrl = resolveInitialServerUrl(storedSession.url);
+    const normalizedStoredSession = {
+      ...storedSession,
+      url: initialServerUrl,
+    };
+    const initialSettings = normalizeAppGameSettings(normalizedStoredSession.settings);
     const controller = ref(null);
     const gameState = ref(createAppDefaultGameState());
     const language = ref(getAppInitialLanguage());
     const networkManager = new NetworkManager();
     networkManager.setAuthToken(storedAuth.token);
-    networkManager.hydrateSession(storedSession);
-    const serverUrl = ref(storedSession.url || resolveWebSocketUrl());
-    const roomIdInput = ref(storedSession.roomId || "");
+    networkManager.hydrateSession(normalizedStoredSession);
+    const serverUrl = ref(initialServerUrl);
+    const roomIdInput = ref(normalizedStoredSession.roomId || "");
     const auth = ref(storedAuth);
     const authMode = ref("login");
     const authUsername = ref(storedAuth.username || "");
@@ -2218,7 +2242,7 @@ const App = {
 
     onMounted(() => {
       globalThis.addEventListener("keydown", handleEscapeKeydown);
-      if (storedAuth.token && storedSession.roomId && storedSession.playerId && storedSession.url) {
+      if (storedAuth.token && normalizedStoredSession.roomId && normalizedStoredSession.playerId && normalizedStoredSession.url) {
         roomStatus.value = "offline";
         void attemptReconnect();
       }
