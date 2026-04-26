@@ -402,10 +402,10 @@ body::before {
 }
 
 .panel-board-focus .canvas-frame {
-  width: min(100%, calc((100dvh - 230px) * 4 / 3));
+  width: min(100%, calc((100svh - 230px) * 4 / 3));
   min-height: 0;
   max-width: 100%;
-  max-height: calc(100dvh - 230px);
+  max-height: calc(100svh - 230px);
   margin: 0 auto;
   background:
     radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.82), transparent 44%),
@@ -1046,8 +1046,8 @@ body::before {
   }
 
   .panel-board-focus .canvas-frame {
-    width: min(100%, calc((100dvh - 250px) * 4 / 3));
-    max-height: calc(100dvh - 250px);
+    width: min(100%, calc((100svh - 250px) * 4 / 3));
+    max-height: calc(100svh - 250px);
   }
 
   .duel-strip {
@@ -1114,9 +1114,9 @@ body::before {
   }
 
   .panel-board-focus .canvas-frame {
-    width: min(100%, calc((100dvh - 260px) * 4 / 3));
-    min-height: clamp(220px, 50dvh, 340px);
-    max-height: calc(100dvh - 260px);
+    width: min(100%, calc((100svh - 250px) * 4 / 3));
+    min-height: clamp(210px, 42svh, 320px);
+    max-height: calc(100svh - 250px);
   }
 
   .dock-folder-summary,
@@ -1175,6 +1175,27 @@ body::before {
 
   .utility-overlay {
     padding: 12px;
+  }
+}
+
+@media (max-width: 980px) {
+  body::before {
+    display: none;
+  }
+
+  .panel,
+  .dock-folder,
+  .result-overlay {
+    backdrop-filter: none;
+  }
+
+  .panel,
+  .dock-folder {
+    box-shadow: 0 12px 24px rgba(64, 42, 18, 0.1);
+  }
+
+  .triangle-glyph {
+    filter: none;
   }
 }
 

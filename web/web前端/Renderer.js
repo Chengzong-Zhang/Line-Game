@@ -83,6 +83,10 @@ export class Renderer {
     this.paddingRatio = options.paddingRatio ?? 0.1;
     this.lastSnapshot = null;
     this.layout = null;
+    this._resizeFrame = null;
+    this._lastMeasuredWidth = 0;
+    this._lastMeasuredHeight = 0;
+    this._lastMeasuredDpr = 0;
 
     this.canvas.style.display = "block";
     this.canvas.style.width = this.canvas.style.width || "100%";
@@ -91,18 +95,12 @@ export class Renderer {
 
     this._resizeObserver = typeof ResizeObserver !== "undefined"
       ? new ResizeObserver(() => {
-          this.resize();
-          if (this.lastSnapshot) {
-            this.render(this.lastSnapshot);
-          }
+          this._scheduleResize();
         })
       : null;
 
     if (this._resizeObserver) {
-      this._resizeObserver.observe(this.canvas);
-      if (this.canvas.parentElement) {
-        this._resizeObserver.observe(this.canvas.parentElement);
-      }
+      this._resizeObserver.observe(this.canvas.parentElement ?? this.canvas);
     }
 
     this.resize();
@@ -112,10 +110,39 @@ export class Renderer {
     if (this._resizeObserver) {
       this._resizeObserver.disconnect();
     }
+    if (this._resizeFrame !== null) {
+      globalThis.cancelAnimationFrame(this._resizeFrame);
+      this._resizeFrame = null;
+    }
+  }
+
+  _scheduleResize() {
+    if (this._resizeFrame !== null) {
+      return;
+    }
+
+    this._resizeFrame = globalThis.requestAnimationFrame(() => {
+      this._resizeFrame = null;
+      const resized = this.resize();
+      if (resized && this.lastSnapshot) {
+        this.render(this.lastSnapshot, { skipResize: true });
+      }
+    });
   }
 
   resize() {
     const { cssWidth, cssHeight, dpr } = this._measureCanvas();
+    const widthChanged = Math.abs(cssWidth - this._lastMeasuredWidth) >= 2;
+    const heightChanged = Math.abs(cssHeight - this._lastMeasuredHeight) >= 2;
+    const dprChanged = Math.abs(dpr - this._lastMeasuredDpr) >= 0.1;
+
+    if (!widthChanged && !heightChanged && !dprChanged) {
+      return false;
+    }
+
+    this._lastMeasuredWidth = cssWidth;
+    this._lastMeasuredHeight = cssHeight;
+    this._lastMeasuredDpr = dpr;
 
     if (this.canvas.width !== Math.round(cssWidth * dpr) || this.canvas.height !== Math.round(cssHeight * dpr)) {
       this.canvas.width = Math.round(cssWidth * dpr);
@@ -126,6 +153,7 @@ export class Renderer {
     this.canvas.style.height = `${cssHeight}px`;
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     this.ctx.imageSmoothingEnabled = true;
+    return true;
   }
 
   _measureCanvas() {
@@ -138,7 +166,8 @@ export class Renderer {
       this.minCssHeight,
       Math.round(rect.height || this.canvas.clientHeight || this.canvas.height || this.defaultCssHeight),
     );
-    const dpr = clamp(window.devicePixelRatio || 1, 1, 4);
+    const prefersLowerDpr = globalThis.matchMedia?.("(pointer: coarse)")?.matches || window.innerWidth <= 768;
+    const dpr = clamp(window.devicePixelRatio || 1, 1, prefersLowerDpr ? 2 : 3);
 
     return { cssWidth, cssHeight, dpr };
   }
@@ -612,13 +641,15 @@ export class Renderer {
     ctx.restore();
   }
 
-  render(snapshot) {
+  render(snapshot, options = {}) {
     if (!snapshot || !snapshot.boardMatrix) {
       throw new Error("Renderer.render(snapshot) requires a valid GameEngine snapshot.");
     }
 
     this.lastSnapshot = snapshot;
-    this.resize();
+    if (!options.skipResize) {
+      this.resize();
+    }
     this.layout = this._computeLayout(snapshot);
 
     const boardData = this._collectBoardData(snapshot);
