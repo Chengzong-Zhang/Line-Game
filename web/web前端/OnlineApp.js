@@ -26,7 +26,8 @@ import {
   getInitialLanguage as getAppInitialLanguage,
   getTexts as getAppTexts,
   localizeErrorMessage as localizeAppErrorMessage,
-} from "./OnlineAppI18n.js?v=20260426c";
+} from "./OnlineAppI18n.js?v=20260426f";
+import { getGuideMarkdown, parseGuideMarkdown } from "./GuideContent.js?v=20260426f";
 
 const {
   computed,
@@ -1095,6 +1096,219 @@ const ResultModal = {
   `,
 };
 
+const GuideBoardIllustration = {
+  name: "GuideBoardIllustration",
+  template: `
+    <section class="guide-illustration-card" aria-hidden="true">
+      <svg class="guide-illustration-svg" viewBox="0 0 520 420" focusable="false">
+        <defs>
+          <linearGradient id="guide-board-glow" x1="0%" x2="100%" y1="0%" y2="100%">
+            <stop offset="0%" stop-color="#fff8ea" />
+            <stop offset="100%" stop-color="#edd7b6" />
+          </linearGradient>
+          <linearGradient id="guide-blue-territory" x1="0%" x2="100%" y1="0%" y2="100%">
+            <stop offset="0%" stop-color="rgba(70, 134, 255, 0.26)" />
+            <stop offset="100%" stop-color="rgba(70, 134, 255, 0.06)" />
+          </linearGradient>
+          <linearGradient id="guide-red-territory" x1="100%" x2="0%" y1="0%" y2="100%">
+            <stop offset="0%" stop-color="rgba(221, 90, 69, 0.24)" />
+            <stop offset="100%" stop-color="rgba(221, 90, 69, 0.06)" />
+          </linearGradient>
+        </defs>
+        <rect x="28" y="24" width="464" height="372" rx="28" fill="url(#guide-board-glow)" />
+        <polygon points="116,86 404,86 260,336" fill="rgba(255,255,255,0.72)" stroke="rgba(91,70,46,0.2)" stroke-width="2" />
+        <path d="M152 274 L260 86 L368 274" fill="none" stroke="rgba(91,70,46,0.14)" stroke-width="2" />
+        <path d="M188 274 L260 149 L332 274" fill="none" stroke="rgba(91,70,46,0.14)" stroke-width="2" />
+        <path d="M224 274 L260 212 L296 274" fill="none" stroke="rgba(91,70,46,0.14)" stroke-width="2" />
+        <path d="M116 86 L260 336 L404 86" fill="none" stroke="rgba(91,70,46,0.14)" stroke-width="2" />
+        <path d="M152 149 L368 149" fill="none" stroke="rgba(91,70,46,0.14)" stroke-width="2" />
+        <path d="M188 212 L332 212" fill="none" stroke="rgba(91,70,46,0.14)" stroke-width="2" />
+        <path d="M224 274 L296 274" fill="none" stroke="rgba(91,70,46,0.14)" stroke-width="2" />
+        <polygon points="134,274 188,180 258,302 200,324" fill="url(#guide-blue-territory)" stroke="rgba(70, 134, 255, 0.42)" stroke-width="2" />
+        <polygon points="386,274 332,180 264,302 320,324" fill="url(#guide-red-territory)" stroke="rgba(221, 90, 69, 0.42)" stroke-width="2" />
+        <path d="M116 86 L188 212 L224 274" fill="none" stroke="#3e7df0" stroke-linecap="round" stroke-width="8" />
+        <path d="M404 86 L332 212 L296 274" fill="none" stroke="#d7634f" stroke-linecap="round" stroke-width="8" />
+        <path d="M188 212 L296 212" fill="none" stroke="#d7634f" stroke-linecap="round" stroke-width="8" />
+        <path d="M224 274 L296 274" fill="none" stroke="#3e7df0" stroke-linecap="round" stroke-width="8" />
+        <circle cx="116" cy="86" r="11" fill="#3e7df0" />
+        <circle cx="188" cy="212" r="11" fill="#3e7df0" />
+        <circle cx="224" cy="274" r="11" fill="#3e7df0" />
+        <circle cx="404" cy="86" r="11" fill="#d7634f" />
+        <circle cx="332" cy="212" r="11" fill="#d7634f" />
+        <circle cx="296" cy="274" r="11" fill="#d7634f" />
+        <circle cx="260" cy="212" r="12" fill="#e0a63e" stroke="#fff7e8" stroke-width="4" />
+        <path d="M244 196 L276 228" stroke="#7a4b12" stroke-linecap="round" stroke-width="4" />
+        <path d="M276 196 L244 228" stroke="#7a4b12" stroke-linecap="round" stroke-width="4" />
+      </svg>
+    </section>
+  `,
+};
+
+const GuidePanel = {
+  name: "GuidePanel",
+  emits: ["open-entry"],
+  props: {
+    language: {
+      type: String,
+      required: true,
+    },
+    ruleEntries: {
+      type: Array,
+      default: () => [],
+    },
+    whyEntry: {
+      type: Object,
+      default: null,
+    },
+    thanksEntry: {
+      type: Object,
+      default: null,
+    },
+  },
+  setup(props) {
+    return {
+      texts: computed(() => getAppTexts(props.language)),
+    };
+  },
+  template: `
+    <section class="panel panel-guide modal-panel">
+      <div class="panel-head panel-head-inline">
+        <div>
+          <p class="eyebrow">{{ texts.guideEyebrow }}</p>
+          <h2>{{ texts.guideTitle }}</h2>
+        </div>
+        <span class="panel-head-badge">{{ texts.guideDockBadge }}</span>
+      </div>
+
+      <article class="guide-section-card">
+        <div class="guide-section-head">
+          <div>
+            <p class="eyebrow">{{ texts.guideRulesEyebrow }}</p>
+            <h3>{{ texts.guideRulesTitle }}</h3>
+          </div>
+        </div>
+        <p class="help-copy guide-section-copy">{{ texts.guideRulesCopy }}</p>
+        <details class="guide-rule-folder">
+          <summary class="guide-rule-summary">{{ texts.guideRulesOpen }}</summary>
+          <div class="guide-rule-list">
+            <button
+              v-for="entry in ruleEntries"
+              :key="entry.key"
+              type="button"
+              class="guide-entry-button"
+              @click="$emit('open-entry', entry.key)"
+            >
+              <strong>{{ entry.title }}</strong>
+              <span v-if="entry.subtitle">{{ entry.subtitle }}</span>
+            </button>
+          </div>
+        </details>
+      </article>
+
+      <button
+        v-if="whyEntry"
+        type="button"
+        class="guide-section-card guide-section-button"
+        @click="$emit('open-entry', whyEntry.key)"
+      >
+        <div class="guide-section-head">
+          <div>
+            <p class="eyebrow">{{ texts.guideWhyEyebrow }}</p>
+            <h3>{{ whyEntry.title }}</h3>
+          </div>
+          <span class="guide-entry-arrow" aria-hidden="true">></span>
+        </div>
+        <p v-if="whyEntry.subtitle" class="guide-section-copy">{{ whyEntry.subtitle }}</p>
+      </button>
+
+      <button
+        v-if="thanksEntry"
+        type="button"
+        class="guide-section-card guide-section-button"
+        @click="$emit('open-entry', thanksEntry.key)"
+      >
+        <div class="guide-section-head">
+          <div>
+            <p class="eyebrow">{{ texts.guideThanksEyebrow }}</p>
+            <h3>{{ thanksEntry.title }}</h3>
+          </div>
+          <span class="guide-entry-arrow" aria-hidden="true">></span>
+        </div>
+        <p v-if="thanksEntry.subtitle" class="guide-section-copy">{{ thanksEntry.subtitle }}</p>
+      </button>
+    </section>
+  `,
+};
+
+const GuideReaderModal = {
+  name: "GuideReaderModal",
+  components: {
+    GuideBoardIllustration,
+  },
+  emits: ["close"],
+  props: {
+    entry: {
+      type: Object,
+      default: null,
+    },
+    language: {
+      type: String,
+      required: true,
+    },
+  },
+  setup(props) {
+    return {
+      texts: computed(() => getAppTexts(props.language)),
+    };
+  },
+  template: `
+    <transition name="fade">
+      <div v-if="entry" class="guide-overlay" role="dialog" aria-modal="true" @click.self="$emit('close')">
+        <div class="guide-reader">
+          <div class="guide-reader-top">
+            <div>
+              <p class="eyebrow">{{ entry.eyebrow }}</p>
+              <h2>{{ entry.title }}</h2>
+              <p v-if="entry.subtitle" class="guide-reader-subtitle">{{ entry.subtitle }}</p>
+            </div>
+            <button type="button" class="action-button action-button-ghost guide-close-button" @click="$emit('close')">
+              {{ texts.guideCloseAction }}
+            </button>
+          </div>
+
+          <div class="guide-reader-layout" :class="{ 'guide-reader-layout-illustrated': entry.showIllustration }">
+            <div v-if="entry.showIllustration" class="guide-reader-illustration">
+              <GuideBoardIllustration />
+              <p class="guide-illustration-caption">{{ texts.guideIllustrationCaption }}</p>
+            </div>
+
+            <div class="guide-reader-body">
+              <template v-for="(block, index) in entry.blocks" :key="entry.key + '-' + index">
+                <h3 v-if="block.type === 'heading1'" class="guide-block-heading-xl">{{ block.text }}</h3>
+                <h4 v-else-if="block.type === 'heading2'" class="guide-block-heading">{{ block.text }}</h4>
+                <h5 v-else-if="block.type === 'callout'" class="guide-block-callout">{{ block.text }}</h5>
+                <div v-else-if="block.type === 'meta'" class="guide-block-meta">
+                  <span class="guide-block-meta-label">{{ block.label }}</span>
+                  <p class="guide-block-meta-value">{{ block.text }}</p>
+                </div>
+                <div v-else-if="block.type === 'bullet'" class="guide-block-bullet">
+                  <span class="guide-bullet-dot" aria-hidden="true"></span>
+                  <p>{{ block.text }}</p>
+                </div>
+                <div v-else-if="block.type === 'ordered'" class="guide-block-ordered">
+                  <span class="guide-ordered-index">{{ block.order }}</span>
+                  <p>{{ block.text }}</p>
+                </div>
+                <p v-else class="guide-block-paragraph">{{ block.text }}</p>
+              </template>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
+  `,
+};
+
 const DockDirectory = {
   name: "DockDirectory",
   props: {
@@ -1117,6 +1331,10 @@ const DockDirectory = {
         <span class="dock-folder-head">
           <span class="dock-folder-icon" :class="'dock-folder-icon-' + variant" aria-hidden="true">
             <span v-if="variant === 'board'" class="triangle-glyph"></span>
+            <svg v-else-if="variant === 'guide'" viewBox="0 0 24 24" focusable="false">
+              <path d="M5 4.75A2.75 2.75 0 0 1 7.75 2h9.5A1.75 1.75 0 0 1 19 3.75v15.5A1.75 1.75 0 0 1 17.25 21h-9A3.25 3.25 0 0 0 5 23V4.75Zm2.75-1.25A1.25 1.25 0 0 0 6.5 4.75v13.02c.52-.18 1.08-.27 1.75-.27h9.25V3.75a.25.25 0 0 0-.25-.25h-9.5Zm.5 16.5c-.68 0-1.24.16-1.75.49V21.5c.35-.33.89-.5 1.75-.5h9.25a.75.75 0 0 0 .75-.75v-1.25H8.25Z" />
+              <path d="M9 7.25a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 0 1.5h-4.5A.75.75 0 0 1 9 7.25Zm0 3.5A.75.75 0 0 1 9.75 10h5.5a.75.75 0 0 1 0 1.5h-5.5a.75.75 0 0 1-.75-.75Zm0 3.5a.75.75 0 0 1 .75-.75h5.5a.75.75 0 0 1 0 1.5h-5.5a.75.75 0 0 1-.75-.75Z" />
+            </svg>
             <svg v-else viewBox="0 0 24 24" focusable="false">
               <path d="M19.43 12.98c.04-.32.07-.65.07-.98s-.03-.66-.08-.98l2.11-1.65a.5.5 0 0 0 .12-.64l-2-3.46a.5.5 0 0 0-.6-.22l-2.49 1a7.2 7.2 0 0 0-1.69-.98l-.38-2.65A.5.5 0 0 0 14 1h-4a.5.5 0 0 0-.49.42l-.38 2.65c-.61.24-1.18.56-1.69.98l-2.49-1a.5.5 0 0 0-.6.22l-2 3.46a.5.5 0 0 0 .12.64l2.11 1.65c-.05.32-.08.65-.08.98s.03.66.08.98L2.47 14.63a.5.5 0 0 0-.12.64l2 3.46a.5.5 0 0 0 .6.22l2.49-1c.51.42 1.08.74 1.69.98l.38 2.65A.5.5 0 0 0 10 23h4a.5.5 0 0 0 .49-.42l.38-2.65c.61-.24 1.18-.56 1.69-.98l2.49 1a.5.5 0 0 0 .6-.22l2-3.46a.5.5 0 0 0-.12-.64l-2.1-1.65ZM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5Z" />
             </svg>
@@ -1133,6 +1351,57 @@ const DockDirectory = {
     </details>
   `,
 };
+
+function createGuideEntries(language = "zh") {
+  const texts = getAppTexts(language);
+  return [
+    {
+      key: "rules-essential",
+      group: "rules",
+      eyebrow: texts.guideRulesTitle,
+      title: texts.guideRuleSimpleTitle,
+      subtitle: texts.guideRuleSimpleSubtitle,
+      showIllustration: true,
+      blocks: parseGuideMarkdown(getGuideMarkdown("rulesEssential")),
+    },
+    {
+      key: "rules-war",
+      group: "rules",
+      eyebrow: texts.guideRulesTitle,
+      title: texts.guideRuleWarTitle,
+      subtitle: texts.guideRuleWarSubtitle,
+      showIllustration: true,
+      blocks: parseGuideMarkdown(getGuideMarkdown("rulesWar")),
+    },
+    {
+      key: "rules-math",
+      group: "rules",
+      eyebrow: texts.guideRulesTitle,
+      title: texts.guideRuleMathTitle,
+      subtitle: texts.guideRuleMathSubtitle,
+      showIllustration: true,
+      blocks: parseGuideMarkdown(getGuideMarkdown("rulesMath")),
+    },
+    {
+      key: "why-this",
+      group: "why",
+      eyebrow: texts.guideWhyTitle,
+      title: texts.guideWhyTitle,
+      subtitle: texts.guideWhySubtitle,
+      showIllustration: false,
+      blocks: parseGuideMarkdown(getGuideMarkdown("whyThis")),
+    },
+    {
+      key: "thanks",
+      group: "thanks",
+      eyebrow: texts.guideThanksTitle,
+      title: texts.guideThanksTitle,
+      subtitle: texts.guideThanksSubtitle,
+      showIllustration: false,
+      blocks: parseGuideMarkdown(getGuideMarkdown("thanks")),
+    },
+  ];
+}
 
 const BoardCanvas = {
   name: "BoardCanvas",
@@ -1192,6 +1461,8 @@ const App = {
     BoardCanvas,
     ControlPanel,
     DockDirectory,
+    GuidePanel,
+    GuideReaderModal,
     ResultModal,
     RoomPanel,
     ScorePanel,
@@ -1233,6 +1504,7 @@ const App = {
     const networkBusy = ref(false);
     const networkError = ref("");
     const overlayResult = ref(null);
+    const activeGuideKey = ref("");
     const resultModalDismissed = ref(false);
     const turnCountdown = ref(ROOM_START_COUNTDOWN_FALLBACK_SECONDS);
     const turnTimerRemaining = ref(0);
@@ -1369,6 +1641,14 @@ const App = {
 
       return getAppTexts(language.value).localShort;
     });
+    const guideDockBadge = computed(() => getAppTexts(language.value).guideDockBadge);
+    const guideEntries = computed(() => createGuideEntries(language.value));
+    const ruleGuideEntries = computed(() => guideEntries.value.filter((entry) => entry.group === "rules"));
+    const whyGuideEntry = computed(() => guideEntries.value.find((entry) => entry.group === "why") ?? null);
+    const thanksGuideEntry = computed(() => guideEntries.value.find((entry) => entry.group === "thanks") ?? null);
+    const activeGuideEntry = computed(() => (
+      guideEntries.value.find((entry) => entry.key === activeGuideKey.value) ?? null
+    ));
     const localReady = computed(() => {
       return Boolean(
         session.value.playerId
@@ -2069,8 +2349,10 @@ const App = {
     const resultResetAllowed = computed(() => {
       return !resetDisabled.value;
     });
+    const hasGuideModalOpen = computed(() => Boolean(activeGuideEntry.value));
+    const hasAnyModalOpen = computed(() => showClosePrompt.value || hasGuideModalOpen.value);
 
-    watch(showClosePrompt, (promptVisible) => {
+    watch(hasAnyModalOpen, (promptVisible) => {
       document.body.classList.toggle("modal-open", Boolean(promptVisible));
     }, { immediate: true });
 
@@ -2079,9 +2361,22 @@ const App = {
         return;
       }
 
+      if (hasGuideModalOpen.value) {
+        activeGuideKey.value = "";
+        return;
+      }
+
       if (showClosePrompt.value) {
         handleClosePrompt();
       }
+    };
+
+    const handleOpenGuideEntry = (entryKey) => {
+      activeGuideKey.value = entryKey;
+    };
+
+    const handleCloseGuideEntry = () => {
+      activeGuideKey.value = "";
     };
 
     const handleResultAction = async () => {
@@ -2260,6 +2555,11 @@ const App = {
       controller,
       gameState,
       getTexts: getAppTexts,
+      guideDockBadge,
+      activeGuideEntry,
+      ruleGuideEntries,
+      whyGuideEntry,
+      thanksGuideEntry,
       isAuthenticated,
       language,
       networkDockBadge,
@@ -2294,6 +2594,8 @@ const App = {
       resultResetAllowed,
       handleResultAction,
       handleResultLeaveRoom,
+      handleOpenGuideEntry,
+      handleCloseGuideEntry,
       handleControllerReady,
       handleAuthSubmit,
       handleLogout,
@@ -2423,8 +2725,28 @@ const App = {
               />
             </div>
           </DockDirectory>
+
+          <DockDirectory
+            variant="guide"
+            :title="getTexts(language).guideDockTitle"
+            :badge="guideDockBadge"
+          >
+            <GuidePanel
+              :language="language"
+              :rule-entries="ruleGuideEntries"
+              :why-entry="whyGuideEntry"
+              :thanks-entry="thanksGuideEntry"
+              @open-entry="handleOpenGuideEntry"
+            />
+          </DockDirectory>
         </aside>
       </section>
+
+      <GuideReaderModal
+        :entry="activeGuideEntry"
+        :language="language"
+        @close="handleCloseGuideEntry"
+      />
 
       <ResultModal
         :language="language"

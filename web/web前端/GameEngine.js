@@ -622,7 +622,7 @@ export class GameEngine {
     this._reconnectPlayerNodes(opponent);
   }
 
-  getAllShortestGridPaths(start, end, blockedPoints = []) {
+  getAllShortestGridPaths(start, end, blockedPoints = [], maxEdges = Infinity) {
     this._assertValidPosition(start);
     this._assertValidPosition(end);
     if (pointEquals(start, end)) {
@@ -663,6 +663,12 @@ export class GameEngine {
     }
 
     if (!distances.has(endKey)) {
+      return [];
+    }
+
+    // 若最短路径（边数）已不短于弧段长度，buildPaths 生成的所有候选都会被
+    // candPerim > bestCandPerim 淘汰，直接跳过重建，节省绝大多数调用开销
+    if (distances.get(endKey) > maxEdges) {
       return [];
     }
 
@@ -787,15 +793,26 @@ export class GameEngine {
       }
     }
 
-    // 领土 = 全图所有点 - 被水淹没的点（含轮廓墙体本身）
-    const covered = new Set();
+    // 统计领土点数（water[i]===epoch 表示被淹没，不计入领土）
+    let count = 0;
     const n = this.validPositions.length;
     for (let i = 0; i < n; i += 1) {
-      if (water[i] !== epoch) {
-        covered.add(pointKey(this.validPositions[i]));
-      }
+      if (water[i] !== epoch) count += 1;
     }
-    return covered;
+
+    // 拍摄 water 快照，供 .has() 查询（typed array 拷贝比字符串 Set 快得多）
+    const waterSnap = new Int32Array(water);
+    const capturedEpoch = epoch;
+    const keyToIdx = this._keyToIdx;
+
+    return {
+      size: count,
+      /** 判断 grid 坐标 key 是否在领土内（未被水淹没） */
+      has(k) {
+        const idx = keyToIdx.get(k);
+        return idx !== undefined && waterSnap[idx] !== capturedEpoch;
+      },
+    };
   }
 
   /** 核心领土计算：右手摸墙 → 动态贪心修剪 → 泛洪法 */
@@ -816,12 +833,14 @@ export class GameEngine {
     }
 
     // 阶段二：动态贪心修剪（皮筋收紧）
+    // 初始面积在循环外算一次，后续迭代从 bestCandArea 继承，避免每轮头部重算
+    let curArea = this._getCoveredPoints(currentPoly).size;
+
     while (true) {
       const n = currentPoly.length;
       if (n < 3) break;
 
       const curPerim = n;
-      const curArea = this._getCoveredPoints(currentPoly).size;
 
       let bestOverallCand = null;
       let bestCandPerim = curPerim;
@@ -829,7 +848,9 @@ export class GameEngine {
 
       for (let i = 0; i < n; i += 1) {
         for (let j = n - 1; j > i + 1; j -= 1) {
-          const paths = this.getAllShortestGridPaths(currentPoly[i], currentPoly[j], enemyPoints);
+          // _getOuterContour 是逐格遍历的，相邻顶点间恰好距离 1 格
+          // 所以弧段长度 = j-i 格；最短路径若 ≥ j-i 则不可能缩短周长，直接跳过
+          const paths = this.getAllShortestGridPaths(currentPoly[i], currentPoly[j], enemyPoints, j - i);
           if (!paths || paths.length === 0) continue;
 
           for (const path of paths) {
@@ -870,6 +891,7 @@ export class GameEngine {
 
       if (bestOverallCand !== null) {
         currentPoly = bestOverallCand;
+        curArea = bestCandArea;  // 缓存面积，下一轮直接用，不再重算
       } else {
         break;
       }
@@ -879,13 +901,9 @@ export class GameEngine {
       return { polygon: null, area: 0 };
     }
 
-    // 阶段三：泛洪法计算最终领土面积
-    const finalCovered = this._getCoveredPoints(currentPoly);
-    const area = finalCovered.size;
-
-    // 首尾闭合，供渲染使用
+    // 首尾闭合，供渲染使用；curArea 就是最终面积，无需再次泛洪
     const closedPoly = [...currentPoly, clonePoint(currentPoly[0])];
-    return { polygon: closedPoly, area };
+    return { polygon: closedPoly, area: curArea };
   }
 
   /** 将当前局面序列化为唯一字符串，用于 Superko 判断。
