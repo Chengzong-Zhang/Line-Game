@@ -32,6 +32,11 @@ function pointKey(point) {
   return `${point[0]},${point[1]}`;
 }
 
+function keyToPoint(key) {
+  const [x, y] = String(key).split(",").map(Number);
+  return [x, y];
+}
+
 function pointEquals(a, b) {
   return a[0] === b[0] && a[1] === b[1];
 }
@@ -87,6 +92,8 @@ export class Renderer {
     this._lastMeasuredWidth = 0;
     this._lastMeasuredHeight = 0;
     this._lastMeasuredDpr = 0;
+    this._staticLayerCanvas = null;
+    this._staticLayerKey = "";
 
     this.canvas.style.display = "block";
     this.canvas.style.width = this.canvas.style.width || "100%";
@@ -114,6 +121,8 @@ export class Renderer {
       globalThis.cancelAnimationFrame(this._resizeFrame);
       this._resizeFrame = null;
     }
+    this._staticLayerCanvas = null;
+    this._staticLayerKey = "";
   }
 
   _scheduleResize() {
@@ -143,6 +152,7 @@ export class Renderer {
     this._lastMeasuredWidth = cssWidth;
     this._lastMeasuredHeight = cssHeight;
     this._lastMeasuredDpr = dpr;
+    this._staticLayerKey = "";
 
     if (this.canvas.width !== Math.round(cssWidth * dpr) || this.canvas.height !== Math.round(cssHeight * dpr)) {
       this.canvas.width = Math.round(cssWidth * dpr);
@@ -403,6 +413,53 @@ export class Renderer {
     return segments;
   }
 
+  _getSnapshotSegments(snapshot, player) {
+    const edgeKeys = Array.isArray(snapshot?.edges?.[player]) ? snapshot.edges[player] : null;
+    if (!edgeKeys) {
+      return null;
+    }
+
+    return edgeKeys.map((edgeKey) => {
+      const [startKey, endKey] = String(edgeKey).split("|");
+      return [keyToPoint(startKey), keyToPoint(endKey)];
+    });
+  }
+
+  _getStaticLayerKey(snapshot, layout) {
+    return [
+      snapshot?.gridSize ?? 9,
+      layout.cssWidth,
+      layout.cssHeight,
+      Math.round(layout.scale * 1000),
+    ].join(":");
+  }
+
+  _ensureStaticLayer(snapshot, boardData, layout) {
+    const nextKey = this._getStaticLayerKey(snapshot, layout);
+    if (this._staticLayerCanvas && this._staticLayerKey === nextKey) {
+      return;
+    }
+
+    const staticCanvas = document.createElement("canvas");
+    staticCanvas.width = layout.cssWidth;
+    staticCanvas.height = layout.cssHeight;
+    const staticCtx = staticCanvas.getContext("2d");
+    if (!staticCtx) {
+      this._staticLayerCanvas = null;
+      this._staticLayerKey = "";
+      return;
+    }
+
+    const previousCtx = this.ctx;
+    this.ctx = staticCtx;
+    this._drawBackground(layout);
+    this._drawGridSkeleton(boardData, layout);
+    this.ctx = previousCtx;
+
+    this._staticLayerCanvas = staticCanvas;
+    this._staticLayerKey = nextKey;
+  }
+
   _drawBackground(layout) {
     const ctx = this.ctx;
     ctx.clearRect(0, 0, layout.cssWidth, layout.cssHeight);
@@ -490,20 +547,25 @@ export class Renderer {
     };
 
     for (const player of [Player.BLACK, Player.WHITE, Player.PURPLE]) {
-      const segments = this._collectRenderableSegments(player, boardData);
+      const segments = this._getSnapshotSegments(snapshot, player)
+        ?? this._collectRenderableSegments(player, boardData);
+      if (!segments.length) {
+        continue;
+      }
+
       ctx.strokeStyle = styles[player];
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
       ctx.lineWidth = layout.lineWidth;
+      ctx.beginPath();
 
       for (const [start, end] of segments) {
         const [x1, y1] = this._gridToPixel(start[0], start[1], layout);
         const [x2, y2] = this._gridToPixel(end[0], end[1], layout);
-        ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.lineTo(x2, y2);
-        ctx.stroke();
       }
+      ctx.stroke();
     }
   }
 
@@ -556,35 +618,27 @@ export class Renderer {
 
   _drawNodes(boardData, layout) {
     const ctx = this.ctx;
-    const nodeStyles = {
-      [PointState.BLACK_NODE]: {
-        fill: this.theme.blueNode,
-        stroke: this.theme.outline,
-      },
-      [PointState.WHITE_NODE]: {
-        fill: this.theme.redNode,
-        stroke: this.theme.outline,
-      },
-      [PointState.PURPLE_NODE]: {
-        fill: this.theme.purpleNode,
-        stroke: this.theme.outline,
-      },
-    };
+    const groups = [
+      { points: boardData.nodes[Player.BLACK], fill: this.theme.blueNode },
+      { points: boardData.nodes[Player.WHITE], fill: this.theme.redNode },
+      { points: boardData.nodes[Player.PURPLE], fill: this.theme.purpleNode },
+    ];
 
-    for (const point of boardData.validPoints) {
-      const state = boardData.pointStates.get(pointKey(point));
-      const style = nodeStyles[state];
-      if (!style) {
+    ctx.lineWidth = Math.max(1.5, layout.lineWidth * 0.25);
+    ctx.strokeStyle = this.theme.outline;
+    for (const group of groups) {
+      if (!group.points?.length) {
         continue;
       }
 
-      const [x, y] = this._gridToPixel(point[0], point[1], layout);
       ctx.beginPath();
-      ctx.arc(x, y, layout.pointRadius, 0, Math.PI * 2);
-      ctx.fillStyle = style.fill;
+      for (const point of group.points) {
+        const [x, y] = this._gridToPixel(point[0], point[1], layout);
+        ctx.moveTo(x + layout.pointRadius, y);
+        ctx.arc(x, y, layout.pointRadius, 0, Math.PI * 2);
+      }
+      ctx.fillStyle = group.fill;
       ctx.fill();
-      ctx.lineWidth = Math.max(1.5, layout.lineWidth * 0.25);
-      ctx.strokeStyle = style.stroke;
       ctx.stroke();
     }
   }
@@ -592,7 +646,11 @@ export class Renderer {
   _drawLegalMoves(snapshot, layout) {
     const ctx = this.ctx;
     const legalMoves = Array.isArray(snapshot.legalMoves) ? snapshot.legalMoves : [];
+    if (!legalMoves.length) {
+      return;
+    }
 
+    ctx.beginPath();
     for (const candidate of legalMoves) {
       const point = Array.isArray(candidate) ? candidate : candidate?.point;
       if (!Array.isArray(point) || point.length !== 2) {
@@ -600,14 +658,14 @@ export class Renderer {
       }
 
       const [x, y] = this._gridToPixel(point[0], point[1], layout);
-      ctx.beginPath();
+      ctx.moveTo(x + layout.legalMoveRadius, y);
       ctx.arc(x, y, layout.legalMoveRadius, 0, Math.PI * 2);
-      ctx.fillStyle = this.theme.legalMoveFill;
-      ctx.fill();
-      ctx.lineWidth = Math.max(1.25, layout.guideLineWidth * 1.8);
-      ctx.strokeStyle = this.theme.legalMoveStroke;
-      ctx.stroke();
     }
+    ctx.fillStyle = this.theme.legalMoveFill;
+    ctx.fill();
+    ctx.lineWidth = Math.max(1.25, layout.guideLineWidth * 1.8);
+    ctx.strokeStyle = this.theme.legalMoveStroke;
+    ctx.stroke();
   }
 
   _drawLastAction(snapshot, layout) {
@@ -653,8 +711,14 @@ export class Renderer {
     this.layout = this._computeLayout(snapshot);
 
     const boardData = this._collectBoardData(snapshot);
-    this._drawBackground(this.layout);
-    this._drawGridSkeleton(boardData, this.layout);
+    this._ensureStaticLayer(snapshot, boardData, this.layout);
+    if (this._staticLayerCanvas) {
+      this.ctx.clearRect(0, 0, this.layout.cssWidth, this.layout.cssHeight);
+      this.ctx.drawImage(this._staticLayerCanvas, 0, 0, this.layout.cssWidth, this.layout.cssHeight);
+    } else {
+      this._drawBackground(this.layout);
+      this._drawGridSkeleton(boardData, this.layout);
+    }
     this._drawSegments(snapshot, boardData, this.layout);
     this._drawTerritories(snapshot, this.layout);
     this._drawLegalMoves(snapshot, this.layout);

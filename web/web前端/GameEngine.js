@@ -232,6 +232,12 @@ export class GameEngine {
         },
       ]),
     );
+    const edges = Object.fromEntries(
+      this.activePlayers.map((player) => [
+        player,
+        [...this._getEdges(player)],
+      ]),
+    );
     return {
       gridSize: this.gridSize,
       playerCount: this.playerCount,
@@ -243,6 +249,7 @@ export class GameEngine {
       turnCount: this.turnCount,
       boardMatrix: this.getBoardMatrix(),
       territories,
+      edges,
       winner: this.getWinner(),
       legalMoves: this.getLegalMoves(this.currentPlayer),
     };
@@ -1096,4 +1103,3 @@ export class GameEngine {
 }
 
 export default GameEngine;
-
