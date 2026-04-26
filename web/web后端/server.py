@@ -41,6 +41,9 @@ HEARTBEAT_SWEEP_SECONDS = 5
 READY_COUNTDOWN_SECONDS = 3
 MIN_GRID_SIZE = 5
 MAX_GRID_SIZE = 15
+TURN_TIMER_MIN_SECONDS = 30
+TURN_TIMER_MAX_SECONDS = 200
+DEFAULT_TURN_TIMER_SECONDS = 60
 PLAYER_BLACK = "BLACK"
 PLAYER_WHITE = "WHITE"
 PLAYER_PURPLE = "PURPLE"
@@ -1099,11 +1102,22 @@ class ConnectionManager:
         player_count = settings.get("playerCount", 2)
         grid_size = settings.get("gridSize", 9)
         start_player = settings.get("startPlayer", PLAYER_BLACK)
+        turn_timer_enabled = bool(settings.get("turnTimerEnabled", False))
+        turn_time_limit_seconds = settings.get("turnTimeLimitSeconds", DEFAULT_TURN_TIMER_SECONDS)
 
         if player_count not in (2, 3):
             player_count = 2
         if not isinstance(grid_size, int) or grid_size < MIN_GRID_SIZE or grid_size > MAX_GRID_SIZE:
             grid_size = 9
+        if not isinstance(turn_time_limit_seconds, int):
+            try:
+                turn_time_limit_seconds = int(turn_time_limit_seconds)
+            except (TypeError, ValueError):
+                turn_time_limit_seconds = DEFAULT_TURN_TIMER_SECONDS
+        turn_time_limit_seconds = max(
+            TURN_TIMER_MIN_SECONDS,
+            min(TURN_TIMER_MAX_SECONDS, turn_time_limit_seconds),
+        )
         allowed_players = (PLAYER_BLACK, PLAYER_WHITE, PLAYER_PURPLE)[:player_count]
         if start_player not in allowed_players:
             start_player = allowed_players[0]
@@ -1112,6 +1126,8 @@ class ConnectionManager:
             "playerCount": player_count,
             "gridSize": grid_size,
             "startPlayer": start_player,
+            "turnTimerEnabled": turn_timer_enabled,
+            "turnTimeLimitSeconds": turn_time_limit_seconds,
         }
 
     def _room_snapshot(self, room: Room) -> Dict[str, Any]:

@@ -252,8 +252,9 @@ export class Renderer {
       throw new Error("Layout is not available. Call render(snapshot) first.");
     }
 
-    const x = layout.offsetX + (gx + gy * 0.5) * layout.scale;
-    const y = layout.offsetY + gy * SQRT3_OVER_2 * layout.scale;
+    // Math.round 保证坐标落在整数像素，消除亚像素抗锯齿的 fillRate 开销
+    const x = Math.round(layout.offsetX + (gx + gy * 0.5) * layout.scale);
+    const y = Math.round(layout.offsetY + gy * SQRT3_OVER_2 * layout.scale);
     return [x, y];
   }
 
@@ -441,6 +442,7 @@ export class Renderer {
       layout.cssWidth,
       layout.cssHeight,
       Math.round(layout.scale * 1000),
+      Math.round((this._lastMeasuredDpr || 1) * 10),
     ].join(":");
   }
 
@@ -450,15 +452,18 @@ export class Renderer {
       return;
     }
 
+    // 静态 canvas 按设备像素分辨率创建，避免 blit 时 GPU 上采样模糊
+    const dpr = this._lastMeasuredDpr || 1;
     const staticCanvas = document.createElement("canvas");
-    staticCanvas.width = layout.cssWidth;
-    staticCanvas.height = layout.cssHeight;
+    staticCanvas.width = Math.round(layout.cssWidth * dpr);
+    staticCanvas.height = Math.round(layout.cssHeight * dpr);
     const staticCtx = staticCanvas.getContext("2d");
     if (!staticCtx) {
       this._staticLayerCanvas = null;
       this._staticLayerKey = "";
       return;
     }
+    staticCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     const previousCtx = this.ctx;
     this.ctx = staticCtx;
