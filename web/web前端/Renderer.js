@@ -193,7 +193,9 @@ export class Renderer {
   }
 
   _computeLayout(snapshot) {
-    const { cssWidth, cssHeight } = this._measureCanvas();
+    // 优先复用 resize() 已测量并缓存的值，避免重复触发 getBoundingClientRect layout reflow
+    const cssWidth = this._lastMeasuredWidth > 0 ? this._lastMeasuredWidth : this._measureCanvas().cssWidth;
+    const cssHeight = this._lastMeasuredHeight > 0 ? this._lastMeasuredHeight : this._measureCanvas().cssHeight;
     const gridSize = snapshot?.gridSize ?? 9;
     const validPoints = this._getValidPoints(gridSize);
     const normalizedPoints = validPoints.map(([gx, gy]) => [gx + gy * 0.5, gy * SQRT3_OVER_2]);
@@ -529,13 +531,15 @@ export class Renderer {
     }
     ctx.stroke();
 
+    // 将所有导引点合并为单次 fill()，避免 N 次单独 beginPath/fill 调用
     ctx.fillStyle = this.theme.guidePoint;
+    ctx.beginPath();
     for (const point of boardData.validPoints) {
       const [x, y] = this._gridToPixel(point[0], point[1], layout);
-      ctx.beginPath();
+      ctx.moveTo(x + layout.guidePointRadius, y);
       ctx.arc(x, y, layout.guidePointRadius, 0, Math.PI * 2);
-      ctx.fill();
     }
+    ctx.fill();
   }
 
   _drawSegments(snapshot, boardData, layout) {

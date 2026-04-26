@@ -73,6 +73,17 @@ export class GameController {
     }
   }
 
+  _updateLargeBoardClass() {
+    const gridSize = this.options.engine?.gridSize ?? 9;
+    if (typeof document !== "undefined" && document.body) {
+      if (gridSize >= 15) {
+        document.body.classList.add("large-board");
+      } else {
+        document.body.classList.remove("large-board");
+      }
+    }
+  }
+
   init() {
     if (!this._isInitialized) {
       this.canvas.addEventListener("click", this._boundHandleClick);
@@ -80,6 +91,7 @@ export class GameController {
       this._isInitialized = true;
     }
 
+    this._updateLargeBoardClass();
     const snapshot = this.engine.getSnapshot();
     this.renderer.render(snapshot);
     this._syncCanvasInteractivity(snapshot);
@@ -119,6 +131,7 @@ export class GameController {
 
     this.engine = new GameEngine(this.options.engine);
     this._setLastAction(null);
+    this._updateLargeBoardClass();
     const snapshot = this.engine.getSnapshot();
     this._syncSnapshot(snapshot);
     return this._buildGameState(snapshot);

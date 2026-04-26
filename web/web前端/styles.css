@@ -1200,7 +1200,8 @@ body::before {
 @media (pointer: coarse) {
   .panel,
   .dock-folder,
-  .result-overlay {
+  .result-overlay,
+  .edge-trigger {
     backdrop-filter: none;
   }
 
@@ -1208,6 +1209,25 @@ body::before {
   .dock-folder {
     box-shadow: 0 10px 20px rgba(64, 42, 18, 0.08);
   }
+
+  body::before {
+    display: none;
+  }
+}
+
+/* 大棋盘（gridSize >= 15）或移动端时由 JS 给 body 加 large-board class，关闭高代价合成特效 */
+body.large-board::before {
+  display: none;
+}
+
+body.large-board .edge-trigger {
+  backdrop-filter: none;
+}
+
+body.large-board .panel,
+body.large-board .dock-folder,
+body.large-board .result-overlay {
+  backdrop-filter: none;
 }
 
 .panel-network {

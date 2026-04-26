@@ -232,10 +232,11 @@ export class GameEngine {
         },
       ]),
     );
+    // 始终输出全部三个玩家的边集合，避免渲染器因 undefined 回退到 O(N²) 的 _collectRenderableSegments
     const edges = Object.fromEntries(
-      this.activePlayers.map((player) => [
+      PLAYER_ORDER.map((player) => [
         player,
-        [...this._getEdges(player)],
+        this.activePlayers.includes(player) ? [...this._getEdges(player)] : [],
       ]),
     );
     return {
