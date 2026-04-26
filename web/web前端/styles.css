@@ -90,6 +90,7 @@ body::before {
 
 .stage-heading {
   padding: 4px 2px 0;
+  text-align: center;
 }
 
 .stage-title {
@@ -100,6 +101,7 @@ body::before {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #2b2118;
+  text-align: center;
 }
 
 .dock-column {
@@ -400,10 +402,10 @@ body::before {
 }
 
 .panel-board-focus .canvas-frame {
-  width: min(100%, calc((100vh - 230px) * 4 / 3));
+  width: min(100%, calc((100dvh - 230px) * 4 / 3));
   min-height: 0;
   max-width: 100%;
-  max-height: calc(100vh - 230px);
+  max-height: calc(100dvh - 230px);
   margin: 0 auto;
   background:
     radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.82), transparent 44%),
@@ -1044,8 +1046,8 @@ body::before {
   }
 
   .panel-board-focus .canvas-frame {
-    width: min(100%, calc((100vh - 250px) * 4 / 3));
-    max-height: calc(100vh - 250px);
+    width: min(100%, calc((100dvh - 250px) * 4 / 3));
+    max-height: calc(100dvh - 250px);
   }
 
   .duel-strip {
@@ -1112,9 +1114,9 @@ body::before {
   }
 
   .panel-board-focus .canvas-frame {
-    width: 100%;
-    min-height: 280px;
-    max-height: none;
+    width: min(100%, calc((100dvh - 260px) * 4 / 3));
+    min-height: clamp(220px, 50dvh, 340px);
+    max-height: calc(100dvh - 260px);
   }
 
   .dock-folder-summary,

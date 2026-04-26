@@ -30,6 +30,9 @@ const DIRECTIONS = Object.freeze([
   [-1, 1],
 ]);
 
+// 右手摸墙法使用的顺时针方向序列：E→SE→SW→W→NW→NE
+const DIRS_CW = Object.freeze([[1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1], [1, -1]]);
+
 const PLAYER_POINT_STATES = Object.freeze({
   [Player.BLACK]: Object.freeze({
     node: PointState.BLACK_NODE,
@@ -95,57 +98,6 @@ function dedupePoints(points) {
   return result;
 }
 
-function cartesianProduct(arrays) {
-  if (arrays.length === 0) {
-    return [[]];
-  }
-
-  let result = [[]];
-  for (const array of arrays) {
-    const next = [];
-    for (const prefix of result) {
-      for (const value of array) {
-        next.push(prefix.concat([value]));
-      }
-    }
-    result = next;
-  }
-  return result;
-}
-
-function buildConvexHull(points) {
-  const unique = dedupePoints(points).sort((a, b) => {
-    if (a[0] !== b[0]) {
-      return a[0] - b[0];
-    }
-    return a[1] - b[1];
-  });
-
-  if (unique.length <= 1) {
-    return unique;
-  }
-
-  const lower = [];
-  for (const point of unique) {
-    while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], point) <= 0) {
-      lower.pop();
-    }
-    lower.push(point);
-  }
-
-  const upper = [];
-  for (let i = unique.length - 1; i >= 0; i -= 1) {
-    const point = unique[i];
-    while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], point) <= 0) {
-      upper.pop();
-    }
-    upper.push(point);
-  }
-
-  lower.pop();
-  upper.pop();
-  return lower.concat(upper);
-}
 
 export class GameEngine {
   constructor(options = {}) {
@@ -176,11 +128,17 @@ export class GameEngine {
     // 仅用于连通性判断，渲染仍依赖 this.grid
     this.edges = Object.fromEntries(this.activePlayers.map((player) => [player, new Set()]));
 
+    // 全局同形再现禁手：记录历史局面哈希，防止打劫循环
+    this.historyHashes = new Set();
+
     this._initGrid();
     for (const player of this.activePlayers) {
       this._setState(this.initialPositions[player], this._getPlayerStates(player).node);
     }
     this._updateTerritories();
+
+    // 将初始局面写入历史，防止任何操作回到起始状态
+    this.historyHashes.add(this._computeStateHash(this.startPlayer));
   }
 
   _initGrid() {
@@ -622,87 +580,6 @@ export class GameEngine {
     this._reconnectPlayerNodes(opponent);
   }
 
-  _isOnSegment(point, segmentStart, segmentEnd) {
-    const areaTwice =
-      (point[1] - segmentStart[1]) * (segmentEnd[0] - segmentStart[0]) -
-      (point[0] - segmentStart[0]) * (segmentEnd[1] - segmentStart[1]);
-    if (areaTwice !== 0) {
-      return false;
-    }
-
-    return (
-      point[0] >= Math.min(segmentStart[0], segmentEnd[0]) &&
-      point[0] <= Math.max(segmentStart[0], segmentEnd[0]) &&
-      point[1] >= Math.min(segmentStart[1], segmentEnd[1]) &&
-      point[1] <= Math.max(segmentStart[1], segmentEnd[1])
-    );
-  }
-
-  _polygonContainsAll(polygon, friendlyPoints) {
-    if (!polygon || polygon.length < 3) {
-      return false;
-    }
-
-    for (const point of friendlyPoints) {
-      if (polygon.some((polygonPoint) => pointEquals(polygonPoint, point))) {
-        continue;
-      }
-
-      let onBoundary = false;
-      for (let i = 0; i < polygon.length; i += 1) {
-        const start = polygon[i];
-        const end = polygon[(i + 1) % polygon.length];
-        if (this._isOnSegment(point, start, end)) {
-          onBoundary = true;
-          break;
-        }
-      }
-      if (onBoundary) {
-        continue;
-      }
-
-      const [x, y] = point;
-      let inside = false;
-      let [p1x, p1y] = polygon[0];
-      for (let i = 1; i <= polygon.length; i += 1) {
-        const [p2x, p2y] = polygon[i % polygon.length];
-        if (y > Math.min(p1y, p2y)) {
-          if (y <= Math.max(p1y, p2y) && x <= Math.max(p1x, p2x)) {
-            let xIntersections = Infinity;
-            if (p1y !== p2y) {
-              xIntersections = ((y - p1y) * (p2x - p1x)) / (p2y - p1y) + p1x;
-            }
-            if (p1x === p2x || x <= xIntersections) {
-              inside = !inside;
-            }
-          }
-        }
-        p1x = p2x;
-        p1y = p2y;
-      }
-
-      if (!inside) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  _calculatePolygonArea(polygon) {
-    if (!polygon || polygon.length < 3) {
-      return 0;
-    }
-
-    let areaTwice = 0;
-    for (let i = 0; i < polygon.length; i += 1) {
-      const [x1, y1] = polygon[i];
-      const [x2, y2] = polygon[(i + 1) % polygon.length];
-      areaTwice += x1 * y2 - x2 * y1;
-    }
-    return Math.abs(areaTwice);
-  }
-
   getAllShortestGridPaths(start, end, blockedPoints = []) {
     this._assertValidPosition(start);
     this._assertValidPosition(end);
@@ -764,66 +641,217 @@ export class GameEngine {
     return buildPaths(endKey);
   }
 
+  /** 阶段一：右手摸墙法 — 获取外轮廓 */
+  _getOuterContour(player) {
+    const friendlySet = new Set();
+    for (const p of [...this._getPlayerNodes(player), ...this._getPlayerLines(player)]) {
+      friendlySet.add(pointKey(p));
+    }
+    if (friendlySet.size === 0) return [];
+
+    // 起点：x 最小，相同取 y 最小
+    let start = null;
+    for (const key of friendlySet) {
+      const p = keyToPoint(key);
+      if (!start || p[0] < start[0] || (p[0] === start[0] && p[1] < start[1])) {
+        start = p;
+      }
+    }
+
+    if (friendlySet.size === 1) return [clonePoint(start)];
+
+    let backtrack = 3; // 初始：从正西方（W）进入，对应方向索引 3
+    const contour = [];
+    let current = clonePoint(start);
+    let firstOutDir = null;
+    const maxSteps = friendlySet.size * 6 + 10;
+
+    for (let step = 0; step < maxSteps; step += 1) {
+      // 从 (backtrack+1)%6 开始顺时针扫描 6 个方向
+      let outDir = null;
+      for (let i = 0; i < 6; i += 1) {
+        const d = (backtrack + 1 + i) % 6;
+        const [dx, dy] = DIRS_CW[d];
+        const nxt = [current[0] + dx, current[1] + dy];
+        if (friendlySet.has(pointKey(nxt))) {
+          outDir = d;
+          break;
+        }
+      }
+
+      if (outDir === null) {
+        // 孤立点或死胡同
+        contour.push(clonePoint(current));
+        break;
+      }
+
+      if (firstOutDir === null) {
+        firstOutDir = outDir;
+        contour.push(clonePoint(current));
+      } else if (pointEquals(current, start) && outDir === firstOutDir) {
+        break; // 轮廓闭合
+      } else {
+        contour.push(clonePoint(current));
+      }
+
+      const [dx, dy] = DIRS_CW[outDir];
+      current = [current[0] + dx, current[1] + dy];
+      backtrack = (outDir + 3) % 6;
+    }
+
+    return contour;
+  }
+
+  /** 阶段三：泛洪法领土判定 — 从边缘注水，未被淹没即为领土 */
+  _getCoveredPoints(polygon) {
+    const wallSet = new Set(polygon.map(pointKey));
+    const waterReached = new Set();
+    const queue = [];
+    let qi = 0;
+
+    // 从三条物理边缘注水（x==0, y==0, x+y==gridSize-1）
+    for (let y = 0; y < this.gridSize; y += 1) {
+      for (let x = 0; x < this.gridSize - y; x += 1) {
+        if (x === 0 || y === 0 || x + y === this.gridSize - 1) {
+          const k = pointKey([x, y]);
+          if (!wallSet.has(k)) {
+            waterReached.add(k);
+            queue.push([x, y]);
+          }
+        }
+      }
+    }
+
+    while (qi < queue.length) {
+      const curr = queue[qi];
+      qi += 1;
+      for (const nxt of this.getAdjacentPositions(curr)) {
+        const k = pointKey(nxt);
+        if (!wallSet.has(k) && !waterReached.has(k)) {
+          waterReached.add(k);
+          queue.push(nxt);
+        }
+      }
+    }
+
+    // 领土 = 全图所有点 - 被水淹没的点（含轮廓墙体本身）
+    const covered = new Set();
+    for (const p of this.validPositions) {
+      const k = pointKey(p);
+      if (!waterReached.has(k)) {
+        covered.add(k);
+      }
+    }
+    return covered;
+  }
+
+  /** 核心领土计算：右手摸墙 → 动态贪心修剪 → 泛洪法 */
   _computeTerritory(player) {
-    const friendlyPoints = dedupePoints([
-      ...this._getPlayerNodes(player),
-      ...this._getPlayerLines(player),
-    ]);
+    const friendlyNodeKeys = new Set(this._getPlayerNodes(player).map(pointKey));
     const enemyPoints = dedupePoints(
-      this._getOpponents(player).flatMap((opponent) => [
-        ...this._getPlayerNodes(opponent),
-        ...this._getPlayerLines(opponent),
+      this._getOpponents(player).flatMap((opp) => [
+        ...this._getPlayerNodes(opp),
+        ...this._getPlayerLines(opp),
       ]),
     );
+    const enemyKeySet = new Set(enemyPoints.map(pointKey));
 
-    if (friendlyPoints.length < 3) {
+    // 阶段一：右手摸墙法获取外轮廓
+    let currentPoly = this._getOuterContour(player);
+    if (currentPoly.length < 3) {
       return { polygon: null, area: 0 };
     }
 
-    const hullVertices = buildConvexHull(friendlyPoints);
-    if (hullVertices.length < 3) {
+    // 阶段二：动态贪心修剪（皮筋收紧）
+    while (true) {
+      const n = currentPoly.length;
+      if (n < 3) break;
+
+      const curPerim = n;
+      const curArea = this._getCoveredPoints(currentPoly).size;
+
+      let bestOverallCand = null;
+      let bestCandPerim = curPerim;
+      let bestCandArea = curArea;
+
+      for (let i = 0; i < n; i += 1) {
+        for (let j = n - 1; j > i + 1; j -= 1) {
+          const paths = this.getAllShortestGridPaths(currentPoly[i], currentPoly[j], enemyPoints);
+          if (!paths || paths.length === 0) continue;
+
+          for (const path of paths) {
+            // 方案 A：用路径替换 poly[i..j] 段
+            const candA = [...currentPoly.slice(0, i), ...path, ...currentPoly.slice(j + 1)];
+            // 方案 B：用反向路径中间段替换互补弧
+            const revMid = path.slice(1, -1).reverse();
+            const candB = [...currentPoly.slice(i, j + 1), ...revMid];
+
+            for (let cand of [candA, candB]) {
+              // 去除相邻重复顶点
+              cand = cand.filter((p, k) => k === 0 || !pointEquals(p, cand[k - 1]));
+              if (cand.length < 3) continue;
+
+              const candPerim = cand.length;
+              if (candPerim > bestCandPerim) continue;
+
+              // 泛洪法计算真实领土
+              const covered = this._getCoveredPoints(cand);
+              const candArea = covered.size;
+
+              // 周长相等时领土点数没有更小，淘汰
+              if (candPerim === bestCandPerim && candArea >= bestCandArea) continue;
+
+              // 核心资产保护：所有友方节点必须在领土内
+              if (![...friendlyNodeKeys].every((k) => covered.has(k))) continue;
+
+              // 避障测试：领土内不得包含任何敌方点
+              if ([...enemyKeySet].some((k) => covered.has(k))) continue;
+
+              bestCandPerim = candPerim;
+              bestCandArea = candArea;
+              bestOverallCand = cand;
+            }
+          }
+        }
+      }
+
+      if (bestOverallCand !== null) {
+        currentPoly = bestOverallCand;
+      } else {
+        break;
+      }
+    }
+
+    if (currentPoly.length < 3) {
       return { polygon: null, area: 0 };
     }
 
-    const segmentPaths = [];
-    for (let i = 0; i < hullVertices.length; i += 1) {
-      const start = hullVertices[i];
-      const end = hullVertices[(i + 1) % hullVertices.length];
-      const paths = this.getAllShortestGridPaths(start, end, enemyPoints);
-      if (paths.length === 0) {
-        return { polygon: null, area: 0 };
-      }
-      segmentPaths.push(paths);
-    }
+    // 阶段三：泛洪法计算最终领土面积
+    const finalCovered = this._getCoveredPoints(currentPoly);
+    const area = finalCovered.size;
 
-    let bestPolygon = null;
-    let minArea = Number.POSITIVE_INFINITY;
-    const combinations = cartesianProduct(segmentPaths);
+    // 首尾闭合，供渲染使用
+    const closedPoly = [...currentPoly, clonePoint(currentPoly[0])];
+    return { polygon: closedPoly, area };
+  }
 
-    for (const combination of combinations) {
-      const polygon = [];
-      for (const path of combination) {
-        polygon.push(...path.slice(0, -1));
-      }
-      if (!this._polygonContainsAll(polygon, friendlyPoints)) {
-        continue;
-      }
-
-      const area = this._calculatePolygonArea(polygon);
-      if (area < minArea) {
-        minArea = area;
-        bestPolygon = polygon.map(clonePoint);
+  /** 将当前局面序列化为唯一字符串，用于 Superko 判断。
+   *  包含：网格物理层（非空点）、逻辑拓扑层（各方边集合）、即将行棋方。 */
+  _computeStateHash(nextPlayer) {
+    const gridEntries = [];
+    for (const [key, state] of this.grid.entries()) {
+      if (state !== PointState.EMPTY) {
+        const [x, y] = key.split(",").map(Number);
+        gridEntries.push([x, y, state]);
       }
     }
+    gridEntries.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
 
-    if (!bestPolygon) {
-      return { polygon: null, area: 0 };
-    }
+    const edgeLists = this.activePlayers.map((player) =>
+      [...this._getEdges(player)].sort(),
+    );
 
-    return {
-      polygon: bestPolygon,
-      area: minArea,
-    };
+    return JSON.stringify([nextPlayer, gridEntries, edgeLists]);
   }
 
   _updateTerritories() {
@@ -992,6 +1020,13 @@ export class GameEngine {
     }
 
     const normalizedPoint = clonePoint(point);
+
+    // Superko 快照：在落子前保存完整状态，用于违规时回滚
+    const gridSnapshot = new Map(this.grid);
+    const edgesSnapshot = Object.fromEntries(
+      this.activePlayers.map((player) => [player, new Set(this._getEdges(player))]),
+    );
+
     const success = this._addNode(normalizedPoint);
     if (!success) {
       return {
@@ -1001,6 +1036,25 @@ export class GameEngine {
       };
     }
 
+    // 结算后计算局面哈希（以对手为即将行棋方）
+    const currentIndex = this.activePlayers.indexOf(this.currentPlayer);
+    const nextPlayer = this.activePlayers[(currentIndex + 1) % this.activePlayers.length];
+    const stateHash = this._computeStateHash(nextPlayer);
+
+    if (this.historyHashes.has(stateHash)) {
+      // 全局同形再现禁手：回滚所有变更，拒绝落子
+      this.grid = gridSnapshot;
+      for (const player of this.activePlayers) {
+        this.edges[player] = edgesSnapshot[player];
+      }
+      return {
+        success: false,
+        reason: "SUPERKO_VIOLATION",
+        snapshot: this.getSnapshot(),
+      };
+    }
+
+    this.historyHashes.add(stateHash);
     this.turnCount += 1;
     this.consecutiveSkips = 0;
     this._switchPlayer();

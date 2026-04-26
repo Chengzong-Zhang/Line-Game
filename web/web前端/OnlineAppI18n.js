@@ -147,9 +147,9 @@ const EN_TEXTS = Object.freeze({
 });
 
 const ZH_TEXTS = Object.freeze({
-  pageTitle: "LIFELINE",
+  pageTitle: "生命线",
   languageLabel: "语言",
-  heroTitle: "LIFELINE",
+  heroTitle: "生命线",
   heroCopy: "规则计算仍在浏览器内完成，FastAPI 中继服务只负责创建房间、同步状态和转发对局操作。",
   statusLabel: "对局播报",
   stageFocusEyebrow: "核心棋盘",

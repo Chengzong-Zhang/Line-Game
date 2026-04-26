@@ -23,7 +23,7 @@ import {
   getInitialLanguage as getAppInitialLanguage,
   getTexts as getAppTexts,
   localizeErrorMessage as localizeAppErrorMessage,
-} from "./OnlineAppI18n.js?v=20260425c";
+} from "./OnlineAppI18n.js?v=20260426a";
 
 const {
   computed,
@@ -921,7 +921,6 @@ const BoardCanvas = {
       <div class="canvas-frame">
         <canvas ref="canvasRef" class="game-canvas" :aria-label="texts.boardAriaLabel"></canvas>
       </div>
-      <p class="board-note">{{ hintText }}</p>
     </section>
   `,
 };
@@ -1909,7 +1908,7 @@ const App = {
       <section class="stage-layout">
         <section class="board-column">
           <header class="stage-heading">
-            <h1 class="stage-title">LIFELINE</h1>
+            <h1 class="stage-title">{{ getTexts(language).heroTitle }}</h1>
           </header>
 
           <BoardCanvas
