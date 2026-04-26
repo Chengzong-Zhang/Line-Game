@@ -104,6 +104,45 @@ function normalizeRoomStatus(status) {
   return normalized || "solo";
 }
 
+const PLAYER_ACCENT_CLASS = Object.freeze({
+  [Player.BLACK]: "player-accent-blue",
+  [Player.WHITE]: "player-accent-red",
+  [Player.PURPLE]: "player-accent-purple",
+});
+
+function getPlayerAccentClass(player) {
+  return PLAYER_ACCENT_CLASS[player] ?? "";
+}
+
+function findRoomPlayerByColor(roomPlayers, color) {
+  if (!Array.isArray(roomPlayers)) {
+    return null;
+  }
+
+  return roomPlayers.find((player) => player?.color === color) ?? null;
+}
+
+function resolveOnlinePlayerName(roomPlayers, color, language) {
+  const player = findRoomPlayerByColor(roomPlayers, color);
+  return player?.username ?? player?.playerId ?? formatAppPlayerName(color, language);
+}
+
+function buildNamedScoreEntries(scores, players, roomPlayers, language) {
+  const activePlayers = Array.isArray(players) && players.length
+    ? players
+    : [Player.BLACK, Player.WHITE];
+
+  return activePlayers
+    .filter((player) => scores && Object.prototype.hasOwnProperty.call(scores, player))
+    .map((player) => ({
+      key: player,
+      color: player,
+      name: resolveOnlinePlayerName(roomPlayers, player, language),
+      value: scores?.[player],
+      accentClass: getPlayerAccentClass(player),
+    }));
+}
+
 
 const ScorePanel = {
   name: "ScorePanel",
@@ -116,6 +155,10 @@ const ScorePanel = {
       type: Object,
       required: true,
     },
+    roomPlayers: {
+      type: Array,
+      default: () => [],
+    },
     language: {
       type: String,
       required: true,
@@ -127,7 +170,12 @@ const ScorePanel = {
   },
   setup(props) {
     const texts = computed(() => getAppTexts(props.language));
-    const currentPlayerLabel = computed(() => formatAppPlayerName(props.gameState.currentPlayer, props.language));
+    const isOnlineMatch = computed(() => Boolean(props.session?.roomId));
+    const currentPlayerLabel = computed(() => (
+      isOnlineMatch.value
+        ? resolveOnlinePlayerName(props.roomPlayers, props.gameState.currentPlayer, props.language)
+        : formatAppPlayerName(props.gameState.currentPlayer, props.language)
+    ));
     const localRoleLabel = computed(() => formatAppPlayerName(props.session.color, props.language));
     const winnerLabel = computed(() => formatAppWinner(props.gameState.winner, props.language));
     const turnBannerClass = computed(() => {
@@ -145,9 +193,16 @@ const ScorePanel = {
         : [Player.BLACK, Player.WHITE];
 
       return players.map((player) => {
+        const namedCard = {
+          key: player,
+          name: resolveOnlinePlayerName(props.roomPlayers, player, props.language),
+          accentClass: getPlayerAccentClass(player),
+          isNamed: isOnlineMatch.value,
+        };
+
         if (player === Player.BLACK) {
           return {
-            key: player,
+            ...namedCard,
             label: texts.value.blueTerritory,
             value: props.gameState.scores?.[Player.BLACK],
             className: "score-card-blue",
@@ -156,7 +211,7 @@ const ScorePanel = {
 
         if (player === Player.WHITE) {
           return {
-            key: player,
+            ...namedCard,
             label: texts.value.redTerritory,
             value: props.gameState.scores?.[Player.WHITE],
             className: "score-card-red",
@@ -164,7 +219,7 @@ const ScorePanel = {
         }
 
         return {
-          key: player,
+          ...namedCard,
           label: texts.value.purpleTerritory,
           value: props.gameState.scores?.[Player.PURPLE],
           className: "score-card-purple",
@@ -194,7 +249,7 @@ const ScorePanel = {
 
       <div class="turn-banner" :class="turnBannerClass">
         <span class="turn-dot"></span>
-        <strong>{{ currentPlayerLabel }} {{ texts.turnSuffix }}</strong>
+        <strong>{{ currentPlayerLabel }}{{ texts.turnSuffix }}</strong>
         <small>{{ winnerLabel }}</small>
       </div>
 
@@ -205,7 +260,10 @@ const ScorePanel = {
           class="score-card"
           :class="card.className"
         >
-          <p>{{ card.label }}</p>
+          <p v-if="card.isNamed">
+            <span :class="card.accentClass">{{ card.name }}</span><span>{{ texts.territorySuffix }}</span>
+          </p>
+          <p v-else>{{ card.label }}</p>
           <strong>{{ formatArea(card.value) }}</strong>
           <span>{{ texts.area }}</span>
         </article>
@@ -545,6 +603,7 @@ const RoomPanel = {
     const connectionLabel = computed(() => formatAppConnectionState(props.connectionState, props.language));
     const roomStatusLabel = computed(() => formatAppConnectionState(props.roomStatus, props.language));
     const roomPlayers = computed(() => Array.isArray(props.roomInfo?.players) ? props.roomInfo.players : []);
+    const roomPlayerName = (player) => player?.username ?? player?.playerId ?? formatAppPlayerName(player?.color, props.language);
 
     return {
       texts,
@@ -552,7 +611,8 @@ const RoomPanel = {
       connectionLabel,
       roomStatusLabel,
       roomPlayers,
-      formatPlayerName: formatAppPlayerName,
+      getPlayerAccentClass,
+      roomPlayerName,
     };
   },
   template: `
@@ -627,7 +687,7 @@ const RoomPanel = {
         <div class="room-player-list">
           <article v-for="player in roomPlayers" :key="player.playerId" class="room-player-card">
             <div>
-              <strong>{{ formatPlayerName(player.color, language) }}</strong>
+              <strong :class="getPlayerAccentClass(player.color)">{{ roomPlayerName(player) }}</strong>
               <span class="room-player-meta" v-if="player.playerId === session.playerId">{{ texts.roomYou }}</span>
               <span class="room-player-meta" v-if="player.isHost">{{ texts.roomHost }}</span>
             </div>
@@ -698,6 +758,14 @@ const ControlPanel = {
       type: String,
       default: "",
     },
+    session: {
+      type: Object,
+      required: true,
+    },
+    roomPlayers: {
+      type: Array,
+      default: () => [],
+    },
     language: {
       type: String,
       required: true,
@@ -705,7 +773,11 @@ const ControlPanel = {
   },
   setup(props) {
     const texts = computed(() => getAppTexts(props.language));
-    const currentPlayerLabel = computed(() => formatAppPlayerName(props.gameState.currentPlayer, props.language));
+    const currentPlayerLabel = computed(() => (
+      props.session?.roomId
+        ? resolveOnlinePlayerName(props.roomPlayers, props.gameState.currentPlayer, props.language)
+        : formatAppPlayerName(props.gameState.currentPlayer, props.language)
+    ));
     const turnBannerClass = computed(() => {
       if (props.gameState.currentPlayer === Player.BLACK) {
         return "is-blue";
@@ -729,7 +801,7 @@ const ControlPanel = {
         <p class="duel-label">{{ texts.currentTurnLabel }}</p>
         <div class="turn-banner duel-turn-banner" :class="turnBannerClass">
           <span class="turn-dot"></span>
-          <strong>{{ currentPlayerLabel }} {{ texts.turnSuffix }}</strong>
+          <strong>{{ currentPlayerLabel }}{{ texts.turnSuffix }}</strong>
         </div>
       </div>
       <div class="actions duel-actions">
@@ -764,6 +836,14 @@ const ResultModal = {
       type: String,
       required: true,
     },
+    session: {
+      type: Object,
+      required: true,
+    },
+    roomPlayers: {
+      type: Array,
+      default: () => [],
+    },
     overlayResult: {
       type: Object,
       default: null,
@@ -779,11 +859,46 @@ const ResultModal = {
   },
   setup(props) {
     const texts = computed(() => getAppTexts(props.language));
+    const isOnlineSettlement = computed(() => Boolean(props.session?.roomId && props.session?.color));
+    const resolvedWinner = computed(() => props.overlayResult?.winner ?? props.gameState.winner);
+    const localPlayerName = computed(() => (
+      isOnlineSettlement.value
+        ? resolveOnlinePlayerName(props.roomPlayers, props.session.color, props.language)
+        : ""
+    ));
+    const localPlayerAccentClass = computed(() => getPlayerAccentClass(props.session.color));
+    const localPlayerDidWin = computed(() => {
+      if (!isOnlineSettlement.value || resolvedWinner.value === "DRAW") {
+        return null;
+      }
+      return resolvedWinner.value === props.session.color;
+    });
+    const showPerspectiveTitle = computed(() => localPlayerDidWin.value !== null && Boolean(localPlayerName.value));
     const title = computed(() => {
       if (props.overlayResult) {
         return formatAppWinner(props.overlayResult.winner, props.language);
       }
       return formatAppWinner(props.gameState.winner, props.language);
+    });
+    const titleOutcome = computed(() => {
+      if (localPlayerDidWin.value === true) {
+        return texts.value.victorySuffix;
+      }
+      if (localPlayerDidWin.value === false) {
+        return texts.value.defeatSuffix;
+      }
+      return texts.value.draw;
+    });
+    const structuredSummaryEntries = computed(() => {
+      if (props.overlayResult || !isOnlineSettlement.value) {
+        return [];
+      }
+      return buildNamedScoreEntries(
+        props.gameState.scores,
+        props.gameState.players,
+        props.roomPlayers,
+        props.language,
+      );
     });
     const summary = computed(() => {
       if (props.overlayResult?.scoreLine) {
@@ -791,8 +906,8 @@ const ResultModal = {
       }
       if (props.overlayResult) {
         return texts.value.resignedSummary(
-          formatAppPlayerName(props.overlayResult.winner, props.language),
-          formatAppPlayerName(props.overlayResult.loser, props.language),
+          resolveOnlinePlayerName(props.roomPlayers, props.overlayResult.winner, props.language),
+          resolveOnlinePlayerName(props.roomPlayers, props.overlayResult.loser, props.language),
         );
       }
       return formatAppFinalScoreLine(props.gameState.scores, props.language, props.gameState.players);
@@ -807,8 +922,14 @@ const ResultModal = {
 
     return {
       actionLabel,
+      formatArea: formatAppArea,
+      localPlayerAccentClass,
+      localPlayerName,
+      showPerspectiveTitle,
+      structuredSummaryEntries,
       texts,
       title,
+      titleOutcome,
       summary,
     };
   },
@@ -817,8 +938,18 @@ const ResultModal = {
       <div v-if="visible && (overlayResult || gameState.gameOver)" class="result-overlay" role="dialog" aria-modal="true">
         <div class="result-card">
           <p class="eyebrow">{{ texts.gameOver }}</p>
-          <h2>{{ title }}</h2>
-          <p class="result-summary">{{ summary }}</p>
+          <h2 v-if="showPerspectiveTitle" class="result-title-rich">
+            <span :class="localPlayerAccentClass">{{ localPlayerName }}</span><span>{{ titleOutcome }}</span>
+          </h2>
+          <h2 v-else>{{ title }}</h2>
+          <p v-if="structuredSummaryEntries.length" class="result-summary result-summary-scoreline">
+            <template v-for="(entry, index) in structuredSummaryEntries" :key="entry.key">
+              <span :class="entry.accentClass">{{ entry.name }}</span>
+              <span class="result-score-value">{{ formatArea(entry.value) }}</span>
+              <span v-if="index < structuredSummaryEntries.length - 1" class="result-score-separator"> : </span>
+            </template>
+          </p>
+          <p v-else class="result-summary">{{ summary }}</p>
           <button
             class="action-button action-button-primary"
             :disabled="overlayResult ? false : !allowReset"
@@ -1924,6 +2055,8 @@ const App = {
             :skip-disabled="skipDisabled"
             :reset-disabled="resetDisabled"
             :reset-label="resetLabel"
+            :session="session"
+            :room-players="roomInfo.players"
             @skip="handleSkip"
             @reset="handleReset"
           />
@@ -1950,6 +2083,7 @@ const App = {
               <ScorePanel
                 :game-state="gameState"
                 :session="session"
+                :room-players="roomInfo.players"
                 :language="language"
                 :status-text="statusText"
               />
@@ -1962,6 +2096,22 @@ const App = {
             :badge="networkDockBadge"
           >
             <div class="dock-stack">
+              <AuthPanel
+                :language="language"
+                :auth="auth"
+                :mode="authMode"
+                :username="authUsername"
+                :password="authPassword"
+                :busy="authBusy"
+                :error="authError"
+                :feedback-tone="authFeedbackTone"
+                @update:mode="authMode = $event"
+                @update:username="authUsername = $event"
+                @update:password="authPassword = $event"
+                @submit="handleAuthSubmit"
+                @logout="handleLogout"
+              />
+
               <RoomPanel
                 :language="language"
                 :server-url="serverUrl"
@@ -1990,22 +2140,6 @@ const App = {
                 @update:start-player="handleStartPlayerChange"
                 @close-prompt="handleClosePrompt"
               />
-
-              <AuthPanel
-                :language="language"
-                :auth="auth"
-                :mode="authMode"
-                :username="authUsername"
-                :password="authPassword"
-                :busy="authBusy"
-                :error="authError"
-                :feedback-tone="authFeedbackTone"
-                @update:mode="authMode = $event"
-                @update:username="authUsername = $event"
-                @update:password="authPassword = $event"
-                @submit="handleAuthSubmit"
-                @logout="handleLogout"
-              />
             </div>
           </DockDirectory>
         </aside>
@@ -2015,6 +2149,8 @@ const App = {
         :language="language"
         :game-state="gameState"
         :allow-reset="resultResetAllowed"
+        :session="session"
+        :room-players="roomInfo.players"
         :overlay-result="overlayResult"
         :visible="showClosePrompt"
         :reset-label="resetLabel"

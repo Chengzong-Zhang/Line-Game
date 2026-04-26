@@ -485,6 +485,18 @@ body::before {
   font-weight: 700;
 }
 
+.player-accent-blue {
+  color: var(--blue);
+}
+
+.player-accent-red {
+  color: var(--red);
+}
+
+.player-accent-purple {
+  color: var(--purple);
+}
+
 .score-card-blue {
   box-shadow: inset 0 0 0 1px rgba(43, 111, 255, 0.12);
 }
@@ -963,6 +975,25 @@ body::before {
 
 .result-card h2 {
   font-size: clamp(2rem, 4vw, 3rem);
+}
+
+.result-title-rich {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.08em;
+}
+
+.result-summary-scoreline {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.result-score-value,
+.result-score-separator {
+  color: var(--ink-soft);
 }
 
 .fade-enter-active,
