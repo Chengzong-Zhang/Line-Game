@@ -547,18 +547,9 @@ class ConnectionManager:
                 payloads = []
             else:
                 room = action["room"]
-                room.reset_votes.add(action["sender"].player_id)
-                vote_payload = {
-                    "type": "RESET_STATUS",
-                    "roomId": action["room_id"],
-                    "playerId": action["sender"].player_id,
-                    "color": action["sender"].color,
-                    "requiredVotes": room.player_capacity(),
-                    "confirmedVotes": len(room.reset_votes),
-                    "confirmedPlayerIds": list(room.reset_votes),
-                }
+                restart_reason = "normal_restart" if reason == "normal_restart" else "resign_restart"
 
-                if len(room.reset_votes) >= room.player_capacity():
+                if restart_reason == "normal_restart":
                     room.actions = []
                     room.match_started = False
                     room.ready_players.clear()
@@ -569,8 +560,7 @@ class ConnectionManager:
                         "roomId": action["room_id"],
                         "playerId": action["sender"].player_id,
                         "color": action["sender"].color,
-                        "reason": "consensus_restart",
-                        "winnerColor": action["sender"].color,
+                        "reason": "normal_restart",
                         "status": self._room_status(room),
                         "settings": dict(room.settings),
                         "players": [
@@ -587,7 +577,47 @@ class ConnectionManager:
                     }
                     payloads = self._connected_room_payloads(room, payload)
                 else:
-                    payloads = self._connected_room_payloads(room, vote_payload)
+                    room.reset_votes.add(action["sender"].player_id)
+                    vote_payload = {
+                        "type": "RESET_STATUS",
+                        "roomId": action["room_id"],
+                        "playerId": action["sender"].player_id,
+                        "color": action["sender"].color,
+                        "requiredVotes": room.player_capacity(),
+                        "confirmedVotes": len(room.reset_votes),
+                        "confirmedPlayerIds": list(room.reset_votes),
+                    }
+
+                    if len(room.reset_votes) >= room.player_capacity():
+                        room.actions = []
+                        room.match_started = False
+                        room.ready_players.clear()
+                        room.reset_votes.clear()
+                        self._cancel_countdown_locked(room)
+                        payload = {
+                            "type": "MATCH_RESET",
+                            "roomId": action["room_id"],
+                            "playerId": action["sender"].player_id,
+                            "color": action["sender"].color,
+                            "reason": "consensus_restart",
+                            "winnerColor": action["sender"].color,
+                            "status": self._room_status(room),
+                            "settings": dict(room.settings),
+                            "players": [
+                                {
+                                    "playerId": player.player_id,
+                                    "color": player.color,
+                                    "connected": player.connected,
+                                    "ready": player.player_id in room.ready_players,
+                                    "isHost": player.player_id == room.host_player_id,
+                                }
+                                for player in room.players.values()
+                            ],
+                            "matchState": self._match_state(room),
+                        }
+                        payloads = self._connected_room_payloads(room, payload)
+                    else:
+                        payloads = self._connected_room_payloads(room, vote_payload)
                 error_payload = None
 
         if error_payload is not None:
@@ -624,26 +654,35 @@ class ConnectionManager:
             else:
                 room = action["room"]
                 sender = action["sender"]
-                desired_ready = bool(ready)
-                if desired_ready:
-                    room.ready_players.add(sender.player_id)
+                if room.match_started:
+                    error_payload = {
+                        "type": "ERROR",
+                        "code": "MATCH_IN_PROGRESS",
+                        "message": "Match is already in progress.",
+                    }
+                    payloads = []
+                    room.updated_at = time.time()
                 else:
-                    room.ready_players.discard(sender.player_id)
+                    desired_ready = bool(ready)
+                    if desired_ready:
+                        room.ready_players.add(sender.player_id)
+                    else:
+                        room.ready_players.discard(sender.player_id)
 
-                room.updated_at = time.time()
-                payloads = []
-                error_payload = None
+                    room.updated_at = time.time()
+                    payloads = []
+                    error_payload = None
 
-                if room.active_player_count() < room.player_capacity():
-                    self._cancel_countdown_locked(room)
-                    payloads = self._connected_room_payloads(room, self._room_payload("ROOM_STATE", room))
-                elif len(room.ready_players) >= room.player_capacity():
-                    if room.countdown_started_at is None and not room.match_started:
-                        self._start_countdown_locked(room)
-                    payloads = self._connected_room_payloads(room, self._room_payload("ROOM_COUNTDOWN", room))
-                else:
-                    self._cancel_countdown_locked(room)
-                    payloads = self._connected_room_payloads(room, self._room_payload("ROOM_STATE", room))
+                    if room.active_player_count() < room.player_capacity():
+                        self._cancel_countdown_locked(room)
+                        payloads = self._connected_room_payloads(room, self._room_payload("ROOM_STATE", room))
+                    elif len(room.ready_players) >= room.player_capacity():
+                        if room.countdown_started_at is None and not room.match_started:
+                            self._start_countdown_locked(room)
+                        payloads = self._connected_room_payloads(room, self._room_payload("ROOM_COUNTDOWN", room))
+                    else:
+                        self._cancel_countdown_locked(room)
+                        payloads = self._connected_room_payloads(room, self._room_payload("ROOM_STATE", room))
 
         if error_payload is not None:
             await self.send_json(websocket, error_payload)
@@ -793,7 +832,7 @@ class ConnectionManager:
         if room.countdown_started_at is not None and self._countdown_ends_at_ms(room) is not None:
             return "COUNTDOWN"
         if room.match_started:
-            return "READY"
+            return "IN_PROGRESS"
         return "LOBBY"
 
     def _countdown_ends_at_ms(self, room: Room) -> Optional[int]:

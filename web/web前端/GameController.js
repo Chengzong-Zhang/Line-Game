@@ -163,7 +163,7 @@ export class GameController {
 
     this._networkUnsubscribers.push(
       this.networkManager.on(ServerEvent.ROOM_JOINED, (payload) => {
-        const ready = payload.status === "READY";
+        const ready = payload.status === "READY" || payload.status === "IN_PROGRESS";
         this.setMultiplayerState({
           enabled: true,
           localPlayer: payload.color ?? this.localPlayer,
@@ -759,4 +759,3 @@ export class GameController {
 }
 
 export default GameController;
-

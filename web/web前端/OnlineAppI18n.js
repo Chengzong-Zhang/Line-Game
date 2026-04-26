@@ -150,6 +150,8 @@ const EN_TEXTS = Object.freeze({
   roomCapacityConflict: "The new player count is smaller than the number of players already in the room.",
   unknownServer: "The server returned an unknown error.",
   continueMatch: "Continue Match",
+  leaveRoomAfterMatch: "Leave Room",
+  matchInProgress: "Match is already in progress.",
   resignedSummary: (winner, loser) => `${winner}. ${loser} resigned and the board has been reset.`,
 });
 
@@ -300,6 +302,8 @@ const ZH_TEXTS = Object.freeze({
   roomCapacityConflict: "新的人数设置小于当前房间人数，无法应用。",
   unknownServer: "服务器返回了未知错误。",
   continueMatch: "继续",
+  leaveRoomAfterMatch: "离开房间",
+  matchInProgress: "对局已经开始，不能再次准备。",
   resignedSummary: (winner, loser) => `${winner}，${loser}认输，棋盘已重置。`,
 });
 
@@ -439,6 +443,9 @@ export function localizeErrorMessage(message, language = "zh") {
   }
   if (message === "The room is still in the lobby. Wait for everyone to get ready.") {
     return texts.roomNeedReady;
+  }
+  if (message === "Match is already in progress.") {
+    return texts.matchInProgress;
   }
   return message;
 }

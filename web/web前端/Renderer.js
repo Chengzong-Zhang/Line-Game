@@ -28,10 +28,6 @@ const DEFAULT_THEME = Object.freeze({
   legalMoveStroke: "rgba(17, 84, 40, 0.35)",
 });
 
-function pointKey(point) {
-  return `${point[0]},${point[1]}`;
-}
-
 function keyToPoint(key) {
   const [x, y] = String(key).split(",").map(Number);
   return [x, y];
@@ -92,16 +88,36 @@ export class Renderer {
     this._lastMeasuredWidth = 0;
     this._lastMeasuredHeight = 0;
     this._lastMeasuredDpr = 0;
-    this._staticLayerCanvas = null;
     this._staticLayerKey = "";
+    this._staticDomCanvas = null;
+    this._staticCtx = null;
     this._pendingRafHandle = null;
     this._pendingOptions = {};
     this._lastRenderFingerprint = "";
 
-    this.canvas.style.display = "block";
-    this.canvas.style.width = this.canvas.style.width || "100%";
-    this.canvas.style.height = this.canvas.style.height || "100%";
+    // 动态层（顶层）：透明背景，接收事件
+    this.canvas.style.position = "absolute";
+    this.canvas.style.top = "0";
+    this.canvas.style.left = "0";
+    this.canvas.style.width = "100%";
+    this.canvas.style.height = "100%";
+    this.canvas.style.background = "transparent";
     this.canvas.style.touchAction = "manipulation";
+
+    // 静态层（底层）：绘制背景和棋盘骨架，不参与事件
+    const staticDomCanvas = document.createElement("canvas");
+    staticDomCanvas.style.position = "absolute";
+    staticDomCanvas.style.top = "0";
+    staticDomCanvas.style.left = "0";
+    staticDomCanvas.style.width = "100%";
+    staticDomCanvas.style.height = "100%";
+    staticDomCanvas.style.pointerEvents = "none";
+    this._staticDomCanvas = staticDomCanvas;
+    this._staticCtx = staticDomCanvas.getContext("2d");
+    const parent = this.canvas.parentElement;
+    if (parent) {
+      parent.insertBefore(staticDomCanvas, this.canvas);
+    }
 
     this._resizeObserver = typeof ResizeObserver !== "undefined"
       ? new ResizeObserver(() => {
@@ -128,7 +144,11 @@ export class Renderer {
       globalThis.cancelAnimationFrame(this._pendingRafHandle);
       this._pendingRafHandle = null;
     }
-    this._staticLayerCanvas = null;
+    if (this._staticDomCanvas) {
+      this._staticDomCanvas.remove();
+      this._staticDomCanvas = null;
+      this._staticCtx = null;
+    }
     this._staticLayerKey = "";
   }
 
@@ -162,15 +182,30 @@ export class Renderer {
     this._lastMeasuredDpr = dpr;
     this._staticLayerKey = "";
 
-    if (this.canvas.width !== Math.round(cssWidth * dpr) || this.canvas.height !== Math.round(cssHeight * dpr)) {
-      this.canvas.width = Math.round(cssWidth * dpr);
-      this.canvas.height = Math.round(cssHeight * dpr);
-    }
+    const physW = Math.round(cssWidth * dpr);
+    const physH = Math.round(cssHeight * dpr);
 
+    if (this.canvas.width !== physW || this.canvas.height !== physH) {
+      this.canvas.width = physW;
+      this.canvas.height = physH;
+    }
     this.canvas.style.width = `${cssWidth}px`;
     this.canvas.style.height = `${cssHeight}px`;
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     this.ctx.imageSmoothingEnabled = true;
+
+    if (this._staticDomCanvas) {
+      if (this._staticDomCanvas.width !== physW || this._staticDomCanvas.height !== physH) {
+        this._staticDomCanvas.width = physW;
+        this._staticDomCanvas.height = physH;
+      }
+      this._staticDomCanvas.style.width = `${cssWidth}px`;
+      this._staticDomCanvas.style.height = `${cssHeight}px`;
+      if (this._staticCtx) {
+        this._staticCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        this._staticCtx.imageSmoothingEnabled = true;
+      }
+    }
     return true;
   }
 
@@ -364,12 +399,10 @@ export class Renderer {
       [Player.WHITE]: [],
       [Player.PURPLE]: [],
     };
-    const pointStates = new Map();
 
     for (const point of validPoints) {
       const [x, y] = point;
       const state = board[y][x];
-      pointStates.set(pointKey(point), state);
       if (state === PointState.BLACK_NODE) {
         nodes[Player.BLACK].push(point);
       } else if (state === PointState.WHITE_NODE) {
@@ -382,7 +415,7 @@ export class Renderer {
     return {
       gridSize,
       validPoints,
-      pointStates,
+      board,
       nodes,
     };
   }
@@ -391,6 +424,7 @@ export class Renderer {
     const nodeState = this._getNodeState(player);
     const ownedStates = new Set(this._getOwnedStates(player));
     const playerNodes = boardData.nodes[player];
+    const board = boardData.board;
     const segments = [];
 
     for (let i = 0; i < playerNodes.length; i += 1) {
@@ -402,7 +436,8 @@ export class Renderer {
         }
 
         const linePoints = this._getLinePoints(start, end, boardData.gridSize);
-        const fullyOwned = linePoints.every((point) => ownedStates.has(boardData.pointStates.get(pointKey(point))));
+        // O(1) 二维数组索引，无字符串拼接/Map 查找
+        const fullyOwned = linePoints.every((point) => ownedStates.has(board[point[1]][point[0]]));
         if (!fullyOwned) {
           continue;
         }
@@ -411,7 +446,7 @@ export class Renderer {
           if (pointEquals(point, start) || pointEquals(point, end)) {
             return false;
           }
-          return boardData.pointStates.get(pointKey(point)) === nodeState;
+          return board[point[1]][point[0]] === nodeState;
         });
         if (hasIntermediateNode) {
           continue;
@@ -448,30 +483,22 @@ export class Renderer {
 
   _ensureStaticLayer(snapshot, boardData, layout) {
     const nextKey = this._getStaticLayerKey(snapshot, layout);
-    if (this._staticLayerCanvas && this._staticLayerKey === nextKey) {
+    if (this._staticLayerKey === nextKey) {
       return;
     }
 
-    // 静态 canvas 按设备像素分辨率创建，避免 blit 时 GPU 上采样模糊
-    const dpr = this._lastMeasuredDpr || 1;
-    const staticCanvas = document.createElement("canvas");
-    staticCanvas.width = Math.round(layout.cssWidth * dpr);
-    staticCanvas.height = Math.round(layout.cssHeight * dpr);
-    const staticCtx = staticCanvas.getContext("2d");
-    if (!staticCtx) {
-      this._staticLayerCanvas = null;
+    if (!this._staticCtx) {
       this._staticLayerKey = "";
       return;
     }
-    staticCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
+    // 直接绘制到底层 DOM canvas，无需离屏 blit
     const previousCtx = this.ctx;
-    this.ctx = staticCtx;
+    this.ctx = this._staticCtx;
     this._drawBackground(layout);
     this._drawGridSkeleton(boardData, layout);
     this.ctx = previousCtx;
 
-    this._staticLayerCanvas = staticCanvas;
     this._staticLayerKey = nextKey;
   }
 
@@ -667,6 +694,7 @@ export class Renderer {
       return;
     }
 
+    const r = layout.legalMoveRadius;
     ctx.beginPath();
     for (const candidate of legalMoves) {
       const point = Array.isArray(candidate) ? candidate : candidate?.point;
@@ -675,8 +703,12 @@ export class Renderer {
       }
 
       const [x, y] = this._gridToPixel(point[0], point[1], layout);
-      ctx.moveTo(x + layout.legalMoveRadius, y);
-      ctx.arc(x, y, layout.legalMoveRadius, 0, Math.PI * 2);
+      // 菱形替代 arc，无三角函数开销
+      ctx.moveTo(x, y - r);
+      ctx.lineTo(x + r, y);
+      ctx.lineTo(x, y + r);
+      ctx.lineTo(x - r, y);
+      ctx.closePath();
     }
     ctx.fillStyle = this.theme.legalMoveFill;
     ctx.fill();
@@ -700,15 +732,26 @@ export class Renderer {
     const [x, y] = this._gridToPixel(action.point[0], action.point[1], layout);
     const stroke = playerColors[action.player] ?? this.theme.outline;
 
+    const ringRadius = layout.pointRadius + Math.max(6, layout.pointRadius * 0.55);
+    const glowRadius = ringRadius + Math.max(5, layout.pointRadius * 0.7);
+
     ctx.save();
+    // 外层半透明实心圆模拟光晕（替代 shadowBlur，移动端性能更好）
     ctx.beginPath();
-    ctx.arc(x, y, layout.pointRadius + Math.max(6, layout.pointRadius * 0.55), 0, Math.PI * 2);
+    ctx.arc(x, y, glowRadius, 0, Math.PI * 2);
+    ctx.fillStyle = stroke;
+    ctx.globalAlpha = 0.22;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // 描边光圈
+    ctx.beginPath();
+    ctx.arc(x, y, ringRadius, 0, Math.PI * 2);
     ctx.strokeStyle = stroke;
     ctx.lineWidth = Math.max(2.5, layout.lineWidth * 0.3);
-    ctx.shadowColor = "rgba(255, 255, 255, 0.95)";
-    ctx.shadowBlur = Math.max(8, layout.pointRadius * 1.4);
     ctx.stroke();
 
+    // 中心小白点
     ctx.beginPath();
     ctx.arc(x, y, Math.max(2.5, layout.pointRadius * 0.28), 0, Math.PI * 2);
     ctx.fillStyle = "rgba(255, 255, 255, 0.96)";
@@ -764,15 +807,12 @@ export class Renderer {
     }
     this._lastRenderFingerprint = fingerprint;
 
-    // 用 identity transform 做逐像素 blit，避免 GPU 上采样导致模糊
-    if (this._staticLayerCanvas) {
-      this.ctx.save();
-      this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+    // 只清除动态层（顶层），静态层（底层 DOM canvas）持久保存，无需每帧 blit
+    if (this._staticCtx) {
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-      this.ctx.drawImage(this._staticLayerCanvas, 0, 0);
-      this.ctx.restore();
     } else {
-      this.ctx.clearRect(0, 0, this.layout.cssWidth, this.layout.cssHeight);
+      // 无静态层时降级：在主 canvas 上直接绘制背景和骨架
+      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
       this._drawBackground(this.layout);
       this._drawGridSkeleton(boardData, this.layout);
     }

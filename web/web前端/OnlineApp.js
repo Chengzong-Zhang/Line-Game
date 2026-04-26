@@ -104,6 +104,9 @@ function createEmptyRoomInfo() {
 
 function normalizeRoomStatus(status) {
   const normalized = String(status ?? "").trim().toLowerCase();
+  if (normalized === "in_progress") {
+    return "inProgress";
+  }
   return normalized || "solo";
 }
 
@@ -650,6 +653,35 @@ const RoomPanel = {
     const roomStatusLabel = computed(() => formatAppConnectionState(props.roomStatus, props.language));
     const roomPlayers = computed(() => Array.isArray(props.roomInfo?.players) ? props.roomInfo.players : []);
     const roomPlayerName = (player) => player?.username ?? player?.playerId ?? formatAppPlayerName(player?.color, props.language);
+    const readyActionLabel = computed(() => (
+      props.roomStatus === "inProgress"
+        ? texts.value.inProgress
+        : (props.localReady ? texts.value.cancelReadyAction : texts.value.readyAction)
+    ));
+    const resolvePlayerState = (player) => {
+      if (!player?.connected) {
+        return {
+          className: "status-pill-muted",
+          label: texts.value.roomOfflineTag,
+        };
+      }
+      if (props.roomStatus === "inProgress") {
+        return {
+          className: "status-pill-live",
+          label: texts.value.inProgress,
+        };
+      }
+      if (player.ready) {
+        return {
+          className: "status-pill-success",
+          label: texts.value.roomReadyTag,
+        };
+      }
+      return {
+        className: "status-pill-warn",
+        label: texts.value.roomIdleTag,
+      };
+    };
 
     return {
       texts,
@@ -658,6 +690,8 @@ const RoomPanel = {
       roomStatusLabel,
       roomPlayers,
       getPlayerAccentClass,
+      readyActionLabel,
+      resolvePlayerState,
       roomPlayerName,
     };
   },
@@ -718,7 +752,7 @@ const RoomPanel = {
             :disabled="readyDisabled"
             @click="$emit('toggle-ready', !localReady)"
           >
-            {{ localReady ? texts.cancelReadyAction : texts.readyAction }}
+            {{ readyActionLabel }}
           </button>
           <button
             v-if="showClosePrompt"
@@ -739,9 +773,9 @@ const RoomPanel = {
             </div>
             <span
               class="status-pill"
-              :class="player.connected ? (player.ready ? 'status-pill-success' : 'status-pill-warn') : 'status-pill-muted'"
+              :class="resolvePlayerState(player).className"
             >
-              {{ player.connected ? (player.ready ? texts.roomReadyTag : texts.roomIdleTag) : texts.roomOfflineTag }}
+              {{ resolvePlayerState(player).label }}
             </span>
           </article>
         </div>
@@ -883,7 +917,7 @@ const ControlPanel = {
 
 const ResultModal = {
   name: "ResultModal",
-  emits: ["action", "close"],
+  emits: ["action", "close", "leave"],
   props: {
     gameState: {
       type: Object,
@@ -984,12 +1018,20 @@ const ResultModal = {
       }
       return props.resetLabel;
     });
+    const showLeaveAction = computed(() => Boolean(
+      !props.overlayResult
+      && props.session?.roomId
+      && props.gameState.gameOver,
+    ));
+    const showCloseAction = computed(() => !showLeaveAction.value);
 
     return {
       actionLabel,
       formatArea: formatAppArea,
       localPlayerAccentClass,
       localPlayerName,
+      showCloseAction,
+      showLeaveAction,
       showPerspectiveTitle,
       structuredSummaryEntries,
       texts,
@@ -1022,7 +1064,10 @@ const ResultModal = {
           >
             {{ actionLabel }}
           </button>
-          <button class="action-button action-button-ghost" @click="$emit('close')">
+          <button v-if="showLeaveAction" class="action-button action-button-secondary" @click="$emit('leave')">
+            {{ texts.leaveRoomAfterMatch }}
+          </button>
+          <button v-else-if="showCloseAction" class="action-button action-button-ghost" @click="$emit('close')">
             {{ closeLabel }}
           </button>
         </div>
@@ -1230,7 +1275,7 @@ const App = {
         return;
       }
 
-      if (isHost.value && roomStatus.value !== "solo" && roomStatus.value !== "ready" && roomStatus.value !== "countdown") {
+      if (isHost.value && roomStatus.value !== "solo" && roomStatus.value !== "inProgress" && roomStatus.value !== "countdown") {
         const settingsChanged = normalized.playerCount !== previousPlayerCount
           || normalized.gridSize !== previousGridSize
           || normalized.turnTimerEnabled !== previousTurnTimerEnabled
@@ -1432,7 +1477,7 @@ const App = {
         return true;
       }
 
-      return roomStatus.value === "ready" && gameState.value.isLocalTurn;
+      return roomStatus.value === "inProgress" && gameState.value.isLocalTurn;
     };
 
     const updateTurnTimerRemaining = () => {
@@ -1556,7 +1601,7 @@ const App = {
       gameState.value = controller.value.enableMultiplayer({
         networkManager,
         localPlayer: payload?.yourColor ?? payload?.color ?? session.value.color,
-        roomReady: normalizedStatus === "ready",
+        roomReady: normalizedStatus === "inProgress",
         opponentConnected: everyoneConnected,
       });
     };
@@ -1901,7 +1946,7 @@ const App = {
           );
       }
 
-      if (roomStatus.value === "ready") {
+      if (roomStatus.value === "inProgress") {
         return gameState.value.isLocalTurn
           ? texts.localTurnStatus(formatAppPlayerName(session.value.color, language.value))
           : texts.remoteTurnStatus;
@@ -1972,10 +2017,10 @@ const App = {
         || networkBusy.value
         || roomStatus.value === "waiting"
         || roomStatus.value === "offline"
-        || roomStatus.value === "ready"
+        || roomStatus.value === "inProgress"
         || roomStatus.value === "countdown";
     });
-    const starterLocked = computed(() => !isHost.value || networkBusy.value || roomStatus.value === "ready" || roomStatus.value === "countdown");
+    const starterLocked = computed(() => !isHost.value || networkBusy.value || roomStatus.value === "inProgress" || roomStatus.value === "countdown");
     const showClosePrompt = computed(() => Boolean(overlayResult.value || (gameState.value.gameOver && !resultModalDismissed.value)));
 
     const resetLabel = computed(() => {
@@ -1994,7 +2039,7 @@ const App = {
       if (roomStatus.value === "solo") {
         return false;
       }
-      return !isHost.value || roomStatus.value === "ready" || roomStatus.value === "countdown";
+      return !isHost.value || roomStatus.value === "inProgress" || roomStatus.value === "countdown";
     });
 
     const resultResetAllowed = computed(() => {
@@ -2024,7 +2069,17 @@ const App = {
         return;
       }
 
+      if (session.value.roomId && gameState.value.gameOver) {
+        overlayResult.value = null;
+        resultModalDismissed.value = true;
+      }
       await handleReset();
+    };
+
+    const handleResultLeaveRoom = async () => {
+      overlayResult.value = null;
+      resultModalDismissed.value = true;
+      await handleLeaveRoom();
     };
 
     unsubscribers.push(
@@ -2214,6 +2269,7 @@ const App = {
       turnTimerRemaining,
       resultResetAllowed,
       handleResultAction,
+      handleResultLeaveRoom,
       handleControllerReady,
       handleAuthSubmit,
       handleLogout,
@@ -2357,6 +2413,7 @@ const App = {
         :reset-label="resetLabel"
         :close-label="getTexts(language).closePrompt"
         @action="handleResultAction"
+        @leave="handleResultLeaveRoom"
         @close="handleClosePrompt"
       />
     </main>
