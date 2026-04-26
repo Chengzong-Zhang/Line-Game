@@ -863,10 +863,10 @@ const ControlPanel = {
       <div class="duel-copy">
         <p class="eyebrow">{{ texts.duelDeskTitle }}</p>
         <p class="duel-label">{{ texts.currentTurnLabel }}</p>
-        <p v-if="turnTimerEnabled" class="help-copy duel-timer-copy">{{ turnTimerLabel }}</p>
         <div class="turn-banner duel-turn-banner" :class="turnBannerClass">
           <span class="turn-dot"></span>
           <strong>{{ currentPlayerLabel }}{{ texts.turnSuffix }}</strong>
+          <small v-if="turnTimerEnabled" class="duel-timer-copy">{{ turnTimerLabel }}</small>
         </div>
       </div>
       <div class="actions duel-actions">

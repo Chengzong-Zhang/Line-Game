@@ -9,7 +9,7 @@ export const AUTH_STORAGE_KEY = "triaxis-auth";
 export const ALL_PLAYERS = Object.freeze([Player.BLACK, Player.WHITE, Player.PURPLE]);
 export const PLAYER_COUNT_OPTIONS = Object.freeze([2, 3]);
 export const GRID_SIZE_OPTIONS = Object.freeze(Array.from({ length: 11 }, (_, index) => index + 5));
-export const TURN_TIMER_MIN_SECONDS = 30;
+export const TURN_TIMER_MIN_SECONDS = 15;
 export const TURN_TIMER_MAX_SECONDS = 200;
 export const DEFAULT_TURN_TIMER_SECONDS = 60;
 

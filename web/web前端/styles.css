@@ -350,7 +350,10 @@ body::before {
 }
 
 .duel-timer-copy {
-  margin: 0 0 10px;
+  margin-left: auto;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.88rem;
+  white-space: nowrap;
 }
 
 .duel-turn-banner {
