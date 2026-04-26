@@ -9,18 +9,27 @@ export const AUTH_STORAGE_KEY = "triaxis-auth";
 export const ALL_PLAYERS = Object.freeze([Player.BLACK, Player.WHITE, Player.PURPLE]);
 export const PLAYER_COUNT_OPTIONS = Object.freeze([2, 3]);
 export const GRID_SIZE_OPTIONS = Object.freeze(Array.from({ length: 11 }, (_, index) => index + 5));
+export const TURN_TIMER_MIN_SECONDS = 30;
+export const TURN_TIMER_MAX_SECONDS = 200;
+export const DEFAULT_TURN_TIMER_SECONDS = 60;
 
 export function normalizeGameSettings(settings = {}) {
   const playerCount = Number(settings?.playerCount);
   const gridSize = Number(settings?.gridSize);
+  const turnTimeLimitSeconds = Number(settings?.turnTimeLimitSeconds);
   const nextPlayerCount = PLAYER_COUNT_OPTIONS.includes(playerCount) ? playerCount : 2;
   const allowedPlayers = ALL_PLAYERS.slice(0, nextPlayerCount);
   const startPlayer = allowedPlayers.includes(settings?.startPlayer) ? settings.startPlayer : allowedPlayers[0];
+  const normalizedTurnTimeLimitSeconds = Number.isFinite(turnTimeLimitSeconds)
+    ? Math.max(TURN_TIMER_MIN_SECONDS, Math.min(TURN_TIMER_MAX_SECONDS, Math.round(turnTimeLimitSeconds)))
+    : DEFAULT_TURN_TIMER_SECONDS;
 
   return {
     playerCount: nextPlayerCount,
     gridSize: GRID_SIZE_OPTIONS.includes(gridSize) ? gridSize : 9,
     startPlayer,
+    turnTimerEnabled: Boolean(settings?.turnTimerEnabled),
+    turnTimeLimitSeconds: normalizedTurnTimeLimitSeconds,
   };
 }
 

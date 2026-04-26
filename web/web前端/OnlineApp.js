@@ -5,6 +5,9 @@ import {
   createEmptyAuth as createAppEmptyAuth,
   GRID_SIZE_OPTIONS as APP_GRID_SIZE_OPTIONS,
   PLAYER_COUNT_OPTIONS as APP_PLAYER_COUNT_OPTIONS,
+  DEFAULT_TURN_TIMER_SECONDS as APP_DEFAULT_TURN_TIMER_SECONDS,
+  TURN_TIMER_MAX_SECONDS as APP_TURN_TIMER_MAX_SECONDS,
+  TURN_TIMER_MIN_SECONDS as APP_TURN_TIMER_MIN_SECONDS,
   createDefaultGameState as createAppDefaultGameState,
   createEmptySession as createAppEmptySession,
   loadStoredAuth as loadAppStoredAuth,
@@ -87,7 +90,7 @@ async function postAuthJson(serverUrl, path, payload) {
   return data;
 }
 
-const TURN_COUNTDOWN_SECONDS = 20;
+const ROOM_START_COUNTDOWN_FALLBACK_SECONDS = 20;
 
 function createEmptyRoomInfo() {
   return {
@@ -289,7 +292,13 @@ const ScorePanel = {
 
 const SetupPanel = {
   name: "SetupPanel",
-  emits: ["update:player-count", "update:grid-size", "update:language"],
+  emits: [
+    "update:player-count",
+    "update:grid-size",
+    "update:language",
+    "update:turn-timer-enabled",
+    "update:turn-time-limit-seconds",
+  ],
   props: {
     language: {
       type: String,
@@ -302,6 +311,14 @@ const SetupPanel = {
     gridSize: {
       type: Number,
       required: true,
+    },
+    turnTimerEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    turnTimeLimitSeconds: {
+      type: Number,
+      default: APP_DEFAULT_TURN_TIMER_SECONDS,
     },
     settingsLocked: {
       type: Boolean,
@@ -319,6 +336,8 @@ const SetupPanel = {
       texts,
       PLAYER_COUNT_OPTIONS: APP_PLAYER_COUNT_OPTIONS,
       GRID_SIZE_OPTIONS: APP_GRID_SIZE_OPTIONS,
+      TURN_TIMER_MAX_SECONDS: APP_TURN_TIMER_MAX_SECONDS,
+      TURN_TIMER_MIN_SECONDS: APP_TURN_TIMER_MIN_SECONDS,
     };
   },
   template: `
@@ -378,7 +397,34 @@ const SetupPanel = {
               <option v-for="size in GRID_SIZE_OPTIONS" :key="size" :value="size">{{ size }}</option>
             </select>
           </div>
+          <div>
+            <label class="field-label" for="turn-timer-enabled">{{ texts.turnTimerLabel || '读秒开关' }}</label>
+            <label class="toggle-field" for="turn-timer-enabled">
+              <input
+                id="turn-timer-enabled"
+                type="checkbox"
+                :checked="turnTimerEnabled"
+                :disabled="busy || settingsLocked"
+                @change="$emit('update:turn-timer-enabled', $event.target.checked)"
+              />
+              <span>{{ turnTimerEnabled ? 'ON' : 'OFF' }}</span>
+            </label>
+          </div>
+          <div v-if="turnTimerEnabled">
+            <label class="field-label" for="turn-time-limit">{{ texts.turnTimerDurationLabel || '读秒时长' }}</label>
+            <input
+              id="turn-time-limit"
+              class="input-field input-field-compact"
+              type="number"
+              :min="TURN_TIMER_MIN_SECONDS"
+              :max="TURN_TIMER_MAX_SECONDS"
+              :value="turnTimeLimitSeconds"
+              :disabled="busy || settingsLocked"
+              @change="$emit('update:turn-time-limit-seconds', Number($event.target.value))"
+            />
+          </div>
         </div>
+        <p class="help-copy">{{ texts.turnTimerHint }}</p>
       </div>
     </section>
   `,
@@ -766,6 +812,14 @@ const ControlPanel = {
       type: Array,
       default: () => [],
     },
+    turnTimerEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    turnTimerRemaining: {
+      type: Number,
+      default: 0,
+    },
     language: {
       type: String,
       required: true,
@@ -777,6 +831,15 @@ const ControlPanel = {
       props.session?.roomId
         ? resolveOnlinePlayerName(props.roomPlayers, props.gameState.currentPlayer, props.language)
         : formatAppPlayerName(props.gameState.currentPlayer, props.language)
+    ));
+    const turnTimerLabel = computed(() => (
+      props.turnTimerEnabled
+        ? (
+          props.turnTimerRemaining > 0
+            ? texts.value.turnTimerStatus(Math.max(0, props.turnTimerRemaining))
+            : texts.value.countdownPaused
+        )
+        : ""
     ));
     const turnBannerClass = computed(() => {
       if (props.gameState.currentPlayer === Player.BLACK) {
@@ -791,6 +854,7 @@ const ControlPanel = {
     return {
       currentPlayerLabel,
       texts,
+      turnTimerLabel,
       turnBannerClass,
     };
   },
@@ -799,6 +863,7 @@ const ControlPanel = {
       <div class="duel-copy">
         <p class="eyebrow">{{ texts.duelDeskTitle }}</p>
         <p class="duel-label">{{ texts.currentTurnLabel }}</p>
+        <p v-if="turnTimerEnabled" class="help-copy duel-timer-copy">{{ turnTimerLabel }}</p>
         <div class="turn-banner duel-turn-banner" :class="turnBannerClass">
           <span class="turn-dot"></span>
           <strong>{{ currentPlayerLabel }}{{ texts.turnSuffix }}</strong>
@@ -1090,6 +1155,8 @@ const App = {
     const selectedPlayerCount = ref(initialSettings.playerCount);
     const selectedGridSize = ref(initialSettings.gridSize);
     const selectedStartPlayer = ref(initialSettings.startPlayer);
+    const selectedTurnTimerEnabled = ref(initialSettings.turnTimerEnabled);
+    const selectedTurnTimeLimitSeconds = ref(initialSettings.turnTimeLimitSeconds);
     const session = ref(networkManager.getSession());
     const connectionState = ref("idle");
     const roomStatus = ref("solo");
@@ -1098,10 +1165,14 @@ const App = {
     const networkError = ref("");
     const overlayResult = ref(null);
     const resultModalDismissed = ref(false);
-    const turnCountdown = ref(TURN_COUNTDOWN_SECONDS);
+    const turnCountdown = ref(ROOM_START_COUNTDOWN_FALLBACK_SECONDS);
+    const turnTimerRemaining = ref(0);
     const unsubscribers = [];
     let reconnectTimerId = null;
     let turnCountdownTimerId = null;
+    let turnTimerId = null;
+    let turnTimerDeadline = 0;
+    let turnTimerSkipInFlight = false;
     let reconnectAttempt = 0;
     let syncingRemoteSettings = false;
 
@@ -1122,24 +1193,36 @@ const App = {
       authFeedbackTone.value = "error";
     });
 
-    watch([selectedPlayerCount, selectedGridSize, selectedStartPlayer], ([
+    watch([selectedPlayerCount, selectedGridSize, selectedStartPlayer, selectedTurnTimerEnabled, selectedTurnTimeLimitSeconds], ([
       playerCount,
       gridSize,
       startPlayer,
+      turnTimerEnabled,
+      turnTimeLimitSeconds,
     ], [
       previousPlayerCount,
       previousGridSize,
       previousStartPlayer,
+      previousTurnTimerEnabled,
+      previousTurnTimeLimitSeconds,
     ] = []) => {
       if (syncingRemoteSettings) {
         return;
       }
 
       // 本地模式下改设置立即重建棋盘；联机模式下设置以房间配置为准。
-      const normalized = normalizeAppGameSettings({ playerCount, gridSize, startPlayer });
+      const normalized = normalizeAppGameSettings({
+        playerCount,
+        gridSize,
+        startPlayer,
+        turnTimerEnabled,
+        turnTimeLimitSeconds,
+      });
       selectedPlayerCount.value = normalized.playerCount;
       selectedGridSize.value = normalized.gridSize;
       selectedStartPlayer.value = normalized.startPlayer;
+      selectedTurnTimerEnabled.value = normalized.turnTimerEnabled;
+      selectedTurnTimeLimitSeconds.value = normalized.turnTimeLimitSeconds;
       syncSession();
 
       if (roomStatus.value === "solo" && controller.value) {
@@ -1148,7 +1231,10 @@ const App = {
       }
 
       if (isHost.value && roomStatus.value !== "solo" && roomStatus.value !== "ready" && roomStatus.value !== "countdown") {
-        const settingsChanged = normalized.playerCount !== previousPlayerCount || normalized.gridSize !== previousGridSize;
+        const settingsChanged = normalized.playerCount !== previousPlayerCount
+          || normalized.gridSize !== previousGridSize
+          || normalized.turnTimerEnabled !== previousTurnTimerEnabled
+          || normalized.turnTimeLimitSeconds !== previousTurnTimeLimitSeconds;
         const starterChanged = normalized.startPlayer !== previousStartPlayer;
 
         if (settingsChanged) {
@@ -1174,6 +1260,8 @@ const App = {
           playerCount: selectedPlayerCount.value,
           gridSize: selectedGridSize.value,
           startPlayer: selectedStartPlayer.value,
+          turnTimerEnabled: selectedTurnTimerEnabled.value,
+          turnTimeLimitSeconds: selectedTurnTimeLimitSeconds.value,
         },
       };
       persistAppSession(session.value);
@@ -1232,7 +1320,17 @@ const App = {
       playerCount: selectedPlayerCount.value,
       gridSize: selectedGridSize.value,
       startPlayer: selectedStartPlayer.value,
+      turnTimerEnabled: selectedTurnTimerEnabled.value,
+      turnTimeLimitSeconds: selectedTurnTimeLimitSeconds.value,
     });
+
+    const effectiveGameSettings = computed(() => (
+      roomStatus.value === "solo"
+        ? normalizeAppGameSettings(currentGameSettings())
+        : normalizeAppGameSettings(roomInfo.value.settings)
+    ));
+    const turnTimerEnabled = computed(() => effectiveGameSettings.value.turnTimerEnabled);
+    const turnTimeLimitSeconds = computed(() => effectiveGameSettings.value.turnTimeLimitSeconds);
 
     const applySettingsToController = (settings, reset = true) => {
       const normalized = normalizeAppGameSettings(settings);
@@ -1242,6 +1340,8 @@ const App = {
         selectedPlayerCount.value = normalized.playerCount;
         selectedGridSize.value = normalized.gridSize;
         selectedStartPlayer.value = normalized.startPlayer;
+        selectedTurnTimerEnabled.value = normalized.turnTimerEnabled;
+        selectedTurnTimeLimitSeconds.value = normalized.turnTimeLimitSeconds;
         syncSession();
 
         if (!controller.value) {
@@ -1270,7 +1370,7 @@ const App = {
 
     const restartTurnCountdown = () => {
       clearTurnCountdown();
-      turnCountdown.value = TURN_COUNTDOWN_SECONDS;
+      turnCountdown.value = ROOM_START_COUNTDOWN_FALLBACK_SECONDS;
 
       if (
         gameState.value.gameOver
@@ -1303,6 +1403,79 @@ const App = {
       }, 1000);
     };
 
+    const clearTurnTimer = () => {
+      if (turnTimerId !== null) {
+        globalThis.clearInterval(turnTimerId);
+        turnTimerId = null;
+      }
+      turnTimerDeadline = 0;
+      turnTimerRemaining.value = 0;
+    };
+
+    const shouldRunTurnTimer = () => {
+      if (!turnTimerEnabled.value || !controller.value) {
+        return false;
+      }
+
+      if (
+        gameState.value.gameOver
+        || overlayResult.value
+        || roomStatus.value === "waiting"
+        || roomStatus.value === "lobby"
+        || roomStatus.value === "offline"
+        || roomStatus.value === "countdown"
+      ) {
+        return false;
+      }
+
+      if (roomStatus.value === "solo") {
+        return true;
+      }
+
+      return roomStatus.value === "ready" && gameState.value.isLocalTurn;
+    };
+
+    const updateTurnTimerRemaining = () => {
+      if (!turnTimerDeadline) {
+        turnTimerRemaining.value = 0;
+        return;
+      }
+
+      turnTimerRemaining.value = Math.max(
+        0,
+        Math.ceil((turnTimerDeadline - Date.now()) / 1000),
+      );
+    };
+
+    const triggerTimedSkip = () => {
+      if (turnTimerSkipInFlight) {
+        return;
+      }
+
+      turnTimerSkipInFlight = true;
+      clearTurnTimer();
+      void Promise.resolve(handleSkip()).finally(() => {
+        turnTimerSkipInFlight = false;
+      });
+    };
+
+    const restartTurnTimer = () => {
+      clearTurnTimer();
+
+      if (!shouldRunTurnTimer()) {
+        return;
+      }
+
+      turnTimerDeadline = Date.now() + turnTimeLimitSeconds.value * 1000;
+      updateTurnTimerRemaining();
+      turnTimerId = globalThis.setInterval(() => {
+        updateTurnTimerRemaining();
+        if (turnTimerRemaining.value <= 0) {
+          triggerTimedSkip();
+        }
+      }, 250);
+    };
+
     watch(
       () => [
         gameState.value.turnCount,
@@ -1314,6 +1487,23 @@ const App = {
       ],
       () => {
         restartTurnCountdown();
+      },
+      { immediate: true },
+    );
+
+    watch(
+      () => [
+        gameState.value.turnCount,
+        gameState.value.currentPlayer,
+        gameState.value.gameOver,
+        gameState.value.isLocalTurn,
+        Boolean(overlayResult.value),
+        roomStatus.value,
+        turnTimerEnabled.value,
+        turnTimeLimitSeconds.value,
+      ],
+      () => {
+        restartTurnTimer();
       },
       { immediate: true },
     );
@@ -1960,6 +2150,7 @@ const App = {
     onBeforeUnmount(() => {
       clearReconnectTimer();
       clearTurnCountdown();
+      clearTurnTimer();
       document.body.classList.remove("modal-open");
       globalThis.removeEventListener("keydown", handleEscapeKeydown);
       for (const unsubscribe of unsubscribers) {
@@ -1998,6 +2189,8 @@ const App = {
       selectedPlayerCount,
       selectedGridSize,
       selectedStartPlayer,
+      selectedTurnTimerEnabled,
+      selectedTurnTimeLimitSeconds,
       session,
       connectionState,
       roomStatus,
@@ -2017,6 +2210,8 @@ const App = {
       resetDisabled,
       resetLabel,
       settingsLocked,
+      turnTimerEnabled,
+      turnTimerRemaining,
       resultResetAllowed,
       handleResultAction,
       handleControllerReady,
@@ -2057,6 +2252,8 @@ const App = {
             :reset-label="resetLabel"
             :session="session"
             :room-players="roomInfo.players"
+            :turn-timer-enabled="turnTimerEnabled"
+            :turn-timer-remaining="turnTimerRemaining"
             @skip="handleSkip"
             @reset="handleReset"
           />
@@ -2073,11 +2270,15 @@ const App = {
                 :language="language"
                 :player-count="selectedPlayerCount"
                 :grid-size="selectedGridSize"
+                :turn-timer-enabled="selectedTurnTimerEnabled"
+                :turn-time-limit-seconds="selectedTurnTimeLimitSeconds"
                 :settings-locked="settingsLocked"
                 :busy="networkBusy"
                 @update:language="language = $event"
                 @update:player-count="selectedPlayerCount = $event"
                 @update:grid-size="selectedGridSize = $event"
+                @update:turn-timer-enabled="selectedTurnTimerEnabled = $event"
+                @update:turn-time-limit-seconds="selectedTurnTimeLimitSeconds = $event"
               />
 
               <ScorePanel

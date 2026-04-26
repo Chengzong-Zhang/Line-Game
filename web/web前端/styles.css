@@ -349,6 +349,10 @@ body::before {
   font-weight: 700;
 }
 
+.duel-timer-copy {
+  margin: 0 0 10px;
+}
+
 .duel-turn-banner {
   margin-bottom: 0;
 }
@@ -1314,6 +1318,24 @@ body.large-board .result-overlay {
 
 .input-field-compact {
   margin-bottom: 0;
+}
+
+.toggle-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid rgba(90, 72, 52, 0.16);
+  border-radius: 16px;
+  background: rgba(255, 252, 247, 0.9);
+  font-weight: 700;
+}
+
+.toggle-field input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
 }
 
 .settings-cluster {

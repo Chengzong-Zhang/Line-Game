@@ -94,6 +94,9 @@ export class Renderer {
     this._lastMeasuredDpr = 0;
     this._staticLayerCanvas = null;
     this._staticLayerKey = "";
+    this._pendingRafHandle = null;
+    this._pendingOptions = {};
+    this._lastRenderFingerprint = "";
 
     this.canvas.style.display = "block";
     this.canvas.style.width = this.canvas.style.width || "100%";
@@ -121,6 +124,10 @@ export class Renderer {
       globalThis.cancelAnimationFrame(this._resizeFrame);
       this._resizeFrame = null;
     }
+    if (this._pendingRafHandle !== null) {
+      globalThis.cancelAnimationFrame(this._pendingRafHandle);
+      this._pendingRafHandle = null;
+    }
     this._staticLayerCanvas = null;
     this._staticLayerKey = "";
   }
@@ -134,7 +141,8 @@ export class Renderer {
       this._resizeFrame = null;
       const resized = this.resize();
       if (resized && this.lastSnapshot) {
-        this.render(this.lastSnapshot, { skipResize: true });
+        // resize 已在 rAF 内，直接同步绘制，避免再多等一帧
+        this.render(this.lastSnapshot, { skipResize: true, _immediate: true });
       }
     });
   }
@@ -703,12 +711,39 @@ export class Renderer {
     ctx.restore();
   }
 
+  _getBoardFingerprint(snapshot) {
+    // 用于脏检查：覆盖棋盘状态的所有可见变化
+    const lp = snapshot.lastAction?.point;
+    return `${snapshot.turnCount}:${snapshot.gameOver ? 1 : 0}:${snapshot.currentPlayer}:${lp ? `${lp[0]},${lp[1]}` : '-'}`;
+  }
+
   render(snapshot, options = {}) {
     if (!snapshot || !snapshot.boardMatrix) {
       throw new Error("Renderer.render(snapshot) requires a valid GameEngine snapshot.");
     }
-
     this.lastSnapshot = snapshot;
+
+    // _immediate 由内部 resize 路径使用，此时已在 rAF 内，直接绘制
+    if (options._immediate) {
+      this._doRender(snapshot, options);
+      return;
+    }
+
+    // 将同一帧内的多次 render 调用合并为一次，始终取最新快照
+    this._pendingOptions = options;
+    if (this._pendingRafHandle !== null) {
+      return;
+    }
+    this._pendingRafHandle = globalThis.requestAnimationFrame(() => {
+      this._pendingRafHandle = null;
+      this._doRender(this.lastSnapshot, this._pendingOptions);
+    });
+  }
+
+  _doRender(snapshot, options = {}) {
+    if (!snapshot || !snapshot.boardMatrix) {
+      return;
+    }
     if (!options.skipResize) {
       this.resize();
     }
@@ -716,10 +751,23 @@ export class Renderer {
 
     const boardData = this._collectBoardData(snapshot);
     this._ensureStaticLayer(snapshot, boardData, this.layout);
+
+    // 脏检查：静态层 key 变化（resize/gridSize 改变）也需要重绘动态层
+    const fingerprint = `${this._getBoardFingerprint(snapshot)}:${this._staticLayerKey}`;
+    if (fingerprint === this._lastRenderFingerprint) {
+      return;
+    }
+    this._lastRenderFingerprint = fingerprint;
+
+    // 用 identity transform 做逐像素 blit，避免 GPU 上采样导致模糊
     if (this._staticLayerCanvas) {
-      this.ctx.clearRect(0, 0, this.layout.cssWidth, this.layout.cssHeight);
-      this.ctx.drawImage(this._staticLayerCanvas, 0, 0, this.layout.cssWidth, this.layout.cssHeight);
+      this.ctx.save();
+      this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      this.ctx.drawImage(this._staticLayerCanvas, 0, 0);
+      this.ctx.restore();
     } else {
+      this.ctx.clearRect(0, 0, this.layout.cssWidth, this.layout.cssHeight);
       this._drawBackground(this.layout);
       this._drawGridSkeleton(boardData, this.layout);
     }
