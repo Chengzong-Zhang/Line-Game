@@ -81,8 +81,8 @@ export class Renderer {
     }
 
     this.theme = { ...DEFAULT_THEME, ...(options.theme ?? {}) };
-    this.minCssWidth = options.minCssWidth ?? 320;
-    this.minCssHeight = options.minCssHeight ?? 320;
+    this.minCssWidth = options.minCssWidth ?? 220;
+    this.minCssHeight = options.minCssHeight ?? 180;
     this.defaultCssWidth = options.defaultCssWidth ?? 960;
     this.defaultCssHeight = options.defaultCssHeight ?? 720;
     this.paddingRatio = options.paddingRatio ?? 0.1;

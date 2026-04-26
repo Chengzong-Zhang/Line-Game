@@ -1,4 +1,4 @@
-﻿import GameController from "./GameController.js?v=20260421b";
+﻿import GameController from "./GameController.js?v=20260426d";
 import { Player } from "./GameEngine.js?v=20260421c";
 import NetworkManager, { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js?v=20260421c";
 import {
@@ -23,7 +23,7 @@ import {
   getInitialLanguage as getAppInitialLanguage,
   getTexts as getAppTexts,
   localizeErrorMessage as localizeAppErrorMessage,
-} from "./OnlineAppI18n.js?v=20260426a";
+} from "./OnlineAppI18n.js?v=20260426c";
 
 const {
   computed,
