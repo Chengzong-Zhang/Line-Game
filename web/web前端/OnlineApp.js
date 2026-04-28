@@ -1805,6 +1805,8 @@ const App = {
     const roomInfo = ref(createEmptyRoomInfo());
     const networkBusy = ref(false);
     const networkError = ref("");
+    const readyPending = ref(false);
+    let lastServerTimestamp = 0;
     const overlayResult = ref(null);
     const activeUtilityDeck = ref("");
     const activeGuideKey = ref("");
@@ -2191,6 +2193,18 @@ const App = {
     };
 
     const applyRoomPayload = (payload) => {
+      // 用服务端时间戳做单调性校验，丢弃比当前状态更旧的广播包。
+      const incomingTs = payload?.serverTimestamp ?? 0;
+      if (incomingTs > 0 && incomingTs < lastServerTimestamp) {
+        return;
+      }
+      if (incomingTs > 0) {
+        lastServerTimestamp = incomingTs;
+      }
+
+      // 服务端确认后，解除准备操作的本地锁。
+      readyPending.value = false;
+
       const nextStatus = normalizeRoomStatus(payload?.status ?? roomStatus.value);
       roomStatus.value = nextStatus || roomStatus.value;
       roomInfo.value = {
@@ -2210,6 +2224,8 @@ const App = {
       roomIdInput.value = "";
       overlayResult.value = null;
       resultModalDismissed.value = false;
+      readyPending.value = false;
+      lastServerTimestamp = 0;
     };
 
     const syncControllerState = (partial) => {
@@ -2526,12 +2542,14 @@ const App = {
         return;
       }
 
+      readyPending.value = true;
       networkBusy.value = true;
       networkError.value = "";
       try {
         await networkManager.sendReady(ready);
       } catch (error) {
         handleNetworkError(error);
+        readyPending.value = false;
       } finally {
         networkBusy.value = false;
       }
@@ -2648,6 +2666,7 @@ const App = {
     const readyDisabled = computed(() => {
       return !session.value.roomId
         || networkBusy.value
+        || readyPending.value
         || roomStatus.value === "waiting"
         || roomStatus.value === "offline"
         || roomStatus.value === "inProgress"

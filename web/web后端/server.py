@@ -914,7 +914,12 @@ class ConnectionManager:
                 room.updated_at = time.time()
                 room.countdown_started_at = None
                 room.countdown_task = None
-                payloads = self._connected_room_payloads(room, self._room_payload("ROOM_READY", room))
+                # 为每位玩家单独构造含 yourPlayerId/yourColor 的 ROOM_READY，让前端能可靠识别自身颜色。
+                payloads = [
+                    (player.websocket, self._room_payload("ROOM_READY", room, your_player_id=player.player_id))
+                    for player in room.connected_players()
+                    if player.websocket is not None
+                ]
         except asyncio.CancelledError:
             return
 
