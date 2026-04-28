@@ -31,6 +31,7 @@ import { getGuideMarkdown, parseGuideMarkdown } from "./GuideContent.js?v=202604
 
 const {
   computed,
+  nextTick,
   onBeforeUnmount,
   onMounted,
   ref,
@@ -1153,6 +1154,28 @@ function renderGuideMathToken(value) {
   return rendered;
 }
 
+function formatGuideInlineMath(value) {
+  return `\\(${String(value ?? "").trim()}\\)`;
+}
+
+function formatGuideDisplayMath(value) {
+  return `\\[${String(value ?? "").trim()}\\]`;
+}
+
+function highlightGuideCode(value, language = "") {
+  const escaped = escapeGuideHtml(value);
+  const normalizedLanguage = String(language ?? "").toLowerCase();
+  if (!/^(py|python|js|javascript|ts|typescript)$/.test(normalizedLanguage)) {
+    return escaped;
+  }
+
+  return escaped
+    .replace(/\b(def|return|if|else|elif|for|while|in|not|and|or|class|const|let|var|function|new)\b/g, "<span class=\"guide-code-keyword\">$1</span>")
+    .replace(/\b(True|False|None|Set|List|Tuple|dict|set|frozenset)\b/g, "<span class=\"guide-code-type\">$1</span>")
+    .replace(/(&quot;.*?&quot;|'.*?')/g, "<span class=\"guide-code-string\">$1</span>")
+    .replace(/(#.*)$/gm, "<span class=\"guide-code-comment\">$1</span>");
+}
+
 const GuideInlineText = {
   name: "GuideInlineText",
   props: {
@@ -1163,13 +1186,14 @@ const GuideInlineText = {
   },
   setup() {
     return {
+      formatGuideInlineMath,
       renderGuideMathToken,
     };
   },
   template: `
     <template v-for="(token, index) in tokens" :key="index">
       <strong v-if="token.type === 'strong'">{{ token.text }}</strong>
-      <span v-else-if="token.type === 'math'" class="guide-inline-math" v-html="renderGuideMathToken(token.text)"></span>
+      <span v-else-if="token.type === 'math'" class="guide-inline-math">{{ formatGuideInlineMath(token.text) }}</span>
       <code v-else-if="token.type === 'code'" class="guide-inline-code">{{ token.text }}</code>
       <span v-else>{{ token.text }}</span>
     </template>
@@ -1245,6 +1269,9 @@ const GuidePanel = {
           <span class="guide-entry-arrow" aria-hidden="true">></span>
         </div>
         <p v-if="whyEntry.subtitle" class="guide-section-copy">{{ whyEntry.subtitle }}</p>
+        <div v-if="whyEntry.subEntries?.length" class="guide-section-mini-tabs" aria-hidden="true">
+          <span v-for="subEntry in whyEntry.subEntries" :key="subEntry.key">{{ subEntry.tabTitle }}</span>
+        </div>
       </button>
 
       <button
@@ -1303,8 +1330,38 @@ const GuideReaderModal = {
     },
   },
   setup(props) {
+    const activeSubKey = ref("");
+    const activeReadableEntry = computed(() => {
+      const subEntries = props.entry?.subEntries ?? [];
+      if (!subEntries.length) {
+        return props.entry;
+      }
+      return subEntries.find((item) => item.key === activeSubKey.value) ?? subEntries[0];
+    });
+
+    const typesetGuideMath = () => {
+      nextTick?.(() => {
+        if (globalThis.MathJax?.typesetPromise) {
+          globalThis.MathJax.typesetPromise();
+        }
+      });
+    };
+
+    watch(() => props.entry?.key, () => {
+      activeSubKey.value = props.entry?.subEntries?.[0]?.key ?? "";
+      typesetGuideMath();
+    }, { immediate: true });
+
+    watch(activeSubKey, () => {
+      typesetGuideMath();
+    });
+
     return {
-      displayBlocks: computed(() => buildGuideDisplayBlocks(props.entry?.blocks ?? [])),
+      activeReadableEntry,
+      activeSubKey,
+      displayBlocks: computed(() => buildGuideDisplayBlocks(activeReadableEntry.value?.blocks ?? [])),
+      formatGuideDisplayMath,
+      highlightGuideCode,
       texts: computed(() => getAppTexts(props.language)),
     };
   },
@@ -1315,7 +1372,9 @@ const GuideReaderModal = {
           <div class="guide-reader-top">
             <div>
               <h2>{{ entry.title }}</h2>
-              <p v-if="entry.subtitle" class="guide-reader-subtitle">{{ entry.subtitle }}</p>
+              <p v-if="activeReadableEntry?.subtitle || entry.subtitle" class="guide-reader-subtitle">
+                {{ activeReadableEntry?.subtitle || entry.subtitle }}
+              </p>
             </div>
             <button type="button" class="action-button action-button-ghost guide-close-button" @click="$emit('close')">
               {{ texts.guideCloseAction }}
@@ -1323,11 +1382,33 @@ const GuideReaderModal = {
           </div>
 
           <div class="guide-reader-layout">
+            <div v-if="entry.subEntries?.length" class="guide-sub-tabs" role="tablist" :aria-label="entry.title">
+              <button
+                v-for="subEntry in entry.subEntries"
+                :key="subEntry.key"
+                type="button"
+                class="guide-sub-tab"
+                :class="{ 'is-active': activeSubKey === subEntry.key }"
+                role="tab"
+                :aria-selected="activeSubKey === subEntry.key"
+                @click="activeSubKey = subEntry.key"
+              >
+                <strong>{{ subEntry.tabTitle }}</strong>
+                <span>{{ subEntry.subtitle }}</span>
+              </button>
+            </div>
             <div class="guide-reader-body">
               <template v-for="(block, index) in displayBlocks" :key="entry.key + '-' + index">
                 <h3 v-if="block.type === 'heading1'" class="guide-block-heading-xl"><GuideInlineText :tokens="block.tokens" /></h3>
                 <h4 v-else-if="block.type === 'heading2'" class="guide-block-heading"><GuideInlineText :tokens="block.tokens" /></h4>
                 <h5 v-else-if="block.type === 'callout'" class="guide-block-callout"><GuideInlineText :tokens="block.tokens" /></h5>
+                <blockquote v-else-if="block.type === 'quote'" class="guide-block-quote">
+                  <p><GuideInlineText :tokens="block.tokens" /></p>
+                </blockquote>
+                <div v-else-if="block.type === 'mathblock'" class="guide-block-math">
+                  {{ formatGuideDisplayMath(block.text) }}
+                </div>
+                <pre v-else-if="block.type === 'codeblock'" class="guide-code-block"><code :class="'language-' + (block.language || 'text')" v-html="highlightGuideCode(block.code, block.language)"></code></pre>
                 <figure v-else-if="block.type === 'image'" class="guide-block-figure">
                   <img :src="block.src" :alt="block.alt || entry.title" class="guide-block-image" loading="lazy" />
                   <figcaption v-if="block.alt" class="guide-block-figcaption">{{ block.alt }}</figcaption>
@@ -1469,6 +1550,38 @@ const UtilityModal = {
 
 function createGuideEntries(language = "zh") {
   const texts = getAppTexts(language);
+  const whySubEntries = [
+    {
+      key: "why-talk",
+      group: "why",
+      tabTitle: texts.guideWhyTalkTitle,
+      eyebrow: texts.guideWhyTitle,
+      title: texts.guideWhyTalkTitle,
+      subtitle: texts.guideWhyTalkSubtitle,
+      showIllustration: false,
+      blocks: parseGuideMarkdown(getGuideMarkdown("whyTalk", language)),
+    },
+    {
+      key: "why-code",
+      group: "why",
+      tabTitle: texts.guideWhyCodeTitle,
+      eyebrow: texts.guideWhyTitle,
+      title: texts.guideWhyCodeTitle,
+      subtitle: texts.guideWhyCodeSubtitle,
+      showIllustration: false,
+      blocks: parseGuideMarkdown(getGuideMarkdown("whyCode", language)),
+    },
+    {
+      key: "why-theory",
+      group: "why",
+      tabTitle: texts.guideWhyTheoryTitle,
+      eyebrow: texts.guideWhyTitle,
+      title: texts.guideWhyTheoryTitle,
+      subtitle: texts.guideWhyTheorySubtitle,
+      showIllustration: false,
+      blocks: parseGuideMarkdown(getGuideMarkdown("whyTheory", language)),
+    },
+  ];
   return [
     {
       key: "rules-essential",
@@ -1504,7 +1617,8 @@ function createGuideEntries(language = "zh") {
       title: texts.guideWhyTitle,
       subtitle: texts.guideWhySubtitle,
       showIllustration: false,
-      blocks: parseGuideMarkdown(getGuideMarkdown("whyThis", language)),
+      subEntries: whySubEntries,
+      blocks: whySubEntries[0]?.blocks ?? [],
     },
     {
       key: "thanks",

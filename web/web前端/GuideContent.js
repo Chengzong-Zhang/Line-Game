@@ -1,3 +1,257 @@
+const WHY_TALK_ZH = `# Talk：扩张与脆弱的战争张力
+
+最高指挥官，真正的矛盾不是“能不能扩张”，而是“扩张之后还能不能活着”。三角棋盘像一条从狭窄前线展开到广阔纵深的战场：越靠近大本营，补给线短，防守稳定；越向中央推进，领土更大，战线也更长。
+
+> 你越想得到战略纵深，就越必须暴露补给线。你越想守住补给线，就越难得到战略纵深。
+
+这正是苏德战场式的张力。狭窄地带给你安全，却不给你空间；广阔地带给你面积，却要求你承担被切断的风险。每一条线都是生命线，每一个向外伸出的节点都可能成为桥，也可能成为裂口。
+
+## 直觉核心
+
+* 扩张不是单调收益。多一个节点可能扩大领土，也可能给对手一个切入点。
+* 防守不是免费选择。退回基点附近可以降低风险，但会把胜利空间交给对手。
+* 进攻不是吃子，而是切断基点连通性。真正被消灭的不是一个点，而是一整段失去补给的战线。
+
+因此，这个游戏不像单纯的占点游戏。它要求玩家同时判断面积、战线、桥、割点和后续回旋空间。所谓“妙处”，就在这里：规则很短，心理压力很深。`;
+
+const WHY_CODE_ZH = `# Code：物理与逻辑的优雅分离
+
+工程实现的关键不是把棋盘画出来，而是承认棋盘有两层事实。
+
+* 物理层是 \`grid\`：每个格点现在显示为空、节点或线点。
+* 逻辑层是 \`adj_list / edges\`：哪些节点之间真的存在可见性边。
+
+这两层必须分开。渲染只需要 \`grid\`；连通性判断必须查询逻辑边；攻击结算则先改变物理层，再清理和重建逻辑层。
+
+\`\`\`python
+# 物理层：负责渲染和占用状态
+grid: dict[tuple[int, int], PointState]
+
+# 逻辑层：负责图论连通性
+black_edges: set[frozenset[tuple[int, int]]]
+white_edges: set[frozenset[tuple[int, int]]]
+
+def is_connected_to_initial(pos, player):
+    adj_list = build_adj_list(edges[player])
+    return bfs(adj_list, start=initial[player], target=pos)
+\`\`\`
+
+## 攻击结算
+
+一次落在敌方线点上的行动不是简单“覆盖格子”。它会触发一个确定的图重写流程。
+
+\`\`\`python
+def handle_attack(pos, player):
+    delete_enemy_line_cells_from(pos)
+    alive = bfs_component_from_enemy_base(grid)
+    remove_every_enemy_piece_not_in(alive)
+    edges[enemy].clear()
+    reconnect_player_nodes(player)
+    reconnect_player_nodes(enemy)
+\`\`\`
+
+这里的美感在于职责清晰：\`grid\` 记录物理事实，\`edges\` 记录逻辑事实，BFS 只回答一个问题：某个部分是否仍然连回基点。
+
+## 领土计算
+
+领土不是靠浮点几何射线判断，而是靠离散泛洪。
+
+\`\`\`python
+def covered_points(polygon):
+    wall = set(polygon)
+    water = flood_fill_from_board_boundary(blocked=wall)
+    return all_grid_points - water
+\`\`\`
+
+当前前端引擎还做了楔形泛洪优化：当一条候选捷径位于当前领土内部时，只对被替换的楔形区域做一次泛洪，再用整数公式更新候选面积。后端也保持同一逻辑，避免文档和生产规则分裂。`;
+
+const WHY_THEORY_ZH = `# Theory：算力深渊与上帝的简洁逻辑
+
+这个游戏的理论核心不是“状态数比谁大”，而是一个更干净的错位：
+
+$$
+V(n)=\frac{n(n+1)}{2}=\Theta(n^2)
+$$
+
+但潜在长程可见性边为
+
+$$
+E(n)=3\sum_{k=1}^{n}\binom{k}{2}
+=\frac{n^3-n}{2}
+=\Theta(n^3).
+$$
+
+棋盘是二次规模，战术关系是三次规模。复杂度不是堆出来的，而是从视线边自然长出来的。
+
+## 状态空间
+
+语义位置只统计真正不同的棋盘局面：
+
+$$
+S_{\mathrm{pos}}(n)\le 2\cdot 5^{V(n)}
+=2^{\Theta(n^2)}.
+$$
+
+如果把显式边缓存也算进表示对象，则有
+
+$$
+S_{\mathrm{repr}}(n)
+\le 2\cdot 5^{V(n)}3^{E(n)}
+=2^{\Theta(n^3)}.
+$$
+
+这两个量不能混淆。前者是游戏局面，后者是实现表示。真正困难的地方不是吹大状态数，而是二次格点承载了三次长程边。
+
+## Superko
+
+Superko 不是让普通位置图自动无环。更准确地说，规则把状态提升为
+
+$$
+(s,H),
+$$
+
+其中 $H$ 是历史位置集合。合法转移满足
+
+$$
+(s,H)\to(s',H\cup\{s'\}),\qquad s'\notin H.
+$$
+
+秩函数
+
+$$
+\rho(s,H)=|H|
+$$
+
+在每一步严格增加，所以增广状态转移图是 DAG。
+
+## AI 含义
+
+CNN 擅长局部纹理，但这里的价值来自基点连通性、桥、割点和极大连通分量。两个局部图案相同的盘面，只要一方少一条备用路径，价值就可能完全相反。因此更自然的模型是 GNN：把格点、可见性边、基点、桥与割点作为图对象输入，让消息沿逻辑边传播。`;
+
+const WHY_TALK_EN = `# Talk: Expansion and Fragility
+
+Commander, the central question is not whether you can expand. It is whether the shape survives after expansion. The triangular board opens from a narrow home front into a wide field. Near the base, supply lines are short and stable. Toward the center, territory grows, but the front becomes exposed.
+
+> The more strategic depth you seek, the more supply lines you expose. The more tightly you protect supply, the less depth you can claim.
+
+That is the core tension. A narrow front gives safety without space; a wide front gives space with risk. Every line is a lifeline. Every outward node can become either a bridge or a wound.
+
+## Intuition
+
+* Expansion is not monotone value. A new node can increase territory or hand the opponent a cutting point.
+* Defense is not free. Staying near the base lowers risk but gives away space.
+* Attacks do not merely capture pieces. They sever connectivity to the base.
+
+The game is therefore not a simple occupation race. It asks the player to reason about area, frontage, bridges, articulation points, and future retreat space at the same time.`;
+
+const WHY_CODE_EN = `# Code: Separating Physics from Logic
+
+The implementation works because it keeps two facts separate.
+
+* The physical layer is \`grid\`: what each lattice point currently displays.
+* The logical layer is \`adj_list / edges\`: which nodes are truly connected by visibility edges.
+
+\`\`\`python
+# Physical layer: rendering and occupancy
+grid: dict[tuple[int, int], PointState]
+
+# Logical layer: graph connectivity
+black_edges: set[frozenset[tuple[int, int]]]
+white_edges: set[frozenset[tuple[int, int]]]
+
+def is_connected_to_initial(pos, player):
+    adj_list = build_adj_list(edges[player])
+    return bfs(adj_list, start=initial[player], target=pos)
+\`\`\`
+
+## Attack Resolution
+
+\`\`\`python
+def handle_attack(pos, player):
+    delete_enemy_line_cells_from(pos)
+    alive = bfs_component_from_enemy_base(grid)
+    remove_every_enemy_piece_not_in(alive)
+    edges[enemy].clear()
+    reconnect_player_nodes(player)
+    reconnect_player_nodes(enemy)
+\`\`\`
+
+The elegance is that \`grid\` records physical facts, \`edges\` records logical facts, and BFS answers one question: does this structure still connect to its base?
+
+## Territory
+
+\`\`\`python
+def covered_points(polygon):
+    wall = set(polygon)
+    water = flood_fill_from_board_boundary(blocked=wall)
+    return all_grid_points - water
+\`\`\`
+
+The engine also uses a wedge flood-fill optimization: when a shortcut lies inside the current territory, it flood-fills the replaced wedge once and updates candidate area with an integer formula.`;
+
+const WHY_THEORY_EN = `# Theory: A Simple Law, a Deep Search Space
+
+The point is not to inflate state counts. The clean fact is the mismatch:
+
+$$
+V(n)=\frac{n(n+1)}{2}=\Theta(n^2)
+$$
+
+but the potential long-range visibility edges satisfy
+
+$$
+E(n)=3\sum_{k=1}^{n}\binom{k}{2}
+=\frac{n^3-n}{2}
+=\Theta(n^3).
+$$
+
+The board is quadratic. The tactical relation graph is cubic.
+
+## State Space
+
+Semantic positions satisfy
+
+$$
+S_{\mathrm{pos}}(n)\le 2\cdot 5^{V(n)}
+=2^{\Theta(n^2)}.
+$$
+
+Explicit representation space, if edge caches are counted, satisfies
+
+$$
+S_{\mathrm{repr}}(n)
+\le 2\cdot 5^{V(n)}3^{E(n)}
+=2^{\Theta(n^3)}.
+$$
+
+These are not the same object. One counts game positions; the other counts implementation encodings.
+
+## Superko
+
+Superko lifts the state to
+
+$$
+(s,H),
+$$
+
+where $H$ is the set of previous positions. Legal transitions satisfy
+
+$$
+(s,H)\to(s',H\cup\{s'\}),\qquad s'\notin H.
+$$
+
+The rank
+
+$$
+\rho(s,H)=|H|
+$$
+
+strictly increases, so the augmented transition graph is a DAG.
+
+## AI Consequence
+
+CNNs see local texture. This game is valued by base connectivity, bridges, articulation points, and maximal connected components. A GNN is the more natural architecture because messages can flow along the same visibility graph that defines the rules.`;
+
 const GUIDE_MARKDOWN = Object.freeze({
   zh: Object.freeze({
     rulesEssential: `【胜利条件】
@@ -83,11 +337,10 @@ const GUIDE_MARKDOWN = Object.freeze({
 * 状态张量编码：系统状态可以被编码为一个多通道的二维特征矩阵集合，分别表示黑方节点特征、白方节点特征以及全局邻接矩阵。
 * Superko 与 DAG 转移约束：为防止由于割边算子引发的循环博弈，引入基于图结构哈希的历史状态集 $H$。状态转移必须满足 $Hash(S_{t+1}) \\notin H$，从而保证单个 Episode 必然在有限步内到达终局状态。
 * 稀疏奖励函数：游戏过程中的即时奖励为 0，仅在终局时调用泛洪注水算法计算各方最终圈地的离散格点基数，并给出最终奖励。`,
-    whyThis: `内在张力：你越想进攻，扩张面积越大，其实留下的破绽也越多。你越想保守，你控制的面积就越小，很容易被对方围住。这是一种内在的矛盾。
-
-很像围棋，但比围棋好，因为考虑了线和面，而且有迫移局面，也就是多下一颗子未必好。
-
-不像将棋、中国象棋、国际象棋那样，有不同棋子的限制，缺少一种公平性和同一性，规则繁复，不像上帝的游戏。`,
+    whyTalk: WHY_TALK_ZH,
+    whyCode: WHY_CODE_ZH,
+    whyTheory: WHY_THEORY_ZH,
+    whyThis: WHY_TALK_ZH,
     thanks: `创始人：zcz
 愿景启发：Harmony（第一个帮我做出初始程序的人；没有 Harmony，这个游戏的程序化进程可能会无限期搁置）, zem（第一个认为这个游戏高度程序化、可以编程实现的人）, jhd（和我上课下棋做早期测试；在和他下棋的过程中，我逐渐形成了规则意识）, dya, yhx, wy, zz, lzh
 产品经理：Gemini(3.1Pro), zcz
@@ -185,11 +438,10 @@ To make the game solvable by modern RL methods, we model it as a Markov decision
 * State tensor encoding: the board can be encoded as multi-channel two-dimensional features, including black-node features, white-node features, and a global adjacency structure.
 * Superko and DAG transition constraint: to prevent cycles caused by repeated cutting, maintain a history set $H$ over graph hashes. Legal transitions must satisfy $Hash(S_{t+1}) \\notin H$, guaranteeing that each episode still reaches a terminal state in finitely many steps.
 * Sparse reward function: the immediate reward during play is 0. Only at the end of the game do we evaluate enclosed territory with a flood-fill style area operator and assign the final reward.`,
-    whyThis: `Internal tension: the more aggressively you expand, the more territory you may gain, but the more weaknesses you leave behind. The more conservatively you defend, the smaller your control becomes, and the easier it is to be boxed in. That contradiction is built into the game itself.
-
-It feels a bit like Go, but with lines and areas both treated as first-class objects, plus real zugzwang situations in which placing one more stone is not necessarily good.
-
-Unlike shogi, Chinese chess, or international chess, it does not rely on many different piece types with different move rules. The system stays more unified, more symmetric, and closer to the feeling of a single underlying law.`,
+    whyTalk: WHY_TALK_EN,
+    whyCode: WHY_CODE_EN,
+    whyTheory: WHY_THEORY_EN,
+    whyThis: WHY_TALK_EN,
     thanks: `Founder: zcz
 Vision Spark: Harmony (the first one who helped me build an initial program; without Harmony, the game's software path might have stalled indefinitely), zem (the first one who believed this game was structured enough to be programmed), jhd (an early playtest partner whose games with me helped shape my awareness of the rules), dya, yhx, wy, zz, lzh
 Product Lead: Gemini(3.1Pro), zcz
@@ -296,6 +548,52 @@ export function parseGuideMarkdown(raw) {
     if (!trimmed) {
       flushParagraph(paragraphLines);
       index += 1;
+      continue;
+    }
+    if (trimmed.startsWith("```")) {
+      flushParagraph(paragraphLines);
+      const language = trimmed.slice(3).trim();
+      const codeLines = [];
+      index += 1;
+      while (index < lines.length && !lines[index].trim().startsWith("```")) {
+        codeLines.push(lines[index]);
+        index += 1;
+      }
+      if (index < lines.length) {
+        index += 1;
+      }
+      blocks.push({
+        type: "codeblock",
+        language,
+        code: codeLines.join("\n").replace(/\s+$/g, ""),
+      });
+      continue;
+    }
+    if (trimmed === "$$") {
+      flushParagraph(paragraphLines);
+      const mathLines = [];
+      index += 1;
+      while (index < lines.length && lines[index].trim() !== "$$") {
+        mathLines.push(lines[index].trim());
+        index += 1;
+      }
+      if (index < lines.length) {
+        index += 1;
+      }
+      blocks.push({
+        type: "mathblock",
+        text: mathLines.join("\n").trim(),
+      });
+      continue;
+    }
+    if (trimmed.startsWith(">")) {
+      flushParagraph(paragraphLines);
+      const quoteLines = [];
+      while (index < lines.length && lines[index].trim().startsWith(">")) {
+        quoteLines.push(lines[index].trim().replace(/^>\s?/, ""));
+        index += 1;
+      }
+      blocks.push(createTextBlock("quote", quoteLines.join(" ")));
       continue;
     }
     if (trimmed.startsWith("# ")) {
