@@ -26,8 +26,8 @@ import {
   getInitialLanguage as getAppInitialLanguage,
   getTexts as getAppTexts,
   localizeErrorMessage as localizeAppErrorMessage,
-} from "./OnlineAppI18n.js?v=20260426f";
-import { getGuideMarkdown, parseGuideMarkdown } from "./GuideContent.js?v=20260426f";
+} from "./OnlineAppI18n.js?v=20260428b";
+import { getGuideMarkdown, parseGuideMarkdown } from "./GuideContent.js?v=20260428b";
 
 const {
   computed,
@@ -367,16 +367,16 @@ const SetupPanel = {
     <section class="panel panel-setup modal-panel">
       <div class="panel-head panel-head-inline">
         <div>
-          <p class="eyebrow">{{ texts.setupLabel || '对局设置' }}</p>
-          <h2>{{ texts.setupLabel || '对局设置' }}</h2>
+          <p class="eyebrow">{{ texts.setupLabel }}</p>
+          <h2>{{ texts.setupLabel }}</h2>
         </div>
-        <span class="panel-head-badge" v-if="settingsLocked">{{ texts.lockedLabel || '已锁定' }}</span>
+        <span class="panel-head-badge" v-if="settingsLocked">{{ texts.lockedLabel }}</span>
       </div>
 
       <div class="settings-cluster settings-cluster-standalone">
         <div class="settings-grid">
           <div>
-            <label class="field-label">{{ texts.languageLabel || '语言' }}</label>
+            <label class="field-label">{{ texts.languageLabel }}</label>
             <div id="language-select" class="language-switcher language-switcher-inline" role="group" :aria-label="texts.languageLabel">
               <button
                 class="language-button"
@@ -384,7 +384,7 @@ const SetupPanel = {
                 :disabled="busy"
                 @click="$emit('update:language', 'zh')"
               >
-                中文
+                {{ texts.languageZhAction }}
               </button>
               <button
                 class="language-button"
@@ -392,12 +392,12 @@ const SetupPanel = {
                 :disabled="busy"
                 @click="$emit('update:language', 'en')"
               >
-                English
+                {{ texts.languageEnAction }}
               </button>
             </div>
           </div>
           <div>
-            <label class="field-label" for="player-count">{{ texts.playerCountLabel || '玩家人数' }}</label>
+            <label class="field-label" for="player-count">{{ texts.playerCountLabel }}</label>
             <select
               id="player-count"
               class="input-field input-field-compact"
@@ -409,7 +409,7 @@ const SetupPanel = {
             </select>
           </div>
           <div>
-            <label class="field-label" for="grid-size">{{ texts.gridSizeLabel || '棋盘边长' }}</label>
+            <label class="field-label" for="grid-size">{{ texts.gridSizeLabel }}</label>
             <select
               id="grid-size"
               class="input-field input-field-compact"
@@ -421,7 +421,7 @@ const SetupPanel = {
             </select>
           </div>
           <div>
-            <label class="field-label" for="turn-timer-enabled">{{ texts.turnTimerLabel || '读秒开关' }}</label>
+            <label class="field-label" for="turn-timer-enabled">{{ texts.turnTimerLabel }}</label>
             <label class="toggle-field" for="turn-timer-enabled">
               <input
                 id="turn-timer-enabled"
@@ -430,11 +430,11 @@ const SetupPanel = {
                 :disabled="busy || settingsLocked"
                 @change="$emit('update:turn-timer-enabled', $event.target.checked)"
               />
-              <span>{{ turnTimerEnabled ? 'ON' : 'OFF' }}</span>
+              <span>{{ turnTimerEnabled ? texts.toggleOn : texts.toggleOff }}</span>
             </label>
           </div>
           <div v-if="turnTimerEnabled">
-            <label class="field-label" for="turn-time-limit">{{ texts.turnTimerDurationLabel || '读秒时长' }}</label>
+            <label class="field-label" for="turn-time-limit">{{ texts.turnTimerDurationLabel }}</label>
             <input
               id="turn-time-limit"
               class="input-field input-field-compact"
@@ -925,7 +925,7 @@ const ControlPanel = {
       </div>
       <div class="actions duel-actions">
         <button class="action-button action-button-primary" :disabled="skipDisabled" @click="$emit('skip')">
-          {{ language === 'en' ? 'Skip Turn' : '跳过回合' }}
+          {{ texts.skipTurnAction }}
         </button>
         <button class="action-button action-button-secondary" :disabled="resetDisabled" @click="$emit('reset')">
           {{ resetLabel }}
@@ -1144,10 +1144,31 @@ const GuideBoardIllustration = {
   `,
 };
 
+const GuideInlineText = {
+  name: "GuideInlineText",
+  props: {
+    tokens: {
+      type: Array,
+      default: () => [],
+    },
+  },
+  template: `
+    <template v-for="(token, index) in tokens" :key="index">
+      <strong v-if="token.type === 'strong'">{{ token.text }}</strong>
+      <code v-else-if="token.type === 'code'" class="guide-inline-code">{{ token.text }}</code>
+      <span v-else>{{ token.text }}</span>
+    </template>
+  `,
+};
+
 const GuidePanel = {
   name: "GuidePanel",
   emits: ["open-entry"],
   props: {
+    embedded: {
+      type: Boolean,
+      default: false,
+    },
     language: {
       type: String,
       required: true,
@@ -1172,7 +1193,7 @@ const GuidePanel = {
   },
   template: `
     <section class="panel panel-guide modal-panel">
-      <div class="panel-head panel-head-inline">
+      <div v-if="!embedded" class="panel-head panel-head-inline">
         <div>
           <p class="eyebrow">{{ texts.guideEyebrow }}</p>
           <h2>{{ texts.guideTitle }}</h2>
@@ -1244,6 +1265,7 @@ const GuideReaderModal = {
   name: "GuideReaderModal",
   components: {
     GuideBoardIllustration,
+    GuideInlineText,
   },
   emits: ["close"],
   props: {
@@ -1284,22 +1306,22 @@ const GuideReaderModal = {
 
             <div class="guide-reader-body">
               <template v-for="(block, index) in entry.blocks" :key="entry.key + '-' + index">
-                <h3 v-if="block.type === 'heading1'" class="guide-block-heading-xl">{{ block.text }}</h3>
-                <h4 v-else-if="block.type === 'heading2'" class="guide-block-heading">{{ block.text }}</h4>
-                <h5 v-else-if="block.type === 'callout'" class="guide-block-callout">{{ block.text }}</h5>
+                <h3 v-if="block.type === 'heading1'" class="guide-block-heading-xl"><GuideInlineText :tokens="block.tokens" /></h3>
+                <h4 v-else-if="block.type === 'heading2'" class="guide-block-heading"><GuideInlineText :tokens="block.tokens" /></h4>
+                <h5 v-else-if="block.type === 'callout'" class="guide-block-callout"><GuideInlineText :tokens="block.tokens" /></h5>
                 <div v-else-if="block.type === 'meta'" class="guide-block-meta">
                   <span class="guide-block-meta-label">{{ block.label }}</span>
-                  <p class="guide-block-meta-value">{{ block.text }}</p>
+                  <p class="guide-block-meta-value"><GuideInlineText :tokens="block.tokens" /></p>
                 </div>
                 <div v-else-if="block.type === 'bullet'" class="guide-block-bullet">
                   <span class="guide-bullet-dot" aria-hidden="true"></span>
-                  <p>{{ block.text }}</p>
+                  <p><GuideInlineText :tokens="block.tokens" /></p>
                 </div>
                 <div v-else-if="block.type === 'ordered'" class="guide-block-ordered">
                   <span class="guide-ordered-index">{{ block.order }}</span>
-                  <p>{{ block.text }}</p>
+                  <p><GuideInlineText :tokens="block.tokens" /></p>
                 </div>
-                <p v-else class="guide-block-paragraph">{{ block.text }}</p>
+                <p v-else class="guide-block-paragraph"><GuideInlineText :tokens="block.tokens" /></p>
               </template>
             </div>
           </div>
@@ -1309,8 +1331,9 @@ const GuideReaderModal = {
   `,
 };
 
-const DockDirectory = {
-  name: "DockDirectory",
+const DockLauncher = {
+  name: "DockLauncher",
+  emits: ["open"],
   props: {
     variant: {
       type: String,
@@ -1324,31 +1347,91 @@ const DockDirectory = {
       type: String,
       default: "",
     },
+    copy: {
+      type: String,
+      default: "",
+    },
   },
   template: `
-    <details class="dock-folder" :class="'dock-folder-' + variant">
-      <summary class="dock-folder-summary">
-        <span class="dock-folder-head">
-          <span class="dock-folder-icon" :class="'dock-folder-icon-' + variant" aria-hidden="true">
-            <span v-if="variant === 'board'" class="triangle-glyph"></span>
-            <svg v-else-if="variant === 'guide'" viewBox="0 0 24 24" focusable="false">
-              <path d="M5 4.75A2.75 2.75 0 0 1 7.75 2h9.5A1.75 1.75 0 0 1 19 3.75v15.5A1.75 1.75 0 0 1 17.25 21h-9A3.25 3.25 0 0 0 5 23V4.75Zm2.75-1.25A1.25 1.25 0 0 0 6.5 4.75v13.02c.52-.18 1.08-.27 1.75-.27h9.25V3.75a.25.25 0 0 0-.25-.25h-9.5Zm.5 16.5c-.68 0-1.24.16-1.75.49V21.5c.35-.33.89-.5 1.75-.5h9.25a.75.75 0 0 0 .75-.75v-1.25H8.25Z" />
-              <path d="M9 7.25a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 0 1.5h-4.5A.75.75 0 0 1 9 7.25Zm0 3.5A.75.75 0 0 1 9.75 10h5.5a.75.75 0 0 1 0 1.5h-5.5a.75.75 0 0 1-.75-.75Zm0 3.5a.75.75 0 0 1 .75-.75h5.5a.75.75 0 0 1 0 1.5h-5.5a.75.75 0 0 1-.75-.75Z" />
-            </svg>
-            <svg v-else viewBox="0 0 24 24" focusable="false">
-              <path d="M19.43 12.98c.04-.32.07-.65.07-.98s-.03-.66-.08-.98l2.11-1.65a.5.5 0 0 0 .12-.64l-2-3.46a.5.5 0 0 0-.6-.22l-2.49 1a7.2 7.2 0 0 0-1.69-.98l-.38-2.65A.5.5 0 0 0 14 1h-4a.5.5 0 0 0-.49.42l-.38 2.65c-.61.24-1.18.56-1.69.98l-2.49-1a.5.5 0 0 0-.6.22l-2 3.46a.5.5 0 0 0 .12.64l2.11 1.65c-.05.32-.08.65-.08.98s.03.66.08.98L2.47 14.63a.5.5 0 0 0-.12.64l2 3.46a.5.5 0 0 0 .6.22l2.49-1c.51.42 1.08.74 1.69.98l.38 2.65A.5.5 0 0 0 10 23h4a.5.5 0 0 0 .49-.42l.38-2.65c.61-.24 1.18-.56 1.69-.98l2.49 1a.5.5 0 0 0 .6-.22l2-3.46a.5.5 0 0 0-.12-.64l-2.1-1.65ZM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5Z" />
-            </svg>
-          </span>
-          <span class="dock-folder-title-wrap">
-            <strong class="dock-folder-title">{{ title }}</strong>
-          </span>
+    <button type="button" class="dock-launcher" :class="'dock-launcher-' + variant" @click="$emit('open')">
+      <span class="dock-folder-head">
+        <span class="dock-folder-icon" :class="'dock-folder-icon-' + variant" aria-hidden="true">
+          <span v-if="variant === 'board'" class="triangle-glyph"></span>
+          <svg v-else-if="variant === 'guide'" viewBox="0 0 24 24" focusable="false">
+            <path d="M5 4.75A2.75 2.75 0 0 1 7.75 2h9.5A1.75 1.75 0 0 1 19 3.75v15.5A1.75 1.75 0 0 1 17.25 21h-9A3.25 3.25 0 0 0 5 23V4.75Zm2.75-1.25A1.25 1.25 0 0 0 6.5 4.75v13.02c.52-.18 1.08-.27 1.75-.27h9.25V3.75a.25.25 0 0 0-.25-.25h-9.5Zm.5 16.5c-.68 0-1.24.16-1.75.49V21.5c.35-.33.89-.5 1.75-.5h9.25a.75.75 0 0 0 .75-.75v-1.25H8.25Z" />
+            <path d="M9 7.25a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 0 1.5h-4.5A.75.75 0 0 1 9 7.25Zm0 3.5A.75.75 0 0 1 9.75 10h5.5a.75.75 0 0 1 0 1.5h-5.5a.75.75 0 0 1-.75-.75Zm0 3.5a.75.75 0 0 1 .75-.75h5.5a.75.75 0 0 1 0 1.5h-5.5a.75.75 0 0 1-.75-.75Z" />
+          </svg>
+          <svg v-else viewBox="0 0 24 24" focusable="false">
+            <path d="M19.43 12.98c.04-.32.07-.65.07-.98s-.03-.66-.08-.98l2.11-1.65a.5.5 0 0 0 .12-.64l-2-3.46a.5.5 0 0 0-.6-.22l-2.49 1a7.2 7.2 0 0 0-1.69-.98l-.38-2.65A.5.5 0 0 0 14 1h-4a.5.5 0 0 0-.49.42l-.38 2.65c-.61.24-1.18.56-1.69.98l-2.49-1a.5.5 0 0 0-.6.22l-2 3.46a.5.5 0 0 0 .12.64l2.11 1.65c-.05.32-.08.65-.08.98s.03.66.08.98L2.47 14.63a.5.5 0 0 0-.12.64l2 3.46a.5.5 0 0 0 .6.22l2.49-1c.51.42 1.08.74 1.69.98l.38 2.65A.5.5 0 0 0 10 23h4a.5.5 0 0 0 .49-.42l.38-2.65c.61-.24 1.18-.56 1.69-.98l2.49 1a.5.5 0 0 0 .6-.22l2-3.46a.5.5 0 0 0-.12-.64l-2.1-1.65ZM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5Z" />
+          </svg>
         </span>
+        <span class="dock-launcher-copy">
+          <strong class="dock-folder-title">{{ title }}</strong>
+          <small v-if="copy">{{ copy }}</small>
+        </span>
+      </span>
+      <span class="dock-launcher-foot">
         <span v-if="badge" class="dock-folder-badge">{{ badge }}</span>
-      </summary>
-      <div class="dock-folder-body">
-        <slot></slot>
+        <span class="dock-launcher-action">></span>
+      </span>
+    </button>
+  `,
+};
+
+const UtilityModal = {
+  name: "UtilityModal",
+  emits: ["close"],
+  props: {
+    visible: {
+      type: Boolean,
+      default: false,
+    },
+    variant: {
+      type: String,
+      default: "board",
+    },
+    eyebrow: {
+      type: String,
+      default: "",
+    },
+    title: {
+      type: String,
+      default: "",
+    },
+    description: {
+      type: String,
+      default: "",
+    },
+    closeLabel: {
+      type: String,
+      default: "",
+    },
+  },
+  template: `
+    <transition name="fade">
+      <div
+        v-if="visible"
+        class="utility-overlay"
+        :class="'utility-overlay-' + variant"
+        role="dialog"
+        aria-modal="true"
+        @click.self="$emit('close')"
+      >
+        <div class="utility-modal" :class="'utility-modal-' + variant">
+          <div class="utility-header">
+            <div class="utility-head-copy">
+              <p v-if="eyebrow" class="eyebrow">{{ eyebrow }}</p>
+              <h2>{{ title }}</h2>
+              <p v-if="description" class="utility-description">{{ description }}</p>
+            </div>
+            <button type="button" class="utility-close" :aria-label="closeLabel" @click="$emit('close')">×</button>
+          </div>
+          <div class="utility-body">
+            <slot></slot>
+          </div>
+        </div>
       </div>
-    </details>
+    </transition>
   `,
 };
 
@@ -1362,7 +1445,7 @@ function createGuideEntries(language = "zh") {
       title: texts.guideRuleSimpleTitle,
       subtitle: texts.guideRuleSimpleSubtitle,
       showIllustration: true,
-      blocks: parseGuideMarkdown(getGuideMarkdown("rulesEssential")),
+      blocks: parseGuideMarkdown(getGuideMarkdown("rulesEssential", language)),
     },
     {
       key: "rules-war",
@@ -1371,7 +1454,7 @@ function createGuideEntries(language = "zh") {
       title: texts.guideRuleWarTitle,
       subtitle: texts.guideRuleWarSubtitle,
       showIllustration: true,
-      blocks: parseGuideMarkdown(getGuideMarkdown("rulesWar")),
+      blocks: parseGuideMarkdown(getGuideMarkdown("rulesWar", language)),
     },
     {
       key: "rules-math",
@@ -1380,7 +1463,7 @@ function createGuideEntries(language = "zh") {
       title: texts.guideRuleMathTitle,
       subtitle: texts.guideRuleMathSubtitle,
       showIllustration: true,
-      blocks: parseGuideMarkdown(getGuideMarkdown("rulesMath")),
+      blocks: parseGuideMarkdown(getGuideMarkdown("rulesMath", language)),
     },
     {
       key: "why-this",
@@ -1389,7 +1472,7 @@ function createGuideEntries(language = "zh") {
       title: texts.guideWhyTitle,
       subtitle: texts.guideWhySubtitle,
       showIllustration: false,
-      blocks: parseGuideMarkdown(getGuideMarkdown("whyThis")),
+      blocks: parseGuideMarkdown(getGuideMarkdown("whyThis", language)),
     },
     {
       key: "thanks",
@@ -1398,7 +1481,7 @@ function createGuideEntries(language = "zh") {
       title: texts.guideThanksTitle,
       subtitle: texts.guideThanksSubtitle,
       showIllustration: false,
-      blocks: parseGuideMarkdown(getGuideMarkdown("thanks")),
+      blocks: parseGuideMarkdown(getGuideMarkdown("thanks", language)),
     },
   ];
 }
@@ -1460,8 +1543,9 @@ const App = {
     AuthPanel,
     BoardCanvas,
     ControlPanel,
-    DockDirectory,
+    DockLauncher,
     GuidePanel,
+    UtilityModal,
     GuideReaderModal,
     ResultModal,
     RoomPanel,
@@ -1504,6 +1588,7 @@ const App = {
     const networkBusy = ref(false);
     const networkError = ref("");
     const overlayResult = ref(null);
+    const activeUtilityDeck = ref("");
     const activeGuideKey = ref("");
     const resultModalDismissed = ref(false);
     const turnCountdown = ref(ROOM_START_COUNTDOWN_FALLBACK_SECONDS);
@@ -2349,8 +2434,9 @@ const App = {
     const resultResetAllowed = computed(() => {
       return !resetDisabled.value;
     });
+    const hasUtilityModalOpen = computed(() => Boolean(activeUtilityDeck.value));
     const hasGuideModalOpen = computed(() => Boolean(activeGuideEntry.value));
-    const hasAnyModalOpen = computed(() => showClosePrompt.value || hasGuideModalOpen.value);
+    const hasAnyModalOpen = computed(() => showClosePrompt.value || hasUtilityModalOpen.value || hasGuideModalOpen.value);
 
     watch(hasAnyModalOpen, (promptVisible) => {
       document.body.classList.toggle("modal-open", Boolean(promptVisible));
@@ -2361,14 +2447,29 @@ const App = {
         return;
       }
 
+      if (showClosePrompt.value) {
+        handleClosePrompt();
+        return;
+      }
+
       if (hasGuideModalOpen.value) {
         activeGuideKey.value = "";
         return;
       }
 
-      if (showClosePrompt.value) {
-        handleClosePrompt();
+      if (hasUtilityModalOpen.value) {
+        activeUtilityDeck.value = "";
+        return;
       }
+    };
+
+    const handleOpenUtilityDeck = (deckKey) => {
+      activeUtilityDeck.value = deckKey;
+    };
+
+    const handleCloseUtilityDeck = () => {
+      activeUtilityDeck.value = "";
+      activeGuideKey.value = "";
     };
 
     const handleOpenGuideEntry = (entryKey) => {
@@ -2555,6 +2656,7 @@ const App = {
       controller,
       gameState,
       getTexts: getAppTexts,
+      activeUtilityDeck,
       guideDockBadge,
       activeGuideEntry,
       ruleGuideEntries,
@@ -2594,6 +2696,8 @@ const App = {
       resultResetAllowed,
       handleResultAction,
       handleResultLeaveRoom,
+      handleOpenUtilityDeck,
+      handleCloseUtilityDeck,
       handleOpenGuideEntry,
       handleCloseGuideEntry,
       handleControllerReady,
@@ -2642,105 +2746,142 @@ const App = {
         </section>
 
         <aside class="dock-column">
-          <DockDirectory
+          <DockLauncher
             variant="board"
             :title="getTexts(language).boardDockTitle"
+            :copy="getTexts(language).boardDockCopy"
             :badge="boardDockBadge"
-          >
-            <div class="dock-stack">
-              <SetupPanel
-                :language="language"
-                :player-count="selectedPlayerCount"
-                :grid-size="selectedGridSize"
-                :turn-timer-enabled="selectedTurnTimerEnabled"
-                :turn-time-limit-seconds="selectedTurnTimeLimitSeconds"
-                :settings-locked="settingsLocked"
-                :busy="networkBusy"
-                @update:language="language = $event"
-                @update:player-count="selectedPlayerCount = $event"
-                @update:grid-size="selectedGridSize = $event"
-                @update:turn-timer-enabled="selectedTurnTimerEnabled = $event"
-                @update:turn-time-limit-seconds="selectedTurnTimeLimitSeconds = $event"
-              />
+            @open="handleOpenUtilityDeck('board')"
+          />
 
-              <ScorePanel
-                :game-state="gameState"
-                :session="session"
-                :room-players="roomInfo.players"
-                :language="language"
-                :status-text="statusText"
-              />
-            </div>
-          </DockDirectory>
-
-          <DockDirectory
+          <DockLauncher
             variant="network"
             :title="getTexts(language).networkDockTitle"
+            :copy="getTexts(language).networkDockCopy"
             :badge="networkDockBadge"
-          >
-            <div class="dock-stack">
-              <AuthPanel
-                :language="language"
-                :auth="auth"
-                :mode="authMode"
-                :username="authUsername"
-                :password="authPassword"
-                :busy="authBusy"
-                :error="authError"
-                :feedback-tone="authFeedbackTone"
-                @update:mode="authMode = $event"
-                @update:username="authUsername = $event"
-                @update:password="authPassword = $event"
-                @submit="handleAuthSubmit"
-                @logout="handleLogout"
-              />
+            @open="handleOpenUtilityDeck('network')"
+          />
 
-              <RoomPanel
-                :language="language"
-                :server-url="serverUrl"
-                :room-id="roomIdInput"
-                :connection-state="connectionState"
-                :room-status="roomStatus"
-                :session="session"
-                :network-error="networkError"
-                :authenticated="isAuthenticated"
-                :busy="networkBusy"
-                :room-info="roomInfo"
-                :is-host="isHost"
-                :local-ready="localReady"
-                :ready-disabled="readyDisabled"
-                :starter-locked="starterLocked"
-                :start-player="selectedStartPlayer"
-                :starter-options="starterOptions"
-                :show-close-prompt="showClosePrompt"
-                @update:server-url="serverUrl = $event"
-                @update:room-id="roomIdInput = $event"
-                @connect="handleConnect"
-                @create-room="handleCreateRoom"
-                @join-room="handleJoinRoom"
-                @leave-room="handleLeaveRoom"
-                @toggle-ready="handleToggleReady"
-                @update:start-player="handleStartPlayerChange"
-                @close-prompt="handleClosePrompt"
-              />
-            </div>
-          </DockDirectory>
-
-          <DockDirectory
+          <DockLauncher
             variant="guide"
             :title="getTexts(language).guideDockTitle"
+            :copy="getTexts(language).guideDockCopy"
             :badge="guideDockBadge"
-          >
-            <GuidePanel
-              :language="language"
-              :rule-entries="ruleGuideEntries"
-              :why-entry="whyGuideEntry"
-              :thanks-entry="thanksGuideEntry"
-              @open-entry="handleOpenGuideEntry"
-            />
-          </DockDirectory>
+            @open="handleOpenUtilityDeck('guide')"
+          />
         </aside>
       </section>
+
+      <UtilityModal
+        variant="board"
+        :visible="activeUtilityDeck === 'board'"
+        :eyebrow="getTexts(language).stageFocusEyebrow"
+        :title="getTexts(language).boardDockTitle"
+        :description="getTexts(language).boardDockCopy"
+        :close-label="getTexts(language).closePanel"
+        @close="handleCloseUtilityDeck"
+      >
+        <div class="utility-grid utility-grid-board">
+          <SetupPanel
+            :language="language"
+            :player-count="selectedPlayerCount"
+            :grid-size="selectedGridSize"
+            :turn-timer-enabled="selectedTurnTimerEnabled"
+            :turn-time-limit-seconds="selectedTurnTimeLimitSeconds"
+            :settings-locked="settingsLocked"
+            :busy="networkBusy"
+            @update:language="language = $event"
+            @update:player-count="selectedPlayerCount = $event"
+            @update:grid-size="selectedGridSize = $event"
+            @update:turn-timer-enabled="selectedTurnTimerEnabled = $event"
+            @update:turn-time-limit-seconds="selectedTurnTimeLimitSeconds = $event"
+          />
+
+          <ScorePanel
+            :game-state="gameState"
+            :session="session"
+            :room-players="roomInfo.players"
+            :language="language"
+            :status-text="statusText"
+          />
+        </div>
+      </UtilityModal>
+
+      <UtilityModal
+        variant="network"
+        :visible="activeUtilityDeck === 'network'"
+        :eyebrow="getTexts(language).onlineEyebrow"
+        :title="getTexts(language).networkDockTitle"
+        :description="getTexts(language).networkDockCopy"
+        :close-label="getTexts(language).closePanel"
+        @close="handleCloseUtilityDeck"
+      >
+        <div class="utility-stack">
+          <AuthPanel
+            :language="language"
+            :auth="auth"
+            :mode="authMode"
+            :username="authUsername"
+            :password="authPassword"
+            :busy="authBusy"
+            :error="authError"
+            :feedback-tone="authFeedbackTone"
+            @update:mode="authMode = $event"
+            @update:username="authUsername = $event"
+            @update:password="authPassword = $event"
+            @submit="handleAuthSubmit"
+            @logout="handleLogout"
+          />
+
+          <RoomPanel
+            :language="language"
+            :server-url="serverUrl"
+            :room-id="roomIdInput"
+            :connection-state="connectionState"
+            :room-status="roomStatus"
+            :session="session"
+            :network-error="networkError"
+            :authenticated="isAuthenticated"
+            :busy="networkBusy"
+            :room-info="roomInfo"
+            :is-host="isHost"
+            :local-ready="localReady"
+            :ready-disabled="readyDisabled"
+            :starter-locked="starterLocked"
+            :start-player="selectedStartPlayer"
+            :starter-options="starterOptions"
+            :show-close-prompt="showClosePrompt"
+            @update:server-url="serverUrl = $event"
+            @update:room-id="roomIdInput = $event"
+            @connect="handleConnect"
+            @create-room="handleCreateRoom"
+            @join-room="handleJoinRoom"
+            @leave-room="handleLeaveRoom"
+            @toggle-ready="handleToggleReady"
+            @update:start-player="handleStartPlayerChange"
+            @close-prompt="handleClosePrompt"
+          />
+        </div>
+      </UtilityModal>
+
+      <UtilityModal
+        variant="guide"
+        :visible="activeUtilityDeck === 'guide'"
+        :eyebrow="getTexts(language).guideEyebrow"
+        :title="getTexts(language).guideDockTitle"
+        :description="getTexts(language).guideDockCopy"
+        :close-label="getTexts(language).closePanel"
+        @close="handleCloseUtilityDeck"
+      >
+        <GuidePanel
+          :embedded="true"
+          :language="language"
+          :rule-entries="ruleGuideEntries"
+          :why-entry="whyGuideEntry"
+          :thanks-entry="thanksGuideEntry"
+          @open-entry="handleOpenGuideEntry"
+        />
+      </UtilityModal>
 
       <GuideReaderModal
         :entry="activeGuideEntry"

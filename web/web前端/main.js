@@ -3,11 +3,20 @@
   "https://unpkg.com/vue@3/dist/vue.global.prod.js",
   "https://fastly.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js",
 ];
-const APP_ASSET_VERSION = "20260426f";
+const APP_ASSET_VERSION = "20260428b";
 
 // main.js 只做两件事：
 // 1. 确保浏览器拿到 Vue 运行时
 // 2. 加载真正的应用入口 OnlineApp.js
+
+function resolvePreferredLanguage() {
+  const stored = globalThis.localStorage?.getItem("triaxis-language");
+  if (stored === "en" || stored === "zh") {
+    return stored;
+  }
+
+  return globalThis.navigator?.language?.toLowerCase().startsWith("zh") ? "zh" : "en";
+}
 
 function showBootError(message) {
   const mountPoint = document.querySelector("#app");
@@ -15,11 +24,24 @@ function showBootError(message) {
     return;
   }
 
+  const language = resolvePreferredLanguage();
+  const copy = language === "zh"
+    ? {
+      eyebrow: "TriAxis",
+      title: "页面启动失败",
+      body: "前端运行时没有成功加载，通常是浏览器没有拿到 Vue 运行库。",
+    }
+    : {
+      eyebrow: "TriAxis",
+      title: "Page Failed To Start",
+      body: "The frontend runtime did not load successfully. Usually the browser failed to fetch the Vue runtime.",
+    };
+
   mountPoint.innerHTML = `
     <section style="max-width:720px;margin:48px auto;padding:24px 28px;border:1px solid rgba(95,70,40,.18);border-radius:24px;background:#fffaf0;color:#3f3426;font:16px/1.6 Georgia, serif;box-shadow:0 20px 60px rgba(74,54,31,.08);">
-      <p style="margin:0 0 8px;font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:#8d7557;">TriAxis</p>
-      <h1 style="margin:0 0 12px;font-size:32px;">页面启动失败</h1>
-      <p style="margin:0 0 10px;">前端运行时没有成功加载，通常是浏览器没有拿到 Vue 运行库。</p>
+      <p style="margin:0 0 8px;font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:#8d7557;">${copy.eyebrow}</p>
+      <h1 style="margin:0 0 12px;font-size:32px;">${copy.title}</h1>
+      <p style="margin:0 0 10px;">${copy.body}</p>
       <p style="margin:0;">${message}</p>
     </section>
   `;
@@ -64,7 +86,10 @@ async function bootstrap() {
     Vue.createApp(App).mount("#app");
   } catch (error) {
     console.error("TriAxis bootstrap failed:", error);
-    showBootError(error?.message ?? "Unknown bootstrap error.");
+    const fallbackMessage = resolvePreferredLanguage() === "zh"
+      ? "未知启动错误。"
+      : "Unknown bootstrap error.";
+    showBootError(error?.message ?? fallbackMessage);
   }
 }
 
