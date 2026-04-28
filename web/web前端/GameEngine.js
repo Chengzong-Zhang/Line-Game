@@ -574,30 +574,6 @@ export class GameEngine {
     }
     const opponentStates = this._getPlayerStates(opponent);
 
-    const [x0, y0] = newPoint;
-    for (const [dx, dy] of DIRECTIONS) {
-      let x = x0 + dx;
-      let y = y0 + dy;
-      const firstStep = [x, y];
-      if (!this.isValidPosition(firstStep) || this._getState(firstStep) !== opponentStates.line) {
-        continue;
-      }
-
-      const cellsToDelete = [];
-      while (this.isValidPosition([x, y]) && this._getState([x, y]) === opponentStates.line) {
-        cellsToDelete.push([x, y]);
-        x += dx;
-        y += dy;
-      }
-
-      const stoppingPoint = [x, y];
-      if (this.isValidPosition(stoppingPoint) && this._getState(stoppingPoint) === opponentStates.node) {
-        for (const cell of cellsToDelete) {
-          this._setState(cell, PointState.EMPTY);
-        }
-      }
-    }
-
     // Step 2：基于物理棋盘的 BFS 连通分量，一次性清理所有断联棋子（NODE + LINE）
     const aliveKeys = this._getOpponentConnectedPieces(opponent);
     for (const point of this.validPositions) {

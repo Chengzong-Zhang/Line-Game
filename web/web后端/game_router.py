@@ -319,21 +319,6 @@ class HeadlessGameEngine:
         if original_state != opp_line:
             return
 
-        # Step 1：级联删除线点
-        x0, y0 = new_pos
-        for dx, dy in [(1,0),(-1,0),(0,1),(0,-1),(1,-1),(-1,1)]:
-            nx, ny = x0 + dx, y0 + dy
-            if (nx, ny) not in self.grid or self.grid[(nx, ny)] != opp_line:
-                continue
-            cells: List[Tuple[int, int]] = []
-            cx, cy = nx, ny
-            while (cx, cy) in self.grid and self.grid[(cx, cy)] == opp_line:
-                cells.append((cx, cy))
-                cx += dx; cy += dy
-            if (cx, cy) in self.grid and self.grid[(cx, cy)] == opp_node:
-                for cell in cells:
-                    self.grid[cell] = PointState.EMPTY
-
         # Step 2：基于物理棋盘的 BFS 连通分量，一次性清理所有断联棋子（NODE + LINE）
         alive = self._get_opponent_connected_pieces(opponent)
         for pos in list(self.grid.keys()):
