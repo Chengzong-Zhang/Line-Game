@@ -598,55 +598,19 @@ export class GameEngine {
       }
     }
 
-    // Step 1.5: 清理因线点删除而断裂的对手边
-    this._cleanupBrokenEdges(opponent);
-
-    const opponentStart = this._getInitialPosition(opponent);
-    for (const node of this._getPlayerNodes(opponent)) {
-      if (pointEquals(node, opponentStart)) {
-        continue;
-      }
-      if (!this._isConnectedToInitial(node, opponent)) {
-        this._setState(node, PointState.EMPTY);
-        this._removeNodeEdges(node, opponent); // 移除该孤立节点的所有边
-      }
-    }
-
-    const survivingNodes = this._getPlayerNodes(opponent);
-    for (const linePoint of this.validPositions) {
-      if (this._getState(linePoint) !== opponentStates.line) {
-        continue;
-      }
-
-      let protectedLine = false;
-      for (let i = 0; i < survivingNodes.length && !protectedLine; i += 1) {
-        for (let j = i + 1; j < survivingNodes.length; j += 1) {
-          const nodeA = survivingNodes[i];
-          const nodeB = survivingNodes[j];
-          if (!this.canConnect(nodeA, nodeB)) {
-            continue;
-          }
-          const segment = this.getLinePoints(nodeA, nodeB);
-          const containsLinePoint = segment.some((point) => pointEquals(point, linePoint));
-          if (!containsLinePoint) {
-            continue;
-          }
-
-          const segmentIntact = segment.every((point) => {
-            const state = this._getState(point);
-            return state === opponentStates.node || state === opponentStates.line;
-          });
-          if (segmentIntact) {
-            protectedLine = true;
-            break;
-          }
+    // Step 2：基于物理棋盘的 BFS 连通分量，一次性清理所有断联棋子（NODE + LINE）
+    const aliveKeys = this._getOpponentConnectedPieces(opponent);
+    for (const point of this.validPositions) {
+      const s = this._getState(point);
+      if (s === opponentStates.node || s === opponentStates.line) {
+        if (!aliveKeys.has(pointKey(point))) {
+          this._setState(point, PointState.EMPTY);
         }
       }
-
-      if (!protectedLine) {
-        this._setState(linePoint, PointState.EMPTY);
-      }
     }
+
+    // Step 3：清空旧逻辑边，基于幸存盘面重建
+    this._getEdges(opponent).clear();
 
     this._reconnectPlayerNodes(player);
     this._reconnectPlayerNodes(opponent);

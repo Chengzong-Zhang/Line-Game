@@ -287,6 +287,27 @@ class HeadlessGameEngine:
                     q.append(nxt)
         return False
 
+    def _get_opponent_connected_pieces(self, opponent: PlayerSide) -> Set[Tuple[int, int]]:
+        """以对手起始点为根，在物理棋盘（NODE + LINE 均视为图节点）上做 BFS，
+        返回包含基点的极大连通分量中所有棋子格点的集合。
+        不依赖 edges 集合——直接遍历 self.grid 上的实际状态。"""
+        opp_node = PointState.BLACK_NODE if opponent == PlayerSide.BLACK else PointState.WHITE_NODE
+        opp_line = PointState.BLACK_LINE if opponent == PlayerSide.BLACK else PointState.WHITE_LINE
+        initial = (0, 0) if opponent == PlayerSide.BLACK else (8, 0)
+        if self.grid.get(initial) != opp_node:
+            return set()
+        alive: Set[Tuple[int, int]] = {initial}
+        q: deque = deque([initial])
+        while q:
+            curr = q.popleft()
+            for nxt in self._get_adjacent_positions(curr):
+                if nxt in alive:
+                    continue
+                if self.grid.get(nxt) in (opp_node, opp_line):
+                    alive.add(nxt)
+                    q.append(nxt)
+        return alive
+
     # ── 进攻与结算 ───────────────────────────────────────────────────────
 
     def _handle_blocking_attack(self, new_pos: Tuple[int, int], player: PlayerSide,
@@ -313,42 +334,14 @@ class HeadlessGameEngine:
                 for cell in cells:
                     self.grid[cell] = PointState.EMPTY
 
-        # Step 1.5：同步逻辑层
-        self._cleanup_broken_edges(opponent)
+        # Step 2：基于物理棋盘的 BFS 连通分量，一次性清理所有断联棋子（NODE + LINE）
+        alive = self._get_opponent_connected_pieces(opponent)
+        for pos in list(self.grid.keys()):
+            if self.grid[pos] in (opp_node, opp_line) and pos not in alive:
+                self.grid[pos] = PointState.EMPTY
 
-        # Step 2：BFS 飞地检测，删除孤立节点
-        opp_start = (8, 0) if player == PlayerSide.BLACK else (0, 0)
-        deleted_nodes: Set[Tuple[int, int]] = set()
-        for node in self._get_player_nodes(opponent):
-            if node != opp_start and not self._is_connected_to_initial(node, opponent):
-                self.grid[node] = PointState.EMPTY
-                deleted_nodes.add(node)
-                self._remove_node_edges(node, opponent)
-
-        # Step 3：清理孤立线点
-        surviving = self._get_player_nodes(opponent)
-        node_st = opp_node
-        for line_pt in list(self.grid.keys()):
-            if self.grid[line_pt] != opp_line:
-                continue
-            protected = False
-            for i in range(len(surviving)):
-                if protected:
-                    break
-                for j in range(i+1, len(surviving)):
-                    n1, n2 = surviving[i], surviving[j]
-                    if not self._can_connect(n1, n2):
-                        continue
-                    pts = self._get_line_points(n1, n2)
-                    if line_pt not in pts:
-                        continue
-                    if all(self.grid[p] in (node_st, opp_line) for p in pts):
-                        protected = True
-                        break
-            if not protected:
-                self.grid[line_pt] = PointState.EMPTY
-
-        # Step 4：重新缝合防线（攻守双方）
+        # Step 3：清空旧逻辑边，基于幸存盘面重建
+        self._get_edges(opponent).clear()
         self._reconnect_player_nodes(player)
         self._reconnect_player_nodes(opponent)
 

@@ -800,7 +800,7 @@ body::before {
 
 .guide-section-head h3 {
   margin: 0;
-  font-size: 1.08rem;
+  font-size: 1.16rem;
 }
 
 .guide-section-copy {
@@ -880,15 +880,30 @@ body::before {
   transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
 }
 
+.guide-entry-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.guide-entry-line strong {
+  font-size: 1rem;
+}
+
 .guide-entry-button:hover {
   transform: translateY(-1px);
   border-color: rgba(198, 154, 75, 0.34);
   box-shadow: 0 12px 26px rgba(64, 42, 18, 0.08);
 }
 
-.guide-entry-button span {
+.guide-entry-subtitle {
   color: var(--ink-soft);
   font-size: 0.85rem;
+}
+
+.guide-rule-list-always {
+  margin-top: 14px;
 }
 
 .edge-trigger {
@@ -1040,7 +1055,7 @@ body::before {
 }
 
 .utility-description {
-  margin: -4px 0 0;
+  margin: 8px 0 0;
   color: var(--ink-soft);
   line-height: 1.6;
 }
@@ -1296,10 +1311,11 @@ body::before {
   margin: 0;
   display: grid;
   gap: 10px;
+  justify-items: center;
 }
 
 .guide-block-image {
-  width: 100%;
+  width: min(100%, 720px);
   display: block;
   border: 1px solid rgba(88, 61, 31, 0.1);
   border-radius: 22px;
@@ -1311,6 +1327,26 @@ body::before {
   color: var(--ink-soft);
   font-size: 0.88rem;
   line-height: 1.5;
+  text-align: center;
+  max-width: 56ch;
+}
+
+.guide-block-image-row {
+  width: min(100%, 920px);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+
+.guide-block-image-row .guide-block-figure {
+  width: 100%;
+}
+
+.guide-block-image-row .guide-block-image {
+  width: 100%;
+  max-width: none;
 }
 
 .guide-inline-code {
@@ -1584,6 +1620,11 @@ body::before {
     padding: 18px 0 28px;
   }
 
+  .app-shell-focus {
+    width: min(100vw - 18px, 1440px);
+    padding: 18px 0 28px;
+  }
+
   .panel:not(.panel-sidebar-card),
   .hero-status {
     padding: 16px;
@@ -1591,12 +1632,18 @@ body::before {
   }
 
   .canvas-frame {
-    width: 100%;
+    width: min(100%, calc(100vw - 28px));
   }
 
   .panel-board-focus .canvas-frame {
-    width: 100%;
+    width: min(100%, calc(100vw - 28px));
     max-width: 100%;
+  }
+
+  .board-shell {
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-bottom: 14px;
   }
 
   .dock-folder-summary,
@@ -1655,6 +1702,11 @@ body::before {
 
   .utility-overlay {
     padding: 12px;
+  }
+
+  .guide-block-image-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
 }
 

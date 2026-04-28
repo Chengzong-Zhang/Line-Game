@@ -267,7 +267,6 @@ const ScorePanel = {
   template: `
     <section class="panel panel-score">
       <div class="panel-head">
-        <p class="eyebrow">{{ texts.boardStatusEyebrow }}</p>
         <h2>{{ texts.boardStatus }}</h2>
       </div>
 
@@ -366,10 +365,7 @@ const SetupPanel = {
   template: `
     <section class="panel panel-setup modal-panel">
       <div class="panel-head panel-head-inline">
-        <div>
-          <p class="eyebrow">{{ texts.setupLabel }}</p>
-          <h2>{{ texts.setupLabel }}</h2>
-        </div>
+        <h2>{{ texts.setupLabel }}</h2>
         <span class="panel-head-badge" v-if="settingsLocked">{{ texts.lockedLabel }}</span>
       </div>
 
@@ -508,10 +504,7 @@ const AuthPanel = {
   template: `
     <section class="panel panel-auth modal-panel">
       <div class="panel-head panel-head-inline">
-        <div>
-          <p class="eyebrow">{{ texts.authEyebrow }}</p>
-          <h2>{{ texts.authTitle }}</h2>
-        </div>
+        <h2>{{ texts.authTitle }}</h2>
         <span class="panel-head-badge" v-if="isAuthenticated">{{ auth.username }}</span>
       </div>
 
@@ -718,10 +711,7 @@ const RoomPanel = {
   template: `
     <section class="panel panel-network modal-panel">
       <div class="panel-head panel-head-inline">
-        <div>
-          <p class="eyebrow">{{ texts.onlineEyebrow }}</p>
-          <h2>{{ texts.onlineMatch }}</h2>
-        </div>
+        <h2>{{ texts.onlineMatch }}</h2>
         <span class="panel-head-badge">{{ roomStatusLabel }}</span>
       </div>
 
@@ -762,7 +752,6 @@ const RoomPanel = {
 
       <div class="room-lobby" v-if="session.roomId">
         <div class="panel-subhead">
-          <p class="eyebrow">{{ texts.roomLobby }}</p>
           <h3>{{ texts.roomPlayers }}</h3>
         </div>
 
@@ -802,7 +791,6 @@ const RoomPanel = {
 
         <div v-if="isHost" class="host-controls">
           <div class="panel-subhead">
-            <p class="eyebrow">{{ texts.roomControls }}</p>
             <h3>{{ texts.starterLabel }}</h3>
           </div>
           <label class="field-label" for="room-starter">{{ texts.starterLabel }}</label>
@@ -915,7 +903,6 @@ const ControlPanel = {
   template: `
     <section class="panel panel-controls duel-strip">
       <div class="duel-copy">
-        <p class="eyebrow">{{ texts.duelDeskTitle }}</p>
         <p class="duel-label">{{ texts.currentTurnLabel }}</p>
         <div class="turn-banner duel-turn-banner" :class="turnBannerClass">
           <span class="turn-dot"></span>
@@ -1064,7 +1051,6 @@ const ResultModal = {
     <transition name="fade">
       <div v-if="visible && (overlayResult || gameState.gameOver)" class="result-overlay" role="dialog" aria-modal="true">
         <div class="result-card">
-          <p class="eyebrow">{{ texts.gameOver }}</p>
           <h2 v-if="showPerspectiveTitle" class="result-title-rich">
             <span :class="localPlayerAccentClass">{{ localPlayerName }}</span><span>{{ titleOutcome }}</span>
           </h2>
@@ -1223,36 +1209,29 @@ const GuidePanel = {
   template: `
     <section class="panel panel-guide modal-panel">
       <div v-if="!embedded" class="panel-head panel-head-inline">
-        <div>
-          <p class="eyebrow">{{ texts.guideEyebrow }}</p>
-          <h2>{{ texts.guideTitle }}</h2>
-        </div>
+        <h2>{{ texts.guideTitle }}</h2>
         <span class="panel-head-badge">{{ texts.guideDockBadge }}</span>
       </div>
 
       <article class="guide-section-card">
         <div class="guide-section-head">
-          <div>
-            <p class="eyebrow">{{ texts.guideRulesEyebrow }}</p>
-            <h3>{{ texts.guideRulesTitle }}</h3>
-          </div>
+          <h3>{{ texts.guideRulesTitle }}</h3>
         </div>
-        <p class="help-copy guide-section-copy">{{ texts.guideRulesCopy }}</p>
-        <details class="guide-rule-folder">
-          <summary class="guide-rule-summary">{{ texts.guideRulesOpen }}</summary>
-          <div class="guide-rule-list">
-            <button
-              v-for="entry in ruleEntries"
-              :key="entry.key"
-              type="button"
-              class="guide-entry-button"
-              @click="$emit('open-entry', entry.key)"
-            >
+        <div class="guide-rule-list guide-rule-list-always">
+          <button
+            v-for="entry in ruleEntries"
+            :key="entry.key"
+            type="button"
+            class="guide-entry-button"
+            @click="$emit('open-entry', entry.key)"
+          >
+            <span class="guide-entry-line">
               <strong>{{ entry.title }}</strong>
-              <span v-if="entry.subtitle">{{ entry.subtitle }}</span>
-            </button>
-          </div>
-        </details>
+              <span class="guide-entry-arrow" aria-hidden="true">></span>
+            </span>
+            <span v-if="entry.subtitle" class="guide-entry-subtitle">{{ entry.subtitle }}</span>
+          </button>
+        </div>
       </article>
 
       <button
@@ -1262,10 +1241,7 @@ const GuidePanel = {
         @click="$emit('open-entry', whyEntry.key)"
       >
         <div class="guide-section-head">
-          <div>
-            <p class="eyebrow">{{ texts.guideWhyEyebrow }}</p>
-            <h3>{{ whyEntry.title }}</h3>
-          </div>
+          <h3>{{ whyEntry.title }}</h3>
           <span class="guide-entry-arrow" aria-hidden="true">></span>
         </div>
         <p v-if="whyEntry.subtitle" class="guide-section-copy">{{ whyEntry.subtitle }}</p>
@@ -1278,10 +1254,7 @@ const GuidePanel = {
         @click="$emit('open-entry', thanksEntry.key)"
       >
         <div class="guide-section-head">
-          <div>
-            <p class="eyebrow">{{ texts.guideThanksEyebrow }}</p>
-            <h3>{{ thanksEntry.title }}</h3>
-          </div>
+          <h3>{{ thanksEntry.title }}</h3>
           <span class="guide-entry-arrow" aria-hidden="true">></span>
         </div>
         <p v-if="thanksEntry.subtitle" class="guide-section-copy">{{ thanksEntry.subtitle }}</p>
@@ -1289,6 +1262,29 @@ const GuidePanel = {
     </section>
   `,
 };
+
+function buildGuideDisplayBlocks(blocks = []) {
+  const result = [];
+  const isCutExample = (block) => block?.type === "image" && /切断|cut example/i.test(block.alt ?? "");
+
+  for (let index = 0; index < blocks.length; index += 1) {
+    const currentBlock = blocks[index];
+    const nextBlock = blocks[index + 1];
+
+    if (isCutExample(currentBlock) && isCutExample(nextBlock)) {
+      result.push({
+        type: "image-row",
+        images: [currentBlock, nextBlock],
+      });
+      index += 1;
+      continue;
+    }
+
+    result.push(currentBlock);
+  }
+
+  return result;
+}
 
 const GuideReaderModal = {
   name: "GuideReaderModal",
@@ -1308,6 +1304,7 @@ const GuideReaderModal = {
   },
   setup(props) {
     return {
+      displayBlocks: computed(() => buildGuideDisplayBlocks(props.entry?.blocks ?? [])),
       texts: computed(() => getAppTexts(props.language)),
     };
   },
@@ -1317,7 +1314,6 @@ const GuideReaderModal = {
         <div class="guide-reader">
           <div class="guide-reader-top">
             <div>
-              <p class="eyebrow">{{ entry.eyebrow }}</p>
               <h2>{{ entry.title }}</h2>
               <p v-if="entry.subtitle" class="guide-reader-subtitle">{{ entry.subtitle }}</p>
             </div>
@@ -1328,7 +1324,7 @@ const GuideReaderModal = {
 
           <div class="guide-reader-layout">
             <div class="guide-reader-body">
-              <template v-for="(block, index) in entry.blocks" :key="entry.key + '-' + index">
+              <template v-for="(block, index) in displayBlocks" :key="entry.key + '-' + index">
                 <h3 v-if="block.type === 'heading1'" class="guide-block-heading-xl"><GuideInlineText :tokens="block.tokens" /></h3>
                 <h4 v-else-if="block.type === 'heading2'" class="guide-block-heading"><GuideInlineText :tokens="block.tokens" /></h4>
                 <h5 v-else-if="block.type === 'callout'" class="guide-block-callout"><GuideInlineText :tokens="block.tokens" /></h5>
@@ -1336,6 +1332,16 @@ const GuideReaderModal = {
                   <img :src="block.src" :alt="block.alt || entry.title" class="guide-block-image" loading="lazy" />
                   <figcaption v-if="block.alt" class="guide-block-figcaption">{{ block.alt }}</figcaption>
                 </figure>
+                <div v-else-if="block.type === 'image-row'" class="guide-block-image-row">
+                  <figure
+                    v-for="(image, imageIndex) in block.images"
+                    :key="entry.key + '-image-' + index + '-' + imageIndex"
+                    class="guide-block-figure"
+                  >
+                    <img :src="image.src" :alt="image.alt || entry.title" class="guide-block-image" loading="lazy" />
+                    <figcaption v-if="image.alt" class="guide-block-figcaption">{{ image.alt }}</figcaption>
+                  </figure>
+                </div>
                 <div v-else-if="block.type === 'meta'" class="guide-block-meta">
                   <span class="guide-block-meta-label">{{ block.label }}</span>
                   <p class="guide-block-meta-value"><GuideInlineText :tokens="block.tokens" /></p>
@@ -1447,7 +1453,6 @@ const UtilityModal = {
         <div class="utility-modal" :class="'utility-modal-' + variant">
           <div class="utility-header">
             <div class="utility-head-copy">
-              <p v-if="eyebrow" class="eyebrow">{{ eyebrow }}</p>
               <h2>{{ title }}</h2>
               <p v-if="description" class="utility-description">{{ description }}</p>
             </div>
