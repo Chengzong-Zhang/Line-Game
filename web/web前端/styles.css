@@ -997,6 +997,7 @@ body::before {
   inset: 0;
   z-index: 30;
   display: grid;
+  place-items: center;
   padding: 24px;
   background: rgba(34, 25, 17, 0.28);
   backdrop-filter: blur(10px);
@@ -1007,10 +1008,11 @@ body::before {
 }
 
 .utility-overlay-network {
-  place-items: stretch end;
+  place-items: center;
 }
 
 .utility-modal {
+  width: min(1100px, calc(100vw - 48px));
   display: grid;
   gap: 16px;
   max-height: calc(100vh - 48px);
@@ -1022,18 +1024,6 @@ body::before {
     rgba(255, 250, 241, 0.94);
   box-shadow: 0 36px 100px rgba(29, 20, 12, 0.28);
   overflow: hidden;
-}
-
-.utility-modal-board {
-  width: min(1100px, calc(100vw - 48px));
-}
-
-.utility-modal-network {
-  width: min(560px, calc(100vw - 48px));
-}
-
-.utility-modal-guide {
-  width: min(760px, calc(100vw - 48px));
 }
 
 .utility-header {
@@ -1434,10 +1424,6 @@ body::before {
     grid-template-columns: 1fr;
   }
 
-  .utility-modal-guide {
-    width: min(700px, calc(100vw - 36px));
-  }
-
   .guide-reader-illustration {
     position: static;
   }
@@ -1531,8 +1517,7 @@ body::before {
     place-items: center;
   }
 
-  .utility-modal-board,
-  .utility-modal-network {
+  .utility-modal {
     width: min(100vw - 24px, 1100px);
   }
 

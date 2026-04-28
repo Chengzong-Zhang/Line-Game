@@ -460,6 +460,36 @@ export class GameEngine {
     }
   }
 
+  /**
+   * 以对手起始点为根，在物理棋盘（NODE + LINE 均视为图节点）上做 BFS，
+   * 返回包含基点的极大连通分量中所有棋子格点的 key 集合。
+   * 不依赖 edges 集合——直接遍历 this.grid 上的实际状态。
+   */
+  _getOpponentConnectedPieces(opponent) {
+    const { node: nodeState, line: lineState } = this._getPlayerStates(opponent);
+    const initial = this._getInitialPosition(opponent);
+    if (this._getState(initial) !== nodeState) return new Set();
+
+    const alive = new Set();
+    const initKey = pointKey(initial);
+    alive.add(initKey);
+    const queue = [initial];
+
+    while (queue.length > 0) {
+      const curr = queue.shift();
+      for (const next of this.getAdjacentPositions(curr)) {
+        const nk = pointKey(next);
+        if (alive.has(nk)) continue;
+        const s = this._getState(next);
+        if (s === nodeState || s === lineState) {
+          alive.add(nk);
+          queue.push(next);
+        }
+      }
+    }
+    return alive;
+  }
+
   /** 移除所有经过指定节点的边 */
   _removeNodeEdges(node, player) {
     const nk = pointKey(node);
