@@ -815,7 +815,50 @@ export class GameEngine {
     };
   }
 
-  /** 核心领土计算：右手摸墙 → 动态贪心修剪 → 泛洪法 */
+  /** 从源点对整张棋盘做 BFS（整数下标），返回距离表和前驱表。
+   *  使用预计算的 _adjIdxList，避免热路径中的字符串操作。 */
+  _bfsFromSource(srcIdx, enemyIdxSet) {
+    const gridN = this.validPositions.length;
+    const dist = new Int32Array(gridN).fill(-1);
+    const pred = new Array(gridN).fill(null);
+    dist[srcIdx] = 0;
+    const queue = [srcIdx];
+    let qi = 0;
+    while (qi < queue.length) {
+      const curr = queue[qi++];
+      const cd = dist[curr];
+      for (const nxt of this._adjIdxList[curr]) {
+        if (enemyIdxSet.has(nxt)) continue;
+        const nd = cd + 1;
+        if (dist[nxt] === -1) {
+          dist[nxt] = nd;
+          pred[nxt] = [curr];
+          queue.push(nxt);
+        } else if (dist[nxt] === nd) {
+          pred[nxt].push(curr);
+        }
+      }
+    }
+    return { dist, pred };
+  }
+
+  /** 从预计算 BFS 结果重建 srcIdx→tgtIdx 的所有最短路径（返回 clonePoint 坐标数组）*/
+  _reconstructPaths(bfsResult, srcIdx, tgtIdx) {
+    const { dist, pred } = bfsResult;
+    if (dist[tgtIdx] === -1) return [];
+    const vp = this.validPositions;
+    const build = (idx) => {
+      if (idx === srcIdx) return [[vp[srcIdx]]];
+      const result = [];
+      for (const prev of pred[idx]) {
+        for (const p of build(prev)) result.push([...p, vp[idx]]);
+      }
+      return result;
+    };
+    return build(tgtIdx).map((path) => path.map(clonePoint));
+  }
+
+  /** 核心领土计算：右手摸墙 → 动态贪心修剪（楔形优化 + BFS 预计算）→ 泛洪法 */
   _computeTerritory(player) {
     const friendlyNodeKeys = new Set(this._getPlayerNodes(player).map(pointKey));
     const enemyPoints = dedupePoints(
@@ -826,64 +869,156 @@ export class GameEngine {
     );
     const enemyKeySet = new Set(enemyPoints.map(pointKey));
 
-    // 阶段一：右手摸墙法获取外轮廓
-    let currentPoly = this._getOuterContour(player);
-    if (currentPoly.length < 3) {
-      return { polygon: null, area: 0 };
+    // 敌方点整数下标集，供 _bfsFromSource 热路径使用（避免字符串 key）
+    const enemyIdxSet = new Set();
+    for (const ep of enemyPoints) {
+      const idx = this._keyToIdx.get(pointKey(ep));
+      if (idx !== undefined) enemyIdxSet.add(idx);
     }
 
+    // 阶段一：右手摸墙法获取外轮廓
+    let currentPoly = this._getOuterContour(player);
+    if (currentPoly.length < 3) return { polygon: null, area: 0 };
+
+    let curArea = 0;
+
     // 阶段二：动态贪心修剪（皮筋收紧）
-    // 初始面积在循环外算一次，后续迭代从 bestCandArea 继承，避免每轮头部重算
-    let curArea = this._getCoveredPoints(currentPoly).size;
-
     while (true) {
-      const n = currentPoly.length;
-      if (n < 3) break;
+      const polyLen = currentPoly.length;
+      if (polyLen < 3) break;
 
-      const curPerim = n;
+      // 每轮开始精确计算覆盖集：
+      //   curCovered — 用于向内/向外捷径判定（.has(key) 查询）
+      //   curArea    — 当前领土点数基准
+      const curCovered = this._getCoveredPoints(currentPoly);
+      curArea = curCovered.size;
+      const curPerim = polyLen;
 
       let bestOverallCand = null;
       let bestCandPerim = curPerim;
       let bestCandArea = curArea;
 
-      for (let i = 0; i < n; i += 1) {
-        for (let j = n - 1; j > i + 1; j -= 1) {
-          // _getOuterContour 是逐格遍历的，相邻顶点间恰好距离 1 格
-          // 所以弧段长度 = j-i 格；最短路径若 ≥ j-i 则不可能缩短周长，直接跳过
-          const paths = this.getAllShortestGridPaths(currentPoly[i], currentPoly[j], enemyPoints, j - i);
-          if (!paths || paths.length === 0) continue;
+      // BFS 预计算：每个轮廓顶点 poly[i] 做一次全图 BFS，缓存 dist/pred 供内层 j 循环复用
+      // 将原来 O(n²) 次独立 BFS 调用降为 O(n) 次
+      const bfsCache = new Array(polyLen);
+      for (let i = 0; i < polyLen; i += 1) {
+        const srcIdx = this._keyToIdx.get(pointKey(currentPoly[i]));
+        if (srcIdx !== undefined) {
+          const bfs = this._bfsFromSource(srcIdx, enemyIdxSet);
+          bfsCache[i] = { srcIdx, dist: bfs.dist, pred: bfs.pred };
+        } else {
+          bfsCache[i] = null;
+        }
+      }
+
+      for (let i = 0; i < polyLen; i += 1) {
+        if (!bfsCache[i]) continue;
+        const { srcIdx, dist: distI } = bfsCache[i];
+
+        for (let j = polyLen - 1; j > i + 1; j -= 1) {
+          const arcLen = j - i; // 弧段边数（轮廓逐格，每段恰好 1 格）
+          const tgtIdx = this._keyToIdx.get(pointKey(currentPoly[j]));
+          if (tgtIdx === undefined) continue;
+
+          const shortestDist = distI[tgtIdx];
+          // 剪枝：最短路 ≥ 弧段长度，无法缩短周长，跳过
+          if (shortestDist === -1 || shortestDist >= arcLen) continue;
+
+          const paths = this._reconstructPaths(bfsCache[i], srcIdx, tgtIdx);
+          if (paths.length === 0) continue;
 
           for (const path of paths) {
-            // 方案 A：用路径替换 poly[i..j] 段
-            const candA = [...currentPoly.slice(0, i), ...path, ...currentPoly.slice(j + 1)];
-            // 方案 B：用反向路径中间段替换互补弧
-            const revMid = path.slice(1, -1).reverse();
-            const candB = [...currentPoly.slice(i, j + 1), ...revMid];
+            const pathLen = path.length; // 顶点数（含两端点）
+            const pathInterior = path.slice(1, -1); // 中间顶点（不含端点）
 
-            for (let cand of [candA, candB]) {
-              // 去除相邻重复顶点
-              cand = cand.filter((p, k) => k === 0 || !pointEquals(p, cand[k - 1]));
-              if (cand.length < 3) continue;
+            // ── 向内 / 向外捷径判定 ──────────────────────────────────────────────
+            // 向内：所有中间顶点均在 curCovered 内（捷径在当前领土内部穿行）
+            // 此条件满足时，楔形区域完全被当前领土包含，几何关系确定，
+            // 可用代数公式计算 candA 面积，无需额外 flood-fill
+            const isInward = pathInterior.every((p) => curCovered.has(pointKey(p)));
 
-              const candPerim = cand.length;
-              if (candPerim > bestCandPerim) continue;
+            if (isInward) {
+              // ── 楔形优化：单次 flood-fill 同时服务 candA 和 candB ───────────────
+              // wedge = 弧段 poly[i..j] + 路径逆向内部段（等价于旧代码的 candB）
+              const revMid = pathInterior.slice().reverse();
+              let wedge = [...currentPoly.slice(i, j + 1), ...revMid];
+              wedge = wedge.filter((p, k) => k === 0 || !pointEquals(p, wedge[k - 1]));
+              if (wedge.length < 3) continue;
 
-              // 泛洪法计算真实领土
-              const covered = this._getCoveredPoints(cand);
-              const candArea = covered.size;
+              const wedgeCovered = this._getCoveredPoints(wedge);
+              const wedgeArea = wedgeCovered.size;
 
-              // 周长相等时领土点数没有更小，淘汰
-              if (candPerim === bestCandPerim && candArea >= bestCandArea) continue;
+              // 路径顶点 key 集合：路径边界上的友方节点在 candA 中仍属领土（豁免检查）
+              const pathKeySet = new Set(path.map(pointKey));
 
-              // 核心资产保护：所有友方节点必须在领土内
-              if (![...friendlyNodeKeys].every((k) => covered.has(k))) continue;
+              // ── 方案 A：用路径替换弧段 poly[i..j] ──────────────────────────────
+              // 代数面积公式（精确整数，无需额外 flood-fill）：
+              //   Δboundary = (pathLen-2) - (arcLen-1)   ← 路径内部 wall 替换弧段内部 wall
+              //   W（楔形内部点数）= wedgeArea - (arcLen+1) - (pathLen-2)
+              //   candA_area = curArea + Δboundary - W
+              //              = curArea + (pathLen-arcLen-1) - (wedgeArea-arcLen-1-pathLen+2)
+              //              = curArea - wedgeArea + 2*(pathLen-1)
+              const candAArea = curArea - wedgeArea + 2 * (pathLen - 1);
+              const candAPerim = curPerim - arcLen + (pathLen - 1);
 
-              // 避障测试：领土内不得包含任何敌方点
-              if ([...enemyKeySet].some((k) => covered.has(k))) continue;
+              if (
+                candAPerim <= bestCandPerim &&
+                !(candAPerim === bestCandPerim && candAArea >= bestCandArea)
+              ) {
+                // 友方节点保护：楔形内部（不含路径 wall 点）不得含友方节点
+                // 路径端点/内部点本身是 candA 的 wall，故 pathKeySet 内节点豁免
+                const candANodeOk = [...friendlyNodeKeys].every(
+                  (k) => !wedgeCovered.has(k) || pathKeySet.has(k),
+                );
+                // candA ⊆ cur 领土，敌方点已不在 cur 内，无需再查敌方
+                if (candANodeOk) {
+                  let candA = [...currentPoly.slice(0, i), ...path, ...currentPoly.slice(j + 1)];
+                  candA = candA.filter((p, k) => k === 0 || !pointEquals(p, candA[k - 1]));
+                  if (candA.length >= 3) {
+                    bestCandPerim = candAPerim;
+                    bestCandArea = candAArea;
+                    bestOverallCand = candA;
+                  }
+                }
+              }
 
-              bestCandPerim = candPerim;
-              bestCandArea = candArea;
-              bestOverallCand = cand;
+              // ── 方案 B（楔形）：以楔形取代整个当前多边形 ───────────────────────
+              {
+                const candBPerim = wedge.length; // = arcLen + pathLen - 1
+                const candBArea = wedgeArea;
+                if (
+                  candBPerim <= bestCandPerim &&
+                  !(candBPerim === bestCandPerim && candBArea >= bestCandArea)
+                ) {
+                  const candBNodeOk = [...friendlyNodeKeys].every((k) => wedgeCovered.has(k));
+                  const candBEnemyOk = ![...enemyKeySet].some((k) => wedgeCovered.has(k));
+                  if (candBNodeOk && candBEnemyOk) {
+                    bestCandPerim = candBPerim;
+                    bestCandArea = candBArea;
+                    bestOverallCand = wedge;
+                  }
+                }
+              }
+            } else {
+              // ── 回退：向外捷径，执行完整 flood-fill（两次）──────────────────────
+              const revMid = pathInterior.slice().reverse();
+              for (let cand of [
+                [...currentPoly.slice(0, i), ...path, ...currentPoly.slice(j + 1)],
+                [...currentPoly.slice(i, j + 1), ...revMid],
+              ]) {
+                cand = cand.filter((p, k) => k === 0 || !pointEquals(p, cand[k - 1]));
+                if (cand.length < 3) continue;
+                const candPerim = cand.length;
+                if (candPerim > bestCandPerim) continue;
+                const covered = this._getCoveredPoints(cand);
+                const candArea = covered.size;
+                if (candPerim === bestCandPerim && candArea >= bestCandArea) continue;
+                if (![...friendlyNodeKeys].every((k) => covered.has(k))) continue;
+                if ([...enemyKeySet].some((k) => covered.has(k))) continue;
+                bestCandPerim = candPerim;
+                bestCandArea = candArea;
+                bestOverallCand = cand;
+              }
             }
           }
         }
@@ -891,17 +1026,13 @@ export class GameEngine {
 
       if (bestOverallCand !== null) {
         currentPoly = bestOverallCand;
-        curArea = bestCandArea;  // 缓存面积，下一轮直接用，不再重算
+        // curArea 将在下轮循环顶部由 _getCoveredPoints 精确更新
       } else {
         break;
       }
     }
 
-    if (currentPoly.length < 3) {
-      return { polygon: null, area: 0 };
-    }
-
-    // 首尾闭合，供渲染使用；curArea 就是最终面积，无需再次泛洪
+    if (currentPoly.length < 3) return { polygon: null, area: 0 };
     const closedPoly = [...currentPoly, clonePoint(currentPoly[0])];
     return { polygon: closedPoly, area: curArea };
   }
