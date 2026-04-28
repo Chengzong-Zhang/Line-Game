@@ -869,6 +869,7 @@ class ConnectionManager:
             "players": players,
             "matchState": self._match_state(room),
             "countdownEndsAt": self._countdown_ends_at_ms(room),
+            "serverTimestamp": int(room.updated_at * 1000),
         }
         if reason:
             payload["reason"] = reason
@@ -994,7 +995,9 @@ class ConnectionManager:
         room.updated_at = time.time()
         room.reset_votes.clear()
         room.ready_players.discard(player_id)
-        room.match_started = False
+        # 永久离开时才重置 match_started；临时断线只取消倒计时，不回退已开始的对局。
+        if remove_player:
+            room.match_started = False
         self._cancel_countdown_locked(room)
 
         if remove_player:

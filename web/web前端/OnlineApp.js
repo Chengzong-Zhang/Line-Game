@@ -26,8 +26,8 @@ import {
   getInitialLanguage as getAppInitialLanguage,
   getTexts as getAppTexts,
   localizeErrorMessage as localizeAppErrorMessage,
-} from "./OnlineAppI18n.js?v=20260428g";
-import { getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20260428g";
+} from "./OnlineAppI18n.js?v=20260428h";
+import { getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20260428h";
 
 const {
   computed,
@@ -405,17 +405,28 @@ const SetupPanel = {
               <option v-for="count in PLAYER_COUNT_OPTIONS" :key="count" :value="count">{{ count }}</option>
             </select>
           </div>
-          <div>
-            <label class="field-label" for="grid-size">{{ texts.gridSizeLabel }}</label>
-            <select
+          <div class="settings-grid-item-wide">
+            <label id="grid-size-label" class="field-label">{{ texts.gridSizeLabel }}</label>
+            <div
               id="grid-size"
-              class="input-field input-field-compact"
-              :value="gridSize"
-              :disabled="busy || settingsLocked"
-              @change="$emit('update:grid-size', Number($event.target.value))"
+              class="board-choice-grid board-choice-grid-size"
+              role="radiogroup"
+              aria-labelledby="grid-size-label"
             >
-              <option v-for="size in GRID_SIZE_OPTIONS" :key="size" :value="size">{{ size }}</option>
-            </select>
+              <button
+                v-for="size in GRID_SIZE_OPTIONS"
+                :key="size"
+                type="button"
+                class="board-choice-option board-choice-size"
+                :class="{ 'is-active': gridSize === size }"
+                role="radio"
+                :aria-checked="gridSize === size"
+                :disabled="busy || settingsLocked"
+                @click="$emit('update:grid-size', size)"
+              >
+                {{ size }}
+              </button>
+            </div>
           </div>
           <div>
             <label class="field-label" for="turn-timer-enabled">{{ texts.turnTimerLabel }}</label>
@@ -667,6 +678,12 @@ const RoomPanel = {
     const roomStatusLabel = computed(() => formatAppConnectionState(props.roomStatus, props.language));
     const roomPlayers = computed(() => Array.isArray(props.roomInfo?.players) ? props.roomInfo.players : []);
     const roomPlayerName = (player) => player?.username ?? player?.playerId ?? formatAppPlayerName(player?.color, props.language);
+    const getStarterOptionClass = (option) => ({
+      "is-active": option.value === props.startPlayer,
+      "is-blue": option.value === Player.BLACK,
+      "is-red": option.value === Player.WHITE,
+      "is-purple": option.value === Player.PURPLE,
+    });
     const readyActionLabel = computed(() => (
       props.roomStatus === "inProgress"
         ? texts.value.inProgress
@@ -707,6 +724,7 @@ const RoomPanel = {
       readyActionLabel,
       resolvePlayerState,
       roomPlayerName,
+      getStarterOptionClass,
     };
   },
   template: `
@@ -794,18 +812,28 @@ const RoomPanel = {
           <div class="panel-subhead">
             <h3>{{ texts.starterLabel }}</h3>
           </div>
-          <label class="field-label" for="room-starter">{{ texts.starterLabel }}</label>
-          <select
+          <label id="room-starter-label" class="field-label">{{ texts.starterLabel }}</label>
+          <div
             id="room-starter"
-            class="input-field input-field-compact"
-            :value="startPlayer"
-            :disabled="starterLocked"
-            @change="$emit('update:start-player', $event.target.value)"
+            class="board-choice-grid board-choice-grid-player"
+            role="radiogroup"
+            aria-labelledby="room-starter-label"
           >
-            <option v-for="option in starterOptions" :key="option.value" :value="option.value">
+            <button
+              v-for="option in starterOptions"
+              :key="option.value"
+              type="button"
+              class="board-choice-option board-choice-player"
+              :class="getStarterOptionClass(option)"
+              role="radio"
+              :aria-checked="startPlayer === option.value"
+              :disabled="starterLocked"
+              @click="$emit('update:start-player', option.value)"
+            >
+              <span class="board-choice-stone" aria-hidden="true"></span>
               {{ option.label }}
-            </option>
-          </select>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1810,7 +1838,7 @@ const App = {
           return;
         }
         try {
-          const response = await fetch(`${asset}?v=20260428g`, { cache: "no-cache" });
+          const response = await fetch(`${asset}?v=20260428h`, { cache: "no-cache" });
           if (response.ok) {
             nextOverrides[key] = await response.text();
           }

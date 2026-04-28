@@ -1,18 +1,23 @@
-const WHY_TALK_ZH = `# Talk：扩张与脆弱的战争张力
+const WHY_TALK_ZH = `# Talk：扩张、防守与破绽
 
-最高指挥官，真正的矛盾不是“能不能扩张”，而是“扩张之后还能不能活着”。三角棋盘像一条从狭窄前线展开到广阔纵深的战场：越靠近大本营，补给线短，防守稳定；越向中央推进，领土更大，战线也更长。
+最高指挥官，这个游戏真正抓人的地方，不是“谁占的点更多”，而是每一次扩张都会改变自己的脆弱面。三角棋盘像一条从狭窄前线展开到广阔纵深的战场：靠近大本营，补给短、结构稳；推进到中央，空间变大，防线也被拉长。
 
-> 你越想得到战略纵深，就越必须暴露补给线。你越想守住补给线，就越难得到战略纵深。
+> 越想扩张，防线越长，越容易被切开；越想防守，空间越小，越容易被围死。
 
-这正是苏德战场式的张力。狭窄地带给你安全，却不给你空间；广阔地带给你面积，却要求你承担被切断的风险。每一条线都是生命线，每一个向外伸出的节点都可能成为桥，也可能成为裂口。
+这是第一组矛盾。扩张带来领土，也带来更长的边界、更薄的连接、更显眼的桥。防守看似稳健，却会把自己压回基点附近，让对手取得外线、压缩你的回旋空间。苏德战场式的张力就在这里：广阔纵深不是免费的，狭窄防线也不是安全的终局。
+
+> 越想快速扩张，就越必须暴露线；越想完全不露破绽，规则又不允许你凭空获得效率。
+
+这是第二组矛盾。棋子之间的线不是装饰，而是补给线，也是对手可以切入的目标。你若追求速度，就会留下尚未闭合的长线、桥点和割点；你若追求完美闭合，又会因为三点限制、可见性规则和落子顺序而付出效率。规则逼迫玩家承认：不存在既高速扩张、又完全无破绽的形状。
 
 ## 直觉核心
 
-* 扩张不是单调收益。多一个节点可能扩大领土，也可能给对手一个切入点。
-* 防守不是免费选择。退回基点附近可以降低风险，但会把胜利空间交给对手。
-* 进攻不是吃子，而是切断基点连通性。真正被消灭的不是一个点，而是一整段失去补给的战线。
+* 扩张与溃败绑定。多一个节点可能扩大领土，也可能把整条战线变成可被切断的长桥。
+* 防守与窒息绑定。退回基点附近可以降低暴露面，但会把战略纵深交给对手。
+* 速度与完整性绑定。快速铺开必然留下线，慢速补形又会损失先机。
+* 进攻的本质不是吃子，而是切断基点连通性。真正被消灭的不是一个点，而是一整段失去补给的结构。
 
-因此，这个游戏不像单纯的占点游戏。它要求玩家同时判断面积、战线、桥、割点和后续回旋空间。所谓“妙处”，就在这里：规则很短，心理压力很深。`;
+所以，这个游戏不是单纯的占点竞赛。它要求玩家在效率、闭合、桥、割点、战线长度和后续空间之间寻找均衡。妙处不在规则复杂，而在规则把所有逃避都封死了：你必须扩张，也必须暴露；你必须防守，也必须留下空间。`;
 
 const WHY_CODE_ZH = `# Code：物理与逻辑的优雅分离
 
@@ -128,21 +133,26 @@ $$
 
 CNN 擅长局部纹理，但这里的价值来自基点连通性、桥、割点和极大连通分量。两个局部图案相同的盘面，只要一方少一条备用路径，价值就可能完全相反。因此更自然的模型是 GNN：把格点、可见性边、基点、桥与割点作为图对象输入，让消息沿逻辑边传播。`;
 
-const WHY_TALK_EN = `# Talk: Expansion and Fragility
+const WHY_TALK_EN = `# Talk: Expansion, Defense, and Exposure
 
-Commander, the central question is not whether you can expand. It is whether the shape survives after expansion. The triangular board opens from a narrow home front into a wide field. Near the base, supply lines are short and stable. Toward the center, territory grows, but the front becomes exposed.
+Commander, the central question is not who occupies more points. It is how each expansion changes the shape of your own vulnerability. The triangular board opens from a narrow home front into a wide field: near the base, supply is short and stable; toward the center, space grows, but the front stretches.
 
-> The more strategic depth you seek, the more supply lines you expose. The more tightly you protect supply, the less depth you can claim.
+> The more you expand, the longer your line becomes, and the easier it is to cut. The more you defend, the less space you keep, and the easier it is to be boxed in.
 
-That is the core tension. A narrow front gives safety without space; a wide front gives space with risk. Every line is a lifeline. Every outward node can become either a bridge or a wound.
+That is the first contradiction. Expansion gives territory, but also creates longer borders, thinner connections, and visible bridges. Defense looks stable, but it pushes you back toward the base and hands the outside line to the opponent.
+
+> The faster you expand, the more lines you expose. The more you try to hide every weakness, the more efficiency the rules force you to lose.
+
+That is the second contradiction. Lines are not decoration. They are supply routes, and therefore attack targets. If you expand quickly, you leave unfinished long lines, bridges, and articulation points. If you insist on perfect closure, the triangle restriction, visibility rule, and move order make you pay in tempo.
 
 ## Intuition
 
-* Expansion is not monotone value. A new node can increase territory or hand the opponent a cutting point.
-* Defense is not free. Staying near the base lowers risk but gives away space.
+* Expansion and collapse are linked. A new node can enlarge territory or turn the whole front into a cuttable bridge.
+* Defense and suffocation are linked. Staying near the base reduces exposure but gives away strategic depth.
+* Speed and completeness are linked. Fast growth exposes lines; slow repair loses initiative.
 * Attacks do not merely capture pieces. They sever connectivity to the base.
 
-The game is therefore not a simple occupation race. It asks the player to reason about area, frontage, bridges, articulation points, and future retreat space at the same time.`;
+The game is not a simple occupation race. It asks the player to balance efficiency, closure, bridges, articulation points, frontage, and future space.`;
 
 const WHY_CODE_EN = `# Code: Separating Physics from Logic
 

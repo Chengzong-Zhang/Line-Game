@@ -12,6 +12,7 @@ server.log
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.chrome-profile/
 
 phase4-check.png
 smoke-test.png
