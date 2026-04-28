@@ -3,7 +3,7 @@
   "https://unpkg.com/vue@3/dist/vue.global.prod.js",
   "https://fastly.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js",
 ];
-const APP_ASSET_VERSION = "20260428d";
+const APP_ASSET_VERSION = "20260428e";
 
 // main.js 只做两件事：
 // 1. 确保浏览器拿到 Vue 运行时
@@ -25,16 +25,22 @@ function showBootError(message) {
   }
 
   const language = resolvePreferredLanguage();
+  const normalizedMessage = String(message ?? "");
+  const mentionsVue = /vue/i.test(normalizedMessage);
   const copy = language === "zh"
     ? {
       eyebrow: "TriAxis",
       title: "页面启动失败",
-      body: "前端运行时没有成功加载，通常是浏览器没有拿到 Vue 运行库。",
+      body: mentionsVue
+        ? "前端运行时没有成功加载，通常是浏览器没有拿到 Vue 运行库。"
+        : "前端入口模块没有成功加载，通常是静态资源没有更新、路径失效，或服务器没有返回最新文件。",
     }
     : {
       eyebrow: "TriAxis",
       title: "Page Failed To Start",
-      body: "The frontend runtime did not load successfully. Usually the browser failed to fetch the Vue runtime.",
+      body: mentionsVue
+        ? "The frontend runtime did not load successfully. Usually the browser failed to fetch the Vue runtime."
+        : "The frontend entry module did not load successfully. Usually the static asset path is stale, the file was not deployed, or the server did not return the latest file.",
     };
 
   mountPoint.innerHTML = `
@@ -79,10 +85,31 @@ async function ensureVueRuntime() {
   throw lastError ?? new Error("Vue runtime could not be loaded from any CDN.");
 }
 
+async function importAppModule() {
+  const candidates = [
+    new URL(`./OnlineApp.js?v=${APP_ASSET_VERSION}`, import.meta.url).href,
+    new URL("./OnlineApp.js", import.meta.url).href,
+    `./OnlineApp.js?v=${APP_ASSET_VERSION}`,
+    "./OnlineApp.js",
+  ];
+  let lastError = null;
+
+  for (const candidate of candidates) {
+    try {
+      return await import(candidate);
+    } catch (error) {
+      lastError = error;
+      console.warn(`TriAxis app import failed for ${candidate}:`, error);
+    }
+  }
+
+  throw lastError ?? new Error("OnlineApp.js could not be loaded from any candidate URL.");
+}
+
 async function bootstrap() {
   try {
     const Vue = await ensureVueRuntime();
-    const { default: App } = await import(`./OnlineApp.js?v=${APP_ASSET_VERSION}`);
+    const { default: App } = await importAppModule();
     Vue.createApp(App).mount("#app");
   } catch (error) {
     console.error("TriAxis bootstrap failed:", error);
