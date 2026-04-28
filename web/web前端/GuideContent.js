@@ -467,6 +467,59 @@ Beta Testers: Mandy, zfp, Orange, Puppy, yxy, hmy, RobinTian, zjy, wyc, fjh, lh,
   }),
 });
 
+const GUIDE_IMAGE_BASE_PATH = "./guide/guide-images/";
+
+const GUIDE_RULE_IMAGE_BLOCKS = Object.freeze({
+  rulesEssential: Object.freeze([
+    { type: "image", alt: "可落子区域示意", src: `${GUIDE_IMAGE_BASE_PATH}可以走的区域png.png` },
+    { type: "image", alt: "切断示意一", src: `${GUIDE_IMAGE_BASE_PATH}切断1.png` },
+    { type: "image", alt: "切断示意二", src: `${GUIDE_IMAGE_BASE_PATH}切断2.png` },
+    { type: "image", alt: "起点限制示意", src: `${GUIDE_IMAGE_BASE_PATH}起点限制.png` },
+    { type: "image", alt: "三点限制示意", src: `${GUIDE_IMAGE_BASE_PATH}三点限制.png` },
+  ]),
+  rulesWar: Object.freeze([
+    { type: "image", alt: "起点限制示意", src: `${GUIDE_IMAGE_BASE_PATH}起点限制.png` },
+    { type: "image", alt: "可落子区域示意", src: `${GUIDE_IMAGE_BASE_PATH}可以走的区域png.png` },
+    { type: "image", alt: "三点限制示意", src: `${GUIDE_IMAGE_BASE_PATH}三点限制.png` },
+    { type: "image", alt: "切断示意一", src: `${GUIDE_IMAGE_BASE_PATH}切断1.png` },
+    { type: "image", alt: "切断示意二", src: `${GUIDE_IMAGE_BASE_PATH}切断2.png` },
+  ]),
+  rulesMath: Object.freeze([
+    { type: "image", alt: "三点限制示意", src: `${GUIDE_IMAGE_BASE_PATH}三点限制.png` },
+    { type: "image", alt: "起点限制示意", src: `${GUIDE_IMAGE_BASE_PATH}起点限制.png` },
+    { type: "image", alt: "可落子区域示意", src: `${GUIDE_IMAGE_BASE_PATH}可以走的区域png.png` },
+    { type: "image", alt: "切断示意一", src: `${GUIDE_IMAGE_BASE_PATH}切断1.png` },
+    { type: "image", alt: "切断示意二", src: `${GUIDE_IMAGE_BASE_PATH}切断2.png` },
+  ]),
+});
+
+function resolveGuideImageSrc(src) {
+  const value = String(src ?? "").trim();
+
+  if (!value || /^(?:[a-z][a-z0-9+.-]*:|\/)/i.test(value)) {
+    return value;
+  }
+
+  return value
+    .replace(/^\.\.\/guide-images\//, GUIDE_IMAGE_BASE_PATH)
+    .replace(/^(?:\.\/)?guide-images\//, GUIDE_IMAGE_BASE_PATH);
+}
+
+export function ensureGuideRuleImages(key, blocks = []) {
+  const normalizedBlocks = Array.isArray(blocks) ? blocks : [];
+  const hasImage = normalizedBlocks.some((block) => block?.type === "image" || block?.type === "image-row");
+  const imageBlocks = GUIDE_RULE_IMAGE_BLOCKS[key] ?? [];
+
+  if (hasImage || !imageBlocks.length) {
+    return normalizedBlocks;
+  }
+
+  return [
+    ...normalizedBlocks,
+    ...imageBlocks.map((block) => ({ ...block })),
+  ];
+}
+
 function tokenizeInline(text) {
   const source = String(text ?? "");
   const tokens = [];
@@ -550,8 +603,13 @@ export function getGuideMarkdownAsset(key, language = "zh") {
   const normalizedLanguage = language === "en" ? "en" : "zh";
   const assets = {
     zh: {
-      whyCode: "./guide-content/why-code.zh.md",
-      whyTheory: "./guide-content/why-theory.zh.md",
+      rulesEssential: "./guide/rule/essential%20rule.md",
+      rulesWar: "./guide/rule/war%20rule.md",
+      rulesMath: "./guide/rule/math%20rule.md",
+      whyTalk: "./guide/interesting/why-talk.zh.md",
+      whyCode: "./guide/interesting/why-code.zh.md",
+      whyTheory: "./guide/interesting/why-theory.zh.md",
+      thanks: "./guide/Thanks.md",
     },
   };
   return assets[normalizedLanguage]?.[key] ?? "";
@@ -697,7 +755,7 @@ export function parseGuideMarkdown(raw) {
       blocks.push({
         type: "image",
         alt: String(alt ?? "").trim(),
-        src: String(src ?? "").trim(),
+        src: resolveGuideImageSrc(src),
       });
       index += 1;
       continue;

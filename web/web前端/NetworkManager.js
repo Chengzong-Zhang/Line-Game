@@ -41,10 +41,17 @@ function resolveWebSocketUrl(locationLike = globalThis.location) {
   }
 
   const protocol = locationLike.protocol === "https:" ? "wss:" : "ws:";
+  const hostname = locationLike.hostname || "";
+  const port = locationLike.port || "";
   const host = locationLike.host;
 
   if (!host) {
     return "ws://localhost:8000/ws";
+  }
+
+  if (/^(localhost|127\.0\.0\.1|\[::1\]|::1)$/i.test(hostname) && port !== "8000") {
+    const localHost = hostname === "::1" ? "[::1]" : hostname;
+    return `${protocol}//${localHost}:8000/ws`;
   }
 
   return `${protocol}//${host}/ws`;

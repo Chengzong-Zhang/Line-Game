@@ -1,5 +1,6 @@
 import logging
 import os
+import tempfile
 from datetime import datetime
 from pathlib import Path
 
@@ -23,12 +24,7 @@ def _default_database_file() -> Path:
     if override:
         return Path(override).expanduser()
 
-    if os.name == "nt":
-        app_data_root = Path(os.getenv("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
-    else:
-        app_data_root = Path(os.getenv("XDG_DATA_HOME", Path.home() / ".local" / "share"))
-
-    return app_data_root / "line-game" / "game.db"
+    return Path(tempfile.gettempdir()) / "line-game" / "game.db"
 
 
 DATABASE_FILE = _default_database_file()

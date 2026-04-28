@@ -274,14 +274,15 @@ export class GameController {
     }
 
     const snapshot = this.engine.getSnapshot();
-    this._syncCanvasInteractivity(snapshot);
-    this._emitStateChange(snapshot);
-    return this._buildGameState(snapshot);
+    const nextState = this._buildGameState(snapshot);
+    this._syncCanvasInteractivity(snapshot, nextState);
+    this._emitStateChange(snapshot, nextState);
+    return nextState;
   }
 
-  _emitStateChange(snapshot) {
+  _emitStateChange(snapshot, state = null) {
     if (this.stateChangeListener) {
-      this.stateChangeListener(this._buildGameState(snapshot));
+      this.stateChangeListener(state ?? this._buildGameState(snapshot));
     }
   }
 
@@ -471,8 +472,9 @@ export class GameController {
     return null;
   }
 
-  _syncCanvasInteractivity(snapshot = this.engine.getSnapshot()) {
-    const locked = Boolean(this._getInteractionLockReason(snapshot));
+  _syncCanvasInteractivity(snapshot = this.engine.getSnapshot(), state = null) {
+    const interactionLockReason = state?.interactionLockReason ?? this._getInteractionLockReason(snapshot);
+    const locked = Boolean(interactionLockReason);
     this.canvas.style.cursor = locked ? "not-allowed" : "pointer";
     this.canvas.setAttribute("aria-disabled", locked ? "true" : "false");
   }

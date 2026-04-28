@@ -1,6 +1,6 @@
-﻿import GameController from "./GameController.js?v=20260426d";
+﻿import GameController from "./GameController.js?v=20260428k";
 import { Player } from "./GameEngine.js?v=20260421c";
-import NetworkManager, { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js?v=20260421c";
+import NetworkManager, { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js?v=20260428k";
 import {
   createEmptyAuth as createAppEmptyAuth,
   GRID_SIZE_OPTIONS as APP_GRID_SIZE_OPTIONS,
@@ -26,8 +26,8 @@ import {
   getInitialLanguage as getAppInitialLanguage,
   getTexts as getAppTexts,
   localizeErrorMessage as localizeAppErrorMessage,
-} from "./OnlineAppI18n.js?v=20260428h";
-import { getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20260428h";
+} from "./OnlineAppI18n.js?v=20260428k";
+import { ensureGuideRuleImages, getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20260428k";
 
 const {
   computed,
@@ -82,20 +82,86 @@ function resolveInitialServerUrl(storedUrl, locationLike = globalThis.location) 
     if (locationLike?.protocol === "https:" && parsed.protocol === "ws:") {
       return dynamicUrl;
     }
+    if (/^(localhost|127\.0\.0\.1|\[::1\]|::1)$/i.test(parsed.hostname) && parsed.port && parsed.port !== "8000") {
+      return dynamicUrl;
+    }
     return parsed.toString();
   } catch {
     return dynamicUrl;
   }
 }
 
+function getLocalWebSocketFallbacks(url) {
+  try {
+    const parsed = new URL(url, globalThis.location?.href ?? "http://localhost:8000/");
+    if (!/^(localhost|127\.0\.0\.1|\[::1\]|::1)$/i.test(parsed.hostname)) {
+      return [];
+    }
+
+    const ports = ["8000", "8001", "8002", "8003", "8004"].filter((port) => port !== parsed.port);
+    return ports.map((port) => {
+      const fallback = new URL(parsed.toString());
+      fallback.port = port;
+      fallback.pathname = "/ws";
+      fallback.search = "";
+      fallback.hash = "";
+      return fallback.toString();
+    });
+  } catch {
+    return [];
+  }
+}
+
+function getLocalApiFallbacks(serverUrl) {
+  try {
+    const parsed = new URL(resolveApiBaseUrl(serverUrl), globalThis.location?.href ?? "http://localhost:8000/");
+    if (!/^(localhost|127\.0\.0\.1|\[::1\]|::1)$/i.test(parsed.hostname)) {
+      return [];
+    }
+
+    return ["8000", "8001", "8002", "8003", "8004"]
+      .filter((port) => port !== parsed.port)
+      .map((port) => {
+        const fallback = new URL(parsed.toString());
+        fallback.port = port;
+        fallback.pathname = "";
+        fallback.search = "";
+        fallback.hash = "";
+        return fallback.toString().replace(/\/$/, "");
+      });
+  } catch {
+    return [];
+  }
+}
+
 async function postAuthJson(serverUrl, path, payload) {
-  const response = await fetch(`${resolveApiBaseUrl(serverUrl)}${path}`, {
+  const request = async (apiBaseUrl) => fetch(`${apiBaseUrl}${path}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify(payload),
   });
+
+  let activeApiBaseUrl = resolveApiBaseUrl(serverUrl);
+  let response = await request(activeApiBaseUrl);
+
+  if ([404, 405, 501].includes(response.status)) {
+    for (const fallbackApiBaseUrl of getLocalApiFallbacks(serverUrl)) {
+      try {
+        const fallbackResponse = await request(fallbackApiBaseUrl);
+        if (!fallbackResponse.ok && [404, 405, 501].includes(fallbackResponse.status)) {
+          response = fallbackResponse;
+          continue;
+        }
+        response = fallbackResponse;
+        activeApiBaseUrl = fallbackApiBaseUrl;
+        break;
+      } catch {
+        continue;
+      }
+    }
+  }
 
   let data = null;
   try {
@@ -108,10 +174,14 @@ async function postAuthJson(serverUrl, path, payload) {
     throw new Error(data?.detail ?? `HTTP ${response.status}`);
   }
 
-  return data;
+  return {
+    ...data,
+    apiBaseUrl: activeApiBaseUrl,
+  };
 }
 
 const ROOM_START_COUNTDOWN_FALLBACK_SECONDS = 20;
+const SERVER_TIMESTAMP_TOLERANCE_MS = 1000;
 
 function createEmptyRoomInfo() {
   return {
@@ -1615,7 +1685,7 @@ function createGuideEntries(language = "zh", guideMarkdownOverrides = {}) {
       title: texts.guideRuleSimpleTitle,
       subtitle: texts.guideRuleSimpleSubtitle,
       showIllustration: false,
-      blocks: parseGuideMarkdown(resolveGuideMarkdown("rulesEssential", language, guideMarkdownOverrides)),
+      blocks: ensureGuideRuleImages("rulesEssential", parseGuideMarkdown(resolveGuideMarkdown("rulesEssential", language, guideMarkdownOverrides))),
     },
     {
       key: "rules-war",
@@ -1625,7 +1695,7 @@ function createGuideEntries(language = "zh", guideMarkdownOverrides = {}) {
       title: texts.guideRuleWarTitle,
       subtitle: texts.guideRuleWarSubtitle,
       showIllustration: false,
-      blocks: parseGuideMarkdown(resolveGuideMarkdown("rulesWar", language, guideMarkdownOverrides)),
+      blocks: ensureGuideRuleImages("rulesWar", parseGuideMarkdown(resolveGuideMarkdown("rulesWar", language, guideMarkdownOverrides))),
     },
     {
       key: "rules-math",
@@ -1635,7 +1705,7 @@ function createGuideEntries(language = "zh", guideMarkdownOverrides = {}) {
       title: texts.guideRuleMathTitle,
       subtitle: texts.guideRuleMathSubtitle,
       showIllustration: false,
-      blocks: parseGuideMarkdown(resolveGuideMarkdown("rulesMath", language, guideMarkdownOverrides)),
+      blocks: ensureGuideRuleImages("rulesMath", parseGuideMarkdown(resolveGuideMarkdown("rulesMath", language, guideMarkdownOverrides))),
     },
   ];
   const whySubEntries = [
@@ -1698,7 +1768,7 @@ function createGuideEntries(language = "zh", guideMarkdownOverrides = {}) {
       title: texts.guideThanksTitle,
       subtitle: texts.guideThanksSubtitle,
       showIllustration: false,
-      blocks: parseGuideMarkdown(getGuideMarkdown("thanks", language)),
+      blocks: parseGuideMarkdown(resolveGuideMarkdown("thanks", language, guideMarkdownOverrides)),
     },
   ];
 }
@@ -1831,7 +1901,15 @@ const App = {
 
     watch(language, async (value) => {
       const loadId = ++guideMarkdownLoadId;
-      const keys = ["whyCode", "whyTheory"];
+      const keys = [
+        "rulesEssential",
+        "rulesWar",
+        "rulesMath",
+        "whyTalk",
+        "whyCode",
+        "whyTheory",
+        "thanks",
+      ];
       const nextOverrides = {};
 
       await Promise.all(keys.map(async (key) => {
@@ -1840,7 +1918,7 @@ const App = {
           return;
         }
         try {
-          const response = await fetch(`${asset}?v=20260428h`, { cache: "no-cache" });
+          const response = await fetch(`${asset}?v=20260428k`, { cache: "no-cache" });
           if (response.ok) {
             nextOverrides[key] = await response.text();
           }
@@ -2195,17 +2273,27 @@ const App = {
     const applyRoomPayload = (payload) => {
       // 用服务端时间戳做单调性校验，丢弃比当前状态更旧的广播包。
       const incomingTs = payload?.serverTimestamp ?? 0;
-      if (incomingTs > 0 && incomingTs < lastServerTimestamp) {
-        return;
+      const nextStatus = normalizeRoomStatus(payload?.status ?? roomStatus.value);
+      const isRoomReadyTransition = payload?.type === ServerEvent.ROOM_READY
+        && nextStatus === "inProgress"
+        && roomStatus.value !== "inProgress";
+      const timestampRollbackMs = incomingTs > 0
+        ? lastServerTimestamp - incomingTs
+        : 0;
+      const shouldAcceptRoomReadyRollback = isRoomReadyTransition
+        && timestampRollbackMs > 0
+        && timestampRollbackMs <= SERVER_TIMESTAMP_TOLERANCE_MS;
+
+      if (timestampRollbackMs > 0 && !shouldAcceptRoomReadyRollback) {
+        return false;
       }
       if (incomingTs > 0) {
-        lastServerTimestamp = incomingTs;
+        lastServerTimestamp = Math.max(lastServerTimestamp, incomingTs);
       }
 
       // 服务端确认后，解除准备操作的本地锁。
       readyPending.value = false;
 
-      const nextStatus = normalizeRoomStatus(payload?.status ?? roomStatus.value);
       roomStatus.value = nextStatus || roomStatus.value;
       roomInfo.value = {
         ...createEmptyRoomInfo(),
@@ -2216,6 +2304,7 @@ const App = {
         countdownEndsAt: payload?.countdownEndsAt ?? null,
       };
       resultModalDismissed.value = false;
+      return true;
     };
 
     const resetRoomContext = () => {
@@ -2256,11 +2345,14 @@ const App = {
     };
 
     const applyRoomSnapshot = (payload, resetController = true) => {
-      applyRoomPayload(payload);
+      if (!applyRoomPayload(payload)) {
+        return;
+      }
       roomIdInput.value = payload?.roomId ?? roomIdInput.value;
-      applySettingsToController(payload?.settings ?? payload?.matchState?.settings ?? currentGameSettings(), resetController);
       syncSession();
       syncOnlineController(payload);
+      applySettingsToController(payload?.settings ?? payload?.matchState?.settings ?? currentGameSettings(), resetController);
+      syncSession();
 
       if (payload?.matchState && controller.value) {
         gameState.value = controller.value.restoreMatchState(payload.matchState);
@@ -2322,7 +2414,31 @@ const App = {
       }
 
       connectionState.value = "connecting";
-      await networkManager.connect(serverUrl.value.trim(), auth.value.token);
+      const primaryUrl = serverUrl.value.trim();
+      try {
+        await networkManager.connect(primaryUrl, auth.value.token);
+      } catch (error) {
+        const fallbacks = getLocalWebSocketFallbacks(primaryUrl);
+        if (!fallbacks.length) {
+          throw error;
+        }
+
+        let lastError = error;
+        for (const fallbackUrl of fallbacks) {
+          try {
+            await networkManager.connect(fallbackUrl, auth.value.token);
+            serverUrl.value = fallbackUrl;
+            lastError = null;
+            break;
+          } catch (fallbackError) {
+            lastError = fallbackError;
+          }
+        }
+
+        if (lastError) {
+          throw lastError;
+        }
+      }
       connectionState.value = "connected";
       syncSession();
     };
@@ -2377,10 +2493,13 @@ const App = {
         }
 
         if (authMode.value === "register") {
-          await postAuthJson(serverUrl.value, "/api/register", {
+          const payload = await postAuthJson(serverUrl.value, "/api/register", {
             username,
             password,
           });
+          if (payload.apiBaseUrl) {
+            serverUrl.value = payload.apiBaseUrl.replace(/^http:/, "ws:").replace(/^https:/, "wss:") + "/ws";
+          }
           authMode.value = "login";
           authPassword.value = "";
           authFeedbackTone.value = "success";
@@ -2392,6 +2511,9 @@ const App = {
           username,
           password,
         });
+        if (payload.apiBaseUrl) {
+          serverUrl.value = payload.apiBaseUrl.replace(/^http:/, "ws:").replace(/^https:/, "wss:") + "/ws";
+        }
         setAuthState({
           token: payload.token ?? null,
           username: payload.username ?? username,
@@ -3171,9 +3293,3 @@ const App = {
 };
 
 export default App;
-
-
-
-
-
-

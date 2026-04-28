@@ -1262,6 +1262,11 @@ async def serve_index() -> Response:
     return response
 
 
+@app.get("/api/health")
+async def health_check() -> Dict[str, str]:
+    return {"status": "ok"}
+
+
 @app.post("/api/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
 def register_user(payload: RegisterRequest, db: Session = Depends(get_db)) -> RegisterResponse:
     username = payload.username.strip()
