@@ -1926,7 +1926,7 @@ const App = {
           return;
         }
         try {
-          const response = await fetch(`${asset}?v=20260428k`, { cache: "no-cache" });
+          const response = await fetch(`${asset}?v=20260428l`, { cache: "no-cache" });
           if (response.ok) {
             nextOverrides[key] = await response.text();
           }
