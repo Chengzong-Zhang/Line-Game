@@ -555,69 +555,26 @@ class ConnectionManager:
                     room.ready_players.clear()
                     room.reset_votes.clear()
                     self._cancel_countdown_locked(room)
-                    payload = {
-                        "type": "MATCH_RESET",
-                        "roomId": action["room_id"],
-                        "playerId": action["sender"].player_id,
-                        "color": action["sender"].color,
-                        "reason": "normal_restart",
-                        "status": self._room_status(room),
-                        "settings": dict(room.settings),
-                        "players": [
-                            {
-                                "playerId": player.player_id,
-                                "color": player.color,
-                                "connected": player.connected,
-                                "ready": player.player_id in room.ready_players,
-                                "isHost": player.player_id == room.host_player_id,
-                            }
-                            for player in room.players.values()
-                        ],
-                        "matchState": self._match_state(room),
-                    }
+                    payload = self._room_payload("MATCH_RESET", room, reason="normal_restart")
+                    payload["playerId"] = action["sender"].player_id
+                    payload["color"] = action["sender"].color
                     payloads = self._connected_room_payloads(room, payload)
                 else:
-                    room.reset_votes.add(action["sender"].player_id)
-                    vote_payload = {
-                        "type": "RESET_STATUS",
-                        "roomId": action["room_id"],
-                        "playerId": action["sender"].player_id,
-                        "color": action["sender"].color,
-                        "requiredVotes": room.player_capacity(),
-                        "confirmedVotes": len(room.reset_votes),
-                        "confirmedPlayerIds": list(room.reset_votes),
-                    }
-
-                    if len(room.reset_votes) >= room.player_capacity():
-                        room.actions = []
-                        room.match_started = False
-                        room.ready_players.clear()
-                        room.reset_votes.clear()
-                        self._cancel_countdown_locked(room)
-                        payload = {
-                            "type": "MATCH_RESET",
-                            "roomId": action["room_id"],
-                            "playerId": action["sender"].player_id,
-                            "color": action["sender"].color,
-                            "reason": "consensus_restart",
-                            "winnerColor": action["sender"].color,
-                            "status": self._room_status(room),
-                            "settings": dict(room.settings),
-                            "players": [
-                                {
-                                    "playerId": player.player_id,
-                                    "color": player.color,
-                                    "connected": player.connected,
-                                    "ready": player.player_id in room.ready_players,
-                                    "isHost": player.player_id == room.host_player_id,
-                                }
-                                for player in room.players.values()
-                            ],
-                            "matchState": self._match_state(room),
-                        }
-                        payloads = self._connected_room_payloads(room, payload)
-                    else:
-                        payloads = self._connected_room_payloads(room, vote_payload)
+                    winner = next(
+                        (player for player in self._find_other_players(room, action["sender"].player_id)),
+                        None,
+                    )
+                    room.actions = []
+                    room.match_started = False
+                    room.ready_players.clear()
+                    room.reset_votes.clear()
+                    self._cancel_countdown_locked(room)
+                    payload = self._room_payload("MATCH_RESET", room, reason="resign_restart")
+                    payload["playerId"] = action["sender"].player_id
+                    payload["color"] = action["sender"].color
+                    if winner is not None:
+                        payload["winnerColor"] = winner.color
+                    payloads = self._connected_room_payloads(room, payload)
                 error_payload = None
 
         if error_payload is not None:
@@ -835,6 +792,15 @@ class ConnectionManager:
             return "IN_PROGRESS"
         return "LOBBY"
 
+    def _match_phase(self, room: Room) -> str:
+        if room.match_started:
+            return "PLAYING"
+        if room.countdown_started_at is not None and self._countdown_ends_at_ms(room) is not None:
+            return "READY_TO_START"
+        if room.active_player_count() < room.player_capacity():
+            return "WAITING_FOR_PLAYERS"
+        return "LOBBY"
+
     def _countdown_ends_at_ms(self, room: Room) -> Optional[int]:
         if room.countdown_started_at is None:
             return None
@@ -864,6 +830,7 @@ class ConnectionManager:
             "type": event_type,
             "roomId": room.room_id,
             "status": self._room_status(room),
+            "matchPhase": self._match_phase(room),
             "hostPlayerId": room.host_player_id,
             "settings": dict(room.settings),
             "players": players,
@@ -909,7 +876,6 @@ class ConnectionManager:
 
                 room.actions = []
                 room.match_started = True
-                room.ready_players.clear()
                 room.reset_votes.clear()
                 room.updated_at = time.time()
                 room.countdown_started_at = None
@@ -1195,6 +1161,7 @@ class ConnectionManager:
         # 服务端只保存“设置 + 动作日志”，由前端回放恢复棋盘。
         return {
             "settings": dict(room.settings),
+            "phase": self._match_phase(room),
             "actions": [dict(action) for action in room.actions],
         }
 

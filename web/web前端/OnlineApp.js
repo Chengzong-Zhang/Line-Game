@@ -190,6 +190,7 @@ function createEmptyRoomInfo() {
     players: [],
     settings: normalizeAppGameSettings(),
     countdownEndsAt: null,
+    matchPhase: "solo",
   };
 }
 
@@ -2302,6 +2303,7 @@ const App = {
         players: Array.isArray(payload?.players) ? payload.players : roomInfo.value.players,
         settings: normalizeAppGameSettings(payload?.settings ?? roomInfo.value.settings),
         countdownEndsAt: payload?.countdownEndsAt ?? null,
+        matchPhase: String(payload?.matchPhase ?? payload?.matchState?.phase ?? nextStatus ?? roomInfo.value.matchPhase),
       };
       resultModalDismissed.value = false;
       return true;
@@ -2338,7 +2340,7 @@ const App = {
 
       gameState.value = controller.value.enableMultiplayer({
         networkManager,
-        localPlayer: payload?.yourColor ?? payload?.color ?? session.value.color,
+        localPlayer: payload?.yourColor ?? session.value.color,
         roomReady: normalizedStatus === "inProgress",
         opponentConnected: everyoneConnected,
       });
@@ -2720,9 +2722,10 @@ const App = {
       }
 
       if (roomStatus.value === "inProgress") {
-        return gameState.value.isLocalTurn
+        const turnStatus = gameState.value.isLocalTurn
           ? texts.localTurnStatus(formatAppPlayerName(session.value.color, language.value))
           : texts.remoteTurnStatus;
+        return `${texts.playingStatus} ${turnStatus}`;
       }
 
       return gameState.value.currentPlayer === Player.BLACK

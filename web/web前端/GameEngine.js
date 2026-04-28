@@ -573,20 +573,79 @@ export class GameEngine {
       return;
     }
     const opponentStates = this._getPlayerStates(opponent);
+    const [x0, y0] = newPoint;
 
-    // Step 2：基于物理棋盘的 BFS 连通分量，一次性清理所有断联棋子（NODE + LINE）
-    const aliveKeys = this._getOpponentConnectedPieces(opponent);
-    for (const point of this.validPositions) {
-      const s = this._getState(point);
-      if (s === opponentStates.node || s === opponentStates.line) {
-        if (!aliveKeys.has(pointKey(point))) {
-          this._setState(point, PointState.EMPTY);
+    // Step 1：严格按 triangular_game.py，只删除被同一条线段确认夹住的线点。
+    for (const [dx, dy] of DIRECTIONS) {
+      let nx = x0 + dx;
+      let ny = y0 + dy;
+      let point = [nx, ny];
+      if (!this.isValidPosition(point) || this._getState(point) !== opponentStates.line) {
+        continue;
+      }
+
+      const cellsToDelete = [];
+      while (this.isValidPosition(point) && this._getState(point) === opponentStates.line) {
+        cellsToDelete.push(point);
+        nx += dx;
+        ny += dy;
+        point = [nx, ny];
+      }
+
+      if (this.isValidPosition(point) && this._getState(point) === opponentStates.node) {
+        for (const cell of cellsToDelete) {
+          this._setState(cell, PointState.EMPTY);
         }
       }
     }
 
-    // Step 3：清空旧逻辑边，基于幸存盘面重建
-    this._getEdges(opponent).clear();
+    // Step 1.5：清理因线点删除而断裂的对手显式边。
+    this._cleanupBrokenEdges(opponent);
+
+    // Step 2：只按显式边图删除失去起点连通的对手节点。
+    const opponentStart = this._getInitialPosition(opponent);
+    for (const node of this._getPlayerNodes(opponent)) {
+      if (!pointEquals(node, opponentStart) && !this._isConnectedToInitial(node, opponent)) {
+        this._setState(node, PointState.EMPTY);
+        this._removeNodeEdges(node, opponent);
+      }
+    }
+
+    // Step 3：孤线必须落在两个幸存节点之间的完整线段上，否则删除。
+    const survivingNodes = this._getPlayerNodes(opponent);
+    for (const linePoint of this.validPositions) {
+      if (this._getState(linePoint) !== opponentStates.line) {
+        continue;
+      }
+
+      let protectedLine = false;
+      for (let i = 0; i < survivingNodes.length && !protectedLine; i += 1) {
+        for (let j = i + 1; j < survivingNodes.length; j += 1) {
+          const nodeA = survivingNodes[i];
+          const nodeB = survivingNodes[j];
+          if (!this.canConnect(nodeA, nodeB)) {
+            continue;
+          }
+
+          const linePoints = this.getLinePoints(nodeA, nodeB);
+          if (!linePoints.some((point) => pointEquals(point, linePoint))) {
+            continue;
+          }
+
+          if (linePoints.every((point) => {
+            const state = this._getState(point);
+            return state === opponentStates.node || state === opponentStates.line;
+          })) {
+            protectedLine = true;
+            break;
+          }
+        }
+      }
+
+      if (!protectedLine) {
+        this._setState(linePoint, PointState.EMPTY);
+      }
+    }
 
     this._reconnectPlayerNodes(player);
     this._reconnectPlayerNodes(opponent);

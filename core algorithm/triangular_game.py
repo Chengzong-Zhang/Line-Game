@@ -1,5 +1,5 @@
 
-import hashlib
+import json
 import pygame
 import sys
 import math
@@ -119,8 +119,8 @@ class TriangularGame:
         black_edge_list = sorted(tuple(sorted(e)) for e in self.black_edges)
         white_edge_list = sorted(tuple(sorted(e)) for e in self.white_edges)
 
-        raw = repr((next_player.value, grid_entries, black_edge_list, white_edge_list))
-        return hashlib.sha256(raw.encode()).hexdigest()
+        payload = [next_player.name, grid_entries, [black_edge_list, white_edge_list]]
+        return json.dumps(payload, separators=(",", ":"), ensure_ascii=True)
 
     def _get_screen_pos(self, grid_x: int, grid_y: int) -> Tuple[int, int]:
         """Convert grid coordinates to screen coordinates"""
@@ -226,9 +226,9 @@ class TriangularGame:
         queue: deque = deque()
 
         # 从三角形网格的三条物理边缘注水（x==0, y==0, x+y==8）
-        for y in range(9):
-            for x in range(9 - y):
-                if x == 0 or y == 0 or x + y == 8:
+        for y in range(self.GRID_SIZE):
+            for x in range(self.GRID_SIZE - y):
+                if x == 0 or y == 0 or x + y == self.GRID_SIZE - 1:
                     if (x, y) not in wall_set:
                         water_reached.add((x, y))
                         queue.append((x, y))
@@ -242,7 +242,7 @@ class TriangularGame:
                     queue.append(nxt)
 
         # 全图所有点 - 被水淹点 = 领土（含轮廓墙体）
-        all_points = {(x, y) for y in range(9) for x in range(9 - y)}
+        all_points = {(x, y) for y in range(self.GRID_SIZE) for x in range(self.GRID_SIZE - y)}
         return all_points - water_reached
 
     def _get_all_shortest_grid_paths(self, start: Tuple[int, int], end: Tuple[int, int],
@@ -338,7 +338,7 @@ class TriangularGame:
 
     # ------------------------------------------------------------------
 
-    def _compute_inner_hull(self, player: Player):
+    def _compute_inner_hull_legacy(self, player: Player):
         """核心：领土计算（右手摸墙 → 动态贪心修剪）"""
         opp = Player.WHITE if player == Player.BLACK else Player.BLACK
         friendlies = set(self._get_player_nodes(player) + self._get_player_lines(player))
@@ -433,6 +433,174 @@ class TriangularGame:
         screen_polygon = [self._get_screen_pos(*p) for p in final_closed]
         area = len(final_covered)
         return screen_polygon, area
+
+    def _compute_inner_hull(self, player: Player):
+        """Compute territory using the web engine's optimized contour tightening."""
+        opp = Player.WHITE if player == Player.BLACK else Player.BLACK
+        friendlies = set(self._get_player_nodes(player) + self._get_player_lines(player))
+        enemies = set(self._get_player_nodes(opp) + self._get_player_lines(opp))
+        friendly_nodes = set(self._get_player_nodes(player))
+
+        if not friendlies:
+            return None, 0.0
+
+        def get_closed(poly):
+            if poly and poly[0] != poly[-1]:
+                return poly + [poly[0]]
+            return poly
+
+        def dedupe_adjacent(poly):
+            return [p for k, p in enumerate(poly) if k == 0 or p != poly[k - 1]]
+
+        def bfs_from_source(src):
+            blocked = set(enemies)
+            blocked.discard(src)
+            dist = {src: 0}
+            pred = {}
+            q = deque([src])
+
+            while q:
+                curr = q.popleft()
+                for nxt in self._get_adjacent_positions(curr):
+                    if nxt in blocked:
+                        continue
+                    nd = dist[curr] + 1
+                    if nxt not in dist:
+                        dist[nxt] = nd
+                        pred[nxt] = [curr]
+                        q.append(nxt)
+                    elif dist[nxt] == nd:
+                        pred[nxt].append(curr)
+
+            return dist, pred
+
+        def reconstruct_paths(src, tgt, pred, limit=100):
+            if src == tgt:
+                return [[src]]
+
+            results = []
+
+            def build(curr, suffix):
+                if len(results) >= limit:
+                    return
+                if curr == src:
+                    results.append([src] + suffix)
+                    return
+                for prev in pred.get(curr, []):
+                    build(prev, [curr] + suffix)
+
+            build(tgt, [])
+            return results
+
+        current_poly = self._get_outer_contour(player)
+        if len(current_poly) < 3:
+            return None, 0.0
+
+        cur_area = 0
+        while True:
+            n = len(current_poly)
+            if n < 3:
+                break
+
+            cur_perim = n
+            cur_covered = self._get_covered_points(current_poly)
+            cur_area = len(cur_covered)
+            best_overall_cand = None
+            best_cand_perim = cur_perim
+            best_cand_area = cur_area
+            bfs_cache = [bfs_from_source(current_poly[i]) for i in range(n)]
+
+            for i in range(n):
+                dist_i, pred_i = bfs_cache[i]
+                for j in range(n - 1, i + 1, -1):
+                    arc_len = j - i
+                    if arc_len <= 1:
+                        continue
+
+                    shortest_dist = dist_i.get(current_poly[j])
+                    if shortest_dist is None or shortest_dist >= arc_len:
+                        continue
+
+                    paths = reconstruct_paths(current_poly[i], current_poly[j], pred_i, limit=100)
+                    if not paths:
+                        continue
+
+                    for path in paths:
+                        path_len = len(path)
+                        path_interior = path[1:-1]
+                        is_inward = all(p in cur_covered for p in path_interior)
+
+                        if is_inward:
+                            wedge = dedupe_adjacent(current_poly[i:j + 1] + list(reversed(path_interior)))
+                            if len(wedge) < 3:
+                                continue
+
+                            wedge_covered = self._get_covered_points(wedge)
+                            wedge_area = len(wedge_covered)
+                            path_set = set(path)
+                            cand_a_area = cur_area - wedge_area + 2 * (path_len - 1)
+                            cand_a_perim = cur_perim - arc_len + (path_len - 1)
+
+                            if (
+                                cand_a_perim <= best_cand_perim
+                                and not (cand_a_perim == best_cand_perim and cand_a_area >= best_cand_area)
+                                and all(fn not in wedge_covered or fn in path_set for fn in friendly_nodes)
+                            ):
+                                cand_a = dedupe_adjacent(current_poly[:i] + path + current_poly[j + 1:])
+                                if len(cand_a) >= 3:
+                                    best_cand_perim = cand_a_perim
+                                    best_cand_area = cand_a_area
+                                    best_overall_cand = cand_a
+
+                            cand_b_perim = len(wedge)
+                            cand_b_area = wedge_area
+                            if (
+                                cand_b_perim <= best_cand_perim
+                                and not (cand_b_perim == best_cand_perim and cand_b_area >= best_cand_area)
+                                and friendly_nodes.issubset(wedge_covered)
+                                and not any(e in wedge_covered for e in enemies)
+                            ):
+                                best_cand_perim = cand_b_perim
+                                best_cand_area = cand_b_area
+                                best_overall_cand = wedge
+                        else:
+                            rev_mid = list(reversed(path_interior))
+                            cand_a = current_poly[:i] + path + current_poly[j + 1:]
+                            cand_b = current_poly[i:j + 1] + rev_mid
+                            for cand in (cand_a, cand_b):
+                                cand = dedupe_adjacent(cand)
+                                if len(cand) < 3:
+                                    continue
+
+                                cand_perim = len(cand)
+                                if cand_perim > best_cand_perim:
+                                    continue
+
+                                covered = self._get_covered_points(cand)
+                                cand_area = len(covered)
+                                if cand_perim == best_cand_perim and cand_area >= best_cand_area:
+                                    continue
+                                if not friendly_nodes.issubset(covered):
+                                    continue
+                                if any(e in covered for e in enemies):
+                                    continue
+
+                                best_cand_perim = cand_perim
+                                best_cand_area = cand_area
+                                best_overall_cand = cand
+
+            if best_overall_cand is not None:
+                current_poly = best_overall_cand
+            else:
+                break
+
+        if len(current_poly) < 3:
+            return None, 0.0
+
+        final_covered = self._get_covered_points(current_poly)
+        final_closed = get_closed(current_poly)
+        screen_polygon = [self._get_screen_pos(*p) for p in final_closed]
+        return screen_polygon, len(final_covered)
     
     def _update_hulls(self):
         """Recompute both players' inner hull and cache the results.
@@ -777,7 +945,7 @@ class TriangularGame:
                     # 记录显式边
                     self._get_edges(player).add(frozenset({node1, node2}))
 
-    def _add_node(self, pos: Tuple[int, int]) -> bool:
+    def _add_node_legacy(self, pos: Tuple[int, int]) -> bool:
         """Add a new node for the current player and handle auto-connection"""
         if pos not in self.grid:
             return False
@@ -850,6 +1018,53 @@ class TriangularGame:
 
         self.history_hashes.add(state_hash)
         return True
+
+    def _add_node(self, pos: Tuple[int, int]) -> bool:
+        """Add a node and resolve board effects; Superko is checked by callers."""
+        if pos not in self.grid:
+            return False
+
+        original_state = self.grid[pos]
+        if original_state not in [PointState.EMPTY, PointState.WHITE_LINE, PointState.BLACK_LINE]:
+            return False
+
+        if self._is_in_protection_zone(pos, self.current_player):
+            return False
+
+        opponent_line = PointState.WHITE_LINE if self.current_player == Player.BLACK else PointState.BLACK_LINE
+        is_attacking_move = (original_state == opponent_line)
+
+        if not is_attacking_move and not self._check_three_point_limitation(pos, self.current_player):
+            return False
+
+        node_state = PointState.BLACK_NODE if self.current_player == Player.BLACK else PointState.WHITE_NODE
+        line_state = PointState.BLACK_LINE if self.current_player == Player.BLACK else PointState.WHITE_LINE
+
+        self.grid[pos] = node_state
+
+        existing_nodes = self._get_player_nodes(self.current_player)
+        existing_nodes.remove(pos)
+
+        connected = False
+        for node_pos in existing_nodes:
+            if not self._can_connect_with_blocking(pos, node_pos, self.current_player):
+                continue
+
+            connected = True
+            line_points = self._get_line_points(pos, node_pos)
+            for point in line_points:
+                if self.grid[point] == PointState.EMPTY or self.grid[point] == line_state:
+                    self.grid[point] = line_state
+                if point == pos or point == node_pos:
+                    self.grid[point] = node_state
+            self._get_edges(self.current_player).add(frozenset({pos, node_pos}))
+
+        if not connected:
+            self.grid[pos] = original_state
+            return False
+
+        self._handle_blocking_attack(pos, self.current_player, original_state)
+        return True
     
     def _switch_player(self):
         """Switch to the other player"""
@@ -860,19 +1075,18 @@ class TriangularGame:
         grid_snapshot = dict(self.grid)
         black_edges_snapshot = set(self.black_edges)
         white_edges_snapshot = set(self.white_edges)
-        history_hashes_snapshot = set(self.history_hashes)
         current_player_snapshot = self.current_player
 
         try:
             self.current_player = player
-            return self._add_node(pos)
-        except SuperkoViolationError:
-            return False
+            if not self._add_node(pos):
+                return False
+            next_player = Player.WHITE if player == Player.BLACK else Player.BLACK
+            return self._compute_state_hash(next_player) not in self.history_hashes
         finally:
             self.grid = grid_snapshot
             self.black_edges = black_edges_snapshot
             self.white_edges = white_edges_snapshot
-            self.history_hashes = history_hashes_snapshot
             self.current_player = current_player_snapshot
 
     def _has_valid_moves(self, player: Player) -> bool:
@@ -927,6 +1141,41 @@ class TriangularGame:
                 self._switch_player()
                 self._check_and_auto_skip()
                 self._update_hulls()
+
+    def handle_click_legacy(self, pos: Tuple[int, int]):
+        """Handle mouse click at screen position."""
+        if self.game_over:
+            return
+
+        if self.skip_button_rect.collidepoint(pos[0], pos[1]):
+            self.handle_skip()
+            return
+
+        grid_pos = self._get_grid_pos(pos[0], pos[1])
+        if not grid_pos:
+            return
+
+        grid_snapshot = dict(self.grid)
+        black_edges_snapshot = set(self.black_edges)
+        white_edges_snapshot = set(self.white_edges)
+
+        success = self._add_node(grid_pos)
+        if success:
+            next_player = Player.WHITE if self.current_player == Player.BLACK else Player.BLACK
+            state_hash = self._compute_state_hash(next_player)
+            if state_hash in self.history_hashes:
+                self.grid = grid_snapshot
+                self.black_edges = black_edges_snapshot
+                self.white_edges = white_edges_snapshot
+                success = False
+            else:
+                self.history_hashes.add(state_hash)
+
+        if success:
+            self.consecutive_skips = 0
+            self._switch_player()
+            self._check_and_auto_skip()
+            self._update_hulls()
     
     def draw(self):
         """Draw the game state"""
