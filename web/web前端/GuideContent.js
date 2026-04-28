@@ -518,9 +518,33 @@ function createTextBlock(type, text, extras = {}) {
   };
 }
 
+function splitMarkdownTableRow(line) {
+  return String(line ?? "")
+    .trim()
+    .replace(/^\|/, "")
+    .replace(/\|$/, "")
+    .split("|")
+    .map((cell) => cell.trim());
+}
+
+function isMarkdownTableSeparator(line) {
+  return /^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$/.test(String(line ?? "").trim());
+}
+
 export function getGuideMarkdown(key, language = "zh") {
   const normalizedLanguage = language === "en" ? "en" : "zh";
   return GUIDE_MARKDOWN[normalizedLanguage]?.[key] ?? GUIDE_MARKDOWN.zh[key] ?? "";
+}
+
+export function getGuideMarkdownAsset(key, language = "zh") {
+  const normalizedLanguage = language === "en" ? "en" : "zh";
+  const assets = {
+    zh: {
+      whyCode: "./guide-content/why-code.zh.md",
+      whyTheory: "./guide-content/why-theory.zh.md",
+    },
+  };
+  return assets[normalizedLanguage]?.[key] ?? "";
 }
 
 export function parseGuideMarkdown(raw) {
@@ -608,9 +632,43 @@ export function parseGuideMarkdown(raw) {
       index += 1;
       continue;
     }
-    if (trimmed.startsWith("* ")) {
+    if (trimmed.startsWith("### ")) {
+      flushParagraph(paragraphLines);
+      blocks.push(createTextBlock("heading3", trimmed.slice(4)));
+      index += 1;
+      continue;
+    }
+    if (trimmed.startsWith("* ") || trimmed.startsWith("- ")) {
       flushParagraph(paragraphLines);
       blocks.push(createTextBlock("bullet", trimmed.slice(2)));
+      index += 1;
+      continue;
+    }
+    if (trimmed.startsWith("|") && index + 1 < lines.length && isMarkdownTableSeparator(lines[index + 1])) {
+      flushParagraph(paragraphLines);
+      const headers = splitMarkdownTableRow(trimmed).map((cell) => ({
+        text: cell,
+        tokens: tokenizeInline(cell),
+      }));
+      index += 2;
+      const rows = [];
+      while (index < lines.length && lines[index].trim().startsWith("|")) {
+        rows.push(splitMarkdownTableRow(lines[index]).map((cell) => ({
+          text: cell,
+          tokens: tokenizeInline(cell),
+        })));
+        index += 1;
+      }
+      blocks.push({
+        type: "table",
+        headers,
+        rows,
+      });
+      continue;
+    }
+    if (/^-{3,}$/.test(trimmed)) {
+      flushParagraph(paragraphLines);
+      blocks.push({ type: "divider" });
       index += 1;
       continue;
     }

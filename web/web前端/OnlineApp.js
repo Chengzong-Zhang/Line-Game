@@ -26,8 +26,8 @@ import {
   getInitialLanguage as getAppInitialLanguage,
   getTexts as getAppTexts,
   localizeErrorMessage as localizeAppErrorMessage,
-} from "./OnlineAppI18n.js?v=20260428f";
-import { getGuideMarkdown, parseGuideMarkdown } from "./GuideContent.js?v=20260428f";
+} from "./OnlineAppI18n.js?v=20260428g";
+import { getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20260428g";
 
 const {
   computed,
@@ -1212,9 +1212,9 @@ const GuidePanel = {
       type: String,
       required: true,
     },
-    ruleEntries: {
-      type: Array,
-      default: () => [],
+    ruleEntry: {
+      type: Object,
+      default: null,
     },
     whyEntry: {
       type: Object,
@@ -1237,26 +1237,21 @@ const GuidePanel = {
         <span class="panel-head-badge">{{ texts.guideDockBadge }}</span>
       </div>
 
-      <article class="guide-section-card">
+      <button
+        v-if="ruleEntry"
+        type="button"
+        class="guide-section-card guide-section-button"
+        @click="$emit('open-entry', ruleEntry.key)"
+      >
         <div class="guide-section-head">
-          <h3>{{ texts.guideRulesTitle }}</h3>
+          <h3>{{ ruleEntry.title }}</h3>
+          <span class="guide-entry-arrow" aria-hidden="true">></span>
         </div>
-        <div class="guide-rule-list guide-rule-list-always">
-          <button
-            v-for="entry in ruleEntries"
-            :key="entry.key"
-            type="button"
-            class="guide-entry-button"
-            @click="$emit('open-entry', entry.key)"
-          >
-            <span class="guide-entry-line">
-              <strong>{{ entry.title }}</strong>
-              <span class="guide-entry-arrow" aria-hidden="true">></span>
-            </span>
-            <span v-if="entry.subtitle" class="guide-entry-subtitle">{{ entry.subtitle }}</span>
-          </button>
+        <p v-if="ruleEntry.subtitle" class="guide-section-copy">{{ ruleEntry.subtitle }}</p>
+        <div v-if="ruleEntry.subEntries?.length" class="guide-section-mini-tabs" aria-hidden="true">
+          <span v-for="subEntry in ruleEntry.subEntries" :key="subEntry.key">{{ subEntry.tabTitle }}</span>
         </div>
-      </article>
+      </button>
 
       <button
         v-if="whyEntry"
@@ -1338,11 +1333,16 @@ const GuideReaderModal = {
       }
       return subEntries.find((item) => item.key === activeSubKey.value) ?? subEntries[0];
     });
+    const displayBlocks = computed(() => buildGuideDisplayBlocks(activeReadableEntry.value?.blocks ?? []));
 
     const typesetGuideMath = () => {
       nextTick?.(() => {
-        if (globalThis.MathJax?.typesetPromise) {
-          globalThis.MathJax.typesetPromise();
+        const reader = document.querySelector(".guide-reader");
+        if (reader && globalThis.MathJax?.typesetPromise) {
+          globalThis.MathJax.typesetClear?.([reader]);
+          globalThis.MathJax.typesetPromise([reader]).catch((error) => {
+            console.warn("Guide MathJax typeset failed:", error);
+          });
         }
       });
     };
@@ -1356,10 +1356,14 @@ const GuideReaderModal = {
       typesetGuideMath();
     });
 
+    watch(displayBlocks, () => {
+      typesetGuideMath();
+    });
+
     return {
       activeReadableEntry,
       activeSubKey,
-      displayBlocks: computed(() => buildGuideDisplayBlocks(activeReadableEntry.value?.blocks ?? [])),
+      displayBlocks,
       formatGuideDisplayMath,
       highlightGuideCode,
       texts: computed(() => getAppTexts(props.language)),
@@ -1401,6 +1405,7 @@ const GuideReaderModal = {
               <template v-for="(block, index) in displayBlocks" :key="(activeReadableEntry?.key || entry.key) + '-' + index">
                 <h3 v-if="block.type === 'heading1'" class="guide-block-heading-xl"><GuideInlineText :tokens="block.tokens" /></h3>
                 <h4 v-else-if="block.type === 'heading2'" class="guide-block-heading"><GuideInlineText :tokens="block.tokens" /></h4>
+                <h5 v-else-if="block.type === 'heading3'" class="guide-block-subheading"><GuideInlineText :tokens="block.tokens" /></h5>
                 <h5 v-else-if="block.type === 'callout'" class="guide-block-callout"><GuideInlineText :tokens="block.tokens" /></h5>
                 <blockquote v-else-if="block.type === 'quote'" class="guide-block-quote">
                   <p><GuideInlineText :tokens="block.tokens" /></p>
@@ -1409,6 +1414,25 @@ const GuideReaderModal = {
                   {{ formatGuideDisplayMath(block.text) }}
                 </div>
                 <pre v-else-if="block.type === 'codeblock'" class="guide-code-block"><code :class="'language-' + (block.language || 'text')" v-html="highlightGuideCode(block.code, block.language)"></code></pre>
+                <div v-else-if="block.type === 'table'" class="guide-table-wrap">
+                  <table class="guide-table">
+                    <thead>
+                      <tr>
+                        <th v-for="(cell, cellIndex) in block.headers" :key="'h-' + cellIndex">
+                          <GuideInlineText :tokens="cell.tokens" />
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="(row, rowIndex) in block.rows" :key="'r-' + rowIndex">
+                        <td v-for="(cell, cellIndex) in row" :key="'c-' + rowIndex + '-' + cellIndex">
+                          <GuideInlineText :tokens="cell.tokens" />
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <hr v-else-if="block.type === 'divider'" class="guide-block-divider" />
                 <figure v-else-if="block.type === 'image'" class="guide-block-figure">
                   <img :src="block.src" :alt="block.alt || entry.title" class="guide-block-image" loading="lazy" />
                   <figcaption v-if="block.alt" class="guide-block-figcaption">{{ block.alt }}</figcaption>
@@ -1548,8 +1572,44 @@ const UtilityModal = {
   `,
 };
 
-function createGuideEntries(language = "zh") {
+function resolveGuideMarkdown(key, language, guideMarkdownOverrides = {}) {
+  return guideMarkdownOverrides[key] ?? getGuideMarkdown(key, language);
+}
+
+function createGuideEntries(language = "zh", guideMarkdownOverrides = {}) {
   const texts = getAppTexts(language);
+  const ruleSubEntries = [
+    {
+      key: "rules-essential",
+      group: "rules",
+      tabTitle: texts.guideRuleSimpleTitle,
+      eyebrow: texts.guideRulesTitle,
+      title: texts.guideRuleSimpleTitle,
+      subtitle: texts.guideRuleSimpleSubtitle,
+      showIllustration: false,
+      blocks: parseGuideMarkdown(resolveGuideMarkdown("rulesEssential", language, guideMarkdownOverrides)),
+    },
+    {
+      key: "rules-war",
+      group: "rules",
+      tabTitle: texts.guideRuleWarTitle,
+      eyebrow: texts.guideRulesTitle,
+      title: texts.guideRuleWarTitle,
+      subtitle: texts.guideRuleWarSubtitle,
+      showIllustration: false,
+      blocks: parseGuideMarkdown(resolveGuideMarkdown("rulesWar", language, guideMarkdownOverrides)),
+    },
+    {
+      key: "rules-math",
+      group: "rules",
+      tabTitle: texts.guideRuleMathTitle,
+      eyebrow: texts.guideRulesTitle,
+      title: texts.guideRuleMathTitle,
+      subtitle: texts.guideRuleMathSubtitle,
+      showIllustration: false,
+      blocks: parseGuideMarkdown(resolveGuideMarkdown("rulesMath", language, guideMarkdownOverrides)),
+    },
+  ];
   const whySubEntries = [
     {
       key: "why-talk",
@@ -1559,7 +1619,7 @@ function createGuideEntries(language = "zh") {
       title: texts.guideWhyTalkTitle,
       subtitle: texts.guideWhyTalkSubtitle,
       showIllustration: false,
-      blocks: parseGuideMarkdown(getGuideMarkdown("whyTalk", language)),
+      blocks: parseGuideMarkdown(resolveGuideMarkdown("whyTalk", language, guideMarkdownOverrides)),
     },
     {
       key: "why-code",
@@ -1569,7 +1629,7 @@ function createGuideEntries(language = "zh") {
       title: texts.guideWhyCodeTitle,
       subtitle: texts.guideWhyCodeSubtitle,
       showIllustration: false,
-      blocks: parseGuideMarkdown(getGuideMarkdown("whyCode", language)),
+      blocks: parseGuideMarkdown(resolveGuideMarkdown("whyCode", language, guideMarkdownOverrides)),
     },
     {
       key: "why-theory",
@@ -1579,36 +1639,19 @@ function createGuideEntries(language = "zh") {
       title: texts.guideWhyTheoryTitle,
       subtitle: texts.guideWhyTheorySubtitle,
       showIllustration: false,
-      blocks: parseGuideMarkdown(getGuideMarkdown("whyTheory", language)),
+      blocks: parseGuideMarkdown(resolveGuideMarkdown("whyTheory", language, guideMarkdownOverrides)),
     },
   ];
   return [
     {
-      key: "rules-essential",
-      group: "rules",
+      key: "rules",
+      group: "rules-root",
       eyebrow: texts.guideRulesTitle,
-      title: texts.guideRuleSimpleTitle,
-      subtitle: texts.guideRuleSimpleSubtitle,
+      title: texts.guideRulesTitle,
+      subtitle: texts.guideRulesCopy,
       showIllustration: false,
-      blocks: parseGuideMarkdown(getGuideMarkdown("rulesEssential", language)),
-    },
-    {
-      key: "rules-war",
-      group: "rules",
-      eyebrow: texts.guideRulesTitle,
-      title: texts.guideRuleWarTitle,
-      subtitle: texts.guideRuleWarSubtitle,
-      showIllustration: false,
-      blocks: parseGuideMarkdown(getGuideMarkdown("rulesWar", language)),
-    },
-    {
-      key: "rules-math",
-      group: "rules",
-      eyebrow: texts.guideRulesTitle,
-      title: texts.guideRuleMathTitle,
-      subtitle: texts.guideRuleMathSubtitle,
-      showIllustration: false,
-      blocks: parseGuideMarkdown(getGuideMarkdown("rulesMath", language)),
+      subEntries: ruleSubEntries,
+      blocks: ruleSubEntries[0]?.blocks ?? [],
     },
     {
       key: "why-this",
@@ -1710,6 +1753,7 @@ const App = {
     const controller = ref(null);
     const gameState = ref(createAppDefaultGameState());
     const language = ref(getAppInitialLanguage());
+    const guideMarkdownOverrides = ref({});
     const networkManager = new NetworkManager();
     networkManager.setAuthToken(storedAuth.token);
     networkManager.hydrateSession(normalizedStoredSession);
@@ -1747,11 +1791,37 @@ const App = {
     let turnTimerSkipInFlight = false;
     let reconnectAttempt = 0;
     let syncingRemoteSettings = false;
+    let guideMarkdownLoadId = 0;
 
     watch(language, (value) => {
       globalThis.localStorage?.setItem("triaxis-language", value);
       document.documentElement.lang = value === "en" ? "en" : "zh-CN";
       document.title = getAppTexts(value).pageTitle;
+    }, { immediate: true });
+
+    watch(language, async (value) => {
+      const loadId = ++guideMarkdownLoadId;
+      const keys = ["whyCode", "whyTheory"];
+      const nextOverrides = {};
+
+      await Promise.all(keys.map(async (key) => {
+        const asset = getGuideMarkdownAsset(key, value);
+        if (!asset) {
+          return;
+        }
+        try {
+          const response = await fetch(`${asset}?v=20260428g`, { cache: "no-cache" });
+          if (response.ok) {
+            nextOverrides[key] = await response.text();
+          }
+        } catch (error) {
+          console.warn(`Guide markdown asset failed: ${key}`, error);
+        }
+      }));
+
+      if (loadId === guideMarkdownLoadId) {
+        guideMarkdownOverrides.value = nextOverrides;
+      }
     }, { immediate: true });
 
     watch(auth, (value) => {
@@ -1873,8 +1943,8 @@ const App = {
       return getAppTexts(language.value).localShort;
     });
     const guideDockBadge = computed(() => getAppTexts(language.value).guideDockBadge);
-    const guideEntries = computed(() => createGuideEntries(language.value));
-    const ruleGuideEntries = computed(() => guideEntries.value.filter((entry) => entry.group === "rules"));
+    const guideEntries = computed(() => createGuideEntries(language.value, guideMarkdownOverrides.value));
+    const ruleGuideEntry = computed(() => guideEntries.value.find((entry) => entry.key === "rules") ?? null);
     const whyGuideEntry = computed(() => guideEntries.value.find((entry) => entry.group === "why") ?? null);
     const thanksGuideEntry = computed(() => guideEntries.value.find((entry) => entry.group === "thanks") ?? null);
     const activeGuideEntry = computed(() => (
@@ -2805,7 +2875,7 @@ const App = {
       activeUtilityDeck,
       guideDockBadge,
       activeGuideEntry,
-      ruleGuideEntries,
+      ruleGuideEntry,
       whyGuideEntry,
       thanksGuideEntry,
       isAuthenticated,
@@ -3022,7 +3092,7 @@ const App = {
         <GuidePanel
           :embedded="true"
           :language="language"
-          :rule-entries="ruleGuideEntries"
+          :rule-entry="ruleGuideEntry"
           :why-entry="whyGuideEntry"
           :thanks-entry="thanksGuideEntry"
           @open-entry="handleOpenGuideEntry"
