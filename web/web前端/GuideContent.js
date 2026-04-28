@@ -611,6 +611,12 @@ export function getGuideMarkdownAsset(key, language = "zh") {
       whyTheory: "./guide/interesting/why-theory.zh.md",
       thanks: "./guide/Thanks.md",
     },
+    en: {
+      whyTalk: "./guide/interesting/why-talk.en.md",
+      whyCode: "./guide/interesting/why-code.en.md",
+      whyTheory: "./guide/interesting/why-theory.en.md",
+      thanks: "./guide/Thanks.en.md",
+    },
   };
   return assets[normalizedLanguage]?.[key] ?? "";
 }

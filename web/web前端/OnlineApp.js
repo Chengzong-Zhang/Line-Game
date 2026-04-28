@@ -15,7 +15,7 @@ import {
   normalizeGameSettings as normalizeAppGameSettings,
   persistAuth as persistAppAuth,
   persistSession as persistAppSession,
-} from "./OnlineAppState.js?v=20260421c";
+} from "./OnlineAppState.js?v=20260428l";
 import {
   formatArea as formatAppArea,
   formatConnectionState as formatAppConnectionState,
@@ -26,8 +26,8 @@ import {
   getInitialLanguage as getAppInitialLanguage,
   getTexts as getAppTexts,
   localizeErrorMessage as localizeAppErrorMessage,
-} from "./OnlineAppI18n.js?v=20260428k";
-import { ensureGuideRuleImages, getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20260428k";
+} from "./OnlineAppI18n.js?v=20260428l";
+import { ensureGuideRuleImages, getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20260428l";
 
 const {
   computed,
@@ -200,6 +200,27 @@ function normalizeRoomStatus(status) {
     return "inProgress";
   }
   return normalized || "solo";
+}
+
+function normalizeMatchPhase(phase, fallbackStatus = "solo") {
+  const normalizedStatus = normalizeRoomStatus(fallbackStatus);
+  if (normalizedStatus === "inProgress") {
+    return "PLAYING";
+  }
+  if (normalizedStatus === "countdown") {
+    return "READY_TO_START";
+  }
+  if (normalizedStatus === "waiting") {
+    return "WAITING_FOR_PLAYERS";
+  }
+  if (normalizedStatus === "lobby") {
+    return "LOBBY";
+  }
+  const normalized = String(phase ?? "").trim().toUpperCase();
+  if (["PLAYING", "READY_TO_START", "WAITING_FOR_PLAYERS", "LOBBY", "SOLO"].includes(normalized)) {
+    return normalized;
+  }
+  return "SOLO";
 }
 
 const PLAYER_ACCENT_CLASS = Object.freeze({
@@ -669,14 +690,9 @@ const RoomPanel = {
     "toggle-ready",
     "update:start-player",
     "close-prompt",
-    "update:server-url",
     "update:room-id",
   ],
   props: {
-    serverUrl: {
-      type: String,
-      required: true,
-    },
     roomId: {
       type: String,
       required: true,
@@ -804,15 +820,6 @@ const RoomPanel = {
         <h2>{{ texts.onlineMatch }}</h2>
         <span class="panel-head-badge">{{ roomStatusLabel }}</span>
       </div>
-
-      <label class="field-label" for="server-url">{{ texts.serverAddress }}</label>
-      <input
-        id="server-url"
-        class="input-field"
-        :value="serverUrl"
-        :disabled="busy"
-        @input="$emit('update:server-url', $event.target.value)"
-      />
 
       <label class="field-label" for="room-id">{{ texts.roomId }}</label>
       <input
@@ -2303,7 +2310,10 @@ const App = {
         players: Array.isArray(payload?.players) ? payload.players : roomInfo.value.players,
         settings: normalizeAppGameSettings(payload?.settings ?? roomInfo.value.settings),
         countdownEndsAt: payload?.countdownEndsAt ?? null,
-        matchPhase: String(payload?.matchPhase ?? payload?.matchState?.phase ?? nextStatus ?? roomInfo.value.matchPhase),
+        matchPhase: normalizeMatchPhase(
+          payload?.matchPhase ?? payload?.matchState?.phase ?? roomInfo.value.matchPhase,
+          nextStatus,
+        ),
       };
       resultModalDismissed.value = false;
       return true;
@@ -2334,6 +2344,7 @@ const App = {
       const normalizedSettings = normalizeAppGameSettings(payload?.settings ?? roomInfo.value.settings);
       const players = Array.isArray(payload?.players) ? payload.players : roomInfo.value.players;
       const normalizedStatus = normalizeRoomStatus(payload?.status ?? roomStatus.value);
+      const normalizedPhase = normalizeMatchPhase(payload?.matchPhase ?? payload?.matchState?.phase ?? roomInfo.value.matchPhase, normalizedStatus);
       const everyoneConnected = Array.isArray(players)
         && players.length >= normalizedSettings.playerCount
         && players.every((player) => player.connected);
@@ -2341,7 +2352,7 @@ const App = {
       gameState.value = controller.value.enableMultiplayer({
         networkManager,
         localPlayer: payload?.yourColor ?? session.value.color,
-        roomReady: normalizedStatus === "inProgress",
+        roomReady: normalizedStatus === "inProgress" || normalizedPhase === "PLAYING",
         opponentConnected: everyoneConnected,
       });
     };
@@ -2666,6 +2677,11 @@ const App = {
         return;
       }
 
+      if (roomInfo.value.matchPhase === "PLAYING" || roomStatus.value === "inProgress") {
+        networkError.value = getAppTexts(language.value).matchInProgress;
+        return;
+      }
+
       readyPending.value = true;
       networkBusy.value = true;
       networkError.value = "";
@@ -2721,7 +2737,7 @@ const App = {
           );
       }
 
-      if (roomStatus.value === "inProgress") {
+      if (roomInfo.value.matchPhase === "PLAYING" || roomStatus.value === "inProgress") {
         const turnStatus = gameState.value.isLocalTurn
           ? texts.localTurnStatus(formatAppPlayerName(session.value.color, language.value))
           : texts.remoteTurnStatus;
@@ -2794,10 +2810,11 @@ const App = {
         || readyPending.value
         || roomStatus.value === "waiting"
         || roomStatus.value === "offline"
+        || roomInfo.value.matchPhase === "PLAYING"
         || roomStatus.value === "inProgress"
         || roomStatus.value === "countdown";
     });
-    const starterLocked = computed(() => !isHost.value || networkBusy.value || roomStatus.value === "inProgress" || roomStatus.value === "countdown");
+    const starterLocked = computed(() => !isHost.value || networkBusy.value || roomInfo.value.matchPhase === "PLAYING" || roomStatus.value === "inProgress" || roomStatus.value === "countdown");
     const showClosePrompt = computed(() => Boolean(overlayResult.value || (gameState.value.gameOver && !resultModalDismissed.value)));
 
     const resetLabel = computed(() => {
@@ -2816,7 +2833,7 @@ const App = {
       if (roomStatus.value === "solo") {
         return false;
       }
-      return !isHost.value || roomStatus.value === "inProgress" || roomStatus.value === "countdown";
+      return !isHost.value || roomInfo.value.matchPhase === "PLAYING" || roomStatus.value === "inProgress" || roomStatus.value === "countdown";
     });
 
     const resultResetAllowed = computed(() => {
@@ -2995,10 +3012,10 @@ const App = {
             winner: payload.winnerColor,
             scoreLine: formatAppFinalScoreLine(gameState.value.scores, language.value, gameState.value.players),
           };
-        } else if (payload.reason === "resign_restart" && payload.winnerColor && payload.color) {
+        } else if (payload.reason === "resign_restart" && payload.winnerColor && (payload.loserColor || payload.resetColor || payload.color)) {
           overlayResult.value = {
             winner: payload.winnerColor,
-            loser: payload.color,
+            loser: payload.loserColor ?? payload.resetColor ?? payload.color,
           };
         }
       }),
@@ -3223,7 +3240,6 @@ const App = {
 
           <RoomPanel
             :language="language"
-            :server-url="serverUrl"
             :room-id="roomIdInput"
             :connection-state="connectionState"
             :room-status="roomStatus"
@@ -3239,7 +3255,6 @@ const App = {
             :start-player="selectedStartPlayer"
             :starter-options="starterOptions"
             :show-close-prompt="showClosePrompt"
-            @update:server-url="serverUrl = $event"
             @update:room-id="roomIdInput = $event"
             @connect="handleConnect"
             @create-room="handleCreateRoom"

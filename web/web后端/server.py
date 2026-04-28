@@ -555,10 +555,15 @@ class ConnectionManager:
                     room.ready_players.clear()
                     room.reset_votes.clear()
                     self._cancel_countdown_locked(room)
-                    payload = self._room_payload("MATCH_RESET", room, reason="normal_restart")
-                    payload["playerId"] = action["sender"].player_id
-                    payload["color"] = action["sender"].color
-                    payloads = self._connected_room_payloads(room, payload)
+                    payloads = self._connected_room_payloads_with_identity(
+                        room,
+                        "MATCH_RESET",
+                        reason="normal_restart",
+                        extra={
+                            "resetPlayerId": action["sender"].player_id,
+                            "resetColor": action["sender"].color,
+                        },
+                    )
                 else:
                     winner = next(
                         (player for player in self._find_other_players(room, action["sender"].player_id)),
@@ -569,12 +574,21 @@ class ConnectionManager:
                     room.ready_players.clear()
                     room.reset_votes.clear()
                     self._cancel_countdown_locked(room)
-                    payload = self._room_payload("MATCH_RESET", room, reason="resign_restart")
-                    payload["playerId"] = action["sender"].player_id
-                    payload["color"] = action["sender"].color
+                    extra = {
+                        "resetPlayerId": action["sender"].player_id,
+                        "resetColor": action["sender"].color,
+                        "loserPlayerId": action["sender"].player_id,
+                        "loserColor": action["sender"].color,
+                    }
                     if winner is not None:
-                        payload["winnerColor"] = winner.color
-                    payloads = self._connected_room_payloads(room, payload)
+                        extra["winnerPlayerId"] = winner.player_id
+                        extra["winnerColor"] = winner.color
+                    payloads = self._connected_room_payloads_with_identity(
+                        room,
+                        "MATCH_RESET",
+                        reason="resign_restart",
+                        extra=extra,
+                    )
                 error_payload = None
 
         if error_payload is not None:
@@ -1072,6 +1086,23 @@ class ConnectionManager:
         for player in room.connected_players():
             if player.websocket is not None:
                 payloads.append((player.websocket, dict(payload)))
+        return payloads
+
+    def _connected_room_payloads_with_identity(
+        self,
+        room: Room,
+        event_type: str,
+        reason: Optional[str] = None,
+        extra: Optional[Dict[str, Any]] = None,
+    ) -> list[tuple[WebSocket, Dict[str, Any]]]:
+        payloads = []
+        for player in room.connected_players():
+            if player.websocket is None:
+                continue
+            payload = self._room_payload(event_type, room, your_player_id=player.player_id, reason=reason)
+            if extra:
+                payload.update(extra)
+            payloads.append((player.websocket, payload))
         return payloads
 
     def _generate_room_id(self) -> str:

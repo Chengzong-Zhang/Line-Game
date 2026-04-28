@@ -406,6 +406,10 @@ export class NetworkManager {
       this.roomId = payload.roomId ?? this.roomId;
       this.playerId = payload.yourPlayerId ?? this.playerId;
       this.color = payload.yourColor ?? this.color;
+    } else if (payload.type === ServerEvent.MATCH_RESET) {
+      this.roomId = payload.roomId ?? this.roomId;
+      this.playerId = payload.yourPlayerId ?? payload.playerId ?? this.playerId;
+      this.color = payload.yourColor ?? payload.color ?? this.color;
     } else if (payload.type === ServerEvent.PONG) {
       this._lastPongAt = Date.now();
     } else if (payload.type === ServerEvent.PLAYER_LEFT) {

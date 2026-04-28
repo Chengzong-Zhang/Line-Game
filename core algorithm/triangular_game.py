@@ -1120,7 +1120,7 @@ class TriangularGame:
             self._check_and_auto_skip()
         self._update_hulls()
 
-    def handle_click(self, pos: Tuple[int, int]):
+    def handle_click_legacy(self, pos: Tuple[int, int]):
         """Handle mouse click at screen position"""
         if self.game_over:
             return
@@ -1142,7 +1142,7 @@ class TriangularGame:
                 self._check_and_auto_skip()
                 self._update_hulls()
 
-    def handle_click_legacy(self, pos: Tuple[int, int]):
+    def handle_click(self, pos: Tuple[int, int]):
         """Handle mouse click at screen position."""
         if self.game_over:
             return
