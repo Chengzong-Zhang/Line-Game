@@ -2,12 +2,21 @@ const GUIDE_MARKDOWN = Object.freeze({
   zh: Object.freeze({
     rulesEssential: `【胜利条件】
 双方轮流在三角网格落子，最终由己方节点与连线完全闭合且内部无敌方元素的区域即为领土，领土所包含的网格点数多者获胜。
+![可落子区域示意](./guide-images/可以走的区域png.png)
 
 【核心机制】
 相邻且无遮挡的己方节点会自动连线，盘面上所有的节点与连线必须与己方初始点保持物理连通。玩家可落子于敌方连线上将其切断，一旦连线断裂导致敌方部分节点或连线失去与初始点的连通路径，这些断联的元素将立即从棋盘上彻底清除。
+![切断示意一](./guide-images/切断1.png)
+![切断示意二](./guide-images/切断2.png)
 
 【限制规则】
-为保证博弈的平衡与推进，游戏设定了三项强制约束。首先是起步保护，靠近初始点的两个相邻位置绝对禁止敌方落子。其次是阵型限制，禁止主动形成三个节点互相紧挨的最小三角形阵型，除非该次落子直接切断了敌方的连线。最后是同形禁手，禁止任何会使全局节点与连线状态恢复至历史重复局面的落子，以防止双方陷入无限互相切断的死循环`,
+为保证博弈的平衡与推进，游戏设定了三项强制约束。首先是起步保护，靠近初始点的两个相邻位置绝对禁止敌方落子。
+![起点限制示意](./guide-images/起点限制.png)
+
+其次是阵型限制，禁止主动形成三个节点互相紧挨的最小三角形阵型，除非该次落子直接切断了敌方的连线。
+![三点限制示意](./guide-images/三点限制.png)
+
+最后是同形禁手，禁止任何会使全局节点与连线状态恢复至历史重复局面的落子，以防止双方陷入无限互相切断的死循环`,
     rulesWar: `最高指挥官，欢迎来到这片由点与线交织的三角阵地。
 
 常言道，兵马未动，粮草先行。在这片残酷的战场上，如果你前方的部队失去了和总基地的联系，就会因为断水断粮而直接在棋盘上溃散消失。这是你在接下来的指挥中最需要牢记的铁律。
@@ -15,12 +24,19 @@ const GUIDE_MARKDOWN = Object.freeze({
 仔细观察你眼前的这片三角战场，它形似二战时期的苏德战场，从狭窄的波德平原一路向广阔的东欧平原延伸。这种特殊的地形里隐藏着这场战争最本质的战略张力：越靠近你的大本营，战线越窄，虽然极易防守，但你能掌控的领土也十分可怜；而越向战场中央挺进，天地越广阔，圈占的领土越大，但拉长的防线也会暴露出致命的破绽。你越想激进进攻，破绽就越多；越想保守防御，就越容易被对方死死围住。是稳扎稳打，还是狂飙突进，全在你的一念之间。
 
 为了防止总司令部一开局就被敌方的闪电战彻底封锁，你的大本营周围驻扎着极其强大的禁卫军。敌方绝对无法在你大本营最靠近的区域落子，有了这层绝对的保护，你可以安心地从这里向外发兵。
+![起点限制示意](./guide-images/起点限制.png)
 
 随着战役打响，你需要和敌军轮流派出士兵，占据新的网格点。只要视线不被阻挡，你的新兵就会和原有的部队自动拉起一条相互呼应的补给线。
+![可落子区域示意](./guide-images/可以走的区域png.png)
 
 你的终极目标是尽可能扩大你的安全领土。在这片战场上，领土就是由你的士兵和补给线完完全全包围起来的区域。为了减轻前线的防御压力，我们聪明的参谋部会自动为你规划出最精简的防线。这条防线会尽可能缩短周长、减少多余的防守面积，但一定会把你所有的部队都安全地保护在内，并且保证圈进来的地盘里绝对没有任何敌军的影子。
 
-在这场鏖战中，战备资源十分紧张。为了避免兵力浪费，你不能把三个士兵紧挨着挤在一个小三角里。但是战场瞬息万变，如果你这一步是直接踩在敌军的补给线上，狠狠切断了他们的粮草，那就相当于抢夺了敌方的物资。这说明该地段战况极其激烈，此时你就可以打破常规，不受不能拥挤的限制，大举集结兵力发起猛攻。
+在这场鏖战中，战备资源十分紧张。为了避免兵力浪费，你不能把三个士兵紧挨着挤在一个小三角里。
+![三点限制示意](./guide-images/三点限制.png)
+
+但是战场瞬息万变，如果你这一步是直接踩在敌军的补给线上，狠狠切断了他们的粮草，那就相当于抢夺了敌方的物资。这说明该地段战况极其激烈，此时你就可以打破常规，不受不能拥挤的限制，大举集结兵力发起猛攻。
+![切断示意一](./guide-images/切断1.png)
+![切断示意二](./guide-images/切断2.png)
 
 当所有的硝烟散去，双方都无兵可派、无地可占时，谁圈出的领土面积更大，谁就是这场战争真正的赢家。去吧，指挥官，愿你的防线坚不可摧。`,
     rulesMath: `# 离散数学与强化学习视角：三角圈地博弈的形式化定义与理论分析
@@ -34,6 +50,7 @@ const GUIDE_MARKDOWN = Object.freeze({
 根据组合博弈论中的策梅洛定理（Zermelo's Theorem），满足上述条件的有限博弈必然存在纯策略的纳什均衡。这意味着在完美算力下，必定存在确定的最优策略。
 
 然而，在经典的对称博弈中，增加己方棋子永远能带来严格的正向收益，理论上先手方可以通过随便落子并假装自己是后手，从而完成“策略窃取（Strategy Stealing）”，这在逻辑上排除了后手必胜的可能。但在本博弈模型中，这种经典证明被彻底摧毁。由于引入了动态拓扑解绑与防拥挤约束，额外增加一个节点极有可能成为敌方发起切割攻击的物理跳板，或者不慎堵死己方后续的布阵空间。这意味着在特定盘面下，落子不仅无法产生收益，反而会帮倒忙。由于玩家无法放弃行动回合，系统极易陷入被迫落子从而破坏自身完美防线的状态，即博弈论中经典的**迫移局面（Zugzwang）**。
+![三点限制示意](./guide-images/三点限制.png)
 
 迫移局面的客观存在，使得后手方具备了通过精准诱导实现反杀的理论可能。这不仅彻底瓦解了试图建立“先手无脑必不败”的粗暴证明，更赋予了游戏极深的反击战术维度，使得博弈树的分支因子和状态价值评估呈现出高度的非线性。寻找理论最优解因此成为一个计算复杂性极高的问题，非常适合作为深度强化学习的研究环境。
 
@@ -46,14 +63,18 @@ const GUIDE_MARKDOWN = Object.freeze({
 
 【图论连通性公理】
 图 $G_t$ 中存在两个特殊的固定基点 $v_{black}^* = (0,0)$ 与 $v_{white}^* = (N-1,0)$。对于任意时刻 $t$ 的任意同色子图 $G^{color}_t$，其包含的所有顶点和边，必须在图论意义上与对应的基点 $v_{color}^*$ 属于同一个连通分量。
+![起点限制示意](./guide-images/起点限制.png)
 
 ## 三、动作空间与图结构的动态演化
 
 玩家的动作空间定义为在集合 $V_{grid} \\setminus V_t$ 中选择一个合法空顶点。系统状态的转移函数表现为对无向图 $G_t$ 的离散算子操作，严格按以下顺序执行：
+![可落子区域示意](./guide-images/可以走的区域png.png)
 
 1. 落子后，沿六个离散网格方向进行射线扫描，若遇到同色节点且无异色元素遮挡，则生成新边。
 2. 若动作坐标正好落在敌方某条边的离散路径上，则该边会被永久删除，这会导致敌方图结构直接分裂。
+![切断示意一](./guide-images/切断1.png)
 3. 应用广度优先搜索，在敌方子图中寻找包含其基点的极大连通分量。所有不属于该连通分量的顶点与边都会因违背连通性公理而被剔除。
+![切断示意二](./guide-images/切断2.png)
 
 ## 四、强化学习建模：回合制马尔可夫决策过程
 
@@ -83,12 +104,21 @@ UE设计师：zcz, LeoYan, Codex(GPT5.4), Pigeon
   en: Object.freeze({
     rulesEssential: `【Victory Condition】
 Players take turns placing nodes on a triangular grid. Any region fully enclosed by your own nodes and links, with no enemy elements inside, counts as your territory. The side controlling more grid points inside its territories wins.
+![Playable area example](./guide-images/可以走的区域png.png)
 
 【Core Mechanic】
 Adjacent friendly nodes connect automatically as long as nothing blocks the line of sight. Every node and every link on the board must remain physically connected to that side's starting node. You may place a node directly on an enemy link to cut it. If that cut causes part of the enemy structure to lose all connection back to its starting node, the disconnected nodes and links are removed from the board immediately.
+![Cut example one](./guide-images/切断1.png)
+![Cut example two](./guide-images/切断2.png)
 
 【Restriction Rules】
-To keep the game balanced and moving, three constraints always apply. First, there is opening protection: the two positions adjacent to a player's starting node are absolutely forbidden to the opponent. Second, there is a formation restriction: you may not voluntarily create the smallest triangle made of three mutually adjacent nodes, unless that move directly cuts an enemy link. Third, there is a superko-style repetition ban: any move that recreates a previously seen global node-and-link state is illegal, preventing endless cut-and-recut loops.`,
+To keep the game balanced and moving, three constraints always apply. First, there is opening protection: the two positions adjacent to a player's starting node are absolutely forbidden to the opponent.
+![Starting-point restriction](./guide-images/起点限制.png)
+
+Second, there is a formation restriction: you may not voluntarily create the smallest triangle made of three mutually adjacent nodes, unless that move directly cuts an enemy link.
+![Three-point restriction](./guide-images/三点限制.png)
+
+Third, there is a superko-style repetition ban: any move that recreates a previously seen global node-and-link state is illegal, preventing endless cut-and-recut loops.`,
     rulesWar: `Commander, welcome to this triangular theater woven from points and lines.
 
 There is an old rule of war: supply must move before the army does. On this battlefield, if your forward troops lose contact with headquarters, they collapse from the board at once. That is the iron law you must remember above all else.
@@ -96,12 +126,19 @@ There is an old rule of war: supply must move before the army does. On this batt
 Look carefully at the shape of this battlefield. It resembles a front that opens from a narrow approach into a wide plain. That geometry creates the deepest tension in the game: the closer you stay to home base, the easier your line is to defend, but the less land you can truly control. The farther you push toward the center, the larger the territory you may claim, but the longer your line becomes, and the more weak points you expose. The more aggressively you expand, the more cracks you create. The more cautiously you turtle, the easier it is for your opponent to box you in. Whether you advance steadily or charge forward recklessly is always your call.
 
 To prevent headquarters from being sealed off on turn one, a powerful guard protects the area nearest your base. The enemy simply cannot play there. That absolute shield gives you a safe zone from which to begin your outward march.
+![Starting-point restriction](./guide-images/起点限制.png)
 
 As the campaign unfolds, you and your opponent alternate sending units to occupy new grid points. Whenever sight lines remain open, a new unit automatically links up with the rest of its side's formation and extends the supply network.
+![Playable area example](./guide-images/可以走的区域png.png)
 
 Your ultimate objective is to expand secure territory. On this battlefield, territory means land completely surrounded by your troops and supply lines. To reduce the burden on your front, the staff automatically tightens your border into the leanest defensive outline it can find. That outline tries to shorten the perimeter and remove waste, while still protecting all of your forces and guaranteeing that no enemy presence remains inside the enclosed land.
 
-Resources are tight in a drawn-out war. To avoid waste, you cannot crowd three soldiers into the smallest possible triangle. But the battlefield changes instantly. If your move lands directly on an enemy supply line and cuts it, that is treated as a decisive tactical strike. In such a fierce moment, normal crowding restrictions are waived and concentrated force becomes legal.
+Resources are tight in a drawn-out war. To avoid waste, you cannot crowd three soldiers into the smallest possible triangle.
+![Three-point restriction](./guide-images/三点限制.png)
+
+But the battlefield changes instantly. If your move lands directly on an enemy supply line and cuts it, that is treated as a decisive tactical strike. In such a fierce moment, normal crowding restrictions are waived and concentrated force becomes legal.
+![Cut example one](./guide-images/切断1.png)
+![Cut example two](./guide-images/切断2.png)
 
 When the smoke clears and neither side has any move or expansion left, the side that enclosed more territory is the true winner. Go on, Commander. May your lines hold.`,
     rulesMath: `# A Formal View of the Triangular Territory Game from Discrete Math and Reinforcement Learning
@@ -115,6 +152,7 @@ This game is a **two-player, finite, perfect-information, deterministic, zero-su
 By Zermelo's Theorem, every finite game of this kind has an optimal pure-strategy equilibrium. In principle, perfect play must therefore exist.
 
 In many classical symmetric games, adding one more friendly piece is never harmful. That supports the usual strategy-stealing argument: the first player can imagine being second and still not lose. Here that logic breaks down. Because the game includes dynamic topological disconnection and anti-crowding constraints, an extra node can become a physical stepping stone for an enemy cut or can block your own future shape. In some positions, playing more is not just unhelpful, it is actively harmful. Since players cannot pass forever, the game naturally creates **zugzwang** positions in which being forced to move damages an otherwise stable defense.
+![Three-point restriction](./guide-images/三点限制.png)
 
 The existence of zugzwang gives the second player real counterplay. It destroys any naive proof that the first player must always be safe, and it gives the game a strongly nonlinear tactical structure. That also makes the search for optimal play computationally expensive, which is exactly why the game is interesting as a reinforcement-learning environment.
 
@@ -127,14 +165,18 @@ The physical substrate of the game is a finite set of lattice points: all coordi
 
 【Connectivity Axiom】
 The graph $G_t$ contains two distinguished anchor nodes, $v_{black}^* = (0,0)$ and $v_{white}^* = (N-1,0)$. For any time $t$ and any monochromatic subgraph $G^{color}_t$, every contained node and edge must belong to the same connected component as that side's anchor.
+![Starting-point restriction](./guide-images/起点限制.png)
 
 ## III. Action Space and Dynamic Graph Evolution
 
 The action space consists of choosing a legal empty vertex from $V_{grid} \\setminus V_t$. State transitions are discrete operators applied to the graph $G_t$, in the following order:
+![Playable area example](./guide-images/可以走的区域png.png)
 
 1. After a move is placed, cast rays along the six lattice directions. If a same-color node is found with no opposing element blocking the path, add a new edge.
 2. If the chosen coordinate lies on the discrete path of an enemy edge, that edge is deleted permanently, which may split the enemy graph.
+![Cut example one](./guide-images/切断1.png)
 3. Run breadth-first search on the enemy subgraph to find the maximal connected component containing its anchor. Every node and edge outside that component is removed for violating the connectivity axiom.
+![Cut example two](./guide-images/切断2.png)
 
 ## IV. Reinforcement-Learning Model: Turn-Based Markov Decision Process
 
@@ -166,7 +208,7 @@ Beta Testers: Mandy, zfp, Orange, Puppy, yxy, hmy, RobinTian, zjy, wyc, fjh, lh,
 function tokenizeInline(text) {
   const source = String(text ?? "");
   const tokens = [];
-  const pattern = /(\*\*[^*]+\*\*|`[^`]+`)/g;
+  const pattern = /(\*\*[^*]+\*\*|`[^`]+`|\$[^$\n]+\$)/g;
   let lastIndex = 0;
 
   for (const match of source.matchAll(pattern)) {
@@ -184,6 +226,11 @@ function tokenizeInline(text) {
       tokens.push({
         type: "strong",
         text: matchText.slice(2, -2),
+      });
+    } else if (matchText.startsWith("$") && matchText.endsWith("$")) {
+      tokens.push({
+        type: "math",
+        text: matchText.slice(1, -1).trim(),
       });
     } else if (matchText.startsWith("`") && matchText.endsWith("`")) {
       tokens.push({
@@ -275,6 +322,17 @@ export function parseGuideMarkdown(raw) {
       blocks.push(createTextBlock("ordered", content ?? trimmed, {
         order: Number(order ?? 0),
       }));
+      index += 1;
+      continue;
+    }
+    if (/^!\[(.*)\]\((.+)\)$/.test(trimmed)) {
+      flushParagraph(paragraphLines);
+      const [, alt, src] = trimmed.match(/^!\[(.*)\]\((.+)\)$/) ?? [];
+      blocks.push({
+        type: "image",
+        alt: String(alt ?? "").trim(),
+        src: String(src ?? "").trim(),
+      });
       index += 1;
       continue;
     }

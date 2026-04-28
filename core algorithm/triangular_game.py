@@ -855,21 +855,31 @@ class TriangularGame:
         """Switch to the other player"""
         self.current_player = Player.WHITE if self.current_player == Player.BLACK else Player.BLACK
 
+    def _is_legal_move(self, pos: Tuple[int, int], player: Player) -> bool:
+        """Check move legality against the full ruleset, including Superko, without committing state."""
+        grid_snapshot = dict(self.grid)
+        black_edges_snapshot = set(self.black_edges)
+        white_edges_snapshot = set(self.white_edges)
+        history_hashes_snapshot = set(self.history_hashes)
+        current_player_snapshot = self.current_player
+
+        try:
+            self.current_player = player
+            return self._add_node(pos)
+        except SuperkoViolationError:
+            return False
+        finally:
+            self.grid = grid_snapshot
+            self.black_edges = black_edges_snapshot
+            self.white_edges = white_edges_snapshot
+            self.history_hashes = history_hashes_snapshot
+            self.current_player = current_player_snapshot
+
     def _has_valid_moves(self, player: Player) -> bool:
         """Return True if the given player has at least one legal move."""
-        opponent_line = PointState.WHITE_LINE if player == Player.BLACK else PointState.BLACK_LINE
-        existing_nodes = self._get_player_nodes(player)
-        for pos, state in self.grid.items():
-            if state not in [PointState.EMPTY, PointState.WHITE_LINE, PointState.BLACK_LINE]:
-                continue
-            if self._is_in_protection_zone(pos, player):
-                continue
-            is_attacking = (state == opponent_line)
-            if not is_attacking and not self._check_three_point_limitation(pos, player):
-                continue
-            for node_pos in existing_nodes:
-                if node_pos != pos and self._can_connect_with_blocking(pos, node_pos, player):
-                    return True
+        for pos in self.grid:
+            if self._is_legal_move(pos, player):
+                return True
         return False
 
     def _check_and_auto_skip(self):

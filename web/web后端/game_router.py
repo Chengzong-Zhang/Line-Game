@@ -259,10 +259,12 @@ class HeadlessGameEngine:
         broken = {e for e in self._get_edges(player)
                   if not all(self.grid.get(p) in valid
                               for p in self._get_line_points(*tuple(e)))}
-        self._get_edges(player) -= broken
+        self._get_edges(player).difference_update(broken)
 
     def _remove_node_edges(self, node: Tuple[int, int], player: PlayerSide) -> None:
-        self._get_edges(player) -= {e for e in self._get_edges(player) if node in e}
+        self._get_edges(player).difference_update(
+            {e for e in self._get_edges(player) if node in e}
+        )
 
     def _is_connected_to_initial(self, pos: Tuple[int, int], player: PlayerSide) -> bool:
         initial = (0, 0) if player == PlayerSide.BLACK else (8, 0)
@@ -432,20 +434,30 @@ class HeadlessGameEngine:
                                if self.current_player == PlayerSide.BLACK
                                else PlayerSide.BLACK)
 
+    def _is_legal_move(self, pos: Tuple[int, int], player: PlayerSide) -> bool:
+        """在不提交状态的前提下，检查一步棋是否通过完整规则校验（含 Superko）。"""
+        grid_snapshot = dict(self.grid)
+        black_edges_snapshot = set(self.black_edges)
+        white_edges_snapshot = set(self.white_edges)
+        history_hashes_snapshot = set(self.history_hashes)
+        current_player_snapshot = self.current_player
+
+        try:
+            self.current_player = player
+            return self.add_node(pos)
+        except SuperkoViolationError:
+            return False
+        finally:
+            self.grid = grid_snapshot
+            self.black_edges = black_edges_snapshot
+            self.white_edges = white_edges_snapshot
+            self.history_hashes = history_hashes_snapshot
+            self.current_player = current_player_snapshot
+
     def _has_valid_moves(self, player: PlayerSide) -> bool:
-        opp_line = PointState.WHITE_LINE if player == PlayerSide.BLACK else PointState.BLACK_LINE
-        nodes = self._get_player_nodes(player)
-        for pos, state in self.grid.items():
-            if state not in (PointState.EMPTY, PointState.WHITE_LINE, PointState.BLACK_LINE):
-                continue
-            if self._is_in_protection_zone(pos, player):
-                continue
-            is_attack = (state == opp_line)
-            if not is_attack and not self._check_three_point_limitation(pos, player):
-                continue
-            for node in nodes:
-                if node != pos and self._can_connect_with_blocking(pos, node, player):
-                    return True
+        for pos in self.grid:
+            if self._is_legal_move(pos, player):
+                return True
         return False
 
     def _check_and_auto_skip(self) -> None:

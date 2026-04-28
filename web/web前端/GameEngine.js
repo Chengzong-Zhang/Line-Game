@@ -1098,32 +1098,58 @@ export class GameEngine {
     this.currentPlayer = this.activePlayers[(currentIndex + 1) % this.activePlayers.length];
   }
 
-  _hasValidMoves(player) {
-    const existingNodes = this._getPlayerNodes(player);
+  _getNextPlayer(player = this.currentPlayer) {
+    const currentIndex = this.activePlayers.indexOf(player);
+    return this.activePlayers[(currentIndex + 1) % this.activePlayers.length];
+  }
+
+  _evaluateMove(point, player = this.currentPlayer) {
+    if (!this.isValidPosition(point)) {
+      return { legal: false, reason: "INVALID_MOVE", state: null, isAttack: false };
+    }
+
+    const originalState = this._getState(point);
     const attackableLineStates = new Set(
       this._getOpponents(player).map((opponent) => this._getPlayerStates(opponent).line),
     );
-    const occupiableLineStates = new Set(this.activePlayers.map((candidate) => this._getPlayerStates(candidate).line));
+    const isAttackingMove = attackableLineStates.has(originalState);
+    const currentPlayerSnapshot = this.currentPlayer;
+    const gridSnapshot = new Map(this.grid);
+    const edgesSnapshot = Object.fromEntries(
+      this.activePlayers.map((candidate) => [candidate, new Set(this._getEdges(candidate))]),
+    );
 
+    try {
+      this.currentPlayer = player;
+      const success = this._addNode(point);
+      if (!success) {
+        return { legal: false, reason: "INVALID_MOVE", state: originalState, isAttack: isAttackingMove };
+      }
+
+      const stateHash = this._computeStateHash(this._getNextPlayer(player));
+      if (this.historyHashes.has(stateHash)) {
+        return {
+          legal: false,
+          reason: "SUPERKO_VIOLATION",
+          state: originalState,
+          isAttack: isAttackingMove,
+        };
+      }
+
+      return { legal: true, reason: null, state: originalState, isAttack: isAttackingMove };
+    } finally {
+      this.grid = gridSnapshot;
+      for (const candidate of this.activePlayers) {
+        this.edges[candidate] = edgesSnapshot[candidate];
+      }
+      this.currentPlayer = currentPlayerSnapshot;
+    }
+  }
+
+  _hasValidMoves(player) {
     for (const point of this.validPositions) {
-      const state = this._getState(point);
-      if (state !== PointState.EMPTY && !occupiableLineStates.has(state)) {
-        continue;
-      }
-
-      if (this._isInProtectionZone(point, player)) {
-        continue;
-      }
-
-      const isAttackingMove = attackableLineStates.has(state);
-      if (!isAttackingMove && !this._checkThreePointLimitation(point, player)) {
-        continue;
-      }
-
-      for (const node of existingNodes) {
-        if (!pointEquals(node, point) && this.canConnectWithBlocking(point, node, player)) {
-          return true;
-        }
+      if (this._evaluateMove(point, player).legal) {
+        return true;
       }
     }
 
@@ -1131,34 +1157,15 @@ export class GameEngine {
   }
 
   getLegalMoves(player = this.currentPlayer) {
-    const existingNodes = this._getPlayerNodes(player);
-    const attackableLineStates = new Set(
-      this._getOpponents(player).map((opponent) => this._getPlayerStates(opponent).line),
-    );
-    const occupiableLineStates = new Set(this.activePlayers.map((candidate) => this._getPlayerStates(candidate).line));
     const result = [];
 
     for (const point of this.validPositions) {
-      const state = this._getState(point);
-      if (state !== PointState.EMPTY && !occupiableLineStates.has(state)) {
-        continue;
-      }
-
-      if (this._isInProtectionZone(point, player)) {
-        continue;
-      }
-
-      const isAttackingMove = attackableLineStates.has(state);
-      if (!isAttackingMove && !this._checkThreePointLimitation(point, player)) {
-        continue;
-      }
-
-      const connects = existingNodes.some((node) => !pointEquals(node, point) && this.canConnectWithBlocking(point, node, player));
-      if (connects) {
+      const evaluation = this._evaluateMove(point, player);
+      if (evaluation.legal) {
         result.push({
           point: clonePoint(point),
-          state,
-          isAttack: isAttackingMove,
+          state: evaluation.state,
+          isAttack: evaluation.isAttack,
         });
       }
     }
@@ -1269,9 +1276,7 @@ export class GameEngine {
     }
 
     // 结算后计算局面哈希（以对手为即将行棋方）
-    const currentIndex = this.activePlayers.indexOf(this.currentPlayer);
-    const nextPlayer = this.activePlayers[(currentIndex + 1) % this.activePlayers.length];
-    const stateHash = this._computeStateHash(nextPlayer);
+    const stateHash = this._computeStateHash(this._getNextPlayer(this.currentPlayer));
 
     if (this.historyHashes.has(stateHash)) {
       // 全局同形再现禁手：回滚所有变更，拒绝落子

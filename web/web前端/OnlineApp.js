@@ -26,8 +26,8 @@ import {
   getInitialLanguage as getAppInitialLanguage,
   getTexts as getAppTexts,
   localizeErrorMessage as localizeAppErrorMessage,
-} from "./OnlineAppI18n.js?v=20260428b";
-import { getGuideMarkdown, parseGuideMarkdown } from "./GuideContent.js?v=20260428b";
+} from "./OnlineAppI18n.js?v=20260428d";
+import { getGuideMarkdown, parseGuideMarkdown } from "./GuideContent.js?v=20260428d";
 
 const {
   computed,
@@ -1144,6 +1144,29 @@ const GuideBoardIllustration = {
   `,
 };
 
+function escapeGuideHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function renderGuideMathToken(value) {
+  let rendered = escapeGuideHtml(String(value ?? "").trim());
+  rendered = rendered.replace(/\\langle/g, "&lang;");
+  rendered = rendered.replace(/\\rangle/g, "&rang;");
+  rendered = rendered.replace(/\\rightarrow/g, "&rarr;");
+  rendered = rendered.replace(/\\subseteq/g, "&sube;");
+  rendered = rendered.replace(/\\cup/g, "&cup;");
+  rendered = rendered.replace(/\\notin/g, "&notin;");
+  rendered = rendered.replace(/\\mathcal\{([^}]+)\}/g, "<span class=\"guide-math-cal\">$1</span>");
+  rendered = rendered.replace(/_\{([^}]+)\}/g, "<sub>$1</sub>");
+  rendered = rendered.replace(/\^\\?\{([^}]+)\}/g, "<sup>$1</sup>");
+  rendered = rendered.replace(/_([A-Za-z0-9*+-]+)/g, "<sub>$1</sub>");
+  rendered = rendered.replace(/\^([A-Za-z0-9*+-]+)/g, "<sup>$1</sup>");
+  return rendered;
+}
+
 const GuideInlineText = {
   name: "GuideInlineText",
   props: {
@@ -1152,9 +1175,15 @@ const GuideInlineText = {
       default: () => [],
     },
   },
+  setup() {
+    return {
+      renderGuideMathToken,
+    };
+  },
   template: `
     <template v-for="(token, index) in tokens" :key="index">
       <strong v-if="token.type === 'strong'">{{ token.text }}</strong>
+      <span v-else-if="token.type === 'math'" class="guide-inline-math" v-html="renderGuideMathToken(token.text)"></span>
       <code v-else-if="token.type === 'code'" class="guide-inline-code">{{ token.text }}</code>
       <span v-else>{{ token.text }}</span>
     </template>
@@ -1264,7 +1293,6 @@ const GuidePanel = {
 const GuideReaderModal = {
   name: "GuideReaderModal",
   components: {
-    GuideBoardIllustration,
     GuideInlineText,
   },
   emits: ["close"],
@@ -1298,17 +1326,16 @@ const GuideReaderModal = {
             </button>
           </div>
 
-          <div class="guide-reader-layout" :class="{ 'guide-reader-layout-illustrated': entry.showIllustration }">
-            <div v-if="entry.showIllustration" class="guide-reader-illustration">
-              <GuideBoardIllustration />
-              <p class="guide-illustration-caption">{{ texts.guideIllustrationCaption }}</p>
-            </div>
-
+          <div class="guide-reader-layout">
             <div class="guide-reader-body">
               <template v-for="(block, index) in entry.blocks" :key="entry.key + '-' + index">
                 <h3 v-if="block.type === 'heading1'" class="guide-block-heading-xl"><GuideInlineText :tokens="block.tokens" /></h3>
                 <h4 v-else-if="block.type === 'heading2'" class="guide-block-heading"><GuideInlineText :tokens="block.tokens" /></h4>
                 <h5 v-else-if="block.type === 'callout'" class="guide-block-callout"><GuideInlineText :tokens="block.tokens" /></h5>
+                <figure v-else-if="block.type === 'image'" class="guide-block-figure">
+                  <img :src="block.src" :alt="block.alt || entry.title" class="guide-block-image" loading="lazy" />
+                  <figcaption v-if="block.alt" class="guide-block-figcaption">{{ block.alt }}</figcaption>
+                </figure>
                 <div v-else-if="block.type === 'meta'" class="guide-block-meta">
                   <span class="guide-block-meta-label">{{ block.label }}</span>
                   <p class="guide-block-meta-value"><GuideInlineText :tokens="block.tokens" /></p>
@@ -1444,7 +1471,7 @@ function createGuideEntries(language = "zh") {
       eyebrow: texts.guideRulesTitle,
       title: texts.guideRuleSimpleTitle,
       subtitle: texts.guideRuleSimpleSubtitle,
-      showIllustration: true,
+      showIllustration: false,
       blocks: parseGuideMarkdown(getGuideMarkdown("rulesEssential", language)),
     },
     {
@@ -1453,7 +1480,7 @@ function createGuideEntries(language = "zh") {
       eyebrow: texts.guideRulesTitle,
       title: texts.guideRuleWarTitle,
       subtitle: texts.guideRuleWarSubtitle,
-      showIllustration: true,
+      showIllustration: false,
       blocks: parseGuideMarkdown(getGuideMarkdown("rulesWar", language)),
     },
     {
@@ -1462,7 +1489,7 @@ function createGuideEntries(language = "zh") {
       eyebrow: texts.guideRulesTitle,
       title: texts.guideRuleMathTitle,
       subtitle: texts.guideRuleMathSubtitle,
-      showIllustration: true,
+      showIllustration: false,
       blocks: parseGuideMarkdown(getGuideMarkdown("rulesMath", language)),
     },
     {

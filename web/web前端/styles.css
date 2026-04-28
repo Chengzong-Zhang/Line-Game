@@ -1014,6 +1014,7 @@ body::before {
 .utility-modal {
   width: min(1100px, calc(100vw - 48px));
   display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 16px;
   max-height: calc(100vh - 48px);
   padding: 24px;
@@ -1059,8 +1060,12 @@ body::before {
 }
 
 .utility-body {
+  min-height: 0;
   overflow: auto;
   padding-right: 4px;
+  padding-bottom: 22px;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .utility-grid {
@@ -1238,9 +1243,13 @@ body::before {
 
 .guide-reader-layout {
   display: block;
+  min-height: 0;
   overflow: auto;
   max-height: calc(min(86vh, 920px) - 110px);
-  padding: 24px 32px 32px;
+  padding: 24px 32px 56px;
+  scroll-padding-bottom: 56px;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .guide-reader-layout-illustrated {
@@ -1280,6 +1289,28 @@ body::before {
 .guide-reader-body {
   display: grid;
   gap: 18px;
+  padding-bottom: 18px;
+}
+
+.guide-block-figure {
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.guide-block-image {
+  width: 100%;
+  display: block;
+  border: 1px solid rgba(88, 61, 31, 0.1);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 14px 28px rgba(64, 42, 18, 0.08);
+}
+
+.guide-block-figcaption {
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+  line-height: 1.5;
 }
 
 .guide-inline-code {
@@ -1288,6 +1319,27 @@ body::before {
   background: rgba(109, 84, 52, 0.08);
   color: #5e472d;
   font-size: 0.94em;
+}
+
+.guide-inline-math {
+  display: inline-block;
+  padding: 0.08em 0.28em;
+  border-radius: 0.5em;
+  background: rgba(198, 154, 75, 0.1);
+  color: #46311f;
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 1.06em;
+  line-height: 1.2;
+}
+
+.guide-inline-math sub,
+.guide-inline-math sup {
+  font-size: 0.72em;
+}
+
+.guide-math-cal {
+  font-style: italic;
+  letter-spacing: 0.04em;
 }
 
 .guide-block-heading-xl,
