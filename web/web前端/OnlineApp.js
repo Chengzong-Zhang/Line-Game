@@ -26,8 +26,8 @@ import {
   getInitialLanguage as getAppInitialLanguage,
   getTexts as getAppTexts,
   localizeErrorMessage as localizeAppErrorMessage,
-} from "./OnlineAppI18n.js?v=20260428d";
-import { getGuideMarkdown, parseGuideMarkdown } from "./GuideContent.js?v=20260428d";
+} from "./OnlineAppI18n.js?v=20260428f";
+import { getGuideMarkdown, parseGuideMarkdown } from "./GuideContent.js?v=20260428f";
 
 const {
   computed,
@@ -1398,7 +1398,7 @@ const GuideReaderModal = {
               </button>
             </div>
             <div class="guide-reader-body">
-              <template v-for="(block, index) in displayBlocks" :key="entry.key + '-' + index">
+              <template v-for="(block, index) in displayBlocks" :key="(activeReadableEntry?.key || entry.key) + '-' + index">
                 <h3 v-if="block.type === 'heading1'" class="guide-block-heading-xl"><GuideInlineText :tokens="block.tokens" /></h3>
                 <h4 v-else-if="block.type === 'heading2'" class="guide-block-heading"><GuideInlineText :tokens="block.tokens" /></h4>
                 <h5 v-else-if="block.type === 'callout'" class="guide-block-callout"><GuideInlineText :tokens="block.tokens" /></h5>

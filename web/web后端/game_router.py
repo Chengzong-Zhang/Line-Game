@@ -563,7 +563,7 @@ class HeadlessGameEngine:
         return results
 
     def _compute_inner_hull(self, player: PlayerSide) -> Tuple[Set[Tuple[int, int]], int]:
-        """核心：右手摸墙 → 贪心修剪 → 泛洪判定，返回 (covered_set, score)"""
+        """核心：右手摸墙 → 动态贪心修剪（BFS 预计算 + 楔形泛洪）→ 泛洪判定。"""
         opp = PlayerSide.WHITE if player == PlayerSide.BLACK else PlayerSide.BLACK
         enemies = set(self._get_player_nodes(opp) + self._get_player_lines(opp))
         friendly_nodes = set(self._get_player_nodes(player))
@@ -572,46 +572,132 @@ class HeadlessGameEngine:
         if len(current_poly) < 3:
             return set(), 0
 
+        def dedupe_adjacent(poly: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
+            return [p for k, p in enumerate(poly) if k == 0 or p != poly[k - 1]]
+
+        def bfs_from_source(src: Tuple[int, int]) -> Tuple[Dict[Tuple[int, int], int], Dict[Tuple[int, int], List[Tuple[int, int]]]]:
+            blocked = set(enemies)
+            blocked.discard(src)
+            dist: Dict[Tuple[int, int], int] = {src: 0}
+            pred: Dict[Tuple[int, int], List[Tuple[int, int]]] = {}
+            q: deque = deque([src])
+            while q:
+                curr = q.popleft()
+                for nxt in self._get_adjacent_positions(curr):
+                    if nxt in blocked:
+                        continue
+                    nd = dist[curr] + 1
+                    if nxt not in dist:
+                        dist[nxt] = nd
+                        pred[nxt] = [curr]
+                        q.append(nxt)
+                    elif dist[nxt] == nd:
+                        pred[nxt].append(curr)
+            return dist, pred
+
+        def reconstruct_paths(
+            src: Tuple[int, int],
+            tgt: Tuple[int, int],
+            pred: Dict[Tuple[int, int], List[Tuple[int, int]]],
+            limit: int = 100,
+        ) -> List[List[Tuple[int, int]]]:
+            if src == tgt:
+                return [[src]]
+            results: List[List[Tuple[int, int]]] = []
+
+            def build(curr: Tuple[int, int], suffix: List[Tuple[int, int]]) -> None:
+                if len(results) >= limit:
+                    return
+                if curr == src:
+                    results.append([src] + suffix)
+                    return
+                for prev in pred.get(curr, []):
+                    build(prev, [curr] + suffix)
+
+            build(tgt, [])
+            return results
+
         while True:
             n = len(current_poly)
             if n < 3:
                 break
             cur_perim = n
-            cur_area = len(self._get_covered_points(current_poly))
+            cur_covered = self._get_covered_points(current_poly)
+            cur_area = len(cur_covered)
             best_cand = None
             best_perim = cur_perim
             best_area = cur_area
 
+            bfs_cache = [bfs_from_source(current_poly[i]) for i in range(n)]
+
             for i in range(n):
+                dist_i, pred_i = bfs_cache[i]
                 for j in range(n - 1, i + 1, -1):
-                    if j - i <= 1:
+                    arc_len = j - i
+                    if arc_len <= 1:
                         continue
-                    paths = self._get_all_shortest_grid_paths(
-                        current_poly[i], current_poly[j], enemies, max_paths=100)
-                    if not paths:
+                    shortest_dist = dist_i.get(current_poly[j])
+                    if shortest_dist is None or shortest_dist >= arc_len:
                         continue
+                    paths = reconstruct_paths(current_poly[i], current_poly[j], pred_i, limit=100)
                     for path in paths:
-                        cand_A = current_poly[:i] + path + current_poly[j+1:]
-                        cand_B = current_poly[i:j+1] + path[::-1][1:-1]
-                        for cand in (cand_A, cand_B):
-                            cand = [p for k, p in enumerate(cand)
-                                    if k == 0 or p != cand[k-1]]
-                            if len(cand) < 3:
+                        path_len = len(path)
+                        path_interior = path[1:-1]
+                        is_inward = all(p in cur_covered for p in path_interior)
+
+                        if is_inward:
+                            wedge = dedupe_adjacent(current_poly[i:j+1] + list(reversed(path_interior)))
+                            if len(wedge) < 3:
                                 continue
-                            cp = len(cand)
-                            if cp > best_perim:
-                                continue
-                            covered = self._get_covered_points(cand)
-                            ca = len(covered)
-                            if cp == best_perim and ca >= best_area:
-                                continue
-                            if not friendly_nodes.issubset(covered):
-                                continue
-                            if any(e in covered for e in enemies):
-                                continue
-                            best_perim = cp
-                            best_area = ca
-                            best_cand = cand
+                            wedge_covered = self._get_covered_points(wedge)
+                            wedge_area = len(wedge_covered)
+                            path_set = set(path)
+
+                            cand_a_area = cur_area - wedge_area + 2 * (path_len - 1)
+                            cand_a_perim = cur_perim - arc_len + (path_len - 1)
+                            if (
+                                cand_a_perim <= best_perim
+                                and not (cand_a_perim == best_perim and cand_a_area >= best_area)
+                                and all(fn not in wedge_covered or fn in path_set for fn in friendly_nodes)
+                            ):
+                                cand_a = dedupe_adjacent(current_poly[:i] + path + current_poly[j+1:])
+                                if len(cand_a) >= 3:
+                                    best_perim = cand_a_perim
+                                    best_area = cand_a_area
+                                    best_cand = cand_a
+
+                            cand_b_perim = len(wedge)
+                            cand_b_area = wedge_area
+                            if (
+                                cand_b_perim <= best_perim
+                                and not (cand_b_perim == best_perim and cand_b_area >= best_area)
+                                and friendly_nodes.issubset(wedge_covered)
+                                and not any(e in wedge_covered for e in enemies)
+                            ):
+                                best_perim = cand_b_perim
+                                best_area = cand_b_area
+                                best_cand = wedge
+                        else:
+                            cand_a = current_poly[:i] + path + current_poly[j+1:]
+                            cand_b = current_poly[i:j+1] + list(reversed(path_interior))
+                            for cand in (cand_a, cand_b):
+                                cand = dedupe_adjacent(cand)
+                                if len(cand) < 3:
+                                    continue
+                                cp = len(cand)
+                                if cp > best_perim:
+                                    continue
+                                covered = self._get_covered_points(cand)
+                                ca = len(covered)
+                                if cp == best_perim and ca >= best_area:
+                                    continue
+                                if not friendly_nodes.issubset(covered):
+                                    continue
+                                if any(e in covered for e in enemies):
+                                    continue
+                                best_perim = cp
+                                best_area = ca
+                                best_cand = cand
 
             if best_cand is not None:
                 current_poly = best_cand

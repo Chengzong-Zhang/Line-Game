@@ -1223,7 +1223,7 @@ body::before {
 }
 
 .guide-reader {
-  width: min(980px, calc(100vw - 32px));
+  width: min(1120px, calc(100vw - 32px));
   max-height: min(86vh, 920px);
   overflow: hidden;
   border-radius: 28px;
@@ -1307,6 +1307,60 @@ body::before {
   padding-bottom: 18px;
 }
 
+.guide-sub-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.guide-sub-tab {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid rgba(88, 61, 31, 0.1);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.68);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.guide-sub-tab:hover,
+.guide-sub-tab.is-active {
+  border-color: rgba(149, 104, 45, 0.32);
+  box-shadow: 0 12px 28px rgba(80, 54, 25, 0.1);
+  transform: translateY(-1px);
+}
+
+.guide-sub-tab strong {
+  font-size: 0.98rem;
+}
+
+.guide-sub-tab span {
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.guide-section-mini-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.guide-section-mini-tabs span {
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(198, 154, 75, 0.12);
+  color: #6d5434;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
 .guide-block-figure {
   margin: 0;
   display: grid;
@@ -1359,9 +1413,7 @@ body::before {
 
 .guide-inline-math {
   display: inline-block;
-  padding: 0.08em 0.28em;
-  border-radius: 0.5em;
-  background: rgba(198, 154, 75, 0.1);
+  padding: 0 0.14em;
   color: #46311f;
   font-family: "Cormorant Garamond", Georgia, serif;
   font-size: 1.06em;
@@ -1451,6 +1503,68 @@ body::before {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
 }
 
+.guide-block-quote {
+  margin: 0;
+  padding: 16px 18px;
+  border-left: 4px solid #a87834;
+  border-radius: 14px;
+  background: rgba(198, 154, 75, 0.12);
+  color: var(--ink);
+}
+
+.guide-block-quote p {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.78;
+  font-weight: 700;
+}
+
+.guide-block-math {
+  overflow-x: auto;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #352517;
+  font-size: 1.02rem;
+  scrollbar-gutter: stable;
+}
+
+.guide-code-block {
+  margin: 0;
+  overflow-x: auto;
+  padding: 16px 18px;
+  border: 1px solid rgba(88, 61, 31, 0.1);
+  border-radius: 14px;
+  background: #251f18;
+  color: #f5ead8;
+  font-size: 0.9rem;
+  line-height: 1.62;
+  scrollbar-gutter: stable;
+}
+
+.guide-code-block code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  white-space: pre;
+}
+
+.guide-code-keyword {
+  color: #f0bd6e;
+  font-weight: 700;
+}
+
+.guide-code-type {
+  color: #8fc7ff;
+}
+
+.guide-code-string {
+  color: #b8df9a;
+}
+
+.guide-code-comment {
+  color: #9b8d7b;
+  font-style: italic;
+}
+
 .guide-block-meta-label {
   color: #6d5434;
   font-size: 0.8rem;
@@ -1520,6 +1634,10 @@ body::before {
   .guide-reader-layout {
     padding-left: 22px;
     padding-right: 22px;
+  }
+
+  .guide-sub-tabs {
+    grid-template-columns: 1fr;
   }
 }
 
