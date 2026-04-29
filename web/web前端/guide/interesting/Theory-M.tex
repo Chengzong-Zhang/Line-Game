@@ -1,0 +1,341 @@
+\documentclass[12pt]{ctexart}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs,longtable,array}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\setlist[itemize]{leftmargin=2em}
+\setlist[enumerate]{leftmargin=2.2em}
+\title{三角网格圈地博弈的理论复杂性与机制分析}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section*{Executive Summary}
+
+我把当前版本的“三角网格圈地博弈”视为一个去除了 Superko 的、确定性的、双人零和、完备信息、马尔可夫博弈。与原始双层架构版本相比，当前版本不再把历史状态集纳入合法性判断，因此状态转移图一般不再是有向无环图，而是一个可能含有回路的有限有向图；与此同时，线段只作为节点集合诱导出的物理投影，不必再被当作独立历史对象长期存储。
+
+在几何层面，棋盘格点总数满足
+\[
+V(n)=\frac{n(n+1)}2=\Theta(n^2),
+\]
+而几何上所有潜在可见边的总上界满足
+\[
+E(n)=\frac{n^3-n}{2}=\Theta(n^3).
+\]
+若沿原始“双层架构”口径进行宽松上界计数，则位置状态满足
+\[
+S_{\mathrm{pos}}(n)\le 2\cdot 5^{V(n)}\cdot 3^{E(n)},
+\]
+其十进对数主导项为
+\[
+\log_{10} S_{\mathrm{pos}}(n)\approx 0.23856\,n^3+0.34949\,n^2+\cdots .
+\]
+于是 \(n=9\) 时约为 \(3.3\times 10^{203}\)，\(n=15\) 时约为 \(5.5\times 10^{885}\)。可是，在当前 no-Superko 且“线由点自动生成”的版本中，这个上界显著过松；若仅以“空、黑节点、白节点、行棋方”编码，则更紧上界可压缩为
+\[
+S_{\mathrm{Markov}}(n)\le 2\cdot 3^{V(n)}.
+\]
+
+在搜索层面，无 Superko 时最大对局深度 generally 不再能由 \(V(n)\) 控制。若允许状态重现且未规定和棋或步数上限，则对局可以回到旧状态并产生回路，故 \(d_{\max}\) 一般没有有限统一上界。若外加“首次重现即截断”或总步数上限，则
+\[
+d_{\max}\le S_{\mathrm{Markov}}(n)-1=\exp(\Theta(n^2)),
+\]
+从而
+\[
+T_{\mathrm{brute}}(n)=O(b(n)^{d(n)})=\exp(\exp(\Theta(n^2))).
+\]
+若改单调化变体，则 \(d(n)=\Theta(n^2)\)，于是
+\[
+T_{\mathrm{brute}}(n)=\exp(\Theta(n^2\log n)).
+\]
+
+\section*{建模前提}
+
+我采用如下对象：棋盘是边长为 \(n\) 的离散等边三角网格，第 \(y\) 行有 \(n-y\) 个格点，基础邻接为六向邻接。原始实现采用五态物理格点与显式边集的双层模型；当前报告按题设删除 Superko，因此我不把历史集合纳入状态，而把马尔可夫状态写成
+\[
+X_t=(\sigma_t,p_t),
+\]
+其中 \(\sigma_t\) 为当前盘面编码，\(p_t\in\{\mathrm{Black},\mathrm{White}\}\) 为即将行棋方。
+
+若沿实现层保留渲染态，则 \(\sigma_t\) 可记录五态格点；若沿理论最简编码，则 \(\sigma_t\) 甚至只需记录三态节点阵（空、黑节点、白节点），并在查询时由节点自动投影出线点与可见连线。
+
+根连通性约束可表述为：对任意颜色 \(c\in\{\mathrm{Black},\mathrm{White}\}\)，所有存活同色结构必须与其固定基点 \(v_c^\ast\) 连通。攻击结算中的 BFS 严格说保留的是“包含基点的根连通分量”，而非按顶点数定义的最大连通分量；但在合法状态空间里，凡不在这个根连通分量中的部分都会被删除，因此它是唯一允许存活的极大连通分量。
+
+弃手/传子在当前规则中记为“未指定”。若允许无限次弃手且没有双弃终局或总步数上限，则无论有无切断，对局深度都不再有统一上界。
+
+\section*{几何规模与状态空间上界}
+
+\subsection*{几何规模}
+
+由第 \(y\) 行含 \(n-y\) 个格点可得
+\[
+V(n)=\sum_{y=0}^{n-1}(n-y)=\frac{n(n+1)}2=\Theta(n^2).
+\]
+
+按水平、竖直、对角三族共线方向统计所有几何上可能形成的节点对，则
+\[
+E(n)
+=
+3\sum_{\ell=1}^{n}\binom{\ell}{2}
+=
+3\binom{n+1}{3}
+=
+\frac{n^3-n}{2}
+=
+\Theta(n^3).
+\]
+
+尽管当前版本中线由点自动生成，\(E(n)\) 仍然是分析 visibility、切断、重连与动态图更新时的关键上界参数。
+
+\subsection*{状态空间上界}
+
+为了与原始双层架构的分析口径保持一致，我先给出宽松上界
+\[
+S_{\mathrm{pos}}(n)\le 2\cdot 5^{V(n)}\cdot 3^{E(n)}.
+\]
+代入 \(V(n)\) 与 \(E(n)\) 后，
+\[
+S_{\mathrm{pos}}(n)\le
+2\cdot 5^{\frac{n(n+1)}2}\cdot 3^{\frac{n^3-n}{2}}.
+\]
+其十进对数为
+\[
+\log_{10} S_{\mathrm{pos}}(n)
+=
+\frac{n^3-n}{2}\log_{10}3
++\frac{n^2+n}{2}\log_{10}5
++\log_{10}2,
+\]
+即
+\[
+\log_{10} S_{\mathrm{pos}}(n)
+\approx
+0.23856\,n^3+0.34949\,n^2+0.11092\,n+0.30103.
+\]
+
+于是
+\[
+S_{\mathrm{pos}}(9)\lesssim 3.3\times 10^{203},
+\qquad
+S_{\mathrm{pos}}(15)\lesssim 5.5\times 10^{885}.
+\]
+
+但在当前 no-Superko 且线为节点确定性投影的版本里，这个上界显著过松。我区分三种编码上界：
+\[
+S_{\mathrm{two\text{-}layer}}(n)\le 2\cdot 5^{V(n)}\cdot 3^{E(n)},
+\]
+\[
+S_{\mathrm{grid}}(n)\le 2\cdot 5^{V(n)},
+\]
+\[
+S_{\mathrm{Markov}}(n)\le 2\cdot 3^{V(n)}.
+\]
+其中最紧的马尔可夫编码满足
+\[
+S_{\mathrm{Markov}}(n)\le 2\cdot 3^{\frac{n(n+1)}2},
+\qquad
+\log_{10}S_{\mathrm{Markov}}(n)\approx 0.23856\,n^2+0.23856\,n+0.30103.
+\]
+于是
+\[
+S_{\mathrm{Markov}}(9)\lesssim 5.9\times 10^{21},
+\qquad
+S_{\mathrm{Markov}}(15)\lesssim 3.6\times 10^{57}.
+\]
+
+\begin{center}
+\begin{tabular}{lrrrrl}
+\toprule
+系统 & 格点数/交叉点数 & 潜在边上界 & 宽松双层上界 & 压缩马尔可夫上界 & 与围棋 \(10^{170}\) 的关系 \\
+\midrule
+三角网格圈地博弈 \(n=9\)  & 45  & 360  & \(3.3\times 10^{203}\) & \(5.9\times 10^{21}\) & 双层上界高于围棋；压缩上界低于围棋 \\
+三角网格圈地博弈 \(n=15\) & 120 & 1680 & \(5.5\times 10^{885}\) & \(3.6\times 10^{57}\) & 双层上界远高于围棋；压缩上界低于围棋 \\
+围棋 \(19\times 19\) & 361 & -- & -- & \(\approx 2.08\times 10^{170}\) & 基准参考 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section*{博弈树复杂度与算法代价}
+
+\subsection*{分支因子}
+
+开局时，角点只有两条非退化延展方向，扣除对手基点占据点及其保护区点，可得
+\[
+b_{\mathrm{open}}(n)=2n-4.
+\]
+因此 \(b_{\mathrm{open}}(9)=14\)，\(b_{\mathrm{open}}(15)=26\)。
+
+一般中盘中，
+\[
+b(n)=\Theta(n^2),
+\qquad
+b_{\max}(n)\le V(n)-4=\frac{n(n+1)}2-4.
+\]
+
+\subsection*{最大深度}
+
+无 Superko 时，切断会清空飞地并再生空点，因此游戏不具备单调填充性。若允许状态重现而又不规定和棋或总步数上限，则一般不存在有限统一的
+\[
+d_{\max}.
+\]
+也就是说，真实规则下的对局可能进入回路。
+
+如果补充“首次重现即截断”或总步数上限之类的有限化约定，则有
+\[
+d_{\max}\le S_{\mathrm{Markov}}(n)-1\le 2\cdot 3^{V(n)}-1=\exp(\Theta(n^2)).
+\]
+
+如果改成单调化替代模型，则
+\[
+d_{\max}\le V(n)=\Theta(n^2).
+\]
+
+\subsection*{暴力搜索复杂度}
+
+因此，三种情形下的 brute-force 复杂度分别为：
+
+\begin{itemize}
+\item 真实 no-Superko 规则、无额外终局约定：不存在统一有限 \(O(b^d)\) 上界。
+\item 加有限化约定：若 \(d(n)\le \exp(\Theta(n^2))\) 且 \(b(n)=\Theta(n^2)\)，则
+\[
+T_{\mathrm{brute}}(n)=O(b(n)^{d(n)})=\exp(\exp(\Theta(n^2))).
+\]
+\item 单调化替代模型：若 \(d(n)=\Theta(n^2)\)，则
+\[
+T_{\mathrm{brute}}(n)=\exp(\Theta(n^2\log n)).
+\]
+\end{itemize}
+
+\subsection*{单步更新复杂度}
+
+原始工程流程包括：落子、射线删线、断边清理、BFS 飞地删除、孤立线点清理与双方重连。若沿朴素实现维护边集，则一个保守上界是
+\[
+T_{\mathrm{update}}(n)=O(n^5).
+\]
+原因在于：BFS 与断边清理可视为 \(O(E(n))=O(n^3)\)；而最贵的重连步骤需要扫描 \(O(V(n)^2)=O(n^4)\) 个节点对，并对每一对执行 \(O(n)\) 的共线/阻挡检查。
+
+\subsection*{终局计分复杂度}
+
+终局计分分为外轮廓提取、皮筋收紧、flood-fill 判定三步。若轮廓长度 \(P=O(V(n))=O(n^2)\)，则一轮收紧中的锚点对枚举代价约为 \(O(P^2)=O(n^4)\)，每个候选需要 \(O(V(n))=O(n^2)\) 的路径与领土检验，因此单轮约为 \(O(n^6)\)。若收紧轮数保守记为 \(O(P)=O(n^2)\)，则可得
+\[
+T_{\mathrm{score}}(n)=O(n^8).
+\]
+这是一条贴近原始实现意图的合理保守上界。
+
+\section*{复杂性理论定位}
+
+删除 Superko 后，游戏更自然地被视为一个有限状态、可能含环的 turn-based graph game；若不先规定重复状态的收益语义，则它不再是典型的有限有向无环博弈树问题。只有在补上“重复判和”“双弃终局”或总步数上限后，它才重新回到经典 finite extensive-form game 的框架。
+
+放到已知棋类复杂性谱系里看，这个机制明显与高复杂度的围棋变体同类。已有结果表明：Go 家族中的多个问题达到 PSPACE-hard，而 Kill-all Go 在不同规则下可从 PSPACE-hard 进一步上升到 EXPTIME-complete。你的系统虽非这些对象本身，但它同时具有 rooted connectivity、局部切断导致全局级联删除、以及终局几何评估三种高复杂性机制。
+
+我给出的谨慎结论是：对于当前 no-Superko 版本，在 payoff 约定未固定之前，不宜轻率贴上 complete 标签；但在任何自然的有限化约定下，它都显得明显高于普通单调放置博弈，至少具有 PSPACE-hard 风格，而 EXPTIME-hard 也完全 plausible，只是尚待正式 reduction。
+
+\section*{组合博弈论视角}
+
+我认为该机制的 CGT 深度主要体现在三点。
+
+首先是非单调性。新增一个己方节点不一定增益，反而可能成为敌方切割跳板或堵死己方后续布局空间。于是 strategy stealing 所依赖的“多一手不吃亏”前提在这里失效。
+
+其次是迫移局面。由于玩家不能轻易跳过行动，系统自然会出现“所有合法着都伤害自己”的局面，即 Zugzwang。此时局面价值呈现高度非线性，不能用“子越多越好”之类单调启发描述。
+
+最后是不可分解性。因为每个有效结构都必须连回同一个根，远端围地往往被根部桥联绑定。某一局部桥断裂会导致整块远方结构失去存在资格，所以整体局面通常不能近似分解为若干相互独立的子博弈。
+
+\section*{对现代 AI 的挑战}
+
+删除 Superko 以后，状态恢复了马尔可夫性，这是对 AI 的一项简化；但主要困难仍然保留，甚至在某些方向上更突出。
+
+\begin{itemize}
+\item 表示错配：棋盘平面只是表象，真正决定胜负的是由节点诱导出的潜在可见图、根连通性与桥的脆弱性。
+\item 全局价值悬崖：一次落在敌方线点上的局部动作可能触发全局级联删除与重连，造成典型 shallow trap。
+\item 强 anti-locality：远端区域的价值由根部桥联决定，长程依赖显著。
+\item 非单调性与迫移：更多节点不一定更好，常规材料型启发会失效。
+\item 稀疏奖励与长时 credit assignment：终局面积差是长链条因果的汇总，训练信号稀疏而延迟。
+\item 带回路搜索：无 Superko 时状态图可含环，MCTS 需要显式处理 transposition 与循环收益。
+\item 高分支因子与不稳定评价并存：中盘分支通常为 \(\Theta(n^2)\)，而价值函数又因割边而高度不平滑。
+\end{itemize}
+
+\section*{结论、局限与研究建议}
+
+结论很明确：当前 no-Superko 版本虽然显著压缩了状态编码，并把最紧位置上界从双层的 \(10^{\Theta(n^3)}\) 口径降到了 \(10^{\Theta(n^2)}\) 口径，但它并没有因此失去理论深度。它的核心难点已经从“静态状态数极大”转向“非单调 rooted dynamic connectivity、带回路的搜索、以及高代价终局评估”。
+
+本文的局限在于：大部分结果是上界分析而非精确计数；并且复杂性类的最终定位仍取决于你未来如何补全重复判和、弃手与终局规则。
+
+\subsection*{研究建议}
+
+\begin{itemize}
+\item 先把 no-Superko 版本形式化为有限状态 graph game，并明确规定重复局面的收益语义。
+\item 对小尺度 \(n\le 6\) 做精确枚举，估计真实 reachable positions 与上界之间的间隙。
+\item 将“关键桥检测”“迫移识别”“根连通脆弱性评估”做成辅助学习任务。
+\item 尝试从 Geography、Go 子问题或 rooted dynamic connectivity 设计 hardness reduction。
+\end{itemize}
+
+\subsection*{参考文献}
+
+\begin{thebibliography}{99}
+
+\bibitem{U1}
+用户文档一：《三角网格圈地博弈游戏—核心算法需求文档（重构版）》。
+
+\bibitem{U2}
+用户文档二：《离散数学与强化学习视角：三角圈地博弈的形式化定义与理论分析》。
+
+\bibitem{W1}
+M. J. H. Heule and L. J. M. Rothkrantz,
+\textit{Solving Games: Dependence of Applicable Solving Procedures},
+Science of Computer Programming, 2007.
+
+\bibitem{W2}
+John Tromp,
+\textit{Number of Legal Go Positions},
+2016.
+
+\bibitem{W3}
+David Silver et al.,
+\textit{Mastering the Game of Go with Deep Neural Networks and Tree Search},
+Nature, 2016.
+
+\bibitem{W4}
+David Silver et al.,
+\textit{Mastering the Game of Go without Human Knowledge},
+Nature, 2017.
+
+\bibitem{W5}
+Mihai P\v{a}tra\c{s}cu and Erik D. Demaine,
+\textit{Lower Bounds for Dynamic Connectivity},
+STOC 2004.
+
+\bibitem{W6}
+Karl Bringmann et al.,
+\textit{Recent Advances in Fully Dynamic Graph Algorithms: A Quick Reference Guide},
+2021.
+
+\bibitem{W7}
+Hendrik Baier and Mark H. M. Winands,
+\textit{Monte-Carlo Tree Search and Minimax Hybrids},
+2013.
+
+\bibitem{W8}
+Edoardo Pignatelli,
+\textit{The Credit Assignment Problem in Reinforcement Learning},
+2025.
+
+\bibitem{W9}
+Zhujun Zhang,
+\textit{A Note on Computational Complexity of Kill-all Go},
+2019.
+
+\bibitem{W10}
+David Wolfe,
+\textit{Go Endgames Are PSPACE-Hard},
+2002.
+
+\bibitem{W11}
+David Lichtenstein and Michael Sipser,
+\textit{GO Is Polynomial-Space Hard},
+Journal of the ACM, 1980.
+
+\end{thebibliography}
+
+\end{document}

@@ -1,5 +1,5 @@
-﻿import GameEngine, { Player } from "./GameEngine.js?v=20260430b";
-import Renderer from "./Renderer.js?v=20260426d";
+﻿import GameEngine, { Player } from "./GameEngine.js?v=20260430c";
+import Renderer from "./Renderer.js?v=20260430c";
 import { ClientEvent, ServerEvent } from "./NetworkManager.js?v=20260421b";
 
 // GameController 鏄墠绔殑鈥滆兌姘村眰鈥濓細

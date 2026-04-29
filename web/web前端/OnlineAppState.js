@@ -1,4 +1,4 @@
-import { Player } from "./GameEngine.js?v=20260430b";
+import { Player } from "./GameEngine.js?v=20260430c";
 
 // 这个文件专门存放“可复用的前端状态工具”，
 // 避免 OnlineApp.js 再次膨胀成一个超大工具箱文件。

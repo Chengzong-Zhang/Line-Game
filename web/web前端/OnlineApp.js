@@ -1,5 +1,5 @@
-import GameController from "./GameController.js?v=20260430b";
-import { Player } from "./GameEngine.js?v=20260430b";
+import GameController from "./GameController.js?v=20260430c";
+import { Player } from "./GameEngine.js?v=20260430c";
 import NetworkManager, { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js?v=20260429g";
 import {
   createEmptyAuth as createAppEmptyAuth,
@@ -15,7 +15,7 @@ import {
   normalizeGameSettings as normalizeAppGameSettings,
   persistAuth as persistAppAuth,
   persistSession as persistAppSession,
-} from "./OnlineAppState.js?v=20260430b";
+} from "./OnlineAppState.js?v=20260430c";
 import {
   formatArea as formatAppArea,
   formatConnectionState as formatAppConnectionState,
@@ -29,7 +29,7 @@ import {
   UI_STYLE_STORAGE_KEY,
   UI_STYLE_ACADEMIC,
   localizeErrorMessage as localizeAppErrorMessage,
-} from "./OnlineAppI18n.js?v=20260430b";
+} from "./OnlineAppI18n.js?v=20260430c";
 import { ensureGuideRuleImages, getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20260429f";
 
 const {
@@ -186,14 +186,14 @@ async function postAuthJson(serverUrl, path, payload) {
 const ROOM_START_COUNTDOWN_FALLBACK_SECONDS = 20;
 const CHAT_EMOJI_OPTIONS = Object.freeze([
   { content: "👏", animation: "bounce", duration: 1200, label: "Nice" },
-  { content: "🔥", animation: "bounce", duration: 1200, label: "Hot" },
+  { content: "😭", animation: "bounce", duration: 1200, label: "Crying" },
   { content: "😎", animation: "bounce", duration: 1200, label: "Cool" },
   { content: "🤝", animation: "fade", duration: 1400, label: "Respect" },
   { content: "❓", animation: "shake", duration: 1000, label: "Question" },
   { content: "🤔", animation: "fade", duration: 1400, label: "Thinking" },
   { content: "💀", animation: "shake", duration: 1100, label: "Defeated" },
-  { content: "🤯", animation: "shake", duration: 1200, label: "Mind blown" },
-  { content: "🏳", animation: "fade", duration: 1300, label: "Surrender" },
+  { content: "👎", animation: "shake", duration: 1200, label: "Thumbs down" },
+  { content: "😓", animation: "fade", duration: 1300, label: "Sweating" },
   { content: "😤", animation: "bounce", duration: 1200, label: "Pressure" },
 ]);
 const CHAT_EMOJI_ANIMATIONS = new Set(["bounce", "fade", "shake"]);

@@ -1,5 +1,5 @@
-﻿import { Player } from "./GameEngine.js?v=20260430b";
-import { ALL_PLAYERS } from "./OnlineAppState.js?v=20260430b";
+﻿import { Player } from "./GameEngine.js?v=20260430c";
+import { ALL_PLAYERS } from "./OnlineAppState.js?v=20260430c";
 
 // 文案、比分格式化和错误提示都集中放在这里，避免 UI 文件里散落大量字符串。
 
