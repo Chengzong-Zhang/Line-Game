@@ -652,14 +652,24 @@ export function formatArea(value) {
 
 export function formatPlayerName(player, language = "zh", uiStyle = UI_STYLE_CASUAL) {
   const texts = getTexts(language, uiStyle);
+  const academic = normalizeUiStyle(uiStyle) === UI_STYLE_ACADEMIC;
   if (player === Player.BLACK) {
-    return language === "en" ? "Blue" : "蓝方";
+    if (academic) {
+      return language === "en" ? "Node Alpha" : "节点 Alpha";
+    }
+    return language === "en" ? "Player 1" : "玩家 1";
   }
   if (player === Player.WHITE) {
-    return language === "en" ? "Red" : "红方";
+    if (academic) {
+      return language === "en" ? "Node Beta" : "节点 Beta";
+    }
+    return language === "en" ? "Player 2" : "玩家 2";
   }
   if (player === Player.PURPLE) {
-    return language === "en" ? "Purple" : "紫方";
+    if (academic) {
+      return language === "en" ? "Node Gamma" : "节点 Gamma";
+    }
+    return language === "en" ? "Player 3" : "玩家 3";
   }
   return texts.unassigned;
 }
@@ -670,19 +680,19 @@ export function formatWinner(winner, language = "zh", uiStyle = UI_STYLE_CASUAL)
   if (winner === Player.BLACK) {
     const player = formatPlayerName(Player.BLACK, language, uiStyle);
     return academic
-      ? (language === "en" ? `${player} reached Winning Position` : `${player} 达到胜势 (Winning Position)`)
+      ? (language === "en" ? `${player} reached Winning Position` : `${player} 达到胜势态`)
       : (language === "en" ? `${player} Wins` : `${player}获胜`);
   }
   if (winner === Player.WHITE) {
     const player = formatPlayerName(Player.WHITE, language, uiStyle);
     return academic
-      ? (language === "en" ? `${player} reached Winning Position` : `${player} 达到胜势 (Winning Position)`)
+      ? (language === "en" ? `${player} reached Winning Position` : `${player} 达到胜势态`)
       : (language === "en" ? `${player} Wins` : `${player}获胜`);
   }
   if (winner === Player.PURPLE) {
     const player = formatPlayerName(Player.PURPLE, language, uiStyle);
     return academic
-      ? (language === "en" ? `${player} reached Winning Position` : `${player} 达到胜势 (Winning Position)`)
+      ? (language === "en" ? `${player} reached Winning Position` : `${player} 达到胜势态`)
       : (language === "en" ? `${player} Wins` : `${player}获胜`);
   }
   if (winner === "DRAW") {
