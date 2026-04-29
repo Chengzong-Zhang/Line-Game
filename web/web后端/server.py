@@ -394,9 +394,21 @@ class ConnectionManager:
             self.player_room_index[session.player_id] = room_id
             direct_payload = self._room_payload("ROOM_JOINED", room, your_player_id=session.player_id)
             direct_payload["reconnected"] = reconnected
+
+            # 重连后若全员在线且全员已准备但倒计时被中断，重启倒计时。
+            if (
+                reconnected
+                and not room.match_started
+                and room.active_player_count() >= room.player_capacity()
+                and len(room.ready_players) >= room.player_capacity()
+                and room.countdown_started_at is None
+            ):
+                self._start_countdown_locked(room)
+
+            broadcast_event = "ROOM_COUNTDOWN" if room.countdown_started_at is not None else "ROOM_STATE"
             broadcast_payloads = self._connected_room_payloads(
                 room,
-                self._room_payload("ROOM_STATE", room),
+                self._room_payload(broadcast_event, room),
             )
 
         await self.send_json(websocket, direct_payload)
@@ -979,9 +991,9 @@ class ConnectionManager:
         player.last_seen = time.time()
         room.updated_at = time.time()
         room.reset_votes.clear()
-        room.ready_players.discard(player_id)
-        # 永久离开时才重置 match_started；临时断线只取消倒计时，不回退已开始的对局。
+        # 永久离开时才重置 match_started 和 ready 状态；临时断线只取消倒计时。
         if remove_player:
+            room.ready_players.discard(player_id)
             room.match_started = False
         self._cancel_countdown_locked(room)
 
@@ -990,7 +1002,6 @@ class ConnectionManager:
             if self.player_room_index.get(player_id) == room_id:
                 self.player_room_index.pop(player_id, None)
             room.reset_votes.discard(player_id)
-            room.ready_players.discard(player_id)
             room.reset_votes.clear()
             if room.host_player_id == player_id:
                 room.host_player_id = next(iter(room.players.keys()), None)

@@ -27,7 +27,7 @@ import {
   getTexts as getAppTexts,
   localizeErrorMessage as localizeAppErrorMessage,
 } from "./OnlineAppI18n.js?v=20260428l";
-import { ensureGuideRuleImages, getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20260428l";
+import { ensureGuideRuleImages, getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20260429a";
 
 const {
   computed,
@@ -853,7 +853,12 @@ const RoomPanel = {
         </div>
 
         <div class="status-pill-row room-action-row">
+          <span
+            v-if="roomStatus === 'inProgress'"
+            class="status-pill status-pill-live"
+          >{{ texts.inProgress }}</span>
           <button
+            v-else
             class="action-button action-button-primary"
             :disabled="readyDisabled"
             @click="$emit('toggle-ready', !localReady)"
@@ -1693,7 +1698,7 @@ function createGuideEntries(language = "zh", guideMarkdownOverrides = {}) {
       title: texts.guideRuleSimpleTitle,
       subtitle: texts.guideRuleSimpleSubtitle,
       showIllustration: false,
-      blocks: ensureGuideRuleImages("rulesEssential", parseGuideMarkdown(resolveGuideMarkdown("rulesEssential", language, guideMarkdownOverrides))),
+      blocks: ensureGuideRuleImages("rulesEssential", parseGuideMarkdown(resolveGuideMarkdown("rulesEssential", language, guideMarkdownOverrides)), language),
     },
     {
       key: "rules-war",
@@ -1703,7 +1708,7 @@ function createGuideEntries(language = "zh", guideMarkdownOverrides = {}) {
       title: texts.guideRuleWarTitle,
       subtitle: texts.guideRuleWarSubtitle,
       showIllustration: false,
-      blocks: ensureGuideRuleImages("rulesWar", parseGuideMarkdown(resolveGuideMarkdown("rulesWar", language, guideMarkdownOverrides))),
+      blocks: ensureGuideRuleImages("rulesWar", parseGuideMarkdown(resolveGuideMarkdown("rulesWar", language, guideMarkdownOverrides)), language),
     },
     {
       key: "rules-math",
@@ -1713,7 +1718,7 @@ function createGuideEntries(language = "zh", guideMarkdownOverrides = {}) {
       title: texts.guideRuleMathTitle,
       subtitle: texts.guideRuleMathSubtitle,
       showIllustration: false,
-      blocks: ensureGuideRuleImages("rulesMath", parseGuideMarkdown(resolveGuideMarkdown("rulesMath", language, guideMarkdownOverrides))),
+      blocks: ensureGuideRuleImages("rulesMath", parseGuideMarkdown(resolveGuideMarkdown("rulesMath", language, guideMarkdownOverrides)), language),
     },
   ];
   const whySubEntries = [
@@ -1926,7 +1931,7 @@ const App = {
           return;
         }
         try {
-          const response = await fetch(`${asset}?v=20260428l`, { cache: "no-cache" });
+          const response = await fetch(`${asset}?v=20260429a`, { cache: "no-cache" });
           if (response.ok) {
             nextOverrides[key] = await response.text();
           }
@@ -2291,8 +2296,9 @@ const App = {
       const shouldAcceptRoomReadyRollback = isRoomReadyTransition
         && timestampRollbackMs > 0
         && timestampRollbackMs <= SERVER_TIMESTAMP_TOLERANCE_MS;
+      const isMatchReset = payload?.type === ServerEvent.MATCH_RESET;
 
-      if (timestampRollbackMs > 0 && !shouldAcceptRoomReadyRollback) {
+      if (timestampRollbackMs > 0 && !shouldAcceptRoomReadyRollback && !isMatchReset) {
         return false;
       }
       if (incomingTs > 0) {

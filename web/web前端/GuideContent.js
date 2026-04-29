@@ -72,6 +72,8 @@ def covered_points(polygon):
 
 const WHY_THEORY_ZH = `# Theory：算力深渊与上帝的简洁逻辑
 
+这个游戏相对国际象棋、围棋、跳棋等经典棋类的优越性，不是简单宣称“局面数最大”，而是用很少的几何格点制造出更高密度的长程结构。作为参照，跳棋常见状态空间约 $5\times 10^{20}$、博弈树约 $10^{31}$；国际象棋状态空间常估为 $10^{43}$ 到 $10^{50}$、博弈树约 $10^{120}$；19 路围棋合法局面数为 $2.08\times 10^{170}$、博弈树常估约 $10^{360}$。本游戏在边长 $n=15$ 时只有 $V=120$ 个物理格点，却已有 $E=1680$ 条潜在长程可见性边，显式表示上界约为 $6.49\times 10^{885}$。
+
 这个游戏的理论核心不是“状态数比谁大”，而是一个更干净的错位：
 
 $$
@@ -86,7 +88,7 @@ E(n)=3\sum_{k=1}^{n}\binom{k}{2}
 =\Theta(n^3).
 $$
 
-棋盘是二次规模，战术关系是三次规模。复杂度不是堆出来的，而是从视线边自然长出来的。
+棋盘是二次规模，战术关系是三次规模。复杂度不是靠巨大棋盘堆出来的，而是从视线边自然长出来的：二次规模棋盘生成三次规模战术关系，再由切断、连通性删除和 Superko 把这些关系转化为搜索深度。
 
 ## 状态空间
 
@@ -201,6 +203,8 @@ The engine also uses a wedge flood-fill optimization: when a shortcut lies insid
 
 const WHY_THEORY_EN = `# Theory: A Simple Law, a Deep Search Space
 
+The advantage over classical games such as chess, Go, and checkers is not the crude claim that the intrinsic position count is always larger. The advantage is structural density: a small geometric board produces a much richer long-range relation graph. For reference, checkers is commonly placed around $5\times 10^{20}$ states and roughly $10^{31}$ game-tree complexity; chess is often estimated around $10^{43}$ to $10^{50}$ states and $10^{120}$ game-tree complexity; 19x19 Go has $2.08\times 10^{170}$ legal positions and is often estimated near $10^{360}$ game-tree complexity. At side length $n=15$, this game has only $V=120$ physical lattice points, but already has $E=1680$ potential long-range visibility edges, giving an explicit representation upper bound of about $6.49\times 10^{885}$.
+
 The point is not to inflate state counts. The clean fact is the mismatch:
 
 $$
@@ -215,7 +219,7 @@ E(n)=3\sum_{k=1}^{n}\binom{k}{2}
 =\Theta(n^3).
 $$
 
-The board is quadratic. The tactical relation graph is cubic.
+The board is quadratic. The tactical relation graph is cubic. In short, the game does not buy complexity by making the board enormous; it turns a quadratic board into cubic tactical relations, then turns those relations into search depth through cuts, connectivity deletion, and Superko.
 
 ## State Space
 
@@ -470,27 +474,76 @@ Beta Testers: Mandy, zfp, Orange, Puppy, yxy, hmy, RobinTian, zjy, wyc, fjh, lh,
 const GUIDE_IMAGE_BASE_PATH = "./guide/guide-images/";
 
 const GUIDE_RULE_IMAGE_BLOCKS = Object.freeze({
-  rulesEssential: Object.freeze([
-    { type: "image", alt: "可落子区域示意", src: `${GUIDE_IMAGE_BASE_PATH}可以走的区域png.png` },
-    { type: "image", alt: "切断示意一", src: `${GUIDE_IMAGE_BASE_PATH}切断1.png` },
-    { type: "image", alt: "切断示意二", src: `${GUIDE_IMAGE_BASE_PATH}切断2.png` },
-    { type: "image", alt: "起点限制示意", src: `${GUIDE_IMAGE_BASE_PATH}起点限制.png` },
-    { type: "image", alt: "三点限制示意", src: `${GUIDE_IMAGE_BASE_PATH}三点限制.png` },
-  ]),
-  rulesWar: Object.freeze([
-    { type: "image", alt: "起点限制示意", src: `${GUIDE_IMAGE_BASE_PATH}起点限制.png` },
-    { type: "image", alt: "可落子区域示意", src: `${GUIDE_IMAGE_BASE_PATH}可以走的区域png.png` },
-    { type: "image", alt: "三点限制示意", src: `${GUIDE_IMAGE_BASE_PATH}三点限制.png` },
-    { type: "image", alt: "切断示意一", src: `${GUIDE_IMAGE_BASE_PATH}切断1.png` },
-    { type: "image", alt: "切断示意二", src: `${GUIDE_IMAGE_BASE_PATH}切断2.png` },
-  ]),
-  rulesMath: Object.freeze([
-    { type: "image", alt: "三点限制示意", src: `${GUIDE_IMAGE_BASE_PATH}三点限制.png` },
-    { type: "image", alt: "起点限制示意", src: `${GUIDE_IMAGE_BASE_PATH}起点限制.png` },
-    { type: "image", alt: "可落子区域示意", src: `${GUIDE_IMAGE_BASE_PATH}可以走的区域png.png` },
-    { type: "image", alt: "切断示意一", src: `${GUIDE_IMAGE_BASE_PATH}切断1.png` },
-    { type: "image", alt: "切断示意二", src: `${GUIDE_IMAGE_BASE_PATH}切断2.png` },
-  ]),
+  zh: Object.freeze({
+    rulesEssential: Object.freeze([
+      { type: "image", id: "playable", alt: "可落子区域示意", src: `${GUIDE_IMAGE_BASE_PATH}可以走的区域png.png` },
+      { type: "image", id: "cut1", alt: "切断示意一", src: `${GUIDE_IMAGE_BASE_PATH}切断1.png` },
+      { type: "image", id: "cut2", alt: "切断示意二", src: `${GUIDE_IMAGE_BASE_PATH}切断2.png` },
+      { type: "image", id: "start", alt: "起点限制示意", src: `${GUIDE_IMAGE_BASE_PATH}起点限制.png` },
+      { type: "image", id: "triangle", alt: "三点限制示意", src: `${GUIDE_IMAGE_BASE_PATH}三点限制.png` },
+    ]),
+    rulesWar: Object.freeze([
+      { type: "image", id: "start", alt: "起点限制示意", src: `${GUIDE_IMAGE_BASE_PATH}起点限制.png` },
+      { type: "image", id: "playable", alt: "可落子区域示意", src: `${GUIDE_IMAGE_BASE_PATH}可以走的区域png.png` },
+      { type: "image", id: "triangle", alt: "三点限制示意", src: `${GUIDE_IMAGE_BASE_PATH}三点限制.png` },
+      { type: "image", id: "cut1", alt: "切断示意一", src: `${GUIDE_IMAGE_BASE_PATH}切断1.png` },
+      { type: "image", id: "cut2", alt: "切断示意二", src: `${GUIDE_IMAGE_BASE_PATH}切断2.png` },
+    ]),
+    rulesMath: Object.freeze([
+      { type: "image", id: "triangle", alt: "三点限制示意", src: `${GUIDE_IMAGE_BASE_PATH}三点限制.png` },
+      { type: "image", id: "start", alt: "起点限制示意", src: `${GUIDE_IMAGE_BASE_PATH}起点限制.png` },
+      { type: "image", id: "playable", alt: "可落子区域示意", src: `${GUIDE_IMAGE_BASE_PATH}可以走的区域png.png` },
+      { type: "image", id: "cut1", alt: "切断示意一", src: `${GUIDE_IMAGE_BASE_PATH}切断1.png` },
+      { type: "image", id: "cut2", alt: "切断示意二", src: `${GUIDE_IMAGE_BASE_PATH}切断2.png` },
+    ]),
+  }),
+  en: Object.freeze({
+    rulesEssential: Object.freeze([
+      { type: "image", id: "playable", alt: "Playable area example", src: `${GUIDE_IMAGE_BASE_PATH}可以走的区域png.png` },
+      { type: "image", id: "cut1", alt: "Cut example one", src: `${GUIDE_IMAGE_BASE_PATH}切断1.png` },
+      { type: "image", id: "cut2", alt: "Cut example two", src: `${GUIDE_IMAGE_BASE_PATH}切断2.png` },
+      { type: "image", id: "start", alt: "Starting-point restriction", src: `${GUIDE_IMAGE_BASE_PATH}起点限制.png` },
+      { type: "image", id: "triangle", alt: "Three-point restriction", src: `${GUIDE_IMAGE_BASE_PATH}三点限制.png` },
+    ]),
+    rulesWar: Object.freeze([
+      { type: "image", id: "start", alt: "Starting-point restriction", src: `${GUIDE_IMAGE_BASE_PATH}起点限制.png` },
+      { type: "image", id: "playable", alt: "Playable area example", src: `${GUIDE_IMAGE_BASE_PATH}可以走的区域png.png` },
+      { type: "image", id: "triangle", alt: "Three-point restriction", src: `${GUIDE_IMAGE_BASE_PATH}三点限制.png` },
+      { type: "image", id: "cut1", alt: "Cut example one", src: `${GUIDE_IMAGE_BASE_PATH}切断1.png` },
+      { type: "image", id: "cut2", alt: "Cut example two", src: `${GUIDE_IMAGE_BASE_PATH}切断2.png` },
+    ]),
+    rulesMath: Object.freeze([
+      { type: "image", id: "triangle", alt: "Three-point restriction", src: `${GUIDE_IMAGE_BASE_PATH}三点限制.png` },
+      { type: "image", id: "start", alt: "Starting-point restriction", src: `${GUIDE_IMAGE_BASE_PATH}起点限制.png` },
+      { type: "image", id: "playable", alt: "Playable area example", src: `${GUIDE_IMAGE_BASE_PATH}可以走的区域png.png` },
+      { type: "image", id: "cut1", alt: "Cut example one", src: `${GUIDE_IMAGE_BASE_PATH}切断1.png` },
+      { type: "image", id: "cut2", alt: "Cut example two", src: `${GUIDE_IMAGE_BASE_PATH}切断2.png` },
+    ]),
+  }),
+});
+
+const GUIDE_RULE_IMAGE_ANCHORS = Object.freeze({
+  rulesEssential: Object.freeze({
+    playable: /胜利条件|territory|objective|playable|落子|occupies/i,
+    cut1: /核心机制|切断|cut|connect|link/i,
+    cut2: /核心机制|切断|cut|connect|link/i,
+    start: /限制规则|起步保护|opening protection|starting/i,
+    triangle: /限制规则|三项强制|triangle|formation/i,
+  }),
+  rulesWar: Object.freeze({
+    start: /大本营周围|safe zone|nearest your base|headquarters/i,
+    playable: /轮流派出|occupy new grid|alternate sending|links up/i,
+    triangle: /三个士兵|smallest possible triangle|crowd three/i,
+    cut1: /切断|tactical strike|cuts it|supply line/i,
+    cut2: /切断|tactical strike|cuts it|supply line/i,
+  }),
+  rulesMath: Object.freeze({
+    triangle: /迫移|zugzwang|strategy stealing|三点|triangle/i,
+    start: /图论连通性|不变基点|连通性公理|Connectivity Axiom|anchor|基点/i,
+    playable: /动作空间|Action Space|legal empty vertex|落子/i,
+    cut1: /割边|Edge Deletion|split|切断/i,
+    cut2: /BFS|极大连通分量|maximal connected component|removed/i,
+  }),
 });
 
 function resolveGuideImageSrc(src) {
@@ -505,18 +558,70 @@ function resolveGuideImageSrc(src) {
     .replace(/^(?:\.\/)?guide-images\//, GUIDE_IMAGE_BASE_PATH);
 }
 
-export function ensureGuideRuleImages(key, blocks = []) {
-  const normalizedBlocks = Array.isArray(blocks) ? blocks : [];
-  const hasImage = normalizedBlocks.some((block) => block?.type === "image" || block?.type === "image-row");
-  const imageBlocks = GUIDE_RULE_IMAGE_BLOCKS[key] ?? [];
+export function ensureGuideRuleImages(key, blocks = [], language = "zh") {
+  const normalizedLanguage = language === "en" ? "en" : "zh";
+  const normalizedBlocks = (Array.isArray(blocks) ? blocks : []).map((block) => {
+    if (block?.type === "image") {
+      return { ...block, src: resolveGuideImageSrc(block.src) };
+    }
+    if (block?.type === "image-row") {
+      return {
+        ...block,
+        images: (block.images ?? []).map((image) => ({ ...image, src: resolveGuideImageSrc(image.src) })),
+      };
+    }
+    return block;
+  });
+  const imageBlocks = GUIDE_RULE_IMAGE_BLOCKS[normalizedLanguage]?.[key] ?? GUIDE_RULE_IMAGE_BLOCKS.zh[key] ?? [];
 
-  if (hasImage || !imageBlocks.length) {
+  if (!imageBlocks.length) {
     return normalizedBlocks;
   }
 
+  const imageIds = new Set();
+  const rememberImage = (image) => {
+    const src = decodeURIComponent(resolveGuideImageSrc(image?.src ?? ""));
+    if (src.includes("可以走的区域png.png")) imageIds.add("playable");
+    if (src.includes("切断1.png")) imageIds.add("cut1");
+    if (src.includes("切断2.png")) imageIds.add("cut2");
+    if (src.includes("起点限制.png")) imageIds.add("start");
+    if (src.includes("三点限制.png")) imageIds.add("triangle");
+  };
+
+  normalizedBlocks.forEach((block) => {
+    if (block?.type === "image") {
+      rememberImage(block);
+    } else if (block?.type === "image-row") {
+      (block.images ?? []).forEach(rememberImage);
+    }
+  });
+
+  const missingImages = imageBlocks
+    .filter((block) => !imageIds.has(block.id))
+    .map((block) => ({ ...block }));
+
+  if (!missingImages.length) {
+    return normalizedBlocks;
+  }
+
+  const pending = new Map(missingImages.map((block) => [block.id, block]));
+  const anchors = GUIDE_RULE_IMAGE_ANCHORS[key] ?? {};
+  const result = [];
+
+  normalizedBlocks.forEach((block) => {
+    result.push(block);
+    const text = `${block?.text ?? ""} ${block?.label ?? ""}`.trim();
+    for (const [id, image] of pending) {
+      if (anchors[id]?.test(text)) {
+        result.push(image);
+        pending.delete(id);
+      }
+    }
+  });
+
   return [
-    ...normalizedBlocks,
-    ...imageBlocks.map((block) => ({ ...block })),
+    ...result,
+    ...pending.values(),
   ];
 }
 
