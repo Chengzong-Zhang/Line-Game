@@ -14,6 +14,7 @@ const ServerEvent = Object.freeze({
   RESET_STATUS: "RESET_STATUS",
   MATCH_RESET: "MATCH_RESET",
   PLAYER_LEFT: "PLAYER_LEFT",
+  CHAT_EMOJI: "chat_emoji",
   PONG: "PONG",
   ERROR: "ERROR",
 });
@@ -301,6 +302,31 @@ export class NetworkManager {
     this._send({
       type: "update_start_player",
       startPlayer,
+    });
+  }
+
+  async sendChatEmoji(content, metadata = {}) {
+    const normalizedContent = String(content ?? "").trim();
+    if (!normalizedContent) {
+      throw new Error("sendChatEmoji(content) requires a non-empty emoji or emote ID.");
+    }
+
+    await this._ensureOpen();
+    const animation = ["bounce", "fade", "shake"].includes(metadata?.animation)
+      ? metadata.animation
+      : "bounce";
+    const rawDuration = Number(metadata?.duration ?? 1200);
+    const duration = Number.isFinite(rawDuration)
+      ? Math.max(300, Math.min(3000, Math.round(rawDuration)))
+      : 1200;
+    this._send({
+      type: ServerEvent.CHAT_EMOJI,
+      sender: this.playerId ?? "",
+      content: normalizedContent,
+      metadata: {
+        animation,
+        duration,
+      },
     });
   }
 

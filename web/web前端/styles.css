@@ -86,6 +86,7 @@ body::before {
   display: grid;
   gap: 16px;
   min-width: 0;
+  position: relative;
 }
 
 .stage-heading {
@@ -254,6 +255,14 @@ body::before {
   background: linear-gradient(135deg, #2b2a28 0%, #5a4834 100%);
 }
 
+#ui-style-select .language-button {
+  min-width: 0;
+}
+
+html[data-ui-style="academic"] #ui-style-select .language-button.is-active {
+  background: linear-gradient(135deg, #173e8f 0%, #2a6f7f 100%);
+}
+
 .hero h1,
 .panel-head h2,
 .result-card h2 {
@@ -397,6 +406,7 @@ body::before {
   align-items: center;
   justify-content: space-between;
   gap: 18px;
+  flex-wrap: wrap;
 }
 
 .duel-copy {
@@ -427,6 +437,139 @@ body::before {
 
 .duel-actions .action-button {
   min-width: 140px;
+}
+
+.chat-emoji-toolbar {
+  flex: 1 1 100%;
+  display: grid;
+  grid-template-columns: repeat(10, minmax(34px, 1fr));
+  gap: 8px;
+}
+
+.chat-emoji-button {
+  appearance: none;
+  min-width: 0;
+  aspect-ratio: 1;
+  border: 0;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+  background: rgba(255, 251, 243, 0.88);
+  box-shadow: inset 0 0 0 1px rgba(90, 72, 52, 0.14), 0 8px 18px rgba(64, 42, 18, 0.08);
+  font: inherit;
+  font-size: 1.18rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+}
+
+.chat-emoji-button:hover:not(:disabled) {
+  transform: translateY(-1px) scale(1.04);
+  box-shadow: inset 0 0 0 1px rgba(90, 72, 52, 0.2), 0 12px 22px rgba(64, 42, 18, 0.12);
+}
+
+.chat-emoji-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.chat-emoji-layer {
+  position: relative;
+  height: 0;
+  z-index: 12;
+  pointer-events: none;
+}
+
+.chat-emoji-bubble {
+  --emoji-duration: 1200ms;
+  position: absolute;
+  bottom: 20px;
+  min-width: 58px;
+  min-height: 58px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 252, 247, 0.94);
+  box-shadow: 0 18px 42px rgba(64, 42, 18, 0.18), inset 0 0 0 1px rgba(90, 72, 52, 0.1);
+  font-size: 2rem;
+  line-height: 1;
+  transform-origin: center bottom;
+}
+
+.chat-emoji-bubble.is-self {
+  right: 18%;
+}
+
+.chat-emoji-bubble.is-remote {
+  left: 18%;
+}
+
+.chat-emoji-bubble.is-bounce {
+  animation: chatEmojiBounce var(--emoji-duration) ease both;
+}
+
+.chat-emoji-bubble.is-fade {
+  animation: chatEmojiFade var(--emoji-duration) ease both;
+}
+
+.chat-emoji-bubble.is-shake {
+  animation: chatEmojiShake var(--emoji-duration) ease both;
+}
+
+@keyframes chatEmojiBounce {
+  0% {
+    opacity: 0;
+    transform: translateY(22px) scale(0.72);
+  }
+  22% {
+    opacity: 1;
+    transform: translateY(-8px) scale(1.08);
+  }
+  48% {
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-48px) scale(0.94);
+  }
+}
+
+@keyframes chatEmojiFade {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.9);
+  }
+  20%,
+  72% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-34px) scale(0.96);
+  }
+}
+
+@keyframes chatEmojiShake {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.86) rotate(0deg);
+  }
+  18% {
+    opacity: 1;
+    transform: translateY(0) scale(1.04) rotate(-8deg);
+  }
+  34% {
+    transform: translateY(0) scale(1.02) rotate(8deg);
+  }
+  50% {
+    transform: translateY(0) scale(1) rotate(-5deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-42px) scale(0.94) rotate(0deg);
+  }
 }
 
 .workspace-focus {
@@ -1744,6 +1887,10 @@ body::before {
     justify-content: stretch;
   }
 
+  .chat-emoji-toolbar {
+    grid-template-columns: repeat(10, minmax(30px, 1fr));
+  }
+
   .edge-trigger {
     top: 18px;
     transform: none;
@@ -1829,6 +1976,24 @@ body::before {
 
   .action-button {
     width: 100%;
+  }
+
+  .chat-emoji-toolbar {
+    grid-template-columns: repeat(5, minmax(36px, 1fr));
+  }
+
+  .chat-emoji-bubble {
+    min-width: 50px;
+    min-height: 50px;
+    font-size: 1.7rem;
+  }
+
+  .chat-emoji-bubble.is-self {
+    right: 8%;
+  }
+
+  .chat-emoji-bubble.is-remote {
+    left: 8%;
   }
 
   .language-switcher {

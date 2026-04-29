@@ -11,11 +11,14 @@ from uuid import uuid4
 
 import bcrypt
 import jwt
-from fastapi import Depends, FastAPI, HTTPException, WebSocket, WebSocketDisconnect, status
+from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect, status
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic_core import PydanticCustomError
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -29,6 +32,11 @@ try:
     from .models import User  # type: ignore
 except ImportError:
     from models import User
+
+try:
+    from .sensitive_filter import SensitiveFilter, UIStyle  # type: ignore
+except ImportError:
+    from sensitive_filter import SensitiveFilter, UIStyle
 
 
 # 这个服务负责账号、静态资源、房间、连接和动作同步，
@@ -44,6 +52,11 @@ MAX_GRID_SIZE = 15
 TURN_TIMER_MIN_SECONDS = 15
 TURN_TIMER_MAX_SECONDS = 200
 DEFAULT_TURN_TIMER_SECONDS = 60
+CHAT_EMOJI_MAX_CONTENT_LENGTH = 32
+CHAT_EMOJI_MIN_DURATION_MS = 300
+CHAT_EMOJI_MAX_DURATION_MS = 3000
+CHAT_EMOJI_DEFAULT_DURATION_MS = 1200
+CHAT_EMOJI_ALLOWED_ANIMATIONS = {"bounce", "fade", "shake"}
 PLAYER_BLACK = "BLACK"
 PLAYER_WHITE = "WHITE"
 PLAYER_PURPLE = "PURPLE"
@@ -54,11 +67,55 @@ PASSWORD_HASH_PREFIX = "bcrypt_sha256$"
 
 
 logger = logging.getLogger("uvicorn.error")
+sensitive_filter = SensitiveFilter()
 
 
-class RegisterRequest(BaseModel):
+class NicknameValidatedRequest(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     username: str = Field(..., min_length=1, max_length=50)
+    ui_style: UIStyle = Field(default=UIStyle.CASUAL)
+    auto_correct_username: bool = Field(default=False)
+    original_username: Optional[str] = Field(default=None, exclude=True)
+    username_corrected: bool = Field(default=False, exclude=True)
+
+    @model_validator(mode="before")
+    @classmethod
+    def validate_username(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+
+        raw_username = str(data.get("username", ""))
+        ui_style = data.get("ui_style", UIStyle.CASUAL)
+        auto_correct = bool(data.get("auto_correct_username", data.get("auto_correct", False)))
+        result = sensitive_filter.validate(raw_username, ui_style=ui_style, auto_correct=auto_correct)
+
+        clean_data = dict(data)
+        if result.allowed:
+            clean_data["username"] = raw_username.strip()
+            clean_data["ui_style"] = result.ui_style
+            clean_data["auto_correct_username"] = auto_correct
+            clean_data["username_corrected"] = False
+            clean_data["original_username"] = None
+            return clean_data
+
+        if auto_correct and result.replacement:
+            clean_data["username"] = result.replacement
+            clean_data["ui_style"] = result.ui_style
+            clean_data["auto_correct_username"] = True
+            clean_data["username_corrected"] = True
+            clean_data["original_username"] = raw_username
+            return clean_data
+
+        raise PydanticCustomError("nickname_blocked", result.message, result.error_context())
+
+
+class RegisterRequest(NicknameValidatedRequest):
     password: str = Field(..., min_length=1, max_length=128)
+
+
+class NicknameValidationRequest(NicknameValidatedRequest):
+    pass
 
 
 class LoginRequest(BaseModel):
@@ -69,6 +126,19 @@ class LoginRequest(BaseModel):
 class RegisterResponse(BaseModel):
     message: str
     username: str
+    username_corrected: bool = False
+    original_username: Optional[str] = None
+    validation_term: Optional[str] = None
+    validation_message: Optional[str] = None
+
+
+class NicknameValidationResponse(BaseModel):
+    valid: bool
+    username: str
+    username_corrected: bool = False
+    original_username: Optional[str] = None
+    term: str
+    message: str
 
 
 class LoginResponse(BaseModel):
@@ -251,6 +321,10 @@ class ConnectionManager:
             await self.set_player_ready(websocket, message.get("ready"))
             return
 
+        if message_type == "chat_emoji":
+            await self.forward_chat_emoji(websocket, message.get("content"), message.get("metadata"))
+            return
+
         if message_type == "update_room_settings":
             await self.update_room_settings(websocket, message.get("settings"))
             return
@@ -392,10 +466,9 @@ class ConnectionManager:
             room.reset_votes.clear()
             self.websocket_index[websocket] = (room_id, session.player_id)
             self.player_room_index[session.player_id] = room_id
-            direct_payload = self._room_payload("ROOM_JOINED", room, your_player_id=session.player_id)
-            direct_payload["reconnected"] = reconnected
 
             # 重连后若全员在线且全员已准备但倒计时被中断，重启倒计时。
+            # 必须在构造 direct_payload 之前执行，让重连玩家拿到最新的倒计时状态。
             if (
                 reconnected
                 and not room.match_started
@@ -404,6 +477,9 @@ class ConnectionManager:
                 and room.countdown_started_at is None
             ):
                 self._start_countdown_locked(room)
+
+            direct_payload = self._room_payload("ROOM_JOINED", room, your_player_id=session.player_id)
+            direct_payload["reconnected"] = reconnected
 
             broadcast_event = "ROOM_COUNTDOWN" if room.countdown_started_at is not None else "ROOM_STATE"
             broadcast_payloads = self._connected_room_payloads(
@@ -715,6 +791,42 @@ class ConnectionManager:
                             self._room_payload("ROOM_STATE", room, reason="settings_updated"),
                         )
                         error_payload = None
+
+        if error_payload is not None:
+            await self.send_json(websocket, error_payload)
+            return
+
+        for target_websocket, payload in payloads:
+            await self.send_json(target_websocket, payload)
+
+    async def forward_chat_emoji(self, websocket: WebSocket, content: Any, metadata: Any) -> None:
+        normalized_content = self._normalize_chat_emoji_content(content)
+        if normalized_content is None:
+            await self.send_json(
+                websocket,
+                {
+                    "type": "ERROR",
+                    "code": "INVALID_CHAT_EMOJI",
+                    "message": "content must be a non-empty string no longer than 32 characters.",
+                },
+            )
+            return
+
+        normalized_metadata = self._normalize_chat_emoji_metadata(metadata)
+        async with self.lock:
+            action = self._prepare_room_member_locked(websocket)
+            if action["error"] is not None:
+                error_payload = action["error"]
+                payloads = []
+            else:
+                payload = {
+                    "type": "chat_emoji",
+                    "sender": action["sender"].player_id,
+                    "content": normalized_content,
+                    "metadata": normalized_metadata,
+                }
+                payloads = self._connected_room_payloads(action["room"], payload)
+                error_payload = None
 
         if error_payload is not None:
             await self.send_json(websocket, error_payload)
@@ -1149,6 +1261,35 @@ class ConnectionManager:
             return False
         return all(isinstance(value, int) for value in point)
 
+    def _normalize_chat_emoji_content(self, content: Any) -> Optional[str]:
+        if not isinstance(content, str):
+            return None
+        normalized = content.strip()
+        if not normalized or len(normalized) > CHAT_EMOJI_MAX_CONTENT_LENGTH:
+            return None
+        return normalized
+
+    def _normalize_chat_emoji_metadata(self, metadata: Any) -> Dict[str, Any]:
+        if not isinstance(metadata, dict):
+            metadata = {}
+
+        animation = metadata.get("animation")
+        if animation not in CHAT_EMOJI_ALLOWED_ANIMATIONS:
+            animation = "bounce"
+
+        duration = metadata.get("duration", CHAT_EMOJI_DEFAULT_DURATION_MS)
+        if not isinstance(duration, (int, float)):
+            try:
+                duration = int(duration)
+            except (TypeError, ValueError):
+                duration = CHAT_EMOJI_DEFAULT_DURATION_MS
+        duration = int(max(CHAT_EMOJI_MIN_DURATION_MS, min(CHAT_EMOJI_MAX_DURATION_MS, duration)))
+
+        return {
+            "animation": animation,
+            "duration": duration,
+        }
+
     def _normalize_room_settings(self, settings: Any) -> Dict[str, Any]:
         # 服务端再次兜底校验，避免客户端绕过前端限制传入非法人数或棋盘尺寸。
         if not isinstance(settings, dict):
@@ -1238,11 +1379,36 @@ def _resolve_frontend_dir() -> Path:
 
 FRONTEND_DIR = _resolve_frontend_dir()
 INDEX_FILE = FRONTEND_DIR / "index.html"
+SENSITIVE_WORDS_FILE = BASE_DIR / "sensitive_words.txt"
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+    for error in exc.errors():
+        context = error.get("ctx") or {}
+        if context.get("sensitive_filter") == "true":
+            return JSONResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                content={
+                    "error": "NICKNAME_VALIDATION_FAILED",
+                    "term": context.get("term", "Nickname Blocked"),
+                    "message": context.get("message", "昵称包含敏感词汇，请换一个更文明的名字吧！"),
+                    "ui_style": context.get("ui_style", UIStyle.CASUAL.value),
+                    "suggestion": context.get("suggestion", SensitiveFilter.replacement_name()),
+                },
+            )
+
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"detail": jsonable_encoder(exc.errors())},
+    )
 
 
 @app.on_event("startup")
 async def on_startup() -> None:
     init_db()
+    await sensitive_filter.load_from_file(SENSITIVE_WORDS_FILE)
+    logger.info("loaded %s sensitive nickname tokens", sensitive_filter.word_count)
     await manager.start()
 
 
@@ -1276,6 +1442,20 @@ async def health_check() -> Dict[str, str]:
     return {"status": "ok"}
 
 
+@app.post("/api/nickname/validate", response_model=NicknameValidationResponse)
+def validate_nickname(payload: NicknameValidationRequest) -> NicknameValidationResponse:
+    style = SensitiveFilter.resolve_style(payload.ui_style)
+    style_info = sensitive_filter.validate(payload.username, ui_style=style)
+    return NicknameValidationResponse(
+        valid=True,
+        username=payload.username,
+        username_corrected=payload.username_corrected,
+        original_username=payload.original_username,
+        term=style_info.term,
+        message=style_info.message if payload.username_corrected else "Nickname accepted.",
+    )
+
+
 @app.post("/api/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
 def register_user(payload: RegisterRequest, db: Session = Depends(get_db)) -> RegisterResponse:
     username = payload.username.strip()
@@ -1287,10 +1467,23 @@ def register_user(payload: RegisterRequest, db: Session = Depends(get_db)) -> Re
 
     existing_user = db.execute(select(User).where(User.username == username)).scalar_one_or_none()
     if existing_user is not None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already exists.",
-        )
+        if payload.username_corrected:
+            for _ in range(10):
+                candidate = SensitiveFilter.replacement_name(payload.ui_style)
+                existing_candidate = db.execute(select(User).where(User.username == candidate)).scalar_one_or_none()
+                if existing_candidate is None:
+                    username = candidate
+                    break
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Auto-corrected username already exists.",
+                )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Username already exists.",
+            )
 
     user = User(
         username=username,
@@ -1307,9 +1500,18 @@ def register_user(payload: RegisterRequest, db: Session = Depends(get_db)) -> Re
             detail="Username already exists.",
         ) from None
 
+    style_info = sensitive_filter.validate(username, ui_style=payload.ui_style)
     return RegisterResponse(
-        message="User registered successfully.",
+        message=(
+            "User registered successfully with an auto-corrected nickname."
+            if payload.username_corrected
+            else "User registered successfully."
+        ),
         username=user.username,
+        username_corrected=payload.username_corrected,
+        original_username=payload.original_username,
+        validation_term=style_info.term if payload.username_corrected else None,
+        validation_message=style_info.message if payload.username_corrected else None,
     )
 
 

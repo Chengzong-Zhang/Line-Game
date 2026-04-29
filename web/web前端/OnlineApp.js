@@ -1,6 +1,6 @@
-﻿import GameController from "./GameController.js?v=20260428k";
+import GameController from "./GameController.js?v=20260428k";
 import { Player } from "./GameEngine.js?v=20260421c";
-import NetworkManager, { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js?v=20260428k";
+import NetworkManager, { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js?v=20260429b";
 import {
   createEmptyAuth as createAppEmptyAuth,
   GRID_SIZE_OPTIONS as APP_GRID_SIZE_OPTIONS,
@@ -24,7 +24,10 @@ import {
   formatResetVoteMessage as formatAppResetVoteMessage,
   formatWinner as formatAppWinner,
   getInitialLanguage as getAppInitialLanguage,
+  getInitialUiStyle as getAppInitialUiStyle,
   getTexts as getAppTexts,
+  UI_STYLE_STORAGE_KEY,
+  UI_STYLE_ACADEMIC,
   localizeErrorMessage as localizeAppErrorMessage,
 } from "./OnlineAppI18n.js?v=20260428l";
 import { ensureGuideRuleImages, getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20260429a";
@@ -182,6 +185,19 @@ async function postAuthJson(serverUrl, path, payload) {
 
 const ROOM_START_COUNTDOWN_FALLBACK_SECONDS = 20;
 const SERVER_TIMESTAMP_TOLERANCE_MS = 1000;
+const CHAT_EMOJI_OPTIONS = Object.freeze([
+  { content: "👏", animation: "bounce", duration: 1200, label: "Nice" },
+  { content: "🔥", animation: "bounce", duration: 1200, label: "Hot" },
+  { content: "😎", animation: "bounce", duration: 1200, label: "Cool" },
+  { content: "🤝", animation: "fade", duration: 1400, label: "Respect" },
+  { content: "❓", animation: "shake", duration: 1000, label: "Question" },
+  { content: "🤔", animation: "fade", duration: 1400, label: "Thinking" },
+  { content: "💀", animation: "shake", duration: 1100, label: "Defeated" },
+  { content: "🤯", animation: "shake", duration: 1200, label: "Mind blown" },
+  { content: "🏳", animation: "fade", duration: 1300, label: "Surrender" },
+  { content: "😤", animation: "bounce", duration: 1200, label: "Pressure" },
+]);
+const CHAT_EMOJI_ANIMATIONS = new Set(["bounce", "fade", "shake"]);
 
 function createEmptyRoomInfo() {
   return {
@@ -223,6 +239,14 @@ function normalizeMatchPhase(phase, fallbackStatus = "solo") {
   return "SOLO";
 }
 
+function readPayloadMatchPhase(payload, fallbackPhase) {
+  return payload?.matchPhase
+    ?? payload?.match_phase
+    ?? payload?.matchState?.phase
+    ?? payload?.match_state?.phase
+    ?? fallbackPhase;
+}
+
 const PLAYER_ACCENT_CLASS = Object.freeze({
   [Player.BLACK]: "player-accent-blue",
   [Player.WHITE]: "player-accent-red",
@@ -241,12 +265,19 @@ function findRoomPlayerByColor(roomPlayers, color) {
   return roomPlayers.find((player) => player?.color === color) ?? null;
 }
 
-function resolveOnlinePlayerName(roomPlayers, color, language) {
+function resolveOnlinePlayerName(roomPlayers, color, language, uiStyle) {
   const player = findRoomPlayerByColor(roomPlayers, color);
-  return player?.username ?? player?.playerId ?? formatAppPlayerName(color, language);
+  const roleLabel = formatAppPlayerName(color, language, uiStyle);
+  const identity = player?.username ?? player?.playerId ?? "";
+
+  if (!identity) {
+    return roleLabel;
+  }
+
+  return uiStyle === UI_STYLE_ACADEMIC ? `${roleLabel} / ${identity}` : identity;
 }
 
-function buildNamedScoreEntries(scores, players, roomPlayers, language) {
+function buildNamedScoreEntries(scores, players, roomPlayers, language, uiStyle) {
   const activePlayers = Array.isArray(players) && players.length
     ? players
     : [Player.BLACK, Player.WHITE];
@@ -256,7 +287,7 @@ function buildNamedScoreEntries(scores, players, roomPlayers, language) {
     .map((player) => ({
       key: player,
       color: player,
-      name: resolveOnlinePlayerName(roomPlayers, player, language),
+      name: resolveOnlinePlayerName(roomPlayers, player, language, uiStyle),
       value: scores?.[player],
       accentClass: getPlayerAccentClass(player),
     }));
@@ -282,21 +313,25 @@ const ScorePanel = {
       type: String,
       required: true,
     },
+    uiStyle: {
+      type: String,
+      required: true,
+    },
     statusText: {
       type: String,
       default: "",
     },
   },
   setup(props) {
-    const texts = computed(() => getAppTexts(props.language));
+    const texts = computed(() => getAppTexts(props.language, props.uiStyle));
     const isOnlineMatch = computed(() => Boolean(props.session?.roomId));
     const currentPlayerLabel = computed(() => (
       isOnlineMatch.value
-        ? resolveOnlinePlayerName(props.roomPlayers, props.gameState.currentPlayer, props.language)
-        : formatAppPlayerName(props.gameState.currentPlayer, props.language)
+        ? resolveOnlinePlayerName(props.roomPlayers, props.gameState.currentPlayer, props.language, props.uiStyle)
+        : formatAppPlayerName(props.gameState.currentPlayer, props.language, props.uiStyle)
     ));
-    const localRoleLabel = computed(() => formatAppPlayerName(props.session.color, props.language));
-    const winnerLabel = computed(() => formatAppWinner(props.gameState.winner, props.language));
+    const localRoleLabel = computed(() => formatAppPlayerName(props.session.color, props.language, props.uiStyle));
+    const winnerLabel = computed(() => formatAppWinner(props.gameState.winner, props.language, props.uiStyle));
     const turnBannerClass = computed(() => {
       if (props.gameState.currentPlayer === Player.BLACK) {
         return "is-blue";
@@ -314,7 +349,7 @@ const ScorePanel = {
       return players.map((player) => {
         const namedCard = {
           key: player,
-          name: resolveOnlinePlayerName(props.roomPlayers, player, props.language),
+          name: resolveOnlinePlayerName(props.roomPlayers, player, props.language, props.uiStyle),
           accentClass: getPlayerAccentClass(player),
           isNamed: isOnlineMatch.value,
         };
@@ -411,11 +446,16 @@ const SetupPanel = {
     "update:player-count",
     "update:grid-size",
     "update:language",
+    "update:ui-style",
     "update:turn-timer-enabled",
     "update:turn-time-limit-seconds",
   ],
   props: {
     language: {
+      type: String,
+      required: true,
+    },
+    uiStyle: {
       type: String,
       required: true,
     },
@@ -445,7 +485,7 @@ const SetupPanel = {
     },
   },
   setup(props) {
-    const texts = computed(() => getAppTexts(props.language));
+    const texts = computed(() => getAppTexts(props.language, props.uiStyle));
 
     return {
       texts,
@@ -482,6 +522,27 @@ const SetupPanel = {
                 @click="$emit('update:language', 'en')"
               >
                 {{ texts.languageEnAction }}
+              </button>
+            </div>
+          </div>
+          <div>
+            <label class="field-label">{{ texts.uiStyleLabel }}</label>
+            <div id="ui-style-select" class="language-switcher language-switcher-inline" role="group" :aria-label="texts.uiStyleLabel">
+              <button
+                class="language-button"
+                :class="{ 'is-active': uiStyle === 'casual' }"
+                :disabled="busy"
+                @click="$emit('update:ui-style', 'casual')"
+              >
+                {{ texts.uiStyleCasualAction }}
+              </button>
+              <button
+                class="language-button"
+                :class="{ 'is-active': uiStyle === 'academic' }"
+                :disabled="busy"
+                @click="$emit('update:ui-style', 'academic')"
+              >
+                {{ texts.uiStyleAcademicAction }}
               </button>
             </div>
           </div>
@@ -567,6 +628,10 @@ const AuthPanel = {
       type: String,
       required: true,
     },
+    uiStyle: {
+      type: String,
+      required: true,
+    },
     auth: {
       type: Object,
       required: true,
@@ -597,7 +662,7 @@ const AuthPanel = {
     },
   },
   setup(props) {
-    const texts = computed(() => getAppTexts(props.language));
+    const texts = computed(() => getAppTexts(props.language, props.uiStyle));
     const isAuthenticated = computed(() => Boolean(props.auth?.token && props.auth?.username));
 
     return {
@@ -725,6 +790,10 @@ const RoomPanel = {
       type: String,
       required: true,
     },
+    uiStyle: {
+      type: String,
+      required: true,
+    },
     roomInfo: {
       type: Object,
       required: true,
@@ -759,12 +828,13 @@ const RoomPanel = {
     },
   },
   setup(props) {
-    const texts = computed(() => getAppTexts(props.language));
-    const roleLabel = computed(() => formatAppPlayerName(props.session.color, props.language));
-    const connectionLabel = computed(() => formatAppConnectionState(props.connectionState, props.language));
-    const roomStatusLabel = computed(() => formatAppConnectionState(props.roomStatus, props.language));
+    const texts = computed(() => getAppTexts(props.language, props.uiStyle));
+    const roleLabel = computed(() => formatAppPlayerName(props.session.color, props.language, props.uiStyle));
+    const connectionLabel = computed(() => formatAppConnectionState(props.connectionState, props.language, props.uiStyle));
+    const roomStatusLabel = computed(() => formatAppConnectionState(props.roomStatus, props.language, props.uiStyle));
     const roomPlayers = computed(() => Array.isArray(props.roomInfo?.players) ? props.roomInfo.players : []);
-    const roomPlayerName = (player) => player?.username ?? player?.playerId ?? formatAppPlayerName(player?.color, props.language);
+    const roomPlayerName = (player) => resolveOnlinePlayerName(props.roomInfo?.players, player?.color, props.language, props.uiStyle);
+    const roomPlaying = computed(() => props.roomStatus === "inProgress" || props.roomInfo?.matchPhase === "PLAYING");
     const getStarterOptionClass = (option) => ({
       "is-active": option.value === props.startPlayer,
       "is-blue": option.value === Player.BLACK,
@@ -772,7 +842,7 @@ const RoomPanel = {
       "is-purple": option.value === Player.PURPLE,
     });
     const readyActionLabel = computed(() => (
-      props.roomStatus === "inProgress"
+      roomPlaying.value
         ? texts.value.inProgress
         : (props.localReady ? texts.value.cancelReadyAction : texts.value.readyAction)
     ));
@@ -783,7 +853,7 @@ const RoomPanel = {
           label: texts.value.roomOfflineTag,
         };
       }
-      if (props.roomStatus === "inProgress") {
+      if (roomPlaying.value) {
         return {
           className: "status-pill-live",
           label: texts.value.inProgress,
@@ -807,6 +877,7 @@ const RoomPanel = {
       connectionLabel,
       roomStatusLabel,
       roomPlayers,
+      roomPlaying,
       getPlayerAccentClass,
       readyActionLabel,
       resolvePlayerState,
@@ -854,7 +925,7 @@ const RoomPanel = {
 
         <div class="status-pill-row room-action-row">
           <span
-            v-if="roomStatus === 'inProgress'"
+            v-if="roomStatus === 'inProgress' || roomInfo?.matchPhase === 'PLAYING'"
             class="status-pill status-pill-live"
           >{{ texts.inProgress }}</span>
           <button
@@ -940,7 +1011,7 @@ const RoomPanel = {
 
 const ControlPanel = {
   name: "ControlPanel",
-  emits: ["skip", "reset"],
+  emits: ["skip", "reset", "emoji"],
   props: {
     gameState: {
       type: Object,
@@ -974,17 +1045,29 @@ const ControlPanel = {
       type: Number,
       default: 0,
     },
+    emojiOptions: {
+      type: Array,
+      default: () => [],
+    },
+    emojiDisabled: {
+      type: Boolean,
+      default: true,
+    },
     language: {
+      type: String,
+      required: true,
+    },
+    uiStyle: {
       type: String,
       required: true,
     },
   },
   setup(props) {
-    const texts = computed(() => getAppTexts(props.language));
+    const texts = computed(() => getAppTexts(props.language, props.uiStyle));
     const currentPlayerLabel = computed(() => (
       props.session?.roomId
-        ? resolveOnlinePlayerName(props.roomPlayers, props.gameState.currentPlayer, props.language)
-        : formatAppPlayerName(props.gameState.currentPlayer, props.language)
+        ? resolveOnlinePlayerName(props.roomPlayers, props.gameState.currentPlayer, props.language, props.uiStyle)
+        : formatAppPlayerName(props.gameState.currentPlayer, props.language, props.uiStyle)
     ));
     const turnTimerLabel = computed(() => (
       props.turnTimerEnabled
@@ -1030,6 +1113,19 @@ const ControlPanel = {
           {{ resetLabel }}
         </button>
       </div>
+      <div v-if="emojiOptions.length" class="chat-emoji-toolbar" role="group" aria-label="chat emoji">
+        <button
+          v-for="emoji in emojiOptions"
+          :key="emoji.content"
+          type="button"
+          class="chat-emoji-button"
+          :title="emoji.label"
+          :disabled="emojiDisabled"
+          @click="$emit('emoji', emoji)"
+        >
+          {{ emoji.content }}
+        </button>
+      </div>
     </section>
   `,
 };
@@ -1051,6 +1147,10 @@ const ResultModal = {
       default: "",
     },
     language: {
+      type: String,
+      required: true,
+    },
+    uiStyle: {
       type: String,
       required: true,
     },
@@ -1076,12 +1176,12 @@ const ResultModal = {
     },
   },
   setup(props) {
-    const texts = computed(() => getAppTexts(props.language));
+    const texts = computed(() => getAppTexts(props.language, props.uiStyle));
     const isOnlineSettlement = computed(() => Boolean(props.session?.roomId && props.session?.color));
     const resolvedWinner = computed(() => props.overlayResult?.winner ?? props.gameState.winner);
     const localPlayerName = computed(() => (
       isOnlineSettlement.value
-        ? resolveOnlinePlayerName(props.roomPlayers, props.session.color, props.language)
+        ? resolveOnlinePlayerName(props.roomPlayers, props.session.color, props.language, props.uiStyle)
         : ""
     ));
     const localPlayerAccentClass = computed(() => getPlayerAccentClass(props.session.color));
@@ -1094,9 +1194,9 @@ const ResultModal = {
     const showPerspectiveTitle = computed(() => localPlayerDidWin.value !== null && Boolean(localPlayerName.value));
     const title = computed(() => {
       if (props.overlayResult) {
-        return formatAppWinner(props.overlayResult.winner, props.language);
+        return formatAppWinner(props.overlayResult.winner, props.language, props.uiStyle);
       }
-      return formatAppWinner(props.gameState.winner, props.language);
+      return formatAppWinner(props.gameState.winner, props.language, props.uiStyle);
     });
     const titleOutcome = computed(() => {
       if (localPlayerDidWin.value === true) {
@@ -1116,6 +1216,7 @@ const ResultModal = {
         props.gameState.players,
         props.roomPlayers,
         props.language,
+        props.uiStyle,
       );
     });
     const summary = computed(() => {
@@ -1124,11 +1225,11 @@ const ResultModal = {
       }
       if (props.overlayResult) {
         return texts.value.resignedSummary(
-          resolveOnlinePlayerName(props.roomPlayers, props.overlayResult.winner, props.language),
-          resolveOnlinePlayerName(props.roomPlayers, props.overlayResult.loser, props.language),
+          resolveOnlinePlayerName(props.roomPlayers, props.overlayResult.winner, props.language, props.uiStyle),
+          resolveOnlinePlayerName(props.roomPlayers, props.overlayResult.loser, props.language, props.uiStyle),
         );
       }
-      return formatAppFinalScoreLine(props.gameState.scores, props.language, props.gameState.players);
+      return formatAppFinalScoreLine(props.gameState.scores, props.language, props.gameState.players, props.uiStyle);
     });
 
     const actionLabel = computed(() => {
@@ -1323,6 +1424,10 @@ const GuidePanel = {
       type: String,
       required: true,
     },
+    uiStyle: {
+      type: String,
+      required: true,
+    },
     ruleEntry: {
       type: Object,
       default: null,
@@ -1338,7 +1443,7 @@ const GuidePanel = {
   },
   setup(props) {
     return {
-      texts: computed(() => getAppTexts(props.language)),
+      texts: computed(() => getAppTexts(props.language, props.uiStyle)),
     };
   },
   template: `
@@ -1434,6 +1539,10 @@ const GuideReaderModal = {
       type: String,
       required: true,
     },
+    uiStyle: {
+      type: String,
+      required: true,
+    },
   },
   setup(props) {
     const activeSubKey = ref("");
@@ -1477,7 +1586,7 @@ const GuideReaderModal = {
       displayBlocks,
       formatGuideDisplayMath,
       highlightGuideCode,
-      texts: computed(() => getAppTexts(props.language)),
+      texts: computed(() => getAppTexts(props.language, props.uiStyle)),
     };
   },
   template: `
@@ -1687,8 +1796,8 @@ function resolveGuideMarkdown(key, language, guideMarkdownOverrides = {}) {
   return guideMarkdownOverrides[key] ?? getGuideMarkdown(key, language);
 }
 
-function createGuideEntries(language = "zh", guideMarkdownOverrides = {}) {
-  const texts = getAppTexts(language);
+function createGuideEntries(language = "zh", uiStyle = "casual", guideMarkdownOverrides = {}) {
+  const texts = getAppTexts(language, uiStyle);
   const ruleSubEntries = [
     {
       key: "rules-essential",
@@ -1797,6 +1906,10 @@ const BoardCanvas = {
       type: String,
       required: true,
     },
+    uiStyle: {
+      type: String,
+      required: true,
+    },
   },
   emits: ["state-change", "controller-ready"],
   setup(props, { emit }) {
@@ -1825,7 +1938,7 @@ const BoardCanvas = {
     return {
       canvasRef,
       props,
-      texts: computed(() => getAppTexts(props.language)),
+      texts: computed(() => getAppTexts(props.language, props.uiStyle)),
     };
   },
   template: `
@@ -1864,6 +1977,7 @@ const App = {
     const controller = ref(null);
     const gameState = ref(createAppDefaultGameState());
     const language = ref(getAppInitialLanguage());
+    const uiStyle = ref(getAppInitialUiStyle());
     const guideMarkdownOverrides = ref({});
     const networkManager = new NetworkManager();
     networkManager.setAuthToken(storedAuth.token);
@@ -1889,6 +2003,8 @@ const App = {
     const networkBusy = ref(false);
     const networkError = ref("");
     const readyPending = ref(false);
+    const chatEmojiBursts = ref([]);
+    const chatEmojiOptions = CHAT_EMOJI_OPTIONS;
     let lastServerTimestamp = 0;
     const overlayResult = ref(null);
     const activeUtilityDeck = ref("");
@@ -1905,11 +2021,14 @@ const App = {
     let reconnectAttempt = 0;
     let syncingRemoteSettings = false;
     let guideMarkdownLoadId = 0;
+    const chatEmojiTimeoutIds = new Set();
 
-    watch(language, (value) => {
-      globalThis.localStorage?.setItem("triaxis-language", value);
-      document.documentElement.lang = value === "en" ? "en" : "zh-CN";
-      document.title = getAppTexts(value).pageTitle;
+    watch([language, uiStyle], ([nextLanguage, nextUiStyle]) => {
+      globalThis.localStorage?.setItem("triaxis-language", nextLanguage);
+      globalThis.localStorage?.setItem(UI_STYLE_STORAGE_KEY, nextUiStyle);
+      document.documentElement.lang = nextLanguage === "en" ? "en" : "zh-CN";
+      document.documentElement.dataset.uiStyle = nextUiStyle;
+      document.title = getAppTexts(nextLanguage, nextUiStyle).pageTitle;
     }, { immediate: true });
 
     watch(language, async (value) => {
@@ -2046,25 +2165,29 @@ const App = {
 
     const handleAuthError = (error) => {
       authFeedbackTone.value = "error";
-      authError.value = localizeAppErrorMessage(error?.message ?? String(error), language.value);
+      authError.value = localizeAppErrorMessage(error?.message ?? String(error), language.value, uiStyle.value);
     };
 
     const isAuthenticated = computed(() => Boolean(auth.value.token && auth.value.username));
     const isHost = computed(() => Boolean(session.value.playerId && roomInfo.value.hostPlayerId === session.value.playerId));
     const boardDockBadge = computed(() => (
-      language.value === "en"
-        ? `${selectedPlayerCount.value}P / ${selectedGridSize.value}`
-        : `${selectedPlayerCount.value}人 / ${selectedGridSize.value}`
+      uiStyle.value === UI_STYLE_ACADEMIC
+        ? (language.value === "en"
+          ? `${selectedPlayerCount.value}N / ${selectedGridSize.value}`
+          : `${selectedPlayerCount.value}节点 / ${selectedGridSize.value}`)
+        : (language.value === "en"
+          ? `${selectedPlayerCount.value}P / ${selectedGridSize.value}`
+          : `${selectedPlayerCount.value}人 / ${selectedGridSize.value}`)
     ));
     const networkDockBadge = computed(() => {
       if (session.value.roomId) {
         return `#${session.value.roomId}`;
       }
 
-      return getAppTexts(language.value).localShort;
+      return getAppTexts(language.value, uiStyle.value).localShort;
     });
-    const guideDockBadge = computed(() => getAppTexts(language.value).guideDockBadge);
-    const guideEntries = computed(() => createGuideEntries(language.value, guideMarkdownOverrides.value));
+    const guideDockBadge = computed(() => getAppTexts(language.value, uiStyle.value).guideDockBadge);
+    const guideEntries = computed(() => createGuideEntries(language.value, uiStyle.value, guideMarkdownOverrides.value));
     const ruleGuideEntry = computed(() => guideEntries.value.find((entry) => entry.key === "rules") ?? null);
     const whyGuideEntry = computed(() => guideEntries.value.find((entry) => entry.group === "why") ?? null);
     const thanksGuideEntry = computed(() => guideEntries.value.find((entry) => entry.group === "thanks") ?? null);
@@ -2083,7 +2206,7 @@ const App = {
         : [Player.BLACK, Player.WHITE, Player.PURPLE].slice(0, selectedPlayerCount.value);
       return sourcePlayers.map((color) => ({
         value: color,
-        label: formatAppPlayerName(color, language.value),
+        label: formatAppPlayerName(color, language.value, uiStyle.value),
       }));
     });
 
@@ -2183,6 +2306,14 @@ const App = {
       turnTimerRemaining.value = 0;
     };
 
+    const clearChatEmojiBursts = () => {
+      for (const timeoutId of chatEmojiTimeoutIds) {
+        globalThis.clearTimeout(timeoutId);
+      }
+      chatEmojiTimeoutIds.clear();
+      chatEmojiBursts.value = [];
+    };
+
     const shouldRunTurnTimer = () => {
       if (!turnTimerEnabled.value || !controller.value) {
         return false;
@@ -2280,10 +2411,36 @@ const App = {
     );
 
     const handleNetworkError = (error) => {
-      networkError.value = localizeAppErrorMessage(error?.message ?? String(error), language.value);
+      networkError.value = localizeAppErrorMessage(error?.message ?? String(error), language.value, uiStyle.value);
     };
 
     const applyRoomPayload = (payload) => {
+      // MATCH_RESET 必须无条件通过，在所有时间戳校验之前处理。
+      // 认输/重开包到达时直接应用，并清零时间戳基线，防止后续包被误拦。
+      const isMatchReset = payload?.type === ServerEvent.MATCH_RESET
+        || payload?.reason === "resign_restart"
+        || payload?.reason === "normal_restart";
+      if (isMatchReset) {
+        lastServerTimestamp = 0;
+        readyPending.value = false;
+        const nextStatusReset = normalizeRoomStatus(payload?.status ?? roomStatus.value);
+        roomStatus.value = nextStatusReset || roomStatus.value;
+        roomInfo.value = {
+          ...createEmptyRoomInfo(),
+          status: nextStatusReset || roomInfo.value.status,
+          hostPlayerId: payload?.hostPlayerId ?? roomInfo.value.hostPlayerId,
+          players: Array.isArray(payload?.players) ? payload.players : roomInfo.value.players,
+          settings: normalizeAppGameSettings(payload?.settings ?? roomInfo.value.settings),
+          countdownEndsAt: payload?.countdownEndsAt ?? null,
+          matchPhase: normalizeMatchPhase(
+            readPayloadMatchPhase(payload, roomInfo.value.matchPhase),
+            nextStatusReset,
+          ),
+        };
+        resultModalDismissed.value = false;
+        return true;
+      }
+
       // 用服务端时间戳做单调性校验，丢弃比当前状态更旧的广播包。
       const incomingTs = payload?.serverTimestamp ?? 0;
       const nextStatus = normalizeRoomStatus(payload?.status ?? roomStatus.value);
@@ -2296,9 +2453,8 @@ const App = {
       const shouldAcceptRoomReadyRollback = isRoomReadyTransition
         && timestampRollbackMs > 0
         && timestampRollbackMs <= SERVER_TIMESTAMP_TOLERANCE_MS;
-      const isMatchReset = payload?.type === ServerEvent.MATCH_RESET;
 
-      if (timestampRollbackMs > 0 && !shouldAcceptRoomReadyRollback && !isMatchReset) {
+      if (timestampRollbackMs > 0 && !shouldAcceptRoomReadyRollback) {
         return false;
       }
       if (incomingTs > 0) {
@@ -2317,7 +2473,7 @@ const App = {
         settings: normalizeAppGameSettings(payload?.settings ?? roomInfo.value.settings),
         countdownEndsAt: payload?.countdownEndsAt ?? null,
         matchPhase: normalizeMatchPhase(
-          payload?.matchPhase ?? payload?.matchState?.phase ?? roomInfo.value.matchPhase,
+          readPayloadMatchPhase(payload, roomInfo.value.matchPhase),
           nextStatus,
         ),
       };
@@ -2333,6 +2489,7 @@ const App = {
       resultModalDismissed.value = false;
       readyPending.value = false;
       lastServerTimestamp = 0;
+      clearChatEmojiBursts();
     };
 
     const syncControllerState = (partial) => {
@@ -2350,7 +2507,7 @@ const App = {
       const normalizedSettings = normalizeAppGameSettings(payload?.settings ?? roomInfo.value.settings);
       const players = Array.isArray(payload?.players) ? payload.players : roomInfo.value.players;
       const normalizedStatus = normalizeRoomStatus(payload?.status ?? roomStatus.value);
-      const normalizedPhase = normalizeMatchPhase(payload?.matchPhase ?? payload?.matchState?.phase ?? roomInfo.value.matchPhase, normalizedStatus);
+      const normalizedPhase = normalizeMatchPhase(readPayloadMatchPhase(payload, roomInfo.value.matchPhase), normalizedStatus);
       const everyoneConnected = Array.isArray(players)
         && players.length >= normalizedSettings.playerCount
         && players.every((player) => player.connected);
@@ -2522,7 +2679,7 @@ const App = {
           authMode.value = "login";
           authPassword.value = "";
           authFeedbackTone.value = "success";
-          authError.value = getAppTexts(language.value).authRegisterSuccess;
+          authError.value = getAppTexts(language.value, uiStyle.value).authRegisterSuccess;
           return;
         }
 
@@ -2684,7 +2841,7 @@ const App = {
       }
 
       if (roomInfo.value.matchPhase === "PLAYING" || roomStatus.value === "inProgress") {
-        networkError.value = getAppTexts(language.value).matchInProgress;
+        networkError.value = getAppTexts(language.value, uiStyle.value).matchInProgress;
         return;
       }
 
@@ -2701,6 +2858,79 @@ const App = {
       }
     };
 
+    const chatEmojiDisabled = computed(() => {
+      return !session.value.roomId
+        || !networkManager.isConnected()
+        || roomStatus.value === "solo"
+        || roomStatus.value === "offline";
+    });
+
+    const normalizeChatEmojiPayload = (payload) => {
+      const content = String(payload?.content ?? "").trim();
+      if (!content) {
+        return null;
+      }
+
+      const metadata = payload?.metadata && typeof payload.metadata === "object"
+        ? payload.metadata
+        : {};
+      const animation = CHAT_EMOJI_ANIMATIONS.has(metadata.animation)
+        ? metadata.animation
+        : "bounce";
+      const rawDuration = Number(metadata.duration ?? 1200);
+      const duration = Number.isFinite(rawDuration)
+        ? Math.max(300, Math.min(3000, Math.round(rawDuration)))
+        : 1200;
+      return {
+        sender: String(payload?.sender ?? ""),
+        content,
+        metadata: {
+          animation,
+          duration,
+        },
+      };
+    };
+
+    const pushChatEmojiBurst = (payload) => {
+      const normalized = normalizeChatEmojiPayload(payload);
+      if (!normalized) {
+        return;
+      }
+
+      const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const burst = {
+        id,
+        sender: normalized.sender,
+        content: normalized.content,
+        animation: normalized.metadata.animation,
+        duration: normalized.metadata.duration,
+        side: normalized.sender && normalized.sender === session.value.playerId ? "self" : "remote",
+      };
+      chatEmojiBursts.value = [...chatEmojiBursts.value.slice(-3), burst];
+
+      const timeoutId = globalThis.setTimeout(() => {
+        chatEmojiTimeoutIds.delete(timeoutId);
+        chatEmojiBursts.value = chatEmojiBursts.value.filter((candidate) => candidate.id !== id);
+      }, burst.duration + 180);
+      chatEmojiTimeoutIds.add(timeoutId);
+    };
+
+    const handleChatEmoji = async (emoji) => {
+      if (chatEmojiDisabled.value) {
+        return;
+      }
+
+      networkError.value = "";
+      try {
+        await networkManager.sendChatEmoji(emoji?.content, {
+          animation: emoji?.animation,
+          duration: emoji?.duration,
+        });
+      } catch (error) {
+        handleNetworkError(error);
+      }
+    };
+
     const handleStartPlayerChange = (value) => {
       selectedStartPlayer.value = value;
     };
@@ -2714,7 +2944,7 @@ const App = {
     };
 
     const statusText = computed(() => {
-      const texts = getAppTexts(language.value);
+      const texts = getAppTexts(language.value, uiStyle.value);
       if (roomStatus.value === "waiting") {
         return texts.waitingStatus(session.value.roomId);
       }
@@ -2734,18 +2964,18 @@ const App = {
       if (gameState.value.gameOver) {
         return language.value === "en"
           ? texts.finalStatus(
-            formatAppWinner(gameState.value.winner, language.value),
-            formatAppFinalScoreLine(gameState.value.scores, language.value, gameState.value.players),
+            formatAppWinner(gameState.value.winner, language.value, uiStyle.value),
+            formatAppFinalScoreLine(gameState.value.scores, language.value, gameState.value.players, uiStyle.value),
           )
           : texts.finalStatus(
-            formatAppWinner(gameState.value.winner, language.value),
-            formatAppFinalScoreLine(gameState.value.scores, language.value, gameState.value.players),
+            formatAppWinner(gameState.value.winner, language.value, uiStyle.value),
+            formatAppFinalScoreLine(gameState.value.scores, language.value, gameState.value.players, uiStyle.value),
           );
       }
 
       if (roomInfo.value.matchPhase === "PLAYING" || roomStatus.value === "inProgress") {
         const turnStatus = gameState.value.isLocalTurn
-          ? texts.localTurnStatus(formatAppPlayerName(session.value.color, language.value))
+          ? texts.localTurnStatus(formatAppPlayerName(session.value.color, language.value, uiStyle.value))
           : texts.remoteTurnStatus;
         return `${texts.playingStatus} ${turnStatus}`;
       }
@@ -2758,7 +2988,7 @@ const App = {
     });
 
     const boardHint = computed(() => {
-      const texts = getAppTexts(language.value);
+      const texts = getAppTexts(language.value, uiStyle.value);
       if (roomStatus.value === "waiting") {
         return texts.waitingHint;
       }
@@ -2824,7 +3054,7 @@ const App = {
     const showClosePrompt = computed(() => Boolean(overlayResult.value || (gameState.value.gameOver && !resultModalDismissed.value)));
 
     const resetLabel = computed(() => {
-      const texts = getAppTexts(language.value);
+      const texts = getAppTexts(language.value, uiStyle.value);
       if (roomStatus.value === "solo") {
         return gameState.value.gameOver ? texts.startNewSolo : texts.resetBoard;
       }
@@ -2926,7 +3156,7 @@ const App = {
         connectionState.value = "disconnected";
         syncSession();
         if (payload?.code === 4401) {
-          networkError.value = localizeAppErrorMessage(`WebSocket closed: ${payload.code} ${payload.reason}`, language.value);
+          networkError.value = localizeAppErrorMessage(`WebSocket closed: ${payload.code} ${payload.reason}`, language.value, uiStyle.value);
           clearReconnectTimer();
           void handleLogout();
           return;
@@ -2966,7 +3196,7 @@ const App = {
       networkManager.on(ServerEvent.ROOM_STATE, (payload) => {
         applyRoomSnapshot(payload, true);
         if (payload?.reason === "settings_updated") {
-          networkError.value = getAppTexts(language.value).roomSettingsChanged;
+          networkError.value = getAppTexts(language.value, uiStyle.value).roomSettingsChanged;
         }
       }),
     );
@@ -2987,7 +3217,7 @@ const App = {
     unsubscribers.push(
       networkManager.on(ServerEvent.PLAYER_LEFT, () => {
         roomStatus.value = "waiting";
-        networkError.value = getAppTexts(language.value).opponentLeft;
+        networkError.value = getAppTexts(language.value, uiStyle.value).opponentLeft;
         syncControllerState({
           enabled: true,
           networkManager,
@@ -3002,7 +3232,8 @@ const App = {
         networkError.value = formatAppResetVoteMessage(
           payload.confirmedVotes ?? 0,
           payload.requiredVotes ?? 0,
-          language.value,
+            language.value,
+            uiStyle.value,
         );
       }),
     );
@@ -3011,12 +3242,17 @@ const App = {
       networkManager.on(ServerEvent.MATCH_RESET, (payload) => {
         networkError.value = "";
         resultModalDismissed.value = false;
+        // applyRoomPayload 已在最顶部无条件处理 MATCH_RESET，此处直接调用快照同步。
         applyRoomSnapshot(payload, true);
+        // 强制刷新控制器渲染，防止棋盘停留在重置前的旧画面。
+        if (controller.value) {
+          gameState.value = controller.value.getGameState();
+        }
         // 联机重置后，服务端不会回传整盘棋，而是让前端自己重建空盘并展示结算 overlay。
         if (payload.reason === "consensus_restart" && payload.winnerColor) {
           overlayResult.value = {
             winner: payload.winnerColor,
-            scoreLine: formatAppFinalScoreLine(gameState.value.scores, language.value, gameState.value.players),
+            scoreLine: formatAppFinalScoreLine(gameState.value.scores, language.value, gameState.value.players, uiStyle.value),
           };
         } else if (payload.reason === "resign_restart" && payload.winnerColor && (payload.loserColor || payload.resetColor || payload.color)) {
           overlayResult.value = {
@@ -3028,8 +3264,14 @@ const App = {
     );
 
     unsubscribers.push(
+      networkManager.on(ServerEvent.CHAT_EMOJI, (payload) => {
+        pushChatEmojiBurst(payload);
+      }),
+    );
+
+    unsubscribers.push(
       networkManager.on(ServerEvent.ERROR, (payload) => {
-        handleNetworkError(new Error(payload.message ?? payload.code ?? getAppTexts(language.value).unknownServer));
+        handleNetworkError(new Error(payload.message ?? payload.code ?? getAppTexts(language.value, uiStyle.value).unknownServer));
       }),
     );
 
@@ -3037,6 +3279,7 @@ const App = {
       clearReconnectTimer();
       clearTurnCountdown();
       clearTurnTimer();
+      clearChatEmojiBursts();
       document.body.classList.remove("modal-open");
       globalThis.removeEventListener("keydown", handleEscapeKeydown);
       for (const unsubscribe of unsubscribers) {
@@ -3075,6 +3318,7 @@ const App = {
       thanksGuideEntry,
       isAuthenticated,
       language,
+      uiStyle,
       networkDockBadge,
       serverUrl,
       roomIdInput,
@@ -3101,6 +3345,9 @@ const App = {
       skipDisabled,
       resetDisabled,
       resetLabel,
+      chatEmojiBursts,
+      chatEmojiOptions,
+      chatEmojiDisabled,
       settingsLocked,
       turnTimerEnabled,
       turnTimerRemaining,
@@ -3123,6 +3370,7 @@ const App = {
       handleStartPlayerChange,
       handleSkip,
       handleReset,
+      handleChatEmoji,
       handleClosePrompt,
     };
   },
@@ -3131,19 +3379,33 @@ const App = {
       <section class="stage-layout">
         <section class="board-column">
           <header class="stage-heading">
-            <h1 class="stage-title">{{ getTexts(language).heroTitle }}</h1>
+            <h1 class="stage-title">{{ getTexts(language, uiStyle).heroTitle }}</h1>
           </header>
 
           <BoardCanvas
             :language="language"
+            :ui-style="uiStyle"
             :hint-text="boardHint"
             @controller-ready="handleControllerReady"
             @state-change="handleStateChange"
           />
 
+          <div class="chat-emoji-layer" aria-live="polite" aria-atomic="false">
+            <div
+              v-for="burst in chatEmojiBursts"
+              :key="burst.id"
+              class="chat-emoji-bubble"
+              :class="['is-' + burst.side, 'is-' + burst.animation]"
+              :style="{ '--emoji-duration': burst.duration + 'ms' }"
+            >
+              {{ burst.content }}
+            </div>
+          </div>
+
           <ControlPanel
             :game-state="gameState"
             :language="language"
+            :ui-style="uiStyle"
             :skip-disabled="skipDisabled"
             :reset-disabled="resetDisabled"
             :reset-label="resetLabel"
@@ -3151,32 +3413,35 @@ const App = {
             :room-players="roomInfo.players"
             :turn-timer-enabled="turnTimerEnabled"
             :turn-timer-remaining="turnTimerRemaining"
+            :emoji-options="chatEmojiOptions"
+            :emoji-disabled="chatEmojiDisabled"
             @skip="handleSkip"
             @reset="handleReset"
+            @emoji="handleChatEmoji"
           />
         </section>
 
         <aside class="dock-column">
           <DockLauncher
             variant="board"
-            :title="getTexts(language).boardDockTitle"
-            :copy="getTexts(language).boardDockCopy"
+            :title="getTexts(language, uiStyle).boardDockTitle"
+            :copy="getTexts(language, uiStyle).boardDockCopy"
             :badge="boardDockBadge"
             @open="handleOpenUtilityDeck('board')"
           />
 
           <DockLauncher
             variant="network"
-            :title="getTexts(language).networkDockTitle"
-            :copy="getTexts(language).networkDockCopy"
+            :title="getTexts(language, uiStyle).networkDockTitle"
+            :copy="getTexts(language, uiStyle).networkDockCopy"
             :badge="networkDockBadge"
             @open="handleOpenUtilityDeck('network')"
           />
 
           <DockLauncher
             variant="guide"
-            :title="getTexts(language).guideDockTitle"
-            :copy="getTexts(language).guideDockCopy"
+            :title="getTexts(language, uiStyle).guideDockTitle"
+            :copy="getTexts(language, uiStyle).guideDockCopy"
             :badge="guideDockBadge"
             @open="handleOpenUtilityDeck('guide')"
           />
@@ -3186,15 +3451,16 @@ const App = {
       <UtilityModal
         variant="board"
         :visible="activeUtilityDeck === 'board'"
-        :eyebrow="getTexts(language).stageFocusEyebrow"
-        :title="getTexts(language).boardDockTitle"
-        :description="getTexts(language).boardDockCopy"
-        :close-label="getTexts(language).closePanel"
+        :eyebrow="getTexts(language, uiStyle).stageFocusEyebrow"
+        :title="getTexts(language, uiStyle).boardDockTitle"
+        :description="getTexts(language, uiStyle).boardDockCopy"
+        :close-label="getTexts(language, uiStyle).closePanel"
         @close="handleCloseUtilityDeck"
       >
         <div class="utility-grid utility-grid-board">
           <SetupPanel
             :language="language"
+            :ui-style="uiStyle"
             :player-count="selectedPlayerCount"
             :grid-size="selectedGridSize"
             :turn-timer-enabled="selectedTurnTimerEnabled"
@@ -3202,6 +3468,7 @@ const App = {
             :settings-locked="settingsLocked"
             :busy="networkBusy"
             @update:language="language = $event"
+            @update:ui-style="uiStyle = $event"
             @update:player-count="selectedPlayerCount = $event"
             @update:grid-size="selectedGridSize = $event"
             @update:turn-timer-enabled="selectedTurnTimerEnabled = $event"
@@ -3213,6 +3480,7 @@ const App = {
             :session="session"
             :room-players="roomInfo.players"
             :language="language"
+            :ui-style="uiStyle"
             :status-text="statusText"
           />
         </div>
@@ -3221,15 +3489,16 @@ const App = {
       <UtilityModal
         variant="network"
         :visible="activeUtilityDeck === 'network'"
-        :eyebrow="getTexts(language).onlineEyebrow"
-        :title="getTexts(language).networkDockTitle"
-        :description="getTexts(language).networkDockCopy"
-        :close-label="getTexts(language).closePanel"
+        :eyebrow="getTexts(language, uiStyle).onlineEyebrow"
+        :title="getTexts(language, uiStyle).networkDockTitle"
+        :description="getTexts(language, uiStyle).networkDockCopy"
+        :close-label="getTexts(language, uiStyle).closePanel"
         @close="handleCloseUtilityDeck"
       >
         <div class="utility-stack">
           <AuthPanel
             :language="language"
+            :ui-style="uiStyle"
             :auth="auth"
             :mode="authMode"
             :username="authUsername"
@@ -3246,6 +3515,7 @@ const App = {
 
           <RoomPanel
             :language="language"
+            :ui-style="uiStyle"
             :room-id="roomIdInput"
             :connection-state="connectionState"
             :room-status="roomStatus"
@@ -3276,15 +3546,16 @@ const App = {
       <UtilityModal
         variant="guide"
         :visible="activeUtilityDeck === 'guide'"
-        :eyebrow="getTexts(language).guideEyebrow"
-        :title="getTexts(language).guideDockTitle"
-        :description="getTexts(language).guideDockCopy"
-        :close-label="getTexts(language).closePanel"
+        :eyebrow="getTexts(language, uiStyle).guideEyebrow"
+        :title="getTexts(language, uiStyle).guideDockTitle"
+        :description="getTexts(language, uiStyle).guideDockCopy"
+        :close-label="getTexts(language, uiStyle).closePanel"
         @close="handleCloseUtilityDeck"
       >
         <GuidePanel
           :embedded="true"
           :language="language"
+          :ui-style="uiStyle"
           :rule-entry="ruleGuideEntry"
           :why-entry="whyGuideEntry"
           :thanks-entry="thanksGuideEntry"
@@ -3295,11 +3566,13 @@ const App = {
       <GuideReaderModal
         :entry="activeGuideEntry"
         :language="language"
+        :ui-style="uiStyle"
         @close="handleCloseGuideEntry"
       />
 
       <ResultModal
         :language="language"
+        :ui-style="uiStyle"
         :game-state="gameState"
         :allow-reset="resultResetAllowed"
         :session="session"
@@ -3307,7 +3580,7 @@ const App = {
         :overlay-result="overlayResult"
         :visible="showClosePrompt"
         :reset-label="resetLabel"
-        :close-label="getTexts(language).closePrompt"
+        :close-label="getTexts(language, uiStyle).closePrompt"
         @action="handleResultAction"
         @leave="handleResultLeaveRoom"
         @close="handleClosePrompt"

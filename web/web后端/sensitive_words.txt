@@ -1,0 +1,14 @@
+# UTF-8, one blocked token per line.
+# Blank lines and lines beginning with # are ignored.
+# Inline comments are supported after the token.
+#
+# Store canonical words only. The server normalizes case, whitespace,
+# punctuation, full-width forms, and common leetspeak variants before matching.
+#
+# Examples below are placeholders. Replace them with your audited production
+# vocabulary and keep this file out of user-editable paths.
+badword
+offensiveword
+profanealias
+spamname
+toxicname

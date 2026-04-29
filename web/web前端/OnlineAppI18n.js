@@ -3,9 +3,34 @@ import { ALL_PLAYERS } from "./OnlineAppState.js?v=20260421a";
 
 // 文案、比分格式化和错误提示都集中放在这里，避免 UI 文件里散落大量字符串。
 
+export const UI_STYLE_STORAGE_KEY = "triaxis-ui-style";
+export const UI_STYLE_CASUAL = "casual";
+export const UI_STYLE_ACADEMIC = "academic";
+
+function normalizeUiStyle(uiStyle) {
+  return uiStyle === UI_STYLE_ACADEMIC ? UI_STYLE_ACADEMIC : UI_STYLE_CASUAL;
+}
+
+function inferUiStyleFromHostname(hostname = globalThis.location?.hostname) {
+  const normalizedHostname = String(hostname ?? "").trim().toLowerCase();
+
+  if (normalizedHostname.includes("lifelinegame.cn")) {
+    return UI_STYLE_ACADEMIC;
+  }
+
+  if (normalizedHostname === "localhost" || normalizedHostname === "127.0.0.1" || normalizedHostname === "81.70.240.251") {
+    return UI_STYLE_CASUAL;
+  }
+
+  return UI_STYLE_CASUAL;
+}
+
 const EN_TEXTS = Object.freeze({
   pageTitle: "LIFELINE",
   languageLabel: "Language",
+  uiStyleLabel: "Terminology",
+  uiStyleCasualAction: "Casual",
+  uiStyleAcademicAction: "Academic",
   heroTitle: "LIFELINE",
   heroCopy: "Rules still run in the browser. The FastAPI relay server only creates rooms and forwards match actions.",
   statusLabel: "Match Feed",
@@ -78,7 +103,7 @@ const EN_TEXTS = Object.freeze({
   createRoom: "Create Room",
   joinRoom: "Join Room",
   leaveRoom: "Leave Room",
-  readyAction: "Ready",
+  readyAction: "Ready Game",
   cancelReadyAction: "Cancel Ready",
   closePrompt: "Close Prompt",
   roomLobby: "Room Lobby",
@@ -117,10 +142,10 @@ const EN_TEXTS = Object.freeze({
   soloHelp: "In solo mode you can click the board, skip a turn, or reset the match at any time.",
   onlineOverHelp: "This online round is over. Starting the next round keeps the same room and all players.",
   onlinePlayHelp: "Any player may skip on their own turn. If a side has no legal moves, the engine auto-skips that turn. Restarting an unfinished online match is treated as a resignation request.",
-  startNewSolo: "Start New Solo Match",
+  startNewSolo: "Start Game",
   resetBoard: "Reset Board",
   concedeAction: "Concede",
-  startNextOnline: "Start Next Online Match",
+  startNextOnline: "Start Game",
   resignAndRestart: "Resign And Restart",
   countdownLabel: (seconds) => `Countdown ${seconds}s`,
   countdownPaused: "Countdown Paused",
@@ -148,8 +173,8 @@ const EN_TEXTS = Object.freeze({
   offlineStatus: "Connection was lost. Reconnect to the relay server before continuing the online match.",
   playingStatus: "Both sides are ready and the match is live.",
   finalStatus: (winner, scoreLine) => `${winner}. Final score: ${scoreLine}.`,
-  victorySuffix: " Wins",
-  defeatSuffix: " Loses",
+  victorySuffix: "You won",
+  defeatSuffix: "You lost",
   localTurnStatus: (side) => `It is your turn as ${side}. Click a legal point to play, skip the turn, or resign and restart.`,
   remoteTurnStatus: "It is another player's turn. The board stays locked until their move arrives through WebSocket.",
   soloBlueStatus: "Solo mode: Blue to move.",
@@ -193,6 +218,9 @@ const EN_TEXTS = Object.freeze({
 const ZH_TEXTS = Object.freeze({
   pageTitle: "生命线",
   languageLabel: "语言",
+  uiStyleLabel: "术语风格",
+  uiStyleCasualAction: "生活直观",
+  uiStyleAcademicAction: "学术研究",
   heroTitle: "生命线",
   heroCopy: "规则计算仍在浏览器内完成，FastAPI 中继服务只负责创建房间、同步状态和转发对局操作。",
   statusLabel: "对局播报",
@@ -265,7 +293,7 @@ const ZH_TEXTS = Object.freeze({
   createRoom: "创建房间",
   joinRoom: "加入房间",
   leaveRoom: "离开房间",
-  readyAction: "准备",
+  readyAction: "准备游戏",
   cancelReadyAction: "取消准备",
   closePrompt: "关闭提示框",
   roomLobby: "房间大厅",
@@ -304,10 +332,10 @@ const ZH_TEXTS = Object.freeze({
   soloHelp: "本地模式下，你可以随时点击棋盘、跳过回合，或直接重开一局。",
   onlineOverHelp: "这一局联机对战已经结束。开始下一局时会保留当前房间和所有玩家。",
   onlinePlayHelp: "所有玩家都可以在自己的回合选择跳过。若一方没有合法落点，引擎会自动跳过。联机中途重开会被视为发起重置确认。",
-  startNewSolo: "开始新的本地对局",
+  startNewSolo: "开始游戏",
   resetBoard: "重置棋盘",
   concedeAction: "认输",
-  startNextOnline: "开始下一局联机对战",
+  startNextOnline: "开始游戏",
   resignAndRestart: "认输并重开",
   countdownLabel: (seconds) => `读秒 ${seconds} 秒`,
   countdownPaused: "读秒暂停",
@@ -335,8 +363,8 @@ const ZH_TEXTS = Object.freeze({
   offlineStatus: "连接已断开，继续联机对局前请先重新连接服务器。",
   playingStatus: "双方已准备，对局已开始。",
   finalStatus: (winner, scoreLine) => `${winner}。最终比分：${scoreLine}。`,
-  victorySuffix: "胜利",
-  defeatSuffix: "失败",
+  victorySuffix: "你赢了",
+  defeatSuffix: "你输了",
   localTurnStatus: (side) => `现在轮到你操作，你是${side}。点击合法落点即可下子，也可以选择跳过回合或认输重开。`,
   remoteTurnStatus: "现在是其他玩家的回合，棋盘会暂时锁定，等待对方通过 WebSocket 传来操作。",
   soloBlueStatus: "本地模式中，现在轮到蓝方。",
@@ -377,43 +405,295 @@ const ZH_TEXTS = Object.freeze({
   resignedSummary: (winner, loser) => `${winner}，${loser}认输，棋盘已重置。`,
 });
 
+const EN_ACADEMIC_TEXT_OVERRIDES = Object.freeze({
+  heroCopy: "Rules still run in the browser. The FastAPI relay service only allocates session groups, synchronizes state, and forwards experiment operations.",
+  statusLabel: "State Feed",
+  stageFocusEyebrow: "Core Model",
+  boardDockTitle: "Model Panel",
+  boardDockCopy: "Parameters, state, and local operations",
+  networkDockTitle: "Synchronization Panel",
+  networkDockCopy: "Multi-terminal verification and account system",
+  skipTurnAction: "Skip Iteration",
+  boardTitle: "Triangular State Space",
+  boardEyebrow: "State Space",
+  boardAriaLabel: "TriAxis triangular combinatorial state space",
+  duelDeskTitle: "State Synchronization Module",
+  currentTurnLabel: "Active Iteration",
+  boardStatus: "Model State",
+  boardStatusEyebrow: "Verification State",
+  onlineMatch: "Multi-terminal State Synchronization Verification",
+  onlineEyebrow: "Session Group",
+  authTitle: "Node Authentication",
+  authRequired: "Authenticate before entering a synchronization session.",
+  connectServer: "Connect Relay",
+  createRoom: "Create Session Group",
+  joinRoom: "Join Session Group",
+  leaveRoom: "Leave Session Group",
+  readyAction: "Load Model",
+  cancelReadyAction: "Cancel Model Load",
+  closePrompt: "Close Result",
+  roomLobby: "Session Lobby",
+  roomControls: "Coordinator Controls",
+  roomPlayers: "Remote Nodes",
+  roomYou: "Current Node",
+  roomHost: "Coordinator",
+  roomReadyTag: "Model Loaded",
+  roomIdleTag: "Model Pending",
+  starterLabel: "Initial Node",
+  startCountdown: "Iteration Pending",
+  roomId: "Session ID",
+  roomPlaceholder: "Enter 4-digit Session ID",
+  roomLabel: "Session",
+  playerLabel: "Node",
+  playerCountLabel: "Node Count",
+  turnTimerHint: "When enabled, each iteration has an independent countdown; reaching zero skips the active iteration.",
+  yourSide: "Current Node",
+  turnCount: "Iteration Count",
+  legalMoves: "Legal Actions",
+  blueTerritory: "Alpha Coverage",
+  redTerritory: "Beta Coverage",
+  purpleTerritory: "Gamma Coverage",
+  setupLabel: "Model Parameters",
+  area: "Measure",
+  territorySuffix: " Coverage",
+  turnSuffix: " Iteration",
+  gameOver: "Terminated",
+  connectExplanation: "It connects to the configured WebSocket relay for session allocation, node admission, and multi-terminal state synchronization. Local analysis does not require the network.",
+  soloHelp: "In local mode, you can evaluate legal vertices, skip iterations, or reset parameters at any time.",
+  onlineOverHelp: "This synchronization run has terminated. The next run preserves the current session group and remote nodes.",
+  onlinePlayHelp: "Each node may skip during its own iteration. If no legal action exists, the engine skips automatically. Resetting an unfinished run requires confirmation from all nodes.",
+  startNewSolo: "Initialize Iteration",
+  resetBoard: "Reset Parameters",
+  concedeAction: "Mark Current Node Losing",
+  startNextOnline: "Initialize Iteration",
+  resignAndRestart: "Reset Parameters",
+  skipNotice: (player) => `${player} skipped the iteration.`,
+  solo: "Local Model",
+  lobby: "Session Lobby",
+  ready: "Session Ready",
+  offline: "Session Offline",
+  inProgress: "Running",
+  draw: "Equilibrium / Draw",
+  unassigned: "Unassigned Node",
+  waitingStatus: (roomId) => `Session ${roomId ?? "--"} has been created. Waiting for remote node access...`,
+  lobbyStatus: "All nodes are connected. Adjust parameters or load the model for the next run.",
+  countdownStatus: (seconds) => `All nodes confirmed. Algorithm iteration starts in ${seconds}s.`,
+  turnTimerStatus: (seconds) => `Iteration timer: ${seconds}s`,
+  offlineStatus: "Connection lost. Reconnect to the relay before continuing synchronization.",
+  playingStatus: "Initial model loaded. Algorithm iteration is running.",
+  finalStatus: (winner, scoreLine) => `${winner}. Terminal measure: ${scoreLine}.`,
+  victorySuffix: "entered N-position",
+  defeatSuffix: "entered P-position",
+  localTurnStatus: (side) => `Current control belongs to ${side}. Select a legal vertex, skip the iteration, or reset parameters.`,
+  remoteTurnStatus: "A remote node is evaluating. The state space is locked until the WebSocket operation arrives.",
+  soloBlueStatus: "Local model: Node Alpha is active.",
+  soloRedStatus: "Local model: Node Beta is active.",
+  soloPurpleStatus: "Local model: Node Gamma is active.",
+  waitingHint: "The session exists, but the state space remains locked until every node is connected.",
+  notYourTurnHint: "The active iteration belongs to another node. Its operation will be synchronized automatically.",
+  networkUnavailableHint: "Network unavailable. Reconnect before continuing state synchronization.",
+  opponentOfflineHint: "A remote node disconnected. The state space remains locked until the session is ready again.",
+  multiplayerHint: "Skipped iterations are synchronized to all nodes. Resetting an unfinished run requires all nodes to confirm.",
+  soloHint: "Local analysis remains available. Select a state-space vertex to apply an action.",
+  joinRoomRequired: "Enter a 4-digit Session ID before joining.",
+  roomNotFound: (roomId) => `Session ${roomId} does not exist. Check the Session ID.`,
+  roomFull: (roomId) => `Session ${roomId} has reached node capacity.`,
+  playerAlreadyConnected: "This node session is already connected elsewhere.",
+  authTokenRequired: "Authenticate before entering a synchronization session.",
+  opponentLeft: "A remote node left the session. Waiting for reconnection or another node.",
+  roomNeedReady: "All nodes are connected. Waiting for every node to load the model.",
+  roomSettingsChanged: "The coordinator updated session parameters, so every model-loaded state was reset.",
+  hostOnlyAction: "Only the coordinator can change this session option.",
+  roomCapacityConflict: "The new node count is smaller than the current session roster.",
+  leaveRoomAfterMatch: "Leave Session",
+  matchInProgress: "Algorithm iteration is already running.",
+  resignedSummary: (winner, loser) => `${winner}. ${loser} entered a losing-position reset; parameters have been reset.`,
+});
+
+const ZH_ACADEMIC_TEXT_OVERRIDES = Object.freeze({
+  heroCopy: "规则计算仍在浏览器内完成，FastAPI 中继服务只负责分配实验组、同步状态和转发验证操作。",
+  statusLabel: "状态播报",
+  stageFocusEyebrow: "核心模型",
+  boardDockTitle: "模型面板",
+  boardDockCopy: "收纳参数、状态与本地操作",
+  networkDockTitle: "同步面板",
+  networkDockCopy: "收纳多终端验证与账号系统",
+  guideWhySubtitle: "该组合博弈模型的结构价值",
+  guideThanksSubtitle: "参与该研究工具的所有智能体",
+  skipTurnAction: "跳过迭代",
+  boardTitle: "三角状态空间",
+  boardEyebrow: "状态空间",
+  boardAriaLabel: "TriAxis 三角组合博弈状态空间",
+  duelDeskTitle: "状态同步模块",
+  currentTurnLabel: "当前迭代",
+  boardStatus: "模型状态",
+  boardStatusEyebrow: "验证状态",
+  onlineMatch: "多终端状态同步验证",
+  onlineEyebrow: "实验组",
+  authTitle: "节点登录",
+  authRequired: "进入同步实验组前，请先完成账号认证。",
+  connectServer: "连接中继服务",
+  createRoom: "创建实验组",
+  joinRoom: "加入实验组",
+  leaveRoom: "离开实验组",
+  readyAction: "载入初始模型 (Load Model)",
+  cancelReadyAction: "取消载入模型",
+  closePrompt: "关闭结果",
+  roomLobby: "实验组大厅",
+  roomControls: "协调节点控制",
+  roomPlayers: "实验组节点",
+  roomYou: "当前节点",
+  roomHost: "协调节点",
+  roomReadyTag: "模型已载入",
+  roomIdleTag: "待载入模型",
+  starterLabel: "初始节点",
+  startCountdown: "即将启动迭代",
+  roomId: "实验组 ID (Session ID)",
+  roomPlaceholder: "输入 4 位 Session ID",
+  roomLabel: "实验组",
+  playerLabel: "节点",
+  playerCountLabel: "节点数量",
+  turnTimerHint: "开启后，每次迭代都会独立倒计时；归零时会自动跳过当前迭代。",
+  yourSide: "当前节点",
+  turnCount: "迭代次数",
+  legalMoves: "合法动作",
+  blueTerritory: "Alpha 覆盖域",
+  redTerritory: "Beta 覆盖域",
+  purpleTerritory: "Gamma 覆盖域",
+  setupLabel: "模型参数",
+  area: "测度",
+  territorySuffix: "覆盖域",
+  turnSuffix: "迭代",
+  gameOver: "达到终止判定 (Terminated)",
+  connectExplanation: "它会连接已配置好的 WebSocket 中继服务，用于实验组分配、节点接入与多终端状态同步。本地分析模式不需要联网。",
+  soloHelp: "本地模式下，可以随时选择合法顶点、跳过迭代，或重置参数。",
+  onlineOverHelp: "本轮同步验证已经达到终止判定。启动下一轮时会保留当前实验组与所有节点。",
+  onlinePlayHelp: "每个节点都可以在自身迭代阶段选择跳过。若某节点没有合法动作，引擎会自动跳过。未终止时重置参数需要所有节点确认。",
+  startNewSolo: "启动迭代 (Initialize)",
+  resetBoard: "重置参数 (Reset Parameters)",
+  concedeAction: "标记当前节点为劣势",
+  startNextOnline: "启动算法迭代",
+  resignAndRestart: "重置参数 (Reset Parameters)",
+  skipNotice: (player) => `${player}刚刚跳过迭代。`,
+  solo: "本地模型",
+  lobby: "实验组大厅",
+  ready: "实验组已就绪",
+  offline: "实验组离线",
+  inProgress: "算法迭代中",
+  draw: "平衡态 / 平局",
+  unassigned: "未分配节点",
+  waitingStatus: (roomId) => `实验组 ${roomId ?? "--"} 已创建，等待远端节点接入...`,
+  lobbyStatus: "实验组节点已全部接入。可以调整参数，或载入初始模型进入下一轮。",
+  countdownStatus: (seconds) => `所有节点已确认，将在 ${seconds} 秒后启动算法迭代。`,
+  turnTimerStatus: (seconds) => `当前迭代计时：${seconds} 秒`,
+  offlineStatus: "连接已断开，继续同步验证前请先重新连接中继服务。",
+  playingStatus: "初始模型已载入，算法迭代已启动。",
+  finalStatus: (winner, scoreLine) => `${winner}。终态测度：${scoreLine}。`,
+  victorySuffix: "进入胜势态 ($N\\text{-position}$)",
+  defeatSuffix: "进入劣势态 ($P\\text{-position}$)",
+  localTurnStatus: (side) => `当前控制权属于${side}。请选择合法顶点执行动作，也可以跳过迭代或重置参数。`,
+  remoteTurnStatus: "当前为远端节点的迭代阶段，状态空间会暂时锁定，等待 WebSocket 同步操作。",
+  soloBlueStatus: "本地模型中，当前控制节点为节点 Alpha。",
+  soloRedStatus: "本地模型中，当前控制节点为节点 Beta。",
+  soloPurpleStatus: "本地模型中，当前控制节点为节点 Gamma。",
+  waitingHint: "实验组已经存在，但所有节点接入前，状态空间会保持锁定。",
+  notYourTurnHint: "当前不是本节点的迭代阶段。远端节点的操作会自动同步到本地状态空间。",
+  networkUnavailableHint: "网络不可用，请先重新连接，再继续状态同步验证。",
+  opponentOfflineHint: "有远端节点断开连接，实验组重新就绪前状态空间会保持锁定。",
+  multiplayerHint: "跳过迭代会同步给实验组内所有节点。未终止状态下重置参数需要所有节点确认。",
+  soloHint: "也可以继续本地单机分析模式，直接选择状态空间顶点执行动作。",
+  joinRoomRequired: "加入实验组前，请先输入 4 位 Session ID。",
+  roomNotFound: (roomId) => `实验组 ${roomId} 不存在，请检查 Session ID。`,
+  roomFull: (roomId) => `实验组 ${roomId} 已达到节点上限。`,
+  playerAlreadyConnected: "这个节点会话已经在别处连接。",
+  authTokenRequired: "进入同步实验组前，请先完成账号认证。",
+  opponentLeft: "有远端节点离开了实验组，正在等待重新接入或新的连接。",
+  roomNeedReady: "实验组节点已到齐，等待所有节点载入初始模型。",
+  roomSettingsChanged: "协调节点修改了实验组参数，所有节点的模型载入状态已重置。",
+  hostOnlyAction: "只有协调节点可以修改这个实验组选项。",
+  roomCapacityConflict: "新的节点数量小于当前实验组节点数，无法应用。",
+  leaveRoomAfterMatch: "离开实验组",
+  matchInProgress: "算法迭代已经启动，不能再次载入模型。",
+  resignedSummary: (winner, loser) => `${winner}，${loser}触发劣势态重置，参数已重置。`,
+});
+
+const TEXTS_BY_LANGUAGE_AND_STYLE = Object.freeze({
+  en: Object.freeze({
+    [UI_STYLE_CASUAL]: EN_TEXTS,
+    [UI_STYLE_ACADEMIC]: Object.freeze({ ...EN_TEXTS, ...EN_ACADEMIC_TEXT_OVERRIDES }),
+  }),
+  zh: Object.freeze({
+    [UI_STYLE_CASUAL]: ZH_TEXTS,
+    [UI_STYLE_ACADEMIC]: Object.freeze({ ...ZH_TEXTS, ...ZH_ACADEMIC_TEXT_OVERRIDES }),
+  }),
+});
+
 export function getInitialLanguage() {
   const stored = globalThis.localStorage?.getItem("triaxis-language");
   return stored === "en" ? "en" : "zh";
 }
 
-export function getTexts(language) {
-  return language === "en" ? EN_TEXTS : ZH_TEXTS;
+export function getInitialUiStyle(hostname = globalThis.location?.hostname) {
+  const stored = globalThis.localStorage?.getItem(UI_STYLE_STORAGE_KEY);
+  if (stored === UI_STYLE_ACADEMIC || stored === UI_STYLE_CASUAL) {
+    return stored;
+  }
+  return inferUiStyleFromHostname(hostname);
+}
+
+export function getTexts(language, uiStyle = UI_STYLE_CASUAL) {
+  const normalizedLanguage = language === "en" ? "en" : "zh";
+  return TEXTS_BY_LANGUAGE_AND_STYLE[normalizedLanguage][normalizeUiStyle(uiStyle)];
 }
 
 export function formatArea(value) {
   return String(Math.round(Number(value ?? 0)));
 }
 
-export function formatPlayerName(player, language = "zh") {
-  const texts = getTexts(language);
+export function formatPlayerName(player, language = "zh", uiStyle = UI_STYLE_CASUAL) {
+  const texts = getTexts(language, uiStyle);
+  const academic = normalizeUiStyle(uiStyle) === UI_STYLE_ACADEMIC;
   if (player === Player.BLACK) {
-    return language === "en" ? "Blue" : "蓝方";
+    if (academic) {
+      return language === "en" ? "Node Alpha" : "节点 Alpha";
+    }
+    return language === "en" ? "Player 1" : "玩家 1";
   }
   if (player === Player.WHITE) {
-    return language === "en" ? "Red" : "红方";
+    if (academic) {
+      return language === "en" ? "Node Beta" : "节点 Beta";
+    }
+    return language === "en" ? "Player 2" : "玩家 2";
   }
   if (player === Player.PURPLE) {
-    return language === "en" ? "Purple" : "紫方";
+    if (academic) {
+      return language === "en" ? "Node Gamma" : "节点 Gamma";
+    }
+    return language === "en" ? "Player 3" : "玩家 3";
   }
   return texts.unassigned;
 }
 
-export function formatWinner(winner, language = "zh") {
-  const texts = getTexts(language);
+export function formatWinner(winner, language = "zh", uiStyle = UI_STYLE_CASUAL) {
+  const texts = getTexts(language, uiStyle);
+  const academic = normalizeUiStyle(uiStyle) === UI_STYLE_ACADEMIC;
   if (winner === Player.BLACK) {
-    return language === "en" ? "Blue Wins" : "蓝方获胜";
+    const player = formatPlayerName(Player.BLACK, language, uiStyle);
+    return academic
+      ? (language === "en" ? `${player} reached Winning Position` : `${player} 达到胜势 (Winning Position)`)
+      : (language === "en" ? `${player} Wins` : `${player}获胜`);
   }
   if (winner === Player.WHITE) {
-    return language === "en" ? "Red Wins" : "红方获胜";
+    const player = formatPlayerName(Player.WHITE, language, uiStyle);
+    return academic
+      ? (language === "en" ? `${player} reached Winning Position` : `${player} 达到胜势 (Winning Position)`)
+      : (language === "en" ? `${player} Wins` : `${player}获胜`);
   }
   if (winner === Player.PURPLE) {
-    return language === "en" ? "Purple Wins" : "紫方获胜";
+    const player = formatPlayerName(Player.PURPLE, language, uiStyle);
+    return academic
+      ? (language === "en" ? `${player} reached Winning Position` : `${player} 达到胜势 (Winning Position)`)
+      : (language === "en" ? `${player} Wins` : `${player}获胜`);
   }
   if (winner === "DRAW") {
     return texts.draw;
@@ -421,24 +701,29 @@ export function formatWinner(winner, language = "zh") {
   return texts.inProgress;
 }
 
-export function formatConnectionState(state, language = "zh") {
-  const texts = getTexts(language);
+export function formatConnectionState(state, language = "zh", uiStyle = UI_STYLE_CASUAL) {
+  const texts = getTexts(language, uiStyle);
   return texts[state] ?? state;
 }
 
-export function formatFinalScoreLine(scores, language = "zh", players = ALL_PLAYERS) {
+export function formatFinalScoreLine(scores, language = "zh", players = ALL_PLAYERS, uiStyle = UI_STYLE_CASUAL) {
   const parts = players
     .filter((player) => scores && Object.prototype.hasOwnProperty.call(scores, player))
-    .map((player) => `${formatPlayerName(player, language)}${language === "en" ? " " : ""}${formatArea(scores[player])}`);
+    .map((player) => `${formatPlayerName(player, language, uiStyle)}${language === "en" ? " " : ""}${formatArea(scores[player])}`);
 
   return parts.join(language === "en" ? ", " : "，");
 }
 
-export function formatResetVoteMessage(confirmedVotes, requiredVotes, language = "zh") {
+export function formatResetVoteMessage(confirmedVotes, requiredVotes, language = "zh", uiStyle = UI_STYLE_CASUAL) {
+  const academic = normalizeUiStyle(uiStyle) === UI_STYLE_ACADEMIC;
   if (language === "en") {
-    return `Reset confirmed ${confirmedVotes}/${requiredVotes}. Waiting for the remaining players.`;
+    return academic
+      ? `Parameter reset confirmed ${confirmedVotes}/${requiredVotes}. Waiting for the remaining nodes.`
+      : `Reset confirmed ${confirmedVotes}/${requiredVotes}. Waiting for the remaining players.`;
   }
-  return `重置已确认 ${confirmedVotes}/${requiredVotes}，等待其余玩家确认。`;
+  return academic
+    ? `参数重置已确认 ${confirmedVotes}/${requiredVotes}，等待其余节点确认。`
+    : `重置已确认 ${confirmedVotes}/${requiredVotes}，等待其余玩家确认。`;
 }
 
 export function getNextPlayer(player) {
@@ -449,8 +734,8 @@ export function getNextPlayer(player) {
   return ALL_PLAYERS[(currentIndex + 1) % ALL_PLAYERS.length];
 }
 
-export function localizeErrorMessage(message, language = "zh") {
-  const texts = getTexts(language);
+export function localizeErrorMessage(message, language = "zh", uiStyle = UI_STYLE_CASUAL) {
+  const texts = getTexts(language, uiStyle);
   if (!message) {
     return texts.unknownServer;
   }
