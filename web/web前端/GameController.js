@@ -1,4 +1,4 @@
-﻿import GameEngine, { Player } from "./GameEngine.js?v=20260426c";
+﻿import GameEngine, { Player } from "./GameEngine.js?v=20260430b";
 import Renderer from "./Renderer.js?v=20260426d";
 import { ClientEvent, ServerEvent } from "./NetworkManager.js?v=20260421b";
 
@@ -329,6 +329,11 @@ export class GameController {
         [Player.BLACK]: black.area,
         [Player.WHITE]: white.area,
         [Player.PURPLE]: purple.area,
+      },
+      displayScores: {
+        [Player.BLACK]: black.displayArea ?? black.area,
+        [Player.WHITE]: white.displayArea ?? white.area,
+        [Player.PURPLE]: purple.displayArea ?? purple.area,
       },
       territories: snapshot.territories,
       legalMoves: snapshot.legalMoves,

@@ -88,6 +88,19 @@ def nickname_block_payload(result) -> Dict[str, str]:
     }
 
 
+def require_sensitive_filter_ready() -> None:
+    if sensitive_filter.word_count > 0:
+        return
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail={
+            "error": "SENSITIVE_FILTER_NOT_READY",
+            "message": "Sensitive nickname filter is not loaded; registration is temporarily disabled.",
+            "word_file": str(SENSITIVE_WORDS_FILE),
+        },
+    )
+
+
 logger = logging.getLogger("uvicorn.error")
 sensitive_filter = SensitiveFilter()
 
@@ -1343,6 +1356,7 @@ class ConnectionManager:
             "animation": animation,
             "duration": duration,
             **self._normalize_chat_emoji_seed(metadata),
+            **self._normalize_chat_emoji_display(metadata),
         }
 
     def _normalize_chat_emoji_seed(self, metadata: Dict[str, Any]) -> Dict[str, str]:
@@ -1353,6 +1367,39 @@ class ConnectionManager:
         if not normalized:
             return {}
         return {"seed": normalized[:64]}
+
+    def _normalize_chat_emoji_display(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
+        display = metadata.get("display")
+        if not isinstance(display, dict):
+            return {}
+
+        numeric_fields: Dict[str, int] = {}
+        limits = {
+            "x": (-20, 120),
+            "y": (-20, 120),
+            "dx": (-120, 120),
+            "mx": (-80, 80),
+            "dy": (-160, 80),
+        }
+        for field, (minimum, maximum) in limits.items():
+            value = display.get(field)
+            if not isinstance(value, (int, float)):
+                try:
+                    value = int(value)
+                except (TypeError, ValueError):
+                    return {}
+            numeric_fields[field] = int(max(minimum, min(maximum, value)))
+
+        color_class = str(display.get("colorClass", "")).strip()
+        if color_class not in {"blue", "red", "purple"}:
+            color_class = "blue"
+
+        return {
+            "display": {
+                **numeric_fields,
+                "colorClass": color_class,
+            }
+        }
 
     def _normalize_room_settings(self, settings: Any) -> Dict[str, Any]:
         # 服务端再次兜底校验，避免客户端绕过前端限制传入非法人数或棋盘尺寸。
@@ -1516,12 +1563,16 @@ async def health_check() -> Dict[str, Any]:
         "sensitiveFilterVersion": SENSITIVE_FILTER_VERSION,
         "sensitiveWordCount": sensitive_filter.word_count,
         "sensitiveFilterReady": sensitive_filter.word_count > 0,
+        "sensitiveWordsFile": str(SENSITIVE_WORDS_FILE),
+        "sensitiveWordsFileExists": SENSITIVE_WORDS_FILE.exists(),
+        "sensitiveWordsMasked": sensitive_filter.masked_words(),
         "bcryptRounds": BCRYPT_ROUNDS,
     }
 
 
 @app.post("/api/nickname/validate", response_model=NicknameValidationResponse)
 def validate_nickname(payload: NicknameValidationRequest) -> NicknameValidationResponse:
+    require_sensitive_filter_ready()
     style = SensitiveFilter.resolve_style(payload.ui_style)
     accepted_message = (
         "Identifier accepted."
@@ -1542,6 +1593,7 @@ def validate_nickname(payload: NicknameValidationRequest) -> NicknameValidationR
 
 @app.post("/api/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
 def register_user(payload: RegisterRequest, db: Session = Depends(get_db)) -> RegisterResponse:
+    require_sensitive_filter_ready()
     username = payload.username.strip()
     if not username:
         raise HTTPException(

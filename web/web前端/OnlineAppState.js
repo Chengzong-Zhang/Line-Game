@@ -1,4 +1,4 @@
-import { Player } from "./GameEngine.js?v=20260421a";
+import { Player } from "./GameEngine.js?v=20260430b";
 
 // 这个文件专门存放“可复用的前端状态工具”，
 // 避免 OnlineApp.js 再次膨胀成一个超大工具箱文件。
@@ -42,6 +42,11 @@ export function createDefaultGameState() {
     turnCount: 0,
     consecutiveSkips: 0,
     scores: {
+      [Player.BLACK]: 0,
+      [Player.WHITE]: 0,
+      [Player.PURPLE]: 0,
+    },
+    displayScores: {
       [Player.BLACK]: 0,
       [Player.WHITE]: 0,
       [Player.PURPLE]: 0,

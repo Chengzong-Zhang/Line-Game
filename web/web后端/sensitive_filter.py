@@ -126,6 +126,9 @@ class SensitiveFilter:
     def word_count(self) -> int:
         return len(self._words)
 
+    def masked_words(self) -> list[str]:
+        return sorted(word.masked for word in self._words.values())
+
     async def load_from_file(self, file_path: str | Path) -> None:
         path = Path(file_path)
         if not path.exists():

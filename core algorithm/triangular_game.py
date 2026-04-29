@@ -714,18 +714,14 @@ class TriangularGame:
     # ──────────────────────────────────────────────────────────────────────
 
     def _is_connected_to_initial(self, pos: Tuple[int, int], player: Player) -> bool:
-        """通过显式边图（BFS）判断节点是否连通到起始节点"""
+        """通过棋盘网格（BFS）判断节点是否连通到起始节点"""
         initial_pos = (0, 0) if player == Player.BLACK else (8, 0)
         if pos == initial_pos:
             return True
 
-        edges = self._get_edges(player)
-        # 从边集合构建邻接表
-        adj: dict = {}
-        for edge in edges:
-            a, b = tuple(edge)
-            adj.setdefault(a, []).append(b)
-            adj.setdefault(b, []).append(a)
+        node_state = PointState.BLACK_NODE if player == Player.BLACK else PointState.WHITE_NODE
+        line_state = PointState.BLACK_LINE if player == Player.BLACK else PointState.WHITE_LINE
+        player_states = {node_state, line_state}
 
         visited = {initial_pos}
         queue = deque([initial_pos])
@@ -733,8 +729,8 @@ class TriangularGame:
             curr = queue.popleft()
             if curr == pos:
                 return True
-            for nxt in adj.get(curr, []):
-                if nxt not in visited:
+            for nxt in self._get_adjacent_positions(curr):
+                if nxt not in visited and self.grid.get(nxt) in player_states:
                     visited.add(nxt)
                     queue.append(nxt)
         return False

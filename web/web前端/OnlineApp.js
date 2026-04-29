@@ -1,6 +1,6 @@
-import GameController from "./GameController.js?v=20260428k";
-import { Player } from "./GameEngine.js?v=20260421c";
-import NetworkManager, { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js?v=20260429b";
+import GameController from "./GameController.js?v=20260430b";
+import { Player } from "./GameEngine.js?v=20260430b";
+import NetworkManager, { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js?v=20260429g";
 import {
   createEmptyAuth as createAppEmptyAuth,
   GRID_SIZE_OPTIONS as APP_GRID_SIZE_OPTIONS,
@@ -15,7 +15,7 @@ import {
   normalizeGameSettings as normalizeAppGameSettings,
   persistAuth as persistAppAuth,
   persistSession as persistAppSession,
-} from "./OnlineAppState.js?v=20260428l";
+} from "./OnlineAppState.js?v=20260430b";
 import {
   formatArea as formatAppArea,
   formatConnectionState as formatAppConnectionState,
@@ -29,7 +29,7 @@ import {
   UI_STYLE_STORAGE_KEY,
   UI_STYLE_ACADEMIC,
   localizeErrorMessage as localizeAppErrorMessage,
-} from "./OnlineAppI18n.js?v=20260428l";
+} from "./OnlineAppI18n.js?v=20260430b";
 import { ensureGuideRuleImages, getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20260429f";
 
 const {
@@ -219,6 +219,40 @@ function createChatEmojiRandom(seed) {
   };
 }
 
+function normalizeChatEmojiDisplay(display) {
+  if (!display || typeof display !== "object") {
+    return null;
+  }
+
+  const readNumber = (key, minimum, maximum) => {
+    const value = Number(display[key]);
+    if (!Number.isFinite(value)) {
+      return null;
+    }
+    return Math.max(minimum, Math.min(maximum, Math.round(value)));
+  };
+  const x = readNumber("x", -20, 120);
+  const y = readNumber("y", -20, 120);
+  const dx = readNumber("dx", -120, 120);
+  const mx = readNumber("mx", -80, 80);
+  const dy = readNumber("dy", -160, 80);
+  if ([x, y, dx, mx, dy].some((value) => value === null)) {
+    return null;
+  }
+
+  const colorClass = ["blue", "red", "purple"].includes(display.colorClass)
+    ? display.colorClass
+    : "blue";
+  return {
+    x,
+    y,
+    dx,
+    mx,
+    dy,
+    colorClass,
+  };
+}
+
 function createEmptyRoomInfo() {
   return {
     status: "solo",
@@ -313,6 +347,10 @@ function buildNamedScoreEntries(scores, players, roomPlayers, language, uiStyle)
     }));
 }
 
+function getDisplayScores(gameState) {
+  return gameState?.displayScores ?? gameState?.scores ?? {};
+}
+
 
 const ScorePanel = {
   name: "ScorePanel",
@@ -365,6 +403,7 @@ const ScorePanel = {
       const players = Array.isArray(props.gameState.players) && props.gameState.players.length
         ? props.gameState.players
         : [Player.BLACK, Player.WHITE];
+      const scores = getDisplayScores(props.gameState);
 
       return players.map((player) => {
         const namedCard = {
@@ -378,7 +417,7 @@ const ScorePanel = {
           return {
             ...namedCard,
             label: texts.value.blueTerritory,
-            value: props.gameState.scores?.[Player.BLACK],
+            value: scores?.[Player.BLACK],
             className: "score-card-blue",
           };
         }
@@ -387,7 +426,7 @@ const ScorePanel = {
           return {
             ...namedCard,
             label: texts.value.redTerritory,
-            value: props.gameState.scores?.[Player.WHITE],
+            value: scores?.[Player.WHITE],
             className: "score-card-red",
           };
         }
@@ -395,7 +434,7 @@ const ScorePanel = {
         return {
           ...namedCard,
           label: texts.value.purpleTerritory,
-          value: props.gameState.scores?.[Player.PURPLE],
+          value: scores?.[Player.PURPLE],
           className: "score-card-purple",
         };
       });
@@ -1234,7 +1273,7 @@ const ResultModal = {
         return [];
       }
       return buildNamedScoreEntries(
-        props.gameState.scores,
+        getDisplayScores(props.gameState),
         props.gameState.players,
         props.roomPlayers,
         props.language,
@@ -1251,7 +1290,7 @@ const ResultModal = {
           resolveOnlinePlayerName(props.roomPlayers, props.overlayResult.loser, props.language, props.uiStyle),
         );
       }
-      return formatAppFinalScoreLine(props.gameState.scores, props.language, props.gameState.players, props.uiStyle);
+      return formatAppFinalScoreLine(getDisplayScores(props.gameState), props.language, props.gameState.players, props.uiStyle);
     });
 
     const actionLabel = computed(() => {
@@ -3003,6 +3042,7 @@ const App = {
         color: resolveChatEmojiColor(payload?.sender, payload?.color),
         content,
         seed,
+        display: normalizeChatEmojiDisplay(metadata.display),
         metadata: {
           animation,
           duration,
@@ -3017,23 +3057,33 @@ const App = {
       }
 
       const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-      const anchor = getChatEmojiAnchor(normalized.color);
-      const random = createChatEmojiRandom(normalized.seed);
-      const jitterX = Math.round((random() - 0.5) * 10);
-      const jitterY = Math.round((random() - 0.5) * 10);
-      const moveSign = anchor.x > 50 ? -1 : 1;
+      const display = normalized.display ?? (() => {
+        const anchor = getChatEmojiAnchor(normalized.color);
+        const random = createChatEmojiRandom(normalized.seed);
+        const jitterX = Math.round((random() - 0.5) * 10);
+        const jitterY = Math.round((random() - 0.5) * 10);
+        const moveSign = anchor.x > 50 ? -1 : 1;
+        return {
+          colorClass: getChatEmojiColorClass(normalized.color),
+          x: anchor.x + jitterX,
+          y: anchor.y + jitterY,
+          dx: moveSign * (18 + Math.round(random() * 18)),
+          mx: moveSign * (8 + Math.round(random() * 8)),
+          dy: -(36 + Math.round(random() * 24)),
+        };
+      })();
       const burst = {
         id,
         sender: normalized.sender,
         content: normalized.content,
         animation: normalized.metadata.animation,
         duration: normalized.metadata.duration,
-        colorClass: getChatEmojiColorClass(normalized.color),
-        x: anchor.x + jitterX,
-        y: anchor.y + jitterY,
-        dx: moveSign * (18 + Math.round(random() * 18)),
-        mx: moveSign * (8 + Math.round(random() * 8)),
-        dy: -(36 + Math.round(random() * 24)),
+        colorClass: display.colorClass,
+        x: display.x,
+        y: display.y,
+        dx: display.dx,
+        mx: display.mx,
+        dy: display.dy,
       };
       chatEmojiBursts.value = [...chatEmojiBursts.value.slice(-5), burst];
 
@@ -3042,6 +3092,7 @@ const App = {
         chatEmojiBursts.value = chatEmojiBursts.value.filter((candidate) => candidate.id !== id);
       }, burst.duration + 180);
       chatEmojiTimeoutIds.add(timeoutId);
+      return burst;
     };
 
     const handleChatEmoji = async (emoji) => {
@@ -3051,7 +3102,7 @@ const App = {
 
       networkError.value = "";
       const seed = `${session.value.playerId ?? "local"}-${Date.now()}-${Math.round(Math.random() * 1000000)}`;
-      pushChatEmojiBurst({
+      const burst = pushChatEmojiBurst({
         sender: session.value.playerId ?? "local",
         color: session.value.color ?? gameState.value.currentPlayer,
         content: emoji?.content,
@@ -3073,6 +3124,14 @@ const App = {
           animation: emoji?.animation,
           duration: emoji?.duration,
           seed,
+          display: burst ? {
+            x: burst.x,
+            y: burst.y,
+            dx: burst.dx,
+            mx: burst.mx,
+            dy: burst.dy,
+            colorClass: burst.colorClass,
+          } : null,
         });
       } catch (error) {
         handleNetworkError(error);
@@ -3113,11 +3172,11 @@ const App = {
         return language.value === "en"
           ? texts.finalStatus(
             formatAppWinner(gameState.value.winner, language.value, uiStyle.value),
-            formatAppFinalScoreLine(gameState.value.scores, language.value, gameState.value.players, uiStyle.value),
+            formatAppFinalScoreLine(getDisplayScores(gameState.value), language.value, gameState.value.players, uiStyle.value),
           )
           : texts.finalStatus(
             formatAppWinner(gameState.value.winner, language.value, uiStyle.value),
-            formatAppFinalScoreLine(gameState.value.scores, language.value, gameState.value.players, uiStyle.value),
+            formatAppFinalScoreLine(getDisplayScores(gameState.value), language.value, gameState.value.players, uiStyle.value),
           );
       }
 
@@ -3404,7 +3463,7 @@ const App = {
         if (payload.reason === "consensus_restart" && payload.winnerColor) {
           overlayResult.value = {
             winner: payload.winnerColor,
-            scoreLine: formatAppFinalScoreLine(gameState.value.scores, language.value, gameState.value.players, uiStyle.value),
+            scoreLine: formatAppFinalScoreLine(getDisplayScores(gameState.value), language.value, gameState.value.players, uiStyle.value),
           };
         } else if (payload.reason === "resign_restart" && payload.winnerColor && (payload.loserColor || payload.resetColor || payload.color)) {
           overlayResult.value = {

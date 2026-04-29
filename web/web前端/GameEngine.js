@@ -98,6 +98,21 @@ function dedupePoints(points) {
   return result;
 }
 
+function computeTriangularPolygonArea(polygon) {
+  if (!Array.isArray(polygon) || polygon.length < 3) {
+    return 0;
+  }
+
+  let area = 0;
+  for (let index = 0; index < polygon.length; index += 1) {
+    const current = polygon[index];
+    const next = polygon[(index + 1) % polygon.length];
+    area += current[0] * next[1] - next[0] * current[1];
+  }
+
+  return Math.abs(area);
+}
+
 
 export class GameEngine {
   constructor(options = {}) {
@@ -122,7 +137,7 @@ export class GameEngine {
     this.consecutiveSkips = 0;
     this.turnCount = 0;
     this.cachedTerritories = Object.fromEntries(
-      this.activePlayers.map((player) => [player, { polygon: null, area: 0 }]),
+      this.activePlayers.map((player) => [player, { polygon: null, area: 0, displayArea: 0 }]),
     );
     // 显式边集合：每条边的 key = 两个节点 pointKey 升序排列后用 | 拼接
     // 仅用于连通性判断，渲染仍依赖 this.grid
@@ -262,6 +277,7 @@ export class GameEngine {
         player,
         {
           area: scores[player].area,
+          displayArea: scores[player].displayArea ?? scores[player].area,
           polygon: scores[player].polygon ? scores[player].polygon.map(clonePoint) : null,
         },
       ]),
@@ -907,7 +923,7 @@ export class GameEngine {
 
     // 阶段一：右手摸墙法获取外轮廓
     let currentPoly = this._getOuterContour(player);
-    if (currentPoly.length < 3) return { polygon: null, area: 0 };
+    if (currentPoly.length < 3) return { polygon: null, area: 0, displayArea: 0 };
 
     let curArea = 0;
 
@@ -1061,9 +1077,9 @@ export class GameEngine {
       }
     }
 
-    if (currentPoly.length < 3) return { polygon: null, area: 0 };
+    if (currentPoly.length < 3) return { polygon: null, area: 0, displayArea: 0 };
     const closedPoly = [...currentPoly, clonePoint(currentPoly[0])];
-    return { polygon: closedPoly, area: curArea };
+    return { polygon: closedPoly, area: curArea, displayArea: computeTriangularPolygonArea(currentPoly) };
   }
 
   /** 将当前局面序列化为唯一字符串，用于 Superko 判断。
