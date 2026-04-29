@@ -794,6 +794,13 @@ class ConnectionManager:
                         "message": "Only the host can update room settings.",
                     }
                     payloads = []
+                elif room.match_started or room.countdown_started_at is not None:
+                    error_payload = {
+                        "type": "ERROR",
+                        "code": "MATCH_LOCKED",
+                        "message": "Room settings cannot be changed after countdown starts.",
+                    }
+                    payloads = []
                 else:
                     normalized_settings = self._normalize_room_settings(settings)
                     allowed_colors = (PLAYER_BLACK, PLAYER_WHITE, PLAYER_PURPLE)[: int(normalized_settings["playerCount"])]
@@ -878,6 +885,13 @@ class ConnectionManager:
                         "type": "ERROR",
                         "code": "HOST_ONLY_ACTION",
                         "message": "Only the host can update room settings.",
+                    }
+                    payloads = []
+                elif room.match_started or room.countdown_started_at is not None:
+                    error_payload = {
+                        "type": "ERROR",
+                        "code": "MATCH_LOCKED",
+                        "message": "Start player cannot be changed after countdown starts.",
                     }
                     payloads = []
                 else:
@@ -1023,6 +1037,7 @@ class ConnectionManager:
     def _start_countdown_locked(self, room: Room) -> None:
         self._cancel_countdown_locked(room)
         room.countdown_started_at = time.time()
+        room.updated_at = room.countdown_started_at
         room.countdown_task = asyncio.create_task(self._run_countdown(room.room_id, room.countdown_started_at))
 
     async def _run_countdown(self, room_id: str, countdown_started_at: float) -> None:

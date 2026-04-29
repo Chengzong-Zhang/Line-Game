@@ -184,7 +184,6 @@ async function postAuthJson(serverUrl, path, payload) {
 }
 
 const ROOM_START_COUNTDOWN_FALLBACK_SECONDS = 20;
-const SERVER_TIMESTAMP_TOLERANCE_MS = 1000;
 const CHAT_EMOJI_OPTIONS = Object.freeze([
   { content: "👏", animation: "bounce", duration: 1200, label: "Nice" },
   { content: "🔥", animation: "bounce", duration: 1200, label: "Hot" },
@@ -2472,15 +2471,13 @@ const App = {
       // 用服务端时间戳做单调性校验，丢弃比当前状态更旧的广播包。
       const incomingTs = payload?.serverTimestamp ?? 0;
       const nextStatus = normalizeRoomStatus(payload?.status ?? roomStatus.value);
+      const nextPhase = normalizeMatchPhase(readPayloadMatchPhase(payload, roomInfo.value.matchPhase), nextStatus);
       const isRoomReadyTransition = payload?.type === ServerEvent.ROOM_READY
-        && nextStatus === "inProgress"
-        && roomStatus.value !== "inProgress";
+        && (nextStatus === "inProgress" || nextPhase === "PLAYING");
       const timestampRollbackMs = incomingTs > 0
         ? lastServerTimestamp - incomingTs
         : 0;
-      const shouldAcceptRoomReadyRollback = isRoomReadyTransition
-        && timestampRollbackMs > 0
-        && timestampRollbackMs <= SERVER_TIMESTAMP_TOLERANCE_MS;
+      const shouldAcceptRoomReadyRollback = isRoomReadyTransition && timestampRollbackMs > 0;
 
       if (timestampRollbackMs > 0 && !shouldAcceptRoomReadyRollback) {
         return false;
@@ -2500,10 +2497,7 @@ const App = {
         players: Array.isArray(payload?.players) ? payload.players : roomInfo.value.players,
         settings: normalizeAppGameSettings(payload?.settings ?? roomInfo.value.settings),
         countdownEndsAt: payload?.countdownEndsAt ?? null,
-        matchPhase: normalizeMatchPhase(
-          readPayloadMatchPhase(payload, roomInfo.value.matchPhase),
-          nextStatus,
-        ),
+        matchPhase: nextPhase,
       };
       resultModalDismissed.value = false;
       return true;
@@ -2855,9 +2849,15 @@ const App = {
       networkBusy.value = true;
       networkError.value = "";
       try {
-        gameState.value = await controller.value.requestResetMatch({
-          reason: gameState.value.gameOver ? "normal_restart" : "resign_restart",
-        });
+        const reason = gameState.value.gameOver ? "normal_restart" : "resign_restart";
+        if (session.value.roomId && networkManager.isConnected()) {
+          await networkManager.sendReset(reason);
+          gameState.value = controller.value.getGameState();
+        } else {
+          gameState.value = await controller.value.requestResetMatch({ reason });
+        }
+      } catch (error) {
+        handleNetworkError(error);
       } finally {
         networkBusy.value = false;
       }
@@ -3118,6 +3118,10 @@ const App = {
         return false;
       }
 
+      if (roomStatus.value === "inProgress" || roomInfo.value.matchPhase === "PLAYING") {
+        return false;
+      }
+
       return gameState.value.resetLocked;
     });
 
@@ -3284,7 +3288,7 @@ const App = {
 
     unsubscribers.push(
       networkManager.on(ServerEvent.ROOM_COUNTDOWN, (payload) => {
-        applyRoomSnapshot(payload, true);
+        applyRoomSnapshot(payload, false);
       }),
     );
 
