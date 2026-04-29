@@ -17,14 +17,28 @@ class UIStyle(str, Enum):
 
 _STYLE_MESSAGES = {
     UIStyle.ACADEMIC: {
+        "error": "IDENTIFIER_CONSTRAINT_VIOLATION",
         "term": "Identifier Constraint Violation",
-        "message": "检测到非法的标识符分量，请符合学术命名规范。",
+        "message": "检测到非法的标识符分量：[{masked_word}]，请符合学术命名规范。",
+        "corrected_message": "检测到非法的标识符分量：[{masked_word}]，已根据学术命名规范自动分配标识符。",
     },
     UIStyle.CASUAL: {
+        "error": "NICKNAME_BLOCKED",
         "term": "Nickname Blocked",
-        "message": "昵称包含敏感词汇，请换一个更文明的名字吧！",
+        "message": "昵称包含敏感词汇：[{masked_word}]，换一个试试吧！",
+        "corrected_message": "昵称包含敏感词汇：[{masked_word}]，已根据命名规范自动分配昵称。",
     },
 }
+
+
+@dataclass(frozen=True)
+class SensitiveWord:
+    original: str
+    normalized: str
+
+    @property
+    def masked(self) -> str:
+        return SensitiveFilter.mask_word(self.original)
 
 
 @dataclass(frozen=True)
@@ -33,8 +47,12 @@ class FilterResult:
     original: str
     normalized: str
     ui_style: UIStyle
-    matched_word: Optional[str] = None
+    matched_word: Optional[SensitiveWord] = None
     replacement: Optional[str] = None
+
+    @property
+    def error(self) -> str:
+        return _STYLE_MESSAGES[self.ui_style]["error"]
 
     @property
     def term(self) -> str:
@@ -42,15 +60,29 @@ class FilterResult:
 
     @property
     def message(self) -> str:
-        return _STYLE_MESSAGES[self.ui_style]["message"]
+        return _STYLE_MESSAGES[self.ui_style]["message"].format(masked_word=self.masked_word)
+
+    @property
+    def corrected_message(self) -> str:
+        return _STYLE_MESSAGES[self.ui_style]["corrected_message"].format(masked_word=self.masked_word)
+
+    @property
+    def offending_word(self) -> str:
+        return self.matched_word.original if self.matched_word else ""
+
+    @property
+    def masked_word(self) -> str:
+        return self.matched_word.masked if self.matched_word else ""
 
     def error_context(self) -> dict[str, str]:
         return {
             "sensitive_filter": "true",
+            "error": self.error,
             "term": self.term,
             "message": self.message,
             "ui_style": self.ui_style.value,
-            "matched_word": self.matched_word or "",
+            "matched_word": self.offending_word,
+            "masked_word": self.masked_word,
             "normalized": self.normalized,
             "suggestion": self.replacement or SensitiveFilter.replacement_name(self.ui_style),
         }
@@ -60,9 +92,8 @@ class SensitiveFilter:
     """
     Aho-Corasick DFA for high-throughput nickname checks.
 
-    Build time is proportional to the total dictionary length. Runtime matching is
-    O(len(normalized_text) + matches), which keeps request-time validation stable
-    even when the word list grows.
+    Matching stays linear in the normalized nickname length:
+    O(len(normalized_text) + emitted_matches).
     """
 
     _LEET_MAP = str.maketrans(
@@ -87,8 +118,8 @@ class SensitiveFilter:
     def __init__(self) -> None:
         self._goto: list[dict[str, int]] = [{}]
         self._fail: list[int] = [0]
-        self._output: list[set[str]] = [set()]
-        self._words: frozenset[str] = frozenset()
+        self._output: list[list[SensitiveWord]] = [[]]
+        self._words: dict[str, SensitiveWord] = {}
         self._load_lock = asyncio.Lock()
 
     @property
@@ -115,16 +146,21 @@ class SensitiveFilter:
             self.load_words(words)
 
     def load_words(self, words: Iterable[str]) -> None:
-        normalized_words = {
-            normalized
-            for word in words
-            if (normalized := self.normalize(word))
-        }
+        normalized_words: dict[str, SensitiveWord] = {}
+        for word in words:
+            original = str(word).strip()
+            normalized = self.normalize(original)
+            if normalized and normalized not in normalized_words:
+                normalized_words[normalized] = SensitiveWord(
+                    original=original,
+                    normalized=normalized,
+                )
+
         goto: list[dict[str, int]] = [{}]
         fail: list[int] = [0]
-        output: list[set[str]] = [set()]
+        output: list[list[SensitiveWord]] = [[]]
 
-        for word in sorted(normalized_words):
+        for word, sensitive_word in sorted(normalized_words.items()):
             state = 0
             for char in word:
                 next_state = goto[state].get(char)
@@ -133,9 +169,9 @@ class SensitiveFilter:
                     goto[state][char] = next_state
                     goto.append({})
                     fail.append(0)
-                    output.append(set())
+                    output.append([])
                 state = next_state
-            output[state].add(word)
+            output[state].append(sensitive_word)
 
         queue: deque[int] = deque()
         for next_state in goto[0].values():
@@ -150,12 +186,15 @@ class SensitiveFilter:
                 while fallback and char not in goto[fallback]:
                     fallback = fail[fallback]
                 fail[next_state] = goto[fallback].get(char, 0)
-                output[next_state].update(output[fail[next_state]])
+                output[next_state].extend(output[fail[next_state]])
+
+        for matches in output:
+            matches.sort(key=lambda item: len(item.normalized), reverse=True)
 
         self._goto = goto
         self._fail = fail
         self._output = output
-        self._words = frozenset(normalized_words)
+        self._words = normalized_words
 
     def validate(
         self,
@@ -184,7 +223,7 @@ class SensitiveFilter:
             replacement=replacement,
         )
 
-    def find_first(self, normalized_text: str) -> Optional[str]:
+    def find_first(self, normalized_text: str) -> Optional[SensitiveWord]:
         if not self._words or not normalized_text:
             return None
 
@@ -194,7 +233,7 @@ class SensitiveFilter:
                 state = self._fail[state]
             state = self._goto[state].get(char, 0)
             if self._output[state]:
-                return max(self._output[state], key=len)
+                return self._output[state][0]
         return None
 
     @classmethod
@@ -205,9 +244,20 @@ class SensitiveFilter:
         chars: list[str] = []
         for char in normalized:
             category = unicodedata.category(char)
+            if category[0] in {"C", "M", "P", "S", "Z"}:
+                continue
             if category[0] in {"L", "N"}:
                 chars.append(char)
         return "".join(chars)
+
+    @classmethod
+    def mask_word(cls, word: str) -> str:
+        normalized = cls.normalize(word)
+        if not normalized:
+            return ""
+        if len(normalized) <= 2:
+            return f"{normalized[0]}*"
+        return f"{normalized[0]}{'*' * max(3, len(normalized) - 2)}{normalized[-1]}"
 
     @staticmethod
     def resolve_style(ui_style: str | UIStyle) -> UIStyle:

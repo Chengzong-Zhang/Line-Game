@@ -78,6 +78,10 @@ class NicknameValidatedRequest(BaseModel):
     auto_correct_username: bool = Field(default=False)
     original_username: Optional[str] = Field(default=None, exclude=True)
     username_corrected: bool = Field(default=False, exclude=True)
+    offending_word: Optional[str] = Field(default=None, exclude=True)
+    masked_word: Optional[str] = Field(default=None, exclude=True)
+    validation_error: Optional[str] = Field(default=None, exclude=True)
+    validation_message: Optional[str] = Field(default=None, exclude=True)
 
     @model_validator(mode="before")
     @classmethod
@@ -97,6 +101,10 @@ class NicknameValidatedRequest(BaseModel):
             clean_data["auto_correct_username"] = auto_correct
             clean_data["username_corrected"] = False
             clean_data["original_username"] = None
+            clean_data["offending_word"] = None
+            clean_data["masked_word"] = None
+            clean_data["validation_error"] = None
+            clean_data["validation_message"] = None
             return clean_data
 
         if auto_correct and result.replacement:
@@ -105,6 +113,10 @@ class NicknameValidatedRequest(BaseModel):
             clean_data["auto_correct_username"] = True
             clean_data["username_corrected"] = True
             clean_data["original_username"] = raw_username
+            clean_data["offending_word"] = result.offending_word
+            clean_data["masked_word"] = result.masked_word
+            clean_data["validation_error"] = result.error
+            clean_data["validation_message"] = result.corrected_message
             return clean_data
 
         raise PydanticCustomError("nickname_blocked", result.message, result.error_context())
@@ -128,8 +140,10 @@ class RegisterResponse(BaseModel):
     username: str
     username_corrected: bool = False
     original_username: Optional[str] = None
-    validation_term: Optional[str] = None
+    validation_error: Optional[str] = None
     validation_message: Optional[str] = None
+    offending_word: Optional[str] = None
+    suggestion: Optional[str] = None
 
 
 class NicknameValidationResponse(BaseModel):
@@ -137,8 +151,10 @@ class NicknameValidationResponse(BaseModel):
     username: str
     username_corrected: bool = False
     original_username: Optional[str] = None
-    term: str
+    error: Optional[str] = None
     message: str
+    offending_word: Optional[str] = None
+    suggestion: Optional[str] = None
 
 
 class LoginResponse(BaseModel):
@@ -1390,10 +1406,10 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
             return JSONResponse(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 content={
-                    "error": "NICKNAME_VALIDATION_FAILED",
-                    "term": context.get("term", "Nickname Blocked"),
-                    "message": context.get("message", "昵称包含敏感词汇，请换一个更文明的名字吧！"),
+                    "error": context.get("error", "NICKNAME_BLOCKED"),
+                    "message": context.get("message", "昵称包含敏感词汇：[***]，换一个试试吧！"),
                     "ui_style": context.get("ui_style", UIStyle.CASUAL.value),
+                    "offending_word": context.get("masked_word", ""),
                     "suggestion": context.get("suggestion", SensitiveFilter.replacement_name()),
                 },
             )
@@ -1445,14 +1461,20 @@ async def health_check() -> Dict[str, str]:
 @app.post("/api/nickname/validate", response_model=NicknameValidationResponse)
 def validate_nickname(payload: NicknameValidationRequest) -> NicknameValidationResponse:
     style = SensitiveFilter.resolve_style(payload.ui_style)
-    style_info = sensitive_filter.validate(payload.username, ui_style=style)
+    accepted_message = (
+        "Identifier accepted."
+        if style == UIStyle.ACADEMIC
+        else "Nickname accepted."
+    )
     return NicknameValidationResponse(
         valid=True,
         username=payload.username,
         username_corrected=payload.username_corrected,
         original_username=payload.original_username,
-        term=style_info.term,
-        message=style_info.message if payload.username_corrected else "Nickname accepted.",
+        error=payload.validation_error,
+        message=payload.validation_message or accepted_message,
+        offending_word=payload.masked_word,
+        suggestion=payload.username if payload.username_corrected else None,
     )
 
 
@@ -1500,18 +1522,19 @@ def register_user(payload: RegisterRequest, db: Session = Depends(get_db)) -> Re
             detail="Username already exists.",
         ) from None
 
-    style_info = sensitive_filter.validate(username, ui_style=payload.ui_style)
     return RegisterResponse(
         message=(
-            "User registered successfully with an auto-corrected nickname."
+            payload.validation_message or "User registered successfully with an auto-corrected nickname."
             if payload.username_corrected
             else "User registered successfully."
         ),
         username=user.username,
         username_corrected=payload.username_corrected,
         original_username=payload.original_username,
-        validation_term=style_info.term if payload.username_corrected else None,
-        validation_message=style_info.message if payload.username_corrected else None,
+        validation_error=payload.validation_error,
+        validation_message=payload.validation_message,
+        offending_word=payload.masked_word,
+        suggestion=user.username if payload.username_corrected else None,
     )
 
 
