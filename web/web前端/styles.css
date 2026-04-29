@@ -402,14 +402,19 @@ html[data-ui-style="academic"] #ui-style-select .language-button.is-active {
 }
 
 .duel-strip {
+  display: grid;
+  gap: 12px;
+}
+
+.duel-top-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  flex-wrap: wrap;
 }
 
 .duel-copy {
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -475,18 +480,26 @@ html[data-ui-style="academic"] #ui-style-select .language-button.is-active {
 }
 
 .chat-emoji-layer {
-  position: relative;
-  height: 0;
+  position: absolute;
+  inset: 0;
   z-index: 12;
   pointer-events: none;
+  overflow: hidden;
+  contain: layout paint;
 }
 
 .chat-emoji-bubble {
   --emoji-duration: 1200ms;
+  --emoji-x: 20%;
+  --emoji-y: 20%;
+  --emoji-mx: 12px;
+  --emoji-dx: 24px;
+  --emoji-dy: -48px;
   position: absolute;
-  bottom: 20px;
-  min-width: 58px;
-  min-height: 58px;
+  left: var(--emoji-x);
+  top: var(--emoji-y);
+  width: 58px;
+  height: 58px;
   border-radius: 999px;
   display: grid;
   place-items: center;
@@ -495,14 +508,7 @@ html[data-ui-style="academic"] #ui-style-select .language-button.is-active {
   font-size: 2rem;
   line-height: 1;
   transform-origin: center bottom;
-}
-
-.chat-emoji-bubble.is-self {
-  right: 18%;
-}
-
-.chat-emoji-bubble.is-remote {
-  left: 18%;
+  will-change: transform, opacity;
 }
 
 .chat-emoji-bubble.is-bounce {
@@ -517,58 +523,70 @@ html[data-ui-style="academic"] #ui-style-select .language-button.is-active {
   animation: chatEmojiShake var(--emoji-duration) ease both;
 }
 
+.chat-emoji-bubble.is-color-blue {
+  border: 2px solid rgba(43, 111, 255, 0.42);
+}
+
+.chat-emoji-bubble.is-color-red {
+  border: 2px solid rgba(216, 74, 67, 0.42);
+}
+
+.chat-emoji-bubble.is-color-purple {
+  border: 2px solid rgba(139, 92, 246, 0.42);
+}
+
 @keyframes chatEmojiBounce {
   0% {
     opacity: 0;
-    transform: translateY(22px) scale(0.72);
+    transform: translate3d(0, 18px, 0) scale(0.72);
   }
   22% {
     opacity: 1;
-    transform: translateY(-8px) scale(1.08);
+    transform: translate3d(var(--emoji-mx), -8px, 0) scale(1.08);
   }
   48% {
-    transform: translateY(0) scale(1);
+    transform: translate3d(var(--emoji-mx), -2px, 0) scale(1);
   }
   100% {
     opacity: 0;
-    transform: translateY(-48px) scale(0.94);
+    transform: translate3d(var(--emoji-dx), var(--emoji-dy), 0) scale(0.94);
   }
 }
 
 @keyframes chatEmojiFade {
   0% {
     opacity: 0;
-    transform: translateY(12px) scale(0.9);
+    transform: translate3d(0, 12px, 0) scale(0.9);
   }
   20%,
   72% {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translate3d(var(--emoji-mx), -18px, 0) scale(1);
   }
   100% {
     opacity: 0;
-    transform: translateY(-34px) scale(0.96);
+    transform: translate3d(var(--emoji-dx), var(--emoji-dy), 0) scale(0.96);
   }
 }
 
 @keyframes chatEmojiShake {
   0% {
     opacity: 0;
-    transform: translateY(14px) scale(0.86) rotate(0deg);
+    transform: translate3d(0, 14px, 0) scale(0.86) rotate(0deg);
   }
   18% {
     opacity: 1;
-    transform: translateY(0) scale(1.04) rotate(-8deg);
+    transform: translate3d(var(--emoji-mx), -3px, 0) scale(1.04) rotate(-8deg);
   }
   34% {
-    transform: translateY(0) scale(1.02) rotate(8deg);
+    transform: translate3d(var(--emoji-mx), -12px, 0) scale(1.02) rotate(8deg);
   }
   50% {
-    transform: translateY(0) scale(1) rotate(-5deg);
+    transform: translate3d(var(--emoji-mx), -20px, 0) scale(1) rotate(-5deg);
   }
   100% {
     opacity: 0;
-    transform: translateY(-42px) scale(0.94) rotate(0deg);
+    transform: translate3d(var(--emoji-dx), var(--emoji-dy), 0) scale(0.94) rotate(0deg);
   }
 }
 
@@ -597,7 +615,9 @@ html[data-ui-style="academic"] #ui-style-select .language-button.is-active {
 }
 
 .board-shell {
+  position: relative;
   padding-bottom: 24px;
+  overflow: hidden;
 }
 
 .canvas-frame {
@@ -1878,13 +1898,12 @@ html[data-ui-style="academic"] #ui-style-select .language-button.is-active {
     width: min(100%, 760px);
   }
 
-  .duel-strip {
-    flex-direction: column;
-    align-items: stretch;
+  .duel-top-row {
+    align-items: center;
   }
 
   .duel-actions {
-    justify-content: stretch;
+    justify-content: flex-end;
   }
 
   .chat-emoji-toolbar {
@@ -1978,22 +1997,48 @@ html[data-ui-style="academic"] #ui-style-select .language-button.is-active {
     width: 100%;
   }
 
+  .duel-top-row {
+    gap: 8px;
+  }
+
+  .duel-label {
+    margin-bottom: 6px;
+    font-size: 0.76rem;
+  }
+
+  .duel-turn-banner {
+    padding: 9px 10px;
+    min-width: 0;
+  }
+
+  .duel-turn-banner strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .duel-actions {
+    flex: 0 0 auto;
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .duel-actions .action-button {
+    width: auto;
+    min-width: 88px;
+    padding: 10px 11px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+
   .chat-emoji-toolbar {
     grid-template-columns: repeat(5, minmax(36px, 1fr));
   }
 
   .chat-emoji-bubble {
-    min-width: 50px;
-    min-height: 50px;
+    width: 50px;
+    height: 50px;
     font-size: 1.7rem;
-  }
-
-  .chat-emoji-bubble.is-self {
-    right: 8%;
-  }
-
-  .chat-emoji-bubble.is-remote {
-    left: 8%;
   }
 
   .language-switcher {

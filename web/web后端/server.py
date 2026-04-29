@@ -64,6 +64,18 @@ JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "replace-this-with-a-long-random-se
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_DAYS = 7
 PASSWORD_HASH_PREFIX = "bcrypt_sha256$"
+SENSITIVE_FILTER_VERSION = "v2"
+
+
+def _resolve_bcrypt_rounds() -> int:
+    try:
+        rounds = int(os.getenv("BCRYPT_ROUNDS", "10"))
+    except ValueError:
+        rounds = 10
+    return max(10, min(14, rounds))
+
+
+BCRYPT_ROUNDS = _resolve_bcrypt_rounds()
 
 
 logger = logging.getLogger("uvicorn.error")
@@ -174,7 +186,7 @@ def get_db() -> Generator[Session, None, None]:
 
 def hash_password(password: str) -> str:
     password_bytes = _derive_password_bytes(password)
-    password_hash = bcrypt.hashpw(password_bytes, bcrypt.gensalt())
+    password_hash = bcrypt.hashpw(password_bytes, bcrypt.gensalt(rounds=BCRYPT_ROUNDS))
     return f"{PASSWORD_HASH_PREFIX}{password_hash.decode('utf-8')}"
 
 
@@ -839,6 +851,7 @@ class ConnectionManager:
                     "type": "chat_emoji",
                     "sender": action["sender"].player_id,
                     "content": normalized_content,
+                    "color": action["sender"].color,
                     "metadata": normalized_metadata,
                 }
                 payloads = self._connected_room_payloads(action["room"], payload)
@@ -1454,8 +1467,14 @@ async def serve_index() -> Response:
 
 
 @app.get("/api/health")
-async def health_check() -> Dict[str, str]:
-    return {"status": "ok"}
+async def health_check() -> Dict[str, Any]:
+    return {
+        "status": "ok",
+        "sensitiveFilterVersion": SENSITIVE_FILTER_VERSION,
+        "sensitiveWordCount": sensitive_filter.word_count,
+        "sensitiveFilterReady": sensitive_filter.word_count > 0,
+        "bcryptRounds": BCRYPT_ROUNDS,
+    }
 
 
 @app.post("/api/nickname/validate", response_model=NicknameValidationResponse)

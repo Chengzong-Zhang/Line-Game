@@ -15,8 +15,9 @@ function Get-ServerUrl([int] $port) {
 
 function Test-BackendReady([int] $port) {
   try {
-    $null = Invoke-WebRequest -Uri "$(Get-ServerUrl $port)api/health" -UseBasicParsing -TimeoutSec 2
-    return $true
+    $response = Invoke-WebRequest -Uri "$(Get-ServerUrl $port)api/health" -UseBasicParsing -TimeoutSec 2
+    $health = $response.Content | ConvertFrom-Json
+    return ($health.status -eq "ok" -and $health.sensitiveFilterVersion -eq "v2")
   } catch {
     return $false
   }

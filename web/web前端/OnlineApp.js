@@ -1097,21 +1097,23 @@ const ControlPanel = {
   },
   template: `
     <section class="panel panel-controls duel-strip">
-      <div class="duel-copy">
-        <p class="duel-label">{{ texts.currentTurnLabel }}</p>
-        <div class="turn-banner duel-turn-banner" :class="turnBannerClass">
-          <span class="turn-dot"></span>
-          <strong>{{ currentPlayerLabel }}{{ texts.turnSuffix }}</strong>
-          <small v-if="turnTimerEnabled" class="duel-timer-copy">{{ turnTimerLabel }}</small>
+      <div class="duel-top-row">
+        <div class="duel-copy">
+          <p class="duel-label">{{ texts.currentTurnLabel }}</p>
+          <div class="turn-banner duel-turn-banner" :class="turnBannerClass">
+            <span class="turn-dot"></span>
+            <strong>{{ currentPlayerLabel }}{{ texts.turnSuffix }}</strong>
+            <small v-if="turnTimerEnabled" class="duel-timer-copy">{{ turnTimerLabel }}</small>
+          </div>
         </div>
-      </div>
-      <div class="actions duel-actions">
-        <button class="action-button action-button-primary" :disabled="skipDisabled" @click="$emit('skip')">
-          {{ texts.skipTurnAction }}
-        </button>
-        <button class="action-button action-button-secondary" :disabled="resetDisabled" @click="$emit('reset')">
-          {{ resetLabel }}
-        </button>
+        <div class="actions duel-actions">
+          <button class="action-button action-button-primary" :disabled="skipDisabled" @click="$emit('skip')">
+            {{ texts.skipTurnAction }}
+          </button>
+          <button class="action-button action-button-secondary" :disabled="resetDisabled" @click="$emit('reset')">
+            {{ resetLabel }}
+          </button>
+        </div>
       </div>
       <div v-if="emojiOptions.length" class="chat-emoji-toolbar" role="group" aria-label="chat emoji">
         <button
@@ -1910,6 +1912,10 @@ const BoardCanvas = {
       type: String,
       required: true,
     },
+    emojiBursts: {
+      type: Array,
+      default: () => [],
+    },
   },
   emits: ["state-change", "controller-ready"],
   setup(props, { emit }) {
@@ -1945,6 +1951,24 @@ const BoardCanvas = {
     <section class="board-shell panel panel-board-focus">
       <div class="canvas-frame">
         <canvas ref="canvasRef" class="game-canvas" :aria-label="texts.boardAriaLabel"></canvas>
+      </div>
+      <div class="chat-emoji-layer" aria-live="polite" aria-atomic="false">
+        <div
+          v-for="burst in emojiBursts"
+          :key="burst.id"
+          class="chat-emoji-bubble"
+          :class="['is-' + burst.animation, 'is-color-' + burst.colorClass]"
+          :style="{
+            '--emoji-duration': burst.duration + 'ms',
+            '--emoji-x': burst.x + '%',
+            '--emoji-y': burst.y + '%',
+            '--emoji-mx': burst.mx + 'px',
+            '--emoji-dx': burst.dx + 'px',
+            '--emoji-dy': burst.dy + 'px'
+          }"
+        >
+          {{ burst.content }}
+        </div>
       </div>
     </section>
   `,
@@ -2005,6 +2029,10 @@ const App = {
     const readyPending = ref(false);
     const chatEmojiBursts = ref([]);
     const chatEmojiOptions = CHAT_EMOJI_OPTIONS;
+    const optimisticChatEmoji = {
+      content: "",
+      sentAt: 0,
+    };
     let lastServerTimestamp = 0;
     const overlayResult = ref(null);
     const activeUtilityDeck = ref("");
@@ -2858,12 +2886,39 @@ const App = {
       }
     };
 
-    const chatEmojiDisabled = computed(() => {
-      return !session.value.roomId
-        || !networkManager.isConnected()
-        || roomStatus.value === "solo"
-        || roomStatus.value === "offline";
-    });
+    const chatEmojiDisabled = computed(() => false);
+
+    const resolveChatEmojiColor = (sender, payloadColor = null) => {
+      if (payloadColor === Player.BLACK || payloadColor === Player.WHITE || payloadColor === Player.PURPLE) {
+        return payloadColor;
+      }
+      const player = Array.isArray(roomInfo.value.players)
+        ? roomInfo.value.players.find((candidate) => candidate.playerId === sender)
+        : null;
+      return player?.color ?? session.value.color ?? gameState.value.currentPlayer ?? Player.BLACK;
+    };
+
+    const getChatEmojiAnchor = (color) => {
+      if (color === Player.WHITE) {
+        return effectiveGameSettings.value.playerCount === 3
+          ? { x: 78, y: 18 }
+          : { x: 20, y: 78 };
+      }
+      if (color === Player.PURPLE) {
+        return { x: 20, y: 78 };
+      }
+      return { x: 20, y: 18 };
+    };
+
+    const getChatEmojiColorClass = (color) => {
+      if (color === Player.WHITE) {
+        return "red";
+      }
+      if (color === Player.PURPLE) {
+        return "purple";
+      }
+      return "blue";
+    };
 
     const normalizeChatEmojiPayload = (payload) => {
       const content = String(payload?.content ?? "").trim();
@@ -2883,6 +2938,7 @@ const App = {
         : 1200;
       return {
         sender: String(payload?.sender ?? ""),
+        color: resolveChatEmojiColor(payload?.sender, payload?.color),
         content,
         metadata: {
           animation,
@@ -2898,15 +2954,24 @@ const App = {
       }
 
       const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const anchor = getChatEmojiAnchor(normalized.color);
+      const jitterX = Math.round((Math.random() - 0.5) * 10);
+      const jitterY = Math.round((Math.random() - 0.5) * 10);
+      const moveSign = normalized.color === Player.WHITE && effectiveGameSettings.value.playerCount === 3 ? -1 : 1;
       const burst = {
         id,
         sender: normalized.sender,
         content: normalized.content,
         animation: normalized.metadata.animation,
         duration: normalized.metadata.duration,
-        side: normalized.sender && normalized.sender === session.value.playerId ? "self" : "remote",
+        colorClass: getChatEmojiColorClass(normalized.color),
+        x: anchor.x + jitterX,
+        y: anchor.y + jitterY,
+        dx: moveSign * (18 + Math.round(Math.random() * 18)),
+        mx: moveSign * (8 + Math.round(Math.random() * 8)),
+        dy: -(36 + Math.round(Math.random() * 24)),
       };
-      chatEmojiBursts.value = [...chatEmojiBursts.value.slice(-3), burst];
+      chatEmojiBursts.value = [...chatEmojiBursts.value.slice(-5), burst];
 
       const timeoutId = globalThis.setTimeout(() => {
         chatEmojiTimeoutIds.delete(timeoutId);
@@ -2921,6 +2986,22 @@ const App = {
       }
 
       networkError.value = "";
+      pushChatEmojiBurst({
+        sender: session.value.playerId ?? "local",
+        color: session.value.color ?? gameState.value.currentPlayer,
+        content: emoji?.content,
+        metadata: {
+          animation: emoji?.animation,
+          duration: emoji?.duration,
+        },
+      });
+      optimisticChatEmoji.content = String(emoji?.content ?? "").trim();
+      optimisticChatEmoji.sentAt = Date.now();
+
+      if (!session.value.roomId || !networkManager.isConnected()) {
+        return;
+      }
+
       try {
         await networkManager.sendChatEmoji(emoji?.content, {
           animation: emoji?.animation,
@@ -3265,6 +3346,13 @@ const App = {
 
     unsubscribers.push(
       networkManager.on(ServerEvent.CHAT_EMOJI, (payload) => {
+        if (
+          payload?.sender === session.value.playerId
+          && String(payload?.content ?? "").trim() === optimisticChatEmoji.content
+          && Date.now() - optimisticChatEmoji.sentAt < 900
+        ) {
+          return;
+        }
         pushChatEmojiBurst(payload);
       }),
     );
@@ -3386,21 +3474,10 @@ const App = {
             :language="language"
             :ui-style="uiStyle"
             :hint-text="boardHint"
+            :emoji-bursts="chatEmojiBursts"
             @controller-ready="handleControllerReady"
             @state-change="handleStateChange"
           />
-
-          <div class="chat-emoji-layer" aria-live="polite" aria-atomic="false">
-            <div
-              v-for="burst in chatEmojiBursts"
-              :key="burst.id"
-              class="chat-emoji-bubble"
-              :class="['is-' + burst.side, 'is-' + burst.animation]"
-              :style="{ '--emoji-duration': burst.duration + 'ms' }"
-            >
-              {{ burst.content }}
-            </div>
-          </div>
 
           <ControlPanel
             :game-state="gameState"
