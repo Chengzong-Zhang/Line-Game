@@ -30,7 +30,7 @@ import {
   UI_STYLE_ACADEMIC,
   localizeErrorMessage as localizeAppErrorMessage,
 } from "./OnlineAppI18n.js?v=20260428l";
-import { ensureGuideRuleImages, getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20260429a";
+import { ensureGuideRuleImages, getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20260429f";
 
 const {
   computed,
@@ -197,6 +197,27 @@ const CHAT_EMOJI_OPTIONS = Object.freeze([
   { content: "😤", animation: "bounce", duration: 1200, label: "Pressure" },
 ]);
 const CHAT_EMOJI_ANIMATIONS = new Set(["bounce", "fade", "shake"]);
+
+function hashChatEmojiSeed(seed) {
+  const source = String(seed ?? "");
+  let hash = 2166136261;
+  for (let index = 0; index < source.length; index += 1) {
+    hash ^= source.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function createChatEmojiRandom(seed) {
+  let state = hashChatEmojiSeed(seed) || 1;
+  return () => {
+    state += 0x6D2B79F5;
+    let value = state;
+    value = Math.imul(value ^ (value >>> 15), value | 1);
+    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+  };
+}
 
 function createEmptyRoomInfo() {
   return {
@@ -2042,6 +2063,7 @@ const App = {
     const unsubscribers = [];
     let reconnectTimerId = null;
     let turnCountdownTimerId = null;
+    let countdownSnapshotRefreshTimerId = null;
     let turnTimerId = null;
     let turnTimerDeadline = 0;
     let turnTimerSkipInFlight = false;
@@ -2077,7 +2099,7 @@ const App = {
           return;
         }
         try {
-          const response = await fetch(`${asset}?v=20260429a`, { cache: "no-cache" });
+          const response = await fetch(`${asset}?v=20260429f`, { cache: "no-cache" });
           if (response.ok) {
             nextOverrides[key] = await response.text();
           }
@@ -2289,8 +2311,29 @@ const App = {
       }
     };
 
+    const clearCountdownSnapshotRefresh = () => {
+      if (countdownSnapshotRefreshTimerId !== null) {
+        globalThis.clearTimeout(countdownSnapshotRefreshTimerId);
+        countdownSnapshotRefreshTimerId = null;
+      }
+    };
+
+    const scheduleCountdownSnapshotRefresh = () => {
+      if (countdownSnapshotRefreshTimerId !== null) {
+        return;
+      }
+
+      countdownSnapshotRefreshTimerId = globalThis.setTimeout(() => {
+        countdownSnapshotRefreshTimerId = null;
+        if (roomStatus.value === "countdown") {
+          void refreshRoomSnapshot();
+        }
+      }, 1200);
+    };
+
     const restartTurnCountdown = () => {
       clearTurnCountdown();
+      clearCountdownSnapshotRefresh();
       turnCountdown.value = ROOM_START_COUNTDOWN_FALLBACK_SECONDS;
 
       if (
@@ -2313,6 +2356,9 @@ const App = {
             0,
             Math.ceil(((roomInfo.value.countdownEndsAt ?? Date.now()) - Date.now()) / 1000),
           );
+          if (turnCountdown.value === 0) {
+            scheduleCountdownSnapshotRefresh();
+          }
         }, 250);
         return;
       }
@@ -2511,6 +2557,7 @@ const App = {
       resultModalDismissed.value = false;
       readyPending.value = false;
       lastServerTimestamp = 0;
+      clearCountdownSnapshotRefresh();
       clearChatEmojiBursts();
     };
 
@@ -2557,6 +2604,20 @@ const App = {
       }
 
       reconnectAttempt = 0;
+    };
+
+    const refreshRoomSnapshot = async () => {
+      if (!session.value.roomId || !session.value.playerId || !networkManager.isConnected()) {
+        return;
+      }
+
+      try {
+        const payload = await networkManager.joinRoom(session.value.roomId, session.value.playerId);
+        applyRoomSnapshot(payload, true);
+        networkError.value = "";
+      } catch (error) {
+        handleNetworkError(error);
+      }
     };
 
     const attemptReconnect = async () => {
@@ -2901,11 +2962,11 @@ const App = {
     const getChatEmojiAnchor = (color) => {
       if (color === Player.WHITE) {
         return effectiveGameSettings.value.playerCount === 3
-          ? { x: 78, y: 18 }
-          : { x: 20, y: 78 };
+          ? { x: 20, y: 78 }
+          : { x: 78, y: 18 };
       }
       if (color === Player.PURPLE) {
-        return { x: 20, y: 78 };
+        return { x: 78, y: 18 };
       }
       return { x: 20, y: 18 };
     };
@@ -2936,10 +2997,12 @@ const App = {
       const duration = Number.isFinite(rawDuration)
         ? Math.max(300, Math.min(3000, Math.round(rawDuration)))
         : 1200;
+      const seed = String(metadata.seed ?? `${payload?.sender ?? "local"}-${content}`).slice(0, 64);
       return {
         sender: String(payload?.sender ?? ""),
         color: resolveChatEmojiColor(payload?.sender, payload?.color),
         content,
+        seed,
         metadata: {
           animation,
           duration,
@@ -2955,9 +3018,10 @@ const App = {
 
       const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const anchor = getChatEmojiAnchor(normalized.color);
-      const jitterX = Math.round((Math.random() - 0.5) * 10);
-      const jitterY = Math.round((Math.random() - 0.5) * 10);
-      const moveSign = normalized.color === Player.WHITE && effectiveGameSettings.value.playerCount === 3 ? -1 : 1;
+      const random = createChatEmojiRandom(normalized.seed);
+      const jitterX = Math.round((random() - 0.5) * 10);
+      const jitterY = Math.round((random() - 0.5) * 10);
+      const moveSign = anchor.x > 50 ? -1 : 1;
       const burst = {
         id,
         sender: normalized.sender,
@@ -2967,9 +3031,9 @@ const App = {
         colorClass: getChatEmojiColorClass(normalized.color),
         x: anchor.x + jitterX,
         y: anchor.y + jitterY,
-        dx: moveSign * (18 + Math.round(Math.random() * 18)),
-        mx: moveSign * (8 + Math.round(Math.random() * 8)),
-        dy: -(36 + Math.round(Math.random() * 24)),
+        dx: moveSign * (18 + Math.round(random() * 18)),
+        mx: moveSign * (8 + Math.round(random() * 8)),
+        dy: -(36 + Math.round(random() * 24)),
       };
       chatEmojiBursts.value = [...chatEmojiBursts.value.slice(-5), burst];
 
@@ -2986,6 +3050,7 @@ const App = {
       }
 
       networkError.value = "";
+      const seed = `${session.value.playerId ?? "local"}-${Date.now()}-${Math.round(Math.random() * 1000000)}`;
       pushChatEmojiBurst({
         sender: session.value.playerId ?? "local",
         color: session.value.color ?? gameState.value.currentPlayer,
@@ -2993,6 +3058,7 @@ const App = {
         metadata: {
           animation: emoji?.animation,
           duration: emoji?.duration,
+          seed,
         },
       });
       optimisticChatEmoji.content = String(emoji?.content ?? "").trim();
@@ -3006,6 +3072,7 @@ const App = {
         await networkManager.sendChatEmoji(emoji?.content, {
           animation: emoji?.animation,
           duration: emoji?.duration,
+          seed,
         });
       } catch (error) {
         handleNetworkError(error);
@@ -3363,6 +3430,26 @@ const App = {
 
     unsubscribers.push(
       networkManager.on(ServerEvent.ERROR, (payload) => {
+        readyPending.value = false;
+        if (payload?.code === "MATCH_IN_PROGRESS") {
+          roomStatus.value = "inProgress";
+          roomInfo.value = {
+            ...createEmptyRoomInfo(),
+            ...roomInfo.value,
+            status: "inProgress",
+            matchPhase: "PLAYING",
+            countdownEndsAt: null,
+          };
+          syncOnlineController({
+            status: "IN_PROGRESS",
+            matchPhase: "PLAYING",
+            players: roomInfo.value.players,
+            settings: roomInfo.value.settings,
+          });
+          void refreshRoomSnapshot();
+          networkError.value = getAppTexts(language.value, uiStyle.value).matchInProgress;
+          return;
+        }
         handleNetworkError(new Error(payload.message ?? payload.code ?? getAppTexts(language.value, uiStyle.value).unknownServer));
       }),
     );
@@ -3370,6 +3457,7 @@ const App = {
     onBeforeUnmount(() => {
       clearReconnectTimer();
       clearTurnCountdown();
+      clearCountdownSnapshotRefresh();
       clearTurnTimer();
       clearChatEmojiBursts();
       document.body.classList.remove("modal-open");

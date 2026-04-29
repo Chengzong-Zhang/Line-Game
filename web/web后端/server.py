@@ -78,6 +78,16 @@ def _resolve_bcrypt_rounds() -> int:
 BCRYPT_ROUNDS = _resolve_bcrypt_rounds()
 
 
+def nickname_block_payload(result) -> Dict[str, str]:
+    return {
+        "error": result.error,
+        "message": result.message,
+        "ui_style": result.ui_style.value,
+        "offending_word": result.masked_word,
+        "suggestion": result.replacement or SensitiveFilter.replacement_name(result.ui_style),
+    }
+
+
 logger = logging.getLogger("uvicorn.error")
 sensitive_filter = SensitiveFilter()
 
@@ -1332,7 +1342,17 @@ class ConnectionManager:
         return {
             "animation": animation,
             "duration": duration,
+            **self._normalize_chat_emoji_seed(metadata),
         }
+
+    def _normalize_chat_emoji_seed(self, metadata: Dict[str, Any]) -> Dict[str, str]:
+        seed = metadata.get("seed")
+        if seed is None:
+            return {}
+        normalized = str(seed).strip()
+        if not normalized:
+            return {}
+        return {"seed": normalized[:64]}
 
     def _normalize_room_settings(self, settings: Any) -> Dict[str, Any]:
         # 服务端再次兜底校验，避免客户端绕过前端限制传入非法人数或棋盘尺寸。
@@ -1431,14 +1451,15 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     for error in exc.errors():
         context = error.get("ctx") or {}
         if context.get("sensitive_filter") == "true":
+            style = SensitiveFilter.resolve_style(context.get("ui_style", UIStyle.CASUAL.value))
             return JSONResponse(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 content={
                     "error": context.get("error", "NICKNAME_BLOCKED"),
                     "message": context.get("message", "昵称包含敏感词汇：[***]，换一个试试吧！"),
-                    "ui_style": context.get("ui_style", UIStyle.CASUAL.value),
+                    "ui_style": style.value,
                     "offending_word": context.get("masked_word", ""),
-                    "suggestion": context.get("suggestion", SensitiveFilter.replacement_name()),
+                    "suggestion": context.get("suggestion", SensitiveFilter.replacement_name(style)),
                 },
             )
 
@@ -1446,6 +1467,13 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={"detail": jsonable_encoder(exc.errors())},
     )
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
+    if isinstance(exc.detail, dict) and "error" in exc.detail and "message" in exc.detail:
+        return JSONResponse(status_code=exc.status_code, content=exc.detail, headers=exc.headers)
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail}, headers=exc.headers)
 
 
 @app.on_event("startup")
@@ -1519,6 +1547,13 @@ def register_user(payload: RegisterRequest, db: Session = Depends(get_db)) -> Re
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Username cannot be empty.",
+        )
+
+    route_filter_result = sensitive_filter.validate(username, ui_style=payload.ui_style)
+    if not route_filter_result.allowed and not payload.username_corrected:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=nickname_block_payload(route_filter_result),
         )
 
     existing_user = db.execute(select(User).where(User.username == username)).scalar_one_or_none()

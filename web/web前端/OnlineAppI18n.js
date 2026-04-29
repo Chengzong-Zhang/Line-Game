@@ -486,9 +486,9 @@ const EN_ACADEMIC_TEXT_OVERRIDES = Object.freeze({
   defeatSuffix: "entered P-position",
   localTurnStatus: (side) => `Current control belongs to ${side}. Select a legal vertex, skip the iteration, or reset parameters.`,
   remoteTurnStatus: "A remote node is evaluating. The state space is locked until the WebSocket operation arrives.",
-  soloBlueStatus: "Local model: Node Alpha is active.",
-  soloRedStatus: "Local model: Node Beta is active.",
-  soloPurpleStatus: "Local model: Node Gamma is active.",
+  soloBlueStatus: "Local mode: Blue to move.",
+  soloRedStatus: "Local mode: Red to move.",
+  soloPurpleStatus: "Local mode: Purple to move.",
   waitingHint: "The session exists, but the state space remains locked until every node is connected.",
   notYourTurnHint: "The active iteration belongs to another node. Its operation will be synchronized automatically.",
   networkUnavailableHint: "Network unavailable. Reconnect before continuing state synchronization.",
@@ -536,7 +536,7 @@ const ZH_ACADEMIC_TEXT_OVERRIDES = Object.freeze({
   createRoom: "创建实验组",
   joinRoom: "加入实验组",
   leaveRoom: "离开实验组",
-  readyAction: "载入初始模型 (Load Model)",
+  readyAction: "载入模型",
   cancelReadyAction: "取消载入模型",
   closePrompt: "关闭结果",
   roomLobby: "实验组大厅",
@@ -548,8 +548,8 @@ const ZH_ACADEMIC_TEXT_OVERRIDES = Object.freeze({
   roomIdleTag: "待载入模型",
   starterLabel: "初始节点",
   startCountdown: "即将启动迭代",
-  roomId: "实验组 ID (Session ID)",
-  roomPlaceholder: "输入 4 位 Session ID",
+  roomId: "实验组编号",
+  roomPlaceholder: "输入 4 位编号",
   roomLabel: "实验组",
   playerLabel: "节点",
   playerCountLabel: "节点数量",
@@ -564,16 +564,16 @@ const ZH_ACADEMIC_TEXT_OVERRIDES = Object.freeze({
   area: "测度",
   territorySuffix: "覆盖域",
   turnSuffix: "迭代",
-  gameOver: "达到终止判定 (Terminated)",
+  gameOver: "终止判定",
   connectExplanation: "它会连接已配置好的 WebSocket 中继服务，用于实验组分配、节点接入与多终端状态同步。本地分析模式不需要联网。",
   soloHelp: "本地模式下，可以随时选择合法顶点、跳过迭代，或重置参数。",
   onlineOverHelp: "本轮同步验证已经达到终止判定。启动下一轮时会保留当前实验组与所有节点。",
   onlinePlayHelp: "每个节点都可以在自身迭代阶段选择跳过。若某节点没有合法动作，引擎会自动跳过。未终止时重置参数需要所有节点确认。",
-  startNewSolo: "启动迭代 (Initialize)",
-  resetBoard: "重置参数 (Reset Parameters)",
+  startNewSolo: "启动迭代",
+  resetBoard: "重置参数",
   concedeAction: "标记当前节点为劣势",
   startNextOnline: "启动算法迭代",
-  resignAndRestart: "重置参数 (Reset Parameters)",
+  resignAndRestart: "重置参数",
   skipNotice: (player) => `${player}刚刚跳过迭代。`,
   solo: "本地模型",
   lobby: "实验组大厅",
@@ -589,21 +589,21 @@ const ZH_ACADEMIC_TEXT_OVERRIDES = Object.freeze({
   offlineStatus: "连接已断开，继续同步验证前请先重新连接中继服务。",
   playingStatus: "初始模型已载入，算法迭代已启动。",
   finalStatus: (winner, scoreLine) => `${winner}。终态测度：${scoreLine}。`,
-  victorySuffix: "进入胜势态 ($N\\text{-position}$)",
-  defeatSuffix: "进入劣势态 ($P\\text{-position}$)",
+  victorySuffix: "进入胜势态",
+  defeatSuffix: "进入劣势态",
   localTurnStatus: (side) => `当前控制权属于${side}。请选择合法顶点执行动作，也可以跳过迭代或重置参数。`,
   remoteTurnStatus: "当前为远端节点的迭代阶段，状态空间会暂时锁定，等待 WebSocket 同步操作。",
-  soloBlueStatus: "本地模型中，当前控制节点为节点 Alpha。",
-  soloRedStatus: "本地模型中，当前控制节点为节点 Beta。",
-  soloPurpleStatus: "本地模型中，当前控制节点为节点 Gamma。",
+  soloBlueStatus: "本地模式中，现在轮到蓝方。",
+  soloRedStatus: "本地模式中，现在轮到红方。",
+  soloPurpleStatus: "本地模式中，现在轮到紫方。",
   waitingHint: "实验组已经存在，但所有节点接入前，状态空间会保持锁定。",
   notYourTurnHint: "当前不是本节点的迭代阶段。远端节点的操作会自动同步到本地状态空间。",
   networkUnavailableHint: "网络不可用，请先重新连接，再继续状态同步验证。",
   opponentOfflineHint: "有远端节点断开连接，实验组重新就绪前状态空间会保持锁定。",
   multiplayerHint: "跳过迭代会同步给实验组内所有节点。未终止状态下重置参数需要所有节点确认。",
   soloHint: "也可以继续本地单机分析模式，直接选择状态空间顶点执行动作。",
-  joinRoomRequired: "加入实验组前，请先输入 4 位 Session ID。",
-  roomNotFound: (roomId) => `实验组 ${roomId} 不存在，请检查 Session ID。`,
+  joinRoomRequired: "加入实验组前，请先输入 4 位编号。",
+  roomNotFound: (roomId) => `实验组 ${roomId} 不存在，请检查编号。`,
   roomFull: (roomId) => `实验组 ${roomId} 已达到节点上限。`,
   playerAlreadyConnected: "这个节点会话已经在别处连接。",
   authTokenRequired: "进入同步实验组前，请先完成账号认证。",
@@ -652,24 +652,14 @@ export function formatArea(value) {
 
 export function formatPlayerName(player, language = "zh", uiStyle = UI_STYLE_CASUAL) {
   const texts = getTexts(language, uiStyle);
-  const academic = normalizeUiStyle(uiStyle) === UI_STYLE_ACADEMIC;
   if (player === Player.BLACK) {
-    if (academic) {
-      return language === "en" ? "Node Alpha" : "节点 Alpha";
-    }
-    return language === "en" ? "Player 1" : "玩家 1";
+    return language === "en" ? "Blue" : "蓝方";
   }
   if (player === Player.WHITE) {
-    if (academic) {
-      return language === "en" ? "Node Beta" : "节点 Beta";
-    }
-    return language === "en" ? "Player 2" : "玩家 2";
+    return language === "en" ? "Red" : "红方";
   }
   if (player === Player.PURPLE) {
-    if (academic) {
-      return language === "en" ? "Node Gamma" : "节点 Gamma";
-    }
-    return language === "en" ? "Player 3" : "玩家 3";
+    return language === "en" ? "Purple" : "紫方";
   }
   return texts.unassigned;
 }

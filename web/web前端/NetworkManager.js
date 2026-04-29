@@ -319,6 +319,7 @@ export class NetworkManager {
     const duration = Number.isFinite(rawDuration)
       ? Math.max(300, Math.min(3000, Math.round(rawDuration)))
       : 1200;
+    const seed = String(metadata?.seed ?? "").trim();
     this._send({
       type: ServerEvent.CHAT_EMOJI,
       sender: this.playerId ?? "",
@@ -326,6 +327,7 @@ export class NetworkManager {
       metadata: {
         animation,
         duration,
+        ...(seed ? { seed } : {}),
       },
     });
   }
