@@ -68,7 +68,7 @@ function appendTokenToWebSocketUrl(url, token) {
     const parsed = new URL(url, globalThis.location?.href ?? "http://localhost:8000/");
     parsed.searchParams.set("token", token);
     return parsed.toString();
-  } catch {
+  } catch (_e) {
     const separator = url.includes("?") ? "&" : "?";
     return `${url}${separator}token=${encodeURIComponent(token)}`;
   }

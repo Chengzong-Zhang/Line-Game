@@ -12,6 +12,10 @@ const WHY_TALK_ZH = `# Talk：扩张、防守与破绽
 
 ## 直觉核心
 
+![三人制衡示意](./guide-images/三人制衡.jpg)
+
+三个人的时候更为巧妙，涉及到合纵连横；有时候就会出现图片中这样，谁先走这步棋，谁就会成全另一方的局面。
+
 * 扩张与溃败绑定。多一个节点可能扩大领土，也可能把整条战线变成可被切断的长桥。
 * 防守与窒息绑定。退回基点附近可以降低暴露面，但会把战略纵深交给对手。
 * 速度与完整性绑定。快速铺开必然留下线，慢速补形又会损失先机。
@@ -149,6 +153,10 @@ That is the first contradiction. Expansion gives territory, but also creates lon
 That is the second contradiction. Lines are not decoration. They are supply routes, and therefore attack targets. If you expand quickly, you leave unfinished long lines, bridges, and articulation points. If you insist on perfect closure, the triangle restriction, visibility rule, and move order make you pay in tempo. The rules force the player to accept that no shape can be both maximally fast and completely unexposed. Even better, the game naturally creates zugzwang: one more friendly node is not automatically good, because it may enlarge your territory or become the opponent's next cutting platform.
 
 ## Intuition
+
+![Three-player balance of power](./guide-images/三人制衡.jpg)
+
+With three players, the game becomes even subtler: alliances and counter-alliances come into play, and sometimes a position like the one shown here emerges, where whoever makes this move first ends up enabling another side.
 
 * Expansion and collapse are linked. A new node can enlarge territory or turn the whole front into a cuttable bridge.
 * Defense and suffocation are linked. Staying near the base reduces exposure but gives away strategic depth.

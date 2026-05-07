@@ -65,7 +65,7 @@ function resolveApiBaseUrl(serverUrl, locationLike = globalThis.location) {
     parsed.search = "";
     parsed.hash = "";
     return parsed.toString().replace(/\/$/, "");
-  } catch {
+  } catch (_e) {
     return fallbackOrigin;
   }
 }
@@ -87,7 +87,7 @@ function resolveInitialServerUrl(storedUrl, locationLike = globalThis.location) 
       return dynamicUrl;
     }
     return parsed.toString();
-  } catch {
+  } catch (_e) {
     return dynamicUrl;
   }
 }
@@ -108,7 +108,7 @@ function getLocalWebSocketFallbacks(url) {
       fallback.hash = "";
       return fallback.toString();
     });
-  } catch {
+  } catch (_e) {
     return [];
   }
 }
@@ -130,7 +130,7 @@ function getLocalApiFallbacks(serverUrl) {
         fallback.hash = "";
         return fallback.toString().replace(/\/$/, "");
       });
-  } catch {
+  } catch (_e) {
     return [];
   }
 }
@@ -158,7 +158,7 @@ async function postAuthJson(serverUrl, path, payload) {
         response = fallbackResponse;
         activeApiBaseUrl = fallbackApiBaseUrl;
         break;
-      } catch {
+      } catch (_e) {
         continue;
       }
     }
@@ -167,7 +167,7 @@ async function postAuthJson(serverUrl, path, payload) {
   let data = null;
   try {
     data = await response.json();
-  } catch {
+  } catch (_e) {
     data = null;
   }
 
@@ -1629,7 +1629,7 @@ const GuidePanel = {
 
 function buildGuideDisplayBlocks(blocks = []) {
   const result = [];
-  const isCutExample = (block) => block?.type === "image" && /鍒囨柇|cut example/i.test(block.alt ?? "");
+  const isCutExample = (block) => block?.type === "image" && /\u5207\u65AD|cut example/i.test(block.alt ?? "");
 
   for (let index = 0; index < blocks.length; index += 1) {
     const currentBlock = blocks[index];
@@ -1907,7 +1907,7 @@ const UtilityModal = {
               <h2>{{ title }}</h2>
               <p v-if="description" class="utility-description">{{ description }}</p>
             </div>
-            <button type="button" class="utility-close" :aria-label="closeLabel" @click="$emit('close')">脳</button>
+            <button type="button" class="utility-close" :aria-label="closeLabel" @click="$emit('close')">&times;</button>
           </div>
           <div class="utility-body">
             <slot></slot>
@@ -2325,10 +2325,10 @@ const App = {
       uiStyle.value === UI_STYLE_ACADEMIC
         ? (language.value === "en"
           ? `${selectedPlayerCount.value}N / ${selectedGridSize.value}`
-          : `${selectedPlayerCount.value}鑺傜偣 / ${selectedGridSize.value}`)
+          : `${selectedPlayerCount.value}\u8282\u70B9 / ${selectedGridSize.value}`)
         : (language.value === "en"
           ? `${selectedPlayerCount.value}P / ${selectedGridSize.value}`
-          : `${selectedPlayerCount.value}浜?/ ${selectedGridSize.value}`)
+          : `${selectedPlayerCount.value}\u4EBA / ${selectedGridSize.value}`)
     ));
     const networkDockBadge = computed(() => {
       if (session.value.roomId) {
@@ -2381,7 +2381,7 @@ const App = {
       const normalized = normalizeAppGameSettings(settings);
       syncingRemoteSettings = true;
       try {
-        // 杩滅鍚屾璁剧疆鏃跺厛鎵撴爣璁帮紝閬垮厤 watch 鎶婅繖娆¤鍔ㄦ洿鏂拌鍒や负鐢ㄦ埛涓诲姩淇敼銆?        selectedPlayerCount.value = normalized.playerCount;
+        selectedPlayerCount.value = normalized.playerCount;
         selectedGridSize.value = normalized.gridSize;
         selectedStartPlayer.value = normalized.startPlayer;
         selectedTurnTimerEnabled.value = normalized.turnTimerEnabled;

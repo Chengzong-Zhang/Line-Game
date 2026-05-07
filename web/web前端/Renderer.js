@@ -93,7 +93,7 @@ export class Renderer {
     this._pendingOptions = {};
     this._lastRenderFingerprint = "";
 
-    // 鍔ㄦ€佸眰锛堥《灞傦級锛氶€忔槑鑳屾櫙锛屾帴鏀朵簨浠?    this.canvas.style.position = "absolute";
+    this.canvas.style.position = "absolute";
     this.canvas.style.top = "0";
     this.canvas.style.left = "0";
     this.canvas.style.width = "100%";
@@ -158,7 +158,7 @@ export class Renderer {
       this._resizeFrame = null;
       const resized = this.resize();
       if (resized && this.lastSnapshot) {
-        // resize 宸插湪 rAF 鍐咃紝鐩存帴鍚屾缁樺埗锛岄伩鍏嶅啀澶氱瓑涓€甯?        this.render(this.lastSnapshot, { skipResize: true, _immediate: true });
+        this.render(this.lastSnapshot, { skipResize: true, _immediate: true });
       }
     });
   }
@@ -754,7 +754,7 @@ export class Renderer {
   }
 
   _getBoardFingerprint(snapshot) {
-    // 鐢ㄤ簬鑴忔鏌ワ細瑕嗙洊妫嬬洏鐘舵€佺殑鎵€鏈夊彲瑙佸彉鍖?    const lp = snapshot.lastAction?.point;
+    const lp = snapshot.lastAction?.point;
     return `${snapshot.turnCount}:${snapshot.gameOver ? 1 : 0}:${snapshot.currentPlayer}:${lp ? `${lp[0]},${lp[1]}` : '-'}`;
   }
 
@@ -770,7 +770,7 @@ export class Renderer {
       return;
     }
 
-    // 灏嗗悓涓€甯у唴鐨勫娆?render 璋冪敤鍚堝苟涓轰竴娆★紝濮嬬粓鍙栨渶鏂板揩鐓?    this._pendingOptions = options;
+    this._pendingOptions = options;
     if (this._pendingRafHandle !== null) {
       return;
     }

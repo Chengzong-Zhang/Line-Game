@@ -12,6 +12,10 @@ That is the second contradiction. Lines are not decoration. They are supply rout
 
 ## Intuition
 
+![Three-player balance of power](./guide-images/三人制衡.jpg)
+
+With three players, the game becomes even subtler: alliances and counter-alliances come into play, and sometimes a position like the one shown here emerges, where whoever makes this move first ends up enabling another side.
+
 * Expansion and collapse are linked. A new node can enlarge territory or turn the whole front into a cuttable bridge.
 * Defense and suffocation are linked. Staying near the base reduces exposure but gives away strategic depth.
 * Speed and completeness are linked. Fast growth exposes lines; slow repair loses initiative.

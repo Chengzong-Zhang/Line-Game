@@ -93,7 +93,7 @@ export function createEmptyAuth() {
 }
 
 export function loadStoredSession() {
-  // 浼氳瘽鍙仮澶嶁€滄埧闂翠笂涓嬫枃鈥濓紝涓嶄細鐩存帴鎭㈠ socket 杩炴帴鏈韩銆?  try {
+  try {
     const raw = globalThis.localStorage?.getItem(SESSION_STORAGE_KEY);
     if (!raw) {
       return createEmptySession();
@@ -105,13 +105,13 @@ export function loadStoredSession() {
       ...parsed,
       connected: false,
     };
-  } catch {
+  } catch (_e) {
     return createEmptySession();
   }
 }
 
 export function persistSession(session) {
-  // 娌℃湁鎴块棿涓婁笅鏂囨椂鐩存帴娓呯┖锛岄伩鍏嶆湰鍦板瓨鍌ㄩ噷娈嬬暀杩囨湡鎴块棿淇℃伅銆?  const normalized = {
+  const normalized = {
     url: session?.url ?? null,
     roomId: session?.roomId ?? null,
     playerId: session?.playerId ?? null,
@@ -140,7 +140,7 @@ export function loadStoredAuth() {
       ...createEmptyAuth(),
       ...parsed,
     };
-  } catch {
+  } catch (_e) {
     return createEmptyAuth();
   }
 }
