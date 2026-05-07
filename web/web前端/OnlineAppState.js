@@ -33,7 +33,7 @@ export function normalizeGameSettings(settings = {}) {
 }
 
 export function createDefaultGameState() {
-  // 杩欓噷瀹氫箟鐨勬槸 Vue 灞傛湡鏈涙嬁鍒扮殑鍩虹鐘舵€侀鏋躲€?  return {
+  return {
     currentPlayer: Player.BLACK,
     gameOver: false,
     winner: null,
