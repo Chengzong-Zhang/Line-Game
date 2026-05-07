@@ -482,29 +482,51 @@ export class GameEngine {
   }
 
   /**
-   * 以对手起始点为根，在物理棋盘（NODE + LINE 均视为图节点）上做 BFS，
-   * 返回包含基点的极大连通分量中所有棋子格点的 key 集合。
-   * 不依赖 edges 集合——直接遍历 this.grid 上的实际状态。
+   * 以对手起始点为根，通过显式边集做 BFS，返回所有存活棋子格点的 key 集合。
+   * 先清理已断裂的边，再沿边图遍历可达节点，最后把每条存活边的中间线点也纳入集合。
+   * 物理相邻但不属于任何边端点的"路过线"不会被误判为连通。
    */
   _getOpponentConnectedPieces(opponent) {
-    const { node: nodeState, line: lineState } = this._getPlayerStates(opponent);
+    const { node: nodeState } = this._getPlayerStates(opponent);
     const initial = this._getInitialPosition(opponent);
     if (this._getState(initial) !== nodeState) return new Set();
 
-    const alive = new Set();
-    const initKey = pointKey(initial);
-    alive.add(initKey);
-    const queue = [initial];
+    // 先把当前局面下已断裂的边从边集中移除，确保边集准确
+    this._cleanupBrokenEdges(opponent);
 
+    const edgeSet = this._getEdges(opponent);
+
+    // 构建节点邻接表（仅 node→node）
+    const adj = new Map();
+    for (const ek of edgeSet) {
+      const [ka, kb] = ek.split("|");
+      if (!adj.has(ka)) adj.set(ka, []);
+      if (!adj.has(kb)) adj.set(kb, []);
+      adj.get(ka).push(kb);
+      adj.get(kb).push(ka);
+    }
+
+    // BFS：从起始节点沿边图遍历可达节点
+    const initialKey = pointKey(initial);
+    const aliveNodes = new Set([initialKey]);
+    const queue = [initialKey];
     while (queue.length > 0) {
       const curr = queue.shift();
-      for (const next of this.getAdjacentPositions(curr)) {
-        const nk = pointKey(next);
-        if (alive.has(nk)) continue;
-        const s = this._getState(next);
-        if (s === nodeState || s === lineState) {
-          alive.add(nk);
-          queue.push(next);
+      for (const nxt of (adj.get(curr) ?? [])) {
+        if (!aliveNodes.has(nxt)) {
+          aliveNodes.add(nxt);
+          queue.push(nxt);
+        }
+      }
+    }
+
+    // 收集存活节点 + 每条存活边的所有中间线点
+    const alive = new Set(aliveNodes);
+    for (const ek of edgeSet) {
+      const [ka, kb] = ek.split("|");
+      if (aliveNodes.has(ka) && aliveNodes.has(kb)) {
+        for (const p of this.getLinePoints(keyToPoint(ka), keyToPoint(kb))) {
+          alive.add(pointKey(p));
         }
       }
     }
@@ -562,29 +584,29 @@ export class GameEngine {
     return false;
   }
 
-  _reconnectPlayerNodes(player) {
-    const playerNodes = this._getPlayerNodes(player);
+  /**
+   * 仅还原攻击前已存在的边（不新建从未显式连接的边）。
+   * 领土边界经过的空点不是线段，攻击后不应被自动连线赋予 LINE 状态。
+   */
+  _restoreEdges(player, edgesSnapshot) {
     const { node: nodeState, line: lineState } = this._getPlayerStates(player);
-
-    for (let i = 0; i < playerNodes.length; i += 1) {
-      for (let j = i + 1; j < playerNodes.length; j += 1) {
-        const nodeA = playerNodes[i];
-        const nodeB = playerNodes[j];
-        if (!this.canConnectWithBlocking(nodeA, nodeB, player)) {
-          continue;
+    const edgeSet = this._getEdges(player);
+    for (const ek of edgesSnapshot) {
+      if (edgeSet.has(ek)) continue;
+      const [ka, kb] = ek.split("|");
+      const nodeA = keyToPoint(ka);
+      const nodeB = keyToPoint(kb);
+      if (this._getState(nodeA) !== nodeState || this._getState(nodeB) !== nodeState) continue;
+      if (!this.canConnectWithBlocking(nodeA, nodeB, player)) continue;
+      const linePoints = this.getLinePoints(nodeA, nodeB);
+      for (const point of linePoints) {
+        if (pointEquals(point, nodeA) || pointEquals(point, nodeB)) {
+          this._setState(point, nodeState);
+        } else if (this._getState(point) === PointState.EMPTY) {
+          this._setState(point, lineState);
         }
-
-        const linePoints = this.getLinePoints(nodeA, nodeB);
-        for (const point of linePoints) {
-          if (pointEquals(point, nodeA) || pointEquals(point, nodeB)) {
-            this._setState(point, nodeState);
-          } else if (this._getState(point) === PointState.EMPTY) {
-            this._setState(point, lineState);
-          }
-        }
-        // 记录显式边
-        this._getEdges(player).add(this._edgeKey(nodeA, nodeB));
       }
+      edgeSet.add(ek);
     }
   }
 
@@ -594,6 +616,11 @@ export class GameEngine {
       return;
     }
     const opponentStates = this._getPlayerStates(opponent);
+
+    // 攻击前保存各玩家边集合快照，用于事后只还原已有边，不新建边
+    const savedEdges = Object.fromEntries(
+      this.activePlayers.map((p) => [p, new Set(this._getEdges(p))]),
+    );
 
     // Step 2：落子后的棋盘已经包含新的阻挡点，直接用物理棋盘 BFS 找存活集合。
     const alive = this._getOpponentConnectedPieces(opponent);
@@ -609,23 +636,21 @@ export class GameEngine {
       }
     }
 
-    // Step 3：显式边只是派生缓存，攻击裁剪后基于幸存棋盘重建。
+    // Step 3：清理断裂的显式边缓存
     this._getEdges(opponent).clear();
-    this._cleanupBrokenEdges(player);
-    this._cleanupBrokenEdges(opponent);
+    for (const activePlayer of this.activePlayers) {
+      this._cleanupBrokenEdges(activePlayer);
+    }
 
     if (removedPieces > 0) {
       for (const activePlayer of this.activePlayers) {
-        this._cleanupBrokenEdges(activePlayer);
-      }
-      for (const activePlayer of this.activePlayers) {
-        this._reconnectPlayerNodes(activePlayer);
+        this._restoreEdges(activePlayer, savedEdges[activePlayer]);
       }
       return;
     }
 
-    this._reconnectPlayerNodes(player);
-    this._reconnectPlayerNodes(opponent);
+    this._restoreEdges(player, savedEdges[player]);
+    this._restoreEdges(opponent, savedEdges[opponent]);
   }
 
   getAllShortestGridPaths(start, end, blockedPoints = [], maxEdges = Infinity) {
