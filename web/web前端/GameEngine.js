@@ -135,6 +135,7 @@ export class GameEngine {
     this.currentPlayer = this.startPlayer;
     this.gameOver = false;
     this.consecutiveSkips = 0;
+    this.resignedPlayers = new Set();
     this.turnCount = 0;
     this.cachedTerritories = Object.fromEntries(
       this.activePlayers.map((player) => [player, { polygon: null, area: 0, displayArea: 0 }]),
@@ -297,6 +298,7 @@ export class GameEngine {
       currentPlayer: this.currentPlayer,
       gameOver: this.gameOver,
       consecutiveSkips: this.consecutiveSkips,
+      resignedPlayers: [...this.resignedPlayers],
       turnCount: this.turnCount,
       boardMatrix: this.getBoardMatrix(),
       territories,
@@ -315,7 +317,10 @@ export class GameEngine {
     let bestArea = Number.NEGATIVE_INFINITY;
     let isDraw = false;
 
-    for (const player of this.activePlayers) {
+    const scoringPlayers = this.activePlayers.filter((player) => !this.resignedPlayers.has(player));
+    const candidatePlayers = scoringPlayers.length ? scoringPlayers : this.activePlayers;
+
+    for (const player of candidatePlayers) {
       const area = this.cachedTerritories[player].area;
       if (area > bestArea) {
         bestArea = area;
@@ -1054,7 +1059,8 @@ export class GameEngine {
       [...this._getEdges(player)].sort(),
     );
 
-    return JSON.stringify([nextPlayer, gridEntries, edgeLists]);
+    const resignedPlayers = this.activePlayers.filter((player) => this.resignedPlayers.has(player));
+    return JSON.stringify([nextPlayer, resignedPlayers, gridEntries, edgeLists]);
   }
 
   _updateTerritories() {
@@ -1066,15 +1072,47 @@ export class GameEngine {
 
   _switchPlayer() {
     const currentIndex = this.activePlayers.indexOf(this.currentPlayer);
-    this.currentPlayer = this.activePlayers[(currentIndex + 1) % this.activePlayers.length];
+    for (let offset = 1; offset <= this.activePlayers.length; offset += 1) {
+      const nextPlayer = this.activePlayers[(currentIndex + offset) % this.activePlayers.length];
+      if (!this.resignedPlayers.has(nextPlayer)) {
+        this.currentPlayer = nextPlayer;
+        return;
+      }
+    }
   }
 
   _getNextPlayer(player = this.currentPlayer) {
     const currentIndex = this.activePlayers.indexOf(player);
-    return this.activePlayers[(currentIndex + 1) % this.activePlayers.length];
+    for (let offset = 1; offset <= this.activePlayers.length; offset += 1) {
+      const nextPlayer = this.activePlayers[(currentIndex + offset) % this.activePlayers.length];
+      if (!this.resignedPlayers.has(nextPlayer)) {
+        return nextPlayer;
+      }
+    }
+    return player;
+  }
+
+  _getRemainingPlayers() {
+    return this.activePlayers.filter((player) => !this.resignedPlayers.has(player));
+  }
+
+  _checkResignationFinish() {
+    const remainingPlayers = this._getRemainingPlayers();
+    if (remainingPlayers.length <= 1) {
+      this.gameOver = true;
+      if (remainingPlayers.length === 1) {
+        this.currentPlayer = remainingPlayers[0];
+      }
+      return true;
+    }
+    return false;
   }
 
   _evaluateMove(point, player = this.currentPlayer) {
+    if (this.resignedPlayers.has(player)) {
+      return { legal: false, reason: "PLAYER_RESIGNED", state: null, isAttack: false };
+    }
+
     if (!this.isValidPosition(point)) {
       return { legal: false, reason: "INVALID_MOVE", state: null, isAttack: false };
     }
@@ -1118,6 +1156,10 @@ export class GameEngine {
   }
 
   _hasValidMoves(player) {
+    if (this.resignedPlayers.has(player)) {
+      return false;
+    }
+
     for (const point of this.validPositions) {
       if (this._evaluateMove(point, player).legal) {
         return true;
@@ -1149,9 +1191,19 @@ export class GameEngine {
       return;
     }
 
+    if (this._checkResignationFinish()) {
+      return;
+    }
+
+    if (this.resignedPlayers.has(this.currentPlayer)) {
+      this._switchPlayer();
+      this._checkAndAutoSkip();
+      return;
+    }
+
     if (!this._hasValidMoves(this.currentPlayer)) {
       this.consecutiveSkips += 1;
-      if (this.consecutiveSkips >= this.activePlayers.length) {
+      if (this.consecutiveSkips >= this._getRemainingPlayers().length) {
         this.gameOver = true;
       } else {
         this._switchPlayer();
@@ -1287,9 +1339,54 @@ export class GameEngine {
 
     this.consecutiveSkips += 1;
     // The game ends when every active player skips once in a row.
-    if (this.consecutiveSkips >= this.activePlayers.length) {
+    if (this.consecutiveSkips >= this._getRemainingPlayers().length) {
       this.gameOver = true;
     } else {
+      this._switchPlayer();
+      this._checkAndAutoSkip();
+    }
+
+    this._updateTerritories();
+    return {
+      success: true,
+      reason: null,
+      snapshot: this.getSnapshot(),
+    };
+  }
+
+  resignPlayer(player = this.currentPlayer) {
+    if (this.gameOver) {
+      return {
+        success: false,
+        reason: "GAME_OVER",
+        snapshot: this.getSnapshot(),
+      };
+    }
+
+    if (!this.activePlayers.includes(player)) {
+      return {
+        success: false,
+        reason: "UNKNOWN_PLAYER",
+        snapshot: this.getSnapshot(),
+      };
+    }
+
+    if (this.resignedPlayers.has(player)) {
+      return {
+        success: false,
+        reason: "PLAYER_ALREADY_RESIGNED",
+        snapshot: this.getSnapshot(),
+      };
+    }
+
+    this.resignedPlayers.add(player);
+    this.turnCount += 1;
+    this.consecutiveSkips = 0;
+
+    if (!this._checkResignationFinish() && this.currentPlayer === player) {
+      this._switchPlayer();
+      this._checkAndAutoSkip();
+    } else if (!this.gameOver && this.resignedPlayers.has(this.currentPlayer)) {
       this._switchPlayer();
       this._checkAndAutoSkip();
     }

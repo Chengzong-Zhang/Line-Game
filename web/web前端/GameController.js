@@ -1,6 +1,6 @@
-﻿import GameEngine, { Player } from "./GameEngine.js?v=20260430c";
-import Renderer from "./Renderer.js?v=20260430c";
-import { ClientEvent, ServerEvent } from "./NetworkManager.js?v=20260421b";
+import GameEngine, { Player } from "./GameEngine.js?v=20260430d";
+import Renderer from "./Renderer.js?v=20260430d";
+import { ClientEvent, ServerEvent } from "./NetworkManager.js?v=20260430d";
 
 // GameController 鏄墠绔殑鈥滆兌姘村眰鈥濓細
 // 瀹冩妸 Model(GameEngine)銆乂iew(Renderer) 鍜岃仈鏈哄眰(NetworkManager) 涓茶捣鏉ワ紝
@@ -201,6 +201,12 @@ export class GameController {
     );
 
     this._networkUnsubscribers.push(
+      this.networkManager.on(ServerEvent.PLAYER_RESIGNED, (payload) => {
+        this.applyRemoteResign(payload?.color);
+      }),
+    );
+
+    this._networkUnsubscribers.push(
       this.networkManager.on(ServerEvent.MATCH_RESET, () => {
         this.applyRemoteReset();
       }),
@@ -325,6 +331,7 @@ export class GameController {
       winner: snapshot.winner,
       turnCount: snapshot.turnCount,
       consecutiveSkips: snapshot.consecutiveSkips,
+      resignedPlayers: Array.isArray(snapshot.resignedPlayers) ? [...snapshot.resignedPlayers] : [],
       scores: {
         [Player.BLACK]: black.area,
         [Player.WHITE]: white.area,
@@ -614,6 +621,27 @@ export class GameController {
     };
   }
 
+  applyRemoteResign(player) {
+    const targetPlayer = isKnownPlayer(player) ? player : this.engine.getSnapshot().currentPlayer;
+    const result = this.engine.resignPlayer(targetPlayer);
+    if (result.success) {
+      this._setLastAction({
+        type: "resign",
+        player: targetPlayer,
+        point: null,
+      });
+      this._syncSnapshot(result.snapshot);
+    } else if (result.reason !== "PLAYER_ALREADY_RESIGNED") {
+      this._reportNetworkError(new Error(`Remote resignation could not be applied: ${result.reason}`));
+    }
+
+    return {
+      success: result.success,
+      reason: result.reason,
+      state: this._buildGameState(result.snapshot),
+    };
+  }
+
   applyRemoteReset() {
     return this.resetGame({ force: true });
   }
@@ -658,6 +686,20 @@ export class GameController {
         this._setLastAction({
           type: "skip",
           player: actingPlayer,
+          point: null,
+        });
+        continue;
+      }
+
+      if (action.type === "player_resign" && isKnownPlayer(action.color)) {
+        const result = this.engine.resignPlayer(action.color);
+        if (!result.success && result.reason !== "PLAYER_ALREADY_RESIGNED") {
+          this._reportNetworkError(new Error(`Replay resignation failed: ${result.reason}`));
+          break;
+        }
+        this._setLastAction({
+          type: "resign",
+          player: action.color,
           point: null,
         });
       }
@@ -721,6 +763,33 @@ export class GameController {
     }
   }
 
+  async requestResign() {
+    const lockReason = this._getResetLockReason();
+    if (lockReason) {
+      return {
+        success: false,
+        reason: lockReason,
+        state: this.getGameState(),
+      };
+    }
+
+    try {
+      await this.networkManager.sendResign();
+      return {
+        success: true,
+        reason: null,
+        state: this.getGameState(),
+      };
+    } catch (error) {
+      this._reportNetworkError(error);
+      return {
+        success: false,
+        reason: "NETWORK_ERROR",
+        state: this.getGameState(),
+      };
+    }
+  }
+
   async requestResetMatch(options = {}) {
     const lockReason = this._getResetLockReason();
     if (lockReason) {
@@ -749,6 +818,32 @@ export class GameController {
     const snapshot = this.engine.getSnapshot();
     this._syncSnapshot(snapshot);
     return this._buildGameState(snapshot);
+  }
+
+  resignPlayer(player = null) {
+    if (this.multiplayerEnabled) {
+      return {
+        success: false,
+        reason: "MULTIPLAYER_RESIGN_UNSUPPORTED",
+        state: this.getGameState(),
+      };
+    }
+
+    const targetPlayer = isKnownPlayer(player) ? player : this.engine.getSnapshot().currentPlayer;
+    const result = this.engine.resignPlayer(targetPlayer);
+    if (result.success) {
+      this._setLastAction({
+        type: "resign",
+        player: targetPlayer,
+        point: null,
+      });
+      this._syncSnapshot(result.snapshot);
+    }
+    return {
+      success: result.success,
+      reason: result.reason,
+      state: this._buildGameState(result.snapshot),
+    };
   }
 
   getGameState() {

@@ -1,9 +1,9 @@
-﻿const VUE_CDN_URLS = [
+const VUE_CDN_URLS = [
   "https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js",
   "https://unpkg.com/vue@3/dist/vue.global.prod.js",
   "https://fastly.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js",
 ];
-const APP_ASSET_VERSION = "20260430c";
+const APP_ASSET_VERSION = "20260430d";
 
 // main.js 只做两件事：
 // 1. 确保浏览器拿到 Vue 运行时

@@ -1,10 +1,8 @@
-import { Player, PointState } from "./GameEngine.js?v=20260430c";
+import { Player, PointState } from "./GameEngine.js?v=20260430d";
 
 const SQRT3_OVER_2 = Math.sqrt(3) / 2;
 
-// Renderer 只负责把快照绘制到 Canvas，不做规则判断。
-// 这样无论是本地模式还是联机回放，都能共享完全一致的渲染逻辑。
-
+// Renderer 鍙礋璐ｆ妸蹇収缁樺埗鍒?Canvas锛屼笉鍋氳鍒欏垽鏂€?// 杩欐牱鏃犺鏄湰鍦版ā寮忚繕鏄仈鏈哄洖鏀撅紝閮借兘鍏变韩瀹屽叏涓€鑷寸殑娓叉煋閫昏緫銆?
 const DEFAULT_THEME = Object.freeze({
   background: "#f6f1e8",
   boardFill: "#fffaf0",
@@ -95,8 +93,7 @@ export class Renderer {
     this._pendingOptions = {};
     this._lastRenderFingerprint = "";
 
-    // 动态层（顶层）：透明背景，接收事件
-    this.canvas.style.position = "absolute";
+    // 鍔ㄦ€佸眰锛堥《灞傦級锛氶€忔槑鑳屾櫙锛屾帴鏀朵簨浠?    this.canvas.style.position = "absolute";
     this.canvas.style.top = "0";
     this.canvas.style.left = "0";
     this.canvas.style.width = "100%";
@@ -104,7 +101,7 @@ export class Renderer {
     this.canvas.style.background = "transparent";
     this.canvas.style.touchAction = "manipulation";
 
-    // 静态层（底层）：绘制背景和棋盘骨架，不参与事件
+    // 闈欐€佸眰锛堝簳灞傦級锛氱粯鍒惰儗鏅拰妫嬬洏楠ㄦ灦锛屼笉鍙備笌浜嬩欢
     const staticDomCanvas = document.createElement("canvas");
     staticDomCanvas.style.position = "absolute";
     staticDomCanvas.style.top = "0";
@@ -161,8 +158,7 @@ export class Renderer {
       this._resizeFrame = null;
       const resized = this.resize();
       if (resized && this.lastSnapshot) {
-        // resize 已在 rAF 内，直接同步绘制，避免再多等一帧
-        this.render(this.lastSnapshot, { skipResize: true, _immediate: true });
+        // resize 宸插湪 rAF 鍐咃紝鐩存帴鍚屾缁樺埗锛岄伩鍏嶅啀澶氱瓑涓€甯?        this.render(this.lastSnapshot, { skipResize: true, _immediate: true });
       }
     });
   }
@@ -236,7 +232,7 @@ export class Renderer {
   }
 
   _computeLayout(snapshot) {
-    // 优先复用 resize() 已测量并缓存的值，避免重复触发 getBoundingClientRect layout reflow
+    // 浼樺厛澶嶇敤 resize() 宸叉祴閲忓苟缂撳瓨鐨勫€硷紝閬垮厤閲嶅瑙﹀彂 getBoundingClientRect layout reflow
     const cssWidth = this._lastMeasuredWidth > 0 ? this._lastMeasuredWidth : this._measureCanvas().cssWidth;
     const cssHeight = this._lastMeasuredHeight > 0 ? this._lastMeasuredHeight : this._measureCanvas().cssHeight;
     const gridSize = snapshot?.gridSize ?? 9;
@@ -287,7 +283,7 @@ export class Renderer {
       throw new Error("Layout is not available. Call render(snapshot) first.");
     }
 
-    // Math.round 保证坐标落在整数像素，消除亚像素抗锯齿的 fillRate 开销
+    // Math.round 淇濊瘉鍧愭爣钀藉湪鏁存暟鍍忕礌锛屾秷闄や簹鍍忕礌鎶楅敮榻跨殑 fillRate 寮€閿€
     const x = Math.round(layout.offsetX + (gx + gy * 0.5) * layout.scale);
     const y = Math.round(layout.offsetY + gy * SQRT3_OVER_2 * layout.scale);
     return [x, y];
@@ -436,7 +432,7 @@ export class Renderer {
         }
 
         const linePoints = this._getLinePoints(start, end, boardData.gridSize);
-        // O(1) 二维数组索引，无字符串拼接/Map 查找
+        // O(1) 浜岀淮鏁扮粍绱㈠紩锛屾棤瀛楃涓叉嫾鎺?Map 鏌ユ壘
         const fullyOwned = linePoints.every((point) => ownedStates.has(board[point[1]][point[0]]));
         if (!fullyOwned) {
           continue;
@@ -492,7 +488,7 @@ export class Renderer {
       return;
     }
 
-    // 直接绘制到底层 DOM canvas，无需离屏 blit
+    // 鐩存帴缁樺埗鍒板簳灞?DOM canvas锛屾棤闇€绂诲睆 blit
     const previousCtx = this.ctx;
     this.ctx = this._staticCtx;
     this._drawBackground(layout);
@@ -571,7 +567,7 @@ export class Renderer {
     }
     ctx.stroke();
 
-    // 将所有导引点合并为单次 fill()，避免 N 次单独 beginPath/fill 调用
+    // 灏嗘墍鏈夊寮曠偣鍚堝苟涓哄崟娆?fill()锛岄伩鍏?N 娆″崟鐙?beginPath/fill 璋冪敤
     ctx.fillStyle = this.theme.guidePoint;
     ctx.beginPath();
     for (const point of boardData.validPoints) {
@@ -703,7 +699,7 @@ export class Renderer {
       }
 
       const [x, y] = this._gridToPixel(point[0], point[1], layout);
-      // 菱形替代 arc，无三角函数开销
+      // 鑿卞舰鏇夸唬 arc锛屾棤涓夎鍑芥暟寮€閿€
       ctx.moveTo(x, y - r);
       ctx.lineTo(x + r, y);
       ctx.lineTo(x, y + r);
@@ -736,23 +732,21 @@ export class Renderer {
     const glowRadius = ringRadius + Math.max(5, layout.pointRadius * 0.7);
 
     ctx.save();
-    // 外层半透明实心圆模拟光晕（替代 shadowBlur，移动端性能更好）
-    ctx.beginPath();
+    // 澶栧眰鍗婇€忔槑瀹炲績鍦嗘ā鎷熷厜鏅曪紙鏇夸唬 shadowBlur锛岀Щ鍔ㄧ鎬ц兘鏇村ソ锛?    ctx.beginPath();
     ctx.arc(x, y, glowRadius, 0, Math.PI * 2);
     ctx.fillStyle = stroke;
     ctx.globalAlpha = 0.22;
     ctx.fill();
     ctx.globalAlpha = 1;
 
-    // 描边光圈
+    // 鎻忚竟鍏夊湀
     ctx.beginPath();
     ctx.arc(x, y, ringRadius, 0, Math.PI * 2);
     ctx.strokeStyle = stroke;
     ctx.lineWidth = Math.max(2.5, layout.lineWidth * 0.3);
     ctx.stroke();
 
-    // 中心小白点
-    ctx.beginPath();
+    // 涓績灏忕櫧鐐?    ctx.beginPath();
     ctx.arc(x, y, Math.max(2.5, layout.pointRadius * 0.28), 0, Math.PI * 2);
     ctx.fillStyle = "rgba(255, 255, 255, 0.96)";
     ctx.fill();
@@ -760,8 +754,7 @@ export class Renderer {
   }
 
   _getBoardFingerprint(snapshot) {
-    // 用于脏检查：覆盖棋盘状态的所有可见变化
-    const lp = snapshot.lastAction?.point;
+    // 鐢ㄤ簬鑴忔鏌ワ細瑕嗙洊妫嬬洏鐘舵€佺殑鎵€鏈夊彲瑙佸彉鍖?    const lp = snapshot.lastAction?.point;
     return `${snapshot.turnCount}:${snapshot.gameOver ? 1 : 0}:${snapshot.currentPlayer}:${lp ? `${lp[0]},${lp[1]}` : '-'}`;
   }
 
@@ -771,14 +764,13 @@ export class Renderer {
     }
     this.lastSnapshot = snapshot;
 
-    // _immediate 由内部 resize 路径使用，此时已在 rAF 内，直接绘制
+    // _immediate 鐢卞唴閮?resize 璺緞浣跨敤锛屾鏃跺凡鍦?rAF 鍐咃紝鐩存帴缁樺埗
     if (options._immediate) {
       this._doRender(snapshot, options);
       return;
     }
 
-    // 将同一帧内的多次 render 调用合并为一次，始终取最新快照
-    this._pendingOptions = options;
+    // 灏嗗悓涓€甯у唴鐨勫娆?render 璋冪敤鍚堝苟涓轰竴娆★紝濮嬬粓鍙栨渶鏂板揩鐓?    this._pendingOptions = options;
     if (this._pendingRafHandle !== null) {
       return;
     }
@@ -800,18 +792,18 @@ export class Renderer {
     const boardData = this._collectBoardData(snapshot);
     this._ensureStaticLayer(snapshot, boardData, this.layout);
 
-    // 脏检查：静态层 key 变化（resize/gridSize 改变）也需要重绘动态层
+    // 鑴忔鏌ワ細闈欐€佸眰 key 鍙樺寲锛坮esize/gridSize 鏀瑰彉锛変篃闇€瑕侀噸缁樺姩鎬佸眰
     const fingerprint = `${this._getBoardFingerprint(snapshot)}:${this._staticLayerKey}`;
     if (fingerprint === this._lastRenderFingerprint) {
       return;
     }
     this._lastRenderFingerprint = fingerprint;
 
-    // 只清除动态层（顶层），静态层（底层 DOM canvas）持久保存，无需每帧 blit
+    // 鍙竻闄ゅ姩鎬佸眰锛堥《灞傦級锛岄潤鎬佸眰锛堝簳灞?DOM canvas锛夋寔涔呬繚瀛橈紝鏃犻渶姣忓抚 blit
     if (this._staticCtx) {
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     } else {
-      // 无静态层时降级：在主 canvas 上直接绘制背景和骨架
+      // 鏃犻潤鎬佸眰鏃堕檷绾э細鍦ㄤ富 canvas 涓婄洿鎺ョ粯鍒惰儗鏅拰楠ㄦ灦
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
       this._drawBackground(this.layout);
       this._drawGridSkeleton(boardData, this.layout);

@@ -1,8 +1,7 @@
-import { Player } from "./GameEngine.js?v=20260430c";
+import { Player } from "./GameEngine.js?v=20260430d";
 
-// 这个文件专门存放“可复用的前端状态工具”，
-// 避免 OnlineApp.js 再次膨胀成一个超大工具箱文件。
-
+// 杩欎釜鏂囦欢涓撻棬瀛樻斁鈥滃彲澶嶇敤鐨勫墠绔姸鎬佸伐鍏封€濓紝
+// 閬垮厤 OnlineApp.js 鍐嶆鑶ㄨ儉鎴愪竴涓秴澶у伐鍏风鏂囦欢銆?
 export const LANGUAGE_STORAGE_KEY = "triaxis-language";
 export const SESSION_STORAGE_KEY = "triaxis-online-session";
 export const AUTH_STORAGE_KEY = "triaxis-auth";
@@ -34,8 +33,7 @@ export function normalizeGameSettings(settings = {}) {
 }
 
 export function createDefaultGameState() {
-  // 这里定义的是 Vue 层期望拿到的基础状态骨架。
-  return {
+  // 杩欓噷瀹氫箟鐨勬槸 Vue 灞傛湡鏈涙嬁鍒扮殑鍩虹鐘舵€侀鏋躲€?  return {
     currentPlayer: Player.BLACK,
     gameOver: false,
     winner: null,
@@ -59,6 +57,9 @@ export function createDefaultGameState() {
     legalMoves: [],
     snapshot: null,
     lastAction: null,
+    resignedPlayers: [],
+    players: [Player.BLACK, Player.WHITE],
+    playerCount: 2,
     multiplayerEnabled: false,
     localPlayer: null,
     roomReady: false,
@@ -92,8 +93,7 @@ export function createEmptyAuth() {
 }
 
 export function loadStoredSession() {
-  // 会话只恢复“房间上下文”，不会直接恢复 socket 连接本身。
-  try {
+  // 浼氳瘽鍙仮澶嶁€滄埧闂翠笂涓嬫枃鈥濓紝涓嶄細鐩存帴鎭㈠ socket 杩炴帴鏈韩銆?  try {
     const raw = globalThis.localStorage?.getItem(SESSION_STORAGE_KEY);
     if (!raw) {
       return createEmptySession();
@@ -111,8 +111,7 @@ export function loadStoredSession() {
 }
 
 export function persistSession(session) {
-  // 没有房间上下文时直接清空，避免本地存储里残留过期房间信息。
-  const normalized = {
+  // 娌℃湁鎴块棿涓婁笅鏂囨椂鐩存帴娓呯┖锛岄伩鍏嶆湰鍦板瓨鍌ㄩ噷娈嬬暀杩囨湡鎴块棿淇℃伅銆?  const normalized = {
     url: session?.url ?? null,
     roomId: session?.roomId ?? null,
     playerId: session?.playerId ?? null,

@@ -2066,6 +2066,11 @@ html[data-ui-style="academic"] #ui-style-select .language-button.is-active {
     flex-direction: column;
   }
 
+  .room-player-card {
+    align-items: flex-end;
+    text-align: right;
+  }
+
   .hero-card,
   .utility-modal {
     padding: 18px;

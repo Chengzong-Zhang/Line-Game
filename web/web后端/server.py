@@ -364,6 +364,10 @@ class ConnectionManager:
             await self.forward_skip(websocket)
             return
 
+        if message_type == "player_resign":
+            await self.forward_resign(websocket)
+            return
+
         if message_type == "player_reset":
             await self.forward_reset(websocket, message.get("reason"))
             return
@@ -669,6 +673,47 @@ class ConnectionManager:
                 )
                 action["room"].reset_votes.clear()
                 payloads = self._connected_room_payloads(action["room"], payload)
+                error_payload = None
+
+        if error_payload is not None:
+            await self.send_json(websocket, error_payload)
+            return
+
+        for target_websocket, payload in payloads:
+            await self.send_json(target_websocket, payload)
+
+    async def forward_resign(self, websocket: WebSocket) -> None:
+        async with self.lock:
+            action = self._prepare_room_action_locked(websocket)
+            if action["error"] is not None:
+                error_payload = action["error"]
+                payloads = []
+            else:
+                room = action["room"]
+                sender = action["sender"]
+                already_resigned = any(
+                    logged_action.get("type") == "player_resign"
+                    and logged_action.get("playerId") == sender.player_id
+                    for logged_action in room.actions
+                )
+                if not already_resigned:
+                    room.actions.append(
+                        {
+                            "type": "player_resign",
+                            "playerId": sender.player_id,
+                            "color": sender.color,
+                        }
+                    )
+                room.reset_votes.clear()
+                room.updated_at = time.time()
+                payload = {
+                    "type": "PLAYER_RESIGNED",
+                    "roomId": action["room_id"],
+                    "playerId": sender.player_id,
+                    "color": sender.color,
+                    "serverTimestamp": int(room.updated_at * 1000),
+                }
+                payloads = self._connected_room_payloads(room, payload)
                 error_payload = None
 
         if error_payload is not None:

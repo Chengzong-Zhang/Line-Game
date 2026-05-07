@@ -1,6 +1,6 @@
-import GameController from "./GameController.js?v=20260430c";
-import { Player } from "./GameEngine.js?v=20260430c";
-import NetworkManager, { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js?v=20260429g";
+import GameController from "./GameController.js?v=20260430d";
+import { Player } from "./GameEngine.js?v=20260430d";
+import NetworkManager, { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js?v=20260430d";
 import {
   createEmptyAuth as createAppEmptyAuth,
   GRID_SIZE_OPTIONS as APP_GRID_SIZE_OPTIONS,
@@ -15,7 +15,7 @@ import {
   normalizeGameSettings as normalizeAppGameSettings,
   persistAuth as persistAppAuth,
   persistSession as persistAppSession,
-} from "./OnlineAppState.js?v=20260430c";
+} from "./OnlineAppState.js?v=20260430d";
 import {
   formatArea as formatAppArea,
   formatConnectionState as formatAppConnectionState,
@@ -29,7 +29,7 @@ import {
   UI_STYLE_STORAGE_KEY,
   UI_STYLE_ACADEMIC,
   localizeErrorMessage as localizeAppErrorMessage,
-} from "./OnlineAppI18n.js?v=20260430c";
+} from "./OnlineAppI18n.js?v=20260430d";
 import { ensureGuideRuleImages, getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20260429f";
 
 const {
@@ -45,9 +45,7 @@ if (!globalThis.Vue) {
   throw new Error("Vue runtime is not available on window.Vue.");
 }
 
-// OnlineApp 是联机版页面入口。
-// 组件定义和业务流程都放在这里，但通用状态工具与文案已经拆到独立模块。
-
+// OnlineApp 鏄仈鏈虹増椤甸潰鍏ュ彛銆?// 缁勪欢瀹氫箟鍜屼笟鍔℃祦绋嬮兘鏀惧湪杩欓噷锛屼絾閫氱敤鐘舵€佸伐鍏蜂笌鏂囨宸茬粡鎷嗗埌鐙珛妯″潡銆?
 function resolveApiBaseUrl(serverUrl, locationLike = globalThis.location) {
   const fallbackOrigin = locationLike?.origin ?? "http://localhost:8000";
   const rawUrl = String(serverUrl ?? "").trim();
@@ -185,16 +183,16 @@ async function postAuthJson(serverUrl, path, payload) {
 
 const ROOM_START_COUNTDOWN_FALLBACK_SECONDS = 20;
 const CHAT_EMOJI_OPTIONS = Object.freeze([
-  { content: "👏", animation: "bounce", duration: 1200, label: "Nice" },
-  { content: "😭", animation: "bounce", duration: 1200, label: "Crying" },
-  { content: "😎", animation: "bounce", duration: 1200, label: "Cool" },
-  { content: "🤝", animation: "fade", duration: 1400, label: "Respect" },
-  { content: "❓", animation: "shake", duration: 1000, label: "Question" },
-  { content: "🤔", animation: "fade", duration: 1400, label: "Thinking" },
-  { content: "💀", animation: "shake", duration: 1100, label: "Defeated" },
-  { content: "👎", animation: "shake", duration: 1200, label: "Thumbs down" },
-  { content: "😓", animation: "fade", duration: 1300, label: "Sweating" },
-  { content: "😤", animation: "bounce", duration: 1200, label: "Pressure" },
+  { content: "\u{1F44F}", animation: "bounce", duration: 1200, label: "Nice" },
+  { content: "\u{1F62D}", animation: "bounce", duration: 1200, label: "Crying" },
+  { content: "\u{1F60E}", animation: "bounce", duration: 1200, label: "Cool" },
+  { content: "\u{1F91D}", animation: "fade", duration: 1400, label: "Respect" },
+  { content: "\u2753", animation: "shake", duration: 1000, label: "Question" },
+  { content: "\u{1F914}", animation: "fade", duration: 1400, label: "Thinking" },
+  { content: "\u{1F480}", animation: "shake", duration: 1100, label: "Defeated" },
+  { content: "\u{1F44E}", animation: "shake", duration: 1200, label: "Thumbs down" },
+  { content: "\u{1F613}", animation: "fade", duration: 1300, label: "Sweating" },
+  { content: "\u{1F624}", animation: "bounce", duration: 1200, label: "Pressure" },
 ]);
 const CHAT_EMOJI_ANIMATIONS = new Set(["bounce", "fade", "shake"]);
 
@@ -349,6 +347,45 @@ function buildNamedScoreEntries(scores, players, roomPlayers, language, uiStyle)
 
 function getDisplayScores(gameState) {
   return gameState?.displayScores ?? gameState?.scores ?? {};
+}
+
+function formatResignationScoreLine({
+  scores,
+  players,
+  resignedPlayers,
+  winner,
+  roomPlayers,
+  language,
+  uiStyle,
+}) {
+  const activePlayers = Array.isArray(players) && players.length
+    ? players
+    : [Player.BLACK, Player.WHITE];
+  const resignedSet = new Set(Array.isArray(resignedPlayers) ? resignedPlayers : []);
+  const resigned = activePlayers.filter((player) => resignedSet.has(player));
+  if (!resigned.length) {
+    return "";
+  }
+
+  const playerName = (player) => resolveOnlinePlayerName(roomPlayers, player, language, uiStyle);
+  const separator = language === "en" ? ", " : "\uFF0C";
+  const remaining = activePlayers.filter((player) => !resignedSet.has(player));
+
+  if (remaining.length <= 1 && winner && winner !== "DRAW") {
+    const resignedNames = resigned.map(playerName).join(separator);
+    const winnerName = playerName(winner);
+    return language === "en"
+      ? `${resignedNames} resigned, ${winnerName} wins`
+      : `${resignedNames}\u8BA4\u8F93\uFF0C${winnerName}\u80DC\u5229`;
+  }
+
+  const resignedParts = resigned.map((player) => (
+    language === "en" ? `${playerName(player)} resigned` : `${playerName(player)}\u8BA4\u8F93`
+  ));
+  const scoreParts = remaining.map((player) => (
+    `${playerName(player)}${language === "en" ? " " : ""}${formatAppArea(scores?.[player])}`
+  ));
+  return [...resignedParts, ...scoreParts].join(separator);
 }
 
 
@@ -606,16 +643,27 @@ const SetupPanel = {
             </div>
           </div>
           <div>
-            <label class="field-label" for="player-count">{{ texts.playerCountLabel }}</label>
-            <select
+            <label id="player-count-label" class="field-label">{{ texts.playerCountLabel }}</label>
+            <div
               id="player-count"
-              class="input-field input-field-compact"
-              :value="playerCount"
-              :disabled="busy || settingsLocked"
-              @change="$emit('update:player-count', Number($event.target.value))"
+              class="language-switcher language-switcher-inline"
+              role="radiogroup"
+              aria-labelledby="player-count-label"
             >
-              <option v-for="count in PLAYER_COUNT_OPTIONS" :key="count" :value="count">{{ count }}</option>
-            </select>
+              <button
+                v-for="count in PLAYER_COUNT_OPTIONS"
+                :key="count"
+                type="button"
+                class="language-button"
+                :class="{ 'is-active': playerCount === count }"
+                role="radio"
+                :aria-checked="playerCount === count"
+                :disabled="busy || settingsLocked"
+                @click="$emit('update:player-count', count)"
+              >
+                {{ count }}
+              </button>
+            </div>
           </div>
           <div class="settings-grid-item-wide">
             <label id="grid-size-label" class="field-label">{{ texts.gridSizeLabel }}</label>
@@ -1269,7 +1317,7 @@ const ResultModal = {
       return texts.value.draw;
     });
     const structuredSummaryEntries = computed(() => {
-      if (props.overlayResult || !isOnlineSettlement.value) {
+      if (props.overlayResult || !isOnlineSettlement.value || resignationSummary.value) {
         return [];
       }
       return buildNamedScoreEntries(
@@ -1280,15 +1328,32 @@ const ResultModal = {
         props.uiStyle,
       );
     });
+    const resignationSummary = computed(() => {
+      if (props.overlayResult) {
+        return "";
+      }
+      return formatResignationScoreLine({
+        scores: getDisplayScores(props.gameState),
+        players: props.gameState.players,
+        resignedPlayers: props.gameState.resignedPlayers,
+        winner: props.gameState.winner,
+        roomPlayers: props.roomPlayers,
+        language: props.language,
+        uiStyle: props.uiStyle,
+      });
+    });
     const summary = computed(() => {
       if (props.overlayResult?.scoreLine) {
         return props.overlayResult.scoreLine;
       }
       if (props.overlayResult) {
         return texts.value.resignedSummary(
-          resolveOnlinePlayerName(props.roomPlayers, props.overlayResult.winner, props.language, props.uiStyle),
           resolveOnlinePlayerName(props.roomPlayers, props.overlayResult.loser, props.language, props.uiStyle),
+          resolveOnlinePlayerName(props.roomPlayers, props.overlayResult.winner, props.language, props.uiStyle),
         );
+      }
+      if (resignationSummary.value) {
+        return resignationSummary.value;
       }
       return formatAppFinalScoreLine(getDisplayScores(props.gameState), props.language, props.gameState.players, props.uiStyle);
     });
@@ -1564,7 +1629,7 @@ const GuidePanel = {
 
 function buildGuideDisplayBlocks(blocks = []) {
   const result = [];
-  const isCutExample = (block) => block?.type === "image" && /切断|cut example/i.test(block.alt ?? "");
+  const isCutExample = (block) => block?.type === "image" && /鍒囨柇|cut example/i.test(block.alt ?? "");
 
   for (let index = 0; index < blocks.length; index += 1) {
     const currentBlock = blocks[index];
@@ -1842,7 +1907,7 @@ const UtilityModal = {
               <h2>{{ title }}</h2>
               <p v-if="description" class="utility-description">{{ description }}</p>
             </div>
-            <button type="button" class="utility-close" :aria-label="closeLabel" @click="$emit('close')">×</button>
+            <button type="button" class="utility-close" :aria-label="closeLabel" @click="$emit('close')">脳</button>
           </div>
           <div class="utility-body">
             <slot></slot>
@@ -2180,7 +2245,6 @@ const App = {
         return;
       }
 
-      // 本地模式下改设置立即重建棋盘；联机模式下设置以房间配置为准。
       const normalized = normalizeAppGameSettings({
         playerCount,
         gridSize,
@@ -2222,7 +2286,6 @@ const App = {
     });
 
     const syncSession = () => {
-      // UI 自己维护“期望中的设置”，并把它和房间上下文合并后持久化。
       session.value = {
         ...createAppEmptySession(),
         ...networkManager.getSession(),
@@ -2262,10 +2325,10 @@ const App = {
       uiStyle.value === UI_STYLE_ACADEMIC
         ? (language.value === "en"
           ? `${selectedPlayerCount.value}N / ${selectedGridSize.value}`
-          : `${selectedPlayerCount.value}节点 / ${selectedGridSize.value}`)
+          : `${selectedPlayerCount.value}鑺傜偣 / ${selectedGridSize.value}`)
         : (language.value === "en"
           ? `${selectedPlayerCount.value}P / ${selectedGridSize.value}`
-          : `${selectedPlayerCount.value}人 / ${selectedGridSize.value}`)
+          : `${selectedPlayerCount.value}浜?/ ${selectedGridSize.value}`)
     ));
     const networkDockBadge = computed(() => {
       if (session.value.roomId) {
@@ -2318,8 +2381,7 @@ const App = {
       const normalized = normalizeAppGameSettings(settings);
       syncingRemoteSettings = true;
       try {
-        // 远端同步设置时先打标记，避免 watch 把这次被动更新误判为用户主动修改。
-        selectedPlayerCount.value = normalized.playerCount;
+        // 杩滅鍚屾璁剧疆鏃跺厛鎵撴爣璁帮紝閬垮厤 watch 鎶婅繖娆¤鍔ㄦ洿鏂拌鍒や负鐢ㄦ埛涓诲姩淇敼銆?        selectedPlayerCount.value = normalized.playerCount;
         selectedGridSize.value = normalized.gridSize;
         selectedStartPlayer.value = normalized.startPlayer;
         selectedTurnTimerEnabled.value = normalized.turnTimerEnabled;
@@ -2527,8 +2589,6 @@ const App = {
     };
 
     const applyRoomPayload = (payload) => {
-      // MATCH_RESET 必须无条件通过，在所有时间戳校验之前处理。
-      // 认输/重开包到达时直接应用，并清零时间戳基线，防止后续包被误拦。
       const isMatchReset = payload?.type === ServerEvent.MATCH_RESET
         || payload?.reason === "resign_restart"
         || payload?.reason === "normal_restart";
@@ -2553,7 +2613,6 @@ const App = {
         return true;
       }
 
-      // 用服务端时间戳做单调性校验，丢弃比当前状态更旧的广播包。
       const incomingTs = payload?.serverTimestamp ?? 0;
       const nextStatus = normalizeRoomStatus(payload?.status ?? roomStatus.value);
       const nextPhase = normalizeMatchPhase(readPayloadMatchPhase(payload, roomInfo.value.matchPhase), nextStatus);
@@ -2571,7 +2630,6 @@ const App = {
         lastServerTimestamp = Math.max(lastServerTimestamp, incomingTs);
       }
 
-      // 服务端确认后，解除准备操作的本地锁。
       readyPending.value = false;
 
       roomStatus.value = nextStatus || roomStatus.value;
@@ -2664,7 +2722,6 @@ const App = {
         return;
       }
 
-      // 断线重连的核心思路：重新入房，然后用服务端的 matchState 回放棋盘。
       clearReconnectTimer();
       connectionState.value = "reconnecting";
 
@@ -2949,7 +3006,12 @@ const App = {
       networkBusy.value = true;
       networkError.value = "";
       try {
-        const reason = gameState.value.gameOver ? "normal_restart" : "resign_restart";
+        if (!gameState.value.gameOver) {
+          const result = await controller.value.requestResign();
+          gameState.value = result.state;
+          return;
+        }
+        const reason = "normal_restart";
         if (session.value.roomId && networkManager.isConnected()) {
           await networkManager.sendReset(reason);
           gameState.value = controller.value.getGameState();
@@ -3270,7 +3332,7 @@ const App = {
         return gameState.value.gameOver ? texts.startNewSolo : texts.resetBoard;
       }
 
-      return gameState.value.gameOver ? texts.startNextOnline : texts.resignAndRestart;
+      return gameState.value.gameOver ? texts.startNextOnline : texts.concedeAction;
     });
 
     const settingsLocked = computed(() => {
@@ -3453,13 +3515,10 @@ const App = {
       networkManager.on(ServerEvent.MATCH_RESET, (payload) => {
         networkError.value = "";
         resultModalDismissed.value = false;
-        // applyRoomPayload 已在最顶部无条件处理 MATCH_RESET，此处直接调用快照同步。
         applyRoomSnapshot(payload, true);
-        // 强制刷新控制器渲染，防止棋盘停留在重置前的旧画面。
         if (controller.value) {
           gameState.value = controller.value.getGameState();
         }
-        // 联机重置后，服务端不会回传整盘棋，而是让前端自己重建空盘并展示结算 overlay。
         if (payload.reason === "consensus_restart" && payload.winnerColor) {
           overlayResult.value = {
             winner: payload.winnerColor,

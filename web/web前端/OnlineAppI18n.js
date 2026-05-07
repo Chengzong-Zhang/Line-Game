@@ -1,5 +1,5 @@
-﻿import { Player } from "./GameEngine.js?v=20260430c";
-import { ALL_PLAYERS } from "./OnlineAppState.js?v=20260430c";
+import { Player } from "./GameEngine.js?v=20260430d";
+import { ALL_PLAYERS } from "./OnlineAppState.js?v=20260430d";
 
 // 文案、比分格式化和错误提示都集中放在这里，避免 UI 文件里散落大量字符串。
 
@@ -212,7 +212,7 @@ const EN_TEXTS = Object.freeze({
   continueMatch: "Continue Match",
   leaveRoomAfterMatch: "Leave Room",
   matchInProgress: "Match is already in progress.",
-  resignedSummary: (winner, loser) => `${winner}. ${loser} resigned and the board has been reset.`,
+  resignedSummary: (loser, winner) => `${loser} resigned, ${winner} wins.`,
 });
 
 const ZH_TEXTS = Object.freeze({
@@ -402,7 +402,7 @@ const ZH_TEXTS = Object.freeze({
   continueMatch: "继续",
   leaveRoomAfterMatch: "离开房间",
   matchInProgress: "对局已经开始，不能再次准备。",
-  resignedSummary: (winner, loser) => `${winner}，${loser}认输，棋盘已重置。`,
+  resignedSummary: (loser, winner) => `${loser}认输，${winner}胜利。`,
 });
 
 const EN_ACADEMIC_TEXT_OVERRIDES = Object.freeze({
@@ -507,7 +507,7 @@ const EN_ACADEMIC_TEXT_OVERRIDES = Object.freeze({
   roomCapacityConflict: "The new node count is smaller than the current session roster.",
   leaveRoomAfterMatch: "Leave Session",
   matchInProgress: "Algorithm iteration is already running.",
-  resignedSummary: (winner, loser) => `${winner}. ${loser} entered a losing-position reset; parameters have been reset.`,
+  resignedSummary: (loser, winner) => `${loser} entered a losing position; ${winner} reached winning position.`,
 });
 
 const ZH_ACADEMIC_TEXT_OVERRIDES = Object.freeze({
@@ -614,7 +614,7 @@ const ZH_ACADEMIC_TEXT_OVERRIDES = Object.freeze({
   roomCapacityConflict: "新的节点数量小于当前实验组节点数，无法应用。",
   leaveRoomAfterMatch: "离开实验组",
   matchInProgress: "算法迭代已经启动，不能再次载入模型。",
-  resignedSummary: (winner, loser) => `${winner}，${loser}触发劣势态重置，参数已重置。`,
+  resignedSummary: (loser, winner) => `${loser}进入劣势态，${winner}达到胜势态。`,
 });
 
 const TEXTS_BY_LANGUAGE_AND_STYLE = Object.freeze({

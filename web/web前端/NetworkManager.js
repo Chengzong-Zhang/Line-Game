@@ -11,6 +11,7 @@ const ServerEvent = Object.freeze({
   ROOM_READY: "ROOM_READY",
   OPPONENT_MOVE: "OPPONENT_MOVE",
   TURN_SKIPPED: "TURN_SKIPPED",
+  PLAYER_RESIGNED: "PLAYER_RESIGNED",
   RESET_STATUS: "RESET_STATUS",
   MATCH_RESET: "MATCH_RESET",
   PLAYER_LEFT: "PLAYER_LEFT",
@@ -266,6 +267,14 @@ export class NetworkManager {
     return this._sendRequest(
       { type: "player_skip" },
       [ServerEvent.TURN_SKIPPED],
+    );
+  }
+
+  async sendResign() {
+    await this._ensureOpen();
+    return this._sendRequest(
+      { type: "player_resign" },
+      [ServerEvent.PLAYER_RESIGNED],
     );
   }
 
