@@ -854,6 +854,12 @@ class TriangularGame:
         if original_state != opp_line:
             return
 
+        # 攻击前保存双方边集合快照，用于事后只还原已有边，不新建边
+        saved_edges = {
+            player: set(self._get_edges(player)),
+            opponent: set(self._get_edges(opponent)),
+        }
+
         # ── Step 1 ──────────────────────────────────────────────────────────────
         # Sweep each direction. Only delete collected line cells if the sweep
         # terminates at an opponent NODE — that confirms they belong to the same
@@ -880,10 +886,28 @@ class TriangularGame:
         self._cleanup_broken_edges(opponent)
 
         # ── Step 2 ──────────────────────────────────────────────────────────────
+        # 用显式边集做 BFS，避免物理相邻的"路过线"误判节点为存活
         opp_start = (8, 0) if player == Player.BLACK else (0, 0)
+        opp_edges = self._get_edges(opponent)
+        # 构建节点邻接表
+        adj: dict = {}
+        for edge in opp_edges:
+            a, b = tuple(edge)
+            adj.setdefault(a, []).append(b)
+            adj.setdefault(b, []).append(a)
+        # BFS 找出从起始点可达的所有节点
+        alive_nodes: set = {opp_start}
+        bfs_q = deque([opp_start])
+        while bfs_q:
+            curr = bfs_q.popleft()
+            for nxt in adj.get(curr, []):
+                if nxt not in alive_nodes:
+                    alive_nodes.add(nxt)
+                    bfs_q.append(nxt)
+
         deleted_nodes: set = set()
         for node in self._get_player_nodes(opponent):
-            if node != opp_start and not self._is_connected_to_initial(node, opponent):
+            if node not in alive_nodes:
                 self.grid[node] = PointState.EMPTY
                 deleted_nodes.add(node)
                 self._remove_node_edges(node, opponent)  # 移除该孤立节点的所有边
@@ -919,27 +943,30 @@ class TriangularGame:
                 self.grid[line_pt] = PointState.EMPTY
 
         # ── Step 4 ──────────────────────────────────────────────────────────────
-        self._reconnect_player_nodes(player)    # attacker may gain new connections
-        self._reconnect_player_nodes(opponent)  # defender may regain connections after node removals
-    
-    def _reconnect_player_nodes(self, player: Player):
-        """Re-establish connections between own nodes that became possible after an attack removed blocking pieces"""
-        player_nodes = self._get_player_nodes(player)
+        self._restore_edges(player, saved_edges[player])
+        self._restore_edges(opponent, saved_edges[opponent])
+
+    def _restore_edges(self, player: Player, edges_snapshot: set):
+        """仅还原攻击前已存在的边，不新建从未显式连接的边。
+        领土边界经过的空点不是线段，不应被赋予 LINE 状态。"""
         node_state = PointState.BLACK_NODE if player == Player.BLACK else PointState.WHITE_NODE
         line_state = PointState.BLACK_LINE if player == Player.BLACK else PointState.WHITE_LINE
+        edge_set = self._get_edges(player)
 
-        for i in range(len(player_nodes)):
-            for j in range(i + 1, len(player_nodes)):
-                node1, node2 = player_nodes[i], player_nodes[j]
-                if self._can_connect_with_blocking(node1, node2, player):
-                    line_points = self._get_line_points(node1, node2)
-                    for point in line_points:
-                        if point == node1 or point == node2:
-                            self.grid[point] = node_state
-                        elif self.grid[point] == PointState.EMPTY:
-                            self.grid[point] = line_state
-                    # 记录显式边
-                    self._get_edges(player).add(frozenset({node1, node2}))
+        for edge in edges_snapshot:
+            if edge in edge_set:
+                continue
+            node1, node2 = tuple(edge)
+            if self.grid.get(node1) != node_state or self.grid.get(node2) != node_state:
+                continue
+            if not self._can_connect_with_blocking(node1, node2, player):
+                continue
+            for point in self._get_line_points(node1, node2):
+                if point == node1 or point == node2:
+                    self.grid[point] = node_state
+                elif self.grid[point] == PointState.EMPTY:
+                    self.grid[point] = line_state
+            edge_set.add(edge)
 
     def _add_node_legacy(self, pos: Tuple[int, int]) -> bool:
         """Add a new node for the current player and handle auto-connection"""
