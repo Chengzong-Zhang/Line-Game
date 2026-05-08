@@ -657,19 +657,19 @@ export function formatPlayerName(player, language = "zh", uiStyle = UI_STYLE_CAS
     if (academic) {
       return language === "en" ? "Node Alpha" : "节点 Alpha";
     }
-    return language === "en" ? "Player 1" : "玩家 1";
+    return language === "en" ? "Blue" : "蓝方";
   }
   if (player === Player.WHITE) {
     if (academic) {
       return language === "en" ? "Node Beta" : "节点 Beta";
     }
-    return language === "en" ? "Player 2" : "玩家 2";
+    return language === "en" ? "Red" : "红方";
   }
   if (player === Player.PURPLE) {
     if (academic) {
       return language === "en" ? "Node Gamma" : "节点 Gamma";
     }
-    return language === "en" ? "Player 3" : "玩家 3";
+    return language === "en" ? "Purple" : "紫方";
   }
   return texts.unassigned;
 }
@@ -709,7 +709,7 @@ export function formatConnectionState(state, language = "zh", uiStyle = UI_STYLE
 export function formatFinalScoreLine(scores, language = "zh", players = ALL_PLAYERS, uiStyle = UI_STYLE_CASUAL) {
   const parts = players
     .filter((player) => scores && Object.prototype.hasOwnProperty.call(scores, player))
-    .map((player) => `${formatPlayerName(player, language, uiStyle)}${language === "en" ? " " : ""}${formatArea(scores[player])}`);
+    .map((player) => `${formatPlayerName(player, language, uiStyle)} ${formatArea(scores[player])}`);
 
   return parts.join(language === "en" ? ", " : "，");
 }

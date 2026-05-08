@@ -19,7 +19,6 @@ import {
 import {
   formatArea as formatAppArea,
   formatConnectionState as formatAppConnectionState,
-  formatFinalScoreLine as formatAppFinalScoreLine,
   formatPlayerName as formatAppPlayerName,
   formatResetVoteMessage as formatAppResetVoteMessage,
   formatWinner as formatAppWinner,
@@ -30,7 +29,7 @@ import {
   UI_STYLE_ACADEMIC,
   localizeErrorMessage as localizeAppErrorMessage,
 } from "./OnlineAppI18n.js?v=20260430d";
-import { ensureGuideRuleImages, getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20260429f";
+import { ensureGuideRuleImages, getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20260508a";
 
 const {
   computed,
@@ -329,6 +328,51 @@ function resolveOnlinePlayerName(roomPlayers, color, language, uiStyle) {
   return uiStyle === UI_STYLE_ACADEMIC ? `${roleLabel} / ${identity}` : identity;
 }
 
+function formatIndexedPlayerName(player, players, language) {
+  const activePlayers = Array.isArray(players) && players.length
+    ? players
+    : [Player.BLACK, Player.WHITE];
+  const index = Math.max(0, activePlayers.indexOf(player)) + 1;
+  return language === "en" ? `Player ${index}` : `玩家 ${index}`;
+}
+
+function formatGamePlayerName(player, players, roomPlayers, language, uiStyle) {
+  const activePlayers = Array.isArray(players) && players.length
+    ? players
+    : [Player.BLACK, Player.WHITE];
+  if (activePlayers.length >= 3 && uiStyle !== UI_STYLE_ACADEMIC) {
+    const roomPlayer = findRoomPlayerByColor(roomPlayers, player);
+    const identity = roomPlayer?.username ?? roomPlayer?.playerId ?? "";
+    return identity || formatIndexedPlayerName(player, activePlayers, language);
+  }
+  return formatAppPlayerName(player, language, uiStyle);
+}
+
+function formatGameWinner(winner, players, roomPlayers, language, uiStyle) {
+  const texts = getAppTexts(language, uiStyle);
+  if (winner === "DRAW") {
+    return texts.draw;
+  }
+  if (![Player.BLACK, Player.WHITE, Player.PURPLE].includes(winner)) {
+    return texts.inProgress;
+  }
+  if (uiStyle === UI_STYLE_ACADEMIC) {
+    return formatAppWinner(winner, language, uiStyle);
+  }
+  const playerName = formatGamePlayerName(winner, players, roomPlayers, language, uiStyle);
+  return language === "en" ? `${playerName} Wins` : `${playerName}获胜`;
+}
+
+function formatGameScoreLine(scores, players, roomPlayers, language, uiStyle) {
+  const activePlayers = Array.isArray(players) && players.length
+    ? players
+    : [Player.BLACK, Player.WHITE];
+  return activePlayers
+    .filter((player) => scores && Object.prototype.hasOwnProperty.call(scores, player))
+    .map((player) => `${formatGamePlayerName(player, activePlayers, roomPlayers, language, uiStyle)} ${formatAppArea(scores[player])}`)
+    .join(language === "en" ? ", " : "，");
+}
+
 function buildNamedScoreEntries(scores, players, roomPlayers, language, uiStyle) {
   const activePlayers = Array.isArray(players) && players.length
     ? players
@@ -339,7 +383,7 @@ function buildNamedScoreEntries(scores, players, roomPlayers, language, uiStyle)
     .map((player) => ({
       key: player,
       color: player,
-      name: resolveOnlinePlayerName(roomPlayers, player, language, uiStyle),
+      name: formatGamePlayerName(player, activePlayers, roomPlayers, language, uiStyle),
       value: scores?.[player],
       accentClass: getPlayerAccentClass(player),
     }));
@@ -367,7 +411,7 @@ function formatResignationScoreLine({
     return "";
   }
 
-  const playerName = (player) => resolveOnlinePlayerName(roomPlayers, player, language, uiStyle);
+  const playerName = (player) => formatGamePlayerName(player, activePlayers, roomPlayers, language, uiStyle);
   const separator = language === "en" ? ", " : "\uFF0C";
   const remaining = activePlayers.filter((player) => !resignedSet.has(player));
 
@@ -383,7 +427,7 @@ function formatResignationScoreLine({
     language === "en" ? `${playerName(player)} resigned` : `${playerName(player)}\u8BA4\u8F93`
   ));
   const scoreParts = remaining.map((player) => (
-    `${playerName(player)}${language === "en" ? " " : ""}${formatAppArea(scores?.[player])}`
+    `${playerName(player)} ${formatAppArea(scores?.[player])}`
   ));
   return [...resignedParts, ...scoreParts].join(separator);
 }
@@ -420,13 +464,28 @@ const ScorePanel = {
   setup(props) {
     const texts = computed(() => getAppTexts(props.language, props.uiStyle));
     const isOnlineMatch = computed(() => Boolean(props.session?.roomId));
+    const activePlayers = computed(() => (
+      Array.isArray(props.gameState.players) && props.gameState.players.length
+        ? props.gameState.players
+        : [Player.BLACK, Player.WHITE]
+    ));
     const currentPlayerLabel = computed(() => (
-      isOnlineMatch.value
-        ? resolveOnlinePlayerName(props.roomPlayers, props.gameState.currentPlayer, props.language, props.uiStyle)
-        : formatAppPlayerName(props.gameState.currentPlayer, props.language, props.uiStyle)
+      formatGamePlayerName(
+        props.gameState.currentPlayer,
+        activePlayers.value,
+        isOnlineMatch.value ? props.roomPlayers : [],
+        props.language,
+        props.uiStyle,
+      )
     ));
     const localRoleLabel = computed(() => formatAppPlayerName(props.session.color, props.language, props.uiStyle));
-    const winnerLabel = computed(() => formatAppWinner(props.gameState.winner, props.language, props.uiStyle));
+    const winnerLabel = computed(() => formatGameWinner(
+      props.gameState.winner,
+      activePlayers.value,
+      isOnlineMatch.value ? props.roomPlayers : [],
+      props.language,
+      props.uiStyle,
+    ));
     const turnBannerClass = computed(() => {
       if (props.gameState.currentPlayer === Player.BLACK) {
         return "is-blue";
@@ -437,17 +496,22 @@ const ScorePanel = {
       return "is-purple";
     });
     const scoreCards = computed(() => {
-      const players = Array.isArray(props.gameState.players) && props.gameState.players.length
-        ? props.gameState.players
-        : [Player.BLACK, Player.WHITE];
+      const players = activePlayers.value;
       const scores = getDisplayScores(props.gameState);
+      const showPlayerNames = players.length >= 3;
 
       return players.map((player) => {
         const namedCard = {
           key: player,
-          name: resolveOnlinePlayerName(props.roomPlayers, player, props.language, props.uiStyle),
+          name: formatGamePlayerName(
+            player,
+            players,
+            isOnlineMatch.value ? props.roomPlayers : [],
+            props.language,
+            props.uiStyle,
+          ),
           accentClass: getPlayerAccentClass(player),
-          isNamed: isOnlineMatch.value,
+          isNamed: showPlayerNames,
         };
 
         if (player === Player.BLACK) {
@@ -1172,9 +1236,13 @@ const ControlPanel = {
   setup(props) {
     const texts = computed(() => getAppTexts(props.language, props.uiStyle));
     const currentPlayerLabel = computed(() => (
-      props.session?.roomId
-        ? resolveOnlinePlayerName(props.roomPlayers, props.gameState.currentPlayer, props.language, props.uiStyle)
-        : formatAppPlayerName(props.gameState.currentPlayer, props.language, props.uiStyle)
+      formatGamePlayerName(
+        props.gameState.currentPlayer,
+        props.gameState.players,
+        props.session?.roomId ? props.roomPlayers : [],
+        props.language,
+        props.uiStyle,
+      )
     ));
     const turnTimerLabel = computed(() => (
       props.turnTimerEnabled
@@ -1303,9 +1371,21 @@ const ResultModal = {
     const showPerspectiveTitle = computed(() => localPlayerDidWin.value !== null && Boolean(localPlayerName.value));
     const title = computed(() => {
       if (props.overlayResult) {
-        return formatAppWinner(props.overlayResult.winner, props.language, props.uiStyle);
+        return formatGameWinner(
+          props.overlayResult.winner,
+          props.gameState.players,
+          props.roomPlayers,
+          props.language,
+          props.uiStyle,
+        );
       }
-      return formatAppWinner(props.gameState.winner, props.language, props.uiStyle);
+      return formatGameWinner(
+        props.gameState.winner,
+        props.gameState.players,
+        props.roomPlayers,
+        props.language,
+        props.uiStyle,
+      );
     });
     const titleOutcome = computed(() => {
       if (localPlayerDidWin.value === true) {
@@ -1317,7 +1397,7 @@ const ResultModal = {
       return texts.value.draw;
     });
     const structuredSummaryEntries = computed(() => {
-      if (props.overlayResult || !isOnlineSettlement.value || resignationSummary.value) {
+      if (props.overlayResult || resignationSummary.value) {
         return [];
       }
       return buildNamedScoreEntries(
@@ -1348,14 +1428,20 @@ const ResultModal = {
       }
       if (props.overlayResult) {
         return texts.value.resignedSummary(
-          resolveOnlinePlayerName(props.roomPlayers, props.overlayResult.loser, props.language, props.uiStyle),
-          resolveOnlinePlayerName(props.roomPlayers, props.overlayResult.winner, props.language, props.uiStyle),
+          formatGamePlayerName(props.overlayResult.loser, props.gameState.players, props.roomPlayers, props.language, props.uiStyle),
+          formatGamePlayerName(props.overlayResult.winner, props.gameState.players, props.roomPlayers, props.language, props.uiStyle),
         );
       }
       if (resignationSummary.value) {
         return resignationSummary.value;
       }
-      return formatAppFinalScoreLine(getDisplayScores(props.gameState), props.language, props.gameState.players, props.uiStyle);
+      return formatGameScoreLine(
+        getDisplayScores(props.gameState),
+        props.gameState.players,
+        props.roomPlayers,
+        props.language,
+        props.uiStyle,
+      );
     });
 
     const actionLabel = computed(() => {
@@ -1397,7 +1483,7 @@ const ResultModal = {
           <p v-if="structuredSummaryEntries.length" class="result-summary result-summary-scoreline">
             <template v-for="(entry, index) in structuredSummaryEntries" :key="entry.key">
               <span :class="entry.accentClass">{{ entry.name }}</span>
-              <span class="result-score-value">{{ formatArea(entry.value) }}</span>
+              <span class="result-score-value" :class="entry.accentClass">{{ formatArea(entry.value) }}</span>
               <span v-if="index < structuredSummaryEntries.length - 1" class="result-score-separator"> : </span>
             </template>
           </p>
@@ -2203,7 +2289,7 @@ const App = {
           return;
         }
         try {
-          const response = await fetch(`${asset}?v=20260429f`, { cache: "no-cache" });
+          const response = await fetch(`${asset}?v=20260508a`, { cache: "no-cache" });
           if (response.ok) {
             nextOverrides[key] = await response.text();
           }
@@ -3233,20 +3319,39 @@ const App = {
       if (gameState.value.gameOver) {
         return language.value === "en"
           ? texts.finalStatus(
-            formatAppWinner(gameState.value.winner, language.value, uiStyle.value),
-            formatAppFinalScoreLine(getDisplayScores(gameState.value), language.value, gameState.value.players, uiStyle.value),
+            formatGameWinner(gameState.value.winner, gameState.value.players, roomInfo.value.players, language.value, uiStyle.value),
+            formatGameScoreLine(getDisplayScores(gameState.value), gameState.value.players, roomInfo.value.players, language.value, uiStyle.value),
           )
           : texts.finalStatus(
-            formatAppWinner(gameState.value.winner, language.value, uiStyle.value),
-            formatAppFinalScoreLine(getDisplayScores(gameState.value), language.value, gameState.value.players, uiStyle.value),
+            formatGameWinner(gameState.value.winner, gameState.value.players, roomInfo.value.players, language.value, uiStyle.value),
+            formatGameScoreLine(getDisplayScores(gameState.value), gameState.value.players, roomInfo.value.players, language.value, uiStyle.value),
           );
       }
 
       if (roomInfo.value.matchPhase === "PLAYING" || roomStatus.value === "inProgress") {
         const turnStatus = gameState.value.isLocalTurn
-          ? texts.localTurnStatus(formatAppPlayerName(session.value.color, language.value, uiStyle.value))
+          ? texts.localTurnStatus(formatGamePlayerName(
+            session.value.color,
+            gameState.value.players,
+            roomInfo.value.players,
+            language.value,
+            uiStyle.value,
+          ))
           : texts.remoteTurnStatus;
         return `${texts.playingStatus} ${turnStatus}`;
+      }
+
+      if ((gameState.value.players?.length ?? effectiveGameSettings.value.playerCount) >= 3) {
+        const currentName = formatGamePlayerName(
+          gameState.value.currentPlayer,
+          gameState.value.players,
+          [],
+          language.value,
+          uiStyle.value,
+        );
+        return language.value === "en"
+          ? `Solo mode: ${currentName} to move.`
+          : `本地模式中，现在轮到${currentName}。`;
       }
 
       return gameState.value.currentPlayer === Player.BLACK
@@ -3522,7 +3627,7 @@ const App = {
         if (payload.reason === "consensus_restart" && payload.winnerColor) {
           overlayResult.value = {
             winner: payload.winnerColor,
-            scoreLine: formatAppFinalScoreLine(getDisplayScores(gameState.value), language.value, gameState.value.players, uiStyle.value),
+            scoreLine: formatGameScoreLine(getDisplayScores(gameState.value), gameState.value.players, roomInfo.value.players, language.value, uiStyle.value),
           };
         } else if (payload.reason === "resign_restart" && payload.winnerColor && (payload.loserColor || payload.resetColor || payload.color)) {
           overlayResult.value = {

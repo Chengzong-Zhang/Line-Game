@@ -1042,6 +1042,37 @@ class TriangularGame:
         self.history_hashes.add(state_hash)
         return True
 
+    def _connect_all_crawl(self, player: Player):
+        """攻击结束后，沿6个方向爬行重建所有可连线段。
+        方向遇到友方节点→连；遇到敌方棋子→阻断；遇到空/己方线→继续。"""
+        node_state = PointState.BLACK_NODE if player == Player.BLACK else PointState.WHITE_NODE
+        line_state = PointState.BLACK_LINE if player == Player.BLACK else PointState.WHITE_LINE
+        opp_node = PointState.WHITE_NODE if player == Player.BLACK else PointState.BLACK_NODE
+        opp_line = PointState.WHITE_LINE if player == Player.BLACK else PointState.BLACK_LINE
+        edges = self._get_edges(player)
+
+        for node in self._get_player_nodes(player):
+            x, y = node
+            for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1), (1, -1), (-1, 1)]:
+                cx, cy = x + dx, y + dy
+                path_pts = []
+                while (cx, cy) in self.grid:
+                    st = self.grid[(cx, cy)]
+                    if st in (opp_node, opp_line):
+                        break
+                    if st == node_state:
+                        other = (cx, cy)
+                        edge = frozenset({node, other})
+                        if edge not in edges:
+                            for pt in path_pts:
+                                if self.grid[pt] == PointState.EMPTY:
+                                    self.grid[pt] = line_state
+                            edges.add(edge)
+                        break
+                    path_pts.append((cx, cy))
+                    cx += dx
+                    cy += dy
+
     def _add_node(self, pos: Tuple[int, int]) -> bool:
         """Add a node and resolve board effects; Superko is checked by callers."""
         if pos not in self.grid:
@@ -1087,6 +1118,7 @@ class TriangularGame:
             return False
 
         self._handle_blocking_attack(pos, self.current_player, original_state)
+        self._connect_all_crawl(self.current_player)
         return True
     
     def _switch_player(self):
