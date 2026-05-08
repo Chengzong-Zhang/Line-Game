@@ -610,6 +610,47 @@ export class GameEngine {
     }
   }
 
+  /** 攻击结束后，沿6个方向爬行重建所有被解锁的连线 */
+  _connectAllCrawl(player) {
+    const { node: nodeState, line: lineState } = this._getPlayerStates(player);
+    const oppStates = this._getOpponents(player).flatMap((opp) => {
+      const s = this._getPlayerStates(opp);
+      return [s.node, s.line];
+    });
+    const isEnemy = (state) => oppStates.includes(state);
+    const edgeSet = this._getEdges(player);
+    const nodes = this._getPlayerNodes(player);
+
+    for (const node of nodes) {
+      const [x, y] = node;
+      for (const [dx, dy] of DIRECTIONS) {
+        let cx = x + dx;
+        let cy = y + dy;
+        const pathPts = [];
+        while (this.isValidPosition([cx, cy])) {
+          const st = this._getState([cx, cy]);
+          if (isEnemy(st)) break;
+          if (st === nodeState) {
+            const other = [cx, cy];
+            const ek = this._edgeKey(node, other);
+            if (!edgeSet.has(ek)) {
+              for (const pt of pathPts) {
+                if (this._getState(pt) === PointState.EMPTY) {
+                  this._setState(pt, lineState);
+                }
+              }
+              edgeSet.add(ek);
+            }
+            break;
+          }
+          pathPts.push([cx, cy]);
+          cx += dx;
+          cy += dy;
+        }
+      }
+    }
+  }
+
   _handleBlockingAttack(newPoint, player, originalState) {
     const opponent = this._getPlayerByLineState(originalState);
     if (!opponent || opponent === player) {
@@ -1294,6 +1335,7 @@ export class GameEngine {
     }
 
     this._handleBlockingAttack(point, this.currentPlayer, originalState);
+    this._connectAllCrawl(this.currentPlayer);
     return true;
   }
 
