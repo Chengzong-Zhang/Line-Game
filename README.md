@@ -1,201 +1,204 @@
-# Lifeline Game（生命线）
+# LIFELINE（生命线）
 
-Lifeline Game（生命线）是一款运行在三角网格上的双人圈地策略棋盘游戏，支持本地人人对战和基于 Minimax 的人机对战。
+LIFELINE 是一款运行在三角网格上的圈地策略游戏。玩家通过节点与自动生成的连线扩张领土，也可以切断敌方防线，使失去初始节点连接的结构立即消失。
 
-Lifeline Game is a two-player territory-building strategy game played on a triangular grid, with both local human-vs-human and Minimax-based human-vs-AI modes.
+项目包含完整的浏览器版本、Python/Pygame 桌面版本，以及基于 Minimax 与 Alpha-Beta 剪枝的人机对战 AI。
 
-## 运行方法 / Getting Started
+## 项目特点
 
-### 中文
+- 自定义三角网格圈地规则，节点、连线与领土共同参与博弈。
+- 支持切断攻击、断联结构清除、初始点保护、三点限制和 Superko 全局同形禁手。
+- Web 端支持本地双人、三人、可调棋盘大小、人机对战和 AI 提示。
+- Web 联机支持账号、房间、准备、倒计时、动作同步、重置投票与断线恢复。
+- Pygame 端提供原始双人版本和可视化 AI Demo。
+- Minimax AI 支持搜索深度调节、走法排序、启发式评估和非阻塞计算。
+- 中英文界面、响应式布局和 Canvas 渲染。
 
-运行环境：
+## 快速开始
 
-- Python 3.8 或更高版本
-- Pygame
+### Web 版
+
+Web 版是当前功能最完整的入口。它需要 Python 后端来托管页面并提供账号与联机服务；本地对局和 AI 规则计算均在浏览器中完成。
+
+环境要求：
+
+- Python 3.10 或更高版本
+- 现代浏览器
+- 首次加载页面时可访问互联网，以获取 Vue 与 MathJax CDN 资源
 
 安装依赖：
 
-```bash
-pip install pygame
+```powershell
+python -m pip install -r ".\web\web后端\requirements.txt"
 ```
 
-运行原始人人对战版本：
+启动：
 
-```bash
-python "core algorithm/triangular_game.py"
+```powershell
+powershell -ExecutionPolicy Bypass -File ".\web\start\start_online_server.ps1"
 ```
 
-运行带 AI 的版本：
+脚本会在 `8000` 至 `8004` 中选择可用端口，后台启动服务并打开浏览器。
 
-```bash
-python AI/main_ai.py
+进入人机对战：选择本地模式和 `2` 人局，在棋盘设置中选择 AI 先手或后手，再选择简单、普通或困难难度。
+
+### Pygame AI 版
+
+安装依赖：
+
+```powershell
+python -m pip install pygame
 ```
 
-### English
+将核心规则目录加入 Python 模块搜索路径：
 
-Requirements:
-
-- Python 3.8 or later
-- Pygame
-
-Install the dependency:
-
-```bash
-pip install pygame
+```powershell
+$env:PYTHONPATH = (Resolve-Path ".\core algorithm").Path
 ```
 
-Start the original human-vs-human version:
+启动带 AI 的版本：
 
-```bash
-python "core algorithm/triangular_game.py"
+```powershell
+python ".\core algorithm\AI\main_ai.py"
 ```
 
-Start the AI-enabled version:
+启动原始双人版本：
 
-```bash
-python AI/main_ai.py
+```powershell
+python ".\core algorithm\triangular_game.py"
 ```
 
-## 操作说明 / Controls
+运行 AI 无头测试：
 
-### 中文
+```powershell
+$env:PYTHONPATH = (Resolve-Path ".\core algorithm").Path
+python ".\core algorithm\AI\test_ai_headless.py"
+```
 
-- **落子：** 使用鼠标左键点击棋盘上的合法格点。
-- **跳过回合：** 点击窗口右下角的 `Skip` 按钮。双方连续跳过后，对局结束。
-- **AI 模式选择：**
-  - 按 `1`：人人对战。
-  - 按 `2`：人类执蓝，对战执红 AI。
-  - 按 `3`：执蓝 AI，对战执红人类。
-- **AI 难度选择：**
-  - 按 `E`：简单，搜索深度为 2。
-  - 按 `M`：中等，搜索深度为 3。
-  - 按 `H`：困难，搜索深度为 4。
-- **开始游戏：** 完成模式和难度选择后，按 `Enter` 或空格键开始。
+## 游戏规则
 
-棋盘共有 9 行，第 `y` 行包含 `9-y` 个格点，共 45 个格点。蓝方从 `(0, 0)` 开始，红方从 `(8, 0)` 开始。玩家每回合在合法位置放置一个节点，新节点会自动连接到同行、同列或同斜线（`x+y` 相同）上的所有可达己方节点。
+### 扩张
 
-落子还需遵守以下规则：
+每名玩家从自己的初始节点出发。新落下的节点必须能连接到己方已有节点，并会自动连接同行、同列或 `x + y` 相同斜线方向上所有无遮挡的己方节点。
 
-- 可以落在敌方连线上发动攻击，并删除被截断的敌方棋子。
-- 不能形成三个互相相邻的己方节点。
-- 不能落在对方起始节点的相邻保护区内。
-- Superko 规则禁止任何使棋盘回到历史局面的落子。
+### 切断与连通
 
-### English
+玩家可以把节点落在敌方连线上发动攻击。连线被切断后，无法再通过逻辑边连接到敌方初始节点的节点与连线会被清除。一次攻击可能改变大范围棋盘结构，因此连接安全与扩张收益同样重要。
 
-- **Place a node:** Left-click a legal grid point.
-- **Skip a turn:** Click the `Skip` button in the lower-right corner. The game ends after two consecutive skips.
-- **Select an AI mode:**
-  - Press `1` for human vs human.
-  - Press `2` for human Blue vs AI Red.
-  - Press `3` for AI Blue vs human Red.
-- **Select AI difficulty:**
-  - Press `E` for Easy, search depth 2.
-  - Press `M` for Medium, search depth 3.
-  - Press `H` for Hard, search depth 4.
-- **Start the game:** Press `Enter` or `Space` after selecting the mode and difficulty.
+### 强制限制
 
-The board has 9 rows. Row `y` contains `9-y` points, for a total of 45 points. Blue starts at `(0, 0)` and Red starts at `(8, 0)`. On each turn, a player places one node at a legal position. The new node automatically connects to every reachable friendly node on the same row, column, or diagonal where `x+y` is equal.
+- 对方初始节点附近设有保护区。
+- 普通扩张不能主动形成三个两两相邻的己方节点；攻击落子例外。
+- Superko 禁止棋局返回任意历史局面，避免无限循环。
 
-Moves must also follow these rules:
+### 领土与终局
 
-- A node may be placed on an enemy line to attack and remove disconnected enemy pieces.
-- A move may not create three mutually adjacent friendly nodes.
-- A player may not place a node in the protection zone adjacent to the opponent's starting node.
-- The Superko rule forbids any move that recreates a previous board state.
+由己方节点和连线闭合、且内部没有敌方元素的区域视为领土。玩家无合法走法时会自动跳过；所有仍在场玩家连续跳过后对局结束，领土最多者获胜。
 
-## 胜负条件 / Winning Conditions
+## AI 系统
 
-### 中文
+AI 使用 Minimax 对抗搜索和 Alpha-Beta 剪枝选择行动，搜索前会优先排列攻击走法和贴近己方连线的扩张走法。
+为控制分支规模，每个节点最多继续搜索前 `20` 个候选。
 
-当当前玩家没有合法落子时，系统会自动跳过其回合；当双方都无法落子，或双方连续主动跳过时，游戏结束。系统计算双方围成的领土面积，面积较大的一方获胜；面积相同则为平局。
-
-### English
-
-If the current player has no legal move, their turn is skipped automatically. The game ends when neither player can move or when both players skip consecutively. The player controlling the larger territory wins; equal territory results in a draw.
-
-## AI 机制 / AI System
-
-### 中文
-
-AI 使用 **Minimax 搜索**和 **Alpha-Beta 剪枝**选择落子，并提供三档搜索深度：
-
-| 难度 | 按键 | 搜索深度 |
-| --- | --- | ---: |
-| 简单 | `E` | 2 |
-| 中等 | `M` | 3 |
-| 困难 | `H` | 4 |
-
-评估函数对以下因素进行加权求和：
+启发式评估综合考虑：
 
 - 节点数量优势
-- 己方棋子与连线的覆盖优势
-- 基于 BFS 的领土近似
+- 节点与连线覆盖优势
+- BFS 领土近似
 - 可攻击敌方连线的威胁数量
-- 节点与起始节点的连通质量
+- 节点与初始节点的连通质量
 
-搜索前会进行走法排序，优先检查攻击走法，其次检查靠近己方连线的走法，从而提高 Alpha-Beta 剪枝效率。为控制搜索规模，每个节点最多继续搜索排序后的前 20 个候选走法。
+AI 提供搜索深度 `2`、`3`、`4` 三档难度。精确领土算法只用于真实棋局结算，搜索树使用快速 BFS 近似以保持响应速度。
 
-AI 在独立线程中计算，主界面保持 60 FPS 刷新。AI 落子后会显示约 1.5 秒的 Top-5 候选点：
+Web 端通过 Web Worker 执行 AI 搜索；Pygame 端通过后台线程执行搜索。两种方式都避免在 AI 思考时阻塞主界面。
 
-- 黄色大圆和星标：最佳候选
-- 橙色圆圈：第 2 至第 3 候选
-- 灰色圆圈：第 4 至第 5 候选
+当前 AI 使用范围：
 
-### English
+- Web：本地双人局，可选择 AI 先手或后手，并可请求推荐落点。
+- Pygame：双人人机对战，可显示 AI Top-5 候选和推荐理由。
+- 联机局和 Web 三人局当前不启用 AI。
 
-The AI selects moves using **Minimax search** with **Alpha-Beta pruning** and offers three search depths:
+## Web 架构
 
-| Difficulty | Key | Search Depth |
-| --- | --- | ---: |
-| Easy | `E` | 2 |
-| Medium | `M` | 3 |
-| Hard | `H` | 4 |
+Web 主线遵循“前端负责规则与渲染，后端负责账号、房间与同步”的边界。
 
-The evaluation function uses a weighted combination of:
+```text
+index.html
+  -> main.js
+  -> OnlineApp.js
+       -> GameController.js
+            -> GameEngine.js
+            -> Renderer.js
+       -> AIEngine.js / AIWorker.js
+       -> NetworkManager.js
 
-- Node-count advantage
-- Friendly-piece and line-coverage advantage
-- BFS-based territory approximation
-- Number of available attacks on enemy lines
-- Connection quality between nodes and the starting node
+server.py
+  -> HTTP 注册、登录与静态资源
+  -> JWT 鉴权
+  -> WebSocket 房间、准备、同步与断线恢复
+```
 
-Moves are ordered before searching. Attacking moves are checked first, followed by moves near friendly lines, improving Alpha-Beta pruning efficiency. To bound the search space, each search node explores at most the first 20 ordered moves.
+- `GameEngine.js` 是 Web 规则计算真源。
+- `Renderer.js` 负责 Canvas 绘制。
+- `GameController.js` 连接规则、渲染、输入与网络。
+- `AIEngine.js` 和 `AIWorker.js` 负责浏览器内 AI。
+- `server.py` 转发联机动作，不裁决三角棋盘规则。
 
-AI calculations run in a separate thread so the UI can continue updating at 60 FPS. After the AI moves, its top five candidates are highlighted for about 1.5 seconds:
+## 核心算法
 
-- Large yellow circle with a star: best candidate
-- Orange circles: second and third candidates
-- Gray circles: fourth and fifth candidates
+- **物理网格与逻辑边分离**：格点状态用于渲染和占用判断，显式边集合用于连通性判断。
+- **BFS 断联清理**：攻击后保留与初始节点相连的最大连通结构，删除飞地。
+- **领土流水线**：右手摸墙获取外轮廓，动态贪心修剪边界，泛洪法判定真实覆盖格点。
+- **Superko 哈希**：将棋盘、逻辑边、认输状态和下一行动方纳入历史状态判断。
+- **搜索状态恢复**：AI 搜索递归中完整保存与恢复棋盘、边、历史哈希、回合和终局状态。
 
-## 文件结构 / File Structure
+详细规则与实现说明见：
 
-### 中文
+- [核心算法需求文档](./core%20algorithm/algorithm-requirements.md)
+- [Web 前后端需求与架构说明](./web/WEB前后端需求与架构说明.md)
+- [AI Coding 使用总结](./core%20algorithm/AI/AI_CODING_SUMMARY.md)
+
+## 目录结构
 
 ```text
 line game/
+├── README.md
 ├── core algorithm/
-│   ├── triangular_game.py       # 原始游戏、棋盘规则与人人对战入口
-│   └── algorithm-requirements.md
-├── AI/
-│   ├── ai_engine.py             # MinimaxAI 搜索、走法排序与 Alpha-Beta 剪枝
-│   ├── ai_game.py               # AI 游戏子类、评估函数、线程与候选点可视化
-│   ├── main_ai.py               # AI 版本入口
-│   └── minimax_ai_plan.md
-└── README.md
+│   ├── triangular_game.py
+│   ├── algorithm-requirements.md
+│   └── AI/
+│       ├── README.md
+│       ├── AI_CODING_SUMMARY.md
+│       ├── ai_engine.py
+│       ├── ai_game.py
+│       ├── main_ai.py
+│       └── test_ai_headless.py
+└── web/
+    ├── README-WEB.md
+    ├── WEB前后端需求与架构说明.md
+    ├── start/
+    ├── web前端/
+    │   ├── index.html
+    │   ├── OnlineApp.js
+    │   ├── GameEngine.js
+    │   ├── Renderer.js
+    │   ├── AIEngine.js
+    │   ├── AIWorker.js
+    │   └── NetworkManager.js
+    └── web后端/
+        ├── server.py
+        ├── database.py
+        ├── models.py
+        └── requirements.txt
 ```
 
-### English
+## 开发与验证
 
-```text
-line game/
-├── core algorithm/
-│   ├── triangular_game.py       # Core rules and human-vs-human entry point
-│   └── algorithm-requirements.md
-├── AI/
-│   ├── ai_engine.py             # MinimaxAI search, move ordering, and Alpha-Beta pruning
-│   ├── ai_game.py               # AI game subclass, evaluation, threading, and highlights
-│   ├── main_ai.py               # AI-enabled entry point
-│   └── minimax_ai_plan.md
-└── README.md
-```
+修改规则时，应同时检查 Python 核心和 Web `GameEngine.js` 的行为是否仍符合规则说明。修改 Web 端后，至少验证：
+
+- 本地双人局和三人局可以正常开始、落子、跳过和结算。
+- Web AI 先手、后手和三档难度可以运行。
+- 切断攻击、断联清除、保护区、三点限制和 Superko 行为正确。
+- 边长 `6`、`9`、`15` 下棋盘能够显示和交互。
+- 注册、登录、建房、入房、准备、动作同步、重置和断线恢复可用。
+- 中文与英文界面、桌面端与移动端布局正常。

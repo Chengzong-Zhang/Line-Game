@@ -1249,6 +1249,231 @@ Main constraints:
 - The English title is `LIFELINE`.
 - New text is maintained centrally in `OnlineAppI18n.js`.
 
+## AI Opponent: Minimax + Alpha-Beta
+
+LIFELINE is a turn-based, deterministic, perfect-information, zero-sum adversarial game with no randomness and no hidden information. This problem class falls squarely within the Minimax family, so the Web client implements the AI as Minimax with Alpha-Beta pruning, combined with move ordering and a heuristic evaluation function.
+
+AI module entry points:
+
+```text
+web/web前端/AIEngine.js
+web/web前端/AIWorker.js
+```
+
+### Move Ordering
+
+Move ordering determines the effectiveness of Alpha-Beta pruning. `orderMoves` partitions candidate moves into three tiers, expanding cutting attacks and friendly-line-adjacent expansions first:
+
+```javascript
+function orderMoves(engine, moves, player) {
+  const ownLine = engine._getPlayerStates(player).line;
+  const opponentLines = new Set(
+    getOpponents(engine, player).map(
+      (opponent) => engine._getPlayerStates(opponent).line,
+    ),
+  );
+  const tiers = [[], [], []];
+
+  for (const point of moves) {
+    if (opponentLines.has(engine._getState(point))) {
+      tiers[0].push(point); // Cutting attacks first
+    } else if (
+      engine
+        .getAdjacentPositions(point)
+        .some((adjacent) => engine._getState(adjacent) === ownLine)
+    ) {
+      tiers[1].push(point); // Expansions adjacent to own lines
+    } else {
+      tiers[2].push(point); // Remaining legal points
+    }
+  }
+
+  return [...tiers[0], ...tiers[1], ...tiers[2]].slice(0, 20);
+}
+```
+
+Only the first `20` candidates are passed into the search, controlling the branching factor and preventing combinatorial explosion on large boards.
+
+### Alpha-Beta Main Loop
+
+`minimax` alternates between maximizing and minimizing layers and uses `alpha` / `beta` bounds to cut branches that cannot become optimal:
+
+```javascript
+const ordered = this.orderMoves(engine, legalMoves, engine.currentPlayer);
+if (maximizingPlayer) {
+  let bestValue = Number.NEGATIVE_INFINITY;
+  for (const point of ordered) {
+    const snapshot = saveState(engine);
+    const applied = applyMoveForAI(engine, point);
+    if (applied) {
+      const value = this.minimax(engine, depth - 1, alpha, beta, false, aiPlayer);
+      bestValue = Math.max(bestValue, value);
+      alpha = Math.max(alpha, bestValue);
+    }
+    restoreState(engine, snapshot);
+    if (beta <= alpha) {
+      break; // Alpha-Beta pruning
+    }
+  }
+  return bestValue;
+}
+```
+
+Every expansion uses `saveState` / `restoreState` for transactional rollback against the real rule engine, so the search uses exactly the same legality judgment as a human player, including protection zones, the three-point restriction, attack resolution, and Superko.
+
+Search depth is controlled directly by difficulty: Easy `2`, Normal `3`, Hard `4`. Deeper searches look further ahead but take longer to compute.
+
+### Evaluation: Fast BFS Approximation
+
+Leaf nodes cannot run the full territory algorithm — outer-contour tracing, dynamic greedy trimming, and flood-fill coverage together are too expensive to execute at every leaf. The evaluation function instead uses `fastTerritoryBFS` as a reachable-space approximation:
+
+```javascript
+function fastTerritoryBFS(engine, player) {
+  const myStates = engine._getPlayerStates(player);
+  const opponentStates = new Set();
+  for (const opponent of getOpponents(engine, player)) {
+    const states = engine._getPlayerStates(opponent);
+    opponentStates.add(states.node);
+    opponentStates.add(states.line);
+  }
+
+  const frontier = [];
+  const visited = new Set();
+  for (const point of engine.validPositions) {
+    const state = engine._getState(point);
+    if (state === myStates.node || state === myStates.line) {
+      visited.add(pointKey(point));
+      frontier.push(point);
+    }
+  }
+
+  for (let index = 0; index < frontier.length; index += 1) {
+    for (const adjacent of engine.getAdjacentPositions(frontier[index])) {
+      const key = pointKey(adjacent);
+      if (!visited.has(key) && !opponentStates.has(engine._getState(adjacent))) {
+        visited.add(key);
+        frontier.push(adjacent);
+      }
+    }
+  }
+
+  return visited.size;
+}
+```
+
+The overall evaluation is a linear combination of five features:
+
+```javascript
+return (
+  15 * nodeAdvantage +
+  8 * coverageAdvantage +
+  20 * territoryAdvantage +
+  12 * attackThreats +
+  10 * connectionQuality
+);
+```
+
+| Feature | Meaning | Weight |
+| --- | --- | ---: |
+| `nodeAdvantage` | Node count differential | `15` |
+| `coverageAdvantage` | Node + line-point coverage differential | `8` |
+| `territoryAdvantage` | Fast BFS reachable-space differential | `20` |
+| `attackThreats` | Currently available cutting moves | `12` |
+| `connectionQuality` | Whether nodes still connect to the starting point | `10` |
+
+`territoryAdvantage` carries the highest weight because the final outcome is decided by territory; `attackThreats` pushes the AI to actively seek cutting opportunities rather than only comparing node counts; `connectionQuality` penalizes the AI for exposing its own nodes as isolated structures.
+
+Real moves and endgame scoring are still handled by the full rule engine; the search uses approximation only during evaluation.
+
+### Non-Blocking Web Worker Search
+
+The entire search runs inside a dedicated Web Worker so the UI thread never stalls:
+
+```javascript
+// AIWorker.js
+import { GameEngine } from "./GameEngine.js";
+import { MinimaxAI, restoreState } from "./AIEngine.js";
+
+self.onmessage = (event) => {
+  if (event.data?.type !== "COMPUTE") {
+    return;
+  }
+
+  const { serializedState, aiPlayer, depth = 3, topN = 5 } = event.data;
+  const engine = new GameEngine({
+    gridSize: serializedState.gridSize,
+    playerCount: serializedState.playerCount,
+    startPlayer: serializedState.startPlayer,
+  });
+
+  restoreState(engine, {
+    grid: new Map(serializedState.gridEntries),
+    edges: { /* ... */ },
+    historyHashes: new Set(serializedState.historyHashes),
+    /* ... */
+  });
+
+  // Skip expensive territory computation during search
+  engine._updateTerritories = () => {};
+
+  const moves = new MinimaxAI(depth).getTopMoves(engine, aiPlayer, topN);
+  self.postMessage({ type: "RESULT", moves });
+};
+```
+
+Key points:
+
+- On startup, the worker rebuilds an independent `GameEngine` from the main thread's serialized board state — no shared memory with the main thread.
+- During the search, `engine._updateTerritories` is explicitly disabled to avoid triggering the full territory pipeline at every search node.
+- The worker returns the Top-N candidate moves and their scores via `postMessage`; the main thread continues to drive animation, hints, and final legality confirmation.
+
+### AI Hint Reuses the Same Search
+
+`getTopMoves` powers both the AI opponent's automatic moves and the AI Hint button:
+
+```javascript
+getTopMoves(engine, aiPlayer, topN = 5) {
+  const legalMoves = this.getLegalMoves(engine, aiPlayer);
+  if (legalMoves.length === 0) {
+    return [];
+  }
+
+  const ordered = this.orderMoves(engine, legalMoves, aiPlayer);
+  const scoredMoves = [];
+  for (const point of ordered) {
+    const snapshot = saveState(engine);
+    const applied = applyMoveForAI(engine, point);
+    if (applied) {
+      const score = this.minimax(
+        engine,
+        this.depth - 1,
+        Number.NEGATIVE_INFINITY,
+        Number.POSITIVE_INFINITY,
+        false,
+        aiPlayer,
+      );
+      scoredMoves.push({ point, score });
+    }
+    restoreState(engine, snapshot);
+  }
+
+  scoredMoves.sort((a, b) => b.score - a.score);
+  return scoredMoves.slice(0, topN);
+}
+```
+
+This means the AI opponent and the AI Hint follow the same Minimax + Alpha-Beta path; the hint simply returns Top-N instead of Top-1. All visualizations — difficulty switching, thinking state, and recommended moves — come from the same search result.
+
+### Design Tradeoffs
+
+| Choice | Rationale |
+| --- | --- |
+| Minimax + Alpha-Beta | Classic fit for perfect-information, zero-sum, turn-based adversarial games; no training required, results are interpretable |
+| Move ordering + Top-20 cutoff | Controls branching factor; cuts and adjacent expansions are locally high-value moves and deserve priority expansion |
+| Fast BFS evaluation | Full territory computation is too slow; BFS reachable space correlates strongly with final territory in practice |
+| Web Worker | Hard-difficulty searches can take seconds and must not block Canvas rendering |
+| Search snapshot rollback | Reuses the full rule engine so the AI and human players share identical semantics for protection zones, the three-point rule, and Superko |
+
 ## Modification Entry Points
 
 Common modification paths:

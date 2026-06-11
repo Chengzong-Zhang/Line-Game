@@ -1249,6 +1249,231 @@ ERROR
 - 英文标题为 `LIFELINE`。
 - 新增文案集中维护在 `OnlineAppI18n.js`。
 
+## AI 对手：Minimax + Alpha-Beta
+
+LIFELINE 是回合制、确定性、完备信息、零和的对抗游戏，没有随机事件也没有隐藏信息。这类问题正好落在 Minimax 家族的覆盖范围内，因此 Web 端 AI 选择 Minimax 加 Alpha-Beta 剪枝，并配合走法排序与启发式评估。
+
+AI 模块入口：
+
+```text
+web/web前端/AIEngine.js
+web/web前端/AIWorker.js
+```
+
+### 走法排序
+
+走法排序决定了 Alpha-Beta 剪枝的效率。`orderMoves` 把候选落点分到三档，优先展开切断攻击和贴近己方连线的扩张：
+
+```javascript
+function orderMoves(engine, moves, player) {
+  const ownLine = engine._getPlayerStates(player).line;
+  const opponentLines = new Set(
+    getOpponents(engine, player).map(
+      (opponent) => engine._getPlayerStates(opponent).line,
+    ),
+  );
+  const tiers = [[], [], []];
+
+  for (const point of moves) {
+    if (opponentLines.has(engine._getState(point))) {
+      tiers[0].push(point); // 切断攻击优先
+    } else if (
+      engine
+        .getAdjacentPositions(point)
+        .some((adjacent) => engine._getState(adjacent) === ownLine)
+    ) {
+      tiers[1].push(point); // 靠近己方连线的扩张
+    } else {
+      tiers[2].push(point); // 其余合法点
+    }
+  }
+
+  return [...tiers[0], ...tiers[1], ...tiers[2]].slice(0, 20);
+}
+```
+
+每层只取前 `20` 个候选传入搜索，控制分支因子，避免在大棋盘上爆炸。
+
+### Alpha-Beta 主循环
+
+`minimax` 在搜索树中交替最大化与最小化，并用 `alpha` / `beta` 上下界裁剪不可能成为最优的分支：
+
+```javascript
+const ordered = this.orderMoves(engine, legalMoves, engine.currentPlayer);
+if (maximizingPlayer) {
+  let bestValue = Number.NEGATIVE_INFINITY;
+  for (const point of ordered) {
+    const snapshot = saveState(engine);
+    const applied = applyMoveForAI(engine, point);
+    if (applied) {
+      const value = this.minimax(engine, depth - 1, alpha, beta, false, aiPlayer);
+      bestValue = Math.max(bestValue, value);
+      alpha = Math.max(alpha, bestValue);
+    }
+    restoreState(engine, snapshot);
+    if (beta <= alpha) {
+      break; // Alpha-Beta 剪枝
+    }
+  }
+  return bestValue;
+}
+```
+
+每一层展开都通过 `saveState` / `restoreState` 在真实规则引擎上做事务回滚，因此搜索过程使用与人类玩家完全相同的合法性裁决，包括保护区、三点限制、攻击结算与 Superko。
+
+搜索深度由难度直接控制：简单 `2`、普通 `3`、困难 `4`。深度越大，AI 看得越远，思考时间越长。
+
+### 评估函数：快速 BFS 近似
+
+叶节点不能跑完整领土算法 — 外轮廓追踪、动态贪心修剪与泛洪覆盖整体复杂度过高，放在每个叶节点会让搜索时间无法接受。因此评估函数使用 `fastTerritoryBFS` 作为可达空间近似：
+
+```javascript
+function fastTerritoryBFS(engine, player) {
+  const myStates = engine._getPlayerStates(player);
+  const opponentStates = new Set();
+  for (const opponent of getOpponents(engine, player)) {
+    const states = engine._getPlayerStates(opponent);
+    opponentStates.add(states.node);
+    opponentStates.add(states.line);
+  }
+
+  const frontier = [];
+  const visited = new Set();
+  for (const point of engine.validPositions) {
+    const state = engine._getState(point);
+    if (state === myStates.node || state === myStates.line) {
+      visited.add(pointKey(point));
+      frontier.push(point);
+    }
+  }
+
+  for (let index = 0; index < frontier.length; index += 1) {
+    for (const adjacent of engine.getAdjacentPositions(frontier[index])) {
+      const key = pointKey(adjacent);
+      if (!visited.has(key) && !opponentStates.has(engine._getState(adjacent))) {
+        visited.add(key);
+        frontier.push(adjacent);
+      }
+    }
+  }
+
+  return visited.size;
+}
+```
+
+整体评估线性组合五个特征：
+
+```javascript
+return (
+  15 * nodeAdvantage +
+  8 * coverageAdvantage +
+  20 * territoryAdvantage +
+  12 * attackThreats +
+  10 * connectionQuality
+);
+```
+
+| 特征 | 含义 | 权重 |
+| --- | --- | ---: |
+| `nodeAdvantage` | 节点数量差 | `15` |
+| `coverageAdvantage` | 节点加线点覆盖差 | `8` |
+| `territoryAdvantage` | 快速 BFS 可达空间差 | `20` |
+| `attackThreats` | 当前可执行的切断走法数 | `12` |
+| `connectionQuality` | 节点是否仍连回出生点 | `10` |
+
+`territoryAdvantage` 权重最高，因为最终胜负由领土决定；`attackThreats` 让 AI 主动寻找切断机会而不是只比节点数；`connectionQuality` 惩罚 AI 把自己的节点暴露成孤立结构。
+
+真实落子与终局结算仍由完整规则引擎处理，搜索仅在评估阶段使用近似。
+
+### Web Worker 非阻塞搜索
+
+搜索过程整体跑在独立的 Web Worker 中，UI 线程不会被卡住：
+
+```javascript
+// AIWorker.js
+import { GameEngine } from "./GameEngine.js";
+import { MinimaxAI, restoreState } from "./AIEngine.js";
+
+self.onmessage = (event) => {
+  if (event.data?.type !== "COMPUTE") {
+    return;
+  }
+
+  const { serializedState, aiPlayer, depth = 3, topN = 5 } = event.data;
+  const engine = new GameEngine({
+    gridSize: serializedState.gridSize,
+    playerCount: serializedState.playerCount,
+    startPlayer: serializedState.startPlayer,
+  });
+
+  restoreState(engine, {
+    grid: new Map(serializedState.gridEntries),
+    edges: { /* ... */ },
+    historyHashes: new Set(serializedState.historyHashes),
+    /* ... */
+  });
+
+  // 搜索期间跳过昂贵的领土计算
+  engine._updateTerritories = () => {};
+
+  const moves = new MinimaxAI(depth).getTopMoves(engine, aiPlayer, topN);
+  self.postMessage({ type: "RESULT", moves });
+};
+```
+
+要点：
+
+- Worker 启动时根据主线程序列化的棋盘状态重建一份独立的 `GameEngine`，与主线程零共享内存。
+- 搜索期间显式禁用 `engine._updateTerritories`，避免每个搜索节点重复触发完整领土流程。
+- Worker 通过 `postMessage` 返回 Top-N 候选落点及其分值，主线程继续负责动画、提示和落子合法性确认。
+
+### AI 提示复用同一套搜索
+
+`getTopMoves` 不仅供 AI 自动落子使用，也直接被"AI 提示"按钮调用：
+
+```javascript
+getTopMoves(engine, aiPlayer, topN = 5) {
+  const legalMoves = this.getLegalMoves(engine, aiPlayer);
+  if (legalMoves.length === 0) {
+    return [];
+  }
+
+  const ordered = this.orderMoves(engine, legalMoves, aiPlayer);
+  const scoredMoves = [];
+  for (const point of ordered) {
+    const snapshot = saveState(engine);
+    const applied = applyMoveForAI(engine, point);
+    if (applied) {
+      const score = this.minimax(
+        engine,
+        this.depth - 1,
+        Number.NEGATIVE_INFINITY,
+        Number.POSITIVE_INFINITY,
+        false,
+        aiPlayer,
+      );
+      scoredMoves.push({ point, score });
+    }
+    restoreState(engine, snapshot);
+  }
+
+  scoredMoves.sort((a, b) => b.score - a.score);
+  return scoredMoves.slice(0, topN);
+}
+```
+
+这意味着 AI 对手与 AI 提示走的是同一条 Minimax + Alpha-Beta 路径，只是返回的是 Top-N 而不是 Top-1。AI 在难度调节、思考状态、推荐落点上的所有可视化都来自同一套搜索结果。
+
+### 设计取舍
+
+| 选择 | 理由 |
+| --- | --- |
+| Minimax + Alpha-Beta | 完备信息、零和、回合制对抗的经典选择，无需训练，结果可解释 |
+| 走法排序 + Top-20 截断 | 控制分支因子；切断和贴线扩张是局部高价值走法，优先展开 |
+| 快速 BFS 评估 | 完整领土算法太慢；BFS 可达空间在统计意义上与最终领土高度相关 |
+| Web Worker | 困难难度下搜索耗时可能达到秒级，必须避免阻塞 Canvas 渲染 |
+| 搜索快照回滚 | 复用完整规则引擎，确保 AI 与人类玩家在保护区、三点限制、Superko 上口径一致 |
+
 ## 修改入口
 
 常见修改路径：

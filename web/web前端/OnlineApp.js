@@ -30,7 +30,7 @@ import {
   UI_STYLE_STORAGE_KEY,
   UI_STYLE_ACADEMIC,
   localizeErrorMessage as localizeAppErrorMessage,
-} from "./OnlineAppI18n.js?v=20260430d";
+} from "./OnlineAppI18n.js?v=20260611b";
 import { ensureGuideRuleImages, getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20260508a";
 
 const {
@@ -1362,6 +1362,10 @@ const ControlPanel = {
       type: Number,
       default: 0,
     },
+    turnTimerPhase: {
+      type: String,
+      default: "paused",
+    },
     aiThinking: {
       type: Boolean,
       default: false,
@@ -1421,9 +1425,11 @@ const ControlPanel = {
     const turnTimerLabel = computed(() => (
       props.turnTimerEnabled
         ? (
-          props.turnTimerRemaining > 0
-            ? texts.value.turnTimerStatus(Math.max(0, props.turnTimerRemaining))
-            : texts.value.countdownPaused
+          props.turnTimerPhase === "finished"
+            ? texts.value.countdownFinished
+            : props.turnTimerPhase === "paused"
+              ? texts.value.countdownPaused
+              : texts.value.turnTimerStatus(Math.max(0, props.turnTimerRemaining))
         )
         : ""
     ));
@@ -2459,6 +2465,7 @@ const App = {
     const resultModalDismissed = ref(false);
     const turnCountdown = ref(ROOM_START_COUNTDOWN_FALLBACK_SECONDS);
     const turnTimerRemaining = ref(0);
+    const turnTimerPhase = ref("paused");
     const unsubscribers = [];
     let reconnectTimerId = null;
     let hintClearTimeoutId = null;
@@ -2721,6 +2728,13 @@ const App = {
       restartLocalAiWorker();
     });
 
+    watch([selectedHintEnabled, selectedHintMaxCount], () => {
+      if (roomStatus.value !== "solo") {
+        return;
+      }
+      resetHintUsage();
+    });
+
     watch(() => gameState.value.multiplayerEnabled, (multiplayerEnabled) => {
       if (multiplayerEnabled) {
         terminateAiWorker();
@@ -2931,13 +2945,14 @@ const App = {
       }, 1000);
     };
 
-    const clearTurnTimer = () => {
+    const clearTurnTimer = (nextPhase = "paused") => {
       if (turnTimerId !== null) {
         globalThis.clearInterval(turnTimerId);
         turnTimerId = null;
       }
       turnTimerDeadline = 0;
       turnTimerRemaining.value = 0;
+      turnTimerPhase.value = nextPhase;
     };
 
     const clearChatEmojiBursts = () => {
@@ -2948,8 +2963,14 @@ const App = {
       chatEmojiBursts.value = [];
     };
 
+    const isLocalAiTurn = () => (
+      roomStatus.value === "solo"
+      && selectedAiMode.value !== "none"
+      && gameState.value.currentPlayer === getAiPlayer()
+    );
+
     const shouldRunTurnTimer = () => {
-      if (!turnTimerEnabled.value || !controller.value || aiThinking.value) {
+      if (!turnTimerEnabled.value || !controller.value) {
         return false;
       }
 
@@ -2965,10 +2986,22 @@ const App = {
       }
 
       if (roomStatus.value === "solo") {
+        return !isLocalAiTurn() && !aiThinking.value;
+      }
+
+      return roomStatus.value === "inProgress";
+    };
+
+    const shouldAutoSkipTimedTurn = () => {
+      if (!shouldRunTurnTimer()) {
+        return false;
+      }
+
+      if (roomStatus.value === "solo") {
         return true;
       }
 
-      return roomStatus.value === "inProgress" && gameState.value.isLocalTurn;
+      return gameState.value.isLocalTurn;
     };
 
     const updateTurnTimerRemaining = () => {
@@ -2989,7 +3022,7 @@ const App = {
       }
 
       turnTimerSkipInFlight = true;
-      clearTurnTimer();
+      clearTurnTimer("finished");
       void Promise.resolve(handleSkip()).finally(() => {
         turnTimerSkipInFlight = false;
       });
@@ -3003,11 +3036,16 @@ const App = {
       }
 
       turnTimerDeadline = Date.now() + turnTimeLimitSeconds.value * 1000;
+      turnTimerPhase.value = "running";
       updateTurnTimerRemaining();
       turnTimerId = globalThis.setInterval(() => {
         updateTurnTimerRemaining();
         if (turnTimerRemaining.value <= 0) {
-          triggerTimedSkip();
+          if (shouldAutoSkipTimedTurn()) {
+            triggerTimedSkip();
+          } else {
+            clearTurnTimer("finished");
+          }
         }
       }, 250);
     };
@@ -4258,6 +4296,7 @@ const App = {
       chatEmojiDisabled,
       settingsLocked,
       turnTimerEnabled,
+      turnTimerPhase,
       turnTimerRemaining,
       resultResetAllowed,
       handleResultAction,
@@ -4311,6 +4350,7 @@ const App = {
             :session="session"
             :room-players="roomInfo.players"
             :turn-timer-enabled="turnTimerEnabled"
+            :turn-timer-phase="turnTimerPhase"
             :turn-timer-remaining="turnTimerRemaining"
             :ai-thinking="aiThinking"
             :multiplayer-enabled="gameState.multiplayerEnabled"

@@ -13,6 +13,7 @@ server.log
 .mypy_cache/
 .ruff_cache/
 .chrome-profile/
+examples/
 
 phase4-check.png
 smoke-test.png
