@@ -11,24 +11,17 @@ export const GRID_SIZE_OPTIONS = Object.freeze(Array.from({ length: 10 }, (_, in
 export const TURN_TIMER_MIN_SECONDS = 15;
 export const TURN_TIMER_MAX_SECONDS = 200;
 export const DEFAULT_TURN_TIMER_SECONDS = 60;
-export const HINT_MAX_COUNT_MIN = 1;
-export const HINT_MAX_COUNT_MAX = 10;
-export const DEFAULT_HINT_MAX_COUNT = 3;
 
 export function normalizeGameSettings(settings = {}) {
   const playerCount = Number(settings?.playerCount);
   const gridSize = Number(settings?.gridSize);
   const turnTimeLimitSeconds = Number(settings?.turnTimeLimitSeconds);
-  const hintMaxCount = Number(settings?.hintMaxCount);
   const nextPlayerCount = PLAYER_COUNT_OPTIONS.includes(playerCount) ? playerCount : 2;
   const allowedPlayers = ALL_PLAYERS.slice(0, nextPlayerCount);
   const startPlayer = allowedPlayers.includes(settings?.startPlayer) ? settings.startPlayer : allowedPlayers[0];
   const normalizedTurnTimeLimitSeconds = Number.isFinite(turnTimeLimitSeconds)
     ? Math.max(TURN_TIMER_MIN_SECONDS, Math.min(TURN_TIMER_MAX_SECONDS, Math.round(turnTimeLimitSeconds)))
     : DEFAULT_TURN_TIMER_SECONDS;
-  const normalizedHintMaxCount = Number.isFinite(hintMaxCount)
-    ? Math.max(HINT_MAX_COUNT_MIN, Math.min(HINT_MAX_COUNT_MAX, Math.round(hintMaxCount)))
-    : DEFAULT_HINT_MAX_COUNT;
 
   return {
     playerCount: nextPlayerCount,
@@ -36,8 +29,6 @@ export function normalizeGameSettings(settings = {}) {
     startPlayer,
     turnTimerEnabled: Boolean(settings?.turnTimerEnabled),
     turnTimeLimitSeconds: normalizedTurnTimeLimitSeconds,
-    hintEnabled: Boolean(settings?.hintEnabled),
-    hintMaxCount: normalizedHintMaxCount,
   };
 }
 

@@ -16,7 +16,7 @@ import {
   normalizeGameSettings as normalizeAppGameSettings,
   persistAuth as persistAppAuth,
   persistSession as persistAppSession,
-} from "./OnlineAppState.js?v=20260611d";
+} from "./OnlineAppState.js?v=20260430d";
 import {
   formatArea as formatAppArea,
   formatConnectionState as formatAppConnectionState,
@@ -2417,8 +2417,8 @@ const App = {
     const initialSettings = normalizeAppGameSettings(normalizedStoredSession.settings);
     const controller = shallowRef(null);
     const gameState = ref(createAppDefaultGameState());
-    const selectedHintEnabled = ref(initialSettings.hintEnabled);
-    const selectedHintMaxCount = ref(initialSettings.hintMaxCount);
+    const selectedHintEnabled = ref(false);
+    const selectedHintMaxCount = ref(3);
     const hintRemainingCount = ref(0);
     const hintThinking = ref(false);
     const hintFeedback = ref("");
@@ -2657,22 +2657,18 @@ const App = {
       authFeedbackTone.value = "error";
     });
 
-    watch([selectedPlayerCount, selectedGridSize, selectedStartPlayer, selectedTurnTimerEnabled, selectedTurnTimeLimitSeconds, selectedHintEnabled, selectedHintMaxCount], ([
+    watch([selectedPlayerCount, selectedGridSize, selectedStartPlayer, selectedTurnTimerEnabled, selectedTurnTimeLimitSeconds], ([
       playerCount,
       gridSize,
       startPlayer,
       turnTimerEnabled,
       turnTimeLimitSeconds,
-      hintEnabled,
-      hintMaxCount,
     ], [
       previousPlayerCount,
       previousGridSize,
       previousStartPlayer,
       previousTurnTimerEnabled,
       previousTurnTimeLimitSeconds,
-      previousHintEnabled,
-      previousHintMaxCount,
     ] = []) => {
       if (syncingRemoteSettings) {
         return;
@@ -2684,42 +2680,24 @@ const App = {
         startPlayer,
         turnTimerEnabled,
         turnTimeLimitSeconds,
-        hintEnabled,
-        hintMaxCount,
       });
       selectedPlayerCount.value = normalized.playerCount;
       selectedGridSize.value = normalized.gridSize;
       selectedStartPlayer.value = normalized.startPlayer;
       selectedTurnTimerEnabled.value = normalized.turnTimerEnabled;
       selectedTurnTimeLimitSeconds.value = normalized.turnTimeLimitSeconds;
-      selectedHintEnabled.value = normalized.hintEnabled;
-      selectedHintMaxCount.value = normalized.hintMaxCount;
       if (normalized.playerCount !== 2) {
         selectedAiMode.value = "none";
         terminateAiWorker();
       }
       syncSession();
 
-      const gameAffectingChanged = normalized.playerCount !== previousPlayerCount
-        || normalized.gridSize !== previousGridSize
-        || normalized.startPlayer !== previousStartPlayer
-        || normalized.turnTimerEnabled !== previousTurnTimerEnabled
-        || normalized.turnTimeLimitSeconds !== previousTurnTimeLimitSeconds;
-      const hintChanged = normalized.hintEnabled !== previousHintEnabled
-        || normalized.hintMaxCount !== previousHintMaxCount;
-
       if (roomStatus.value === "solo" && controller.value) {
-        if (gameAffectingChanged) {
-          terminateAiWorker();
-          gameState.value = controller.value.setGameConfig(normalized, true);
-          resetHintUsage();
-          ensureAiWorker();
-          scheduleAiMove(gameState.value);
-          return;
-        }
-        if (hintChanged) {
-          resetHintUsage();
-        }
+        terminateAiWorker();
+        gameState.value = controller.value.setGameConfig(normalized, true);
+        resetHintUsage();
+        ensureAiWorker();
+        scheduleAiMove(gameState.value);
         return;
       }
 
@@ -2748,6 +2726,13 @@ const App = {
         return;
       }
       restartLocalAiWorker();
+    });
+
+    watch([selectedHintEnabled, selectedHintMaxCount], () => {
+      if (roomStatus.value !== "solo") {
+        return;
+      }
+      resetHintUsage();
     });
 
     watch(() => gameState.value.multiplayerEnabled, (multiplayerEnabled) => {
@@ -2784,8 +2769,6 @@ const App = {
           startPlayer: selectedStartPlayer.value,
           turnTimerEnabled: selectedTurnTimerEnabled.value,
           turnTimeLimitSeconds: selectedTurnTimeLimitSeconds.value,
-          hintEnabled: selectedHintEnabled.value,
-          hintMaxCount: selectedHintMaxCount.value,
         },
       };
       persistAppSession(session.value);
@@ -2858,8 +2841,6 @@ const App = {
       startPlayer: selectedStartPlayer.value,
       turnTimerEnabled: selectedTurnTimerEnabled.value,
       turnTimeLimitSeconds: selectedTurnTimeLimitSeconds.value,
-      hintEnabled: selectedHintEnabled.value,
-      hintMaxCount: selectedHintMaxCount.value,
     });
 
     const effectiveGameSettings = computed(() => (
@@ -2869,8 +2850,6 @@ const App = {
     ));
     const turnTimerEnabled = computed(() => effectiveGameSettings.value.turnTimerEnabled);
     const turnTimeLimitSeconds = computed(() => effectiveGameSettings.value.turnTimeLimitSeconds);
-    const hintEnabled = computed(() => effectiveGameSettings.value.hintEnabled);
-    const hintMaxCount = computed(() => effectiveGameSettings.value.hintMaxCount);
 
     const applySettingsToController = (settings, reset = true) => {
       const normalized = normalizeAppGameSettings(settings);
@@ -2881,12 +2860,6 @@ const App = {
         selectedStartPlayer.value = normalized.startPlayer;
         selectedTurnTimerEnabled.value = normalized.turnTimerEnabled;
         selectedTurnTimeLimitSeconds.value = normalized.turnTimeLimitSeconds;
-        if (settings && Object.prototype.hasOwnProperty.call(settings, "hintEnabled")) {
-          selectedHintEnabled.value = normalized.hintEnabled;
-        }
-        if (settings && Object.prototype.hasOwnProperty.call(settings, "hintMaxCount")) {
-          selectedHintMaxCount.value = normalized.hintMaxCount;
-        }
         syncSession();
 
         if (!controller.value) {
@@ -4297,8 +4270,6 @@ const App = {
       selectedStartPlayer,
       selectedTurnTimerEnabled,
       selectedTurnTimeLimitSeconds,
-      selectedHintEnabled,
-      selectedHintMaxCount,
       selectedAiMode,
       selectedAiDepth,
       aiThinking,
@@ -4327,8 +4298,6 @@ const App = {
       turnTimerEnabled,
       turnTimerPhase,
       turnTimerRemaining,
-      hintEnabled,
-      hintMaxCount,
       resultResetAllowed,
       handleResultAction,
       handleResultLeaveRoom,
@@ -4385,7 +4354,7 @@ const App = {
             :turn-timer-remaining="turnTimerRemaining"
             :ai-thinking="aiThinking"
             :multiplayer-enabled="gameState.multiplayerEnabled"
-            :hint-enabled="hintEnabled"
+            :hint-enabled="selectedHintEnabled"
             :hint-remaining-count="hintRemainingCount"
             :hint-thinking="hintThinking"
             :hint-disabled="hintDisabled"
