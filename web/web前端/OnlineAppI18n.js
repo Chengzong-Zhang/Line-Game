@@ -213,6 +213,19 @@ const EN_TEXTS = Object.freeze({
   leaveRoomAfterMatch: "Leave Room",
   matchInProgress: "Match is already in progress.",
   resignedSummary: (loser, winner) => `${loser} resigned, ${winner} wins.`,
+  aiOpponent: "AI Opponent",
+  aiModeNone: "Human vs Human",
+  aiModeWhite: "Me (Black) vs AI",
+  aiModeBlack: "AI vs Me (White)",
+  aiDifficulty: "AI Difficulty",
+  aiDifficultyEasy: "Easy",
+  aiDifficultyMedium: "Medium",
+  aiDifficultyHard: "Hard",
+  aiThinking: "AI thinking…",
+  hintButton: "Hint",
+  hintRemaining: "Hint ({n})",
+  hintExhausted: "No hints left",
+  hintNoMoves: "No suggestion available",
 });
 
 const ZH_TEXTS = Object.freeze({
@@ -403,6 +416,19 @@ const ZH_TEXTS = Object.freeze({
   leaveRoomAfterMatch: "离开房间",
   matchInProgress: "对局已经开始，不能再次准备。",
   resignedSummary: (loser, winner) => `${loser}认输，${winner}胜利。`,
+  aiOpponent: "AI 对手",
+  aiModeNone: "人人对战",
+  aiModeWhite: "我执黑 vs AI",
+  aiModeBlack: "AI vs 我执白",
+  aiDifficulty: "AI 难度",
+  aiDifficultyEasy: "简单",
+  aiDifficultyMedium: "普通",
+  aiDifficultyHard: "困难",
+  aiThinking: "AI 思考中…",
+  hintButton: "提示",
+  hintRemaining: "提示 ({n})",
+  hintExhausted: "提示已用完",
+  hintNoMoves: "暂无推荐落点",
 });
 
 const EN_ACADEMIC_TEXT_OVERRIDES = Object.freeze({
@@ -648,6 +674,10 @@ export function getTexts(language, uiStyle = UI_STYLE_CASUAL) {
 
 export function formatArea(value) {
   return String(Math.round(Number(value ?? 0)));
+}
+
+export function formatHintRemaining(texts, n) {
+  return texts.hintRemaining.replace("{n}", n);
 }
 
 export function formatPlayerName(player, language = "zh", uiStyle = UI_STYLE_CASUAL) {

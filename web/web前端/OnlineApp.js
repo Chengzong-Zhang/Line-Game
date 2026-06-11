@@ -1,5 +1,6 @@
 import GameController from "./GameController.js?v=20260430d";
-import { Player } from "./GameEngine.js?v=20260430d";
+import { GameEngine, Player } from "./GameEngine.js?v=20260430d";
+import { MinimaxAI, restoreState, saveState } from "./AIEngine.js";
 import NetworkManager, { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js?v=20260430d";
 import {
   createEmptyAuth as createAppEmptyAuth,
@@ -19,6 +20,7 @@ import {
 import {
   formatArea as formatAppArea,
   formatConnectionState as formatAppConnectionState,
+  formatHintRemaining as formatAppHintRemaining,
   formatPlayerName as formatAppPlayerName,
   formatResetVoteMessage as formatAppResetVoteMessage,
   formatWinner as formatAppWinner,
@@ -42,6 +44,23 @@ const {
 
 if (!globalThis.Vue) {
   throw new Error("Vue runtime is not available on window.Vue.");
+}
+
+function serializeEngineState(engine) {
+  return {
+    gridSize: engine.gridSize,
+    playerCount: engine.playerCount,
+    startPlayer: engine.startPlayer,
+    activePlayers: [...engine.activePlayers],
+    gridEntries: [...engine.grid.entries()],
+    edgesBlack: [...(engine.edges.BLACK ?? [])],
+    edgesWhite: [...(engine.edges.WHITE ?? [])],
+    edgesPurple: [...(engine.edges.PURPLE ?? [])],
+    historyHashes: [...engine.historyHashes],
+    consecutiveSkips: engine.consecutiveSkips,
+    currentPlayer: engine.currentPlayer,
+    gameOver: engine.gameOver,
+  };
 }
 
 // OnlineApp 鏄仈鏈虹増椤甸潰鍏ュ彛銆?// 缁勪欢瀹氫箟鍜屼笟鍔℃祦绋嬮兘鏀惧湪杩欓噷锛屼絾閫氱敤鐘舵€佸伐鍏蜂笌鏂囨宸茬粡鎷嗗埌鐙珛妯″潡銆?
@@ -609,6 +628,8 @@ const SetupPanel = {
     "update:ui-style",
     "update:turn-timer-enabled",
     "update:turn-time-limit-seconds",
+    "update:ai-mode",
+    "update:ai-depth",
   ],
   props: {
     language: {
@@ -634,6 +655,18 @@ const SetupPanel = {
     turnTimeLimitSeconds: {
       type: Number,
       default: APP_DEFAULT_TURN_TIMER_SECONDS,
+    },
+    aiMode: {
+      type: String,
+      default: "none",
+    },
+    aiDepth: {
+      type: Number,
+      default: 3,
+    },
+    aiAvailable: {
+      type: Boolean,
+      default: true,
     },
     settingsLocked: {
       type: Boolean,
@@ -728,6 +761,34 @@ const SetupPanel = {
                 {{ count }}
               </button>
             </div>
+          </div>
+          <div>
+            <label class="field-label" for="ai-mode">{{ texts.aiOpponent }}</label>
+            <select
+              id="ai-mode"
+              class="input-field input-field-compact"
+              :value="aiMode"
+              :disabled="busy || settingsLocked || !aiAvailable || playerCount !== 2"
+              @change="$emit('update:ai-mode', $event.target.value)"
+            >
+              <option value="none">{{ texts.aiModeNone }}</option>
+              <option value="ai_white">{{ texts.aiModeWhite }}</option>
+              <option value="ai_black">{{ texts.aiModeBlack }}</option>
+            </select>
+          </div>
+          <div v-if="aiMode !== 'none'">
+            <label class="field-label" for="ai-depth">{{ texts.aiDifficulty }}</label>
+            <select
+              id="ai-depth"
+              class="input-field input-field-compact"
+              :value="aiDepth"
+              :disabled="busy || settingsLocked || !aiAvailable || playerCount !== 2"
+              @change="$emit('update:ai-depth', Number($event.target.value))"
+            >
+              <option :value="2">{{ texts.aiDifficultyEasy }}</option>
+              <option :value="3">{{ texts.aiDifficultyMedium }}</option>
+              <option :value="4">{{ texts.aiDifficultyHard }}</option>
+            </select>
           </div>
           <div class="settings-grid-item-wide">
             <label id="grid-size-label" class="field-label">{{ texts.gridSizeLabel }}</label>
@@ -1182,7 +1243,7 @@ const RoomPanel = {
 
 const ControlPanel = {
   name: "ControlPanel",
-  emits: ["skip", "reset", "emoji"],
+  emits: ["skip", "reset", "emoji", "hint"],
   props: {
     gameState: {
       type: Object,
@@ -1215,6 +1276,30 @@ const ControlPanel = {
     turnTimerRemaining: {
       type: Number,
       default: 0,
+    },
+    aiThinking: {
+      type: Boolean,
+      default: false,
+    },
+    multiplayerEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    hintRemainingCount: {
+      type: Number,
+      default: 3,
+    },
+    hintThinking: {
+      type: Boolean,
+      default: false,
+    },
+    hintDisabled: {
+      type: Boolean,
+      default: false,
+    },
+    hintFeedback: {
+      type: String,
+      default: "",
     },
     emojiOptions: {
       type: Array,
@@ -1262,9 +1347,15 @@ const ControlPanel = {
       }
       return "is-purple";
     });
+    const hintLabel = computed(() => (
+      props.hintRemainingCount === 0
+        ? texts.value.hintExhausted
+        : formatAppHintRemaining(texts.value, props.hintRemainingCount)
+    ));
 
     return {
       currentPlayerLabel,
+      hintLabel,
       texts,
       turnTimerLabel,
       turnBannerClass,
@@ -1278,10 +1369,21 @@ const ControlPanel = {
           <div class="turn-banner duel-turn-banner" :class="turnBannerClass">
             <span class="turn-dot"></span>
             <strong>{{ currentPlayerLabel }}{{ texts.turnSuffix }}</strong>
+            <small v-if="aiThinking" class="duel-timer-copy">{{ texts.aiThinking }}</small>
+            <small v-if="hintFeedback && !multiplayerEnabled" class="duel-timer-copy">{{ hintFeedback }}</small>
             <small v-if="turnTimerEnabled" class="duel-timer-copy">{{ turnTimerLabel }}</small>
           </div>
         </div>
         <div class="actions duel-actions">
+          <button
+            v-if="!multiplayerEnabled"
+            class="action-button action-button-primary"
+            style="font-size: 0.85em; padding: 4px 10px;"
+            :disabled="hintDisabled"
+            @click="$emit('hint')"
+          >
+            {{ hintLabel }}
+          </button>
           <button class="action-button action-button-primary" :disabled="skipDisabled" @click="$emit('skip')">
             {{ texts.skipTurnAction }}
           </button>
@@ -2126,6 +2228,10 @@ const BoardCanvas = {
       type: Array,
       default: () => [],
     },
+    aiThinking: {
+      type: Boolean,
+      default: false,
+    },
   },
   emits: ["state-change", "controller-ready"],
   setup(props, { emit }) {
@@ -2160,7 +2266,13 @@ const BoardCanvas = {
   template: `
     <section class="board-shell panel panel-board-focus">
       <div class="canvas-frame">
-        <canvas ref="canvasRef" class="game-canvas" :aria-label="texts.boardAriaLabel"></canvas>
+        <canvas
+          ref="canvasRef"
+          class="game-canvas"
+          :aria-label="texts.boardAriaLabel"
+          :aria-busy="aiThinking ? 'true' : 'false'"
+          :style="aiThinking ? { pointerEvents: 'none', cursor: 'not-allowed' } : null"
+        ></canvas>
       </div>
       <div class="chat-emoji-layer" aria-live="polite" aria-atomic="false">
         <div
@@ -2210,6 +2322,9 @@ const App = {
     const initialSettings = normalizeAppGameSettings(normalizedStoredSession.settings);
     const controller = ref(null);
     const gameState = ref(createAppDefaultGameState());
+    const hintRemainingCount = ref(3);
+    const hintThinking = ref(false);
+    const hintFeedback = ref("");
     const language = ref(getAppInitialLanguage());
     const uiStyle = ref(getAppInitialUiStyle());
     const guideMarkdownOverrides = ref({});
@@ -2230,6 +2345,9 @@ const App = {
     const selectedStartPlayer = ref(initialSettings.startPlayer);
     const selectedTurnTimerEnabled = ref(initialSettings.turnTimerEnabled);
     const selectedTurnTimeLimitSeconds = ref(initialSettings.turnTimeLimitSeconds);
+    const selectedAiMode = ref("none");
+    const selectedAiDepth = ref(3);
+    const aiThinking = ref(false);
     const session = ref(networkManager.getSession());
     const connectionState = ref("idle");
     const roomStatus = ref("solo");
@@ -2252,6 +2370,8 @@ const App = {
     const turnTimerRemaining = ref(0);
     const unsubscribers = [];
     let reconnectTimerId = null;
+    let hintClearTimeoutId = null;
+    let hintFeedbackTimeoutId = null;
     let turnCountdownTimerId = null;
     let countdownSnapshotRefreshTimerId = null;
     let turnTimerId = null;
@@ -2260,7 +2380,132 @@ const App = {
     let reconnectAttempt = 0;
     let syncingRemoteSettings = false;
     let guideMarkdownLoadId = 0;
+    let aiWorker = null;
+    let aiScheduleId = null;
     const chatEmojiTimeoutIds = new Set();
+
+    const getAiPlayer = () => {
+      if (selectedAiMode.value === "ai_white") {
+        return Player.WHITE;
+      }
+      if (selectedAiMode.value === "ai_black") {
+        return Player.BLACK;
+      }
+      return null;
+    };
+
+    const terminateAiWorker = () => {
+      if (aiScheduleId !== null) {
+        globalThis.clearTimeout(aiScheduleId);
+        aiScheduleId = null;
+      }
+      if (aiWorker) {
+        aiWorker.terminate();
+        aiWorker = null;
+      }
+      aiThinking.value = false;
+    };
+
+    const canRunLocalAI = (state = gameState.value) => (
+      roomStatus.value === "solo"
+      && selectedPlayerCount.value === 2
+      && selectedAiMode.value !== "none"
+      && !state?.gameOver
+      && !state?.multiplayerEnabled
+      && !controller.value?.multiplayerEnabled
+    );
+
+    const ensureAiWorker = () => {
+      if (!aiWorker && canRunLocalAI()) {
+        aiWorker = new Worker(new URL("./AIWorker.js", import.meta.url), { type: "module" });
+        aiWorker.onmessage = (event) => {
+          if (event.data?.type !== "RESULT" && event.data?.type !== "ERROR") {
+            return;
+          }
+
+          try {
+            const aiPlayer = getAiPlayer();
+            const mayApplyResult = event.data.type === "RESULT"
+              && canRunLocalAI()
+              && gameState.value.currentPlayer === aiPlayer;
+            if (!mayApplyResult) {
+              if (event.data.type === "ERROR") {
+                console.error(`AI worker failed: ${event.data.message}`);
+                terminateAiWorker();
+              }
+              return;
+            }
+
+            if (event.data.moves?.length) {
+              controller.value._applyMove(event.data.moves[0].point);
+            } else {
+              controller.value.skipTurn();
+            }
+          } finally {
+            aiThinking.value = false;
+            if (event.data.type === "RESULT") {
+              scheduleAiMove(gameState.value);
+            }
+          }
+        };
+        aiWorker.onerror = (event) => {
+          console.error("AI worker failed.", event);
+          terminateAiWorker();
+        };
+      }
+      return aiWorker;
+    };
+
+    const scheduleAiMove = (state = gameState.value) => {
+      const aiPlayer = getAiPlayer();
+      if (!canRunLocalAI(state)) {
+        if (state?.gameOver || state?.multiplayerEnabled || selectedAiMode.value === "none") {
+          terminateAiWorker();
+        }
+        return;
+      }
+      if (state.currentPlayer !== aiPlayer || aiThinking.value || aiScheduleId !== null) {
+        return;
+      }
+
+      aiThinking.value = true;
+      aiScheduleId = globalThis.setTimeout(() => {
+        aiScheduleId = null;
+        const nextAiPlayer = getAiPlayer();
+        if (
+          !canRunLocalAI()
+          || gameState.value.currentPlayer !== nextAiPlayer
+          || !controller.value?.engine
+        ) {
+          aiThinking.value = false;
+          return;
+        }
+
+        try {
+          const worker = ensureAiWorker();
+          if (!worker) {
+            aiThinking.value = false;
+            return;
+          }
+          worker.postMessage({
+            type: "COMPUTE",
+            serializedState: serializeEngineState(controller.value.engine),
+            aiPlayer: nextAiPlayer,
+            depth: selectedAiDepth.value,
+            topN: 5,
+          });
+        } catch (error) {
+          console.error("Could not start AI worker.", error);
+          terminateAiWorker();
+        }
+      }, 0);
+    };
+
+    const restartLocalAiWorker = () => {
+      terminateAiWorker();
+      ensureAiWorker();
+      scheduleAiMove();
+    };
 
     watch([language, uiStyle], ([nextLanguage, nextUiStyle]) => {
       globalThis.localStorage?.setItem("triaxis-language", nextLanguage);
@@ -2343,10 +2588,18 @@ const App = {
       selectedStartPlayer.value = normalized.startPlayer;
       selectedTurnTimerEnabled.value = normalized.turnTimerEnabled;
       selectedTurnTimeLimitSeconds.value = normalized.turnTimeLimitSeconds;
+      if (normalized.playerCount !== 2) {
+        selectedAiMode.value = "none";
+        terminateAiWorker();
+      }
       syncSession();
 
       if (roomStatus.value === "solo" && controller.value) {
+        terminateAiWorker();
         gameState.value = controller.value.setGameConfig(normalized, true);
+        resetHintUsage();
+        ensureAiWorker();
+        scheduleAiMove(gameState.value);
         return;
       }
 
@@ -2365,9 +2618,39 @@ const App = {
       }
     });
 
+    watch([selectedAiMode, selectedAiDepth], ([aiMode, aiDepth]) => {
+      if (selectedPlayerCount.value !== 2 && aiMode !== "none") {
+        selectedAiMode.value = "none";
+        return;
+      }
+      if (![2, 3, 4].includes(Number(aiDepth))) {
+        selectedAiDepth.value = 3;
+        return;
+      }
+      restartLocalAiWorker();
+    });
+
+    watch(() => gameState.value.multiplayerEnabled, (multiplayerEnabled) => {
+      if (multiplayerEnabled) {
+        terminateAiWorker();
+      } else {
+        scheduleAiMove(gameState.value);
+      }
+    });
+
+    watch(roomStatus, (status) => {
+      if (status !== "solo") {
+        terminateAiWorker();
+      } else {
+        scheduleAiMove(gameState.value);
+      }
+    });
+
     watch(() => gameState.value.gameOver, (isGameOver) => {
       if (!isGameOver) {
         resultModalDismissed.value = false;
+      } else {
+        terminateAiWorker();
       }
     });
 
@@ -2575,7 +2858,7 @@ const App = {
     };
 
     const shouldRunTurnTimer = () => {
-      if (!turnTimerEnabled.value || !controller.value) {
+      if (!turnTimerEnabled.value || !controller.value || aiThinking.value) {
         return false;
       }
 
@@ -2663,6 +2946,7 @@ const App = {
         roomStatus.value,
         turnTimerEnabled.value,
         turnTimeLimitSeconds.value,
+        aiThinking.value,
       ],
       () => {
         restartTurnTimer();
@@ -2899,8 +3183,12 @@ const App = {
         networkManager.playerId = null;
         networkManager.color = null;
         if (controller.value) {
+          terminateAiWorker();
           controller.value.disableMultiplayer();
           gameState.value = controller.value.resetGame({ force: true });
+          resetHintUsage();
+          ensureAiWorker();
+          scheduleAiMove(gameState.value);
         }
         persistAppSession(createAppEmptySession());
         syncSession();
@@ -2910,14 +3198,89 @@ const App = {
       }
     };
 
+    const clearHintFeedback = () => {
+      hintFeedback.value = "";
+      if (hintFeedbackTimeoutId !== null) {
+        globalThis.clearTimeout(hintFeedbackTimeoutId);
+        hintFeedbackTimeoutId = null;
+      }
+    };
+
+    const showHintNoMoves = () => {
+      clearHintFeedback();
+      hintFeedback.value = getAppTexts(language.value, uiStyle.value).hintNoMoves;
+      hintFeedbackTimeoutId = globalThis.setTimeout(() => {
+        hintFeedback.value = "";
+        hintFeedbackTimeoutId = null;
+      }, 1800);
+    };
+
+    const clearActiveHint = () => {
+      if (hintClearTimeoutId !== null) {
+        globalThis.clearTimeout(hintClearTimeoutId);
+        hintClearTimeoutId = null;
+      }
+      controller.value?.renderer?.clearHintPoint();
+    };
+
+    const resetHintUsage = () => {
+      clearActiveHint();
+      clearHintFeedback();
+      hintRemainingCount.value = 3;
+      hintThinking.value = false;
+    };
+
     const handleControllerReady = (instance) => {
       controller.value = instance;
       controller.value.setNetworkErrorListener(handleNetworkError);
       gameState.value = instance.setGameConfig(currentGameSettings(), true);
+      resetHintUsage();
+      restartLocalAiWorker();
     };
 
     const handleStateChange = (nextState) => {
+      clearActiveHint();
       gameState.value = nextState;
+      scheduleAiMove(nextState);
+    };
+
+    const requestHint = async () => {
+      if (!controller.value || hintDisabled.value) {
+        return;
+      }
+
+      hintThinking.value = true;
+      clearActiveHint();
+      const sourceEngine = controller.value.engine;
+      const currentPlayer = sourceEngine.currentPlayer;
+      let moves = [];
+
+      try {
+        const snapshot = saveState(sourceEngine);
+        const tempEngine = new GameEngine({
+          gridSize: sourceEngine.gridSize,
+          playerCount: sourceEngine.playerCount,
+          startPlayer: sourceEngine.startPlayer,
+        });
+        restoreState(tempEngine, snapshot);
+        moves = new MinimaxAI(2).getTopMoves(tempEngine, currentPlayer, 1);
+      } catch (error) {
+        console.warn("Unable to calculate a hint.", error);
+      } finally {
+        hintThinking.value = false;
+      }
+
+      if (moves.length === 0) {
+        showHintNoMoves();
+        return;
+      }
+
+      hintRemainingCount.value -= 1;
+      controller.value.renderer.setHintPoint(moves[0].point);
+      hintClearTimeoutId = globalThis.setTimeout(() => {
+        controller.value?.renderer?.clearHintPoint();
+        hintClearTimeoutId = null;
+      }, 4000);
     };
 
     const handleAuthSubmit = async () => {
@@ -3045,8 +3408,12 @@ const App = {
         resetRoomContext();
         syncSession();
         if (controller.value) {
+          terminateAiWorker();
           controller.value.disableMultiplayer();
           gameState.value = controller.value.resetGame({ force: true });
+          resetHintUsage();
+          ensureAiWorker();
+          scheduleAiMove(gameState.value);
         }
         persistAppSession(createAppEmptySession());
       } catch (error) {
@@ -3083,9 +3450,13 @@ const App = {
       }
 
       if (roomStatus.value === "solo") {
+        terminateAiWorker();
         gameState.value = controller.value.resetGame();
+        resetHintUsage();
         overlayResult.value = null;
         resultModalDismissed.value = false;
+        ensureAiWorker();
+        scheduleAiMove(gameState.value);
         return;
       }
 
@@ -3292,7 +3663,15 @@ const App = {
 
     const handleClosePrompt = () => {
       if (overlayResult.value?.resetAfterClose && controller.value) {
+        if (roomStatus.value === "solo") {
+          terminateAiWorker();
+        }
         gameState.value = controller.value.resetGame();
+        resetHintUsage();
+        if (roomStatus.value === "solo") {
+          ensureAiWorker();
+          scheduleAiMove(gameState.value);
+        }
       }
       overlayResult.value = null;
       resultModalDismissed.value = true;
@@ -3363,6 +3742,9 @@ const App = {
 
     const boardHint = computed(() => {
       const texts = getAppTexts(language.value, uiStyle.value);
+      if (hintFeedback.value && !gameState.value.multiplayerEnabled) {
+        return hintFeedback.value;
+      }
       if (roomStatus.value === "waiting") {
         return texts.waitingHint;
       }
@@ -3391,7 +3773,7 @@ const App = {
     });
 
     const skipDisabled = computed(() => {
-      if (!controller.value || networkBusy.value) {
+      if (!controller.value || networkBusy.value || aiThinking.value) {
         return true;
       }
 
@@ -3400,6 +3782,19 @@ const App = {
       }
 
       return gameState.value.skipLocked;
+    });
+
+    const hintDisabled = computed(() => {
+      const currentAiPlayer = getAiPlayer();
+      const currentIsAiTurn = selectedAiMode.value !== "none"
+        && gameState.value.currentPlayer === currentAiPlayer;
+      return !controller.value
+        || gameState.value.gameOver
+        || gameState.value.multiplayerEnabled
+        || roomStatus.value !== "solo"
+        || hintRemainingCount.value <= 0
+        || hintThinking.value
+        || currentIsAiTurn;
     });
 
     const resetDisabled = computed(() => {
@@ -3502,7 +3897,15 @@ const App = {
     const handleResultAction = async () => {
       if (overlayResult.value) {
         if (overlayResult.value.resetAfterClose && controller.value) {
+          if (roomStatus.value === "solo") {
+            terminateAiWorker();
+          }
           gameState.value = controller.value.resetGame();
+          resetHintUsage();
+          if (roomStatus.value === "solo") {
+            ensureAiWorker();
+            scheduleAiMove(gameState.value);
+          }
         }
         overlayResult.value = null;
         return;
@@ -3678,6 +4081,9 @@ const App = {
     );
 
     onBeforeUnmount(() => {
+      terminateAiWorker();
+      clearActiveHint();
+      clearHintFeedback();
       clearReconnectTimer();
       clearTurnCountdown();
       clearCountdownSnapshotRefresh();
@@ -3712,6 +4118,10 @@ const App = {
       boardDockBadge,
       controller,
       gameState,
+      hintRemainingCount,
+      hintThinking,
+      hintFeedback,
+      hintDisabled,
       getTexts: getAppTexts,
       activeUtilityDeck,
       guideDockBadge,
@@ -3730,6 +4140,9 @@ const App = {
       selectedStartPlayer,
       selectedTurnTimerEnabled,
       selectedTurnTimeLimitSeconds,
+      selectedAiMode,
+      selectedAiDepth,
+      aiThinking,
       session,
       connectionState,
       roomStatus,
@@ -3765,6 +4178,7 @@ const App = {
       handleAuthSubmit,
       handleLogout,
       handleStateChange,
+      requestHint,
       handleConnect,
       handleCreateRoom,
       handleJoinRoom,
@@ -3790,6 +4204,7 @@ const App = {
             :ui-style="uiStyle"
             :hint-text="boardHint"
             :emoji-bursts="chatEmojiBursts"
+            :ai-thinking="aiThinking"
             @controller-ready="handleControllerReady"
             @state-change="handleStateChange"
           />
@@ -3805,9 +4220,16 @@ const App = {
             :room-players="roomInfo.players"
             :turn-timer-enabled="turnTimerEnabled"
             :turn-timer-remaining="turnTimerRemaining"
+            :ai-thinking="aiThinking"
+            :multiplayer-enabled="gameState.multiplayerEnabled"
+            :hint-remaining-count="hintRemainingCount"
+            :hint-thinking="hintThinking"
+            :hint-disabled="hintDisabled"
+            :hint-feedback="hintFeedback"
             :emoji-options="chatEmojiOptions"
             :emoji-disabled="chatEmojiDisabled"
             @skip="handleSkip"
+            @hint="requestHint"
             @reset="handleReset"
             @emoji="handleChatEmoji"
           />
@@ -3857,6 +4279,9 @@ const App = {
             :grid-size="selectedGridSize"
             :turn-timer-enabled="selectedTurnTimerEnabled"
             :turn-time-limit-seconds="selectedTurnTimeLimitSeconds"
+            :ai-mode="selectedAiMode"
+            :ai-depth="selectedAiDepth"
+            :ai-available="roomStatus === 'solo'"
             :settings-locked="settingsLocked"
             :busy="networkBusy"
             @update:language="language = $event"
@@ -3865,6 +4290,8 @@ const App = {
             @update:grid-size="selectedGridSize = $event"
             @update:turn-timer-enabled="selectedTurnTimerEnabled = $event"
             @update:turn-time-limit-seconds="selectedTurnTimeLimitSeconds = $event"
+            @update:ai-mode="selectedAiMode = $event"
+            @update:ai-depth="selectedAiDepth = $event"
           />
 
           <ScorePanel

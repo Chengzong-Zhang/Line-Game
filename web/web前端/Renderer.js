@@ -92,6 +92,10 @@ export class Renderer {
     this._pendingRafHandle = null;
     this._pendingOptions = {};
     this._lastRenderFingerprint = "";
+    this.hintPoint = null;
+    this._hintPulsePhase = 0;
+    this._lastHintTimestamp = 0;
+    this._animationFrameId = null;
 
     this.canvas.style.position = "absolute";
     this.canvas.style.top = "0";
@@ -140,6 +144,10 @@ export class Renderer {
     if (this._pendingRafHandle !== null) {
       globalThis.cancelAnimationFrame(this._pendingRafHandle);
       this._pendingRafHandle = null;
+    }
+    if (this._animationFrameId !== null) {
+      globalThis.cancelAnimationFrame(this._animationFrameId);
+      this._animationFrameId = null;
     }
     if (this._staticDomCanvas) {
       this._staticDomCanvas.remove();
@@ -305,6 +313,59 @@ export class Renderer {
       this.layout = this._computeLayout(snapshot);
     }
     return this.layout.pointRadius * 2;
+  }
+
+  setHintPoint(point) {
+    if (!point) {
+      this.clearHintPoint();
+      return;
+    }
+
+    this.hintPoint = [point[0], point[1]];
+    this._hintPulsePhase = 0;
+    this._lastHintTimestamp = 0;
+    this._lastRenderFingerprint = "";
+
+    if (this.lastSnapshot) {
+      this.render(this.lastSnapshot);
+    }
+    if (this._animationFrameId === null) {
+      this._animationFrameId = globalThis.requestAnimationFrame((timestamp) => {
+        this._renderHintAnimation(timestamp);
+      });
+    }
+  }
+
+  clearHintPoint() {
+    const hadHint = this.hintPoint !== null;
+    this.hintPoint = null;
+    this._hintPulsePhase = 0;
+    this._lastHintTimestamp = 0;
+    if (this._animationFrameId !== null) {
+      globalThis.cancelAnimationFrame(this._animationFrameId);
+      this._animationFrameId = null;
+    }
+
+    if (hadHint && this.lastSnapshot) {
+      this._lastRenderFingerprint = "";
+      this.render(this.lastSnapshot);
+    }
+  }
+
+  _renderHintAnimation(timestamp) {
+    this._animationFrameId = null;
+    if (!this.hintPoint || !this.lastSnapshot) {
+      return;
+    }
+
+    if (this._lastHintTimestamp === 0) {
+      this._lastHintTimestamp = timestamp;
+    }
+    this._hintPulsePhase = ((timestamp - this._lastHintTimestamp) % 1200) / 1200;
+    this._doRender(this.lastSnapshot, { skipResize: true, force: true });
+    this._animationFrameId = globalThis.requestAnimationFrame((nextTimestamp) => {
+      this._renderHintAnimation(nextTimestamp);
+    });
   }
 
   _isValidGridPoint(point, gridSize) {
@@ -753,6 +814,27 @@ export class Renderer {
     ctx.restore();
   }
 
+  _drawHint(layout) {
+    if (!this.hintPoint) {
+      return;
+    }
+
+    const { x, y } = this.getPointPixelCoordinates(this.hintPoint);
+    const pulse = (Math.sin(this._hintPulsePhase * Math.PI * 2) + 1) * 0.5;
+    const radius = layout.scale * (0.25 + pulse * 0.15);
+    const ctx = this.ctx;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255, 215, 0, 0.7)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255, 165, 0, 0.9)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
+  }
+
   _getBoardFingerprint(snapshot) {
     const lp = snapshot.lastAction?.point;
     return `${snapshot.turnCount}:${snapshot.gameOver ? 1 : 0}:${snapshot.currentPlayer}:${lp ? `${lp[0]},${lp[1]}` : '-'}`;
@@ -794,7 +876,7 @@ export class Renderer {
 
     // 鑴忔鏌ワ細闈欐€佸眰 key 鍙樺寲锛坮esize/gridSize 鏀瑰彉锛変篃闇€瑕侀噸缁樺姩鎬佸眰
     const fingerprint = `${this._getBoardFingerprint(snapshot)}:${this._staticLayerKey}`;
-    if (fingerprint === this._lastRenderFingerprint) {
+    if (!options.force && fingerprint === this._lastRenderFingerprint) {
       return;
     }
     this._lastRenderFingerprint = fingerprint;
@@ -813,6 +895,7 @@ export class Renderer {
     this._drawLegalMoves(snapshot, this.layout);
     this._drawNodes(boardData, this.layout);
     this._drawLastAction(snapshot, this.layout);
+    this._drawHint(this.layout);
   }
 }
 
