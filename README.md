@@ -1,95 +1,201 @@
-﻿# TriAxis
+# Line Game（连线棋）
 
-TriAxis 是一个基于三角网格的圈地策略游戏，支持本地模式与基于 WebSocket 的联机模式。
+Line Game（连线棋）是一款运行在三角网格上的双人圈地策略棋盘游戏，支持本地人人对战和基于 Minimax 的人机对战。
 
-## 文档
+Line Game is a two-player territory-building strategy game played on a triangular grid, with both local human-vs-human and Minimax-based human-vs-AI modes.
 
-- `docs/algorithm-requirements.md`
-  三角网格圈地博弈游戏核心算法需求文档
-- `web/README.md`
-  Web 端文档与目录入口
-- `web/WEB前后端需求与架构说明.md`
-  当前 Web 前后端需求、架构、数据流与开发约束说明
-- `web/新的需求.md`
-  本轮 Web UI 与交互调整需求记录
+## 运行方法 / Getting Started
 
-## 当前能力
+### 中文
 
-- 支持双人或三人对战
-- 支持棋盘边长 5 到 15 的整数配置
-- 本地模式与联机模式共用同一套前端引擎
-- 联机房间由 FastAPI WebSocket 服务负责同步
-- 三人模式支持紫方、三方领地统计与三方终局展示
-- 联机重置采用全员确认机制，最后确认者记为该轮获胜方
+运行环境：
 
-## Web 前端结构
+- Python 3.8 或更高版本
+- Pygame
 
-- `web/web前端/index.html`
-  页面壳，加载 `main.js`
-- `web/web前端/main.js`
-  前端启动器，负责加载 Vue 运行时并挂载应用
-- `web/web前端/OnlineApp.js`
-  在线版主应用，负责组件编排、房间流程、联机状态同步
-- `web/web前端/OnlineAppState.js`
-  对局设置、会话存储、默认状态等共享状态工具
-- `web/web前端/OnlineAppI18n.js`
-  文案、语言切换、比分格式化、错误文案映射
-- `web/web前端/GameController.js`
-  前端控制层，衔接引擎、渲染器与网络层
-- `web/web前端/GameEngine.js`
-  游戏模型层，负责规则、回合、落子、面积与终局状态
-- `web/web前端/Renderer.js`
-  Canvas 渲染层，负责节点、连线、领地与棋盘绘制
-- `web/web前端/NetworkManager.js`
-  WebSocket 客户端封装，负责请求发送、事件订阅与会话恢复
-- `web/web前端/styles.css`
-  前端样式
-- `web/web前端/smoke-test.html`
-  前端基础冒烟测试页
-- `web/web前端/app.js`
-  历史兼容占位文件，真实入口已迁移到 `main.js`
-
-## Web 后端结构
-
-- `web/web后端/server.py`
-  FastAPI + WebSocket 房间服务，负责建房、入房、同步操作、重置投票与断线重连
-
-## 启动方式
-
-### 前端
-
-直接打开：
+安装依赖：
 
 ```bash
-web/web前端/index.html
+pip install pygame
 ```
 
-如果你要联机，建议先启动后端服务，再访问前端页面。
-
-### 后端
+运行原始人人对战版本：
 
 ```bash
-cd web/web后端
-pip install -r requirements.txt
-python -m uvicorn server:app --host 0.0.0.0 --port 8000
+python "core algorithm/triangular_game.py"
 ```
 
-也可以使用仓库里的启动脚本：
+运行带 AI 的版本：
 
-- `web/start/start_online_server.bat`
-- `web/start/start_online_server.ps1`
+```bash
+python AI/main_ai.py
+```
 
-## 最近整理内容
+### English
 
-- 把对局设置统一收敛到顶部单独模块
-- 把语言选择整合进对局设置
-- 清掉了失效的 `LanguageSwitcher` 组件与隐藏设置区
-- 把文案与共享状态从 `OnlineApp.js` 中拆到独立模块
-- 修正了部分中文乱码与旧入口文案
-- 明确了当前真实入口链路：`index.html -> main.js -> OnlineApp.js`
+Requirements:
 
-## 本地验证建议
+- Python 3.8 or later
+- Pygame
 
-- 打开 `web/web前端/index.html`，检查本地模式下语言、人数、棋盘边长切换
-- 启动后端后，用两个或三个浏览器窗口验证建房、入房、同步落子与全员确认重置
-- 如需快速检查前端基础交互，可打开 `web/web前端/smoke-test.html`
+Install the dependency:
+
+```bash
+pip install pygame
+```
+
+Start the original human-vs-human version:
+
+```bash
+python "core algorithm/triangular_game.py"
+```
+
+Start the AI-enabled version:
+
+```bash
+python AI/main_ai.py
+```
+
+## 操作说明 / Controls
+
+### 中文
+
+- **落子：** 使用鼠标左键点击棋盘上的合法格点。
+- **跳过回合：** 点击窗口右下角的 `Skip` 按钮。双方连续跳过后，对局结束。
+- **AI 模式选择：**
+  - 按 `1`：人人对战。
+  - 按 `2`：人类执蓝，对战执红 AI。
+  - 按 `3`：执蓝 AI，对战执红人类。
+- **AI 难度选择：**
+  - 按 `E`：简单，搜索深度为 2。
+  - 按 `M`：中等，搜索深度为 3。
+  - 按 `H`：困难，搜索深度为 4。
+- **开始游戏：** 完成模式和难度选择后，按 `Enter` 或空格键开始。
+
+棋盘共有 9 行，第 `y` 行包含 `9-y` 个格点，共 45 个格点。蓝方从 `(0, 0)` 开始，红方从 `(8, 0)` 开始。玩家每回合在合法位置放置一个节点，新节点会自动连接到同行、同列或同斜线（`x+y` 相同）上的所有可达己方节点。
+
+落子还需遵守以下规则：
+
+- 可以落在敌方连线上发动攻击，并删除被截断的敌方棋子。
+- 不能形成三个互相相邻的己方节点。
+- 不能落在对方起始节点的相邻保护区内。
+- Superko 规则禁止任何使棋盘回到历史局面的落子。
+
+### English
+
+- **Place a node:** Left-click a legal grid point.
+- **Skip a turn:** Click the `Skip` button in the lower-right corner. The game ends after two consecutive skips.
+- **Select an AI mode:**
+  - Press `1` for human vs human.
+  - Press `2` for human Blue vs AI Red.
+  - Press `3` for AI Blue vs human Red.
+- **Select AI difficulty:**
+  - Press `E` for Easy, search depth 2.
+  - Press `M` for Medium, search depth 3.
+  - Press `H` for Hard, search depth 4.
+- **Start the game:** Press `Enter` or `Space` after selecting the mode and difficulty.
+
+The board has 9 rows. Row `y` contains `9-y` points, for a total of 45 points. Blue starts at `(0, 0)` and Red starts at `(8, 0)`. On each turn, a player places one node at a legal position. The new node automatically connects to every reachable friendly node on the same row, column, or diagonal where `x+y` is equal.
+
+Moves must also follow these rules:
+
+- A node may be placed on an enemy line to attack and remove disconnected enemy pieces.
+- A move may not create three mutually adjacent friendly nodes.
+- A player may not place a node in the protection zone adjacent to the opponent's starting node.
+- The Superko rule forbids any move that recreates a previous board state.
+
+## 胜负条件 / Winning Conditions
+
+### 中文
+
+当当前玩家没有合法落子时，系统会自动跳过其回合；当双方都无法落子，或双方连续主动跳过时，游戏结束。系统计算双方围成的领土面积，面积较大的一方获胜；面积相同则为平局。
+
+### English
+
+If the current player has no legal move, their turn is skipped automatically. The game ends when neither player can move or when both players skip consecutively. The player controlling the larger territory wins; equal territory results in a draw.
+
+## AI 机制 / AI System
+
+### 中文
+
+AI 使用 **Minimax 搜索**和 **Alpha-Beta 剪枝**选择落子，并提供三档搜索深度：
+
+| 难度 | 按键 | 搜索深度 |
+| --- | --- | ---: |
+| 简单 | `E` | 2 |
+| 中等 | `M` | 3 |
+| 困难 | `H` | 4 |
+
+评估函数对以下因素进行加权求和：
+
+- 节点数量优势
+- 己方棋子与连线的覆盖优势
+- 基于 BFS 的领土近似
+- 可攻击敌方连线的威胁数量
+- 节点与起始节点的连通质量
+
+搜索前会进行走法排序，优先检查攻击走法，其次检查靠近己方连线的走法，从而提高 Alpha-Beta 剪枝效率。为控制搜索规模，每个节点最多继续搜索排序后的前 20 个候选走法。
+
+AI 在独立线程中计算，主界面保持 60 FPS 刷新。AI 落子后会显示约 1.5 秒的 Top-5 候选点：
+
+- 黄色大圆和星标：最佳候选
+- 橙色圆圈：第 2 至第 3 候选
+- 灰色圆圈：第 4 至第 5 候选
+
+### English
+
+The AI selects moves using **Minimax search** with **Alpha-Beta pruning** and offers three search depths:
+
+| Difficulty | Key | Search Depth |
+| --- | --- | ---: |
+| Easy | `E` | 2 |
+| Medium | `M` | 3 |
+| Hard | `H` | 4 |
+
+The evaluation function uses a weighted combination of:
+
+- Node-count advantage
+- Friendly-piece and line-coverage advantage
+- BFS-based territory approximation
+- Number of available attacks on enemy lines
+- Connection quality between nodes and the starting node
+
+Moves are ordered before searching. Attacking moves are checked first, followed by moves near friendly lines, improving Alpha-Beta pruning efficiency. To bound the search space, each search node explores at most the first 20 ordered moves.
+
+AI calculations run in a separate thread so the UI can continue updating at 60 FPS. After the AI moves, its top five candidates are highlighted for about 1.5 seconds:
+
+- Large yellow circle with a star: best candidate
+- Orange circles: second and third candidates
+- Gray circles: fourth and fifth candidates
+
+## 文件结构 / File Structure
+
+### 中文
+
+```text
+line game/
+├── core algorithm/
+│   ├── triangular_game.py       # 原始游戏、棋盘规则与人人对战入口
+│   └── algorithm-requirements.md
+├── AI/
+│   ├── ai_engine.py             # MinimaxAI 搜索、走法排序与 Alpha-Beta 剪枝
+│   ├── ai_game.py               # AI 游戏子类、评估函数、线程与候选点可视化
+│   ├── main_ai.py               # AI 版本入口
+│   └── minimax_ai_plan.md
+└── README.md
+```
+
+### English
+
+```text
+line game/
+├── core algorithm/
+│   ├── triangular_game.py       # Core rules and human-vs-human entry point
+│   └── algorithm-requirements.md
+├── AI/
+│   ├── ai_engine.py             # MinimaxAI search, move ordering, and Alpha-Beta pruning
+│   ├── ai_game.py               # AI game subclass, evaluation, threading, and highlights
+│   ├── main_ai.py               # AI-enabled entry point
+│   └── minimax_ai_plan.md
+└── README.md
+```

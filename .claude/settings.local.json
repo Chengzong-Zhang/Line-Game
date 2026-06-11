@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(C:/Users/zcz/anaconda3/python.exe -c \"import docx\")",
+      "Bash(C:/Users/zcz/anaconda3/python.exe -c ' *)",
+      "Bash(python3)"
     ]
   }
 }
