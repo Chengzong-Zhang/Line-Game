@@ -226,6 +226,8 @@ const EN_TEXTS = Object.freeze({
   hintRemaining: "Hint ({n})",
   hintExhausted: "No hints left",
   hintNoMoves: "No suggestion available",
+  hintSwitchLabel: "Hint Switch",
+  hintMaxCountLabel: "Hint Count",
 });
 
 const ZH_TEXTS = Object.freeze({
@@ -429,6 +431,8 @@ const ZH_TEXTS = Object.freeze({
   hintRemaining: "提示 ({n})",
   hintExhausted: "提示已用完",
   hintNoMoves: "暂无推荐落点",
+  hintSwitchLabel: "提示开关",
+  hintMaxCountLabel: "提示次数",
 });
 
 const EN_ACADEMIC_TEXT_OVERRIDES = Object.freeze({

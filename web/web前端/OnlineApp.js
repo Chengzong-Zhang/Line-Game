@@ -630,6 +630,8 @@ const SetupPanel = {
     "update:ui-style",
     "update:turn-timer-enabled",
     "update:turn-time-limit-seconds",
+    "update:hint-enabled",
+    "update:hint-max-count",
     "update:ai-mode",
     "update:ai-depth",
   ],
@@ -657,6 +659,14 @@ const SetupPanel = {
     turnTimeLimitSeconds: {
       type: Number,
       default: APP_DEFAULT_TURN_TIMER_SECONDS,
+    },
+    hintEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    hintMaxCount: {
+      type: Number,
+      default: 3,
     },
     aiMode: {
       type: String,
@@ -688,6 +698,8 @@ const SetupPanel = {
       GRID_SIZE_OPTIONS: APP_GRID_SIZE_OPTIONS,
       TURN_TIMER_MAX_SECONDS: APP_TURN_TIMER_MAX_SECONDS,
       TURN_TIMER_MIN_SECONDS: APP_TURN_TIMER_MIN_SECONDS,
+      HINT_MAX_COUNT_MIN: 1,
+      HINT_MAX_COUNT_MAX: 10,
     };
   },
   template: `
@@ -887,8 +899,33 @@ const SetupPanel = {
               @change="$emit('update:turn-time-limit-seconds', Number($event.target.value))"
             />
           </div>
+          <div>
+            <label class="field-label" for="hint-enabled">{{ texts.hintSwitchLabel }}</label>
+            <label class="toggle-field" for="hint-enabled">
+              <input
+                id="hint-enabled"
+                type="checkbox"
+                :checked="hintEnabled"
+                :disabled="busy || settingsLocked"
+                @change="$emit('update:hint-enabled', $event.target.checked)"
+              />
+              <span>{{ hintEnabled ? texts.toggleOn : texts.toggleOff }}</span>
+            </label>
+          </div>
+          <div v-if="hintEnabled">
+            <label class="field-label" for="hint-max-count">{{ texts.hintMaxCountLabel }}</label>
+            <input
+              id="hint-max-count"
+              class="input-field input-field-compact"
+              type="number"
+              :min="HINT_MAX_COUNT_MIN"
+              :max="HINT_MAX_COUNT_MAX"
+              :value="hintMaxCount"
+              :disabled="busy || settingsLocked"
+              @change="$emit('update:hint-max-count', Number($event.target.value))"
+            />
+          </div>
         </div>
-        <p class="help-copy">{{ texts.turnTimerHint }}</p>
       </div>
     </section>
   `,
@@ -1333,6 +1370,10 @@ const ControlPanel = {
       type: Boolean,
       default: false,
     },
+    hintEnabled: {
+      type: Boolean,
+      default: false,
+    },
     hintRemainingCount: {
       type: Number,
       default: 3,
@@ -1418,13 +1459,13 @@ const ControlPanel = {
             <span class="turn-dot"></span>
             <strong>{{ currentPlayerLabel }}{{ texts.turnSuffix }}</strong>
             <small v-if="aiThinking" class="duel-timer-copy">{{ texts.aiThinking }}</small>
-            <small v-if="hintFeedback && !multiplayerEnabled" class="duel-timer-copy">{{ hintFeedback }}</small>
+            <small v-if="hintFeedback && !multiplayerEnabled && hintEnabled" class="duel-timer-copy">{{ hintFeedback }}</small>
             <small v-if="turnTimerEnabled" class="duel-timer-copy">{{ turnTimerLabel }}</small>
           </div>
         </div>
         <div class="actions duel-actions">
           <button
-            v-if="!multiplayerEnabled"
+            v-if="!multiplayerEnabled && hintEnabled"
             class="action-button action-button-primary"
             style="font-size: 0.85em; padding: 4px 10px;"
             :disabled="hintDisabled"
@@ -2317,9 +2358,9 @@ const BoardCanvas = {
         <canvas
           ref="canvasRef"
           class="game-canvas"
+          :class="{ 'game-canvas-ai-thinking': aiThinking }"
           :aria-label="texts.boardAriaLabel"
           :aria-busy="aiThinking ? 'true' : 'false'"
-          :style="aiThinking ? { pointerEvents: 'none', cursor: 'not-allowed' } : null"
         ></canvas>
       </div>
       <div class="chat-emoji-layer" aria-live="polite" aria-atomic="false">
@@ -2370,7 +2411,9 @@ const App = {
     const initialSettings = normalizeAppGameSettings(normalizedStoredSession.settings);
     const controller = shallowRef(null);
     const gameState = ref(createAppDefaultGameState());
-    const hintRemainingCount = ref(3);
+    const selectedHintEnabled = ref(false);
+    const selectedHintMaxCount = ref(3);
+    const hintRemainingCount = ref(0);
     const hintThinking = ref(false);
     const hintFeedback = ref("");
     const language = ref(getAppInitialLanguage());
@@ -3274,7 +3317,7 @@ const App = {
     const resetHintUsage = () => {
       clearActiveHint();
       clearHintFeedback();
-      hintRemainingCount.value = 3;
+      hintRemainingCount.value = selectedHintEnabled.value ? selectedHintMaxCount.value : 0;
       hintThinking.value = false;
     };
 
@@ -3837,6 +3880,7 @@ const App = {
       const currentIsAiTurn = selectedAiMode.value !== "none"
         && gameState.value.currentPlayer === currentAiPlayer;
       return !controller.value
+        || !selectedHintEnabled.value
         || gameState.value.gameOver
         || gameState.value.multiplayerEnabled
         || roomStatus.value !== "solo"
@@ -4270,6 +4314,7 @@ const App = {
             :turn-timer-remaining="turnTimerRemaining"
             :ai-thinking="aiThinking"
             :multiplayer-enabled="gameState.multiplayerEnabled"
+            :hint-enabled="selectedHintEnabled"
             :hint-remaining-count="hintRemainingCount"
             :hint-thinking="hintThinking"
             :hint-disabled="hintDisabled"
@@ -4327,6 +4372,8 @@ const App = {
             :grid-size="selectedGridSize"
             :turn-timer-enabled="selectedTurnTimerEnabled"
             :turn-time-limit-seconds="selectedTurnTimeLimitSeconds"
+            :hint-enabled="selectedHintEnabled"
+            :hint-max-count="selectedHintMaxCount"
             :ai-mode="selectedAiMode"
             :ai-depth="selectedAiDepth"
             :ai-available="roomStatus === 'solo'"
@@ -4338,6 +4385,8 @@ const App = {
             @update:grid-size="selectedGridSize = $event"
             @update:turn-timer-enabled="selectedTurnTimerEnabled = $event"
             @update:turn-time-limit-seconds="selectedTurnTimeLimitSeconds = $event"
+            @update:hint-enabled="selectedHintEnabled = $event"
+            @update:hint-max-count="selectedHintMaxCount = $event"
             @update:ai-mode="selectedAiMode = $event"
             @update:ai-depth="selectedAiDepth = $event"
           />
@@ -4454,7 +4503,7 @@ const App = {
       />
       <footer class="site-footer">
         <a href="https://beian.mps.gov.cn/#/query/webSearch?code=11011402056155" rel="noreferrer" target="_blank" class="footer-beian-link footer-gongan">
-          <img src="../备案/备案图标.png" alt="公安备案图标" class="footer-gongan-icon" />
+          <img src="./assets/beian.png" alt="公安备案图标" class="footer-gongan-icon" />
           京公网安备11011402056155号
         </a>
       </footer>

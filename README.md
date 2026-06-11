@@ -1,8 +1,8 @@
-# Line Game（连线棋）
+# Lifeline Game（生命线）
 
-Line Game（连线棋）是一款运行在三角网格上的双人圈地策略棋盘游戏，支持本地人人对战和基于 Minimax 的人机对战。
+Lifeline Game（生命线）是一款运行在三角网格上的双人圈地策略棋盘游戏，支持本地人人对战和基于 Minimax 的人机对战。
 
-Line Game is a two-player territory-building strategy game played on a triangular grid, with both local human-vs-human and Minimax-based human-vs-AI modes.
+Lifeline Game is a two-player territory-building strategy game played on a triangular grid, with both local human-vs-human and Minimax-based human-vs-AI modes.
 
 ## 运行方法 / Getting Started
 
