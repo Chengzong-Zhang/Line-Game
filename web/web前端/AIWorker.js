@@ -30,9 +30,12 @@ self.onmessage = (event) => {
       consecutiveSkips: serializedState.consecutiveSkips,
       currentPlayer: serializedState.currentPlayer,
       gameOver: serializedState.gameOver,
-      turnCount: engine.turnCount,
+      turnCount: serializedState.turnCount,
       cachedTerritories: engine.cachedTerritories,
     });
+
+    // 搜索期间跳过昂贵的领土计算（评估函数用 fastTerritoryBFS 代替）
+    engine._updateTerritories = () => {};
 
     const moves = new MinimaxAI(depth).getTopMoves(engine, aiPlayer, topN);
     self.postMessage({ type: "RESULT", moves });

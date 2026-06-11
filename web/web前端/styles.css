@@ -2245,6 +2245,10 @@ body.large-board .result-overlay {
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
 }
 
+.board-choice-grid-3col {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .board-choice-option {
   position: relative;
   display: inline-flex;
@@ -2639,4 +2643,37 @@ body.large-board .result-overlay {
 .result-card .actions,
 .result-card .action-button + .action-button {
   margin-top: 12px;
+}
+
+.site-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  padding: 14px 20px 18px;
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  opacity: 0.7;
+}
+
+.footer-beian-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ink-soft);
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+
+.footer-beian-link:hover {
+  opacity: 0.9;
+  text-decoration: underline;
+}
+
+.footer-gongan-icon {
+  width: 14px;
+  height: 14px;
+  vertical-align: middle;
+  flex-shrink: 0;
 }

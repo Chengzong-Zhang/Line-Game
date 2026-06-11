@@ -39,6 +39,7 @@ const {
   onBeforeUnmount,
   onMounted,
   ref,
+  shallowRef,
   watch,
 } = globalThis.Vue ?? {};
 
@@ -60,6 +61,7 @@ function serializeEngineState(engine) {
     consecutiveSkips: engine.consecutiveSkips,
     currentPlayer: engine.currentPlayer,
     gameOver: engine.gameOver,
+    turnCount: engine.turnCount,
   };
 }
 
@@ -763,32 +765,78 @@ const SetupPanel = {
             </div>
           </div>
           <div>
-            <label class="field-label" for="ai-mode">{{ texts.aiOpponent }}</label>
-            <select
+            <label id="ai-mode-label" class="field-label">{{ texts.aiOpponent }}</label>
+            <div
               id="ai-mode"
-              class="input-field input-field-compact"
-              :value="aiMode"
-              :disabled="busy || settingsLocked || !aiAvailable || playerCount !== 2"
-              @change="$emit('update:ai-mode', $event.target.value)"
+              class="board-choice-grid board-choice-grid-3col"
+              role="radiogroup"
+              aria-labelledby="ai-mode-label"
             >
-              <option value="none">{{ texts.aiModeNone }}</option>
-              <option value="ai_white">{{ texts.aiModeWhite }}</option>
-              <option value="ai_black">{{ texts.aiModeBlack }}</option>
-            </select>
+              <button
+                type="button"
+                class="board-choice-option board-choice-size"
+                :class="{ 'is-active': aiMode === 'none' }"
+                role="radio"
+                :aria-checked="aiMode === 'none'"
+                :disabled="busy || settingsLocked || !aiAvailable || playerCount !== 2"
+                @click="$emit('update:ai-mode', 'none')"
+              >{{ texts.aiModeNone }}</button>
+              <button
+                type="button"
+                class="board-choice-option board-choice-size"
+                :class="{ 'is-active': aiMode === 'ai_black' }"
+                role="radio"
+                :aria-checked="aiMode === 'ai_black'"
+                :disabled="busy || settingsLocked || !aiAvailable || playerCount !== 2"
+                @click="$emit('update:ai-mode', 'ai_black')"
+              >{{ texts.aiModeBlack }}</button>
+              <button
+                type="button"
+                class="board-choice-option board-choice-size"
+                :class="{ 'is-active': aiMode === 'ai_white' }"
+                role="radio"
+                :aria-checked="aiMode === 'ai_white'"
+                :disabled="busy || settingsLocked || !aiAvailable || playerCount !== 2"
+                @click="$emit('update:ai-mode', 'ai_white')"
+              >{{ texts.aiModeWhite }}</button>
+            </div>
           </div>
           <div v-if="aiMode !== 'none'">
-            <label class="field-label" for="ai-depth">{{ texts.aiDifficulty }}</label>
-            <select
+            <label id="ai-depth-label" class="field-label">{{ texts.aiDifficulty }}</label>
+            <div
               id="ai-depth"
-              class="input-field input-field-compact"
-              :value="aiDepth"
-              :disabled="busy || settingsLocked || !aiAvailable || playerCount !== 2"
-              @change="$emit('update:ai-depth', Number($event.target.value))"
+              class="board-choice-grid board-choice-grid-3col"
+              role="radiogroup"
+              aria-labelledby="ai-depth-label"
             >
-              <option :value="2">{{ texts.aiDifficultyEasy }}</option>
-              <option :value="3">{{ texts.aiDifficultyMedium }}</option>
-              <option :value="4">{{ texts.aiDifficultyHard }}</option>
-            </select>
+              <button
+                type="button"
+                class="board-choice-option board-choice-size"
+                :class="{ 'is-active': aiDepth === 2 }"
+                role="radio"
+                :aria-checked="aiDepth === 2"
+                :disabled="busy || settingsLocked || !aiAvailable || playerCount !== 2"
+                @click="$emit('update:ai-depth', 2)"
+              >{{ texts.aiDifficultyEasy }}</button>
+              <button
+                type="button"
+                class="board-choice-option board-choice-size"
+                :class="{ 'is-active': aiDepth === 3 }"
+                role="radio"
+                :aria-checked="aiDepth === 3"
+                :disabled="busy || settingsLocked || !aiAvailable || playerCount !== 2"
+                @click="$emit('update:ai-depth', 3)"
+              >{{ texts.aiDifficultyMedium }}</button>
+              <button
+                type="button"
+                class="board-choice-option board-choice-size"
+                :class="{ 'is-active': aiDepth === 4 }"
+                role="radio"
+                :aria-checked="aiDepth === 4"
+                :disabled="busy || settingsLocked || !aiAvailable || playerCount !== 2"
+                @click="$emit('update:ai-depth', 4)"
+              >{{ texts.aiDifficultyHard }}</button>
+            </div>
           </div>
           <div class="settings-grid-item-wide">
             <label id="grid-size-label" class="field-label">{{ texts.gridSizeLabel }}</label>
@@ -2320,7 +2368,7 @@ const App = {
       url: initialServerUrl,
     };
     const initialSettings = normalizeAppGameSettings(normalizedStoredSession.settings);
-    const controller = ref(null);
+    const controller = shallowRef(null);
     const gameState = ref(createAppDefaultGameState());
     const hintRemainingCount = ref(3);
     const hintThinking = ref(false);
@@ -4404,6 +4452,12 @@ const App = {
         @leave="handleResultLeaveRoom"
         @close="handleClosePrompt"
       />
+      <footer class="site-footer">
+        <a href="https://beian.mps.gov.cn/#/query/webSearch?code=11011402056155" rel="noreferrer" target="_blank" class="footer-beian-link footer-gongan">
+          <img src="../备案/备案图标.png" alt="公安备案图标" class="footer-gongan-icon" />
+          京公网安备11011402056155号
+        </a>
+      </footer>
     </main>
   `,
 };
