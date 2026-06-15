@@ -20,5 +20,10 @@ smoke-test.png
 *.db
 *.db-journal
 
+# Generated submission archives and demo recordings
+submission/*.zip
+submission/**/*.mp4
+/*.mp4
+
 .DS_Store
 Thumbs.db
