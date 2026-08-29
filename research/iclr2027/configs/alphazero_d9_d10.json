@@ -1,0 +1,30 @@
+{
+  "batch_size": 64,
+  "board_sizes": [
+    5,
+    7,
+    9
+  ],
+  "c_puct": 1.5,
+  "checkpoint_every": 1,
+  "dirichlet_alpha": 0.3,
+  "dirichlet_epsilon": 0.25,
+  "final_temperature": 0.1,
+  "games_per_iteration": 1,
+  "gradient_clip_norm": 5.0,
+  "hidden_channels": 64,
+  "initial_temperature": 1.0,
+  "iterations": 1,
+  "learning_rate": 0.001,
+  "max_plies": 256,
+  "message_passing_layers": 3,
+  "observation_mode": "grid_graph",
+  "puct_simulations": 64,
+  "replay_capacity": 50000,
+  "schema_version": 1,
+  "seed": 20260825,
+  "superko_mode": "enforce",
+  "temperature_moves": 20,
+  "training_steps_per_iteration": 10,
+  "weight_decay": 0.0001
+}

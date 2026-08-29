@@ -1,0 +1,485 @@
+\documentclass{article}
+
+% ICLR had not published a 2027 template in its Master-Template repository as
+% of 2026-08-29. This draft uses the official, unmodified ICLR 2026 style
+% (commit a28d335) and must be rechecked against the 2027 release before
+% submission.
+\usepackage{iclr2026_conference,times}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{microtype}
+
+\newcommand{\lifeline}{\textsc{Lifeline-RL}}
+\newcommand{\method}{\textsc{Topology-GNN}}
+\newtheorem{definition}{Definition}
+\newtheorem{proposition}{Proposition}
+
+\title{LIFELINE-RL: A Benchmark for Topology-Aware and
+History-Dependent Self-Play}
+\author{Anonymous Authors}
+
+\begin{document}
+\maketitle
+% Temporary year label only; remove when the official ICLR 2027 style lands.
+\lhead{Under review as a conference paper at ICLR 2027}
+
+\begin{abstract}
+We introduce \lifeline, a deterministic self-play benchmark combining a
+triangular lattice, player-specific logical connectivity, cascading removal,
+and history-dependent repetition. Complete side-five enumeration finds
+reachable latent topology differences but no difference in legal actions,
+transitions, exact values, or optimal actions; a standard-start side-six replay
+instead shows Superko preventing a repeatable six-transition loop. We compare
+a padded CNN, physical-edge Grid-GNN, and typed-edge Topology-GNN in 15 matched
+mixed-size runs over sides 5, 7, and 9. All three beat Random at every seen
+size. Against UCT-MCTS-16, seven of nine model--size cells have descriptive
+Wilson lower bounds above 0.5, one is borderline, and one is inconclusive.
+Topology-GNN outscores Grid-GNN in direct play at all three sizes, but each
+200-game task repeats only two deterministic trajectories; the evidence does
+not support a global representation ranking. We release frozen protocols and
+replay-verified artifacts.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:introduction}
+
+Most board-game benchmarks expose local occupancy on a fixed lattice.
+\lifeline{} instead separates rendered occupancy from player-specific logical
+connectivity: moves can cut edges, remove disconnected components, and invoke
+a repetition rule whose legality depends on history. We ask which
+representations support self-play under these mechanisms.
+
+Our contributions are:
+\begin{enumerate}
+  \item a tested variable-size environment with exact full-state snapshots,
+  legal masks, and replayable trajectories;
+  \item exhaustive and bounded diagnostics separating latent topology
+  aliasing, decision-relevant aliasing, and Superko activation; and
+  \item a five-seed, compute-matched comparison of three representations with
+  30,600 replay-verified formal evaluation games.
+\end{enumerate}
+
+The environment contribution does not depend on a positive model result. We
+claim neither non-Markov observations, relative sample efficiency, nor
+unseen-size generalization without the corresponding test.
+
+% Related work remains intentionally omitted until references.bib contains
+% metadata-verified entries.
+
+\section{The LIFELINE-RL Benchmark}
+\label{sec:environment}
+
+\subsection{Board and actions}
+
+A board of side length $n$ contains
+\begin{equation}
+  N(n) = \frac{n(n+1)}{2}
+\end{equation}
+valid lattice points. A turn selects one lattice point or the pass action, for
+$N(n)+1$ discrete actions. The main benchmark uses two players and canonicalizes
+the observation to the player to act.
+
+\subsection{Physical occupancy and logical topology}
+
+Let $B_t$ denote physical point occupancy and let
+$E_t^{(b)}, E_t^{(w)}$ denote the explicit logical edge sets of the two players.
+Physical line points are used for rendering and blocking, whereas logical edges
+define connectivity to the protected initial node. An attack can break an edge
+and remove nodes and line points that are no longer logically connected.
+
+\subsection{Full simulator state}
+
+We model the full state as
+\begin{equation}
+  x_t = \left(B_t, E_t^{(b)}, E_t^{(w)}, H_t, p_t, c_t, z_t\right),
+\end{equation}
+where $H_t$ is the visited-state set used by the repetition rule, $p_t$ is the
+player to act, $c_t$ is the consecutive-pass count, and $z_t$ is the terminal
+flag and cached terminal outcome. Resignation is outside the frozen training
+environment.
+
+\subsection{Observation protocols}
+
+\begin{table}[t]
+  \centering
+  \caption{Pre-registered observation variants. The simulator always retains
+  the exact full state.}
+  \label{tab:observations}
+  \begin{tabular}{lll}
+    \toprule
+    Name & Exposed structure & Purpose \\
+    \midrule
+    Grid & Occupancy and turn features & Flat/spatial baseline \\
+    GridGraph & Grid plus fixed lattice edges & Size-agnostic graph baseline \\
+    Topology & GridGraph plus typed logical edges & Main reference model \\
+    TopologyHistory & Topology plus compact history features & History ablation \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+All four protocols also expose the player to act, consecutive-pass count, and
+legal-action mask. Thus a legal-set difference alone is not an alias under the
+implemented Grid protocol; it is an alias only for a separately named
+mask-free occupancy projection.
+
+\subsection{Rules and terminal reward}
+
+The executable rules distinguish occupied nodes, physical line points, and
+logical edges. Point actions extend or attack connectivity subject to protected
+regions and the three-point restriction; attacks can cut edges and cascade
+through components disconnected from a player's protected root. Superko
+transactionally rejects repeated canonical positions. Passing and automatic
+skips use the exact consecutive-pass terminal rule, after which discrete
+territory determines the winner. Training uses only terminal win/draw/loss
+reward $(+1,0,-1)$.
+
+\subsection{Implementation and validation}
+
+The dependency-free Python environment uses a fixed point ordering followed by
+PASS, lossless cloning and versioned serialization, legal-action masks, and
+replayable action sequences. The frozen environment/search suite contains 62
+passing tests. An expanded repository discovery snapshot on 2026-08-25 ran 88
+tests: 81 passed and seven optional PyTorch-dependent tests were skipped because
+the dependency was unavailable; skips are not counted as failures.
+Five targeted and 60 seeded random trajectories match the independent Web rule
+engine step by step across side lengths 5, 7, 9, 10, 12, and 15. Targeted tests
+assert exact component deletion, edge-only cuts, edge restoration, and
+transactional Superko rollback. Median end-to-end throughput in a three-repeat
+local engineering benchmark ranges from 1,574 transitions/s at side length 5
+to 19.3 transitions/s at side length 15. These measurements include legal-mask
+and observation construction and are not optimized simulator-only timings.
+
+\section{State-Aliasing Diagnostics}
+\label{sec:aliasing}
+
+\begin{definition}[Implemented Grid equivalence]
+Two full states $x$ and $x'$ are Grid-equivalent if their implemented Grid
+observations are identical: physical occupancy, fixed coordinate features,
+player to act, consecutive-pass count, and legal-action mask all agree.
+Logical edges and exact repetition histories may differ.
+\end{definition}
+
+We use \emph{occupancy projection} for the deliberately weaker map that omits
+the action mask. Results for that projection are never reported as aliases of
+the implemented Grid observation.
+
+\begin{definition}[Decision-relevant aliasing]
+An observation map $\phi$ aliases two states in a decision-relevant manner if
+$\phi(x)=\phi(x')$ but the states differ in legal actions, observable transition
+outcomes, returns, or optimal actions under a fixed game solution concept.
+\end{definition}
+
+\begin{proposition}[Reachable topology aliasing: computational witness]
+For side length $n=5$, there exist two legal histories that reach states with
+identical implemented Grid observations but different logical edge sets.
+\end{proposition}
+
+\begin{proposition}[Side-five negative result: exhaustive computation]
+Under the frozen two-player rules and standard side-five start, no pair of
+reachable Grid-equivalent states differs in legal actions, next Grid
+observation, exact zero-sum value, shared-action Q value, or optimal-action set.
+No reachable side-five move is rejected by Superko.
+\end{proposition}
+
+\paragraph{Evidence and boundary.}
+The complete raw graph contains 25,096 states and 67,505 transitions and is a
+DAG. It contains 976 Grid-alias groups and 1,088 pairs with different latent
+logical topology. An independent all-PASS backward-induction audit finds zero
+strict differences across every pair. This proves a side-five negative result,
+not nonexistence at sizes 6--15. The replay witness therefore establishes weak
+full-state aliasing only; the paper does not currently claim that Grid is
+non-Markov or strategically insufficient across the benchmark family.
+
+Separately, a standard-start side-six trajectory naturally reaches a move that
+is rejected only by Superko. If enforcement is disabled while repetitions are
+still logged, that move closes a six-transition loop that can repeat. This
+establishes that the rule can bind, but not the stricter paired-state claim:
+we have not found two naturally reachable histories with identical mask-free
+Topology and different legality for a shared action.
+
+\paragraph{Witness construction.}
+Complete enumeration is combined with seeded random walks, collision indexing,
+and bounded shared-continuation search. Versioned witnesses retain legal
+histories, observation digests, full-state fingerprints, and replay assertions;
+unsuccessful larger-board searches retain their budgets and are labelled
+\texttt{NOT\_FOUND\_WITHIN\_BUDGET}.
+
+\section{Benchmark Protocol}
+\label{sec:protocol}
+
+\subsection{Search baselines}
+
+Random, Greedy, depth-2/3 Minimax, and UCT-MCTS share one color-balanced,
+replayable arena. Minimax retains at most 20 ordered point candidates plus
+PASS and is therefore approximate. The complete five-agent matrix remains an
+engineering smoke test; formal neural evaluation uses Random and UCT-MCTS-16.
+
+\subsection{Neural self-play}
+
+All models use the same AlphaZero-style pipeline: 16 PUCT simulations,
+$c_{\mathrm{puct}}=1.5$, legal-masked priors, root Dirichlet noise
+$(\alpha,\epsilon)=(0.3,0.25)$, and temperature 1.0 for 20 plies then 0.1.
+Each model--seed run has 100 complete mixed-size games and 200 AdamW updates.
+Complete games contribute root-visit policies and terminal outcomes from the
+stored player-to-act perspective; truncations never enter replay. Checkpoints
+at steps 40, 80, 120, 160, and 200 store the optimizer, replay, counters, and
+RNG states and resume only after hash validation.
+
+\subsection{Compute matching and statistics}
+
+The comparison matches five seeds, training schedule, search, optimizer,
+checkpoints, evaluation games, and parameter count (maximum spread 0.6982\%).
+Wall-clock, transitions, FLOPs, and memory are reported but not matched. Each
+final seed-level matchup contains 100 same-seed color-swapped pairs. Pooled
+Wilson intervals count draws as half a success and are descriptive: the
+deterministic round robin contains only two action sequences per 200-game task,
+so no independent-game or multiple-comparison inference is claimed.
+
+\section{Topology-Aware Reference Model}
+\label{sec:model}
+
+Each lattice point is a graph node with occupancy, role, coordinate, and
+initial-node features. Typed edges represent (i) fixed triangular-lattice
+adjacency, (ii) black logical connections, and (iii) white logical connections.
+A relation-aware message-passing network produces per-node action logits and a
+pooled scalar value. A separate global logit represents pass.
+
+All inputs are canonicalized to the player to act. Each node receives 11
+features: five occupancy indicators, two normalized coordinates, boundary
+membership, own and opponent initial-node indicators, and the consecutive-pass
+count. For relation $r\in\{\mathrm{physical},\mathrm{own},\mathrm{opponent}\}$,
+one message-passing layer has the form
+\begin{equation}
+  h_i^{(\ell+1)}
+  = \rho\!\left(
+      W_0^{(\ell)} h_i^{(\ell)}
+      + \sum_r W_r^{(\ell)}
+        \frac{1}{|\mathcal{N}_r(i)|}
+        \sum_{j\in\mathcal{N}_r(i)} h_j^{(\ell)}
+    \right),
+\end{equation}
+with a residual connection and masked pooling over valid nodes. Grid-GNN
+exposes only the physical relation; Topology-GNN additionally remaps the two
+color-specific logical edge sets to own/opponent relations. Padded-CNN maps the
+same node features to a zero-padded square tensor and does not read any edge
+relation. All models emit one logit per point, a separate PASS logit, and a
+\texttt{tanh} value; padding and illegal actions are masked.
+
+\begin{table}[t]
+  \centering
+  \caption{Matched model families used in the formal comparison.}
+  \label{tab:model-parameters}
+  \begin{tabular}{lrrl}
+    \toprule
+    Model & Width & Parameters & Structural input \\
+    \midrule
+    Padded-CNN & 33 & 62,868 & node features only \\
+    Grid-GNN & 82 & 62,733 & physical lattice edges \\
+    Topology-GNN & 64 & 63,171 & physical + typed logical edges \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Each network uses three residual convolution/message-passing blocks. Widths
+were chosen before the formal run to keep the maximum parameter spread below
+the frozen 1\% tolerance. TopologyHistory remains a declared observation
+variant but was not included in the neural comparison.
+
+\section{Experiments}
+\label{sec:experiments}
+
+\subsection{Environment and diagnostic evidence}
+
+The frozen environment/search suite has 62 passing tests; 65 targeted or seeded
+trajectories match an independent Web implementation over sizes 5--15.
+Complete side-five enumeration covers 25,096 states and 67,505 transitions.
+All 1,088 topology-distinct Grid-equivalent pairs have identical legal sets,
+one-step observations, exact values, shared-action values, and optimal actions.
+A PASS-aware side-six search finds a natural Superko trigger, while a separate
+5,000-pair, 12,656-shared-action bounded continuation search finds no strict
+paired witness. The latter is a budgeted miss, not an absence proof.
+
+\subsection{Within-size self-play}
+
+The formal ledger contains 15 training and 315 evaluation tasks: 1,500
+self-play games, 3,000 updates, and 30,600 unique replay-verified arena games,
+with no failure or truncation. All nine model--size cells beat Random
+(Table~\ref{tab:final-search}). Against UCT-MCTS-16, Grid-GNN at $n=5$ is
+inconclusive, Padded-CNN at $n=5$ is borderline, and the other seven cells have
+descriptive lower bounds above 0.5.
+
+\begin{table}[t]
+  \centering
+  \small
+  \caption{Final-checkpoint score rates on the three training sizes. Each cell
+  pools 1,000 games over five training seeds; brackets are descriptive Wilson
+  95\% intervals.}
+  \label{tab:final-search}
+  \begin{tabular}{lrcc}
+    \toprule
+    Model & $n$ & vs.\ Random & vs.\ UCT-MCTS-16 \\
+    \midrule
+    Grid-GNN & 5 & .851 [.827,.871] & .523 [.492,.553] \\
+             & 7 & .892 [.871,.909] & .646 [.615,.675] \\
+             & 9 & .951 [.936,.963] & .848 [.824,.869] \\
+    Padded-CNN & 5 & .873 [.851,.892] & .532 [.501,.562] \\
+               & 7 & .939 [.922,.952] & .711 [.682,.738] \\
+               & 9 & .978 [.967,.985] & .914 [.895,.929] \\
+    Topology-GNN & 5 & .863 [.840,.883] & .643 [.612,.672] \\
+                 & 7 & .910 [.890,.926] & .715 [.686,.742] \\
+                 & 9 & .949 [.933,.961] & .876 [.854,.895] \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Five checkpoint probes show non-monotone, size-dependent trajectories. Because
+no area-under-curve or fixed-strength estimator was preregistered, they do not
+establish relative sample efficiency.
+
+\subsection{Representation round robin}
+
+Direct play exhibits a size--representation interaction
+(Table~\ref{tab:round-robin}). Topology-GNN outscores Grid-GNN at all three
+sizes, while Padded-CNN reverses direction against both graph models. No global
+ordering is supported.
+
+\begin{table}[h!]
+  \centering
+  \small
+  \caption{Score from A's perspective over five matched training seeds.
+  Intervals are omitted because trajectories repeat deterministically.}
+  \label{tab:round-robin}
+  \begin{tabular}{lccc}
+    \toprule
+    A vs.\ B & $n=5$ & $n=7$ & $n=9$ \\
+    \midrule
+    Topology-GNN vs.\ Grid-GNN & .65 & .80 & .60 \\
+    Padded-CNN vs.\ Grid-GNN & .50 & .55 & .30 \\
+    Padded-CNN vs.\ Topology-GNN & .60 & .30 & .50 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Across all 9,000 round-robin games, each 200-game task contains exactly two
+unique color-conditioned trajectories. Each aggregate therefore represents
+five training seeds and ten unique trajectories, not 1,000 independent trials.
+
+\subsection{Ablations}
+
+\texttt{enforce} rejects repetitions, whereas \texttt{observe} admits them
+while retaining history. In a 2,000-pair fixed-policy pilot at each of sizes 6
+and 7, only two size-7 games triggered Superko and one trajectory diverged; all
+winners agreed, no game truncated, and mean length changed by $-0.01017\%$.
+
+All internal fixed gates for score ($\pm 5$ percentage points), relative length
+($\pm 5\%$), and truncation passed for this policy, size set, and horizon. This
+supports ``empirically similar under the sampled policy,'' not rule equivalence:
+only one handcrafted policy was evaluated.
+
+A preregistered five-seed extension covered six policies, two sizes, 120
+matched pairs, and 240 replay-verified games. It observed no trigger or outcome
+effect, but every practical-similarity gate failed: each cell had only ten
+\texttt{observe} games, so $0/10$ has a 27.75\% Wilson upper bound, above the
+1\% threshold. CycleSeeking's null result is a bounded search miss, and its
+neural row is a one-game, one-update smoke checkpoint.
+
+\subsection{Compute and reproducibility}
+
+Runs used Python 3.10.20, PyTorch 2.7.1+cu118, deterministic CUDA 11.8, and an
+RTX 4060 Laptop GPU. Mean per-seed training time was 489.8/399.2/440.0\,s for
+Padded-CNN/Grid-GNN/Topology-GNN (1.85 aggregate training GPU-hours);
+evaluation compute is not yet consolidated. One canonical manifest digest
+(\texttt{1bbf2c9a9ecc...}) binds all 330 receipts. Independent aggregation
+rechecked task identity, budgets, hashes, summaries, and 30,600 replays;
+\texttt{formal\_ready=true} denotes artifact completeness, not superiority.
+
+\section{Limitations and Broader Impact}
+\label{sec:limitations}
+
+\begin{itemize}
+  \item Results cover jointly trained sizes 5, 7, and 9, not zero-shot sizes 10
+  or 12; history, logical-edge, cascade, and search-budget ablations remain.
+  \item CNN/GNN comparisons mix representation and architecture. Parameters and
+  data are matched, but FLOPs, memory, transitions, and wall time are not.
+  \item Deterministic round-robin trajectories invalidate independent-game
+  uncertainty; diversified evaluation and seed-aware inference are required.
+  \item \lifeline{} is hand-designed, and its Superko matrix is finite-policy
+  evidence. The smoke neural condition and incomplete evaluation-compute
+  accounting preclude broader efficiency claims.
+\end{itemize}
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+\lifeline{} isolates dynamic topology and history-dependent legality in a
+replayable benchmark. Side-five enumeration yields a decision-relevant negative
+result, while a side-six trace proves Superko can bind. Under one frozen
+five-seed protocol, all three learned representations beat Random on seen
+sizes; Topology-GNN outscores Grid-GNN directly, but size-dependent reversals
+and duplicated trajectories rule out a global ranking. Next steps are
+diversified seed-aware evaluation, zero-shot sizes, and isolated rule/feature
+ablations.
+
+\appendix
+
+\section{Hyperparameters and Training Details}
+\label{app:hyperparameters}
+
+\begin{table}[h]
+  \centering
+  \caption{Frozen formal training and evaluation settings shared by all three
+  learned representations.}
+  \label{tab:hyperparameters}
+  \begin{tabular}{ll}
+    \toprule
+    Setting & Value \\
+    \midrule
+    Training sizes / seeds & $\{5,7,9\}$ / 20260825--20260829 \\
+    PUCT & 16 simulations, $c_{\mathrm{puct}}=1.5$ \\
+    Root noise & $\alpha=0.3$, $\epsilon=0.25$ \\
+    Temperature & 1.0 for 20 plies, then 0.1 \\
+    Self-play / updates & 100 complete games / 200 gradient steps \\
+    Replay / batch & 10,000 / 16 \\
+    Optimizer & AdamW, lr $10^{-3}$, weight decay $10^{-4}$ \\
+    Gradient clipping & global norm 5.0 \\
+    Checkpoints & steps 40, 80, 120, 160, 200 \\
+    Terminal rule & 256 plies; enforced Superko; no shaped reward \\
+    Final evaluation & 200 games per seed and matchup \\
+    Color control & 100 same-seed swapped-color pairs \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Targets are the masked root-visit distribution and the terminal result from the
+stored player-to-act perspective. Absolute player payoffs are backed up through
+the search tree because automatic skips can leave the same player to act after
+a transition. Training loss is masked policy cross-entropy plus mean-squared
+terminal value error.
+
+\section{Additional Results}
+\label{app:additional}
+
+Canonical aggregate tables retain all checkpoints, W/D/L, seed identities,
+intervals, losses, transitions, and wall time. The formal run has no failed or
+truncated task; smoke runs and duplicate views of the step-200 UCT matchup are
+excluded from the 30,600 unique games.
+
+\section{Reproducibility Checklist}
+\label{app:reproducibility}
+
+The release includes exact source, frozen manifest, parameter audit, task
+bundle, append-only ledger, checkpoints, JSONL logs, CSV summaries, hashes, and
+independent verifiers. Aggregation fails on missing/duplicate tasks, identity or
+budget drift, truncation, color imbalance, or incomplete replay. Two interrupted
+runner invocations are documented; their first two attempts lack independent
+canonical attempt files, so per-attempt lineage is not claimed.
+
+% Enable once references.bib contains metadata-verified entries.
+% \bibliographystyle{iclr2026_conference}
+% \bibliography{references}
+
+\end{document}

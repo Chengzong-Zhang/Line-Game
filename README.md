@@ -4,6 +4,8 @@ LIFELINE 是一款运行在三角网格上的圈地策略游戏。玩家通过�
 
 项目包含完整的浏览器版本、Python/Pygame 桌面版本，以及基于 Minimax 与 Alpha-Beta 剪枝的人机对战 AI。
 
+研究代码与可复核的实验结果独立放在 [`research/`](./research/) 下，避免与可玩应用和部署文件混在一起。
+
 ## 项目特点
 
 - 自定义三角网格圈地规则，节点、连线与领土共同参与博弈。
@@ -163,6 +165,7 @@ server.py
 ```text
 line game/
 ├── README.md
+├── AGENTS.md
 ├── core algorithm/
 │   ├── triangular_game.py
 │   ├── algorithm-requirements.md
@@ -173,6 +176,16 @@ line game/
 │       ├── ai_game.py
 │       ├── main_ai.py
 │       └── test_ai_headless.py
+├── research/
+│   ├── README.md
+│   └── iclr2027/
+│       ├── README.md
+│       ├── lifeline_rl/
+│       ├── configs/
+│       ├── scripts/
+│       ├── tests/
+│       ├── results/
+│       └── paper/
 └── web/
     ├── README-WEB.md
     ├── WEB前后端需求与架构说明.md
@@ -202,3 +215,11 @@ line game/
 - 边长 `6`、`9`、`15` 下棋盘能够显示和交互。
 - 注册、登录、建房、入房、准备、动作同步、重置和断线恢复可用。
 - 中文与英文界面、桌面端与移动端布局正常。
+
+## 版本管理与实验产物
+
+- 源码、测试、配置、协议、聚合结果和验证收据进入 Git。
+- 模型检查点、逐局 JSONL、smoke/pilot、中间任务目录、缓存和日志默认只保留在本机。
+- 推送前检查暂存差异、敏感信息、大文件并运行相关测试。
+- 详细协作与版本管理约定见 [`AGENTS.md`](./AGENTS.md)，研究结果边界见
+  [`research/iclr2027/results/README.md`](./research/iclr2027/results/README.md)。

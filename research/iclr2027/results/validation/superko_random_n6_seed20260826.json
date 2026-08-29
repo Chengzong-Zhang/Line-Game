@@ -1,0 +1,61 @@
+{
+  "elapsed_seconds": 16.317449,
+  "random": {
+    "attacks_played": 2923,
+    "episode": 489,
+    "episodes_budget": 5000,
+    "grid_size": 6,
+    "max_plies": 120,
+    "passes_played": 746,
+    "ply": 10,
+    "prefix": [
+      [
+        0,
+        1
+      ],
+      [
+        4,
+        0
+      ],
+      [
+        2,
+        0
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        2,
+        3
+      ],
+      [
+        2,
+        2
+      ],
+      [
+        3,
+        1
+      ],
+      [
+        1,
+        4
+      ],
+      null,
+      [
+        1,
+        1
+      ]
+    ],
+    "rejected_actions": [
+      [
+        2,
+        3
+      ]
+    ],
+    "seed": 20260826,
+    "status": "FOUND",
+    "total_plies_examined": 8757
+  },
+  "schema_version": 1
+}

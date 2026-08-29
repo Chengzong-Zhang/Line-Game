@@ -1,0 +1,157 @@
+{
+  "schema_name": "lifeline-d14-d16-experiment-manifest",
+  "schema_version": 1,
+  "experiment_id": "d14_d16_three_representation_formal_v1",
+  "evidence_tier": "formal",
+  "status": "frozen_not_run",
+  "task_scope": "mixed_size_train_same_size_eval",
+  "representations": [
+    {
+      "id": "padded_cnn",
+      "observation": "grid_graph_relations_ignored",
+      "model_family": "padded_cnn",
+      "model_config": {
+        "hidden_channels": 33,
+        "message_passing_layers": 3
+      },
+      "expected_trainable_parameters": 62868
+    },
+    {
+      "id": "grid_gnn",
+      "observation": "grid_graph",
+      "model_family": "relation_gnn_physical_edges_only",
+      "model_config": {
+        "hidden_channels": 82,
+        "message_passing_layers": 3
+      },
+      "expected_trainable_parameters": 62733
+    },
+    {
+      "id": "topology_gnn",
+      "observation": "topology",
+      "model_family": "relation_gnn_physical_own_opponent_edges",
+      "model_config": {
+        "hidden_channels": 64,
+        "message_passing_layers": 3
+      },
+      "expected_trainable_parameters": 63171
+    }
+  ],
+  "train_sizes": [
+    5,
+    7,
+    9
+  ],
+  "seeds": [
+    20260825,
+    20260826,
+    20260827,
+    20260828,
+    20260829
+  ],
+  "training_budget": {
+    "puct_simulations": 16,
+    "self_play_games": 100,
+    "gradient_steps": 200,
+    "max_plies": 256,
+    "replay_capacity": 10000,
+    "batch_size": 16,
+    "iterations": 10,
+    "games_per_iteration": 10,
+    "training_steps_per_iteration": 20,
+    "checkpoint_every_iterations": 2,
+    "c_puct": 1.5,
+    "dirichlet_alpha": 0.3,
+    "dirichlet_epsilon": 0.25,
+    "temperature_moves": 20,
+    "initial_temperature": 1.0,
+    "final_temperature": 0.1,
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "gradient_clip_norm": 5.0,
+    "terminal_reward": "win_draw_loss_only",
+    "superko_mode": "enforce"
+  },
+  "evaluation": {
+    "curve_games_per_matchup": 20,
+    "final_games_per_matchup": 200,
+    "color_balance": "paired_swap_same_seed",
+    "max_plies": 256,
+    "superko_mode": "enforce",
+    "checkpoint_gradient_steps": [
+      40,
+      80,
+      120,
+      160,
+      200
+    ],
+    "curve_opponent": "uct_mcts_16",
+    "final_search_opponents": [
+      "random",
+      "uct_mcts_16"
+    ],
+    "representation_round_robin": true
+  },
+  "search_baselines": [
+    {
+      "id": "random",
+      "agent_kind": "random",
+      "config": {}
+    },
+    {
+      "id": "greedy",
+      "agent_kind": "greedy",
+      "config": {}
+    },
+    {
+      "id": "minimax_2_cap20",
+      "agent_kind": "minimax-2",
+      "config": {
+        "move_cap": 20
+      }
+    },
+    {
+      "id": "minimax_3_cap20",
+      "agent_kind": "minimax-3",
+      "config": {
+        "move_cap": 20
+      }
+    },
+    {
+      "id": "uct_mcts_16",
+      "agent_kind": "mcts",
+      "config": {
+        "simulations": 16,
+        "rollout_depth": 80,
+        "exploration": 1.4142135623730951
+      }
+    }
+  ],
+  "matching": {
+    "exact_fields": [
+      "board_size_schedule",
+      "seed_schedule",
+      "puct_simulations",
+      "self_play_games",
+      "gradient_steps",
+      "iteration_schedule",
+      "evaluation_games",
+      "terminal_reward",
+      "max_plies",
+      "superko_mode",
+      "optimizer_hyperparameters",
+      "temperature_schedule",
+      "dirichlet_noise"
+    ],
+    "parameter_count_scope": "trainable_parameters_per_seed",
+    "parameter_count_relative_tolerance": 0.01,
+    "wall_clock_seconds": "reported_not_matched"
+  },
+  "notes": [
+    "This manifest is a frozen protocol and is not evidence that any formal training or arena task completed.",
+    "Each seed/model is one mixed-size training run over boards 5, 7, and 9; evaluation is reported separately at each size.",
+    "Every final matchup is paired by seed and swaps colors for exactly 100 game pairs; learning-curve probes use 10 pairs.",
+    "The five non-learning baseline classes remain declared for the frozen search matrix; neural final evaluation focuses on Random and compute-matched UCT-MCTS-16.",
+    "All five seeds, including explicitly failed runs, must appear in the result ledger."
+  ]
+}

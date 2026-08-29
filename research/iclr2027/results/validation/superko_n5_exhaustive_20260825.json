@@ -1,0 +1,18 @@
+{
+  "elapsed_seconds": 35.054271,
+  "exhaustive": {
+    "candidate": null,
+    "distinct_move_history_keys": 14855,
+    "grid_size": 5,
+    "include_nonterminal_passes": true,
+    "is_dag": true,
+    "max_raw_path_length": 40,
+    "max_reachable_history_key_union": 1605,
+    "natural_superko_found": false,
+    "states": 25096,
+    "status": "COMPLETE",
+    "topological_nodes": 25096,
+    "transitions": 67505
+  },
+  "schema_version": 1
+}

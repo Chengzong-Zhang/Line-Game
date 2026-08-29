@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "grid_size": 5,
+  "description": "Reachable equal-board states with distinct WHITE logical edges.",
+  "histories": {
+    "A": [[0, 3], [0, 4], [0, 1], [1, 3], [2, 1], [2, 0], [2, 2], [3, 1], [0, 4], [1, 1], [0, 2], [1, 3]],
+    "B": [[0, 1], [3, 1], [0, 4], [1, 1], [2, 2], [2, 0], [0, 3], [1, 3], [1, 2], [0, 2]]
+  },
+  "expected": {
+    "current_player": "WHITE",
+    "board": [1, 0, 3, 4, 3, 1, 3, 4, 3, 3, 4, 4, 0, 3, 0],
+    "edge_present_only_in_A": [[1, 3], [4, 0]],
+    "common_legal_action": [0, 4]
+  }
+}

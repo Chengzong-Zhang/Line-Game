@@ -1,0 +1,56 @@
+{
+  "alias_analysis": {
+    "counts": {
+      "different_exact_black_values": 0,
+      "different_legal_action_sets": 0,
+      "different_optimal_action_sets": 0,
+      "different_shared_action_q_values": 0,
+      "different_visible_one_step_outcomes": 0,
+      "disjoint_optimal_action_sets": 0,
+      "distinct_topology_pairs": 1088,
+      "grid_alias_groups": 976
+    },
+    "first_witnesses": {}
+  },
+  "exact_solution_checks": {
+    "initial_black_value": 1,
+    "pass_nonterminal_edge_mismatches": 0,
+    "pass_terminal_from_zero_skips": 2080
+  },
+  "exhaustive_superko_analysis": {
+    "candidate": null,
+    "distinct_move_history_keys": 14855,
+    "grid_size": 5,
+    "include_nonterminal_passes": true,
+    "is_dag": true,
+    "max_raw_path_length": 40,
+    "max_reachable_history_key_union": 1605,
+    "natural_superko_found": false,
+    "states": 25096,
+    "status": "COMPLETE",
+    "topological_nodes": 25096,
+    "transitions": 67505
+  },
+  "independent_graph_checks": {
+    "all_edge_targets_in_range": true,
+    "reachable_nodes": 25096,
+    "root_reaches_all_nodes": true,
+    "unique_node_keys": true,
+    "unique_outgoing_actions": true
+  },
+  "omitted_zero_skip_terminal_pass_effect": {
+    "legacy_initial_black_value": 1,
+    "states_with_optimal_set_difference": 1272,
+    "states_with_value_difference": 294
+  },
+  "schema_version": 1,
+  "scope": "complete raw side-five graph; larger boards are not covered",
+  "versioned_weak_fixture": {
+    "implemented_grid_observations_equal": true,
+    "implemented_topology_observations_equal": false,
+    "legal_action_sets_equal": true,
+    "logical_edge_sets_equal": false,
+    "replay_succeeds": true,
+    "superko_history_sets_equal": false
+  }
+}

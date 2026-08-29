@@ -1,0 +1,60 @@
+{
+  "checkpoint": {
+    "path": "C:\\coding\\py\\line game\\research\\iclr2027\\results\\formal\\d14_d16\\run_v1\\tasks\\train.mixed_n5-7-9.topology_gnn.seed20260825__dd47afdb1e6c\\training_run\\snapshots\\gradient_000200\\checkpoint_000010.pt",
+    "sha256": "7180ca466e1f657ed2359e13f4b42fbd133b8e973081a295ef66600a18481207",
+    "source_hash": "21a46dbd787090fc18c24cb4e29ebe1dd743203d31abeda43b3ce421833b596c",
+    "strict_source_verified": true
+  },
+  "checks": {
+    "checkpoint_metadata": true,
+    "games_completed": true,
+    "gradient_steps": true,
+    "initialization_runtime": true,
+    "losses_finite": true,
+    "parameters_changed": true,
+    "parameters_finite": true,
+    "replay_loss_improved": true,
+    "replay_samples": true,
+    "strict_source_verified": true,
+    "topology_model": true
+  },
+  "claim_eligible": true,
+  "config": {
+    "evaluation_batch_size": 128,
+    "evidence_tier": "formal",
+    "maximum_samples": 4096,
+    "minimum_games_completed": 100,
+    "minimum_gradient_steps": 200,
+    "minimum_relative_loss_improvement": 0.01,
+    "minimum_replay_samples": 32,
+    "require_topology_gnn": true
+  },
+  "evidence_tier": "formal",
+  "observed": {
+    "final_losses": {
+      "policy_loss": 1.9393160568783656,
+      "total_loss": 2.855494283349313,
+      "value_loss": 0.9161782264709473
+    },
+    "games_completed": 100,
+    "gradient_steps": 200,
+    "initial_losses": {
+      "policy_loss": 2.099188143639918,
+      "total_loss": 3.076177625095143,
+      "value_loss": 0.9769894814552249
+    },
+    "model_kind": "topology_gnn",
+    "observation_mode": "topology",
+    "parameter_count": 63171,
+    "parameter_delta_l2": 4.276982373921961,
+    "relative_total_loss_improvement": 0.07173946652024182,
+    "replay_samples_evaluated": 1564,
+    "replay_samples_retained": 1564
+  },
+  "passed": true,
+  "schema": {
+    "name": "lifeline-alphazero-learning-health",
+    "version": 1
+  },
+  "scope_note": "In-replay optimizer health only; arena results are required for strength or generalization claims."
+}

@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "central_comparison": {
+    "experiments": [
+      "AZ-GRID",
+      "AZ-TOPO"
+    ],
+    "seeds": [
+      20260825,
+      20260826,
+      20260827,
+      20260828,
+      20260829
+    ],
+    "status": "reserved_not_run"
+  },
+  "superko_policy_matrix_v1": {
+    "seeds": [
+      2111448885,
+      1179994698,
+      1147703047,
+      2073532949,
+      281460105
+    ],
+    "status": "completed_verified_attempt2_engineering_extension",
+    "accepted_attempt": {
+      "attempt_id": "20260825T181100.857057Z_2b973f822cb6",
+      "result": {
+        "path": "results/validation/superko_policy_matrix_five_seed_v1_attempt2.json",
+        "sha256": "b19739867173759a2edd5986d360520084bc9c8a9bbc31ac0fa40306a7345548"
+      },
+      "journal": {
+        "path": "results/validation/superko_policy_matrix_five_seed_v1_attempt2.json.blocks.jsonl",
+        "sha256": "630cf24bab3d825b8ebd82d86ee9cf3822c2c4430caf4b0af0e2d503a18412e0"
+      },
+      "manifest": {
+        "path": "configs/superko_policy_matrix_v1_attempt2_manifest.json",
+        "sha256": "d7df1541145e30401d299dd3bb59980195d6081a6eb6774473c48165dff0419b"
+      },
+      "verification": {
+        "status": "PASS",
+        "conditions": 12,
+        "blocks": 60,
+        "games_replayed": 240,
+        "formal_sidecars": 62,
+        "checkpoint_files": 1,
+        "skipped_checks": false
+      }
+    },
+    "failed_attempts": [
+      {
+        "attempt_id": "20260825T174713.323613Z_2b973f822cb6",
+        "journal_sha256": "9aedb362ed2e63ff3bc0ccf0fa4b0aad24f940335fcf9a976c68c62f427181e5",
+        "failure": "RuntimeError: source files changed during the run: lifeline_rl\\alphazero\\evaluation.py",
+        "formal_json_written": false,
+        "accepted_as_evidence": false
+      }
+    ],
+    "formal_outcomes_inspected_before_retry": false,
+    "reuse_exact_preregistered_seeds_and_budgets": true,
+    "claim_boundary": "descriptive five-seed engineering extension; not rule equivalence and not a paper-quality RL baseline"
+  },
+  "notes": "The central AZ-GRID/AZ-TOPO seeds remain reserved and unrun. The separate Superko policy matrix completed under its own derived seeds and verified retry lineage."
+}

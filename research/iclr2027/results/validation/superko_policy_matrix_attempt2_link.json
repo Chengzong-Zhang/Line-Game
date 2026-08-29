@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "experiment": "superko-policy-matrix-v1",
+  "policy": "failed attempts are retained and excluded; retries reuse the exact preregistered seeds and budgets",
+  "attempt1": {
+    "attempt_id": "20260825T174713.323613Z_2b973f822cb6",
+    "manifest_path": "configs/superko_policy_matrix_v1_manifest.json",
+    "manifest_sha256": "1926cd45999937dd2c14814ad6d14e1c12e02fcb87cb247ccccb51677b3f8422",
+    "journal_path": "results/validation/superko_policy_matrix_five_seed_v1.json.blocks.jsonl",
+    "journal_sha256": "9aedb362ed2e63ff3bc0ccf0fa4b0aad24f940335fcf9a976c68c62f427181e5",
+    "journal_size_bytes": 4896198,
+    "journal_records": 62,
+    "block_records": 60,
+    "episode_records_structurally_present": 240,
+    "terminal_event": "attempt_failed",
+    "error_type": "RuntimeError",
+    "error": "source files changed during the run: lifeline_rl\\alphazero\\evaluation.py",
+    "formal_json_written": false,
+    "accepted_as_formal_evidence": false
+  },
+  "attempt2": {
+    "attempt_id": "20260825T181100.857057Z_2b973f822cb6",
+    "status": "completed_independently_verified",
+    "manifest_path": "configs/superko_policy_matrix_v1_attempt2_manifest.json",
+    "manifest_sha256": "d7df1541145e30401d299dd3bb59980195d6081a6eb6774473c48165dff0419b",
+    "result": {
+      "path": "results/validation/superko_policy_matrix_five_seed_v1_attempt2.json",
+      "sha256": "b19739867173759a2edd5986d360520084bc9c8a9bbc31ac0fa40306a7345548",
+      "size_bytes": 10264595
+    },
+    "journal": {
+      "path": "results/validation/superko_policy_matrix_five_seed_v1_attempt2.json.blocks.jsonl",
+      "sha256": "630cf24bab3d825b8ebd82d86ee9cf3822c2c4430caf4b0af0e2d503a18412e0",
+      "size_bytes": 4896080,
+      "terminal_event": "attempt_completed"
+    },
+    "verification_receipt": "results/validation/superko_policy_matrix_five_seed_v1_attempt2_verification.json",
+    "verification": {
+      "status": "PASS",
+      "conditions": 12,
+      "blocks": 60,
+      "games_replayed": 240,
+      "formal_sidecars": 62,
+      "checkpoint_files": 1,
+      "skipped_checks": false
+    },
+    "formal_outcomes_inspected_before_retry": false,
+    "reuse_exact_preregistered_seeds_and_budgets": true
+  },
+  "forensic_assessment": {
+    "computational_effect_on_action_selection_expected": false,
+    "reason": "the edited arena-gating module was loaded before gameplay, was not reloaded, and is not called by game generation or frozen-checkpoint inference",
+    "audit_disposition": "attempt1 quarantined because the formal source-integrity gate failed"
+  }
+}

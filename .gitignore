@@ -14,6 +14,13 @@ server.log
 .ruff_cache/
 .chrome-profile/
 examples/
+tmp/
+pytest-cache-files-*/
+**/pytest-cache-files-*/
+**/.audit-tmp-*/
+**/.codex-test-temp/
+**/.codex-test-tmp-root/
+**/.test-tmp/
 
 phase4-check.png
 smoke-test.png
@@ -24,6 +31,40 @@ smoke-test.png
 submission/*.zip
 submission/**/*.mp4
 /*.mp4
+/local_artifacts/
+
+# Local model checkpoints and generated training state
+*.pt
+*.pth
+*.ckpt
+
+# Research artifacts kept locally because they are large, provisional, or
+# reproducible from the tracked code/configuration. Curated summaries,
+# receipts, and verification evidence remain trackable.
+research/iclr2027/results/smoke/
+research/iclr2027/results/pilot/
+research/iclr2027/results/formal/d14_d16/run_v1/tasks/
+research/iclr2027/results/formal/d14_d16/runner_control_v1/*.stdout.txt
+research/iclr2027/results/formal/d14_d16/runner_control_v1/*.stderr.txt
+research/iclr2027/results/**/games.jsonl
+research/iclr2027/results/validation/*.blocks.jsonl
+research/iclr2027/results/validation/superko_policy_matrix_five_seed_v1_attempt2.json
+research/iclr2027/results/validation/superko_ablation_n6_n7_canonical_pilot_20260825.json
+research/iclr2027/results/validation/superko_ablation_n6_n7_pilot_20260825.json
+research/iclr2027/results/validation/superko_policy_matrix_dryrun_all_n6_n7.json
+research/iclr2027/results/validation/superko_ablation_smoke_20260825.json
+
+# Local TLS certificate bundles and private keys
+web/备案/lifelinegame.cn_nginx/
 
 .DS_Store
 Thumbs.db
+
+# LaTeX build products (the source and final PDF remain versioned)
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.out
+*.synctex.gz

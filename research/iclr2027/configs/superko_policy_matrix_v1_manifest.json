@@ -1,0 +1,119 @@
+{
+  "schema_version": 1,
+  "experiment": "superko-policy-matrix-v1",
+  "formal_config": {
+    "sizes": [
+      6,
+      7
+    ],
+    "policies": [
+      "random",
+      "greedy",
+      "minimax-2",
+      "mcts",
+      "frozen-rl",
+      "cycle-seeking"
+    ],
+    "seeds": [
+      2111448885,
+      1179994698,
+      1147703047,
+      2073532949,
+      281460105
+    ],
+    "blocks_per_seed": 1,
+    "max_plies": 120,
+    "minimax_move_cap": 20,
+    "mcts_simulations": 16,
+    "mcts_rollout_depth": 24,
+    "mcts_exploration": 1.4142135623730951,
+    "cycle_max_depth": 4,
+    "cycle_branch_limit": 5,
+    "cycle_node_budget": 1000,
+    "rl_simulations": 4,
+    "rl_c_puct": 1.5,
+    "rl_device": "cpu",
+    "bootstrap_resamples": 10000
+  },
+  "source_sha256": {
+    "SUPERKO_POLICY_MATRIX_PROTOCOL.md": "e3cd42c3574c5633b0a20955f00617bbb8403148df770141e53805b46054e026",
+    "lifeline_rl\\__init__.py": "6e40ede87432a3b4258d0f31a9bbe87c92bb668885cc5c020e420c1388f47592",
+    "lifeline_rl\\agents\\__init__.py": "19018efcaba773b02152d92657893745d0a8a0b59684cb5333603e7f6fefe892",
+    "lifeline_rl\\agents\\base.py": "1ddec90c62491f747fdb670d042b60a99f7559487afdfc42e468f16990fd8b6c",
+    "lifeline_rl\\agents\\cycle_seeking.py": "1a227ccb1cce0bfe1a78dcc99baf6df05f0697fcf9f5fee12841bc3c661e552d",
+    "lifeline_rl\\agents\\factory.py": "737be45b442b17cf9d76c1f6223ed0c6e0dd059aebeaa3a25793a5f5d7d63481",
+    "lifeline_rl\\agents\\greedy.py": "6c7cd96cc96a7c4789ff0f78a08f40ba92ec4a5e7199f125978fd3c3483ba622",
+    "lifeline_rl\\agents\\heuristic.py": "f5a90d1989fa1d2466e9908e905026867fe1b3b9afd8f5027a17f466dc807a0c",
+    "lifeline_rl\\agents\\mcts.py": "0ab01dae6a796b00c61748a30670c2e6195b14f8edd02152fa1f6ffb4998acaf",
+    "lifeline_rl\\agents\\minimax.py": "4c905517cce420aa6b678975f208c370b02f252e4d39caa07d456ab164babb68",
+    "lifeline_rl\\agents\\random_agent.py": "416b7c94bc8cd989165a18543cefab03810561ae243958a4f42946305d3d628a",
+    "lifeline_rl\\alphazero\\__init__.py": "9e39d68620b6e914770f94faf3a3a803253530e824d1c50d76cf01e160c1cdea",
+    "lifeline_rl\\alphazero\\checkpoint.py": "ae296c577a1f08f1477dd2e2b6dbc699de1757923cf616ba89ae13ce9713a601",
+    "lifeline_rl\\alphazero\\config.py": "8b7657f77d1ba20f502b888ae52844af799e9dd863daf6c95eeb24c4fd2fd0f3",
+    "lifeline_rl\\alphazero\\evaluation.py": "947b7dc3cc13e85bca12908810363aa443bbaecc28cf96930c15766801f69825",
+    "lifeline_rl\\alphazero\\learning_health.py": "fb65f691aeb50f4f22294f36686a8ba25fe632a6588f19f16bb7b0187798b794",
+    "lifeline_rl\\alphazero\\network.py": "02d92f165ff445aa9e92266933d5ed83fe04c19d3201fcde6803705762c41f09",
+    "lifeline_rl\\alphazero\\neural_agent.py": "b75890109bd7b0a60948a5d63bf5e180048a6100a4e48a08ee1bd850736c200d",
+    "lifeline_rl\\alphazero\\puct.py": "8609060212d517dd98a5567aabd6e26f016e0524ce392641abcdc5c6e1a3f979",
+    "lifeline_rl\\alphazero\\replay.py": "c8dcd0cb744daf43715b95a8ce70a613ba03a411a38442a628956d6607c28bdf",
+    "lifeline_rl\\alphazero\\self_play.py": "b0c910488a7e0cd54f4b06cf222e0626bbd768af25fa8592623f08b98cf56f9a",
+    "lifeline_rl\\alphazero\\trainer.py": "d9782ead5b7ef31c40a4ab6d233ecebf08e82f56f599f161b5fd56e75d7b3c54",
+    "lifeline_rl\\arena.py": "a613574baee606c2ed87de9eb0408dc61356b9ee2d41ed7a6f5b099d22ae9599",
+    "lifeline_rl\\core.py": "a3219c931608ab76f466cf5278e6297ddfdf128b19d721a16fab895eb81e05e7",
+    "lifeline_rl\\encoding.py": "b9a6a14cb627853936333968c8e931d7622b56ad6f0c48251b5e658d5494c33d",
+    "lifeline_rl\\env.py": "b6b1d53b49057995a9b37bf1d87fd19fda15c68253fbaf9e2d8c6b032c6da03c",
+    "scripts\\run_superko_policy_matrix.py": "249ce4e63ba511d2d7cd29ba89c0b4f6dd91375cc175a4ef7cc45da56292eed4",
+    "state_aliasing\\superko_n6_witness_v1.json": "a2916486d2a9c4738b1b8a01f72a91a689f968e20d1b6673b5e4f05a15927155"
+  },
+  "checkpoint": {
+    "path": "C:\\coding\\py\\line game\\research\\iclr2027\\results\\smoke\\alphazero\\d9_d10_topology_smoke_verified_seed20260825",
+    "sha256": "24fc1e93b74b64e2fdcd79f126f14377916557ac4e1b770b57662a1fe77dc423",
+    "config_hash": "4941d9d2c45615592672dacfa7624f2095d045dc74f48a7df6b8eb464bf253fd",
+    "source_hash": "90fffac7a50fdcf25b5d2fcd2bcb8e109d176fa261ef6766715f87e2b95124df"
+  },
+  "revision_audit": {
+    "timing_artifact": "results/smoke/superko_policy_matrix/superko_policy_matrix_dryrun_all_n6_n7.json",
+    "timing_artifact_sha256": "4e6f8ca9afd241728e5c217e7ad182f9fbdcc99cbf997cad130524074627219c",
+    "timing_runner_sha256": "2309f7a5e3780eee9bd4f2f0c4b650ae0bf3252745e27a22fb42302ad7b361e6",
+    "final_tree_preflight": "results/smoke/superko_policy_matrix/superko_policy_matrix_final_tree_preflight.json",
+    "final_tree_preflight_sha256": "248dc906df2b7dda9fb1c07eda7e315f74001951221757dee3a16faff2124ebc",
+    "trace_regression_games": 8,
+    "trace_regression_matches": 8
+  },
+  "verification": {
+    "verifier": "scripts/verify_superko_policy_matrix.py",
+    "verifier_sha256": "0c7bb0fe56a4c1e65115633e608e5b59ab100bc792c5d467373d43193a58c1e2",
+    "runner_test_sha256": "d19458ad7d87c2365b7e84fd0eb097481c7a599e2322a259631fe7ececc3b7aa",
+    "verifier_test_sha256": "c007435ab1e2a1aae91ec65f494758b4d03f1581ae13be9d0bd22cea8d034237",
+    "targeted_regression_tests": 50,
+    "targeted_regression_status": "PASS",
+    "preflight_games_replayed": 8,
+    "preflight_verifier_status": "PASS"
+  },
+  "checkpoint_provenance": {
+    "classification": "engineering_smoke_checkpoint_not_paper_baseline",
+    "fixed_weight_sha256": "24fc1e93b74b64e2fdcd79f126f14377916557ac4e1b770b57662a1fe77dc423",
+    "saved_source_hash": "90fffac7a50fdcf25b5d2fcd2bcb8e109d176fa261ef6766715f87e2b95124df",
+    "current_source_hash": "df1a5bf13a797118c0f5c1d247ebe5bac48645ec29d3dcae9afc7b260e305609",
+    "saved_source_hash_matches_current": false,
+    "source_migration_waiver": true,
+    "checkpoint_manifest_sha256": "d672e53b3fcd53d4c443fb7022a4bfde1cdbd0d838d1a8538ba61162dcd384e4",
+    "run_metadata_sha256": "5d8339f96364046dfc83fc09d09ae51fda67aaca3a3527db4537abe3e50bfe1e",
+    "resolved_config_sha256": "50b0a2b634106a3830aedc12425abfdc06462beebd03d1ae43c5928f45e4782b",
+    "trained_board_sizes": [
+      5
+    ],
+    "train_superko_mode": "enforce",
+    "self_play_games": 1,
+    "gradient_steps": 1,
+    "parameter_count": 2131
+  },
+  "expected_receipt": {
+    "conditions": 12,
+    "blocks": 60,
+    "games": 240,
+    "journal_records": 62,
+    "checkpoint_files": 1,
+    "formal_sidecar_checks_skipped": false
+  }
+}

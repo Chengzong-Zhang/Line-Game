@@ -1,0 +1,19 @@
+{
+  "attempted_this_invocation": 64,
+  "complete_receipts": 330,
+  "evidence_tier": "formal",
+  "experiment_id": "d14_d16_three_representation_formal_v1",
+  "failed_receipts": 0,
+  "failed_this_invocation": 0,
+  "formal_ready": true,
+  "manifest_sha256": "1bbf2c9a9ecc9174cd2d4b4299e22289dea58b7a53885e1be923374add2841cb",
+  "missing_preview": [],
+  "receipts_missing": 0,
+  "receipts_present": 330,
+  "result_ledger": "C:\\coding\\py\\line game\\research\\iclr2027\\results\\formal\\d14_d16\\run_v1\\result_receipts.jsonl",
+  "schema_name": "lifeline-d14-d16-execution",
+  "schema_version": 1,
+  "skipped_complete": 251,
+  "skipped_failed": 0,
+  "updated_at_utc": "2026-08-27T22:09:31.018147Z"
+}

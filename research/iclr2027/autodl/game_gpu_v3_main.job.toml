@@ -1,0 +1,41 @@
+name = "lifeline-game-main-v3-training"
+
+image_uuid = "base-image-ec1e9vdbd3"
+framework = "pytorch"
+framework_version = "2.8.0"
+cuda_runtime = "12.8"
+python_version = "3.12"
+setup_revision = "game-main-v3-1"
+setup_command = "python3 -m pip install -e ."
+environment_probe_command = "python3 -c 'import torch; assert torch.cuda.is_available(); assert tuple(map(int, torch.__version__.split(\"+\")[0].split(\".\")[:2])) >= (2, 8)'"
+
+command = "python3 scripts/run_autodl_main_training.py --config configs/autodl_main_v3.json --output-root $AUTODL_WORK_DIR/main_training --summary $AUTODL_EXPORT_DIR/main_training_summary.json --max-wall-seconds 99600"
+
+readiness_command = "C:/Users/zcz/anaconda3/envs/rl310/python.exe -B scripts/run_autodl_main_training.py --config configs/autodl_main_v3.json --validate-only --fixture state_aliasing/pairs_v1.json"
+readiness_timeout_seconds = 300
+
+gpu_smoke_command = "python3 scripts/autodl_game_gpu.py gpu-smoke --config configs/autodl_game_gpu_v2.json --fixture state_aliasing/pairs_v1.json --seconds 20 --profile-output $AUTODL_WORK_DIR/throughput_profile.json"
+gpu_smoke_timeout_seconds = 240
+min_gpu_utilization_percent = 50
+
+code_path = "C:/Users/zcz/autodl-game-stage/iclr2027-main-v3-20260828"
+input_paths = []
+
+# 28 hours of paid worker time; the main runner exits 20 minutes earlier so
+# all 12 seeds can finish their current iteration and write safe checkpoints.
+max_runtime_seconds = 100800
+accelerator = "cuda"
+selection_strategy = "ordered"
+instance_reuse = "prefer"
+min_cpu_cores = 24
+min_ram_gb = 64
+cuda_v_from = 128
+gpu_num = 1
+min_vram_gb = 32
+allowed_gpu_specs = ["5090-p"]
+expand_system_disk_by_gb = 0
+
+[environment]
+PYTHONUNBUFFERED = "1"
+OMP_NUM_THREADS = "2"
+MKL_NUM_THREADS = "2"

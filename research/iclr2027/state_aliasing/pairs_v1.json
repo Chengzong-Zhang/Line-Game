@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "dataset_id": "lifeline_rl_state_aliasing_pairs",
+  "dataset_version": "1.0.0",
+  "generated_from_rules": "lifeline_rl 0.1.0",
+  "history_semantics": "Each history is the complete action sequence from the standard initial state; null denotes PASS.",
+  "claim_status": {
+    "strict_grid_topology_pairs": 0,
+    "strict_history_superko_pairs": 0,
+    "weak_grid_topology_pairs": 2,
+    "weak_history_pairs": 1,
+    "interpretation": "No strict pair is claimed. Side five has an exhaustive negative certificate; side six evidence is bounded search only."
+  },
+  "observation_definitions": {
+    "implemented_grid": "The exact encode_observation(game, 'grid') payload, including board, player, consecutive skips, coordinates, and legal-action mask.",
+    "implemented_topology": "The implemented_grid payload plus physical and typed logical edges.",
+    "full_rule_state": "Board, typed logical edges, player, skip/terminal state, and the complete Superko history set."
+  },
+  "pairs": [
+    {
+      "pair_id": "weak_grid_topology_n5_v1",
+      "classification": "reachable_weak_topology_alias",
+      "strict": false,
+      "grid_size": 5,
+      "history_a": [[0, 3], [0, 4], [0, 1], [1, 3], [2, 1], [2, 0], [2, 2], [3, 1], [0, 4], [1, 1], [0, 2], [1, 3]],
+      "history_b": [[0, 1], [3, 1], [0, 4], [1, 1], [2, 2], [2, 0], [0, 3], [1, 3], [1, 2], [0, 2]],
+      "expected": {
+        "board": [1, 0, 3, 4, 3, 1, 3, 4, 3, 3, 4, 4, 0, 3, 0],
+        "current_player": "WHITE",
+        "consecutive_skips": 1,
+        "game_over": false,
+        "implemented_grid_observation_sha256": "4a90d00fd4fad1106a892007dc7968324b985567f7ec7f07d7a7a0f855a4995c",
+        "implemented_topology_observation_sha256_a": "7b9b1b0580eb90d2e24f39f5ec92079891f16b6afe1a28bf81b2efd92415bf5b",
+        "implemented_topology_observation_sha256_b": "3e31c0cd01267fcc93bb63d492ce3ffd34c9d2f1e4e7d4bd3f005df6341db294",
+        "state_fingerprint_a": "6e99394bc6a26a23099a67a179f81c2b068024a8099d11f066d2cf1b4c783c2d",
+        "state_fingerprint_b": "7460664705fca9bf58f799721a275196d915370f310cbf98ea79dd5f770a989a",
+        "history_key_count_a": 13,
+        "history_key_count_b": 11,
+        "legal_actions": [[0, 4]],
+        "logical_edges_only_in_a": {
+          "BLACK": [],
+          "WHITE": [[[4, 0], [1, 3]]]
+        },
+        "logical_edges_only_in_b": {
+          "BLACK": [],
+          "WHITE": []
+        }
+      },
+      "evidence": {
+        "action": [0, 4],
+        "action_legal_in_both": true,
+        "successor_implemented_grid_observations_equal": true,
+        "successor_logical_edge_sets_equal": false,
+        "successor_terminal": true,
+        "successor_winner": "WHITE",
+        "successor_rewards": {"BLACK": -1.0, "WHITE": 1.0},
+        "decision_relevance_found": false
+      }
+    },
+    {
+      "pair_id": "weak_grid_topology_n6_v1",
+      "classification": "reachable_weak_topology_alias",
+      "strict": false,
+      "grid_size": 6,
+      "history_a": [[0, 3], [2, 0], [0, 1], [0, 5], [3, 0], [0, 4], [2, 3], [4, 1]],
+      "history_b": [[3, 0], [0, 5], [0, 1], [0, 2], [0, 3], [0, 4], [2, 3], [4, 1]],
+      "expected": {
+        "board": [1, 2, 2, 1, 0, 3, 1, 0, 2, 0, 3, 2, 2, 0, 0, 1, 2, 1, 0, 0, 0],
+        "current_player": "BLACK",
+        "consecutive_skips": 0,
+        "game_over": false,
+        "implemented_grid_observation_sha256": "e0a3cb375bb97eb257be4735f476df10f18227187cbec966a1bdc5cf634240ed",
+        "implemented_topology_observation_sha256_a": "d7f52a31191c0126db9ea11b0c22eca27b8b01490a832bbf2665b53a8bcad2e3",
+        "implemented_topology_observation_sha256_b": "c63fbd398cc741acaa2fbd9ee1ecc12cb2bdd85cf594b05e72ec5c3a030f6813",
+        "state_fingerprint_a": "267898d223dfef9728cf4c319a0d3288b256a2a02a833a2361133b851aa6f8bd",
+        "state_fingerprint_b": "f019e67c4515fb69841f10aae60ff6051ed9ce4b98ac52caaed3368863e15fb2",
+        "history_key_count_a": 9,
+        "history_key_count_b": 9,
+        "legal_actions": [[2, 0], [2, 1], [3, 1], [1, 2], [2, 2], [3, 2], [0, 4], [1, 4], [0, 5]],
+        "logical_edges_only_in_a": {
+          "BLACK": [[[0, 0], [0, 3]]],
+          "WHITE": []
+        },
+        "logical_edges_only_in_b": {
+          "BLACK": [],
+          "WHITE": []
+        }
+      },
+      "evidence": {
+        "direct_shared_actions_checked": [null, [2, 0], [2, 1], [3, 1], [1, 2], [2, 2], [3, 2], [0, 4], [1, 4], [0, 5]],
+        "all_direct_successor_implemented_grid_observations_equal": true,
+        "paired_continuation_search": {
+          "status": "NOT_FOUND_WITHIN_BUDGET",
+          "max_pair_states": 5000,
+          "pair_states_examined": 5000,
+          "actions_examined": 12656,
+          "max_depth": 20,
+          "max_depth_reached": 7,
+          "frontier_remaining": 6295
+        },
+        "decision_relevance_found": false
+      }
+    },
+    {
+      "pair_id": "weak_history_alias_n5_v1",
+      "classification": "reachable_weak_history_alias",
+      "strict": false,
+      "grid_size": 5,
+      "history_a": [[0, 3], [0, 4], [0, 1], [2, 0]],
+      "history_b": [[0, 1], [2, 0], [0, 3], [0, 4]],
+      "expected": {
+        "board": [1, 0, 3, 4, 3, 1, 0, 0, 4, 2, 0, 4, 1, 4, 3],
+        "current_player": "BLACK",
+        "consecutive_skips": 0,
+        "game_over": false,
+        "implemented_grid_observation_sha256": "96d339d49bc28fec949db949b470e6322fdd420ff2c579b723f4b3240243f829",
+        "implemented_topology_observation_sha256": "993c5cd7ac799578931519d963fa484a23398e0800e9ffd90616c5ef861811ab",
+        "topology_history_observation_sha256_a": "7c03d001ee9d5ddaa5efe11bf894429a17d1579b5721c198a651daf968a60af9",
+        "topology_history_observation_sha256_b": "b5b3f53c6837df71e11ef86a2519b0aa79b31ab82aede5f71903dee19717e6a0",
+        "state_fingerprint_a": "3901600cb393a6ae2c182f8732f5871bfd0f5cab76cfbc6d1080ea5fdb9a2556",
+        "state_fingerprint_b": "75a5c121916544918122f8821a6180cb313009f313440221f01eeef2da419075",
+        "history_key_count_a": 5,
+        "history_key_count_b": 5,
+        "legal_actions": [[2, 1], [1, 2], [1, 3]],
+        "superko_rejected_actions_a": [],
+        "superko_rejected_actions_b": [],
+        "logical_edges": {
+          "BLACK": [[[0, 0], [0, 1]], [[0, 0], [0, 3]], [[0, 1], [0, 3]]],
+          "WHITE": [[[2, 0], [4, 0]], [[4, 0], [0, 4]]]
+        }
+      },
+      "evidence": {
+        "direct_shared_actions_checked": [null, [2, 1], [1, 2], [1, 3]],
+        "all_direct_successor_implemented_topology_observations_equal": true,
+        "history_sets_equal": false,
+        "superko_legality_difference_found": false,
+        "decision_relevance_found": false
+      }
+    }
+  ]
+}

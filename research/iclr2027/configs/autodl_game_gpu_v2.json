@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "model_kind": "topology_gnn",
+  "observation_mode": "topology",
+  "hidden_channels": 64,
+  "message_passing_layers": 3,
+  "actor_candidates": [16, 32, 64, 128],
+  "training_batch_candidates": [4096, 8192, 16384, 32768, 65536],
+  "puct_simulations": 4,
+  "max_plies": 96,
+  "seed": 20260830
+}

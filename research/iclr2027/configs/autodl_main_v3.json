@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "experiment_id": "lifeline_autodl_main_v3_pilot",
+  "seeds": [20260901, 20260902, 20260903, 20260904, 20260905, 20260906, 20260907, 20260908, 20260909, 20260910, 20260911, 20260912],
+  "max_workers": 12,
+  "torch_threads_per_worker": 2,
+  "runtime": {
+    "actor_count": 32,
+    "inference_amp": false
+  },
+  "alphazero": {
+    "schema_version": 1,
+    "seed": 20260901,
+    "observation_mode": "topology",
+    "model_kind": "topology_gnn",
+    "board_sizes": [5, 7, 9],
+    "iterations": 1000000,
+    "games_per_iteration": 32,
+    "puct_simulations": 16,
+    "c_puct": 1.5,
+    "dirichlet_alpha": 0.3,
+    "dirichlet_epsilon": 0.25,
+    "max_plies": 256,
+    "temperature_moves": 20,
+    "initial_temperature": 1.0,
+    "final_temperature": 0.1,
+    "replay_capacity": 100000,
+    "batch_size": 256,
+    "training_steps_per_iteration": 16,
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "gradient_clip_norm": 5.0,
+    "hidden_channels": 64,
+    "message_passing_layers": 3,
+    "checkpoint_every": 5,
+    "superko_mode": "enforce"
+  }
+}

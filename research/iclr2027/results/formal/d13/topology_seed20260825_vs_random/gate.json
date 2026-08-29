@@ -1,0 +1,126 @@
+{
+  "agent_a": {
+    "metadata": {
+      "class": "lifeline_rl.alphazero.neural_agent.NeuralPUCTAgent",
+      "config": {
+        "allow_superko_mode_override": false,
+        "checkpoint": {
+          "config_hash": "af59c55d60653a275d11e2520a97b5b73c3a581579c005f365c32aa148a10e56",
+          "created_at_utc": "2026-08-25T19:38:39.364339Z",
+          "games_completed": 100,
+          "gradient_steps": 200,
+          "iteration": 10,
+          "path": "C:\\coding\\py\\line game\\research\\iclr2027\\results\\formal\\d14_d16\\run_v1\\tasks\\train.mixed_n5-7-9.topology_gnn.seed20260825__dd47afdb1e6c\\training_run\\snapshots\\gradient_000200\\checkpoint_000010.pt",
+          "sha256": "7180ca466e1f657ed2359e13f4b42fbd133b8e973081a295ef66600a18481207",
+          "source_hash": "21a46dbd787090fc18c24cb4e29ebe1dd743203d31abeda43b3ce421833b596c"
+        },
+        "device": "cuda",
+        "label": "alphazero-topology_gnn-7180ca466e1f",
+        "legacy_architecture": null,
+        "model_kind": "topology_gnn",
+        "network_config": {
+          "hidden_channels": 64,
+          "message_passing_layers": 3
+        },
+        "observation_mode": "topology",
+        "parameter_count": 63171,
+        "schema_version": 1,
+        "search": {
+          "c_puct": 1.5,
+          "simulations": 16,
+          "temperature": 0.0
+        },
+        "train_superko_mode": "enforce",
+        "trained_board_sizes": [
+          5,
+          7,
+          9
+        ]
+      },
+      "name": "alphazero-topology_gnn-7180ca466e1f"
+    },
+    "name": "alphazero-topology_gnn-7180ca466e1f"
+  },
+  "agent_b": {
+    "metadata": {
+      "class": "lifeline_rl.agents.random_agent.RandomAgent",
+      "name": "random"
+    },
+    "name": "random"
+  },
+  "artifact_binding": {
+    "games_sha256": "ac96922799487068326aa6ca5870790453137ceafe6fd6877bf220cd68898e96",
+    "summary_sha256": "a6b4728efb1579c4c532aeb8378c1cc2a74162ee5a62cae4925991c3be84eb0a"
+  },
+  "checks": {
+    "action_replays_valid": true,
+    "agent_a_checkpoint_has_training_on_eval_size": true,
+    "agent_a_is_frozen_neural_checkpoint": true,
+    "agent_a_training_and_evaluation_rules_match": true,
+    "color_balanced": true,
+    "completed_games_met": true,
+    "d13_formal_decisions_bound_to_checkpoint": true,
+    "d13_formal_evaluation_protocol_frozen": true,
+    "d13_formal_topology_final_checkpoint": true,
+    "formal_inference_protocol_recorded": true,
+    "game_indices_contiguous": true,
+    "minimum_score_rate_met": true,
+    "opponent_is_random": true,
+    "paired_seeds_and_colors": true,
+    "requested_games_exact": true,
+    "summary_agent_identities_match_games": true,
+    "summary_color_stats_match": true,
+    "summary_counts_match": true,
+    "summary_score_rate_matches": true,
+    "summary_wilson_interval_matches": true,
+    "truncation_limit_met": true,
+    "wilson_lower_bound_met": true
+  },
+  "claim_eligible": true,
+  "config": {
+    "completed_games_required": 200,
+    "evidence_tier": "formal",
+    "games_required": 200,
+    "gate_kind": "beat_random",
+    "maximum_truncated_games": 0,
+    "minimum_score_rate": null,
+    "minimum_wilson_lower_bound_exclusive": 0.5,
+    "require_color_balance": true,
+    "require_paired_seeds": true,
+    "schema_version": 1,
+    "verify_replays": true
+  },
+  "evidence_tier": "formal",
+  "gate_kind": "beat_random",
+  "observed": {
+    "a_as_black_games": 100,
+    "a_as_white_games": 100,
+    "a_losses": 8,
+    "a_score_ci95_wilson": [
+      0.8448186177864638,
+      0.9302930375380627
+    ],
+    "a_score_rate": 0.895,
+    "a_wins": 166,
+    "base_seed": 20260825,
+    "color_balance": "paired_swap_same_seed",
+    "color_pairs_verified": 100,
+    "draws": 26,
+    "eval_size": 5,
+    "games_completed": 200,
+    "games_in_artifact": 200,
+    "games_requested": 200,
+    "max_plies": 256,
+    "pairing_errors": [],
+    "replay_errors": [],
+    "replay_verified_games": 200,
+    "superko_mode": "enforce",
+    "truncated_games": 0
+  },
+  "passed": true,
+  "reasons": [],
+  "schema": {
+    "name": "lifeline_rl.alphazero.arena_gate",
+    "version": 1
+  }
+}

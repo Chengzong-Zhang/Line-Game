@@ -1,0 +1,114 @@
+{
+  "benchmark_contract": {
+    "action_selection": "seeded uniform random legal point action",
+    "environment": "LifelineEnv",
+    "observation_mode": "physical (alias of grid)",
+    "pass_injection": "every 97th counted transition when non-terminal",
+    "repeats": 3,
+    "timed_scope": "reset, legal mask, step, observation, and terminal scoring",
+    "warmup_transitions_per_size": 20
+  },
+  "configurations": [
+    {
+      "episodes_per_repeat": 20,
+      "grid_size": 5,
+      "maximum_transitions_per_second": 1615.2558,
+      "mean_transitions_per_second": 1563.5281,
+      "median_transitions_per_second": 1573.9195,
+      "minimum_transitions_per_second": 1501.4091,
+      "population_stdev": 47.055,
+      "rates_transitions_per_second": [
+        1615.2558,
+        1573.9195,
+        1501.4091
+      ],
+      "requested_transitions_per_repeat": 200,
+      "workload_seed": 20260830
+    },
+    {
+      "episodes_per_repeat": 8,
+      "grid_size": 7,
+      "maximum_transitions_per_second": 681.9722,
+      "mean_transitions_per_second": 635.1035,
+      "median_transitions_per_second": 617.4669,
+      "minimum_transitions_per_second": 605.8713,
+      "population_stdev": 33.4776,
+      "rates_transitions_per_second": [
+        605.8713,
+        617.4669,
+        681.9722
+      ],
+      "requested_transitions_per_repeat": 200,
+      "workload_seed": 20260832
+    },
+    {
+      "episodes_per_repeat": 6,
+      "grid_size": 9,
+      "maximum_transitions_per_second": 278.8839,
+      "mean_transitions_per_second": 259.5351,
+      "median_transitions_per_second": 273.3208,
+      "minimum_transitions_per_second": 226.4008,
+      "population_stdev": 23.5394,
+      "rates_transitions_per_second": [
+        278.8839,
+        273.3208,
+        226.4008
+      ],
+      "requested_transitions_per_repeat": 200,
+      "workload_seed": 20260834
+    },
+    {
+      "episodes_per_repeat": 5,
+      "grid_size": 10,
+      "maximum_transitions_per_second": 129.5743,
+      "mean_transitions_per_second": 126.501,
+      "median_transitions_per_second": 125.0393,
+      "minimum_transitions_per_second": 124.8892,
+      "population_stdev": 2.1741,
+      "rates_transitions_per_second": [
+        129.5743,
+        125.0393,
+        124.8892
+      ],
+      "requested_transitions_per_repeat": 200,
+      "workload_seed": 20260835
+    },
+    {
+      "episodes_per_repeat": 3,
+      "grid_size": 12,
+      "maximum_transitions_per_second": 66.234,
+      "mean_transitions_per_second": 63.6575,
+      "median_transitions_per_second": 64.7943,
+      "minimum_transitions_per_second": 59.9441,
+      "population_stdev": 2.6907,
+      "rates_transitions_per_second": [
+        64.7943,
+        59.9441,
+        66.234
+      ],
+      "requested_transitions_per_repeat": 200,
+      "workload_seed": 20260837
+    },
+    {
+      "episodes_per_repeat": 3,
+      "grid_size": 15,
+      "maximum_transitions_per_second": 20.0442,
+      "mean_transitions_per_second": 19.4181,
+      "median_transitions_per_second": 19.2567,
+      "minimum_transitions_per_second": 18.9533,
+      "population_stdev": 0.4598,
+      "rates_transitions_per_second": [
+        19.2567,
+        18.9533,
+        20.0442
+      ],
+      "requested_transitions_per_repeat": 200,
+      "workload_seed": 20260840
+    }
+  ],
+  "measured_at_utc": "2026-08-25T12:44:01.121607+00:00",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "processor": "AMD64 Family 25 Model 117 Stepping 2, AuthenticAMD",
+  "python": "3.12.11 (main, Sep  3 2025, 20:15:31)  [GCC 15.2.0 64 bit (AMD64)]",
+  "schema_version": 1
+}

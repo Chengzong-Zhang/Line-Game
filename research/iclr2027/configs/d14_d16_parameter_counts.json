@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "status": "verified_local_dry_run",
+  "verified_on": "2026-08-26",
+  "runtime": {
+    "python": "3.10.20",
+    "torch": "2.7.1+cu118",
+    "device": "NVIDIA GeForce RTX 4060 Laptop GPU"
+  },
+  "reference": {
+    "representation": "topology_gnn",
+    "hidden_channels": 64,
+    "message_passing_layers": 3,
+    "parameter_count": 63171
+  },
+  "counts": [
+    {
+      "representation": "padded_cnn",
+      "hidden_channels": 33,
+      "message_passing_layers": 3,
+      "parameter_count": 62868
+    },
+    {
+      "representation": "grid_gnn",
+      "hidden_channels": 82,
+      "message_passing_layers": 3,
+      "parameter_count": 62733
+    },
+    {
+      "representation": "topology_gnn",
+      "hidden_channels": 64,
+      "message_passing_layers": 3,
+      "parameter_count": 63171
+    }
+  ]
+}

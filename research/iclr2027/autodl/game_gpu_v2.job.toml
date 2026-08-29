@@ -1,0 +1,52 @@
+name = "lifeline-game-gpu-v3c-benchmark"
+
+# Live UI selection verified on 2026-08-28:
+# PyTorch 2.8.0 / Python 3.12 (Ubuntu 22.04) / CUDA 12.8.
+# Cross-checked against the live AutoDL selector and a captured public
+# /api/v1/image/all response for the exact environment above.
+image_uuid = "base-image-ec1e9vdbd3"
+
+framework = "pytorch"
+framework_version = "2.8.0"
+cuda_runtime = "12.8"
+python_version = "3.12"
+# pyproject.toml is package metadata, not a pip requirements file.  The
+# runner installs dependency_lock with `pip install -r`, so leave it unset
+# and install this dependency-free package through setup_command instead.
+setup_revision = "game-gpu-v3c-1"
+setup_command = "python3 -m pip install -e ."
+environment_probe_command = "python3 -c 'import torch; assert torch.cuda.is_available(); assert tuple(map(int, torch.__version__.split(\"+\")[0].split(\".\")[:2])) >= (2, 8)'"
+
+command = "python3 scripts/autodl_game_gpu.py remote-benchmark --config configs/autodl_game_gpu_v2.json --fixture state_aliasing/pairs_v1.json --throughput-profile $AUTODL_WORK_DIR/throughput_profile.json --output $AUTODL_EXPORT_DIR/game_gpu_benchmark.json --games 16 --max-plies 48 --training-seconds 30"
+
+# This executes locally once before any paid API write.
+readiness_command = "C:/Users/zcz/anaconda3/envs/rl310/python.exe -B scripts/autodl_game_gpu.py readiness --config configs/autodl_game_gpu_v2.json --fixture state_aliasing/pairs_v1.json"
+readiness_timeout_seconds = 300
+
+# This executes on the selected AutoDL GPU before the bounded benchmark.
+gpu_smoke_command = "python3 scripts/autodl_game_gpu.py gpu-smoke --config configs/autodl_game_gpu_v2.json --fixture state_aliasing/pairs_v1.json --seconds 20 --profile-output $AUTODL_WORK_DIR/throughput_profile.json"
+gpu_smoke_timeout_seconds = 180
+min_gpu_utilization_percent = 50
+
+# The user's policy currently allows C:/Users/zcz, so a tiny immutable stage is
+# used instead of uploading the 829 MB research/results tree.
+code_path = "C:/Users/zcz/autodl-game-stage/iclr2027-v3c-20260828"
+input_paths = []
+
+max_runtime_seconds = 1800
+accelerator = "cuda"
+# Live account pricing was tied at CNY 2.88/hour for westDC3 v-48g and
+# beijingDC2 5090-p. Prefer 5090-p for higher model throughput plus the
+# observed 25-core/90-GB host profile; no instance is created by this file.
+selection_strategy = "ordered"
+instance_reuse = "prefer"
+min_cpu_cores = 8
+min_ram_gb = 32
+cuda_v_from = 128
+gpu_num = 1
+min_vram_gb = 32
+allowed_gpu_specs = ["5090-p"]
+expand_system_disk_by_gb = 0
+
+[environment]
+PYTHONUNBUFFERED = "1"

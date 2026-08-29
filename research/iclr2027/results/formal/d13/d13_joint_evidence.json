@@ -1,0 +1,41 @@
+{
+  "arena_games_replayed": 200,
+  "artifact_binding": {
+    "arena_games": {
+      "path": "C:\\coding\\py\\line game\\research\\iclr2027\\results\\formal\\d13\\topology_seed20260825_vs_random\\games.jsonl",
+      "sha256": "8a6ca0904b4eb26a135ebf96d7fad6a2fa4faadd426fc73e95efb3d2356e288e"
+    },
+    "arena_gate": {
+      "path": "C:\\coding\\py\\line game\\research\\iclr2027\\results\\formal\\d13\\topology_seed20260825_vs_random\\gate.json",
+      "sha256": "464630200799577217b278d27e7e9597b90d9ddcce3c1d37f1f9b8277547cc51"
+    },
+    "arena_summary": {
+      "path": "C:\\coding\\py\\line game\\research\\iclr2027\\results\\formal\\d13\\topology_seed20260825_vs_random\\summary.json",
+      "sha256": "ab14341f24e0f3c1370f876cb6a4e1107f216244f6f6bdba4671109642af25f2"
+    },
+    "learning_health": {
+      "path": "C:\\coding\\py\\line game\\research\\iclr2027\\results\\formal\\d13\\topology_seed20260825_learning_health.json",
+      "sha256": "f463dd1ad6829aa8ff0728ab4822ca1834cad01df6f575f9721325b5926561fe"
+    }
+  },
+  "checkpoint_sha256": "7180ca466e1f657ed2359e13f4b42fbd133b8e973081a295ef66600a18481207",
+  "claim_eligible": true,
+  "games_completed": 100,
+  "gradient_steps": 200,
+  "model_kind": "topology_gnn",
+  "schema": {
+    "name": "lifeline-d13-joint-evidence",
+    "version": 1
+  },
+  "source_hash": "21a46dbd787090fc18c24cb4e29ebe1dd743203d31abeda43b3ce421833b596c",
+  "status": "PASS",
+  "verifier_binding": {
+    "arena_runner_sha256": "1d82c61b8fa60f06c3006dea7b7ca1cb5dfa240f6c66e2535668da4144e3c2f5",
+    "arena_verifier_sha256": "f587beccf5800c18c691b6f34e689e27903a56814b11e9bf1cf5acd822b03e38",
+    "checkpoint_source_hash": "21a46dbd787090fc18c24cb4e29ebe1dd743203d31abeda43b3ce421833b596c",
+    "evaluation_source_sha256": "c2a9e3afaeac0803c15e71d04a86526194f4d84ebc7f68649525b8bb2b07c225",
+    "joint_verifier_sha256": "56df1605e6e1cab005a1301bcaa23a3866151f47b602534ec9c4742e677b58d1",
+    "learning_health_source_sha256": "fb65f691aeb50f4f22294f36686a8ba25fe632a6588f19f16bb7b0187798b794",
+    "learning_verifier_sha256": "ea361e15946e1ecd87d9f224d638b5c11750d9c23a63dfd48195c3c2be39cc50"
+  }
+}

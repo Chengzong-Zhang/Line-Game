@@ -1,0 +1,36 @@
+{
+  "artifacts": {
+    "evaluation_tasks": "C:\\coding\\py\\line game\\research\\iclr2027\\results\\formal\\d14_d16\\task_bundle_v1\\evaluation_tasks.jsonl",
+    "manifest": "C:\\coding\\py\\line game\\research\\iclr2027\\results\\formal\\d14_d16\\task_bundle_v1\\manifest_snapshot.json",
+    "training_tasks": "C:\\coding\\py\\line game\\research\\iclr2027\\results\\formal\\d14_d16\\task_bundle_v1\\training_tasks.jsonl"
+  },
+  "evaluation_breakdown": {
+    "curve_nonfinal": 180,
+    "final_search": 90,
+    "representation_round_robin": 45
+  },
+  "evaluation_tasks": 315,
+  "evidence_tier": "formal",
+  "experiment_id": "d14_d16_three_representation_formal_v1",
+  "manifest_sha256": "1bbf2c9a9ecc9174cd2d4b4299e22289dea58b7a53885e1be923374add2841cb",
+  "representations": [
+    "padded_cnn",
+    "grid_gnn",
+    "topology_gnn"
+  ],
+  "schema_version": 1,
+  "seeds": [
+    20260825,
+    20260826,
+    20260827,
+    20260828,
+    20260829
+  ],
+  "status": "tasks_generated_not_run",
+  "train_sizes": [
+    5,
+    7,
+    9
+  ],
+  "training_tasks": 15
+}

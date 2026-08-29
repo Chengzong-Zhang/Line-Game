@@ -1,0 +1,41 @@
+# One-shot policy for the authorized Game benchmark on 2026-08-28.
+# Worst planned paid envelope: 30 min startup + 30 min benchmark + 30 min
+# warm idle. At the enforced CNY 3.333/hour ceiling this is under CNY 5.
+live_enabled = true
+state_dir = "C:/Users/zcz/.autodl-runner-direct"
+control_root = "C:/Users/zcz/.autodl-runner-control"
+allowed_local_roots = ["C:/Users/zcz"]
+result_root = "C:/Users/zcz/autodl-results"
+
+max_concurrent_instances = 1
+max_job_runtime_seconds = 1800
+startup_timeout_seconds = 1800
+max_input_bytes = 2000000000
+max_export_bytes = 268435456
+transfer_parallelism = 4
+parallel_file_threshold_bytes = 67108864
+control_reserve_bytes = 67108864
+min_balance_milliyuan = 10000
+max_hourly_spend_milliyuan = 3333
+max_price_milliyuan_per_hour = 3333
+orchestration_lock_timeout_seconds = 1200
+provision_timeout_seconds = 600
+bootstrap_timeout_seconds = 600
+ssh_port_timeout_seconds = 300
+ssh_auth_timeout_seconds = 420
+ssh_tools_timeout_seconds = 600
+iteration_wait_seconds = 0
+idle_grace_seconds = 1800
+watchdog_fallback_seconds = 120
+poll_interval_seconds = 3
+telemetry_interval_seconds = 5
+recovery_runtime_seconds = 900
+auto_release = false
+
+[[candidates]]
+gpu_spec_uuid = "5090-p"
+data_center = "beijingDC2"
+gpu_num = 1
+vram_gb = 32
+cpu_cores = 0
+ram_gb = 0

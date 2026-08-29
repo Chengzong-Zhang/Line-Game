@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "agent_a": "alphazero-topology_gnn-7180ca466e1f",
+  "agent_b": "random",
+  "agent_a_metadata": {
+    "name": "alphazero-topology_gnn-7180ca466e1f",
+    "class": "lifeline_rl.alphazero.neural_agent.NeuralPUCTAgent",
+    "config": {
+      "schema_version": 1,
+      "label": "alphazero-topology_gnn-7180ca466e1f",
+      "model_kind": "topology_gnn",
+      "observation_mode": "topology",
+      "network_config": {
+        "hidden_channels": 64,
+        "message_passing_layers": 3
+      },
+      "trained_board_sizes": [
+        5,
+        7,
+        9
+      ],
+      "train_superko_mode": "enforce",
+      "parameter_count": 63171,
+      "device": "cuda",
+      "checkpoint": {
+        "path": "C:\\coding\\py\\line game\\research\\iclr2027\\results\\formal\\d14_d16\\run_v1\\tasks\\train.mixed_n5-7-9.topology_gnn.seed20260825__dd47afdb1e6c\\training_run\\snapshots\\gradient_000200\\checkpoint_000010.pt",
+        "sha256": "7180ca466e1f657ed2359e13f4b42fbd133b8e973081a295ef66600a18481207",
+        "config_hash": "af59c55d60653a275d11e2520a97b5b73c3a581579c005f365c32aa148a10e56",
+        "source_hash": "21a46dbd787090fc18c24cb4e29ebe1dd743203d31abeda43b3ce421833b596c",
+        "created_at_utc": "2026-08-25T19:38:39.364339Z",
+        "iteration": 10,
+        "games_completed": 100,
+        "gradient_steps": 200
+      },
+      "search": {
+        "simulations": 16,
+        "c_puct": 1.5,
+        "temperature": 0.0
+      },
+      "allow_superko_mode_override": false,
+      "legacy_architecture": null
+    }
+  },
+  "agent_b_metadata": {
+    "name": "random",
+    "class": "lifeline_rl.agents.random_agent.RandomAgent"
+  },
+  "grid_size": 5,
+  "superko_mode": "enforce",
+  "games_requested": 200,
+  "games_completed": 200,
+  "truncated_games": 0,
+  "a_wins": 166,
+  "a_losses": 8,
+  "draws": 26,
+  "a_score_rate": 0.895,
+  "a_score_ci95_wilson": [
+    0.8448186177864638,
+    0.9302930375380627
+  ],
+  "a_elo_difference": 372.2534944983896,
+  "a_as_black": {
+    "wins": 96,
+    "losses": 3,
+    "draws": 1,
+    "truncated": 0
+  },
+  "a_as_white": {
+    "wins": 70,
+    "losses": 5,
+    "draws": 25,
+    "truncated": 0
+  },
+  "average_plies": 6.555,
+  "a_mean_decision_seconds": 0.09736445768672568,
+  "b_mean_decision_seconds": 9.445211098787664e-05,
+  "total_duration_seconds": 70.60366729996167,
+  "base_seed": 20260825,
+  "max_plies": 256,
+  "agent_kinds": {
+    "A": "alphazero_checkpoint",
+    "B": "random"
+  },
+  "evaluation_protocol": {
+    "gate_kind": "beat_random",
+    "evidence_tier": "formal",
+    "shared_puct_search": {
+      "simulations": 16,
+      "c_puct": 1.5,
+      "temperature": 0.0
+    },
+    "root_noise": false,
+    "allow_superko_mode_override": false,
+    "strict_source_validation": true
+  },
+  "runtime": {
+    "python": "3.10.20 | packaged by Anaconda, Inc. | (main, Mar 11 2026, 17:42:35) [MSC v.1942 64 bit (AMD64)]",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "torch": "2.7.1+cu118",
+    "device": "cuda"
+  },
+  "git": {
+    "commit": "a3dfecff00ee56cae788b76fb237737e208efcb7",
+    "dirty": true
+  },
+  "run_id": "topology_seed20260825_vs_random",
+  "artifacts": {
+    "summary": "C:\\coding\\py\\line game\\research\\iclr2027\\results\\formal\\d13\\topology_seed20260825_vs_random\\summary.json",
+    "games": "C:\\coding\\py\\line game\\research\\iclr2027\\results\\formal\\d13\\topology_seed20260825_vs_random\\games.jsonl",
+    "csv": "C:\\coding\\py\\line game\\research\\iclr2027\\results\\formal\\d13\\topology_seed20260825_vs_random\\games.csv",
+    "gate": "C:\\coding\\py\\line game\\research\\iclr2027\\results\\formal\\d13\\topology_seed20260825_vs_random\\gate.json"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "execution_identity": {
+    "cublas_workspace_config": ":4096:8",
+    "cuda_runtime_version": "11.8",
+    "cudnn_version": 90100,
+    "device": "cuda",
+    "device_name": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "protocol_sha256": "1b4ca0a7f9115df4b4ecf95fa326425ce77caf6cf57e6a12c26625e279d2145d",
+    "runner_sha256": "55c077c3fe08f7d3527be3950fb4e70b54a743130acaa911da8949f37ec59937",
+    "torch_version": "2.7.1+cu118",
+    "trainer_source_hash": "21a46dbd787090fc18c24cb4e29ebe1dd743203d31abeda43b3ce421833b596c"
+  },
+  "failed_receipts": 0,
+  "formal_ready": true,
+  "ledger_path": "C:\\coding\\py\\line game\\research\\iclr2027\\results\\formal\\d14_d16\\run_v1\\result_receipts.jsonl",
+  "ledger_sha256": "ff3ef8bfd9b7a443bc42ba16ab9d4daa9f855a5d0432d58a62322686247b8114",
+  "manifest_sha256": "1bbf2c9a9ecc9174cd2d4b4299e22289dea58b7a53885e1be923374add2841cb",
+  "schema_name": "lifeline-d14-d16-execution",
+  "schema_version": 1,
+  "updated_at_utc": "2026-08-27T22:09:31.014147Z",
+  "valid": true
+}

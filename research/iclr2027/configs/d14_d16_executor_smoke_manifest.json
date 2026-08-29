@@ -1,0 +1,124 @@
+{
+  "schema_name": "lifeline-d14-d16-experiment-manifest",
+  "schema_version": 1,
+  "experiment_id": "d14_d16_executor_smoke_v1",
+  "evidence_tier": "smoke",
+  "status": "engineering_smoke_not_claim_evidence",
+  "task_scope": "mixed_size_train_same_size_eval",
+  "representations": [
+    {
+      "id": "padded_cnn",
+      "observation": "grid_graph_relations_ignored",
+      "model_family": "padded_cnn",
+      "model_config": {
+        "hidden_channels": 33,
+        "message_passing_layers": 3
+      },
+      "expected_trainable_parameters": 62868
+    },
+    {
+      "id": "grid_gnn",
+      "observation": "grid_graph",
+      "model_family": "relation_gnn_physical_edges_only",
+      "model_config": {
+        "hidden_channels": 82,
+        "message_passing_layers": 3
+      },
+      "expected_trainable_parameters": 62733
+    },
+    {
+      "id": "topology_gnn",
+      "observation": "topology",
+      "model_family": "relation_gnn_physical_own_opponent_edges",
+      "model_config": {
+        "hidden_channels": 64,
+        "message_passing_layers": 3
+      },
+      "expected_trainable_parameters": 63171
+    }
+  ],
+  "train_sizes": [
+    5
+  ],
+  "seeds": [
+    20260825
+  ],
+  "training_budget": {
+    "puct_simulations": 2,
+    "self_play_games": 1,
+    "gradient_steps": 1,
+    "max_plies": 96,
+    "replay_capacity": 256,
+    "batch_size": 2,
+    "iterations": 1,
+    "games_per_iteration": 1,
+    "training_steps_per_iteration": 1,
+    "checkpoint_every_iterations": 1,
+    "c_puct": 1.5,
+    "dirichlet_alpha": 0.3,
+    "dirichlet_epsilon": 0.25,
+    "temperature_moves": 96,
+    "initial_temperature": 1.0,
+    "final_temperature": 1.0,
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "gradient_clip_norm": 5.0,
+    "terminal_reward": "win_draw_loss_only",
+    "superko_mode": "enforce"
+  },
+  "evaluation": {
+    "curve_games_per_matchup": 2,
+    "final_games_per_matchup": 2,
+    "color_balance": "paired_swap_same_seed",
+    "max_plies": 96,
+    "superko_mode": "enforce",
+    "checkpoint_gradient_steps": [
+      1
+    ],
+    "curve_opponent": "uct_mcts_2",
+    "final_search_opponents": [
+      "random"
+    ],
+    "representation_round_robin": true
+  },
+  "search_baselines": [
+    {
+      "id": "random",
+      "agent_kind": "random",
+      "config": {}
+    },
+    {
+      "id": "uct_mcts_2",
+      "agent_kind": "mcts",
+      "config": {
+        "simulations": 2,
+        "rollout_depth": 8,
+        "exploration": 1.4142135623730951
+      }
+    }
+  ],
+  "matching": {
+    "exact_fields": [
+      "board_size_schedule",
+      "seed_schedule",
+      "puct_simulations",
+      "self_play_games",
+      "gradient_steps",
+      "iteration_schedule",
+      "evaluation_games",
+      "terminal_reward",
+      "max_plies",
+      "superko_mode",
+      "optimizer_hyperparameters",
+      "temperature_schedule",
+      "dirichlet_noise"
+    ],
+    "parameter_count_scope": "trainable_parameters_per_seed",
+    "parameter_count_relative_tolerance": 0.01,
+    "wall_clock_seconds": "reported_not_matched"
+  },
+  "notes": [
+    "Executor engineering smoke only; never claim-eligible.",
+    "Run all three one-game training tasks, then one two-game evaluation task before any formal launch."
+  ]
+}

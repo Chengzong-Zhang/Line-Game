@@ -1,0 +1,171 @@
+{
+  "schema_version": 1,
+  "fixture_id": "natural_superko_n6_witness_v1",
+  "classification": "standard_initial_state_natural_superko_rejection",
+  "grid_size": 6,
+  "history_semantics": "Every action is replayed from the standard initial state; null denotes PASS.",
+  "natural_prefix": {
+    "actions": [
+      [0, 1],
+      [4, 0],
+      [2, 0],
+      [1, 4],
+      [2, 3],
+      [2, 2],
+      [3, 1],
+      [1, 4],
+      null,
+      [1, 1]
+    ],
+    "actors": [
+      "BLACK",
+      "WHITE",
+      "BLACK",
+      "WHITE",
+      "BLACK",
+      "WHITE",
+      "BLACK",
+      "WHITE",
+      "BLACK",
+      "WHITE"
+    ],
+    "transitions": 10,
+    "placements": 9,
+    "passes": 1,
+    "resulting_player": "BLACK",
+    "resulting_turn_count": 9
+  },
+  "stage_5": {
+    "definition": "The state after the first five natural-prefix actions, ending with the first BLACK placement at [2, 3].",
+    "prefix_action_count": 5,
+    "current_player": "WHITE",
+    "turn_count": 5,
+    "consecutive_skips": 0,
+    "game_over": false,
+    "board": [
+      1,
+      2,
+      1,
+      0,
+      3,
+      3,
+      1,
+      0,
+      2,
+      0,
+      0,
+      0,
+      0,
+      2,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0
+    ],
+    "logical_edge_indices": {
+      "BLACK": [[0, 2], [0, 6], [2, 17]],
+      "WHITE": [[4, 5]]
+    },
+    "history_key_count": 6,
+    "position_key_definition": "LifelineGame._compute_state_key(game.current_player)",
+    "position_key_digest_definition": "sha256(repr(StateKey).encode(\"utf-8\")).hexdigest()",
+    "position_key_sha256": "c1362c7a100c1c512e2345740f4d9cbd1c34c12b7ab708d65dac681365c14608"
+  },
+  "witness_loop": {
+    "actions": [
+      [2, 2],
+      [3, 1],
+      [1, 4],
+      null,
+      [1, 1],
+      [2, 3]
+    ],
+    "actors": [
+      "WHITE",
+      "BLACK",
+      "WHITE",
+      "BLACK",
+      "WHITE",
+      "BLACK"
+    ],
+    "transitions": 6,
+    "placements": 5,
+    "passes": 1,
+    "returns_to_stage_5_position_key": true
+  },
+  "candidate": {
+    "actor": "BLACK",
+    "action": [2, 3],
+    "action_index": 17
+  },
+  "expected": {
+    "enforce": {
+      "evaluate_move": {
+        "success": false,
+        "reason": "SUPERKO_VIOLATION",
+        "would_violate_superko": true
+      },
+      "play_move": {
+        "success": false,
+        "reason": "SUPERKO_VIOLATION",
+        "would_violate_superko": true
+      },
+      "complete_state_unchanged": true,
+      "candidate_in_legal_moves": false,
+      "serialization_schema_version": 1,
+      "serialization_contains_superko_mode": false
+    },
+    "observe": {
+      "evaluate_move": {
+        "success": true,
+        "reason": null,
+        "would_violate_superko": true
+      },
+      "play_move": {
+        "success": true,
+        "reason": null,
+        "would_violate_superko": true
+      },
+      "result_position_key_sha256": "c1362c7a100c1c512e2345740f4d9cbd1c34c12b7ab708d65dac681365c14608",
+      "candidate_in_legal_moves": true,
+      "serialization_schema_version": 2,
+      "serialization_superko_mode": "observe"
+    },
+    "would_violate_superko_moves": [[2, 3]],
+    "observe_two_loop_replay": {
+      "successful_transitions": 12,
+      "total_transitions": 12,
+      "turn_counts_at_stage_and_loop_ends": [5, 10, 15],
+      "position_key_sha256_at_loop_ends": [
+        "c1362c7a100c1c512e2345740f4d9cbd1c34c12b7ab708d65dac681365c14608",
+        "c1362c7a100c1c512e2345740f4d9cbd1c34c12b7ab708d65dac681365c14608"
+      ]
+    },
+    "clone_restore_preserves_superko_mode": true,
+    "serialization_round_trip_preserves_mode_and_state": true
+  },
+  "provenance": {
+    "artifact": "../results/validation/superko_random_n6_seed20260826.json",
+    "artifact_sha256": "EFB6BF27D35E8894D9F8C749C8C86765CBCF957060B55AA8456C006051A84CA0",
+    "method": "attack_biased_random_walk",
+    "seed": 20260826,
+    "episode": 489,
+    "episode_index_base": 0,
+    "ply": 10,
+    "ply_index_base": 0,
+    "episodes_budget": 5000,
+    "max_plies": 120,
+    "total_plies_examined": 8757,
+    "pass_probability": 0.12,
+    "attack_bias": 0.95
+  },
+  "claim_boundary": {
+    "standard_initial_state_natural_rejection": true,
+    "six_transition_scope": "The six transitions close this particular witness loop only.",
+    "global_shortest_loop_claimed": false,
+    "two_naturally_reachable_same_topology_history_aliases_claimed": false
+  }
+}

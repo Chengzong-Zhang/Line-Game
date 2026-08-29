@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "experiment": "superko-policy-matrix-v1",
+  "attempt_id": "20260825T181100.857057Z_2b973f822cb6",
+  "status": "PASS",
+  "purpose": "five_seed_extension",
+  "conditions_verified": 12,
+  "blocks_verified": 60,
+  "games_replayed": 240,
+  "orientations_verified": 120,
+  "actions_replayed": 3560,
+  "checkpoint_files_verified": 1,
+  "checkpoint_file_verification_skipped": false,
+  "formal_sidecars_verified": 62,
+  "formal_sidecar_verification_skipped": false,
+  "positive_control_passed": true,
+  "runtime_seconds": 1018.3248584999237,
+  "completed_at_utc": "2026-08-25T18:27:59.674650+00:00",
+  "json_finite": true,
+  "source_files_matched": 28,
+  "source_files_expected": 28,
+  "artifacts": {
+    "report": {
+      "path": "results/validation/superko_policy_matrix_five_seed_v1_attempt2.json",
+      "sha256": "b19739867173759a2edd5986d360520084bc9c8a9bbc31ac0fa40306a7345548",
+      "size_bytes": 10264595
+    },
+    "journal": {
+      "path": "results/validation/superko_policy_matrix_five_seed_v1_attempt2.json.blocks.jsonl",
+      "sha256": "630cf24bab3d825b8ebd82d86ee9cf3822c2c4430caf4b0af0e2d503a18412e0",
+      "size_bytes": 4896080,
+      "records": 62,
+      "terminal_event": "attempt_completed"
+    },
+    "manifest": {
+      "path": "configs/superko_policy_matrix_v1_attempt2_manifest.json",
+      "sha256": "d7df1541145e30401d299dd3bb59980195d6081a6eb6774473c48165dff0419b"
+    },
+    "runner": {
+      "path": "scripts/run_superko_policy_matrix.py",
+      "sha256": "249ce4e63ba511d2d7cd29ba89c0b4f6dd91375cc175a4ef7cc45da56292eed4"
+    },
+    "verifier": {
+      "path": "scripts/verify_superko_policy_matrix.py",
+      "sha256": "0c7bb0fe56a4c1e65115633e608e5b59ab100bc792c5d467373d43193a58c1e2"
+    },
+    "retry_lineage": {
+      "path": "results/validation/superko_policy_matrix_attempt2_link.json",
+      "sha256": "02888c872bb438963745e07ee8a97ad98bc9677b9988b327a025da901718e381"
+    }
+  },
+  "verifier_command": "C:\\Users\\zcz\\anaconda3\\envs\\rl310\\python.exe -B scripts/verify_superko_policy_matrix.py results/validation/superko_policy_matrix_five_seed_v1_attempt2.json",
+  "claim_boundary": "descriptive five-seed engineering extension; not rule equivalence and not a paper-quality RL baseline"
+}

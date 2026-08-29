@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lifeline-rl"
+version = "0.1.0"
+description = "Dependency-free reference environment for topology-aware LIFELINE self-play"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+train = [
+  "torch>=2.3",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["lifeline_rl*"]

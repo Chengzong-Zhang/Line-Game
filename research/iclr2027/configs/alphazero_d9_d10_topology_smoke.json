@@ -1,0 +1,28 @@
+{
+  "batch_size": 2,
+  "board_sizes": [
+    5
+  ],
+  "c_puct": 1.5,
+  "checkpoint_every": 1,
+  "dirichlet_alpha": 0.3,
+  "dirichlet_epsilon": 0.25,
+  "final_temperature": 1.0,
+  "games_per_iteration": 1,
+  "gradient_clip_norm": 5.0,
+  "hidden_channels": 16,
+  "initial_temperature": 1.0,
+  "iterations": 1,
+  "learning_rate": 0.001,
+  "max_plies": 96,
+  "message_passing_layers": 1,
+  "observation_mode": "topology",
+  "puct_simulations": 4,
+  "replay_capacity": 256,
+  "schema_version": 1,
+  "seed": 20260825,
+  "superko_mode": "enforce",
+  "temperature_moves": 96,
+  "training_steps_per_iteration": 1,
+  "weight_decay": 0.0001
+}

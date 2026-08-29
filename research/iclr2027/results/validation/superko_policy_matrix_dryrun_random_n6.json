@@ -1,0 +1,1332 @@
+{
+  "claim_boundary": "ENGINEERING_MULTI_POLICY_EXTENSION_ONLY: absence or small frequency of Superko effects under these finite seeded policies is not rule equivalence. The frozen RL condition uses an n=5 engineering-smoke checkpoint trained from one self-play game with one gradient update and evaluates the same weights out of distribution on n=6/n=7 and, for observe, under a different rule mode. It is not a paper-quality learned baseline. The cycle fixture is a guided positive control and is not evidence for generic search success.",
+  "conditions": [
+    {
+      "blocks": [
+        {
+          "block_index": 0,
+          "block_seed": 13382113498198029022,
+          "master_seed": 1266014321,
+          "orientations": [
+            {
+              "comparison": {
+                "first_action_divergence_ply": null,
+                "first_position_divergence_after_ply": null,
+                "focal_score_observe_minus_enforce": 0.0,
+                "outcome_agrees": true,
+                "outcome_enforce": "BLACK",
+                "outcome_observe": "BLACK",
+                "plies_observe_minus_enforce": 0,
+                "trajectory_diverged": false
+              },
+              "enforce": {
+                "action_trace_sha256": "8b397b1a891a36328c57da8b5ee6ded2e385f1ee07893bdf1024c0d49f1ef6db",
+                "actions": [
+                  {
+                    "action": 2,
+                    "actor": "BLACK",
+                    "agent": "canonical-keyed-random-focal",
+                    "decision_seconds": 0.0005003998521715403,
+                    "decision_seed": 17621444925497170923,
+                    "diagnostics": {},
+                    "ply": 0,
+                    "point": [
+                      2,
+                      0
+                    ],
+                    "position_after_sha256": "de55dad28953548b5071b694b8ce90c8431e942d31508bf73368ab464e841be0",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "focal",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 17,
+                    "actor": "WHITE",
+                    "agent": "canonical-keyed-random-anchor",
+                    "decision_seconds": 2.7099857106804848e-05,
+                    "decision_seed": 8730982109011680507,
+                    "diagnostics": {},
+                    "ply": 1,
+                    "point": [
+                      2,
+                      3
+                    ],
+                    "position_after_sha256": "d1314834f0879e5000c1a8f725adeacb7bd3e9d7f8cb116cf5b64ca38a9ee965",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "anchor",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 20,
+                    "actor": "BLACK",
+                    "agent": "canonical-keyed-random-focal",
+                    "decision_seconds": 3.969995304942131e-05,
+                    "decision_seed": 5158878387090440683,
+                    "diagnostics": {},
+                    "ply": 2,
+                    "point": [
+                      0,
+                      5
+                    ],
+                    "position_after_sha256": "e523352b4fce4d3decced2a3592e568a9974737cf2b9a1c323c9d930ff87c5ee",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "focal",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 4,
+                    "actor": "WHITE",
+                    "agent": "canonical-keyed-random-anchor",
+                    "decision_seconds": 3.060000017285347e-05,
+                    "decision_seed": 9437767408518477037,
+                    "diagnostics": {},
+                    "ply": 3,
+                    "point": [
+                      4,
+                      0
+                    ],
+                    "position_after_sha256": "e9345a4c333ea4a4e253d72e264a98d72d1ad28a7c5e227b14e2b9941ce20d93",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "anchor",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 13,
+                    "actor": "BLACK",
+                    "agent": "canonical-keyed-random-focal",
+                    "decision_seconds": 2.850010059773922e-05,
+                    "decision_seed": 2385124482065663916,
+                    "diagnostics": {},
+                    "ply": 4,
+                    "point": [
+                      2,
+                      2
+                    ],
+                    "position_after_sha256": "730f3f12e1a4be2827ea3fff76604062670590dc66ae1bc06a01bae96be9d155",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "focal",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 15,
+                    "actor": "WHITE",
+                    "agent": "canonical-keyed-random-anchor",
+                    "decision_seconds": 2.9899878427386284e-05,
+                    "decision_seed": 10677037212169866010,
+                    "diagnostics": {},
+                    "ply": 5,
+                    "point": [
+                      0,
+                      3
+                    ],
+                    "position_after_sha256": "d4275186244601447b0cad1678c2b1967c3579fbbb6758d87863450d0c9e8662",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "anchor",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 12,
+                    "actor": "BLACK",
+                    "agent": "canonical-keyed-random-focal",
+                    "decision_seconds": 3.739981912076473e-05,
+                    "decision_seed": 16991747791550743865,
+                    "diagnostics": {},
+                    "ply": 6,
+                    "point": [
+                      1,
+                      2
+                    ],
+                    "position_after_sha256": "f03da2f72293338d186f26eca3138f059e31b3b63341d30e6f10c4e1533edc59",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "focal",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 19,
+                    "actor": "WHITE",
+                    "agent": "canonical-keyed-random-anchor",
+                    "decision_seconds": 2.650008536875248e-05,
+                    "decision_seed": 5566530214030132896,
+                    "diagnostics": {},
+                    "ply": 7,
+                    "point": [
+                      1,
+                      4
+                    ],
+                    "position_after_sha256": "1c51b0ee552ca87af8f04431c74cadf9fd49be03525db58d689c8e9b9054a73b",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "anchor",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 14,
+                    "actor": "BLACK",
+                    "agent": "canonical-keyed-random-focal",
+                    "decision_seconds": 2.4900073185563087e-05,
+                    "decision_seed": 11221159685078660159,
+                    "diagnostics": {},
+                    "ply": 8,
+                    "point": [
+                      3,
+                      2
+                    ],
+                    "position_after_sha256": "7ddf1b8c7c96cb3256500098e83e6c0db0e4b64e6ce3d87dcbd63b204a8e0863",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "focal",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 21,
+                    "actor": "BLACK",
+                    "agent": "canonical-keyed-random-focal",
+                    "decision_seconds": 2.550007775425911e-05,
+                    "decision_seed": 4586878975346174540,
+                    "diagnostics": {},
+                    "ply": 9,
+                    "point": null,
+                    "position_after_sha256": "d9d386d640c5e3ce2b8aec85ea0a7bf3abe553ff641d61e8420fa42d27b6caea",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "focal",
+                    "would_violate_superko_candidates": []
+                  }
+                ],
+                "anchor_agent": "canonical-keyed-random-anchor",
+                "block_index": 0,
+                "block_seed": 13382113498198029022,
+                "decision_seconds": {
+                  "anchor": 0.00011409982107579708,
+                  "focal": 0.0006563998758792877
+                },
+                "duration_seconds": 0.01429610000923276,
+                "final_position_sha256": "d9d386d640c5e3ce2b8aec85ea0a7bf3abe553ff641d61e8420fa42d27b6caea",
+                "focal_agent": "canonical-keyed-random-focal",
+                "focal_color": "BLACK",
+                "focal_score": 1.0,
+                "grid_size": 6,
+                "master_seed": 1266014321,
+                "max_plies": 120,
+                "mode": "enforce",
+                "orientation": "focal_black",
+                "plies": 10,
+                "policy": "random",
+                "repeat_candidates_total": 0,
+                "selected_repetition": false,
+                "selected_repetitions": 0,
+                "trigger_states": 0,
+                "triggered": false,
+                "truncated": false,
+                "winner": "BLACK"
+              },
+              "focal_color": "BLACK",
+              "observe": {
+                "action_trace_sha256": "8b397b1a891a36328c57da8b5ee6ded2e385f1ee07893bdf1024c0d49f1ef6db",
+                "actions": [
+                  {
+                    "action": 2,
+                    "actor": "BLACK",
+                    "agent": "canonical-keyed-random-focal",
+                    "decision_seconds": 0.0008143999148160219,
+                    "decision_seed": 17621444925497170923,
+                    "diagnostics": {},
+                    "ply": 0,
+                    "point": [
+                      2,
+                      0
+                    ],
+                    "position_after_sha256": "de55dad28953548b5071b694b8ce90c8431e942d31508bf73368ab464e841be0",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "focal",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 17,
+                    "actor": "WHITE",
+                    "agent": "canonical-keyed-random-anchor",
+                    "decision_seconds": 4.2999861761927605e-05,
+                    "decision_seed": 8730982109011680507,
+                    "diagnostics": {},
+                    "ply": 1,
+                    "point": [
+                      2,
+                      3
+                    ],
+                    "position_after_sha256": "d1314834f0879e5000c1a8f725adeacb7bd3e9d7f8cb116cf5b64ca38a9ee965",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "anchor",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 20,
+                    "actor": "BLACK",
+                    "agent": "canonical-keyed-random-focal",
+                    "decision_seconds": 6.440002471208572e-05,
+                    "decision_seed": 5158878387090440683,
+                    "diagnostics": {},
+                    "ply": 2,
+                    "point": [
+                      0,
+                      5
+                    ],
+                    "position_after_sha256": "e523352b4fce4d3decced2a3592e568a9974737cf2b9a1c323c9d930ff87c5ee",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "focal",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 4,
+                    "actor": "WHITE",
+                    "agent": "canonical-keyed-random-anchor",
+                    "decision_seconds": 4.610000178217888e-05,
+                    "decision_seed": 9437767408518477037,
+                    "diagnostics": {},
+                    "ply": 3,
+                    "point": [
+                      4,
+                      0
+                    ],
+                    "position_after_sha256": "e9345a4c333ea4a4e253d72e264a98d72d1ad28a7c5e227b14e2b9941ce20d93",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "anchor",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 13,
+                    "actor": "BLACK",
+                    "agent": "canonical-keyed-random-focal",
+                    "decision_seconds": 4.860013723373413e-05,
+                    "decision_seed": 2385124482065663916,
+                    "diagnostics": {},
+                    "ply": 4,
+                    "point": [
+                      2,
+                      2
+                    ],
+                    "position_after_sha256": "730f3f12e1a4be2827ea3fff76604062670590dc66ae1bc06a01bae96be9d155",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "focal",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 15,
+                    "actor": "WHITE",
+                    "agent": "canonical-keyed-random-anchor",
+                    "decision_seconds": 2.550007775425911e-05,
+                    "decision_seed": 10677037212169866010,
+                    "diagnostics": {},
+                    "ply": 5,
+                    "point": [
+                      0,
+                      3
+                    ],
+                    "position_after_sha256": "d4275186244601447b0cad1678c2b1967c3579fbbb6758d87863450d0c9e8662",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "anchor",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 12,
+                    "actor": "BLACK",
+                    "agent": "canonical-keyed-random-focal",
+                    "decision_seconds": 3.860006108880043e-05,
+                    "decision_seed": 16991747791550743865,
+                    "diagnostics": {},
+                    "ply": 6,
+                    "point": [
+                      1,
+                      2
+                    ],
+                    "position_after_sha256": "f03da2f72293338d186f26eca3138f059e31b3b63341d30e6f10c4e1533edc59",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "focal",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 19,
+                    "actor": "WHITE",
+                    "agent": "canonical-keyed-random-anchor",
+                    "decision_seconds": 3.4899916499853134e-05,
+                    "decision_seed": 5566530214030132896,
+                    "diagnostics": {},
+                    "ply": 7,
+                    "point": [
+                      1,
+                      4
+                    ],
+                    "position_after_sha256": "1c51b0ee552ca87af8f04431c74cadf9fd49be03525db58d689c8e9b9054a73b",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "anchor",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 14,
+                    "actor": "BLACK",
+                    "agent": "canonical-keyed-random-focal",
+                    "decision_seconds": 3.920006565749645e-05,
+                    "decision_seed": 11221159685078660159,
+                    "diagnostics": {},
+                    "ply": 8,
+                    "point": [
+                      3,
+                      2
+                    ],
+                    "position_after_sha256": "7ddf1b8c7c96cb3256500098e83e6c0db0e4b64e6ce3d87dcbd63b204a8e0863",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "focal",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 21,
+                    "actor": "BLACK",
+                    "agent": "canonical-keyed-random-focal",
+                    "decision_seconds": 3.800005652010441e-05,
+                    "decision_seed": 4586878975346174540,
+                    "diagnostics": {},
+                    "ply": 9,
+                    "point": null,
+                    "position_after_sha256": "d9d386d640c5e3ce2b8aec85ea0a7bf3abe553ff641d61e8420fa42d27b6caea",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "focal",
+                    "would_violate_superko_candidates": []
+                  }
+                ],
+                "anchor_agent": "canonical-keyed-random-anchor",
+                "block_index": 0,
+                "block_seed": 13382113498198029022,
+                "decision_seconds": {
+                  "anchor": 0.00014949985779821873,
+                  "focal": 0.001043200260028243
+                },
+                "duration_seconds": 0.01613040012307465,
+                "final_position_sha256": "d9d386d640c5e3ce2b8aec85ea0a7bf3abe553ff641d61e8420fa42d27b6caea",
+                "focal_agent": "canonical-keyed-random-focal",
+                "focal_color": "BLACK",
+                "focal_score": 1.0,
+                "grid_size": 6,
+                "master_seed": 1266014321,
+                "max_plies": 120,
+                "mode": "observe",
+                "orientation": "focal_black",
+                "plies": 10,
+                "policy": "random",
+                "repeat_candidates_total": 0,
+                "selected_repetition": false,
+                "selected_repetitions": 0,
+                "trigger_states": 0,
+                "triggered": false,
+                "truncated": false,
+                "winner": "BLACK"
+              },
+              "orientation": "focal_black"
+            },
+            {
+              "comparison": {
+                "first_action_divergence_ply": null,
+                "first_position_divergence_after_ply": null,
+                "focal_score_observe_minus_enforce": 0.0,
+                "outcome_agrees": true,
+                "outcome_enforce": "BLACK",
+                "outcome_observe": "BLACK",
+                "plies_observe_minus_enforce": 0,
+                "trajectory_diverged": false
+              },
+              "enforce": {
+                "action_trace_sha256": "a5cb85ed15990e2922fd2628e86226ee593e7044551c6eb9d20234b5c6da37ac",
+                "actions": [
+                  {
+                    "action": 2,
+                    "actor": "BLACK",
+                    "agent": "canonical-keyed-random-anchor",
+                    "decision_seconds": 0.00047450000420212746,
+                    "decision_seed": 15428529657745064355,
+                    "diagnostics": {},
+                    "ply": 0,
+                    "point": [
+                      2,
+                      0
+                    ],
+                    "position_after_sha256": "de55dad28953548b5071b694b8ce90c8431e942d31508bf73368ab464e841be0",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "anchor",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 14,
+                    "actor": "WHITE",
+                    "agent": "canonical-keyed-random-focal",
+                    "decision_seconds": 4.359986633062363e-05,
+                    "decision_seed": 13254866100726123877,
+                    "diagnostics": {},
+                    "ply": 1,
+                    "point": [
+                      3,
+                      2
+                    ],
+                    "position_after_sha256": "dde647a7bbf6b48cc60236ac3f4d2910de11c1f08edbdd55d14703e5748ddecf",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "focal",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 3,
+                    "actor": "BLACK",
+                    "agent": "canonical-keyed-random-anchor",
+                    "decision_seconds": 3.700004890561104e-05,
+                    "decision_seed": 1636966509548330609,
+                    "diagnostics": {},
+                    "ply": 2,
+                    "point": [
+                      3,
+                      0
+                    ],
+                    "position_after_sha256": "19f7e015a32b0b5050e12e63e5d8f30f121c8de8d2111e2b027b0474c2768af8",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "anchor",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 20,
+                    "actor": "WHITE",
+                    "agent": "canonical-keyed-random-focal",
+                    "decision_seconds": 3.3400021493434906e-05,
+                    "decision_seed": 13767488457386927013,
+                    "diagnostics": {},
+                    "ply": 3,
+                    "point": [
+                      0,
+                      5
+                    ],
+                    "position_after_sha256": "7b900fcfdb20885ab35d0baf6d9da12b049b47957e7ab92c7c03c67624f3ac0d",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "focal",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 15,
+                    "actor": "BLACK",
+                    "agent": "canonical-keyed-random-anchor",
+                    "decision_seconds": 3.3800024539232254e-05,
+                    "decision_seed": 17184370344935741541,
+                    "diagnostics": {},
+                    "ply": 4,
+                    "point": [
+                      0,
+                      3
+                    ],
+                    "position_after_sha256": "edbac08b473dab3bc465bfa4ca3a09a8f49617169f97e7be0fcd84be96f82adc",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "anchor",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 4,
+                    "actor": "WHITE",
+                    "agent": "canonical-keyed-random-focal",
+                    "decision_seconds": 4.269997589290142e-05,
+                    "decision_seed": 8963605412727583529,
+                    "diagnostics": {},
+                    "ply": 5,
+                    "point": [
+                      4,
+                      0
+                    ],
+                    "position_after_sha256": "5c904cd5c4888f02499d5a499d979d00c6873c463d6989d554df8484a32c0c71",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "focal",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 18,
+                    "actor": "BLACK",
+                    "agent": "canonical-keyed-random-anchor",
+                    "decision_seconds": 4.650000482797623e-05,
+                    "decision_seed": 14896316049893990463,
+                    "diagnostics": {},
+                    "ply": 6,
+                    "point": [
+                      0,
+                      4
+                    ],
+                    "position_after_sha256": "1bcac314dc10ec2445d75d1697c493882a8752b85e0ea5aa1217013645e2ac78",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "anchor",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 12,
+                    "actor": "WHITE",
+                    "agent": "canonical-keyed-random-focal",
+                    "decision_seconds": 5.510007031261921e-05,
+                    "decision_seed": 1395238068165361665,
+                    "diagnostics": {},
+                    "ply": 7,
+                    "point": [
+                      1,
+                      2
+                    ],
+                    "position_after_sha256": "e11ab2fd6bcc09940b2efdc32a2b3ede5368844e99a88b4f607279480755a2ef",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "focal",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 13,
+                    "actor": "BLACK",
+                    "agent": "canonical-keyed-random-anchor",
+                    "decision_seconds": 4.009995609521866e-05,
+                    "decision_seed": 8132255912297401693,
+                    "diagnostics": {},
+                    "ply": 8,
+                    "point": [
+                      2,
+                      2
+                    ],
+                    "position_after_sha256": "9d1237d7477fe7d6f2a3401bffeee99c56e3af058647096479b009e497901757",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "anchor",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 17,
+                    "actor": "WHITE",
+                    "agent": "canonical-keyed-random-focal",
+                    "decision_seconds": 1.9899802282452583e-05,
+                    "decision_seed": 15469337246286566997,
+                    "diagnostics": {},
+                    "ply": 9,
+                    "point": [
+                      2,
+                      3
+                    ],
+                    "position_after_sha256": "a640e794c6044489508103491abb06c6232c76219a88a98f0854551df76160b0",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "focal",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 19,
+                    "actor": "BLACK",
+                    "agent": "canonical-keyed-random-anchor",
+                    "decision_seconds": 2.110004425048828e-05,
+                    "decision_seed": 7994243080942161215,
+                    "diagnostics": {},
+                    "ply": 10,
+                    "point": [
+                      1,
+                      4
+                    ],
+                    "position_after_sha256": "a8533722da85a15a9f0bf1c20ed7b9d7a22195aae39b0f42901a69eae0e7fab3",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "anchor",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 16,
+                    "actor": "WHITE",
+                    "agent": "canonical-keyed-random-focal",
+                    "decision_seconds": 1.8399907276034355e-05,
+                    "decision_seed": 16085844531996660386,
+                    "diagnostics": {},
+                    "ply": 11,
+                    "point": [
+                      1,
+                      3
+                    ],
+                    "position_after_sha256": "54c8d50ab56ba71d52c940dd827126342b0014c72f60a16f985b2714ff0a5973",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "focal",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 21,
+                    "actor": "BLACK",
+                    "agent": "canonical-keyed-random-anchor",
+                    "decision_seconds": 1.6900012269616127e-05,
+                    "decision_seed": 17717879125219415769,
+                    "diagnostics": {},
+                    "ply": 12,
+                    "point": null,
+                    "position_after_sha256": "0a4fa26bbb81cd173dd451c1416cd7a585d107eda6c0a56d29bdfe7f7cbd97e1",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "anchor",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 21,
+                    "actor": "WHITE",
+                    "agent": "canonical-keyed-random-focal",
+                    "decision_seconds": 3.600004129111767e-05,
+                    "decision_seed": 14547256989972265665,
+                    "diagnostics": {},
+                    "ply": 13,
+                    "point": null,
+                    "position_after_sha256": "ad2ec1ea955d25879f03b565595fad55798b6b8c0013c1e2035509f474a24af4",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "focal",
+                    "would_violate_superko_candidates": []
+                  }
+                ],
+                "anchor_agent": "canonical-keyed-random-anchor",
+                "block_index": 0,
+                "block_seed": 13382113498198029022,
+                "decision_seconds": {
+                  "anchor": 0.00066990009509027,
+                  "focal": 0.00024909968487918377
+                },
+                "duration_seconds": 0.02072790008969605,
+                "final_position_sha256": "ad2ec1ea955d25879f03b565595fad55798b6b8c0013c1e2035509f474a24af4",
+                "focal_agent": "canonical-keyed-random-focal",
+                "focal_color": "WHITE",
+                "focal_score": 0.0,
+                "grid_size": 6,
+                "master_seed": 1266014321,
+                "max_plies": 120,
+                "mode": "enforce",
+                "orientation": "focal_white",
+                "plies": 14,
+                "policy": "random",
+                "repeat_candidates_total": 0,
+                "selected_repetition": false,
+                "selected_repetitions": 0,
+                "trigger_states": 0,
+                "triggered": false,
+                "truncated": false,
+                "winner": "BLACK"
+              },
+              "focal_color": "WHITE",
+              "observe": {
+                "action_trace_sha256": "a5cb85ed15990e2922fd2628e86226ee593e7044551c6eb9d20234b5c6da37ac",
+                "actions": [
+                  {
+                    "action": 2,
+                    "actor": "BLACK",
+                    "agent": "canonical-keyed-random-anchor",
+                    "decision_seconds": 0.0005451000761240721,
+                    "decision_seed": 15428529657745064355,
+                    "diagnostics": {},
+                    "ply": 0,
+                    "point": [
+                      2,
+                      0
+                    ],
+                    "position_after_sha256": "de55dad28953548b5071b694b8ce90c8431e942d31508bf73368ab464e841be0",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "anchor",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 14,
+                    "actor": "WHITE",
+                    "agent": "canonical-keyed-random-focal",
+                    "decision_seconds": 3.1800009310245514e-05,
+                    "decision_seed": 13254866100726123877,
+                    "diagnostics": {},
+                    "ply": 1,
+                    "point": [
+                      3,
+                      2
+                    ],
+                    "position_after_sha256": "dde647a7bbf6b48cc60236ac3f4d2910de11c1f08edbdd55d14703e5748ddecf",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "focal",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 3,
+                    "actor": "BLACK",
+                    "agent": "canonical-keyed-random-anchor",
+                    "decision_seconds": 3.50000336766243e-05,
+                    "decision_seed": 1636966509548330609,
+                    "diagnostics": {},
+                    "ply": 2,
+                    "point": [
+                      3,
+                      0
+                    ],
+                    "position_after_sha256": "19f7e015a32b0b5050e12e63e5d8f30f121c8de8d2111e2b027b0474c2768af8",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "anchor",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 20,
+                    "actor": "WHITE",
+                    "agent": "canonical-keyed-random-focal",
+                    "decision_seconds": 2.9399991035461426e-05,
+                    "decision_seed": 13767488457386927013,
+                    "diagnostics": {},
+                    "ply": 3,
+                    "point": [
+                      0,
+                      5
+                    ],
+                    "position_after_sha256": "7b900fcfdb20885ab35d0baf6d9da12b049b47957e7ab92c7c03c67624f3ac0d",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "focal",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 15,
+                    "actor": "BLACK",
+                    "agent": "canonical-keyed-random-anchor",
+                    "decision_seconds": 3.550015389919281e-05,
+                    "decision_seed": 17184370344935741541,
+                    "diagnostics": {},
+                    "ply": 4,
+                    "point": [
+                      0,
+                      3
+                    ],
+                    "position_after_sha256": "edbac08b473dab3bc465bfa4ca3a09a8f49617169f97e7be0fcd84be96f82adc",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "anchor",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 4,
+                    "actor": "WHITE",
+                    "agent": "canonical-keyed-random-focal",
+                    "decision_seconds": 2.8899870812892914e-05,
+                    "decision_seed": 8963605412727583529,
+                    "diagnostics": {},
+                    "ply": 5,
+                    "point": [
+                      4,
+                      0
+                    ],
+                    "position_after_sha256": "5c904cd5c4888f02499d5a499d979d00c6873c463d6989d554df8484a32c0c71",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "focal",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 18,
+                    "actor": "BLACK",
+                    "agent": "canonical-keyed-random-anchor",
+                    "decision_seconds": 2.8199981898069382e-05,
+                    "decision_seed": 14896316049893990463,
+                    "diagnostics": {},
+                    "ply": 6,
+                    "point": [
+                      0,
+                      4
+                    ],
+                    "position_after_sha256": "1bcac314dc10ec2445d75d1697c493882a8752b85e0ea5aa1217013645e2ac78",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "anchor",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 12,
+                    "actor": "WHITE",
+                    "agent": "canonical-keyed-random-focal",
+                    "decision_seconds": 2.629985101521015e-05,
+                    "decision_seed": 1395238068165361665,
+                    "diagnostics": {},
+                    "ply": 7,
+                    "point": [
+                      1,
+                      2
+                    ],
+                    "position_after_sha256": "e11ab2fd6bcc09940b2efdc32a2b3ede5368844e99a88b4f607279480755a2ef",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "focal",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 13,
+                    "actor": "BLACK",
+                    "agent": "canonical-keyed-random-anchor",
+                    "decision_seconds": 5.630007945001125e-05,
+                    "decision_seed": 8132255912297401693,
+                    "diagnostics": {},
+                    "ply": 8,
+                    "point": [
+                      2,
+                      2
+                    ],
+                    "position_after_sha256": "9d1237d7477fe7d6f2a3401bffeee99c56e3af058647096479b009e497901757",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "anchor",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 17,
+                    "actor": "WHITE",
+                    "agent": "canonical-keyed-random-focal",
+                    "decision_seconds": 2.3200176656246185e-05,
+                    "decision_seed": 15469337246286566997,
+                    "diagnostics": {},
+                    "ply": 9,
+                    "point": [
+                      2,
+                      3
+                    ],
+                    "position_after_sha256": "a640e794c6044489508103491abb06c6232c76219a88a98f0854551df76160b0",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "focal",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 19,
+                    "actor": "BLACK",
+                    "agent": "canonical-keyed-random-anchor",
+                    "decision_seconds": 3.7400051951408386e-05,
+                    "decision_seed": 7994243080942161215,
+                    "diagnostics": {},
+                    "ply": 10,
+                    "point": [
+                      1,
+                      4
+                    ],
+                    "position_after_sha256": "a8533722da85a15a9f0bf1c20ed7b9d7a22195aae39b0f42901a69eae0e7fab3",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "anchor",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 16,
+                    "actor": "WHITE",
+                    "agent": "canonical-keyed-random-focal",
+                    "decision_seconds": 3.0899886041879654e-05,
+                    "decision_seed": 16085844531996660386,
+                    "diagnostics": {},
+                    "ply": 11,
+                    "point": [
+                      1,
+                      3
+                    ],
+                    "position_after_sha256": "54c8d50ab56ba71d52c940dd827126342b0014c72f60a16f985b2714ff0a5973",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "focal",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 21,
+                    "actor": "BLACK",
+                    "agent": "canonical-keyed-random-anchor",
+                    "decision_seconds": 2.8799986466765404e-05,
+                    "decision_seed": 17717879125219415769,
+                    "diagnostics": {},
+                    "ply": 12,
+                    "point": null,
+                    "position_after_sha256": "0a4fa26bbb81cd173dd451c1416cd7a585d107eda6c0a56d29bdfe7f7cbd97e1",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "anchor",
+                    "would_violate_superko_candidates": []
+                  },
+                  {
+                    "action": 21,
+                    "actor": "WHITE",
+                    "agent": "canonical-keyed-random-focal",
+                    "decision_seconds": 3.200001083314419e-05,
+                    "decision_seed": 14547256989972265665,
+                    "diagnostics": {},
+                    "ply": 13,
+                    "point": null,
+                    "position_after_sha256": "ad2ec1ea955d25879f03b565595fad55798b6b8c0013c1e2035509f474a24af4",
+                    "result_would_violate_superko": false,
+                    "selected_would_violate_superko": false,
+                    "slot": "focal",
+                    "would_violate_superko_candidates": []
+                  }
+                ],
+                "anchor_agent": "canonical-keyed-random-anchor",
+                "block_index": 0,
+                "block_seed": 13382113498198029022,
+                "decision_seconds": {
+                  "anchor": 0.0007663003634661436,
+                  "focal": 0.00020249979570508003
+                },
+                "duration_seconds": 0.02023879997432232,
+                "final_position_sha256": "ad2ec1ea955d25879f03b565595fad55798b6b8c0013c1e2035509f474a24af4",
+                "focal_agent": "canonical-keyed-random-focal",
+                "focal_color": "WHITE",
+                "focal_score": 0.0,
+                "grid_size": 6,
+                "master_seed": 1266014321,
+                "max_plies": 120,
+                "mode": "observe",
+                "orientation": "focal_white",
+                "plies": 14,
+                "policy": "random",
+                "repeat_candidates_total": 0,
+                "selected_repetition": false,
+                "selected_repetitions": 0,
+                "trigger_states": 0,
+                "triggered": false,
+                "truncated": false,
+                "winner": "BLACK"
+              },
+              "orientation": "focal_white"
+            }
+          ],
+          "summary": {
+            "any_trajectory_divergence": false,
+            "any_trigger": false,
+            "focal_score": {
+              "enforce": 0.5,
+              "observe": 0.5
+            },
+            "focal_score_observe_minus_enforce": 0.0,
+            "mean_plies": {
+              "enforce": 12.0,
+              "observe": 12.0
+            },
+            "mean_plies_observe_minus_enforce": 0.0,
+            "observe_selected_repetition": false,
+            "truncation_rate": {
+              "enforce": 0.0,
+              "observe": 0.0
+            },
+            "truncation_rate_observe_minus_enforce": 0.0
+          }
+        }
+      ],
+      "grid_size": 6,
+      "policy": "random",
+      "summary": {
+        "grid_size": 6,
+        "independent_blocks": 1,
+        "master_seeds": [
+          1266014321
+        ],
+        "mode": {
+          "enforce": {
+            "completed_games": 2,
+            "games": 2,
+            "mean_focal_decision_seconds_per_game": 0.00045274978037923574,
+            "mean_focal_score_completed_only": 0.5,
+            "mean_plies": 12.0,
+            "outcomes": {
+              "BLACK": 2,
+              "DRAW": 0,
+              "TRUNCATED": 0,
+              "WHITE": 0
+            },
+            "selected_repetition_game_rate": {
+              "ci95_wilson": [
+                0.0,
+                0.6576197724933469
+              ],
+              "rate": 0.0,
+              "successes": 0,
+              "trials": 2
+            },
+            "selected_repetitions": 0,
+            "total_duration_seconds": 0.03502400009892881,
+            "trigger_game_rate": {
+              "ci95_wilson": [
+                0.0,
+                0.6576197724933469
+              ],
+              "rate": 0.0,
+              "successes": 0,
+              "trials": 2
+            },
+            "trigger_states": 0,
+            "truncation_rate": {
+              "ci95_wilson": [
+                0.0,
+                0.6576197724933469
+              ],
+              "rate": 0.0,
+              "successes": 0,
+              "trials": 2
+            }
+          },
+          "observe": {
+            "completed_games": 2,
+            "games": 2,
+            "mean_focal_decision_seconds_per_game": 0.0006228500278666615,
+            "mean_focal_score_completed_only": 0.5,
+            "mean_plies": 12.0,
+            "outcomes": {
+              "BLACK": 2,
+              "DRAW": 0,
+              "TRUNCATED": 0,
+              "WHITE": 0
+            },
+            "selected_repetition_game_rate": {
+              "ci95_wilson": [
+                0.0,
+                0.6576197724933469
+              ],
+              "rate": 0.0,
+              "successes": 0,
+              "trials": 2
+            },
+            "selected_repetitions": 0,
+            "total_duration_seconds": 0.03636920009739697,
+            "trigger_game_rate": {
+              "ci95_wilson": [
+                0.0,
+                0.6576197724933469
+              ],
+              "rate": 0.0,
+              "successes": 0,
+              "trials": 2
+            },
+            "trigger_states": 0,
+            "truncation_rate": {
+              "ci95_wilson": [
+                0.0,
+                0.6576197724933469
+              ],
+              "rate": 0.0,
+              "successes": 0,
+              "trials": 2
+            }
+          }
+        },
+        "paired": {
+          "mean_plies_observe_minus_enforce": {
+            "blocks": 1,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "mean": 0.0,
+            "resamples": 100
+          },
+          "observe_selected_repetition_block_rate": {
+            "ci95_wilson": [
+              0.0,
+              0.7934506856227626
+            ],
+            "rate": 0.0,
+            "successes": 0,
+            "trials": 1
+          },
+          "orientation_pairs": 2,
+          "outcome_contingency": {
+            "BLACK": {
+              "BLACK": 2,
+              "DRAW": 0,
+              "TRUNCATED": 0,
+              "WHITE": 0
+            },
+            "DRAW": {
+              "BLACK": 0,
+              "DRAW": 0,
+              "TRUNCATED": 0,
+              "WHITE": 0
+            },
+            "TRUNCATED": {
+              "BLACK": 0,
+              "DRAW": 0,
+              "TRUNCATED": 0,
+              "WHITE": 0
+            },
+            "WHITE": {
+              "BLACK": 0,
+              "DRAW": 0,
+              "TRUNCATED": 0,
+              "WHITE": 0
+            }
+          },
+          "relative_mean_plies_observe_minus_enforce": 0.0,
+          "score_observe_minus_enforce_all_block_bounds": {
+            "blocks": 1,
+            "definition": "truncated focal scores range independently over [0,1]",
+            "identified_sample_mean_interval": [
+              0.0,
+              0.0
+            ],
+            "sampling_uncertainty_included": false
+          },
+          "score_observe_minus_enforce_complete_blocks": {
+            "blocks": 1,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "mean": 0.0,
+            "resamples": 100
+          },
+          "trajectory_divergence_rate": {
+            "ci95_wilson": [
+              0.0,
+              0.6576197724933469
+            ],
+            "rate": 0.0,
+            "successes": 0,
+            "trials": 2
+          },
+          "trigger_block_rate": {
+            "ci95_wilson": [
+              0.0,
+              0.7934506856227626
+            ],
+            "rate": 0.0,
+            "successes": 0,
+            "trials": 1
+          },
+          "truncation_rate_observe_minus_enforce": {
+            "blocks": 1,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "mean": 0.0,
+            "resamples": 100
+          },
+          "winner_agreement_complete_pairs": {
+            "ci95_wilson": [
+              0.34238022750665303,
+              1.0
+            ],
+            "rate": 1.0,
+            "successes": 2,
+            "trials": 2
+          }
+        },
+        "policy": "random"
+      }
+    }
+  ],
+  "config": {
+    "blocks_per_seed": 1,
+    "bootstrap_resamples": 100,
+    "cycle_seeking": {
+      "branch_limit": 5,
+      "fallback": "random",
+      "max_depth": 4,
+      "node_budget": 1000
+    },
+    "decision_seed": "SHA-256(version, master_seed, block, n, policy, orientation, slot, actor, paired_ply), recreated at every decision",
+    "frozen_rl": {
+      "c_puct": 1.5,
+      "checkpoint": "C:\\coding\\py\\line game\\research\\iclr2027\\results\\smoke\\alphazero\\d9_d10_topology_smoke_verified_seed20260825",
+      "device": "cpu",
+      "metadata": null,
+      "requested": false,
+      "root_noise": false,
+      "simulations": 4,
+      "temperature": 0.0
+    },
+    "frozen_seed_derivation": "sha256(\"superko-policy-matrix-v1|i\")[:4] & 0x7fffffff, i=0..4",
+    "games_per_block": 4,
+    "master_seeds": [
+      1266014321
+    ],
+    "max_plies": 120,
+    "mcts": {
+      "exploration": 1.4142135623730951,
+      "rollout_depth": 24,
+      "simulations": 16
+    },
+    "minimax": {
+      "depth": 2,
+      "move_cap": 20
+    },
+    "opponent": "canonical keyed-priority uniform Random",
+    "pairing": "enforce/observe x focal BLACK/WHITE",
+    "policies": [
+      "random"
+    ],
+    "sizes": [
+      6
+    ],
+    "source_sha256": {
+      "lifeline_rl\\agents\\cycle_seeking.py": "1a227ccb1cce0bfe1a78dcc99baf6df05f0697fcf9f5fee12841bc3c661e552d",
+      "lifeline_rl\\agents\\greedy.py": "6c7cd96cc96a7c4789ff0f78a08f40ba92ec4a5e7199f125978fd3c3483ba622",
+      "lifeline_rl\\agents\\mcts.py": "0ab01dae6a796b00c61748a30670c2e6195b14f8edd02152fa1f6ffb4998acaf",
+      "lifeline_rl\\agents\\minimax.py": "4c905517cce420aa6b678975f208c370b02f252e4d39caa07d456ab164babb68",
+      "lifeline_rl\\alphazero\\network.py": "bd1bac33887a31e1841e0f9cbbe728b814ccbb5564f6fdafe1a7ed815eeb2f14",
+      "lifeline_rl\\alphazero\\neural_agent.py": "87fba9f7464bea8368ec2046f1d9792ca43d7d8ba481eb98909ff2bdac0f8bce",
+      "lifeline_rl\\alphazero\\puct.py": "8609060212d517dd98a5567aabd6e26f016e0524ce392641abcdc5c6e1a3f979",
+      "lifeline_rl\\core.py": "a3219c931608ab76f466cf5278e6297ddfdf128b19d721a16fab895eb81e05e7",
+      "scripts\\run_superko_policy_matrix.py": "2309f7a5e3780eee9bd4f2f0c4b650ae0bf3252745e27a22fb42302ad7b361e6"
+    },
+    "truncation_scoring": "never imputed; completed-only estimate plus [0,1] bounds",
+    "uses_exact_frozen_seed_set": false
+  },
+  "experiment": "superko-policy-matrix-v1",
+  "positive_control": {
+    "candidate": [
+      2,
+      3
+    ],
+    "classification": "fixture_guided_positive_control_not_generic_policy_result",
+    "enforce": {
+      "reason": "SUPERKO_VIOLATION",
+      "success": false,
+      "transactional_state_unchanged": true,
+      "would_violate_superko": true
+    },
+    "grid_size": 6,
+    "guided_loop": {
+      "closes_root_position": true,
+      "reason": null,
+      "repeat_action": [
+        2,
+        3
+      ],
+      "valid": true
+    },
+    "loop_transitions": 6,
+    "natural_prefix_transitions": 10,
+    "observe": {
+      "reason": null,
+      "success": true,
+      "would_violate_superko": true
+    },
+    "passed": true,
+    "witness_path": "C:\\coding\\py\\line game\\research\\iclr2027\\state_aliasing\\superko_n6_witness_v1.json",
+    "witness_sha256": "a2916486d2a9c4738b1b8a01f72a91a689f968e20d1b6673b5e4f05a15927155"
+  },
+  "purpose": "dry_run",
+  "runtime": {
+    "duration_seconds": 0.14764890004880726,
+    "platform": "Windows-10-10.0.26200-SP0",
+    "python": "3.10.20 | packaged by Anaconda, Inc. | (main, Mar 11 2026, 17:42:35) [MSC v.1942 64 bit (AMD64)]"
+  },
+  "schema_version": 1
+}

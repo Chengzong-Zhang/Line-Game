@@ -1,0 +1,22 @@
+{
+  "bundle_directory": "C:\\coding\\py\\line game\\research\\iclr2027\\results\\formal\\d14_d16\\task_bundle_v1",
+  "cublas_workspace_config": ":4096:8",
+  "cuda_runtime_version": "11.8",
+  "cudnn_benchmark": false,
+  "cudnn_deterministic": true,
+  "cudnn_version": 90100,
+  "deterministic_algorithms": true,
+  "device": "cuda",
+  "device_name": "NVIDIA GeForce RTX 4060 Laptop GPU",
+  "evidence_tier": "formal",
+  "experiment_id": "d14_d16_three_representation_formal_v1",
+  "manifest_sha256": "1bbf2c9a9ecc9174cd2d4b4299e22289dea58b7a53885e1be923374add2841cb",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "protocol_sha256": "1b4ca0a7f9115df4b4ecf95fa326425ce77caf6cf57e6a12c26625e279d2145d",
+  "python": "3.10.20",
+  "runner_sha256": "55c077c3fe08f7d3527be3950fb4e70b54a743130acaa911da8949f37ec59937",
+  "schema_name": "lifeline-d14-d16-execution",
+  "schema_version": 1,
+  "torch_version": "2.7.1+cu118",
+  "trainer_source_hash": "21a46dbd787090fc18c24cb4e29ebe1dd743203d31abeda43b3ce421833b596c"
+}
