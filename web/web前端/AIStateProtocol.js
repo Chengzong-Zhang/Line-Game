@@ -28,5 +28,35 @@ export function isWorkerResultCurrent(engine, message) {
     && message
     && engine.positionRevision === message.positionRevision
     && engine.rulesVersion === message.rulesVersion
+    && engine.currentPlayer === message.currentPlayer
+  );
+}
+
+export function captureWorkerRequest(engine, requestId) {
+  if (!engine) {
+    throw new Error("captureWorkerRequest requires a GameEngine instance.");
+  }
+
+  return Object.freeze({
+    requestId,
+    engine,
+    positionRevision: engine.positionRevision,
+    rulesVersion: engine.rulesVersion,
+    currentPlayer: engine.currentPlayer,
+  });
+}
+
+export function isWorkerResultForRequest(engine, request, message) {
+  return Boolean(
+    request
+    && message
+    && message.requestId === request.requestId
+    && engine === request.engine
+    && engine.positionRevision === request.positionRevision
+    && engine.rulesVersion === request.rulesVersion
+    && engine.currentPlayer === request.currentPlayer
+    && message.positionRevision === request.positionRevision
+    && message.rulesVersion === request.rulesVersion
+    && message.currentPlayer === request.currentPlayer
   );
 }

@@ -230,10 +230,13 @@ line game/
 - 注册、登录、建房、入房、准备、动作同步、重置和断线恢复可用。
 - 中文与英文界面、桌面端与移动端布局正常。
 
-本次领土规则的可执行验证入口：
+Web 规则、AI 与联机恢复的可执行验证入口：
 
 ```powershell
 node "web/web前端/tests/verify-territory-v2.mjs"
+node "web/web前端/tests/verify-ai-control-flow.mjs"
+node "web/web前端/tests/verify-hint-worker.mjs"
+node --unhandled-rejections=strict "web/web前端/tests/verify-online-recovery.mjs"
 node "web/web前端/guide/interesting/verify-theory-counterexamples.mjs"
 node "web/web前端/guide/interesting/verify-superko-history-divergence.mjs"
 node "web/web前端/tests/benchmark-territory.mjs"
