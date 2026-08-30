@@ -1249,9 +1249,9 @@ ERROR
 - 英文标题为 `LIFELINE`。
 - 新增文案集中维护在 `OnlineAppI18n.js`。
 
-## AI 对手：Minimax + Alpha-Beta
+## AI 对手：截断启发式 Minimax + Alpha-Beta
 
-LIFELINE 是回合制、确定性、完备信息、零和的对抗游戏，没有随机事件也没有隐藏信息。这类问题正好落在 Minimax 家族的覆盖范围内，因此 Web 端 AI 选择 Minimax 加 Alpha-Beta 剪枝，并配合走法排序与启发式评估。
+Web 自动 AI 只在双人模式启用。双人 LIFELINE 是回合制、确定性、完备信息的零和对抗游戏，没有随机事件也没有隐藏信息，因此适合使用 Minimax 家族。当前实现采用固定深度、每层 Top-20、只展开 Place 的截断启发式 Minimax，并结合 Alpha-Beta 剪枝、走法排序与启发式评估；它不是完整最优求解器。
 
 AI 模块入口：
 
@@ -1296,17 +1296,18 @@ function orderMoves(engine, moves, player) {
 
 ### Alpha-Beta 主循环
 
-`minimax` 在搜索树中交替最大化与最小化，并用 `alpha` / `beta` 上下界裁剪不可能成为最优的分支：
+`minimax` 在每个节点读取规则引擎结算后的 `currentPlayer`：轮到 `aiPlayer` 时最大化，否则最小化，并用 `alpha` / `beta` 上下界裁剪不可能成为最优的分支：
 
 ```javascript
 const ordered = this.orderMoves(engine, legalMoves, engine.currentPlayer);
+const maximizingPlayer = engine.currentPlayer === aiPlayer;
 if (maximizingPlayer) {
   let bestValue = Number.NEGATIVE_INFINITY;
   for (const point of ordered) {
     const snapshot = saveState(engine);
     const applied = applyMoveForAI(engine, point);
     if (applied) {
-      const value = this.minimax(engine, depth - 1, alpha, beta, false, aiPlayer);
+      const value = this.minimax(engine, depth - 1, alpha, beta, aiPlayer);
       bestValue = Math.max(bestValue, value);
       alpha = Math.max(alpha, bestValue);
     }
@@ -1319,7 +1320,7 @@ if (maximizingPlayer) {
 }
 ```
 
-每一层展开都通过 `saveState` / `restoreState` 在真实规则引擎上做事务回滚，因此搜索过程使用与人类玩家完全相同的合法性裁决，包括保护区、三点限制、攻击结算与 Superko。
+每一层展开都通过 `saveState` / `restoreState` 在真实规则引擎上做事务回滚，因此搜索过程使用与人类玩家完全相同的合法性裁决，包括保护区、三点限制、攻击结算与 Superko。一次落子结算可能自动跳过没有合法落点的对手，使同一玩家连续取得行动权；MAX/MIN 因而不能按递归深度机械翻转，必须以上述真实 `currentPlayer` 为准。
 
 搜索深度由难度直接控制：简单 `2`、普通 `3`、困难 `4`。深度越大，AI 看得越远，思考时间越长。
 
@@ -1449,7 +1450,6 @@ getTopMoves(engine, aiPlayer, topN = 5) {
         this.depth - 1,
         Number.NEGATIVE_INFINITY,
         Number.POSITIVE_INFINITY,
-        false,
         aiPlayer,
       );
       scoredMoves.push({ point, score });
@@ -1462,13 +1462,13 @@ getTopMoves(engine, aiPlayer, topN = 5) {
 }
 ```
 
-这意味着 AI 对手与 AI 提示走的是同一条 Minimax + Alpha-Beta 路径，只是返回的是 Top-N 而不是 Top-1。AI 在难度调节、思考状态、推荐落点上的所有可视化都来自同一套搜索结果。
+这意味着 AI 对手与 AI 提示走的是同一条 Minimax + Alpha-Beta 路径，只是返回的是 Top-N 而不是 Top-1。自动 AI 仅用于双人局；三人局提示仍是二元启发式排序，不等同于 Max-N 或完整三人博弈求解。AI 在难度调节、思考状态、推荐落点上的所有可视化都来自同一套搜索结果。
 
 ### 设计取舍
 
 | 选择 | 理由 |
 | --- | --- |
-| Minimax + Alpha-Beta | 完备信息、零和、回合制对抗的经典选择，无需训练，结果可解释 |
+| 双人截断 Minimax + Alpha-Beta | 完备信息、零和、回合制对抗的经典选择；无需训练、结果可解释，但不保证全局最优 |
 | 走法排序 + Top-20 截断 | 控制分支因子；切断和贴线扩张是局部高价值走法，优先展开 |
 | 快速 BFS 评估 | 完整领土算法太慢；BFS 可达空间在统计意义上与最终领土高度相关 |
 | Web Worker | 困难难度下搜索耗时可能达到秒级，必须避免阻塞 Canvas 渲染 |
