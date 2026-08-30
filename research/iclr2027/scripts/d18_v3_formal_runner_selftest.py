@@ -74,7 +74,7 @@ class D18V3FormalRunnerStructuralTests(unittest.TestCase):
         self.assertNotEqual(prep_hash, formal_hash)
 
     def test_budget_and_instance_are_frozen(self) -> None:
-        self.assertEqual(formal.MAX_RUNTIME_SECONDS, 9000)
+        self.assertEqual(formal.MAX_RUNTIME_SECONDS, 11_520)
         self.assertEqual(formal.POLICY_MAX_DELIVERY_BYTES, 512 * 1024 * 1024)
         self.assertEqual(
             formal.WORKER_RUN_METADATA_RESERVE_BYTES, 64 * 1024 * 1024

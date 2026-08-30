@@ -1,9 +1,9 @@
 # D18-v3 review-only AutoDL Direct policy candidate.
 # 1000 milliyuan = 1 RMB. This file does not start or stop an instance.
 # AutoDL Runner Direct 1.15.0 has no per-job total-cost hard-cap field.  The
-# 9,000-second limits below constrain product runtime, not total billed time;
+# 11,520-second limits below constrain product runtime, not total billed time;
 # startup, probes, transfer, delivery, and shutdown add unbounded overhead.
-# Never treat this file or its name as proof that total spend is <= 10 RMB.
+# Never treat this file or its name as proof that total spend is <= 12 RMB.
 # Deliberately disabled in version control.  A separately reviewed live policy
 # may be created only after action-time instance, price, registry, and budget
 # confirmation.
@@ -16,7 +16,7 @@ result_root = "C:/Users/zcz/autodl-results"
 # The generated job must separately pin instance_reuse="require" and the exact
 # preferred_instance_uuid; policy max_concurrent_instances alone does not pin it.
 max_concurrent_instances = 1
-max_job_runtime_seconds = 9000
+max_job_runtime_seconds = 11520
 startup_timeout_seconds = 600
 max_input_bytes = 536870912
 # The product counts the exported evidence plus its own run metadata against
@@ -29,10 +29,10 @@ parallel_file_threshold_bytes = 67108864
 control_reserve_bytes = 67108864
 
 # The live 5090-P price sampled on 2026-08-30 was 2880 milliyuan/hour.
-# 9000 seconds of product runtime is 7.20 RMB at that price.  The 2.80 RMB
+# 11520 seconds of product runtime is 9.216 RMB at that price.  The 2.784 RMB
 # difference is only a planning allowance; this policy cannot enforce it.
 # min_balance is a wallet precondition, not a spend ceiling.
-min_balance_milliyuan = 10000
+min_balance_milliyuan = 12000
 max_hourly_spend_milliyuan = 2880
 max_price_milliyuan_per_hour = 2880
 

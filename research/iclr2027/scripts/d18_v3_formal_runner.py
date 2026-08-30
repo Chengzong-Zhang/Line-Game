@@ -49,12 +49,12 @@ RECEIPT_SCHEMA = "lifeline-d18-v3-formal-task-receipt"
 STAGE_SCHEMA = "lifeline-d18-v3-autodl-stage"
 EXPERIMENT_ID = prep.EXPERIMENT_ID
 DEFAULT_MANIFEST = prep.DEFAULT_MANIFEST
-DEFAULT_POLICY = RESEARCH_ROOT / "autodl" / "d18_v3_10yuan.policy.toml"
+DEFAULT_POLICY = RESEARCH_ROOT / "autodl" / "d18_v3_12yuan.policy.toml"
 EXPECTED_TASKS = prep.EXPECTED_TASKS
 EXPECTED_GAMES = prep.EXPECTED_GAMES
 EXPECTED_GAMES_PER_TASK = prep.EXPECTED_GAMES_PER_TASK
 EXPECTED_PAIRS_PER_TASK = prep.EXPECTED_PAIRS_PER_TASK
-MAX_RUNTIME_SECONDS = 9000
+MAX_RUNTIME_SECONDS = 11_520
 POLICY_MAX_DELIVERY_BYTES = 512 * 1024 * 1024
 WORKER_RUN_METADATA_RESERVE_BYTES = 64 * 1024 * 1024
 MAX_EXPORT_BYTES = POLICY_MAX_DELIVERY_BYTES - WORKER_RUN_METADATA_RESERVE_BYTES
@@ -2374,7 +2374,10 @@ def generate_job(
     remote_python: str,
     max_runtime_seconds: int,
 ) -> dict[str, Any]:
-    _require(60 <= max_runtime_seconds <= MAX_RUNTIME_SECONDS, "job runtime exceeds the 9,000-second budget gate")
+    _require(
+        60 <= max_runtime_seconds <= MAX_RUNTIME_SECONDS,
+        "job runtime exceeds the 11,520-second budget gate",
+    )
     manifest, _, _, _ = load_frozen_bundle(manifest_path, bundle_directory)
     stage_directory = stage_directory.resolve()
     output = output.resolve()

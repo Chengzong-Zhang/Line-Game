@@ -1,6 +1,6 @@
 # D18-v3 paired-opening recovery plan
 
-Status: **draft, zero execution, not authorized for a paid run**
+Status: **one guarded paid run authorized; preflight pending; zero execution**
 Date: 2026-08-30
 
 ## Current checkpoint
@@ -112,13 +112,21 @@ Before any formal game or paid API write:
 5. Estimate wall time from a task-shaped smoke and confirm at least a 2x wall-
    clock envelope.
 
-## Paid-run stop rule
+## Paid-run authorization and stop rule
 
-Do not start AutoDL, create or change an instance, or incur a new charge until
-the user confirms the exact reusable instance or card, live hourly price, and
-maximum total RMB cost. Only the 45 D18-v3 tasks are candidates for rerun; the
-passed D17 run is not repeated. D19 remains blocked until the new D18 gate and
-independent canonical comparison both pass.
+On 2026-08-30 the user explicitly authorized exactly one non-live `reap` and
+exactly one `autodl-direct run`: reuse `pro-788096a9e3b2` / `5090-p`, require a
+live price no higher than 2.880 RMB/hour, use an 11,520-second runtime and a
+12 RMB planning budget, and accept that AutoDL Runner Direct 1.15.0 cannot
+enforce a total-RMB hard cap. The non-live `reap` may perform only read-only
+provider API calls plus local registry reconciliation; it may not stop or
+release any instance.
+
+This authorization covers only the 45 D18-v3 tasks. The passed D17 run is not
+repeated, no other instance/card/run is authorized, and D19 remains blocked
+until the new D18 gate and independent canonical comparison both pass. Any
+failed instance, price, registry, stage, readiness, or smoke preflight blocks
+the paid run rather than expanding the authorization.
 
 If v3 fails, preserve it as another fail-closed run. Any further design change
 must use a new protocol and experiment ID rather than post-hoc threshold or
@@ -126,18 +134,18 @@ opening selection.
 
 ## Budget and exact-instance blockers
 
-At the sampled price of 2.880 RMB/hour, a 9,000-second product command is 7.20
-RMB. AutoDL Runner Direct 1.15.0 has no per-job total-cost hard cap: startup,
+At the sampled price of 2.880 RMB/hour, an 11,520-second product command is
+9.216 RMB. AutoDL Runner Direct 1.15.0 has no per-job total-cost hard cap: startup,
 probe, transfer, delivery, idle grace, and shutdown time are not covered by a
 currency counter, and `min_balance_milliyuan` is only a wallet-balance
-precondition. Therefore the `d18_v3_10yuan` policy name is not proof of a
-10-RMB maximum.
+precondition. Therefore the `d18_v3_12yuan` policy name is not proof of a
+12-RMB maximum.
 
 The prior 5,760-game run took about 1.6 hours. A preregistered 2x wall-clock
-envelope is about 11,520 product seconds (9.216 RMB before overhead), so the
-9,000-second candidate does not satisfy the 2x gate. A planning ceiling of at
-least 12 RMB is recommended, but it is still not a technical currency hard
-cap in runner version 1.15.0.
+envelope is about 11,520 product seconds (9.216 RMB before overhead). The user
+authorized that runtime and a 12 RMB planning budget on 2026-08-30 while
+explicitly accepting that runner version 1.15.0 cannot enforce a currency hard
+cap.
 
 The product also treats `preferred_instance_uuid` as a tie-break rather than a
 hard filter on its READY-session fast path. Before a single future `run`, the

@@ -72,12 +72,13 @@ class D18V3ArtifactPolicyTests(unittest.TestCase):
             "research/iclr2027/tests/test_d18_v3_formal_runner.py",
             "research/iclr2027/tests/test_d18_v3_verifier.py",
             "research/iclr2027/tests/test_d18_v3_artifact_policy.py",
-            "research/iclr2027/autodl/d18_v3_10yuan.policy.toml",
+            "research/iclr2027/autodl/d18_v3_12yuan.policy.toml",
             "research/iclr2027/autodl/d18_v3_runtime_requirements.lock.txt",
             "research/iclr2027/D18_V3_RECOVERY_PLAN.md",
         )
         for relative_path in canonical:
             with self.subTest(relative_path=relative_path):
+                self.assertTrue((REPO_ROOT / relative_path).is_file())
                 self.assertTrackable(relative_path)
 
     def test_no_negated_d18_v3_rule_exists(self) -> None:

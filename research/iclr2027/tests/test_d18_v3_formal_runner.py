@@ -368,7 +368,7 @@ def test_dual_runner_hashes_and_current_frozen_prep_binding() -> None:
 
 
 def test_job_budget_and_exact_reuse_constants() -> None:
-    assert formal.MAX_RUNTIME_SECONDS == 9000
+    assert formal.MAX_RUNTIME_SECONDS == 11_520
     assert formal.POLICY_MAX_DELIVERY_BYTES == 536_870_912
     assert formal.WORKER_RUN_METADATA_RESERVE_BYTES == 67_108_864
     assert formal.MAX_EXPORT_BYTES == 469_762_048
