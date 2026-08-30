@@ -1,0 +1,3152 @@
+{
+  "schema_name": "lifeline-d17-d19-experiment-manifest",
+  "schema_version": 1,
+  "experiment_id": "d17_d19_lifeline_extension_20260829_v1",
+  "protocol_id": "d17_d19_protocol_frozen_20260829_v1",
+  "protocol_sha256": "98a55ca40006639bd572d83071d0d5535d4e1a17f71050e7e7444edc6dab9726",
+  "status": "frozen_not_run",
+  "evidence_tier": "formal",
+  "source_hashes": {
+      "research/iclr2027/D17_D19_PROTOCOL.md": "98a55ca40006639bd572d83071d0d5535d4e1a17f71050e7e7444edc6dab9726",
+      "research/iclr2027/D14_D16_EXPERIMENT_PROTOCOL.md": "aa6b361e07efaf85844281aa8d8839abd2ae667bb52816ec77ade39a80ff8850",
+      "research/iclr2027/configs/d14_d16_formal_manifest.json": "9439c3b9b52ed13a8c489969dfbafddd59e75af2579274b7275258b693d8782f",
+      "research/iclr2027/results/formal/d14_d16/run_v1/result_receipts.jsonl": "ff3ef8bfd9b7a443bc42ba16ab9d4daa9f855a5d0432d58a62322686247b8114",
+      "research/iclr2027/results/formal/d14_d16/aggregate_v1/aggregate.json": "59c264fc65d7b11357b0d718d38371df1ba44be4b92e7ef41ff995bf088f501c",
+      "research/iclr2027/lifeline_rl/core.py": "a3219c931608ab76f466cf5278e6297ddfdf128b19d721a16fab895eb81e05e7",
+      "research/iclr2027/lifeline_rl/encoding.py": "b9a6a14cb627853936333968c8e931d7622b56ad6f0c48251b5e658d5494c33d",
+      "research/iclr2027/lifeline_rl/arena.py": "a613574baee606c2ed87de9eb0408dc61356b9ee2d41ed7a6f5b099d22ae9599",
+      "research/iclr2027/lifeline_rl/__init__.py": "6e40ede87432a3b4258d0f31a9bbe87c92bb668885cc5c020e420c1388f47592",
+      "research/iclr2027/lifeline_rl/agents/__init__.py": "19018efcaba773b02152d92657893745d0a8a0b59684cb5333603e7f6fefe892",
+      "research/iclr2027/lifeline_rl/agents/factory.py": "737be45b442b17cf9d76c1f6223ed0c6e0dd059aebeaa3a25793a5f5d7d63481",
+      "research/iclr2027/lifeline_rl/agents/mcts.py": "0ab01dae6a796b00c61748a30670c2e6195b14f8edd02152fa1f6ffb4998acaf",
+      "research/iclr2027/lifeline_rl/agents/random_agent.py": "416b7c94bc8cd989165a18543cefab03810561ae243958a4f42946305d3d628a",
+      "research/iclr2027/lifeline_rl/alphazero/neural_agent.py": "b75890109bd7b0a60948a5d63bf5e180048a6100a4e48a08ee1bd850736c200d",
+      "research/iclr2027/lifeline_rl/alphazero/puct.py": "8609060212d517dd98a5567aabd6e26f016e0524ce392641abcdc5c6e1a3f979",
+      "research/iclr2027/lifeline_rl/alphazero/network.py": "02d92f165ff445aa9e92266933d5ed83fe04c19d3201fcde6803705762c41f09",
+      "research/iclr2027/lifeline_rl/alphazero/checkpoint.py": "ae296c577a1f08f1477dd2e2b6dbc699de1757923cf616ba89ae13ce9713a601"
+  },
+  "frozen_date": "2026-08-29",
+  "protocol_path": "research/iclr2027/D17_D19_PROTOCOL.md",
+  "result_path": "research/iclr2027/D17_D19_RESULTS.md",
+  "output_root": "research/iclr2027/results/formal/d17_d19",
+  "planned_run_id": "run_20260829_p0_v1",
+  "immutable_output_policy": {
+    "new_run_id_required": true,
+    "refuse_nonempty_output_directory": true,
+    "may_read_d14_d16": true,
+    "may_write_d14_d16": false,
+    "may_write_paper": false
+  },
+  "readonly_bindings": [
+    {
+      "path": "research/iclr2027/D17_D19_PROTOCOL.md",
+      "sha256": "98a55ca40006639bd572d83071d0d5535d4e1a17f71050e7e7444edc6dab9726"
+    },
+    {
+      "path": "research/iclr2027/D14_D16_EXPERIMENT_PROTOCOL.md",
+      "sha256": "aa6b361e07efaf85844281aa8d8839abd2ae667bb52816ec77ade39a80ff8850"
+    },
+    {
+      "path": "research/iclr2027/configs/d14_d16_formal_manifest.json",
+      "sha256": "9439c3b9b52ed13a8c489969dfbafddd59e75af2579274b7275258b693d8782f"
+    },
+    {
+      "path": "research/iclr2027/results/formal/d14_d16/run_v1/result_receipts.jsonl",
+      "sha256": "ff3ef8bfd9b7a443bc42ba16ab9d4daa9f855a5d0432d58a62322686247b8114"
+    },
+    {
+      "path": "research/iclr2027/results/formal/d14_d16/aggregate_v1/aggregate.json",
+      "sha256": "59c264fc65d7b11357b0d718d38371df1ba44be4b92e7ef41ff995bf088f501c"
+    },
+    {
+      "path": "research/iclr2027/lifeline_rl/core.py",
+      "sha256": "a3219c931608ab76f466cf5278e6297ddfdf128b19d721a16fab895eb81e05e7"
+    },
+    {
+      "path": "research/iclr2027/lifeline_rl/encoding.py",
+      "sha256": "b9a6a14cb627853936333968c8e931d7622b56ad6f0c48251b5e658d5494c33d"
+    },
+    {
+      "path": "research/iclr2027/lifeline_rl/arena.py",
+      "sha256": "a613574baee606c2ed87de9eb0408dc61356b9ee2d41ed7a6f5b099d22ae9599"
+    },
+    {
+      "path": "research/iclr2027/lifeline_rl/__init__.py",
+      "sha256": "6e40ede87432a3b4258d0f31a9bbe87c92bb668885cc5c020e420c1388f47592"
+    },
+    {
+      "path": "research/iclr2027/lifeline_rl/agents/__init__.py",
+      "sha256": "19018efcaba773b02152d92657893745d0a8a0b59684cb5333603e7f6fefe892"
+    },
+    {
+      "path": "research/iclr2027/lifeline_rl/agents/factory.py",
+      "sha256": "737be45b442b17cf9d76c1f6223ed0c6e0dd059aebeaa3a25793a5f5d7d63481"
+    },
+    {
+      "path": "research/iclr2027/lifeline_rl/agents/mcts.py",
+      "sha256": "0ab01dae6a796b00c61748a30670c2e6195b14f8edd02152fa1f6ffb4998acaf"
+    },
+    {
+      "path": "research/iclr2027/lifeline_rl/agents/random_agent.py",
+      "sha256": "416b7c94bc8cd989165a18543cefab03810561ae243958a4f42946305d3d628a"
+    },
+    {
+      "path": "research/iclr2027/lifeline_rl/alphazero/neural_agent.py",
+      "sha256": "b75890109bd7b0a60948a5d63bf5e180048a6100a4e48a08ee1bd850736c200d"
+    },
+    {
+      "path": "research/iclr2027/lifeline_rl/alphazero/puct.py",
+      "sha256": "8609060212d517dd98a5567aabd6e26f016e0524ce392641abcdc5c6e1a3f979"
+    },
+    {
+      "path": "research/iclr2027/lifeline_rl/alphazero/network.py",
+      "sha256": "02d92f165ff445aa9e92266933d5ed83fe04c19d3201fcde6803705762c41f09"
+    },
+    {
+      "path": "research/iclr2027/lifeline_rl/alphazero/checkpoint.py",
+      "sha256": "ae296c577a1f08f1477dd2e2b6dbc699de1757923cf616ba89ae13ce9713a601"
+    }
+  ],
+  "training_seeds": [
+    20260825,
+    20260826,
+    20260827,
+    20260828,
+    20260829
+  ],
+  "checkpoints": [
+    {
+      "checkpoint_id": "grid_gnn_seed20260825_gs200",
+      "model_kind": "grid_gnn",
+      "training_seed": 20260825,
+      "trained_board_sizes": [
+        5,
+        7,
+        9
+      ],
+      "gradient_steps": 200,
+      "path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.grid_gnn.seed20260825__d0d5f17a2760/training_run/snapshots/gradient_000200/checkpoint_000010.pt",
+      "sha256": "0463c247ec42889fb30c5a23d4ed9b21c090495f2084a80d07b920edb8632a72",
+      "config_path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.grid_gnn.seed20260825__d0d5f17a2760/training_run/resolved_config.json",
+      "config_hash": "821dee8df5958a6c96a1a39f1a3d9f1ba23f56d865a7405fc2e7926f77ee27a7",
+      "config_file_sha256": "da518063687489c00bf59639313ca141829887aa9eb66f3e04706fc925a8f724",
+      "source_hash": "21a46dbd787090fc18c24cb4e29ebe1dd743203d31abeda43b3ce421833b596c",
+      "source_receipt_path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.grid_gnn.seed20260825__d0d5f17a2760/receipt.json",
+      "source_receipt_sha256": "472e82d6352496fe25b33067dba25ce3707df0a407f3048d8aff0aae124b3368"
+    },
+    {
+      "checkpoint_id": "grid_gnn_seed20260826_gs200",
+      "model_kind": "grid_gnn",
+      "training_seed": 20260826,
+      "trained_board_sizes": [
+        5,
+        7,
+        9
+      ],
+      "gradient_steps": 200,
+      "path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.grid_gnn.seed20260826__4b685556bb49/training_run/snapshots/gradient_000200/checkpoint_000010.pt",
+      "sha256": "cee0241ecddc67fe01ca906feae3498401a5fae85581d5a8b274b1d17bc9b9a7",
+      "config_path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.grid_gnn.seed20260826__4b685556bb49/training_run/resolved_config.json",
+      "config_hash": "c4326442db7c0ae0897e8b015a8cb04bd678c97d998b90370e61313b269dcb77",
+      "config_file_sha256": "dd49e5683e000abce6156c84d8c079461757decaca761e74ef4d2379f37b1bec",
+      "source_hash": "21a46dbd787090fc18c24cb4e29ebe1dd743203d31abeda43b3ce421833b596c",
+      "source_receipt_path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.grid_gnn.seed20260826__4b685556bb49/receipt.json",
+      "source_receipt_sha256": "c8995240de001b23be2dc0e4e6ffdb6b9f21e7e5301926541dd0906528c092ca"
+    },
+    {
+      "checkpoint_id": "grid_gnn_seed20260827_gs200",
+      "model_kind": "grid_gnn",
+      "training_seed": 20260827,
+      "trained_board_sizes": [
+        5,
+        7,
+        9
+      ],
+      "gradient_steps": 200,
+      "path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.grid_gnn.seed20260827__a3ced575ad1e/training_run/snapshots/gradient_000200/checkpoint_000010.pt",
+      "sha256": "321c52b920dae6dfc2d20d8f093f2dffa2129644246c657b3ac7455a0d4d45d8",
+      "config_path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.grid_gnn.seed20260827__a3ced575ad1e/training_run/resolved_config.json",
+      "config_hash": "193503ce44dacf969e40b58d669a9a76e71847535a5f09379c026b74bd249107",
+      "config_file_sha256": "01cd3efa5799d225a380f1f6f073eadf46d25fc9dcb1393d828260152c785f77",
+      "source_hash": "21a46dbd787090fc18c24cb4e29ebe1dd743203d31abeda43b3ce421833b596c",
+      "source_receipt_path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.grid_gnn.seed20260827__a3ced575ad1e/receipt.json",
+      "source_receipt_sha256": "e892a1bfeb388149a4768a41f7dafeca6bf2ee31668b0ead5d9bcf3263856199"
+    },
+    {
+      "checkpoint_id": "grid_gnn_seed20260828_gs200",
+      "model_kind": "grid_gnn",
+      "training_seed": 20260828,
+      "trained_board_sizes": [
+        5,
+        7,
+        9
+      ],
+      "gradient_steps": 200,
+      "path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.grid_gnn.seed20260828__da64fad2f333/training_run/snapshots/gradient_000200/checkpoint_000010.pt",
+      "sha256": "c3d6d33ee5eeff0ee8325c2d834a094ae379cfac7798d3179ed1c8396844fb86",
+      "config_path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.grid_gnn.seed20260828__da64fad2f333/training_run/resolved_config.json",
+      "config_hash": "81ac16e944d0dc95f133a700a2c9c5588ab17f05a6ae7249ec8d9cc462a3513a",
+      "config_file_sha256": "9e04d54ec693be6e241b6495f006d090b51dee0bc2a0d6d6cc84f7bc3ef96faf",
+      "source_hash": "21a46dbd787090fc18c24cb4e29ebe1dd743203d31abeda43b3ce421833b596c",
+      "source_receipt_path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.grid_gnn.seed20260828__da64fad2f333/receipt.json",
+      "source_receipt_sha256": "471ac7b1007d27e5df2f3fc3eb8f770756cc4d6c9367e89b2d1248350e55b495"
+    },
+    {
+      "checkpoint_id": "grid_gnn_seed20260829_gs200",
+      "model_kind": "grid_gnn",
+      "training_seed": 20260829,
+      "trained_board_sizes": [
+        5,
+        7,
+        9
+      ],
+      "gradient_steps": 200,
+      "path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.grid_gnn.seed20260829__908ebb24668a/training_run/snapshots/gradient_000200/checkpoint_000010.pt",
+      "sha256": "6f9c693c6b912dfb2f2fffba7877848c70f0ad0e40ff884e2818206ca1d3576a",
+      "config_path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.grid_gnn.seed20260829__908ebb24668a/training_run/resolved_config.json",
+      "config_hash": "4fc73257b70a7521b5d49089bf21d0f3e4c4f43f42c1f01742bc4742ff56b908",
+      "config_file_sha256": "0c28fae195262cbec222b43eab9ea4601b5b153d0a06b7a6b72daea42ea71e96",
+      "source_hash": "21a46dbd787090fc18c24cb4e29ebe1dd743203d31abeda43b3ce421833b596c",
+      "source_receipt_path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.grid_gnn.seed20260829__908ebb24668a/receipt.json",
+      "source_receipt_sha256": "dc890d102adccaa8ac10cedeea021348f0e2e80f862eb593ce561bfd1a9215b7"
+    },
+    {
+      "checkpoint_id": "padded_cnn_seed20260825_gs200",
+      "model_kind": "padded_cnn",
+      "training_seed": 20260825,
+      "trained_board_sizes": [
+        5,
+        7,
+        9
+      ],
+      "gradient_steps": 200,
+      "path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.padded_cnn.seed20260825__ef12e34674a4/training_run/snapshots/gradient_000200/checkpoint_000010.pt",
+      "sha256": "934f12b8c2356afb1d630275135e8fd14893dc5b8b4b2e2ce8c98c4f9839bf15",
+      "config_path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.padded_cnn.seed20260825__ef12e34674a4/training_run/resolved_config.json",
+      "config_hash": "05adca9a363d0e2bef647e3a2ca08bfa8662a093809443a25fa2d4d7a5bb944c",
+      "config_file_sha256": "4ddbc92fd13f00f8ed8fdd0ea906636e912f07e08d2f0c2fd2a9562328d9367c",
+      "source_hash": "21a46dbd787090fc18c24cb4e29ebe1dd743203d31abeda43b3ce421833b596c",
+      "source_receipt_path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.padded_cnn.seed20260825__ef12e34674a4/receipt.json",
+      "source_receipt_sha256": "bed5ba70e13495bcc5a6a7e8f7853961d484ab9cbd5a006f48605ed8d24efede"
+    },
+    {
+      "checkpoint_id": "padded_cnn_seed20260826_gs200",
+      "model_kind": "padded_cnn",
+      "training_seed": 20260826,
+      "trained_board_sizes": [
+        5,
+        7,
+        9
+      ],
+      "gradient_steps": 200,
+      "path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.padded_cnn.seed20260826__2c05ea228e3f/training_run/snapshots/gradient_000200/checkpoint_000010.pt",
+      "sha256": "79bc7b999b8017d4b4487dc2e30852fac83fce3b3a8ebaedefa69e4c8b2fd764",
+      "config_path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.padded_cnn.seed20260826__2c05ea228e3f/training_run/resolved_config.json",
+      "config_hash": "ff447aa95a1474edbe1339a78db8e7359a34b7dd54072af5a50c8276fec716d5",
+      "config_file_sha256": "3a872b8530f46d1630e79af612b75acff89e6b9629cf7e5af079c85b924edb46",
+      "source_hash": "21a46dbd787090fc18c24cb4e29ebe1dd743203d31abeda43b3ce421833b596c",
+      "source_receipt_path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.padded_cnn.seed20260826__2c05ea228e3f/receipt.json",
+      "source_receipt_sha256": "cdf32ae4dfc0d2ab90801bea19fd543e30aa647523ade3f3156623bebf234576"
+    },
+    {
+      "checkpoint_id": "padded_cnn_seed20260827_gs200",
+      "model_kind": "padded_cnn",
+      "training_seed": 20260827,
+      "trained_board_sizes": [
+        5,
+        7,
+        9
+      ],
+      "gradient_steps": 200,
+      "path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.padded_cnn.seed20260827__6643cb5c179c/training_run/snapshots/gradient_000200/checkpoint_000010.pt",
+      "sha256": "e58813302d7e9866c0f3b6ae127331573f173db0e2940e97caca2f1a382ced7d",
+      "config_path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.padded_cnn.seed20260827__6643cb5c179c/training_run/resolved_config.json",
+      "config_hash": "f7606a2e66c4c17fde74a2dc01878e84a0289987a6a222ed107d414c9087edef",
+      "config_file_sha256": "7845ccb4155f407213b76cd95aef34ca0482a23c5630ef2205ee20f758d4070c",
+      "source_hash": "21a46dbd787090fc18c24cb4e29ebe1dd743203d31abeda43b3ce421833b596c",
+      "source_receipt_path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.padded_cnn.seed20260827__6643cb5c179c/receipt.json",
+      "source_receipt_sha256": "880e9676a36c1cc28c75850641662f82637c4f8afe04a5f394e542f9c768d30c"
+    },
+    {
+      "checkpoint_id": "padded_cnn_seed20260828_gs200",
+      "model_kind": "padded_cnn",
+      "training_seed": 20260828,
+      "trained_board_sizes": [
+        5,
+        7,
+        9
+      ],
+      "gradient_steps": 200,
+      "path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.padded_cnn.seed20260828__d4bee43083df/training_run/snapshots/gradient_000200/checkpoint_000010.pt",
+      "sha256": "aa899025798896e703ae91779936a0a292f726abda067494398a538127e05e4a",
+      "config_path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.padded_cnn.seed20260828__d4bee43083df/training_run/resolved_config.json",
+      "config_hash": "a5832b810b049bf20ae02f57807e38e99c03acc233612afd0a84c1acc2f6d52f",
+      "config_file_sha256": "ad8c15c0d1e6144fa6504381572f3a7d051a43c1db14a7a4ee881d49dfc38007",
+      "source_hash": "21a46dbd787090fc18c24cb4e29ebe1dd743203d31abeda43b3ce421833b596c",
+      "source_receipt_path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.padded_cnn.seed20260828__d4bee43083df/receipt.json",
+      "source_receipt_sha256": "88e4712c3236935d1aa810d4c850ee2554b784f5de92ec3077c8f820eb40fcce"
+    },
+    {
+      "checkpoint_id": "padded_cnn_seed20260829_gs200",
+      "model_kind": "padded_cnn",
+      "training_seed": 20260829,
+      "trained_board_sizes": [
+        5,
+        7,
+        9
+      ],
+      "gradient_steps": 200,
+      "path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.padded_cnn.seed20260829__f4ecf7f7da6f/training_run/snapshots/gradient_000200/checkpoint_000010.pt",
+      "sha256": "aa99e8d882de3497764bfe1966f6b145f17ca25f7b3fe6369e4d57a3b2e75554",
+      "config_path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.padded_cnn.seed20260829__f4ecf7f7da6f/training_run/resolved_config.json",
+      "config_hash": "b2d7363100da3cf62ad6a0152b275b749ced9f2e56941e7b64e979c2991bee08",
+      "config_file_sha256": "cfff4252b5824df75522bc664444d9b7adc65c6c7161b33561cf01a1156cdc9e",
+      "source_hash": "21a46dbd787090fc18c24cb4e29ebe1dd743203d31abeda43b3ce421833b596c",
+      "source_receipt_path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.padded_cnn.seed20260829__f4ecf7f7da6f/receipt.json",
+      "source_receipt_sha256": "31e6d34000ae0b9c498f833d507c5339047972ddce90a844d33d2464819c6f87"
+    },
+    {
+      "checkpoint_id": "topology_gnn_seed20260825_gs200",
+      "model_kind": "topology_gnn",
+      "training_seed": 20260825,
+      "trained_board_sizes": [
+        5,
+        7,
+        9
+      ],
+      "gradient_steps": 200,
+      "path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.topology_gnn.seed20260825__dd47afdb1e6c/training_run/snapshots/gradient_000200/checkpoint_000010.pt",
+      "sha256": "7180ca466e1f657ed2359e13f4b42fbd133b8e973081a295ef66600a18481207",
+      "config_path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.topology_gnn.seed20260825__dd47afdb1e6c/training_run/resolved_config.json",
+      "config_hash": "af59c55d60653a275d11e2520a97b5b73c3a581579c005f365c32aa148a10e56",
+      "config_file_sha256": "7a41fa428379f0bd0910ffc01acb4761e3950894b8dc3fa2001ee06950166b5b",
+      "source_hash": "21a46dbd787090fc18c24cb4e29ebe1dd743203d31abeda43b3ce421833b596c",
+      "source_receipt_path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.topology_gnn.seed20260825__dd47afdb1e6c/receipt.json",
+      "source_receipt_sha256": "eff11bd6875f886681e923bd6722f2342ace2b8f8cce84b7def4842b920c6afd"
+    },
+    {
+      "checkpoint_id": "topology_gnn_seed20260826_gs200",
+      "model_kind": "topology_gnn",
+      "training_seed": 20260826,
+      "trained_board_sizes": [
+        5,
+        7,
+        9
+      ],
+      "gradient_steps": 200,
+      "path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.topology_gnn.seed20260826__576ce842850b/training_run/snapshots/gradient_000200/checkpoint_000010.pt",
+      "sha256": "61801b201fc2f7f471a668878d14857d2195371358189c1df0f48e1e1546f816",
+      "config_path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.topology_gnn.seed20260826__576ce842850b/training_run/resolved_config.json",
+      "config_hash": "2f636ffe84a7e835851fca3eac437cb07dd86e3f8977d10c350b3fa04b4c3eda",
+      "config_file_sha256": "9537e639c21221e515edb278987eda49dd890362ddb9f907e23300ac471a49dd",
+      "source_hash": "21a46dbd787090fc18c24cb4e29ebe1dd743203d31abeda43b3ce421833b596c",
+      "source_receipt_path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.topology_gnn.seed20260826__576ce842850b/receipt.json",
+      "source_receipt_sha256": "58d8a64b7090ed7585299dbef0e8490685d49ee26079c4e5e8655b3780431088"
+    },
+    {
+      "checkpoint_id": "topology_gnn_seed20260827_gs200",
+      "model_kind": "topology_gnn",
+      "training_seed": 20260827,
+      "trained_board_sizes": [
+        5,
+        7,
+        9
+      ],
+      "gradient_steps": 200,
+      "path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.topology_gnn.seed20260827__1dc23edd0041/training_run/snapshots/gradient_000200/checkpoint_000010.pt",
+      "sha256": "14b2165f7dfdcdf6bb178a8e5c0462fe66d2eb65b03f79867896ca9aa0538a12",
+      "config_path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.topology_gnn.seed20260827__1dc23edd0041/training_run/resolved_config.json",
+      "config_hash": "bf4f94e7ce87ba652e7edf594722ab934a9ad8d238a32aa54b9a12160b5f6235",
+      "config_file_sha256": "9199e3c714445b19a949c18cb267e1dca7e6fa53a2a65cd4b4210c2f622121bc",
+      "source_hash": "21a46dbd787090fc18c24cb4e29ebe1dd743203d31abeda43b3ce421833b596c",
+      "source_receipt_path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.topology_gnn.seed20260827__1dc23edd0041/receipt.json",
+      "source_receipt_sha256": "2bedd5beec1e4533be15b464bd5999190dc74df014b97c866b15b3ea5ff0ac8b"
+    },
+    {
+      "checkpoint_id": "topology_gnn_seed20260828_gs200",
+      "model_kind": "topology_gnn",
+      "training_seed": 20260828,
+      "trained_board_sizes": [
+        5,
+        7,
+        9
+      ],
+      "gradient_steps": 200,
+      "path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.topology_gnn.seed20260828__130510042d77/training_run/snapshots/gradient_000200/checkpoint_000010.pt",
+      "sha256": "4f3cf6880ad75bf008ad095bb9c70a7087ce12b87a934898d48ce42745bf97ed",
+      "config_path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.topology_gnn.seed20260828__130510042d77/training_run/resolved_config.json",
+      "config_hash": "1d774a2a2b985e926566ea0298789af608c926dadccb9aa6f86c40a12c5dfc36",
+      "config_file_sha256": "98e28f60d5537c5834a01f0123a927881c41d3caae160b3cd8bec33c68df889d",
+      "source_hash": "21a46dbd787090fc18c24cb4e29ebe1dd743203d31abeda43b3ce421833b596c",
+      "source_receipt_path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.topology_gnn.seed20260828__130510042d77/receipt.json",
+      "source_receipt_sha256": "57f252014be036d31cb0bcf69ad3258fc5416e02cf5cfbb7f27813ac3abec815"
+    },
+    {
+      "checkpoint_id": "topology_gnn_seed20260829_gs200",
+      "model_kind": "topology_gnn",
+      "training_seed": 20260829,
+      "trained_board_sizes": [
+        5,
+        7,
+        9
+      ],
+      "gradient_steps": 200,
+      "path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.topology_gnn.seed20260829__8708f3de3650/training_run/snapshots/gradient_000200/checkpoint_000010.pt",
+      "sha256": "ef6e8c07dbd141163fd3971294f6c7c787d321783ce8a56981925d70c300ffe4",
+      "config_path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.topology_gnn.seed20260829__8708f3de3650/training_run/resolved_config.json",
+      "config_hash": "2f8c2cf5289d8d1fa6ec41c7455631d1a85e48a0ed8018f44ed17ce8c2ba680b",
+      "config_file_sha256": "fdfb7410d98b85abd57b9f320c8fbeea57f6e9a8166f92a61fb51ebff6cd2831",
+      "source_hash": "21a46dbd787090fc18c24cb4e29ebe1dd743203d31abeda43b3ce421833b596c",
+      "source_receipt_path": "research/iclr2027/results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.topology_gnn.seed20260829__8708f3de3650/receipt.json",
+      "source_receipt_sha256": "0de48133ac8a7b5e5453cbb420ad91e738a57ba2e51ce64631dcdbefb26dbccf"
+    }
+  ],
+  "checkpoint_selection": {
+    "gen_size_checkpoint_ids": [
+      "grid_gnn_seed20260825_gs200",
+      "grid_gnn_seed20260826_gs200",
+      "grid_gnn_seed20260827_gs200",
+      "grid_gnn_seed20260828_gs200",
+      "grid_gnn_seed20260829_gs200",
+      "topology_gnn_seed20260825_gs200",
+      "topology_gnn_seed20260826_gs200",
+      "topology_gnn_seed20260827_gs200",
+      "topology_gnn_seed20260828_gs200",
+      "topology_gnn_seed20260829_gs200"
+    ],
+    "d16_v2_checkpoint_ids": [
+      "grid_gnn_seed20260825_gs200",
+      "grid_gnn_seed20260826_gs200",
+      "grid_gnn_seed20260827_gs200",
+      "grid_gnn_seed20260828_gs200",
+      "grid_gnn_seed20260829_gs200",
+      "padded_cnn_seed20260825_gs200",
+      "padded_cnn_seed20260826_gs200",
+      "padded_cnn_seed20260827_gs200",
+      "padded_cnn_seed20260828_gs200",
+      "padded_cnn_seed20260829_gs200",
+      "topology_gnn_seed20260825_gs200",
+      "topology_gnn_seed20260826_gs200",
+      "topology_gnn_seed20260827_gs200",
+      "topology_gnn_seed20260828_gs200",
+      "topology_gnn_seed20260829_gs200"
+    ],
+    "final_gradient_steps": 200,
+    "no_finetuning": true,
+    "require_checkpoint_file_sha256": true,
+    "require_config_file_sha256": true,
+    "require_checkpoint_config_hash": true,
+    "require_checkpoint_source_hash": true,
+    "require_source_receipt_sha256": true
+  },
+  "dry_run": {
+    "evidence_tier": "dry_run",
+    "must_complete_before_formal": true,
+    "exact_checkpoint_binding_checks": 15,
+    "gen_size_model_size_cells": 20,
+    "gen_size_state_fixtures_per_cell": 3,
+    "gen_size_state_fixtures": [
+      {
+        "fixture_id": "gen_n10_empty",
+        "eval_size": 10,
+        "opening_actions": [],
+        "opening_prefix_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "opening_state_hash": "790d14e8273fa3afca4a30af7ccc2e2e8b8eb3723fec5d42c55e83b92750308e"
+      },
+      {
+        "fixture_id": "gen_n10_prefix2",
+        "eval_size": 10,
+        "opening_actions": [40, 8],
+        "opening_prefix_hash": "a7f2863119fcd8cc5c9286d164703957d5fb6deb9903926310aa48f7b480cfe6",
+        "opening_state_hash": "de32985cd1cc76ca6b357cb43b341f7ff2755fc14d19b5db56396ad6c3c91b4a"
+      },
+      {
+        "fixture_id": "gen_n10_prefix6",
+        "eval_size": 10,
+        "opening_actions": [40, 26, 27, 53, 43, 17],
+        "opening_prefix_hash": "c5d3d6702eb5ea7f8c648eb9eb86747d2924d608e10101aa83b11928b80f9ec0",
+        "opening_state_hash": "990b288a1814fe9d5402e856cdaf86224a125545b431c39989e0d962c4e29b37"
+      },
+      {
+        "fixture_id": "gen_n12_empty",
+        "eval_size": 12,
+        "opening_actions": [],
+        "opening_prefix_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "opening_state_hash": "8687256731611671a0836dee4608d2f57b2e37c46179ecda7c2989ad4c15715b"
+      },
+      {
+        "fixture_id": "gen_n12_prefix2",
+        "eval_size": 12,
+        "opening_actions": [3, 76],
+        "opening_prefix_hash": "11cfe0d22725b6bad0a8a745232a15298eb5661452b591e90c6ed6ab516bf281",
+        "opening_state_hash": "9f2b93de57135603eb4d8d8ea20fd55c98bed13a10ffe4f87ca5be5dbdb9d9e2"
+      },
+      {
+        "fixture_id": "gen_n12_prefix6",
+        "eval_size": 12,
+        "opening_actions": [8, 67, 75, 61, 1, 49],
+        "opening_prefix_hash": "e5a367f976ff264a65804546ac42bcc7a826f54947c78b46fc0a3b83c6fd05b0",
+        "opening_state_hash": "66b2b1abe2ac68faf26021b234e398c6bc89cd6fb05152f3c31c6b7a0fed4b50"
+      }
+    ],
+    "gen_size_forward_checks": 60,
+    "d16_v2_model_size_cells": 45,
+    "d16_v2_opening_fixtures_per_cell": 3,
+    "d16_v2_opening_fixture_cluster_indices": [
+      0,
+      15,
+      31
+    ],
+    "d16_v2_forward_checks": 135,
+    "total_forward_checks": 195,
+    "checks": [
+      "checkpoint and source receipt path plus SHA-256",
+      "resolved config file SHA-256 and checkpoint config/source hash",
+      "state parse, serialize/restore byte-stable canonical fingerprint",
+      "board-size encoding and tensor/node/edge shapes",
+      "action_count equals n*(n+1)/2+1",
+      "legal action mask exactly matches LifelineGame legal points plus PASS",
+      "PASS index equals n*(n+1)/2 and is legal in every nonterminal fixture",
+      "illegal priors receive zero probability and all legal priors/value are finite",
+      "Grid-GNN physical-edge and Topology-GNN full logical-edge relation encoding",
+      "one no-root-noise PUCT-16 action per fixture is legal and replayable"
+    ],
+    "any_failure_sets_formal_ready_false": true,
+    "dry_run_outputs_forbidden_from_formal_aggregate": true
+  },
+  "gen_size": {
+    "experiment_id": "d17_gen_size_zero_shot_formal_v1",
+    "experiment_arm": "GEN-SIZE",
+    "evidence_tier": "formal",
+    "model_kinds": [
+      "grid_gnn",
+      "topology_gnn"
+    ],
+    "training_seeds": [
+      20260825,
+      20260826,
+      20260827,
+      20260828,
+      20260829
+    ],
+    "trained_board_sizes": [
+      5,
+      7,
+      9
+    ],
+    "eval_sizes": [
+      10,
+      12
+    ],
+    "no_finetuning": true,
+    "opponents": [
+      {
+        "id": "random",
+        "agent_kind": "random",
+        "config": {}
+      },
+      {
+        "id": "uct_mcts_16",
+        "agent_kind": "mcts",
+        "config": {
+          "simulations": 16,
+          "rollout_depth": 80,
+          "exploration": 1.4142135623730951
+        }
+      }
+    ],
+    "learned_search": {
+      "simulations": 16,
+      "c_puct": 1.5,
+      "temperature": 0,
+      "add_root_noise": false
+    },
+    "openings": {
+      "type": "empty_start",
+      "start_player": "BLACK",
+      "opening_cluster": "empty",
+      "action_prefix": [],
+      "superko_mode": "enforce"
+    },
+    "policy_seed_blocks": [
+      {
+        "policy_seed_block": "gen_psb00",
+        "block_index": 0,
+        "seed_low": 202608310000,
+        "seed_high": 202608310001,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608310000,
+            "agent_b_seed": 202608310001
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608310001,
+            "agent_b_seed": 202608310000
+          }
+        ]
+      },
+      {
+        "policy_seed_block": "gen_psb01",
+        "block_index": 1,
+        "seed_low": 202608310002,
+        "seed_high": 202608310003,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608310002,
+            "agent_b_seed": 202608310003
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608310003,
+            "agent_b_seed": 202608310002
+          }
+        ]
+      },
+      {
+        "policy_seed_block": "gen_psb02",
+        "block_index": 2,
+        "seed_low": 202608310004,
+        "seed_high": 202608310005,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608310004,
+            "agent_b_seed": 202608310005
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608310005,
+            "agent_b_seed": 202608310004
+          }
+        ]
+      },
+      {
+        "policy_seed_block": "gen_psb03",
+        "block_index": 3,
+        "seed_low": 202608310006,
+        "seed_high": 202608310007,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608310006,
+            "agent_b_seed": 202608310007
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608310007,
+            "agent_b_seed": 202608310006
+          }
+        ]
+      },
+      {
+        "policy_seed_block": "gen_psb04",
+        "block_index": 4,
+        "seed_low": 202608310008,
+        "seed_high": 202608310009,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608310008,
+            "agent_b_seed": 202608310009
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608310009,
+            "agent_b_seed": 202608310008
+          }
+        ]
+      },
+      {
+        "policy_seed_block": "gen_psb05",
+        "block_index": 5,
+        "seed_low": 202608310010,
+        "seed_high": 202608310011,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608310010,
+            "agent_b_seed": 202608310011
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608310011,
+            "agent_b_seed": 202608310010
+          }
+        ]
+      },
+      {
+        "policy_seed_block": "gen_psb06",
+        "block_index": 6,
+        "seed_low": 202608310012,
+        "seed_high": 202608310013,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608310012,
+            "agent_b_seed": 202608310013
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608310013,
+            "agent_b_seed": 202608310012
+          }
+        ]
+      },
+      {
+        "policy_seed_block": "gen_psb07",
+        "block_index": 7,
+        "seed_low": 202608310014,
+        "seed_high": 202608310015,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608310014,
+            "agent_b_seed": 202608310015
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608310015,
+            "agent_b_seed": 202608310014
+          }
+        ]
+      },
+      {
+        "policy_seed_block": "gen_psb08",
+        "block_index": 8,
+        "seed_low": 202608310016,
+        "seed_high": 202608310017,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608310016,
+            "agent_b_seed": 202608310017
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608310017,
+            "agent_b_seed": 202608310016
+          }
+        ]
+      },
+      {
+        "policy_seed_block": "gen_psb09",
+        "block_index": 9,
+        "seed_low": 202608310018,
+        "seed_high": 202608310019,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608310018,
+            "agent_b_seed": 202608310019
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608310019,
+            "agent_b_seed": 202608310018
+          }
+        ]
+      },
+      {
+        "policy_seed_block": "gen_psb10",
+        "block_index": 10,
+        "seed_low": 202608310020,
+        "seed_high": 202608310021,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608310020,
+            "agent_b_seed": 202608310021
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608310021,
+            "agent_b_seed": 202608310020
+          }
+        ]
+      },
+      {
+        "policy_seed_block": "gen_psb11",
+        "block_index": 11,
+        "seed_low": 202608310022,
+        "seed_high": 202608310023,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608310022,
+            "agent_b_seed": 202608310023
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608310023,
+            "agent_b_seed": 202608310022
+          }
+        ]
+      },
+      {
+        "policy_seed_block": "gen_psb12",
+        "block_index": 12,
+        "seed_low": 202608310024,
+        "seed_high": 202608310025,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608310024,
+            "agent_b_seed": 202608310025
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608310025,
+            "agent_b_seed": 202608310024
+          }
+        ]
+      },
+      {
+        "policy_seed_block": "gen_psb13",
+        "block_index": 13,
+        "seed_low": 202608310026,
+        "seed_high": 202608310027,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608310026,
+            "agent_b_seed": 202608310027
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608310027,
+            "agent_b_seed": 202608310026
+          }
+        ]
+      },
+      {
+        "policy_seed_block": "gen_psb14",
+        "block_index": 14,
+        "seed_low": 202608310028,
+        "seed_high": 202608310029,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608310028,
+            "agent_b_seed": 202608310029
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608310029,
+            "agent_b_seed": 202608310028
+          }
+        ]
+      },
+      {
+        "policy_seed_block": "gen_psb15",
+        "block_index": 15,
+        "seed_low": 202608310030,
+        "seed_high": 202608310031,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608310030,
+            "agent_b_seed": 202608310031
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608310031,
+            "agent_b_seed": 202608310030
+          }
+        ]
+      }
+    ],
+    "paired_color_swap": {
+      "required": true,
+      "games_per_policy_assignment": 2,
+      "same_agent_policy_seed_across_color_swap": true,
+      "agent_seed_follows_agent_not_color": true
+    },
+    "formal_task_count": 40,
+    "policy_seed_blocks_per_task": 16,
+    "policy_seed_assignments_per_block": 2,
+    "color_pairs_per_task": 32,
+    "games_per_task": 64,
+    "formal_game_count": 2560,
+    "max_plies": 256,
+    "truncations_allowed": 0,
+    "replay_verified_fraction": 1,
+    "minimum_unique_trajectories_per_task": 48,
+    "minimum_unique_trajectory_fraction_per_task": 0.75,
+    "unique_trajectory_key": "eval_size + opening_prefix + continuation action-index sequence; ignore black/white slot labels",
+    "inference_group_id_format": "gen_size.{model_kind}.n{eval_size}.vs.{opponent}",
+    "primary_statistical_unit": "training_seed",
+    "task_manifest_requires_explicit_pair_plan": true
+  },
+  "d16_v2": {
+    "experiment_id": "d18_d16_v2_diverse_openings_formal_v1",
+    "experiment_arm": "d16-v2",
+    "evidence_tier": "formal",
+    "label_must_remain_exact": "D16-v2",
+    "model_kinds": [
+      "padded_cnn",
+      "grid_gnn",
+      "topology_gnn"
+    ],
+    "model_pairs": [
+      {
+        "agent_a_model_kind": "padded_cnn",
+        "agent_b_model_kind": "grid_gnn"
+      },
+      {
+        "agent_a_model_kind": "padded_cnn",
+        "agent_b_model_kind": "topology_gnn"
+      },
+      {
+        "agent_a_model_kind": "grid_gnn",
+        "agent_b_model_kind": "topology_gnn"
+      }
+    ],
+    "training_seeds": [
+      20260825,
+      20260826,
+      20260827,
+      20260828,
+      20260829
+    ],
+    "require_matched_training_seed_within_task": true,
+    "eval_sizes": [
+      5,
+      7,
+      9
+    ],
+    "game_rules_unchanged": true,
+    "model_weights_unchanged": true,
+    "no_finetuning": true,
+    "learned_search": {
+      "simulations": 16,
+      "c_puct": 1.5,
+      "temperature": 0,
+      "add_root_noise": false
+    },
+    "opening_manifest": {
+      "path": "research/iclr2027/configs/d17_d19_openings_manifest.json",
+      "sha256": "5a5a3403ddbdf0ae5021985b8789426013521b3580089664e23ad1cec777a4ef",
+      "schema_name": "lifeline-d17-d19-openings-manifest",
+      "cluster_count": 96,
+      "clusters_per_size": 32,
+      "explicit_action_prefix_required": true,
+      "explicit_opening_seed_required": true,
+      "explicit_legality_and_state_hash_required": true
+    },
+    "policy_seed_plan_by_opening": [
+      {
+        "cluster_id": "n5_c00",
+        "opening_id": "d16v2_n5_c00_p2",
+        "eval_size": 5,
+        "opening_prefix_hash": "f3bb0ab9ad7daf6ffb5d2b80a6cd77c7e66bef596980914fe424796268bad537",
+        "opening_state_hash": "847957bdd7f7504d4a0b28de487544356150827d6fd321f3f333858ac67a8afb",
+        "seed_low": 202608325000,
+        "seed_high": 202608325001,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608325000,
+            "agent_b_seed": 202608325001
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608325001,
+            "agent_b_seed": 202608325000
+          }
+        ]
+      },
+      {
+        "cluster_id": "n5_c01",
+        "opening_id": "d16v2_n5_c01_p2",
+        "eval_size": 5,
+        "opening_prefix_hash": "1632b2e76c0f801ae02fc3c5903414850e305f4f2af8a19b01b7e0d07f1d52a6",
+        "opening_state_hash": "852276d296b706792b99a804934e3af090d9ada8236b7f7302f6d782adb97d1f",
+        "seed_low": 202608325002,
+        "seed_high": 202608325003,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608325002,
+            "agent_b_seed": 202608325003
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608325003,
+            "agent_b_seed": 202608325002
+          }
+        ]
+      },
+      {
+        "cluster_id": "n5_c02",
+        "opening_id": "d16v2_n5_c02_p2",
+        "eval_size": 5,
+        "opening_prefix_hash": "19db7d2d989a95d4b91f43658fb685f91a1c195fd1b725d817ed8e40e972cb6a",
+        "opening_state_hash": "0da6777ec4b7f1509387a25889ff62f6f811bfd988de681fe1d5b03ec05c4f8f",
+        "seed_low": 202608325004,
+        "seed_high": 202608325005,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608325004,
+            "agent_b_seed": 202608325005
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608325005,
+            "agent_b_seed": 202608325004
+          }
+        ]
+      },
+      {
+        "cluster_id": "n5_c03",
+        "opening_id": "d16v2_n5_c03_p2",
+        "eval_size": 5,
+        "opening_prefix_hash": "efb770b09b3d3475f20aee511e87cfcfb0f3e525a779612f5f3d47ec67ee63c0",
+        "opening_state_hash": "e2d72e2db797879a40e09adefed2feb854090642e2848e1fb6f0da4c80ef84d8",
+        "seed_low": 202608325006,
+        "seed_high": 202608325007,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608325006,
+            "agent_b_seed": 202608325007
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608325007,
+            "agent_b_seed": 202608325006
+          }
+        ]
+      },
+      {
+        "cluster_id": "n5_c04",
+        "opening_id": "d16v2_n5_c04_p2",
+        "eval_size": 5,
+        "opening_prefix_hash": "bad58488a69164b0820522ff168270fe9274718ec52718eef04e6dbd25d9ab88",
+        "opening_state_hash": "dadb343e8bb075f6e8491eea0577e7fde9ec7f393611362421c610a3602c0f69",
+        "seed_low": 202608325008,
+        "seed_high": 202608325009,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608325008,
+            "agent_b_seed": 202608325009
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608325009,
+            "agent_b_seed": 202608325008
+          }
+        ]
+      },
+      {
+        "cluster_id": "n5_c05",
+        "opening_id": "d16v2_n5_c05_p2",
+        "eval_size": 5,
+        "opening_prefix_hash": "8f98e47e89f92dae8a3cc37d58e665efc30be971358488c254cc75438f011ba0",
+        "opening_state_hash": "2c141471f6772c16053107e9011036346efacf0d2bbd7d2ba9da29c22144c085",
+        "seed_low": 202608325010,
+        "seed_high": 202608325011,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608325010,
+            "agent_b_seed": 202608325011
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608325011,
+            "agent_b_seed": 202608325010
+          }
+        ]
+      },
+      {
+        "cluster_id": "n5_c06",
+        "opening_id": "d16v2_n5_c06_p2",
+        "eval_size": 5,
+        "opening_prefix_hash": "c0e92655e48e162ba25178b43cbfcba934f070caef75b8e71ece7106cba204b7",
+        "opening_state_hash": "7b6fb3370a4ac8c17d3f0297bb423b173be7c5927ba64d5610e749897f5a9fec",
+        "seed_low": 202608325012,
+        "seed_high": 202608325013,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608325012,
+            "agent_b_seed": 202608325013
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608325013,
+            "agent_b_seed": 202608325012
+          }
+        ]
+      },
+      {
+        "cluster_id": "n5_c07",
+        "opening_id": "d16v2_n5_c07_p2",
+        "eval_size": 5,
+        "opening_prefix_hash": "243cf5c3ad084113d7851af05f11df593caea00bf8f5ef2e4d09a4bacf140536",
+        "opening_state_hash": "cc3818e11094da03d13a7002d588607e54af7073d146197766af80c39afe5c93",
+        "seed_low": 202608325014,
+        "seed_high": 202608325015,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608325014,
+            "agent_b_seed": 202608325015
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608325015,
+            "agent_b_seed": 202608325014
+          }
+        ]
+      },
+      {
+        "cluster_id": "n5_c08",
+        "opening_id": "d16v2_n5_c08_p4",
+        "eval_size": 5,
+        "opening_prefix_hash": "8cde8af5d9c5963cef6b216f9c2274513c6c435e646d48b64b838101634e3450",
+        "opening_state_hash": "fc7ddca95fb54035dc47162fb45b091b79ab109e4cc8cd91ebaea1c9ff69f47b",
+        "seed_low": 202608325016,
+        "seed_high": 202608325017,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608325016,
+            "agent_b_seed": 202608325017
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608325017,
+            "agent_b_seed": 202608325016
+          }
+        ]
+      },
+      {
+        "cluster_id": "n5_c09",
+        "opening_id": "d16v2_n5_c09_p4",
+        "eval_size": 5,
+        "opening_prefix_hash": "fcd495624bfc3a70b825ec5c560dd3969ab54023ccebd3d4617bdecf380bd91b",
+        "opening_state_hash": "8eac939b8283ef6d9b1228a5a6c7d100ccfe93bc3dfa0f9f6a53d0b28d38aa6f",
+        "seed_low": 202608325018,
+        "seed_high": 202608325019,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608325018,
+            "agent_b_seed": 202608325019
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608325019,
+            "agent_b_seed": 202608325018
+          }
+        ]
+      },
+      {
+        "cluster_id": "n5_c10",
+        "opening_id": "d16v2_n5_c10_p4",
+        "eval_size": 5,
+        "opening_prefix_hash": "84868948834cff10b8142dccd48f61721a9cd6cd0222a1a2116fb72efbe49e5d",
+        "opening_state_hash": "01f6a04a3611c0f36831b3eb5ad9365ef3faa783354d8009b4fa60b80678e6d1",
+        "seed_low": 202608325020,
+        "seed_high": 202608325021,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608325020,
+            "agent_b_seed": 202608325021
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608325021,
+            "agent_b_seed": 202608325020
+          }
+        ]
+      },
+      {
+        "cluster_id": "n5_c11",
+        "opening_id": "d16v2_n5_c11_p4",
+        "eval_size": 5,
+        "opening_prefix_hash": "36f9284bc477d6fee25323bbc6acfc9668ea0b6ac64b493cbad51dbf6781bffe",
+        "opening_state_hash": "84bd071d24ed720139f5caf23091e40cc8d394182c7a5b9aa85e938d915c7436",
+        "seed_low": 202608325022,
+        "seed_high": 202608325023,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608325022,
+            "agent_b_seed": 202608325023
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608325023,
+            "agent_b_seed": 202608325022
+          }
+        ]
+      },
+      {
+        "cluster_id": "n5_c12",
+        "opening_id": "d16v2_n5_c12_p4",
+        "eval_size": 5,
+        "opening_prefix_hash": "8ff9fb64b591d8a8e1a96340be9a0335645eb1cee54331c554f9faeec6751043",
+        "opening_state_hash": "d35c7d8e8a94ddd7bacf406ac4e320e4ec2ba66a4e343a3b7f3f87ed011b6ad8",
+        "seed_low": 202608325024,
+        "seed_high": 202608325025,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608325024,
+            "agent_b_seed": 202608325025
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608325025,
+            "agent_b_seed": 202608325024
+          }
+        ]
+      },
+      {
+        "cluster_id": "n5_c13",
+        "opening_id": "d16v2_n5_c13_p4",
+        "eval_size": 5,
+        "opening_prefix_hash": "987a49e76a001e5a16de2a3d8fddb3b1e810e2ae32c3eff49db0b9e575389e45",
+        "opening_state_hash": "9bec4443a9c157bfd33807ebb926246fd8fe49a7ba7c43ff0fa6b3f5797f2ec1",
+        "seed_low": 202608325026,
+        "seed_high": 202608325027,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608325026,
+            "agent_b_seed": 202608325027
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608325027,
+            "agent_b_seed": 202608325026
+          }
+        ]
+      },
+      {
+        "cluster_id": "n5_c14",
+        "opening_id": "d16v2_n5_c14_p4",
+        "eval_size": 5,
+        "opening_prefix_hash": "2b9e0813b79099c4c14ce7ab6ccd59eb85cbf5463f937fd513696b3bdff8e0cd",
+        "opening_state_hash": "621481c5dc46fb7ecd38cc6b8ba333765490b297b141194dcd50585b6ab48093",
+        "seed_low": 202608325028,
+        "seed_high": 202608325029,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608325028,
+            "agent_b_seed": 202608325029
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608325029,
+            "agent_b_seed": 202608325028
+          }
+        ]
+      },
+      {
+        "cluster_id": "n5_c15",
+        "opening_id": "d16v2_n5_c15_p4",
+        "eval_size": 5,
+        "opening_prefix_hash": "5e916b2ea5def093da3b5599ffee975794edd68add57f14e3b3ea14151422975",
+        "opening_state_hash": "dc9b9057c5207df0a9c048f8e8f8d1cb3bb174f96b41ead1546d62d9fc4dbbbc",
+        "seed_low": 202608325030,
+        "seed_high": 202608325031,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608325030,
+            "agent_b_seed": 202608325031
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608325031,
+            "agent_b_seed": 202608325030
+          }
+        ]
+      },
+      {
+        "cluster_id": "n5_c16",
+        "opening_id": "d16v2_n5_c16_p6",
+        "eval_size": 5,
+        "opening_prefix_hash": "5eefb597284d5e5cd4954cec94e51d115cb377932452cbcfd6ad2c9687fbe7f8",
+        "opening_state_hash": "2d2c47ccd80e5a6a0ae261cab63c36b70b26c2108bc282c022dc5f42ab914a9e",
+        "seed_low": 202608325032,
+        "seed_high": 202608325033,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608325032,
+            "agent_b_seed": 202608325033
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608325033,
+            "agent_b_seed": 202608325032
+          }
+        ]
+      },
+      {
+        "cluster_id": "n5_c17",
+        "opening_id": "d16v2_n5_c17_p6",
+        "eval_size": 5,
+        "opening_prefix_hash": "0b6591081c42d3b56a116dc1021481348b57636bbedfc0214379a33e042c01b8",
+        "opening_state_hash": "b5f80b9b33c1fcc6572f7e6aea7ddb6e366f76b3c2b31e496fe8ab7268a97b08",
+        "seed_low": 202608325034,
+        "seed_high": 202608325035,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608325034,
+            "agent_b_seed": 202608325035
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608325035,
+            "agent_b_seed": 202608325034
+          }
+        ]
+      },
+      {
+        "cluster_id": "n5_c18",
+        "opening_id": "d16v2_n5_c18_p6",
+        "eval_size": 5,
+        "opening_prefix_hash": "401cc80248d8f00bcd02acfff313f79cfae3114630065cad451ac5ad128f2c09",
+        "opening_state_hash": "037106daca453c567c749e7404c87432261dfdc090d6180c46691d93f466f0e2",
+        "seed_low": 202608325036,
+        "seed_high": 202608325037,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608325036,
+            "agent_b_seed": 202608325037
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608325037,
+            "agent_b_seed": 202608325036
+          }
+        ]
+      },
+      {
+        "cluster_id": "n5_c19",
+        "opening_id": "d16v2_n5_c19_p6",
+        "eval_size": 5,
+        "opening_prefix_hash": "4f8cb7c834d2a7f2fba9a6e7f59f01dd27867934e3c06d3774332d2ba8721f56",
+        "opening_state_hash": "d6f8c684d127783045dbb5788f056934ce36eae7867ff41b04bd4296fb3f5171",
+        "seed_low": 202608325038,
+        "seed_high": 202608325039,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608325038,
+            "agent_b_seed": 202608325039
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608325039,
+            "agent_b_seed": 202608325038
+          }
+        ]
+      },
+      {
+        "cluster_id": "n5_c20",
+        "opening_id": "d16v2_n5_c20_p6",
+        "eval_size": 5,
+        "opening_prefix_hash": "39c87ade21b5c7288fabc435d85ff5996cff452b4b7e4b38295c105c51ef9af7",
+        "opening_state_hash": "b7961d39b55624f47978a4324d8bd03ba606320c7e7833245ec9ffa10f803e99",
+        "seed_low": 202608325040,
+        "seed_high": 202608325041,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608325040,
+            "agent_b_seed": 202608325041
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608325041,
+            "agent_b_seed": 202608325040
+          }
+        ]
+      },
+      {
+        "cluster_id": "n5_c21",
+        "opening_id": "d16v2_n5_c21_p6",
+        "eval_size": 5,
+        "opening_prefix_hash": "85d201dcf94edfb808028e9e3c00884cfb2ad94f94ad23baa2e22ef0280b6eeb",
+        "opening_state_hash": "353882d72d99f67a336373a78b047c7e288b7aec4ed0c7f2e1a2516c44095554",
+        "seed_low": 202608325042,
+        "seed_high": 202608325043,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608325042,
+            "agent_b_seed": 202608325043
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608325043,
+            "agent_b_seed": 202608325042
+          }
+        ]
+      },
+      {
+        "cluster_id": "n5_c22",
+        "opening_id": "d16v2_n5_c22_p6",
+        "eval_size": 5,
+        "opening_prefix_hash": "5f03cde4b6651990c2615106993cb616311a59d9bf3dbfc5c0d4019ccc03c7f0",
+        "opening_state_hash": "3b27a1b6c2ad50010c57f6ffabc41e2790b9ae2d6f40db0dbfc8d2304ccd02cb",
+        "seed_low": 202608325044,
+        "seed_high": 202608325045,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608325044,
+            "agent_b_seed": 202608325045
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608325045,
+            "agent_b_seed": 202608325044
+          }
+        ]
+      },
+      {
+        "cluster_id": "n5_c23",
+        "opening_id": "d16v2_n5_c23_p6",
+        "eval_size": 5,
+        "opening_prefix_hash": "65a849077da27d7e33bb3f666dc06730d85a9f44915eef04f0aa61755d4bae7f",
+        "opening_state_hash": "5e6422a4c9eef12a971384dbf7808e8f106ac23f47d7a71d5e37fa9813750efa",
+        "seed_low": 202608325046,
+        "seed_high": 202608325047,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608325046,
+            "agent_b_seed": 202608325047
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608325047,
+            "agent_b_seed": 202608325046
+          }
+        ]
+      },
+      {
+        "cluster_id": "n5_c24",
+        "opening_id": "d16v2_n5_c24_p8",
+        "eval_size": 5,
+        "opening_prefix_hash": "f3804dcc6d6b03fc74453af77e2d3fc9226c66146dd3278cc8a687fefd01f309",
+        "opening_state_hash": "e41f03eace1db4fcaec842e0bccfbd8fafc9f9937fa608d4bacb46a91bdbdbff",
+        "seed_low": 202608325048,
+        "seed_high": 202608325049,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608325048,
+            "agent_b_seed": 202608325049
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608325049,
+            "agent_b_seed": 202608325048
+          }
+        ]
+      },
+      {
+        "cluster_id": "n5_c25",
+        "opening_id": "d16v2_n5_c25_p8",
+        "eval_size": 5,
+        "opening_prefix_hash": "b72c63abcf47c667e5eb56d3fc045151ba23715b95260ab36ef32a2129d1a79d",
+        "opening_state_hash": "3cac6f5c55280dc971c03c55a47a1c42db1c1aa634ee182b5643997968a3e6c8",
+        "seed_low": 202608325050,
+        "seed_high": 202608325051,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608325050,
+            "agent_b_seed": 202608325051
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608325051,
+            "agent_b_seed": 202608325050
+          }
+        ]
+      },
+      {
+        "cluster_id": "n5_c26",
+        "opening_id": "d16v2_n5_c26_p8",
+        "eval_size": 5,
+        "opening_prefix_hash": "582e20ceca08092a885b77c6c3dd22114b7a691d9833a5f8339098f6ac30a8dc",
+        "opening_state_hash": "05de580a6aef3825a70e44a633fc2b971f1c6ffe153d6c6113030b7041be6eed",
+        "seed_low": 202608325052,
+        "seed_high": 202608325053,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608325052,
+            "agent_b_seed": 202608325053
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608325053,
+            "agent_b_seed": 202608325052
+          }
+        ]
+      },
+      {
+        "cluster_id": "n5_c27",
+        "opening_id": "d16v2_n5_c27_p8",
+        "eval_size": 5,
+        "opening_prefix_hash": "b7d97a70a79c6f31368774d829f06b879516974063a631261240bcb0f1838e9f",
+        "opening_state_hash": "b57b8f80737a984d0dc0367afc6fe47c0aa0de60e788dc6e256fe6a29b29e60c",
+        "seed_low": 202608325054,
+        "seed_high": 202608325055,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608325054,
+            "agent_b_seed": 202608325055
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608325055,
+            "agent_b_seed": 202608325054
+          }
+        ]
+      },
+      {
+        "cluster_id": "n5_c28",
+        "opening_id": "d16v2_n5_c28_p8",
+        "eval_size": 5,
+        "opening_prefix_hash": "69b5ad0591e860fddbba719ee874dc8228b62e91650f67542e4e7447a07b10f9",
+        "opening_state_hash": "dd419046a0aff18fd68a7969355c70e27b0663f8883116f04ae8ae48edd1133d",
+        "seed_low": 202608325056,
+        "seed_high": 202608325057,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608325056,
+            "agent_b_seed": 202608325057
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608325057,
+            "agent_b_seed": 202608325056
+          }
+        ]
+      },
+      {
+        "cluster_id": "n5_c29",
+        "opening_id": "d16v2_n5_c29_p8",
+        "eval_size": 5,
+        "opening_prefix_hash": "f16e9b7114553438cf7f4367eb6f3728b5032ff06a623dd49acb13ef5d841a44",
+        "opening_state_hash": "224e0ad02e6e964e7be046c6efeeddcfbaf1bbb3496606836524697244c9a8e2",
+        "seed_low": 202608325058,
+        "seed_high": 202608325059,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608325058,
+            "agent_b_seed": 202608325059
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608325059,
+            "agent_b_seed": 202608325058
+          }
+        ]
+      },
+      {
+        "cluster_id": "n5_c30",
+        "opening_id": "d16v2_n5_c30_p8",
+        "eval_size": 5,
+        "opening_prefix_hash": "eef669d5e13a432a983022692d4ab8bc98d1b3909a26c8adbf18e8febbebbf03",
+        "opening_state_hash": "77f3df4b5759a8837ad884005baab570cb4db30debe25b828826f86790dd8fac",
+        "seed_low": 202608325060,
+        "seed_high": 202608325061,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608325060,
+            "agent_b_seed": 202608325061
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608325061,
+            "agent_b_seed": 202608325060
+          }
+        ]
+      },
+      {
+        "cluster_id": "n5_c31",
+        "opening_id": "d16v2_n5_c31_p8",
+        "eval_size": 5,
+        "opening_prefix_hash": "f53b828185af1112c2ccb341aca8ff8de95062385a1135c0835a81da973bd465",
+        "opening_state_hash": "8d5add876f9ddec34147d7e687e87546c79985d0f47fb11a91f15aca0ee9017c",
+        "seed_low": 202608325062,
+        "seed_high": 202608325063,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608325062,
+            "agent_b_seed": 202608325063
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608325063,
+            "agent_b_seed": 202608325062
+          }
+        ]
+      },
+      {
+        "cluster_id": "n7_c00",
+        "opening_id": "d16v2_n7_c00_p2",
+        "eval_size": 7,
+        "opening_prefix_hash": "52cb4fbae147de654e55d7cac7c9d2c1a9d1de9b7eda5747741263ad482bbc77",
+        "opening_state_hash": "2697188f680fca3735621580505fee4ba13b4495697b3f71ba6da0a96ba77c08",
+        "seed_low": 202608327000,
+        "seed_high": 202608327001,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608327000,
+            "agent_b_seed": 202608327001
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608327001,
+            "agent_b_seed": 202608327000
+          }
+        ]
+      },
+      {
+        "cluster_id": "n7_c01",
+        "opening_id": "d16v2_n7_c01_p2",
+        "eval_size": 7,
+        "opening_prefix_hash": "fea9ad0bf04b1d2d95c7900b6d942ad63f932d4885ee0c062403a2702b5ce7e4",
+        "opening_state_hash": "1e9458f7cdab583e4ff3723d0d4d709117ac1b3d15a3d1f67068524254747399",
+        "seed_low": 202608327002,
+        "seed_high": 202608327003,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608327002,
+            "agent_b_seed": 202608327003
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608327003,
+            "agent_b_seed": 202608327002
+          }
+        ]
+      },
+      {
+        "cluster_id": "n7_c02",
+        "opening_id": "d16v2_n7_c02_p2",
+        "eval_size": 7,
+        "opening_prefix_hash": "a8df4bfb80ed4fbab8233fb0f87bd35fa2480989b7da205d95202eaa98fae2f6",
+        "opening_state_hash": "51abf85d01e8f95d6446fb49de7b99a2e5dd926a5121eacf395f0d28ad8b5777",
+        "seed_low": 202608327004,
+        "seed_high": 202608327005,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608327004,
+            "agent_b_seed": 202608327005
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608327005,
+            "agent_b_seed": 202608327004
+          }
+        ]
+      },
+      {
+        "cluster_id": "n7_c03",
+        "opening_id": "d16v2_n7_c03_p2",
+        "eval_size": 7,
+        "opening_prefix_hash": "05747e55994333829602b844c354b03347f0f44def80f57e49634bdf711b8b82",
+        "opening_state_hash": "9dfd524a223bd4f327026f51d1f37b16e0087d0bb39774064990e66f6ac3fb85",
+        "seed_low": 202608327006,
+        "seed_high": 202608327007,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608327006,
+            "agent_b_seed": 202608327007
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608327007,
+            "agent_b_seed": 202608327006
+          }
+        ]
+      },
+      {
+        "cluster_id": "n7_c04",
+        "opening_id": "d16v2_n7_c04_p2",
+        "eval_size": 7,
+        "opening_prefix_hash": "2220816d47bf98b2528546c2c04282946ba542fc957585085f03f154f3c115e8",
+        "opening_state_hash": "4c2f0e5aa32ea87800317cae0547057b7885f49f93774f927e5dfd355bf61c41",
+        "seed_low": 202608327008,
+        "seed_high": 202608327009,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608327008,
+            "agent_b_seed": 202608327009
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608327009,
+            "agent_b_seed": 202608327008
+          }
+        ]
+      },
+      {
+        "cluster_id": "n7_c05",
+        "opening_id": "d16v2_n7_c05_p2",
+        "eval_size": 7,
+        "opening_prefix_hash": "f25ed8cd5464710aff6e5d655a575ac273cb9c19d696e53fa13de05db97454ca",
+        "opening_state_hash": "cb01855147556c93231fe207e96d9f879bd0fec0989f2c5705e2f099406ccbe3",
+        "seed_low": 202608327010,
+        "seed_high": 202608327011,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608327010,
+            "agent_b_seed": 202608327011
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608327011,
+            "agent_b_seed": 202608327010
+          }
+        ]
+      },
+      {
+        "cluster_id": "n7_c06",
+        "opening_id": "d16v2_n7_c06_p2",
+        "eval_size": 7,
+        "opening_prefix_hash": "7ea912e00e733d6cea60eace194d56ccd65ac867c1cab641df3faa76e2abab8e",
+        "opening_state_hash": "24199567e106af566b7f1fbbcad75c7c3bea9b6c89f24bcec60abd5e691ce816",
+        "seed_low": 202608327012,
+        "seed_high": 202608327013,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608327012,
+            "agent_b_seed": 202608327013
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608327013,
+            "agent_b_seed": 202608327012
+          }
+        ]
+      },
+      {
+        "cluster_id": "n7_c07",
+        "opening_id": "d16v2_n7_c07_p2",
+        "eval_size": 7,
+        "opening_prefix_hash": "d7655933ab15bcd39b2ead3847285f9c82ee3d49c88b05af4da446b610f8a712",
+        "opening_state_hash": "22eec4bdc27b44a167403241849a40bdc9b80368cd6b48e4a0987609d2853ecd",
+        "seed_low": 202608327014,
+        "seed_high": 202608327015,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608327014,
+            "agent_b_seed": 202608327015
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608327015,
+            "agent_b_seed": 202608327014
+          }
+        ]
+      },
+      {
+        "cluster_id": "n7_c08",
+        "opening_id": "d16v2_n7_c08_p4",
+        "eval_size": 7,
+        "opening_prefix_hash": "884bb76917a6062a5dff8a9483c8777991379a798e6e12570d4c6184956cee81",
+        "opening_state_hash": "c5cc496eaea472a430a41ec53e4cf700b417d40921f131d7ecbff54575941bd8",
+        "seed_low": 202608327016,
+        "seed_high": 202608327017,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608327016,
+            "agent_b_seed": 202608327017
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608327017,
+            "agent_b_seed": 202608327016
+          }
+        ]
+      },
+      {
+        "cluster_id": "n7_c09",
+        "opening_id": "d16v2_n7_c09_p4",
+        "eval_size": 7,
+        "opening_prefix_hash": "3f719e8390d262be88d5606b3c263c6762a2630ec41e95b2711fcfc6af7a178d",
+        "opening_state_hash": "e9033dfb51b0eb7adb3e85929d934ee866efc6cfb7839af1fa20bdd552cfd5a7",
+        "seed_low": 202608327018,
+        "seed_high": 202608327019,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608327018,
+            "agent_b_seed": 202608327019
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608327019,
+            "agent_b_seed": 202608327018
+          }
+        ]
+      },
+      {
+        "cluster_id": "n7_c10",
+        "opening_id": "d16v2_n7_c10_p4",
+        "eval_size": 7,
+        "opening_prefix_hash": "f81a5e823380591a389a6cc280c27217836da8fd0878204fd634ac029e2d8f43",
+        "opening_state_hash": "0718733e9943d5d784f031b16dc281061239cd9be55f65e50aff9a99d817fc13",
+        "seed_low": 202608327020,
+        "seed_high": 202608327021,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608327020,
+            "agent_b_seed": 202608327021
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608327021,
+            "agent_b_seed": 202608327020
+          }
+        ]
+      },
+      {
+        "cluster_id": "n7_c11",
+        "opening_id": "d16v2_n7_c11_p4",
+        "eval_size": 7,
+        "opening_prefix_hash": "4cfb2c499b528da8bdd8af0f9439a2bd9a4cdb61a909ac0789398097c8431998",
+        "opening_state_hash": "ad7443a72181ac370edd10befd976601824f700470ea3fd9c69a0ff706c90232",
+        "seed_low": 202608327022,
+        "seed_high": 202608327023,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608327022,
+            "agent_b_seed": 202608327023
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608327023,
+            "agent_b_seed": 202608327022
+          }
+        ]
+      },
+      {
+        "cluster_id": "n7_c12",
+        "opening_id": "d16v2_n7_c12_p4",
+        "eval_size": 7,
+        "opening_prefix_hash": "08c5d1afc003fab886a380e962cda1bc3f0f3c121182ffb344cb973e033bb4d1",
+        "opening_state_hash": "c2355cceb7c6a909b75f0793d078c9a3ba47a22eb8a45d669243e2fdaedad26b",
+        "seed_low": 202608327024,
+        "seed_high": 202608327025,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608327024,
+            "agent_b_seed": 202608327025
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608327025,
+            "agent_b_seed": 202608327024
+          }
+        ]
+      },
+      {
+        "cluster_id": "n7_c13",
+        "opening_id": "d16v2_n7_c13_p4",
+        "eval_size": 7,
+        "opening_prefix_hash": "eee27a7a8fca70c3a4649610a89a5f0fcc79c8a1287f2d69897938a2ae66de08",
+        "opening_state_hash": "313fd2ced5f19f17c241e025d81f86834f162c7e164088d97d065b615d10dc3f",
+        "seed_low": 202608327026,
+        "seed_high": 202608327027,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608327026,
+            "agent_b_seed": 202608327027
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608327027,
+            "agent_b_seed": 202608327026
+          }
+        ]
+      },
+      {
+        "cluster_id": "n7_c14",
+        "opening_id": "d16v2_n7_c14_p4",
+        "eval_size": 7,
+        "opening_prefix_hash": "6ecd92a150f4666d93999952b940ccc2a5f7fbafe50bde9db64d7bb03e238584",
+        "opening_state_hash": "e9da96a127d4625da782362ca1d11020095bc8b3ccd183efaad28f9e4d3195c7",
+        "seed_low": 202608327028,
+        "seed_high": 202608327029,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608327028,
+            "agent_b_seed": 202608327029
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608327029,
+            "agent_b_seed": 202608327028
+          }
+        ]
+      },
+      {
+        "cluster_id": "n7_c15",
+        "opening_id": "d16v2_n7_c15_p4",
+        "eval_size": 7,
+        "opening_prefix_hash": "3b8c2e502e0cd1464fe7c4663e58efa5fc533de8c4e33d4360798b399299602a",
+        "opening_state_hash": "b93e4bf8138b98339806c682b8a098188041e99db6b9e531723e7c0710993a4c",
+        "seed_low": 202608327030,
+        "seed_high": 202608327031,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608327030,
+            "agent_b_seed": 202608327031
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608327031,
+            "agent_b_seed": 202608327030
+          }
+        ]
+      },
+      {
+        "cluster_id": "n7_c16",
+        "opening_id": "d16v2_n7_c16_p6",
+        "eval_size": 7,
+        "opening_prefix_hash": "5f81f6feb304e2b614242e1a376639fc2bddfc4485339875564ee4c2661ecdec",
+        "opening_state_hash": "6d920fc07b328258596bf2b6b7459f2d78b8e7da963c7d437e52ec30a8c0433f",
+        "seed_low": 202608327032,
+        "seed_high": 202608327033,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608327032,
+            "agent_b_seed": 202608327033
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608327033,
+            "agent_b_seed": 202608327032
+          }
+        ]
+      },
+      {
+        "cluster_id": "n7_c17",
+        "opening_id": "d16v2_n7_c17_p6",
+        "eval_size": 7,
+        "opening_prefix_hash": "a5ed159b75f413598d0a3f77d3b8e4133a9d117b8825b756ec743b350dda7515",
+        "opening_state_hash": "45d1e051a626730e5ef70a204f88bf228535ae66831b9026c9b850cdb2810049",
+        "seed_low": 202608327034,
+        "seed_high": 202608327035,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608327034,
+            "agent_b_seed": 202608327035
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608327035,
+            "agent_b_seed": 202608327034
+          }
+        ]
+      },
+      {
+        "cluster_id": "n7_c18",
+        "opening_id": "d16v2_n7_c18_p6",
+        "eval_size": 7,
+        "opening_prefix_hash": "9bddb3d04428f6e998c4c2051a3ef3a9f698bdef8dd5dae4d68577f72cef48f1",
+        "opening_state_hash": "ba85c6e854f3c87e744d9fd7826935f86b4c24d713a3f74f0c2cfe7da73c2c0c",
+        "seed_low": 202608327036,
+        "seed_high": 202608327037,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608327036,
+            "agent_b_seed": 202608327037
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608327037,
+            "agent_b_seed": 202608327036
+          }
+        ]
+      },
+      {
+        "cluster_id": "n7_c19",
+        "opening_id": "d16v2_n7_c19_p6",
+        "eval_size": 7,
+        "opening_prefix_hash": "0e1f35ce7f17b9aa4f0a7af3f8da0bb0914b702ef69dffd86c019c1582e61981",
+        "opening_state_hash": "680db2f19ba0d66fffefdab5c8c56e4d851d004c3f4c43249dbf6253024871ef",
+        "seed_low": 202608327038,
+        "seed_high": 202608327039,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608327038,
+            "agent_b_seed": 202608327039
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608327039,
+            "agent_b_seed": 202608327038
+          }
+        ]
+      },
+      {
+        "cluster_id": "n7_c20",
+        "opening_id": "d16v2_n7_c20_p6",
+        "eval_size": 7,
+        "opening_prefix_hash": "0eef76e090398dbc388bc35aabee799b74048421c8843714798cea48efe98dc6",
+        "opening_state_hash": "2eddeb8ddf17c1cbb8a2253ea08080fe4c49b7047293e9dd33bd839234bb1063",
+        "seed_low": 202608327040,
+        "seed_high": 202608327041,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608327040,
+            "agent_b_seed": 202608327041
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608327041,
+            "agent_b_seed": 202608327040
+          }
+        ]
+      },
+      {
+        "cluster_id": "n7_c21",
+        "opening_id": "d16v2_n7_c21_p6",
+        "eval_size": 7,
+        "opening_prefix_hash": "79eef48f5e893fbf7c446d84b88f79c65e9e8d48ef7e9d1e3bf8590b362690bd",
+        "opening_state_hash": "d0a561a73053a8bfaf3b6b04bc736cf9a75824ee106644ef787e8d30b3e750b0",
+        "seed_low": 202608327042,
+        "seed_high": 202608327043,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608327042,
+            "agent_b_seed": 202608327043
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608327043,
+            "agent_b_seed": 202608327042
+          }
+        ]
+      },
+      {
+        "cluster_id": "n7_c22",
+        "opening_id": "d16v2_n7_c22_p6",
+        "eval_size": 7,
+        "opening_prefix_hash": "c8c7445cbb50e140bf4ad77caba47b4a861c3cb7cd62c38c1ca83aec88be6f16",
+        "opening_state_hash": "8fe0ba35e0e4d7486a3d38ea4a740f26e6c8a95cdbcaec2d7c2ab5bda08395bb",
+        "seed_low": 202608327044,
+        "seed_high": 202608327045,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608327044,
+            "agent_b_seed": 202608327045
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608327045,
+            "agent_b_seed": 202608327044
+          }
+        ]
+      },
+      {
+        "cluster_id": "n7_c23",
+        "opening_id": "d16v2_n7_c23_p6",
+        "eval_size": 7,
+        "opening_prefix_hash": "13413bbcea4336e4af77700d3d3d535148135bcaeed74b65d2ad25765b83436d",
+        "opening_state_hash": "e658fd1683d077e967710b7a4e59c541e08ccea846600791f89001ceb07e1652",
+        "seed_low": 202608327046,
+        "seed_high": 202608327047,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608327046,
+            "agent_b_seed": 202608327047
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608327047,
+            "agent_b_seed": 202608327046
+          }
+        ]
+      },
+      {
+        "cluster_id": "n7_c24",
+        "opening_id": "d16v2_n7_c24_p8",
+        "eval_size": 7,
+        "opening_prefix_hash": "303a2c91f099506dda3f8e6c395a40bf3d7477855b6d72291f6b4d383930609c",
+        "opening_state_hash": "f87c4570943f94e9ee06e86b0ccb4eeeb732b1857f97d4e12cecf65a3fbbe945",
+        "seed_low": 202608327048,
+        "seed_high": 202608327049,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608327048,
+            "agent_b_seed": 202608327049
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608327049,
+            "agent_b_seed": 202608327048
+          }
+        ]
+      },
+      {
+        "cluster_id": "n7_c25",
+        "opening_id": "d16v2_n7_c25_p8",
+        "eval_size": 7,
+        "opening_prefix_hash": "c65c392de2ba4135bb0ec849bc0d55fbd2fa782d302d4abbeb76f8f57bdcba5d",
+        "opening_state_hash": "f32c6f2eaad5187ecb568352921fdb3e51cb0fa9f435cdba13e049518c88928d",
+        "seed_low": 202608327050,
+        "seed_high": 202608327051,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608327050,
+            "agent_b_seed": 202608327051
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608327051,
+            "agent_b_seed": 202608327050
+          }
+        ]
+      },
+      {
+        "cluster_id": "n7_c26",
+        "opening_id": "d16v2_n7_c26_p8",
+        "eval_size": 7,
+        "opening_prefix_hash": "14c344b267aca2a034a199dce56b8dad5f1cabf46a17f047b29affb752d8f1af",
+        "opening_state_hash": "12dba05cf03bc18bbd2d213d6990a9be2437205a5194a7976be894ff235ee20a",
+        "seed_low": 202608327052,
+        "seed_high": 202608327053,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608327052,
+            "agent_b_seed": 202608327053
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608327053,
+            "agent_b_seed": 202608327052
+          }
+        ]
+      },
+      {
+        "cluster_id": "n7_c27",
+        "opening_id": "d16v2_n7_c27_p8",
+        "eval_size": 7,
+        "opening_prefix_hash": "4fae9bf721a1beebf27b1eba567a2ec560b1005e3acd4a2f0cae9bccd8247fd5",
+        "opening_state_hash": "ff2d74bae97de6e75910db145c2264e8662926f49a24999fc215ba4ff3bebe1a",
+        "seed_low": 202608327054,
+        "seed_high": 202608327055,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608327054,
+            "agent_b_seed": 202608327055
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608327055,
+            "agent_b_seed": 202608327054
+          }
+        ]
+      },
+      {
+        "cluster_id": "n7_c28",
+        "opening_id": "d16v2_n7_c28_p8",
+        "eval_size": 7,
+        "opening_prefix_hash": "8b5abda8e0ac7306da8500c23060298d2f45761d247563ed395b240575ba5c16",
+        "opening_state_hash": "a7535cefbdd57231be7a95937746238fce290376ed4bcf87b70974c36bf31633",
+        "seed_low": 202608327056,
+        "seed_high": 202608327057,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608327056,
+            "agent_b_seed": 202608327057
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608327057,
+            "agent_b_seed": 202608327056
+          }
+        ]
+      },
+      {
+        "cluster_id": "n7_c29",
+        "opening_id": "d16v2_n7_c29_p8",
+        "eval_size": 7,
+        "opening_prefix_hash": "80a91fb22f79756e36491930ac5b679553684eafbd82a66ddaeca11a1feece46",
+        "opening_state_hash": "cedd9b3d321ad204cc3a7dffee0f2d316f2604c7909e06b02567e041127fc779",
+        "seed_low": 202608327058,
+        "seed_high": 202608327059,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608327058,
+            "agent_b_seed": 202608327059
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608327059,
+            "agent_b_seed": 202608327058
+          }
+        ]
+      },
+      {
+        "cluster_id": "n7_c30",
+        "opening_id": "d16v2_n7_c30_p8",
+        "eval_size": 7,
+        "opening_prefix_hash": "f56686eebfe728c15272bce62455c7fe3f989e75c89e165ec983f49838c6892c",
+        "opening_state_hash": "51ea3064d88bc60cb62d572c3f20293f3a200d25d9928ab78fca6687c3a6b0eb",
+        "seed_low": 202608327060,
+        "seed_high": 202608327061,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608327060,
+            "agent_b_seed": 202608327061
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608327061,
+            "agent_b_seed": 202608327060
+          }
+        ]
+      },
+      {
+        "cluster_id": "n7_c31",
+        "opening_id": "d16v2_n7_c31_p8",
+        "eval_size": 7,
+        "opening_prefix_hash": "16c34e9571002244b7d5727ef10c881b8ed4c2495b6c66a1e2b6affb82c2c3bd",
+        "opening_state_hash": "2b1b64b84bc8c7b7257eecb0a090e6dc4f3c2de9530cf022cd9b8be534017820",
+        "seed_low": 202608327062,
+        "seed_high": 202608327063,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608327062,
+            "agent_b_seed": 202608327063
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608327063,
+            "agent_b_seed": 202608327062
+          }
+        ]
+      },
+      {
+        "cluster_id": "n9_c00",
+        "opening_id": "d16v2_n9_c00_p2",
+        "eval_size": 9,
+        "opening_prefix_hash": "c153fd658379b126b43ff65cdae05791afa4f1737c6ce8e08b393f8ba52122cc",
+        "opening_state_hash": "d1db96d3e54680cae7aaa5c18e629c855f28008a2f9eb3a5988d8c872b1e773e",
+        "seed_low": 202608329000,
+        "seed_high": 202608329001,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608329000,
+            "agent_b_seed": 202608329001
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608329001,
+            "agent_b_seed": 202608329000
+          }
+        ]
+      },
+      {
+        "cluster_id": "n9_c01",
+        "opening_id": "d16v2_n9_c01_p2",
+        "eval_size": 9,
+        "opening_prefix_hash": "0a6d48a7e95d333c685c246c32b87438f1321279c486663301e82e484b57df20",
+        "opening_state_hash": "c9155efd1fe972d059e6f21a5dce049a3fb4bbd817f9c7be70b2f52aaaeb8039",
+        "seed_low": 202608329002,
+        "seed_high": 202608329003,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608329002,
+            "agent_b_seed": 202608329003
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608329003,
+            "agent_b_seed": 202608329002
+          }
+        ]
+      },
+      {
+        "cluster_id": "n9_c02",
+        "opening_id": "d16v2_n9_c02_p2",
+        "eval_size": 9,
+        "opening_prefix_hash": "87323c852ab27b648a6a67fe6c68e4b80d0b868fc520f9991805734c2768f611",
+        "opening_state_hash": "e0458e6fec11794fa767ffebcc93dd5527c5da4fc6ffb5968109f59db7323251",
+        "seed_low": 202608329004,
+        "seed_high": 202608329005,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608329004,
+            "agent_b_seed": 202608329005
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608329005,
+            "agent_b_seed": 202608329004
+          }
+        ]
+      },
+      {
+        "cluster_id": "n9_c03",
+        "opening_id": "d16v2_n9_c03_p2",
+        "eval_size": 9,
+        "opening_prefix_hash": "46db845fb3aac34a6e10e6f237ce4cdd7f5e1fdd50eec86b09264da9cad0e356",
+        "opening_state_hash": "146f01763c504bff89dbbfd8da7b022f5b5c1d804d3384591c182de748117bcc",
+        "seed_low": 202608329006,
+        "seed_high": 202608329007,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608329006,
+            "agent_b_seed": 202608329007
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608329007,
+            "agent_b_seed": 202608329006
+          }
+        ]
+      },
+      {
+        "cluster_id": "n9_c04",
+        "opening_id": "d16v2_n9_c04_p2",
+        "eval_size": 9,
+        "opening_prefix_hash": "7f2162743d77a00e7fe2d26252e57b832ad97b03d1254ac0cd3888b358fa1ea0",
+        "opening_state_hash": "cd733974012c0129abe686397fb0a906eea59c79c922517fd385368438595cce",
+        "seed_low": 202608329008,
+        "seed_high": 202608329009,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608329008,
+            "agent_b_seed": 202608329009
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608329009,
+            "agent_b_seed": 202608329008
+          }
+        ]
+      },
+      {
+        "cluster_id": "n9_c05",
+        "opening_id": "d16v2_n9_c05_p2",
+        "eval_size": 9,
+        "opening_prefix_hash": "f4800e5573f2b09e7a50eb9e446edd3ee90a48ce8ebb21196381b2db144c5f76",
+        "opening_state_hash": "e43e3130d33405288d4b7d07aa14ae446533860fa6637a59b8b8c1ac0630c859",
+        "seed_low": 202608329010,
+        "seed_high": 202608329011,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608329010,
+            "agent_b_seed": 202608329011
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608329011,
+            "agent_b_seed": 202608329010
+          }
+        ]
+      },
+      {
+        "cluster_id": "n9_c06",
+        "opening_id": "d16v2_n9_c06_p2",
+        "eval_size": 9,
+        "opening_prefix_hash": "e53f17488f2b8b773822d061fb325ee7d159bc621f0361e69afc5ff3c5dd6560",
+        "opening_state_hash": "3f83d579afb8249122b9a3ffd7f1812f4470698dc9cb603ddc8c130d4ac7b570",
+        "seed_low": 202608329012,
+        "seed_high": 202608329013,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608329012,
+            "agent_b_seed": 202608329013
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608329013,
+            "agent_b_seed": 202608329012
+          }
+        ]
+      },
+      {
+        "cluster_id": "n9_c07",
+        "opening_id": "d16v2_n9_c07_p2",
+        "eval_size": 9,
+        "opening_prefix_hash": "b31c1a698e147d70579bfa7d6d42d808bbfb8976b44878c316d90ceb4a97d842",
+        "opening_state_hash": "c592916160eb9ff80335a3384dbdda1f03022049d34c9a8df8fe7876b63b3a57",
+        "seed_low": 202608329014,
+        "seed_high": 202608329015,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608329014,
+            "agent_b_seed": 202608329015
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608329015,
+            "agent_b_seed": 202608329014
+          }
+        ]
+      },
+      {
+        "cluster_id": "n9_c08",
+        "opening_id": "d16v2_n9_c08_p4",
+        "eval_size": 9,
+        "opening_prefix_hash": "6591bce59eaa81466bea2a71d73c65ba21055da328af1503b1f81a2cc8d1f9c4",
+        "opening_state_hash": "49e89e9fe5776e1e6b12add7668673fd8df2a3ea27f09af06458d93d43fa3ac0",
+        "seed_low": 202608329016,
+        "seed_high": 202608329017,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608329016,
+            "agent_b_seed": 202608329017
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608329017,
+            "agent_b_seed": 202608329016
+          }
+        ]
+      },
+      {
+        "cluster_id": "n9_c09",
+        "opening_id": "d16v2_n9_c09_p4",
+        "eval_size": 9,
+        "opening_prefix_hash": "a80f180290f0b8187bfabc2e946c8cd61d9a4b69e9e14dea960436813c2fcfa6",
+        "opening_state_hash": "5efd09c2cef0059ddadc4c1435f85104e865961c14e3ebb8e55b4fef0f005f01",
+        "seed_low": 202608329018,
+        "seed_high": 202608329019,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608329018,
+            "agent_b_seed": 202608329019
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608329019,
+            "agent_b_seed": 202608329018
+          }
+        ]
+      },
+      {
+        "cluster_id": "n9_c10",
+        "opening_id": "d16v2_n9_c10_p4",
+        "eval_size": 9,
+        "opening_prefix_hash": "fe9d715065e37d516089384cb6b89659c98c0ae8089f299f40dca69aa3b77796",
+        "opening_state_hash": "8f61f61c5fda250e476928513f29a3c6c2cf19b5019867e131dd3b02b0bed165",
+        "seed_low": 202608329020,
+        "seed_high": 202608329021,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608329020,
+            "agent_b_seed": 202608329021
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608329021,
+            "agent_b_seed": 202608329020
+          }
+        ]
+      },
+      {
+        "cluster_id": "n9_c11",
+        "opening_id": "d16v2_n9_c11_p4",
+        "eval_size": 9,
+        "opening_prefix_hash": "4e675cfb2eca2de3a686bd997f6ba67d5a2916ae7d284de8e39b64edbdc751f7",
+        "opening_state_hash": "f4e7acaa30cdbda5aee3e159b12a2652eb52cbcae1689043318d52f127f8f004",
+        "seed_low": 202608329022,
+        "seed_high": 202608329023,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608329022,
+            "agent_b_seed": 202608329023
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608329023,
+            "agent_b_seed": 202608329022
+          }
+        ]
+      },
+      {
+        "cluster_id": "n9_c12",
+        "opening_id": "d16v2_n9_c12_p4",
+        "eval_size": 9,
+        "opening_prefix_hash": "c6aef6adef8be79296512c68eb0f78d3c6ee380e60059f03507cba8a15ce4d7c",
+        "opening_state_hash": "8ff8356298cb79ad7dd3189da4177454264413abe8fb99c9b1f2b7077cb44ed3",
+        "seed_low": 202608329024,
+        "seed_high": 202608329025,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608329024,
+            "agent_b_seed": 202608329025
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608329025,
+            "agent_b_seed": 202608329024
+          }
+        ]
+      },
+      {
+        "cluster_id": "n9_c13",
+        "opening_id": "d16v2_n9_c13_p4",
+        "eval_size": 9,
+        "opening_prefix_hash": "0c65491a30624c1a764b0872afa14940021cb71a3f6886cc4f6d7f2a969bee1f",
+        "opening_state_hash": "08cc88dfd956f93b3ec6ee237e9049597782600f5a62c02d00feae5cdf10b860",
+        "seed_low": 202608329026,
+        "seed_high": 202608329027,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608329026,
+            "agent_b_seed": 202608329027
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608329027,
+            "agent_b_seed": 202608329026
+          }
+        ]
+      },
+      {
+        "cluster_id": "n9_c14",
+        "opening_id": "d16v2_n9_c14_p4",
+        "eval_size": 9,
+        "opening_prefix_hash": "bebd5448589604c19bd320407de8acf81d201a37c603acbbba335801712536e1",
+        "opening_state_hash": "da82cea7334253ce3e0ee5f34bc7b1c55998e333559b47f66779b5d116ba3f07",
+        "seed_low": 202608329028,
+        "seed_high": 202608329029,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608329028,
+            "agent_b_seed": 202608329029
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608329029,
+            "agent_b_seed": 202608329028
+          }
+        ]
+      },
+      {
+        "cluster_id": "n9_c15",
+        "opening_id": "d16v2_n9_c15_p4",
+        "eval_size": 9,
+        "opening_prefix_hash": "5960cc99c9bd184d188fd41da7a38eda7d50f3e04894ae58c978eb4d6787d799",
+        "opening_state_hash": "ddd59712fcf811fcaa177e0c9dec0e3098783db5848c08455e6db3792d654246",
+        "seed_low": 202608329030,
+        "seed_high": 202608329031,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608329030,
+            "agent_b_seed": 202608329031
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608329031,
+            "agent_b_seed": 202608329030
+          }
+        ]
+      },
+      {
+        "cluster_id": "n9_c16",
+        "opening_id": "d16v2_n9_c16_p6",
+        "eval_size": 9,
+        "opening_prefix_hash": "e0e9ee4f76cb1e80fa216e7cbba5fe84bb40211f1154a36277761bdcba93b043",
+        "opening_state_hash": "e9472266cef7674d015191625ad25a08fdd011ed440d00c80114314150531a7b",
+        "seed_low": 202608329032,
+        "seed_high": 202608329033,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608329032,
+            "agent_b_seed": 202608329033
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608329033,
+            "agent_b_seed": 202608329032
+          }
+        ]
+      },
+      {
+        "cluster_id": "n9_c17",
+        "opening_id": "d16v2_n9_c17_p6",
+        "eval_size": 9,
+        "opening_prefix_hash": "e271d24159bb383502eae53d1daa7c8fe030269fa5d54ccecc942d4250dec53d",
+        "opening_state_hash": "22f5e1bdd3b353b741f171dcee1ecadb37683e176b53e0af99406eaaa0e0d7ce",
+        "seed_low": 202608329034,
+        "seed_high": 202608329035,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608329034,
+            "agent_b_seed": 202608329035
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608329035,
+            "agent_b_seed": 202608329034
+          }
+        ]
+      },
+      {
+        "cluster_id": "n9_c18",
+        "opening_id": "d16v2_n9_c18_p6",
+        "eval_size": 9,
+        "opening_prefix_hash": "b342eb78b463b06c116a793e680db369c0141c7e7bd8b8740c03f180e43d62a1",
+        "opening_state_hash": "679cfc5993a8e913751757553e6eb283fb4df19644565dd7a121530ca1b7680f",
+        "seed_low": 202608329036,
+        "seed_high": 202608329037,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608329036,
+            "agent_b_seed": 202608329037
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608329037,
+            "agent_b_seed": 202608329036
+          }
+        ]
+      },
+      {
+        "cluster_id": "n9_c19",
+        "opening_id": "d16v2_n9_c19_p6",
+        "eval_size": 9,
+        "opening_prefix_hash": "6f646fcad99e16f0b9e12cbc196ad1fc036379f2aee46ff378bc644c470e049a",
+        "opening_state_hash": "bb95aa771fc856ad196acbfe99e69b2954c61cde286fc6ac1dd37ed37025efc1",
+        "seed_low": 202608329038,
+        "seed_high": 202608329039,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608329038,
+            "agent_b_seed": 202608329039
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608329039,
+            "agent_b_seed": 202608329038
+          }
+        ]
+      },
+      {
+        "cluster_id": "n9_c20",
+        "opening_id": "d16v2_n9_c20_p6",
+        "eval_size": 9,
+        "opening_prefix_hash": "7ae171ff0f19a19b1bd4402add176c2b141f8200f31f176cae7b1ea7ccdb8fab",
+        "opening_state_hash": "18e81cb618b38066b35edc5f0e546b00889d869270e248c52027de57904505db",
+        "seed_low": 202608329040,
+        "seed_high": 202608329041,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608329040,
+            "agent_b_seed": 202608329041
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608329041,
+            "agent_b_seed": 202608329040
+          }
+        ]
+      },
+      {
+        "cluster_id": "n9_c21",
+        "opening_id": "d16v2_n9_c21_p6",
+        "eval_size": 9,
+        "opening_prefix_hash": "80f6bc624a5b8bde225e40d07e9fd8d965c15ddc1c5f01deb3309923715a8f01",
+        "opening_state_hash": "38fb3fd34773103c29b6f2fd66fb503a3d2d153527967d1008be0d5ed162d918",
+        "seed_low": 202608329042,
+        "seed_high": 202608329043,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608329042,
+            "agent_b_seed": 202608329043
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608329043,
+            "agent_b_seed": 202608329042
+          }
+        ]
+      },
+      {
+        "cluster_id": "n9_c22",
+        "opening_id": "d16v2_n9_c22_p6",
+        "eval_size": 9,
+        "opening_prefix_hash": "518176474ebb25d6a986bec8e4c48304098af0761d2433f6f4069d94f2f1f592",
+        "opening_state_hash": "a4188333fed715afb221920dff670acabe6a7605cc69f49bd3b571a9ab9a48fa",
+        "seed_low": 202608329044,
+        "seed_high": 202608329045,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608329044,
+            "agent_b_seed": 202608329045
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608329045,
+            "agent_b_seed": 202608329044
+          }
+        ]
+      },
+      {
+        "cluster_id": "n9_c23",
+        "opening_id": "d16v2_n9_c23_p6",
+        "eval_size": 9,
+        "opening_prefix_hash": "f1e95dfb8562723149eee68ad74a59db3aaaf7c82bc3dfc4ab2ccf9375c96c68",
+        "opening_state_hash": "3ad11e3769e78bf3494ba43738d079048b42ebb9a19cfdafcb465e92b19bf28f",
+        "seed_low": 202608329046,
+        "seed_high": 202608329047,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608329046,
+            "agent_b_seed": 202608329047
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608329047,
+            "agent_b_seed": 202608329046
+          }
+        ]
+      },
+      {
+        "cluster_id": "n9_c24",
+        "opening_id": "d16v2_n9_c24_p8",
+        "eval_size": 9,
+        "opening_prefix_hash": "1c77562637c3a5bf892123ddf868e1db42fe27eeeda53ca13289e268a9a60db3",
+        "opening_state_hash": "9461a01272522c49d5d673436531fbba7288bc0c4b02669455ebe256680bb2dc",
+        "seed_low": 202608329048,
+        "seed_high": 202608329049,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608329048,
+            "agent_b_seed": 202608329049
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608329049,
+            "agent_b_seed": 202608329048
+          }
+        ]
+      },
+      {
+        "cluster_id": "n9_c25",
+        "opening_id": "d16v2_n9_c25_p8",
+        "eval_size": 9,
+        "opening_prefix_hash": "0e93013dd0cdc320814ba5bad036b85988128cd7be5d0dfe24753ae1e6675680",
+        "opening_state_hash": "7b342ed2f8915fba9b135aa67f1eb2a2bc67f1e3443132569d7f3a9a0f4dd451",
+        "seed_low": 202608329050,
+        "seed_high": 202608329051,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608329050,
+            "agent_b_seed": 202608329051
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608329051,
+            "agent_b_seed": 202608329050
+          }
+        ]
+      },
+      {
+        "cluster_id": "n9_c26",
+        "opening_id": "d16v2_n9_c26_p8",
+        "eval_size": 9,
+        "opening_prefix_hash": "dfce199d61e1a24ad9d52bf6bf06dc7721444617ebc13936d7cfe7719c59d858",
+        "opening_state_hash": "cc4a475f4f18dca5f45b2096a255d6364e23e3dbe1341dedf924d9e6b7da4b76",
+        "seed_low": 202608329052,
+        "seed_high": 202608329053,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608329052,
+            "agent_b_seed": 202608329053
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608329053,
+            "agent_b_seed": 202608329052
+          }
+        ]
+      },
+      {
+        "cluster_id": "n9_c27",
+        "opening_id": "d16v2_n9_c27_p8",
+        "eval_size": 9,
+        "opening_prefix_hash": "42877c1e99f6b348fb7f49c387e504f68cbca096804a686273c9dbb0c24d36c7",
+        "opening_state_hash": "ab7142e3f0e5572ddf89a21634f96a07e74f959c24ecab5009a876a40ef874fc",
+        "seed_low": 202608329054,
+        "seed_high": 202608329055,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608329054,
+            "agent_b_seed": 202608329055
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608329055,
+            "agent_b_seed": 202608329054
+          }
+        ]
+      },
+      {
+        "cluster_id": "n9_c28",
+        "opening_id": "d16v2_n9_c28_p8",
+        "eval_size": 9,
+        "opening_prefix_hash": "0e258e57864bbed03850a6eaa73552b563b9bfce6a16465f78967c7e19639abb",
+        "opening_state_hash": "eb8e27bdd3e114e2fdc1a5a1c39a3f924befab2db3d97b64025e8fa8c117cfd1",
+        "seed_low": 202608329056,
+        "seed_high": 202608329057,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608329056,
+            "agent_b_seed": 202608329057
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608329057,
+            "agent_b_seed": 202608329056
+          }
+        ]
+      },
+      {
+        "cluster_id": "n9_c29",
+        "opening_id": "d16v2_n9_c29_p8",
+        "eval_size": 9,
+        "opening_prefix_hash": "73acccbbb56225ac9d8a7222bbbf5b2dff5e20e7e29651ee86b5096aeb98d974",
+        "opening_state_hash": "601f08838f025d3e3b938be535a082ad4bb3888ed968eaa71193c2e003f64f36",
+        "seed_low": 202608329058,
+        "seed_high": 202608329059,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608329058,
+            "agent_b_seed": 202608329059
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608329059,
+            "agent_b_seed": 202608329058
+          }
+        ]
+      },
+      {
+        "cluster_id": "n9_c30",
+        "opening_id": "d16v2_n9_c30_p8",
+        "eval_size": 9,
+        "opening_prefix_hash": "2d4239bfbe29216c78d4b1f89b499459c2ac0f49f653195209e9163baf1e2db4",
+        "opening_state_hash": "e8805bff73e00b9914a3c95a7d7047bdc0ac4a9c75649c0b6afd637d4f33155e",
+        "seed_low": 202608329060,
+        "seed_high": 202608329061,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608329060,
+            "agent_b_seed": 202608329061
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608329061,
+            "agent_b_seed": 202608329060
+          }
+        ]
+      },
+      {
+        "cluster_id": "n9_c31",
+        "opening_id": "d16v2_n9_c31_p8",
+        "eval_size": 9,
+        "opening_prefix_hash": "9042a94033a31b56fff4649fe46d5c78a914f931c358fe6fff44dd09b15554c1",
+        "opening_state_hash": "1e29a64d03b5b483d3278e03c3042b04f2bef50cde66e1f14fabd31ffb993d42",
+        "seed_low": 202608329062,
+        "seed_high": 202608329063,
+        "assignments": [
+          {
+            "policy_seed_assignment": 0,
+            "agent_a_seed": 202608329062,
+            "agent_b_seed": 202608329063
+          },
+          {
+            "policy_seed_assignment": 1,
+            "agent_a_seed": 202608329063,
+            "agent_b_seed": 202608329062
+          }
+        ]
+      }
+    ],
+    "paired_color_swap": {
+      "required": true,
+      "games_per_policy_assignment": 2,
+      "same_agent_policy_seed_across_color_swap": true,
+      "agent_seed_follows_agent_not_color": true
+    },
+    "formal_task_count": 45,
+    "opening_clusters_per_task": 32,
+    "policy_seed_assignments_per_cluster": 2,
+    "color_pairs_per_task": 64,
+    "games_per_opening_cluster": 4,
+    "games_per_task": 128,
+    "formal_game_count": 5760,
+    "max_plies": 256,
+    "truncations_allowed": 0,
+    "replay_verified_fraction": 1,
+    "minimum_unique_full_trajectories_per_task": 64,
+    "minimum_unique_continuations_per_task": 32,
+    "minimum_clusters_with_two_unique_continuations_per_task": 24,
+    "unique_continuation_key": "post-prefix continuation action-index sequence only; ignore black/white slot labels",
+    "color_swaps_do_not_mechanically_increase_unique_count": true,
+    "inference_group_id_format": "d16-v2.{agent_a_model_kind}_vs_{agent_b_model_kind}.n{eval_size}",
+    "primary_statistical_unit": "training_seed_x_opening_cluster",
+    "task_manifest_requires_explicit_pair_plan": true
+  },
+  "p1": {
+    "experiment_id": "d19_logic_edge_archmatched_smoke_v1",
+    "experiment_arm": "ABL-EDGE-ARCHMATCH-SMOKE",
+    "evidence_tier": "smoke",
+    "default_enabled": false,
+    "required_gate_receipt": true,
+    "gate_conditions": [
+      "GEN-SIZE formal_ready=true and independent verification passed",
+      "D16-v2 formal_ready=true and independent verification passed",
+      "85/85 P0 tasks complete; zero failed, missing, truncated, or unreplayable games",
+      "all P0 unique-trajectory gates pass",
+      "canonical and independent W/D/L, intervals, task hashes, source hashes, config hashes, and checkpoint hashes agree",
+      "remaining wall-clock budget is at least two times the measured P1 smoke estimate",
+      "P1 cannot delay P0 aggregation, verification, or D17_D19_RESULTS.md freeze",
+      "any new rental, fee, or card-type change has explicit user confirmation"
+    ],
+    "arms": [
+      {
+        "id": "topology_full_smoke",
+        "model_kind": "topology_gnn",
+        "logical_relation_mask": "full"
+      },
+      {
+        "id": "topology_no_logical_edges_smoke",
+        "model_kind": "topology_gnn",
+        "logical_relation_mask": "zero_own_and_opponent_relations"
+      }
+    ],
+    "architecture_match": {
+      "hidden_channels": 64,
+      "message_passing_layers": 3,
+      "relation_tensor_shape_unchanged": true,
+      "trainable_parameter_count_each": 63171,
+      "parameter_count_must_match_exactly": true
+    },
+    "training_seed": 20260825,
+    "train_sizes": [
+      5,
+      7,
+      9
+    ],
+    "training_budget_each_arm": {
+      "puct_simulations": 16,
+      "iterations": 2,
+      "games_per_iteration": 10,
+      "self_play_games": 20,
+      "training_steps_per_iteration": 20,
+      "gradient_steps": 40,
+      "batch_size": 16,
+      "replay_capacity": 10000,
+      "max_plies": 256,
+      "superko_mode": "enforce"
+    },
+    "head_to_head_eval": {
+      "eval_sizes": [
+        5,
+        7,
+        9
+      ],
+      "color_pairs_per_size": 8,
+      "games_per_size": 16,
+      "max_plies": 256
+    },
+    "planned_task_count": 5,
+    "planned_game_count": 48,
+    "prohibited_algorithms": [
+      "PPO",
+      "A2C",
+      "DQN",
+      "TRPO"
+    ],
+    "model_free_rl_status": "stretch_not_authorized_to_displace_p0",
+    "paper_claims_allowed": false
+  },
+  "statistics": {
+    "score_definition": "win=1, draw=0.5, loss=0 from focal agent A",
+    "confidence_level": 0.95,
+    "gen_size_primary_interval": {
+      "method": "Student t interval across five training-seed means",
+      "degrees_of_freedom": 4,
+      "seed_mean_definition": "mean of 32 paired-color policy-seed pair scores",
+      "clip_to_unit_interval": true
+    },
+    "gen_size_secondary_interval": {
+      "method": "two-stage percentile cluster bootstrap",
+      "resample": "training-seed IDs and shared paired-color policy-seed pair IDs independently; take the selected crossed cells",
+      "replicates": 20000,
+      "bootstrap_seed": 202608299901
+    },
+    "d16_v2_primary_interval": {
+      "method": "two-way crossed-cluster percentile bootstrap",
+      "resample": "five training-seed IDs and 32 shared opening-cluster IDs independently; take selected seed x opening cells and retain all four games per cell",
+      "replicates": 20000,
+      "bootstrap_seed": 202608299902
+    },
+    "d16_v2_secondary_interval": {
+      "method": "Student t interval across five training-seed means",
+      "degrees_of_freedom": 4,
+      "seed_mean_definition": "mean of 32 opening-cluster means",
+      "clip_to_unit_interval": true
+    },
+    "paired_model_difference_required": true,
+    "pooled_game_wilson_status": "descriptive_only_not_primary_inference",
+    "per_game_independence_claim_forbidden": true,
+    "missing_or_failed_seed_may_not_be_dropped": true,
+    "global_superiority_claim_requires_all_prespecified_sizes_and_seed_aware_intervals": true
+  },
+  "autodl": {
+    "status": "not_invoked",
+    "allowed_only_if_local_compute_is_too_large": true,
+    "local_code_fixed_first": true,
+    "readiness_command_required": true,
+    "readiness_contract": "read real frozen checkpoint and materialized opening; parse manifest; verify size/shape; build every model kind; perform CPU forward",
+    "gpu_smoke_command_required": true,
+    "gpu_smoke_duration_seconds": 20,
+    "gpu_smoke_contract": "continuous real CUDA forward/backward/optimizer on disposable model clone; calibrate batch, AMP, and data supply; write throughput profile under AUTODL_WORK_DIR",
+    "job_toml_required_fields": [
+      "readiness_command",
+      "gpu_smoke_command",
+      "min_gpu_utilization_percent"
+    ],
+    "min_gpu_utilization_percent": 50,
+    "prefer_compatible_instance_reuse": true,
+    "never_touch_instance_name_prefixes": [
+      "ar-tc-"
+    ],
+    "never_touch_unrelated_instances": true,
+    "never_release_instance": true,
+    "one_autodl_direct_run_per_formal_job": true,
+    "no_manual_parallel_polling": true,
+    "large_outputs_directory": "AUTODL_WORK_DIR",
+    "lightweight_exports_directory": "AUTODL_EXPORT_DIR",
+    "lightweight_export_allowlist": [
+      "summary",
+      "receipt",
+      "csv",
+      "json",
+      "log_summary",
+      "sha256"
+    ],
+    "paid_new_instance_or_card_change_requires_explicit_user_confirmation": true,
+    "readiness_failure_action": "fix local code; do not rent",
+    "gpu_smoke_failure_action": "repair current instance dependencies/config; do not change card by default"
+  },
+  "formal_gates": {
+    "expected_formal_tasks": 85,
+    "expected_formal_games": 8320,
+    "complete_receipts_required": 85,
+    "failed_tasks_allowed": 0,
+    "missing_tasks_allowed": 0,
+    "truncated_games_allowed": 0,
+    "all_games_replayable": true,
+    "checkpoint_source_config_receipt_hashes_bound": true,
+    "task_manifest_and_pair_plan_hashes_bound": true,
+    "unique_trajectory_gates_required": true,
+    "independent_aggregate_must_match_canonical": true,
+    "independent_verifier_must_not_read_canonical_aggregate_or_results_conclusions": true,
+    "any_gate_failure_sets_formal_ready_false": true,
+    "positive_paper_conclusion_forbidden_when_formal_ready_false": true
+  },
+  "task_totals": {
+    "gen_size_tasks": 40,
+    "gen_size_games": 2560,
+    "d16_v2_tasks": 45,
+    "d16_v2_games": 5760,
+    "p0_formal_tasks": 85,
+    "p0_formal_games": 8320,
+    "p1_smoke_tasks_if_gate_opens": 5,
+    "p1_smoke_eval_games_if_gate_opens": 48
+  }
+}

@@ -1,0 +1,5524 @@
+{
+  "schema_name": "lifeline-d17-d19-openings-manifest",
+  "schema_version": 1,
+  "experiment_id": "d18_d16_v2_diverse_openings_formal_v1",
+  "experiment_arm": "d16-v2",
+  "status": "frozen_not_run",
+  "frozen_date": "2026-08-29",
+  "generator": {
+    "algorithm": "python_random_v3_mt19937_randrange_over_canonical_legal_point_actions",
+    "python_semantics": "random.Random(integer_seed); randrange(len(game.legal_moves()))",
+    "size_order": [
+      5,
+      7,
+      9
+    ],
+    "cluster_order": "ascending cluster_index 0..31 within size",
+    "seed_base_formula": "202608290000 + eval_size*1000 + cluster_index",
+    "retry_seed_formula": "opening_seed + generation_attempt*1000003",
+    "prefix_target_formula": "2 + 2*floor(cluster_index/8)",
+    "prefix_target_plies": [
+      2,
+      4,
+      6,
+      8
+    ],
+    "clusters_per_target": 8,
+    "pass_allowed": false,
+    "candidate_order": "LifelineGame.legal_moves canonical point-index order",
+    "accept_conditions": [
+      "every point action succeeds",
+      "exact target_plies reached",
+      "nonterminal after every prefix action",
+      "current player alternates after every prefix action (no auto-skip)",
+      "consecutive_skips remains zero",
+      "opening_prefix_hash unique within eval_size",
+      "opening_state_hash unique within eval_size"
+    ],
+    "opening_prefix_hash": "sha256(UTF-8 JSON action-index list with separators comma/colon and no whitespace)",
+    "opening_state_hash": "LifelineGame.state_fingerprint = sha256(canonical_state_json UTF-8)",
+    "superko_mode": "enforce",
+    "start_player": "BLACK"
+  },
+  "sizes": [
+    5,
+    7,
+    9
+  ],
+  "clusters_per_size": 32,
+  "cluster_count": 96,
+  "openings": [
+    {
+      "cluster_id": "n5_c00",
+      "opening_id": "d16v2_n5_c00_p2",
+      "eval_size": 5,
+      "cluster_index": 0,
+      "opening_seed": 202608295000,
+      "effective_opening_seed": 202608295000,
+      "generation_attempt": 0,
+      "target_plies": 2,
+      "action_prefix": [
+        2,
+        14
+      ],
+      "action_points": [
+        [
+          2,
+          0
+        ],
+        [
+          0,
+          4
+        ]
+      ],
+      "opening_prefix_hash": "f3bb0ab9ad7daf6ffb5d2b80a6cd77c7e66bef596980914fe424796268bad537",
+      "opening_state_hash": "847957bdd7f7504d4a0b28de487544356150827d6fd321f3f333858ac67a8afb",
+      "current_player": "BLACK",
+      "turn_count": 2,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 6,
+      "pass_action_index": 15,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n5_c01",
+      "opening_id": "d16v2_n5_c01_p2",
+      "eval_size": 5,
+      "cluster_index": 1,
+      "opening_seed": 202608295001,
+      "effective_opening_seed": 202608295001,
+      "generation_attempt": 0,
+      "target_plies": 2,
+      "action_prefix": [
+        5,
+        13
+      ],
+      "action_points": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "opening_prefix_hash": "1632b2e76c0f801ae02fc3c5903414850e305f4f2af8a19b01b7e0d07f1d52a6",
+      "opening_state_hash": "852276d296b706792b99a804934e3af090d9ada8236b7f7302f6d782adb97d1f",
+      "current_player": "BLACK",
+      "turn_count": 2,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 4,
+      "pass_action_index": 15,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n5_c02",
+      "opening_id": "d16v2_n5_c02_p2",
+      "eval_size": 5,
+      "cluster_index": 2,
+      "opening_seed": 202608295002,
+      "effective_opening_seed": 202608295002,
+      "generation_attempt": 0,
+      "target_plies": 2,
+      "action_prefix": [
+        5,
+        2
+      ],
+      "action_points": [
+        [
+          0,
+          1
+        ],
+        [
+          2,
+          0
+        ]
+      ],
+      "opening_prefix_hash": "19db7d2d989a95d4b91f43658fb685f91a1c195fd1b725d817ed8e40e972cb6a",
+      "opening_state_hash": "0da6777ec4b7f1509387a25889ff62f6f811bfd988de681fe1d5b03ec05c4f8f",
+      "current_player": "BLACK",
+      "turn_count": 2,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 3,
+      "pass_action_index": 15,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n5_c03",
+      "opening_id": "d16v2_n5_c03_p2",
+      "eval_size": 5,
+      "cluster_index": 3,
+      "opening_seed": 202608295003,
+      "effective_opening_seed": 202608295003,
+      "generation_attempt": 0,
+      "target_plies": 2,
+      "action_prefix": [
+        14,
+        3
+      ],
+      "action_points": [
+        [
+          0,
+          4
+        ],
+        [
+          3,
+          0
+        ]
+      ],
+      "opening_prefix_hash": "efb770b09b3d3475f20aee511e87cfcfb0f3e525a779612f5f3d47ec67ee63c0",
+      "opening_state_hash": "e2d72e2db797879a40e09adefed2feb854090642e2848e1fb6f0da4c80ef84d8",
+      "current_player": "BLACK",
+      "turn_count": 2,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 7,
+      "pass_action_index": 15,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n5_c04",
+      "opening_id": "d16v2_n5_c04_p2",
+      "eval_size": 5,
+      "cluster_index": 4,
+      "opening_seed": 202608295004,
+      "effective_opening_seed": 202608295004,
+      "generation_attempt": 0,
+      "target_plies": 2,
+      "action_prefix": [
+        1,
+        13
+      ],
+      "action_points": [
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "opening_prefix_hash": "bad58488a69164b0820522ff168270fe9274718ec52718eef04e6dbd25d9ab88",
+      "opening_state_hash": "dadb343e8bb075f6e8491eea0577e7fde9ec7f393611362421c610a3602c0f69",
+      "current_player": "BLACK",
+      "turn_count": 2,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 4,
+      "pass_action_index": 15,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n5_c05",
+      "opening_id": "d16v2_n5_c05_p2",
+      "eval_size": 5,
+      "cluster_index": 5,
+      "opening_seed": 202608295005,
+      "effective_opening_seed": 202609295008,
+      "generation_attempt": 1,
+      "target_plies": 2,
+      "action_prefix": [
+        1,
+        11
+      ],
+      "action_points": [
+        [
+          1,
+          0
+        ],
+        [
+          2,
+          2
+        ]
+      ],
+      "opening_prefix_hash": "8f98e47e89f92dae8a3cc37d58e665efc30be971358488c254cc75438f011ba0",
+      "opening_state_hash": "2c141471f6772c16053107e9011036346efacf0d2bbd7d2ba9da29c22144c085",
+      "current_player": "BLACK",
+      "turn_count": 2,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 5,
+      "pass_action_index": 15,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n5_c06",
+      "opening_id": "d16v2_n5_c06_p2",
+      "eval_size": 5,
+      "cluster_index": 6,
+      "opening_seed": 202608295006,
+      "effective_opening_seed": 202608295006,
+      "generation_attempt": 0,
+      "target_plies": 2,
+      "action_prefix": [
+        9,
+        3
+      ],
+      "action_points": [
+        [
+          0,
+          2
+        ],
+        [
+          3,
+          0
+        ]
+      ],
+      "opening_prefix_hash": "c0e92655e48e162ba25178b43cbfcba934f070caef75b8e71ece7106cba204b7",
+      "opening_state_hash": "7b6fb3370a4ac8c17d3f0297bb423b173be7c5927ba64d5610e749897f5a9fec",
+      "current_player": "BLACK",
+      "turn_count": 2,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 7,
+      "pass_action_index": 15,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n5_c07",
+      "opening_id": "d16v2_n5_c07_p2",
+      "eval_size": 5,
+      "cluster_index": 7,
+      "opening_seed": 202608295007,
+      "effective_opening_seed": 202608295007,
+      "generation_attempt": 0,
+      "target_plies": 2,
+      "action_prefix": [
+        14,
+        2
+      ],
+      "action_points": [
+        [
+          0,
+          4
+        ],
+        [
+          2,
+          0
+        ]
+      ],
+      "opening_prefix_hash": "243cf5c3ad084113d7851af05f11df593caea00bf8f5ef2e4d09a4bacf140536",
+      "opening_state_hash": "cc3818e11094da03d13a7002d588607e54af7073d146197766af80c39afe5c93",
+      "current_player": "BLACK",
+      "turn_count": 2,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 6,
+      "pass_action_index": 15,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n5_c08",
+      "opening_id": "d16v2_n5_c08_p4",
+      "eval_size": 5,
+      "cluster_index": 8,
+      "opening_seed": 202608295008,
+      "effective_opening_seed": 202608295008,
+      "generation_attempt": 0,
+      "target_plies": 4,
+      "action_prefix": [
+        14,
+        2,
+        1,
+        13
+      ],
+      "action_points": [
+        [
+          0,
+          4
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "opening_prefix_hash": "8cde8af5d9c5963cef6b216f9c2274513c6c435e646d48b64b838101634e3450",
+      "opening_state_hash": "fc7ddca95fb54035dc47162fb45b091b79ab109e4cc8cd91ebaea1c9ff69f47b",
+      "current_player": "BLACK",
+      "turn_count": 4,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 3,
+      "pass_action_index": 15,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n5_c09",
+      "opening_id": "d16v2_n5_c09_p4",
+      "eval_size": 5,
+      "cluster_index": 9,
+      "opening_seed": 202608295009,
+      "effective_opening_seed": 202608295009,
+      "generation_attempt": 0,
+      "target_plies": 4,
+      "action_prefix": [
+        5,
+        13,
+        14,
+        6
+      ],
+      "action_points": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "opening_prefix_hash": "fcd495624bfc3a70b825ec5c560dd3969ab54023ccebd3d4617bdecf380bd91b",
+      "opening_state_hash": "8eac939b8283ef6d9b1228a5a6c7d100ccfe93bc3dfa0f9f6a53d0b28d38aa6f",
+      "current_player": "BLACK",
+      "turn_count": 4,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 2,
+      "pass_action_index": 15,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n5_c10",
+      "opening_id": "d16v2_n5_c10_p4",
+      "eval_size": 5,
+      "cluster_index": 10,
+      "opening_seed": 202608295010,
+      "effective_opening_seed": 202608295010,
+      "generation_attempt": 0,
+      "target_plies": 4,
+      "action_prefix": [
+        9,
+        8,
+        11,
+        6
+      ],
+      "action_points": [
+        [
+          0,
+          2
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "opening_prefix_hash": "84868948834cff10b8142dccd48f61721a9cd6cd0222a1a2116fb72efbe49e5d",
+      "opening_state_hash": "01f6a04a3611c0f36831b3eb5ad9365ef3faa783354d8009b4fa60b80678e6d1",
+      "current_player": "BLACK",
+      "turn_count": 4,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 6,
+      "pass_action_index": 15,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n5_c11",
+      "opening_id": "d16v2_n5_c11_p4",
+      "eval_size": 5,
+      "cluster_index": 11,
+      "opening_seed": 202608295011,
+      "effective_opening_seed": 202608295011,
+      "generation_attempt": 0,
+      "target_plies": 4,
+      "action_prefix": [
+        12,
+        14,
+        9,
+        13
+      ],
+      "action_points": [
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "opening_prefix_hash": "36f9284bc477d6fee25323bbc6acfc9668ea0b6ac64b493cbad51dbf6781bffe",
+      "opening_state_hash": "84bd071d24ed720139f5caf23091e40cc8d394182c7a5b9aa85e938d915c7436",
+      "current_player": "BLACK",
+      "turn_count": 4,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 4,
+      "pass_action_index": 15,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n5_c12",
+      "opening_id": "d16v2_n5_c12_p4",
+      "eval_size": 5,
+      "cluster_index": 12,
+      "opening_seed": 202608295012,
+      "effective_opening_seed": 202608295012,
+      "generation_attempt": 0,
+      "target_plies": 4,
+      "action_prefix": [
+        12,
+        11,
+        9,
+        7
+      ],
+      "action_points": [
+        [
+          0,
+          3
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "opening_prefix_hash": "8ff9fb64b591d8a8e1a96340be9a0335645eb1cee54331c554f9faeec6751043",
+      "opening_state_hash": "d35c7d8e8a94ddd7bacf406ac4e320e4ec2ba66a4e343a3b7f3f87ed011b6ad8",
+      "current_player": "BLACK",
+      "turn_count": 4,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 2,
+      "pass_action_index": 15,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n5_c13",
+      "opening_id": "d16v2_n5_c13_p4",
+      "eval_size": 5,
+      "cluster_index": 13,
+      "opening_seed": 202608295013,
+      "effective_opening_seed": 202608295013,
+      "generation_attempt": 0,
+      "target_plies": 4,
+      "action_prefix": [
+        1,
+        13,
+        12,
+        11
+      ],
+      "action_points": [
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          2,
+          2
+        ]
+      ],
+      "opening_prefix_hash": "987a49e76a001e5a16de2a3d8fddb3b1e810e2ae32c3eff49db0b9e575389e45",
+      "opening_state_hash": "9bec4443a9c157bfd33807ebb926246fd8fe49a7ba7c43ff0fa6b3f5797f2ec1",
+      "current_player": "BLACK",
+      "turn_count": 4,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 4,
+      "pass_action_index": 15,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n5_c14",
+      "opening_id": "d16v2_n5_c14_p4",
+      "eval_size": 5,
+      "cluster_index": 14,
+      "opening_seed": 202608295014,
+      "effective_opening_seed": 202608295014,
+      "generation_attempt": 0,
+      "target_plies": 4,
+      "action_prefix": [
+        5,
+        11,
+        14,
+        10
+      ],
+      "action_points": [
+        [
+          0,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          1,
+          2
+        ]
+      ],
+      "opening_prefix_hash": "2b9e0813b79099c4c14ce7ab6ccd59eb85cbf5463f937fd513696b3bdff8e0cd",
+      "opening_state_hash": "621481c5dc46fb7ecd38cc6b8ba333765490b297b141194dcd50585b6ab48093",
+      "current_player": "BLACK",
+      "turn_count": 4,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 4,
+      "pass_action_index": 15,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n5_c15",
+      "opening_id": "d16v2_n5_c15_p4",
+      "eval_size": 5,
+      "cluster_index": 15,
+      "opening_seed": 202608295015,
+      "effective_opening_seed": 202608295015,
+      "generation_attempt": 0,
+      "target_plies": 4,
+      "action_prefix": [
+        2,
+        8,
+        11,
+        7
+      ],
+      "action_points": [
+        [
+          2,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "opening_prefix_hash": "5e916b2ea5def093da3b5599ffee975794edd68add57f14e3b3ea14151422975",
+      "opening_state_hash": "dc9b9057c5207df0a9c048f8e8f8d1cb3bb174f96b41ead1546d62d9fc4dbbbc",
+      "current_player": "BLACK",
+      "turn_count": 4,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 5,
+      "pass_action_index": 15,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n5_c16",
+      "opening_id": "d16v2_n5_c16_p6",
+      "eval_size": 5,
+      "cluster_index": 16,
+      "opening_seed": 202608295016,
+      "effective_opening_seed": 202608295016,
+      "generation_attempt": 0,
+      "target_plies": 6,
+      "action_prefix": [
+        2,
+        3,
+        9,
+        14,
+        12,
+        13
+      ],
+      "action_points": [
+        [
+          2,
+          0
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "opening_prefix_hash": "5eefb597284d5e5cd4954cec94e51d115cb377932452cbcfd6ad2c9687fbe7f8",
+      "opening_state_hash": "2d2c47ccd80e5a6a0ae261cab63c36b70b26c2108bc282c022dc5f42ab914a9e",
+      "current_player": "BLACK",
+      "turn_count": 6,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 2,
+      "pass_action_index": 15,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n5_c17",
+      "opening_id": "d16v2_n5_c17_p6",
+      "eval_size": 5,
+      "cluster_index": 17,
+      "opening_seed": 202608295017,
+      "effective_opening_seed": 202608295017,
+      "generation_attempt": 0,
+      "target_plies": 6,
+      "action_prefix": [
+        14,
+        13,
+        12,
+        3,
+        1,
+        11
+      ],
+      "action_points": [
+        [
+          0,
+          4
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          2,
+          2
+        ]
+      ],
+      "opening_prefix_hash": "0b6591081c42d3b56a116dc1021481348b57636bbedfc0214379a33e042c01b8",
+      "opening_state_hash": "b5f80b9b33c1fcc6572f7e6aea7ddb6e366f76b3c2b31e496fe8ab7268a97b08",
+      "current_player": "BLACK",
+      "turn_count": 6,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 1,
+      "pass_action_index": 15,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n5_c18",
+      "opening_id": "d16v2_n5_c18_p6",
+      "eval_size": 5,
+      "cluster_index": 18,
+      "opening_seed": 202608295018,
+      "effective_opening_seed": 202608295018,
+      "generation_attempt": 0,
+      "target_plies": 6,
+      "action_prefix": [
+        14,
+        3,
+        13,
+        12,
+        9,
+        13
+      ],
+      "action_points": [
+        [
+          0,
+          4
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "opening_prefix_hash": "401cc80248d8f00bcd02acfff313f79cfae3114630065cad451ac5ad128f2c09",
+      "opening_state_hash": "037106daca453c567c749e7404c87432261dfdc090d6180c46691d93f466f0e2",
+      "current_player": "BLACK",
+      "turn_count": 6,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 4,
+      "pass_action_index": 15,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n5_c19",
+      "opening_id": "d16v2_n5_c19_p6",
+      "eval_size": 5,
+      "cluster_index": 19,
+      "opening_seed": 202608295019,
+      "effective_opening_seed": 202608295019,
+      "generation_attempt": 0,
+      "target_plies": 6,
+      "action_prefix": [
+        5,
+        11,
+        2,
+        13,
+        12,
+        3
+      ],
+      "action_points": [
+        [
+          0,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          3,
+          0
+        ]
+      ],
+      "opening_prefix_hash": "4f8cb7c834d2a7f2fba9a6e7f59f01dd27867934e3c06d3774332d2ba8721f56",
+      "opening_state_hash": "d6f8c684d127783045dbb5788f056934ce36eae7867ff41b04bd4296fb3f5171",
+      "current_player": "BLACK",
+      "turn_count": 6,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 3,
+      "pass_action_index": 15,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n5_c20",
+      "opening_id": "d16v2_n5_c20_p6",
+      "eval_size": 5,
+      "cluster_index": 20,
+      "opening_seed": 202608295020,
+      "effective_opening_seed": 202609295023,
+      "generation_attempt": 1,
+      "target_plies": 6,
+      "action_prefix": [
+        14,
+        11,
+        5,
+        7,
+        13,
+        12
+      ],
+      "action_points": [
+        [
+          0,
+          4
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "opening_prefix_hash": "39c87ade21b5c7288fabc435d85ff5996cff452b4b7e4b38295c105c51ef9af7",
+      "opening_state_hash": "b7961d39b55624f47978a4324d8bd03ba606320c7e7833245ec9ffa10f803e99",
+      "current_player": "BLACK",
+      "turn_count": 6,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 1,
+      "pass_action_index": 15,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n5_c21",
+      "opening_id": "d16v2_n5_c21_p6",
+      "eval_size": 5,
+      "cluster_index": 21,
+      "opening_seed": 202608295021,
+      "effective_opening_seed": 202608295021,
+      "generation_attempt": 0,
+      "target_plies": 6,
+      "action_prefix": [
+        2,
+        3,
+        14,
+        13,
+        11,
+        7
+      ],
+      "action_points": [
+        [
+          2,
+          0
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "opening_prefix_hash": "85d201dcf94edfb808028e9e3c00884cfb2ad94f94ad23baa2e22ef0280b6eeb",
+      "opening_state_hash": "353882d72d99f67a336373a78b047c7e288b7aec4ed0c7f2e1a2516c44095554",
+      "current_player": "BLACK",
+      "turn_count": 6,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 5,
+      "pass_action_index": 15,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n5_c22",
+      "opening_id": "d16v2_n5_c22_p6",
+      "eval_size": 5,
+      "cluster_index": 22,
+      "opening_seed": 202608295022,
+      "effective_opening_seed": 202608295022,
+      "generation_attempt": 0,
+      "target_plies": 6,
+      "action_prefix": [
+        2,
+        13,
+        14,
+        8,
+        7,
+        10
+      ],
+      "action_points": [
+        [
+          2,
+          0
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          1,
+          2
+        ]
+      ],
+      "opening_prefix_hash": "5f03cde4b6651990c2615106993cb616311a59d9bf3dbfc5c0d4019ccc03c7f0",
+      "opening_state_hash": "3b27a1b6c2ad50010c57f6ffabc41e2790b9ae2d6f40db0dbfc8d2304ccd02cb",
+      "current_player": "BLACK",
+      "turn_count": 6,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 4,
+      "pass_action_index": 15,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n5_c23",
+      "opening_id": "d16v2_n5_c23_p6",
+      "eval_size": 5,
+      "cluster_index": 23,
+      "opening_seed": 202608295023,
+      "effective_opening_seed": 202608295023,
+      "generation_attempt": 0,
+      "target_plies": 6,
+      "action_prefix": [
+        12,
+        8,
+        1,
+        13,
+        9,
+        2
+      ],
+      "action_points": [
+        [
+          0,
+          3
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          2,
+          0
+        ]
+      ],
+      "opening_prefix_hash": "65a849077da27d7e33bb3f666dc06730d85a9f44915eef04f0aa61755d4bae7f",
+      "opening_state_hash": "5e6422a4c9eef12a971384dbf7808e8f106ac23f47d7a71d5e37fa9813750efa",
+      "current_player": "BLACK",
+      "turn_count": 6,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 2,
+      "pass_action_index": 15,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n5_c24",
+      "opening_id": "d16v2_n5_c24_p8",
+      "eval_size": 5,
+      "cluster_index": 24,
+      "opening_seed": 202608295024,
+      "effective_opening_seed": 202608295024,
+      "generation_attempt": 0,
+      "target_plies": 8,
+      "action_prefix": [
+        1,
+        8,
+        10,
+        13,
+        9,
+        14,
+        11,
+        6
+      ],
+      "action_points": [
+        [
+          1,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "opening_prefix_hash": "f3804dcc6d6b03fc74453af77e2d3fc9226c66146dd3278cc8a687fefd01f309",
+      "opening_state_hash": "e41f03eace1db4fcaec842e0bccfbd8fafc9f9937fa608d4bacb46a91bdbdbff",
+      "current_player": "BLACK",
+      "turn_count": 8,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 2,
+      "pass_action_index": 15,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n5_c25",
+      "opening_id": "d16v2_n5_c25_p8",
+      "eval_size": 5,
+      "cluster_index": 25,
+      "opening_seed": 202608295025,
+      "effective_opening_seed": 202609295028,
+      "generation_attempt": 1,
+      "target_plies": 8,
+      "action_prefix": [
+        12,
+        8,
+        10,
+        14,
+        1,
+        6,
+        7,
+        13
+      ],
+      "action_points": [
+        [
+          0,
+          3
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "opening_prefix_hash": "b72c63abcf47c667e5eb56d3fc045151ba23715b95260ab36ef32a2129d1a79d",
+      "opening_state_hash": "3cac6f5c55280dc971c03c55a47a1c42db1c1aa634ee182b5643997968a3e6c8",
+      "current_player": "BLACK",
+      "turn_count": 8,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 1,
+      "pass_action_index": 15,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n5_c26",
+      "opening_id": "d16v2_n5_c26_p8",
+      "eval_size": 5,
+      "cluster_index": 26,
+      "opening_seed": 202608295026,
+      "effective_opening_seed": 202609295029,
+      "generation_attempt": 1,
+      "target_plies": 8,
+      "action_prefix": [
+        1,
+        13,
+        9,
+        2,
+        10,
+        12,
+        11,
+        8
+      ],
+      "action_points": [
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          3,
+          1
+        ]
+      ],
+      "opening_prefix_hash": "582e20ceca08092a885b77c6c3dd22114b7a691d9833a5f8339098f6ac30a8dc",
+      "opening_state_hash": "05de580a6aef3825a70e44a633fc2b971f1c6ffe153d6c6113030b7041be6eed",
+      "current_player": "BLACK",
+      "turn_count": 8,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 1,
+      "pass_action_index": 15,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n5_c27",
+      "opening_id": "d16v2_n5_c27_p8",
+      "eval_size": 5,
+      "cluster_index": 27,
+      "opening_seed": 202608295027,
+      "effective_opening_seed": 202608295027,
+      "generation_attempt": 0,
+      "target_plies": 8,
+      "action_prefix": [
+        12,
+        13,
+        2,
+        10,
+        6,
+        3,
+        7,
+        9
+      ],
+      "action_points": [
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          0,
+          2
+        ]
+      ],
+      "opening_prefix_hash": "b7d97a70a79c6f31368774d829f06b879516974063a631261240bcb0f1838e9f",
+      "opening_state_hash": "b57b8f80737a984d0dc0367afc6fe47c0aa0de60e788dc6e256fe6a29b29e60c",
+      "current_player": "BLACK",
+      "turn_count": 8,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 1,
+      "pass_action_index": 15,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n5_c28",
+      "opening_id": "d16v2_n5_c28_p8",
+      "eval_size": 5,
+      "cluster_index": 28,
+      "opening_seed": 202608295028,
+      "effective_opening_seed": 202609295031,
+      "generation_attempt": 1,
+      "target_plies": 8,
+      "action_prefix": [
+        1,
+        11,
+        10,
+        2,
+        9,
+        13,
+        7,
+        6
+      ],
+      "action_points": [
+        [
+          1,
+          0
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "opening_prefix_hash": "69b5ad0591e860fddbba719ee874dc8228b62e91650f67542e4e7447a07b10f9",
+      "opening_state_hash": "dd419046a0aff18fd68a7969355c70e27b0663f8883116f04ae8ae48edd1133d",
+      "current_player": "BLACK",
+      "turn_count": 8,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 1,
+      "pass_action_index": 15,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n5_c29",
+      "opening_id": "d16v2_n5_c29_p8",
+      "eval_size": 5,
+      "cluster_index": 29,
+      "opening_seed": 202608295029,
+      "effective_opening_seed": 202608295029,
+      "generation_attempt": 0,
+      "target_plies": 8,
+      "action_prefix": [
+        5,
+        8,
+        12,
+        6,
+        2,
+        14,
+        7,
+        13
+      ],
+      "action_points": [
+        [
+          0,
+          1
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "opening_prefix_hash": "f16e9b7114553438cf7f4367eb6f3728b5032ff06a623dd49acb13ef5d841a44",
+      "opening_state_hash": "224e0ad02e6e964e7be046c6efeeddcfbaf1bbb3496606836524697244c9a8e2",
+      "current_player": "BLACK",
+      "turn_count": 8,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 1,
+      "pass_action_index": 15,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n5_c30",
+      "opening_id": "d16v2_n5_c30_p8",
+      "eval_size": 5,
+      "cluster_index": 30,
+      "opening_seed": 202608295030,
+      "effective_opening_seed": 202608295030,
+      "generation_attempt": 0,
+      "target_plies": 8,
+      "action_prefix": [
+        14,
+        13,
+        1,
+        12,
+        10,
+        8,
+        11,
+        6
+      ],
+      "action_points": [
+        [
+          0,
+          4
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "opening_prefix_hash": "eef669d5e13a432a983022692d4ab8bc98d1b3909a26c8adbf18e8febbebbf03",
+      "opening_state_hash": "77f3df4b5759a8837ad884005baab570cb4db30debe25b828826f86790dd8fac",
+      "current_player": "BLACK",
+      "turn_count": 8,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 3,
+      "pass_action_index": 15,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n5_c31",
+      "opening_id": "d16v2_n5_c31_p8",
+      "eval_size": 5,
+      "cluster_index": 31,
+      "opening_seed": 202608295031,
+      "effective_opening_seed": 202609295034,
+      "generation_attempt": 1,
+      "target_plies": 8,
+      "action_prefix": [
+        14,
+        2,
+        9,
+        11,
+        13,
+        10,
+        6,
+        12
+      ],
+      "action_points": [
+        [
+          0,
+          4
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "opening_prefix_hash": "f53b828185af1112c2ccb341aca8ff8de95062385a1135c0835a81da973bd465",
+      "opening_state_hash": "8d5add876f9ddec34147d7e687e87546c79985d0f47fb11a91f15aca0ee9017c",
+      "current_player": "BLACK",
+      "turn_count": 8,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 1,
+      "pass_action_index": 15,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n7_c00",
+      "opening_id": "d16v2_n7_c00_p2",
+      "eval_size": 7,
+      "cluster_index": 0,
+      "opening_seed": 202608297000,
+      "effective_opening_seed": 202608297000,
+      "generation_attempt": 0,
+      "target_plies": 2,
+      "action_prefix": [
+        4,
+        24
+      ],
+      "action_points": [
+        [
+          4,
+          0
+        ],
+        [
+          2,
+          4
+        ]
+      ],
+      "opening_prefix_hash": "52cb4fbae147de654e55d7cac7c9d2c1a9d1de9b7eda5747741263ad482bbc77",
+      "opening_state_hash": "2697188f680fca3735621580505fee4ba13b4495697b3f71ba6da0a96ba77c08",
+      "current_player": "BLACK",
+      "turn_count": 2,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 14,
+      "pass_action_index": 28,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n7_c01",
+      "opening_id": "d16v2_n7_c01_p2",
+      "eval_size": 7,
+      "cluster_index": 1,
+      "opening_seed": 202608297001,
+      "effective_opening_seed": 202608297001,
+      "generation_attempt": 0,
+      "target_plies": 2,
+      "action_prefix": [
+        27,
+        2
+      ],
+      "action_points": [
+        [
+          0,
+          6
+        ],
+        [
+          2,
+          0
+        ]
+      ],
+      "opening_prefix_hash": "fea9ad0bf04b1d2d95c7900b6d942ad63f932d4885ee0c062403a2702b5ce7e4",
+      "opening_state_hash": "1e9458f7cdab583e4ff3723d0d4d709117ac1b3d15a3d1f67068524254747399",
+      "current_player": "BLACK",
+      "turn_count": 2,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 10,
+      "pass_action_index": 28,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n7_c02",
+      "opening_id": "d16v2_n7_c02_p2",
+      "eval_size": 7,
+      "cluster_index": 2,
+      "opening_seed": 202608297002,
+      "effective_opening_seed": 202608297002,
+      "generation_attempt": 0,
+      "target_plies": 2,
+      "action_prefix": [
+        25,
+        3
+      ],
+      "action_points": [
+        [
+          0,
+          5
+        ],
+        [
+          3,
+          0
+        ]
+      ],
+      "opening_prefix_hash": "a8df4bfb80ed4fbab8233fb0f87bd35fa2480989b7da205d95202eaa98fae2f6",
+      "opening_state_hash": "51abf85d01e8f95d6446fb49de7b99a2e5dd926a5121eacf395f0d28ad8b5777",
+      "current_player": "BLACK",
+      "turn_count": 2,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 12,
+      "pass_action_index": 28,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n7_c03",
+      "opening_id": "d16v2_n7_c03_p2",
+      "eval_size": 7,
+      "cluster_index": 3,
+      "opening_seed": 202608297003,
+      "effective_opening_seed": 202608297003,
+      "generation_attempt": 0,
+      "target_plies": 2,
+      "action_prefix": [
+        7,
+        3
+      ],
+      "action_points": [
+        [
+          0,
+          1
+        ],
+        [
+          3,
+          0
+        ]
+      ],
+      "opening_prefix_hash": "05747e55994333829602b844c354b03347f0f44def80f57e49634bdf711b8b82",
+      "opening_state_hash": "9dfd524a223bd4f327026f51d1f37b16e0087d0bb39774064990e66f6ac3fb85",
+      "current_player": "BLACK",
+      "turn_count": 2,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 8,
+      "pass_action_index": 28,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n7_c04",
+      "opening_id": "d16v2_n7_c04_p2",
+      "eval_size": 7,
+      "cluster_index": 4,
+      "opening_seed": 202608297004,
+      "effective_opening_seed": 202608297004,
+      "generation_attempt": 0,
+      "target_plies": 2,
+      "action_prefix": [
+        27,
+        24
+      ],
+      "action_points": [
+        [
+          0,
+          6
+        ],
+        [
+          2,
+          4
+        ]
+      ],
+      "opening_prefix_hash": "2220816d47bf98b2528546c2c04282946ba542fc957585085f03f154f3c115e8",
+      "opening_state_hash": "4c2f0e5aa32ea87800317cae0547057b7885f49f93774f927e5dfd355bf61c41",
+      "current_player": "BLACK",
+      "turn_count": 2,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 10,
+      "pass_action_index": 28,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n7_c05",
+      "opening_id": "d16v2_n7_c05_p2",
+      "eval_size": 7,
+      "cluster_index": 5,
+      "opening_seed": 202608297005,
+      "effective_opening_seed": 202608297005,
+      "generation_attempt": 0,
+      "target_plies": 2,
+      "action_prefix": [
+        2,
+        4
+      ],
+      "action_points": [
+        [
+          2,
+          0
+        ],
+        [
+          4,
+          0
+        ]
+      ],
+      "opening_prefix_hash": "f25ed8cd5464710aff6e5d655a575ac273cb9c19d696e53fa13de05db97454ca",
+      "opening_state_hash": "cb01855147556c93231fe207e96d9f879bd0fec0989f2c5705e2f099406ccbe3",
+      "current_player": "BLACK",
+      "turn_count": 2,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 12,
+      "pass_action_index": 28,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n7_c06",
+      "opening_id": "d16v2_n7_c06_p2",
+      "eval_size": 7,
+      "cluster_index": 6,
+      "opening_seed": 202608297006,
+      "effective_opening_seed": 202608297006,
+      "generation_attempt": 0,
+      "target_plies": 2,
+      "action_prefix": [
+        2,
+        26
+      ],
+      "action_points": [
+        [
+          2,
+          0
+        ],
+        [
+          1,
+          5
+        ]
+      ],
+      "opening_prefix_hash": "7ea912e00e733d6cea60eace194d56ccd65ac867c1cab641df3faa76e2abab8e",
+      "opening_state_hash": "24199567e106af566b7f1fbbcad75c7c3bea9b6c89f24bcec60abd5e691ce816",
+      "current_player": "BLACK",
+      "turn_count": 2,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 13,
+      "pass_action_index": 28,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n7_c07",
+      "opening_id": "d16v2_n7_c07_p2",
+      "eval_size": 7,
+      "cluster_index": 7,
+      "opening_seed": 202608297007,
+      "effective_opening_seed": 202608297007,
+      "generation_attempt": 0,
+      "target_plies": 2,
+      "action_prefix": [
+        25,
+        21
+      ],
+      "action_points": [
+        [
+          0,
+          5
+        ],
+        [
+          3,
+          3
+        ]
+      ],
+      "opening_prefix_hash": "d7655933ab15bcd39b2ead3847285f9c82ee3d49c88b05af4da446b610f8a712",
+      "opening_state_hash": "22eec4bdc27b44a167403241849a40bdc9b80368cd6b48e4a0987609d2853ecd",
+      "current_player": "BLACK",
+      "turn_count": 2,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 14,
+      "pass_action_index": 28,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n7_c08",
+      "opening_id": "d16v2_n7_c08_p4",
+      "eval_size": 7,
+      "cluster_index": 8,
+      "opening_seed": 202608297008,
+      "effective_opening_seed": 202608297008,
+      "generation_attempt": 0,
+      "target_plies": 4,
+      "action_prefix": [
+        18,
+        4,
+        20,
+        2
+      ],
+      "action_points": [
+        [
+          0,
+          3
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          2,
+          0
+        ]
+      ],
+      "opening_prefix_hash": "884bb76917a6062a5dff8a9483c8777991379a798e6e12570d4c6184956cee81",
+      "opening_state_hash": "c5cc496eaea472a430a41ec53e4cf700b417d40921f131d7ecbff54575941bd8",
+      "current_player": "BLACK",
+      "turn_count": 4,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 15,
+      "pass_action_index": 28,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n7_c09",
+      "opening_id": "d16v2_n7_c09_p4",
+      "eval_size": 7,
+      "cluster_index": 9,
+      "opening_seed": 202608297009,
+      "effective_opening_seed": 202608297009,
+      "generation_attempt": 0,
+      "target_plies": 4,
+      "action_prefix": [
+        18,
+        27,
+        21,
+        2
+      ],
+      "action_points": [
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          2,
+          0
+        ]
+      ],
+      "opening_prefix_hash": "3f719e8390d262be88d5606b3c263c6762a2630ec41e95b2711fcfc6af7a178d",
+      "opening_state_hash": "e9033dfb51b0eb7adb3e85929d934ee866efc6cfb7839af1fa20bdd552cfd5a7",
+      "current_player": "BLACK",
+      "turn_count": 4,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 16,
+      "pass_action_index": 28,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n7_c10",
+      "opening_id": "d16v2_n7_c10_p4",
+      "eval_size": 7,
+      "cluster_index": 10,
+      "opening_seed": 202608297010,
+      "effective_opening_seed": 202608297010,
+      "generation_attempt": 0,
+      "target_plies": 4,
+      "action_prefix": [
+        1,
+        17,
+        27,
+        13
+      ],
+      "action_points": [
+        [
+          1,
+          0
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          0,
+          2
+        ]
+      ],
+      "opening_prefix_hash": "f81a5e823380591a389a6cc280c27217836da8fd0878204fd634ac029e2d8f43",
+      "opening_state_hash": "0718733e9943d5d784f031b16dc281061239cd9be55f65e50aff9a99d817fc13",
+      "current_player": "BLACK",
+      "turn_count": 4,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 3,
+      "pass_action_index": 28,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n7_c11",
+      "opening_id": "d16v2_n7_c11_p4",
+      "eval_size": 7,
+      "cluster_index": 11,
+      "opening_seed": 202608297011,
+      "effective_opening_seed": 202608297011,
+      "generation_attempt": 0,
+      "target_plies": 4,
+      "action_prefix": [
+        1,
+        5,
+        23,
+        16
+      ],
+      "action_points": [
+        [
+          1,
+          0
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          3,
+          2
+        ]
+      ],
+      "opening_prefix_hash": "4cfb2c499b528da8bdd8af0f9439a2bd9a4cdb61a909ac0789398097c8431998",
+      "opening_state_hash": "ad7443a72181ac370edd10befd976601824f700470ea3fd9c69a0ff706c90232",
+      "current_player": "BLACK",
+      "turn_count": 4,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 12,
+      "pass_action_index": 28,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n7_c12",
+      "opening_id": "d16v2_n7_c12_p4",
+      "eval_size": 7,
+      "cluster_index": 12,
+      "opening_seed": 202608297012,
+      "effective_opening_seed": 202608297012,
+      "generation_attempt": 0,
+      "target_plies": 4,
+      "action_prefix": [
+        4,
+        26,
+        15,
+        5
+      ],
+      "action_points": [
+        [
+          4,
+          0
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          5,
+          0
+        ]
+      ],
+      "opening_prefix_hash": "08c5d1afc003fab886a380e962cda1bc3f0f3c121182ffb344cb973e033bb4d1",
+      "opening_state_hash": "c2355cceb7c6a909b75f0793d078c9a3ba47a22eb8a45d669243e2fdaedad26b",
+      "current_player": "BLACK",
+      "turn_count": 4,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 17,
+      "pass_action_index": 28,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n7_c13",
+      "opening_id": "d16v2_n7_c13_p4",
+      "eval_size": 7,
+      "cluster_index": 13,
+      "opening_seed": 202608297013,
+      "effective_opening_seed": 202608297013,
+      "generation_attempt": 0,
+      "target_plies": 4,
+      "action_prefix": [
+        22,
+        21,
+        13,
+        10
+      ],
+      "action_points": [
+        [
+          0,
+          4
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          3,
+          1
+        ]
+      ],
+      "opening_prefix_hash": "eee27a7a8fca70c3a4649610a89a5f0fcc79c8a1287f2d69897938a2ae66de08",
+      "opening_state_hash": "313fd2ced5f19f17c241e025d81f86834f162c7e164088d97d065b615d10dc3f",
+      "current_player": "BLACK",
+      "turn_count": 4,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 13,
+      "pass_action_index": 28,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n7_c14",
+      "opening_id": "d16v2_n7_c14_p4",
+      "eval_size": 7,
+      "cluster_index": 14,
+      "opening_seed": 202608297014,
+      "effective_opening_seed": 202608297014,
+      "generation_attempt": 0,
+      "target_plies": 4,
+      "action_prefix": [
+        27,
+        2,
+        18,
+        24
+      ],
+      "action_points": [
+        [
+          0,
+          6
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          2,
+          4
+        ]
+      ],
+      "opening_prefix_hash": "6ecd92a150f4666d93999952b940ccc2a5f7fbafe50bde9db64d7bb03e238584",
+      "opening_state_hash": "e9da96a127d4625da782362ca1d11020095bc8b3ccd183efaad28f9e4d3195c7",
+      "current_player": "BLACK",
+      "turn_count": 4,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 10,
+      "pass_action_index": 28,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n7_c15",
+      "opening_id": "d16v2_n7_c15_p4",
+      "eval_size": 7,
+      "cluster_index": 15,
+      "opening_seed": 202608297015,
+      "effective_opening_seed": 202608297015,
+      "generation_attempt": 0,
+      "target_plies": 4,
+      "action_prefix": [
+        18,
+        27,
+        25,
+        2
+      ],
+      "action_points": [
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          2,
+          0
+        ]
+      ],
+      "opening_prefix_hash": "3b8c2e502e0cd1464fe7c4663e58efa5fc533de8c4e33d4360798b399299602a",
+      "opening_state_hash": "b93e4bf8138b98339806c682b8a098188041e99db6b9e531723e7c0710993a4c",
+      "current_player": "BLACK",
+      "turn_count": 4,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 13,
+      "pass_action_index": 28,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n7_c16",
+      "opening_id": "d16v2_n7_c16_p6",
+      "eval_size": 7,
+      "cluster_index": 16,
+      "opening_seed": 202608297016,
+      "effective_opening_seed": 202608297016,
+      "generation_attempt": 0,
+      "target_plies": 6,
+      "action_prefix": [
+        22,
+        3,
+        7,
+        26,
+        27,
+        21
+      ],
+      "action_points": [
+        [
+          0,
+          4
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          3,
+          3
+        ]
+      ],
+      "opening_prefix_hash": "5f81f6feb304e2b614242e1a376639fc2bddfc4485339875564ee4c2661ecdec",
+      "opening_state_hash": "6d920fc07b328258596bf2b6b7459f2d78b8e7da963c7d437e52ec30a8c0433f",
+      "current_player": "BLACK",
+      "turn_count": 6,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 8,
+      "pass_action_index": 28,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n7_c17",
+      "opening_id": "d16v2_n7_c17_p6",
+      "eval_size": 7,
+      "cluster_index": 17,
+      "opening_seed": 202608297017,
+      "effective_opening_seed": 202608297017,
+      "generation_attempt": 0,
+      "target_plies": 6,
+      "action_prefix": [
+        27,
+        21,
+        1,
+        19,
+        25,
+        17
+      ],
+      "action_points": [
+        [
+          0,
+          6
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          4,
+          2
+        ]
+      ],
+      "opening_prefix_hash": "a5ed159b75f413598d0a3f77d3b8e4133a9d117b8825b756ec743b350dda7515",
+      "opening_state_hash": "45d1e051a626730e5ef70a204f88bf228535ae66831b9026c9b850cdb2810049",
+      "current_player": "BLACK",
+      "turn_count": 6,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 7,
+      "pass_action_index": 28,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n7_c18",
+      "opening_id": "d16v2_n7_c18_p6",
+      "eval_size": 7,
+      "cluster_index": 18,
+      "opening_seed": 202608297018,
+      "effective_opening_seed": 202608297018,
+      "generation_attempt": 0,
+      "target_plies": 6,
+      "action_prefix": [
+        27,
+        5,
+        22,
+        25,
+        10,
+        16
+      ],
+      "action_points": [
+        [
+          0,
+          6
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          2
+        ]
+      ],
+      "opening_prefix_hash": "9bddb3d04428f6e998c4c2051a3ef3a9f698bdef8dd5dae4d68577f72cef48f1",
+      "opening_state_hash": "ba85c6e854f3c87e744d9fd7826935f86b4c24d713a3f74f0c2cfe7da73c2c0c",
+      "current_player": "BLACK",
+      "turn_count": 6,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 13,
+      "pass_action_index": 28,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n7_c19",
+      "opening_id": "d16v2_n7_c19_p6",
+      "eval_size": 7,
+      "cluster_index": 19,
+      "opening_seed": 202608297019,
+      "effective_opening_seed": 202608297019,
+      "generation_attempt": 0,
+      "target_plies": 6,
+      "action_prefix": [
+        2,
+        12,
+        27,
+        24,
+        13,
+        9
+      ],
+      "action_points": [
+        [
+          2,
+          0
+        ],
+        [
+          5,
+          1
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "opening_prefix_hash": "0e1f35ce7f17b9aa4f0a7af3f8da0bb0914b702ef69dffd86c019c1582e61981",
+      "opening_state_hash": "680db2f19ba0d66fffefdab5c8c56e4d851d004c3f4c43249dbf6253024871ef",
+      "current_player": "BLACK",
+      "turn_count": 6,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 8,
+      "pass_action_index": 28,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n7_c20",
+      "opening_id": "d16v2_n7_c20_p6",
+      "eval_size": 7,
+      "cluster_index": 20,
+      "opening_seed": 202608297020,
+      "effective_opening_seed": 202608297020,
+      "generation_attempt": 0,
+      "target_plies": 6,
+      "action_prefix": [
+        3,
+        27,
+        1,
+        25,
+        23,
+        18
+      ],
+      "action_points": [
+        [
+          3,
+          0
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "opening_prefix_hash": "0eef76e090398dbc388bc35aabee799b74048421c8843714798cea48efe98dc6",
+      "opening_state_hash": "2eddeb8ddf17c1cbb8a2253ea08080fe4c49b7047293e9dd33bd839234bb1063",
+      "current_player": "BLACK",
+      "turn_count": 6,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 13,
+      "pass_action_index": 28,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n7_c21",
+      "opening_id": "d16v2_n7_c21_p6",
+      "eval_size": 7,
+      "cluster_index": 21,
+      "opening_seed": 202608297021,
+      "effective_opening_seed": 202608297021,
+      "generation_attempt": 0,
+      "target_plies": 6,
+      "action_prefix": [
+        25,
+        12,
+        7,
+        8,
+        26,
+        3
+      ],
+      "action_points": [
+        [
+          0,
+          5
+        ],
+        [
+          5,
+          1
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          3,
+          0
+        ]
+      ],
+      "opening_prefix_hash": "79eef48f5e893fbf7c446d84b88f79c65e9e8d48ef7e9d1e3bf8590b362690bd",
+      "opening_state_hash": "d0a561a73053a8bfaf3b6b04bc736cf9a75824ee106644ef787e8d30b3e750b0",
+      "current_player": "BLACK",
+      "turn_count": 6,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 9,
+      "pass_action_index": 28,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n7_c22",
+      "opening_id": "d16v2_n7_c22_p6",
+      "eval_size": 7,
+      "cluster_index": 22,
+      "opening_seed": 202608297022,
+      "effective_opening_seed": 202608297022,
+      "generation_attempt": 0,
+      "target_plies": 6,
+      "action_prefix": [
+        27,
+        3,
+        21,
+        9,
+        25,
+        16
+      ],
+      "action_points": [
+        [
+          0,
+          6
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          3,
+          2
+        ]
+      ],
+      "opening_prefix_hash": "c8c7445cbb50e140bf4ad77caba47b4a861c3cb7cd62c38c1ca83aec88be6f16",
+      "opening_state_hash": "8fe0ba35e0e4d7486a3d38ea4a740f26e6c8a95cdbcaec2d7c2ab5bda08395bb",
+      "current_player": "BLACK",
+      "turn_count": 6,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 9,
+      "pass_action_index": 28,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n7_c23",
+      "opening_id": "d16v2_n7_c23_p6",
+      "eval_size": 7,
+      "cluster_index": 23,
+      "opening_seed": 202608297023,
+      "effective_opening_seed": 202608297023,
+      "generation_attempt": 0,
+      "target_plies": 6,
+      "action_prefix": [
+        27,
+        17,
+        13,
+        26,
+        2,
+        15
+      ],
+      "action_points": [
+        [
+          0,
+          6
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          2
+        ]
+      ],
+      "opening_prefix_hash": "13413bbcea4336e4af77700d3d3d535148135bcaeed74b65d2ad25765b83436d",
+      "opening_state_hash": "e658fd1683d077e967710b7a4e59c541e08ccea846600791f89001ceb07e1652",
+      "current_player": "BLACK",
+      "turn_count": 6,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 7,
+      "pass_action_index": 28,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n7_c24",
+      "opening_id": "d16v2_n7_c24_p8",
+      "eval_size": 7,
+      "cluster_index": 24,
+      "opening_seed": 202608297024,
+      "effective_opening_seed": 202608297024,
+      "generation_attempt": 0,
+      "target_plies": 8,
+      "action_prefix": [
+        27,
+        12,
+        24,
+        10,
+        21,
+        19,
+        2,
+        3
+      ],
+      "action_points": [
+        [
+          0,
+          6
+        ],
+        [
+          5,
+          1
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          3,
+          0
+        ]
+      ],
+      "opening_prefix_hash": "303a2c91f099506dda3f8e6c395a40bf3d7477855b6d72291f6b4d383930609c",
+      "opening_state_hash": "f87c4570943f94e9ee06e86b0ccb4eeeb732b1857f97d4e12cecf65a3fbbe945",
+      "current_player": "BLACK",
+      "turn_count": 8,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 8,
+      "pass_action_index": 28,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n7_c25",
+      "opening_id": "d16v2_n7_c25_p8",
+      "eval_size": 7,
+      "cluster_index": 25,
+      "opening_seed": 202608297025,
+      "effective_opening_seed": 202608297025,
+      "generation_attempt": 0,
+      "target_plies": 8,
+      "action_prefix": [
+        1,
+        26,
+        22,
+        8,
+        23,
+        24,
+        15,
+        3
+      ],
+      "action_points": [
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          3,
+          0
+        ]
+      ],
+      "opening_prefix_hash": "c65c392de2ba4135bb0ec849bc0d55fbd2fa782d302d4abbeb76f8f57bdcba5d",
+      "opening_state_hash": "f32c6f2eaad5187ecb568352921fdb3e51cb0fa9f435cdba13e049518c88928d",
+      "current_player": "BLACK",
+      "turn_count": 8,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 9,
+      "pass_action_index": 28,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n7_c26",
+      "opening_id": "d16v2_n7_c26_p8",
+      "eval_size": 7,
+      "cluster_index": 26,
+      "opening_seed": 202608297026,
+      "effective_opening_seed": 202608297026,
+      "generation_attempt": 0,
+      "target_plies": 8,
+      "action_prefix": [
+        7,
+        26,
+        3,
+        12,
+        25,
+        23,
+        2,
+        22
+      ],
+      "action_points": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          5,
+          1
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          0,
+          4
+        ]
+      ],
+      "opening_prefix_hash": "14c344b267aca2a034a199dce56b8dad5f1cabf46a17f047b29affb752d8f1af",
+      "opening_state_hash": "12dba05cf03bc18bbd2d213d6990a9be2437205a5194a7976be894ff235ee20a",
+      "current_player": "BLACK",
+      "turn_count": 8,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 8,
+      "pass_action_index": 28,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n7_c27",
+      "opening_id": "d16v2_n7_c27_p8",
+      "eval_size": 7,
+      "cluster_index": 27,
+      "opening_seed": 202608297027,
+      "effective_opening_seed": 202608297027,
+      "generation_attempt": 0,
+      "target_plies": 8,
+      "action_prefix": [
+        3,
+        27,
+        18,
+        24,
+        16,
+        4,
+        9,
+        22
+      ],
+      "action_points": [
+        [
+          3,
+          0
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          0,
+          4
+        ]
+      ],
+      "opening_prefix_hash": "4fae9bf721a1beebf27b1eba567a2ec560b1005e3acd4a2f0cae9bccd8247fd5",
+      "opening_state_hash": "ff2d74bae97de6e75910db145c2264e8662926f49a24999fc215ba4ff3bebe1a",
+      "current_player": "BLACK",
+      "turn_count": 8,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 9,
+      "pass_action_index": 28,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n7_c28",
+      "opening_id": "d16v2_n7_c28_p8",
+      "eval_size": 7,
+      "cluster_index": 28,
+      "opening_seed": 202608297028,
+      "effective_opening_seed": 202608297028,
+      "generation_attempt": 0,
+      "target_plies": 8,
+      "action_prefix": [
+        18,
+        27,
+        21,
+        3,
+        14,
+        12,
+        10,
+        4
+      ],
+      "action_points": [
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          5,
+          1
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          4,
+          0
+        ]
+      ],
+      "opening_prefix_hash": "8b5abda8e0ac7306da8500c23060298d2f45761d247563ed395b240575ba5c16",
+      "opening_state_hash": "a7535cefbdd57231be7a95937746238fce290376ed4bcf87b70974c36bf31633",
+      "current_player": "BLACK",
+      "turn_count": 8,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 11,
+      "pass_action_index": 28,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n7_c29",
+      "opening_id": "d16v2_n7_c29_p8",
+      "eval_size": 7,
+      "cluster_index": 29,
+      "opening_seed": 202608297029,
+      "effective_opening_seed": 202608297029,
+      "generation_attempt": 0,
+      "target_plies": 8,
+      "action_prefix": [
+        22,
+        5,
+        4,
+        25,
+        13,
+        23,
+        1,
+        19
+      ],
+      "action_points": [
+        [
+          0,
+          4
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "opening_prefix_hash": "80a91fb22f79756e36491930ac5b679553684eafbd82a66ddaeca11a1feece46",
+      "opening_state_hash": "cedd9b3d321ad204cc3a7dffee0f2d316f2604c7909e06b02567e041127fc779",
+      "current_player": "BLACK",
+      "turn_count": 8,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 6,
+      "pass_action_index": 28,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n7_c30",
+      "opening_id": "d16v2_n7_c30_p8",
+      "eval_size": 7,
+      "cluster_index": 30,
+      "opening_seed": 202608297030,
+      "effective_opening_seed": 202608297030,
+      "generation_attempt": 0,
+      "target_plies": 8,
+      "action_prefix": [
+        2,
+        21,
+        13,
+        24,
+        16,
+        18,
+        20,
+        12
+      ],
+      "action_points": [
+        [
+          2,
+          0
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          5,
+          1
+        ]
+      ],
+      "opening_prefix_hash": "f56686eebfe728c15272bce62455c7fe3f989e75c89e165ec983f49838c6892c",
+      "opening_state_hash": "51ea3064d88bc60cb62d572c3f20293f3a200d25d9928ab78fca6687c3a6b0eb",
+      "current_player": "BLACK",
+      "turn_count": 8,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 9,
+      "pass_action_index": 28,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n7_c31",
+      "opening_id": "d16v2_n7_c31_p8",
+      "eval_size": 7,
+      "cluster_index": 31,
+      "opening_seed": 202608297031,
+      "effective_opening_seed": 202608297031,
+      "generation_attempt": 0,
+      "target_plies": 8,
+      "action_prefix": [
+        18,
+        21,
+        2,
+        17,
+        25,
+        26,
+        24,
+        5
+      ],
+      "action_points": [
+        [
+          0,
+          3
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          5,
+          0
+        ]
+      ],
+      "opening_prefix_hash": "16c34e9571002244b7d5727ef10c881b8ed4c2495b6c66a1e2b6affb82c2c3bd",
+      "opening_state_hash": "2b1b64b84bc8c7b7257eecb0a090e6dc4f3c2de9530cf022cd9b8be534017820",
+      "current_player": "BLACK",
+      "turn_count": 8,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 13,
+      "pass_action_index": 28,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n9_c00",
+      "opening_id": "d16v2_n9_c00_p2",
+      "eval_size": 9,
+      "cluster_index": 0,
+      "opening_seed": 202608299000,
+      "effective_opening_seed": 202608299000,
+      "generation_attempt": 0,
+      "target_plies": 2,
+      "action_prefix": [
+        44,
+        29
+      ],
+      "action_points": [
+        [
+          0,
+          8
+        ],
+        [
+          5,
+          3
+        ]
+      ],
+      "opening_prefix_hash": "c153fd658379b126b43ff65cdae05791afa4f1737c6ce8e08b393f8ba52122cc",
+      "opening_state_hash": "d1db96d3e54680cae7aaa5c18e629c855f28008a2f9eb3a5988d8c872b1e773e",
+      "current_player": "BLACK",
+      "turn_count": 2,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 17,
+      "pass_action_index": 45,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n9_c01",
+      "opening_id": "d16v2_n9_c01_p2",
+      "eval_size": 9,
+      "cluster_index": 1,
+      "opening_seed": 202608299001,
+      "effective_opening_seed": 202608299001,
+      "generation_attempt": 0,
+      "target_plies": 2,
+      "action_prefix": [
+        44,
+        5
+      ],
+      "action_points": [
+        [
+          0,
+          8
+        ],
+        [
+          5,
+          0
+        ]
+      ],
+      "opening_prefix_hash": "0a6d48a7e95d333c685c246c32b87438f1321279c486663301e82e484b57df20",
+      "opening_state_hash": "c9155efd1fe972d059e6f21a5dce049a3fb4bbd817f9c7be70b2f52aaaeb8039",
+      "current_player": "BLACK",
+      "turn_count": 2,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 17,
+      "pass_action_index": 45,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n9_c02",
+      "opening_id": "d16v2_n9_c02_p2",
+      "eval_size": 9,
+      "cluster_index": 2,
+      "opening_seed": 202608299002,
+      "effective_opening_seed": 202608299002,
+      "generation_attempt": 0,
+      "target_plies": 2,
+      "action_prefix": [
+        1,
+        16
+      ],
+      "action_points": [
+        [
+          1,
+          0
+        ],
+        [
+          7,
+          1
+        ]
+      ],
+      "opening_prefix_hash": "87323c852ab27b648a6a67fe6c68e4b80d0b868fc520f9991805734c2768f611",
+      "opening_state_hash": "e0458e6fec11794fa767ffebcc93dd5527c5da4fc6ffb5968109f59db7323251",
+      "current_player": "BLACK",
+      "turn_count": 2,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 17,
+      "pass_action_index": 45,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n9_c03",
+      "opening_id": "d16v2_n9_c03_p2",
+      "eval_size": 9,
+      "cluster_index": 3,
+      "opening_seed": 202608299003,
+      "effective_opening_seed": 202608299003,
+      "generation_attempt": 0,
+      "target_plies": 2,
+      "action_prefix": [
+        2,
+        6
+      ],
+      "action_points": [
+        [
+          2,
+          0
+        ],
+        [
+          6,
+          0
+        ]
+      ],
+      "opening_prefix_hash": "46db845fb3aac34a6e10e6f237ce4cdd7f5e1fdd50eec86b09264da9cad0e356",
+      "opening_state_hash": "146f01763c504bff89dbbfd8da7b022f5b5c1d804d3384591c182de748117bcc",
+      "current_player": "BLACK",
+      "turn_count": 2,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 18,
+      "pass_action_index": 45,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n9_c04",
+      "opening_id": "d16v2_n9_c04_p2",
+      "eval_size": 9,
+      "cluster_index": 4,
+      "opening_seed": 202608299004,
+      "effective_opening_seed": 202608299004,
+      "generation_attempt": 0,
+      "target_plies": 2,
+      "action_prefix": [
+        39,
+        29
+      ],
+      "action_points": [
+        [
+          0,
+          6
+        ],
+        [
+          5,
+          3
+        ]
+      ],
+      "opening_prefix_hash": "7f2162743d77a00e7fe2d26252e57b832ad97b03d1254ac0cd3888b358fa1ea0",
+      "opening_state_hash": "cd733974012c0129abe686397fb0a906eea59c79c922517fd385368438595cce",
+      "current_player": "BLACK",
+      "turn_count": 2,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 20,
+      "pass_action_index": 45,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n9_c05",
+      "opening_id": "d16v2_n9_c05_p2",
+      "eval_size": 9,
+      "cluster_index": 5,
+      "opening_seed": 202608299005,
+      "effective_opening_seed": 202608299005,
+      "generation_attempt": 0,
+      "target_plies": 2,
+      "action_prefix": [
+        1,
+        34
+      ],
+      "action_points": [
+        [
+          1,
+          0
+        ],
+        [
+          4,
+          4
+        ]
+      ],
+      "opening_prefix_hash": "f4800e5573f2b09e7a50eb9e446edd3ee90a48ce8ebb21196381b2db144c5f76",
+      "opening_state_hash": "e43e3130d33405288d4b7d07aa14ae446533860fa6637a59b8b8c1ac0630c859",
+      "current_player": "BLACK",
+      "turn_count": 2,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 17,
+      "pass_action_index": 45,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n9_c06",
+      "opening_id": "d16v2_n9_c06_p2",
+      "eval_size": 9,
+      "cluster_index": 6,
+      "opening_seed": 202608299006,
+      "effective_opening_seed": 202608299006,
+      "generation_attempt": 0,
+      "target_plies": 2,
+      "action_prefix": [
+        44,
+        4
+      ],
+      "action_points": [
+        [
+          0,
+          8
+        ],
+        [
+          4,
+          0
+        ]
+      ],
+      "opening_prefix_hash": "e53f17488f2b8b773822d061fb325ee7d159bc621f0361e69afc5ff3c5dd6560",
+      "opening_state_hash": "3f83d579afb8249122b9a3ffd7f1812f4470698dc9cb603ddc8c130d4ac7b570",
+      "current_player": "BLACK",
+      "turn_count": 2,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 16,
+      "pass_action_index": 45,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n9_c07",
+      "opening_id": "d16v2_n9_c07_p2",
+      "eval_size": 9,
+      "cluster_index": 7,
+      "opening_seed": 202608299007,
+      "effective_opening_seed": 202608299007,
+      "generation_attempt": 0,
+      "target_plies": 2,
+      "action_prefix": [
+        9,
+        7
+      ],
+      "action_points": [
+        [
+          0,
+          1
+        ],
+        [
+          7,
+          0
+        ]
+      ],
+      "opening_prefix_hash": "b31c1a698e147d70579bfa7d6d42d808bbfb8976b44878c316d90ceb4a97d842",
+      "opening_state_hash": "c592916160eb9ff80335a3384dbdda1f03022049d34c9a8df8fe7876b63b3a57",
+      "current_player": "BLACK",
+      "turn_count": 2,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 16,
+      "pass_action_index": 45,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n9_c08",
+      "opening_id": "d16v2_n9_c08_p4",
+      "eval_size": 9,
+      "cluster_index": 8,
+      "opening_seed": 202608299008,
+      "effective_opening_seed": 202608299008,
+      "generation_attempt": 0,
+      "target_plies": 4,
+      "action_prefix": [
+        5,
+        43,
+        13,
+        36
+      ],
+      "action_points": [
+        [
+          5,
+          0
+        ],
+        [
+          1,
+          7
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          1,
+          5
+        ]
+      ],
+      "opening_prefix_hash": "6591bce59eaa81466bea2a71d73c65ba21055da328af1503b1f81a2cc8d1f9c4",
+      "opening_state_hash": "49e89e9fe5776e1e6b12add7668673fd8df2a3ea27f09af06458d93d43fa3ac0",
+      "current_player": "BLACK",
+      "turn_count": 4,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 20,
+      "pass_action_index": 45,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n9_c09",
+      "opening_id": "d16v2_n9_c09_p4",
+      "eval_size": 9,
+      "cluster_index": 9,
+      "opening_seed": 202608299009,
+      "effective_opening_seed": 202608299009,
+      "generation_attempt": 0,
+      "target_plies": 4,
+      "action_prefix": [
+        30,
+        34,
+        24,
+        6
+      ],
+      "action_points": [
+        [
+          0,
+          4
+        ],
+        [
+          4,
+          4
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          6,
+          0
+        ]
+      ],
+      "opening_prefix_hash": "a80f180290f0b8187bfabc2e946c8cd61d9a4b69e9e14dea960436813c2fcfa6",
+      "opening_state_hash": "5efd09c2cef0059ddadc4c1435f85104e865961c14e3ebb8e55b4fef0f005f01",
+      "current_player": "BLACK",
+      "turn_count": 4,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 18,
+      "pass_action_index": 45,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n9_c10",
+      "opening_id": "d16v2_n9_c10_p4",
+      "eval_size": 9,
+      "cluster_index": 10,
+      "opening_seed": 202608299010,
+      "effective_opening_seed": 202608299010,
+      "generation_attempt": 0,
+      "target_plies": 4,
+      "action_prefix": [
+        44,
+        4,
+        17,
+        13
+      ],
+      "action_points": [
+        [
+          0,
+          8
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          4,
+          1
+        ]
+      ],
+      "opening_prefix_hash": "fe9d715065e37d516089384cb6b89659c98c0ae8089f299f40dca69aa3b77796",
+      "opening_state_hash": "8f61f61c5fda250e476928513f29a3c6c2cf19b5019867e131dd3b02b0bed165",
+      "current_player": "BLACK",
+      "turn_count": 4,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 20,
+      "pass_action_index": 45,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n9_c11",
+      "opening_id": "d16v2_n9_c11_p4",
+      "eval_size": 9,
+      "cluster_index": 11,
+      "opening_seed": 202608299011,
+      "effective_opening_seed": 202608299011,
+      "generation_attempt": 0,
+      "target_plies": 4,
+      "action_prefix": [
+        30,
+        3,
+        17,
+        2
+      ],
+      "action_points": [
+        [
+          0,
+          4
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          2,
+          0
+        ]
+      ],
+      "opening_prefix_hash": "4e675cfb2eca2de3a686bd997f6ba67d5a2916ae7d284de8e39b64edbdc751f7",
+      "opening_state_hash": "f4e7acaa30cdbda5aee3e159b12a2652eb52cbcae1689043318d52f127f8f004",
+      "current_player": "BLACK",
+      "turn_count": 4,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 19,
+      "pass_action_index": 45,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n9_c12",
+      "opening_id": "d16v2_n9_c12_p4",
+      "eval_size": 9,
+      "cluster_index": 12,
+      "opening_seed": 202608299012,
+      "effective_opening_seed": 202608299012,
+      "generation_attempt": 0,
+      "target_plies": 4,
+      "action_prefix": [
+        30,
+        41,
+        1,
+        39
+      ],
+      "action_points": [
+        [
+          0,
+          4
+        ],
+        [
+          2,
+          6
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          6
+        ]
+      ],
+      "opening_prefix_hash": "c6aef6adef8be79296512c68eb0f78d3c6ee380e60059f03507cba8a15ce4d7c",
+      "opening_state_hash": "8ff8356298cb79ad7dd3189da4177454264413abe8fb99c9b1f2b7077cb44ed3",
+      "current_player": "BLACK",
+      "turn_count": 4,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 17,
+      "pass_action_index": 45,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n9_c13",
+      "opening_id": "d16v2_n9_c13_p4",
+      "eval_size": 9,
+      "cluster_index": 13,
+      "opening_seed": 202608299013,
+      "effective_opening_seed": 202608299013,
+      "generation_attempt": 0,
+      "target_plies": 4,
+      "action_prefix": [
+        44,
+        7,
+        34,
+        5
+      ],
+      "action_points": [
+        [
+          0,
+          8
+        ],
+        [
+          7,
+          0
+        ],
+        [
+          4,
+          4
+        ],
+        [
+          5,
+          0
+        ]
+      ],
+      "opening_prefix_hash": "0c65491a30624c1a764b0872afa14940021cb71a3f6886cc4f6d7f2a969bee1f",
+      "opening_state_hash": "08cc88dfd956f93b3ec6ee237e9049597782600f5a62c02d00feae5cdf10b860",
+      "current_player": "BLACK",
+      "turn_count": 4,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 22,
+      "pass_action_index": 45,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n9_c14",
+      "opening_id": "d16v2_n9_c14_p4",
+      "eval_size": 9,
+      "cluster_index": 14,
+      "opening_seed": 202608299014,
+      "effective_opening_seed": 202608299014,
+      "generation_attempt": 0,
+      "target_plies": 4,
+      "action_prefix": [
+        24,
+        41,
+        3,
+        29
+      ],
+      "action_points": [
+        [
+          0,
+          3
+        ],
+        [
+          2,
+          6
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          5,
+          3
+        ]
+      ],
+      "opening_prefix_hash": "bebd5448589604c19bd320407de8acf81d201a37c603acbbba335801712536e1",
+      "opening_state_hash": "da82cea7334253ce3e0ee5f34bc7b1c55998e333559b47f66779b5d116ba3f07",
+      "current_player": "BLACK",
+      "turn_count": 4,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 22,
+      "pass_action_index": 45,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n9_c15",
+      "opening_id": "d16v2_n9_c15_p4",
+      "eval_size": 9,
+      "cluster_index": 15,
+      "opening_seed": 202608299015,
+      "effective_opening_seed": 202608299015,
+      "generation_attempt": 0,
+      "target_plies": 4,
+      "action_prefix": [
+        6,
+        34,
+        1,
+        29
+      ],
+      "action_points": [
+        [
+          6,
+          0
+        ],
+        [
+          4,
+          4
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          5,
+          3
+        ]
+      ],
+      "opening_prefix_hash": "5960cc99c9bd184d188fd41da7a38eda7d50f3e04894ae58c978eb4d6787d799",
+      "opening_state_hash": "ddd59712fcf811fcaa177e0c9dec0e3098783db5848c08455e6db3792d654246",
+      "current_player": "BLACK",
+      "turn_count": 4,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 22,
+      "pass_action_index": 45,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n9_c16",
+      "opening_id": "d16v2_n9_c16_p6",
+      "eval_size": 9,
+      "cluster_index": 16,
+      "opening_seed": 202608299016,
+      "effective_opening_seed": 202608299016,
+      "generation_attempt": 0,
+      "target_plies": 6,
+      "action_prefix": [
+        42,
+        29,
+        33,
+        43,
+        4,
+        25
+      ],
+      "action_points": [
+        [
+          0,
+          7
+        ],
+        [
+          5,
+          3
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          1,
+          7
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "opening_prefix_hash": "e0e9ee4f76cb1e80fa216e7cbba5fe84bb40211f1154a36277761bdcba93b043",
+      "opening_state_hash": "e9472266cef7674d015191625ad25a08fdd011ed440d00c80114314150531a7b",
+      "current_player": "BLACK",
+      "turn_count": 6,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 24,
+      "pass_action_index": 45,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n9_c17",
+      "opening_id": "d16v2_n9_c17_p6",
+      "eval_size": 9,
+      "cluster_index": 17,
+      "opening_seed": 202608299017,
+      "effective_opening_seed": 202608299017,
+      "generation_attempt": 0,
+      "target_plies": 6,
+      "action_prefix": [
+        6,
+        44,
+        2,
+        16,
+        36,
+        39
+      ],
+      "action_points": [
+        [
+          6,
+          0
+        ],
+        [
+          0,
+          8
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          7,
+          1
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          0,
+          6
+        ]
+      ],
+      "opening_prefix_hash": "e271d24159bb383502eae53d1daa7c8fe030269fa5d54ccecc942d4250dec53d",
+      "opening_state_hash": "22f5e1bdd3b353b741f171dcee1ecadb37683e176b53e0af99406eaaa0e0d7ce",
+      "current_player": "BLACK",
+      "turn_count": 6,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 26,
+      "pass_action_index": 45,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n9_c18",
+      "opening_id": "d16v2_n9_c18_p6",
+      "eval_size": 9,
+      "cluster_index": 18,
+      "opening_seed": 202608299018,
+      "effective_opening_seed": 202608299018,
+      "generation_attempt": 0,
+      "target_plies": 6,
+      "action_prefix": [
+        2,
+        3,
+        35,
+        29,
+        42,
+        25
+      ],
+      "action_points": [
+        [
+          2,
+          0
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          5,
+          3
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "opening_prefix_hash": "b342eb78b463b06c116a793e680db369c0141c7e7bd8b8740c03f180e43d62a1",
+      "opening_state_hash": "679cfc5993a8e913751757553e6eb283fb4df19644565dd7a121530ca1b7680f",
+      "current_player": "BLACK",
+      "turn_count": 6,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 17,
+      "pass_action_index": 45,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n9_c19",
+      "opening_id": "d16v2_n9_c19_p6",
+      "eval_size": 9,
+      "cluster_index": 19,
+      "opening_seed": 202608299019,
+      "effective_opening_seed": 202608299019,
+      "generation_attempt": 0,
+      "target_plies": 6,
+      "action_prefix": [
+        1,
+        3,
+        40,
+        34,
+        43,
+        29
+      ],
+      "action_points": [
+        [
+          1,
+          0
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          1,
+          6
+        ],
+        [
+          4,
+          4
+        ],
+        [
+          1,
+          7
+        ],
+        [
+          5,
+          3
+        ]
+      ],
+      "opening_prefix_hash": "6f646fcad99e16f0b9e12cbc196ad1fc036379f2aee46ff378bc644c470e049a",
+      "opening_state_hash": "bb95aa771fc856ad196acbfe99e69b2954c61cde286fc6ac1dd37ed37025efc1",
+      "current_player": "BLACK",
+      "turn_count": 6,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 12,
+      "pass_action_index": 45,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n9_c20",
+      "opening_id": "d16v2_n9_c20_p6",
+      "eval_size": 9,
+      "cluster_index": 20,
+      "opening_seed": 202608299020,
+      "effective_opening_seed": 202608299020,
+      "generation_attempt": 0,
+      "target_plies": 6,
+      "action_prefix": [
+        1,
+        29,
+        5,
+        28,
+        30,
+        41
+      ],
+      "action_points": [
+        [
+          1,
+          0
+        ],
+        [
+          5,
+          3
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          2,
+          6
+        ]
+      ],
+      "opening_prefix_hash": "7ae171ff0f19a19b1bd4402add176c2b141f8200f31f176cae7b1ea7ccdb8fab",
+      "opening_state_hash": "18e81cb618b38066b35edc5f0e546b00889d869270e248c52027de57904505db",
+      "current_player": "BLACK",
+      "turn_count": 6,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 25,
+      "pass_action_index": 45,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n9_c21",
+      "opening_id": "d16v2_n9_c21_p6",
+      "eval_size": 9,
+      "cluster_index": 21,
+      "opening_seed": 202608299021,
+      "effective_opening_seed": 202608299021,
+      "generation_attempt": 0,
+      "target_plies": 6,
+      "action_prefix": [
+        39,
+        6,
+        2,
+        32,
+        26,
+        41
+      ],
+      "action_points": [
+        [
+          0,
+          6
+        ],
+        [
+          6,
+          0
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          2,
+          6
+        ]
+      ],
+      "opening_prefix_hash": "80f6bc624a5b8bde225e40d07e9fd8d965c15ddc1c5f01deb3309923715a8f01",
+      "opening_state_hash": "38fb3fd34773103c29b6f2fd66fb503a3d2d153527967d1008be0d5ed162d918",
+      "current_player": "BLACK",
+      "turn_count": 6,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 20,
+      "pass_action_index": 45,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n9_c22",
+      "opening_id": "d16v2_n9_c22_p6",
+      "eval_size": 9,
+      "cluster_index": 22,
+      "opening_seed": 202608299022,
+      "effective_opening_seed": 202608299022,
+      "generation_attempt": 0,
+      "target_plies": 6,
+      "action_prefix": [
+        6,
+        29,
+        15,
+        27,
+        42,
+        12
+      ],
+      "action_points": [
+        [
+          6,
+          0
+        ],
+        [
+          5,
+          3
+        ],
+        [
+          6,
+          1
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          3,
+          1
+        ]
+      ],
+      "opening_prefix_hash": "518176474ebb25d6a986bec8e4c48304098af0761d2433f6f4069d94f2f1f592",
+      "opening_state_hash": "a4188333fed715afb221920dff670acabe6a7605cc69f49bd3b571a9ab9a48fa",
+      "current_player": "BLACK",
+      "turn_count": 6,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 19,
+      "pass_action_index": 45,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n9_c23",
+      "opening_id": "d16v2_n9_c23_p6",
+      "eval_size": 9,
+      "cluster_index": 23,
+      "opening_seed": 202608299023,
+      "effective_opening_seed": 202608299023,
+      "generation_attempt": 0,
+      "target_plies": 6,
+      "action_prefix": [
+        5,
+        44,
+        20,
+        35,
+        18,
+        41
+      ],
+      "action_points": [
+        [
+          5,
+          0
+        ],
+        [
+          0,
+          8
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          6
+        ]
+      ],
+      "opening_prefix_hash": "f1e95dfb8562723149eee68ad74a59db3aaaf7c82bc3dfc4ab2ccf9375c96c68",
+      "opening_state_hash": "3ad11e3769e78bf3494ba43738d079048b42ebb9a19cfdafcb465e92b19bf28f",
+      "current_player": "BLACK",
+      "turn_count": 6,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 26,
+      "pass_action_index": 45,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n9_c24",
+      "opening_id": "d16v2_n9_c24_p8",
+      "eval_size": 9,
+      "cluster_index": 24,
+      "opening_seed": 202608299024,
+      "effective_opening_seed": 202608299024,
+      "generation_attempt": 0,
+      "target_plies": 8,
+      "action_prefix": [
+        3,
+        16,
+        2,
+        12,
+        5,
+        10,
+        13,
+        44
+      ],
+      "action_points": [
+        [
+          3,
+          0
+        ],
+        [
+          7,
+          1
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          0,
+          8
+        ]
+      ],
+      "opening_prefix_hash": "1c77562637c3a5bf892123ddf868e1db42fe27eeeda53ca13289e268a9a60db3",
+      "opening_state_hash": "9461a01272522c49d5d673436531fbba7288bc0c4b02669455ebe256680bb2dc",
+      "current_player": "BLACK",
+      "turn_count": 8,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 22,
+      "pass_action_index": 45,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n9_c25",
+      "opening_id": "d16v2_n9_c25_p8",
+      "eval_size": 9,
+      "cluster_index": 25,
+      "opening_seed": 202608299025,
+      "effective_opening_seed": 202608299025,
+      "generation_attempt": 0,
+      "target_plies": 8,
+      "action_prefix": [
+        1,
+        44,
+        6,
+        35,
+        30,
+        34,
+        23,
+        16
+      ],
+      "action_points": [
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          8
+        ],
+        [
+          6,
+          0
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          4,
+          4
+        ],
+        [
+          6,
+          2
+        ],
+        [
+          7,
+          1
+        ]
+      ],
+      "opening_prefix_hash": "0e93013dd0cdc320814ba5bad036b85988128cd7be5d0dfe24753ae1e6675680",
+      "opening_state_hash": "7b342ed2f8915fba9b135aa67f1eb2a2bc67f1e3443132569d7f3a9a0f4dd451",
+      "current_player": "BLACK",
+      "turn_count": 8,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 28,
+      "pass_action_index": 45,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n9_c26",
+      "opening_id": "d16v2_n9_c26_p8",
+      "eval_size": 9,
+      "cluster_index": 26,
+      "opening_seed": 202608299026,
+      "effective_opening_seed": 202608299026,
+      "generation_attempt": 0,
+      "target_plies": 8,
+      "action_prefix": [
+        5,
+        6,
+        22,
+        29,
+        4,
+        27,
+        44,
+        33
+      ],
+      "action_points": [
+        [
+          5,
+          0
+        ],
+        [
+          6,
+          0
+        ],
+        [
+          5,
+          2
+        ],
+        [
+          5,
+          3
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          0,
+          8
+        ],
+        [
+          3,
+          4
+        ]
+      ],
+      "opening_prefix_hash": "dfce199d61e1a24ad9d52bf6bf06dc7721444617ebc13936d7cfe7719c59d858",
+      "opening_state_hash": "cc4a475f4f18dca5f45b2096a255d6364e23e3dbe1341dedf924d9e6b7da4b76",
+      "current_player": "BLACK",
+      "turn_count": 8,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 23,
+      "pass_action_index": 45,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n9_c27",
+      "opening_id": "d16v2_n9_c27_p8",
+      "eval_size": 9,
+      "cluster_index": 27,
+      "opening_seed": 202608299027,
+      "effective_opening_seed": 202608299027,
+      "generation_attempt": 0,
+      "target_plies": 8,
+      "action_prefix": [
+        39,
+        6,
+        40,
+        41,
+        22,
+        34,
+        14,
+        4
+      ],
+      "action_points": [
+        [
+          0,
+          6
+        ],
+        [
+          6,
+          0
+        ],
+        [
+          1,
+          6
+        ],
+        [
+          2,
+          6
+        ],
+        [
+          5,
+          2
+        ],
+        [
+          4,
+          4
+        ],
+        [
+          5,
+          1
+        ],
+        [
+          4,
+          0
+        ]
+      ],
+      "opening_prefix_hash": "42877c1e99f6b348fb7f49c387e504f68cbca096804a686273c9dbb0c24d36c7",
+      "opening_state_hash": "ab7142e3f0e5572ddf89a21634f96a07e74f959c24ecab5009a876a40ef874fc",
+      "current_player": "BLACK",
+      "turn_count": 8,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 22,
+      "pass_action_index": 45,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n9_c28",
+      "opening_id": "d16v2_n9_c28_p8",
+      "eval_size": 9,
+      "cluster_index": 28,
+      "opening_seed": 202608299028,
+      "effective_opening_seed": 202608299028,
+      "generation_attempt": 0,
+      "target_plies": 8,
+      "action_prefix": [
+        6,
+        44,
+        36,
+        39,
+        14,
+        7,
+        24,
+        29
+      ],
+      "action_points": [
+        [
+          6,
+          0
+        ],
+        [
+          0,
+          8
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          5,
+          1
+        ],
+        [
+          7,
+          0
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          5,
+          3
+        ]
+      ],
+      "opening_prefix_hash": "0e258e57864bbed03850a6eaa73552b563b9bfce6a16465f78967c7e19639abb",
+      "opening_state_hash": "eb8e27bdd3e114e2fdc1a5a1c39a3f924befab2db3d97b64025e8fa8c117cfd1",
+      "current_player": "BLACK",
+      "turn_count": 8,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 23,
+      "pass_action_index": 45,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n9_c29",
+      "opening_id": "d16v2_n9_c29_p8",
+      "eval_size": 9,
+      "cluster_index": 29,
+      "opening_seed": 202608299029,
+      "effective_opening_seed": 202608299029,
+      "generation_attempt": 0,
+      "target_plies": 8,
+      "action_prefix": [
+        39,
+        44,
+        30,
+        16,
+        42,
+        14,
+        37,
+        6
+      ],
+      "action_points": [
+        [
+          0,
+          6
+        ],
+        [
+          0,
+          8
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          7,
+          1
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          5,
+          1
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          6,
+          0
+        ]
+      ],
+      "opening_prefix_hash": "73acccbbb56225ac9d8a7222bbbf5b2dff5e20e7e29651ee86b5096aeb98d974",
+      "opening_state_hash": "601f08838f025d3e3b938be535a082ad4bb3888ed968eaa71193c2e003f64f36",
+      "current_player": "BLACK",
+      "turn_count": 8,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 25,
+      "pass_action_index": 45,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n9_c30",
+      "opening_id": "d16v2_n9_c30_p8",
+      "eval_size": 9,
+      "cluster_index": 30,
+      "opening_seed": 202608299030,
+      "effective_opening_seed": 202608299030,
+      "generation_attempt": 0,
+      "target_plies": 8,
+      "action_prefix": [
+        35,
+        38,
+        1,
+        33,
+        37,
+        12,
+        19,
+        11
+      ],
+      "action_points": [
+        [
+          0,
+          5
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "opening_prefix_hash": "2d4239bfbe29216c78d4b1f89b499459c2ac0f49f653195209e9163baf1e2db4",
+      "opening_state_hash": "e8805bff73e00b9914a3c95a7d7047bdc0ac4a9c75649c0b6afd637d4f33155e",
+      "current_player": "BLACK",
+      "turn_count": 8,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 19,
+      "pass_action_index": 45,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    },
+    {
+      "cluster_id": "n9_c31",
+      "opening_id": "d16v2_n9_c31_p8",
+      "eval_size": 9,
+      "cluster_index": 31,
+      "opening_seed": 202608299031,
+      "effective_opening_seed": 202608299031,
+      "generation_attempt": 0,
+      "target_plies": 8,
+      "action_prefix": [
+        35,
+        7,
+        4,
+        43,
+        21,
+        18,
+        5,
+        41
+      ],
+      "action_points": [
+        [
+          0,
+          5
+        ],
+        [
+          7,
+          0
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          1,
+          7
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          2,
+          6
+        ]
+      ],
+      "opening_prefix_hash": "9042a94033a31b56fff4649fe46d5c78a914f931c358fe6fff44dd09b15554c1",
+      "opening_state_hash": "1e29a64d03b5b483d3278e03c3042b04f2bef50cde66e1f14fabd31ffb993d42",
+      "current_player": "BLACK",
+      "turn_count": 8,
+      "game_over": false,
+      "consecutive_skips": 0,
+      "legal_non_pass_actions_after_prefix": 22,
+      "pass_action_index": 45,
+      "legality_checks": {
+        "all_actions_legal": true,
+        "point_actions_only": true,
+        "no_pass_in_prefix": true,
+        "no_auto_skip": true,
+        "nonterminal": true,
+        "unique_prefix_within_size": true,
+        "unique_state_within_size": true,
+        "superko_mode": "enforce"
+      }
+    }
+  ]
+}
