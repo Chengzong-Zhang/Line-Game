@@ -55,7 +55,12 @@ LOOP_ACTORS = (
     Player.BLACK,
 )
 STAGE_5_SHA256 = "c1362c7a100c1c512e2345740f4d9cbd1c34c12b7ab708d65dac681365c14608"
-SOURCE_SHA256 = "EFB6BF27D35E8894D9F8C749C8C86765CBCF957060B55AA8456C006051A84CA0"
+PROVENANCE_SOURCE_SHA256 = (
+    "EFB6BF27D35E8894D9F8C749C8C86765CBCF957060B55AA8456C006051A84CA0"
+)
+CANONICAL_LF_SOURCE_SHA256 = (
+    "26C8D77BFE24C944B27651A61EE6DC6645C31AB9F54EC99CC50770D404238963"
+)
 
 
 def _actions(raw: list[list[int] | None]) -> tuple[Action, ...]:
@@ -150,11 +155,24 @@ class NaturalSuperkoAblationTests(unittest.TestCase):
         provenance = self.witness["provenance"]
         source_path = (WITNESS_PATH.parent / provenance["artifact"]).resolve()
         self.assertTrue(source_path.is_file())
+        source_bytes = source_path.read_bytes()
+        source_sha256 = hashlib.sha256(source_bytes).hexdigest().upper()
         self.assertEqual(
-            hashlib.sha256(source_path.read_bytes()).hexdigest().upper(),
-            SOURCE_SHA256,
+            source_sha256,
+            (
+                PROVENANCE_SOURCE_SHA256
+                if b"\r\n" in source_bytes
+                else CANONICAL_LF_SOURCE_SHA256
+            ),
         )
-        self.assertEqual(provenance["artifact_sha256"], SOURCE_SHA256)
+        self.assertEqual(
+            hashlib.sha256(source_bytes.replace(b"\r\n", b"\n")).hexdigest().upper(),
+            CANONICAL_LF_SOURCE_SHA256,
+        )
+        self.assertEqual(
+            provenance["artifact_sha256"],
+            PROVENANCE_SOURCE_SHA256,
+        )
         source = json.loads(source_path.read_text(encoding="utf-8"))["random"]
         self.assertEqual(_actions(source["prefix"]), PREFIX)
         self.assertEqual(_actions(source["rejected_actions"]), (CANDIDATE,))
