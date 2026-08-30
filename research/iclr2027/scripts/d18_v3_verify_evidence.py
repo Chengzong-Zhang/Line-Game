@@ -35,7 +35,7 @@ RESEARCH_ROOT = REPO_ROOT / "research" / "iclr2027"
 if str(RESEARCH_ROOT) not in sys.path:
     sys.path.insert(0, str(RESEARCH_ROOT))
 
-from lifeline_rl import replay_game_record  # noqa: E402
+from lifeline_rl import LifelineGame, replay_game_record  # noqa: E402
 
 
 SCHEMA_VERSION = 1
@@ -85,8 +85,35 @@ DEFAULT_FORMAL_RUNNER = SCRIPT_DIR / "d18_v3_formal_runner.py"
 DEFAULT_PREPARATION_RUNNER = SCRIPT_DIR / "d18_v3_runner.py"
 THROUGHPUT_PROFILE_SCHEMA = "lifeline-d18-v3-gpu-smoke"
 THROUGHPUT_PROFILE_ARTIFACT_NAME = "throughput_profile.json"
+RUN_ROOT_ALLOWED_ENTRY_NAMES = frozenset(
+    {
+        ".d18_v3_formal_writer.lock",
+        THROUGHPUT_PROFILE_ARTIFACT_NAME,
+        "execution_metadata.json",
+        "tasks",
+        "result_receipts.jsonl",
+        "canonical_numeric.json",
+        "execution_summary.json",
+    }
+)
+EXPORT_ROOT_FILE_NAMES = frozenset(
+    {
+        THROUGHPUT_PROFILE_ARTIFACT_NAME,
+        "execution_metadata.json",
+        "result_receipts.jsonl",
+        "canonical_numeric.json",
+        "execution_summary.json",
+    }
+)
+POLICY_MAX_DELIVERY_BYTES = 512 * 1024 * 1024
+WORKER_RUN_METADATA_RESERVE_BYTES = 64 * 1024 * 1024
+MAX_EXPORT_BYTES = POLICY_MAX_DELIVERY_BYTES - WORKER_RUN_METADATA_RESERVE_BYTES
+EXPORT_MANIFEST_RESERVE_BYTES = 4 * 1024 * 1024
 SCALAR_LANE_COUNT = 12
 SCALAR_LANE_EXECUTION_MODE = "production_equivalent_scalar_puct_lanes"
+GPU_SMOKE_CASE_COUNT = len(MODEL_PAIRS) * len(SIZES)
+GPU_SMOKE_MIN_TOTAL_SECONDS = 15.0
+GPU_SMOKE_MAX_TOTAL_SECONDS = 27.0
 INFERENCE_BATCH_SIZE = 1
 INFERENCE_DTYPE = "float32"
 MAX_RUNTIME_SECONDS = 11_520
@@ -94,6 +121,7 @@ FORMAL_GAMEPLAY_BUDGET_SECONDS = 8_640
 FORMAL_NON_GAMEPLAY_RESERVE_FRACTION = 0.25
 MAX_AGGREGATE_LANE_MEMORY_BYTES = 30 * 1024**3
 MIN_DEVICE_MEMORY_BYTES = 31 * 1024**3
+MIN_DEVICE_FREE_HEADROOM_BYTES = 4 * 1024**3
 EXPECTED_TORCH_VERSION = "2.8.0"
 EXPECTED_CUDA_RUNTIME_VERSION = "12.8"
 
@@ -330,6 +358,51 @@ def _valid_sha256(value: Any) -> bool:
     )
 
 
+def _apply_action_index(game: LifelineGame, action_index: int, label: str) -> None:
+    if action_index > game.num_points:
+        raise VerificationError(
+            f"{label}: action exceeds PASS index {game.num_points}"
+        )
+    action = (
+        None
+        if action_index == game.num_points
+        else game.valid_positions[action_index]
+    )
+    result = game.skip_turn() if action is None else game.play_move(action)
+    if not result.success:
+        raise VerificationError(f"{label}: illegal replay action: {result.reason}")
+
+
+def _throughput_opening_game(
+    schedule: Mapping[str, Any], *, size: int, superko_mode: str
+) -> tuple[LifelineGame, int]:
+    actions = [
+        _integer(value, f"throughput.opening_actions[{index}]", minimum=0)
+        for index, value in enumerate(
+            _sequence(schedule.get("opening_actions"), "throughput.opening_actions")
+        )
+    ]
+    _require(
+        _valid_sha256(schedule.get("opening_prefix_hash"))
+        and schedule.get("opening_prefix_hash") == canonical_sha256(actions),
+        "throughput selected opening prefix hash differs",
+    )
+    game = LifelineGame(size, superko_mode=superko_mode)
+    for index, action_index in enumerate(actions):
+        _require(
+            not game.game_over,
+            "throughput selected opening continues after a terminal state",
+        )
+        _apply_action_index(game, action_index, f"throughput.opening_actions[{index}]")
+    _require(
+        not game.game_over
+        and _valid_sha256(schedule.get("opening_state_hash"))
+        and game.state_fingerprint() == schedule.get("opening_state_hash"),
+        "throughput selected opening state hash differs",
+    )
+    return game, len(actions)
+
+
 def _repo_relative(path: Path) -> str:
     try:
         return path.resolve().relative_to(REPO_ROOT.resolve()).as_posix()
@@ -374,6 +447,187 @@ def _slug(value: str) -> str:
 def _task_directory(run_root: Path, task_id: str) -> Path:
     digest = hashlib.sha256(task_id.encode("utf-8")).hexdigest()[:12]
     return run_root / "tasks" / f"{_slug(task_id)}__{digest}"
+
+
+def _validate_run_root_entries(run_root: Path) -> None:
+    for entry in run_root.iterdir():
+        _require(
+            entry.name in RUN_ROOT_ALLOWED_ENTRY_NAMES and not entry.is_symlink(),
+            f"formal run root contains an unknown or unsafe entry: {entry.name}",
+        )
+        if entry.name == "tasks":
+            _require(entry.is_dir(), "formal run tasks entry is not a real directory")
+        else:
+            _require(
+                entry.is_file(),
+                f"formal run root entry is not a real file: {entry.name}",
+            )
+
+
+def _export_payload_paths(tasks: Sequence[Mapping[str, Any]]) -> set[Path]:
+    expected = {Path(name) for name in EXPORT_ROOT_FILE_NAMES}
+    for task in tasks:
+        task_root = Path("tasks") / _task_directory(
+            Path("."), str(task["task_id"])
+        ).name
+        expected.update(
+            {
+                task_root / "games.jsonl",
+                task_root / "receipt.json",
+                task_root / "summary.json",
+            }
+        )
+        expected.update(
+            task_root / "pairs" / f"pair_{index:04d}.json"
+            for index in range(PAIRS_PER_TASK)
+        )
+    return expected
+
+
+def _export_directories(paths: set[Path]) -> set[Path]:
+    directories: set[Path] = set()
+    for path in paths:
+        parent = path.parent
+        while parent != Path("."):
+            directories.add(parent)
+            parent = parent.parent
+    return directories
+
+
+def _validate_export_root_entries(
+    export_root: Path, tasks: Sequence[Mapping[str, Any]]
+) -> None:
+    """Verify the exact delivered closure and every export-manifest binding."""
+
+    manifest_path = export_root / "export_manifest.json"
+    _require(
+        manifest_path.is_file() and not manifest_path.is_symlink(),
+        "formal export manifest is missing or unsafe",
+    )
+    expected_payload = _export_payload_paths(tasks)
+    expected_files = expected_payload | {Path("export_manifest.json")}
+    expected_directories = _export_directories(expected_payload)
+    observed_files: set[Path] = set()
+    observed_directories: set[Path] = set()
+    for path in sorted(export_root.rglob("*"), key=lambda item: item.as_posix()):
+        relative = path.relative_to(export_root)
+        _require(
+            not path.is_symlink(),
+            f"formal export contains a symlink: {relative.as_posix()}",
+        )
+        if path.is_dir():
+            observed_directories.add(relative)
+        else:
+            _require(
+                path.is_file(),
+                f"formal export contains a special file: {relative.as_posix()}",
+            )
+            observed_files.add(relative)
+    _require(
+        observed_files == expected_files,
+        "formal export file closure differs",
+    )
+    _require(
+        observed_directories == expected_directories,
+        "formal export directory closure differs",
+    )
+
+    manifest = load_json(manifest_path)
+    _require(
+        manifest.get("schema_name") == "lifeline-d18-v3-export-manifest"
+        and manifest.get("schema_version") == SCHEMA_VERSION
+        and manifest.get("experiment_id") == EXPERIMENT_ID,
+        "formal export manifest identity differs",
+    )
+    rows = manifest.get("files")
+    _require(isinstance(rows, list), "formal export manifest files must be a list")
+    row_paths: list[Path] = []
+    total_bytes = 0
+    for row in rows:
+        _require(isinstance(row, dict), "formal export manifest row must be an object")
+        raw_path = row.get("path")
+        _require(
+            isinstance(raw_path, str)
+            and raw_path
+            and "\\" not in raw_path
+            and Path(raw_path).as_posix() == raw_path
+            and not Path(raw_path).is_absolute()
+            and ".." not in Path(raw_path).parts,
+            "formal export manifest contains an unsafe path",
+        )
+        relative = Path(raw_path)
+        expected_bytes = row.get("bytes")
+        expected_sha256 = row.get("sha256")
+        _require(
+            relative in expected_payload
+            and isinstance(expected_bytes, int)
+            and not isinstance(expected_bytes, bool)
+            and expected_bytes >= 0
+            and _valid_sha256(expected_sha256),
+            f"formal export manifest row differs: {raw_path}",
+        )
+        artifact = export_root / relative
+        _require(
+            artifact.stat().st_size == expected_bytes
+            and sha256_file(artifact) == expected_sha256,
+            f"formal export artifact hash or size differs: {raw_path}",
+        )
+        row_paths.append(relative)
+        total_bytes += expected_bytes
+    _require(
+        row_paths == sorted(expected_payload, key=lambda path: path.as_posix()),
+        "formal export manifest path order or coverage differs",
+    )
+    _require(
+        manifest.get("file_count") == len(expected_payload)
+        and manifest.get("total_bytes") == total_bytes
+        and manifest.get("max_export_bytes") == MAX_EXPORT_BYTES
+        and manifest.get("export_manifest_reserve_bytes")
+        == EXPORT_MANIFEST_RESERVE_BYTES
+        and manifest.get("projected_upper_bound_bytes")
+        == total_bytes + EXPORT_MANIFEST_RESERVE_BYTES
+        and total_bytes + EXPORT_MANIFEST_RESERVE_BYTES <= MAX_EXPORT_BYTES
+        and manifest.get("worker_run_metadata_reserve_bytes")
+        == WORKER_RUN_METADATA_RESERVE_BYTES
+        and manifest.get("policy_max_delivery_bytes")
+        == POLICY_MAX_DELIVERY_BYTES
+        and manifest.get("projected_worker_delivery_upper_bound_bytes")
+        == total_bytes
+        + EXPORT_MANIFEST_RESERVE_BYTES
+        + WORKER_RUN_METADATA_RESERVE_BYTES
+        and total_bytes
+        + EXPORT_MANIFEST_RESERVE_BYTES
+        + WORKER_RUN_METADATA_RESERVE_BYTES
+        <= POLICY_MAX_DELIVERY_BYTES
+        and manifest_path.stat().st_size <= EXPORT_MANIFEST_RESERVE_BYTES,
+        "formal export manifest count or byte budget differs",
+    )
+
+
+def _validate_evidence_root_entries(
+    run_root: Path, tasks: Sequence[Mapping[str, Any]]
+) -> None:
+    if (run_root / "export_manifest.json").exists():
+        _validate_export_root_entries(run_root, tasks)
+    else:
+        _validate_run_root_entries(run_root)
+
+
+def _validate_pair_directory_entries(pair_directory: Path) -> None:
+    _require(
+        pair_directory.is_dir() and not pair_directory.is_symlink(),
+        "pair artifact directory is missing or unsafe",
+    )
+    entries = list(pair_directory.iterdir())
+    _require(
+        all(path.is_file() and not path.is_symlink() for path in entries),
+        "pair artifact directory contains an unsafe entry",
+    )
+    _require(
+        {path.name for path in entries}
+        == {f"pair_{index:04d}.json" for index in range(PAIRS_PER_TASK)},
+        "pair artifact directory contains missing/extra files",
+    )
 
 
 def _policy_seed_pair(*, size: int, stratum: int) -> tuple[int, int]:
@@ -834,10 +1088,11 @@ def _validate_throughput_profile_evidence(
     *,
     metadata: Mapping[str, Any],
     tasks: Sequence[Mapping[str, Any]],
+    checkpoint_registry: Mapping[tuple[str, int], Mapping[str, Any]],
     formal_manifest_sha: str,
     formal_runner_sha: str,
 ) -> dict[str, Any]:
-    """Independently rehash and revalidate the complete persisted GPU profile."""
+    """Independently validate the nine-case, persistent-worker GPU receipt."""
 
     profile_path = profile_path.resolve()
     _require(
@@ -878,12 +1133,19 @@ def _validate_throughput_profile_evidence(
         "puct_simulations": SEARCH["simulations"],
         "temperature": SEARCH["temperature"],
         "root_noise": SEARCH["add_root_noise"],
+        "data_supply": "registered_d18_v3_task_binding_and_opening_clone",
         "formal_game_count": EXPECTED_GAMES,
         "formal_runtime_seconds": MAX_RUNTIME_SECONDS,
         "formal_gameplay_budget_seconds": FORMAL_GAMEPLAY_BUDGET_SECONDS,
         "non_gameplay_reserve_fraction": FORMAL_NON_GAMEPLAY_RESERVE_FRACTION,
         "aggregate_peak_memory_limit_bytes": MAX_AGGREGATE_LANE_MEMORY_BYTES,
         "minimum_device_memory_bytes": MIN_DEVICE_MEMORY_BYTES,
+        "minimum_device_free_headroom_bytes": MIN_DEVICE_FREE_HEADROOM_BYTES,
+        "resident_checkpoint_count_per_worker": 15,
+        "resident_integrity_check_mode": (
+            "final_case_all_checkpoints_against_preload_cuda_clones"
+        ),
+        "resident_integrity_worker_count": SCALAR_LANE_COUNT,
     }
     for field, expected_value in expected.items():
         _require(
@@ -900,8 +1162,16 @@ def _validate_throughput_profile_evidence(
         and profile.get("cuda_runtime_version") == EXPECTED_CUDA_RUNTIME_VERSION,
         "throughput profile environment versions differ",
     )
-    max_plies = max(_integer(task.get("max_plies"), "task.max_plies", minimum=1) for task in tasks)
-    worst_case_decisions = EXPECTED_GAMES * max_plies
+
+    max_plies = max(
+        _integer(task.get("max_plies"), "task.max_plies", minimum=1)
+        for task in tasks
+    )
+    worst_case_decisions = sum(
+        _integer(task.get("games"), "task.games", minimum=1)
+        * _integer(task.get("max_plies"), "task.max_plies", minimum=1)
+        for task in tasks
+    )
     _require(
         profile.get("formal_max_plies") == max_plies
         and profile.get("worst_case_puct_decisions") == worst_case_decisions,
@@ -910,72 +1180,512 @@ def _validate_throughput_profile_evidence(
     requested = _finite_number(
         profile.get("requested_sustained_seconds"),
         "throughput.requested_sustained_seconds",
-        minimum=15.0,
+        minimum=GPU_SMOKE_MIN_TOTAL_SECONDS,
+    )
+    _require(
+        requested <= GPU_SMOKE_MAX_TOTAL_SECONDS,
+        "throughput profile requested duration gate failed",
+    )
+    requested_case = _finite_number(
+        profile.get("requested_case_seconds"),
+        "throughput.requested_case_seconds",
+        minimum=GPU_SMOKE_MIN_TOTAL_SECONDS / GPU_SMOKE_CASE_COUNT,
+    )
+    _require(
+        math.isclose(
+            requested_case,
+            requested / GPU_SMOKE_CASE_COUNT,
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        ),
+        "throughput profile case duration does not partition the total request",
     )
     total = _finite_number(profile.get("total_seconds"), "throughput.total_seconds")
-    _require(requested <= 30.0 and 15.0 <= total <= 30.0, "throughput profile duration gate failed")
+    duration = _finite_number(
+        profile.get("duration_seconds"), "throughput.duration_seconds"
+    )
+    sustained_total = _finite_number(
+        profile.get("sustained_seconds"), "throughput.sustained_seconds"
+    )
+    setup_total = _finite_number(
+        profile.get("setup_seconds"), "throughput.setup_seconds", minimum=0.0
+    )
+    _require(
+        math.isclose(duration, total, rel_tol=1e-12, abs_tol=1e-12)
+        and GPU_SMOKE_MIN_TOTAL_SECONDS <= total <= GPU_SMOKE_MAX_TOTAL_SECONDS
+        and GPU_SMOKE_MIN_TOTAL_SECONDS <= sustained_total <= total
+        and math.isclose(
+            setup_total, total - sustained_total, rel_tol=1e-12, abs_tol=1e-9
+        ),
+        "throughput profile total/setup duration gate failed",
+    )
+
+    registry_by_id: dict[str, Mapping[str, Any]] = {}
+    for (kind, seed), binding in checkpoint_registry.items():
+        checkpoint_id = str(binding.get("checkpoint_id", ""))
+        _require(
+            kind in MODEL_KINDS
+            and seed in TRAINING_SEEDS
+            and checkpoint_id
+            and checkpoint_id not in registry_by_id
+            and binding.get("model_kind") == kind
+            and binding.get("training_seed") == seed,
+            "throughput checkpoint registry is invalid",
+        )
+        registry_by_id[checkpoint_id] = binding
+    _require(
+        len(registry_by_id) == len(MODEL_KINDS) * len(TRAINING_SEEDS),
+        "throughput checkpoint registry is incomplete",
+    )
+
+    task_groups: dict[tuple[tuple[str, str], int], list[Mapping[str, Any]]] = (
+        defaultdict(list)
+    )
+    for task in tasks:
+        key = (
+            tuple(str(value) for value in _sequence(task.get("model_pair"), "task.model_pair")),
+            _integer(task.get("eval_size"), "task.eval_size"),
+        )
+        task_groups[key].append(task)
+    expected_cases = [
+        (pair, size) for pair in MODEL_PAIRS for size in SIZES
+    ]
+    _require(
+        set(task_groups) == set(expected_cases),
+        "throughput frozen task case coverage differs",
+    )
+    ordered_tasks = {
+        key: sorted(
+            rows,
+            key=lambda row: (
+                _integer(row.get("training_seed"), "task.seed"),
+                str(row.get("task_id", "")),
+            ),
+        )
+        for key, rows in task_groups.items()
+    }
+
+    preload_rows = _sequence(
+        profile.get("resident_cache_preload_results"),
+        "throughput.resident_cache_preload_results",
+    )
+    _require(
+        len(preload_rows) == SCALAR_LANE_COUNT,
+        "throughput preload evidence does not contain twelve workers",
+    )
+    preload_pids: set[int] = set()
+    memory_by_pid: dict[int, dict[str, int]] = {}
+    device_totals: set[int] = set()
+    expected_checkpoint_ids = set(registry_by_id)
+    for index, raw_preload in enumerate(preload_rows):
+        preload = _mapping(raw_preload, f"throughput.preload[{index}]")
+        _require(
+            preload.get("lane_index") == index,
+            "throughput preload lane order differs",
+        )
+        pid = _integer(preload.get("worker_pid"), "preload.worker_pid", minimum=1)
+        preload_pids.add(pid)
+        checkpoint_ids = [
+            str(value)
+            for value in _sequence(
+                preload.get("checkpoint_ids"), "preload.checkpoint_ids"
+            )
+        ]
+        _require(
+            preload.get("checkpoint_count") == 15
+            and len(checkpoint_ids) == 15
+            and len(set(checkpoint_ids)) == 15
+            and set(checkpoint_ids) == expected_checkpoint_ids,
+            "throughput preload did not bind all fifteen checkpoints",
+        )
+        baseline_checkpoint_ids = [
+            str(value)
+            for value in _sequence(
+                preload.get("device_baseline_checkpoint_ids"),
+                "preload.device_baseline_checkpoint_ids",
+            )
+        ]
+        _require(
+            preload.get("device_baseline_checkpoint_count") == 15
+            and baseline_checkpoint_ids == checkpoint_ids
+            and _integer(
+                preload.get("device_baseline_tensor_count"),
+                "preload.device_baseline_tensor_count",
+                minimum=15,
+            )
+            >= 15
+            and preload.get("device_baseline_storage") == "immutable_cuda_clone",
+            "throughput preload device baseline differs",
+        )
+        allocated = _integer(
+            preload.get("max_memory_allocated_bytes"),
+            "preload.max_memory_allocated_bytes",
+            minimum=1,
+        )
+        reserved = _integer(
+            preload.get("max_memory_reserved_bytes"),
+            "preload.max_memory_reserved_bytes",
+            minimum=allocated,
+        )
+        total_memory = _integer(
+            preload.get("device_total_memory_bytes"),
+            "preload.device_total_memory_bytes",
+            minimum=MIN_DEVICE_MEMORY_BYTES,
+        )
+        free_memory = _integer(
+            preload.get("device_free_memory_bytes"),
+            "preload.device_free_memory_bytes",
+            minimum=0,
+        )
+        _require(
+            reserved <= total_memory and free_memory <= total_memory,
+            "throughput preload memory telemetry is invalid",
+        )
+        memory_by_pid[pid] = {
+            "max_memory_allocated_bytes": allocated,
+            "max_memory_reserved_bytes": reserved,
+        }
+        device_totals.add(total_memory)
+    _require(
+        len(preload_pids) == SCALAR_LANE_COUNT,
+        "throughput preload worker processes are not distinct",
+    )
+
     lanes = _sequence(profile.get("lane_results"), "throughput.lane_results")
-    _require(len(lanes) == SCALAR_LANE_COUNT, "throughput profile lane count differs")
+    _require(
+        len(lanes) == GPU_SMOKE_CASE_COUNT * SCALAR_LANE_COUNT,
+        "throughput profile does not contain nine complete twelve-lane cases",
+    )
     decisions = 0
     forwards = 0
-    memory_sum = 0
-    sustained_values: list[float] = []
     utilization: list[float] = []
+    case_sustained: dict[int, list[float]] = defaultdict(list)
+    case_decision_timings: dict[int, list[float]] = defaultdict(list)
     observed_kinds: set[str] = set()
+    observed_kind_sizes: set[tuple[str, int]] = set()
     observed_pairs: set[tuple[str, str]] = set()
     observed_sizes: set[int] = set()
     observed_pair_sizes: set[tuple[tuple[str, str], int]] = set()
     opening_ids: dict[str, set[str]] = {str(size): set() for size in SIZES}
-    allowed_openings = {
-        (tuple(str(value) for value in task["model_pair"]), int(task["eval_size"])): {
-            str(pair["opening_id"]) for pair in task["pair_plan"]
-        }
-        for task in tasks
-    }
-    for index, raw_lane in enumerate(lanes):
-        lane = _mapping(raw_lane, f"throughput.lane[{index}]")
-        _require(lane.get("lane_index") == index, "throughput profile lane order differs")
-        lane_decisions = _integer(lane.get("puct_decisions"), "lane.puct_decisions", minimum=1)
-        lane_forwards = _integer(lane.get("model_forward_calls"), "lane.model_forward_calls", minimum=1)
+    resident_integrity_results: list[Mapping[str, Any]] = []
+
+    for flat_index, raw_lane in enumerate(lanes):
+        lane = _mapping(raw_lane, f"throughput.lane[{flat_index}]")
+        case_index = flat_index // SCALAR_LANE_COUNT
+        lane_index = flat_index % SCALAR_LANE_COUNT
+        pair, size = expected_cases[case_index]
+        selected = ordered_tasks[(pair, size)][
+            lane_index % len(ordered_tasks[(pair, size)])
+        ]
         _require(
-            lane_decisions <= lane_forwards <= lane_decisions * 17,
-            "throughput lane forward count is inconsistent",
+            lane.get("case_index") == case_index
+            and lane.get("lane_index") == lane_index
+            and tuple(str(value) for value in _sequence(lane.get("model_pair"), "lane.model_pair")) == pair
+            and lane.get("eval_size") == size
+            and lane.get("coverage_case_id") == f"{pair[0]}_vs_{pair[1]}.n{size}"
+            and lane.get("task_id") == selected.get("task_id")
+            and lane.get("training_seed") == selected.get("training_seed"),
+            "throughput lane case/task binding differs",
         )
-        sustained = _finite_number(lane.get("sustained_seconds"), "lane.sustained_seconds")
+        selected_schedule = _mapping(
+            _sequence(selected.get("pair_plan"), "task.pair_plan")[0],
+            "task.pair_plan[0]",
+        )
+        _require(
+            lane.get("opening_id") == selected_schedule.get("opening_id"),
+            "throughput lane opening differs from selected task schedule",
+        )
+        superko_mode = str(selected.get("superko_mode", "enforce"))
+        max_plies = _integer(selected.get("max_plies"), "task.max_plies", minimum=1)
+        opening_game, opening_plies = _throughput_opening_game(
+            selected_schedule, size=size, superko_mode=superko_mode
+        )
+        _require(
+            lane.get("black_slot") == selected_schedule.get("black_slot")
+            and lane.get("white_slot") == selected_schedule.get("white_slot")
+            and {lane.get("black_slot"), lane.get("white_slot")} == {"A", "B"},
+            "throughput lane color-slot binding differs",
+        )
+        agents = _sequence(lane.get("agents"), "lane.agents")
+        _require(
+            len(agents) == 2
+            and lane.get("agent_slots_exercised") == ["A", "B"]
+            and lane.get("warmup_puct_decisions") == 2,
+            "throughput lane did not exercise both formal agents",
+        )
+        resident_integrity = lane.get("resident_integrity")
+        if case_index == GPU_SMOKE_CASE_COUNT - 1:
+            resident_integrity_results.append(
+                _mapping(resident_integrity, "lane.resident_integrity")
+            )
+        else:
+            _require(
+                resident_integrity is None,
+                "throughput lane performed resident integrity before the final case",
+            )
+        task_bindings = _mapping(selected.get("agent_bindings"), "task.agent_bindings")
+        for agent_index, slot in enumerate(("A", "B")):
+            agent = _mapping(agents[agent_index], f"lane.agents[{agent_index}]")
+            binding = _mapping(task_bindings.get(slot), f"task.agent_bindings.{slot}")
+            expected_kind = pair[agent_index]
+            checkpoint_id = str(agent.get("checkpoint_id", ""))
+            manifest_binding = registry_by_id.get(checkpoint_id)
+            _require(
+                agent.get("agent_slot") == slot
+                and agent.get("model_kind") == expected_kind
+                and checkpoint_id == binding.get("checkpoint_id")
+                and manifest_binding is not None
+                and manifest_binding.get("model_kind") == expected_kind
+                and manifest_binding.get("training_seed") == lane.get("training_seed"),
+                "throughput lane checkpoint/model/slot binding differs from the formal manifest",
+            )
+            observed_kinds.add(expected_kind)
+            observed_kind_sizes.add((expected_kind, size))
+
+        lane_decisions = _integer(
+            lane.get("puct_decisions"), "lane.puct_decisions", minimum=2
+        )
+        lane_forwards = _integer(
+            lane.get("model_forward_calls"), "lane.model_forward_calls", minimum=2
+        )
+        per_agent_decisions = _mapping(
+            lane.get("per_agent_puct_decisions"), "lane.per_agent_puct_decisions"
+        )
+        per_agent_forwards = _mapping(
+            lane.get("per_agent_model_forward_calls"),
+            "lane.per_agent_model_forward_calls",
+        )
+        _require(
+            set(per_agent_decisions) == {"A", "B"}
+            and set(per_agent_forwards) == {"A", "B"},
+            "throughput per-agent counters are incomplete",
+        )
+        agent_decision_total = 0
+        agent_forward_total = 0
+        for slot in ("A", "B"):
+            slot_decisions = _integer(
+                per_agent_decisions.get(slot), f"lane.{slot}.decisions", minimum=1
+            )
+            slot_forwards = _integer(
+                per_agent_forwards.get(slot), f"lane.{slot}.forwards", minimum=1
+            )
+            _require(
+                slot_decisions <= slot_forwards <= slot_decisions * 17,
+                "throughput per-agent forward count is inconsistent",
+            )
+            agent_decision_total += slot_decisions
+            agent_forward_total += slot_forwards
+        _require(
+            agent_decision_total == lane_decisions
+            and agent_forward_total == lane_forwards,
+            "throughput lane counters do not equal per-agent counters",
+        )
+        decision_timings = [
+            _finite_number(value, "lane.decision_seconds", minimum=0.0)
+            for value in _sequence(lane.get("decision_seconds"), "lane.decision_seconds")
+        ]
+        state_fingerprints = list(
+            _sequence(
+                lane.get("decision_state_fingerprints"),
+                "lane.decision_state_fingerprints",
+            )
+        )
+        action_indices = [
+            _integer(value, "lane.decision_action_indices", minimum=0)
+            for value in _sequence(
+                lane.get("decision_action_indices"),
+                "lane.decision_action_indices",
+            )
+        ]
+        unique_state_count = _integer(
+            lane.get("unique_state_count"), "lane.unique_state_count", minimum=2
+        )
+        replayed_game = opening_game
+        replayed_plies = opening_plies
+        replayed_resets = 0
+        for decision_index, (fingerprint, action_index) in enumerate(
+            zip(state_fingerprints, action_indices)
+        ):
+            _require(
+                _valid_sha256(fingerprint)
+                and fingerprint == replayed_game.state_fingerprint()
+                and not replayed_game.game_over,
+                "throughput lane pre-state fingerprint/action trace differs",
+            )
+            _apply_action_index(
+                replayed_game,
+                action_index,
+                f"lane.decision_action_indices[{decision_index}]",
+            )
+            replayed_plies += 1
+            if replayed_game.game_over or replayed_plies >= max_plies:
+                replayed_game, replayed_plies = _throughput_opening_game(
+                    selected_schedule,
+                    size=size,
+                    superko_mode=superko_mode,
+                )
+                replayed_resets += 1
+        _require(
+            len(decision_timings) == lane_decisions
+            and len(state_fingerprints) == lane_decisions
+            and len(action_indices) == lane_decisions
+            and unique_state_count == len(set(state_fingerprints))
+            and all(value > 0.0 for value in decision_timings)
+            and math.isclose(
+                _finite_number(
+                    lane.get("slowest_decision_seconds"),
+                    "lane.slowest_decision_seconds",
+                ),
+                max(decision_timings),
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+            and _integer(lane.get("game_resets"), "lane.game_resets", minimum=0)
+            == replayed_resets,
+            "throughput lane multi-state decision timing evidence is invalid",
+        )
+        sustained = _finite_number(
+            lane.get("sustained_seconds"), "lane.sustained_seconds"
+        )
         lane_total = _finite_number(lane.get("total_seconds"), "lane.total_seconds")
-        _require(requested <= sustained <= requested + 5.0 and sustained <= lane_total <= total, "throughput lane duration failed")
+        lane_setup = _finite_number(
+            lane.get("setup_seconds"), "lane.setup_seconds", minimum=0.0
+        )
+        _require(
+            requested_case <= sustained
+            and sustained <= lane_total <= total
+            and lane_setup <= lane_total,
+            "throughput lane duration failed",
+        )
         _require(
             lane.get("device") == "cuda"
             and "rtx 5090" in str(lane.get("device_name", "")).lower()
-            and str(lane.get("torch_version", "")).split("+", 1)[0] == EXPECTED_TORCH_VERSION
+            and str(lane.get("torch_version", "")).split("+", 1)[0]
+            == EXPECTED_TORCH_VERSION
             and lane.get("cuda_runtime_version") == EXPECTED_CUDA_RUNTIME_VERSION,
             "throughput lane environment differs",
         )
-        device_memory = _integer(lane.get("device_total_memory_bytes"), "lane.device_memory", minimum=MIN_DEVICE_MEMORY_BYTES)
-        peak_memory = _integer(lane.get("max_memory_allocated_bytes"), "lane.peak_memory", minimum=1)
-        _require(peak_memory <= device_memory, "throughput lane memory exceeds device memory")
+        total_memory = _integer(
+            lane.get("device_total_memory_bytes"),
+            "lane.device_total_memory_bytes",
+            minimum=MIN_DEVICE_MEMORY_BYTES,
+        )
+        allocated = _integer(
+            lane.get("max_memory_allocated_bytes"),
+            "lane.max_memory_allocated_bytes",
+            minimum=1,
+        )
+        reserved = _integer(
+            lane.get("max_memory_reserved_bytes"),
+            "lane.max_memory_reserved_bytes",
+            minimum=allocated,
+        )
+        free_memory = _integer(
+            lane.get("device_free_memory_bytes"),
+            "lane.device_free_memory_bytes",
+            minimum=0,
+        )
+        _require(
+            reserved <= total_memory and free_memory <= total_memory,
+            "throughput lane memory telemetry is invalid",
+        )
+        pid = _integer(lane.get("worker_pid"), "lane.worker_pid", minimum=1)
+        _require(pid in preload_pids, "throughput lane did not use a preloaded worker")
+        memory_by_pid[pid]["max_memory_allocated_bytes"] = max(
+            memory_by_pid[pid]["max_memory_allocated_bytes"], allocated
+        )
+        memory_by_pid[pid]["max_memory_reserved_bytes"] = max(
+            memory_by_pid[pid]["max_memory_reserved_bytes"], reserved
+        )
+        device_totals.add(total_memory)
         samples = [
             _finite_number(value, "lane.utilization")
-            for value in _sequence(lane.get("gpu_utilization_samples_percent"), "lane.utilization")
+            for value in _sequence(
+                lane.get("gpu_utilization_samples_percent"), "lane.utilization"
+            )
         ]
-        _require(bool(samples) and all(0.0 <= value <= 100.0 for value in samples), "throughput lane utilization is invalid")
-        pair = tuple(str(value) for value in _sequence(lane.get("model_pair"), "lane.model_pair"))
-        _require(len(pair) == 2 and pair in MODEL_PAIRS, "throughput lane model pair is invalid")
-        size = _integer(lane.get("eval_size"), "lane.eval_size")
-        _require(size in SIZES and lane.get("model_kind") in pair, "throughput lane coverage binding is invalid")
-        _require(lane.get("opening_id") in allowed_openings[(pair, size)], "throughput lane opening is not task-bound")
+        _require(
+            bool(samples) and all(0.0 <= value <= 100.0 for value in samples),
+            "throughput lane utilization is invalid",
+        )
         decisions += lane_decisions
         forwards += lane_forwards
-        memory_sum += peak_memory
-        sustained_values.append(sustained)
         utilization.extend(samples)
-        observed_kinds.add(str(lane["model_kind"]))
+        case_sustained[case_index].append(sustained)
+        case_decision_timings[case_index].extend(decision_timings)
         observed_pairs.add(pair)
         observed_sizes.add(size)
         observed_pair_sizes.add((pair, size))
         opening_ids[str(size)].add(str(lane["opening_id"]))
+
+    for case_index in range(GPU_SMOKE_CASE_COUNT):
+        case_rows = [
+            _mapping(lanes[case_index * SCALAR_LANE_COUNT + offset], "lane")
+            for offset in range(SCALAR_LANE_COUNT)
+        ]
+        _require(
+            {int(row["worker_pid"]) for row in case_rows} == preload_pids,
+            "throughput case does not use all twelve preloaded workers",
+        )
+
+    profile_integrity = [
+        _mapping(row, f"throughput.resident_integrity[{index}]")
+        for index, row in enumerate(
+            _sequence(
+                profile.get("resident_integrity_results"),
+                "throughput.resident_integrity_results",
+            )
+        )
+    ]
+    _require(
+        profile_integrity == resident_integrity_results
+        and len(profile_integrity) == SCALAR_LANE_COUNT,
+        "throughput resident integrity result set differs",
+    )
+    integrity_pids: set[int] = set()
+    for index, integrity in enumerate(profile_integrity):
+        integrity_pids.add(
+            _integer(
+                integrity.get("worker_pid"),
+                f"resident_integrity[{index}].worker_pid",
+                minimum=1,
+            )
+        )
+        integrity_checkpoint_ids = [
+            str(value)
+            for value in _sequence(
+                integrity.get("checkpoint_ids"),
+                f"resident_integrity[{index}].checkpoint_ids",
+            )
+        ]
+        _require(
+            integrity.get("checkpoint_count") == 15
+            and len(integrity_checkpoint_ids) == 15
+            and len(set(integrity_checkpoint_ids)) == 15
+            and set(integrity_checkpoint_ids) == expected_checkpoint_ids
+            and _integer(
+                integrity.get("tensor_count"),
+                f"resident_integrity[{index}].tensor_count",
+                minimum=15,
+            )
+            >= 15
+            and integrity.get("device_baseline_storage") == "immutable_cuda_clone"
+            and integrity.get("all_state_tensors_unchanged") is True
+            and integrity.get("all_parameter_gradients_none") is True,
+            "throughput resident checkpoint integrity differs",
+        )
+    _require(
+        integrity_pids == preload_pids,
+        "throughput resident integrity does not cover all twelve preload PIDs",
+    )
+
     expected_coverage = {
         "model_kinds": list(MODEL_KINDS),
+        "model_kind_size_cases": [
+            {"model_kind": kind, "eval_size": size}
+            for kind in MODEL_KINDS
+            for size in SIZES
+        ],
         "model_pairs": [list(pair) for pair in MODEL_PAIRS],
         "evaluation_sizes": list(SIZES),
         "model_pair_size_cases": [
@@ -989,34 +1699,198 @@ def _validate_throughput_profile_evidence(
     }
     _require(
         observed_kinds == set(MODEL_KINDS)
+        and observed_kind_sizes
+        == {(kind, size) for kind in MODEL_KINDS for size in SIZES}
         and observed_pairs == set(MODEL_PAIRS)
         and observed_sizes == set(SIZES)
-        and observed_pair_sizes == {(pair, size) for pair in MODEL_PAIRS for size in SIZES}
+        and observed_pair_sizes
+        == {(pair, size) for pair in MODEL_PAIRS for size in SIZES}
         and profile.get("coverage") == expected_coverage,
         "throughput profile coverage is incomplete",
     )
-    window = max(sustained_values)
-    rate = decisions / window
-    projected = worst_case_decisions / rate
     _require(
-        profile.get("puct_decisions") == decisions
-        and profile.get("model_forward_calls") == forwards
-        and math.isclose(_finite_number(profile.get("aggregate_window_seconds"), "throughput.window"), window, rel_tol=1e-12)
-        and math.isclose(_finite_number(profile.get("aggregate_puct_decisions_per_second"), "throughput.rate"), rate, rel_tol=1e-12)
-        and math.isclose(_finite_number(profile.get("projected_worst_case_seconds"), "throughput.projected"), projected, rel_tol=1e-12)
-        and projected <= FORMAL_GAMEPLAY_BUDGET_SECONDS,
+        any(
+            size == 9 and kind == "topology_gnn"
+            for kind, size in observed_kind_sizes
+        ),
+        "throughput profile does not explicitly cover topology_gnn at N=9",
+    )
+
+    aggregate_window = sum(
+        max(case_sustained[case_index])
+        for case_index in range(GPU_SMOKE_CASE_COUNT)
+    )
+    aggregate_rate = decisions / aggregate_window
+    _require(
+        math.isclose(aggregate_window, sustained_total, rel_tol=1e-12, abs_tol=1e-9)
+        and math.isclose(
+            _finite_number(
+                profile.get("aggregate_window_seconds"), "throughput.window"
+            ),
+            aggregate_window,
+            rel_tol=1e-12,
+            abs_tol=1e-9,
+        )
+        and math.isclose(
+            _finite_number(
+                profile.get("aggregate_puct_decisions_per_second"),
+                "throughput.rate",
+            ),
+            aggregate_rate,
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        )
+        and profile.get("puct_decisions") == decisions
+        and profile.get("model_forward_calls") == forwards,
+        "throughput profile aggregate counters/window differ",
+    )
+
+    capacity_rows = _sequence(profile.get("capacity_cases"), "throughput.capacity_cases")
+    _require(
+        len(capacity_rows) == GPU_SMOKE_CASE_COUNT,
+        "throughput capacity case coverage differs",
+    )
+    projected_total = 0.0
+    for case_index, (pair, size) in enumerate(expected_cases):
+        capacity = _mapping(capacity_rows[case_index], f"capacity[{case_index}]")
+        timings = case_decision_timings[case_index]
+        slowest = max(timings)
+        case_work = sum(
+            _integer(task.get("games"), "task.games", minimum=1)
+            * _integer(task.get("max_plies"), "task.max_plies", minimum=1)
+            for task in task_groups[(pair, size)]
+        )
+        task_barrier_work = [
+            math.ceil(
+                len(_sequence(task.get("pair_plan"), "task.pair_plan"))
+                / SCALAR_LANE_COUNT
+            )
+            * 2
+            * _integer(task.get("max_plies"), "task.max_plies", minimum=1)
+            for task in task_groups[(pair, size)]
+        ]
+        work_per_lane = sum(task_barrier_work)
+        projected = work_per_lane * slowest
+        projected_total += projected
+        _require(
+            capacity.get("case_index") == case_index
+            and capacity.get("model_pair") == list(pair)
+            and capacity.get("eval_size") == size
+            and capacity.get("formal_task_count") == len(task_groups[(pair, size)])
+            and capacity.get("formal_worst_case_decisions") == case_work
+            and capacity.get("formal_worst_case_decisions_per_lane") == work_per_lane
+            and capacity.get("formal_task_barrier_decisions_per_lane")
+            == task_barrier_work
+            and capacity.get("observed_scalar_decision_count") == len(timings)
+            and capacity.get("capacity_projection_method")
+            == (
+                "sum_task_barriers_ceil_pairs_over_12_times_two_games_times_"
+                "max_plies_times_slowest_observed_single_decision_seconds"
+            )
+            and math.isclose(
+                _finite_number(
+                    capacity.get("slowest_single_decision_seconds"),
+                    "capacity.slowest_decision",
+                ),
+                slowest,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+            and math.isclose(
+                _finite_number(
+                    capacity.get("projected_worst_case_seconds"),
+                    "capacity.projected",
+                ),
+                projected,
+                rel_tol=1e-12,
+                abs_tol=1e-9,
+            ),
+            "throughput capacity case differs from conservative per-decision projection",
+        )
+    _require(
+        math.isclose(
+            _finite_number(
+                profile.get("projected_worst_case_seconds"),
+                "throughput.projected",
+            ),
+            projected_total,
+            rel_tol=1e-12,
+            abs_tol=1e-9,
+        )
+        and projected_total <= FORMAL_GAMEPLAY_BUDGET_SECONDS,
         "throughput profile completion-capacity gate failed",
     )
-    _require(
-        profile.get("aggregate_peak_memory_allocated_bytes") == memory_sum
-        and memory_sum <= MAX_AGGREGATE_LANE_MEMORY_BYTES,
-        "throughput profile aggregate memory gate failed",
+
+    resident_expected = [
+        {
+            "worker_pid": pid,
+            "max_memory_allocated_bytes": memory_by_pid[pid][
+                "max_memory_allocated_bytes"
+            ],
+            "max_memory_reserved_bytes": memory_by_pid[pid][
+                "max_memory_reserved_bytes"
+            ],
+        }
+        for pid in sorted(memory_by_pid)
+    ]
+    aggregate_allocated = sum(
+        int(row["max_memory_allocated_bytes"]) for row in resident_expected
     )
+    aggregate_reserved = sum(
+        int(row["max_memory_reserved_bytes"]) for row in resident_expected
+    )
+    _require(
+        profile.get("resident_worker_memory") == resident_expected
+        and profile.get("aggregate_peak_memory_allocated_bytes")
+        == aggregate_allocated
+        and profile.get("aggregate_peak_memory_reserved_bytes")
+        == aggregate_reserved
+        and aggregate_allocated <= aggregate_reserved
+        and aggregate_reserved <= MAX_AGGREGATE_LANE_MEMORY_BYTES,
+        "throughput profile resident allocated/reserved memory gate failed",
+    )
+    _require(
+        len(device_totals) == 1,
+        "throughput profile device memory totals differ",
+    )
+    device_total = next(iter(device_totals))
+    free_before = _integer(
+        profile.get("device_free_memory_before_preload_bytes"),
+        "throughput.device_free_before",
+        minimum=0,
+    )
+    free_after = _integer(
+        profile.get("device_free_memory_after_smoke_bytes"),
+        "throughput.device_free_after",
+        minimum=MIN_DEVICE_FREE_HEADROOM_BYTES,
+    )
+    used_after = _integer(
+        profile.get("device_used_memory_after_smoke_bytes"),
+        "throughput.device_used_after",
+        minimum=0,
+    )
+    _require(
+        profile.get("device_total_memory_bytes") == device_total
+        and free_before <= device_total
+        and free_after <= device_total
+        and used_after == device_total - free_after,
+        "throughput profile device free-headroom telemetry differs",
+    )
+
     utilization_mean = statistics.fmean(utilization)
     _require(
         profile.get("gpu_utilization_samples_percent") == utilization
-        and math.isclose(_finite_number(profile.get("gpu_utilization_mean_percent"), "throughput.utilization_mean"), utilization_mean, rel_tol=1e-12)
-        and utilization_mean >= 50.0,
+        and math.isclose(
+            _finite_number(
+                profile.get("gpu_utilization_mean_percent"),
+                "throughput.utilization_mean",
+            ),
+            utilization_mean,
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        )
+        and utilization_mean >= 50.0
+        and profile.get("gpu_utilization_max_percent") == max(utilization),
         "throughput profile utilization gate failed",
     )
     return profile
@@ -1039,6 +1913,7 @@ def _audit_game(
     *,
     preparation_runner_sha: str,
     formal_runner_sha: str,
+    execution_source_closure_sha: str | None = None,
 ) -> dict[str, Any]:
     game_id = str(schedule["game_id"])
     for field, expected in schedule.items():
@@ -1046,6 +1921,12 @@ def _audit_game(
     _require(record.get("schema_name") == GAME_SCHEMA and record.get("schema_version") == SCHEMA_VERSION, f"{game_id}: formal game schema mismatch")
     _require(record.get("preparation_runner_sha256") == preparation_runner_sha, f"{game_id}: explicit preparation-runner binding missing/drifted")
     _require(record.get("formal_runner_sha256") == formal_runner_sha, f"{game_id}: formal-runner binding mismatch")
+    if execution_source_closure_sha is not None:
+        _require(
+            record.get("execution_source_closure_sha256")
+            == execution_source_closure_sha,
+            f"{game_id}: execution-source closure binding mismatch",
+        )
     _require(record.get("schedule_sha256") == canonical_sha256(schedule), f"{game_id}: bound schedule hash mismatch")
     actions = _sequence(record.get("actions"), f"{game_id}.actions")
     _require(len(actions) == record.get("plies") and len(actions) <= 256, f"{game_id}: ply count mismatch")
@@ -1230,6 +2111,10 @@ def _audit_receipt(
         *THROUGHPUT_PROFILE_IDENTITY_FIELDS,
     ):
         _require(execution_identity.get(field) == metadata.get(field), f"{task_id}: execution identity mismatch for {field}")
+    source_hashes = _mapping(
+        metadata.get("execution_source_hashes"), "execution_metadata.source_hashes"
+    )
+    execution_source_closure_sha = canonical_sha256(dict(source_hashes))
 
     task_directory = _task_directory(run_root, task_id)
     receipt_path = task_directory / "receipt.json"
@@ -1251,6 +2136,7 @@ def _audit_receipt(
             schedule,
             preparation_runner_sha=preparation_runner_sha,
             formal_runner_sha=formal_runner_sha,
+            execution_source_closure_sha=execution_source_closure_sha,
         )
         for record, schedule in zip(records, ordered_schedules)
     ]
@@ -1289,6 +2175,11 @@ def _audit_receipt(
         _require(payload.get("schema_name") == PAIR_SCHEMA and payload.get("schema_version") == SCHEMA_VERSION, f"{task_id}: pair artifact schema mismatch")
         _require(payload.get("task_id") == task_id and payload.get("pair_index") == pair_index, f"{task_id}: pair artifact identity mismatch")
         _require(payload.get("preparation_runner_sha256") == preparation_runner_sha and payload.get("formal_runner_sha256") == formal_runner_sha, f"{task_id}: pair artifact dual-runner binding mismatch")
+        _require(
+            payload.get("execution_source_closure_sha256")
+            == execution_source_closure_sha,
+            f"{task_id}: pair artifact source-closure binding mismatch",
+        )
         pair_games = _sequence(payload.get("games"), f"{task_id}.pair[{pair_index}].games")
         expected = sorted(expected_pairs[pair_index], key=lambda row: int(row["pair_member"]))
         _require(payload.get("pair_id") == expected[0]["pair_id"], f"{task_id}: pair artifact pair ID mismatch")
@@ -1296,12 +2187,7 @@ def _audit_receipt(
         _require(observed == expected, f"{task_id}: pair artifact games differ from canonical task games")
     _require(seen_pair_indices == set(range(PAIRS_PER_TASK)), f"{task_id}: pair artifact coverage incomplete")
     pair_directory = task_directory / "pairs"
-    _require(pair_directory.is_dir(), f"{task_id}: pair artifact directory is missing")
-    _require(
-        {path.name for path in pair_directory.iterdir() if path.is_file()}
-        == {f"pair_{index:04d}.json" for index in range(PAIRS_PER_TASK)},
-        f"{task_id}: pair artifact directory contains missing/extra files",
-    )
+    _validate_pair_directory_entries(pair_directory)
     expected_summary = {
         key: copy_value
         for key, copy_value in receipt.items()
@@ -1521,6 +2407,7 @@ def verify_evidence(
     if not verifier_bound:
         issues.append("independent verifier is absent from the frozen execution source closure")
     run_root = receipts_path.parent
+    _validate_evidence_root_entries(run_root, tasks)
     throughput_profile_path = (
         run_root / str(metadata["throughput_profile_artifact_path"])
     ).resolve()
@@ -1532,6 +2419,7 @@ def verify_evidence(
         throughput_profile_path,
         metadata=metadata,
         tasks=tasks,
+        checkpoint_registry=checkpoint_registry,
         formal_manifest_sha=formal_manifest_sha,
         formal_runner_sha=formal_runner_sha,
     )

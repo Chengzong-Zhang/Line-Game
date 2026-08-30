@@ -1,8 +1,8 @@
 """Pure structural tests for the D18-v3 formal execution layer.
 
-These tests never call readiness, GPU smoke, formal run, model construction,
-or an arena game.  They exercise joins, hashes, fail-closed gates, and command
-surface invariants with synthetic dictionaries only.
+These tests never call readiness, GPU smoke, a formal run, or model
+construction.  A bounded CPU canary plays only synthetic six-ply pairs to
+exercise the real spawned-worker serialization and arena record path.
 """
 
 from __future__ import annotations
@@ -11,9 +11,11 @@ import ast
 import copy
 import inspect
 import json
+import math
 import random
 import sys
 import time
+
 try:
     import tomllib
 except ModuleNotFoundError:  # Python 3.10 uses the locked backport.
@@ -84,6 +86,12 @@ def _bind_canary_agents() -> None:
     formal._FORMAL_LANE_AGENT_CACHE[("canary-b", "cpu")] = _CanaryAgent("canary-b")
 
 
+def _initialize_spawn_canary_agents() -> None:
+    """Use the production initializer contract inside a spawned subprocess."""
+
+    _bind_canary_agents()
+
+
 def _canary_pair_payload() -> dict[str, object]:
     from lifeline_rl import LifelineGame
 
@@ -93,6 +101,7 @@ def _canary_pair_payload() -> dict[str, object]:
         schedules.append(
             {
                 "task_id": "canary-task",
+                "game_id": f"canary-game-{member}",
                 "pair_id": "canary-pair",
                 "pair_index": 0,
                 "pair_member": member,
@@ -100,13 +109,19 @@ def _canary_pair_payload() -> dict[str, object]:
                 "superko_mode": "enforce",
                 "opening_actions": [],
                 "opening_id": "canary-empty",
+                "opening_prefix_hash": formal.canonical_sha256([]),
                 "opening_stratum": "canary-stratum",
                 "opening_variant": 0,
                 "opening_state_hash": game.state_fingerprint(),
+                "training_seed": 20260825,
+                "policy_seed_a": 100,
+                "policy_seed_b": 200,
+                "policy_seed_assignment": {"A": 100, "B": 200},
+                "runner_sha256": formal.sha256_file(formal.prep.SCRIPT_PATH),
                 "black_slot": "A" if member == 0 else "B",
                 "white_slot": "B" if member == 0 else "A",
-                "black_policy_seed": 100 + member,
-                "white_policy_seed": 200 + member,
+                "black_policy_seed": 100 if member == 0 else 200,
+                "white_policy_seed": 200 if member == 0 else 100,
                 "max_plies": 6,
             }
         )
@@ -118,6 +133,25 @@ def _canary_pair_payload() -> dict[str, object]:
             }
         },
         "schedules": schedules,
+    }
+
+
+def _canary_pairs(count: int) -> dict[int, list[dict[str, object]]]:
+    payload = _canary_pair_payload()
+    base_schedules = payload["schedules"]
+    assert isinstance(base_schedules, list)
+    return {
+        pair_index: [
+            {
+                **copy.deepcopy(base_schedules[member]),
+                "game_id": f"canary-game-{pair_index}-{member}",
+                "game_index": pair_index * 2 + member,
+                "pair_id": f"canary-pair-{pair_index}",
+                "pair_index": pair_index,
+            }
+            for member in range(2)
+        ]
+        for pair_index in range(count)
     }
 
 
@@ -133,22 +167,68 @@ def _without_timings(value: object) -> object:
     return value
 
 
+def _smoke_opening_and_trace(
+    size: int, *, decisions: int = 4, max_plies: int = 256
+) -> tuple[dict[str, object], list[str], list[int], int]:
+    from lifeline_rl import LifelineGame
+
+    prototype = LifelineGame(size, superko_mode="enforce")
+    opening_actions = [prototype.point_to_index[prototype.legal_moves()[0]]]
+
+    def opening_game() -> LifelineGame:
+        game = LifelineGame(size, superko_mode="enforce")
+        result = game.play_move(game.valid_positions[opening_actions[0]])
+        assert result.success and not game.game_over
+        return game
+
+    initial = opening_game()
+    opening = {
+        "opening_id": f"opening-n{size}",
+        "opening_actions": opening_actions,
+        "opening_prefix_hash": formal.canonical_sha256(opening_actions),
+        "opening_state_hash": initial.state_fingerprint(),
+    }
+    game = initial
+    plies = len(opening_actions)
+    fingerprints: list[str] = []
+    action_indices: list[int] = []
+    resets = 0
+    for _ in range(decisions):
+        fingerprints.append(game.state_fingerprint())
+        action_indices.append(game.num_points)
+        result = game.skip_turn()
+        assert result.success
+        plies += 1
+        if game.game_over or plies >= max_plies:
+            game = opening_game()
+            plies = len(opening_actions)
+            resets += 1
+    return opening, fingerprints, action_indices, resets
+
+
 def _write_valid_throughput_profile(
     root: Path,
 ) -> tuple[Path, Path, dict[str, object], list[dict[str, object]]]:
     manifest_path = root / "formal_manifest.json"
     manifest_path.write_text("{}\n", encoding="utf-8", newline="\n")
     tasks: list[dict[str, object]] = []
+    traces = {
+        size: _smoke_opening_and_trace(size)
+        for size in formal.PROFILE_EVAL_SIZES
+    }
     for pair in formal.PROFILE_MODEL_PAIRS:
         for size in formal.PROFILE_EVAL_SIZES:
             for seed_offset in range(5):
                 seed = 20260825 + seed_offset
                 tasks.append(
                     {
+                        "task_id": f"{pair[0]}-vs-{pair[1]}-n{size}-s{seed}",
                         "model_pair": list(pair),
                         "eval_size": size,
                         "training_seed": seed,
+                        "games": formal.EXPECTED_GAMES_PER_TASK,
                         "max_plies": 256,
+                        "superko_mode": "enforce",
                         "agent_bindings": {
                             "A": {
                                 "checkpoint_id": f"{pair[0]}-{seed}",
@@ -161,49 +241,140 @@ def _write_valid_throughput_profile(
                         },
                         "pair_plan": [
                             {
-                                "opening_id": f"opening-n{size}",
-                                "opening_actions": [0],
-                                "opening_prefix_hash": f"{size:064x}",
-                                "opening_state_hash": f"{size + 1:064x}",
+                                **traces[size][0],
+                                "black_slot": "A",
+                                "white_slot": "B",
                             }
+                            for _ in range(formal.EXPECTED_PAIRS_PER_TASK)
                         ],
                     }
                 )
-    payloads = formal._gpu_smoke_lane_payloads(tasks, seconds=20.0)
+    checkpoint_ids = sorted(
+        {
+            str(binding["checkpoint_id"])
+            for task in tasks
+            for binding in task["agent_bindings"].values()
+        }
+    )
+    case_payloads = formal._gpu_smoke_case_payloads(tasks, seconds=20.0)
     lane_results: list[dict[str, object]] = []
-    for payload in payloads:
-        binding = payload["agent_binding"]
-        opening = payload["opening"]
-        assert isinstance(binding, dict) and isinstance(opening, dict)
-        lane_results.append(
-            {
-                "lane_index": payload["lane_index"],
-                "coverage_case_id": payload["coverage_case_id"],
-                "checkpoint_id": binding["checkpoint_id"],
-                "model_kind": binding["model_kind"],
-                "model_pair": payload["model_pair"],
-                "agent_slot": payload["agent_slot"],
-                "eval_size": payload["eval_size"],
-                "opening_id": opening["opening_id"],
-                "puct_decisions": 300,
-                "model_forward_calls": 5_100,
-                "setup_seconds": 0.5,
-                "sustained_seconds": 20.0,
-                "total_seconds": 20.5,
-                "gpu_utilization_samples_percent": [60.0],
-                "max_memory_allocated_bytes": 128 * 1024**2,
-                "device": "cuda",
-                "device_name": "NVIDIA GeForce RTX 5090",
-                "device_total_memory_bytes": 32 * 1024**3,
-                "torch_version": "2.8.0+cu128",
-                "cuda_runtime_version": "12.8",
-            }
-        )
-    decisions = 300 * formal.SCALAR_LANE_COUNT
-    forwards = 5_100 * formal.SCALAR_LANE_COUNT
-    rate = decisions / 20.0
-    worst_case_decisions = formal.EXPECTED_GAMES * 256
-    memory = formal.SCALAR_LANE_COUNT * 128 * 1024**2
+    for payloads in case_payloads:
+        for payload in payloads:
+            task = payload["task"]
+            opening = payload["opening"]
+            assert isinstance(task, dict) and isinstance(opening, dict)
+            bindings = task["agent_bindings"]
+            assert isinstance(bindings, dict)
+            _, fingerprints, action_indices, game_resets = traces[
+                int(task["eval_size"])
+            ]
+            agents = []
+            for slot in ("A", "B"):
+                binding = bindings[slot]
+                assert isinstance(binding, dict)
+                agents.append(
+                    {
+                        "agent_slot": slot,
+                        "checkpoint_id": binding["checkpoint_id"],
+                        "model_kind": binding["model_kind"],
+                    }
+                )
+            resident_integrity = (
+                {
+                    "worker_pid": 10_000 + int(payload["lane_index"]),
+                    "checkpoint_ids": list(checkpoint_ids),
+                    "checkpoint_count": len(checkpoint_ids),
+                    "tensor_count": 150,
+                    "device_baseline_storage": "immutable_cuda_clone",
+                    "all_state_tensors_unchanged": True,
+                    "all_parameter_gradients_none": True,
+                }
+                if payload["verify_resident_integrity"]
+                else None
+            )
+            lane_results.append(
+                {
+                    "case_index": payload["case_index"],
+                    "lane_index": payload["lane_index"],
+                    "worker_pid": 10_000 + int(payload["lane_index"]),
+                    "coverage_case_id": payload["coverage_case_id"],
+                    "task_id": task["task_id"],
+                    "training_seed": task["training_seed"],
+                    "model_pair": task["model_pair"],
+                    "black_slot": "A",
+                    "white_slot": "B",
+                    "agents": agents,
+                    "agent_slots_exercised": ["A", "B"],
+                    "warmup_puct_decisions": 2,
+                    "resident_integrity": resident_integrity,
+                    "eval_size": task["eval_size"],
+                    "opening_id": opening["opening_id"],
+                    "puct_decisions": 4,
+                    "per_agent_puct_decisions": {"A": 2, "B": 2},
+                    "decision_seconds": [0.05] * 4,
+                    "decision_state_fingerprints": list(fingerprints),
+                    "decision_action_indices": list(action_indices),
+                    "slowest_decision_seconds": 0.05,
+                    "unique_state_count": len(set(fingerprints)),
+                    "game_resets": game_resets,
+                    "model_forward_calls": 68,
+                    "per_agent_model_forward_calls": {"A": 34, "B": 34},
+                    "setup_seconds": 0.5,
+                    "sustained_seconds": 20.0 / formal.GPU_SMOKE_CASE_COUNT,
+                    "total_seconds": 2.5,
+                    "gpu_utilization_samples_percent": [60.0],
+                    "max_memory_allocated_bytes": 128 * 1024**2,
+                    "max_memory_reserved_bytes": 160 * 1024**2,
+                    "device_free_memory_bytes": 14 * 1024**3,
+                    "device": "cuda",
+                    "device_name": "NVIDIA GeForce RTX 5090",
+                    "device_total_memory_bytes": 32 * 1024**3,
+                    "torch_version": "2.8.0+cu128",
+                    "cuda_runtime_version": "12.8",
+                }
+            )
+    preload_results = [
+        {
+            "lane_index": lane_index,
+            "worker_pid": 10_000 + lane_index,
+            "checkpoint_ids": list(checkpoint_ids),
+            "checkpoint_count": len(checkpoint_ids),
+            "device_baseline_checkpoint_ids": list(checkpoint_ids),
+            "device_baseline_checkpoint_count": len(checkpoint_ids),
+            "device_baseline_tensor_count": 150,
+            "device_baseline_storage": "immutable_cuda_clone",
+            "max_memory_allocated_bytes": 1024**3,
+            "max_memory_reserved_bytes": 1_280 * 1024**2,
+            "device_free_memory_bytes": 14 * 1024**3,
+            "device_total_memory_bytes": 32 * 1024**3,
+        }
+        for lane_index in range(formal.SCALAR_LANE_COUNT)
+    ]
+    resident_workers = [
+        {
+            "worker_pid": 10_000 + lane_index,
+            "max_memory_allocated_bytes": 1024**3,
+            "max_memory_reserved_bytes": 1_280 * 1024**2,
+        }
+        for lane_index in range(formal.SCALAR_LANE_COUNT)
+    ]
+    decisions = 4 * formal.SCALAR_LANE_COUNT * formal.GPU_SMOKE_CASE_COUNT
+    forwards = 68 * formal.SCALAR_LANE_COUNT * formal.GPU_SMOKE_CASE_COUNT
+    aggregate_window = 20.0
+    rate = decisions / aggregate_window
+    capacity_cases, projected = formal._formal_capacity_projection(
+        lane_results, tasks
+    )
+    worst_case_decisions = sum(
+        int(task["games"]) * int(task["max_plies"]) for task in tasks
+    )
+    aggregate_allocated = formal.SCALAR_LANE_COUNT * 1024**3
+    aggregate_reserved = formal.SCALAR_LANE_COUNT * 1_280 * 1024**2
+    resident_integrity_results = [
+        copy.deepcopy(row["resident_integrity"])
+        for row in lane_results
+        if row["resident_integrity"] is not None
+    ]
     profile: dict[str, object] = {
         "schema_name": formal.THROUGHPUT_PROFILE_SCHEMA,
         "schema_version": formal.SCHEMA_VERSION,
@@ -234,16 +405,19 @@ def _write_valid_throughput_profile(
         "puct_simulations": 16,
         "temperature": 0.0,
         "root_noise": False,
+        "data_supply": "registered_d18_v3_task_binding_and_opening_clone",
         "coverage": formal._profile_coverage(lane_results),
+        "capacity_cases": capacity_cases,
         "input_parse_and_collate_seconds": 0.01,
-        "setup_seconds": 0.5,
+        "setup_seconds": 2.0,
         "puct_decisions": decisions,
         "model_forward_calls": forwards,
         "requested_sustained_seconds": 20.0,
+        "requested_case_seconds": 20.0 / formal.GPU_SMOKE_CASE_COUNT,
         "sustained_seconds": 20.0,
         "duration_seconds": 22.0,
         "total_seconds": 22.0,
-        "aggregate_window_seconds": 20.0,
+        "aggregate_window_seconds": aggregate_window,
         "aggregate_puct_decisions_per_second": rate,
         "formal_game_count": formal.EXPECTED_GAMES,
         "formal_max_plies": 256,
@@ -251,14 +425,28 @@ def _write_valid_throughput_profile(
         "formal_runtime_seconds": formal.MAX_RUNTIME_SECONDS,
         "non_gameplay_reserve_fraction": formal.FORMAL_NON_GAMEPLAY_RESERVE_FRACTION,
         "formal_gameplay_budget_seconds": formal.FORMAL_GAMEPLAY_BUDGET_SECONDS,
-        "projected_worst_case_seconds": worst_case_decisions / rate,
+        "projected_worst_case_seconds": projected,
         "lane_results": lane_results,
-        "gpu_utilization_samples_percent": [60.0] * formal.SCALAR_LANE_COUNT,
+        "gpu_utilization_samples_percent": [60.0] * len(lane_results),
         "gpu_utilization_mean_percent": 60.0,
         "gpu_utilization_max_percent": 60.0,
-        "aggregate_peak_memory_allocated_bytes": memory,
+        "aggregate_peak_memory_allocated_bytes": aggregate_allocated,
+        "aggregate_peak_memory_reserved_bytes": aggregate_reserved,
         "aggregate_peak_memory_limit_bytes": formal.MAX_AGGREGATE_LANE_MEMORY_BYTES,
         "minimum_device_memory_bytes": formal.MIN_DEVICE_MEMORY_BYTES,
+        "minimum_device_free_headroom_bytes": formal.MIN_DEVICE_FREE_HEADROOM_BYTES,
+        "device_total_memory_bytes": 32 * 1024**3,
+        "device_free_memory_before_preload_bytes": 30 * 1024**3,
+        "device_free_memory_after_smoke_bytes": 14 * 1024**3,
+        "device_used_memory_after_smoke_bytes": 18 * 1024**3,
+        "resident_checkpoint_count_per_worker": 15,
+        "resident_cache_preload_results": preload_results,
+        "resident_integrity_check_mode": (
+            "final_case_all_checkpoints_against_preload_cuda_clones"
+        ),
+        "resident_integrity_worker_count": formal.SCALAR_LANE_COUNT,
+        "resident_integrity_results": resident_integrity_results,
+        "resident_worker_memory": resident_workers,
     }
     profile_path = root / "throughput.json"
     profile_path.write_text(
@@ -269,7 +457,26 @@ def _write_valid_throughput_profile(
     return manifest_path, profile_path, profile, tasks
 
 
-def _minimal_export_tree(root: Path) -> None:
+def _checkpoint_registry_from_tasks(
+    tasks: list[dict[str, object]],
+) -> dict[tuple[str, int], dict[str, object]]:
+    registry: dict[tuple[str, int], dict[str, object]] = {}
+    for task in tasks:
+        seed = int(task["training_seed"])
+        bindings = task["agent_bindings"]
+        assert isinstance(bindings, dict)
+        for slot in ("A", "B"):
+            binding = bindings[slot]
+            assert isinstance(binding, dict)
+            kind = str(binding["model_kind"])
+            registry[(kind, seed)] = {
+                **binding,
+                "training_seed": seed,
+            }
+    return registry
+
+
+def _minimal_export_tree(root: Path, task_directory_name: str = "synthetic-task") -> None:
     for name in (
         "canonical_numeric.json",
         "execution_metadata.json",
@@ -278,7 +485,7 @@ def _minimal_export_tree(root: Path) -> None:
         formal.THROUGHPUT_PROFILE_ARTIFACT_NAME,
     ):
         (root / name).write_bytes(b"{}\n")
-    task_root = root / "tasks" / "synthetic-task"
+    task_root = root / "tasks" / task_directory_name
     pairs = task_root / "pairs"
     pairs.mkdir(parents=True)
     for name in ("games.jsonl", "receipt.json", "summary.json"):
@@ -522,6 +729,26 @@ def test_real_pair_lane_canary_matches_serial_and_concurrent_rng_and_hashes() ->
     assert all(record["final_state_hash"] for record in games)
 
 
+def test_real_pair_lane_crosses_production_spawn_initializer_and_cache() -> None:
+    payload = _canary_pair_payload()
+    _bind_canary_agents()
+    serial = formal._run_formal_pair_lane(copy.deepcopy(payload))
+    with formal._ScalarLaneExecutor(
+        2,
+        initializer=_initialize_spawn_canary_agents,
+    ) as spawned_executor:
+        spawned = spawned_executor.map_ordered(
+            formal._run_formal_pair_lane,
+            [copy.deepcopy(payload), copy.deepcopy(payload)],
+        )
+    assert all(_without_timings(row) == _without_timings(serial) for row in spawned)
+    assert all(
+        record["full_trajectory_hash"] and record["final_state_hash"]
+        for payload_row in spawned
+        for record in payload_row["games"]
+    )
+
+
 def test_real_pair_lane_rejects_invalid_payload() -> None:
     with pytest.raises(formal.FormalExecutionError, match="task is missing"):
         formal._run_formal_pair_lane({})
@@ -556,12 +783,14 @@ def test_scalar_lane_executor_wraps_broken_process_pool_fail_closed() -> None:
 def test_formal_lane_initializer_deep_copies_and_clears_cache() -> None:
     manifest = {"nested": {"value": 1}}
     formal._FORMAL_LANE_AGENT_CACHE[("stale", "cpu")] = object()
+    formal._FORMAL_LANE_DEVICE_BASELINES["stale"] = {"tensor": object()}
     formal._initialize_formal_lane_worker(manifest, str(formal.DEFAULT_MANIFEST), "cpu")
     manifest["nested"]["value"] = 2
     assert formal._FORMAL_LANE_MANIFEST == {"nested": {"value": 1}}
     assert formal._FORMAL_LANE_MANIFEST_PATH == formal.DEFAULT_MANIFEST.resolve()
     assert formal._FORMAL_LANE_DEVICE == "cpu"
     assert formal._FORMAL_LANE_AGENT_CACHE == {}
+    assert formal._FORMAL_LANE_DEVICE_BASELINES == {}
 
 
 def test_throughput_profile_is_required_and_accepts_exact_identity(
@@ -582,6 +811,672 @@ def test_throughput_profile_is_required_and_accepts_exact_identity(
     run_source = inspect.getsource(formal.run_bundle)
     assert run_source.index("_validate_throughput_profile") < run_source.index(
         "_validate_write_target"
+    )
+
+
+def test_resume_metadata_profile_mismatch_fails_before_profile_recovery_write(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source_root = tmp_path / "source"
+    source_root.mkdir()
+    manifest_path, profile_path, _, tasks = _write_valid_throughput_profile(
+        source_root
+    )
+    run_root = tmp_path / "run"
+    run_root.mkdir()
+    metadata_path = run_root / "execution_metadata.json"
+    metadata_path.write_text(
+        json.dumps({"throughput_profile_sha256": "0" * 64}, sort_keys=True)
+        + "\n",
+        encoding="utf-8",
+    )
+    throughput_evidence = run_root / formal.THROUGHPUT_PROFILE_ARTIFACT_NAME
+    writes: list[Path] = []
+
+    monkeypatch.setattr(
+        formal,
+        "load_frozen_bundle",
+        lambda *_: ({}, tasks, [], {}),
+    )
+    monkeypatch.setattr(
+        formal,
+        "_validate_write_target",
+        lambda *_, **__: run_root,
+    )
+
+    def reject_any_atomic_write(path: Path, *_: object, **__: object) -> None:
+        writes.append(path)
+        raise AssertionError(f"unexpected write before identity failure: {path}")
+
+    monkeypatch.setattr(formal, "_atomic_json", reject_any_atomic_write)
+    with pytest.raises(
+        formal.FormalExecutionError,
+        match="metadata is bound to another throughput profile",
+    ):
+        formal.run_bundle(
+            manifest_path,
+            source_root,
+            run_root,
+            device="cuda",
+            continue_on_error=False,
+            export_directory=None,
+            confirm_formal=True,
+            throughput_profile=profile_path,
+            _writer_lock_held=True,
+        )
+    assert writes == []
+    assert metadata_path.is_file()
+    assert not throughput_evidence.exists()
+
+
+def test_resume_preflights_later_partial_pair_before_any_recovery_write(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source_root = tmp_path / "source"
+    source_root.mkdir()
+    manifest_path, profile_path, _, tasks = _write_valid_throughput_profile(
+        source_root
+    )
+    run_root = tmp_path / "run"
+    run_root.mkdir()
+    metadata = {
+        "throughput_profile_sha256": formal.sha256_file(profile_path),
+    }
+    (run_root / "execution_metadata.json").write_text(
+        json.dumps(metadata, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    later_task = tasks[-1]
+    later_task_id = str(later_task["task_id"])
+    later_directory = formal._task_directory(run_root, later_task_id)
+    pairs_directory = later_directory / "pairs"
+    pairs_directory.mkdir(parents=True)
+    (later_directory / "state.json").write_text(
+        json.dumps(
+            {"task_id": later_task_id, "attempts": 1, "status": "pending"},
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (pairs_directory / "pair_0000.json").write_text("{}\n", encoding="utf-8")
+    schedules = [
+        {
+            "task_id": later_task_id,
+            "game_index": member,
+            "pair_index": 0,
+            "pair_member": member,
+        }
+        for member in (0, 1)
+    ]
+    source_identity = {
+        "preparation_runner_sha256": "1" * 64,
+        "formal_runner_sha256": "2" * 64,
+        "execution_source_closure_sha256": "3" * 64,
+    }
+    writes: list[Path] = []
+
+    monkeypatch.setattr(
+        formal,
+        "load_frozen_bundle",
+        lambda *_: ({}, tasks, schedules, {}),
+    )
+    monkeypatch.setattr(
+        formal,
+        "_validate_write_target",
+        lambda *_, **__: run_root,
+    )
+    monkeypatch.setattr(
+        formal,
+        "_execution_metadata",
+        lambda *_, **__: metadata,
+    )
+    monkeypatch.setattr(
+        formal,
+        "_require_execution_source_closure",
+        lambda *_: source_identity,
+    )
+
+    def reject_any_atomic_write(path: Path, *_: object, **__: object) -> None:
+        writes.append(path)
+        raise AssertionError(f"unexpected resume write before global preflight: {path}")
+
+    monkeypatch.setattr(formal, "_atomic_json", reject_any_atomic_write)
+    with pytest.raises(formal.FormalExecutionError, match="formal pair schema mismatch"):
+        formal.run_bundle(
+            manifest_path,
+            source_root,
+            run_root,
+            device="cuda",
+            continue_on_error=False,
+            export_directory=None,
+            confirm_formal=True,
+            throughput_profile=profile_path,
+            authorize_resume=True,
+            _writer_lock_held=True,
+        )
+    assert writes == []
+    assert not (run_root / formal.THROUGHPUT_PROFILE_ARTIFACT_NAME).exists()
+    assert not formal._task_directory(run_root, str(tasks[0]["task_id"])).exists()
+
+
+@pytest.mark.parametrize("unknown_kind", ("file", "directory"))
+def test_resume_rejects_unknown_run_root_entry_before_any_write(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, unknown_kind: str
+) -> None:
+    source_root = tmp_path / "source"
+    source_root.mkdir()
+    manifest_path, profile_path, _, tasks = _write_valid_throughput_profile(
+        source_root
+    )
+    run_root = tmp_path / "run"
+    run_root.mkdir()
+    (run_root / "execution_metadata.json").write_text("{}\n", encoding="utf-8")
+    unknown = run_root / f"unknown-{unknown_kind}"
+    if unknown_kind == "file":
+        unknown.write_text("tamper\n", encoding="utf-8")
+    else:
+        unknown.mkdir()
+    with pytest.raises(
+        independent.VerificationError,
+        match="formal run root contains an unknown or unsafe entry",
+    ):
+        independent._validate_run_root_entries(run_root)
+    writes: list[Path] = []
+    monkeypatch.setattr(
+        formal,
+        "load_frozen_bundle",
+        lambda *_: ({}, tasks, [], {}),
+    )
+    monkeypatch.setattr(
+        formal,
+        "_validate_write_target",
+        lambda *_, **__: run_root,
+    )
+
+    def reject_write(path: Path, *_: object, **__: object) -> None:
+        writes.append(path)
+        raise AssertionError(f"unexpected write before root preflight: {path}")
+
+    monkeypatch.setattr(formal, "_atomic_json", reject_write)
+    monkeypatch.setattr(formal, "_atomic_text", reject_write)
+    with pytest.raises(
+        formal.FormalExecutionError,
+        match="formal run root contains an unknown or unsafe entry",
+    ):
+        formal.run_bundle(
+            manifest_path,
+            source_root,
+            run_root,
+            device="cuda",
+            continue_on_error=False,
+            export_directory=None,
+            confirm_formal=True,
+            throughput_profile=profile_path,
+            authorize_resume=True,
+            _writer_lock_held=True,
+        )
+    assert writes == []
+    assert unknown.exists()
+    assert not (run_root / formal.THROUGHPUT_PROFILE_ARTIFACT_NAME).exists()
+    assert not (run_root / "tasks").exists()
+
+
+@pytest.mark.parametrize(
+    ("tamper_kind", "error"),
+    (
+        ("ledger", "terminal result ledger differs"),
+        ("numeric", "terminal canonical numeric artifact differs"),
+        ("summary", "terminal execution summary differs"),
+        ("partial", "partial terminal artifacts"),
+    ),
+)
+def test_resume_rejects_terminal_root_tamper_before_any_write(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    tamper_kind: str,
+    error: str,
+) -> None:
+    source_root = tmp_path / "source"
+    source_root.mkdir()
+    manifest_path, profile_path, profile, tasks = _write_valid_throughput_profile(
+        source_root
+    )
+    run_root = tmp_path / "run"
+    run_root.mkdir()
+    profile_sha256 = formal.sha256_file(profile_path)
+    metadata = {"throughput_profile_sha256": profile_sha256}
+    (run_root / "execution_metadata.json").write_text(
+        formal.pretty_json(metadata), encoding="utf-8", newline="\n"
+    )
+    (run_root / formal.THROUGHPUT_PROFILE_ARTIFACT_NAME).write_bytes(
+        profile_path.read_bytes()
+    )
+    receipts: list[dict[str, object]] = []
+    games: list[dict[str, object]] = []
+    for index, task in enumerate(tasks):
+        task_id = str(task["task_id"])
+        task_directory = formal._task_directory(run_root, task_id)
+        task_directory.mkdir(parents=True)
+        receipt = {
+            "task_id": task_id,
+            "games_path": "games.jsonl",
+        }
+        game = {"task_id": task_id, "game_index": index}
+        (task_directory / "receipt.json").write_text(
+            formal.pretty_json(receipt), encoding="utf-8", newline="\n"
+        )
+        (task_directory / "games.jsonl").write_text(
+            formal._jsonl_text([game]), encoding="utf-8", newline="\n"
+        )
+        receipts.append(receipt)
+        games.append(game)
+    ledger_path = run_root / "result_receipts.jsonl"
+    ledger_path.write_text(
+        formal._jsonl_text(receipts), encoding="utf-8", newline="\n"
+    )
+    numeric = {"schema_name": "synthetic-terminal-numeric", "stable": True}
+    numeric_path = run_root / "canonical_numeric.json"
+    numeric_path.write_text(
+        formal.pretty_json(numeric), encoding="utf-8", newline="\n"
+    )
+    status = {"execution_complete": True, "marker": "expected-complete-status"}
+    summary = {
+        **status,
+        "result_receipts_path": "result_receipts.jsonl",
+        "result_receipts_sha256": formal.sha256_file(ledger_path),
+        "canonical_numeric_path": "canonical_numeric.json",
+        "canonical_numeric_sha256": formal.sha256_file(numeric_path),
+    }
+    summary_path = run_root / "execution_summary.json"
+    summary_path.write_text(
+        formal.pretty_json(summary), encoding="utf-8", newline="\n"
+    )
+    if tamper_kind == "ledger":
+        ledger_path.write_text("{}\n", encoding="utf-8", newline="\n")
+    elif tamper_kind == "numeric":
+        numeric_path.write_text(
+            formal.pretty_json({**numeric, "stable": False}),
+            encoding="utf-8",
+            newline="\n",
+        )
+    elif tamper_kind == "summary":
+        summary_path.write_text(
+            formal.pretty_json({**summary, "marker": "tampered"}),
+            encoding="utf-8",
+            newline="\n",
+        )
+    else:
+        numeric_path.unlink()
+
+    monkeypatch.setattr(
+        formal,
+        "load_frozen_bundle",
+        lambda *_: ({}, tasks, games, {}),
+    )
+    monkeypatch.setattr(
+        formal,
+        "_validate_throughput_profile",
+        lambda *_, **__: copy.deepcopy(profile),
+    )
+    monkeypatch.setattr(
+        formal,
+        "_validate_write_target",
+        lambda *_, **__: run_root,
+    )
+    monkeypatch.setattr(
+        formal,
+        "_execution_metadata",
+        lambda *_, **__: metadata,
+    )
+    monkeypatch.setattr(formal, "_preflight_existing_task_tree", lambda *_, **__: None)
+    monkeypatch.setattr(
+        formal,
+        "_current_status",
+        lambda *_, **__: copy.deepcopy(status),
+    )
+    monkeypatch.setattr(
+        formal,
+        "_runner_numeric_artifact",
+        lambda *_, **__: copy.deepcopy(numeric),
+    )
+    monkeypatch.setattr(formal, "EXPECTED_GAMES", len(games))
+    monkeypatch.setattr(
+        formal,
+        "_require_execution_source_closure",
+        lambda *_: {
+            "preparation_runner_sha256": "1" * 64,
+            "formal_runner_sha256": "2" * 64,
+            "execution_source_closure_sha256": "3" * 64,
+        },
+    )
+    writes: list[Path] = []
+
+    def reject_write(path: Path, *_: object, **__: object) -> None:
+        writes.append(path)
+        raise AssertionError(f"unexpected resume write before terminal preflight: {path}")
+
+    monkeypatch.setattr(formal, "_atomic_json", reject_write)
+    monkeypatch.setattr(formal, "_atomic_text", reject_write)
+    with pytest.raises(formal.FormalExecutionError, match=error):
+        formal.run_bundle(
+            manifest_path,
+            source_root,
+            run_root,
+            device="cuda",
+            continue_on_error=False,
+            export_directory=None,
+            confirm_formal=True,
+            throughput_profile=profile_path,
+            authorize_resume=True,
+            _writer_lock_held=True,
+        )
+    assert writes == []
+
+
+def test_parent_rejects_source_drift_before_pair_write_and_mixed_completion(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _bind_canary_agents()
+    payload = _canary_pair_payload()
+    source_identity = {
+        "preparation_runner_sha256": formal.sha256_file(formal.prep.SCRIPT_PATH),
+        "formal_runner_sha256": formal.sha256_file(formal.SCRIPT_PATH),
+        "execution_source_closure_sha256": "3" * 64,
+    }
+    payload["source_identity"] = source_identity
+    pair = formal._run_formal_pair_lane(copy.deepcopy(payload))
+    schedules = payload["schedules"]
+    assert isinstance(schedules, list)
+    assert pair["execution_source_closure_sha256"] == "3" * 64
+    assert all(
+        row["execution_source_closure_sha256"] == "3" * 64
+        for row in pair["games"]
+    )
+    assert formal._validate_pair(
+        pair,
+        schedules,
+        source_identity=source_identity,
+    )
+    audited = independent._audit_game(
+        pair["games"][0],
+        schedules[0],
+        preparation_runner_sha=source_identity["preparation_runner_sha256"],
+        formal_runner_sha=source_identity["formal_runner_sha256"],
+        execution_source_closure_sha=source_identity[
+            "execution_source_closure_sha256"
+        ],
+    )
+    assert audited["game_id"] == schedules[0]["game_id"]
+    tampered_game = copy.deepcopy(pair["games"][0])
+    tampered_game["execution_source_closure_sha256"] = "4" * 64
+    with pytest.raises(
+        independent.VerificationError,
+        match="execution-source closure binding mismatch",
+    ):
+        independent._audit_game(
+            tampered_game,
+            schedules[0],
+            preparation_runner_sha=source_identity["preparation_runner_sha256"],
+            formal_runner_sha=source_identity["formal_runner_sha256"],
+            execution_source_closure_sha=source_identity[
+                "execution_source_closure_sha256"
+            ],
+        )
+    drifted_identity = {
+        **source_identity,
+        "execution_source_closure_sha256": "4" * 64,
+    }
+    with pytest.raises(
+        formal.FormalExecutionError,
+        match="game execution source closure binding mismatch",
+    ):
+        formal._validate_pair(
+            pair,
+            schedules,
+            source_identity=drifted_identity,
+        )
+
+    class CompletedWorker:
+        def map_ordered(self, worker: object, jobs: object) -> list[object]:
+            del worker, jobs
+            return [copy.deepcopy(pair)]
+
+    closure_checks = 0
+
+    def drift_after_worker(_: object) -> dict[str, str]:
+        nonlocal closure_checks
+        closure_checks += 1
+        if closure_checks == 1:
+            return source_identity
+        raise formal.FormalExecutionError(
+            "execution source closure changed during the formal run"
+        )
+
+    writes: list[Path] = []
+    monkeypatch.setattr(formal, "_require_execution_source_closure", drift_after_worker)
+    monkeypatch.setattr(
+        formal,
+        "_atomic_json",
+        lambda path, *_args, **_kwargs: writes.append(path),
+    )
+    task_directory = tmp_path / "task"
+    (task_directory / "pairs").mkdir(parents=True)
+    with pytest.raises(
+        formal.FormalExecutionError,
+        match="execution source closure changed during the formal run",
+    ):
+        formal._execute_pair_lanes(
+            payload["task"],
+            {0: schedules},
+            task_directory=task_directory,
+            lane_executor=CompletedWorker(),  # type: ignore[arg-type]
+            metadata={"frozen": True},
+        )
+    assert closure_checks == 2
+    assert writes == []
+    assert list((task_directory / "pairs").iterdir()) == []
+
+
+def test_pair_batch_full_source_rehash_count_is_constant_for_64_pairs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _bind_canary_agents()
+    payload = _canary_pair_payload()
+    pairs = _canary_pairs(formal.EXPECTED_PAIRS_PER_TASK)
+    source_identity = {
+        "preparation_runner_sha256": formal.sha256_file(formal.prep.SCRIPT_PATH),
+        "formal_runner_sha256": formal.sha256_file(formal.SCRIPT_PATH),
+        "execution_source_closure_sha256": "3" * 64,
+    }
+    closure_checks = 0
+
+    def count_full_rehash(_: object) -> dict[str, str]:
+        nonlocal closure_checks
+        closure_checks += 1
+        return source_identity
+
+    class RealCanaryWorker:
+        def map_ordered(self, worker: object, jobs: object) -> list[object]:
+            return [worker(job) for job in jobs]  # type: ignore[operator]
+
+    monkeypatch.setattr(
+        formal,
+        "_require_execution_source_closure",
+        count_full_rehash,
+    )
+    task_directory = tmp_path / "task"
+    (task_directory / "pairs").mkdir(parents=True)
+    formal._execute_pair_lanes(
+        payload["task"],
+        pairs,
+        task_directory=task_directory,
+        lane_executor=RealCanaryWorker(),  # type: ignore[arg-type]
+        metadata={"frozen": True},
+    )
+    pair_paths = sorted((task_directory / "pairs").glob("pair_*.json"))
+    assert len(pair_paths) == formal.EXPECTED_PAIRS_PER_TASK
+    assert closure_checks == 3
+    assert all(
+        formal._read_json(path)["execution_source_closure_sha256"] == "3" * 64
+        for path in pair_paths
+    )
+    unknown_pair_entry = task_directory / "pairs" / "ignored-directory"
+    unknown_pair_entry.mkdir()
+    with pytest.raises(
+        formal.FormalExecutionError,
+        match="pair evidence directory contains an unsafe entry",
+    ):
+        formal._pair_evidence(
+            task_directory,
+            [schedule for pair in pairs.values() for schedule in pair],
+            source_identity=source_identity,
+        )
+    with pytest.raises(
+        independent.VerificationError,
+        match="pair artifact directory contains an unsafe entry",
+    ):
+        independent._validate_pair_directory_entries(task_directory / "pairs")
+
+
+def test_pair_batch_detects_source_drift_after_writes_before_task_promotion(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _bind_canary_agents()
+    payload = _canary_pair_payload()
+    pairs = _canary_pairs(2)
+    source_identity = {
+        "preparation_runner_sha256": formal.sha256_file(formal.prep.SCRIPT_PATH),
+        "formal_runner_sha256": formal.sha256_file(formal.SCRIPT_PATH),
+        "execution_source_closure_sha256": "3" * 64,
+    }
+    closure_checks = 0
+    drifted = False
+
+    def fail_full_rehash_after_write(_: object) -> dict[str, str]:
+        nonlocal closure_checks
+        closure_checks += 1
+        if drifted:
+            raise formal.FormalExecutionError(
+                "execution source closure changed during the formal run"
+            )
+        return source_identity
+
+    class RealCanaryWorker:
+        def map_ordered(self, worker: object, jobs: object) -> list[object]:
+            return [worker(job) for job in jobs]  # type: ignore[operator]
+
+    original_atomic = formal._atomic_json
+
+    def write_then_drift(path: Path, value: object, **kwargs: object) -> None:
+        nonlocal drifted
+        original_atomic(path, value, **kwargs)  # type: ignore[arg-type]
+        drifted = True
+
+    monkeypatch.setattr(
+        formal,
+        "_require_execution_source_closure",
+        fail_full_rehash_after_write,
+    )
+    monkeypatch.setattr(formal, "_atomic_json", write_then_drift)
+    task_directory = tmp_path / "task"
+    (task_directory / "pairs").mkdir(parents=True)
+    with pytest.raises(
+        formal.FormalExecutionError,
+        match="execution source closure changed during the formal run",
+    ):
+        formal._execute_pair_lanes(
+            payload["task"],
+            pairs,
+            task_directory=task_directory,
+            lane_executor=RealCanaryWorker(),  # type: ignore[arg-type]
+            metadata={"frozen": True},
+        )
+    assert closure_checks == 3
+    assert len(list((task_directory / "pairs").glob("pair_*.json"))) == 2
+    assert not (task_directory / "games.jsonl").exists()
+    assert not (task_directory / "summary.json").exists()
+    assert not (task_directory / "receipt.json").exists()
+
+
+def test_gpu_smoke_payloads_partition_one_total_and_round_robin_frozen_tasks(
+    tmp_path: Path,
+) -> None:
+    _, _, profile, tasks = _write_valid_throughput_profile(tmp_path)
+    phases = formal._gpu_smoke_case_payloads(tasks, seconds=20.0)
+    assert len(phases) == formal.GPU_SMOKE_CASE_COUNT
+    assert all(len(phase) == formal.SCALAR_LANE_COUNT for phase in phases)
+    assert math.isclose(
+        sum(float(phase[0]["seconds"]) for phase in phases),
+        20.0,
+        rel_tol=1e-12,
+        abs_tol=1e-12,
+    )
+    assert all(
+        math.isclose(
+            float(payload["seconds"]),
+            20.0 / formal.GPU_SMOKE_CASE_COUNT,
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        )
+        for phase in phases
+        for payload in phase
+    )
+    expected_seeds = [
+        formal.prep.TRAINING_SEEDS[index % len(formal.prep.TRAINING_SEEDS)]
+        for index in range(formal.SCALAR_LANE_COUNT)
+    ]
+    assert all(
+        [int(payload["task"]["training_seed"]) for payload in phase]
+        == expected_seeds
+        for phase in phases
+    )
+    assert all(
+        payload["verify_resident_integrity"]
+        == (case_index == formal.GPU_SMOKE_CASE_COUNT - 1)
+        for case_index, phase in enumerate(phases)
+        for payload in phase
+    )
+    lanes = profile["lane_results"]
+    preloads = profile["resident_cache_preload_results"]
+    assert isinstance(lanes, list) and len(lanes) == 9 * 12
+    assert isinstance(preloads, list) and len(preloads) == 12
+    assert len({row["worker_pid"] for row in preloads}) == 12
+    assert all(
+        row["checkpoint_count"] == 15
+        and len(set(row["checkpoint_ids"])) == 15
+        and row["device_baseline_checkpoint_ids"] == row["checkpoint_ids"]
+        and row["device_baseline_checkpoint_count"] == 15
+        and row["device_baseline_storage"] == "immutable_cuda_clone"
+        for row in preloads
+    )
+    assert all(
+        row["agent_slots_exercised"] == ["A", "B"]
+        and {row["black_slot"], row["white_slot"]} == {"A", "B"}
+        and len(row["decision_action_indices"]) == row["puct_decisions"]
+        for row in lanes
+    )
+    integrity = profile["resident_integrity_results"]
+    assert isinstance(integrity, list) and len(integrity) == 12
+    assert {row["worker_pid"] for row in integrity} == {
+        row["worker_pid"] for row in preloads
+    }
+    assert all(
+        row["checkpoint_count"] == 15
+        and len(set(row["checkpoint_ids"])) == 15
+        and row["all_state_tensors_unchanged"] is True
+        and row["all_parameter_gradients_none"] is True
+        for row in integrity
+    )
+    capacity_cases = profile["capacity_cases"]
+    assert isinstance(capacity_cases, list)
+    assert all(
+        row["formal_worst_case_decisions_per_lane"]
+        == len(formal.prep.TRAINING_SEEDS)
+        * math.ceil((formal.EXPECTED_GAMES_PER_TASK // 2) / formal.SCALAR_LANE_COUNT)
+        * 2
+        * 256
+        for row in capacity_cases
     )
 
 
@@ -622,10 +1517,14 @@ def test_throughput_profile_rejects_runner_manifest_and_numeric_drift(
     ("mutation", "message"),
     (
         ("slow", "cannot finish"),
-        ("memory", "aggregate lane memory"),
+        ("memory", "resident-memory evidence drifted"),
         ("coverage", "coverage is incomplete"),
         ("nonfinite", "must be finite"),
-        ("environment", "is not CUDA"),
+        ("environment", "environment drifted"),
+        ("warmup", "agent binding is not exact"),
+        ("integrity_pid", "did not cover twelve preload PIDs"),
+        ("integrity_checkpoint", "resident integrity 0 differs"),
+        ("integrity_state", "resident integrity 0 differs"),
     ),
 )
 def test_throughput_profile_rejects_capacity_memory_coverage_and_environment(
@@ -638,26 +1537,50 @@ def test_throughput_profile_rejects_capacity_memory_coverage_and_environment(
     assert isinstance(lanes, list)
     if mutation == "slow":
         for lane in lanes:
-            lane["puct_decisions"] = 100
-            lane["model_forward_calls"] = 1_700
-        profile["puct_decisions"] = 1_200
-        profile["model_forward_calls"] = 20_400
-        profile["aggregate_puct_decisions_per_second"] = 60.0
-        profile["projected_worst_case_seconds"] = (
-            formal.EXPECTED_GAMES * 256 / 60.0
-        )
+            lane["decision_seconds"] = [1.0] * int(lane["puct_decisions"])
+            lane["slowest_decision_seconds"] = 1.0
+        capacity_cases, projected = formal._formal_capacity_projection(lanes, tasks)
+        profile["capacity_cases"] = capacity_cases
+        profile["projected_worst_case_seconds"] = projected
     elif mutation == "memory":
-        lanes[0]["max_memory_allocated_bytes"] = formal.MAX_AGGREGATE_LANE_MEMORY_BYTES
-        profile["aggregate_peak_memory_allocated_bytes"] = (
-            formal.MAX_AGGREGATE_LANE_MEMORY_BYTES
-            + (formal.SCALAR_LANE_COUNT - 1) * 128 * 1024**2
+        worker_pid = lanes[0]["worker_pid"]
+        oversized_reserved = 31 * 1024**3
+        for lane in lanes:
+            if lane["worker_pid"] == worker_pid:
+                lane["max_memory_reserved_bytes"] = oversized_reserved
+        preloads = profile["resident_cache_preload_results"]
+        assert isinstance(preloads, list)
+        preloads[0]["max_memory_reserved_bytes"] = oversized_reserved
+        residents = profile["resident_worker_memory"]
+        assert isinstance(residents, list)
+        residents[0]["max_memory_reserved_bytes"] = oversized_reserved
+        profile["aggregate_peak_memory_reserved_bytes"] = sum(
+            int(row["max_memory_reserved_bytes"]) for row in residents
         )
     elif mutation == "coverage":
         profile["coverage"]["model_kinds"] = ["padded_cnn"]
     elif mutation == "nonfinite":
         profile["total_seconds"] = float("nan")
-    else:
+    elif mutation == "environment":
         lanes[0]["device"] = "cpu"
+    elif mutation == "warmup":
+        lanes[0]["warmup_puct_decisions"] = 1
+    else:
+        integrity_rows = profile["resident_integrity_results"]
+        final_integrity = lanes[-formal.SCALAR_LANE_COUNT]["resident_integrity"]
+        assert isinstance(integrity_rows, list) and isinstance(final_integrity, dict)
+        if mutation == "integrity_pid":
+            duplicate_pid = integrity_rows[1]["worker_pid"]
+            integrity_rows[0]["worker_pid"] = duplicate_pid
+            final_integrity["worker_pid"] = duplicate_pid
+        elif mutation == "integrity_checkpoint":
+            integrity_rows[0]["checkpoint_ids"].pop()
+            integrity_rows[0]["checkpoint_count"] = 14
+            final_integrity["checkpoint_ids"].pop()
+            final_integrity["checkpoint_count"] = 14
+        else:
+            integrity_rows[0]["all_state_tensors_unchanged"] = False
+            final_integrity["all_state_tensors_unchanged"] = False
     profile_path.write_text(json.dumps(profile, sort_keys=True), encoding="utf-8")
     with pytest.raises(formal.FormalExecutionError, match=message):
         formal._validate_throughput_profile(
@@ -677,10 +1600,12 @@ def test_independent_verifier_rehashes_and_revalidates_complete_profile(
         "throughput_profile_sha256": independent.sha256_file(evidence),
         "preparation_runner_sha256": independent.sha256_file(formal.prep.SCRIPT_PATH),
     }
+    checkpoint_registry = _checkpoint_registry_from_tasks(tasks)
     assert independent._validate_throughput_profile_evidence(
         evidence,
         metadata=metadata,
         tasks=tasks,
+        checkpoint_registry=checkpoint_registry,
         formal_manifest_sha=independent.sha256_file(manifest_path),
         formal_runner_sha=independent.sha256_file(formal.SCRIPT_PATH),
     ) == profile
@@ -690,6 +1615,269 @@ def test_independent_verifier_rehashes_and_revalidates_complete_profile(
             evidence,
             metadata=metadata,
             tasks=tasks,
+            checkpoint_registry=checkpoint_registry,
+            formal_manifest_sha=independent.sha256_file(manifest_path),
+            formal_runner_sha=independent.sha256_file(formal.SCRIPT_PATH),
+        )
+
+
+@pytest.mark.parametrize("mutation", ("whole_command_over_30", "setup_mismatch"))
+def test_independent_verifier_hard_limits_whole_command_and_recomputes_setup(
+    tmp_path: Path, mutation: str
+) -> None:
+    manifest_path, _, profile, tasks = _write_valid_throughput_profile(tmp_path)
+    if mutation == "whole_command_over_30":
+        profile["setup_seconds"] = 11.0
+        profile["total_seconds"] = 31.0
+        profile["duration_seconds"] = 31.0
+    else:
+        profile["setup_seconds"] = 1.5
+    evidence = tmp_path / independent.THROUGHPUT_PROFILE_ARTIFACT_NAME
+    evidence.write_text(
+        json.dumps(profile, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    metadata = {
+        "throughput_profile_sha256": independent.sha256_file(evidence),
+        "preparation_runner_sha256": independent.sha256_file(formal.prep.SCRIPT_PATH),
+    }
+    with pytest.raises(
+        independent.VerificationError,
+        match="total/setup duration gate failed",
+    ):
+        independent._validate_throughput_profile_evidence(
+            evidence,
+            metadata=metadata,
+            tasks=tasks,
+            checkpoint_registry=_checkpoint_registry_from_tasks(tasks),
+            formal_manifest_sha=independent.sha256_file(manifest_path),
+            formal_runner_sha=independent.sha256_file(formal.SCRIPT_PATH),
+        )
+
+
+def test_independent_verifier_rejects_crossed_lane_checkpoint_binding(
+    tmp_path: Path,
+) -> None:
+    manifest_path, _, profile, tasks = _write_valid_throughput_profile(tmp_path)
+    lanes = profile["lane_results"]
+    assert isinstance(lanes, list)
+    lane = lanes[0]
+    assert isinstance(lane, dict)
+    agents = lane["agents"]
+    assert isinstance(agents, list)
+    agent = agents[0]
+    assert isinstance(agent, dict) and agent["agent_slot"] == "A"
+    pair = lane["model_pair"]
+    assert isinstance(pair, list)
+    seed = min(int(task["training_seed"]) for task in tasks)
+    agent["checkpoint_id"] = f"{pair[1]}-{seed}"
+    evidence = tmp_path / independent.THROUGHPUT_PROFILE_ARTIFACT_NAME
+    evidence.write_text(
+        json.dumps(profile, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    metadata = {
+        "throughput_profile_sha256": independent.sha256_file(evidence),
+        "preparation_runner_sha256": independent.sha256_file(formal.prep.SCRIPT_PATH),
+    }
+    with pytest.raises(
+        independent.VerificationError,
+        match="checkpoint/model/slot binding differs",
+    ):
+        independent._validate_throughput_profile_evidence(
+            evidence,
+            metadata=metadata,
+            tasks=tasks,
+            checkpoint_registry=_checkpoint_registry_from_tasks(tasks),
+            formal_manifest_sha=independent.sha256_file(manifest_path),
+            formal_runner_sha=independent.sha256_file(formal.SCRIPT_PATH),
+        )
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    (
+        ("capacity", "capacity case differs"),
+        ("capacity_barrier_vector", "capacity case differs"),
+        ("reserved", "resident allocated/reserved memory gate"),
+        ("headroom", "device_free_after"),
+        ("topology_n9", "coverage is incomplete"),
+        ("single_state", "unique_state_count must be >= 2"),
+    ),
+)
+def test_independent_verifier_rejects_profile_semantic_tamper(
+    tmp_path: Path, mutation: str, message: str
+) -> None:
+    manifest_path, _, profile, tasks = _write_valid_throughput_profile(tmp_path)
+    if mutation == "capacity":
+        profile["capacity_cases"][0]["projected_worst_case_seconds"] += 1.0
+    elif mutation == "capacity_barrier_vector":
+        barriers = profile["capacity_cases"][0][
+            "formal_task_barrier_decisions_per_lane"
+        ]
+        assert len(barriers) == 5 and sum(barriers) == 15_360
+        barriers[0] += 1
+        barriers[1] -= 1
+    elif mutation == "reserved":
+        profile["aggregate_peak_memory_reserved_bytes"] += 1
+    elif mutation == "headroom":
+        profile["device_free_memory_after_smoke_bytes"] = (
+            independent.MIN_DEVICE_FREE_HEADROOM_BYTES - 1
+        )
+        profile["device_used_memory_after_smoke_bytes"] = (
+            int(profile["device_total_memory_bytes"])
+            - int(profile["device_free_memory_after_smoke_bytes"])
+        )
+    elif mutation == "topology_n9":
+        profile["coverage"]["model_kind_size_cases"] = [
+            row
+            for row in profile["coverage"]["model_kind_size_cases"]
+            if not (
+                row["model_kind"] == "topology_gnn" and row["eval_size"] == 9
+            )
+        ]
+    else:
+        lane = profile["lane_results"][0]
+        lane["decision_state_fingerprints"] = [
+            "0" * 64
+        ] * int(lane["puct_decisions"])
+        lane["unique_state_count"] = 1
+    evidence = tmp_path / independent.THROUGHPUT_PROFILE_ARTIFACT_NAME
+    evidence.write_text(
+        json.dumps(profile, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    metadata = {
+        "throughput_profile_sha256": independent.sha256_file(evidence),
+        "preparation_runner_sha256": independent.sha256_file(formal.prep.SCRIPT_PATH),
+    }
+    with pytest.raises(independent.VerificationError, match=message):
+        independent._validate_throughput_profile_evidence(
+            evidence,
+            metadata=metadata,
+            tasks=tasks,
+            checkpoint_registry=_checkpoint_registry_from_tasks(tasks),
+            formal_manifest_sha=independent.sha256_file(manifest_path),
+            formal_runner_sha=independent.sha256_file(formal.SCRIPT_PATH),
+        )
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    (
+        ("lane_missing", "nine complete twelve-lane cases"),
+        ("lane_duplicate", "lane case/task binding differs"),
+        ("preload_pid", "preload worker processes are not distinct"),
+        ("case_pid", "case does not use all twelve preloaded workers"),
+        ("preload_checkpoint", "did not bind all fifteen checkpoints"),
+        ("baseline_checkpoint", "preload device baseline differs"),
+        ("integrity_pid", "does not cover all twelve preload PIDs"),
+        ("integrity_checkpoint", "resident checkpoint integrity differs"),
+        ("integrity_state", "resident checkpoint integrity differs"),
+        ("warmup", "did not exercise both formal agents"),
+        ("agent_slots", "checkpoint/model/slot binding differs"),
+        ("color", "color-slot binding differs"),
+        ("opening", "opening differs from selected task schedule"),
+        ("seed_round_robin", "lane case/task binding differs"),
+        ("decision_length", "multi-state decision timing evidence is invalid"),
+        ("slowest_decision", "multi-state decision timing evidence is invalid"),
+        ("fingerprint_type", "pre-state fingerprint/action trace differs"),
+        ("fingerprint_hex", "pre-state fingerprint/action trace differs"),
+        ("action_length", "multi-state decision timing evidence is invalid"),
+        ("action_illegal", "action exceeds PASS index"),
+        ("reset_count", "multi-state decision timing evidence is invalid"),
+        ("opening_prefix_hash", "selected opening prefix hash differs"),
+        ("opening_state_hash", "selected opening state hash differs"),
+    ),
+)
+def test_independent_verifier_rejects_lane_and_preload_tamper_matrix(
+    tmp_path: Path, mutation: str, message: str
+) -> None:
+    manifest_path, _, profile, tasks = _write_valid_throughput_profile(tmp_path)
+    lanes = profile["lane_results"]
+    preloads = profile["resident_cache_preload_results"]
+    assert isinstance(lanes, list) and isinstance(preloads, list)
+    if mutation == "lane_missing":
+        lanes.pop()
+    elif mutation == "lane_duplicate":
+        lanes[-1] = copy.deepcopy(lanes[-2])
+    elif mutation == "preload_pid":
+        preloads[1]["worker_pid"] = preloads[0]["worker_pid"]
+    elif mutation == "case_pid":
+        lanes[1]["worker_pid"] = lanes[0]["worker_pid"]
+    elif mutation == "preload_checkpoint":
+        preloads[0]["checkpoint_ids"].pop()
+        preloads[0]["checkpoint_count"] = 14
+    elif mutation == "baseline_checkpoint":
+        preloads[0]["device_baseline_checkpoint_ids"].pop()
+        preloads[0]["device_baseline_checkpoint_count"] = 14
+    elif mutation in {"integrity_pid", "integrity_checkpoint", "integrity_state"}:
+        integrity_rows = profile["resident_integrity_results"]
+        final_integrity = lanes[-formal.SCALAR_LANE_COUNT]["resident_integrity"]
+        assert isinstance(integrity_rows, list) and isinstance(final_integrity, dict)
+        if mutation == "integrity_pid":
+            duplicate_pid = integrity_rows[1]["worker_pid"]
+            integrity_rows[0]["worker_pid"] = duplicate_pid
+            final_integrity["worker_pid"] = duplicate_pid
+        elif mutation == "integrity_checkpoint":
+            integrity_rows[0]["checkpoint_ids"].pop()
+            integrity_rows[0]["checkpoint_count"] = 14
+            final_integrity["checkpoint_ids"].pop()
+            final_integrity["checkpoint_count"] = 14
+        else:
+            integrity_rows[0]["all_state_tensors_unchanged"] = False
+            final_integrity["all_state_tensors_unchanged"] = False
+    elif mutation == "warmup":
+        lanes[0]["warmup_puct_decisions"] = 1
+    elif mutation == "agent_slots":
+        lanes[0]["agents"] = list(reversed(lanes[0]["agents"]))
+    elif mutation == "color":
+        lanes[0]["black_slot"] = "B"
+        lanes[0]["white_slot"] = "A"
+    elif mutation == "opening":
+        first_task = tasks[0]
+        pair_plan = first_task["pair_plan"]
+        assert isinstance(pair_plan, list) and isinstance(pair_plan[0], dict)
+        alternate = copy.deepcopy(pair_plan[0])
+        alternate["opening_id"] = "alternate-task-bound-opening"
+        pair_plan.append(alternate)
+        lanes[0]["opening_id"] = alternate["opening_id"]
+        profile["coverage"] = formal._profile_coverage(lanes)
+    elif mutation == "seed_round_robin":
+        original_pid = lanes[1]["worker_pid"]
+        lanes[1] = copy.deepcopy(lanes[0])
+        lanes[1]["lane_index"] = 1
+        lanes[1]["worker_pid"] = original_pid
+    elif mutation == "decision_length":
+        lanes[0]["decision_seconds"].pop()
+    elif mutation == "slowest_decision":
+        lanes[0]["slowest_decision_seconds"] = 0.06
+    elif mutation == "fingerprint_type":
+        lanes[0]["decision_state_fingerprints"][0] = {"forged": True}
+    elif mutation == "fingerprint_hex":
+        lanes[0]["decision_state_fingerprints"][0] = "0" * 64
+    elif mutation == "action_length":
+        lanes[0]["decision_action_indices"].pop()
+    elif mutation == "action_illegal":
+        lanes[0]["decision_action_indices"][0] = 10_000
+    elif mutation == "reset_count":
+        lanes[0]["game_resets"] += 1
+    elif mutation == "opening_prefix_hash":
+        tasks[0]["pair_plan"][0]["opening_prefix_hash"] = "0" * 64
+    else:
+        tasks[0]["pair_plan"][0]["opening_state_hash"] = "0" * 64
+
+    evidence = tmp_path / independent.THROUGHPUT_PROFILE_ARTIFACT_NAME
+    evidence.write_text(
+        json.dumps(profile, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    metadata = {
+        "throughput_profile_sha256": independent.sha256_file(evidence),
+        "preparation_runner_sha256": independent.sha256_file(formal.prep.SCRIPT_PATH),
+    }
+    with pytest.raises(independent.VerificationError, match=message):
+        independent._validate_throughput_profile_evidence(
+            evidence,
+            metadata=metadata,
+            tasks=tasks,
+            checkpoint_registry=_checkpoint_registry_from_tasks(tasks),
             formal_manifest_sha=independent.sha256_file(manifest_path),
             formal_runner_sha=independent.sha256_file(formal.SCRIPT_PATH),
         )
@@ -733,21 +1921,29 @@ def test_partial_parent_pair_write_resumes_only_missing_payloads(
             self.indices: list[int] = []
 
         def map_ordered(self, worker: object, payloads: object) -> list[object]:
-            del worker
             rows = list(payloads)  # type: ignore[arg-type]
             self.indices = [int(row["schedules"][0]["pair_index"]) for row in rows]
-            return [{"pair_index": index} for index in self.indices]
+            return [worker(row) for row in rows]  # type: ignore[operator]
 
+    _bind_canary_agents()
+    canary = _canary_pair_payload()
+    base_schedules = canary["schedules"]
+    assert isinstance(base_schedules, list)
     task_directory = tmp_path / "task"
     (task_directory / "pairs").mkdir(parents=True)
     pairs = {
         index: [
-            {"pair_index": index, "pair_member": member}
-            for member in (0, 1)
+            {
+                **copy.deepcopy(base_schedules[member]),
+                "game_id": f"canary-game-{index}-{member}",
+                "game_index": index * 2 + member,
+                "pair_id": f"canary-pair-{index}",
+                "pair_index": index,
+            }
+            for member in range(2)
         ]
         for index in range(3)
     }
-    monkeypatch.setattr(formal, "_validate_pair", lambda *_: [])
     original_atomic = formal._atomic_json
     writes = 0
 
@@ -762,22 +1958,33 @@ def test_partial_parent_pair_write_resumes_only_missing_payloads(
     monkeypatch.setattr(formal, "_atomic_json", fail_second_write)
     with pytest.raises(OSError, match="parent write interruption"):
         formal._execute_pair_lanes(
-            {"task_id": "synthetic"},
+            canary["task"],
             pairs,
             task_directory=task_directory,
             lane_executor=first,  # type: ignore[arg-type]
         )
     assert first.indices == [0, 1, 2]
-    assert (task_directory / "pairs" / "pair_0000.json").is_file()
+    completed_pair = task_directory / "pairs" / "pair_0000.json"
+    assert completed_pair.is_file()
+    completed_pair_before = completed_pair.read_bytes()
     monkeypatch.setattr(formal, "_atomic_json", original_atomic)
+    resumed_write_paths: list[Path] = []
+
+    def record_resumed_write(path: Path, value: object, **kwargs: object) -> None:
+        resumed_write_paths.append(path.resolve())
+        original_atomic(path, value, **kwargs)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(formal, "_atomic_json", record_resumed_write)
     resumed = RecordingExecutor()
     formal._execute_pair_lanes(
-        {"task_id": "synthetic"},
+        canary["task"],
         pairs,
         task_directory=task_directory,
         lane_executor=resumed,  # type: ignore[arg-type]
     )
     assert resumed.indices == [1, 2]
+    assert completed_pair.read_bytes() == completed_pair_before
+    assert completed_pair.resolve() not in resumed_write_paths
     assert len(list((task_directory / "pairs").glob("pair_*.json"))) == 3
 
 
@@ -819,7 +2026,9 @@ def test_receipt_paths_are_task_relative_only() -> None:
 def test_gpu_smoke_source_is_frozen_inference_path_only() -> None:
     smoke_source = inspect.getsource(formal.gpu_smoke)
     lane_source = inspect.getsource(formal._run_gpu_smoke_lane)
-    source = smoke_source + lane_source
+    preload_source = inspect.getsource(formal._run_gpu_smoke_preload_lane)
+    integrity_source = inspect.getsource(formal._verify_resident_checkpoint_integrity)
+    source = smoke_source + lane_source + preload_source + integrity_source
     for forbidden in (".backward(", "Adam", "autocast(", "GradScaler", "_repeat_tensor_batch", "batch_candidates"):
         assert forbidden not in source
     for required in (
@@ -835,6 +2044,14 @@ def test_gpu_smoke_source_is_frozen_inference_path_only() -> None:
     assert "_ScalarLaneExecutor(" in smoke_source
     assert "initializer=_initialize_formal_lane_worker" in smoke_source
     assert "_run_gpu_smoke_lane" in smoke_source
+    assert "tensor.detach().clone()" in preload_source
+    assert "torch.equal" in integrity_source
+    assert "_verify_resident_checkpoint_integrity" in lane_source
+    lane_tree = ast.parse(lane_source)
+    assert not any(
+        isinstance(node, ast.Attribute) and node.attr == "cpu"
+        for node in ast.walk(lane_tree)
+    )
     assert smoke_source.index("started = time.perf_counter()") < smoke_source.index(
         "with _ScalarLaneExecutor"
     ) < smoke_source.index("total_seconds = time.perf_counter() - started")
@@ -871,8 +2088,9 @@ def test_gpu_smoke_uses_a_real_game_and_rejects_mutation() -> None:
 
     lane_source = inspect.getsource(formal._run_gpu_smoke_lane)
     assert "games[decisions % len(games)].clone()" not in lane_source
-    assert "legacy._playable_game_copy" in lane_source
     assert "_gpu_smoke_select_action" in lane_source
+    assert "legacy._apply_action_index" in lane_source
+    assert "decision_state_fingerprints" in lane_source
 
 
 def test_d18_source_uses_shared_scalar_executor_and_no_training_or_batch_path() -> None:
@@ -1167,7 +2385,10 @@ def test_generate_job_writes_parseable_exact_smoke_and_formal_contract(
     assert parsed["gpu_num"] == 1
     assert parsed["min_gpu_utilization_percent"] == 50
     assert parsed["max_runtime_seconds"] == 11_520
-    assert "--seconds 20" in parsed["gpu_smoke_command"]
+    assert "--seconds 15" in parsed["gpu_smoke_command"]
+    assert parsed["gpu_smoke_timeout_seconds"] == 30
+    assert formal.GPU_SMOKE_MAX_TOTAL_SECONDS == 27.0
+    assert independent.GPU_SMOKE_MAX_TOTAL_SECONDS == 27.0
     assert f"--profile-output {profile_path}" in parsed["gpu_smoke_command"]
     assert f"--throughput-profile {profile_path}" in parsed["command"]
     expected_runner = relative_paths[formal.SCRIPT_PATH.resolve()]
@@ -1433,6 +2654,115 @@ def test_export_manifest_records_bounded_projection(
     assert manifest["projected_upper_bound_bytes"] <= 16_384
     assert (export_root / "canonical_numeric.json").read_bytes() == b"{}\n"
     assert len([path for path in export_root.rglob("*") if path.is_file()]) == 10
+
+
+def test_independent_verifier_accepts_exact_legal_delivery_root(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    run_root = tmp_path / "run"
+    run_root.mkdir()
+    task_id = "synthetic-task"
+    task_directory_name = formal._task_directory(run_root, task_id).name
+    _minimal_export_tree(run_root, task_directory_name)
+    export_root = tmp_path / "export"
+    monkeypatch.setattr(formal, "EXPECTED_TASKS", 1)
+    monkeypatch.setattr(formal, "EXPECTED_PAIRS_PER_TASK", 1)
+    monkeypatch.setattr(independent, "PAIRS_PER_TASK", 1)
+    formal.export_results(
+        run_root,
+        export_root,
+        expected_task_directory_names={task_directory_name},
+    )
+    independent._validate_evidence_root_entries(
+        export_root, [{"task_id": task_id}]
+    )
+
+
+def test_export_full_source_rehash_count_is_constant_per_batch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    run_root = tmp_path / "run"
+    run_root.mkdir()
+    _minimal_export_tree(run_root)
+    export_root = tmp_path / "export"
+    monkeypatch.setattr(formal, "EXPECTED_TASKS", 1)
+    monkeypatch.setattr(formal, "EXPECTED_PAIRS_PER_TASK", 1)
+    closure_checks = 0
+
+    def count_full_rehash(_: object) -> dict[str, str]:
+        nonlocal closure_checks
+        closure_checks += 1
+        return {
+            "preparation_runner_sha256": "1" * 64,
+            "formal_runner_sha256": "2" * 64,
+            "execution_source_closure_sha256": "3" * 64,
+        }
+
+    monkeypatch.setattr(
+        formal,
+        "_require_execution_source_closure",
+        count_full_rehash,
+    )
+    formal.export_results(
+        run_root,
+        export_root,
+        expected_task_directory_names={"synthetic-task"},
+        metadata={"frozen": True},
+    )
+    assert closure_checks == 2
+    assert len([path for path in export_root.rglob("*") if path.is_file()]) == 10
+
+
+def test_export_detects_source_drift_after_copy_batch_before_return(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    run_root = tmp_path / "run"
+    run_root.mkdir()
+    _minimal_export_tree(run_root)
+    export_root = tmp_path / "export"
+    monkeypatch.setattr(formal, "EXPECTED_TASKS", 1)
+    monkeypatch.setattr(formal, "EXPECTED_PAIRS_PER_TASK", 1)
+    closure_checks = 0
+    drifted = False
+
+    def fail_final_full_rehash(_: object) -> dict[str, str]:
+        nonlocal closure_checks
+        closure_checks += 1
+        if drifted:
+            raise formal.FormalExecutionError(
+                "execution source closure changed during the formal run"
+            )
+        return {
+            "preparation_runner_sha256": "1" * 64,
+            "formal_runner_sha256": "2" * 64,
+            "execution_source_closure_sha256": "3" * 64,
+        }
+
+    original_copy = formal._copy_verified
+
+    def copy_then_drift(*args: object, **kwargs: object) -> None:
+        nonlocal drifted
+        original_copy(*args, **kwargs)
+        drifted = True
+
+    monkeypatch.setattr(
+        formal,
+        "_require_execution_source_closure",
+        fail_final_full_rehash,
+    )
+    monkeypatch.setattr(formal, "_copy_verified", copy_then_drift)
+    with pytest.raises(
+        formal.FormalExecutionError,
+        match="execution source closure changed during the formal run",
+    ):
+        formal.export_results(
+            run_root,
+            export_root,
+            expected_task_directory_names={"synthetic-task"},
+            metadata={"frozen": True},
+        )
+    assert closure_checks == 2
+    assert (export_root / "export_manifest.json").is_file()
 
 
 def test_export_rejects_stale_destination_before_copy(

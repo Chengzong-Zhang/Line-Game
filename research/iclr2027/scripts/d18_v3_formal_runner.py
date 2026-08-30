@@ -93,8 +93,32 @@ INFERENCE_DTYPE = "float32"
 AMP_ENABLED = False
 THROUGHPUT_PROFILE_SCHEMA = "lifeline-d18-v3-gpu-smoke"
 THROUGHPUT_PROFILE_ARTIFACT_NAME = "throughput_profile.json"
+RUN_ROOT_ALLOWED_ENTRY_NAMES = frozenset(
+    {
+        WRITER_LOCK_NAME,
+        THROUGHPUT_PROFILE_ARTIFACT_NAME,
+        "execution_metadata.json",
+        "tasks",
+        "result_receipts.jsonl",
+        "canonical_numeric.json",
+        "execution_summary.json",
+    }
+)
+TERMINAL_ROOT_ARTIFACT_NAMES = frozenset(
+    {
+        "result_receipts.jsonl",
+        "canonical_numeric.json",
+        "execution_summary.json",
+    }
+)
+GPU_SMOKE_CASE_COUNT = len(prep.MODEL_PAIRS) * len(prep.SIZES)
 GPU_SMOKE_MIN_TOTAL_SECONDS = 15.0
-GPU_SMOKE_MAX_TOTAL_SECONDS = 30.0
+# Reserve three seconds for interpreter/module startup under the product's
+# 30-second whole-command timeout.  The persisted receipt covers this internal
+# interval; the product timeout covers the external process interval.
+GPU_SMOKE_MAX_TOTAL_SECONDS = 27.0
+GPU_SMOKE_MIN_CASE_SECONDS = GPU_SMOKE_MIN_TOTAL_SECONDS / GPU_SMOKE_CASE_COUNT
+GPU_SMOKE_MAX_CASE_SECONDS = GPU_SMOKE_MAX_TOTAL_SECONDS / GPU_SMOKE_CASE_COUNT
 FORMAL_NON_GAMEPLAY_RESERVE_FRACTION = 0.25
 FORMAL_GAMEPLAY_BUDGET_SECONDS = int(
     MAX_RUNTIME_SECONDS * (1.0 - FORMAL_NON_GAMEPLAY_RESERVE_FRACTION)
@@ -104,6 +128,7 @@ EXPECTED_CUDA_RUNTIME_VERSION = "12.8"
 EXPECTED_DEVICE_NAME_FRAGMENT = "RTX 5090"
 MIN_DEVICE_MEMORY_BYTES = 31 * 1024**3
 MAX_AGGREGATE_LANE_MEMORY_BYTES = 30 * 1024**3
+MIN_DEVICE_FREE_HEADROOM_BYTES = 4 * 1024**3
 PROFILE_MODEL_KINDS = ("padded_cnn", "grid_gnn", "topology_gnn")
 PROFILE_MODEL_PAIRS = tuple(tuple(pair) for pair in prep.MODEL_PAIRS)
 PROFILE_EVAL_SIZES = (5, 7, 9)
@@ -643,68 +668,260 @@ def _gpu_smoke_select_action(agent: Any, game: Any, rng: random.Random) -> Any:
     return action
 
 
-def _run_gpu_smoke_lane(payload: Mapping[str, Any]) -> dict[str, Any]:
-    """Run one production-initialized scalar, FP32, batch-one PUCT lane."""
+def _gpu_smoke_timed_select_action(
+    agent: Any, game: Any, rng: random.Random
+) -> tuple[Any, float]:
+    """Time only the same scalar select_action interval used by formal games."""
+
+    from lifeline_rl import LifelineGame
+
+    _require(
+        isinstance(game, LifelineGame),
+        "GPU smoke requires a LifelineGame, not a detached GameSnapshot",
+    )
+    before = game.clone()
+    started = time.perf_counter()
+    action = agent.select_action(game, rng)
+    elapsed = time.perf_counter() - started
+    _require(game.clone() == before, "GPU smoke PUCT mutated its input game")
+    return action, elapsed
+
+
+def _run_gpu_smoke_preload_lane(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Materialize all checkpoints and one immutable device baseline per worker."""
 
     import torch
+
+    _require(isinstance(payload, Mapping), "GPU preload payload must be an object")
+    lane_index = payload.get("lane_index")
+    _require(
+        isinstance(lane_index, int) and not isinstance(lane_index, bool),
+        "GPU preload lane index must be an integer",
+    )
+    _require(_FORMAL_LANE_MANIFEST is not None, "formal lane manifest is unbound")
+    bindings = _FORMAL_LANE_MANIFEST.get("checkpoints")
+    _require(
+        isinstance(bindings, list) and len(bindings) == 15,
+        "GPU preload requires all fifteen formal checkpoints",
+    )
+    _require(
+        not _FORMAL_LANE_DEVICE_BASELINES,
+        "GPU preload baseline was already materialized in this worker",
+    )
+    torch.cuda.reset_peak_memory_stats()
+    checkpoint_ids: list[str] = []
+    baseline_tensor_count = 0
+    for raw_binding in bindings:
+        _require(isinstance(raw_binding, Mapping), "GPU preload binding is invalid")
+        agent = _formal_lane_agent(raw_binding)
+        checkpoint_id = str(raw_binding["checkpoint_id"])
+        checkpoint_ids.append(checkpoint_id)
+        _require(not agent.model.training, "GPU preload model is not in eval mode")
+        state = agent.model.state_dict()
+        baseline = {
+            name: tensor.detach().clone()
+            for name, tensor in state.items()
+        }
+        _require(
+            baseline
+            and set(baseline) == set(state)
+            and all(
+                baseline[name].device == tensor.device
+                and not baseline[name].requires_grad
+                and torch.equal(baseline[name], tensor.detach())
+                for name, tensor in state.items()
+            ),
+            f"GPU preload device baseline differs: {checkpoint_id}",
+        )
+        _FORMAL_LANE_DEVICE_BASELINES[checkpoint_id] = baseline
+        baseline_tensor_count += len(baseline)
+    torch.cuda.synchronize()
+    free_bytes, total_bytes = torch.cuda.mem_get_info()
+    return {
+        "lane_index": int(lane_index),
+        "worker_pid": os.getpid(),
+        "checkpoint_ids": checkpoint_ids,
+        "checkpoint_count": len(checkpoint_ids),
+        "device_baseline_checkpoint_ids": checkpoint_ids,
+        "device_baseline_checkpoint_count": len(checkpoint_ids),
+        "device_baseline_tensor_count": baseline_tensor_count,
+        "device_baseline_storage": "immutable_cuda_clone",
+        "max_memory_allocated_bytes": int(torch.cuda.max_memory_allocated()),
+        "max_memory_reserved_bytes": int(torch.cuda.max_memory_reserved()),
+        "device_free_memory_bytes": int(free_bytes),
+        "device_total_memory_bytes": int(total_bytes),
+    }
+
+
+def _verify_resident_checkpoint_integrity() -> dict[str, Any]:
+    """Compare every resident checkpoint with its preload-time CUDA baseline."""
+
+    import torch
+
+    _require(_FORMAL_LANE_MANIFEST is not None, "formal lane manifest is unbound")
+    bindings = _FORMAL_LANE_MANIFEST.get("checkpoints")
+    _require(
+        isinstance(bindings, list) and len(bindings) == 15,
+        "resident integrity requires all fifteen formal checkpoints",
+    )
+    checkpoint_ids = [str(binding["checkpoint_id"]) for binding in bindings]
+    _require(
+        set(_FORMAL_LANE_DEVICE_BASELINES) == set(checkpoint_ids),
+        "resident integrity device baseline coverage differs",
+    )
+    tensor_count = 0
+    for raw_binding in bindings:
+        _require(isinstance(raw_binding, Mapping), "resident binding is invalid")
+        checkpoint_id = str(raw_binding["checkpoint_id"])
+        key = (checkpoint_id, str(_FORMAL_LANE_DEVICE))
+        _require(
+            key in _FORMAL_LANE_AGENT_CACHE,
+            f"resident checkpoint cache is missing: {checkpoint_id}",
+        )
+        agent = _FORMAL_LANE_AGENT_CACHE[key]
+        state = agent.model.state_dict()
+        baseline = _FORMAL_LANE_DEVICE_BASELINES[checkpoint_id]
+        _require(
+            set(state) == set(baseline)
+            and all(
+                baseline[name].device == tensor.device
+                and torch.equal(baseline[name], tensor.detach())
+                for name, tensor in state.items()
+            ),
+            f"resident checkpoint changed from its device baseline: {checkpoint_id}",
+        )
+        _require(
+            all(parameter.grad is None for parameter in agent.model.parameters()),
+            f"resident checkpoint created gradients: {checkpoint_id}",
+        )
+        tensor_count += len(state)
+    torch.cuda.synchronize()
+    return {
+        "worker_pid": os.getpid(),
+        "checkpoint_ids": checkpoint_ids,
+        "checkpoint_count": len(checkpoint_ids),
+        "tensor_count": tensor_count,
+        "device_baseline_storage": "immutable_cuda_clone",
+        "all_state_tensors_unchanged": True,
+        "all_parameter_gradients_none": True,
+    }
+
+
+def _run_gpu_smoke_lane(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Alternate both agents from one formal pair through scalar FP32 PUCT."""
+
+    import torch
+    from lifeline_rl import Player
 
     _require(isinstance(payload, Mapping), "GPU smoke lane payload must be an object")
     lane_started = time.perf_counter()
     lane_index = payload.get("lane_index")
+    case_index = payload.get("case_index")
     seconds = payload.get("seconds")
-    binding = payload.get("agent_binding")
+    verify_resident_integrity = payload.get("verify_resident_integrity")
+    task = payload.get("task")
     opening = payload.get("opening")
-    model_pair = payload.get("model_pair")
-    eval_size = payload.get("eval_size")
     _require(
         isinstance(lane_index, int) and not isinstance(lane_index, bool),
         "GPU smoke lane index must be an integer",
     )
     _require(
+        isinstance(case_index, int) and not isinstance(case_index, bool),
+        "GPU smoke case index must be an integer",
+    )
+    _require(
         isinstance(seconds, (int, float))
         and not isinstance(seconds, bool)
         and math.isfinite(float(seconds))
-        and GPU_SMOKE_MIN_TOTAL_SECONDS <= float(seconds) <= GPU_SMOKE_MAX_TOTAL_SECONDS,
-        "GPU smoke lane duration is invalid",
+        and GPU_SMOKE_MIN_CASE_SECONDS
+        <= float(seconds)
+        <= GPU_SMOKE_MAX_CASE_SECONDS,
+        "GPU smoke case duration is invalid",
     )
-    _require(isinstance(binding, Mapping), "GPU smoke agent binding is missing")
-    _require(isinstance(opening, Mapping), "GPU smoke opening is missing")
     _require(
-        isinstance(model_pair, list) and len(model_pair) == 2,
-        "GPU smoke model pair is invalid",
+        isinstance(verify_resident_integrity, bool)
+        and verify_resident_integrity
+        == (int(case_index) == GPU_SMOKE_CASE_COUNT - 1),
+        "GPU smoke final-case integrity flag differs",
     )
+    _require(isinstance(task, Mapping), "GPU smoke task binding is missing")
+    _require(isinstance(opening, Mapping), "GPU smoke opening is missing")
+    pair = [str(value) for value in task.get("model_pair", [])]
+    eval_size = task.get("eval_size")
+    _require(len(pair) == 2, "GPU smoke model pair is invalid")
     _require(
         isinstance(eval_size, int) and eval_size in PROFILE_EVAL_SIZES,
         "GPU smoke evaluation size is invalid",
     )
-    torch.cuda.reset_peak_memory_stats()
-    loaded = _formal_lane_agent(binding)
-    floating_state = [
-        tensor
-        for tensor in loaded.model.state_dict().values()
-        if tensor.is_floating_point()
-    ]
-    _require(bool(floating_state), "GPU smoke model has no floating-point state")
+    bindings = task.get("agent_bindings")
+    _require(isinstance(bindings, Mapping), "GPU smoke agent bindings are missing")
     _require(
-        all(tensor.dtype == torch.float32 for tensor in floating_state),
-        "GPU smoke checkpoint is not entirely FP32",
+        all(isinstance(bindings.get(slot), Mapping) for slot in ("A", "B")),
+        "GPU smoke requires both formal agent bindings",
     )
-    game = legacy._game_from_opening(dict(opening), int(eval_size))
-    before = {
-        name: tensor.detach().cpu().clone()
-        for name, tensor in loaded.model.state_dict().items()
+    pair_plan = task.get("pair_plan")
+    _require(
+        isinstance(pair_plan, list)
+        and bool(pair_plan)
+        and isinstance(pair_plan[0], Mapping),
+        "GPU smoke requires a registered pair schedule",
+    )
+    schedule = pair_plan[0]
+    color_slots = {
+        Player.BLACK: str(schedule["black_slot"]),
+        Player.WHITE: str(schedule["white_slot"]),
     }
+    _require(
+        set(color_slots.values()) == {"A", "B"},
+        "GPU smoke pair schedule does not bind both agent slots",
+    )
+    agents = {slot: _formal_lane_agent(bindings[slot]) for slot in ("A", "B")}
+    for slot, agent in agents.items():
+        floating_state = [
+            tensor
+            for tensor in agent.model.state_dict().values()
+            if tensor.is_floating_point()
+        ]
+        _require(bool(floating_state), f"GPU smoke agent {slot} has no FP state")
+        _require(
+            all(tensor.dtype == torch.float32 for tensor in floating_state),
+            f"GPU smoke agent {slot} checkpoint is not entirely FP32",
+        )
+    game = legacy._game_from_opening(dict(opening), int(eval_size))
+    with torch.inference_mode():
+        for warmup_index, slot in enumerate(("A", "B")):
+            _gpu_smoke_select_action(
+                agents[slot],
+                game,
+                random.Random(
+                    202608290000
+                    + int(case_index) * 10_000_000
+                    + int(lane_index) * 1_000_000
+                    + warmup_index
+                ),
+            )
     torch.cuda.synchronize()
     setup_seconds = time.perf_counter() - lane_started
     decisions = 0
-    model_forward_calls = 0
+    per_agent_decisions = {"A": 0, "B": 0}
+    per_agent_forward_calls = {"A": 0, "B": 0}
+    decision_seconds: list[float] = []
+    decision_state_fingerprints: list[str] = []
+    decision_action_indices: list[int] = []
+    game_resets = 0
+    plies_in_game = len(opening.get("opening_actions", []))
+    max_plies = int(task["max_plies"])
     utilization: list[float] = []
+    hooks: list[Any] = []
 
-    def count_forward(*_: Any) -> None:
-        nonlocal model_forward_calls
-        model_forward_calls += 1
+    def register_counter(slot: str) -> None:
+        def count_forward(*_: Any) -> None:
+            per_agent_forward_calls[slot] += 1
 
-    forward_hook = loaded.model.register_forward_pre_hook(count_forward)
+        hooks.append(agents[slot].model.register_forward_pre_hook(count_forward))
+
+    for slot in ("A", "B"):
+        register_counter(slot)
     sustained_started = time.perf_counter()
     deadline = sustained_started + float(seconds)
     next_utilization_sample = sustained_started
@@ -712,69 +929,117 @@ def _run_gpu_smoke_lane(payload: Mapping[str, Any]) -> dict[str, Any]:
     _require(callable(helper), "GPU smoke requires torch.cuda.utilization telemetry")
     try:
         with torch.inference_mode():
-            while time.perf_counter() < deadline:
+            while time.perf_counter() < deadline or decisions < 2:
                 now = time.perf_counter()
                 if now >= next_utilization_sample:
                     utilization.append(float(helper()))
                     next_utilization_sample = now + 0.5
-                playable = legacy._playable_game_copy(game)
-                _gpu_smoke_select_action(
-                    loaded,
-                    playable,
+                slot = color_slots[game.current_player]
+                decision_state_fingerprints.append(str(game.state_fingerprint()))
+                action, decision_elapsed = _gpu_smoke_timed_select_action(
+                    agents[slot],
+                    game,
                     random.Random(
-                        202608300000 + int(lane_index) * 1_000_000 + decisions
+                        202608300000
+                        + int(case_index) * 10_000_000
+                        + int(lane_index) * 1_000_000
+                        + decisions
                     ),
                 )
+                decision_seconds.append(decision_elapsed)
+                action_index, _ = legacy._policy_action(game, action)
+                decision_action_indices.append(action_index)
+                legacy._apply_action_index(game, action_index)
+                plies_in_game += 1
+                per_agent_decisions[slot] += 1
                 decisions += 1
+                if game.game_over or plies_in_game >= max_plies:
+                    game = legacy._game_from_opening(dict(opening), int(eval_size))
+                    plies_in_game = len(opening.get("opening_actions", []))
+                    game_resets += 1
     finally:
-        forward_hook.remove()
+        for hook in hooks:
+            hook.remove()
     torch.cuda.synchronize()
     sustained_seconds = time.perf_counter() - sustained_started
-    _require(decisions > 0, "GPU smoke lane did not complete a formal PUCT decision")
-    _require(model_forward_calls > 0, "GPU smoke lane did not execute a model forward")
-    _require(bool(utilization), "GPU smoke lane did not collect utilization telemetry")
-    after = loaded.model.state_dict()
     _require(
-        all(
-            torch.equal(before[name], tensor.detach().cpu())
-            for name, tensor in after.items()
-        ),
-        "GPU smoke changed frozen checkpoint weights or buffers",
+        all(per_agent_decisions[slot] > 0 for slot in ("A", "B")),
+        "GPU smoke lane did not exercise both formal agents",
     )
     _require(
-        all(parameter.grad is None for parameter in loaded.model.parameters()),
-        "GPU smoke created gradients on the frozen inference model",
+        all(per_agent_forward_calls[slot] > 0 for slot in ("A", "B")),
+        "GPU smoke lane did not forward both formal agents",
+    )
+    _require(bool(utilization), "GPU smoke lane did not collect utilization telemetry")
+    _require(
+        len(decision_seconds) == decisions
+        and all(value > 0.0 and math.isfinite(value) for value in decision_seconds),
+        "GPU smoke lane decision timing is incomplete",
+    )
+    _require(
+        len(set(decision_state_fingerprints)) >= 2,
+        "GPU smoke lane did not advance across multiple real game states",
+    )
+    resident_integrity = (
+        _verify_resident_checkpoint_integrity()
+        if verify_resident_integrity
+        else None
     )
     device_index = torch.cuda.current_device()
-    device_properties = torch.cuda.get_device_properties(device_index)
+    free_bytes, total_bytes = torch.cuda.mem_get_info(device_index)
+    agent_rows = [
+        {
+            "agent_slot": slot,
+            "checkpoint_id": str(bindings[slot]["checkpoint_id"]),
+            "model_kind": str(bindings[slot]["model_kind"]),
+        }
+        for slot in ("A", "B")
+    ]
     return {
+        "case_index": int(case_index),
         "lane_index": int(lane_index),
+        "worker_pid": os.getpid(),
         "coverage_case_id": str(payload["coverage_case_id"]),
-        "checkpoint_id": str(binding["checkpoint_id"]),
-        "model_kind": str(binding["model_kind"]),
-        "model_pair": [str(value) for value in model_pair],
-        "agent_slot": str(payload["agent_slot"]),
+        "task_id": str(task["task_id"]),
+        "training_seed": int(task["training_seed"]),
+        "model_pair": pair,
+        "black_slot": str(schedule["black_slot"]),
+        "white_slot": str(schedule["white_slot"]),
+        "agents": agent_rows,
+        "agent_slots_exercised": ["A", "B"],
+        "warmup_puct_decisions": 2,
+        "resident_integrity": resident_integrity,
         "eval_size": int(eval_size),
         "opening_id": str(opening["opening_id"]),
         "puct_decisions": decisions,
-        "model_forward_calls": model_forward_calls,
+        "per_agent_puct_decisions": per_agent_decisions,
+        "decision_seconds": decision_seconds,
+        "decision_state_fingerprints": decision_state_fingerprints,
+        "decision_action_indices": decision_action_indices,
+        "slowest_decision_seconds": max(decision_seconds),
+        "unique_state_count": len(set(decision_state_fingerprints)),
+        "game_resets": game_resets,
+        "model_forward_calls": sum(per_agent_forward_calls.values()),
+        "per_agent_model_forward_calls": per_agent_forward_calls,
         "setup_seconds": setup_seconds,
         "sustained_seconds": sustained_seconds,
         "total_seconds": time.perf_counter() - lane_started,
         "gpu_utilization_samples_percent": utilization,
-        "max_memory_allocated_bytes": torch.cuda.max_memory_allocated(),
+        "max_memory_allocated_bytes": int(torch.cuda.max_memory_allocated()),
+        "max_memory_reserved_bytes": int(torch.cuda.max_memory_reserved()),
+        "device_free_memory_bytes": int(free_bytes),
         "device": str(torch.device("cuda")),
         "device_name": torch.cuda.get_device_name(device_index),
-        "device_total_memory_bytes": int(device_properties.total_memory),
+        "device_total_memory_bytes": int(total_bytes),
         "torch_version": torch.__version__,
         "cuda_runtime_version": torch.version.cuda,
     }
 
 
-def _gpu_smoke_lane_payloads(
+def _gpu_smoke_case_payloads(
     tasks: Sequence[Mapping[str, Any]], *, seconds: float
-) -> list[dict[str, Any]]:
-    """Bind twelve lanes to the frozen 3-pair by 3-size task matrix."""
+) -> list[list[dict[str, Any]]]:
+    """Split one 15-30 second smoke across nine homogeneous 12-worker phases."""
 
     by_case: dict[tuple[tuple[str, str], int], list[Mapping[str, Any]]] = defaultdict(list)
     for task in tasks:
@@ -785,60 +1050,63 @@ def _gpu_smoke_lane_payloads(
         (pair, size) for pair in PROFILE_MODEL_PAIRS for size in PROFILE_EVAL_SIZES
     }
     _require(set(by_case) == expected_cases, "GPU smoke task matrix coverage differs")
-    selected = {
-        key: min(rows, key=lambda row: int(row["training_seed"]))
+    ordered_tasks = {
+        key: sorted(rows, key=lambda row: (int(row["training_seed"]), str(row["task_id"])))
         for key, rows in by_case.items()
     }
-    payloads: list[dict[str, Any]] = []
-
-    def append_case(task: Mapping[str, Any], slot: str) -> None:
-        lane_index = len(payloads)
-        pair = [str(value) for value in task["model_pair"]]
-        opening = _opening_from_pair(task["pair_plan"][0])
-        payloads.append(
-            {
-                "lane_index": lane_index,
-                "coverage_case_id": (
-                    f"{pair[0]}_vs_{pair[1]}.n{int(task['eval_size'])}."
-                    f"{slot}.lane{lane_index:02d}"
-                ),
-                "seconds": float(seconds),
-                "agent_binding": copy.deepcopy(dict(task["agent_bindings"][slot])),
-                "agent_slot": slot,
-                "model_pair": pair,
-                "eval_size": int(task["eval_size"]),
-                "opening": opening,
-            }
-        )
-
-    slot_by_size = {5: "A", 7: "B", 9: "A"}
+    per_case_seconds = float(seconds) / GPU_SMOKE_CASE_COUNT
+    phases: list[list[dict[str, Any]]] = []
     for pair in PROFILE_MODEL_PAIRS:
         for size in PROFILE_EVAL_SIZES:
-            append_case(selected[(pair, size)], slot_by_size[size])
-    for model_kind in PROFILE_MODEL_KINDS:
-        matching = next(
-            (task, slot)
-            for pair in PROFILE_MODEL_PAIRS
-            for size in PROFILE_EVAL_SIZES
-            for task in (selected[(pair, size)],)
-            for slot in ("A", "B")
-            if task["agent_bindings"][slot]["model_kind"] == model_kind
-        )
-        append_case(*matching)
-    _require(len(payloads) == SCALAR_LANE_COUNT, "GPU smoke lane count drifted")
-    return payloads
+            case_index = len(phases)
+            case_id = f"{pair[0]}_vs_{pair[1]}.n{size}"
+            case_tasks = ordered_tasks[(pair, size)]
+            payloads: list[dict[str, Any]] = []
+            for lane_index in range(SCALAR_LANE_COUNT):
+                task = case_tasks[lane_index % len(case_tasks)]
+                opening = _opening_from_pair(task["pair_plan"][0])
+                payloads.append(
+                    {
+                        "case_index": case_index,
+                        "lane_index": lane_index,
+                        "coverage_case_id": case_id,
+                        "seconds": per_case_seconds,
+                        "verify_resident_integrity": (
+                            case_index == GPU_SMOKE_CASE_COUNT - 1
+                        ),
+                        "task": copy.deepcopy(dict(task)),
+                        "opening": copy.deepcopy(dict(opening)),
+                    }
+                )
+            phases.append(payloads)
+    _require(len(phases) == GPU_SMOKE_CASE_COUNT, "GPU smoke case count drifted")
+    return phases
 
 
 def _profile_coverage(lane_results: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
-    kinds = {str(row["model_kind"]) for row in lane_results}
-    pairs = {tuple(str(value) for value in row["model_pair"]) for row in lane_results}
-    sizes = {int(row["eval_size"]) for row in lane_results}
-    pair_sizes = {
-        (tuple(str(value) for value in row["model_pair"]), int(row["eval_size"]))
-        for row in lane_results
-    }
+    kinds: set[str] = set()
+    kind_sizes: set[tuple[str, int]] = set()
+    pairs: set[tuple[str, str]] = set()
+    sizes: set[int] = set()
+    pair_sizes: set[tuple[tuple[str, str], int]] = set()
+    for row in lane_results:
+        size = int(row["eval_size"])
+        pair = tuple(str(value) for value in row["model_pair"])
+        pairs.add(pair)
+        sizes.add(size)
+        pair_sizes.add((pair, size))
+        for agent in row["agents"]:
+            kind = str(agent["model_kind"])
+            kinds.add(kind)
+            kind_sizes.add((kind, size))
     return {
         "model_kinds": [kind for kind in PROFILE_MODEL_KINDS if kind in kinds],
+        "model_kind_size_cases": [
+            {"model_kind": kind, "eval_size": size}
+            for kind in PROFILE_MODEL_KINDS
+            for size in PROFILE_EVAL_SIZES
+            if (kind, size) in kind_sizes
+        ],
         "model_pairs": [list(pair) for pair in PROFILE_MODEL_PAIRS if pair in pairs],
         "evaluation_sizes": [size for size in PROFILE_EVAL_SIZES if size in sizes],
         "model_pair_size_cases": [
@@ -860,6 +1128,121 @@ def _profile_coverage(lane_results: Sequence[Mapping[str, Any]]) -> dict[str, An
     }
 
 
+def _formal_capacity_projection(
+    lane_results: Sequence[Mapping[str, Any]],
+    tasks: Sequence[Mapping[str, Any]],
+) -> tuple[list[dict[str, Any]], float]:
+    """Project each case from its slowest observed multi-state scalar decision."""
+
+    grouped: dict[tuple[tuple[str, str], int], list[Mapping[str, Any]]] = defaultdict(list)
+    for row in lane_results:
+        key = (
+            tuple(str(value) for value in row["model_pair"]),
+            int(row["eval_size"]),
+        )
+        grouped[key].append(row)
+    task_groups: dict[tuple[tuple[str, str], int], list[Mapping[str, Any]]] = defaultdict(list)
+    for task in tasks:
+        key = (
+            tuple(str(value) for value in task["model_pair"]),
+            int(task["eval_size"]),
+        )
+        task_groups[key].append(task)
+    expected = [
+        (pair, size) for pair in PROFILE_MODEL_PAIRS for size in PROFILE_EVAL_SIZES
+    ]
+    _require(set(grouped) == set(expected), "formal capacity case coverage differs")
+    _require(set(task_groups) == set(expected), "formal capacity task coverage differs")
+    rows: list[dict[str, Any]] = []
+    total_projected = 0.0
+    for case_index, key in enumerate(expected):
+        lanes = grouped[key]
+        _require(
+            len(lanes) == SCALAR_LANE_COUNT
+            and {int(row["lane_index"]) for row in lanes}
+            == set(range(SCALAR_LANE_COUNT)),
+            "formal capacity case does not contain twelve homogeneous lanes",
+        )
+        decision_timings = [
+            float(value)
+            for row in lanes
+            for value in row["decision_seconds"]
+        ]
+        _require(bool(decision_timings), "formal capacity case has no decision timings")
+        slowest_decision_seconds = max(decision_timings)
+        case_tasks = task_groups[key]
+        case_decisions = sum(
+            int(task["games"]) * int(task["max_plies"])
+            for task in case_tasks
+        )
+        task_barrier_decisions_per_lane = [
+            math.ceil(len(task["pair_plan"]) / SCALAR_LANE_COUNT)
+            * 2
+            * int(task["max_plies"])
+            for task in case_tasks
+        ]
+        decisions_per_lane = sum(task_barrier_decisions_per_lane)
+        projected = decisions_per_lane * slowest_decision_seconds
+        total_projected += projected
+        rows.append(
+            {
+                "case_index": case_index,
+                "model_pair": list(key[0]),
+                "eval_size": key[1],
+                "formal_task_count": len(task_groups[key]),
+                "formal_worst_case_decisions": case_decisions,
+                "formal_worst_case_decisions_per_lane": decisions_per_lane,
+                "formal_task_barrier_decisions_per_lane": (
+                    task_barrier_decisions_per_lane
+                ),
+                "observed_scalar_decision_count": len(decision_timings),
+                "slowest_single_decision_seconds": slowest_decision_seconds,
+                "capacity_projection_method": (
+                    "sum_task_barriers_ceil_pairs_over_12_times_two_games_times_"
+                    "max_plies_times_slowest_observed_single_decision_seconds"
+                ),
+                "projected_worst_case_seconds": projected,
+            }
+        )
+    return rows, total_projected
+
+
+def _resident_memory_summary(
+    preload_results: Sequence[Mapping[str, Any]],
+    lane_results: Sequence[Mapping[str, Any]],
+) -> tuple[list[dict[str, Any]], int, int]:
+    """Reduce persistent per-process peaks without pretending contexts are tensors."""
+
+    by_pid: dict[int, dict[str, Any]] = {}
+    for row in [*preload_results, *lane_results]:
+        pid = int(row["worker_pid"])
+        allocated = int(row["max_memory_allocated_bytes"])
+        reserved = int(row["max_memory_reserved_bytes"])
+        if pid not in by_pid:
+            by_pid[pid] = {
+                "worker_pid": pid,
+                "max_memory_allocated_bytes": allocated,
+                "max_memory_reserved_bytes": reserved,
+            }
+        else:
+            by_pid[pid]["max_memory_allocated_bytes"] = max(
+                int(by_pid[pid]["max_memory_allocated_bytes"]), allocated
+            )
+            by_pid[pid]["max_memory_reserved_bytes"] = max(
+                int(by_pid[pid]["max_memory_reserved_bytes"]), reserved
+            )
+    _require(
+        len(by_pid) == SCALAR_LANE_COUNT,
+        "resident memory evidence does not cover all twelve worker processes",
+    )
+    rows = [by_pid[pid] for pid in sorted(by_pid)]
+    return (
+        rows,
+        sum(int(row["max_memory_allocated_bytes"]) for row in rows),
+        sum(int(row["max_memory_reserved_bytes"]) for row in rows),
+    )
+
+
 def gpu_smoke(
     manifest_path: Path,
     bundle_directory: Path,
@@ -870,13 +1253,15 @@ def gpu_smoke(
     """Sustain the frozen CUDA inference/PUCT path without changing weights.
 
     Smoke workers use the exact formal initializer, cached-agent loader,
-    playable-game copy, and scalar ``select_action`` path.  Together they
+    advancing game state, and scalar ``select_action`` path.  Together they
     cover every model family, every frozen model pair, and n=5/7/9 openings
-    without completing a game or writing lane artifacts.
+    while advancing real game states without writing formal lane artifacts.
     """
 
-    if not 15.0 <= seconds <= 30.0:
-        raise FormalExecutionError("GPU smoke duration must be between 15 and 30 seconds")
+    if not GPU_SMOKE_MIN_TOTAL_SECONDS <= seconds <= GPU_SMOKE_MAX_TOTAL_SECONDS:
+        raise FormalExecutionError(
+            "GPU smoke total sustained duration must be between 15 and 27 seconds"
+        )
 
     import torch
 
@@ -895,28 +1280,67 @@ def gpu_smoke(
     manifest_path = manifest_path.resolve()
     manifest, tasks, _, _ = load_frozen_bundle(manifest_path, bundle_directory)
     supply_started = time.perf_counter()
-    lane_payloads = _gpu_smoke_lane_payloads(tasks, seconds=seconds)
+    case_payloads = _gpu_smoke_case_payloads(tasks, seconds=seconds)
     supply_seconds = time.perf_counter() - supply_started
+    free_before_bytes, total_device_bytes = torch.cuda.mem_get_info()
+    preload_payloads = [
+        {"lane_index": lane_index} for lane_index in range(SCALAR_LANE_COUNT)
+    ]
+    lane_results: list[dict[str, Any]] = []
     with _ScalarLaneExecutor(
         SCALAR_LANE_COUNT,
         initializer=_initialize_formal_lane_worker,
         initargs=(copy.deepcopy(manifest), str(manifest_path), "cuda"),
     ) as lane_executor:
-        lane_results = lane_executor.map_ordered(
-            _run_gpu_smoke_lane,
-            lane_payloads,
+        preload_results = lane_executor.map_ordered(
+            _run_gpu_smoke_preload_lane,
+            preload_payloads,
         )
+        _require(
+            [row["lane_index"] for row in preload_results]
+            == list(range(SCALAR_LANE_COUNT))
+            and len({int(row["worker_pid"]) for row in preload_results})
+            == SCALAR_LANE_COUNT,
+            "GPU preload did not materialize one full cache in every worker",
+        )
+        preload_pids = {int(row["worker_pid"]) for row in preload_results}
+        for case_index, payloads in enumerate(case_payloads):
+            case_results = lane_executor.map_ordered(_run_gpu_smoke_lane, payloads)
+            _require(
+                all(int(row["case_index"]) == case_index for row in case_results)
+                and [row["lane_index"] for row in case_results]
+                == list(range(SCALAR_LANE_COUNT))
+                and {int(row["worker_pid"]) for row in case_results}
+                == preload_pids,
+                "GPU smoke case did not use all twelve preloaded formal workers",
+            )
+            lane_results.extend(dict(row) for row in case_results)
+        free_after_bytes, total_after_bytes = torch.cuda.mem_get_info()
+    resident_integrity_results = [
+        copy.deepcopy(row["resident_integrity"])
+        for row in lane_results
+        if row.get("resident_integrity") is not None
+    ]
     _require(
-        [row["lane_index"] for row in lane_results]
-        == list(range(SCALAR_LANE_COUNT)),
-        "GPU smoke lane results are not in canonical order",
+        len(resident_integrity_results) == SCALAR_LANE_COUNT
+        and {
+            int(row["worker_pid"]) for row in resident_integrity_results
+        }
+        == preload_pids
+        and all(
+            row.get("checkpoint_count") == 15
+            and row.get("all_state_tensors_unchanged") is True
+            and row.get("all_parameter_gradients_none") is True
+            for row in resident_integrity_results
+        ),
+        "GPU smoke final resident checkpoint integrity evidence differs",
+    )
+    _require(
+        total_after_bytes == total_device_bytes,
+        "GPU device memory size changed during smoke",
     )
     decisions = sum(int(row["puct_decisions"]) for row in lane_results)
     model_forward_calls = sum(int(row["model_forward_calls"]) for row in lane_results)
-    setup_seconds = max(float(row["setup_seconds"]) for row in lane_results)
-    sustained_seconds = max(
-        float(row["sustained_seconds"]) for row in lane_results
-    )
     utilization = [
         float(sample)
         for row in lane_results
@@ -930,19 +1354,49 @@ def gpu_smoke(
     _require(len(cuda_versions) == 1, "GPU smoke lanes used different CUDA runtimes")
     total_seconds = time.perf_counter() - started
     _require(
-        GPU_SMOKE_MIN_TOTAL_SECONDS <= total_seconds <= GPU_SMOKE_MAX_TOTAL_SECONDS,
-        "GPU smoke total duration must stay within 15-30 seconds; the requested "
-        "sustained interval leaves only bounded process/model setup headroom",
+        GPU_SMOKE_MIN_TOTAL_SECONDS
+        <= total_seconds
+        <= GPU_SMOKE_MAX_TOTAL_SECONDS,
+        "GPU smoke total command duration is outside the 15-30 second bound",
     )
-    aggregate_window_seconds = max(
-        float(row["sustained_seconds"]) for row in lane_results
+    capacity_cases, projected_worst_case_seconds = _formal_capacity_projection(
+        lane_results, tasks
+    )
+    aggregate_window_seconds = sum(
+        max(
+            float(row["sustained_seconds"])
+            for row in lane_results
+            if int(row["case_index"]) == case_index
+        )
+        for case_index in range(GPU_SMOKE_CASE_COUNT)
+    )
+    _require(
+        float(seconds)
+        <= aggregate_window_seconds
+        <= total_seconds,
+        "GPU smoke aggregate sustained phases exceed the total command duration",
+    )
+    setup_seconds = total_seconds - aggregate_window_seconds
+    _require(
+        setup_seconds >= 0.0,
+        "GPU smoke setup accounting is negative",
     )
     aggregate_rate = decisions / aggregate_window_seconds
     max_plies = max(int(task["max_plies"]) for task in tasks)
-    worst_case_decisions = EXPECTED_GAMES * max_plies
-    projected_worst_case_seconds = worst_case_decisions / aggregate_rate
-    aggregate_memory = sum(
-        int(row["max_memory_allocated_bytes"]) for row in lane_results
+    worst_case_decisions = sum(
+        int(task["games"]) * int(task["max_plies"]) for task in tasks
+    )
+    resident_workers, aggregate_allocated, aggregate_reserved = (
+        _resident_memory_summary(preload_results, lane_results)
+    )
+    device_used_after_bytes = int(total_after_bytes - free_after_bytes)
+    _require(
+        aggregate_reserved <= MAX_AGGREGATE_LANE_MEMORY_BYTES,
+        "formal persistent worker caches exceed the aggregate reserved-memory gate",
+    )
+    _require(
+        free_after_bytes >= MIN_DEVICE_FREE_HEADROOM_BYTES,
+        "formal persistent worker caches leave insufficient device headroom",
     )
     profile = {
         "schema_name": THROUGHPUT_PROFILE_SCHEMA,
@@ -976,12 +1430,14 @@ def gpu_smoke(
         "root_noise": bool(manifest["search"]["add_root_noise"]),
         "data_supply": "registered_d18_v3_task_binding_and_opening_clone",
         "coverage": _profile_coverage(lane_results),
+        "capacity_cases": capacity_cases,
         "input_parse_and_collate_seconds": supply_seconds,
         "setup_seconds": setup_seconds,
         "puct_decisions": decisions,
         "model_forward_calls": model_forward_calls,
         "requested_sustained_seconds": float(seconds),
-        "sustained_seconds": sustained_seconds,
+        "requested_case_seconds": float(seconds) / GPU_SMOKE_CASE_COUNT,
+        "sustained_seconds": aggregate_window_seconds,
         "duration_seconds": total_seconds,
         "total_seconds": total_seconds,
         "aggregate_window_seconds": aggregate_window_seconds,
@@ -997,9 +1453,23 @@ def gpu_smoke(
         "gpu_utilization_samples_percent": utilization,
         "gpu_utilization_mean_percent": statistics.fmean(utilization) if utilization else None,
         "gpu_utilization_max_percent": max(utilization) if utilization else None,
-        "aggregate_peak_memory_allocated_bytes": aggregate_memory,
+        "aggregate_peak_memory_allocated_bytes": aggregate_allocated,
+        "aggregate_peak_memory_reserved_bytes": aggregate_reserved,
         "aggregate_peak_memory_limit_bytes": MAX_AGGREGATE_LANE_MEMORY_BYTES,
         "minimum_device_memory_bytes": MIN_DEVICE_MEMORY_BYTES,
+        "minimum_device_free_headroom_bytes": MIN_DEVICE_FREE_HEADROOM_BYTES,
+        "device_total_memory_bytes": int(total_after_bytes),
+        "device_free_memory_before_preload_bytes": int(free_before_bytes),
+        "device_free_memory_after_smoke_bytes": int(free_after_bytes),
+        "device_used_memory_after_smoke_bytes": device_used_after_bytes,
+        "resident_checkpoint_count_per_worker": 15,
+        "resident_cache_preload_results": preload_results,
+        "resident_integrity_check_mode": (
+            "final_case_all_checkpoints_against_preload_cuda_clones"
+        ),
+        "resident_integrity_worker_count": len(resident_integrity_results),
+        "resident_integrity_results": resident_integrity_results,
+        "resident_worker_memory": resident_workers,
         "completed_at_utc": _utc_now(),
     }
     _validate_throughput_profile_payload(
@@ -1045,7 +1515,7 @@ def _validate_throughput_profile_payload(
     manifest_sha256: str,
     tasks: Sequence[Mapping[str, Any]],
 ) -> dict[str, Any]:
-    """Validate identity, coverage, environment, capacity, and finite telemetry."""
+    """Validate the multi-state, homogeneous-case CUDA smoke receipt."""
 
     _require_all_numbers_finite(profile)
     expected = {
@@ -1056,8 +1526,8 @@ def _validate_throughput_profile_payload(
         "formal_manifest_sha256": manifest_sha256,
         "formal_runner_sha256": sha256_file(SCRIPT_PATH),
         "preparation_runner_sha256": sha256_file(prep.SCRIPT_PATH),
-        "formal_games_executed": 0,
         "frozen_checkpoint_models": True,
+        "formal_games_executed": 0,
         "device": "cuda",
         "inference_only": True,
         "training_mode": False,
@@ -1075,12 +1545,19 @@ def _validate_throughput_profile_payload(
         "puct_simulations": 16,
         "temperature": 0.0,
         "root_noise": False,
+        "data_supply": "registered_d18_v3_task_binding_and_opening_clone",
         "formal_game_count": EXPECTED_GAMES,
         "formal_runtime_seconds": MAX_RUNTIME_SECONDS,
         "non_gameplay_reserve_fraction": FORMAL_NON_GAMEPLAY_RESERVE_FRACTION,
         "formal_gameplay_budget_seconds": FORMAL_GAMEPLAY_BUDGET_SECONDS,
         "aggregate_peak_memory_limit_bytes": MAX_AGGREGATE_LANE_MEMORY_BYTES,
         "minimum_device_memory_bytes": MIN_DEVICE_MEMORY_BYTES,
+        "minimum_device_free_headroom_bytes": MIN_DEVICE_FREE_HEADROOM_BYTES,
+        "resident_checkpoint_count_per_worker": 15,
+        "resident_integrity_check_mode": (
+            "final_case_all_checkpoints_against_preload_cuda_clones"
+        ),
+        "resident_integrity_worker_count": SCALAR_LANE_COUNT,
     }
     for field, value in expected.items():
         _require(
@@ -1088,13 +1565,6 @@ def _validate_throughput_profile_payload(
             f"formal throughput profile binding mismatch: {field}",
         )
     _require(len(tasks) == EXPECTED_TASKS, "formal throughput task count drifted")
-    max_plies = max(int(task["max_plies"]) for task in tasks)
-    worst_case_decisions = EXPECTED_GAMES * max_plies
-    _require(profile.get("formal_max_plies") == max_plies, "formal throughput max-plies drifted")
-    _require(
-        profile.get("worst_case_puct_decisions") == worst_case_decisions,
-        "formal throughput worst-case decision count drifted",
-    )
     _require(
         EXPECTED_DEVICE_NAME_FRAGMENT.lower()
         in str(profile.get("device_name", "")).lower(),
@@ -1109,6 +1579,16 @@ def _validate_throughput_profile_payload(
         profile.get("cuda_runtime_version") == EXPECTED_CUDA_RUNTIME_VERSION,
         "formal throughput CUDA runtime drifted",
     )
+
+    def strict_int(value: Any, label: str, *, minimum: int = 0) -> int:
+        _require(
+            isinstance(value, int)
+            and not isinstance(value, bool)
+            and value >= minimum,
+            f"{label} must be an integer >= {minimum}",
+        )
+        return int(value)
+
     requested_seconds = _finite_number(
         profile.get("requested_sustained_seconds"),
         "throughput.requested_sustained_seconds",
@@ -1116,160 +1596,501 @@ def _validate_throughput_profile_payload(
     )
     _require(
         requested_seconds <= GPU_SMOKE_MAX_TOTAL_SECONDS,
-        "formal throughput requested duration exceeds 30 seconds",
+        "formal throughput requested sustained duration exceeds 27 seconds",
     )
-    total_seconds = _finite_number(profile.get("total_seconds"), "throughput.total_seconds")
-    _require(
-        GPU_SMOKE_MIN_TOTAL_SECONDS <= total_seconds <= GPU_SMOKE_MAX_TOTAL_SECONDS,
-        "formal throughput total duration is outside 15-30 seconds",
+    requested_case_seconds = _finite_number(
+        profile.get("requested_case_seconds"),
+        "throughput.requested_case_seconds",
+        minimum=GPU_SMOKE_MIN_CASE_SECONDS,
     )
     _require(
         math.isclose(
-            _finite_number(profile.get("duration_seconds"), "throughput.duration_seconds"),
+            requested_case_seconds,
+            requested_seconds / GPU_SMOKE_CASE_COUNT,
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        )
+        and requested_case_seconds <= GPU_SMOKE_MAX_CASE_SECONDS,
+        "formal throughput case duration is not the deterministic nine-way split",
+    )
+    total_seconds = _finite_number(
+        profile.get("total_seconds"), "throughput.total_seconds"
+    )
+    _require(
+        GPU_SMOKE_MIN_TOTAL_SECONDS
+        <= total_seconds
+        <= GPU_SMOKE_MAX_TOTAL_SECONDS
+        and requested_seconds <= total_seconds,
+        "formal throughput total command duration is outside 15-30 seconds",
+    )
+    _require(
+        math.isclose(
+            _finite_number(
+                profile.get("duration_seconds"), "throughput.duration_seconds"
+            ),
             total_seconds,
             rel_tol=1e-12,
             abs_tol=1e-12,
         ),
         "formal throughput duration fields differ",
     )
-    lane_results = profile.get("lane_results")
-    _require(
-        isinstance(lane_results, list) and len(lane_results) == SCALAR_LANE_COUNT,
-        "formal throughput profile does not contain all scalar lanes",
-    )
-    _require(
-        all(isinstance(row, Mapping) for row in lane_results)
-        and [row.get("lane_index") for row in lane_results]
-        == list(range(SCALAR_LANE_COUNT)),
-        "formal throughput profile lane order drifted",
-    )
-    allowed_by_case: dict[tuple[tuple[str, str], int], dict[str, set[str]]] = defaultdict(
-        lambda: {"checkpoint_ids": set(), "opening_ids": set()}
-    )
+
+    task_groups: dict[
+        tuple[tuple[str, str], int], list[Mapping[str, Any]]
+    ] = defaultdict(list)
+    task_by_identity: dict[
+        tuple[tuple[str, str], int, int, str], Mapping[str, Any]
+    ] = {}
+    checkpoint_ids: set[str] = set()
     for task in tasks:
-        key = (tuple(str(value) for value in task["model_pair"]), int(task["eval_size"]))
-        allowed_by_case[key]["checkpoint_ids"].update(
-            str(task["agent_bindings"][slot]["checkpoint_id"])
-            for slot in ("A", "B")
+        pair = tuple(str(value) for value in task["model_pair"])
+        size = int(task["eval_size"])
+        seed = int(task["training_seed"])
+        task_id = str(task["task_id"])
+        key = (pair, size)
+        identity = (pair, size, seed, task_id)
+        _require(identity not in task_by_identity, "formal throughput task identity is duplicated")
+        task_groups[key].append(task)
+        task_by_identity[identity] = task
+        for slot in ("A", "B"):
+            checkpoint_ids.add(str(task["agent_bindings"][slot]["checkpoint_id"]))
+    expected_cases = [
+        (pair, size) for pair in PROFILE_MODEL_PAIRS for size in PROFILE_EVAL_SIZES
+    ]
+    _require(set(task_groups) == set(expected_cases), "formal throughput task cases drifted")
+    _require(len(checkpoint_ids) == 15, "formal throughput checkpoint registry drifted")
+    ordered_case_tasks = {
+        key: sorted(
+            rows,
+            key=lambda row: (int(row["training_seed"]), str(row["task_id"])),
         )
-        allowed_by_case[key]["opening_ids"].update(
-            str(pair["opening_id"]) for pair in task["pair_plan"]
+        for key, rows in task_groups.items()
+    }
+
+    device_total = strict_int(
+        profile.get("device_total_memory_bytes"),
+        "throughput.device_total_memory_bytes",
+        minimum=MIN_DEVICE_MEMORY_BYTES,
+    )
+    free_before = strict_int(
+        profile.get("device_free_memory_before_preload_bytes"),
+        "throughput.device_free_memory_before_preload_bytes",
+    )
+    free_after = strict_int(
+        profile.get("device_free_memory_after_smoke_bytes"),
+        "throughput.device_free_memory_after_smoke_bytes",
+        minimum=MIN_DEVICE_FREE_HEADROOM_BYTES,
+    )
+    _require(
+        free_before <= device_total and free_after <= device_total,
+        "formal throughput device-free memory exceeds total memory",
+    )
+    _require(
+        profile.get("device_used_memory_after_smoke_bytes")
+        == device_total - free_after,
+        "formal throughput device-used memory drifted",
+    )
+
+    preload_results = profile.get("resident_cache_preload_results")
+    _require(
+        isinstance(preload_results, list)
+        and len(preload_results) == SCALAR_LANE_COUNT
+        and all(isinstance(row, Mapping) for row in preload_results),
+        "formal throughput preload evidence does not contain twelve workers",
+    )
+    _require(
+        [row.get("lane_index") for row in preload_results]
+        == list(range(SCALAR_LANE_COUNT)),
+        "formal throughput preload lane order drifted",
+    )
+    preload_pids: set[int] = set()
+    for index, row in enumerate(preload_results):
+        pid = strict_int(row.get("worker_pid"), f"throughput preload {index} PID", minimum=1)
+        preload_pids.add(pid)
+        _require(
+            row.get("checkpoint_count") == 15
+            and isinstance(row.get("checkpoint_ids"), list)
+            and len(row["checkpoint_ids"]) == 15
+            and set(str(value) for value in row["checkpoint_ids"]) == checkpoint_ids,
+            f"throughput preload {index} did not materialize all checkpoints",
         )
+        _require(
+            row.get("device_baseline_checkpoint_count") == 15
+            and row.get("device_baseline_checkpoint_ids") == row.get("checkpoint_ids")
+            and strict_int(
+                row.get("device_baseline_tensor_count"),
+                f"throughput preload {index} baseline tensors",
+                minimum=15,
+            )
+            >= 15
+            and row.get("device_baseline_storage") == "immutable_cuda_clone",
+            f"throughput preload {index} device baseline differs",
+        )
+        allocated = strict_int(
+            row.get("max_memory_allocated_bytes"),
+            f"throughput preload {index} allocated memory",
+            minimum=1,
+        )
+        reserved = strict_int(
+            row.get("max_memory_reserved_bytes"),
+            f"throughput preload {index} reserved memory",
+            minimum=allocated,
+        )
+        del reserved
+        _require(
+            strict_int(
+                row.get("device_total_memory_bytes"),
+                f"throughput preload {index} device memory",
+                minimum=MIN_DEVICE_MEMORY_BYTES,
+            )
+            == device_total,
+            f"throughput preload {index} device memory drifted",
+        )
+        _require(
+            strict_int(
+                row.get("device_free_memory_bytes"),
+                f"throughput preload {index} free memory",
+            )
+            <= device_total,
+            f"throughput preload {index} free memory exceeds device memory",
+        )
+    _require(
+        len(preload_pids) == SCALAR_LANE_COUNT,
+        "formal throughput preload did not cover twelve persistent processes",
+    )
+
+    lane_results = profile.get("lane_results")
+    expected_lane_rows = GPU_SMOKE_CASE_COUNT * SCALAR_LANE_COUNT
+    _require(
+        isinstance(lane_results, list)
+        and len(lane_results) == expected_lane_rows
+        and all(isinstance(row, Mapping) for row in lane_results),
+        "formal throughput profile does not contain all nine by twelve lane rows",
+    )
     decisions = 0
     forward_calls = 0
-    memory_sum = 0
     utilization: list[float] = []
-    lane_sustained: list[float] = []
-    for index, lane in enumerate(lane_results):
-        lane_decisions = lane.get("puct_decisions")
-        lane_forwards = lane.get("model_forward_calls")
-        _require(
-            isinstance(lane_decisions, int)
-            and not isinstance(lane_decisions, bool)
-            and lane_decisions > 0,
-            f"throughput lane {index} has no PUCT decisions",
-        )
-        _require(
-            isinstance(lane_forwards, int)
-            and not isinstance(lane_forwards, bool)
-            and lane_decisions <= lane_forwards <= lane_decisions * 17,
-            f"throughput lane {index} forward count is inconsistent",
-        )
-        sustained = _finite_number(
-            lane.get("sustained_seconds"),
-            f"throughput lane {index} sustained_seconds",
-        )
-        lane_total = _finite_number(
-            lane.get("total_seconds"), f"throughput lane {index} total_seconds"
-        )
-        _finite_number(
-            lane.get("setup_seconds"),
-            f"throughput lane {index} setup_seconds",
-            minimum=0.0,
-        )
-        _require(
-            requested_seconds <= sustained <= requested_seconds + 5.0,
-            f"throughput lane {index} did not sustain the requested interval",
-        )
-        _require(
-            sustained <= lane_total <= total_seconds,
-            f"throughput lane {index} duration exceeds the smoke command",
-        )
-        _require(lane.get("device") == "cuda", f"throughput lane {index} is not CUDA")
-        _require(
-            EXPECTED_DEVICE_NAME_FRAGMENT.lower()
-            in str(lane.get("device_name", "")).lower(),
-            f"throughput lane {index} is not on RTX 5090",
-        )
-        _require(
-            str(lane.get("torch_version", "")).split("+", 1)[0]
-            == EXPECTED_TORCH_VERSION,
-            f"throughput lane {index} torch version drifted",
-        )
-        _require(
-            lane.get("cuda_runtime_version") == EXPECTED_CUDA_RUNTIME_VERSION,
-            f"throughput lane {index} CUDA runtime drifted",
-        )
-        device_memory = lane.get("device_total_memory_bytes")
-        peak_memory = lane.get("max_memory_allocated_bytes")
-        _require(
-            isinstance(device_memory, int)
-            and not isinstance(device_memory, bool)
-            and device_memory >= MIN_DEVICE_MEMORY_BYTES,
-            f"throughput lane {index} device memory is below the 32-GiB class",
-        )
-        _require(
-            isinstance(peak_memory, int)
-            and not isinstance(peak_memory, bool)
-            and 0 < peak_memory <= device_memory,
-            f"throughput lane {index} peak memory is invalid",
-        )
-        samples = lane.get("gpu_utilization_samples_percent")
-        _require(
-            isinstance(samples, list) and bool(samples),
-            f"throughput lane {index} has no utilization samples",
-        )
-        lane_samples = [
-            _finite_number(sample, f"throughput lane {index} utilization")
-            for sample in samples
+    case_sustained: list[float] = []
+    resident_integrity_results: list[Mapping[str, Any]] = []
+    for case_index, case_key in enumerate(expected_cases):
+        case_rows = lane_results[
+            case_index * SCALAR_LANE_COUNT : (case_index + 1) * SCALAR_LANE_COUNT
+        ]
+        case_pids = [
+            strict_int(
+                row.get("worker_pid"),
+                f"throughput case {case_index} worker PID",
+                minimum=1,
+            )
+            for row in case_rows
         ]
         _require(
-            all(0.0 <= sample <= 100.0 for sample in lane_samples),
-            f"throughput lane {index} utilization is outside 0-100",
+            [row.get("case_index") for row in case_rows]
+            == [case_index] * SCALAR_LANE_COUNT
+            and [row.get("lane_index") for row in case_rows]
+            == list(range(SCALAR_LANE_COUNT))
+            and set(case_pids) == preload_pids,
+            f"throughput case {case_index} is not one homogeneous twelve-worker phase",
         )
-        pair = tuple(str(value) for value in lane.get("model_pair", []))
-        size = lane.get("eval_size")
-        key = (pair, size)
-        _require(key in allowed_by_case, f"throughput lane {index} task case is unknown")
+        case_id = f"{case_key[0][0]}_vs_{case_key[0][1]}.n{case_key[1]}"
+        lane_durations: list[float] = []
+        for lane_offset, lane in enumerate(case_rows):
+            row_index = case_index * SCALAR_LANE_COUNT + lane_offset
+            selected_task = ordered_case_tasks[case_key][
+                lane_offset % len(ordered_case_tasks[case_key])
+            ]
+            expected_task_id = str(selected_task["task_id"])
+            expected_seed = int(selected_task["training_seed"])
+            expected_opening = _opening_from_pair(selected_task["pair_plan"][0])
+            expected_agents = [
+                {
+                    "agent_slot": slot,
+                    "checkpoint_id": str(
+                        selected_task["agent_bindings"][slot]["checkpoint_id"]
+                    ),
+                    "model_kind": str(
+                        selected_task["agent_bindings"][slot]["model_kind"]
+                    ),
+                }
+                for slot in ("A", "B")
+            ]
+            pair = tuple(str(value) for value in lane.get("model_pair", []))
+            size = strict_int(
+                lane.get("eval_size"),
+                f"throughput lane {row_index} evaluation size",
+                minimum=1,
+            )
+            seed = strict_int(
+                lane.get("training_seed"),
+                f"throughput lane {row_index} training seed",
+                minimum=0,
+            )
+            task_id = str(lane.get("task_id", ""))
+            identity = (pair, size, seed, task_id)
+            _require(
+                identity in task_by_identity
+                and task_by_identity[identity] is selected_task
+                and pair == case_key[0]
+                and size == case_key[1]
+                and seed == expected_seed
+                and task_id == expected_task_id,
+                f"throughput lane {row_index} is not bound to its selected frozen task",
+            )
+            _require(
+                lane.get("agents") == expected_agents
+                and lane.get("agent_slots_exercised") == ["A", "B"]
+                and lane.get("warmup_puct_decisions") == 2,
+                f"throughput lane {row_index} agent binding is not exact",
+            )
+            resident_integrity = lane.get("resident_integrity")
+            if case_index == GPU_SMOKE_CASE_COUNT - 1:
+                _require(
+                    isinstance(resident_integrity, Mapping),
+                    f"throughput lane {row_index} lacks final resident integrity",
+                )
+                resident_integrity_results.append(resident_integrity)
+            else:
+                _require(
+                    resident_integrity is None,
+                    f"throughput lane {row_index} performed early resident integrity",
+                )
+            _require(
+                lane.get("coverage_case_id") == case_id
+                and lane.get("opening_id") == expected_opening["opening_id"],
+                f"throughput lane {row_index} case/opening binding drifted",
+            )
+            _require(
+                lane.get("black_slot") == selected_task["pair_plan"][0]["black_slot"]
+                and lane.get("white_slot")
+                == selected_task["pair_plan"][0]["white_slot"],
+                f"throughput lane {row_index} color-slot binding drifted",
+            )
+            lane_decisions = strict_int(
+                lane.get("puct_decisions"),
+                f"throughput lane {row_index} decisions",
+                minimum=2,
+            )
+            per_agent_decisions = lane.get("per_agent_puct_decisions")
+            _require(
+                isinstance(per_agent_decisions, Mapping)
+                and set(per_agent_decisions) == {"A", "B"}
+                and all(
+                    isinstance(per_agent_decisions[slot], int)
+                    and not isinstance(per_agent_decisions[slot], bool)
+                    and per_agent_decisions[slot] > 0
+                    for slot in ("A", "B")
+                )
+                and sum(int(per_agent_decisions[slot]) for slot in ("A", "B"))
+                == lane_decisions,
+                f"throughput lane {row_index} did not exercise both agents",
+            )
+            lane_forwards = strict_int(
+                lane.get("model_forward_calls"),
+                f"throughput lane {row_index} forwards",
+                minimum=lane_decisions,
+            )
+            per_agent_forwards = lane.get("per_agent_model_forward_calls")
+            _require(
+                isinstance(per_agent_forwards, Mapping)
+                and set(per_agent_forwards) == {"A", "B"}
+                and all(
+                    isinstance(per_agent_forwards[slot], int)
+                    and not isinstance(per_agent_forwards[slot], bool)
+                    and per_agent_forwards[slot] > 0
+                    for slot in ("A", "B")
+                )
+                and sum(int(per_agent_forwards[slot]) for slot in ("A", "B"))
+                == lane_forwards
+                and lane_forwards <= lane_decisions * 17,
+                f"throughput lane {row_index} forward count is inconsistent",
+            )
+            timings = lane.get("decision_seconds")
+            _require(
+                isinstance(timings, list) and len(timings) == lane_decisions,
+                f"throughput lane {row_index} decision timing is incomplete",
+            )
+            decision_timings = [
+                _finite_number(
+                    value,
+                    f"throughput lane {row_index} decision_seconds",
+                    minimum=0.0,
+                )
+                for value in timings
+            ]
+            _require(
+                all(value > 0.0 for value in decision_timings)
+                and lane.get("slowest_decision_seconds") == max(decision_timings),
+                f"throughput lane {row_index} slowest decision timing drifted",
+            )
+            state_fingerprints = lane.get("decision_state_fingerprints")
+            action_indices = lane.get("decision_action_indices")
+            _require(
+                isinstance(state_fingerprints, list)
+                and len(state_fingerprints) == lane_decisions
+                and isinstance(action_indices, list)
+                and len(action_indices) == lane_decisions
+                and all(
+                    isinstance(value, str)
+                    and len(value) == 64
+                    and all(character in "0123456789abcdef" for character in value)
+                    for value in state_fingerprints
+                )
+                and all(
+                    isinstance(value, int) and not isinstance(value, bool)
+                    for value in action_indices
+                ),
+                f"throughput lane {row_index} replay trace is incomplete",
+            )
+            replayed_game = legacy._game_from_opening(expected_opening, size)
+            replayed_plies = len(expected_opening["opening_actions"])
+            replayed_resets = 0
+            max_plies = strict_int(
+                selected_task.get("max_plies"),
+                f"throughput lane {row_index} max plies",
+                minimum=1,
+            )
+            for decision_index, (state_fingerprint, action_index) in enumerate(
+                zip(state_fingerprints, action_indices)
+            ):
+                _require(
+                    replayed_game.state_fingerprint() == state_fingerprint,
+                    f"throughput lane {row_index} pre-state differs at decision "
+                    f"{decision_index}",
+                )
+                _require(
+                    0 <= action_index <= replayed_game.num_points,
+                    f"throughput lane {row_index} action is out of range at decision "
+                    f"{decision_index}",
+                )
+                legacy._apply_action_index(replayed_game, action_index)
+                replayed_plies += 1
+                if replayed_game.game_over or replayed_plies >= max_plies:
+                    replayed_game = legacy._game_from_opening(expected_opening, size)
+                    replayed_plies = len(expected_opening["opening_actions"])
+                    replayed_resets += 1
+            _require(
+                lane.get("unique_state_count") == len(set(state_fingerprints))
+                and len(set(state_fingerprints)) >= 2
+                and lane.get("game_resets") == replayed_resets,
+                f"throughput lane {row_index} replay/reset evidence differs",
+            )
+            sustained = _finite_number(
+                lane.get("sustained_seconds"),
+                f"throughput lane {row_index} sustained seconds",
+                minimum=requested_case_seconds,
+            )
+            lane_total = _finite_number(
+                lane.get("total_seconds"),
+                f"throughput lane {row_index} total seconds",
+                minimum=sustained,
+            )
+            _finite_number(
+                lane.get("setup_seconds"),
+                f"throughput lane {row_index} setup seconds",
+                minimum=0.0,
+            )
+            _require(
+                sustained <= total_seconds
+                and lane_total <= total_seconds,
+                f"throughput lane {row_index} runtime exceeds the smoke command",
+            )
+            _require(
+                lane.get("device") == "cuda"
+                and EXPECTED_DEVICE_NAME_FRAGMENT.lower()
+                in str(lane.get("device_name", "")).lower()
+                and str(lane.get("torch_version", "")).split("+", 1)[0]
+                == EXPECTED_TORCH_VERSION
+                and lane.get("cuda_runtime_version") == EXPECTED_CUDA_RUNTIME_VERSION,
+                f"throughput lane {row_index} environment drifted",
+            )
+            lane_device_total = strict_int(
+                lane.get("device_total_memory_bytes"),
+                f"throughput lane {row_index} device memory",
+                minimum=MIN_DEVICE_MEMORY_BYTES,
+            )
+            allocated = strict_int(
+                lane.get("max_memory_allocated_bytes"),
+                f"throughput lane {row_index} allocated memory",
+                minimum=1,
+            )
+            strict_int(
+                lane.get("max_memory_reserved_bytes"),
+                f"throughput lane {row_index} reserved memory",
+                minimum=allocated,
+            )
+            _require(
+                lane_device_total == device_total
+                and strict_int(
+                    lane.get("device_free_memory_bytes"),
+                    f"throughput lane {row_index} free memory",
+                )
+                <= lane_device_total,
+                f"throughput lane {row_index} device memory drifted",
+            )
+            samples = lane.get("gpu_utilization_samples_percent")
+            _require(
+                isinstance(samples, list) and bool(samples),
+                f"throughput lane {row_index} has no utilization samples",
+            )
+            lane_samples = [
+                _finite_number(
+                    sample, f"throughput lane {row_index} utilization", minimum=0.0
+                )
+                for sample in samples
+            ]
+            _require(
+                all(sample <= 100.0 for sample in lane_samples),
+                f"throughput lane {row_index} utilization exceeds 100 percent",
+            )
+            decisions += lane_decisions
+            forward_calls += lane_forwards
+            utilization.extend(lane_samples)
+            lane_durations.append(sustained)
+        case_sustained.append(max(lane_durations))
+
+    _require(
+        profile.get("resident_integrity_results") == resident_integrity_results
+        and len(resident_integrity_results) == SCALAR_LANE_COUNT,
+        "formal throughput resident integrity result set differs",
+    )
+    integrity_pids: set[int] = set()
+    for index, row in enumerate(resident_integrity_results):
+        integrity_pids.add(
+            strict_int(
+                row.get("worker_pid"),
+                f"throughput resident integrity {index} PID",
+                minimum=1,
+            )
+        )
         _require(
-            lane.get("checkpoint_id") in allowed_by_case[key]["checkpoint_ids"],
-            f"throughput lane {index} checkpoint is not task-bound",
+            row.get("checkpoint_count") == 15
+            and isinstance(row.get("checkpoint_ids"), list)
+            and len(row["checkpoint_ids"]) == 15
+            and set(str(value) for value in row["checkpoint_ids"]) == checkpoint_ids
+            and strict_int(
+                row.get("tensor_count"),
+                f"throughput resident integrity {index} tensors",
+                minimum=15,
+            )
+            >= 15
+            and row.get("device_baseline_storage") == "immutable_cuda_clone"
+            and row.get("all_state_tensors_unchanged") is True
+            and row.get("all_parameter_gradients_none") is True,
+            f"throughput resident integrity {index} differs",
         )
-        _require(
-            lane.get("opening_id") in allowed_by_case[key]["opening_ids"],
-            f"throughput lane {index} opening is not task-bound",
-        )
-        _require(
-            lane.get("model_kind") in pair
-            and lane.get("model_kind") in PROFILE_MODEL_KINDS,
-            f"throughput lane {index} model family is not pair-bound",
-        )
-        _require(
-            lane.get("agent_slot") in {"A", "B"},
-            f"throughput lane {index} agent slot is invalid",
-        )
-        _require(
-            bool(str(lane.get("coverage_case_id", ""))),
-            f"throughput lane {index} coverage ID is missing",
-        )
-        decisions += lane_decisions
-        forward_calls += lane_forwards
-        memory_sum += peak_memory
-        utilization.extend(lane_samples)
-        lane_sustained.append(sustained)
+    _require(
+        integrity_pids == preload_pids,
+        "formal throughput resident integrity did not cover twelve preload PIDs",
+    )
+
     coverage = _profile_coverage(lane_results)
     expected_coverage = {
         "model_kinds": list(PROFILE_MODEL_KINDS),
+        "model_kind_size_cases": [
+            {"model_kind": kind, "eval_size": size}
+            for kind in PROFILE_MODEL_KINDS
+            for size in PROFILE_EVAL_SIZES
+        ],
         "model_pairs": [list(pair) for pair in PROFILE_MODEL_PAIRS],
         "evaluation_sizes": list(PROFILE_EVAL_SIZES),
         "model_pair_size_cases": [
@@ -1280,49 +2101,108 @@ def _validate_throughput_profile_payload(
         "opening_ids_by_size": coverage["opening_ids_by_size"],
     }
     _require(
-        profile.get("coverage") == expected_coverage,
-        "formal throughput coverage is incomplete",
+        profile.get("coverage") == expected_coverage
+        and {
+            (row["model_kind"], row["eval_size"])
+            for row in expected_coverage["model_kind_size_cases"]
+        }
+        >= {("topology_gnn", 9)},
+        "formal throughput coverage is incomplete, including topology_gnn at N=9",
     )
-    _require(profile.get("puct_decisions") == decisions, "formal throughput decision aggregate drifted")
-    _require(profile.get("model_forward_calls") == forward_calls, "formal throughput forward aggregate drifted")
-    aggregate_window = max(lane_sustained)
+    _require(
+        profile.get("puct_decisions") == decisions
+        and profile.get("model_forward_calls") == forward_calls,
+        "formal throughput decision/forward aggregate drifted",
+    )
+    aggregate_window = sum(case_sustained)
     aggregate_rate = decisions / aggregate_window
-    projected = worst_case_decisions / aggregate_rate
     _require(
         math.isclose(
-            _finite_number(profile.get("aggregate_window_seconds"), "throughput.aggregate_window_seconds"),
+            _finite_number(
+                profile.get("aggregate_window_seconds"),
+                "throughput.aggregate_window_seconds",
+            ),
             aggregate_window,
             rel_tol=1e-12,
             abs_tol=1e-12,
-        ),
-        "formal throughput aggregate window drifted",
+        )
+        and math.isclose(
+            _finite_number(
+                profile.get("sustained_seconds"), "throughput.sustained_seconds"
+            ),
+            aggregate_window,
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        )
+        and requested_seconds
+        <= aggregate_window
+        <= total_seconds,
+        "formal throughput sustained window drifted",
     )
     _require(
         math.isclose(
-            _finite_number(profile.get("aggregate_puct_decisions_per_second"), "throughput.aggregate_rate"),
+            _finite_number(
+                profile.get("aggregate_puct_decisions_per_second"),
+                "throughput.aggregate_rate",
+            ),
             aggregate_rate,
             rel_tol=1e-12,
             abs_tol=1e-12,
         ),
         "formal throughput aggregate rate drifted",
     )
+    setup_seconds = total_seconds - aggregate_window
+    _require(
+        setup_seconds >= 0.0
+        and math.isclose(
+            _finite_number(profile.get("setup_seconds"), "throughput.setup_seconds"),
+            setup_seconds,
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        ),
+        "formal throughput setup accounting drifted",
+    )
+
+    max_plies = max(int(task["max_plies"]) for task in tasks)
+    worst_case_decisions = sum(
+        int(task["games"]) * int(task["max_plies"]) for task in tasks
+    )
+    _require(
+        profile.get("formal_max_plies") == max_plies
+        and profile.get("worst_case_puct_decisions") == worst_case_decisions,
+        "formal throughput worst-case workload drifted",
+    )
+    capacity_cases, projected = _formal_capacity_projection(lane_results, tasks)
+    _require(
+        profile.get("capacity_cases") == capacity_cases,
+        "formal throughput homogeneous capacity cases drifted",
+    )
     _require(
         math.isclose(
-            _finite_number(profile.get("projected_worst_case_seconds"), "throughput.projected_seconds"),
+            _finite_number(
+                profile.get("projected_worst_case_seconds"),
+                "throughput.projected_seconds",
+            ),
             projected,
             rel_tol=1e-12,
             abs_tol=1e-9,
-        ),
-        "formal throughput projection drifted",
+        )
+        and projected <= FORMAL_GAMEPLAY_BUDGET_SECONDS,
+        "formal throughput cannot finish the conservative workload projection",
+    )
+
+    resident_workers, aggregate_allocated, aggregate_reserved = (
+        _resident_memory_summary(preload_results, lane_results)
     )
     _require(
-        projected <= FORMAL_GAMEPLAY_BUDGET_SECONDS,
-        "formal throughput cannot finish the worst-case decision load inside 8,640 seconds",
-    )
-    _require(
-        profile.get("aggregate_peak_memory_allocated_bytes") == memory_sum
-        and memory_sum <= MAX_AGGREGATE_LANE_MEMORY_BYTES,
-        "formal throughput aggregate lane memory exceeds the safe 32-GiB class gate",
+        profile.get("resident_worker_memory") == resident_workers
+        and profile.get("aggregate_peak_memory_allocated_bytes")
+        == aggregate_allocated
+        and profile.get("aggregate_peak_memory_reserved_bytes")
+        == aggregate_reserved
+        and aggregate_allocated <= aggregate_reserved
+        and aggregate_reserved <= MAX_AGGREGATE_LANE_MEMORY_BYTES,
+        "formal throughput persistent resident-memory evidence drifted",
     )
     _require(
         profile.get("gpu_utilization_samples_percent") == utilization,
@@ -1331,7 +2211,10 @@ def _validate_throughput_profile_payload(
     utilization_mean = statistics.fmean(utilization)
     _require(
         math.isclose(
-            _finite_number(profile.get("gpu_utilization_mean_percent"), "throughput.utilization_mean"),
+            _finite_number(
+                profile.get("gpu_utilization_mean_percent"),
+                "throughput.utilization_mean",
+            ),
             utilization_mean,
             rel_tol=1e-12,
             abs_tol=1e-12,
@@ -1356,74 +2239,23 @@ def _validate_throughput_profile(
 
     profile_path = profile_path.resolve()
     _require(profile_path.is_file(), "formal throughput profile is missing")
-    profile = _validate_throughput_profile_payload(
+    return _validate_throughput_profile_payload(
         _read_json(profile_path),
         manifest_sha256=sha256_file(manifest_path.resolve()),
         tasks=tasks,
     )
-    expected = {
-        "schema_name": THROUGHPUT_PROFILE_SCHEMA,
-        "schema_version": SCHEMA_VERSION,
-        "status": "PASS",
-        "experiment_id": EXPERIMENT_ID,
-        "formal_manifest_sha256": sha256_file(manifest_path.resolve()),
-        "formal_runner_sha256": sha256_file(SCRIPT_PATH),
-        "preparation_runner_sha256": sha256_file(prep.SCRIPT_PATH),
-        "formal_games_executed": 0,
-        "inference_only": True,
-        "training_mode": False,
-        "amp_enabled": AMP_ENABLED,
-        "batch_calibration_performed": False,
-        "selected_batch_size": INFERENCE_BATCH_SIZE,
-        "inference_batch_size": INFERENCE_BATCH_SIZE,
-        "inference_dtype": INFERENCE_DTYPE,
-        "scalar_lane_count": SCALAR_LANE_COUNT,
-        "scalar_lane_execution_mode": SCALAR_LANE_EXECUTION_MODE,
-        "production_equivalent_mode": True,
-        "optimizer_steps": 0,
-        "backward_calls": 0,
-        "formal_numeric_path_match": True,
-    }
-    for field, value in expected.items():
-        _require(
-            profile.get(field) == value,
-            f"formal throughput profile binding mismatch: {field}",
-        )
-    _require(
-        profile.get("puct_simulations") == 16,
-        "formal throughput profile PUCT simulation count drifted",
-    )
-    _require(
-        profile.get("temperature") == 0.0,
-        "formal throughput profile temperature drifted",
-    )
-    _require(
-        profile.get("root_noise") is False,
-        "formal throughput profile root-noise setting drifted",
-    )
-    lane_results = profile.get("lane_results")
-    _require(
-        isinstance(lane_results, list) and len(lane_results) == SCALAR_LANE_COUNT,
-        "formal throughput profile does not contain all scalar lanes",
-    )
-    _require(
-        [row.get("lane_index") for row in lane_results]
-        == list(range(SCALAR_LANE_COUNT)),
-        "formal throughput profile lane order drifted",
-    )
-    _require(
-        all(int(row.get("puct_decisions", 0)) > 0 for row in lane_results),
-        "formal throughput profile contains an idle scalar lane",
-    )
-    return profile
 
 
 def _throughput_profile_identity(
     profile_path: Path,
     profile: Mapping[str, Any],
+    *,
+    profile_sha256: str | None = None,
 ) -> dict[str, Any]:
     return {
-        "throughput_profile_sha256": sha256_file(profile_path.resolve()),
+        "throughput_profile_sha256": (
+            profile_sha256 or sha256_file(profile_path.resolve())
+        ),
         "throughput_profile_artifact_path": profile_path.name,
         "throughput_profile_schema_name": profile["schema_name"],
         "throughput_profile_schema_version": profile["schema_version"],
@@ -1451,6 +2283,26 @@ def _task_directory(run_root: Path, task_id: str) -> Path:
     return run_root / "tasks" / f"{_slug(task_id)}__{digest}"
 
 
+def _validate_run_root_entries(run_root: Path) -> None:
+    """Reject unknown or type-confused root entries before any formal write."""
+
+    for entry in run_root.iterdir():
+        _require(
+            entry.name in RUN_ROOT_ALLOWED_ENTRY_NAMES and not entry.is_symlink(),
+            f"formal run root contains an unknown or unsafe entry: {entry.name}",
+        )
+        if entry.name == "tasks":
+            _require(
+                entry.is_dir(),
+                "formal run root tasks entry is not a real directory",
+            )
+        else:
+            _require(
+                entry.is_file(),
+                f"formal run root entry is not a real file: {entry.name}",
+            )
+
+
 def _pair_path(task_directory: Path, pair_index: int) -> Path:
     return task_directory / "pairs" / f"pair_{pair_index:04d}.json"
 
@@ -1465,9 +2317,29 @@ def _task_artifact_path(task_directory: Path, raw: Any, expected_name: str) -> P
     return path
 
 
-def _play_game(schedule: Mapping[str, Any], *, agent_a: Any, agent_b: Any) -> dict[str, Any]:
+def _play_game(
+    schedule: Mapping[str, Any],
+    *,
+    agent_a: Any,
+    agent_b: Any,
+    source_identity: Mapping[str, str] | None = None,
+) -> dict[str, Any]:
     from lifeline_rl import LifelineGame, Player
 
+    frozen_source = dict(source_identity or _current_source_identity())
+    _require(
+        set(frozen_source)
+        == {
+            "preparation_runner_sha256",
+            "formal_runner_sha256",
+            "execution_source_closure_sha256",
+        }
+        and all(
+            isinstance(value, str) and len(value) == 64
+            for value in frozen_source.values()
+        ),
+        "formal game source identity is invalid",
+    )
     size = int(schedule["eval_size"])
     game = LifelineGame(size, start_player=Player.BLACK, superko_mode=str(schedule["superko_mode"]))
     actions: list[dict[str, Any]] = []
@@ -1545,8 +2417,7 @@ def _play_game(schedule: Mapping[str, Any], *, agent_a: Any, agent_b: Any) -> di
         {
             "schema_name": GAME_SCHEMA,
             "schema_version": SCHEMA_VERSION,
-            "preparation_runner_sha256": sha256_file(prep.SCRIPT_PATH),
-            "formal_runner_sha256": sha256_file(SCRIPT_PATH),
+            **frozen_source,
             "schedule_sha256": canonical_sha256(schedule),
             "grid_size": size,
             "black_agent": agent_a.name if schedule["black_slot"] == "A" else agent_b.name,
@@ -1571,6 +2442,7 @@ _FORMAL_LANE_MANIFEST: dict[str, Any] | None = None
 _FORMAL_LANE_MANIFEST_PATH: Path | None = None
 _FORMAL_LANE_DEVICE: str | None = None
 _FORMAL_LANE_AGENT_CACHE: dict[tuple[str, str], Any] = {}
+_FORMAL_LANE_DEVICE_BASELINES: dict[str, dict[str, Any]] = {}
 
 
 def _initialize_formal_lane_worker(
@@ -1587,6 +2459,7 @@ def _initialize_formal_lane_worker(
     _FORMAL_LANE_MANIFEST_PATH = Path(manifest_path).resolve()
     _FORMAL_LANE_DEVICE = str(device)
     _FORMAL_LANE_AGENT_CACHE.clear()
+    _FORMAL_LANE_DEVICE_BASELINES.clear()
 
 
 def _formal_lane_agent(binding: Mapping[str, Any]) -> Any:
@@ -1636,6 +2509,11 @@ def _run_formal_pair_lane(payload: Mapping[str, Any]) -> dict[str, Any]:
     _require(isinstance(payload.get("task"), Mapping), "formal lane task is missing")
     _require(isinstance(payload.get("schedules"), list), "formal lane schedules are missing")
     task = dict(payload["task"])
+    source_identity = payload.get("source_identity") or _current_source_identity()
+    _require(
+        isinstance(source_identity, Mapping),
+        "formal lane frozen source identity is missing",
+    )
     schedules = sorted(
         (dict(row) for row in payload["schedules"]),
         key=lambda row: int(row["pair_member"]),
@@ -1647,7 +2525,12 @@ def _run_formal_pair_lane(payload: Mapping[str, Any]) -> dict[str, Any]:
     }
     with torch.inference_mode():
         records = [
-            _play_game(schedule, agent_a=agents["A"], agent_b=agents["B"])
+            _play_game(
+                schedule,
+                agent_a=agents["A"],
+                agent_b=agents["B"],
+                source_identity=source_identity,
+            )
             for schedule in schedules
         ]
     return {
@@ -1656,24 +2539,39 @@ def _run_formal_pair_lane(payload: Mapping[str, Any]) -> dict[str, Any]:
         "task_id": schedules[0]["task_id"],
         "pair_id": schedules[0]["pair_id"],
         "pair_index": int(schedules[0]["pair_index"]),
-        "preparation_runner_sha256": sha256_file(prep.SCRIPT_PATH),
-        "formal_runner_sha256": sha256_file(SCRIPT_PATH),
+        **dict(source_identity),
         "games": records,
     }
 
 
-def _validate_game(record: Mapping[str, Any], schedule: Mapping[str, Any]) -> None:
+def _validate_game(
+    record: Mapping[str, Any],
+    schedule: Mapping[str, Any],
+    *,
+    source_identity: Mapping[str, str] | None = None,
+) -> None:
     from lifeline_rl import replay_game_record
 
+    frozen_source = dict(source_identity or _current_source_identity())
     for field, expected in schedule.items():
         _require(record.get(field) == expected, f"{schedule['game_id']}: schedule field changed: {field}")
     _require(record.get("schema_name") == GAME_SCHEMA, "formal game schema mismatch")
     _require(
-        record.get("preparation_runner_sha256") == sha256_file(prep.SCRIPT_PATH)
+        record.get("preparation_runner_sha256")
+        == frozen_source["preparation_runner_sha256"]
         == schedule.get("runner_sha256"),
         "preparation runner binding mismatch",
     )
-    _require(record.get("formal_runner_sha256") == sha256_file(SCRIPT_PATH), "formal runner binding mismatch")
+    _require(
+        record.get("formal_runner_sha256")
+        == frozen_source["formal_runner_sha256"],
+        "formal runner binding mismatch",
+    )
+    _require(
+        record.get("execution_source_closure_sha256")
+        == frozen_source["execution_source_closure_sha256"],
+        "game execution source closure binding mismatch",
+    )
     _require(record.get("schedule_sha256") == canonical_sha256(schedule), "game schedule hash mismatch")
     actions = record.get("actions")
     _require(isinstance(actions, list) and len(actions) == int(record.get("plies", -1)), "action log length mismatch")
@@ -1690,7 +2588,13 @@ def _validate_game(record: Mapping[str, Any], schedule: Mapping[str, Any]) -> No
     _require(replayed.state_fingerprint() == record.get("final_state_hash"), "independent game replay hash mismatch")
 
 
-def _validate_pair(payload: Mapping[str, Any], schedules: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+def _validate_pair(
+    payload: Mapping[str, Any],
+    schedules: Sequence[Mapping[str, Any]],
+    *,
+    source_identity: Mapping[str, str] | None = None,
+) -> list[dict[str, Any]]:
+    frozen_source = dict(source_identity or _current_source_identity())
     _require(len(schedules) == 2, "a formal color pair needs exactly two games")
     _require(payload.get("schema_name") == PAIR_SCHEMA, "formal pair schema mismatch")
     _require(payload.get("schema_version") == SCHEMA_VERSION, "formal pair schema version mismatch")
@@ -1699,7 +2603,7 @@ def _validate_pair(payload: Mapping[str, Any], schedules: Sequence[Mapping[str, 
     ordered_schedules = sorted(schedules, key=lambda row: int(row["pair_member"]))
     ordered_records = sorted((dict(row) for row in records), key=lambda row: int(row["pair_member"]))
     for record, schedule in zip(ordered_records, ordered_schedules):
-        _validate_game(record, schedule)
+        _validate_game(record, schedule, source_identity=frozen_source)
     first, second = ordered_records
     _require(
         int(first["pair_member"]) == 0 and int(second["pair_member"]) == 1
@@ -1712,13 +2616,19 @@ def _validate_pair(payload: Mapping[str, Any], schedules: Sequence[Mapping[str, 
     _require(payload.get("pair_id") == first["pair_id"], "pair ID binding mismatch")
     _require(payload.get("pair_index") == expected_pair_index, "pair index binding mismatch")
     _require(
-        payload.get("preparation_runner_sha256") == sha256_file(prep.SCRIPT_PATH)
+        payload.get("preparation_runner_sha256")
+        == frozen_source["preparation_runner_sha256"]
         == first["runner_sha256"],
         "pair preparation runner binding mismatch",
     )
     _require(
-        payload.get("formal_runner_sha256") == sha256_file(SCRIPT_PATH),
+        payload.get("formal_runner_sha256") == frozen_source["formal_runner_sha256"],
         "pair formal runner binding mismatch",
+    )
+    _require(
+        payload.get("execution_source_closure_sha256")
+        == frozen_source["execution_source_closure_sha256"],
+        "pair execution source closure binding mismatch",
     )
     invariant_fields = (
         "pair_id",
@@ -2036,6 +2946,51 @@ def _execution_source_hashes(manifest_path: Path) -> dict[str, str]:
     }
 
 
+def _source_identity_from_metadata(metadata: Mapping[str, Any]) -> dict[str, str]:
+    source_hashes = metadata.get("execution_source_hashes")
+    _require(
+        isinstance(source_hashes, Mapping)
+        and all(isinstance(path, str) and isinstance(digest, str) for path, digest in source_hashes.items()),
+        "execution source closure is missing or invalid",
+    )
+    preparation_sha256 = str(metadata.get("preparation_runner_sha256", ""))
+    formal_sha256 = str(metadata.get("formal_runner_sha256", ""))
+    _require(
+        source_hashes.get(_repo_relative(prep.SCRIPT_PATH)) == preparation_sha256
+        and source_hashes.get(_repo_relative(SCRIPT_PATH)) == formal_sha256,
+        "execution source closure does not bind both runners",
+    )
+    return {
+        "preparation_runner_sha256": preparation_sha256,
+        "formal_runner_sha256": formal_sha256,
+        "execution_source_closure_sha256": canonical_sha256(dict(source_hashes)),
+    }
+
+
+def _require_execution_source_closure(
+    metadata: Mapping[str, Any],
+) -> dict[str, str]:
+    manifest_path = Path(str(metadata.get("formal_manifest_path", ""))).resolve()
+    _require(manifest_path.is_file(), "execution source manifest is missing")
+    _require(
+        metadata.get("execution_source_hashes")
+        == _execution_source_hashes(manifest_path),
+        "execution source closure changed during the formal run",
+    )
+    return _source_identity_from_metadata(metadata)
+
+
+def _current_source_identity() -> dict[str, str]:
+    source_hashes = _execution_source_hashes(DEFAULT_MANIFEST.resolve())
+    return _source_identity_from_metadata(
+        {
+            "preparation_runner_sha256": sha256_file(prep.SCRIPT_PATH),
+            "formal_runner_sha256": sha256_file(SCRIPT_PATH),
+            "execution_source_hashes": source_hashes,
+        }
+    )
+
+
 def _bundle_hashes(bundle_directory: Path) -> dict[str, str]:
     return {
         field: sha256_file(bundle_directory / filename)
@@ -2138,6 +3093,7 @@ def _execution_metadata(
     device: str,
     throughput_profile_path: Path,
     throughput_profile: Mapping[str, Any],
+    throughput_profile_sha256: str | None = None,
 ) -> dict[str, Any]:
     import torch
 
@@ -2171,6 +3127,7 @@ def _execution_metadata(
         **_throughput_profile_identity(
             throughput_profile_path,
             throughput_profile,
+            profile_sha256=throughput_profile_sha256,
         ),
     }
     metadata["execution_freeze_sha256"] = canonical_sha256(
@@ -2230,15 +3187,23 @@ def _execute_pair_lanes(
     *,
     task_directory: Path,
     lane_executor: _ScalarLaneExecutor,
+    metadata: Mapping[str, Any] | None = None,
 ) -> None:
     """Compute all missing pairs, validate all, then write canonically in parent."""
 
+    source_identity = (
+        _require_execution_source_closure(metadata)
+        if metadata is not None
+        else _current_source_identity()
+    )
     missing: list[tuple[int, Sequence[Mapping[str, Any]]]] = []
     for pair_index in sorted(pairs):
         schedules = pairs[pair_index]
         path = _pair_path(task_directory, pair_index)
         if path.is_file():
-            _validate_pair(_read_json(path), schedules)
+            _validate_pair(
+                _read_json(path), schedules, source_identity=source_identity
+            )
         else:
             missing.append((pair_index, schedules))
     if not missing:
@@ -2247,10 +3212,13 @@ def _execute_pair_lanes(
         {
             "task": copy.deepcopy(dict(task)),
             "schedules": [copy.deepcopy(dict(row)) for row in schedules],
+            "source_identity": copy.deepcopy(source_identity),
         }
         for _, schedules in missing
     ]
     payloads = lane_executor.map_ordered(_run_formal_pair_lane, jobs)
+    if metadata is not None:
+        _require_execution_source_closure(metadata)
     _require(
         all(isinstance(payload, Mapping) for payload in payloads),
         "formal scalar lane returned an invalid payload",
@@ -2262,13 +3230,22 @@ def _execute_pair_lanes(
         "formal scalar lane results are not in canonical pair order",
     )
     for payload, (_, schedules) in zip(payloads, missing):
-        _validate_pair(payload, schedules)
+        _validate_pair(payload, schedules, source_identity=source_identity)
     for payload, (pair_index, _) in zip(payloads, missing):
         _atomic_json(_pair_path(task_directory, pair_index), payload)
+    if metadata is not None:
+        # The parent validates every payload against the frozen identity above,
+        # then re-hashes the complete closure once after the canonical batch.
+        # A drift leaves only incomplete pair evidence and cannot be promoted to
+        # task, ledger, numeric, summary, status, or export completion.
+        _require_execution_source_closure(metadata)
 
 
 def _pair_evidence(
-    task_directory: Path, schedules: Sequence[Mapping[str, Any]]
+    task_directory: Path,
+    schedules: Sequence[Mapping[str, Any]],
+    *,
+    source_identity: Mapping[str, str] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     grouped: dict[int, list[Mapping[str, Any]]] = defaultdict(list)
     for schedule in schedules:
@@ -2277,15 +3254,22 @@ def _pair_evidence(
     expected_names = {f"pair_{index:04d}.json" for index in grouped}
     pairs_directory = task_directory / "pairs"
     _require(pairs_directory.is_dir(), "task pair evidence directory is missing")
-    observed_names = {
-        path.name for path in pairs_directory.iterdir() if path.is_file()
-    }
+    observed_entries = list(pairs_directory.iterdir())
+    _require(
+        all(path.is_file() and not path.is_symlink() for path in observed_entries),
+        "task pair evidence directory contains an unsafe entry",
+    )
+    observed_names = {path.name for path in observed_entries}
     _require(observed_names == expected_names, "task pair evidence file set differs")
     rows: list[dict[str, Any]] = []
     records: list[dict[str, Any]] = []
     for pair_index in sorted(grouped):
         path = _pair_path(task_directory, pair_index)
-        pair_records = _validate_pair(_read_json(path), grouped[pair_index])
+        pair_records = _validate_pair(
+            _read_json(path),
+            grouped[pair_index],
+            source_identity=source_identity,
+        )
         records.extend(pair_records)
         rows.append(
             {
@@ -2322,17 +3306,23 @@ def _run_task(
         pairs,
         task_directory=task_directory,
         lane_executor=lane_executor,
+        metadata=metadata,
     )
-    pair_artifacts, pair_records = _pair_evidence(task_directory, schedules)
+    source_identity = _require_execution_source_closure(metadata)
+    pair_artifacts, pair_records = _pair_evidence(
+        task_directory, schedules, source_identity=source_identity
+    )
     records = pair_records
     counts = _task_counts(records)
     gate = _formal_gate(task, counts)
     games_path = task_directory / "games.jsonl"
     games_text = _jsonl_text(records)
+    _require_execution_source_closure(metadata)
     if games_path.is_file():
         _require(games_path.read_text(encoding="utf-8") == games_text, "existing task games differ")
     else:
         _atomic_text(games_path, games_text)
+    _require_execution_source_closure(metadata)
     summary = {
         **_task_receipt_base(task, metadata),
         **counts,
@@ -2346,7 +3336,15 @@ def _run_task(
         "games_sha256": sha256_file(games_path),
     }
     summary_path = task_directory / "summary.json"
-    _atomic_json(summary_path, summary)
+    _require_execution_source_closure(metadata)
+    if summary_path.is_file():
+        _require(
+            _read_json(summary_path) == summary,
+            "existing task summary differs",
+        )
+    else:
+        _atomic_json(summary_path, summary)
+    _require_execution_source_closure(metadata)
     receipt = {
         **summary,
         "summary_path": "summary.json",
@@ -2356,7 +3354,9 @@ def _run_task(
     _validate_task_receipt(
         task, schedules, receipt, metadata, task_directory=task_directory
     )
+    _require_execution_source_closure(metadata)
     _atomic_json(receipt_path, receipt)
+    _require_execution_source_closure(metadata)
     return receipt
 
 
@@ -2368,6 +3368,7 @@ def _validate_task_receipt(
     *,
     task_directory: Path,
 ) -> None:
+    source_identity = _require_execution_source_closure(metadata)
     for field, expected in _task_receipt_base(task, metadata).items():
         _require(receipt.get(field) == expected, f"{task['task_id']}: receipt binding mismatch: {field}")
     games_path = _task_artifact_path(
@@ -2383,8 +3384,12 @@ def _validate_task_receipt(
     ordered_schedules = sorted(schedules, key=lambda row: int(row["game_index"]))
     _require(len(records) == len(ordered_schedules), "receipt game count mismatch")
     for record, schedule in zip(records, ordered_schedules):
-        _validate_game(record, schedule)
-    pair_artifacts, pair_records = _pair_evidence(task_directory, ordered_schedules)
+        _validate_game(record, schedule, source_identity=source_identity)
+    pair_artifacts, pair_records = _pair_evidence(
+        task_directory,
+        ordered_schedules,
+        source_identity=source_identity,
+    )
     _require(pair_records == records, "task games differ from atomic pair evidence")
     _require(receipt.get("pair_artifacts") == pair_artifacts, "pair artifact manifest mismatch")
     counts = _task_counts(records)
@@ -2408,9 +3413,17 @@ def _validate_task_receipt(
     _require(_read_json(summary_path) == expected_summary, "task summary differs from receipt")
 
 
-def _write_failure(task_directory: Path, state: Mapping[str, Any], exc: BaseException) -> None:
+def _write_failure(
+    task_directory: Path,
+    state: Mapping[str, Any],
+    exc: BaseException,
+    *,
+    metadata: Mapping[str, Any],
+) -> None:
+    _require_execution_source_closure(metadata)
     attempts = task_directory / "attempts"
     attempts.mkdir(parents=True, exist_ok=True)
+    _require_execution_source_closure(metadata)
     index = int(state.get("attempts", 1))
     path = attempts / f"attempt_{index:04d}.failed.json"
     payload = {
@@ -2423,7 +3436,218 @@ def _write_failure(task_directory: Path, state: Mapping[str, Any], exc: BaseExce
         "failed_at_utc": _utc_now(),
     }
     if not path.exists():
+        _require_execution_source_closure(metadata)
         _atomic_json(path, payload)
+        _require_execution_source_closure(metadata)
+
+
+def _preflight_existing_task_tree(
+    tasks: Sequence[Mapping[str, Any]],
+    grouped: Mapping[str, Sequence[Mapping[str, Any]]],
+    *,
+    run_root: Path,
+    metadata: Mapping[str, Any],
+    authorize_resume: bool,
+) -> None:
+    """Validate every existing task artifact before any new evidence is written."""
+
+    source_identity = _require_execution_source_closure(metadata)
+    tasks_root = run_root / "tasks"
+    if not tasks_root.exists():
+        return
+    _require(
+        tasks_root.is_dir() and not tasks_root.is_symlink(),
+        "formal task root is not a real directory",
+    )
+    expected_directories = {
+        _task_directory(run_root, str(task["task_id"])).name: task for task in tasks
+    }
+    observed_entries = list(tasks_root.iterdir())
+    _require(
+        all(
+            entry.name in expected_directories
+            and entry.is_dir()
+            and not entry.is_symlink()
+            for entry in observed_entries
+        ),
+        "formal task root contains an unknown or unsafe task directory",
+    )
+    allowed_task_entries = {
+        "state.json",
+        "receipt.json",
+        "games.jsonl",
+        "summary.json",
+        "pairs",
+        "attempts",
+    }
+    for directory_name, task in expected_directories.items():
+        task_directory = tasks_root / directory_name
+        if not task_directory.exists():
+            continue
+        task_entries = list(task_directory.iterdir())
+        _require(
+            all(entry.name in allowed_task_entries and not entry.is_symlink() for entry in task_entries),
+            f"{task['task_id']}: task directory contains unknown or unsafe evidence",
+        )
+        if not task_entries:
+            continue
+        state_path = task_directory / "state.json"
+        receipt_path = task_directory / "receipt.json"
+        state = _read_json(state_path) if state_path.is_file() else None
+        if state is not None:
+            _require(
+                state.get("task_id") == task["task_id"],
+                f"{task['task_id']}: task state belongs to another task",
+            )
+        attempts_directory = task_directory / "attempts"
+        if attempts_directory.exists():
+            _require(
+                attempts_directory.is_dir()
+                and not attempts_directory.is_symlink(),
+                f"{task['task_id']}: failed-attempt evidence root is unsafe",
+            )
+            attempt_indices: list[int] = []
+            for path in sorted(
+                attempts_directory.iterdir(), key=lambda item: item.name
+            ):
+                name = path.name
+                suffix = ".failed.json"
+                index_text = (
+                    name[len("attempt_") : -len(suffix)]
+                    if name.startswith("attempt_") and name.endswith(suffix)
+                    else ""
+                )
+                _require(
+                    path.is_file()
+                    and not path.is_symlink()
+                    and len(index_text) == 4
+                    and index_text.isdigit()
+                    and int(index_text) > 0,
+                    f"{task['task_id']}: failed-attempt evidence is unsafe",
+                )
+                attempt_index = int(index_text)
+                payload = _read_json(path)
+                _require(
+                    payload.get("schema_name")
+                    == "lifeline-d18-v3-failed-attempt"
+                    and payload.get("schema_version") == SCHEMA_VERSION
+                    and payload.get("task_id") == task["task_id"]
+                    and payload.get("attempt") == attempt_index
+                    and isinstance(payload.get("error_type"), str)
+                    and bool(payload.get("error_type"))
+                    and isinstance(payload.get("error"), str)
+                    and isinstance(payload.get("failed_at_utc"), str)
+                    and bool(payload.get("failed_at_utc")),
+                    f"{task['task_id']}: failed-attempt payload differs",
+                )
+                attempt_indices.append(attempt_index)
+            _require(
+                len(attempt_indices) == len(set(attempt_indices))
+                and (
+                    state is None
+                    or all(
+                        index <= int(state.get("attempts", 0))
+                        for index in attempt_indices
+                    )
+                ),
+                f"{task['task_id']}: failed-attempt indices differ from state",
+            )
+        schedules = grouped[str(task["task_id"])]
+        if receipt_path.is_file():
+            _require(
+                state is not None and state.get("status") == "complete",
+                f"{task['task_id']}: completed receipt lacks complete task state",
+            )
+            _validate_task_receipt(
+                task,
+                schedules,
+                _read_json(receipt_path),
+                metadata,
+                task_directory=task_directory,
+            )
+            continue
+        _require(
+            authorize_resume,
+            f"{task['task_id']}: incomplete task evidence requires explicit "
+            "--authorize-resume",
+        )
+        _require(
+            state is not None
+            and state.get("status") in {None, "pending", "running", "failed"},
+            f"{task['task_id']}: incomplete task state is missing or invalid",
+        )
+        pairs_directory = task_directory / "pairs"
+        pair_artifacts: list[dict[str, Any]] = []
+        pair_records: list[dict[str, Any]] = []
+        if pairs_directory.exists():
+            _require(
+                pairs_directory.is_dir() and not pairs_directory.is_symlink(),
+                f"{task['task_id']}: pair evidence root is unsafe",
+            )
+            schedules_by_pair: dict[int, list[Mapping[str, Any]]] = defaultdict(list)
+            for schedule in schedules:
+                schedules_by_pair[int(schedule["pair_index"])].append(schedule)
+            expected_pair_names = {
+                f"pair_{pair_index:04d}.json" for pair_index in schedules_by_pair
+            }
+            observed_pairs = list(pairs_directory.iterdir())
+            _require(
+                all(
+                    path.is_file()
+                    and not path.is_symlink()
+                    and path.name in expected_pair_names
+                    for path in observed_pairs
+                ),
+                f"{task['task_id']}: partial pair evidence contains unsafe files",
+            )
+            for path in sorted(observed_pairs, key=lambda item: item.name):
+                pair_index = int(path.stem.split("_", 1)[1])
+                records = _validate_pair(
+                    _read_json(path),
+                    schedules_by_pair[pair_index],
+                    source_identity=source_identity,
+                )
+                pair_records.extend(records)
+                pair_artifacts.append(
+                    {
+                        "path": path.relative_to(task_directory).as_posix(),
+                        "sha256": sha256_file(path),
+                        "bytes": path.stat().st_size,
+                    }
+                )
+        games_path = task_directory / "games.jsonl"
+        summary_path = task_directory / "summary.json"
+        if games_path.exists() or summary_path.exists():
+            _require(
+                len(pair_artifacts) == EXPECTED_PAIRS_PER_TASK
+                and games_path.is_file(),
+                f"{task['task_id']}: parent task evidence exists before all pairs",
+            )
+            pair_records.sort(key=lambda row: int(row["game_index"]))
+            _require(
+                _read_jsonl(games_path) == pair_records,
+                f"{task['task_id']}: partial games evidence differs from pairs",
+            )
+        if summary_path.exists():
+            counts = _task_counts(pair_records)
+            gate = _formal_gate(task, counts)
+            expected_summary = {
+                **_task_receipt_base(task, metadata),
+                **counts,
+                "formal_gate": gate,
+                "status": "complete",
+                "execution_status": "complete",
+                "gate_status": "passed" if gate["passed"] else "failed",
+                "failure_reason": None if gate["passed"] else "formal_task_gate_failed",
+                "pair_artifacts": pair_artifacts,
+                "games_path": "games.jsonl",
+                "games_sha256": sha256_file(games_path),
+            }
+            _require(
+                _read_json(summary_path) == expected_summary,
+                f"{task['task_id']}: partial summary evidence differs",
+            )
+    _require_execution_source_closure(metadata)
 
 
 def _current_status(
@@ -2433,6 +3657,7 @@ def _current_status(
     run_root: Path,
     metadata: Mapping[str, Any],
 ) -> dict[str, Any]:
+    _require_execution_source_closure(metadata)
     grouped = _group_games(games)
     receipts: list[dict[str, Any]] = []
     missing: list[str] = []
@@ -2462,7 +3687,7 @@ def _current_status(
             gate_failed.append(task_id)
     execution_complete = len(receipts) == EXPECTED_TASKS and not missing and not failed
     runner_gate_passed = execution_complete and not gate_failed
-    return {
+    status = {
         "schema_name": RUN_SCHEMA,
         "schema_version": SCHEMA_VERSION,
         "experiment_id": EXPERIMENT_ID,
@@ -2490,6 +3715,82 @@ def _current_status(
         "formal_ready": False,
         "formal_ready_reason": "independent_verification_not_part_of_execution_runner",
     }
+    _require_execution_source_closure(metadata)
+    return status
+
+
+def _preflight_existing_terminal_artifacts(
+    tasks: Sequence[Mapping[str, Any]],
+    games: Sequence[Mapping[str, Any]],
+    *,
+    run_root: Path,
+    metadata: Mapping[str, Any],
+) -> None:
+    """Validate an existing completed root before any resume recovery write."""
+
+    observed = {
+        name for name in TERMINAL_ROOT_ARTIFACT_NAMES if (run_root / name).exists()
+    }
+    if not observed:
+        return
+    _require(
+        observed == TERMINAL_ROOT_ARTIFACT_NAMES,
+        "formal run root contains partial terminal artifacts",
+    )
+    _require(
+        (run_root / THROUGHPUT_PROFILE_ARTIFACT_NAME).is_file(),
+        "terminal formal run root lacks its throughput profile evidence",
+    )
+    _require_execution_source_closure(metadata)
+    status = _current_status(tasks, games, run_root=run_root, metadata=metadata)
+    _require(
+        status["execution_complete"] is True,
+        "terminal formal run artifacts exist for an incomplete task tree",
+    )
+    receipts = [
+        _read_json(_task_directory(run_root, str(task["task_id"])) / "receipt.json")
+        for task in tasks
+    ]
+    ledger_path = run_root / "result_receipts.jsonl"
+    expected_ledger = _jsonl_text(receipts)
+    _require(
+        ledger_path.read_text(encoding="utf-8") == expected_ledger,
+        "existing terminal result ledger differs from the task receipts",
+    )
+    ledger_sha256 = sha256_file(ledger_path)
+    canonical_records: list[dict[str, Any]] = []
+    for task, receipt in zip(tasks, receipts):
+        task_directory = _task_directory(run_root, str(task["task_id"]))
+        games_path = _task_artifact_path(
+            task_directory, receipt.get("games_path"), "games.jsonl"
+        )
+        canonical_records.extend(_read_jsonl(games_path))
+    _require(
+        len(canonical_records) == EXPECTED_GAMES,
+        "existing terminal numeric input does not contain 5,760 games",
+    )
+    expected_numeric = _runner_numeric_artifact(
+        canonical_records,
+        metadata=metadata,
+        receipt_ledger_sha256=ledger_sha256,
+    )
+    numeric_path = run_root / "canonical_numeric.json"
+    _require(
+        _read_json(numeric_path) == expected_numeric,
+        "existing terminal canonical numeric artifact differs",
+    )
+    expected_status = {
+        **status,
+        "result_receipts_path": "result_receipts.jsonl",
+        "result_receipts_sha256": ledger_sha256,
+        "canonical_numeric_path": "canonical_numeric.json",
+        "canonical_numeric_sha256": sha256_file(numeric_path),
+    }
+    _require(
+        _read_json(run_root / "execution_summary.json") == expected_status,
+        "existing terminal execution summary differs",
+    )
+    _require_execution_source_closure(metadata)
 
 
 def _execute_formal_tasks(
@@ -2505,7 +3806,9 @@ def _execute_formal_tasks(
     for task in tasks:
         task_id = str(task["task_id"])
         task_directory = _task_directory(run_root, task_id)
+        _require_execution_source_closure(metadata)
         task_directory.mkdir(parents=True, exist_ok=True)
+        _require_execution_source_closure(metadata)
         receipt_path = task_directory / "receipt.json"
         if receipt_path.is_file():
             _validate_task_receipt(
@@ -2546,7 +3849,9 @@ def _execute_formal_tasks(
                 "started_at_utc": _utc_now(),
             }
         )
+        _require_execution_source_closure(metadata)
         _atomic_json(state_path, state, overwrite=True)
+        _require_execution_source_closure(metadata)
         try:
             _run_task(
                 task,
@@ -2564,15 +3869,20 @@ def _execute_formal_tasks(
                     "failed_at_utc": _utc_now(),
                 }
             )
+            _require_execution_source_closure(metadata)
             _atomic_json(state_path, state, overwrite=True)
-            _write_failure(task_directory, state, exc)
+            _require_execution_source_closure(metadata)
+            _write_failure(task_directory, state, exc, metadata=metadata)
+            _require_execution_source_closure(metadata)
             if not continue_on_error:
                 raise
         else:
             state.update(
                 {"status": "complete", "completed_at_utc": _utc_now()}
             )
+            _require_execution_source_closure(metadata)
             _atomic_json(state_path, state, overwrite=True)
+            _require_execution_source_closure(metadata)
 
 
 def run_bundle(
@@ -2609,6 +3919,7 @@ def run_bundle(
     )
     if run_root.exists():
         _require(run_root.is_dir(), "run root exists but is not a directory")
+        _validate_run_root_entries(run_root)
         if not (run_root / "execution_metadata.json").is_file():
             unexpected = [
                 path
@@ -2634,18 +3945,18 @@ def run_bundle(
                 _writer_lock_held=True,
             )
     throughput_evidence_path = run_root / THROUGHPUT_PROFILE_ARTIFACT_NAME
-    if throughput_evidence_path.is_file():
+    metadata_path = run_root / "execution_metadata.json"
+    canonical_profile_sha256 = hashlib.sha256(
+        pretty_json(validated_throughput_profile).encode("utf-8")
+    ).hexdigest()
+    existing_metadata: dict[str, Any] | None = None
+    if metadata_path.is_file():
+        existing_metadata = _read_json(metadata_path)
         _require(
-            _read_json(throughput_evidence_path) == validated_throughput_profile,
-            "persisted throughput profile differs from the validated smoke receipt",
+            existing_metadata.get("throughput_profile_sha256")
+            == canonical_profile_sha256,
+            "run root metadata is bound to another throughput profile",
         )
-    else:
-        _atomic_json(throughput_evidence_path, validated_throughput_profile)
-    validated_throughput_profile = _validate_throughput_profile(
-        throughput_evidence_path,
-        manifest_path=manifest_path.resolve(),
-        tasks=tasks,
-    )
     metadata = _execution_metadata(
         manifest,
         manifest_path=manifest_path.resolve(),
@@ -2654,13 +3965,49 @@ def run_bundle(
         device=device,
         throughput_profile_path=throughput_evidence_path,
         throughput_profile=validated_throughput_profile,
+        throughput_profile_sha256=canonical_profile_sha256,
     )
-    metadata_path = run_root / "execution_metadata.json"
-    if metadata_path.is_file():
-        _require(_read_json(metadata_path) == metadata, "run root belongs to another execution identity")
-    else:
-        _atomic_json(metadata_path, metadata)
+    if existing_metadata is not None:
+        _require(
+            existing_metadata == metadata,
+            "run root belongs to another execution identity",
+        )
     grouped = _group_games(games)
+    _preflight_existing_task_tree(
+        tasks,
+        grouped,
+        run_root=run_root,
+        metadata=metadata,
+        authorize_resume=authorize_resume,
+    )
+    _preflight_existing_terminal_artifacts(
+        tasks,
+        games,
+        run_root=run_root,
+        metadata=metadata,
+    )
+    _require_execution_source_closure(metadata)
+    if throughput_evidence_path.is_file():
+        _require(
+            _read_json(throughput_evidence_path) == validated_throughput_profile,
+            "persisted throughput profile differs from the validated smoke receipt",
+        )
+        _require(
+            sha256_file(throughput_evidence_path) == canonical_profile_sha256,
+            "persisted throughput profile bytes are not canonical",
+        )
+    else:
+        _atomic_json(throughput_evidence_path, validated_throughput_profile)
+    _require_execution_source_closure(metadata)
+    validated_throughput_profile = _validate_throughput_profile(
+        throughput_evidence_path,
+        manifest_path=manifest_path.resolve(),
+        tasks=tasks,
+    )
+    if existing_metadata is None:
+        _require_execution_source_closure(metadata)
+        _atomic_json(metadata_path, metadata)
+        _require_execution_source_closure(metadata)
     with _ScalarLaneExecutor(
         SCALAR_LANE_COUNT,
         initializer=_initialize_formal_lane_worker,
@@ -2676,18 +4023,24 @@ def run_bundle(
             authorize_resume=authorize_resume,
         )
 
+    _require_execution_source_closure(metadata)
     status = _current_status(tasks, games, run_root=run_root, metadata=metadata)
+    _require_execution_source_closure(metadata)
     if status["execution_complete"]:
+        _require_execution_source_closure(metadata)
         receipts = [
             _read_json(_task_directory(run_root, str(task["task_id"])) / "receipt.json")
             for task in tasks
         ]
+        _require_execution_source_closure(metadata)
         ledger_path = run_root / "result_receipts.jsonl"
         ledger_text = _jsonl_text(receipts)
         if ledger_path.is_file():
             _require(ledger_path.read_text(encoding="utf-8") == ledger_text, "result ledger changed")
         else:
+            _require_execution_source_closure(metadata)
             _atomic_text(ledger_path, ledger_text)
+            _require_execution_source_closure(metadata)
         ledger_sha256 = sha256_file(ledger_path)
         status["result_receipts_path"] = "result_receipts.jsonl"
         status["result_receipts_sha256"] = ledger_sha256
@@ -2702,11 +4055,13 @@ def run_bundle(
             len(canonical_records) == EXPECTED_GAMES,
             "canonical numeric input does not contain 5,760 games",
         )
+        _require_execution_source_closure(metadata)
         numeric = _runner_numeric_artifact(
             canonical_records,
             metadata=metadata,
             receipt_ledger_sha256=ledger_sha256,
         )
+        _require_execution_source_closure(metadata)
         numeric_path = run_root / "canonical_numeric.json"
         if numeric_path.is_file():
             _require(
@@ -2714,18 +4069,26 @@ def run_bundle(
                 "immutable runner canonical numeric artifact changed",
             )
         else:
+            _require_execution_source_closure(metadata)
             _atomic_json(numeric_path, numeric)
+            _require_execution_source_closure(metadata)
         status["canonical_numeric_path"] = "canonical_numeric.json"
         status["canonical_numeric_sha256"] = sha256_file(numeric_path)
     status_path = run_root / "execution_summary.json"
+    _require_execution_source_closure(metadata)
     if status["execution_complete"] and status_path.is_file():
         existing_status = _read_json(status_path)
         if existing_status.get("execution_complete") is True:
             _require(existing_status == status, "immutable complete execution summary changed")
         else:
+            _require_execution_source_closure(metadata)
             _atomic_json(status_path, status, overwrite=True)
+            _require_execution_source_closure(metadata)
     else:
+        _require_execution_source_closure(metadata)
         _atomic_json(status_path, status, overwrite=not status["execution_complete"])
+        _require_execution_source_closure(metadata)
+    _require_execution_source_closure(metadata)
     if export_directory is not None:
         checked_export = _validate_write_target(
             manifest,
@@ -2740,7 +4103,9 @@ def run_bundle(
                 _task_directory(run_root, str(task["task_id"])).name
                 for task in tasks
             },
+            metadata=metadata,
         )
+    _require_execution_source_closure(metadata)
     return status
 
 
@@ -2959,6 +4324,7 @@ def export_results(
     export_directory: Path,
     *,
     expected_task_directory_names: Iterable[str],
+    metadata: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     _require(
         run_root.is_dir() and not run_root.is_symlink(),
@@ -3073,6 +4439,10 @@ def export_results(
     _scan_export_destination(
         export_directory, destination_rows, require_complete=False
     )
+    if metadata is not None:
+        # One full source-closure check guards the whole export write batch;
+        # _copy_verified still binds every source and destination by hash/size.
+        _require_execution_source_closure(metadata)
     export_directory.mkdir(parents=True, exist_ok=True)
     for source, relative, row in planned:
         destination = export_directory / relative
@@ -3087,6 +4457,9 @@ def export_results(
     _scan_export_destination(
         export_directory, destination_rows, require_complete=True
     )
+    if metadata is not None:
+        # Do not return/promote an export if source code drifted during copies.
+        _require_execution_source_closure(metadata)
     return manifest
 
 
@@ -3408,7 +4781,7 @@ def generate_job(
     smoke_command = (
         f"{remote_python} {remote_runner.as_posix()} gpu-smoke "
         f"--manifest {remote_manifest.as_posix()} "
-        f"--bundle-dir {remote_bundle.as_posix()} --seconds 20 "
+        f"--bundle-dir {remote_bundle.as_posix()} --seconds 15 "
         "--profile-output $AUTODL_WORK_DIR/d18_v3_gpu_throughput.json"
     )
     formal_command = (
@@ -3463,7 +4836,7 @@ def generate_job(
             f"readiness_command = {_toml_string(readiness_command)}",
             "readiness_timeout_seconds = 600",
             f"gpu_smoke_command = {_toml_string(smoke_command)}",
-            "gpu_smoke_timeout_seconds = 240",
+            "gpu_smoke_timeout_seconds = 30",
             f"command = {_toml_string(formal_command)}",
             "",
             "[environment]",
@@ -3518,7 +4891,7 @@ def _parser() -> argparse.ArgumentParser:
     smoke = commands.add_parser("gpu-smoke")
     smoke.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
     smoke.add_argument("--bundle-dir", type=Path, required=True)
-    smoke.add_argument("--seconds", type=float, default=20.0)
+    smoke.add_argument("--seconds", type=float, default=15.0)
     smoke.add_argument("--profile-output", type=Path)
 
     run = commands.add_parser("run")
