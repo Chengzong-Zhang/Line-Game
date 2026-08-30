@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
+import { TERRITORY_V2_HOT_PATH_FIXTURES } from "./territory-v2-fixtures.mjs";
 
 const frontendRoot = new URL("../", import.meta.url);
 
@@ -76,6 +77,28 @@ function areas(game) {
   return Object.fromEntries(
     game.activePlayers.map((player) => [player, game.cachedTerritories[player].area]),
   );
+}
+
+function canonicalPolygonKey(polygon) {
+  if (!polygon?.length) return "";
+  const lastPoint = polygon[polygon.length - 1];
+  const openPolygon = polygon.length > 1
+    && polygon[0][0] === lastPoint[0]
+    && polygon[0][1] === lastPoint[1]
+    ? polygon.slice(0, -1)
+    : polygon;
+  const representations = [];
+  for (const oriented of [openPolygon, [...openPolygon].reverse()]) {
+    for (let offset = 0; offset < oriented.length; offset += 1) {
+      representations.push(
+        [...oriented.slice(offset), ...oriented.slice(0, offset)]
+          .map((point) => `${point[0]},${point[1]}`)
+          .join("|"),
+      );
+    }
+  }
+  representations.sort();
+  return representations[0] ?? "";
 }
 
 function playMoves(game, moves, label) {
@@ -283,6 +306,24 @@ for (const permutation of permutations) {
       `D3 area mismatch for ${sourcePlayer} under ${permutation}`,
     );
   }
+}
+
+for (const fixture of TERRITORY_V2_HOT_PATH_FIXTURES) {
+  const game = new GameEngine({
+    gridSize: fixture.gridSize,
+    playerCount: fixture.playerCount,
+    rulesVersion: TerritoryRulesVersion.V2,
+  });
+  playMoves(game, fixture.moves, fixture.name);
+  assert.deepEqual(areas(game), fixture.expectedAreas, `${fixture.name}: area drift`);
+  assert.deepEqual(
+    Object.fromEntries(game.activePlayers.map((player) => [
+      player,
+      canonicalPolygonKey(game.cachedTerritories[player].polygon),
+    ])),
+    fixture.expectedPolygonKeys,
+    `${fixture.name}: canonical polygon drift`,
+  );
 }
 
 const stateRoundTripSource = new GameEngine({ rulesVersion: TerritoryRulesVersion.V2 });
@@ -519,6 +560,7 @@ console.log(JSON.stringify({
     degenerateLineArea: 0,
     mirrorAreas: [{ [B]: 10, [W]: 11 }, { [B]: 11, [W]: 10 }],
     d3PermutationsVerified: permutations.length,
+    hotPathFixturesVerified: TERRITORY_V2_HOT_PATH_FIXTURES.length,
   },
   pageContract: {
     discreteScorePreferred: true,
