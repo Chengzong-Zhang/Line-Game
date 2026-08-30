@@ -1249,9 +1249,9 @@ Main constraints:
 - The English title is `LIFELINE`.
 - New text is maintained centrally in `OnlineAppI18n.js`.
 
-## AI Opponent: Minimax + Alpha-Beta
+## AI Opponent: Truncated Heuristic Minimax + Alpha-Beta
 
-LIFELINE is a turn-based, deterministic, perfect-information, zero-sum adversarial game with no randomness and no hidden information. This problem class falls squarely within the Minimax family, so the Web client implements the AI as Minimax with Alpha-Beta pruning, combined with move ordering and a heuristic evaluation function.
+The automatic Web AI is enabled only in two-player mode. Two-player LIFELINE is a turn-based, deterministic, perfect-information, zero-sum adversarial game with no randomness or hidden information, so the Minimax family is a natural fit. The current implementation is fixed-depth, keeps only the Top 20 candidates per node, and expands Place actions only; it is a truncated heuristic Minimax with Alpha-Beta pruning, move ordering, and heuristic evaluation rather than a complete optimal solver.
 
 AI module entry points:
 
@@ -1296,17 +1296,18 @@ Only the first `20` candidates are passed into the search, controlling the branc
 
 ### Alpha-Beta Main Loop
 
-`minimax` alternates between maximizing and minimizing layers and uses `alpha` / `beta` bounds to cut branches that cannot become optimal:
+At every node, `minimax` reads the `currentPlayer` left by rule resolution: it maximizes when that player is `aiPlayer` and minimizes otherwise. It uses `alpha` / `beta` bounds to cut branches that cannot become optimal:
 
 ```javascript
 const ordered = this.orderMoves(engine, legalMoves, engine.currentPlayer);
+const maximizingPlayer = engine.currentPlayer === aiPlayer;
 if (maximizingPlayer) {
   let bestValue = Number.NEGATIVE_INFINITY;
   for (const point of ordered) {
     const snapshot = saveState(engine);
     const applied = applyMoveForAI(engine, point);
     if (applied) {
-      const value = this.minimax(engine, depth - 1, alpha, beta, false, aiPlayer);
+      const value = this.minimax(engine, depth - 1, alpha, beta, aiPlayer);
       bestValue = Math.max(bestValue, value);
       alpha = Math.max(alpha, bestValue);
     }
@@ -1319,7 +1320,7 @@ if (maximizingPlayer) {
 }
 ```
 
-Every expansion uses `saveState` / `restoreState` for transactional rollback against the real rule engine, so the search uses exactly the same legality judgment as a human player, including protection zones, the three-point restriction, attack resolution, and Superko.
+Every expansion uses `saveState` / `restoreState` for transactional rollback against the real rule engine, so the search uses exactly the same legality judgment as a human player, including protection zones, the three-point restriction, attack resolution, and Superko. Move resolution can automatically skip an opponent with no legal placement and leave the same player in control, so MAX/MIN cannot be flipped mechanically by recursion depth; it must follow the actual `currentPlayer` above.
 
 Search depth is controlled directly by difficulty: Easy `2`, Normal `3`, Hard `4`. Deeper searches look further ahead but take longer to compute.
 
@@ -1449,7 +1450,6 @@ getTopMoves(engine, aiPlayer, topN = 5) {
         this.depth - 1,
         Number.NEGATIVE_INFINITY,
         Number.POSITIVE_INFINITY,
-        false,
         aiPlayer,
       );
       scoredMoves.push({ point, score });
@@ -1462,13 +1462,13 @@ getTopMoves(engine, aiPlayer, topN = 5) {
 }
 ```
 
-This means the AI opponent and the AI Hint follow the same Minimax + Alpha-Beta path; the hint simply returns Top-N instead of Top-1. All visualizations — difficulty switching, thinking state, and recommended moves — come from the same search result.
+This means the AI opponent and the AI Hint follow the same Minimax + Alpha-Beta path; the hint simply returns Top-N instead of Top-1. Automatic AI is two-player only; a hint in a three-player game is still a binary heuristic ranking, not Max-N or a complete three-player solution. All visualizations — difficulty switching, thinking state, and recommended moves — come from the same search result.
 
 ### Design Tradeoffs
 
 | Choice | Rationale |
 | --- | --- |
-| Minimax + Alpha-Beta | Classic fit for perfect-information, zero-sum, turn-based adversarial games; no training required, results are interpretable |
+| Two-player truncated Minimax + Alpha-Beta | Classic fit for perfect-information, zero-sum, turn-based adversarial games; no training required and results are interpretable, but global optimality is not guaranteed |
 | Move ordering + Top-20 cutoff | Controls branching factor; cuts and adjacent expansions are locally high-value moves and deserve priority expansion |
 | Fast BFS evaluation | Full territory computation is too slow; BFS reachable space correlates strongly with final territory in practice |
 | Web Worker | Hard-difficulty searches can take seconds and must not block Canvas rendering |

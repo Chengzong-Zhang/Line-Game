@@ -199,7 +199,7 @@ class MinimaxAI {
     return orderMoves(engine, moves, player);
   }
 
-  minimax(engine, depth, alpha, beta, maximizingPlayer, aiPlayer) {
+  minimax(engine, depth, alpha, beta, aiPlayer) {
     if (engine.gameOver || depth === 0) {
       return evaluate(engine, aiPlayer);
     }
@@ -218,7 +218,6 @@ class MinimaxAI {
         depth - 1,
         alpha,
         beta,
-        !maximizingPlayer,
         aiPlayer,
       );
       restoreState(engine, snapshot);
@@ -226,13 +225,16 @@ class MinimaxAI {
     }
 
     const ordered = this.orderMoves(engine, legalMoves, engine.currentPlayer);
+    // Automatic skip normalization can leave the same player in control.
+    // Derive MAX/MIN from the engine state instead of recursion depth parity.
+    const maximizingPlayer = engine.currentPlayer === aiPlayer;
     if (maximizingPlayer) {
       let bestValue = Number.NEGATIVE_INFINITY;
       for (const point of ordered) {
         const snapshot = saveState(engine);
         const applied = applyMoveForAI(engine, point);
         if (applied) {
-          const value = this.minimax(engine, depth - 1, alpha, beta, false, aiPlayer);
+          const value = this.minimax(engine, depth - 1, alpha, beta, aiPlayer);
           bestValue = Math.max(bestValue, value);
           alpha = Math.max(alpha, bestValue);
         }
@@ -249,7 +251,7 @@ class MinimaxAI {
       const snapshot = saveState(engine);
       const applied = applyMoveForAI(engine, point);
       if (applied) {
-        const value = this.minimax(engine, depth - 1, alpha, beta, true, aiPlayer);
+        const value = this.minimax(engine, depth - 1, alpha, beta, aiPlayer);
         bestValue = Math.min(bestValue, value);
         beta = Math.min(beta, bestValue);
       }
@@ -278,7 +280,6 @@ class MinimaxAI {
           this.depth - 1,
           Number.NEGATIVE_INFINITY,
           Number.POSITIVE_INFINITY,
-          false,
           aiPlayer,
         );
         scoredMoves.push({ point, score });
