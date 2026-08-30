@@ -37,13 +37,14 @@ reachable latent topology differences but no difference in legal actions,
 transitions, exact values, or optimal actions; a standard-start side-six replay
 instead shows Superko preventing a repeatable six-transition loop. We compare
 a padded CNN, physical-edge Grid-GNN, and typed-edge Topology-GNN in 15 matched
-mixed-size runs over sides 5, 7, and 9. All three beat Random at every seen
-size. Scores against the fixed UCT-MCTS-16 opponent vary by model and size and
-are reported only as pooled descriptive evidence. Topology-GNN outscores
-Grid-GNN in direct play at all three sizes, but each
-200-game task repeats only two deterministic trajectories; the evidence does
-not support a global representation ranking. All empirical claims are bounded
-to frozen receipts and task-indexed replay-verified game records.
+mixed-size runs over sides 5, 7, and 9. Across the nine model--size cells, all
+45 final training-seed scores against Random exceed 0.5 on these jointly
+trained sizes. Five-seed medians and ranges against the fixed UCT-MCTS-16
+opponent vary by model and size. Direct-play seed summaries are heterogeneous,
+and each 200-game task repeats only two deterministic trajectories; the
+evidence does not support a global representation ranking. All empirical
+claims are bounded to frozen receipts and task-indexed replay-verified game
+records.
 \end{abstract}
 
 \section{Introduction}
@@ -315,11 +316,13 @@ The three learned model families match five seeds, training schedule,
 16-simulation PUCT budget, optimizer, checkpoints, evaluation schedule, and
 parameter count (maximum spread 0.6982\%). This does not constitute compute
 matching between a learned model and UCT-MCTS-16. Wall-clock and transitions
-are recorded but not matched; FLOPs and memory are not yet consolidated. Each
-final seed-level matchup contains 100 same-seed color-swapped pairs. Pooled
-Wilson intervals count draws as half a success and are descriptive: the
-deterministic round robin contains only two action sequences per 200-game task,
-so no independent-game or multiple-comparison inference is claimed.
+are recorded but not matched; FLOPs and memory are not yet consolidated. The
+primary descriptive unit is the training seed, with five seeds per cell. Each
+final seed-level matchup contains 100 same-seed color-swapped pairs; tables
+report the median and min--max range of the five seed scores. The receipt-bound
+audit retains pair-score distributions, medians, and ranges for reconciliation.
+These summaries are descriptive, not confidence intervals or hypothesis tests;
+no independent-game or multiple-comparison inference is claimed.
 
 \section{Topology-Aware Reference Model}
 \label{sec:model}
@@ -396,32 +399,34 @@ paired witness. The latter is a budgeted miss, not an absence proof.
 
 The frozen D14--D16 formal ledger contains 15 training and 315 evaluation tasks: 1,500
 self-play games, 3,000 updates, and 30,600 task-indexed replay-verified game records,
-with no failure or truncation. All nine model--size cells beat Random
-(Table~\ref{tab:final-search}). Against UCT-MCTS-16, Grid-GNN at $n=5$ is
-inconclusive, Padded-CNN at $n=5$ is borderline, and the other seven cells have
-descriptive lower bounds above 0.5.
+with no failure or truncation. All 45 final training-seed scores against Random
+exceed 0.5 (Table~\ref{tab:final-search}). Against UCT-MCTS-16, cell medians
+span 0.477--0.920, with the widest seed ranges at side length 5. These are
+five-seed descriptive summaries, not inferential comparisons.
 
 \begin{table}[H]
   \centering
   \small
-  \caption{Final-checkpoint score rates on the three training sizes. Each cell
-  pools 1,000 games over five training seeds; brackets are descriptive Wilson
-  95\% intervals recomputed from \texttt{final\_vs\_search.csv}. Score is
-  $(W+0.5D)/N$, not raw win rate; pooled games are not treated as independent.}
+  \caption{Final-checkpoint seed-level score summaries on the three training
+  sizes. Each cell is median [min, max] across five training-seed scores; each
+  seed score summarizes 200 games (100 swapped-color pairs). Brackets are
+  ranges, not confidence intervals. Score is $(W+0.5D)/N$, not raw win rate;
+  pooled W/D/L and score remain only in the receipt-bound audit for
+  reconciliation.}
   \label{tab:final-search}
   \begin{tabular}{lrcc}
     \toprule
     Model & $n$ & vs.\ Random & vs.\ UCT-MCTS-16 \\
     \midrule
-    Grid-GNN & 5 & .851 [.827,.871] & .523 [.492,.553] \\
-             & 7 & .892 [.871,.909] & .646 [.615,.675] \\
-             & 9 & .951 [.936,.963] & .848 [.824,.869] \\
-    Padded-CNN & 5 & .873 [.851,.892] & .532 [.501,.562] \\
-               & 7 & .939 [.922,.952] & .711 [.682,.738] \\
-               & 9 & .978 [.967,.985] & .914 [.895,.929] \\
-    Topology-GNN & 5 & .863 [.840,.883] & .643 [.612,.672] \\
-                 & 7 & .910 [.890,.926] & .715 [.686,.742] \\
-                 & 9 & .949 [.933,.961] & .876 [.854,.895] \\
+    Grid-GNN & 5 & .828 [.807,.925] & .477 [.292,.777] \\
+             & 7 & .905 [.853,.920] & .655 [.530,.730] \\
+             & 9 & .963 [.897,.973] & .865 [.700,.935] \\
+    Padded-CNN & 5 & .882 [.782,.950] & .555 [.345,.650] \\
+               & 7 & .945 [.905,.975] & .700 [.625,.785] \\
+               & 9 & .980 [.960,.990] & .920 [.875,.943] \\
+    Topology-GNN & 5 & .895 [.733,.907] & .677 [.343,.782] \\
+                 & 7 & .902 [.853,.963] & .715 [.652,.762] \\
+                 & 9 & .948 [.938,.968] & .868 [.835,.915] \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -433,47 +438,51 @@ establish relative sample efficiency.
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.96\linewidth]{fig2_checkpoint_curves.pdf}
-  \caption{Formal score-rate probes against UCT-MCTS-16 from
-  \texttt{arena\_learning\_curve.csv}. The vertical scale is focused on
-  0.35--0.98. Steps 40--160 pool 100 games per point, whereas step 200 pools
-  1,000; the five discrete probes support neither a continuous-convergence nor
-  a relative sample-efficiency claim.}
+  \caption{Frozen pooled score-rate probes against UCT-MCTS-16 from
+  \texttt{arena\_learning\_curve.csv}, retained only as a schedule and
+  reconciliation visualization. The vertical scale is focused on 0.35--0.98.
+  Steps 40--160 pool 100 game records per point, whereas step 200 pools 1,000;
+  the receipt-bound audit reports the corresponding five-seed medians, ranges,
+  and pair-score distributions. The probes support neither uncertainty,
+  continuous-convergence, nor relative sample-efficiency inference.}
   \label{fig:checkpoint-curves}
 \end{figure}
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.92\linewidth]{fig3_model_size_opponent_heatmap.pdf}
-  \caption{Final model--size--opponent score rates from
-  \texttt{final\_vs\_search.csv}; each cell pools 1,000 games from five
-  training-seed receipts. Score is $(W+0.5D)/N$, not raw win rate. Colors do
-  not encode uncertainty, multiplicity-adjusted significance, or unseen-size
+  \caption{Pooled reconciliation heatmap from
+  \texttt{final\_vs\_search.csv}; each cell aggregates 1,000 game records from
+  five training-seed receipts. Table~\ref{tab:final-search} gives the primary
+  five-seed median and range. Score is $(W+0.5D)/N$, not raw win rate. Colors
+  do not encode uncertainty, multiplicity-adjusted significance, or unseen-size
   generalization.}
   \label{fig:final-heatmap}
 \end{figure}
 
 \subsection{Representation round robin}
 
-Direct play exhibits a size--representation interaction
-(Table~\ref{tab:round-robin}). Topology-GNN outscores Grid-GNN at all three
-sizes, while Padded-CNN reverses direction against both graph models. No global
-ordering is supported.
+Direct play exhibits heterogeneous seed-level outcomes
+(Table~\ref{tab:round-robin}). Only Topology-GNN versus Grid-GNN at side length
+7 has a seed-score median of 1.00; the other eight model-pair--size medians are
+0.50, with wide ranges. No global ordering is supported.
 
 \begin{table}[H]
   \centering
-  \small
-  \caption{Score from A's perspective in
-  \texttt{representation\_round\_robin.csv}, pooled over five matched training
-  seeds. Intervals are omitted because each 200-game task repeats two
-  deterministic color-conditioned trajectories; no global ranking is inferred.}
+  \footnotesize
+  \caption{Seed-level score summaries from A's perspective in
+  \texttt{representation\_round\_robin.csv}. Each cell is median [min, max]
+  across five training-seed tasks. Every 200-game task contains two
+  deterministic color-conditioned outcomes, each repeated 100 times; ranges
+  are descriptive and no global ranking is inferred.}
   \label{tab:round-robin}
-  \begin{tabular}{lccc}
+  \begin{tabular}{@{}lccc@{}}
     \toprule
     A vs.\ B & $n=5$ & $n=7$ & $n=9$ \\
     \midrule
-    Topology-GNN vs.\ Grid-GNN & .65 & .80 & .60 \\
-    Padded-CNN vs.\ Grid-GNN & .50 & .55 & .30 \\
-    Padded-CNN vs.\ Topology-GNN & .60 & .30 & .50 \\
+    Topology-GNN vs.\ Grid-GNN & .50 [.50,1.00] & 1.00 [.50,1.00] & .50 [.50,1.00] \\
+    Padded-CNN vs.\ Grid-GNN & .50 [.00,1.00] & .50 [.00,1.00] & .50 [.00,.50] \\
+    Padded-CNN vs.\ Topology-GNN & .50 [.00,1.00] & .50 [.00,.50] & .50 [.00,1.00] \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -524,11 +533,13 @@ for this completed D14--D16 bundle,
   their comparison mixes representation and architecture; the CNN adds a model
   family confound. Parameters and data are matched, but FLOPs, memory,
   transitions, and wall time are not.
-  \item Each D16 200-game task contains only two unique color-conditioned
-  trajectories. These repeats invalidate independent-game uncertainty;
-  a later preregistered diversified extension executed all planned games but
-  failed its frozen trajectory-diversity gate and is therefore excluded here.
-  A prospectively redesigned evaluation and independent verification remain
+  \item The primary replication count is five training seeds per cell. Each D16
+  200-game seed-task contains only two unique color-conditioned trajectories,
+  each repeated 100 times. Seed medians, ranges, and pair-score histograms are
+  descriptive and provide no confidence interval or hypothesis test. A later
+  preregistered diversified extension executed all planned games but failed its
+  frozen trajectory-diversity gate and is therefore excluded here. A
+  prospectively redesigned evaluation and independent verification remain
   required.
   \item \lifeline{} is one hand-designed game, so external validity to other
   games is untested; its Superko matrix is finite-policy evidence. The smoke
@@ -542,11 +553,11 @@ for this completed D14--D16 bundle,
 \lifeline{} isolates dynamic topology and history-dependent legality in a
 replayable benchmark. Side-five enumeration yields a decision-relevant negative
 result, while a side-six trace proves Superko can bind. Under one frozen
-five-seed protocol, all three learned representations beat Random on seen
-sizes; Topology-GNN outscores Grid-GNN directly, but size-dependent reversals
-and duplicated trajectories rule out a global ranking. Next steps are
-a prospectively frozen paired-opening evaluation, independent zero-shot
-verification, and only then gated rule/feature ablations.
+five-seed protocol, all 45 final seed scores against Random exceed 0.5 on seen
+sizes. UCT-MCTS-16 medians and ranges vary by model and size, while direct-play
+seed summaries are heterogeneous; duplicated trajectories rule out a global
+ranking. Next steps are a prospectively frozen paired-opening evaluation,
+independent zero-shot verification, and only then gated rule/feature ablations.
 
 \subsection*{Reproducibility statement}
 Sections~\ref{sec:protocol}--\ref{sec:experiments} and
@@ -605,7 +616,13 @@ Canonical aggregates retain checkpoint, W/D/L, seed, loss, transition, and
 timing fields. In the completed D14--D16 bundle, no formal task failed or
 truncated; smoke runs and duplicate
 views of the step-200 UCT matchup are excluded from the 30,600 task-indexed
-replay-verified game records. The paper's evidence mapping names frozen
+replay-verified game records. The receipt-bound
+\texttt{d14\_d16\_seed\_pair\_descriptive\_audit.json} reconstructs all 330
+receipts and 15,300 color-swapped pairs into 315 seed-task rows and 72 five-seed
+summaries, matching all 72 canonical rows with zero mismatch. Its 45 D16 task
+profiles each bind two color-conditioned trajectory hashes with 100 repetitions
+apiece; all pair-score distributions remain descriptive. The paper's evidence
+mapping names frozen
 protocol/config hashes, compact aggregate CSV/JSON summaries, an append-only
 JSONL receipt ledger, and independent verifier outputs. It does not claim that checkpoints, raw per-game logs, or
 task directories are included in the submission artifacts.
