@@ -1,7 +1,10 @@
 import GameController from "./GameController.js?v=20260830a";
-import { GameEngine, Player } from "./GameEngine.js?v=20260830a";
-import { MinimaxAI, restoreState, saveState } from "./AIEngine.js?v=20260830a";
+import { Player } from "./GameEngine.js?v=20260830a";
 import { isWorkerResultCurrent, serializeEngineState } from "./AIStateProtocol.js?v=20260830a";
+import {
+  OneShotHintWorker,
+  applyHintWorkerResult,
+} from "./HintWorkerSession.js?v=20260830a";
 import NetworkManager, { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js?v=20260430d";
 import {
   applyRoomSnapshotWithPostCommit,
@@ -2470,7 +2473,12 @@ const App = {
     let aiScheduleId = null;
     let aiRequestSequence = 0;
     let activeAiRequestId = null;
+    const hintWorkerSession = new OneShotHintWorker(
+      () => new Worker(new URL("./AIWorker.js?v=20260830a", import.meta.url), { type: "module" }),
+    );
     const chatEmojiTimeoutIds = new Set();
+
+    const cancelHintRequest = () => hintWorkerSession.cancel();
 
     const getAiPlayer = () => {
       if (selectedAiMode.value === "ai_white") {
@@ -2657,10 +2665,11 @@ const App = {
       authFeedbackTone.value = "error";
     });
 
-    watch([selectedPlayerCount, selectedGridSize, selectedStartPlayer, selectedTurnTimerEnabled, selectedTurnTimeLimitSeconds, selectedHintEnabled, selectedHintMaxCount], ([
+    watch([selectedPlayerCount, selectedGridSize, selectedStartPlayer, selectedRulesVersion, selectedTurnTimerEnabled, selectedTurnTimeLimitSeconds, selectedHintEnabled, selectedHintMaxCount], ([
       playerCount,
       gridSize,
       startPlayer,
+      rulesVersion,
       turnTimerEnabled,
       turnTimeLimitSeconds,
       hintEnabled,
@@ -2669,6 +2678,7 @@ const App = {
       previousPlayerCount,
       previousGridSize,
       previousStartPlayer,
+      previousRulesVersion,
       previousTurnTimerEnabled,
       previousTurnTimeLimitSeconds,
       previousHintEnabled,
@@ -2682,7 +2692,7 @@ const App = {
         playerCount,
         gridSize,
         startPlayer,
-        rulesVersion: selectedRulesVersion.value,
+        rulesVersion,
         turnTimerEnabled,
         turnTimeLimitSeconds,
         hintEnabled,
@@ -2691,6 +2701,7 @@ const App = {
       selectedPlayerCount.value = normalized.playerCount;
       selectedGridSize.value = normalized.gridSize;
       selectedStartPlayer.value = normalized.startPlayer;
+      selectedRulesVersion.value = normalized.rulesVersion;
       selectedTurnTimerEnabled.value = normalized.turnTimerEnabled;
       selectedTurnTimeLimitSeconds.value = normalized.turnTimeLimitSeconds;
       selectedHintEnabled.value = normalized.hintEnabled;
@@ -2704,6 +2715,7 @@ const App = {
       const gameAffectingChanged = normalized.playerCount !== previousPlayerCount
         || normalized.gridSize !== previousGridSize
         || normalized.startPlayer !== previousStartPlayer
+        || normalized.rulesVersion !== previousRulesVersion
         || normalized.turnTimerEnabled !== previousTurnTimerEnabled
         || normalized.turnTimeLimitSeconds !== previousTurnTimeLimitSeconds;
       const hintChanged = normalized.hintEnabled !== previousHintEnabled
@@ -2727,6 +2739,7 @@ const App = {
       if (isHost.value && roomStatus.value !== "solo" && roomStatus.value !== "inProgress" && roomStatus.value !== "countdown") {
         const settingsChanged = normalized.playerCount !== previousPlayerCount
           || normalized.gridSize !== previousGridSize
+          || normalized.rulesVersion !== previousRulesVersion
           || normalized.turnTimerEnabled !== previousTurnTimerEnabled
           || normalized.turnTimeLimitSeconds !== previousTurnTimeLimitSeconds;
         const starterChanged = normalized.startPlayer !== previousStartPlayer;
@@ -2740,6 +2753,7 @@ const App = {
     });
 
     watch([selectedAiMode, selectedAiDepth], ([aiMode, aiDepth]) => {
+      cancelHintRequest();
       if (selectedPlayerCount.value !== 2 && aiMode !== "none") {
         selectedAiMode.value = "none";
         return;
@@ -2753,6 +2767,7 @@ const App = {
 
     watch(() => gameState.value.multiplayerEnabled, (multiplayerEnabled) => {
       if (multiplayerEnabled) {
+        cancelHintRequest();
         terminateAiWorker();
       } else {
         scheduleAiMove(gameState.value);
@@ -2761,6 +2776,7 @@ const App = {
 
     watch(roomStatus, (status) => {
       if (status !== "solo") {
+        cancelHintRequest();
         terminateAiWorker();
       } else {
         scheduleAiMove(gameState.value);
@@ -2771,6 +2787,7 @@ const App = {
       if (!isGameOver) {
         resultModalDismissed.value = false;
       } else {
+        cancelHintRequest();
         terminateAiWorker();
       }
     });
@@ -2876,6 +2893,7 @@ const App = {
     const hintMaxCount = computed(() => effectiveGameSettings.value.hintMaxCount);
 
     const applySettingsToController = (settings, reset = true, commitToController = true) => {
+      cancelHintRequest();
       const normalized = normalizeAppGameSettings(settings);
       syncingRemoteSettings = true;
       try {
@@ -3178,6 +3196,7 @@ const App = {
     };
 
     const resetRoomContext = () => {
+      cancelHintRequest();
       roomStatus.value = "solo";
       roomInfo.value = createEmptyRoomInfo();
       roomIdInput.value = "";
@@ -3225,6 +3244,7 @@ const App = {
       if (!applyRoomPayload(payload)) {
         return false;
       }
+      cancelHintRequest();
       roomIdInput.value = payload?.roomId ?? roomIdInput.value;
       syncSession();
       const incomingSettings = normalizeAppGameSettings(
@@ -3405,6 +3425,7 @@ const App = {
     };
 
     const resetHintUsage = () => {
+      cancelHintRequest();
       clearActiveHint();
       clearHintFeedback();
       hintRemainingCount.value = selectedHintEnabled.value ? selectedHintMaxCount.value : 0;
@@ -3420,49 +3441,89 @@ const App = {
     };
 
     const handleStateChange = (nextState) => {
+      cancelHintRequest();
       clearActiveHint();
       gameState.value = nextState;
       scheduleAiMove(nextState);
     };
 
-    const requestHint = async () => {
+    const getCurrentHintEngine = () => {
+      const currentEngine = controller.value?.engine ?? null;
+      const aiPlayer = getAiPlayer();
+      const currentIsAiTurn = aiPlayer !== null
+        && gameState.value.currentPlayer === aiPlayer;
+      if (
+        !currentEngine
+        || roomStatus.value !== "solo"
+        || !hintEnabled.value
+        || hintRemainingCount.value <= 0
+        || gameState.value.gameOver
+        || gameState.value.multiplayerEnabled
+        || controller.value?.multiplayerEnabled
+        || currentIsAiTurn
+      ) {
+        return null;
+      }
+      return currentEngine;
+    };
+
+    const requestHint = () => {
       if (!controller.value || hintDisabled.value) {
         return;
       }
 
+      cancelHintRequest();
       hintThinking.value = true;
       clearActiveHint();
       const sourceEngine = controller.value.engine;
       const currentPlayer = sourceEngine.currentPlayer;
-      let moves = [];
 
       try {
-        const snapshot = saveState(sourceEngine);
-        const tempEngine = new GameEngine({
-          gridSize: sourceEngine.gridSize,
-          playerCount: sourceEngine.playerCount,
-          startPlayer: sourceEngine.startPlayer,
-          rulesVersion: sourceEngine.rulesVersion,
+        hintWorkerSession.start({
+          engine: sourceEngine,
+          getCurrentEngine: getCurrentHintEngine,
+          message: {
+            type: "COMPUTE",
+            serializedState: serializeEngineState(sourceEngine),
+            aiPlayer: currentPlayer,
+            depth: 2,
+            topN: 1,
+          },
+          onResult: (message) => {
+            try {
+              const application = applyHintWorkerResult({
+                moves: message.moves,
+                legalMoves: gameState.value.legalMoves,
+                remainingCount: hintRemainingCount.value,
+                renderHint: (point) => controller.value.renderer.setHintPoint(point),
+              });
+              if (!application.applied) {
+                if (application.reason === "NO_MOVE" || application.reason === "ILLEGAL_MOVE") {
+                  showHintNoMoves();
+                }
+                return;
+              }
+
+              hintRemainingCount.value = application.nextRemainingCount;
+              hintClearTimeoutId = globalThis.setTimeout(() => {
+                controller.value?.renderer?.clearHintPoint();
+                hintClearTimeoutId = null;
+              }, 4000);
+            } catch (error) {
+              console.warn("Unable to display a hint.", error);
+            }
+          },
+          onError: (error) => {
+            console.warn("Unable to calculate a hint.", error);
+          },
+          onFinish: () => {
+            hintThinking.value = false;
+          },
         });
-        restoreState(tempEngine, snapshot);
-        moves = new MinimaxAI(2).getTopMoves(tempEngine, currentPlayer, 1);
       } catch (error) {
         console.warn("Unable to calculate a hint.", error);
-      } finally {
         hintThinking.value = false;
       }
-
-      if (moves.length === 0) {
-        showHintNoMoves();
-        return;
-      }
-
-      hintRemainingCount.value -= 1;
-      controller.value.renderer.setHintPoint(moves[0].point);
-      hintClearTimeoutId = globalThis.setTimeout(() => {
-        controller.value?.renderer?.clearHintPoint();
-        hintClearTimeoutId = null;
-      }, 4000);
     };
 
     const handleAuthSubmit = async () => {
@@ -3612,6 +3673,8 @@ const App = {
         return;
       }
 
+      cancelHintRequest();
+
       if (roomStatus.value === "solo") {
         const result = controller.value.skipTurn();
         gameState.value = result.state;
@@ -3636,6 +3699,8 @@ const App = {
       if (roomStatus.value !== "solo" && (roomSnapshotRecoveryFailed || gameState.value.resetLocked)) {
         return;
       }
+
+      cancelHintRequest();
 
       if (roomStatus.value === "solo") {
         terminateAiWorker();
@@ -4289,6 +4354,7 @@ const App = {
 
     onBeforeUnmount(() => {
       terminateAiWorker();
+      cancelHintRequest();
       clearActiveHint();
       clearHintFeedback();
       clearReconnectTimer();

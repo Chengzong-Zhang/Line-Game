@@ -1427,6 +1427,8 @@ self.onmessage = (event) => {
 - Worker 启动时根据主线程序列化的棋盘状态重建一份独立的 `GameEngine`，与主线程零共享内存。
 - 搜索期间显式禁用 `engine._updateTerritories`，避免每个搜索节点重复触发完整领土流程。
 - Worker 通过 `postMessage` 返回 Top-N 候选落点及其分值，主线程继续负责动画、提示和落子合法性确认。
+- 自动 AI 复用自己的 Worker；每次提示另建一次性 Worker，收到 RESULT、ERROR 或取消后立即终止，不共享请求生命周期。
+- 提示结果只有在 requestId、原引擎对象、positionRevision、rulesVersion 与 currentPlayer 全部仍一致时才显示并扣次数。
 
 ### AI 提示复用同一套搜索
 
@@ -1462,7 +1464,7 @@ getTopMoves(engine, aiPlayer, topN = 5) {
 }
 ```
 
-这意味着 AI 对手与 AI 提示走的是同一条 Minimax + Alpha-Beta 路径，只是返回的是 Top-N 而不是 Top-1。自动 AI 仅用于双人局；三人局提示仍是二元启发式排序，不等同于 Max-N 或完整三人博弈求解。AI 在难度调节、思考状态、推荐落点上的所有可视化都来自同一套搜索结果。
+这意味着 AI 对手与 AI 提示使用同一套 Minimax + Alpha-Beta 算法，但运行在相互隔离的 Worker 实例中；提示不会阻塞 UI，也不会被旧局面的迟到结果覆盖。自动 AI 仅用于双人局；三人局提示仍是二元启发式排序，不等同于 Max-N 或完整三人博弈求解。AI 在难度调节、思考状态、推荐落点上的所有可视化都来自同一套搜索结果。
 
 ### 设计取舍
 
@@ -1471,7 +1473,7 @@ getTopMoves(engine, aiPlayer, topN = 5) {
 | 双人截断 Minimax + Alpha-Beta | 完备信息、零和、回合制对抗的经典选择；无需训练、结果可解释，但不保证全局最优 |
 | 走法排序 + Top-20 截断 | 控制分支因子；切断和贴线扩张是局部高价值走法，优先展开 |
 | 快速 BFS 评估 | 完整领土算法太慢；BFS 可达空间在统计意义上与最终领土高度相关 |
-| Web Worker | 困难难度下搜索耗时可能达到秒级，必须避免阻塞 Canvas 渲染 |
+| 隔离的 Web Worker | 自动 AI 复用专属 Worker，提示使用一次性 Worker；搜索不阻塞 Canvas，陈旧结果也不会回写新局面 |
 | 搜索快照回滚 | 复用完整规则引擎，确保 AI 与人类玩家在保护区、三点限制、Superko 上口径一致 |
 
 ## 修改入口

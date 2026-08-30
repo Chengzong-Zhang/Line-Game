@@ -1427,6 +1427,8 @@ Key points:
 - On startup, the worker rebuilds an independent `GameEngine` from the main thread's serialized board state — no shared memory with the main thread.
 - During the search, `engine._updateTerritories` is explicitly disabled to avoid triggering the full territory pipeline at every search node.
 - The worker returns the Top-N candidate moves and their scores via `postMessage`; the main thread continues to drive animation, hints, and final legality confirmation.
+- Automatic AI reuses its own worker; every hint gets a separate one-shot worker that terminates after RESULT, ERROR, or cancellation, so the request lifecycles are never shared.
+- A hint is displayed and charged only when its requestId, original engine object, positionRevision, rulesVersion, and currentPlayer are all still current.
 
 ### AI Hint Reuses the Same Search
 
@@ -1462,7 +1464,7 @@ getTopMoves(engine, aiPlayer, topN = 5) {
 }
 ```
 
-This means the AI opponent and the AI Hint follow the same Minimax + Alpha-Beta path; the hint simply returns Top-N instead of Top-1. Automatic AI is two-player only; a hint in a three-player game is still a binary heuristic ranking, not Max-N or a complete three-player solution. All visualizations — difficulty switching, thinking state, and recommended moves — come from the same search result.
+This means the AI opponent and AI Hint use the same Minimax + Alpha-Beta algorithm but run in isolated worker instances. Hint search no longer blocks the UI, and a late result from an old position cannot overwrite the current board. Automatic AI is two-player only; a hint in a three-player game is still a binary heuristic ranking, not Max-N or a complete three-player solution. All visualizations — difficulty switching, thinking state, and recommended moves — come from the same search result.
 
 ### Design Tradeoffs
 
@@ -1471,7 +1473,7 @@ This means the AI opponent and the AI Hint follow the same Minimax + Alpha-Beta 
 | Two-player truncated Minimax + Alpha-Beta | Classic fit for perfect-information, zero-sum, turn-based adversarial games; no training required and results are interpretable, but global optimality is not guaranteed |
 | Move ordering + Top-20 cutoff | Controls branching factor; cuts and adjacent expansions are locally high-value moves and deserve priority expansion |
 | Fast BFS evaluation | Full territory computation is too slow; BFS reachable space correlates strongly with final territory in practice |
-| Web Worker | Hard-difficulty searches can take seconds and must not block Canvas rendering |
+| Isolated Web Workers | Automatic AI reuses a dedicated worker while hints use one-shot workers; search does not block Canvas and stale results cannot write into a newer position |
 | Search snapshot rollback | Reuses the full rule engine so the AI and human players share identical semantics for protection zones, the three-point rule, and Superko |
 
 ## Modification Entry Points

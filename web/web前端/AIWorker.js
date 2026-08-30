@@ -47,6 +47,7 @@ self.onmessage = (event) => {
       requestId,
       positionRevision: serializedState.positionRevision ?? 0,
       rulesVersion: serializedState.rulesVersion,
+      currentPlayer: serializedState.currentPlayer,
       moves,
     });
   } catch (error) {
@@ -55,6 +56,7 @@ self.onmessage = (event) => {
       requestId: event.data?.requestId ?? null,
       positionRevision: event.data?.serializedState?.positionRevision ?? 0,
       rulesVersion: event.data?.serializedState?.rulesVersion,
+      currentPlayer: event.data?.serializedState?.currentPlayer,
       message: error instanceof Error ? error.message : String(error),
     });
   }

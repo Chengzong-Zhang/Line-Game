@@ -412,10 +412,18 @@ assert.equal(stateRoundTripSource.resignPlayer(W).success, true);
 const serialized = serializeEngineState(stateRoundTripSource);
 assert.equal(serialized.rulesVersion, TerritoryRulesVersion.V2);
 assert.equal(serialized.positionRevision, stateRoundTripSource.positionRevision);
+assert.equal(serialized.currentPlayer, stateRoundTripSource.currentPlayer);
 assert.deepEqual(serialized.resignedPlayers, [W]);
 assert.equal(isWorkerResultCurrent(stateRoundTripSource, serialized), true);
 assert.equal(
   isWorkerResultCurrent(stateRoundTripSource, { ...serialized, positionRevision: serialized.positionRevision - 1 }),
+  false,
+);
+assert.equal(
+  isWorkerResultCurrent(stateRoundTripSource, {
+    ...serialized,
+    currentPlayer: serialized.currentPlayer === B ? W : B,
+  }),
   false,
 );
 const saved = saveState(stateRoundTripSource);
@@ -458,6 +466,7 @@ assert.equal(workerMessages.at(-1).type, "RESULT");
 assert.equal(workerMessages.at(-1).requestId, "worker-round-trip");
 assert.equal(workerMessages.at(-1).positionRevision, 0);
 assert.equal(workerMessages.at(-1).rulesVersion, TerritoryRulesVersion.V2);
+assert.equal(workerMessages.at(-1).currentPlayer, B);
 
 const workerStateProbeAiUrl = asDataUrl(`
   import { restoreState as realRestoreState } from "${aiEngineUrl}";
@@ -527,6 +536,7 @@ workerSelf.onmessage({
 });
 assert.equal(workerMessages.at(-1).type, "ERROR");
 assert.equal(workerMessages.at(-1).requestId, "worker-invalid-rule");
+assert.equal(workerMessages.at(-1).currentPlayer, invalidWorkerState.currentPlayer);
 globalThis.self = previousSelf;
 
 assert.equal(DEFAULT_RULES_VERSION, TerritoryRulesVersion.V2);
