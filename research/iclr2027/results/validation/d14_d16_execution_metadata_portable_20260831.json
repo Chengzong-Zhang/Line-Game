@@ -1,0 +1,10 @@
+{
+  "cuda_runtime_version": "11.8",
+  "cudnn_version": 90100,
+  "device_name": "NVIDIA GeForce RTX 4060 Laptop GPU",
+  "python": "3.10.20",
+  "schema_name": "lifeline-d14-d16-portable-execution-metadata",
+  "schema_version": 1,
+  "source_execution_metadata_sha256": "77fb2c380a6a694f897f063409fabdc7e77068eb4f6240a052816b20855f9188",
+  "torch_version": "2.7.1+cu118"
+}

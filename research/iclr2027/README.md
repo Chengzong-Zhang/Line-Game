@@ -100,12 +100,19 @@ evidence-bound lock, then run the offline verifier before any reproduction:
 ```powershell
 python -m pip install -r .\research\iclr2027\requirements-d14-d16-win-cu118.lock.txt
 python -m pip install -e .\research\iclr2027 --no-deps
-python -B .\research\iclr2027\scripts\verify_d14_d16_environment.py --output .\research\iclr2027\results\validation\d14_d16_environment_verification_20260831.json
+python -B .\research\iclr2027\scripts\verify_d14_d16_environment.py --output .\research\iclr2027\results\validation\d14_d16_environment_verification_20260831_v2.json
 ```
 
 The environment verifier checks software identity only; compatible hardware,
 frozen runner/protocol hashes, and the original receipts remain separate
 requirements for reproducing formal training.
+
+The v2 verifier requires a canonical, path-free projection bound to the frozen
+formal execution-metadata hash. Its receipt uses repository-relative path
+labels and binds the verifier source hash. This still attests only that the
+retained environment matches 20 exact package versions; the version lock is
+not a wheel-hash lock and does not prove a fresh installation or offline
+distribution closure.
 
 The 2026-08-31 full research check in the retained environment passed 261
 tests plus 174 subtests. The historical core-only counts below remain useful

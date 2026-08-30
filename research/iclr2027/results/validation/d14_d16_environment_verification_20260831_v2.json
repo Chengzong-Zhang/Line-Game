@@ -1,0 +1,69 @@
+{
+  "errors": [],
+  "formal_execution_metadata": {
+    "expected_cuda_runtime": "11.8",
+    "expected_cudnn": 90100,
+    "expected_python": "3.10.20",
+    "expected_torch": "2.7.1+cu118",
+    "original_device_name": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "path": "research/iclr2027/results/validation/d14_d16_execution_metadata_portable_20260831.json",
+    "sha256": "2d953a5dccbd989b5e8d38e52b0f8c2a53bca33b65aa267d129ab2eff5293663",
+    "source_execution_metadata_sha256": "77fb2c380a6a694f897f063409fabdc7e77068eb4f6240a052816b20855f9188"
+  },
+  "hardware_note": "Hardware identity is diagnostic only. Reproducing the original formal training receipt additionally requires the frozen runner/protocol hashes and compatible NVIDIA hardware.",
+  "lock": {
+    "package_count": 20,
+    "path": "research/iclr2027/requirements-d14-d16-win-cu118.lock.txt",
+    "sha256": "380cab994906a45f60fba3a4c00f818f3724070666dfeef737f3f5a0e1a5d272"
+  },
+  "observed": {
+    "cuda_available": true,
+    "cuda_runtime_version": "11.8",
+    "cudnn_version": 90100,
+    "device_name": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "packages": {
+      "colorama": "0.4.6",
+      "exceptiongroup": "1.3.1",
+      "filelock": "3.25.2",
+      "fsspec": "2026.2.0",
+      "iniconfig": "2.3.0",
+      "jinja2": "3.1.6",
+      "markupsafe": "3.0.2",
+      "mpmath": "1.3.0",
+      "networkx": "3.4.2",
+      "numpy": "2.2.6",
+      "packaging": "25.0",
+      "pluggy": "1.6.0",
+      "pygments": "2.20.0",
+      "pytest": "9.0.3",
+      "setuptools": "80.10.2",
+      "sympy": "1.14.0",
+      "tomli": "2.4.1",
+      "torch": "2.7.1+cu118",
+      "typing-extensions": "4.15.0",
+      "wheel": "0.46.3"
+    },
+    "platform": "Windows-10-10.0.26200-SP0",
+    "python": "3.10.20",
+    "python_implementation": "CPython",
+    "torch_version": "2.7.1+cu118"
+  },
+  "ok": true,
+  "schema_name": "lifeline-d14-d16-environment-verification",
+  "schema_version": 1,
+  "verifier": {
+    "path": "research/iclr2027/scripts/verify_d14_d16_environment.py",
+    "semantic_command": [
+      "python",
+      "-B",
+      "research/iclr2027/scripts/verify_d14_d16_environment.py",
+      "--lock",
+      "research/iclr2027/requirements-d14-d16-win-cu118.lock.txt",
+      "--metadata",
+      "research/iclr2027/results/validation/d14_d16_execution_metadata_portable_20260831.json",
+      "--output",
+      "research/iclr2027/results/validation/d14_d16_environment_verification_20260831_v2.json"
+    ],
+    "sha256": "4600be6f89abd868388c50a248fe4a503f29747078f571979f43329917e96901"
+  }
+}
