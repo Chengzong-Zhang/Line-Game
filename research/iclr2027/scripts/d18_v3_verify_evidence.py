@@ -1088,11 +1088,17 @@ def _validate_throughput_profile_evidence(
     *,
     metadata: Mapping[str, Any],
     tasks: Sequence[Mapping[str, Any]],
+    grouped_schedules: Mapping[str, Sequence[Mapping[str, Any]]],
     checkpoint_registry: Mapping[tuple[str, int], Mapping[str, Any]],
     formal_manifest_sha: str,
     formal_runner_sha: str,
 ) -> dict[str, Any]:
-    """Independently validate the nine-case, persistent-worker GPU receipt."""
+    """Independently validate the nine-case, persistent-worker GPU receipt.
+
+    Each smoke lane is bound to the frozen member-zero game schedule selected
+    by the first pair plan.  Color slots belong to that concrete game row, not
+    to the two-member pair plan whose members intentionally swap colors.
+    """
 
     profile_path = profile_path.resolve()
     _require(
@@ -1264,6 +1270,59 @@ def _validate_throughput_profile_evidence(
         )
         for key, rows in task_groups.items()
     }
+    task_ids = {str(task.get("task_id", "")) for task in tasks}
+    _require(
+        set(grouped_schedules) == task_ids,
+        "throughput frozen game schedules do not cover the exact task set",
+    )
+    selected_schedules: dict[str, Mapping[str, Any]] = {}
+    for task in tasks:
+        task_id = str(task.get("task_id", ""))
+        pair_plans = _sequence(task.get("pair_plan"), f"{task_id}.pair_plan")
+        _require(bool(pair_plans), f"{task_id}: pair plan is empty")
+        first_plan = _mapping(pair_plans[0], f"{task_id}.pair_plan[0]")
+        game_ids = _sequence(
+            first_plan.get("game_ids"), f"{task_id}.pair_plan[0].game_ids"
+        )
+        _require(
+            len(game_ids) == 2,
+            f"{task_id}: first pair plan does not contain two game IDs",
+        )
+        selected_game_id = str(game_ids[0])
+        matches: list[Mapping[str, Any]] = []
+        for schedule_index, raw_schedule in enumerate(
+            _sequence(grouped_schedules.get(task_id), f"{task_id}.schedules")
+        ):
+            schedule = _mapping(
+                raw_schedule, f"{task_id}.schedules[{schedule_index}]"
+            )
+            if str(schedule.get("game_id", "")) == selected_game_id:
+                matches.append(schedule)
+        _require(
+            len(matches) == 1,
+            f"{task_id}: selected smoke game schedule is missing or duplicated",
+        )
+        selected_schedule = matches[0]
+        _require(
+            selected_schedule.get("task_id") == task_id
+            and selected_schedule.get("pair_id") == first_plan.get("pair_id")
+            and _integer(
+                selected_schedule.get("pair_member"),
+                f"{task_id}.selected_schedule.pair_member",
+                minimum=0,
+            )
+            == 0
+            and _valid_sha256(
+                selected_schedule.get("frozen_game_schedule_sha256")
+            )
+            and {
+                selected_schedule.get("black_slot"),
+                selected_schedule.get("white_slot"),
+            }
+            == {"A", "B"},
+            f"{task_id}: selected smoke game schedule binding differs",
+        )
+        selected_schedules[task_id] = selected_schedule
 
     preload_rows = _sequence(
         profile.get("resident_cache_preload_results"),
@@ -1387,10 +1446,8 @@ def _validate_throughput_profile_evidence(
             and lane.get("training_seed") == selected.get("training_seed"),
             "throughput lane case/task binding differs",
         )
-        selected_schedule = _mapping(
-            _sequence(selected.get("pair_plan"), "task.pair_plan")[0],
-            "task.pair_plan[0]",
-        )
+        selected_task_id = str(selected.get("task_id", ""))
+        selected_schedule = selected_schedules[selected_task_id]
         _require(
             lane.get("opening_id") == selected_schedule.get("opening_id"),
             "throughput lane opening differs from selected task schedule",
@@ -1401,10 +1458,20 @@ def _validate_throughput_profile_evidence(
             selected_schedule, size=size, superko_mode=superko_mode
         )
         _require(
-            lane.get("black_slot") == selected_schedule.get("black_slot")
+            lane.get("game_id") == selected_schedule.get("game_id")
+            and lane.get("pair_id") == selected_schedule.get("pair_id")
+            and _integer(
+                lane.get("pair_member"),
+                f"throughput.lane[{flat_index}].pair_member",
+                minimum=0,
+            )
+            == 0
+            and lane.get("frozen_game_schedule_sha256")
+            == selected_schedule.get("frozen_game_schedule_sha256")
+            and lane.get("black_slot") == selected_schedule.get("black_slot")
             and lane.get("white_slot") == selected_schedule.get("white_slot")
             and {lane.get("black_slot"), lane.get("white_slot")} == {"A", "B"},
-            "throughput lane color-slot binding differs",
+            "throughput lane frozen game schedule binding differs",
         )
         agents = _sequence(lane.get("agents"), "lane.agents")
         _require(
@@ -2419,6 +2486,7 @@ def verify_evidence(
         throughput_profile_path,
         metadata=metadata,
         tasks=tasks,
+        grouped_schedules=grouped_schedules,
         checkpoint_registry=checkpoint_registry,
         formal_manifest_sha=formal_manifest_sha,
         formal_runner_sha=formal_runner_sha,

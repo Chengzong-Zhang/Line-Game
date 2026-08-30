@@ -563,6 +563,175 @@ def _opening_from_pair(pair: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _validate_gpu_smoke_schedule_binding(
+    task: Mapping[str, Any], schedule: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Fail closed unless ``schedule`` is the first pair's frozen member-zero row."""
+
+    task_id = task.get("task_id")
+    _require(isinstance(task_id, str) and bool(task_id), "GPU smoke task ID is invalid")
+    pair_plans = task.get("pair_plan")
+    _require(
+        isinstance(pair_plans, list)
+        and bool(pair_plans)
+        and isinstance(pair_plans[0], Mapping),
+        f"GPU smoke task {task_id} lacks a first pair plan",
+    )
+    first_pair = pair_plans[0]
+    pair_id = first_pair.get("pair_id")
+    pair_index = first_pair.get("pair_index")
+    game_ids = first_pair.get("game_ids")
+    _require(
+        isinstance(pair_id, str)
+        and bool(pair_id)
+        and isinstance(pair_index, int)
+        and not isinstance(pair_index, bool)
+        and isinstance(game_ids, list)
+        and len(game_ids) == 2
+        and all(isinstance(value, str) and bool(value) for value in game_ids),
+        f"GPU smoke task {task_id} first pair schema is invalid",
+    )
+    expected_game_id = game_ids[0]
+    _require(
+        schedule.get("task_id") == task_id,
+        f"GPU smoke schedule {expected_game_id} belongs to another task",
+    )
+    _require(
+        schedule.get("pair_id") == pair_id,
+        f"GPU smoke schedule {expected_game_id} belongs to another pair",
+    )
+    _require(
+        schedule.get("game_id") == expected_game_id,
+        f"GPU smoke schedule differs from first pair member-zero game {expected_game_id}",
+    )
+    _require(
+        isinstance(schedule.get("pair_member"), int)
+        and not isinstance(schedule.get("pair_member"), bool)
+        and schedule.get("pair_member") == 0,
+        f"GPU smoke schedule {expected_game_id} is not pair member zero",
+    )
+    _require(
+        schedule.get("pair_index") == pair_index,
+        f"GPU smoke schedule {expected_game_id} pair index drifted",
+    )
+    _require(
+        schedule.get("eval_size") == task.get("eval_size"),
+        f"GPU smoke schedule {expected_game_id} evaluation size drifted",
+    )
+    comparisons = {
+        "opening_actions": first_pair.get("opening_actions"),
+        "opening_id": first_pair.get("opening_id"),
+        "opening_prefix_hash": first_pair.get("opening_prefix_hash"),
+        "opening_state_hash": first_pair.get("opening_state_hash"),
+        "opening_stratum": first_pair.get("stratum_id"),
+        "opening_variant": first_pair.get("variant_index"),
+        "policy_seed_a": first_pair.get("policy_seed_a"),
+        "policy_seed_assignment": first_pair.get("policy_seed_assignment"),
+        "policy_seed_b": first_pair.get("policy_seed_b"),
+        "stratum_index": first_pair.get("stratum_index"),
+    }
+    for field, expected in comparisons.items():
+        _require(
+            schedule.get(field) == expected,
+            f"GPU smoke schedule {expected_game_id} changed {field}",
+        )
+    black_slot = schedule.get("black_slot")
+    white_slot = schedule.get("white_slot")
+    _require(
+        isinstance(black_slot, str)
+        and isinstance(white_slot, str)
+        and {black_slot, white_slot} == {"A", "B"},
+        f"GPU smoke schedule {expected_game_id} color slots are invalid",
+    )
+    frozen_sha256 = schedule.get("frozen_game_schedule_sha256")
+    _require(
+        isinstance(frozen_sha256, str)
+        and len(frozen_sha256) == 64
+        and all(character in "0123456789abcdef" for character in frozen_sha256),
+        f"GPU smoke schedule {expected_game_id} frozen hash is invalid",
+    )
+    raw_schedule = {
+        key: copy.deepcopy(value)
+        for key, value in schedule.items()
+        if key not in {"eval_size", "pair_index", "frozen_game_schedule_sha256"}
+    }
+    _require(
+        frozen_sha256 == canonical_sha256(raw_schedule),
+        f"GPU smoke schedule {expected_game_id} frozen hash drifted",
+    )
+    return copy.deepcopy(dict(schedule))
+
+
+def _gpu_smoke_schedules_by_task(
+    tasks: Sequence[Mapping[str, Any]], games: Sequence[Mapping[str, Any]]
+) -> dict[str, dict[str, Any]]:
+    """Resolve every smoke task to exactly one frozen first-pair member-zero row."""
+
+    _require(
+        all(isinstance(game, Mapping) for game in games),
+        "GPU smoke game schedules must be objects",
+    )
+    indexed_games = list(enumerate(games))
+    result: dict[str, dict[str, Any]] = {}
+    for task in tasks:
+        task_id = task.get("task_id")
+        _require(
+            isinstance(task_id, str) and bool(task_id),
+            "GPU smoke task ID is invalid",
+        )
+        _require(task_id not in result, f"duplicate GPU smoke task ID: {task_id}")
+        pair_plans = task.get("pair_plan")
+        _require(
+            isinstance(pair_plans, list)
+            and bool(pair_plans)
+            and isinstance(pair_plans[0], Mapping),
+            f"GPU smoke task {task_id} lacks a first pair plan",
+        )
+        first_pair = pair_plans[0]
+        pair_id = first_pair.get("pair_id")
+        game_ids = first_pair.get("game_ids")
+        _require(
+            isinstance(pair_id, str)
+            and bool(pair_id)
+            and isinstance(game_ids, list)
+            and len(game_ids) == 2
+            and isinstance(game_ids[0], str)
+            and bool(game_ids[0]),
+            f"GPU smoke task {task_id} first pair identity is invalid",
+        )
+        expected_game_id = game_ids[0]
+        game_id_matches = [
+            (index, game)
+            for index, game in indexed_games
+            if game.get("game_id") == expected_game_id
+        ]
+        _require(
+            len(game_id_matches) == 1,
+            f"GPU smoke game ID {expected_game_id} is missing or duplicated",
+        )
+        binding_matches = [
+            (index, game)
+            for index, game in indexed_games
+            if game.get("task_id") == task_id
+            and game.get("pair_id") == pair_id
+            and isinstance(game.get("pair_member"), int)
+            and not isinstance(game.get("pair_member"), bool)
+            and game.get("pair_member") == 0
+        ]
+        _require(
+            len(binding_matches) == 1,
+            f"GPU smoke task {task_id} first-pair member-zero schedule is missing or duplicated",
+        )
+        _require(
+            game_id_matches[0][0] == binding_matches[0][0],
+            f"GPU smoke task {task_id} first-pair game/member binding differs",
+        )
+        result[task_id] = _validate_gpu_smoke_schedule_binding(
+            task, game_id_matches[0][1]
+        )
+    return result
+
+
 def _first_task_by_size(tasks: Sequence[Mapping[str, Any]]) -> dict[int, Mapping[str, Any]]:
     result: dict[int, Mapping[str, Any]] = {}
     for task in tasks:
@@ -576,11 +745,13 @@ def task_shaped_readiness(
 ) -> dict[str, Any]:
     """Load every frozen checkpoint and exercise all model kinds and sizes."""
 
-    import torch
-
     started = time.perf_counter()
     manifest_path = manifest_path.resolve()
-    manifest, tasks, _, _ = load_frozen_bundle(manifest_path, bundle_directory)
+    manifest, tasks, games, _ = load_frozen_bundle(manifest_path, bundle_directory)
+    _gpu_smoke_schedules_by_task(tasks, games)
+
+    import torch
+
     tasks_by_size = _first_task_by_size(tasks)
     opening_by_size = {
         size: _opening_from_pair(task["pair_plan"][0])
@@ -821,6 +992,7 @@ def _run_gpu_smoke_lane(payload: Mapping[str, Any]) -> dict[str, Any]:
     verify_resident_integrity = payload.get("verify_resident_integrity")
     task = payload.get("task")
     opening = payload.get("opening")
+    schedule = payload.get("schedule")
     _require(
         isinstance(lane_index, int) and not isinstance(lane_index, bool),
         "GPU smoke lane index must be an integer",
@@ -846,6 +1018,8 @@ def _run_gpu_smoke_lane(payload: Mapping[str, Any]) -> dict[str, Any]:
     )
     _require(isinstance(task, Mapping), "GPU smoke task binding is missing")
     _require(isinstance(opening, Mapping), "GPU smoke opening is missing")
+    _require(isinstance(schedule, Mapping), "GPU smoke frozen schedule is missing")
+    schedule = _validate_gpu_smoke_schedule_binding(task, schedule)
     pair = [str(value) for value in task.get("model_pair", [])]
     eval_size = task.get("eval_size")
     _require(len(pair) == 2, "GPU smoke model pair is invalid")
@@ -859,17 +1033,9 @@ def _run_gpu_smoke_lane(payload: Mapping[str, Any]) -> dict[str, Any]:
         all(isinstance(bindings.get(slot), Mapping) for slot in ("A", "B")),
         "GPU smoke requires both formal agent bindings",
     )
-    pair_plan = task.get("pair_plan")
-    _require(
-        isinstance(pair_plan, list)
-        and bool(pair_plan)
-        and isinstance(pair_plan[0], Mapping),
-        "GPU smoke requires a registered pair schedule",
-    )
-    schedule = pair_plan[0]
     color_slots = {
-        Player.BLACK: str(schedule["black_slot"]),
-        Player.WHITE: str(schedule["white_slot"]),
+        Player.BLACK: str(schedule.get("black_slot")),
+        Player.WHITE: str(schedule.get("white_slot")),
     }
     _require(
         set(color_slots.values()) == {"A", "B"},
@@ -1001,6 +1167,12 @@ def _run_gpu_smoke_lane(payload: Mapping[str, Any]) -> dict[str, Any]:
         "worker_pid": os.getpid(),
         "coverage_case_id": str(payload["coverage_case_id"]),
         "task_id": str(task["task_id"]),
+        "game_id": str(schedule["game_id"]),
+        "pair_id": str(schedule["pair_id"]),
+        "pair_member": int(schedule["pair_member"]),
+        "frozen_game_schedule_sha256": str(
+            schedule["frozen_game_schedule_sha256"]
+        ),
         "training_seed": int(task["training_seed"]),
         "model_pair": pair,
         "black_slot": str(schedule["black_slot"]),
@@ -1037,10 +1209,14 @@ def _run_gpu_smoke_lane(payload: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _gpu_smoke_case_payloads(
-    tasks: Sequence[Mapping[str, Any]], *, seconds: float
+    tasks: Sequence[Mapping[str, Any]],
+    games: Sequence[Mapping[str, Any]],
+    *,
+    seconds: float,
 ) -> list[list[dict[str, Any]]]:
     """Split one 15-30 second smoke across nine homogeneous 12-worker phases."""
 
+    schedules_by_task = _gpu_smoke_schedules_by_task(tasks, games)
     by_case: dict[tuple[tuple[str, str], int], list[Mapping[str, Any]]] = defaultdict(list)
     for task in tasks:
         pair = tuple(str(value) for value in task["model_pair"])
@@ -1064,6 +1240,7 @@ def _gpu_smoke_case_payloads(
             payloads: list[dict[str, Any]] = []
             for lane_index in range(SCALAR_LANE_COUNT):
                 task = case_tasks[lane_index % len(case_tasks)]
+                task_id = str(task["task_id"])
                 opening = _opening_from_pair(task["pair_plan"][0])
                 payloads.append(
                     {
@@ -1076,6 +1253,7 @@ def _gpu_smoke_case_payloads(
                         ),
                         "task": copy.deepcopy(dict(task)),
                         "opening": copy.deepcopy(dict(opening)),
+                        "schedule": copy.deepcopy(schedules_by_task[task_id]),
                     }
                 )
             phases.append(payloads)
@@ -1278,9 +1456,9 @@ def gpu_smoke(
 
     started = time.perf_counter()
     manifest_path = manifest_path.resolve()
-    manifest, tasks, _, _ = load_frozen_bundle(manifest_path, bundle_directory)
+    manifest, tasks, games, _ = load_frozen_bundle(manifest_path, bundle_directory)
     supply_started = time.perf_counter()
-    case_payloads = _gpu_smoke_case_payloads(tasks, seconds=seconds)
+    case_payloads = _gpu_smoke_case_payloads(tasks, games, seconds=seconds)
     supply_seconds = time.perf_counter() - supply_started
     free_before_bytes, total_device_bytes = torch.cuda.mem_get_info()
     preload_payloads = [
@@ -1476,6 +1654,7 @@ def gpu_smoke(
         profile,
         manifest_sha256=sha256_file(manifest_path),
         tasks=tasks,
+        games=games,
     )
     _atomic_json(profile_output, profile)
     return profile
@@ -1514,6 +1693,7 @@ def _validate_throughput_profile_payload(
     *,
     manifest_sha256: str,
     tasks: Sequence[Mapping[str, Any]],
+    games: Sequence[Mapping[str, Any]],
 ) -> dict[str, Any]:
     """Validate the multi-state, homogeneous-case CUDA smoke receipt."""
 
@@ -1565,6 +1745,7 @@ def _validate_throughput_profile_payload(
             f"formal throughput profile binding mismatch: {field}",
         )
     _require(len(tasks) == EXPECTED_TASKS, "formal throughput task count drifted")
+    schedules_by_task = _gpu_smoke_schedules_by_task(tasks, games)
     _require(
         EXPECTED_DEVICE_NAME_FRAGMENT.lower()
         in str(profile.get("device_name", "")).lower(),
@@ -1802,6 +1983,7 @@ def _validate_throughput_profile_payload(
             expected_task_id = str(selected_task["task_id"])
             expected_seed = int(selected_task["training_seed"])
             expected_opening = _opening_from_pair(selected_task["pair_plan"][0])
+            expected_schedule = schedules_by_task[expected_task_id]
             expected_agents = [
                 {
                     "agent_slot": slot,
@@ -1860,10 +2042,14 @@ def _validate_throughput_profile_payload(
                 f"throughput lane {row_index} case/opening binding drifted",
             )
             _require(
-                lane.get("black_slot") == selected_task["pair_plan"][0]["black_slot"]
-                and lane.get("white_slot")
-                == selected_task["pair_plan"][0]["white_slot"],
-                f"throughput lane {row_index} color-slot binding drifted",
+                lane.get("game_id") == expected_schedule["game_id"]
+                and lane.get("pair_id") == expected_schedule["pair_id"]
+                and lane.get("pair_member") == expected_schedule["pair_member"]
+                and lane.get("frozen_game_schedule_sha256")
+                == expected_schedule["frozen_game_schedule_sha256"]
+                and lane.get("black_slot") == expected_schedule["black_slot"]
+                and lane.get("white_slot") == expected_schedule["white_slot"],
+                f"throughput lane {row_index} frozen game schedule binding drifted",
             )
             lane_decisions = strict_int(
                 lane.get("puct_decisions"),
@@ -2234,6 +2420,7 @@ def _validate_throughput_profile(
     *,
     manifest_path: Path,
     tasks: Sequence[Mapping[str, Any]],
+    games: Sequence[Mapping[str, Any]],
 ) -> dict[str, Any]:
     """Validate the immutable smoke receipt before any formal-run mutation."""
 
@@ -2243,6 +2430,7 @@ def _validate_throughput_profile(
         _read_json(profile_path),
         manifest_sha256=sha256_file(manifest_path.resolve()),
         tasks=tasks,
+        games=games,
     )
 
 
@@ -3910,6 +4098,7 @@ def run_bundle(
         throughput_profile_path,
         manifest_path=manifest_path.resolve(),
         tasks=tasks,
+        games=games,
     )
     run_root = _validate_write_target(
         manifest,
@@ -4003,6 +4192,7 @@ def run_bundle(
         throughput_evidence_path,
         manifest_path=manifest_path.resolve(),
         tasks=tasks,
+        games=games,
     )
     if existing_metadata is None:
         _require_execution_source_closure(metadata)

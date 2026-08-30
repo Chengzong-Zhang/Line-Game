@@ -208,10 +208,17 @@ def _smoke_opening_and_trace(
 
 def _write_valid_throughput_profile(
     root: Path,
-) -> tuple[Path, Path, dict[str, object], list[dict[str, object]]]:
+) -> tuple[
+    Path,
+    Path,
+    dict[str, object],
+    list[dict[str, object]],
+    list[dict[str, object]],
+]:
     manifest_path = root / "formal_manifest.json"
     manifest_path.write_text("{}\n", encoding="utf-8", newline="\n")
     tasks: list[dict[str, object]] = []
+    games: list[dict[str, object]] = []
     traces = {
         size: _smoke_opening_and_trace(size)
         for size in formal.PROFILE_EVAL_SIZES
@@ -220,9 +227,60 @@ def _write_valid_throughput_profile(
         for size in formal.PROFILE_EVAL_SIZES:
             for seed_offset in range(5):
                 seed = 20260825 + seed_offset
+                task_id = f"{pair[0]}-vs-{pair[1]}-n{size}-s{seed}"
+                pair_plan: list[dict[str, object]] = []
+                for pair_index in range(formal.EXPECTED_PAIRS_PER_TASK):
+                    pair_id = f"{task_id}.pair-{pair_index:02d}"
+                    game_ids = [
+                        f"{pair_id}.member-{member}" for member in (0, 1)
+                    ]
+                    plan = {
+                        **copy.deepcopy(traces[size][0]),
+                        "pair_id": pair_id,
+                        "pair_index": pair_index,
+                        "game_ids": game_ids,
+                        "stratum_id": f"n{size}_s{pair_index:02d}",
+                        "variant_index": 0,
+                        "policy_seed_a": seed * 1000 + pair_index * 2,
+                        "policy_seed_assignment": 0,
+                        "policy_seed_b": seed * 1000 + pair_index * 2 + 1,
+                        "stratum_index": pair_index,
+                    }
+                    pair_plan.append(plan)
+                    for member in (0, 1):
+                        raw_schedule = {
+                            "task_id": task_id,
+                            "game_id": game_ids[member],
+                            "pair_id": pair_id,
+                            "pair_member": member,
+                            "opening_actions": copy.deepcopy(plan["opening_actions"]),
+                            "opening_id": plan["opening_id"],
+                            "opening_prefix_hash": plan["opening_prefix_hash"],
+                            "opening_state_hash": plan["opening_state_hash"],
+                            "opening_stratum": plan["stratum_id"],
+                            "opening_variant": plan["variant_index"],
+                            "policy_seed_a": plan["policy_seed_a"],
+                            "policy_seed_assignment": plan[
+                                "policy_seed_assignment"
+                            ],
+                            "policy_seed_b": plan["policy_seed_b"],
+                            "stratum_index": plan["stratum_index"],
+                            "black_slot": "A" if member == 0 else "B",
+                            "white_slot": "B" if member == 0 else "A",
+                        }
+                        games.append(
+                            {
+                                **raw_schedule,
+                                "eval_size": size,
+                                "pair_index": pair_index,
+                                "frozen_game_schedule_sha256": (
+                                    formal.canonical_sha256(raw_schedule)
+                                ),
+                            }
+                        )
                 tasks.append(
                     {
-                        "task_id": f"{pair[0]}-vs-{pair[1]}-n{size}-s{seed}",
+                        "task_id": task_id,
                         "model_pair": list(pair),
                         "eval_size": size,
                         "training_seed": seed,
@@ -239,14 +297,7 @@ def _write_valid_throughput_profile(
                                 "model_kind": pair[1],
                             },
                         },
-                        "pair_plan": [
-                            {
-                                **traces[size][0],
-                                "black_slot": "A",
-                                "white_slot": "B",
-                            }
-                            for _ in range(formal.EXPECTED_PAIRS_PER_TASK)
-                        ],
+                        "pair_plan": pair_plan,
                     }
                 )
     checkpoint_ids = sorted(
@@ -256,13 +307,20 @@ def _write_valid_throughput_profile(
             for binding in task["agent_bindings"].values()
         }
     )
-    case_payloads = formal._gpu_smoke_case_payloads(tasks, seconds=20.0)
+    case_payloads = formal._gpu_smoke_case_payloads(
+        tasks, games, seconds=20.0
+    )
     lane_results: list[dict[str, object]] = []
     for payloads in case_payloads:
         for payload in payloads:
             task = payload["task"]
             opening = payload["opening"]
-            assert isinstance(task, dict) and isinstance(opening, dict)
+            schedule = payload["schedule"]
+            assert (
+                isinstance(task, dict)
+                and isinstance(opening, dict)
+                and isinstance(schedule, dict)
+            )
             bindings = task["agent_bindings"]
             assert isinstance(bindings, dict)
             _, fingerprints, action_indices, game_resets = traces[
@@ -299,10 +357,16 @@ def _write_valid_throughput_profile(
                     "worker_pid": 10_000 + int(payload["lane_index"]),
                     "coverage_case_id": payload["coverage_case_id"],
                     "task_id": task["task_id"],
+                    "game_id": schedule["game_id"],
+                    "pair_id": schedule["pair_id"],
+                    "pair_member": schedule["pair_member"],
+                    "frozen_game_schedule_sha256": schedule[
+                        "frozen_game_schedule_sha256"
+                    ],
                     "training_seed": task["training_seed"],
                     "model_pair": task["model_pair"],
-                    "black_slot": "A",
-                    "white_slot": "B",
+                    "black_slot": schedule["black_slot"],
+                    "white_slot": schedule["white_slot"],
                     "agents": agents,
                     "agent_slots_exercised": ["A", "B"],
                     "warmup_puct_decisions": 2,
@@ -454,7 +518,7 @@ def _write_valid_throughput_profile(
         encoding="utf-8",
         newline="\n",
     )
-    return manifest_path, profile_path, profile, tasks
+    return manifest_path, profile_path, profile, tasks, games
 
 
 def _checkpoint_registry_from_tasks(
@@ -474,6 +538,15 @@ def _checkpoint_registry_from_tasks(
                 "training_seed": seed,
             }
     return registry
+
+
+def _group_schedules_by_task(
+    games: list[dict[str, object]],
+) -> dict[str, list[dict[str, object]]]:
+    grouped: dict[str, list[dict[str, object]]] = {}
+    for game in games:
+        grouped.setdefault(str(game["task_id"]), []).append(game)
+    return grouped
 
 
 def _minimal_export_tree(root: Path, task_directory_name: str = "synthetic-task") -> None:
@@ -796,17 +869,20 @@ def test_formal_lane_initializer_deep_copies_and_clears_cache() -> None:
 def test_throughput_profile_is_required_and_accepts_exact_identity(
     tmp_path: Path,
 ) -> None:
-    manifest_path, profile_path, profile, tasks = _write_valid_throughput_profile(
+    manifest_path, profile_path, profile, tasks, games = _write_valid_throughput_profile(
         tmp_path
     )
     assert formal._validate_throughput_profile(
-        profile_path, manifest_path=manifest_path, tasks=tasks
+        profile_path, manifest_path=manifest_path, tasks=tasks, games=games
     ) == profile
     with pytest.raises(
         formal.FormalExecutionError, match="formal throughput profile is missing"
     ):
         formal._validate_throughput_profile(
-            tmp_path / "missing.json", manifest_path=manifest_path, tasks=tasks
+            tmp_path / "missing.json",
+            manifest_path=manifest_path,
+            tasks=tasks,
+            games=games,
         )
     run_source = inspect.getsource(formal.run_bundle)
     assert run_source.index("_validate_throughput_profile") < run_source.index(
@@ -819,7 +895,7 @@ def test_resume_metadata_profile_mismatch_fails_before_profile_recovery_write(
 ) -> None:
     source_root = tmp_path / "source"
     source_root.mkdir()
-    manifest_path, profile_path, _, tasks = _write_valid_throughput_profile(
+    manifest_path, profile_path, _, tasks, games = _write_valid_throughput_profile(
         source_root
     )
     run_root = tmp_path / "run"
@@ -836,7 +912,7 @@ def test_resume_metadata_profile_mismatch_fails_before_profile_recovery_write(
     monkeypatch.setattr(
         formal,
         "load_frozen_bundle",
-        lambda *_: ({}, tasks, [], {}),
+        lambda *_: ({}, tasks, games, {}),
     )
     monkeypatch.setattr(
         formal,
@@ -874,7 +950,7 @@ def test_resume_preflights_later_partial_pair_before_any_recovery_write(
 ) -> None:
     source_root = tmp_path / "source"
     source_root.mkdir()
-    manifest_path, profile_path, _, tasks = _write_valid_throughput_profile(
+    manifest_path, profile_path, _, tasks, games = _write_valid_throughput_profile(
         source_root
     )
     run_root = tmp_path / "run"
@@ -933,6 +1009,11 @@ def test_resume_preflights_later_partial_pair_before_any_recovery_write(
     )
     monkeypatch.setattr(
         formal,
+        "_validate_throughput_profile",
+        lambda *_, **__: json.loads(profile_path.read_text(encoding="utf-8")),
+    )
+    monkeypatch.setattr(
+        formal,
         "_require_execution_source_closure",
         lambda *_: source_identity,
     )
@@ -966,7 +1047,7 @@ def test_resume_rejects_unknown_run_root_entry_before_any_write(
 ) -> None:
     source_root = tmp_path / "source"
     source_root.mkdir()
-    manifest_path, profile_path, _, tasks = _write_valid_throughput_profile(
+    manifest_path, profile_path, _, tasks, games = _write_valid_throughput_profile(
         source_root
     )
     run_root = tmp_path / "run"
@@ -986,7 +1067,7 @@ def test_resume_rejects_unknown_run_root_entry_before_any_write(
     monkeypatch.setattr(
         formal,
         "load_frozen_bundle",
-        lambda *_: ({}, tasks, [], {}),
+        lambda *_: ({}, tasks, games, {}),
     )
     monkeypatch.setattr(
         formal,
@@ -1039,7 +1120,7 @@ def test_resume_rejects_terminal_root_tamper_before_any_write(
 ) -> None:
     source_root = tmp_path / "source"
     source_root.mkdir()
-    manifest_path, profile_path, profile, tasks = _write_valid_throughput_profile(
+    manifest_path, profile_path, profile, tasks, games = _write_valid_throughput_profile(
         source_root
     )
     run_root = tmp_path / "run"
@@ -1402,8 +1483,8 @@ def test_pair_batch_detects_source_drift_after_writes_before_task_promotion(
 def test_gpu_smoke_payloads_partition_one_total_and_round_robin_frozen_tasks(
     tmp_path: Path,
 ) -> None:
-    _, _, profile, tasks = _write_valid_throughput_profile(tmp_path)
-    phases = formal._gpu_smoke_case_payloads(tasks, seconds=20.0)
+    _, _, profile, tasks, games = _write_valid_throughput_profile(tmp_path)
+    phases = formal._gpu_smoke_case_payloads(tasks, games, seconds=20.0)
     assert len(phases) == formal.GPU_SMOKE_CASE_COUNT
     assert all(len(phase) == formal.SCALAR_LANE_COUNT for phase in phases)
     assert math.isclose(
@@ -1435,6 +1516,23 @@ def test_gpu_smoke_payloads_partition_one_total_and_round_robin_frozen_tasks(
         payload["verify_resident_integrity"]
         == (case_index == formal.GPU_SMOKE_CASE_COUNT - 1)
         for case_index, phase in enumerate(phases)
+        for payload in phase
+    )
+    assert all(
+        "black_slot" not in task["pair_plan"][0]
+        and "white_slot" not in task["pair_plan"][0]
+        for task in tasks
+    )
+    assert all(
+        payload["schedule"]["game_id"]
+        == payload["task"]["pair_plan"][0]["game_ids"][0]
+        and payload["schedule"]["pair_member"] == 0
+        and (
+            payload["schedule"]["black_slot"],
+            payload["schedule"]["white_slot"],
+        )
+        == ("A", "B")
+        for phase in phases
         for payload in phase
     )
     lanes = profile["lane_results"]
@@ -1480,6 +1578,132 @@ def test_gpu_smoke_payloads_partition_one_total_and_round_robin_frozen_tasks(
     )
 
 
+def test_gpu_smoke_schedule_binding_accepts_exact_preparation_schema() -> None:
+    manifest = formal.prep.load_json(formal.DEFAULT_MANIFEST)
+    bundle = formal.prep.materialize_bundle(
+        manifest=manifest, manifest_path=formal.DEFAULT_MANIFEST
+    )
+    tasks = bundle["task_rows"]
+    raw_games = bundle["game_rows"]
+    grouped_raw: dict[str, list[dict[str, object]]] = {}
+    for game in raw_games:
+        grouped_raw.setdefault(str(game["task_id"]), []).append(game)
+    bound_games: list[dict[str, object]] = []
+    for task in tasks:
+        bound_games.extend(
+            formal._bound_task_schedules(
+                task, grouped_raw[str(task["task_id"])]
+            )
+        )
+
+    selected = formal._gpu_smoke_schedules_by_task(tasks, bound_games)
+    assert len(selected) == formal.EXPECTED_TASKS
+    assert all(
+        "black_slot" not in task["pair_plan"][0]
+        and "white_slot" not in task["pair_plan"][0]
+        and selected[str(task["task_id"])]["game_id"]
+        == task["pair_plan"][0]["game_ids"][0]
+        and selected[str(task["task_id"])]["pair_member"] == 0
+        for task in tasks
+    )
+
+
+def test_gpu_smoke_worker_consumes_bound_schedule_before_model_load(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _, _, _, tasks, games = _write_valid_throughput_profile(tmp_path)
+    payload = formal._gpu_smoke_case_payloads(
+        tasks, games, seconds=20.0
+    )[0][0]
+    model_loads: list[object] = []
+
+    def stop_at_model_load(binding: object) -> object:
+        model_loads.append(binding)
+        raise RuntimeError("model-load-reached")
+
+    monkeypatch.setattr(formal, "_formal_lane_agent", stop_at_model_load)
+    with pytest.raises(RuntimeError, match="model-load-reached"):
+        formal._run_gpu_smoke_lane(payload)
+    assert len(model_loads) == 1
+
+    model_loads.clear()
+    invalid_payload = copy.deepcopy(payload)
+    invalid_payload["schedule"]["frozen_game_schedule_sha256"] = "0" * 64
+    with pytest.raises(formal.FormalExecutionError, match="frozen hash drifted"):
+        formal._run_gpu_smoke_lane(invalid_payload)
+    assert model_loads == []
+
+
+def test_readiness_rejects_bad_smoke_schedule_before_checkpoint_load(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _, _, _, tasks, games = _write_valid_throughput_profile(tmp_path)
+    invalid_games = copy.deepcopy(games)
+    invalid_games[0]["frozen_game_schedule_sha256"] = "0" * 64
+    checkpoint_loads: list[object] = []
+
+    def unexpected_checkpoint_load(*args: object, **kwargs: object) -> object:
+        checkpoint_loads.append((args, kwargs))
+        raise AssertionError("checkpoint loading must not start")
+
+    monkeypatch.setattr(
+        formal,
+        "load_frozen_bundle",
+        lambda *_: ({}, tasks, invalid_games, {}),
+    )
+    monkeypatch.setattr(
+        formal.legacy,
+        "_load_neural_agent",
+        unexpected_checkpoint_load,
+    )
+    with pytest.raises(formal.FormalExecutionError, match="frozen hash drifted"):
+        formal.task_shaped_readiness(
+            tmp_path / "manifest.json", tmp_path / "bundle"
+        )
+    assert checkpoint_loads == []
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    (
+        ("missing", "missing or duplicated"),
+        ("duplicate", "missing or duplicated"),
+        ("wrong_task", "missing or duplicated"),
+        ("wrong_member", "missing or duplicated"),
+        ("hash", "frozen hash drifted"),
+        ("color", "color slots are invalid"),
+    ),
+)
+def test_gpu_smoke_schedule_binding_rejects_invalid_game_rows_before_workers(
+    tmp_path: Path, mutation: str, message: str
+) -> None:
+    _, _, _, tasks, games = _write_valid_throughput_profile(tmp_path)
+    mutated_games = copy.deepcopy(games)
+    selected_game_id = str(tasks[0]["pair_plan"][0]["game_ids"][0])
+    selected_index = next(
+        index
+        for index, game in enumerate(mutated_games)
+        if game["game_id"] == selected_game_id
+    )
+    if mutation == "missing":
+        mutated_games.pop(selected_index)
+    elif mutation == "duplicate":
+        mutated_games.append(copy.deepcopy(mutated_games[selected_index]))
+    elif mutation == "wrong_task":
+        mutated_games[selected_index]["task_id"] = "another-task"
+    elif mutation == "wrong_member":
+        mutated_games[selected_index]["pair_member"] = 1
+    elif mutation == "hash":
+        mutated_games[selected_index]["frozen_game_schedule_sha256"] = "0" * 64
+    else:
+        mutated_games[selected_index]["black_slot"] = "B"
+
+    with pytest.raises(formal.FormalExecutionError, match=message):
+        formal._gpu_smoke_case_payloads(
+            tasks, mutated_games, seconds=20.0
+        )
+
+
 @pytest.mark.parametrize(
     ("field", "replacement"),
     (
@@ -1495,7 +1719,7 @@ def test_throughput_profile_rejects_runner_manifest_and_numeric_drift(
     field: str,
     replacement: object,
 ) -> None:
-    manifest_path, profile_path, profile, tasks = _write_valid_throughput_profile(
+    manifest_path, profile_path, profile, tasks, games = _write_valid_throughput_profile(
         tmp_path
     )
     profile[field] = replacement
@@ -1509,7 +1733,44 @@ def test_throughput_profile_rejects_runner_manifest_and_numeric_drift(
         match=rf"formal throughput profile binding mismatch: {field}",
     ):
         formal._validate_throughput_profile(
-            profile_path, manifest_path=manifest_path, tasks=tasks
+            profile_path, manifest_path=manifest_path, tasks=tasks, games=games
+        )
+
+
+@pytest.mark.parametrize(
+    "field",
+    (
+        "game_id",
+        "pair_id",
+        "pair_member",
+        "frozen_game_schedule_sha256",
+        "black_slot",
+    ),
+)
+def test_throughput_profile_rejects_frozen_schedule_tamper(
+    tmp_path: Path, field: str
+) -> None:
+    manifest_path, profile_path, profile, tasks, games = (
+        _write_valid_throughput_profile(tmp_path)
+    )
+    lanes = profile["lane_results"]
+    assert isinstance(lanes, list) and isinstance(lanes[0], dict)
+    if field == "pair_member":
+        lanes[0][field] = 1
+    elif field == "black_slot":
+        lanes[0][field] = "B"
+    else:
+        lanes[0][field] = "0" * 64
+    profile_path.write_text(json.dumps(profile, sort_keys=True), encoding="utf-8")
+    with pytest.raises(
+        formal.FormalExecutionError,
+        match="frozen game schedule binding drifted",
+    ):
+        formal._validate_throughput_profile(
+            profile_path,
+            manifest_path=manifest_path,
+            tasks=tasks,
+            games=games,
         )
 
 
@@ -1530,7 +1791,7 @@ def test_throughput_profile_rejects_runner_manifest_and_numeric_drift(
 def test_throughput_profile_rejects_capacity_memory_coverage_and_environment(
     tmp_path: Path, mutation: str, message: str
 ) -> None:
-    manifest_path, profile_path, profile, tasks = _write_valid_throughput_profile(
+    manifest_path, profile_path, profile, tasks, games = _write_valid_throughput_profile(
         tmp_path
     )
     lanes = profile["lane_results"]
@@ -1584,14 +1845,14 @@ def test_throughput_profile_rejects_capacity_memory_coverage_and_environment(
     profile_path.write_text(json.dumps(profile, sort_keys=True), encoding="utf-8")
     with pytest.raises(formal.FormalExecutionError, match=message):
         formal._validate_throughput_profile(
-            profile_path, manifest_path=manifest_path, tasks=tasks
+            profile_path, manifest_path=manifest_path, tasks=tasks, games=games
         )
 
 
 def test_independent_verifier_rehashes_and_revalidates_complete_profile(
     tmp_path: Path,
 ) -> None:
-    manifest_path, _, profile, tasks = _write_valid_throughput_profile(tmp_path)
+    manifest_path, _, profile, tasks, games = _write_valid_throughput_profile(tmp_path)
     evidence = tmp_path / independent.THROUGHPUT_PROFILE_ARTIFACT_NAME
     evidence.write_text(
         json.dumps(profile, indent=2, sort_keys=True) + "\n", encoding="utf-8"
@@ -1605,6 +1866,7 @@ def test_independent_verifier_rehashes_and_revalidates_complete_profile(
         evidence,
         metadata=metadata,
         tasks=tasks,
+        grouped_schedules=_group_schedules_by_task(games),
         checkpoint_registry=checkpoint_registry,
         formal_manifest_sha=independent.sha256_file(manifest_path),
         formal_runner_sha=independent.sha256_file(formal.SCRIPT_PATH),
@@ -1615,6 +1877,7 @@ def test_independent_verifier_rehashes_and_revalidates_complete_profile(
             evidence,
             metadata=metadata,
             tasks=tasks,
+            grouped_schedules=_group_schedules_by_task(games),
             checkpoint_registry=checkpoint_registry,
             formal_manifest_sha=independent.sha256_file(manifest_path),
             formal_runner_sha=independent.sha256_file(formal.SCRIPT_PATH),
@@ -1625,7 +1888,7 @@ def test_independent_verifier_rehashes_and_revalidates_complete_profile(
 def test_independent_verifier_hard_limits_whole_command_and_recomputes_setup(
     tmp_path: Path, mutation: str
 ) -> None:
-    manifest_path, _, profile, tasks = _write_valid_throughput_profile(tmp_path)
+    manifest_path, _, profile, tasks, games = _write_valid_throughput_profile(tmp_path)
     if mutation == "whole_command_over_30":
         profile["setup_seconds"] = 11.0
         profile["total_seconds"] = 31.0
@@ -1648,6 +1911,7 @@ def test_independent_verifier_hard_limits_whole_command_and_recomputes_setup(
             evidence,
             metadata=metadata,
             tasks=tasks,
+            grouped_schedules=_group_schedules_by_task(games),
             checkpoint_registry=_checkpoint_registry_from_tasks(tasks),
             formal_manifest_sha=independent.sha256_file(manifest_path),
             formal_runner_sha=independent.sha256_file(formal.SCRIPT_PATH),
@@ -1657,7 +1921,7 @@ def test_independent_verifier_hard_limits_whole_command_and_recomputes_setup(
 def test_independent_verifier_rejects_crossed_lane_checkpoint_binding(
     tmp_path: Path,
 ) -> None:
-    manifest_path, _, profile, tasks = _write_valid_throughput_profile(tmp_path)
+    manifest_path, _, profile, tasks, games = _write_valid_throughput_profile(tmp_path)
     lanes = profile["lane_results"]
     assert isinstance(lanes, list)
     lane = lanes[0]
@@ -1686,6 +1950,7 @@ def test_independent_verifier_rejects_crossed_lane_checkpoint_binding(
             evidence,
             metadata=metadata,
             tasks=tasks,
+            grouped_schedules=_group_schedules_by_task(games),
             checkpoint_registry=_checkpoint_registry_from_tasks(tasks),
             formal_manifest_sha=independent.sha256_file(manifest_path),
             formal_runner_sha=independent.sha256_file(formal.SCRIPT_PATH),
@@ -1706,7 +1971,7 @@ def test_independent_verifier_rejects_crossed_lane_checkpoint_binding(
 def test_independent_verifier_rejects_profile_semantic_tamper(
     tmp_path: Path, mutation: str, message: str
 ) -> None:
-    manifest_path, _, profile, tasks = _write_valid_throughput_profile(tmp_path)
+    manifest_path, _, profile, tasks, games = _write_valid_throughput_profile(tmp_path)
     if mutation == "capacity":
         profile["capacity_cases"][0]["projected_worst_case_seconds"] += 1.0
     elif mutation == "capacity_barrier_vector":
@@ -1753,6 +2018,7 @@ def test_independent_verifier_rejects_profile_semantic_tamper(
             evidence,
             metadata=metadata,
             tasks=tasks,
+            grouped_schedules=_group_schedules_by_task(games),
             checkpoint_registry=_checkpoint_registry_from_tasks(tasks),
             formal_manifest_sha=independent.sha256_file(manifest_path),
             formal_runner_sha=independent.sha256_file(formal.SCRIPT_PATH),
@@ -1773,7 +2039,10 @@ def test_independent_verifier_rejects_profile_semantic_tamper(
         ("integrity_state", "resident checkpoint integrity differs"),
         ("warmup", "did not exercise both formal agents"),
         ("agent_slots", "checkpoint/model/slot binding differs"),
-        ("color", "color-slot binding differs"),
+        ("game_id", "frozen game schedule binding differs"),
+        ("pair_member", "frozen game schedule binding differs"),
+        ("schedule_hash", "frozen game schedule binding differs"),
+        ("color", "frozen game schedule binding differs"),
         ("opening", "opening differs from selected task schedule"),
         ("seed_round_robin", "lane case/task binding differs"),
         ("decision_length", "multi-state decision timing evidence is invalid"),
@@ -1790,7 +2059,7 @@ def test_independent_verifier_rejects_profile_semantic_tamper(
 def test_independent_verifier_rejects_lane_and_preload_tamper_matrix(
     tmp_path: Path, mutation: str, message: str
 ) -> None:
-    manifest_path, _, profile, tasks = _write_valid_throughput_profile(tmp_path)
+    manifest_path, _, profile, tasks, games = _write_valid_throughput_profile(tmp_path)
     lanes = profile["lane_results"]
     preloads = profile["resident_cache_preload_results"]
     assert isinstance(lanes, list) and isinstance(preloads, list)
@@ -1828,6 +2097,12 @@ def test_independent_verifier_rejects_lane_and_preload_tamper_matrix(
         lanes[0]["warmup_puct_decisions"] = 1
     elif mutation == "agent_slots":
         lanes[0]["agents"] = list(reversed(lanes[0]["agents"]))
+    elif mutation == "game_id":
+        lanes[0]["game_id"] = "another-game"
+    elif mutation == "pair_member":
+        lanes[0]["pair_member"] = 1
+    elif mutation == "schedule_hash":
+        lanes[0]["frozen_game_schedule_sha256"] = "0" * 64
     elif mutation == "color":
         lanes[0]["black_slot"] = "B"
         lanes[0]["white_slot"] = "A"
@@ -1860,9 +2135,9 @@ def test_independent_verifier_rejects_lane_and_preload_tamper_matrix(
     elif mutation == "reset_count":
         lanes[0]["game_resets"] += 1
     elif mutation == "opening_prefix_hash":
-        tasks[0]["pair_plan"][0]["opening_prefix_hash"] = "0" * 64
+        games[0]["opening_prefix_hash"] = "0" * 64
     else:
-        tasks[0]["pair_plan"][0]["opening_state_hash"] = "0" * 64
+        games[0]["opening_state_hash"] = "0" * 64
 
     evidence = tmp_path / independent.THROUGHPUT_PROFILE_ARTIFACT_NAME
     evidence.write_text(
@@ -1877,6 +2152,7 @@ def test_independent_verifier_rejects_lane_and_preload_tamper_matrix(
             evidence,
             metadata=metadata,
             tasks=tasks,
+            grouped_schedules=_group_schedules_by_task(games),
             checkpoint_registry=_checkpoint_registry_from_tasks(tasks),
             formal_manifest_sha=independent.sha256_file(manifest_path),
             formal_runner_sha=independent.sha256_file(formal.SCRIPT_PATH),
