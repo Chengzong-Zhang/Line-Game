@@ -4,6 +4,11 @@ import { MinimaxAI, restoreState, saveState } from "./AIEngine.js?v=20260830a";
 import { isWorkerResultCurrent, serializeEngineState } from "./AIStateProtocol.js?v=20260830a";
 import NetworkManager, { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js?v=20260430d";
 import {
+  applyRoomSnapshotWithPostCommit,
+  coordinateControllerRoomSnapshot,
+  registerRoomSnapshotResponseListeners,
+} from "./OnlineRoomSync.js?v=20260830a";
+import {
   createEmptyAuth as createAppEmptyAuth,
   GRID_SIZE_OPTIONS as APP_GRID_SIZE_OPTIONS,
   PLAYER_COUNT_OPTIONS as APP_PLAYER_COUNT_OPTIONS,
@@ -2459,6 +2464,7 @@ const App = {
     let turnTimerSkipInFlight = false;
     let reconnectAttempt = 0;
     let syncingRemoteSettings = false;
+    let roomSnapshotRecoveryFailed = false;
     let guideMarkdownLoadId = 0;
     let aiWorker = null;
     let aiScheduleId = null;
@@ -2869,7 +2875,7 @@ const App = {
     const hintEnabled = computed(() => effectiveGameSettings.value.hintEnabled);
     const hintMaxCount = computed(() => effectiveGameSettings.value.hintMaxCount);
 
-    const applySettingsToController = (settings, reset = true) => {
+    const applySettingsToController = (settings, reset = true, commitToController = true) => {
       const normalized = normalizeAppGameSettings(settings);
       syncingRemoteSettings = true;
       try {
@@ -2887,11 +2893,12 @@ const App = {
         }
         syncSession();
 
-        if (!controller.value) {
-          return;
+        if (!controller.value || !commitToController) {
+          return normalized;
         }
 
         controller.value.setGameConfig(normalized, reset);
+        return normalized;
       } finally {
         syncingRemoteSettings = false;
       }
@@ -3178,6 +3185,7 @@ const App = {
       resultModalDismissed.value = false;
       readyPending.value = false;
       lastServerTimestamp = 0;
+      roomSnapshotRecoveryFailed = false;
       clearCountdownSnapshotRefresh();
       clearChatEmojiBursts();
     };
@@ -3189,7 +3197,7 @@ const App = {
       gameState.value = controller.value.setMultiplayerState(partial);
     };
 
-    const syncOnlineController = (payload = null) => {
+    const syncOnlineController = (payload = null, syncState = true) => {
       if (!controller.value) {
         return;
       }
@@ -3202,29 +3210,51 @@ const App = {
         && players.length >= normalizedSettings.playerCount
         && players.every((player) => player.connected);
 
-      gameState.value = controller.value.enableMultiplayer({
+      const nextState = controller.value.enableMultiplayer({
         networkManager,
         localPlayer: payload?.yourColor ?? session.value.color,
         roomReady: normalizedStatus === "inProgress" || normalizedPhase === "PLAYING",
         opponentConnected: everyoneConnected,
-      });
+      }, syncState);
+      if (nextState) {
+        gameState.value = nextState;
+      }
     };
 
     const applyRoomSnapshot = (payload, resetController = true) => {
       if (!applyRoomPayload(payload)) {
-        return;
+        return false;
       }
       roomIdInput.value = payload?.roomId ?? roomIdInput.value;
       syncSession();
-      syncOnlineController(payload);
-      applySettingsToController(payload?.settings ?? payload?.matchState?.settings ?? currentGameSettings(), resetController);
+      const incomingSettings = normalizeAppGameSettings(
+        payload?.settings ?? payload?.matchState?.settings ?? currentGameSettings(),
+      );
+      const controllerResult = coordinateControllerRoomSnapshot({
+        controller: controller.value,
+        payload,
+        incomingSettings,
+        resetController,
+        syncOnlineController,
+        applySettingsToController,
+      });
+      if (controllerResult.state) {
+        gameState.value = controllerResult.state;
+      }
+      if (!controllerResult.success) {
+        roomSnapshotRecoveryFailed = true;
+        return false;
+      }
+      if (controllerResult.authoritativeSnapshotAccepted) {
+        if (roomSnapshotRecoveryFailed) {
+          networkError.value = "";
+        }
+        roomSnapshotRecoveryFailed = false;
+      }
       syncSession();
 
-      if (payload?.matchState && controller.value) {
-        gameState.value = controller.value.restoreMatchState(payload.matchState);
-      }
-
       reconnectAttempt = 0;
+      return true;
     };
 
     const refreshRoomSnapshot = async () => {
@@ -3233,9 +3263,8 @@ const App = {
       }
 
       try {
-        const payload = await networkManager.joinRoom(session.value.roomId, session.value.playerId);
-        applyRoomSnapshot(payload, true);
-        networkError.value = "";
+        // ROOM_JOINED is applied by the event listener below; this await is acknowledgement only.
+        await networkManager.joinRoom(session.value.roomId, session.value.playerId);
       } catch (error) {
         handleNetworkError(error);
       }
@@ -3258,9 +3287,7 @@ const App = {
           return;
         }
 
-        const payload = await networkManager.joinRoom(session.value.roomId, session.value.playerId);
-        applyRoomSnapshot(payload, true);
-        networkError.value = "";
+        await networkManager.joinRoom(session.value.roomId, session.value.playerId);
       } catch (error) {
         handleNetworkError(error);
         reconnectAttempt += 1;
@@ -3519,8 +3546,7 @@ const App = {
 
       try {
         await ensureConnected();
-        const payload = await networkManager.createRoom(currentGameSettings());
-        applyRoomSnapshot(payload, true);
+        await networkManager.createRoom(currentGameSettings());
       } catch (error) {
         handleNetworkError(error);
       } finally {
@@ -3542,8 +3568,7 @@ const App = {
 
       try {
         await ensureConnected();
-        const payload = await networkManager.joinRoom(normalizedRoomId);
-        applyRoomSnapshot(payload, true);
+        await networkManager.joinRoom(normalizedRoomId);
       } catch (error) {
         handleNetworkError(error);
       } finally {
@@ -3583,6 +3608,10 @@ const App = {
         return;
       }
 
+      if (roomStatus.value !== "solo" && (roomSnapshotRecoveryFailed || gameState.value.skipLocked)) {
+        return;
+      }
+
       if (roomStatus.value === "solo") {
         const result = controller.value.skipTurn();
         gameState.value = result.state;
@@ -3601,6 +3630,10 @@ const App = {
 
     const handleReset = async () => {
       if (!controller.value) {
+        return;
+      }
+
+      if (roomStatus.value !== "solo" && (roomSnapshotRecoveryFailed || gameState.value.resetLocked)) {
         return;
       }
 
@@ -3638,7 +3671,7 @@ const App = {
     };
 
     const handleToggleReady = async (ready) => {
-      if (!session.value.roomId) {
+      if (!session.value.roomId || roomSnapshotRecoveryFailed) {
         return;
       }
 
@@ -3958,6 +3991,10 @@ const App = {
         return true;
       }
 
+      if (gameState.value.resetLocked) {
+        return true;
+      }
+
       if (roomStatus.value === "solo") {
         return false;
       }
@@ -4117,24 +4154,27 @@ const App = {
       }),
     );
 
-    unsubscribers.push(
-      networkManager.on(ServerEvent.ROOM_CREATED, (payload) => {
-        applyRoomSnapshot(payload, true);
-      }),
-    );
-
-    unsubscribers.push(
-      networkManager.on(ServerEvent.ROOM_JOINED, (payload) => {
-        applyRoomSnapshot(payload, true);
-      }),
-    );
+    unsubscribers.push(...registerRoomSnapshotResponseListeners({
+      networkManager,
+      roomCreatedEvent: ServerEvent.ROOM_CREATED,
+      roomJoinedEvent: ServerEvent.ROOM_JOINED,
+      applyRoomSnapshot,
+      onApplied: () => {
+        networkError.value = "";
+      },
+    }));
 
     unsubscribers.push(
       networkManager.on(ServerEvent.ROOM_STATE, (payload) => {
-        applyRoomSnapshot(payload, true);
-        if (payload?.reason === "settings_updated") {
-          networkError.value = getAppTexts(language.value, uiStyle.value).roomSettingsChanged;
-        }
+        applyRoomSnapshotWithPostCommit({
+          payload,
+          applyRoomSnapshot,
+          onApplied: () => {
+            if (payload?.reason === "settings_updated") {
+              networkError.value = getAppTexts(language.value, uiStyle.value).roomSettingsChanged;
+            }
+          },
+        });
       }),
     );
 
@@ -4146,15 +4186,22 @@ const App = {
 
     unsubscribers.push(
       networkManager.on(ServerEvent.ROOM_READY, (payload) => {
-        networkError.value = "";
-        applyRoomSnapshot(payload, true);
+        applyRoomSnapshotWithPostCommit({
+          payload,
+          applyRoomSnapshot,
+          onApplied: () => {
+            networkError.value = "";
+          },
+        });
       }),
     );
 
     unsubscribers.push(
       networkManager.on(ServerEvent.PLAYER_LEFT, () => {
         roomStatus.value = "waiting";
-        networkError.value = getAppTexts(language.value, uiStyle.value).opponentLeft;
+        if (!roomSnapshotRecoveryFailed) {
+          networkError.value = getAppTexts(language.value, uiStyle.value).opponentLeft;
+        }
         syncControllerState({
           enabled: true,
           networkManager,
@@ -4166,34 +4213,38 @@ const App = {
 
     unsubscribers.push(
       networkManager.on(ServerEvent.RESET_STATUS, (payload) => {
-        networkError.value = formatAppResetVoteMessage(
-          payload.confirmedVotes ?? 0,
-          payload.requiredVotes ?? 0,
-            language.value,
-            uiStyle.value,
-        );
+        if (!roomSnapshotRecoveryFailed) {
+          networkError.value = formatAppResetVoteMessage(
+            payload.confirmedVotes ?? 0,
+            payload.requiredVotes ?? 0,
+              language.value,
+              uiStyle.value,
+          );
+        }
       }),
     );
 
     unsubscribers.push(
       networkManager.on(ServerEvent.MATCH_RESET, (payload) => {
-        networkError.value = "";
-        resultModalDismissed.value = false;
-        applyRoomSnapshot(payload, true);
-        if (controller.value) {
-          gameState.value = controller.value.getGameState();
-        }
-        if (payload.reason === "consensus_restart" && payload.winnerColor) {
-          overlayResult.value = {
-            winner: payload.winnerColor,
-            scoreLine: formatGameScoreLine(getDisplayScores(gameState.value), gameState.value.players, roomInfo.value.players, language.value, uiStyle.value),
-          };
-        } else if (payload.reason === "resign_restart" && payload.winnerColor && (payload.loserColor || payload.resetColor || payload.color)) {
-          overlayResult.value = {
-            winner: payload.winnerColor,
-            loser: payload.loserColor ?? payload.resetColor ?? payload.color,
-          };
-        }
+        applyRoomSnapshotWithPostCommit({
+          payload,
+          applyRoomSnapshot,
+          onApplied: () => {
+            networkError.value = "";
+            resultModalDismissed.value = false;
+            if (payload.reason === "consensus_restart" && payload.winnerColor) {
+              overlayResult.value = {
+                winner: payload.winnerColor,
+                scoreLine: formatGameScoreLine(getDisplayScores(gameState.value), gameState.value.players, roomInfo.value.players, language.value, uiStyle.value),
+              };
+            } else if (payload.reason === "resign_restart" && payload.winnerColor && (payload.loserColor || payload.resetColor || payload.color)) {
+              overlayResult.value = {
+                winner: payload.winnerColor,
+                loser: payload.loserColor ?? payload.resetColor ?? payload.color,
+              };
+            }
+          },
+        });
       }),
     );
 

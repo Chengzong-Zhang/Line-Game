@@ -199,6 +199,7 @@ export class GameEngine {
     this.resignedPlayers = new Set();
     this.turnCount = 0;
     this.positionRevision = 0;
+    this._isReplayingBatch = false;
     this.cachedTerritories = Object.fromEntries(
       this.activePlayers.map((player) => [player, { polygon: null, area: 0, displayArea: 0 }]),
     );
@@ -213,7 +214,8 @@ export class GameEngine {
     for (const player of this.activePlayers) {
       this._setState(this.initialPositions[player], this._getPlayerStates(player).node);
     }
-    this._updateTerritories();
+    // A fresh board contains only isolated starting nodes, so the zero-valued
+    // territory cache above is already exact. Avoid an unnecessary full scan.
 
     // 将初始局面写入历史，防止任何操作回到起始状态
     this.historyHashes.add(this._computeStateHash(this.startPlayer));
@@ -1632,13 +1634,119 @@ export class GameEngine {
     return true;
   }
 
+  _createActionResult(success, reason) {
+    return {
+      success,
+      reason,
+      snapshot: this._isReplayingBatch ? null : this.getSnapshot(),
+    };
+  }
+
+  _captureReplayState() {
+    return {
+      grid: new Map(this.grid),
+      edges: Object.fromEntries(
+        this.activePlayers.map((player) => [player, new Set(this._getEdges(player))]),
+      ),
+      historyHashes: new Set(this.historyHashes),
+      currentPlayer: this.currentPlayer,
+      gameOver: this.gameOver,
+      consecutiveSkips: this.consecutiveSkips,
+      resignedPlayers: new Set(this.resignedPlayers),
+      turnCount: this.turnCount,
+      positionRevision: this.positionRevision,
+      cachedTerritories: Object.fromEntries(
+        this.activePlayers.map((player) => {
+          const territory = this.cachedTerritories[player];
+          return [player, {
+            ...territory,
+            polygon: territory.polygon ? territory.polygon.map(clonePoint) : null,
+          }];
+        }),
+      ),
+    };
+  }
+
+  _restoreReplayState(state) {
+    this.grid = new Map(state.grid);
+    this.edges = Object.fromEntries(
+      this.activePlayers.map((player) => [player, new Set(state.edges[player])]),
+    );
+    this.historyHashes = new Set(state.historyHashes);
+    this.currentPlayer = state.currentPlayer;
+    this.gameOver = state.gameOver;
+    this.consecutiveSkips = state.consecutiveSkips;
+    this.resignedPlayers = new Set(state.resignedPlayers);
+    this.turnCount = state.turnCount;
+    this.positionRevision = state.positionRevision;
+    this.cachedTerritories = Object.fromEntries(
+      this.activePlayers.map((player) => {
+        const territory = state.cachedTerritories[player];
+        return [player, {
+          ...territory,
+          polygon: territory.polygon ? territory.polygon.map(clonePoint) : null,
+        }];
+      }),
+    );
+  }
+
+  replayBatch(callback) {
+    if (typeof callback !== "function") {
+      throw new Error("replayBatch(callback) requires a synchronous callback.");
+    }
+    if (Object.prototype.toString.call(callback) === "[object AsyncFunction]") {
+      throw new Error("replayBatch(callback) does not accept async callbacks.");
+    }
+    if (this._isReplayingBatch) {
+      throw new Error("Nested replay batches are not supported.");
+    }
+
+    // Execute against an isolated transaction engine. A callback that returns
+    // a Promise may already have queued more work by the time we can reject it;
+    // keeping that work off the live engine preserves the synchronous contract.
+    const transaction = new GameEngine({
+      gridSize: this.gridSize,
+      playerCount: this.playerCount,
+      startPlayer: this.startPlayer,
+      rulesVersion: this.rulesVersion,
+    });
+    transaction._restoreReplayState(this._captureReplayState());
+
+    let result;
+    transaction._isReplayingBatch = true;
+    try {
+      result = callback(transaction);
+      if (result && typeof result.then === "function") {
+        // Consume a possible rejection so an explicitly rejected callback does
+        // not also surface as an unrelated unhandled-rejection error.
+        Promise.resolve(result).catch(() => {});
+        throw new Error("replayBatch(callback) does not accept Promise results.");
+      }
+    } finally {
+      transaction._isReplayingBatch = false;
+    }
+
+    if (!result || result.success !== true) {
+      return {
+        ...(result ?? {}),
+        success: false,
+        reason: result?.reason ?? "REPLAY_FAILED",
+        snapshot: null,
+      };
+    }
+
+    transaction._updateTerritories();
+    const snapshot = transaction.getSnapshot();
+    this._restoreReplayState(transaction._captureReplayState());
+    return {
+      ...result,
+      snapshot,
+    };
+  }
+
   playMove(point) {
     if (this.gameOver) {
-      return {
-        success: false,
-        reason: "GAME_OVER",
-        snapshot: this.getSnapshot(),
-      };
+      return this._createActionResult(false, "GAME_OVER");
     }
 
     const normalizedPoint = clonePoint(point);
@@ -1651,11 +1759,7 @@ export class GameEngine {
 
     const success = this._addNode(normalizedPoint);
     if (!success) {
-      return {
-        success: false,
-        reason: "INVALID_MOVE",
-        snapshot: this.getSnapshot(),
-      };
+      return this._createActionResult(false, "INVALID_MOVE");
     }
 
     // 结算后计算局面哈希（以对手为即将行棋方）
@@ -1667,11 +1771,7 @@ export class GameEngine {
       for (const player of this.activePlayers) {
         this.edges[player] = edgesSnapshot[player];
       }
-      return {
-        success: false,
-        reason: "SUPERKO_VIOLATION",
-        snapshot: this.getSnapshot(),
-      };
+      return this._createActionResult(false, "SUPERKO_VIOLATION");
     }
 
     this.historyHashes.add(stateHash);
@@ -1680,22 +1780,16 @@ export class GameEngine {
     this.consecutiveSkips = 0;
     this._switchPlayer();
     this._checkAndAutoSkip();
-    this._updateTerritories();
+    if (!this._isReplayingBatch) {
+      this._updateTerritories();
+    }
 
-    return {
-      success: true,
-      reason: null,
-      snapshot: this.getSnapshot(),
-    };
+    return this._createActionResult(true, null);
   }
 
   skipTurn() {
     if (this.gameOver) {
-      return {
-        success: false,
-        reason: "GAME_OVER",
-        snapshot: this.getSnapshot(),
-      };
+      return this._createActionResult(false, "GAME_OVER");
     }
 
     this.consecutiveSkips += 1;
@@ -1708,36 +1802,20 @@ export class GameEngine {
       this._checkAndAutoSkip();
     }
 
-    return {
-      success: true,
-      reason: null,
-      snapshot: this.getSnapshot(),
-    };
+    return this._createActionResult(true, null);
   }
 
   resignPlayer(player = this.currentPlayer) {
     if (this.gameOver) {
-      return {
-        success: false,
-        reason: "GAME_OVER",
-        snapshot: this.getSnapshot(),
-      };
+      return this._createActionResult(false, "GAME_OVER");
     }
 
     if (!this.activePlayers.includes(player)) {
-      return {
-        success: false,
-        reason: "UNKNOWN_PLAYER",
-        snapshot: this.getSnapshot(),
-      };
+      return this._createActionResult(false, "UNKNOWN_PLAYER");
     }
 
     if (this.resignedPlayers.has(player)) {
-      return {
-        success: false,
-        reason: "PLAYER_ALREADY_RESIGNED",
-        snapshot: this.getSnapshot(),
-      };
+      return this._createActionResult(false, "PLAYER_ALREADY_RESIGNED");
     }
 
     this.resignedPlayers.add(player);
@@ -1753,11 +1831,7 @@ export class GameEngine {
       this._checkAndAutoSkip();
     }
 
-    return {
-      success: true,
-      reason: null,
-      snapshot: this.getSnapshot(),
-    };
+    return this._createActionResult(true, null);
   }
 }
 

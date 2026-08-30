@@ -1,6 +1,6 @@
 import GameEngine, { Player, TerritoryRulesVersion } from "./GameEngine.js?v=20260830a";
 import Renderer from "./Renderer.js?v=20260830a";
-import { ClientEvent, ServerEvent } from "./NetworkManager.js?v=20260430d";
+import { ServerEvent } from "./NetworkManager.js?v=20260430d";
 
 // GameController 鏄墠绔殑鈥滆兌姘村眰鈥濓細
 // 瀹冩妸 Model(GameEngine)銆乂iew(Renderer) 鍜岃仈鏈哄眰(NetworkManager) 涓茶捣鏉ワ紝
@@ -61,6 +61,7 @@ export class GameController {
     this.networkManager = null;
     this.lastAction = null;
     this._networkUnsubscribers = [];
+    this._authoritativeSnapshotValid = true;
 
     this._isInitialized = false;
     this._boundHandleClick = this._handleClick.bind(this);
@@ -164,41 +165,8 @@ export class GameController {
       return;
     }
 
-    // Controller 监听的是语义事件，Vue 层无需关心底层 WebSocket 原始消息。
-    this._networkUnsubscribers.push(
-      this.networkManager.on(ServerEvent.ROOM_CREATED, (payload) => {
-        this.setMultiplayerState({
-          enabled: true,
-          localPlayer: payload.color ?? this.localPlayer,
-          roomReady: false,
-          opponentConnected: false,
-        });
-      }),
-    );
-
-    this._networkUnsubscribers.push(
-      this.networkManager.on(ServerEvent.ROOM_JOINED, (payload) => {
-        const ready = payload.status === "READY" || payload.status === "IN_PROGRESS";
-        this.setMultiplayerState({
-          enabled: true,
-          localPlayer: payload.color ?? this.localPlayer,
-          roomReady: ready,
-          opponentConnected: ready,
-        });
-      }),
-    );
-
-    this._networkUnsubscribers.push(
-      this.networkManager.on(ServerEvent.ROOM_READY, (payload) => {
-        this.setMultiplayerState({
-          enabled: true,
-          localPlayer: payload.yourColor ?? this.localPlayer,
-          roomReady: true,
-          opponentConnected: true,
-        });
-      }),
-    );
-
+    // OnlineApp owns complete room snapshots and lifecycle state. The controller
+    // only applies incremental gameplay events so one server frame has one owner.
     this._networkUnsubscribers.push(
       this.networkManager.on(ServerEvent.OPPONENT_MOVE, (payload) => {
         if (isGridPoint(payload.point)) {
@@ -221,45 +189,19 @@ export class GameController {
       }),
     );
 
-    this._networkUnsubscribers.push(
-      this.networkManager.on(ServerEvent.MATCH_RESET, () => {
-        this.applyRemoteReset();
-      }),
-    );
-
-    this._networkUnsubscribers.push(
-      this.networkManager.on(ServerEvent.PLAYER_LEFT, () => {
-        this.setMultiplayerState({
-          enabled: true,
-          roomReady: false,
-          opponentConnected: false,
-        });
-      }),
-    );
-
-    this._networkUnsubscribers.push(
-      this.networkManager.on(ClientEvent.CLOSE, () => {
-        if (this.multiplayerEnabled) {
-          this.setMultiplayerState({
-            enabled: true,
-            roomReady: false,
-            opponentConnected: false,
-          });
-        }
-      }),
-    );
   }
 
-  enableMultiplayer(options = {}) {
+  enableMultiplayer(options = {}, syncState = true) {
     return this.setMultiplayerState({
       enabled: true,
       ...options,
-    });
+    }, syncState);
   }
 
   disableMultiplayer() {
     this._removeNetworkListeners();
     this.networkManager = null;
+    this._authoritativeSnapshotValid = true;
     return this.setMultiplayerState({
       enabled: false,
       localPlayer: null,
@@ -268,7 +210,7 @@ export class GameController {
     });
   }
 
-  setMultiplayerState(partial = {}) {
+  setMultiplayerState(partial = {}, syncState = true) {
     if (Object.prototype.hasOwnProperty.call(partial, "networkManager")) {
       this.setNetworkManager(partial.networkManager);
     }
@@ -294,6 +236,10 @@ export class GameController {
       this.opponentConnected = false;
     }
 
+    if (!syncState) {
+      return null;
+    }
+
     const snapshot = this.engine.getSnapshot();
     const nextState = this._buildGameState(snapshot);
     this._syncCanvasInteractivity(snapshot, nextState);
@@ -304,6 +250,14 @@ export class GameController {
   _emitStateChange(snapshot, state = null) {
     if (this.stateChangeListener) {
       this.stateChangeListener(state ?? this._buildGameState(snapshot));
+    }
+  }
+
+  setAuthoritativeSnapshotValid(isValid) {
+    this._authoritativeSnapshotValid = Boolean(isValid);
+    if (!this._authoritativeSnapshotValid && this.multiplayerEnabled) {
+      this.roomReady = false;
+      this.opponentConnected = false;
     }
   }
 
@@ -433,6 +387,10 @@ export class GameController {
       return null;
     }
 
+    if (this._authoritativeSnapshotValid === false) {
+      return "AUTHORITATIVE_SNAPSHOT_INVALID";
+    }
+
     if (!this.roomReady) {
       return "ROOM_NOT_READY";
     }
@@ -475,6 +433,10 @@ export class GameController {
   _getResetLockReason(snapshot = this.engine.getSnapshot()) {
     if (!this.multiplayerEnabled) {
       return null;
+    }
+
+    if (this._authoritativeSnapshotValid === false) {
+      return "AUTHORITATIVE_SNAPSHOT_INVALID";
     }
 
     if (!this.roomReady) {
@@ -602,6 +564,11 @@ export class GameController {
   }
 
   applyRemoteMove(point) {
+    const recoveryLock = this._getRemoteRecoveryLock();
+    if (recoveryLock) {
+      return recoveryLock;
+    }
+
     if (!isGridPoint(point)) {
       return {
         success: false,
@@ -618,6 +585,11 @@ export class GameController {
   }
 
   applyRemoteSkip() {
+    const recoveryLock = this._getRemoteRecoveryLock();
+    if (recoveryLock) {
+      return recoveryLock;
+    }
+
     const actingPlayer = this.engine.getCurrentPlayer();
     const result = this.engine.skipTurn();
     if (result.success) {
@@ -639,6 +611,11 @@ export class GameController {
   }
 
   applyRemoteResign(player) {
+    const recoveryLock = this._getRemoteRecoveryLock();
+    if (recoveryLock) {
+      return recoveryLock;
+    }
+
     const targetPlayer = isKnownPlayer(player) ? player : this.engine.getSnapshot().currentPlayer;
     const result = this.engine.resignPlayer(targetPlayer);
     if (result.success) {
@@ -663,68 +640,188 @@ export class GameController {
     return this.resetGame({ force: true });
   }
 
+  _getRemoteRecoveryLock() {
+    if (this._authoritativeSnapshotValid !== false) {
+      return null;
+    }
+    const snapshot = this.engine.getSnapshot();
+    return {
+      success: false,
+      reason: "AUTHORITATIVE_SNAPSHOT_INVALID",
+      state: this._buildGameState(snapshot),
+    };
+  }
+
   restoreMatchState(matchState = null) {
-    // 联机重连后，前端通过回放动作日志重建棋盘，避免服务端维护整块棋盘矩阵。
+    // 联机重连后，在临时引擎上批量回放；只有完整成功才替换当前棋盘。
     const actions = Array.isArray(matchState?.actions) ? matchState.actions : [];
     const incomingSettings = matchState?.settings;
-    if (incomingSettings && typeof incomingSettings === "object") {
-      this.setGameConfig(incomingSettings, false);
+    const nextEngineOptions = {
+      ...DEFAULT_ENGINE_OPTIONS,
+      ...(this.options.engine ?? {}),
+      ...(incomingSettings && typeof incomingSettings === "object" ? incomingSettings : {}),
+    };
+
+    const preserveCurrentEngine = (reason, preservedSnapshot = null) => {
+      const error = reason instanceof Error ? reason : new Error(String(reason));
+      this._reportNetworkError(error);
+      if (this.multiplayerEnabled) {
+        // A rejected authoritative snapshot must never unlock the preserved board.
+        this.setAuthoritativeSnapshotValid(false);
+      }
+      const snapshot = preservedSnapshot ?? this.engine.getSnapshot();
+      const state = this._buildGameState(snapshot);
+      this._syncCanvasInteractivity(snapshot, state);
+      return {
+        success: false,
+        reason: error.message,
+        state,
+      };
+    };
+
+    let candidateEngine;
+    let replayResult;
+    try {
+      candidateEngine = new GameEngine(nextEngineOptions);
+      replayResult = candidateEngine.replayBatch((engine) => {
+        let lastAction = null;
+
+        for (let index = 0; index < actions.length; index += 1) {
+          const action = actions[index];
+          if (!action || typeof action.type !== "string") {
+            return {
+              success: false,
+              reason: `Replay action ${index + 1} is malformed.`,
+            };
+          }
+
+          if (action.type === "player_move") {
+            if (!isGridPoint(action.point)) {
+              return {
+                success: false,
+                reason: `Replay move ${index + 1} has an invalid point.`,
+              };
+            }
+            const actingPlayer = engine.getCurrentPlayer();
+            const result = engine.playMove(clonePoint(action.point));
+            if (!result.success) {
+              return {
+                success: false,
+                reason: `Replay move ${index + 1} failed: ${result.reason}`,
+              };
+            }
+            lastAction = {
+              type: "move",
+              player: actingPlayer,
+              point: clonePoint(action.point),
+            };
+            continue;
+          }
+
+          if (action.type === "player_skip") {
+            const actingPlayer = engine.getCurrentPlayer();
+            const result = engine.skipTurn();
+            if (!result.success) {
+              return {
+                success: false,
+                reason: `Replay skip ${index + 1} failed: ${result.reason}`,
+              };
+            }
+            lastAction = {
+              type: "skip",
+              player: actingPlayer,
+              point: null,
+            };
+            continue;
+          }
+
+          if (action.type === "player_resign") {
+            if (!isKnownPlayer(action.color)) {
+              return {
+                success: false,
+                reason: `Replay resignation ${index + 1} has an invalid player.`,
+              };
+            }
+            const result = engine.resignPlayer(action.color);
+            if (!result.success && result.reason !== "PLAYER_ALREADY_RESIGNED") {
+              return {
+                success: false,
+                reason: `Replay resignation ${index + 1} failed: ${result.reason}`,
+              };
+            }
+            lastAction = {
+              type: "resign",
+              player: action.color,
+              point: null,
+            };
+            continue;
+          }
+
+          return {
+            success: false,
+            reason: `Replay action ${index + 1} has unsupported type: ${action.type}.`,
+          };
+        }
+
+        return {
+          success: true,
+          reason: null,
+          lastAction,
+        };
+      });
+    } catch (error) {
+      return preserveCurrentEngine(error);
     }
-    this._replaceEngine(this.options.engine ?? {});
-    this._setLastAction(null);
 
-    for (const action of actions) {
-      if (!action || typeof action.type !== "string") {
-        continue;
-      }
-
-      if (action.type === "player_move" && isGridPoint(action.point)) {
-        const actingPlayer = this.engine.getCurrentPlayer();
-        const result = this.engine.playMove(clonePoint(action.point));
-        if (!result.success) {
-          this._reportNetworkError(new Error(`Replay move failed: ${result.reason}`));
-          break;
-        }
-        this._setLastAction({
-          type: "move",
-          player: actingPlayer,
-          point: action.point,
-        });
-        continue;
-      }
-
-      if (action.type === "player_skip") {
-        const actingPlayer = this.engine.getCurrentPlayer();
-        const result = this.engine.skipTurn();
-        if (!result.success) {
-          this._reportNetworkError(new Error(`Replay skip failed: ${result.reason}`));
-          break;
-        }
-        this._setLastAction({
-          type: "skip",
-          player: actingPlayer,
-          point: null,
-        });
-        continue;
-      }
-
-      if (action.type === "player_resign" && isKnownPlayer(action.color)) {
-        const result = this.engine.resignPlayer(action.color);
-        if (!result.success && result.reason !== "PLAYER_ALREADY_RESIGNED") {
-          this._reportNetworkError(new Error(`Replay resignation failed: ${result.reason}`));
-          break;
-        }
-        this._setLastAction({
-          type: "resign",
-          player: action.color,
-          point: null,
-        });
-      }
+    if (!replayResult.success) {
+      return preserveCurrentEngine(replayResult.reason);
     }
 
-    const snapshot = this.engine.getSnapshot();
-    this._syncSnapshot(snapshot);
-    return this._buildGameState(snapshot);
+    const previousControllerState = {
+      engine: this.engine,
+      engineOptions: this.options.engine,
+      validGridPoints: this._validGridPoints,
+      engineEpoch: this._engineEpoch,
+      lastAction: this._cloneLastAction(),
+    };
+
+    try {
+      this.options.engine = nextEngineOptions;
+      this.engine = candidateEngine;
+      this._validGridPoints = candidateEngine.getValidPositions();
+      this._engineEpoch += 1;
+      this.setAuthoritativeSnapshotValid(true);
+      this.renderer.invalidate();
+      this._setLastAction(replayResult.lastAction);
+      this._updateLargeBoardClass();
+      this._syncSnapshot(replayResult.snapshot);
+    } catch (error) {
+      this.options.engine = previousControllerState.engineOptions;
+      this.engine = previousControllerState.engine;
+      this._validGridPoints = previousControllerState.validGridPoints;
+      this._engineEpoch = previousControllerState.engineEpoch;
+      this._setLastAction(previousControllerState.lastAction);
+      this._updateLargeBoardClass();
+      const previousSnapshot = this.engine.getSnapshot();
+      try {
+        this.renderer.invalidate();
+        this.renderer.render({
+          ...previousSnapshot,
+          renderEpoch: this._engineEpoch,
+          lastAction: this._cloneLastAction(),
+        });
+      } catch {
+        // The original controller state is restored even if renderer recovery
+        // cannot repaint; preserveCurrentEngine still locks interaction below.
+      }
+      return preserveCurrentEngine(error, previousSnapshot);
+    }
+
+    return {
+      success: true,
+      reason: null,
+      state: this._buildGameState(replayResult.snapshot),
+    };
   }
 
   skipTurn() {

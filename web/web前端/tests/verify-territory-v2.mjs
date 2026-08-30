@@ -63,8 +63,8 @@ const controllerUrl = asDataUrl(
       `import Renderer from "${rendererUrl}";`,
     )
     .replace(
-      /^import \{ ClientEvent, ServerEvent \} from "\.\/NetworkManager\.js\?v=[^"]+";/m,
-      `import { ClientEvent, ServerEvent } from "${networkStubUrl}";`,
+      /^import \{ ServerEvent \} from "\.\/NetworkManager\.js\?v=[^"]+";/m,
+      `import { ServerEvent } from "${networkStubUrl}";`,
     ),
 );
 const { GameController } = await import(controllerUrl);
