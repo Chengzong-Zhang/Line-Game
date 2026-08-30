@@ -938,24 +938,24 @@ export class GameEngine {
 
     const vertices = new Set();
     const edges = new Set();
+    const gridPointCount = this.validPositions.length;
     for (let index = 0; index < points.length; index += 1) {
       const start = points[index];
       const end = points[(index + 1) % points.length];
       if (pointEquals(start, end)) continue;
-      const startKey = pointKey(start);
-      const endKey = pointKey(end);
-      const startIdx = this._keyToIdx.get(startKey);
-      const endIdx = this._keyToIdx.get(endKey);
-      if (
-        startIdx === undefined
-        || endIdx === undefined
-        || !this._adjIdxList[startIdx].includes(endIdx)
-      ) {
-        return false;
-      }
-      vertices.add(startKey);
-      vertices.add(endKey);
-      edges.add(startKey < endKey ? `${startKey}|${endKey}` : `${endKey}|${startKey}`);
+      const startIdx = this._pointToIndex(start);
+      const endIdx = this._pointToIndex(end);
+      if (startIdx < 0 || endIdx < 0) return false;
+
+      const dx = end[0] - start[0];
+      const dy = end[1] - start[1];
+      if (Math.max(Math.abs(dx), Math.abs(dy), Math.abs(dx + dy)) !== 1) return false;
+
+      vertices.add(startIdx);
+      vertices.add(endIdx);
+      const left = Math.min(startIdx, endIdx);
+      const right = Math.max(startIdx, endIdx);
+      edges.add(left * gridPointCount + right);
     }
     return vertices.size >= 3 && edges.size >= vertices.size;
   }

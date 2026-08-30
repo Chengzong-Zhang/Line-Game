@@ -240,6 +240,60 @@ assert.notEqual(
   "different wall sets must not share a compact key",
 );
 
+function legacyBoundaryCycle(engine, polygon) {
+  if (!Array.isArray(polygon) || polygon.length < 3) return false;
+  const equal = (left, right) => left[0] === right[0] && left[1] === right[1];
+  const points = equal(polygon[0], polygon[polygon.length - 1])
+    ? polygon.slice(0, -1)
+    : polygon;
+  if (points.length < 3) return false;
+  const vertices = new Set();
+  const edges = new Set();
+  for (let index = 0; index < points.length; index += 1) {
+    const start = points[index];
+    const end = points[(index + 1) % points.length];
+    if (equal(start, end)) continue;
+    const startKey = `${start[0]},${start[1]}`;
+    const endKey = `${end[0]},${end[1]}`;
+    const startIndex = engine._keyToIdx.get(startKey);
+    const endIndex = engine._keyToIdx.get(endKey);
+    if (
+      startIndex === undefined
+      || endIndex === undefined
+      || !engine._adjIdxList[startIndex].includes(endIndex)
+    ) {
+      return false;
+    }
+    vertices.add(startKey);
+    vertices.add(endKey);
+    edges.add(startKey < endKey ? `${startKey}|${endKey}` : `${endKey}|${startKey}`);
+  }
+  return vertices.size >= 3 && edges.size >= vertices.size;
+}
+
+assert.equal(compactWallKeyEngine._hasBoundaryCycle([[0, 0], [1, 0], [0, 1]]), true);
+let boundaryCycleSeed = 0xc0ffee;
+const boundaryCycleRandom = () => (
+  (boundaryCycleSeed = (Math.imul(boundaryCycleSeed, 1664525) + 1013904223) >>> 0)
+  / 4294967296
+);
+const boundaryCyclePointPool = [
+  ...compactWallKeyEngine.validPositions,
+  [-1, 0], [15, 0], [0, 15], [0.5, 0],
+];
+for (let sample = 0; sample < 5000; sample += 1) {
+  const length = Math.floor(boundaryCycleRandom() * 12);
+  const polygon = Array.from({ length }, () => (
+    boundaryCyclePointPool[Math.floor(boundaryCycleRandom() * boundaryCyclePointPool.length)]
+  ));
+  if (polygon.length && boundaryCycleRandom() < 0.25) polygon.push([...polygon[0]]);
+  assert.equal(
+    compactWallKeyEngine._hasBoundaryCycle(polygon),
+    legacyBoundaryCycle(compactWallKeyEngine, polygon),
+    `numeric boundary cycle drift at sample ${sample}`,
+  );
+}
+
 const permutations = [
   [0, 1, 2], [1, 0, 2], [0, 2, 1],
   [2, 1, 0], [1, 2, 0], [2, 0, 1],
