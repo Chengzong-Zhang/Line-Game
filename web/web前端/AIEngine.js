@@ -1,4 +1,4 @@
-import { GameEngine, Player, PointState } from "./GameEngine.js";
+import { GameEngine, Player, PointState } from "./GameEngine.js?v=20260830a";
 
 function pointKey(point) {
   return `${point[0]},${point[1]}`;
@@ -37,9 +37,11 @@ function saveState(engine) {
     },
     historyHashes: new Set(engine.historyHashes),
     consecutiveSkips: engine.consecutiveSkips,
+    resignedPlayers: new Set(engine.resignedPlayers ?? []),
     currentPlayer: engine.currentPlayer,
     gameOver: engine.gameOver,
     turnCount: engine.turnCount,
+    positionRevision: engine.positionRevision ?? 0,
     cachedTerritories: cloneCachedTerritories(engine),
   };
 }
@@ -53,9 +55,11 @@ function restoreState(engine, snapshot) {
   };
   engine.historyHashes = new Set(snapshot.historyHashes);
   engine.consecutiveSkips = snapshot.consecutiveSkips;
+  engine.resignedPlayers = new Set(snapshot.resignedPlayers ?? []);
   engine.currentPlayer = snapshot.currentPlayer;
   engine.gameOver = snapshot.gameOver;
   engine.turnCount = snapshot.turnCount;
+  engine.positionRevision = snapshot.positionRevision ?? engine.positionRevision ?? 0;
   engine.cachedTerritories = snapshot.cachedTerritories;
 }
 

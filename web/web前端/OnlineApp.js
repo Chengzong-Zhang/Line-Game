@@ -1,22 +1,25 @@
-import GameController from "./GameController.js?v=20260430d";
-import { GameEngine, Player } from "./GameEngine.js?v=20260430d";
-import { MinimaxAI, restoreState, saveState } from "./AIEngine.js";
+import GameController from "./GameController.js?v=20260830a";
+import { GameEngine, Player } from "./GameEngine.js?v=20260830a";
+import { MinimaxAI, restoreState, saveState } from "./AIEngine.js?v=20260830a";
+import { isWorkerResultCurrent, serializeEngineState } from "./AIStateProtocol.js?v=20260830a";
 import NetworkManager, { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js?v=20260430d";
 import {
   createEmptyAuth as createAppEmptyAuth,
   GRID_SIZE_OPTIONS as APP_GRID_SIZE_OPTIONS,
   PLAYER_COUNT_OPTIONS as APP_PLAYER_COUNT_OPTIONS,
   DEFAULT_TURN_TIMER_SECONDS as APP_DEFAULT_TURN_TIMER_SECONDS,
+  DEFAULT_RULES_VERSION as APP_DEFAULT_RULES_VERSION,
   TURN_TIMER_MAX_SECONDS as APP_TURN_TIMER_MAX_SECONDS,
   TURN_TIMER_MIN_SECONDS as APP_TURN_TIMER_MIN_SECONDS,
   createDefaultGameState as createAppDefaultGameState,
   createEmptySession as createAppEmptySession,
   loadStoredAuth as loadAppStoredAuth,
   loadStoredSession as loadAppStoredSession,
+  getPrimaryScores as getDisplayScores,
   normalizeGameSettings as normalizeAppGameSettings,
   persistAuth as persistAppAuth,
   persistSession as persistAppSession,
-} from "./OnlineAppState.js?v=20260611d";
+} from "./OnlineAppState.js?v=20260830a";
 import {
   formatArea as formatAppArea,
   formatConnectionState as formatAppConnectionState,
@@ -30,7 +33,7 @@ import {
   UI_STYLE_STORAGE_KEY,
   UI_STYLE_ACADEMIC,
   localizeErrorMessage as localizeAppErrorMessage,
-} from "./OnlineAppI18n.js?v=20260611b";
+} from "./OnlineAppI18n.js?v=20260830a";
 import { ensureGuideRuleImages, getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20260508a";
 
 const {
@@ -45,24 +48,6 @@ const {
 
 if (!globalThis.Vue) {
   throw new Error("Vue runtime is not available on window.Vue.");
-}
-
-function serializeEngineState(engine) {
-  return {
-    gridSize: engine.gridSize,
-    playerCount: engine.playerCount,
-    startPlayer: engine.startPlayer,
-    activePlayers: [...engine.activePlayers],
-    gridEntries: [...engine.grid.entries()],
-    edgesBlack: [...(engine.edges.BLACK ?? [])],
-    edgesWhite: [...(engine.edges.WHITE ?? [])],
-    edgesPurple: [...(engine.edges.PURPLE ?? [])],
-    historyHashes: [...engine.historyHashes],
-    consecutiveSkips: engine.consecutiveSkips,
-    currentPlayer: engine.currentPlayer,
-    gameOver: engine.gameOver,
-    turnCount: engine.turnCount,
-  };
 }
 
 // OnlineApp 鏄仈鏈虹増椤甸潰鍏ュ彛銆?// 缁勪欢瀹氫箟鍜屼笟鍔℃祦绋嬮兘鏀惧湪杩欓噷锛屼絾閫氱敤鐘舵€佸伐鍏蜂笌鏂囨宸茬粡鎷嗗埌鐙珛妯″潡銆?
@@ -408,10 +393,6 @@ function buildNamedScoreEntries(scores, players, roomPlayers, language, uiStyle)
       value: scores?.[player],
       accentClass: getPlayerAccentClass(player),
     }));
-}
-
-function getDisplayScores(gameState) {
-  return gameState?.displayScores ?? gameState?.scores ?? {};
 }
 
 function formatResignationScoreLine({
@@ -2440,6 +2421,7 @@ const App = {
     const selectedPlayerCount = ref(initialSettings.playerCount);
     const selectedGridSize = ref(initialSettings.gridSize);
     const selectedStartPlayer = ref(initialSettings.startPlayer);
+    const selectedRulesVersion = ref(initialSettings.rulesVersion ?? APP_DEFAULT_RULES_VERSION);
     const selectedTurnTimerEnabled = ref(initialSettings.turnTimerEnabled);
     const selectedTurnTimeLimitSeconds = ref(initialSettings.turnTimeLimitSeconds);
     const selectedAiMode = ref("none");
@@ -2480,6 +2462,8 @@ const App = {
     let guideMarkdownLoadId = 0;
     let aiWorker = null;
     let aiScheduleId = null;
+    let aiRequestSequence = 0;
+    let activeAiRequestId = null;
     const chatEmojiTimeoutIds = new Set();
 
     const getAiPlayer = () => {
@@ -2501,6 +2485,7 @@ const App = {
         aiWorker.terminate();
         aiWorker = null;
       }
+      activeAiRequestId = null;
       aiThinking.value = false;
     };
 
@@ -2515,17 +2500,23 @@ const App = {
 
     const ensureAiWorker = () => {
       if (!aiWorker && canRunLocalAI()) {
-        aiWorker = new Worker(new URL("./AIWorker.js", import.meta.url), { type: "module" });
+        aiWorker = new Worker(new URL("./AIWorker.js?v=20260830a", import.meta.url), { type: "module" });
         aiWorker.onmessage = (event) => {
           if (event.data?.type !== "RESULT" && event.data?.type !== "ERROR") {
             return;
           }
+          if (event.data.requestId !== activeAiRequestId) {
+            return;
+          }
+          activeAiRequestId = null;
 
           try {
             const aiPlayer = getAiPlayer();
+            const sourceStillCurrent = isWorkerResultCurrent(controller.value?.engine, event.data);
             const mayApplyResult = event.data.type === "RESULT"
               && canRunLocalAI()
-              && gameState.value.currentPlayer === aiPlayer;
+              && gameState.value.currentPlayer === aiPlayer
+              && sourceStillCurrent;
             if (!mayApplyResult) {
               if (event.data.type === "ERROR") {
                 console.error(`AI worker failed: ${event.data.message}`);
@@ -2585,8 +2576,11 @@ const App = {
             aiThinking.value = false;
             return;
           }
+          const requestId = ++aiRequestSequence;
+          activeAiRequestId = requestId;
           worker.postMessage({
             type: "COMPUTE",
+            requestId,
             serializedState: serializeEngineState(controller.value.engine),
             aiPlayer: nextAiPlayer,
             depth: selectedAiDepth.value,
@@ -2682,6 +2676,7 @@ const App = {
         playerCount,
         gridSize,
         startPlayer,
+        rulesVersion: selectedRulesVersion.value,
         turnTimerEnabled,
         turnTimeLimitSeconds,
         hintEnabled,
@@ -2782,6 +2777,7 @@ const App = {
           playerCount: selectedPlayerCount.value,
           gridSize: selectedGridSize.value,
           startPlayer: selectedStartPlayer.value,
+          rulesVersion: selectedRulesVersion.value,
           turnTimerEnabled: selectedTurnTimerEnabled.value,
           turnTimeLimitSeconds: selectedTurnTimeLimitSeconds.value,
           hintEnabled: selectedHintEnabled.value,
@@ -2856,6 +2852,7 @@ const App = {
       playerCount: selectedPlayerCount.value,
       gridSize: selectedGridSize.value,
       startPlayer: selectedStartPlayer.value,
+      rulesVersion: selectedRulesVersion.value,
       turnTimerEnabled: selectedTurnTimerEnabled.value,
       turnTimeLimitSeconds: selectedTurnTimeLimitSeconds.value,
       hintEnabled: selectedHintEnabled.value,
@@ -2879,6 +2876,7 @@ const App = {
         selectedPlayerCount.value = normalized.playerCount;
         selectedGridSize.value = normalized.gridSize;
         selectedStartPlayer.value = normalized.startPlayer;
+        selectedRulesVersion.value = normalized.rulesVersion;
         selectedTurnTimerEnabled.value = normalized.turnTimerEnabled;
         selectedTurnTimeLimitSeconds.value = normalized.turnTimeLimitSeconds;
         if (settings && Object.prototype.hasOwnProperty.call(settings, "hintEnabled")) {
@@ -3417,6 +3415,7 @@ const App = {
           gridSize: sourceEngine.gridSize,
           playerCount: sourceEngine.playerCount,
           startPlayer: sourceEngine.startPlayer,
+          rulesVersion: sourceEngine.rulesVersion,
         });
         restoreState(tempEngine, snapshot);
         moves = new MinimaxAI(2).getTopMoves(tempEngine, currentPlayer, 1);

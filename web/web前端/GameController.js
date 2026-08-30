@@ -1,5 +1,5 @@
-import GameEngine, { Player } from "./GameEngine.js?v=20260430d";
-import Renderer from "./Renderer.js?v=20260430d";
+import GameEngine, { Player, TerritoryRulesVersion } from "./GameEngine.js?v=20260830a";
+import Renderer from "./Renderer.js?v=20260830a";
 import { ClientEvent, ServerEvent } from "./NetworkManager.js?v=20260430d";
 
 // GameController 鏄墠绔殑鈥滆兌姘村眰鈥濓細
@@ -8,6 +8,7 @@ import { ClientEvent, ServerEvent } from "./NetworkManager.js?v=20260430d";
 const DEFAULT_ENGINE_OPTIONS = Object.freeze({
   playerCount: 2,
   gridSize: 9,
+  rulesVersion: TerritoryRulesVersion.V2,
 });
 
 function clonePoint(point) {
@@ -47,7 +48,9 @@ export class GameController {
     };
     // 只要配置变化需要立即生效，就整体重建引擎，避免残留旧棋盘状态。
     this.engine = new GameEngine(this.options.engine);
+    this._validGridPoints = this.engine.getValidPositions();
     this.renderer = new Renderer(canvas, options.renderer ?? {});
+    this._engineEpoch = 1;
     this.stateChangeListener = typeof options.onStateChange === "function" ? options.onStateChange : null;
     this.networkErrorListener = typeof options.onNetworkError === "function" ? options.onNetworkError : null;
 
@@ -84,6 +87,14 @@ export class GameController {
     }
   }
 
+  _replaceEngine(engineOptions = this.options.engine ?? {}) {
+    this.engine = new GameEngine(engineOptions);
+    this._validGridPoints = this.engine.getValidPositions();
+    this._engineEpoch += 1;
+    this.renderer.invalidate();
+    return this.engine;
+  }
+
   init() {
     if (!this._isInitialized) {
       this.canvas.addEventListener("click", this._boundHandleClick);
@@ -93,7 +104,11 @@ export class GameController {
 
     this._updateLargeBoardClass();
     const snapshot = this.engine.getSnapshot();
-    this.renderer.render(snapshot);
+    this.renderer.render({
+      ...snapshot,
+      renderEpoch: this._engineEpoch,
+      lastAction: this._cloneLastAction(),
+    });
     this._syncCanvasInteractivity(snapshot);
     this._emitStateChange(snapshot);
     return snapshot;
@@ -129,7 +144,7 @@ export class GameController {
       return this.options.engine;
     }
 
-    this.engine = new GameEngine(this.options.engine);
+    this._replaceEngine(this.options.engine);
     this._setLastAction(null);
     this._updateLargeBoardClass();
     const snapshot = this.engine.getSnapshot();
@@ -326,6 +341,8 @@ export class GameController {
     const resetLockReason = this._getResetLockReason(snapshot);
 
     return {
+      rulesVersion: snapshot.rulesVersion,
+      positionRevision: snapshot.positionRevision,
       currentPlayer: snapshot.currentPlayer,
       gameOver: snapshot.gameOver,
       winner: snapshot.winner,
@@ -373,10 +390,9 @@ export class GameController {
   }
 
   _findNearestGridPoint(pixelX, pixelY) {
-    const snapshot = this.engine.getSnapshot();
-    const validPoints = typeof this.engine.getValidPositions === "function"
-      ? this.engine.getValidPositions()
-      : this._deriveValidPoints(snapshot.gridSize);
+    const validPoints = this._validGridPoints?.length
+      ? this._validGridPoints
+      : this._deriveValidPoints(this.engine.gridSize ?? this.options.engine.gridSize);
 
     let nearestPoint = null;
     let nearestDistance = Number.POSITIVE_INFINITY;
@@ -494,15 +510,15 @@ export class GameController {
   _syncSnapshot(snapshot) {
     this.renderer.render({
       ...snapshot,
+      renderEpoch: this._engineEpoch,
       lastAction: this._cloneLastAction(),
     });
     this._syncCanvasInteractivity(snapshot);
     this._emitStateChange(snapshot);
   }
 
-  _applyMove(point) {
+  _applyMove(point, actingPlayer = this.engine.getCurrentPlayer()) {
     const normalizedPoint = clonePoint(point);
-    const actingPlayer = this.engine.getSnapshot().currentPlayer;
     const result = this.engine.playMove(normalizedPoint);
 
     if (result.success) {
@@ -544,12 +560,13 @@ export class GameController {
   }
 
   _processPointer(clientX, clientY) {
-    const lockReason = this._getInteractionLockReason();
+    const snapshot = this.engine.getSnapshot();
+    const lockReason = this._getInteractionLockReason(snapshot);
     if (lockReason) {
       return {
         success: false,
         reason: lockReason,
-        state: this.getGameState(),
+        state: this._buildGameState(snapshot),
       };
     }
 
@@ -559,11 +576,11 @@ export class GameController {
       return {
         success: false,
         reason: "MISS",
-        state: this.getGameState(),
+        state: this._buildGameState(snapshot),
       };
     }
 
-    const result = this._applyMove(point);
+    const result = this._applyMove(point, snapshot.currentPlayer);
     if (result.success) {
       void this._syncLocalMove(point);
     }
@@ -601,7 +618,7 @@ export class GameController {
   }
 
   applyRemoteSkip() {
-    const actingPlayer = this.engine.getSnapshot().currentPlayer;
+    const actingPlayer = this.engine.getCurrentPlayer();
     const result = this.engine.skipTurn();
     if (result.success) {
       this._setLastAction({
@@ -653,7 +670,7 @@ export class GameController {
     if (incomingSettings && typeof incomingSettings === "object") {
       this.setGameConfig(incomingSettings, false);
     }
-    this.engine = new GameEngine(this.options.engine ?? {});
+    this._replaceEngine(this.options.engine ?? {});
     this._setLastAction(null);
 
     for (const action of actions) {
@@ -662,7 +679,7 @@ export class GameController {
       }
 
       if (action.type === "player_move" && isGridPoint(action.point)) {
-        const actingPlayer = this.engine.getSnapshot().currentPlayer;
+        const actingPlayer = this.engine.getCurrentPlayer();
         const result = this.engine.playMove(clonePoint(action.point));
         if (!result.success) {
           this._reportNetworkError(new Error(`Replay move failed: ${result.reason}`));
@@ -677,7 +694,7 @@ export class GameController {
       }
 
       if (action.type === "player_skip") {
-        const actingPlayer = this.engine.getSnapshot().currentPlayer;
+        const actingPlayer = this.engine.getCurrentPlayer();
         const result = this.engine.skipTurn();
         if (!result.success) {
           this._reportNetworkError(new Error(`Replay skip failed: ${result.reason}`));
@@ -719,7 +736,7 @@ export class GameController {
       };
     }
 
-    const actingPlayer = this.engine.getSnapshot().currentPlayer;
+    const actingPlayer = this.engine.getCurrentPlayer();
     const result = this.engine.skipTurn();
     if (result.success) {
       this._setLastAction({
@@ -813,7 +830,7 @@ export class GameController {
       return this.getGameState();
     }
 
-    this.engine = new GameEngine(this.options.engine ?? {});
+    this._replaceEngine(this.options.engine ?? {});
     this._setLastAction(null);
     const snapshot = this.engine.getSnapshot();
     this._syncSnapshot(snapshot);
@@ -829,7 +846,7 @@ export class GameController {
       };
     }
 
-    const targetPlayer = isKnownPlayer(player) ? player : this.engine.getSnapshot().currentPlayer;
+    const targetPlayer = isKnownPlayer(player) ? player : this.engine.getCurrentPlayer();
     const result = this.engine.resignPlayer(targetPlayer);
     if (result.success) {
       this._setLastAction({

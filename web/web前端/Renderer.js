@@ -1,4 +1,4 @@
-import { Player, PointState } from "./GameEngine.js?v=20260430d";
+import { Player, PointState } from "./GameEngine.js?v=20260830a";
 
 const SQRT3_OVER_2 = Math.sqrt(3) / 2;
 
@@ -89,6 +89,8 @@ export class Renderer {
     this._staticLayerKey = "";
     this._staticDomCanvas = null;
     this._staticCtx = null;
+    this._hintDomCanvas = null;
+    this._hintCtx = null;
     this._pendingRafHandle = null;
     this._pendingOptions = {};
     this._lastRenderFingerprint = "";
@@ -118,6 +120,20 @@ export class Renderer {
     const parent = this.canvas.parentElement;
     if (parent) {
       parent.insertBefore(staticDomCanvas, this.canvas);
+
+      // Hint pulses live on their own transparent layer. Animating a hint no
+      // longer redraws every node, edge, territory and legal-move marker.
+      const hintDomCanvas = document.createElement("canvas");
+      hintDomCanvas.style.position = "absolute";
+      hintDomCanvas.style.top = "0";
+      hintDomCanvas.style.left = "0";
+      hintDomCanvas.style.width = "100%";
+      hintDomCanvas.style.height = "100%";
+      hintDomCanvas.style.pointerEvents = "none";
+      hintDomCanvas.setAttribute("aria-hidden", "true");
+      parent.insertBefore(hintDomCanvas, this.canvas.nextSibling);
+      this._hintDomCanvas = hintDomCanvas;
+      this._hintCtx = hintDomCanvas.getContext("2d");
     }
 
     this._resizeObserver = typeof ResizeObserver !== "undefined"
@@ -154,6 +170,16 @@ export class Renderer {
       this._staticDomCanvas = null;
       this._staticCtx = null;
     }
+    if (this._hintDomCanvas) {
+      this._hintDomCanvas.remove();
+      this._hintDomCanvas = null;
+      this._hintCtx = null;
+    }
+    this._staticLayerKey = "";
+  }
+
+  invalidate() {
+    this._lastRenderFingerprint = "";
     this._staticLayerKey = "";
   }
 
@@ -209,6 +235,17 @@ export class Renderer {
         this._staticCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
         this._staticCtx.imageSmoothingEnabled = true;
       }
+    }
+
+    if (this._hintDomCanvas) {
+      if (this._hintDomCanvas.width !== physW || this._hintDomCanvas.height !== physH) {
+        this._hintDomCanvas.width = physW;
+        this._hintDomCanvas.height = physH;
+      }
+      this._hintDomCanvas.style.width = `${cssWidth}px`;
+      this._hintDomCanvas.style.height = `${cssHeight}px`;
+      this._hintCtx?.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (this._hintCtx) this._hintCtx.imageSmoothingEnabled = true;
     }
     return true;
   }
@@ -324,9 +361,14 @@ export class Renderer {
     this.hintPoint = [point[0], point[1]];
     this._hintPulsePhase = 0;
     this._lastHintTimestamp = 0;
-    this._lastRenderFingerprint = "";
+    if (this._hintCtx) {
+      if (!this.layout && this.lastSnapshot) this.layout = this._computeLayout(this.lastSnapshot);
+      this._renderHintLayer();
+    } else {
+      this._lastRenderFingerprint = "";
+    }
 
-    if (this.lastSnapshot) {
+    if (!this._hintCtx && this.lastSnapshot) {
       this.render(this.lastSnapshot);
     }
     if (this._animationFrameId === null) {
@@ -346,7 +388,9 @@ export class Renderer {
       this._animationFrameId = null;
     }
 
-    if (hadHint && this.lastSnapshot) {
+    if (this._hintCtx) {
+      this._clearHintLayer();
+    } else if (hadHint && this.lastSnapshot) {
       this._lastRenderFingerprint = "";
       this.render(this.lastSnapshot);
     }
@@ -362,7 +406,11 @@ export class Renderer {
       this._lastHintTimestamp = timestamp;
     }
     this._hintPulsePhase = ((timestamp - this._lastHintTimestamp) % 1200) / 1200;
-    this._doRender(this.lastSnapshot, { skipResize: true, force: true });
+    if (this._hintCtx) {
+      this._renderHintLayer();
+    } else {
+      this._doRender(this.lastSnapshot, { skipResize: true, force: true });
+    }
     this._animationFrameId = globalThis.requestAnimationFrame((nextTimestamp) => {
       this._renderHintAnimation(nextTimestamp);
     });
@@ -814,7 +862,20 @@ export class Renderer {
     ctx.restore();
   }
 
-  _drawHint(layout) {
+  _clearHintLayer() {
+    if (!this._hintCtx || !this._hintDomCanvas) return;
+    this._hintCtx.save();
+    this._hintCtx.setTransform(1, 0, 0, 1, 0, 0);
+    this._hintCtx.clearRect(0, 0, this._hintDomCanvas.width, this._hintDomCanvas.height);
+    this._hintCtx.restore();
+  }
+
+  _renderHintLayer() {
+    this._clearHintLayer();
+    if (this.hintPoint && this.layout) this._drawHint(this.layout, this._hintCtx);
+  }
+
+  _drawHint(layout, targetCtx = this.ctx) {
     if (!this.hintPoint) {
       return;
     }
@@ -822,7 +883,7 @@ export class Renderer {
     const { x, y } = this.getPointPixelCoordinates(this.hintPoint);
     const pulse = (Math.sin(this._hintPulsePhase * Math.PI * 2) + 1) * 0.5;
     const radius = layout.scale * (0.25 + pulse * 0.15);
-    const ctx = this.ctx;
+    const ctx = targetCtx;
 
     ctx.save();
     ctx.beginPath();
@@ -837,7 +898,17 @@ export class Renderer {
 
   _getBoardFingerprint(snapshot) {
     const lp = snapshot.lastAction?.point;
-    return `${snapshot.turnCount}:${snapshot.gameOver ? 1 : 0}:${snapshot.currentPlayer}:${lp ? `${lp[0]},${lp[1]}` : '-'}`;
+    return [
+      snapshot.renderEpoch ?? 0,
+      snapshot.positionRevision ?? snapshot.turnCount ?? 0,
+      snapshot.playerCount ?? 2,
+      snapshot.rulesVersion ?? "territory-v1",
+      snapshot.gameOver ? 1 : 0,
+      snapshot.currentPlayer,
+      snapshot.lastAction?.type ?? "none",
+      snapshot.lastAction?.player ?? "none",
+      lp ? `${lp[0]},${lp[1]}` : "-",
+    ].join(":");
   }
 
   render(snapshot, options = {}) {
@@ -895,7 +966,11 @@ export class Renderer {
     this._drawLegalMoves(snapshot, this.layout);
     this._drawNodes(boardData, this.layout);
     this._drawLastAction(snapshot, this.layout);
-    this._drawHint(this.layout);
+    if (this._hintCtx) {
+      this._renderHintLayer();
+    } else {
+      this._drawHint(this.layout);
+    }
   }
 }
 

@@ -52,6 +52,10 @@ MAX_GRID_SIZE = 15
 TURN_TIMER_MIN_SECONDS = 15
 TURN_TIMER_MAX_SECONDS = 200
 DEFAULT_TURN_TIMER_SECONDS = 60
+TERRITORY_RULE_V1 = "territory-v1"
+TERRITORY_RULE_V2 = "territory-v2"
+DEFAULT_RULES_VERSION = TERRITORY_RULE_V2
+ALLOWED_RULES_VERSIONS = {TERRITORY_RULE_V1, TERRITORY_RULE_V2}
 CHAT_EMOJI_MAX_CONTENT_LENGTH = 32
 CHAT_EMOJI_MIN_DURATION_MS = 300
 CHAT_EMOJI_MAX_DURATION_MS = 3000
@@ -1454,6 +1458,7 @@ class ConnectionManager:
         player_count = settings.get("playerCount", 2)
         grid_size = settings.get("gridSize", 9)
         start_player = settings.get("startPlayer", PLAYER_BLACK)
+        rules_version = settings.get("rulesVersion", DEFAULT_RULES_VERSION)
         turn_timer_enabled = bool(settings.get("turnTimerEnabled", False))
         turn_time_limit_seconds = settings.get("turnTimeLimitSeconds", DEFAULT_TURN_TIMER_SECONDS)
 
@@ -1473,11 +1478,14 @@ class ConnectionManager:
         allowed_players = (PLAYER_BLACK, PLAYER_WHITE, PLAYER_PURPLE)[:player_count]
         if start_player not in allowed_players:
             start_player = allowed_players[0]
+        if not isinstance(rules_version, str) or rules_version not in ALLOWED_RULES_VERSIONS:
+            rules_version = DEFAULT_RULES_VERSION
 
         return {
             "playerCount": player_count,
             "gridSize": grid_size,
             "startPlayer": start_player,
+            "rulesVersion": rules_version,
             "turnTimerEnabled": turn_timer_enabled,
             "turnTimeLimitSeconds": turn_time_limit_seconds,
         }

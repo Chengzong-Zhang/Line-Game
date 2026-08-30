@@ -1,4 +1,4 @@
-import { Player } from "./GameEngine.js?v=20260430d";
+import { Player, TerritoryRulesVersion } from "./GameEngine.js?v=20260830a";
 
 // 杩欎釜鏂囦欢涓撻棬瀛樻斁鈥滃彲澶嶇敤鐨勫墠绔姸鎬佸伐鍏封€濓紝
 // 閬垮厤 OnlineApp.js 鍐嶆鑶ㄨ儉鎴愪竴涓秴澶у伐鍏风鏂囦欢銆?
@@ -14,12 +14,17 @@ export const DEFAULT_TURN_TIMER_SECONDS = 60;
 export const HINT_MAX_COUNT_MIN = 1;
 export const HINT_MAX_COUNT_MAX = 10;
 export const DEFAULT_HINT_MAX_COUNT = 3;
+export const DEFAULT_RULES_VERSION = TerritoryRulesVersion.V2;
+export const RULES_VERSION_OPTIONS = Object.freeze(Object.values(TerritoryRulesVersion));
 
 export function normalizeGameSettings(settings = {}) {
   const playerCount = Number(settings?.playerCount);
   const gridSize = Number(settings?.gridSize);
   const turnTimeLimitSeconds = Number(settings?.turnTimeLimitSeconds);
   const hintMaxCount = Number(settings?.hintMaxCount);
+  const rulesVersion = RULES_VERSION_OPTIONS.includes(settings?.rulesVersion)
+    ? settings.rulesVersion
+    : DEFAULT_RULES_VERSION;
   const nextPlayerCount = PLAYER_COUNT_OPTIONS.includes(playerCount) ? playerCount : 2;
   const allowedPlayers = ALL_PLAYERS.slice(0, nextPlayerCount);
   const startPlayer = allowedPlayers.includes(settings?.startPlayer) ? settings.startPlayer : allowedPlayers[0];
@@ -34,6 +39,7 @@ export function normalizeGameSettings(settings = {}) {
     playerCount: nextPlayerCount,
     gridSize: GRID_SIZE_OPTIONS.includes(gridSize) ? gridSize : 9,
     startPlayer,
+    rulesVersion,
     turnTimerEnabled: Boolean(settings?.turnTimerEnabled),
     turnTimeLimitSeconds: normalizedTurnTimeLimitSeconds,
     hintEnabled: Boolean(settings?.hintEnabled),
@@ -41,8 +47,16 @@ export function normalizeGameSettings(settings = {}) {
   };
 }
 
+export function getPrimaryScores(gameState = null) {
+  // The UI and terminal winner share the discrete flood-fill score. The
+  // geometric display score is retained only for old snapshots/diagnostics.
+  return gameState?.scores ?? gameState?.displayScores ?? {};
+}
+
 export function createDefaultGameState() {
   return {
+    rulesVersion: DEFAULT_RULES_VERSION,
+    positionRevision: 0,
     currentPlayer: Player.BLACK,
     gameOver: false,
     winner: null,
@@ -113,6 +127,7 @@ export function loadStoredSession() {
       ...createEmptySession(),
       ...parsed,
       connected: false,
+      settings: normalizeGameSettings(parsed?.settings),
     };
   } catch (_e) {
     return createEmptySession();
