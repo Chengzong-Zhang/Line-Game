@@ -255,6 +255,16 @@ class D18V3VerifierSelfTest(unittest.TestCase):
             "cudnn_version": None,
             "device": "cpu",
             "device_name": None,
+            "throughput_profile_sha256": "8" * 64,
+            "throughput_profile_schema_name": verifier.THROUGHPUT_PROFILE_SCHEMA,
+            "throughput_profile_schema_version": verifier.SCHEMA_VERSION,
+            "throughput_profile_formal_manifest_sha256": "1" * 64,
+            "throughput_profile_formal_runner_sha256": verifier.sha256_file(formal),
+            "scalar_lane_count": verifier.SCALAR_LANE_COUNT,
+            "scalar_lane_execution_mode": verifier.SCALAR_LANE_EXECUTION_MODE,
+            "inference_batch_size": verifier.INFERENCE_BATCH_SIZE,
+            "inference_dtype": verifier.INFERENCE_DTYPE,
+            "amp_enabled": False,
         }
         metadata["execution_freeze_sha256"] = verifier.canonical_sha256(
             {

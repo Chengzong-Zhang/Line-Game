@@ -10,10 +10,12 @@ TOML.  The paid product command must still be invoked separately by the owner.
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 import copy
 import hashlib
 import json
 import math
+import multiprocessing
 import os
 import platform
 import random
@@ -25,7 +27,7 @@ import time
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any, Callable, Iterable, Mapping, Sequence
 
 
 SCRIPT_PATH = Path(__file__).resolve()
@@ -84,10 +86,88 @@ WRITER_LOCK_NAME = ".d18_v3_formal_writer.lock"
 BOOTSTRAP_REPLICATES = 20_000
 BOOTSTRAP_SEED = prep.BOOTSTRAP_SEED
 SEED_T_CRITICAL_DF4 = 2.776
+SCALAR_LANE_COUNT = 12
+SCALAR_LANE_EXECUTION_MODE = "production_equivalent_scalar_puct_lanes"
+INFERENCE_BATCH_SIZE = 1
+INFERENCE_DTYPE = "float32"
+AMP_ENABLED = False
+THROUGHPUT_PROFILE_SCHEMA = "lifeline-d18-v3-gpu-smoke"
+THROUGHPUT_PROFILE_IDENTITY_FIELDS = (
+    "throughput_profile_sha256",
+    "throughput_profile_schema_name",
+    "throughput_profile_schema_version",
+    "throughput_profile_formal_manifest_sha256",
+    "throughput_profile_formal_runner_sha256",
+    "scalar_lane_count",
+    "scalar_lane_execution_mode",
+    "inference_batch_size",
+    "inference_dtype",
+    "amp_enabled",
+)
 
 
 class FormalExecutionError(RuntimeError):
     """A formal execution or evidence invariant failed."""
+
+
+class _ScalarLaneExecutor:
+    """Run independent scalar PUCT lanes with deterministic result ordering.
+
+    The production backend always uses spawned processes.  Tests may inject a
+    compatible executor factory (normally ``ThreadPoolExecutor``) so the
+    orchestration and fail-closed behavior can be checked without CUDA.
+    """
+
+    def __init__(
+        self,
+        lane_count: int = SCALAR_LANE_COUNT,
+        *,
+        executor_factory: Callable[..., Any] | None = None,
+        initializer: Callable[..., Any] | None = None,
+        initargs: tuple[Any, ...] = (),
+    ) -> None:
+        _require(lane_count > 0, "scalar lane count must be positive")
+        self.lane_count = int(lane_count)
+        self._executor_factory = executor_factory
+        self._initializer = initializer
+        self._initargs = initargs
+        self._executor: Any | None = None
+
+    def __enter__(self) -> "_ScalarLaneExecutor":
+        _require(self._executor is None, "scalar lane executor is already open")
+        kwargs: dict[str, Any] = {"max_workers": self.lane_count}
+        if self._initializer is not None:
+            kwargs.update(initializer=self._initializer, initargs=self._initargs)
+        if self._executor_factory is None:
+            kwargs["mp_context"] = multiprocessing.get_context("spawn")
+            self._executor = concurrent.futures.ProcessPoolExecutor(**kwargs)
+        else:
+            self._executor = self._executor_factory(**kwargs)
+        return self
+
+    def __exit__(self, exc_type: Any, exc: Any, traceback: Any) -> None:
+        del exc_type, exc, traceback
+        executor = self._executor
+        self._executor = None
+        if executor is not None:
+            executor.shutdown(wait=True, cancel_futures=True)
+
+    def map_ordered(
+        self,
+        worker: Callable[[Any], Any],
+        payloads: Sequence[Any],
+    ) -> list[Any]:
+        executor = self._executor
+        _require(executor is not None, "scalar lane executor is not open")
+        futures = [executor.submit(worker, payload) for payload in payloads]
+        try:
+            return [future.result() for future in futures]
+        except Exception as exc:
+            for future in futures:
+                future.cancel()
+            raise FormalExecutionError(
+                f"scalar lane worker failed: {type(exc).__name__}: {exc}"
+            ) from exc
 
 
 class _AdvisoryWriterLock:
@@ -529,6 +609,98 @@ def _gpu_smoke_select_action(agent: Any, game: Any, rng: random.Random) -> Any:
     return action
 
 
+def _run_gpu_smoke_lane(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Run one independent scalar, FP32, batch-one PUCT smoke lane."""
+
+    import torch
+
+    lane_started = time.perf_counter()
+    manifest = dict(payload["manifest"])
+    manifest_path = Path(str(payload["manifest_path"])).resolve()
+    checkpoint = dict(payload["checkpoint"])
+    adapted = _legacy_manifest(manifest)
+    loaded = legacy._load_neural_agent(
+        _agent_spec(checkpoint),
+        manifest=adapted,
+        manifest_path=manifest_path,
+        device="cuda",
+        arm_name="d16_v2",
+    )
+    loaded.model.eval()
+    floating_state = [
+        tensor
+        for tensor in loaded.model.state_dict().values()
+        if tensor.is_floating_point()
+    ]
+    _require(bool(floating_state), "GPU smoke model has no floating-point state")
+    _require(
+        all(tensor.dtype == torch.float32 for tensor in floating_state),
+        "GPU smoke checkpoint is not entirely FP32",
+    )
+    games = [
+        legacy._game_from_opening(dict(opening), int(size))
+        for size, opening in payload["openings"]
+    ]
+    before = {
+        name: tensor.detach().cpu().clone()
+        for name, tensor in loaded.model.state_dict().items()
+    }
+    setup_seconds = time.perf_counter() - lane_started
+    decisions = 0
+    model_forward_path_calls = 0
+    utilization: list[float] = []
+    sustained_started = time.perf_counter()
+    deadline = sustained_started + float(payload["seconds"])
+    with torch.inference_mode():
+        while time.perf_counter() < deadline:
+            game = legacy._playable_game_copy(games[decisions % len(games)])
+            _gpu_smoke_select_action(
+                loaded,
+                game,
+                random.Random(
+                    202608300000
+                    + int(payload["lane_index"]) * 1_000_000
+                    + decisions
+                ),
+            )
+            decisions += 1
+            model_forward_path_calls += int(manifest["search"]["simulations"]) + 1
+            helper = getattr(torch.cuda, "utilization", None)
+            if callable(helper):
+                try:
+                    utilization.append(float(helper()))
+                except Exception:
+                    pass
+    sustained_seconds = time.perf_counter() - sustained_started
+    _require(decisions > 0, "GPU smoke lane did not complete a formal PUCT decision")
+    after = loaded.model.state_dict()
+    _require(
+        all(
+            torch.equal(before[name], tensor.detach().cpu())
+            for name, tensor in after.items()
+        ),
+        "GPU smoke changed frozen checkpoint weights or buffers",
+    )
+    _require(
+        all(parameter.grad is None for parameter in loaded.model.parameters()),
+        "GPU smoke created gradients on the frozen inference model",
+    )
+    return {
+        "lane_index": int(payload["lane_index"]),
+        "checkpoint_id": checkpoint["checkpoint_id"],
+        "puct_decisions": decisions,
+        "estimated_policy_value_evaluations": model_forward_path_calls,
+        "setup_seconds": setup_seconds,
+        "sustained_seconds": sustained_seconds,
+        "total_seconds": time.perf_counter() - lane_started,
+        "gpu_utilization_samples_percent": utilization,
+        "max_memory_allocated_bytes": torch.cuda.max_memory_allocated(),
+        "device_name": torch.cuda.get_device_name(),
+        "torch_version": torch.__version__,
+        "cuda_runtime_version": torch.version.cuda,
+    }
+
+
 def gpu_smoke(
     manifest_path: Path,
     bundle_directory: Path,
@@ -538,10 +710,11 @@ def gpu_smoke(
 ) -> dict[str, Any]:
     """Sustain the frozen CUDA inference/PUCT path without changing weights.
 
-    D18-v3 is an evaluation-only experiment.  A training-shaped optimizer or
-    AMP smoke can look busy while testing a different numerical path, so this
-    gate deliberately uses batch size one, checkpoint dtype, ``eval`` mode,
-    and the exact 16-simulation PUCT call used by formal games.
+    D18-v3 is an evaluation-only experiment.  Each worker executes
+    ``torch.inference_mode()`` around the same scalar ``select_action`` path as
+    formal games.  In particular, ``_run_gpu_smoke_lane`` uses
+    ``legacy._playable_game_copy`` and ``_gpu_smoke_select_action``; no
+    synthetic tensor work is added to make the telemetry look busy.
     """
 
     if not 15.0 <= seconds <= 30.0:
@@ -564,67 +737,60 @@ def gpu_smoke(
     manifest_path = manifest_path.resolve()
     manifest, tasks, _, _ = load_frozen_bundle(manifest_path, bundle_directory)
     tasks_by_size = _first_task_by_size(tasks)
-    adapted = _legacy_manifest(manifest)
     checkpoint = next(
         row
         for row in manifest["checkpoints"]
         if row["model_kind"] == "topology_gnn" and int(row["training_seed"]) == 20260825
     )
-    loaded = legacy._load_neural_agent(
-        _agent_spec(checkpoint),
-        manifest=adapted,
-        manifest_path=manifest_path,
-        device="cuda",
-        arm_name="d16_v2",
-    )
-    loaded.model.eval()
     supply_started = time.perf_counter()
-    games = [
-        legacy._game_from_opening(
-            _opening_from_pair(tasks_by_size[size]["pair_plan"][0]), size
-        )
+    openings = [
+        (size, _opening_from_pair(tasks_by_size[size]["pair_plan"][0]))
         for size in (5, 7, 9)
     ]
     supply_seconds = time.perf_counter() - supply_started
-    before = {
-        name: tensor.detach().cpu().clone()
-        for name, tensor in loaded.model.state_dict().items()
-    }
-    decisions = 0
-    model_forward_path_calls = 0
-    utilization: list[float] = []
-    sustained_started = time.perf_counter()
-    deadline = sustained_started + seconds
-    with torch.inference_mode():
-        while time.perf_counter() < deadline:
-            game = legacy._playable_game_copy(games[decisions % len(games)])
-            _gpu_smoke_select_action(
-                loaded,
-                game,
-                random.Random(202608300000 + decisions),
-            )
-            torch.cuda.synchronize()
-            decisions += 1
-            model_forward_path_calls += int(manifest["search"]["simulations"]) + 1
-            helper = getattr(torch.cuda, "utilization", None)
-            if callable(helper):
-                try:
-                    utilization.append(float(helper()))
-                except Exception:
-                    pass
-    sustained_seconds = time.perf_counter() - sustained_started
-    _require(decisions > 0, "GPU smoke did not complete a formal PUCT decision")
-    after = loaded.model.state_dict()
+    lane_payloads = [
+        {
+            "lane_index": lane_index,
+            "seconds": seconds,
+            "manifest": manifest,
+            "manifest_path": str(manifest_path),
+            "checkpoint": checkpoint,
+            "openings": openings,
+        }
+        for lane_index in range(SCALAR_LANE_COUNT)
+    ]
+    with _ScalarLaneExecutor(SCALAR_LANE_COUNT) as lane_executor:
+        lane_results = lane_executor.map_ordered(
+            _run_gpu_smoke_lane,
+            lane_payloads,
+        )
     _require(
-        all(torch.equal(before[name], tensor.detach().cpu()) for name, tensor in after.items()),
-        "GPU smoke changed frozen checkpoint weights or buffers",
+        [row["lane_index"] for row in lane_results]
+        == list(range(SCALAR_LANE_COUNT)),
+        "GPU smoke lane results are not in canonical order",
     )
-    _require(
-        all(parameter.grad is None for parameter in loaded.model.parameters()),
-        "GPU smoke created gradients on the frozen inference model",
+    decisions = sum(int(row["puct_decisions"]) for row in lane_results)
+    model_forward_path_calls = sum(
+        int(row["estimated_policy_value_evaluations"]) for row in lane_results
     )
+    setup_seconds = max(float(row["setup_seconds"]) for row in lane_results)
+    sustained_seconds = max(
+        float(row["sustained_seconds"]) for row in lane_results
+    )
+    utilization = [
+        float(sample)
+        for row in lane_results
+        for sample in row["gpu_utilization_samples_percent"]
+    ]
+    device_names = {str(row["device_name"]) for row in lane_results}
+    torch_versions = {str(row["torch_version"]) for row in lane_results}
+    cuda_versions = {str(row["cuda_runtime_version"]) for row in lane_results}
+    _require(len(device_names) == 1, "GPU smoke lanes used different devices")
+    _require(len(torch_versions) == 1, "GPU smoke lanes used different torch versions")
+    _require(len(cuda_versions) == 1, "GPU smoke lanes used different CUDA runtimes")
+    total_seconds = time.perf_counter() - started
     profile = {
-        "schema_name": "lifeline-d18-v3-gpu-smoke",
+        "schema_name": THROUGHPUT_PROFILE_SCHEMA,
         "schema_version": SCHEMA_VERSION,
         "status": "PASS",
         "experiment_id": manifest["experiment_id"],
@@ -636,14 +802,19 @@ def gpu_smoke(
         "frozen_checkpoint_model": True,
         "formal_games_executed": 0,
         "device": "cuda",
-        "device_name": torch.cuda.get_device_name(),
-        "torch_version": torch.__version__,
-        "cuda_runtime_version": torch.version.cuda,
+        "device_name": next(iter(device_names)),
+        "torch_version": next(iter(torch_versions)),
+        "cuda_runtime_version": next(iter(cuda_versions)),
         "inference_only": True,
         "training_mode": False,
-        "amp_enabled": False,
+        "amp_enabled": AMP_ENABLED,
         "batch_calibration_performed": False,
-        "selected_batch_size": 1,
+        "selected_batch_size": INFERENCE_BATCH_SIZE,
+        "inference_batch_size": INFERENCE_BATCH_SIZE,
+        "inference_dtype": INFERENCE_DTYPE,
+        "scalar_lane_count": SCALAR_LANE_COUNT,
+        "scalar_lane_execution_mode": SCALAR_LANE_EXECUTION_MODE,
+        "production_equivalent_mode": True,
         "optimizer_steps": 0,
         "backward_calls": 0,
         "formal_numeric_path_match": True,
@@ -653,20 +824,114 @@ def gpu_smoke(
         "data_supply": "registered_d18_v3_opening_state_clone",
         "real_sizes": [5, 7, 9],
         "input_parse_and_collate_seconds": supply_seconds,
+        "setup_seconds": setup_seconds,
         "puct_decisions": decisions,
         "estimated_policy_value_evaluations": model_forward_path_calls,
         "sustained_seconds": sustained_seconds,
-        "duration_seconds": time.perf_counter() - started,
+        "duration_seconds": total_seconds,
+        "total_seconds": total_seconds,
         "puct_decisions_per_second": decisions / sustained_seconds,
+        "lane_results": lane_results,
         "gpu_utilization_samples_percent": utilization,
         "gpu_utilization_mean_percent": statistics.fmean(utilization) if utilization else None,
         "gpu_utilization_max_percent": max(utilization) if utilization else None,
-        "max_memory_allocated_bytes": torch.cuda.max_memory_allocated(),
+        "max_memory_allocated_bytes": max(
+            int(row["max_memory_allocated_bytes"]) for row in lane_results
+        ),
         "profile_path": str(profile_output),
         "completed_at_utc": _utc_now(),
     }
     _atomic_json(profile_output, profile)
     return profile
+
+
+def _validate_throughput_profile(
+    profile_path: Path,
+    *,
+    manifest_path: Path,
+) -> dict[str, Any]:
+    """Validate the immutable smoke receipt before any formal-run mutation."""
+
+    profile_path = profile_path.resolve()
+    _require(profile_path.is_file(), "formal throughput profile is missing")
+    profile = _read_json(profile_path)
+    expected = {
+        "schema_name": THROUGHPUT_PROFILE_SCHEMA,
+        "schema_version": SCHEMA_VERSION,
+        "status": "PASS",
+        "experiment_id": EXPERIMENT_ID,
+        "formal_manifest_sha256": sha256_file(manifest_path.resolve()),
+        "formal_runner_sha256": sha256_file(SCRIPT_PATH),
+        "preparation_runner_sha256": sha256_file(prep.SCRIPT_PATH),
+        "formal_games_executed": 0,
+        "inference_only": True,
+        "training_mode": False,
+        "amp_enabled": AMP_ENABLED,
+        "batch_calibration_performed": False,
+        "selected_batch_size": INFERENCE_BATCH_SIZE,
+        "inference_batch_size": INFERENCE_BATCH_SIZE,
+        "inference_dtype": INFERENCE_DTYPE,
+        "scalar_lane_count": SCALAR_LANE_COUNT,
+        "scalar_lane_execution_mode": SCALAR_LANE_EXECUTION_MODE,
+        "production_equivalent_mode": True,
+        "optimizer_steps": 0,
+        "backward_calls": 0,
+        "formal_numeric_path_match": True,
+    }
+    for field, value in expected.items():
+        _require(
+            profile.get(field) == value,
+            f"formal throughput profile binding mismatch: {field}",
+        )
+    _require(
+        profile.get("puct_simulations") == 16,
+        "formal throughput profile PUCT simulation count drifted",
+    )
+    _require(
+        profile.get("temperature") == 0.0,
+        "formal throughput profile temperature drifted",
+    )
+    _require(
+        profile.get("root_noise") is False,
+        "formal throughput profile root-noise setting drifted",
+    )
+    lane_results = profile.get("lane_results")
+    _require(
+        isinstance(lane_results, list) and len(lane_results) == SCALAR_LANE_COUNT,
+        "formal throughput profile does not contain all scalar lanes",
+    )
+    _require(
+        [row.get("lane_index") for row in lane_results]
+        == list(range(SCALAR_LANE_COUNT)),
+        "formal throughput profile lane order drifted",
+    )
+    _require(
+        all(int(row.get("puct_decisions", 0)) > 0 for row in lane_results),
+        "formal throughput profile contains an idle scalar lane",
+    )
+    return profile
+
+
+def _throughput_profile_identity(
+    profile_path: Path,
+    profile: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        "throughput_profile_sha256": sha256_file(profile_path.resolve()),
+        "throughput_profile_schema_name": profile["schema_name"],
+        "throughput_profile_schema_version": profile["schema_version"],
+        "throughput_profile_formal_manifest_sha256": profile[
+            "formal_manifest_sha256"
+        ],
+        "throughput_profile_formal_runner_sha256": profile[
+            "formal_runner_sha256"
+        ],
+        "scalar_lane_count": profile["scalar_lane_count"],
+        "scalar_lane_execution_mode": profile["scalar_lane_execution_mode"],
+        "inference_batch_size": profile["inference_batch_size"],
+        "inference_dtype": profile["inference_dtype"],
+        "amp_enabled": profile["amp_enabled"],
+    }
 
 
 def _slug(value: str) -> str:
@@ -793,6 +1058,98 @@ def _play_game(schedule: Mapping[str, Any], *, agent_a: Any, agent_b: Any) -> di
         }
     )
     return record
+
+
+_FORMAL_LANE_MANIFEST: dict[str, Any] | None = None
+_FORMAL_LANE_MANIFEST_PATH: Path | None = None
+_FORMAL_LANE_DEVICE: str | None = None
+_FORMAL_LANE_AGENT_CACHE: dict[tuple[str, str], Any] = {}
+
+
+def _initialize_formal_lane_worker(
+    manifest: Mapping[str, Any],
+    manifest_path: str,
+    device: str,
+) -> None:
+    """Bind immutable formal inputs once in each spawned lane process."""
+
+    global _FORMAL_LANE_MANIFEST
+    global _FORMAL_LANE_MANIFEST_PATH
+    global _FORMAL_LANE_DEVICE
+    _FORMAL_LANE_MANIFEST = copy.deepcopy(dict(manifest))
+    _FORMAL_LANE_MANIFEST_PATH = Path(manifest_path).resolve()
+    _FORMAL_LANE_DEVICE = str(device)
+    _FORMAL_LANE_AGENT_CACHE.clear()
+
+
+def _formal_lane_agent(binding: Mapping[str, Any]) -> Any:
+    import torch
+
+    _require(_FORMAL_LANE_MANIFEST is not None, "formal lane manifest is unbound")
+    _require(
+        _FORMAL_LANE_MANIFEST_PATH is not None,
+        "formal lane manifest path is unbound",
+    )
+    _require(_FORMAL_LANE_DEVICE is not None, "formal lane device is unbound")
+    spec = _agent_spec(binding)
+    key = (str(spec["checkpoint_id"]), _FORMAL_LANE_DEVICE)
+    if key not in _FORMAL_LANE_AGENT_CACHE:
+        agent = legacy._load_neural_agent(
+            spec,
+            manifest=_legacy_manifest(_FORMAL_LANE_MANIFEST),
+            manifest_path=_FORMAL_LANE_MANIFEST_PATH,
+            device=_FORMAL_LANE_DEVICE,
+            arm_name="d16_v2",
+        )
+        agent.model.eval()
+        floating_state = [
+            tensor
+            for tensor in agent.model.state_dict().values()
+            if tensor.is_floating_point()
+        ]
+        _require(bool(floating_state), "formal lane model has no floating-point state")
+        _require(
+            all(tensor.dtype == torch.float32 for tensor in floating_state),
+            "formal lane checkpoint is not entirely FP32",
+        )
+        _require(
+            all(parameter.grad is None for parameter in agent.model.parameters()),
+            "formal lane checkpoint has pre-existing gradients",
+        )
+        _FORMAL_LANE_AGENT_CACHE[key] = agent
+    return _FORMAL_LANE_AGENT_CACHE[key]
+
+
+def _run_formal_pair_lane(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Compute one independent color pair and return data without writing."""
+
+    import torch
+
+    task = dict(payload["task"])
+    schedules = sorted(
+        (dict(row) for row in payload["schedules"]),
+        key=lambda row: int(row["pair_member"]),
+    )
+    _require(len(schedules) == 2, "a formal scalar lane needs one color pair")
+    agents = {
+        slot: _formal_lane_agent(task["agent_bindings"][slot])
+        for slot in ("A", "B")
+    }
+    with torch.inference_mode():
+        records = [
+            _play_game(schedule, agent_a=agents["A"], agent_b=agents["B"])
+            for schedule in schedules
+        ]
+    return {
+        "schema_name": PAIR_SCHEMA,
+        "schema_version": SCHEMA_VERSION,
+        "task_id": schedules[0]["task_id"],
+        "pair_id": schedules[0]["pair_id"],
+        "pair_index": int(schedules[0]["pair_index"]),
+        "preparation_runner_sha256": sha256_file(prep.SCRIPT_PATH),
+        "formal_runner_sha256": sha256_file(SCRIPT_PATH),
+        "games": records,
+    }
 
 
 def _validate_game(record: Mapping[str, Any], schedule: Mapping[str, Any]) -> None:
@@ -1250,6 +1607,7 @@ EXECUTION_FREEZE_FIELDS = (
     "device",
     "device_name",
     "formal_source_hash",
+    *THROUGHPUT_PROFILE_IDENTITY_FIELDS,
 )
 
 
@@ -1268,6 +1626,8 @@ def _execution_metadata(
     bundle_directory: Path,
     run_root: Path,
     device: str,
+    throughput_profile_path: Path,
+    throughput_profile: Mapping[str, Any],
 ) -> dict[str, Any]:
     import torch
 
@@ -1298,6 +1658,10 @@ def _execution_metadata(
         "device": str(device_object),
         "device_name": device_name,
         "formal_source_hash": legacy._validate_source_identity(manifest["checkpoints"]),
+        **_throughput_profile_identity(
+            throughput_profile_path,
+            throughput_profile,
+        ),
     }
     metadata["execution_freeze_sha256"] = canonical_sha256(
         _execution_freeze_core(metadata)
@@ -1344,39 +1708,49 @@ def _task_receipt_base(task: Mapping[str, Any], metadata: Mapping[str, Any]) -> 
                 "device",
                 "device_name",
                 "formal_source_hash",
+                *THROUGHPUT_PROFILE_IDENTITY_FIELDS,
             )
         },
     }
 
 
-def _load_or_run_pair(
-    schedules: Sequence[Mapping[str, Any]],
+def _execute_pair_lanes(
+    task: Mapping[str, Any],
+    pairs: Mapping[int, Sequence[Mapping[str, Any]]],
     *,
     task_directory: Path,
-    agent_a: Any,
-    agent_b: Any,
-) -> list[dict[str, Any]]:
-    pair_index = int(schedules[0]["pair_index"])
-    path = _pair_path(task_directory, pair_index)
-    if path.is_file():
-        return _validate_pair(_read_json(path), schedules)
-    records = [
-        _play_game(schedule, agent_a=agent_a, agent_b=agent_b)
-        for schedule in sorted(schedules, key=lambda row: int(row["pair_member"]))
+    lane_executor: _ScalarLaneExecutor,
+) -> None:
+    """Compute all missing pairs, validate all, then write canonically in parent."""
+
+    missing: list[tuple[int, Sequence[Mapping[str, Any]]]] = []
+    for pair_index in sorted(pairs):
+        schedules = pairs[pair_index]
+        path = _pair_path(task_directory, pair_index)
+        if path.is_file():
+            _validate_pair(_read_json(path), schedules)
+        else:
+            missing.append((pair_index, schedules))
+    if not missing:
+        return
+    jobs = [
+        {
+            "task": copy.deepcopy(dict(task)),
+            "schedules": [copy.deepcopy(dict(row)) for row in schedules],
+        }
+        for _, schedules in missing
     ]
-    payload = {
-        "schema_name": PAIR_SCHEMA,
-        "schema_version": SCHEMA_VERSION,
-        "task_id": schedules[0]["task_id"],
-        "pair_id": schedules[0]["pair_id"],
-        "pair_index": pair_index,
-        "preparation_runner_sha256": sha256_file(prep.SCRIPT_PATH),
-        "formal_runner_sha256": sha256_file(SCRIPT_PATH),
-        "games": records,
-    }
-    _validate_pair(payload, schedules)
-    _atomic_json(path, payload)
-    return records
+    payloads = lane_executor.map_ordered(_run_formal_pair_lane, jobs)
+    expected_indices = [pair_index for pair_index, _ in missing]
+    _require(
+        [int(payload.get("pair_index", -1)) for payload in payloads]
+        == expected_indices,
+        "formal scalar lane results are not in canonical pair order",
+    )
+    for payload, (_, schedules) in zip(payloads, missing):
+        _validate_pair(payload, schedules)
+    for payload, (pair_index, _) in zip(payloads, missing):
+        _atomic_json(_pair_path(task_directory, pair_index), payload)
 
 
 def _pair_evidence(
@@ -1414,12 +1788,9 @@ def _run_task(
     task: Mapping[str, Any],
     schedules: Sequence[Mapping[str, Any]],
     *,
-    manifest: Mapping[str, Any],
-    manifest_path: Path,
     task_directory: Path,
     metadata: Mapping[str, Any],
-    device: str,
-    agent_cache: dict[tuple[str, str], Any],
+    lane_executor: _ScalarLaneExecutor,
 ) -> dict[str, Any]:
     receipt_path = task_directory / "receipt.json"
     if receipt_path.is_file():
@@ -1428,39 +1799,18 @@ def _run_task(
             task, schedules, receipt, metadata, task_directory=task_directory
         )
         return receipt
-    adapted = _legacy_manifest(manifest)
-    agents: dict[str, Any] = {}
-    for slot in ("A", "B"):
-        spec = _agent_spec(task["agent_bindings"][slot])
-        key = (str(spec["checkpoint_id"]), device)
-        if key not in agent_cache:
-            agent_cache[key] = legacy._load_neural_agent(
-                spec,
-                manifest=adapted,
-                manifest_path=manifest_path,
-                device=device,
-                arm_name="d16_v2",
-            )
-        agents[slot] = agent_cache[key]
     pairs: dict[int, list[Mapping[str, Any]]] = defaultdict(list)
     for schedule in schedules:
         pairs[int(schedule["pair_index"])].append(schedule)
     _require(len(pairs) == EXPECTED_PAIRS_PER_TASK, "task pair count is not 64")
-    records: list[dict[str, Any]] = []
-    for pair_index in sorted(pairs):
-        records.extend(
-            _load_or_run_pair(
-                pairs[pair_index],
-                task_directory=task_directory,
-                agent_a=agents["A"],
-                agent_b=agents["B"],
-            )
-        )
-    records.sort(key=lambda row: int(row["game_index"]))
-    for record, schedule in zip(records, schedules):
-        _validate_game(record, schedule)
+    _execute_pair_lanes(
+        task,
+        pairs,
+        task_directory=task_directory,
+        lane_executor=lane_executor,
+    )
     pair_artifacts, pair_records = _pair_evidence(task_directory, schedules)
-    _require(pair_records == records, "pair artifacts differ from the task replay ledger")
+    records = pair_records
     counts = _task_counts(records)
     gate = _formal_gate(task, counts)
     games_path = task_directory / "games.jsonl"
@@ -1608,6 +1958,10 @@ def _current_status(
         "execution_freeze_sha256": metadata["execution_freeze_sha256"],
         "task_manifest_sha256": metadata["task_manifest_sha256"],
         "game_manifest_sha256": metadata["game_manifest_sha256"],
+        **{
+            field: copy.deepcopy(metadata[field])
+            for field in THROUGHPUT_PROFILE_IDENTITY_FIELDS
+        },
         "receipts_present": len(receipts),
         "complete_tasks": len(receipts),
         "missing_tasks": len(missing),
@@ -1624,6 +1978,89 @@ def _current_status(
     }
 
 
+def _execute_formal_tasks(
+    tasks: Sequence[Mapping[str, Any]],
+    grouped: Mapping[str, Sequence[Mapping[str, Any]]],
+    *,
+    run_root: Path,
+    metadata: Mapping[str, Any],
+    lane_executor: _ScalarLaneExecutor,
+    continue_on_error: bool,
+    authorize_resume: bool,
+) -> None:
+    for task in tasks:
+        task_id = str(task["task_id"])
+        task_directory = _task_directory(run_root, task_id)
+        task_directory.mkdir(parents=True, exist_ok=True)
+        receipt_path = task_directory / "receipt.json"
+        if receipt_path.is_file():
+            _validate_task_receipt(
+                task,
+                grouped[task_id],
+                _read_json(receipt_path),
+                metadata,
+                task_directory=task_directory,
+            )
+            continue
+        state_path = task_directory / "state.json"
+        state = (
+            _read_json(state_path)
+            if state_path.is_file()
+            else {"task_id": task_id, "attempts": 0}
+        )
+        _require(state.get("task_id") == task_id, "task state belongs to another task")
+        previous_status = state.get("status")
+        if state_path.is_file() and previous_status in {
+            "failed",
+            "running",
+            "complete",
+        }:
+            _require(
+                authorize_resume,
+                f"{task_id}: state={previous_status!r} without a receipt; "
+                "explicit --authorize-resume is required",
+            )
+        elif state_path.is_file():
+            _require(
+                previous_status in {None, "pending"},
+                f"{task_id}: unsupported resumable state {previous_status!r}",
+            )
+        state.update(
+            {
+                "attempts": int(state.get("attempts", 0)) + 1,
+                "status": "running",
+                "started_at_utc": _utc_now(),
+            }
+        )
+        _atomic_json(state_path, state, overwrite=True)
+        try:
+            _run_task(
+                task,
+                grouped[task_id],
+                task_directory=task_directory,
+                metadata=metadata,
+                lane_executor=lane_executor,
+            )
+        except Exception as exc:
+            state.update(
+                {
+                    "status": "failed",
+                    "error_type": type(exc).__name__,
+                    "error": str(exc),
+                    "failed_at_utc": _utc_now(),
+                }
+            )
+            _atomic_json(state_path, state, overwrite=True)
+            _write_failure(task_directory, state, exc)
+            if not continue_on_error:
+                raise
+        else:
+            state.update(
+                {"status": "complete", "completed_at_utc": _utc_now()}
+            )
+            _atomic_json(state_path, state, overwrite=True)
+
+
 def run_bundle(
     manifest_path: Path,
     bundle_directory: Path,
@@ -1633,12 +2070,22 @@ def run_bundle(
     continue_on_error: bool,
     export_directory: Path | None,
     confirm_formal: bool,
+    throughput_profile: Path | None = None,
     authorize_resume: bool = False,
     _writer_lock_held: bool = False,
 ) -> dict[str, Any]:
     _require(confirm_formal, "formal execution requires --confirm-formal")
     _require(str(device).startswith("cuda"), "formal execution requires an explicit CUDA device")
+    _require(
+        throughput_profile is not None,
+        "formal execution requires --throughput-profile",
+    )
+    throughput_profile_path = Path(throughput_profile).resolve()
     manifest, tasks, games, _ = load_frozen_bundle(manifest_path, bundle_directory)
+    validated_throughput_profile = _validate_throughput_profile(
+        throughput_profile_path,
+        manifest_path=manifest_path.resolve(),
+    )
     run_root = _validate_write_target(
         manifest,
         run_root,
@@ -1664,6 +2111,7 @@ def run_bundle(
                 continue_on_error=continue_on_error,
                 export_directory=export_directory,
                 confirm_formal=confirm_formal,
+                throughput_profile=throughput_profile_path,
                 authorize_resume=authorize_resume,
                 _writer_lock_held=True,
             )
@@ -1673,6 +2121,8 @@ def run_bundle(
         bundle_directory=bundle_directory.resolve(),
         run_root=run_root,
         device=device,
+        throughput_profile_path=throughput_profile_path,
+        throughput_profile=validated_throughput_profile,
     )
     metadata_path = run_root / "execution_metadata.json"
     if metadata_path.is_file():
@@ -1680,58 +2130,20 @@ def run_bundle(
     else:
         _atomic_json(metadata_path, metadata)
     grouped = _group_games(games)
-    agent_cache: dict[tuple[str, str], Any] = {}
-    for task in tasks:
-        task_id = str(task["task_id"])
-        task_directory = _task_directory(run_root, task_id)
-        task_directory.mkdir(parents=True, exist_ok=True)
-        receipt_path = task_directory / "receipt.json"
-        if receipt_path.is_file():
-            _validate_task_receipt(
-                task,
-                grouped[task_id],
-                _read_json(receipt_path),
-                metadata,
-                task_directory=task_directory,
-            )
-            continue
-        state_path = task_directory / "state.json"
-        state = _read_json(state_path) if state_path.is_file() else {"task_id": task_id, "attempts": 0}
-        _require(state.get("task_id") == task_id, "task state belongs to another task")
-        previous_status = state.get("status")
-        if state_path.is_file() and previous_status in {"failed", "running", "complete"}:
-            _require(
-                authorize_resume,
-                f"{task_id}: state={previous_status!r} without a receipt; "
-                "explicit --authorize-resume is required",
-            )
-        elif state_path.is_file():
-            _require(
-                previous_status in {None, "pending"},
-                f"{task_id}: unsupported resumable state {previous_status!r}",
-            )
-        state.update({"attempts": int(state.get("attempts", 0)) + 1, "status": "running", "started_at_utc": _utc_now()})
-        _atomic_json(state_path, state, overwrite=True)
-        try:
-            _run_task(
-                task,
-                grouped[task_id],
-                manifest=manifest,
-                manifest_path=manifest_path.resolve(),
-                task_directory=task_directory,
-                metadata=metadata,
-                device=device,
-                agent_cache=agent_cache,
-            )
-        except Exception as exc:
-            state.update({"status": "failed", "error_type": type(exc).__name__, "error": str(exc), "failed_at_utc": _utc_now()})
-            _atomic_json(state_path, state, overwrite=True)
-            _write_failure(task_directory, state, exc)
-            if not continue_on_error:
-                raise
-        else:
-            state.update({"status": "complete", "completed_at_utc": _utc_now()})
-            _atomic_json(state_path, state, overwrite=True)
+    with _ScalarLaneExecutor(
+        SCALAR_LANE_COUNT,
+        initializer=_initialize_formal_lane_worker,
+        initargs=(copy.deepcopy(manifest), str(manifest_path.resolve()), device),
+    ) as lane_executor:
+        _execute_formal_tasks(
+            tasks,
+            grouped,
+            run_root=run_root,
+            metadata=metadata,
+            lane_executor=lane_executor,
+            continue_on_error=continue_on_error,
+            authorize_resume=authorize_resume,
+        )
 
     status = _current_status(tasks, games, run_root=run_root, metadata=metadata)
     if status["execution_complete"]:
@@ -2472,6 +2884,7 @@ def generate_job(
         f"--manifest {remote_manifest.as_posix()} "
         f"--bundle-dir {remote_bundle.as_posix()} "
         f"--run-root $AUTODL_WORK_DIR/d18_v3/{EXPERIMENT_ID}/formal_run "
+        "--throughput-profile $AUTODL_WORK_DIR/d18_v3_gpu_throughput.json "
         "--device cuda "
         f"--export-dir $AUTODL_EXPORT_DIR/d18_v3/{EXPERIMENT_ID} --confirm-formal"
     )
@@ -2580,6 +2993,7 @@ def _parser() -> argparse.ArgumentParser:
     run.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
     run.add_argument("--bundle-dir", type=Path, required=True)
     run.add_argument("--run-root", type=Path, required=True)
+    run.add_argument("--throughput-profile", type=Path, required=True)
     run.add_argument("--device", default="cuda")
     run.add_argument("--continue-on-error", action="store_true")
     run.add_argument("--authorize-resume", action="store_true")
@@ -2642,6 +3056,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 continue_on_error=args.continue_on_error,
                 export_directory=args.export_dir,
                 confirm_formal=args.confirm_formal,
+                throughput_profile=args.throughput_profile,
                 authorize_resume=args.authorize_resume,
             )
         elif args.command == "status":

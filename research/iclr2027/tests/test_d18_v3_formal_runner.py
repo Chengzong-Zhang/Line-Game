@@ -7,10 +7,14 @@ surface invariants with synthetic dictionaries only.
 
 from __future__ import annotations
 
+import ast
 import copy
 import inspect
 import json
+import random
 import sys
+import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
@@ -22,6 +26,69 @@ if str(SCRIPT_DIR) not in sys.path:
 
 import d18_v3_formal_runner as formal  # noqa: E402
 import d18_v3_verify_evidence as independent  # noqa: E402
+
+
+def _fake_scalar_lane_record(payload: dict[str, object]) -> dict[str, object]:
+    """Return a deterministic trajectory-shaped record without an arena/model."""
+
+    index = int(payload["game_index"])
+    if payload.get("fail"):
+        raise RuntimeError(f"synthetic worker failure {index}")
+    # Invert completion order under the injected thread executor.  The shared
+    # lane executor must still return the canonical input order.
+    time.sleep(0.001 * (5 - index))
+    rng = random.Random(int(payload["seed"]))
+    actions = [rng.randrange(82) for _ in range(12)]
+    return {
+        "game_index": index,
+        "seed": int(payload["seed"]),
+        "actions": actions,
+        "trajectory_hash": formal.canonical_sha256(actions),
+    }
+
+
+def _write_valid_throughput_profile(
+    root: Path,
+) -> tuple[Path, Path, dict[str, object]]:
+    manifest_path = root / "formal_manifest.json"
+    manifest_path.write_text("{}\n", encoding="utf-8", newline="\n")
+    profile: dict[str, object] = {
+        "schema_name": formal.THROUGHPUT_PROFILE_SCHEMA,
+        "schema_version": formal.SCHEMA_VERSION,
+        "status": "PASS",
+        "experiment_id": formal.EXPERIMENT_ID,
+        "formal_manifest_sha256": formal.sha256_file(manifest_path),
+        "formal_runner_sha256": formal.sha256_file(formal.SCRIPT_PATH),
+        "preparation_runner_sha256": formal.sha256_file(formal.prep.SCRIPT_PATH),
+        "formal_games_executed": 0,
+        "inference_only": True,
+        "training_mode": False,
+        "amp_enabled": formal.AMP_ENABLED,
+        "batch_calibration_performed": False,
+        "selected_batch_size": formal.INFERENCE_BATCH_SIZE,
+        "inference_batch_size": formal.INFERENCE_BATCH_SIZE,
+        "inference_dtype": formal.INFERENCE_DTYPE,
+        "scalar_lane_count": formal.SCALAR_LANE_COUNT,
+        "scalar_lane_execution_mode": formal.SCALAR_LANE_EXECUTION_MODE,
+        "production_equivalent_mode": True,
+        "optimizer_steps": 0,
+        "backward_calls": 0,
+        "formal_numeric_path_match": True,
+        "puct_simulations": 16,
+        "temperature": 0.0,
+        "root_noise": False,
+        "lane_results": [
+            {"lane_index": index, "puct_decisions": 1}
+            for index in range(formal.SCALAR_LANE_COUNT)
+        ],
+    }
+    profile_path = root / "throughput.json"
+    profile_path.write_text(
+        json.dumps(profile, ensure_ascii=True, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    return manifest_path, profile_path, profile
 
 
 def _minimal_export_tree(root: Path) -> None:
@@ -223,6 +290,127 @@ def test_runtime_schedule_adapter_rejects_task_game_drift() -> None:
         formal._bound_task_schedules(task, schedules)
 
 
+def test_scalar_lane_executor_matches_serial_fake_records_and_order() -> None:
+    payloads = [
+        {"game_index": index, "seed": 202608310000 + index}
+        for index in range(6)
+    ]
+    with formal._ScalarLaneExecutor(
+        1, executor_factory=ThreadPoolExecutor
+    ) as serial_executor:
+        serial = serial_executor.map_ordered(_fake_scalar_lane_record, payloads)
+    with formal._ScalarLaneExecutor(
+        4, executor_factory=ThreadPoolExecutor
+    ) as concurrent_executor:
+        concurrent = concurrent_executor.map_ordered(
+            _fake_scalar_lane_record, payloads
+        )
+
+    assert concurrent == serial
+    assert [row["game_index"] for row in concurrent] == list(range(6))
+    assert all(len(row["actions"]) == 12 for row in concurrent)
+    assert all(len(str(row["trajectory_hash"])) == 64 for row in concurrent)
+
+
+def test_scalar_lane_executor_wraps_worker_failure_fail_closed() -> None:
+    payloads = [
+        {"game_index": index, "seed": 202608310100 + index, "fail": index == 2}
+        for index in range(5)
+    ]
+    with formal._ScalarLaneExecutor(
+        3, executor_factory=ThreadPoolExecutor
+    ) as lane_executor:
+        with pytest.raises(
+            formal.FormalExecutionError,
+            match=r"scalar lane worker failed: RuntimeError: synthetic worker failure 2",
+        ):
+            lane_executor.map_ordered(_fake_scalar_lane_record, payloads)
+
+
+def test_throughput_profile_is_required_and_accepts_exact_identity(
+    tmp_path: Path,
+) -> None:
+    manifest_path, profile_path, profile = _write_valid_throughput_profile(
+        tmp_path
+    )
+    assert formal._validate_throughput_profile(
+        profile_path, manifest_path=manifest_path
+    ) == profile
+    with pytest.raises(
+        formal.FormalExecutionError, match="formal throughput profile is missing"
+    ):
+        formal._validate_throughput_profile(
+            tmp_path / "missing.json", manifest_path=manifest_path
+        )
+    run_source = inspect.getsource(formal.run_bundle)
+    assert run_source.index("_validate_throughput_profile") < run_source.index(
+        "_validate_write_target"
+    )
+
+
+@pytest.mark.parametrize(
+    ("field", "replacement"),
+    (
+        ("formal_runner_sha256", "0" * 64),
+        ("formal_manifest_sha256", "1" * 64),
+        ("scalar_lane_count", 11),
+        ("inference_batch_size", 2),
+        ("amp_enabled", True),
+    ),
+)
+def test_throughput_profile_rejects_runner_manifest_and_numeric_drift(
+    tmp_path: Path,
+    field: str,
+    replacement: object,
+) -> None:
+    manifest_path, profile_path, profile = _write_valid_throughput_profile(
+        tmp_path
+    )
+    profile[field] = replacement
+    profile_path.write_text(
+        json.dumps(profile, ensure_ascii=True, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    with pytest.raises(
+        formal.FormalExecutionError,
+        match=rf"formal throughput profile binding mismatch: {field}",
+    ):
+        formal._validate_throughput_profile(
+            profile_path, manifest_path=manifest_path
+        )
+
+
+def test_pair_lane_failure_creates_no_parent_pair_artifact(tmp_path: Path) -> None:
+    class FailingExecutor:
+        def map_ordered(self, worker: object, payloads: object) -> list[object]:
+            del worker, payloads
+            raise formal.FormalExecutionError("synthetic pair batch failed")
+
+    task_directory = tmp_path / "task"
+    pairs_directory = task_directory / "pairs"
+    pairs_directory.mkdir(parents=True)
+    schedules = {
+        pair_index: [
+            {"pair_index": pair_index, "pair_member": member}
+            for member in (0, 1)
+        ]
+        for pair_index in range(3)
+    }
+    with pytest.raises(
+        formal.FormalExecutionError, match="synthetic pair batch failed"
+    ):
+        formal._execute_pair_lanes(
+            {"task_id": "synthetic"},
+            schedules,
+            task_directory=task_directory,
+            lane_executor=FailingExecutor(),  # type: ignore[arg-type]
+        )
+
+    assert list(pairs_directory.iterdir()) == []
+    assert "_atomic_" not in inspect.getsource(formal._run_formal_pair_lane)
+
+
 def test_opening_stratum_gate_passes_exact_shape_and_fails_variant_drift() -> None:
     rows = _mock_gate_records()
     counts = formal._task_counts(rows)
@@ -259,7 +447,9 @@ def test_receipt_paths_are_task_relative_only() -> None:
 
 
 def test_gpu_smoke_source_is_frozen_inference_path_only() -> None:
-    source = inspect.getsource(formal.gpu_smoke)
+    smoke_source = inspect.getsource(formal.gpu_smoke)
+    lane_source = inspect.getsource(formal._run_gpu_smoke_lane)
+    source = smoke_source + lane_source
     for forbidden in (".backward(", "Adam", "autocast(", "GradScaler", "_repeat_tensor_batch", "batch_candidates"):
         assert forbidden not in source
     for required in (
@@ -267,11 +457,16 @@ def test_gpu_smoke_source_is_frozen_inference_path_only() -> None:
         "select_action",
         '"optimizer_steps": 0',
         '"backward_calls": 0',
-        '"amp_enabled": False',
+        '"amp_enabled": AMP_ENABLED',
         '"batch_calibration_performed": False',
         '"formal_numeric_path_match": True',
     ):
         assert required in source
+    assert "_ScalarLaneExecutor(SCALAR_LANE_COUNT)" in smoke_source
+    assert "_run_gpu_smoke_lane" in smoke_source
+    assert smoke_source.index("started = time.perf_counter()") < smoke_source.index(
+        "with _ScalarLaneExecutor"
+    ) < smoke_source.index("total_seconds = time.perf_counter() - started")
 
 
 def test_gpu_smoke_uses_a_real_game_and_rejects_mutation() -> None:
@@ -303,10 +498,46 @@ def test_gpu_smoke_uses_a_real_game_and_rejects_mutation() -> None:
     with pytest.raises(formal.FormalExecutionError, match="mutated its input game"):
         formal._gpu_smoke_select_action(MutatingAgent(), game, object())
 
-    smoke_source = inspect.getsource(formal.gpu_smoke)
-    assert "games[decisions % len(games)].clone()" not in smoke_source
-    assert "legacy._playable_game_copy" in smoke_source
-    assert "_gpu_smoke_select_action" in smoke_source
+    lane_source = inspect.getsource(formal._run_gpu_smoke_lane)
+    assert "games[decisions % len(games)].clone()" not in lane_source
+    assert "legacy._playable_game_copy" in lane_source
+    assert "_gpu_smoke_select_action" in lane_source
+
+
+def test_d18_source_uses_shared_scalar_executor_and_no_training_or_batch_path() -> None:
+    source = formal.SCRIPT_PATH.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    call_names = {
+        node.func.attr if isinstance(node.func, ast.Attribute) else node.func.id
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, (ast.Attribute, ast.Name))
+    }
+    assert {
+        "backward",
+        "step",
+        "zero_grad",
+        "autocast",
+        "GradScaler",
+    }.isdisjoint(call_names)
+    imported_modules = {
+        alias.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Import)
+        for alias in node.names
+    } | {
+        str(node.module)
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ImportFrom)
+    }
+    assert all("batched" not in module.lower() for module in imported_modules)
+    assert 'multiprocessing.get_context("spawn")' in inspect.getsource(
+        formal._ScalarLaneExecutor
+    )
+    assert "_ScalarLaneExecutor" in inspect.getsource(formal.gpu_smoke)
+    assert "_ScalarLaneExecutor" in inspect.getsource(formal.run_bundle)
+    assert "_execute_pair_lanes" in inspect.getsource(formal._run_task)
+    assert "torch.float32" in inspect.getsource(formal._formal_lane_agent)
 
 
 def test_formal_play_game_passes_live_game_not_snapshot() -> None:
@@ -379,11 +610,22 @@ def test_cli_requires_bundle_and_formal_confirmation() -> None:
         parser.parse_args(["readiness"])
     smoke_args = parser.parse_args(["gpu-smoke", "--bundle-dir", "bundle"])
     assert not hasattr(smoke_args, "batch_candidates")
+    with pytest.raises(SystemExit):
+        parser.parse_args(["run", "--bundle-dir", "bundle", "--run-root", "run"])
     run_args = parser.parse_args(
-        ["run", "--bundle-dir", "bundle", "--run-root", "run"]
+        [
+            "run",
+            "--bundle-dir",
+            "bundle",
+            "--run-root",
+            "run",
+            "--throughput-profile",
+            "smoke.json",
+        ]
     )
     assert run_args.device == "cuda"
     assert run_args.confirm_formal is False
+    assert run_args.throughput_profile == Path("smoke.json")
     with pytest.raises(formal.FormalExecutionError, match="--confirm-formal"):
         formal.run_bundle(
             Path("missing-manifest"),
@@ -393,6 +635,7 @@ def test_cli_requires_bundle_and_formal_confirmation() -> None:
             continue_on_error=False,
             export_directory=None,
             confirm_formal=False,
+            throughput_profile=None,
         )
 
 
@@ -434,6 +677,18 @@ def test_dual_runner_hashes_and_current_frozen_prep_binding() -> None:
         "device": "cuda",
         "device_name": "test",
         "formal_source_hash": "5" * 64,
+        "throughput_profile_sha256": "7" * 64,
+        "throughput_profile_schema_name": formal.THROUGHPUT_PROFILE_SCHEMA,
+        "throughput_profile_schema_version": formal.SCHEMA_VERSION,
+        "throughput_profile_formal_manifest_sha256": "1" * 64,
+        "throughput_profile_formal_runner_sha256": formal.sha256_file(
+            formal.SCRIPT_PATH
+        ),
+        "scalar_lane_count": formal.SCALAR_LANE_COUNT,
+        "scalar_lane_execution_mode": formal.SCALAR_LANE_EXECUTION_MODE,
+        "inference_batch_size": formal.INFERENCE_BATCH_SIZE,
+        "inference_dtype": formal.INFERENCE_DTYPE,
+        "amp_enabled": formal.AMP_ENABLED,
     }
     base = formal._task_receipt_base(task, metadata)
     assert base["preparation_runner_sha256"] == formal.sha256_file(formal.prep.SCRIPT_PATH)

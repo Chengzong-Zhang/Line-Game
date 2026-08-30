@@ -83,6 +83,24 @@ POLICY_SEED_NAMESPACE = "lifeline-d18-v3-policy-seeds-20260830-v1"
 DEFAULT_MANIFEST = RESEARCH_ROOT / "configs" / "d18_v3_formal_manifest_v2.json"
 DEFAULT_FORMAL_RUNNER = SCRIPT_DIR / "d18_v3_formal_runner.py"
 DEFAULT_PREPARATION_RUNNER = SCRIPT_DIR / "d18_v3_runner.py"
+THROUGHPUT_PROFILE_SCHEMA = "lifeline-d18-v3-gpu-smoke"
+SCALAR_LANE_COUNT = 12
+SCALAR_LANE_EXECUTION_MODE = "production_equivalent_scalar_puct_lanes"
+INFERENCE_BATCH_SIZE = 1
+INFERENCE_DTYPE = "float32"
+
+THROUGHPUT_PROFILE_IDENTITY_FIELDS = (
+    "throughput_profile_sha256",
+    "throughput_profile_schema_name",
+    "throughput_profile_schema_version",
+    "throughput_profile_formal_manifest_sha256",
+    "throughput_profile_formal_runner_sha256",
+    "scalar_lane_count",
+    "scalar_lane_execution_mode",
+    "inference_batch_size",
+    "inference_dtype",
+    "amp_enabled",
+)
 
 EXECUTION_FREEZE_FIELDS = (
     "schema_name",
@@ -105,6 +123,7 @@ EXECUTION_FREEZE_FIELDS = (
     "device",
     "device_name",
     "formal_source_hash",
+    *THROUGHPUT_PROFILE_IDENTITY_FIELDS,
 )
 
 GATE_NAMES = (
@@ -712,6 +731,56 @@ def _validate_execution_metadata(
     _require(metadata.get("game_manifest_sha256") == game_manifest_sha, "execution metadata game-manifest mismatch")
     _require(_valid_sha256(metadata.get("bundle_summary_sha256")) and _valid_sha256(metadata.get("manifest_snapshot_sha256")), "execution metadata bundle hashes are missing")
     _require(_valid_sha256(metadata.get("formal_source_hash")), "execution metadata formal source hash is invalid")
+    _require(
+        _valid_sha256(metadata.get("throughput_profile_sha256")),
+        "execution metadata throughput-profile hash is invalid",
+    )
+    _require(
+        metadata.get("throughput_profile_schema_name") == THROUGHPUT_PROFILE_SCHEMA,
+        "execution metadata throughput-profile schema mismatch",
+    )
+    _require(
+        _integer(
+            metadata.get("throughput_profile_schema_version"),
+            "execution_metadata.throughput_profile_schema_version",
+        )
+        == SCHEMA_VERSION,
+        "execution metadata throughput-profile version mismatch",
+    )
+    _require(
+        metadata.get("throughput_profile_formal_manifest_sha256")
+        == formal_manifest_sha,
+        "execution metadata throughput-profile manifest binding mismatch",
+    )
+    _require(
+        metadata.get("throughput_profile_formal_runner_sha256") == formal_sha,
+        "execution metadata throughput-profile runner binding mismatch",
+    )
+    _require(
+        _integer(metadata.get("scalar_lane_count"), "execution_metadata.scalar_lane_count")
+        == SCALAR_LANE_COUNT,
+        "execution metadata scalar lane count mismatch",
+    )
+    _require(
+        metadata.get("scalar_lane_execution_mode") == SCALAR_LANE_EXECUTION_MODE,
+        "execution metadata scalar lane execution mode mismatch",
+    )
+    _require(
+        _integer(
+            metadata.get("inference_batch_size"),
+            "execution_metadata.inference_batch_size",
+        )
+        == INFERENCE_BATCH_SIZE,
+        "execution metadata inference batch size mismatch",
+    )
+    _require(
+        metadata.get("inference_dtype") == INFERENCE_DTYPE,
+        "execution metadata inference dtype mismatch",
+    )
+    _require(
+        metadata.get("amp_enabled") is False,
+        "execution metadata must bind AMP disabled",
+    )
     freeze_core: dict[str, Any] = {}
     for field in EXECUTION_FREEZE_FIELDS:
         _require(field in metadata, f"execution metadata freeze core is missing {field}")
@@ -937,6 +1006,7 @@ def _audit_receipt(
         "device",
         "device_name",
         "formal_source_hash",
+        *THROUGHPUT_PROFILE_IDENTITY_FIELDS,
     ):
         _require(execution_identity.get(field) == metadata.get(field), f"{task_id}: execution identity mismatch for {field}")
 
@@ -1291,6 +1361,10 @@ def verify_evidence(
         == metadata.get("execution_freeze_sha256"),
         "tasks": summary.get("task_manifest_sha256") == task_manifest_sha,
         "games": summary.get("game_manifest_sha256") == game_manifest_sha,
+        "throughput_profile_identity": all(
+            summary.get(field) == metadata.get(field)
+            for field in THROUGHPUT_PROFILE_IDENTITY_FIELDS
+        ),
         "receipts": summary.get("receipts_present") == EXPECTED_TASKS and summary.get("complete_tasks") == EXPECTED_TASKS,
         "complete": summary.get("execution_complete") is True,
         "runner_gate": summary.get("runner_gate_passed") is True,

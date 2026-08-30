@@ -27,10 +27,13 @@ class D18V3FormalRunnerStructuralTests(unittest.TestCase):
                 continue_on_error=False,
                 export_directory=None,
                 confirm_formal=False,
+                throughput_profile=None,
             )
 
     def test_gpu_smoke_is_inference_only(self) -> None:
-        source = inspect.getsource(formal.gpu_smoke)
+        smoke_source = inspect.getsource(formal.gpu_smoke)
+        lane_source = inspect.getsource(formal._run_gpu_smoke_lane)
+        source = smoke_source + lane_source
         for forbidden in (
             ".backward(",
             "Adam",
@@ -44,6 +47,8 @@ class D18V3FormalRunnerStructuralTests(unittest.TestCase):
         self.assertIn("select_action", source)
         self.assertIn('"optimizer_steps": 0', source)
         self.assertIn('"formal_numeric_path_match": True', source)
+        self.assertIn("_ScalarLaneExecutor", smoke_source)
+        self.assertIn("_ScalarLaneExecutor", inspect.getsource(formal.run_bundle))
 
     def test_status_is_read_only_and_fail_closed(self) -> None:
         for source in (
@@ -60,11 +65,24 @@ class D18V3FormalRunnerStructuralTests(unittest.TestCase):
         parser = formal._parser()
         smoke = parser.parse_args(["gpu-smoke", "--bundle-dir", "bundle"])
         self.assertFalse(hasattr(smoke, "batch_candidates"))
+        with self.assertRaises(SystemExit):
+            parser.parse_args(
+                ["run", "--bundle-dir", "bundle", "--run-root", "run"]
+            )
         run = parser.parse_args(
-            ["run", "--bundle-dir", "bundle", "--run-root", "run"]
+            [
+                "run",
+                "--bundle-dir",
+                "bundle",
+                "--run-root",
+                "run",
+                "--throughput-profile",
+                "smoke.json",
+            ]
         )
         self.assertEqual(run.device, "cuda")
         self.assertFalse(run.confirm_formal)
+        self.assertEqual(run.throughput_profile, Path("smoke.json"))
 
     def test_dual_runner_hashes_are_distinct(self) -> None:
         prep_hash = formal.sha256_file(formal.prep.SCRIPT_PATH)
@@ -92,7 +110,7 @@ class D18V3FormalRunnerStructuralTests(unittest.TestCase):
         )
         self.assertIn(
             "DEPENDENCY_LOCK_PATH",
-            inspect.getsource(formal._execution_source_hashes),
+            inspect.getsource(formal._execution_dependency_paths),
         )
         self.assertIn(
             "DEPENDENCY_LOCK_PATH", inspect.getsource(formal.prepare_autodl_stage)
