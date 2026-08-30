@@ -2348,20 +2348,36 @@ def _build_staged_readiness_command(
     bundle_directory: Path,
     stage_manifest_sha256: str,
 ) -> str:
-    staged_runner = stage_directory / Path(_repo_relative(SCRIPT_PATH))
-    staged_manifest = stage_directory / Path(
-        _repo_relative(manifest_path.resolve())
+    # AutoDL Direct runs readiness with cwd=code_path.  Keep every stage path
+    # relative to that immutable root so the Windows cmd.exe command contains
+    # no quoted token.  Runner 1.15 passes the command through Popen(argv),
+    # whose Windows list2cmdline handling turns embedded quotes into literal
+    # \" characters before cmd.exe sees them.
+    _require(stage_directory.is_absolute(), "readiness stage directory must be absolute")
+    tokens = [
+        local_python.resolve().as_posix(),
+        "-B",
+        Path(_repo_relative(SCRIPT_PATH)).as_posix(),
+        "readiness",
+        "--manifest",
+        Path(_repo_relative(manifest_path.resolve())).as_posix(),
+        "--bundle-dir",
+        Path(_repo_relative(bundle_directory.resolve())).as_posix(),
+        "--stage-dir",
+        ".",
+        "--expected-stage-manifest-sha256",
+        stage_manifest_sha256,
+    ]
+    safe_characters = frozenset("_./:\\-")
+    _require(
+        all(
+            token
+            and all(character.isalnum() or character in safe_characters for character in token)
+            for token in tokens
+        ),
+        "local readiness requires quote-free shell tokens",
     )
-    staged_bundle = stage_directory / Path(
-        _repo_relative(bundle_directory.resolve())
-    )
-    return (
-        f'"{local_python.resolve()}" -B "{staged_runner}" readiness '
-        f'--manifest "{staged_manifest}" '
-        f'--bundle-dir "{staged_bundle}" '
-        f'--stage-dir "{stage_directory}" '
-        f'--expected-stage-manifest-sha256 {stage_manifest_sha256}'
-    )
+    return " ".join(tokens)
 
 
 def generate_job(

@@ -397,6 +397,11 @@ def test_job_budget_and_exact_reuse_constants() -> None:
 
 def test_readiness_uses_only_the_frozen_stage_copy(tmp_path: Path) -> None:
     stage = (tmp_path / "immutable-stage").resolve()
+    local_python = (
+        Path("C:/Python/python.exe")
+        if sys.platform == "win32"
+        else Path("/opt/python/bin/python")
+    )
     bundle = (
         formal.RESEARCH_ROOT
         / "results"
@@ -406,22 +411,47 @@ def test_readiness_uses_only_the_frozen_stage_copy(tmp_path: Path) -> None:
         / "task_bundle"
     )
     command = formal._build_staged_readiness_command(
-        local_python=Path(sys.executable),
+        local_python=local_python,
         stage_directory=stage,
         manifest_path=formal.DEFAULT_MANIFEST,
         bundle_directory=bundle,
         stage_manifest_sha256="a" * 64,
     )
-    expected_runner = stage / Path(formal._repo_relative(formal.SCRIPT_PATH))
-    expected_manifest = stage / Path(
+    expected_runner = Path(formal._repo_relative(formal.SCRIPT_PATH)).as_posix()
+    expected_manifest = Path(
         formal._repo_relative(formal.DEFAULT_MANIFEST)
+    ).as_posix()
+    expected_bundle = Path(formal._repo_relative(bundle)).as_posix()
+    assert command == (
+        f"{local_python.resolve().as_posix()} -B {expected_runner} readiness "
+        f"--manifest {expected_manifest} --bundle-dir {expected_bundle} "
+        f"--stage-dir . --expected-stage-manifest-sha256 {'a' * 64}"
     )
-    expected_bundle = stage / Path(formal._repo_relative(bundle))
-    for expected in (expected_runner, expected_manifest, expected_bundle):
-        assert f'"{expected}"' in command
-    assert f'"{formal.SCRIPT_PATH}" readiness' not in command
-    assert f'--manifest "{formal.DEFAULT_MANIFEST}"' not in command
-    assert f'--bundle-dir "{bundle}"' not in command
+    assert '"' not in command
+    assert str(stage) not in command
+    assert str(formal.SCRIPT_PATH) not in command
+    assert str(formal.DEFAULT_MANIFEST) not in command
+    assert str(bundle) not in command
+
+
+def test_readiness_rejects_a_local_python_path_that_requires_quotes(
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(formal.FormalExecutionError, match="quote-free shell tokens"):
+        formal._build_staged_readiness_command(
+            local_python=tmp_path / "python with space.exe",
+            stage_directory=tmp_path / "stage",
+            manifest_path=formal.DEFAULT_MANIFEST,
+            bundle_directory=(
+                formal.RESEARCH_ROOT
+                / "results"
+                / "formal"
+                / "d18_v3"
+                / "synthetic"
+                / "task_bundle"
+            ),
+            stage_manifest_sha256="a" * 64,
+        )
 
 
 def test_dependency_lock_is_hash_bound_and_staged() -> None:
