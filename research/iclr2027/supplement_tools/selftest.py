@@ -160,6 +160,13 @@ class SupplementBuilderSelfTests(unittest.TestCase):
         self.assertNotIn("private-user", str(caught.exception))
         self.assertFalse(output.exists())
 
+    def test_public_https_url_is_not_misclassified_as_a_windows_path(self) -> None:
+        allowlist, output = self.build_one(
+            b"index = https://download.pytorch.org/whl/cu118\n"
+        )
+        result = builder.verify_candidate(output, allowlist, self.identity_file)
+        self.assertEqual(result["privacy_scan"], "PASS")
+
     def test_credential_content_is_rejected_without_leaking_match(self) -> None:
         data = b'api_key = "sk-abcdefghijklmnopqrstuvwxyz123456"\n'
         (self.source / "bad.txt").write_bytes(data)

@@ -116,7 +116,10 @@ ALLOWED_TEXT_SUFFIXES = {
 GENERIC_SCAN_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     (
         "windows_absolute_path",
-        re.compile(r"(?i)(?:[a-z]:[\\/]|\\\\[^\\/\s]+[\\/][^\s]+)"),
+        re.compile(
+            r"(?i)(?:(?<![A-Za-z0-9+.-])[a-z]:[\\/]"
+            r"|\\\\[^\\/\s]+[\\/][^\s]+)"
+        ),
     ),
     (
         "unix_absolute_path",
