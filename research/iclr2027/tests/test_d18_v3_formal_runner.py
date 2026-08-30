@@ -462,17 +462,34 @@ def test_dependency_lock_is_hash_bound_and_staged() -> None:
     assert formal.sha256_file(formal.DEPENDENCY_LOCK_PATH) == (
         "2df94edd048e9aa9990bce302672f6c71f0845e70fd0be43fbbdd719d869473a"
     )
+    dependency_source = inspect.getsource(formal._execution_dependency_paths)
     source_hashes = inspect.getsource(formal._execution_source_hashes)
     stage_source = inspect.getsource(formal.prepare_autodl_stage)
     job_source = inspect.getsource(formal.generate_job)
     readiness_source = inspect.getsource(formal._build_staged_readiness_command)
-    assert "DEPENDENCY_LOCK_PATH" in source_hashes
-    assert "DEPENDENCY_LOCK_PATH" in stage_source
+    assert "DEPENDENCY_LOCK_PATH" in dependency_source
+    assert "_execution_dependency_paths" in source_hashes
+    assert "_execution_dependency_paths" in stage_source
     assert "dependency_lock_relative" in job_source
     assert "staged dependency lock is missing or differs" in job_source
     assert 'setup_revision = f"d18-v3-stage-{stage_manifest_sha256}"' in job_source
     assert "validate-autodl-stage" in job_source
     assert "expected-stage-manifest-sha256" in readiness_source
+
+
+def test_execution_dependency_closure_covers_runtime_sidecars() -> None:
+    from lifeline_rl.alphazero.trainer import AlphaZeroTrainer
+
+    manifest = formal.prep.load_json(formal.DEFAULT_MANIFEST)
+    dependencies = set(formal._execution_dependency_paths(formal.DEFAULT_MANIFEST))
+    assert formal.prep.openings_v3.DEFAULT_V1_OPENINGS in dependencies
+    assert set(AlphaZeroTrainer.source_files()) <= dependencies
+    latest_paths = {
+        formal._resolve_repo_path(row["latest_manifest_path"])
+        for row in manifest["checkpoints"]
+    }
+    assert len(latest_paths) == 15
+    assert latest_paths <= dependencies
 
 
 def test_stage_validator_binds_exact_manifest_and_rejects_extra_file(

@@ -27,6 +27,39 @@ def test_d18_v3_openings_are_exact_and_disjoint() -> None:
     assert manifest["audit"]["state_hashes_disjoint_from_v1"] is True
 
 
+def test_d18_v3_runtime_dependencies_are_hash_bound() -> None:
+    from lifeline_rl.alphazero.trainer import AlphaZeroTrainer
+
+    sources = set(
+        runner._source_paths(
+            protocol_path=runner.DEFAULT_PROTOCOL,
+            opening_path=runner.DEFAULT_OPENINGS,
+            v1_formal_path=runner.DEFAULT_V1_FORMAL,
+        )
+    )
+    assert openings.DEFAULT_V1_OPENINGS in sources
+    assert set(AlphaZeroTrainer.source_files()) <= sources
+
+    manifest = runner.load_json(runner.DEFAULT_MANIFEST)
+    relative = runner.repo_relative(openings.DEFAULT_V1_OPENINGS)
+    assert manifest["source_hashes"][relative] == runner.sha256_file(
+        openings.DEFAULT_V1_OPENINGS
+    )
+    latest_paths = {
+        runner.resolve_repo_path(row["latest_manifest_path"])
+        for row in manifest["checkpoints"]
+    }
+    assert len(latest_paths) == 15
+    for row in manifest["checkpoints"]:
+        latest_path = runner.resolve_repo_path(row["latest_manifest_path"])
+        assert latest_path == runner.resolve_repo_path(row["path"]).with_name(
+            "latest.json"
+        )
+        assert row["latest_manifest_sha256"] == runner.sha256_file(latest_path)
+        relative = runner.repo_relative(latest_path)
+        assert manifest["source_hashes"][relative] == row["latest_manifest_sha256"]
+
+
 def test_d18_v3_manifest_and_bundle_contract() -> None:
     manifest = runner.load_json(runner.DEFAULT_MANIFEST)
     runner.validate_formal_manifest(manifest, manifest_path=runner.DEFAULT_MANIFEST)

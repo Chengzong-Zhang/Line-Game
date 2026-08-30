@@ -1117,7 +1117,7 @@ def _group_games(games: Sequence[Mapping[str, Any]]) -> dict[str, list[Mapping[s
     return dict(grouped)
 
 
-def _execution_source_hashes(manifest_path: Path) -> dict[str, str]:
+def _execution_dependency_paths(manifest_path: Path) -> tuple[Path, ...]:
     manifest = prep.load_json(manifest_path)
     _require(VERIFIER_PATH.is_file(), "independent D18-v3 verifier source is missing")
     sources: set[Path] = {
@@ -1133,11 +1133,20 @@ def _execution_source_hashes(manifest_path: Path) -> dict[str, str]:
     for raw_path in manifest["source_hashes"]:
         sources.add(_resolve_repo_path(str(raw_path)))
     for checkpoint in manifest["checkpoints"]:
-        for field in ("path", "config_path", "source_receipt_path"):
+        for field in (
+            "path",
+            "config_path",
+            "source_receipt_path",
+            "latest_manifest_path",
+        ):
             sources.add(_resolve_repo_path(str(checkpoint[field])))
+    return tuple(sorted(sources, key=lambda item: _repo_relative(item)))
+
+
+def _execution_source_hashes(manifest_path: Path) -> dict[str, str]:
     return {
         _repo_relative(path): sha256_file(path)
-        for path in sorted(sources, key=lambda item: _repo_relative(item))
+        for path in _execution_dependency_paths(manifest_path)
     }
 
 
@@ -2131,23 +2140,9 @@ def prepare_autodl_stage(
         label="AutoDL stage",
     )
     _require(not output.exists(), f"refusing existing AutoDL stage: {output}")
-    sources: set[Path] = {
-        SCRIPT_PATH,
-        VERIFIER_PATH,
-        DEPENDENCY_LOCK_PATH,
-        prep.SCRIPT_PATH,
-        Path(legacy.__file__).resolve(),
-        Path(legacy.__file__).resolve().with_name("d17_d19_experiments.py"),
-        manifest_path.resolve(),
-        RESEARCH_ROOT / "pyproject.toml",
-    }
-    for raw_path in manifest["source_hashes"]:
-        sources.add(_resolve_repo_path(str(raw_path)))
+    sources = set(_execution_dependency_paths(manifest_path.resolve()))
     for name in ("bundle_summary.json", "game_manifest.jsonl", "manifest_snapshot.json", "tasks.jsonl"):
         sources.add(bundle_directory.resolve() / name)
-    for checkpoint in manifest["checkpoints"]:
-        for field in ("path", "config_path", "source_receipt_path"):
-            sources.add(_resolve_repo_path(str(checkpoint[field])))
     output.mkdir(parents=True)
     rows: list[dict[str, Any]] = []
     for source in sorted(sources, key=lambda path: _repo_relative(path)):

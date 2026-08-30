@@ -63,6 +63,7 @@ class D18V3ArtifactPolicyTests(unittest.TestCase):
             "research/iclr2027/D18_V3_PROTOCOL.md",
             "research/iclr2027/D18_V3_ARTIFACT_POLICY.md",
             "research/iclr2027/configs/d18_v3_formal_manifest.json",
+            "research/iclr2027/configs/d18_v3_formal_manifest_v2.json",
             "research/iclr2027/configs/d18_v3_paired_openings_manifest.json",
             "research/iclr2027/scripts/d18_v3_runner.py",
             "research/iclr2027/scripts/d18_v3_formal_runner.py",

@@ -9,7 +9,6 @@ inputs, and prove that readiness/dry-run executed zero arena games.
 from __future__ import annotations
 
 import argparse
-import copy
 import hashlib
 import json
 import os
@@ -57,7 +56,7 @@ BOOTSTRAP_SEED = 202608299902
 DEFAULT_PROTOCOL = RESEARCH_ROOT / "D18_V3_PROTOCOL.md"
 DEFAULT_OPENINGS = RESEARCH_ROOT / "configs" / "d18_v3_paired_openings_manifest.json"
 DEFAULT_V1_FORMAL = RESEARCH_ROOT / "configs" / "d17_d19_formal_manifest.json"
-DEFAULT_MANIFEST = RESEARCH_ROOT / "configs" / "d18_v3_formal_manifest.json"
+DEFAULT_MANIFEST = RESEARCH_ROOT / "configs" / "d18_v3_formal_manifest_v2.json"
 DEFAULT_READINESS = SCRIPT_DIR / "d18_v3_readiness.py"
 DEFAULT_SELFTEST = SCRIPT_DIR / "d18_v3_selftest.py"
 DEFAULT_TEST = RESEARCH_ROOT / "tests" / "test_d18_v3_preparation.py"
@@ -200,6 +199,11 @@ def _source_paths(
     fixed_sources = (
         protocol_path,
         opening_path,
+        # ``validate_formal_manifest`` regenerates the paired-opening manifest
+        # through ``d18_v3_generate_openings.validate_manifest``.  That path
+        # reads the frozen v1 opening registry at runtime, so the registry must
+        # be hash-bound and copied into every AutoDL stage as well.
+        openings_v3.DEFAULT_V1_OPENINGS,
         openings_v3.SCRIPT_PATH,
         SCRIPT_PATH,
         DEFAULT_READINESS,
@@ -211,18 +215,15 @@ def _source_paths(
         RESEARCH_ROOT / "results" / "formal" / "d14_d16" / "run_v1" / "result_receipts.jsonl",
         RESEARCH_ROOT / "results" / "formal" / "d14_d16" / "aggregate_v1" / "aggregate.json",
     )
-    # Importing any ``lifeline_rl`` submodule first executes the package
-    # ``__init__``, which eagerly imports the environment, arena, agents, and
-    # their transitive modules.  Bind the complete compact Python package so a
-    # preparation receipt cannot silently omit an imported local dependency.
-    package_sources = tuple(
-        sorted(
-            (RESEARCH_ROOT / "lifeline_rl").rglob("*.py"),
-            key=lambda path: path.relative_to(REPO_ROOT).as_posix(),
-        )
-    )
-    _require(bool(package_sources), "lifeline_rl source package is empty")
-    return fixed_sources + package_sources
+    # Source identity is rechecked during formal execution.  Consume the
+    # trainer's own source-file definition so the stage cannot silently omit a
+    # conditional source such as ``scripts/train_alphazero.py`` and then
+    # compute a different source hash remotely.
+    from lifeline_rl.alphazero.trainer import AlphaZeroTrainer
+
+    source_identity_files = AlphaZeroTrainer.source_files()
+    _require(bool(source_identity_files), "training source identity is empty")
+    return fixed_sources + source_identity_files
 
 
 def _validate_checkpoint_registry(rows: Any) -> list[dict[str, Any]]:
@@ -264,6 +265,50 @@ def _validate_checkpoint_registry(rows: Any) -> list[dict[str, Any]]:
     return selected
 
 
+def _bind_checkpoint_latest_manifests(
+    rows: Sequence[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    bound: list[dict[str, Any]] = []
+    for raw in rows:
+        row = deep_copy_json(raw)
+        checkpoint_path = resolve_repo_path(str(row["path"]))
+        latest_path = checkpoint_path.with_name("latest.json")
+        latest = load_json(latest_path)
+        _require(
+            latest.get("schema")
+            == {"name": "lifeline-alphazero-latest", "version": 1},
+            f"checkpoint latest schema mismatch: {latest_path}",
+        )
+        _require(
+            latest.get("checkpoint") == checkpoint_path.name,
+            f"checkpoint latest target mismatch: {latest_path}",
+        )
+        _require(
+            latest.get("sha256") == row["sha256"],
+            f"checkpoint latest digest mismatch: {latest_path}",
+        )
+        _require(
+            latest.get("size_bytes") == checkpoint_path.stat().st_size,
+            f"checkpoint latest size mismatch: {latest_path}",
+        )
+        _require(
+            latest.get("config_hash") == row["config_hash"],
+            f"checkpoint latest config mismatch: {latest_path}",
+        )
+        _require(
+            latest.get("source_hash") == row["source_hash"],
+            f"checkpoint latest source mismatch: {latest_path}",
+        )
+        _require(
+            latest.get("checkpoint_schema_version") == 1,
+            f"checkpoint latest payload schema mismatch: {latest_path}",
+        )
+        row["latest_manifest_path"] = repo_relative(latest_path)
+        row["latest_manifest_sha256"] = sha256_file(latest_path)
+        bound.append(row)
+    return bound
+
+
 def build_formal_manifest(
     *, protocol_path: Path, opening_path: Path, v1_formal_path: Path
 ) -> dict[str, Any]:
@@ -277,11 +322,16 @@ def build_formal_manifest(
         v1_path=openings_v3.DEFAULT_V1_OPENINGS,
     )
     v1_formal = load_json(v1_formal_path)
-    checkpoints = _validate_checkpoint_registry(v1_formal.get("checkpoints"))
-    source_paths = _source_paths(
-        protocol_path=protocol_path,
-        opening_path=opening_path,
-        v1_formal_path=v1_formal_path,
+    checkpoints = _bind_checkpoint_latest_manifests(
+        _validate_checkpoint_registry(v1_formal.get("checkpoints"))
+    )
+    source_paths = (
+        *_source_paths(
+            protocol_path=protocol_path,
+            opening_path=opening_path,
+            v1_formal_path=v1_formal_path,
+        ),
+        *(resolve_repo_path(row["latest_manifest_path"]) for row in checkpoints),
     )
     for path in source_paths:
         _require(path.is_file(), f"bound source file is missing: {path}")
@@ -800,6 +850,7 @@ def verify_checkpoint_files(manifest: Mapping[str, Any]) -> dict[str, Any]:
             ("path", "sha256"),
             ("config_path", "config_file_sha256"),
             ("source_receipt_path", "source_receipt_sha256"),
+            ("latest_manifest_path", "latest_manifest_sha256"),
         )
         for path_field, hash_field in bindings:
             path = resolve_repo_path(str(row[path_field]))

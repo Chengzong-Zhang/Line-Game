@@ -80,7 +80,7 @@ SEARCH = {
 BOOTSTRAP_REPLICATES = 20_000
 BOOTSTRAP_SEED = 202608299902
 POLICY_SEED_NAMESPACE = "lifeline-d18-v3-policy-seeds-20260830-v1"
-DEFAULT_MANIFEST = RESEARCH_ROOT / "configs" / "d18_v3_formal_manifest.json"
+DEFAULT_MANIFEST = RESEARCH_ROOT / "configs" / "d18_v3_formal_manifest_v2.json"
 DEFAULT_FORMAL_RUNNER = SCRIPT_DIR / "d18_v3_formal_runner.py"
 DEFAULT_PREPARATION_RUNNER = SCRIPT_DIR / "d18_v3_runner.py"
 
