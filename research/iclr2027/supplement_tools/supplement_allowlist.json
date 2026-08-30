@@ -1,0 +1,157 @@
+{
+  "files": [
+    {
+      "category": "reference_implementation",
+      "destination": "lifeline_rl/__init__.py",
+      "expected_sha256": "6e40ede87432a3b4258d0f31a9bbe87c92bb668885cc5c020e420c1388f47592",
+      "source": "research/iclr2027/lifeline_rl/__init__.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "lifeline_rl/arena.py",
+      "expected_sha256": "a613574baee606c2ed87de9eb0408dc61356b9ee2d41ed7a6f5b099d22ae9599",
+      "source": "research/iclr2027/lifeline_rl/arena.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "lifeline_rl/core.py",
+      "expected_sha256": "a3219c931608ab76f466cf5278e6297ddfdf128b19d721a16fab895eb81e05e7",
+      "source": "research/iclr2027/lifeline_rl/core.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "lifeline_rl/encoding.py",
+      "expected_sha256": "b9a6a14cb627853936333968c8e931d7622b56ad6f0c48251b5e658d5494c33d",
+      "source": "research/iclr2027/lifeline_rl/encoding.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "lifeline_rl/env.py",
+      "expected_sha256": "b6b1d53b49057995a9b37bf1d87fd19fda15c68253fbaf9e2d8c6b032c6da03c",
+      "source": "research/iclr2027/lifeline_rl/env.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "lifeline_rl/agents/__init__.py",
+      "expected_sha256": "19018efcaba773b02152d92657893745d0a8a0b59684cb5333603e7f6fefe892",
+      "source": "research/iclr2027/lifeline_rl/agents/__init__.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "lifeline_rl/agents/base.py",
+      "expected_sha256": "1ddec90c62491f747fdb670d042b60a99f7559487afdfc42e468f16990fd8b6c",
+      "source": "research/iclr2027/lifeline_rl/agents/base.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "lifeline_rl/agents/cycle_seeking.py",
+      "expected_sha256": "1a227ccb1cce0bfe1a78dcc99baf6df05f0697fcf9f5fee12841bc3c661e552d",
+      "source": "research/iclr2027/lifeline_rl/agents/cycle_seeking.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "lifeline_rl/agents/factory.py",
+      "expected_sha256": "737be45b442b17cf9d76c1f6223ed0c6e0dd059aebeaa3a25793a5f5d7d63481",
+      "source": "research/iclr2027/lifeline_rl/agents/factory.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "lifeline_rl/agents/greedy.py",
+      "expected_sha256": "6c7cd96cc96a7c4789ff0f78a08f40ba92ec4a5e7199f125978fd3c3483ba622",
+      "source": "research/iclr2027/lifeline_rl/agents/greedy.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "lifeline_rl/agents/heuristic.py",
+      "expected_sha256": "f5a90d1989fa1d2466e9908e905026867fe1b3b9afd8f5027a17f466dc807a0c",
+      "source": "research/iclr2027/lifeline_rl/agents/heuristic.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "lifeline_rl/agents/mcts.py",
+      "expected_sha256": "0ab01dae6a796b00c61748a30670c2e6195b14f8edd02152fa1f6ffb4998acaf",
+      "source": "research/iclr2027/lifeline_rl/agents/mcts.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "lifeline_rl/agents/minimax.py",
+      "expected_sha256": "4c905517cce420aa6b678975f208c370b02f252e4d39caa07d456ab164babb68",
+      "source": "research/iclr2027/lifeline_rl/agents/minimax.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "lifeline_rl/agents/random_agent.py",
+      "expected_sha256": "416b7c94bc8cd989165a18543cefab03810561ae243958a4f42946305d3d628a",
+      "source": "research/iclr2027/lifeline_rl/agents/random_agent.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "tests/__init__.py",
+      "expected_sha256": "e92117063636447c87b1f1b232faff3ed86c1bdb141d5989b948d6b260d541b6",
+      "source": "research/iclr2027/tests/__init__.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "tests/test_core.py",
+      "expected_sha256": "8c43d5b4eb96ffdb7319fe5545ecd3eeadaeebc0b08681068a2b2e23fcefec11",
+      "source": "research/iclr2027/tests/test_core.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "tests/test_env.py",
+      "expected_sha256": "89e1ac59b4660d1caf8a9e00a6cf68d5b9d2e908d187a827a3b4a2feb785e4bd",
+      "source": "research/iclr2027/tests/test_env.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "tests/test_serialization.py",
+      "expected_sha256": "68221c20b3d1fab2bc4af897d13ebc42fa0e2b505d00afed2b697731d54f4d4f",
+      "source": "research/iclr2027/tests/test_serialization.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "tests/test_validation.py",
+      "expected_sha256": "1e403cb1fd15c1510a75a720235f1bfec43aebad7818d87e9c54c40b0dc4cd1d",
+      "source": "research/iclr2027/tests/test_validation.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "tests/test_agents.py",
+      "expected_sha256": "cda817a1d4d5e21dcaf10c03c1b7ba4e564cd18e047896257cb5777424c0e7cb",
+      "source": "research/iclr2027/tests/test_agents.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "tests/test_arena.py",
+      "expected_sha256": "6d44210e9c7cc1452d7b591059a6bb6e6c957e92ac137a72b87bab1cc6f85388",
+      "source": "research/iclr2027/tests/test_arena.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "tests/test_cycle_seeking_agent.py",
+      "expected_sha256": "631358f9ee62cdc1adb380fea3b1ab0bd968b304aa56bbef7d37c1ae41b206c9",
+      "source": "research/iclr2027/tests/test_cycle_seeking_agent.py"
+    },
+    {
+      "category": "test_fixture",
+      "destination": "tests/fixtures/aliasing_pair.json",
+      "expected_sha256": "9551679f8b02eba12c9402792210ffe32f4fefb004a5de1d72ab72b375f02b4b",
+      "source": "research/iclr2027/tests/fixtures/aliasing_pair.json"
+    },
+    {
+      "category": "test_fixture",
+      "destination": "state_aliasing/superko_n6_witness_v1.json",
+      "expected_sha256": "a2916486d2a9c4738b1b8a01f72a91a689f968e20d1b6673b5e4f05a15927155",
+      "source": "research/iclr2027/state_aliasing/superko_n6_witness_v1.json"
+    }
+  ],
+  "limits": {
+    "max_file_bytes": 1048576,
+    "max_total_bytes": 4194304
+  },
+  "package_name": "lifeline_rl_supplement_candidate",
+  "purpose": "dependency-free reference rules, search agents, and deterministic core checks",
+  "require_git_tracked": true,
+  "schema_version": 1,
+  "status": "candidate_only_not_approved"
+}
