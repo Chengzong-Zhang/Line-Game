@@ -214,6 +214,32 @@ playMoves(pathHookOverride, pathHookWitnessMoves, "path hook override");
 assert.ok(reconstructHookCalls > 0, "territory scoring must route through the compatibility hook");
 assert.equal(pathHookOverride.cachedTerritories[W].area, 8);
 
+const compactWallKeyEngine = new GameEngine({ gridSize: 15 });
+for (const point of compactWallKeyEngine.validPositions) {
+  assert.equal(
+    compactWallKeyEngine._pointToIndex(point),
+    compactWallKeyEngine._keyToIdx.get(`${point[0]},${point[1]}`),
+  );
+}
+assert.equal(compactWallKeyEngine._pointToIndex([-1, 0]), -1);
+assert.equal(compactWallKeyEngine._pointToIndex([15, 0]), -1);
+assert.equal(compactWallKeyEngine._pointToIndex([0, 15]), -1);
+assert.equal(compactWallKeyEngine._pointToIndex([0.5, 0]), -1);
+assert.equal(compactWallKeyEngine._pointToIndex(null), -1);
+assert.equal(compactWallKeyEngine._getWallSetKey([[15, 0]]), null);
+const wallKeyPoints = [0, 31, 32, 63, 64, 95, 96, 119]
+  .map((index) => compactWallKeyEngine.validPositions[index]);
+assert.equal(
+  compactWallKeyEngine._getWallSetKey(wallKeyPoints),
+  compactWallKeyEngine._getWallSetKey([...wallKeyPoints].reverse().concat([wallKeyPoints[0]])),
+  "compact wall keys must ignore order and duplicate vertices",
+);
+assert.notEqual(
+  compactWallKeyEngine._getWallSetKey(wallKeyPoints),
+  compactWallKeyEngine._getWallSetKey([...wallKeyPoints.slice(0, -1), compactWallKeyEngine.validPositions[118]]),
+  "different wall sets must not share a compact key",
+);
+
 const permutations = [
   [0, 1, 2], [1, 0, 2], [0, 2, 1],
   [2, 1, 0], [1, 2, 0], [2, 0, 1],

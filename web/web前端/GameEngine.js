@@ -263,6 +263,32 @@ export class GameEngine {
     this._bfsWall = new Int32Array(n);
     this._bfsWater = new Int32Array(n);
     this._bfsEpoch = 0;
+    this._wallKeyWordCount = Math.ceil(n / 32);
+  }
+
+  _pointToIndex(point) {
+    const x = point?.[0];
+    const y = point?.[1];
+    if (
+      !Number.isInteger(x)
+      || !Number.isInteger(y)
+      || x < 0
+      || y < 0
+      || x + y >= this.gridSize
+    ) {
+      return -1;
+    }
+    return y * this.gridSize - (y * (y - 1)) / 2 + x;
+  }
+
+  _getWallSetKey(polygon) {
+    const words = new Uint32Array(this._wallKeyWordCount);
+    for (const point of polygon) {
+      const index = this._pointToIndex(point);
+      if (index < 0) return null;
+      words[index >>> 5] |= 1 << (index & 31);
+    }
+    return words.join(",");
   }
 
   _assertValidPosition(point) {
@@ -1115,18 +1141,14 @@ export class GameEngine {
         const candidate = rawCandidate.filter(
           (point, index) => index === 0 || !pointEquals(point, rawCandidate[index - 1]),
         );
-        if (
-          candidate.length < 3
-          || !this._hasBoundaryCycle(candidate)
-          || candidate.length > bestCandPerim
-        ) {
-          return;
-        }
+        if (candidate.length < 3 || candidate.length > bestCandPerim) return;
         // Many predecessor-DAG paths describe the same flood-fill wall. Reuse
         // that equivalence without imposing an unsafe path-count cap.
-        const wallKey = [...new Set(candidate.map(pointKey))].sort().join("|");
+        const wallKey = this._getWallSetKey(candidate);
+        if (wallKey === null) return;
         const previousPerimeter = validatedWallPerimeters.get(wallKey);
         if (previousPerimeter !== undefined && previousPerimeter <= candidate.length) return;
+        if (!this._hasBoundaryCycle(candidate)) return;
         validatedWallPerimeters.set(wallKey, candidate.length);
         const covered = this._getCoveredPoints(candidate);
         const area = covered.size;
