@@ -12,6 +12,7 @@ after those independent rows have been reconstructed and compares all 72 rows.
 
 from __future__ import annotations
 
+import argparse
 import csv
 import hashlib
 import json
@@ -29,6 +30,10 @@ BUNDLE = PROJECT / "results" / "formal" / "d14_d16" / "task_bundle_v1"
 RUN = PROJECT / "results" / "formal" / "d14_d16" / "run_v1"
 LEDGER = RUN / "result_receipts.jsonl"
 AGGREGATE = PROJECT / "results" / "formal" / "d14_d16" / "aggregate_v1" / "aggregate.json"
+
+
+def project_relative(path: Path) -> str:
+    return path.resolve().relative_to(PROJECT.resolve()).as_posix()
 
 
 def sha256_file(path: Path) -> str:
@@ -129,10 +134,11 @@ def iter_selected_jsonl(path: Path, selected: set[int]) -> Iterable[dict[str, An
 
 
 def main() -> int:
-    unexpected = [arg for arg in sys.argv[1:] if arg != "--compare-canonical"]
-    if unexpected:
-        raise SystemExit(f"unexpected arguments: {unexpected}")
-    compare_canonical = "--compare-canonical" in sys.argv[1:]
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--compare-canonical", action="store_true")
+    parser.add_argument("--output", type=Path)
+    args = parser.parse_args()
+    compare_canonical = args.compare_canonical
     sys.path.insert(0, str(PROJECT))
     from lifeline_rl.alphazero.trainer import AlphaZeroTrainer
 
@@ -465,10 +471,10 @@ def main() -> int:
             "aggregate_files_loaded": compare_canonical,
             "results_document_loaded": False,
             "raw_sources": [
-                str(MANIFEST),
-                str(BUNDLE / "training_tasks.jsonl"),
-                str(BUNDLE / "evaluation_tasks.jsonl"),
-                str(LEDGER),
+                project_relative(MANIFEST),
+                project_relative(BUNDLE / "training_tasks.jsonl"),
+                project_relative(BUNDLE / "evaluation_tasks.jsonl"),
+                project_relative(LEDGER),
                 "receipt-bound per-game CSV/JSONL and checkpoints",
             ],
             "opening_cluster_definition": "color assignment plus first six action indices",
@@ -533,7 +539,12 @@ def main() -> int:
         "errors": errors + replay_failures,
         "ok": not errors and not replay_failures,
     }
-    print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+    rendered = json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    if args.output is not None:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        with args.output.open("w", encoding="utf-8", newline="\n") as stream:
+            stream.write(rendered)
+    sys.stdout.write(rendered)
     return 0 if report["ok"] else 1
 
 

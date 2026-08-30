@@ -1,0 +1,1806 @@
+{
+  "artifacts": {
+    "sha256_checks": 1065,
+    "sha256_mismatches": []
+  },
+  "audit_contract": {
+    "aggregate_files_loaded": true,
+    "opening_cluster_definition": "color assignment plus first six action indices",
+    "raw_sources": [
+      "configs/d14_d16_formal_manifest.json",
+      "results/formal/d14_d16/task_bundle_v1/training_tasks.jsonl",
+      "results/formal/d14_d16/task_bundle_v1/evaluation_tasks.jsonl",
+      "results/formal/d14_d16/run_v1/result_receipts.jsonl",
+      "receipt-bound per-game CSV/JSONL and checkpoints"
+    ],
+    "results_document_loaded": false
+  },
+  "canonical_comparison": {
+    "aggregate_sha256": "59c264fc65d7b11357b0d718d38371df1ba44be4b92e7ef41ff995bf088f501c",
+    "canonical_rows": 72,
+    "compared_rows": 72,
+    "enabled": true,
+    "extra_keys": [],
+    "independent_rows": 72,
+    "max_abs_error": 0.0,
+    "missing_keys": [],
+    "score_mismatches": 0,
+    "wdl_mismatches": 0,
+    "wilson_mismatches": 0
+  },
+  "errors": [],
+  "evaluation": {
+    "final_vs_search": [
+      {
+        "D": 125,
+        "L": 28,
+        "W": 847,
+        "agent_a": "topology_gnn",
+        "agent_b": "random",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.9095,
+        "size": 7,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.8901158450038329,
+          0.9257499250539134
+        ]
+      },
+      {
+        "D": 126,
+        "L": 64,
+        "W": 810,
+        "agent_a": "padded_cnn",
+        "agent_b": "random",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.873,
+        "size": 5,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.8509248154089186,
+          0.8922203182456341
+        ]
+      },
+      {
+        "D": 13,
+        "L": 80,
+        "W": 907,
+        "agent_a": "padded_cnn",
+        "agent_b": "uct_mcts_16",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.9135,
+        "size": 9,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.8944562780283987,
+          0.9293788768406563
+        ]
+      },
+      {
+        "D": 163,
+        "L": 56,
+        "W": 781,
+        "agent_a": "topology_gnn",
+        "agent_b": "random",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.8625,
+        "size": 5,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.8397639619704436,
+          0.8824615365544235
+        ]
+      },
+      {
+        "D": 181,
+        "L": 59,
+        "W": 760,
+        "agent_a": "grid_gnn",
+        "agent_b": "random",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.8505,
+        "size": 5,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.82705916166138,
+          0.8712581824295604
+        ]
+      },
+      {
+        "D": 22,
+        "L": 11,
+        "W": 967,
+        "agent_a": "padded_cnn",
+        "agent_b": "random",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.978,
+        "size": 9,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.9669140836251823,
+          0.9854274013262284
+        ]
+      },
+      {
+        "D": 31,
+        "L": 274,
+        "W": 695,
+        "agent_a": "padded_cnn",
+        "agent_b": "uct_mcts_16",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.7105,
+        "size": 7,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.6816266138511903,
+          0.7377622618439393
+        ]
+      },
+      {
+        "D": 34,
+        "L": 135,
+        "W": 831,
+        "agent_a": "grid_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.848,
+        "size": 9,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.8244186211654393,
+          0.868917857418433
+        ]
+      },
+      {
+        "D": 41,
+        "L": 334,
+        "W": 625,
+        "agent_a": "grid_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.6455,
+        "size": 7,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.6153455801304382,
+          0.6745407923809221
+        ]
+      },
+      {
+        "D": 48,
+        "L": 261,
+        "W": 691,
+        "agent_a": "topology_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.715,
+        "size": 7,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.686239728877674,
+          0.7421147047301779
+        ]
+      },
+      {
+        "D": 50,
+        "L": 24,
+        "W": 926,
+        "agent_a": "grid_gnn",
+        "agent_b": "random",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.951,
+        "size": 9,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.9358089847812472,
+          0.9627391526938285
+        ]
+      },
+      {
+        "D": 55,
+        "L": 97,
+        "W": 848,
+        "agent_a": "topology_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.8755,
+        "size": 9,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.8535887240283843,
+          0.8945372751332364
+        ]
+      },
+      {
+        "D": 63,
+        "L": 30,
+        "W": 907,
+        "agent_a": "padded_cnn",
+        "agent_b": "random",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.9385,
+        "size": 7,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.9218654355062947,
+          0.9517783744334409
+        ]
+      },
+      {
+        "D": 71,
+        "L": 16,
+        "W": 913,
+        "agent_a": "topology_gnn",
+        "agent_b": "random",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.9485,
+        "size": 9,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.933003893937842,
+          0.9605633780301659
+        ]
+      },
+      {
+        "D": 77,
+        "L": 439,
+        "W": 484,
+        "agent_a": "grid_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.5225,
+        "size": 5,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.49151414246407926,
+          0.5533136470995331
+        ]
+      },
+      {
+        "D": 81,
+        "L": 317,
+        "W": 602,
+        "agent_a": "topology_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.6425,
+        "size": 5,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.6123014702382418,
+          0.6716078636646369
+        ]
+      },
+      {
+        "D": 89,
+        "L": 424,
+        "W": 487,
+        "agent_a": "padded_cnn",
+        "agent_b": "uct_mcts_16",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.5315,
+        "size": 5,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.5005096950322447,
+          0.5622492103568126
+        ]
+      },
+      {
+        "D": 99,
+        "L": 59,
+        "W": 842,
+        "agent_a": "grid_gnn",
+        "agent_b": "random",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.8915,
+        "size": 7,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.8707037904165309,
+          0.9092997479903253
+        ]
+      }
+    ],
+    "learning_curve": [
+      {
+        "D": 0,
+        "L": 11,
+        "W": 89,
+        "agent_a": "padded_cnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 80,
+        "score": 0.89,
+        "size": 9,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.8136853697209698,
+          0.9374586804477487
+        ]
+      },
+      {
+        "D": 0,
+        "L": 23,
+        "W": 77,
+        "agent_a": "padded_cnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 40,
+        "score": 0.77,
+        "size": 9,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.6784543514317231,
+          0.841568452531236
+        ]
+      },
+      {
+        "D": 1,
+        "L": 14,
+        "W": 85,
+        "agent_a": "grid_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 160,
+        "score": 0.855,
+        "size": 9,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.7728819822492878,
+          0.9108517044427509
+        ]
+      },
+      {
+        "D": 1,
+        "L": 16,
+        "W": 83,
+        "agent_a": "grid_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 40,
+        "score": 0.835,
+        "size": 9,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.7501460432117084,
+          0.8950674357793702
+        ]
+      },
+      {
+        "D": 1,
+        "L": 16,
+        "W": 83,
+        "agent_a": "grid_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 80,
+        "score": 0.835,
+        "size": 9,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.7501460432117084,
+          0.8950674357793702
+        ]
+      },
+      {
+        "D": 1,
+        "L": 19,
+        "W": 80,
+        "agent_a": "padded_cnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 120,
+        "score": 0.805,
+        "size": 9,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.7166803884185375,
+          0.8707527790211014
+        ]
+      },
+      {
+        "D": 1,
+        "L": 8,
+        "W": 91,
+        "agent_a": "topology_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 120,
+        "score": 0.915,
+        "size": 9,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.8438530601903251,
+          0.9554412496045934
+        ]
+      },
+      {
+        "D": 10,
+        "L": 22,
+        "W": 68,
+        "agent_a": "topology_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 120,
+        "score": 0.73,
+        "size": 7,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.6356769977376873,
+          0.8073053908233518
+        ]
+      },
+      {
+        "D": 10,
+        "L": 30,
+        "W": 60,
+        "agent_a": "topology_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 160,
+        "score": 0.65,
+        "size": 7,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.5525426042919797,
+          0.7363589534652197
+        ]
+      },
+      {
+        "D": 10,
+        "L": 39,
+        "W": 51,
+        "agent_a": "padded_cnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 160,
+        "score": 0.56,
+        "size": 5,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.4622792771125631,
+          0.6532813459903167
+        ]
+      },
+      {
+        "D": 10,
+        "L": 44,
+        "W": 46,
+        "agent_a": "topology_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 40,
+        "score": 0.51,
+        "size": 5,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.4134784047743415,
+          0.6057816990761385
+        ]
+      },
+      {
+        "D": 13,
+        "L": 80,
+        "W": 907,
+        "agent_a": "padded_cnn",
+        "agent_b": "uct_mcts_16",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.9135,
+        "size": 9,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.8944562780283987,
+          0.9293788768406563
+        ]
+      },
+      {
+        "D": 2,
+        "L": 10,
+        "W": 88,
+        "agent_a": "topology_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 40,
+        "score": 0.89,
+        "size": 9,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.8136853697209698,
+          0.9374586804477487
+        ]
+      },
+      {
+        "D": 2,
+        "L": 11,
+        "W": 87,
+        "agent_a": "topology_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 80,
+        "score": 0.88,
+        "size": 9,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.8018773199709163,
+          0.9300066263473222
+        ]
+      },
+      {
+        "D": 2,
+        "L": 16,
+        "W": 82,
+        "agent_a": "grid_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 120,
+        "score": 0.83,
+        "size": 9,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.7445181876635703,
+          0.8910652394022684
+        ]
+      },
+      {
+        "D": 2,
+        "L": 33,
+        "W": 65,
+        "agent_a": "grid_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 160,
+        "score": 0.66,
+        "size": 5,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.5627754565831095,
+          0.74538620502457
+        ]
+      },
+      {
+        "D": 2,
+        "L": 59,
+        "W": 39,
+        "agent_a": "padded_cnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 40,
+        "score": 0.4,
+        "size": 5,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.3093997461136028,
+          0.4979992153815976
+        ]
+      },
+      {
+        "D": 3,
+        "L": 13,
+        "W": 84,
+        "agent_a": "padded_cnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 160,
+        "score": 0.855,
+        "size": 9,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.7728819822492878,
+          0.9108517044427509
+        ]
+      },
+      {
+        "D": 3,
+        "L": 41,
+        "W": 56,
+        "agent_a": "grid_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 80,
+        "score": 0.575,
+        "size": 5,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.47710281304067864,
+          0.6673479658379209
+        ]
+      },
+      {
+        "D": 3,
+        "L": 41,
+        "W": 56,
+        "agent_a": "padded_cnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 40,
+        "score": 0.575,
+        "size": 7,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.47710281304067864,
+          0.6673479658379209
+        ]
+      },
+      {
+        "D": 3,
+        "L": 9,
+        "W": 88,
+        "agent_a": "topology_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 160,
+        "score": 0.895,
+        "size": 9,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.8196406494279461,
+          0.9411334526660123
+        ]
+      },
+      {
+        "D": 31,
+        "L": 274,
+        "W": 695,
+        "agent_a": "padded_cnn",
+        "agent_b": "uct_mcts_16",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.7105,
+        "size": 7,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.6816266138511903,
+          0.7377622618439393
+        ]
+      },
+      {
+        "D": 34,
+        "L": 135,
+        "W": 831,
+        "agent_a": "grid_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.848,
+        "size": 9,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.8244186211654393,
+          0.868917857418433
+        ]
+      },
+      {
+        "D": 4,
+        "L": 27,
+        "W": 69,
+        "agent_a": "padded_cnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 160,
+        "score": 0.71,
+        "size": 7,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.6146092505999207,
+          0.7898529302601586
+        ]
+      },
+      {
+        "D": 4,
+        "L": 36,
+        "W": 60,
+        "agent_a": "padded_cnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 80,
+        "score": 0.62,
+        "size": 7,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.5220957382071033,
+          0.7090255079986562
+        ]
+      },
+      {
+        "D": 4,
+        "L": 44,
+        "W": 52,
+        "agent_a": "padded_cnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 80,
+        "score": 0.54,
+        "size": 5,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.44264685393523856,
+          0.6343935614666815
+        ]
+      },
+      {
+        "D": 4,
+        "L": 49,
+        "W": 47,
+        "agent_a": "grid_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 120,
+        "score": 0.49,
+        "size": 5,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.3942183009238615,
+          0.5865215952256586
+        ]
+      },
+      {
+        "D": 41,
+        "L": 334,
+        "W": 625,
+        "agent_a": "grid_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.6455,
+        "size": 7,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.6153455801304382,
+          0.6745407923809221
+        ]
+      },
+      {
+        "D": 48,
+        "L": 261,
+        "W": 691,
+        "agent_a": "topology_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.715,
+        "size": 7,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.686239728877674,
+          0.7421147047301779
+        ]
+      },
+      {
+        "D": 5,
+        "L": 37,
+        "W": 58,
+        "agent_a": "topology_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 80,
+        "score": 0.605,
+        "size": 5,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.5070096309186584,
+          0.6952214595113811
+        ]
+      },
+      {
+        "D": 55,
+        "L": 97,
+        "W": 848,
+        "agent_a": "topology_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.8755,
+        "size": 9,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.8535887240283843,
+          0.8945372751332364
+        ]
+      },
+      {
+        "D": 6,
+        "L": 41,
+        "W": 53,
+        "agent_a": "padded_cnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 120,
+        "score": 0.56,
+        "size": 5,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.4622792771125631,
+          0.6532813459903167
+        ]
+      },
+      {
+        "D": 6,
+        "L": 48,
+        "W": 46,
+        "agent_a": "grid_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 40,
+        "score": 0.49,
+        "size": 5,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.3942183009238615,
+          0.5865215952256586
+        ]
+      },
+      {
+        "D": 7,
+        "L": 26,
+        "W": 67,
+        "agent_a": "grid_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 40,
+        "score": 0.705,
+        "size": 7,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.6093733977484711,
+          0.785458731186368
+        ]
+      },
+      {
+        "D": 7,
+        "L": 31,
+        "W": 62,
+        "agent_a": "padded_cnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 120,
+        "score": 0.655,
+        "size": 7,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.5576536734747435,
+          0.740877936207696
+        ]
+      },
+      {
+        "D": 77,
+        "L": 439,
+        "W": 484,
+        "agent_a": "grid_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.5225,
+        "size": 5,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.49151414246407926,
+          0.5533136470995331
+        ]
+      },
+      {
+        "D": 8,
+        "L": 34,
+        "W": 58,
+        "agent_a": "topology_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 160,
+        "score": 0.62,
+        "size": 5,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.5220957382071033,
+          0.7090255079986562
+        ]
+      },
+      {
+        "D": 8,
+        "L": 36,
+        "W": 56,
+        "agent_a": "topology_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 120,
+        "score": 0.6,
+        "size": 5,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.5020007846184025,
+          0.6906002538863971
+        ]
+      },
+      {
+        "D": 81,
+        "L": 317,
+        "W": 602,
+        "agent_a": "topology_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.6425,
+        "size": 5,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.6123014702382418,
+          0.6716078636646369
+        ]
+      },
+      {
+        "D": 89,
+        "L": 424,
+        "W": 487,
+        "agent_a": "padded_cnn",
+        "agent_b": "uct_mcts_16",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.5315,
+        "size": 5,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.5005096950322447,
+          0.5622492103568126
+        ]
+      },
+      {
+        "D": 9,
+        "L": 25,
+        "W": 66,
+        "agent_a": "grid_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 120,
+        "score": 0.705,
+        "size": 7,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.6093733977484711,
+          0.785458731186368
+        ]
+      },
+      {
+        "D": 9,
+        "L": 28,
+        "W": 63,
+        "agent_a": "topology_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 80,
+        "score": 0.675,
+        "size": 7,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.5782062001651764,
+          0.758845617218223
+        ]
+      },
+      {
+        "D": 9,
+        "L": 30,
+        "W": 61,
+        "agent_a": "grid_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 160,
+        "score": 0.655,
+        "size": 7,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.5576536734747435,
+          0.740877936207696
+        ]
+      },
+      {
+        "D": 9,
+        "L": 32,
+        "W": 59,
+        "agent_a": "topology_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 40,
+        "score": 0.635,
+        "size": 7,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.5372726727572983,
+          0.7227387292241811
+        ]
+      },
+      {
+        "D": 9,
+        "L": 34,
+        "W": 57,
+        "agent_a": "grid_gnn",
+        "agent_b": "uct_mcts_16",
+        "games": 100,
+        "gradient_step": 80,
+        "score": 0.615,
+        "size": 7,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.5170570413619614,
+          0.7044341529185582
+        ]
+      }
+    ],
+    "pair_seed_max": 20260928,
+    "pair_seed_min": 20260825,
+    "raw_csv_games": 30600,
+    "raw_csv_truncations": 0,
+    "representation_round_robin": [
+      {
+        "D": 0,
+        "L": 400,
+        "W": 600,
+        "agent_a": "padded_cnn",
+        "agent_b": "topology_gnn",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.6,
+        "size": 5,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.5693088606220993,
+          0.6299257596606225
+        ]
+      },
+      {
+        "D": 0,
+        "L": 500,
+        "W": 500,
+        "agent_a": "padded_cnn",
+        "agent_b": "topology_gnn",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.5,
+        "size": 9,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.4690690341793595,
+          0.5309309658206405
+        ]
+      },
+      {
+        "D": 0,
+        "L": 600,
+        "W": 400,
+        "agent_a": "grid_gnn",
+        "agent_b": "topology_gnn",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.4,
+        "size": 9,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.37007424033937747,
+          0.43069113937790077
+        ]
+      },
+      {
+        "D": 0,
+        "L": 700,
+        "W": 300,
+        "agent_a": "padded_cnn",
+        "agent_b": "grid_gnn",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.3,
+        "size": 9,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.272406351009411,
+          0.32912440842514523
+        ]
+      },
+      {
+        "D": 0,
+        "L": 700,
+        "W": 300,
+        "agent_a": "padded_cnn",
+        "agent_b": "topology_gnn",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.3,
+        "size": 7,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.272406351009411,
+          0.32912440842514523
+        ]
+      },
+      {
+        "D": 0,
+        "L": 800,
+        "W": 200,
+        "agent_a": "grid_gnn",
+        "agent_b": "topology_gnn",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.2,
+        "size": 7,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.17637667806123578,
+          0.2259194610905986
+        ]
+      },
+      {
+        "D": 100,
+        "L": 400,
+        "W": 500,
+        "agent_a": "padded_cnn",
+        "agent_b": "grid_gnn",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.55,
+        "size": 7,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.5190321378373477,
+          0.5805851723040134
+        ]
+      },
+      {
+        "D": 100,
+        "L": 600,
+        "W": 300,
+        "agent_a": "grid_gnn",
+        "agent_b": "topology_gnn",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.35,
+        "size": 5,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.32106219065138136,
+          0.3800858789245359
+        ]
+      },
+      {
+        "D": 200,
+        "L": 400,
+        "W": 400,
+        "agent_a": "padded_cnn",
+        "agent_b": "grid_gnn",
+        "games": 1000,
+        "gradient_step": 200,
+        "score": 0.5,
+        "size": 5,
+        "training_seeds": [
+          20260825,
+          20260826,
+          20260827,
+          20260828,
+          20260829
+        ],
+        "wilson_ci95": [
+          0.4690690341793595,
+          0.5309309658206405
+        ]
+      }
+    ],
+    "task_wdl_mismatch_count": 0
+  },
+  "identity": {
+    "current_identity_hashes": {
+      "protocol_sha256": "1b4ca0a7f9115df4b4ecf95fa326425ce77caf6cf57e6a12c26625e279d2145d",
+      "runner_sha256": "55c077c3fe08f7d3527be3950fb4e70b54a743130acaa911da8949f37ec59937",
+      "trainer_source_hash": "21a46dbd787090fc18c24cb4e29ebe1dd743203d31abeda43b3ce421833b596c"
+    },
+    "receipt_identity": {
+      "cublas_workspace_config": ":4096:8",
+      "cuda_runtime_version": "11.8",
+      "cudnn_version": 90100,
+      "device": "cuda",
+      "device_name": "NVIDIA GeForce RTX 4060 Laptop GPU",
+      "protocol_sha256": "1b4ca0a7f9115df4b4ecf95fa326425ce77caf6cf57e6a12c26625e279d2145d",
+      "runner_sha256": "55c077c3fe08f7d3527be3950fb4e70b54a743130acaa911da8949f37ec59937",
+      "torch_version": "2.7.1+cu118",
+      "trainer_source_hash": "21a46dbd787090fc18c24cb4e29ebe1dd743203d31abeda43b3ce421833b596c"
+    },
+    "unique_receipt_identities": 1
+  },
+  "independent_replay_sample": {
+    "failures": [],
+    "games_replayed": 630,
+    "selection": "game_index 0 and 1 from every evaluation task",
+    "tasks": 315,
+    "training_seed_coverage": {
+      "20260825": 126,
+      "20260826": 126,
+      "20260827": 126,
+      "20260828": 126,
+      "20260829": 126
+    }
+  },
+  "manifest": {
+    "canonical_sha256": "1bbf2c9a9ecc9174cd2d4b4299e22289dea58b7a53885e1be923374add2841cb",
+    "evidence_tier": "formal",
+    "experiment_id": "d14_d16_three_representation_formal_v1",
+    "file_sha256": "9439c3b9b52ed13a8c489969dfbafddd59e75af2579274b7275258b693d8782f",
+    "snapshot_file_sha256": "9439c3b9b52ed13a8c489969dfbafddd59e75af2579274b7275258b693d8782f"
+  },
+  "ok": true,
+  "seed_and_opening_clusters": {
+    "declared_training_seeds": [
+      20260825,
+      20260826,
+      20260827,
+      20260828,
+      20260829
+    ],
+    "round_robin_groups": [
+      {
+        "agent_a": "grid_gnn",
+        "agent_b": "topology_gnn",
+        "full_trajectory_clusters_with_color": 10,
+        "games": 1000,
+        "largest_full_trajectory_cluster": 100,
+        "largest_opening_cluster": 100,
+        "opening_clusters_first6_with_color": 10,
+        "size": 5
+      },
+      {
+        "agent_a": "padded_cnn",
+        "agent_b": "grid_gnn",
+        "full_trajectory_clusters_with_color": 10,
+        "games": 1000,
+        "largest_full_trajectory_cluster": 100,
+        "largest_opening_cluster": 100,
+        "opening_clusters_first6_with_color": 10,
+        "size": 5
+      },
+      {
+        "agent_a": "padded_cnn",
+        "agent_b": "topology_gnn",
+        "full_trajectory_clusters_with_color": 10,
+        "games": 1000,
+        "largest_full_trajectory_cluster": 100,
+        "largest_opening_cluster": 100,
+        "opening_clusters_first6_with_color": 10,
+        "size": 5
+      },
+      {
+        "agent_a": "grid_gnn",
+        "agent_b": "topology_gnn",
+        "full_trajectory_clusters_with_color": 10,
+        "games": 1000,
+        "largest_full_trajectory_cluster": 100,
+        "largest_opening_cluster": 100,
+        "opening_clusters_first6_with_color": 10,
+        "size": 7
+      },
+      {
+        "agent_a": "padded_cnn",
+        "agent_b": "grid_gnn",
+        "full_trajectory_clusters_with_color": 10,
+        "games": 1000,
+        "largest_full_trajectory_cluster": 100,
+        "largest_opening_cluster": 100,
+        "opening_clusters_first6_with_color": 10,
+        "size": 7
+      },
+      {
+        "agent_a": "padded_cnn",
+        "agent_b": "topology_gnn",
+        "full_trajectory_clusters_with_color": 10,
+        "games": 1000,
+        "largest_full_trajectory_cluster": 100,
+        "largest_opening_cluster": 100,
+        "opening_clusters_first6_with_color": 10,
+        "size": 7
+      },
+      {
+        "agent_a": "grid_gnn",
+        "agent_b": "topology_gnn",
+        "full_trajectory_clusters_with_color": 10,
+        "games": 1000,
+        "largest_full_trajectory_cluster": 100,
+        "largest_opening_cluster": 100,
+        "opening_clusters_first6_with_color": 10,
+        "size": 9
+      },
+      {
+        "agent_a": "padded_cnn",
+        "agent_b": "grid_gnn",
+        "full_trajectory_clusters_with_color": 10,
+        "games": 1000,
+        "largest_full_trajectory_cluster": 100,
+        "largest_opening_cluster": 100,
+        "opening_clusters_first6_with_color": 10,
+        "size": 9
+      },
+      {
+        "agent_a": "padded_cnn",
+        "agent_b": "topology_gnn",
+        "full_trajectory_clusters_with_color": 10,
+        "games": 1000,
+        "largest_full_trajectory_cluster": 100,
+        "largest_opening_cluster": 100,
+        "opening_clusters_first6_with_color": 10,
+        "size": 9
+      }
+    ],
+    "round_robin_tasks_by_full_trajectory_cluster_count": {
+      "2": 45
+    }
+  },
+  "tasks_and_receipts": {
+    "duplicate_count": 0,
+    "evaluation_tasks": 315,
+    "expected_tasks": 330,
+    "extra": [],
+    "kind_counts": {
+      "evaluation": 315,
+      "training": 15
+    },
+    "missing": [],
+    "receipt_lines": 330,
+    "status_counts": {
+      "complete": 330
+    },
+    "training_tasks": 15
+  },
+  "training": {
+    "checkpoint_hash_checks": 75,
+    "config_hash_checks": 15,
+    "gradient_steps": 3000,
+    "parameter_counts": {
+      "grid_gnn": [
+        62733
+      ],
+      "padded_cnn": [
+        62868
+      ],
+      "topology_gnn": [
+        63171
+      ]
+    },
+    "self_play_games": 1500
+  }
+}
