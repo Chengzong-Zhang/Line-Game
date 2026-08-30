@@ -84,13 +84,22 @@ DEFAULT_MANIFEST = RESEARCH_ROOT / "configs" / "d18_v3_formal_manifest_v2.json"
 DEFAULT_FORMAL_RUNNER = SCRIPT_DIR / "d18_v3_formal_runner.py"
 DEFAULT_PREPARATION_RUNNER = SCRIPT_DIR / "d18_v3_runner.py"
 THROUGHPUT_PROFILE_SCHEMA = "lifeline-d18-v3-gpu-smoke"
+THROUGHPUT_PROFILE_ARTIFACT_NAME = "throughput_profile.json"
 SCALAR_LANE_COUNT = 12
 SCALAR_LANE_EXECUTION_MODE = "production_equivalent_scalar_puct_lanes"
 INFERENCE_BATCH_SIZE = 1
 INFERENCE_DTYPE = "float32"
+MAX_RUNTIME_SECONDS = 11_520
+FORMAL_GAMEPLAY_BUDGET_SECONDS = 8_640
+FORMAL_NON_GAMEPLAY_RESERVE_FRACTION = 0.25
+MAX_AGGREGATE_LANE_MEMORY_BYTES = 30 * 1024**3
+MIN_DEVICE_MEMORY_BYTES = 31 * 1024**3
+EXPECTED_TORCH_VERSION = "2.8.0"
+EXPECTED_CUDA_RUNTIME_VERSION = "12.8"
 
 THROUGHPUT_PROFILE_IDENTITY_FIELDS = (
     "throughput_profile_sha256",
+    "throughput_profile_artifact_path",
     "throughput_profile_schema_name",
     "throughput_profile_schema_version",
     "throughput_profile_formal_manifest_sha256",
@@ -135,6 +144,7 @@ GATE_NAMES = (
     "dual_runner_hashes_bound",
     "verifier_source_bound",
     "execution_metadata_bound",
+    "throughput_profile_verified",
     "receipt_ledger_complete",
     "artifact_paths_confined",
     "artifact_hashes_verified",
@@ -297,6 +307,19 @@ def _integer(value: Any, label: str, *, minimum: int | None = None) -> int:
     if minimum is not None and value < minimum:
         raise VerificationError(f"{label} must be >= {minimum}")
     return value
+
+
+def _finite_number(value: Any, label: str, *, minimum: float | None = None) -> float:
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, (int, float))
+        or not math.isfinite(float(value))
+    ):
+        raise VerificationError(f"{label} must be finite")
+    result = float(value)
+    if minimum is not None and result < minimum:
+        raise VerificationError(f"{label} must be >= {minimum}")
+    return result
 
 
 def _valid_sha256(value: Any) -> bool:
@@ -736,6 +759,11 @@ def _validate_execution_metadata(
         "execution metadata throughput-profile hash is invalid",
     )
     _require(
+        metadata.get("throughput_profile_artifact_path")
+        == THROUGHPUT_PROFILE_ARTIFACT_NAME,
+        "execution metadata throughput-profile artifact path is not canonical",
+    )
+    _require(
         metadata.get("throughput_profile_schema_name") == THROUGHPUT_PROFILE_SCHEMA,
         "execution metadata throughput-profile schema mismatch",
     )
@@ -799,6 +827,199 @@ def _validate_execution_metadata(
     _require(source_hashes.get(_repo_relative(formal_runner_path)) == formal_sha, "formal runner absent from execution source closure")
     verifier_bound = source_hashes.get(_repo_relative(SCRIPT_PATH)) == verifier_sha
     return preparation_sha, formal_sha, verifier_bound
+
+
+def _validate_throughput_profile_evidence(
+    profile_path: Path,
+    *,
+    metadata: Mapping[str, Any],
+    tasks: Sequence[Mapping[str, Any]],
+    formal_manifest_sha: str,
+    formal_runner_sha: str,
+) -> dict[str, Any]:
+    """Independently rehash and revalidate the complete persisted GPU profile."""
+
+    profile_path = profile_path.resolve()
+    _require(
+        profile_path.name == THROUGHPUT_PROFILE_ARTIFACT_NAME
+        and profile_path.is_file()
+        and not profile_path.is_symlink(),
+        "throughput profile evidence is missing, unsafe, or non-canonical",
+    )
+    _require(
+        sha256_file(profile_path) == metadata.get("throughput_profile_sha256"),
+        "throughput profile evidence hash differs from execution metadata",
+    )
+    profile = load_json(profile_path)
+    expected = {
+        "schema_name": THROUGHPUT_PROFILE_SCHEMA,
+        "schema_version": SCHEMA_VERSION,
+        "status": "PASS",
+        "experiment_id": EXPERIMENT_ID,
+        "formal_manifest_sha256": formal_manifest_sha,
+        "formal_runner_sha256": formal_runner_sha,
+        "preparation_runner_sha256": metadata.get("preparation_runner_sha256"),
+        "formal_games_executed": 0,
+        "frozen_checkpoint_models": True,
+        "device": "cuda",
+        "inference_only": True,
+        "training_mode": False,
+        "amp_enabled": False,
+        "batch_calibration_performed": False,
+        "selected_batch_size": 1,
+        "inference_batch_size": 1,
+        "inference_dtype": "float32",
+        "scalar_lane_count": SCALAR_LANE_COUNT,
+        "scalar_lane_execution_mode": SCALAR_LANE_EXECUTION_MODE,
+        "production_equivalent_mode": True,
+        "optimizer_steps": 0,
+        "backward_calls": 0,
+        "formal_numeric_path_match": True,
+        "puct_simulations": SEARCH["simulations"],
+        "temperature": SEARCH["temperature"],
+        "root_noise": SEARCH["add_root_noise"],
+        "formal_game_count": EXPECTED_GAMES,
+        "formal_runtime_seconds": MAX_RUNTIME_SECONDS,
+        "formal_gameplay_budget_seconds": FORMAL_GAMEPLAY_BUDGET_SECONDS,
+        "non_gameplay_reserve_fraction": FORMAL_NON_GAMEPLAY_RESERVE_FRACTION,
+        "aggregate_peak_memory_limit_bytes": MAX_AGGREGATE_LANE_MEMORY_BYTES,
+        "minimum_device_memory_bytes": MIN_DEVICE_MEMORY_BYTES,
+    }
+    for field, expected_value in expected.items():
+        _require(
+            profile.get(field) == expected_value,
+            f"throughput profile evidence mismatch for {field}",
+        )
+    _require(
+        "rtx 5090" in str(profile.get("device_name", "")).lower(),
+        "throughput profile evidence is not from RTX 5090",
+    )
+    _require(
+        str(profile.get("torch_version", "")).split("+", 1)[0]
+        == EXPECTED_TORCH_VERSION
+        and profile.get("cuda_runtime_version") == EXPECTED_CUDA_RUNTIME_VERSION,
+        "throughput profile environment versions differ",
+    )
+    max_plies = max(_integer(task.get("max_plies"), "task.max_plies", minimum=1) for task in tasks)
+    worst_case_decisions = EXPECTED_GAMES * max_plies
+    _require(
+        profile.get("formal_max_plies") == max_plies
+        and profile.get("worst_case_puct_decisions") == worst_case_decisions,
+        "throughput profile worst-case load differs from frozen tasks",
+    )
+    requested = _finite_number(
+        profile.get("requested_sustained_seconds"),
+        "throughput.requested_sustained_seconds",
+        minimum=15.0,
+    )
+    total = _finite_number(profile.get("total_seconds"), "throughput.total_seconds")
+    _require(requested <= 30.0 and 15.0 <= total <= 30.0, "throughput profile duration gate failed")
+    lanes = _sequence(profile.get("lane_results"), "throughput.lane_results")
+    _require(len(lanes) == SCALAR_LANE_COUNT, "throughput profile lane count differs")
+    decisions = 0
+    forwards = 0
+    memory_sum = 0
+    sustained_values: list[float] = []
+    utilization: list[float] = []
+    observed_kinds: set[str] = set()
+    observed_pairs: set[tuple[str, str]] = set()
+    observed_sizes: set[int] = set()
+    observed_pair_sizes: set[tuple[tuple[str, str], int]] = set()
+    opening_ids: dict[str, set[str]] = {str(size): set() for size in SIZES}
+    allowed_openings = {
+        (tuple(str(value) for value in task["model_pair"]), int(task["eval_size"])): {
+            str(pair["opening_id"]) for pair in task["pair_plan"]
+        }
+        for task in tasks
+    }
+    for index, raw_lane in enumerate(lanes):
+        lane = _mapping(raw_lane, f"throughput.lane[{index}]")
+        _require(lane.get("lane_index") == index, "throughput profile lane order differs")
+        lane_decisions = _integer(lane.get("puct_decisions"), "lane.puct_decisions", minimum=1)
+        lane_forwards = _integer(lane.get("model_forward_calls"), "lane.model_forward_calls", minimum=1)
+        _require(
+            lane_decisions <= lane_forwards <= lane_decisions * 17,
+            "throughput lane forward count is inconsistent",
+        )
+        sustained = _finite_number(lane.get("sustained_seconds"), "lane.sustained_seconds")
+        lane_total = _finite_number(lane.get("total_seconds"), "lane.total_seconds")
+        _require(requested <= sustained <= requested + 5.0 and sustained <= lane_total <= total, "throughput lane duration failed")
+        _require(
+            lane.get("device") == "cuda"
+            and "rtx 5090" in str(lane.get("device_name", "")).lower()
+            and str(lane.get("torch_version", "")).split("+", 1)[0] == EXPECTED_TORCH_VERSION
+            and lane.get("cuda_runtime_version") == EXPECTED_CUDA_RUNTIME_VERSION,
+            "throughput lane environment differs",
+        )
+        device_memory = _integer(lane.get("device_total_memory_bytes"), "lane.device_memory", minimum=MIN_DEVICE_MEMORY_BYTES)
+        peak_memory = _integer(lane.get("max_memory_allocated_bytes"), "lane.peak_memory", minimum=1)
+        _require(peak_memory <= device_memory, "throughput lane memory exceeds device memory")
+        samples = [
+            _finite_number(value, "lane.utilization")
+            for value in _sequence(lane.get("gpu_utilization_samples_percent"), "lane.utilization")
+        ]
+        _require(bool(samples) and all(0.0 <= value <= 100.0 for value in samples), "throughput lane utilization is invalid")
+        pair = tuple(str(value) for value in _sequence(lane.get("model_pair"), "lane.model_pair"))
+        _require(len(pair) == 2 and pair in MODEL_PAIRS, "throughput lane model pair is invalid")
+        size = _integer(lane.get("eval_size"), "lane.eval_size")
+        _require(size in SIZES and lane.get("model_kind") in pair, "throughput lane coverage binding is invalid")
+        _require(lane.get("opening_id") in allowed_openings[(pair, size)], "throughput lane opening is not task-bound")
+        decisions += lane_decisions
+        forwards += lane_forwards
+        memory_sum += peak_memory
+        sustained_values.append(sustained)
+        utilization.extend(samples)
+        observed_kinds.add(str(lane["model_kind"]))
+        observed_pairs.add(pair)
+        observed_sizes.add(size)
+        observed_pair_sizes.add((pair, size))
+        opening_ids[str(size)].add(str(lane["opening_id"]))
+    expected_coverage = {
+        "model_kinds": list(MODEL_KINDS),
+        "model_pairs": [list(pair) for pair in MODEL_PAIRS],
+        "evaluation_sizes": list(SIZES),
+        "model_pair_size_cases": [
+            {"model_pair": list(pair), "eval_size": size}
+            for pair in MODEL_PAIRS
+            for size in SIZES
+        ],
+        "opening_ids_by_size": {
+            str(size): sorted(opening_ids[str(size)]) for size in SIZES
+        },
+    }
+    _require(
+        observed_kinds == set(MODEL_KINDS)
+        and observed_pairs == set(MODEL_PAIRS)
+        and observed_sizes == set(SIZES)
+        and observed_pair_sizes == {(pair, size) for pair in MODEL_PAIRS for size in SIZES}
+        and profile.get("coverage") == expected_coverage,
+        "throughput profile coverage is incomplete",
+    )
+    window = max(sustained_values)
+    rate = decisions / window
+    projected = worst_case_decisions / rate
+    _require(
+        profile.get("puct_decisions") == decisions
+        and profile.get("model_forward_calls") == forwards
+        and math.isclose(_finite_number(profile.get("aggregate_window_seconds"), "throughput.window"), window, rel_tol=1e-12)
+        and math.isclose(_finite_number(profile.get("aggregate_puct_decisions_per_second"), "throughput.rate"), rate, rel_tol=1e-12)
+        and math.isclose(_finite_number(profile.get("projected_worst_case_seconds"), "throughput.projected"), projected, rel_tol=1e-12)
+        and projected <= FORMAL_GAMEPLAY_BUDGET_SECONDS,
+        "throughput profile completion-capacity gate failed",
+    )
+    _require(
+        profile.get("aggregate_peak_memory_allocated_bytes") == memory_sum
+        and memory_sum <= MAX_AGGREGATE_LANE_MEMORY_BYTES,
+        "throughput profile aggregate memory gate failed",
+    )
+    utilization_mean = statistics.fmean(utilization)
+    _require(
+        profile.get("gpu_utilization_samples_percent") == utilization
+        and math.isclose(_finite_number(profile.get("gpu_utilization_mean_percent"), "throughput.utilization_mean"), utilization_mean, rel_tol=1e-12)
+        and utilization_mean >= 50.0,
+        "throughput profile utilization gate failed",
+    )
+    return profile
 
 
 def _score_for_a(record: Mapping[str, Any]) -> tuple[float | None, str]:
@@ -1299,6 +1520,22 @@ def verify_evidence(
     gates["verifier_source_bound"] = verifier_bound
     if not verifier_bound:
         issues.append("independent verifier is absent from the frozen execution source closure")
+    run_root = receipts_path.parent
+    throughput_profile_path = (
+        run_root / str(metadata["throughput_profile_artifact_path"])
+    ).resolve()
+    _require(
+        throughput_profile_path.parent == run_root.resolve(),
+        "throughput profile evidence path escapes the run root",
+    )
+    _validate_throughput_profile_evidence(
+        throughput_profile_path,
+        metadata=metadata,
+        tasks=tasks,
+        formal_manifest_sha=formal_manifest_sha,
+        formal_runner_sha=formal_runner_sha,
+    )
+    gates["throughput_profile_verified"] = True
 
     receipts = load_jsonl(receipts_path)
     _require(len(receipts) == EXPECTED_TASKS, "receipt ledger does not contain exactly 45 receipts")
@@ -1307,7 +1544,6 @@ def verify_evidence(
     _require(receipt_ids == [str(task["task_id"]) for task in tasks], "receipt ledger order differs from frozen task order")
     gates["receipt_ledger_complete"] = True
 
-    run_root = receipts_path.parent
     task_rows: list[dict[str, Any]] = []
     audited_games: list[dict[str, Any]] = []
     for receipt in receipts:
@@ -1416,6 +1652,7 @@ def verify_evidence(
             "execution_metadata": {"path": str(execution_metadata_path), "sha256": sha256_file(execution_metadata_path)},
             "receipts": {"path": str(receipts_path), "sha256": sha256_file(receipts_path)},
             "execution_summary": {"path": str(execution_summary_path), "sha256": sha256_file(execution_summary_path)},
+            "throughput_profile": {"path": str(throughput_profile_path), "sha256": sha256_file(throughput_profile_path)},
         },
         "gates": gates,
         "issues": issues,

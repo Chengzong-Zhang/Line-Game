@@ -92,8 +92,24 @@ INFERENCE_BATCH_SIZE = 1
 INFERENCE_DTYPE = "float32"
 AMP_ENABLED = False
 THROUGHPUT_PROFILE_SCHEMA = "lifeline-d18-v3-gpu-smoke"
+THROUGHPUT_PROFILE_ARTIFACT_NAME = "throughput_profile.json"
+GPU_SMOKE_MIN_TOTAL_SECONDS = 15.0
+GPU_SMOKE_MAX_TOTAL_SECONDS = 30.0
+FORMAL_NON_GAMEPLAY_RESERVE_FRACTION = 0.25
+FORMAL_GAMEPLAY_BUDGET_SECONDS = int(
+    MAX_RUNTIME_SECONDS * (1.0 - FORMAL_NON_GAMEPLAY_RESERVE_FRACTION)
+)
+EXPECTED_TORCH_VERSION = "2.8.0"
+EXPECTED_CUDA_RUNTIME_VERSION = "12.8"
+EXPECTED_DEVICE_NAME_FRAGMENT = "RTX 5090"
+MIN_DEVICE_MEMORY_BYTES = 31 * 1024**3
+MAX_AGGREGATE_LANE_MEMORY_BYTES = 30 * 1024**3
+PROFILE_MODEL_KINDS = ("padded_cnn", "grid_gnn", "topology_gnn")
+PROFILE_MODEL_PAIRS = tuple(tuple(pair) for pair in prep.MODEL_PAIRS)
+PROFILE_EVAL_SIZES = (5, 7, 9)
 THROUGHPUT_PROFILE_IDENTITY_FIELDS = (
     "throughput_profile_sha256",
+    "throughput_profile_artifact_path",
     "throughput_profile_schema_name",
     "throughput_profile_schema_version",
     "throughput_profile_formal_manifest_sha256",
@@ -228,11 +244,29 @@ def _utc_now() -> str:
 
 
 def canonical_json(value: Any) -> str:
-    return json.dumps(value, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
+    try:
+        return json.dumps(
+            value,
+            ensure_ascii=True,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+    except (TypeError, ValueError) as exc:
+        raise FormalExecutionError(f"value is not canonical finite JSON: {exc}") from exc
 
 
 def pretty_json(value: Any) -> str:
-    return json.dumps(value, ensure_ascii=True, sort_keys=True, indent=2) + "\n"
+    try:
+        return json.dumps(
+            value,
+            ensure_ascii=True,
+            sort_keys=True,
+            indent=2,
+            allow_nan=False,
+        ) + "\n"
+    except (TypeError, ValueError) as exc:
+        raise FormalExecutionError(f"value is not finite JSON: {exc}") from exc
 
 
 def canonical_sha256(value: Any) -> str:
@@ -610,23 +644,41 @@ def _gpu_smoke_select_action(agent: Any, game: Any, rng: random.Random) -> Any:
 
 
 def _run_gpu_smoke_lane(payload: Mapping[str, Any]) -> dict[str, Any]:
-    """Run one independent scalar, FP32, batch-one PUCT smoke lane."""
+    """Run one production-initialized scalar, FP32, batch-one PUCT lane."""
 
     import torch
 
+    _require(isinstance(payload, Mapping), "GPU smoke lane payload must be an object")
     lane_started = time.perf_counter()
-    manifest = dict(payload["manifest"])
-    manifest_path = Path(str(payload["manifest_path"])).resolve()
-    checkpoint = dict(payload["checkpoint"])
-    adapted = _legacy_manifest(manifest)
-    loaded = legacy._load_neural_agent(
-        _agent_spec(checkpoint),
-        manifest=adapted,
-        manifest_path=manifest_path,
-        device="cuda",
-        arm_name="d16_v2",
+    lane_index = payload.get("lane_index")
+    seconds = payload.get("seconds")
+    binding = payload.get("agent_binding")
+    opening = payload.get("opening")
+    model_pair = payload.get("model_pair")
+    eval_size = payload.get("eval_size")
+    _require(
+        isinstance(lane_index, int) and not isinstance(lane_index, bool),
+        "GPU smoke lane index must be an integer",
     )
-    loaded.model.eval()
+    _require(
+        isinstance(seconds, (int, float))
+        and not isinstance(seconds, bool)
+        and math.isfinite(float(seconds))
+        and GPU_SMOKE_MIN_TOTAL_SECONDS <= float(seconds) <= GPU_SMOKE_MAX_TOTAL_SECONDS,
+        "GPU smoke lane duration is invalid",
+    )
+    _require(isinstance(binding, Mapping), "GPU smoke agent binding is missing")
+    _require(isinstance(opening, Mapping), "GPU smoke opening is missing")
+    _require(
+        isinstance(model_pair, list) and len(model_pair) == 2,
+        "GPU smoke model pair is invalid",
+    )
+    _require(
+        isinstance(eval_size, int) and eval_size in PROFILE_EVAL_SIZES,
+        "GPU smoke evaluation size is invalid",
+    )
+    torch.cuda.reset_peak_memory_stats()
+    loaded = _formal_lane_agent(binding)
     floating_state = [
         tensor
         for tensor in loaded.model.state_dict().values()
@@ -637,42 +689,50 @@ def _run_gpu_smoke_lane(payload: Mapping[str, Any]) -> dict[str, Any]:
         all(tensor.dtype == torch.float32 for tensor in floating_state),
         "GPU smoke checkpoint is not entirely FP32",
     )
-    games = [
-        legacy._game_from_opening(dict(opening), int(size))
-        for size, opening in payload["openings"]
-    ]
+    game = legacy._game_from_opening(dict(opening), int(eval_size))
     before = {
         name: tensor.detach().cpu().clone()
         for name, tensor in loaded.model.state_dict().items()
     }
+    torch.cuda.synchronize()
     setup_seconds = time.perf_counter() - lane_started
     decisions = 0
-    model_forward_path_calls = 0
+    model_forward_calls = 0
     utilization: list[float] = []
+
+    def count_forward(*_: Any) -> None:
+        nonlocal model_forward_calls
+        model_forward_calls += 1
+
+    forward_hook = loaded.model.register_forward_pre_hook(count_forward)
     sustained_started = time.perf_counter()
-    deadline = sustained_started + float(payload["seconds"])
-    with torch.inference_mode():
-        while time.perf_counter() < deadline:
-            game = legacy._playable_game_copy(games[decisions % len(games)])
-            _gpu_smoke_select_action(
-                loaded,
-                game,
-                random.Random(
-                    202608300000
-                    + int(payload["lane_index"]) * 1_000_000
-                    + decisions
-                ),
-            )
-            decisions += 1
-            model_forward_path_calls += int(manifest["search"]["simulations"]) + 1
-            helper = getattr(torch.cuda, "utilization", None)
-            if callable(helper):
-                try:
+    deadline = sustained_started + float(seconds)
+    next_utilization_sample = sustained_started
+    helper = getattr(torch.cuda, "utilization", None)
+    _require(callable(helper), "GPU smoke requires torch.cuda.utilization telemetry")
+    try:
+        with torch.inference_mode():
+            while time.perf_counter() < deadline:
+                now = time.perf_counter()
+                if now >= next_utilization_sample:
                     utilization.append(float(helper()))
-                except Exception:
-                    pass
+                    next_utilization_sample = now + 0.5
+                playable = legacy._playable_game_copy(game)
+                _gpu_smoke_select_action(
+                    loaded,
+                    playable,
+                    random.Random(
+                        202608300000 + int(lane_index) * 1_000_000 + decisions
+                    ),
+                )
+                decisions += 1
+    finally:
+        forward_hook.remove()
+    torch.cuda.synchronize()
     sustained_seconds = time.perf_counter() - sustained_started
     _require(decisions > 0, "GPU smoke lane did not complete a formal PUCT decision")
+    _require(model_forward_calls > 0, "GPU smoke lane did not execute a model forward")
+    _require(bool(utilization), "GPU smoke lane did not collect utilization telemetry")
     after = loaded.model.state_dict()
     _require(
         all(
@@ -685,19 +745,118 @@ def _run_gpu_smoke_lane(payload: Mapping[str, Any]) -> dict[str, Any]:
         all(parameter.grad is None for parameter in loaded.model.parameters()),
         "GPU smoke created gradients on the frozen inference model",
     )
+    device_index = torch.cuda.current_device()
+    device_properties = torch.cuda.get_device_properties(device_index)
     return {
-        "lane_index": int(payload["lane_index"]),
-        "checkpoint_id": checkpoint["checkpoint_id"],
+        "lane_index": int(lane_index),
+        "coverage_case_id": str(payload["coverage_case_id"]),
+        "checkpoint_id": str(binding["checkpoint_id"]),
+        "model_kind": str(binding["model_kind"]),
+        "model_pair": [str(value) for value in model_pair],
+        "agent_slot": str(payload["agent_slot"]),
+        "eval_size": int(eval_size),
+        "opening_id": str(opening["opening_id"]),
         "puct_decisions": decisions,
-        "estimated_policy_value_evaluations": model_forward_path_calls,
+        "model_forward_calls": model_forward_calls,
         "setup_seconds": setup_seconds,
         "sustained_seconds": sustained_seconds,
         "total_seconds": time.perf_counter() - lane_started,
         "gpu_utilization_samples_percent": utilization,
         "max_memory_allocated_bytes": torch.cuda.max_memory_allocated(),
-        "device_name": torch.cuda.get_device_name(),
+        "device": str(torch.device("cuda")),
+        "device_name": torch.cuda.get_device_name(device_index),
+        "device_total_memory_bytes": int(device_properties.total_memory),
         "torch_version": torch.__version__,
         "cuda_runtime_version": torch.version.cuda,
+    }
+
+
+def _gpu_smoke_lane_payloads(
+    tasks: Sequence[Mapping[str, Any]], *, seconds: float
+) -> list[dict[str, Any]]:
+    """Bind twelve lanes to the frozen 3-pair by 3-size task matrix."""
+
+    by_case: dict[tuple[tuple[str, str], int], list[Mapping[str, Any]]] = defaultdict(list)
+    for task in tasks:
+        pair = tuple(str(value) for value in task["model_pair"])
+        size = int(task["eval_size"])
+        by_case[(pair, size)].append(task)
+    expected_cases = {
+        (pair, size) for pair in PROFILE_MODEL_PAIRS for size in PROFILE_EVAL_SIZES
+    }
+    _require(set(by_case) == expected_cases, "GPU smoke task matrix coverage differs")
+    selected = {
+        key: min(rows, key=lambda row: int(row["training_seed"]))
+        for key, rows in by_case.items()
+    }
+    payloads: list[dict[str, Any]] = []
+
+    def append_case(task: Mapping[str, Any], slot: str) -> None:
+        lane_index = len(payloads)
+        pair = [str(value) for value in task["model_pair"]]
+        opening = _opening_from_pair(task["pair_plan"][0])
+        payloads.append(
+            {
+                "lane_index": lane_index,
+                "coverage_case_id": (
+                    f"{pair[0]}_vs_{pair[1]}.n{int(task['eval_size'])}."
+                    f"{slot}.lane{lane_index:02d}"
+                ),
+                "seconds": float(seconds),
+                "agent_binding": copy.deepcopy(dict(task["agent_bindings"][slot])),
+                "agent_slot": slot,
+                "model_pair": pair,
+                "eval_size": int(task["eval_size"]),
+                "opening": opening,
+            }
+        )
+
+    slot_by_size = {5: "A", 7: "B", 9: "A"}
+    for pair in PROFILE_MODEL_PAIRS:
+        for size in PROFILE_EVAL_SIZES:
+            append_case(selected[(pair, size)], slot_by_size[size])
+    for model_kind in PROFILE_MODEL_KINDS:
+        matching = next(
+            (task, slot)
+            for pair in PROFILE_MODEL_PAIRS
+            for size in PROFILE_EVAL_SIZES
+            for task in (selected[(pair, size)],)
+            for slot in ("A", "B")
+            if task["agent_bindings"][slot]["model_kind"] == model_kind
+        )
+        append_case(*matching)
+    _require(len(payloads) == SCALAR_LANE_COUNT, "GPU smoke lane count drifted")
+    return payloads
+
+
+def _profile_coverage(lane_results: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    kinds = {str(row["model_kind"]) for row in lane_results}
+    pairs = {tuple(str(value) for value in row["model_pair"]) for row in lane_results}
+    sizes = {int(row["eval_size"]) for row in lane_results}
+    pair_sizes = {
+        (tuple(str(value) for value in row["model_pair"]), int(row["eval_size"]))
+        for row in lane_results
+    }
+    return {
+        "model_kinds": [kind for kind in PROFILE_MODEL_KINDS if kind in kinds],
+        "model_pairs": [list(pair) for pair in PROFILE_MODEL_PAIRS if pair in pairs],
+        "evaluation_sizes": [size for size in PROFILE_EVAL_SIZES if size in sizes],
+        "model_pair_size_cases": [
+            {"model_pair": list(pair), "eval_size": size}
+            for pair in PROFILE_MODEL_PAIRS
+            for size in PROFILE_EVAL_SIZES
+            if (pair, size) in pair_sizes
+        ],
+        "opening_ids_by_size": {
+            str(size): sorted(
+                {
+                    str(row["opening_id"])
+                    for row in lane_results
+                    if int(row["eval_size"]) == size
+                }
+            )
+            for size in PROFILE_EVAL_SIZES
+        },
     }
 
 
@@ -710,11 +869,10 @@ def gpu_smoke(
 ) -> dict[str, Any]:
     """Sustain the frozen CUDA inference/PUCT path without changing weights.
 
-    D18-v3 is an evaluation-only experiment.  Each worker executes
-    ``torch.inference_mode()`` around the same scalar ``select_action`` path as
-    formal games.  In particular, ``_run_gpu_smoke_lane`` uses
-    ``legacy._playable_game_copy`` and ``_gpu_smoke_select_action``; no
-    synthetic tensor work is added to make the telemetry look busy.
+    Smoke workers use the exact formal initializer, cached-agent loader,
+    playable-game copy, and scalar ``select_action`` path.  Together they
+    cover every model family, every frozen model pair, and n=5/7/9 openings
+    without completing a game or writing lane artifacts.
     """
 
     if not 15.0 <= seconds <= 30.0:
@@ -736,30 +894,14 @@ def gpu_smoke(
     started = time.perf_counter()
     manifest_path = manifest_path.resolve()
     manifest, tasks, _, _ = load_frozen_bundle(manifest_path, bundle_directory)
-    tasks_by_size = _first_task_by_size(tasks)
-    checkpoint = next(
-        row
-        for row in manifest["checkpoints"]
-        if row["model_kind"] == "topology_gnn" and int(row["training_seed"]) == 20260825
-    )
     supply_started = time.perf_counter()
-    openings = [
-        (size, _opening_from_pair(tasks_by_size[size]["pair_plan"][0]))
-        for size in (5, 7, 9)
-    ]
+    lane_payloads = _gpu_smoke_lane_payloads(tasks, seconds=seconds)
     supply_seconds = time.perf_counter() - supply_started
-    lane_payloads = [
-        {
-            "lane_index": lane_index,
-            "seconds": seconds,
-            "manifest": manifest,
-            "manifest_path": str(manifest_path),
-            "checkpoint": checkpoint,
-            "openings": openings,
-        }
-        for lane_index in range(SCALAR_LANE_COUNT)
-    ]
-    with _ScalarLaneExecutor(SCALAR_LANE_COUNT) as lane_executor:
+    with _ScalarLaneExecutor(
+        SCALAR_LANE_COUNT,
+        initializer=_initialize_formal_lane_worker,
+        initargs=(copy.deepcopy(manifest), str(manifest_path), "cuda"),
+    ) as lane_executor:
         lane_results = lane_executor.map_ordered(
             _run_gpu_smoke_lane,
             lane_payloads,
@@ -770,9 +912,7 @@ def gpu_smoke(
         "GPU smoke lane results are not in canonical order",
     )
     decisions = sum(int(row["puct_decisions"]) for row in lane_results)
-    model_forward_path_calls = sum(
-        int(row["estimated_policy_value_evaluations"]) for row in lane_results
-    )
+    model_forward_calls = sum(int(row["model_forward_calls"]) for row in lane_results)
     setup_seconds = max(float(row["setup_seconds"]) for row in lane_results)
     sustained_seconds = max(
         float(row["sustained_seconds"]) for row in lane_results
@@ -789,6 +929,21 @@ def gpu_smoke(
     _require(len(torch_versions) == 1, "GPU smoke lanes used different torch versions")
     _require(len(cuda_versions) == 1, "GPU smoke lanes used different CUDA runtimes")
     total_seconds = time.perf_counter() - started
+    _require(
+        GPU_SMOKE_MIN_TOTAL_SECONDS <= total_seconds <= GPU_SMOKE_MAX_TOTAL_SECONDS,
+        "GPU smoke total duration must stay within 15-30 seconds; the requested "
+        "sustained interval leaves only bounded process/model setup headroom",
+    )
+    aggregate_window_seconds = max(
+        float(row["sustained_seconds"]) for row in lane_results
+    )
+    aggregate_rate = decisions / aggregate_window_seconds
+    max_plies = max(int(task["max_plies"]) for task in tasks)
+    worst_case_decisions = EXPECTED_GAMES * max_plies
+    projected_worst_case_seconds = worst_case_decisions / aggregate_rate
+    aggregate_memory = sum(
+        int(row["max_memory_allocated_bytes"]) for row in lane_results
+    )
     profile = {
         "schema_name": THROUGHPUT_PROFILE_SCHEMA,
         "schema_version": SCHEMA_VERSION,
@@ -797,9 +952,7 @@ def gpu_smoke(
         "formal_manifest_sha256": sha256_file(manifest_path),
         "formal_runner_sha256": sha256_file(SCRIPT_PATH),
         "preparation_runner_sha256": sha256_file(prep.SCRIPT_PATH),
-        "checkpoint_id": checkpoint["checkpoint_id"],
-        "checkpoint_sha256": checkpoint["sha256"],
-        "frozen_checkpoint_model": True,
+        "frozen_checkpoint_models": True,
         "formal_games_executed": 0,
         "device": "cuda",
         "device_name": next(iter(device_names)),
@@ -821,40 +974,393 @@ def gpu_smoke(
         "puct_simulations": int(manifest["search"]["simulations"]),
         "temperature": float(manifest["search"]["temperature"]),
         "root_noise": bool(manifest["search"]["add_root_noise"]),
-        "data_supply": "registered_d18_v3_opening_state_clone",
-        "real_sizes": [5, 7, 9],
+        "data_supply": "registered_d18_v3_task_binding_and_opening_clone",
+        "coverage": _profile_coverage(lane_results),
         "input_parse_and_collate_seconds": supply_seconds,
         "setup_seconds": setup_seconds,
         "puct_decisions": decisions,
-        "estimated_policy_value_evaluations": model_forward_path_calls,
+        "model_forward_calls": model_forward_calls,
+        "requested_sustained_seconds": float(seconds),
         "sustained_seconds": sustained_seconds,
         "duration_seconds": total_seconds,
         "total_seconds": total_seconds,
-        "puct_decisions_per_second": decisions / sustained_seconds,
+        "aggregate_window_seconds": aggregate_window_seconds,
+        "aggregate_puct_decisions_per_second": aggregate_rate,
+        "formal_game_count": EXPECTED_GAMES,
+        "formal_max_plies": max_plies,
+        "worst_case_puct_decisions": worst_case_decisions,
+        "formal_runtime_seconds": MAX_RUNTIME_SECONDS,
+        "non_gameplay_reserve_fraction": FORMAL_NON_GAMEPLAY_RESERVE_FRACTION,
+        "formal_gameplay_budget_seconds": FORMAL_GAMEPLAY_BUDGET_SECONDS,
+        "projected_worst_case_seconds": projected_worst_case_seconds,
         "lane_results": lane_results,
         "gpu_utilization_samples_percent": utilization,
         "gpu_utilization_mean_percent": statistics.fmean(utilization) if utilization else None,
         "gpu_utilization_max_percent": max(utilization) if utilization else None,
-        "max_memory_allocated_bytes": max(
-            int(row["max_memory_allocated_bytes"]) for row in lane_results
-        ),
-        "profile_path": str(profile_output),
+        "aggregate_peak_memory_allocated_bytes": aggregate_memory,
+        "aggregate_peak_memory_limit_bytes": MAX_AGGREGATE_LANE_MEMORY_BYTES,
+        "minimum_device_memory_bytes": MIN_DEVICE_MEMORY_BYTES,
         "completed_at_utc": _utc_now(),
     }
+    _validate_throughput_profile_payload(
+        profile,
+        manifest_sha256=sha256_file(manifest_path),
+        tasks=tasks,
+    )
     _atomic_json(profile_output, profile)
     return profile
+
+
+def _finite_number(value: Any, label: str, *, minimum: float | None = None) -> float:
+    _require(
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(float(value)),
+        f"{label} must be finite",
+    )
+    result = float(value)
+    if minimum is not None:
+        _require(result >= minimum, f"{label} must be >= {minimum}")
+    return result
+
+
+def _require_all_numbers_finite(value: Any, label: str = "throughput") -> None:
+    if isinstance(value, bool) or value is None or isinstance(value, str):
+        return
+    if isinstance(value, (int, float)):
+        _require(math.isfinite(float(value)), f"{label} must be finite")
+        return
+    if isinstance(value, Mapping):
+        for key, item in value.items():
+            _require_all_numbers_finite(item, f"{label}.{key}")
+        return
+    if isinstance(value, list):
+        for index, item in enumerate(value):
+            _require_all_numbers_finite(item, f"{label}[{index}]")
+
+
+def _validate_throughput_profile_payload(
+    profile: Mapping[str, Any],
+    *,
+    manifest_sha256: str,
+    tasks: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Validate identity, coverage, environment, capacity, and finite telemetry."""
+
+    _require_all_numbers_finite(profile)
+    expected = {
+        "schema_name": THROUGHPUT_PROFILE_SCHEMA,
+        "schema_version": SCHEMA_VERSION,
+        "status": "PASS",
+        "experiment_id": EXPERIMENT_ID,
+        "formal_manifest_sha256": manifest_sha256,
+        "formal_runner_sha256": sha256_file(SCRIPT_PATH),
+        "preparation_runner_sha256": sha256_file(prep.SCRIPT_PATH),
+        "formal_games_executed": 0,
+        "frozen_checkpoint_models": True,
+        "device": "cuda",
+        "inference_only": True,
+        "training_mode": False,
+        "amp_enabled": AMP_ENABLED,
+        "batch_calibration_performed": False,
+        "selected_batch_size": INFERENCE_BATCH_SIZE,
+        "inference_batch_size": INFERENCE_BATCH_SIZE,
+        "inference_dtype": INFERENCE_DTYPE,
+        "scalar_lane_count": SCALAR_LANE_COUNT,
+        "scalar_lane_execution_mode": SCALAR_LANE_EXECUTION_MODE,
+        "production_equivalent_mode": True,
+        "optimizer_steps": 0,
+        "backward_calls": 0,
+        "formal_numeric_path_match": True,
+        "puct_simulations": 16,
+        "temperature": 0.0,
+        "root_noise": False,
+        "formal_game_count": EXPECTED_GAMES,
+        "formal_runtime_seconds": MAX_RUNTIME_SECONDS,
+        "non_gameplay_reserve_fraction": FORMAL_NON_GAMEPLAY_RESERVE_FRACTION,
+        "formal_gameplay_budget_seconds": FORMAL_GAMEPLAY_BUDGET_SECONDS,
+        "aggregate_peak_memory_limit_bytes": MAX_AGGREGATE_LANE_MEMORY_BYTES,
+        "minimum_device_memory_bytes": MIN_DEVICE_MEMORY_BYTES,
+    }
+    for field, value in expected.items():
+        _require(
+            profile.get(field) == value,
+            f"formal throughput profile binding mismatch: {field}",
+        )
+    _require(len(tasks) == EXPECTED_TASKS, "formal throughput task count drifted")
+    max_plies = max(int(task["max_plies"]) for task in tasks)
+    worst_case_decisions = EXPECTED_GAMES * max_plies
+    _require(profile.get("formal_max_plies") == max_plies, "formal throughput max-plies drifted")
+    _require(
+        profile.get("worst_case_puct_decisions") == worst_case_decisions,
+        "formal throughput worst-case decision count drifted",
+    )
+    _require(
+        EXPECTED_DEVICE_NAME_FRAGMENT.lower()
+        in str(profile.get("device_name", "")).lower(),
+        "formal throughput profile is not from an RTX 5090",
+    )
+    _require(
+        str(profile.get("torch_version", "")).split("+", 1)[0]
+        == EXPECTED_TORCH_VERSION,
+        "formal throughput torch version drifted",
+    )
+    _require(
+        profile.get("cuda_runtime_version") == EXPECTED_CUDA_RUNTIME_VERSION,
+        "formal throughput CUDA runtime drifted",
+    )
+    requested_seconds = _finite_number(
+        profile.get("requested_sustained_seconds"),
+        "throughput.requested_sustained_seconds",
+        minimum=GPU_SMOKE_MIN_TOTAL_SECONDS,
+    )
+    _require(
+        requested_seconds <= GPU_SMOKE_MAX_TOTAL_SECONDS,
+        "formal throughput requested duration exceeds 30 seconds",
+    )
+    total_seconds = _finite_number(profile.get("total_seconds"), "throughput.total_seconds")
+    _require(
+        GPU_SMOKE_MIN_TOTAL_SECONDS <= total_seconds <= GPU_SMOKE_MAX_TOTAL_SECONDS,
+        "formal throughput total duration is outside 15-30 seconds",
+    )
+    _require(
+        math.isclose(
+            _finite_number(profile.get("duration_seconds"), "throughput.duration_seconds"),
+            total_seconds,
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        ),
+        "formal throughput duration fields differ",
+    )
+    lane_results = profile.get("lane_results")
+    _require(
+        isinstance(lane_results, list) and len(lane_results) == SCALAR_LANE_COUNT,
+        "formal throughput profile does not contain all scalar lanes",
+    )
+    _require(
+        all(isinstance(row, Mapping) for row in lane_results)
+        and [row.get("lane_index") for row in lane_results]
+        == list(range(SCALAR_LANE_COUNT)),
+        "formal throughput profile lane order drifted",
+    )
+    allowed_by_case: dict[tuple[tuple[str, str], int], dict[str, set[str]]] = defaultdict(
+        lambda: {"checkpoint_ids": set(), "opening_ids": set()}
+    )
+    for task in tasks:
+        key = (tuple(str(value) for value in task["model_pair"]), int(task["eval_size"]))
+        allowed_by_case[key]["checkpoint_ids"].update(
+            str(task["agent_bindings"][slot]["checkpoint_id"])
+            for slot in ("A", "B")
+        )
+        allowed_by_case[key]["opening_ids"].update(
+            str(pair["opening_id"]) for pair in task["pair_plan"]
+        )
+    decisions = 0
+    forward_calls = 0
+    memory_sum = 0
+    utilization: list[float] = []
+    lane_sustained: list[float] = []
+    for index, lane in enumerate(lane_results):
+        lane_decisions = lane.get("puct_decisions")
+        lane_forwards = lane.get("model_forward_calls")
+        _require(
+            isinstance(lane_decisions, int)
+            and not isinstance(lane_decisions, bool)
+            and lane_decisions > 0,
+            f"throughput lane {index} has no PUCT decisions",
+        )
+        _require(
+            isinstance(lane_forwards, int)
+            and not isinstance(lane_forwards, bool)
+            and lane_decisions <= lane_forwards <= lane_decisions * 17,
+            f"throughput lane {index} forward count is inconsistent",
+        )
+        sustained = _finite_number(
+            lane.get("sustained_seconds"),
+            f"throughput lane {index} sustained_seconds",
+        )
+        lane_total = _finite_number(
+            lane.get("total_seconds"), f"throughput lane {index} total_seconds"
+        )
+        _finite_number(
+            lane.get("setup_seconds"),
+            f"throughput lane {index} setup_seconds",
+            minimum=0.0,
+        )
+        _require(
+            requested_seconds <= sustained <= requested_seconds + 5.0,
+            f"throughput lane {index} did not sustain the requested interval",
+        )
+        _require(
+            sustained <= lane_total <= total_seconds,
+            f"throughput lane {index} duration exceeds the smoke command",
+        )
+        _require(lane.get("device") == "cuda", f"throughput lane {index} is not CUDA")
+        _require(
+            EXPECTED_DEVICE_NAME_FRAGMENT.lower()
+            in str(lane.get("device_name", "")).lower(),
+            f"throughput lane {index} is not on RTX 5090",
+        )
+        _require(
+            str(lane.get("torch_version", "")).split("+", 1)[0]
+            == EXPECTED_TORCH_VERSION,
+            f"throughput lane {index} torch version drifted",
+        )
+        _require(
+            lane.get("cuda_runtime_version") == EXPECTED_CUDA_RUNTIME_VERSION,
+            f"throughput lane {index} CUDA runtime drifted",
+        )
+        device_memory = lane.get("device_total_memory_bytes")
+        peak_memory = lane.get("max_memory_allocated_bytes")
+        _require(
+            isinstance(device_memory, int)
+            and not isinstance(device_memory, bool)
+            and device_memory >= MIN_DEVICE_MEMORY_BYTES,
+            f"throughput lane {index} device memory is below the 32-GiB class",
+        )
+        _require(
+            isinstance(peak_memory, int)
+            and not isinstance(peak_memory, bool)
+            and 0 < peak_memory <= device_memory,
+            f"throughput lane {index} peak memory is invalid",
+        )
+        samples = lane.get("gpu_utilization_samples_percent")
+        _require(
+            isinstance(samples, list) and bool(samples),
+            f"throughput lane {index} has no utilization samples",
+        )
+        lane_samples = [
+            _finite_number(sample, f"throughput lane {index} utilization")
+            for sample in samples
+        ]
+        _require(
+            all(0.0 <= sample <= 100.0 for sample in lane_samples),
+            f"throughput lane {index} utilization is outside 0-100",
+        )
+        pair = tuple(str(value) for value in lane.get("model_pair", []))
+        size = lane.get("eval_size")
+        key = (pair, size)
+        _require(key in allowed_by_case, f"throughput lane {index} task case is unknown")
+        _require(
+            lane.get("checkpoint_id") in allowed_by_case[key]["checkpoint_ids"],
+            f"throughput lane {index} checkpoint is not task-bound",
+        )
+        _require(
+            lane.get("opening_id") in allowed_by_case[key]["opening_ids"],
+            f"throughput lane {index} opening is not task-bound",
+        )
+        _require(
+            lane.get("model_kind") in pair
+            and lane.get("model_kind") in PROFILE_MODEL_KINDS,
+            f"throughput lane {index} model family is not pair-bound",
+        )
+        _require(
+            lane.get("agent_slot") in {"A", "B"},
+            f"throughput lane {index} agent slot is invalid",
+        )
+        _require(
+            bool(str(lane.get("coverage_case_id", ""))),
+            f"throughput lane {index} coverage ID is missing",
+        )
+        decisions += lane_decisions
+        forward_calls += lane_forwards
+        memory_sum += peak_memory
+        utilization.extend(lane_samples)
+        lane_sustained.append(sustained)
+    coverage = _profile_coverage(lane_results)
+    expected_coverage = {
+        "model_kinds": list(PROFILE_MODEL_KINDS),
+        "model_pairs": [list(pair) for pair in PROFILE_MODEL_PAIRS],
+        "evaluation_sizes": list(PROFILE_EVAL_SIZES),
+        "model_pair_size_cases": [
+            {"model_pair": list(pair), "eval_size": size}
+            for pair in PROFILE_MODEL_PAIRS
+            for size in PROFILE_EVAL_SIZES
+        ],
+        "opening_ids_by_size": coverage["opening_ids_by_size"],
+    }
+    _require(
+        profile.get("coverage") == expected_coverage,
+        "formal throughput coverage is incomplete",
+    )
+    _require(profile.get("puct_decisions") == decisions, "formal throughput decision aggregate drifted")
+    _require(profile.get("model_forward_calls") == forward_calls, "formal throughput forward aggregate drifted")
+    aggregate_window = max(lane_sustained)
+    aggregate_rate = decisions / aggregate_window
+    projected = worst_case_decisions / aggregate_rate
+    _require(
+        math.isclose(
+            _finite_number(profile.get("aggregate_window_seconds"), "throughput.aggregate_window_seconds"),
+            aggregate_window,
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        ),
+        "formal throughput aggregate window drifted",
+    )
+    _require(
+        math.isclose(
+            _finite_number(profile.get("aggregate_puct_decisions_per_second"), "throughput.aggregate_rate"),
+            aggregate_rate,
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        ),
+        "formal throughput aggregate rate drifted",
+    )
+    _require(
+        math.isclose(
+            _finite_number(profile.get("projected_worst_case_seconds"), "throughput.projected_seconds"),
+            projected,
+            rel_tol=1e-12,
+            abs_tol=1e-9,
+        ),
+        "formal throughput projection drifted",
+    )
+    _require(
+        projected <= FORMAL_GAMEPLAY_BUDGET_SECONDS,
+        "formal throughput cannot finish the worst-case decision load inside 8,640 seconds",
+    )
+    _require(
+        profile.get("aggregate_peak_memory_allocated_bytes") == memory_sum
+        and memory_sum <= MAX_AGGREGATE_LANE_MEMORY_BYTES,
+        "formal throughput aggregate lane memory exceeds the safe 32-GiB class gate",
+    )
+    _require(
+        profile.get("gpu_utilization_samples_percent") == utilization,
+        "formal throughput utilization samples drifted",
+    )
+    utilization_mean = statistics.fmean(utilization)
+    _require(
+        math.isclose(
+            _finite_number(profile.get("gpu_utilization_mean_percent"), "throughput.utilization_mean"),
+            utilization_mean,
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        )
+        and utilization_mean >= 50.0,
+        "formal throughput mean GPU utilization is below 50 percent",
+    )
+    _require(
+        profile.get("gpu_utilization_max_percent") == max(utilization),
+        "formal throughput utilization maximum drifted",
+    )
+    return dict(profile)
 
 
 def _validate_throughput_profile(
     profile_path: Path,
     *,
     manifest_path: Path,
+    tasks: Sequence[Mapping[str, Any]],
 ) -> dict[str, Any]:
     """Validate the immutable smoke receipt before any formal-run mutation."""
 
     profile_path = profile_path.resolve()
     _require(profile_path.is_file(), "formal throughput profile is missing")
-    profile = _read_json(profile_path)
+    profile = _validate_throughput_profile_payload(
+        _read_json(profile_path),
+        manifest_sha256=sha256_file(manifest_path.resolve()),
+        tasks=tasks,
+    )
     expected = {
         "schema_name": THROUGHPUT_PROFILE_SCHEMA,
         "schema_version": SCHEMA_VERSION,
@@ -918,6 +1424,7 @@ def _throughput_profile_identity(
 ) -> dict[str, Any]:
     return {
         "throughput_profile_sha256": sha256_file(profile_path.resolve()),
+        "throughput_profile_artifact_path": profile_path.name,
         "throughput_profile_schema_name": profile["schema_name"],
         "throughput_profile_schema_version": profile["schema_version"],
         "throughput_profile_formal_manifest_sha256": profile[
@@ -1125,6 +1632,9 @@ def _run_formal_pair_lane(payload: Mapping[str, Any]) -> dict[str, Any]:
 
     import torch
 
+    _require(isinstance(payload, Mapping), "formal lane payload must be an object")
+    _require(isinstance(payload.get("task"), Mapping), "formal lane task is missing")
+    _require(isinstance(payload.get("schedules"), list), "formal lane schedules are missing")
     task = dict(payload["task"])
     schedules = sorted(
         (dict(row) for row in payload["schedules"]),
@@ -1741,6 +2251,10 @@ def _execute_pair_lanes(
         for _, schedules in missing
     ]
     payloads = lane_executor.map_ordered(_run_formal_pair_lane, jobs)
+    _require(
+        all(isinstance(payload, Mapping) for payload in payloads),
+        "formal scalar lane returned an invalid payload",
+    )
     expected_indices = [pair_index for pair_index, _ in missing]
     _require(
         [int(payload.get("pair_index", -1)) for payload in payloads]
@@ -2085,6 +2599,7 @@ def run_bundle(
     validated_throughput_profile = _validate_throughput_profile(
         throughput_profile_path,
         manifest_path=manifest_path.resolve(),
+        tasks=tasks,
     )
     run_root = _validate_write_target(
         manifest,
@@ -2096,7 +2611,10 @@ def run_bundle(
         _require(run_root.is_dir(), "run root exists but is not a directory")
         if not (run_root / "execution_metadata.json").is_file():
             unexpected = [
-                path for path in run_root.iterdir() if path.name != WRITER_LOCK_NAME
+                path
+                for path in run_root.iterdir()
+                if path.name
+                not in {WRITER_LOCK_NAME, THROUGHPUT_PROFILE_ARTIFACT_NAME}
             ]
             _require(not unexpected, "refusing a nonempty unbound run root")
     else:
@@ -2115,13 +2633,26 @@ def run_bundle(
                 authorize_resume=authorize_resume,
                 _writer_lock_held=True,
             )
+    throughput_evidence_path = run_root / THROUGHPUT_PROFILE_ARTIFACT_NAME
+    if throughput_evidence_path.is_file():
+        _require(
+            _read_json(throughput_evidence_path) == validated_throughput_profile,
+            "persisted throughput profile differs from the validated smoke receipt",
+        )
+    else:
+        _atomic_json(throughput_evidence_path, validated_throughput_profile)
+    validated_throughput_profile = _validate_throughput_profile(
+        throughput_evidence_path,
+        manifest_path=manifest_path.resolve(),
+        tasks=tasks,
+    )
     metadata = _execution_metadata(
         manifest,
         manifest_path=manifest_path.resolve(),
         bundle_directory=bundle_directory.resolve(),
         run_root=run_root,
         device=device,
-        throughput_profile_path=throughput_profile_path,
+        throughput_profile_path=throughput_evidence_path,
         throughput_profile=validated_throughput_profile,
     )
     metadata_path = run_root / "execution_metadata.json"
@@ -2252,6 +2783,7 @@ EXPORT_ROOT_FILES = frozenset(
         Path("execution_metadata.json"),
         Path("execution_summary.json"),
         Path("result_receipts.jsonl"),
+        Path(THROUGHPUT_PROFILE_ARTIFACT_NAME),
     }
 )
 

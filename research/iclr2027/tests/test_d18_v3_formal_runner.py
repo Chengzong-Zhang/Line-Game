@@ -14,7 +14,9 @@ import json
 import random
 import sys
 import time
+import tomllib
 from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures.process import BrokenProcessPool
 from pathlib import Path
 
 import pytest
@@ -47,11 +49,158 @@ def _fake_scalar_lane_record(payload: dict[str, object]) -> dict[str, object]:
     }
 
 
+def _raise_broken_pool(_: object) -> None:
+    raise BrokenProcessPool("synthetic broken worker pool")
+
+
+class _CanaryAgent:
+    def __init__(self, name: str) -> None:
+        self.name = name
+
+    def select_action(self, game: object, rng: random.Random) -> object:
+        points = sorted(
+            action
+            for action in getattr(game, "legal_moves")()
+            if action is not None
+        )
+        options = [*points, None]
+        return options[rng.randrange(len(options))]
+
+    def diagnostics(self) -> dict[str, object]:
+        return {
+            "algorithm": "fake-puct-canary",
+            "simulations": 16,
+            "selected_visits": 8,
+            "root_visit_sum": 16,
+        }
+
+
+def _bind_canary_agents() -> None:
+    formal._initialize_formal_lane_worker({}, str(formal.DEFAULT_MANIFEST), "cpu")
+    formal._FORMAL_LANE_AGENT_CACHE[("canary-a", "cpu")] = _CanaryAgent("canary-a")
+    formal._FORMAL_LANE_AGENT_CACHE[("canary-b", "cpu")] = _CanaryAgent("canary-b")
+
+
+def _canary_pair_payload() -> dict[str, object]:
+    from lifeline_rl import LifelineGame
+
+    game = LifelineGame(5, superko_mode="enforce")
+    schedules = []
+    for member in (0, 1):
+        schedules.append(
+            {
+                "task_id": "canary-task",
+                "pair_id": "canary-pair",
+                "pair_index": 0,
+                "pair_member": member,
+                "eval_size": 5,
+                "superko_mode": "enforce",
+                "opening_actions": [],
+                "opening_id": "canary-empty",
+                "opening_stratum": "canary-stratum",
+                "opening_variant": 0,
+                "opening_state_hash": game.state_fingerprint(),
+                "black_slot": "A" if member == 0 else "B",
+                "white_slot": "B" if member == 0 else "A",
+                "black_policy_seed": 100 + member,
+                "white_policy_seed": 200 + member,
+                "max_plies": 6,
+            }
+        )
+    return {
+        "task": {
+            "agent_bindings": {
+                "A": {"checkpoint_id": "canary-a"},
+                "B": {"checkpoint_id": "canary-b"},
+            }
+        },
+        "schedules": schedules,
+    }
+
+
+def _without_timings(value: object) -> object:
+    if isinstance(value, dict):
+        return {
+            key: _without_timings(item)
+            for key, item in value.items()
+            if not key.endswith("seconds")
+        }
+    if isinstance(value, list):
+        return [_without_timings(item) for item in value]
+    return value
+
+
 def _write_valid_throughput_profile(
     root: Path,
-) -> tuple[Path, Path, dict[str, object]]:
+) -> tuple[Path, Path, dict[str, object], list[dict[str, object]]]:
     manifest_path = root / "formal_manifest.json"
     manifest_path.write_text("{}\n", encoding="utf-8", newline="\n")
+    tasks: list[dict[str, object]] = []
+    for pair in formal.PROFILE_MODEL_PAIRS:
+        for size in formal.PROFILE_EVAL_SIZES:
+            for seed_offset in range(5):
+                seed = 20260825 + seed_offset
+                tasks.append(
+                    {
+                        "model_pair": list(pair),
+                        "eval_size": size,
+                        "training_seed": seed,
+                        "max_plies": 256,
+                        "agent_bindings": {
+                            "A": {
+                                "checkpoint_id": f"{pair[0]}-{seed}",
+                                "model_kind": pair[0],
+                            },
+                            "B": {
+                                "checkpoint_id": f"{pair[1]}-{seed}",
+                                "model_kind": pair[1],
+                            },
+                        },
+                        "pair_plan": [
+                            {
+                                "opening_id": f"opening-n{size}",
+                                "opening_actions": [0],
+                                "opening_prefix_hash": f"{size:064x}",
+                                "opening_state_hash": f"{size + 1:064x}",
+                            }
+                        ],
+                    }
+                )
+    payloads = formal._gpu_smoke_lane_payloads(tasks, seconds=20.0)
+    lane_results: list[dict[str, object]] = []
+    for payload in payloads:
+        binding = payload["agent_binding"]
+        opening = payload["opening"]
+        assert isinstance(binding, dict) and isinstance(opening, dict)
+        lane_results.append(
+            {
+                "lane_index": payload["lane_index"],
+                "coverage_case_id": payload["coverage_case_id"],
+                "checkpoint_id": binding["checkpoint_id"],
+                "model_kind": binding["model_kind"],
+                "model_pair": payload["model_pair"],
+                "agent_slot": payload["agent_slot"],
+                "eval_size": payload["eval_size"],
+                "opening_id": opening["opening_id"],
+                "puct_decisions": 300,
+                "model_forward_calls": 5_100,
+                "setup_seconds": 0.5,
+                "sustained_seconds": 20.0,
+                "total_seconds": 20.5,
+                "gpu_utilization_samples_percent": [60.0],
+                "max_memory_allocated_bytes": 128 * 1024**2,
+                "device": "cuda",
+                "device_name": "NVIDIA GeForce RTX 5090",
+                "device_total_memory_bytes": 32 * 1024**3,
+                "torch_version": "2.8.0+cu128",
+                "cuda_runtime_version": "12.8",
+            }
+        )
+    decisions = 300 * formal.SCALAR_LANE_COUNT
+    forwards = 5_100 * formal.SCALAR_LANE_COUNT
+    rate = decisions / 20.0
+    worst_case_decisions = formal.EXPECTED_GAMES * 256
+    memory = formal.SCALAR_LANE_COUNT * 128 * 1024**2
     profile: dict[str, object] = {
         "schema_name": formal.THROUGHPUT_PROFILE_SCHEMA,
         "schema_version": formal.SCHEMA_VERSION,
@@ -61,6 +210,11 @@ def _write_valid_throughput_profile(
         "formal_runner_sha256": formal.sha256_file(formal.SCRIPT_PATH),
         "preparation_runner_sha256": formal.sha256_file(formal.prep.SCRIPT_PATH),
         "formal_games_executed": 0,
+        "frozen_checkpoint_models": True,
+        "device": "cuda",
+        "device_name": "NVIDIA GeForce RTX 5090",
+        "torch_version": "2.8.0+cu128",
+        "cuda_runtime_version": "12.8",
         "inference_only": True,
         "training_mode": False,
         "amp_enabled": formal.AMP_ENABLED,
@@ -77,10 +231,31 @@ def _write_valid_throughput_profile(
         "puct_simulations": 16,
         "temperature": 0.0,
         "root_noise": False,
-        "lane_results": [
-            {"lane_index": index, "puct_decisions": 1}
-            for index in range(formal.SCALAR_LANE_COUNT)
-        ],
+        "coverage": formal._profile_coverage(lane_results),
+        "input_parse_and_collate_seconds": 0.01,
+        "setup_seconds": 0.5,
+        "puct_decisions": decisions,
+        "model_forward_calls": forwards,
+        "requested_sustained_seconds": 20.0,
+        "sustained_seconds": 20.0,
+        "duration_seconds": 22.0,
+        "total_seconds": 22.0,
+        "aggregate_window_seconds": 20.0,
+        "aggregate_puct_decisions_per_second": rate,
+        "formal_game_count": formal.EXPECTED_GAMES,
+        "formal_max_plies": 256,
+        "worst_case_puct_decisions": worst_case_decisions,
+        "formal_runtime_seconds": formal.MAX_RUNTIME_SECONDS,
+        "non_gameplay_reserve_fraction": formal.FORMAL_NON_GAMEPLAY_RESERVE_FRACTION,
+        "formal_gameplay_budget_seconds": formal.FORMAL_GAMEPLAY_BUDGET_SECONDS,
+        "projected_worst_case_seconds": worst_case_decisions / rate,
+        "lane_results": lane_results,
+        "gpu_utilization_samples_percent": [60.0] * formal.SCALAR_LANE_COUNT,
+        "gpu_utilization_mean_percent": 60.0,
+        "gpu_utilization_max_percent": 60.0,
+        "aggregate_peak_memory_allocated_bytes": memory,
+        "aggregate_peak_memory_limit_bytes": formal.MAX_AGGREGATE_LANE_MEMORY_BYTES,
+        "minimum_device_memory_bytes": formal.MIN_DEVICE_MEMORY_BYTES,
     }
     profile_path = root / "throughput.json"
     profile_path.write_text(
@@ -88,7 +263,7 @@ def _write_valid_throughput_profile(
         encoding="utf-8",
         newline="\n",
     )
-    return manifest_path, profile_path, profile
+    return manifest_path, profile_path, profile, tasks
 
 
 def _minimal_export_tree(root: Path) -> None:
@@ -97,6 +272,7 @@ def _minimal_export_tree(root: Path) -> None:
         "execution_metadata.json",
         "execution_summary.json",
         "result_receipts.jsonl",
+        formal.THROUGHPUT_PROFILE_ARTIFACT_NAME,
     ):
         (root / name).write_bytes(b"{}\n")
     task_root = root / "tasks" / "synthetic-task"
@@ -312,6 +488,42 @@ def test_scalar_lane_executor_matches_serial_fake_records_and_order() -> None:
     assert all(len(str(row["trajectory_hash"])) == 64 for row in concurrent)
 
 
+def test_production_spawn_process_pool_matches_serial_records() -> None:
+    payloads = [
+        {"game_index": index, "seed": 202608311000 + index}
+        for index in range(4)
+    ]
+    serial = [_fake_scalar_lane_record(payload) for payload in payloads]
+    with formal._ScalarLaneExecutor(2) as spawned:
+        concurrent = spawned.map_ordered(_fake_scalar_lane_record, payloads)
+    assert concurrent == serial
+
+
+def test_real_pair_lane_canary_matches_serial_and_concurrent_rng_and_hashes() -> None:
+    payload = _canary_pair_payload()
+    _bind_canary_agents()
+    serial = formal._run_formal_pair_lane(copy.deepcopy(payload))
+    _bind_canary_agents()
+    with formal._ScalarLaneExecutor(
+        2, executor_factory=ThreadPoolExecutor
+    ) as concurrent_executor:
+        concurrent = concurrent_executor.map_ordered(
+            formal._run_formal_pair_lane,
+            [copy.deepcopy(payload), copy.deepcopy(payload)],
+        )
+    assert all(_without_timings(row) == _without_timings(serial) for row in concurrent)
+    games = serial["games"]
+    assert isinstance(games, list) and len(games) == 2
+    assert all(record["actions"] for record in games)
+    assert all(record["full_trajectory_hash"] for record in games)
+    assert all(record["final_state_hash"] for record in games)
+
+
+def test_real_pair_lane_rejects_invalid_payload() -> None:
+    with pytest.raises(formal.FormalExecutionError, match="task is missing"):
+        formal._run_formal_pair_lane({})
+
+
 def test_scalar_lane_executor_wraps_worker_failure_fail_closed() -> None:
     payloads = [
         {"game_index": index, "seed": 202608310100 + index, "fail": index == 2}
@@ -327,20 +539,42 @@ def test_scalar_lane_executor_wraps_worker_failure_fail_closed() -> None:
             lane_executor.map_ordered(_fake_scalar_lane_record, payloads)
 
 
+def test_scalar_lane_executor_wraps_broken_process_pool_fail_closed() -> None:
+    with formal._ScalarLaneExecutor(
+        2, executor_factory=ThreadPoolExecutor
+    ) as lane_executor:
+        with pytest.raises(
+            formal.FormalExecutionError,
+            match="BrokenProcessPool: synthetic broken worker pool",
+        ):
+            lane_executor.map_ordered(_raise_broken_pool, [{}, {}])
+
+
+def test_formal_lane_initializer_deep_copies_and_clears_cache() -> None:
+    manifest = {"nested": {"value": 1}}
+    formal._FORMAL_LANE_AGENT_CACHE[("stale", "cpu")] = object()
+    formal._initialize_formal_lane_worker(manifest, str(formal.DEFAULT_MANIFEST), "cpu")
+    manifest["nested"]["value"] = 2
+    assert formal._FORMAL_LANE_MANIFEST == {"nested": {"value": 1}}
+    assert formal._FORMAL_LANE_MANIFEST_PATH == formal.DEFAULT_MANIFEST.resolve()
+    assert formal._FORMAL_LANE_DEVICE == "cpu"
+    assert formal._FORMAL_LANE_AGENT_CACHE == {}
+
+
 def test_throughput_profile_is_required_and_accepts_exact_identity(
     tmp_path: Path,
 ) -> None:
-    manifest_path, profile_path, profile = _write_valid_throughput_profile(
+    manifest_path, profile_path, profile, tasks = _write_valid_throughput_profile(
         tmp_path
     )
     assert formal._validate_throughput_profile(
-        profile_path, manifest_path=manifest_path
+        profile_path, manifest_path=manifest_path, tasks=tasks
     ) == profile
     with pytest.raises(
         formal.FormalExecutionError, match="formal throughput profile is missing"
     ):
         formal._validate_throughput_profile(
-            tmp_path / "missing.json", manifest_path=manifest_path
+            tmp_path / "missing.json", manifest_path=manifest_path, tasks=tasks
         )
     run_source = inspect.getsource(formal.run_bundle)
     assert run_source.index("_validate_throughput_profile") < run_source.index(
@@ -363,7 +597,7 @@ def test_throughput_profile_rejects_runner_manifest_and_numeric_drift(
     field: str,
     replacement: object,
 ) -> None:
-    manifest_path, profile_path, profile = _write_valid_throughput_profile(
+    manifest_path, profile_path, profile, tasks = _write_valid_throughput_profile(
         tmp_path
     )
     profile[field] = replacement
@@ -377,7 +611,84 @@ def test_throughput_profile_rejects_runner_manifest_and_numeric_drift(
         match=rf"formal throughput profile binding mismatch: {field}",
     ):
         formal._validate_throughput_profile(
-            profile_path, manifest_path=manifest_path
+            profile_path, manifest_path=manifest_path, tasks=tasks
+        )
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    (
+        ("slow", "cannot finish"),
+        ("memory", "aggregate lane memory"),
+        ("coverage", "coverage is incomplete"),
+        ("nonfinite", "must be finite"),
+        ("environment", "is not CUDA"),
+    ),
+)
+def test_throughput_profile_rejects_capacity_memory_coverage_and_environment(
+    tmp_path: Path, mutation: str, message: str
+) -> None:
+    manifest_path, profile_path, profile, tasks = _write_valid_throughput_profile(
+        tmp_path
+    )
+    lanes = profile["lane_results"]
+    assert isinstance(lanes, list)
+    if mutation == "slow":
+        for lane in lanes:
+            lane["puct_decisions"] = 100
+            lane["model_forward_calls"] = 1_700
+        profile["puct_decisions"] = 1_200
+        profile["model_forward_calls"] = 20_400
+        profile["aggregate_puct_decisions_per_second"] = 60.0
+        profile["projected_worst_case_seconds"] = (
+            formal.EXPECTED_GAMES * 256 / 60.0
+        )
+    elif mutation == "memory":
+        lanes[0]["max_memory_allocated_bytes"] = formal.MAX_AGGREGATE_LANE_MEMORY_BYTES
+        profile["aggregate_peak_memory_allocated_bytes"] = (
+            formal.MAX_AGGREGATE_LANE_MEMORY_BYTES
+            + (formal.SCALAR_LANE_COUNT - 1) * 128 * 1024**2
+        )
+    elif mutation == "coverage":
+        profile["coverage"]["model_kinds"] = ["padded_cnn"]
+    elif mutation == "nonfinite":
+        profile["total_seconds"] = float("nan")
+    else:
+        lanes[0]["device"] = "cpu"
+    profile_path.write_text(json.dumps(profile, sort_keys=True), encoding="utf-8")
+    with pytest.raises(formal.FormalExecutionError, match=message):
+        formal._validate_throughput_profile(
+            profile_path, manifest_path=manifest_path, tasks=tasks
+        )
+
+
+def test_independent_verifier_rehashes_and_revalidates_complete_profile(
+    tmp_path: Path,
+) -> None:
+    manifest_path, _, profile, tasks = _write_valid_throughput_profile(tmp_path)
+    evidence = tmp_path / independent.THROUGHPUT_PROFILE_ARTIFACT_NAME
+    evidence.write_text(
+        json.dumps(profile, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    metadata = {
+        "throughput_profile_sha256": independent.sha256_file(evidence),
+        "preparation_runner_sha256": independent.sha256_file(formal.prep.SCRIPT_PATH),
+    }
+    assert independent._validate_throughput_profile_evidence(
+        evidence,
+        metadata=metadata,
+        tasks=tasks,
+        formal_manifest_sha=independent.sha256_file(manifest_path),
+        formal_runner_sha=independent.sha256_file(formal.SCRIPT_PATH),
+    ) == profile
+    evidence.write_text(evidence.read_text(encoding="utf-8") + " ", encoding="utf-8")
+    with pytest.raises(independent.VerificationError, match="hash differs"):
+        independent._validate_throughput_profile_evidence(
+            evidence,
+            metadata=metadata,
+            tasks=tasks,
+            formal_manifest_sha=independent.sha256_file(manifest_path),
+            formal_runner_sha=independent.sha256_file(formal.SCRIPT_PATH),
         )
 
 
@@ -409,6 +720,62 @@ def test_pair_lane_failure_creates_no_parent_pair_artifact(tmp_path: Path) -> No
 
     assert list(pairs_directory.iterdir()) == []
     assert "_atomic_" not in inspect.getsource(formal._run_formal_pair_lane)
+
+
+def test_partial_parent_pair_write_resumes_only_missing_payloads(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    class RecordingExecutor:
+        def __init__(self) -> None:
+            self.indices: list[int] = []
+
+        def map_ordered(self, worker: object, payloads: object) -> list[object]:
+            del worker
+            rows = list(payloads)  # type: ignore[arg-type]
+            self.indices = [int(row["schedules"][0]["pair_index"]) for row in rows]
+            return [{"pair_index": index} for index in self.indices]
+
+    task_directory = tmp_path / "task"
+    (task_directory / "pairs").mkdir(parents=True)
+    pairs = {
+        index: [
+            {"pair_index": index, "pair_member": member}
+            for member in (0, 1)
+        ]
+        for index in range(3)
+    }
+    monkeypatch.setattr(formal, "_validate_pair", lambda *_: [])
+    original_atomic = formal._atomic_json
+    writes = 0
+
+    def fail_second_write(path: Path, value: object, **kwargs: object) -> None:
+        nonlocal writes
+        writes += 1
+        if writes == 2:
+            raise OSError("synthetic parent write interruption")
+        original_atomic(path, value, **kwargs)  # type: ignore[arg-type]
+
+    first = RecordingExecutor()
+    monkeypatch.setattr(formal, "_atomic_json", fail_second_write)
+    with pytest.raises(OSError, match="parent write interruption"):
+        formal._execute_pair_lanes(
+            {"task_id": "synthetic"},
+            pairs,
+            task_directory=task_directory,
+            lane_executor=first,  # type: ignore[arg-type]
+        )
+    assert first.indices == [0, 1, 2]
+    assert (task_directory / "pairs" / "pair_0000.json").is_file()
+    monkeypatch.setattr(formal, "_atomic_json", original_atomic)
+    resumed = RecordingExecutor()
+    formal._execute_pair_lanes(
+        {"task_id": "synthetic"},
+        pairs,
+        task_directory=task_directory,
+        lane_executor=resumed,  # type: ignore[arg-type]
+    )
+    assert resumed.indices == [1, 2]
+    assert len(list((task_directory / "pairs").glob("pair_*.json"))) == 3
 
 
 def test_opening_stratum_gate_passes_exact_shape_and_fails_variant_drift() -> None:
@@ -462,7 +829,8 @@ def test_gpu_smoke_source_is_frozen_inference_path_only() -> None:
         '"formal_numeric_path_match": True',
     ):
         assert required in source
-    assert "_ScalarLaneExecutor(SCALAR_LANE_COUNT)" in smoke_source
+    assert "_ScalarLaneExecutor(" in smoke_source
+    assert "initializer=_initialize_formal_lane_worker" in smoke_source
     assert "_run_gpu_smoke_lane" in smoke_source
     assert smoke_source.index("started = time.perf_counter()") < smoke_source.index(
         "with _ScalarLaneExecutor"
@@ -678,6 +1046,7 @@ def test_dual_runner_hashes_and_current_frozen_prep_binding() -> None:
         "device_name": "test",
         "formal_source_hash": "5" * 64,
         "throughput_profile_sha256": "7" * 64,
+        "throughput_profile_artifact_path": formal.THROUGHPUT_PROFILE_ARTIFACT_NAME,
         "throughput_profile_schema_name": formal.THROUGHPUT_PROFILE_SCHEMA,
         "throughput_profile_schema_version": formal.SCHEMA_VERSION,
         "throughput_profile_formal_manifest_sha256": "1" * 64,
@@ -724,6 +1093,85 @@ def test_job_budget_and_exact_reuse_constants() -> None:
     assert policy_max_export == (
         formal.MAX_EXPORT_BYTES + formal.WORKER_RUN_METADATA_RESERVE_BYTES
     )
+
+
+def test_generate_job_writes_parseable_exact_smoke_and_formal_contract(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text("{}\n", encoding="utf-8")
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    stage = tmp_path / "stage"
+    stage.mkdir()
+    output = tmp_path / "job.toml"
+    dependency_relative = "research/iclr2027/autodl/d18_v3_runtime_requirements.lock.txt"
+    staged_dependency = stage / dependency_relative
+    staged_dependency.parent.mkdir(parents=True)
+    staged_dependency.write_bytes(formal.DEPENDENCY_LOCK_PATH.read_bytes())
+    relative_paths = {
+        formal.SCRIPT_PATH.resolve(): "research/iclr2027/scripts/d18_v3_formal_runner.py",
+        formal.prep.SCRIPT_PATH.resolve(): "research/iclr2027/scripts/d18_v3_runner.py",
+        formal.VERIFIER_PATH.resolve(): "research/iclr2027/scripts/d18_v3_verify_evidence.py",
+        formal.DEPENDENCY_LOCK_PATH.resolve(): dependency_relative,
+        manifest_path.resolve(): "research/iclr2027/configs/test-manifest.json",
+        bundle.resolve(): "research/iclr2027/results/formal/d18_v3/test/task_bundle",
+    }
+    monkeypatch.setattr(
+        formal,
+        "_repo_relative",
+        lambda path: relative_paths[Path(path).resolve()],
+    )
+    bundle_hashes = {
+        field: str(index + 1) * 64
+        for index, field in enumerate(formal.BUNDLE_HASH_FILES)
+    }
+    semantic = {field: f"bound/{field}" for field in formal.STAGE_SEMANTIC_HASH_FIELDS}
+    stage_manifest = {
+        "semantic_bindings": semantic,
+        "formal_manifest_sha256": formal.sha256_file(manifest_path),
+        "formal_runner_sha256": formal.sha256_file(formal.SCRIPT_PATH),
+        "preparation_runner_sha256": formal.sha256_file(formal.prep.SCRIPT_PATH),
+        "verifier_sha256": formal.sha256_file(formal.VERIFIER_PATH),
+        **bundle_hashes,
+    }
+    monkeypatch.setattr(formal, "load_frozen_bundle", lambda *_: ({}, [], [], {}))
+    monkeypatch.setattr(
+        formal,
+        "_validated_autodl_stage",
+        lambda *_: (stage_manifest, "a" * 64),
+    )
+    monkeypatch.setattr(formal, "_stage_semantic_bindings", lambda *_: semantic)
+    monkeypatch.setattr(formal, "_require_stage_matches_local_closure", lambda *_: None)
+    monkeypatch.setattr(formal, "_bundle_hashes", lambda *_: bundle_hashes)
+    report = formal.generate_job(
+        manifest_path,
+        bundle,
+        stage,
+        output,
+        local_python=Path("C:/Python/python.exe"),
+        remote_python="python3",
+        max_runtime_seconds=11_520,
+    )
+    parsed = tomllib.loads(output.read_text(encoding="utf-8"))
+    profile_path = "$AUTODL_WORK_DIR/d18_v3_gpu_throughput.json"
+    assert parsed["instance_reuse"] == "require"
+    assert parsed["preferred_instance_uuid"] == "pro-788096a9e3b2"
+    assert parsed["allowed_gpu_specs"] == ["5090-p"]
+    assert parsed["image_uuid"] == formal.IMAGE_UUID
+    assert parsed["framework_version"] == "2.8.0"
+    assert parsed["cuda_runtime"] == "12.8"
+    assert parsed["gpu_num"] == 1
+    assert parsed["min_gpu_utilization_percent"] == 50
+    assert parsed["max_runtime_seconds"] == 11_520
+    assert "--seconds 20" in parsed["gpu_smoke_command"]
+    assert f"--profile-output {profile_path}" in parsed["gpu_smoke_command"]
+    assert f"--throughput-profile {profile_path}" in parsed["command"]
+    expected_runner = relative_paths[formal.SCRIPT_PATH.resolve()]
+    assert parsed["gpu_smoke_command"].startswith(f"python3 {expected_runner} gpu-smoke")
+    assert parsed["command"].startswith(f"python3 {expected_runner} run")
+    assert report["gpu_smoke_command"] == parsed["gpu_smoke_command"]
+    assert report["formal_command"] == parsed["command"]
 
 
 def test_readiness_uses_only_the_frozen_stage_copy(tmp_path: Path) -> None:
@@ -977,11 +1425,11 @@ def test_export_manifest_records_bounded_projection(
         export_root,
         expected_task_directory_names={"synthetic-task"},
     )
-    assert manifest["total_bytes"] == 8 * len(b"{}\n")
+    assert manifest["total_bytes"] == 9 * len(b"{}\n")
     assert manifest["max_export_bytes"] == 16_384
     assert manifest["projected_upper_bound_bytes"] <= 16_384
     assert (export_root / "canonical_numeric.json").read_bytes() == b"{}\n"
-    assert len([path for path in export_root.rglob("*") if path.is_file()]) == 9
+    assert len([path for path in export_root.rglob("*") if path.is_file()]) == 10
 
 
 def test_export_rejects_stale_destination_before_copy(

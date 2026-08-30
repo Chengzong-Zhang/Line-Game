@@ -256,6 +256,7 @@ class D18V3VerifierSelfTest(unittest.TestCase):
             "device": "cpu",
             "device_name": None,
             "throughput_profile_sha256": "8" * 64,
+            "throughput_profile_artifact_path": verifier.THROUGHPUT_PROFILE_ARTIFACT_NAME,
             "throughput_profile_schema_name": verifier.THROUGHPUT_PROFILE_SCHEMA,
             "throughput_profile_schema_version": verifier.SCHEMA_VERSION,
             "throughput_profile_formal_manifest_sha256": "1" * 64,
