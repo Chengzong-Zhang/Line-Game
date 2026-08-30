@@ -274,6 +274,82 @@ def test_gpu_smoke_source_is_frozen_inference_path_only() -> None:
         assert required in source
 
 
+def test_gpu_smoke_uses_a_real_game_and_rejects_mutation() -> None:
+    from lifeline_rl import LifelineGame
+
+    class ObservingAgent:
+        def select_action(self, game: LifelineGame, rng: object) -> int:
+            assert isinstance(game, LifelineGame)
+            assert rng is not None
+            return game.num_points
+
+    game = LifelineGame(5, superko_mode="enforce")
+    playable_copy = formal.legacy._playable_game_copy(game)
+    assert isinstance(playable_copy, LifelineGame)
+    assert playable_copy is not game
+    assert playable_copy.clone() == game.clone()
+    assert formal._gpu_smoke_select_action(ObservingAgent(), game, object()) == (
+        game.num_points
+    )
+    with pytest.raises(formal.FormalExecutionError, match="detached GameSnapshot"):
+        formal._gpu_smoke_select_action(ObservingAgent(), game.clone(), object())
+
+    class MutatingAgent:
+        def select_action(self, game: LifelineGame, rng: object) -> int:
+            del rng
+            game.skip_turn()
+            return game.num_points
+
+    with pytest.raises(formal.FormalExecutionError, match="mutated its input game"):
+        formal._gpu_smoke_select_action(MutatingAgent(), game, object())
+
+    smoke_source = inspect.getsource(formal.gpu_smoke)
+    assert "games[decisions % len(games)].clone()" not in smoke_source
+    assert "legacy._playable_game_copy" in smoke_source
+    assert "_gpu_smoke_select_action" in smoke_source
+
+
+def test_formal_play_game_passes_live_game_not_snapshot() -> None:
+    from lifeline_rl import LifelineGame
+
+    class PassAgent:
+        name = "pass-spy"
+
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def select_action(self, game: LifelineGame, rng: object) -> None:
+            assert isinstance(game, LifelineGame)
+            assert rng is not None
+            self.calls += 1
+            return None
+
+        def diagnostics(self) -> dict[str, object]:
+            return {}
+
+    initial = LifelineGame(5, superko_mode="enforce")
+    schedule = {
+        "eval_size": 5,
+        "superko_mode": "enforce",
+        "opening_actions": [],
+        "opening_id": "empty",
+        "opening_stratum": "test",
+        "opening_state_hash": initial.state_fingerprint(),
+        "black_slot": "A",
+        "white_slot": "B",
+        "black_policy_seed": 1,
+        "white_policy_seed": 2,
+        "max_plies": 2,
+    }
+    agent_a = PassAgent()
+    agent_b = PassAgent()
+    record = formal._play_game(schedule, agent_a=agent_a, agent_b=agent_b)
+    assert agent_a.calls == 1
+    assert agent_b.calls == 1
+    assert record["truncated"] is False
+    assert record["plies"] == 2
+
+
 def test_status_is_read_only_and_never_claims_formal_ready() -> None:
     status_source = inspect.getsource(formal.read_only_status)
     collector_source = inspect.getsource(formal._current_status)

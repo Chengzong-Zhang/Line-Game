@@ -514,6 +514,21 @@ def task_shaped_readiness(
     }
 
 
+def _gpu_smoke_select_action(agent: Any, game: Any, rng: random.Random) -> Any:
+    """Exercise one formal PUCT decision on a real, non-mutated game object."""
+
+    from lifeline_rl import LifelineGame
+
+    _require(
+        isinstance(game, LifelineGame),
+        "GPU smoke requires a LifelineGame, not a detached GameSnapshot",
+    )
+    before = game.clone()
+    action = agent.select_action(game, rng)
+    _require(game.clone() == before, "GPU smoke PUCT mutated its input game")
+    return action
+
+
 def gpu_smoke(
     manifest_path: Path,
     bundle_directory: Path,
@@ -582,8 +597,12 @@ def gpu_smoke(
     deadline = sustained_started + seconds
     with torch.inference_mode():
         while time.perf_counter() < deadline:
-            game = games[decisions % len(games)].clone()
-            loaded.select_action(game, random.Random(202608300000 + decisions))
+            game = legacy._playable_game_copy(games[decisions % len(games)])
+            _gpu_smoke_select_action(
+                loaded,
+                game,
+                random.Random(202608300000 + decisions),
+            )
             torch.cuda.synchronize()
             decisions += 1
             model_forward_path_calls += int(manifest["search"]["simulations"]) + 1
