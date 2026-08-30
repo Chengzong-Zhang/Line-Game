@@ -1,0 +1,62 @@
+# D18-v3 review-only AutoDL Direct policy candidate.
+# 1000 milliyuan = 1 RMB. This file does not start or stop an instance.
+# AutoDL Runner Direct 1.15.0 has no per-job total-cost hard-cap field.  The
+# 9,000-second limits below constrain product runtime, not total billed time;
+# startup, probes, transfer, delivery, and shutdown add unbounded overhead.
+# Never treat this file or its name as proof that total spend is <= 10 RMB.
+# Deliberately disabled in version control.  A separately reviewed live policy
+# may be created only after action-time instance, price, registry, and budget
+# confirmation.
+live_enabled = false
+state_dir = "C:/Users/zcz/.autodl-runner-direct"
+control_root = "C:/Users/zcz/.autodl-runner-control"
+allowed_local_roots = ["C:/coding/py/line game", "C:/Users/zcz"]
+result_root = "C:/Users/zcz/autodl-results"
+
+# The generated job must separately pin instance_reuse="require" and the exact
+# preferred_instance_uuid; policy max_concurrent_instances alone does not pin it.
+max_concurrent_instances = 1
+max_job_runtime_seconds = 9000
+startup_timeout_seconds = 600
+max_input_bytes = 536870912
+# The product counts the exported evidence plus its own run metadata against
+# this 512 MiB delivery limit. The formal runner therefore caps its complete,
+# closed export tree at 448 MiB and reserves the remaining 64 MiB for worker
+# metadata; it fails before copying if the evidence tree cannot fit.
+max_export_bytes = 536870912
+transfer_parallelism = 4
+parallel_file_threshold_bytes = 67108864
+control_reserve_bytes = 67108864
+
+# The live 5090-P price sampled on 2026-08-30 was 2880 milliyuan/hour.
+# 9000 seconds of product runtime is 7.20 RMB at that price.  The 2.80 RMB
+# difference is only a planning allowance; this policy cannot enforce it.
+# min_balance is a wallet precondition, not a spend ceiling.
+min_balance_milliyuan = 10000
+max_hourly_spend_milliyuan = 2880
+max_price_milliyuan_per_hour = 2880
+
+orchestration_lock_timeout_seconds = 1200
+provision_timeout_seconds = 600
+bootstrap_timeout_seconds = 600
+ssh_port_timeout_seconds = 300
+ssh_auth_timeout_seconds = 420
+ssh_tools_timeout_seconds = 600
+iteration_wait_seconds = 0
+idle_grace_seconds = 60
+watchdog_fallback_seconds = 120
+poll_interval_seconds = 3
+telemetry_interval_seconds = 5
+recovery_runtime_seconds = 900
+
+# Reuse and shut down the existing instance; never release it.
+auto_release = false
+
+[[candidates]]
+gpu_spec_uuid = "5090-p"
+data_center = "beijingDC2"
+gpu_num = 1
+vram_gb = 32
+cpu_cores = 24
+ram_gb = 64
+expected_price_milliyuan = 2880

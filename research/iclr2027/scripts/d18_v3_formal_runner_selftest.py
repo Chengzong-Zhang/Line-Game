@@ -1,0 +1,112 @@
+#!/usr/bin/env python3
+"""Zero-execution structural self-tests for ``d18_v3_formal_runner``."""
+
+from __future__ import annotations
+
+import inspect
+import sys
+import unittest
+from pathlib import Path
+
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+import d18_v3_formal_runner as formal  # noqa: E402
+
+
+class D18V3FormalRunnerStructuralTests(unittest.TestCase):
+    def test_formal_confirmation_fails_before_input_access(self) -> None:
+        with self.assertRaisesRegex(formal.FormalExecutionError, "--confirm-formal"):
+            formal.run_bundle(
+                Path("missing-manifest"),
+                Path("missing-bundle"),
+                Path("missing-run"),
+                device="cuda",
+                continue_on_error=False,
+                export_directory=None,
+                confirm_formal=False,
+            )
+
+    def test_gpu_smoke_is_inference_only(self) -> None:
+        source = inspect.getsource(formal.gpu_smoke)
+        for forbidden in (
+            ".backward(",
+            "Adam",
+            "autocast(",
+            "GradScaler",
+            "_repeat_tensor_batch",
+            "batch_candidates",
+        ):
+            self.assertNotIn(forbidden, source)
+        self.assertIn("torch.inference_mode()", source)
+        self.assertIn("select_action", source)
+        self.assertIn('"optimizer_steps": 0', source)
+        self.assertIn('"formal_numeric_path_match": True', source)
+
+    def test_status_is_read_only_and_fail_closed(self) -> None:
+        for source in (
+            inspect.getsource(formal.read_only_status),
+            inspect.getsource(formal._current_status),
+        ):
+            for forbidden in ("_atomic_", "write_text", "mkdir(", "copy2("):
+                self.assertNotIn(forbidden, source)
+        self.assertIn(
+            '"formal_ready": False', inspect.getsource(formal._current_status)
+        )
+
+    def test_cli_surface_uses_cuda_and_no_auto_batch(self) -> None:
+        parser = formal._parser()
+        smoke = parser.parse_args(["gpu-smoke", "--bundle-dir", "bundle"])
+        self.assertFalse(hasattr(smoke, "batch_candidates"))
+        run = parser.parse_args(
+            ["run", "--bundle-dir", "bundle", "--run-root", "run"]
+        )
+        self.assertEqual(run.device, "cuda")
+        self.assertFalse(run.confirm_formal)
+
+    def test_dual_runner_hashes_are_distinct(self) -> None:
+        prep_hash = formal.sha256_file(formal.prep.SCRIPT_PATH)
+        formal_hash = formal.sha256_file(formal.SCRIPT_PATH)
+        self.assertEqual(len(prep_hash), 64)
+        self.assertEqual(len(formal_hash), 64)
+        self.assertNotEqual(prep_hash, formal_hash)
+
+    def test_budget_and_instance_are_frozen(self) -> None:
+        self.assertEqual(formal.MAX_RUNTIME_SECONDS, 9000)
+        self.assertEqual(formal.POLICY_MAX_DELIVERY_BYTES, 512 * 1024 * 1024)
+        self.assertEqual(
+            formal.WORKER_RUN_METADATA_RESERVE_BYTES, 64 * 1024 * 1024
+        )
+        self.assertEqual(formal.MAX_EXPORT_BYTES, 448 * 1024 * 1024)
+        self.assertEqual(formal.EXPORT_MANIFEST_RESERVE_BYTES, 4 * 1024 * 1024)
+        self.assertEqual(formal.INSTANCE_UUID, "pro-788096a9e3b2")
+        self.assertEqual(formal.GPU_SPEC, "5090-p")
+        self.assertEqual(formal.IMAGE_UUID, "base-image-ec1e9vdbd3")
+
+    def test_dependency_lock_is_frozen_into_stage_and_job(self) -> None:
+        self.assertEqual(
+            formal.sha256_file(formal.DEPENDENCY_LOCK_PATH),
+            "2df94edd048e9aa9990bce302672f6c71f0845e70fd0be43fbbdd719d869473a",
+        )
+        self.assertIn(
+            "DEPENDENCY_LOCK_PATH",
+            inspect.getsource(formal._execution_source_hashes),
+        )
+        self.assertIn(
+            "DEPENDENCY_LOCK_PATH", inspect.getsource(formal.prepare_autodl_stage)
+        )
+        job_source = inspect.getsource(formal.generate_job)
+        self.assertIn("dependency_lock_relative", job_source)
+        self.assertIn("d18-v3-stage-", job_source)
+        self.assertIn("validate-autodl-stage", job_source)
+        self.assertIn("_require_stage_matches_local_closure", job_source)
+        stage_source = inspect.getsource(formal._validated_autodl_stage)
+        self.assertIn("stage manifest file_count differs", stage_source)
+        self.assertIn("AutoDL stage file closure differs", stage_source)
+        self.assertIn("stage semantic binding differs", stage_source)
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)

@@ -66,7 +66,15 @@ class D18V3ArtifactPolicyTests(unittest.TestCase):
             "research/iclr2027/configs/d18_v3_paired_openings_manifest.json",
             "research/iclr2027/scripts/d18_v3_runner.py",
             "research/iclr2027/scripts/d18_v3_formal_runner.py",
+            "research/iclr2027/scripts/d18_v3_formal_runner_selftest.py",
+            "research/iclr2027/scripts/d18_v3_verify_evidence.py",
+            "research/iclr2027/scripts/d18_v3_verify_selftest.py",
+            "research/iclr2027/tests/test_d18_v3_formal_runner.py",
+            "research/iclr2027/tests/test_d18_v3_verifier.py",
             "research/iclr2027/tests/test_d18_v3_artifact_policy.py",
+            "research/iclr2027/autodl/d18_v3_10yuan.policy.toml",
+            "research/iclr2027/autodl/d18_v3_runtime_requirements.lock.txt",
+            "research/iclr2027/D18_V3_RECOVERY_PLAN.md",
         )
         for relative_path in canonical:
             with self.subTest(relative_path=relative_path):
