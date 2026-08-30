@@ -46,6 +46,10 @@ research/iclr2027/results/pilot/
 research/iclr2027/results/formal/d14_d16/run_v1/tasks/
 research/iclr2027/results/formal/d14_d16/runner_control_v1/*.stdout.txt
 research/iclr2027/results/formal/d14_d16/runner_control_v1/*.stderr.txt
+# D17-D19 outputs remain fail-closed until compact evidence is reviewed separately.
+research/iclr2027/results/formal/d17_d19/
+# D18-v3 formal execution outputs follow the same local-only evidence boundary.
+research/iclr2027/results/formal/d18_v3/
 research/iclr2027/results/**/games.jsonl
 research/iclr2027/results/validation/*.blocks.jsonl
 research/iclr2027/results/validation/superko_policy_matrix_five_seed_v1_attempt2.json
