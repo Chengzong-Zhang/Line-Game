@@ -2,6 +2,25 @@
 const MIN_GRID_SIZE = 5;
 const MAX_GRID_SIZE = 15;
 
+export const TerritoryRulesVersion = Object.freeze({
+  V1: "territory-v1",
+  V2: "territory-v2",
+});
+
+const SUPPORTED_TERRITORY_RULES = new Set(Object.values(TerritoryRulesVersion));
+
+// Triangular coordinates are barycentric triples (x, y, z) with
+// z = gridSize - 1 - x - y. Every D3 board symmetry is a permutation of
+// those three coordinates. A permutation stores new[i] = old[permutation[i]].
+const BARYCENTRIC_TRANSFORMS = Object.freeze({
+  IDENTITY: Object.freeze([0, 1, 2]),
+  SWAP_XY: Object.freeze([1, 0, 2]),
+  SWAP_YZ: Object.freeze([0, 2, 1]),
+  SWAP_XZ: Object.freeze([2, 1, 0]),
+  CYCLE_XYZ: Object.freeze([1, 2, 0]),
+  CYCLE_XZY: Object.freeze([2, 0, 1]),
+});
+
 // GameEngine 鍙叧蹇冭鍒欑姸鎬侊紝涓嶅叧蹇?Canvas銆乂ue 鎴?WebSocket銆?// 鍙屼汉/涓変汉妯″紡鐨勫樊寮備富瑕佷綋鐜板湪鐜╁鏋氫妇銆佸垵濮嬭惤鐐瑰拰杞崲椤哄簭涓婏紝
 // 杈圭晫銆侀潰绉€佺鎾炵瓑鍑犱綍閫昏緫灏介噺淇濇寔涓庣帺瀹舵暟閲忚В鑰︺€?
 export const Player = Object.freeze({
@@ -81,6 +100,38 @@ function pointEquals(a, b) {
   return a[0] === b[0] && a[1] === b[1];
 }
 
+function applyBarycentricTransform(point, gridSize, permutation) {
+  const barycentric = [point[0], point[1], gridSize - 1 - point[0] - point[1]];
+  return [barycentric[permutation[0]], barycentric[permutation[1]]];
+}
+
+function invertPermutation(permutation) {
+  const inverse = new Array(permutation.length);
+  for (let index = 0; index < permutation.length; index += 1) {
+    inverse[permutation[index]] = index;
+  }
+  return inverse;
+}
+
+function canonicalPolygonKey(polygon) {
+  if (!polygon?.length) return "";
+  const openPolygon = polygon.length > 1 && pointEquals(polygon[0], polygon[polygon.length - 1])
+    ? polygon.slice(0, -1)
+    : polygon;
+  if (!openPolygon.length) return "";
+
+  const representations = [];
+  for (const oriented of [openPolygon, [...openPolygon].reverse()]) {
+    for (let offset = 0; offset < oriented.length; offset += 1) {
+      representations.push(
+        [...oriented.slice(offset), ...oriented.slice(0, offset)].map(pointKey).join("|"),
+      );
+    }
+  }
+  representations.sort();
+  return representations[0];
+}
+
 function cross(o, a, b) {
   return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
 }
@@ -120,6 +171,16 @@ export class GameEngine {
     if (!Number.isInteger(this.gridSize) || this.gridSize < MIN_GRID_SIZE || this.gridSize > MAX_GRID_SIZE) {
       throw new Error(`gridSize must be an integer between ${MIN_GRID_SIZE} and ${MAX_GRID_SIZE}.`);
     }
+    const rulesVersion = options.rulesVersion ?? TerritoryRulesVersion.V1;
+    if (!SUPPORTED_TERRITORY_RULES.has(rulesVersion)) {
+      throw new Error(`Unsupported territory rules version: ${rulesVersion}`);
+    }
+    Object.defineProperty(this, "rulesVersion", {
+      value: rulesVersion,
+      enumerable: true,
+      writable: false,
+      configurable: false,
+    });
     this.playerCount = options.playerCount ?? 2;
     if (this.playerCount !== 2 && this.playerCount !== 3) {
       throw new Error("Only 2-player and 3-player modes are supported.");
@@ -137,6 +198,7 @@ export class GameEngine {
     this.consecutiveSkips = 0;
     this.resignedPlayers = new Set();
     this.turnCount = 0;
+    this.positionRevision = 0;
     this.cachedTerritories = Object.fromEntries(
       this.activePlayers.map((player) => [player, { polygon: null, area: 0, displayArea: 0 }]),
     );
@@ -266,7 +328,13 @@ export class GameEngine {
 
   getScoreboard() {
     return Object.fromEntries(
-      this.activePlayers.map((player) => [player, { ...this.cachedTerritories[player] }]),
+      this.activePlayers.map((player) => {
+        const territory = this.cachedTerritories[player];
+        return [player, {
+          ...territory,
+          polygon: territory.polygon ? territory.polygon.map(clonePoint) : null,
+        }];
+      }),
     );
   }
 
@@ -293,6 +361,8 @@ export class GameEngine {
     return {
       gridSize: this.gridSize,
       playerCount: this.playerCount,
+      rulesVersion: this.rulesVersion,
+      positionRevision: this.positionRevision,
       players: [...this.activePlayers],
       startPlayer: this.startPlayer,
       currentPlayer: this.currentPlayer,
@@ -764,8 +834,15 @@ export class GameEngine {
 
   /** 阶段一：右手摸墙法 — 获取外轮廓 */
   _getOuterContour(player) {
+    return this._getOuterContourFromPoints([
+      ...this._getPlayerNodes(player),
+      ...this._getPlayerLines(player),
+    ]);
+  }
+
+  _getOuterContourFromPoints(friendlyPoints) {
     const friendlySet = new Set();
-    for (const p of [...this._getPlayerNodes(player), ...this._getPlayerLines(player)]) {
+    for (const p of friendlyPoints) {
       friendlySet.add(pointKey(p));
     }
     if (friendlySet.size === 0) return [];
@@ -821,6 +898,40 @@ export class GameEngine {
     }
 
     return contour;
+  }
+
+  /** A closed walk only encloses territory when its undirected boundary graph
+   *  contains a real cycle. This rejects out-and-back lines such as
+   *  A-B-C-B, which the legacy flood fill counted as three territory points. */
+  _hasBoundaryCycle(polygon) {
+    if (!Array.isArray(polygon) || polygon.length < 3) return false;
+    const points = pointEquals(polygon[0], polygon[polygon.length - 1])
+      ? polygon.slice(0, -1)
+      : polygon;
+    if (points.length < 3) return false;
+
+    const vertices = new Set();
+    const edges = new Set();
+    for (let index = 0; index < points.length; index += 1) {
+      const start = points[index];
+      const end = points[(index + 1) % points.length];
+      if (pointEquals(start, end)) continue;
+      const startKey = pointKey(start);
+      const endKey = pointKey(end);
+      const startIdx = this._keyToIdx.get(startKey);
+      const endIdx = this._keyToIdx.get(endKey);
+      if (
+        startIdx === undefined
+        || endIdx === undefined
+        || !this._adjIdxList[startIdx].includes(endIdx)
+      ) {
+        return false;
+      }
+      vertices.add(startKey);
+      vertices.add(endKey);
+      edges.add(startKey < endKey ? `${startKey}|${endKey}` : `${endKey}|${startKey}`);
+    }
+    return vertices.size >= 3 && edges.size >= vertices.size;
   }
 
   /** 阶段三：泛洪法领土判定 — 从边缘注水，未被淹没即为领土
@@ -914,31 +1025,53 @@ export class GameEngine {
     return { dist, pred };
   }
 
-  /** 从预计算 BFS 结果重建 srcIdx→tgtIdx 的所有最短路径（返回 clonePoint 坐标数组）*/
-  _reconstructPaths(bfsResult, srcIdx, tgtIdx) {
+  /** Stream shortest paths from a predecessor DAG. The legacy implementation
+   *  materialized every path at once, causing exponential peak memory. */
+  *_iterateReconstructedPaths(bfsResult, srcIdx, tgtIdx) {
     const { dist, pred } = bfsResult;
-    if (dist[tgtIdx] === -1) return [];
+    if (dist[tgtIdx] === -1) return;
     const vp = this.validPositions;
-    const build = (idx) => {
-      if (idx === srcIdx) return [[vp[srcIdx]]];
-      const result = [];
-      for (const prev of pred[idx]) {
-        for (const p of build(prev)) result.push([...p, vp[idx]]);
+    const reversedPath = [tgtIdx];
+
+    function* visit(index) {
+      if (index === srcIdx) {
+        yield [...reversedPath].reverse().map((pointIndex) => clonePoint(vp[pointIndex]));
+        return;
       }
-      return result;
-    };
-    return build(tgtIdx).map((path) => path.map(clonePoint));
+      for (const previous of pred[index] ?? []) {
+        reversedPath.push(previous);
+        yield* visit(previous);
+        reversedPath.pop();
+      }
+    }
+
+    yield* visit(tgtIdx);
   }
 
-  /** 核心领土计算：右手摸墙 → 动态贪心修剪（楔形优化 + BFS 预计算）→ 泛洪法 */
-  _computeTerritory(player) {
-    const friendlyNodeKeys = new Set(this._getPlayerNodes(player).map(pointKey));
-    const enemyPoints = dedupePoints(
-      this._getOpponents(player).flatMap((opp) => [
-        ...this._getPlayerNodes(opp),
-        ...this._getPlayerLines(opp),
-      ]),
-    );
+  // Compatibility helper for diagnostics that explicitly request an array.
+  _reconstructPaths(bfsResult, srcIdx, tgtIdx) {
+    return [...this._iterateReconstructedPaths(bfsResult, srcIdx, tgtIdx)];
+  }
+
+  /** Keep old diagnostic/subclass overrides observable while the default path
+   *  remains streaming and does not materialize the predecessor DAG. */
+  *_iterateTerritoryPaths(bfsResult, srcIdx, tgtIdx) {
+    if (this._reconstructPaths !== GameEngine.prototype._reconstructPaths) {
+      yield* this._reconstructPaths(bfsResult, srcIdx, tgtIdx);
+      return;
+    }
+    yield* this._iterateReconstructedPaths(bfsResult, srcIdx, tgtIdx);
+  }
+
+  /** Raw contour-tightening scorer over an explicitly supplied coordinate view. */
+  _computeRawTerritory(
+    friendlyNodes,
+    friendlyLines,
+    rawEnemyPoints,
+    { requireClosedRegion = false, initialContour = null } = {},
+  ) {
+    const friendlyNodeKeys = new Set(friendlyNodes.map(pointKey));
+    const enemyPoints = dedupePoints(rawEnemyPoints);
     const enemyKeySet = new Set(enemyPoints.map(pointKey));
 
     // 敌方点整数下标集，供 _bfsFromSource 热路径使用（避免字符串 key）
@@ -949,8 +1082,15 @@ export class GameEngine {
     }
 
     // 阶段一：右手摸墙法获取外轮廓
-    let currentPoly = this._getOuterContour(player);
-    if (currentPoly.length < 3) return { polygon: null, area: 0, displayArea: 0 };
+    let currentPoly = initialContour
+      ? initialContour.map(clonePoint)
+      : this._getOuterContourFromPoints([...friendlyNodes, ...friendlyLines]);
+    if (
+      currentPoly.length < 3
+      || (requireClosedRegion && !this._hasBoundaryCycle(currentPoly))
+    ) {
+      return { polygon: null, area: 0, displayArea: 0 };
+    }
 
     let curArea = 0;
 
@@ -969,15 +1109,47 @@ export class GameEngine {
       let bestOverallCand = null;
       let bestCandPerim = curPerim;
       let bestCandArea = curArea;
+      const validatedWallPerimeters = requireClosedRegion ? new Map() : null;
 
-      // BFS 预计算：每个轮廓顶点 poly[i] 做一次全图 BFS，缓存 dist/pred 供内层 j 循环复用
-      // 将原来 O(n²) 次独立 BFS 调用降为 O(n) 次
+      const considerFullyValidatedCandidate = (rawCandidate) => {
+        const candidate = rawCandidate.filter(
+          (point, index) => index === 0 || !pointEquals(point, rawCandidate[index - 1]),
+        );
+        if (
+          candidate.length < 3
+          || !this._hasBoundaryCycle(candidate)
+          || candidate.length > bestCandPerim
+        ) {
+          return;
+        }
+        // Many predecessor-DAG paths describe the same flood-fill wall. Reuse
+        // that equivalence without imposing an unsafe path-count cap.
+        const wallKey = [...new Set(candidate.map(pointKey))].sort().join("|");
+        const previousPerimeter = validatedWallPerimeters.get(wallKey);
+        if (previousPerimeter !== undefined && previousPerimeter <= candidate.length) return;
+        validatedWallPerimeters.set(wallKey, candidate.length);
+        const covered = this._getCoveredPoints(candidate);
+        const area = covered.size;
+        if (candidate.length === bestCandPerim && area >= bestCandArea) return;
+        if (![...friendlyNodeKeys].every((key) => covered.has(key))) return;
+        if ([...enemyKeySet].some((key) => covered.has(key))) return;
+        bestCandPerim = candidate.length;
+        bestCandArea = area;
+        bestOverallCand = candidate;
+      };
+
+      // BFS 预计算：相同轮廓顶点可能在回折/自交 walk 中重复出现，按唯一
+      // srcIdx 复用结果，避免对同一源点重复遍历全图。
       const bfsCache = new Array(polyLen);
+      const bfsBySource = new Map();
       for (let i = 0; i < polyLen; i += 1) {
         const srcIdx = this._keyToIdx.get(pointKey(currentPoly[i]));
         if (srcIdx !== undefined) {
-          const bfs = this._bfsFromSource(srcIdx, enemyIdxSet);
-          bfsCache[i] = { srcIdx, dist: bfs.dist, pred: bfs.pred };
+          if (!bfsBySource.has(srcIdx)) {
+            const bfs = this._bfsFromSource(srcIdx, enemyIdxSet);
+            bfsBySource.set(srcIdx, { srcIdx, dist: bfs.dist, pred: bfs.pred });
+          }
+          bfsCache[i] = bfsBySource.get(srcIdx);
         } else {
           bfsCache[i] = null;
         }
@@ -996,12 +1168,26 @@ export class GameEngine {
           // 剪枝：最短路 ≥ 弧段长度，无法缩短周长，跳过
           if (shortestDist === -1 || shortestDist >= arcLen) continue;
 
-          const paths = this._reconstructPaths(bfsCache[i], srcIdx, tgtIdx);
-          if (paths.length === 0) continue;
-
-          for (const path of paths) {
+          for (const path of this._iterateTerritoryPaths(bfsCache[i], srcIdx, tgtIdx)) {
             const pathLen = path.length; // 顶点数（含两端点）
             const pathInterior = path.slice(1, -1); // 中间顶点（不含端点）
+
+            // v2 deliberately validates both candidates with exact flood fill.
+            // This removes the legacy inward shortcut's unproved assumption that
+            // the current coverage already excludes every enemy element.
+            if (requireClosedRegion) {
+              const reversedMiddle = pathInterior.slice().reverse();
+              considerFullyValidatedCandidate([
+                ...currentPoly.slice(0, i),
+                ...path,
+                ...currentPoly.slice(j + 1),
+              ]);
+              considerFullyValidatedCandidate([
+                ...currentPoly.slice(i, j + 1),
+                ...reversedMiddle,
+              ]);
+              continue;
+            }
 
             // ── 向内 / 向外捷径判定 ──────────────────────────────────────────────
             // 向内：所有中间顶点均在 curCovered 内（捷径在当前领土内部穿行）
@@ -1104,9 +1290,94 @@ export class GameEngine {
       }
     }
 
-    if (currentPoly.length < 3) return { polygon: null, area: 0, displayArea: 0 };
+    if (
+      currentPoly.length < 3
+      || (requireClosedRegion && !this._hasBoundaryCycle(currentPoly))
+    ) {
+      return { polygon: null, area: 0, displayArea: 0 };
+    }
+    if (requireClosedRegion) {
+      const finalCovered = this._getCoveredPoints(currentPoly);
+      if ([...enemyKeySet].some((key) => finalCovered.has(key))) {
+        return { polygon: null, area: 0, displayArea: 0 };
+      }
+      curArea = finalCovered.size;
+    }
     const closedPoly = [...currentPoly, clonePoint(currentPoly[0])];
     return { polygon: closedPoly, area: curArea, displayArea: computeTriangularPolygonArea(currentPoly) };
+  }
+
+  _getCanonicalTerritoryTransforms(player) {
+    if (this.playerCount === 2) {
+      return player === Player.BLACK
+        ? [BARYCENTRIC_TRANSFORMS.IDENTITY]
+        : [BARYCENTRIC_TRANSFORMS.SWAP_XZ];
+    }
+
+    if (player === Player.BLACK) {
+      return [BARYCENTRIC_TRANSFORMS.IDENTITY, BARYCENTRIC_TRANSFORMS.SWAP_XY];
+    }
+    if (player === Player.WHITE) {
+      return [BARYCENTRIC_TRANSFORMS.SWAP_YZ, BARYCENTRIC_TRANSFORMS.CYCLE_XZY];
+    }
+    return [BARYCENTRIC_TRANSFORMS.CYCLE_XYZ, BARYCENTRIC_TRANSFORMS.SWAP_XZ];
+  }
+
+  _computeCanonicalTerritoryCandidate(player, permutation) {
+    const transform = (point) => applyBarycentricTransform(point, this.gridSize, permutation);
+    const friendlyNodes = this._getPlayerNodes(player).map(transform);
+    const friendlyLines = this._getPlayerLines(player).map(transform);
+    const enemyPoints = this._getOpponents(player).flatMap((opponent) => [
+      ...this._getPlayerNodes(opponent).map(transform),
+      ...this._getPlayerLines(opponent).map(transform),
+    ]);
+    const canonicalTerritory = this._computeRawTerritory(
+      friendlyNodes,
+      friendlyLines,
+      enemyPoints,
+      { requireClosedRegion: true },
+    );
+    const inverse = invertPermutation(permutation);
+    const polygon = canonicalTerritory.polygon
+      ? canonicalTerritory.polygon.map(
+          (point) => applyBarycentricTransform(point, this.gridSize, inverse),
+        )
+      : null;
+    return {
+      canonicalKey: canonicalPolygonKey(canonicalTerritory.polygon),
+      territory: { ...canonicalTerritory, polygon },
+    };
+  }
+
+  /** Public scoring dispatch. v1 is the frozen legacy implementation. v2
+   *  requires an actual boundary cycle and scores every player in a canonical
+   *  base-oriented coordinate view. Three-player scoring minimizes over the
+   *  two transformations in the base stabilizer, giving full D3 equivariance. */
+  _computeTerritory(player) {
+    switch (this.rulesVersion) {
+      case TerritoryRulesVersion.V1:
+        return this._computeRawTerritory(
+          this._getPlayerNodes(player),
+          this._getPlayerLines(player),
+          this._getOpponents(player).flatMap((opponent) => [
+            ...this._getPlayerNodes(opponent),
+            ...this._getPlayerLines(opponent),
+          ]),
+          { initialContour: this._getOuterContour(player) },
+        );
+      case TerritoryRulesVersion.V2:
+        break;
+      default:
+        throw new Error(`Unsupported territory rules version: ${this.rulesVersion}`);
+    }
+
+    const candidates = this._getCanonicalTerritoryTransforms(player)
+      .map((permutation) => this._computeCanonicalTerritoryCandidate(player, permutation));
+    candidates.sort((left, right) => (
+      left.territory.area - right.territory.area
+      || left.canonicalKey.localeCompare(right.canonicalKey)
+    ));
+    return candidates[0].territory;
   }
 
   /** 将当前局面序列化为唯一字符串，用于 Superko 判断。
@@ -1383,6 +1654,7 @@ export class GameEngine {
 
     this.historyHashes.add(stateHash);
     this.turnCount += 1;
+    this.positionRevision += 1;
     this.consecutiveSkips = 0;
     this._switchPlayer();
     this._checkAndAutoSkip();
@@ -1405,6 +1677,7 @@ export class GameEngine {
     }
 
     this.consecutiveSkips += 1;
+    this.positionRevision += 1;
     // The game ends when every active player skips once in a row.
     if (this.consecutiveSkips >= this._getRemainingPlayers().length) {
       this.gameOver = true;
@@ -1413,7 +1686,6 @@ export class GameEngine {
       this._checkAndAutoSkip();
     }
 
-    this._updateTerritories();
     return {
       success: true,
       reason: null,
@@ -1448,6 +1720,7 @@ export class GameEngine {
 
     this.resignedPlayers.add(player);
     this.turnCount += 1;
+    this.positionRevision += 1;
     this.consecutiveSkips = 0;
 
     if (!this._checkResignationFinish() && this.currentPlayer === player) {
@@ -1458,7 +1731,6 @@ export class GameEngine {
       this._checkAndAutoSkip();
     }
 
-    this._updateTerritories();
     return {
       success: true,
       reason: null,
