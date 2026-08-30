@@ -1,0 +1,703 @@
+{
+  "files": [
+    {
+      "category": "reference_implementation",
+      "destination": "research/iclr2027/lifeline_rl/__init__.py",
+      "expected_sha256": "6e40ede87432a3b4258d0f31a9bbe87c92bb668885cc5c020e420c1388f47592",
+      "source": "research/iclr2027/lifeline_rl/__init__.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "research/iclr2027/lifeline_rl/agents/__init__.py",
+      "expected_sha256": "19018efcaba773b02152d92657893745d0a8a0b59684cb5333603e7f6fefe892",
+      "source": "research/iclr2027/lifeline_rl/agents/__init__.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "research/iclr2027/lifeline_rl/agents/base.py",
+      "expected_sha256": "1ddec90c62491f747fdb670d042b60a99f7559487afdfc42e468f16990fd8b6c",
+      "source": "research/iclr2027/lifeline_rl/agents/base.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "research/iclr2027/lifeline_rl/agents/cycle_seeking.py",
+      "expected_sha256": "1a227ccb1cce0bfe1a78dcc99baf6df05f0697fcf9f5fee12841bc3c661e552d",
+      "source": "research/iclr2027/lifeline_rl/agents/cycle_seeking.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "research/iclr2027/lifeline_rl/agents/factory.py",
+      "expected_sha256": "737be45b442b17cf9d76c1f6223ed0c6e0dd059aebeaa3a25793a5f5d7d63481",
+      "source": "research/iclr2027/lifeline_rl/agents/factory.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "research/iclr2027/lifeline_rl/agents/greedy.py",
+      "expected_sha256": "6c7cd96cc96a7c4789ff0f78a08f40ba92ec4a5e7199f125978fd3c3483ba622",
+      "source": "research/iclr2027/lifeline_rl/agents/greedy.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "research/iclr2027/lifeline_rl/agents/heuristic.py",
+      "expected_sha256": "f5a90d1989fa1d2466e9908e905026867fe1b3b9afd8f5027a17f466dc807a0c",
+      "source": "research/iclr2027/lifeline_rl/agents/heuristic.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "research/iclr2027/lifeline_rl/agents/mcts.py",
+      "expected_sha256": "0ab01dae6a796b00c61748a30670c2e6195b14f8edd02152fa1f6ffb4998acaf",
+      "source": "research/iclr2027/lifeline_rl/agents/mcts.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "research/iclr2027/lifeline_rl/agents/minimax.py",
+      "expected_sha256": "4c905517cce420aa6b678975f208c370b02f252e4d39caa07d456ab164babb68",
+      "source": "research/iclr2027/lifeline_rl/agents/minimax.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "research/iclr2027/lifeline_rl/agents/random_agent.py",
+      "expected_sha256": "416b7c94bc8cd989165a18543cefab03810561ae243958a4f42946305d3d628a",
+      "source": "research/iclr2027/lifeline_rl/agents/random_agent.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "research/iclr2027/lifeline_rl/alphazero/__init__.py",
+      "expected_sha256": "9e39d68620b6e914770f94faf3a3a803253530e824d1c50d76cf01e160c1cdea",
+      "source": "research/iclr2027/lifeline_rl/alphazero/__init__.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "research/iclr2027/lifeline_rl/alphazero/checkpoint.py",
+      "expected_sha256": "ae296c577a1f08f1477dd2e2b6dbc699de1757923cf616ba89ae13ce9713a601",
+      "source": "research/iclr2027/lifeline_rl/alphazero/checkpoint.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "research/iclr2027/lifeline_rl/alphazero/config.py",
+      "expected_sha256": "8b7657f77d1ba20f502b888ae52844af799e9dd863daf6c95eeb24c4fd2fd0f3",
+      "source": "research/iclr2027/lifeline_rl/alphazero/config.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "research/iclr2027/lifeline_rl/alphazero/evaluation.py",
+      "expected_sha256": "c2a9e3afaeac0803c15e71d04a86526194f4d84ebc7f68649525b8bb2b07c225",
+      "source": "research/iclr2027/lifeline_rl/alphazero/evaluation.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "research/iclr2027/lifeline_rl/alphazero/learning_health.py",
+      "expected_sha256": "fb65f691aeb50f4f22294f36686a8ba25fe632a6588f19f16bb7b0187798b794",
+      "source": "research/iclr2027/lifeline_rl/alphazero/learning_health.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "research/iclr2027/lifeline_rl/alphazero/network.py",
+      "expected_sha256": "02d92f165ff445aa9e92266933d5ed83fe04c19d3201fcde6803705762c41f09",
+      "source": "research/iclr2027/lifeline_rl/alphazero/network.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "research/iclr2027/lifeline_rl/alphazero/neural_agent.py",
+      "expected_sha256": "b75890109bd7b0a60948a5d63bf5e180048a6100a4e48a08ee1bd850736c200d",
+      "source": "research/iclr2027/lifeline_rl/alphazero/neural_agent.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "research/iclr2027/lifeline_rl/alphazero/puct.py",
+      "expected_sha256": "8609060212d517dd98a5567aabd6e26f016e0524ce392641abcdc5c6e1a3f979",
+      "source": "research/iclr2027/lifeline_rl/alphazero/puct.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "research/iclr2027/lifeline_rl/alphazero/replay.py",
+      "expected_sha256": "c8dcd0cb744daf43715b95a8ce70a613ba03a411a38442a628956d6607c28bdf",
+      "source": "research/iclr2027/lifeline_rl/alphazero/replay.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "research/iclr2027/lifeline_rl/alphazero/self_play.py",
+      "expected_sha256": "b0c910488a7e0cd54f4b06cf222e0626bbd768af25fa8592623f08b98cf56f9a",
+      "source": "research/iclr2027/lifeline_rl/alphazero/self_play.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "research/iclr2027/lifeline_rl/alphazero/trainer.py",
+      "expected_sha256": "d9782ead5b7ef31c40a4ab6d233ecebf08e82f56f599f161b5fd56e75d7b3c54",
+      "source": "research/iclr2027/lifeline_rl/alphazero/trainer.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "research/iclr2027/lifeline_rl/arena.py",
+      "expected_sha256": "a613574baee606c2ed87de9eb0408dc61356b9ee2d41ed7a6f5b099d22ae9599",
+      "source": "research/iclr2027/lifeline_rl/arena.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "research/iclr2027/lifeline_rl/core.py",
+      "expected_sha256": "a3219c931608ab76f466cf5278e6297ddfdf128b19d721a16fab895eb81e05e7",
+      "source": "research/iclr2027/lifeline_rl/core.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "research/iclr2027/lifeline_rl/encoding.py",
+      "expected_sha256": "b9a6a14cb627853936333968c8e931d7622b56ad6f0c48251b5e658d5494c33d",
+      "source": "research/iclr2027/lifeline_rl/encoding.py"
+    },
+    {
+      "category": "reference_implementation",
+      "destination": "research/iclr2027/lifeline_rl/env.py",
+      "expected_sha256": "b6b1d53b49057995a9b37bf1d87fd19fda15c68253fbaf9e2d8c6b032c6da03c",
+      "source": "research/iclr2027/lifeline_rl/env.py"
+    },
+    {
+      "category": "package_config",
+      "destination": "research/iclr2027/pyproject.toml",
+      "expected_sha256": "8e0132397f8f85f7fb608424c835303744bfc5f09e223f4dc6d129a0aa7635a6",
+      "source": "research/iclr2027/pyproject.toml"
+    },
+    {
+      "category": "environment_lock",
+      "destination": "research/iclr2027/requirements-d14-d16-win-cu118.lock.txt",
+      "expected_sha256": "ce828028578a87caa31e7b3b69c0191458546533e21c0e1de6180accdfbb879f",
+      "source": "research/iclr2027/requirements-d14-d16-win-cu118.lock.txt"
+    },
+    {
+      "category": "reproducibility_runner",
+      "destination": "research/iclr2027/scripts/check_reference_parity.py",
+      "expected_sha256": "2e986b3b3f1394c8a862ada264a42143892b4ca2bb342b5a6325ba0aa84c2ef5",
+      "source": "research/iclr2027/scripts/check_reference_parity.py"
+    },
+    {
+      "category": "reproducibility_runner",
+      "destination": "research/iclr2027/scripts/search_state_aliasing.py",
+      "expected_sha256": "f6e1bf1e641a4972dfd029104452582d70b3255d8d6d804c3bee28f2d17df94f",
+      "source": "research/iclr2027/scripts/search_state_aliasing.py"
+    },
+    {
+      "category": "reproducibility_runner",
+      "destination": "research/iclr2027/scripts/validate_or_search_superko.py",
+      "expected_sha256": "edb95d30f2bda58f2cb87d21b728854690fc4e49e71ce002a2f2bcd89e5199c8",
+      "source": "research/iclr2027/scripts/validate_or_search_superko.py"
+    },
+    {
+      "category": "reproducibility_runner",
+      "destination": "research/iclr2027/scripts/d6_redteam_exact_audit.py",
+      "expected_sha256": "66d44b914c1d9d33a41bcf16f9329be9342ac4773b95d2f81ebfedf84b9b18d0",
+      "source": "research/iclr2027/scripts/d6_redteam_exact_audit.py"
+    },
+    {
+      "category": "reproducibility_runner",
+      "destination": "research/iclr2027/scripts/run_superko_ablation.py",
+      "expected_sha256": "38fd1d436f7ab9c416bd540c09969bc99646bc16a051d292d855e02916ac162f",
+      "source": "research/iclr2027/scripts/run_superko_ablation.py"
+    },
+    {
+      "category": "reproducibility_runner",
+      "destination": "research/iclr2027/scripts/run_superko_policy_matrix.py",
+      "expected_sha256": "249ce4e63ba511d2d7cd29ba89c0b4f6dd91375cc175a4ef7cc45da56292eed4",
+      "source": "research/iclr2027/scripts/run_superko_policy_matrix.py"
+    },
+    {
+      "category": "reproducibility_runner",
+      "destination": "research/iclr2027/scripts/verify_superko_policy_matrix.py",
+      "expected_sha256": "0c7bb0fe56a4c1e65115633e608e5b59ab100bc792c5d467373d43193a58c1e2",
+      "source": "research/iclr2027/scripts/verify_superko_policy_matrix.py"
+    },
+    {
+      "category": "reproducibility_runner",
+      "destination": "research/iclr2027/scripts/d14_d16_experiments.py",
+      "expected_sha256": "1b4ca0a7f9115df4b4ecf95fa326425ce77caf6cf57e6a12c26625e279d2145d",
+      "source": "research/iclr2027/scripts/d14_d16_experiments.py"
+    },
+    {
+      "category": "reproducibility_runner",
+      "destination": "research/iclr2027/scripts/run_d14_d16_task_bundle.py",
+      "expected_sha256": "55c077c3fe08f7d3527be3950fb4e70b54a743130acaa911da8949f37ec59937",
+      "source": "research/iclr2027/scripts/run_d14_d16_task_bundle.py"
+    },
+    {
+      "category": "reproducibility_runner",
+      "destination": "research/iclr2027/scripts/train_alphazero.py",
+      "expected_sha256": "4fccf4addf91b8a9a517e94896e294b6b3917f7dc893c234222fe7898dddcb26",
+      "source": "research/iclr2027/scripts/train_alphazero.py"
+    },
+    {
+      "category": "reproducibility_runner",
+      "destination": "research/iclr2027/scripts/verify_d14_d16_environment.py",
+      "expected_sha256": "47ebb60139b5ff8545bea875ecaae3b87acf5ba0bc3c471d109ecb3c89bf2050",
+      "source": "research/iclr2027/scripts/verify_d14_d16_environment.py"
+    },
+    {
+      "category": "reproducibility_runner",
+      "destination": "research/iclr2027/scripts/run_neural_arena.py",
+      "expected_sha256": "1d82c61b8fa60f06c3006dea7b7ca1cb5dfa240f6c66e2535668da4144e3c2f5",
+      "source": "research/iclr2027/scripts/run_neural_arena.py"
+    },
+    {
+      "category": "reproducibility_runner",
+      "destination": "research/iclr2027/scripts/verify_neural_arena_results.py",
+      "expected_sha256": "f587beccf5800c18c691b6f34e689e27903a56814b11e9bf1cf5acd822b03e38",
+      "source": "research/iclr2027/scripts/verify_neural_arena_results.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "research/iclr2027/tests/__init__.py",
+      "expected_sha256": "e92117063636447c87b1f1b232faff3ed86c1bdb141d5989b948d6b260d541b6",
+      "source": "research/iclr2027/tests/__init__.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "research/iclr2027/tests/test_agents.py",
+      "expected_sha256": "cda817a1d4d5e21dcaf10c03c1b7ba4e564cd18e047896257cb5777424c0e7cb",
+      "source": "research/iclr2027/tests/test_agents.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "research/iclr2027/tests/test_arena.py",
+      "expected_sha256": "6d44210e9c7cc1452d7b591059a6bb6e6c957e92ac137a72b87bab1cc6f85388",
+      "source": "research/iclr2027/tests/test_arena.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "research/iclr2027/tests/test_core.py",
+      "expected_sha256": "8c43d5b4eb96ffdb7319fe5545ecd3eeadaeebc0b08681068a2b2e23fcefec11",
+      "source": "research/iclr2027/tests/test_core.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "research/iclr2027/tests/test_cycle_seeking_agent.py",
+      "expected_sha256": "631358f9ee62cdc1adb380fea3b1ab0bd968b304aa56bbef7d37c1ae41b206c9",
+      "source": "research/iclr2027/tests/test_cycle_seeking_agent.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "research/iclr2027/tests/test_env.py",
+      "expected_sha256": "89e1ac59b4660d1caf8a9e00a6cf68d5b9d2e908d187a827a3b4a2feb785e4bd",
+      "source": "research/iclr2027/tests/test_env.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "research/iclr2027/tests/test_serialization.py",
+      "expected_sha256": "68221c20b3d1fab2bc4af897d13ebc42fa0e2b505d00afed2b697731d54f4d4f",
+      "source": "research/iclr2027/tests/test_serialization.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "research/iclr2027/tests/test_validation.py",
+      "expected_sha256": "1e403cb1fd15c1510a75a720235f1bfec43aebad7818d87e9c54c40b0dc4cd1d",
+      "source": "research/iclr2027/tests/test_validation.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "research/iclr2027/tests/test_search_baselines.py",
+      "expected_sha256": "d409928cb9877d85e751637ab5b497128418bde4d8b453ba0683b7c52a2504df",
+      "source": "research/iclr2027/tests/test_search_baselines.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "research/iclr2027/tests/test_d6_aliasing.py",
+      "expected_sha256": "03308146eb2a35ac530b7b595f2e46be8f677e0cfa5d231ab52a34666ab1306a",
+      "source": "research/iclr2027/tests/test_d6_aliasing.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "research/iclr2027/tests/test_alphazero_checkpoint.py",
+      "expected_sha256": "240cf1d201156e8a082bbd09c079cd09c980669ad7e083a41856370a33df0cdb",
+      "source": "research/iclr2027/tests/test_alphazero_checkpoint.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "research/iclr2027/tests/test_alphazero_config.py",
+      "expected_sha256": "9596c978cfb8f8309eec6d17a42b8a03261c5f7acd2efa61bf5ff0f7c3411cf6",
+      "source": "research/iclr2027/tests/test_alphazero_config.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "research/iclr2027/tests/test_alphazero_evaluation.py",
+      "expected_sha256": "b89d1aad3df494a6c854502b9e017c0dce7f2dd45695e58bd0747b0baca05a99",
+      "source": "research/iclr2027/tests/test_alphazero_evaluation.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "research/iclr2027/tests/test_alphazero_learning_health.py",
+      "expected_sha256": "602f17c547ffe324df9d8af287585e26d543a6d5bf97edeab604988e802a7dfe",
+      "source": "research/iclr2027/tests/test_alphazero_learning_health.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "research/iclr2027/tests/test_alphazero_model_families.py",
+      "expected_sha256": "efbc5009666fb71e9d261a27599eeb4eae0cef6a142aee6cbee417804a9ab8e8",
+      "source": "research/iclr2027/tests/test_alphazero_model_families.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "research/iclr2027/tests/test_alphazero_network.py",
+      "expected_sha256": "5c5a2d9f79a4ea2a049444ae76592a2abed1703271fd0b884d77f5ff1ff4f126",
+      "source": "research/iclr2027/tests/test_alphazero_network.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "research/iclr2027/tests/test_alphazero_neural_agent.py",
+      "expected_sha256": "8e62415fc95bbe52854006c3d8071eef4e97872cf465a7443fe8c3ceda592f84",
+      "source": "research/iclr2027/tests/test_alphazero_neural_agent.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "research/iclr2027/tests/test_alphazero_puct.py",
+      "expected_sha256": "4061b565c68ff8e44d00d3d3c4966b1bafa4ab5e191f7210d1f5248c9a54c89f",
+      "source": "research/iclr2027/tests/test_alphazero_puct.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "research/iclr2027/tests/test_alphazero_replay.py",
+      "expected_sha256": "2e85c0a58b06101c98627bb50e16f523cdd13f197aac87fd31c4ca00cbdd9c3d",
+      "source": "research/iclr2027/tests/test_alphazero_replay.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "research/iclr2027/tests/test_alphazero_self_play.py",
+      "expected_sha256": "8d3ff70267cf50706e6f7d252877d613972046aa95096aca2ec70a570fd76685",
+      "source": "research/iclr2027/tests/test_alphazero_self_play.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "research/iclr2027/tests/test_alphazero_trainer.py",
+      "expected_sha256": "9af5437cbc71d1be0515407c75cc097386d6170cbddb9f30f77fc49f531ebad8",
+      "source": "research/iclr2027/tests/test_alphazero_trainer.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "research/iclr2027/tests/test_d14_d16_executor.py",
+      "expected_sha256": "fb629544fa8b547096326a470bf772f15d9ad4e4782f08bc1cf8867275697021",
+      "source": "research/iclr2027/tests/test_d14_d16_executor.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "research/iclr2027/tests/test_d14_d16_experiment_protocol.py",
+      "expected_sha256": "f289fb33fbeb387b2571cce6819d5a55128852c752907a8d5cc907473f97c6c8",
+      "source": "research/iclr2027/tests/test_d14_d16_experiment_protocol.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "research/iclr2027/tests/test_superko_ablation.py",
+      "expected_sha256": "1d0e83a929ecaaa45a441fc1d9c5a4e772c0abd755446092031c22ee241e3a16",
+      "source": "research/iclr2027/tests/test_superko_ablation.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "research/iclr2027/tests/test_superko_pilot.py",
+      "expected_sha256": "0f4243d23903cb8b972aa0ec92a9a3ea902f0c578146c84dbd2e8fb8173c70ee",
+      "source": "research/iclr2027/tests/test_superko_pilot.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "research/iclr2027/tests/test_superko_policy_matrix.py",
+      "expected_sha256": "d19458ad7d87c2365b7e84fd0eb097481c7a599e2322a259631fe7ececc3b7aa",
+      "source": "research/iclr2027/tests/test_superko_policy_matrix.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "research/iclr2027/tests/test_verify_superko_policy_matrix.py",
+      "expected_sha256": "c2489f9d7786fcd6d698a0681c80d88656ede96306c96f83f9b40bdde70f30e0",
+      "source": "research/iclr2027/tests/test_verify_superko_policy_matrix.py"
+    },
+    {
+      "category": "test_fixture",
+      "destination": "research/iclr2027/tests/fixtures/aliasing_pair.json",
+      "expected_sha256": "9551679f8b02eba12c9402792210ffe32f4fefb004a5de1d72ab72b375f02b4b",
+      "source": "research/iclr2027/tests/fixtures/aliasing_pair.json"
+    },
+    {
+      "category": "claim_evidence_narrative",
+      "destination": "research/iclr2027/D2_environment_status.md",
+      "expected_sha256": "5593c6241f4833ecd76fe63b96907bd2bef75c1b80610396af09eec54898df30",
+      "source": "research/iclr2027/D2_environment_status.md"
+    },
+    {
+      "category": "claim_evidence_narrative",
+      "destination": "research/iclr2027/D4_D5_validation_report.md",
+      "expected_sha256": "370e4e810836fb4c807c173bca53b160c553ec2bc1433674954d193b80294237",
+      "source": "research/iclr2027/D4_D5_validation_report.md"
+    },
+    {
+      "category": "claim_evidence_narrative",
+      "destination": "research/iclr2027/D6_state_aliasing.md",
+      "expected_sha256": "1b88941ad0919e3845600bfd541bd879d15aae8cea7526c08d5a15944c6dc275",
+      "source": "research/iclr2027/D6_state_aliasing.md"
+    },
+    {
+      "category": "claim_evidence_narrative",
+      "destination": "research/iclr2027/d6_redteam_audit.md",
+      "expected_sha256": "a1a1420c7921c4507b52da408ca0b5094b9c1124d09b803113ffd91ed2537125",
+      "source": "research/iclr2027/d6_redteam_audit.md"
+    },
+    {
+      "category": "claim_evidence_narrative",
+      "destination": "research/iclr2027/D14_D16_RESULTS.md",
+      "expected_sha256": "2306adffaf32b52cce50037b1ff96edf866d1609a3fac2344aebc3c6a9d26ebe",
+      "source": "research/iclr2027/D14_D16_RESULTS.md"
+    },
+    {
+      "category": "claim_evidence_narrative",
+      "destination": "research/iclr2027/SUPERKO_ABLATION_PROTOCOL.md",
+      "expected_sha256": "1d5c5484dc77eeae614184f7889b5fbe10de259f2f19be662b0a4902830bd845",
+      "source": "research/iclr2027/SUPERKO_ABLATION_PROTOCOL.md"
+    },
+    {
+      "category": "claim_evidence_narrative",
+      "destination": "research/iclr2027/SUPERKO_ABLATION_RESULTS.md",
+      "expected_sha256": "4dac096a6557de378e24def42cf5bdcf4c9cbe3dc905c4cb9cbf615c776b5146",
+      "source": "research/iclr2027/SUPERKO_ABLATION_RESULTS.md"
+    },
+    {
+      "category": "claim_evidence_narrative",
+      "destination": "research/iclr2027/SUPERKO_POLICY_MATRIX_PROTOCOL.md",
+      "expected_sha256": "e3cd42c3574c5633b0a20955f00617bbb8403148df770141e53805b46054e026",
+      "source": "research/iclr2027/SUPERKO_POLICY_MATRIX_PROTOCOL.md"
+    },
+    {
+      "category": "claim_evidence_narrative",
+      "destination": "research/iclr2027/SUPERKO_POLICY_MATRIX_RESULTS.md",
+      "expected_sha256": "8d54ca1c5f139583516d582720fe2757ae9c45255659074d619f57edcb7daca3",
+      "source": "research/iclr2027/SUPERKO_POLICY_MATRIX_RESULTS.md"
+    },
+    {
+      "category": "validation_evidence",
+      "destination": "research/iclr2027/d6_redteam_exact_audit.json",
+      "expected_sha256": "e3fb3adc6cf2610e645663fc5122e9b6383344a954fc74cf33b2e2659ff97b34",
+      "source": "research/iclr2027/d6_redteam_exact_audit.json"
+    },
+    {
+      "category": "validation_evidence",
+      "destination": "research/iclr2027/state_aliasing/pairs_v1.json",
+      "expected_sha256": "204068e8565097d1456cbd748ce4a3716e3e8ac9907523e9530850f7d40a2174",
+      "source": "research/iclr2027/state_aliasing/pairs_v1.json"
+    },
+    {
+      "category": "validation_evidence",
+      "destination": "research/iclr2027/state_aliasing/search_report_v1.json",
+      "expected_sha256": "e4ea56cc3d59faa385b44bf6112a06eb0005839bb837c3d266dd27a384903e34",
+      "source": "research/iclr2027/state_aliasing/search_report_v1.json"
+    },
+    {
+      "category": "validation_evidence",
+      "destination": "research/iclr2027/state_aliasing/superko_n6_witness_v1.json",
+      "expected_sha256": "a2916486d2a9c4738b1b8a01f72a91a689f968e20d1b6673b5e4f05a15927155",
+      "source": "research/iclr2027/state_aliasing/superko_n6_witness_v1.json"
+    },
+    {
+      "category": "validation_evidence",
+      "destination": "research/iclr2027/results/validation/d6_random_n5_final.json",
+      "expected_sha256": "a03f3243aaea3dae5b87c25285814b46a0ae7d85857e28e761cade57aaa2b56a",
+      "source": "research/iclr2027/results/validation/d6_random_n5_final.json"
+    },
+    {
+      "category": "validation_evidence",
+      "destination": "research/iclr2027/results/validation/d6_random_n6_final.json",
+      "expected_sha256": "ac5c6f46ad3f33aa2bdb8dff9c67fd9e9afcf86f038bacf911d97e8ea425e788",
+      "source": "research/iclr2027/results/validation/d6_random_n6_final.json"
+    },
+    {
+      "category": "validation_evidence",
+      "destination": "research/iclr2027/results/validation/superko_exhaustive_n5_20260825.json",
+      "expected_sha256": "5918b039f7def6b200a256e0894daad343d2dbe6fcccf5679fc79b5a778b6de8",
+      "source": "research/iclr2027/results/validation/superko_exhaustive_n5_20260825.json"
+    },
+    {
+      "category": "validation_evidence",
+      "destination": "research/iclr2027/results/validation/superko_random_n6_seed20260826.json",
+      "expected_sha256": "efb6bf27d35e8894d9f8c749c8c86765cbcf957060b55aa8456c006051a84ca0",
+      "source": "research/iclr2027/results/validation/superko_random_n6_seed20260826.json"
+    },
+    {
+      "category": "validation_evidence",
+      "destination": "research/iclr2027/results/validation/superko_random_n7_seed20260826.json",
+      "expected_sha256": "a3fe7a94f508da8931126c8842ddc425acb90079c3b918d91cf62e1f08a20db0",
+      "source": "research/iclr2027/results/validation/superko_random_n7_seed20260826.json"
+    },
+    {
+      "category": "validation_evidence",
+      "destination": "research/iclr2027/results/validation/superko_policy_matrix_attempt2_link.json",
+      "expected_sha256": "02888c872bb438963745e07ee8a97ad98bc9677b9988b327a025da901718e381",
+      "source": "research/iclr2027/results/validation/superko_policy_matrix_attempt2_link.json"
+    },
+    {
+      "category": "frozen_config",
+      "destination": "research/iclr2027/configs/d14_d16_formal_manifest.json",
+      "expected_sha256": "9439c3b9b52ed13a8c489969dfbafddd59e75af2579274b7275258b693d8782f",
+      "source": "research/iclr2027/configs/d14_d16_formal_manifest.json"
+    },
+    {
+      "category": "frozen_config",
+      "destination": "research/iclr2027/configs/d14_d16_parameter_counts.json",
+      "expected_sha256": "4b55c2e45f27dec83b1cc51a03674232eaab693a63dbef38cf9f85c4c725cef9",
+      "source": "research/iclr2027/configs/d14_d16_parameter_counts.json"
+    },
+    {
+      "category": "frozen_config",
+      "destination": "research/iclr2027/configs/seed_registry.json",
+      "expected_sha256": "afaf0d6f17f0aaffaa1480dacec824a23deb937748a3cba9c5182926fde12247",
+      "source": "research/iclr2027/configs/seed_registry.json"
+    },
+    {
+      "category": "independent_audit_receipt",
+      "destination": "research/iclr2027/results/validation/d14_d16_independent_receipt_audit_20260831.json",
+      "expected_sha256": "f64c8de1a2fca86cf7681a855edfb244033b318e65e14b2add64ede27e4ef648",
+      "source": "research/iclr2027/results/validation/d14_d16_independent_receipt_audit_20260831.json"
+    },
+    {
+      "category": "independent_audit_runner",
+      "destination": "research/iclr2027/reviews/independent_receipt_audit.py",
+      "expected_sha256": "09b91f43c9feaf3f23d29b36328276800689c3c7581da5c554fce8497a02924e",
+      "source": "research/iclr2027/reviews/independent_receipt_audit.py"
+    },
+    {
+      "category": "descriptive_audit_runner",
+      "destination": "research/iclr2027/reviews/d14_d16_seed_pair_descriptive_audit.py",
+      "expected_sha256": "ce000497b7600972cd1aceed17a008e2c349d1d09493cf75a27dd619f65153d9",
+      "source": "research/iclr2027/reviews/d14_d16_seed_pair_descriptive_audit.py"
+    },
+    {
+      "category": "descriptive_only_no_inference",
+      "destination": "research/iclr2027/reviews/d14_d16_seed_pair_descriptive_audit.json",
+      "expected_sha256": "e8dbb1cbafc15de0c7b2879ca3697e8f21f3f8c6d84354715b75a5f4d078c7cd",
+      "source": "research/iclr2027/reviews/d14_d16_seed_pair_descriptive_audit.json"
+    },
+    {
+      "category": "descriptive_only_no_inference",
+      "destination": "research/iclr2027/reviews/d14_d16_seed_pair_descriptive_audit.md",
+      "expected_sha256": "73aab2c79c19402651170939c11819cbaf69a76d59af0d33ab82c9ec2202188f",
+      "source": "research/iclr2027/reviews/d14_d16_seed_pair_descriptive_audit.md"
+    },
+    {
+      "category": "formal_aggregate",
+      "destination": "research/iclr2027/results/formal/d14_d16/aggregate_v1/aggregate.json",
+      "expected_sha256": "59c264fc65d7b11357b0d718d38371df1ba44be4b92e7ef41ff995bf088f501c",
+      "source": "research/iclr2027/results/formal/d14_d16/aggregate_v1/aggregate.json"
+    },
+    {
+      "category": "formal_aggregate",
+      "destination": "research/iclr2027/results/formal/d14_d16/aggregate_v1/arena_learning_curve.csv",
+      "expected_sha256": "40f531f0f974f75cf8921499d209eb529bc2f99308390f8ce753f63047f5b616",
+      "source": "research/iclr2027/results/formal/d14_d16/aggregate_v1/arena_learning_curve.csv"
+    },
+    {
+      "category": "formal_aggregate",
+      "destination": "research/iclr2027/results/formal/d14_d16/aggregate_v1/final_vs_search.csv",
+      "expected_sha256": "8fdcba541d8c62b9697be5bd17f512c76976e0acb4d1a6a3f8c785d3959b0fa8",
+      "source": "research/iclr2027/results/formal/d14_d16/aggregate_v1/final_vs_search.csv"
+    },
+    {
+      "category": "formal_aggregate",
+      "destination": "research/iclr2027/results/formal/d14_d16/aggregate_v1/representation_round_robin.csv",
+      "expected_sha256": "b06659670c5bd199fcbefaa808398859ff220a4ce60cae9ddd47d04fa4f25fff",
+      "source": "research/iclr2027/results/formal/d14_d16/aggregate_v1/representation_round_robin.csv"
+    },
+    {
+      "category": "formal_aggregate",
+      "destination": "research/iclr2027/results/formal/d14_d16/aggregate_v1/training_curve.csv",
+      "expected_sha256": "af96f5a9cfb5fc1f343953d1ad2b1bbabff96f078f002e4ee2e57dc048b4fae0",
+      "source": "research/iclr2027/results/formal/d14_d16/aggregate_v1/training_curve.csv"
+    },
+    {
+      "category": "formal_task_definition",
+      "destination": "research/iclr2027/results/formal/d14_d16/task_bundle_v1/training_tasks.jsonl",
+      "expected_sha256": "1457459c6fc910a4d083a0a9a24287c15805dfbaa881b71b3ee28ee96bca95e7",
+      "source": "research/iclr2027/results/formal/d14_d16/task_bundle_v1/training_tasks.jsonl"
+    },
+    {
+      "category": "formal_task_definition",
+      "destination": "research/iclr2027/results/formal/d14_d16/task_bundle_v1/evaluation_tasks.jsonl",
+      "expected_sha256": "34929f8006605fc011f91394dd95402607540e8f4d06b12711464338bea1455c",
+      "source": "research/iclr2027/results/formal/d14_d16/task_bundle_v1/evaluation_tasks.jsonl"
+    },
+    {
+      "category": "formal_task_definition",
+      "destination": "research/iclr2027/results/formal/d14_d16/task_bundle_v1/manifest_snapshot.json",
+      "expected_sha256": "9439c3b9b52ed13a8c489969dfbafddd59e75af2579274b7275258b693d8782f",
+      "source": "research/iclr2027/results/formal/d14_d16/task_bundle_v1/manifest_snapshot.json"
+    },
+    {
+      "category": "engineering_test_config",
+      "destination": "research/iclr2027/configs/d14_d16_executor_smoke_manifest.json",
+      "expected_sha256": "04b5a06902859e5ac51212a84998c2c1dbd271f16ac9d711056b2a8e2b23a4fb",
+      "source": "research/iclr2027/configs/d14_d16_executor_smoke_manifest.json"
+    },
+    {
+      "category": "reproducibility_runner",
+      "destination": "research/iclr2027/scripts/reference_trace.mjs",
+      "expected_sha256": "952ec6713e66d50c9254113997ad3682883a963622c60c0077fc16f9a97808c1",
+      "source": "research/iclr2027/supplement_tools/derived_claim_complete/reference_trace.mjs"
+    },
+    {
+      "category": "independent_reference",
+      "destination": "web/GameEngine.js",
+      "expected_sha256": "48317759e700df1fceff97651bc1ba10ef07fa43eeddf081473b0c02aa03b173",
+      "source": "research/iclr2027/supplement_tools/derived_claim_complete/GameEngine.js"
+    },
+    {
+      "category": "admitted_claim_ledger",
+      "destination": "research/iclr2027/CLAIM_EVIDENCE_LIMITATION.admitted.json",
+      "expected_sha256": "75a3a3fd7f60486942e3654f50d8e1d68c87c971397a1ed7c863fa804a472f60",
+      "source": "research/iclr2027/supplement_tools/derived_claim_complete/CLAIM_EVIDENCE_LIMITATION.admitted.json"
+    },
+    {
+      "category": "frozen_protocol_derivative",
+      "destination": "research/iclr2027/D14_D16_EXPERIMENT_PROTOCOL.anonymized.md",
+      "expected_sha256": "382606f87e77ef317dc84561314eeeaf0b11e89af48caace22f8894b3a8b922e",
+      "source": "research/iclr2027/supplement_tools/derived_claim_complete/D14_D16_EXPERIMENT_PROTOCOL.anonymized.md"
+    },
+    {
+      "category": "compact_receipt_ledger",
+      "destination": "research/iclr2027/results/compact/d14_d16/d14_d16_compact_receipts.jsonl",
+      "expected_sha256": "f6276b30a3078ec95ebed100da57ff5c62c3e8b6e5f94cb6d9b19dee7bdff0db",
+      "source": "research/iclr2027/supplement_tools/derived_claim_complete/d14_d16_compact_receipts.jsonl"
+    },
+    {
+      "category": "compact_receipt_status",
+      "destination": "research/iclr2027/results/compact/d14_d16/d14_d16_ledger_status.anonymized.json",
+      "expected_sha256": "33f33013627917c39729b43d2d5bab76258043a0f1b9fd51690a8319237cc45d",
+      "source": "research/iclr2027/supplement_tools/derived_claim_complete/d14_d16_ledger_status.anonymized.json"
+    },
+    {
+      "category": "frozen_config_derivative",
+      "destination": "research/iclr2027/configs/superko_policy_matrix_v1_attempt2.anonymized.json",
+      "expected_sha256": "b6f587ad83578c94ce1a01365c1b05c9ed549e20fbcb91052ff4aaa945ae386d",
+      "source": "research/iclr2027/supplement_tools/derived_claim_complete/superko_policy_matrix_v1_attempt2.anonymized.json"
+    },
+    {
+      "category": "verifier_receipt_derivative",
+      "destination": "research/iclr2027/results/validation/superko_policy_matrix_attempt2_verification.anonymized.json",
+      "expected_sha256": "839931a8d23a5cce3ef645acfd1cb6ec128b99d7fc14171939b2af3f6bc97075",
+      "source": "research/iclr2027/supplement_tools/derived_claim_complete/superko_policy_matrix_attempt2_verification.anonymized.json"
+    },
+    {
+      "category": "environment_receipt_derivative",
+      "destination": "research/iclr2027/results/validation/d14_d16_environment_verification.anonymized.json",
+      "expected_sha256": "9f3b5f13c94d33e17a1cfd2d0920c17c8e49c7713eb9563a1454d085dcfda96d",
+      "source": "research/iclr2027/supplement_tools/derived_claim_complete/d14_d16_environment_verification.anonymized.json"
+    },
+    {
+      "category": "claim_boundary_derivative",
+      "destination": "research/iclr2027/D14_D16_TERMINOLOGY_ERRATUM.anonymized.md",
+      "expected_sha256": "62a54dea7efe73f0bacfa151fe68a5a92cef817020ab59ff2328f3a8b72eeed0",
+      "source": "research/iclr2027/supplement_tools/derived_claim_complete/D14_D16_TERMINOLOGY_ERRATUM.anonymized.md"
+    },
+    {
+      "category": "transformation_receipt",
+      "destination": "research/iclr2027/results/validation/ANONYMIZATION_DERIVATION.json",
+      "expected_sha256": "c1baf867fac7a5add4efd2be0b1c8843d8d9e5fa105c870ccffa55c9884bef46",
+      "source": "research/iclr2027/supplement_tools/derived_claim_complete/ANONYMIZATION_DERIVATION.json"
+    }
+  ],
+  "limits": {
+    "max_file_bytes": 1048576,
+    "max_total_bytes": 8388608
+  },
+  "package_name": "lifeline_rl_claim_complete_candidate",
+  "purpose": "anonymous C1-C10 code, protocol, aggregate, and verifier review candidate",
+  "require_git_tracked": false,
+  "schema_version": 1,
+  "status": "candidate_only_not_approved"
+}
