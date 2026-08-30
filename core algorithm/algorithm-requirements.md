@@ -1,6 +1,6 @@
 # 三角网格圈地博弈游戏 — 核心算法需求文档（重构版）
 
-> **版本说明**：本文档基于"双层架构重构"后的最终实现，全面替换旧版几何射线法文档。
+> **适用范围**：本文档描述 `core algorithm/triangular_game.py` 的固定 9×9、双人 Python/Pygame legacy 实现。它属于 v1 lineage，但因最短路截断与枚举顺序不同，不是 Web `territory-v1` 的逐状态一致规范，也不实现 Web `territory-v2`。
 
 ---
 
@@ -165,19 +165,19 @@
 每轮循环中：
 
 1. **当前基准**：记录 `cur_perim = len(current_poly)`，调用泛洪法得到 `cur_area = len(_get_covered_points(current_poly))`。
-2. **遍历锚点对**：正序枚举起点 `i`，倒序枚举终点 `j`（`j > i+1`），调用 `_get_all_shortest_grid_paths(poly[i], poly[j], enemies)` 获取所有等长最短格点路径（上限 100 条，避开所有敌方点）。
+2. **最短路预计算与重建**：每轮先从各轮廓锚点执行一次内部 `bfs_from_source`，缓存距离与前驱；随后正序枚举起点 `i`、倒序枚举终点 `j`（`j > i+1`），仅对比原弧更短的端点对调用内部 `reconstruct_paths(..., limit=100)`，重建避开敌方点的等长最短格点路径。
 3. **生成双向候选**：对每条 `path`，生成两个候选多边形：
    - **方案 A（替换内弧）**：`poly[:i] + path + poly[j+1:]`
    - **方案 B（替换外弧）**：`poly[i:j+1] + path[::-1][1:-1]`
 4. **去除相邻重复顶点**（防止周长虚增）。
-5. **独立校验**（每个候选独立参加）：
-   - **周长筛选**：`cand_perim <= best_cand_perim`，否则直接淘汰。
-   - **泛洪法计算覆盖领土**：`covered = _get_covered_points(cand)`，`cand_area = len(covered)`。
-   - **面积筛选**：若周长相等但 `cand_area >= best_cand_area`，淘汰。
-   - **核心资产保护**：`friendly_nodes.issubset(covered)`（所有节点必须在领土内，允许丢弃冗余线点）。
-   - **避障测试**：`not any(e in covered for e in enemies)`（领土内不得包含任何敌方点）。
+5. **分支校验**：
+   - **共同筛选**：候选周长不得超过当前最优值；周长相等时，候选面积必须更小。
+   - **向内路径**：先对切下的 `wedge` 泛洪一次。方案 A 的面积由当前面积、`wedge_area` 与路径长度代数估算，并检查被切区域中的己方节点是否落在替代路径上；方案 B 直接复用 `wedge_covered`，完整检查己方节点保留与敌方排除。方案 A 不会再次独立泛洪。
+   - **向外路径**：方案 A、B 各自执行泛洪，并分别检查面积、己方节点保留与敌方排除。
 6. **全局最优追踪**：通过全轮遍历后取最优候选（优先周长最短，次之领土点数最少），更新 `current_poly`。
 7. **收敛判断**：若本轮无任何候选通过，退出循环。
+
+> **实现限制**：当前 Pygame 调用最多重建 100 条等长最短路；结果可能受路径枚举顺序影响。该实现没有 v2 的真实闭环校验、双向候选全量精确验证或玩家基角/D3 规范化，因此不能用作 Web v2 的交叉验证器。
 
 ---
 
@@ -225,36 +225,26 @@
 | **网格物理层** | 所有非空格点的 `(x, y, state.value)` | 按 `(x, y)` 升序排列 |
 | **逻辑拓扑层（蓝方）** | `black_edges` 中每条边 | 每条边端点排序为 `(min, max)`，整体升序 |
 | **逻辑拓扑层（红方）** | `white_edges` 中每条边 | 同上 |
-| **即将行棋方** | 落子结算后下一手玩家 | `next_player.value` |
+| **即将行棋方** | 落子结算后下一手玩家 | `next_player.name` |
 
-最终对上述四元组的 `repr()` 字符串执行 **SHA-256** 哈希，返回十六进制摘要字符串。
+当前实现把上述内容组成规范化 payload，并用固定分隔符输出确定性 JSON 字符串。这里的“哈希”是历史局面键的沿用名称，并未再执行 SHA-256。
 
 > **关键**：哈希中包含"即将行棋方"，因此同一棋盘布局但不同行棋方会得到不同哈希，与围棋超劫规则语义一致。
 
 ### 7.4 落子拦截流程
 
-在核心落子方法（`_add_node` / `add_node`）中，每次落子按如下顺序执行：
+当前 Pygame 入口在 `handle_click` 中负责 Superko 快照与回滚；`_add_node` 只执行规则结算，并明确由调用方检查 Superko：
 
-1. **前置规则校验**（保护区、三点限制等），不通过则直接返回失败，不做快照。
-2. **快照**：保存 `grid`、`black_edges`、`white_edges` 的深拷贝。
-3. **执行完整结算**：落子、自动连线、攻击结算（四步流水线）。
-4. **计算哈希**：以对手为 `next_player` 调用 `_compute_state_hash`。
-5. **比对**：
-   - 若哈希 **已存在** 于 `history_hashes` → **从快照恢复**所有状态，抛出 `SuperkoViolationError`，棋盘不发生任何变化。
-   - 若哈希 **不存在** → 将哈希写入 `history_hashes`，返回成功。
+1. **快照**：点击映射到有效格点后，`handle_click` 立即保存 `grid`、`black_edges`、`white_edges` 的副本。
+2. **规则校验与结算**：调用 `_add_node`；它先检查保护区、三点限制等规则，通过后再执行落子、自动连线和攻击结算。失败则不进入历史键检查。
+3. **计算历史键**：仅在 `_add_node` 成功后，以对手为 `next_player` 调用 `_compute_state_hash`。
+4. **比对**：
+   - 若哈希 **已存在** 于 `history_hashes` → **从快照恢复**所有状态并把本次操作标记为失败，棋盘不发生任何变化。
+   - 若哈希 **不存在** → 将哈希写入 `history_hashes`，接受该手并继续切换玩家、自动跳过检查与领土更新。
 
-### 7.5 API 层处理
+### 7.5 实现边界
 
-FastAPI 路由 `POST /{game_id}/move` 在调用 `add_node` 时捕获 `SuperkoViolationError`，返回正常 HTTP 200 响应，但 `message` 字段以 `"SUPERKO_VIOLATION:"` 为前缀：
-
-```json
-{
-  "message": "SUPERKO_VIOLATION: 落子 (x, y) 触发全局同形再现禁手，该手被拒绝。",
-  ...
-}
-```
-
-前端通过 `message.startsWith("SUPERKO_VIOLATION:")` 识别该类拒绝，作为非法落子处理，无需额外 HTTP 状态码区分。
+本节描述的是 Pygame 的本地调用链，不对应当前 Web 主线 API。当前 Web 由浏览器端 `GameEngine.js` 判定 Superko，`web/web后端/server.py` 只同步房间设置和动作；仓库中的历史/实验性规则 API 不应作为当前部署行为的依据。
 
 ---
 

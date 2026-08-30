@@ -97,6 +97,17 @@ python ".\core algorithm\AI\test_ai_headless.py"
 
 由己方节点和连线闭合、且内部没有敌方元素的区域视为领土。玩家无合法走法时会自动跳过；所有仍在场玩家连续跳过后对局结束，领土最多者获胜。
 
+Web 规则显式区分两个版本：
+
+| 范围 | 规则版本与边界 |
+|---|---|
+| Web 页面与新建房间 | 默认 `territory-v2`；拒绝折返线等非真实闭环，并用玩家出生点规范坐标保证双人镜像、三人 D3 对称计分 |
+| 裸 `new GameEngine()` | 默认 `territory-v1`，用于兼容旧调用与冻结回归样例；版本属性创建后不可改写 |
+| Python/Pygame | legacy v1 lineage；存在最短路数量上限和枚举顺序差异，不宣称与 Web v1 逐状态一致，也不支持 v2 |
+| `research/` | 本次页面升级不迁移既有实验；规则与结论仍以各冻结协议、源码哈希和正式收据为准 |
+
+页面比分、终局胜负和认输摘要统一使用泛洪法得到的离散 `area`。几何 `displayArea` 只保留为诊断字段，不参与页面正式计分。
+
 ## AI 系统
 
 AI 使用 Minimax 对抗搜索和 Alpha-Beta 剪枝选择行动，搜索前会优先排列攻击走法和贴近己方连线的扩张走法。
@@ -151,6 +162,8 @@ server.py
 - **物理网格与逻辑边分离**：格点状态用于渲染和占用判断，显式边集合用于连通性判断。
 - **BFS 断联清理**：攻击后保留与初始节点相连的最大连通结构，删除飞地。
 - **领土流水线**：右手摸墙获取外轮廓，动态贪心修剪边界，泛洪法判定真实覆盖格点。
+- **规则版本化**：v1 冻结旧语义；v2 增加真实闭环、完整候选校验和玩家基角规范化。
+- **流式最短路**：候选路径按生成器逐条验证；v2 额外按等价墙集合去重，默认实现不设会改变结果的路径数截断。
 - **Superko 哈希**：将棋盘、逻辑边、认输状态和下一行动方纳入历史状态判断。
 - **搜索状态恢复**：AI 搜索递归中完整保存与恢复棋盘、边、历史哈希、回合和终局状态。
 
@@ -196,6 +209,7 @@ line game/
     │   ├── GameEngine.js
     │   ├── Renderer.js
     │   ├── AIEngine.js
+    │   ├── AIStateProtocol.js
     │   ├── AIWorker.js
     │   └── NetworkManager.js
     └── web后端/
@@ -207,7 +221,7 @@ line game/
 
 ## 开发与验证
 
-修改规则时，应同时检查 Python 核心和 Web `GameEngine.js` 的行为是否仍符合规则说明。修改 Web 端后，至少验证：
+修改规则时先按规则版本分别回归；只有存在明确的 golden-state 契约并通过验证时，才宣称 Python 与 Web 跨实现一致。修改 Web 端后，至少验证：
 
 - 本地双人局和三人局可以正常开始、落子、跳过和结算。
 - Web AI 先手、后手和三档难度可以运行。
@@ -215,6 +229,17 @@ line game/
 - 边长 `6`、`9`、`15` 下棋盘能够显示和交互。
 - 注册、登录、建房、入房、准备、动作同步、重置和断线恢复可用。
 - 中文与英文界面、桌面端与移动端布局正常。
+
+本次领土规则的可执行验证入口：
+
+```powershell
+node "web/web前端/tests/verify-territory-v2.mjs"
+node "web/web前端/guide/interesting/verify-theory-counterexamples.mjs"
+node "web/web前端/guide/interesting/verify-superko-history-divergence.mjs"
+node "web/web前端/tests/benchmark-territory.mjs"
+```
+
+其中 `benchmark-territory.mjs` 只采样构造与固定首步的 smoke 延迟，不代表领土热路径性能结论。
 
 ## 版本管理与实验产物
 
