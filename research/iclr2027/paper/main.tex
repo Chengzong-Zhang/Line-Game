@@ -1,17 +1,21 @@
 \documentclass{article}
 
-% ICLR had not published a 2027 template in its Master-Template repository as
-% of 2026-08-29. This draft uses the official, unmodified ICLR 2026 style
-% (commit a28d335) and must be rechecked against the 2027 release before
-% submission.
-\usepackage{iclr2026_conference,times}
+% Official ICLR 2027 package retrieved from the ICLR Author Guidelines on
+% 2026-08-30. Archive SHA-256: 0D940DFA9398AE99A18F24A85A8A683F367204B6AF6D17D2899E60A67102529E.
+\usepackage[T1]{fontenc}
+\usepackage{iclr2027_conference}
+\usepackage{times}
 \usepackage{amsmath,amssymb,amsthm}
 \usepackage{booktabs}
 \usepackage{graphicx}
+\graphicspath{{figures/}}
+\usepackage{float}
 \usepackage{xcolor}
 \usepackage{hyperref}
 \usepackage{url}
 \usepackage{microtype}
+\hypersetup{hidelinks}
+\urlstyle{same}
 
 \newcommand{\lifeline}{\textsc{Lifeline-RL}}
 \newcommand{\method}{\textsc{Topology-GNN}}
@@ -24,8 +28,6 @@ History-Dependent Self-Play}
 
 \begin{document}
 \maketitle
-% Temporary year label only; remove when the official ICLR 2027 style lands.
-\lhead{Under review as a conference paper at ICLR 2027}
 
 \begin{abstract}
 We introduce \lifeline, a deterministic self-play benchmark combining a
@@ -36,12 +38,12 @@ transitions, exact values, or optimal actions; a standard-start side-six replay
 instead shows Superko preventing a repeatable six-transition loop. We compare
 a padded CNN, physical-edge Grid-GNN, and typed-edge Topology-GNN in 15 matched
 mixed-size runs over sides 5, 7, and 9. All three beat Random at every seen
-size. Against UCT-MCTS-16, seven of nine model--size cells have descriptive
-Wilson lower bounds above 0.5, one is borderline, and one is inconclusive.
-Topology-GNN outscores Grid-GNN in direct play at all three sizes, but each
+size. Scores against the fixed UCT-MCTS-16 opponent vary by model and size and
+are reported only as pooled descriptive evidence. Topology-GNN outscores
+Grid-GNN in direct play at all three sizes, but each
 200-game task repeats only two deterministic trajectories; the evidence does
-not support a global representation ranking. We release frozen protocols and
-replay-verified artifacts.
+not support a global representation ranking. All empirical claims are bounded
+to frozen receipts and task-indexed replay-verified game records.
 \end{abstract}
 
 \section{Introduction}
@@ -53,22 +55,79 @@ connectivity: moves can cut edges, remove disconnected components, and invoke
 a repetition rule whose legality depends on history. We ask which
 representations support self-play under these mechanisms.
 
-Our contributions are:
+Our contributions, each tied to an auditable artifact and an explicit boundary,
+are:
 \begin{enumerate}
-  \item a tested variable-size environment with exact full-state snapshots,
-  legal masks, and replayable trajectories;
-  \item exhaustive and bounded diagnostics separating latent topology
-  aliasing, decision-relevant aliasing, and Superko activation; and
-  \item a five-seed, compute-matched comparison of three representations with
-  30,600 replay-verified formal evaluation games.
+  \item a tested variable-size environment with exact snapshots, legal masks,
+  and replayable trajectories, supported by rule-engine parity traces but not
+  an exhaustive cross-implementation proof;
+  \item exhaustive side-five and bounded larger-board diagnostics separating
+  latent topology aliasing from decision-relevant aliasing and Superko
+  activation; and
+  \item a frozen five-seed comparison of three representations backed by 330
+  receipts and 30,600 task-indexed replay-verified game records, without a
+  global model ranking.
 \end{enumerate}
 
 The environment contribution does not depend on a positive model result. We
 claim neither non-Markov observations, relative sample efficiency, nor
-unseen-size generalization without the corresponding test.
+unseen-size generalization without a corresponding gate-passing formal result.
 
-% Related work remains intentionally omitted until references.bib contains
-% metadata-verified entries.
+\paragraph{Claim control.}
+A frozen claim--evidence--limitation ledger accompanies the draft. Every primary
+claim names its authoritative CSV/JSON or verifier and retains the relevant
+scope restriction; failed and inconclusive cells remain in all tables.
+
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Self-play and game environments.}
+AlphaGo Zero and AlphaZero established policy--value learning with search from
+self-play, while expert iteration, ELF OpenGo, and MuZero broadened the
+algorithmic and reproducibility picture
+\citep{silver2017mastering,silver2018general,anthony2017thinking,
+tian2019elf,schrittwieser2020mastering}. General-purpose multi-agent and game
+testbeds include OpenSpiel and PettingZoo
+\citep{lanctot2019openspiel,terry2020pettingzoo}; MCTS is surveyed by
+\citet{browne2012survey}. \lifeline{} is narrower than these platforms but
+targets a particular confound: rendered occupancy, player-specific logical
+connectivity, and repetition history can be distinct parts of simulator state.
+
+\paragraph{General game systems and structural transfer.}
+Ludii and Regular Boardgames provide complementary declarative systems for
+representing and executing board-game rules, including dedicated reasoning
+work for the latter \citep{piette2020ludii,kowalski2019regular,
+kowalski2020efficient}; Polygames supplies zero-learning infrastructure across
+multiple games \citep{cazenave2021polygames}. Prior work transfers
+policy--value networks across Hex sizes, games, and variants
+\citep{gao2019transferable,soemers2021transfer}, and evaluates graph
+representations directly in chess RL and DQN-based Hex agents
+\citep{rigaux2024chessgraph,keller2023hexgnn}. These studies are the closest
+empirical neighbors, but do not establish topology-input superiority in
+\lifeline{} or unseen-size transfer for our models.
+
+\paragraph{Graph representations and size.}
+Message passing, inductive graph learning, relational biases, and graph
+reinforcement learning motivate explicit structural inputs
+\citep{gilmer2017neural,hamilton2017inductive,battaglia2018relational,
+jiang2018graph}. Work on neural algorithm execution, combinatorial
+optimization, and TSP generalization shows why graph structure alone does not
+justify extrapolation claims \citep{xu2019what,joshi2020learning}. We therefore compare representations only
+on jointly trained sizes and reserve unseen-size evaluation for future formal
+artifacts.
+
+\paragraph{State sufficiency, masks, and repetition.}
+Partial observability, perceptual aliasing, and state abstraction formalize the
+risks of discarding history or decision-relevant variables
+\citep{kaelbling1998planning,chrisman1992perceptual,
+givan2003equivalence,abel2017near}. Invalid-action masking further shows that
+legality information is part of the learning interface
+\citep{huang2022invalid}. Go's
+legality, graph-history interaction, combinatorics, and legal-position counting
+provide closely related precedent for repetition-sensitive state accounting
+\citep{kishimoto2004graph,tromp2007combinatorics,tromp2016number}. Our
+diagnostics accordingly distinguish a full simulator
+state, an implemented masked observation, and deliberately weaker projections.
 
 \section{The LIFELINE-RL Benchmark}
 \label{sec:environment}
@@ -91,6 +150,18 @@ Physical line points are used for rendering and blocking, whereas logical edges
 define connectivity to the protected initial node. An attack can break an edge
 and remove nodes and line points that are no longer logically connected.
 
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.94\linewidth]{fig1_lifeline_logical_edges.pdf}
+  \caption{A replay-verified state pair reconstructed from the frozen side-five
+  witness ledger. Both reachable states have identical
+  occupancy, player to act, pass count, and legal mask; only history A contains
+  the highlighted white logical edge. The dotted segment in history B marks
+  that edge's absent location. This demonstrates latent topology aliasing only:
+  the exhaustive side-five audit found no decision-relevant consequence.}
+  \label{fig:logical-edges}
+\end{figure}
+
 \subsection{Full simulator state}
 
 We model the full state as
@@ -106,8 +177,9 @@ environment.
 
 \begin{table}[t]
   \centering
-  \caption{Pre-registered observation variants. The simulator always retains
-  the exact full state.}
+  \caption{Pre-registered observation variants from the frozen benchmark
+  protocol. The simulator always retains the exact full state; the table does
+  not imply that any exposed feature is independently necessary.}
   \label{tab:observations}
   \begin{tabular}{lll}
     \toprule
@@ -214,9 +286,17 @@ unsuccessful larger-board searches retain their budgets and are labelled
 \subsection{Search baselines}
 
 Random, Greedy, depth-2/3 Minimax, and UCT-MCTS share one color-balanced,
-replayable arena. Minimax retains at most 20 ordered point candidates plus
-PASS and is therefore approximate. The complete five-agent matrix remains an
-engineering smoke test; formal neural evaluation uses Random and UCT-MCTS-16.
+replayable arena. Random samples uniformly from all legal point moves and PASS;
+Greedy is a deterministic one-ply heuristic. Minimax retains at most 20
+tactically ordered point candidates plus PASS and is therefore approximate.
+UCT is adversarial, stores values from the root-player perspective, and uses
+uniform-random rollouts; the frozen UCT-MCTS-16 opponent uses 16 simulations
+per move, exploration constant $\sqrt{2}$, and rollout depth 80. It selects by
+visit count, then mean value, with seeded random tie-breaking; unterminated
+rollouts at the depth cap return zero. The simulator handles PASS, automatic
+skips, terminal scoring, and Superko for every baseline. The complete
+five-agent matrix remains an engineering smoke test; formal neural evaluation
+uses Random and UCT-MCTS-16, matched only on the 16-simulation search budget.
 
 \subsection{Neural self-play}
 
@@ -231,9 +311,11 @@ RNG states and resume only after hash validation.
 
 \subsection{Compute matching and statistics}
 
-The comparison matches five seeds, training schedule, search, optimizer,
-checkpoints, evaluation games, and parameter count (maximum spread 0.6982\%).
-Wall-clock, transitions, FLOPs, and memory are reported but not matched. Each
+The three learned model families match five seeds, training schedule,
+16-simulation PUCT budget, optimizer, checkpoints, evaluation schedule, and
+parameter count (maximum spread 0.6982\%). This does not constitute compute
+matching between a learned model and UCT-MCTS-16. Wall-clock and transitions
+are recorded but not matched; FLOPs and memory are not yet consolidated. Each
 final seed-level matchup contains 100 same-seed color-swapped pairs. Pooled
 Wilson intervals count draws as half a success and are descriptive: the
 deterministic round robin contains only two action sequences per 200-game task,
@@ -252,26 +334,33 @@ All inputs are canonicalized to the player to act. Each node receives 11
 features: five occupancy indicators, two normalized coordinates, boundary
 membership, own and opponent initial-node indicators, and the consecutive-pass
 count. For relation $r\in\{\mathrm{physical},\mathrm{own},\mathrm{opponent}\}$,
-one message-passing layer has the form
+one message-passing layer for a valid node has the form
 \begin{equation}
-  h_i^{(\ell+1)}
-  = \rho\!\left(
-      W_0^{(\ell)} h_i^{(\ell)}
-      + \sum_r W_r^{(\ell)}
-        \frac{1}{|\mathcal{N}_r(i)|}
-        \sum_{j\in\mathcal{N}_r(i)} h_j^{(\ell)}
-    \right),
+  \begin{aligned}
+    u_i^{(\ell)}
+    &= W_0^{(\ell)} h_i^{(\ell)} + b_0^{(\ell)}
+       + \sum_r W_r^{(\ell)}
+         \frac{1}{\max\{1,|\mathcal{N}_r(i)|\}}
+         \sum_{j\in\mathcal{N}_r(i)} h_j^{(\ell)}, \\
+    h_i^{(\ell+1)}
+    &= \operatorname{LayerNorm}\!\left(
+         h_i^{(\ell)} + \operatorname{ReLU}(u_i^{(\ell)})
+       \right).
+  \end{aligned}
 \end{equation}
-with a residual connection and masked pooling over valid nodes. Grid-GNN
+An empty neighborhood contributes a zero message, and padded nodes are masked
+after every block and before mean pooling. Grid-GNN
 exposes only the physical relation; Topology-GNN additionally remaps the two
 color-specific logical edge sets to own/opponent relations. Padded-CNN maps the
 same node features to a zero-padded square tensor and does not read any edge
 relation. All models emit one logit per point, a separate PASS logit, and a
 \texttt{tanh} value; padding and illegal actions are masked.
 
-\begin{table}[t]
+\begin{table}[H]
   \centering
-  \caption{Matched model families used in the formal comparison.}
+  \caption{Matched model families from the frozen parameter audit. Counts are
+  within 0.6982\%, but architectures, FLOPs, memory, and wall time are not
+  matched.}
   \label{tab:model-parameters}
   \begin{tabular}{lrrl}
     \toprule
@@ -305,19 +394,20 @@ paired witness. The latter is a budgeted miss, not an absence proof.
 
 \subsection{Within-size self-play}
 
-The formal ledger contains 15 training and 315 evaluation tasks: 1,500
-self-play games, 3,000 updates, and 30,600 unique replay-verified arena games,
+The frozen D14--D16 formal ledger contains 15 training and 315 evaluation tasks: 1,500
+self-play games, 3,000 updates, and 30,600 task-indexed replay-verified game records,
 with no failure or truncation. All nine model--size cells beat Random
 (Table~\ref{tab:final-search}). Against UCT-MCTS-16, Grid-GNN at $n=5$ is
 inconclusive, Padded-CNN at $n=5$ is borderline, and the other seven cells have
 descriptive lower bounds above 0.5.
 
-\begin{table}[t]
+\begin{table}[H]
   \centering
   \small
   \caption{Final-checkpoint score rates on the three training sizes. Each cell
   pools 1,000 games over five training seeds; brackets are descriptive Wilson
-  95\% intervals.}
+  95\% intervals recomputed from \texttt{final\_vs\_search.csv}. Score is
+  $(W+0.5D)/N$, not raw win rate; pooled games are not treated as independent.}
   \label{tab:final-search}
   \begin{tabular}{lrcc}
     \toprule
@@ -340,6 +430,28 @@ Five checkpoint probes show non-monotone, size-dependent trajectories. Because
 no area-under-curve or fixed-strength estimator was preregistered, they do not
 establish relative sample efficiency.
 
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.96\linewidth]{fig2_checkpoint_curves.pdf}
+  \caption{Formal score-rate probes against UCT-MCTS-16 from
+  \texttt{arena\_learning\_curve.csv}. The vertical scale is focused on
+  0.35--0.98. Steps 40--160 pool 100 games per point, whereas step 200 pools
+  1,000; the five discrete probes support neither a continuous-convergence nor
+  a relative sample-efficiency claim.}
+  \label{fig:checkpoint-curves}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.92\linewidth]{fig3_model_size_opponent_heatmap.pdf}
+  \caption{Final model--size--opponent score rates from
+  \texttt{final\_vs\_search.csv}; each cell pools 1,000 games from five
+  training-seed receipts. Score is $(W+0.5D)/N$, not raw win rate. Colors do
+  not encode uncertainty, multiplicity-adjusted significance, or unseen-size
+  generalization.}
+  \label{fig:final-heatmap}
+\end{figure}
+
 \subsection{Representation round robin}
 
 Direct play exhibits a size--representation interaction
@@ -347,11 +459,13 @@ Direct play exhibits a size--representation interaction
 sizes, while Padded-CNN reverses direction against both graph models. No global
 ordering is supported.
 
-\begin{table}[h!]
+\begin{table}[H]
   \centering
   \small
-  \caption{Score from A's perspective over five matched training seeds.
-  Intervals are omitted because trajectories repeat deterministically.}
+  \caption{Score from A's perspective in
+  \texttt{representation\_round\_robin.csv}, pooled over five matched training
+  seeds. Intervals are omitted because each 200-game task repeats two
+  deterministic color-conditioned trajectories; no global ranking is inferred.}
   \label{tab:round-robin}
   \begin{tabular}{lccc}
     \toprule
@@ -390,11 +504,14 @@ neural row is a one-game, one-update smoke checkpoint.
 \subsection{Compute and reproducibility}
 
 Runs used Python 3.10.20, PyTorch 2.7.1+cu118, deterministic CUDA 11.8, and an
-RTX 4060 Laptop GPU. Mean per-seed training time was 489.8/399.2/440.0\,s for
-Padded-CNN/Grid-GNN/Topology-GNN (1.85 aggregate training GPU-hours);
+RTX 4060 Laptop GPU. Mean per-seed training time was 489.8\,s for
+\mbox{Padded-CNN}, 399.2\,s for \mbox{Grid-GNN}, and 440.0\,s for
+\mbox{Topology-GNN} (1.85 aggregate training GPU-hours);
 evaluation compute is not yet consolidated. One canonical manifest digest
 (\texttt{1bbf2c9a9ecc...}) binds all 330 receipts. Independent aggregation
-rechecked task identity, budgets, hashes, summaries, and 30,600 replays;
+rechecked task identity, budgets, hashes, summaries, and all 30,600
+task-indexed replay-verified game records;
+for this completed D14--D16 bundle,
 \texttt{formal\_ready=true} denotes artifact completeness, not superiority.
 
 \section{Limitations and Broader Impact}
@@ -403,13 +520,20 @@ rechecked task identity, budgets, hashes, summaries, and 30,600 replays;
 \begin{itemize}
   \item Results cover jointly trained sizes 5, 7, and 9, not zero-shot sizes 10
   or 12; history, logical-edge, cascade, and search-budget ablations remain.
-  \item CNN/GNN comparisons mix representation and architecture. Parameters and
-  data are matched, but FLOPs, memory, transitions, and wall time are not.
-  \item Deterministic round-robin trajectories invalidate independent-game
-  uncertainty; diversified evaluation and seed-aware inference are required.
-  \item \lifeline{} is hand-designed, and its Superko matrix is finite-policy
-  evidence. The smoke neural condition and incomplete evaluation-compute
-  accounting preclude broader efficiency claims.
+  \item Grid-GNN and Topology-GNN differ in typed relations and hidden width, so
+  their comparison mixes representation and architecture; the CNN adds a model
+  family confound. Parameters and data are matched, but FLOPs, memory,
+  transitions, and wall time are not.
+  \item Each D16 200-game task contains only two unique color-conditioned
+  trajectories. These repeats invalidate independent-game uncertainty;
+  a later preregistered diversified extension executed all planned games but
+  failed its frozen trajectory-diversity gate and is therefore excluded here.
+  A prospectively redesigned evaluation and independent verification remain
+  required.
+  \item \lifeline{} is one hand-designed game, so external validity to other
+  games is untested; its Superko matrix is finite-policy evidence. The smoke
+  neural condition and incomplete evaluation-compute accounting preclude
+  broader efficiency claims.
 \end{itemize}
 
 \section{Conclusion}
@@ -421,18 +545,32 @@ result, while a side-six trace proves Superko can bind. Under one frozen
 five-seed protocol, all three learned representations beat Random on seen
 sizes; Topology-GNN outscores Grid-GNN directly, but size-dependent reversals
 and duplicated trajectories rule out a global ranking. Next steps are
-diversified seed-aware evaluation, zero-shot sizes, and isolated rule/feature
-ablations.
+a prospectively frozen paired-opening evaluation, independent zero-shot
+verification, and only then gated rule/feature ablations.
+
+\subsection*{Reproducibility statement}
+Sections~\ref{sec:protocol}--\ref{sec:experiments} and
+Appendix~\ref{app:hyperparameters} specify the frozen protocol, model budgets,
+statistics, and result boundaries. The accompanying claim ledger maps each
+paper claim to compact aggregate CSV/JSON, append-only receipt-ledger JSONL,
+and independent verifier outputs. Checkpoints, raw per-game logs, and local
+task directories are not claimed as submission artifacts.
+
+\bibliographystyle{iclr2027_conference}
+\bibliography{references}
 
 \appendix
 
 \section{Hyperparameters and Training Details}
 \label{app:hyperparameters}
 
-\begin{table}[h]
+\begin{table}[H]
   \centering
-  \caption{Frozen formal training and evaluation settings shared by all three
-  learned representations.}
+  \small
+  \caption{Frozen formal settings from
+  \texttt{D14\_D16\_EXPERIMENT\_PROTOCOL.md}, shared by all three learned
+  representations. They define the completed seen-size run, not an unseen-size
+  or search-budget ablation.}
   \label{tab:hyperparameters}
   \begin{tabular}{ll}
     \toprule
@@ -460,26 +598,20 @@ the search tree because automatic skips can leave the same player to act after
 a transition. Training loss is masked policy cross-entropy plus mean-squared
 terminal value error.
 
-\section{Additional Results}
-\label{app:additional}
-
-Canonical aggregate tables retain all checkpoints, W/D/L, seed identities,
-intervals, losses, transitions, and wall time. The formal run has no failed or
-truncated task; smoke runs and duplicate views of the step-200 UCT matchup are
-excluded from the 30,600 unique games.
-
-\section{Reproducibility Checklist}
+\section{Additional Results and Reproducibility}
 \label{app:reproducibility}
 
-The release includes exact source, frozen manifest, parameter audit, task
-bundle, append-only ledger, checkpoints, JSONL logs, CSV summaries, hashes, and
-independent verifiers. Aggregation fails on missing/duplicate tasks, identity or
-budget drift, truncation, color imbalance, or incomplete replay. Two interrupted
-runner invocations are documented; their first two attempts lack independent
-canonical attempt files, so per-attempt lineage is not claimed.
-
-% Enable once references.bib contains metadata-verified entries.
-% \bibliographystyle{iclr2026_conference}
-% \bibliography{references}
+Canonical aggregates retain checkpoint, W/D/L, seed, loss, transition, and
+timing fields. In the completed D14--D16 bundle, no formal task failed or
+truncated; smoke runs and duplicate
+views of the step-200 UCT matchup are excluded from the 30,600 task-indexed
+replay-verified game records. The paper's evidence mapping names frozen
+protocol/config hashes, compact aggregate CSV/JSON summaries, an append-only
+JSONL receipt ledger, and independent verifier outputs. It does not claim that checkpoints, raw per-game logs, or
+task directories are included in the submission artifacts.
+Aggregation rejects missing or duplicate tasks, identity or budget drift,
+truncation, color imbalance, and incomplete replay. Two interrupted runners
+lack independent canonical files for their first two attempts, so no
+per-attempt lineage is claimed.
 
 \end{document}

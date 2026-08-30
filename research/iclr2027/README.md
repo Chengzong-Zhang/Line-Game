@@ -1,8 +1,9 @@
 # ICLR 2027 research sprint
 
-This directory contains the frozen research contract, paper scaffold, tested
-LIFELINE-RL environment, search baselines, D9--D13 AlphaZero/representation
-milestones, and the D14--D16 formal experiment protocol and verified results.
+This directory contains the frozen research contract, the official-template
+ICLR 2027 paper candidate and its hash-bound QA/review records, the tested
+LIFELINE-RL environment, D14--D16 verified formal results, and the fail-closed
+D17--D19 extension status.
 
 ## Files
 
@@ -37,6 +38,9 @@ milestones, and the D14--D16 formal experiment protocol and verified results.
 - `D14_D16_RESULTS.md`: completed 15-training/315-evaluation formal ledger,
   D14 learning curves, D15 Random/UCT-16 results, D16 pairwise results,
   artifact hashes, recovery audit, and statistical limitations.
+- `D14_D16_TERMINOLOGY_ERRATUM.md`: append-only clarification of
+  task-indexed records and simulation-count matching; frozen evidence remains
+  byte-unchanged.
 - `AUTODL_GPU_PATH.md`: isolated multi-actor/batched-inference AutoDL v2 path,
   local readiness evidence, paid-run gates, and operator commands.
 - `experiment_matrix.csv`: machine-readable minimum experiment matrix.
@@ -48,36 +52,79 @@ milestones, and the D14--D16 formal experiment protocol and verified results.
 - `scripts/`: Python/Web differential checker, throughput benchmark, and
   paired Superko rule-ablation runner.
 - `results/smoke/`: explicitly non-paper end-to-end smoke artifacts.
-- `paper/main.tex`: compilable English paper outline. Red `TBD` boxes are
-  evidence that must be filled from completed experiments, not promises.
-- `paper/references.bib`: verified-reference staging file.
+- `paper/main.tex`: current official-style ICLR 2027 paper source. Its claims
+  are governed by `paper/CLAIM_EVIDENCE_LIMITATION_V3.md`.
+- `paper/main.pdf`: a candidate only when its source/PDF hashes match the
+  latest QA, independent review, and submission gate.
+- `paper/references.bib`: metadata-audited bibliography.
+- `requirements-d14-d16-win-cu118.lock.txt`: evidence-bound Windows/Python
+  3.10/CUDA 11.8 dependency lock for D14--D16 verification.
+- `supplement_tools/`: deterministic, strict-allowlist builder/verifier for a
+  candidate-only anonymous rules/search-agent package; it is not a release
+  approval or final archive.
 
-## Compile the outline
+## Build the paper candidate
 
 From `research/iclr2027/paper`:
 
 ```powershell
 pdflatex -interaction=nonstopmode -halt-on-error main.tex
+bibtex main
+pdflatex -interaction=nonstopmode -halt-on-error main.tex
+pdflatex -interaction=nonstopmode -halt-on-error main.tex
+pdflatex -interaction=nonstopmode -halt-on-error main.tex
 ```
 
-The current scaffold deliberately uses the standard `article` class so it can
-compile before the official style files are added. Replace it with the official
-ICLR 2027 template before submission and re-check page limits and policies.
+The source uses the official, hash-recorded ICLR 2027 style. A single
+`pdflatex` invocation is only a quick compile, not a verified candidate build.
+After every source change, bind the stabilized PDF hash to a fresh all-page,
+font, metadata, anonymity, citation, claim-boundary, and submission-gate check.
 
 ## Verify the environment
 
 From the repository root:
 
 ```powershell
-Push-Location .\research\iclr2027
-python -B -m unittest discover -s . -t . -v
-Pop-Location
+python -m pip install -e ".\research\iclr2027[train]" "pytest>=8"
+python -B -m pytest .\research\iclr2027\tests -q -p no:cacheprovider
 python .\research\iclr2027\scripts\check_reference_parity.py --random-games 60 --max-plies 120
 python .\research\iclr2027\scripts\validate_or_search_superko.py --mode exhaustive --grid-size 5
 python .\research\iclr2027\scripts\d6_redteam_exact_audit.py --output .\research\iclr2027\d6_redteam_exact_audit.json
 python .\research\iclr2027\scripts\validate_or_search_throughput.py --transitions 200 --warmup-transitions 20 --repeats 3
 python -B .\research\iclr2027\scripts\run_superko_ablation.py --sizes 6 7 --episodes 2000 --max-plies 120 --seed 20260826 --pass-probability 0.12 --attack-bias 0.95 --progress --summary-only --output .\research\iclr2027\results\validation\superko_ablation_n6_n7_canonical_pilot_20260825.json
 ```
+
+For the retained D14--D16 software identity, use CPython 3.10.20 and the
+evidence-bound lock, then run the offline verifier before any reproduction:
+
+```powershell
+python -m pip install -r .\research\iclr2027\requirements-d14-d16-win-cu118.lock.txt
+python -m pip install -e .\research\iclr2027 --no-deps
+python -B .\research\iclr2027\scripts\verify_d14_d16_environment.py --output .\research\iclr2027\results\validation\d14_d16_environment_verification_20260831.json
+```
+
+The environment verifier checks software identity only; compatible hardware,
+frozen runner/protocol hashes, and the original receipts remain separate
+requirements for reproducing formal training.
+
+The 2026-08-31 full research check in the retained environment passed 261
+tests plus 174 subtests. The historical core-only counts below remain useful
+for their frozen snapshots and should not be substituted for the current full
+suite result.
+
+## Build a candidate-only supplement tree
+
+Create a local, uncommitted JSON list containing every private name, username,
+identifier, affiliation, and host-label variant that the anonymity scanner
+must reject. Then follow `supplement_tools/README.md` to build into a new,
+non-existing output directory and verify the exact tree with the same identity
+profile. The checked-in builder refuses overwrites, untracked or hash-drifted
+sources, forbidden result/artifact classes, extra members, credential shapes,
+private paths, remotes, and identity hits.
+
+A builder `PASS` is still `candidate_only_not_approved`. Authors must review
+every allowlist entry and independently gate the final archive bytes before
+submission.
 
 The frozen D1--D8 core suite has 62/62 passing tests. At
 `2026-08-26`, the expanded core-only discovery ran 102 tests: 94 passed and
@@ -117,10 +164,10 @@ PyTorch remains optional:
 python -m pip install -e ".\research\iclr2027[train]"
 ```
 
-On the verified local environment, run a non-writing preflight with:
+In the activated verified environment, run a non-writing preflight with:
 
 ```powershell
-& 'C:\Users\zcz\anaconda3\envs\rl310\python.exe' -B .\research\iclr2027\scripts\train_alphazero.py --config .\research\iclr2027\configs\alphazero_d9_d10_smoke.json --smoke --dry-run --device cpu
+python -B .\research\iclr2027\scripts\train_alphazero.py --config .\research\iclr2027\configs\alphazero_d9_d10_smoke.json --smoke --dry-run --device cpu
 ```
 
 Fresh-run, resume, verification commands and the precise evidence boundary are
@@ -147,9 +194,10 @@ reported separately in `D14_D16_RESULTS.md`.
 The frozen run completed 15/15 training tasks and 315/315 evaluation tasks with
 zero failures or truncations. All 330 artifacts passed deep validation; the
 result ledger and aggregate both report `formal_ready=true`. The three models
-beat Random on all seen sizes. Against UCT-MCTS-16, Grid-GNN at n=5 was
-inconclusive and Padded-CNN at n=5 was only borderline; the other seven pooled
-model-by-size cells were above 0.5.
+beat Random on all seen sizes. Against fixed UCT-MCTS-16, Grid-GNN at n=5 has
+a descriptive interval crossing 0.5, Padded-CNN at n=5 is borderline, and the
+other seven descriptive Wilson lower bounds exceed 0.5. These pooled summaries
+are not independent-game inference.
 
 The pairwise representation results depend on board size and do not establish a
 global ranking. In addition, deterministic D16 games repeat only two action
@@ -157,13 +205,17 @@ trajectories per 200-game task, so the reported game-level Wilson intervals are
 descriptive rather than seed-level inference. See `D14_D16_RESULTS.md` for the
 full tables, hashes, and unsupported-claim boundary.
 
-## AutoDL GPU v2 path
+## AutoDL execution status
 
-The AutoDL path is an isolated v2 execution layer under
-`lifeline_rl_autodl/`. It batches independent self-play actors and neural leaf
-evaluations without changing the frozen D14--D16 source identity. The local
-readiness gate has passed; the paid CUDA smoke and bounded remote benchmark
-remain intentionally unrun. See `AUTODL_GPU_PATH.md` before any paid launch.
+The isolated `lifeline_rl_autodl/` v2 path is distinct from the canonical
+D17--D18 P0 run. Its local readiness gate passed, while its own paid CUDA smoke
+and bounded benchmark remain unrun.
+
+Separately, the canonical D17/D18 AutoDL run completed 85/85 tasks and
+8,320/8,320 games with no execution failure or truncation. D17 passed 40/40
+task-diversity gates, but D18 passed only 23/45; therefore the bundle remains
+`formal_ready=false`, and D19 was not run. No D17--D19 performance result is
+admitted into the paper. See `paper/PAPER_HANDOFF.md`.
 
 ## Change control
 
