@@ -2658,6 +2658,13 @@ def test_generate_job_writes_parseable_exact_smoke_and_formal_contract(
     assert parsed["image_uuid"] == formal.IMAGE_UUID
     assert parsed["framework_version"] == "2.8.0"
     assert parsed["cuda_runtime"] == "12.8"
+    assert parsed["dependency_lock"] == dependency_relative
+    probe = parsed["environment_probe_command"]
+    assert "import importlib.metadata, pynvml, sys, torch" in probe
+    assert "importlib.metadata.version('nvidia-ml-py') == '13.610.43'" in probe
+    assert "pynvml.nvmlInit(); pynvml.nvmlShutdown()" in probe
+    assert "utilization = torch.cuda.utilization()" in probe
+    assert "isinstance(utilization, int) and 0 <= utilization <= 100" in probe
     assert parsed["gpu_num"] == 1
     assert parsed["min_gpu_utilization_percent"] == 50
     assert parsed["max_runtime_seconds"] == 11_520
@@ -2737,9 +2744,12 @@ def test_dependency_lock_is_hash_bound_and_staged() -> None:
     assert formal.DEPENDENCY_LOCK_PATH.relative_to(formal.REPO_ROOT).as_posix() == (
         "research/iclr2027/autodl/d18_v3_runtime_requirements.lock.txt"
     )
-    assert formal.DEPENDENCY_LOCK_PATH.read_bytes() == b"--no-index\ntorch==2.8.0\n"
+    assert formal.DEPENDENCY_LOCK_PATH.read_bytes() == (
+        b"--index-url https://pypi.org/simple\n"
+        b"torch==2.8.0\nnvidia-ml-py==13.610.43\n"
+    )
     assert formal.sha256_file(formal.DEPENDENCY_LOCK_PATH) == (
-        "2df94edd048e9aa9990bce302672f6c71f0845e70fd0be43fbbdd719d869473a"
+        "8476a85f5dfd94751bdd645358e481a5d108ba4cbad80c47c98c8f83370edae5"
     )
     dependency_source = inspect.getsource(formal._execution_dependency_paths)
     source_hashes = inspect.getsource(formal._execution_source_hashes)

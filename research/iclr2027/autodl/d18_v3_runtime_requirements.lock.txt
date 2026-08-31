@@ -1,2 +1,3 @@
---no-index
+--index-url https://pypi.org/simple
 torch==2.8.0
+nvidia-ml-py==13.610.43

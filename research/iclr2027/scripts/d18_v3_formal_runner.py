@@ -4988,11 +4988,15 @@ def generate_job(
         f"--stage-dir . --expected-manifest-sha256 {stage_manifest_sha256}"
     )
     environment_probe_command = (
-        'python3 -c "import sys, torch; '
+        'python3 -c "import importlib.metadata, pynvml, sys, torch; '
+        'assert importlib.metadata.version(\'nvidia-ml-py\') == \'13.610.43\'; '
         'assert sys.version_info[:2] == (3, 12); '
         'assert torch.__version__.split(\'+\', 1)[0] == \'2.8.0\'; '
         'assert torch.version.cuda == \'12.8\'; '
-        'assert torch.cuda.is_available()"'
+        'assert torch.cuda.is_available(); '
+        'pynvml.nvmlInit(); pynvml.nvmlShutdown(); '
+        'utilization = torch.cuda.utilization(); '
+        'assert isinstance(utilization, int) and 0 <= utilization <= 100"'
     )
     content = "\n".join(
         [

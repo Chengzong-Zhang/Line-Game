@@ -106,7 +106,7 @@ class D18V3FormalRunnerStructuralTests(unittest.TestCase):
     def test_dependency_lock_is_frozen_into_stage_and_job(self) -> None:
         self.assertEqual(
             formal.sha256_file(formal.DEPENDENCY_LOCK_PATH),
-            "2df94edd048e9aa9990bce302672f6c71f0845e70fd0be43fbbdd719d869473a",
+            "8476a85f5dfd94751bdd645358e481a5d108ba4cbad80c47c98c8f83370edae5",
         )
         self.assertIn(
             "DEPENDENCY_LOCK_PATH",
