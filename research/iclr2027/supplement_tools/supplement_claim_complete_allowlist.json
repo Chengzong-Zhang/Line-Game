@@ -159,7 +159,7 @@
     {
       "category": "environment_lock",
       "destination": "research/iclr2027/requirements-d14-d16-win-cu118.lock.txt",
-      "expected_sha256": "ce828028578a87caa31e7b3b69c0191458546533e21c0e1de6180accdfbb879f",
+      "expected_sha256": "380cab994906a45f60fba3a4c00f818f3724070666dfeef737f3f5a0e1a5d272",
       "source": "research/iclr2027/requirements-d14-d16-win-cu118.lock.txt"
     },
     {
@@ -225,7 +225,7 @@
     {
       "category": "reproducibility_runner",
       "destination": "research/iclr2027/scripts/verify_d14_d16_environment.py",
-      "expected_sha256": "47ebb60139b5ff8545bea875ecaae3b87acf5ba0bc3c471d109ecb3c89bf2050",
+      "expected_sha256": "4600be6f89abd868388c50a248fe4a503f29747078f571979f43329917e96901",
       "source": "research/iclr2027/scripts/verify_d14_d16_environment.py"
     },
     {
@@ -625,6 +625,36 @@
       "source": "research/iclr2027/configs/d14_d16_executor_smoke_manifest.json"
     },
     {
+      "category": "reproducibility_guide",
+      "destination": "research/iclr2027/D14_D16_FRESH_INSTALL_PREFLIGHT.md",
+      "expected_sha256": "fac413f699eb0e221ca8bd11164da022aad93e495753075cce863d6a624eeb43",
+      "source": "research/iclr2027/D14_D16_FRESH_INSTALL_PREFLIGHT.md"
+    },
+    {
+      "category": "reproducibility_runner",
+      "destination": "research/iclr2027/scripts/d14_d16_fresh_install_preflight.py",
+      "expected_sha256": "b6307c20229ecfbe1976ede0775d0c4138676b22f1049ab4ba943125d727888f",
+      "source": "research/iclr2027/scripts/d14_d16_fresh_install_preflight.py"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "research/iclr2027/tests/test_d14_d16_fresh_install_preflight.py",
+      "expected_sha256": "5a7ea5c0cad88691c05294a1b235ec22251c215faef52fcbf31871194c282f0d",
+      "source": "research/iclr2027/tests/test_d14_d16_fresh_install_preflight.py"
+    },
+    {
+      "category": "environment_metadata",
+      "destination": "research/iclr2027/results/validation/d14_d16_execution_metadata_portable_20260831.json",
+      "expected_sha256": "2d953a5dccbd989b5e8d38e52b0f8c2a53bca33b65aa267d129ab2eff5293663",
+      "source": "research/iclr2027/results/validation/d14_d16_execution_metadata_portable_20260831.json"
+    },
+    {
+      "category": "targeted_test",
+      "destination": "research/iclr2027/tests/test_verify_d14_d16_environment.py",
+      "expected_sha256": "15c044d3f30a3742a75b066201a87461bf498d799f9bdf14a23b1a58b9e14652",
+      "source": "research/iclr2027/tests/test_verify_d14_d16_environment.py"
+    },
+    {
       "category": "reproducibility_runner",
       "destination": "research/iclr2027/scripts/reference_trace.mjs",
       "expected_sha256": "952ec6713e66d50c9254113997ad3682883a963622c60c0077fc16f9a97808c1",
@@ -675,7 +705,7 @@
     {
       "category": "environment_receipt_derivative",
       "destination": "research/iclr2027/results/validation/d14_d16_environment_verification.anonymized.json",
-      "expected_sha256": "9f3b5f13c94d33e17a1cfd2d0920c17c8e49c7713eb9563a1454d085dcfda96d",
+      "expected_sha256": "c9d575e62224e2238e18490947123948bf1c84ecf0e266407391d2510148bc29",
       "source": "research/iclr2027/supplement_tools/derived_claim_complete/d14_d16_environment_verification.anonymized.json"
     },
     {
@@ -687,7 +717,7 @@
     {
       "category": "transformation_receipt",
       "destination": "research/iclr2027/results/validation/ANONYMIZATION_DERIVATION.json",
-      "expected_sha256": "c1baf867fac7a5add4efd2be0b1c8843d8d9e5fa105c870ccffa55c9884bef46",
+      "expected_sha256": "23680efdeab4fc73aedb2e8fb65a82f2dccd2c5456facfc8b716858442f4a30e",
       "source": "research/iclr2027/supplement_tools/derived_claim_complete/ANONYMIZATION_DERIVATION.json"
     }
   ],

@@ -36,6 +36,20 @@ CHECKPOINT_EXCEPTIONS = {
     "research/iclr2027/lifeline_rl/alphazero/checkpoint.py",
     "research/iclr2027/tests/test_alphazero_checkpoint.py",
 }
+SELFTEST_OWNER_MARKER = ".claim-complete-selftest-owner"
+
+
+def _validate_plain_directory_chain(path: Path) -> None:
+    chain = [path.absolute()]
+    while chain[-1].parent != chain[-1]:
+        chain.append(chain[-1].parent)
+    for directory in reversed(chain):
+        if (
+            not directory.is_dir()
+            or directory.is_symlink()
+            or builder._is_reparse(directory)
+        ):
+            raise RuntimeError("claim-complete self-test parent chain is not plain")
 
 
 def _file_bytes(root: Path) -> dict[str, bytes]:
@@ -49,7 +63,10 @@ def _file_bytes(root: Path) -> dict[str, bytes]:
 class ClaimCompleteSelfTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.root = TOOL_DIR / (
+        artifacts = REPO_ROOT / "local_artifacts"
+        artifacts.mkdir(exist_ok=True)
+        _validate_plain_directory_chain(artifacts)
+        cls.root = artifacts / (
             f"_claim_complete_selftest_{os.getpid()}_{uuid.uuid4().hex[:8]}"
         )
         cls.profile_path = TOOL_DIR / "claim_complete_profile.json"
@@ -59,11 +76,16 @@ class ClaimCompleteSelfTests(unittest.TestCase):
         cls.staging_b = cls.root / "staging-b"
         cls.candidate = cls.root / "candidate"
         cls.root.mkdir()
+        cls.root_owner_token = uuid.uuid4().hex
+        (cls.root / SELFTEST_OWNER_MARKER).write_text(
+            cls.root_owner_token + "\n", encoding="ascii", newline="\n"
+        )
         cls.identity_file.write_text(
             json.dumps(["SELFTEST_ONLY_PRIVATE_IDENTITY_998877"]),
             encoding="utf-8",
         )
         try:
+            cls.profile = derivation._load_profile(cls.profile_path)
             cls.first_derivation = derivation.derive_payload(
                 REPO_ROOT,
                 cls.profile_path,
@@ -82,7 +104,6 @@ class ClaimCompleteSelfTests(unittest.TestCase):
                 cls.candidate,
                 cls.identity_file,
             )
-            cls.profile = derivation._load_profile(cls.profile_path)
         except Exception:
             cls._remove_root()
             raise
@@ -96,11 +117,21 @@ class ClaimCompleteSelfTests(unittest.TestCase):
         root = getattr(cls, "root", None)
         if root is None or not root.exists():
             return
+        expected_parent = REPO_ROOT / "local_artifacts"
+        _validate_plain_directory_chain(expected_parent)
         if (
-            root.parent != TOOL_DIR
+            root.parent != expected_parent
             or not root.name.startswith("_claim_complete_selftest_")
+            or root.is_symlink()
+            or builder._is_reparse(root)
+            or not root.is_dir()
         ):
-            raise RuntimeError("refusing unsafe claim-complete self-test cleanup target")
+            raise RuntimeError(
+                "refusing unsafe claim-complete self-test cleanup target"
+            )
+        marker = root / SELFTEST_OWNER_MARKER
+        if marker.read_text(encoding="ascii") != cls.root_owner_token + "\n":
+            raise RuntimeError("claim-complete self-test ownership marker mismatch")
         shutil.rmtree(root)
 
     def _candidate_copy(self, name: str) -> Path:
@@ -124,11 +155,19 @@ class ClaimCompleteSelfTests(unittest.TestCase):
     def test_end_to_end_dual_derivation_build_and_verify(self) -> None:
         self.assertEqual(self.first_derivation["status"], "PASS")
         self.assertEqual(self.second_derivation["status"], "PASS")
-        self.assertEqual(self.first_derivation["staged_file_count"], 115)
-        self.assertEqual(self.first_derivation["staged_total_bytes"], 3_186_772)
+        self.assertEqual(len(self.profile.entries), 120)
+        self.assertEqual(self.first_derivation["staged_file_count"], 120)
+        self.assertEqual(
+            self.first_derivation["staged_file_count"], len(self.profile.entries)
+        )
+        self.assertEqual(
+            self.first_derivation["staged_total_bytes"],
+            sum(len(data) for data in _file_bytes(self.staging_a).values()),
+        )
         self.assertEqual(_file_bytes(self.staging_a), _file_bytes(self.staging_b))
         self.assertEqual(self.build_result["status"], "PASS")
-        self.assertEqual(self.build_result["file_count"], 119)
+        self.assertEqual(self.build_result["file_count"], 124)
+        self.assertEqual(self.build_result["file_count"], len(self.profile.entries) + 4)
 
         result = verifier.verify_claim_complete(
             self.candidate,
@@ -229,7 +268,9 @@ class ClaimCompleteSelfTests(unittest.TestCase):
                     with self.assertRaises(builder.CandidateError):
                         builder._check_artifact_policy(neighbour, label)
 
-        entry = next(item for item in self.profile.entries if item.mode == "claim_ledger")
+        entry = next(
+            item for item in self.profile.entries if item.mode == "claim_ledger"
+        )
         extra = (
             "research/iclr2027/results/formal/d14_d16/run_v1/nearby_receipts.jsonl",
             "f" * 64,
@@ -238,7 +279,8 @@ class ClaimCompleteSelfTests(unittest.TestCase):
         mutated_profile = replace(
             self.profile,
             entries=tuple(
-                mutated_entry if item is entry else item for item in self.profile.entries
+                mutated_entry if item is entry else item
+                for item in self.profile.entries
             ),
         )
         with self.assertRaisesRegex(verifier.VerificationError, "exact ten"):
@@ -277,7 +319,9 @@ class ClaimCompleteSelfTests(unittest.TestCase):
                     with self.assertRaises(builder.CandidateError):
                         builder._check_artifact_policy(neighbour, label)
 
-        entry = next(item for item in self.profile.entries if item.mode == "claim_ledger")
+        entry = next(
+            item for item in self.profile.entries if item.mode == "claim_ledger"
+        )
         extra = (
             "research/iclr2027/lifeline_rl/alphazero/checkpoint_nearby.py",
             "f" * 64,
@@ -286,7 +330,8 @@ class ClaimCompleteSelfTests(unittest.TestCase):
         mutated_profile = replace(
             self.profile,
             entries=tuple(
-                mutated_entry if item is entry else item for item in self.profile.entries
+                mutated_entry if item is entry else item
+                for item in self.profile.entries
             ),
         )
         with self.assertRaisesRegex(verifier.VerificationError, "exact two"):
@@ -351,15 +396,15 @@ class ClaimCompleteSelfTests(unittest.TestCase):
 
         for safe in ("COM10.txt", "LPT0.py", "CONSOLE.json", "safe/payload.txt"):
             with self.subTest(loader="allowlist-positive", path=safe):
-                self.assertEqual(builder._safe_relative_path(safe, "selftest path"), safe)
+                self.assertEqual(
+                    builder._safe_relative_path(safe, "selftest path"), safe
+                )
             with self.subTest(loader="profile-input-positive", path=safe):
                 self.assertEqual(
                     derivation._safe_repo_relative_path(safe, "selftest path"), safe
                 )
 
-        source_collision = json.loads(
-            self.profile_path.read_text(encoding="utf-8")
-        )
+        source_collision = json.loads(self.profile_path.read_text(encoding="utf-8"))
         source_rows = [
             row
             for row in source_collision["files"]
@@ -369,7 +414,9 @@ class ClaimCompleteSelfTests(unittest.TestCase):
         ]
         source_rows[1]["source"] = source_rows[0]["source"].upper()
         source_rows[1]["inputs"][0]["path"] = source_rows[1]["source"]
-        profile_path = self._write_profile("profile-source-casefold.json", source_collision)
+        profile_path = self._write_profile(
+            "profile-source-casefold.json", source_collision
+        )
         with self.assertRaisesRegex(derivation.DerivationError, "unique"):
             derivation._load_profile(profile_path)
 
@@ -383,9 +430,7 @@ class ClaimCompleteSelfTests(unittest.TestCase):
             and not row["source"].startswith(derivation.FORMAL_INPUT_PREFIX)
             and "checkpoint" not in PurePosixPath(row["source"]).name.casefold()
         ]
-        destination_rows[1]["destination"] = destination_rows[0][
-            "destination"
-        ].upper()
+        destination_rows[1]["destination"] = destination_rows[0]["destination"].upper()
         profile_path = self._write_profile(
             "profile-destination-casefold.json", destination_collision
         )
@@ -568,6 +613,35 @@ class ClaimCompleteSelfTests(unittest.TestCase):
         self.assertEqual(stderr.getvalue(), "")
         self.assertEqual(json.loads(stdout.getvalue())["status"], "BOOTSTRAP_ONLY")
 
+    def test_bootstrap_allowlist_output_is_disjoint_and_parent_preexists(self) -> None:
+        nested_stage = self.root / "bootstrap-nested-stage"
+        nested_allowlist = nested_stage / "OBSERVED_ALLOWLIST.json"
+        with self.assertRaisesRegex(derivation.DerivationError, "must not overlap"):
+            derivation.derive_payload(
+                REPO_ROOT,
+                self.profile_path,
+                nested_stage,
+                self.allowlist_path,
+                nested_allowlist,
+            )
+        self.assertFalse(nested_stage.exists())
+        self.assertFalse(nested_allowlist.exists())
+
+        missing_parent_stage = self.root / "bootstrap-missing-parent-stage"
+        missing_parent_allowlist = (
+            self.root / "bootstrap-missing-parent" / "OBSERVED_ALLOWLIST.json"
+        )
+        with self.assertRaisesRegex(derivation.DerivationError, "missing ancestor"):
+            derivation.derive_payload(
+                REPO_ROOT,
+                self.profile_path,
+                missing_parent_stage,
+                None,
+                missing_parent_allowlist,
+            )
+        self.assertFalse(missing_parent_stage.exists())
+        self.assertFalse(missing_parent_allowlist.parent.exists())
+
     def test_verify_cli_business_failure_is_stderr_json(self) -> None:
         stdout = io.StringIO()
         stderr = io.StringIO()
@@ -612,6 +686,14 @@ class ClaimCompleteSelfTests(unittest.TestCase):
             if entry.mode
             in {"superko_config", "superko_verification", "environment_receipt"}
         }
+        environment_generated = {
+            path: REPO_ROOT.joinpath(*PurePosixPath(path).parts).read_bytes()
+            for path in (
+                derivation.ENVIRONMENT_LOCK_PATH,
+                derivation.ENVIRONMENT_METADATA_PATH,
+                derivation.ENVIRONMENT_VERIFIER_PATH,
+            )
+        }
         superko_config = json.loads(source_by_mode["superko_config"].decode("utf-8"))
         superko_config.pop("attempt2_preflight")
         with self.assertRaises(derivation.DerivationError):
@@ -635,8 +717,32 @@ class ClaimCompleteSelfTests(unittest.TestCase):
         environment.pop("observed")
         with self.assertRaises(derivation.DerivationError):
             derivation._environment_receipt(
-                derivation._canonical_json_bytes(environment)
+                derivation._canonical_json_bytes(environment),
+                environment_generated,
             )
+
+        environment = json.loads(source_by_mode["environment_receipt"].decode("utf-8"))
+        environment["verifier"]["semantic_command"][2] = "private/verifier.py"
+        with self.assertRaises(derivation.DerivationError):
+            derivation._environment_receipt(
+                derivation._canonical_json_bytes(environment),
+                environment_generated,
+            )
+
+        environment_candidate = self._candidate_copy("environment-binding-tamper")
+        environment_entry = next(
+            item for item in self.profile.entries if item.mode == "environment_receipt"
+        )
+        environment_path = environment_candidate.joinpath(
+            *PurePosixPath(environment_entry.destination).parts
+        )
+        environment_value = json.loads(environment_path.read_text(encoding="utf-8"))
+        environment_value["verifier"]["sha256"] = "0" * 64
+        environment_path.write_bytes(
+            derivation._canonical_json_bytes(environment_value)
+        )
+        with self.assertRaises(verifier.VerificationError):
+            verifier._verify_environment_bindings(environment_candidate, self.profile)
 
         claim_candidate = self._candidate_copy("malformed-claim-row")
         claim_entry = next(
@@ -708,10 +814,10 @@ class ClaimCompleteSelfTests(unittest.TestCase):
         }
         for label, (extra, message) in cases.items():
             value = json.loads(self.profile_path.read_text(encoding="utf-8"))
-            row = next(item for item in value["files"] if item["mode"] == "claim_ledger")
-            row["inputs"].append(
-                {"path": extra, "expected_sha256": "f" * 64}
+            row = next(
+                item for item in value["files"] if item["mode"] == "claim_ledger"
             )
+            row["inputs"].append({"path": extra, "expected_sha256": "f" * 64})
             path = self._write_profile(f"extra-special-input-{label}.json", value)
             with self.subTest(label=label):
                 with self.assertRaisesRegex(derivation.DerivationError, message):
@@ -927,12 +1033,8 @@ class ClaimCompleteSelfTests(unittest.TestCase):
             return line[:-1] + b"," + members + b"}"
 
         valid_lines = list(source_lines)
-        valid_lines[0] = inject(
-            valid_lines[0], b'"selftest_projected_away":"safe"'
-        )
-        compact, _details = derivation._compact_ledger(
-            b"\n".join(valid_lines) + b"\n"
-        )
+        valid_lines[0] = inject(valid_lines[0], b'"selftest_projected_away":"safe"')
+        compact, _details = derivation._compact_ledger(b"\n".join(valid_lines) + b"\n")
         compact_first = derivation._strict_json_loads(
             compact.splitlines()[0], "self-test compact receipt"
         )
@@ -945,8 +1047,7 @@ class ClaimCompleteSelfTests(unittest.TestCase):
             "overflowing-exponent": b'"selftest_projected_away":1e999',
             "duplicate-retained-key": b'"status":"complete"',
             "duplicate-projected-key": (
-                b'"selftest_projected_away":"first",'
-                b'"selftest_projected_away":"second"'
+                b'"selftest_projected_away":"first","selftest_projected_away":"second"'
             ),
         }
         for label, members in attacks.items():
@@ -1065,7 +1166,9 @@ class ClaimCompleteSelfTests(unittest.TestCase):
                 "  "
                 + json.dumps(first_key, ensure_ascii=False)
                 + ": "
-                + json.dumps(value[first_key], ensure_ascii=False, separators=(",", ":"))
+                + json.dumps(
+                    value[first_key], ensure_ascii=False, separators=(",", ":")
+                )
                 + ",\n"
             ).encode("utf-8")
             duplicate = original.replace(b"{\n", b"{\n" + duplicate_line, 1)
@@ -1186,9 +1289,7 @@ class ClaimCompleteSelfTests(unittest.TestCase):
             "deep-concatenated-identity.py": (
                 "owner = "
                 + " + ".join(
-                    ['"SELFTEST_ONLY_"']
-                    + ['""'] * 128
-                    + ['"\\u8eab\\u4efd_776655"']
+                    ['"SELFTEST_ONLY_"'] + ['""'] * 128 + ['"\\u8eab\\u4efd_776655"']
                 )
                 + "\n"
             ).encode("utf-8"),
@@ -1235,7 +1336,7 @@ class ClaimCompleteSelfTests(unittest.TestCase):
                 b'const owner=`SELFTEST_ONLY_\\u8eab${("\\u4efd")}_776655`;\n'
             ),
             "function-regex-before-concatenated-identity.js": (
-                br'function f(){} /https?:\/\//.test("x"); '
+                rb'function f(){} /https?:\/\//.test("x"); '
                 + f'const owner="{js_prefix}"+"\\u8eab"+"\\u4efd"'
                 f'+"{js_suffix}";\n'.encode("utf-8")
             ),
@@ -1264,7 +1365,7 @@ class ClaimCompleteSelfTests(unittest.TestCase):
             encoding="utf-8",
         )
         fstring_identity = builder.load_identity_profile(fstring_identity_path)
-        fstring_source = 'owner = f"\u7532{\'\'}\u4e59\u4e19"\n'.encode("utf-8")
+        fstring_source = "owner = f\"\u7532{''}\u4e59\u4e19\"\n".encode("utf-8")
         self.assertNotIn(fstring_term.encode("utf-8"), fstring_source)
         compile(fstring_source.decode("utf-8"), "fstring-identity.py", "exec")
         fstring_scan = builder._scan_documents(
@@ -1302,7 +1403,7 @@ class ClaimCompleteSelfTests(unittest.TestCase):
             "PASS",
         )
 
-        formatted_fstring_source = 'owner = f"\u7532{\'\':}\u4e59\u4e19"\n'.encode(
+        formatted_fstring_source = "owner = f\"\u7532{'':}\u4e59\u4e19\"\n".encode(
             "utf-8"
         )
         self.assertNotIn(fstring_term.encode("utf-8"), formatted_fstring_source)
@@ -1325,10 +1426,7 @@ class ClaimCompleteSelfTests(unittest.TestCase):
 
         private_use_prefix = "".join(chr(value) for value in range(0xF0000, 0xFFFFE))
         exhaustive_prefix_source = (
-            'const owner = "'
-            + private_use_prefix
-            + "\\u7532\\u4e59\\u4e19"
-            + '";\n'
+            'const owner = "' + private_use_prefix + "\\u7532\\u4e59\\u4e19" + '";\n'
         ).encode("utf-8")
         self.assertNotIn(fstring_term.encode("utf-8"), exhaustive_prefix_source)
         exhaustive_prefix_scan = builder._scan_documents(
@@ -1393,71 +1491,61 @@ class ClaimCompleteSelfTests(unittest.TestCase):
             "unquoted-api-key.js": b"const secrets = {api_key:null};\n",
             "unquoted-empty-password.js": b'const secrets = {password:""};\n',
             "regex-before-unquoted-api-key.js": (
-                br"const r=/https?:\/\//; const secrets={api_key:null};" + b"\n"
+                rb"const r=/https?:\/\//; const secrets={api_key:null};" + b"\n"
             ),
             "control-regex-before-unquoted-api-key.js": (
-                br"if (ready) /[\"`//]/.test(value); "
+                rb"if (ready) /[\"`//]/.test(value); "
                 b"const secrets={api_key:null};\n"
             ),
             "block-regex-before-computed-api-key.js": (
-                br'if(false){} /https?:\/\//.test("x"); '
+                rb'if(false){} /https?:\/\//.test("x"); '
                 b'const secrets={["api"+"_"+"key"]:null};\n'
             ),
             "spread-regex-before-computed-api-key.js": (
-                br'const a=[.../\//.exec(value)]; '
+                rb"const a=[.../\//.exec(value)]; "
                 b'const secrets={["api"+"_"+"key"]:null};\n'
             ),
             "for-await-regex-before-computed-api-key.js": (
-                br'async function f(xs){for await(const v of xs) /\//.test(v); '
+                rb"async function f(xs){for await(const v of xs) /\//.test(v); "
                 b'const secrets={["api"+"_"+"key"]:null};}\n'
             ),
             "export-default-regex-before-computed-api-key.mjs": (
-                br'export default /\//; '
+                rb"export default /\//; "
                 b'const secrets={["api"+"_"+"key"]:null};\n'
             ),
             "debugger-asi-regex-before-computed-api-key.js": (
                 b"debugger\n"
-                br'/https?:\/\//.test("x"); '
+                rb'/https?:\/\//.test("x"); '
                 b'const secrets={["api"+"_"+"key"]:null};\n'
             ),
             "var-asi-regex-before-computed-api-key.js": (
                 b"var value\n"
-                br'/https?:\/\//.test("x"); '
+                rb'/https?:\/\//.test("x"); '
                 b'const secrets={["api"+"_"+"key"]:null};\n'
             ),
             "import-asi-regex-before-computed-api-key.mjs": (
                 b'import "module"\n'
-                br'/https?:\/\//.test("x"); '
+                rb'/https?:\/\//.test("x"); '
                 b'const secrets={["api"+"_"+"key"]:null};\n'
             ),
             "label-block-regex-before-computed-api-key.js": (
-                br'label:{} /https?:\/\//.test("x"); '
+                rb'label:{} /https?:\/\//.test("x"); '
                 b'const secrets={["api"+"_"+"key"]:null};\n'
             ),
             "private-member-division-computed-api-key.js": (
-                b'class C{#return=1;f(){return this.#return/'
+                b"class C{#return=1;f(){return this.#return/"
                 b'({["api"+"_"+"key"]:null})/g;}}\n'
             ),
             "template-computed-api-key.js": (
                 b'const value=`${({["api"+"_"+"key"]:null})}`;\n'
             ),
-            "subscript-computed-api-key.js": (
-                b'object["api"+"_"+"key"]=null;\n'
-            ),
+            "subscript-computed-api-key.js": (b'object["api"+"_"+"key"]=null;\n'),
             "subscript-postfix-api-key.js": b'object["api_key"]++;\n',
             "subscript-prefix-api-key.js": b'++object["api_key"];\n',
-            "subscript-for-of-api-key.js": (
-                b'for(object["api_key"] of values){}\n'
-            ),
-            "subscript-destructure-api-key.js": (
-                b'[object["api_key"]]=values;\n'
-            ),
-            "class-field-computed-api-key.js": (
-                b'class C{["api"+"_"+"key"]=null;}\n'
-            ),
-            "class-field-string-api-key.js": (
-                b'class C{"\\x61pi\\x5fkey";}\n'
-            ),
+            "subscript-for-of-api-key.js": (b'for(object["api_key"] of values){}\n'),
+            "subscript-destructure-api-key.js": (b'[object["api_key"]]=values;\n'),
+            "class-field-computed-api-key.js": (b'class C{["api"+"_"+"key"]=null;}\n'),
+            "class-field-string-api-key.js": (b'class C{"\\x61pi\\x5fkey";}\n'),
             "object-method-computed-api-key.js": (
                 b'const value={["api"+"_"+"key"](){}};\n'
             ),
@@ -1472,9 +1560,7 @@ class ClaimCompleteSelfTests(unittest.TestCase):
             "nested-template-client-secret.js": (
                 b"const value=`outer ${`inner ${object.client_secret}`}`;\n"
             ),
-            "non-escape-quoted-api-key.js": (
-                b'const secrets={"api\\_key":null};\n'
-            ),
+            "non-escape-quoted-api-key.js": (b'const secrets={"api\\_key":null};\n'),
             "non-escape-template-api-key.js": (
                 b"const secrets={[`api\\_key`]:null};\n"
             ),
@@ -1513,14 +1599,10 @@ class ClaimCompleteSelfTests(unittest.TestCase):
                 b'const secrets = {["api" + "_key"] /* "noise" */:null};\n'
             ),
             "long-comment-quoted-api-key.js": (
-                b'const secrets = {"api_key"/*'
-                + b"x" * 10000
-                + b"*/:null};\n"
+                b'const secrets = {"api_key"/*' + b"x" * 10000 + b"*/:null};\n"
             ),
             "long-comment-computed-api-key.js": (
-                b'const secrets = {["api" + "_key"]/*'
-                + b"x" * 10000
-                + b"*/:null};\n"
+                b'const secrets = {["api" + "_key"]/*' + b"x" * 10000 + b"*/:null};\n"
             ),
         }
         for relative, data in javascript_identifier_credentials.items():
@@ -1578,8 +1660,7 @@ class ClaimCompleteSelfTests(unittest.TestCase):
                 self.assertEqual(scan["status"], "FAIL")
                 self.assertTrue(
                     any(
-                        finding["rule"]
-                        == "invalid_or_ambiguous_javascript_source"
+                        finding["rule"] == "invalid_or_ambiguous_javascript_source"
                         for finding in scan["findings"]
                     )
                 )
@@ -1592,9 +1673,7 @@ class ClaimCompleteSelfTests(unittest.TestCase):
             "bytes-concatenated-api-key.py": (
                 b'{b"api" + b"_" + b"key": b"abcdefghijkl"}\n'
             ),
-            "subscript-computed-api-key.py": (
-                b'object["api"+"_"+"key"]: str = ""\n'
-            ),
+            "subscript-computed-api-key.py": (b'object["api"+"_"+"key"]: str = ""\n'),
             "subscript-read-api-key.py": b'print(object["api_key"])\n',
             "name-read-api-key.py": b"print(api_key)\n",
             "attribute-read-client-secret.py": b"print(object.client_secret)\n",
@@ -1671,12 +1750,8 @@ class ClaimCompleteSelfTests(unittest.TestCase):
                 )
 
         literal_count = 4096
-        linear_literal_source = "const value=" + "+".join(
-            ['"x"'] * literal_count
-        )
-        linear_literal_views = builder._source_literal_scan_views(
-            linear_literal_source
-        )
+        linear_literal_source = "const value=" + "+".join(['"x"'] * literal_count)
+        linear_literal_views = builder._source_literal_scan_views(linear_literal_source)
         self.assertEqual(len(linear_literal_views), literal_count + 1)
         self.assertEqual(
             sum(len(value) for value, _is_key in linear_literal_views),
@@ -1724,15 +1799,13 @@ class ClaimCompleteSelfTests(unittest.TestCase):
             "quoted-password.cfg": b'"password"="abcdefghijkl"\n',
             "quoted-api-key.md": b'"api_key": "abcdefghijkl"\n',
             "bold-api-key.md": b'**api_key**: "abcdefghijkl"\n',
-            "inline-code-api-key.md": b'`api_key`: `abcdefghijkl`\n',
-            "html-code-api-key.md": b'<code>api_key</code>: abcdefghijkl\n',
-            "html-comment-api-key.md": b'api_key<!--note-->: abcdefghijkl\n',
-            "table-api-key.md": b'| api_key | value |\n| --- | --- |\n',
-            "escaped-api-key.md": b'api\\_key: abcdefghijkl\n',
-            "entity-api-key.md": b'api&#95;key: abcdefghijkl\n',
-            "multiword-password.txt": (
-                b'password: "correct horse battery staple"\n'
-            ),
+            "inline-code-api-key.md": b"`api_key`: `abcdefghijkl`\n",
+            "html-code-api-key.md": b"<code>api_key</code>: abcdefghijkl\n",
+            "html-comment-api-key.md": b"api_key<!--note-->: abcdefghijkl\n",
+            "table-api-key.md": b"| api_key | value |\n| --- | --- |\n",
+            "escaped-api-key.md": b"api\\_key: abcdefghijkl\n",
+            "entity-api-key.md": b"api&#95;key: abcdefghijkl\n",
+            "multiword-password.txt": (b'password: "correct horse battery staple"\n'),
             "fullwidth-api-key.md": (
                 '"\uff41\uff50\uff49\uff3f\uff4b\uff45\uff59": "abcdefghijkl"\n'.encode(
                     "utf-8"
@@ -1760,9 +1833,7 @@ class ClaimCompleteSelfTests(unittest.TestCase):
             "yaml-sequence-explicit-key.yaml": (
                 b"- - ? api_key # comment\n    : abcdefghijkl\n"
             ),
-            "yaml-multiline-key.yml": (
-                b'"api_\\\n  key": abcdefghijkl\n'
-            ),
+            "yaml-multiline-key.yml": (b'"api_\\\n  key": abcdefghijkl\n'),
             "yaml-alias-credential-key.yaml": (
                 b"holder: &k api_key\n*k: abcdefghijkl\n"
             ),
@@ -1790,9 +1861,7 @@ class ClaimCompleteSelfTests(unittest.TestCase):
                     "utf-8"
                 )
             ),
-            "csv-excel-separator-directive.csv": (
-                b"sep=;\napi_key;value\n;1\n"
-            ),
+            "csv-excel-separator-directive.csv": (b"sep=;\napi_key;value\n;1\n"),
         }
         for relative, data in unsupported_structured_documents.items():
             scan = builder._scan_documents([(relative, data)], identity)
@@ -1890,9 +1959,7 @@ class ClaimCompleteSelfTests(unittest.TestCase):
             ),
             encoding="utf-8",
         )
-        escaped_identity_profile = builder.load_identity_profile(
-            escaped_identity_path
-        )
+        escaped_identity_profile = builder.load_identity_profile(escaped_identity_path)
         escaped_identity_documents = {
             "apostrophe-escape.md": "O\\'Connor\n",
             "at-sign-escape.md": "A\\@B\n",
@@ -1936,19 +2003,13 @@ class ClaimCompleteSelfTests(unittest.TestCase):
         )
         structured_identity_documents = {
             "yaml-folded-identity.yaml": "owner: >-\n  Alice\n  Smith\n",
-            "yaml-multiline-quoted-identity.yaml": (
-                'owner: "Alice\n  Smith"\n'
-            ),
+            "yaml-multiline-quoted-identity.yaml": ('owner: "Alice\n  Smith"\n'),
             "yaml-plain-multiline-identity.yaml": "owner: Alice\n  Smith\n",
             "yaml-escaped-space-identity.yaml": 'owner: "Alice\\ Smith"\n',
             "yaml-escaped-quote-identity.yaml": 'owner: "O\\"Connor"\n',
             "yaml-doubled-quote-identity.yaml": "owner: 'O''Connor'\n",
-            "yaml-binary-tag-identity.yaml": (
-                "owner: !!binary QWxpY2UgU21pdGg=\n"
-            ),
-            "yaml-custom-tag-identity.yaml": (
-                "owner: !-foo QWxpY2UgU21pdGg=\n"
-            ),
+            "yaml-binary-tag-identity.yaml": ("owner: !!binary QWxpY2UgU21pdGg=\n"),
+            "yaml-custom-tag-identity.yaml": ("owner: !-foo QWxpY2UgU21pdGg=\n"),
             "toml-escaped-quote-identity.toml": 'owner = "O\\"Connor"\n',
         }
         for relative, source in structured_identity_documents.items():

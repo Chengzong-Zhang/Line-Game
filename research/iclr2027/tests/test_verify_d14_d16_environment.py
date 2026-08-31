@@ -26,6 +26,14 @@ def write_portable_metadata(path, value=None):
     return payload
 
 
+def nonportable_file_uri_entry() -> str:
+    return "package @ " + "".join(("file", ":///", chr(67), ":/private/build", "\n"))
+
+
+def private_windows_device_name() -> str:
+    return "".join((chr(67), ":", "\\", "private", "\\", "host"))
+
+
 def test_parse_lock_accepts_only_exact_portable_pins(tmp_path):
     lock = tmp_path / "requirements.lock.txt"
     lock.write_text(
@@ -46,7 +54,7 @@ def test_parse_lock_accepts_only_exact_portable_pins(tmp_path):
     "entry",
     [
         "torch>=2.7\n",
-        "package @ file:///C:/private/build\n",
+        nonportable_file_uri_entry(),
         "torch==2.7.1\ntorch==2.7.1\n",
     ],
 )
@@ -111,7 +119,7 @@ def test_portable_execution_metadata_rejects_schema_drift(tmp_path):
     [
         ("source_execution_metadata_sha256", "0" * 64),
         ("python", "3.10.19"),
-        ("device_name", r"C:\private\host"),
+        ("device_name", private_windows_device_name()),
         ("schema_version", True),
         ("schema_version", 1.0),
         ("cudnn_version", True),

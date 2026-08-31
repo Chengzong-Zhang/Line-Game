@@ -4,8 +4,10 @@ import argparse
 import hashlib
 import json
 import math
+import os
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import unicodedata
@@ -24,7 +26,9 @@ DERIVED_PREFIX = "research/iclr2027/supplement_tools/derived_claim_complete/"
 CLAIM_IDS = tuple(f"C{index}" for index in range(1, 11))
 HEX64_RE = re.compile(r"[0-9a-f]{64}")
 CLAIM_PACKAGE_NAME = "lifeline_rl_claim_complete_candidate"
-CLAIM_PURPOSE = "anonymous C1-C10 code, protocol, aggregate, and verifier review candidate"
+CLAIM_PURPOSE = (
+    "anonymous C1-C10 code, protocol, aggregate, and verifier review candidate"
+)
 CLAIM_MAX_FILE_BYTES = 1_048_576
 CLAIM_MAX_TOTAL_BYTES = 8_388_608
 GAME_ENGINE_SOURCE = "web/web\u524d\u7aef/GameEngine.js"
@@ -111,7 +115,18 @@ ENVIRONMENT_RECEIPT_SOURCE_KEYS = frozenset(
         "ok",
         "schema_name",
         "schema_version",
+        "verifier",
     }
+)
+ENVIRONMENT_LOCK_PATH = "research/iclr2027/requirements-d14-d16-win-cu118.lock.txt"
+ENVIRONMENT_METADATA_PATH = (
+    "research/iclr2027/results/validation/"
+    "d14_d16_execution_metadata_portable_20260831.json"
+)
+ENVIRONMENT_VERIFIER_PATH = "research/iclr2027/scripts/verify_d14_d16_environment.py"
+ENVIRONMENT_RECEIPT_PATH = (
+    "research/iclr2027/results/validation/"
+    "d14_d16_environment_verification_20260831_v2.json"
 )
 
 CLAIM_LEDGER_CLAIM_REWRITES = {
@@ -167,9 +182,7 @@ CLAIM_LEDGER_LIMITATION_REWRITES = {
         "representation ordering is supported.",
     ),
 }
-CLAIM_LEDGER_SEED_AUDIT_PATH = (
-    "reviews/d14_d16_seed_pair_descriptive_audit.json"
-)
+CLAIM_LEDGER_SEED_AUDIT_PATH = "reviews/d14_d16_seed_pair_descriptive_audit.json"
 CLAIM_LEDGER_EVIDENCE_ADDITIONS = {
     "C5": CLAIM_LEDGER_SEED_AUDIT_PATH,
     "C6": CLAIM_LEDGER_SEED_AUDIT_PATH,
@@ -310,8 +323,7 @@ TRANSFORM_CONTRACTS: Mapping[str, TransformContract] = {
         ("research/iclr2027/configs/superko_policy_matrix_v1_attempt2_manifest.json",),
     ),
     "superko_verification": TransformContract(
-        DERIVED_PREFIX
-        + "superko_policy_matrix_attempt2_verification.anonymized.json",
+        DERIVED_PREFIX + "superko_policy_matrix_attempt2_verification.anonymized.json",
         "research/iclr2027/results/validation/"
         "superko_policy_matrix_attempt2_verification.anonymized.json",
         "verifier_receipt_derivative",
@@ -327,7 +339,7 @@ TRANSFORM_CONTRACTS: Mapping[str, TransformContract] = {
         "environment_receipt_derivative",
         (
             "research/iclr2027/results/validation/"
-            "d14_d16_environment_verification_20260831.json",
+            "d14_d16_environment_verification_20260831_v2.json",
         ),
     ),
     "terminology_erratum": TransformContract(
@@ -463,9 +475,7 @@ def _validate_transform_contract(entry: ProfileEntry) -> None:
     )
     for field in ("source", "destination", "category", "input_paths"):
         if getattr(observed, field) != getattr(expected, field):
-            raise DerivationError(
-                f"{entry.mode} transform contract {field} drifted"
-            )
+            raise DerivationError(f"{entry.mode} transform contract {field} drifted")
 
 
 def _validate_exact_transform_contracts(entries: Sequence[ProfileEntry]) -> None:
@@ -506,9 +516,13 @@ def _load_profile(path: Path) -> ClaimCompleteProfile:
     if raw["schema_version"] != SCHEMA_VERSION:
         raise DerivationError("unsupported claim-complete profile schema_version")
     if raw["status"] != STATUS or raw["approval"] != APPROVAL:
-        raise DerivationError("profile must remain candidate-only with author approval required")
+        raise DerivationError(
+            "profile must remain candidate-only with author approval required"
+        )
     if raw["claim_ids"] != list(CLAIM_IDS):
-        raise DerivationError("profile must cover admitted claims C1 through C10 exactly")
+        raise DerivationError(
+            "profile must cover admitted claims C1 through C10 exactly"
+        )
     descriptive = raw["descriptive_only_destinations"]
     if not isinstance(descriptive, list) or not descriptive:
         raise DerivationError("descriptive_only_destinations must be a non-empty list")
@@ -540,7 +554,9 @@ def _load_profile(path: Path) -> ClaimCompleteProfile:
             row["destination"], f"files[{index}].destination"
         )
         category = row["category"]
-        if not isinstance(category, str) or not builder.SAFE_SLUG_RE.fullmatch(category):
+        if not isinstance(category, str) or not builder.SAFE_SLUG_RE.fullmatch(
+            category
+        ):
             raise DerivationError(f"files[{index}].category is invalid")
         mode = row["mode"]
         if not isinstance(mode, str) or mode not in {"copy", *REQUIRED_DERIVED_MODES}:
@@ -573,13 +589,21 @@ def _load_profile(path: Path) -> ClaimCompleteProfile:
                 "copy entries must carry their source path with a zero bootstrap hash"
             )
         if mode != "copy" and any(expected == "0" * 64 for _, expected in inputs):
-            raise DerivationError("derived inputs must carry nonzero pinned source hashes")
+            raise DerivationError(
+                "derived inputs must carry nonzero pinned source hashes"
+            )
         if mode != "copy" and mode != "derivation_receipt" and not inputs:
-            raise DerivationError(f"files[{index}] transform must bind at least one input")
+            raise DerivationError(
+                f"files[{index}] transform must bind at least one input"
+            )
         if mode == "derivation_receipt" and inputs:
-            raise DerivationError("derivation_receipt must not declare recursive inputs")
+            raise DerivationError(
+                "derivation_receipt must not declare recursive inputs"
+            )
         if mode != "copy" and not source.startswith(DERIVED_PREFIX):
-            raise DerivationError("derived staging sources must use the reserved prefix")
+            raise DerivationError(
+                "derived staging sources must use the reserved prefix"
+            )
         source_key = source.casefold()
         destination_key = destination.casefold()
         if source_key in seen_sources or destination_key in seen_destinations:
@@ -638,9 +662,7 @@ def _special_input_paths(
     entries: Sequence[ProfileEntry],
 ) -> tuple[set[str], set[str]]:
     input_paths = {
-        relative
-        for entry in entries
-        for relative, _expected_sha256 in entry.inputs
+        relative for entry in entries for relative, _expected_sha256 in entry.inputs
     }
     formal_inputs = {
         relative
@@ -698,7 +720,9 @@ def _read_repo_file(root: Path, relative: str) -> bytes:
     try:
         lexical_path.relative_to(root_absolute)
     except ValueError as exc:
-        raise DerivationError("claim-complete source path escapes the repository root") from exc
+        raise DerivationError(
+            "claim-complete source path escapes the repository root"
+        ) from exc
     try:
         resolved_root = root_absolute.resolve(strict=True)
         resolved_path = lexical_path.resolve(strict=True)
@@ -757,9 +781,7 @@ def _decode_hash_binding_path(value: Any) -> tuple[HashPathComponent, ...]:
             type(component) is int and component >= 0
         ):
             raise DerivationError("hash-binding path component is invalid")
-    if not isinstance(components[-1], str) or not _is_hash_binding_key(
-        components[-1]
-    ):
+    if not isinstance(components[-1], str) or not _is_hash_binding_key(components[-1]):
         raise DerivationError("hash-binding path does not end at a hash field")
     decoded = tuple(components)
     if _encode_hash_binding_path(decoded) != value:
@@ -984,7 +1006,10 @@ def _claim_ledger(source_path: str, source: bytes) -> tuple[bytes, dict[str, Any
     if evidence_additions != set(CLAIM_LEDGER_EVIDENCE_ADDITIONS):
         raise DerivationError("claim ledger seed-audit evidence additions drifted")
     expected_path_rewrites = Counter(
-        {source_path: 1 for source_path, _candidate_path in CLAIM_LEDGER_EVIDENCE_PATH_REWRITES}
+        {
+            source_path: 1
+            for source_path, _candidate_path in CLAIM_LEDGER_EVIDENCE_PATH_REWRITES
+        }
     )
     if path_rewrite_counts != expected_path_rewrites:
         raise DerivationError(
@@ -1059,7 +1084,9 @@ def _d14_protocol(source: bytes) -> tuple[bytes, dict[str, Any]]:
     }
 
 
-def _compact_receipt(raw: dict[str, Any], line_number: int, raw_line: bytes) -> dict[str, Any]:
+def _compact_receipt(
+    raw: dict[str, Any], line_number: int, raw_line: bytes
+) -> dict[str, Any]:
     compact: dict[str, Any] = {
         "source_receipt_line": line_number,
         "source_receipt_sha256": _sha256(raw_line),
@@ -1089,9 +1116,7 @@ def _compact_ledger(source: bytes) -> tuple[bytes, dict[str, Any]]:
     rendered: list[str] = []
     hash_binding_count = 0
     for line_number, raw_line in enumerate(raw_lines, start=1):
-        receipt = _strict_json_loads(
-            raw_line, f"receipt ledger line {line_number}"
-        )
+        receipt = _strict_json_loads(raw_line, f"receipt ledger line {line_number}")
         if not isinstance(receipt, dict):
             raise DerivationError(f"receipt ledger line {line_number} is not an object")
         kind_counts[str(receipt.get("result_kind"))] += 1
@@ -1120,8 +1145,7 @@ def _compact_ledger(source: bytes) -> tuple[bytes, dict[str, Any]]:
         raise DerivationError(f"formal ledger status drifted: {dict(status_counts)}")
     if hash_binding_count != 4695:
         raise DerivationError(
-            "formal ledger retained hash-binding count drifted: "
-            f"{hash_binding_count}"
+            f"formal ledger retained hash-binding count drifted: {hash_binding_count}"
         )
     data = ("\n".join(rendered) + "\n").encode("utf-8")
     return data, {
@@ -1145,7 +1169,9 @@ def _ledger_status(
         raise DerivationError("ledger status absolute-path field is missing")
     removed = raw.pop("ledger_path")
     if not isinstance(removed, str) or not re.match(r"(?i)^[a-z]:[\\/]", removed):
-        raise DerivationError("ledger status path no longer has the expected absolute shape")
+        raise DerivationError(
+            "ledger status path no longer has the expected absolute shape"
+        )
     raw.update(
         {
             "candidate_status": STATUS,
@@ -1171,12 +1197,18 @@ def _ledger_status(
 def _superko_config(source: bytes) -> tuple[bytes, dict[str, Any]]:
     raw = _strict_json_loads(source, "Superko configuration source")
     if not isinstance(raw, dict):
-        raise DerivationError("Superko configuration source has an invalid object shape")
-    _require_exact_keys(raw, set(SUPERKO_CONFIG_SOURCE_KEYS), "Superko configuration source")
+        raise DerivationError(
+            "Superko configuration source has an invalid object shape"
+        )
+    _require_exact_keys(
+        raw, set(SUPERKO_CONFIG_SOURCE_KEYS), "Superko configuration source"
+    )
     if not isinstance(raw.get("checkpoint"), dict) or not isinstance(
         raw.get("source_sha256"), dict
     ):
-        raise DerivationError("Superko configuration source has an invalid object shape")
+        raise DerivationError(
+            "Superko configuration source has an invalid object shape"
+        )
     _require_exact_keys(
         raw["checkpoint"],
         set(SUPERKO_CHECKPOINT_SOURCE_KEYS),
@@ -1187,7 +1219,9 @@ def _superko_config(source: bytes) -> tuple[bytes, dict[str, Any]]:
     checkpoint = dict(raw["checkpoint"])
     checkpoint.pop("path", None)
     checkpoint["bytes_included"] = False
-    checkpoint["omission_reason"] = "Local engineering-smoke checkpoint bytes are excluded."
+    checkpoint["omission_reason"] = (
+        "Local engineering-smoke checkpoint bytes are excluded."
+    )
     normalized_sources: dict[str, Any] = {}
     normalized_keys: dict[str, str] = {}
     normalized_count = 0
@@ -1260,7 +1294,9 @@ def _superko_verification(source: bytes) -> tuple[bytes, dict[str, Any]]:
     }
 
 
-def _environment_receipt(source: bytes) -> tuple[bytes, dict[str, Any]]:
+def _environment_receipt(
+    source: bytes, generated: Mapping[str, bytes] | None = None
+) -> tuple[bytes, dict[str, Any]]:
     raw = _strict_json_loads(source, "environment verification source")
     if not isinstance(raw, dict):
         raise DerivationError("environment verification source must be an object")
@@ -1269,37 +1305,97 @@ def _environment_receipt(source: bytes) -> tuple[bytes, dict[str, Any]]:
         set(ENVIRONMENT_RECEIPT_SOURCE_KEYS),
         "environment verification source",
     )
-    prefix = "C:/coding/py/line game/research/iclr2027/"
-    replacements = 0
-
-    def normalize(value: Any) -> Any:
-        nonlocal replacements
-        if isinstance(value, dict):
-            return {key: normalize(child) for key, child in value.items()}
-        if isinstance(value, list):
-            return [normalize(child) for child in value]
-        if isinstance(value, str) and value.startswith(prefix):
-            replacements += 1
-            return value[len(prefix) :]
-        return value
-
-    normalized = normalize(raw)
-    if replacements != 2:
-        raise DerivationError(
-            f"environment receipt path-normalization count drifted: {replacements}"
+    formal_metadata = raw.get("formal_execution_metadata")
+    lock = raw.get("lock")
+    verifier = raw.get("verifier")
+    expected_command = [
+        "python",
+        "-B",
+        ENVIRONMENT_VERIFIER_PATH,
+        "--lock",
+        ENVIRONMENT_LOCK_PATH,
+        "--metadata",
+        ENVIRONMENT_METADATA_PATH,
+        "--output",
+        ENVIRONMENT_RECEIPT_PATH,
+    ]
+    if (
+        raw.get("schema_name") != "lifeline-d14-d16-environment-verification"
+        or type(raw.get("schema_version")) is not int
+        or raw.get("schema_version") != 1
+        or raw.get("ok") is not True
+        or raw.get("errors") != []
+        or not isinstance(formal_metadata, dict)
+        or formal_metadata.get("path") != ENVIRONMENT_METADATA_PATH
+        or not isinstance(formal_metadata.get("sha256"), str)
+        or not builder.SHA256_RE.fullmatch(formal_metadata["sha256"])
+        or not isinstance(formal_metadata.get("source_execution_metadata_sha256"), str)
+        or not builder.SHA256_RE.fullmatch(
+            formal_metadata["source_execution_metadata_sha256"]
         )
-    normalized["candidate_status"] = STATUS
-    normalized["approval"] = APPROVAL
-    normalized["acquisition_boundary"] = (
+        or not isinstance(lock, dict)
+        or lock.get("path") != ENVIRONMENT_LOCK_PATH
+        or not isinstance(lock.get("sha256"), str)
+        or not builder.SHA256_RE.fullmatch(lock["sha256"])
+        or not isinstance(verifier, dict)
+        or verifier.get("path") != ENVIRONMENT_VERIFIER_PATH
+        or not isinstance(verifier.get("sha256"), str)
+        or not builder.SHA256_RE.fullmatch(verifier["sha256"])
+        or verifier.get("semantic_command") != expected_command
+    ):
+        raise DerivationError(
+            "environment receipt is not the frozen path-safe v2 verifier output"
+        )
+
+    available = generated if generated is not None else {}
+    generated_bindings = {
+        path: available.get(path)
+        for path in (
+            ENVIRONMENT_LOCK_PATH,
+            ENVIRONMENT_METADATA_PATH,
+            ENVIRONMENT_VERIFIER_PATH,
+        )
+    }
+    if any(data is None for data in generated_bindings.values()):
+        raise DerivationError(
+            "environment lock, metadata, and verifier copies must precede the receipt"
+        )
+    metadata_copy = _strict_json_loads(
+        generated_bindings[ENVIRONMENT_METADATA_PATH],
+        "portable execution metadata copy",
+    )
+    if (
+        not isinstance(metadata_copy, dict)
+        or metadata_copy.get("source_execution_metadata_sha256")
+        != formal_metadata["source_execution_metadata_sha256"]
+        or formal_metadata["sha256"]
+        != _sha256(generated_bindings[ENVIRONMENT_METADATA_PATH])
+        or lock["sha256"] != _sha256(generated_bindings[ENVIRONMENT_LOCK_PATH])
+        or verifier["sha256"] != _sha256(generated_bindings[ENVIRONMENT_VERIFIER_PATH])
+    ):
+        raise DerivationError(
+            "environment receipt hashes do not bind the generated candidate copies"
+        )
+
+    raw["candidate_status"] = STATUS
+    raw["approval"] = APPROVAL
+    raw["acquisition_boundary"] = (
         "hash-bound environment receipt and lock only; no clean-install execution is claimed"
     )
-    normalized["candidate_derivation"] = {
+    raw["candidate_derivation"] = {
         "source_sha256": _sha256(source),
-        "repository_absolute_paths_replaced": replacements,
+        "source_paths_already_repository_relative": True,
+        "repository_absolute_paths_replaced": 0,
+        "repository_relative_bindings_verified": 3,
+        "candidate_copy_hash_bindings_verified": 3,
     }
-    return _canonical_json_bytes(normalized), {
-        "transformation": "made two repository paths relative without changing observations",
-        "repository_paths_replaced": replacements,
+    return _canonical_json_bytes(raw), {
+        "transformation": (
+            "preserved the path-safe v2 receipt and added candidate-only boundaries"
+        ),
+        "repository_paths_replaced": 0,
+        "repository_relative_bindings_verified": 3,
+        "candidate_copy_hash_bindings_verified": 3,
         "clean_install_execution_claimed": False,
     }
 
@@ -1410,7 +1506,7 @@ def _derive_entry(
         data, details = _superko_verification(verification_source)
     elif entry.mode == "environment_receipt":
         (environment_source,) = inputs
-        data, details = _environment_receipt(environment_source)
+        data, details = _environment_receipt(environment_source, generated)
     elif entry.mode == "terminology_erratum":
         (erratum_source,) = inputs
         data, details = _terminology_erratum(erratum_source)
@@ -1470,9 +1566,13 @@ def _validate_allowlist_shape(
         for entry in allowlist.files
     ]
     if observed != expected:
-        raise DerivationError("allowlist rows differ from the ordered claim-complete profile")
+        raise DerivationError(
+            "allowlist rows differ from the ordered claim-complete profile"
+        )
     if allowlist.require_git_tracked:
-        raise DerivationError("staged claim-complete allowlist must set require_git_tracked=false")
+        raise DerivationError(
+            "staged claim-complete allowlist must set require_git_tracked=false"
+        )
     if allowlist.package_name != CLAIM_PACKAGE_NAME:
         raise DerivationError("claim-complete allowlist package_name drifted")
     if allowlist.purpose != CLAIM_PURPOSE:
@@ -1484,7 +1584,9 @@ def _validate_allowlist_shape(
         raise DerivationError("claim-complete allowlist limits drifted")
 
 
-def _bootstrap_allowlist(profile: ClaimCompleteProfile, generated: Mapping[str, bytes]) -> bytes:
+def _bootstrap_allowlist(
+    profile: ClaimCompleteProfile, generated: Mapping[str, bytes]
+) -> bytes:
     value = {
         "schema_version": 1,
         "status": STATUS,
@@ -1506,6 +1608,28 @@ def _bootstrap_allowlist(profile: ClaimCompleteProfile, generated: Mapping[str, 
         ],
     }
     return _canonical_json_bytes(value)
+
+
+def _validate_existing_plain_directory_chain(path: Path, label: str) -> Path:
+    absolute = path.absolute()
+    chain = [absolute]
+    while chain[-1].parent != chain[-1]:
+        chain.append(chain[-1].parent)
+    for directory in reversed(chain):
+        if not directory.exists() and not directory.is_symlink():
+            raise DerivationError(f"{label} has a missing ancestor")
+        try:
+            info = os.lstat(directory)
+            is_reparse = builder._is_reparse(directory)
+        except OSError as exc:
+            raise DerivationError(f"{label} cannot be inspected safely") from exc
+        if is_reparse or not stat.S_ISDIR(info.st_mode):
+            raise DerivationError(f"{label} must be an existing plain directory")
+    return absolute
+
+
+def _paths_overlap(first: Path, second: Path) -> bool:
+    return first == second or first in second.parents or second in first.parents
 
 
 def derive_payload(
@@ -1534,12 +1658,22 @@ def derive_payload(
     output = output.absolute()
     if output.exists() or output.is_symlink():
         raise DerivationError("staging output already exists; overwrite is forbidden")
-    if not output.parent.is_dir() or builder._is_reparse(output.parent):
-        raise DerivationError("staging output parent must be an existing plain directory")
-    if bootstrap_allowlist_output is not None and (
-        bootstrap_allowlist_output.exists() or bootstrap_allowlist_output.is_symlink()
-    ):
-        raise DerivationError("bootstrap allowlist output already exists")
+    _validate_existing_plain_directory_chain(output.parent, "staging output parent")
+    if bootstrap_allowlist_output is not None:
+        bootstrap_allowlist_output = bootstrap_allowlist_output.absolute()
+        if _paths_overlap(output, bootstrap_allowlist_output):
+            raise DerivationError(
+                "bootstrap allowlist output must not overlap the staging output"
+            )
+        if (
+            bootstrap_allowlist_output.exists()
+            or bootstrap_allowlist_output.is_symlink()
+        ):
+            raise DerivationError("bootstrap allowlist output already exists")
+        _validate_existing_plain_directory_chain(
+            bootstrap_allowlist_output.parent,
+            "bootstrap allowlist output parent",
+        )
 
     generated: dict[str, bytes] = {}
     receipts: list[dict[str, Any]] = []
@@ -1596,7 +1730,9 @@ def derive_payload(
             for entry in allowlist.files:
                 observed = _sha256(generated[entry.source])
                 if observed != entry.expected_sha256:
-                    raise DerivationError(f"derived payload hash drifted: {entry.source}")
+                    raise DerivationError(
+                        f"derived payload hash drifted: {entry.source}"
+                    )
 
         for entry in profile.entries:
             _validate_json_document_bytes(generated[entry.source], entry.destination)
@@ -1613,7 +1749,6 @@ def derive_payload(
 
         bootstrap_bytes = _bootstrap_allowlist(profile, generated)
         if bootstrap_allowlist_output is not None:
-            bootstrap_allowlist_output.parent.mkdir(parents=True, exist_ok=True)
             with bootstrap_allowlist_output.open("xb") as handle:
                 handle.write(bootstrap_bytes)
 

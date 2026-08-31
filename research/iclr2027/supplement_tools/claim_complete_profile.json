@@ -1269,6 +1269,66 @@
       ]
     },
     {
+      "source": "research/iclr2027/D14_D16_FRESH_INSTALL_PREFLIGHT.md",
+      "destination": "research/iclr2027/D14_D16_FRESH_INSTALL_PREFLIGHT.md",
+      "category": "reproducibility_guide",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/D14_D16_FRESH_INSTALL_PREFLIGHT.md",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/scripts/d14_d16_fresh_install_preflight.py",
+      "destination": "research/iclr2027/scripts/d14_d16_fresh_install_preflight.py",
+      "category": "reproducibility_runner",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/scripts/d14_d16_fresh_install_preflight.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/tests/test_d14_d16_fresh_install_preflight.py",
+      "destination": "research/iclr2027/tests/test_d14_d16_fresh_install_preflight.py",
+      "category": "targeted_test",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/tests/test_d14_d16_fresh_install_preflight.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/results/validation/d14_d16_execution_metadata_portable_20260831.json",
+      "destination": "research/iclr2027/results/validation/d14_d16_execution_metadata_portable_20260831.json",
+      "category": "environment_metadata",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/results/validation/d14_d16_execution_metadata_portable_20260831.json",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/tests/test_verify_d14_d16_environment.py",
+      "destination": "research/iclr2027/tests/test_verify_d14_d16_environment.py",
+      "category": "targeted_test",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/tests/test_verify_d14_d16_environment.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
       "source": "research/iclr2027/supplement_tools/derived_claim_complete/reference_trace.mjs",
       "destination": "research/iclr2027/scripts/reference_trace.mjs",
       "category": "reproducibility_runner",
@@ -1371,8 +1431,8 @@
       "mode": "environment_receipt",
       "inputs": [
         {
-          "path": "research/iclr2027/results/validation/d14_d16_environment_verification_20260831.json",
-          "expected_sha256": "fbafaa8d7d748dead69b52ee042c79dcfbde75675660feef1c53f167eda97eb1"
+          "path": "research/iclr2027/results/validation/d14_d16_environment_verification_20260831_v2.json",
+          "expected_sha256": "af9ff287c4522f61fb714f70e20392af6185e70db4a00335447c62ef5076868a"
         }
       ]
     },

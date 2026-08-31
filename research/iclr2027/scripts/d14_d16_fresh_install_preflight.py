@@ -161,12 +161,12 @@ def _base_report(
             "network_accessed": False,
             "tests_or_games_run": False,
             "retraining_reproduced": False,
-            "d17_d19_formal_readiness_established": False,
+            "later_extension_formal_readiness_established": False,
             "statement": (
                 "PASS means only that the declared offline wheels are complete, "
                 "hash-matched, and tag-compatible with the retained D14--D16 target. "
                 "It is not a clean-install execution receipt, a retraining result, "
-                "or evidence that D17--D19 are formal-ready."
+                "or evidence that any later extension is formal-ready."
             ),
         },
     }

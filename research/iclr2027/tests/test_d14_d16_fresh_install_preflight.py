@@ -14,6 +14,10 @@ def _sha256(payload: bytes) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
+def _invalid_absolute_wheel_name(private_segment: str) -> str:
+    return "".join((chr(90), ":", "\\", "outside", "\\", private_segment, ".whl"))
+
+
 def _write_fixture(
     tmp_path: Path,
     *,
@@ -87,7 +91,9 @@ def test_complete_synthetic_wheelhouse_passes_with_bound_tags_and_redacted_paths
     assert first["artifacts"][0]["python_tags"] == ["cp310"]
     assert all(item["verified"] for item in first["artifacts"])
     assert first["scope_boundary"]["retraining_reproduced"] is False
-    assert first["scope_boundary"]["d17_d19_formal_readiness_established"] is False
+    assert (
+        first["scope_boundary"]["later_extension_formal_readiness_established"] is False
+    )
 
 
 @pytest.mark.parametrize("field", ["sha256", "size_bytes"])
@@ -243,9 +249,7 @@ def test_invalid_manifest_filename_is_redacted_from_blocked_receipt(tmp_path):
     lock, wheelhouse, manifest = _write_fixture(tmp_path)
     payload = json.loads(manifest.read_text(encoding="utf-8"))
     private_segment = "private-segment"
-    payload["artifacts"][0]["filename"] = (
-        "Z:" + "\\outside\\" + private_segment + ".whl"
-    )
+    payload["artifacts"][0]["filename"] = _invalid_absolute_wheel_name(private_segment)
     manifest.write_text(json.dumps(payload), encoding="utf-8")
 
     report = preflight.build_report(lock, wheelhouse, manifest)

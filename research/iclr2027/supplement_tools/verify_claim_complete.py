@@ -96,7 +96,9 @@ def _verify_claim_ledger(candidate: Path, entry: derivation.ProfileEntry) -> Non
                 "paper_locations",
             )
         ):
-            raise VerificationError("an admitted claim is missing evidence or limitation text")
+            raise VerificationError(
+                "an admitted claim is missing evidence or limitation text"
+            )
         claim_id = item["id"]
         expected_claim = expected_claims.get(claim_id)
         if expected_claim is not None and item["claim"] != expected_claim:
@@ -111,8 +113,7 @@ def _verify_claim_ledger(candidate: Path, entry: derivation.ProfileEntry) -> Non
         claim_path_count = 0
         claim_path_keys: set[str] = set()
         for clause in (
-            value.strip()
-            for value in item["authoritative_evidence"].split(";")
+            value.strip() for value in item["authoritative_evidence"].split(";")
         ):
             match = derivation.CLAIM_LEDGER_PATH_CLAUSE_RE.fullmatch(clause)
             if match is None:
@@ -156,9 +157,7 @@ def _verify_claim_ledger(candidate: Path, entry: derivation.ProfileEntry) -> Non
         raise VerificationError(
             "claim ledger non-path authoritative-evidence clauses drifted"
         )
-    for source_path, candidate_path in (
-        derivation.CLAIM_LEDGER_EVIDENCE_PATH_REWRITES
-    ):
+    for source_path, candidate_path in derivation.CLAIM_LEDGER_EVIDENCE_PATH_REWRITES:
         if evidence_paths[source_path] != 0 or evidence_paths[candidate_path] != 1:
             raise VerificationError(
                 "claim ledger authoritative-evidence path rewrite drifted"
@@ -248,11 +247,71 @@ def _verify_derived_statuses(
             continue
         value = _read_json(candidate, entry.destination)
         if not isinstance(value, dict):
-            raise VerificationError(f"derived JSON is not an object: {entry.destination}")
+            raise VerificationError(
+                f"derived JSON is not an object: {entry.destination}"
+            )
         if value.get("candidate_status") != STATUS or value.get("approval") != APPROVAL:
             raise VerificationError(
                 f"derived candidate boundary is missing: {entry.destination}"
             )
+
+
+def _verify_environment_bindings(
+    candidate: Path, profile: derivation.ClaimCompleteProfile
+) -> None:
+    entry = _entry_by_mode(profile, "environment_receipt")
+    value = _read_json(candidate, entry.destination)
+    metadata = _read_json(candidate, derivation.ENVIRONMENT_METADATA_PATH)
+    if not isinstance(value, dict) or not isinstance(metadata, dict):
+        raise VerificationError("environment receipt or metadata is not an object")
+
+    formal_metadata = value.get("formal_execution_metadata")
+    lock = value.get("lock")
+    verifier = value.get("verifier")
+    expected_command = [
+        "python",
+        "-B",
+        derivation.ENVIRONMENT_VERIFIER_PATH,
+        "--lock",
+        derivation.ENVIRONMENT_LOCK_PATH,
+        "--metadata",
+        derivation.ENVIRONMENT_METADATA_PATH,
+        "--output",
+        derivation.ENVIRONMENT_RECEIPT_PATH,
+    ]
+    lock_bytes = _candidate_file(
+        candidate, derivation.ENVIRONMENT_LOCK_PATH
+    ).read_bytes()
+    metadata_bytes = _candidate_file(
+        candidate, derivation.ENVIRONMENT_METADATA_PATH
+    ).read_bytes()
+    verifier_bytes = _candidate_file(
+        candidate, derivation.ENVIRONMENT_VERIFIER_PATH
+    ).read_bytes()
+    if (
+        value.get("ok") is not True
+        or value.get("errors") != []
+        or not isinstance(formal_metadata, dict)
+        or formal_metadata.get("path") != derivation.ENVIRONMENT_METADATA_PATH
+        or formal_metadata.get("sha256") != _sha256(metadata_bytes)
+        or formal_metadata.get("source_execution_metadata_sha256")
+        != metadata.get("source_execution_metadata_sha256")
+        or not isinstance(lock, dict)
+        or lock.get("path") != derivation.ENVIRONMENT_LOCK_PATH
+        or lock.get("sha256") != _sha256(lock_bytes)
+        or not isinstance(verifier, dict)
+        or verifier.get("path") != derivation.ENVIRONMENT_VERIFIER_PATH
+        or verifier.get("sha256") != _sha256(verifier_bytes)
+        or verifier.get("semantic_command") != expected_command
+        or value.get("acquisition_boundary")
+        != (
+            "hash-bound environment receipt and lock only; "
+            "no clean-install execution is claimed"
+        )
+    ):
+        raise VerificationError(
+            "environment receipt does not bind the included lock, metadata, and verifier"
+        )
 
 
 def _verify_derivation_receipt(
@@ -265,7 +324,9 @@ def _verify_derivation_receipt(
     if not isinstance(rows, list) or len(rows) != len(profile.entries) - 1:
         raise VerificationError("anonymization receipt has incomplete source bindings")
     entries_by_destination = {
-        item.destination: item for item in profile.entries if item.mode != "derivation_receipt"
+        item.destination: item
+        for item in profile.entries
+        if item.mode != "derivation_receipt"
     }
     seen: set[str] = set()
     for row in rows:
@@ -293,7 +354,9 @@ def _verify_derivation_receipt(
             )
         inputs = row.get("inputs")
         if not isinstance(inputs, list) or not inputs:
-            raise VerificationError(f"anonymization source inputs missing: {destination}")
+            raise VerificationError(
+                f"anonymization source inputs missing: {destination}"
+            )
         for item in inputs:
             if (
                 not isinstance(item, dict)
@@ -305,14 +368,17 @@ def _verify_derivation_receipt(
                 raise VerificationError(
                     f"anonymization source input is invalid: {destination}"
                 )
-        if profile_entry.mode == "claim_ledger" and row.get(
-            "transformations"
-        ) != derivation._claim_ledger_transformations():
+        if (
+            profile_entry.mode == "claim_ledger"
+            and row.get("transformations") != derivation._claim_ledger_transformations()
+        ):
             raise VerificationError(
                 "claim-ledger derivation receipt rewrite details drifted"
             )
     if seen != set(entries_by_destination):
-        raise VerificationError("anonymization receipt does not cover every payload entry")
+        raise VerificationError(
+            "anonymization receipt does not cover every payload entry"
+        )
 
 
 def _verify_descriptive_boundary(
@@ -344,7 +410,9 @@ def _verify_exact_special_sources(
         if entry.source.startswith("research/iclr2027/results/formal/")
     }
     if formal_sources != set(builder.CLAIM_COMPLETE_FORMAL_SOURCE_EXCEPTIONS):
-        raise VerificationError("formal-source exceptions differ from the exact eight files")
+        raise VerificationError(
+            "formal-source exceptions differ from the exact eight files"
+        )
     checkpoint_sources = {
         entry.source
         for entry in profile.entries
@@ -355,15 +423,15 @@ def _verify_exact_special_sources(
         "research/iclr2027/tests/test_alphazero_checkpoint.py",
     }
     if checkpoint_sources != expected_checkpoint_sources:
-        raise VerificationError("checkpoint source exceptions differ from the exact two files")
+        raise VerificationError(
+            "checkpoint source exceptions differ from the exact two files"
+        )
     formal_inputs, checkpoint_inputs = derivation._special_input_paths(profile.entries)
     if formal_inputs != set(derivation.CLAIM_COMPLETE_FORMAL_INPUT_EXCEPTIONS):
         raise VerificationError(
             "formal transform-input exceptions differ from the exact ten files"
         )
-    if checkpoint_inputs != set(
-        derivation.CLAIM_COMPLETE_CHECKPOINT_INPUT_EXCEPTIONS
-    ):
+    if checkpoint_inputs != set(derivation.CLAIM_COMPLETE_CHECKPOINT_INPUT_EXCEPTIONS):
         raise VerificationError(
             "checkpoint transform-input exceptions differ from the exact two files"
         )
@@ -398,27 +466,24 @@ def _compare_regenerated_sources(
     try:
         first = temp_root / "staging-a"
         second = temp_root / "staging-b"
-        derivation.derive_payload(
-            source_root, profile_path, first, allowlist_path
-        )
-        derivation.derive_payload(
-            source_root, profile_path, second, allowlist_path
-        )
+        derivation.derive_payload(source_root, profile_path, first, allowlist_path)
+        derivation.derive_payload(source_root, profile_path, second, allowlist_path)
         for entry in profile.entries:
             first_data = _candidate_file(first, entry.source).read_bytes()
             second_data = _candidate_file(second, entry.source).read_bytes()
             candidate_data = _candidate_file(candidate, entry.destination).read_bytes()
             if first_data != second_data:
-                raise VerificationError(f"derivation is non-deterministic: {entry.source}")
+                raise VerificationError(
+                    f"derivation is non-deterministic: {entry.source}"
+                )
             if candidate_data != first_data:
                 raise VerificationError(
                     f"candidate differs from freshly derived source: {entry.destination}"
                 )
     finally:
         safe_parent = candidate.parent.absolute()
-        if (
-            temp_root.absolute().parent != safe_parent
-            or not temp_root.name.startswith(".lifeline-claim-complete-")
+        if temp_root.absolute().parent != safe_parent or not temp_root.name.startswith(
+            ".lifeline-claim-complete-"
         ):
             raise VerificationError("refusing unsafe regeneration cleanup target")
         if temp_root.exists() and not temp_root.is_symlink():
@@ -442,6 +507,7 @@ def verify_claim_complete(
     _verify_claim_ledger(candidate, _entry_by_mode(profile, "claim_ledger"))
     _verify_compact_ledger(candidate, _entry_by_mode(profile, "compact_ledger"))
     _verify_derived_statuses(candidate, profile)
+    _verify_environment_bindings(candidate, profile)
     _verify_derivation_receipt(
         candidate, profile, _entry_by_mode(profile, "derivation_receipt")
     )
@@ -471,13 +537,19 @@ def verify_claim_complete(
     ).read_bytes()
     candidate_engine = _candidate_file(candidate, engine_entry.destination).read_bytes()
     if candidate_engine != source_engine:
-        raise VerificationError("GameEngine.js is not byte-identical to the tracked source")
+        raise VerificationError(
+            "GameEngine.js is not byte-identical to the tracked source"
+        )
 
     readme = _candidate_file(candidate, builder.README_NAME).read_text(encoding="utf-8")
     if STATUS not in readme or "author approval is required" not in readme:
-        raise VerificationError("candidate README lost the candidate-only approval boundary")
+        raise VerificationError(
+            "candidate README lost the candidate-only approval boundary"
+        )
     if "five\nformal aggregate views" not in readme:
-        raise VerificationError("candidate README no longer describes the exact formal projection")
+        raise VerificationError(
+            "candidate README no longer describes the exact formal projection"
+        )
 
     return {
         **base_result,
@@ -506,9 +578,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--candidate", type=Path, required=True)
     parser.add_argument("--identity-file", type=Path, required=True)
     parser.add_argument("--source-root", type=Path, default=_default_source_root())
-    parser.add_argument(
-        "--profile", type=Path, default=derivation._default_profile()
-    )
+    parser.add_argument("--profile", type=Path, default=derivation._default_profile())
     parser.add_argument(
         "--allowlist", type=Path, default=derivation._default_allowlist()
     )
@@ -526,7 +596,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.allowlist,
         )
         rendered = derivation._pretty_json(result)
-    except (builder.CandidateError, derivation.DerivationError, VerificationError) as exc:
+    except (
+        builder.CandidateError,
+        derivation.DerivationError,
+        VerificationError,
+    ) as exc:
         print(
             json.dumps(
                 {

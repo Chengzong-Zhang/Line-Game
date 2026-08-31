@@ -13,7 +13,7 @@ manifest binds the exact lock, each declared filename/size/SHA-256 matches the
 wheelhouse, there are no undeclared wheels, and the parsed wheel tags are
 compatible with the retained target. It is not a clean-install execution
 receipt, a D14--D16 retraining result, submission readiness, or evidence that
-D17--D19 are formal-ready.
+any later extension is formal-ready.
 
 ## Required manifest
 
@@ -79,4 +79,5 @@ A separate, explicitly authorized clean-room run must still build/install the
 project from a source-hash-bound clean copy using offline-only installer flags,
 record commands and exit codes, verify installed versions and Torch/CUDA facts,
 run the scoped core/network/receipt tests, and bind those results to a new
-execution receipt. Retraining and D17--D19 remain separate scientific gates.
+execution receipt. Retraining and all later extensions remain separate
+scientific gates.

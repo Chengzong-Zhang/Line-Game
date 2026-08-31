@@ -25,7 +25,7 @@ from typing import Any, Iterable, Mapping, Sequence
 
 STATUS = "candidate_only_not_approved"
 SCHEMA_VERSION = 1
-SCANNER_VERSION = 3
+SCANNER_VERSION = 4
 README_NAME = "README.md"
 TREE_NAME = "CANDIDATE_TREE.txt"
 MANIFEST_NAME = "SHA256_MANIFEST.json"
@@ -2053,8 +2053,13 @@ def _scan_documents(
         "candidate_status": STATUS,
         "scanned_file_count": scanned_files,
         "scanned_bytes": scanned_bytes,
-        "identity_term_count": len(identity.terms),
-        "identity_terms_sha256": identity.digest,
+        # The identity list is deliberately private.  Publishing either its
+        # size or an unsalted deterministic digest would let a reviewer test
+        # low-entropy guesses (names, affiliations, user names, and e-mail
+        # variants) offline.  Verification still requires the private input
+        # and recomputes the complete scan, but no public candidate byte is a
+        # commitment to that input.
+        "identity_input": "private_supplied_not_fingerprinted",
         "findings": findings,
     }
 
