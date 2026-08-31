@@ -101,7 +101,7 @@ python -B research/iclr2027/supplement_tools/verify_claim_complete.py `
 ```
 
 Run the candidate's included Python tests under normal project permissions,
-not a restricted sandbox/temp ACL. For the current 115-payload allowlist the
+not a restricted sandbox/temp ACL. For the current 120-payload allowlist the
 expected completion line is `Ran 176 tests` followed by `OK`:
 
 ```powershell
@@ -110,6 +110,71 @@ python -B -m unittest discover -s tests -t . -p "test_*.py"
 Pop-Location
 ```
 
+The two retained-environment pytest modules add 29 cases covering the
+fresh-install preflight contract and the path-free environment verifier. They
+remain preflight/retained-environment checks, not a fresh installation:
+
+```powershell
+Push-Location "$ClaimCandidate/research/iclr2027"
+python -B -m pytest -p no:cacheprovider -q `
+  tests/test_d14_d16_fresh_install_preflight.py `
+  tests/test_verify_d14_d16_environment.py
+Pop-Location
+```
+
+Build a deterministic candidate-only archive only after the directory verifier
+passes. The archive output directory must not exist or overlap the candidate
+tree, and its complete ancestor chain must contain no symlink, junction, or
+reparse point. The ZIP uses a fixed
+`lifeline_rl_claim_complete_candidate/` root, stored members, fixed 1980
+timestamps, fixed regular-file modes, and an external canonical receipt:
+
+```powershell
+$ClaimArchive = "local_artifacts/claim_complete_archive_<new-id>"
+python -B `
+  research/iclr2027/supplement_tools/archive_claim_complete_candidate.py build `
+  --candidate $ClaimCandidate `
+  --identity-file $ClaimIdentity `
+  --output $ClaimArchive
+```
+
+Verify the receipt, reject non-canonical or unsafe members, extract without
+`extractall`, and rerun the complete candidate verifier in a random
+owner-marked sibling staging directory. The tool snapshots the identity,
+profile, allowlist, and verifier/tool inputs, rejects any byte drift before
+publication, compares the receipt as exact canonical bytes, performs a final
+tree rescan, and only then atomically publishes without replacing an existing
+output directory:
+
+```powershell
+$ClaimExtract = "local_artifacts/claim_complete_extract_<new-id>"
+python -B `
+  research/iclr2027/supplement_tools/archive_claim_complete_candidate.py `
+  verify-extract `
+  --archive "$ClaimArchive/lifeline_rl_claim_complete_candidate.zip" `
+  --receipt "$ClaimArchive/ARCHIVE_RECEIPT.json" `
+  --identity-file $ClaimIdentity `
+  --output $ClaimExtract
+```
+
+The archive verifier rejects duplicate and case-colliding members, NULs,
+backslashes, absolute/drive/UNC/traversal paths, extra roots, directory entries,
+symlink or special-file modes, encryption, compression or metadata drift,
+missing/extra/tampered files, and any byte sequence that is not the canonical
+stored ZIP encoding. It writes an external `EXTRACTION_RECEIPT.json`; neither
+receipt contains the private identity terms, their count, a deterministic
+identity-list fingerprint, or local absolute paths. Scanner version 4 records
+only that a private identity input was supplied; verification still requires
+that private input and reruns the complete scan.
+
+The standard Windows runtime does not provide handle-relative filesystem
+operations or symlink-safe `shutil.rmtree`. On such a runtime, a failed
+workflow deliberately retains an owner-marked staging/output directory for
+manual review instead of recursively deleting a path that could have been
+replaced concurrently. The random name and post-write reparse scans are not a
+security boundary against a malicious process running under the same local
+account; run publication in a trusted, non-concurrently-written parent.
+
 `local_artifacts/claim_complete_dummy_identity.json`, or any similar dummy
 list, is suitable only for testing the scanner mechanism. A dummy-list PASS
 does not show that real author names, usernames, identifiers, affiliations, or
@@ -117,10 +182,11 @@ host labels were covered. The production candidate requires an author-reviewed
 private identity list and a fresh build and verification with that same list.
 
 None of the commands above performs or proves a fresh clean install, clean-room
-reproduction, author approval, final archive creation, archive hashing, release
-approval, or submission readiness. Their output is an expanded candidate
-directory only. Those gates require the exact author-approved final bytes and
-separate hash-bound receipts.
+reproduction, real-identity coverage, author approval, release approval, or
+submission readiness. The archive workflow produces and hashes only a
+`candidate_only_not_approved` archive. Its receipts set `final_archive=false`
+and cannot be promoted without author-approved identity coverage and a fresh
+independent gate.
 
 The candidate contains:
 
@@ -203,6 +269,17 @@ identity cases:
 
 ```powershell
 python -B research/iclr2027/supplement_tools/claim_complete_selftest.py
+```
+
+The archive self-test additionally covers byte-identical A/B archives and
+receipts, safe verified extraction, overwrite canaries, duplicate members,
+unsafe paths, symlink modes, missing/extra/tampered members, metadata drift,
+non-canonical trailing bytes, EOCD/ZIP64 rejection, exact receipt-byte type
+checking, workflow-input drift, identity-fingerprint exclusion, nested-output
+refusal, atomic no-overwrite publication, and fail-retain cleanup behavior:
+
+```powershell
+python -B research/iclr2027/supplement_tools/archive_claim_complete_selftest.py
 ```
 
 ## Scope boundary
