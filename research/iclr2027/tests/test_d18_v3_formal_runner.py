@@ -2669,7 +2669,12 @@ def test_generate_job_writes_parseable_exact_smoke_and_formal_contract(
     assert parsed["min_gpu_utilization_percent"] == 50
     assert parsed["max_runtime_seconds"] == 11_520
     assert "--seconds 15" in parsed["gpu_smoke_command"]
-    assert parsed["gpu_smoke_timeout_seconds"] == 30
+    assert parsed["gpu_smoke_timeout_seconds"] == 60
+    assert formal.GPU_SMOKE_PRODUCT_TIMEOUT_SECONDS == 60
+    assert (
+        formal.GPU_SMOKE_PRODUCT_TIMEOUT_SECONDS
+        > formal.GPU_SMOKE_MAX_TOTAL_SECONDS
+    )
     assert formal.GPU_SMOKE_MAX_TOTAL_SECONDS == 27.0
     assert independent.GPU_SMOKE_MAX_TOTAL_SECONDS == 27.0
     assert f"--profile-output {profile_path}" in parsed["gpu_smoke_command"]

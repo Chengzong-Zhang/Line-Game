@@ -113,10 +113,12 @@ TERMINAL_ROOT_ARTIFACT_NAMES = frozenset(
 )
 GPU_SMOKE_CASE_COUNT = len(prep.MODEL_PAIRS) * len(prep.SIZES)
 GPU_SMOKE_MIN_TOTAL_SECONDS = 15.0
-# Reserve three seconds for interpreter/module startup under the product's
-# 30-second whole-command timeout.  The persisted receipt covers this internal
-# interval; the product timeout covers the external process interval.
+# The persisted profile must still prove a 15-27 second task-shaped command.
+# The product watchdog is a larger process envelope because interpreter/module
+# startup plus profile validation, persistence, CLI output, and process exit are
+# outside that measured interval; it is not smoke-duration evidence by itself.
 GPU_SMOKE_MAX_TOTAL_SECONDS = 27.0
+GPU_SMOKE_PRODUCT_TIMEOUT_SECONDS = 60
 GPU_SMOKE_MIN_CASE_SECONDS = GPU_SMOKE_MIN_TOTAL_SECONDS / GPU_SMOKE_CASE_COUNT
 GPU_SMOKE_MAX_CASE_SECONDS = GPU_SMOKE_MAX_TOTAL_SECONDS / GPU_SMOKE_CASE_COUNT
 FORMAL_NON_GAMEPLAY_RESERVE_FRACTION = 0.25
@@ -5030,7 +5032,7 @@ def generate_job(
             f"readiness_command = {_toml_string(readiness_command)}",
             "readiness_timeout_seconds = 600",
             f"gpu_smoke_command = {_toml_string(smoke_command)}",
-            "gpu_smoke_timeout_seconds = 30",
+            f"gpu_smoke_timeout_seconds = {GPU_SMOKE_PRODUCT_TIMEOUT_SECONDS}",
             f"command = {_toml_string(formal_command)}",
             "",
             "[environment]",
