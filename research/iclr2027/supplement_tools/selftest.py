@@ -86,7 +86,9 @@ class SupplementBuilderSelfTests(unittest.TestCase):
     def build_one(self, data: bytes = b"safe payload\n") -> tuple[Path, Path]:
         source_file = self.source / "safe.txt"
         source_file.write_bytes(data)
-        allowlist = self.write_allowlist([self.row("safe.txt", "payload/safe.txt", data)])
+        allowlist = self.write_allowlist(
+            [self.row("safe.txt", "payload/safe.txt", data)]
+        )
         output = self.root / "candidate"
         result = builder.build_candidate(
             self.source,
@@ -109,18 +111,38 @@ class SupplementBuilderSelfTests(unittest.TestCase):
         tree = (output / builder.TREE_NAME).read_text(encoding="utf-8")
         self.assertNotIn("not_allowlisted", tree)
 
+    def test_generic_cli_subject_arguments_are_truly_optional(self) -> None:
+        build_args = builder._parser().parse_args(
+            [
+                "build",
+                "--output",
+                str(self.root / "unused-candidate"),
+                "--identity-file",
+                str(self.identity_file),
+            ]
+        )
+        verify_args = builder._parser().parse_args(
+            [
+                "verify",
+                "--candidate",
+                str(self.root / "unused-candidate"),
+                "--identity-file",
+                str(self.identity_file),
+            ]
+        )
+        for observed in (build_args, verify_args):
+            self.assertIsNone(observed.subject_root)
+            self.assertIsNone(observed.subject_commit)
+            self.assertIsNone(observed.subject_tree)
+
     def test_repeated_builds_are_byte_identical(self) -> None:
         data = b"deterministic payload\n"
         (self.source / "safe.txt").write_bytes(data)
         allowlist = self.write_allowlist([self.row("safe.txt", "safe.txt", data)])
         first = self.root / "candidate_a"
         second = self.root / "candidate_b"
-        builder.build_candidate(
-            self.source, allowlist, first, self.identity_file
-        )
-        builder.build_candidate(
-            self.source, allowlist, second, self.identity_file
-        )
+        builder.build_candidate(self.source, allowlist, first, self.identity_file)
+        builder.build_candidate(self.source, allowlist, second, self.identity_file)
         first_files = {
             path.relative_to(first).as_posix(): path.read_bytes()
             for path in first.rglob("*")
@@ -142,9 +164,7 @@ class SupplementBuilderSelfTests(unittest.TestCase):
         sentinel = output / "sentinel.txt"
         sentinel.write_text("preserve me\n", encoding="utf-8")
         with self.assertRaises(builder.CandidateError):
-            builder.build_candidate(
-                self.source, allowlist, output, self.identity_file
-            )
+            builder.build_candidate(self.source, allowlist, output, self.identity_file)
         self.assertEqual(sentinel.read_text(encoding="utf-8"), "preserve me\n")
 
     def test_absolute_path_content_is_rejected_without_leaking_match(self) -> None:
@@ -153,9 +173,7 @@ class SupplementBuilderSelfTests(unittest.TestCase):
         allowlist = self.write_allowlist([self.row("bad.txt", "bad.txt", data)])
         output = self.root / "candidate"
         with self.assertRaises(builder.CandidateError) as caught:
-            builder.build_candidate(
-                self.source, allowlist, output, self.identity_file
-            )
+            builder.build_candidate(self.source, allowlist, output, self.identity_file)
         self.assertIn("windows_absolute_path", str(caught.exception))
         self.assertNotIn("private-user", str(caught.exception))
         self.assertFalse(output.exists())
@@ -173,9 +191,7 @@ class SupplementBuilderSelfTests(unittest.TestCase):
         allowlist = self.write_allowlist([self.row("bad.txt", "bad.txt", data)])
         output = self.root / "candidate"
         with self.assertRaises(builder.CandidateError) as caught:
-            builder.build_candidate(
-                self.source, allowlist, output, self.identity_file
-            )
+            builder.build_candidate(self.source, allowlist, output, self.identity_file)
         self.assertIn("known_token_shape", str(caught.exception))
         self.assertNotIn("abcdefghijklmnopqrstuvwxyz", str(caught.exception))
         self.assertFalse(output.exists())

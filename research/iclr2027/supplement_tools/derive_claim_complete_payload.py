@@ -8,7 +8,6 @@ import os
 import re
 import shutil
 import stat
-import subprocess
 import sys
 import unicodedata
 from collections import Counter
@@ -16,7 +15,13 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any, Mapping, Sequence
 
-import build_supplement_candidate as builder
+
+TOOL_DIR = Path(__file__).resolve().parent
+if str(TOOL_DIR) not in sys.path:
+    sys.path.insert(0, str(TOOL_DIR))
+
+import build_supplement_candidate as builder  # noqa: E402
+import subject_binding  # noqa: E402
 
 
 STATUS = builder.STATUS
@@ -687,28 +692,6 @@ def _validate_exact_special_inputs(entries: Sequence[ProfileEntry]) -> None:
         raise DerivationError(
             "checkpoint transform-input exceptions differ from the exact two files"
         )
-
-
-def _tracked_files(root: Path) -> set[str]:
-    try:
-        completed = subprocess.run(
-            ["git", "-C", str(root), "ls-files", "-z"],
-            capture_output=True,
-            check=False,
-            timeout=30,
-        )
-    except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
-        raise DerivationError("git tracked-file check could not run") from exc
-    if completed.returncode != 0:
-        raise DerivationError("git tracked-file check failed")
-    try:
-        return {
-            item.replace("\\", "/")
-            for item in completed.stdout.decode("utf-8").split("\0")
-            if item
-        }
-    except UnicodeDecodeError as exc:
-        raise DerivationError("git tracked-file list was not UTF-8") from exc
 
 
 def _read_repo_file(root: Path, relative: str) -> bytes:
@@ -1448,16 +1431,16 @@ def _reference_trace(source: bytes) -> tuple[bytes, dict[str, Any]]:
 
 def _entry_input_bytes(
     entry: ProfileEntry,
-    repo_root: Path,
-    tracked: set[str],
+    subject_files: Mapping[str, subject_binding.SubjectFileSnapshot],
 ) -> tuple[list[bytes], list[dict[str, Any]]]:
     values: list[bytes] = []
     receipts: list[dict[str, Any]] = []
     for relative, expected_sha256 in entry.inputs:
-        if relative not in tracked:
+        snapshot = subject_files.get(relative)
+        if snapshot is None:
             raise DerivationError(f"transform input is not Git-tracked: {relative}")
-        data = _read_repo_file(repo_root, relative)
-        observed = _sha256(data)
+        data = snapshot.data
+        observed = snapshot.sha256
         if expected_sha256 != "0" * 64 and observed != expected_sha256:
             raise DerivationError(f"transform source hash drifted: {relative}")
         values.append(data)
@@ -1473,12 +1456,11 @@ def _entry_input_bytes(
 
 def _derive_entry(
     entry: ProfileEntry,
-    repo_root: Path,
-    tracked: set[str],
+    subject_files: Mapping[str, subject_binding.SubjectFileSnapshot],
     generated: Mapping[str, bytes],
 ) -> tuple[bytes, dict[str, Any]]:
     _validate_transform_contract(entry)
-    inputs, input_receipts = _entry_input_bytes(entry, repo_root, tracked)
+    inputs, input_receipts = _entry_input_bytes(entry, subject_files)
     if entry.mode == "copy":
         (copy_source,) = inputs
         data = copy_source
@@ -1539,7 +1521,12 @@ def _load_allowlist_shape(path: Path) -> tuple[builder.AllowlistConfig, bytes]:
         raise DerivationError(
             "claim-complete allowlist must be canonical UTF-8 JSON with LF newlines"
         )
-    return builder.load_allowlist(path), data
+    config = builder.load_allowlist(path)
+    if config.raw_sha256 != _sha256(data):
+        raise DerivationError(
+            "claim-complete allowlist changed between canonical check and parsing"
+        )
+    return config, data
 
 
 def _profile_rows(profile: ClaimCompleteProfile) -> list[dict[str, str]]:
@@ -1602,7 +1589,11 @@ def _bootstrap_allowlist(
                 "source": entry.source,
                 "destination": entry.destination,
                 "category": entry.category,
-                "expected_sha256": _sha256(generated[entry.source]),
+                "expected_sha256": (
+                    None
+                    if entry.mode == "derivation_receipt"
+                    else _sha256(generated[entry.source])
+                ),
             }
             for entry in profile.entries
         ],
@@ -1637,6 +1628,8 @@ def derive_payload(
     profile_path: Path,
     output: Path,
     allowlist_path: Path | None,
+    subject_commit: str,
+    subject_tree: str,
     bootstrap_allowlist_output: Path | None = None,
 ) -> dict[str, Any]:
     repo_root = source_root.absolute()
@@ -1647,13 +1640,54 @@ def derive_payload(
         raise DerivationError(
             "bootstrap derivation requires a new --bootstrap-allowlist-output path"
         )
-    tracked = _tracked_files(repo_root)
-
     allowlist: builder.AllowlistConfig | None = None
     allowlist_bytes: bytes | None = None
     if allowlist_path is not None:
         allowlist, allowlist_bytes = _load_allowlist_shape(allowlist_path)
         _validate_allowlist_shape(profile, allowlist)
+
+    try:
+        frozen_paths = {
+            relative for entry in profile.entries for relative, _digest in entry.inputs
+        }
+        profile_relative = subject_binding.canonical_repo_relative(
+            repo_root, profile_path, "claim-complete profile"
+        )
+        frozen_paths.add(profile_relative)
+        allowlist_relative: str | None = None
+        if allowlist_path is not None:
+            allowlist_relative = subject_binding.canonical_repo_relative(
+                repo_root, allowlist_path, "claim-complete allowlist"
+            )
+            frozen_paths.add(allowlist_relative)
+        subject_snapshot = subject_binding.verify_subject_repository(
+            repo_root,
+            subject_commit,
+            subject_tree,
+            frozen_paths=frozen_paths,
+            tool_paths=(
+                Path(__file__),
+                Path(builder.__file__),
+                Path(subject_binding.__file__),
+            ),
+        )
+    except subject_binding.SubjectBindingError as exc:
+        raise DerivationError(str(exc)) from exc
+    subject_files = {item.relative: item for item in subject_snapshot.files}
+    profile_snapshot = subject_files.get(profile_relative)
+    if profile_snapshot is None or profile_snapshot.sha256 != profile.raw_sha256:
+        raise DerivationError(
+            "parsed claim-complete profile does not match the subject commit blob"
+        )
+    if allowlist is not None:
+        allowlist_snapshot = subject_files.get(allowlist_relative or "")
+        if (
+            allowlist_snapshot is None
+            or allowlist_snapshot.sha256 != allowlist.raw_sha256
+        ):
+            raise DerivationError(
+                "parsed claim-complete allowlist does not match the subject commit blob"
+            )
 
     output = output.absolute()
     if output.exists() or output.is_symlink():
@@ -1686,7 +1720,7 @@ def derive_payload(
             if entry.mode == "derivation_receipt":
                 receipt_entry = entry
                 continue
-            data, receipt = _derive_entry(entry, repo_root, tracked, generated)
+            data, receipt = _derive_entry(entry, subject_files, generated)
             generated[entry.source] = data
             receipts.append(receipt)
 
@@ -1697,6 +1731,8 @@ def derive_payload(
             "schema_version": 1,
             "candidate_status": STATUS,
             "approval": APPROVAL,
+            **subject_snapshot.binding.public_fields(),
+            "subject_binding_verified": True,
             "profile_sha256": profile.raw_sha256,
             "claim_ids": list(CLAIM_IDS),
             "descriptive_only_destinations": list(
@@ -1705,7 +1741,8 @@ def derive_payload(
             "source_bindings": receipts,
             "receipt_scope": (
                 "All payload entries except this non-recursive receipt; the final "
-                "allowlist independently pins this receipt's bytes."
+                "candidate manifest records its actual hash and size, while the "
+                "claim verifier regenerates and compares its canonical bytes."
             ),
         }
         receipt_data = _canonical_json_bytes(receipt_value)
@@ -1729,7 +1766,10 @@ def derive_payload(
         if allowlist is not None:
             for entry in allowlist.files:
                 observed = _sha256(generated[entry.source])
-                if observed != entry.expected_sha256:
+                if (
+                    entry.expected_sha256 is not None
+                    and observed != entry.expected_sha256
+                ):
                     raise DerivationError(
                         f"derived payload hash drifted: {entry.source}"
                     )
@@ -1752,11 +1792,18 @@ def derive_payload(
             with bootstrap_allowlist_output.open("xb") as handle:
                 handle.write(bootstrap_bytes)
 
+        try:
+            subject_binding.assert_subject_snapshot_unchanged(subject_snapshot)
+        except subject_binding.SubjectBindingError as exc:
+            raise DerivationError(str(exc)) from exc
+
         created = False
         return {
             "status": "PASS" if allowlist is not None else "BOOTSTRAP_ONLY",
             "candidate_status": STATUS,
             "approval": APPROVAL,
+            **subject_snapshot.binding.public_fields(),
+            "subject_binding_verified": True,
             "claim_ids": list(CLAIM_IDS),
             "staged_file_count": len(generated),
             "staged_total_bytes": sum(len(data) for data in generated.values()),
@@ -1765,7 +1812,7 @@ def derive_payload(
                 _sha256(allowlist_bytes) if allowlist_bytes is not None else None
             ),
             "allowlist_validation": (
-                "PASS_HASH_PINNED"
+                "PASS_HASH_PINNED_EXCEPT_SUBJECT_BOUND_RECEIPT"
                 if allowlist is not None
                 else "BOOTSTRAP_ONLY_NOT_HASH_PINNED"
             ),
@@ -1799,6 +1846,8 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--profile", type=Path, default=_default_profile())
     parser.add_argument("--allowlist", type=Path, default=_default_allowlist())
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--subject-commit", required=True)
+    parser.add_argument("--subject-tree", required=True)
     parser.add_argument(
         "--bootstrap-allowlist-output",
         type=Path,
@@ -1820,6 +1869,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.profile,
             args.output,
             None if args.without_allowlist_check else args.allowlist,
+            args.subject_commit,
+            args.subject_tree,
             args.bootstrap_allowlist_output,
         )
         rendered = _pretty_json(result)

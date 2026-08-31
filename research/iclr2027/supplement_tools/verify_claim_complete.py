@@ -8,10 +8,16 @@ import sys
 import uuid
 from collections import Counter
 from pathlib import Path, PurePosixPath
-from typing import Any, Sequence
+from typing import Any, Mapping, Sequence
 
-import build_supplement_candidate as builder
-import derive_claim_complete_payload as derivation
+
+TOOL_DIR = Path(__file__).resolve().parent
+if str(TOOL_DIR) not in sys.path:
+    sys.path.insert(0, str(TOOL_DIR))
+
+import build_supplement_candidate as builder  # noqa: E402
+import derive_claim_complete_payload as derivation  # noqa: E402
+import subject_binding  # noqa: E402
 
 
 STATUS = builder.STATUS
@@ -31,12 +37,18 @@ def _candidate_file(candidate: Path, relative: str) -> Path:
     return candidate.joinpath(*PurePosixPath(relative).parts)
 
 
-def _read_json(candidate: Path, relative: str) -> Any:
-    path = _candidate_file(candidate, relative)
+def _document_bytes(documents: Mapping[str, bytes], relative: str) -> bytes:
     try:
-        data = path.read_bytes()
-    except OSError as exc:
-        raise VerificationError(f"candidate JSON cannot be read: {relative}") from exc
+        data = documents[relative]
+    except KeyError as exc:
+        raise VerificationError(f"candidate document is missing: {relative}") from exc
+    if type(data) is not bytes:
+        raise VerificationError(f"candidate document is not frozen bytes: {relative}")
+    return data
+
+
+def _read_json(documents: Mapping[str, bytes], relative: str) -> Any:
+    data = _document_bytes(documents, relative)
     try:
         return derivation._strict_json_loads(data, f"candidate JSON {relative}")
     except derivation.DerivationError as exc:
@@ -52,8 +64,10 @@ def _entry_by_mode(
     return matches[0]
 
 
-def _verify_claim_ledger(candidate: Path, entry: derivation.ProfileEntry) -> None:
-    value = _read_json(candidate, entry.destination)
+def _verify_claim_ledger(
+    documents: Mapping[str, bytes], entry: derivation.ProfileEntry
+) -> None:
+    value = _read_json(documents, entry.destination)
     if not isinstance(value, dict):
         raise VerificationError("admitted claim ledger must be an object")
     if (
@@ -142,8 +156,7 @@ def _verify_claim_ledger(candidate: Path, entry: derivation.ProfileEntry) -> Non
             candidate_relative = ledger_parent.joinpath(
                 *PurePosixPath(evidence_path).parts
             ).as_posix()
-            evidence_file = _candidate_file(candidate, candidate_relative)
-            if not evidence_file.is_file() or evidence_file.is_symlink():
+            if candidate_relative not in documents:
                 raise VerificationError(
                     f"{claim_id} authoritative evidence path is missing: "
                     f"{evidence_path}"
@@ -169,23 +182,22 @@ def _verify_claim_ledger(candidate: Path, entry: derivation.ProfileEntry) -> Non
         raise VerificationError("claim ledger seed-audit evidence coverage drifted")
 
 
-def _verify_strict_json_documents(candidate: Path) -> None:
-    for path in sorted(candidate.rglob("*")):
-        if not path.is_file():
-            continue
-        relative = path.relative_to(candidate).as_posix()
-        if path.suffix.casefold() not in {".json", ".jsonl"}:
+def _verify_strict_json_documents(documents: Mapping[str, bytes]) -> None:
+    for relative, data in sorted(documents.items()):
+        if PurePosixPath(relative).suffix.casefold() not in {".json", ".jsonl"}:
             continue
         try:
-            derivation._validate_json_document_bytes(path.read_bytes(), relative)
-        except (OSError, derivation.DerivationError) as exc:
+            derivation._validate_json_document_bytes(data, relative)
+        except derivation.DerivationError as exc:
             raise VerificationError(
                 f"candidate JSON/JSONL document is invalid: {relative}"
             ) from exc
 
 
-def _verify_compact_ledger(candidate: Path, entry: derivation.ProfileEntry) -> None:
-    data = _candidate_file(candidate, entry.destination).read_bytes()
+def _verify_compact_ledger(
+    documents: Mapping[str, bytes], entry: derivation.ProfileEntry
+) -> None:
+    data = _document_bytes(documents, entry.destination)
     lines = data.splitlines()
     if len(lines) != 330 or not data.endswith(b"\n"):
         raise VerificationError("compact receipt ledger must contain 330 newline rows")
@@ -232,7 +244,7 @@ def _verify_compact_ledger(candidate: Path, entry: derivation.ProfileEntry) -> N
 
 
 def _verify_derived_statuses(
-    candidate: Path, profile: derivation.ClaimCompleteProfile
+    documents: Mapping[str, bytes], profile: derivation.ClaimCompleteProfile
 ) -> None:
     json_modes = {
         "claim_ledger",
@@ -245,7 +257,7 @@ def _verify_derived_statuses(
     for entry in profile.entries:
         if entry.mode not in json_modes:
             continue
-        value = _read_json(candidate, entry.destination)
+        value = _read_json(documents, entry.destination)
         if not isinstance(value, dict):
             raise VerificationError(
                 f"derived JSON is not an object: {entry.destination}"
@@ -257,11 +269,11 @@ def _verify_derived_statuses(
 
 
 def _verify_environment_bindings(
-    candidate: Path, profile: derivation.ClaimCompleteProfile
+    documents: Mapping[str, bytes], profile: derivation.ClaimCompleteProfile
 ) -> None:
     entry = _entry_by_mode(profile, "environment_receipt")
-    value = _read_json(candidate, entry.destination)
-    metadata = _read_json(candidate, derivation.ENVIRONMENT_METADATA_PATH)
+    value = _read_json(documents, entry.destination)
+    metadata = _read_json(documents, derivation.ENVIRONMENT_METADATA_PATH)
     if not isinstance(value, dict) or not isinstance(metadata, dict):
         raise VerificationError("environment receipt or metadata is not an object")
 
@@ -279,15 +291,9 @@ def _verify_environment_bindings(
         "--output",
         derivation.ENVIRONMENT_RECEIPT_PATH,
     ]
-    lock_bytes = _candidate_file(
-        candidate, derivation.ENVIRONMENT_LOCK_PATH
-    ).read_bytes()
-    metadata_bytes = _candidate_file(
-        candidate, derivation.ENVIRONMENT_METADATA_PATH
-    ).read_bytes()
-    verifier_bytes = _candidate_file(
-        candidate, derivation.ENVIRONMENT_VERIFIER_PATH
-    ).read_bytes()
+    lock_bytes = _document_bytes(documents, derivation.ENVIRONMENT_LOCK_PATH)
+    metadata_bytes = _document_bytes(documents, derivation.ENVIRONMENT_METADATA_PATH)
+    verifier_bytes = _document_bytes(documents, derivation.ENVIRONMENT_VERIFIER_PATH)
     if (
         value.get("ok") is not True
         or value.get("errors") != []
@@ -315,11 +321,23 @@ def _verify_environment_bindings(
 
 
 def _verify_derivation_receipt(
-    candidate: Path,
+    documents: Mapping[str, bytes],
     profile: derivation.ClaimCompleteProfile,
     entry: derivation.ProfileEntry,
+    binding: subject_binding.SubjectBinding,
 ) -> None:
-    value = _read_json(candidate, entry.destination)
+    value = _read_json(documents, entry.destination)
+    if not isinstance(value, dict):
+        raise VerificationError("anonymization receipt must be a JSON object")
+    required_subject = {
+        "subject_commit": binding.commit,
+        "subject_tree": binding.tree,
+        "subject_binding_verified": True,
+    }
+    for key, expected in required_subject.items():
+        observed = value.get(key)
+        if type(observed) is not type(expected) or observed != expected:
+            raise VerificationError(f"anonymization receipt subject drifted at {key}")
     rows = value.get("source_bindings") if isinstance(value, dict) else None
     if not isinstance(rows, list) or len(rows) != len(profile.entries) - 1:
         raise VerificationError("anonymization receipt has incomplete source bindings")
@@ -345,7 +363,7 @@ def _verify_derivation_receipt(
             raise VerificationError(
                 f"anonymization source binding contract drifted: {destination}"
             )
-        data = _candidate_file(candidate, destination).read_bytes()
+        data = _document_bytes(documents, destination)
         if row.get("derived_size_bytes") != len(data) or row.get(
             "derived_sha256"
         ) != _sha256(data):
@@ -382,19 +400,24 @@ def _verify_derivation_receipt(
 
 
 def _verify_descriptive_boundary(
-    candidate: Path, profile: derivation.ClaimCompleteProfile
+    documents: Mapping[str, bytes], profile: derivation.ClaimCompleteProfile
 ) -> None:
     destinations = set(profile.descriptive_only_destinations)
     json_destinations = [path for path in destinations if path.endswith(".json")]
     if len(json_destinations) != 1:
         raise VerificationError("profile must declare one descriptive audit JSON")
-    value = _read_json(candidate, json_destinations[0])
+    value = _read_json(documents, json_destinations[0])
     if not isinstance(value, dict) or value.get("status") != (
         "PASS_DESCRIPTIVE_ONLY_NO_INFERENCE"
     ):
         raise VerificationError("seed/pair audit lost descriptive-only status")
     for destination in destinations:
-        text = _candidate_file(candidate, destination).read_text(encoding="utf-8")
+        try:
+            text = _document_bytes(documents, destination).decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise VerificationError(
+                f"descriptive-only destination is not UTF-8: {destination}"
+            ) from exc
         if "descriptive" not in text.casefold() and "DESCRIPTIVE_ONLY" not in text:
             raise VerificationError(
                 f"descriptive-only destination lacks an explicit boundary: {destination}"
@@ -437,13 +460,10 @@ def _verify_exact_special_sources(
         )
 
 
-def _verify_no_extension_labels(candidate: Path) -> None:
-    for path in sorted(candidate.rglob("*")):
-        if not path.is_file():
-            continue
-        relative = path.relative_to(candidate).as_posix()
+def _verify_no_extension_labels(documents: Mapping[str, bytes]) -> None:
+    for relative, data in sorted(documents.items()):
         try:
-            text = path.read_text(encoding="utf-8-sig")
+            text = data.decode("utf-8-sig")
         except UnicodeDecodeError as exc:
             raise VerificationError(f"candidate file is not UTF-8: {relative}") from exc
         if derivation.PROHIBITED_EXTENSION_RE.search(relative + "\n" + text):
@@ -452,26 +472,95 @@ def _verify_no_extension_labels(candidate: Path) -> None:
             )
 
 
-def _compare_regenerated_sources(
-    candidate: Path,
+def _capture_subject_snapshot(
     source_root: Path,
     profile_path: Path,
     allowlist_path: Path,
     profile: derivation.ClaimCompleteProfile,
+    allowlist: builder.AllowlistConfig,
+    subject_commit: str,
+    subject_tree: str,
+) -> subject_binding.SubjectSnapshot:
+    try:
+        frozen_paths = {
+            relative for entry in profile.entries for relative, _digest in entry.inputs
+        }
+        profile_relative = subject_binding.canonical_repo_relative(
+            source_root, profile_path, "claim-complete profile"
+        )
+        allowlist_relative = subject_binding.canonical_repo_relative(
+            source_root, allowlist_path, "claim-complete allowlist"
+        )
+        frozen_paths.add(profile_relative)
+        frozen_paths.add(allowlist_relative)
+        snapshot = subject_binding.verify_subject_repository(
+            source_root,
+            subject_commit,
+            subject_tree,
+            frozen_paths=frozen_paths,
+            tool_paths=(
+                Path(__file__),
+                Path(builder.__file__),
+                Path(derivation.__file__),
+                Path(subject_binding.__file__),
+            ),
+        )
+        subject_files = {item.relative: item for item in snapshot.files}
+        profile_snapshot = subject_files.get(profile_relative)
+        allowlist_snapshot = subject_files.get(allowlist_relative)
+        if profile_snapshot is None or profile_snapshot.sha256 != profile.raw_sha256:
+            raise VerificationError(
+                "parsed claim-complete profile does not match the subject commit blob"
+            )
+        if (
+            allowlist_snapshot is None
+            or allowlist_snapshot.sha256 != allowlist.raw_sha256
+        ):
+            raise VerificationError(
+                "parsed claim-complete allowlist does not match the subject commit blob"
+            )
+        return snapshot
+    except subject_binding.SubjectBindingError as exc:
+        raise VerificationError(str(exc)) from exc
+
+
+def _compare_regenerated_sources(
+    candidate_root: Path,
+    documents: Mapping[str, bytes],
+    source_root: Path,
+    profile_path: Path,
+    allowlist_path: Path,
+    profile: derivation.ClaimCompleteProfile,
+    subject_commit: str,
+    subject_tree: str,
 ) -> None:
-    temp_root = candidate.parent / f".lifeline-claim-complete-{uuid.uuid4().hex}"
+    temp_root = candidate_root.parent / f".lifeline-claim-complete-{uuid.uuid4().hex}"
     if temp_root.exists() or temp_root.is_symlink():
         raise VerificationError("exclusive regeneration directory already exists")
     temp_root.mkdir()
     try:
         first = temp_root / "staging-a"
         second = temp_root / "staging-b"
-        derivation.derive_payload(source_root, profile_path, first, allowlist_path)
-        derivation.derive_payload(source_root, profile_path, second, allowlist_path)
+        derivation.derive_payload(
+            source_root,
+            profile_path,
+            first,
+            allowlist_path,
+            subject_commit,
+            subject_tree,
+        )
+        derivation.derive_payload(
+            source_root,
+            profile_path,
+            second,
+            allowlist_path,
+            subject_commit,
+            subject_tree,
+        )
         for entry in profile.entries:
             first_data = _candidate_file(first, entry.source).read_bytes()
             second_data = _candidate_file(second, entry.source).read_bytes()
-            candidate_data = _candidate_file(candidate, entry.destination).read_bytes()
+            candidate_data = _document_bytes(documents, entry.destination)
             if first_data != second_data:
                 raise VerificationError(
                     f"derivation is non-deterministic: {entry.source}"
@@ -481,7 +570,7 @@ def _compare_regenerated_sources(
                     f"candidate differs from freshly derived source: {entry.destination}"
                 )
     finally:
-        safe_parent = candidate.parent.absolute()
+        safe_parent = candidate_root.parent.absolute()
         if temp_root.absolute().parent != safe_parent or not temp_root.name.startswith(
             ".lifeline-claim-complete-"
         ):
@@ -496,29 +585,71 @@ def verify_claim_complete(
     source_root: Path,
     profile_path: Path,
     allowlist_path: Path,
+    subject_commit: str,
+    subject_tree: str,
+    *,
+    _expected_identity_profile: builder.IdentityProfile | None = None,
+    _candidate_snapshot: builder.CandidateSnapshot | None = None,
 ) -> dict[str, Any]:
     candidate = candidate.absolute()
-    base_result = builder.verify_candidate(candidate, allowlist_path, identity_file)
-    _verify_strict_json_documents(candidate)
     profile = derivation._load_profile(profile_path)
     allowlist, _allowlist_bytes = derivation._load_allowlist_shape(allowlist_path)
     derivation._validate_allowlist_shape(profile, allowlist)
-    _verify_exact_special_sources(profile)
-    _verify_claim_ledger(candidate, _entry_by_mode(profile, "claim_ledger"))
-    _verify_compact_ledger(candidate, _entry_by_mode(profile, "compact_ledger"))
-    _verify_derived_statuses(candidate, profile)
-    _verify_environment_bindings(candidate, profile)
-    _verify_derivation_receipt(
-        candidate, profile, _entry_by_mode(profile, "derivation_receipt")
+    subject_snapshot = _capture_subject_snapshot(
+        source_root,
+        profile_path,
+        allowlist_path,
+        profile,
+        allowlist,
+        subject_commit,
+        subject_tree,
     )
-    _verify_descriptive_boundary(candidate, profile)
-    _verify_no_extension_labels(candidate)
+    identity = builder.load_identity_profile(identity_file)
+    if (
+        _expected_identity_profile is not None
+        and identity != _expected_identity_profile
+    ):
+        raise VerificationError(
+            "identity terms file does not match the workflow snapshot"
+        )
+    if _expected_identity_profile is not None:
+        identity = _expected_identity_profile
+    if _candidate_snapshot is None:
+        candidate_snapshot = builder._capture_candidate_snapshot(candidate, allowlist)
+    else:
+        if type(_candidate_snapshot) is not builder.CandidateSnapshot:
+            raise VerificationError("injected candidate snapshot has the wrong type")
+        candidate_snapshot = _candidate_snapshot
+    base_result = builder._verify_candidate_snapshot(
+        candidate_snapshot,
+        allowlist,
+        identity,
+        subject_snapshot.binding,
+    )
+    documents = candidate_snapshot.documents
+    _verify_strict_json_documents(documents)
+    _verify_exact_special_sources(profile)
+    _verify_claim_ledger(documents, _entry_by_mode(profile, "claim_ledger"))
+    _verify_compact_ledger(documents, _entry_by_mode(profile, "compact_ledger"))
+    _verify_derived_statuses(documents, profile)
+    _verify_environment_bindings(documents, profile)
+    _verify_derivation_receipt(
+        documents,
+        profile,
+        _entry_by_mode(profile, "derivation_receipt"),
+        subject_snapshot.binding,
+    )
+    _verify_descriptive_boundary(documents, profile)
+    _verify_no_extension_labels(documents)
     _compare_regenerated_sources(
         candidate,
+        documents,
         source_root.absolute(),
         profile_path,
         allowlist_path,
         profile,
+        subject_commit,
+        subject_tree,
     )
 
     game_engine_entries = [
@@ -532,16 +663,21 @@ def verify_claim_complete(
         or engine_entry.inputs[0][0] != derivation.GAME_ENGINE_SOURCE
     ):
         raise VerificationError("GameEngine.js source binding is ambiguous")
-    source_engine = _candidate_file(
-        source_root.absolute(), derivation.GAME_ENGINE_SOURCE
-    ).read_bytes()
-    candidate_engine = _candidate_file(candidate, engine_entry.destination).read_bytes()
+    subject_files = {item.relative: item for item in subject_snapshot.files}
+    source_engine_snapshot = subject_files.get(derivation.GAME_ENGINE_SOURCE)
+    if source_engine_snapshot is None or type(source_engine_snapshot.data) is not bytes:
+        raise VerificationError("GameEngine.js is missing from the subject snapshot")
+    source_engine = source_engine_snapshot.data
+    candidate_engine = _document_bytes(documents, engine_entry.destination)
     if candidate_engine != source_engine:
         raise VerificationError(
             "GameEngine.js is not byte-identical to the tracked source"
         )
 
-    readme = _candidate_file(candidate, builder.README_NAME).read_text(encoding="utf-8")
+    try:
+        readme = _document_bytes(documents, builder.README_NAME).decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise VerificationError("candidate README is not UTF-8") from exc
     if STATUS not in readme or "author approval is required" not in readme:
         raise VerificationError(
             "candidate README lost the candidate-only approval boundary"
@@ -551,9 +687,16 @@ def verify_claim_complete(
             "candidate README no longer describes the exact formal projection"
         )
 
+    try:
+        subject_binding.assert_subject_snapshot_unchanged(subject_snapshot)
+    except subject_binding.SubjectBindingError as exc:
+        raise VerificationError(str(exc)) from exc
+
     return {
         **base_result,
         "approval": APPROVAL,
+        **subject_snapshot.binding.public_fields(),
+        "subject_binding_verified": True,
         "claim_coverage": list(CLAIM_IDS),
         "claim_count": len(CLAIM_IDS),
         "source_regeneration": "PASS_TWO_BYTE_IDENTICAL_DERIVATIONS",
@@ -582,6 +725,8 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--allowlist", type=Path, default=derivation._default_allowlist()
     )
+    parser.add_argument("--subject-commit", required=True)
+    parser.add_argument("--subject-tree", required=True)
     return parser
 
 
@@ -594,6 +739,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.source_root,
             args.profile,
             args.allowlist,
+            args.subject_commit,
+            args.subject_tree,
         )
         rendered = derivation._pretty_json(result)
     except (

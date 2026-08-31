@@ -26,9 +26,9 @@ strings, and host labels:
 ]
 ```
 
-The terms are never copied into the candidate or printed in a failure. The
-privacy receipt records only their count and the SHA-256 of the normalized
-list, so the same scan profile can be checked again without disclosing it.
+The terms are never copied into the candidate or printed in a failure. Public
+candidate and archive receipts record only that a private identity input was
+supplied; they do not publish its terms, count, or a deterministic fingerprint.
 
 ## Narrow candidate build and verify
 
@@ -65,17 +65,70 @@ overwrite an existing directory.
 First set local paths. The identity file must remain private and untracked:
 
 ```powershell
+$ClaimSourceRoot = (Resolve-Path ".").Path
 $ClaimIdentity = "local_artifacts/private_identity_terms.json"
 $ClaimStage = "local_artifacts/claim_complete_stage_<new-id>"
 $ClaimCandidate = "local_artifacts/claim_complete_candidate_<new-id>"
+$ClaimSubjectCommit = (git rev-parse --verify HEAD).Trim()
+$ClaimSubjectTree = (git rev-parse --verify "$ClaimSubjectCommit^{tree}").Trim()
 ```
 
-Derive the hash-pinned staging tree from the tracked repository inputs:
+Both subject values must be full lowercase 40-hex SHA-1 or 64-hex SHA-256
+object IDs of the current checkout. Every claim-complete API and CLI requires
+them explicitly. Before and after each workflow, the tools require `HEAD` to
+equal the commit, require the commit's tree to equal the tree, and compare each
+fixed input, index entry, worktree byte sequence, and executing tool source to
+the commit blob. A staged, dirty, untracked, moved, or concurrently replaced
+fixed input/tool fails closed. Recompute both values only after intentionally
+creating and reviewing a new subject commit; never reuse an earlier pair after
+`HEAD` changes.
+
+### Production runtime trust boundary
+
+The subject checks bind the checked-in Python source bytes, but they do not
+authenticate the Python interpreter or Git executable that evaluates those
+checks. The direct Python APIs also cannot defend against a hostile caller in
+the same process replacing imported functions or monkeypatching filesystem and
+subprocess operations. Treat API calls and the `python -B` examples below as
+development or verification interfaces, not by themselves as a production
+trust root.
+
+Before a production rebuild, independently approve and record the absolute
+`python.exe` path and SHA-256. Launch from an isolated, verified interpreter
+(prefer `-I -B`) and direct bytecode lookup to a newly created empty private
+cache location, or otherwise prove that bytecode loading is disabled. `-B`
+only prevents writing `.pyc`; it does not by itself prevent a pre-existing
+cache from being read. If the checked-in tools cannot be imported under that
+isolated launch contract, stop rather than dropping the isolation gate.
+
+Independently approve and record the absolute `git.exe` path and SHA-256 as
+well. The workflow resolves and hashes the selected Git binary in memory and
+checks that it does not change during execution; the released receipts do not
+replace that external record. Resolving `git` from `PATH` does not establish
+that the selected binary was trustworthy in the first place. The repository's
+local Git configuration is part of the trusted launch boundary. A production
+receipt is not valid unless these external interpreter/Git anchors and the
+clean subject commit/tree are reviewed together.
+
+Derive the staging tree from those subject-bound repository inputs:
 
 ```powershell
 python -B research/iclr2027/supplement_tools/derive_claim_complete_payload.py `
+  --source-root $ClaimSourceRoot `
+  --subject-commit $ClaimSubjectCommit `
+  --subject-tree $ClaimSubjectTree `
   --output $ClaimStage
 ```
+
+The checked-in claim allowlist has exactly one
+`expected_sha256: null` row: the exact source/destination/category tuple for
+`ANONYMIZATION_DERIVATION.json`. This is a narrow cycle break, because that
+receipt contains the subject commit while its checked-in allowlist belongs to
+the same commit. It is not an integrity exemption: the receipt must be
+canonical JSON with the exact typed subject fields, its actual SHA-256 and size
+are recorded in the candidate manifest, and the claim verifier regenerates it
+twice and compares the bytes. Any second null, different path/category, missing
+subject, or JSON type confusion is rejected.
 
 Build the candidate with the claim-complete allowlist rather than the builder's
 narrow default:
@@ -84,6 +137,9 @@ narrow default:
 python -B `
   research/iclr2027/supplement_tools/build_supplement_candidate.py build `
   --source-root $ClaimStage `
+  --subject-root $ClaimSourceRoot `
+  --subject-commit $ClaimSubjectCommit `
+  --subject-tree $ClaimSubjectTree `
   --allowlist `
   research/iclr2027/supplement_tools/supplement_claim_complete_allowlist.json `
   --identity-file $ClaimIdentity `
@@ -96,6 +152,9 @@ privacy, claim, receipt, exception, and GameEngine checks:
 
 ```powershell
 python -B research/iclr2027/supplement_tools/verify_claim_complete.py `
+  --source-root $ClaimSourceRoot `
+  --subject-commit $ClaimSubjectCommit `
+  --subject-tree $ClaimSubjectTree `
   --candidate $ClaimCandidate `
   --identity-file $ClaimIdentity
 ```
@@ -133,6 +192,9 @@ timestamps, fixed regular-file modes, and an external canonical receipt:
 $ClaimArchive = "local_artifacts/claim_complete_archive_<new-id>"
 python -B `
   research/iclr2027/supplement_tools/archive_claim_complete_candidate.py build `
+  --source-root $ClaimSourceRoot `
+  --subject-commit $ClaimSubjectCommit `
+  --subject-tree $ClaimSubjectTree `
   --candidate $ClaimCandidate `
   --identity-file $ClaimIdentity `
   --output $ClaimArchive
@@ -153,6 +215,9 @@ python -B `
   verify-extract `
   --archive "$ClaimArchive/lifeline_rl_claim_complete_candidate.zip" `
   --receipt "$ClaimArchive/ARCHIVE_RECEIPT.json" `
+  --source-root $ClaimSourceRoot `
+  --subject-commit $ClaimSubjectCommit `
+  --subject-tree $ClaimSubjectTree `
   --identity-file $ClaimIdentity `
   --output $ClaimExtract
 ```
@@ -166,6 +231,10 @@ receipt contains the private identity terms, their count, a deterministic
 identity-list fingerprint, or local absolute paths. Scanner version 4 records
 only that a private identity input was supplied; verification still requires
 that private input and reruns the complete scan.
+
+Raw TeX recorder/log artifacts are outside the candidate policy. In
+particular, `.fls`, `.log`, and `combined_subprocess_output.log` cannot enter
+the claim-complete allowlist or its deterministic archive.
 
 The standard Windows runtime does not provide handle-relative filesystem
 operations or symlink-safe `shutil.rmtree`. On such a runtime, a failed
@@ -280,6 +349,16 @@ refusal, atomic no-overwrite publication, and fail-retain cleanup behavior:
 
 ```powershell
 python -B research/iclr2027/supplement_tools/archive_claim_complete_selftest.py
+```
+
+The subject-binding self-test creates isolated real SHA-1 and SHA-256 Git
+repositories and covers exact commit/tree/blob success, wrong object types,
+dirty and staged bytes, untracked/dirty tool sources, post-check replacement,
+hostile caller `GIT_*` variables, path escape/duplication, and strict object-ID
+and JSON types:
+
+```powershell
+python -B research/iclr2027/supplement_tools/subject_binding_selftest.py
 ```
 
 ## Scope boundary

@@ -20,10 +20,27 @@ import unicodedata
 from dataclasses import dataclass
 from html.parser import HTMLParser
 from pathlib import Path, PurePosixPath
+from types import MappingProxyType
 from typing import Any, Iterable, Mapping, Sequence
 
 
+TOOL_DIR = Path(__file__).resolve().parent
+if str(TOOL_DIR) not in sys.path:
+    sys.path.insert(0, str(TOOL_DIR))
+
+import subject_binding  # noqa: E402
+
+
 STATUS = "candidate_only_not_approved"
+CLAIM_COMPLETE_PACKAGE_NAME = "lifeline_rl_claim_complete_candidate"
+SUBJECT_BOUND_RECEIPT_SOURCE = (
+    "research/iclr2027/supplement_tools/derived_claim_complete/"
+    "ANONYMIZATION_DERIVATION.json"
+)
+SUBJECT_BOUND_RECEIPT_DESTINATION = (
+    "research/iclr2027/results/validation/ANONYMIZATION_DERIVATION.json"
+)
+SUBJECT_BOUND_RECEIPT_CATEGORY = "transformation_receipt"
 SCHEMA_VERSION = 1
 SCANNER_VERSION = 4
 README_NAME = "README.md"
@@ -148,9 +165,7 @@ CLAIM_COMPLETE_FORMAL_SOURCE_EXCEPTIONS = frozenset(
         "research/iclr2027/results/formal/d14_d16/task_bundle_v1/training_tasks.jsonl",
     }
 )
-CLAIM_COMPLETE_FORMAL_DESTINATION_EXCEPTIONS = (
-    CLAIM_COMPLETE_FORMAL_SOURCE_EXCEPTIONS
-)
+CLAIM_COMPLETE_FORMAL_DESTINATION_EXCEPTIONS = CLAIM_COMPLETE_FORMAL_SOURCE_EXCEPTIONS
 CLAIM_COMPLETE_CHECKPOINT_EXCEPTIONS = {
     "source": frozenset(
         {
@@ -229,7 +244,9 @@ GENERIC_SCAN_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ),
     (
         "unix_absolute_path",
-        re.compile(r"(?i)(?<![A-Za-z0-9_.-])/(?:home|users|root|mnt|tmp|var|etc|opt|srv)/[^\s\"'<>]+"),
+        re.compile(
+            r"(?i)(?<![A-Za-z0-9_.-])/(?:home|users|root|mnt|tmp|var|etc|opt|srv)/[^\s\"'<>]+"
+        ),
     ),
     ("file_uri", re.compile(r"(?i)file://(?:/|[a-z]:)")),
     (
@@ -287,7 +304,7 @@ class AllowlistEntry:
     source: str
     destination: str
     category: str
-    expected_sha256: str
+    expected_sha256: str | None
 
 
 @dataclass(frozen=True)
@@ -306,6 +323,13 @@ class IdentityProfile:
     terms: tuple[str, ...]
     normalized_terms: tuple[str, ...]
     digest: str
+
+
+@dataclass(frozen=True)
+class CandidateSnapshot:
+    documents: Mapping[str, bytes]
+    directories: frozenset[str]
+    sha256: str
 
 
 def _sha256(data: bytes) -> str:
@@ -544,6 +568,7 @@ def load_allowlist(path: Path) -> AllowlistConfig:
     if not isinstance(file_rows, list) or not file_rows:
         raise CandidateError("files must be a non-empty explicit allowlist")
     entries: list[AllowlistEntry] = []
+    subject_bound_rows = 0
     seen_sources: set[str] = set()
     seen_destinations: set[str] = {name.casefold() for name in METADATA_NAMES}
     for index, row in enumerate(file_rows):
@@ -564,11 +589,24 @@ def load_allowlist(path: Path) -> AllowlistConfig:
         if not isinstance(category, str) or not SAFE_SLUG_RE.fullmatch(category):
             raise CandidateError(f"files[{index}].category must be a safe slug")
         expected_sha256 = row["expected_sha256"]
-        if not isinstance(expected_sha256, str) or not SHA256_RE.fullmatch(
+        if expected_sha256 is None:
+            if (
+                package_name != CLAIM_COMPLETE_PACKAGE_NAME
+                or source != SUBJECT_BOUND_RECEIPT_SOURCE
+                or destination != SUBJECT_BOUND_RECEIPT_DESTINATION
+                or category != SUBJECT_BOUND_RECEIPT_CATEGORY
+            ):
+                raise CandidateError(
+                    "only the exact claim-complete transformation receipt may "
+                    "use expected_sha256=null"
+                )
+            subject_bound_rows += 1
+        elif not isinstance(expected_sha256, str) or not SHA256_RE.fullmatch(
             expected_sha256
         ):
             raise CandidateError(
-                f"files[{index}].expected_sha256 must be lowercase SHA-256"
+                f"files[{index}].expected_sha256 must be lowercase SHA-256 or "
+                "the unique subject-bound receipt null"
             )
         source_key = source.casefold()
         destination_key = destination.casefold()
@@ -578,9 +616,14 @@ def load_allowlist(path: Path) -> AllowlistConfig:
             raise CandidateError(f"duplicate or reserved destination: {destination}")
         seen_sources.add(source_key)
         seen_destinations.add(destination_key)
-        entries.append(
-            AllowlistEntry(source, destination, category, expected_sha256)
+        entries.append(AllowlistEntry(source, destination, category, expected_sha256))
+
+    if package_name == CLAIM_COMPLETE_PACKAGE_NAME and subject_bound_rows != 1:
+        raise CandidateError(
+            "claim-complete allowlist must contain exactly one subject-bound receipt"
         )
+    if package_name != CLAIM_COMPLETE_PACKAGE_NAME and subject_bound_rows:
+        raise CandidateError("non-claim allowlists cannot contain subject-bound rows")
 
     return AllowlistConfig(
         package_name=package_name,
@@ -593,11 +636,8 @@ def load_allowlist(path: Path) -> AllowlistConfig:
     )
 
 
-def load_identity_profile(path: Path) -> IdentityProfile:
-    data = _require_plain_file(path, "identity terms file", MAX_IDENTITY_FILE_BYTES)
-    raw = _strict_json_from_bytes(
-        data, "identity terms file must be valid UTF-8 JSON"
-    )
+def _identity_profile_from_bytes(data: bytes) -> IdentityProfile:
+    raw = _strict_json_from_bytes(data, "identity terms file must be valid UTF-8 JSON")
     if not isinstance(raw, list) or not raw:
         raise CandidateError("identity terms file must be a non-empty JSON string list")
     if len(raw) > 100:
@@ -615,12 +655,19 @@ def load_identity_profile(path: Path) -> IdentityProfile:
             raise CandidateError(f"identity term {index} is invalid")
         folded = _normalize_identity(value)
         if folded in seen:
-            raise CandidateError("identity terms contain a duplicate after normalization")
+            raise CandidateError(
+                "identity terms contain a duplicate after normalization"
+            )
         seen.add(folded)
         terms.append(value)
         normalized.append(folded)
     digest = _sha256(_canonical_json_bytes(sorted(normalized)))
     return IdentityProfile(tuple(terms), tuple(normalized), digest)
+
+
+def load_identity_profile(path: Path) -> IdentityProfile:
+    data = _require_plain_file(path, "identity terms file", MAX_IDENTITY_FILE_BYTES)
+    return _identity_profile_from_bytes(data)
 
 
 def _iter_json_semantic_strings(value: Any) -> Iterable[tuple[str, bool]]:
@@ -767,9 +814,7 @@ def _decode_source_character_escapes(
                 parsed = fixed_hex(index + 1, 4)
                 if parsed is not None:
                     codepoint, end = parsed
-                    if 0xD800 <= codepoint <= 0xDBFF and text.startswith(
-                        "\\u", end
-                    ):
+                    if 0xD800 <= codepoint <= 0xDBFF and text.startswith("\\u", end):
                         low = fixed_hex(end + 2, 4)
                         if low is not None and 0xDC00 <= low[0] <= 0xDFFF:
                             decoded.append(
@@ -1144,9 +1189,7 @@ def _js_regex_literal_end(text: str, start: int) -> int:
         if char == "/" and not in_character_class:
             index += 1
             flags_start = index
-            while index < len(text) and (
-                text[index].isalnum() or text[index] in "_$"
-            ):
+            while index < len(text) and (text[index].isalnum() or text[index] in "_$"):
                 index += 1
             flags = text[flags_start:index]
             if (
@@ -1273,9 +1316,7 @@ def _js_lex_source(text: str) -> tuple[list[tuple[str, int, int]], str]:
         if char.isalpha() or char in "_$":
             start = index
             index += 1
-            while index < len(text) and (
-                text[index].isalnum() or text[index] in "_$"
-            ):
+            while index < len(text) and (text[index].isalnum() or text[index] in "_$"):
                 index += 1
             word = text[start:index]
             if last_token == "member_access":
@@ -1306,7 +1347,9 @@ def _js_lex_source(text: str) -> tuple[list[tuple[str, int, int]], str]:
             index += 1
             continue
         if char == ")":
-            closes_control_head = bool(parenthesis_contexts and parenthesis_contexts.pop())
+            closes_control_head = bool(
+                parenthesis_contexts and parenthesis_contexts.pop()
+            )
             record_token("control_head_close" if closes_control_head else char, char)
             index += 1
             continue
@@ -1417,9 +1460,7 @@ def _decode_js_template_literal(token: str, depth: int) -> str:
             index += 2
             continue
         if char == "$" and index + 1 < closing and token[index + 1] == "{":
-            output.append(
-                _decode_js_character_escapes(token[quasi_start:index])
-            )
+            output.append(_decode_js_character_escapes(token[quasi_start:index]))
             expression_start = index + 2
             expression_end = _js_template_expression_end(
                 token,
@@ -1647,10 +1688,7 @@ def _record_noncode_credential_keys(
                 semantic_prefix = semantic_prefix[2:].lstrip()
             if semantic_prefix == "?" or semantic_prefix.startswith("? "):
                 findings.add((relative, "unsupported_yaml_explicit_key"))
-            if (
-                semantic_prefix.startswith(("\"", "'"))
-                and line.rstrip().endswith("\\")
-            ):
+            if semantic_prefix.startswith(('"', "'")) and line.rstrip().endswith("\\"):
                 findings.add((relative, "unsupported_yaml_multiline_key"))
     if suffix in {".cfg", ".ini", ".toml"}:
         for line in decoded.splitlines():
@@ -1726,9 +1764,7 @@ def _record_noncode_credential_keys(
     conservative_cells = re.split(r"[,;\t|]", physical_header)
     semantic_cells = (header or []) + conservative_cells
     if any(
-        CREDENTIAL_FIELD_RE.fullmatch(
-            _normalize_identity(cell).strip().strip("\"'")
-        )
+        CREDENTIAL_FIELD_RE.fullmatch(_normalize_identity(cell).strip().strip("\"'"))
         for cell in semantic_cells
     ):
         findings.add((relative, "credential_assignment"))
@@ -1973,16 +2009,12 @@ def _scan_documents(
                 identity,
                 finding_keys,
             )
-            if JS_SENSITIVE_BINDING_RE.search(
-                _normalize_identity(decoded_source_text)
-            ):
+            if JS_SENSITIVE_BINDING_RE.search(_normalize_identity(decoded_source_text)):
                 finding_keys.add((relative, "credential_assignment"))
             try:
                 source_views.extend(_conservative_js_literal_scan_views(scan_text))
             except _JavaScriptLexError:
-                finding_keys.add(
-                    (relative, "invalid_or_ambiguous_javascript_source")
-                )
+                finding_keys.add((relative, "invalid_or_ambiguous_javascript_source"))
             try:
                 _literals, code_only = _js_lex_source(scan_text)
                 decoded_code_only = _decode_source_character_escapes(code_only)
@@ -2000,9 +2032,7 @@ def _scan_documents(
                         finding_keys.add((relative, "credential_assignment"))
                 source_views.extend(_source_literal_scan_views(scan_text))
             except _JavaScriptLexError:
-                finding_keys.add(
-                    (relative, "invalid_or_ambiguous_javascript_source")
-                )
+                finding_keys.add((relative, "invalid_or_ambiguous_javascript_source"))
         for semantic_text, is_key in source_views:
             _record_text_controls(relative, semantic_text, finding_keys)
             normalized_semantic = _normalize_identity(semantic_text).strip()
@@ -2024,7 +2054,11 @@ def _scan_documents(
             RecursionError,
             ValueError,
         ):
-            rule = "invalid_jsonl_content" if suffix == ".jsonl" else "invalid_json_content"
+            rule = (
+                "invalid_jsonl_content"
+                if suffix == ".jsonl"
+                else "invalid_json_content"
+            )
             finding_keys.add((relative, rule))
             json_values = None
         for value in json_values or []:
@@ -2069,8 +2103,7 @@ def _raise_for_scan(scan: Mapping[str, Any], label: str) -> None:
     if scan.get("status") == "PASS" and findings == []:
         return
     safe_summary = ", ".join(
-        f"{item.get('path', '?')}:{item.get('rule', '?')}"
-        for item in findings or []
+        f"{item.get('path', '?')}:{item.get('rule', '?')}" for item in findings or []
     )
     raise CandidateError(f"{label} privacy scan failed ({safe_summary})")
 
@@ -2116,10 +2149,94 @@ def _require_git_tracked(root: Path, sources: Sequence[str]) -> None:
         raise CandidateError(f"allowlisted sources are not Git-tracked: {missing}")
 
 
+def _subject_snapshot_for_config(
+    config: AllowlistConfig,
+    allowlist_path: Path,
+    payload_source_root: Path | None,
+    subject_root: Path | None,
+    subject_commit: str | None,
+    subject_tree: str | None,
+) -> subject_binding.SubjectSnapshot | None:
+    supplied = (subject_root, subject_commit, subject_tree)
+    required = config.package_name == CLAIM_COMPLETE_PACKAGE_NAME or any(
+        value is not None for value in supplied
+    )
+    if not required:
+        return None
+    if any(value is None for value in supplied):
+        raise CandidateError(
+            "subject root, commit, and tree are all required for a subject-bound candidate"
+        )
+    assert subject_root is not None
+    assert subject_commit is not None
+    assert subject_tree is not None
+    try:
+        allowlist_relative = subject_binding.canonical_repo_relative(
+            subject_root, allowlist_path, "candidate allowlist"
+        )
+        frozen_paths = {allowlist_relative}
+        if config.require_git_tracked:
+            if payload_source_root is None:
+                raise CandidateError(
+                    "tracked candidate verification requires a source root"
+                )
+            if payload_source_root.absolute() != subject_root.absolute():
+                raise CandidateError(
+                    "tracked candidate payload root must equal the subject source root"
+                )
+            frozen_paths.update(entry.source for entry in config.files)
+        snapshot = subject_binding.verify_subject_repository(
+            subject_root,
+            subject_commit,
+            subject_tree,
+            frozen_paths=frozen_paths,
+            tool_paths=(Path(__file__), Path(subject_binding.__file__)),
+        )
+        subject_files = {item.relative: item for item in snapshot.files}
+        allowlist_snapshot = subject_files.get(allowlist_relative)
+        if allowlist_snapshot is None or allowlist_snapshot.sha256 != config.raw_sha256:
+            raise CandidateError(
+                "parsed allowlist bytes do not match the subject commit blob"
+            )
+        return snapshot
+    except subject_binding.SubjectBindingError as exc:
+        raise CandidateError(str(exc)) from exc
+
+
+def _validate_subject_bound_receipt(
+    entry: AllowlistEntry,
+    data: bytes,
+    binding: subject_binding.SubjectBinding | None,
+) -> None:
+    if entry.expected_sha256 is not None:
+        return
+    if binding is None:
+        raise CandidateError("subject-bound receipt lacks an explicit subject")
+    value = _strict_json_from_bytes(
+        data, "subject-bound derivation receipt must be valid UTF-8 JSON"
+    )
+    if not isinstance(value, dict):
+        raise CandidateError("subject-bound derivation receipt must be a JSON object")
+    required = {
+        "subject_commit": binding.commit,
+        "subject_tree": binding.tree,
+        "subject_binding_verified": True,
+    }
+    for key, expected in required.items():
+        observed = value.get(key)
+        if type(observed) is not type(expected) or observed != expected:
+            raise CandidateError(f"subject-bound derivation receipt drifted at {key}")
+    if data != _canonical_json_bytes(value):
+        raise CandidateError(
+            "subject-bound derivation receipt is not exact canonical UTF-8 JSON"
+        )
+
+
 def _load_payload(
     source_root: Path,
     config: AllowlistConfig,
     identity: IdentityProfile,
+    binding: subject_binding.SubjectBinding | None = None,
 ) -> list[tuple[AllowlistEntry, bytes]]:
     root = source_root.absolute()
     if not root.is_dir():
@@ -2134,8 +2251,9 @@ def _load_payload(
             source, f"allowlisted source {entry.source}", config.max_file_bytes
         )
         observed = _sha256(data)
-        if observed != entry.expected_sha256:
+        if entry.expected_sha256 is not None and observed != entry.expected_sha256:
             raise CandidateError(f"source hash drifted: {entry.source}")
+        _validate_subject_bound_receipt(entry, data, binding)
         total += len(data)
         if total > config.max_total_bytes:
             raise CandidateError("allowlisted payload exceeds max_total_bytes")
@@ -2170,7 +2288,10 @@ def _readme_bytes(config: AllowlistConfig) -> bytes:
             "From the source repository, verify these exact candidate bytes with the same private\n"
             "identity-term file used during the build:\n\n"
             "```text\n"
-            "python -B research/iclr2027/supplement_tools/verify_claim_complete.py --candidate <candidate-dir> --identity-file <private-identity-terms.json>\n"
+            "python -B research/iclr2027/supplement_tools/verify_claim_complete.py "
+            "--source-root <repo-root> --subject-commit <full-subject-commit> "
+            "--subject-tree <full-subject-tree> --candidate <candidate-dir> "
+            "--identity-file <private-identity-terms.json>\n"
             "```\n\n"
             "A technical PASS establishes only this allowlist, hash, transformation, claim-coverage,\n"
             "and configured privacy-scan contract. It is not author approval, a final submission\n"
@@ -2216,7 +2337,9 @@ def _tree_bytes(config: AllowlistConfig) -> bytes:
 
 
 def _manifest_object(
-    config: AllowlistConfig, documents: Mapping[str, bytes]
+    config: AllowlistConfig,
+    documents: Mapping[str, bytes],
+    binding: subject_binding.SubjectBinding | None = None,
 ) -> dict[str, Any]:
     categories = {entry.destination: entry.category for entry in config.files}
     categories[README_NAME] = "candidate_readme"
@@ -2233,7 +2356,7 @@ def _manifest_object(
         }
         for path in manifest_paths
     ]
-    return {
+    result = {
         "schema_version": SCHEMA_VERSION,
         "status": STATUS,
         "package_name": config.package_name,
@@ -2247,6 +2370,10 @@ def _manifest_object(
         "total_bytes": sum(row["size_bytes"] for row in rows),
         "files": rows,
     }
+    if binding is not None:
+        result.update(binding.public_fields())
+        result["subject_binding_verified"] = True
+    return result
 
 
 def _write_exclusive(root: Path, relative: str, data: bytes) -> None:
@@ -2281,7 +2408,9 @@ def _walk_candidate(root: Path) -> tuple[dict[str, Path], set[str]]:
                 elif stat.S_ISREG(info.st_mode):
                     files[relative] = path
                 else:
-                    raise CandidateError(f"candidate contains a special file: {relative}")
+                    raise CandidateError(
+                        f"candidate contains a special file: {relative}"
+                    )
     return files, directories
 
 
@@ -2295,14 +2424,32 @@ def _expected_directories(config: AllowlistConfig) -> set[str]:
     return expected
 
 
-def _verify_candidate(
-    candidate: Path,
+def _candidate_snapshot_sha256(documents: Mapping[str, bytes]) -> str:
+    rows = (
+        f"{relative}\t{len(documents[relative])}\t{_sha256(documents[relative])}\n"
+        for relative in sorted(documents)
+    )
+    return _sha256("".join(rows).encode("utf-8"))
+
+
+def _candidate_snapshot_from_documents(
+    documents: Mapping[str, bytes],
     config: AllowlistConfig,
-    identity: IdentityProfile,
-) -> dict[str, Any]:
-    files, directories = _walk_candidate(candidate)
+    directories: Iterable[str] | None = None,
+) -> CandidateSnapshot:
+    try:
+        items = tuple(documents.items())
+    except (AttributeError, RuntimeError, TypeError) as exc:
+        raise CandidateError("candidate documents must be a stable mapping") from exc
+    frozen_documents: dict[str, bytes] = {}
+    for relative, data in items:
+        if type(relative) is not str or type(data) is not bytes:
+            raise CandidateError("candidate document keys and values must be str/bytes")
+        if relative in frozen_documents:
+            raise CandidateError("candidate documents contain duplicate paths")
+        frozen_documents[relative] = data
     expected_paths = _expected_paths(config)
-    observed_paths = set(files)
+    observed_paths = set(frozen_documents)
     if observed_paths != expected_paths:
         raise CandidateError(
             "candidate file set differs from the allowlist "
@@ -2310,40 +2457,111 @@ def _verify_candidate(
             f"extra={sorted(observed_paths - expected_paths)})"
         )
     expected_directories = _expected_directories(config)
-    if directories != expected_directories:
+    if directories is None:
+        observed_directories = frozenset(expected_directories)
+    else:
+        observed_directories = frozenset(directories)
+        if any(type(relative) is not str for relative in observed_directories):
+            raise CandidateError("candidate directory paths must be strings")
+    if set(observed_directories) != expected_directories:
         raise CandidateError(
             "candidate directory set differs from the allowlist "
-            f"(missing={sorted(expected_directories - directories)}, "
-            f"extra={sorted(directories - expected_directories)})"
+            f"(missing={sorted(expected_directories - set(observed_directories))}, "
+            f"extra={sorted(set(observed_directories) - expected_directories)})"
         )
+    immutable_documents = MappingProxyType(frozen_documents)
+    return CandidateSnapshot(
+        documents=immutable_documents,
+        directories=observed_directories,
+        sha256=_candidate_snapshot_sha256(immutable_documents),
+    )
 
+
+def _capture_candidate_snapshot(
+    candidate: Path, config: AllowlistConfig
+) -> CandidateSnapshot:
+    files, directories = _walk_candidate(candidate)
     documents = {
         relative: _require_plain_file(
             path,
             f"candidate file {relative}",
-            HARD_MAX_FILE_BYTES,
+            config.max_file_bytes,
         )
         for relative, path in files.items()
     }
+    return _candidate_snapshot_from_documents(documents, config, directories)
+
+
+def _verify_candidate_snapshot(
+    snapshot: CandidateSnapshot,
+    config: AllowlistConfig,
+    identity: IdentityProfile,
+    binding: subject_binding.SubjectBinding | None = None,
+) -> dict[str, Any]:
+    if type(snapshot) is not CandidateSnapshot:
+        raise CandidateError("candidate verification requires a frozen byte snapshot")
+    if type(snapshot.documents) is not MappingProxyType:
+        raise CandidateError("candidate byte snapshot must be immutable")
+    if type(snapshot.directories) is not frozenset:
+        raise CandidateError("candidate directory snapshot must be immutable")
+    if (
+        type(snapshot.sha256) is not str
+        or not SHA256_RE.fullmatch(snapshot.sha256)
+        or snapshot.sha256 != _candidate_snapshot_sha256(snapshot.documents)
+    ):
+        raise CandidateError("candidate byte snapshot hash is invalid")
+    documents = snapshot.documents
+    expected_paths = _expected_paths(config)
+    observed_paths = set(documents)
+    if observed_paths != expected_paths:
+        raise CandidateError(
+            "candidate file set differs from the allowlist "
+            f"(missing={sorted(expected_paths - observed_paths)}, "
+            f"extra={sorted(observed_paths - expected_paths)})"
+        )
+    expected_directories = _expected_directories(config)
+    if set(snapshot.directories) != expected_directories:
+        raise CandidateError(
+            "candidate directory set differs from the allowlist "
+            f"(missing={sorted(expected_directories - set(snapshot.directories))}, "
+            f"extra={sorted(set(snapshot.directories) - expected_directories)})"
+        )
+    for relative, data in documents.items():
+        if type(relative) is not str or type(data) is not bytes:
+            raise CandidateError("candidate byte snapshot has invalid value types")
+        if len(data) > config.max_file_bytes:
+            raise CandidateError(
+                f"candidate file exceeds the configured size limit: {relative}"
+            )
     entry_by_destination = {entry.destination: entry for entry in config.files}
     for destination, entry in entry_by_destination.items():
-        if _sha256(documents[destination]) != entry.expected_sha256:
+        if (
+            entry.expected_sha256 is not None
+            and _sha256(documents[destination]) != entry.expected_sha256
+        ):
             raise CandidateError(f"candidate payload hash mismatch: {destination}")
+        _validate_subject_bound_receipt(entry, documents[destination], binding)
 
     expected_readme = _readme_bytes(config)
     expected_tree = _tree_bytes(config)
     if documents[README_NAME] != expected_readme:
-        raise CandidateError("candidate README does not match the deterministic template")
+        raise CandidateError(
+            "candidate README does not match the deterministic template"
+        )
     if documents[TREE_NAME] != expected_tree:
         raise CandidateError("candidate tree does not match the exact file set")
 
     expected_manifest = _manifest_object(
         config,
         {
-            **{entry.destination: documents[entry.destination] for entry in config.files},
+            **{
+                entry.destination: documents[entry.destination]
+                for entry in config.files
+            },
             README_NAME: expected_readme,
             TREE_NAME: expected_tree,
         },
+        binding,
     )
     observed_manifest = _strict_json_from_bytes(
         documents[MANIFEST_NAME],
@@ -2370,15 +2588,30 @@ def _verify_candidate(
     if documents[SCAN_NAME] != _canonical_json_bytes(expected_scan):
         raise CandidateError("privacy scan report is not exact canonical UTF-8 JSON")
 
-    return {
+    result = {
         "status": "PASS",
         "candidate_status": STATUS,
         "package_name": config.package_name,
-        "file_count": len(files),
+        "file_count": len(documents),
         "manifest_file_count": expected_manifest["file_count"],
         "manifest_total_bytes": expected_manifest["total_bytes"],
         "privacy_scan": expected_scan["status"],
+        "candidate_snapshot_sha256": snapshot.sha256,
     }
+    if binding is not None:
+        result.update(binding.public_fields())
+        result["subject_binding_verified"] = True
+    return result
+
+
+def _verify_candidate(
+    candidate: Path,
+    config: AllowlistConfig,
+    identity: IdentityProfile,
+    binding: subject_binding.SubjectBinding | None = None,
+) -> dict[str, Any]:
+    snapshot = _capture_candidate_snapshot(candidate, config)
+    return _verify_candidate_snapshot(snapshot, config, identity, binding)
 
 
 def build_candidate(
@@ -2386,10 +2619,23 @@ def build_candidate(
     allowlist_path: Path,
     output: Path,
     identity_file: Path,
+    *,
+    subject_root: Path | None = None,
+    subject_commit: str | None = None,
+    subject_tree: str | None = None,
 ) -> dict[str, Any]:
     config = load_allowlist(allowlist_path)
     identity = load_identity_profile(identity_file)
-    payload = _load_payload(source_root, config, identity)
+    subject_snapshot = _subject_snapshot_for_config(
+        config,
+        allowlist_path,
+        source_root,
+        subject_root,
+        subject_commit,
+        subject_tree,
+    )
+    binding = subject_snapshot.binding if subject_snapshot is not None else None
+    payload = _load_payload(source_root, config, identity, binding)
     output = output.absolute()
     if output.exists() or output.is_symlink():
         raise CandidateError("output path already exists; overwrite is forbidden")
@@ -2414,6 +2660,7 @@ def build_candidate(
                 README_NAME: readme,
                 TREE_NAME: tree,
             },
+            binding,
         )
         manifest_bytes = _canonical_json_bytes(manifest)
         _write_exclusive(output, MANIFEST_NAME, manifest_bytes)
@@ -2428,7 +2675,12 @@ def build_candidate(
         )
         _raise_for_scan(scan, "candidate")
         _write_exclusive(output, SCAN_NAME, _canonical_json_bytes(scan))
-        result = _verify_candidate(output, config, identity)
+        result = _verify_candidate(output, config, identity, binding)
+        if subject_snapshot is not None:
+            try:
+                subject_binding.assert_subject_snapshot_unchanged(subject_snapshot)
+            except subject_binding.SubjectBindingError as exc:
+                raise CandidateError(str(exc)) from exc
         created = False
         return result
     finally:
@@ -2437,11 +2689,40 @@ def build_candidate(
 
 
 def verify_candidate(
-    candidate: Path, allowlist_path: Path, identity_file: Path
+    candidate: Path,
+    allowlist_path: Path,
+    identity_file: Path,
+    *,
+    subject_root: Path | None = None,
+    subject_commit: str | None = None,
+    subject_tree: str | None = None,
+    _expected_identity_profile: IdentityProfile | None = None,
 ) -> dict[str, Any]:
     config = load_allowlist(allowlist_path)
     identity = load_identity_profile(identity_file)
-    return _verify_candidate(candidate.absolute(), config, identity)
+    if (
+        _expected_identity_profile is not None
+        and identity != _expected_identity_profile
+    ):
+        raise CandidateError("identity terms file does not match the workflow snapshot")
+    if _expected_identity_profile is not None:
+        identity = _expected_identity_profile
+    subject_snapshot = _subject_snapshot_for_config(
+        config,
+        allowlist_path,
+        subject_root,
+        subject_root,
+        subject_commit,
+        subject_tree,
+    )
+    binding = subject_snapshot.binding if subject_snapshot is not None else None
+    result = _verify_candidate(candidate.absolute(), config, identity, binding)
+    if subject_snapshot is not None:
+        try:
+            subject_binding.assert_subject_snapshot_unchanged(subject_snapshot)
+        except subject_binding.SubjectBindingError as exc:
+            raise CandidateError(str(exc)) from exc
+    return result
 
 
 def _default_allowlist() -> Path:
@@ -2462,10 +2743,16 @@ def _parser() -> argparse.ArgumentParser:
     build.add_argument("--allowlist", type=Path, default=_default_allowlist())
     build.add_argument("--output", type=Path, required=True)
     build.add_argument("--identity-file", type=Path, required=True)
+    build.add_argument("--subject-root", type=Path)
+    build.add_argument("--subject-commit")
+    build.add_argument("--subject-tree")
     verify = subparsers.add_parser("verify", help="verify an existing candidate")
     verify.add_argument("--allowlist", type=Path, default=_default_allowlist())
     verify.add_argument("--candidate", type=Path, required=True)
     verify.add_argument("--identity-file", type=Path, required=True)
+    verify.add_argument("--subject-root", type=Path)
+    verify.add_argument("--subject-commit")
+    verify.add_argument("--subject-tree")
     return parser
 
 
@@ -2478,12 +2765,18 @@ def main(argv: Sequence[str] | None = None) -> int:
                 args.allowlist,
                 args.output,
                 args.identity_file,
+                subject_root=args.subject_root,
+                subject_commit=args.subject_commit,
+                subject_tree=args.subject_tree,
             )
         else:
             result = verify_candidate(
                 args.candidate,
                 args.allowlist,
                 args.identity_file,
+                subject_root=args.subject_root,
+                subject_commit=args.subject_commit,
+                subject_tree=args.subject_tree,
             )
     except CandidateError as exc:
         print(

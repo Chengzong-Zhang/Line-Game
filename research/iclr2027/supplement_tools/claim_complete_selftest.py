@@ -1,15 +1,18 @@
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import io
 import json
 import os
 import shutil
+import subprocess
 import sys
 import unittest
 import uuid
 from dataclasses import replace
 from pathlib import Path, PurePosixPath
+from unittest import mock
 
 
 TOOL_DIR = Path(__file__).resolve().parent
@@ -20,6 +23,7 @@ if str(TOOL_DIR) not in sys.path:
 import build_supplement_candidate as builder  # noqa: E402
 import derive_claim_complete_payload as derivation  # noqa: E402
 import verify_claim_complete as verifier  # noqa: E402
+import subject_binding  # noqa: E402
 
 
 FORMAL_EXCEPTIONS = {
@@ -37,6 +41,46 @@ CHECKPOINT_EXCEPTIONS = {
     "research/iclr2027/tests/test_alphazero_checkpoint.py",
 }
 SELFTEST_OWNER_MARKER = ".claim-complete-selftest-owner"
+SUBJECT_COMMIT = "1" * 40
+SUBJECT_TREE = "2" * 40
+
+
+def _fake_subject_snapshot(
+    repo_root: Path,
+    commit: object,
+    tree: object,
+    *,
+    frozen_paths: object,
+    tool_paths: object,
+) -> subject_binding.SubjectSnapshot:
+    binding = subject_binding.parse_subject_binding(commit, tree)
+    root = Path(repo_root).absolute()
+    tool_relatives = tuple(
+        Path(path).resolve(strict=True).relative_to(root).as_posix()
+        for path in tool_paths
+    )
+    relatives = tuple(sorted({*frozen_paths, *tool_relatives}))
+    files = []
+    for relative in relatives:
+        data = root.joinpath(*PurePosixPath(relative).parts).read_bytes()
+        files.append(
+            subject_binding.SubjectFileSnapshot(
+                relative,
+                "a" * 40,
+                hashlib.sha256(data).hexdigest(),
+                len(data),
+                data,
+            )
+        )
+    return subject_binding.SubjectSnapshot(
+        repo_root=root,
+        binding=binding,
+        git_executable=Path(sys.executable),
+        git_executable_sha256="c" * 64,
+        git_executable_size_bytes=0,
+        files=tuple(files),
+        tool_relatives=tool_relatives,
+    )
 
 
 def _validate_plain_directory_chain(path: Path) -> None:
@@ -63,6 +107,18 @@ def _file_bytes(root: Path) -> dict[str, bytes]:
 class ClaimCompleteSelfTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
+        cls.subject_verify_patcher = mock.patch.object(
+            subject_binding,
+            "verify_subject_repository",
+            side_effect=_fake_subject_snapshot,
+        )
+        cls.subject_assert_patcher = mock.patch.object(
+            subject_binding, "assert_subject_snapshot_unchanged", return_value=None
+        )
+        cls.subject_verify_patcher.start()
+        cls.subject_assert_patcher.start()
+        cls.addClassCleanup(cls.subject_assert_patcher.stop)
+        cls.addClassCleanup(cls.subject_verify_patcher.stop)
         artifacts = REPO_ROOT / "local_artifacts"
         artifacts.mkdir(exist_ok=True)
         _validate_plain_directory_chain(artifacts)
@@ -91,18 +147,25 @@ class ClaimCompleteSelfTests(unittest.TestCase):
                 cls.profile_path,
                 cls.staging_a,
                 cls.allowlist_path,
+                SUBJECT_COMMIT,
+                SUBJECT_TREE,
             )
             cls.second_derivation = derivation.derive_payload(
                 REPO_ROOT,
                 cls.profile_path,
                 cls.staging_b,
                 cls.allowlist_path,
+                SUBJECT_COMMIT,
+                SUBJECT_TREE,
             )
             cls.build_result = builder.build_candidate(
                 cls.staging_a,
                 cls.allowlist_path,
                 cls.candidate,
                 cls.identity_file,
+                subject_root=REPO_ROOT,
+                subject_commit=SUBJECT_COMMIT,
+                subject_tree=SUBJECT_TREE,
             )
         except Exception:
             cls._remove_root()
@@ -168,6 +231,32 @@ class ClaimCompleteSelfTests(unittest.TestCase):
         self.assertEqual(self.build_result["status"], "PASS")
         self.assertEqual(self.build_result["file_count"], 124)
         self.assertEqual(self.build_result["file_count"], len(self.profile.entries) + 4)
+        for observed in (
+            self.first_derivation,
+            self.second_derivation,
+            self.build_result,
+        ):
+            self.assertEqual(observed["subject_commit"], SUBJECT_COMMIT)
+            self.assertEqual(observed["subject_tree"], SUBJECT_TREE)
+            self.assertIs(observed["subject_binding_verified"], True)
+
+        receipt_entry = next(
+            entry
+            for entry in self.profile.entries
+            if entry.mode == "derivation_receipt"
+        )
+        derivation_receipt = json.loads(
+            self.staging_a.joinpath(
+                *PurePosixPath(receipt_entry.source).parts
+            ).read_text(encoding="utf-8")
+        )
+        manifest = json.loads(
+            (self.candidate / builder.MANIFEST_NAME).read_text(encoding="utf-8")
+        )
+        for observed in (derivation_receipt, manifest):
+            self.assertEqual(observed["subject_commit"], SUBJECT_COMMIT)
+            self.assertEqual(observed["subject_tree"], SUBJECT_TREE)
+            self.assertIs(observed["subject_binding_verified"], True)
 
         result = verifier.verify_claim_complete(
             self.candidate,
@@ -175,6 +264,8 @@ class ClaimCompleteSelfTests(unittest.TestCase):
             REPO_ROOT,
             self.profile_path,
             self.allowlist_path,
+            SUBJECT_COMMIT,
+            SUBJECT_TREE,
         )
         self.assertEqual(result["status"], "PASS")
         self.assertEqual(result["claim_coverage"], list(derivation.CLAIM_IDS))
@@ -185,6 +276,9 @@ class ClaimCompleteSelfTests(unittest.TestCase):
         )
         self.assertTrue(result["game_engine_byte_identical"])
         self.assertTrue(result["later_extension_labels_absent"])
+        self.assertEqual(result["subject_commit"], SUBJECT_COMMIT)
+        self.assertEqual(result["subject_tree"], SUBJECT_TREE)
+        self.assertIs(result["subject_binding_verified"], True)
 
         readme = (self.candidate / builder.README_NAME).read_text(encoding="utf-8")
         self.assertIn(builder.STATUS, readme)
@@ -211,6 +305,138 @@ class ClaimCompleteSelfTests(unittest.TestCase):
                 for entry in narrow.files
             )
         )
+
+    def test_claim_complete_apis_fail_closed_without_explicit_subject(self) -> None:
+        with self.assertRaisesRegex(builder.CandidateError, "all required"):
+            builder.verify_candidate(
+                self.candidate,
+                self.allowlist_path,
+                self.identity_file,
+            )
+        with self.assertRaisesRegex(builder.CandidateError, "all required"):
+            builder.build_candidate(
+                self.staging_a,
+                self.allowlist_path,
+                self.root / "missing-subject-candidate",
+                self.identity_file,
+            )
+        with self.assertRaisesRegex(derivation.DerivationError, "subject commit"):
+            derivation.derive_payload(
+                REPO_ROOT,
+                self.profile_path,
+                self.root / "missing-subject-stage",
+                self.allowlist_path,
+                None,  # type: ignore[arg-type]
+                SUBJECT_TREE,
+            )
+        with self.assertRaisesRegex(verifier.VerificationError, "subject tree"):
+            verifier.verify_claim_complete(
+                self.candidate,
+                self.identity_file,
+                REPO_ROOT,
+                self.profile_path,
+                self.allowlist_path,
+                SUBJECT_COMMIT,
+                None,  # type: ignore[arg-type]
+            )
+
+    def test_claim_complete_candidate_rejects_wrong_subject_binding(self) -> None:
+        cases = (
+            ("wrong-commit", "3" * 40, SUBJECT_TREE, "subject_commit"),
+            ("wrong-tree", SUBJECT_COMMIT, "4" * 40, "subject_tree"),
+            ("commit-bool", True, SUBJECT_TREE, "subject commit"),
+            ("tree-list", SUBJECT_COMMIT, [], "subject tree"),
+        )
+        for label, commit, tree, message in cases:
+            with self.subTest(label=label):
+                with self.assertRaisesRegex(builder.CandidateError, message):
+                    builder.verify_candidate(
+                        self.candidate,
+                        self.allowlist_path,
+                        self.identity_file,
+                        subject_root=REPO_ROOT,
+                        subject_commit=commit,  # type: ignore[arg-type]
+                        subject_tree=tree,  # type: ignore[arg-type]
+                    )
+
+    def test_claim_allowlist_and_artifact_policy_exclude_raw_tex_logs(self) -> None:
+        config = builder.load_allowlist(self.allowlist_path)
+        for entry in config.files:
+            for relative in (entry.source, entry.destination):
+                normalized = relative.casefold()
+                self.assertFalse(normalized.endswith((".fls", ".log")))
+                self.assertNotIn("combined_subprocess_output.log", normalized)
+
+        for relative in (
+            "combined_subprocess_output.log",
+            "paper/build.fls",
+            "research/iclr2027/paper/combined_subprocess_output.log",
+        ):
+            with self.subTest(relative=relative):
+                with self.assertRaises(builder.CandidateError):
+                    builder._check_artifact_policy(relative, "source")
+
+    def test_preparsed_profile_and_allowlist_must_match_subject_snapshot(self) -> None:
+        original_profile = self.profile_path.read_bytes()
+        profile_value = json.loads(original_profile.decode("utf-8"))
+        profile_row = next(
+            row
+            for row in profile_value["files"]
+            if row["mode"] != "copy"
+            and row["inputs"]
+            and row["inputs"][0]["expected_sha256"] != "0" * 64
+        )
+        profile_row["inputs"][0]["expected_sha256"] = "f" * 64
+        profile_copy = self._write_profile("preparsed-profile-swap.json", profile_value)
+
+        def restore_profile_then_snapshot(*args: object, **kwargs: object) -> object:
+            profile_copy.write_bytes(original_profile)
+            return _fake_subject_snapshot(*args, **kwargs)  # type: ignore[arg-type]
+
+        with mock.patch.object(
+            subject_binding,
+            "verify_subject_repository",
+            side_effect=restore_profile_then_snapshot,
+        ):
+            with self.assertRaisesRegex(
+                derivation.DerivationError, "profile.*subject commit blob"
+            ):
+                derivation.derive_payload(
+                    REPO_ROOT,
+                    profile_copy,
+                    self.root / "preparsed-profile-swap-output",
+                    self.allowlist_path,
+                    SUBJECT_COMMIT,
+                    SUBJECT_TREE,
+                )
+
+        original_allowlist = self.allowlist_path.read_bytes()
+        allowlist_value = json.loads(original_allowlist.decode("utf-8"))
+        allowlist_value["purpose"] = "syntactically valid swapped purpose"
+        allowlist_copy = self._write_allowlist(
+            "preparsed-allowlist-swap.json", allowlist_value
+        )
+
+        def restore_allowlist_then_snapshot(*args: object, **kwargs: object) -> object:
+            allowlist_copy.write_bytes(original_allowlist)
+            return _fake_subject_snapshot(*args, **kwargs)  # type: ignore[arg-type]
+
+        with mock.patch.object(
+            subject_binding,
+            "verify_subject_repository",
+            side_effect=restore_allowlist_then_snapshot,
+        ):
+            with self.assertRaisesRegex(
+                builder.CandidateError, "allowlist.*subject commit blob"
+            ):
+                builder.verify_candidate(
+                    self.candidate,
+                    allowlist_copy,
+                    self.identity_file,
+                    subject_root=REPO_ROOT,
+                    subject_commit=SUBJECT_COMMIT,
+                    subject_tree=SUBJECT_TREE,
+                )
 
     def test_unicode_repo_source_maps_to_ascii_candidate_path(self) -> None:
         entries = [
@@ -344,7 +570,7 @@ class ClaimCompleteSelfTests(unittest.TestCase):
             "no later extension label is present\n",
             encoding="utf-8",
         )
-        verifier._verify_no_extension_labels(clean)
+        verifier._verify_no_extension_labels(_file_bytes(clean))
         for index, label in enumerate(("D17", "D18", "D19", "d17", "d18", "d19")):
             directory = self.root / f"later-label-{index}"
             directory.mkdir()
@@ -354,7 +580,7 @@ class ClaimCompleteSelfTests(unittest.TestCase):
             )
             with self.subTest(label=label):
                 with self.assertRaises(verifier.VerificationError):
-                    verifier._verify_no_extension_labels(directory)
+                    verifier._verify_no_extension_labels(_file_bytes(directory))
 
     def test_unknown_profile_field_is_rejected(self) -> None:
         value = json.loads(self.profile_path.read_text(encoding="utf-8"))
@@ -507,6 +733,13 @@ class ClaimCompleteSelfTests(unittest.TestCase):
         for label, (key, replacement) in mutations.items():
             mutated = json.loads(raw.decode("utf-8"))
             mutated[key] = replacement
+            if key == "package_name":
+                receipt_row = next(
+                    row
+                    for row in mutated["files"]
+                    if row["source"] == builder.SUBJECT_BOUND_RECEIPT_SOURCE
+                )
+                receipt_row["expected_sha256"] = "f" * 64
             path = self._write_allowlist(f"allowlist-{label}-drift.json", mutated)
             loaded, _bytes = derivation._load_allowlist_shape(path)
             with self.subTest(label=label):
@@ -544,6 +777,18 @@ class ClaimCompleteSelfTests(unittest.TestCase):
         with self.assertRaisesRegex(derivation.DerivationError, "canonical"):
             derivation._load_allowlist_shape(extra_newline_path)
 
+        second_read_swap_path = self.root / "allowlist-second-read-swap.json"
+        second_read_swap_path.write_bytes(raw)
+        original_load_allowlist = builder.load_allowlist
+
+        def load_after_swap(path: Path) -> builder.AllowlistConfig:
+            path.write_bytes(raw + b"\n")
+            return original_load_allowlist(path)
+
+        with mock.patch.object(builder, "load_allowlist", side_effect=load_after_swap):
+            with self.assertRaisesRegex(derivation.DerivationError, "changed between"):
+                derivation._load_allowlist_shape(second_read_swap_path)
+
         bom_path = self.root / "allowlist-bom.json"
         bom_path.write_bytes(b"\xef\xbb\xbf" + raw)
         with self.assertRaises(derivation.DerivationError):
@@ -555,6 +800,111 @@ class ClaimCompleteSelfTests(unittest.TestCase):
         )
         with self.assertRaises(derivation.DerivationError):
             derivation._load_allowlist_shape(nan_path)
+
+    def test_subject_bound_receipt_null_is_unique_and_exact(self) -> None:
+        original = json.loads(self.allowlist_path.read_text(encoding="utf-8"))
+        null_rows = [row for row in original["files"] if row["expected_sha256"] is None]
+        self.assertEqual(
+            null_rows,
+            [
+                {
+                    "category": builder.SUBJECT_BOUND_RECEIPT_CATEGORY,
+                    "destination": builder.SUBJECT_BOUND_RECEIPT_DESTINATION,
+                    "expected_sha256": None,
+                    "source": builder.SUBJECT_BOUND_RECEIPT_SOURCE,
+                }
+            ],
+        )
+
+        second_null = json.loads(json.dumps(original))
+        second_null["files"][0]["expected_sha256"] = None
+        with self.assertRaisesRegex(builder.CandidateError, "only the exact"):
+            builder.load_allowlist(
+                self._write_allowlist("allowlist-second-null.json", second_null)
+            )
+
+        for field, replacement in (
+            (
+                "source",
+                "research/iclr2027/supplement_tools/derived_claim_complete/WRONG.json",
+            ),
+            (
+                "destination",
+                "research/iclr2027/results/validation/WRONG.json",
+            ),
+            ("category", "verification_report"),
+        ):
+            mutated = json.loads(json.dumps(original))
+            row = next(
+                item for item in mutated["files"] if item["expected_sha256"] is None
+            )
+            row[field] = replacement
+            with self.subTest(field=field):
+                with self.assertRaisesRegex(builder.CandidateError, "only the exact"):
+                    builder.load_allowlist(
+                        self._write_allowlist(
+                            f"allowlist-null-wrong-{field}.json", mutated
+                        )
+                    )
+
+        for label, replacement in (
+            ("bool", False),
+            ("int", 0),
+            ("list", []),
+            ("uppercase", "A" * 64),
+        ):
+            mutated = json.loads(json.dumps(original))
+            row = next(
+                item for item in mutated["files"] if item["expected_sha256"] is None
+            )
+            row["expected_sha256"] = replacement
+            with self.subTest(type_confusion=label):
+                with self.assertRaises(builder.CandidateError):
+                    builder.load_allowlist(
+                        self._write_allowlist(
+                            f"allowlist-null-type-{label}.json", mutated
+                        )
+                    )
+
+        pinned_instead = json.loads(json.dumps(original))
+        row = next(
+            item for item in pinned_instead["files"] if item["expected_sha256"] is None
+        )
+        row["expected_sha256"] = "f" * 64
+        with self.assertRaisesRegex(builder.CandidateError, "exactly one"):
+            builder.load_allowlist(
+                self._write_allowlist(
+                    "allowlist-missing-subject-bound-null.json", pinned_instead
+                )
+            )
+
+    def test_subject_bound_receipt_rejects_json_type_confusion(self) -> None:
+        receipt_entry = next(
+            entry
+            for entry in builder.load_allowlist(self.allowlist_path).files
+            if entry.expected_sha256 is None
+        )
+        base = {
+            "subject_commit": SUBJECT_COMMIT,
+            "subject_tree": SUBJECT_TREE,
+            "subject_binding_verified": True,
+        }
+        binding = subject_binding.parse_subject_binding(SUBJECT_COMMIT, SUBJECT_TREE)
+        for label, key, replacement in (
+            ("commit-int", "subject_commit", 1),
+            ("tree-list", "subject_tree", []),
+            ("verified-int", "subject_binding_verified", 1),
+            ("verified-string", "subject_binding_verified", "true"),
+        ):
+            value = dict(base)
+            value[key] = replacement
+            with self.subTest(label=label):
+                with self.assertRaisesRegex(builder.CandidateError, key):
+                    builder._validate_subject_bound_receipt(
+                        receipt_entry,
+                        builder._canonical_json_bytes(value),
+                        binding,
+                    )
 
     def test_bootstrap_mode_requires_output_and_is_not_pass(self) -> None:
         stdout = io.StringIO()
@@ -568,6 +918,10 @@ class ClaimCompleteSelfTests(unittest.TestCase):
                     str(self.profile_path),
                     "--output",
                     str(self.root / "bootstrap-missing-output-stage"),
+                    "--subject-commit",
+                    SUBJECT_COMMIT,
+                    "--subject-tree",
+                    SUBJECT_TREE,
                     "--without-allowlist-check",
                 ]
             )
@@ -584,6 +938,8 @@ class ClaimCompleteSelfTests(unittest.TestCase):
             self.profile_path,
             staging,
             None,
+            SUBJECT_COMMIT,
+            SUBJECT_TREE,
             observed_allowlist,
         )
         self.assertEqual(result["status"], "BOOTSTRAP_ONLY")
@@ -604,6 +960,10 @@ class ClaimCompleteSelfTests(unittest.TestCase):
                     str(self.profile_path),
                     "--output",
                     str(self.root / "bootstrap-cli-stage"),
+                    "--subject-commit",
+                    SUBJECT_COMMIT,
+                    "--subject-tree",
+                    SUBJECT_TREE,
                     "--without-allowlist-check",
                     "--bootstrap-allowlist-output",
                     str(self.root / "bootstrap-cli-allowlist.json"),
@@ -622,6 +982,8 @@ class ClaimCompleteSelfTests(unittest.TestCase):
                 self.profile_path,
                 nested_stage,
                 self.allowlist_path,
+                SUBJECT_COMMIT,
+                SUBJECT_TREE,
                 nested_allowlist,
             )
         self.assertFalse(nested_stage.exists())
@@ -637,6 +999,8 @@ class ClaimCompleteSelfTests(unittest.TestCase):
                 self.profile_path,
                 missing_parent_stage,
                 None,
+                SUBJECT_COMMIT,
+                SUBJECT_TREE,
                 missing_parent_allowlist,
             )
         self.assertFalse(missing_parent_stage.exists())
@@ -658,12 +1022,45 @@ class ClaimCompleteSelfTests(unittest.TestCase):
                     str(self.profile_path),
                     "--allowlist",
                     str(self.allowlist_path),
+                    "--subject-commit",
+                    SUBJECT_COMMIT,
+                    "--subject-tree",
+                    SUBJECT_TREE,
                 ]
             )
         self.assertEqual(return_code, 2)
         self.assertEqual(stdout.getvalue(), "")
         failure = json.loads(stderr.getvalue())
         self.assertEqual(failure["status"], "FAIL")
+
+    def test_claim_complete_clis_import_under_isolated_launch(self) -> None:
+        scripts = (
+            "derive_claim_complete_payload.py",
+            "build_supplement_candidate.py",
+            "verify_claim_complete.py",
+            "archive_claim_complete_candidate.py",
+        )
+        for script_name in scripts:
+            with self.subTest(script=script_name):
+                completed = subprocess.run(
+                    [
+                        sys.executable,
+                        "-I",
+                        "-S",
+                        "-B",
+                        str(TOOL_DIR / script_name),
+                        "--help",
+                    ],
+                    cwd=str(REPO_ROOT),
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    check=False,
+                    shell=False,
+                    timeout=30,
+                )
+                self.assertEqual(completed.returncode, 0, completed.stderr.decode())
+                self.assertIn(b"usage:", completed.stdout)
+                self.assertEqual(completed.stderr, b"")
 
     def test_malformed_transform_and_semantic_rows_use_domain_errors(self) -> None:
         transform_cases = (
@@ -742,7 +1139,9 @@ class ClaimCompleteSelfTests(unittest.TestCase):
             derivation._canonical_json_bytes(environment_value)
         )
         with self.assertRaises(verifier.VerificationError):
-            verifier._verify_environment_bindings(environment_candidate, self.profile)
+            verifier._verify_environment_bindings(
+                _file_bytes(environment_candidate), self.profile
+            )
 
         claim_candidate = self._candidate_copy("malformed-claim-row")
         claim_entry = next(
@@ -755,7 +1154,7 @@ class ClaimCompleteSelfTests(unittest.TestCase):
         claim_value["claims"][0] = []
         claim_path.write_bytes(derivation._canonical_json_bytes(claim_value))
         with self.assertRaises(verifier.VerificationError):
-            verifier._verify_claim_ledger(claim_candidate, claim_entry)
+            verifier._verify_claim_ledger(_file_bytes(claim_candidate), claim_entry)
 
         receipt_candidate = self._candidate_copy("malformed-compact-row")
         receipt_entry = next(
@@ -768,7 +1167,9 @@ class ClaimCompleteSelfTests(unittest.TestCase):
         lines[0] = b"[]"
         receipt_path.write_bytes(b"\n".join(lines) + b"\n")
         with self.assertRaises(verifier.VerificationError):
-            verifier._verify_compact_ledger(receipt_candidate, receipt_entry)
+            verifier._verify_compact_ledger(
+                _file_bytes(receipt_candidate), receipt_entry
+            )
 
     def test_transform_input_paths_are_strict_repo_relative(self) -> None:
         value = json.loads(self.profile_path.read_text(encoding="utf-8"))
@@ -838,6 +1239,8 @@ class ClaimCompleteSelfTests(unittest.TestCase):
                 path,
                 self.root / "source-hash-drift-output",
                 None,
+                SUBJECT_COMMIT,
+                SUBJECT_TREE,
                 self.root / "source-hash-drift-bootstrap.json",
             )
 
@@ -855,6 +1258,9 @@ class ClaimCompleteSelfTests(unittest.TestCase):
                 path,
                 self.root / "allowlist-hash-drift-candidate",
                 self.identity_file,
+                subject_root=REPO_ROOT,
+                subject_commit=SUBJECT_COMMIT,
+                subject_tree=SUBJECT_TREE,
             )
 
     def test_staging_and_candidate_overwrite_are_rejected(self) -> None:
@@ -868,6 +1274,8 @@ class ClaimCompleteSelfTests(unittest.TestCase):
                 self.profile_path,
                 staging,
                 self.allowlist_path,
+                SUBJECT_COMMIT,
+                SUBJECT_TREE,
             )
         self.assertEqual(
             staging_sentinel.read_text(encoding="utf-8"),
@@ -884,6 +1292,9 @@ class ClaimCompleteSelfTests(unittest.TestCase):
                 self.allowlist_path,
                 candidate,
                 self.identity_file,
+                subject_root=REPO_ROOT,
+                subject_commit=SUBJECT_COMMIT,
+                subject_tree=SUBJECT_TREE,
             )
         self.assertEqual(
             candidate_sentinel.read_text(encoding="utf-8"),
@@ -902,6 +1313,8 @@ class ClaimCompleteSelfTests(unittest.TestCase):
                 REPO_ROOT,
                 self.profile_path,
                 self.allowlist_path,
+                SUBJECT_COMMIT,
+                SUBJECT_TREE,
             )
 
         extra = self._candidate_copy("extra-file-candidate")
@@ -913,6 +1326,8 @@ class ClaimCompleteSelfTests(unittest.TestCase):
                 REPO_ROOT,
                 self.profile_path,
                 self.allowlist_path,
+                SUBJECT_COMMIT,
+                SUBJECT_TREE,
             )
 
     def test_identity_hit_is_rejected_without_disclosing_the_term(self) -> None:
@@ -920,7 +1335,14 @@ class ClaimCompleteSelfTests(unittest.TestCase):
         identity = self.root / "matching-identity.json"
         identity.write_text(json.dumps([term]), encoding="utf-8")
         with self.assertRaises(builder.CandidateError) as caught:
-            builder.verify_candidate(self.candidate, self.allowlist_path, identity)
+            builder.verify_candidate(
+                self.candidate,
+                self.allowlist_path,
+                identity,
+                subject_root=REPO_ROOT,
+                subject_commit=SUBJECT_COMMIT,
+                subject_tree=SUBJECT_TREE,
+            )
         self.assertIn("private_identity_term_1", str(caught.exception))
         self.assertNotIn(term, str(caught.exception))
 
@@ -1068,10 +1490,10 @@ class ClaimCompleteSelfTests(unittest.TestCase):
                 compact_path.write_bytes(b"\n".join(mutated_lines) + b"\n")
                 with self.subTest(stage="verification", label=label):
                     with self.assertRaises(verifier.VerificationError):
-                        verifier._verify_compact_ledger(candidate, entry)
+                        verifier._verify_compact_ledger(_file_bytes(candidate), entry)
         finally:
             compact_path.write_bytes(original)
-        verifier._verify_compact_ledger(candidate, entry)
+        verifier._verify_compact_ledger(_file_bytes(candidate), entry)
 
     def test_json_privacy_scan_rejects_escaped_identity_controls_and_malformed_documents(
         self,
@@ -1195,6 +1617,9 @@ class ClaimCompleteSelfTests(unittest.TestCase):
                                 candidate,
                                 self.allowlist_path,
                                 self.identity_file,
+                                subject_root=REPO_ROOT,
+                                subject_commit=SUBJECT_COMMIT,
+                                subject_tree=SUBJECT_TREE,
                             )
             finally:
                 path.write_bytes(original)
@@ -1203,6 +1628,9 @@ class ClaimCompleteSelfTests(unittest.TestCase):
                     candidate,
                     self.allowlist_path,
                     self.identity_file,
+                    subject_root=REPO_ROOT,
+                    subject_commit=SUBJECT_COMMIT,
+                    subject_tree=SUBJECT_TREE,
                 )["status"],
                 "PASS",
             )

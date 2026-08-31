@@ -717,7 +717,7 @@
     {
       "category": "transformation_receipt",
       "destination": "research/iclr2027/results/validation/ANONYMIZATION_DERIVATION.json",
-      "expected_sha256": "23680efdeab4fc73aedb2e8fb65a82f2dccd2c5456facfc8b716858442f4a30e",
+      "expected_sha256": null,
       "source": "research/iclr2027/supplement_tools/derived_claim_complete/ANONYMIZATION_DERIVATION.json"
     }
   ],

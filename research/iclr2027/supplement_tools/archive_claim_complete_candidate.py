@@ -24,6 +24,7 @@ if str(TOOL_DIR) not in sys.path:
 
 import build_supplement_candidate as builder  # noqa: E402
 import derive_claim_complete_payload as derivation  # noqa: E402
+import subject_binding  # noqa: E402
 import verify_claim_complete as claim_verifier  # noqa: E402
 
 
@@ -63,6 +64,7 @@ class ArchiveError(RuntimeError):
 @dataclass(frozen=True)
 class ArchiveInspection:
     documents: Mapping[str, bytes]
+    candidate_snapshot: builder.CandidateSnapshot
     archive_sha256: str
     archive_size_bytes: int
     tree_sha256: str
@@ -82,6 +84,8 @@ class WorkflowFileSnapshot:
 class WorkflowSnapshot:
     files: tuple[WorkflowFileSnapshot, ...]
     public_bindings: tuple[tuple[str, str], ...]
+    identity_profile: builder.IdentityProfile
+    subject_snapshot: subject_binding.SubjectSnapshot
 
 
 def _sha256(data: bytes) -> str:
@@ -110,10 +114,19 @@ def _plain_file_bytes(path: Path, label: str, limit: int) -> bytes:
 
 def _capture_workflow_snapshot(
     identity_file: Path,
+    source_root: Path,
     profile_path: Path,
     allowlist_path: Path,
+    subject_commit: str,
+    subject_tree: str,
 ) -> WorkflowSnapshot:
     specs = (
+        (
+            "subject binding tool",
+            Path(subject_binding.__file__),
+            builder.HARD_MAX_FILE_BYTES,
+            "subject_binding_tool_sha256",
+        ),
         (
             "identity terms file",
             identity_file,
@@ -165,7 +178,62 @@ def _capture_workflow_snapshot(
         files.append(WorkflowFileSnapshot(label, absolute, limit, data, public_binding))
         if public_binding is not None:
             public_bindings.append((public_binding, _sha256(data)))
-    return WorkflowSnapshot(tuple(files), tuple(public_bindings))
+    identity_data = next(
+        item.data for item in files if item.label == "identity terms file"
+    )
+    profile_data = next(
+        item.data for item in files if item.label == "claim-complete profile"
+    )
+    try:
+        identity_profile = builder._identity_profile_from_bytes(identity_data)
+        profile = derivation._load_profile(profile_path)
+        if profile.raw_sha256 != _sha256(profile_data):
+            raise ArchiveError(
+                "parsed claim-complete profile does not match the workflow byte snapshot"
+            )
+        frozen_paths = {
+            relative for entry in profile.entries for relative, _digest in entry.inputs
+        }
+        frozen_paths.add(
+            subject_binding.canonical_repo_relative(
+                source_root, profile_path, "claim-complete profile"
+            )
+        )
+        frozen_paths.add(
+            subject_binding.canonical_repo_relative(
+                source_root, allowlist_path, "claim-complete allowlist"
+            )
+        )
+        subject_snapshot = subject_binding.verify_subject_repository(
+            source_root,
+            subject_commit,
+            subject_tree,
+            frozen_paths=frozen_paths,
+            tool_paths=(
+                Path(__file__),
+                Path(builder.__file__),
+                Path(derivation.__file__),
+                Path(claim_verifier.__file__),
+                Path(subject_binding.__file__),
+            ),
+        )
+        subject_files = {item.relative: item for item in subject_snapshot.files}
+        for item in files:
+            if item.label == "identity terms file":
+                continue
+            relative = subject_binding.canonical_repo_relative(
+                source_root, item.path, item.label
+            )
+            subject_file = subject_files.get(relative)
+            if subject_file is None or subject_file.data != item.data:
+                raise ArchiveError(
+                    f"parsed {item.label} does not match the subject commit blob"
+                )
+    except (builder.CandidateError, subject_binding.SubjectBindingError) as exc:
+        raise ArchiveError(str(exc)) from exc
+    return WorkflowSnapshot(
+        tuple(files), tuple(public_bindings), identity_profile, subject_snapshot
+    )
 
 
 def _assert_workflow_snapshot_unchanged(snapshot: WorkflowSnapshot) -> None:
@@ -173,6 +241,10 @@ def _assert_workflow_snapshot_unchanged(snapshot: WorkflowSnapshot) -> None:
         current = _plain_file_bytes(item.path, item.label, item.limit)
         if current != item.data:
             raise ArchiveError(f"{item.label} changed during the archive workflow")
+    try:
+        subject_binding.assert_subject_snapshot_unchanged(snapshot.subject_snapshot)
+    except subject_binding.SubjectBindingError as exc:
+        raise ArchiveError(str(exc)) from exc
 
 
 def _validate_plain_directory_chain(path: Path, label: str) -> Path:
@@ -469,13 +541,7 @@ def _validate_ascii_archive_name(name: str) -> tuple[str, ...]:
 
 
 def _tree_sha256(documents: Mapping[str, bytes]) -> str:
-    rows = b"".join(
-        (
-            f"{relative}\t{len(documents[relative])}\t{_sha256(documents[relative])}\n"
-        ).encode("ascii")
-        for relative in sorted(documents)
-    )
-    return _sha256(rows)
+    return builder._candidate_snapshot_sha256(documents)
 
 
 def _zip_info(member_name: str) -> zipfile.ZipInfo:
@@ -554,95 +620,62 @@ def _verify_documents_in_memory(
     documents: Mapping[str, bytes],
     config: builder.AllowlistConfig,
     identity: builder.IdentityProfile,
-) -> dict[str, Any]:
-    expected_paths = builder._expected_paths(config)
-    observed_paths = set(documents)
-    if observed_paths != expected_paths:
-        raise ArchiveError(
-            "archive file set differs from the allowlist "
-            f"(missing={sorted(expected_paths - observed_paths)}, "
-            f"extra={sorted(observed_paths - expected_paths)})"
-        )
-    total_bytes = 0
-    for relative, data in documents.items():
-        if len(data) > config.max_file_bytes:
-            raise ArchiveError(
-                f"archive member exceeds the configured size limit: {relative}"
-            )
-        total_bytes += len(data)
-    if total_bytes > config.max_total_bytes:
-        raise ArchiveError("archive members exceed the configured total-size limit")
-
-    for entry in config.files:
-        if _sha256(documents[entry.destination]) != entry.expected_sha256:
-            raise ArchiveError(f"archive payload hash mismatch: {entry.destination}")
-
-    expected_readme = builder._readme_bytes(config)
-    expected_tree = builder._tree_bytes(config)
-    if documents[builder.README_NAME] != expected_readme:
-        raise ArchiveError("archive README does not match the deterministic template")
-    if documents[builder.TREE_NAME] != expected_tree:
-        raise ArchiveError("archive candidate tree does not match the allowlist")
-
-    expected_manifest = builder._manifest_object(
-        config,
-        {
-            **{
-                entry.destination: documents[entry.destination]
-                for entry in config.files
-            },
-            builder.README_NAME: expected_readme,
-            builder.TREE_NAME: expected_tree,
-        },
-    )
-    expected_manifest_bytes = builder._canonical_json_bytes(expected_manifest)
-    if documents[builder.MANIFEST_NAME] != expected_manifest_bytes:
-        raise ArchiveError("archive manifest does not match recomputed canonical bytes")
-
-    scan_inputs = [
-        (relative, data)
-        for relative, data in documents.items()
-        if relative != builder.SCAN_NAME
-    ]
-    expected_scan = builder._scan_documents(scan_inputs, identity)
+    binding: subject_binding.SubjectBinding,
+) -> builder.CandidateSnapshot:
     try:
-        builder._raise_for_scan(expected_scan, "archive")
+        snapshot = builder._candidate_snapshot_from_documents(documents, config)
+        builder._verify_candidate_snapshot(snapshot, config, identity, binding)
     except builder.CandidateError as exc:
         raise ArchiveError(str(exc)) from exc
-    expected_scan_bytes = builder._canonical_json_bytes(expected_scan)
-    if documents[builder.SCAN_NAME] != expected_scan_bytes:
-        raise ArchiveError(
-            "archive privacy receipt does not match a fresh canonical scan"
-        )
-
-    return {
-        "file_count": len(documents),
-        "total_bytes": total_bytes,
-        "manifest_file_count": expected_manifest["file_count"],
-        "manifest_total_bytes": expected_manifest["total_bytes"],
-        "privacy_scan": expected_scan["status"],
-    }
+    total_bytes = sum(len(data) for data in snapshot.documents.values())
+    if total_bytes > config.max_total_bytes:
+        raise ArchiveError("archive members exceed the configured total-size limit")
+    return snapshot
 
 
 def _candidate_documents(
     candidate: Path,
     allowlist_path: Path,
     identity_file: Path,
-) -> tuple[builder.AllowlistConfig, builder.IdentityProfile, dict[str, bytes]]:
+    source_root: Path,
+    subject_commit: str,
+    subject_tree: str,
+    *,
+    expected_identity: builder.IdentityProfile | None = None,
+) -> tuple[
+    builder.AllowlistConfig,
+    builder.IdentityProfile,
+    Mapping[str, bytes],
+    builder.CandidateSnapshot,
+]:
     config = builder.load_allowlist(allowlist_path)
     identity = builder.load_identity_profile(identity_file)
-    builder.verify_candidate(candidate, allowlist_path, identity_file)
-    files, _directories = builder._walk_candidate(candidate.absolute())
-    documents = {
-        relative: _plain_file_bytes(
-            path,
-            f"candidate file {relative}",
-            config.max_file_bytes,
+    if expected_identity is not None and identity != expected_identity:
+        raise ArchiveError("identity terms file does not match the workflow snapshot")
+    if expected_identity is not None:
+        identity = expected_identity
+    subject_snapshot = builder._subject_snapshot_for_config(
+        config,
+        allowlist_path,
+        source_root,
+        source_root,
+        subject_commit,
+        subject_tree,
+    )
+    if subject_snapshot is None:
+        raise ArchiveError("claim-complete candidate lacks a subject snapshot")
+    try:
+        snapshot = builder._capture_candidate_snapshot(candidate.absolute(), config)
+        builder._verify_candidate_snapshot(
+            snapshot, config, identity, subject_snapshot.binding
         )
-        for relative, path in files.items()
-    }
-    _verify_documents_in_memory(documents, config, identity)
-    return config, identity, documents
+        subject_binding.assert_subject_snapshot_unchanged(subject_snapshot)
+    except (builder.CandidateError, subject_binding.SubjectBindingError) as exc:
+        raise ArchiveError(str(exc)) from exc
+    total_bytes = sum(len(data) for data in snapshot.documents.values())
+    if total_bytes > config.max_total_bytes:
+        raise ArchiveError("archive members exceed the configured total-size limit")
+    return config, identity, snapshot.documents, snapshot
 
 
 def _assert_candidate_snapshot_matches(
@@ -666,6 +699,7 @@ def _inspect_archive_bytes(
     archive_bytes: bytes,
     config: builder.AllowlistConfig,
     identity: builder.IdentityProfile,
+    binding: subject_binding.SubjectBinding,
 ) -> ArchiveInspection:
     expected_relatives = builder._expected_paths(config)
     expected_members = {f"{ARCHIVE_ROOT}/{relative}" for relative in expected_relatives}
@@ -762,17 +796,18 @@ def _inspect_archive_bytes(
     ) as exc:
         raise ArchiveError("archive ZIP metadata cannot be parsed safely") from exc
 
-    _verify_documents_in_memory(documents, config, identity)
-    canonical = _canonical_archive_bytes(documents)
+    snapshot = _verify_documents_in_memory(documents, config, identity, binding)
+    canonical = _canonical_archive_bytes(snapshot.documents)
     if canonical != archive_bytes:
         raise ArchiveError(
             "archive bytes differ from the canonical deterministic encoding"
         )
     return ArchiveInspection(
-        documents=documents,
+        documents=snapshot.documents,
+        candidate_snapshot=snapshot,
         archive_sha256=_sha256(archive_bytes),
         archive_size_bytes=len(archive_bytes),
-        tree_sha256=_tree_sha256(documents),
+        tree_sha256=snapshot.sha256,
         total_uncompressed_bytes=total_uncompressed,
     )
 
@@ -781,10 +816,13 @@ def _read_and_inspect_archive(
     archive_path: Path,
     config: builder.AllowlistConfig,
     identity: builder.IdentityProfile,
+    binding: subject_binding.SubjectBinding,
 ) -> tuple[bytes, ArchiveInspection]:
     limit = config.max_total_bytes + MAX_ARCHIVE_OVERHEAD_BYTES
     archive_bytes = _plain_file_bytes(archive_path, "claim-complete archive", limit)
-    return archive_bytes, _inspect_archive_bytes(archive_bytes, config, identity)
+    return archive_bytes, _inspect_archive_bytes(
+        archive_bytes, config, identity, binding
+    )
 
 
 def _same_json_type_and_value(observed: Any, expected: Any) -> bool:
@@ -803,7 +841,15 @@ def _same_json_type_and_value(observed: Any, expected: Any) -> bool:
     return observed == expected
 
 
-def _verification_summary(result: Mapping[str, Any]) -> dict[str, Any]:
+def _verification_summary(
+    result: Mapping[str, Any],
+    binding: subject_binding.SubjectBinding,
+    expected_snapshot_sha256: str,
+) -> dict[str, Any]:
+    if type(expected_snapshot_sha256) is not str or not builder.SHA256_RE.fullmatch(
+        expected_snapshot_sha256
+    ):
+        raise ArchiveError("expected candidate snapshot hash is invalid")
     required = {
         "status": "PASS",
         "candidate_status": STATUS,
@@ -819,6 +865,9 @@ def _verification_summary(result: Mapping[str, Any]) -> dict[str, Any]:
         "formal_source_exception_count": len(
             builder.CLAIM_COMPLETE_FORMAL_SOURCE_EXCEPTIONS
         ),
+        **binding.public_fields(),
+        "subject_binding_verified": True,
+        "candidate_snapshot_sha256": expected_snapshot_sha256,
     }
     for key, expected in required.items():
         if not _same_json_type_and_value(result.get(key), expected):
@@ -842,7 +891,10 @@ def _archive_receipt(
     workflow_snapshot: WorkflowSnapshot,
     verification_result: Mapping[str, Any],
 ) -> dict[str, Any]:
-    summary = _verification_summary(verification_result)
+    binding = workflow_snapshot.subject_snapshot.binding
+    summary = _verification_summary(
+        verification_result, binding, inspection.tree_sha256
+    )
     documents = inspection.documents
     manifest = builder._strict_json_from_bytes(
         documents[builder.MANIFEST_NAME],
@@ -865,6 +917,8 @@ def _archive_receipt(
         "status": STATUS,
         "approval": APPROVAL,
         "anonymity_coverage": ANONYMITY_STATUS,
+        **binding.public_fields(),
+        "subject_binding_verified": True,
         "archive": {
             "filename": ARCHIVE_NAME,
             "format": ARCHIVE_FORMAT,
@@ -927,6 +981,8 @@ def build_archive(
     source_root: Path,
     profile_path: Path,
     allowlist_path: Path,
+    subject_commit: str,
+    subject_tree: str,
 ) -> dict[str, Any]:
     output = _validate_new_directory(output, "archive output directory")
     _require_disjoint_output(
@@ -936,10 +992,22 @@ def build_archive(
         "candidate",
     )
     workflow_snapshot = _capture_workflow_snapshot(
-        identity_file, profile_path, allowlist_path
+        identity_file,
+        source_root,
+        profile_path,
+        allowlist_path,
+        subject_commit,
+        subject_tree,
     )
-    config, identity, documents = _candidate_documents(
-        candidate.absolute(), allowlist_path, identity_file
+    binding = workflow_snapshot.subject_snapshot.binding
+    config, identity, documents, candidate_snapshot = _candidate_documents(
+        candidate.absolute(),
+        allowlist_path,
+        identity_file,
+        source_root,
+        subject_commit,
+        subject_tree,
+        expected_identity=workflow_snapshot.identity_profile,
     )
     _assert_workflow_snapshot_unchanged(workflow_snapshot)
     verification_result = claim_verifier.verify_claim_complete(
@@ -948,10 +1016,24 @@ def build_archive(
         source_root.absolute(),
         profile_path,
         allowlist_path,
+        subject_commit,
+        subject_tree,
+        _expected_identity_profile=workflow_snapshot.identity_profile,
+        _candidate_snapshot=candidate_snapshot,
     )
+    snapshot_sha256 = _tree_sha256(documents)
+    _verification_summary(verification_result, binding, snapshot_sha256)
     _assert_workflow_snapshot_unchanged(workflow_snapshot)
-    final_config, final_identity, final_documents = _candidate_documents(
-        candidate.absolute(), allowlist_path, identity_file
+    final_config, final_identity, final_documents, _final_snapshot = (
+        _candidate_documents(
+            candidate.absolute(),
+            allowlist_path,
+            identity_file,
+            source_root,
+            subject_commit,
+            subject_tree,
+            expected_identity=workflow_snapshot.identity_profile,
+        )
     )
     _assert_workflow_snapshot_unchanged(workflow_snapshot)
     _assert_candidate_snapshot_matches(
@@ -964,7 +1046,7 @@ def build_archive(
         "candidate tree after claim verification",
     )
     archive_bytes = _canonical_archive_bytes(documents)
-    inspection = _inspect_archive_bytes(archive_bytes, config, identity)
+    inspection = _inspect_archive_bytes(archive_bytes, config, identity, binding)
     receipt = _archive_receipt(
         archive_bytes,
         inspection,
@@ -987,7 +1069,7 @@ def build_archive(
             set(),
         )
         written_archive, written_inspection = _read_and_inspect_archive(
-            root / ARCHIVE_NAME, config, identity
+            root / ARCHIVE_NAME, config, identity, binding
         )
         if written_archive != archive_bytes or written_inspection != inspection:
             raise ArchiveError(
@@ -1021,6 +1103,8 @@ def build_archive(
         "candidate_status": STATUS,
         "approval": APPROVAL,
         "anonymity_coverage": ANONYMITY_STATUS,
+        **binding.public_fields(),
+        "subject_binding_verified": True,
         "archive_filename": ARCHIVE_NAME,
         "archive_sha256": inspection.archive_sha256,
         "archive_size_bytes": inspection.archive_size_bytes,
@@ -1041,20 +1125,36 @@ def verify_extract_archive(
     source_root: Path,
     profile_path: Path,
     allowlist_path: Path,
+    subject_commit: str,
+    subject_tree: str,
 ) -> dict[str, Any]:
     output = _validate_new_directory(output, "extraction output directory")
     workflow_snapshot = _capture_workflow_snapshot(
-        identity_file, profile_path, allowlist_path
+        identity_file,
+        source_root,
+        profile_path,
+        allowlist_path,
+        subject_commit,
+        subject_tree,
     )
+    binding = workflow_snapshot.subject_snapshot.binding
     config = builder.load_allowlist(allowlist_path)
-    identity = builder.load_identity_profile(identity_file)
+    identity = workflow_snapshot.identity_profile
     receipt_bytes, observed_receipt = _load_receipt(receipt_path)
     archive_bytes, inspection = _read_and_inspect_archive(
-        archive_path, config, identity
+        archive_path, config, identity, binding
     )
     _assert_workflow_snapshot_unchanged(workflow_snapshot)
     if not isinstance(observed_receipt, dict):
         raise ArchiveError("archive receipt must be a JSON object")
+    required_subject = {
+        **binding.public_fields(),
+        "subject_binding_verified": True,
+    }
+    for key, expected in required_subject.items():
+        observed = observed_receipt.get(key)
+        if type(observed) is not type(expected) or observed != expected:
+            raise ArchiveError(f"archive receipt subject drifted at {key}")
     archive_binding = observed_receipt.get("archive")
     if (
         not isinstance(archive_binding, dict)
@@ -1078,10 +1178,16 @@ def verify_extract_archive(
             {EXTRACTION_RECEIPT_NAME},
             {ARCHIVE_ROOT},
         )
-        final_config, final_identity, final_documents = _candidate_documents(
-            root / ARCHIVE_ROOT,
-            allowlist_path,
-            identity_file,
+        final_config, final_identity, final_documents, _final_snapshot = (
+            _candidate_documents(
+                root / ARCHIVE_ROOT,
+                allowlist_path,
+                identity_file,
+                source_root,
+                subject_commit,
+                subject_tree,
+                expected_identity=workflow_snapshot.identity_profile,
+            )
         )
         _assert_workflow_snapshot_unchanged(workflow_snapshot)
         _assert_candidate_snapshot_matches(
@@ -1103,8 +1209,8 @@ def verify_extract_archive(
     staging, owner_token = _create_owned_staging(output)
     try:
         extracted_candidate = _extract_documents(staging, inspection.documents)
-        base_result = builder.verify_candidate(
-            extracted_candidate, allowlist_path, identity_file
+        base_result = builder._verify_candidate_snapshot(
+            inspection.candidate_snapshot, config, identity, binding
         )
         verification_result = claim_verifier.verify_claim_complete(
             extracted_candidate,
@@ -1112,7 +1218,12 @@ def verify_extract_archive(
             source_root.absolute(),
             profile_path,
             allowlist_path,
+            subject_commit,
+            subject_tree,
+            _expected_identity_profile=workflow_snapshot.identity_profile,
+            _candidate_snapshot=inspection.candidate_snapshot,
         )
+        _verification_summary(verification_result, binding, inspection.tree_sha256)
         _assert_workflow_snapshot_unchanged(workflow_snapshot)
         expected_receipt = _archive_receipt(
             archive_bytes,
@@ -1131,13 +1242,17 @@ def verify_extract_archive(
             "status": STATUS,
             "approval": APPROVAL,
             "anonymity_coverage": ANONYMITY_STATUS,
+            **binding.public_fields(),
+            "subject_binding_verified": True,
             "archive_sha256": inspection.archive_sha256,
             "archive_receipt_sha256": _sha256(receipt_bytes),
             "extracted_root": ARCHIVE_ROOT,
             "file_count": base_result["file_count"],
             "total_uncompressed_bytes": inspection.total_uncompressed_bytes,
             "tree_sha256": inspection.tree_sha256,
-            "verification": _verification_summary(verification_result),
+            "verification": _verification_summary(
+                verification_result, binding, inspection.tree_sha256
+            ),
             "claims": {
                 "author_approved": False,
                 "anonymity_coverage_established": False,
@@ -1167,6 +1282,8 @@ def verify_extract_archive(
         "candidate_status": STATUS,
         "approval": APPROVAL,
         "anonymity_coverage": ANONYMITY_STATUS,
+        **binding.public_fields(),
+        "subject_binding_verified": True,
         "archive_sha256": inspection.archive_sha256,
         "archive_receipt_sha256": _sha256(receipt_bytes),
         "extracted_root": ARCHIVE_ROOT,
@@ -1190,6 +1307,8 @@ def _add_common_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--allowlist", type=Path, default=derivation._default_allowlist()
     )
+    parser.add_argument("--subject-commit", required=True)
+    parser.add_argument("--subject-tree", required=True)
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -1225,6 +1344,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 args.source_root,
                 args.profile,
                 args.allowlist,
+                args.subject_commit,
+                args.subject_tree,
             )
         else:
             result = verify_extract_archive(
@@ -1235,12 +1356,15 @@ def main(argv: Sequence[str] | None = None) -> int:
                 args.source_root,
                 args.profile,
                 args.allowlist,
+                args.subject_commit,
+                args.subject_tree,
             )
     except (
         ArchiveError,
         builder.CandidateError,
         derivation.DerivationError,
         claim_verifier.VerificationError,
+        subject_binding.SubjectBindingError,
         OSError,
     ) as exc:
         print(

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import hashlib
 import json
 import os
 import shutil
@@ -11,7 +12,7 @@ import unittest
 import uuid
 import warnings
 import zipfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from unittest import mock
 
 
@@ -23,15 +24,68 @@ if str(TOOL_DIR) not in sys.path:
 import archive_claim_complete_candidate as archiver  # noqa: E402
 import build_supplement_candidate as builder  # noqa: E402
 import derive_claim_complete_payload as derivation  # noqa: E402
+import subject_binding  # noqa: E402
 
 
 DUMMY_IDENTITY = "SELFTEST_ONLY_PRIVATE_IDENTITY_998877"
 SELFTEST_OWNER_MARKER = ".archive-selftest-owner"
+SUBJECT_COMMIT = "1" * 40
+SUBJECT_TREE = "2" * 40
+
+
+def _fake_subject_snapshot(
+    repo_root: Path,
+    commit: object,
+    tree: object,
+    *,
+    frozen_paths: object,
+    tool_paths: object,
+) -> subject_binding.SubjectSnapshot:
+    binding = subject_binding.parse_subject_binding(commit, tree)
+    root = Path(repo_root).absolute()
+    tool_relatives = tuple(
+        Path(path).resolve(strict=True).relative_to(root).as_posix()
+        for path in tool_paths
+    )
+    relatives = tuple(sorted({*frozen_paths, *tool_relatives}))
+    files = []
+    for relative in relatives:
+        data = root.joinpath(*PurePosixPath(relative).parts).read_bytes()
+        files.append(
+            subject_binding.SubjectFileSnapshot(
+                relative,
+                "a" * 40,
+                hashlib.sha256(data).hexdigest(),
+                len(data),
+                data,
+            )
+        )
+    return subject_binding.SubjectSnapshot(
+        repo_root=root,
+        binding=binding,
+        git_executable=Path(sys.executable),
+        git_executable_sha256="c" * 64,
+        git_executable_size_bytes=0,
+        files=tuple(files),
+        tool_relatives=tool_relatives,
+    )
 
 
 class ClaimCompleteArchiveSelfTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
+        cls.subject_verify_patcher = mock.patch.object(
+            subject_binding,
+            "verify_subject_repository",
+            side_effect=_fake_subject_snapshot,
+        )
+        cls.subject_assert_patcher = mock.patch.object(
+            subject_binding, "assert_subject_snapshot_unchanged", return_value=None
+        )
+        cls.subject_verify_patcher.start()
+        cls.subject_assert_patcher.start()
+        cls.addClassCleanup(cls.subject_assert_patcher.stop)
+        cls.addClassCleanup(cls.subject_verify_patcher.stop)
         artifacts = REPO_ROOT / "local_artifacts"
         artifacts.mkdir(exist_ok=True)
         cls.root = artifacts / (
@@ -55,22 +109,38 @@ class ClaimCompleteArchiveSelfTests(unittest.TestCase):
         cls.archive_b = cls.root / "archive-b"
         cls.extraction = cls.root / "extraction"
         derivation.derive_payload(
-            REPO_ROOT, cls.profile_path, cls.stage_a, cls.allowlist_path
+            REPO_ROOT,
+            cls.profile_path,
+            cls.stage_a,
+            cls.allowlist_path,
+            SUBJECT_COMMIT,
+            SUBJECT_TREE,
         )
         derivation.derive_payload(
-            REPO_ROOT, cls.profile_path, cls.stage_b, cls.allowlist_path
+            REPO_ROOT,
+            cls.profile_path,
+            cls.stage_b,
+            cls.allowlist_path,
+            SUBJECT_COMMIT,
+            SUBJECT_TREE,
         )
         builder.build_candidate(
             cls.stage_a,
             cls.allowlist_path,
             cls.candidate_a,
             cls.identity_file,
+            subject_root=REPO_ROOT,
+            subject_commit=SUBJECT_COMMIT,
+            subject_tree=SUBJECT_TREE,
         )
         builder.build_candidate(
             cls.stage_b,
             cls.allowlist_path,
             cls.candidate_b,
             cls.identity_file,
+            subject_root=REPO_ROOT,
+            subject_commit=SUBJECT_COMMIT,
+            subject_tree=SUBJECT_TREE,
         )
         cls.build_a = archiver.build_archive(
             cls.candidate_a,
@@ -79,6 +149,8 @@ class ClaimCompleteArchiveSelfTests(unittest.TestCase):
             REPO_ROOT,
             cls.profile_path,
             cls.allowlist_path,
+            SUBJECT_COMMIT,
+            SUBJECT_TREE,
         )
         cls.build_b = archiver.build_archive(
             cls.candidate_b,
@@ -87,6 +159,8 @@ class ClaimCompleteArchiveSelfTests(unittest.TestCase):
             REPO_ROOT,
             cls.profile_path,
             cls.allowlist_path,
+            SUBJECT_COMMIT,
+            SUBJECT_TREE,
         )
         cls.extract_result = archiver.verify_extract_archive(
             cls.archive_a / archiver.ARCHIVE_NAME,
@@ -96,11 +170,21 @@ class ClaimCompleteArchiveSelfTests(unittest.TestCase):
             REPO_ROOT,
             cls.profile_path,
             cls.allowlist_path,
+            SUBJECT_COMMIT,
+            SUBJECT_TREE,
         )
         cls.config = builder.load_allowlist(cls.allowlist_path)
         cls.identity = builder.load_identity_profile(cls.identity_file)
-        _config, _identity, cls.documents = archiver._candidate_documents(
-            cls.candidate_a, cls.allowlist_path, cls.identity_file
+        cls.binding = subject_binding.parse_subject_binding(
+            SUBJECT_COMMIT, SUBJECT_TREE
+        )
+        _config, _identity, cls.documents, _snapshot = archiver._candidate_documents(
+            cls.candidate_a,
+            cls.allowlist_path,
+            cls.identity_file,
+            REPO_ROOT,
+            SUBJECT_COMMIT,
+            SUBJECT_TREE,
         )
         cls.canonical_archive = (cls.archive_a / archiver.ARCHIVE_NAME).read_bytes()
 
@@ -141,6 +225,59 @@ class ClaimCompleteArchiveSelfTests(unittest.TestCase):
             if path.is_file()
         }
 
+    def _refresh_candidate_metadata(self, candidate: Path) -> None:
+        payload = {
+            entry.destination: candidate.joinpath(
+                *PurePosixPath(entry.destination).parts
+            ).read_bytes()
+            for entry in self.config.files
+        }
+        readme = builder._readme_bytes(self.config)
+        tree = builder._tree_bytes(self.config)
+        manifest = builder._manifest_object(
+            self.config,
+            {
+                **payload,
+                builder.README_NAME: readme,
+                builder.TREE_NAME: tree,
+            },
+            self.binding,
+        )
+        manifest_bytes = builder._canonical_json_bytes(manifest)
+        scan = builder._scan_documents(
+            [
+                *payload.items(),
+                (builder.README_NAME, readme),
+                (builder.TREE_NAME, tree),
+                (builder.MANIFEST_NAME, manifest_bytes),
+            ],
+            self.identity,
+        )
+        builder._raise_for_scan(scan, "archive ABA self-test candidate")
+        candidate.joinpath(builder.MANIFEST_NAME).write_bytes(manifest_bytes)
+        candidate.joinpath(builder.SCAN_NAME).write_bytes(
+            builder._canonical_json_bytes(scan)
+        )
+
+    def _extra_receipt_candidate(self, name: str) -> tuple[Path, Path, bytes, bytes]:
+        candidate = self.root / name
+        shutil.copytree(self.candidate_a, candidate)
+        receipt_entry = next(
+            entry
+            for entry in self.config.files
+            if entry.destination == builder.SUBJECT_BOUND_RECEIPT_DESTINATION
+        )
+        receipt_path = candidate.joinpath(
+            *PurePosixPath(receipt_entry.destination).parts
+        )
+        correct_receipt = receipt_path.read_bytes()
+        extra_value = json.loads(correct_receipt.decode("utf-8"))
+        extra_value["selftest_extra_field"] = "base-valid-but-not-regenerated"
+        extra_receipt = builder._canonical_json_bytes(extra_value)
+        receipt_path.write_bytes(extra_receipt)
+        self._refresh_candidate_metadata(candidate)
+        return candidate, receipt_path, correct_receipt, extra_receipt
+
     def _custom_zip(
         self,
         rows: list[tuple[str, bytes]],
@@ -172,6 +309,11 @@ class ClaimCompleteArchiveSelfTests(unittest.TestCase):
             for relative in sorted(self.documents)
         ]
 
+    def _inspect_archive(self, data: bytes) -> archiver.ArchiveInspection:
+        return archiver._inspect_archive_bytes(
+            data, self.config, self.identity, self.binding
+        )
+
     def _valid_verification_result(self) -> dict[str, object]:
         manifest = json.loads(self.documents[builder.MANIFEST_NAME])
         return {
@@ -189,9 +331,13 @@ class ClaimCompleteArchiveSelfTests(unittest.TestCase):
             "formal_source_exception_count": len(
                 builder.CLAIM_COMPLETE_FORMAL_SOURCE_EXCEPTIONS
             ),
+            "subject_commit": SUBJECT_COMMIT,
+            "subject_tree": SUBJECT_TREE,
+            "subject_binding_verified": True,
             "file_count": len(self.documents),
             "manifest_file_count": manifest["file_count"],
             "manifest_total_bytes": manifest["total_bytes"],
+            "candidate_snapshot_sha256": archiver._tree_sha256(self.documents),
         }
 
     def _first_central_directory_offset(self, data: bytes) -> int:
@@ -208,6 +354,10 @@ class ClaimCompleteArchiveSelfTests(unittest.TestCase):
         self.assertEqual(receipt_a, receipt_b)
         self.assertEqual(self.build_a["archive_sha256"], self.build_b["archive_sha256"])
         self.assertEqual(self.build_a["tree_sha256"], self.build_b["tree_sha256"])
+        for observed in (self.build_a, self.build_b, self.extract_result):
+            self.assertEqual(observed["subject_commit"], SUBJECT_COMMIT)
+            self.assertEqual(observed["subject_tree"], SUBJECT_TREE)
+            self.assertIs(observed["subject_binding_verified"], True)
 
     def test_verified_extraction_matches_candidate_tree(self) -> None:
         extracted = self.extraction / archiver.ARCHIVE_ROOT
@@ -254,6 +404,12 @@ class ClaimCompleteArchiveSelfTests(unittest.TestCase):
             value = json.loads(text)
             self.assertEqual(value["status"], builder.STATUS)
             self.assertEqual(value["approval"], derivation.APPROVAL)
+            self.assertEqual(value["subject_commit"], SUBJECT_COMMIT)
+            self.assertEqual(value["subject_tree"], SUBJECT_TREE)
+            self.assertIs(value["subject_binding_verified"], True)
+            self.assertEqual(value["verification"]["subject_commit"], SUBJECT_COMMIT)
+            self.assertEqual(value["verification"]["subject_tree"], SUBJECT_TREE)
+            self.assertIs(value["verification"]["subject_binding_verified"], True)
             self.assertEqual(
                 value["anonymity_coverage"],
                 archiver.ANONYMITY_STATUS,
@@ -269,6 +425,22 @@ class ClaimCompleteArchiveSelfTests(unittest.TestCase):
                 },
             )
 
+        archive_value = json.loads(archive_receipt)
+        self.assertEqual(
+            set(archive_value["bindings"]),
+            {
+                "allowlist_sha256",
+                "archive_tool_sha256",
+                "builder_scanner_sha256",
+                "derivation_tool_sha256",
+                "manifest_sha256",
+                "privacy_scan_sha256",
+                "profile_sha256",
+                "subject_binding_tool_sha256",
+                "claim_verifier_sha256",
+            },
+        )
+
     def test_existing_build_output_is_refused_without_canary_change(self) -> None:
         output = self.root / "existing-build-output"
         output.mkdir()
@@ -282,6 +454,8 @@ class ClaimCompleteArchiveSelfTests(unittest.TestCase):
                 REPO_ROOT,
                 self.profile_path,
                 self.allowlist_path,
+                SUBJECT_COMMIT,
+                SUBJECT_TREE,
             )
         self.assertEqual(canary.read_text(encoding="utf-8"), "keep")
 
@@ -296,6 +470,8 @@ class ClaimCompleteArchiveSelfTests(unittest.TestCase):
                 REPO_ROOT,
                 self.profile_path,
                 self.allowlist_path,
+                SUBJECT_COMMIT,
+                SUBJECT_TREE,
             )
         self.assertFalse(output.exists())
         self.assertEqual(self._file_bytes(self.candidate_a), before)
@@ -329,6 +505,8 @@ class ClaimCompleteArchiveSelfTests(unittest.TestCase):
                 REPO_ROOT,
                 self.profile_path,
                 self.allowlist_path,
+                SUBJECT_COMMIT,
+                SUBJECT_TREE,
             )
         self.assertEqual(canary.read_text(encoding="utf-8"), "keep")
 
@@ -336,13 +514,13 @@ class ClaimCompleteArchiveSelfTests(unittest.TestCase):
         rows = self._canonical_rows()
         bad = self._custom_zip([*rows[:-1], rows[0]])
         with self.assertRaisesRegex(archiver.ArchiveError, "duplicate"):
-            archiver._inspect_archive_bytes(bad, self.config, self.identity)
+            self._inspect_archive(bad)
 
     def test_extra_duplicate_member_is_rejected_by_eocd_count(self) -> None:
         rows = self._canonical_rows()
         bad = self._custom_zip([*rows, rows[0]])
         with self.assertRaisesRegex(archiver.ArchiveError, "entry count"):
-            archiver._inspect_archive_bytes(bad, self.config, self.identity)
+            self._inspect_archive(bad)
 
     def test_unsafe_member_paths_are_rejected(self) -> None:
         first_data = self._canonical_rows()[0][1]
@@ -359,7 +537,7 @@ class ClaimCompleteArchiveSelfTests(unittest.TestCase):
             with self.subTest(name=name):
                 bad = self._custom_zip([(name, first_data)])
                 with self.assertRaises(archiver.ArchiveError):
-                    archiver._inspect_archive_bytes(bad, self.config, self.identity)
+                    self._inspect_archive(bad)
 
     def test_symlink_or_special_mode_is_rejected(self) -> None:
         rows = self._canonical_rows()
@@ -370,7 +548,7 @@ class ClaimCompleteArchiveSelfTests(unittest.TestCase):
 
         bad = self._custom_zip(rows, mutate_info=make_symlink)
         with self.assertRaisesRegex(archiver.ArchiveError, "metadata|regular file"):
-            archiver._inspect_archive_bytes(bad, self.config, self.identity)
+            self._inspect_archive(bad)
 
     def test_missing_extra_and_tampered_members_are_rejected(self) -> None:
         rows = self._canonical_rows()
@@ -392,7 +570,7 @@ class ClaimCompleteArchiveSelfTests(unittest.TestCase):
             with self.subTest(label=label):
                 bad = self._custom_zip(variant)
                 with self.assertRaises(archiver.ArchiveError):
-                    archiver._inspect_archive_bytes(bad, self.config, self.identity)
+                    self._inspect_archive(bad)
 
     def test_member_metadata_drift_is_rejected(self) -> None:
         rows = self._canonical_rows()
@@ -403,7 +581,7 @@ class ClaimCompleteArchiveSelfTests(unittest.TestCase):
 
         bad = self._custom_zip(rows, mutate_info=change_timestamp)
         with self.assertRaisesRegex(archiver.ArchiveError, "metadata"):
-            archiver._inspect_archive_bytes(bad, self.config, self.identity)
+            self._inspect_archive(bad)
 
     def test_malformed_utf8_member_name_is_wrapped(self) -> None:
         bad = bytearray(self.canonical_archive)
@@ -412,14 +590,14 @@ class ClaimCompleteArchiveSelfTests(unittest.TestCase):
         struct.pack_into("<H", bad, offset + 8, flags)
         bad[offset + 46] = 0xFF
         with self.assertRaisesRegex(archiver.ArchiveError, "metadata"):
-            archiver._inspect_archive_bytes(bytes(bad), self.config, self.identity)
+            self._inspect_archive(bytes(bad))
 
     def test_unsupported_extract_version_is_wrapped(self) -> None:
         bad = bytearray(self.canonical_archive)
         offset = self._first_central_directory_offset(bad)
         bad[offset + 6] = 0xFF
         with self.assertRaisesRegex(archiver.ArchiveError, "metadata"):
-            archiver._inspect_archive_bytes(bytes(bad), self.config, self.identity)
+            self._inspect_archive(bytes(bad))
 
     def test_zip_parser_not_implemented_error_is_wrapped(self) -> None:
         with mock.patch.object(
@@ -432,12 +610,13 @@ class ClaimCompleteArchiveSelfTests(unittest.TestCase):
                     self.canonical_archive,
                     self.config,
                     self.identity,
+                    self.binding,
                 )
 
     def test_noncanonical_trailing_bytes_are_rejected(self) -> None:
         bad = self.canonical_archive + b"unexpected-trailer"
         with self.assertRaisesRegex(archiver.ArchiveError, "EOCD|canonical"):
-            archiver._inspect_archive_bytes(bad, self.config, self.identity)
+            self._inspect_archive(bad)
 
     def test_eocd_count_drift_and_zip64_are_rejected_before_zip_parsing(self) -> None:
         eocd_offset = len(self.canonical_archive) - archiver.EOCD.size
@@ -453,7 +632,7 @@ class ClaimCompleteArchiveSelfTests(unittest.TestCase):
             with self.subTest(message=message):
                 with self.assertRaisesRegex(archiver.ArchiveError, message):
                     archiver._inspect_archive_bytes(
-                        archive_bytes, self.config, self.identity
+                        archive_bytes, self.config, self.identity, self.binding
                     )
 
     def test_receipt_archive_hash_tamper_is_rejected_before_output(self) -> None:
@@ -473,6 +652,8 @@ class ClaimCompleteArchiveSelfTests(unittest.TestCase):
                 REPO_ROOT,
                 self.profile_path,
                 self.allowlist_path,
+                SUBJECT_COMMIT,
+                SUBJECT_TREE,
             )
         self.assertFalse(output.exists())
 
@@ -486,25 +667,132 @@ class ClaimCompleteArchiveSelfTests(unittest.TestCase):
                 float(len(derivation.CLAIM_IDS)),
             ),
             "file-count-bool": ("file_count", True),
+            "snapshot-hash-bytes": (
+                "candidate_snapshot_sha256",
+                archiver._tree_sha256(self.documents).encode("ascii"),
+            ),
         }
         for label, (key, value) in variants.items():
             with self.subTest(label=label):
                 result = self._valid_verification_result()
                 result[key] = value
                 with self.assertRaisesRegex(archiver.ArchiveError, key):
-                    archiver._verification_summary(result)
+                    archiver._verification_summary(
+                        result,
+                        self.binding,
+                        archiver._tree_sha256(self.documents),
+                    )
 
     def test_workflow_snapshot_detects_profile_drift_before_publication(self) -> None:
         profile_copy = self.root / "snapshot-profile.json"
         profile_copy.write_bytes(self.profile_path.read_bytes())
         snapshot = archiver._capture_workflow_snapshot(
             self.identity_file,
+            REPO_ROOT,
             profile_copy,
             self.allowlist_path,
+            SUBJECT_COMMIT,
+            SUBJECT_TREE,
         )
         profile_copy.write_bytes(profile_copy.read_bytes() + b"\n")
         with self.assertRaisesRegex(archiver.ArchiveError, "changed during"):
             archiver._assert_workflow_snapshot_unchanged(snapshot)
+
+    def test_workflow_snapshot_rejects_preparsed_profile_swap(self) -> None:
+        original = self.profile_path.read_bytes()
+        value = json.loads(original.decode("utf-8"))
+        row = next(
+            item
+            for item in value["files"]
+            if item["mode"] != "copy"
+            and item["inputs"]
+            and item["inputs"][0]["expected_sha256"] != "0" * 64
+        )
+        row["inputs"][0]["expected_sha256"] = "f" * 64
+        profile_copy = self.root / "preparsed-workflow-profile.json"
+        profile_copy.write_text(
+            json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+
+        def restore_then_snapshot(*args: object, **kwargs: object) -> object:
+            profile_copy.write_bytes(original)
+            return _fake_subject_snapshot(*args, **kwargs)  # type: ignore[arg-type]
+
+        with mock.patch.object(
+            subject_binding,
+            "verify_subject_repository",
+            side_effect=restore_then_snapshot,
+        ):
+            with self.assertRaisesRegex(
+                archiver.ArchiveError, "profile.*subject commit blob"
+            ):
+                archiver._capture_workflow_snapshot(
+                    self.identity_file,
+                    REPO_ROOT,
+                    profile_copy,
+                    self.allowlist_path,
+                    SUBJECT_COMMIT,
+                    SUBJECT_TREE,
+                )
+
+    def test_workflow_snapshot_rejects_second_read_profile_swap(self) -> None:
+        original = self.profile_path.read_bytes()
+        value = json.loads(original.decode("utf-8"))
+        copy_index = next(
+            index for index, row in enumerate(value["files"]) if row["mode"] == "copy"
+        )
+        value["files"].pop(copy_index)
+        narrowed_path = self.root / "second-read-narrowed-profile.json"
+        narrowed_path.write_text(
+            json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        narrowed_profile = derivation._load_profile(narrowed_path)
+        profile_copy = self.root / "second-read-workflow-profile.json"
+        profile_copy.write_bytes(original)
+
+        with mock.patch.object(
+            derivation,
+            "_load_profile",
+            return_value=narrowed_profile,
+        ):
+            with self.assertRaisesRegex(
+                archiver.ArchiveError, "profile.*workflow byte snapshot"
+            ):
+                archiver._capture_workflow_snapshot(
+                    self.identity_file,
+                    REPO_ROOT,
+                    profile_copy,
+                    self.allowlist_path,
+                    SUBJECT_COMMIT,
+                    SUBJECT_TREE,
+                )
+
+    def test_build_rejects_transient_identity_profile_swap(self) -> None:
+        output = self.root / "identity-swap-build-output"
+        swapped_identity = builder._identity_profile_from_bytes(
+            json.dumps(["SELFTEST_ONLY_INNOCUOUS_IDENTITY"]).encode("utf-8")
+        )
+        with mock.patch.object(
+            builder,
+            "load_identity_profile",
+            return_value=swapped_identity,
+        ):
+            with self.assertRaisesRegex(
+                archiver.ArchiveError, "identity terms file.*workflow snapshot"
+            ):
+                archiver.build_archive(
+                    self.candidate_a,
+                    output,
+                    self.identity_file,
+                    REPO_ROOT,
+                    self.profile_path,
+                    self.allowlist_path,
+                    SUBJECT_COMMIT,
+                    SUBJECT_TREE,
+                )
+        self.assertFalse(output.exists())
 
     def test_build_fails_if_verifier_changes_profile(self) -> None:
         profile_copy = self.root / "mutated-during-verification-profile.json"
@@ -528,6 +816,8 @@ class ClaimCompleteArchiveSelfTests(unittest.TestCase):
                     REPO_ROOT,
                     profile_copy,
                     self.allowlist_path,
+                    SUBJECT_COMMIT,
+                    SUBJECT_TREE,
                 )
         self.assertFalse(output.exists())
 
@@ -554,8 +844,88 @@ class ClaimCompleteArchiveSelfTests(unittest.TestCase):
                     REPO_ROOT,
                     self.profile_path,
                     self.allowlist_path,
+                    SUBJECT_COMMIT,
+                    SUBJECT_TREE,
                 )
         self.assertFalse(output.exists())
+
+    def test_build_rejects_candidate_aba_during_semantic_verification(self) -> None:
+        candidate_copy, receipt_path, correct_receipt, extra_receipt = (
+            self._extra_receipt_candidate("semantic-aba-candidate")
+        )
+        output = self.root / "semantic-aba-output"
+
+        original_compare = archiver.claim_verifier._compare_regenerated_sources
+        swaps = 0
+
+        def transient_correct_receipt(*args: object, **kwargs: object) -> None:
+            nonlocal swaps
+            swaps += 1
+            receipt_path.write_bytes(correct_receipt)
+            try:
+                original_compare(*args, **kwargs)
+            finally:
+                receipt_path.write_bytes(extra_receipt)
+
+        with mock.patch.object(
+            archiver.claim_verifier,
+            "_compare_regenerated_sources",
+            side_effect=transient_correct_receipt,
+        ):
+            with self.assertRaisesRegex(
+                archiver.claim_verifier.VerificationError,
+                "freshly derived source",
+            ):
+                archiver.build_archive(
+                    candidate_copy,
+                    output,
+                    self.identity_file,
+                    REPO_ROOT,
+                    self.profile_path,
+                    self.allowlist_path,
+                    SUBJECT_COMMIT,
+                    SUBJECT_TREE,
+                )
+        self.assertEqual(swaps, 1)
+        self.assertEqual(receipt_path.read_bytes(), extra_receipt)
+        self.assertFalse(output.exists())
+
+    def test_standalone_verifier_rejects_candidate_aba(self) -> None:
+        candidate, receipt_path, correct_receipt, extra_receipt = (
+            self._extra_receipt_candidate("standalone-semantic-aba-candidate")
+        )
+        original_compare = archiver.claim_verifier._compare_regenerated_sources
+        swaps = 0
+
+        def transient_correct_receipt(*args: object, **kwargs: object) -> None:
+            nonlocal swaps
+            swaps += 1
+            receipt_path.write_bytes(correct_receipt)
+            try:
+                original_compare(*args, **kwargs)
+            finally:
+                receipt_path.write_bytes(extra_receipt)
+
+        with mock.patch.object(
+            archiver.claim_verifier,
+            "_compare_regenerated_sources",
+            side_effect=transient_correct_receipt,
+        ):
+            with self.assertRaisesRegex(
+                archiver.claim_verifier.VerificationError,
+                "freshly derived source",
+            ):
+                archiver.claim_verifier.verify_claim_complete(
+                    candidate,
+                    self.identity_file,
+                    REPO_ROOT,
+                    self.profile_path,
+                    self.allowlist_path,
+                    SUBJECT_COMMIT,
+                    SUBJECT_TREE,
+                )
+        self.assertEqual(swaps, 1)
+        self.assertEqual(receipt_path.read_bytes(), extra_receipt)
 
     def test_unsafe_recursive_cleanup_retains_owned_directory(self) -> None:
         output = self.root / "cleanup-probe-output"
@@ -582,6 +952,39 @@ class ClaimCompleteArchiveSelfTests(unittest.TestCase):
             archiver._rename_directory_noreplace(source, target)
         self.assertTrue(source.is_dir())
         self.assertEqual(canary.read_text(encoding="utf-8"), "keep")
+
+    def test_receipt_subject_json_type_confusion_is_rejected(self) -> None:
+        original = json.loads(
+            (self.archive_a / archiver.ARCHIVE_RECEIPT_NAME).read_text(encoding="utf-8")
+        )
+        variants = {
+            "commit-int": ("subject_commit", 1),
+            "tree-list": ("subject_tree", []),
+            "verified-int": ("subject_binding_verified", 1),
+            "verified-string": ("subject_binding_verified", "true"),
+        }
+        for label, (field, replacement) in variants.items():
+            with self.subTest(label=label):
+                receipt = json.loads(json.dumps(original))
+                receipt[field] = replacement
+                bad_receipt = self.root / f"subject-type-confusion-{label}.json"
+                bad_receipt.write_bytes(archiver._canonical_json_bytes(receipt))
+                output = self.root / f"subject-type-confusion-output-{label}"
+                with self.assertRaisesRegex(
+                    archiver.ArchiveError, f"subject drifted at {field}"
+                ):
+                    archiver.verify_extract_archive(
+                        self.archive_a / archiver.ARCHIVE_NAME,
+                        bad_receipt,
+                        output,
+                        self.identity_file,
+                        REPO_ROOT,
+                        self.profile_path,
+                        self.allowlist_path,
+                        SUBJECT_COMMIT,
+                        SUBJECT_TREE,
+                    )
+                self.assertFalse(output.exists())
 
     def test_receipt_json_type_confusion_is_rejected_before_publication(self) -> None:
         original = json.loads(
@@ -623,6 +1026,8 @@ class ClaimCompleteArchiveSelfTests(unittest.TestCase):
                             REPO_ROOT,
                             self.profile_path,
                             self.allowlist_path,
+                            SUBJECT_COMMIT,
+                            SUBJECT_TREE,
                         )
                     self.assertFalse(output.exists())
                     retained = [
