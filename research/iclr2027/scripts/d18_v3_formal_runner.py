@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import concurrent.futures
 import copy
+import gc
 import hashlib
 import json
 import math
@@ -980,6 +981,17 @@ def _verify_resident_checkpoint_integrity() -> dict[str, Any]:
     }
 
 
+def _release_gpu_smoke_lane_state() -> None:
+    """Release smoke-only CUDA caches after their final evidence snapshot."""
+
+    import torch
+
+    _FORMAL_LANE_AGENT_CACHE.clear()
+    _FORMAL_LANE_DEVICE_BASELINES.clear()
+    gc.collect()
+    torch.cuda.empty_cache()
+
+
 def _run_gpu_smoke_lane(payload: Mapping[str, Any]) -> dict[str, Any]:
     """Alternate both agents from one formal pair through scalar FP32 PUCT."""
 
@@ -1056,6 +1068,23 @@ def _run_gpu_smoke_lane(payload: Mapping[str, Any]) -> dict[str, Any]:
             f"GPU smoke agent {slot} checkpoint is not entirely FP32",
         )
     game = legacy._game_from_opening(dict(opening), int(eval_size))
+    decisions = 0
+    per_agent_decisions = {"A": 0, "B": 0}
+    per_agent_forward_calls = {"A": 0, "B": 0}
+    decision_seconds: list[float] = []
+    decision_state_fingerprints: list[str] = []
+    decision_action_indices: list[int] = []
+    game_resets = 0
+    plies_in_game = len(opening.get("opening_actions", []))
+    max_plies = int(task["max_plies"])
+    utilization: list[float] = []
+    hooks: list[Any] = []
+    helper = getattr(torch.cuda, "utilization", None)
+    _require(callable(helper), "GPU smoke requires torch.cuda.utilization telemetry")
+    sustained_started = time.perf_counter()
+    deadline = sustained_started + float(seconds)
+    utilization.append(float(helper()))
+    next_utilization_sample = sustained_started + 0.5
     with torch.inference_mode():
         for warmup_index, slot in enumerate(("A", "B")):
             _gpu_smoke_select_action(
@@ -1068,19 +1097,12 @@ def _run_gpu_smoke_lane(payload: Mapping[str, Any]) -> dict[str, Any]:
                     + warmup_index
                 ),
             )
+            now = time.perf_counter()
+            if now >= next_utilization_sample:
+                utilization.append(float(helper()))
+                next_utilization_sample = now + 0.5
     torch.cuda.synchronize()
-    setup_seconds = time.perf_counter() - lane_started
-    decisions = 0
-    per_agent_decisions = {"A": 0, "B": 0}
-    per_agent_forward_calls = {"A": 0, "B": 0}
-    decision_seconds: list[float] = []
-    decision_state_fingerprints: list[str] = []
-    decision_action_indices: list[int] = []
-    game_resets = 0
-    plies_in_game = len(opening.get("opening_actions", []))
-    max_plies = int(task["max_plies"])
-    utilization: list[float] = []
-    hooks: list[Any] = []
+    setup_seconds = sustained_started - lane_started
 
     def register_counter(slot: str) -> None:
         def count_forward(*_: Any) -> None:
@@ -1090,11 +1112,6 @@ def _run_gpu_smoke_lane(payload: Mapping[str, Any]) -> dict[str, Any]:
 
     for slot in ("A", "B"):
         register_counter(slot)
-    sustained_started = time.perf_counter()
-    deadline = sustained_started + float(seconds)
-    next_utilization_sample = sustained_started
-    helper = getattr(torch.cuda, "utilization", None)
-    _require(callable(helper), "GPU smoke requires torch.cuda.utilization telemetry")
     try:
         with torch.inference_mode():
             while time.perf_counter() < deadline or decisions < 2:
@@ -1163,7 +1180,7 @@ def _run_gpu_smoke_lane(payload: Mapping[str, Any]) -> dict[str, Any]:
         }
         for slot in ("A", "B")
     ]
-    return {
+    row = {
         "case_index": int(case_index),
         "lane_index": int(lane_index),
         "worker_pid": os.getpid(),
@@ -1208,6 +1225,13 @@ def _run_gpu_smoke_lane(payload: Mapping[str, Any]) -> dict[str, Any]:
         "torch_version": torch.__version__,
         "cuda_runtime_version": torch.version.cuda,
     }
+    if verify_resident_integrity:
+        agents.clear()
+        floating_state.clear()
+        hooks.clear()
+        del agent
+        _release_gpu_smoke_lane_state()
+    return row
 
 
 def _gpu_smoke_case_payloads(
@@ -1261,6 +1285,30 @@ def _gpu_smoke_case_payloads(
             phases.append(payloads)
     _require(len(phases) == GPU_SMOKE_CASE_COUNT, "GPU smoke case count drifted")
     return phases
+
+
+def _gpu_smoke_pre_cleanup_memory_snapshot(
+    lane_results: Sequence[Mapping[str, Any]],
+    preload_pids: set[int],
+) -> tuple[int, int]:
+    """Return conservative device memory evidence captured before final cleanup."""
+
+    final_rows = [
+        row
+        for row in lane_results
+        if int(row["case_index"]) == GPU_SMOKE_CASE_COUNT - 1
+    ]
+    _require(
+        len(final_rows) == SCALAR_LANE_COUNT
+        and {int(row["worker_pid"]) for row in final_rows} == preload_pids,
+        "GPU smoke final memory evidence does not cover all preloaded workers",
+    )
+    total_bytes = {int(row["device_total_memory_bytes"]) for row in final_rows}
+    _require(len(total_bytes) == 1, "GPU smoke final device memory totals differ")
+    return (
+        min(int(row["device_free_memory_bytes"]) for row in final_rows),
+        next(iter(total_bytes)),
+    )
 
 
 def _profile_coverage(lane_results: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
@@ -1495,7 +1543,11 @@ def gpu_smoke(
                 "GPU smoke case did not use all twelve preloaded formal workers",
             )
             lane_results.extend(dict(row) for row in case_results)
-        free_after_bytes, total_after_bytes = torch.cuda.mem_get_info()
+        _, observed_total_after_bytes = torch.cuda.mem_get_info()
+    free_after_bytes, total_after_bytes = _gpu_smoke_pre_cleanup_memory_snapshot(
+        lane_results,
+        preload_pids,
+    )
     resident_integrity_results = [
         copy.deepcopy(row["resident_integrity"])
         for row in lane_results
@@ -1516,7 +1568,8 @@ def gpu_smoke(
         "GPU smoke final resident checkpoint integrity evidence differs",
     )
     _require(
-        total_after_bytes == total_device_bytes,
+        total_after_bytes == total_device_bytes
+        and observed_total_after_bytes == total_device_bytes,
         "GPU device memory size changed during smoke",
     )
     decisions = sum(int(row["puct_decisions"]) for row in lane_results)
@@ -1537,7 +1590,7 @@ def gpu_smoke(
         GPU_SMOKE_MIN_TOTAL_SECONDS
         <= total_seconds
         <= GPU_SMOKE_MAX_TOTAL_SECONDS,
-        "GPU smoke total command duration is outside the 15-30 second bound",
+        "GPU smoke total command duration is outside the 15-27 second bound",
     )
     capacity_cases, projected_worst_case_seconds = _formal_capacity_projection(
         lane_results, tasks
@@ -2235,6 +2288,42 @@ def _validate_throughput_profile_payload(
             utilization.extend(lane_samples)
             lane_durations.append(sustained)
         case_sustained.append(max(lane_durations))
+
+    final_case_rows = lane_results[-SCALAR_LANE_COUNT:]
+    final_snapshot_pids = {
+        strict_int(
+            row.get("worker_pid"),
+            "throughput final pre-cleanup worker PID",
+            minimum=1,
+        )
+        for row in final_case_rows
+    }
+    final_snapshot_totals = {
+        strict_int(
+            row.get("device_total_memory_bytes"),
+            "throughput final pre-cleanup device memory",
+            minimum=MIN_DEVICE_MEMORY_BYTES,
+        )
+        for row in final_case_rows
+    }
+    final_snapshot_free = [
+        strict_int(
+            row.get("device_free_memory_bytes"),
+            "throughput final pre-cleanup free memory",
+        )
+        for row in final_case_rows
+    ]
+    _require(
+        len(final_case_rows) == SCALAR_LANE_COUNT
+        and final_snapshot_pids == preload_pids
+        and final_snapshot_totals == {device_total},
+        "formal throughput final pre-cleanup memory snapshot coverage drifted",
+    )
+    _require(
+        free_after == min(final_snapshot_free),
+        "formal throughput device-free memory is not bound to the conservative "
+        "final pre-cleanup snapshot",
+    )
 
     _require(
         profile.get("resident_integrity_results") == resident_integrity_results

@@ -1849,6 +1849,30 @@ def test_throughput_profile_rejects_capacity_memory_coverage_and_environment(
         )
 
 
+def test_throughput_profile_rejects_forged_pre_cleanup_free_memory(
+    tmp_path: Path,
+) -> None:
+    manifest_path, profile_path, profile, tasks, games = (
+        _write_valid_throughput_profile(tmp_path)
+    )
+    forged_free = int(profile["device_free_memory_after_smoke_bytes"]) + 1024**3
+    profile["device_free_memory_after_smoke_bytes"] = forged_free
+    profile["device_used_memory_after_smoke_bytes"] = (
+        int(profile["device_total_memory_bytes"]) - forged_free
+    )
+    profile_path.write_text(json.dumps(profile, sort_keys=True), encoding="utf-8")
+    with pytest.raises(
+        formal.FormalExecutionError,
+        match="not bound to the conservative final pre-cleanup snapshot",
+    ):
+        formal._validate_throughput_profile(
+            profile_path,
+            manifest_path=manifest_path,
+            tasks=tasks,
+            games=games,
+        )
+
+
 def test_independent_verifier_rehashes_and_revalidates_complete_profile(
     tmp_path: Path,
 ) -> None:
@@ -2014,6 +2038,42 @@ def test_independent_verifier_rejects_profile_semantic_tamper(
         "preparation_runner_sha256": independent.sha256_file(formal.prep.SCRIPT_PATH),
     }
     with pytest.raises(independent.VerificationError, match=message):
+        independent._validate_throughput_profile_evidence(
+            evidence,
+            metadata=metadata,
+            tasks=tasks,
+            grouped_schedules=_group_schedules_by_task(games),
+            checkpoint_registry=_checkpoint_registry_from_tasks(tasks),
+            formal_manifest_sha=independent.sha256_file(manifest_path),
+            formal_runner_sha=independent.sha256_file(formal.SCRIPT_PATH),
+        )
+
+
+def test_independent_verifier_rejects_forged_pre_cleanup_free_memory(
+    tmp_path: Path,
+) -> None:
+    manifest_path, _, profile, tasks, games = _write_valid_throughput_profile(
+        tmp_path
+    )
+    forged_free = int(profile["device_free_memory_after_smoke_bytes"]) + 1024**3
+    profile["device_free_memory_after_smoke_bytes"] = forged_free
+    profile["device_used_memory_after_smoke_bytes"] = (
+        int(profile["device_total_memory_bytes"]) - forged_free
+    )
+    evidence = tmp_path / independent.THROUGHPUT_PROFILE_ARTIFACT_NAME
+    evidence.write_text(
+        json.dumps(profile, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    metadata = {
+        "throughput_profile_sha256": independent.sha256_file(evidence),
+        "preparation_runner_sha256": independent.sha256_file(
+            formal.prep.SCRIPT_PATH
+        ),
+    }
+    with pytest.raises(
+        independent.VerificationError,
+        match="not bound to the conservative final pre-cleanup snapshot",
+    ):
         independent._validate_throughput_profile_evidence(
             evidence,
             metadata=metadata,
@@ -2304,7 +2364,8 @@ def test_gpu_smoke_source_is_frozen_inference_path_only() -> None:
     lane_source = inspect.getsource(formal._run_gpu_smoke_lane)
     preload_source = inspect.getsource(formal._run_gpu_smoke_preload_lane)
     integrity_source = inspect.getsource(formal._verify_resident_checkpoint_integrity)
-    source = smoke_source + lane_source + preload_source + integrity_source
+    release_source = inspect.getsource(formal._release_gpu_smoke_lane_state)
+    source = smoke_source + lane_source + preload_source + integrity_source + release_source
     for forbidden in (".backward(", "Adam", "autocast(", "GradScaler", "_repeat_tensor_batch", "batch_candidates"):
         assert forbidden not in source
     for required in (
@@ -2323,6 +2384,16 @@ def test_gpu_smoke_source_is_frozen_inference_path_only() -> None:
     assert "tensor.detach().clone()" in preload_source
     assert "torch.equal" in integrity_source
     assert "_verify_resident_checkpoint_integrity" in lane_source
+    assert "_FORMAL_LANE_AGENT_CACHE.clear()" in release_source
+    assert "_FORMAL_LANE_DEVICE_BASELINES.clear()" in release_source
+    assert "torch.cuda.empty_cache()" in release_source
+    assert lane_source.index("sustained_started = time.perf_counter()") < lane_source.index(
+        'for warmup_index, slot in enumerate(("A", "B"))'
+    ) < lane_source.index("while time.perf_counter() < deadline or decisions < 2")
+    assert "setup_seconds = sustained_started - lane_started" in lane_source
+    assert lane_source.index("_verify_resident_checkpoint_integrity()") < lane_source.index(
+        '"device_free_memory_bytes"'
+    ) < lane_source.index("_release_gpu_smoke_lane_state()")
     lane_tree = ast.parse(lane_source)
     assert not any(
         isinstance(node, ast.Attribute) and node.attr == "cpu"
@@ -2330,7 +2401,60 @@ def test_gpu_smoke_source_is_frozen_inference_path_only() -> None:
     )
     assert smoke_source.index("started = time.perf_counter()") < smoke_source.index(
         "with _ScalarLaneExecutor"
-    ) < smoke_source.index("total_seconds = time.perf_counter() - started")
+    ) < smoke_source.index("_gpu_smoke_pre_cleanup_memory_snapshot") < smoke_source.index(
+        "total_seconds = time.perf_counter() - started"
+    )
+
+
+def test_gpu_smoke_final_cleanup_releases_only_smoke_cuda_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import torch
+
+    agent_cache = {("checkpoint", "cuda"): object()}
+    baselines = {"checkpoint": {"weight": object()}}
+    calls: list[str] = []
+    monkeypatch.setattr(formal, "_FORMAL_LANE_AGENT_CACHE", agent_cache)
+    monkeypatch.setattr(formal, "_FORMAL_LANE_DEVICE_BASELINES", baselines)
+    monkeypatch.setattr(formal.gc, "collect", lambda: calls.append("gc"))
+    monkeypatch.setattr(torch.cuda, "empty_cache", lambda: calls.append("empty_cache"))
+
+    formal._release_gpu_smoke_lane_state()
+
+    assert agent_cache == {}
+    assert baselines == {}
+    assert calls == ["gc", "empty_cache"]
+
+
+def test_gpu_smoke_memory_evidence_uses_final_pre_cleanup_worker_minimum() -> None:
+    preload_pids = set(range(100, 100 + formal.SCALAR_LANE_COUNT))
+    final_case = formal.GPU_SMOKE_CASE_COUNT - 1
+    total_bytes = 32 * 1024**3
+    rows = [
+        {
+            "case_index": final_case,
+            "worker_pid": pid,
+            "device_free_memory_bytes": 20_000_000_000 + index,
+            "device_total_memory_bytes": total_bytes,
+        }
+        for index, pid in enumerate(sorted(preload_pids))
+    ]
+    rows.append(
+        {
+            "case_index": 0,
+            "worker_pid": 999,
+            "device_free_memory_bytes": total_bytes,
+            "device_total_memory_bytes": total_bytes,
+        }
+    )
+
+    assert formal._gpu_smoke_pre_cleanup_memory_snapshot(rows, preload_pids) == (
+        20_000_000_000,
+        total_bytes,
+    )
+
+    with pytest.raises(formal.FormalExecutionError, match="all preloaded workers"):
+        formal._gpu_smoke_pre_cleanup_memory_snapshot(rows[:-2], preload_pids)
 
 
 def test_gpu_smoke_uses_a_real_game_and_rejects_mutation() -> None:

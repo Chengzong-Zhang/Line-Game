@@ -1695,6 +1695,40 @@ def _validate_throughput_profile_evidence(
             "throughput case does not use all twelve preloaded workers",
         )
 
+    final_case_rows = [
+        _mapping(lanes[-SCALAR_LANE_COUNT + offset], "lane")
+        for offset in range(SCALAR_LANE_COUNT)
+    ]
+    final_snapshot_pids = {
+        _integer(
+            row.get("worker_pid"),
+            "throughput final pre-cleanup worker PID",
+            minimum=1,
+        )
+        for row in final_case_rows
+    }
+    final_snapshot_totals = {
+        _integer(
+            row.get("device_total_memory_bytes"),
+            "throughput final pre-cleanup device memory",
+            minimum=MIN_DEVICE_MEMORY_BYTES,
+        )
+        for row in final_case_rows
+    }
+    final_snapshot_free = [
+        _integer(
+            row.get("device_free_memory_bytes"),
+            "throughput final pre-cleanup free memory",
+            minimum=0,
+        )
+        for row in final_case_rows
+    ]
+    _require(
+        len(final_case_rows) == SCALAR_LANE_COUNT
+        and final_snapshot_pids == preload_pids,
+        "throughput final pre-cleanup memory snapshot does not cover all preload PIDs",
+    )
+
     profile_integrity = [
         _mapping(row, f"throughput.resident_integrity[{index}]")
         for index, row in enumerate(
@@ -1942,6 +1976,15 @@ def _validate_throughput_profile_evidence(
         and free_after <= device_total
         and used_after == device_total - free_after,
         "throughput profile device free-headroom telemetry differs",
+    )
+    _require(
+        final_snapshot_totals == {device_total},
+        "throughput final pre-cleanup device memory totals differ",
+    )
+    _require(
+        free_after == min(final_snapshot_free),
+        "throughput device_free_after is not bound to the conservative final "
+        "pre-cleanup snapshot",
     )
 
     utilization_mean = statistics.fmean(utilization)
