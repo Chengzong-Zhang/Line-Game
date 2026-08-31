@@ -357,7 +357,7 @@ class ReproduciblePaperBuildTests(unittest.TestCase):
             receipt_bytes,
             builder._canonical_json_bytes(receipt),
         )
-        self.assertEqual(receipt["schema_version"], 2)
+        self.assertEqual(receipt["schema_version"], 3)
         self.assertEqual(receipt["input_tree"]["file_count"], 9)
         expected_tree_rows = b"".join(
             (
@@ -383,8 +383,22 @@ class ReproduciblePaperBuildTests(unittest.TestCase):
         self.assertFalse(receipt["scope_claims"]["scientific_claims_verified"])
         self.assertFalse(receipt["scope_claims"]["author_approval_verified"])
         self.assertFalse(receipt["scope_claims"]["submission_readiness_verified"])
-        self.assertTrue(
+        self.assertFalse(
             receipt["scope_claims"]["tex_runtime_dependency_closure_verified"]
+        )
+        self.assertFalse(
+            receipt["scope_claims"]["bibtex_runtime_input_closure_verified"]
+        )
+        self.assertTrue(
+            receipt["scope_claims"]["pdflatex_recorder_input_closure_verified"]
+        )
+        self.assertEqual(
+            receipt["scope_claims"]["pdflatex_recorder_input_closure_verified_scope"],
+            "pdflatex_recorder_INPUT_rows_across_every_latex_pass",
+        )
+        self.assertEqual(
+            receipt["scope_claims"]["tex_runtime_dependency_closure_verified_scope"],
+            "complete_pdflatex_and_bibtex_runtime_input_closure_not_verified",
         )
         self.assertTrue(receipt["scope_claims"]["subject_checkout_identity_verified"])
         self.assertTrue(receipt["scope_claims"]["subject_fixed_paper_inputs_verified"])
@@ -1105,6 +1119,12 @@ class ReproduciblePaperBuildTests(unittest.TestCase):
         self.assertIsNone(receipt["scope_claims"]["expected_pdf_sha256"])
         self.assertFalse(
             receipt["scope_claims"]["tex_runtime_dependency_closure_verified"]
+        )
+        self.assertFalse(
+            receipt["scope_claims"]["bibtex_runtime_input_closure_verified"]
+        )
+        self.assertFalse(
+            receipt["scope_claims"]["pdflatex_recorder_input_closure_verified"]
         )
 
     def test_existing_or_nested_output_is_rejected_before_subprocess(self) -> None:

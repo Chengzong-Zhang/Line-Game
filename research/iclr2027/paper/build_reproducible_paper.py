@@ -1865,7 +1865,7 @@ def build_paper(
         if record["root_role"] in MIKTEX_RUNTIME_ROOT_ROLES
     ]
     all_runtime_passes_parsed = len(runtime_passes) == post_bibtex_passes + 1
-    tex_runtime_dependency_closure_verified = (
+    pdflatex_recorder_input_closure_verified = (
         expected is not None
         and all_runtime_passes_parsed
         and source_rechecks >= 2
@@ -1919,9 +1919,10 @@ def build_paper(
             "sha256": input_tree_sha256,
         },
         "schema_name": "lifeline-iclr-paper-build-receipt",
-        "schema_version": 2,
+        "schema_version": 3,
         "scope_claims": {
             "author_approval_verified": False,
+            "bibtex_runtime_input_closure_verified": False,
             "build_tool_source_commit_binding_verified": (
                 "blob_oid" in git_subject["build_tool_source"]
             ),
@@ -1934,11 +1935,15 @@ def build_paper(
             "subject_checkout_identity_verified_scope": (
                 "nine_fixed_paper_inputs_only"
             ),
-            "tex_runtime_dependency_closure_verified": (
-                tex_runtime_dependency_closure_verified
+            "pdflatex_recorder_input_closure_verified": (
+                pdflatex_recorder_input_closure_verified
             ),
-            "tex_runtime_dependency_closure_verified_scope": (
+            "pdflatex_recorder_input_closure_verified_scope": (
                 "pdflatex_recorder_INPUT_rows_across_every_latex_pass"
+            ),
+            "tex_runtime_dependency_closure_verified": False,
+            "tex_runtime_dependency_closure_verified_scope": (
+                "complete_pdflatex_and_bibtex_runtime_input_closure_not_verified"
             ),
         },
         "subject": {
