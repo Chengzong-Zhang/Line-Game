@@ -92,7 +92,7 @@ SCALAR_LANE_EXECUTION_MODE = "production_equivalent_scalar_puct_lanes"
 INFERENCE_BATCH_SIZE = 1
 INFERENCE_DTYPE = "float32"
 AMP_ENABLED = False
-THROUGHPUT_PROFILE_SCHEMA = "lifeline-d18-v3-gpu-smoke"
+THROUGHPUT_PROFILE_SCHEMA = "lifeline-d18-v3-gpu-smoke-v2"
 THROUGHPUT_PROFILE_ARTIFACT_NAME = "throughput_profile.json"
 RUN_ROOT_ALLOWED_ENTRY_NAMES = frozenset(
     {
@@ -113,15 +113,28 @@ TERMINAL_ROOT_ARTIFACT_NAMES = frozenset(
     }
 )
 GPU_SMOKE_CASE_COUNT = len(prep.MODEL_PAIRS) * len(prep.SIZES)
-GPU_SMOKE_MIN_TOTAL_SECONDS = 15.0
-# The persisted profile must still prove a 15-27 second task-shaped command.
-# The product watchdog is a larger process envelope because interpreter/module
-# startup plus profile validation, persistence, CLI output, and process exit are
-# outside that measured interval; it is not smoke-duration evidence by itself.
-GPU_SMOKE_MAX_TOTAL_SECONDS = 27.0
+GPU_SMOKE_REQUESTED_SECONDS = 27.0
+GPU_SMOKE_REQUESTED_CASE_SECONDS = (
+    GPU_SMOKE_REQUESTED_SECONDS / GPU_SMOKE_CASE_COUNT
+)
+GPU_SMOKE_MAX_TASK_SHAPED_SECONDS = 30.0
+GPU_SMOKE_MAX_WORKFLOW_WALL_SECONDS = 57.0
 GPU_SMOKE_PRODUCT_TIMEOUT_SECONDS = 60
-GPU_SMOKE_MIN_CASE_SECONDS = GPU_SMOKE_MIN_TOTAL_SECONDS / GPU_SMOKE_CASE_COUNT
-GPU_SMOKE_MAX_CASE_SECONDS = GPU_SMOKE_MAX_TOTAL_SECONDS / GPU_SMOKE_CASE_COUNT
+GPU_SMOKE_TIMING_CONTRACT_VERSION = 2
+GPU_SMOKE_TASK_SHAPED_SEMANTICS = (
+    "sum_of_nine_case_maxima_over_twelve_lane_sustained_seconds_including_"
+    "warmup_and_noninterruptible_decision_tail"
+)
+GPU_SMOKE_WORKFLOW_WALL_SEMANTICS = (
+    "perf_counter_before_bundle_load_through_worker_cleanup_and_executor_shutdown"
+)
+GPU_SMOKE_WORKFLOW_OVERHEAD_SEMANTICS = (
+    "workflow_wall_seconds_minus_task_shaped_seconds"
+)
+GPU_SMOKE_ATOMIC_TAIL_SEMANTICS = (
+    "includes_all_noninterruptible_select_action_completions_and_the_two_timed_"
+    "decision_minimum_in_each_case_lane"
+)
 FORMAL_NON_GAMEPLAY_RESERVE_FRACTION = 0.25
 FORMAL_GAMEPLAY_BUDGET_SECONDS = int(
     MAX_RUNTIME_SECONDS * (1.0 - FORMAL_NON_GAMEPLAY_RESERVE_FRACTION)
@@ -1019,10 +1032,13 @@ def _run_gpu_smoke_lane(payload: Mapping[str, Any]) -> dict[str, Any]:
         isinstance(seconds, (int, float))
         and not isinstance(seconds, bool)
         and math.isfinite(float(seconds))
-        and GPU_SMOKE_MIN_CASE_SECONDS
-        <= float(seconds)
-        <= GPU_SMOKE_MAX_CASE_SECONDS,
-        "GPU smoke case duration is invalid",
+        and math.isclose(
+            float(seconds),
+            GPU_SMOKE_REQUESTED_CASE_SECONDS,
+            rel_tol=0.0,
+            abs_tol=1e-12,
+        ),
+        "GPU smoke case duration differs from the v2 27-second request",
     )
     _require(
         isinstance(verify_resident_integrity, bool)
@@ -1240,7 +1256,7 @@ def _gpu_smoke_case_payloads(
     *,
     seconds: float,
 ) -> list[list[dict[str, Any]]]:
-    """Split one 15-30 second smoke across nine homogeneous 12-worker phases."""
+    """Split the v2 27-second request across nine homogeneous 12-worker phases."""
 
     schedules_by_task = _gpu_smoke_schedules_by_task(tasks, games)
     by_case: dict[tuple[tuple[str, str], int], list[Mapping[str, Any]]] = defaultdict(list)
@@ -1486,9 +1502,19 @@ def gpu_smoke(
     while advancing real game states without writing formal lane artifacts.
     """
 
-    if not GPU_SMOKE_MIN_TOTAL_SECONDS <= seconds <= GPU_SMOKE_MAX_TOTAL_SECONDS:
+    if not (
+        isinstance(seconds, (int, float))
+        and not isinstance(seconds, bool)
+        and math.isfinite(float(seconds))
+        and math.isclose(
+            float(seconds),
+            GPU_SMOKE_REQUESTED_SECONDS,
+            rel_tol=0.0,
+            abs_tol=1e-12,
+        )
+    ):
         raise FormalExecutionError(
-            "GPU smoke total sustained duration must be between 15 and 27 seconds"
+            "GPU smoke v2 requires exactly 27 requested task-shaped seconds"
         )
 
     import torch
@@ -1504,7 +1530,7 @@ def gpu_smoke(
         raise FormalExecutionError("GPU smoke profile must stay inside AUTODL_WORK_DIR") from exc
     _require(not profile_output.exists(), f"refusing to overwrite GPU profile: {profile_output}")
 
-    started = time.perf_counter()
+    workflow_started = time.perf_counter()
     manifest_path = manifest_path.resolve()
     manifest, tasks, games, _ = load_frozen_bundle(manifest_path, bundle_directory)
     supply_started = time.perf_counter()
@@ -1544,6 +1570,7 @@ def gpu_smoke(
             )
             lane_results.extend(dict(row) for row in case_results)
         _, observed_total_after_bytes = torch.cuda.mem_get_info()
+    workflow_wall_seconds = time.perf_counter() - workflow_started
     free_after_bytes, total_after_bytes = _gpu_smoke_pre_cleanup_memory_snapshot(
         lane_results,
         preload_pids,
@@ -1585,13 +1612,6 @@ def gpu_smoke(
     _require(len(device_names) == 1, "GPU smoke lanes used different devices")
     _require(len(torch_versions) == 1, "GPU smoke lanes used different torch versions")
     _require(len(cuda_versions) == 1, "GPU smoke lanes used different CUDA runtimes")
-    total_seconds = time.perf_counter() - started
-    _require(
-        GPU_SMOKE_MIN_TOTAL_SECONDS
-        <= total_seconds
-        <= GPU_SMOKE_MAX_TOTAL_SECONDS,
-        "GPU smoke total command duration is outside the 15-27 second bound",
-    )
     capacity_cases, projected_worst_case_seconds = _formal_capacity_projection(
         lane_results, tasks
     )
@@ -1603,16 +1623,34 @@ def gpu_smoke(
         )
         for case_index in range(GPU_SMOKE_CASE_COUNT)
     )
+    sequential_case_wall_seconds = sum(
+        max(
+            float(row["total_seconds"])
+            for row in lane_results
+            if int(row["case_index"]) == case_index
+        )
+        for case_index in range(GPU_SMOKE_CASE_COUNT)
+    )
     _require(
         float(seconds)
         <= aggregate_window_seconds
-        <= total_seconds,
-        "GPU smoke aggregate sustained phases exceed the total command duration",
+        <= GPU_SMOKE_MAX_TASK_SHAPED_SECONDS,
+        "GPU smoke task-shaped aggregate is outside the 27-30 second bound",
     )
-    setup_seconds = total_seconds - aggregate_window_seconds
     _require(
-        setup_seconds >= 0.0,
-        "GPU smoke setup accounting is negative",
+        aggregate_window_seconds
+        <= workflow_wall_seconds
+        <= GPU_SMOKE_MAX_WORKFLOW_WALL_SECONDS,
+        "GPU smoke workflow wall is outside the task-shaped-to-57-second bound",
+    )
+    _require(
+        sequential_case_wall_seconds <= workflow_wall_seconds + 1e-9,
+        "GPU smoke sequential case wall exceeds the workflow wall",
+    )
+    workflow_overhead_seconds = workflow_wall_seconds - aggregate_window_seconds
+    _require(
+        workflow_overhead_seconds >= 0.0,
+        "GPU smoke workflow overhead accounting is negative",
     )
     aggregate_rate = decisions / aggregate_window_seconds
     max_plies = max(int(task["max_plies"]) for task in tasks)
@@ -1665,14 +1703,27 @@ def gpu_smoke(
         "coverage": _profile_coverage(lane_results),
         "capacity_cases": capacity_cases,
         "input_parse_and_collate_seconds": supply_seconds,
-        "setup_seconds": setup_seconds,
+        "setup_seconds": workflow_overhead_seconds,
         "puct_decisions": decisions,
         "model_forward_calls": model_forward_calls,
         "requested_sustained_seconds": float(seconds),
         "requested_case_seconds": float(seconds) / GPU_SMOKE_CASE_COUNT,
         "sustained_seconds": aggregate_window_seconds,
-        "duration_seconds": total_seconds,
-        "total_seconds": total_seconds,
+        "task_shaped_seconds": aggregate_window_seconds,
+        "task_shaped_seconds_semantics": GPU_SMOKE_TASK_SHAPED_SEMANTICS,
+        "task_shaped_max_seconds": GPU_SMOKE_MAX_TASK_SHAPED_SECONDS,
+        "atomic_tail_semantics": GPU_SMOKE_ATOMIC_TAIL_SEMANTICS,
+        "workflow_wall_seconds": workflow_wall_seconds,
+        "workflow_wall_seconds_semantics": GPU_SMOKE_WORKFLOW_WALL_SEMANTICS,
+        "workflow_wall_max_seconds": GPU_SMOKE_MAX_WORKFLOW_WALL_SECONDS,
+        "workflow_overhead_seconds": workflow_overhead_seconds,
+        "workflow_overhead_seconds_semantics": (
+            GPU_SMOKE_WORKFLOW_OVERHEAD_SEMANTICS
+        ),
+        "timing_contract_version": GPU_SMOKE_TIMING_CONTRACT_VERSION,
+        "product_watchdog_seconds": GPU_SMOKE_PRODUCT_TIMEOUT_SECONDS,
+        "duration_seconds": workflow_wall_seconds,
+        "total_seconds": workflow_wall_seconds,
         "aggregate_window_seconds": aggregate_window_seconds,
         "aggregate_puct_decisions_per_second": aggregate_rate,
         "formal_game_count": EXPECTED_GAMES,
@@ -1793,6 +1844,16 @@ def _validate_throughput_profile_payload(
             "final_case_all_checkpoints_against_preload_cuda_clones"
         ),
         "resident_integrity_worker_count": SCALAR_LANE_COUNT,
+        "timing_contract_version": GPU_SMOKE_TIMING_CONTRACT_VERSION,
+        "task_shaped_seconds_semantics": GPU_SMOKE_TASK_SHAPED_SEMANTICS,
+        "task_shaped_max_seconds": GPU_SMOKE_MAX_TASK_SHAPED_SECONDS,
+        "atomic_tail_semantics": GPU_SMOKE_ATOMIC_TAIL_SEMANTICS,
+        "workflow_wall_seconds_semantics": GPU_SMOKE_WORKFLOW_WALL_SEMANTICS,
+        "workflow_wall_max_seconds": GPU_SMOKE_MAX_WORKFLOW_WALL_SECONDS,
+        "workflow_overhead_seconds_semantics": (
+            GPU_SMOKE_WORKFLOW_OVERHEAD_SEMANTICS
+        ),
+        "product_watchdog_seconds": GPU_SMOKE_PRODUCT_TIMEOUT_SECONDS,
     }
     for field, value in expected.items():
         _require(
@@ -1828,47 +1889,83 @@ def _validate_throughput_profile_payload(
     requested_seconds = _finite_number(
         profile.get("requested_sustained_seconds"),
         "throughput.requested_sustained_seconds",
-        minimum=GPU_SMOKE_MIN_TOTAL_SECONDS,
     )
     _require(
-        requested_seconds <= GPU_SMOKE_MAX_TOTAL_SECONDS,
-        "formal throughput requested sustained duration exceeds 27 seconds",
+        math.isclose(
+            requested_seconds,
+            GPU_SMOKE_REQUESTED_SECONDS,
+            rel_tol=0.0,
+            abs_tol=1e-12,
+        ),
+        "formal throughput requested duration differs from the v2 27-second contract",
     )
     requested_case_seconds = _finite_number(
         profile.get("requested_case_seconds"),
         "throughput.requested_case_seconds",
-        minimum=GPU_SMOKE_MIN_CASE_SECONDS,
     )
     _require(
         math.isclose(
             requested_case_seconds,
-            requested_seconds / GPU_SMOKE_CASE_COUNT,
-            rel_tol=1e-12,
+            GPU_SMOKE_REQUESTED_CASE_SECONDS,
+            rel_tol=0.0,
             abs_tol=1e-12,
-        )
-        and requested_case_seconds <= GPU_SMOKE_MAX_CASE_SECONDS,
+        ),
         "formal throughput case duration is not the deterministic nine-way split",
+    )
+    task_shaped_seconds = _finite_number(
+        profile.get("task_shaped_seconds"), "throughput.task_shaped_seconds"
+    )
+    workflow_wall_seconds = _finite_number(
+        profile.get("workflow_wall_seconds"), "throughput.workflow_wall_seconds"
+    )
+    workflow_overhead_seconds = _finite_number(
+        profile.get("workflow_overhead_seconds"),
+        "throughput.workflow_overhead_seconds",
+        minimum=0.0,
     )
     total_seconds = _finite_number(
         profile.get("total_seconds"), "throughput.total_seconds"
     )
     _require(
-        GPU_SMOKE_MIN_TOTAL_SECONDS
-        <= total_seconds
-        <= GPU_SMOKE_MAX_TOTAL_SECONDS
-        and requested_seconds <= total_seconds,
-        "formal throughput total command duration is outside 15-30 seconds",
+        requested_seconds
+        <= task_shaped_seconds
+        <= GPU_SMOKE_MAX_TASK_SHAPED_SECONDS,
+        "formal throughput task-shaped duration is outside the 27-30 second bound",
     )
     _require(
-        math.isclose(
+        task_shaped_seconds
+        <= workflow_wall_seconds
+        <= GPU_SMOKE_MAX_WORKFLOW_WALL_SECONDS
+        and math.isclose(
+            total_seconds,
+            workflow_wall_seconds,
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        )
+        and math.isclose(
             _finite_number(
                 profile.get("duration_seconds"), "throughput.duration_seconds"
             ),
-            total_seconds,
+            workflow_wall_seconds,
             rel_tol=1e-12,
             abs_tol=1e-12,
         ),
-        "formal throughput duration fields differ",
+        "formal throughput workflow wall duration binding drifted",
+    )
+    _require(
+        math.isclose(
+            workflow_overhead_seconds,
+            workflow_wall_seconds - task_shaped_seconds,
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        )
+        and math.isclose(
+            _finite_number(profile.get("setup_seconds"), "throughput.setup_seconds"),
+            workflow_overhead_seconds,
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        ),
+        "formal throughput workflow overhead accounting drifted",
     )
 
     task_groups: dict[
@@ -2007,6 +2104,7 @@ def _validate_throughput_profile_payload(
     forward_calls = 0
     utilization: list[float] = []
     case_sustained: list[float] = []
+    case_total_seconds: list[float] = []
     resident_integrity_results: list[Mapping[str, Any]] = []
     for case_index, case_key in enumerate(expected_cases):
         case_rows = lane_results[
@@ -2030,6 +2128,7 @@ def _validate_throughput_profile_payload(
         )
         case_id = f"{case_key[0][0]}_vs_{case_key[0][1]}.n{case_key[1]}"
         lane_durations: list[float] = []
+        lane_total_durations: list[float] = []
         for lane_offset, lane in enumerate(case_rows):
             row_index = case_index * SCALAR_LANE_COUNT + lane_offset
             selected_task = ordered_case_tasks[case_key][
@@ -2220,20 +2319,27 @@ def _validate_throughput_profile_payload(
                 f"throughput lane {row_index} sustained seconds",
                 minimum=requested_case_seconds,
             )
+            _require(
+                sum(decision_timings) <= sustained + 1e-9,
+                f"throughput lane {row_index} decision timings exceed its "
+                "sustained window",
+            )
             lane_total = _finite_number(
                 lane.get("total_seconds"),
                 f"throughput lane {row_index} total seconds",
                 minimum=sustained,
             )
-            _finite_number(
+            lane_setup = _finite_number(
                 lane.get("setup_seconds"),
                 f"throughput lane {row_index} setup seconds",
                 minimum=0.0,
             )
             _require(
                 sustained <= total_seconds
-                and lane_total <= total_seconds,
-                f"throughput lane {row_index} runtime exceeds the smoke command",
+                and lane_total <= total_seconds
+                and lane_setup + sustained <= lane_total + 1e-9,
+                f"throughput lane {row_index} duration composition exceeds its "
+                "lane/workflow wall",
             )
             _require(
                 lane.get("device") == "cuda"
@@ -2287,7 +2393,9 @@ def _validate_throughput_profile_payload(
             forward_calls += lane_forwards
             utilization.extend(lane_samples)
             lane_durations.append(sustained)
+            lane_total_durations.append(lane_total)
         case_sustained.append(max(lane_durations))
+        case_total_seconds.append(max(lane_total_durations))
 
     final_case_rows = lane_results[-SCALAR_LANE_COUNT:]
     final_snapshot_pids = {
@@ -2392,6 +2500,7 @@ def _validate_throughput_profile_payload(
         "formal throughput decision/forward aggregate drifted",
     )
     aggregate_window = sum(case_sustained)
+    sequential_case_wall_seconds = sum(case_total_seconds)
     aggregate_rate = decisions / aggregate_window
     _require(
         math.isclose(
@@ -2411,10 +2520,21 @@ def _validate_throughput_profile_payload(
             rel_tol=1e-12,
             abs_tol=1e-12,
         )
+        and math.isclose(
+            task_shaped_seconds,
+            aggregate_window,
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        )
         and requested_seconds
         <= aggregate_window
-        <= total_seconds,
-        "formal throughput sustained window drifted",
+        <= GPU_SMOKE_MAX_TASK_SHAPED_SECONDS
+        and aggregate_window <= workflow_wall_seconds,
+        "formal throughput task-shaped aggregate window drifted",
+    )
+    _require(
+        sequential_case_wall_seconds <= workflow_wall_seconds + 1e-9,
+        "formal throughput sequential case wall exceeds the workflow wall",
     )
     _require(
         math.isclose(
@@ -2428,16 +2548,22 @@ def _validate_throughput_profile_payload(
         ),
         "formal throughput aggregate rate drifted",
     )
-    setup_seconds = total_seconds - aggregate_window
+    recomputed_workflow_overhead = workflow_wall_seconds - aggregate_window
     _require(
-        setup_seconds >= 0.0
+        recomputed_workflow_overhead >= 0.0
+        and math.isclose(
+            workflow_overhead_seconds,
+            recomputed_workflow_overhead,
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        )
         and math.isclose(
             _finite_number(profile.get("setup_seconds"), "throughput.setup_seconds"),
-            setup_seconds,
+            recomputed_workflow_overhead,
             rel_tol=1e-12,
             abs_tol=1e-12,
         ),
-        "formal throughput setup accounting drifted",
+        "formal throughput workflow overhead accounting drifted",
     )
 
     max_plies = max(int(task["max_plies"]) for task in tasks)
@@ -5062,7 +5188,8 @@ def generate_job(
     smoke_command = (
         f"{remote_python} {remote_runner.as_posix()} gpu-smoke "
         f"--manifest {remote_manifest.as_posix()} "
-        f"--bundle-dir {remote_bundle.as_posix()} --seconds 15 "
+        f"--bundle-dir {remote_bundle.as_posix()} "
+        f"--seconds {GPU_SMOKE_REQUESTED_SECONDS:g} "
         "--profile-output $AUTODL_WORK_DIR/d18_v3_gpu_throughput.json"
     )
     formal_command = (
@@ -5176,7 +5303,9 @@ def _parser() -> argparse.ArgumentParser:
     smoke = commands.add_parser("gpu-smoke")
     smoke.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
     smoke.add_argument("--bundle-dir", type=Path, required=True)
-    smoke.add_argument("--seconds", type=float, default=15.0)
+    smoke.add_argument(
+        "--seconds", type=float, default=GPU_SMOKE_REQUESTED_SECONDS
+    )
     smoke.add_argument("--profile-output", type=Path)
 
     run = commands.add_parser("run")

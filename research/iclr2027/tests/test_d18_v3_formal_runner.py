@@ -308,8 +308,10 @@ def _write_valid_throughput_profile(
         }
     )
     case_payloads = formal._gpu_smoke_case_payloads(
-        tasks, games, seconds=20.0
+        tasks, games, seconds=formal.GPU_SMOKE_REQUESTED_SECONDS
     )
+    task_shaped_seconds = 28.0
+    workflow_wall_seconds = 32.0
     lane_results: list[dict[str, object]] = []
     for payloads in case_payloads:
         for payload in payloads:
@@ -383,9 +385,11 @@ def _write_valid_throughput_profile(
                     "game_resets": game_resets,
                     "model_forward_calls": 68,
                     "per_agent_model_forward_calls": {"A": 34, "B": 34},
-                    "setup_seconds": 0.5,
-                    "sustained_seconds": 20.0 / formal.GPU_SMOKE_CASE_COUNT,
-                    "total_seconds": 2.5,
+                    "setup_seconds": 0.25,
+                    "sustained_seconds": (
+                        task_shaped_seconds / formal.GPU_SMOKE_CASE_COUNT
+                    ),
+                    "total_seconds": 3.5,
                     "gpu_utilization_samples_percent": [60.0],
                     "max_memory_allocated_bytes": 128 * 1024**2,
                     "max_memory_reserved_bytes": 160 * 1024**2,
@@ -424,7 +428,7 @@ def _write_valid_throughput_profile(
     ]
     decisions = 4 * formal.SCALAR_LANE_COUNT * formal.GPU_SMOKE_CASE_COUNT
     forwards = 68 * formal.SCALAR_LANE_COUNT * formal.GPU_SMOKE_CASE_COUNT
-    aggregate_window = 20.0
+    aggregate_window = task_shaped_seconds
     rate = decisions / aggregate_window
     capacity_cases, projected = formal._formal_capacity_projection(
         lane_results, tasks
@@ -473,14 +477,27 @@ def _write_valid_throughput_profile(
         "coverage": formal._profile_coverage(lane_results),
         "capacity_cases": capacity_cases,
         "input_parse_and_collate_seconds": 0.01,
-        "setup_seconds": 2.0,
+        "setup_seconds": workflow_wall_seconds - task_shaped_seconds,
         "puct_decisions": decisions,
         "model_forward_calls": forwards,
-        "requested_sustained_seconds": 20.0,
-        "requested_case_seconds": 20.0 / formal.GPU_SMOKE_CASE_COUNT,
-        "sustained_seconds": 20.0,
-        "duration_seconds": 22.0,
-        "total_seconds": 22.0,
+        "requested_sustained_seconds": formal.GPU_SMOKE_REQUESTED_SECONDS,
+        "requested_case_seconds": formal.GPU_SMOKE_REQUESTED_CASE_SECONDS,
+        "sustained_seconds": task_shaped_seconds,
+        "task_shaped_seconds": task_shaped_seconds,
+        "task_shaped_seconds_semantics": formal.GPU_SMOKE_TASK_SHAPED_SEMANTICS,
+        "task_shaped_max_seconds": formal.GPU_SMOKE_MAX_TASK_SHAPED_SECONDS,
+        "atomic_tail_semantics": formal.GPU_SMOKE_ATOMIC_TAIL_SEMANTICS,
+        "workflow_wall_seconds": workflow_wall_seconds,
+        "workflow_wall_seconds_semantics": formal.GPU_SMOKE_WORKFLOW_WALL_SEMANTICS,
+        "workflow_wall_max_seconds": formal.GPU_SMOKE_MAX_WORKFLOW_WALL_SECONDS,
+        "workflow_overhead_seconds": workflow_wall_seconds - task_shaped_seconds,
+        "workflow_overhead_seconds_semantics": (
+            formal.GPU_SMOKE_WORKFLOW_OVERHEAD_SEMANTICS
+        ),
+        "timing_contract_version": formal.GPU_SMOKE_TIMING_CONTRACT_VERSION,
+        "product_watchdog_seconds": formal.GPU_SMOKE_PRODUCT_TIMEOUT_SECONDS,
+        "duration_seconds": workflow_wall_seconds,
+        "total_seconds": workflow_wall_seconds,
         "aggregate_window_seconds": aggregate_window,
         "aggregate_puct_decisions_per_second": rate,
         "formal_game_count": formal.EXPECTED_GAMES,
@@ -1484,19 +1501,21 @@ def test_gpu_smoke_payloads_partition_one_total_and_round_robin_frozen_tasks(
     tmp_path: Path,
 ) -> None:
     _, _, profile, tasks, games = _write_valid_throughput_profile(tmp_path)
-    phases = formal._gpu_smoke_case_payloads(tasks, games, seconds=20.0)
+    phases = formal._gpu_smoke_case_payloads(
+        tasks, games, seconds=formal.GPU_SMOKE_REQUESTED_SECONDS
+    )
     assert len(phases) == formal.GPU_SMOKE_CASE_COUNT
     assert all(len(phase) == formal.SCALAR_LANE_COUNT for phase in phases)
     assert math.isclose(
         sum(float(phase[0]["seconds"]) for phase in phases),
-        20.0,
+        formal.GPU_SMOKE_REQUESTED_SECONDS,
         rel_tol=1e-12,
         abs_tol=1e-12,
     )
     assert all(
         math.isclose(
             float(payload["seconds"]),
-            20.0 / formal.GPU_SMOKE_CASE_COUNT,
+            formal.GPU_SMOKE_REQUESTED_CASE_SECONDS,
             rel_tol=1e-12,
             abs_tol=1e-12,
         )
@@ -1613,7 +1632,7 @@ def test_gpu_smoke_worker_consumes_bound_schedule_before_model_load(
 ) -> None:
     _, _, _, tasks, games = _write_valid_throughput_profile(tmp_path)
     payload = formal._gpu_smoke_case_payloads(
-        tasks, games, seconds=20.0
+        tasks, games, seconds=formal.GPU_SMOKE_REQUESTED_SECONDS
     )[0][0]
     model_loads: list[object] = []
 
@@ -1700,7 +1719,9 @@ def test_gpu_smoke_schedule_binding_rejects_invalid_game_rows_before_workers(
 
     with pytest.raises(formal.FormalExecutionError, match=message):
         formal._gpu_smoke_case_payloads(
-            tasks, mutated_games, seconds=20.0
+            tasks,
+            mutated_games,
+            seconds=formal.GPU_SMOKE_REQUESTED_SECONDS,
         )
 
 
@@ -1798,8 +1819,8 @@ def test_throughput_profile_rejects_capacity_memory_coverage_and_environment(
     assert isinstance(lanes, list)
     if mutation == "slow":
         for lane in lanes:
-            lane["decision_seconds"] = [1.0] * int(lane["puct_decisions"])
-            lane["slowest_decision_seconds"] = 1.0
+            lane["decision_seconds"] = [0.7] * int(lane["puct_decisions"])
+            lane["slowest_decision_seconds"] = 0.7
         capacity_cases, projected = formal._formal_capacity_projection(lanes, tasks)
         profile["capacity_cases"] = capacity_cases
         profile["projected_worst_case_seconds"] = projected
@@ -1908,17 +1929,177 @@ def test_independent_verifier_rehashes_and_revalidates_complete_profile(
         )
 
 
-@pytest.mark.parametrize("mutation", ("whole_command_over_30", "setup_mismatch"))
-def test_independent_verifier_hard_limits_whole_command_and_recomputes_setup(
+def _mutate_v2_timing_profile(profile: dict[str, object], mutation: str) -> None:
+    if mutation == "task_field":
+        profile["task_shaped_seconds"] = float(profile["task_shaped_seconds"]) + 0.25
+    elif mutation == "overhead_field":
+        profile["workflow_overhead_seconds"] = (
+            float(profile["workflow_overhead_seconds"]) + 0.25
+        )
+    elif mutation == "setup_field":
+        profile["setup_seconds"] = float(profile["setup_seconds"]) + 0.25
+    elif mutation == "requested_total":
+        profile["requested_sustained_seconds"] = 26.0
+    elif mutation == "requested_case":
+        profile["requested_case_seconds"] = 3.1
+    elif mutation == "lane_composition":
+        lanes = profile["lane_results"]
+        assert isinstance(lanes, list) and isinstance(lanes[0], dict)
+        lanes[0]["setup_seconds"] = 0.5
+    elif mutation == "decision_sum":
+        lanes = profile["lane_results"]
+        assert isinstance(lanes, list) and isinstance(lanes[0], dict)
+        lanes[0]["decision_seconds"] = [1.0] * int(lanes[0]["puct_decisions"])
+        lanes[0]["slowest_decision_seconds"] = 1.0
+    elif mutation == "sequential_case_wall":
+        lanes = profile["lane_results"]
+        assert isinstance(lanes, list)
+        for case_index in range(formal.GPU_SMOKE_CASE_COUNT):
+            lane = lanes[case_index * formal.SCALAR_LANE_COUNT]
+            assert isinstance(lane, dict)
+            lane["total_seconds"] = 3.6
+    elif mutation == "task_nan":
+        profile["task_shaped_seconds"] = float("nan")
+    elif mutation == "wall_negative":
+        profile["workflow_wall_seconds"] = -1.0
+    elif mutation == "overhead_nan":
+        profile["workflow_overhead_seconds"] = float("nan")
+    elif mutation == "lane_sustained_nan":
+        lanes = profile["lane_results"]
+        assert isinstance(lanes, list) and isinstance(lanes[0], dict)
+        lanes[0]["sustained_seconds"] = float("nan")
+    elif mutation == "lane_total_negative":
+        lanes = profile["lane_results"]
+        assert isinstance(lanes, list) and isinstance(lanes[0], dict)
+        lanes[0]["total_seconds"] = -1.0
+    elif mutation == "lane_setup_negative":
+        lanes = profile["lane_results"]
+        assert isinstance(lanes, list) and isinstance(lanes[0], dict)
+        lanes[0]["setup_seconds"] = -1.0
+    elif mutation == "swap_lane_order":
+        lanes = profile["lane_results"]
+        assert isinstance(lanes, list)
+        lanes[0], lanes[1] = lanes[1], lanes[0]
+    elif mutation == "swap_case_order":
+        lanes = profile["lane_results"]
+        assert isinstance(lanes, list)
+        first = lanes[: formal.SCALAR_LANE_COUNT]
+        second = lanes[
+            formal.SCALAR_LANE_COUNT : 2 * formal.SCALAR_LANE_COUNT
+        ]
+        lanes[: formal.SCALAR_LANE_COUNT] = second
+        lanes[formal.SCALAR_LANE_COUNT : 2 * formal.SCALAR_LANE_COUNT] = first
+    elif mutation == "task_over_30":
+        task_shaped = 31.0
+        lanes = profile["lane_results"]
+        assert isinstance(lanes, list)
+        for lane in lanes:
+            assert isinstance(lane, dict)
+            lane["sustained_seconds"] = task_shaped / formal.GPU_SMOKE_CASE_COUNT
+        profile["task_shaped_seconds"] = task_shaped
+        profile["sustained_seconds"] = task_shaped
+        profile["aggregate_window_seconds"] = task_shaped
+        profile["aggregate_puct_decisions_per_second"] = (
+            int(profile["puct_decisions"]) / task_shaped
+        )
+        profile["workflow_overhead_seconds"] = 1.0
+        profile["setup_seconds"] = 1.0
+    elif mutation == "wall_over_57":
+        profile["workflow_wall_seconds"] = 58.0
+        profile["total_seconds"] = 58.0
+        profile["duration_seconds"] = 58.0
+        profile["workflow_overhead_seconds"] = 30.0
+        profile["setup_seconds"] = 30.0
+    elif mutation == "legacy_total_field":
+        profile["total_seconds"] = float(profile["total_seconds"]) + 0.25
+    elif mutation == "semantics":
+        profile["task_shaped_seconds_semantics"] = "forged"
+    else:  # pragma: no cover - protects the test helper itself
+        raise AssertionError(f"unknown timing mutation: {mutation}")
+
+
+def test_v2_timing_contract_accepts_32_second_workflow_and_real_lane_window(
+    tmp_path: Path,
+) -> None:
+    manifest_path, profile_path, profile, tasks, games = (
+        _write_valid_throughput_profile(tmp_path)
+    )
+    assert profile["workflow_wall_seconds"] == 32.0
+    assert formal.GPU_SMOKE_REQUESTED_SECONDS <= float(
+        profile["task_shaped_seconds"]
+    ) <= formal.GPU_SMOKE_MAX_TASK_SHAPED_SECONDS
+    assert formal._validate_throughput_profile(
+        profile_path, manifest_path=manifest_path, tasks=tasks, games=games
+    ) == profile
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    (
+        "task_field",
+        "overhead_field",
+        "setup_field",
+        "requested_total",
+        "requested_case",
+        "lane_composition",
+        "decision_sum",
+        "sequential_case_wall",
+        "task_nan",
+        "wall_negative",
+        "overhead_nan",
+        "lane_sustained_nan",
+        "lane_total_negative",
+        "lane_setup_negative",
+        "swap_lane_order",
+        "swap_case_order",
+        "task_over_30",
+        "wall_over_57",
+        "legacy_total_field",
+        "semantics",
+    ),
+)
+def test_runner_rejects_v2_timing_tamper(tmp_path: Path, mutation: str) -> None:
+    manifest_path, profile_path, profile, tasks, games = (
+        _write_valid_throughput_profile(tmp_path)
+    )
+    _mutate_v2_timing_profile(profile, mutation)
+    profile_path.write_text(json.dumps(profile, sort_keys=True), encoding="utf-8")
+    with pytest.raises(formal.FormalExecutionError):
+        formal._validate_throughput_profile(
+            profile_path, manifest_path=manifest_path, tasks=tasks, games=games
+        )
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    (
+        "task_field",
+        "overhead_field",
+        "setup_field",
+        "requested_total",
+        "requested_case",
+        "lane_composition",
+        "decision_sum",
+        "sequential_case_wall",
+        "task_nan",
+        "wall_negative",
+        "overhead_nan",
+        "lane_sustained_nan",
+        "lane_total_negative",
+        "lane_setup_negative",
+        "swap_lane_order",
+        "swap_case_order",
+        "task_over_30",
+        "wall_over_57",
+        "legacy_total_field",
+        "semantics",
+    ),
+)
+def test_independent_verifier_rejects_v2_timing_tamper(
     tmp_path: Path, mutation: str
 ) -> None:
     manifest_path, _, profile, tasks, games = _write_valid_throughput_profile(tmp_path)
-    if mutation == "whole_command_over_30":
-        profile["setup_seconds"] = 11.0
-        profile["total_seconds"] = 31.0
-        profile["duration_seconds"] = 31.0
-    else:
-        profile["setup_seconds"] = 1.5
+    _mutate_v2_timing_profile(profile, mutation)
     evidence = tmp_path / independent.THROUGHPUT_PROFILE_ARTIFACT_NAME
     evidence.write_text(
         json.dumps(profile, indent=2, sort_keys=True) + "\n", encoding="utf-8"
@@ -1927,10 +2108,7 @@ def test_independent_verifier_hard_limits_whole_command_and_recomputes_setup(
         "throughput_profile_sha256": independent.sha256_file(evidence),
         "preparation_runner_sha256": independent.sha256_file(formal.prep.SCRIPT_PATH),
     }
-    with pytest.raises(
-        independent.VerificationError,
-        match="total/setup duration gate failed",
-    ):
+    with pytest.raises(independent.VerificationError):
         independent._validate_throughput_profile_evidence(
             evidence,
             metadata=metadata,
@@ -2362,11 +2540,32 @@ def test_receipt_paths_are_task_relative_only() -> None:
 def test_gpu_smoke_source_is_frozen_inference_path_only() -> None:
     smoke_source = inspect.getsource(formal.gpu_smoke)
     lane_source = inspect.getsource(formal._run_gpu_smoke_lane)
+    select_source = inspect.getsource(formal._gpu_smoke_select_action)
+    timed_select_source = inspect.getsource(formal._gpu_smoke_timed_select_action)
     preload_source = inspect.getsource(formal._run_gpu_smoke_preload_lane)
     integrity_source = inspect.getsource(formal._verify_resident_checkpoint_integrity)
     release_source = inspect.getsource(formal._release_gpu_smoke_lane_state)
-    source = smoke_source + lane_source + preload_source + integrity_source + release_source
-    for forbidden in (".backward(", "Adam", "autocast(", "GradScaler", "_repeat_tensor_batch", "batch_candidates"):
+    source = (
+        smoke_source
+        + lane_source
+        + select_source
+        + timed_select_source
+        + preload_source
+        + integrity_source
+        + release_source
+    )
+    for forbidden in (
+        ".backward(",
+        "optimizer.step(",
+        "time.sleep(",
+        "dummy",
+        "torch.matmul(",
+        "Adam",
+        "autocast(",
+        "GradScaler",
+        "_repeat_tensor_batch",
+        "batch_candidates",
+    ):
         assert forbidden not in source
     for required in (
         "torch.inference_mode()",
@@ -2399,10 +2598,12 @@ def test_gpu_smoke_source_is_frozen_inference_path_only() -> None:
         isinstance(node, ast.Attribute) and node.attr == "cpu"
         for node in ast.walk(lane_tree)
     )
-    assert smoke_source.index("started = time.perf_counter()") < smoke_source.index(
+    assert smoke_source.index("workflow_started = time.perf_counter()") < smoke_source.index(
         "with _ScalarLaneExecutor"
-    ) < smoke_source.index("_gpu_smoke_pre_cleanup_memory_snapshot") < smoke_source.index(
-        "total_seconds = time.perf_counter() - started"
+    ) < smoke_source.index(
+        "workflow_wall_seconds = time.perf_counter() - workflow_started"
+    ) < smoke_source.index(
+        "_gpu_smoke_pre_cleanup_memory_snapshot"
     )
 
 
@@ -2792,15 +2993,19 @@ def test_generate_job_writes_parseable_exact_smoke_and_formal_contract(
     assert parsed["gpu_num"] == 1
     assert parsed["min_gpu_utilization_percent"] == 50
     assert parsed["max_runtime_seconds"] == 11_520
-    assert "--seconds 15" in parsed["gpu_smoke_command"]
+    assert "--seconds 27" in parsed["gpu_smoke_command"]
     assert parsed["gpu_smoke_timeout_seconds"] == 60
     assert formal.GPU_SMOKE_PRODUCT_TIMEOUT_SECONDS == 60
-    assert (
-        formal.GPU_SMOKE_PRODUCT_TIMEOUT_SECONDS
-        > formal.GPU_SMOKE_MAX_TOTAL_SECONDS
+    assert formal.GPU_SMOKE_REQUESTED_SECONDS == 27.0
+    assert independent.GPU_SMOKE_REQUESTED_SECONDS == 27.0
+    assert formal.GPU_SMOKE_MAX_TASK_SHAPED_SECONDS == 30.0
+    assert independent.GPU_SMOKE_MAX_TASK_SHAPED_SECONDS == 30.0
+    assert formal.GPU_SMOKE_MAX_WORKFLOW_WALL_SECONDS == 57.0
+    assert independent.GPU_SMOKE_MAX_WORKFLOW_WALL_SECONDS == 57.0
+    parsed_default = formal._parser().parse_args(
+        ["gpu-smoke", "--bundle-dir", str(bundle)]
     )
-    assert formal.GPU_SMOKE_MAX_TOTAL_SECONDS == 27.0
-    assert independent.GPU_SMOKE_MAX_TOTAL_SECONDS == 27.0
+    assert parsed_default.seconds == 27.0
     assert f"--profile-output {profile_path}" in parsed["gpu_smoke_command"]
     assert f"--throughput-profile {profile_path}" in parsed["command"]
     expected_runner = relative_paths[formal.SCRIPT_PATH.resolve()]

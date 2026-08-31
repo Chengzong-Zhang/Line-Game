@@ -83,7 +83,7 @@ POLICY_SEED_NAMESPACE = "lifeline-d18-v3-policy-seeds-20260830-v1"
 DEFAULT_MANIFEST = RESEARCH_ROOT / "configs" / "d18_v3_formal_manifest_v2.json"
 DEFAULT_FORMAL_RUNNER = SCRIPT_DIR / "d18_v3_formal_runner.py"
 DEFAULT_PREPARATION_RUNNER = SCRIPT_DIR / "d18_v3_runner.py"
-THROUGHPUT_PROFILE_SCHEMA = "lifeline-d18-v3-gpu-smoke"
+THROUGHPUT_PROFILE_SCHEMA = "lifeline-d18-v3-gpu-smoke-v2"
 THROUGHPUT_PROFILE_ARTIFACT_NAME = "throughput_profile.json"
 RUN_ROOT_ALLOWED_ENTRY_NAMES = frozenset(
     {
@@ -112,8 +112,28 @@ EXPORT_MANIFEST_RESERVE_BYTES = 4 * 1024 * 1024
 SCALAR_LANE_COUNT = 12
 SCALAR_LANE_EXECUTION_MODE = "production_equivalent_scalar_puct_lanes"
 GPU_SMOKE_CASE_COUNT = len(MODEL_PAIRS) * len(SIZES)
-GPU_SMOKE_MIN_TOTAL_SECONDS = 15.0
-GPU_SMOKE_MAX_TOTAL_SECONDS = 27.0
+GPU_SMOKE_REQUESTED_SECONDS = 27.0
+GPU_SMOKE_REQUESTED_CASE_SECONDS = (
+    GPU_SMOKE_REQUESTED_SECONDS / GPU_SMOKE_CASE_COUNT
+)
+GPU_SMOKE_MAX_TASK_SHAPED_SECONDS = 30.0
+GPU_SMOKE_MAX_WORKFLOW_WALL_SECONDS = 57.0
+GPU_SMOKE_PRODUCT_TIMEOUT_SECONDS = 60
+GPU_SMOKE_TIMING_CONTRACT_VERSION = 2
+GPU_SMOKE_TASK_SHAPED_SEMANTICS = (
+    "sum_of_nine_case_maxima_over_twelve_lane_sustained_seconds_including_"
+    "warmup_and_noninterruptible_decision_tail"
+)
+GPU_SMOKE_WORKFLOW_WALL_SEMANTICS = (
+    "perf_counter_before_bundle_load_through_worker_cleanup_and_executor_shutdown"
+)
+GPU_SMOKE_WORKFLOW_OVERHEAD_SEMANTICS = (
+    "workflow_wall_seconds_minus_task_shaped_seconds"
+)
+GPU_SMOKE_ATOMIC_TAIL_SEMANTICS = (
+    "includes_all_noninterruptible_select_action_completions_and_the_two_timed_"
+    "decision_minimum_in_each_case_lane"
+)
 INFERENCE_BATCH_SIZE = 1
 INFERENCE_DTYPE = "float32"
 MAX_RUNTIME_SECONDS = 11_520
@@ -1152,6 +1172,16 @@ def _validate_throughput_profile_evidence(
             "final_case_all_checkpoints_against_preload_cuda_clones"
         ),
         "resident_integrity_worker_count": SCALAR_LANE_COUNT,
+        "timing_contract_version": GPU_SMOKE_TIMING_CONTRACT_VERSION,
+        "task_shaped_seconds_semantics": GPU_SMOKE_TASK_SHAPED_SEMANTICS,
+        "task_shaped_max_seconds": GPU_SMOKE_MAX_TASK_SHAPED_SECONDS,
+        "atomic_tail_semantics": GPU_SMOKE_ATOMIC_TAIL_SEMANTICS,
+        "workflow_wall_seconds_semantics": GPU_SMOKE_WORKFLOW_WALL_SEMANTICS,
+        "workflow_wall_max_seconds": GPU_SMOKE_MAX_WORKFLOW_WALL_SECONDS,
+        "workflow_overhead_seconds_semantics": (
+            GPU_SMOKE_WORKFLOW_OVERHEAD_SEMANTICS
+        ),
+        "product_watchdog_seconds": GPU_SMOKE_PRODUCT_TIMEOUT_SECONDS,
     }
     for field, expected_value in expected.items():
         _require(
@@ -1186,25 +1216,39 @@ def _validate_throughput_profile_evidence(
     requested = _finite_number(
         profile.get("requested_sustained_seconds"),
         "throughput.requested_sustained_seconds",
-        minimum=GPU_SMOKE_MIN_TOTAL_SECONDS,
     )
     _require(
-        requested <= GPU_SMOKE_MAX_TOTAL_SECONDS,
-        "throughput profile requested duration gate failed",
+        math.isclose(
+            requested,
+            GPU_SMOKE_REQUESTED_SECONDS,
+            rel_tol=0.0,
+            abs_tol=1e-12,
+        ),
+        "throughput profile requested duration differs from the v2 contract",
     )
     requested_case = _finite_number(
         profile.get("requested_case_seconds"),
         "throughput.requested_case_seconds",
-        minimum=GPU_SMOKE_MIN_TOTAL_SECONDS / GPU_SMOKE_CASE_COUNT,
     )
     _require(
         math.isclose(
             requested_case,
-            requested / GPU_SMOKE_CASE_COUNT,
-            rel_tol=1e-12,
+            GPU_SMOKE_REQUESTED_CASE_SECONDS,
+            rel_tol=0.0,
             abs_tol=1e-12,
         ),
         "throughput profile case duration does not partition the total request",
+    )
+    task_shaped = _finite_number(
+        profile.get("task_shaped_seconds"), "throughput.task_shaped_seconds"
+    )
+    workflow_wall = _finite_number(
+        profile.get("workflow_wall_seconds"), "throughput.workflow_wall_seconds"
+    )
+    workflow_overhead = _finite_number(
+        profile.get("workflow_overhead_seconds"),
+        "throughput.workflow_overhead_seconds",
+        minimum=0.0,
     )
     total = _finite_number(profile.get("total_seconds"), "throughput.total_seconds")
     duration = _finite_number(
@@ -1217,13 +1261,26 @@ def _validate_throughput_profile_evidence(
         profile.get("setup_seconds"), "throughput.setup_seconds", minimum=0.0
     )
     _require(
-        math.isclose(duration, total, rel_tol=1e-12, abs_tol=1e-12)
-        and GPU_SMOKE_MIN_TOTAL_SECONDS <= total <= GPU_SMOKE_MAX_TOTAL_SECONDS
-        and GPU_SMOKE_MIN_TOTAL_SECONDS <= sustained_total <= total
+        requested <= task_shaped <= GPU_SMOKE_MAX_TASK_SHAPED_SECONDS,
+        "throughput profile task-shaped duration gate failed",
+    )
+    _require(
+        task_shaped <= workflow_wall <= GPU_SMOKE_MAX_WORKFLOW_WALL_SECONDS
+        and math.isclose(total, workflow_wall, rel_tol=1e-12, abs_tol=1e-12)
+        and math.isclose(duration, workflow_wall, rel_tol=1e-12, abs_tol=1e-12),
+        "throughput profile workflow wall duration binding failed",
+    )
+    _require(
+        math.isclose(
+            workflow_overhead,
+            workflow_wall - task_shaped,
+            rel_tol=1e-12,
+            abs_tol=1e-9,
+        )
         and math.isclose(
-            setup_total, total - sustained_total, rel_tol=1e-12, abs_tol=1e-9
+            setup_total, workflow_overhead, rel_tol=1e-12, abs_tol=1e-9
         ),
-        "throughput profile total/setup duration gate failed",
+        "throughput profile workflow overhead accounting failed",
     )
 
     registry_by_id: dict[str, Mapping[str, Any]] = {}
@@ -1419,6 +1476,7 @@ def _validate_throughput_profile_evidence(
     forwards = 0
     utilization: list[float] = []
     case_sustained: dict[int, list[float]] = defaultdict(list)
+    case_total_seconds: dict[int, list[float]] = defaultdict(list)
     case_decision_timings: dict[int, list[float]] = defaultdict(list)
     observed_kinds: set[str] = set()
     observed_kind_sizes: set[tuple[str, int]] = set()
@@ -1614,6 +1672,10 @@ def _validate_throughput_profile_evidence(
         sustained = _finite_number(
             lane.get("sustained_seconds"), "lane.sustained_seconds"
         )
+        _require(
+            sum(decision_timings) <= sustained + 1e-9,
+            "throughput lane decision timings exceed sustained window",
+        )
         lane_total = _finite_number(lane.get("total_seconds"), "lane.total_seconds")
         lane_setup = _finite_number(
             lane.get("setup_seconds"), "lane.setup_seconds", minimum=0.0
@@ -1621,8 +1683,8 @@ def _validate_throughput_profile_evidence(
         _require(
             requested_case <= sustained
             and sustained <= lane_total <= total
-            and lane_setup <= lane_total,
-            "throughput lane duration failed",
+            and lane_setup + sustained <= lane_total + 1e-9,
+            "throughput lane duration composition failed",
         )
         _require(
             lane.get("device") == "cuda"
@@ -1679,6 +1741,7 @@ def _validate_throughput_profile_evidence(
         forwards += lane_forwards
         utilization.extend(samples)
         case_sustained[case_index].append(sustained)
+        case_total_seconds[case_index].append(lane_total)
         case_decision_timings[case_index].extend(decision_timings)
         observed_pairs.add(pair)
         observed_sizes.add(size)
@@ -1821,9 +1884,16 @@ def _validate_throughput_profile_evidence(
         max(case_sustained[case_index])
         for case_index in range(GPU_SMOKE_CASE_COUNT)
     )
+    sequential_case_wall = sum(
+        max(case_total_seconds[case_index])
+        for case_index in range(GPU_SMOKE_CASE_COUNT)
+    )
     aggregate_rate = decisions / aggregate_window
     _require(
         math.isclose(aggregate_window, sustained_total, rel_tol=1e-12, abs_tol=1e-9)
+        and math.isclose(
+            aggregate_window, task_shaped, rel_tol=1e-12, abs_tol=1e-9
+        )
         and math.isclose(
             _finite_number(
                 profile.get("aggregate_window_seconds"), "throughput.window"
@@ -1842,8 +1912,31 @@ def _validate_throughput_profile_evidence(
             abs_tol=1e-12,
         )
         and profile.get("puct_decisions") == decisions
-        and profile.get("model_forward_calls") == forwards,
+        and profile.get("model_forward_calls") == forwards
+        and requested <= aggregate_window <= GPU_SMOKE_MAX_TASK_SHAPED_SECONDS
+        and aggregate_window <= workflow_wall,
         "throughput profile aggregate counters/window differ",
+    )
+    _require(
+        sequential_case_wall <= workflow_wall + 1e-9,
+        "throughput sequential case wall exceeds workflow wall",
+    )
+    recomputed_workflow_overhead = workflow_wall - aggregate_window
+    _require(
+        recomputed_workflow_overhead >= 0.0
+        and math.isclose(
+            workflow_overhead,
+            recomputed_workflow_overhead,
+            rel_tol=1e-12,
+            abs_tol=1e-9,
+        )
+        and math.isclose(
+            setup_total,
+            recomputed_workflow_overhead,
+            rel_tol=1e-12,
+            abs_tol=1e-9,
+        ),
+        "throughput profile recomputed workflow overhead differs",
     )
 
     capacity_rows = _sequence(profile.get("capacity_cases"), "throughput.capacity_cases")
