@@ -28,13 +28,33 @@ class FakeTeX:
         fail_phase: str | None = None,
         unstable: bool = False,
         mutate_tool: str | None = None,
+        fls_pwd: str | None = None,
+        extra_runtime_inputs: tuple[str, ...] = (),
+        mutate_runtime_on_latex_call: int | None = None,
     ):
         self.calls: list[tuple[list[str], dict[str, str], bool]] = []
         self.fail_phase = fail_phase
         self.unstable = unstable
         self.mutate_tool = mutate_tool
+        self.fls_pwd = fls_pwd
+        self.extra_runtime_inputs = extra_runtime_inputs
+        self.mutate_runtime_on_latex_call = mutate_runtime_on_latex_call
         self.tool_mutated = False
         self.latex_calls = 0
+        self.install_root: Path | None = None
+        self.user_data_root: Path | None = None
+        self.install_dependency: Path | None = None
+        self.user_data_dependency: Path | None = None
+
+    def configure_runtime(self, install_root: Path, user_data_root: Path) -> None:
+        self.install_root = install_root.resolve()
+        self.user_data_root = user_data_root.resolve()
+        self.install_dependency = (
+            self.install_root / "tex" / "latex" / "base" / "article.cls"
+        )
+        self.user_data_dependency = (
+            self.user_data_root / "miktex" / "data" / "le" / "pdftex" / "pdflatex.fmt"
+        )
 
     def __call__(
         self, argv: list[str], **kwargs: object
@@ -47,6 +67,19 @@ class FakeTeX:
         if argv[1:] == ["--version"]:
             output = f"{argv[0]} 1.0 (MiKTeX 25.1)\n".encode()
             return subprocess.CompletedProcess(argv, 0, stdout=output)
+        if tool_name == "initexmf":
+            if self.install_root is None or self.user_data_root is None:
+                raise AssertionError("fake MiKTeX roots were not configured")
+            if argv[1:] != ["--disable-installer", "--report"]:
+                raise AssertionError(f"unexpected initexmf arguments: {argv!r}")
+            report = (
+                "PrivateReportMarker: never-persist-this-root-report\n"
+                f"Root0: {self.install_root}\n"
+                f"Root1: {self.user_data_root}\n"
+                f"UserInstall: {self.install_root}\n"
+                f"UserData: {self.user_data_root}\n"
+            ).encode()
+            return subprocess.CompletedProcess(argv, 0, stdout=report)
         if self.mutate_tool == tool_name and not self.tool_mutated:
             Path(argv[0]).write_bytes(b"mutated executable bytes")
             self.tool_mutated = True
@@ -57,6 +90,11 @@ class FakeTeX:
             (cwd / "main.bbl").write_bytes(b"stable bibliography\n")
         else:
             self.latex_calls += 1
+            if (
+                self.mutate_runtime_on_latex_call == self.latex_calls
+                and self.install_dependency is not None
+            ):
+                self.install_dependency.write_bytes(b"mutated runtime dependency\n")
             marker = self.latex_calls if self.unstable else 1
             (cwd / "main.aux").write_text(f"aux {marker}\n", encoding="utf-8")
             (cwd / "main.out").write_bytes(b"stable outline\n")
@@ -64,6 +102,28 @@ class FakeTeX:
             if self.unstable:
                 pdf += str(marker).encode()
             (cwd / "main.pdf").write_bytes(pdf)
+            (cwd / "main.log").write_text(
+                f"private fake log for {cwd}\n", encoding="utf-8"
+            )
+            if self.install_dependency is None or self.user_data_dependency is None:
+                raise AssertionError("fake MiKTeX dependencies were not configured")
+            inputs = [
+                "main.tex",
+                ".\\main.tex" if os.name == "nt" else "./main.tex",
+                *builder.SOURCE_INPUTS,
+                "main.aux",
+                "main.out",
+                str(self.install_dependency),
+                str(self.install_dependency),
+                str(self.user_data_dependency),
+                *self.extra_runtime_inputs,
+            ]
+            if (cwd / "main.bbl").is_file():
+                inputs.append("main.bbl")
+            pwd = self.fls_pwd or str(cwd.resolve())
+            rows = [f"PWD {pwd}", *(f"INPUT {value}" for value in inputs)]
+            rows.extend(("OUTPUT main.log", "OUTPUT main.pdf"))
+            (cwd / "main.fls").write_text("\n".join(rows) + "\n", encoding="utf-8")
         return subprocess.CompletedProcess(argv, 0, stdout=f"{phase} ok\n".encode())
 
 
@@ -203,10 +263,22 @@ class ReproduciblePaperBuildTests(unittest.TestCase):
         (self.paper / "main.pdf").write_bytes(b"committed PDF must not be copied")
         self.fixture_builder = self.repo / builder.CANONICAL_BUILD_TOOL_PATH
         self.fixture_builder.write_bytes(Path(builder.__file__).read_bytes())
-        self.bin_dir = self.root / "bin"
-        self.bin_dir.mkdir()
+        self.miktex_install = self.root / "miktex-install"
+        self.miktex_user_data = self.root / "miktex-user-data"
+        self.bin_dir = self.miktex_install / "miktex" / "bin" / "x64"
+        self.bin_dir.mkdir(parents=True)
+        install_dependency = (
+            self.miktex_install / "tex" / "latex" / "base" / "article.cls"
+        )
+        install_dependency.parent.mkdir(parents=True)
+        install_dependency.write_bytes(b"fake article class\n")
+        user_data_dependency = (
+            self.miktex_user_data / "miktex" / "data" / "le" / "pdftex" / "pdflatex.fmt"
+        )
+        user_data_dependency.parent.mkdir(parents=True)
+        user_data_dependency.write_bytes(b"fake pdflatex format\n")
         self.executables = {}
-        for name in ("pdflatex", "bibtex", "git"):
+        for name in ("pdflatex", "bibtex", "initexmf", "git"):
             path = self.bin_dir / f"{name}.exe"
             path.write_bytes(f"fake executable {name}".encode())
             self.executables[name] = str(path)
@@ -247,6 +319,7 @@ class ReproduciblePaperBuildTests(unittest.TestCase):
         executing_builder_path: Path | None = None,
     ) -> Path:
         fake_git = git or FakeGit(self.repo)
+        fake.configure_runtime(self.miktex_install, self.miktex_user_data)
         bound_builder_path = executing_builder_path or (
             self.fixture_builder
             if fake_git.track_build_tool
@@ -284,6 +357,7 @@ class ReproduciblePaperBuildTests(unittest.TestCase):
             receipt_bytes,
             builder._canonical_json_bytes(receipt),
         )
+        self.assertEqual(receipt["schema_version"], 2)
         self.assertEqual(receipt["input_tree"]["file_count"], 9)
         expected_tree_rows = b"".join(
             (
@@ -309,7 +383,7 @@ class ReproduciblePaperBuildTests(unittest.TestCase):
         self.assertFalse(receipt["scope_claims"]["scientific_claims_verified"])
         self.assertFalse(receipt["scope_claims"]["author_approval_verified"])
         self.assertFalse(receipt["scope_claims"]["submission_readiness_verified"])
-        self.assertFalse(
+        self.assertTrue(
             receipt["scope_claims"]["tex_runtime_dependency_closure_verified"]
         )
         self.assertTrue(receipt["scope_claims"]["subject_checkout_identity_verified"])
@@ -334,7 +408,12 @@ class ReproduciblePaperBuildTests(unittest.TestCase):
         )
         self.assertEqual(receipt["build"]["post_bibtex_latex_passes"], 2)
         self.assertTrue(all(call[2] is False for call in fake.calls))
-        build_calls = [call for call in fake.calls if call[0][1:] != ["--version"]]
+        build_calls = [
+            call
+            for call in fake.calls
+            if Path(call[0][0]).stem.lower() in {"pdflatex", "bibtex"}
+            and call[0][1:] != ["--version"]
+        ]
         self.assertEqual(
             [call[0][0] for call in build_calls],
             [
@@ -360,8 +439,78 @@ class ReproduciblePaperBuildTests(unittest.TestCase):
             self.assertNotIn(str(self.root.resolve()), tool["version_banner"])
         self.assertEqual(
             [row["argv"][0] for row in receipt["build"]["commands"]],
-            ["pdflatex", "bibtex", "pdflatex", "bibtex", "pdflatex", "pdflatex"],
+            [
+                "pdflatex",
+                "bibtex",
+                "initexmf",
+                "initexmf",
+                "pdflatex",
+                "bibtex",
+                "pdflatex",
+                "pdflatex",
+                "initexmf",
+                "initexmf",
+            ],
         )
+        runtime = receipt["tex_runtime"]
+        self.assertTrue(runtime["all_latex_passes_parsed"])
+        self.assertEqual(runtime["external_input_tree"]["file_count"], 2)
+        self.assertEqual(runtime["repository_input_tree"]["file_count"], 0)
+        self.assertEqual(len(runtime["passes"]), 3)
+        self.assertEqual(
+            len(runtime["raw_artifact_policy"]["files"]),
+            6,
+        )
+        self.assertEqual(runtime["raw_artifact_policy"]["file_count"], 6)
+        self.assertTrue(
+            all(
+                isinstance(path, str)
+                and path.startswith("runtime_records/")
+                and path.endswith((".fls", ".log"))
+                for path in runtime["raw_artifact_policy"]["files"]
+            )
+        )
+        for runtime_pass in runtime["passes"]:
+            for key in ("raw_fls", "raw_log"):
+                self.assertEqual(
+                    set(runtime_pass[key]),
+                    {"path", "privacy_class"},
+                )
+        self.assertEqual(
+            runtime["raw_artifact_policy"]["archive_eligibility"],
+            "excluded_local_only",
+        )
+        private_report_rows = [
+            row
+            for row in receipt["build"]["commands"]
+            if row["phase"] == "initexmf-private-root-report"
+        ]
+        self.assertEqual(len(private_report_rows), 3)
+        self.assertTrue(
+            all(
+                row["output_persistence"] == "ephemeral_private_not_logged"
+                for row in private_report_rows
+            )
+        )
+        self.assertTrue(
+            all(
+                "output_sha256" not in row and "output_size_bytes" not in row
+                for row in private_report_rows
+            )
+        )
+        actual_private_report_calls = [
+            call
+            for call in fake.calls
+            if Path(call[0][0]).stem.lower() == "initexmf"
+            and call[0][1:] == ["--disable-installer", "--report"]
+        ]
+        self.assertEqual(len(actual_private_report_calls), 4)
+        self.assertNotIn(
+            b"never-persist-this-root-report",
+            (self.root / "output" / "combined_subprocess_output.log").read_bytes(),
+        )
+        self.assertNotIn(str(self.miktex_install.resolve()), receipt_text)
+        self.assertNotIn(str(self.miktex_user_data.resolve()), receipt_text)
 
     def test_tracked_builder_blob_is_bound_without_private_path(self) -> None:
         source = Path(builder.__file__).read_bytes()
@@ -389,6 +538,162 @@ class ReproduciblePaperBuildTests(unittest.TestCase):
             str(Path(builder.__file__).resolve()).replace("\\", "/").lower(),
             receipt_path.read_text(encoding="utf-8").replace("\\", "/").lower(),
         )
+
+    def test_runtime_path_normalization_covers_drive_unc_and_posix(self) -> None:
+        self.assertEqual(
+            builder._join_runtime_path(
+                r".\figures\plot.pdf", r"C:\paper\work", "windows"
+            ),
+            r"C:\paper\work\figures\plot.pdf",
+        )
+        self.assertEqual(
+            builder._relative_lexical(
+                r"\\server\share\texmf\tex\base.sty",
+                r"\\server\share\texmf",
+                "windows",
+            ),
+            "tex/base.sty",
+        )
+        self.assertEqual(
+            builder._join_runtime_path("./main.tex", "/paper/work", "posix"),
+            "/paper/work/main.tex",
+        )
+        self.assertEqual(
+            builder._relative_lexical(
+                "/opt/miktex/tex/latex/base.sty", "/opt/miktex", "posix"
+            ),
+            "tex/latex/base.sty",
+        )
+        with self.assertRaisesRegex(builder.BuildError, "parent"):
+            builder._join_runtime_path(r"..\outside.tex", r"C:\paper\work", "windows")
+
+    def test_runtime_fls_pwd_mismatch_and_parent_escape_fail_closed(self) -> None:
+        wrong_pwd = str((self.root / "wrong-work").resolve())
+        with self.assertRaisesRegex(builder.BuildError, "PWD does not match"):
+            self.build(
+                FakeTeX(fls_pwd=wrong_pwd),
+                output_name="wrong-fls-pwd",
+            )
+        self.assertFalse((self.root / "wrong-fls-pwd" / "build_receipt.json").exists())
+
+        escape = "..\\escape.tex" if os.name == "nt" else "../escape.tex"
+        with self.assertRaisesRegex(builder.BuildError, "parent"):
+            self.build(
+                FakeTeX(extra_runtime_inputs=(escape,)),
+                output_name="fls-parent-escape",
+            )
+        self.assertFalse(
+            (self.root / "fls-parent-escape" / "build_receipt.json").exists()
+        )
+
+    def test_unknown_root_and_unapproved_work_sideload_fail_closed(self) -> None:
+        unknown = self.root / "unknown-runtime.sty"
+        unknown.write_bytes(b"unknown runtime dependency\n")
+        with self.assertRaisesRegex(builder.BuildError, "outside all approved roots"):
+            self.build(
+                FakeTeX(extra_runtime_inputs=(str(unknown.resolve()),)),
+                output_name="unknown-runtime-root",
+            )
+        self.assertFalse(
+            (self.root / "unknown-runtime-root" / "build_receipt.json").exists()
+        )
+
+        with self.assertRaisesRegex(builder.BuildError, "approved work input"):
+            self.build(
+                FakeTeX(extra_runtime_inputs=("natbib.cfg",)),
+                output_name="work-sideload",
+            )
+        self.assertFalse((self.root / "work-sideload" / "build_receipt.json").exists())
+
+    def test_symlink_runtime_input_fails_closed(self) -> None:
+        target = self.miktex_install / "tex" / "latex" / "base" / "target.sty"
+        target.write_bytes(b"target\n")
+        link = self.miktex_install / "tex" / "latex" / "base" / "alias.sty"
+        try:
+            os.symlink(target, link)
+        except OSError as exc:
+            self.skipTest(f"symlink creation is unavailable: {exc}")
+        with self.assertRaisesRegex(builder.BuildError, "symlink|reparse"):
+            self.build(
+                FakeTeX(extra_runtime_inputs=(str(link),)),
+                output_name="runtime-symlink",
+            )
+        self.assertFalse(
+            (self.root / "runtime-symlink" / "build_receipt.json").exists()
+        )
+
+    def test_nonregular_runtime_input_fails_closed(self) -> None:
+        directory = self.miktex_install / "tex" / "latex" / "directory-input"
+        directory.mkdir()
+        with self.assertRaisesRegex(builder.BuildError, "plain file"):
+            self.build(
+                FakeTeX(extra_runtime_inputs=(str(directory.resolve()),)),
+                output_name="runtime-directory",
+            )
+        self.assertFalse(
+            (self.root / "runtime-directory" / "build_receipt.json").exists()
+        )
+
+    def test_runtime_dependency_change_between_passes_fails_closed(self) -> None:
+        with self.assertRaisesRegex(builder.BuildError, "changed between LaTeX passes"):
+            self.build(
+                FakeTeX(mutate_runtime_on_latex_call=2),
+                output_name="runtime-mutated",
+            )
+        self.assertFalse(
+            (self.root / "runtime-mutated" / "build_receipt.json").exists()
+        )
+
+    def test_runtime_relative_identity_collision_fails_closed(self) -> None:
+        first = builder._RuntimeFile(
+            absolute_path=self.root / "first.sty",
+            root_role="miktex_install",
+            relative_path="tex/duplicate.sty",
+            size_bytes=1,
+            sha256="1" * 64,
+        )
+        second = builder._RuntimeFile(
+            absolute_path=self.root / "second.sty",
+            root_role="miktex_install",
+            relative_path="tex/duplicate.sty",
+            size_bytes=1,
+            sha256="1" * 64,
+        )
+        union: dict[tuple[str, str], builder._RuntimeFile] = {}
+        stable: dict[tuple[str, str], builder._RuntimeFile] = {}
+        builder._merge_runtime_pass([first], union=union, stable=stable)
+        with self.assertRaisesRegex(builder.BuildError, "identity is duplicated"):
+            builder._merge_runtime_pass([second], union=union, stable=stable)
+
+    def test_canonical_runtime_tree_is_root_independent_across_ab_builds(self) -> None:
+        expected_pdf = b"%PDF-1.4\n/Type /Page\n/Type /Page\n%%EOF\n"
+        expected_hash = hashlib.sha256(expected_pdf).hexdigest()
+        receipt_a_path = self.build(
+            FakeTeX(), output_name="runtime-root-a", expected=expected_hash
+        )
+        receipt_b_path = self.build(
+            FakeTeX(), output_name="runtime-root-b", expected=expected_hash
+        )
+        receipt_a_bytes = receipt_a_path.read_bytes()
+        receipt_b_bytes = receipt_b_path.read_bytes()
+        self.assertEqual(receipt_a_bytes, receipt_b_bytes)
+        receipt_a = json.loads(receipt_a_bytes)
+        receipt_b = json.loads(receipt_b_bytes)
+        self.assertEqual(
+            receipt_a["tex_runtime"]["canonical_runtime_tree"],
+            receipt_b["tex_runtime"]["canonical_runtime_tree"],
+        )
+        self.assertEqual(
+            receipt_a["tex_runtime"]["external_input_tree"],
+            receipt_b["tex_runtime"]["external_input_tree"],
+        )
+        for receipt_path in (
+            self.root / "runtime-root-a" / "build_receipt.json",
+            self.root / "runtime-root-b" / "build_receipt.json",
+        ):
+            receipt_text = receipt_path.read_text(encoding="utf-8")
+            self.assertNotIn(str(self.root.resolve()), receipt_text)
+            self.assertNotRegex(receipt_text, r"(?i)[A-Z]:[/\\]")
 
     def test_tracked_builder_mismatch_or_nonregular_blob_fails_closed(self) -> None:
         mismatch_tex = FakeTeX()
@@ -709,6 +1014,82 @@ class ReproduciblePaperBuildTests(unittest.TestCase):
             self.build(fake, output_name="tool-mutated")
         self.assertFalse((self.root / "tool-mutated" / "build_receipt.json").exists())
 
+    def test_tool_recheck_rejects_link_like_metadata(self) -> None:
+        executable = Path(self.executables["pdflatex"]).resolve()
+        record = {
+            "executable_sha256": hashlib.sha256(executable.read_bytes()).hexdigest(),
+            "executable_size_bytes": executable.stat().st_size,
+        }
+        with (
+            mock.patch.object(builder, "_metadata_is_link_like", return_value=True),
+            self.assertRaisesRegex(builder.BuildError, "plain file"),
+        ):
+            builder._verify_tool_unchanged("pdflatex", executable, record)
+
+    def test_output_directory_identity_replacement_is_rejected(self) -> None:
+        output = self.root / "output-identity"
+        output.mkdir()
+        identity = builder._plain_directory_identity(
+            output.resolve(), "output directory"
+        )
+        moved = self.root / "output-identity-original"
+        output.rename(moved)
+        output.mkdir()
+        with self.assertRaisesRegex(builder.BuildError, "identity changed"):
+            builder._verify_plain_directory_identity(
+                output.resolve(), identity, "output directory"
+            )
+
+    def test_post_write_receipt_mutation_is_unlinked(self) -> None:
+        output = self.root / "receipt-post-write-mutated"
+        original_verify = builder._verify_written_receipt
+        mutation_observed = False
+
+        def mutate_then_verify(
+            path: Path, expected_bytes: bytes, **kwargs: object
+        ) -> None:
+            nonlocal mutation_observed
+            if not mutation_observed:
+                path.write_bytes(b"tampered receipt\n")
+                mutation_observed = True
+            original_verify(path, expected_bytes, **kwargs)
+
+        with (
+            mock.patch.object(
+                builder, "_verify_written_receipt", side_effect=mutate_then_verify
+            ),
+            self.assertRaisesRegex(builder.BuildError, "build receipt"),
+        ):
+            self.build(FakeTeX(), output_dir=output)
+        self.assertTrue(mutation_observed)
+        self.assertFalse((output / "build_receipt.json").exists())
+
+    def test_post_write_final_pdf_mutation_is_unlinked(self) -> None:
+        output = self.root / "pdf-post-write-mutated"
+        original_verify = builder._verify_written_receipt
+        mutation_observed = False
+
+        def verify_then_mutate_final_pdf(
+            path: Path, expected_bytes: bytes, **kwargs: object
+        ) -> None:
+            nonlocal mutation_observed
+            original_verify(path, expected_bytes, **kwargs)
+            if not mutation_observed:
+                (path.parent / "main.pdf").write_bytes(b"tampered PDF\n")
+                mutation_observed = True
+
+        with (
+            mock.patch.object(
+                builder,
+                "_verify_written_receipt",
+                side_effect=verify_then_mutate_final_pdf,
+            ),
+            self.assertRaisesRegex(builder.BuildError, "final PDF"),
+        ):
+            self.build(FakeTeX(), output_dir=output)
+        self.assertTrue(mutation_observed)
+        self.assertFalse((output / "build_receipt.json").exists())
+
     def test_private_path_guard_checks_unescaped_receipt_values(self) -> None:
         with self.assertRaisesRegex(builder.BuildError, "host-local absolute path"):
             builder._assert_receipt_has_no_private_paths(
@@ -722,6 +1103,9 @@ class ReproduciblePaperBuildTests(unittest.TestCase):
         )
         self.assertFalse(receipt["scope_claims"]["exact_pdf_reproduction_verified"])
         self.assertIsNone(receipt["scope_claims"]["expected_pdf_sha256"])
+        self.assertFalse(
+            receipt["scope_claims"]["tex_runtime_dependency_closure_verified"]
+        )
 
     def test_existing_or_nested_output_is_rejected_before_subprocess(self) -> None:
         existing = self.root / "existing"
@@ -738,7 +1122,11 @@ class ReproduciblePaperBuildTests(unittest.TestCase):
         with self.assertRaisesRegex(builder.BuildError, "exited with code 7"):
             self.build(fake, output_name="failed")
         self.assertFalse((self.root / "failed" / "build_receipt.json").exists())
-        phases = [Path(call[0][0]).stem for call in fake.calls]
+        phases = [
+            Path(call[0][0]).stem
+            for call in fake.calls
+            if Path(call[0][0]).stem.lower() in {"pdflatex", "bibtex"}
+        ]
         self.assertEqual(phases, ["pdflatex", "bibtex", "pdflatex", "bibtex"])
 
     def test_expected_hash_mismatch_fails_closed(self) -> None:
