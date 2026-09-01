@@ -2028,6 +2028,35 @@ def _load_receipt_ledger(
     return receipts, ledger_rows
 
 
+def _receipt_formal_source_hash(receipts: Sequence[Mapping[str, Any]]) -> str:
+    """Return the one source hash bound by scalar and paired-model receipts."""
+
+    observed: set[str] = set()
+    for index, receipt in enumerate(receipts):
+        raw_value = receipt.get("source_hash")
+        if isinstance(raw_value, str):
+            values = [raw_value]
+        elif isinstance(raw_value, list) and raw_value:
+            values = raw_value
+        else:
+            raise VerificationError(
+                f"receipts[{index}].source_hash must be a SHA-256 string "
+                "or a non-empty list of SHA-256 strings"
+            )
+        for value_index, value in enumerate(values):
+            if not _valid_sha256(value):
+                raise VerificationError(
+                    f"receipts[{index}].source_hash[{value_index}] is not "
+                    "a lowercase SHA-256 digest"
+                )
+            observed.add(str(value).lower())
+    if len(observed) != 1:
+        raise VerificationError(
+            "formal receipts do not identify one formal source hash"
+        )
+    return next(iter(observed))
+
+
 def _artifact_field(receipt: Mapping[str, Any], kind: str) -> tuple[Any, Any]:
     direct_path = _first(
         receipt,
@@ -4095,14 +4124,7 @@ def _verify_evidence_snapshot(
                 raise VerificationError(
                     "canonical gate-failure count cannot be derived from every task"
                 )
-            receipt_source_hashes = {receipt.get("source_hash") for receipt in receipts}
-            if len(receipt_source_hashes) != 1 or not _valid_sha256(
-                next(iter(receipt_source_hashes))
-            ):
-                raise VerificationError(
-                    "formal receipts do not identify one formal source hash"
-                )
-            receipt_source_hash = str(next(iter(receipt_source_hashes))).lower()
+            receipt_source_hash = _receipt_formal_source_hash(receipts)
             expected_canonical_hash, hash_source = _canonical_derivation_binding(
                 canonical_numeric_path=canonical_numeric_path,
                 canonical_receipt_path=canonical_receipt_path,

@@ -66,7 +66,7 @@ class IndependentVerifierTests(unittest.TestCase):
                     "gate_status": "passed",
                     "formal_gate": {"passed": True},
                     "failure_reason": None,
-                    "source_hash": "5" * 64,
+                    "source_hash": ["5" * 64, "5" * 64],
                 }
             )
             + "\n",
@@ -882,6 +882,29 @@ class IndependentVerifierTests(unittest.TestCase):
         with self.assertRaisesRegex(verifier.VerificationError, "numeric mismatch"):
             verifier._numeric_equal({"wins": 1}, {"wins": 2})
 
+    def test_receipt_source_hash_normalizes_single_and_paired_models(self) -> None:
+        source_hash = "5" * 64
+        receipts = [
+            {"source_hash": source_hash},
+            {"source_hash": [source_hash, source_hash]},
+        ]
+        self.assertEqual(
+            verifier._receipt_formal_source_hash(receipts),
+            source_hash,
+        )
+
+    def test_receipt_source_hash_rejects_mixed_formal_sources(self) -> None:
+        with self.assertRaisesRegex(
+            verifier.VerificationError,
+            "do not identify one formal source hash",
+        ):
+            verifier._receipt_formal_source_hash(
+                [
+                    {"source_hash": "5" * 64},
+                    {"source_hash": ["5" * 64, "6" * 64]},
+                ]
+            )
+
     def test_verify_evidence_uses_derivation_receipt_hash_and_matches_numeric(
         self,
     ) -> None:
@@ -928,6 +951,52 @@ class IndependentVerifierTests(unittest.TestCase):
         self.assertEqual(report["status"], "FAIL_CLOSED")
         self.assertTrue(
             any("canonical numeric mismatch" in issue for issue in report["issues"])
+        )
+
+    def test_mixed_receipt_source_hashes_fail_only_canonical_gates(self) -> None:
+        with self._temporary_directory() as temporary:
+            paths = self._synthetic_inputs(Path(temporary))
+            receipt = json.loads(paths["receipts"].read_text(encoding="utf-8"))
+            receipt["source_hash"] = ["5" * 64, "6" * 64]
+            paths["receipts"].write_text(
+                json.dumps(receipt) + "\n",
+                encoding="utf-8",
+            )
+            export_manifest = json.loads(
+                paths["export_manifest"].read_text(encoding="utf-8")
+            )
+            for entry in export_manifest["files"]:
+                if entry["path"].endswith(f"/{paths['receipts'].name}"):
+                    entry["sha256"] = hashlib.sha256(
+                        paths["receipts"].read_bytes()
+                    ).hexdigest()
+            self._write_json(paths["export_manifest"], export_manifest)
+            _, numeric = self._run_synthetic_verify(
+                paths,
+                canonical=False,
+                ledger_status=True,
+            )
+            self._publish_synthetic_canonical(paths, numeric)
+            report, _ = self._run_synthetic_verify(
+                paths,
+                canonical=True,
+                ledger_status=True,
+            )
+        false_gates = {name for name, value in report["gates"].items() if not value}
+        self.assertEqual(
+            false_gates,
+            {
+                "canonical_derivation_receipt_bound",
+                "canonical_hash_verified",
+                "canonical_numeric_match",
+            },
+        )
+        self.assertFalse(report["formal_ready"])
+        self.assertTrue(
+            any(
+                "formal receipts do not identify one formal source hash" in issue
+                for issue in report["issues"]
+            )
         )
 
     def test_verify_evidence_rejects_cli_hash_that_disagrees_with_receipt(
