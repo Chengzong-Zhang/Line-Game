@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import copy
+import inspect
 import sys
 import unittest
 from pathlib import Path
@@ -48,6 +49,17 @@ def _audited_rows(*, diverse_strata: int) -> list[dict[str, object]]:
 
 
 class D18V3VerifierSelfTest(unittest.TestCase):
+    def test_throughput_schema_v3_recomputes_sustained_lane_capacity(self) -> None:
+        self.assertEqual(
+            verifier.THROUGHPUT_PROFILE_SCHEMA,
+            "lifeline-d18-v3-gpu-smoke-v3",
+        )
+        self.assertEqual(verifier.THROUGHPUT_PROFILE_SCHEMA_VERSION, 3)
+        source = inspect.getsource(verifier._validate_throughput_profile_evidence)
+        self.assertIn("case_lane_seconds_per_decision", source)
+        self.assertIn("critical_seconds_per_decision", source)
+        self.assertIn("slowest_single_decision_seconds", source)
+
     def test_strict_json_rejects_duplicate_keys_and_nonfinite_values(self) -> None:
         synthetic = Path("synthetic.json")
         with mock.patch.object(Path, "read_text", return_value='{"a":1,"a":2}\n'):
@@ -258,7 +270,9 @@ class D18V3VerifierSelfTest(unittest.TestCase):
             "throughput_profile_sha256": "8" * 64,
             "throughput_profile_artifact_path": verifier.THROUGHPUT_PROFILE_ARTIFACT_NAME,
             "throughput_profile_schema_name": verifier.THROUGHPUT_PROFILE_SCHEMA,
-            "throughput_profile_schema_version": verifier.SCHEMA_VERSION,
+            "throughput_profile_schema_version": (
+                verifier.THROUGHPUT_PROFILE_SCHEMA_VERSION
+            ),
             "throughput_profile_formal_manifest_sha256": "1" * 64,
             "throughput_profile_formal_runner_sha256": verifier.sha256_file(formal),
             "scalar_lane_count": verifier.SCALAR_LANE_COUNT,

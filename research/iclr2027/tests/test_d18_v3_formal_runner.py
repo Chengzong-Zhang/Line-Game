@@ -220,7 +220,7 @@ def _write_valid_throughput_profile(
     tasks: list[dict[str, object]] = []
     games: list[dict[str, object]] = []
     traces = {
-        size: _smoke_opening_and_trace(size)
+        size: _smoke_opening_and_trace(size, decisions=64)
         for size in formal.PROFILE_EVAL_SIZES
     }
     for pair in formal.PROFILE_MODEL_PAIRS:
@@ -312,6 +312,10 @@ def _write_valid_throughput_profile(
     )
     task_shaped_seconds = 28.0
     workflow_wall_seconds = 32.0
+    lane_decisions = 64
+    per_agent_decisions = lane_decisions // 2
+    lane_forwards = lane_decisions * 17
+    per_agent_forwards = lane_forwards // 2
     lane_results: list[dict[str, object]] = []
     for payloads in case_payloads:
         for payload in payloads:
@@ -375,16 +379,22 @@ def _write_valid_throughput_profile(
                     "resident_integrity": resident_integrity,
                     "eval_size": task["eval_size"],
                     "opening_id": opening["opening_id"],
-                    "puct_decisions": 4,
-                    "per_agent_puct_decisions": {"A": 2, "B": 2},
-                    "decision_seconds": [0.05] * 4,
+                    "puct_decisions": lane_decisions,
+                    "per_agent_puct_decisions": {
+                        "A": per_agent_decisions,
+                        "B": per_agent_decisions,
+                    },
+                    "decision_seconds": [0.01] * lane_decisions,
                     "decision_state_fingerprints": list(fingerprints),
                     "decision_action_indices": list(action_indices),
-                    "slowest_decision_seconds": 0.05,
+                    "slowest_decision_seconds": 0.01,
                     "unique_state_count": len(set(fingerprints)),
                     "game_resets": game_resets,
-                    "model_forward_calls": 68,
-                    "per_agent_model_forward_calls": {"A": 34, "B": 34},
+                    "model_forward_calls": lane_forwards,
+                    "per_agent_model_forward_calls": {
+                        "A": per_agent_forwards,
+                        "B": per_agent_forwards,
+                    },
                     "setup_seconds": 0.25,
                     "sustained_seconds": (
                         task_shaped_seconds / formal.GPU_SMOKE_CASE_COUNT
@@ -426,8 +436,10 @@ def _write_valid_throughput_profile(
         }
         for lane_index in range(formal.SCALAR_LANE_COUNT)
     ]
-    decisions = 4 * formal.SCALAR_LANE_COUNT * formal.GPU_SMOKE_CASE_COUNT
-    forwards = 68 * formal.SCALAR_LANE_COUNT * formal.GPU_SMOKE_CASE_COUNT
+    decisions = (
+        lane_decisions * formal.SCALAR_LANE_COUNT * formal.GPU_SMOKE_CASE_COUNT
+    )
+    forwards = lane_forwards * formal.SCALAR_LANE_COUNT * formal.GPU_SMOKE_CASE_COUNT
     aggregate_window = task_shaped_seconds
     rate = decisions / aggregate_window
     capacity_cases, projected = formal._formal_capacity_projection(
@@ -445,7 +457,7 @@ def _write_valid_throughput_profile(
     ]
     profile: dict[str, object] = {
         "schema_name": formal.THROUGHPUT_PROFILE_SCHEMA,
-        "schema_version": formal.SCHEMA_VERSION,
+        "schema_version": formal.THROUGHPUT_PROFILE_SCHEMA_VERSION,
         "status": "PASS",
         "experiment_id": formal.EXPERIMENT_ID,
         "formal_manifest_sha256": formal.sha256_file(manifest_path),
@@ -555,6 +567,27 @@ def _checkpoint_registry_from_tasks(
                 "training_seed": seed,
             }
     return registry
+
+
+def _rebind_profile_aggregate_timing(profile: dict[str, object]) -> None:
+    lanes = profile["lane_results"]
+    assert isinstance(lanes, list)
+    aggregate_window = sum(
+        max(
+            float(row["sustained_seconds"])
+            for row in lanes
+            if int(row["case_index"]) == case_index
+        )
+        for case_index in range(formal.GPU_SMOKE_CASE_COUNT)
+    )
+    workflow_wall = float(profile["workflow_wall_seconds"])
+    decisions = int(profile["puct_decisions"])
+    profile["sustained_seconds"] = aggregate_window
+    profile["task_shaped_seconds"] = aggregate_window
+    profile["aggregate_window_seconds"] = aggregate_window
+    profile["aggregate_puct_decisions_per_second"] = decisions / aggregate_window
+    profile["workflow_overhead_seconds"] = workflow_wall - aggregate_window
+    profile["setup_seconds"] = workflow_wall - aggregate_window
 
 
 def _group_schedules_by_task(
@@ -1595,6 +1628,127 @@ def test_gpu_smoke_payloads_partition_one_total_and_round_robin_frozen_tasks(
         * 256
         for row in capacity_cases
     )
+    expected_critical = (
+        28.0 / formal.GPU_SMOKE_CASE_COUNT / 64
+    )
+    assert all(
+        row["capacity_projection_method"] == formal.CAPACITY_PROJECTION_METHOD
+        and row["critical_lane_index"] == 0
+        and row["critical_lane_puct_decisions"] == 64
+        and math.isclose(
+            row["critical_seconds_per_decision"], expected_critical
+        )
+        and row["slowest_single_decision_seconds"] == 0.01
+        for row in capacity_cases
+    )
+
+
+def test_capacity_projection_uses_slowest_lane_average_and_budget_boundary(
+    tmp_path: Path,
+) -> None:
+    _, _, profile, tasks, _ = _write_valid_throughput_profile(tmp_path)
+    lanes = profile["lane_results"]
+    assert isinstance(lanes, list)
+    capacity_cases, projected = formal._formal_capacity_projection(lanes, tasks)
+    assert math.isclose(projected, 6_720.0)
+    assert capacity_cases[0]["slowest_single_decision_seconds"] == 0.01
+    assert capacity_cases[0]["critical_lane_index"] == 0
+    assert math.isclose(
+        capacity_cases[0]["critical_seconds_per_decision"], 7.0 / 144.0
+    )
+
+    lanes[0]["sustained_seconds"] = 3.2
+    changed_cases, changed_projected = formal._formal_capacity_projection(
+        lanes, tasks
+    )
+    assert changed_cases[0]["critical_lane_index"] == 0
+    assert math.isclose(
+        changed_cases[0]["critical_seconds_per_decision"], 0.05
+    )
+    assert changed_projected > projected
+
+    slow_lanes = copy.deepcopy(lanes)
+    for lane in slow_lanes:
+        lane["puct_decisions"] = 32
+    slow_cases, slow_projected = formal._formal_capacity_projection(
+        slow_lanes, tasks
+    )
+    assert slow_projected > formal.FORMAL_GAMEPLAY_BUDGET_SECONDS
+    with pytest.raises(formal.FormalCapacityError):
+        formal._require_capacity_projection(slow_cases, slow_projected)
+
+    formal._require_capacity_projection(
+        capacity_cases, formal.FORMAL_GAMEPLAY_BUDGET_SECONDS
+    )
+    over_budget = math.nextafter(
+        float(formal.FORMAL_GAMEPLAY_BUDGET_SECONDS), math.inf
+    )
+    with pytest.raises(formal.FormalCapacityError) as caught:
+        formal._require_capacity_projection(capacity_cases, over_budget)
+    diagnostic = caught.value.diagnostic
+    assert diagnostic["status"] == "FAIL_CLOSED"
+    assert diagnostic["schema_name"] == formal.THROUGHPUT_CAPACITY_FAILURE_SCHEMA
+    assert diagnostic["projected_worst_case_seconds"] == over_budget
+    assert "lane_results" not in diagnostic
+    assert len(formal.canonical_json(diagnostic).encode("utf-8")) < 4096
+
+
+def test_single_decision_tail_jitter_is_diagnostic_not_capacity(
+    tmp_path: Path,
+) -> None:
+    manifest_path, profile_path, profile, tasks, games = (
+        _write_valid_throughput_profile(tmp_path)
+    )
+    original_projected = float(profile["projected_worst_case_seconds"])
+    original_critical = float(
+        profile["capacity_cases"][0]["critical_seconds_per_decision"]
+    )
+    lane = profile["lane_results"][0]
+    lane["decision_seconds"][0] = 0.5
+    lane["slowest_decision_seconds"] = 0.5
+    assert sum(lane["decision_seconds"]) <= float(lane["sustained_seconds"])
+
+    capacity_cases, projected = formal._formal_capacity_projection(
+        profile["lane_results"], tasks
+    )
+    assert math.isclose(projected, original_projected)
+    assert math.isclose(
+        capacity_cases[0]["critical_seconds_per_decision"], original_critical
+    )
+    assert capacity_cases[0]["slowest_single_decision_seconds"] == 0.5
+    profile["capacity_cases"] = capacity_cases
+    profile["projected_worst_case_seconds"] = projected
+    profile_path.write_text(
+        json.dumps(profile, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    validated = formal._validate_throughput_profile(
+        profile_path,
+        manifest_path=manifest_path,
+        tasks=tasks,
+        games=games,
+    )
+    assert validated["projected_worst_case_seconds"] == projected
+
+    evidence = tmp_path / independent.THROUGHPUT_PROFILE_ARTIFACT_NAME
+    evidence.write_text(
+        json.dumps(profile, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    metadata = {
+        "throughput_profile_sha256": independent.sha256_file(evidence),
+        "preparation_runner_sha256": independent.sha256_file(
+            formal.prep.SCRIPT_PATH
+        ),
+    }
+    independently_validated = independent._validate_throughput_profile_evidence(
+        evidence,
+        metadata=metadata,
+        tasks=tasks,
+        grouped_schedules=_group_schedules_by_task(games),
+        checkpoint_registry=_checkpoint_registry_from_tasks(tasks),
+        formal_manifest_sha=independent.sha256_file(manifest_path),
+        formal_runner_sha=independent.sha256_file(formal.SCRIPT_PATH),
+    )
+    assert independently_validated["projected_worst_case_seconds"] == projected
 
 
 def test_gpu_smoke_schedule_binding_accepts_exact_preparation_schema() -> None:
@@ -1798,7 +1952,7 @@ def test_throughput_profile_rejects_frozen_schedule_tamper(
 @pytest.mark.parametrize(
     ("mutation", "message"),
     (
-        ("slow", "cannot finish"),
+        ("critical_raw_lane", "homogeneous capacity cases drifted"),
         ("memory", "resident-memory evidence drifted"),
         ("coverage", "coverage is incomplete"),
         ("nonfinite", "must be finite"),
@@ -1817,13 +1971,9 @@ def test_throughput_profile_rejects_capacity_memory_coverage_and_environment(
     )
     lanes = profile["lane_results"]
     assert isinstance(lanes, list)
-    if mutation == "slow":
-        for lane in lanes:
-            lane["decision_seconds"] = [0.7] * int(lane["puct_decisions"])
-            lane["slowest_decision_seconds"] = 0.7
-        capacity_cases, projected = formal._formal_capacity_projection(lanes, tasks)
-        profile["capacity_cases"] = capacity_cases
-        profile["projected_worst_case_seconds"] = projected
+    if mutation == "critical_raw_lane":
+        lanes[0]["sustained_seconds"] = 3.2
+        _rebind_profile_aggregate_timing(profile)
     elif mutation == "memory":
         worker_pid = lanes[0]["worker_pid"]
         oversized_reserved = 31 * 1024**3
@@ -2164,6 +2314,8 @@ def test_independent_verifier_rejects_crossed_lane_checkpoint_binding(
     (
         ("capacity", "capacity case differs"),
         ("capacity_barrier_vector", "capacity case differs"),
+        ("critical_rate", "capacity case differs"),
+        ("critical_raw_lane", "capacity case differs"),
         ("reserved", "resident allocated/reserved memory gate"),
         ("headroom", "device_free_after"),
         ("topology_n9", "coverage is incomplete"),
@@ -2183,6 +2335,11 @@ def test_independent_verifier_rejects_profile_semantic_tamper(
         assert len(barriers) == 5 and sum(barriers) == 15_360
         barriers[0] += 1
         barriers[1] -= 1
+    elif mutation == "critical_rate":
+        profile["capacity_cases"][0]["critical_seconds_per_decision"] += 1e-6
+    elif mutation == "critical_raw_lane":
+        profile["lane_results"][0]["sustained_seconds"] = 3.2
+        _rebind_profile_aggregate_timing(profile)
     elif mutation == "reserved":
         profile["aggregate_peak_memory_reserved_bytes"] += 1
     elif mutation == "headroom":
@@ -2870,7 +3027,9 @@ def test_dual_runner_hashes_and_current_frozen_prep_binding() -> None:
         "throughput_profile_sha256": "7" * 64,
         "throughput_profile_artifact_path": formal.THROUGHPUT_PROFILE_ARTIFACT_NAME,
         "throughput_profile_schema_name": formal.THROUGHPUT_PROFILE_SCHEMA,
-        "throughput_profile_schema_version": formal.SCHEMA_VERSION,
+        "throughput_profile_schema_version": (
+            formal.THROUGHPUT_PROFILE_SCHEMA_VERSION
+        ),
         "throughput_profile_formal_manifest_sha256": "1" * 64,
         "throughput_profile_formal_runner_sha256": formal.sha256_file(
             formal.SCRIPT_PATH

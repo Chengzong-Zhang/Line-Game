@@ -103,6 +103,25 @@ class D18V3FormalRunnerStructuralTests(unittest.TestCase):
         self.assertEqual(formal.GPU_SPEC, "5090-p")
         self.assertEqual(formal.IMAGE_UUID, "base-image-ec1e9vdbd3")
 
+    def test_capacity_projection_is_v3_sustained_lane_and_fail_closed(self) -> None:
+        self.assertEqual(formal.SCALAR_LANE_COUNT, 12)
+        self.assertEqual(
+            formal.THROUGHPUT_PROFILE_SCHEMA,
+            "lifeline-d18-v3-gpu-smoke-v3",
+        )
+        self.assertEqual(formal.THROUGHPUT_PROFILE_SCHEMA_VERSION, 3)
+        projection_source = inspect.getsource(formal._formal_capacity_projection)
+        self.assertIn("sustained_seconds", projection_source)
+        self.assertIn("puct_decisions", projection_source)
+        self.assertIn("critical_seconds_per_decision", projection_source)
+        self.assertIn("slowest_single_decision_seconds", projection_source)
+        smoke_source = inspect.getsource(formal.gpu_smoke)
+        self.assertLess(
+            smoke_source.index("_require_capacity_projection"),
+            smoke_source.index('profile = {'),
+        )
+        self.assertIn("FormalCapacityError", inspect.getsource(formal.main))
+
     def test_dependency_lock_is_frozen_into_stage_and_job(self) -> None:
         self.assertEqual(
             formal.sha256_file(formal.DEPENDENCY_LOCK_PATH),

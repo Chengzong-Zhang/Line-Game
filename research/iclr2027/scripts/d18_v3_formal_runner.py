@@ -92,7 +92,15 @@ SCALAR_LANE_EXECUTION_MODE = "production_equivalent_scalar_puct_lanes"
 INFERENCE_BATCH_SIZE = 1
 INFERENCE_DTYPE = "float32"
 AMP_ENABLED = False
-THROUGHPUT_PROFILE_SCHEMA = "lifeline-d18-v3-gpu-smoke-v2"
+THROUGHPUT_PROFILE_SCHEMA = "lifeline-d18-v3-gpu-smoke-v3"
+THROUGHPUT_PROFILE_SCHEMA_VERSION = 3
+THROUGHPUT_CAPACITY_FAILURE_SCHEMA = (
+    "lifeline-d18-v3-gpu-smoke-capacity-failure-v1"
+)
+CAPACITY_PROJECTION_METHOD = (
+    "sum_task_barriers_ceil_pairs_over_12_times_two_games_times_max_plies_"
+    "times_slowest_observed_lane_sustained_seconds_per_decision"
+)
 THROUGHPUT_PROFILE_ARTIFACT_NAME = "throughput_profile.json"
 RUN_ROOT_ALLOWED_ENTRY_NAMES = frozenset(
     {
@@ -165,6 +173,14 @@ THROUGHPUT_PROFILE_IDENTITY_FIELDS = (
 
 class FormalExecutionError(RuntimeError):
     """A formal execution or evidence invariant failed."""
+
+
+class FormalCapacityError(FormalExecutionError):
+    """A recoverable, structured failure of the formal capacity gate."""
+
+    def __init__(self, diagnostic: Mapping[str, Any]) -> None:
+        self.diagnostic = dict(diagnostic)
+        super().__init__(str(self.diagnostic["error"]))
 
 
 class _ScalarLaneExecutor:
@@ -1376,7 +1392,7 @@ def _formal_capacity_projection(
     lane_results: Sequence[Mapping[str, Any]],
     tasks: Sequence[Mapping[str, Any]],
 ) -> tuple[list[dict[str, Any]], float]:
-    """Project each case from its slowest observed multi-state scalar decision."""
+    """Project each case from its slowest sustained per-lane decision rate."""
 
     grouped: dict[tuple[tuple[str, str], int], list[Mapping[str, Any]]] = defaultdict(list)
     for row in lane_results:
@@ -1407,13 +1423,40 @@ def _formal_capacity_projection(
             == set(range(SCALAR_LANE_COUNT)),
             "formal capacity case does not contain twelve homogeneous lanes",
         )
+        ordered_lanes = sorted(lanes, key=lambda row: int(row["lane_index"]))
         decision_timings = [
             float(value)
-            for row in lanes
+            for row in ordered_lanes
             for value in row["decision_seconds"]
         ]
         _require(bool(decision_timings), "formal capacity case has no decision timings")
         slowest_decision_seconds = max(decision_timings)
+        lane_capacity_rows: list[dict[str, Any]] = []
+        for lane in ordered_lanes:
+            lane_decisions = int(lane["puct_decisions"])
+            lane_sustained_seconds = float(lane["sustained_seconds"])
+            _require(
+                lane_decisions > 0
+                and math.isfinite(lane_sustained_seconds)
+                and lane_sustained_seconds > 0.0,
+                "formal capacity lane duration/counter is invalid",
+            )
+            lane_capacity_rows.append(
+                {
+                    "lane_index": int(lane["lane_index"]),
+                    "sustained_seconds": lane_sustained_seconds,
+                    "puct_decisions": lane_decisions,
+                    "seconds_per_decision": (
+                        lane_sustained_seconds / lane_decisions
+                    ),
+                }
+            )
+        critical_lane = max(
+            lane_capacity_rows, key=lambda row: float(row["seconds_per_decision"])
+        )
+        critical_seconds_per_decision = float(
+            critical_lane["seconds_per_decision"]
+        )
         case_tasks = task_groups[key]
         case_decisions = sum(
             int(task["games"]) * int(task["max_plies"])
@@ -1426,7 +1469,7 @@ def _formal_capacity_projection(
             for task in case_tasks
         ]
         decisions_per_lane = sum(task_barrier_decisions_per_lane)
-        projected = decisions_per_lane * slowest_decision_seconds
+        projected = decisions_per_lane * critical_seconds_per_decision
         total_projected += projected
         rows.append(
             {
@@ -1441,14 +1484,63 @@ def _formal_capacity_projection(
                 ),
                 "observed_scalar_decision_count": len(decision_timings),
                 "slowest_single_decision_seconds": slowest_decision_seconds,
-                "capacity_projection_method": (
-                    "sum_task_barriers_ceil_pairs_over_12_times_two_games_times_"
-                    "max_plies_times_slowest_observed_single_decision_seconds"
+                "critical_lane_index": int(critical_lane["lane_index"]),
+                "critical_lane_sustained_seconds": float(
+                    critical_lane["sustained_seconds"]
                 ),
+                "critical_lane_puct_decisions": int(
+                    critical_lane["puct_decisions"]
+                ),
+                "critical_seconds_per_decision": critical_seconds_per_decision,
+                "capacity_projection_method": CAPACITY_PROJECTION_METHOD,
                 "projected_worst_case_seconds": projected,
             }
         )
     return rows, total_projected
+
+
+def _capacity_failure_diagnostic(
+    capacity_cases: Sequence[Mapping[str, Any]], projected_seconds: float
+) -> dict[str, Any]:
+    """Return the compact one-line receipt retained by product smoke logs."""
+
+    return {
+        "schema_name": THROUGHPUT_CAPACITY_FAILURE_SCHEMA,
+        "schema_version": 1,
+        "status": "FAIL_CLOSED",
+        "error": "formal throughput cannot finish the sustained-lane workload projection",
+        "formal_gameplay_budget_seconds": FORMAL_GAMEPLAY_BUDGET_SECONDS,
+        "projected_worst_case_seconds": float(projected_seconds),
+        "capacity_cases": [
+            {
+                "case_index": int(row["case_index"]),
+                "model_pair": list(row["model_pair"]),
+                "eval_size": int(row["eval_size"]),
+                "critical_lane_index": int(row["critical_lane_index"]),
+                "critical_seconds_per_decision": float(
+                    row["critical_seconds_per_decision"]
+                ),
+                "slowest_single_decision_seconds": float(
+                    row["slowest_single_decision_seconds"]
+                ),
+                "projected_worst_case_seconds": float(
+                    row["projected_worst_case_seconds"]
+                ),
+            }
+            for row in capacity_cases
+        ],
+    }
+
+
+def _require_capacity_projection(
+    capacity_cases: Sequence[Mapping[str, Any]], projected_seconds: float
+) -> None:
+    """Fail before constructing or persisting any PASS throughput profile."""
+
+    if projected_seconds > FORMAL_GAMEPLAY_BUDGET_SECONDS:
+        raise FormalCapacityError(
+            _capacity_failure_diagnostic(capacity_cases, projected_seconds)
+        )
 
 
 def _resident_memory_summary(
@@ -1669,9 +1761,10 @@ def gpu_smoke(
         free_after_bytes >= MIN_DEVICE_FREE_HEADROOM_BYTES,
         "formal persistent worker caches leave insufficient device headroom",
     )
+    _require_capacity_projection(capacity_cases, projected_worst_case_seconds)
     profile = {
         "schema_name": THROUGHPUT_PROFILE_SCHEMA,
-        "schema_version": SCHEMA_VERSION,
+        "schema_version": THROUGHPUT_PROFILE_SCHEMA_VERSION,
         "status": "PASS",
         "experiment_id": manifest["experiment_id"],
         "formal_manifest_sha256": sha256_file(manifest_path),
@@ -1806,7 +1899,7 @@ def _validate_throughput_profile_payload(
     _require_all_numbers_finite(profile)
     expected = {
         "schema_name": THROUGHPUT_PROFILE_SCHEMA,
-        "schema_version": SCHEMA_VERSION,
+        "schema_version": THROUGHPUT_PROFILE_SCHEMA_VERSION,
         "status": "PASS",
         "experiment_id": EXPERIMENT_ID,
         "formal_manifest_sha256": manifest_sha256,
@@ -2591,7 +2684,7 @@ def _validate_throughput_profile_payload(
             abs_tol=1e-9,
         )
         and projected <= FORMAL_GAMEPLAY_BUDGET_SECONDS,
-        "formal throughput cannot finish the conservative workload projection",
+        "formal throughput cannot finish the sustained-lane workload projection",
     )
 
     resident_workers, aggregate_allocated, aggregate_reserved = (
@@ -5394,6 +5487,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
         else:  # pragma: no cover
             raise FormalExecutionError(f"unsupported command: {args.command}")
+    except FormalCapacityError as exc:
+        print(canonical_json(exc.diagnostic))
+        return 2
     except (FormalExecutionError, prep.PreparationError, legacy.ProtocolError) as exc:
         print(canonical_json({"status": "FAIL_CLOSED", "error": str(exc)}))
         return 2

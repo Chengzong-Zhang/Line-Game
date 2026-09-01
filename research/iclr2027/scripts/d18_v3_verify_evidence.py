@@ -83,7 +83,12 @@ POLICY_SEED_NAMESPACE = "lifeline-d18-v3-policy-seeds-20260830-v1"
 DEFAULT_MANIFEST = RESEARCH_ROOT / "configs" / "d18_v3_formal_manifest_v2.json"
 DEFAULT_FORMAL_RUNNER = SCRIPT_DIR / "d18_v3_formal_runner.py"
 DEFAULT_PREPARATION_RUNNER = SCRIPT_DIR / "d18_v3_runner.py"
-THROUGHPUT_PROFILE_SCHEMA = "lifeline-d18-v3-gpu-smoke-v2"
+THROUGHPUT_PROFILE_SCHEMA = "lifeline-d18-v3-gpu-smoke-v3"
+THROUGHPUT_PROFILE_SCHEMA_VERSION = 3
+CAPACITY_PROJECTION_METHOD = (
+    "sum_task_barriers_ceil_pairs_over_12_times_two_games_times_max_plies_"
+    "times_slowest_observed_lane_sustained_seconds_per_decision"
+)
 THROUGHPUT_PROFILE_ARTIFACT_NAME = "throughput_profile.json"
 RUN_ROOT_ALLOWED_ENTRY_NAMES = frozenset(
     {
@@ -1046,7 +1051,7 @@ def _validate_execution_metadata(
             metadata.get("throughput_profile_schema_version"),
             "execution_metadata.throughput_profile_schema_version",
         )
-        == SCHEMA_VERSION,
+        == THROUGHPUT_PROFILE_SCHEMA_VERSION,
         "execution metadata throughput-profile version mismatch",
     )
     _require(
@@ -1134,7 +1139,7 @@ def _validate_throughput_profile_evidence(
     profile = load_json(profile_path)
     expected = {
         "schema_name": THROUGHPUT_PROFILE_SCHEMA,
-        "schema_version": SCHEMA_VERSION,
+        "schema_version": THROUGHPUT_PROFILE_SCHEMA_VERSION,
         "status": "PASS",
         "experiment_id": EXPERIMENT_ID,
         "formal_manifest_sha256": formal_manifest_sha,
@@ -1478,6 +1483,9 @@ def _validate_throughput_profile_evidence(
     case_sustained: dict[int, list[float]] = defaultdict(list)
     case_total_seconds: dict[int, list[float]] = defaultdict(list)
     case_decision_timings: dict[int, list[float]] = defaultdict(list)
+    case_lane_seconds_per_decision: dict[int, list[dict[str, float | int]]] = (
+        defaultdict(list)
+    )
     observed_kinds: set[str] = set()
     observed_kind_sizes: set[tuple[str, int]] = set()
     observed_pairs: set[tuple[str, str]] = set()
@@ -1743,6 +1751,14 @@ def _validate_throughput_profile_evidence(
         case_sustained[case_index].append(sustained)
         case_total_seconds[case_index].append(lane_total)
         case_decision_timings[case_index].extend(decision_timings)
+        case_lane_seconds_per_decision[case_index].append(
+            {
+                "lane_index": lane_index,
+                "sustained_seconds": sustained,
+                "puct_decisions": lane_decisions,
+                "seconds_per_decision": sustained / lane_decisions,
+            }
+        )
         observed_pairs.add(pair)
         observed_sizes.add(size)
         observed_pair_sizes.add((pair, size))
@@ -1949,6 +1965,13 @@ def _validate_throughput_profile_evidence(
         capacity = _mapping(capacity_rows[case_index], f"capacity[{case_index}]")
         timings = case_decision_timings[case_index]
         slowest = max(timings)
+        critical_lane = max(
+            case_lane_seconds_per_decision[case_index],
+            key=lambda row: float(row["seconds_per_decision"]),
+        )
+        critical_seconds_per_decision = float(
+            critical_lane["seconds_per_decision"]
+        )
         case_work = sum(
             _integer(task.get("games"), "task.games", minimum=1)
             * _integer(task.get("max_plies"), "task.max_plies", minimum=1)
@@ -1964,7 +1987,7 @@ def _validate_throughput_profile_evidence(
             for task in task_groups[(pair, size)]
         ]
         work_per_lane = sum(task_barrier_work)
-        projected = work_per_lane * slowest
+        projected = work_per_lane * critical_seconds_per_decision
         projected_total += projected
         _require(
             capacity.get("case_index") == case_index
@@ -1977,16 +2000,35 @@ def _validate_throughput_profile_evidence(
             == task_barrier_work
             and capacity.get("observed_scalar_decision_count") == len(timings)
             and capacity.get("capacity_projection_method")
-            == (
-                "sum_task_barriers_ceil_pairs_over_12_times_two_games_times_"
-                "max_plies_times_slowest_observed_single_decision_seconds"
-            )
+            == CAPACITY_PROJECTION_METHOD
             and math.isclose(
                 _finite_number(
                     capacity.get("slowest_single_decision_seconds"),
                     "capacity.slowest_decision",
                 ),
                 slowest,
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+            and capacity.get("critical_lane_index")
+            == int(critical_lane["lane_index"])
+            and math.isclose(
+                _finite_number(
+                    capacity.get("critical_lane_sustained_seconds"),
+                    "capacity.critical_lane_sustained_seconds",
+                ),
+                float(critical_lane["sustained_seconds"]),
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+            and capacity.get("critical_lane_puct_decisions")
+            == int(critical_lane["puct_decisions"])
+            and math.isclose(
+                _finite_number(
+                    capacity.get("critical_seconds_per_decision"),
+                    "capacity.critical_seconds_per_decision",
+                ),
+                critical_seconds_per_decision,
                 rel_tol=1e-12,
                 abs_tol=1e-12,
             )
@@ -1999,7 +2041,7 @@ def _validate_throughput_profile_evidence(
                 rel_tol=1e-12,
                 abs_tol=1e-9,
             ),
-            "throughput capacity case differs from conservative per-decision projection",
+            "throughput capacity case differs from sustained-lane projection",
         )
     _require(
         math.isclose(
