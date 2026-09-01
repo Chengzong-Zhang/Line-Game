@@ -38,6 +38,8 @@ or a fresh-install `PASS`.
 | Project discovery root | `research/iclr2027`, represented as `where = ["."]` in that project |
 | Included packages | exact `lifeline_rl` and `lifeline_rl.*` only |
 | Explicitly excluded top-level package | `lifeline_rl_autodl` |
+| Frozen-byte transport policy | root `.gitattributes`, SHA-256 `b5580b068874c753566140e0cc563c819b317ddc9e31c01f260697baf5b0a3dc` |
+| Verbatim transport exceptions | 10 exact frozen evidence paths, each with `-text` |
 | Compact independent auditor | `reviews/compact_independent_receipt_audit.py` |
 | Compact-auditor SHA-256 | `44a9e922aebd3ec8d30e40af35dbde459869a774971796251ab5317184583e7c` |
 | Future compact verdict/exit/skips | `PASS_TRACKED_METADATA_CONSISTENCY_ONLY` / `0` / `0` |
@@ -104,9 +106,11 @@ evidence.
 1. Record a full Git subject commit and its exact tree object. Require `HEAD`
    and the commit tree to remain unchanged before and after every publication
    step.
-2. Export a new clean copy from that commit, including the tracked
-   `research/iclr2027` tree and any tracked independent reference file required
-   by the selected tests. Do not copy from the live worktree.
+2. Export a new clean copy with `git archive` from that exact commit, including
+   the tracked `research/iclr2027` tree and any tracked independent reference
+   file required by the selected tests. The archive's Git blob bytes are the
+   transport authority. Do not copy from the live worktree and do not treat an
+   ordinary checkout as equivalent evidence for this gate.
 3. Persist a sorted member list with decimal sizes and lowercase SHA-256 values,
    plus the exported archive SHA-256. Reject missing, extra, symlink, junction,
    reparse-point, or special-file members.
@@ -121,6 +125,14 @@ top-level package `lifeline_rl_autodl` is outside this wheel contract. The
 subject-bound verifier must enumerate the package tree twice under this rule,
 obtain the same 25 Python source paths both times, and preserve all three Git
 subject snapshot checks around those enumerations.
+
+Before export, the verifier must also bind the exact root `.gitattributes`
+bytes and its ten-path `-text` closure. Those ten accepted evidence files use
+CRLF bytes whose existing SHA-256 values are authoritative; Git must store and
+archive those bytes verbatim rather than normalize them. Every fixed input
+must have identical accepted/worktree and subject-blob bytes before Gate C can
+pass. Any additional path mismatch, transport rule, or text conversion blocks
+the run.
 
 The claim profile and resolved allowlist currently contain 120 rows in 28
 categories. Their complete two-way `(category, destination, source)` identity
@@ -176,9 +188,8 @@ The run must then:
 3. run the dependency-free core/search/serialization tests, the PyTorch network
    and trainer tests, the D14--D16 protocol/receipt tests, and the two retained
    environment/preflight pytest modules as separate recorded commands;
-4. run the independent D14--D16 receipt comparison on the tracked compact
-   evidence that is actually present in the clean copy, using exactly the 11
-   hash-bound metadata inputs in the profile. Require exit code `0`, zero
+4. run the compact independent auditor against the eleven tracked D14--D16
+   metadata inputs present in the clean copy. Require exit code `0`, zero
    skips, `manifest_byte_pin_enforced=true`, 11 distinct files, and public
    verdict `PASS_TRACKED_METADATA_CONSISTENCY_ONLY`;
 5. record every selected test file hash, collected/passed/failed/skipped/error
@@ -231,4 +242,5 @@ A future `PASS` would establish only that the exact checked-in D14--D16 code and
 selected evidence checks install and run in one new, offline, hash-bound
 Windows CPython 3.10.20 environment. It would not reproduce training, establish
 hardware equivalence, approve the anonymous supplement, validate D17--D19, fix
-the current scientific weaknesses, or make the submission ready.
+the current scientific weaknesses, close the paper's TeX/BibTeX runtime gate,
+or make the submission ready.

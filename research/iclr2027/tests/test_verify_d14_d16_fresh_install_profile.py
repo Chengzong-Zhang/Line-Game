@@ -136,6 +136,15 @@ def test_checked_in_profile_is_canonical_and_resolves_every_allowlisted_byte():
         ]
         == "implemented"
     )
+    transport = validation.public["line_ending_transport_policy"]
+    assert transport["path"] == verifier.EXPECTED_GITATTRIBUTES_PATH
+    assert transport["sha256"] == verifier.EXPECTED_GITATTRIBUTES_SHA256
+    assert transport["required_attribute"] == "-text"
+    assert transport["rules_verified"] is True
+    assert transport["frozen_evidence_path_count"] == 10
+    assert transport["frozen_evidence_paths"] == list(
+        verifier.EXPECTED_FROZEN_TRANSPORT_PATHS
+    )
     compact_contract = validation.public["independent_receipt_audit"][
         "compact_verifier_contract"
     ]
@@ -912,6 +921,50 @@ def test_critical_input_role_path_mapping_is_frozen(monkeypatch):
 
     with pytest.raises(verifier.ContractError, match="role/path mapping"):
         verifier.validate_contract(verifier.DEFAULT_PROFILE)
+
+
+def test_line_ending_transport_policy_profile_hash_is_frozen(monkeypatch):
+    def mutate(profile):
+        transport = next(
+            row
+            for row in profile["critical_inputs"]
+            if row["role"] == "line_ending_transport_policy"
+        )
+        transport["sha256"] = "0" * 64
+
+    _patch_decoded_payload(monkeypatch, "fresh-install profile", mutate)
+
+    with pytest.raises(
+        verifier.ContractError, match="line-ending transport policy SHA-256"
+    ):
+        verifier.validate_contract(verifier.DEFAULT_PROFILE)
+
+
+@pytest.mark.parametrize("mutation", ["missing", "wrong_attribute", "duplicate"])
+def test_line_ending_transport_policy_is_exact_and_fail_closed(mutation):
+    data = (
+        verifier.REPOSITORY_ROOT / verifier.EXPECTED_GITATTRIBUTES_PATH
+    ).read_bytes()
+    path = verifier.EXPECTED_FROZEN_TRANSPORT_PATHS[0].encode("ascii")
+    rule = path + b" -text\n"
+    if mutation == "missing":
+        data = data.replace(rule, b"", 1)
+    elif mutation == "wrong_attribute":
+        data = data.replace(rule, path + b" text\n", 1)
+    else:
+        data = data.replace(rule, rule + rule, 1)
+
+    with pytest.raises(verifier.ContractError, match="transport rule|ten-path closure"):
+        verifier._validated_frozen_transport_paths(data)
+
+
+def test_line_ending_transport_policy_rejects_crlf_policy_bytes():
+    data = (
+        verifier.REPOSITORY_ROOT / verifier.EXPECTED_GITATTRIBUTES_PATH
+    ).read_bytes()
+
+    with pytest.raises(verifier.ContractError, match="UTF-8/LF"):
+        verifier._validated_frozen_transport_paths(data.replace(b"\n", b"\r\n"))
 
 
 def test_test_group_paths_are_an_exact_profile_closure(monkeypatch):

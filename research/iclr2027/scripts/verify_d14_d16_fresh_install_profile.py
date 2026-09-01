@@ -175,6 +175,22 @@ EXPECTED_FUTURE_DERIVED_OUTPUT_COUNT = 11
 EXPECTED_CLAIM_TRIPLE_SHA256 = (
     "95933b2b39d57495c9e945b95c6dd2f024270f1784d6221163540ec552a707f8"
 )
+EXPECTED_GITATTRIBUTES_PATH = ".gitattributes"
+EXPECTED_GITATTRIBUTES_SHA256 = (
+    "b5580b068874c753566140e0cc563c819b317ddc9e31c01f260697baf5b0a3dc"
+)
+EXPECTED_FROZEN_TRANSPORT_PATHS = (
+    "research/iclr2027/d6_redteam_exact_audit.json",
+    "research/iclr2027/results/validation/d6_random_n5_final.json",
+    "research/iclr2027/results/validation/d6_random_n6_final.json",
+    "research/iclr2027/results/validation/superko_exhaustive_n5_20260825.json",
+    "research/iclr2027/results/validation/superko_random_n6_seed20260826.json",
+    "research/iclr2027/results/validation/superko_random_n7_seed20260826.json",
+    "research/iclr2027/results/formal/d14_d16/aggregate_v1/arena_learning_curve.csv",
+    "research/iclr2027/results/formal/d14_d16/aggregate_v1/final_vs_search.csv",
+    "research/iclr2027/results/formal/d14_d16/aggregate_v1/representation_round_robin.csv",
+    "research/iclr2027/results/formal/d14_d16/aggregate_v1/training_curve.csv",
+)
 CLAIM_ZERO_INPUT_EXCEPTION = {
     "category": "transformation_receipt",
     "destination": "research/iclr2027/results/validation/ANONYMIZATION_DERIVATION.json",
@@ -193,6 +209,7 @@ EXPECTED_CRITICAL_PATHS = {
     "fresh_install_preflight": "research/iclr2027/scripts/d14_d16_fresh_install_preflight.py",
     "fresh_install_preflight_doc": "research/iclr2027/D14_D16_FRESH_INSTALL_PREFLIGHT.md",
     "full_evidence_independent_auditor": "research/iclr2027/reviews/independent_receipt_audit.py",
+    "line_ending_transport_policy": EXPECTED_GITATTRIBUTES_PATH,
     "portable_execution_metadata": "research/iclr2027/results/validation/d14_d16_execution_metadata_portable_20260831.json",
     "prior_independent_audit_receipt": "research/iclr2027/results/validation/d14_d16_independent_receipt_audit_20260831.json",
     "resolved_claim_allowlist": "research/iclr2027/supplement_tools/supplement_claim_complete_allowlist.json",
@@ -678,6 +695,39 @@ def _hash_bound_file(
     reader: SnapshotReader, relative: str, expected_sha256: object, label: str
 ) -> dict[str, object]:
     return reader.bind(relative, expected_sha256, label).public_fields()
+
+
+def _validated_frozen_transport_paths(data: bytes) -> tuple[str, ...]:
+    if len(data) > MAX_BOUND_FILE_BYTES:
+        raise ContractError("line-ending transport policy exceeds the size limit")
+    if not data.endswith(b"\n") or b"\r" in data:
+        raise ContractError("line-ending transport policy must be UTF-8/LF text")
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise ContractError(
+            "line-ending transport policy must be UTF-8/LF text"
+        ) from exc
+
+    expected = frozenset(EXPECTED_FROZEN_TRANSPORT_PATHS)
+    observed: list[str] = []
+    for line_number, line in enumerate(text.splitlines(), start=1):
+        if not line or line.startswith("#"):
+            continue
+        fields = line.split()
+        pattern = fields[0]
+        if pattern not in expected:
+            continue
+        if fields != [pattern, "-text"]:
+            raise ContractError(
+                f"frozen transport rule {line_number} must be exactly '<path> -text'"
+            )
+        observed.append(pattern)
+    if tuple(observed) != EXPECTED_FROZEN_TRANSPORT_PATHS:
+        raise ContractError(
+            "line-ending transport policy differs from the exact ten-path closure"
+        )
+    return tuple(observed)
 
 
 def _validated_allowlist_rows(
@@ -1365,6 +1415,7 @@ def validate_contract(
         raise ContractError("critical_inputs must be a list")
     critical_facts: list[dict[str, object]] = []
     critical_by_role: dict[str, str] = {}
+    transport_snapshot: FileSnapshot | None = None
     for index, item in enumerate(critical):
         if not isinstance(item, dict):
             raise ContractError(f"critical input {index} must be an object")
@@ -1374,18 +1425,28 @@ def validate_contract(
             raise ContractError(f"critical input {index} has invalid/duplicate role")
         relative = _safe_relative(item.get("path"), f"critical input {index} path")
         critical_by_role[role] = relative
+        if role == "line_ending_transport_policy":
+            _require_typed_equal(
+                item.get("sha256"),
+                EXPECTED_GITATTRIBUTES_SHA256,
+                "line-ending transport policy SHA-256",
+            )
+        snapshot = reader.bind(relative, item.get("sha256"), f"critical input {role}")
+        if role == "line_ending_transport_policy":
+            transport_snapshot = snapshot
         critical_facts.append(
             {
                 "role": role,
-                **_hash_bound_file(
-                    reader, relative, item.get("sha256"), f"critical input {role}"
-                ),
+                **snapshot.public_fields(),
             }
         )
     if critical_by_role != EXPECTED_CRITICAL_PATHS:
         raise ContractError("critical input role/path mapping differs from schema v1")
     if len({path.casefold() for path in critical_by_role.values()}) != len(critical):
         raise ContractError("critical input paths are duplicated")
+    if transport_snapshot is None:
+        raise ContractError("line-ending transport policy critical input is missing")
+    frozen_transport_paths = _validated_frozen_transport_paths(transport_snapshot.data)
 
     independent = profile.get("independent_receipt_audit")
     if not isinstance(independent, dict):
@@ -1941,6 +2002,14 @@ def validate_contract(
                     "clean_copy_compatible": False,
                     "requires_ignored_raw_artifacts": True,
                 },
+            },
+            "line_ending_transport_policy": {
+                **transport_snapshot.public_fields(),
+                "frozen_evidence_path_count": len(frozen_transport_paths),
+                "frozen_evidence_paths": list(frozen_transport_paths),
+                "required_attribute": "-text",
+                "rules_verified": True,
+                "scope": "git_transport_policy_only",
             },
             "claim_allowlist_closure": {
                 "canonical_triple_sha256": EXPECTED_CLAIM_TRIPLE_SHA256,
