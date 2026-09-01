@@ -16,17 +16,22 @@ runner cannot update the export.
 from __future__ import annotations
 
 import argparse
+import builtins
 import contextlib
 import copy
 import ctypes
 import errno
 import hashlib
+import importlib
+import importlib.abc
+import importlib.util
 import json
 import os
 import re
 import stat
 import sys
 import tempfile
+import types
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -37,17 +42,46 @@ from typing import Any, Callable, Iterator, Mapping, Sequence
 SCRIPT_PATH = Path(__file__).resolve()
 SCRIPT_DIRECTORY = SCRIPT_PATH.parent
 RESEARCH_ROOT = SCRIPT_DIRECTORY.parent
-if str(SCRIPT_DIRECTORY) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_DIRECTORY))
-if str(RESEARCH_ROOT) not in sys.path:
-    sys.path.insert(0, str(RESEARCH_ROOT))
-
-import d17_d19_runner as runner  # noqa: E402
+REPOSITORY_ROOT = RESEARCH_ROOT.parents[1]
+RUNNER_PATH = SCRIPT_DIRECTORY / "d17_d19_runner.py"
+EXPERIMENTS_PATH = SCRIPT_DIRECTORY / "d17_d19_experiments.py"
 
 
 EXPECTED_RUNNER_SHA256 = (
     "d128dfe4a2480b4523ca6bc37642bc393bead4c7ba0d037dc692808fc3d52991"
 )
+EXPECTED_EXPERIMENTS_SHA256 = (
+    "34d4aba6d38d51b1af1602745aaee8a234c611ed9eff985fe218f68fc83feb05"
+)
+EXPECTED_FORMAL_SOURCE_HASH = (
+    "21a46dbd787090fc18c24cb4e29ebe1dd743203d31abeda43b3ce421833b596c"
+)
+EXPECTED_LIFELINE_SOURCE_FILES = 25
+PRIVATE_RUNNER_MODULE = "_lifeline_d17_d19_canonical_runner"
+PRIVATE_EXPERIMENTS_MODULE = "_lifeline_d17_d19_canonical_experiments"
+PRIVATE_LIFELINE_PACKAGE = "_lifeline_d17_d19_canonical_lifeline_rl"
+RUNTIME_MODULE_FILES = {
+    PRIVATE_RUNNER_MODULE: "scripts/d17_d19_runner.py",
+    PRIVATE_EXPERIMENTS_MODULE: "scripts/d17_d19_experiments.py",
+    PRIVATE_LIFELINE_PACKAGE: "lifeline_rl/__init__.py",
+    f"{PRIVATE_LIFELINE_PACKAGE}.arena": "lifeline_rl/arena.py",
+    f"{PRIVATE_LIFELINE_PACKAGE}.core": "lifeline_rl/core.py",
+    f"{PRIVATE_LIFELINE_PACKAGE}.encoding": "lifeline_rl/encoding.py",
+    f"{PRIVATE_LIFELINE_PACKAGE}.env": "lifeline_rl/env.py",
+    f"{PRIVATE_LIFELINE_PACKAGE}.agents": "lifeline_rl/agents/__init__.py",
+    f"{PRIVATE_LIFELINE_PACKAGE}.agents.base": "lifeline_rl/agents/base.py",
+    f"{PRIVATE_LIFELINE_PACKAGE}.agents.cycle_seeking": (
+        "lifeline_rl/agents/cycle_seeking.py"
+    ),
+    f"{PRIVATE_LIFELINE_PACKAGE}.agents.factory": "lifeline_rl/agents/factory.py",
+    f"{PRIVATE_LIFELINE_PACKAGE}.agents.greedy": "lifeline_rl/agents/greedy.py",
+    f"{PRIVATE_LIFELINE_PACKAGE}.agents.heuristic": ("lifeline_rl/agents/heuristic.py"),
+    f"{PRIVATE_LIFELINE_PACKAGE}.agents.mcts": "lifeline_rl/agents/mcts.py",
+    f"{PRIVATE_LIFELINE_PACKAGE}.agents.minimax": "lifeline_rl/agents/minimax.py",
+    f"{PRIVATE_LIFELINE_PACKAGE}.agents.random_agent": (
+        "lifeline_rl/agents/random_agent.py"
+    ),
+}
 EXPECTED_EXPORT_ENTRIES = 259
 EXPECTED_TASKS = 85
 EXPECTED_TASK_ARTIFACTS = 85
@@ -110,6 +144,22 @@ class NewOutputTarget:
     path: Path
     parent: Path
     parent_identity: tuple[int, int]
+
+
+@dataclass(frozen=True)
+class FrozenSourceFile:
+    relative_path: str
+    path: Path
+    payload: bytes
+    sha256: str
+
+
+@dataclass(frozen=True)
+class AuthenticatedSource:
+    module_name: str
+    source: FrozenSourceFile
+    code: types.CodeType
+    is_package: bool
 
 
 def _utc_now() -> str:
@@ -452,6 +502,8 @@ def _validate_strict_bundle_inputs(
     strict_tasks = _load_jsonl(bundle_paths[2])
     strict_games = _load_jsonl(bundle_paths[3])
     _load_json(bundle_paths[4])
+    _assert_authenticated_runtime_unchanged()
+    _assert_formal_source_snapshot_unchanged()
     try:
         manifest = runner.load_manifest(manifest_path)
         _, tasks, games = runner.load_task_bundle(manifest, bundle_directory)
@@ -504,13 +556,11 @@ def _validate_execution_metadata(
     }
     if set(metadata) != expected_keys:
         raise RecoveryError("execution_metadata.json has an unexpected schema")
-    runner_sha256 = _sha256_file(runner.__file__)
-    if runner_sha256 != EXPECTED_RUNNER_SHA256:
-        raise RecoveryError(
-            "frozen runner SHA-256 mismatch; refusing semantic recovery"
-        )
-    experiments_path = Path(runner.__file__).with_name("d17_d19_experiments.py")
-    experiments_sha256 = _sha256_file(experiments_path)
+    _assert_authenticated_runtime_unchanged()
+    runner_sha256 = _AUTHENTICATED_RUNTIME_SOURCES[PRIVATE_RUNNER_MODULE].source.sha256
+    experiments_sha256 = _AUTHENTICATED_RUNTIME_SOURCES[
+        PRIVATE_EXPERIMENTS_MODULE
+    ].source.sha256
     task_sha256 = _sha256_file(bundle_directory / "tasks.jsonl")
     game_sha256 = _sha256_file(bundle_directory / "game_manifest.jsonl")
     protocol_path = runner.resolve_manifest_path(
@@ -522,7 +572,7 @@ def _validate_execution_metadata(
         source_files_verified = runner._validate_manifest_source_files(
             manifest, manifest_path=manifest_path
         )
-        formal_source_hash = runner._validate_source_identity(
+        formal_source_hash = _validate_frozen_source_identity(
             runner._checkpoint_rows(manifest)
         )
     except (OSError, ValueError, KeyError, TypeError) as exc:
@@ -785,26 +835,472 @@ def _record_expected_hash(
     return resolved
 
 
+def _bind_stable_input_role(
+    roles: dict[str, Path],
+    expected: dict[Path, str],
+    *,
+    role: str,
+    path: Path,
+    digest: str,
+) -> None:
+    if role in roles:
+        raise RecoveryError(f"duplicate stable input role: {role}")
+    resolved = _record_expected_hash(expected, path, digest, label=role)
+    if resolved in roles.values():
+        return
+    roles[role] = resolved
+
+
+def _read_source_payload(path: Path, *, relative_path: str) -> FrozenSourceFile:
+    normalized = Path(relative_path).as_posix()
+    if (
+        not normalized
+        or normalized.startswith("/")
+        or "\\" in relative_path
+        or any(part in {"", ".", ".."} for part in normalized.split("/"))
+    ):
+        raise RecoveryError(f"invalid authenticated source label: {relative_path!r}")
+    _reject_link_or_reparse(path, expect_directory=False)
+    resolved = path.resolve(strict=True)
+    _reject_link_or_reparse(resolved, expect_directory=False)
+    try:
+        before = os.stat(resolved, follow_symlinks=False)
+        payload = resolved.read_bytes()
+        after = os.stat(resolved, follow_symlinks=False)
+    except OSError as exc:
+        raise RecoveryError(
+            f"cannot read authenticated source {resolved}: {exc}"
+        ) from exc
+    identity_fields = ("st_dev", "st_ino", "st_size", "st_mtime_ns")
+    if any(
+        getattr(before, field) != getattr(after, field) for field in identity_fields
+    ):
+        raise RecoveryError(f"authenticated source changed while read: {resolved}")
+    return FrozenSourceFile(
+        relative_path=normalized,
+        path=resolved,
+        payload=payload,
+        sha256=hashlib.sha256(payload).hexdigest(),
+    )
+
+
+def _read_formal_source_snapshot() -> tuple[FrozenSourceFile, ...]:
+    research_root = RESEARCH_ROOT.resolve(strict=True)
+    lifeline_root = research_root / "lifeline_rl"
+    _reject_link_or_reparse(lifeline_root, expect_directory=True)
+    python_paths: list[Path] = []
+    for raw_directory, raw_directories, raw_files in os.walk(
+        lifeline_root, topdown=True, followlinks=False
+    ):
+        directory = Path(raw_directory)
+        _reject_link_or_reparse(directory, expect_directory=True)
+        raw_directories.sort()
+        raw_files.sort()
+        for name in raw_directories:
+            _reject_link_or_reparse(directory / name, expect_directory=True)
+        for name in raw_files:
+            if Path(name).suffix == ".py":
+                python_paths.append(directory / name)
+    if len(python_paths) != EXPECTED_LIFELINE_SOURCE_FILES:
+        raise RecoveryError(
+            "formal source tree must contain exactly "
+            f"{EXPECTED_LIFELINE_SOURCE_FILES} lifeline_rl Python files; "
+            f"found {len(python_paths)}"
+        )
+    paths = [
+        *python_paths,
+        research_root / "pyproject.toml",
+        research_root / "scripts" / "train_alphazero.py",
+    ]
+    snapshot: list[FrozenSourceFile] = []
+    labels: set[str] = set()
+    for path in paths:
+        _reject_link_or_reparse(path, expect_directory=False)
+        resolved = path.resolve(strict=True)
+        try:
+            label = resolved.relative_to(research_root).as_posix()
+        except ValueError as exc:
+            raise RecoveryError(
+                f"formal source file is outside research root: {resolved}"
+            ) from exc
+        if label in labels:
+            raise RecoveryError(f"duplicate formal source path label: {label}")
+        labels.add(label)
+        snapshot.append(_read_source_payload(resolved, relative_path=label))
+    return tuple(sorted(snapshot, key=lambda item: item.relative_path))
+
+
+def _formal_source_hash(snapshot: Sequence[FrozenSourceFile]) -> str:
+    if not snapshot:
+        raise RecoveryError("formal source snapshot is empty")
+    digest = hashlib.sha256()
+    labels: set[str] = set()
+    for source in sorted(snapshot, key=lambda item: item.relative_path):
+        if source.relative_path in labels:
+            raise RecoveryError(
+                f"duplicate formal source label: {source.relative_path}"
+            )
+        labels.add(source.relative_path)
+        encoded_label = source.relative_path.encode("utf-8")
+        digest.update(len(encoded_label).to_bytes(8, "big"))
+        digest.update(encoded_label)
+        digest.update(source.payload)
+    return digest.hexdigest()
+
+
+def _prepare_authenticated_runtime_sources(
+    formal_snapshot: Sequence[FrozenSourceFile],
+) -> dict[str, AuthenticatedSource]:
+    formal_hash = _formal_source_hash(formal_snapshot)
+    if formal_hash != EXPECTED_FORMAL_SOURCE_HASH:
+        raise RecoveryError(
+            f"formal source hash is {formal_hash}, expected {EXPECTED_FORMAL_SOURCE_HASH}"
+        )
+    runner_source = _read_source_payload(
+        RUNNER_PATH, relative_path=RUNTIME_MODULE_FILES[PRIVATE_RUNNER_MODULE]
+    )
+    experiments_source = _read_source_payload(
+        EXPERIMENTS_PATH,
+        relative_path=RUNTIME_MODULE_FILES[PRIVATE_EXPERIMENTS_MODULE],
+    )
+    if runner_source.sha256 != EXPECTED_RUNNER_SHA256:
+        raise RecoveryError(
+            "frozen runner SHA-256 mismatch; refusing authenticated bootstrap"
+        )
+    if experiments_source.sha256 != EXPECTED_EXPERIMENTS_SHA256:
+        raise RecoveryError(
+            "frozen experiments SHA-256 mismatch; refusing authenticated bootstrap"
+        )
+    formal_by_label = {source.relative_path: source for source in formal_snapshot}
+    if len(formal_by_label) != len(formal_snapshot):
+        raise RecoveryError("formal source snapshot contains duplicate labels")
+    runtime_files: dict[str, FrozenSourceFile] = {
+        PRIVATE_RUNNER_MODULE: runner_source,
+        PRIVATE_EXPERIMENTS_MODULE: experiments_source,
+    }
+    for module_name, label in RUNTIME_MODULE_FILES.items():
+        if module_name in runtime_files:
+            continue
+        try:
+            runtime_files[module_name] = formal_by_label[label]
+        except KeyError as exc:
+            raise RecoveryError(
+                f"authenticated runtime source is missing: {label}"
+            ) from exc
+    if set(runtime_files) != set(RUNTIME_MODULE_FILES):
+        raise RecoveryError("authenticated runtime module closure is not exact")
+
+    authenticated: dict[str, AuthenticatedSource] = {}
+    for module_name in RUNTIME_MODULE_FILES:
+        source = runtime_files[module_name]
+        try:
+            code = compile(
+                source.payload,
+                str(source.path),
+                "exec",
+                dont_inherit=True,
+            )
+        except (SyntaxError, ValueError, TypeError) as exc:
+            raise RecoveryError(
+                f"cannot compile authenticated runtime source {source.relative_path}: {exc}"
+            ) from exc
+        authenticated[module_name] = AuthenticatedSource(
+            module_name=module_name,
+            source=source,
+            code=code,
+            is_package=source.relative_path.endswith("/__init__.py"),
+        )
+    return authenticated
+
+
+def _authenticated_private_import(
+    name: str,
+    globals: Mapping[str, Any] | None = None,
+    locals: Mapping[str, Any] | None = None,
+    fromlist: Sequence[str] = (),
+    level: int = 0,
+) -> Any:
+    mapped = name
+    if level == 0:
+        if name in {"d17_d19_experiments", "scripts.d17_d19_experiments"}:
+            mapped = PRIVATE_EXPERIMENTS_MODULE
+        elif name == "lifeline_rl" or name.startswith("lifeline_rl."):
+            mapped = PRIVATE_LIFELINE_PACKAGE + name[len("lifeline_rl") :]
+    return builtins.__import__(mapped, globals, locals, fromlist, level)
+
+
+def _is_private_runtime_name(name: str) -> bool:
+    return any(
+        name == root or name.startswith(root + ".")
+        for root in (
+            PRIVATE_RUNNER_MODULE,
+            PRIVATE_EXPERIMENTS_MODULE,
+            PRIVATE_LIFELINE_PACKAGE,
+        )
+    )
+
+
+class _AuthenticatedRuntimeLoader(importlib.abc.Loader):
+    def __init__(self, sources: Mapping[str, AuthenticatedSource]) -> None:
+        self.sources = dict(sources)
+        self.module_objects: dict[str, types.ModuleType] = {}
+
+    def create_module(self, spec: importlib.machinery.ModuleSpec) -> None:
+        del spec
+        return None
+
+    def exec_module(self, module: types.ModuleType) -> None:
+        try:
+            source = self.sources[module.__name__]
+        except KeyError as exc:
+            raise ModuleNotFoundError(
+                f"undeclared authenticated runtime module: {module.__name__}",
+                name=module.__name__,
+            ) from exc
+        self.module_objects[module.__name__] = module
+        module.__file__ = str(source.source.path)
+        module.__cached__ = None
+        if module.__spec__ is None or module.__spec__.loader is not self:
+            raise ImportError(f"authenticated module spec drifted: {module.__name__}")
+        module.__spec__.cached = None
+        local_builtins = dict(vars(builtins))
+        local_builtins["__import__"] = _authenticated_private_import
+        module.__dict__["__builtins__"] = local_builtins
+        builtins.exec(source.code, module.__dict__)
+
+
+class _AuthenticatedRuntimeFinder(importlib.abc.MetaPathFinder):
+    def __init__(self, sources: Mapping[str, AuthenticatedSource]) -> None:
+        self.sources = dict(sources)
+        self.loader = _AuthenticatedRuntimeLoader(self.sources)
+
+    def find_spec(
+        self,
+        fullname: str,
+        path: Sequence[str] | None,
+        target: types.ModuleType | None = None,
+    ) -> importlib.machinery.ModuleSpec | None:
+        del path, target
+        if not _is_private_runtime_name(fullname):
+            return None
+        source = self.sources.get(fullname)
+        if source is None:
+            raise ModuleNotFoundError(
+                f"undeclared authenticated private module is forbidden: {fullname}",
+                name=fullname,
+            )
+        spec = importlib.util.spec_from_loader(
+            fullname,
+            self.loader,
+            origin=str(source.source.path),
+            is_package=source.is_package,
+        )
+        if spec is None:
+            raise ImportError(f"cannot create authenticated module spec: {fullname}")
+        spec.cached = None
+        return spec
+
+
+def _loaded_authenticated_runtime_bindings(
+    finder: _AuthenticatedRuntimeFinder,
+    module_objects: Mapping[str, types.ModuleType],
+    sources: Mapping[str, AuthenticatedSource],
+) -> dict[str, str]:
+    expected_names = set(sources)
+    if set(module_objects) != expected_names:
+        raise RecoveryError("loaded authenticated runtime closure is incomplete")
+    observed_names = {name for name in sys.modules if _is_private_runtime_name(name)}
+    if observed_names != expected_names:
+        raise RecoveryError(
+            "loaded authenticated runtime closure is not exact: "
+            f"missing={sorted(expected_names - observed_names)}, "
+            f"extra={sorted(observed_names - expected_names)}"
+        )
+    if sum(item is finder for item in sys.meta_path) != 1:
+        raise RecoveryError("authenticated runtime finder identity changed")
+    bindings: dict[str, str] = {}
+    for name in sorted(expected_names):
+        module = module_objects[name]
+        source = sources[name]
+        if sys.modules.get(name) is not module:
+            raise RecoveryError(f"authenticated runtime module was replaced: {name}")
+        if module.__loader__ is not finder.loader:
+            raise RecoveryError(
+                f"authenticated runtime loader identity changed: {name}"
+            )
+        spec = module.__spec__
+        if spec is None or spec.loader is not finder.loader or spec.cached is not None:
+            raise RecoveryError(f"authenticated runtime module spec changed: {name}")
+        if getattr(module, "__cached__", object()) is not None:
+            raise RecoveryError(
+                f"authenticated runtime bytecode cache is forbidden: {name}"
+            )
+        if Path(str(module.__file__)) != source.source.path:
+            raise RecoveryError(f"authenticated runtime source path changed: {name}")
+        module_builtins = module.__dict__.get("__builtins__")
+        if (
+            not isinstance(module_builtins, dict)
+            or module_builtins.get("__import__") is not _authenticated_private_import
+        ):
+            raise RecoveryError(f"authenticated runtime import guard changed: {name}")
+        bindings[name] = source.source.sha256
+    return bindings
+
+
+def _load_authenticated_runner(
+    sources: Mapping[str, AuthenticatedSource],
+) -> tuple[
+    types.ModuleType,
+    _AuthenticatedRuntimeFinder,
+    dict[str, types.ModuleType],
+]:
+    if set(sources) != set(RUNTIME_MODULE_FILES):
+        raise RecoveryError("authenticated runtime source closure is not exact")
+    occupied = sorted(name for name in sys.modules if _is_private_runtime_name(name))
+    if occupied:
+        raise RecoveryError(
+            f"authenticated runtime private namespace is already occupied: {occupied}"
+        )
+    canonical_before = {
+        name: module
+        for name, module in sys.modules.items()
+        if name in {"d17_d19_experiments", "scripts.d17_d19_experiments"}
+        or name == "lifeline_rl"
+        or name.startswith("lifeline_rl.")
+    }
+    finder = _AuthenticatedRuntimeFinder(sources)
+    sys.meta_path.insert(0, finder)
+    original_sys_path = list(sys.path)
+    try:
+        for name in RUNTIME_MODULE_FILES:
+            importlib.import_module(name)
+        modules = dict(finder.loader.module_objects)
+        _loaded_authenticated_runtime_bindings(finder, modules, sources)
+        canonical_after = {
+            name: module
+            for name, module in sys.modules.items()
+            if name in {"d17_d19_experiments", "scripts.d17_d19_experiments"}
+            or name == "lifeline_rl"
+            or name.startswith("lifeline_rl.")
+        }
+        if canonical_after != canonical_before:
+            raise RecoveryError(
+                "authenticated runtime polluted canonical module bindings"
+            )
+        return modules[PRIVATE_RUNNER_MODULE], finder, modules
+    except BaseException as exc:
+        for name, module in tuple(finder.loader.module_objects.items()):
+            if sys.modules.get(name) is module:
+                del sys.modules[name]
+        sys.meta_path[:] = [item for item in sys.meta_path if item is not finder]
+        if isinstance(exc, RecoveryError):
+            raise
+        if isinstance(exc, Exception):
+            raise RecoveryError(
+                f"authenticated runtime bootstrap failed: {exc}"
+            ) from exc
+        raise
+    finally:
+        sys.path[:] = original_sys_path
+
+
+def _assert_authenticated_runtime_unchanged() -> dict[str, str]:
+    bindings = _loaded_authenticated_runtime_bindings(
+        _AUTHENTICATED_RUNTIME_FINDER,
+        _AUTHENTICATED_RUNTIME_MODULES,
+        _AUTHENTICATED_RUNTIME_SOURCES,
+    )
+    for name, expected in _AUTHENTICATED_RUNTIME_SOURCES.items():
+        observed = _read_source_payload(
+            expected.source.path,
+            relative_path=expected.source.relative_path,
+        )
+        if (
+            observed.path != expected.source.path
+            or observed.sha256 != expected.source.sha256
+            or observed.payload != expected.source.payload
+        ):
+            raise RecoveryError(f"authenticated runtime source changed: {name}")
+    return bindings
+
+
+def _assert_formal_source_snapshot_unchanged() -> str:
+    observed = _read_formal_source_snapshot()
+    observed_rows = [
+        (source.relative_path, source.path, source.sha256) for source in observed
+    ]
+    expected_rows = [
+        (source.relative_path, source.path, source.sha256)
+        for source in _FORMAL_SOURCE_SNAPSHOT
+    ]
+    if observed_rows != expected_rows:
+        raise RecoveryError("formal source snapshot changed during canonical recovery")
+    observed_hash = _formal_source_hash(observed)
+    if observed_hash != EXPECTED_FORMAL_SOURCE_HASH:
+        raise RecoveryError("formal source hash changed during canonical recovery")
+    return observed_hash
+
+
+def _validate_frozen_source_identity(
+    checkpoints: Sequence[Mapping[str, Any]],
+) -> str:
+    _assert_authenticated_runtime_unchanged()
+    formal_source_hash = _assert_formal_source_snapshot_unchanged()
+    declared = {str(checkpoint.get("source_hash", "")) for checkpoint in checkpoints}
+    if declared != {formal_source_hash}:
+        raise RecoveryError(
+            "frozen checkpoint source hash does not match the authenticated source snapshot"
+        )
+    return formal_source_hash
+
+
+_FORMAL_SOURCE_SNAPSHOT = _read_formal_source_snapshot()
+if _formal_source_hash(_FORMAL_SOURCE_SNAPSHOT) != EXPECTED_FORMAL_SOURCE_HASH:
+    raise RecoveryError("current formal source snapshot does not match the frozen hash")
+_AUTHENTICATED_RUNTIME_SOURCES = _prepare_authenticated_runtime_sources(
+    _FORMAL_SOURCE_SNAPSHOT
+)
+(
+    runner,
+    _AUTHENTICATED_RUNTIME_FINDER,
+    _AUTHENTICATED_RUNTIME_MODULES,
+) = _load_authenticated_runner(_AUTHENTICATED_RUNTIME_SOURCES)
+
+
 def _validated_dependency_roles(
     manifest: Mapping[str, Any],
     *,
     manifest_path: Path,
     adapter_sha256: str,
-    experiments_sha256: str,
 ) -> tuple[dict[str, Path], dict[Path, str]]:
     roles: dict[str, Path] = {}
     expected: dict[Path, str] = {}
 
     def bind(role: str, path: Path, digest: str) -> None:
-        if role in roles:
-            raise RecoveryError(f"duplicate stable input role: {role}")
-        roles[role] = _record_expected_hash(expected, path, digest, label=role)
+        _bind_stable_input_role(
+            roles,
+            expected,
+            role=role,
+            path=path,
+            digest=digest,
+        )
 
+    _assert_authenticated_runtime_unchanged()
+    _assert_formal_source_snapshot_unchanged()
     bind("adapter", SCRIPT_PATH, adapter_sha256)
-    runner_path = Path(runner.__file__).resolve(strict=True)
-    bind("runner", runner_path, EXPECTED_RUNNER_SHA256)
-    experiments_path = runner_path.with_name("d17_d19_experiments.py")
-    bind("experiments", experiments_path, experiments_sha256)
+    for module_name in RUNTIME_MODULE_FILES:
+        source = _AUTHENTICATED_RUNTIME_SOURCES[module_name].source
+        bind(
+            f"authenticated-runtime:{module_name}",
+            source.path,
+            source.sha256,
+        )
+    for source in _FORMAL_SOURCE_SNAPSHOT:
+        bind(
+            f"formal-source:{source.relative_path}",
+            source.path,
+            source.sha256,
+        )
 
     source_hashes = manifest.get("source_hashes")
     if not isinstance(source_hashes, Mapping) or not source_hashes:
@@ -888,6 +1384,8 @@ def _validated_dependency_roles(
             receipt_path,
             str(checkpoint["source_receipt_sha256"]),
         )
+    if len(roles) != len(expected) or set(roles.values()) != set(expected):
+        raise RecoveryError("stable input roles and files are not one-to-one")
     return roles, expected
 
 
@@ -895,8 +1393,14 @@ def _fingerprint_digest(
     roles: Mapping[str, Path], fingerprints: Mapping[Path, str]
 ) -> str:
     rows = []
+    resolved_paths: set[Path] = set()
     for role, path in sorted(roles.items()):
         resolved = path.resolve(strict=True)
+        if resolved in resolved_paths:
+            raise RecoveryError(
+                f"multiple stable input roles resolve to one file: {resolved}"
+            )
+        resolved_paths.add(resolved)
         try:
             digest = fingerprints[resolved]
         except KeyError as exc:
@@ -904,6 +1408,10 @@ def _fingerprint_digest(
                 f"input role is missing from fingerprints: {role}"
             ) from exc
         rows.append({"role": role, "sha256": digest})
+    if resolved_paths != set(fingerprints):
+        raise RecoveryError(
+            "stable input roles and fingerprinted files are not one-to-one"
+        )
     return _canonical_sha256(rows)
 
 
@@ -919,14 +1427,9 @@ def _validate_all_inputs(
     _reject_link_or_reparse(raw_bundle, expect_directory=True)
     manifest_file = raw_manifest.resolve(strict=True)
     bundle = raw_bundle.resolve(strict=True)
+    _assert_authenticated_runtime_unchanged()
+    _assert_formal_source_snapshot_unchanged()
     adapter_sha256 = _sha256_file(SCRIPT_PATH)
-    runner_sha256 = _sha256_file(runner.__file__)
-    if runner_sha256 != EXPECTED_RUNNER_SHA256:
-        raise RecoveryError(
-            f"runner SHA-256 is {runner_sha256}, expected {EXPECTED_RUNNER_SHA256}"
-        )
-    experiments_path = Path(runner.__file__).with_name("d17_d19_experiments.py")
-    experiments_sha256 = _sha256_file(experiments_path)
     (
         manifest,
         tasks_list,
@@ -938,7 +1441,6 @@ def _validate_all_inputs(
         manifest,
         manifest_path=manifest_file,
         adapter_sha256=adapter_sha256,
-        experiments_sha256=experiments_sha256,
     )
     task_directories = [
         runner._task_directory(Path("immutable-export"), str(task["task_id"])).name
@@ -959,11 +1461,16 @@ def _validate_all_inputs(
 
     def add_input(role: str, path: Path, digest: str) -> None:
         resolved = path.resolve(strict=True)
-        if role in input_roles and input_roles[role] != resolved:
-            raise RecoveryError(f"conflicting stable input role: {role}")
+        digest = _require_sha256(digest, label=role)
         previous = expected_fingerprints.get(resolved)
         if previous is not None and previous != digest:
             raise RecoveryError(f"conflicting input fingerprint for role {role}")
+        if role in input_roles:
+            if input_roles[role] != resolved:
+                raise RecoveryError(f"conflicting stable input role: {role}")
+            return
+        if previous is not None:
+            return
         input_roles[role] = resolved
         expected_fingerprints[resolved] = digest
 
@@ -978,6 +1485,8 @@ def _validate_all_inputs(
         export_manifest_path,
         inventory.manifest_sha256,
     )
+    if len(input_roles) != len(expected_fingerprints):
+        raise RecoveryError("stable input roles and expected files are not one-to-one")
     initial_fingerprints = _fingerprint(tuple(input_roles.values()))
     if initial_fingerprints != expected_fingerprints:
         raise RecoveryError(
@@ -1166,6 +1675,8 @@ def _validate_all_inputs(
 
 
 def _assert_inputs_unchanged(context: RecoveryContext) -> str:
+    _assert_authenticated_runtime_unchanged()
+    _assert_formal_source_snapshot_unchanged()
     observed_root, observed_export = _scan_regular_tree(context.export.root)
     expected_export = dict(context.export.paths)
     expected_export[EXPORT_MANIFEST_NAME] = (
@@ -1203,6 +1714,8 @@ def _assert_inputs_unchanged(context: RecoveryContext) -> str:
 def _frozen_runner_export_view(context: RecoveryContext) -> Iterator[None]:
     """Temporarily expose authenticated export copies to the frozen runner."""
 
+    _assert_authenticated_runtime_unchanged()
+    _assert_formal_source_snapshot_unchanged()
     original_read_json = runner._read_json
     original_execution_metadata = runner._execution_metadata
     original_finalize_ledger = runner._finalize_ledger
@@ -1261,9 +1774,13 @@ def _frozen_runner_export_view(context: RecoveryContext) -> Iterator[None]:
         runner._read_json = original_read_json
         runner._execution_metadata = original_execution_metadata
         runner._finalize_ledger = original_finalize_ledger
+        _assert_authenticated_runtime_unchanged()
+        _assert_formal_source_snapshot_unchanged()
 
 
 def _run_frozen_canonical(context: RecoveryContext, output: Path) -> dict[str, Any]:
+    _assert_authenticated_runtime_unchanged()
+    _assert_formal_source_snapshot_unchanged()
     with _frozen_runner_export_view(context):
         try:
             result = runner.canonical_aggregate(
@@ -1277,6 +1794,8 @@ def _run_frozen_canonical(context: RecoveryContext, output: Path) -> dict[str, A
             )
         except (OSError, ValueError, KeyError, TypeError) as exc:
             raise RecoveryError(f"frozen canonical aggregation failed: {exc}") from exc
+        _assert_authenticated_runtime_unchanged()
+        _assert_formal_source_snapshot_unchanged()
     numeric = _load_json(output)
     expected_numeric = {
         "schema_name": runner.NUMERIC_SCHEMA_NAME,

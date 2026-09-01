@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import builtins
 import importlib.util
 import json
 import os
 import shutil
 import sys
 import tempfile
+import types
 import unittest
 import uuid
 from pathlib import Path
@@ -156,6 +158,518 @@ def _export_only_context(
         input_fingerprints=fingerprints,
         input_fingerprint_sha256=adapter._fingerprint_digest(roles, fingerprints),
     )
+
+
+class AuthenticatedRuntimeContractTests(unittest.TestCase):
+    def test_global_runtime_closure_is_fully_authenticated_before_use(self) -> None:
+        self.assertEqual(
+            set(adapter._AUTHENTICATED_RUNTIME_SOURCES),
+            set(adapter.RUNTIME_MODULE_FILES),
+        )
+        self.assertEqual(
+            set(adapter._AUTHENTICATED_RUNTIME_MODULES),
+            set(adapter.RUNTIME_MODULE_FILES),
+        )
+        for name, source in adapter._AUTHENTICATED_RUNTIME_SOURCES.items():
+            self.assertEqual(source.module_name, name)
+            self.assertEqual(
+                source.source.sha256,
+                adapter.hashlib.sha256(source.source.payload).hexdigest(),
+            )
+            self.assertIsInstance(source.code, types.CodeType)
+        self.assertEqual(
+            adapter._loaded_authenticated_runtime_bindings(
+                adapter._AUTHENTICATED_RUNTIME_FINDER,
+                adapter._AUTHENTICATED_RUNTIME_MODULES,
+                adapter._AUTHENTICATED_RUNTIME_SOURCES,
+            ),
+            {
+                name: source.source.sha256
+                for name, source in sorted(
+                    adapter._AUTHENTICATED_RUNTIME_SOURCES.items()
+                )
+            },
+        )
+
+    def test_prepare_compiles_the_same_authenticated_payload_without_exec(self) -> None:
+        original_compile = builtins.compile
+        compile_inputs: list[tuple[object, str]] = []
+
+        def record_compile(source: object, filename: str, *args, **kwargs):
+            compile_inputs.append((source, filename))
+            return original_compile(source, filename, *args, **kwargs)
+
+        with (
+            mock.patch.object(builtins, "compile", side_effect=record_compile),
+            mock.patch.object(builtins, "exec") as execute,
+        ):
+            prepared = adapter._prepare_authenticated_runtime_sources(
+                adapter._FORMAL_SOURCE_SNAPSHOT
+            )
+
+        compiled_by_filename = {filename: source for source, filename in compile_inputs}
+        self.assertEqual(len(adapter._FORMAL_SOURCE_SNAPSHOT), 27)
+        self.assertEqual(len(adapter.RUNTIME_MODULE_FILES), 16)
+        self.assertEqual(len(prepared), 16)
+        self.assertEqual(len(compile_inputs), 16)
+        for authenticated in prepared.values():
+            self.assertIs(
+                compiled_by_filename[str(authenticated.source.path)],
+                authenticated.source.payload,
+            )
+        preauthenticated_paths = {
+            source.path for source in adapter._FORMAL_SOURCE_SNAPSHOT
+        } | {
+            prepared[name].source.path
+            for name in (
+                adapter.PRIVATE_RUNNER_MODULE,
+                adapter.PRIVATE_EXPERIMENTS_MODULE,
+            )
+        }
+        self.assertEqual(len(preauthenticated_paths), 29)
+        execute.assert_not_called()
+
+    def test_runner_or_experiments_hash_mismatch_executes_nothing(self) -> None:
+        for constant in ("EXPECTED_RUNNER_SHA256", "EXPECTED_EXPERIMENTS_SHA256"):
+            with self.subTest(constant=constant):
+                with (
+                    mock.patch.object(adapter, constant, "0" * 64),
+                    mock.patch.object(builtins, "exec") as execute,
+                ):
+                    with self.assertRaisesRegex(
+                        adapter.RecoveryError, "SHA-256 mismatch"
+                    ):
+                        adapter._prepare_authenticated_runtime_sources(
+                            adapter._FORMAL_SOURCE_SNAPSHOT
+                        )
+                    execute.assert_not_called()
+
+    def test_loader_executes_captured_payload_and_ignores_disk_and_pyc(self) -> None:
+        payload = b"VALUE = 1\n"
+        frozen = adapter.FrozenSourceFile(
+            relative_path="captured.py",
+            path=SCRIPT_PATH,
+            payload=payload,
+            sha256=adapter.hashlib.sha256(payload).hexdigest(),
+        )
+        name = adapter.PRIVATE_RUNNER_MODULE
+        authenticated = adapter.AuthenticatedSource(
+            module_name=name,
+            source=frozen,
+            code=compile(frozen.payload, str(SCRIPT_PATH), "exec", dont_inherit=True),
+            is_package=False,
+        )
+        loader = adapter._AuthenticatedRuntimeLoader({name: authenticated})
+        spec = importlib.util.spec_from_loader(name, loader, is_package=False)
+        assert spec is not None
+        spec.cached = None
+        module = importlib.util.module_from_spec(spec)
+        with mock.patch.object(
+            adapter.Path,
+            "read_bytes",
+            side_effect=AssertionError("loader must not reread source or bytecode"),
+        ):
+            loader.exec_module(module)
+
+        self.assertEqual(module.VALUE, 1)
+        self.assertIsNone(module.__cached__)
+        self.assertIs(module.__loader__, loader)
+
+    def test_private_runtime_does_not_alias_canonical_modules(self) -> None:
+        private_objects = set(adapter._AUTHENTICATED_RUNTIME_MODULES.values())
+        canonical = {
+            name: module
+            for name, module in sys.modules.items()
+            if name in {"d17_d19_experiments", "scripts.d17_d19_experiments"}
+            or name == "lifeline_rl"
+            or name.startswith("lifeline_rl.")
+        }
+        self.assertTrue(private_objects.isdisjoint(canonical.values()))
+        self.assertEqual(adapter.runner.__name__, adapter.PRIVATE_RUNNER_MODULE)
+        self.assertEqual(
+            adapter.runner.load_manifest.__module__,
+            adapter.PRIVATE_EXPERIMENTS_MODULE,
+        )
+
+    def test_rebootstrap_preserves_an_ordinary_lifeline_module_identity(self) -> None:
+        missing = object()
+        previous_canonical = sys.modules.get("lifeline_rl", missing)
+        sentinel = types.ModuleType("lifeline_rl")
+        saved_meta_path = list(sys.meta_path)
+        saved_modules = {
+            name: module
+            for name, module in tuple(sys.modules.items())
+            if adapter._is_private_runtime_name(name)
+        }
+        for name in saved_modules:
+            del sys.modules[name]
+        sys.meta_path[:] = [
+            item
+            for item in sys.meta_path
+            if item is not adapter._AUTHENTICATED_RUNTIME_FINDER
+        ]
+        sys.modules["lifeline_rl"] = sentinel
+        loaded_finder = None
+        try:
+            _, loaded_finder, modules = adapter._load_authenticated_runner(
+                adapter._AUTHENTICATED_RUNTIME_SOURCES
+            )
+            self.assertIs(sys.modules["lifeline_rl"], sentinel)
+            self.assertEqual(set(modules), set(adapter.RUNTIME_MODULE_FILES))
+        finally:
+            for name in tuple(sys.modules):
+                if adapter._is_private_runtime_name(name):
+                    del sys.modules[name]
+            if loaded_finder is not None:
+                sys.meta_path[:] = [
+                    item for item in sys.meta_path if item is not loaded_finder
+                ]
+            sys.modules.update(saved_modules)
+            sys.meta_path[:] = saved_meta_path
+            if previous_canonical is missing:
+                del sys.modules["lifeline_rl"]
+            else:
+                sys.modules["lifeline_rl"] = previous_canonical
+
+    def test_undeclared_private_and_alphazero_modules_are_rejected(self) -> None:
+        finder = adapter._AUTHENTICATED_RUNTIME_FINDER
+        for name in (
+            f"{adapter.PRIVATE_LIFELINE_PACKAGE}.alphazero",
+            f"{adapter.PRIVATE_LIFELINE_PACKAGE}.undeclared",
+            f"{adapter.PRIVATE_RUNNER_MODULE}.undeclared",
+        ):
+            with (
+                self.subTest(name=name),
+                self.assertRaisesRegex(
+                    ModuleNotFoundError, "undeclared authenticated private module"
+                ),
+            ):
+                finder.find_spec(name, None)
+
+        payload = b"from lifeline_rl.alphazero import forbidden\n"
+        frozen = adapter.FrozenSourceFile(
+            relative_path="synthetic_guard.py",
+            path=SCRIPT_PATH,
+            payload=payload,
+            sha256=adapter.hashlib.sha256(payload).hexdigest(),
+        )
+        authenticated = adapter.AuthenticatedSource(
+            module_name=adapter.PRIVATE_RUNNER_MODULE,
+            source=frozen,
+            code=compile(payload, str(SCRIPT_PATH), "exec", dont_inherit=True),
+            is_package=False,
+        )
+        loader = adapter._AuthenticatedRuntimeLoader(
+            {adapter.PRIVATE_RUNNER_MODULE: authenticated}
+        )
+        spec = importlib.util.spec_from_loader(
+            adapter.PRIVATE_RUNNER_MODULE, loader, is_package=False
+        )
+        assert spec is not None
+        spec.cached = None
+        synthetic_module = importlib.util.module_from_spec(spec)
+        with self.assertRaisesRegex(
+            ModuleNotFoundError, "undeclared authenticated private module"
+        ):
+            loader.exec_module(synthetic_module)
+
+    def test_loaded_closure_is_exact_and_has_no_bytecode_loader(self) -> None:
+        private_names = {
+            name for name in sys.modules if adapter._is_private_runtime_name(name)
+        }
+        self.assertEqual(private_names, set(adapter.RUNTIME_MODULE_FILES))
+        for name in private_names:
+            module = sys.modules[name]
+            self.assertIsNone(module.__cached__)
+            assert module.__spec__ is not None
+            self.assertIsNone(module.__spec__.cached)
+            self.assertIs(
+                module.__loader__, adapter._AUTHENTICATED_RUNTIME_FINDER.loader
+            )
+            self.assertNotIsInstance(
+                module.__loader__, importlib.machinery.SourceFileLoader
+            )
+
+    def test_bootstrap_failure_cleanup_uses_module_object_identity(self) -> None:
+        saved_meta_path = list(sys.meta_path)
+        original_sys_path = list(sys.path)
+        saved_modules = {
+            name: module
+            for name, module in tuple(sys.modules.items())
+            if adapter._is_private_runtime_name(name)
+        }
+        for name in saved_modules:
+            del sys.modules[name]
+        sys.meta_path[:] = [
+            item
+            for item in sys.meta_path
+            if item is not adapter._AUTHENTICATED_RUNTIME_FINDER
+        ]
+        replacement = types.ModuleType(adapter.PRIVATE_RUNNER_MODULE)
+        replaced_created = types.ModuleType(adapter.PRIVATE_RUNNER_MODULE)
+        owned = types.ModuleType(adapter.PRIVATE_EXPERIMENTS_MODULE)
+        injected_finders: list[adapter._AuthenticatedRuntimeFinder] = []
+
+        def fail_import(name: str) -> None:
+            finder = next(
+                item
+                for item in sys.meta_path
+                if isinstance(item, adapter._AuthenticatedRuntimeFinder)
+            )
+            injected_finders.append(finder)
+            finder.loader.module_objects[name] = replaced_created
+            finder.loader.module_objects[adapter.PRIVATE_EXPERIMENTS_MODULE] = owned
+            sys.modules[name] = replacement
+            sys.modules[adapter.PRIVATE_EXPERIMENTS_MODULE] = owned
+            sys.path.append("injected-bootstrap-path")
+            raise KeyboardInterrupt("injected bootstrap interruption")
+
+        try:
+            with mock.patch.object(
+                adapter.importlib, "import_module", side_effect=fail_import
+            ):
+                with self.assertRaisesRegex(
+                    KeyboardInterrupt, "injected bootstrap interruption"
+                ):
+                    adapter._load_authenticated_runner(
+                        adapter._AUTHENTICATED_RUNTIME_SOURCES
+                    )
+            self.assertIs(sys.modules[adapter.PRIVATE_RUNNER_MODULE], replacement)
+            self.assertNotIn(adapter.PRIVATE_EXPERIMENTS_MODULE, sys.modules)
+            self.assertEqual(len(injected_finders), 1)
+            self.assertNotIn(injected_finders[0], sys.meta_path)
+            self.assertEqual(sys.path, original_sys_path)
+        finally:
+            for name in tuple(sys.modules):
+                if adapter._is_private_runtime_name(name):
+                    del sys.modules[name]
+            sys.modules.update(saved_modules)
+            sys.meta_path[:] = saved_meta_path
+
+    def test_runner_module_replacement_is_detected_before_aggregate(self) -> None:
+        original = sys.modules[adapter.PRIVATE_RUNNER_MODULE]
+        sys.modules[adapter.PRIVATE_RUNNER_MODULE] = types.ModuleType(
+            adapter.PRIVATE_RUNNER_MODULE
+        )
+        try:
+            with self.assertRaisesRegex(
+                adapter.RecoveryError, "runtime module was replaced"
+            ):
+                adapter._run_frozen_canonical(mock.sentinel.context, Path("unused"))
+        finally:
+            sys.modules[adapter.PRIVATE_RUNNER_MODULE] = original
+
+    def test_module_replacement_after_aggregate_precedes_output_read(self) -> None:
+        original = sys.modules[adapter.PRIVATE_RUNNER_MODULE]
+        replacement = types.ModuleType(adapter.PRIVATE_RUNNER_MODULE)
+        context = types.SimpleNamespace(
+            export=types.SimpleNamespace(root=adapter.RESEARCH_ROOT),
+            mapped_receipts={},
+            manifest={},
+            tasks=(),
+            games=(),
+            metadata={},
+            ledger_status={},
+            manifest_path=SCRIPT_PATH,
+            bundle_directory=adapter.RESEARCH_ROOT,
+        )
+
+        def replace_after_return(*args, **kwargs):
+            del args, kwargs
+            sys.modules[adapter.PRIVATE_RUNNER_MODULE] = replacement
+            return {"comparison_rows": adapter.EXPECTED_COMPARISON_ROWS}
+
+        try:
+            with (
+                mock.patch.object(
+                    adapter.runner,
+                    "canonical_aggregate",
+                    side_effect=replace_after_return,
+                ),
+                mock.patch.object(adapter, "_load_json") as load_output,
+            ):
+                with self.assertRaisesRegex(
+                    adapter.RecoveryError, "runtime module was replaced"
+                ):
+                    adapter._run_frozen_canonical(context, Path("unused"))
+                load_output.assert_not_called()
+        finally:
+            sys.modules[adapter.PRIVATE_RUNNER_MODULE] = original
+
+    def test_formal_source_hash_matches_exact_27_file_snapshot(self) -> None:
+        snapshot = adapter._FORMAL_SOURCE_SNAPSHOT
+        self.assertEqual(len(snapshot), adapter.EXPECTED_LIFELINE_SOURCE_FILES + 2)
+        self.assertEqual(
+            sum(source.relative_path.endswith(".py") for source in snapshot),
+            adapter.EXPECTED_LIFELINE_SOURCE_FILES + 1,
+        )
+        self.assertEqual(
+            adapter._formal_source_hash(snapshot),
+            adapter.EXPECTED_FORMAL_SOURCE_HASH,
+        )
+
+    def test_missing_extra_or_changed_formal_python_source_fails_closed(self) -> None:
+        root = adapter.RESEARCH_ROOT / "lifeline_rl"
+        original_walk = [
+            (directory, list(directories), list(files))
+            for directory, directories, files in os.walk(root)
+        ]
+        for mode in ("missing", "extra"):
+            rows = [
+                (directory, list(directories), list(files))
+                for directory, directories, files in original_walk
+            ]
+            if mode == "missing":
+                for _, _, files in rows:
+                    candidate = next(
+                        (name for name in files if name.endswith(".py")), None
+                    )
+                    if candidate is not None:
+                        files.remove(candidate)
+                        break
+            else:
+                rows[0][2].append("unexpected_authenticated_source.py")
+            with (
+                self.subTest(mode=mode),
+                mock.patch.object(adapter.os, "walk", return_value=iter(rows)),
+            ):
+                with self.assertRaisesRegex(adapter.RecoveryError, "exactly 25"):
+                    adapter._read_formal_source_snapshot()
+
+        original = adapter._FORMAL_SOURCE_SNAPSHOT[0]
+        changed_payload = original.payload + b"\n# changed\n"
+        changed = adapter.FrozenSourceFile(
+            relative_path=original.relative_path,
+            path=original.path,
+            payload=changed_payload,
+            sha256=adapter.hashlib.sha256(changed_payload).hexdigest(),
+        )
+        changed_snapshot = (changed, *adapter._FORMAL_SOURCE_SNAPSHOT[1:])
+        with mock.patch.object(
+            adapter, "_read_formal_source_snapshot", return_value=changed_snapshot
+        ):
+            with self.assertRaisesRegex(
+                adapter.RecoveryError, "formal source snapshot changed"
+            ):
+                adapter._assert_formal_source_snapshot_unchanged()
+
+    def test_source_identity_does_not_import_alphazero_or_torch(self) -> None:
+        watched_before = {
+            name: module
+            for name, module in sys.modules.items()
+            if name == "torch"
+            or name.startswith("torch.")
+            or name.startswith(f"{adapter.PRIVATE_LIFELINE_PACKAGE}.alphazero")
+        }
+        observed = adapter._validate_frozen_source_identity(
+            [{"source_hash": adapter.EXPECTED_FORMAL_SOURCE_HASH}]
+        )
+        watched_after = {
+            name: module
+            for name, module in sys.modules.items()
+            if name == "torch"
+            or name.startswith("torch.")
+            or name.startswith(f"{adapter.PRIVATE_LIFELINE_PACKAGE}.alphazero")
+        }
+        self.assertEqual(observed, adapter.EXPECTED_FORMAL_SOURCE_HASH)
+        self.assertEqual(watched_after, watched_before)
+
+    def test_execution_metadata_never_calls_legacy_source_identity(self) -> None:
+        manifest_digest = "1" * 64
+        artifact_digest = "2" * 64
+        runner_digest = adapter._AUTHENTICATED_RUNTIME_SOURCES[
+            adapter.PRIVATE_RUNNER_MODULE
+        ].source.sha256
+        experiments_digest = adapter._AUTHENTICATED_RUNTIME_SOURCES[
+            adapter.PRIVATE_EXPERIMENTS_MODULE
+        ].source.sha256
+        metadata = {
+            "schema_name": adapter.runner.RUN_SCHEMA_NAME,
+            "schema_version": adapter.runner.SCHEMA_VERSION,
+            "experiment_id": adapter.runner.BUNDLE_EXPERIMENT_ID,
+            "manifest_path": f"C:/frozen/{SCRIPT_PATH.name}",
+            "manifest_sha256": manifest_digest,
+            "protocol_path": f"C:/frozen/{SCRIPT_PATH.name}",
+            "protocol_sha256": artifact_digest,
+            "source_files_verified": 17,
+            "bundle_directory": f"C:/frozen/{adapter.RESEARCH_ROOT.name}",
+            "task_manifest_sha256": artifact_digest,
+            "game_manifest_sha256": artifact_digest,
+            "run_root": "C:/frozen/formal_run",
+            "runner_path": f"C:/frozen/{Path(adapter.runner.__file__).name}",
+            "runner_sha256": runner_digest,
+            "experiments_sha256": experiments_digest,
+            "python_version": "3.10",
+            "torch_version": "frozen",
+            "cuda_runtime_version": None,
+            "cudnn_version": None,
+            "device": "cpu",
+            "device_name": None,
+            "formal_source_hash": adapter.EXPECTED_FORMAL_SOURCE_HASH,
+        }
+        with (
+            mock.patch.object(
+                adapter.runner,
+                "resolve_manifest_path",
+                return_value=SCRIPT_PATH,
+            ),
+            mock.patch.object(
+                adapter.runner,
+                "manifest_hash",
+                return_value=manifest_digest,
+            ),
+            mock.patch.object(
+                adapter.runner,
+                "_validate_manifest_source_files",
+                return_value=17,
+            ),
+            mock.patch.object(
+                adapter.runner,
+                "_checkpoint_rows",
+                return_value=[{"source_hash": adapter.EXPECTED_FORMAL_SOURCE_HASH}],
+            ),
+            mock.patch.object(
+                adapter.runner, "_validate_source_identity"
+            ) as legacy_source_identity,
+            mock.patch.object(adapter, "_sha256_file", return_value=artifact_digest),
+        ):
+            bindings = adapter._validate_execution_metadata(
+                metadata,
+                manifest={"protocol_path": "unused"},
+                manifest_path=SCRIPT_PATH,
+                bundle_directory=adapter.RESEARCH_ROOT,
+            )
+        legacy_source_identity.assert_not_called()
+        self.assertEqual(
+            bindings["formal_source_hash"], adapter.EXPECTED_FORMAL_SOURCE_HASH
+        )
+
+    def test_stable_roles_and_fingerprinted_files_must_be_one_to_one(self) -> None:
+        resolved = SCRIPT_PATH.resolve(strict=True)
+        digest = adapter._sha256_file(resolved)
+        with self.assertRaisesRegex(
+            adapter.RecoveryError, "multiple stable input roles"
+        ):
+            adapter._fingerprint_digest(
+                {"first": resolved, "second": resolved},
+                {resolved: digest},
+            )
+
+    def test_conflicting_digest_is_rejected_before_path_deduplication(self) -> None:
+        resolved = SCRIPT_PATH.resolve(strict=True)
+        observed = adapter._sha256_file(resolved)
+        roles = {"first": resolved}
+        expected = {resolved: observed}
+        with self.assertRaisesRegex(adapter.RecoveryError, "SHA-256 mismatch"):
+            adapter._bind_stable_input_role(
+                roles,
+                expected,
+                role="second",
+                path=resolved,
+                digest="0" * 64,
+            )
+        self.assertEqual(roles, {"first": resolved})
+        self.assertEqual(expected, {resolved: observed})
 
 
 class ExportManifestContractTests(unittest.TestCase):
