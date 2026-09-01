@@ -1,0 +1,295 @@
+{
+  "critical_inputs": [
+    {
+      "path": "research/iclr2027/supplement_tools/claim_complete_profile.json",
+      "role": "claim_complete_profile",
+      "sha256": "d14c30a4d7946d225f120d0d6f7f5856ab2de7575809e5e4c5b066e487132b1c"
+    },
+    {
+      "path": "research/iclr2027/reviews/compact_independent_receipt_audit.py",
+      "role": "compact_independent_receipt_auditor",
+      "sha256": "44a9e922aebd3ec8d30e40af35dbde459869a774971796251ab5317184583e7c"
+    },
+    {
+      "path": "research/iclr2027/scripts/verify_d14_d16_environment.py",
+      "role": "environment_verifier",
+      "sha256": "4600be6f89abd868388c50a248fe4a503f29747078f571979f43329917e96901"
+    },
+    {
+      "path": "research/iclr2027/scripts/d14_d16_fresh_install_preflight.py",
+      "role": "fresh_install_preflight",
+      "sha256": "b6307c20229ecfbe1976ede0775d0c4138676b22f1049ab4ba943125d727888f"
+    },
+    {
+      "path": "research/iclr2027/D14_D16_FRESH_INSTALL_PREFLIGHT.md",
+      "role": "fresh_install_preflight_doc",
+      "sha256": "fac413f699eb0e221ca8bd11164da022aad93e495753075cce863d6a624eeb43"
+    },
+    {
+      "path": "research/iclr2027/reviews/independent_receipt_audit.py",
+      "role": "full_evidence_independent_auditor",
+      "sha256": "09b91f43c9feaf3f23d29b36328276800689c3c7581da5c554fce8497a02924e"
+    },
+    {
+      "path": "research/iclr2027/results/validation/d14_d16_execution_metadata_portable_20260831.json",
+      "role": "portable_execution_metadata",
+      "sha256": "2d953a5dccbd989b5e8d38e52b0f8c2a53bca33b65aa267d129ab2eff5293663"
+    },
+    {
+      "path": "research/iclr2027/results/validation/d14_d16_independent_receipt_audit_20260831.json",
+      "role": "prior_independent_audit_receipt",
+      "sha256": "f64c8de1a2fca86cf7681a855edfb244033b318e65e14b2add64ede27e4ef648"
+    },
+    {
+      "path": "research/iclr2027/supplement_tools/supplement_claim_complete_allowlist.json",
+      "role": "resolved_claim_allowlist",
+      "sha256": "a0f64b659ee048e6cb063cdda1e00248609ec367381286a3a70162bf60a9db8b"
+    }
+  ],
+  "dependency_lock": {
+    "allowed_directives": [
+      "--extra-index-url https://download.pytorch.org/whl/cu118"
+    ],
+    "expected_package_count": 20,
+    "path": "research/iclr2027/requirements-d14-d16-win-cu118.lock.txt",
+    "pins": {
+      "colorama": "0.4.6",
+      "exceptiongroup": "1.3.1",
+      "filelock": "3.25.2",
+      "fsspec": "2026.2.0",
+      "iniconfig": "2.3.0",
+      "jinja2": "3.1.6",
+      "markupsafe": "3.0.2",
+      "mpmath": "1.3.0",
+      "networkx": "3.4.2",
+      "numpy": "2.2.6",
+      "packaging": "25.0",
+      "pluggy": "1.6.0",
+      "pygments": "2.20.0",
+      "pytest": "9.0.3",
+      "setuptools": "80.10.2",
+      "sympy": "1.14.0",
+      "tomli": "2.4.1",
+      "torch": "2.7.1+cu118",
+      "typing-extensions": "4.15.0",
+      "wheel": "0.46.3"
+    },
+    "sha256": "380cab994906a45f60fba3a4c00f818f3724070666dfeef737f3f5a0e1a5d272"
+  },
+  "independent_receipt_audit": {
+    "compact_independent_verifier_status": "implemented",
+    "compact_verifier_contract": {
+      "clean_copy_compatible": true,
+      "expected_distinct_tracked_inputs": 11,
+      "expected_exit_code": 0,
+      "expected_manifest_byte_pin_enforced": true,
+      "expected_public_verdict": "PASS_TRACKED_METADATA_CONSISTENCY_ONLY",
+      "expected_skips": 0,
+      "limitations": {
+        "checkpoint_files_verified": false,
+        "checkpoint_hashes_recomputed": false,
+        "models_retrained": false,
+        "raw_game_files_verified": false,
+        "raw_game_hashes_recomputed": false,
+        "receipt_declared_paths_opened": 0,
+        "resists_same_user_adversarial_filesystem_aba": false,
+        "resists_same_user_concurrent_input_substitution": false,
+        "retraining_performed": false,
+        "tracked_metadata_consistency_only": true,
+        "training_logs_verified": false,
+        "trajectory_records_opened": false,
+        "trajectory_replay_performed": false,
+        "verified_external_artifact_bytes": 0
+      },
+      "output_mode": "capture_stdout_no_output_arg",
+      "path": "research/iclr2027/reviews/compact_independent_receipt_audit.py",
+      "scope": "tracked_metadata_consistency_only",
+      "sha256": "44a9e922aebd3ec8d30e40af35dbde459869a774971796251ab5317184583e7c",
+      "tracked_input_bindings": [
+        {
+          "path": "research/iclr2027/configs/d14_d16_formal_manifest.json",
+          "sha256": "9439c3b9b52ed13a8c489969dfbafddd59e75af2579274b7275258b693d8782f"
+        },
+        {
+          "path": "research/iclr2027/results/formal/d14_d16/aggregate_v1/aggregate.json",
+          "sha256": "59c264fc65d7b11357b0d718d38371df1ba44be4b92e7ef41ff995bf088f501c"
+        },
+        {
+          "path": "research/iclr2027/results/formal/d14_d16/aggregate_v1/arena_learning_curve.csv",
+          "sha256": "40f531f0f974f75cf8921499d209eb529bc2f99308390f8ce753f63047f5b616"
+        },
+        {
+          "path": "research/iclr2027/results/formal/d14_d16/aggregate_v1/final_vs_search.csv",
+          "sha256": "8fdcba541d8c62b9697be5bd17f512c76976e0acb4d1a6a3f8c785d3959b0fa8"
+        },
+        {
+          "path": "research/iclr2027/results/formal/d14_d16/aggregate_v1/representation_round_robin.csv",
+          "sha256": "b06659670c5bd199fcbefaa808398859ff220a4ce60cae9ddd47d04fa4f25fff"
+        },
+        {
+          "path": "research/iclr2027/results/formal/d14_d16/aggregate_v1/training_curve.csv",
+          "sha256": "af96f5a9cfb5fc1f343953d1ad2b1bbabff96f078f002e4ee2e57dc048b4fae0"
+        },
+        {
+          "path": "research/iclr2027/results/formal/d14_d16/run_v1/result_receipts.jsonl",
+          "sha256": "ff3ef8bfd9b7a443bc42ba16ab9d4daa9f855a5d0432d58a62322686247b8114"
+        },
+        {
+          "path": "research/iclr2027/results/formal/d14_d16/task_bundle_v1/evaluation_tasks.jsonl",
+          "sha256": "34929f8006605fc011f91394dd95402607540e8f4d06b12711464338bea1455c"
+        },
+        {
+          "path": "research/iclr2027/results/formal/d14_d16/task_bundle_v1/manifest_snapshot.json",
+          "sha256": "9439c3b9b52ed13a8c489969dfbafddd59e75af2579274b7275258b693d8782f"
+        },
+        {
+          "path": "research/iclr2027/results/formal/d14_d16/task_bundle_v1/training_tasks.jsonl",
+          "sha256": "1457459c6fc910a4d083a0a9a24287c15805dfbaa881b71b3ee28ee96bca95e7"
+        },
+        {
+          "path": "research/iclr2027/results/validation/d14_d16_independent_receipt_audit_20260831.json",
+          "sha256": "f64c8de1a2fca86cf7681a855edfb244033b318e65e14b2add64ede27e4ef648"
+        }
+      ]
+    },
+    "execution_ready": true,
+    "frozen_prior_evidence": {
+      "path": "research/iclr2027/results/validation/d14_d16_independent_receipt_audit_20260831.json",
+      "scope": "prior_retained_environment_only_not_clean_copy_execution",
+      "sha256": "f64c8de1a2fca86cf7681a855edfb244033b318e65e14b2add64ede27e4ef648"
+    },
+    "full_evidence_runner": {
+      "clean_copy_compatible": false,
+      "path": "research/iclr2027/reviews/independent_receipt_audit.py",
+      "requires_ignored_raw_artifacts": true,
+      "sha256": "09b91f43c9feaf3f23d29b36328276800689c3c7581da5c554fce8497a02924e"
+    }
+  },
+  "packaging": {
+    "build_backend": "setuptools.build_meta",
+    "build_isolation": false,
+    "build_tools": {
+      "setuptools": "80.10.2",
+      "wheel": "0.46.3"
+    },
+    "declared_build_requires": [
+      "setuptools>=68"
+    ],
+    "declared_optional_dependencies": {
+      "train": [
+        "torch>=2.3"
+      ]
+    },
+    "declared_runtime_dependencies": [],
+    "excluded_top_level_packages": [
+      "lifeline_rl_autodl"
+    ],
+    "install_project_with_no_deps": true,
+    "installed_distribution_policy": {
+      "expected_distribution_count": 22,
+      "lock_pins_source": "dependency_lock.pins",
+      "pip": {
+        "pre_pinned": false,
+        "receipt_binding_required": true,
+        "version_policy": "record_exact_at_execution"
+      },
+      "project": {
+        "name": "lifeline-rl",
+        "version": "0.1.0"
+      },
+      "unexpected_distribution_policy": "BLOCKED"
+    },
+    "package_discovery": {
+      "include": [
+        "lifeline_rl",
+        "lifeline_rl.*"
+      ],
+      "where": [
+        "."
+      ]
+    },
+    "package_discovery_root": "research/iclr2027",
+    "project_name": "lifeline-rl",
+    "project_version": "0.1.0",
+    "pyproject_path": "research/iclr2027/pyproject.toml",
+    "pyproject_sha256": "03b9e027be0bc9c6618175d5a1f36d074fa250f4747cc0d51bdeda9f126d8839",
+    "requires_python": ">=3.10",
+    "wheel_source_allowlist_category": "reference_implementation",
+    "wheel_source_root": "research/iclr2027/lifeline_rl",
+    "wheel_source_suffix": ".py",
+    "wheel_top_level_packages": [
+      "lifeline_rl"
+    ]
+  },
+  "schema_name": "lifeline-d14-d16-fresh-install-profile",
+  "schema_version": 1,
+  "scope_boundary": {
+    "clean_install_executed": false,
+    "contract_only": true,
+    "environment_created": false,
+    "gate_e_compact_independent_verifier_available": true,
+    "network_accessed": false,
+    "packages_built": false,
+    "packages_installed": false,
+    "retraining_reproduced": false,
+    "tests_or_games_run": false
+  },
+  "status": "contract_only_not_executed",
+  "target": {
+    "implementation": "CPython",
+    "platform_tag": "win_amd64",
+    "python_version": "3.10.20"
+  },
+  "tests": {
+    "allowlist_category": "targeted_test",
+    "allowlist_path": "research/iclr2027/supplement_tools/supplement_claim_complete_allowlist.json",
+    "claim_profile_path": "research/iclr2027/supplement_tools/claim_complete_profile.json",
+    "expected_allowlist_count": 29,
+    "expected_reference_source_count": 25,
+    "groups": {
+      "d14_d16_protocol_receipt": [
+        "research/iclr2027/tests/test_d14_d16_executor.py",
+        "research/iclr2027/tests/test_d14_d16_experiment_protocol.py"
+      ],
+      "dependency_free_core_search_serialization": [
+        "research/iclr2027/tests/test_agents.py",
+        "research/iclr2027/tests/test_arena.py",
+        "research/iclr2027/tests/test_core.py",
+        "research/iclr2027/tests/test_cycle_seeking_agent.py",
+        "research/iclr2027/tests/test_d6_aliasing.py",
+        "research/iclr2027/tests/test_env.py",
+        "research/iclr2027/tests/test_search_baselines.py",
+        "research/iclr2027/tests/test_serialization.py",
+        "research/iclr2027/tests/test_superko_ablation.py",
+        "research/iclr2027/tests/test_superko_pilot.py",
+        "research/iclr2027/tests/test_superko_policy_matrix.py",
+        "research/iclr2027/tests/test_validation.py",
+        "research/iclr2027/tests/test_verify_superko_policy_matrix.py"
+      ],
+      "pytorch_network_trainer": [
+        "research/iclr2027/tests/test_alphazero_checkpoint.py",
+        "research/iclr2027/tests/test_alphazero_config.py",
+        "research/iclr2027/tests/test_alphazero_evaluation.py",
+        "research/iclr2027/tests/test_alphazero_learning_health.py",
+        "research/iclr2027/tests/test_alphazero_model_families.py",
+        "research/iclr2027/tests/test_alphazero_network.py",
+        "research/iclr2027/tests/test_alphazero_neural_agent.py",
+        "research/iclr2027/tests/test_alphazero_puct.py",
+        "research/iclr2027/tests/test_alphazero_replay.py",
+        "research/iclr2027/tests/test_alphazero_self_play.py",
+        "research/iclr2027/tests/test_alphazero_trainer.py"
+      ],
+      "retained_reproducibility": [
+        "research/iclr2027/tests/test_d14_d16_fresh_install_preflight.py",
+        "research/iclr2027/tests/test_verify_d14_d16_environment.py"
+      ]
+    },
+    "skip_policy": {
+      "allowed": [],
+      "mode": "deny_all"
+    },
+    "support_files": [
+      "research/iclr2027/tests/__init__.py"
+    ]
+  }
+}

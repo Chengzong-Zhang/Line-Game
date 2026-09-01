@@ -153,7 +153,7 @@
     {
       "category": "package_config",
       "destination": "research/iclr2027/pyproject.toml",
-      "expected_sha256": "8e0132397f8f85f7fb608424c835303744bfc5f09e223f4dc6d129a0aa7635a6",
+      "expected_sha256": "03b9e027be0bc9c6618175d5a1f36d074fa250f4747cc0d51bdeda9f126d8839",
       "source": "research/iclr2027/pyproject.toml"
     },
     {

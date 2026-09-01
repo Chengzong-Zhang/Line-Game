@@ -16,4 +16,4 @@ train = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["lifeline_rl*"]
+include = ["lifeline_rl", "lifeline_rl.*"]
