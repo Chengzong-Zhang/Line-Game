@@ -1,6 +1,11 @@
-import GameEngine, { Player, TerritoryRulesVersion } from "./GameEngine.js?v=20260830a";
-import Renderer from "./Renderer.js?v=20260830a";
+import GameEngine, { Player, TerritoryRulesVersion } from "./GameEngine.js?v=20260910c";
+import Renderer from "./Renderer.js?v=20260910c";
 import { ServerEvent } from "./NetworkManager.js?v=20260430d";
+import { serializeEngineState } from "./AIStateProtocol.js?v=20260910c";
+import {
+  OneShotTerritoryWorker,
+  applyTerritoryWorkerResult,
+} from "./TerritoryWorkerSession.js?v=20260910c";
 
 // GameController 鏄墠绔殑鈥滆兌姘村眰鈥濓細
 // 瀹冩妸 Model(GameEngine)銆乂iew(Renderer) 鍜岃仈鏈哄眰(NetworkManager) 涓茶捣鏉ワ紝
@@ -10,6 +15,7 @@ const DEFAULT_ENGINE_OPTIONS = Object.freeze({
   gridSize: 9,
   rulesVersion: TerritoryRulesVersion.V2,
 });
+const ASYNC_TERRITORY_MIN_GRID_SIZE = 15;
 
 function clonePoint(point) {
   return [point[0], point[1]];
@@ -47,7 +53,19 @@ export class GameController {
       },
     };
     // 只要配置变化需要立即生效，就整体重建引擎，避免残留旧棋盘状态。
-    this.engine = new GameEngine(this.options.engine);
+    const createTerritoryWorker = typeof options.createTerritoryWorker === "function"
+      ? options.createTerritoryWorker
+      : (typeof globalThis.Worker === "function"
+        ? () => new globalThis.Worker(
+            new URL("./TerritoryWorker.js?v=20260910c", import.meta.url),
+            { type: "module" },
+          )
+        : null);
+    this._territoryWorkerSession = createTerritoryWorker
+      ? new OneShotTerritoryWorker(createTerritoryWorker)
+      : null;
+    this._territoryFallbackToken = 0;
+    this.engine = this._createEngine(this.options.engine);
     this._validGridPoints = this.engine.getValidPositions();
     this.renderer = new Renderer(canvas, options.renderer ?? {});
     this._engineEpoch = 1;
@@ -88,8 +106,107 @@ export class GameController {
     }
   }
 
+  _createEngine(engineOptions = {}) {
+    const normalizedOptions = {
+      ...DEFAULT_ENGINE_OPTIONS,
+      ...(engineOptions ?? {}),
+    };
+    const deferTerritoryUpdates = normalizedOptions.deferTerritoryUpdates
+      ?? normalizedOptions.gridSize >= ASYNC_TERRITORY_MIN_GRID_SIZE;
+    return new GameEngine({
+      ...normalizedOptions,
+      deferTerritoryUpdates,
+    });
+  }
+
+  _cancelTerritoryRefresh() {
+    this._territoryFallbackToken = (this._territoryFallbackToken ?? 0) + 1;
+    return this._territoryWorkerSession?.cancel?.() ?? false;
+  }
+
+  _scheduleTerritoryFallback(engine) {
+    const fallbackToken = (this._territoryFallbackToken ?? 0) + 1;
+    this._territoryFallbackToken = fallbackToken;
+    const settle = () => {
+      globalThis.setTimeout(() => {
+        if (
+          fallbackToken !== this._territoryFallbackToken
+          || this.engine !== engine
+          || !engine.hasPendingTerritoryUpdate?.()
+        ) {
+          return;
+        }
+        engine._updateTerritories();
+        this._syncSnapshot(engine.getSnapshot(), {
+          forceRender: true,
+          scheduleTerritory: false,
+        });
+      }, 0);
+    };
+
+    if (typeof globalThis.requestAnimationFrame === "function") {
+      globalThis.requestAnimationFrame(settle);
+    } else {
+      settle();
+    }
+  }
+
+  _scheduleTerritoryRefresh() {
+    const engine = this.engine;
+    if (
+      !engine?.deferTerritoryUpdates
+      || !engine.hasPendingTerritoryUpdate?.()
+    ) {
+      this._cancelTerritoryRefresh();
+      return;
+    }
+
+    // A new position invalidates any queued fallback; OneShotTerritoryWorker
+    // itself cancels an older in-flight Worker before starting this request.
+    this._territoryFallbackToken = (this._territoryFallbackToken ?? 0) + 1;
+    if (!this._territoryWorkerSession) {
+      this._scheduleTerritoryFallback(engine);
+      return;
+    }
+
+    try {
+      this._territoryWorkerSession.start({
+        engine,
+        getCurrentEngine: () => this.engine,
+        message: {
+          type: "COMPUTE_TERRITORIES",
+          serializedState: serializeEngineState(engine),
+        },
+        onResult: (response) => {
+          const applied = applyTerritoryWorkerResult({
+            engine,
+            territories: response.territories,
+            territoryStateRevision: response.territoryStateRevision,
+          });
+          if (!applied) {
+            this._scheduleTerritoryFallback(engine);
+            return;
+          }
+          this._syncSnapshot(engine.getSnapshot(), {
+            forceRender: true,
+            scheduleTerritory: false,
+          });
+        },
+        onError: () => {
+          // A Worker may be unavailable for file:// previews or blocked by a
+          // restrictive browser policy. Keep the result exact after yielding a
+          // paint rather than leaving a stale score on screen indefinitely.
+          this._scheduleTerritoryFallback(engine);
+        },
+      });
+    } catch (_error) {
+      this._scheduleTerritoryFallback(engine);
+    }
+  }
+
   _replaceEngine(engineOptions = this.options.engine ?? {}) {
-    this.engine = new GameEngine(engineOptions);
+    this._cancelTerritoryRefresh();
+    this.engine = this._createEngine(engineOptions);
     this._validGridPoints = this.engine.getValidPositions();
     this._engineEpoch += 1;
     this.renderer.invalidate();
@@ -122,6 +239,7 @@ export class GameController {
       this._isInitialized = false;
     }
 
+    this._cancelTerritoryRefresh();
     this._removeNetworkListeners();
     this.renderer.destroy();
   }
@@ -299,6 +417,7 @@ export class GameController {
       positionRevision: snapshot.positionRevision,
       currentPlayer: snapshot.currentPlayer,
       gameOver: snapshot.gameOver,
+      territoryPending: Boolean(snapshot.territoryPending),
       winner: snapshot.winner,
       turnCount: snapshot.turnCount,
       consecutiveSkips: snapshot.consecutiveSkips,
@@ -469,14 +588,17 @@ export class GameController {
     this.canvas.setAttribute("aria-disabled", locked ? "true" : "false");
   }
 
-  _syncSnapshot(snapshot) {
+  _syncSnapshot(snapshot, { forceRender = false, scheduleTerritory = true } = {}) {
     this.renderer.render({
       ...snapshot,
       renderEpoch: this._engineEpoch,
       lastAction: this._cloneLastAction(),
-    });
+    }, { force: forceRender });
     this._syncCanvasInteractivity(snapshot);
     this._emitStateChange(snapshot);
+    if (scheduleTerritory) {
+      this._scheduleTerritoryRefresh();
+    }
   }
 
   _applyMove(point, actingPlayer = this.engine.getCurrentPlayer()) {
@@ -682,7 +804,7 @@ export class GameController {
     let candidateEngine;
     let replayResult;
     try {
-      candidateEngine = new GameEngine(nextEngineOptions);
+      candidateEngine = this._createEngine(nextEngineOptions);
       replayResult = candidateEngine.replayBatch((engine) => {
         let lastAction = null;
 
@@ -786,6 +908,7 @@ export class GameController {
     };
 
     try {
+      this._cancelTerritoryRefresh();
       this.options.engine = nextEngineOptions;
       this.engine = candidateEngine;
       this._validGridPoints = candidateEngine.getValidPositions();

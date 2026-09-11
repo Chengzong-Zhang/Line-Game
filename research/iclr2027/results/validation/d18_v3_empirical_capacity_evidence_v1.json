@@ -1,0 +1,1862 @@
+{
+  "interpretation": {
+    "execution_max_plies_unchanged": true,
+    "fail_closed_if_future_execution_truncates": true,
+    "scope": "capacity planning only; this receipt does not alter the formal execution protocol or certify a future run"
+  },
+  "max_plies": 256,
+  "planning_multiplier": 2,
+  "provenance": {
+    "artifacts": {
+      "formal_manifest": {
+        "relative_path": "configs/d14_d16_formal_manifest.json",
+        "sha256": "9439c3b9b52ed13a8c489969dfbafddd59e75af2579274b7275258b693d8782f",
+        "size_bytes": 4155
+      },
+      "formal_result_receipts": {
+        "relative_path": "results/formal/d14_d16/run_v1/result_receipts.jsonl",
+        "sha256": "ff3ef8bfd9b7a443bc42ba16ab9d4daa9f855a5d0432d58a62322686247b8114",
+        "size_bytes": 1712587
+      },
+      "task_bundle_manifest_snapshot": {
+        "relative_path": "results/formal/d14_d16/task_bundle_v1/manifest_snapshot.json",
+        "sha256": "9439c3b9b52ed13a8c489969dfbafddd59e75af2579274b7275258b693d8782f",
+        "size_bytes": 4155
+      },
+      "task_bundle_summary": {
+        "relative_path": "results/formal/d14_d16/task_bundle_v1/bundle_summary.json",
+        "sha256": "ef1b95d8b30785ff66493280462bcecd80a71b55a934fda41d6dcbbd761afe90",
+        "size_bytes": 1054
+      }
+    },
+    "puct_simulations": 16
+  },
+  "quantile": {
+    "method": "nearest_rank",
+    "probability_denominator": 1000,
+    "probability_numerator": 999
+  },
+  "schema_name": "lifeline-d18-v3-empirical-capacity-evidence",
+  "schema_version": 1,
+  "sizes": {
+    "5": {
+      "empirical_planning_plies": 32,
+      "game_count": 10734,
+      "histogram": {
+        "10": 1871,
+        "11": 921,
+        "12": 1024,
+        "13": 489,
+        "14": 227,
+        "15": 42,
+        "16": 17,
+        "17": 5,
+        "18": 4,
+        "19": 1,
+        "2": 292,
+        "3": 356,
+        "4": 201,
+        "5": 451,
+        "6": 589,
+        "7": 1072,
+        "8": 1463,
+        "9": 1709
+      },
+      "historical_max_plies": 19,
+      "nearest_rank_p999_plies": 16
+    },
+    "7": {
+      "empirical_planning_plies": 84,
+      "game_count": 10701,
+      "histogram": {
+        "10": 405,
+        "11": 389,
+        "12": 684,
+        "13": 484,
+        "14": 346,
+        "15": 391,
+        "16": 388,
+        "17": 395,
+        "18": 282,
+        "19": 378,
+        "2": 298,
+        "20": 730,
+        "21": 534,
+        "22": 487,
+        "23": 180,
+        "24": 351,
+        "25": 479,
+        "26": 234,
+        "27": 435,
+        "28": 201,
+        "29": 85,
+        "3": 304,
+        "30": 86,
+        "31": 65,
+        "32": 63,
+        "33": 45,
+        "34": 36,
+        "35": 30,
+        "36": 18,
+        "37": 11,
+        "38": 8,
+        "39": 9,
+        "4": 92,
+        "40": 8,
+        "41": 4,
+        "42": 4,
+        "45": 3,
+        "47": 1,
+        "48": 2,
+        "49": 2,
+        "5": 272,
+        "6": 364,
+        "7": 442,
+        "8": 355,
+        "9": 321
+      },
+      "historical_max_plies": 49,
+      "nearest_rank_p999_plies": 42
+    },
+    "9": {
+      "empirical_planning_plies": 138,
+      "game_count": 10665,
+      "histogram": {
+        "10": 304,
+        "11": 360,
+        "12": 405,
+        "13": 314,
+        "14": 277,
+        "15": 278,
+        "16": 235,
+        "17": 351,
+        "18": 326,
+        "19": 299,
+        "2": 170,
+        "20": 316,
+        "21": 379,
+        "22": 247,
+        "23": 275,
+        "24": 145,
+        "25": 439,
+        "26": 237,
+        "27": 116,
+        "28": 106,
+        "29": 104,
+        "3": 265,
+        "30": 98,
+        "31": 197,
+        "32": 85,
+        "33": 171,
+        "34": 171,
+        "35": 64,
+        "36": 162,
+        "37": 61,
+        "38": 173,
+        "39": 64,
+        "4": 91,
+        "40": 148,
+        "41": 144,
+        "42": 52,
+        "43": 148,
+        "44": 136,
+        "45": 242,
+        "46": 31,
+        "47": 38,
+        "48": 28,
+        "49": 33,
+        "5": 335,
+        "50": 24,
+        "51": 29,
+        "52": 120,
+        "53": 21,
+        "54": 15,
+        "55": 14,
+        "56": 11,
+        "57": 9,
+        "58": 102,
+        "59": 7,
+        "6": 580,
+        "60": 6,
+        "61": 4,
+        "62": 7,
+        "63": 5,
+        "64": 4,
+        "65": 5,
+        "66": 6,
+        "67": 2,
+        "68": 7,
+        "69": 4,
+        "7": 375,
+        "70": 3,
+        "71": 1,
+        "73": 1,
+        "8": 442,
+        "81": 1,
+        "85": 1,
+        "9": 239
+      },
+      "historical_max_plies": 85,
+      "nearest_rank_p999_plies": 69
+    }
+  },
+  "source_manifest": [
+    {
+      "bytes": 903966,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n5.grid_gnn.seed20260825.gs200.vs.random__bc0d9ea24c33/arena/games.jsonl",
+      "sha256": "b7e0069218c1fbf77fa84341c7f5a46cc3e96f01f7b10de700b3e85b4797789d"
+    },
+    {
+      "bytes": 1528730,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n5.grid_gnn.seed20260825.gs200.vs.uct_mcts_16__35f3f04acbb1/arena/games.jsonl",
+      "sha256": "5a48fe7dd94590dfc187ac16b8e1ac56d153399b97e18281bf9d3aacd7016428"
+    },
+    {
+      "bytes": 941408,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n5.grid_gnn.seed20260826.gs200.vs.random__0c97c8a50b30/arena/games.jsonl",
+      "sha256": "cea1698cf73db3c868a2fb155313836bb24d612647e60f8d9b6dda11bdcced55"
+    },
+    {
+      "bytes": 1724010,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n5.grid_gnn.seed20260826.gs200.vs.uct_mcts_16__e4558acad27d/arena/games.jsonl",
+      "sha256": "5a2e674b9dfa4c42332b104bd362b7228fac3793fa8334934cc01829944e1096"
+    },
+    {
+      "bytes": 922821,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n5.grid_gnn.seed20260827.gs200.vs.random__3102955ecb76/arena/games.jsonl",
+      "sha256": "45a721586f237248ddd5c1e7f1d1f50079a358c303b7fe1193395747a90371c5"
+    },
+    {
+      "bytes": 1502791,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n5.grid_gnn.seed20260827.gs200.vs.uct_mcts_16__5ba354e60339/arena/games.jsonl",
+      "sha256": "4156a516594a3b5ed1afaa3fcac7aac07621758a030e0fd6687339e85b07818b"
+    },
+    {
+      "bytes": 898743,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n5.grid_gnn.seed20260828.gs200.vs.random__a6ea31bab491/arena/games.jsonl",
+      "sha256": "5eebf507442abb9ecd84f1a50a17941e724f9e67c6f2e8f0864c02b37a8a63e5"
+    },
+    {
+      "bytes": 1514787,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n5.grid_gnn.seed20260828.gs200.vs.uct_mcts_16__407d04ad6aa2/arena/games.jsonl",
+      "sha256": "8eaf0bdfad6742cb2ad6f16f8b9f21948ea4dcd22eb7a666e2486e913b6dcee6"
+    },
+    {
+      "bytes": 930106,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n5.grid_gnn.seed20260829.gs200.vs.random__0c0c8afd66ee/arena/games.jsonl",
+      "sha256": "87ec869ac57888fa7e0448f6529a35a36237db7571e37ed32b3bc978367d3d41"
+    },
+    {
+      "bytes": 1539601,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n5.grid_gnn.seed20260829.gs200.vs.uct_mcts_16__5fd5eab94840/arena/games.jsonl",
+      "sha256": "f5de6e029c9df46bdac67e6f6b29d40acd10b58b415b8f664ad1a4e55f225398"
+    },
+    {
+      "bytes": 1024292,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n5.padded_cnn.seed20260825.gs200.vs.random__cc2d6799ff5f/arena/games.jsonl",
+      "sha256": "c89b51841becc7dd1b8698e734dec5d1133eaf49a84cd0f787188e48a792abb9"
+    },
+    {
+      "bytes": 1564359,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n5.padded_cnn.seed20260825.gs200.vs.uct_mcts_16__318fcdb89909/arena/games.jsonl",
+      "sha256": "f5422aeef15dd4d96df51732b74c2c305b5eef2a914cd79a84ac15f67d6d08b5"
+    },
+    {
+      "bytes": 901106,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n5.padded_cnn.seed20260826.gs200.vs.random__49cf0338d2df/arena/games.jsonl",
+      "sha256": "289aa86febeba0ff3bfa0cc488bba01fc6f4fed88ec2d60d6d1c64eb1f623f70"
+    },
+    {
+      "bytes": 1519962,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n5.padded_cnn.seed20260826.gs200.vs.uct_mcts_16__fce0d9883dde/arena/games.jsonl",
+      "sha256": "166c70b3a773c26946058966de5a259e386a4225f6b298e14cbf2ec82bf3fe8a"
+    },
+    {
+      "bytes": 931022,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n5.padded_cnn.seed20260827.gs200.vs.random__a3b3cc47f7ce/arena/games.jsonl",
+      "sha256": "8524cf11655b01df6fcd9cb541b624c163dc3ae28274877b26886ebf2e211569"
+    },
+    {
+      "bytes": 1501125,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n5.padded_cnn.seed20260827.gs200.vs.uct_mcts_16__b51178db007c/arena/games.jsonl",
+      "sha256": "2205a0a3dc7c2e446527deecb5d3d67bbb1317d120cb659dd99e6b7efaa86eeb"
+    },
+    {
+      "bytes": 913688,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n5.padded_cnn.seed20260828.gs200.vs.random__ef4d256aacb0/arena/games.jsonl",
+      "sha256": "6f947f2ecec1bca4b265700ac597a2299e768392fdf058645960c0a0c7befec9"
+    },
+    {
+      "bytes": 1520020,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n5.padded_cnn.seed20260828.gs200.vs.uct_mcts_16__e1cfe4554bd7/arena/games.jsonl",
+      "sha256": "2f203c663621cfffbc382a14e1dae590dbe087875a4b7d214fac3a79ff38827a"
+    },
+    {
+      "bytes": 987077,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n5.padded_cnn.seed20260829.gs200.vs.random__3484a120deab/arena/games.jsonl",
+      "sha256": "7e16dd7027b38dacd39a54b327a02cfafd986e132994d13e2a919e27eebf0a78"
+    },
+    {
+      "bytes": 1563079,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n5.padded_cnn.seed20260829.gs200.vs.uct_mcts_16__d777c5b27f08/arena/games.jsonl",
+      "sha256": "b0f17a18eff60c3442ab0f821228136c9bd189b29aefb6ebaef25293231dee46"
+    },
+    {
+      "bytes": 891818,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n5.topology_gnn.seed20260825.gs200.vs.random__c66f99270a5c/arena/games.jsonl",
+      "sha256": "fb533eb1f3366fce91916ee4453fa3a4478d923fe23f730ef6f5ba15d209c6f8"
+    },
+    {
+      "bytes": 1435736,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n5.topology_gnn.seed20260825.gs200.vs.uct_mcts_16__8b193bf111c4/arena/games.jsonl",
+      "sha256": "32780b38af604f9c12686426b7aeb6c0bb2ca8ad518582b08277657d66ecbb70"
+    },
+    {
+      "bytes": 922890,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n5.topology_gnn.seed20260826.gs200.vs.random__1d7b8d383d8d/arena/games.jsonl",
+      "sha256": "12909c040376600f08ceb7b60ba6b8966f5af1267b000b98d7a993c4a9b0a8f4"
+    },
+    {
+      "bytes": 1441386,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n5.topology_gnn.seed20260826.gs200.vs.uct_mcts_16__7ad56fbaade9/arena/games.jsonl",
+      "sha256": "ee5106418f5aa7282e4195eb5401252a5c4d4c0add47a17684d045667a060ac8"
+    },
+    {
+      "bytes": 899891,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n5.topology_gnn.seed20260827.gs200.vs.random__73514321af0e/arena/games.jsonl",
+      "sha256": "2261d3db7858f125448ec8b374380ff704736ba0192cc1f454e39719efabfc6b"
+    },
+    {
+      "bytes": 1433049,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n5.topology_gnn.seed20260827.gs200.vs.uct_mcts_16__8c2ea35f9ef2/arena/games.jsonl",
+      "sha256": "6f54ccab61717094fbe14e97947fdb44b8942732352e4f4c25de18edd8fe43f3"
+    },
+    {
+      "bytes": 891247,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n5.topology_gnn.seed20260828.gs200.vs.random__b66311b02f0d/arena/games.jsonl",
+      "sha256": "ebae4033eff17c1ac8e9dc91f805b6c812cd30f848eb02a0b9774f5dbe2e87b9"
+    },
+    {
+      "bytes": 1460306,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n5.topology_gnn.seed20260828.gs200.vs.uct_mcts_16__6a1c06c39cd4/arena/games.jsonl",
+      "sha256": "3efc2ba3cfdcbd7f60395a6c9b082c6645755f27d4a2a32986f56c03c85c9727"
+    },
+    {
+      "bytes": 920158,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n5.topology_gnn.seed20260829.gs200.vs.random__f39eac647ead/arena/games.jsonl",
+      "sha256": "cd1c41f4e581297fc8bebe2a465e7bc8cd983c97c6e89e0a76790a19425140ba"
+    },
+    {
+      "bytes": 1476741,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n5.topology_gnn.seed20260829.gs200.vs.uct_mcts_16__3afae6e994df/arena/games.jsonl",
+      "sha256": "745d2ac547062a60d96b0600de7b65d11582606eb13c4b0c4be315434e4cb4c9"
+    },
+    {
+      "bytes": 1762821,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n7.grid_gnn.seed20260825.gs200.vs.random__37431e99a8c2/arena/games.jsonl",
+      "sha256": "d9478d15ec6b73e4339399c0af46575f02d9b0ad172eb4899b54b282269ac3dd"
+    },
+    {
+      "bytes": 3585165,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n7.grid_gnn.seed20260825.gs200.vs.uct_mcts_16__7435ee280aad/arena/games.jsonl",
+      "sha256": "0db1b7c14c871ae61b79a1b7ac0b81a27854eadd3668ca67cdd30c8347ecff91"
+    },
+    {
+      "bytes": 2256311,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n7.grid_gnn.seed20260826.gs200.vs.random__800225d8992f/arena/games.jsonl",
+      "sha256": "5385ec8eae56da605a3ce5359281be728dd7a56e21f29c3624804ce668b7fae5"
+    },
+    {
+      "bytes": 4241078,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n7.grid_gnn.seed20260826.gs200.vs.uct_mcts_16__3812819e4a1d/arena/games.jsonl",
+      "sha256": "ef12a9441efaf02ed514bf791b72fd613ed55d83a6fe2fdab53b43cc97e09390"
+    },
+    {
+      "bytes": 1627308,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n7.grid_gnn.seed20260827.gs200.vs.random__b4eb55760327/arena/games.jsonl",
+      "sha256": "d4b05c97dd145d7f9b7c519dd68ba377ad066bb0f844b095364eddb459b11fd2"
+    },
+    {
+      "bytes": 3065862,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n7.grid_gnn.seed20260827.gs200.vs.uct_mcts_16__7da7fa2680e8/arena/games.jsonl",
+      "sha256": "c83f00a08aba2f490d251cf142109e262bcb6f5e4c158f5a2de12badfd0016be"
+    },
+    {
+      "bytes": 1572481,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n7.grid_gnn.seed20260828.gs200.vs.random__782ab098dc89/arena/games.jsonl",
+      "sha256": "4db9212233ec30f4f09b06dcdcc3e22901330dc3d567f09b7ad98c50dd42b8e1"
+    },
+    {
+      "bytes": 3403610,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n7.grid_gnn.seed20260828.gs200.vs.uct_mcts_16__1f3800968ba1/arena/games.jsonl",
+      "sha256": "3d5517f5e04d5c4a152e20285db781c86a38d1abaa07dccbca796edb4b70e5c3"
+    },
+    {
+      "bytes": 1933701,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n7.grid_gnn.seed20260829.gs200.vs.random__66862ecabff1/arena/games.jsonl",
+      "sha256": "0fa8d67bd2caf1f0c26605679535c5bad338bcab7dfb1f610f264ffd9be01c57"
+    },
+    {
+      "bytes": 3605480,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n7.grid_gnn.seed20260829.gs200.vs.uct_mcts_16__893fb0f39ee6/arena/games.jsonl",
+      "sha256": "5f802a2eb7e1e0e481d2597c8f2113f7799c009c3567fa6d4fb4141988a4a58a"
+    },
+    {
+      "bytes": 2221277,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n7.padded_cnn.seed20260825.gs200.vs.random__84e47a9b8eba/arena/games.jsonl",
+      "sha256": "93dd4cc5ad879488c336d8bfd33f072d884ecdc9e739f1a058e8f78857e47f5b"
+    },
+    {
+      "bytes": 3899940,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n7.padded_cnn.seed20260825.gs200.vs.uct_mcts_16__492ca7919899/arena/games.jsonl",
+      "sha256": "e9ac42af66789b92516f34bfc9e6542a7952158ef6a239eaffae1a0aad54c099"
+    },
+    {
+      "bytes": 1521904,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n7.padded_cnn.seed20260826.gs200.vs.random__9968ca6a4cc7/arena/games.jsonl",
+      "sha256": "8c3100504cd1c8d259d0e6ef02079868c21befebf2cf6ef92e423e7d3d0f9355"
+    },
+    {
+      "bytes": 3124258,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n7.padded_cnn.seed20260826.gs200.vs.uct_mcts_16__90c9bff534ed/arena/games.jsonl",
+      "sha256": "c89c3fd0b422266dc794184e74ba6380c89130a94e8de4a8d7d0fce26c11fb58"
+    },
+    {
+      "bytes": 1867721,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n7.padded_cnn.seed20260827.gs200.vs.random__c6bf94689bd9/arena/games.jsonl",
+      "sha256": "4e5ce75e216a1da4384a8118c05ce95bffcc66b256edd10d859bd9706706535f"
+    },
+    {
+      "bytes": 3451907,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n7.padded_cnn.seed20260827.gs200.vs.uct_mcts_16__6717d229a8d7/arena/games.jsonl",
+      "sha256": "e727195aaf5a95181555570dabed8e94a374c065af1d6a954f59b72f059493ad"
+    },
+    {
+      "bytes": 1794575,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n7.padded_cnn.seed20260828.gs200.vs.random__6c1477fc5760/arena/games.jsonl",
+      "sha256": "e961006710a4dd664633403392f05b0e14117e08f288ba8e65c6e5cdfafe952a"
+    },
+    {
+      "bytes": 3442777,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n7.padded_cnn.seed20260828.gs200.vs.uct_mcts_16__b08513035098/arena/games.jsonl",
+      "sha256": "562f4d88b7a84ae3d0e9201a60f63d7d62ee2de35124e1d51b189cf649be941a"
+    },
+    {
+      "bytes": 1505249,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n7.padded_cnn.seed20260829.gs200.vs.random__da400f0da1a1/arena/games.jsonl",
+      "sha256": "65b9db345b4267fe444a3ba9f5faca002154996d7ac544af3f950d40e6b2aa8e"
+    },
+    {
+      "bytes": 2971169,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n7.padded_cnn.seed20260829.gs200.vs.uct_mcts_16__cddc69a34f8d/arena/games.jsonl",
+      "sha256": "97b0a0df26fe73c7b008aea4884ea8c683d8dc3ae9db7757620fe4379cb2bdca"
+    },
+    {
+      "bytes": 1713806,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n7.topology_gnn.seed20260825.gs200.vs.random__06b46b5bca7f/arena/games.jsonl",
+      "sha256": "6caab76a4c4d42b52c61af62604597479e1d541bad5edecef5db793f14f46c48"
+    },
+    {
+      "bytes": 3142776,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n7.topology_gnn.seed20260825.gs200.vs.uct_mcts_16__45808277b922/arena/games.jsonl",
+      "sha256": "b99a77bf88ade73739342fc36f658bc4d3e740d74a57e9e2de18f30575a8655a"
+    },
+    {
+      "bytes": 2028262,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n7.topology_gnn.seed20260826.gs200.vs.random__928e7c74ff0c/arena/games.jsonl",
+      "sha256": "44aa761c49e2408eea4e7256a27f0f2c6312c1c81fb6eb689988ba77fbf69ff2"
+    },
+    {
+      "bytes": 3467544,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n7.topology_gnn.seed20260826.gs200.vs.uct_mcts_16__79beef93b2bc/arena/games.jsonl",
+      "sha256": "06aa7f25859c1d8db537538b90ed012f2b91496da0d924d692d01407aaf15e8a"
+    },
+    {
+      "bytes": 1693262,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n7.topology_gnn.seed20260827.gs200.vs.random__a34037e57d75/arena/games.jsonl",
+      "sha256": "3100666c03430a0b2c80fbc84710851a3d34f3a60aa6d6a335f1c0651b0eb6b7"
+    },
+    {
+      "bytes": 3170628,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n7.topology_gnn.seed20260827.gs200.vs.uct_mcts_16__0cec306d27eb/arena/games.jsonl",
+      "sha256": "06834a4efdbb1b02d2fe36c9230ce8f680ac550d82d3cab189df2931961b19a0"
+    },
+    {
+      "bytes": 1425033,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n7.topology_gnn.seed20260828.gs200.vs.random__37d0b5907b9f/arena/games.jsonl",
+      "sha256": "cd653e9b115d52b2adb2157ac7d9c599d7d6d0b8a6b0f4126dab6d2c19e1add0"
+    },
+    {
+      "bytes": 2944086,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n7.topology_gnn.seed20260828.gs200.vs.uct_mcts_16__a81c345a61b1/arena/games.jsonl",
+      "sha256": "f91f81b934c9ae849d83bdd21f53da79704c8e4f2596a6f5a471fbdaa33a3b45"
+    },
+    {
+      "bytes": 1792488,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n7.topology_gnn.seed20260829.gs200.vs.random__59afff7ef35a/arena/games.jsonl",
+      "sha256": "5c9aa33f2da0736140a0b765ff2b3bdb238ea5a10ef295ad7f16a0209c29739d"
+    },
+    {
+      "bytes": 3213076,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n7.topology_gnn.seed20260829.gs200.vs.uct_mcts_16__ac48f315637f/arena/games.jsonl",
+      "sha256": "58919b90f845531439b39430bb1deb50a3a58b1081b43417cb443127134d4ca8"
+    },
+    {
+      "bytes": 2945321,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n9.grid_gnn.seed20260825.gs200.vs.random__bcca7c51f8ec/arena/games.jsonl",
+      "sha256": "557e87f83fdd49ce8d8641b0e5f0b0b3be8654536af3726dd2029a0bf8c449dc"
+    },
+    {
+      "bytes": 5817691,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n9.grid_gnn.seed20260825.gs200.vs.uct_mcts_16__aae4895f253a/arena/games.jsonl",
+      "sha256": "423314c5fc85593c7ae93d4bca04cf2cc4e65a88b4bc41080c8161b362032881"
+    },
+    {
+      "bytes": 3971148,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n9.grid_gnn.seed20260826.gs200.vs.random__dd7b15a14bea/arena/games.jsonl",
+      "sha256": "19ab7ee6b3567cad294dffc20821e3389dc00180d030d9f3ea6ddb1435403801"
+    },
+    {
+      "bytes": 7011703,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n9.grid_gnn.seed20260826.gs200.vs.uct_mcts_16__8ea802d67109/arena/games.jsonl",
+      "sha256": "2e2efe19992e7af8eb10574fb49ad60b6c34c6d615ea6863efaf373c0278d12e"
+    },
+    {
+      "bytes": 2183507,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n9.grid_gnn.seed20260827.gs200.vs.random__070e777ad3e0/arena/games.jsonl",
+      "sha256": "5964a10c229e089d12eef804a6f808571e00b68793c6681a716c22d52c5bcb4f"
+    },
+    {
+      "bytes": 3755445,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n9.grid_gnn.seed20260827.gs200.vs.uct_mcts_16__5d53839c1ca6/arena/games.jsonl",
+      "sha256": "db731c6f72a0026010ca160b8ca79589f5cf92317c544f107fdb35833fb741b0"
+    },
+    {
+      "bytes": 2354291,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n9.grid_gnn.seed20260828.gs200.vs.random__31a1c5a4d915/arena/games.jsonl",
+      "sha256": "eec6efb03c0085c718a86978a89ec7c034e9f18602d24c04df7890712b301e91"
+    },
+    {
+      "bytes": 5457996,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n9.grid_gnn.seed20260828.gs200.vs.uct_mcts_16__b3a29e145495/arena/games.jsonl",
+      "sha256": "ed6b8fe450d9d2c7c16038342df56131a5770f48d996e3b99965c1284d0c5765"
+    },
+    {
+      "bytes": 2875726,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n9.grid_gnn.seed20260829.gs200.vs.random__1562bd93efbd/arena/games.jsonl",
+      "sha256": "13b7208cd8502af1248662fa39dad086b5d653a070242d8251285a3c2a0366e6"
+    },
+    {
+      "bytes": 5084292,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n9.grid_gnn.seed20260829.gs200.vs.uct_mcts_16__9d63a1b29b83/arena/games.jsonl",
+      "sha256": "b3cb08a1ad140a7b53106c71bcc5c7ac22b71caace995373a5abf0c511a13ad1"
+    },
+    {
+      "bytes": 3613226,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n9.padded_cnn.seed20260825.gs200.vs.random__6f8e4a4773bf/arena/games.jsonl",
+      "sha256": "4a9b2c334d0d58d75b85bf6aaacf940781ddbb10e8592b2f4262f8914c32e10c"
+    },
+    {
+      "bytes": 6008896,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n9.padded_cnn.seed20260825.gs200.vs.uct_mcts_16__c536d0cbd187/arena/games.jsonl",
+      "sha256": "a6d5fb45afc0b2da9e3e0366fa47509616a4a940abcd4fa4c17dd24654aa60eb"
+    },
+    {
+      "bytes": 2363702,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n9.padded_cnn.seed20260826.gs200.vs.random__51ec3a72cc75/arena/games.jsonl",
+      "sha256": "6977ff6fe72abc3d14eba847176cdf2e6e20539edaa9d52ff284ffa7371563c9"
+    },
+    {
+      "bytes": 4449790,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n9.padded_cnn.seed20260826.gs200.vs.uct_mcts_16__634d1feb283c/arena/games.jsonl",
+      "sha256": "9055d0400aaf00503bf96374073950bb82376fd2db7383e93d4960a078ff8738"
+    },
+    {
+      "bytes": 2334112,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n9.padded_cnn.seed20260827.gs200.vs.random__928181fef378/arena/games.jsonl",
+      "sha256": "90cc39a2ce86b1b5f825e3bb3f7cfe227640f8dee9a5dfdbe7c93a9026137f1d"
+    },
+    {
+      "bytes": 4150205,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n9.padded_cnn.seed20260827.gs200.vs.uct_mcts_16__ef28c0effdbb/arena/games.jsonl",
+      "sha256": "bb90d460410d498016ee3e2ee5529a78a2f62458bc370cb85ec4bca798b1772c"
+    },
+    {
+      "bytes": 3178466,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n9.padded_cnn.seed20260828.gs200.vs.random__fd232cc1c404/arena/games.jsonl",
+      "sha256": "e8889fee73cd66b579ad28f74266ebd4ac0ac927f9cbd3c3d3f4329a6082f56e"
+    },
+    {
+      "bytes": 5584890,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n9.padded_cnn.seed20260828.gs200.vs.uct_mcts_16__dab595d9c816/arena/games.jsonl",
+      "sha256": "f15586298dab09035a1ae6292ffe014f3ed5e40a477a90659a32dce2675e0ff0"
+    },
+    {
+      "bytes": 2228244,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n9.padded_cnn.seed20260829.gs200.vs.random__050cf81df433/arena/games.jsonl",
+      "sha256": "771059fc6d20031def778d03aedd7a7ce1f8ecae7a2d1f77d8d323223e81ac37"
+    },
+    {
+      "bytes": 4080710,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n9.padded_cnn.seed20260829.gs200.vs.uct_mcts_16__2c0f92c2560d/arena/games.jsonl",
+      "sha256": "992ff3c647d4519d6f79cfe1a5172a44133f373dff35ab63e616318f3cbe1531"
+    },
+    {
+      "bytes": 2776703,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n9.topology_gnn.seed20260825.gs200.vs.random__aa8ee08e3c94/arena/games.jsonl",
+      "sha256": "95eee543e42bb50c97d2b1ca349885c0f30a0917f8ae9fd65bb7235582b3232a"
+    },
+    {
+      "bytes": 4672709,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n9.topology_gnn.seed20260825.gs200.vs.uct_mcts_16__367fbd1c1f8f/arena/games.jsonl",
+      "sha256": "cdc7e1f189415ebc1bb7f32d7c312819a778df8188bc963165d74755029b4364"
+    },
+    {
+      "bytes": 3418104,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n9.topology_gnn.seed20260826.gs200.vs.random__b72130e134b8/arena/games.jsonl",
+      "sha256": "55861479744983d46c594ca4976ef7f4ade861407bbf1d3714dbb07c64cd5ef6"
+    },
+    {
+      "bytes": 5827933,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n9.topology_gnn.seed20260826.gs200.vs.uct_mcts_16__3a2c4b57e59b/arena/games.jsonl",
+      "sha256": "7136861c386ab863e6f9b9a913e189f6eec31ea3c22be594e6ac274ef2676048"
+    },
+    {
+      "bytes": 2464907,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n9.topology_gnn.seed20260827.gs200.vs.random__f4aaf334d8ad/arena/games.jsonl",
+      "sha256": "5a63e7b1c2507695ba5ff3f0f7857d892f122ed9ab3b30960dec9c3b78d35206"
+    },
+    {
+      "bytes": 4546259,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n9.topology_gnn.seed20260827.gs200.vs.uct_mcts_16__db8d29ddc6b4/arena/games.jsonl",
+      "sha256": "b671756016db21db88e045523ef726210d3222f9ac0e753928c6bef86fcf6342"
+    },
+    {
+      "bytes": 2202795,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n9.topology_gnn.seed20260828.gs200.vs.random__e5034d1dc912/arena/games.jsonl",
+      "sha256": "0ad34ff7350b3ee8df83a29e087b62558d01d1c32c625ad83ee21134f56cd89b"
+    },
+    {
+      "bytes": 4372573,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n9.topology_gnn.seed20260828.gs200.vs.uct_mcts_16__764c8cce501b/arena/games.jsonl",
+      "sha256": "63106d219b3c184b826061486bc24278e05d1ad011484a30355f2504785b4f91"
+    },
+    {
+      "bytes": 2790827,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n9.topology_gnn.seed20260829.gs200.vs.random__e8f2acd5c86d/arena/games.jsonl",
+      "sha256": "2df5c7b5e75ec5171ed320eaf686075b0475638eaa90c1c09c4dd6ddac037778"
+    },
+    {
+      "bytes": 5467152,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.final_vs_search.n9.topology_gnn.seed20260829.gs200.vs.uct_mcts_16__c9fc9d0cc3de/arena/games.jsonl",
+      "sha256": "4ddd09a6dd5e88c7fed82f9e3df7d981ebade0f5d47ddcdecb7f86cc80ff0442"
+    },
+    {
+      "bytes": 148121,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.grid_gnn.seed20260825.gs120.vs.uct_mcts_16__4be8cfa194f9/arena/games.jsonl",
+      "sha256": "667d5ec719ecb6c2a4cce92ee394333240b5487c34dcf55a637411ea32760df8"
+    },
+    {
+      "bytes": 153631,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.grid_gnn.seed20260825.gs160.vs.uct_mcts_16__36ccdac19cc1/arena/games.jsonl",
+      "sha256": "0795169989c5fbe07b812e33655c8e0d557cecafe74d0f26995f1d630ac9dc21"
+    },
+    {
+      "bytes": 173452,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.grid_gnn.seed20260825.gs40.vs.uct_mcts_16__58d9e8212d04/arena/games.jsonl",
+      "sha256": "774f808ae1d3c1bd6904d026d3c497c8a67422135cf05b9e6f03b740cafbbe54"
+    },
+    {
+      "bytes": 158520,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.grid_gnn.seed20260825.gs80.vs.uct_mcts_16__66152d884dd9/arena/games.jsonl",
+      "sha256": "84003d56b3120610691f98c7a5d2854c5d445a18e48bf4ab557b5bd79eea6655"
+    },
+    {
+      "bytes": 151388,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.grid_gnn.seed20260826.gs120.vs.uct_mcts_16__c93967093034/arena/games.jsonl",
+      "sha256": "160d1377e99d2367ed2ac4fde42e6046775d57065d5dbd2a10f5e4b7a930be2e"
+    },
+    {
+      "bytes": 143628,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.grid_gnn.seed20260826.gs160.vs.uct_mcts_16__15144f386cfd/arena/games.jsonl",
+      "sha256": "36a416d0d9d79a5d4dcc4104007baa96eb57a1a72c08ed9d0edd07e4bfe05ae6"
+    },
+    {
+      "bytes": 153370,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.grid_gnn.seed20260826.gs40.vs.uct_mcts_16__f6f81a485fb9/arena/games.jsonl",
+      "sha256": "ce0cc4887f935b66b7065bd93b2a66ee59cde8c1b3ac609f981c15513d4a748f"
+    },
+    {
+      "bytes": 152530,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.grid_gnn.seed20260826.gs80.vs.uct_mcts_16__2ee880a7f2ca/arena/games.jsonl",
+      "sha256": "5ce89a58929278e100619f2aa94af0af2929e175d22b2408a6c7ae8215ae7cd0"
+    },
+    {
+      "bytes": 157096,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.grid_gnn.seed20260827.gs120.vs.uct_mcts_16__425a6cd0cf81/arena/games.jsonl",
+      "sha256": "524db5c142ab52c210d999cf82f1e486c9985d74b8c2dcd0750c1d3bac99a71e"
+    },
+    {
+      "bytes": 156196,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.grid_gnn.seed20260827.gs160.vs.uct_mcts_16__9e9776fa03be/arena/games.jsonl",
+      "sha256": "04caf8a1dd7cba99c2988711069f09f624344bcb9a6a5fa743b84455d246e923"
+    },
+    {
+      "bytes": 157311,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.grid_gnn.seed20260827.gs40.vs.uct_mcts_16__75cc817811f3/arena/games.jsonl",
+      "sha256": "362e3e62ede05dc9b8b33bbdfa8b9302642639504b48c050e7fbbb470b067164"
+    },
+    {
+      "bytes": 151309,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.grid_gnn.seed20260827.gs80.vs.uct_mcts_16__3b7dad8ffda8/arena/games.jsonl",
+      "sha256": "23fc674c7f9643e1594f7624a94d063c498bf8348fd71b03249be70afcff9ced"
+    },
+    {
+      "bytes": 152653,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.grid_gnn.seed20260828.gs120.vs.uct_mcts_16__20e6cda88ad4/arena/games.jsonl",
+      "sha256": "d27ae4a56623ba94e1fac3be784413d5cfa5db61c6a870f973d435832794525f"
+    },
+    {
+      "bytes": 146549,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.grid_gnn.seed20260828.gs160.vs.uct_mcts_16__aab383ddeb6c/arena/games.jsonl",
+      "sha256": "c08a3d54c1a6b8c1d50a56e54ec0417987800075e2fd1d4898cea68b9892d775"
+    },
+    {
+      "bytes": 157378,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.grid_gnn.seed20260828.gs40.vs.uct_mcts_16__a29eb44aecb3/arena/games.jsonl",
+      "sha256": "ffe12e9bc0a5a5e418edddd0a249db7c2b5898dc4671dac16820e1eb0dc5b4db"
+    },
+    {
+      "bytes": 144725,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.grid_gnn.seed20260828.gs80.vs.uct_mcts_16__de9c8926663b/arena/games.jsonl",
+      "sha256": "58d82e4bcb3acf318e9ac52d2291f1c038c34bf686d4408c1df90007c3a83ead"
+    },
+    {
+      "bytes": 152637,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.grid_gnn.seed20260829.gs120.vs.uct_mcts_16__5d378b111eaf/arena/games.jsonl",
+      "sha256": "af1c869dd432da2a89fc3dd430798706d1e57406624bf4b11aca251329a4188e"
+    },
+    {
+      "bytes": 147563,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.grid_gnn.seed20260829.gs160.vs.uct_mcts_16__82628739f41f/arena/games.jsonl",
+      "sha256": "71df6f325d0608d8891f44858cc098a4a6ea0423249f0f0b3203ee951ed27aea"
+    },
+    {
+      "bytes": 155525,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.grid_gnn.seed20260829.gs40.vs.uct_mcts_16__a7ffc7ae9d0d/arena/games.jsonl",
+      "sha256": "783b0bede44651c196cc7479edc69b0ba665bf7a70047cc3b622d58de1509d1d"
+    },
+    {
+      "bytes": 153887,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.grid_gnn.seed20260829.gs80.vs.uct_mcts_16__f19b7c966c9b/arena/games.jsonl",
+      "sha256": "84a65cca0dd27f78452a5630cb358d71f92f96961571079915527dc5c29b0598"
+    },
+    {
+      "bytes": 151709,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.padded_cnn.seed20260825.gs120.vs.uct_mcts_16__7a203e853b77/arena/games.jsonl",
+      "sha256": "934129c855c81a423c710dbd0b41d42716dd7c939eacab5cbe12bf83fb313053"
+    },
+    {
+      "bytes": 141178,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.padded_cnn.seed20260825.gs160.vs.uct_mcts_16__a8eb14055af2/arena/games.jsonl",
+      "sha256": "a14ec397fdc09017c3b6d85610efe12707cca211b5aa60f7d8f3d0045f1b1962"
+    },
+    {
+      "bytes": 160025,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.padded_cnn.seed20260825.gs40.vs.uct_mcts_16__35717654bd98/arena/games.jsonl",
+      "sha256": "011260025037c229a25b10351f2ec5d2db02f63a7c5514549025532aedf1f31e"
+    },
+    {
+      "bytes": 132275,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.padded_cnn.seed20260825.gs80.vs.uct_mcts_16__5bde93057750/arena/games.jsonl",
+      "sha256": "bdffe34233f6c093bb955f3432927312a94017d1e22a60781e6dd711d121f388"
+    },
+    {
+      "bytes": 165936,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.padded_cnn.seed20260826.gs120.vs.uct_mcts_16__256993b2fff5/arena/games.jsonl",
+      "sha256": "f78bcf1dc6da09e2ce0a15bcde6eb7cf1a9ad5f9ee41c760658a5244dd81abd8"
+    },
+    {
+      "bytes": 149866,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.padded_cnn.seed20260826.gs160.vs.uct_mcts_16__e0502f8bd689/arena/games.jsonl",
+      "sha256": "0560e59fb03faed65f5ad88ebba8c439791360ac5ef2333e56d5a8c3e9dba90d"
+    },
+    {
+      "bytes": 156297,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.padded_cnn.seed20260826.gs40.vs.uct_mcts_16__fd0617cc2d7c/arena/games.jsonl",
+      "sha256": "da802ffdcc512b04eca3bed7d9ab0f1b8517e56b1cfd7e133c0be956e09fa1f3"
+    },
+    {
+      "bytes": 161357,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.padded_cnn.seed20260826.gs80.vs.uct_mcts_16__bc9e620766af/arena/games.jsonl",
+      "sha256": "0502e03cbf064c9ca5b80145cbfcb0e6bc9021ef9f9ce34f3747e3c020d34686"
+    },
+    {
+      "bytes": 169487,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.padded_cnn.seed20260827.gs120.vs.uct_mcts_16__21aec3024a88/arena/games.jsonl",
+      "sha256": "750bac344039dd477da6278b57cbbe03c2f3e635fd3ef3e8c4d8a10f8ba2ad1a"
+    },
+    {
+      "bytes": 141719,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.padded_cnn.seed20260827.gs160.vs.uct_mcts_16__9f0eaa5b2c33/arena/games.jsonl",
+      "sha256": "9592327970ce6e05764d4de91e46143d289f5a92ce548af2380308673bd183b9"
+    },
+    {
+      "bytes": 152704,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.padded_cnn.seed20260827.gs40.vs.uct_mcts_16__e1098c819b33/arena/games.jsonl",
+      "sha256": "0a6dc5db9a3beec889e6c44672cc55981a779bdd7dc275b8a427fa6cf84d7ec2"
+    },
+    {
+      "bytes": 163944,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.padded_cnn.seed20260827.gs80.vs.uct_mcts_16__17cedc7ac7ab/arena/games.jsonl",
+      "sha256": "2f79cd4aa27820cc1996543aa67da58d813ca55fd4a98190a382339dc6f6f4dc"
+    },
+    {
+      "bytes": 153275,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.padded_cnn.seed20260828.gs120.vs.uct_mcts_16__062efdfd10df/arena/games.jsonl",
+      "sha256": "129e0577333b46891df67cc8348bc5bc5b614d2bf6b58fef45b7c15852a8f796"
+    },
+    {
+      "bytes": 147827,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.padded_cnn.seed20260828.gs160.vs.uct_mcts_16__af69cd79584e/arena/games.jsonl",
+      "sha256": "71586d5160c27c921ddec32d2b78c2b8d5f26a22609ecd616cf08ea3afca3853"
+    },
+    {
+      "bytes": 176142,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.padded_cnn.seed20260828.gs40.vs.uct_mcts_16__5f1982833e7c/arena/games.jsonl",
+      "sha256": "fae0cda54f6b7b71061fa6298f70a27f6bc311638b2f8b03bb18700d4ff351de"
+    },
+    {
+      "bytes": 156129,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.padded_cnn.seed20260828.gs80.vs.uct_mcts_16__4cbe944cd653/arena/games.jsonl",
+      "sha256": "165c46820e3ae6f0ec1101ffabe36f9e4eb406b7c1a2bb7a37cc027e726f6ec1"
+    },
+    {
+      "bytes": 150735,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.padded_cnn.seed20260829.gs120.vs.uct_mcts_16__91168c1aae4c/arena/games.jsonl",
+      "sha256": "eb1fe227596bac0cbba71f08bc248048850bc96e24283ffec379ce13bb50388e"
+    },
+    {
+      "bytes": 150584,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.padded_cnn.seed20260829.gs160.vs.uct_mcts_16__963a1a6f181c/arena/games.jsonl",
+      "sha256": "ef0e8cfa3995f63ae37b46868f1dc6daea8b8ba6196ed1730bf69384f31a3341"
+    },
+    {
+      "bytes": 162809,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.padded_cnn.seed20260829.gs40.vs.uct_mcts_16__ff46121442ce/arena/games.jsonl",
+      "sha256": "625bab812e920dd597d2d11f1ddaabb65a0fc6e4e109fc84980c4b42fca5237a"
+    },
+    {
+      "bytes": 167346,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.padded_cnn.seed20260829.gs80.vs.uct_mcts_16__54be6519fbfd/arena/games.jsonl",
+      "sha256": "dc46ac09fa78c0bf37d63b21931be223569e69f72effcac415a0e24ad79d76cc"
+    },
+    {
+      "bytes": 138823,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.topology_gnn.seed20260825.gs120.vs.uct_mcts_16__74bc02a99a81/arena/games.jsonl",
+      "sha256": "19b4d6a7a6fe55100e8d7a7468f384db844984f6452ef9209d13f49e6c76ac2d"
+    },
+    {
+      "bytes": 136513,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.topology_gnn.seed20260825.gs160.vs.uct_mcts_16__ebd1018bfc6d/arena/games.jsonl",
+      "sha256": "887c683f8516a6e8e8542319d87b3306a5d79cfb4c9fea31ec7309fa3e243b1a"
+    },
+    {
+      "bytes": 139749,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.topology_gnn.seed20260825.gs40.vs.uct_mcts_16__b24599244785/arena/games.jsonl",
+      "sha256": "6625d543972abb717311b3a8dc9286a6a1f21078c1961329ba1e6f3c42502ce5"
+    },
+    {
+      "bytes": 139083,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.topology_gnn.seed20260825.gs80.vs.uct_mcts_16__84fffac04863/arena/games.jsonl",
+      "sha256": "4a319a36eb16ee12be9d3b5898abccb691dd04c0cf8662cbb533bdffb706e867"
+    },
+    {
+      "bytes": 145532,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.topology_gnn.seed20260826.gs120.vs.uct_mcts_16__9c76f9c2b432/arena/games.jsonl",
+      "sha256": "b0596c601ad7f6f0adf213ebe6e0e7b6f9b8ae4b303efdf82f1fccf642a9c090"
+    },
+    {
+      "bytes": 153021,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.topology_gnn.seed20260826.gs160.vs.uct_mcts_16__2d8a70313179/arena/games.jsonl",
+      "sha256": "45f34aaaa192ed0ad7dc20ad77b6c73c84fe690ebfa051b0969dfe951edca095"
+    },
+    {
+      "bytes": 134844,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.topology_gnn.seed20260826.gs40.vs.uct_mcts_16__a705ed9a4124/arena/games.jsonl",
+      "sha256": "772bbd6e5e8d2d4e54f5f10fb006ffca8ccdcf1da0640a51f33e02b75a048854"
+    },
+    {
+      "bytes": 144977,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.topology_gnn.seed20260826.gs80.vs.uct_mcts_16__0fc2db932f31/arena/games.jsonl",
+      "sha256": "38b75a69e6079abf1c2b49e3d42e640991440da647e24a788209ffecaea88f5f"
+    },
+    {
+      "bytes": 142960,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.topology_gnn.seed20260827.gs120.vs.uct_mcts_16__3a1e6955a4c4/arena/games.jsonl",
+      "sha256": "1cdf4d3b50da950fcbb104c6a69dc6b8418760dc42e2e7c6f2e72ccb528f4597"
+    },
+    {
+      "bytes": 148982,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.topology_gnn.seed20260827.gs160.vs.uct_mcts_16__4212489c510d/arena/games.jsonl",
+      "sha256": "b793365e1d033d07c1432005d4975a0f8eca0d9657dee9ff79b5baacd9c3f1ba"
+    },
+    {
+      "bytes": 144341,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.topology_gnn.seed20260827.gs40.vs.uct_mcts_16__945468967ae1/arena/games.jsonl",
+      "sha256": "f205b5338dc5bf12c294f0153dc91f357feed38700c31338eef043d34b809e55"
+    },
+    {
+      "bytes": 150668,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.topology_gnn.seed20260827.gs80.vs.uct_mcts_16__016d4be680b6/arena/games.jsonl",
+      "sha256": "f8c50774feca1083c3db484f4eaadeeb97b1be188041e7af390302d72a16c2cf"
+    },
+    {
+      "bytes": 133569,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.topology_gnn.seed20260828.gs120.vs.uct_mcts_16__0e40484dd4a7/arena/games.jsonl",
+      "sha256": "3a9680525c6fa13ddc4983bca0a68ad4eaed1166b9a7984fe11e7c4819b5692b"
+    },
+    {
+      "bytes": 144408,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.topology_gnn.seed20260828.gs160.vs.uct_mcts_16__2f395c865490/arena/games.jsonl",
+      "sha256": "369b87b3e4f2e922cef24a04cefe2b50f422176189fd3633cd1da09ff1fad93f"
+    },
+    {
+      "bytes": 142048,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.topology_gnn.seed20260828.gs40.vs.uct_mcts_16__1e00ad438bb3/arena/games.jsonl",
+      "sha256": "3f605af069e18e45515f4f98d7c253335b2d66ccb607cf72d2246eb7a2cc518e"
+    },
+    {
+      "bytes": 147757,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.topology_gnn.seed20260828.gs80.vs.uct_mcts_16__994813846f2a/arena/games.jsonl",
+      "sha256": "4d76985128265e0b1ecb9fabd66e6a3cc6a9e78469921db1f714e9d3a9334834"
+    },
+    {
+      "bytes": 147937,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.topology_gnn.seed20260829.gs120.vs.uct_mcts_16__355af9f1b93e/arena/games.jsonl",
+      "sha256": "00ea69c57b76f818df2ad1b6509a72d33a8dfbd72047c353534e49dd7304200c"
+    },
+    {
+      "bytes": 156846,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.topology_gnn.seed20260829.gs160.vs.uct_mcts_16__8a877a94b8d6/arena/games.jsonl",
+      "sha256": "2f32596ec7261c928e7240d34392c1af2cb1931f55ecf1a0f992c53a8e4b766a"
+    },
+    {
+      "bytes": 152593,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.topology_gnn.seed20260829.gs40.vs.uct_mcts_16__473367830693/arena/games.jsonl",
+      "sha256": "d2c300735cb9143c64a02b8dce99f23c0fc9f4cc6e6b0f4fbe1aac62d6090f24"
+    },
+    {
+      "bytes": 144138,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n5.topology_gnn.seed20260829.gs80.vs.uct_mcts_16__8500e6325579/arena/games.jsonl",
+      "sha256": "747e82adf19e5c411f95fff1af6dd69f7fd97a06f693d29e5aba6ed48cde5918"
+    },
+    {
+      "bytes": 262750,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.grid_gnn.seed20260825.gs120.vs.uct_mcts_16__129cd6b7ed73/arena/games.jsonl",
+      "sha256": "88d85429533b83762aef4b14a7fc75560d935b1c39c560a70657334e4301aa62"
+    },
+    {
+      "bytes": 341858,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.grid_gnn.seed20260825.gs160.vs.uct_mcts_16__739e03ee7598/arena/games.jsonl",
+      "sha256": "ce0305cba0c0869dd35eec4bf3eb224817309d75cc35338691a7f8006bb332c1"
+    },
+    {
+      "bytes": 329717,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.grid_gnn.seed20260825.gs40.vs.uct_mcts_16__43498e86f998/arena/games.jsonl",
+      "sha256": "4578acf14c1b411099e8e00e3d66b03c6b21270486580a31cf0e5b2f2f571450"
+    },
+    {
+      "bytes": 327330,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.grid_gnn.seed20260825.gs80.vs.uct_mcts_16__e712b82d77a7/arena/games.jsonl",
+      "sha256": "07f48435683bea60b18e05d8dcb3b764c3ee714c0ebbd559029314f7155219ab"
+    },
+    {
+      "bytes": 363381,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.grid_gnn.seed20260826.gs120.vs.uct_mcts_16__9a17a83e2ff9/arena/games.jsonl",
+      "sha256": "80185c21f701a3f25e686187497fb9364ad4b60764e806b613459171605b3d65"
+    },
+    {
+      "bytes": 311709,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.grid_gnn.seed20260826.gs160.vs.uct_mcts_16__65cc99b4610a/arena/games.jsonl",
+      "sha256": "f2e8bea5c383d066302959d5f6e5ceabe6de372752d376dcae89a3011f2ecf1b"
+    },
+    {
+      "bytes": 356459,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.grid_gnn.seed20260826.gs40.vs.uct_mcts_16__7956e7c7018a/arena/games.jsonl",
+      "sha256": "3a910e01ee80718f814dcd8cd501c9fa43f98c0ae39b43ff6120e9b02a384c42"
+    },
+    {
+      "bytes": 373813,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.grid_gnn.seed20260826.gs80.vs.uct_mcts_16__9091537ee3a7/arena/games.jsonl",
+      "sha256": "ccb30a5396dc1664104644371c396046e38809f83a03404fa97375696e037301"
+    },
+    {
+      "bytes": 295748,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.grid_gnn.seed20260827.gs120.vs.uct_mcts_16__1c2c168b0439/arena/games.jsonl",
+      "sha256": "5d69e8bc62b085f7e988383a8258393c372f22e4589d4032f86dc9f71e93b24a"
+    },
+    {
+      "bytes": 262519,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.grid_gnn.seed20260827.gs160.vs.uct_mcts_16__2d0ba0dd9604/arena/games.jsonl",
+      "sha256": "1bffb4a29dce3ca5dcfb8fbeaa5411eb938772574aa9f2f263e6017ff1817ba1"
+    },
+    {
+      "bytes": 412882,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.grid_gnn.seed20260827.gs40.vs.uct_mcts_16__0e9db26641fe/arena/games.jsonl",
+      "sha256": "af61d324f6830647f27f01d01b897733b6ac511b63626fd2cc27a3a92d1051a5"
+    },
+    {
+      "bytes": 387786,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.grid_gnn.seed20260827.gs80.vs.uct_mcts_16__a6a158cdc130/arena/games.jsonl",
+      "sha256": "f306d88be724d0151cb53b5e75d349cb9b7c37bc5f65f2d00669bacdd2af6471"
+    },
+    {
+      "bytes": 333323,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.grid_gnn.seed20260828.gs120.vs.uct_mcts_16__7c451bbbebd6/arena/games.jsonl",
+      "sha256": "c203798d550896ed68dff90155a5f906c5e5959fa8e64b1a150b9e57ba15806a"
+    },
+    {
+      "bytes": 292021,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.grid_gnn.seed20260828.gs160.vs.uct_mcts_16__8539a79a7564/arena/games.jsonl",
+      "sha256": "bee520a1355bea5f146f35db957a71595f9d0b67602d9b04930ceca905e38f15"
+    },
+    {
+      "bytes": 242007,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.grid_gnn.seed20260828.gs40.vs.uct_mcts_16__60617925c517/arena/games.jsonl",
+      "sha256": "a57828cf12af311bed3ab48a427f7ec912e684caef686eeb59e62b979d548035"
+    },
+    {
+      "bytes": 317485,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.grid_gnn.seed20260828.gs80.vs.uct_mcts_16__cb099ca0495c/arena/games.jsonl",
+      "sha256": "03c834ca1fb9e4d3e64fdd883c3d5c315345694ab9b8050a53fc6a3eeacc1a72"
+    },
+    {
+      "bytes": 353159,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.grid_gnn.seed20260829.gs120.vs.uct_mcts_16__9f8ecc0dbde9/arena/games.jsonl",
+      "sha256": "b80ad8d9bd0847ae600f1098dc0478ccaa752b04baa3fc044db318de2bfa2295"
+    },
+    {
+      "bytes": 304143,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.grid_gnn.seed20260829.gs160.vs.uct_mcts_16__951d581e7354/arena/games.jsonl",
+      "sha256": "1fc7f447fdcdb43b41694a6b2d0a1c9bdd8ebd97d128626af5be19c333fd48a8"
+    },
+    {
+      "bytes": 310402,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.grid_gnn.seed20260829.gs40.vs.uct_mcts_16__66259accf68f/arena/games.jsonl",
+      "sha256": "f5c0284d8a468d26a7dbe8f72201a36c691bc5f73ff75f8fc524979f5b2a1716"
+    },
+    {
+      "bytes": 345820,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.grid_gnn.seed20260829.gs80.vs.uct_mcts_16__c9163968be2c/arena/games.jsonl",
+      "sha256": "63d3ea52e0a2c5aee4f0c8b73893efbec84e1fc1f851c9835876b6cc34ccd2b4"
+    },
+    {
+      "bytes": 431495,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.padded_cnn.seed20260825.gs120.vs.uct_mcts_16__79aa6fda6ab4/arena/games.jsonl",
+      "sha256": "b6f9a4982060bfacf8672d40977961f90d265ebe0c96a74d0352200501bedac8"
+    },
+    {
+      "bytes": 339060,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.padded_cnn.seed20260825.gs160.vs.uct_mcts_16__c3f13f524334/arena/games.jsonl",
+      "sha256": "5b7253004a0b0cc39231fc8bb7c4b47720e8727c41a5e1a86b3ae31434c36030"
+    },
+    {
+      "bytes": 341301,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.padded_cnn.seed20260825.gs40.vs.uct_mcts_16__2367d722be76/arena/games.jsonl",
+      "sha256": "fc1bd89ee24088e15c8c8c288389e4ab402bdbc2053fba997040a1012937687d"
+    },
+    {
+      "bytes": 412070,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.padded_cnn.seed20260825.gs80.vs.uct_mcts_16__cf9a353f8a6a/arena/games.jsonl",
+      "sha256": "cd304a457c61296ec33ee3754697b485890f8668907b92e6d10545ade1f466a7"
+    },
+    {
+      "bytes": 314180,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.padded_cnn.seed20260826.gs120.vs.uct_mcts_16__7ca77389a63c/arena/games.jsonl",
+      "sha256": "3114d9345b8f955834457829ef8c0a72d7b088b4a286246c74be883c535662a9"
+    },
+    {
+      "bytes": 413068,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.padded_cnn.seed20260826.gs160.vs.uct_mcts_16__7bcf24948829/arena/games.jsonl",
+      "sha256": "81625bc4232ef8ec47abccb2f2a1f010f19b048ccb0425f34bcb0a57819b1dd9"
+    },
+    {
+      "bytes": 405262,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.padded_cnn.seed20260826.gs40.vs.uct_mcts_16__ca9c2e3a5c6f/arena/games.jsonl",
+      "sha256": "b813c072f8b39310d661f5fe0d6619af0e654bccf5d6197357409ce0dc1a19e2"
+    },
+    {
+      "bytes": 407618,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.padded_cnn.seed20260826.gs80.vs.uct_mcts_16__1cdf45b1259f/arena/games.jsonl",
+      "sha256": "0509e921d8014100ce349d308de61b63a0a1eaedf69a3b2b4ce631c7df1813e4"
+    },
+    {
+      "bytes": 336054,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.padded_cnn.seed20260827.gs120.vs.uct_mcts_16__ef650619b932/arena/games.jsonl",
+      "sha256": "9322889a9fd3deee70555a4596e37dd2f3c09c0ee7e3c083d2af7fbe7dc85e59"
+    },
+    {
+      "bytes": 300282,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.padded_cnn.seed20260827.gs160.vs.uct_mcts_16__04fd0ac9580e/arena/games.jsonl",
+      "sha256": "da26346b6415d6b0fd6c1e1039062e1f579b5db311ef82a1d880cd5e03434149"
+    },
+    {
+      "bytes": 412096,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.padded_cnn.seed20260827.gs40.vs.uct_mcts_16__1003479fa202/arena/games.jsonl",
+      "sha256": "7e7345eb54ecafe9dd312538716ad6310c01639cc1406c612f10700215bdccae"
+    },
+    {
+      "bytes": 388020,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.padded_cnn.seed20260827.gs80.vs.uct_mcts_16__470eefd0e62e/arena/games.jsonl",
+      "sha256": "41e5a3ffe2e14812869e550adee116e2210bacf5874c1b6deeb6f5cc20f01bd5"
+    },
+    {
+      "bytes": 370314,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.padded_cnn.seed20260828.gs120.vs.uct_mcts_16__01bdb9bd9442/arena/games.jsonl",
+      "sha256": "b81f686d7c336ff4e42d2b81285c92bcb98fa325c529f6df6621fc4b02bc92dc"
+    },
+    {
+      "bytes": 345025,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.padded_cnn.seed20260828.gs160.vs.uct_mcts_16__a496db4b49bd/arena/games.jsonl",
+      "sha256": "9fe3b78f6c9753bd738208e310752c53b3bb887d35bbcaed894348f3b37dfa10"
+    },
+    {
+      "bytes": 468491,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.padded_cnn.seed20260828.gs40.vs.uct_mcts_16__16115c50ccdb/arena/games.jsonl",
+      "sha256": "930a1c0221eacc1b44697aa843c89054f2228269419e48d89cd6f17cc66ab1e7"
+    },
+    {
+      "bytes": 380058,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.padded_cnn.seed20260828.gs80.vs.uct_mcts_16__ff1637e04efe/arena/games.jsonl",
+      "sha256": "6f21e1d5575447793ae157e96b1835da6cb05099f51a4c06fcdd02dda3dd251f"
+    },
+    {
+      "bytes": 343197,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.padded_cnn.seed20260829.gs120.vs.uct_mcts_16__d813f3a8da30/arena/games.jsonl",
+      "sha256": "cff63b5d5f8a93eb26c1c9b11a5c3875e8743e2de04cf3a5dca95ae8d77d6ed3"
+    },
+    {
+      "bytes": 290927,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.padded_cnn.seed20260829.gs160.vs.uct_mcts_16__6bf8bc4944d8/arena/games.jsonl",
+      "sha256": "59d08ce0e2ea2b310f5591d1695533f598811983f6dec88c95b2a1fe16333fd3"
+    },
+    {
+      "bytes": 350009,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.padded_cnn.seed20260829.gs40.vs.uct_mcts_16__b83ecf3cd6f5/arena/games.jsonl",
+      "sha256": "71cae8dce5611e8af6776d96f565cb1826c366f757a570d04a4dbb6aec11e203"
+    },
+    {
+      "bytes": 309117,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.padded_cnn.seed20260829.gs80.vs.uct_mcts_16__0ba1e8483b69/arena/games.jsonl",
+      "sha256": "cc12c6d1a06be0bdda529c87e1c60d568a99182cc667198f3e02155f823e0930"
+    },
+    {
+      "bytes": 284980,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.topology_gnn.seed20260825.gs120.vs.uct_mcts_16__7b48a2b063a5/arena/games.jsonl",
+      "sha256": "67757d9df6a69b2a9a50a017f0b4230d9405e13198ac32feb1c0d5e5489bbb07"
+    },
+    {
+      "bytes": 297455,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.topology_gnn.seed20260825.gs160.vs.uct_mcts_16__c3cf98d38227/arena/games.jsonl",
+      "sha256": "3e40125e54587cafa5d4571dcf86b6ab6ee0caca5a3de2539c375054b3b84488"
+    },
+    {
+      "bytes": 311111,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.topology_gnn.seed20260825.gs40.vs.uct_mcts_16__56c6bee12225/arena/games.jsonl",
+      "sha256": "af9cd19c247c91867876d6aa62bf072abdd2ab6eb5a3e212d67e8f4e161fef11"
+    },
+    {
+      "bytes": 351590,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.topology_gnn.seed20260825.gs80.vs.uct_mcts_16__b56fdaf96979/arena/games.jsonl",
+      "sha256": "525207a10114dc47780990901248289c33869a8027fd0157acca7d9569efa1f6"
+    },
+    {
+      "bytes": 399321,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.topology_gnn.seed20260826.gs120.vs.uct_mcts_16__84feae5852dc/arena/games.jsonl",
+      "sha256": "9bb7fb690ae9310f3e8f388c8e9050ad2abb5255afe119be0e4def437edbf973"
+    },
+    {
+      "bytes": 332622,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.topology_gnn.seed20260826.gs160.vs.uct_mcts_16__70ba9e7a2284/arena/games.jsonl",
+      "sha256": "4ecbb33e8eb8048959f5bdd755659d3aa8a9bca684aa10f7a3e99c785b8ab68f"
+    },
+    {
+      "bytes": 361593,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.topology_gnn.seed20260826.gs40.vs.uct_mcts_16__deb5f4ebf61e/arena/games.jsonl",
+      "sha256": "9fccfbaf95345931750b8207dfb1461c2797164b96d7563163f967b23fff8e45"
+    },
+    {
+      "bytes": 321289,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.topology_gnn.seed20260826.gs80.vs.uct_mcts_16__c12d8dfbe7f6/arena/games.jsonl",
+      "sha256": "f412584d49b0c8d0fdd87fa61c62e0ab566dc9e64d7523d3b512f2e3333af66e"
+    },
+    {
+      "bytes": 305614,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.topology_gnn.seed20260827.gs120.vs.uct_mcts_16__6b0f59a6f5d3/arena/games.jsonl",
+      "sha256": "878510956d7d9b93da72afac06ab21a546523da43780ef35a843b7c80a83c961"
+    },
+    {
+      "bytes": 308922,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.topology_gnn.seed20260827.gs160.vs.uct_mcts_16__4b6822b9ed44/arena/games.jsonl",
+      "sha256": "dc1564ca222cfb89334bf2c6146aec4416c6dfbd4c9c7a118fe99c1eb4e5286f"
+    },
+    {
+      "bytes": 325346,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.topology_gnn.seed20260827.gs40.vs.uct_mcts_16__0a7360df0296/arena/games.jsonl",
+      "sha256": "0e1cef08779d53710a613d5902e49fc974890db0c40906275c43524d382d73ee"
+    },
+    {
+      "bytes": 299547,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.topology_gnn.seed20260827.gs80.vs.uct_mcts_16__623c351cc3b5/arena/games.jsonl",
+      "sha256": "703b9b1ea320daf2dd605f5338668b11d6a40e6d38f7d62f582526c940cdf036"
+    },
+    {
+      "bytes": 332438,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.topology_gnn.seed20260828.gs120.vs.uct_mcts_16__24aa79a5118e/arena/games.jsonl",
+      "sha256": "cc0c45760006af4404f84e61527b6cea501364d26a33f8de38603ad6bd04aa00"
+    },
+    {
+      "bytes": 282578,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.topology_gnn.seed20260828.gs160.vs.uct_mcts_16__d1e4b4ac5020/arena/games.jsonl",
+      "sha256": "fc6eda2fb3e6535b1595c744e5835f0e757133dd8491247ab50c37eb22322d47"
+    },
+    {
+      "bytes": 342606,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.topology_gnn.seed20260828.gs40.vs.uct_mcts_16__38b08d912748/arena/games.jsonl",
+      "sha256": "7a7786460676fd0566c0f21008b2735c94cf7693b45fb10e5a393538fb798874"
+    },
+    {
+      "bytes": 366531,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.topology_gnn.seed20260828.gs80.vs.uct_mcts_16__fb2f68cc2114/arena/games.jsonl",
+      "sha256": "1917539d6a7b8b418bed4a2e94595369251803398c2ec269d2354dc1f364d801"
+    },
+    {
+      "bytes": 294815,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.topology_gnn.seed20260829.gs120.vs.uct_mcts_16__33662dfddb5c/arena/games.jsonl",
+      "sha256": "cfad3e42349dd802ad9d25a1630bfdce15c34197e91ad08c3a21a7285a5b2a6e"
+    },
+    {
+      "bytes": 365566,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.topology_gnn.seed20260829.gs160.vs.uct_mcts_16__4747ea668f39/arena/games.jsonl",
+      "sha256": "a598b1bc8999a8bcf8df25033828775f087bdaab4d66f78c7aaf9d7dedb34cb8"
+    },
+    {
+      "bytes": 330435,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.topology_gnn.seed20260829.gs40.vs.uct_mcts_16__bb0c94fc533f/arena/games.jsonl",
+      "sha256": "00f7229e898282a64091aae1c86a98e6bc5ac341f50ca0f9382d4be9246e4b64"
+    },
+    {
+      "bytes": 263559,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n7.topology_gnn.seed20260829.gs80.vs.uct_mcts_16__d74133f6936a/arena/games.jsonl",
+      "sha256": "7c5b0e44f15e8621acf122328069e45cc069dd5e88809989ddd9fe2be9517389"
+    },
+    {
+      "bytes": 613967,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.grid_gnn.seed20260825.gs120.vs.uct_mcts_16__4182e9eadc20/arena/games.jsonl",
+      "sha256": "526d9bc8450cb511ce30761037387272c4ccbff345c78fc9eb01909db61ebdc0"
+    },
+    {
+      "bytes": 498740,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.grid_gnn.seed20260825.gs160.vs.uct_mcts_16__63a76cf0ed31/arena/games.jsonl",
+      "sha256": "0ccc48de90fce5add1989bb45760f186359ee668d34edda7c6590a16b037f63b"
+    },
+    {
+      "bytes": 652808,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.grid_gnn.seed20260825.gs40.vs.uct_mcts_16__5624cf4b1b80/arena/games.jsonl",
+      "sha256": "5ebfef3d3bcec20cf86eda5a2d4edd40474f17b9f2c108f1a4f74d549c418291"
+    },
+    {
+      "bytes": 498340,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.grid_gnn.seed20260825.gs80.vs.uct_mcts_16__d845a9e7371e/arena/games.jsonl",
+      "sha256": "40279b9025d3fc21676226dd75f74414df42f80ef1200a9f03ddb7f757ec8978"
+    },
+    {
+      "bytes": 804925,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.grid_gnn.seed20260826.gs120.vs.uct_mcts_16__7a7fd029f9f3/arena/games.jsonl",
+      "sha256": "f0caaf58ecc61c69bb9fcb7c50c8905142bace794050f8912a347df19a2cd320"
+    },
+    {
+      "bytes": 735629,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.grid_gnn.seed20260826.gs160.vs.uct_mcts_16__d5556a395095/arena/games.jsonl",
+      "sha256": "1f3ac7673cd1f2d4fd8eda1a32990fb6c92d426c4b260d1449b94f04df6c6302"
+    },
+    {
+      "bytes": 658066,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.grid_gnn.seed20260826.gs40.vs.uct_mcts_16__6460c853ba0a/arena/games.jsonl",
+      "sha256": "d589825b37464b699e49024a7b65100a8bbb4a551e07c31a39c335f981426095"
+    },
+    {
+      "bytes": 774684,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.grid_gnn.seed20260826.gs80.vs.uct_mcts_16__50703df9f0e9/arena/games.jsonl",
+      "sha256": "2b409281970c9cda0f01a2d43cc6b794170ed13f238fb34275dc5d81c0c0c0e8"
+    },
+    {
+      "bytes": 572461,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.grid_gnn.seed20260827.gs120.vs.uct_mcts_16__e06199375c20/arena/games.jsonl",
+      "sha256": "dc1431f4f997bc4c469b1b1ef3951ab441ba13140875cc78102b9dd8ee38e824"
+    },
+    {
+      "bytes": 531086,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.grid_gnn.seed20260827.gs160.vs.uct_mcts_16__b7e00cb8e41a/arena/games.jsonl",
+      "sha256": "d0f49425f2b6f486aaec3886c8fa65ece99260b64d4703acdd1249213e0ec470"
+    },
+    {
+      "bytes": 912692,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.grid_gnn.seed20260827.gs40.vs.uct_mcts_16__7032ff64d821/arena/games.jsonl",
+      "sha256": "74711bfc23f37dc5f450473b360b428b24edd4c6abe8a37eff11d1f99b1c3a8e"
+    },
+    {
+      "bytes": 595622,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.grid_gnn.seed20260827.gs80.vs.uct_mcts_16__a8ca636c5cbe/arena/games.jsonl",
+      "sha256": "0ae39d7e5583d2e85d547b3bc8d93cf21b1891818954cdb29b17df9de888428d"
+    },
+    {
+      "bytes": 463365,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.grid_gnn.seed20260828.gs120.vs.uct_mcts_16__6b2e910b5eb4/arena/games.jsonl",
+      "sha256": "34a98707c7b159380d6eaf1e3593a071b43f7e30dda8f394c75457f514405865"
+    },
+    {
+      "bytes": 747206,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.grid_gnn.seed20260828.gs160.vs.uct_mcts_16__dd5a6e258ca8/arena/games.jsonl",
+      "sha256": "29def63af6e97006aef01ecbe8be7111c6aaa090f5aa30031a1108e7e6a864ca"
+    },
+    {
+      "bytes": 410668,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.grid_gnn.seed20260828.gs40.vs.uct_mcts_16__cbfe516cc5ca/arena/games.jsonl",
+      "sha256": "dcdb1b7d6d46b1882e4c2d95ceecdf6c1ddb03bc56ac45bbfbb25f2903cf6889"
+    },
+    {
+      "bytes": 590782,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.grid_gnn.seed20260828.gs80.vs.uct_mcts_16__0074bfada823/arena/games.jsonl",
+      "sha256": "eb659acd3e4eded3e7e34cdb177b1f77568220876f84497765fc44d611664caa"
+    },
+    {
+      "bytes": 586145,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.grid_gnn.seed20260829.gs120.vs.uct_mcts_16__c5e2bac9c770/arena/games.jsonl",
+      "sha256": "6041d0a088421c98b12a84c0ab8046ead34fa3b3884e5559dea0744ba8897f69"
+    },
+    {
+      "bytes": 436912,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.grid_gnn.seed20260829.gs160.vs.uct_mcts_16__f15a65710028/arena/games.jsonl",
+      "sha256": "93125a8b9cf0d62ec7921bc8d6a812c42af42ac58ddad040116f4ef0cc0ce0e5"
+    },
+    {
+      "bytes": 596579,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.grid_gnn.seed20260829.gs40.vs.uct_mcts_16__87855d8103ec/arena/games.jsonl",
+      "sha256": "b0dd00d30bfb674d3af1c7e905d6db3b0c2f0f2edca30e56c78e7fcf1c7d169f"
+    },
+    {
+      "bytes": 507082,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.grid_gnn.seed20260829.gs80.vs.uct_mcts_16__55b1d58bc73a/arena/games.jsonl",
+      "sha256": "aca46c2b399eb15fdfe9386b2671b2e00c7bc59050b60cb345ec67ae2db8ae9b"
+    },
+    {
+      "bytes": 565244,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.padded_cnn.seed20260825.gs120.vs.uct_mcts_16__bff6446539e1/arena/games.jsonl",
+      "sha256": "8a500a1345543d503ccd9e96a9e92bbd3d7a0957ce1e7745e120fb004967234a"
+    },
+    {
+      "bytes": 641651,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.padded_cnn.seed20260825.gs160.vs.uct_mcts_16__1027ad58a560/arena/games.jsonl",
+      "sha256": "f4631a46fecc989024e363b119295b4f08a621e869312c54f17948c58aaea651"
+    },
+    {
+      "bytes": 611404,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.padded_cnn.seed20260825.gs40.vs.uct_mcts_16__6f21f0f8313c/arena/games.jsonl",
+      "sha256": "d82b5a9d7f8016f1ac1aaa937b947c230dcad7b69920df00b4fc1e37a87e939c"
+    },
+    {
+      "bytes": 636270,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.padded_cnn.seed20260825.gs80.vs.uct_mcts_16__98d08066a5f7/arena/games.jsonl",
+      "sha256": "e2bed32dc81a8999e12bd5ced6c4c7413cc40a44ca34ca5bfde978a6562d208e"
+    },
+    {
+      "bytes": 494156,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.padded_cnn.seed20260826.gs120.vs.uct_mcts_16__3b08c2c28a6b/arena/games.jsonl",
+      "sha256": "f539c3ab36afc95fc18a2e3737caf45d353dd780e7438cab0ad280f40d653ff4"
+    },
+    {
+      "bytes": 556700,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.padded_cnn.seed20260826.gs160.vs.uct_mcts_16__2b2c920a4a69/arena/games.jsonl",
+      "sha256": "47eb7d129a402dd9b13c70e72d16ab77d225b2b72749607f9d1c3fc7db1a6282"
+    },
+    {
+      "bytes": 651171,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.padded_cnn.seed20260826.gs40.vs.uct_mcts_16__94235ce4042f/arena/games.jsonl",
+      "sha256": "7510f151024a62833ffadcbfbc48e9b59ff8803c68fcb3b63e1624bd33bfab5c"
+    },
+    {
+      "bytes": 507804,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.padded_cnn.seed20260826.gs80.vs.uct_mcts_16__2de0af6fcc2f/arena/games.jsonl",
+      "sha256": "678fe16ef64e5b558b369bd8517a0191f9a218e3750a5bdd02083bf6f16ff1f4"
+    },
+    {
+      "bytes": 659526,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.padded_cnn.seed20260827.gs120.vs.uct_mcts_16__dc93b70251c4/arena/games.jsonl",
+      "sha256": "9bafed8004ed7780f78c9eed7664487406c876d7fcf9ba772fc5dfaa57da9ea1"
+    },
+    {
+      "bytes": 538375,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.padded_cnn.seed20260827.gs160.vs.uct_mcts_16__d0f169cd21ea/arena/games.jsonl",
+      "sha256": "463a51d4dc4ffea5095256933f88c9865ac019b38b83933d69eab87341e0b754"
+    },
+    {
+      "bytes": 617906,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.padded_cnn.seed20260827.gs40.vs.uct_mcts_16__41f28a504671/arena/games.jsonl",
+      "sha256": "496d9540510cb5bd3bd91e11111efead29c90ba9bad68758fbcb44cb412ec67c"
+    },
+    {
+      "bytes": 662470,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.padded_cnn.seed20260827.gs80.vs.uct_mcts_16__700851bf6c55/arena/games.jsonl",
+      "sha256": "1630285a9acfec3a44f57b3d2ebb9d610698629ffc600e397d08f37dc92041bc"
+    },
+    {
+      "bytes": 736658,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.padded_cnn.seed20260828.gs120.vs.uct_mcts_16__4673bb1e77d3/arena/games.jsonl",
+      "sha256": "792489eebd1cba24b6c13e71b9708002e77d87c1c9f96d548f09e6904ffc9180"
+    },
+    {
+      "bytes": 596952,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.padded_cnn.seed20260828.gs160.vs.uct_mcts_16__ad4a938b6af2/arena/games.jsonl",
+      "sha256": "7e4471c109dcc6a8070294a6c63851bb42438c0f21517c0e4ad8e4b6e3796fd0"
+    },
+    {
+      "bytes": 749142,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.padded_cnn.seed20260828.gs40.vs.uct_mcts_16__d71db85aa126/arena/games.jsonl",
+      "sha256": "d5667f63255ebf85618768f639be3a8fcd58802a5176e4b6a7e19836bca9a51b"
+    },
+    {
+      "bytes": 523028,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.padded_cnn.seed20260828.gs80.vs.uct_mcts_16__055784319e49/arena/games.jsonl",
+      "sha256": "c1160277f9803a3e8dd75a468bdfa4f3a7a4ff89015131bbcbd931038f78f6db"
+    },
+    {
+      "bytes": 415067,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.padded_cnn.seed20260829.gs120.vs.uct_mcts_16__f1a7b4ef810d/arena/games.jsonl",
+      "sha256": "115c66c1a79acff88d77bff24a1d147c9106522477a7831ef3437bd98a002c06"
+    },
+    {
+      "bytes": 379545,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.padded_cnn.seed20260829.gs160.vs.uct_mcts_16__5550b23e49c1/arena/games.jsonl",
+      "sha256": "a650abff21adf334ac58f7c5e519c35f442a413b557e51b7156961c1f81f22e2"
+    },
+    {
+      "bytes": 669329,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.padded_cnn.seed20260829.gs40.vs.uct_mcts_16__cd9348a1f7c7/arena/games.jsonl",
+      "sha256": "e68ce80f1d5bac5fb95b48aea6b5663e146813d90a4afb97e7dbf27f3014677e"
+    },
+    {
+      "bytes": 645025,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.padded_cnn.seed20260829.gs80.vs.uct_mcts_16__fe2d2768df9d/arena/games.jsonl",
+      "sha256": "0fbdd98ca14178111ab7be06d0dea62fe8018252892f896a665a5d8775ca72d2"
+    },
+    {
+      "bytes": 475461,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.topology_gnn.seed20260825.gs120.vs.uct_mcts_16__1cbceb0107df/arena/games.jsonl",
+      "sha256": "d1391252a584fe1c7f87b90e09d92973359ac559b84fa5387650d73a8933cb8d"
+    },
+    {
+      "bytes": 396676,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.topology_gnn.seed20260825.gs160.vs.uct_mcts_16__c5312fed17fc/arena/games.jsonl",
+      "sha256": "7c4f77787c26ccacd58920ff18873f5350858cdd61c0477932d5b17e680842fb"
+    },
+    {
+      "bytes": 643304,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.topology_gnn.seed20260825.gs40.vs.uct_mcts_16__232ee1663382/arena/games.jsonl",
+      "sha256": "feab9fbff912c55835a699d1293d1dbc22494721621817d16d3c2b915b8c805f"
+    },
+    {
+      "bytes": 459253,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.topology_gnn.seed20260825.gs80.vs.uct_mcts_16__03a0835c7657/arena/games.jsonl",
+      "sha256": "954960565adab0a5912f996f3ea7dab1ad0b79342ce24427ee1a704ed22a5b3d"
+    },
+    {
+      "bytes": 612880,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.topology_gnn.seed20260826.gs120.vs.uct_mcts_16__9a742fd63766/arena/games.jsonl",
+      "sha256": "5fea8ab3ef1a3021d0fde9ba0979e8a6b1769d76f41d3e7530983be784a3e03a"
+    },
+    {
+      "bytes": 786329,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.topology_gnn.seed20260826.gs160.vs.uct_mcts_16__850b01c398a3/arena/games.jsonl",
+      "sha256": "f14b07ef61a28e58a9a61024db42dd17a82a530783d5605c6b34ce5542b37775"
+    },
+    {
+      "bytes": 602059,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.topology_gnn.seed20260826.gs40.vs.uct_mcts_16__48ca376f766e/arena/games.jsonl",
+      "sha256": "db2781ae3ba9b29fdde0808f03776bb3610ccbd2b081772cd4557e3c5bab9ca0"
+    },
+    {
+      "bytes": 740167,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.topology_gnn.seed20260826.gs80.vs.uct_mcts_16__8170ff140de7/arena/games.jsonl",
+      "sha256": "462455ad56e23ab460f0d52260cd8f0eb36ba82b40c6b247c43cac495de9df45"
+    },
+    {
+      "bytes": 455739,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.topology_gnn.seed20260827.gs120.vs.uct_mcts_16__0bf9ae99f0e8/arena/games.jsonl",
+      "sha256": "4c54299722c69522cb23804615f3aa6fc9ee6828b8a4a2b00a9205e2a20a0f75"
+    },
+    {
+      "bytes": 519439,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.topology_gnn.seed20260827.gs160.vs.uct_mcts_16__c7bee69f0a42/arena/games.jsonl",
+      "sha256": "05c4c9c7cc56e75caebe8bda374800a93c0f3e1d27c0ce94df797ef5f1ab36d7"
+    },
+    {
+      "bytes": 573565,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.topology_gnn.seed20260827.gs40.vs.uct_mcts_16__cf93bdb6bd9e/arena/games.jsonl",
+      "sha256": "08581583dfd22f70f0b43225949291332e1c8d619fb7aaeb93cd6372bef3e3dd"
+    },
+    {
+      "bytes": 537808,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.topology_gnn.seed20260827.gs80.vs.uct_mcts_16__1c0cbbbfe61a/arena/games.jsonl",
+      "sha256": "983b6d9ff8e9df03536770788cb45207018173cd47a8eef60d91c45704ba69e0"
+    },
+    {
+      "bytes": 402376,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.topology_gnn.seed20260828.gs120.vs.uct_mcts_16__c15b216a9014/arena/games.jsonl",
+      "sha256": "bc6f1eaa501b8ee3ea3617f6caa4bb48bd38656b80fcee7869fbe00a5c15e62f"
+    },
+    {
+      "bytes": 432509,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.topology_gnn.seed20260828.gs160.vs.uct_mcts_16__100c74df14ee/arena/games.jsonl",
+      "sha256": "96bdeeb1c851fd89178ac315d66fe284ce4ee9cfb5715a6cefd332974719b99a"
+    },
+    {
+      "bytes": 540878,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.topology_gnn.seed20260828.gs40.vs.uct_mcts_16__e7c377049efd/arena/games.jsonl",
+      "sha256": "b7feeff1bc30e8c428267f567b04c8101462f8b0997fe674afb74db22a210d40"
+    },
+    {
+      "bytes": 520878,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.topology_gnn.seed20260828.gs80.vs.uct_mcts_16__bacc2408b6c9/arena/games.jsonl",
+      "sha256": "86c043e10f224b5c18e914972b05d440d807077d7f0f6fc0fce3fddfe181a229"
+    },
+    {
+      "bytes": 438589,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.topology_gnn.seed20260829.gs120.vs.uct_mcts_16__6dc641b8f44d/arena/games.jsonl",
+      "sha256": "450d86c9f8e901af7f8df1957265888a5c0e80b192077635fbf005bedc30c231"
+    },
+    {
+      "bytes": 405839,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.topology_gnn.seed20260829.gs160.vs.uct_mcts_16__5e227762041e/arena/games.jsonl",
+      "sha256": "927fb2c5df313f3054c6b2758a54b3715c6d5710235d1f95d896b775f276838d"
+    },
+    {
+      "bytes": 463209,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.topology_gnn.seed20260829.gs40.vs.uct_mcts_16__b919f4fdd857/arena/games.jsonl",
+      "sha256": "3cc43ad9d5a86adc90e298d1b259f11b8b5f833b65740a5a536d2a8930e0289f"
+    },
+    {
+      "bytes": 465776,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.learning_curve.n9.topology_gnn.seed20260829.gs80.vs.uct_mcts_16__ec57225130f9/arena/games.jsonl",
+      "sha256": "a206e5ef218db3106c7fef8ac51b7df5f2199ed7ef8d74685f719997485339d9"
+    },
+    {
+      "bytes": 1897423,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n5.seed20260825.grid_gnn.vs.topology_gnn.gs200__28f57bca58d4/arena/games.jsonl",
+      "sha256": "c0df2072ad2236350c2c5f672000851a133a2488d34efcf3e31ec2ee1aee9024"
+    },
+    {
+      "bytes": 2189545,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n5.seed20260825.padded_cnn.vs.grid_gnn.gs200__5865de90f7e0/arena/games.jsonl",
+      "sha256": "703c909218d6d6be3a8475089244fbc01d9b9b5ed15f9b634cfc819baac162b8"
+    },
+    {
+      "bytes": 2366528,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n5.seed20260825.padded_cnn.vs.topology_gnn.gs200__101c4148fb6d/arena/games.jsonl",
+      "sha256": "a32812fb58b45176a09ce0bb4a5111a9bf9728f1811971fd74b513c27959b04f"
+    },
+    {
+      "bytes": 1716025,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n5.seed20260826.grid_gnn.vs.topology_gnn.gs200__705af8923e7a/arena/games.jsonl",
+      "sha256": "f84dc1240944a02091876ba909743f3ad4ab3aa4a7ba266bf728b9a0460ab695"
+    },
+    {
+      "bytes": 2192202,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n5.seed20260826.padded_cnn.vs.grid_gnn.gs200__6c907b74da1d/arena/games.jsonl",
+      "sha256": "c6b61a19129780aa63cb641d32dc6132c00a89cd48d2a1d27076e1f647a304f9"
+    },
+    {
+      "bytes": 1902049,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n5.seed20260826.padded_cnn.vs.topology_gnn.gs200__57723e0cc0ff/arena/games.jsonl",
+      "sha256": "2deee36ff7a40a03286fceb91eaa0e39062d4442ef5b66e384a007e057c79389"
+    },
+    {
+      "bytes": 2279264,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n5.seed20260827.grid_gnn.vs.topology_gnn.gs200__e9a61e5d5794/arena/games.jsonl",
+      "sha256": "231d6abbb2646741d9f58980900afb7ae17c4c1b2d2f0788fb6e6bc61b3a73df"
+    },
+    {
+      "bytes": 2006849,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n5.seed20260827.padded_cnn.vs.grid_gnn.gs200__a7029d309ddb/arena/games.jsonl",
+      "sha256": "e94f0b47ab64f50a5bac51e846b10d4f08d4d9e3bf8dd7973a222fb3453790ee"
+    },
+    {
+      "bytes": 2193789,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n5.seed20260827.padded_cnn.vs.topology_gnn.gs200__4c6f7ec18aca/arena/games.jsonl",
+      "sha256": "8426966e72920510071e132fb9bce3aa5ab5761534fa6bc08358a8169c515048"
+    },
+    {
+      "bytes": 2168830,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n5.seed20260828.grid_gnn.vs.topology_gnn.gs200__495eed5a9b08/arena/games.jsonl",
+      "sha256": "a7d45753e8bd9cdebaefb97f5fe3fd06677bc236520aec270a3a4f7a1b2098ee"
+    },
+    {
+      "bytes": 2169111,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n5.seed20260828.padded_cnn.vs.grid_gnn.gs200__7d0831e54a4a/arena/games.jsonl",
+      "sha256": "51562cb7cb64e744b06b6f17eb1e6627bcb5f8ab0a460e37e304c3a8887f6cb9"
+    },
+    {
+      "bytes": 2083016,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n5.seed20260828.padded_cnn.vs.topology_gnn.gs200__43a0d00660cf/arena/games.jsonl",
+      "sha256": "6db2c876905cd1ce91f6bdec52238673216d48ba70c89a376ad53e897fef2bd5"
+    },
+    {
+      "bytes": 2187287,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n5.seed20260829.grid_gnn.vs.topology_gnn.gs200__631bf00c42af/arena/games.jsonl",
+      "sha256": "1d4bc7afe25a01807a8cca4b327861a1f53231a8eaf470cfa65c5137b12b16bd"
+    },
+    {
+      "bytes": 1891601,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n5.seed20260829.padded_cnn.vs.grid_gnn.gs200__389523181a50/arena/games.jsonl",
+      "sha256": "1a9c95c961e5903d24b63ce7ff773ff64934db64c4feafeecdf28bad2ebf61bb"
+    },
+    {
+      "bytes": 2467858,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n5.seed20260829.padded_cnn.vs.topology_gnn.gs200__02d52948c1ad/arena/games.jsonl",
+      "sha256": "133d923234d2a9dee289b99c3524b01db3c58a178cd2c4efe7009e313f6c69a5"
+    },
+    {
+      "bytes": 6303053,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n7.seed20260825.grid_gnn.vs.topology_gnn.gs200__8e8419927b89/arena/games.jsonl",
+      "sha256": "5169333540560b220501e0c2bfa5613852d01c746a1fe657ffa09fba66399ecb"
+    },
+    {
+      "bytes": 4365250,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n7.seed20260825.padded_cnn.vs.grid_gnn.gs200__5a6247c7b114/arena/games.jsonl",
+      "sha256": "10a6383581b818ed753f988c9709097de9670198feeef1a1843a66dd09d4d79d"
+    },
+    {
+      "bytes": 4190339,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n7.seed20260825.padded_cnn.vs.topology_gnn.gs200__49e0e6ca0f4b/arena/games.jsonl",
+      "sha256": "91c554598ddb6925980b4a199122c4afbaac5f9ce32fdb406b06c4e25bc8b595"
+    },
+    {
+      "bytes": 5401925,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n7.seed20260826.grid_gnn.vs.topology_gnn.gs200__11465b054fb7/arena/games.jsonl",
+      "sha256": "1335283eabdfb4e6009984a162be726723ce38fd47a914c962ac482b82a6c253"
+    },
+    {
+      "bytes": 4712156,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n7.seed20260826.padded_cnn.vs.grid_gnn.gs200__7bea9178b74b/arena/games.jsonl",
+      "sha256": "beab2761cdfadd8e9e9c322f03edb3b438039525d5f273acb798d2c785726594"
+    },
+    {
+      "bytes": 5881716,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n7.seed20260826.padded_cnn.vs.topology_gnn.gs200__be53cd5beeb8/arena/games.jsonl",
+      "sha256": "a4ee18c19559fc46f6230d722d672b53097243adc6f92eae9d1cf2c650d3ea33"
+    },
+    {
+      "bytes": 5220979,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n7.seed20260827.grid_gnn.vs.topology_gnn.gs200__75096bb65c44/arena/games.jsonl",
+      "sha256": "83bc61840501755339d9d8a9ebd40de90c7fa5ca850ed2b28e9899bf836472ff"
+    },
+    {
+      "bytes": 6185509,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n7.seed20260827.padded_cnn.vs.grid_gnn.gs200__7e64909e6d1a/arena/games.jsonl",
+      "sha256": "be8392525e6760362416e8f6512356f9908587b5c54e83c25e14032e8ccd4bbb"
+    },
+    {
+      "bytes": 5225318,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n7.seed20260827.padded_cnn.vs.topology_gnn.gs200__1030cd66e480/arena/games.jsonl",
+      "sha256": "6db35bc5da05db95fc95409ff7257c1705c2d96c826ef45972d2a1ab74448fe0"
+    },
+    {
+      "bytes": 4926898,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n7.seed20260828.grid_gnn.vs.topology_gnn.gs200__de50535d76c0/arena/games.jsonl",
+      "sha256": "3e7a57f4dbc6c1c87f720cd5abd76bfe119e5a6180ddd7d83dbf068033f278f7"
+    },
+    {
+      "bytes": 4789716,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n7.seed20260828.padded_cnn.vs.grid_gnn.gs200__924576770efc/arena/games.jsonl",
+      "sha256": "f55b3a1efd3d0c871d55861eeb9dc61304e93b5906cb01cf95fe26c9609f1950"
+    },
+    {
+      "bytes": 4194166,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n7.seed20260828.padded_cnn.vs.topology_gnn.gs200__348212c42386/arena/games.jsonl",
+      "sha256": "fef7ddce4bc8f6b5902967e4f54d418dab7567fbdbc91a843bb500003e18ce52"
+    },
+    {
+      "bytes": 5313806,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n7.seed20260829.grid_gnn.vs.topology_gnn.gs200__557802f772bf/arena/games.jsonl",
+      "sha256": "b338cbf879352b5b4178db1fa21f5c539e3c390e5796a637114ffbc4b18d2d17"
+    },
+    {
+      "bytes": 6372131,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n7.seed20260829.padded_cnn.vs.grid_gnn.gs200__3dbc8afb6500/arena/games.jsonl",
+      "sha256": "ab29d810b3b1a108aeca48cca395a4681f44b629f9f1911d6bd5d9e239420744"
+    },
+    {
+      "bytes": 5632978,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n7.seed20260829.padded_cnn.vs.topology_gnn.gs200__466851c8f178/arena/games.jsonl",
+      "sha256": "906d22467036c7ec92f64748a372dbc08f4d0432637d550d3f75b8ef6fc160be"
+    },
+    {
+      "bytes": 10706297,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n9.seed20260825.grid_gnn.vs.topology_gnn.gs200__c75367103617/arena/games.jsonl",
+      "sha256": "ffcb0d86ccff29757f46e316ac67641cf88e65017707e1df4c4ff93c28db1b85"
+    },
+    {
+      "bytes": 11416263,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n9.seed20260825.padded_cnn.vs.grid_gnn.gs200__c53e9741a319/arena/games.jsonl",
+      "sha256": "0afcd3da7a28c10c69eed997665e7ebf849aa34eedbe909d9eb0fbfad13b4e7c"
+    },
+    {
+      "bytes": 8460086,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n9.seed20260825.padded_cnn.vs.topology_gnn.gs200__bb55932ef99a/arena/games.jsonl",
+      "sha256": "644eb1911a0cc6aa3119c146c15afe8e1f0cf727bcb5d6d6c83c2a209344a19a"
+    },
+    {
+      "bytes": 5503616,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n9.seed20260826.grid_gnn.vs.topology_gnn.gs200__43418a18fc70/arena/games.jsonl",
+      "sha256": "93beb231253264feb67982baa2d23bc455794ea10191ffb814744d56eead4103"
+    },
+    {
+      "bytes": 11412785,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n9.seed20260826.padded_cnn.vs.grid_gnn.gs200__a619fcce0651/arena/games.jsonl",
+      "sha256": "27d2f15e82c84dbd7e57f5e6125190eef16ffaecefa2dd82b0173217c04c289b"
+    },
+    {
+      "bytes": 10269974,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n9.seed20260826.padded_cnn.vs.topology_gnn.gs200__08df6784c30e/arena/games.jsonl",
+      "sha256": "56f3dcf03103f6ae6368613a3c43256f53d44c04ff39f9182f1572ff8e6e904c"
+    },
+    {
+      "bytes": 12008861,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n9.seed20260827.grid_gnn.vs.topology_gnn.gs200__0e5fd977544a/arena/games.jsonl",
+      "sha256": "9823af57bd18b8f34a0befd9d00ca6e1cfb37f4b971680768484af2fddc98c50"
+    },
+    {
+      "bytes": 4589802,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n9.seed20260827.padded_cnn.vs.grid_gnn.gs200__98e602743be2/arena/games.jsonl",
+      "sha256": "9c22b0a17604d6890376982fb49ef92866549f93aeaa7500f1cf10e7afcb63d4"
+    },
+    {
+      "bytes": 4956020,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n9.seed20260827.padded_cnn.vs.topology_gnn.gs200__aa9deeab9324/arena/games.jsonl",
+      "sha256": "c34839a3e2e18b0d399e37f2d8dc1b407cd3c993f4674cc545db1d421d88626a"
+    },
+    {
+      "bytes": 10160534,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n9.seed20260828.grid_gnn.vs.topology_gnn.gs200__40493ad336ac/arena/games.jsonl",
+      "sha256": "11b422f13ae405c387557b3594fb8a6473937ae4cc0ec58fec209f0d4ea0ba30"
+    },
+    {
+      "bytes": 5420234,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n9.seed20260828.padded_cnn.vs.grid_gnn.gs200__30b8571371c4/arena/games.jsonl",
+      "sha256": "a83fb2fe2b378f6b10f4d2d87bb9ea4c0f78b84de0935f8d26fac7eb9f6133ac"
+    },
+    {
+      "bytes": 11393081,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n9.seed20260828.padded_cnn.vs.topology_gnn.gs200__6b40de5b0cfa/arena/games.jsonl",
+      "sha256": "7df0b2c9f05d30d4aa295c521a347d33d3e95ac268d648a11286515e579196e5"
+    },
+    {
+      "bytes": 12444433,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n9.seed20260829.grid_gnn.vs.topology_gnn.gs200__484a5b172266/arena/games.jsonl",
+      "sha256": "3b357cd60aec8ef278550527e2542875d5001ed7b4852862481120c9cbd40cef"
+    },
+    {
+      "bytes": 11426730,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n9.seed20260829.padded_cnn.vs.grid_gnn.gs200__67ee821f521c/arena/games.jsonl",
+      "sha256": "ea2ea44e31cb7a6fce59c0378aa02a95987df9b310ca77834a829f0c893bb38c"
+    },
+    {
+      "bytes": 6373374,
+      "path": "results/formal/d14_d16/run_v1/tasks/eval.representation_round_robin.n9.seed20260829.padded_cnn.vs.topology_gnn.gs200__d01f90d410ec/arena/games.jsonl",
+      "sha256": "a97b844601a182b2e5c4eb6f547aef0bbd238d7a017cb0fce945e7b0077b20f1"
+    },
+    {
+      "bytes": 1821518,
+      "path": "results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.grid_gnn.seed20260825__d0d5f17a2760/training_run/self_play_games.jsonl",
+      "sha256": "58848c864addc3de998dcf59952d66380156d0273d051a560782f7e8c7ff1dfb"
+    },
+    {
+      "bytes": 1734262,
+      "path": "results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.grid_gnn.seed20260826__4b685556bb49/training_run/self_play_games.jsonl",
+      "sha256": "4dcfb258880b0982f87f557de2e94b0fc58735ce09ca81aee77bec9dd615c75f"
+    },
+    {
+      "bytes": 1573383,
+      "path": "results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.grid_gnn.seed20260827__a3ced575ad1e/training_run/self_play_games.jsonl",
+      "sha256": "dded079ff40574ff3af6ff09c374c7564ccb262abdb420c78f60b8142c797c79"
+    },
+    {
+      "bytes": 1251750,
+      "path": "results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.grid_gnn.seed20260828__da64fad2f333/training_run/self_play_games.jsonl",
+      "sha256": "999216cfbcbe12e5b9f2d7cac3c5e41238b15a4519945d784ab191de0d9710f2"
+    },
+    {
+      "bytes": 2057760,
+      "path": "results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.grid_gnn.seed20260829__908ebb24668a/training_run/self_play_games.jsonl",
+      "sha256": "fd4339938b2759eb199a0d0c0c7e8d550ff79d91aeb4d3ba47c00c8dc402aee4"
+    },
+    {
+      "bytes": 1997585,
+      "path": "results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.padded_cnn.seed20260825__ef12e34674a4/training_run/self_play_games.jsonl",
+      "sha256": "07a61ece0e391c08ae047006e3b3e93e456e4e80dc644df9e664d7527c0a9dd5"
+    },
+    {
+      "bytes": 1685730,
+      "path": "results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.padded_cnn.seed20260826__2c05ea228e3f/training_run/self_play_games.jsonl",
+      "sha256": "057022b1d565840972d98fbed58f85fd7679ee6627990c4d87f331bce2fd3c09"
+    },
+    {
+      "bytes": 1809497,
+      "path": "results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.padded_cnn.seed20260827__6643cb5c179c/training_run/self_play_games.jsonl",
+      "sha256": "dd0f23143c329240f3bb6df000fe682e18408fed5916b4f99c712841ef59a491"
+    },
+    {
+      "bytes": 1651922,
+      "path": "results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.padded_cnn.seed20260828__d4bee43083df/training_run/self_play_games.jsonl",
+      "sha256": "6136e1b9b7d8f7b94abfbd2f1069f42ee322a5cc53305c11ccd9ea7d8e80ab4b"
+    },
+    {
+      "bytes": 2084735,
+      "path": "results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.padded_cnn.seed20260829__f4ecf7f7da6f/training_run/self_play_games.jsonl",
+      "sha256": "18d075a6783087524c411a7f6fcd63fc6afe2a5dc30ccb2d0c5404dff3595e6d"
+    },
+    {
+      "bytes": 1714818,
+      "path": "results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.topology_gnn.seed20260825__dd47afdb1e6c/training_run/self_play_games.jsonl",
+      "sha256": "9e6a53ebd0e4871450fa2cf894f7e2880f3ceca1d31d128f1d9c9cefe43f4640"
+    },
+    {
+      "bytes": 1543117,
+      "path": "results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.topology_gnn.seed20260826__576ce842850b/training_run/self_play_games.jsonl",
+      "sha256": "2a0bee83cf96a72230515d625bf6aefa3fe506fa2bac03deac549546849f5f79"
+    },
+    {
+      "bytes": 1632406,
+      "path": "results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.topology_gnn.seed20260827__1dc23edd0041/training_run/self_play_games.jsonl",
+      "sha256": "1e234b9f90f02468e8a4385a0858bf7d45341b3ca58522adfed00f37e7d6046d"
+    },
+    {
+      "bytes": 1555600,
+      "path": "results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.topology_gnn.seed20260828__130510042d77/training_run/self_play_games.jsonl",
+      "sha256": "d5b3420bf43a085d1f566d436874223de60084a0f118389b41ad06b7b14eef1f"
+    },
+    {
+      "bytes": 2034180,
+      "path": "results/formal/d14_d16/run_v1/tasks/train.mixed_n5-7-9.topology_gnn.seed20260829__8708f3de3650/training_run/self_play_games.jsonl",
+      "sha256": "a20e6acbb5b447fb1f2d143130b837cda3e8a378ad6b66bf83790f7ef7e1ae6a"
+    }
+  ],
+  "source_manifest_canonicalization": "UTF-8 JSON, sorted keys, compact separators; entries sorted by path",
+  "source_manifest_sha256": "c3b752d0eea08e19acdb4a467c707274d43400e9ee94ef26712c5ce54ebee5cd",
+  "source_root": "results/formal/d14_d16/run_v1/tasks",
+  "status": "PASS",
+  "total_games": 32100,
+  "total_source_files": 330,
+  "total_truncated_games": 0
+}

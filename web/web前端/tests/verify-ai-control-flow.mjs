@@ -3,13 +3,13 @@ import {
   GameEngine,
   Player,
   TerritoryRulesVersion,
-} from "../GameEngine.js?v=20260830a";
+} from "../GameEngine.js?v=20260910d";
 import {
   MinimaxAI,
   evaluate,
   restoreState,
   saveState,
-} from "../AIEngine.js?v=20260830a";
+} from "../AIEngine.js?v=20260910d";
 
 const CONTROL_SKIP_PREFIX = Object.freeze([
   Object.freeze({ player: Player.BLACK, point: Object.freeze([0, 4]) }),

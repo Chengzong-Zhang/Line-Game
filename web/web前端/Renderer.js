@@ -1,4 +1,4 @@
-import { Player, PointState } from "./GameEngine.js?v=20260830a";
+import { Player, PointState } from "./GameEngine.js?v=20260910c";
 
 const SQRT3_OVER_2 = Math.sqrt(3) / 2;
 
@@ -719,6 +719,11 @@ export class Renderer {
   }
 
   _drawTerritories(snapshot, layout) {
+    // A large-board result can be settling in a Worker. Do not paint the
+    // prior position's polygons during that brief interval.
+    if (snapshot.territoryPending) {
+      return;
+    }
     const ctx = this.ctx;
     const territories = [
       {
@@ -904,6 +909,7 @@ export class Renderer {
       snapshot.playerCount ?? 2,
       snapshot.rulesVersion ?? "territory-v1",
       snapshot.gameOver ? 1 : 0,
+      snapshot.territoryPending ? 1 : 0,
       snapshot.currentPlayer,
       snapshot.lastAction?.type ?? "none",
       snapshot.lastAction?.player ?? "none",

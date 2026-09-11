@@ -36,9 +36,8 @@ const rendererUrl = await moduleUrlWithEngine("Renderer.js");
 const onlineAppStateUrl = await moduleUrlWithEngine("OnlineAppState.js");
 const { saveState, restoreState } = await import(aiEngineUrl);
 const { Renderer } = await import(rendererUrl);
-const { isWorkerResultCurrent, serializeEngineState } = await import(
-  asDataUrl(await readFrontendSource("AIStateProtocol.js"))
-);
+const aiStateProtocolUrl = asDataUrl(await readFrontendSource("AIStateProtocol.js"));
+const { isWorkerResultCurrent, serializeEngineState } = await import(aiStateProtocolUrl);
 const {
   DEFAULT_RULES_VERSION,
   getPrimaryScores,
@@ -50,6 +49,14 @@ const networkStubUrl = asDataUrl(`
   export const ClientEvent = Object.freeze({});
   export const ServerEvent = Object.freeze({});
   export default class NetworkManager {}
+`);
+const territoryWorkerSessionStubUrl = asDataUrl(`
+  export class OneShotTerritoryWorker {
+    constructor() {}
+    cancel() { return false; }
+    start() { return 1; }
+  }
+  export function applyTerritoryWorkerResult() { return false; }
 `);
 const controllerSource = await readFrontendSource("GameController.js");
 const controllerUrl = asDataUrl(
@@ -65,6 +72,14 @@ const controllerUrl = asDataUrl(
     .replace(
       /^import \{ ServerEvent \} from "\.\/NetworkManager\.js\?v=[^"]+";/m,
       `import { ServerEvent } from "${networkStubUrl}";`,
+    )
+    .replace(
+      /^import \{ serializeEngineState \} from "\.\/AIStateProtocol\.js\?v=[^"]+";/m,
+      `import { serializeEngineState } from "${aiStateProtocolUrl}";`,
+    )
+    .replace(
+      /^import \{\r?\n  OneShotTerritoryWorker,\r?\n  applyTerritoryWorkerResult,\r?\n\} from "\.\/TerritoryWorkerSession\.js\?v=[^"]+";/m,
+      `import { OneShotTerritoryWorker, applyTerritoryWorkerResult } from "${territoryWorkerSessionStubUrl}";`,
     ),
 );
 const { GameController } = await import(controllerUrl);
@@ -578,6 +593,18 @@ assert.notEqual(
   fingerprint.call({}, { ...twoPlayerSnapshot, renderEpoch: 2 }),
   "engine replacement must invalidate the render fingerprint",
 );
+assert.notEqual(
+  fingerprint.call({}, { ...twoPlayerSnapshot, renderEpoch: 1, territoryPending: false }),
+  fingerprint.call({}, { ...twoPlayerSnapshot, renderEpoch: 1, territoryPending: true }),
+  "a settled Worker cache must invalidate the pending-territory render fingerprint",
+);
+assert.doesNotThrow(() => {
+  Renderer.prototype._drawTerritories.call(
+    { ctx: null },
+    { territoryPending: true, territories: twoPlayerSnapshot.territories },
+    {},
+  );
+}, "the renderer must suppress stale territory polygons while a Worker is pending");
 const invalidationProbe = { _lastRenderFingerprint: "board", _staticLayerKey: "layout" };
 Renderer.prototype.invalidate.call(invalidationProbe);
 assert.deepEqual(invalidationProbe, { _lastRenderFingerprint: "", _staticLayerKey: "" });
@@ -631,15 +658,19 @@ assert.equal(snapshotReads, 1, "one pointer action should take one pre-move snap
 assert.equal(pointerActingPlayer, B);
 
 let invalidations = 0;
+let cancelledTerritoryRefreshes = 0;
 const replacementProbe = {
   options: { engine: { gridSize: 5, playerCount: 2, rulesVersion: TerritoryRulesVersion.V2 } },
   renderer: { invalidate: () => { invalidations += 1; } },
+  _cancelTerritoryRefresh: () => { cancelledTerritoryRefreshes += 1; },
+  _createEngine: GameController.prototype._createEngine,
   _engineEpoch: 7,
 };
 GameController.prototype._replaceEngine.call(replacementProbe, replacementProbe.options.engine);
 assert.equal(replacementProbe._engineEpoch, 8);
 assert.equal(replacementProbe._validGridPoints.length, 15);
 assert.equal(invalidations, 1);
+assert.equal(cancelledTerritoryRefreshes, 1);
 
 console.log(JSON.stringify({
   legacyContract: {

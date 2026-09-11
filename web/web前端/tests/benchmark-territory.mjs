@@ -177,6 +177,73 @@ function benchmarkHotPath(fixture, samples = 21) {
   };
 }
 
+function createFixtureReplayState(fixture) {
+  const game = new GameEngine({
+    gridSize: fixture.gridSize,
+    playerCount: fixture.playerCount,
+    rulesVersion: TerritoryRulesVersion.V2,
+  });
+  const replay = game.replayBatch((transaction) => {
+    for (const point of fixture.moves) {
+      const result = transaction.playMove(point);
+      if (!result.success) return result;
+    }
+    return { success: true };
+  });
+  assert.equal(replay.success, true, `${fixture.name}: batched setup failed`);
+  return game._captureReplayState();
+}
+
+function restoreFixtureGame(fixture, replayState, deferTerritoryUpdates) {
+  const game = new GameEngine({
+    gridSize: fixture.gridSize,
+    playerCount: fixture.playerCount,
+    rulesVersion: TerritoryRulesVersion.V2,
+    deferTerritoryUpdates,
+  });
+  game._restoreReplayState(replayState);
+  return game;
+}
+
+function benchmarkDeferredMainThreadPath(fixture, samples = 9) {
+  const replayState = createFixtureReplayState(fixture);
+  const seed = restoreFixtureGame(fixture, replayState, true);
+  const nextMove = seed.getLegalMoves()[0]?.point;
+  assert.ok(nextMove, `${fixture.name}: expected a legal next move`);
+
+  const synchronousMoveMs = [];
+  const deferredMoveMs = [];
+  for (let sample = 0; sample < samples; sample += 1) {
+    const synchronous = restoreFixtureGame(fixture, replayState, false);
+    let started = performance.now();
+    let result = synchronous.playMove(nextMove);
+    synchronousMoveMs.push(performance.now() - started);
+    assert.equal(result.success, true, `${fixture.name}: synchronous next move failed`);
+    assert.equal(synchronous.hasPendingTerritoryUpdate(), false, `${fixture.name}: synchronous cache must settle`);
+
+    const deferred = restoreFixtureGame(fixture, replayState, true);
+    started = performance.now();
+    result = deferred.playMove(nextMove);
+    deferredMoveMs.push(performance.now() - started);
+    assert.equal(result.success, true, `${fixture.name}: deferred next move failed`);
+    assert.equal(deferred.hasPendingTerritoryUpdate(), true, `${fixture.name}: deferred cache must be pending`);
+  }
+
+  return {
+    scenario: "territory-v2-main-thread-play-move",
+    fixture: fixture.name,
+    gridSize: fixture.gridSize,
+    playerCount: fixture.playerCount,
+    nextMove,
+    samples,
+    synchronousP50Ms: rounded(median(synchronousMoveMs)),
+    synchronousP95Ms: rounded(percentile(synchronousMoveMs, 0.95)),
+    deferredP50Ms: rounded(median(deferredMoveMs)),
+    deferredP95Ms: rounded(percentile(deferredMoveMs, 0.95)),
+    note: "deferred timing ends after the immediate GameEngine snapshot; exact territory work runs in TerritoryWorker in the browser.",
+  };
+}
+
 const smoke = [];
 for (const gridSize of [5, 9, 15]) {
   for (const rulesVersion of [TerritoryRulesVersion.V1, TerritoryRulesVersion.V2]) {
@@ -188,4 +255,7 @@ console.log(JSON.stringify({
   measurementPolicy: "descriptive-only; no machine-dependent pass threshold",
   smoke,
   territoryV2HotPath: TERRITORY_V2_HOT_PATH_FIXTURES.map((fixture) => benchmarkHotPath(fixture)),
+  deferredMainThreadPath: benchmarkDeferredMainThreadPath(
+    TERRITORY_V2_HOT_PATH_FIXTURES.find((fixture) => fixture.name === "two-player-15-midgame"),
+  ),
 }, null, 2));

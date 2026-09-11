@@ -62,6 +62,32 @@ from the repository root after activating the exact verified Python
 environment. Choose new output names for every run; derive and build refuse to
 overwrite an existing directory.
 
+### V2 history-twin topology
+
+The command defaults remain bound to the earlier 120-payload V1 topology.
+The append-only history-twin extension uses these separate inputs:
+
+```powershell
+$ClaimProfileV2 = "research/iclr2027/supplement_tools/claim_complete_profile_v2.json"
+$ClaimAllowlistV2 = "research/iclr2027/supplement_tools/supplement_claim_complete_allowlist_v2.json"
+$ClaimReviewV2 = "research/iclr2027/SUPPLEMENT_AUTHOR_PER_FILE_REVIEW_V2.md"
+```
+
+V2 retains all V1 identity triples and adds nine direct-copy paths plus one
+derived ASCII history-twin witness, for 130 payloads and 134 candidate members
+after the four generated control files are included. It remains
+`candidate_only_not_approved`. The V2 profile, allowlist, and ten added inputs
+must first belong to the same reviewed clean subject commit. A worktree-only
+hash check is not a subject-binding receipt.
+
+For a future V2 run, pass both `--profile $ClaimProfileV2` and
+`--allowlist $ClaimAllowlistV2` to the derive, complete-verifier, archive-build,
+and archive-verify-extract commands below. The directory builder accepts only
+the allowlist selector, so pass `--allowlist $ClaimAllowlistV2` there. Omitting
+these selectors intentionally selects V1. Complete the private copy of
+`$ClaimReviewV2` against the exact resulting candidate and archive; the tracked
+template itself never records approval or private identity terms.
+
 First set local paths. The identity file must remain private and untracked:
 
 ```powershell
@@ -117,6 +143,8 @@ python -B research/iclr2027/supplement_tools/derive_claim_complete_payload.py `
   --source-root $ClaimSourceRoot `
   --subject-commit $ClaimSubjectCommit `
   --subject-tree $ClaimSubjectTree `
+  --profile $ClaimProfileV2 `
+  --allowlist $ClaimAllowlistV2 `
   --output $ClaimStage
 ```
 
@@ -140,8 +168,7 @@ python -B `
   --subject-root $ClaimSourceRoot `
   --subject-commit $ClaimSubjectCommit `
   --subject-tree $ClaimSubjectTree `
-  --allowlist `
-  research/iclr2027/supplement_tools/supplement_claim_complete_allowlist.json `
+  --allowlist $ClaimAllowlistV2 `
   --identity-file $ClaimIdentity `
   --output $ClaimCandidate
 ```
@@ -155,18 +182,30 @@ python -B research/iclr2027/supplement_tools/verify_claim_complete.py `
   --source-root $ClaimSourceRoot `
   --subject-commit $ClaimSubjectCommit `
   --subject-tree $ClaimSubjectTree `
+  --profile $ClaimProfileV2 `
+  --allowlist $ClaimAllowlistV2 `
   --candidate $ClaimCandidate `
   --identity-file $ClaimIdentity
 ```
 
 Run the candidate's included Python tests under normal project permissions,
-not a restricted sandbox/temp ACL. For the current 120-payload allowlist the
-expected completion line is `Ran 176 tests` followed by `OK`:
+not a restricted sandbox/temp ACL. The frozen V1 selector historically emitted
+`Ran 176 tests` followed by `OK`; for V2, record the emitted count together
+with `OK` rather than treating the V1 count as a V2 result:
 
 ```powershell
 Push-Location "$ClaimCandidate/research/iclr2027"
 python -B -m unittest discover -s tests -t . -p "test_*.py"
 Pop-Location
+```
+
+The portable history-twin runner is deliberately not invoked by the complete
+candidate verifier. Run it explicitly against the candidate after its included
+tests pass:
+
+```powershell
+python -B "$ClaimCandidate/research/iclr2027/scripts/run_history_twin_candidate_verifiers.py" `
+  --candidate-root $ClaimCandidate
 ```
 
 The two retained-environment pytest modules add 29 cases covering the
@@ -195,6 +234,8 @@ python -B `
   --source-root $ClaimSourceRoot `
   --subject-commit $ClaimSubjectCommit `
   --subject-tree $ClaimSubjectTree `
+  --profile $ClaimProfileV2 `
+  --allowlist $ClaimAllowlistV2 `
   --candidate $ClaimCandidate `
   --identity-file $ClaimIdentity `
   --output $ClaimArchive
@@ -218,6 +259,8 @@ python -B `
   --source-root $ClaimSourceRoot `
   --subject-commit $ClaimSubjectCommit `
   --subject-tree $ClaimSubjectTree `
+  --profile $ClaimProfileV2 `
+  --allowlist $ClaimAllowlistV2 `
   --identity-file $ClaimIdentity `
   --output $ClaimExtract
 ```

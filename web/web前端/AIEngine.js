@@ -1,4 +1,4 @@
-import { GameEngine, Player, PointState } from "./GameEngine.js?v=20260830a";
+import { GameEngine, Player, PointState } from "./GameEngine.js?v=20260910d";
 
 function pointKey(point) {
   return `${point[0]},${point[1]}`;
@@ -42,6 +42,11 @@ function saveState(engine) {
     gameOver: engine.gameOver,
     turnCount: engine.turnCount,
     positionRevision: engine.positionRevision ?? 0,
+    territoryStateRevision: engine._territoryStateRevision ?? engine.positionRevision ?? 0,
+    territoryCacheRevision: engine._territoryCacheRevision
+      ?? engine._territoryStateRevision
+      ?? engine.positionRevision
+      ?? 0,
     cachedTerritories: cloneCachedTerritories(engine),
   };
 }
@@ -60,19 +65,33 @@ function restoreState(engine, snapshot) {
   engine.gameOver = snapshot.gameOver;
   engine.turnCount = snapshot.turnCount;
   engine.positionRevision = snapshot.positionRevision ?? engine.positionRevision ?? 0;
+  engine._territoryStateRevision = snapshot.territoryStateRevision
+    ?? engine.positionRevision;
+  engine._territoryCacheRevision = snapshot.territoryCacheRevision
+    ?? engine._territoryStateRevision;
   engine.cachedTerritories = snapshot.cachedTerritories;
 }
 
-function applyMoveForAI(engine, point) {
-  const result = engine.playMove(point);
-  if (!result.success) {
-    const reason = String(result.reason ?? "").toUpperCase();
-    if (reason.includes("SUPERKO") || reason.includes("REPEAT")) {
-      return false;
-    }
-    return false;
+function applyMoveForAI(engine, point, skipLeafAutoSkip = false) {
+  // At a heuristic leaf, automatic-skip normalization only changes turn
+  // bookkeeping.  evaluate() reads the board, edges, Superko history, and
+  // resignations, none of which depend on that normalization.  Avoid the
+  // expensive "does the next player have any move?" full-board probe there.
+  // Non-leaf transitions still run the canonical normalization because their
+  // currentPlayer/gameOver state determines subsequent Minimax branches.
+  const originalAutoSkip = skipLeafAutoSkip ? engine._checkAndAutoSkip : null;
+  if (skipLeafAutoSkip) {
+    engine._checkAndAutoSkip = () => {};
   }
-  return true;
+
+  try {
+    const result = engine.playMove(point);
+    return result.success;
+  } finally {
+    if (skipLeafAutoSkip) {
+      engine._checkAndAutoSkip = originalAutoSkip;
+    }
+  }
 }
 
 function fastTerritoryBFS(engine, player) {
@@ -139,11 +158,12 @@ function evaluate(engine, player) {
     fastTerritoryBFS(engine, player) -
     (mainOpponent === null ? 0 : fastTerritoryBFS(engine, mainOpponent));
 
-  const legalMoveKeys = new Set(
-    engine.getLegalMoves(player).map((move) => pointKey(move.point)),
-  );
+  // We only need to know whether an opponent line can be attacked.  Calling
+  // getLegalMoves(player) here used to validate every board point at every
+  // leaf.  Probe just the relevant line points through the canonical rule
+  // evaluator instead: this preserves Superko and all placement rules exactly.
   const attackThreats = opponentLines.reduce(
-    (count, point) => count + (legalMoveKeys.has(pointKey(point)) ? 1 : 0),
+    (count, point) => count + (engine._evaluateMove(point, player).legal ? 1 : 0),
     0,
   );
   const connectionQuality = myNodes.reduce(
@@ -232,7 +252,7 @@ class MinimaxAI {
       let bestValue = Number.NEGATIVE_INFINITY;
       for (const point of ordered) {
         const snapshot = saveState(engine);
-        const applied = applyMoveForAI(engine, point);
+        const applied = applyMoveForAI(engine, point, depth === 1);
         if (applied) {
           const value = this.minimax(engine, depth - 1, alpha, beta, aiPlayer);
           bestValue = Math.max(bestValue, value);
@@ -249,7 +269,7 @@ class MinimaxAI {
     let bestValue = Number.POSITIVE_INFINITY;
     for (const point of ordered) {
       const snapshot = saveState(engine);
-      const applied = applyMoveForAI(engine, point);
+      const applied = applyMoveForAI(engine, point, depth === 1);
       if (applied) {
         const value = this.minimax(engine, depth - 1, alpha, beta, aiPlayer);
         bestValue = Math.min(bestValue, value);
@@ -264,31 +284,41 @@ class MinimaxAI {
   }
 
   getTopMoves(engine, aiPlayer, topN = 5) {
-    const legalMoves = this.getLegalMoves(engine, aiPlayer);
-    if (legalMoves.length === 0) {
-      return [];
-    }
-
-    const ordered = this.orderMoves(engine, legalMoves, aiPlayer);
-    const scoredMoves = [];
-    for (const point of ordered) {
-      const snapshot = saveState(engine);
-      const applied = applyMoveForAI(engine, point);
-      if (applied) {
-        const score = this.minimax(
-          engine,
-          this.depth - 1,
-          Number.NEGATIVE_INFINITY,
-          Number.POSITIVE_INFINITY,
-          aiPlayer,
-        );
-        scoredMoves.push({ point, score });
+    // Search transitions only need success/failure, never the UI snapshot that
+    // GameEngine.playMove normally creates.  Reuse its replay flag while all
+    // speculative branches are bracketed, then restore the caller's value.
+    // This also suppresses display-only territory work during simulation.
+    const previousReplayFlag = engine._isReplayingBatch;
+    engine._isReplayingBatch = true;
+    try {
+      const legalMoves = this.getLegalMoves(engine, aiPlayer);
+      if (legalMoves.length === 0) {
+        return [];
       }
-      restoreState(engine, snapshot);
-    }
 
-    scoredMoves.sort((a, b) => b.score - a.score);
-    return scoredMoves.slice(0, topN);
+      const ordered = this.orderMoves(engine, legalMoves, aiPlayer);
+      const scoredMoves = [];
+      for (const point of ordered) {
+        const snapshot = saveState(engine);
+        const applied = applyMoveForAI(engine, point, this.depth <= 1);
+        if (applied) {
+          const score = this.minimax(
+            engine,
+            this.depth - 1,
+            Number.NEGATIVE_INFINITY,
+            Number.POSITIVE_INFINITY,
+            aiPlayer,
+          );
+          scoredMoves.push({ point, score });
+        }
+        restoreState(engine, snapshot);
+      }
+
+      scoredMoves.sort((a, b) => b.score - a.score);
+      return scoredMoves.slice(0, topN);
+    } finally {
+      engine._isReplayingBatch = previousReplayFlag;
+    }
   }
 }
 

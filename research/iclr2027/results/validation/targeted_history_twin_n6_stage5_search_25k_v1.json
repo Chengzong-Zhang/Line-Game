@@ -1,0 +1,323 @@
+{
+  "artifact_kind": "targeted_history_twin_search_candidate",
+  "claim_boundary": {
+    "a_star_claimed": false,
+    "found_candidate_is_verified_witness": false,
+    "global_nonexistence_claimed": false,
+    "independent_replay_verification_required": true,
+    "negative_result_interpretation": "No twin was found for this frozen target under the recorded strategy and budgets; this is not evidence that no natural twin exists.",
+    "search_space_exhausted_claimed": false,
+    "shortest_path_claimed": false
+  },
+  "evidence_tier": "candidate_only_bounded_cpu_search",
+  "input_binding": {
+    "engine_core_path": "lifeline_rl/core.py",
+    "engine_core_sha256": "A3219C931608AB76F466CF5278E6297DDFDF128B19D721A16FAB895EB81E05E7",
+    "expected_fixture_sha256": "A2916486D2A9C4738B1B8A01F72A91A689F968E20D1B6673B5E4F05A15927155",
+    "fixture_id": "natural_superko_n6_witness_v1",
+    "fixture_path": "state_aliasing/superko_n6_witness_v1.json",
+    "fixture_sha256": "A2916486D2A9C4738B1B8A01F72A91A689F968E20D1B6673B5E4F05A15927155",
+    "search_script_path": "scripts/search_targeted_history_twin.py",
+    "search_script_sha256": "B7C8E87169D5B573136FFB276B4B747339B9B4009D72A9EB427B863AF163B052"
+  },
+  "result": {
+    "best_depth_state_count": 69,
+    "frontier_entries_raw": 61,
+    "frontier_entries_valid": 61,
+    "frontier_sha256": "0D7531615F3DAEB1DF7D7CD21640AA20BE008EB7961DEFC7B14B382F1773374C",
+    "stats": {
+      "candidate_legal_hits": 1,
+      "depth_cutoff_action_candidates": 0,
+      "depth_cutoff_count": 0,
+      "distinct_history_topology_hits": 1,
+      "dominated_successors": 0,
+      "elapsed_seconds": 0.08037519999197684,
+      "forbidden_key_prunes": 1,
+      "max_depth_reached": 6,
+      "peak_frontier": 62,
+      "stale_frontier_entries": 0,
+      "states_examined": 8,
+      "terminal_states": 0,
+      "topology_hits": 1,
+      "transitions_examined": 69
+    },
+    "status": "FOUND_CANDIDATE",
+    "termination_reason": "FOUND",
+    "visited_trace_sha256": "B41123C4E9D26C9D0D7FD27A5146633A4483CD3D0B5F48C159C0B3B20092E41C",
+    "witness": {
+      "candidate_action": [
+        2,
+        3
+      ],
+      "classification": "candidate_natural_same_topology_different_history_superko_legality",
+      "forbidden_key_in_reference_history": true,
+      "forbidden_key_in_twin_history": false,
+      "forbidden_key_sha256": "C1362C7A100C1C512E2345740F4D9CBD1C34C12B7AB708D65DAC681365C14608",
+      "reference_history": [
+        [
+          0,
+          1
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          1,
+          4
+        ],
+        null,
+        [
+          1,
+          1
+        ]
+      ],
+      "reference_history_fingerprint": "C76D472A7F062605A3056C12507B8E7A3C27AF156710CDE1AA67843221DE68B0",
+      "reference_history_key_count": 10,
+      "reference_outcome": {
+        "reason": "SUPERKO_VIOLATION",
+        "success": false,
+        "would_violate_superko": true
+      },
+      "reference_state_fingerprint": "620FC5C3D38AF4F9062BC4B685971371BD0E4F0199072129B8269D457DC7E74C",
+      "target_topology": {
+        "board": [
+          1,
+          2,
+          1,
+          0,
+          3,
+          3,
+          1,
+          3,
+          0,
+          0,
+          4,
+          0,
+          4,
+          0,
+          4,
+          0,
+          4,
+          4,
+          0,
+          3,
+          0
+        ],
+        "consecutive_skips": 0,
+        "current_player": "BLACK",
+        "game_over": false,
+        "grid_size": 6,
+        "logical_edge_indices": {
+          "BLACK": [
+            [
+              0,
+              2
+            ],
+            [
+              0,
+              6
+            ]
+          ],
+          "WHITE": [
+            [
+              4,
+              5
+            ],
+            [
+              5,
+              19
+            ],
+            [
+              7,
+              19
+            ]
+          ]
+        }
+      },
+      "target_topology_sha256": "33EAB73543D4521C09423D9D97E5129E02C18401049463273182161DC2DD8577",
+      "twin_history": [
+        [
+          2,
+          0
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        null,
+        [
+          4,
+          0
+        ]
+      ],
+      "twin_history_fingerprint": "3043623114CB40DA73450C4BBCA1CCA21932247CA192533C9017B7BF28575F02",
+      "twin_history_key_count": 6,
+      "twin_outcome": {
+        "reason": null,
+        "success": true,
+        "would_violate_superko": false
+      },
+      "twin_state_fingerprint": "207B58CDCF63AAF9EFE1C0A7E816D6F96AAC1ADE1ED6780E4C25D38E4647F1F7"
+    }
+  },
+  "runtime": {
+    "cpu_only": true,
+    "network_used": false,
+    "platform": "Windows-10-10.0.26200-SP0",
+    "python_implementation": "CPython",
+    "python_version": "3.10.20"
+  },
+  "schema_version": 1,
+  "search_config": {
+    "action_order": "PASS_FIRST_THEN_LEXICOGRAPHIC_POINTS_V1",
+    "heuristic_admissible": false,
+    "heuristic_used_for_pruning": false,
+    "max_depth_actions_including_pass": 20,
+    "max_seconds": null,
+    "max_states": 25000,
+    "priority_definition": "NON_ADMISSIBLE_TARGET_DISTANCE_V1: total weighted topology mismatch, board mismatch, edge symmetric difference, player mismatch, skip distance, terminal mismatch, path depth, monotonic insertion id",
+    "progress_every": 1000,
+    "safe_prune": "FORBIDDEN_RESULT_KEY_ALREADY_IN_MONOTONIC_SUPERKO_HISTORY_V1",
+    "standard_initial_state": true,
+    "start_player": "BLACK",
+    "strategy": "deterministic_target_prioritized_best_first",
+    "superko_mode": "enforce",
+    "visited_identity": "LOSSLESS_GAME_SNAPSHOT_WITH_SHORTEST_DISCOVERED_ACTION_DEPTH_V1",
+    "voluntary_pass_included": true
+  },
+  "target": {
+    "candidate_action": [
+      2,
+      3
+    ],
+    "candidate_actor": "BLACK",
+    "forbidden_key_sha256": "C1362C7A100C1C512E2345740F4D9CBD1C34C12B7AB708D65DAC681365C14608",
+    "grid_size": 6,
+    "reference_history": [
+      [
+        0,
+        1
+      ],
+      [
+        4,
+        0
+      ],
+      [
+        2,
+        0
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        2,
+        3
+      ],
+      [
+        2,
+        2
+      ],
+      [
+        3,
+        1
+      ],
+      [
+        1,
+        4
+      ],
+      null,
+      [
+        1,
+        1
+      ]
+    ],
+    "reference_history_fingerprint": "C76D472A7F062605A3056C12507B8E7A3C27AF156710CDE1AA67843221DE68B0",
+    "reference_state_fingerprint": "620FC5C3D38AF4F9062BC4B685971371BD0E4F0199072129B8269D457DC7E74C",
+    "target_topology": {
+      "board": [
+        1,
+        2,
+        1,
+        0,
+        3,
+        3,
+        1,
+        3,
+        0,
+        0,
+        4,
+        0,
+        4,
+        0,
+        4,
+        0,
+        4,
+        4,
+        0,
+        3,
+        0
+      ],
+      "consecutive_skips": 0,
+      "current_player": "BLACK",
+      "game_over": false,
+      "grid_size": 6,
+      "logical_edge_indices": {
+        "BLACK": [
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            6
+          ]
+        ],
+        "WHITE": [
+          [
+            4,
+            5
+          ],
+          [
+            5,
+            19
+          ],
+          [
+            7,
+            19
+          ]
+        ]
+      }
+    },
+    "target_topology_sha256": "33EAB73543D4521C09423D9D97E5129E02C18401049463273182161DC2DD8577"
+  }
+}

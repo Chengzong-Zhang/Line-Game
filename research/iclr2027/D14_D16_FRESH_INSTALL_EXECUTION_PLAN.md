@@ -11,17 +11,27 @@ package, running a clean-room test, retraining a model, or changing any formal
 artifact. Each execution must use a new output directory and must refuse to
 overwrite earlier evidence.
 
-The current 2026-08-31 inventory has no `.whl` below the repository's
+A private subject-bound run of the execution-contract verifier now records
+`contract-only PASS`. It closes the pre-execution profile, package-source,
+claim/allowlist, fixed-byte, and ten-path Git transport checks only. It did not
+access a network, create an environment, build or install a package, run a
+test/game, reproduce training, export the clean source tree, or generate any of
+the eleven future outputs. Gates A--E below therefore remain unexecuted. The
+internal receipt contains real Git object identifiers and is deliberately
+outside the anonymous/public supplement topology.
+
+The repeated 2026-09-01 inventory has no `.whl` below the repository's
 `research/iclr2027` or ignored `local_artifacts` trees. Therefore no wheelhouse
 manifest, wheelhouse-preflight receipt, fresh environment, or fresh-install
 execution receipt exists. This inventory is a dated snapshot and must be
 repeated at execution time.
 
-The tracked compact independent receipt auditor is now implemented and is
-available as a future Gate E command. The fresh-install profile verifier only
-hash-binds that tool and its eleven tracked metadata inputs; it does not run
-the auditor. Availability is not a compact-audit result, a supplement output,
-or a fresh-install `PASS`.
+The tracked compact independent receipt auditor is implemented and available
+as a future Gate E command. The contract-only verifier hash-binds that tool and
+its eleven tracked metadata inputs; it does not run the auditor. The auditor,
+its future receipt, and the contract receipt are not members of the current
+120-payload/124-member supplement topology. Availability is not a compact-audit
+result, a supplement output, or a fresh-install `PASS`.
 
 ## Fixed starting contract
 

@@ -100,6 +100,8 @@ def _canary_pair_payload() -> dict[str, object]:
     for member in (0, 1):
         schedules.append(
             {
+                "schema_name": formal.prep.GAME_SCHEDULE_SCHEMA_NAME,
+                "schema_version": formal.prep.SCHEMA_VERSION,
                 "task_id": "canary-task",
                 "game_id": f"canary-game-{member}",
                 "pair_id": "canary-pair",
@@ -442,8 +444,11 @@ def _write_valid_throughput_profile(
     forwards = lane_forwards * formal.SCALAR_LANE_COUNT * formal.GPU_SMOKE_CASE_COUNT
     aggregate_window = task_shaped_seconds
     rate = decisions / aggregate_window
+    empirical_capacity_evidence = formal._validated_empirical_capacity_evidence()
     capacity_cases, projected = formal._formal_capacity_projection(
-        lane_results, tasks
+        lane_results,
+        tasks,
+        capacity_evidence=empirical_capacity_evidence,
     )
     worst_case_decisions = sum(
         int(task["games"]) * int(task["max_plies"]) for task in tasks
@@ -486,7 +491,21 @@ def _write_valid_throughput_profile(
         "temperature": 0.0,
         "root_noise": False,
         "data_supply": "registered_d18_v3_task_binding_and_opening_clone",
+        "capacity_projection_method": formal.CAPACITY_PROJECTION_METHOD,
         "coverage": formal._profile_coverage(lane_results),
+        "empirical_capacity_evidence": {
+            "relative_path": formal._repo_relative(
+                formal.EMPIRICAL_CAPACITY_EVIDENCE_PATH.resolve()
+            ),
+            "sha256": formal.EMPIRICAL_CAPACITY_EVIDENCE_EXPECTED_SHA256,
+            "source_manifest_sha256": empirical_capacity_evidence[
+                "source_manifest_sha256"
+            ],
+            "schema_name": formal.EMPIRICAL_CAPACITY_EVIDENCE_SCHEMA,
+            "schema_version": (
+                formal.EMPIRICAL_CAPACITY_EVIDENCE_SCHEMA_VERSION
+            ),
+        },
         "capacity_cases": capacity_cases,
         "input_parse_and_collate_seconds": 0.01,
         "setup_seconds": workflow_wall_seconds - task_shaped_seconds,
@@ -518,7 +537,7 @@ def _write_valid_throughput_profile(
         "formal_runtime_seconds": formal.MAX_RUNTIME_SECONDS,
         "non_gameplay_reserve_fraction": formal.FORMAL_NON_GAMEPLAY_RESERVE_FRACTION,
         "formal_gameplay_budget_seconds": formal.FORMAL_GAMEPLAY_BUDGET_SECONDS,
-        "projected_worst_case_seconds": projected,
+        "projected_empirical_planning_seconds": projected,
         "lane_results": lane_results,
         "gpu_utilization_samples_percent": [60.0] * len(lane_results),
         "gpu_utilization_mean_percent": 60.0,
@@ -637,6 +656,10 @@ def _minimal_autodl_stage(root: Path) -> str:
         "research/iclr2027/autodl/d18_v3_runtime_requirements.lock.txt": (
             b"dependency lock",
             "dependency_lock_sha256",
+        ),
+        formal._repo_relative(formal.EMPIRICAL_CAPACITY_EVIDENCE_PATH): (
+            formal.EMPIRICAL_CAPACITY_EVIDENCE_PATH.read_bytes(),
+            "empirical_capacity_evidence_sha256",
         ),
         "research/iclr2027/results/formal/d18_v3/synthetic/task_bundle/bundle_summary.json": (
             b"bundle summary",
@@ -1621,11 +1644,11 @@ def test_gpu_smoke_payloads_partition_one_total_and_round_robin_frozen_tasks(
     capacity_cases = profile["capacity_cases"]
     assert isinstance(capacity_cases, list)
     assert all(
-        row["formal_worst_case_decisions_per_lane"]
+        row["formal_empirical_planning_decisions_per_lane"]
         == len(formal.prep.TRAINING_SEEDS)
         * math.ceil((formal.EXPECTED_GAMES_PER_TASK // 2) / formal.SCALAR_LANE_COUNT)
         * 2
-        * 256
+        * {5: 32, 7: 84, 9: 138}[row["eval_size"]]
         for row in capacity_cases
     )
     expected_critical = (
@@ -1650,7 +1673,7 @@ def test_capacity_projection_uses_slowest_lane_average_and_budget_boundary(
     lanes = profile["lane_results"]
     assert isinstance(lanes, list)
     capacity_cases, projected = formal._formal_capacity_projection(lanes, tasks)
-    assert math.isclose(projected, 6_720.0)
+    assert math.isclose(projected, 2_222.5)
     assert capacity_cases[0]["slowest_single_decision_seconds"] == 0.01
     assert capacity_cases[0]["critical_lane_index"] == 0
     assert math.isclose(
@@ -1669,7 +1692,7 @@ def test_capacity_projection_uses_slowest_lane_average_and_budget_boundary(
 
     slow_lanes = copy.deepcopy(lanes)
     for lane in slow_lanes:
-        lane["puct_decisions"] = 32
+        lane["puct_decisions"] = 16
     slow_cases, slow_projected = formal._formal_capacity_projection(
         slow_lanes, tasks
     )
@@ -1688,9 +1711,41 @@ def test_capacity_projection_uses_slowest_lane_average_and_budget_boundary(
     diagnostic = caught.value.diagnostic
     assert diagnostic["status"] == "FAIL_CLOSED"
     assert diagnostic["schema_name"] == formal.THROUGHPUT_CAPACITY_FAILURE_SCHEMA
-    assert diagnostic["projected_worst_case_seconds"] == over_budget
+    assert diagnostic["projected_empirical_planning_seconds"] == over_budget
     assert "lane_results" not in diagnostic
     assert len(formal.canonical_json(diagnostic).encode("utf-8")) < 4096
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ("histogram_count", "derived_planning", "source_manifest_digest"),
+)
+def test_empirical_capacity_evidence_recomputes_and_rejects_tamper(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    mutation: str,
+) -> None:
+    payload = json.loads(
+        formal.EMPIRICAL_CAPACITY_EVIDENCE_PATH.read_text(encoding="utf-8")
+    )
+    if mutation == "histogram_count":
+        payload["sizes"]["5"]["histogram"]["16"] += 1
+    elif mutation == "derived_planning":
+        payload["sizes"]["7"]["empirical_planning_plies"] = 85
+    else:
+        payload["source_manifest_sha256"] = "0" * 64
+    tampered = tmp_path / "capacity.json"
+    tampered.write_text(
+        json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        formal,
+        "EMPIRICAL_CAPACITY_EVIDENCE_EXPECTED_SHA256",
+        formal.sha256_file(tampered),
+    )
+    with pytest.raises(formal.FormalExecutionError):
+        formal._validated_empirical_capacity_evidence(tampered)
 
 
 def test_single_decision_tail_jitter_is_diagnostic_not_capacity(
@@ -1699,7 +1754,9 @@ def test_single_decision_tail_jitter_is_diagnostic_not_capacity(
     manifest_path, profile_path, profile, tasks, games = (
         _write_valid_throughput_profile(tmp_path)
     )
-    original_projected = float(profile["projected_worst_case_seconds"])
+    original_projected = float(
+        profile["projected_empirical_planning_seconds"]
+    )
     original_critical = float(
         profile["capacity_cases"][0]["critical_seconds_per_decision"]
     )
@@ -1717,7 +1774,7 @@ def test_single_decision_tail_jitter_is_diagnostic_not_capacity(
     )
     assert capacity_cases[0]["slowest_single_decision_seconds"] == 0.5
     profile["capacity_cases"] = capacity_cases
-    profile["projected_worst_case_seconds"] = projected
+    profile["projected_empirical_planning_seconds"] = projected
     profile_path.write_text(
         json.dumps(profile, sort_keys=True) + "\n", encoding="utf-8"
     )
@@ -1727,7 +1784,7 @@ def test_single_decision_tail_jitter_is_diagnostic_not_capacity(
         tasks=tasks,
         games=games,
     )
-    assert validated["projected_worst_case_seconds"] == projected
+    assert validated["projected_empirical_planning_seconds"] == projected
 
     evidence = tmp_path / independent.THROUGHPUT_PROFILE_ARTIFACT_NAME
     evidence.write_text(
@@ -1748,11 +1805,23 @@ def test_single_decision_tail_jitter_is_diagnostic_not_capacity(
         formal_manifest_sha=independent.sha256_file(manifest_path),
         formal_runner_sha=independent.sha256_file(formal.SCRIPT_PATH),
     )
-    assert independently_validated["projected_worst_case_seconds"] == projected
+    assert (
+        independently_validated["projected_empirical_planning_seconds"]
+        == projected
+    )
 
 
 def test_gpu_smoke_schedule_binding_accepts_exact_preparation_schema() -> None:
-    manifest = formal.prep.load_json(formal.DEFAULT_MANIFEST)
+    frozen_manifest = formal.prep.load_json(formal.DEFAULT_MANIFEST)
+    manifest = formal.prep.build_formal_manifest(
+        protocol_path=formal.prep.resolve_repo_path(frozen_manifest["protocol_path"]),
+        opening_path=formal.prep.resolve_repo_path(
+            frozen_manifest["opening_design"]["opening_manifest_path"]
+        ),
+        v1_formal_path=formal.prep.resolve_repo_path(
+            frozen_manifest["checkpoint_selection"]["source_manifest_path"]
+        ),
+    )
     bundle = formal.prep.materialize_bundle(
         manifest=manifest, manifest_path=formal.DEFAULT_MANIFEST
     )
@@ -2327,12 +2396,14 @@ def test_independent_verifier_rejects_profile_semantic_tamper(
 ) -> None:
     manifest_path, _, profile, tasks, games = _write_valid_throughput_profile(tmp_path)
     if mutation == "capacity":
-        profile["capacity_cases"][0]["projected_worst_case_seconds"] += 1.0
+        profile["capacity_cases"][0][
+            "projected_empirical_planning_seconds"
+        ] += 1.0
     elif mutation == "capacity_barrier_vector":
         barriers = profile["capacity_cases"][0][
-            "formal_task_barrier_decisions_per_lane"
+            "formal_task_barrier_empirical_decisions_per_lane"
         ]
-        assert len(barriers) == 5 and sum(barriers) == 15_360
+        assert len(barriers) == 5 and sum(barriers) == 1_920
         barriers[0] += 1
         barriers[1] -= 1
     elif mutation == "critical_rate":
@@ -2928,6 +2999,75 @@ def test_formal_play_game_passes_live_game_not_snapshot() -> None:
     assert record["plies"] == 2
 
 
+def test_real_frozen_schedule_schema_override_is_formal_and_hash_bound() -> None:
+    class PassAgent:
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+        def select_action(self, game: object, rng: object) -> None:
+            del game, rng
+            return None
+
+        def diagnostics(self) -> dict[str, object]:
+            return {}
+
+    bundle = (
+        formal.RESEARCH_ROOT
+        / "results"
+        / "formal"
+        / "d18_v3"
+        / "run_20260901_candidate_v17"
+        / "task_bundle"
+    )
+    assert formal.sha256_file(bundle / "game_manifest.jsonl") == (
+        "85c61940984233054b6925570d96bd0d67e7076ca31df5505dc35d1bb5f29f97"
+    )
+    first_task = formal._read_jsonl(bundle / "tasks.jsonl")[0]
+    task_schedules = [
+        row
+        for row in formal._read_jsonl(bundle / "game_manifest.jsonl")
+        if row["task_id"] == first_task["task_id"]
+    ]
+    schedule = formal._bound_task_schedules(first_task, task_schedules)[0]
+    assert schedule["schema_name"] == formal.prep.GAME_SCHEDULE_SCHEMA_NAME
+    assert schedule["schema_name"] != formal.GAME_SCHEMA
+    assert "inference_group_id" not in schedule
+
+    record = formal._play_game(
+        schedule,
+        agent_a=PassAgent("pass-a"),
+        agent_b=PassAgent("pass-b"),
+    )
+    formal._validate_game(record, schedule)
+    assert "inference_group_id" not in record
+    audited = independent._audit_game(
+        record,
+        schedule,
+        preparation_runner_sha=record["preparation_runner_sha256"],
+        formal_runner_sha=record["formal_runner_sha256"],
+        execution_source_closure_sha=record["execution_source_closure_sha256"],
+    )
+    assert audited["game_id"] == schedule["game_id"]
+    assert record["schema_name"] == formal.GAME_SCHEMA
+    assert record["schema_version"] == formal.SCHEMA_VERSION
+    assert record["schedule_sha256"] == formal.canonical_sha256(schedule)
+
+    tampered_hash_record = copy.deepcopy(record)
+    tampered_hash_record["schedule_sha256"] = "0" * 64
+    with pytest.raises(formal.FormalExecutionError, match="game schedule hash mismatch"):
+        formal._validate_game(tampered_hash_record, schedule)
+
+    tampered_schedule = copy.deepcopy(schedule)
+    tampered_schedule["schema_name"] = formal.prep.GAME_SCHEDULE_SCHEMA_NAME + "-tampered"
+    with pytest.raises(formal.FormalExecutionError, match="schedule schema mismatch"):
+        formal._validate_game(record, tampered_schedule)
+
+    tampered_record = copy.deepcopy(record)
+    tampered_record["schema_version"] = formal.SCHEMA_VERSION + 1
+    with pytest.raises(formal.FormalExecutionError, match="schema version mismatch"):
+        formal._validate_game(tampered_record, schedule)
+
+
 def test_status_is_read_only_and_never_claims_formal_ready() -> None:
     status_source = inspect.getsource(formal.read_only_status)
     collector_source = inspect.getsource(formal._current_status)
@@ -3034,6 +3174,10 @@ def test_dual_runner_hashes_and_current_frozen_prep_binding() -> None:
         "throughput_profile_formal_runner_sha256": formal.sha256_file(
             formal.SCRIPT_PATH
         ),
+        "throughput_profile_empirical_capacity_evidence_sha256": (
+            formal.EMPIRICAL_CAPACITY_EVIDENCE_EXPECTED_SHA256
+        ),
+        "capacity_projection_method": formal.CAPACITY_PROJECTION_METHOD,
         "scalar_lane_count": formal.SCALAR_LANE_COUNT,
         "scalar_lane_execution_mode": formal.SCALAR_LANE_EXECUTION_MODE,
         "inference_batch_size": formal.INFERENCE_BATCH_SIZE,
@@ -3264,6 +3408,8 @@ def test_execution_dependency_closure_covers_runtime_sidecars() -> None:
 
     manifest = formal.prep.load_json(formal.DEFAULT_MANIFEST)
     dependencies = set(formal._execution_dependency_paths(formal.DEFAULT_MANIFEST))
+    assert formal.EMPIRICAL_CAPACITY_EVIDENCE_PATH in dependencies
+    assert formal.EMPIRICAL_CAPACITY_EVIDENCE_BUILDER_PATH in dependencies
     assert formal.prep.openings_v3.DEFAULT_V1_OPENINGS in dependencies
     assert set(AlphaZeroTrainer.source_files()) <= dependencies
     latest_paths = {
@@ -3707,17 +3853,29 @@ def test_writer_lock_is_nonblocking(tmp_path: Path) -> None:
 
 
 def test_runner_numeric_contract_uses_seed_by_stratum_units() -> None:
+    tasks: list[dict[str, object]] = []
     records: list[dict[str, object]] = []
     for left, right in formal.prep.MODEL_PAIRS:
         for size in formal.prep.SIZES:
             group_id = f"d16-v3.{left}_vs_{right}.n{size}"
             for training_seed in formal.prep.TRAINING_SEEDS:
+                task_id = (
+                    f"d18v3.n{size}.seed{training_seed}.{left}.vs.{right}"
+                )
+                tasks.append(
+                    {
+                        "task_id": task_id,
+                        "inference_group_id": group_id,
+                        "model_pair": [left, right],
+                        "eval_size": size,
+                    }
+                )
                 for stratum in range(32):
                     for variant in (0, 1):
                         for member in (0, 1):
                             records.append(
                                 {
-                                    "inference_group_id": group_id,
+                                    "task_id": task_id,
                                     "training_seed": training_seed,
                                     "opening_stratum": f"n{size}_s{stratum:02d}",
                                     "opening_variant": variant,
@@ -3727,13 +3885,51 @@ def test_runner_numeric_contract_uses_seed_by_stratum_units() -> None:
                                     "truncated": False,
                                 }
                             )
-    rows = formal._runner_comparison_rows(records, bootstrap_replicates=25)
+    assert all("inference_group_id" not in record for record in records)
+    comparison_records = formal._runner_bind_inference_groups(records, tasks)
+    assert all("inference_group_id" not in record for record in records)
+    rows = formal._runner_comparison_rows(
+        comparison_records, bootstrap_replicates=25
+    )
     assert len(rows) == 9
     assert all(row["games_completed"] == 640 for row in rows)
     assert all(row["seed_by_opening_stratum_units"] == 160 for row in rows)
     assert all(row["paired_a_score_equal_weighted_over_seed_and_stratum"] == 0.5 for row in rows)
     assert all(row["primary_ci95"] == [0.5, 0.5] for row in rows)
     assert all(row["secondary_ci95"] == [0.5, 0.5] for row in rows)
+
+    conflicting = copy.deepcopy(records)
+    conflicting[0]["inference_group_id"] = "d16-v3.grid_gnn_vs_resmlp.n5"
+    with pytest.raises(
+        formal.FormalExecutionError,
+        match="game inference group conflicts with its task",
+    ):
+        formal._runner_bind_inference_groups(conflicting, tasks)
+
+    unknown = copy.deepcopy(records)
+    unknown[0]["task_id"] = "unknown-task"
+    unknown[0]["inference_group_id"] = tasks[0]["inference_group_id"]
+    with pytest.raises(
+        formal.FormalExecutionError,
+        match="record has no matching task",
+    ):
+        formal._runner_bind_inference_groups(unknown, tasks)
+
+    inconsistent_tasks = copy.deepcopy(tasks)
+    inconsistent_tasks[0][
+        "inference_group_id"
+    ] = "d16-v3.grid_gnn_vs_resmlp.n5"
+    with pytest.raises(
+        formal.FormalExecutionError,
+        match="canonical aggregation inference group is inconsistent",
+    ):
+        formal._runner_bind_inference_groups(records, inconsistent_tasks)
+
+    with pytest.raises(
+        formal.FormalExecutionError,
+        match="duplicate canonical aggregation task",
+    ):
+        formal._runner_bind_inference_groups(records, [*tasks, tasks[0]])
 
 
 def test_readiness_loads_every_checkpoint_and_covers_all_sizes() -> None:

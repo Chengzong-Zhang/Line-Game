@@ -1,0 +1,293 @@
+{
+  "artifact_kind": "independent_natural_history_twin_verification_receipt",
+  "candidate_binding": {
+    "candidate_artifact_kind": "existing_tracked_web_history_twin_candidate",
+    "candidate_path": "research/iclr2027/results/validation/history_superko_n6_strict_pair_candidate_v1.json",
+    "candidate_sha256": "5796D643B9F6ED8716983EC3234B2398C7B50D221E2A16EBB9682BA1FB6479F5"
+  },
+  "claim_boundary": {
+    "cross_engine_replay_verified": true,
+    "decision_relevant_superko_legality_witness_verified": true,
+    "equal_projection": "board, logical edges, current player, consecutive skips, terminal flag",
+    "global_search_exhaustiveness_claimed": false,
+    "implemented_mask_bearing_topology_observation_equal": false,
+    "learning_performance_effect_claimed": false,
+    "natural_reachability_verified": true,
+    "same_backbone_ablation_claimed": false,
+    "shortest_history_claimed": false,
+    "verification_independence": "Search-independent Python replay. When cross_engine_replay_verified is true, the receipt also executed the tracked Web verifier and compared its structured histories, action, topology-kernel equality, outcomes, and legal-set difference. The cross_engine_replay.input_model field states whether both implementations consumed the same persisted candidate or retained separate embedded inputs."
+  },
+  "cross_engine_replay": {
+    "candidate_action": [
+      1,
+      1
+    ],
+    "input_model": "The tracked Web verifier and Python candidate retain matching embedded histories; they do not consume a newly shared fixture.",
+    "legal_only_in_twin": [
+      [
+        1,
+        1
+      ]
+    ],
+    "node_version": "v22.22.3",
+    "reference_history": [
+      [
+        1,
+        0
+      ],
+      [
+        4,
+        1
+      ],
+      [
+        0,
+        4
+      ],
+      [
+        1,
+        1
+      ],
+      [
+        3,
+        1
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        1,
+        3
+      ],
+      [
+        3,
+        2
+      ]
+    ],
+    "reference_reason": "SUPERKO_VIOLATION",
+    "same_rules_kernel": true,
+    "status": "PASS",
+    "twin_history": [
+      [
+        1,
+        0
+      ],
+      [
+        4,
+        1
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        0,
+        4
+      ],
+      [
+        2,
+        3
+      ],
+      [
+        3,
+        2
+      ]
+    ],
+    "twin_legal": true,
+    "web_stdout_sha256": "C8D1AE62B4B9A24FBC0439DE3B91EF1192C1373E26431E96733CC7D66338F5FA"
+  },
+  "ok": true,
+  "runtime": {
+    "cpu_only": true,
+    "network_used": false,
+    "platform": "Windows-10-10.0.26200-SP0",
+    "python_implementation": "CPython",
+    "python_version": "3.10.20"
+  },
+  "schema_version": 1,
+  "source_binding": {
+    "engine_core_path": "lifeline_rl/core.py",
+    "engine_core_sha256": "A3219C931608AB76F466CF5278E6297DDFDF128B19D721A16FAB895EB81E05E7",
+    "frozen_fixture_path": "state_aliasing/superko_n6_witness_v1.json",
+    "frozen_fixture_sha256": "A2916486D2A9C4738B1B8A01F72A91A689F968E20D1B6673B5E4F05A15927155",
+    "targeted_web_verifier_path": "scripts/verify_targeted_history_twin_web.mjs",
+    "targeted_web_verifier_sha256": "87F5A0DB7C3DC6E4E4B4224FEEEB0387DF99D344E31A30F06F1B239FF9D54795",
+    "tracked_web_engine_path": "web/web\u524d\u7aef/GameEngine.js",
+    "tracked_web_engine_sha256": "48317759E700DF1FCEFF97651BC1BA10EF07FA43EEDDF081473B0C02AA03B173",
+    "tracked_web_source_path": "web/web\u524d\u7aef/guide/interesting/verify-superko-history-divergence.mjs",
+    "tracked_web_source_sha256": "A9356765AA5F9938AED14EF9B7409C2E2E501E2F69F4D6D855F13C481E2B7FB2",
+    "verifier_path": "scripts/verify_targeted_history_twin.py",
+    "verifier_sha256": "6FFDF25842481E419C36EB2F067020BEF88DE586220C71F8F24659885CD3DD8C"
+  },
+  "status": "PASS",
+  "verified_witness": {
+    "candidate_action": [
+      1,
+      1
+    ],
+    "candidate_result_key_in_reference_history": true,
+    "candidate_result_key_in_twin_history": false,
+    "candidate_result_key_sha256": "D16FADE84A11A8432A385D36856D6CBB4B798CC8C9C37E26DB5183AD094E29E4",
+    "different_superko_history_sets": true,
+    "grid_size": 6,
+    "legal_only_in_reference": [],
+    "legal_only_in_twin": [
+      [
+        1,
+        1
+      ]
+    ],
+    "reference_history": [
+      [
+        1,
+        0
+      ],
+      [
+        4,
+        1
+      ],
+      [
+        0,
+        4
+      ],
+      [
+        1,
+        1
+      ],
+      [
+        3,
+        1
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        1,
+        3
+      ],
+      [
+        3,
+        2
+      ]
+    ],
+    "reference_history_fingerprint": "ACF3A61A0E485BA9AA218DB80EBE8902520AA7E9726DF7B1DCAB590A5512639A",
+    "reference_history_key_count": 10,
+    "reference_outcome": {
+      "reason": "SUPERKO_VIOLATION",
+      "success": false,
+      "would_violate_superko": true
+    },
+    "reference_state_fingerprint": "5A3DA01641AF8E256E60E437926A6A82D833DC4218630FBFFBE66F8E68C8AE22",
+    "same_mask_free_topology": true,
+    "standard_initial_state_replay": true,
+    "start_player": "BLACK",
+    "superko_mode": "enforce",
+    "target_topology": {
+      "board": [
+        1,
+        1,
+        0,
+        0,
+        0,
+        3,
+        2,
+        2,
+        0,
+        0,
+        3,
+        2,
+        1,
+        2,
+        1,
+        2,
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      "consecutive_skips": 0,
+      "current_player": "WHITE",
+      "game_over": false,
+      "grid_size": 6,
+      "logical_edge_indices": {
+        "BLACK": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            18
+          ],
+          [
+            1,
+            12
+          ],
+          [
+            12,
+            14
+          ]
+        ],
+        "WHITE": [
+          [
+            5,
+            10
+          ]
+        ]
+      }
+    },
+    "target_topology_sha256": "08D13A9807659A9F4BBBA7D59186A7F2217C754570C6D697A22F32914DD6804E",
+    "twin_history": [
+      [
+        1,
+        0
+      ],
+      [
+        4,
+        1
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        0,
+        4
+      ],
+      [
+        2,
+        3
+      ],
+      [
+        3,
+        2
+      ]
+    ],
+    "twin_history_fingerprint": "91F80D16DCA95644408636B88D6A5966B72836D7B96144C2E79E49919A60084E",
+    "twin_history_key_count": 8,
+    "twin_outcome": {
+      "reason": null,
+      "success": true,
+      "would_violate_superko": false
+    },
+    "twin_state_fingerprint": "648DB41C9CC4AF5DB272D83FFA655DF613C36DD28F056CC77D138CA766B8D0FC"
+  }
+}

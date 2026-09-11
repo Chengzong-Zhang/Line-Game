@@ -1,0 +1,280 @@
+{
+  "schema_name": "lifeline-d19-v2-matched-history-ablation-manifest",
+  "schema_version": 1,
+  "protocol_id": "d19_v2_matched_history_ablation_protocol_20260901_v1",
+  "experiment_id": "d19_v2_logical_edges_x_compact_history_candidate_v1",
+  "status": "preflight_only_not_authorized",
+  "relationship_to_frozen_d19_v1": {
+    "mode": "append_only_distinct_candidate",
+    "frozen_experiment_id": "d19_logic_edge_archmatched_smoke_v1",
+    "frozen_gate_status": "CLOSED",
+    "supersedes_frozen_protocol": false,
+    "imports_old_result": false
+  },
+  "execution_boundary": {
+    "training_authorized": false,
+    "evaluation_authorized": false,
+    "gpu_authorized": false,
+    "formal_result_exists": false,
+    "old_d19_result_reuse_allowed": false,
+    "preflight_may_train": false,
+    "preflight_may_step_optimizer": false,
+    "preflight_may_run_self_play": false,
+    "preflight_may_make_network_requests": false
+  },
+  "matched_backbone": {
+    "id": "matched_backbone_v1",
+    "family": "relation_gnn_physical_own_opponent",
+    "base_node_feature_width": 11,
+    "compact_history_feature_width": 1,
+    "input_node_feature_width": 12,
+    "relation_count": 3,
+    "hidden_channels": 64,
+    "message_passing_layers": 3,
+    "trainable_parameter_count_each_arm": 63235,
+    "parameter_count_rule": "EXACT_EQUAL_OR_REJECT",
+    "state_dict_shape_rule": "EXACT_EQUAL_OR_REJECT",
+    "initial_state_rule": "IDENTICAL_WITHIN_MATCHED_TRAINING_SEED"
+  },
+  "compact_history_feature": {
+    "id": "immediate_superko_membership_plane_v1",
+    "definition": "For each current-player point action, one iff evaluate_move(point).would_violate_superko on the complete pre-action GameSnapshot; otherwise zero.",
+    "feature_width_per_node": 1,
+    "enabled_value": 1,
+    "disabled_or_nonmatching_value": 0,
+    "pass_feature": 0,
+    "source": "complete_pre_action_GameSnapshot",
+    "future_information_used": false,
+    "legal_mask_replaced": false,
+    "minimality_scope": "one Boolean per point action, necessary and sufficient only for immediate Superko-membership status",
+    "not_claimed": [
+      "lossless complete-history encoding",
+      "full Markov state",
+      "same-observation-and-mask witness"
+    ]
+  },
+  "arms": [
+    {
+      "id": "edge0_history0",
+      "logical_edges_enabled": false,
+      "compact_history_enabled": false,
+      "backbone_ref": "matched_backbone_v1",
+      "training_schedule_ref": "shared_training_schedule_v1",
+      "evaluation_schedule_ref": "shared_evaluation_schedule_v1",
+      "seed_schedule_ref": "shared_seed_schedule_v1",
+      "optimizer_ref": "shared_adamw_v1",
+      "search_ref": "shared_puct16_v1",
+      "budget_ref": "shared_budget_v1"
+    },
+    {
+      "id": "edge1_history0",
+      "logical_edges_enabled": true,
+      "compact_history_enabled": false,
+      "backbone_ref": "matched_backbone_v1",
+      "training_schedule_ref": "shared_training_schedule_v1",
+      "evaluation_schedule_ref": "shared_evaluation_schedule_v1",
+      "seed_schedule_ref": "shared_seed_schedule_v1",
+      "optimizer_ref": "shared_adamw_v1",
+      "search_ref": "shared_puct16_v1",
+      "budget_ref": "shared_budget_v1"
+    },
+    {
+      "id": "edge0_history1",
+      "logical_edges_enabled": false,
+      "compact_history_enabled": true,
+      "backbone_ref": "matched_backbone_v1",
+      "training_schedule_ref": "shared_training_schedule_v1",
+      "evaluation_schedule_ref": "shared_evaluation_schedule_v1",
+      "seed_schedule_ref": "shared_seed_schedule_v1",
+      "optimizer_ref": "shared_adamw_v1",
+      "search_ref": "shared_puct16_v1",
+      "budget_ref": "shared_budget_v1"
+    },
+    {
+      "id": "edge1_history1",
+      "logical_edges_enabled": true,
+      "compact_history_enabled": true,
+      "backbone_ref": "matched_backbone_v1",
+      "training_schedule_ref": "shared_training_schedule_v1",
+      "evaluation_schedule_ref": "shared_evaluation_schedule_v1",
+      "seed_schedule_ref": "shared_seed_schedule_v1",
+      "optimizer_ref": "shared_adamw_v1",
+      "search_ref": "shared_puct16_v1",
+      "budget_ref": "shared_budget_v1"
+    }
+  ],
+  "shared_seed_schedule": {
+    "id": "shared_seed_schedule_v1",
+    "training_seeds": [
+      20260825,
+      20260826,
+      20260827,
+      20260828,
+      20260829
+    ],
+    "paired_across_arms": true,
+    "counter_based_substreams_required": true,
+    "arm_id_may_not_enter_seed_derivation": true
+  },
+  "shared_training_schedule": {
+    "id": "shared_training_schedule_v1",
+    "mixed_size_order": "counter_based_shared_per_game",
+    "same_initial_weights_within_training_seed": true,
+    "same_iteration_game_update_indices_across_arms": true,
+    "missing_seed_may_not_be_dropped": true
+  },
+  "shared_optimizer": {
+    "id": "shared_adamw_v1",
+    "kind": "AdamW",
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "epsilon": 1e-08,
+    "amsgrad": false,
+    "gradient_clip_norm": 5.0
+  },
+  "shared_search": {
+    "id": "shared_puct16_v1",
+    "kind": "PUCT",
+    "simulations": 16,
+    "c_puct": 1.5,
+    "dirichlet_alpha": 0.3,
+    "dirichlet_epsilon_self_play": 0.25,
+    "dirichlet_epsilon_evaluation": 0.0,
+    "temperature_moves": 20,
+    "initial_temperature": 1.0,
+    "final_temperature": 0.1
+  },
+  "shared_budget": {
+    "id": "shared_budget_v1",
+    "train_sizes": [
+      5,
+      7,
+      9
+    ],
+    "iterations": 10,
+    "games_per_iteration": 10,
+    "self_play_games_per_arm_seed": 100,
+    "training_steps_per_iteration": 20,
+    "gradient_steps_per_arm_seed": 200,
+    "batch_size": 16,
+    "replay_capacity": 10000,
+    "max_plies": 256,
+    "superko_mode": "enforce"
+  },
+  "shared_evaluation_schedule": {
+    "id": "shared_evaluation_schedule_v1",
+    "eval_sizes": [
+      9,
+      10,
+      12
+    ],
+    "opponents": [
+      "random",
+      "uct_mcts_16"
+    ],
+    "uct_mcts_16": {
+      "simulations": 16,
+      "rollout_depth": 80,
+      "exploration": 1.4142135623730951
+    },
+    "games_per_arm_seed_size_opponent": 200,
+    "paired_color_pairs": 100,
+    "temperature": 0.0,
+    "root_noise": false,
+    "fine_tuning": false,
+    "same_opening_policy_color_seed_plan_across_arms": true,
+    "primary_statistical_unit": "training_seed",
+    "pooled_games_are_independent": false
+  },
+  "planned_totals_not_authorized": {
+    "training_tasks": 20,
+    "self_play_games": 2000,
+    "gradient_steps": 4000,
+    "evaluation_tasks": 120,
+    "evaluation_games": 24000
+  },
+  "factorial_contrasts": {
+    "logical_at_history0": "edge1_history0 - edge0_history0",
+    "logical_at_history1": "edge1_history1 - edge0_history1",
+    "history_at_edge0": "edge0_history1 - edge0_history0",
+    "history_at_edge1": "edge1_history1 - edge1_history0",
+    "interaction": "edge1_history1 - edge1_history0 - edge0_history1 + edge0_history0",
+    "interval": "paired two-sided Student-t 95% interval across five training seeds, df=4",
+    "stratify_by": [
+      "eval_size",
+      "opponent"
+    ]
+  },
+  "witness_boundary": {
+    "candidate_path": "research/iclr2027/results/validation/targeted_history_twin_n6_stage5_search_25k_v1.json",
+    "candidate_sha256": "4B87962DAFFB9AA44B2C67541EF420C8C1574C8E4D6820AFE518632BC10CF9E5",
+    "verification_path": "research/iclr2027/results/validation/targeted_history_twin_n6_stage5_verification_v1.json",
+    "verification_sha256": "555A97F4DA22EC1072AFD0C9B39B2269DA9A2DD30412528EF114013EB6FA1B1F",
+    "candidate_action": [
+      2,
+      3
+    ],
+    "same_mask_free_topology": true,
+    "same_implemented_observation_and_mask": false,
+    "may_close_construct_validity_blocker": false
+  },
+  "preflight_contract": {
+    "device": "cpu",
+    "allowed": [
+      "manifest and source hash validation",
+      "complete-snapshot feature construction",
+      "small mixed-size tensor construction",
+      "model construction",
+      "no-grad forward"
+    ],
+    "training_steps": 0,
+    "optimizer_steps": 0,
+    "self_play_games": 0,
+    "evaluation_games": 0,
+    "checkpoints": 0,
+    "formal_results": 0,
+    "gpu_operations": 0
+  },
+  "source_bindings": [
+    {
+      "path": "research/iclr2027/D19_V2_MATCHED_HISTORY_ABLATION_PROTOCOL.md",
+      "sha256": "ACE2DA18E66E4DF5BC0E95EA61CB20A4990C2293AF032D7F2CCF52F403CFFF52"
+    },
+    {
+      "path": "research/iclr2027/lifeline_rl/core.py",
+      "sha256": "A3219C931608AB76F466CF5278E6297DDFDF128B19D721A16FAB895EB81E05E7"
+    },
+    {
+      "path": "research/iclr2027/lifeline_rl/alphazero/network.py",
+      "sha256": "02D92F165FF445AA9E92266933D5ED83FE04C19D3201FCDE6803705762C41F09"
+    },
+    {
+      "path": "research/iclr2027/scripts/d19_v2_matched_history_contract.py",
+      "sha256": "42CE773E27E23459FAF4F9050E4F3D3EF9D14B2FB1DBF28F7E14CF95B395C028"
+    },
+    {
+      "path": "research/iclr2027/scripts/verify_d19_v2_matched_history_preflight.py",
+      "sha256": "349FBFA654A989DF27D27EF65E72EC996841C70A1C9AF3DBD03A6291B19EA4B7"
+    },
+    {
+      "path": "research/iclr2027/results/validation/targeted_history_twin_n6_stage5_search_25k_v1.json",
+      "sha256": "4B87962DAFFB9AA44B2C67541EF420C8C1574C8E4D6820AFE518632BC10CF9E5"
+    },
+    {
+      "path": "research/iclr2027/results/validation/targeted_history_twin_n6_stage5_verification_v1.json",
+      "sha256": "555A97F4DA22EC1072AFD0C9B39B2269DA9A2DD30412528EF114013EB6FA1B1F"
+    }
+  ],
+  "claim_boundary": {
+    "preflight_supports_tensor_contract_only": true,
+    "learning_effect_claimed": false,
+    "topology_history_superiority_claimed": false,
+    "same_observation_mask_decision_witness_claimed": false,
+    "construct_validity_blocker_status": "OPEN",
+    "old_d19_gate_opened": false
+  }
+}

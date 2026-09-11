@@ -64,9 +64,25 @@ def _entry_by_mode(
     return matches[0]
 
 
+def _entry_by_modes(
+    profile: derivation.ClaimCompleteProfile, modes: frozenset[str]
+) -> derivation.ProfileEntry:
+    matches = [entry for entry in profile.entries if entry.mode in modes]
+    if len(matches) != 1:
+        raise VerificationError(
+            f"profile must contain exactly one mode from {sorted(modes)}"
+        )
+    return matches[0]
+
+
 def _verify_claim_ledger(
     documents: Mapping[str, bytes], entry: derivation.ProfileEntry
 ) -> None:
+    if entry.mode == "claim_ledger_v6":
+        _verify_claim_ledger_v6(documents, entry)
+        return
+    if entry.mode != "claim_ledger":
+        raise VerificationError("unsupported admitted claim-ledger mode")
     value = _read_json(documents, entry.destination)
     if not isinstance(value, dict):
         raise VerificationError("admitted claim ledger must be an object")
@@ -182,6 +198,131 @@ def _verify_claim_ledger(
         raise VerificationError("claim ledger seed-audit evidence coverage drifted")
 
 
+def _verify_claim_ledger_v6(
+    documents: Mapping[str, bytes], entry: derivation.ProfileEntry
+) -> None:
+    value = _read_json(documents, entry.destination)
+    if not isinstance(value, dict):
+        raise VerificationError("v6 admitted claim ledger must be an object")
+    if (
+        value.get("schema_name")
+        != "lifeline-admitted-claim-evidence-limitation-ledger"
+        or value.get("schema_version") != 2
+        or value.get("routing_version") != "v6"
+        or value.get("candidate_status") != STATUS
+        or value.get("approval") != APPROVAL
+        or value.get("scope") != "admitted_only"
+        or value.get("claim_ids") != list(CLAIM_IDS)
+        or value.get("claim_count") != len(CLAIM_IDS)
+    ):
+        raise VerificationError("v6 admitted claim ledger status or coverage drifted")
+
+    expected_claims = [
+        {
+            "id": claim_id,
+            "claim": claim,
+            "authoritative_evidence": candidate_evidence,
+            "required_limitation": limitation,
+            "paper_locations": derivation.CLAIM_LEDGER_V6_PAPER_LOCATIONS,
+        }
+        for claim_id, (
+            claim,
+            _source_evidence,
+            candidate_evidence,
+            limitation,
+        ) in derivation.CLAIM_LEDGER_V6_ROWS.items()
+    ]
+    claims = value.get("claims")
+    if claims != expected_claims:
+        raise VerificationError("v6 admitted claim rows or limitations drifted")
+
+    expected_input_hashes = dict(entry.inputs)
+    source_binding = value.get("source_binding")
+    paper_binding = value.get("paper_binding")
+    if (
+        not isinstance(source_binding, dict)
+        or source_binding.get("path") != derivation.CLAIM_LEDGER_V6_SOURCE
+        or source_binding.get("sha256")
+        != expected_input_hashes.get(derivation.CLAIM_LEDGER_V6_SOURCE)
+        or type(source_binding.get("size_bytes")) is not int
+        or source_binding["size_bytes"] <= 0
+        or not isinstance(paper_binding, dict)
+    ):
+        raise VerificationError("v6 claim-ledger source binding drifted")
+    for key, expected_path in (
+        ("pdf", derivation.CLAIM_LEDGER_V6_PDF),
+        ("tex", derivation.CLAIM_LEDGER_V6_TEX),
+    ):
+        binding = paper_binding.get(key)
+        if (
+            not isinstance(binding, dict)
+            or binding.get("path") != expected_path
+            or binding.get("sha256") != expected_input_hashes.get(expected_path)
+            or type(binding.get("size_bytes")) is not int
+            or binding["size_bytes"] <= 0
+        ):
+            raise VerificationError(f"v6 claim-ledger {key} binding drifted")
+
+    expected_boundary = (
+        "Each claim is admitted only together with its required limitation; "
+        "the side-six witness binds equal mask-free topology but unequal legal "
+        "masks, and no learning or same-backbone ablation result is admitted."
+    )
+    if value.get("interpretation_boundary") != expected_boundary:
+        raise VerificationError("v6 claim-ledger interpretation boundary drifted")
+
+    evidence_paths: Counter[str] = Counter()
+    non_path_evidence: set[str] = set()
+    ledger_parent = PurePosixPath(entry.destination).parent
+    for item in expected_claims:
+        claim_path_count = 0
+        for clause in (
+            clause.strip()
+            for clause in item["authoritative_evidence"].split(";")
+        ):
+            match = derivation.CLAIM_LEDGER_PATH_CLAUSE_RE.fullmatch(clause)
+            if match is None:
+                if clause not in derivation.CLAIM_LEDGER_V6_NON_PATH_EVIDENCE:
+                    raise VerificationError(
+                        f"{item['id']} v6 authoritative evidence is unclassified"
+                    )
+                non_path_evidence.add(clause)
+                continue
+            try:
+                evidence_path = derivation._safe_repo_relative_path(
+                    match.group(1),
+                    f"{item['id']} v6 authoritative evidence path",
+                )
+            except derivation.DerivationError as exc:
+                raise VerificationError(
+                    f"{item['id']} v6 authoritative evidence path is unsafe"
+                ) from exc
+            evidence_paths[evidence_path] += 1
+            claim_path_count += 1
+            candidate_relative = ledger_parent.joinpath(
+                *PurePosixPath(evidence_path).parts
+            ).as_posix()
+            if candidate_relative not in documents:
+                raise VerificationError(
+                    f"{item['id']} v6 authoritative evidence is missing: "
+                    f"{evidence_path}"
+                )
+        if claim_path_count == 0:
+            raise VerificationError(
+                f"{item['id']} v6 claim has no path-bound authoritative evidence"
+            )
+    if non_path_evidence != set(derivation.CLAIM_LEDGER_V6_NON_PATH_EVIDENCE):
+        raise VerificationError("v6 non-path authoritative evidence coverage drifted")
+    if evidence_paths[
+        "results/validation/targeted_history_twin_n6_stage5_verification_v1.json"
+    ] != 1:
+        raise VerificationError("v6 C3 targeted verification routing is missing")
+    if "research/iclr2027/D6_HISTORY_TWIN_EVIDENCE_ADDENDUM_V2.md" in documents:
+        raise VerificationError(
+            "v6 candidate must route C3 to compact JSON evidence, not the addendum"
+        )
+
+
 def _verify_strict_json_documents(documents: Mapping[str, bytes]) -> None:
     for relative, data in sorted(documents.items()):
         if PurePosixPath(relative).suffix.casefold() not in {".json", ".jsonl"}:
@@ -248,6 +389,7 @@ def _verify_derived_statuses(
 ) -> None:
     json_modes = {
         "claim_ledger",
+        "claim_ledger_v6",
         "ledger_status",
         "superko_config",
         "superko_verification",
@@ -386,13 +528,16 @@ def _verify_derivation_receipt(
                 raise VerificationError(
                     f"anonymization source input is invalid: {destination}"
                 )
-        if (
-            profile_entry.mode == "claim_ledger"
-            and row.get("transformations") != derivation._claim_ledger_transformations()
-        ):
-            raise VerificationError(
-                "claim-ledger derivation receipt rewrite details drifted"
+        if profile_entry.mode in derivation.CLAIM_LEDGER_MODES:
+            expected_transformations = (
+                derivation._claim_ledger_transformations()
+                if profile_entry.mode == "claim_ledger"
+                else derivation._claim_ledger_v6_transformations()
             )
+            if row.get("transformations") != expected_transformations:
+                raise VerificationError(
+                    "claim-ledger derivation receipt rewrite details drifted"
+                )
     if seen != set(entries_by_destination):
         raise VerificationError(
             "anonymization receipt does not cover every payload entry"
@@ -629,7 +774,9 @@ def verify_claim_complete(
     documents = candidate_snapshot.documents
     _verify_strict_json_documents(documents)
     _verify_exact_special_sources(profile)
-    _verify_claim_ledger(documents, _entry_by_mode(profile, "claim_ledger"))
+    _verify_claim_ledger(
+        documents, _entry_by_modes(profile, derivation.CLAIM_LEDGER_MODES)
+    )
     _verify_compact_ledger(documents, _entry_by_mode(profile, "compact_ledger"))
     _verify_derived_statuses(documents, profile)
     _verify_environment_bindings(documents, profile)
@@ -653,7 +800,9 @@ def verify_claim_complete(
     )
 
     game_engine_entries = [
-        entry for entry in profile.entries if entry.mode == "game_engine_copy"
+        entry
+        for entry in profile.entries
+        if entry.mode in derivation.GAME_ENGINE_COPY_MODES
     ]
     if len(game_engine_entries) != 1:
         raise VerificationError("GameEngine.js byte-copy entry is missing")

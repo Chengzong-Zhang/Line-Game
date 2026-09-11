@@ -48,7 +48,7 @@
     {
       "path": "research/iclr2027/supplement_tools/supplement_claim_complete_allowlist.json",
       "role": "resolved_claim_allowlist",
-      "sha256": "a0f64b659ee048e6cb063cdda1e00248609ec367381286a3a70162bf60a9db8b"
+      "sha256": "ca2977716d2f6d772e7e8c8701589b88c58bae60dfe33477add24d5659c7ce3a"
     }
   ],
   "dependency_lock": {

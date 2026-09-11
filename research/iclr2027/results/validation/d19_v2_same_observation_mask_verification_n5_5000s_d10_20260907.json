@@ -1,0 +1,27 @@
+{
+  "artifact_path": "research/iclr2027/results/validation/d19_v2_same_observation_mask_search_n5_5000s_d10_20260907.json",
+  "artifact_sha256": "C10FA0A62E82EE99D6F6BBE47E56C05020CB5E8C5733147F177A73C7BE767D45",
+  "bounded_negative_is_not_nonexistence": true,
+  "ok": true,
+  "replayed_witnesses": {},
+  "runtime": {
+    "cpu_only": true,
+    "gpu_used": false,
+    "network_used": false,
+    "platform": "Windows-10-10.0.26200-SP0",
+    "python_implementation": "CPython",
+    "python_version": "3.10.20"
+  },
+  "schema_name": "lifeline-d19-v2-same-implemented-observation-mask-verification",
+  "schema_version": 1,
+  "search_status": "NOT_FOUND_WITHIN_DECLARED_BUDGET",
+  "source_binding": {
+    "d19_manifest_sha256": "DD5718080492234FC33C8E67A2389D43C9F7B5368CAA76F9644503E6F8B5A18B",
+    "d19_protocol_sha256": "ACE2DA18E66E4DF5BC0E95EA61CB20A4990C2293AF032D7F2CCF52F403CFFF52",
+    "encoding_sha256": "B9A6A14CB627853936333968C8E931D7622B56AD6F0C48251B5E658D5494C33D",
+    "engine_core_sha256": "A3219C931608AB76F466CF5278E6297DDFDF128B19D721A16FAB895EB81E05E7",
+    "mask_free_addendum_sha256": "B4A91DFF91A3B2B94B85CBD8F123B96F57B98C2F435961E01B419229065C9B8D",
+    "search_script_sha256": "8D7075B2AA35CFD0488AAFC2481BE3705C71FE32F44EDC6AB7CDFBAED599EBBD"
+  },
+  "status": "PASS"
+}

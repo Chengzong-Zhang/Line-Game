@@ -43,6 +43,7 @@ CHECKPOINT_EXCEPTIONS = {
 SELFTEST_OWNER_MARKER = ".claim-complete-selftest-owner"
 SUBJECT_COMMIT = "1" * 40
 SUBJECT_TREE = "2" * 40
+V1_README_SHA256 = "1a1403c314235e7f4489c4d3321a0220f049ed636d4fe7cc625ea7762e377778"
 
 
 def _fake_subject_snapshot(
@@ -102,6 +103,109 @@ def _file_bytes(root: Path) -> dict[str, bytes]:
         for path in root.rglob("*")
         if path.is_file()
     }
+
+
+class ClaimCompleteScannerAndReadmeUnitTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.identity = builder._identity_profile_from_bytes(
+            json.dumps(["SELFTEST_ONLY_PRIVATE_IDENTITY_998877"]).encode("utf-8")
+        )
+        cls.v1_allowlist = builder.load_allowlist(
+            TOOL_DIR / "supplement_claim_complete_allowlist.json"
+        )
+
+    def test_node_hashbang_is_accepted_only_at_offset_zero(self) -> None:
+        verifier = (
+            REPO_ROOT
+            / "research"
+            / "iclr2027"
+            / "scripts"
+            / "verify_targeted_history_twin_web.mjs"
+        )
+        scan = builder._scan_documents(
+            [("verify_targeted_history_twin_web.mjs", verifier.read_bytes())],
+            self.identity,
+        )
+        self.assertEqual(scan["status"], "PASS")
+        self.assertEqual(scan["findings"], [])
+
+        valid_sources = {
+            "canonical-env-node-crlf.mjs": (
+                b'#!/usr/bin/env node\r\nconsole.log("safe");\r\n'
+            ),
+            "canonical-direct-node-lf.mjs": (
+                b'#!/usr/bin/node\nconsole.log("safe");\n'
+            ),
+            "canonical-hashbang-only-eof.mjs": b"#!/usr/bin/env node",
+        }
+        for relative, data in valid_sources.items():
+            scan = builder._scan_documents([(relative, data)], self.identity)
+            with self.subTest(path=relative):
+                self.assertEqual(scan["status"], "PASS")
+                self.assertEqual(scan["findings"], [])
+
+    def test_nonleading_or_malformed_node_hashbang_is_rejected(self) -> None:
+        invalid_sources = {
+            "nonleading-hashbang.mjs": (
+                b'console.log("before");\n#!/usr/bin/env node\n'
+            ),
+            "leading-space-hashbang.mjs": (
+                b' #!/usr/bin/env node\nconsole.log("safe");\n'
+            ),
+            "wrong-interpreter-hashbang.mjs": (
+                b'#!/usr/bin/env python\nconsole.log("safe");\n'
+            ),
+            "argument-bearing-hashbang.mjs": (
+                b'#!/usr/bin/env node --no-warnings\nconsole.log("safe");\n'
+            ),
+            "bom-before-hashbang.mjs": (
+                b'\xef\xbb\xbf#!/usr/bin/env node\nconsole.log("safe");\n'
+            ),
+            "quoted-hashbang.mjs": b'const marker = "#!/usr/bin/env node";\n',
+        }
+        for relative, data in invalid_sources.items():
+            scan = builder._scan_documents([(relative, data)], self.identity)
+            with self.subTest(path=relative):
+                self.assertEqual(scan["status"], "FAIL")
+                self.assertTrue(
+                    any(
+                        finding["rule"] == "invalid_or_ambiguous_javascript_source"
+                        for finding in scan["findings"]
+                    )
+                )
+
+    def test_v1_readme_bytes_remain_unchanged(self) -> None:
+        readme = builder._readme_bytes(self.v1_allowlist)
+        self.assertEqual(hashlib.sha256(readme).hexdigest(), V1_README_SHA256)
+        text = readme.decode("utf-8")
+        self.assertIn("all later extension artifacts", text)
+        self.assertNotIn("claim_complete_profile_v2.json", text)
+
+    def test_v2_readme_has_narrow_witness_scope_and_exact_selectors(self) -> None:
+        history_entry = builder.AllowlistEntry(
+            source=builder.CLAIM_COMPLETE_V2_HISTORY_TWIN_VERIFICATION_DESTINATION,
+            destination=builder.CLAIM_COMPLETE_V2_HISTORY_TWIN_VERIFICATION_DESTINATION,
+            category="validation_evidence",
+            expected_sha256="0" * 64,
+        )
+        v2_allowlist = replace(
+            self.v1_allowlist,
+            files=(*self.v1_allowlist.files, history_entry),
+        )
+        text = builder._readme_bytes(v2_allowlist).decode("utf-8")
+        self.assertIn("same mask-free", text)
+        self.assertIn("The legal masks differ", text)
+        self.assertIn("not establish a same-observation-and-mask", text)
+        self.assertIn(
+            f"--profile {builder.CLAIM_COMPLETE_V2_PROFILE_PATH}",
+            text,
+        )
+        self.assertIn(
+            f"--allowlist {builder.CLAIM_COMPLETE_V2_ALLOWLIST_PATH}",
+            text,
+        )
+        self.assertNotIn("all later extension artifacts", text)
 
 
 class ClaimCompleteSelfTests(unittest.TestCase):

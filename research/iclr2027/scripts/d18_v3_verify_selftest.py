@@ -49,16 +49,18 @@ def _audited_rows(*, diverse_strata: int) -> list[dict[str, object]]:
 
 
 class D18V3VerifierSelfTest(unittest.TestCase):
-    def test_throughput_schema_v3_recomputes_sustained_lane_capacity(self) -> None:
+    def test_throughput_schema_v4_recomputes_empirical_capacity(self) -> None:
         self.assertEqual(
             verifier.THROUGHPUT_PROFILE_SCHEMA,
-            "lifeline-d18-v3-gpu-smoke-v3",
+            "lifeline-d18-v3-gpu-smoke-v4",
         )
-        self.assertEqual(verifier.THROUGHPUT_PROFILE_SCHEMA_VERSION, 3)
+        self.assertEqual(verifier.THROUGHPUT_PROFILE_SCHEMA_VERSION, 4)
         source = inspect.getsource(verifier._validate_throughput_profile_evidence)
         self.assertIn("case_lane_seconds_per_decision", source)
         self.assertIn("critical_seconds_per_decision", source)
         self.assertIn("slowest_single_decision_seconds", source)
+        self.assertIn("empirical_planning_plies", source)
+        self.assertIn("projected_empirical_planning_seconds", source)
 
     def test_strict_json_rejects_duplicate_keys_and_nonfinite_values(self) -> None:
         synthetic = Path("synthetic.json")
@@ -121,6 +123,8 @@ class D18V3VerifierSelfTest(unittest.TestCase):
         prep_sha = "a" * 64
         formal_sha = "b" * 64
         schedule = {
+            "schema_name": verifier.GAME_SCHEDULE_SCHEMA,
+            "schema_version": verifier.SCHEMA_VERSION,
             "game_id": "synthetic.m0",
             "task_id": "synthetic",
             "eval_size": 5,
@@ -275,6 +279,10 @@ class D18V3VerifierSelfTest(unittest.TestCase):
             ),
             "throughput_profile_formal_manifest_sha256": "1" * 64,
             "throughput_profile_formal_runner_sha256": verifier.sha256_file(formal),
+            "throughput_profile_empirical_capacity_evidence_sha256": (
+                verifier.EMPIRICAL_CAPACITY_EVIDENCE_SHA256
+            ),
+            "capacity_projection_method": verifier.CAPACITY_PROJECTION_METHOD,
             "scalar_lane_count": verifier.SCALAR_LANE_COUNT,
             "scalar_lane_execution_mode": verifier.SCALAR_LANE_EXECUTION_MODE,
             "inference_batch_size": verifier.INFERENCE_BATCH_SIZE,

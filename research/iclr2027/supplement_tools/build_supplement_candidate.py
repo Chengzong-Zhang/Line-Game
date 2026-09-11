@@ -33,6 +33,16 @@ import subject_binding  # noqa: E402
 
 STATUS = "candidate_only_not_approved"
 CLAIM_COMPLETE_PACKAGE_NAME = "lifeline_rl_claim_complete_candidate"
+CLAIM_COMPLETE_V2_HISTORY_TWIN_VERIFICATION_DESTINATION = (
+    "research/iclr2027/results/validation/"
+    "targeted_history_twin_n6_stage5_verification_v1.json"
+)
+CLAIM_COMPLETE_V2_PROFILE_PATH = (
+    "research/iclr2027/supplement_tools/claim_complete_profile_v2.json"
+)
+CLAIM_COMPLETE_V2_ALLOWLIST_PATH = (
+    "research/iclr2027/supplement_tools/supplement_claim_complete_allowlist_v2.json"
+)
 SUBJECT_BOUND_RECEIPT_SOURCE = (
     "research/iclr2027/supplement_tools/derived_claim_complete/"
     "ANONYMIZATION_DERIVATION.json"
@@ -109,6 +119,12 @@ JS_SIMPLE_ESCAPE_VALUES = {
 JS_CONTROL_HEAD_KEYWORDS = frozenset({"catch", "for", "if", "switch", "while", "with"})
 JS_BLOCK_PREFIX_KEYWORDS = frozenset({"do", "else", "finally", "try"})
 JS_REGEX_FLAGS = frozenset("dgimsuvy")
+JS_NODE_HASHBANG_LINES = frozenset(
+    {
+        "#!/usr/bin/env node",
+        "#!/usr/bin/node",
+    }
+)
 WINDOWS_RESERVED_DEVICE_NAMES = frozenset(
     {
         "aux",
@@ -1224,10 +1240,34 @@ def _js_brace_context(
     return None
 
 
+def _js_node_hashbang_end(text: str) -> int:
+    marker = text.find("#!")
+    if marker < 0:
+        return 0
+    if marker != 0:
+        raise _JavaScriptLexError(
+            "JavaScript hashbang is permitted only at source offset zero"
+        )
+
+    newline = text.find("\n")
+    if newline < 0:
+        line_end = len(text)
+        body_start = len(text)
+    else:
+        line_end = newline - 1 if newline > 0 and text[newline - 1] == "\r" else newline
+        body_start = newline + 1
+    if text[:line_end] not in JS_NODE_HASHBANG_LINES:
+        raise _JavaScriptLexError("unsupported JavaScript Node hashbang")
+    if "#!" in text[body_start:]:
+        raise _JavaScriptLexError("multiple JavaScript hashbang markers are forbidden")
+    return line_end
+
+
 def _js_lex_source(text: str) -> tuple[list[tuple[str, int, int]], str]:
     literals: list[tuple[str, int, int]] = []
     masked = list(text)
-    index = 0
+    index = _js_node_hashbang_end(text)
+    masked[:index] = " " * index
     last_significant: str | None = None
     last_token: str | None = None
     previous_token: str | None = None
@@ -1939,6 +1979,8 @@ def _scan_documents(
         # that is otherwise ordinary UTF-8 text. Any later BOM or other Unicode
         # format control remains a fail-closed finding.
         scan_text = text[1:] if text.startswith("\ufeff") else text
+        if suffix in {".js", ".mjs"} and text.startswith("\ufeff#!"):
+            finding_keys.add((relative, "invalid_or_ambiguous_javascript_source"))
         _record_text_controls(relative, scan_text, finding_keys)
         search_text = relative + "\n" + scan_text
         _record_pattern_and_identity_findings(
@@ -2266,7 +2308,52 @@ def _load_payload(
 
 
 def _readme_bytes(config: AllowlistConfig) -> bytes:
-    if config.package_name == "lifeline_rl_claim_complete_candidate":
+    if config.package_name == CLAIM_COMPLETE_PACKAGE_NAME and any(
+        entry.destination == CLAIM_COMPLETE_V2_HISTORY_TWIN_VERIFICATION_DESTINATION
+        for entry in config.files
+    ):
+        text = (
+            "# LIFELINE-RL claim-complete supplement candidate V2\n\n"
+            f"Status: `{STATUS}`; author approval is required.\n\n"
+            f"Purpose: {config.purpose}.\n\n"
+            "This exact allowlist is a deterministic anonymous technical review candidate for\n"
+            "claims C1 through C10. It extends the earlier claim-complete topology with the\n"
+            "allowlisted side-six history-twin search, replay evidence, verifiers, and tests.\n\n"
+            "The history-twin evidence supports only a narrow mask-free witness: two legal\n"
+            "histories from the standard side-six initial state reach the same mask-free\n"
+            "Topology projection while one shared placement is legal after one history and\n"
+            "rejected after the other exactly by Superko. The legal masks differ, so the\n"
+            "implemented mask-bearing Grid and Topology observations are not equal. It does\n"
+            "not establish a same-observation-and-mask future-decision witness, a different\n"
+            "optimal action or value, a learning benefit, TopologyHistory superiority, a\n"
+            "same-backbone ablation result, a shortest witness, or exhaustive coverage.\n\n"
+            "The seed/pair audit remains descriptive-only and authorizes no significance,\n"
+            "confidence, global ranking, causal representation, sample-efficiency, or unseen-size\n"
+            "inference. `formal_ready` in a D14--D16 receipt means artifact completeness only.\n\n"
+            "Excluded are unallowlisted execution trees, raw games or trajectories, model/checkpoint\n"
+            "bytes, logs, caches, databases, credentials, host paths, Git metadata/remotes, paper\n"
+            "and PDF files, and review/submission prose. The environment receipt and lock are\n"
+            "hash-bound, but no clean-install execution is claimed by this candidate.\n\n"
+            "## Local verification\n\n"
+            "From the source repository, verify these exact candidate bytes with the same private\n"
+            "identity-term file used during the build and the explicit V2 selectors:\n\n"
+            "```text\n"
+            "python -B research/iclr2027/supplement_tools/verify_claim_complete.py "
+            "--source-root <repo-root> "
+            f"--profile {CLAIM_COMPLETE_V2_PROFILE_PATH} "
+            f"--allowlist {CLAIM_COMPLETE_V2_ALLOWLIST_PATH} "
+            "--subject-commit <full-subject-commit> "
+            "--subject-tree <full-subject-tree> --candidate <candidate-dir> "
+            "--identity-file <private-identity-terms.json>\n"
+            "```\n\n"
+            "A technical PASS establishes only this allowlist, hash, transformation, claim-coverage,\n"
+            "and configured privacy-scan contract. It is not author approval, a final submission\n"
+            "package, or acceptance of any scientific claim beyond the admitted ledger. The scan\n"
+            "does not execute source or prove absence of arbitrarily computed runtime identifiers;\n"
+            "source inclusion and the complete identity-term list still require author review.\n"
+        )
+        return text.encode("utf-8")
+    if config.package_name == CLAIM_COMPLETE_PACKAGE_NAME:
         text = (
             "# LIFELINE-RL claim-complete supplement candidate\n\n"
             f"Status: `{STATUS}`; author approval is required.\n\n"

@@ -1,5 +1,5 @@
-import { GameEngine } from "./GameEngine.js?v=20260830a";
-import { MinimaxAI, restoreState } from "./AIEngine.js?v=20260830a";
+import { GameEngine } from "./GameEngine.js?v=20260910d";
+import { MinimaxAI, restoreState } from "./AIEngine.js?v=20260910d";
 
 self.onmessage = (event) => {
   if (event.data?.type !== "COMPUTE") {

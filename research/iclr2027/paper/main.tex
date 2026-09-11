@@ -34,8 +34,11 @@ We introduce \lifeline, a deterministic self-play benchmark combining a
 triangular lattice, player-specific logical connectivity, cascading removal,
 and history-dependent repetition. Complete side-five enumeration finds
 reachable latent topology differences but no difference in legal actions,
-transitions, exact values, or optimal actions; a standard-start side-six replay
-instead shows Superko preventing a repeatable six-transition loop. We compare
+transitions, exact values, or optimal actions. A standard-start side-six
+paired-history witness instead reaches identical mask-free topology while
+Superko changes the legality of one shared placement. Because the legal mask
+exposes that difference, this is not an alias of the implemented mask-bearing
+observations. We compare
 a padded CNN, physical-edge Grid-GNN, and typed-edge Topology-GNN in 15 matched
 mixed-size runs over sides 5, 7, and 9. Across the nine model--size cells, all
 45 final training-seed scores against Random exceed 0.5 on these jointly
@@ -63,8 +66,8 @@ are:
   and replayable trajectories, supported by rule-engine parity traces but not
   an exhaustive cross-implementation proof;
   \item exhaustive side-five and bounded larger-board diagnostics separating
-  latent topology aliasing from decision-relevant aliasing and Superko
-  activation; and
+  latent topology aliasing from a dual-engine side-six paired-history Superko
+  legality witness, with the mask-bearing observation boundary explicit; and
   \item a frozen five-seed comparison of three representations backed by 330
   receipts and 30,600 task-indexed replay-verified game records, without a
   global model ranking.
@@ -89,8 +92,10 @@ algorithmic and reproducibility picture
 \citep{silver2017mastering,silver2018general,anthony2017thinking,
 tian2019elf,schrittwieser2020mastering}. General-purpose multi-agent and game
 testbeds include OpenSpiel and PettingZoo
-\citep{lanctot2019openspiel,terry2020pettingzoo}; MCTS is surveyed by
-\citet{browne2012survey}. \lifeline{} is narrower than these platforms but
+\citep{lanctot2019openspiel,terry2020pettingzoo}; PGX supplies
+hardware-accelerated parallel game simulators for reinforcement learning
+\citep{koyamada2023pgx}. MCTS is surveyed by \citet{browne2012survey}.
+\lifeline{} is narrower than these platforms but
 targets a particular confound: rendered occupancy, player-specific logical
 connectivity, and repetition history can be distinct parts of simulator state.
 
@@ -101,8 +106,10 @@ work for the latter \citep{piette2020ludii,kowalski2019regular,
 kowalski2020efficient}; Polygames supplies zero-learning infrastructure across
 multiple games \citep{cazenave2021polygames}. Prior work transfers
 policy--value networks across Hex sizes, games, and variants
-\citep{gao2019transferable,soemers2021transfer}, and evaluates graph
-representations directly in chess RL and DQN-based Hex agents
+\citep{gao2019transferable,soemers2021transfer}; AlphaZero with GNNs has also
+been studied for scaling from small to larger board games
+\citep{benassayag2021smalllarge}. Graph representations are evaluated directly
+in chess RL and DQN-based Hex agents
 \citep{rigaux2024chessgraph,keller2023hexgnn}. These studies are the closest
 empirical neighbors, but do not establish topology-input superiority in
 \lifeline{} or unseen-size transfer for our models.
@@ -123,10 +130,12 @@ risks of discarding history or decision-relevant variables
 \citep{kaelbling1998planning,chrisman1992perceptual,
 givan2003equivalence,abel2017near}. Invalid-action masking further shows that
 legality information is part of the learning interface
-\citep{huang2022invalid}. Go's
-legality, graph-history interaction, combinatorics, and legal-position counting
-provide closely related precedent for repetition-sensitive state accounting
-\citep{kishimoto2004graph,tromp2007combinatorics,tromp2016number}. Our
+\citep{huang2022invalid}. Graph-history interaction is an established
+rules/search issue \citep{campbell1985graphhistory,kishimoto2004graph},
+including in Chinese chess \citep{wu2006graphhistory}. Go's legality,
+combinatorics, and legal-position counting provide closely related precedent
+for repetition-sensitive state accounting
+\citep{tromp2007combinatorics,tromp2016number}. Our
 diagnostics accordingly distinguish a full simulator
 state, an implemented masked observation, and deliberately weaker projections.
 
@@ -239,6 +248,10 @@ Logical edges and exact repetition histories may differ.
 We use \emph{occupancy projection} for the deliberately weaker map that omits
 the action mask. Results for that projection are never reported as aliases of
 the implemented Grid observation.
+We use \emph{mask-free Topology projection} for the board, typed logical edges,
+player to act, consecutive-pass count, and terminal flag, while omitting both
+the repetition history and legal-action mask. Equality under this projection
+is likewise not equality of the implemented Topology observation.
 
 \begin{definition}[Decision-relevant aliasing]
 An observation map $\phi$ aliases two states in a decision-relevant manner if
@@ -258,6 +271,13 @@ observation, exact zero-sum value, shared-action Q value, or optimal-action set.
 No reachable side-five move is rejected by Superko.
 \end{proposition}
 
+\begin{proposition}[Side-six paired-history legality witness]
+Under the frozen two-player rules and standard side-six start, two natural
+legal histories reach the same mask-free Topology projection but different
+Superko histories. The shared placement $(2,3)$ succeeds after one history and
+is rejected after the other exactly by Superko.
+\end{proposition}
+
 \paragraph{Evidence and boundary.}
 The complete raw graph contains 25,096 states and 67,505 transitions and is a
 DAG. It contains 976 Grid-alias groups and 1,088 pairs with different latent
@@ -267,18 +287,24 @@ not nonexistence at sizes 6--15. The replay witness therefore establishes weak
 full-state aliasing only; the paper does not currently claim that Grid is
 non-Markov or strategically insufficient across the benchmark family.
 
-Separately, a standard-start side-six trajectory naturally reaches a move that
-is rejected only by Superko. If enforcement is disabled while repetitions are
-still logged, that move closes a six-transition loop that can repeat. This
-establishes that the rule can bind, but not the stricter paired-state claim:
-we have not found two naturally reachable histories with identical mask-free
-Topology and different legality for a shared action.
+For the side-six witness, both histories agree exactly in board values, typed
+logical edges, player to act, consecutive skips, and terminal status. Their
+legal placement sets differ only at $(2,3)$ because the candidate-result key
+occurs in one retained history and not the other. Independent Python and Web
+verifiers replay the same persisted candidate from the standard initial state.
+The witness therefore establishes history-dependent legality under the
+mask-free Topology projection. It does not establish equal implemented
+observations, different exact values or optimal actions, or a learning benefit:
+the implemented Grid and Topology encodings include the differing legal mask.
 
 \paragraph{Witness construction.}
 Complete enumeration is combined with seeded random walks, collision indexing,
-and bounded shared-continuation search. Versioned witnesses retain legal
-histories, observation digests, full-state fingerprints, and replay assertions;
-unsuccessful larger-board searches retain their budgets and are labelled
+bounded shared-continuation search, and a candidate-only target-prioritized
+search. The latter includes PASS and uses its heuristic only to order the
+frontier; a separate verifier derives the frozen target independently and
+replays both histories. Versioned witnesses retain legal histories, exact
+projection payloads, full-state fingerprints, source hashes, and claim
+boundaries. Unsuccessful searches retain their budgets and are labelled
 \texttt{NOT\_FOUND\_WITHIN\_BUDGET}.
 
 \section{Benchmark Protocol}
@@ -391,9 +417,13 @@ trajectories match an independent Web implementation over sizes 5--15.
 Complete side-five enumeration covers 25,096 states and 67,505 transitions.
 All 1,088 topology-distinct Grid-equivalent pairs have identical legal sets,
 one-step observations, exact values, shared-action values, and optimal actions.
-A PASS-aware side-six search finds a natural Superko trigger, while a separate
-5,000-pair, 12,656-shared-action bounded continuation search finds no strict
-paired witness. The latter is a budgeted miss, not an absence proof.
+A PASS-aware side-six search first found a natural Superko trigger. A later
+deterministic search targeted its frozen rule state with a 25,000-state and
+depth-20 ceiling; it found a natural paired history after 8 examined states
+and 69 transitions. Independent Python and Web replay verifies the exact
+mask-free projection, distinct history sets, and the single-action legal-set
+difference. An earlier 5,000-pair, 12,656-shared-action continuation miss
+remains a budgeted historical result, not an absence proof.
 
 \subsection{Within-size self-play}
 
@@ -438,7 +468,7 @@ establish relative sample efficiency.
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.96\linewidth]{fig2_checkpoint_curves.pdf}
-  \caption{Frozen pooled score-rate probes against UCT-MCTS-16 from
+  \caption{\raggedright Frozen pooled score-rate probes against UCT-MCTS-16 from
   \texttt{arena\_learning\_curve.csv}, retained only as a schedule and
   reconciliation visualization. The vertical scale is focused on 0.35--0.98.
   Steps 40--160 pool 100 game records per point, whereas step 200 pools 1,000;
@@ -470,7 +500,7 @@ Direct play exhibits heterogeneous seed-level outcomes
 \begin{table}[H]
   \centering
   \footnotesize
-  \caption{Seed-level score summaries from A's perspective in
+  \caption{\raggedright Seed-level score summaries from A's perspective in
   \texttt{representation\_round\_robin.csv}. Each cell is median [min, max]
   across five training-seed tasks. Every 200-game task contains two
   deterministic color-conditioned outcomes, each repeated 100 times; ranges
@@ -527,6 +557,10 @@ for this completed D14--D16 bundle,
 \label{sec:limitations}
 
 \begin{itemize}
+  \item The side-six paired-history witness is equal only under a mask-free
+  Topology projection. Its implemented legal masks differ, so it is not an
+  identical-observation-and-mask decision witness and does not establish a
+  learned representation benefit.
   \item Results cover jointly trained sizes 5, 7, and 9, not zero-shot sizes 10
   or 12; history, logical-edge, cascade, and search-budget ablations remain.
   \item Grid-GNN and Topology-GNN differ in typed relations and hidden width, so
@@ -552,7 +586,10 @@ for this completed D14--D16 bundle,
 
 \lifeline{} isolates dynamic topology and history-dependent legality in a
 replayable benchmark. Side-five enumeration yields a decision-relevant negative
-result, while a side-six trace proves Superko can bind. Under one frozen
+result, while a dual-engine side-six paired-history witness shows that identical
+mask-free topology can still have different Superko legality. The implemented
+legal mask exposes this difference, so the stronger construct-validity question
+remains open. Under one frozen
 five-seed protocol, all 45 final seed scores against Random exceed 0.5 on seen
 sizes. UCT-MCTS-16 medians and ranges vary by model and size, while direct-play
 seed summaries are heterogeneous; duplicated trajectories rule out a global

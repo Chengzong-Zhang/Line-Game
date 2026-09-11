@@ -2308,6 +2308,19 @@ def render_report(report: Mapping[str, object]) -> str:
     return canonical_json_bytes(report).decode("utf-8")
 
 
+def write_report_stdout(rendered: str) -> None:
+    """Write canonical UTF-8/LF bytes without platform newline translation."""
+
+    payload = rendered.encode("utf-8")
+    binary_stdout = getattr(sys.stdout, "buffer", None)
+    if binary_stdout is None:
+        sys.stdout.write(rendered)
+        return
+    written = binary_stdout.write(payload)
+    if written != len(payload):
+        raise OSError("short canonical stdout write")
+
+
 def _blocked_publication_report(
     report: Mapping[str, object], blocker: str
 ) -> dict[str, object]:
@@ -2505,7 +2518,7 @@ def main() -> int:
                 "output publication failed before or during create-only commit",
             )
             rendered = render_report(report)
-    sys.stdout.write(rendered)
+    write_report_stdout(rendered)
     return 0 if json.loads(rendered)["ok"] else 2
 
 

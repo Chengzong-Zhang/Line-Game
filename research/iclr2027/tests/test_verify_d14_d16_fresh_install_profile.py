@@ -1204,6 +1204,29 @@ def test_report_render_is_deterministic_canonical_lf(monkeypatch):
     assert json.loads(first) == report
 
 
+def test_main_stdout_is_exact_canonical_utf8_lf(monkeypatch, capsysbinary):
+    report = {"blockers": [], "ok": True, "status": "PASS"}
+    monkeypatch.setattr(
+        verifier,
+        "build_report",
+        lambda *args, **kwargs: deepcopy(report),
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "verify_d14_d16_fresh_install_profile.py",
+            "--subject-commit",
+            "a" * 40,
+            "--subject-tree",
+            "b" * 40,
+        ],
+    )
+
+    assert verifier.main() == 0
+    assert capsysbinary.readouterr().out == verifier.canonical_json_bytes(report)
+
+
 def test_subject_package_tree_drift_blocks_pass(monkeypatch):
     unexpected = _reference_source_paths() + (
         "research/iclr2027/lifeline_rl/undeclared.py",

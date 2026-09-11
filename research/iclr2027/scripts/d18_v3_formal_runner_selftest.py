@@ -103,18 +103,27 @@ class D18V3FormalRunnerStructuralTests(unittest.TestCase):
         self.assertEqual(formal.GPU_SPEC, "5090-p")
         self.assertEqual(formal.IMAGE_UUID, "base-image-ec1e9vdbd3")
 
-    def test_capacity_projection_is_v3_sustained_lane_and_fail_closed(self) -> None:
+    def test_capacity_projection_is_v4_empirical_sustained_lane_and_fail_closed(self) -> None:
         self.assertEqual(formal.SCALAR_LANE_COUNT, 12)
         self.assertEqual(
             formal.THROUGHPUT_PROFILE_SCHEMA,
-            "lifeline-d18-v3-gpu-smoke-v3",
+            "lifeline-d18-v3-gpu-smoke-v4",
         )
-        self.assertEqual(formal.THROUGHPUT_PROFILE_SCHEMA_VERSION, 3)
+        self.assertEqual(formal.THROUGHPUT_PROFILE_SCHEMA_VERSION, 4)
+        evidence = formal._validated_empirical_capacity_evidence()
+        self.assertEqual(
+            {
+                size: row["empirical_planning_plies"]
+                for size, row in evidence["sizes"].items()
+            },
+            {"5": 32, "7": 84, "9": 138},
+        )
         projection_source = inspect.getsource(formal._formal_capacity_projection)
         self.assertIn("sustained_seconds", projection_source)
         self.assertIn("puct_decisions", projection_source)
         self.assertIn("critical_seconds_per_decision", projection_source)
         self.assertIn("slowest_single_decision_seconds", projection_source)
+        self.assertIn("empirical_planning_plies", projection_source)
         smoke_source = inspect.getsource(formal.gpu_smoke)
         self.assertLess(
             smoke_source.index("_require_capacity_projection"),
@@ -143,6 +152,39 @@ class D18V3FormalRunnerStructuralTests(unittest.TestCase):
         self.assertIn("stage manifest file_count differs", stage_source)
         self.assertIn("AutoDL stage file closure differs", stage_source)
         self.assertIn("stage semantic binding differs", stage_source)
+
+    def test_numeric_aggregation_binds_task_only_group_fail_closed(self) -> None:
+        numeric_source = inspect.getsource(formal._runner_numeric_artifact)
+        self.assertIn("tasks", inspect.signature(formal._runner_numeric_artifact).parameters)
+        self.assertIn("_runner_bind_inference_groups", numeric_source)
+        self.assertIn(
+            "tasks=tasks",
+            inspect.getsource(formal._preflight_existing_terminal_artifacts),
+        )
+        self.assertIn("tasks=tasks", inspect.getsource(formal.run_bundle))
+
+        task = {
+            "task_id": "task-a",
+            "inference_group_id": "d16-v3.padded_cnn_vs_grid_gnn.n5",
+            "model_pair": ["padded_cnn", "grid_gnn"],
+            "eval_size": 5,
+        }
+        record = {"task_id": "task-a"}
+        bound = formal._runner_bind_inference_groups([record], [task])
+        self.assertNotIn("inference_group_id", record)
+        self.assertEqual(
+            bound[0]["inference_group_id"], task["inference_group_id"]
+        )
+
+        conflicting = {
+            **record,
+            "inference_group_id": "d16-v3.grid_gnn_vs_resmlp.n5",
+        }
+        with self.assertRaisesRegex(
+            formal.FormalExecutionError,
+            "game inference group conflicts with its task",
+        ):
+            formal._runner_bind_inference_groups([conflicting], [task])
 
 
 if __name__ == "__main__":

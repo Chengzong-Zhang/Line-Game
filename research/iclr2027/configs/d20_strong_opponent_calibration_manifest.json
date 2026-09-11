@@ -1,0 +1,72 @@
+{
+  "schema_name": "lifeline-d20-strong-opponent-calibration-manifest",
+  "schema_version": 1,
+  "experiment_id": "d20_strong_opponent_calibration_minimax_d2_cap8_vs_uct16_v1",
+  "protocol_id": "d20_strong_opponent_calibration_protocol_20260909_v1",
+  "status": "formal_local_execution_authorized",
+  "relationship_to_d20_v2": {
+    "mode": "pre_execution_gate_only",
+    "candidate_replacement_after_failure_forbidden": true,
+    "passing_does_not_close_d19_v2_construct_validity_blocker": true,
+    "d20_v2_manifest_sha256": "DDB4977899125C0233EC377463A17E9F2946CA552462576B00A3146FAF205A42"
+  },
+  "candidate": {
+    "id": "minimax_d2_cap8_v1",
+    "kind": "minimax_alpha_beta",
+    "depth": 2,
+    "move_cap": 8,
+    "heuristic": "lifeline_rl.agents.heuristic.HeuristicWeights.default"
+  },
+  "reference": {
+    "id": "uct_mcts_s16_d80_v1",
+    "kind": "uct_mcts_uniform_rollout",
+    "simulations": 16,
+    "rollout_depth": 80,
+    "exploration": 1.4142135623730951
+  },
+  "arena": {
+    "sizes": [10, 12],
+    "blocks_per_size": 5,
+    "openings_per_block": 4,
+    "colour_swapped_games_per_opening": 2,
+    "start_player": "BLACK",
+    "superko_mode": "enforce",
+    "max_total_plies": 256,
+    "opening_generator": "counter_seeded_rule_engine_only_v1",
+    "opening_prefix_lengths": [3, 4, 5, 6, 7, 8],
+    "opening_uniqueness": "state_fingerprint_within_size"
+  },
+  "inference": {
+    "primary_statistical_unit": "fixed_rng_block",
+    "block_score_games": 8,
+    "student_t_critical_two_sided_95_df4": 2.7764451051977987,
+    "lower_confidence_bound_rule": "strictly_greater_than_0.5",
+    "pooled_games_are_independent": false
+  },
+  "planned_totals": {
+    "sizes": 2,
+    "blocks": 10,
+    "openings": 40,
+    "colour_balanced_pairs": 40,
+    "games": 80
+  },
+  "protocol_sha256": "35CF23F74B8ED5CFA0F4DC6D93A11E74F0138BDC71E6D9FFA6D5C90FBA33117C",
+  "source_bindings": {
+    "research/iclr2027/scripts/d20_strong_opponent_calibration.py": "7C4FB3DD3EC9B9CF9FF53910A165AA6D5AB75B840FA95466B8352975EFE0146E",
+    "research/iclr2027/scripts/verify_d20_strong_opponent_calibration.py": "4C2A413B9B4E9894829267305D6D60A52363CA65C3D07DA65E105BFC9B8E5FAA",
+    "research/iclr2027/lifeline_rl/__init__.py": "6E40EDE87432A3B4258D0F31A9BBE87C92BB668885CC5C020E420C1388F47592",
+    "research/iclr2027/lifeline_rl/arena.py": "A613574BAEE606C2ED87DE9EB0408DC61356B9EE2D41ED7A6F5B099D22AE9599",
+    "research/iclr2027/lifeline_rl/core.py": "A3219C931608AB76F466CF5278E6297DDFDF128B19D721A16FAB895EB81E05E7",
+    "research/iclr2027/lifeline_rl/encoding.py": "B9A6A14CB627853936333968C8E931D7622B56AD6F0C48251B5E658D5494C33D",
+    "research/iclr2027/lifeline_rl/env.py": "B6B1D53B49057995A9B37BF1D87FD19FDA15C68253FBAF9E2D8C6B032C6DA03C",
+    "research/iclr2027/lifeline_rl/agents/__init__.py": "19018EFCABA773B02152D92657893745D0A8A0B59684CB5333603E7F6FEFE892",
+    "research/iclr2027/lifeline_rl/agents/base.py": "1DDEC90C62491F747FDB670D042B60A99F7559487AFDFC42E468F16990FD8B6C",
+    "research/iclr2027/lifeline_rl/agents/cycle_seeking.py": "1A227CCB1CCE0BFE1A78DCC99BAF6DF05F0697FCF9F5FEE12841BC3C661E552D",
+    "research/iclr2027/lifeline_rl/agents/factory.py": "737BE45B442B17CF9D76C1F6223ED0C6E0DD059AEBEAA3A25793A5F5D7D63481",
+    "research/iclr2027/lifeline_rl/agents/greedy.py": "6C7CD96CC96A7C4789FF0F78A08F40BA92EC4A5E7199F125978FD3C3483BA622",
+    "research/iclr2027/lifeline_rl/agents/heuristic.py": "F5A90D1989FA1D2466E9908E905026867FE1B3B9AFD8F5027A17F466DC807A0C",
+    "research/iclr2027/lifeline_rl/agents/mcts.py": "0AB01DAE6A796B00C61748A30670C2E6195B14F8EDD02152FA1F6FFB4998ACAF",
+    "research/iclr2027/lifeline_rl/agents/minimax.py": "4C905517CCE420AA6B678975F208C370B02F252E4D39CAA07D456AB164BABB68",
+    "research/iclr2027/lifeline_rl/agents/random_agent.py": "416B7C94BC8CD989165A18543CEFAB03810561AE243958A4F42946305D3D628A"
+  }
+}

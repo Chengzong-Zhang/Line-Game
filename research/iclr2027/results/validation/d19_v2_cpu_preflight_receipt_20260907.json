@@ -1,0 +1,166 @@
+{
+  "authorization": {
+    "evaluation_authorized": false,
+    "gpu_authorized": false,
+    "training_authorized": false
+  },
+  "claim_boundary": {
+    "construct_validity_blocker_status": "OPEN",
+    "formal_result_status": "ABSENT",
+    "learning_effect_claimed": false,
+    "old_d19_v1_gate_status": "CLOSED",
+    "same_observation_and_mask_decision_witness_claimed": false,
+    "tensor_contract_prepared": true,
+    "topology_history_superiority_claimed": false
+  },
+  "contract_script_sha256": "42CE773E27E23459FAF4F9050E4F3D3EF9D14B2FB1DBF28F7E14CF95B395C028",
+  "evidence_tier": "cpu_contract_preflight_only",
+  "execution_counts": {
+    "checkpoints": 0,
+    "evaluation_games": 0,
+    "formal_results": 0,
+    "gpu_operations": 0,
+    "network_requests": 0,
+    "optimizer_steps": 0,
+    "self_play_games": 0,
+    "training_steps": 0
+  },
+  "experiment_id": "d19_v2_logical_edges_x_compact_history_candidate_v1",
+  "four_arm_factorial": {
+    "edge0_history0": {
+      "compact_history_enabled": false,
+      "logical_edges_enabled": false
+    },
+    "edge0_history1": {
+      "compact_history_enabled": true,
+      "logical_edges_enabled": false
+    },
+    "edge1_history0": {
+      "compact_history_enabled": false,
+      "logical_edges_enabled": true
+    },
+    "edge1_history1": {
+      "compact_history_enabled": true,
+      "logical_edges_enabled": true
+    }
+  },
+  "manifest_binding": {
+    "path": "research/iclr2027/configs/d19_v2_matched_history_ablation_manifest.json",
+    "sha256": "DD5718080492234FC33C8E67A2389D43C9F7B5368CAA76F9644503E6F8B5A18B"
+  },
+  "protocol_binding": {
+    "path": "research/iclr2027/D19_V2_MATCHED_HISTORY_ABLATION_PROTOCOL.md",
+    "sha256": "ACE2DA18E66E4DF5BC0E95EA61CB20A4990C2293AF032D7F2CCF52F403CFFF52"
+  },
+  "schema_name": "lifeline-d19-v2-matched-history-cpu-preflight",
+  "schema_version": 1,
+  "status": "PASS",
+  "tensor_and_model_checks": {
+    "backward_called": false,
+    "base_node_features_identical": true,
+    "device": "cpu",
+    "finite_cpu_forward": true,
+    "history_axis_is_zero_only": true,
+    "illegal_action_probability_mass_zero": true,
+    "initial_parameter_bytes_identical": true,
+    "legal_masks_identical_across_arms_for_each_position": true,
+    "logical_axis_is_zero_only": true,
+    "matched_node_feature_width": 12,
+    "optimizer_constructed": false,
+    "output_shapes": {
+      "edge0_history0": {
+        "logits": [
+          5,
+          79
+        ],
+        "value": [
+          5
+        ]
+      },
+      "edge0_history1": {
+        "logits": [
+          5,
+          79
+        ],
+        "value": [
+          5
+        ]
+      },
+      "edge1_history0": {
+        "logits": [
+          5,
+          79
+        ],
+        "value": [
+          5
+        ]
+      },
+      "edge1_history1": {
+        "logits": [
+          5,
+          79
+        ],
+        "value": [
+          5
+        ]
+      }
+    },
+    "parameter_counts": {
+      "edge0_history0": 63235,
+      "edge0_history1": 63235,
+      "edge1_history0": 63235,
+      "edge1_history1": 63235
+    },
+    "physical_relations_identical": true,
+    "preflight_batch_grid_sizes": [
+      5,
+      6,
+      9,
+      12
+    ],
+    "preflight_batch_rows": 5,
+    "same_seed_initial_state_sha256": "D178C2E9692EB8FD6C41064A22C8BCA61E818D7EAE79431C1B9C77FA0763452E",
+    "state_dict_shape_entry_count": 35,
+    "state_dict_shapes_identical": true,
+    "tensor_shape": {
+      "adjacency": [
+        5,
+        3,
+        78,
+        78
+      ],
+      "legal_action_mask": [
+        5,
+        79
+      ],
+      "node_features": [
+        5,
+        78,
+        12
+      ],
+      "node_mask": [
+        5,
+        78
+      ]
+    },
+    "torch_version": "2.7.1+cu118"
+  },
+  "verifier_script_sha256": "349FBFA654A989DF27D27EF65E72EC996841C70A1C9AF3DBD03A6291B19EA4B7",
+  "witness_check": {
+    "candidate_action": [
+      2,
+      3
+    ],
+    "candidate_action_index": 17,
+    "candidate_path": "research/iclr2027/results/validation/targeted_history_twin_n6_stage5_search_25k_v1.json",
+    "candidate_sha256": "4B87962DAFFB9AA44B2C67541EF420C8C1574C8E4D6820AFE518632BC10CF9E5",
+    "different_complete_histories": true,
+    "grid_size": 6,
+    "reference_compact_history_bit": 1,
+    "same_implemented_legal_mask": false,
+    "same_mask_free_topology": true,
+    "twin_compact_history_bit": 0,
+    "verification_path": "research/iclr2027/results/validation/targeted_history_twin_n6_stage5_verification_v1.json",
+    "verification_sha256": "555A97F4DA22EC1072AFD0C9B39B2269DA9A2DD30412528EF114013EB6FA1B1F"
+  }
+}

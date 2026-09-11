@@ -38,6 +38,17 @@ const networkStubUrl = asDataUrl(`
     PLAYER_RESIGNED: "PLAYER_RESIGNED",
   });
 `);
+const aiStateProtocolStubUrl = asDataUrl(`
+  export function serializeEngineState() { return {}; }
+`);
+const territoryWorkerSessionStubUrl = asDataUrl(`
+  export class OneShotTerritoryWorker {
+    constructor() {}
+    cancel() { return false; }
+    start() { return 1; }
+  }
+  export function applyTerritoryWorkerResult() { return false; }
+`);
 const controllerSource = await readFrontendSource("GameController.js");
 const rewrittenControllerSource = controllerSource
   .replace(
@@ -51,6 +62,14 @@ const rewrittenControllerSource = controllerSource
   .replace(
     /^import \{ ServerEvent \} from "\.\/NetworkManager\.js\?v=[^"]+";/m,
     `import { ServerEvent } from "${networkStubUrl}";`,
+  )
+  .replace(
+    /^import \{ serializeEngineState \} from "\.\/AIStateProtocol\.js\?v=[^"]+";/m,
+    `import { serializeEngineState } from "${aiStateProtocolStubUrl}";`,
+  )
+  .replace(
+    /^import \{\r?\n  OneShotTerritoryWorker,\r?\n  applyTerritoryWorkerResult,\r?\n\} from "\.\/TerritoryWorkerSession\.js\?v=[^"]+";/m,
+    `import { OneShotTerritoryWorker, applyTerritoryWorkerResult } from "${territoryWorkerSessionStubUrl}";`,
   );
 assert.notEqual(rewrittenControllerSource, controllerSource, "controller imports must be rewritten");
 const { GameController } = await import(asDataUrl(rewrittenControllerSource));

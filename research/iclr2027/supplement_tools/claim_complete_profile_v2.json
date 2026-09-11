@@ -1,0 +1,1587 @@
+{
+  "schema_version": 1,
+  "status": "candidate_only_not_approved",
+  "approval": "author_approval_required",
+  "claim_ids": [
+    "C1",
+    "C2",
+    "C3",
+    "C4",
+    "C5",
+    "C6",
+    "C7",
+    "C8",
+    "C9",
+    "C10"
+  ],
+  "descriptive_only_destinations": [
+    "research/iclr2027/reviews/d14_d16_seed_pair_descriptive_audit.py",
+    "research/iclr2027/reviews/d14_d16_seed_pair_descriptive_audit.json",
+    "research/iclr2027/reviews/d14_d16_seed_pair_descriptive_audit.md"
+  ],
+  "files": [
+    {
+      "source": "research/iclr2027/lifeline_rl/__init__.py",
+      "destination": "research/iclr2027/lifeline_rl/__init__.py",
+      "category": "reference_implementation",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/lifeline_rl/__init__.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/lifeline_rl/agents/__init__.py",
+      "destination": "research/iclr2027/lifeline_rl/agents/__init__.py",
+      "category": "reference_implementation",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/lifeline_rl/agents/__init__.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/lifeline_rl/agents/base.py",
+      "destination": "research/iclr2027/lifeline_rl/agents/base.py",
+      "category": "reference_implementation",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/lifeline_rl/agents/base.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/lifeline_rl/agents/cycle_seeking.py",
+      "destination": "research/iclr2027/lifeline_rl/agents/cycle_seeking.py",
+      "category": "reference_implementation",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/lifeline_rl/agents/cycle_seeking.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/lifeline_rl/agents/factory.py",
+      "destination": "research/iclr2027/lifeline_rl/agents/factory.py",
+      "category": "reference_implementation",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/lifeline_rl/agents/factory.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/lifeline_rl/agents/greedy.py",
+      "destination": "research/iclr2027/lifeline_rl/agents/greedy.py",
+      "category": "reference_implementation",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/lifeline_rl/agents/greedy.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/lifeline_rl/agents/heuristic.py",
+      "destination": "research/iclr2027/lifeline_rl/agents/heuristic.py",
+      "category": "reference_implementation",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/lifeline_rl/agents/heuristic.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/lifeline_rl/agents/mcts.py",
+      "destination": "research/iclr2027/lifeline_rl/agents/mcts.py",
+      "category": "reference_implementation",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/lifeline_rl/agents/mcts.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/lifeline_rl/agents/minimax.py",
+      "destination": "research/iclr2027/lifeline_rl/agents/minimax.py",
+      "category": "reference_implementation",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/lifeline_rl/agents/minimax.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/lifeline_rl/agents/random_agent.py",
+      "destination": "research/iclr2027/lifeline_rl/agents/random_agent.py",
+      "category": "reference_implementation",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/lifeline_rl/agents/random_agent.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/lifeline_rl/alphazero/__init__.py",
+      "destination": "research/iclr2027/lifeline_rl/alphazero/__init__.py",
+      "category": "reference_implementation",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/lifeline_rl/alphazero/__init__.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/lifeline_rl/alphazero/checkpoint.py",
+      "destination": "research/iclr2027/lifeline_rl/alphazero/checkpoint.py",
+      "category": "reference_implementation",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/lifeline_rl/alphazero/checkpoint.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/lifeline_rl/alphazero/config.py",
+      "destination": "research/iclr2027/lifeline_rl/alphazero/config.py",
+      "category": "reference_implementation",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/lifeline_rl/alphazero/config.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/lifeline_rl/alphazero/evaluation.py",
+      "destination": "research/iclr2027/lifeline_rl/alphazero/evaluation.py",
+      "category": "reference_implementation",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/lifeline_rl/alphazero/evaluation.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/lifeline_rl/alphazero/learning_health.py",
+      "destination": "research/iclr2027/lifeline_rl/alphazero/learning_health.py",
+      "category": "reference_implementation",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/lifeline_rl/alphazero/learning_health.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/lifeline_rl/alphazero/network.py",
+      "destination": "research/iclr2027/lifeline_rl/alphazero/network.py",
+      "category": "reference_implementation",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/lifeline_rl/alphazero/network.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/lifeline_rl/alphazero/neural_agent.py",
+      "destination": "research/iclr2027/lifeline_rl/alphazero/neural_agent.py",
+      "category": "reference_implementation",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/lifeline_rl/alphazero/neural_agent.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/lifeline_rl/alphazero/puct.py",
+      "destination": "research/iclr2027/lifeline_rl/alphazero/puct.py",
+      "category": "reference_implementation",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/lifeline_rl/alphazero/puct.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/lifeline_rl/alphazero/replay.py",
+      "destination": "research/iclr2027/lifeline_rl/alphazero/replay.py",
+      "category": "reference_implementation",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/lifeline_rl/alphazero/replay.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/lifeline_rl/alphazero/self_play.py",
+      "destination": "research/iclr2027/lifeline_rl/alphazero/self_play.py",
+      "category": "reference_implementation",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/lifeline_rl/alphazero/self_play.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/lifeline_rl/alphazero/trainer.py",
+      "destination": "research/iclr2027/lifeline_rl/alphazero/trainer.py",
+      "category": "reference_implementation",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/lifeline_rl/alphazero/trainer.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/lifeline_rl/arena.py",
+      "destination": "research/iclr2027/lifeline_rl/arena.py",
+      "category": "reference_implementation",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/lifeline_rl/arena.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/lifeline_rl/core.py",
+      "destination": "research/iclr2027/lifeline_rl/core.py",
+      "category": "reference_implementation",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/lifeline_rl/core.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/lifeline_rl/encoding.py",
+      "destination": "research/iclr2027/lifeline_rl/encoding.py",
+      "category": "reference_implementation",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/lifeline_rl/encoding.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/lifeline_rl/env.py",
+      "destination": "research/iclr2027/lifeline_rl/env.py",
+      "category": "reference_implementation",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/lifeline_rl/env.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/pyproject.toml",
+      "destination": "research/iclr2027/pyproject.toml",
+      "category": "package_config",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/pyproject.toml",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/requirements-d14-d16-win-cu118.lock.txt",
+      "destination": "research/iclr2027/requirements-d14-d16-win-cu118.lock.txt",
+      "category": "environment_lock",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/requirements-d14-d16-win-cu118.lock.txt",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/scripts/check_reference_parity.py",
+      "destination": "research/iclr2027/scripts/check_reference_parity.py",
+      "category": "reproducibility_runner",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/scripts/check_reference_parity.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/scripts/search_state_aliasing.py",
+      "destination": "research/iclr2027/scripts/search_state_aliasing.py",
+      "category": "reproducibility_runner",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/scripts/search_state_aliasing.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/scripts/validate_or_search_superko.py",
+      "destination": "research/iclr2027/scripts/validate_or_search_superko.py",
+      "category": "reproducibility_runner",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/scripts/validate_or_search_superko.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/scripts/d6_redteam_exact_audit.py",
+      "destination": "research/iclr2027/scripts/d6_redteam_exact_audit.py",
+      "category": "reproducibility_runner",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/scripts/d6_redteam_exact_audit.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/scripts/run_superko_ablation.py",
+      "destination": "research/iclr2027/scripts/run_superko_ablation.py",
+      "category": "reproducibility_runner",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/scripts/run_superko_ablation.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/scripts/run_superko_policy_matrix.py",
+      "destination": "research/iclr2027/scripts/run_superko_policy_matrix.py",
+      "category": "reproducibility_runner",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/scripts/run_superko_policy_matrix.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/scripts/verify_superko_policy_matrix.py",
+      "destination": "research/iclr2027/scripts/verify_superko_policy_matrix.py",
+      "category": "reproducibility_runner",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/scripts/verify_superko_policy_matrix.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/scripts/d14_d16_experiments.py",
+      "destination": "research/iclr2027/scripts/d14_d16_experiments.py",
+      "category": "reproducibility_runner",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/scripts/d14_d16_experiments.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/scripts/run_d14_d16_task_bundle.py",
+      "destination": "research/iclr2027/scripts/run_d14_d16_task_bundle.py",
+      "category": "reproducibility_runner",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/scripts/run_d14_d16_task_bundle.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/scripts/train_alphazero.py",
+      "destination": "research/iclr2027/scripts/train_alphazero.py",
+      "category": "reproducibility_runner",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/scripts/train_alphazero.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/scripts/verify_d14_d16_environment.py",
+      "destination": "research/iclr2027/scripts/verify_d14_d16_environment.py",
+      "category": "reproducibility_runner",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/scripts/verify_d14_d16_environment.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/scripts/run_neural_arena.py",
+      "destination": "research/iclr2027/scripts/run_neural_arena.py",
+      "category": "reproducibility_runner",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/scripts/run_neural_arena.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/scripts/verify_neural_arena_results.py",
+      "destination": "research/iclr2027/scripts/verify_neural_arena_results.py",
+      "category": "reproducibility_runner",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/scripts/verify_neural_arena_results.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/tests/__init__.py",
+      "destination": "research/iclr2027/tests/__init__.py",
+      "category": "targeted_test",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/tests/__init__.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/tests/test_agents.py",
+      "destination": "research/iclr2027/tests/test_agents.py",
+      "category": "targeted_test",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/tests/test_agents.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/tests/test_arena.py",
+      "destination": "research/iclr2027/tests/test_arena.py",
+      "category": "targeted_test",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/tests/test_arena.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/tests/test_core.py",
+      "destination": "research/iclr2027/tests/test_core.py",
+      "category": "targeted_test",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/tests/test_core.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/tests/test_cycle_seeking_agent.py",
+      "destination": "research/iclr2027/tests/test_cycle_seeking_agent.py",
+      "category": "targeted_test",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/tests/test_cycle_seeking_agent.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/tests/test_env.py",
+      "destination": "research/iclr2027/tests/test_env.py",
+      "category": "targeted_test",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/tests/test_env.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/tests/test_serialization.py",
+      "destination": "research/iclr2027/tests/test_serialization.py",
+      "category": "targeted_test",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/tests/test_serialization.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/tests/test_validation.py",
+      "destination": "research/iclr2027/tests/test_validation.py",
+      "category": "targeted_test",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/tests/test_validation.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/tests/test_search_baselines.py",
+      "destination": "research/iclr2027/tests/test_search_baselines.py",
+      "category": "targeted_test",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/tests/test_search_baselines.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/tests/test_d6_aliasing.py",
+      "destination": "research/iclr2027/tests/test_d6_aliasing.py",
+      "category": "targeted_test",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/tests/test_d6_aliasing.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/tests/test_alphazero_checkpoint.py",
+      "destination": "research/iclr2027/tests/test_alphazero_checkpoint.py",
+      "category": "targeted_test",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/tests/test_alphazero_checkpoint.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/tests/test_alphazero_config.py",
+      "destination": "research/iclr2027/tests/test_alphazero_config.py",
+      "category": "targeted_test",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/tests/test_alphazero_config.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/tests/test_alphazero_evaluation.py",
+      "destination": "research/iclr2027/tests/test_alphazero_evaluation.py",
+      "category": "targeted_test",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/tests/test_alphazero_evaluation.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/tests/test_alphazero_learning_health.py",
+      "destination": "research/iclr2027/tests/test_alphazero_learning_health.py",
+      "category": "targeted_test",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/tests/test_alphazero_learning_health.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/tests/test_alphazero_model_families.py",
+      "destination": "research/iclr2027/tests/test_alphazero_model_families.py",
+      "category": "targeted_test",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/tests/test_alphazero_model_families.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/tests/test_alphazero_network.py",
+      "destination": "research/iclr2027/tests/test_alphazero_network.py",
+      "category": "targeted_test",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/tests/test_alphazero_network.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/tests/test_alphazero_neural_agent.py",
+      "destination": "research/iclr2027/tests/test_alphazero_neural_agent.py",
+      "category": "targeted_test",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/tests/test_alphazero_neural_agent.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/tests/test_alphazero_puct.py",
+      "destination": "research/iclr2027/tests/test_alphazero_puct.py",
+      "category": "targeted_test",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/tests/test_alphazero_puct.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/tests/test_alphazero_replay.py",
+      "destination": "research/iclr2027/tests/test_alphazero_replay.py",
+      "category": "targeted_test",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/tests/test_alphazero_replay.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/tests/test_alphazero_self_play.py",
+      "destination": "research/iclr2027/tests/test_alphazero_self_play.py",
+      "category": "targeted_test",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/tests/test_alphazero_self_play.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/tests/test_alphazero_trainer.py",
+      "destination": "research/iclr2027/tests/test_alphazero_trainer.py",
+      "category": "targeted_test",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/tests/test_alphazero_trainer.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/tests/test_d14_d16_executor.py",
+      "destination": "research/iclr2027/tests/test_d14_d16_executor.py",
+      "category": "targeted_test",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/tests/test_d14_d16_executor.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/tests/test_d14_d16_experiment_protocol.py",
+      "destination": "research/iclr2027/tests/test_d14_d16_experiment_protocol.py",
+      "category": "targeted_test",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/tests/test_d14_d16_experiment_protocol.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/tests/test_superko_ablation.py",
+      "destination": "research/iclr2027/tests/test_superko_ablation.py",
+      "category": "targeted_test",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/tests/test_superko_ablation.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/tests/test_superko_pilot.py",
+      "destination": "research/iclr2027/tests/test_superko_pilot.py",
+      "category": "targeted_test",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/tests/test_superko_pilot.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/tests/test_superko_policy_matrix.py",
+      "destination": "research/iclr2027/tests/test_superko_policy_matrix.py",
+      "category": "targeted_test",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/tests/test_superko_policy_matrix.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/tests/test_verify_superko_policy_matrix.py",
+      "destination": "research/iclr2027/tests/test_verify_superko_policy_matrix.py",
+      "category": "targeted_test",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/tests/test_verify_superko_policy_matrix.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/tests/fixtures/aliasing_pair.json",
+      "destination": "research/iclr2027/tests/fixtures/aliasing_pair.json",
+      "category": "test_fixture",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/tests/fixtures/aliasing_pair.json",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/D2_environment_status.md",
+      "destination": "research/iclr2027/D2_environment_status.md",
+      "category": "claim_evidence_narrative",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/D2_environment_status.md",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/D4_D5_validation_report.md",
+      "destination": "research/iclr2027/D4_D5_validation_report.md",
+      "category": "claim_evidence_narrative",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/D4_D5_validation_report.md",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/D6_state_aliasing.md",
+      "destination": "research/iclr2027/D6_state_aliasing.md",
+      "category": "claim_evidence_narrative",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/D6_state_aliasing.md",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/d6_redteam_audit.md",
+      "destination": "research/iclr2027/d6_redteam_audit.md",
+      "category": "claim_evidence_narrative",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/d6_redteam_audit.md",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/D14_D16_RESULTS.md",
+      "destination": "research/iclr2027/D14_D16_RESULTS.md",
+      "category": "claim_evidence_narrative",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/D14_D16_RESULTS.md",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/SUPERKO_ABLATION_PROTOCOL.md",
+      "destination": "research/iclr2027/SUPERKO_ABLATION_PROTOCOL.md",
+      "category": "claim_evidence_narrative",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/SUPERKO_ABLATION_PROTOCOL.md",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/SUPERKO_ABLATION_RESULTS.md",
+      "destination": "research/iclr2027/SUPERKO_ABLATION_RESULTS.md",
+      "category": "claim_evidence_narrative",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/SUPERKO_ABLATION_RESULTS.md",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/SUPERKO_POLICY_MATRIX_PROTOCOL.md",
+      "destination": "research/iclr2027/SUPERKO_POLICY_MATRIX_PROTOCOL.md",
+      "category": "claim_evidence_narrative",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/SUPERKO_POLICY_MATRIX_PROTOCOL.md",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/SUPERKO_POLICY_MATRIX_RESULTS.md",
+      "destination": "research/iclr2027/SUPERKO_POLICY_MATRIX_RESULTS.md",
+      "category": "claim_evidence_narrative",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/SUPERKO_POLICY_MATRIX_RESULTS.md",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/d6_redteam_exact_audit.json",
+      "destination": "research/iclr2027/d6_redteam_exact_audit.json",
+      "category": "validation_evidence",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/d6_redteam_exact_audit.json",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/state_aliasing/pairs_v1.json",
+      "destination": "research/iclr2027/state_aliasing/pairs_v1.json",
+      "category": "validation_evidence",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/state_aliasing/pairs_v1.json",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/state_aliasing/search_report_v1.json",
+      "destination": "research/iclr2027/state_aliasing/search_report_v1.json",
+      "category": "validation_evidence",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/state_aliasing/search_report_v1.json",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/state_aliasing/superko_n6_witness_v1.json",
+      "destination": "research/iclr2027/state_aliasing/superko_n6_witness_v1.json",
+      "category": "validation_evidence",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/state_aliasing/superko_n6_witness_v1.json",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/results/validation/d6_random_n5_final.json",
+      "destination": "research/iclr2027/results/validation/d6_random_n5_final.json",
+      "category": "validation_evidence",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/results/validation/d6_random_n5_final.json",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/results/validation/d6_random_n6_final.json",
+      "destination": "research/iclr2027/results/validation/d6_random_n6_final.json",
+      "category": "validation_evidence",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/results/validation/d6_random_n6_final.json",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/results/validation/superko_exhaustive_n5_20260825.json",
+      "destination": "research/iclr2027/results/validation/superko_exhaustive_n5_20260825.json",
+      "category": "validation_evidence",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/results/validation/superko_exhaustive_n5_20260825.json",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/results/validation/superko_random_n6_seed20260826.json",
+      "destination": "research/iclr2027/results/validation/superko_random_n6_seed20260826.json",
+      "category": "validation_evidence",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/results/validation/superko_random_n6_seed20260826.json",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/results/validation/superko_random_n7_seed20260826.json",
+      "destination": "research/iclr2027/results/validation/superko_random_n7_seed20260826.json",
+      "category": "validation_evidence",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/results/validation/superko_random_n7_seed20260826.json",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/results/validation/superko_policy_matrix_attempt2_link.json",
+      "destination": "research/iclr2027/results/validation/superko_policy_matrix_attempt2_link.json",
+      "category": "validation_evidence",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/results/validation/superko_policy_matrix_attempt2_link.json",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/configs/d14_d16_formal_manifest.json",
+      "destination": "research/iclr2027/configs/d14_d16_formal_manifest.json",
+      "category": "frozen_config",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/configs/d14_d16_formal_manifest.json",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/configs/d14_d16_parameter_counts.json",
+      "destination": "research/iclr2027/configs/d14_d16_parameter_counts.json",
+      "category": "frozen_config",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/configs/d14_d16_parameter_counts.json",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/configs/seed_registry.json",
+      "destination": "research/iclr2027/configs/seed_registry.json",
+      "category": "frozen_config",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/configs/seed_registry.json",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/results/validation/d14_d16_independent_receipt_audit_20260831.json",
+      "destination": "research/iclr2027/results/validation/d14_d16_independent_receipt_audit_20260831.json",
+      "category": "independent_audit_receipt",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/results/validation/d14_d16_independent_receipt_audit_20260831.json",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/reviews/independent_receipt_audit.py",
+      "destination": "research/iclr2027/reviews/independent_receipt_audit.py",
+      "category": "independent_audit_runner",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/reviews/independent_receipt_audit.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/reviews/d14_d16_seed_pair_descriptive_audit.py",
+      "destination": "research/iclr2027/reviews/d14_d16_seed_pair_descriptive_audit.py",
+      "category": "descriptive_audit_runner",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/reviews/d14_d16_seed_pair_descriptive_audit.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/reviews/d14_d16_seed_pair_descriptive_audit.json",
+      "destination": "research/iclr2027/reviews/d14_d16_seed_pair_descriptive_audit.json",
+      "category": "descriptive_only_no_inference",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/reviews/d14_d16_seed_pair_descriptive_audit.json",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/reviews/d14_d16_seed_pair_descriptive_audit.md",
+      "destination": "research/iclr2027/reviews/d14_d16_seed_pair_descriptive_audit.md",
+      "category": "descriptive_only_no_inference",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/reviews/d14_d16_seed_pair_descriptive_audit.md",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/results/formal/d14_d16/aggregate_v1/aggregate.json",
+      "destination": "research/iclr2027/results/formal/d14_d16/aggregate_v1/aggregate.json",
+      "category": "formal_aggregate",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/results/formal/d14_d16/aggregate_v1/aggregate.json",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/results/formal/d14_d16/aggregate_v1/arena_learning_curve.csv",
+      "destination": "research/iclr2027/results/formal/d14_d16/aggregate_v1/arena_learning_curve.csv",
+      "category": "formal_aggregate",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/results/formal/d14_d16/aggregate_v1/arena_learning_curve.csv",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/results/formal/d14_d16/aggregate_v1/final_vs_search.csv",
+      "destination": "research/iclr2027/results/formal/d14_d16/aggregate_v1/final_vs_search.csv",
+      "category": "formal_aggregate",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/results/formal/d14_d16/aggregate_v1/final_vs_search.csv",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/results/formal/d14_d16/aggregate_v1/representation_round_robin.csv",
+      "destination": "research/iclr2027/results/formal/d14_d16/aggregate_v1/representation_round_robin.csv",
+      "category": "formal_aggregate",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/results/formal/d14_d16/aggregate_v1/representation_round_robin.csv",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/results/formal/d14_d16/aggregate_v1/training_curve.csv",
+      "destination": "research/iclr2027/results/formal/d14_d16/aggregate_v1/training_curve.csv",
+      "category": "formal_aggregate",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/results/formal/d14_d16/aggregate_v1/training_curve.csv",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/results/formal/d14_d16/task_bundle_v1/training_tasks.jsonl",
+      "destination": "research/iclr2027/results/formal/d14_d16/task_bundle_v1/training_tasks.jsonl",
+      "category": "formal_task_definition",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/results/formal/d14_d16/task_bundle_v1/training_tasks.jsonl",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/results/formal/d14_d16/task_bundle_v1/evaluation_tasks.jsonl",
+      "destination": "research/iclr2027/results/formal/d14_d16/task_bundle_v1/evaluation_tasks.jsonl",
+      "category": "formal_task_definition",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/results/formal/d14_d16/task_bundle_v1/evaluation_tasks.jsonl",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/results/formal/d14_d16/task_bundle_v1/manifest_snapshot.json",
+      "destination": "research/iclr2027/results/formal/d14_d16/task_bundle_v1/manifest_snapshot.json",
+      "category": "formal_task_definition",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/results/formal/d14_d16/task_bundle_v1/manifest_snapshot.json",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/configs/d14_d16_executor_smoke_manifest.json",
+      "destination": "research/iclr2027/configs/d14_d16_executor_smoke_manifest.json",
+      "category": "engineering_test_config",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/configs/d14_d16_executor_smoke_manifest.json",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/D14_D16_FRESH_INSTALL_PREFLIGHT.md",
+      "destination": "research/iclr2027/D14_D16_FRESH_INSTALL_PREFLIGHT.md",
+      "category": "reproducibility_guide",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/D14_D16_FRESH_INSTALL_PREFLIGHT.md",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/scripts/d14_d16_fresh_install_preflight.py",
+      "destination": "research/iclr2027/scripts/d14_d16_fresh_install_preflight.py",
+      "category": "reproducibility_runner",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/scripts/d14_d16_fresh_install_preflight.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/tests/test_d14_d16_fresh_install_preflight.py",
+      "destination": "research/iclr2027/tests/test_d14_d16_fresh_install_preflight.py",
+      "category": "targeted_test",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/tests/test_d14_d16_fresh_install_preflight.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/results/validation/d14_d16_execution_metadata_portable_20260831.json",
+      "destination": "research/iclr2027/results/validation/d14_d16_execution_metadata_portable_20260831.json",
+      "category": "environment_metadata",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/results/validation/d14_d16_execution_metadata_portable_20260831.json",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/tests/test_verify_d14_d16_environment.py",
+      "destination": "research/iclr2027/tests/test_verify_d14_d16_environment.py",
+      "category": "targeted_test",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/tests/test_verify_d14_d16_environment.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/results/validation/history_superko_n6_strict_pair_candidate_v1.json",
+      "destination": "research/iclr2027/results/validation/history_superko_n6_strict_pair_candidate_v1.json",
+      "category": "validation_evidence",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/results/validation/history_superko_n6_strict_pair_candidate_v1.json",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/results/validation/history_superko_n6_strict_pair_verification_v1.json",
+      "destination": "research/iclr2027/results/validation/history_superko_n6_strict_pair_verification_v1.json",
+      "category": "validation_evidence",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/results/validation/history_superko_n6_strict_pair_verification_v1.json",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/results/validation/targeted_history_twin_n6_stage5_search_25k_v1.json",
+      "destination": "research/iclr2027/results/validation/targeted_history_twin_n6_stage5_search_25k_v1.json",
+      "category": "validation_evidence",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/results/validation/targeted_history_twin_n6_stage5_search_25k_v1.json",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/results/validation/targeted_history_twin_n6_stage5_verification_v1.json",
+      "destination": "research/iclr2027/results/validation/targeted_history_twin_n6_stage5_verification_v1.json",
+      "category": "validation_evidence",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/results/validation/targeted_history_twin_n6_stage5_verification_v1.json",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/scripts/search_targeted_history_twin.py",
+      "destination": "research/iclr2027/scripts/search_targeted_history_twin.py",
+      "category": "reproducibility_runner",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/scripts/search_targeted_history_twin.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/scripts/verify_targeted_history_twin.py",
+      "destination": "research/iclr2027/scripts/verify_targeted_history_twin.py",
+      "category": "independent_verifier",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/scripts/verify_targeted_history_twin.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/scripts/verify_targeted_history_twin_web.mjs",
+      "destination": "research/iclr2027/scripts/verify_targeted_history_twin_web.mjs",
+      "category": "independent_verifier",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/scripts/verify_targeted_history_twin_web.mjs",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/supplement_tools/derived_claim_complete/history_twin_web_witness.mjs",
+      "destination": "web/history_twin_web_witness.mjs",
+      "category": "independent_reference",
+      "mode": "history_twin_web_witness_copy",
+      "inputs": [
+        {
+          "path": "web/web前端/guide/interesting/verify-superko-history-divergence.mjs",
+          "expected_sha256": "a9356765aa5f9938aed14ef9b7409c2e2e501e2f69f4d6d855f13c481e2b7fb2"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/supplement_tools/run_history_twin_candidate_verifiers.py",
+      "destination": "research/iclr2027/scripts/run_history_twin_candidate_verifiers.py",
+      "category": "independent_verifier",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/supplement_tools/run_history_twin_candidate_verifiers.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/tests/test_targeted_history_twin.py",
+      "destination": "research/iclr2027/tests/test_targeted_history_twin.py",
+      "category": "targeted_test",
+      "mode": "copy",
+      "inputs": [
+        {
+          "path": "research/iclr2027/tests/test_targeted_history_twin.py",
+          "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/supplement_tools/derived_claim_complete/reference_trace.mjs",
+      "destination": "research/iclr2027/scripts/reference_trace.mjs",
+      "category": "reproducibility_runner",
+      "mode": "reference_trace",
+      "inputs": [
+        {
+          "path": "research/iclr2027/scripts/reference_trace.mjs",
+          "expected_sha256": "7d0336ddb682c0d486dc988b71944a196b458e0f75f5c2c3333c2e3cf901b4a1"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/supplement_tools/derived_claim_complete/GameEngine.js",
+      "destination": "web/GameEngine.js",
+      "category": "independent_reference",
+      "mode": "game_engine_copy",
+      "inputs": [
+        {
+          "path": "web/web前端/GameEngine.js",
+          "expected_sha256": "48317759e700df1fceff97651bc1ba10ef07fa43eeddf081473b0c02aa03b173"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/supplement_tools/derived_claim_complete/CLAIM_EVIDENCE_LIMITATION.admitted.json",
+      "destination": "research/iclr2027/CLAIM_EVIDENCE_LIMITATION.admitted.json",
+      "category": "admitted_claim_ledger",
+      "mode": "claim_ledger_v6",
+      "inputs": [
+        {
+          "path": "research/iclr2027/paper/CLAIM_EVIDENCE_LIMITATION_V6.md",
+          "expected_sha256": "ef5e7714cf223c8d94df6b5f7257d6f1b31bd26d4e8b3799ae85a1138d4bd034"
+        },
+        {
+          "path": "research/iclr2027/paper/main.pdf",
+          "expected_sha256": "848c60359a0dcd829e33e8e0388f5fa0aa136a2e045215e0b8d63a8abffa99f6"
+        },
+        {
+          "path": "research/iclr2027/paper/main.tex",
+          "expected_sha256": "fe16b0bcde8a478319a33e4201e55d2279dae93b90f1dbff49e6a6033a4f3e21"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/supplement_tools/derived_claim_complete/D14_D16_EXPERIMENT_PROTOCOL.anonymized.md",
+      "destination": "research/iclr2027/D14_D16_EXPERIMENT_PROTOCOL.anonymized.md",
+      "category": "frozen_protocol_derivative",
+      "mode": "d14_protocol",
+      "inputs": [
+        {
+          "path": "research/iclr2027/D14_D16_EXPERIMENT_PROTOCOL.md",
+          "expected_sha256": "aa6b361e07efaf85844281aa8d8839abd2ae667bb52816ec77ade39a80ff8850"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/supplement_tools/derived_claim_complete/d14_d16_compact_receipts.jsonl",
+      "destination": "research/iclr2027/results/compact/d14_d16/d14_d16_compact_receipts.jsonl",
+      "category": "compact_receipt_ledger",
+      "mode": "compact_ledger",
+      "inputs": [
+        {
+          "path": "research/iclr2027/results/formal/d14_d16/run_v1/result_receipts.jsonl",
+          "expected_sha256": "ff3ef8bfd9b7a443bc42ba16ab9d4daa9f855a5d0432d58a62322686247b8114"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/supplement_tools/derived_claim_complete/d14_d16_ledger_status.anonymized.json",
+      "destination": "research/iclr2027/results/compact/d14_d16/d14_d16_ledger_status.anonymized.json",
+      "category": "compact_receipt_status",
+      "mode": "ledger_status",
+      "inputs": [
+        {
+          "path": "research/iclr2027/results/formal/d14_d16/run_v1/result_ledger_status.json",
+          "expected_sha256": "4fafef3e26d3a8d8b544ef6a40d8a8a21e73efb6177b748f3f44e777d2d7d898"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/supplement_tools/derived_claim_complete/superko_policy_matrix_v1_attempt2.anonymized.json",
+      "destination": "research/iclr2027/configs/superko_policy_matrix_v1_attempt2.anonymized.json",
+      "category": "frozen_config_derivative",
+      "mode": "superko_config",
+      "inputs": [
+        {
+          "path": "research/iclr2027/configs/superko_policy_matrix_v1_attempt2_manifest.json",
+          "expected_sha256": "d7df1541145e30401d299dd3bb59980195d6081a6eb6774473c48165dff0419b"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/supplement_tools/derived_claim_complete/superko_policy_matrix_attempt2_verification.anonymized.json",
+      "destination": "research/iclr2027/results/validation/superko_policy_matrix_attempt2_verification.anonymized.json",
+      "category": "verifier_receipt_derivative",
+      "mode": "superko_verification",
+      "inputs": [
+        {
+          "path": "research/iclr2027/results/validation/superko_policy_matrix_five_seed_v1_attempt2_verification.json",
+          "expected_sha256": "1a24d6bf21c11046fd004b1ac4fc0f667495a842395d2b2805763d14b9feca01"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/supplement_tools/derived_claim_complete/d14_d16_environment_verification.anonymized.json",
+      "destination": "research/iclr2027/results/validation/d14_d16_environment_verification.anonymized.json",
+      "category": "environment_receipt_derivative",
+      "mode": "environment_receipt",
+      "inputs": [
+        {
+          "path": "research/iclr2027/results/validation/d14_d16_environment_verification_20260831_v2.json",
+          "expected_sha256": "af9ff287c4522f61fb714f70e20392af6185e70db4a00335447c62ef5076868a"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/supplement_tools/derived_claim_complete/D14_D16_TERMINOLOGY_ERRATUM.anonymized.md",
+      "destination": "research/iclr2027/D14_D16_TERMINOLOGY_ERRATUM.anonymized.md",
+      "category": "claim_boundary_derivative",
+      "mode": "terminology_erratum",
+      "inputs": [
+        {
+          "path": "research/iclr2027/D14_D16_TERMINOLOGY_ERRATUM.md",
+          "expected_sha256": "275b303903a89c3c7697bc76a4e7d59e93325b281334cd9f6072dfd14fddaf3e"
+        }
+      ]
+    },
+    {
+      "source": "research/iclr2027/supplement_tools/derived_claim_complete/ANONYMIZATION_DERIVATION.json",
+      "destination": "research/iclr2027/results/validation/ANONYMIZATION_DERIVATION.json",
+      "category": "transformation_receipt",
+      "mode": "derivation_receipt",
+      "inputs": []
+    }
+  ]
+}

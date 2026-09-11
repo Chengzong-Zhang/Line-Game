@@ -58,6 +58,9 @@ research/iclr2027/results/validation/superko_ablation_n6_n7_pilot_20260825.json
 research/iclr2027/results/validation/superko_policy_matrix_dryrun_all_n6_n7.json
 research/iclr2027/results/validation/superko_ablation_smoke_20260825.json
 
+# Private subject-bound contract receipts contain real Git object IDs and stay local.
+research/iclr2027/results/validation/d14_d16_fresh_install_contract_internal_*.json
+
 # Local TLS certificate bundles and private keys
 web/备案/lifelinegame.cn_nginx/
 

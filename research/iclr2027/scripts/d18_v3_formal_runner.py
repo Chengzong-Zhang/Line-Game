@@ -69,6 +69,24 @@ VERIFIER_PATH = SCRIPT_DIR / "d18_v3_verify_evidence.py"
 DEPENDENCY_LOCK_PATH = (
     RESEARCH_ROOT / "autodl" / "d18_v3_runtime_requirements.lock.txt"
 )
+EMPIRICAL_CAPACITY_EVIDENCE_PATH = (
+    RESEARCH_ROOT
+    / "results"
+    / "validation"
+    / "d18_v3_empirical_capacity_evidence_v1.json"
+)
+EMPIRICAL_CAPACITY_EVIDENCE_BUILDER_PATH = (
+    SCRIPT_DIR / "build_d18_v3_empirical_capacity_evidence.py"
+)
+EMPIRICAL_CAPACITY_EVIDENCE_SCHEMA = (
+    "lifeline-d18-v3-empirical-capacity-evidence"
+)
+EMPIRICAL_CAPACITY_EVIDENCE_SCHEMA_VERSION = 1
+# Filled from the independently generated, source-manifest-bound receipt before
+# candidate v20 is frozen.  An empty value fails closed.
+EMPIRICAL_CAPACITY_EVIDENCE_EXPECTED_SHA256 = (
+    "93c75d0de84fe920919b13efb60141f344201f3f0e2078674fe453a57b651124"
+)
 BUNDLE_HASH_FILES = {
     "bundle_summary_sha256": "bundle_summary.json",
     "task_manifest_sha256": "tasks.jsonl",
@@ -81,6 +99,7 @@ STAGE_SEMANTIC_HASH_FIELDS = (
     "preparation_runner_sha256",
     "verifier_sha256",
     "dependency_lock_sha256",
+    "empirical_capacity_evidence_sha256",
     *BUNDLE_HASH_FILES,
 )
 WRITER_LOCK_NAME = ".d18_v3_formal_writer.lock"
@@ -92,13 +111,14 @@ SCALAR_LANE_EXECUTION_MODE = "production_equivalent_scalar_puct_lanes"
 INFERENCE_BATCH_SIZE = 1
 INFERENCE_DTYPE = "float32"
 AMP_ENABLED = False
-THROUGHPUT_PROFILE_SCHEMA = "lifeline-d18-v3-gpu-smoke-v3"
-THROUGHPUT_PROFILE_SCHEMA_VERSION = 3
+THROUGHPUT_PROFILE_SCHEMA = "lifeline-d18-v3-gpu-smoke-v4"
+THROUGHPUT_PROFILE_SCHEMA_VERSION = 4
 THROUGHPUT_CAPACITY_FAILURE_SCHEMA = (
-    "lifeline-d18-v3-gpu-smoke-capacity-failure-v1"
+    "lifeline-d18-v3-gpu-smoke-capacity-failure-v2"
 )
 CAPACITY_PROJECTION_METHOD = (
-    "sum_task_barriers_ceil_pairs_over_12_times_two_games_times_max_plies_"
+    "empirical_planning_projection_sum_task_barriers_ceil_pairs_over_12_"
+    "times_two_games_times_frozen_nearest_rank_p999_times_two_plies_by_size_"
     "times_slowest_observed_lane_sustained_seconds_per_decision"
 )
 THROUGHPUT_PROFILE_ARTIFACT_NAME = "throughput_profile.json"
@@ -163,6 +183,8 @@ THROUGHPUT_PROFILE_IDENTITY_FIELDS = (
     "throughput_profile_schema_version",
     "throughput_profile_formal_manifest_sha256",
     "throughput_profile_formal_runner_sha256",
+    "throughput_profile_empirical_capacity_evidence_sha256",
+    "capacity_projection_method",
     "scalar_lane_count",
     "scalar_lane_execution_mode",
     "inference_batch_size",
@@ -1388,11 +1410,167 @@ def _profile_coverage(lane_results: Sequence[Mapping[str, Any]]) -> dict[str, An
     }
 
 
+def _validated_empirical_capacity_evidence(
+    path: Path = EMPIRICAL_CAPACITY_EVIDENCE_PATH,
+) -> dict[str, Any]:
+    """Validate and independently recompute the frozen planning histogram."""
+
+    path = path.resolve()
+    _require(path.is_file(), "empirical capacity evidence is missing")
+    digest = sha256_file(path)
+    _require(
+        bool(EMPIRICAL_CAPACITY_EVIDENCE_EXPECTED_SHA256)
+        and digest == EMPIRICAL_CAPACITY_EVIDENCE_EXPECTED_SHA256,
+        "empirical capacity evidence SHA-256 differs from the frozen receipt",
+    )
+    evidence = _read_json(path)
+    _require(
+        evidence.get("schema_name") == EMPIRICAL_CAPACITY_EVIDENCE_SCHEMA
+        and evidence.get("schema_version")
+        == EMPIRICAL_CAPACITY_EVIDENCE_SCHEMA_VERSION
+        and evidence.get("status") == "PASS",
+        "empirical capacity evidence schema or status differs",
+    )
+    _require(
+        type(evidence.get("max_plies")) is int
+        and evidence["max_plies"] == 256
+        and type(evidence.get("planning_multiplier")) is int
+        and evidence["planning_multiplier"] == 2,
+        "empirical capacity evidence planning contract differs",
+    )
+    quantile = evidence.get("quantile")
+    _require(
+        isinstance(quantile, Mapping)
+        and quantile.get("method") == "nearest_rank"
+        and quantile.get("probability_numerator") == 999
+        and quantile.get("probability_denominator") == 1000,
+        "empirical capacity evidence quantile contract differs",
+    )
+    source_manifest = evidence.get("source_manifest")
+    _require(
+        isinstance(source_manifest, list)
+        and len(source_manifest) == 330
+        and evidence.get("total_source_files") == len(source_manifest),
+        "empirical capacity source manifest count differs",
+    )
+    observed_paths: set[str] = set()
+    for index, row in enumerate(source_manifest):
+        _require(
+            isinstance(row, Mapping)
+            and set(row) == {"path", "sha256", "bytes"},
+            f"empirical capacity source row schema differs: {index}",
+        )
+        raw_path = row.get("path")
+        raw_digest = row.get("sha256")
+        byte_count = row.get("bytes")
+        _require(
+            isinstance(raw_path, str)
+            and bool(raw_path)
+            and "\\" not in raw_path
+            and raw_path not in observed_paths,
+            f"empirical capacity source path is invalid: {index}",
+        )
+        _require(
+            isinstance(raw_digest, str)
+            and len(raw_digest) == 64
+            and all(character in "0123456789abcdef" for character in raw_digest)
+            and type(byte_count) is int
+            and byte_count > 0,
+            f"empirical capacity source hash or size is invalid: {index}",
+        )
+        observed_paths.add(raw_path)
+    _require(
+        evidence.get("source_manifest_sha256")
+        == canonical_sha256(source_manifest),
+        "empirical capacity source manifest digest differs",
+    )
+    sizes = evidence.get("sizes")
+    _require(
+        isinstance(sizes, Mapping) and set(sizes) == {"5", "7", "9"},
+        "empirical capacity size coverage differs",
+    )
+    total_games = 0
+    planning_by_size: dict[str, int] = {}
+    for size_key in ("5", "7", "9"):
+        row = sizes[size_key]
+        _require(
+            isinstance(row, Mapping),
+            f"empirical capacity size row is invalid: {size_key}",
+        )
+        game_count = row.get("game_count")
+        histogram = row.get("histogram")
+        _require(
+            type(game_count) is int
+            and game_count > 0
+            and isinstance(histogram, Mapping)
+            and bool(histogram),
+            f"empirical capacity histogram is invalid: {size_key}",
+        )
+        parsed_histogram: list[tuple[int, int]] = []
+        for raw_plies, raw_count in histogram.items():
+            _require(
+                isinstance(raw_plies, str)
+                and raw_plies.isdigit()
+                and str(int(raw_plies)) == raw_plies
+                and int(raw_plies) > 0
+                and type(raw_count) is int
+                and raw_count > 0,
+                f"empirical capacity histogram entry is invalid: {size_key}",
+            )
+            parsed_histogram.append((int(raw_plies), raw_count))
+        parsed_histogram.sort()
+        _require(
+            sum(count for _, count in parsed_histogram) == game_count,
+            f"empirical capacity histogram count differs: {size_key}",
+        )
+        nearest_rank = math.ceil(game_count * 999 / 1000)
+        cumulative = 0
+        p999_plies: int | None = None
+        for plies, count in parsed_histogram:
+            cumulative += count
+            if cumulative >= nearest_rank:
+                p999_plies = plies
+                break
+        _require(p999_plies is not None, "empirical capacity quantile is missing")
+        historical_max = parsed_histogram[-1][0]
+        planning_plies = int(p999_plies) * 2
+        _require(
+            row.get("historical_max_plies") == historical_max
+            and row.get("nearest_rank_p999_plies") == p999_plies
+            and row.get("empirical_planning_plies") == planning_plies
+            and historical_max < planning_plies < int(evidence["max_plies"]),
+            f"empirical capacity derived values differ: {size_key}",
+        )
+        planning_by_size[size_key] = planning_plies
+        total_games += game_count
+    _require(
+        total_games == 32_100
+        and evidence.get("total_games") == total_games
+        and evidence.get("total_truncated_games") == 0,
+        "empirical capacity aggregate counts differ",
+    )
+    _require(
+        planning_by_size == {"5": 32, "7": 84, "9": 138},
+        "empirical capacity planning vector differs",
+    )
+    return dict(evidence)
+
+
 def _formal_capacity_projection(
     lane_results: Sequence[Mapping[str, Any]],
     tasks: Sequence[Mapping[str, Any]],
+    *,
+    capacity_evidence: Mapping[str, Any] | None = None,
 ) -> tuple[list[dict[str, Any]], float]:
-    """Project each case from its slowest sustained per-lane decision rate."""
+    """Empirically plan each case from its slowest sustained per-lane rate."""
+
+    if capacity_evidence is None:
+        capacity_evidence = _validated_empirical_capacity_evidence()
+    sizes_evidence = capacity_evidence.get("sizes")
+    _require(
+        isinstance(sizes_evidence, Mapping),
+        "empirical capacity evidence size rows are missing",
+    )
 
     grouped: dict[tuple[tuple[str, str], int], list[Mapping[str, Any]]] = defaultdict(list)
     for row in lane_results:
@@ -1458,14 +1636,27 @@ def _formal_capacity_projection(
             critical_lane["seconds_per_decision"]
         )
         case_tasks = task_groups[key]
+        size_evidence = sizes_evidence.get(str(key[1]))
+        _require(
+            isinstance(size_evidence, Mapping),
+            "empirical capacity evidence is missing a board size",
+        )
+        empirical_planning_plies = int(
+            size_evidence["empirical_planning_plies"]
+        )
+        _require(
+            0 < empirical_planning_plies < 256
+            and all(int(task["max_plies"]) == 256 for task in case_tasks),
+            "formal max-plies or empirical planning-plies contract differs",
+        )
         case_decisions = sum(
-            int(task["games"]) * int(task["max_plies"])
+            int(task["games"]) * empirical_planning_plies
             for task in case_tasks
         )
         task_barrier_decisions_per_lane = [
             math.ceil(len(task["pair_plan"]) / SCALAR_LANE_COUNT)
             * 2
-            * int(task["max_plies"])
+            * empirical_planning_plies
             for task in case_tasks
         ]
         decisions_per_lane = sum(task_barrier_decisions_per_lane)
@@ -1477,9 +1668,14 @@ def _formal_capacity_projection(
                 "model_pair": list(key[0]),
                 "eval_size": key[1],
                 "formal_task_count": len(task_groups[key]),
-                "formal_worst_case_decisions": case_decisions,
-                "formal_worst_case_decisions_per_lane": decisions_per_lane,
-                "formal_task_barrier_decisions_per_lane": (
+                "formal_execution_max_plies": 256,
+                "empirical_planning_plies": empirical_planning_plies,
+                "historical_nearest_rank_p999_plies": int(
+                    size_evidence["nearest_rank_p999_plies"]
+                ),
+                "formal_empirical_planning_decisions": case_decisions,
+                "formal_empirical_planning_decisions_per_lane": decisions_per_lane,
+                "formal_task_barrier_empirical_decisions_per_lane": (
                     task_barrier_decisions_per_lane
                 ),
                 "observed_scalar_decision_count": len(decision_timings),
@@ -1493,7 +1689,7 @@ def _formal_capacity_projection(
                 ),
                 "critical_seconds_per_decision": critical_seconds_per_decision,
                 "capacity_projection_method": CAPACITY_PROJECTION_METHOD,
-                "projected_worst_case_seconds": projected,
+                "projected_empirical_planning_seconds": projected,
             }
         )
     return rows, total_projected
@@ -1508,9 +1704,16 @@ def _capacity_failure_diagnostic(
         "schema_name": THROUGHPUT_CAPACITY_FAILURE_SCHEMA,
         "schema_version": 1,
         "status": "FAIL_CLOSED",
-        "error": "formal throughput cannot finish the sustained-lane workload projection",
+        "error": (
+            "formal throughput cannot finish the frozen empirical sustained-lane "
+            "planning projection"
+        ),
         "formal_gameplay_budget_seconds": FORMAL_GAMEPLAY_BUDGET_SECONDS,
-        "projected_worst_case_seconds": float(projected_seconds),
+        "projected_empirical_planning_seconds": float(projected_seconds),
+        "capacity_projection_method": CAPACITY_PROJECTION_METHOD,
+        "empirical_capacity_evidence_sha256": (
+            EMPIRICAL_CAPACITY_EVIDENCE_EXPECTED_SHA256
+        ),
         "capacity_cases": [
             {
                 "case_index": int(row["case_index"]),
@@ -1523,8 +1726,9 @@ def _capacity_failure_diagnostic(
                 "slowest_single_decision_seconds": float(
                     row["slowest_single_decision_seconds"]
                 ),
-                "projected_worst_case_seconds": float(
-                    row["projected_worst_case_seconds"]
+                "empirical_planning_plies": int(row["empirical_planning_plies"]),
+                "projected_empirical_planning_seconds": float(
+                    row["projected_empirical_planning_seconds"]
                 ),
             }
             for row in capacity_cases
@@ -1704,8 +1908,13 @@ def gpu_smoke(
     _require(len(device_names) == 1, "GPU smoke lanes used different devices")
     _require(len(torch_versions) == 1, "GPU smoke lanes used different torch versions")
     _require(len(cuda_versions) == 1, "GPU smoke lanes used different CUDA runtimes")
-    capacity_cases, projected_worst_case_seconds = _formal_capacity_projection(
-        lane_results, tasks
+    empirical_capacity_evidence = _validated_empirical_capacity_evidence()
+    capacity_cases, projected_empirical_planning_seconds = (
+        _formal_capacity_projection(
+            lane_results,
+            tasks,
+            capacity_evidence=empirical_capacity_evidence,
+        )
     )
     aggregate_window_seconds = sum(
         max(
@@ -1761,7 +1970,9 @@ def gpu_smoke(
         free_after_bytes >= MIN_DEVICE_FREE_HEADROOM_BYTES,
         "formal persistent worker caches leave insufficient device headroom",
     )
-    _require_capacity_projection(capacity_cases, projected_worst_case_seconds)
+    _require_capacity_projection(
+        capacity_cases, projected_empirical_planning_seconds
+    )
     profile = {
         "schema_name": THROUGHPUT_PROFILE_SCHEMA,
         "schema_version": THROUGHPUT_PROFILE_SCHEMA_VERSION,
@@ -1793,7 +2004,19 @@ def gpu_smoke(
         "temperature": float(manifest["search"]["temperature"]),
         "root_noise": bool(manifest["search"]["add_root_noise"]),
         "data_supply": "registered_d18_v3_task_binding_and_opening_clone",
+        "capacity_projection_method": CAPACITY_PROJECTION_METHOD,
         "coverage": _profile_coverage(lane_results),
+        "empirical_capacity_evidence": {
+            "relative_path": _repo_relative(
+                EMPIRICAL_CAPACITY_EVIDENCE_PATH.resolve()
+            ),
+            "sha256": EMPIRICAL_CAPACITY_EVIDENCE_EXPECTED_SHA256,
+            "source_manifest_sha256": empirical_capacity_evidence[
+                "source_manifest_sha256"
+            ],
+            "schema_name": EMPIRICAL_CAPACITY_EVIDENCE_SCHEMA,
+            "schema_version": EMPIRICAL_CAPACITY_EVIDENCE_SCHEMA_VERSION,
+        },
         "capacity_cases": capacity_cases,
         "input_parse_and_collate_seconds": supply_seconds,
         "setup_seconds": workflow_overhead_seconds,
@@ -1825,7 +2048,9 @@ def gpu_smoke(
         "formal_runtime_seconds": MAX_RUNTIME_SECONDS,
         "non_gameplay_reserve_fraction": FORMAL_NON_GAMEPLAY_RESERVE_FRACTION,
         "formal_gameplay_budget_seconds": FORMAL_GAMEPLAY_BUDGET_SECONDS,
-        "projected_worst_case_seconds": projected_worst_case_seconds,
+        "projected_empirical_planning_seconds": (
+            projected_empirical_planning_seconds
+        ),
         "lane_results": lane_results,
         "gpu_utilization_samples_percent": utilization,
         "gpu_utilization_mean_percent": statistics.fmean(utilization) if utilization else None,
@@ -1925,6 +2150,7 @@ def _validate_throughput_profile_payload(
         "temperature": 0.0,
         "root_noise": False,
         "data_supply": "registered_d18_v3_task_binding_and_opening_clone",
+        "capacity_projection_method": CAPACITY_PROJECTION_METHOD,
         "formal_game_count": EXPECTED_GAMES,
         "formal_runtime_seconds": MAX_RUNTIME_SECONDS,
         "non_gameplay_reserve_fraction": FORMAL_NON_GAMEPLAY_RESERVE_FRACTION,
@@ -2666,9 +2892,30 @@ def _validate_throughput_profile_payload(
     _require(
         profile.get("formal_max_plies") == max_plies
         and profile.get("worst_case_puct_decisions") == worst_case_decisions,
-        "formal throughput worst-case workload drifted",
+        "formal throughput execution max-plies workload drifted",
     )
-    capacity_cases, projected = _formal_capacity_projection(lane_results, tasks)
+    empirical_capacity_evidence = _validated_empirical_capacity_evidence()
+    expected_evidence_identity = {
+        "relative_path": _repo_relative(
+            EMPIRICAL_CAPACITY_EVIDENCE_PATH.resolve()
+        ),
+        "sha256": EMPIRICAL_CAPACITY_EVIDENCE_EXPECTED_SHA256,
+        "source_manifest_sha256": empirical_capacity_evidence[
+            "source_manifest_sha256"
+        ],
+        "schema_name": EMPIRICAL_CAPACITY_EVIDENCE_SCHEMA,
+        "schema_version": EMPIRICAL_CAPACITY_EVIDENCE_SCHEMA_VERSION,
+    }
+    _require(
+        profile.get("empirical_capacity_evidence")
+        == expected_evidence_identity,
+        "formal throughput empirical capacity evidence identity drifted",
+    )
+    capacity_cases, projected = _formal_capacity_projection(
+        lane_results,
+        tasks,
+        capacity_evidence=empirical_capacity_evidence,
+    )
     _require(
         profile.get("capacity_cases") == capacity_cases,
         "formal throughput homogeneous capacity cases drifted",
@@ -2676,7 +2923,7 @@ def _validate_throughput_profile_payload(
     _require(
         math.isclose(
             _finite_number(
-                profile.get("projected_worst_case_seconds"),
+                profile.get("projected_empirical_planning_seconds"),
                 "throughput.projected_seconds",
             ),
             projected,
@@ -2684,7 +2931,7 @@ def _validate_throughput_profile_payload(
             abs_tol=1e-9,
         )
         and projected <= FORMAL_GAMEPLAY_BUDGET_SECONDS,
-        "formal throughput cannot finish the sustained-lane workload projection",
+        "formal throughput cannot finish the empirical sustained-lane planning projection",
     )
 
     resident_workers, aggregate_allocated, aggregate_reserved = (
@@ -2763,6 +3010,10 @@ def _throughput_profile_identity(
         "throughput_profile_formal_runner_sha256": profile[
             "formal_runner_sha256"
         ],
+        "throughput_profile_empirical_capacity_evidence_sha256": profile[
+            "empirical_capacity_evidence"
+        ]["sha256"],
+        "capacity_projection_method": profile["capacity_projection_method"],
         "scalar_lane_count": profile["scalar_lane_count"],
         "scalar_lane_execution_mode": profile["scalar_lane_execution_mode"],
         "inference_batch_size": profile["inference_batch_size"],
@@ -3051,9 +3302,20 @@ def _validate_game(
     from lifeline_rl import replay_game_record
 
     frozen_source = dict(source_identity or _current_source_identity())
+    _require(
+        schedule.get("schema_name") == prep.GAME_SCHEDULE_SCHEMA_NAME
+        and schedule.get("schema_version") == prep.SCHEMA_VERSION,
+        "frozen game schedule schema mismatch",
+    )
     for field, expected in schedule.items():
+        if field in {"schema_name", "schema_version"}:
+            continue
         _require(record.get(field) == expected, f"{schedule['game_id']}: schedule field changed: {field}")
     _require(record.get("schema_name") == GAME_SCHEMA, "formal game schema mismatch")
+    _require(
+        record.get("schema_version") == SCHEMA_VERSION,
+        "formal game schema version mismatch",
+    )
     _require(
         record.get("preparation_runner_sha256")
         == frozen_source["preparation_runner_sha256"]
@@ -3303,6 +3565,69 @@ def _runner_seed_t_interval(values: Sequence[float]) -> list[float]:
     return [max(0.0, mean - margin), min(1.0, mean + margin)]
 
 
+def _runner_bind_inference_groups(
+    records: Sequence[Mapping[str, Any]],
+    tasks: Sequence[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    """Join task-only inference groups to immutable game records."""
+
+    groups_by_task: dict[str, str] = {}
+    for task in tasks:
+        task_id = task.get("task_id")
+        inference_group_id = task.get("inference_group_id")
+        model_pair = task.get("model_pair")
+        eval_size = task.get("eval_size")
+        _require(
+            isinstance(task_id, str) and bool(task_id),
+            "canonical aggregation task ID is invalid",
+        )
+        _require(
+            isinstance(model_pair, list)
+            and len(model_pair) == 2
+            and all(isinstance(value, str) and bool(value) for value in model_pair),
+            f"{task_id}: canonical aggregation model pair is invalid",
+        )
+        _require(
+            isinstance(eval_size, int) and eval_size in prep.SIZES,
+            f"{task_id}: canonical aggregation evaluation size is invalid",
+        )
+        expected_group = f"d16-v3.{model_pair[0]}_vs_{model_pair[1]}.n{eval_size}"
+        _require(
+            inference_group_id == expected_group,
+            f"{task_id}: canonical aggregation inference group is inconsistent",
+        )
+        _require(
+            task_id not in groups_by_task,
+            f"duplicate canonical aggregation task: {task_id}",
+        )
+        groups_by_task[task_id] = expected_group
+
+    _require(bool(groups_by_task), "canonical aggregation has no task bindings")
+    bound: list[dict[str, Any]] = []
+    seen_task_ids: set[str] = set()
+    for record in records:
+        task_id = record.get("task_id")
+        _require(
+            isinstance(task_id, str) and task_id in groups_by_task,
+            "canonical aggregation record has no matching task",
+        )
+        expected_group = groups_by_task[task_id]
+        if "inference_group_id" in record:
+            _require(
+                record.get("inference_group_id") == expected_group,
+                f"{task_id}: game inference group conflicts with its task",
+            )
+        row = copy.deepcopy(dict(record))
+        row["inference_group_id"] = expected_group
+        bound.append(row)
+        seen_task_ids.add(task_id)
+    _require(
+        seen_task_ids == set(groups_by_task),
+        "canonical aggregation task coverage differs from the task manifest",
+    )
+    return bound
+
+
 def _runner_comparison_rows(
     records: Sequence[Mapping[str, Any]],
     *,
@@ -3387,9 +3712,11 @@ def _runner_comparison_rows(
 def _runner_numeric_artifact(
     records: Sequence[Mapping[str, Any]],
     *,
+    tasks: Sequence[Mapping[str, Any]],
     metadata: Mapping[str, Any],
     receipt_ledger_sha256: str,
 ) -> dict[str, Any]:
+    comparison_records = _runner_bind_inference_groups(records, tasks)
     return {
         "schema_name": "lifeline-d18-v3-runner-canonical-numeric",
         "schema_version": SCHEMA_VERSION,
@@ -3398,7 +3725,7 @@ def _runner_numeric_artifact(
         "task_manifest_sha256": metadata["task_manifest_sha256"],
         "game_manifest_sha256": metadata["game_manifest_sha256"],
         "receipt_ledger_sha256": receipt_ledger_sha256,
-        "comparison_rows": _runner_comparison_rows(records),
+        "comparison_rows": _runner_comparison_rows(comparison_records),
     }
 
 
@@ -3418,6 +3745,8 @@ def _execution_dependency_paths(manifest_path: Path) -> tuple[Path, ...]:
         SCRIPT_PATH,
         VERIFIER_PATH,
         DEPENDENCY_LOCK_PATH,
+        EMPIRICAL_CAPACITY_EVIDENCE_PATH,
+        EMPIRICAL_CAPACITY_EVIDENCE_BUILDER_PATH,
         prep.SCRIPT_PATH,
         Path(legacy.__file__).resolve(),
         Path(legacy.__file__).resolve().with_name("d17_d19_experiments.py"),
@@ -3506,6 +3835,9 @@ def _stage_semantic_bindings(
         "preparation_runner_sha256": _repo_relative(prep.SCRIPT_PATH),
         "verifier_sha256": _repo_relative(VERIFIER_PATH),
         "dependency_lock_sha256": _repo_relative(DEPENDENCY_LOCK_PATH),
+        "empirical_capacity_evidence_sha256": _repo_relative(
+            EMPIRICAL_CAPACITY_EVIDENCE_PATH
+        ),
         **{
             field: f"{bundle_relative}/{filename}"
             for field, filename in BUNDLE_HASH_FILES.items()
@@ -4269,6 +4601,7 @@ def _preflight_existing_terminal_artifacts(
     )
     expected_numeric = _runner_numeric_artifact(
         canonical_records,
+        tasks=tasks,
         metadata=metadata,
         receipt_ledger_sha256=ledger_sha256,
     )
@@ -4558,6 +4891,7 @@ def run_bundle(
         _require_execution_source_closure(metadata)
         numeric = _runner_numeric_artifact(
             canonical_records,
+            tasks=tasks,
             metadata=metadata,
             receipt_ledger_sha256=ledger_sha256,
         )
@@ -4969,6 +5303,7 @@ def prepare_autodl_stage(
     output: Path,
 ) -> dict[str, Any]:
     manifest, _, _, _ = load_frozen_bundle(manifest_path, bundle_directory)
+    _validated_empirical_capacity_evidence()
     output = _validate_write_target(
         manifest,
         output,
@@ -4998,6 +5333,9 @@ def prepare_autodl_stage(
         "preparation_runner_sha256": sha256_file(prep.SCRIPT_PATH),
         "verifier_sha256": sha256_file(VERIFIER_PATH),
         "dependency_lock_sha256": sha256_file(DEPENDENCY_LOCK_PATH),
+        "empirical_capacity_evidence_sha256": sha256_file(
+            EMPIRICAL_CAPACITY_EVIDENCE_PATH
+        ),
         **_bundle_hashes(bundle_directory.resolve()),
         "semantic_bindings": _stage_semantic_bindings(
             manifest_path.resolve(), bundle_directory.resolve()
@@ -5104,6 +5442,11 @@ def _validated_autodl_stage(
             and all(character in "0123456789abcdef" for character in digest),
             f"stage manifest digest is invalid: {field}",
         )
+    _require(
+        manifest.get("empirical_capacity_evidence_sha256")
+        == EMPIRICAL_CAPACITY_EVIDENCE_EXPECTED_SHA256,
+        "stage empirical capacity evidence differs from the frozen receipt",
+    )
     expected_files = set(planned) | {Path("autodl_stage_manifest.json")}
     expected_directories = _ancestor_directories(expected_files)
     observed_files: set[Path] = set()
@@ -5363,6 +5706,9 @@ def generate_job(
         "image_uuid": IMAGE_UUID,
         "dependency_lock": dependency_lock_relative,
         "dependency_lock_sha256": dependency_lock_sha256,
+        "empirical_capacity_evidence_sha256": (
+            EMPIRICAL_CAPACITY_EVIDENCE_EXPECTED_SHA256
+        ),
         "stage_manifest_sha256": stage_manifest_sha256,
         "setup_revision": setup_revision,
         "min_gpu_utilization_percent": 50,

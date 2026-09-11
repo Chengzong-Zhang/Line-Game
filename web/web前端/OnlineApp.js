@@ -1,5 +1,5 @@
-import GameController from "./GameController.js?v=20260830a";
-import { Player } from "./GameEngine.js?v=20260830a";
+import GameController from "./GameController.js?v=20260910c";
+import { Player } from "./GameEngine.js?v=20260910c";
 import { isWorkerResultCurrent, serializeEngineState } from "./AIStateProtocol.js?v=20260830a";
 import {
   OneShotHintWorker,
@@ -27,7 +27,7 @@ import {
   normalizeGameSettings as normalizeAppGameSettings,
   persistAuth as persistAppAuth,
   persistSession as persistAppSession,
-} from "./OnlineAppState.js?v=20260830a";
+} from "./OnlineAppState.js?v=20260910c";
 import {
   formatArea as formatAppArea,
   formatConnectionState as formatAppConnectionState,
@@ -41,7 +41,7 @@ import {
   UI_STYLE_STORAGE_KEY,
   UI_STYLE_ACADEMIC,
   localizeErrorMessage as localizeAppErrorMessage,
-} from "./OnlineAppI18n.js?v=20260830a";
+} from "./OnlineAppI18n.js?v=20260910c";
 import { ensureGuideRuleImages, getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20260508a";
 
 const {
@@ -576,7 +576,7 @@ const ScorePanel = {
         <small>{{ winnerLabel }}</small>
       </div>
 
-      <div class="score-grid">
+      <div class="score-grid" :aria-busy="gameState.territoryPending ? 'true' : 'false'">
         <article
           v-for="card in scoreCards"
           :key="card.key"
@@ -587,7 +587,7 @@ const ScorePanel = {
             <span :class="card.accentClass">{{ card.name }}</span><span>{{ texts.territorySuffix }}</span>
           </p>
           <p v-else>{{ card.label }}</p>
-          <strong>{{ formatArea(card.value) }}</strong>
+          <strong>{{ gameState.territoryPending ? "…" : formatArea(card.value) }}</strong>
           <span>{{ texts.area }}</span>
         </article>
       </div>
@@ -2474,7 +2474,7 @@ const App = {
     let aiRequestSequence = 0;
     let activeAiRequestId = null;
     const hintWorkerSession = new OneShotHintWorker(
-      () => new Worker(new URL("./AIWorker.js?v=20260830a", import.meta.url), { type: "module" }),
+      () => new Worker(new URL("./AIWorker.js?v=20260910d", import.meta.url), { type: "module" }),
     );
     const chatEmojiTimeoutIds = new Set();
 
@@ -2514,7 +2514,7 @@ const App = {
 
     const ensureAiWorker = () => {
       if (!aiWorker && canRunLocalAI()) {
-        aiWorker = new Worker(new URL("./AIWorker.js?v=20260830a", import.meta.url), { type: "module" });
+        aiWorker = new Worker(new URL("./AIWorker.js?v=20260910d", import.meta.url), { type: "module" });
         aiWorker.onmessage = (event) => {
           if (event.data?.type !== "RESULT" && event.data?.type !== "ERROR") {
             return;

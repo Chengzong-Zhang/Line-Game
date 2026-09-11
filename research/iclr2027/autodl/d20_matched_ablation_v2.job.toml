@@ -1,0 +1,50 @@
+name = "lifeline-d20-v2-calibration-and-matched-ablation-20260909"
+
+# Reuse the compatible CUDA 12.8 / PyTorch 2.8 image already used for the
+# repository's GPU path.  Setup only probes the preinstalled stack; it never
+# downloads or replaces a framework during a formal attempt.
+image_uuid = "base-image-ec1e9vdbd3"
+framework = "pytorch"
+framework_version = "2.8.0"
+cuda_runtime = "12.8"
+python_version = "3.12"
+setup_revision = "d20-v2-calibration-formal-1"
+setup_command = "python3 -c 'import torch; assert torch.cuda.is_available(); print(torch.__version__)'"
+environment_probe_command = "python3 -c 'import torch; assert torch.cuda.is_available(); assert tuple(map(int, torch.__version__.split(\"+\")[0].split(\".\")[:2])) >= (2, 8)'"
+
+# The entrypoint first copies only source into AUTODL_WORK_DIR.  The D20
+# executors then retain raw trajectories/checkpoints under that work-disk copy;
+# export contains only the compact, hash-bound decision summary.
+command = "python3 -B research/iclr2027/scripts/run_d20_autodl_entry.py --calibration-workers 8 --run-label autodl_20260909_a --export-summary $AUTODL_EXPORT_DIR/d20_submission_evidence_20260909_a.json"
+
+# This is the one local pre-rental readiness gate.  It uses the real
+# complete-snapshot encoder, PUCT self-play, and one AdamW update.
+readiness_command = "C:/Users/zcz/anaconda3/envs/rl310/python.exe -B research/iclr2027/scripts/d20_matched_ablation_runner.py --readiness"
+readiness_timeout_seconds = 300
+
+# This is the one remote GPU gate.  It continuously executes the real D20
+# CUDA forward/backward/optimizer path for twenty seconds before raw output is
+# produced or the full experiment starts.
+gpu_smoke_command = "python3 -B research/iclr2027/scripts/d20_matched_ablation_runner.py --gpu-smoke --seconds 20 --batch-size 32 --profile-output $AUTODL_WORK_DIR/d20_gpu_throughput_profile.json"
+gpu_smoke_timeout_seconds = 240
+min_gpu_utilization_percent = 50
+
+code_path = "C:/coding/py/line game"
+input_paths = []
+max_runtime_seconds = 100800
+accelerator = "cuda"
+selection_strategy = "ordered"
+instance_reuse = "prefer"
+min_cpu_cores = 24
+min_ram_gb = 64
+cuda_v_from = 128
+gpu_num = 1
+min_vram_gb = 32
+allowed_gpu_specs = ["5090-p"]
+expand_system_disk_by_gb = 0
+
+[environment]
+PYTHONUNBUFFERED = "1"
+OMP_NUM_THREADS = "1"
+MKL_NUM_THREADS = "1"
+CUBLAS_WORKSPACE_CONFIG = ":4096:8"

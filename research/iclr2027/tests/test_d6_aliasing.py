@@ -12,6 +12,7 @@ from scripts.search_state_aliasing import (
     _grid_key,
     _mask_free_topology_key,
     classify_grid_pair,
+    paired_continuation_search,
 )
 
 
@@ -198,6 +199,78 @@ class D6PairedDatasetTests(unittest.TestCase):
         assert classified is not None
         self.assertFalse(classified["witness"]["strict"])
         self.assertIn(None, classified["witness"]["common_legal_actions"])
+
+    def test_paired_depth_cutoff_is_never_reported_as_exhaustive(self) -> None:
+        pair = next(
+            item for item in self.dataset["pairs"]
+            if item["pair_id"] == "weak_grid_topology_n6_v1"
+        )
+        result = paired_continuation_search(
+            pair["grid_size"],
+            _actions(pair["history_a"]),
+            _actions(pair["history_b"]),
+            max_pair_states=10,
+            max_depth=0,
+            progress_every=0,
+        )
+
+        self.assertEqual(result["status"], "NOT_FOUND_WITHIN_BUDGET")
+        self.assertEqual(result["termination_reason"], "depth_bound")
+        self.assertEqual(result["pair_states_examined"], 1)
+        self.assertEqual(result["depth_cutoff_count"], 1)
+        self.assertGreater(result["depth_cutoff_action_candidates"], 0)
+        self.assertFalse(result["search_space_exhausted"])
+
+    def test_paired_state_budget_and_strategies_are_deterministic(self) -> None:
+        pair = next(
+            item for item in self.dataset["pairs"]
+            if item["pair_id"] == "weak_grid_topology_n6_v1"
+        )
+        arguments = (
+            pair["grid_size"],
+            _actions(pair["history_a"]),
+            _actions(pair["history_b"]),
+        )
+        default = paired_continuation_search(
+            *arguments,
+            max_pair_states=12,
+            max_depth=5,
+            progress_every=0,
+        )
+        explicit = paired_continuation_search(
+            *arguments,
+            max_pair_states=12,
+            max_depth=5,
+            progress_every=0,
+            strategy="breadth_first",
+        )
+        first_depth = paired_continuation_search(
+            *arguments,
+            max_pair_states=12,
+            max_depth=5,
+            progress_every=0,
+            strategy="depth_first",
+        )
+        second_depth = paired_continuation_search(
+            *arguments,
+            max_pair_states=12,
+            max_depth=5,
+            progress_every=0,
+            strategy="depth_first",
+        )
+
+        self.assertEqual(default, explicit)
+        self.assertEqual(first_depth, second_depth)
+        self.assertEqual(default["termination_reason"], "pair_state_budget")
+        self.assertEqual(first_depth["termination_reason"], "pair_state_budget")
+        self.assertEqual(default["frontier_discipline"], "FIFO")
+        self.assertEqual(first_depth["frontier_discipline"], "LIFO")
+        self.assertEqual(
+            first_depth["action_order"],
+            "PASS_FIRST_THEN_LEXICOGRAPHIC_V1",
+        )
+        self.assertFalse(default["search_space_exhausted"])
+        self.assertFalse(first_depth["search_space_exhausted"])
 
     def test_weak_history_pair_has_no_superko_legality_difference(self) -> None:
         pair = next(

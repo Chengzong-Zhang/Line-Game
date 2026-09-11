@@ -1,0 +1,98 @@
+{
+  "artifact_kind": "existing_tracked_web_history_twin_candidate",
+  "claim_boundary": {
+    "candidate_is_independently_verified": false,
+    "source_document_is_formal_receipt": false
+  },
+  "evidence_tier": "candidate_only_existing_source_replay",
+  "input_binding": {
+    "engine_core_path": "lifeline_rl/core.py",
+    "engine_core_sha256": "A3219C931608AB76F466CF5278E6297DDFDF128B19D721A16FAB895EB81E05E7",
+    "expected_source_sha256": "A9356765AA5F9938AED14EF9B7409C2E2E501E2F69F4D6D855F13C481E2B7FB2",
+    "expected_web_engine_sha256": "48317759E700DF1FCEFF97651BC1BA10EF07FA43EEDDF081473B0C02AA03B173",
+    "source_path": "web/web\u524d\u7aef/guide/interesting/verify-superko-history-divergence.mjs",
+    "source_sha256": "A9356765AA5F9938AED14EF9B7409C2E2E501E2F69F4D6D855F13C481E2B7FB2",
+    "web_engine_path": "web/web\u524d\u7aef/GameEngine.js",
+    "web_engine_sha256": "48317759E700DF1FCEFF97651BC1BA10EF07FA43EEDDF081473B0C02AA03B173"
+  },
+  "result": {
+    "status": "FOUND_CANDIDATE",
+    "witness": {
+      "candidate_action": [
+        1,
+        1
+      ],
+      "classification": "candidate_natural_same_topology_different_history_superko_legality",
+      "grid_size": 6,
+      "reference_history": [
+        [
+          1,
+          0
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          3,
+          2
+        ]
+      ],
+      "twin_history": [
+        [
+          1,
+          0
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          2
+        ]
+      ]
+    }
+  },
+  "schema_version": 1
+}

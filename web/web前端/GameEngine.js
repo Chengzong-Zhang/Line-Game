@@ -199,6 +199,12 @@ export class GameEngine {
     this.resignedPlayers = new Set();
     this.turnCount = 0;
     this.positionRevision = 0;
+    // The UI can defer the expensive, display-only territory calculation to a
+    // Worker on large boards.  Rule legality and Superko never consult this
+    // cache, but terminal winner calculation always brings it up to date.
+    this.deferTerritoryUpdates = Boolean(options.deferTerritoryUpdates);
+    this._territoryStateRevision = 0;
+    this._territoryCacheRevision = 0;
     this._isReplayingBatch = false;
     this.cachedTerritories = Object.fromEntries(
       this.activePlayers.map((player) => [player, { polygon: null, area: 0, displayArea: 0 }]),
@@ -368,6 +374,12 @@ export class GameEngine {
 
   getSnapshot() {
     // Snapshot is the read-only view consumed by the UI and network sync.
+    // Resolve terminal territory before copying the display cache.  In
+    // deferred mode getWinner() may synchronously refresh a pending cache;
+    // doing that first prevents a terminal snapshot from carrying the old
+    // scores while reporting the new winner.
+    const winner = this.getWinner();
+    const territoryPending = this.hasPendingTerritoryUpdate();
     const scores = this.getScoreboard();
     const territories = Object.fromEntries(
       this.activePlayers.map((player) => [
@@ -395,20 +407,80 @@ export class GameEngine {
       startPlayer: this.startPlayer,
       currentPlayer: this.currentPlayer,
       gameOver: this.gameOver,
+      territoryPending,
       consecutiveSkips: this.consecutiveSkips,
       resignedPlayers: [...this.resignedPlayers],
       turnCount: this.turnCount,
       boardMatrix: this.getBoardMatrix(),
       territories,
       edges,
-      winner: this.getWinner(),
+      winner,
       legalMoves: this.getLegalMoves(this.currentPlayer),
     };
+  }
+
+  /** Whether the cached display territory belongs to the current board.
+   *  Skip/resign actions do not change the board and therefore intentionally
+   *  leave this status unchanged. */
+  hasPendingTerritoryUpdate() {
+    return this._territoryCacheRevision !== this._territoryStateRevision;
+  }
+
+  getTerritoryStateRevision() {
+    return this._territoryStateRevision;
+  }
+
+  /** Apply an exact territory cache calculated from an isolated Worker.
+   *  The revision check prevents a late result from painting a newer board. */
+  applyTerritoryCache(territories, territoryStateRevision = this._territoryStateRevision) {
+    if (territoryStateRevision !== this._territoryStateRevision || !territories) {
+      return false;
+    }
+
+    const nextTerritories = {};
+    for (const player of this.activePlayers) {
+      const territory = territories[player];
+      if (!territory || !Number.isInteger(territory.area) || territory.area < 0) {
+        return false;
+      }
+      if (!Number.isFinite(territory.displayArea)) {
+        return false;
+      }
+
+      let polygon = null;
+      if (territory.polygon !== null) {
+        if (!Array.isArray(territory.polygon) || territory.polygon.length < 3) {
+          return false;
+        }
+        polygon = [];
+        for (const point of territory.polygon) {
+          if (!Array.isArray(point) || point.length !== 2 || !this.isValidPosition(point)) {
+            return false;
+          }
+          polygon.push(clonePoint(point));
+        }
+      }
+
+      nextTerritories[player] = {
+        polygon,
+        area: territory.area,
+        displayArea: territory.displayArea,
+      };
+    }
+
+    this.cachedTerritories = nextTerritories;
+    this._territoryCacheRevision = this._territoryStateRevision;
+    return true;
   }
 
   getWinner() {
     if (!this.gameOver) {
       return null;
+    }
+
+    // A winner must never be derived from the previous board's display cache.
+    if (this.hasPendingTerritoryUpdate()) {
+      this._updateTerritories();
     }
 
     let winner = null;
@@ -1429,6 +1501,7 @@ export class GameEngine {
     for (const player of this.activePlayers) {
       this.cachedTerritories[player] = this._computeTerritory(player);
     }
+    this._territoryCacheRevision = this._territoryStateRevision;
   }
 
   _switchPlayer() {
@@ -1655,6 +1728,8 @@ export class GameEngine {
       resignedPlayers: new Set(this.resignedPlayers),
       turnCount: this.turnCount,
       positionRevision: this.positionRevision,
+      territoryStateRevision: this._territoryStateRevision,
+      territoryCacheRevision: this._territoryCacheRevision,
       cachedTerritories: Object.fromEntries(
         this.activePlayers.map((player) => {
           const territory = this.cachedTerritories[player];
@@ -1679,6 +1754,8 @@ export class GameEngine {
     this.resignedPlayers = new Set(state.resignedPlayers);
     this.turnCount = state.turnCount;
     this.positionRevision = state.positionRevision;
+    this._territoryStateRevision = state.territoryStateRevision ?? this.positionRevision;
+    this._territoryCacheRevision = state.territoryCacheRevision ?? this._territoryStateRevision;
     this.cachedTerritories = Object.fromEntries(
       this.activePlayers.map((player) => {
         const territory = state.cachedTerritories[player];
@@ -1777,11 +1854,17 @@ export class GameEngine {
     this.historyHashes.add(stateHash);
     this.turnCount += 1;
     this.positionRevision += 1;
+    this._territoryStateRevision += 1;
     this.consecutiveSkips = 0;
     this._switchPlayer();
     this._checkAndAutoSkip();
     if (!this._isReplayingBatch) {
-      this._updateTerritories();
+      // Keep terminal scoring synchronous so winner/snapshot consumers never
+      // observe a stale cache.  Non-terminal display scoring may be settled by
+      // GameController's isolated TerritoryWorker on large boards.
+      if (!this.deferTerritoryUpdates || this.gameOver) {
+        this._updateTerritories();
+      }
     }
 
     return this._createActionResult(true, null);

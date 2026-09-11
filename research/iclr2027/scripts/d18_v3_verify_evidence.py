@@ -83,12 +83,33 @@ POLICY_SEED_NAMESPACE = "lifeline-d18-v3-policy-seeds-20260830-v1"
 DEFAULT_MANIFEST = RESEARCH_ROOT / "configs" / "d18_v3_formal_manifest_v2.json"
 DEFAULT_FORMAL_RUNNER = SCRIPT_DIR / "d18_v3_formal_runner.py"
 DEFAULT_PREPARATION_RUNNER = SCRIPT_DIR / "d18_v3_runner.py"
-THROUGHPUT_PROFILE_SCHEMA = "lifeline-d18-v3-gpu-smoke-v3"
-THROUGHPUT_PROFILE_SCHEMA_VERSION = 3
+THROUGHPUT_PROFILE_SCHEMA = "lifeline-d18-v3-gpu-smoke-v4"
+THROUGHPUT_PROFILE_SCHEMA_VERSION = 4
 CAPACITY_PROJECTION_METHOD = (
-    "sum_task_barriers_ceil_pairs_over_12_times_two_games_times_max_plies_"
+    "empirical_planning_projection_sum_task_barriers_ceil_pairs_over_12_"
+    "times_two_games_times_frozen_nearest_rank_p999_times_two_plies_by_size_"
     "times_slowest_observed_lane_sustained_seconds_per_decision"
 )
+EMPIRICAL_CAPACITY_EVIDENCE_SCHEMA = (
+    "lifeline-d18-v3-empirical-capacity-evidence"
+)
+EMPIRICAL_CAPACITY_EVIDENCE_SCHEMA_VERSION = 1
+EMPIRICAL_CAPACITY_EVIDENCE_RELATIVE_PATH = (
+    "research/iclr2027/results/validation/"
+    "d18_v3_empirical_capacity_evidence_v1.json"
+)
+EMPIRICAL_CAPACITY_EVIDENCE_SHA256 = (
+    "93c75d0de84fe920919b13efb60141f344201f3f0e2078674fe453a57b651124"
+)
+EMPIRICAL_CAPACITY_SOURCE_MANIFEST_SHA256 = (
+    "c3b752d0eea08e19acdb4a467c707274d43400e9ee94ef26712c5ce54ebee5cd"
+)
+EMPIRICAL_CAPACITY_SOURCE_FILES = 330
+EMPIRICAL_CAPACITY_TOTAL_GAMES = 32_100
+EMPIRICAL_CAPACITY_QUANTILE_NUMERATOR = 999
+EMPIRICAL_CAPACITY_QUANTILE_DENOMINATOR = 1_000
+EMPIRICAL_CAPACITY_PLANNING_MULTIPLIER = 2
+EMPIRICAL_CAPACITY_EXPECTED_PLANNING_PLIES = {5: 32, 7: 84, 9: 138}
 THROUGHPUT_PROFILE_ARTIFACT_NAME = "throughput_profile.json"
 RUN_ROOT_ALLOWED_ENTRY_NAMES = frozenset(
     {
@@ -157,6 +178,8 @@ THROUGHPUT_PROFILE_IDENTITY_FIELDS = (
     "throughput_profile_schema_version",
     "throughput_profile_formal_manifest_sha256",
     "throughput_profile_formal_runner_sha256",
+    "throughput_profile_empirical_capacity_evidence_sha256",
+    "capacity_projection_method",
     "scalar_lane_count",
     "scalar_lane_execution_mode",
     "inference_batch_size",
@@ -442,6 +465,312 @@ def _resolve_repo_path(raw: str | Path) -> Path:
     path = path.resolve()
     _repo_relative(path)
     return path
+
+
+def _compact_canonical_sha256(value: Any) -> str:
+    try:
+        payload = json.dumps(
+            value,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+    except (TypeError, ValueError) as exc:
+        raise VerificationError(
+            f"empirical capacity manifest is not canonical JSON: {exc}"
+        ) from exc
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _nearest_rank_from_histogram(
+    histogram: Mapping[int, int], *, numerator: int, denominator: int
+) -> int:
+    _require(bool(histogram), "empirical capacity histogram is empty")
+    total = sum(histogram.values())
+    _require(total > 0, "empirical capacity histogram has no observations")
+    rank = math.ceil(total * numerator / denominator)
+    cumulative = 0
+    for plies in sorted(histogram):
+        cumulative += histogram[plies]
+        if cumulative >= rank:
+            return plies
+    raise VerificationError("empirical capacity nearest-rank quantile is missing")
+
+
+def _validate_empirical_capacity_evidence(
+    binding_value: Any,
+) -> dict[int, int]:
+    """Verify the frozen receipt without reopening its large raw source tree.
+
+    The local builder's ``--check`` mode owns raw-file verification.  The
+    portable verifier binds that receipt byte-for-byte and independently
+    recomputes all planning statistics encoded in its histograms.
+    """
+
+    binding = _mapping(binding_value, "throughput.empirical_capacity_evidence")
+    _require(
+        set(binding)
+        == {
+            "relative_path",
+            "sha256",
+            "source_manifest_sha256",
+            "schema_name",
+            "schema_version",
+        },
+        "throughput empirical capacity evidence binding schema differs",
+    )
+    _require(
+        binding.get("relative_path") == EMPIRICAL_CAPACITY_EVIDENCE_RELATIVE_PATH
+        and binding.get("sha256") == EMPIRICAL_CAPACITY_EVIDENCE_SHA256
+        and binding.get("source_manifest_sha256")
+        == EMPIRICAL_CAPACITY_SOURCE_MANIFEST_SHA256
+        and binding.get("schema_name") == EMPIRICAL_CAPACITY_EVIDENCE_SCHEMA
+        and binding.get("schema_version")
+        == EMPIRICAL_CAPACITY_EVIDENCE_SCHEMA_VERSION,
+        "throughput empirical capacity evidence identity differs",
+    )
+    evidence_path = _resolve_repo_path(EMPIRICAL_CAPACITY_EVIDENCE_RELATIVE_PATH)
+    _require(
+        evidence_path.is_file()
+        and not evidence_path.is_symlink()
+        and sha256_file(evidence_path) == EMPIRICAL_CAPACITY_EVIDENCE_SHA256,
+        "empirical capacity evidence file is missing, unsafe, or hash-mismatched",
+    )
+    evidence = load_json(evidence_path)
+    _require(
+        set(evidence)
+        == {
+            "interpretation",
+            "max_plies",
+            "planning_multiplier",
+            "provenance",
+            "quantile",
+            "schema_name",
+            "schema_version",
+            "sizes",
+            "source_manifest",
+            "source_manifest_canonicalization",
+            "source_manifest_sha256",
+            "source_root",
+            "status",
+            "total_games",
+            "total_source_files",
+            "total_truncated_games",
+        },
+        "empirical capacity evidence top-level schema differs",
+    )
+    _require(
+        evidence.get("schema_name") == EMPIRICAL_CAPACITY_EVIDENCE_SCHEMA
+        and evidence.get("schema_version")
+        == EMPIRICAL_CAPACITY_EVIDENCE_SCHEMA_VERSION
+        and evidence.get("status") == "PASS"
+        and evidence.get("max_plies") == 256
+        and evidence.get("planning_multiplier")
+        == EMPIRICAL_CAPACITY_PLANNING_MULTIPLIER
+        and evidence.get("source_root")
+        == "results/formal/d14_d16/run_v1/tasks"
+        and evidence.get("source_manifest_canonicalization")
+        == "UTF-8 JSON, sorted keys, compact separators; entries sorted by path",
+        "empirical capacity evidence fixed contract differs",
+    )
+    interpretation = _mapping(
+        evidence.get("interpretation"), "empirical_capacity.interpretation"
+    )
+    _require(
+        interpretation
+        == {
+            "execution_max_plies_unchanged": True,
+            "fail_closed_if_future_execution_truncates": True,
+            "scope": (
+                "capacity planning only; this receipt does not alter the formal "
+                "execution protocol or certify a future run"
+            ),
+        },
+        "empirical capacity interpretation differs",
+    )
+    quantile = _mapping(evidence.get("quantile"), "empirical_capacity.quantile")
+    _require(
+        quantile
+        == {
+            "method": "nearest_rank",
+            "probability_denominator": EMPIRICAL_CAPACITY_QUANTILE_DENOMINATOR,
+            "probability_numerator": EMPIRICAL_CAPACITY_QUANTILE_NUMERATOR,
+        },
+        "empirical capacity quantile contract differs",
+    )
+
+    provenance = _mapping(
+        evidence.get("provenance"), "empirical_capacity.provenance"
+    )
+    _require(
+        set(provenance) == {"artifacts", "puct_simulations"}
+        and provenance.get("puct_simulations") == SEARCH["simulations"],
+        "empirical capacity provenance contract differs",
+    )
+    artifacts = _mapping(
+        provenance.get("artifacts"), "empirical_capacity.provenance.artifacts"
+    )
+    _require(
+        set(artifacts)
+        == {
+            "formal_manifest",
+            "formal_result_receipts",
+            "task_bundle_manifest_snapshot",
+            "task_bundle_summary",
+        },
+        "empirical capacity provenance artifact coverage differs",
+    )
+    for name, raw_artifact in artifacts.items():
+        artifact = _mapping(raw_artifact, f"empirical_capacity.provenance.{name}")
+        relative_path = artifact.get("relative_path")
+        _require(
+            set(artifact) == {"relative_path", "sha256", "size_bytes"}
+            and isinstance(relative_path, str)
+            and bool(relative_path)
+            and not relative_path.startswith("/")
+            and "\\" not in relative_path
+            and ":" not in relative_path
+            and all(part not in {"", ".", ".."} for part in relative_path.split("/"))
+            and _valid_sha256(artifact.get("sha256"))
+            and _integer(
+                artifact.get("size_bytes"),
+                f"empirical_capacity.provenance.{name}.size_bytes",
+                minimum=1,
+            )
+            > 0,
+            f"empirical capacity provenance binding is invalid: {name}",
+        )
+
+    source_manifest = _sequence(
+        evidence.get("source_manifest"), "empirical_capacity.source_manifest"
+    )
+    _require(
+        len(source_manifest) == EMPIRICAL_CAPACITY_SOURCE_FILES
+        and evidence.get("total_source_files") == EMPIRICAL_CAPACITY_SOURCE_FILES,
+        "empirical capacity source file count differs",
+    )
+    normalized_manifest: list[dict[str, Any]] = []
+    for index, raw_row in enumerate(source_manifest):
+        row = _mapping(raw_row, f"empirical_capacity.source_manifest[{index}]")
+        raw_path = row.get("path")
+        _require(
+            set(row) == {"path", "sha256", "bytes"}
+            and isinstance(raw_path, str)
+            and bool(raw_path)
+            and not raw_path.startswith("/")
+            and "\\" not in raw_path
+            and ":" not in raw_path
+            and all(part not in {"", ".", ".."} for part in raw_path.split("/"))
+            and _valid_sha256(row.get("sha256"))
+            and _integer(
+                row.get("bytes"),
+                f"empirical_capacity.source_manifest[{index}].bytes",
+                minimum=1,
+            )
+            > 0,
+            "empirical capacity source manifest row is invalid",
+        )
+        normalized_manifest.append(dict(row))
+    paths = [str(row["path"]) for row in normalized_manifest]
+    _require(
+        paths == sorted(paths) and len(paths) == len(set(paths)),
+        "empirical capacity source paths are not unique and sorted",
+    )
+    _require(
+        evidence.get("source_manifest_sha256")
+        == EMPIRICAL_CAPACITY_SOURCE_MANIFEST_SHA256
+        == _compact_canonical_sha256(normalized_manifest),
+        "empirical capacity source manifest hash differs",
+    )
+
+    source_root = str(evidence["source_root"])
+    source_prefix = f"{source_root}/"
+    _require(
+        all(
+            str(row["path"]).startswith(source_prefix)
+            and str(row["path"]).rsplit("/", 1)[-1]
+            in {"games.jsonl", "self_play_games.jsonl"}
+            for row in normalized_manifest
+        ),
+        "empirical capacity source manifest paths differ",
+    )
+
+    total_games = 0
+    _require(
+        evidence.get("total_truncated_games") == 0,
+        "empirical capacity truncated-game count differs",
+    )
+    size_rows = _mapping(evidence.get("sizes"), "empirical_capacity.sizes")
+    _require(
+        set(size_rows) == {str(size) for size in SIZES},
+        "empirical capacity size coverage differs",
+    )
+    planning_by_size: dict[int, int] = {}
+    for size in SIZES:
+        row = _mapping(size_rows[str(size)], f"empirical_capacity.sizes.{size}")
+        _require(
+            set(row)
+            == {
+                "game_count",
+                "histogram",
+                "historical_max_plies",
+                "nearest_rank_p999_plies",
+                "empirical_planning_plies",
+            },
+            f"empirical capacity size row schema differs: {size}",
+        )
+        raw_histogram = _mapping(
+            row.get("histogram"), f"empirical_capacity.sizes.{size}.histogram"
+        )
+        histogram: dict[int, int] = {}
+        for raw_plies, raw_count in raw_histogram.items():
+            _require(
+                isinstance(raw_plies, str)
+                and raw_plies.isascii()
+                and raw_plies.isdecimal()
+                and str(int(raw_plies)) == raw_plies,
+                f"empirical capacity histogram key is invalid: {size}",
+            )
+            plies = int(raw_plies)
+            count = _integer(
+                raw_count,
+                f"empirical_capacity.sizes.{size}.histogram.{raw_plies}",
+                minimum=1,
+            )
+            _require(
+                1 <= plies <= 256,
+                f"empirical capacity histogram plies are invalid: {size}",
+            )
+            histogram[plies] = count
+        _require(
+            list(raw_histogram) == sorted(raw_histogram),
+            f"empirical capacity histogram order differs: {size}",
+        )
+        game_count = sum(histogram.values())
+        total_games += game_count
+        p999 = _nearest_rank_from_histogram(
+            histogram,
+            numerator=EMPIRICAL_CAPACITY_QUANTILE_NUMERATOR,
+            denominator=EMPIRICAL_CAPACITY_QUANTILE_DENOMINATOR,
+        )
+        planning_plies = p999 * EMPIRICAL_CAPACITY_PLANNING_MULTIPLIER
+        _require(
+            row.get("game_count") == game_count
+            and row.get("historical_max_plies") == max(histogram)
+            and row.get("nearest_rank_p999_plies") == p999
+            and row.get("empirical_planning_plies") == planning_plies
+            and planning_plies == EMPIRICAL_CAPACITY_EXPECTED_PLANNING_PLIES[size]
+            and max(histogram) < planning_plies < 256,
+            f"empirical capacity size evidence differs: {size}",
+        )
+        planning_by_size[size] = planning_plies
+    _require(
+        total_games == EMPIRICAL_CAPACITY_TOTAL_GAMES
+        and evidence.get("total_games") == total_games,
+        "empirical capacity receipt histogram sample count differs",
+    )
+    return planning_by_size
 
 
 def _resolve_artifact(task_directory: Path, raw: Any, *, label: str) -> Path:
@@ -1064,6 +1393,15 @@ def _validate_execution_metadata(
         "execution metadata throughput-profile runner binding mismatch",
     )
     _require(
+        metadata.get("throughput_profile_empirical_capacity_evidence_sha256")
+        == EMPIRICAL_CAPACITY_EVIDENCE_SHA256,
+        "execution metadata empirical capacity evidence binding mismatch",
+    )
+    _require(
+        metadata.get("capacity_projection_method") == CAPACITY_PROJECTION_METHOD,
+        "execution metadata empirical capacity projection method mismatch",
+    )
+    _require(
         _integer(metadata.get("scalar_lane_count"), "execution_metadata.scalar_lane_count")
         == SCALAR_LANE_COUNT,
         "execution metadata scalar lane count mismatch",
@@ -1165,6 +1503,7 @@ def _validate_throughput_profile_evidence(
         "temperature": SEARCH["temperature"],
         "root_noise": SEARCH["add_root_noise"],
         "data_supply": "registered_d18_v3_task_binding_and_opening_clone",
+        "capacity_projection_method": CAPACITY_PROJECTION_METHOD,
         "formal_game_count": EXPECTED_GAMES,
         "formal_runtime_seconds": MAX_RUNTIME_SECONDS,
         "formal_gameplay_budget_seconds": FORMAL_GAMEPLAY_BUDGET_SECONDS,
@@ -1202,6 +1541,9 @@ def _validate_throughput_profile_evidence(
         == EXPECTED_TORCH_VERSION
         and profile.get("cuda_runtime_version") == EXPECTED_CUDA_RUNTIME_VERSION,
         "throughput profile environment versions differ",
+    )
+    planning_by_size = _validate_empirical_capacity_evidence(
+        profile.get("empirical_capacity_evidence")
     )
 
     max_plies = max(
@@ -1972,10 +2314,20 @@ def _validate_throughput_profile_evidence(
         critical_seconds_per_decision = float(
             critical_lane["seconds_per_decision"]
         )
+        planning_plies = planning_by_size[size]
+        case_tasks = task_groups[(pair, size)]
+        _require(
+            all(
+                _integer(task.get("max_plies"), "task.max_plies", minimum=1)
+                == 256
+                for task in case_tasks
+            ),
+            "formal execution max_plies changed from 256",
+        )
         case_work = sum(
             _integer(task.get("games"), "task.games", minimum=1)
-            * _integer(task.get("max_plies"), "task.max_plies", minimum=1)
-            for task in task_groups[(pair, size)]
+            * planning_plies
+            for task in case_tasks
         )
         task_barrier_work = [
             math.ceil(
@@ -1983,8 +2335,8 @@ def _validate_throughput_profile_evidence(
                 / SCALAR_LANE_COUNT
             )
             * 2
-            * _integer(task.get("max_plies"), "task.max_plies", minimum=1)
-            for task in task_groups[(pair, size)]
+            * planning_plies
+            for task in case_tasks
         ]
         work_per_lane = sum(task_barrier_work)
         projected = work_per_lane * critical_seconds_per_decision
@@ -1993,10 +2345,17 @@ def _validate_throughput_profile_evidence(
             capacity.get("case_index") == case_index
             and capacity.get("model_pair") == list(pair)
             and capacity.get("eval_size") == size
-            and capacity.get("formal_task_count") == len(task_groups[(pair, size)])
-            and capacity.get("formal_worst_case_decisions") == case_work
-            and capacity.get("formal_worst_case_decisions_per_lane") == work_per_lane
-            and capacity.get("formal_task_barrier_decisions_per_lane")
+            and capacity.get("formal_task_count") == len(case_tasks)
+            and capacity.get("formal_execution_max_plies") == 256
+            and capacity.get("empirical_planning_plies") == planning_plies
+            and capacity.get("historical_nearest_rank_p999_plies")
+            == planning_plies // EMPIRICAL_CAPACITY_PLANNING_MULTIPLIER
+            and capacity.get("formal_empirical_planning_decisions") == case_work
+            and capacity.get("formal_empirical_planning_decisions_per_lane")
+            == work_per_lane
+            and capacity.get(
+                "formal_task_barrier_empirical_decisions_per_lane"
+            )
             == task_barrier_work
             and capacity.get("observed_scalar_decision_count") == len(timings)
             and capacity.get("capacity_projection_method")
@@ -2034,19 +2393,19 @@ def _validate_throughput_profile_evidence(
             )
             and math.isclose(
                 _finite_number(
-                    capacity.get("projected_worst_case_seconds"),
+                    capacity.get("projected_empirical_planning_seconds"),
                     "capacity.projected",
                 ),
                 projected,
                 rel_tol=1e-12,
                 abs_tol=1e-9,
             ),
-            "throughput capacity case differs from sustained-lane projection",
+            "throughput capacity case differs from empirical sustained-lane projection",
         )
     _require(
         math.isclose(
             _finite_number(
-                profile.get("projected_worst_case_seconds"),
+                profile.get("projected_empirical_planning_seconds"),
                 "throughput.projected",
             ),
             projected_total,
@@ -2054,7 +2413,7 @@ def _validate_throughput_profile_evidence(
             abs_tol=1e-9,
         )
         and projected_total <= FORMAL_GAMEPLAY_BUDGET_SECONDS,
-        "throughput profile completion-capacity gate failed",
+        "throughput profile empirical completion-capacity gate failed",
     )
 
     resident_expected = [
@@ -2161,7 +2520,14 @@ def _audit_game(
     execution_source_closure_sha: str | None = None,
 ) -> dict[str, Any]:
     game_id = str(schedule["game_id"])
+    _require(
+        schedule.get("schema_name") == GAME_SCHEDULE_SCHEMA
+        and schedule.get("schema_version") == SCHEMA_VERSION,
+        f"{game_id}: frozen game schedule schema mismatch",
+    )
     for field, expected in schedule.items():
+        if field in {"schema_name", "schema_version"}:
+            continue
         _require(record.get(field) == expected, f"{game_id}: persisted game differs from frozen schedule at {field}")
     _require(record.get("schema_name") == GAME_SCHEMA and record.get("schema_version") == SCHEMA_VERSION, f"{game_id}: formal game schema mismatch")
     _require(record.get("preparation_runner_sha256") == preparation_runner_sha, f"{game_id}: explicit preparation-runner binding missing/drifted")

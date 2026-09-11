@@ -36,7 +36,7 @@ import time
 from collections import deque
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Iterable, Sequence
+from typing import Any, Iterable, Literal, Sequence
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -50,6 +50,13 @@ from lifeline_rl.encoding import encode_observation  # noqa: E402
 Action = tuple[int, int]
 MaybePass = Action | None
 History = tuple[MaybePass, ...]
+PairedSearchStrategy = Literal["breadth_first", "depth_first"]
+
+PAIRED_ACTION_ORDER = "PASS_FIRST_THEN_LEXICOGRAPHIC_V1"
+PAIRED_SEARCH_SCOPE = (
+    "shared continuations of one fixed reachable seed pair while implemented "
+    "Grid observations remain equal and logical-edge signatures remain different"
+)
 
 
 @dataclass(frozen=True)
@@ -371,6 +378,7 @@ def paired_continuation_search(
     max_pair_states: int = 100_000,
     max_depth: int = 20,
     progress_every: int = 10_000,
+    strategy: PairedSearchStrategy = "breadth_first",
 ) -> dict[str, Any]:
     """Search all shared continuations of a reachable weak Grid-alias pair.
 
@@ -378,6 +386,15 @@ def paired_continuation_search(
     Grid observations remain equal.  It returns the earliest reachable pair
     whose legal actions or one-step visible successor differ.
     """
+
+    if max_pair_states <= 0:
+        raise ValueError("max_pair_states must be positive")
+    if max_depth < 0:
+        raise ValueError("max_depth must be non-negative")
+    if progress_every < 0:
+        raise ValueError("progress_every must be non-negative")
+    if strategy not in {"breadth_first", "depth_first"}:
+        raise ValueError("strategy must be breadth_first or depth_first")
 
     initial_a = _replay(grid_size, history_a)
     initial_b = _replay(grid_size, history_b)
@@ -392,14 +409,22 @@ def paired_continuation_search(
     visited: set[tuple[Any, Any]] = set()
     examined_actions = 0
     max_depth_reached = 0
+    duplicate_pops = 0
+    depth_cutoff_count = 0
+    depth_cutoff_action_candidates = 0
+    peak_frontier = len(queue)
     while queue and len(visited) < max_pair_states:
-        snapshot_a, snapshot_b, suffix = queue.popleft()
+        if strategy == "breadth_first":
+            snapshot_a, snapshot_b, suffix = queue.popleft()
+        else:
+            snapshot_a, snapshot_b, suffix = queue.pop()
         game_a = LifelineGame(grid_size)
         game_b = LifelineGame(grid_size)
         game_a.restore(snapshot_a)
         game_b.restore(snapshot_b)
         pair_key = (snapshot_a, snapshot_b)
         if pair_key in visited:
+            duplicate_pops += 1
             continue
         visited.add(pair_key)
         if progress_every and len(visited) % progress_every == 0:
@@ -455,9 +480,22 @@ def paired_continuation_search(
             }
             return {
                 "status": "FOUND",
+                "termination_reason": "witness_found",
+                "search_scope": PAIRED_SEARCH_SCOPE,
+                "search_strategy": strategy,
+                "frontier_discipline": (
+                    "FIFO" if strategy == "breadth_first" else "LIFO"
+                ),
+                "action_order": PAIRED_ACTION_ORDER,
                 "pair_states_examined": len(visited),
                 "actions_examined": examined_actions,
                 "max_depth_reached": max_depth_reached,
+                "duplicate_pops": duplicate_pops,
+                "depth_cutoff_count": depth_cutoff_count,
+                "depth_cutoff_action_candidates": depth_cutoff_action_candidates,
+                "peak_frontier": peak_frontier,
+                "frontier_remaining": len(queue),
+                "search_space_exhausted": False,
                 "pair": _serialized_pair(
                     "grid_topology_strict",
                     game_a,
@@ -468,9 +506,23 @@ def paired_continuation_search(
                 ),
             }
 
-        if len(suffix) >= max_depth or game_a.game_over:
+        if game_a.game_over:
             continue
-        for action in sorted(legal_a & legal_b, key=lambda a: (-1, -1) if a is None else a):
+        shared_actions = sorted(
+            legal_a & legal_b,
+            key=lambda action: (-1, -1) if action is None else action,
+        )
+        if len(suffix) >= max_depth:
+            if shared_actions:
+                depth_cutoff_count += 1
+                depth_cutoff_action_candidates += len(shared_actions)
+            continue
+        push_actions = (
+            shared_actions
+            if strategy == "breadth_first"
+            else list(reversed(shared_actions))
+        )
+        for action in push_actions:
             examined_actions += 1
             next_a = LifelineGame(grid_size)
             next_b = LifelineGame(grid_size)
@@ -493,9 +545,24 @@ def paired_continuation_search(
                 }
                 return {
                     "status": "FOUND",
+                    "termination_reason": "witness_found",
+                    "search_scope": PAIRED_SEARCH_SCOPE,
+                    "search_strategy": strategy,
+                    "frontier_discipline": (
+                        "FIFO" if strategy == "breadth_first" else "LIFO"
+                    ),
+                    "action_order": PAIRED_ACTION_ORDER,
                     "pair_states_examined": len(visited),
                     "actions_examined": examined_actions,
                     "max_depth_reached": max_depth_reached,
+                    "duplicate_pops": duplicate_pops,
+                    "depth_cutoff_count": depth_cutoff_count,
+                    "depth_cutoff_action_candidates": (
+                        depth_cutoff_action_candidates
+                    ),
+                    "peak_frontier": peak_frontier,
+                    "frontier_remaining": len(queue),
+                    "search_space_exhausted": False,
                     "pair": _serialized_pair(
                         "grid_topology_strict",
                         game_a,
@@ -508,15 +575,37 @@ def paired_continuation_search(
             if _edge_signature(next_a) == _edge_signature(next_b):
                 continue
             queue.append((next_a.clone(), next_b.clone(), suffix + (action,)))
+            peak_frontier = max(peak_frontier, len(queue))
 
+    search_space_exhausted = not queue and depth_cutoff_count == 0
+    if search_space_exhausted:
+        status = "NOT_FOUND_EXHAUSTIVELY"
+        termination_reason = "frontier_exhausted"
+    else:
+        status = "NOT_FOUND_WITHIN_BUDGET"
+        termination_reason = (
+            "pair_state_budget" if queue else "depth_bound"
+        )
     return {
-        "status": "NOT_FOUND_WITHIN_BUDGET" if queue else "NOT_FOUND_EXHAUSTIVELY",
+        "status": status,
+        "termination_reason": termination_reason,
+        "search_scope": PAIRED_SEARCH_SCOPE,
+        "search_strategy": strategy,
+        "frontier_discipline": (
+            "FIFO" if strategy == "breadth_first" else "LIFO"
+        ),
+        "action_order": PAIRED_ACTION_ORDER,
         "pair_states_examined": len(visited),
         "actions_examined": examined_actions,
         "max_depth_reached": max_depth_reached,
+        "duplicate_pops": duplicate_pops,
+        "depth_cutoff_count": depth_cutoff_count,
+        "depth_cutoff_action_candidates": depth_cutoff_action_candidates,
         "max_pair_states": max_pair_states,
         "max_depth": max_depth,
+        "peak_frontier": peak_frontier,
         "frontier_remaining": len(queue),
+        "search_space_exhausted": search_space_exhausted,
     }
 
 
@@ -702,6 +791,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--pair-id", default="weak_grid_topology_n6_v1")
     parser.add_argument("--max-pair-states", type=int, default=5_000)
     parser.add_argument("--max-depth", type=int, default=20)
+    parser.add_argument(
+        "--strategy",
+        choices=("breadth_first", "depth_first"),
+        default="breadth_first",
+        help="paired-search frontier discipline; breadth-first remains the default",
+    )
     parser.add_argument("--progress-every", type=int, default=250)
     parser.add_argument("--keep-searching", action="store_true")
     parser.add_argument(
@@ -758,6 +853,8 @@ def main() -> int:
             ),
             max_pair_states=args.max_pair_states,
             max_depth=args.max_depth,
+            progress_every=args.progress_every,
+            strategy=args.strategy,
         )
     rendered = json.dumps(payload, indent=2, sort_keys=True)
     if args.summary_only:

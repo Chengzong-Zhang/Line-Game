@@ -52,6 +52,20 @@ REQUIRED_DERIVED_MODES = frozenset(
         "derivation_receipt",
     }
 )
+V2_REQUIRED_DERIVED_MODES = frozenset(
+    (REQUIRED_DERIVED_MODES - {"claim_ledger"})
+    | {"claim_ledger_v6", "history_twin_web_witness_copy"}
+)
+SUPPORTED_DERIVED_MODES = REQUIRED_DERIVED_MODES | V2_REQUIRED_DERIVED_MODES
+CLAIM_LEDGER_MODES = frozenset({"claim_ledger", "claim_ledger_v6"})
+GAME_ENGINE_COPY_MODES = frozenset({"game_engine_copy"})
+CLAIM_LEDGER_V6_SOURCE = "research/iclr2027/paper/CLAIM_EVIDENCE_LIMITATION_V6.md"
+CLAIM_LEDGER_V6_PDF = "research/iclr2027/paper/main.pdf"
+CLAIM_LEDGER_V6_TEX = "research/iclr2027/paper/main.tex"
+HISTORY_TWIN_WEB_WITNESS_SOURCE = (
+    "web/web\u524d\u7aef/guide/interesting/verify-superko-history-divergence.mjs"
+)
+HISTORY_TWIN_WEB_WITNESS_DESTINATION = "web/history_twin_web_witness.mjs"
 PROHIBITED_EXTENSION_RE = re.compile(
     r"(?i)(?<![A-Za-z0-9_])D(?:17|18|19)(?![A-Za-z0-9_])"
 )
@@ -223,6 +237,135 @@ CLAIM_LEDGER_NON_PATH_EVIDENCE = frozenset(
 )
 CLAIM_LEDGER_PATH_CLAUSE_RE = re.compile(r"^`([^`]+)`$")
 
+# The v6 source is hash-pinned by the profile, but the admitted rows are also
+# independently fixed here so that changing the profile and source together
+# cannot silently broaden the candidate's scientific claims.
+CLAIM_LEDGER_V6_ROWS: Mapping[str, tuple[str, str, str, str]] = {
+    "C1": (
+        "The two-player environment is replayable and the tested Python "
+        "transitions agree with the independent Web engine.",
+        "`../D4_D5_validation_report.md`; frozen environment/search tests and "
+        "parity receipts",
+        "`D4_D5_validation_report.md`; frozen environment/search tests and parity "
+        "receipts",
+        "Parity covers the recorded traces, not every reachable state.",
+    ),
+    "C2": (
+        "Reachable side-five states can share the implemented Grid observation "
+        "while differing in latent logical edges.",
+        "`../state_aliasing/pairs_v1.json`; "
+        "`../state_aliasing/search_report_v1.json`; exhaustive side-five certificate",
+        "`state_aliasing/pairs_v1.json`; `state_aliasing/search_report_v1.json`; "
+        "`results/validation/superko_exhaustive_n5_20260825.json`",
+        "The exhaustive side-five audit found no legal-action, transition, value, "
+        "Q-value, or optimal-action difference. Do not call Grid non-Markov or "
+        "strategically insufficient.",
+    ),
+    "C3": (
+        "At side six, two legal histories from the standard initial state can "
+        "reach identical mask-free Topology projections while a shared placement "
+        "is legal after one history and rejected after the other exactly by Superko.",
+        "`../D6_HISTORY_TWIN_EVIDENCE_ADDENDUM_V2.md`; targeted candidate and PASS "
+        "verification JSON bound above; strict-pair candidate and PASS verification "
+        "JSON as corroboration",
+        "`results/validation/targeted_history_twin_n6_stage5_search_25k_v1.json`; "
+        "`results/validation/targeted_history_twin_n6_stage5_verification_v1.json`; "
+        "`results/validation/history_superko_n6_strict_pair_candidate_v1.json`; "
+        "`results/validation/history_superko_n6_strict_pair_verification_v1.json`",
+        "The legal masks differ, so the implemented Grid and Topology observations "
+        "are not equal. This is not a same-observation-and-mask future-decision "
+        "witness and does not establish different exact values or optimal actions, "
+        "learning benefit, TopologyHistory benefit, or a same-backbone ablation "
+        "result. Neither shortest history nor exhaustive side-six coverage is claimed.",
+    ),
+    "C4": (
+        "The D14--D16 bundle contains 15 training tasks, 315 evaluation tasks, "
+        "1,500 self-play games, 3,000 updates, and 30,600 task-indexed "
+        "replay-verified game records.",
+        "`../results/formal/d14_d16/run_v1/result_ledger_status.json`; "
+        "`../results/formal/d14_d16/run_v1/result_receipts.jsonl`; "
+        "`../results/formal/d14_d16/aggregate_v1/aggregate.json`; independent "
+        "receipt audit",
+        "`results/compact/d14_d16/d14_d16_ledger_status.anonymized.json`; "
+        "`results/compact/d14_d16/d14_d16_compact_receipts.jsonl`; "
+        "`results/formal/d14_d16/aggregate_v1/aggregate.json`; "
+        "`results/validation/d14_d16_independent_receipt_audit_20260831.json`",
+        "`formal_ready=true` applies only to artifact completeness. Repeated "
+        "trajectories mean records are not unique games or independent trials; two "
+        "interrupted runners lack independent canonical attempt files.",
+    ),
+    "C5": (
+        "At the final checkpoint, all 45 training-seed scores against Random "
+        "exceed 0.5 on jointly trained sizes 5, 7, and 9.",
+        "`../reviews/d14_d16_seed_pair_descriptive_audit.json`; "
+        "`../results/formal/d14_d16/aggregate_v1/final_vs_search.csv`",
+        "`reviews/d14_d16_seed_pair_descriptive_audit.json`; "
+        "`results/formal/d14_d16/aggregate_v1/final_vs_search.csv`",
+        "The primary unit is five training-seed scores per model--size cell. The "
+        "summaries establish neither unseen-size generalization nor independent-game "
+        "inference.",
+    ),
+    "C6": (
+        "Against UCT-MCTS-16, five-seed cell medians span 0.477--0.920 and the "
+        "seed ranges vary by model and size.",
+        "`../reviews/d14_d16_seed_pair_descriptive_audit.json`; "
+        "`../results/formal/d14_d16/aggregate_v1/final_vs_search.csv`",
+        "`reviews/d14_d16_seed_pair_descriptive_audit.json`; "
+        "`results/formal/d14_d16/aggregate_v1/final_vs_search.csv`",
+        "Medians and min--max ranges are not confidence intervals or hypothesis "
+        "tests. Search is fixed at 16 simulations and is not compute-matched to the "
+        "learned agents.",
+    ),
+    "C7": (
+        "Direct-play seed summaries are heterogeneous: only Topology-GNN versus "
+        "Grid-GNN at side 7 has median 1.00; the other eight model-pair--size "
+        "medians are 0.50 with wide ranges.",
+        "`../reviews/d14_d16_seed_pair_descriptive_audit.json`; "
+        "`../results/formal/d14_d16/aggregate_v1/representation_round_robin.csv`",
+        "`reviews/d14_d16_seed_pair_descriptive_audit.json`; "
+        "`results/formal/d14_d16/aggregate_v1/representation_round_robin.csv`",
+        "Each 200-game seed-task contains two deterministic color-conditioned "
+        "trajectories repeated 100 times. No global representation ordering is "
+        "supported.",
+    ),
+    "C8": (
+        "The five frozen pooled checkpoint probes are non-monotone and size "
+        "dependent as schedule and reconciliation views.",
+        "`../results/formal/d14_d16/aggregate_v1/arena_learning_curve.csv`; Figure 2",
+        "`results/formal/d14_d16/aggregate_v1/arena_learning_curve.csv`; Figure 2",
+        "Only five checkpoints were recorded; no AUC or fixed-strength learning "
+        "estimator was preregistered. The probes do not support uncertainty, "
+        "continuous-convergence, or relative sample-efficiency inference.",
+    ),
+    "C9": (
+        "Parameter counts differ by at most 0.6982% under the frozen protocol.",
+        "`../configs/d14_d16_parameter_counts.json`; "
+        "`../D14_D16_EXPERIMENT_PROTOCOL.md`",
+        "`configs/d14_d16_parameter_counts.json`; "
+        "`D14_D16_EXPERIMENT_PROTOCOL.anonymized.md`",
+        "Grid-GNN and Topology-GNN differ in typed relations and hidden width, so "
+        "representation and architecture are confounded. FLOPs, memory, "
+        "transitions, wall time, and evaluation compute are not matched.",
+    ),
+    "C10": (
+        "The five-seed Superko extension observed no trigger or outcome effect in "
+        "240 games.",
+        "`../SUPERKO_POLICY_MATRIX_RESULTS.md`; independent verification JSON",
+        "`SUPERKO_POLICY_MATRIX_RESULTS.md`; "
+        "`results/validation/superko_policy_matrix_attempt2_verification.anonymized.json`",
+        "Every 1% similarity gate failed because each cell has ten observe games "
+        "and a 27.753% Wilson upper bound. Neural/CycleSeeking rows remain smoke or "
+        "bounded evidence.",
+    ),
+}
+CLAIM_LEDGER_V6_NON_PATH_EVIDENCE = frozenset(
+    {"frozen environment/search tests and parity receipts", "Figure 2"}
+)
+CLAIM_LEDGER_V6_PAPER_LOCATIONS = (
+    "Bound current paper bytes; exact section-level locations are not asserted by "
+    "the supplement ledger."
+)
+
 RECEIPT_FIELDS = (
     "schema_name",
     "schema_version",
@@ -297,11 +440,23 @@ TRANSFORM_CONTRACTS: Mapping[str, TransformContract] = {
         "independent_reference",
         (GAME_ENGINE_SOURCE,),
     ),
+    "history_twin_web_witness_copy": TransformContract(
+        DERIVED_PREFIX + "history_twin_web_witness.mjs",
+        HISTORY_TWIN_WEB_WITNESS_DESTINATION,
+        "independent_reference",
+        (HISTORY_TWIN_WEB_WITNESS_SOURCE,),
+    ),
     "claim_ledger": TransformContract(
         DERIVED_PREFIX + "CLAIM_EVIDENCE_LIMITATION.admitted.json",
         "research/iclr2027/CLAIM_EVIDENCE_LIMITATION.admitted.json",
         "admitted_claim_ledger",
         ("research/iclr2027/CLAIM_EVIDENCE_LIMITATION.md",),
+    ),
+    "claim_ledger_v6": TransformContract(
+        DERIVED_PREFIX + "CLAIM_EVIDENCE_LIMITATION.admitted.json",
+        "research/iclr2027/CLAIM_EVIDENCE_LIMITATION.admitted.json",
+        "admitted_claim_ledger",
+        (CLAIM_LEDGER_V6_SOURCE, CLAIM_LEDGER_V6_PDF, CLAIM_LEDGER_V6_TEX),
     ),
     "d14_protocol": TransformContract(
         DERIVED_PREFIX + "D14_D16_EXPERIMENT_PROTOCOL.anonymized.md",
@@ -361,8 +516,8 @@ TRANSFORM_CONTRACTS: Mapping[str, TransformContract] = {
     ),
 }
 
-if frozenset(TRANSFORM_CONTRACTS) != REQUIRED_DERIVED_MODES:
-    raise RuntimeError("transform contract table does not match required derived modes")
+if frozenset(TRANSFORM_CONTRACTS) != SUPPORTED_DERIVED_MODES:
+    raise RuntimeError("transform contract table does not match supported derived modes")
 
 
 def _sha256(data: bytes) -> str:
@@ -564,7 +719,7 @@ def _load_profile(path: Path) -> ClaimCompleteProfile:
         ):
             raise DerivationError(f"files[{index}].category is invalid")
         mode = row["mode"]
-        if not isinstance(mode, str) or mode not in {"copy", *REQUIRED_DERIVED_MODES}:
+        if not isinstance(mode, str) or mode not in {"copy", *SUPPORTED_DERIVED_MODES}:
             raise DerivationError(f"files[{index}].mode is unsupported")
         inputs_raw = row["inputs"]
         if not isinstance(inputs_raw, list):
@@ -618,9 +773,16 @@ def _load_profile(path: Path) -> ClaimCompleteProfile:
         entries.append(ProfileEntry(source, destination, category, mode, tuple(inputs)))
 
     mode_counts = Counter(entry.mode for entry in entries if entry.mode != "copy")
-    if mode_counts != Counter({mode: 1 for mode in REQUIRED_DERIVED_MODES}):
+    accepted_mode_counts = {
+        frozenset(REQUIRED_DERIVED_MODES),
+        frozenset(V2_REQUIRED_DERIVED_MODES),
+    }
+    if (
+        any(count != 1 for count in mode_counts.values())
+        or frozenset(mode_counts) not in accepted_mode_counts
+    ):
         raise DerivationError(
-            "profile must declare every required derived mode exactly once"
+            "profile must declare one complete supported derived-mode set exactly once"
         )
     _validate_exact_special_inputs(entries)
     _validate_exact_transform_contracts(entries)
@@ -1030,6 +1192,153 @@ def _claim_ledger(source_path: str, source: bytes) -> tuple[bytes, dict[str, Any
         "transformations": _claim_ledger_transformations(),
         "claim_ids": list(CLAIM_IDS),
         "claim_count": len(claims),
+    }
+
+
+def _claim_ledger_v6_transformations() -> dict[str, Any]:
+    return {
+        "routing_version": "v6",
+        "paper_binding_inputs": [CLAIM_LEDGER_V6_PDF, CLAIM_LEDGER_V6_TEX],
+        "claim_evidence_routing": [
+            {
+                "claim_id": claim_id,
+                "source_evidence": source_evidence,
+                "candidate_evidence": candidate_evidence,
+            }
+            for claim_id, (
+                _claim,
+                source_evidence,
+                candidate_evidence,
+                _limitation,
+            ) in CLAIM_LEDGER_V6_ROWS.items()
+        ],
+    }
+
+
+def _claim_ledger_v6(
+    source_path: str,
+    source: bytes,
+    pdf_path: str,
+    pdf: bytes,
+    tex_path: str,
+    tex: bytes,
+) -> tuple[bytes, dict[str, Any]]:
+    if (
+        source_path != CLAIM_LEDGER_V6_SOURCE
+        or pdf_path != CLAIM_LEDGER_V6_PDF
+        or tex_path != CLAIM_LEDGER_V6_TEX
+    ):
+        raise DerivationError("v6 claim-ledger input routing drifted")
+    try:
+        text = source.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise DerivationError("v6 claim ledger source is not UTF-8") from exc
+
+    paper_rows: dict[str, tuple[str, str, str]] = {}
+    source_claim_rows: dict[str, tuple[str, str, str]] = {}
+    for line in text.splitlines():
+        if line.startswith("| `main.pdf` |") or line.startswith("| `main.tex` |"):
+            cells = [cell.strip() for cell in line.split("|")[1:-1]]
+            if len(cells) != 4:
+                raise DerivationError("v6 paper-binding table shape drifted")
+            name = cells[0]
+            if name in paper_rows:
+                raise DerivationError("v6 paper-binding table contains a duplicate row")
+            paper_rows[name] = (cells[1], cells[2], cells[3])
+        if re.match(r"^\| C\d+ \|", line):
+            cells = [cell.strip() for cell in line.split("|")[1:-1]]
+            if len(cells) != 4:
+                raise DerivationError("v6 claim ledger table shape drifted")
+            claim_id, claim, evidence, limitation = cells
+            if claim_id in source_claim_rows:
+                raise DerivationError("v6 claim ledger contains a duplicate claim row")
+            source_claim_rows[claim_id] = (claim, evidence, limitation)
+
+    expected_paper_rows = {
+        "`main.pdf`": (
+            f"{len(pdf):,}",
+            f"`{_sha256(pdf).upper()}`",
+        ),
+        "`main.tex`": (
+            f"{len(tex):,}",
+            f"`{_sha256(tex).upper()}`",
+        ),
+    }
+    if set(paper_rows) != set(expected_paper_rows):
+        raise DerivationError("v6 paper-binding table does not bind main.pdf and main.tex")
+    for name, (expected_size, expected_digest) in expected_paper_rows.items():
+        observed_size, observed_digest, disposition = paper_rows[name]
+        if (
+            observed_size != expected_size
+            or observed_digest != expected_digest
+            or not disposition
+        ):
+            raise DerivationError(f"v6 paper binding drifted: {name}")
+
+    if list(source_claim_rows) != list(CLAIM_IDS):
+        raise DerivationError("v6 claim ledger no longer contains admitted C1-C10 exactly")
+    claims: list[dict[str, str]] = []
+    for claim_id in CLAIM_IDS:
+        expected_claim, expected_source_evidence, candidate_evidence, limitation = (
+            CLAIM_LEDGER_V6_ROWS[claim_id]
+        )
+        observed = source_claim_rows[claim_id]
+        if observed != (expected_claim, expected_source_evidence, limitation):
+            raise DerivationError(f"{claim_id} v6 admitted row drifted")
+        claims.append(
+            {
+                "id": claim_id,
+                "claim": expected_claim,
+                "authoritative_evidence": candidate_evidence,
+                "required_limitation": limitation,
+                "paper_locations": CLAIM_LEDGER_V6_PAPER_LOCATIONS,
+            }
+        )
+
+    value = {
+        "schema_name": "lifeline-admitted-claim-evidence-limitation-ledger",
+        "schema_version": 2,
+        "routing_version": "v6",
+        "candidate_status": STATUS,
+        "approval": APPROVAL,
+        "scope": "admitted_only",
+        "claim_count": len(claims),
+        "claim_ids": list(CLAIM_IDS),
+        "claims": claims,
+        "source_binding": {
+            "path": source_path,
+            "sha256": _sha256(source),
+            "size_bytes": len(source),
+        },
+        "paper_binding": {
+            "pdf": {
+                "path": pdf_path,
+                "sha256": _sha256(pdf),
+                "size_bytes": len(pdf),
+            },
+            "tex": {
+                "path": tex_path,
+                "sha256": _sha256(tex),
+                "size_bytes": len(tex),
+            },
+        },
+        "interpretation_boundary": (
+            "Each claim is admitted only together with its required limitation; "
+            "the side-six witness binds equal mask-free topology but unequal legal "
+            "masks, and no learning or same-backbone ablation result is admitted."
+        ),
+    }
+    data = _canonical_json_bytes(value)
+    return data, {
+        "transformation": (
+            "selected the exact hash-bound v6 C1-C10 table into canonical JSON, "
+            "routed every evidence clause to included candidate artifacts, and "
+            "bound the exact current PDF and TeX inputs"
+        ),
+        "transformations": _claim_ledger_v6_transformations(),
+        "claim_ids": list(CLAIM_IDS),
+        "claim_count": len(claims),
+        "routing_version": "v6",
     }
 
 
@@ -1468,6 +1777,16 @@ def _derive_entry(
     elif entry.mode == "claim_ledger":
         (ledger_source,) = inputs
         data, details = _claim_ledger(entry.inputs[0][0], ledger_source)
+    elif entry.mode == "claim_ledger_v6":
+        ledger_source, pdf_source, tex_source = inputs
+        data, details = _claim_ledger_v6(
+            entry.inputs[0][0],
+            ledger_source,
+            entry.inputs[1][0],
+            pdf_source,
+            entry.inputs[2][0],
+            tex_source,
+        )
     elif entry.mode == "d14_protocol":
         (protocol_source,) = inputs
         data, details = _d14_protocol(protocol_source)
@@ -1496,6 +1815,12 @@ def _derive_entry(
         (engine_source,) = inputs
         data = engine_source
         details = {"transformation": "byte_identical_copy_to_ascii_candidate_path"}
+    elif entry.mode == "history_twin_web_witness_copy":
+        (witness_source,) = inputs
+        data = witness_source
+        details = {
+            "transformation": "byte_identical_copy_to_ascii_candidate_path"
+        }
     elif entry.mode == "reference_trace":
         (trace_source,) = inputs
         data, details = _reference_trace(trace_source)

@@ -1,6 +1,6 @@
 # Literature metadata audit
 
-Checked on 2026-08-29 and extended on 2026-08-30. Crossref was used for publisher-assigned DOI records;
+Checked on 2026-08-29 and extended on 2026-08-30 and 2026-09-10. Crossref was used for publisher-assigned DOI records;
 DataCite was used for arXiv DOI records. Checked fields were title, authors,
 year, venue/publisher when supplied, and persistent identifier.
 
@@ -36,8 +36,12 @@ year, venue/publisher when supplied, and persistent identifier.
 | `soemers2021transfer` | transfer across games and variants | [DataCite](https://api.datacite.org/dois/10.48550/arXiv.2102.12375) |
 | `rigaux2024chessgraph` | graph representation in chess RL | [Crossref](https://api.crossref.org/works/10.52202/079017-0006) |
 | `keller2023hexgnn` | GNN reinforcement learning for Hex | [DataCite](https://api.datacite.org/dois/10.48550/arXiv.2311.13414) |
+| `campbell1985graphhistory` | graph-history interaction | [Crossref](https://api.crossref.org/works/10.1145/320435.320516) |
+| `wu2006graphhistory` | graph-history interaction in Chinese chess | [Crossref](https://api.crossref.org/works/10.1007/11922155_13) |
+| `benassayag2021smalllarge` | AlphaZero/GNN small-to-large board scaling | [DataCite](https://api.datacite.org/dois/10.48550/arXiv.2107.08387) |
+| `koyamada2023pgx` | hardware-accelerated parallel game simulation | [DataCite](https://api.datacite.org/dois/10.48550/arXiv.2303.17503) |
 
-Total: **30** registry-verified records. Crossref dates the print issue of
+Total: **34** registry-verified records. Crossref dates the print issue of
 `cazenave2021polygames` to 2021-01-11; DBLP labels the record 2020, so the
 BibTeX follows the DOI registry's 2021 date and volume 42(4).
 

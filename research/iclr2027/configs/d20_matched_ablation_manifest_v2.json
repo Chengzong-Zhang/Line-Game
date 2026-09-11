@@ -1,0 +1,100 @@
+{
+  "schema_name": "lifeline-d20-matched-ablation-manifest",
+  "schema_version": 2,
+  "experiment_id": "d20_matched_logical_edges_compact_history_formal_v2",
+  "protocol_id": "d20_matched_logical_edges_compact_history_protocol_20260909_v2",
+  "status": "formal_local_execution_authorized",
+  "relationship_to_d19_v2": {
+    "mode": "append_only_distinct_experiment",
+    "d19_v2_manifest_may_not_be_modified": true,
+    "imports_d19_v2_results": false,
+    "d19_v2_construct_validity_blocker_closed": false
+  },
+  "matched_backbone": {
+    "source": "d19_v2_matched_history_contract.MatchedD19V2PolicyValueNetwork",
+    "node_feature_width": 12,
+    "relation_count": 3,
+    "hidden_channels": 64,
+    "message_passing_layers": 3,
+    "parameter_count_each_arm": 63235,
+    "initial_state_rule": "identical_within_training_seed",
+    "gates_only": ["logical_edges", "compact_history"]
+  },
+  "arms": [
+    {"id": "edge0_history0", "logical_edges_enabled": false, "compact_history_enabled": false},
+    {"id": "edge1_history0", "logical_edges_enabled": true, "compact_history_enabled": false},
+    {"id": "edge0_history1", "logical_edges_enabled": false, "compact_history_enabled": true},
+    {"id": "edge1_history1", "logical_edges_enabled": true, "compact_history_enabled": true}
+  ],
+  "training": {
+    "training_seeds": [20260825, 20260826, 20260827, 20260828, 20260829],
+    "train_sizes": [5, 7, 9],
+    "iterations": 10,
+    "games_per_iteration": 10,
+    "updates_per_iteration": 20,
+    "batch_size": 16,
+    "replay_capacity": 10000,
+    "puct_simulations": 16,
+    "c_puct": 1.5,
+    "dirichlet_alpha": 0.3,
+    "dirichlet_epsilon": 0.25,
+    "temperature_moves": 20,
+    "initial_temperature": 1.0,
+    "final_temperature": 0.1,
+    "max_plies": 256,
+    "superko_mode": "enforce",
+    "optimizer": {
+      "kind": "AdamW",
+      "learning_rate": 0.001,
+      "weight_decay": 0.0001,
+      "betas": [0.9, 0.999],
+      "epsilon": 1e-08,
+      "gradient_clip_norm": 5.0
+    }
+  },
+  "evaluation": {
+    "train_seen_size": 9,
+    "held_out_sizes": [10, 12],
+    "opening_strata": 32,
+    "opening_variants_per_stratum": 1,
+    "games_per_task": 64,
+    "paired_color_pairs": 32,
+    "max_plies": 256,
+    "superko_mode": "enforce",
+    "neural_puct": {"simulations": 1, "c_puct": 1.5, "temperature": 0.0},
+    "opponents": {
+      "random": {"kind": "random", "eval_sizes": [9, 10, 12]},
+      "minimax_d2_cap8_v1": {"kind": "minimax", "depth": 2, "move_cap": 8, "eval_sizes": [10, 12]}
+    },
+    "primary_statistical_unit": "training_seed",
+    "pooled_games_are_independent": false
+  },
+  "strong_opponent_calibration": {
+    "candidate_id": "minimax_d2_cap8_v1",
+    "required_sizes": [10, 12],
+    "required_status": "PASS",
+    "lower_confidence_bound_rule": "two_sided_student_t_95_lower_gt_0.5_df4"
+  },
+  "planned_totals": {
+    "training_tasks": 20,
+    "self_play_games": 2000,
+    "gradient_steps": 4000,
+    "evaluation_tasks": 100,
+    "evaluation_games": 6400,
+    "checkpoints": 20
+  },
+  "protocol_sha256": "DDE4F5EF82553BD623AE0A0E07AFD7968DF4D71F968345CEFF88BDCC49328D7B",
+  "source_bindings": {
+    "research/iclr2027/scripts/d20_matched_ablation_runner.py": "D7445E0870749AE29F3FE77232DF3A810208B2552204F677EBDCF0325C01B9C8",
+    "research/iclr2027/scripts/verify_d20_matched_ablation.py": "4C1BAC3259C2010090DE5BCEC408BC3E7DC141B898AE3E9B6C45684A8913FE6F",
+    "research/iclr2027/scripts/d19_v2_matched_history_contract.py": "42CE773E27E23459FAF4F9050E4F3D3EF9D14B2FB1DBF28F7E14CF95B395C028",
+    "research/iclr2027/lifeline_rl/core.py": "A3219C931608AB76F466CF5278E6297DDFDF128B19D721A16FAB895EB81E05E7",
+    "research/iclr2027/lifeline_rl/alphazero/network.py": "02D92F165FF445AA9E92266933D5ED83FE04C19D3201FCDE6803705762C41F09",
+    "research/iclr2027/lifeline_rl/alphazero/puct.py": "8609060212D517DD98A5567AABD6E26F016E0524CE392641ABCDC5C6E1A3F979",
+    "research/iclr2027/lifeline_rl/agents/minimax.py": "4C905517CCE420AA6B678975F208C370B02F252E4D39CAA07D456AB164BABB68",
+    "research/iclr2027/lifeline_rl/agents/heuristic.py": "F5A90D1989FA1D2466E9908E905026867FE1B3B9AFD8F5027A17F466DC807A0C",
+    "research/iclr2027/lifeline_rl/agents/mcts.py": "0AB01DAE6A796B00C61748A30670C2E6195B14F8EDD02152FA1F6FFB4998ACAF",
+    "research/iclr2027/lifeline_rl/agents/random_agent.py": "416B7C94BC8CD989165A18543CEFAB03810561AE243958A4F42946305D3D628A",
+    "research/iclr2027/lifeline_rl/arena.py": "A613574BAEE606C2ED87DE9EB0408DC61356B9EE2D41ED7A6F5B099D22AE9599"
+  }
+}

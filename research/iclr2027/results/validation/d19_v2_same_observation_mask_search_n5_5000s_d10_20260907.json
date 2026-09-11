@@ -1,0 +1,84 @@
+{
+  "claim_boundary": {
+    "exact_value_search_scope": "only collision pairs checked before the declared exact solver node/pair budget; zero means no exact minimax was attempted",
+    "global_nonexistence_claimed": false,
+    "mask_free_side6_witness_promoted": false,
+    "negative_result_interpretation": "No witness was found under this exact deterministic board, strategy, depth/state, and optional solver budgets; this is not evidence that no witness exists.",
+    "same_implemented_observation_and_mask_witness_found": false,
+    "search_space_exhausted_claimed": false
+  },
+  "evidence_tier": "bounded_cpu_audit_search",
+  "observation_scope": {
+    "board_fixed": true,
+    "complete_history_must_differ": true,
+    "history_set_must_differ": true,
+    "implemented_legal_action_mask_fixed": true,
+    "player_fixed": true,
+    "skip_state_fixed": true,
+    "terminal_flag_fixed": true,
+    "typed_logical_edges_fixed": true
+  },
+  "result": {
+    "collision_trace_sha256": "9751B2A39F87B901C85C830E26D309F6517596813A1D799E25F1AB9D077FD25F",
+    "first_witnesses": {},
+    "frontier_remaining": 20981,
+    "pair_summaries_count": 4799,
+    "pair_summaries_sha256": "FA0319F0A31459412EE43AE12A947FB9CD2DFB52AB64BC6BA2B1875D2600EE43",
+    "stats": {
+      "decision_pairs_checked": 0,
+      "depth_cutoff_action_candidates": 0,
+      "depth_cutoff_states": 0,
+      "distinct_history_collisions": 4799,
+      "duplicate_successors": 0,
+      "exact_solver_budget_exhaustions": 0,
+      "exact_solver_nodes": 0,
+      "max_depth_reached": 5,
+      "observation_buckets": 2323,
+      "observation_collisions": 4799,
+      "peak_frontier": 20981,
+      "states_examined": 5000,
+      "terminal_states": 113,
+      "transitions_examined": 49024
+    },
+    "termination_reason": "STATE_BUDGET",
+    "visited_state_count": 5000,
+    "visited_trace_sha256": "11B5EC6CECC16FE2C7ED2A59845A143951EAFE9D0829D927671EE65D3208A090"
+  },
+  "runtime": {
+    "cpu_only": true,
+    "gpu_used": false,
+    "network_used": false,
+    "platform": "Windows-10-10.0.26200-SP0",
+    "python_implementation": "CPython",
+    "python_version": "3.10.20"
+  },
+  "schema_name": "lifeline-d19-v2-same-implemented-observation-mask-search",
+  "schema_version": 1,
+  "search_config": {
+    "action_order": "PASS_FIRST_THEN_LEXICOGRAPHIC_POINTS_V1",
+    "exact_solver_node_budget": 0,
+    "frontier_discipline": "FIFO",
+    "grid_size": 5,
+    "max_decision_pairs": 0,
+    "max_depth_actions_including_pass": 10,
+    "max_states": 5000,
+    "observation_key": "encode_observation(game, 'topology') exactly, plus explicit game_over: board, coordinates, current player, consecutive skips, legal-action mask, physical edges, and typed logical edges",
+    "standard_initial_state": true,
+    "start_player": "BLACK",
+    "strategy": "deterministic_breadth_first_full_snapshot_search",
+    "superko_mode": "enforce",
+    "wall_clock_stop": false
+  },
+  "source_binding": {
+    "d19_manifest_sha256": "DD5718080492234FC33C8E67A2389D43C9F7B5368CAA76F9644503E6F8B5A18B",
+    "d19_protocol_sha256": "ACE2DA18E66E4DF5BC0E95EA61CB20A4990C2293AF032D7F2CCF52F403CFFF52",
+    "encoding_path": "lifeline_rl/encoding.py",
+    "encoding_sha256": "B9A6A14CB627853936333968C8E931D7622B56AD6F0C48251B5E658D5494C33D",
+    "engine_core_path": "lifeline_rl/core.py",
+    "engine_core_sha256": "A3219C931608AB76F466CF5278E6297DDFDF128B19D721A16FAB895EB81E05E7",
+    "mask_free_addendum_sha256": "B4A91DFF91A3B2B94B85CBD8F123B96F57B98C2F435961E01B419229065C9B8D",
+    "search_script_path": "scripts/search_same_observation_mask_witness.py",
+    "search_script_sha256": "8D7075B2AA35CFD0488AAFC2481BE3705C71FE32F44EDC6AB7CDFBAED599EBBD"
+  },
+  "status": "NOT_FOUND_WITHIN_DECLARED_BUDGET"
+}

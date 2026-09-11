@@ -1,0 +1,47 @@
+# Live envelope for exactly one D20-v2 formal attempt.  The user explicitly
+# asked to execute toward submission without an action-time approval prompt.
+# A 28-hour runtime at the 3.333 CNY/h ceiling has a nominal 93.324 CNY worker
+# cost; provider startup, transfer, and idle overhead are not a hard total-cost
+# cap and must not be represented as one.
+live_enabled = true
+state_dir = "C:/Users/zcz/.autodl-runner-direct"
+control_root = "C:/Users/zcz/.autodl-runner-control"
+allowed_local_roots = ["C:/coding/py/line game", "C:/Users/zcz"]
+result_root = "C:/Users/zcz/autodl-results"
+
+max_concurrent_instances = 1
+max_job_runtime_seconds = 100800
+startup_timeout_seconds = 1800
+max_input_bytes = 2000000000
+max_export_bytes = 33554432
+transfer_parallelism = 4
+parallel_file_threshold_bytes = 67108864
+control_reserve_bytes = 16777216
+min_balance_milliyuan = 100000
+max_hourly_spend_milliyuan = 3333
+max_price_milliyuan_per_hour = 3333
+orchestration_lock_timeout_seconds = 1200
+provision_timeout_seconds = 600
+bootstrap_timeout_seconds = 600
+ssh_port_timeout_seconds = 300
+ssh_auth_timeout_seconds = 420
+ssh_tools_timeout_seconds = 600
+iteration_wait_seconds = 0
+idle_grace_seconds = 120
+watchdog_fallback_seconds = 120
+poll_interval_seconds = 3
+telemetry_interval_seconds = 5
+recovery_runtime_seconds = 900
+
+# Preserve the provider instance rather than releasing it; the direct runner
+# controls shutdown/idle state for this exact job only.
+auto_release = false
+
+[[candidates]]
+gpu_spec_uuid = "5090-p"
+data_center = "beijingDC2"
+gpu_num = 1
+vram_gb = 32
+cpu_cores = 24
+ram_gb = 64
+expected_price_milliyuan = 3333
