@@ -22,6 +22,18 @@ pytest-cache-files-*/
 **/.codex-test-tmp-root/
 **/.test-tmp/
 
+# Root-only scratch trees created by local Codex/research test runs.
+/.codex-root-*/
+/.codex-v*/
+/.codex-test-tmp/
+/.tmp-v*-*/
+/.v[0-9][0-9]-*/
+/.reviewer-test-temp-*/
+/..d19-v2-runner-test-*/
+/research/iclr2027/results/..d19-v2-runner-test-*/
+/research/iclr2027/scripts/tmp*/
+/research/iclr2027/tmp*/
+
 phase4-check.png
 smoke-test.png
 *.db
@@ -32,6 +44,14 @@ submission/*.zip
 submission/**/*.mp4
 /*.mp4
 /local_artifacts/
+
+# Local-only candidate evidence, source packages, and reproducible paper QA.
+/research/iclr2027/paper/iclr-2027-style-files.zip
+/research/iclr2027/submission_checks/.latex_round2_build/
+/research/iclr2027/submission_checks/.pdf_round2_render/
+/research/iclr2027/submission_checks/day1_narrow_candidate_20260907/
+/research/iclr2027/submission_checks/day3_blind_review_20260908/
+/softcopyright/
 
 # Local model checkpoints and generated training state
 *.pt
