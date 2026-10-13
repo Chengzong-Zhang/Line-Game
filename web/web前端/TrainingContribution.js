@@ -10,15 +10,15 @@ export class TrainingContribution {
   constructor({ storage, fetcher = globalThis.fetch?.bind(globalThis), onChange = () => {} } = {}) {
     if (storage === undefined) { try { storage = globalThis.localStorage; } catch (_) { /* Unavailable in private/restricted browser contexts. */ } }
     this.storage = storage; this.fetcher = fetcher; this.onChange = onChange;
-    this.enabled = false; this.queue = []; this.lastReceipt = null; this.status = "off";
+    this.enabled = true; this.queue = []; this.lastReceipt = null; this.status = "ready";
     this.active = false; this.generation = 0; this.controller = null;
     try {
       const saved = JSON.parse(storage?.getItem(CONTRIBUTION_STORAGE) ?? "null");
-      if (saved?.policy === CONTRIBUTION_POLICY && saved.enabled === true) {
-        this.enabled = true;
-        this.queue = Array.isArray(saved.queue) ? saved.queue.slice(0, MAX_QUEUE) : [];
+      if (saved?.policy === CONTRIBUTION_POLICY && typeof saved.enabled === "boolean") {
+        this.enabled = saved.enabled;
+        this.queue = this.enabled && Array.isArray(saved.queue) ? saved.queue.slice(0, MAX_QUEUE) : [];
         this.lastReceipt = saved.lastReceipt ?? null;
-        this.status = this.queue.length ? "pending" : "ready";
+        this.status = this.enabled ? (this.queue.length ? "pending" : "ready") : "off";
       }
     } catch (_) { /* The live game does not depend on contribution storage. */ }
   }
@@ -77,19 +77,18 @@ export const ContributionPanel = {
   computed: {
     copy() {
       return this.language === "zh" ? {
-        title: "帮 AI 学下棋", opt: "自愿贡献匿名棋谱", detail: "开启后自动上传本地完整对局，用于筛选和 AI 训练；不上传账号、聊天或设备标识。关闭后停止上传并清空待上传记录，已提交的棋谱仍保留。", retry: "重试上传",
+        title: "帮 AI 学下棋", opt: "自愿贡献匿名棋谱", retry: "重试上传",
         off: "未开启，不上传", ready: "已开启，完整对局结束后自动提交", pending: "已保存在本机，等待上传", received: "服务器已收到，等待筛选", unavailable: "采集服务尚未启用，记录留在本机", retryStatus: "上传失败，记录留在本机", storage: "本机存储不可用，待上传记录可能无法恢复", full: "待上传队列已满，请先重试", large: "棋谱超过上传大小限制",
       } : {
-        title: "Help the AI learn", opt: "Contribute anonymous replays", detail: "Automatically upload completed local matches for selection and AI training; no account, chat or device identifiers. Turning this off clears pending uploads; submitted replays remain stored.", retry: "Retry upload",
+        title: "Help the AI learn", opt: "Contribute anonymous replays", retry: "Retry upload",
         off: "Off: no uploads", ready: "On: submit after a local match ends", pending: "Saved on this device, awaiting upload", received: "Received by the server; awaiting selection", unavailable: "Collection is not enabled on the server; saved locally", retryStatus: "Upload failed; saved locally", storage: "Local storage unavailable; pending uploads may not survive refresh", full: "Upload queue full; retry first", large: "Replay exceeds the upload size limit",
       };
     },
     statusLabel() { return this.copy[({ retry: "retryStatus", "storage-error": "storage", "queue-full": "full", "too-large": "large" })[this.state.status] ?? this.state.status]; },
   },
-  template: `<section class="panel panel-subtle training-contribution" aria-live="polite">
-    <p class="panel-kicker">{{ copy.title }}</p>
+  template: `<div class="training-contribution training-contribution-inline" aria-live="polite">
+    <p class="field-label">{{ copy.title }}</p>
     <label class="training-contribution-toggle"><input type="checkbox" :checked="state.enabled" @change="$emit('toggle', $event.target.checked)" /> {{ copy.opt }}</label>
-    <p class="help-copy">{{ copy.detail }}</p><p class="help-copy">{{ statusLabel }}</p>
-    <button v-if="state.enabled && state.pending" type="button" class="action-button action-button-secondary" @click="$emit('retry')">{{ copy.retry }} ({{ state.pending }})</button>
-  </section>`,
+    <button v-if="state.enabled && state.pending && ['retry', 'unavailable', 'storage-error', 'queue-full'].includes(state.status)" type="button" class="contribution-retry" :title="statusLabel" @click="$emit('retry')">{{ copy.retry }} ({{ state.pending }})</button>
+  </div>`,
 };

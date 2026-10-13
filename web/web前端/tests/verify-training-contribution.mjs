@@ -17,7 +17,8 @@ const fetcher = async (_url, options) => {
   return { ok: true, json: async () => ({ status: "awaiting_review", game_id: verified.game_id }) };
 };
 const client = new TrainingContribution({ storage, fetcher });
-assert.equal(client.enabled, false);
+assert.equal(client.enabled, true, "new visitors contribute by default");
+client.setEnabled(false);
 assert.equal(await client.enqueue(payload.replay.config, payload.replay.actions, payload.context), false);
 await client.flush(); assert.equal(requests, 0);
 client.setEnabled(true);
@@ -29,11 +30,13 @@ const restored = new TrainingContribution({ storage, fetcher }); assert.equal(re
 failure = false; await restored.flush(); assert.equal(restored.status, "received"); assert.equal(restored.queue.length, 0);
 assert.equal(await restored.enqueue(payload.replay.config, payload.replay.actions, payload.context), false);
 restored.setEnabled(false); assert.equal(JSON.parse(values.get(CONTRIBUTION_STORAGE)).enabled, false);
+assert.equal(new TrainingContribution({ storage, fetcher }).enabled, false, "an explicit opt-out survives refresh");
 await assert.rejects(validateContribution({ ...payload, consent: false }));
 await assert.rejects(validateContribution({ ...payload, replay: { ...payload.replay, terminal: { ...payload.replay.terminal, winner: "FAKE" } } }));
 // Revocation during an in-flight request must not recreate pending records.
 let finish;
-const racing = new TrainingContribution({ storage, fetcher: () => new Promise((done) => { finish = done; }) });
+const raceValues = new Map(); const raceStorage = { getItem: (key) => raceValues.get(key), setItem: (key, value) => raceValues.set(key, value) };
+const racing = new TrainingContribution({ storage: raceStorage, fetcher: () => new Promise((done) => { finish = done; }) });
 racing.setEnabled(true); await racing.enqueue(payload.replay.config, payload.replay.actions, payload.context);
 const inFlight = racing.flush(); racing.setEnabled(false);
 finish({ ok: true, json: async () => ({ status: "awaiting_review", game_id: "a".repeat(64) }) }); await inFlight;
@@ -64,4 +67,10 @@ const assisted = structuredClone(claimed.values().next().value); assisted.contex
 const safe = await validateContribution(assisted); const assistedInbox = resolve(root, "assisted"); await mkdir(assistedInbox);
 await writeFile(resolve(assistedInbox, `${safe.game_id}.json`), JSON.stringify({ ...safe, context: assisted.context, consent_policy: assisted.consent_policy }));
 const filtered = await curate(assistedInbox, { policy: "human-review-v1", approved_game_ids: [safe.game_id] }, resolve(root, "filtered")); assert.equal(filtered.samples, 0);
+const bots = structuredClone(claimed.values().next().value);
+bots.context.actors.BLACK = { kind: "ai", strategy: "minimax", depth: 1 };
+const botRecord = await validateContribution(bots); const botInbox = resolve(root, "ai-duel"); await mkdir(botInbox);
+await writeFile(resolve(botInbox, `${botRecord.game_id}.json`), JSON.stringify({ ...botRecord, context: bots.context, consent_policy: bots.consent_policy }));
+const excluded = await curate(botInbox, { policy: "human-review-v1", approved_game_ids: [botRecord.game_id] }, resolve(root, "bot-filtered"));
+assert.equal(excluded.samples, 0); assert.equal(excluded.decisions[0].reason, "no_human");
 process.stdout.write(JSON.stringify({ status: "PASS", synthetic_only: true, completed_games: manifest.games, train_games: manifest.train_games, validation_games: manifest.validation_games, samples: rows.length, consent_off_zero_requests: true, retry_restore: true, revoked_inflight: true, bot_moves_excluded: true, pass_verified: true, grouped_split: true, output: root }) + "\n");

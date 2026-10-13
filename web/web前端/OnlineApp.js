@@ -42,7 +42,7 @@ import {
   UI_STYLE_STORAGE_KEY,
   UI_STYLE_ACADEMIC,
   localizeErrorMessage as localizeAppErrorMessage,
-} from "./OnlineAppI18n.js?v=20261013a";
+} from "./OnlineAppI18n.js?v=20261013d";
 import { ensureGuideRuleImages, getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20260508a";
 import {
   TUTORIAL_LEVELS,
@@ -63,7 +63,8 @@ import {
   downloadReplayDocument,
   parseAndValidateReplay,
 } from "./ReplayCodec.js?v=20260921a";
-import { TrainingContribution, ContributionPanel } from "./TrainingContribution.js?v=20261013c";
+import { TrainingContribution, ContributionPanel } from "./TrainingContribution.js?v=20261013d";
+import { resolveAIPlayer, localAIActors } from "./LocalAIModes.js?v=20261013d";
 
 const {
   computed,
@@ -634,6 +635,7 @@ const ScorePanel = {
 
 const SetupPanel = {
   name: "SetupPanel",
+  components: { ContributionPanel },
   emits: [
     "update:player-count",
     "update:grid-size",
@@ -647,6 +649,7 @@ const SetupPanel = {
     "update:ai-depth",
     "update:ai-strategy",
     "update:ai-model-version",
+    "toggle-contributions", "retry-contributions", "toggle-ai-duel",
   ],
   props: {
     language: {
@@ -694,6 +697,9 @@ const SetupPanel = {
       default: "minimax",
     },
     aiModelVersion: { type: String, default: "2026092201" },
+    contributionState: { type: Object, required: true },
+    aiDuelPaused: { type: Boolean, default: false },
+    aiDuelFinished: { type: Boolean, default: false },
     aiAvailable: {
       type: Boolean,
       default: true,
@@ -729,7 +735,7 @@ const SetupPanel = {
 
       <div class="settings-cluster settings-cluster-standalone">
         <div class="settings-grid">
-          <div>
+          <div class="setup-inline-field">
             <label class="field-label">{{ texts.languageLabel }}</label>
             <div id="language-select" class="language-switcher language-switcher-inline" role="group" :aria-label="texts.languageLabel">
               <button
@@ -750,7 +756,7 @@ const SetupPanel = {
               </button>
             </div>
           </div>
-          <div>
+          <div class="setup-inline-field">
             <label class="field-label">{{ texts.uiStyleLabel }}</label>
             <div id="ui-style-select" class="language-switcher language-switcher-inline" role="group" :aria-label="texts.uiStyleLabel">
               <button
@@ -771,7 +777,7 @@ const SetupPanel = {
               </button>
             </div>
           </div>
-          <div>
+          <div class="setup-inline-field">
             <label id="player-count-label" class="field-label">{{ texts.playerCountLabel }}</label>
             <div
               id="player-count"
@@ -794,44 +800,7 @@ const SetupPanel = {
               </button>
             </div>
           </div>
-          <div>
-            <label id="ai-mode-label" class="field-label">{{ texts.aiOpponent }}</label>
-            <div
-              id="ai-mode"
-              class="board-choice-grid board-choice-grid-3col"
-              role="radiogroup"
-              aria-labelledby="ai-mode-label"
-            >
-              <button
-                type="button"
-                class="board-choice-option board-choice-size"
-                :class="{ 'is-active': aiMode === 'none' }"
-                role="radio"
-                :aria-checked="aiMode === 'none'"
-                :disabled="busy || settingsLocked || !aiAvailable || playerCount !== 2"
-                @click="$emit('update:ai-mode', 'none')"
-              >{{ texts.aiModeNone }}</button>
-              <button
-                type="button"
-                class="board-choice-option board-choice-size"
-                :class="{ 'is-active': aiMode === 'ai_black' }"
-                role="radio"
-                :aria-checked="aiMode === 'ai_black'"
-                :disabled="busy || settingsLocked || !aiAvailable || playerCount !== 2"
-                @click="$emit('update:ai-mode', 'ai_black')"
-              >{{ texts.aiModeBlack }}</button>
-              <button
-                type="button"
-                class="board-choice-option board-choice-size"
-                :class="{ 'is-active': aiMode === 'ai_white' }"
-                role="radio"
-                :aria-checked="aiMode === 'ai_white'"
-                :disabled="busy || settingsLocked || !aiAvailable || playerCount !== 2"
-                @click="$emit('update:ai-mode', 'ai_white')"
-              >{{ texts.aiModeWhite }}</button>
-            </div>
-          </div>
-          <div v-if="aiMode !== 'none'">
+          <div v-if="aiMode !== 'none'" class="setup-inline-field">
             <label id="ai-depth-label" class="field-label">{{ texts.aiDifficulty }}</label>
             <div
               id="ai-depth"
@@ -868,8 +837,51 @@ const SetupPanel = {
               >{{ texts.aiDifficultyHard }}</button>
             </div>
           </div>
+          <div class="setup-ai-row settings-grid-item-wide">
+          <div class="setup-ai-opponent">
+            <div class="ai-mode-heading"><label id="ai-mode-label" class="field-label">{{ texts.aiOpponent }}</label>
+              <button v-if="aiMode === 'ai_duel'" type="button" class="ai-duel-pause" :disabled="busy || settingsLocked || aiDuelFinished" @click="$emit('toggle-ai-duel')">{{ aiDuelFinished ? texts.aiDuelFinished : (aiDuelPaused ? texts.aiDuelResume : texts.aiDuelPause) }}</button>
+            </div>
+            <div
+              id="ai-mode"
+              class="board-choice-grid board-choice-grid-4col"
+              role="radiogroup"
+              aria-labelledby="ai-mode-label"
+            >
+              <button
+                type="button"
+                class="board-choice-option board-choice-size"
+                :class="{ 'is-active': aiMode === 'none' }"
+                role="radio"
+                :aria-checked="aiMode === 'none'"
+                :disabled="busy || settingsLocked || !aiAvailable || playerCount !== 2"
+                @click="$emit('update:ai-mode', 'none')"
+              >{{ texts.aiModeNone }}</button>
+              <button
+                type="button"
+                class="board-choice-option board-choice-size"
+                :class="{ 'is-active': aiMode === 'ai_black' }"
+                role="radio"
+                :aria-checked="aiMode === 'ai_black'"
+                :disabled="busy || settingsLocked || !aiAvailable || playerCount !== 2"
+                @click="$emit('update:ai-mode', 'ai_black')"
+              >{{ texts.aiModeBlack }}</button>
+              <button
+                type="button"
+                class="board-choice-option board-choice-size"
+                :class="{ 'is-active': aiMode === 'ai_white' }"
+                role="radio"
+                :aria-checked="aiMode === 'ai_white'"
+                :disabled="busy || settingsLocked || !aiAvailable || playerCount !== 2"
+                @click="$emit('update:ai-mode', 'ai_white')"
+              >{{ texts.aiModeWhite }}</button>
+              <button type="button" class="board-choice-option board-choice-size" :class="{ 'is-active': aiMode === 'ai_duel' }" role="radio" :aria-checked="aiMode === 'ai_duel'" :title="texts.aiDuelModelHint" :disabled="busy || settingsLocked || !aiAvailable || playerCount !== 2" @click="$emit('update:ai-mode', 'ai_duel')">{{ texts.aiModeDuel }}</button>
+            </div>
+          </div>
+          <ContributionPanel :language="language" :state="contributionState" @toggle="$emit('toggle-contributions', $event)" @retry="$emit('retry-contributions')" />
+          </div>
           <div v-if="aiMode !== 'none'" class="settings-grid-item-wide">
-            <label id="ai-model-label" class="field-label">{{ texts.aiModelLabel }}</label>
+            <label id="ai-model-label" class="field-label">{{ texts.aiModelLabel }}<span v-if="aiMode === 'ai_duel'" class="ai-model-duel-note"> · {{ texts.aiDuelModelHint }}</span></label>
             <div id="ai-model" class="board-choice-grid board-choice-grid-model" role="radiogroup" aria-labelledby="ai-model-label">
               <button type="button" class="board-choice-option board-choice-size" :class="{ 'is-active': aiStrategy === 'minimax' }" role="radio" :aria-checked="aiStrategy === 'minimax'" :disabled="busy || settingsLocked || !aiAvailable || playerCount !== 2" @click="$emit('update:ai-strategy', 'minimax')">{{ texts.aiModelMinimax }}</button>
               <button type="button" class="board-choice-option board-choice-size" :class="{ 'is-active': aiStrategy === 'padded-cnn' }" role="radio" :aria-checked="aiStrategy === 'padded-cnn'" :disabled="busy || settingsLocked || !aiAvailable || playerCount !== 2 || gridSize < 5 || gridSize > 15" @click="$emit('update:ai-strategy', 'padded-cnn')">{{ texts.aiModelPaddedCnn }}</button>
@@ -882,8 +894,8 @@ const SetupPanel = {
               <button type="button" class="board-choice-option board-choice-size" :class="{ 'is-active': aiStrategy === 'gan' }" role="radio" :aria-checked="aiStrategy === 'gan'" :disabled="busy || settingsLocked || !aiAvailable || playerCount !== 2 || gridSize < 5 || gridSize > 15" @click="$emit('update:ai-strategy', 'gan')">GAN</button>
             </div>
             <p id="ai-model-description" class="help-copy" aria-live="polite">{{ texts.aiModelDescriptions[aiStrategy] }}</p>
-            <p v-if="['padded-cnn', 'grid-gnn', 'topology-gnn'].includes(aiStrategy)" class="help-copy">{{ texts.aiModelTrial }}</p>
             <template v-if="['padded-cnn', 'grid-gnn', 'topology-gnn'].includes(aiStrategy)">
+              <div class="research-model-controls">
               <label for="ai-model-version" class="field-label">{{ texts.aiModelSeed }}</label>
               <select id="ai-model-version" class="research-model-version" :value="aiModelVersion" :disabled="busy || settingsLocked" @change="$emit('update:ai-model-version', $event.target.value)">
                 <option value="2026092201">seed 2026092201 · PILOT_ONLY</option>
@@ -891,10 +903,12 @@ const SetupPanel = {
                 <option value="2026092203">seed 2026092203 · PILOT_ONLY</option>
                 <option value="legacy">seed 20260825 · 5/7/9 · D14/D16 g200</option>
               </select>
-              <p class="help-copy">{{ texts.aiModelSeedBasis }} · PUCT-16 · c_puct=1.5 · COMPATIBILITY_TRIAL</p>
+              </div>
+              <p class="help-copy research-model-budget">PUCT-16 · c_puct=1.5 · COMPATIBILITY_TRIAL</p>
+              <details class="research-model-details"><summary>{{ texts.aiModelInfo }}</summary><p class="help-copy">{{ texts.aiModelTrial }}</p><p class="help-copy">{{ texts.aiModelSeedBasis }}</p></details>
             </template>
           </div>
-          <div class="settings-grid-item-wide">
+          <div class="settings-grid-item-wide setup-inline-field">
             <label id="grid-size-label" class="field-label">{{ texts.gridSizeLabel }}</label>
             <div
               id="grid-size"
@@ -917,7 +931,7 @@ const SetupPanel = {
               </button>
             </div>
           </div>
-          <div>
+          <div class="setup-inline-field setup-toggle-group">
             <label class="field-label" for="turn-timer-enabled">{{ texts.turnTimerLabel }}</label>
             <label class="toggle-field" for="turn-timer-enabled">
               <input
@@ -929,13 +943,13 @@ const SetupPanel = {
               />
               <span>{{ turnTimerEnabled ? texts.toggleOn : texts.toggleOff }}</span>
             </label>
-          </div>
-          <div v-if="turnTimerEnabled">
-            <label class="field-label" for="turn-time-limit">{{ texts.turnTimerDurationLabel }}</label>
+          <div v-if="turnTimerEnabled" class="setup-toggle-value">
             <input
               id="turn-time-limit"
               class="input-field input-field-compact"
               type="number"
+              :aria-label="texts.turnTimerDurationLabel"
+              :title="texts.turnTimerDurationLabel"
               :min="TURN_TIMER_MIN_SECONDS"
               :max="TURN_TIMER_MAX_SECONDS"
               :value="turnTimeLimitSeconds"
@@ -943,7 +957,8 @@ const SetupPanel = {
               @change="$emit('update:turn-time-limit-seconds', Number($event.target.value))"
             />
           </div>
-          <div>
+          </div>
+          <div class="setup-inline-field setup-toggle-group">
             <label class="field-label" for="hint-enabled">{{ texts.hintSwitchLabel }}</label>
             <label class="toggle-field" for="hint-enabled">
               <input
@@ -955,19 +970,20 @@ const SetupPanel = {
               />
               <span>{{ hintEnabled ? texts.toggleOn : texts.toggleOff }}</span>
             </label>
-          </div>
-          <div v-if="hintEnabled">
-            <label class="field-label" for="hint-max-count">{{ texts.hintMaxCountLabel }}</label>
+          <div v-if="hintEnabled" class="setup-toggle-value">
             <input
               id="hint-max-count"
               class="input-field input-field-compact"
               type="number"
+              :aria-label="texts.hintMaxCountLabel"
+              :title="texts.hintMaxCountLabel"
               :min="HINT_MAX_COUNT_MIN"
               :max="HINT_MAX_COUNT_MAX"
               :value="hintMaxCount"
               :disabled="busy || settingsLocked"
               @change="$emit('update:hint-max-count', Number($event.target.value))"
             />
+          </div>
           </div>
         </div>
       </div>
@@ -2980,6 +2996,7 @@ const App = {
     const selectedAiDepth = ref(3);
     const selectedAiStrategy = ref("minimax");
     const selectedAiModelVersion = ref(loadResearchSelection());
+    const aiDuelPaused = ref(false);
     const aiThinking = ref(false);
     const session = ref(networkManager.getSession());
     const connectionState = ref("idle");
@@ -3031,15 +3048,7 @@ const App = {
     const cancelHintRequest = () => hintWorkerSession.cancel();
     const cancelAiComparison = () => aiComparisonWorkerSession.cancel();
 
-    const getAiPlayer = () => {
-      if (selectedAiMode.value === "ai_white") {
-        return Player.WHITE;
-      }
-      if (selectedAiMode.value === "ai_black") {
-        return Player.BLACK;
-      }
-      return null;
-    };
+    const getAiPlayer = (state = gameState.value) => resolveAIPlayer(selectedAiMode.value, state?.currentPlayer);
 
     const selectedAiProfile = () => RESEARCH_FAMILIES.includes(selectedAiStrategy.value)
       ? researchProfile(selectedAiStrategy.value, selectedAiModelVersion.value) : ({
@@ -3067,7 +3076,9 @@ const App = {
     const canRunLocalAI = (state = gameState.value) => (
       roomStatus.value === "solo"
       && selectedPlayerCount.value === 2
+      && !tutorialActive.value
       && selectedAiMode.value !== "none"
+      && !(selectedAiMode.value === "ai_duel" && aiDuelPaused.value)
       && !state?.gameOver
       && !state?.multiplayerEnabled
       && !controller.value?.multiplayerEnabled
@@ -3131,7 +3142,7 @@ const App = {
       if (replayMode.value || replayRestoring.value) {
         return;
       }
-      const aiPlayer = getAiPlayer();
+      const aiPlayer = getAiPlayer(state);
       if (!canRunLocalAI(state)) {
         if (state?.gameOver || state?.multiplayerEnabled || selectedAiMode.value === "none") {
           terminateAiWorker();
@@ -3345,6 +3356,12 @@ const App = {
       }
       restartLocalAiWorker();
     });
+    watch(selectedAiMode, () => { aiDuelPaused.value = false; restartLocalAiWorker(); });
+    const toggleAiDuel = () => {
+      aiDuelPaused.value = !aiDuelPaused.value;
+      terminateAiWorker();
+      if (!aiDuelPaused.value) scheduleAiMove(gameState.value);
+    };
     watch(selectedAiModelVersion, (version) => {
       persistResearchSelection(version);
       cancelHintRequest();
@@ -3535,14 +3552,8 @@ const App = {
         localGameActions.value = nextSession.actions;
         localGamePositionRevision.value = nextState.positionRevision;
         if (contribution.enabled) {
-          const aiPlayer = getAiPlayer();
           const profile = selectedAiProfile();
-          const aiActor = { kind: "ai" };
-          for (const key of ["strategy", "modelId", "seed", "simulations", "cPuct", "depth"]) {
-            if (profile[key] !== undefined) aiActor[key] = profile[key];
-          }
-          const actors = Object.fromEntries([Player.BLACK, Player.WHITE, ...(selectedPlayerCount.value === 3 ? [Player.PURPLE] : [])]
-            .map((player) => [player, player === aiPlayer ? aiActor : { kind: "human" }]));
+          const actors = localAIActors(selectedAiMode.value, profile, selectedPlayerCount.value);
           const signature = JSON.stringify(actors);
           if (!contributionContext) {
             contributionContext = { source: "local", actors, mixedProfiles: nextSession.actions.length > 1, hintsEnabled: selectedHintEnabled.value || contributionAssisted };
@@ -5202,7 +5213,7 @@ const App = {
       }
 
       if (roomStatus.value === "solo") {
-        return gameState.value.gameOver;
+        return gameState.value.gameOver || selectedAiMode.value === "ai_duel";
       }
 
       return gameState.value.skipLocked;
@@ -5626,6 +5637,8 @@ const App = {
       selectedAiDepth,
       selectedAiStrategy,
       selectedAiModelVersion,
+      aiDuelPaused,
+      toggleAiDuel,
       aiThinking,
       session,
       connectionState,
@@ -5802,6 +5815,9 @@ const App = {
             :ai-depth="selectedAiDepth"
             :ai-strategy="selectedAiStrategy"
             :ai-model-version="selectedAiModelVersion"
+            :ai-duel-paused="aiDuelPaused"
+            :ai-duel-finished="gameState.gameOver"
+            :contribution-state="contributionState"
             :ai-available="roomStatus === 'solo'"
             :settings-locked="settingsLocked"
             :busy="networkBusy"
@@ -5817,8 +5833,12 @@ const App = {
             @update:ai-depth="selectedAiDepth = $event"
             @update:ai-strategy="selectedAiStrategy = $event"
             @update:ai-model-version="selectedAiModelVersion = $event"
+            @toggle-contributions="toggleContributions"
+            @retry-contributions="retryContributions"
+            @toggle-ai-duel="toggleAiDuel"
           />
 
+          <div class="board-status-stack">
           <ScorePanel
             :game-state="gameState"
             :session="session"
@@ -5841,7 +5861,6 @@ const App = {
             @exit-review="handleExitReplay"
             @seek="handleSeekReplay"
           />
-          <ContributionPanel :language="language" :state="contributionState" @toggle="toggleContributions" @retry="retryContributions" />
           <ReplayInspectorPanel
             v-if="replayMode"
             :language="language"
@@ -5854,6 +5873,7 @@ const App = {
             @inspect-point="replayInspectionPoint = $event"
             @compare-ai="runAiComparison"
           />
+          </div>
         </div>
       </UtilityModal>
 
