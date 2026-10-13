@@ -1,0 +1,117 @@
+{
+  "date": "2026-10-12",
+  "timezone": "Asia/Shanghai",
+  "cwd": "C:\\coding\\py\\line game",
+  "status": "PASS-CURRENT_PILOT_COMPATIBILITY_ONLY",
+  "formal_ready": false,
+  "deployed": false,
+  "commands": [
+    {
+      "name": "initial nine-model export",
+      "command": "& 'C:\\Users\\zcz\\anaconda3\\envs\\rl310\\python.exe' research/iclr2027/scripts/export_web_size_transfer.py",
+      "exit_code": 0,
+      "output": "27 stages; 9 models; 270 tensors; exact F32 parity"
+    },
+    {
+      "name": "specified stage export",
+      "command": "& 'C:\\Users\\zcz\\anaconda3\\envs\\rl310\\python.exe' research/iclr2027/scripts/export_web_size_transfer.py --stage-dir research/iclr2027/results/pilot/size_transfer_v1_transfer_all_3families/topology_gnn/transfer_all.seed2026092203.stage3 --output local_artifacts/web-transfer-v1-20261012/single-stage-export",
+      "exit_code": 0,
+      "output": "27 stages audited; specified model exported; 35 tensors exact"
+    },
+    {
+      "name": "Python fixtures and asset verifier",
+      "command": "& 'C:\\Users\\zcz\\anaconda3\\envs\\rl310\\python.exe' research/iclr2027/scripts/verify_web_size_transfer.py --fixtures research/iclr2027/results/pilot/web_transfer_verification_20261012/python-fixtures.json",
+      "exit_code": 0,
+      "output": "22 numerical positions, 22 rule replay prefixes; assets exact"
+    },
+    {
+      "name": "numerical and rule differential",
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-research-ai.mjs --fixtures research/iclr2027/results/pilot/web_transfer_verification_20261012/python-fixtures.json --report research/iclr2027/results/pilot/web_transfer_verification_20261012/web-report.json",
+      "exit_code": 0,
+      "output": "198 numerical comparisons; 317 replay states; 2 terminal score differences"
+    },
+    {
+      "name": "comparison",
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-ai-comparison.mjs",
+      "exit_code": 0,
+      "output": "PASS"
+    },
+    {
+      "name": "AI control flow",
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-ai-control-flow.mjs",
+      "exit_code": 0,
+      "output": "PASS; source preserved"
+    },
+    {
+      "name": "local recovery",
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-local-game-session.mjs",
+      "exit_code": 0,
+      "output": "PASS"
+    },
+    {
+      "name": "replay recovery",
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-replay-codec.mjs",
+      "exit_code": 0,
+      "output": "PASS"
+    },
+    {
+      "name": "hint worker guards",
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-hint-worker.mjs",
+      "exit_code": 0,
+      "output": "PASS; stale/cancel/error/duplicate"
+    },
+    {
+      "name": "online recovery",
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-online-recovery.mjs",
+      "exit_code": 0,
+      "output": "PASS after render-only fixture correction"
+    },
+    {
+      "name": "territory-v2",
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-territory-v2.mjs",
+      "exit_code": 0,
+      "output": "PASS after model-free import fixture correction"
+    },
+    {
+      "name": "worker",
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-research-worker.mjs",
+      "exit_code": 0,
+      "output": "verify-research-worker: PASS (9 models, identity echoes, errors, preserved source)\n"
+    },
+    {
+      "name": "export integrity tests",
+      "command": "& 'C:\\Users\\zcz\\anaconda3\\envs\\rl310\\python.exe' -m unittest discover -s research/iclr2027/tests -p test_web_size_transfer_export.py -v",
+      "exit_code": 0,
+      "output": "test_checkpoint_byte_corruption_rejected (test_web_size_transfer_export.ExportIntegrityTests) ... ok\r\ntest_f32_byte_corruption_rejected (test_web_size_transfer_export.ExportIntegrityTests) ... ok\r\ntest_receipt_config_corruption_rejected (test_web_size_transfer_export.ExportIntegrityTests) ... ok\r\ntest_receipt_source_corruption_rejected (test_web_size_transfer_export.ExportIntegrityTests) ... ok\r\n\r\n----------------------------------------------------------------------\r\nRan 4 tests in 1.900s\r\n\r\nOK\r\n"
+    },
+    {
+      "name": "exporter verify",
+      "command": "& 'C:\\Users\\zcz\\anaconda3\\envs\\rl310\\python.exe' research/iclr2027/scripts/export_web_size_transfer.py --verify-only",
+      "exit_code": 0,
+      "output": "{\"status\": \"PASS\", \"stages_audited\": 27, \"models_verified\": 9, \"tensor_count\": 270, \"tensor_parity\": \"exact\", \"manifest\": \"C:\\\\coding\\\\py\\\\line game\\\\web\\\\web\\u524d\\u7aef\\\\assets\\\\research-ai\\\\transfer-v1\\\\manifest.json\", \"formal_ready\": false}\r\n"
+    },
+    {
+      "name": "research AI exact regression",
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-research-ai.mjs",
+      "exit_code": 0,
+      "output": "{\"status\":\"PASS\",\"models\":9,\"sizes\":[5,15],\"forward_cases\":198,\"puct_cases\":36,\"rule_equivalence\":false,\"strength_evaluated\":false,\"formal_ready\":false}\n"
+    }
+  ],
+  "repaired_attempts": [
+    {
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-online-recovery.mjs",
+      "exit_code": 1,
+      "reason": "render-only inspectionOverlay field was not excluded by snapshot comparison"
+    },
+    {
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-territory-v2.mjs",
+      "exit_code": 1,
+      "reason": "data URL Worker test did not rewrite the existing ModelFreeAI import"
+    },
+    {
+      "command": "& 'C:\\Users\\zcz\\anaconda3\\envs\\rl310\\python.exe' -m unittest discover -s research/iclr2027/tests -p test_web_size_transfer_export.py -v",
+      "exit_code": 1,
+      "reason": "test class source path shadowed unittest run method; renamed"
+    }
+  ]
+}
