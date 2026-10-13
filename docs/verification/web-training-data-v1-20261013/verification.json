@@ -1,0 +1,152 @@
+{
+  "date": "2026-10-13",
+  "status": "LOCAL_VERIFIED_NOT_DEPLOYED",
+  "policy": "anonymous-replay-training-v1",
+  "commands": [
+    {
+      "name": "node-contribution",
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-training-contribution.mjs local_artifacts/training-data-v1-smoke",
+      "exit_code": 0,
+      "output": "{\"status\":\"PASS\",\"synthetic_only\":true,\"completed_games\":20,\"train_games\":16,\"validation_games\":4,\"samples\":114,\"consent_off_zero_requests\":true,\"retry_restore\":true,\"revoked_inflight\":true,\"bot_moves_excluded\":true,\"pass_verified\":true,\"grouped_split\":true,\"output\":\"C:\\\\Users\\\\zcz\\\\.codex\\\\worktrees\\\\web-ai-release-20261013\\\\line game\\\\local_artifacts\\\\training-data-v1-smoke\"}\n"
+    },
+    {
+      "name": "api-contribution",
+      "command": "& 'C:\\Users\\zcz\\anaconda3\\python.exe' -m unittest discover -s web/tests -p test_training_contributions.py -v",
+      "exit_code": 1,
+      "output": "Warning: truncated output (original token count: 2710)\nTotal output lines: 161\n\nC:\\Users\\zcz\\anaconda3\\Lib\\site-packages\\fastapi\\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.\r\n  from starlette.testclient import TestClient as TestClient  # noqa\r\ntest_bounds_origin_and_disabled (test_training_contributions.ContributionTests.test_bounds_origin_and_disabled) ... <frozen importlib._bootstrap_external>:784: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000229B6406890>\r\nResourceWarning: Enable tracemalloc to get the object allocation traceback\r\nERROR\r\ntest_export_contains_no_extra_fields (test_training_contributions.ContributionTests.test_export_contains_no_extra_fields) ... ERROR\r\ntest_no_consent_private_or_forged_payload (test_training_contributions.ContributionTests.test_no_consent_private_or_forged_payload) ... ERROR\r\ntest_restart_and_dedup (test_training_contributions.ContributionTests.test_restart_and_dedup) ... C:\\Users\\zcz\\anaconda3\\Lib\\asyncio\\futures.py:362: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000229B648CC70>\r\n  def _chain_future(source, destination):\r\nResourceWarning: Enable tracemalloc to get the object allocation traceback\r\nC:\\Users\\zcz\\anaconda3\\Lib\\asyncio\\futures.py:362: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000229B648DE40>\r\n  def _chain_future(source, destination):\r\nResourceWarning: Enable tracemalloc to get the object allocation traceback\r\nC:\\Users\\zcz\\anaconda3\\Lib\\asyncio\\futures.py:362: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000229B648CE50>\r\n  def _chain_future(source, destination):\r\nResourceWarning: Enable tracemalloc to get the object allocation traceback\r\nC:\\Users\\zcz\\anaconda3\\Lib\\asyncio\\futures.py:362: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000229B648E6B0>\r\n  def _chain_future(source, destination):\r\nResourceWarning: Enable tracemalloc to get the object allocation traceback\r\nC:\\Users\\zcz\\anaconda3\\Lib\\asyncio\\futures.py:362: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000229B648D030>\r\n  def _chain_future(source, destination):\r\nResourceWarning: Enable tracemalloc to get the object allocation traceback\r\nC:\\Users\\zcz\\anaconda3\\Lib\\asyncio\\futures.py:362: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000229B7528310>\r\n  def _chain_future(source, des"
+    },
+    {
+      "name": "replay-regression",
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-replay-codec.mjs",
+      "exit_code": 0,
+      "output": "verify-replay-codec: PASS\n"
+    },
+    {
+      "name": "local-recovery",
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-local-game-session.mjs",
+      "exit_code": 0,
+      "output": "verify-local-game-session: PASS\n"
+    },
+    {
+      "name": "app-syntax",
+      "command": "node --check web/web前端/OnlineApp.js",
+      "exit_code": 0,
+      "output": ""
+    },
+    {
+      "name": "bounded-training-smoke",
+      "command": "& 'C:\\Users\\zcz\\anaconda3\\envs\\rl310\\python.exe' research/iclr2027/scripts/train_reviewed_web.py --dataset local_artifacts/training-data-v1-smoke/dataset --base-manifest web/web前端/assets/research-ai/transfer-v1/manifest.json --base-id topology-gnn-transfer-v1-seed2026092201 --output local_artifacts/training-data-v1-smoke/candidate-clean --id web-human-v1-smoke20261013 --steps 3 --smoke",
+      "exit_code": 0,
+      "output": "{\"step\":3,\"id\":\"web-human-v1-smoke20261013\",\"status\":\"SMOKE_ONLY\",\"formal_ready\":false}"
+    },
+    {
+      "name": "api-after-repair",
+      "command": "& 'C:\\Users\\zcz\\anaconda3\\python.exe' -m unittest discover -s web/tests -p test_training_contributions.py -v",
+      "exit_code": 0,
+      "output": "C:\\Users\\zcz\\anaconda3\\Lib\\site-packages\\fastapi\\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.\r\n  from starlette.testclient import TestClient as TestClient  # noqa\r\ntest_bounds_origin_and_disabled (test_training_contributions.ContributionTests.test_bounds_origin_and_disabled) ... ok\r\ntest_disabled_does_not_collect (test_training_contributions.ContributionTests.test_disabled_does_not_collect) ... ok\r\ntest_export_contains_no_extra_fields (test_training_contributions.ContributionTests.test_export_contains_no_extra_fields) ... ok\r\ntest_no_consent_private_or_forged_payload (test_training_contributions.ContributionTests.test_no_consent_private_or_forged_payload) ... ok\r\ntest_restart_and_dedup (test_training_contributions.ContributionTests.test_restart_and_dedup) ... ok\r\n\r\n----------------------------------------------------------------------\r\nRan 5 tests in 2.180s\r\n\r\nOK\r\n"
+    },
+    {
+      "name": "ui-source-control-regression",
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-ai-control-flow.mjs",
+      "exit_code": 0,
+      "output": "{\n  \"witness\": \"CONTROL-SKIP\",\n  \"maxContinuation\": {\n    \"rootPlayer\": \"WHITE\",\n    \"rootMoves\": [\n      [\n        2,\n        0\n      ],\n      [\n        3,\n        0\n      ],\n      [\n        3,\n        1\n      ],\n      [\n        0,\n        2\n      ]\n    ],\n    \"scores\": [\n      [\n        \"0,2\",\n        376\n      ],\n      [\n        \"2,0\",\n        376\n      ],\n      [\n        \"3,0\",\n        303\n      ],\n      [\n        \"3,1\",\n        376\n      ]\n    ]\n  },\n  \"minContinuation\": {\n    \"rootPlayer\": \"WHITE\",\n    \"rootMoves\": [\n      [\n        2,\n        2\n      ],\n      [\n        1,\n        3\n      ],\n      [\n        0,\n        4\n      ]\n    ],\n    \"scores\": [\n      [\n        \"0,4\",\n        -289\n      ],\n      [\n        \"1,3\",\n        -289\n      ],\n      [\n        \"2,2\",\n        -4\n      ]\n    ]\n  },\n  \"engineStatePreserved\": true\n}\n"
+    },
+    {
+      "name": "comparison-regression",
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-ai-comparison.mjs",
+      "exit_code": 0,
+      "output": "verify-ai-comparison: PASS\n"
+    },
+    {
+      "name": "training-resume",
+      "command": "& 'C:\\Users\\zcz\\anaconda3\\envs\\rl310\\python.exe' research/iclr2027/scripts/train_reviewed_web.py --dataset local_artifacts/training-data-v1-smoke/dataset --base-manifest web/web前端/assets/research-ai/transfer-v1/manifest.json --base-id topology-gnn-transfer-v1-seed2026092201 --output local_artifacts/training-data-v1-smoke/candidate-resume --id web-human-v1-smoke20261013 --steps 3 --smoke --resume; exit $LASTEXITCODE",
+      "exit_code": 0,
+      "output": "{\"step\": 3, \"id\": \"web-human-v1-smoke20261013\", \"status\": \"SMOKE_ONLY\", \"formal_ready\": false}\r\n"
+    },
+    {
+      "name": "post-binding-collection",
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-training-contribution.mjs local_artifacts/training-data-v1-smoke-after-fix; exit $LASTEXITCODE",
+      "exit_code": 0,
+      "output": "{\"status\":\"PASS\",\"synthetic_only\":true,\"completed_games\":20,\"train_games\":16,\"validation_games\":4,\"samples\":114,\"consent_off_zero_requests\":true,\"retry_restore\":true,\"revoked_inflight\":true,\"bot_moves_excluded\":true,\"pass_verified\":true,\"grouped_split\":true,\"output\":\"C:\\\\Users\\\\zcz\\\\.codex\\\\worktrees\\\\web-ai-release-20261013\\\\line game\\\\local_artifacts\\\\training-data-v1-smoke-after-fix\"}\n"
+    },
+    {
+      "name": "current-model-regression",
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-research-ai.mjs; exit $LASTEXITCODE",
+      "exit_code": 0,
+      "output": "verify-research-ai: PASS\n"
+    },
+    {
+      "name": "collection-final",
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-training-contribution.mjs local_artifacts/training-data-v1-before-release; exit $LASTEXITCODE",
+      "exit_code": 0,
+      "output": "{\"status\":\"PASS\",\"synthetic_only\":true,\"completed_games\":20,\"train_games\":16,\"validation_games\":4,\"samples\":114,\"consent_off_zero_requests\":true,\"retry_restore\":true,\"revoked_inflight\":true,\"bot_moves_excluded\":true,\"pass_verified\":true,\"grouped_split\":true,\"output\":\"C:\\\\Users\\\\zcz\\\\.codex\\\\worktrees\\\\web-ai-release-20261013\\\\line game\\\\local_artifacts\\\\training-data-v1-before-release\"}\n",
+      "expected_exit_code": 0
+    },
+    {
+      "name": "online-state-regression",
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-online-recovery.mjs; exit $LASTEXITCODE",
+      "exit_code": 0,
+      "output": "{\n  \"atomicRecovery\": {\n    \"replayedActions\": 8,\n    \"territoryUpdates\": 1,\n    \"candidateSnapshots\": 1,\n    \"renderCommits\": 1,\n    \"failedReplayPreservedEngine\": true\n  },\n  \"responseOwnership\": {\n    \"registeredResponseEvents\": 2,\n    \"requestResponseApplications\": 2\n  }\n}\n",
+      "expected_exit_code": 0
+    },
+    {
+      "name": "app-syntax-final",
+      "command": "node --check web/web前端/OnlineApp.js; exit $LASTEXITCODE",
+      "exit_code": 0,
+      "output": "",
+      "expected_exit_code": 0
+    },
+    {
+      "name": "planned-interruption",
+      "command": "& 'C:\\Users\\zcz\\anaconda3\\envs\\rl310\\python.exe' research/iclr2027/scripts/train_reviewed_web.py --dataset local_artifacts/training-data-v1-smoke/dataset --base-manifest web/web前端/assets/research-ai/transfer-v1/manifest.json --base-id topology-gnn-transfer-v1-seed2026092201 --output local_artifacts/training-data-v1-smoke/candidate-stop-receipt --id web-human-v1-smoke20261013 --steps 3 --smoke --stop-after-step 1; exit $LASTEXITCODE",
+      "exit_code": 7,
+      "output": "",
+      "expected_exit_code": 7
+    }
+  ],
+  "backend_final": {
+    "command": "& 'C:\\Users\\zcz\\anaconda3\\python.exe' -m unittest discover -s web/tests -p test_training_contributions.py -v",
+    "exit_code": 0,
+    "tests": 5
+  },
+  "training_smoke": {
+    "synthetic_only": true,
+    "games": 20,
+    "train_games": 16,
+    "validation_games": 4,
+    "samples": 114,
+    "gradient_updates": 3,
+    "clean_asset_sha256": "f0e6c27e74f596e644449d5b372741aeb93d0ca67ccb6ea92ca19598158b7cf7",
+    "resumed_asset_sha256": "f0e6c27e74f596e644449d5b372741aeb93d0ca67ccb6ea92ca19598158b7cf7",
+    "exact_resume": true,
+    "strength_evaluated": false
+  },
+  "browser": {
+    "real_browser": true,
+    "local_auto_submit": "Received by server after match completion",
+    "refresh_retry": "PASS after binding repair",
+    "consent_off": "PASS",
+    "languages": [
+      "zh",
+      "en"
+    ],
+    "responsive_viewport": [
+      390,
+      844
+    ],
+    "horizontal_scroll_width": 390,
+    "physical_phone": "NOT_RUN"
+  },
+  "repairs": [
+    {
+      "initial_backend_tests_exit": 1,
+      "reason": "SQLite connections were not closed; fixed transactional context manager"
+    },
+    {
+      "initial_browser_upload": "FAILED",
+      "reason": "Native fetch called with incorrect receiver; bound to globalThis"
+    }
+  ],
+  "scope": "Local/sidecar collection, offline reviewed training. No long-running training or candidate deployment.",
+  "formal_ready": false
+}
