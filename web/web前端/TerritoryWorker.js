@@ -1,4 +1,4 @@
-import { GameEngine } from "./GameEngine.js?v=20260910c";
+import { GameEngine } from "./GameEngine.js?v=20261013-sync1";
 
 function cloneTerritories(engine) {
   return Object.fromEntries(

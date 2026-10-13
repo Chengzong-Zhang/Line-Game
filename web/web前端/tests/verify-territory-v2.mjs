@@ -452,6 +452,14 @@ const workerMessages = [];
 const workerSelf = { postMessage: (message) => workerMessages.push(message) };
 globalThis.self = workerSelf;
 const workerSource = await readFrontendSource("AIWorker.js");
+const workerResearchAiUrl = asDataUrl(`
+  export async function loadResearchModel() { throw new Error("not used by this Worker probe"); }
+  export class NeuralPUCTAI {}
+`);
+const workerModelFreeAiUrl = asDataUrl(`
+  export async function loadModelFreeModel() { throw new Error("not used by this Worker probe"); }
+  export class ModelFreeAI {}
+`);
 const workerUrl = asDataUrl(
   workerSource
     .replace(
@@ -459,8 +467,16 @@ const workerUrl = asDataUrl(
       `import { GameEngine } from "${engineUrl}";`,
     )
     .replace(
-      /^import \{ MinimaxAI, restoreState \} from "\.\/AIEngine\.js\?v=[^"]+";/m,
-      `import { MinimaxAI, restoreState } from "${aiEngineUrl}";`,
+      /^import \{ GreedyAI, MCTSAI, MinimaxAI, restoreState \} from "\.\/AIEngine\.js\?v=[^"]+";/m,
+      `import { GreedyAI, MCTSAI, MinimaxAI, restoreState } from "${aiEngineUrl}";`,
+    )
+    .replace(
+      /^import \{ loadResearchModel, NeuralPUCTAI \} from "\.\/ResearchAI\.js\?v=[^"]+";/m,
+      `import { loadResearchModel, NeuralPUCTAI } from "${workerResearchAiUrl}";`,
+    )
+    .replace(
+      /^import \{ loadModelFreeModel, ModelFreeAI \} from "\.\/ModelFreeAI\.js\?v=[^"]+";/m,
+      `import { loadModelFreeModel, ModelFreeAI } from "${workerModelFreeAiUrl}";`,
     ),
 );
 await import(workerUrl);
@@ -498,6 +514,7 @@ const workerStateProbeAiUrl = asDataUrl(`
       }];
     }
   }
+  export { MinimaxAI as GreedyAI, MinimaxAI as MCTSAI };
 `);
 const workerStateProbeUrl = asDataUrl(
   workerSource
@@ -506,8 +523,16 @@ const workerStateProbeUrl = asDataUrl(
       `import { GameEngine } from "${engineUrl}";`,
     )
     .replace(
-      /^import \{ MinimaxAI, restoreState \} from "\.\/AIEngine\.js\?v=[^"]+";/m,
-      `import { MinimaxAI, restoreState } from "${workerStateProbeAiUrl}";`,
+      /^import \{ GreedyAI, MCTSAI, MinimaxAI, restoreState \} from "\.\/AIEngine\.js\?v=[^"]+";/m,
+      `import { GreedyAI, MCTSAI, MinimaxAI, restoreState } from "${workerStateProbeAiUrl}";`,
+    )
+    .replace(
+      /^import \{ loadResearchModel, NeuralPUCTAI \} from "\.\/ResearchAI\.js\?v=[^"]+";/m,
+      `import { loadResearchModel, NeuralPUCTAI } from "${workerResearchAiUrl}";`,
+    )
+    .replace(
+      /^import \{ loadModelFreeModel, ModelFreeAI \} from "\.\/ModelFreeAI\.js\?v=[^"]+";/m,
+      `import { loadModelFreeModel, ModelFreeAI } from "${workerModelFreeAiUrl}";`,
     ),
 );
 await import(workerStateProbeUrl);

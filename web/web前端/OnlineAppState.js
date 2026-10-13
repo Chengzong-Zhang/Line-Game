@@ -1,4 +1,4 @@
-import { Player, TerritoryRulesVersion } from "./GameEngine.js?v=20260910c";
+import { Player, TerritoryRulesVersion } from "./GameEngine.js?v=20261013-sync1";
 
 // 杩欎釜鏂囦欢涓撻棬瀛樻斁鈥滃彲澶嶇敤鐨勫墠绔姸鎬佸伐鍏封€濓紝
 // 閬垮厤 OnlineApp.js 鍐嶆鑶ㄨ儉鎴愪竴涓秴澶у伐鍏风鏂囦欢銆?
@@ -7,7 +7,7 @@ export const SESSION_STORAGE_KEY = "triaxis-online-session";
 export const AUTH_STORAGE_KEY = "triaxis-auth";
 export const ALL_PLAYERS = Object.freeze([Player.BLACK, Player.WHITE, Player.PURPLE]);
 export const PLAYER_COUNT_OPTIONS = Object.freeze([2, 3]);
-export const GRID_SIZE_OPTIONS = Object.freeze(Array.from({ length: 10 }, (_, index) => index + 6));
+export const GRID_SIZE_OPTIONS = Object.freeze(Array.from({ length: 11 }, (_, index) => index + 5));
 export const TURN_TIMER_MIN_SECONDS = 15;
 export const TURN_TIMER_MAX_SECONDS = 200;
 export const DEFAULT_TURN_TIMER_SECONDS = 60;

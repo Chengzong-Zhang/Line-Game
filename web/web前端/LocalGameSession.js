@@ -1,0 +1,183 @@
+import { LOCAL_PLAYER_CHOICES, normalizeLocalPlayers } from "./LocalAIModes.js?v=20261013-sync1";
+
+const LOCAL_GAME_SESSION_FORMAT = "lifeline-local-session";
+export const LOCAL_GAME_SESSION_SCHEMA_VERSION = 1;
+export const LOCAL_GAME_SESSION_STORAGE_KEY = "lifeline-local-game-session-v1";
+
+const GAME_SETTING_KEYS = Object.freeze([
+  "playerCount",
+  "gridSize",
+  "startPlayer",
+  "rulesVersion",
+  "turnTimerEnabled",
+  "turnTimeLimitSeconds",
+  "hintEnabled",
+  "hintMaxCount",
+]);
+
+function cloneJson(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function normalizeSettings(settings) {
+  if (!settings || typeof settings !== "object") {
+    return null;
+  }
+
+  const normalized = {};
+  for (const key of GAME_SETTING_KEYS) {
+    if (!Object.prototype.hasOwnProperty.call(settings, key)) {
+      continue;
+    }
+    normalized[key] = settings[key];
+  }
+
+  if (!Number.isInteger(normalized.playerCount) || !Number.isInteger(normalized.gridSize)) {
+    return null;
+  }
+  if (typeof normalized.startPlayer !== "string" || typeof normalized.rulesVersion !== "string") {
+    return null;
+  }
+
+  return normalized;
+}
+
+function normalizePoint(point) {
+  if (!Array.isArray(point) || point.length !== 2 || !point.every(Number.isInteger)) {
+    return null;
+  }
+  return [point[0], point[1]];
+}
+
+function normalizeAction(action) {
+  if (!action || typeof action !== "object") {
+    return null;
+  }
+
+  if (action.type === "player_move" || action.type === "move") {
+    const point = normalizePoint(action.point);
+    return point ? { type: "player_move", point } : null;
+  }
+
+  if (action.type === "player_skip" || action.type === "skip") {
+    return { type: "player_skip" };
+  }
+
+  if (action.type === "player_resign" || action.type === "resign") {
+    const color = action.color ?? action.player;
+    return typeof color === "string" ? { type: "player_resign", color } : null;
+  }
+
+  return null;
+}
+
+function normalizeSession(value) {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+  if (value.format !== LOCAL_GAME_SESSION_FORMAT || value.schemaVersion !== LOCAL_GAME_SESSION_SCHEMA_VERSION) {
+    return null;
+  }
+
+  const settings = normalizeSettings(value.settings);
+  const actions = Array.isArray(value.actions)
+    ? value.actions.map(normalizeAction)
+    : null;
+  if (!settings || !actions || actions.some((action) => !action)) {
+    return null;
+  }
+
+  const match = value.match;
+  if (match !== undefined && (!match || typeof match.started !== "boolean" || typeof match.paused !== "boolean"
+    || ["BLACK", "WHITE"].some((color) => !LOCAL_PLAYER_CHOICES.includes(match.players?.[color]?.choice)))) return null;
+
+  return {
+    format: LOCAL_GAME_SESSION_FORMAT,
+    schemaVersion: LOCAL_GAME_SESSION_SCHEMA_VERSION,
+    savedAt: Number.isFinite(Number(value.savedAt)) ? Number(value.savedAt) : 0,
+    settings,
+    actions,
+    ...(match ? { match: { players: normalizeLocalPlayers(match.players), started: match.started, paused: match.paused } } : {}),
+  };
+}
+
+export function createLocalGameSession(settings, actions = [], match) {
+  const normalizedSettings = normalizeSettings(settings);
+  if (!normalizedSettings) {
+    throw new Error("Cannot create a local game session without valid settings.");
+  }
+
+  const normalizedActions = actions.map(normalizeAction);
+  if (normalizedActions.some((action) => !action)) {
+    throw new Error("Cannot create a local game session with an invalid action.");
+  }
+
+  return {
+    format: LOCAL_GAME_SESSION_FORMAT,
+    schemaVersion: LOCAL_GAME_SESSION_SCHEMA_VERSION,
+    savedAt: Date.now(),
+    settings: normalizedSettings,
+    actions: normalizedActions,
+    ...(match ? { match: { players: normalizeLocalPlayers(match.players), started: Boolean(match.started), paused: Boolean(match.paused) } } : {}),
+  };
+}
+
+export function appendLocalGameAction(session, action) {
+  const current = normalizeSession(session);
+  const nextAction = normalizeAction(action);
+  if (!current || !nextAction) {
+    return null;
+  }
+
+  return createLocalGameSession(current.settings, [...current.actions, nextAction], current.match);
+}
+
+export function sessionMatchesSettings(session, settings) {
+  const normalizedSession = normalizeSession(session);
+  const normalizedSettings = normalizeSettings(settings);
+  if (!normalizedSession || !normalizedSettings) {
+    return false;
+  }
+
+  return GAME_SETTING_KEYS.every((key) => normalizedSession.settings[key] === normalizedSettings[key]);
+}
+
+export function loadLocalGameSession(storage = globalThis.localStorage) {
+  try {
+    const raw = storage?.getItem?.(LOCAL_GAME_SESSION_STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+    return normalizeSession(JSON.parse(raw));
+  } catch (_error) {
+    return null;
+  }
+}
+
+export function persistLocalGameSession(session, storage = globalThis.localStorage) {
+  const normalized = normalizeSession(session);
+  if (!normalized || !storage?.setItem) {
+    return false;
+  }
+
+  try {
+    storage.setItem(LOCAL_GAME_SESSION_STORAGE_KEY, JSON.stringify(normalized));
+    return true;
+  } catch (_error) {
+    return false;
+  }
+}
+
+export function clearLocalGameSession(storage = globalThis.localStorage) {
+  try {
+    storage?.removeItem?.(LOCAL_GAME_SESSION_STORAGE_KEY);
+    return true;
+  } catch (_error) {
+    return false;
+  }
+}
+
+export function cloneLocalGameSession(session) {
+  const normalized = normalizeSession(session);
+  return normalized ? cloneJson(normalized) : null;
+}

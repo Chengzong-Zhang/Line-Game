@@ -1,16 +1,17 @@
-import GameController from "./GameController.js?v=20260910c";
-import { Player } from "./GameEngine.js?v=20260910c";
-import { isWorkerResultCurrent, serializeEngineState } from "./AIStateProtocol.js?v=20260830a";
+import GameController from "./GameController.js?v=20261013-sync1";
+import { Player } from "./GameEngine.js?v=20261013-sync1";
+import { captureWorkerRequest, isWorkerResultForRequest, serializeEngineState } from "./AIStateProtocol.js?v=20261013-sync1";
+import { RESEARCH_FAMILIES, TRANSFER_SEEDS, researchProfile } from "./ResearchAIOptions.js?v=20261013-sync1";
 import {
   OneShotHintWorker,
   applyHintWorkerResult,
-} from "./HintWorkerSession.js?v=20260830a";
-import NetworkManager, { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js?v=20260430d";
+} from "./HintWorkerSession.js?v=20261013-sync1";
+import NetworkManager, { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js?v=20261013-sync1";
 import {
   applyRoomSnapshotWithPostCommit,
   coordinateControllerRoomSnapshot,
   registerRoomSnapshotResponseListeners,
-} from "./OnlineRoomSync.js?v=20260830a";
+} from "./OnlineRoomSync.js?v=20261013-sync1";
 import {
   createEmptyAuth as createAppEmptyAuth,
   GRID_SIZE_OPTIONS as APP_GRID_SIZE_OPTIONS,
@@ -27,7 +28,7 @@ import {
   normalizeGameSettings as normalizeAppGameSettings,
   persistAuth as persistAppAuth,
   persistSession as persistAppSession,
-} from "./OnlineAppState.js?v=20260910c";
+} from "./OnlineAppState.js?v=20261013-sync1";
 import {
   formatArea as formatAppArea,
   formatConnectionState as formatAppConnectionState,
@@ -41,8 +42,31 @@ import {
   UI_STYLE_STORAGE_KEY,
   UI_STYLE_ACADEMIC,
   localizeErrorMessage as localizeAppErrorMessage,
-} from "./OnlineAppI18n.js?v=20260910c";
-import { ensureGuideRuleImages, getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20260508a";
+} from "./OnlineAppI18n.js?v=20261013-sync1";
+import { ensureGuideRuleImages, getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20261013-sync1";
+import {
+  TUTORIAL_LEVELS,
+  getTutorialEngineSettings,
+  getTutorialInspectionOverlay,
+  getTutorialLevel,
+  isTutorialTarget,
+  isTutorialRestrictionAttempt,
+} from "./TutorialRunner.js?v=20261013-sync1";
+import {
+  appendLocalGameAction,
+  clearLocalGameSession,
+  createLocalGameSession,
+  loadLocalGameSession,
+  persistLocalGameSession,
+} from "./LocalGameSession.js?v=20261013-sync1";
+import {
+  createReplayDocument,
+  downloadReplayDocument,
+  parseAndValidateReplay,
+} from "./ReplayCodec.js?v=20261013-sync1";
+import { TrainingContribution, ContributionPanel } from "./TrainingContribution.js?v=20261013-sync1";
+import { resolveAIPlayer, localMatchActors, localMatchMode, localPlayerProfile, normalizeLocalPlayers, loadLocalMatchPreferences, persistLocalMatchPreferences } from "./LocalAIModes.js?v=20261013-sync1";
+import LocalPlayerSetup from "./LocalPlayerSetup.js?v=20261013-sync1";
 
 const {
   computed,
@@ -470,6 +494,7 @@ const ScorePanel = {
       type: String,
       default: "",
     },
+    localPending: { type: Boolean, default: false },
   },
   setup(props) {
     const texts = computed(() => getAppTexts(props.language, props.uiStyle));
@@ -573,7 +598,7 @@ const ScorePanel = {
       <div class="turn-banner" :class="turnBannerClass">
         <span class="turn-dot"></span>
         <strong>{{ currentPlayerLabel }}{{ texts.turnSuffix }}</strong>
-        <small>{{ winnerLabel }}</small>
+        <small>{{ localPending ? texts.localWaiting : winnerLabel }}</small>
       </div>
 
       <div class="score-grid" :aria-busy="gameState.territoryPending ? 'true' : 'false'">
@@ -612,6 +637,7 @@ const ScorePanel = {
 
 const SetupPanel = {
   name: "SetupPanel",
+  components: { ContributionPanel, LocalPlayerSetup },
   emits: [
     "update:player-count",
     "update:grid-size",
@@ -621,8 +647,12 @@ const SetupPanel = {
     "update:turn-time-limit-seconds",
     "update:hint-enabled",
     "update:hint-max-count",
-    "update:ai-mode",
-    "update:ai-depth",
+    "update-local-player",
+    "update:start-player",
+    "swap-local-players",
+    "start-local-match",
+    "toggle-contributions",
+    "retry-contributions",
   ],
   props: {
     language: {
@@ -657,14 +687,11 @@ const SetupPanel = {
       type: Number,
       default: 3,
     },
-    aiMode: {
-      type: String,
-      default: "none",
-    },
-    aiDepth: {
-      type: Number,
-      default: 3,
-    },
+    localPlayers: { type: Object, required: true },
+    startPlayer: { type: String, required: true },
+    localPending: { type: Boolean, default: true },
+    localStarted: { type: Boolean, default: false },
+    contributionState: { type: Object, required: true },
     aiAvailable: {
       type: Boolean,
       default: true,
@@ -765,79 +792,18 @@ const SetupPanel = {
               </button>
             </div>
           </div>
-          <div>
-            <label id="ai-mode-label" class="field-label">{{ texts.aiOpponent }}</label>
-            <div
-              id="ai-mode"
-              class="board-choice-grid board-choice-grid-3col"
-              role="radiogroup"
-              aria-labelledby="ai-mode-label"
-            >
-              <button
-                type="button"
-                class="board-choice-option board-choice-size"
-                :class="{ 'is-active': aiMode === 'none' }"
-                role="radio"
-                :aria-checked="aiMode === 'none'"
-                :disabled="busy || settingsLocked || !aiAvailable || playerCount !== 2"
-                @click="$emit('update:ai-mode', 'none')"
-              >{{ texts.aiModeNone }}</button>
-              <button
-                type="button"
-                class="board-choice-option board-choice-size"
-                :class="{ 'is-active': aiMode === 'ai_black' }"
-                role="radio"
-                :aria-checked="aiMode === 'ai_black'"
-                :disabled="busy || settingsLocked || !aiAvailable || playerCount !== 2"
-                @click="$emit('update:ai-mode', 'ai_black')"
-              >{{ texts.aiModeBlack }}</button>
-              <button
-                type="button"
-                class="board-choice-option board-choice-size"
-                :class="{ 'is-active': aiMode === 'ai_white' }"
-                role="radio"
-                :aria-checked="aiMode === 'ai_white'"
-                :disabled="busy || settingsLocked || !aiAvailable || playerCount !== 2"
-                @click="$emit('update:ai-mode', 'ai_white')"
-              >{{ texts.aiModeWhite }}</button>
-            </div>
+          <div class="settings-grid-item-wide" v-if="aiAvailable">
+            <LocalPlayerSetup :texts="texts" :players="localPlayers" :player-count="playerCount"
+              :start-player="startPlayer" :pending="localPending" :started="localStarted" :locked="busy || settingsLocked"
+              @update-player="$emit('update-local-player', $event)" @update:start-player="$emit('update:start-player', $event)"
+              @swap="$emit('swap-local-players')" @start="$emit('start-local-match')">
+              <template #contribution>
+                <ContributionPanel :language="language" :state="contributionState" @toggle="$emit('toggle-contributions', $event)" @retry="$emit('retry-contributions')" />
+              </template>
+            </LocalPlayerSetup>
           </div>
-          <div v-if="aiMode !== 'none'">
-            <label id="ai-depth-label" class="field-label">{{ texts.aiDifficulty }}</label>
-            <div
-              id="ai-depth"
-              class="board-choice-grid board-choice-grid-3col"
-              role="radiogroup"
-              aria-labelledby="ai-depth-label"
-            >
-              <button
-                type="button"
-                class="board-choice-option board-choice-size"
-                :class="{ 'is-active': aiDepth === 2 }"
-                role="radio"
-                :aria-checked="aiDepth === 2"
-                :disabled="busy || settingsLocked || !aiAvailable || playerCount !== 2"
-                @click="$emit('update:ai-depth', 2)"
-              >{{ texts.aiDifficultyEasy }}</button>
-              <button
-                type="button"
-                class="board-choice-option board-choice-size"
-                :class="{ 'is-active': aiDepth === 3 }"
-                role="radio"
-                :aria-checked="aiDepth === 3"
-                :disabled="busy || settingsLocked || !aiAvailable || playerCount !== 2"
-                @click="$emit('update:ai-depth', 3)"
-              >{{ texts.aiDifficultyMedium }}</button>
-              <button
-                type="button"
-                class="board-choice-option board-choice-size"
-                :class="{ 'is-active': aiDepth === 4 }"
-                role="radio"
-                :aria-checked="aiDepth === 4"
-                :disabled="busy || settingsLocked || !aiAvailable || playerCount !== 2"
-                @click="$emit('update:ai-depth', 4)"
-              >{{ texts.aiDifficultyHard }}</button>
-            </div>
+          <div v-else class="settings-grid-item-wide">
+            <ContributionPanel :language="language" :state="contributionState" @toggle="$emit('toggle-contributions', $event)" @retry="$emit('retry-contributions')" />
           </div>
           <div class="settings-grid-item-wide">
             <label id="grid-size-label" class="field-label">{{ texts.gridSizeLabel }}</label>
@@ -862,6 +828,8 @@ const SetupPanel = {
               </button>
             </div>
           </div>
+          <div class="settings-grid-item-wide settings-timing-row">
+            <div class="settings-timing-controls">
           <div>
             <label class="field-label" for="turn-timer-enabled">{{ texts.turnTimerLabel }}</label>
             <label class="toggle-field" for="turn-timer-enabled">
@@ -875,7 +843,7 @@ const SetupPanel = {
               <span>{{ turnTimerEnabled ? texts.toggleOn : texts.toggleOff }}</span>
             </label>
           </div>
-          <div v-if="turnTimerEnabled">
+          <div>
             <label class="field-label" for="turn-time-limit">{{ texts.turnTimerDurationLabel }}</label>
             <input
               id="turn-time-limit"
@@ -884,7 +852,7 @@ const SetupPanel = {
               :min="TURN_TIMER_MIN_SECONDS"
               :max="TURN_TIMER_MAX_SECONDS"
               :value="turnTimeLimitSeconds"
-              :disabled="busy || settingsLocked"
+              :disabled="busy || settingsLocked || !turnTimerEnabled"
               @change="$emit('update:turn-time-limit-seconds', Number($event.target.value))"
             />
           </div>
@@ -901,7 +869,7 @@ const SetupPanel = {
               <span>{{ hintEnabled ? texts.toggleOn : texts.toggleOff }}</span>
             </label>
           </div>
-          <div v-if="hintEnabled">
+          <div>
             <label class="field-label" for="hint-max-count">{{ texts.hintMaxCountLabel }}</label>
             <input
               id="hint-max-count"
@@ -910,9 +878,11 @@ const SetupPanel = {
               :min="HINT_MAX_COUNT_MIN"
               :max="HINT_MAX_COUNT_MAX"
               :value="hintMaxCount"
-              :disabled="busy || settingsLocked"
+              :disabled="busy || settingsLocked || !hintEnabled"
               @change="$emit('update:hint-max-count', Number($event.target.value))"
             />
+          </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1317,13 +1287,19 @@ const RoomPanel = {
 
 const ControlPanel = {
   name: "ControlPanel",
-  emits: ["skip", "reset", "emoji", "hint"],
+  emits: ["skip", "reset", "emoji", "hint", "toggle-ai-duel"],
   props: {
+    aiDuel: { type: Boolean, default: false },
+    aiDuelPaused: { type: Boolean, default: false },
     gameState: {
       type: Object,
       required: true,
     },
     skipDisabled: {
+      type: Boolean,
+      default: false,
+    },
+    tutorialSkipTarget: {
       type: Boolean,
       default: false,
     },
@@ -1382,6 +1358,18 @@ const ControlPanel = {
     hintFeedback: {
       type: String,
       default: "",
+    },
+    resumeNotice: {
+      type: String,
+      default: "",
+    },
+    actionFeedback: {
+      type: String,
+      default: "",
+    },
+    actionFeedbackTone: {
+      type: String,
+      default: "neutral",
     },
     emojiOptions: {
       type: Array,
@@ -1455,10 +1443,12 @@ const ControlPanel = {
             <strong>{{ currentPlayerLabel }}{{ texts.turnSuffix }}</strong>
             <small v-if="aiThinking" class="duel-timer-copy">{{ texts.aiThinking }}</small>
             <small v-if="hintFeedback && !multiplayerEnabled && hintEnabled" class="duel-timer-copy">{{ hintFeedback }}</small>
+            <small v-if="resumeNotice" class="duel-timer-copy">{{ resumeNotice }}</small>
             <small v-if="turnTimerEnabled" class="duel-timer-copy">{{ turnTimerLabel }}</small>
           </div>
         </div>
         <div class="actions duel-actions">
+          <button v-if="aiDuel && !gameState.gameOver" type="button" class="action-button action-button-primary" @click="$emit('toggle-ai-duel')">{{ aiDuelPaused ? texts.aiDuelResume : texts.aiDuelPause }}</button>
           <button
             v-if="!multiplayerEnabled && hintEnabled"
             class="action-button action-button-primary"
@@ -1468,7 +1458,7 @@ const ControlPanel = {
           >
             {{ hintLabel }}
           </button>
-          <button class="action-button action-button-primary" :disabled="skipDisabled" @click="$emit('skip')">
+          <button class="action-button action-button-primary" :class="{ 'tutorial-action-target': tutorialSkipTarget }" :disabled="skipDisabled" @click="$emit('skip')">
             {{ texts.skipTurnAction }}
           </button>
           <button class="action-button action-button-secondary" :disabled="resetDisabled" @click="$emit('reset')">
@@ -1476,6 +1466,9 @@ const ControlPanel = {
           </button>
         </div>
       </div>
+      <p class="action-feedback" :class="actionFeedback ? 'is-' + actionFeedbackTone : 'is-empty'" aria-live="polite">
+        {{ actionFeedback }}
+      </p>
       <div v-if="emojiOptions.length" class="chat-emoji-toolbar" role="group" aria-label="chat emoji">
         <button
           v-for="emoji in emojiOptions"
@@ -1488,6 +1481,481 @@ const ControlPanel = {
         >
           {{ emoji.content }}
         </button>
+      </div>
+    </section>
+  `,
+};
+
+const ReplayPanel = {
+  name: "ReplayPanel",
+  emits: ["export", "import-file", "review-current", "review-imported", "exit-review"],
+  props: {
+    language: { type: String, required: true },
+    actionCount: { type: Number, default: 0 },
+    replayDocument: { type: Object, default: null },
+    importedReady: { type: Boolean, default: false },
+    canReview: { type: Boolean, default: false },
+    replayMode: { type: Boolean, default: false },
+    busy: { type: Boolean, default: false },
+    error: { type: String, default: "" },
+  },
+  setup(props, { emit }) {
+    const fileInput = ref(null);
+    const copy = computed(() => props.language === "zh"
+      ? {
+          title: "复盘模式",
+          description: "从这里打开复盘，棋盘和时间轴会回到主界面。",
+          exportAction: "导出棋谱",
+          importAction: "导入棋谱",
+          reviewCurrent: "复盘本局",
+          reviewImported: "复盘导入棋谱",
+          exitAction: "退出复盘",
+          empty: "本局还没有可复盘的步骤。下棋后再来，或导入棋谱。",
+          imported: "已导入并验证棋谱",
+          active: "复盘已在主界面打开。",
+          step: "步",
+          busy: "正在校验…",
+        }
+      : {
+          title: "Review mode",
+          description: "Open review here, then use the board and timeline on the main screen.",
+          exportAction: "Export replay",
+          importAction: "Import replay",
+          reviewCurrent: "Review this match",
+          reviewImported: "Review imported replay",
+          exitAction: "Exit review",
+          empty: "No moves to review yet. Play a move or import a replay.",
+          imported: "Imported replay verified",
+          active: "Review is open on the main screen.",
+          step: "steps",
+          busy: "Verifying…",
+        });
+    const openFilePicker = () => fileInput.value?.click();
+    const handleFileChange = (event) => {
+      const file = event.target.files?.[0] ?? null;
+      event.target.value = "";
+      if (file) return file.text().then((text) => emit("import-file", text));
+      return null;
+    };
+    return { copy, fileInput, handleFileChange, openFilePicker };
+  },
+  template: `
+    <section class="replay-panel panel panel-subtle" aria-live="polite">
+      <div class="replay-panel-head">
+        <div>
+          <p class="panel-kicker">{{ copy.title }}</p>
+          <p class="replay-panel-description">{{ copy.description }}</p>
+        </div>
+        <span class="status-pill" v-if="replayMode">{{ copy.active }}</span>
+      </div>
+      <div class="replay-panel-switch">
+        <button v-if="replayMode" type="button" class="action-button action-button-primary" :disabled="busy" @click="$emit('exit-review')">{{ copy.exitAction }}</button>
+        <template v-else>
+          <button type="button" class="action-button action-button-primary" :disabled="busy || !canReview || actionCount === 0" @click="$emit('review-current')">{{ copy.reviewCurrent }}<span v-if="actionCount"> · {{ actionCount }} {{ copy.step }}</span></button>
+          <button v-if="importedReady" type="button" class="action-button action-button-secondary" :disabled="busy || !canReview" @click="$emit('review-imported')">{{ copy.reviewImported }} · {{ replayDocument.actions.length }} {{ copy.step }}</button>
+        </template>
+      </div>
+      <div class="replay-panel-actions">
+        <button type="button" class="action-button action-button-ghost" :disabled="busy || replayMode || !canReview || actionCount === 0" @click="$emit('export')">{{ copy.exportAction }}</button>
+        <button type="button" class="action-button action-button-ghost" :disabled="busy || replayMode || !canReview" @click="openFilePicker">{{ busy ? copy.busy : copy.importAction }}</button>
+        <input ref="fileInput" class="replay-file-input" type="file" accept="application/json,.json" @change="handleFileChange" />
+      </div>
+      <p v-if="!replayMode && actionCount === 0 && !importedReady" class="help-copy">{{ copy.empty }}</p>
+      <p v-else-if="!replayMode && importedReady" class="help-copy">{{ copy.imported }}</p>
+      <p v-if="error" class="error-copy replay-error">{{ error }}</p>
+    </section>
+  `,
+};
+
+const ReplayControls = {
+  name: "ReplayControls",
+  emits: ["seek", "toggle-play", "toggle-inspector", "exit-review"],
+  props: {
+    language: { type: String, required: true },
+    uiStyle: { type: String, required: true },
+    replayDocument: { type: Object, required: true },
+    cursor: { type: Number, default: 0 },
+    event: { type: Object, default: null },
+    playing: { type: Boolean, default: false },
+    inspectorOpen: { type: Boolean, default: false },
+    error: { type: String, default: "" },
+  },
+  setup(props) {
+    const copy = computed(() => props.language === "zh"
+      ? { mode: "复盘中", start: "起点", move: "落子", skip: "跳过", resign: "认输", first: "到起点", previous: "上一步", next: "下一步", last: "到终点", play: "播放", pause: "暂停", details: "查看这一步", hideDetails: "收起分析", progress: "复盘进度", exit: "退出复盘" }
+      : { mode: "Review", start: "Starting position", move: "played", skip: "skipped", resign: "resigned", first: "First", previous: "Previous", next: "Next", last: "Last", play: "Play", pause: "Pause", details: "Inspect move", hideDetails: "Hide details", progress: "Replay progress", exit: "Exit review" });
+    const summary = computed(() => {
+      const event = props.event;
+      if (!event) return copy.value.start;
+      const player = formatAppPlayerName(event.actor, props.language, props.uiStyle);
+      const action = event.type === "move" ? `${copy.value.move} (${event.point?.join(", ")})` : event.type === "skip" ? copy.value.skip : copy.value.resign;
+      return `${player} · ${action}`;
+    });
+    return { copy, summary };
+  },
+  template: `
+    <section class="panel replay-controls" aria-label="Replay controls">
+      <div class="replay-controls-head">
+        <div class="replay-controls-copy">
+          <strong>{{ copy.mode }} · {{ cursor }} / {{ replayDocument.actions.length }}</strong>
+          <span>{{ summary }}</span>
+        </div>
+        <div class="replay-controls-actions">
+          <button type="button" class="action-button action-button-secondary" @click="$emit('exit-review')">{{ copy.exit }}</button>
+          <button type="button" class="action-button action-button-ghost" :aria-expanded="inspectorOpen" @click="$emit('toggle-inspector')">{{ inspectorOpen ? copy.hideDetails : copy.details }}</button>
+        </div>
+      </div>
+      <div class="replay-transport">
+        <button type="button" class="action-button replay-step-button" :aria-label="copy.first" :title="copy.first" :disabled="cursor === 0" @click="$emit('seek', 0)">|◀</button>
+        <button type="button" class="action-button replay-step-button" :aria-label="copy.previous" :title="copy.previous" :disabled="cursor === 0" @click="$emit('seek', cursor - 1)">◀</button>
+        <button type="button" class="action-button replay-step-button" :aria-label="playing ? copy.pause : copy.play" :title="playing ? copy.pause : copy.play" :disabled="cursor === replayDocument.actions.length && !playing" @click="$emit('toggle-play')">{{ playing ? 'Ⅱ' : '▶' }}</button>
+        <button type="button" class="action-button replay-step-button" :aria-label="copy.next" :title="copy.next" :disabled="cursor === replayDocument.actions.length" @click="$emit('seek', cursor + 1)">▶</button>
+        <button type="button" class="action-button replay-step-button" :aria-label="copy.last" :title="copy.last" :disabled="cursor === replayDocument.actions.length" @click="$emit('seek', replayDocument.actions.length)">▶|</button>
+        <label class="replay-progress">
+          <input class="replay-range" type="range" min="0" :max="replayDocument.actions.length" :value="cursor" :aria-label="copy.progress" @input="$emit('seek', Number($event.target.value))" />
+        </label>
+      </div>
+      <p v-if="error" class="error-copy replay-error" role="alert">{{ error }}</p>
+    </section>
+  `,
+};
+
+const ReplayInspectorPanel = {
+  name: "ReplayInspectorPanel",
+  emits: ["inspect-point", "compare-ai"],
+  props: {
+    language: { type: String, required: true },
+    gameState: { type: Object, required: true },
+    event: { type: Object, default: null },
+    cursor: { type: Number, default: 0 },
+    aiComparison: { type: Object, default: null },
+    aiComparisonBusy: { type: Boolean, default: false },
+    aiComparisonError: { type: String, default: "" },
+  },
+  setup(props, { emit }) {
+    const copy = computed(() => props.language === "zh"
+      ? {
+          title: "只读局面检查器",
+          badge: "规则解释",
+          readOnly: "只读：不会提交动作，也不会修改原对局。",
+          start: "这是棋谱起点。规则引擎已载入初始节点与历史约束。",
+          move: "落子",
+          skip: "跳过回合",
+          resign: "认输",
+          changed: "规则效果",
+          captured: "清除节点",
+          edges: "新增连线",
+          territory: "领土变化",
+          capturedDetail: "清除",
+          edgeDetail: "连线",
+          currentPlayer: "当前行动方",
+          legal: "当前合法落点",
+          occupied: "已占节点",
+          structure: "结构摘要",
+          links: "连线",
+          territory: "领土",
+          candidates: "合法候选（只读）",
+          candidateHint: "点击候选点只查看，不会把它下到棋盘上。",
+          selected: "已查看候选点",
+          overlaySelected: "金色环：查看中的候选点",
+          overlayCaptured: "红色叉：本步清除节点",
+          overlayEdges: "虚线：本步新增连线",
+          aiTitle: "AI 对手比较",
+          aiDescription: "在当前只读局面上比较规则搜索、PUCT、DQN、PPO、SAC、GAIL 与 GAN（双人 5–15）。搜索统计不是胜率。",
+          aiRun: "运行候选比较",
+          aiRunning: "正在比较…",
+          aiDepth: "深度",
+          aiGreedy: "规则贪心基线",
+          aiMcts: "UCT-MCTS（64 次模拟）",
+          aiMinimax: "启发式 Minimax",
+          aiTime: "耗时",
+          aiScore: "启发式分数",
+          aiValue: "rollout value",
+          aiVisits: "访问次数",
+          aiPrior: "先验",
+          aiPlayer: "分析方",
+          aiNoMoves: "该局面没有可比较的候选点。",
+          none: "本步没有检测到清除或领土变化。",
+          ended: "本步触发了终局结算。",
+        }
+      : {
+          title: "Read-only position inspector",
+          badge: "Rule explanation",
+          readOnly: "Read-only: no action is submitted and the live match is not modified.",
+          start: "Replay start. The engine loaded the initial nodes and history constraints.",
+          move: "Move",
+          skip: "Skip turn",
+          resign: "Resign",
+          changed: "Rule effects",
+          captured: "nodes cleared",
+          edges: "new edges",
+          territory: "territory delta",
+          capturedDetail: "Cleared",
+          edgeDetail: "Edge",
+          currentPlayer: "Current player",
+          legal: "Legal points now",
+          occupied: "Occupied nodes",
+          structure: "Structure summary",
+          links: "edges",
+          territory: "territory",
+          candidates: "Legal candidates (read-only)",
+          candidateHint: "Click a candidate to inspect it; it will not be played on the board.",
+          selected: "Inspected candidate",
+          overlaySelected: "Gold ring: inspected candidate",
+          overlayCaptured: "Red cross: node cleared in this step",
+          overlayEdges: "Dashed line: edge added in this step",
+          aiTitle: "AI opponent comparison",
+          aiDescription: "Compare rule search, PUCT, DQN, PPO, SAC, GAIL, and GAN policies (two-player boards, side lengths 5–15). Search statistics are not win probabilities.",
+          aiRun: "Run candidate comparison",
+          aiRunning: "Comparing…",
+          aiDepth: "Depth",
+          aiGreedy: "Rule-greedy baseline",
+          aiMcts: "UCT-MCTS (64 simulations)",
+          aiMinimax: "Heuristic Minimax",
+          aiTime: "Time",
+          aiScore: "Heuristic score",
+          aiValue: "Rollout value",
+          aiVisits: "Visits",
+          aiPrior: "Prior",
+          aiPlayer: "Analyzed player",
+          aiNoMoves: "This position has no candidates to compare.",
+          none: "No clearing or territory change was detected for this step.",
+          ended: "This step triggered terminal settlement.",
+        });
+    const playerName = (player) => ({ BLACK: props.language === "zh" ? "蓝方" : "Blue", WHITE: props.language === "zh" ? "红方" : "Red", PURPLE: props.language === "zh" ? "紫方" : "Purple" }[player] ?? player ?? "—");
+    const occupiedCount = computed(() => (
+      props.gameState.snapshot?.boardMatrix?.flat?.().filter((state) => Number(state) > 0).length ?? 0
+    ));
+    const selectedCandidate = ref(null);
+    const candidatePoints = computed(() => (props.gameState.legalMoves ?? [])
+      .map((move) => (Array.isArray(move) ? move : move?.point))
+      .filter((point) => Array.isArray(point) && point.length === 2)
+      .slice(0, 12));
+    const structureStats = computed(() => (props.gameState.players ?? []).map((player) => ({
+      player,
+      edges: props.gameState.snapshot?.edges?.[player]?.length ?? 0,
+      territory: props.gameState.snapshot?.territories?.[player]?.area ?? 0,
+    })));
+    const selectedCandidateLabel = computed(() => selectedCandidate.value
+      ? `${copy.value.selected}：(${selectedCandidate.value[0]}, ${selectedCandidate.value[1]})`
+      : "");
+    const aiRunLabel = (run) => run.label ?? (run.strategy === "greedy"
+      ? copy.value.aiGreedy
+      : run.strategy === "mcts"
+        ? copy.value.aiMcts
+        : `${copy.value.aiMinimax} ${copy.value.aiDepth} ${run.depth}`);
+    const pointLabel = (point) => Array.isArray(point) ? `(${point[0]}, ${point[1]})` : String(point ?? "—");
+    const edgeLabel = (edge) => String(edge ?? "")
+      .split("|")
+      .map((point) => {
+        const [x, y] = point.split(",").map(Number);
+        return Number.isFinite(x) && Number.isFinite(y) ? `(${x}, ${y})` : point;
+      })
+      .join(" → ");
+    const effectDetails = computed(() => {
+      const effects = props.event?.effects ?? {};
+      const details = [];
+      for (const point of effects.capturedPoints ?? []) {
+        details.push(`${copy.value.capturedDetail} ${pointLabel(point)}`);
+      }
+      for (const [player, edges] of Object.entries(effects.addedEdgesByPlayer ?? {})) {
+        for (const edge of edges ?? []) {
+          details.push(`${copy.value.edgeDetail} ${playerName(player)} ${edgeLabel(edge)}`);
+        }
+      }
+      for (const [player, delta] of Object.entries(effects.territoryDelta ?? {})) {
+        if (delta) details.push(`${copy.value.territory} ${playerName(player)} ${delta > 0 ? "+" : ""}${delta}`);
+      }
+      return details;
+    });
+    const selectCandidate = (point) => {
+      selectedCandidate.value = [...point];
+      emit("inspect-point", [...point]);
+    };
+    const eventSummary = computed(() => {
+      if (!props.event) return copy.value.start;
+      const effects = props.event.effects ?? {};
+      const actionLabel = props.event.type === "move" ? copy.value.move : props.event.type === "skip" ? copy.value.skip : copy.value.resign;
+      const actor = playerName(props.event.actor);
+      const point = props.event.point ? ` (${props.event.point[0]}, ${props.event.point[1]})` : "";
+      const capturedCount = effects.capturedPoints?.length ?? 0;
+      const edgeCount = Object.values(effects.addedEdgesByPlayer ?? {}).flat().length;
+      const territoryText = Object.entries(effects.territoryDelta ?? {})
+        .filter(([, delta]) => delta)
+        .map(([player, delta]) => `${playerName(player)} ${delta > 0 ? "+" : ""}${delta}`)
+        .join("，");
+      const details = [];
+      if (capturedCount) details.push(`${capturedCount} ${copy.value.captured}`);
+      if (edgeCount) details.push(`${edgeCount} ${copy.value.edges}`);
+      if (territoryText) details.push(`${copy.value.territory}：${territoryText}`);
+      if (!details.length) details.push(copy.value.none);
+      if (effects.gameEnded) details.push(copy.value.ended);
+      return `${actionLabel} · ${actor}${point}。${copy.value.changed}：${details.join("；")}`;
+    });
+    return {
+      candidatePoints,
+      copy,
+      effectDetails,
+      eventSummary,
+      aiRunLabel,
+      occupiedCount,
+      playerName,
+      pointLabel,
+      selectCandidate,
+      selectedCandidateLabel,
+      structureStats,
+    };
+  },
+  template: `
+    <section class="replay-inspector panel panel-subtle" aria-live="polite">
+      <div class="replay-panel-head">
+        <div>
+          <p class="panel-kicker">{{ copy.title }}</p>
+          <p class="replay-panel-description">{{ copy.readOnly }}</p>
+        </div>
+        <span class="status-pill">{{ copy.badge }}</span>
+      </div>
+      <p class="replay-event-summary">{{ eventSummary }}</p>
+      <div class="replay-overlay-legend" :aria-label="copy.title">
+        <span><i class="replay-legend-mark is-selected"></i>{{ copy.overlaySelected }}</span>
+        <span><i class="replay-legend-mark is-captured"></i>{{ copy.overlayCaptured }}</span>
+        <span><i class="replay-legend-mark is-edge"></i>{{ copy.overlayEdges }}</span>
+      </div>
+      <ul v-if="effectDetails.length" class="replay-effect-details">
+        <li v-for="detail in effectDetails" :key="detail">{{ detail }}</li>
+      </ul>
+      <div class="replay-inspector-grid">
+        <div><span>{{ copy.currentPlayer }}</span><strong>{{ playerName(gameState.currentPlayer) }}</strong></div>
+        <div><span>{{ copy.legal }}</span><strong>{{ gameState.legalMoves?.length ?? 0 }}</strong></div>
+        <div><span>{{ copy.occupied }}</span><strong>{{ occupiedCount }}</strong></div>
+      </div>
+      <div class="replay-inspector-section">
+        <p class="replay-inspector-label">{{ copy.structure }}</p>
+        <div class="replay-structure-list">
+          <div v-for="stat in structureStats" :key="stat.player" class="replay-structure-item">
+            <strong>{{ playerName(stat.player) }}</strong>
+            <span>{{ stat.edges }} {{ copy.links }} · {{ stat.territory }} {{ copy.territory }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="replay-inspector-section">
+        <p class="replay-inspector-label">{{ copy.candidates }}</p>
+        <p class="replay-panel-description">{{ copy.candidateHint }}</p>
+        <div class="replay-candidate-list">
+          <button v-for="point in candidatePoints" :key="point.join(',')" type="button" class="replay-candidate-button" @click="selectCandidate(point)">
+            ({{ point[0] }}, {{ point[1] }})
+          </button>
+          <span v-if="!candidatePoints.length" class="help-copy">—</span>
+        </div>
+        <p v-if="selectedCandidateLabel" class="replay-candidate-selected">{{ selectedCandidateLabel }}</p>
+      </div>
+      <div class="replay-inspector-section replay-ai-exhibit">
+        <div class="replay-ai-head">
+          <div>
+            <p class="replay-inspector-label">{{ copy.aiTitle }}</p>
+            <p class="replay-panel-description">{{ copy.aiDescription }}</p>
+          </div>
+          <button type="button" class="action-button action-button-secondary" :disabled="aiComparisonBusy || !gameState.legalMoves?.length" @click="$emit('compare-ai')">
+            {{ aiComparisonBusy ? copy.aiRunning : copy.aiRun }}
+          </button>
+        </div>
+        <p v-if="aiComparisonError" class="error-copy replay-error">{{ aiComparisonError }}</p>
+        <div v-if="aiComparison" class="replay-ai-result">
+          <p class="replay-ai-meta">{{ copy.aiPlayer }}：{{ playerName(aiComparison.player) }}</p>
+          <div v-for="run in aiComparison.runs" :key="run.id" class="replay-ai-run">
+            <div class="replay-ai-run-head">
+              <strong>{{ aiRunLabel(run) }}</strong>
+              <span>{{ run.elapsedMs }} ms</span>
+            </div>
+            <ol v-if="run.moves.length" class="replay-ai-moves">
+              <li v-for="(move, index) in run.moves" :key="run.id + '-' + (move.point ? move.point.join(',') : 'PASS')">
+                <span>#{{ index + 1 }} {{ move.type === 'pass' ? 'PASS' : pointLabel(move.point) }}</span>
+                <strong v-if="run.strategy === 'mcts' || run.strategy === 'neural-puct'">{{ copy.aiVisits }} {{ move.visits }} · {{ copy.aiValue }} {{ move.meanValue }}<template v-if="move.prior !== null"> · {{ copy.aiPrior }} {{ move.prior }}</template></strong>
+                <strong v-else>{{ copy.aiScore }} {{ move.score }}</strong>
+              </li>
+            </ol>
+            <p v-else-if="run.unavailableMessage" class="help-copy">{{ run.unavailableMessage }}</p>
+            <p v-else class="help-copy">{{ copy.aiNoMoves }}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  `,
+};
+
+const TutorialCard = {
+  name: "TutorialCard",
+  emits: ["continue", "skip", "guide"],
+  props: {
+    language: {
+      type: String,
+      required: true,
+    },
+    level: {
+      type: Object,
+      required: true,
+    },
+    success: {
+      type: Boolean,
+      default: false,
+    },
+    restrictionObserved: {
+      type: Boolean,
+      default: false,
+    },
+    attempts: {
+      type: Number,
+      default: 0,
+    },
+  },
+  setup(props) {
+    const copy = computed(() => {
+      const zh = props.language === "zh";
+      return {
+        eyebrow: zh ? "第一次玩 · 蓝方 vs 红方" : "FIRST PLAY · Blue vs Red",
+        title: zh ? props.level.titleZh : props.level.titleEn,
+        instruction: props.level.restriction && props.restrictionObserved
+          ? (zh ? props.level.allowedInstructionZh : props.level.allowedInstructionEn)
+          : (zh ? props.level.instructionZh : props.level.instructionEn),
+        success: zh ? props.level.successZh : props.level.successEn,
+        target: props.level.objective?.type === "skip"
+          ? (zh ? "目标：点击“跳过回合”" : "Goal: click “Skip Turn”")
+          : (zh ? `目标：点击高亮节点 [${props.level.objective.point}]` : `Goal: click the highlighted node [${props.level.objective.point}]`),
+        attempts: zh ? `尝试次数：${props.attempts}` : `Attempts: ${props.attempts}`,
+        continue: props.level.id === "L5-settle-score"
+          ? (zh ? "进入实战" : "Continue to a real match")
+          : (zh ? "下一关" : "Next lesson"),
+        skip: zh ? "跳过教学" : "Skip tutorial",
+        guide: zh ? "查看指南舱" : "Open Guide cabin",
+        final: props.level.id === "L5-settle-score",
+      };
+    });
+    const parts = computed(() => (props.success ? copy.value.success : copy.value.instruction)
+      .split(/(蓝方|红方|Blue|Red|高亮节点|闭合领土|三点限制|连续紧邻|拉开间距|红叉|切断|断联|跳过回合|指南舱|highlighted node|three-point limit|adjacent chain|red cross|territory|Skip Turn|Guide cabin|\[\d,\d\])/g)
+      .map((text, index) => ({
+        text,
+        emphasized: index % 2 === 1,
+        color: /^(蓝方|Blue)$/.test(text) ? "blue" : /^(红方|Red)$/.test(text) ? "red" : "key",
+      })));
+    return { copy, parts };
+  },
+  template: `
+    <section class="tutorial-card" role="region" aria-live="polite" aria-label="LIFELINE tutorial">
+      <div class="tutorial-card-copy">
+        <p class="tutorial-eyebrow">{{ copy.eyebrow }}</p>
+        <h2>{{ copy.title }}</h2>
+        <p :class="success ? 'tutorial-success' : 'tutorial-instruction'">
+          <template v-for="(part, index) in parts" :key="index">
+            <strong v-if="part.emphasized" :class="'tutorial-highlight-' + part.color">{{ part.text }}</strong><span v-else>{{ part.text }}</span>
+          </template>
+        </p>
+      </div>
+      <div class="tutorial-card-actions">
+        <button v-if="success" type="button" class="action-button action-button-primary" @click="$emit('continue')">
+          {{ copy.continue }}
+        </button>
+        <button v-if="success && copy.final" type="button" class="action-button action-button-secondary tutorial-guide-button" @click="$emit('guide')">{{ copy.guide }}</button>
+        <button v-else type="button" class="text-button" @click="$emit('skip')">{{ copy.skip }}</button>
       </div>
     </section>
   `,
@@ -2099,6 +2567,10 @@ const DockLauncher = {
       type: String,
       default: "",
     },
+    compactTitle: {
+      type: String,
+      default: "",
+    },
     badge: {
       type: String,
       default: "",
@@ -2109,10 +2581,13 @@ const DockLauncher = {
     },
   },
   template: `
-    <button type="button" class="dock-launcher" :class="'dock-launcher-' + variant" @click="$emit('open')">
+    <button type="button" class="dock-launcher" :class="'dock-launcher-' + variant" :aria-label="title" :title="title" @click="$emit('open')">
       <span class="dock-folder-head">
         <span class="dock-folder-icon" :class="'dock-folder-icon-' + variant" aria-hidden="true">
           <span v-if="variant === 'board'" class="triangle-glyph"></span>
+          <svg v-else-if="variant === 'tutorial'" viewBox="0 0 24 24" focusable="false">
+            <path d="M8 4.5a1 1 0 0 1 1.5-.86l11 7a1.6 1.6 0 0 1 0 2.72l-11 7A1 1 0 0 1 8 19.5v-15ZM4 4h2v16H4z" />
+          </svg>
           <svg v-else-if="variant === 'guide'" viewBox="0 0 24 24" focusable="false">
             <path d="M5 4.75A2.75 2.75 0 0 1 7.75 2h9.5A1.75 1.75 0 0 1 19 3.75v15.5A1.75 1.75 0 0 1 17.25 21h-9A3.25 3.25 0 0 0 5 23V4.75Zm2.75-1.25A1.25 1.25 0 0 0 6.5 4.75v13.02c.52-.18 1.08-.27 1.75-.27h9.25V3.75a.25.25 0 0 0-.25-.25h-9.5Zm.5 16.5c-.68 0-1.24.16-1.75.49V21.5c.35-.33.89-.5 1.75-.5h9.25a.75.75 0 0 0 .75-.75v-1.25H8.25Z" />
             <path d="M9 7.25a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 0 1.5h-4.5A.75.75 0 0 1 9 7.25Zm0 3.5A.75.75 0 0 1 9.75 10h5.5a.75.75 0 0 1 0 1.5h-5.5a.75.75 0 0 1-.75-.75Zm0 3.5a.75.75 0 0 1 .75-.75h5.5a.75.75 0 0 1 0 1.5h-5.5a.75.75 0 0 1-.75-.75Z" />
@@ -2122,7 +2597,7 @@ const DockLauncher = {
           </svg>
         </span>
         <span class="dock-launcher-copy">
-          <strong class="dock-folder-title">{{ title }}</strong>
+          <strong class="dock-folder-title"><span class="dock-title-full">{{ title }}</span><span class="dock-title-compact">{{ compactTitle || title }}</span></strong>
           <small v-if="copy">{{ copy }}</small>
         </span>
       </span>
@@ -2316,6 +2791,11 @@ const BoardCanvas = {
       type: Boolean,
       default: false,
     },
+    inspectionOverlay: {
+      type: Object,
+      default: null,
+    },
+    inputLocked: { type: Boolean, default: false },
   },
   emits: ["state-change", "controller-ready"],
   setup(props, { emit }) {
@@ -2328,11 +2808,17 @@ const BoardCanvas = {
 
     onMounted(() => {
       controller = new GameController(canvasRef.value, {
+        renderer: { topInset: 52 },
         onStateChange: handleStateChange,
       });
       emit("controller-ready", controller);
       controller.init();
+      controller.setInspectionOverlay(props.inspectionOverlay);
     });
+
+    watch(() => props.inspectionOverlay, (overlay) => {
+      controller?.setInspectionOverlay(overlay);
+    }, { deep: true });
 
     onBeforeUnmount(() => {
       if (controller) {
@@ -2350,13 +2836,17 @@ const BoardCanvas = {
   template: `
     <section class="board-shell panel panel-board-focus">
       <div class="canvas-frame">
-        <canvas
-          ref="canvasRef"
-          class="game-canvas"
-          :class="{ 'game-canvas-ai-thinking': aiThinking }"
-          :aria-label="texts.boardAriaLabel"
-          :aria-busy="aiThinking ? 'true' : 'false'"
-        ></canvas>
+        <div class="board-canvas-surface">
+          <canvas
+            ref="canvasRef"
+            class="game-canvas"
+            :class="{ 'game-canvas-ai-thinking': aiThinking || inputLocked }"
+            :aria-label="texts.boardAriaLabel"
+            :aria-disabled="inputLocked ? 'true' : 'false'"
+            :aria-busy="aiThinking ? 'true' : 'false'"
+          ></canvas>
+          <slot name="tools"></slot>
+        </div>
       </div>
       <div class="chat-emoji-layer" aria-live="polite" aria-atomic="false">
         <div
@@ -2391,26 +2881,96 @@ const App = {
     UtilityModal,
     GuideReaderModal,
     ResultModal,
+    ReplayPanel,
+    ReplayControls,
+    ReplayInspectorPanel,
     RoomPanel,
     ScorePanel,
     SetupPanel,
+    TutorialCard,
   },
   setup() {
     const storedAuth = loadAppStoredAuth();
     const storedSession = loadAppStoredSession();
+    const storedLocalGame = loadLocalGameSession();
+    const storedMatchPreferences = loadLocalMatchPreferences();
+    const firstTutorialLevel = getTutorialLevel(0);
+    const standaloneTutorial = new URLSearchParams(globalThis.location?.search ?? "").get("tutorial") === "1";
     const initialServerUrl = resolveInitialServerUrl(storedSession.url);
     const normalizedStoredSession = {
-      ...storedSession,
+      ...(standaloneTutorial ? createAppEmptySession() : storedSession),
+      settings: storedSession.settings,
       url: initialServerUrl,
     };
-    const initialSettings = normalizeAppGameSettings(normalizedStoredSession.settings);
+    const normalGameSettings = normalizeAppGameSettings(storedLocalGame?.settings ?? storedMatchPreferences?.settings ?? normalizedStoredSession.settings);
+    const initialSettings = normalizeAppGameSettings(getTutorialEngineSettings(firstTutorialLevel));
+    let tutorialReturnSession = storedLocalGame ?? createLocalGameSession(normalGameSettings);
+    let tutorialReturnHintCount = normalGameSettings.hintEnabled ? normalGameSettings.hintMaxCount : 0;
+    let pendingRoomReconnect = !standaloneTutorial && Boolean(
+      storedAuth.token && normalizedStoredSession.roomId && normalizedStoredSession.playerId && normalizedStoredSession.url,
+    );
     const controller = shallowRef(null);
     const gameState = ref(createAppDefaultGameState());
+    const tutorialActive = ref(true);
+    const tutorialSuccess = ref(false);
+    const tutorialAttempts = ref(0);
+    const tutorialLevelIndex = ref(0);
+    const tutorialStartSnapshot = shallowRef(null);
+    const tutorialResultSnapshot = shallowRef(null);
+    const tutorialRestrictionObserved = ref(false);
+    const localGameActions = ref([]);
+    const contributionState = ref({ enabled: false, pending: 0, status: "off", receipt: null });
+    const contribution = new TrainingContribution({ onChange: (state) => { contributionState.value = state; } });
+    contributionState.value = contribution.snapshot();
+    let contributionContext = null;
+    let contributionAssisted = false;
+    let contributionProfileSignature = null;
+    const retryContributions = () => { void contribution.flush(); };
+    const toggleContributions = (enabled) => { contribution.setEnabled(enabled); contributionContext = null; retryContributions(); };
+    const localGamePositionRevision = ref(-1);
+    const localGameRestoring = ref(false);
+    const localGameResumeNotice = ref("");
+    const replayDocument = ref(null);
+    const replaySource = ref("");
+    const replayActions = ref([]);
+    const replayCursor = ref(0);
+    const replayMode = ref(false);
+    const replayPlaying = ref(false);
+    const replayInspectorOpen = ref(false);
+    const replayBusy = ref(false);
+    const replayError = ref("");
+    const replayRestoring = ref(false);
+    const replayInspectionPoint = ref(null);
+    const aiComparison = ref(null);
+    const aiComparisonBusy = ref(false);
+    const aiComparisonError = ref("");
+    const currentReplayEvent = computed(() => (
+      replayCursor.value > 0
+        ? replayDocument.value?.actions?.[replayCursor.value - 1] ?? null
+        : null
+    ));
+    const replayInspectionOverlay = computed(() => {
+      if (!replayMode.value) {
+        return null;
+      }
+      const effects = currentReplayEvent.value?.effects ?? {};
+      const addedEdges = Object.entries(effects.addedEdgesByPlayer ?? {})
+        .flatMap(([player, edges]) => (edges ?? []).map((edge) => ({ player, edge })));
+      return {
+        selectedPoint: replayInspectionPoint.value,
+        capturedPoints: effects.capturedPoints ?? [],
+        addedEdges,
+      };
+    });
+    let liveReplayRestore = null;
+    let replayPlaybackId = null;
     const selectedHintEnabled = ref(initialSettings.hintEnabled);
     const selectedHintMaxCount = ref(initialSettings.hintMaxCount);
     const hintRemainingCount = ref(0);
     const hintThinking = ref(false);
     const hintFeedback = ref("");
+    const actionFeedback = ref("");
+    const actionFeedbackTone = ref("neutral");
     const language = ref(getAppInitialLanguage());
     const uiStyle = ref(getAppInitialUiStyle());
     const guideMarkdownOverrides = ref({});
@@ -2432,8 +2992,15 @@ const App = {
     const selectedRulesVersion = ref(initialSettings.rulesVersion ?? APP_DEFAULT_RULES_VERSION);
     const selectedTurnTimerEnabled = ref(initialSettings.turnTimerEnabled);
     const selectedTurnTimeLimitSeconds = ref(initialSettings.turnTimeLimitSeconds);
-    const selectedAiMode = ref("none");
-    const selectedAiDepth = ref(3);
+    const selectedLocalPlayers = ref(normalizeLocalPlayers(storedLocalGame?.match?.players ?? storedMatchPreferences?.players));
+    const activeLocalPlayers = ref(normalizeLocalPlayers(storedLocalGame?.match?.players));
+    const activeLocalSettings = ref(normalGameSettings);
+    const localMatchStarted = ref(storedLocalGame?.match?.started ?? Boolean(storedLocalGame?.actions.length));
+    const localSetupPending = computed(() => !localMatchStarted.value
+      || JSON.stringify(selectedLocalPlayers.value) !== JSON.stringify(activeLocalPlayers.value)
+      || JSON.stringify(normalizeAppGameSettings(draftGameSettings())) !== JSON.stringify(activeLocalSettings.value));
+    const selectedAiMode = computed(() => localMatchMode(activeLocalPlayers.value, activeLocalSettings.value.playerCount));
+    const aiDuelPaused = ref(storedLocalGame?.match?.paused ?? false);
     const aiThinking = ref(false);
     const session = ref(networkManager.getSession());
     const connectionState = ref("idle");
@@ -2465,6 +3032,7 @@ const App = {
     let turnTimerId = null;
     let turnTimerDeadline = 0;
     let turnTimerSkipInFlight = false;
+    let localGameNoticeTimeoutId = null;
     let reconnectAttempt = 0;
     let syncingRemoteSettings = false;
     let roomSnapshotRecoveryFailed = false;
@@ -2473,22 +3041,21 @@ const App = {
     let aiScheduleId = null;
     let aiRequestSequence = 0;
     let activeAiRequestId = null;
+    let activeAiRequest = null;
     const hintWorkerSession = new OneShotHintWorker(
-      () => new Worker(new URL("./AIWorker.js?v=20260910d", import.meta.url), { type: "module" }),
+      () => new Worker(new URL("./AIWorker.js?v=20261013-sync1", import.meta.url), { type: "module" }),
+    );
+    const aiComparisonWorkerSession = new OneShotHintWorker(
+      () => new Worker(new URL("./AIWorker.js?v=20261013-sync1", import.meta.url), { type: "module" }),
     );
     const chatEmojiTimeoutIds = new Set();
 
     const cancelHintRequest = () => hintWorkerSession.cancel();
+    const cancelAiComparison = () => aiComparisonWorkerSession.cancel();
 
-    const getAiPlayer = () => {
-      if (selectedAiMode.value === "ai_white") {
-        return Player.WHITE;
-      }
-      if (selectedAiMode.value === "ai_black") {
-        return Player.BLACK;
-      }
-      return null;
-    };
+    const getAiPlayer = (state = gameState.value) => resolveAIPlayer(selectedAiMode.value, state?.currentPlayer);
+
+    const selectedAiProfile = (player = gameState.value.currentPlayer) => localPlayerProfile(activeLocalPlayers.value[player]);
 
     const terminateAiWorker = () => {
       if (aiScheduleId !== null) {
@@ -2500,13 +3067,20 @@ const App = {
         aiWorker = null;
       }
       activeAiRequestId = null;
+      activeAiRequest = null;
       aiThinking.value = false;
     };
 
     const canRunLocalAI = (state = gameState.value) => (
-      roomStatus.value === "solo"
-      && selectedPlayerCount.value === 2
+      !tutorialActive.value
+      && !replayMode.value
+      && !replayBusy.value
+      && !localGameRestoring.value
+      && roomStatus.value === "solo"
+      && activeLocalSettings.value.playerCount === 2
+      && !localSetupPending.value
       && selectedAiMode.value !== "none"
+      && !aiDuelPaused.value
       && !state?.gameOver
       && !state?.multiplayerEnabled
       && !controller.value?.multiplayerEnabled
@@ -2514,7 +3088,8 @@ const App = {
 
     const ensureAiWorker = () => {
       if (!aiWorker && canRunLocalAI()) {
-        aiWorker = new Worker(new URL("./AIWorker.js?v=20260910d", import.meta.url), { type: "module" });
+        aiWorker = new Worker(new URL("./AIWorker.js?v=20261013-sync1", import.meta.url), { type: "module" });
+        const worker = aiWorker;
         aiWorker.onmessage = (event) => {
           if (event.data?.type !== "RESULT" && event.data?.type !== "ERROR") {
             return;
@@ -2522,28 +3097,51 @@ const App = {
           if (event.data.requestId !== activeAiRequestId) {
             return;
           }
+          const request = activeAiRequest;
           activeAiRequestId = null;
+          activeAiRequest = null;
 
           try {
             const aiPlayer = getAiPlayer();
-            const sourceStillCurrent = isWorkerResultCurrent(controller.value?.engine, event.data);
+            const sourceStillCurrent = isWorkerResultForRequest(controller.value?.engine, request, event.data);
+            const profileStillCurrent = request?.profileSignature === JSON.stringify(selectedAiProfile());
             const mayApplyResult = event.data.type === "RESULT"
               && canRunLocalAI()
               && gameState.value.currentPlayer === aiPlayer
-              && sourceStillCurrent;
+              && sourceStillCurrent && profileStillCurrent;
             if (!mayApplyResult) {
-              if (event.data.type === "ERROR") {
+              if (event.data.type === "ERROR" && sourceStillCurrent && profileStillCurrent && canRunLocalAI()) {
                 console.error(`AI worker failed: ${event.data.message}`);
+                const side = gameState.value.currentPlayer;
+                const fallback = activeLocalPlayers.value[side].choice !== "minimax";
                 terminateAiWorker();
+                if (fallback) {
+                  activeLocalPlayers.value = normalizeLocalPlayers({ ...activeLocalPlayers.value, [side]: { ...activeLocalPlayers.value[side], choice: "minimax" } });
+                  selectedLocalPlayers.value = normalizeLocalPlayers(activeLocalPlayers.value);
+                  if (contributionContext) contributionContext.mixedProfiles = true;
+                  persistLocalMatchPreferences(selectedLocalPlayers.value, draftGameSettings());
+                } else aiDuelPaused.value = true;
+                showLocalGameNotice(getAppTexts(language.value, uiStyle.value).localAiFailure(formatAppPlayerName(side, language.value, uiStyle.value), fallback));
+                saveLocalMatch();
+                if (fallback) scheduleAiMove(gameState.value);
               }
               return;
             }
 
             if (event.data.moves?.length) {
-              controller.value._applyMove(event.data.moves[0].point);
+              const move = event.data.moves[0];
+              if (move.type === "pass" && move.point === null) controller.value.skipTurn();
+              else if (controller.value.engine.getLegalMoves(aiPlayer).some((legal) => legal.point.join(",") === move.point?.join(","))) controller.value._applyMove(move.point);
+              else throw new Error("AI 返回非法动作。");
             } else {
               controller.value.skipTurn();
             }
+          } catch (error) {
+            console.error("AI result could not be applied.", error);
+            terminateAiWorker();
+            aiDuelPaused.value = true;
+            saveLocalMatch();
+            showLocalGameNotice(getAppTexts(language.value, uiStyle.value).localAiFailure(formatAppPlayerName(gameState.value.currentPlayer, language.value, uiStyle.value), false));
           } finally {
             aiThinking.value = false;
             if (event.data.type === "RESULT") {
@@ -2552,17 +3150,24 @@ const App = {
           }
         };
         aiWorker.onerror = (event) => {
+          if (aiWorker !== worker || !canRunLocalAI()) return;
           console.error("AI worker failed.", event);
           terminateAiWorker();
+          aiDuelPaused.value = true;
+          saveLocalMatch();
+          showLocalGameNotice(getAppTexts(language.value, uiStyle.value).localAiFailure(formatAppPlayerName(gameState.value.currentPlayer, language.value, uiStyle.value), false));
         };
       }
       return aiWorker;
     };
 
     const scheduleAiMove = (state = gameState.value) => {
-      const aiPlayer = getAiPlayer();
+      if (replayMode.value || replayRestoring.value) {
+        return;
+      }
+      const aiPlayer = getAiPlayer(state);
       if (!canRunLocalAI(state)) {
-        if (state?.gameOver || state?.multiplayerEnabled || selectedAiMode.value === "none") {
+        if (state?.gameOver || state?.multiplayerEnabled || selectedAiMode.value === "none" || aiDuelPaused.value) {
           terminateAiWorker();
         }
         return;
@@ -2592,19 +3197,21 @@ const App = {
           }
           const requestId = ++aiRequestSequence;
           activeAiRequestId = requestId;
+          const profile = selectedAiProfile(nextAiPlayer);
+          activeAiRequest = { ...captureWorkerRequest(controller.value.engine, requestId), profileSignature: JSON.stringify(profile) };
           worker.postMessage({
             type: "COMPUTE",
             requestId,
             serializedState: serializeEngineState(controller.value.engine),
             aiPlayer: nextAiPlayer,
-            depth: selectedAiDepth.value,
+            ...profile,
             topN: 5,
           });
         } catch (error) {
           console.error("Could not start AI worker.", error);
           terminateAiWorker();
         }
-      }, 0);
+      }, selectedAiMode.value === "ai_duel" ? 400 : 0);
     };
 
     const restartLocalAiWorker = () => {
@@ -2684,7 +3291,7 @@ const App = {
       previousHintEnabled,
       previousHintMaxCount,
     ] = []) => {
-      if (syncingRemoteSettings) {
+      if (syncingRemoteSettings || tutorialActive.value) {
         return;
       }
 
@@ -2706,10 +3313,6 @@ const App = {
       selectedTurnTimeLimitSeconds.value = normalized.turnTimeLimitSeconds;
       selectedHintEnabled.value = normalized.hintEnabled;
       selectedHintMaxCount.value = normalized.hintMaxCount;
-      if (normalized.playerCount !== 2) {
-        selectedAiMode.value = "none";
-        terminateAiWorker();
-      }
       syncSession();
 
       const gameAffectingChanged = normalized.playerCount !== previousPlayerCount
@@ -2722,16 +3325,11 @@ const App = {
         || normalized.hintMaxCount !== previousHintMaxCount;
 
       if (roomStatus.value === "solo" && controller.value) {
-        if (gameAffectingChanged) {
+        // Settings are a draft until Start; keep the live board and saved evidence.
+        if (gameAffectingChanged || hintChanged) {
+          cancelHintRequest();
           terminateAiWorker();
-          gameState.value = controller.value.setGameConfig(normalized, true);
-          resetHintUsage();
-          ensureAiWorker();
-          scheduleAiMove(gameState.value);
-          return;
-        }
-        if (hintChanged) {
-          resetHintUsage();
+          persistLocalMatchPreferences(selectedLocalPlayers.value, normalized);
         }
         return;
       }
@@ -2752,18 +3350,37 @@ const App = {
       }
     });
 
-    watch([selectedAiMode, selectedAiDepth], ([aiMode, aiDepth]) => {
+    watch(selectedLocalPlayers, () => {
       cancelHintRequest();
-      if (selectedPlayerCount.value !== 2 && aiMode !== "none") {
-        selectedAiMode.value = "none";
-        return;
-      }
-      if (![2, 3, 4].includes(Number(aiDepth))) {
-        selectedAiDepth.value = 3;
-        return;
-      }
-      restartLocalAiWorker();
+      terminateAiWorker();
+      persistLocalMatchPreferences(selectedLocalPlayers.value, draftGameSettings());
+      if (!localSetupPending.value) scheduleAiMove(gameState.value);
+    }, { deep: true });
+    watch(localSetupPending, (pending) => {
+      cancelHintRequest();
+      terminateAiWorker();
+      if (!pending) scheduleAiMove(gameState.value);
     });
+    const updateLocalPlayer = ({ color, patch }) => {
+      if (settingsLocked.value || roomStatus.value !== "solo" || !["BLACK", "WHITE"].includes(color)) return;
+      terminateAiWorker();
+      selectedLocalPlayers.value = normalizeLocalPlayers({ ...selectedLocalPlayers.value,
+        [color]: { ...selectedLocalPlayers.value[color], ...patch } });
+      persistLocalMatchPreferences(selectedLocalPlayers.value, draftGameSettings());
+    };
+    const swapLocalPlayers = () => {
+      if (settingsLocked.value || roomStatus.value !== "solo") return;
+      terminateAiWorker();
+      selectedLocalPlayers.value = normalizeLocalPlayers({ BLACK: selectedLocalPlayers.value.WHITE, WHITE: selectedLocalPlayers.value.BLACK });
+      persistLocalMatchPreferences(selectedLocalPlayers.value, draftGameSettings());
+    };
+    const toggleAiDuel = () => {
+      if (selectedAiMode.value !== "ai_duel" || localSetupPending.value || roomStatus.value !== "solo" || tutorialActive.value || replayMode.value || gameState.value.gameOver) return;
+      aiDuelPaused.value = !aiDuelPaused.value;
+      terminateAiWorker();
+      saveLocalMatch();
+      if (!aiDuelPaused.value) scheduleAiMove(gameState.value);
+    };
 
     watch(() => gameState.value.multiplayerEnabled, (multiplayerEnabled) => {
       if (multiplayerEnabled) {
@@ -2793,6 +3410,8 @@ const App = {
     });
 
     const syncSession = () => {
+      // Lesson settings must not replace the saved match or online room settings.
+      if (tutorialActive.value) return;
       session.value = {
         ...createAppEmptySession(),
         ...networkManager.getSession(),
@@ -2807,7 +3426,7 @@ const App = {
           hintMaxCount: selectedHintMaxCount.value,
         },
       };
-      persistAppSession(session.value);
+      if (!standaloneTutorial) persistAppSession(session.value);
     };
 
     const setAuthState = (nextAuth) => {
@@ -2832,13 +3451,18 @@ const App = {
     const isAuthenticated = computed(() => Boolean(auth.value.token && auth.value.username));
     const isHost = computed(() => Boolean(session.value.playerId && roomInfo.value.hostPlayerId === session.value.playerId));
     const boardDockBadge = computed(() => (
-      uiStyle.value === UI_STYLE_ACADEMIC
-        ? (language.value === "en"
-          ? `${selectedPlayerCount.value}N / ${selectedGridSize.value}`
-          : `${selectedPlayerCount.value}\u8282\u70B9 / ${selectedGridSize.value}`)
-        : (language.value === "en"
-          ? `${selectedPlayerCount.value}P / ${selectedGridSize.value}`
-          : `${selectedPlayerCount.value}\u4EBA / ${selectedGridSize.value}`)
+      (() => {
+        const displayGridSize = tutorialActive.value
+          ? currentTutorialLevel.value.gridSize
+          : selectedGridSize.value;
+        return uiStyle.value === UI_STYLE_ACADEMIC
+          ? (language.value === "en"
+            ? `${selectedPlayerCount.value}N / ${displayGridSize}`
+            : `${selectedPlayerCount.value}\u8282\u70B9 / ${displayGridSize}`)
+          : (language.value === "en"
+            ? `${selectedPlayerCount.value}P / ${displayGridSize}`
+            : `${selectedPlayerCount.value}\u4EBA / ${displayGridSize}`);
+      })()
     ));
     const networkDockBadge = computed(() => {
       if (session.value.roomId) {
@@ -2871,7 +3495,8 @@ const App = {
       }));
     });
 
-    const currentGameSettings = () => ({
+    function draftGameSettings() {
+      return {
       playerCount: selectedPlayerCount.value,
       gridSize: selectedGridSize.value,
       startPlayer: selectedStartPlayer.value,
@@ -2880,7 +3505,617 @@ const App = {
       turnTimeLimitSeconds: selectedTurnTimeLimitSeconds.value,
       hintEnabled: selectedHintEnabled.value,
       hintMaxCount: selectedHintMaxCount.value,
+      };
+    }
+    const currentGameSettings = () => roomStatus.value === "solo" && !tutorialActive.value
+      ? { ...activeLocalSettings.value } : draftGameSettings();
+    const currentLocalMatch = () => ({ players: activeLocalPlayers.value, started: localMatchStarted.value, paused: aiDuelPaused.value });
+    const saveLocalMatch = () => {
+      if (roomStatus.value !== "solo" || tutorialActive.value || localGameRestoring.value || replayMode.value) return;
+      persistLocalGameSession(createLocalGameSession(currentGameSettings(), localGameActions.value, currentLocalMatch()));
+    };
+    const startLocalMatch = async () => {
+      if (!controller.value || settingsLocked.value || roomStatus.value !== "solo" || localGameRestoring.value) return false;
+      terminateAiWorker();
+      cancelHintRequest();
+      clearLocalGameNotice();
+      setActionFeedback("", "neutral");
+      localGameRestoring.value = true;
+      try {
+        activeLocalSettings.value = normalizeAppGameSettings(draftGameSettings());
+        activeLocalPlayers.value = normalizeLocalPlayers(selectedLocalPlayers.value);
+        localMatchStarted.value = true;
+        aiDuelPaused.value = false;
+        clearSavedLocalGame();
+        gameState.value = controller.value.setGameConfig(activeLocalSettings.value, true);
+        localGamePositionRevision.value = gameState.value.positionRevision;
+        overlayResult.value = null;
+        resultModalDismissed.value = false;
+        resetHintUsage();
+        await nextTick();
+      } finally { localGameRestoring.value = false; }
+      persistLocalMatchPreferences(selectedLocalPlayers.value, draftGameSettings());
+      saveLocalMatch();
+      activeUtilityDeck.value = "";
+      scheduleAiMove(gameState.value);
+      return true;
+    };
+    const currentTutorialLevel = computed(() => getTutorialLevel(tutorialLevelIndex.value));
+    const boardInspectionOverlay = computed(() => tutorialActive.value
+      ? getTutorialInspectionOverlay(currentTutorialLevel.value, tutorialStartSnapshot.value, tutorialResultSnapshot.value ?? tutorialStartSnapshot.value, tutorialSuccess.value, tutorialRestrictionObserved.value)
+      : replayInspectionOverlay.value);
+
+    const clearLocalGameNotice = () => {
+      localGameResumeNotice.value = "";
+      if (localGameNoticeTimeoutId !== null) {
+        globalThis.clearTimeout(localGameNoticeTimeoutId);
+        localGameNoticeTimeoutId = null;
+      }
+    };
+
+    const showLocalGameNotice = (message) => {
+      clearLocalGameNotice();
+      localGameResumeNotice.value = message;
+      localGameNoticeTimeoutId = globalThis.setTimeout(() => {
+        localGameResumeNotice.value = "";
+        localGameNoticeTimeoutId = null;
+      }, 5000);
+    };
+
+    const clearSavedLocalGame = () => {
+      localGameActions.value = [];
+      contributionContext = null;
+      contributionAssisted = false;
+      contributionProfileSignature = null;
+      localGamePositionRevision.value = -1;
+      clearLocalGameSession();
+    };
+
+    const persistCurrentLocalGame = (nextState) => {
+      if (
+        localGameRestoring.value
+        || replayRestoring.value
+        || replayMode.value
+        || tutorialActive.value
+        || roomStatus.value !== "solo"
+        || !nextState
+        || nextState.positionRevision === localGamePositionRevision.value
+      ) {
+        return;
+      }
+
+      const action = nextState.lastAction;
+      if (!action?.type) {
+        localGamePositionRevision.value = nextState.positionRevision ?? localGamePositionRevision.value;
+        return;
+      }
+
+      const nextSession = localGameActions.value.length === 0
+        ? createLocalGameSession(currentGameSettings(), [action], currentLocalMatch())
+        : appendLocalGameAction(
+          createLocalGameSession(currentGameSettings(), localGameActions.value, currentLocalMatch()),
+          action,
+        );
+      if (!nextSession) {
+        return;
+      }
+
+      if (persistLocalGameSession(nextSession)) {
+        localGameActions.value = nextSession.actions;
+        localGamePositionRevision.value = nextState.positionRevision;
+        if (contribution.enabled) {
+          const actors = localMatchActors(activeLocalPlayers.value, activeLocalSettings.value.playerCount);
+          const signature = JSON.stringify(actors);
+          if (!contributionContext) {
+            contributionContext = { source: "local", actors, mixedProfiles: nextSession.actions.length > 1, hintsEnabled: selectedHintEnabled.value || contributionAssisted };
+            contributionProfileSignature = signature;
+          } else if (signature !== contributionProfileSignature) contributionContext.mixedProfiles = true;
+          contributionContext.hintsEnabled ||= selectedHintEnabled.value || contributionAssisted;
+          if (nextState.gameOver) {
+            void contribution.enqueue(currentGameSettings(), nextSession.actions, contributionContext)
+              .then(retryContributions).catch(() => { contribution.status = "retry"; contribution.save(); });
+          }
+        }
+      }
+    };
+
+    const setActionFeedback = (message, tone = "neutral") => {
+      actionFeedback.value = message;
+      actionFeedbackTone.value = tone;
+    };
+
+    const stopReplayPlayback = () => {
+      if (replayPlaybackId !== null) {
+        globalThis.clearInterval(replayPlaybackId);
+        replayPlaybackId = null;
+      }
+      replayPlaying.value = false;
+    };
+
+    const toControllerReplayActions = (document) => document.actions.map((action) => ({
+      type: action.type === "move" ? "player_move" : action.type === "skip" ? "player_skip" : "player_resign",
+      ...(action.type === "move" ? { point: [...action.point] } : {}),
+      ...(action.type === "resign" ? { color: action.actor } : {}),
+    }));
+
+    const restoreReplayPrefix = (cursor = replayCursor.value) => {
+      if (!controller.value || !replayDocument.value) {
+        return false;
+      }
+      const boundedCursor = Math.max(0, Math.min(Number(cursor) || 0, replayActions.value.length));
+      replayRestoring.value = true;
+      terminateAiWorker();
+      try {
+        const restored = controller.value.restoreMatchState({
+          settings: replayDocument.value.config,
+          actions: replayActions.value.slice(0, boundedCursor),
+        });
+        if (!restored.success) {
+          replayError.value = language.value === "zh"
+            ? `复盘第 ${boundedCursor} 步失败：${restored.reason}`
+            : `Could not load review step ${boundedCursor}: ${restored.reason}`;
+          return false;
+        }
+        replayCursor.value = boundedCursor;
+        gameState.value = restored.state;
+        return true;
+      } finally {
+        replayRestoring.value = false;
+      }
+    };
+
+    const handleExportReplay = async () => {
+      if (roomStatus.value !== "solo" || tutorialActive.value || replayMode.value || localGameActions.value.length === 0) {
+        replayError.value = language.value === "zh" ? "只有完成至少一步的本地对局可以导出棋谱。" : "Export is available after at least one local move.";
+        return;
+      }
+      replayBusy.value = true;
+      replayError.value = "";
+      try {
+        const document = await createReplayDocument(currentGameSettings(), localGameActions.value);
+        downloadReplayDocument(document);
+        setActionFeedback(language.value === "zh" ? "棋谱已导出。" : "Replay exported.", "success");
+      } catch (error) {
+        replayError.value = error?.message ?? String(error);
+      } finally {
+        replayBusy.value = false;
+      }
+    };
+
+    const handleImportReplay = async (text) => {
+      if (replayMode.value || roomStatus.value !== "solo" || tutorialActive.value) return;
+      replayBusy.value = true;
+      replayError.value = "";
+      try {
+        const result = await parseAndValidateReplay(text);
+        if (!result.success) {
+          replayError.value = language.value === "zh"
+            ? (result.eventSeq ? `棋谱校验失败（第 ${result.eventSeq} 步）：${result.reason}` : `棋谱校验失败：${result.reason}`)
+            : (result.eventSeq ? `Replay verification failed at step ${result.eventSeq}: ${result.reason}` : `Replay verification failed: ${result.reason}`);
+          return;
+        }
+        if (replayMode.value || roomStatus.value !== "solo" || tutorialActive.value) return;
+        replayDocument.value = result.document;
+        replaySource.value = "imported";
+        replayActions.value = result.actions;
+        replayCursor.value = 0;
+        cancelAiComparison();
+        aiComparison.value = null;
+        aiComparisonError.value = "";
+        replayInspectionPoint.value = null;
+        setActionFeedback(language.value === "zh" ? `棋谱已验证，共 ${result.eventCount} 步。点击“复盘导入棋谱”查看。` : `Replay verified: ${result.eventCount} steps. Choose “Review imported replay” to inspect it.`, "success");
+      } catch (error) {
+        replayError.value = error?.message ?? String(error);
+      } finally {
+        replayBusy.value = false;
+      }
+    };
+
+    const handleStartReplay = async (source = "current") => {
+      if (replayMode.value || replayBusy.value || !controller.value || roomStatus.value !== "solo" || networkBusy.value || tutorialActive.value) return;
+      if (source === "current" && localGameActions.value.length === 0) return;
+      if (source === "imported" && (replaySource.value !== "imported" || !replayDocument.value)) return;
+
+      replayBusy.value = true;
+      // Freeze AI turns while the replay document is built; resume if review fails.
+      terminateAiWorker();
+      replayError.value = "";
+      try {
+        if (source === "current") {
+          const sourceController = controller.value;
+          const sourceEngine = sourceController.engine;
+          const sourceRevision = gameState.value.positionRevision;
+          const sourceSettings = currentGameSettings();
+          const sourceActions = JSON.parse(JSON.stringify(localGameActions.value));
+          const document = await createReplayDocument(sourceSettings, sourceActions);
+          if (roomStatus.value !== "solo" || networkBusy.value || tutorialActive.value
+            || sourceController !== controller.value || sourceEngine !== controller.value?.engine
+            || sourceRevision !== gameState.value.positionRevision
+            || JSON.stringify(sourceActions) !== JSON.stringify(localGameActions.value)
+            || JSON.stringify(sourceSettings) !== JSON.stringify(currentGameSettings())) {
+            throw new Error(language.value === "zh" ? "棋局刚刚发生变化，请再点一次复盘本局。" : "The match changed. Start review again.");
+          }
+          replayDocument.value = document;
+          replayActions.value = toControllerReplayActions(document);
+          replayCursor.value = replayActions.value.length;
+          replaySource.value = "current";
+        }
+        liveReplayRestore = {
+          settings: currentGameSettings(),
+          actions: [...localGameActions.value],
+          hintRemainingCount: hintRemainingCount.value,
+        };
+        stopReplayPlayback();
+        cancelHintRequest();
+        clearActiveHint();
+        replayInspectionPoint.value = null;
+        replayInspectorOpen.value = false;
+        cancelAiComparison();
+        aiComparison.value = null;
+        aiComparisonError.value = "";
+        replayMode.value = true;
+        controller.value.setReadOnlyMode(true);
+        if (!restoreReplayPrefix(replayCursor.value)) {
+          const restoreError = replayError.value;
+          handleExitReplay();
+          replayError.value = restoreError;
+          return;
+        }
+        activeUtilityDeck.value = "";
+      } catch (error) {
+        const message = error?.message ?? String(error);
+        if (replayMode.value) handleExitReplay();
+        replayError.value = message;
+      } finally {
+        replayBusy.value = false;
+        if (!replayMode.value) scheduleAiMove(gameState.value);
+      }
+    };
+
+    const handleExitReplay = () => {
+      if (!replayMode.value || !controller.value || !liveReplayRestore) return;
+      stopReplayPlayback();
+      cancelAiComparison();
+      aiComparison.value = null;
+      aiComparisonError.value = "";
+      replayInspectionPoint.value = null;
+      replayRestoring.value = true;
+      try {
+        const restored = controller.value.restoreMatchState(liveReplayRestore);
+        if (!restored.success) {
+          replayError.value = language.value === "zh"
+            ? `退出复盘时无法恢复当前对局：${restored.reason}`
+            : `Could not restore the match: ${restored.reason}`;
+          return;
+        }
+        gameState.value = restored.state;
+        hintRemainingCount.value = liveReplayRestore.hintRemainingCount;
+        liveReplayRestore = null;
+        replayMode.value = false;
+        replayInspectorOpen.value = false;
+        controller.value.setReadOnlyMode(false);
+        activeUtilityDeck.value = "";
+        setActionFeedback(language.value === "zh" ? "已退出复盘，原对局可以继续。" : "Review closed. Continue the original match.", "success");
+      } finally {
+        replayRestoring.value = false;
+      }
+      ensureAiWorker();
+      scheduleAiMove(gameState.value);
+    };
+
+    const handleSeekReplay = (cursor) => {
+      if (replayMode.value) {
+        stopReplayPlayback();
+        cancelAiComparison();
+        aiComparison.value = null;
+        aiComparisonError.value = "";
+        replayInspectionPoint.value = null;
+        restoreReplayPrefix(cursor);
+      }
+    };
+
+    const handleToggleReplayPlayback = () => {
+      if (!replayMode.value || !replayDocument.value) return;
+      if (replayPlaying.value) {
+        stopReplayPlayback();
+        return;
+      }
+      if (replayCursor.value >= replayActions.value.length) return;
+      replayPlaying.value = true;
+      replayPlaybackId = globalThis.setInterval(() => {
+        if (!replayMode.value || !restoreReplayPrefix(replayCursor.value + 1) || replayCursor.value >= replayActions.value.length) {
+          stopReplayPlayback();
+        }
+      }, 900);
+    };
+
+    const runAiComparisonDepth = (sourceEngine, serializedState, aiPlayer, strategy, depth, searchOptions = {}) => new Promise((resolve) => {
+      let settled = false;
+      const settle = (result) => {
+        if (settled) return;
+        settled = true;
+        resolve(result);
+      };
+
+      try {
+        aiComparisonWorkerSession.start({
+          engine: sourceEngine,
+          getCurrentEngine: () => replayMode.value ? controller.value?.engine : null,
+          message: {
+            type: "COMPUTE",
+            serializedState,
+            aiPlayer,
+            strategy,
+            depth,
+            ...searchOptions,
+            topN: 3,
+          },
+          onResult: (message) => settle({ ok: true, message }),
+          onError: (error) => settle({ ok: false, error }),
+          onFinish: ({ status }) => {
+            if (status === "cancelled" || status === "stale") {
+              settle({ ok: false, cancelled: true });
+            }
+          },
+        });
+      } catch (error) {
+        settle({ ok: false, error });
+      }
     });
+
+    const runAiComparison = async () => {
+      if (aiComparisonBusy.value || !replayMode.value || !controller.value?.engine) {
+        return;
+      }
+
+      cancelAiComparison();
+      aiComparisonBusy.value = true;
+      aiComparisonError.value = "";
+      aiComparison.value = null;
+      const sourceEngine = controller.value.engine;
+      const serializedState = serializeEngineState(sourceEngine);
+      const aiPlayer = sourceEngine.currentPlayer;
+      const runs = [];
+
+      try {
+        const configurations = [
+          { id: "greedy", strategy: "greedy", depth: 1 },
+          { id: "mcts-64", strategy: "mcts", depth: 0, simulations: 64, rolloutDepth: 40 },
+          { id: "minimax-2", strategy: "minimax", depth: 2 },
+          { id: "minimax-3", strategy: "minimax", depth: 3 },
+          { id: "minimax-4", strategy: "minimax", depth: 4 },
+        ];
+        const neuralUnsupported = sourceEngine.playerCount !== 2 || sourceEngine.gridSize < 5 || sourceEngine.gridSize > 15
+          ? "研究神经模型仅支持双人 5–15 边长棋盘。"
+          : "";
+        configurations.push(...[
+          ...RESEARCH_FAMILIES.flatMap((family) => ["legacy", ...TRANSFER_SEEDS.map(String)].map((version) => {
+            const profile = researchProfile(family, version);
+            return { ...profile, id: profile.modelId, unavailableMessage: neuralUnsupported };
+          })),
+          { id: "dqn-all-sizes-e2000", strategy: "model-free", label: "DQN", modelId: "dqn-all-sizes-e2000", unavailableMessage: neuralUnsupported },
+          { id: "ppo-all-sizes-e2000", strategy: "model-free", label: "PPO", modelId: "ppo-all-sizes-e2000", unavailableMessage: neuralUnsupported },
+          { id: "sac-all-sizes-e2000", strategy: "model-free", label: "SAC", modelId: "sac-all-sizes-e2000", unavailableMessage: neuralUnsupported },
+          { id: "gail-all-sizes", strategy: "model-free", label: "GAIL", modelId: "gail-all-sizes", unavailableMessage: neuralUnsupported },
+          { id: "gan-all-sizes", strategy: "model-free", label: "GAN", modelId: "gan-all-sizes", unavailableMessage: neuralUnsupported },
+        ]);
+        for (const configuration of configurations) {
+          if (!replayMode.value || controller.value?.engine !== sourceEngine) {
+            return;
+          }
+          if (configuration.unavailableMessage) {
+            runs.push({ ...configuration, elapsedMs: 0, moves: [] });
+            aiComparison.value = {
+              player: aiPlayer,
+              positionRevision: sourceEngine.positionRevision,
+              runs: [...runs],
+            };
+            continue;
+          }
+          const startedAt = globalThis.performance?.now?.() ?? Date.now();
+          const result = await runAiComparisonDepth(
+            sourceEngine,
+            serializedState,
+            aiPlayer,
+            configuration.strategy,
+            configuration.depth,
+            configuration,
+          );
+          if (result.cancelled) {
+            return;
+          }
+          if (!result.ok) {
+            runs.push({
+              ...configuration,
+              elapsedMs: Math.max(0, Math.round((globalThis.performance?.now?.() ?? Date.now()) - startedAt)),
+              moves: [],
+              unavailableMessage: result.error?.message ?? String(result.error ?? "AI 候选比较失败。"),
+            });
+            aiComparison.value = {
+              player: aiPlayer,
+              positionRevision: sourceEngine.positionRevision,
+              runs: [...runs],
+            };
+            continue;
+          }
+          const finishedAt = globalThis.performance?.now?.() ?? Date.now();
+          runs.push({
+            id: configuration.id,
+            strategy: configuration.strategy,
+            label: configuration.label ?? null,
+            modelId: configuration.modelId ?? null,
+            depth: configuration.depth,
+            simulations: configuration.simulations ?? null,
+            rolloutDepth: configuration.rolloutDepth ?? null,
+            elapsedMs: Math.max(0, Math.round(finishedAt - startedAt)),
+            moves: (result.message.moves ?? []).map((move) => ({
+              point: Array.isArray(move.point) ? [...move.point] : null,
+              type: move.type ?? "move",
+              score: Number.isFinite(move.score) ? move.score : null,
+              visits: Number.isInteger(move.visits) ? move.visits : null,
+              meanValue: Number.isFinite(move.meanValue) ? move.meanValue : null,
+              prior: Number.isFinite(move.prior) ? move.prior : null,
+            })).filter((move) => Array.isArray(move.point) || move.type === "pass"),
+          });
+          aiComparison.value = {
+            player: aiPlayer,
+            positionRevision: sourceEngine.positionRevision,
+            runs: [...runs],
+          };
+        }
+      } catch (error) {
+        aiComparisonError.value = error?.message ?? String(error);
+      } finally {
+        aiComparisonBusy.value = false;
+      }
+    };
+
+    const formatActionFeedback = (feedback) => {
+      const zh = language.value === "zh";
+      if (feedback?.success) {
+        if (feedback.type === "skip") {
+          return zh ? "已跳过本回合。" : "Turn skipped.";
+        }
+        if (feedback.type === "resign") {
+          return zh ? "已认输，本局结束。" : "You resigned. The match is over.";
+        }
+        return "";
+      }
+
+      const messages = zh
+        ? {
+            MISS: "请点击棋盘上的节点。",
+            INVALID_MOVE: "这里不能落子，请换一个合法节点。",
+            SUPERKO_VIOLATION: "这个动作会重复历史局面，不能落子。",
+            GAME_OVER: "本局已经结束，请重新开始。",
+            NOT_YOUR_TURN: "现在还没轮到你。",
+            NETWORK_UNAVAILABLE: "当前连接不可用，请稍后重试。",
+            READ_ONLY_REPLAY: "当前正在复盘，棋盘为只读状态。",
+          }
+        : {
+            MISS: "Click a node on the board.",
+            INVALID_MOVE: "That point is not a legal move.",
+            SUPERKO_VIOLATION: "That move repeats a previous position.",
+            GAME_OVER: "This match is over. Start a new one to continue.",
+            NOT_YOUR_TURN: "It is not your turn yet.",
+            NETWORK_UNAVAILABLE: "The connection is unavailable. Try again.",
+            READ_ONLY_REPLAY: "Replay mode is read-only. Exit review to play.",
+          };
+      return messages[feedback?.reason] ?? (zh ? "动作没有被接受。" : "The action was not accepted.");
+    };
+
+    const handleActionFeedback = (feedback) => {
+      if (!feedback) {
+        return;
+      }
+
+      if (tutorialActive.value && ["move", "skip"].includes(feedback.type)) {
+        tutorialAttempts.value += 1;
+        const level = currentTutorialLevel.value;
+        if (isTutorialRestrictionAttempt(level, feedback)) {
+          tutorialRestrictionObserved.value = true;
+          setActionFeedback("", "neutral");
+          return;
+        }
+        if (feedback.success && isTutorialTarget(level, feedback) && (!level.restriction || tutorialRestrictionObserved.value)) {
+          tutorialResultSnapshot.value = controller.value.engine.getSnapshot();
+          tutorialSuccess.value = true;
+          controller.value.setReadOnlyMode(true);
+          setActionFeedback(formatActionFeedback(feedback), "success");
+          return;
+        }
+
+        if (feedback.success) {
+          loadTutorialLevel(tutorialLevelIndex.value);
+          setActionFeedback(
+            level.restriction
+              ? (language.value === "zh"
+                ? `先点标出的空点 [${level.restriction.point.join(",")}] 体验三点限制，再切红线 [${level.objective.point.join(",")}]。`
+                : `Try the marked empty point [${level.restriction.point.join(",")}] for the three-point limit, then cut Red’s line at [${level.objective.point.join(",")}].`)
+              : language.value === "zh"
+              ? "动作有效，但没有完成本关目标。请按高亮提示再试一次。"
+              : "That action was legal, but it did not complete this lesson. Follow the highlighted prompt and try again.",
+            "error",
+          );
+          return;
+        }
+
+        setActionFeedback(
+          level.objective?.type === "skip"
+            ? (language.value === "zh" ? "本关练习结算，请使用“跳过回合”。" : "This lesson practices settlement. Use “Skip Turn”.")
+            : (language.value === "zh" ? "这一步没有完成本关目标，请按高亮提示再试一次。" : "That move did not complete the lesson. Follow the highlighted prompt and try again."),
+          "error",
+        );
+        return;
+      }
+
+      setActionFeedback(formatActionFeedback(feedback), feedback.success ? "success" : "error");
+    };
+
+    const leaveTutorial = async (completed) => {
+      if (!tutorialActive.value || !controller.value || localGameRestoring.value) return false;
+      let restore = tutorialReturnSession;
+      let savedMatchUnavailable = false;
+      localGameRestoring.value = true;
+      try {
+        controller.value.setReadOnlyMode(false);
+        let restored = controller.value.restoreMatchState(restore);
+        if (!restored.success) {
+          savedMatchUnavailable = true;
+          restore = createLocalGameSession(normalGameSettings);
+          restored = controller.value.restoreMatchState(restore);
+        }
+        if (!restored.success) {
+          setActionFeedback(
+            language.value === "zh"
+              ? "原对局暂时无法恢复，存档已保留，请刷新后重试。"
+              : "The previous match could not be restored. Your save is intact; reload to retry.",
+            "error",
+          );
+          return false;
+        }
+        applySettingsToController(restore.settings, false, false);
+        activeLocalSettings.value = normalizeAppGameSettings(restore.settings);
+        activeLocalPlayers.value = normalizeLocalPlayers(restore.match?.players);
+        selectedLocalPlayers.value = normalizeLocalPlayers(restore.match?.players ?? selectedLocalPlayers.value);
+        localMatchStarted.value = restore.match?.started ?? Boolean(restore.actions.length);
+        aiDuelPaused.value = restore.match?.paused ?? false;
+        gameState.value = restored.state;
+        localGameActions.value = [...restore.actions];
+        localGamePositionRevision.value = restored.state.positionRevision;
+        // Flush lesson-setting watchers before allowing normal match changes again.
+        await nextTick();
+        tutorialActive.value = false;
+        tutorialSuccess.value = false;
+        tutorialLevelIndex.value = 0;
+      } finally {
+        localGameRestoring.value = false;
+      }
+      syncSession();
+      resetHintUsage();
+      hintRemainingCount.value = Math.min(hintRemainingCount.value, tutorialReturnHintCount);
+      setActionFeedback(
+        savedMatchUnavailable
+          ? (language.value === "zh" ? "原对局无法恢复，存档已保留；已打开新棋局。" : "The previous match could not be restored. Its save was kept and a fresh board is ready.")
+          : restore.actions.length > 0
+            ? (language.value === "zh" ? "已回到原来的对局，可以继续下棋。" : "Your previous match is restored. Continue playing.")
+            : completed
+              ? (language.value === "zh" ? "教学完成，开始你的第一局。" : "Tutorial complete. Start your first match.")
+              : (language.value === "zh" ? "教学已跳过，随时可点左下角“新手引导”重新学习。" : "Tutorial skipped. Reopen it anytime from the bottom-left Tutorial button."),
+        savedMatchUnavailable ? "error" : completed ? "success" : "neutral",
+      );
+      if (pendingRoomReconnect) {
+        pendingRoomReconnect = false;
+        roomStatus.value = "offline";
+        void attemptReconnect();
+      } else {
+        restartLocalAiWorker();
+      }
+      return true;
+    };
+
+    const finishTutorial = () => leaveTutorial(true);
+    const skipTutorial = () => leaveTutorial(false);
 
     const effectiveGameSettings = computed(() => (
       roomStatus.value === "solo"
@@ -2920,6 +4155,90 @@ const App = {
       } finally {
         syncingRemoteSettings = false;
       }
+    };
+
+    const loadTutorialLevel = (index) => {
+      terminateAiWorker();
+      cancelAiComparison();
+      clearTurnTimer();
+      clearLocalGameNotice();
+      const level = getTutorialLevel(index);
+      const settings = getTutorialEngineSettings(level);
+      const actions = level.prefix.map((action) => (
+        action.type === "move"
+          ? { type: "player_move", point: [...action.point] }
+          : { type: "player_skip" }
+      ));
+
+      tutorialLevelIndex.value = index;
+      tutorialSuccess.value = false;
+      tutorialAttempts.value = 0;
+      tutorialStartSnapshot.value = null;
+      tutorialResultSnapshot.value = null;
+      tutorialRestrictionObserved.value = false;
+      setActionFeedback("", "neutral");
+      localGameActions.value = [];
+      localGamePositionRevision.value = -1;
+      applySettingsToController(settings, false, false);
+
+      if (!controller.value) {
+        return false;
+      }
+
+      controller.value.setReadOnlyMode(false);
+      localGameRestoring.value = true;
+      const restored = controller.value.restoreMatchState({ settings, actions });
+      localGameRestoring.value = false;
+      if (!restored.success) {
+        setActionFeedback(
+          language.value === "zh"
+            ? "教学场景与当前规则版本不兼容，请直接开始普通对局。"
+            : "This tutorial scene is incompatible with the current rules. Start a normal match instead.",
+          "error",
+        );
+        return false;
+      }
+
+      gameState.value = restored.state;
+      tutorialStartSnapshot.value = controller.value.engine.getSnapshot();
+      localGamePositionRevision.value = restored.state.positionRevision;
+      return true;
+    };
+
+    const startTutorial = () => {
+      if (!controller.value || localGameRestoring.value) return;
+      if (roomStatus.value !== "solo" || networkBusy.value || gameState.value.multiplayerEnabled) {
+        // Keep a live online match connected while teaching in a separate tab.
+        const tutorialUrl = new URL(globalThis.location.href);
+        tutorialUrl.searchParams.set("tutorial", "1");
+        globalThis.open(tutorialUrl.href, "_blank", "noopener");
+        return;
+      }
+      if (!tutorialActive.value) {
+        tutorialReturnHintCount = hintRemainingCount.value;
+        tutorialReturnSession = replayMode.value && liveReplayRestore
+          ? createLocalGameSession(liveReplayRestore.settings, liveReplayRestore.actions, currentLocalMatch())
+          : createLocalGameSession(currentGameSettings(), localGameActions.value, currentLocalMatch());
+      }
+      stopReplayPlayback();
+      tutorialActive.value = true;
+      replayMode.value = false;
+      liveReplayRestore = null;
+      replayInspectionPoint.value = null;
+      aiComparison.value = null;
+      aiComparisonBusy.value = false;
+      activeUtilityDeck.value = "";
+      activeGuideKey.value = "";
+      overlayResult.value = null;
+      loadTutorialLevel(0);
+      resetHintUsage();
+    };
+
+    const advanceTutorial = () => {
+      if (tutorialLevelIndex.value >= TUTORIAL_LEVELS.length - 1) {
+        return finishTutorial();
+      }
+      loadTutorialLevel(tutorialLevelIndex.value + 1);
     };
 
     const clearReconnectTimer = () => {
@@ -3020,7 +4339,7 @@ const App = {
     );
 
     const shouldRunTurnTimer = () => {
-      if (!turnTimerEnabled.value || !controller.value) {
+      if (tutorialActive.value || replayMode.value || replayRestoring.value || !turnTimerEnabled.value || !controller.value) {
         return false;
       }
 
@@ -3036,7 +4355,7 @@ const App = {
       }
 
       if (roomStatus.value === "solo") {
-        return !isLocalAiTurn() && !aiThinking.value;
+        return !localSetupPending.value && !isLocalAiTurn() && !aiThinking.value;
       }
 
       return roomStatus.value === "inProgress";
@@ -3126,6 +4445,9 @@ const App = {
         turnTimerEnabled.value,
         turnTimeLimitSeconds.value,
         aiThinking.value,
+        tutorialActive.value,
+        replayMode.value,
+        replayRestoring.value,
       ],
       () => {
         restartTurnTimer();
@@ -3386,6 +4708,7 @@ const App = {
         if (controller.value) {
           terminateAiWorker();
           controller.value.disableMultiplayer();
+          clearSavedLocalGame();
           gameState.value = controller.value.resetGame({ force: true });
           resetHintUsage();
           ensureAiWorker();
@@ -3435,15 +4758,22 @@ const App = {
     const handleControllerReady = (instance) => {
       controller.value = instance;
       controller.value.setNetworkErrorListener(handleNetworkError);
+      controller.value.setActionFeedbackListener(handleActionFeedback);
       gameState.value = instance.setGameConfig(currentGameSettings(), true);
+      localGamePositionRevision.value = gameState.value.positionRevision ?? 0;
+
+      loadTutorialLevel(0);
       resetHintUsage();
-      restartLocalAiWorker();
     };
 
     const handleStateChange = (nextState) => {
       cancelHintRequest();
       clearActiveHint();
       gameState.value = nextState;
+      persistCurrentLocalGame(nextState);
+      if (localGameRestoring.value || replayRestoring.value || replayMode.value) {
+        return;
+      }
       scheduleAiMove(nextState);
     };
 
@@ -3454,12 +4784,14 @@ const App = {
         && gameState.value.currentPlayer === aiPlayer;
       if (
         !currentEngine
+        || replayMode.value
         || roomStatus.value !== "solo"
         || !hintEnabled.value
         || hintRemainingCount.value <= 0
         || gameState.value.gameOver
         || gameState.value.multiplayerEnabled
         || controller.value?.multiplayerEnabled
+        || localSetupPending.value
         || currentIsAiTurn
       ) {
         return null;
@@ -3471,6 +4803,8 @@ const App = {
       if (!controller.value || hintDisabled.value) {
         return;
       }
+      contributionAssisted = true;
+      if (contributionContext) contributionContext.hintsEnabled = true;
 
       cancelHintRequest();
       hintThinking.value = true;
@@ -3651,6 +4985,7 @@ const App = {
         if (controller.value) {
           terminateAiWorker();
           controller.value.disableMultiplayer();
+          clearSavedLocalGame();
           gameState.value = controller.value.resetGame({ force: true });
           resetHintUsage();
           ensureAiWorker();
@@ -3665,7 +5000,7 @@ const App = {
     };
 
     const handleSkip = async () => {
-      if (!controller.value) {
+      if (!controller.value || replayMode.value) {
         return;
       }
 
@@ -3692,7 +5027,7 @@ const App = {
     };
 
     const handleReset = async () => {
-      if (!controller.value) {
+      if (!controller.value || replayMode.value) {
         return;
       }
 
@@ -3703,13 +5038,7 @@ const App = {
       cancelHintRequest();
 
       if (roomStatus.value === "solo") {
-        terminateAiWorker();
-        gameState.value = controller.value.resetGame();
-        resetHintUsage();
-        overlayResult.value = null;
-        resultModalDismissed.value = false;
-        ensureAiWorker();
-        scheduleAiMove(gameState.value);
+        await startLocalMatch();
         return;
       }
 
@@ -3918,6 +5247,7 @@ const App = {
       if (overlayResult.value?.resetAfterClose && controller.value) {
         if (roomStatus.value === "solo") {
           terminateAiWorker();
+          clearSavedLocalGame();
         }
         gameState.value = controller.value.resetGame();
         resetHintUsage();
@@ -3946,6 +5276,10 @@ const App = {
 
       if (roomStatus.value === "offline") {
         return texts.offlineStatus;
+      }
+
+      if (roomStatus.value === "solo" && !tutorialActive.value && !replayMode.value && localSetupPending.value) {
+        return texts.localSetupPrompt;
       }
 
       if (gameState.value.gameOver) {
@@ -3995,6 +5329,9 @@ const App = {
 
     const boardHint = computed(() => {
       const texts = getAppTexts(language.value, uiStyle.value);
+      if (localGameResumeNotice.value) {
+        return localGameResumeNotice.value;
+      }
       if (hintFeedback.value && !gameState.value.multiplayerEnabled) {
         return hintFeedback.value;
       }
@@ -4014,6 +5351,10 @@ const App = {
         return texts.networkUnavailableHint;
       }
 
+      if (gameState.value.interactionLockReason === "READ_ONLY_REPLAY") {
+        return language.value === "zh" ? "正在复盘：拖动时间轴查看步骤，退出复盘后才能继续下棋。" : "Review mode: use the timeline to inspect steps, then exit review to play.";
+      }
+
       if (gameState.value.interactionLockReason === "OPPONENT_OFFLINE") {
         return texts.opponentOfflineHint;
       }
@@ -4022,6 +5363,7 @@ const App = {
         return texts.multiplayerHint;
       }
 
+      if (!tutorialActive.value && localSetupPending.value) return texts.localSetupPrompt;
       return texts.soloHint;
     });
 
@@ -4030,8 +5372,16 @@ const App = {
         return true;
       }
 
+      if (replayMode.value) {
+        return true;
+      }
+
+      if (tutorialActive.value && currentTutorialLevel.value.objective?.type !== "skip") {
+        return true;
+      }
+
       if (roomStatus.value === "solo") {
-        return gameState.value.gameOver;
+        return (!tutorialActive.value && localSetupPending.value) || gameState.value.gameOver || isLocalAiTurn();
       }
 
       return gameState.value.skipLocked;
@@ -4042,17 +5392,28 @@ const App = {
       const currentIsAiTurn = selectedAiMode.value !== "none"
         && gameState.value.currentPlayer === currentAiPlayer;
       return !controller.value
+        || replayMode.value
+        || tutorialActive.value
         || !selectedHintEnabled.value
         || gameState.value.gameOver
         || gameState.value.multiplayerEnabled
         || roomStatus.value !== "solo"
         || hintRemainingCount.value <= 0
         || hintThinking.value
+        || localSetupPending.value
         || currentIsAiTurn;
     });
 
     const resetDisabled = computed(() => {
       if (!controller.value || networkBusy.value) {
+        return true;
+      }
+
+      if (replayMode.value) {
+        return true;
+      }
+
+      if (tutorialActive.value) {
         return true;
       }
 
@@ -4082,19 +5443,23 @@ const App = {
         || roomStatus.value === "countdown";
     });
     const starterLocked = computed(() => !isHost.value || networkBusy.value || roomInfo.value.matchPhase === "PLAYING" || roomStatus.value === "inProgress" || roomStatus.value === "countdown");
-    const showClosePrompt = computed(() => Boolean(overlayResult.value || (gameState.value.gameOver && !resultModalDismissed.value)));
+    const showClosePrompt = computed(() => Boolean(
+      !tutorialActive.value
+      && !replayMode.value
+      && (overlayResult.value || (gameState.value.gameOver && !resultModalDismissed.value))
+    ));
 
     const resetLabel = computed(() => {
       const texts = getAppTexts(language.value, uiStyle.value);
       if (roomStatus.value === "solo") {
-        return gameState.value.gameOver ? texts.startNewSolo : texts.resetBoard;
+        return localSetupPending.value ? texts.localStart : gameState.value.gameOver ? texts.startNewSolo : texts.resetBoard;
       }
 
       return gameState.value.gameOver ? texts.startNextOnline : texts.concedeAction;
     });
 
     const settingsLocked = computed(() => {
-      if (networkBusy.value) {
+      if (networkBusy.value || tutorialActive.value || replayMode.value) {
         return true;
       }
       if (roomStatus.value === "solo") {
@@ -4135,8 +5500,13 @@ const App = {
       }
     };
 
-    const handleOpenUtilityDeck = (deckKey) => {
+    const handleOpenUtilityDeck = async (deckKey) => {
+      if (deckKey === "network" && tutorialActive.value && !await skipTutorial()) return;
       activeUtilityDeck.value = deckKey;
+    };
+
+    const finishTutorialToGuide = async () => {
+      if (await finishTutorial()) handleOpenUtilityDeck("guide");
     };
 
     const handleCloseUtilityDeck = () => {
@@ -4157,6 +5527,7 @@ const App = {
         if (overlayResult.value.resetAfterClose && controller.value) {
           if (roomStatus.value === "solo") {
             terminateAiWorker();
+            clearSavedLocalGame();
           }
           gameState.value = controller.value.resetGame();
           resetHintUsage();
@@ -4353,8 +5724,12 @@ const App = {
     );
 
     onBeforeUnmount(() => {
+      contribution.dispose();
+      globalThis.removeEventListener("online", retryContributions);
       terminateAiWorker();
+      stopReplayPlayback();
       cancelHintRequest();
+      cancelAiComparison();
       clearActiveHint();
       clearHintFeedback();
       clearReconnectTimer();
@@ -4362,6 +5737,7 @@ const App = {
       clearCountdownSnapshotRefresh();
       clearTurnTimer();
       clearChatEmojiBursts();
+      clearLocalGameNotice();
       document.body.classList.remove("modal-open");
       globalThis.removeEventListener("keydown", handleEscapeKeydown);
       for (const unsubscribe of unsubscribers) {
@@ -4374,10 +5750,8 @@ const App = {
 
     onMounted(() => {
       globalThis.addEventListener("keydown", handleEscapeKeydown);
-      if (storedAuth.token && normalizedStoredSession.roomId && normalizedStoredSession.playerId && normalizedStoredSession.url) {
-        roomStatus.value = "offline";
-        void attemptReconnect();
-      }
+      globalThis.addEventListener("online", retryContributions);
+      retryContributions();
     });
 
     return {
@@ -4394,6 +5768,24 @@ const App = {
       hintRemainingCount,
       hintThinking,
       hintFeedback,
+      localGameResumeNotice,
+      localGameActions,
+      replayDocument,
+      replaySource,
+      replayCursor,
+      replayMode,
+      replayPlaying,
+      replayInspectorOpen,
+      replayBusy,
+      replayError,
+      currentReplayEvent,
+      replayInspectionPoint,
+      replayInspectionOverlay,
+      aiComparison,
+      aiComparisonBusy,
+      aiComparisonError,
+      actionFeedback,
+      actionFeedbackTone,
       hintDisabled,
       getTexts: getAppTexts,
       activeUtilityDeck,
@@ -4416,7 +5808,19 @@ const App = {
       selectedHintEnabled,
       selectedHintMaxCount,
       selectedAiMode,
-      selectedAiDepth,
+      selectedLocalPlayers,
+      activeLocalPlayers,
+      localMatchStarted,
+      localSetupPending,
+      updateLocalPlayer,
+      swapLocalPlayers,
+      startLocalMatch,
+      aiDuelPaused,
+      toggleAiDuel,
+      isLocalAiTurn,
+      contributionState,
+      toggleContributions,
+      retryContributions,
       aiThinking,
       session,
       connectionState,
@@ -4445,6 +5849,12 @@ const App = {
       turnTimerRemaining,
       hintEnabled,
       hintMaxCount,
+      tutorialActive,
+      tutorialSuccess,
+      tutorialAttempts,
+      tutorialRestrictionObserved,
+      boardInspectionOverlay,
+      currentTutorialLevel,
       resultResetAllowed,
       handleResultAction,
       handleResultLeaveRoom,
@@ -4466,16 +5876,40 @@ const App = {
       handleSkip,
       handleReset,
       handleChatEmoji,
+      handleExportReplay,
+      handleImportReplay,
+      handleStartReplay,
+      handleExitReplay,
+      handleSeekReplay,
+      handleToggleReplayPlayback,
+      runAiComparison,
       handleClosePrompt,
+      finishTutorial,
+      advanceTutorial,
+      skipTutorial,
+      startTutorial,
+      finishTutorialToGuide,
     };
   },
   template: `
     <main class="app-shell app-shell-focus">
-      <section class="stage-layout">
-        <section class="board-column">
+      <section class="stage-layout" :class="{ 'is-replay': replayMode, 'has-replay-inspector': replayMode && replayInspectorOpen }">
+        <section class="board-column" :class="{ 'has-tutorial': tutorialActive }">
           <header class="stage-heading">
             <h1 class="stage-title">{{ getTexts(language, uiStyle).heroTitle }}</h1>
           </header>
+
+          <TutorialCard
+            v-if="tutorialActive"
+            :language="language"
+            :level="currentTutorialLevel"
+            :success="tutorialSuccess"
+            :restriction-observed="tutorialRestrictionObserved"
+            :attempts="tutorialAttempts"
+            @continue="advanceTutorial"
+            @skip="skipTutorial"
+            @guide="finishTutorialToGuide"
+          />
 
           <BoardCanvas
             :language="language"
@@ -4483,15 +5917,74 @@ const App = {
             :hint-text="boardHint"
             :emoji-bursts="chatEmojiBursts"
             :ai-thinking="aiThinking"
+            :inspection-overlay="boardInspectionOverlay"
+            :input-locked="!tutorialActive && !replayMode && roomStatus === 'solo' && (localSetupPending || isLocalAiTurn())"
             @controller-ready="handleControllerReady"
             @state-change="handleStateChange"
+          >
+            <template #tools>
+              <aside class="dock-column board-tools">
+                <DockLauncher
+                  variant="board"
+                  :title="getTexts(language, uiStyle).boardDockTitle"
+                  :compact-title="language === 'zh' ? '棋盘舱' : 'Board'"
+                  :copy="getTexts(language, uiStyle).boardDockCopy"
+                  :badge="boardDockBadge"
+                  @open="handleOpenUtilityDeck('board')"
+                />
+                <DockLauncher
+                  v-if="!replayMode"
+                  variant="network"
+                  :title="getTexts(language, uiStyle).networkDockTitle"
+                  :compact-title="language === 'zh' ? '联机舱' : 'Lobby'"
+                  :copy="getTexts(language, uiStyle).networkDockCopy"
+                  :badge="networkDockBadge"
+                  @open="handleOpenUtilityDeck('network')"
+                />
+                <DockLauncher
+                  variant="guide"
+                  :title="getTexts(language, uiStyle).guideDockTitle"
+                  :compact-title="language === 'zh' ? '指南舱' : 'Guide'"
+                  :copy="getTexts(language, uiStyle).guideDockCopy"
+                  :badge="guideDockBadge"
+                  @open="handleOpenUtilityDeck('guide')"
+                />
+                <DockLauncher
+                  v-if="!replayMode"
+                  variant="tutorial"
+                  :title="language === 'zh' ? '新手引导' : 'Tutorial'"
+                  :copy="language === 'zh' ? '随时从第一关开始学习' : 'Restart the five lessons anytime'"
+                  @open="startTutorial"
+                />
+              </aside>
+            </template>
+          </BoardCanvas>
+
+          <ReplayControls
+            v-if="replayMode && replayDocument"
+            :language="language"
+            :ui-style="uiStyle"
+            :replay-document="replayDocument"
+            :cursor="replayCursor"
+            :event="currentReplayEvent"
+            :playing="replayPlaying"
+            :inspector-open="replayInspectorOpen"
+            :error="replayError"
+            @seek="handleSeekReplay"
+            @toggle-play="handleToggleReplayPlayback"
+            @toggle-inspector="replayInspectorOpen = !replayInspectorOpen"
+            @exit-review="handleExitReplay"
           />
 
           <ControlPanel
+            v-else
+            :ai-duel="roomStatus === 'solo' && !tutorialActive && !localSetupPending && selectedAiMode === 'ai_duel'"
+            :ai-duel-paused="aiDuelPaused"
             :game-state="gameState"
             :language="language"
             :ui-style="uiStyle"
             :skip-disabled="skipDisabled"
+            :tutorial-skip-target="tutorialActive && !tutorialSuccess && currentTutorialLevel.objective.type === 'skip'"
             :reset-disabled="resetDisabled"
             :reset-label="resetLabel"
             :session="session"
@@ -4506,38 +5999,30 @@ const App = {
             :hint-thinking="hintThinking"
             :hint-disabled="hintDisabled"
             :hint-feedback="hintFeedback"
+            :resume-notice="localGameResumeNotice"
+            :action-feedback="actionFeedback"
+            :action-feedback-tone="actionFeedbackTone"
             :emoji-options="chatEmojiOptions"
             :emoji-disabled="chatEmojiDisabled"
             @skip="handleSkip"
             @hint="requestHint"
             @reset="handleReset"
             @emoji="handleChatEmoji"
+            @toggle-ai-duel="toggleAiDuel"
           />
         </section>
 
-        <aside class="dock-column">
-          <DockLauncher
-            variant="board"
-            :title="getTexts(language, uiStyle).boardDockTitle"
-            :copy="getTexts(language, uiStyle).boardDockCopy"
-            :badge="boardDockBadge"
-            @open="handleOpenUtilityDeck('board')"
-          />
-
-          <DockLauncher
-            variant="network"
-            :title="getTexts(language, uiStyle).networkDockTitle"
-            :copy="getTexts(language, uiStyle).networkDockCopy"
-            :badge="networkDockBadge"
-            @open="handleOpenUtilityDeck('network')"
-          />
-
-          <DockLauncher
-            variant="guide"
-            :title="getTexts(language, uiStyle).guideDockTitle"
-            :copy="getTexts(language, uiStyle).guideDockCopy"
-            :badge="guideDockBadge"
-            @open="handleOpenUtilityDeck('guide')"
+        <aside v-if="replayMode && replayInspectorOpen" class="replay-detail">
+          <ReplayInspectorPanel
+            :language="language"
+            :game-state="gameState"
+            :event="currentReplayEvent"
+            :cursor="replayCursor"
+            :ai-comparison="aiComparison"
+            :ai-comparison-busy="aiComparisonBusy"
+            :ai-comparison-error="aiComparisonError"
+            @inspect-point="replayInspectionPoint = $event"
+            @compare-ai="runAiComparison"
           />
         </aside>
       </section>
@@ -4561,9 +6046,12 @@ const App = {
             :turn-time-limit-seconds="selectedTurnTimeLimitSeconds"
             :hint-enabled="selectedHintEnabled"
             :hint-max-count="selectedHintMaxCount"
-            :ai-mode="selectedAiMode"
-            :ai-depth="selectedAiDepth"
-            :ai-available="roomStatus === 'solo'"
+            :local-players="selectedLocalPlayers"
+            :start-player="selectedStartPlayer"
+            :local-pending="localSetupPending"
+            :local-started="localMatchStarted"
+            :contribution-state="contributionState"
+            :ai-available="roomStatus === 'solo' && !tutorialActive"
             :settings-locked="settingsLocked"
             :busy="networkBusy"
             @update:language="language = $event"
@@ -4574,18 +6062,40 @@ const App = {
             @update:turn-time-limit-seconds="selectedTurnTimeLimitSeconds = $event"
             @update:hint-enabled="selectedHintEnabled = $event"
             @update:hint-max-count="selectedHintMaxCount = $event"
-            @update:ai-mode="selectedAiMode = $event"
-            @update:ai-depth="selectedAiDepth = $event"
+            @update-local-player="updateLocalPlayer"
+            @update:start-player="selectedStartPlayer = $event"
+            @swap-local-players="swapLocalPlayers"
+            @start-local-match="startLocalMatch"
+            @toggle-contributions="toggleContributions"
+            @retry-contributions="retryContributions"
           />
 
+          <div class="board-status-stack">
           <ScorePanel
             :game-state="gameState"
+            :local-pending="roomStatus === 'solo' && !tutorialActive && localSetupPending"
             :session="session"
             :room-players="roomInfo.players"
             :language="language"
             :ui-style="uiStyle"
             :status-text="statusText"
           />
+          <ReplayPanel
+            :language="language"
+            :action-count="localGameActions.length"
+            :replay-document="replayDocument"
+            :imported-ready="replaySource === 'imported' && !!replayDocument"
+            :can-review="roomStatus === 'solo' && !tutorialActive && !networkBusy && !!controller"
+            :replay-mode="replayMode"
+            :busy="replayBusy"
+            :error="replayError"
+            @export="handleExportReplay"
+            @import-file="handleImportReplay"
+            @review-current="handleStartReplay('current')"
+            @review-imported="handleStartReplay('imported')"
+            @exit-review="handleExitReplay"
+          />
+          </div>
         </div>
       </UtilityModal>
 

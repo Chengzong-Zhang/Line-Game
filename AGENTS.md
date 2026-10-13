@@ -39,3 +39,19 @@ These rules apply to all future work in this repository.
   smoke or partial run as a formal result.
 - Record source/config hashes and the exact verification command for formal
   claims whenever the workflow supports them.
+
+## Long-running experiment reliability
+
+- Every new long-running training or evaluation job must include durable
+  checkpoints, an explicit resume path, and automatic recovery from unexpected
+  worker exits before it is launched. This is a standing owner requirement.
+- Persist completed evaluation units incrementally. Resume from the latest
+  validated progress without retraining completed models or rerunning completed
+  games. Preserve interrupted evidence and isolate any incomplete trailing write.
+- Run unattended jobs under supervision independent of the current terminal or
+  Codex session. Prevent duplicate workers, record exit codes and progress, and
+  provide an explicit pause/stop mechanism. Recover after user login when needed.
+- Test interruption and recovery before a long run. Stop retries on evidence or
+  configuration corruption and bound repeated failures without progress.
+- Keep training, evaluation, recovery checks and final verification status
+  distinct. A restarted process is not a completed or scientifically verified run.

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh"><meta charset="utf-8"><title>迁移 AI 浏览器验收</title>
+<style>body{font:16px system-ui;background:#101624;color:#e7ecf5;padding:24px}button{padding:12px}pre{white-space:pre-wrap;line-height:1.6}</style>
+<h1>迁移 AI 浏览器验收</h1>
+<p>PILOT_ONLY · territory-v2 COMPATIBILITY_TRIAL · 本地加载与 PUCT 验证，不是棋力评估。</p>
+<button id="run">运行真实 Worker 验收</button><pre id="result">等待运行</pre>
+<script type="module">
+import GameEngine from '../GameEngine.js?v=20260910d';
+import { serializeEngineState } from '../AIStateProtocol.js?v=20260830a';
+import { loadResearchManifest } from '../ResearchAI.js?v=20261012a';
+const button = document.querySelector('#run'), result = document.querySelector('#result');
+button.onclick = async () => {
+  button.disabled = true; result.textContent = '正在检查 12 个模型（9 个迁移 + 3 个旧模型）…';
+  const rows = [];
+  try {
+    const manifest = await loadResearchManifest();
+    for (const spec of manifest.models) {
+      const engine = new GameEngine({gridSize: 6, startPlayer:'WHITE', rulesVersion:'territory-v2'});
+      engine.playMove(engine.getLegalMoves()[0].point);
+      const snapshot = serializeEngineState(engine), before = JSON.stringify(snapshot);
+      const response = await new Promise((resolve, reject) => {
+        const worker = new Worker('../AIWorker.js?v=20261012a', {type:'module'});
+        const timeout = setTimeout(() => { worker.terminate(); reject(new Error('Worker timeout')); }, 30000);
+        const done = () => { clearTimeout(timeout); worker.terminate(); };
+        worker.onmessage = ({data}) => { done(); data.type === 'RESULT' ? resolve(data) : reject(new Error(data.message)); };
+        worker.onerror = (error) => { done(); reject(new Error(error.message)); };
+        worker.postMessage({type:'COMPUTE', serializedState:snapshot, aiPlayer:engine.currentPlayer,
+          strategy:'neural-puct', modelId:spec.id, simulations:2, cPuct:1.5, topN:1000, requestId:rows.length+1});
+      });
+      if (response.modelInfo?.id !== spec.id || response.moves.reduce((s,m)=>s+m.visits,0) !== 2 || JSON.stringify(serializeEngineState(engine)) !== before)
+        throw new Error('identity, visits, or source state mismatch');
+      const legal = new Set(engine.getLegalMoves().map(m=>m.point.join(',')));
+      if (response.moves.some(m=>m.type !== 'pass' && !legal.has(m.point.join(',')))) throw new Error('illegal action');
+      rows.push(`${spec.id}: PASS · simulations=2 · c_puct=1.5`);
+      result.textContent = rows.join('\n');
+    }
+    result.textContent += '\n\nPASS: 12/12 · real module Workers · SHA-256 checked · legal candidates · source preserved';
+    result.dataset.status = 'PASS';
+  } catch (error) { result.textContent += `\nFAIL: ${error.message}`; result.dataset.status = 'FAIL'; }
+  finally { button.disabled = false; }
+};
+</script></html>

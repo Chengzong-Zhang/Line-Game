@@ -44,6 +44,7 @@ submission/*.zip
 submission/**/*.mp4
 /*.mp4
 /local_artifacts/
+/line-game-ai-search-publish-20260910/
 
 # Local-only candidate evidence, source packages, and reproducible paper QA.
 /research/iclr2027/paper/iclr-2027-style-files.zip
@@ -57,6 +58,12 @@ submission/**/*.mp4
 *.pt
 *.pth
 *.ckpt
+
+# Browser exports of frozen research checkpoints are generated locally.  Their
+# compact manifest is versioned, while the multi-megabyte F32 payloads ship via
+# an explicit release/asset channel rather than ordinary Git history.
+web/web前端/assets/research-ai/*.f32
+web/web前端/assets/research-ai/transfer-v1/*.f32
 
 # Research artifacts kept locally because they are large, provisional, or
 # reproducible from the tracked code/configuration. Curated summaries,

@@ -1,0 +1,87 @@
+{
+  "format": "lifeline-replay",
+  "schemaVersion": 1,
+  "engineFamily": "web-game-engine",
+  "rulesVersion": "territory-v2",
+  "engineBuild": {
+    "id": "lifeline-web-runtime-v1",
+    "sourceHash": "unavailable"
+  },
+  "config": {
+    "playerCount": 2,
+    "gridSize": 6,
+    "players": ["BLACK", "WHITE"],
+    "startPlayer": "BLACK",
+    "rulesVersion": "territory-v2",
+    "superko": "enforce",
+    "turnTimerEnabled": false,
+    "turnTimeLimitSeconds": 60,
+    "hintEnabled": false,
+    "hintMaxCount": 0
+  },
+  "initialState": {
+    "stateVersion": 1,
+    "ruleState": {
+      "stateVersion": 1,
+      "gridSize": 6,
+      "playerCount": 2,
+      "startPlayer": "BLACK",
+      "rulesVersion": "territory-v2",
+      "gridEntries": [[0, 0, 1], [5, 0, 3]],
+      "edges": {"BLACK": [], "WHITE": [], "PURPLE": []},
+      "historyHashes": ["[\"BLACK\",[],[[0,0,1],[5,0,3]],[[],[]]]"],
+      "currentPlayer": "BLACK",
+      "gameOver": false,
+      "consecutiveSkips": 0,
+      "resignedPlayers": [],
+      "turnCount": 0
+    },
+    "stateHash": "sha256:631f3d9fc2d38ef5eab7e9607d841965075fafe4e24cae8378a4f290196d46be"
+  },
+  "actions": [
+    {
+      "seq": 1,
+      "type": "move",
+      "actor": "BLACK",
+      "point": [1, 0],
+      "preStateHash": "sha256:631f3d9fc2d38ef5eab7e9607d841965075fafe4e24cae8378a4f290196d46be",
+      "postStateHash": "sha256:ffb351a4fd0576a15b44734ee27ab966b75f43839501f7ec0adb11fccd71f755",
+      "preTurnCount": 0,
+      "postTurnCount": 1,
+      "prevEventHash": "GENESIS",
+      "effects": {
+        "capturedPoints": [],
+        "addedEdgesByPlayer": {"BLACK": ["0,0|1,0"], "WHITE": [], "PURPLE": []},
+        "territoryDelta": {"BLACK": 0, "WHITE": 0, "PURPLE": 0},
+        "gameEnded": false
+      },
+      "eventHash": "sha256:a384c5235ce79ac26b970353071110d109b6ee251956d6d0bb25868f4f0716b2"
+    },
+    {
+      "seq": 2,
+      "type": "skip",
+      "actor": "WHITE",
+      "preStateHash": "sha256:ffb351a4fd0576a15b44734ee27ab966b75f43839501f7ec0adb11fccd71f755",
+      "postStateHash": "sha256:9cd6a33cebd5f2c9611e0f7f6873691efe9bf97e7e6fcccacc1687252e334e3c",
+      "preTurnCount": 1,
+      "postTurnCount": 1,
+      "prevEventHash": "sha256:a384c5235ce79ac26b970353071110d109b6ee251956d6d0bb25868f4f0716b2",
+      "effects": {
+        "capturedPoints": [],
+        "addedEdgesByPlayer": {"BLACK": [], "WHITE": [], "PURPLE": []},
+        "territoryDelta": {"BLACK": 0, "WHITE": 0, "PURPLE": 0},
+        "gameEnded": false
+      },
+      "eventHash": "sha256:dd0aa3f3af374972ca35d2e5c54f6f866523099280c471748fe86739bf7298bf"
+    }
+  ],
+  "checkpoints": [],
+  "terminal": null,
+  "integrity": {
+    "eventCount": 2,
+    "finalEventHash": "sha256:dd0aa3f3af374972ca35d2e5c54f6f866523099280c471748fe86739bf7298bf",
+    "finalStateHash": "sha256:9cd6a33cebd5f2c9611e0f7f6873691efe9bf97e7e6fcccacc1687252e334e3c",
+    "canonicalDocumentHash": "sha256:136c2cf2c55d01f2c1f80e80bec338ebae4f996ad044dc52d5677f8bf3965d8c"
+  },
+  "extensions": {}
+}

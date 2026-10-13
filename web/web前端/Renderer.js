@@ -1,4 +1,4 @@
-import { Player, PointState } from "./GameEngine.js?v=20260910c";
+import { Player, PointState } from "./GameEngine.js?v=20261013-sync1";
 
 const SQRT3_OVER_2 = Math.sqrt(3) / 2;
 
@@ -79,7 +79,8 @@ export class Renderer {
     this.minCssHeight = options.minCssHeight ?? 180;
     this.defaultCssWidth = options.defaultCssWidth ?? 960;
     this.defaultCssHeight = options.defaultCssHeight ?? 720;
-    this.paddingRatio = options.paddingRatio ?? 0.1;
+    this.paddingRatio = options.paddingRatio ?? 0.025;
+    this.topInset = options.topInset ?? 0;
     this.lastSnapshot = null;
     this.layout = null;
     this._resizeFrame = null;
@@ -252,13 +253,16 @@ export class Renderer {
 
   _measureCanvas() {
     const rect = this.canvas.getBoundingClientRect();
+    // The canvas has an inline pixel size after rendering. Measure its frame
+    // so a narrower viewport does not keep using the previous canvas size.
+    const frame = this.canvas.parentElement;
     const cssWidth = Math.max(
-      this.minCssWidth,
-      Math.round(rect.width || this.canvas.clientWidth || this.canvas.width || this.defaultCssWidth),
+      frame?.clientWidth ? 1 : this.minCssWidth,
+      Math.round(frame?.clientWidth || rect.width || this.canvas.clientWidth || this.canvas.width || this.defaultCssWidth),
     );
     const cssHeight = Math.max(
-      this.minCssHeight,
-      Math.round(rect.height || this.canvas.clientHeight || this.canvas.height || this.defaultCssHeight),
+      frame?.clientHeight ? 1 : this.minCssHeight,
+      Math.round(frame?.clientHeight || rect.height || this.canvas.clientHeight || this.canvas.height || this.defaultCssHeight),
     );
     const prefersLowerDpr = globalThis.matchMedia?.("(pointer: coarse)")?.matches || window.innerWidth <= 768;
     const dpr = clamp(window.devicePixelRatio || 1, 1, prefersLowerDpr ? 2 : 3);
@@ -280,6 +284,8 @@ export class Renderer {
     // 浼樺厛澶嶇敤 resize() 宸叉祴閲忓苟缂撳瓨鐨勫€硷紝閬垮厤閲嶅瑙﹀彂 getBoundingClientRect layout reflow
     const cssWidth = this._lastMeasuredWidth > 0 ? this._lastMeasuredWidth : this._measureCanvas().cssWidth;
     const cssHeight = this._lastMeasuredHeight > 0 ? this._lastMeasuredHeight : this._measureCanvas().cssHeight;
+    const topInset = clamp(this.topInset ?? 0, 0, Math.max(0, cssHeight - 1));
+    const boardHeight = Math.max(1, cssHeight - topInset);
     const gridSize = snapshot?.gridSize ?? 9;
     const validPoints = this._getValidPoints(gridSize);
     const normalizedPoints = validPoints.map(([gx, gy]) => [gx + gy * 0.5, gy * SQRT3_OVER_2]);
@@ -296,18 +302,22 @@ export class Renderer {
       maxNY = Math.max(maxNY, ny);
     }
 
-    const padding = Math.max(24, Math.min(cssWidth, cssHeight) * this.paddingRatio);
-    const usableWidth = Math.max(1, cssWidth - padding * 2);
-    const usableHeight = Math.max(1, cssHeight - padding * 2);
+    const outerPadding = Math.max(12, Math.min(cssWidth, boardHeight) * this.paddingRatio);
+    const usableWidth = Math.max(1, cssWidth - outerPadding * 2);
+    const usableHeight = Math.max(1, boardHeight - outerPadding * 2);
     const logicalWidth = Math.max(1, maxNX - minNX);
     const logicalHeight = Math.max(1, maxNY - minNY);
-    const scale = Math.min(usableWidth / logicalWidth, usableHeight / logicalHeight);
+    // Reserve room for the expanded triangular border and corner stones,
+    // including small grids whose stones grow with the spacing.
+    const scale = Math.min(usableWidth / (logicalWidth + 0.9), usableHeight / (logicalHeight + 0.9));
+    const padding = outerPadding + scale * 0.45;
     const offsetX = (cssWidth - logicalWidth * scale) * 0.5 - minNX * scale;
-    const offsetY = (cssHeight - logicalHeight * scale) * 0.5 - minNY * scale;
+    const offsetY = topInset + (boardHeight - logicalHeight * scale) * 0.5 - minNY * scale;
 
     return {
       cssWidth,
       cssHeight,
+      topInset,
       gridSize,
       scale,
       offsetX,
@@ -349,7 +359,9 @@ export class Renderer {
       const snapshot = this.lastSnapshot ?? { gridSize: 9 };
       this.layout = this._computeLayout(snapshot);
     }
-    return this.layout.pointRadius * 2;
+    // Pick the nearest grid point within almost one triangular grid cell.
+    // Input still checks that exact point's legality, never a nearby legal move.
+    return Math.max(12, this.layout.scale * 0.58);
   }
 
   setHintPoint(point) {
@@ -867,6 +879,87 @@ export class Renderer {
     ctx.restore();
   }
 
+  _drawInspectionOverlay(snapshot, layout) {
+    const overlay = snapshot?.inspectionOverlay;
+    if (!overlay) {
+      return;
+    }
+
+    const ctx = this.ctx;
+    const playerColors = {
+      [Player.BLACK]: this.theme.blueLine,
+      [Player.WHITE]: this.theme.redLine,
+      [Player.PURPLE]: this.theme.purpleLine,
+    };
+
+    // In a lesson, cleared lines must stay absent from the resulting board.
+    // The crossed-out empty points show what disappeared without redrawing it.
+    const highlightedEdges = overlay.tutorial
+      ? (overlay.addedEdges ?? [])
+      : [...(overlay.addedEdges ?? []), ...(overlay.removedEdges ?? []).map((edge) => ({ ...edge, removed: true }))];
+    for (const item of highlightedEdges) {
+      const [fromKey, toKey] = String(item.edge ?? "").split("|");
+      if (!fromKey || !toKey) {
+        continue;
+      }
+      const from = keyToPoint(fromKey);
+      const to = keyToPoint(toKey);
+      const [fromX, fromY] = this._gridToPixel(from[0], from[1], layout);
+      const [toX, toY] = this._gridToPixel(to[0], to[1], layout);
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(fromX, fromY);
+      ctx.lineTo(toX, toY);
+      if (overlay.tutorial) {
+        ctx.strokeStyle = item.removed ? "rgba(228, 75, 75, 0.25)" : "rgba(255, 199, 53, 0.6)";
+        ctx.lineWidth = Math.max(8, layout.lineWidth * 2);
+        ctx.stroke();
+      }
+      ctx.strokeStyle = playerColors[item.player] ?? this.theme.outline;
+      ctx.lineWidth = Math.max(3, layout.lineWidth * 0.85);
+      ctx.globalAlpha = 0.82;
+      ctx.setLineDash([Math.max(6, layout.scale * 0.12), Math.max(4, layout.scale * 0.08)]);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    for (const point of [...(overlay.capturedPoints ?? []), ...(overlay.blockedPoint ? [overlay.blockedPoint] : [])]) {
+      if (!Array.isArray(point) || point.length !== 2) {
+        continue;
+      }
+      const [x, y] = this._gridToPixel(point[0], point[1], layout);
+      const radius = layout.pointRadius + Math.max(5, layout.scale * 0.12);
+      ctx.save();
+      ctx.strokeStyle = "rgba(210, 73, 54, 0.95)";
+      ctx.lineWidth = Math.max(2, layout.lineWidth * 0.5);
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x - radius * 0.58, y - radius * 0.58);
+      ctx.lineTo(x + radius * 0.58, y + radius * 0.58);
+      ctx.moveTo(x + radius * 0.58, y - radius * 0.58);
+      ctx.lineTo(x - radius * 0.58, y + radius * 0.58);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    const selectedPoint = overlay.selectedPoint;
+    if (Array.isArray(selectedPoint) && selectedPoint.length === 2) {
+      const [x, y] = this._gridToPixel(selectedPoint[0], selectedPoint[1], layout);
+      const radius = layout.pointRadius + Math.max(8, layout.scale * 0.18);
+      ctx.save();
+      ctx.strokeStyle = "rgba(218, 151, 36, 0.98)";
+      ctx.fillStyle = "rgba(255, 226, 117, 0.2)";
+      ctx.lineWidth = Math.max(2.5, layout.lineWidth * 0.65);
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
   _clearHintLayer() {
     if (!this._hintCtx || !this._hintDomCanvas) return;
     this._hintCtx.save();
@@ -914,6 +1007,7 @@ export class Renderer {
       snapshot.lastAction?.type ?? "none",
       snapshot.lastAction?.player ?? "none",
       lp ? `${lp[0]},${lp[1]}` : "-",
+      JSON.stringify(snapshot.inspectionOverlay ?? null),
     ].join(":");
   }
 
@@ -972,6 +1066,7 @@ export class Renderer {
     this._drawLegalMoves(snapshot, this.layout);
     this._drawNodes(boardData, this.layout);
     this._drawLastAction(snapshot, this.layout);
+    this._drawInspectionOverlay(snapshot, this.layout);
     if (this._hintCtx) {
       this._renderHintLayer();
     } else {
