@@ -1,5 +1,5 @@
-import { saveState, restoreState } from "./AIEngine.js?v=20260921c";
-import { GameEngine } from "./GameEngine.js?v=20260910d";
+import { saveState, restoreState } from "./AIEngine.js?v=20261013-full-features1";
+import { GameEngine } from "./GameEngine.js?v=20261013-full-features1";
 
 const FEATURE_COUNT = 11;
 const EPSILON = 1e-5;

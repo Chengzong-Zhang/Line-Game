@@ -1,11 +1,11 @@
-import GameEngine, { Player, TerritoryRulesVersion } from "./GameEngine.js?v=20260910c";
-import Renderer from "./Renderer.js?v=20261013b";
-import { ServerEvent } from "./NetworkManager.js?v=20260430d";
-import { serializeEngineState } from "./AIStateProtocol.js?v=20260910c";
+import GameEngine, { Player, TerritoryRulesVersion } from "./GameEngine.js?v=20261013-full-features1";
+import Renderer from "./Renderer.js?v=20261013-full-features1";
+import { ServerEvent } from "./NetworkManager.js?v=20261013-full-features1";
+import { serializeEngineState } from "./AIStateProtocol.js?v=20261013-full-features1";
 import {
   OneShotTerritoryWorker,
   applyTerritoryWorkerResult,
-} from "./TerritoryWorkerSession.js?v=20260910c";
+} from "./TerritoryWorkerSession.js?v=20261013-full-features1";
 
 // GameController 鏄墠绔殑鈥滆兌姘村眰鈥濓細
 // 瀹冩妸 Model(GameEngine)銆乂iew(Renderer) 鍜岃仈鏈哄眰(NetworkManager) 涓茶捣鏉ワ紝
@@ -57,7 +57,7 @@ export class GameController {
       ? options.createTerritoryWorker
       : (typeof globalThis.Worker === "function"
         ? () => new globalThis.Worker(
-            new URL("./TerritoryWorker.js?v=20260910c", import.meta.url),
+            new URL("./TerritoryWorker.js?v=20261013-full-features1", import.meta.url),
             { type: "module" },
           )
         : null);
@@ -264,8 +264,7 @@ export class GameController {
     this.readOnlyMode = Boolean(enabled);
     const snapshot = this.engine.getSnapshot();
     const state = this._buildGameState(snapshot);
-    this._syncCanvasInteractivity(snapshot, state);
-    this._emitStateChange(snapshot, state);
+    this._syncSnapshot(snapshot, { forceRender: true, scheduleTerritory: false });
     return state;
   }
 
@@ -274,12 +273,19 @@ export class GameController {
       this.inspectionOverlay = null;
     } else {
       this.inspectionOverlay = {
+        tutorial: Boolean(overlay.tutorial),
+        blockedPoint: isGridPoint(overlay.blockedPoint) ? clonePoint(overlay.blockedPoint) : null,
         selectedPoint: isGridPoint(overlay.selectedPoint) ? clonePoint(overlay.selectedPoint) : null,
         capturedPoints: Array.isArray(overlay.capturedPoints)
           ? overlay.capturedPoints.filter(isGridPoint).map(clonePoint)
           : [],
         addedEdges: Array.isArray(overlay.addedEdges)
           ? overlay.addedEdges
+            .filter((item) => item && typeof item.edge === "string")
+            .map((item) => ({ player: item.player, edge: item.edge }))
+          : [],
+        removedEdges: Array.isArray(overlay.removedEdges)
+          ? overlay.removedEdges
             .filter((item) => item && typeof item.edge === "string")
             .map((item) => ({ player: item.player, edge: item.edge }))
           : [],
@@ -636,6 +642,7 @@ export class GameController {
   _syncSnapshot(snapshot, { forceRender = false, scheduleTerritory = true } = {}) {
     this.renderer.render({
       ...snapshot,
+      legalMoves: this.readOnlyMode ? [] : snapshot.legalMoves,
       renderEpoch: this._engineEpoch,
       lastAction: this._cloneLastAction(),
       inspectionOverlay: this.inspectionOverlay,

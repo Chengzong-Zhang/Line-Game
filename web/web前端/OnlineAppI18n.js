@@ -1,5 +1,5 @@
-import { Player } from "./GameEngine.js?v=20260910c";
-import { ALL_PLAYERS } from "./OnlineAppState.js?v=20260830a";
+import { Player } from "./GameEngine.js?v=20261013-full-features1";
+import { ALL_PLAYERS } from "./OnlineAppState.js?v=20261013-full-features1";
 
 // 文案、比分格式化和错误提示都集中放在这里，避免 UI 文件里散落大量字符串。
 
@@ -218,11 +218,9 @@ const EN_TEXTS = Object.freeze({
   aiModeWhite: "AI Second",
   aiModeBlack: "AI First",
   aiModeDuel: "AI vs AI",
-  aiDuelPause: "Pause",
-  aiDuelResume: "Resume",
-  aiDuelFinished: "Finished",
-  aiDuelModelHint: "Both sides use this model",
-  aiModelInfo: "Model information",
+  aiDuelPause: "Pause AI match",
+  aiDuelResume: "Resume AI match",
+  aiDuelModelHint: "Both sides use the selected model and difficulty.",
   aiDifficulty: "AI Difficulty",
   aiDifficultyEasy: "Easy",
   aiDifficultyMedium: "Medium",
@@ -450,9 +448,7 @@ const ZH_TEXTS = Object.freeze({
   aiModeDuel: "AI对战",
   aiDuelPause: "暂停对战",
   aiDuelResume: "继续对战",
-  aiDuelFinished: "对战结束",
-  aiDuelModelHint: "双方使用当前模型",
-  aiModelInfo: "模型信息",
+  aiDuelModelHint: "双方使用下方选择的模型与难度。",
   aiDifficulty: "AI 难度",
   aiDifficultyEasy: "简单",
   aiDifficultyMedium: "中等",

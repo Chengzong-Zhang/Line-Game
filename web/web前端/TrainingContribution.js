@@ -1,4 +1,4 @@
-import { createReplayDocument } from "./ReplayCodec.js?v=20260921a";
+import { createReplayDocument } from "./ReplayCodec.js?v=20261013-full-features1";
 
 export const CONTRIBUTION_POLICY = "anonymous-replay-training-v1";
 export const CONTRIBUTION_STORAGE = "lifeline-training-contribution-v1";
@@ -89,6 +89,8 @@ export const ContributionPanel = {
   template: `<div class="training-contribution training-contribution-inline" aria-live="polite">
     <p class="field-label">{{ copy.title }}</p>
     <label class="training-contribution-toggle"><input type="checkbox" :checked="state.enabled" @change="$emit('toggle', $event.target.checked)" /> {{ copy.opt }}</label>
+    <p class="help-copy">{{ language === 'zh' ? '完整本地对局结束后，匿名棋谱自动上传服务器，供筛选与 AI 训练。关闭后清空待上传记录，已提交棋谱仍保留。' : 'Completed local matches are uploaded anonymously for selection and AI training. Turning this off clears pending uploads; submitted replays remain stored.' }}</p>
+    <p class="help-copy contribution-status">{{ statusLabel }}</p>
     <button v-if="state.enabled && state.pending && ['retry', 'unavailable', 'storage-error', 'queue-full'].includes(state.status)" type="button" class="contribution-retry" :title="statusLabel" @click="$emit('retry')">{{ copy.retry }} ({{ state.pending }})</button>
   </div>`,
 };

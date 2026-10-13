@@ -1,7 +1,7 @@
-import { GameEngine } from "./GameEngine.js?v=20260910d";
-import { GreedyAI, MCTSAI, MinimaxAI, restoreState } from "./AIEngine.js?v=20260921c";
-import { loadResearchModel, NeuralPUCTAI } from "./ResearchAI.js?v=20261012a";
-import { loadModelFreeModel, ModelFreeAI } from "./ModelFreeAI.js?v=20260922a";
+import { GameEngine } from "./GameEngine.js?v=20261013-full-features1";
+import { GreedyAI, MCTSAI, MinimaxAI, restoreState } from "./AIEngine.js?v=20261013-full-features1";
+import { loadResearchModel, NeuralPUCTAI } from "./ResearchAI.js?v=20261013-full-features1";
+import { loadModelFreeModel, ModelFreeAI } from "./ModelFreeAI.js?v=20261013-full-features1";
 
 self.onmessage = async (event) => {
   if (event.data?.type !== "COMPUTE") {
