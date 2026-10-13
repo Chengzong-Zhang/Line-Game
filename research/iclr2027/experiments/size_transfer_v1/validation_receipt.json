@@ -1,0 +1,38 @@
+{
+  "checked_at_utc": "2026-09-22T06:03:19.293965+00:00",
+  "device": "cpu",
+  "formal_ready": false,
+  "model_probes": [
+    {
+      "checkpoint_sha256": "934f12b8c2356afb1d630275135e8fd14893dc5b8b4b2e2ce8c98c4f9839bf15",
+      "model_kind": "padded_cnn",
+      "positions_checked": 44,
+      "status": "INFERENCE_PROBE_PASSED",
+      "strength_evaluated": false
+    },
+    {
+      "checkpoint_sha256": "0463c247ec42889fb30c5a23d4ed9b21c090495f2084a80d07b920edb8632a72",
+      "model_kind": "grid_gnn",
+      "positions_checked": 44,
+      "status": "INFERENCE_PROBE_PASSED",
+      "strength_evaluated": false
+    },
+    {
+      "checkpoint_sha256": "7180ca466e1f657ed2359e13f4b42fbd133b8e973081a295ef66600a18481207",
+      "model_kind": "topology_gnn",
+      "positions_checked": 44,
+      "status": "INFERENCE_PROBE_PASSED",
+      "strength_evaluated": false
+    }
+  ],
+  "planned_tasks": 27,
+  "python": "3.10.20 | packaged by Anaconda, Inc. | (main, Mar 11 2026, 17:42:35) [MSC v.1942 64 bit (AMD64)]",
+  "real_topology_init_and_strict_resume": "PASS",
+  "script_sha256": "55dfe68c1cba6bdeb111a18882f853a2d1a04fa6b7ea66c456e841e96f50e59b",
+  "status": "DRAFT_COMPATIBILITY_VALIDATED",
+  "strength_evaluated": false,
+  "tests_sha256": "6cba38c3fa6a7e2a2419fc55436111ff93290007a44b10e0fd8ced31d8f2dea1",
+  "torch": "2.7.1+cu118",
+  "training_source_hash": "117ebe2fc3d4654e545da94ca8ef8d481b8e4de7391226e4788cb1610915ec6c",
+  "training_started": false
+}
