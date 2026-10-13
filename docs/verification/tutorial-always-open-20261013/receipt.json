@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "task": "tutorial-always-open",
+  "verified_at": "2026-10-13T14:09:38.0857847+08:00",
+  "status": "PASS-CURRENT-LOCAL",
+  "deployment": "NOT-RUN",
+  "branch": "codex/territory-v2-page-correctness",
+  "base_commit": "0c1b5fda188e038b34b2c192e2f03932fb1169d0",
+  "asset_version": "20261013-tutorial-open1",
+  "changes": [
+    "Every page load and refresh starts lesson 1 regardless of prior completion or saved matches.",
+    "Persistent bottom-left tutorial button on desktop and mobile-width layouts.",
+    "Tutorial entry and exit retain saved local actions, board settings, Superko history and remaining hints.",
+    "Online-match entry opens a separate tutorial tab; automatic room reconnection on the main page waits until tutorial exit."
+  ],
+  "tests": [
+    {
+      "command": "node --unhandled-rejections=strict 'web/web前端/tests/verify-tutorial.mjs'",
+      "exit_code": 0,
+      "status": "PASS-CURRENT"
+    },
+    {
+      "command": "node --unhandled-rejections=strict 'web/web前端/tests/verify-local-game-session.mjs'",
+      "exit_code": 0,
+      "status": "PASS-CURRENT"
+    },
+    {
+      "command": "node --unhandled-rejections=strict 'web/web前端/tests/verify-board-input.mjs'",
+      "exit_code": 0,
+      "status": "PASS-CURRENT"
+    },
+    {
+      "command": "node --unhandled-rejections=strict 'web/web前端/tests/verify-tutorial-session.mjs'",
+      "exit_code": 0,
+      "status": "PASS-CURRENT"
+    },
+    {
+      "command": "node --unhandled-rejections=strict 'web/web前端/tests/verify-online-recovery.mjs'",
+      "exit_code": 0,
+      "status": "PASS-CURRENT"
+    },
+    {
+      "command": "node --unhandled-rejections=strict 'web/web前端/tests/verify-replay-codec.mjs'",
+      "exit_code": 0,
+      "status": "PASS-CURRENT"
+    }
+  ],
+  "additional_checks": [
+    {
+      "command": "node --check 'web/web前端/OnlineApp.js'",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check -- 'web/web前端/OnlineApp.js' 'web/web前端/styles.css' 'web/web前端/index.html' 'web/web前端/main.js'",
+      "exit_code": 0
+    }
+  ],
+  "browser": {
+    "url": "http://127.0.0.1:8765/",
+    "desktop": "1280x720",
+    "mobile_emulation": "390x844",
+    "passed": [
+      "Reload with an existing local match enters lesson 1.",
+      "Skip returns to the previous match.",
+      "Persistent launcher restarts lesson 1, including after a completed first lesson.",
+      "First lesson can be completed with a real canvas click.",
+      "English and Chinese tutorial launchers and copy work at mobile width.",
+      "No browser error logs were observed."
+    ],
+    "screenshots": [
+      "local_artifacts/tutorial-always-open-20261013/desktop.png",
+      "local_artifacts/tutorial-always-open-20261013/mobile.png"
+    ],
+    "limits": [
+      "Responsive browser viewport, not a physical phone.",
+      "Live online room end-to-end flow was not exercised.",
+      "All five lessons and restoration were exercised with the real app handlers/controller/rules in Node; Vue scheduling was checked on browser entry, skip, reload and restart paths."
+    ]
+  },
+  "preservation": "Existing dirty worktree changes preserved. Only four frontend files, one focused regression and this receipt were changed for this task; no commit, push or deployment.",
+  "files": [
+    {
+      "path": "web/web前端/OnlineApp.js",
+      "sha256": "ebaf6f2e84664be134f45bbf29e88cfba97d3b5c8b35e4e48073d84e9d9a816e"
+    },
+    {
+      "path": "web/web前端/styles.css",
+      "sha256": "bb286c68443db95a9a39f140ac7757fdae4676d2606ff5afd8e7bc0d33b620af"
+    },
+    {
+      "path": "web/web前端/main.js",
+      "sha256": "bae1047967b38cbf3f3270efc50d107240cb4d60bdd86c72afc5300a225c0045"
+    },
+    {
+      "path": "web/web前端/index.html",
+      "sha256": "d8db080b2b77800eda7d29f0fe7ab6ba79a52bdbf964d1ff01486051d45af984"
+    },
+    {
+      "path": "web/web前端/tests/verify-tutorial-session.mjs",
+      "sha256": "383820bf0227f6fcbd6e152e7b61a25a12706f4bf2e1425216fb3c3408374013"
+    }
+  ]
+}

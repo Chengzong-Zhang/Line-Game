@@ -1,0 +1,532 @@
+{
+  "status": "PASS_CURRENT_CANDIDATE",
+  "release_id": "web-current-sync-20261013",
+  "asset_version": "20261013-sync1",
+  "web_checks": [
+    {
+      "command": [
+        "node",
+        "--check",
+        "web\\web前端\\AIEngine.js"
+      ],
+      "exit_code": 0,
+      "seconds": 0.08,
+      "log": "web-00.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "web\\web前端\\AIStateProtocol.js"
+      ],
+      "exit_code": 0,
+      "seconds": 0.08,
+      "log": "web-01.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "web\\web前端\\AIWorker.js"
+      ],
+      "exit_code": 0,
+      "seconds": 0.08,
+      "log": "web-02.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "web\\web前端\\app.js"
+      ],
+      "exit_code": 0,
+      "seconds": 0.09,
+      "log": "web-03.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "web\\web前端\\GameController.js"
+      ],
+      "exit_code": 0,
+      "seconds": 0.08,
+      "log": "web-04.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "web\\web前端\\GameEngine.js"
+      ],
+      "exit_code": 0,
+      "seconds": 0.09,
+      "log": "web-05.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "web\\web前端\\GuideContent.js"
+      ],
+      "exit_code": 0,
+      "seconds": 0.08,
+      "log": "web-06.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "web\\web前端\\HintWorkerSession.js"
+      ],
+      "exit_code": 0,
+      "seconds": 0.08,
+      "log": "web-07.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "web\\web前端\\LocalAIModes.js"
+      ],
+      "exit_code": 0,
+      "seconds": 0.09,
+      "log": "web-08.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "web\\web前端\\LocalGameSession.js"
+      ],
+      "exit_code": 0,
+      "seconds": 0.08,
+      "log": "web-09.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "web\\web前端\\LocalPlayerSetup.js"
+      ],
+      "exit_code": 0,
+      "seconds": 0.07,
+      "log": "web-10.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "web\\web前端\\main.js"
+      ],
+      "exit_code": 0,
+      "seconds": 0.08,
+      "log": "web-11.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "web\\web前端\\ModelFreeAI.js"
+      ],
+      "exit_code": 0,
+      "seconds": 0.08,
+      "log": "web-12.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "web\\web前端\\NetworkManager.js"
+      ],
+      "exit_code": 0,
+      "seconds": 0.08,
+      "log": "web-13.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "web\\web前端\\OnlineApp.js"
+      ],
+      "exit_code": 0,
+      "seconds": 0.08,
+      "log": "web-14.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "web\\web前端\\OnlineAppI18n.js"
+      ],
+      "exit_code": 0,
+      "seconds": 0.08,
+      "log": "web-15.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "web\\web前端\\OnlineAppState.js"
+      ],
+      "exit_code": 0,
+      "seconds": 0.08,
+      "log": "web-16.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "web\\web前端\\OnlineRoomSync.js"
+      ],
+      "exit_code": 0,
+      "seconds": 0.07,
+      "log": "web-17.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "web\\web前端\\Renderer.js"
+      ],
+      "exit_code": 0,
+      "seconds": 0.08,
+      "log": "web-18.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "web\\web前端\\ReplayCodec.js"
+      ],
+      "exit_code": 0,
+      "seconds": 0.08,
+      "log": "web-19.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "web\\web前端\\ResearchAI.js"
+      ],
+      "exit_code": 0,
+      "seconds": 0.08,
+      "log": "web-20.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "web\\web前端\\ResearchAIOptions.js"
+      ],
+      "exit_code": 0,
+      "seconds": 0.08,
+      "log": "web-21.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "web\\web前端\\TerritoryWorker.js"
+      ],
+      "exit_code": 0,
+      "seconds": 0.08,
+      "log": "web-22.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "web\\web前端\\TerritoryWorkerSession.js"
+      ],
+      "exit_code": 0,
+      "seconds": 0.07,
+      "log": "web-23.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "web\\web前端\\TrainingContribution.js"
+      ],
+      "exit_code": 0,
+      "seconds": 0.09,
+      "log": "web-24.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "web\\web前端\\TutorialRunner.js"
+      ],
+      "exit_code": 0,
+      "seconds": 0.08,
+      "log": "web-25.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--unhandled-rejections=strict",
+        "web\\web前端\\tests\\verify-ai-comparison.mjs"
+      ],
+      "exit_code": 0,
+      "seconds": 0.47,
+      "log": "web-26.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--unhandled-rejections=strict",
+        "web\\web前端\\tests\\verify-ai-control-flow.mjs"
+      ],
+      "exit_code": 0,
+      "seconds": 0.38,
+      "log": "web-27.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--unhandled-rejections=strict",
+        "web\\web前端\\tests\\verify-ai-duel.mjs"
+      ],
+      "exit_code": 0,
+      "seconds": 0.27,
+      "log": "web-28.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--unhandled-rejections=strict",
+        "web\\web前端\\tests\\verify-ai-search-15.mjs"
+      ],
+      "exit_code": 0,
+      "seconds": 1.6,
+      "log": "web-29.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--unhandled-rejections=strict",
+        "web\\web前端\\tests\\verify-board-input.mjs"
+      ],
+      "exit_code": 0,
+      "seconds": 0.14,
+      "log": "web-30.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--unhandled-rejections=strict",
+        "web\\web前端\\tests\\verify-hint-worker.mjs"
+      ],
+      "exit_code": 0,
+      "seconds": 0.11,
+      "log": "web-31.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--unhandled-rejections=strict",
+        "web\\web前端\\tests\\verify-local-ai-session.mjs"
+      ],
+      "exit_code": 0,
+      "seconds": 0.51,
+      "log": "web-32.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--unhandled-rejections=strict",
+        "web\\web前端\\tests\\verify-local-game-session.mjs"
+      ],
+      "exit_code": 0,
+      "seconds": 0.12,
+      "log": "web-33.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--unhandled-rejections=strict",
+        "web\\web前端\\tests\\verify-local-player-setup.mjs"
+      ],
+      "exit_code": 0,
+      "seconds": 0.11,
+      "log": "web-34.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--unhandled-rejections=strict",
+        "web\\web前端\\tests\\verify-online-recovery.mjs"
+      ],
+      "exit_code": 0,
+      "seconds": 0.46,
+      "log": "web-35.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--unhandled-rejections=strict",
+        "web\\web前端\\tests\\verify-replay-codec.mjs"
+      ],
+      "exit_code": 0,
+      "seconds": 0.27,
+      "log": "web-36.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--unhandled-rejections=strict",
+        "web\\web前端\\tests\\verify-research-ai.mjs"
+      ],
+      "exit_code": 0,
+      "seconds": 10.9,
+      "log": "web-37.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--unhandled-rejections=strict",
+        "web\\web前端\\tests\\verify-research-worker.mjs"
+      ],
+      "exit_code": 0,
+      "seconds": 0.57,
+      "log": "web-38.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--unhandled-rejections=strict",
+        "web\\web前端\\tests\\verify-size-transfer-ai.mjs"
+      ],
+      "exit_code": 0,
+      "seconds": 10.44,
+      "log": "web-39.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--unhandled-rejections=strict",
+        "web\\web前端\\tests\\verify-territory-v2.mjs"
+      ],
+      "exit_code": 0,
+      "seconds": 5.23,
+      "log": "web-40.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--unhandled-rejections=strict",
+        "web\\web前端\\tests\\verify-territory-worker.mjs"
+      ],
+      "exit_code": 0,
+      "seconds": 5.34,
+      "log": "web-41.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--unhandled-rejections=strict",
+        "web\\web前端\\tests\\verify-training-contribution.mjs"
+      ],
+      "exit_code": 0,
+      "seconds": 6.26,
+      "log": "web-42.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--unhandled-rejections=strict",
+        "web\\web前端\\tests\\verify-tutorial-session.mjs"
+      ],
+      "exit_code": 0,
+      "seconds": 0.47,
+      "log": "web-43.txt"
+    },
+    {
+      "command": [
+        "node",
+        "--unhandled-rejections=strict",
+        "web\\web前端\\tests\\verify-tutorial.mjs"
+      ],
+      "exit_code": 0,
+      "seconds": 0.16,
+      "log": "web-44.txt"
+    }
+  ],
+  "backend_tests": 5,
+  "backend_test_exit_code": 0,
+  "backend_command": "uv run --with fastapi --with httpx --python cpython-3.13.7 python -m unittest discover -s web/tests -v",
+  "research_checks": [
+    {
+      "command": [
+        "C:\\Users\\zcz\\anaconda3\\envs\\rl310\\python.exe",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "research/iclr2027/tests",
+        "-p",
+        "test_size_transfer_draft.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "seconds": 13.13,
+      "log": "research-00.txt"
+    },
+    {
+      "command": [
+        "C:\\Users\\zcz\\anaconda3\\envs\\rl310\\python.exe",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "research/iclr2027/tests",
+        "-p",
+        "test_size_transfer_runner.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "seconds": 19.5,
+      "log": "research-01.txt"
+    },
+    {
+      "command": [
+        "C:\\Users\\zcz\\anaconda3\\envs\\rl310\\python.exe",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "research/iclr2027/tests",
+        "-p",
+        "test_web_size_transfer_export.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "seconds": 6.46,
+      "log": "research-02.txt"
+    },
+    {
+      "command": [
+        "C:\\Users\\zcz\\anaconda3\\envs\\rl310\\python.exe",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "research/iclr2027/tests",
+        "-p",
+        "test_model_free_dqn.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "seconds": 7.68,
+      "log": "research-03.txt"
+    }
+  ],
+  "research_interrupted_attempts": "Preserved locally; Windows PID probe fixed and all selected suites rerun successfully",
+  "model_release": "web-ai-transfer-v1-20261013",
+  "matching_model_assets": 17,
+  "independent_review": "No outstanding Required findings after replay and Windows PID fixes",
+  "raw_training_started": false,
+  "formal_strength_claim": false
+}

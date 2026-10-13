@@ -1,0 +1,73 @@
+{
+  "status": "PASS-CURRENT",
+  "date": "2026-10-13",
+  "scope": "Remove two model explanatory paragraphs and the setup swap/start buttons; slot the contribution control beside the starter selector",
+  "browser": {
+    "date": "2026-10-13",
+    "advancedCopyAbsent": true,
+    "contributionChanged": true,
+    "breakpoints": [
+      {
+        "contributionInToolbar": true,
+        "contributionPanels": 1,
+        "oldSetupButtons": 0,
+        "pageOverflow": false,
+        "toolbarScrollWidth": 180,
+        "toolbarWidth": 180,
+        "width": 320
+      },
+      {
+        "contributionInToolbar": true,
+        "contributionPanels": 1,
+        "oldSetupButtons": 0,
+        "pageOverflow": false,
+        "toolbarScrollWidth": 531,
+        "toolbarWidth": 531,
+        "width": 1024
+      }
+    ],
+    "contributionRestored": true
+  },
+  "validation": [
+    {
+      "command": "node --check web/web前端/OnlineApp.js",
+      "exit_code": 0
+    },
+    {
+      "command": "node --check web/web前端/LocalPlayerSetup.js",
+      "exit_code": 0
+    },
+    {
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-local-ai-session.mjs",
+      "exit_code": 0
+    }
+  ],
+  "start_path": "Existing main-screen Start match control still calls startLocalMatch",
+  "source_hashes": [
+    {
+      "path": "web/web前端/LocalPlayerSetup.js",
+      "sha256": "1be39760740a3ea786d359e800eedc2b09867955b1912ce98ff2fe32b4dab8d3"
+    },
+    {
+      "path": "web/web前端/OnlineApp.js",
+      "sha256": "798c13e87627f7b0aa0e0ca5ba48015beae6d96d6eceb714f6ad12c8f5df6ec3"
+    },
+    {
+      "path": "web/web前端/OnlineAppI18n.js",
+      "sha256": "e39d31a631eb639aede2aa07159d1958eed28b3f47f7475bccfa108db44c0364"
+    },
+    {
+      "path": "web/web前端/styles.css",
+      "sha256": "a40023feeb2fe3b4b64e042c7a05438238becdc373eb39d67a5096eedd6e05a1"
+    },
+    {
+      "path": "web/web前端/main.js",
+      "sha256": "4a9dcab881fffb792df7388fcb136dc4afef40ac5d0e1039071da606d168139d"
+    },
+    {
+      "path": "web/web前端/index.html",
+      "sha256": "3bb974b1dfd4f2d9d3933602f7935470ba609b0d630366971457834dfb2d4ee2"
+    }
+  ],
+  "preview": "local_artifacts/ui-layout-20261013/player-controls-v2.png"
+}

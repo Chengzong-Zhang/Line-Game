@@ -1,0 +1,177 @@
+{
+  "status": "PASS-CURRENT",
+  "date": "2026-10-13",
+  "scope": "Local UI layout and copy; no deployment or model-strength claim",
+  "final_ai_layout": "Independent blue/red player selectors, explicitly chosen by owner over the original eight-button row and 3x3 model grid",
+  "timing_row": "Timer switch, seconds, hint switch, count stay in one row; disabled numeric fields keep their positions",
+  "browser": {
+    "date": "2026-10-13",
+    "finalChoice": "independent-blue-red-player-selectors",
+    "breakpoints": [
+      {
+        "desktopPanelHeightDifference": null,
+        "fourControlsOneRow": true,
+        "pageOverflow": false,
+        "playerSelects": 2,
+        "removedContributionCopyAbsent": true,
+        "replayBelowScore": true,
+        "timingScrollWidth": 440,
+        "timingVisibleWidth": 180,
+        "viewport": {
+          "height": 800,
+          "width": 320
+        }
+      },
+      {
+        "desktopPanelHeightDifference": null,
+        "fourControlsOneRow": true,
+        "pageOverflow": false,
+        "playerSelects": 2,
+        "removedContributionCopyAbsent": true,
+        "replayBelowScore": true,
+        "timingScrollWidth": 595,
+        "timingVisibleWidth": 595,
+        "viewport": {
+          "height": 900,
+          "width": 768
+        }
+      },
+      {
+        "desktopPanelHeightDifference": 0,
+        "fourControlsOneRow": true,
+        "pageOverflow": false,
+        "playerSelects": 2,
+        "removedContributionCopyAbsent": true,
+        "replayBelowScore": true,
+        "timingScrollWidth": 531,
+        "timingVisibleWidth": 531,
+        "viewport": {
+          "height": 900,
+          "width": 1024
+        }
+      },
+      {
+        "desktopPanelHeightDifference": 0,
+        "fourControlsOneRow": true,
+        "pageOverflow": false,
+        "playerSelects": 2,
+        "removedContributionCopyAbsent": true,
+        "replayBelowScore": true,
+        "timingScrollWidth": 616,
+        "timingVisibleWidth": 616,
+        "viewport": {
+          "height": 1080,
+          "width": 1440
+        }
+      }
+    ],
+    "settingsOff": [
+      {
+        "checked": false,
+        "disabled": false,
+        "id": "turn-timer-enabled",
+        "y": 891.6171875
+      },
+      {
+        "checked": null,
+        "disabled": true,
+        "id": "turn-time-limit",
+        "y": 891.6171875
+      },
+      {
+        "checked": false,
+        "disabled": false,
+        "id": "hint-enabled",
+        "y": 891.6171875
+      },
+      {
+        "checked": null,
+        "disabled": true,
+        "id": "hint-max-count",
+        "y": 891.6171875
+      }
+    ],
+    "settingsOn": [
+      {
+        "checked": true,
+        "disabled": false,
+        "id": "turn-timer-enabled",
+        "y": 890.1171875
+      },
+      {
+        "checked": null,
+        "disabled": false,
+        "id": "turn-time-limit",
+        "y": 890.1171875
+      },
+      {
+        "checked": true,
+        "disabled": false,
+        "id": "hint-enabled",
+        "y": 890.1171875
+      },
+      {
+        "checked": null,
+        "disabled": false,
+        "id": "hint-max-count",
+        "y": 890.1171875
+      }
+    ],
+    "keyboardNext": "turn-time-limit",
+    "contributionSwitchTested": true,
+    "replayEntryTested": true
+  },
+  "replay_open_and_exit_latest_ui": true,
+  "commands": [
+    {
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-local-player-setup.mjs",
+      "exit_code": 0
+    },
+    {
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-local-ai-session.mjs",
+      "exit_code": 0
+    },
+    {
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-replay-codec.mjs",
+      "exit_code": 0
+    },
+    {
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-training-contribution.mjs",
+      "exit_code": 0,
+      "note": "Passed before concurrent independent-player integration; contribution logic unchanged in this task"
+    }
+  ],
+  "source_hashes": [
+    {
+      "path": "web/web前端/OnlineApp.js",
+      "sha256": "f22ac239dec11a756b9a62d407e9d9cdd93bca69fc12377927da74edc9ca5344"
+    },
+    {
+      "path": "web/web前端/styles.css",
+      "sha256": "1e3f2bd142cbe4708717f17c4467e1f7d741f37e6720c8bb1eec7f468b7e20eb"
+    },
+    {
+      "path": "web/web前端/OnlineAppI18n.js",
+      "sha256": "97a17e5491ef1e994d64dc29e051c9b1ff2adcee4d44c89cacb12de88325e9db"
+    },
+    {
+      "path": "web/web前端/TrainingContribution.js",
+      "sha256": "57da8f2c580e5db0c881377a39816a89bef0c63bd08bdc55e0f6e53978a959ba"
+    },
+    {
+      "path": "web/web前端/index.html",
+      "sha256": "8d0f7bb37de9950452376cc51b609f451d45785869d624e671405b3ce869ffc1"
+    },
+    {
+      "path": "web/web前端/main.js",
+      "sha256": "29db68a79fb8c2b479c380baac87c187464f54ecf6a4d589b0c21a41b5df880f"
+    }
+  ],
+  "checkout": "codex/territory-v2-page-correctness; shared dirty workspace preserved",
+  "local_preview": "local_artifacts/ui-layout-20261013/settings.png",
+  "limitations": [
+    "Responsive checks use browser viewport emulation, not physical mobile devices",
+    "320px uses horizontal scrolling for the four controls",
+    "Source hashes identify this shared-workspace snapshot, not an isolated release"
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "release_id": "web-tutorial-five-lessons-20261013",
+  "commit": "0c1b5fda188e038b34b2c192e2f03932fb1169d0",
+  "workspace_dirty": true,
+  "asset_version": "20261013f",
+  "contribution_parent_commit": "14b872ddba60c00734a8486b8c8ce2b16d74d11d",
+  "files": {
+    "index.html": "d3d72671e1baecbbe24fba5be25d99ac98bd556aa381022f659826f27f856483",
+    "main.js": "45e4765ad533a6cd2271580216d485ee89400ff067ecbaf52d20a7698ad98de6",
+    "OnlineApp.js": "48fc6afbe5eff205ce10639667e07f89f696d85ca92881e4aa2807b69592f9f8",
+    "styles.css": "9b543edf92fbedcc8b72544c808b86b102dcfe5b154ccb0140d036d49d890589",
+    "TutorialRunner.js": "1ad3cd525b054d6d2ae1a1d43350af986253498a942b9600a89130ea34463f27",
+    "GameController.js": "215ccec7e01a15825bdd24d48d9137159dad4bb5bf02529b26a35a371e643e49",
+    "Renderer.js": "6e0ad51da8083c472b4e4b0ee42a6d00402e116b90dbcab4d40b16c4795a3e24"
+  },
+  "preserved_dependency": {
+    "TrainingContribution.js": "f1fe6fe2357a46d1cad9421845aa89edd9047f482e84210347cfbf77133733c3"
+  }
+}

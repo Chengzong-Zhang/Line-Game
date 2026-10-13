@@ -1,0 +1,13 @@
+{
+  "status": "ATOMIC_SWITCH_OK",
+  "release_id": "web-replay-ai-contribution-20261013",
+  "commit": "09b64f11e08126a4fb523ed4813b6fbde6ef4238",
+  "overlay_files": 74,
+  "archive_sha256": "62e786e25e85a1190d1e07a132af9d7a1700af338662de9d5686bb218b12ccb2",
+  "live_tree_sha256": "34210e429493273da026bf1e276e8c53afc805d123afc8dd518c0e881acb6e72",
+  "candidate_tree_sha256": "3dc1fd2e91cb49d27aa431cd832b6a702c934a31781714d1da792c95331b0e41",
+  "time_utc_epoch": 1791897499.7585673,
+  "rollback": "/home/ubuntu/line-game/.deploy-artifacts/web-replay-ai-contribution-20261013.rollback-web前端",
+  "active_tree_sha256": "3dc1fd2e91cb49d27aa431cd832b6a702c934a31781714d1da792c95331b0e41",
+  "rollback_tree_sha256": "34210e429493273da026bf1e276e8c53afc805d123afc8dd518c0e881acb6e72"
+}

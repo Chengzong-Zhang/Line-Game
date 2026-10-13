@@ -1,0 +1,7 @@
+{
+  "status": "PASS",
+  "modelCount": 17,
+  "realWorkers": true,
+  "assetVersion": "20261013-full-features1",
+  "result": "padded-cnn-d14-s20260825-g200: PASS\ngrid-gnn-d14-s20260825-g200: PASS\ntopology-gnn-d14-s20260825-g200: PASS\npadded-cnn-transfer-v1-seed2026092201: PASS\npadded-cnn-transfer-v1-seed2026092202: PASS\npadded-cnn-transfer-v1-seed2026092203: PASS\ngrid-gnn-transfer-v1-seed2026092201: PASS\ngrid-gnn-transfer-v1-seed2026092202: PASS\ngrid-gnn-transfer-v1-seed2026092203: PASS\ntopology-gnn-transfer-v1-seed2026092201: PASS\ntopology-gnn-transfer-v1-seed2026092202: PASS\ntopology-gnn-transfer-v1-seed2026092203: PASS\ndqn-all-sizes-e2000: PASS\nppo-all-sizes-e2000: PASS\nsac-all-sizes-e2000: PASS\ngail-all-sizes: PASS\ngan-all-sizes: PASS\nPASS: 17/17 real Workers; SHA-256 checked; legal actions; source preserved"
+}
