@@ -1,0 +1,92 @@
+[
+  {
+    "language": "zh",
+    "name": "Minimax",
+    "description": "提前推演双方几步，选择对自己更有利、让对手更难应对的落点。"
+  },
+  {
+    "language": "zh",
+    "name": "Padded-CNN + PUCT",
+    "description": "把棋盘当作图像识别局部布局，再通过搜索挑选落点。"
+  },
+  {
+    "language": "zh",
+    "name": "Grid-GNN + PUCT",
+    "description": "根据三角网格中相邻节点的关系判断局面，再通过搜索挑选落点。"
+  },
+  {
+    "language": "zh",
+    "name": "Topology-GNN + PUCT",
+    "description": "同时考虑网格邻接与双方实际连线，再通过搜索挑选落点。"
+  },
+  {
+    "language": "zh",
+    "name": "DQN",
+    "description": "从对局经验中学习每个动作的长期收益，优先选择估计收益较高的落点。"
+  },
+  {
+    "language": "zh",
+    "name": "PPO",
+    "description": "通过逐步、受控地调整落子策略，从对局经验中学习如何行动。"
+  },
+  {
+    "language": "zh",
+    "name": "SAC",
+    "description": "在追求收益的同时保留探索，学习兼顾不同落子可能性的策略。"
+  },
+  {
+    "language": "zh",
+    "name": "GAIL",
+    "description": "通过区分示例落子与自己的选择，学习模仿贪心策略的下法。"
+  },
+  {
+    "language": "zh",
+    "name": "GAN",
+    "description": "让生成器与判别器相互训练，学习产生接近贪心策略示例的落子。"
+  },
+  {
+    "language": "en",
+    "name": "Minimax",
+    "description": "Looks several moves ahead for both players and chooses a move that improves its position while limiting your replies."
+  },
+  {
+    "language": "en",
+    "name": "Padded-CNN + PUCT",
+    "description": "Reads local board patterns as an image, then uses search to choose a move."
+  },
+  {
+    "language": "en",
+    "name": "Grid-GNN + PUCT",
+    "description": "Reads relationships between neighboring points on the triangular grid, then uses search to choose a move."
+  },
+  {
+    "language": "en",
+    "name": "Topology-GNN + PUCT",
+    "description": "Reads both grid neighbors and each player's actual connections, then uses search to choose a move."
+  },
+  {
+    "language": "en",
+    "name": "DQN",
+    "description": "Learns the long-term value of each action and favors moves with a higher estimated return."
+  },
+  {
+    "language": "en",
+    "name": "PPO",
+    "description": "Learns a move policy through gradual, controlled updates from game experience."
+  },
+  {
+    "language": "en",
+    "name": "SAC",
+    "description": "Balances expected return with exploration while learning its move policy."
+  },
+  {
+    "language": "en",
+    "name": "GAIL",
+    "description": "Learns to imitate a greedy strategy by distinguishing example moves from its own choices."
+  },
+  {
+    "language": "en",
+    "name": "GAN",
+    "description": "Uses a generator and discriminator to learn moves that resemble a greedy strategy's examples."
+  }
+]

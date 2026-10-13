@@ -1,0 +1,420 @@
+{
+  "release_id": "web-ai-transfer-v1-20261013",
+  "date": "2026-10-13",
+  "timezone": "Asia/Shanghai",
+  "status": "DEPLOYED_PILOT_COMPATIBILITY_TRIAL",
+  "site": "https://lifelinegame.cn",
+  "runtime_commit": "6d3877534fcf42ad8a444dc4e13d7a2135bebc98",
+  "source_branch": "codex/web-ai-release-20261013",
+  "github_release": "https://github.com/Chengzong-Zhang/Line-Game/releases/tag/web-ai-transfer-v1-20261013",
+  "github_main_branch_modified": false,
+  "github_assets": [
+    {
+      "name": "dqn-all-sizes-e2000.f32",
+      "size": 3025380,
+      "digest": "sha256:16f50c330ad7cc239cfb0b2334538817c7c0d6cf4c01f6048b05c9ee4a9466eb"
+    },
+    {
+      "name": "gail-all-sizes.f32",
+      "size": 3027432,
+      "digest": "sha256:5951e4e3f057893275df6f44543f3747cd4275a616d52a5b8355e51760faea71"
+    },
+    {
+      "name": "gan-all-sizes.f32",
+      "size": 3027432,
+      "digest": "sha256:63629d0027afb8ff2fdbc3e773be420c062361b315741d8371e47818c4ec30e5"
+    },
+    {
+      "name": "grid-gnn-d14-s20260825-g200.f32",
+      "size": 250932,
+      "digest": "sha256:92cc45bb2a3a6a56c896098c1e843a136587a9aaf07381fbf1d00ebb4fd02dfa"
+    },
+    {
+      "name": "grid-gnn-transfer-v1-seed2026092201.f32",
+      "size": 250932,
+      "digest": "sha256:e0b82a1736521fb967afb7861ba1fcc697b505990d5b6391abb8318dbef42a0b"
+    },
+    {
+      "name": "grid-gnn-transfer-v1-seed2026092202.f32",
+      "size": 250932,
+      "digest": "sha256:5db4b00462d8e30d2d293adf554da3e0e6b4cde6d40d3f82b590b23fa267000b"
+    },
+    {
+      "name": "grid-gnn-transfer-v1-seed2026092203.f32",
+      "size": 250932,
+      "digest": "sha256:67079d1d6108732cddfeecf74840ae63505488af052e068ab1a83bf96c56bf87"
+    },
+    {
+      "name": "padded-cnn-d14-s20260825-g200.f32",
+      "size": 251472,
+      "digest": "sha256:cea913f58d1694926fb6710ca355bf6d41e5a6c49b991af87b836ae26d43bf1f"
+    },
+    {
+      "name": "padded-cnn-transfer-v1-seed2026092201.f32",
+      "size": 251472,
+      "digest": "sha256:416ee1a88f092ab514dd40c8a22604a761a20b223409eaaef64f61c691108242"
+    },
+    {
+      "name": "padded-cnn-transfer-v1-seed2026092202.f32",
+      "size": 251472,
+      "digest": "sha256:cd36fdd3a96e78066475fb67056fa179bf7765028fbf9e4db7a172857b134af3"
+    },
+    {
+      "name": "padded-cnn-transfer-v1-seed2026092203.f32",
+      "size": 251472,
+      "digest": "sha256:ee60f6d279941c78af999c6d051d514bf90f09b9478272d8557d482bb24dd07c"
+    },
+    {
+      "name": "ppo-all-sizes-e2000.f32",
+      "size": 3027432,
+      "digest": "sha256:af41359ca0ee00b3be86a2f5b9363a513af942f6cfa0c50f31cb0f252c86de85"
+    },
+    {
+      "name": "sac-all-sizes-e2000.f32",
+      "size": 3025380,
+      "digest": "sha256:63a1b80b456427a2545a31ff9af209fdde1f9cf8d41ae6984f36c09c116932bd"
+    },
+    {
+      "name": "topology-gnn-d14-s20260825-g200.f32",
+      "size": 252684,
+      "digest": "sha256:de7f1a4c9c204d0f88598f5d7d92e180e291060b11cc711c8f9e786207cf34d0"
+    },
+    {
+      "name": "topology-gnn-transfer-v1-seed2026092201.f32",
+      "size": 252684,
+      "digest": "sha256:0235947ee5a3eb6aa36627da06270e0854f3ece5c2b509d6a4f85d830a54f5ba"
+    },
+    {
+      "name": "topology-gnn-transfer-v1-seed2026092202.f32",
+      "size": 252684,
+      "digest": "sha256:4c424c0f0ac19724d7fa51741d199bd780781d7063b325671fe9197f6b6abc9b"
+    },
+    {
+      "name": "topology-gnn-transfer-v1-seed2026092203.f32",
+      "size": 252684,
+      "digest": "sha256:5a8f6f4ed6954c5dda131c16403f2f2c680edefffc050d19f2cab25850dcc84b"
+    }
+  ],
+  "activation": {
+    "status": "ATOMIC_SWITCH_OK",
+    "release_id": "web-ai-transfer-v1-20261013",
+    "commit": "6d3877534fcf42ad8a444dc4e13d7a2135bebc98",
+    "overlay_files": 47,
+    "archive_sha256": "9ef80cd235a4d0404ef83b6cb5abacecf45b9811337ed4102db5505dd40de18d",
+    "live_tree_sha256": "93d25aec3aaa6e58a620863e4f0f6a41a77d971b46bc7860485e024b5ed55940",
+    "candidate_tree_sha256": "8e9db0bc381d0a62d40020404daf161acffd83ab92cedd271cda56581b1bf554",
+    "time_utc_epoch": 1791863797.3287745,
+    "rollback": "/home/ubuntu/line-game/.deploy-artifacts/web-ai-transfer-v1-20261013.rollback-web前端",
+    "active_tree_sha256": "8e9db0bc381d0a62d40020404daf161acffd83ab92cedd271cda56581b1bf554",
+    "rollback_tree_sha256": "93d25aec3aaa6e58a620863e4f0f6a41a77d971b46bc7860485e024b5ed55940"
+  },
+  "public_hashes": {
+    "status": "PUBLIC_HASH_PASS",
+    "release_id": "web-ai-transfer-v1-20261013",
+    "commit": "6d3877534fcf42ad8a444dc4e13d7a2135bebc98",
+    "files_verified": 47,
+    "health": "ok",
+    "files": [
+      {
+        "path": "AIEngine.js",
+        "status": 200,
+        "sha256": "263e75a45c740e27976d1dfb4cd5a16bcd724a56ce74206ba215c96a2a8ddc5c",
+        "bytes": 16004
+      },
+      {
+        "path": "AIStateProtocol.js",
+        "status": 200,
+        "sha256": "4347bf251b44f7dc529b4abf702bb2994f3ff545cf0773cc1548725c8a83e26c",
+        "bytes": 1999
+      },
+      {
+        "path": "AIWorker.js",
+        "status": 200,
+        "sha256": "c19197ce2a9cd06df8a50a8111ea9a581027ee740a41991636682e84e3187d13",
+        "bytes": 3651
+      },
+      {
+        "path": "GameController.js",
+        "status": 200,
+        "sha256": "d039299da4278c0d6d50a0ed3b00f10d297781d351300c401c7384cc1de6a23b",
+        "bytes": 35188
+      },
+      {
+        "path": "GameEngine.js",
+        "status": 200,
+        "sha256": "8db6b7a516dfb63efe4ca3abe7adaf35d563b48cfbc49130e71f03bcf0591b12",
+        "bytes": 65735
+      },
+      {
+        "path": "GuideContent.js",
+        "status": 200,
+        "sha256": "896091e3d33a562119793beff6515758d837fc14bbdc5ff885cf82810186fef0",
+        "bytes": 49650
+      },
+      {
+        "path": "HintWorkerSession.js",
+        "status": 200,
+        "sha256": "77578f5a2dd491bb3ee28bbec17a1daf74e3613843ada7b79888425dd8d25a2b",
+        "bytes": 4618
+      },
+      {
+        "path": "index.html",
+        "status": 200,
+        "sha256": "3e178b6e2c3e815f92a3374597732e1e50f3fe1f0570bf49688366d927a72d41",
+        "bytes": 965
+      },
+      {
+        "path": "LocalGameSession.js",
+        "status": 200,
+        "sha256": "a72831a54b6cb2c6408cadb74d3c2eba1963119052bad44cb97c308e138c5439",
+        "bytes": 4787
+      },
+      {
+        "path": "main.js",
+        "status": 200,
+        "sha256": "a1372c32f2186d4632e0b1ffbd576074513a6f7a330f23a7c8a51a5697449a56",
+        "bytes": 4134
+      },
+      {
+        "path": "ModelFreeAI.js",
+        "status": 200,
+        "sha256": "f17771f1af1b94ad637b61407e81af485f0c53b0137551a1eaf8a57d0eca01be",
+        "bytes": 6116
+      },
+      {
+        "path": "NetworkManager.js",
+        "status": 200,
+        "sha256": "b211a9255e44f20d776d020a8528a8547540eb520c945d08e455b7a9a3ebd2f1",
+        "bytes": 17277
+      },
+      {
+        "path": "OnlineApp.js",
+        "status": 200,
+        "sha256": "b4d29c44557c509f1c56c657a466834f3ecd206479eb4710d96defa711ca53c9",
+        "bytes": 208558
+      },
+      {
+        "path": "OnlineAppI18n.js",
+        "status": 200,
+        "sha256": "bf15533a50c948570070c6546acb20639f558d124aef652fe8057f12ace2b54f",
+        "bytes": 42702
+      },
+      {
+        "path": "OnlineAppState.js",
+        "status": 200,
+        "sha256": "1200548fbb4e939d1b118bc61d270925f7afebc40b684cbb1c1ec42ed8470bcf",
+        "bytes": 5798
+      },
+      {
+        "path": "OnlineRoomSync.js",
+        "status": 200,
+        "sha256": "9164783f2626e9be9cecb115cae3828e7d0a2652849cf256342a0af6d169ae8c",
+        "bytes": 2341
+      },
+      {
+        "path": "Renderer.js",
+        "status": 200,
+        "sha256": "b7c6dcf71144e8ff6c6998ebdc1810e347db5d37a07d8141e7da5f20180ce62e",
+        "bytes": 35062
+      },
+      {
+        "path": "ReplayCodec.js",
+        "status": 200,
+        "sha256": "040c5779ad08d602b81d18196603e7ede7cc9ba286a9fb3f998b775a4d734c2a",
+        "bytes": 14328
+      },
+      {
+        "path": "ResearchAI.js",
+        "status": 200,
+        "sha256": "3a72ea8dcd87174513337c10b1cf56ae27bb7310105497e7c2b5a36506e46881",
+        "bytes": 23162
+      },
+      {
+        "path": "ResearchAIOptions.js",
+        "status": 200,
+        "sha256": "0cc5e27993622422a9a5b77bf95750992d26e1fe1a7a26782d53606f3709fa1e",
+        "bytes": 1599
+      },
+      {
+        "path": "styles.css",
+        "status": 200,
+        "sha256": "311d4d251183dbcf59efbaf8fe2958b6651b7df2ea501242c469fde4d6cf0779",
+        "bytes": 57383
+      },
+      {
+        "path": "TerritoryWorker.js",
+        "status": 200,
+        "sha256": "a6e41df7be892dfa23c9c552b44e0f9ae425a113a036e3e973fc139052aa40db",
+        "bytes": 2722
+      },
+      {
+        "path": "TerritoryWorkerSession.js",
+        "status": 200,
+        "sha256": "5adcddf43a975201f5d6e2cbca707024f6455d92406bd7e9c70d6cc1833e1d93",
+        "bytes": 4891
+      },
+      {
+        "path": "TutorialRunner.js",
+        "status": 200,
+        "sha256": "510f10b86bb3834f6fc900997909ab519bf3f59a4c66877fe4c9b58f49916207",
+        "bytes": 4480
+      },
+      {
+        "path": "assets/beian.png",
+        "status": 200,
+        "sha256": "8dfecad0dfcb3dc584f2c2447943eefb1fd65a058856eb0611e2c56ddc4c1fe1",
+        "bytes": 1403
+      },
+      {
+        "path": "assets/research-ai/dqn-all-sizes-e2000.f32",
+        "status": 200,
+        "sha256": "16f50c330ad7cc239cfb0b2334538817c7c0d6cf4c01f6048b05c9ee4a9466eb",
+        "bytes": 3025380
+      },
+      {
+        "path": "assets/research-ai/gail-all-sizes.f32",
+        "status": 200,
+        "sha256": "5951e4e3f057893275df6f44543f3747cd4275a616d52a5b8355e51760faea71",
+        "bytes": 3027432
+      },
+      {
+        "path": "assets/research-ai/gan-all-sizes.f32",
+        "status": 200,
+        "sha256": "63629d0027afb8ff2fdbc3e773be420c062361b315741d8371e47818c4ec30e5",
+        "bytes": 3027432
+      },
+      {
+        "path": "assets/research-ai/grid-gnn-d14-s20260825-g200.f32",
+        "status": 200,
+        "sha256": "92cc45bb2a3a6a56c896098c1e843a136587a9aaf07381fbf1d00ebb4fd02dfa",
+        "bytes": 250932
+      },
+      {
+        "path": "assets/research-ai/manifest.json",
+        "status": 200,
+        "sha256": "a6148b97ffe2175d1f42fbff3f273f29899e4f7587840ff7734a2d04f0af2dfa",
+        "bytes": 19606
+      },
+      {
+        "path": "assets/research-ai/model-free-manifest.json",
+        "status": 200,
+        "sha256": "4a2dc25e4d2c1a70823c5f6280355c5af5a0e751ebba96845530cb84d316be6c",
+        "bytes": 10204
+      },
+      {
+        "path": "assets/research-ai/padded-cnn-d14-s20260825-g200.f32",
+        "status": 200,
+        "sha256": "cea913f58d1694926fb6710ca355bf6d41e5a6c49b991af87b836ae26d43bf1f",
+        "bytes": 251472
+      },
+      {
+        "path": "assets/research-ai/ppo-all-sizes-e2000.f32",
+        "status": 200,
+        "sha256": "af41359ca0ee00b3be86a2f5b9363a513af942f6cfa0c50f31cb0f252c86de85",
+        "bytes": 3027432
+      },
+      {
+        "path": "assets/research-ai/sac-all-sizes-e2000.f32",
+        "status": 200,
+        "sha256": "63a1b80b456427a2545a31ff9af209fdde1f9cf8d41ae6984f36c09c116932bd",
+        "bytes": 3025380
+      },
+      {
+        "path": "assets/research-ai/topology-gnn-d14-s20260825-g200.f32",
+        "status": 200,
+        "sha256": "de7f1a4c9c204d0f88598f5d7d92e180e291060b11cc711c8f9e786207cf34d0",
+        "bytes": 252684
+      },
+      {
+        "path": "assets/research-ai/transfer-v1/export-receipt.json",
+        "status": 200,
+        "sha256": "22192615d1d9e07873f0712bd932ddae58bd562400c5cb7aa960007b5f93ca69",
+        "bytes": 34147
+      },
+      {
+        "path": "assets/research-ai/transfer-v1/grid-gnn-transfer-v1-seed2026092201.f32",
+        "status": 200,
+        "sha256": "e0b82a1736521fb967afb7861ba1fcc697b505990d5b6391abb8318dbef42a0b",
+        "bytes": 250932
+      },
+      {
+        "path": "assets/research-ai/transfer-v1/grid-gnn-transfer-v1-seed2026092202.f32",
+        "status": 200,
+        "sha256": "5db4b00462d8e30d2d293adf554da3e0e6b4cde6d40d3f82b590b23fa267000b",
+        "bytes": 250932
+      },
+      {
+        "path": "assets/research-ai/transfer-v1/grid-gnn-transfer-v1-seed2026092203.f32",
+        "status": 200,
+        "sha256": "67079d1d6108732cddfeecf74840ae63505488af052e068ab1a83bf96c56bf87",
+        "bytes": 250932
+      },
+      {
+        "path": "assets/research-ai/transfer-v1/manifest.json",
+        "status": 200,
+        "sha256": "8c46031730fa746e2b1b5f091d5e140384619070fb36013bb650b8d026291e22",
+        "bytes": 81104
+      },
+      {
+        "path": "assets/research-ai/transfer-v1/padded-cnn-transfer-v1-seed2026092201.f32",
+        "status": 200,
+        "sha256": "416ee1a88f092ab514dd40c8a22604a761a20b223409eaaef64f61c691108242",
+        "bytes": 251472
+      },
+      {
+        "path": "assets/research-ai/transfer-v1/padded-cnn-transfer-v1-seed2026092202.f32",
+        "status": 200,
+        "sha256": "cd36fdd3a96e78066475fb67056fa179bf7765028fbf9e4db7a172857b134af3",
+        "bytes": 251472
+      },
+      {
+        "path": "assets/research-ai/transfer-v1/padded-cnn-transfer-v1-seed2026092203.f32",
+        "status": 200,
+        "sha256": "ee60f6d279941c78af999c6d051d514bf90f09b9478272d8557d482bb24dd07c",
+        "bytes": 251472
+      },
+      {
+        "path": "assets/research-ai/transfer-v1/topology-gnn-transfer-v1-seed2026092201.f32",
+        "status": 200,
+        "sha256": "0235947ee5a3eb6aa36627da06270e0854f3ece5c2b509d6a4f85d830a54f5ba",
+        "bytes": 252684
+      },
+      {
+        "path": "assets/research-ai/transfer-v1/topology-gnn-transfer-v1-seed2026092202.f32",
+        "status": 200,
+        "sha256": "4c424c0f0ac19724d7fa51741d199bd780781d7063b325671fe9197f6b6abc9b",
+        "bytes": 252684
+      },
+      {
+        "path": "assets/research-ai/transfer-v1/topology-gnn-transfer-v1-seed2026092203.f32",
+        "status": 200,
+        "sha256": "5a8f6f4ed6954c5dda131c16403f2f2c680edefffc050d19f2cab25850dcc84b",
+        "bytes": 252684
+      },
+      {
+        "path": "tests/research-ai-browser-smoke.html",
+        "status": 200,
+        "sha256": "0450852d70838607c9815c1df2a10e3721d80aea49ca805db3648a9455143342",
+        "bytes": 2936
+      }
+    ]
+  },
+  "automatic_regressions": "11/11 exit 0 (preflight.json)",
+  "model_free_forward": "5 models / 110 size-and-start cases PASS, source preserved",
+  "github_download_rehydration": "17/17 public Release downloads SHA-256 PASS",
+  "manual": {
+    "local_introductions": "18/18 Chinese/English AI selections PASS",
+    "public_page": "Loaded, tutorial skipped, all 9 clean model headings observed",
+    "public_ai": "Topology-GNN seed2026092201, side5, PUCT-16/c_puct1.5 placed (2,0); next player WHITE, turnCount1",
+    "public_description": "同时考虑网格邻接与双方实际连线，再通过搜索挑选落点。",
+    "screenshot": "local_artifacts/web-ai-release-20261013/public-ai-introduction.png",
+    "browser_control_latency": "Automation requests initially timed out; recovered with documented browser APIs and 60s request bounds",
+    "mobile_real_device": "NOT_RUN",
+    "independent_strength": "NOT_RUN"
+  },
+  "research_evidence": "PILOT_ONLY / COMPATIBILITY_TRIAL; two known terminal score differences retained",
+  "formal_ready": false,
+  "service": "Uvicorn PID 933703 unchanged; API health ok",
+  "temporary_authentication": "Key revoked; reauthentication rejected; local key/helper removed",
+  "rollback_command": "python3 /home/ubuntu/line-game/.deploy-artifacts/web-ai-transfer-v1-20261013-upload/atomic_frontend_release.py rollback --release-id web-ai-transfer-v1-20261013"
+}
