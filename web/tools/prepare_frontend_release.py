@@ -54,8 +54,8 @@ def main():
     manifest = {
         "release_id": args.release_id,
         "asset_version": args.asset_version,
-        "commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip(),
-        "workspace_dirty": bool(subprocess.check_output(["git", "status", "--porcelain", "--", "web/web前端"], cwd=root, text=True).strip()),
+        "commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True, encoding="utf-8").strip(),
+        "workspace_dirty": bool(subprocess.check_output(["git", "status", "--porcelain", "--", "web/web前端"], cwd=root, text=True, encoding="utf-8").strip()),
         "deployment_scope": "complete-current-web-frontend-runtime",
         "files": files,
         "source_bytes": sum((frontend / name).stat().st_size for name in files),
