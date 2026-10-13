@@ -87,6 +87,10 @@ def main():
             (bundle / "activation.json").write_text(json.dumps(row, ensure_ascii=False, indent=2), encoding="utf-8")
     (bundle / "ssh-exit.json").write_text(json.dumps({"exit_code": result.returncode, "started_epoch": started,
         "finished_epoch": time.time(), "authentication": "existing interactive SSH; no keys created or passwords stored"}, indent=2), encoding="utf-8")
+    if result.returncode == 0:
+        from verify_frontend_release import verify
+        verified = verify(bundle)
+        print(f"PUBLIC_VERIFIED: {len(verified['files'])} runtime files; game and collector healthy.", flush=True)
     raise SystemExit(result.returncode)
 
 
