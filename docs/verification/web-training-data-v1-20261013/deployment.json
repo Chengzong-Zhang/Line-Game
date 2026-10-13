@@ -1,0 +1,138 @@
+{
+  "date": "2026-10-13",
+  "site": "https://lifelinegame.cn",
+  "status": "DEPLOYED_OPT_IN_COLLECTION",
+  "runtime_commit": "14b872ddba60c00734a8486b8c8ce2b16d74d11d",
+  "github_branch": "codex/web-ai-data-v1",
+  "github_main_modified": false,
+  "frontend": {
+    "status": "ATOMIC_SWITCH_OK",
+    "release_id": "web-training-data-v1-20261013",
+    "commit": "14b872ddba60c00734a8486b8c8ce2b16d74d11d",
+    "overlay_files": 5,
+    "archive_sha256": "278a31626ec8fbcbffae4e3ef358d43414637c8b03a81beae62bf6539d004cd8",
+    "live_tree_sha256": "8e9db0bc381d0a62d40020404daf161acffd83ab92cedd271cda56581b1bf554",
+    "candidate_tree_sha256": "a864fa48fda61e2240b82817f4ce6430df2c3bea4938b37444118a1002e16626",
+    "time_utc_epoch": 1791868831.2218518,
+    "rollback": "/home/ubuntu/line-game/.deploy-artifacts/web-training-data-v1-20261013.rollback-web前端",
+    "active_tree_sha256": "a864fa48fda61e2240b82817f4ce6430df2c3bea4938b37444118a1002e16626",
+    "rollback_tree_sha256": "8e9db0bc381d0a62d40020404daf161acffd83ab92cedd271cda56581b1bf554"
+  },
+  "collector": {
+    "status": "COLLECTOR_ACTIVE",
+    "release_id": "web-training-data-v1-20261013",
+    "commit": "14b872ddba60c00734a8486b8c8ce2b16d74d11d",
+    "archive_sha256": "22872998efface28ecfe307dbfd8d572dd5ecc00b582240376c92fb87235fa9f",
+    "files": {
+      "web/package.json": "d02836298858858f52f01f58c6afc45f02db04d86adad0fb3bba92ed1abb53f0",
+      "web/web后端/training_contributions.py": "69c4b05f7e950938790280c579a752a95f08bd8fd8e3856094c944302fb9b761",
+      "web/web后端/contribution_asgi.py": "dd27fa684f01c5a755481766696b532ec4f3abb991bd75d5e3a00a303b8a2d04",
+      "web/tools/validate_contribution.mjs": "f7f26b5f9c1a86e5aee6ea21252d56ced865cdcaeb2aae7777e6ba293233fc08",
+      "web/web前端/GameEngine.js": "8db6b7a516dfb63efe4ca3abe7adaf35d563b48cfbc49130e71f03bcf0591b12",
+      "web/web前端/ReplayCodec.js": "040c5779ad08d602b81d18196603e7ede7cc9ba286a9fb3f998b775a4d734c2a",
+      "web/web前端/ResearchAI.js": "3a72ea8dcd87174513337c10b1cf56ae27bb7310105497e7c2b5a36506e46881",
+      "web/start/install_training_collector.py": "730ee4fc1714decb12fff7f61b4db20eede13393166c2a2f62ffedacd4475768"
+    },
+    "runtime": {
+      "version": "v22.23.3",
+      "archive_sha256": "df450af89261115ef9f9e3830c3eeb2cc9213b63c720b1af623cb5dcbe2e02de",
+      "binary_sha256": "fde6a4bf8d0562f7751d1a2d6cb9b417c4cfe107bbcb0aa3e9a24e125e348f48",
+      "source": "https://nodejs.org/dist/v22.23.3/node-v22.23.3-linux-x64.tar.xz"
+    },
+    "nginx_before_sha256": "76d3c3b9a54b4f019763960f34c29274bd39a8f0cdb7d4420cecf79dafaa0b08",
+    "nginx_after_sha256": "02f529fa05fc8e435a4abc83b37f7c4b20f070df3994f12c50132d13b10044e0",
+    "nginx_backup": "/home/ubuntu/line-game/.deploy-artifacts/web-training-data-v1-20261013.nginx-original.conf",
+    "service": "lifeline-training-contributions.service",
+    "data_directory": "/home/ubuntu/line-game-data/training-contributions-v1",
+    "game_service_restarted": false
+  },
+  "public": {
+    "status": "PUBLIC_PASS",
+    "site": "https://lifelinegame.cn",
+    "runtime_commit": "14b872ddba60c00734a8486b8c8ce2b16d74d11d",
+    "files": [
+      {
+        "file": "OnlineApp.js",
+        "sha256": "5432f300a1d805debf423bedaef9a9e9e0e28fc76d60e68d2e75db48e683bbed"
+      },
+      {
+        "file": "TrainingContribution.js",
+        "sha256": "f1fe6fe2357a46d1cad9421845aa89edd9047f482e84210347cfbf77133733c3"
+      },
+      {
+        "file": "index.html",
+        "sha256": "ddaac25938ddff25e1f30582715cdda18d9414c17baa12b266291b4ede3e119d"
+      },
+      {
+        "file": "main.js",
+        "sha256": "a927d8eee2ec3eef950a06a839b6560e1cc895a58f35ff46fcd214bdcbc55db2"
+      },
+      {
+        "file": "styles.css",
+        "sha256": "960f87c34ae283462d25d5ea2c282497e3ef87309bada6666c491022ee314fad"
+      }
+    ],
+    "api_health": "ok",
+    "synthetic_two_skip_submission": {
+      "game_id": "41ff2e2b4b05b44db534d72752dbe38a2152e5ccf2deed8cf5577857277d0db6",
+      "status": "awaiting_review"
+    },
+    "duplicate_submission": {
+      "game_id": "41ff2e2b4b05b44db534d72752dbe38a2152e5ccf2deed8cf5577857277d0db6",
+      "status": "duplicate"
+    },
+    "quality": "Too short for curation; synthetic QA only"
+  },
+  "service_restart_verification": {
+    "enabled": true,
+    "active": true,
+    "stored_before": 1,
+    "stored_after": 1,
+    "game_server_pid_unchanged": 933703
+  },
+  "manual_browser": {
+    "public_entry": "PASS",
+    "default_off": "PASS",
+    "enable_disable": "PASS",
+    "local_automatic_upload_and_refresh_retry": "PASS",
+    "mobile_viewport": [
+      390,
+      844
+    ],
+    "physical_phone": "NOT_RUN",
+    "screenshot": "local_artifacts/web-training-data-v1-release/public-contribution-entry.png",
+    "screenshot_sha256": "e174cd8d949bf5467d2e1218ea0ca169a04fb4669d2faae25fa68ed49b7ea8f0"
+  },
+  "training": {
+    "pipeline_implemented": true,
+    "synthetic_only_smoke": true,
+    "real_player_training": "NOT_RUN",
+    "independent_strength": "NOT_RUN",
+    "online_model_replaced": false,
+    "formal_ready": false
+  },
+  "scope": "Completed local matches including human-AI; online rooms are not collected in v1",
+  "temporary_auth": {
+    "revoked": true,
+    "reauthentication_exit_code": 255,
+    "local_key_and_helper_removed": true
+  },
+  "local_preview_stopped": true,
+  "rollback_fixture": "NEW_OVERLAY_ROLLBACK_FIXTURE_PASS",
+  "frontend_rollback_command": "python3 /home/ubuntu/line-game/.deploy-artifacts/web-ai-transfer-v1-20261013-upload/atomic_frontend_release.py rollback --release-id web-training-data-v1-20261013",
+  "collector_rollback_command": "python3 /home/ubuntu/line-game/.deploy-artifacts/web-training-data-v1-20261013-upload/install_training_collector.py rollback",
+  "deployment_commands": [
+    {
+      "command": "python3 /home/ubuntu/line-game/.deploy-artifacts/web-training-data-v1-20261013-upload/install_training_collector.py install --archive /home/ubuntu/line-game/.deploy-artifacts/web-training-data-v1-20261013-upload/collector.zip --sha256 22872998efface28ecfe307dbfd8d572dd5ecc00b582240376c92fb87235fa9f",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 /home/ubuntu/line-game/.deploy-artifacts/web-ai-transfer-v1-20261013-upload/atomic_frontend_release.py prepare --release-id web-training-data-v1-20261013 --archive /home/ubuntu/line-game/.deploy-artifacts/web-training-data-v1-20261013-upload/frontend.zip --archive-sha256 278a31626ec8fbcbffae4e3ef358d43414637c8b03a81beae62bf6539d004cd8",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 /home/ubuntu/line-game/.deploy-artifacts/web-ai-transfer-v1-20261013-upload/atomic_frontend_release.py activate --release-id web-training-data-v1-20261013",
+      "exit_code": 0
+    }
+  ]
+}
