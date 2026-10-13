@@ -1,0 +1,149 @@
+{
+  "release_id": "ai-duel-layout-20261013",
+  "date": "2026-10-13",
+  "status": "DEPLOYED_INCREMENTAL_UI",
+  "site": "https://lifelinegame.cn",
+  "runtime_commit": "6348c636c83d7997bda2177607f59cb589335034",
+  "github_branch": "codex/ai-duel-layout-20261013",
+  "github_branch_url": "https://github.com/Chengzong-Zhang/Line-Game/tree/codex/ai-duel-layout-20261013",
+  "github_main_modified": false,
+  "activation": {
+    "status": "ATOMIC_SWITCH_OK",
+    "release_id": "ai-duel-layout-20261013",
+    "commit": "6348c636c83d7997bda2177607f59cb589335034",
+    "overlay_files": 7,
+    "archive_sha256": "159f148ce5dcc0d5f136cf52347711c33286c19dc4f199b1fb843ada877bf58e",
+    "live_tree_sha256": "e62b6bbe500f7379746e922b6f7bbee600b55c8d01ec2bb26da300825c76dd99",
+    "candidate_tree_sha256": "86a06d732deb8880308d5fcb6275e14d8ab2c1d54d3d95fc00b7468459a62b70",
+    "time_utc_epoch": 1791873707.4922988,
+    "rollback": "/home/ubuntu/line-game/.deploy-artifacts/ai-duel-layout-20261013.rollback-web前端",
+    "active_tree_sha256": "86a06d732deb8880308d5fcb6275e14d8ab2c1d54d3d95fc00b7468459a62b70",
+    "rollback_tree_sha256": "e62b6bbe500f7379746e922b6f7bbee600b55c8d01ec2bb26da300825c76dd99"
+  },
+  "public": {
+    "status": "PUBLIC_PASS",
+    "site": "https://lifelinegame.cn",
+    "runtime_commit": "6348c636c83d7997bda2177607f59cb589335034",
+    "files": [
+      {
+        "file": "OnlineApp.js",
+        "sha256": "98c2f56067048b678fc87c323b4618734e18b7b3d32a97c079900b7aa59a5b91"
+      },
+      {
+        "file": "OnlineAppI18n.js",
+        "sha256": "1283490d3014f83666caf85803ae298ee57d8534aa64a4d01b4a9e427d44c246"
+      },
+      {
+        "file": "TrainingContribution.js",
+        "sha256": "84ac85e7be635e24f71b27e42886c376b8ce6c12ddef634c3a64b1021ae205a9"
+      },
+      {
+        "file": "LocalAIModes.js",
+        "sha256": "10af8dd97a25780e5d55f5cb5590702c6a1000ff4d5d2135069e1b2ef03e6781"
+      },
+      {
+        "file": "styles.css",
+        "sha256": "def5df710eb5a54e596487893fe4d4b2aab14e31a8046c1be00e7e6dbaf59ea8"
+      },
+      {
+        "file": "main.js",
+        "sha256": "1cfe3a925b2f6e3365e5bde9bf14d57d424611367c3f0da507bba7aea23ad68f"
+      },
+      {
+        "file": "index.html",
+        "sha256": "f8061fd3ea1b3446039860b079304a7a31794ae59df2021abb7efc1af89eb7a0"
+      }
+    ],
+    "api_health": "ok",
+    "collector_enabled": true
+  },
+  "manual_browser": {
+    "environment": "Codex in-app browser, Windows, 1280x720",
+    "layout": {
+      "client_height": 552,
+      "scroll_height": 552,
+      "ai_width": 295.7265625,
+      "contribution_width": 295.7265625,
+      "same_row": true,
+      "replay_below_score": true
+    },
+    "contribution_saved_opt_out_retained": true,
+    "contribution_checkbox_reenabled_for_qa": true,
+    "minimax_duel_completed": {
+      "displayed_round": 10,
+      "score": {
+        "BLACK": 8,
+        "WHITE": 6
+      },
+      "termination": "UI shows Finished, no further AI actions"
+    },
+    "topology_model_controls_visible": {
+      "selected_seed": 2026092201,
+      "simulations": 16,
+      "c_puct": 1.5,
+      "evidence": "PILOT_ONLY / COMPATIBILITY_TRIAL"
+    },
+    "screenshot": "local_artifacts/ai-duel-layout-20261013/desktop-live.png",
+    "screenshot_sha256": "d37eb92da6033c3e9980ecd852ff5f54343b51c4e02b91a2bf29160d999c678d",
+    "pause_resume": "PASS-CURRENT on local browser; not repeated publicly",
+    "mobile": "PASS-CURRENT viewport preview; real mobile NOT-COVERED"
+  },
+  "commands": [
+    {
+      "command": "C:\\Users\\zcz\\anaconda3\\python.exe local_artifacts/ai-duel-layout-20261013/package_frontend.py",
+      "exit_code": 0,
+      "result": "7 files packaged from immutable Git blobs"
+    },
+    {
+      "command": "python3 /home/ubuntu/line-game/.deploy-artifacts/web-ai-transfer-v1-20261013-upload/atomic_frontend_release.py prepare --release-id ai-duel-layout-20261013 --archive /home/ubuntu/line-game/.deploy-artifacts/ai-duel-layout-20261013-upload/frontend-overlay.zip --archive-sha256 159f148ce5dcc0d5f136cf52347711c33286c19dc4f199b1fb843ada877bf58e",
+      "exit_code": 0,
+      "result": "PREPARED_NOT_ACTIVE"
+    },
+    {
+      "command": "python3 /home/ubuntu/line-game/.deploy-artifacts/web-ai-transfer-v1-20261013-upload/atomic_frontend_release.py activate --release-id ai-duel-layout-20261013",
+      "exit_code": 0,
+      "result": "ATOMIC_SWITCH_OK"
+    },
+    {
+      "command": "C:\\Users\\zcz\\anaconda3\\python.exe local_artifacts/ai-duel-layout-20261013/verify_public.py",
+      "exit_code": 0,
+      "result": "PUBLIC_PASS: 7 file hashes, release identity, API health, collection enabled"
+    },
+    {
+      "command": "git push -u origin codex/ai-duel-layout-20261013",
+      "exit_code": 0,
+      "result": "source and local verification pushed"
+    },
+    {
+      "command": "systemctl is-active lifeline-training-contributions.service",
+      "exit_code": 0,
+      "result": "active"
+    },
+    {
+      "command": "ps -p 933703 -o pid=,comm=",
+      "exit_code": 0,
+      "result": "933703 python"
+    }
+  ],
+  "rollback": {
+    "preserved": true,
+    "command": "python3 /home/ubuntu/line-game/.deploy-artifacts/web-ai-transfer-v1-20261013-upload/atomic_frontend_release.py rollback --release-id ai-duel-layout-20261013",
+    "exercise_this_update": "NOT-RUN; complete old directory retained and hash-bound"
+  },
+  "cleanup": {
+    "temporary_server_key": "exact key revoked; unrelated authorized keys preserved",
+    "revoked_key_ssh_native_exit": 255,
+    "local_key_files_removed": true,
+    "preview_process": 40456,
+    "preview_port": 8878,
+    "preview_stopped": true,
+    "browser_viewport_reset": true
+  },
+  "research_boundary": {
+    "training": "NOT-RUN",
+    "strength_evaluation": "NOT-RUN",
+    "formal_evidence": false,
+    "rule_differential": "NOT-RERUN",
+    "models": "PILOT_ONLY / COMPATIBILITY_TRIAL"
+  }
+}
