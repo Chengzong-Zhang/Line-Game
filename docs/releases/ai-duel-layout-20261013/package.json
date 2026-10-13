@@ -1,0 +1,15 @@
+{
+  "release_id": "ai-duel-layout-20261013",
+  "commit": "6348c636c83d7997bda2177607f59cb589335034",
+  "files": {
+    "OnlineApp.js": "98c2f56067048b678fc87c323b4618734e18b7b3d32a97c079900b7aa59a5b91",
+    "OnlineAppI18n.js": "1283490d3014f83666caf85803ae298ee57d8534aa64a4d01b4a9e427d44c246",
+    "TrainingContribution.js": "84ac85e7be635e24f71b27e42886c376b8ce6c12ddef634c3a64b1021ae205a9",
+    "LocalAIModes.js": "10af8dd97a25780e5d55f5cb5590702c6a1000ff4d5d2135069e1b2ef03e6781",
+    "styles.css": "def5df710eb5a54e596487893fe4d4b2aab14e31a8046c1be00e7e6dbaf59ea8",
+    "main.js": "1cfe3a925b2f6e3365e5bde9bf14d57d424611367c3f0da507bba7aea23ad68f",
+    "index.html": "f8061fd3ea1b3446039860b079304a7a31794ae59df2021abb7efc1af89eb7a0"
+  },
+  "archive_sha256": "159f148ce5dcc0d5f136cf52347711c33286c19dc4f199b1fb843ada877bf58e",
+  "archive_bytes": 74864
+}
