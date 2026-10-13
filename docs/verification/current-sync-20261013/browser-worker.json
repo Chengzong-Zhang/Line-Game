@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "models": 12,
+  "source": "real browser module Workers",
+  "checks": [
+    "SHA-256",
+    "legal candidates",
+    "source state preserved"
+  ],
+  "assetVersion": "20261013-sync1",
+  "result": "padded-cnn-d14-s20260825-g200: PASS · simulations=2 · c_puct=1.5\ngrid-gnn-d14-s20260825-g200: PASS · simulations=2 · c_puct=1.5\ntopology-gnn-d14-s20260825-g200: PASS · simulations=2 · c_puct=1.5\npadded-cnn-transfer-v1-seed2026092201: PASS · simulations=2 · c_puct=1.5\npadded-cnn-transfer-v1-seed2026092202: PASS · simulations=2 · c_puct=1.5\npadded-cnn-transfer-v1-seed2026092203: PASS · simulations=2 · c_puct=1.5\ngrid-gnn-transfer-v1-seed2026092201: PASS · simulations=2 · c_puct=1.5\ngrid-gnn-transfer-v1-seed2026092202: PASS · simulations=2 · c_puct=1.5\ngrid-gnn-transfer-v1-seed2026092203: PASS · simulations=2 · c_puct=1.5\ntopology-gnn-transfer-v1-seed2026092201: PASS · simulations=2 · c_puct=1.5\ntopology-gnn-transfer-v1-seed2026092202: PASS · simulations=2 · c_puct=1.5\ntopology-gnn-transfer-v1-seed2026092203: PASS · simulations=2 · c_puct=1.5\n\nPASS: 12/12 · real module Workers · SHA-256 checked · legal candidates · source preserved"
+}
