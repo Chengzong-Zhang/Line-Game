@@ -1,0 +1,895 @@
+{
+  "schema": {
+    "name": "lifeline-web-research-ai",
+    "version": 1
+  },
+  "export_format": "little-endian-f32-state-dict",
+  "rules_authority": "web/GameEngine.js",
+  "compatibility": "territory-v2 trial; candidates are rechecked by the Web engine",
+  "models": [
+    {
+      "id": "padded-cnn-d14-s20260825-g200",
+      "label": "Padded-CNN + PUCT",
+      "model_kind": "padded_cnn",
+      "observation_mode": "grid_graph",
+      "trained_board_sizes": [
+        5,
+        7,
+        9
+      ],
+      "browser_inference": {
+        "player_count": 2,
+        "board_size_range": [5, 15],
+        "evidence": "trained_board_sizes_only; other sizes are extrapolation trials"
+      },
+      "training_superko_mode": "enforce",
+      "puct": {
+        "simulations": 16,
+        "c_puct": 1.5
+      },
+      "network": {
+        "hidden_channels": 33,
+        "message_passing_layers": 3
+      },
+      "checkpoint": {
+        "sha256": "934f12b8c2356afb1d630275135e8fd14893dc5b8b4b2e2ce8c98c4f9839bf15",
+        "config_hash": "05adca9a363d0e2bef647e3a2ca08bfa8662a093809443a25fa2d4d7a5bb944c",
+        "source_hash": "21a46dbd787090fc18c24cb4e29ebe1dd743203d31abeda43b3ce421833b596c"
+      },
+      "asset": "padded-cnn-d14-s20260825-g200.f32",
+      "asset_sha256": "cea913f58d1694926fb6710ca355bf6d41e5a6c49b991af87b836ae26d43bf1f",
+      "float_count": 62868,
+      "tensors": [
+        {
+          "name": "input_projection.weight",
+          "shape": [
+            33,
+            11,
+            1,
+            1
+          ],
+          "offset": 0,
+          "length": 363
+        },
+        {
+          "name": "input_projection.bias",
+          "shape": [
+            33
+          ],
+          "offset": 363,
+          "length": 33
+        },
+        {
+          "name": "blocks.0.first.weight",
+          "shape": [
+            33,
+            33,
+            3,
+            3
+          ],
+          "offset": 396,
+          "length": 9801
+        },
+        {
+          "name": "blocks.0.first.bias",
+          "shape": [
+            33
+          ],
+          "offset": 10197,
+          "length": 33
+        },
+        {
+          "name": "blocks.0.second.weight",
+          "shape": [
+            33,
+            33,
+            3,
+            3
+          ],
+          "offset": 10230,
+          "length": 9801
+        },
+        {
+          "name": "blocks.0.second.bias",
+          "shape": [
+            33
+          ],
+          "offset": 20031,
+          "length": 33
+        },
+        {
+          "name": "blocks.1.first.weight",
+          "shape": [
+            33,
+            33,
+            3,
+            3
+          ],
+          "offset": 20064,
+          "length": 9801
+        },
+        {
+          "name": "blocks.1.first.bias",
+          "shape": [
+            33
+          ],
+          "offset": 29865,
+          "length": 33
+        },
+        {
+          "name": "blocks.1.second.weight",
+          "shape": [
+            33,
+            33,
+            3,
+            3
+          ],
+          "offset": 29898,
+          "length": 9801
+        },
+        {
+          "name": "blocks.1.second.bias",
+          "shape": [
+            33
+          ],
+          "offset": 39699,
+          "length": 33
+        },
+        {
+          "name": "blocks.2.first.weight",
+          "shape": [
+            33,
+            33,
+            3,
+            3
+          ],
+          "offset": 39732,
+          "length": 9801
+        },
+        {
+          "name": "blocks.2.first.bias",
+          "shape": [
+            33
+          ],
+          "offset": 49533,
+          "length": 33
+        },
+        {
+          "name": "blocks.2.second.weight",
+          "shape": [
+            33,
+            33,
+            3,
+            3
+          ],
+          "offset": 49566,
+          "length": 9801
+        },
+        {
+          "name": "blocks.2.second.bias",
+          "shape": [
+            33
+          ],
+          "offset": 59367,
+          "length": 33
+        },
+        {
+          "name": "point_policy.0.weight",
+          "shape": [
+            33,
+            33
+          ],
+          "offset": 59400,
+          "length": 1089
+        },
+        {
+          "name": "point_policy.0.bias",
+          "shape": [
+            33
+          ],
+          "offset": 60489,
+          "length": 33
+        },
+        {
+          "name": "point_policy.2.weight",
+          "shape": [
+            1,
+            33
+          ],
+          "offset": 60522,
+          "length": 33
+        },
+        {
+          "name": "point_policy.2.bias",
+          "shape": [
+            1
+          ],
+          "offset": 60555,
+          "length": 1
+        },
+        {
+          "name": "pass_policy.0.weight",
+          "shape": [
+            33,
+            33
+          ],
+          "offset": 60556,
+          "length": 1089
+        },
+        {
+          "name": "pass_policy.0.bias",
+          "shape": [
+            33
+          ],
+          "offset": 61645,
+          "length": 33
+        },
+        {
+          "name": "pass_policy.2.weight",
+          "shape": [
+            1,
+            33
+          ],
+          "offset": 61678,
+          "length": 33
+        },
+        {
+          "name": "pass_policy.2.bias",
+          "shape": [
+            1
+          ],
+          "offset": 61711,
+          "length": 1
+        },
+        {
+          "name": "value_head.0.weight",
+          "shape": [
+            33,
+            33
+          ],
+          "offset": 61712,
+          "length": 1089
+        },
+        {
+          "name": "value_head.0.bias",
+          "shape": [
+            33
+          ],
+          "offset": 62801,
+          "length": 33
+        },
+        {
+          "name": "value_head.2.weight",
+          "shape": [
+            1,
+            33
+          ],
+          "offset": 62834,
+          "length": 33
+        },
+        {
+          "name": "value_head.2.bias",
+          "shape": [
+            1
+          ],
+          "offset": 62867,
+          "length": 1
+        }
+      ]
+    },
+    {
+      "id": "grid-gnn-d14-s20260825-g200",
+      "label": "Grid-GNN + PUCT",
+      "model_kind": "grid_gnn",
+      "observation_mode": "grid_graph",
+      "trained_board_sizes": [
+        5,
+        7,
+        9
+      ],
+      "browser_inference": {
+        "player_count": 2,
+        "board_size_range": [5, 15],
+        "evidence": "trained_board_sizes_only; other sizes are extrapolation trials"
+      },
+      "training_superko_mode": "enforce",
+      "puct": {
+        "simulations": 16,
+        "c_puct": 1.5
+      },
+      "network": {
+        "hidden_channels": 82,
+        "message_passing_layers": 3
+      },
+      "checkpoint": {
+        "sha256": "0463c247ec42889fb30c5a23d4ed9b21c090495f2084a80d07b920edb8632a72",
+        "config_hash": "821dee8df5958a6c96a1a39f1a3d9f1ba23f56d865a7405fc2e7926f77ee27a7",
+        "source_hash": "21a46dbd787090fc18c24cb4e29ebe1dd743203d31abeda43b3ce421833b596c"
+      },
+      "asset": "grid-gnn-d14-s20260825-g200.f32",
+      "asset_sha256": "92cc45bb2a3a6a56c896098c1e843a136587a9aaf07381fbf1d00ebb4fd02dfa",
+      "float_count": 62733,
+      "tensors": [
+        {
+          "name": "input_projection.weight",
+          "shape": [
+            82,
+            11
+          ],
+          "offset": 0,
+          "length": 902
+        },
+        {
+          "name": "input_projection.bias",
+          "shape": [
+            82
+          ],
+          "offset": 902,
+          "length": 82
+        },
+        {
+          "name": "blocks.0.self_projection.weight",
+          "shape": [
+            82,
+            82
+          ],
+          "offset": 984,
+          "length": 6724
+        },
+        {
+          "name": "blocks.0.self_projection.bias",
+          "shape": [
+            82
+          ],
+          "offset": 7708,
+          "length": 82
+        },
+        {
+          "name": "blocks.0.relation_projections.0.weight",
+          "shape": [
+            82,
+            82
+          ],
+          "offset": 7790,
+          "length": 6724
+        },
+        {
+          "name": "blocks.0.normalization.weight",
+          "shape": [
+            82
+          ],
+          "offset": 14514,
+          "length": 82
+        },
+        {
+          "name": "blocks.0.normalization.bias",
+          "shape": [
+            82
+          ],
+          "offset": 14596,
+          "length": 82
+        },
+        {
+          "name": "blocks.1.self_projection.weight",
+          "shape": [
+            82,
+            82
+          ],
+          "offset": 14678,
+          "length": 6724
+        },
+        {
+          "name": "blocks.1.self_projection.bias",
+          "shape": [
+            82
+          ],
+          "offset": 21402,
+          "length": 82
+        },
+        {
+          "name": "blocks.1.relation_projections.0.weight",
+          "shape": [
+            82,
+            82
+          ],
+          "offset": 21484,
+          "length": 6724
+        },
+        {
+          "name": "blocks.1.normalization.weight",
+          "shape": [
+            82
+          ],
+          "offset": 28208,
+          "length": 82
+        },
+        {
+          "name": "blocks.1.normalization.bias",
+          "shape": [
+            82
+          ],
+          "offset": 28290,
+          "length": 82
+        },
+        {
+          "name": "blocks.2.self_projection.weight",
+          "shape": [
+            82,
+            82
+          ],
+          "offset": 28372,
+          "length": 6724
+        },
+        {
+          "name": "blocks.2.self_projection.bias",
+          "shape": [
+            82
+          ],
+          "offset": 35096,
+          "length": 82
+        },
+        {
+          "name": "blocks.2.relation_projections.0.weight",
+          "shape": [
+            82,
+            82
+          ],
+          "offset": 35178,
+          "length": 6724
+        },
+        {
+          "name": "blocks.2.normalization.weight",
+          "shape": [
+            82
+          ],
+          "offset": 41902,
+          "length": 82
+        },
+        {
+          "name": "blocks.2.normalization.bias",
+          "shape": [
+            82
+          ],
+          "offset": 41984,
+          "length": 82
+        },
+        {
+          "name": "point_policy.0.weight",
+          "shape": [
+            82,
+            82
+          ],
+          "offset": 42066,
+          "length": 6724
+        },
+        {
+          "name": "point_policy.0.bias",
+          "shape": [
+            82
+          ],
+          "offset": 48790,
+          "length": 82
+        },
+        {
+          "name": "point_policy.2.weight",
+          "shape": [
+            1,
+            82
+          ],
+          "offset": 48872,
+          "length": 82
+        },
+        {
+          "name": "point_policy.2.bias",
+          "shape": [
+            1
+          ],
+          "offset": 48954,
+          "length": 1
+        },
+        {
+          "name": "pass_policy.0.weight",
+          "shape": [
+            82,
+            82
+          ],
+          "offset": 48955,
+          "length": 6724
+        },
+        {
+          "name": "pass_policy.0.bias",
+          "shape": [
+            82
+          ],
+          "offset": 55679,
+          "length": 82
+        },
+        {
+          "name": "pass_policy.2.weight",
+          "shape": [
+            1,
+            82
+          ],
+          "offset": 55761,
+          "length": 82
+        },
+        {
+          "name": "pass_policy.2.bias",
+          "shape": [
+            1
+          ],
+          "offset": 55843,
+          "length": 1
+        },
+        {
+          "name": "value_head.0.weight",
+          "shape": [
+            82,
+            82
+          ],
+          "offset": 55844,
+          "length": 6724
+        },
+        {
+          "name": "value_head.0.bias",
+          "shape": [
+            82
+          ],
+          "offset": 62568,
+          "length": 82
+        },
+        {
+          "name": "value_head.2.weight",
+          "shape": [
+            1,
+            82
+          ],
+          "offset": 62650,
+          "length": 82
+        },
+        {
+          "name": "value_head.2.bias",
+          "shape": [
+            1
+          ],
+          "offset": 62732,
+          "length": 1
+        }
+      ]
+    },
+    {
+      "id": "topology-gnn-d14-s20260825-g200",
+      "label": "Topology-GNN + PUCT",
+      "model_kind": "topology_gnn",
+      "observation_mode": "topology",
+      "trained_board_sizes": [
+        5,
+        7,
+        9
+      ],
+      "browser_inference": {
+        "player_count": 2,
+        "board_size_range": [5, 15],
+        "evidence": "trained_board_sizes_only; other sizes are extrapolation trials"
+      },
+      "training_superko_mode": "enforce",
+      "puct": {
+        "simulations": 16,
+        "c_puct": 1.5
+      },
+      "network": {
+        "hidden_channels": 64,
+        "message_passing_layers": 3
+      },
+      "checkpoint": {
+        "sha256": "7180ca466e1f657ed2359e13f4b42fbd133b8e973081a295ef66600a18481207",
+        "config_hash": "af59c55d60653a275d11e2520a97b5b73c3a581579c005f365c32aa148a10e56",
+        "source_hash": "21a46dbd787090fc18c24cb4e29ebe1dd743203d31abeda43b3ce421833b596c"
+      },
+      "asset": "topology-gnn-d14-s20260825-g200.f32",
+      "asset_sha256": "de7f1a4c9c204d0f88598f5d7d92e180e291060b11cc711c8f9e786207cf34d0",
+      "float_count": 63171,
+      "tensors": [
+        {
+          "name": "input_projection.weight",
+          "shape": [
+            64,
+            11
+          ],
+          "offset": 0,
+          "length": 704
+        },
+        {
+          "name": "input_projection.bias",
+          "shape": [
+            64
+          ],
+          "offset": 704,
+          "length": 64
+        },
+        {
+          "name": "blocks.0.self_projection.weight",
+          "shape": [
+            64,
+            64
+          ],
+          "offset": 768,
+          "length": 4096
+        },
+        {
+          "name": "blocks.0.self_projection.bias",
+          "shape": [
+            64
+          ],
+          "offset": 4864,
+          "length": 64
+        },
+        {
+          "name": "blocks.0.relation_projections.0.weight",
+          "shape": [
+            64,
+            64
+          ],
+          "offset": 4928,
+          "length": 4096
+        },
+        {
+          "name": "blocks.0.relation_projections.1.weight",
+          "shape": [
+            64,
+            64
+          ],
+          "offset": 9024,
+          "length": 4096
+        },
+        {
+          "name": "blocks.0.relation_projections.2.weight",
+          "shape": [
+            64,
+            64
+          ],
+          "offset": 13120,
+          "length": 4096
+        },
+        {
+          "name": "blocks.0.normalization.weight",
+          "shape": [
+            64
+          ],
+          "offset": 17216,
+          "length": 64
+        },
+        {
+          "name": "blocks.0.normalization.bias",
+          "shape": [
+            64
+          ],
+          "offset": 17280,
+          "length": 64
+        },
+        {
+          "name": "blocks.1.self_projection.weight",
+          "shape": [
+            64,
+            64
+          ],
+          "offset": 17344,
+          "length": 4096
+        },
+        {
+          "name": "blocks.1.self_projection.bias",
+          "shape": [
+            64
+          ],
+          "offset": 21440,
+          "length": 64
+        },
+        {
+          "name": "blocks.1.relation_projections.0.weight",
+          "shape": [
+            64,
+            64
+          ],
+          "offset": 21504,
+          "length": 4096
+        },
+        {
+          "name": "blocks.1.relation_projections.1.weight",
+          "shape": [
+            64,
+            64
+          ],
+          "offset": 25600,
+          "length": 4096
+        },
+        {
+          "name": "blocks.1.relation_projections.2.weight",
+          "shape": [
+            64,
+            64
+          ],
+          "offset": 29696,
+          "length": 4096
+        },
+        {
+          "name": "blocks.1.normalization.weight",
+          "shape": [
+            64
+          ],
+          "offset": 33792,
+          "length": 64
+        },
+        {
+          "name": "blocks.1.normalization.bias",
+          "shape": [
+            64
+          ],
+          "offset": 33856,
+          "length": 64
+        },
+        {
+          "name": "blocks.2.self_projection.weight",
+          "shape": [
+            64,
+            64
+          ],
+          "offset": 33920,
+          "length": 4096
+        },
+        {
+          "name": "blocks.2.self_projection.bias",
+          "shape": [
+            64
+          ],
+          "offset": 38016,
+          "length": 64
+        },
+        {
+          "name": "blocks.2.relation_projections.0.weight",
+          "shape": [
+            64,
+            64
+          ],
+          "offset": 38080,
+          "length": 4096
+        },
+        {
+          "name": "blocks.2.relation_projections.1.weight",
+          "shape": [
+            64,
+            64
+          ],
+          "offset": 42176,
+          "length": 4096
+        },
+        {
+          "name": "blocks.2.relation_projections.2.weight",
+          "shape": [
+            64,
+            64
+          ],
+          "offset": 46272,
+          "length": 4096
+        },
+        {
+          "name": "blocks.2.normalization.weight",
+          "shape": [
+            64
+          ],
+          "offset": 50368,
+          "length": 64
+        },
+        {
+          "name": "blocks.2.normalization.bias",
+          "shape": [
+            64
+          ],
+          "offset": 50432,
+          "length": 64
+        },
+        {
+          "name": "point_policy.0.weight",
+          "shape": [
+            64,
+            64
+          ],
+          "offset": 50496,
+          "length": 4096
+        },
+        {
+          "name": "point_policy.0.bias",
+          "shape": [
+            64
+          ],
+          "offset": 54592,
+          "length": 64
+        },
+        {
+          "name": "point_policy.2.weight",
+          "shape": [
+            1,
+            64
+          ],
+          "offset": 54656,
+          "length": 64
+        },
+        {
+          "name": "point_policy.2.bias",
+          "shape": [
+            1
+          ],
+          "offset": 54720,
+          "length": 1
+        },
+        {
+          "name": "pass_policy.0.weight",
+          "shape": [
+            64,
+            64
+          ],
+          "offset": 54721,
+          "length": 4096
+        },
+        {
+          "name": "pass_policy.0.bias",
+          "shape": [
+            64
+          ],
+          "offset": 58817,
+          "length": 64
+        },
+        {
+          "name": "pass_policy.2.weight",
+          "shape": [
+            1,
+            64
+          ],
+          "offset": 58881,
+          "length": 64
+        },
+        {
+          "name": "pass_policy.2.bias",
+          "shape": [
+            1
+          ],
+          "offset": 58945,
+          "length": 1
+        },
+        {
+          "name": "value_head.0.weight",
+          "shape": [
+            64,
+            64
+          ],
+          "offset": 58946,
+          "length": 4096
+        },
+        {
+          "name": "value_head.0.bias",
+          "shape": [
+            64
+          ],
+          "offset": 63042,
+          "length": 64
+        },
+        {
+          "name": "value_head.2.weight",
+          "shape": [
+            1,
+            64
+          ],
+          "offset": 63106,
+          "length": 64
+        },
+        {
+          "name": "value_head.2.bias",
+          "shape": [
+            1
+          ],
+          "offset": 63170,
+          "length": 1
+        }
+      ]
+    }
+  ]
+}

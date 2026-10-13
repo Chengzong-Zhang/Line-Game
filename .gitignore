@@ -95,3 +95,7 @@ Thumbs.db
 *.fls
 *.out
 *.synctex.gz
+
+# Browser model exports are release assets, not Git source binaries.
+web/web前端/assets/research-ai/*.f32
+web/web前端/assets/research-ai/transfer-v1/*.f32

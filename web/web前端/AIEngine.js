@@ -322,4 +322,169 @@ class MinimaxAI {
   }
 }
 
-export { MinimaxAI, evaluate, fastTerritoryBFS, saveState, restoreState };
+class GreedyAI {
+  getLegalMoves(engine, player) {
+    return engine.getLegalMoves(player).map((move) => move.point);
+  }
+
+  orderMoves(engine, moves, player) {
+    return orderMoves(engine, moves, player);
+  }
+
+  getTopMoves(engine, aiPlayer, topN = 5) {
+    const previousReplayFlag = engine._isReplayingBatch;
+    engine._isReplayingBatch = true;
+    try {
+      const legalMoves = this.getLegalMoves(engine, aiPlayer);
+      if (legalMoves.length === 0) {
+        return [];
+      }
+
+      const ordered = this.orderMoves(engine, legalMoves, aiPlayer);
+      const scoredMoves = [];
+      for (const point of ordered) {
+        const snapshot = saveState(engine);
+        const applied = applyMoveForAI(engine, point, true);
+        if (applied) {
+          scoredMoves.push({ point, score: evaluate(engine, aiPlayer) });
+        }
+        restoreState(engine, snapshot);
+      }
+
+      scoredMoves.sort((a, b) => b.score - a.score);
+      return scoredMoves.slice(0, topN);
+    } finally {
+      engine._isReplayingBatch = previousReplayFlag;
+    }
+  }
+}
+
+class MCTSAI {
+  constructor({ simulations = 64, rolloutDepth = 40, exploration = Math.SQRT2, seed = 0x1f123bb5 } = {}) {
+    this.simulations = simulations;
+    this.rolloutDepth = rolloutDepth;
+    this.exploration = exploration;
+    this.seed = seed >>> 0;
+  }
+
+  getLegalMoves(engine, player) {
+    return engine.getLegalMoves(player).map((move) => move.point);
+  }
+
+  nextRandom() {
+    this.seed = (Math.imul(this.seed, 1664525) + 1013904223) >>> 0;
+    return this.seed / 0x100000000;
+  }
+
+  selectChild(node, rootPlayer) {
+    const logParent = Math.log(Math.max(1, node.visits));
+    const actorSign = node.playerToAct === rootPlayer ? 1 : -1;
+    let bestScore = Number.NEGATIVE_INFINITY;
+    let bestChildren = [];
+    for (const child of node.children.values()) {
+      const exploitation = actorSign * (child.valueSum / Math.max(1, child.visits));
+      const exploration = this.exploration * Math.sqrt(logParent / child.visits);
+      const score = exploitation + exploration;
+      if (score > bestScore + 1e-12) {
+        bestScore = score;
+        bestChildren = [child];
+      } else if (Math.abs(score - bestScore) <= 1e-12) {
+        bestChildren.push(child);
+      }
+    }
+    return bestChildren[Math.floor(this.nextRandom() * bestChildren.length)];
+  }
+
+  applyRandomMove(engine, point) {
+    return applyMoveForAI(engine, point, false);
+  }
+
+  rollout(engine, rootPlayer) {
+    for (let step = 0; step < this.rolloutDepth && !engine.gameOver; step += 1) {
+      const legalMoves = this.getLegalMoves(engine, engine.currentPlayer);
+      if (!legalMoves.length) {
+        engine.skipTurn();
+        continue;
+      }
+      const point = legalMoves[Math.floor(this.nextRandom() * legalMoves.length)];
+      if (!this.applyRandomMove(engine, point)) {
+        break;
+      }
+    }
+    // MCTS needs a bounded value even for a non-terminal rollout.  The value
+    // is intentionally called rollout value in the UI; it is not a win rate.
+    return Math.tanh(evaluate(engine, rootPlayer) / 100);
+  }
+
+  getTopMoves(engine, aiPlayer, topN = 5) {
+    const previousReplayFlag = engine._isReplayingBatch;
+    engine._isReplayingBatch = true;
+    try {
+      const rootActions = this.getLegalMoves(engine, aiPlayer);
+      if (!rootActions.length) return [];
+
+      const rootSnapshot = saveState(engine);
+      const root = {
+        playerToAct: aiPlayer,
+        parent: null,
+        action: null,
+        unexpandedActions: rootActions.map((point) => [...point]),
+        children: new Map(),
+        visits: 0,
+        valueSum: 0,
+      };
+
+      try {
+        for (let simulation = 0; simulation < this.simulations; simulation += 1) {
+          restoreState(engine, rootSnapshot);
+          let node = root;
+
+          while (!engine.gameOver && !node.unexpandedActions.length && node.children.size) {
+            node = this.selectChild(node, aiPlayer);
+            if (!this.applyRandomMove(engine, node.action)) break;
+          }
+
+          if (!engine.gameOver && node.unexpandedActions.length) {
+            const index = Math.floor(this.nextRandom() * node.unexpandedActions.length);
+            const [action] = node.unexpandedActions.splice(index, 1);
+            if (this.applyRandomMove(engine, action)) {
+              const child = {
+                playerToAct: engine.currentPlayer,
+                parent: node,
+                action,
+                unexpandedActions: this.getLegalMoves(engine, engine.currentPlayer),
+                children: new Map(),
+                visits: 0,
+                valueSum: 0,
+              };
+              node.children.set(pointKey(action), child);
+              node = child;
+            }
+          }
+
+          const value = this.rollout(engine, aiPlayer);
+          for (let cursor = node; cursor; cursor = cursor.parent) {
+            cursor.visits += 1;
+            cursor.valueSum += value;
+          }
+        }
+      } finally {
+        restoreState(engine, rootSnapshot);
+      }
+
+      return rootActions
+        .map((point) => {
+          const child = root.children.get(pointKey(point));
+          const visits = child?.visits ?? 0;
+          const meanValue = visits ? child.valueSum / visits : 0;
+          return { point, score: meanValue, visits, meanValue };
+        })
+        .sort((a, b) => b.visits - a.visits || b.meanValue - a.meanValue)
+        .slice(0, topN);
+    } finally {
+      engine._isReplayingBatch = previousReplayFlag;
+    }
+  }
+}
+
+export { GreedyAI, MCTSAI, MinimaxAI, evaluate, fastTerritoryBFS, saveState, restoreState };

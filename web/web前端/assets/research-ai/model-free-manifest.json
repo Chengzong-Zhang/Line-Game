@@ -1,0 +1,490 @@
+{
+  "schema": {
+    "name": "lifeline-web-model-free",
+    "version": 1
+  },
+  "export_format": "little-endian-f32-state-dict",
+  "models": [
+    {
+      "id": "dqn-all-sizes-e2000",
+      "label": "DQN · 5–15",
+      "model_family": "dqn",
+      "browser_inference": {
+        "player_count": 2,
+        "board_size_range": [
+          5,
+          15
+        ],
+        "evidence": "trained_checkpoint"
+      },
+      "trained_board_sizes": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "asset": "dqn-all-sizes-e2000.f32",
+      "asset_sha256": "16f50c330ad7cc239cfb0b2334538817c7c0d6cf4c01f6048b05c9ee4a9466eb",
+      "checkpoint_sha256": "a49336876e14c29221a68bebe17c003f795ffd2aa7d771ced87b1801b1293681",
+      "float_count": 756345,
+      "state_dimension": 842,
+      "action_count": 121,
+      "head": "q",
+      "tensors": [
+        {
+          "name": "layers.0.weight",
+          "shape": [
+            512,
+            842
+          ],
+          "offset": 0,
+          "length": 431104
+        },
+        {
+          "name": "layers.0.bias",
+          "shape": [
+            512
+          ],
+          "offset": 431104,
+          "length": 512
+        },
+        {
+          "name": "layers.2.weight",
+          "shape": [
+            512,
+            512
+          ],
+          "offset": 431616,
+          "length": 262144
+        },
+        {
+          "name": "layers.2.bias",
+          "shape": [
+            512
+          ],
+          "offset": 693760,
+          "length": 512
+        },
+        {
+          "name": "layers.4.weight",
+          "shape": [
+            121,
+            512
+          ],
+          "offset": 694272,
+          "length": 61952
+        },
+        {
+          "name": "layers.4.bias",
+          "shape": [
+            121
+          ],
+          "offset": 756224,
+          "length": 121
+        }
+      ]
+    },
+    {
+      "id": "ppo-all-sizes-e2000",
+      "label": "Maskable PPO · 5–15",
+      "model_family": "ppo",
+      "browser_inference": {
+        "player_count": 2,
+        "board_size_range": [
+          5,
+          15
+        ],
+        "evidence": "trained_checkpoint"
+      },
+      "trained_board_sizes": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "asset": "ppo-all-sizes-e2000.f32",
+      "asset_sha256": "af41359ca0ee00b3be86a2f5b9363a513af942f6cfa0c50f31cb0f252c86de85",
+      "checkpoint_sha256": "88ba466a144b3db95e71f981e837579ee2f30e8c893599f8f39f179df13433af",
+      "float_count": 756858,
+      "state_dimension": 842,
+      "action_count": 121,
+      "head": "policy",
+      "tensors": [
+        {
+          "name": "body.0.weight",
+          "shape": [
+            512,
+            842
+          ],
+          "offset": 0,
+          "length": 431104
+        },
+        {
+          "name": "body.0.bias",
+          "shape": [
+            512
+          ],
+          "offset": 431104,
+          "length": 512
+        },
+        {
+          "name": "body.2.weight",
+          "shape": [
+            512,
+            512
+          ],
+          "offset": 431616,
+          "length": 262144
+        },
+        {
+          "name": "body.2.bias",
+          "shape": [
+            512
+          ],
+          "offset": 693760,
+          "length": 512
+        },
+        {
+          "name": "policy.weight",
+          "shape": [
+            121,
+            512
+          ],
+          "offset": 694272,
+          "length": 61952
+        },
+        {
+          "name": "policy.bias",
+          "shape": [
+            121
+          ],
+          "offset": 756224,
+          "length": 121
+        },
+        {
+          "name": "value.weight",
+          "shape": [
+            1,
+            512
+          ],
+          "offset": 756345,
+          "length": 512
+        },
+        {
+          "name": "value.bias",
+          "shape": [
+            1
+          ],
+          "offset": 756857,
+          "length": 1
+        }
+      ]
+    },
+    {
+      "id": "sac-all-sizes-e2000",
+      "label": "Discrete SAC · 5–15",
+      "model_family": "sac",
+      "browser_inference": {
+        "player_count": 2,
+        "board_size_range": [
+          5,
+          15
+        ],
+        "evidence": "trained_checkpoint"
+      },
+      "trained_board_sizes": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "asset": "sac-all-sizes-e2000.f32",
+      "asset_sha256": "63a1b80b456427a2545a31ff9af209fdde1f9cf8d41ae6984f36c09c116932bd",
+      "checkpoint_sha256": "868a3457dff563d4d20e9c36b92d3114f253315eec194d7b64f97b20dc00ff8e",
+      "float_count": 756345,
+      "state_dimension": 842,
+      "action_count": 121,
+      "head": "policy",
+      "tensors": [
+        {
+          "name": "body.0.weight",
+          "shape": [
+            512,
+            842
+          ],
+          "offset": 0,
+          "length": 431104
+        },
+        {
+          "name": "body.0.bias",
+          "shape": [
+            512
+          ],
+          "offset": 431104,
+          "length": 512
+        },
+        {
+          "name": "body.2.weight",
+          "shape": [
+            512,
+            512
+          ],
+          "offset": 431616,
+          "length": 262144
+        },
+        {
+          "name": "body.2.bias",
+          "shape": [
+            512
+          ],
+          "offset": 693760,
+          "length": 512
+        },
+        {
+          "name": "head.weight",
+          "shape": [
+            121,
+            512
+          ],
+          "offset": 694272,
+          "length": 61952
+        },
+        {
+          "name": "head.bias",
+          "shape": [
+            121
+          ],
+          "offset": 756224,
+          "length": 121
+        }
+      ]
+    },
+    {
+      "id": "gail-all-sizes",
+      "label": "GAIL · greedy-expert adversarial policy",
+      "model_family": "gail",
+      "browser_inference": {
+        "player_count": 2,
+        "board_size_range": [
+          5,
+          15
+        ],
+        "evidence": "trained_checkpoint"
+      },
+      "trained_board_sizes": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "asset": "gail-all-sizes.f32",
+      "asset_sha256": "5951e4e3f057893275df6f44543f3747cd4275a616d52a5b8355e51760faea71",
+      "checkpoint_sha256": "fbd053d916355d17f22845f421b7eebd25995c04f21ffb790f906ca83701d860",
+      "float_count": 756858,
+      "state_dimension": 842,
+      "action_count": 121,
+      "head": "policy",
+      "tensors": [
+        {
+          "name": "body.0.weight",
+          "shape": [
+            512,
+            842
+          ],
+          "offset": 0,
+          "length": 431104
+        },
+        {
+          "name": "body.0.bias",
+          "shape": [
+            512
+          ],
+          "offset": 431104,
+          "length": 512
+        },
+        {
+          "name": "body.2.weight",
+          "shape": [
+            512,
+            512
+          ],
+          "offset": 431616,
+          "length": 262144
+        },
+        {
+          "name": "body.2.bias",
+          "shape": [
+            512
+          ],
+          "offset": 693760,
+          "length": 512
+        },
+        {
+          "name": "policy.weight",
+          "shape": [
+            121,
+            512
+          ],
+          "offset": 694272,
+          "length": 61952
+        },
+        {
+          "name": "policy.bias",
+          "shape": [
+            121
+          ],
+          "offset": 756224,
+          "length": 121
+        },
+        {
+          "name": "value.weight",
+          "shape": [
+            1,
+            512
+          ],
+          "offset": 756345,
+          "length": 512
+        },
+        {
+          "name": "value.bias",
+          "shape": [
+            1
+          ],
+          "offset": 756857,
+          "length": 1
+        }
+      ]
+    },
+    {
+      "id": "gan-all-sizes",
+      "label": "Conditional GAN · greedy-expert policy",
+      "model_family": "gan",
+      "browser_inference": {
+        "player_count": 2,
+        "board_size_range": [
+          5,
+          15
+        ],
+        "evidence": "trained_checkpoint"
+      },
+      "trained_board_sizes": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "asset": "gan-all-sizes.f32",
+      "asset_sha256": "63629d0027afb8ff2fdbc3e773be420c062361b315741d8371e47818c4ec30e5",
+      "checkpoint_sha256": "5bc8066fce12da48dddbac62c651f4b7ffa357033a1e239eb514288ecfb0b8da",
+      "float_count": 756858,
+      "state_dimension": 842,
+      "action_count": 121,
+      "head": "policy",
+      "tensors": [
+        {
+          "name": "body.0.weight",
+          "shape": [
+            512,
+            842
+          ],
+          "offset": 0,
+          "length": 431104
+        },
+        {
+          "name": "body.0.bias",
+          "shape": [
+            512
+          ],
+          "offset": 431104,
+          "length": 512
+        },
+        {
+          "name": "body.2.weight",
+          "shape": [
+            512,
+            512
+          ],
+          "offset": 431616,
+          "length": 262144
+        },
+        {
+          "name": "body.2.bias",
+          "shape": [
+            512
+          ],
+          "offset": 693760,
+          "length": 512
+        },
+        {
+          "name": "policy.weight",
+          "shape": [
+            121,
+            512
+          ],
+          "offset": 694272,
+          "length": 61952
+        },
+        {
+          "name": "policy.bias",
+          "shape": [
+            121
+          ],
+          "offset": 756224,
+          "length": 121
+        },
+        {
+          "name": "value.weight",
+          "shape": [
+            1,
+            512
+          ],
+          "offset": 756345,
+          "length": 512
+        },
+        {
+          "name": "value.bias",
+          "shape": [
+            1
+          ],
+          "offset": 756857,
+          "length": 1
+        }
+      ]
+    }
+  ]
+}

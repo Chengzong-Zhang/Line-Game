@@ -1,5 +1,5 @@
 import GameEngine, { Player, TerritoryRulesVersion } from "./GameEngine.js?v=20260910c";
-import Renderer from "./Renderer.js?v=20260910c";
+import Renderer from "./Renderer.js?v=20261013b";
 import { ServerEvent } from "./NetworkManager.js?v=20260430d";
 import { serializeEngineState } from "./AIStateProtocol.js?v=20260910c";
 import {
@@ -71,6 +71,7 @@ export class GameController {
     this._engineEpoch = 1;
     this.stateChangeListener = typeof options.onStateChange === "function" ? options.onStateChange : null;
     this.networkErrorListener = typeof options.onNetworkError === "function" ? options.onNetworkError : null;
+    this.actionFeedbackListener = typeof options.onActionFeedback === "function" ? options.onActionFeedback : null;
 
     this.multiplayerEnabled = false;
     this.localPlayer = null;
@@ -78,6 +79,8 @@ export class GameController {
     this.opponentConnected = false;
     this.networkManager = null;
     this.lastAction = null;
+    this.inspectionOverlay = null;
+    this.readOnlyMode = false;
     this._networkUnsubscribers = [];
     this._authoritativeSnapshotValid = true;
 
@@ -226,6 +229,7 @@ export class GameController {
       ...snapshot,
       renderEpoch: this._engineEpoch,
       lastAction: this._cloneLastAction(),
+      inspectionOverlay: this.inspectionOverlay,
     });
     this._syncCanvasInteractivity(snapshot);
     this._emitStateChange(snapshot);
@@ -250,6 +254,42 @@ export class GameController {
 
   setNetworkErrorListener(listener) {
     this.networkErrorListener = typeof listener === "function" ? listener : null;
+  }
+
+  setActionFeedbackListener(listener) {
+    this.actionFeedbackListener = typeof listener === "function" ? listener : null;
+  }
+
+  setReadOnlyMode(enabled = false) {
+    this.readOnlyMode = Boolean(enabled);
+    const snapshot = this.engine.getSnapshot();
+    const state = this._buildGameState(snapshot);
+    this._syncCanvasInteractivity(snapshot, state);
+    this._emitStateChange(snapshot, state);
+    return state;
+  }
+
+  setInspectionOverlay(overlay = null) {
+    if (!overlay) {
+      this.inspectionOverlay = null;
+    } else {
+      this.inspectionOverlay = {
+        selectedPoint: isGridPoint(overlay.selectedPoint) ? clonePoint(overlay.selectedPoint) : null,
+        capturedPoints: Array.isArray(overlay.capturedPoints)
+          ? overlay.capturedPoints.filter(isGridPoint).map(clonePoint)
+          : [],
+        addedEdges: Array.isArray(overlay.addedEdges)
+          ? overlay.addedEdges
+            .filter((item) => item && typeof item.edge === "string")
+            .map((item) => ({ player: item.player, edge: item.edge }))
+          : [],
+      };
+    }
+    this._syncSnapshot(this.engine.getSnapshot(), {
+      forceRender: true,
+      scheduleTerritory: false,
+    });
+    return this.inspectionOverlay;
   }
 
   setGameConfig(engineOptions = {}, reset = true) {
@@ -456,9 +496,10 @@ export class GameController {
 
   _getCanvasRelativePosition(clientX, clientY) {
     const rect = this.canvas.getBoundingClientRect();
+    const layout = this.renderer.layout;
     return {
-      x: clientX - rect.left,
-      y: clientY - rect.top,
+      x: (clientX - rect.left) * ((layout?.cssWidth ?? rect.width) / (rect.width || 1)),
+      y: (clientY - rect.top) * ((layout?.cssHeight ?? rect.height) / (rect.height || 1)),
     };
   }
 
@@ -498,6 +539,10 @@ export class GameController {
   }
 
   _getInteractionLockReason(snapshot = this.engine.getSnapshot()) {
+    if (this.readOnlyMode) {
+      return "READ_ONLY_REPLAY";
+    }
+
     if (snapshot.gameOver) {
       return "GAME_OVER";
     }
@@ -593,6 +638,7 @@ export class GameController {
       ...snapshot,
       renderEpoch: this._engineEpoch,
       lastAction: this._cloneLastAction(),
+      inspectionOverlay: this.inspectionOverlay,
     }, { force: forceRender });
     this._syncCanvasInteractivity(snapshot);
     this._emitStateChange(snapshot);
@@ -614,6 +660,14 @@ export class GameController {
       this._syncSnapshot(result.snapshot);
     }
 
+    this._emitActionFeedback({
+      type: "move",
+      success: result.success,
+      reason: result.reason,
+      player: actingPlayer,
+      point: normalizedPoint,
+    });
+
     return {
       success: result.success,
       reason: result.reason,
@@ -629,6 +683,15 @@ export class GameController {
     }
 
     console.error(error);
+  }
+
+  _emitActionFeedback(feedback) {
+    if (this.actionFeedbackListener) {
+      this.actionFeedbackListener({
+        ...feedback,
+        point: Array.isArray(feedback?.point) ? [...feedback.point] : null,
+      });
+    }
   }
 
   async _syncLocalMove(point) {
@@ -647,6 +710,7 @@ export class GameController {
     const snapshot = this.engine.getSnapshot();
     const lockReason = this._getInteractionLockReason(snapshot);
     if (lockReason) {
+      this._emitActionFeedback({ type: "move", success: false, reason: lockReason, point: null });
       return {
         success: false,
         reason: lockReason,
@@ -657,6 +721,7 @@ export class GameController {
     const relative = this._getCanvasRelativePosition(clientX, clientY);
     const point = this._findNearestGridPoint(relative.x, relative.y);
     if (!point) {
+      this._emitActionFeedback({ type: "move", success: false, reason: "MISS", point: null });
       return {
         success: false,
         reason: "MISS",
@@ -932,6 +997,7 @@ export class GameController {
           ...previousSnapshot,
           renderEpoch: this._engineEpoch,
           lastAction: this._cloneLastAction(),
+          inspectionOverlay: this.inspectionOverlay,
         });
       } catch {
         // The original controller state is restored even if renderer recovery
@@ -966,6 +1032,13 @@ export class GameController {
       });
       this._syncSnapshot(result.snapshot);
     }
+    this._emitActionFeedback({
+      type: "skip",
+      success: result.success,
+      reason: result.reason,
+      player: actingPlayer,
+      point: null,
+    });
     return {
       success: result.success,
       reason: result.reason,
@@ -1076,6 +1149,13 @@ export class GameController {
       });
       this._syncSnapshot(result.snapshot);
     }
+    this._emitActionFeedback({
+      type: "resign",
+      success: result.success,
+      reason: result.reason,
+      player: targetPlayer,
+      point: null,
+    });
     return {
       success: result.success,
       reason: result.reason,
