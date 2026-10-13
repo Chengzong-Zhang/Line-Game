@@ -1,0 +1,83 @@
+{
+  "release_id": "web-ai-transfer-v1-20261013",
+  "date": "2026-10-13",
+  "timezone": "Asia/Shanghai",
+  "status": "PREPARED_NOT_DEPLOYED",
+  "research_evidence": "PILOT_ONLY / COMPATIBILITY_TRIAL",
+  "formal_ready": false,
+  "automatic": [
+    {
+      "name": "verify-research-worker",
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-research-worker.mjs",
+      "exit_code": 0,
+      "output": "verify-research-worker: PASS (9 models, identity echoes, errors, preserved source)\n"
+    },
+    {
+      "name": "verify-ai-control-flow",
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-ai-control-flow.mjs",
+      "exit_code": 0,
+      "output": "{\n  \"witness\": \"CONTROL-SKIP\",\n  \"maxContinuation\": {\n    \"rootPlayer\": \"WHITE\",\n    \"rootMoves\": [\n      [\n        2,\n        0\n      ],\n      [\n        3,\n        0\n      ],\n      [\n        3,\n        1\n      ],\n      [\n        0,\n        2\n      ]\n    ],\n    \"scores\": [\n      [\n        \"0,2\",\n        376\n      ],\n      [\n        \"2,0\",\n        376\n      ],\n      [\n        \"3,0\",\n        303\n      ],\n      [\n        \"3,1\",\n        376\n      ]\n    ]\n  },\n  \"minContinuation\": {\n    \"rootPlayer\": \"WHITE\",\n    \"rootMoves\": [\n      [\n        2,\n        2\n      ],\n      [\n        1,\n        3\n      ],\n      [\n        0,\n        4\n      ]\n    ],\n    \"scores\": [\n      [\n        \"0,4\",\n        -289\n      ],\n      [\n        \"1,3\",\n        -289\n      ],\n      [\n        \"2,2\",\n        -4\n      ]\n    ]\n  },\n  \"engineStatePreserved\": true\n}\n"
+    },
+    {
+      "name": "verify-ai-comparison",
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-ai-comparison.mjs",
+      "exit_code": 0,
+      "output": "verify-ai-comparison: PASS\n"
+    },
+    {
+      "name": "verify-hint-worker",
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-hint-worker.mjs",
+      "exit_code": 0,
+      "output": "{\n  \"oneShotWorkerLifecycle\": true,\n  \"requestGuardFields\": [\n    \"requestId\",\n    \"engineIdentity\",\n    \"positionRevision\",\n    \"rulesVersion\",\n    \"currentPlayer\"\n  ],\n  \"terminalPaths\": [\n    \"result\",\n    \"empty\",\n    \"error\",\n    \"worker-error\",\n    \"post-message-error\",\n    \"invalid-protocol\",\n    \"stale\",\n    \"cancelled\"\n  ],\n  \"duplicateTerminalIgnored\": true,\n  \"lateResultIsolation\": true\n}\n"
+    },
+    {
+      "name": "verify-online-recovery",
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-online-recovery.mjs",
+      "exit_code": 0,
+      "output": "{\n  \"atomicRecovery\": {\n    \"replayedActions\": 8,\n    \"territoryUpdates\": 1,\n    \"candidateSnapshots\": 1,\n    \"renderCommits\": 1,\n    \"failedReplayPreservedEngine\": true\n  },\n  \"responseOwnership\": {\n    \"registeredResponseEvents\": 2,\n    \"requestResponseApplications\": 2\n  }\n}\n"
+    },
+    {
+      "name": "verify-ai-search-15",
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-ai-search-15.mjs",
+      "exit_code": 0,
+      "output": "{\n  \"fixture\": \"two-player-15-midgame\",\n  \"gridSize\": 15,\n  \"depth\": 2,\n  \"topN\": 5,\n  \"elapsedMs\": 1632.411,\n  \"legalMoveScans\": 21,\n  \"speculativeSnapshotCalls\": 0,\n  \"moves\": [\n    {\n      \"point\": [\n        2,\n        5\n      ],\n      \"score\": 164\n    },\n    {\n      \"point\": [\n        4,\n        3\n      ],\n      \"score\": 156\n    },\n    {\n      \"point\": [\n        3,\n        2\n      ],\n      \"score\": -1502\n    },\n    {\n      \"point\": [\n        3,\n        1\n      ],\n      \"score\": -1605\n    },\n    {\n      \"point\": [\n        4,\n        1\n      ],\n      \"score\": -1605\n    }\n  ],\n  \"ruleStatePreserved\": true,\n  \"replayStatePreserved\": true,\n  \"replayFlagRestoredAfterFailure\": true\n}\n"
+    },
+    {
+      "name": "verify-local-game-session",
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-local-game-session.mjs",
+      "exit_code": 0,
+      "output": "verify-local-game-session: PASS\n"
+    },
+    {
+      "name": "verify-replay-codec",
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-replay-codec.mjs",
+      "exit_code": 0,
+      "output": "verify-replay-codec: PASS\n"
+    },
+    {
+      "name": "verify-territory-v2",
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-territory-v2.mjs",
+      "exit_code": 0,
+      "output": "{\n  \"legacyContract\": {\n    \"degenerateLineArea\": 3,\n    \"mirrorAreas\": [\n      {\n        \"BLACK\": 10,\n        \"WHITE\": 10\n      },\n      {\n        \"BLACK\": 11,\n        \"WHITE\": 10\n      }\n    ]\n  },\n  \"territoryV2\": {\n    \"degenerateLineArea\": 0,\n    \"mirrorAreas\": [\n      {\n        \"BLACK\": 10,\n        \"WHITE\": 11\n      },\n      {\n        \"BLACK\": 11,\n        \"WHITE\": 10\n      }\n    ],\n    \"d3PermutationsVerified\": 6,\n    \"hotPathFixturesVerified\": 4\n  },\n  \"pageContract\": {\n    \"discreteScorePreferred\": true,\n    \"engineReplacementFingerprintVerified\": true,\n    \"isolatedHintLayerVerified\": true,\n    \"controllerSingleSnapshotVerified\": true,\n    \"workerRoundTripVerified\": true,\n    \"staleStateFieldsRoundTripped\": true\n  }\n}\n"
+    },
+    {
+      "name": "verify-territory-worker",
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-territory-worker.mjs",
+      "exit_code": 0,
+      "output": "{\n  \"oneShotTerritoryWorker\": true,\n  \"requestGuardFields\": [\n    \"requestId\",\n    \"engineIdentity\",\n    \"positionRevision\",\n    \"rulesVersion\",\n    \"currentPlayer\",\n    \"territoryStateRevision\",\n    \"gameOver\",\n    \"workerEchoes\"\n  ],\n  \"terminalPaths\": [\n    \"result\",\n    \"stale\",\n    \"cancelled\",\n    \"worker-error\",\n    \"worker-message-error\",\n    \"post-message-error\",\n    \"protocol-error\",\n    \"duplicate-terminal-ignored\"\n  ],\n  \"parityFixtures\": [\n    \"two-player-15-midgame\",\n    \"three-player-15-midgame\"\n  ],\n  \"controllerIntegration\": [\n    \"15x15-default-deferred\",\n    \"accepted-result-forced-render\",\n    \"stale-result-no-render\"\n  ],\n  \"terminalSnapshotRegression\": [\n    \"skip\",\n    \"resign\"\n  ],\n  \"executionBoundary\": \"actual Worker module under a Node self shim; no browser Worker-thread or canvas timing coverage\"\n}\n"
+    },
+    {
+      "name": "verify-research-ai",
+      "command": "node --unhandled-rejections=strict web/web前端/tests/verify-research-ai.mjs",
+      "exit_code": 0,
+      "output": "verify-research-ai: PASS\n{\"status\":\"PASS\",\"models\":9,\"sizes\":[5,15],\"forward_cases\":198,\"puct_cases\":36,\"rule_equivalence\":false,\"strength_evaluated\":false,\"formal_ready\":false}\n"
+    }
+  ],
+  "manual": {
+    "ui_introductions": "18/18 Chinese and English model selections; each has a unique nonempty one-sentence description",
+    "model_titles": "size ranges removed from model buttons, seed options and comparison labels",
+    "mobile": "NOT_RUN",
+    "independent_strength": "NOT_RUN"
+  },
+  "scope": "Current browser AI runtime and its local-session/replay dependencies, exporter source and compact validation; no backend, databases or original checkpoints"
+}
