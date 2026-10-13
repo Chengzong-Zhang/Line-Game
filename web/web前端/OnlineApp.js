@@ -63,6 +63,7 @@ import {
   downloadReplayDocument,
   parseAndValidateReplay,
 } from "./ReplayCodec.js?v=20260921a";
+import { TrainingContribution, ContributionPanel } from "./TrainingContribution.js?v=20261013c";
 
 const {
   computed,
@@ -2874,6 +2875,7 @@ const App = {
     GuideReaderModal,
     ResultModal,
     ReplayPanel,
+    ContributionPanel,
     ReplayInspectorPanel,
     RoomPanel,
     ScorePanel,
@@ -2905,6 +2907,14 @@ const App = {
     const tutorialAttempts = ref(0);
     const tutorialLevelIndex = ref(0);
     const localGameActions = ref(storedLocalGame?.actions ?? []);
+    const contributionState = ref({ enabled: false, pending: 0, status: "off", receipt: null });
+    const contribution = new TrainingContribution({ onChange: (state) => { contributionState.value = state; } });
+    contributionState.value = contribution.snapshot();
+    let contributionContext = null;
+    let contributionAssisted = false;
+    let contributionProfileSignature = null;
+    const retryContributions = () => { void contribution.flush(); };
+    const toggleContributions = (enabled) => { contribution.setEnabled(enabled); contributionContext = null; retryContributions(); };
     const localGamePositionRevision = ref(-1);
     const localGameRestoring = ref(false);
     const localGameResumeNotice = ref("");
@@ -3341,6 +3351,7 @@ const App = {
       cancelAiComparison();
       restartLocalAiWorker();
     });
+    watch(selectedTurnTimerEnabled, () => { if (contributionContext) contributionContext.mixedProfiles = true; });
 
     watch(() => gameState.value.multiplayerEnabled, (multiplayerEnabled) => {
       if (multiplayerEnabled) {
@@ -3484,6 +3495,9 @@ const App = {
 
     const clearSavedLocalGame = () => {
       localGameActions.value = [];
+      contributionContext = null;
+      contributionAssisted = false;
+      contributionProfileSignature = null;
       localGamePositionRevision.value = -1;
       clearLocalGameSession();
     };
@@ -3520,6 +3534,26 @@ const App = {
       if (persistLocalGameSession(nextSession)) {
         localGameActions.value = nextSession.actions;
         localGamePositionRevision.value = nextState.positionRevision;
+        if (contribution.enabled) {
+          const aiPlayer = getAiPlayer();
+          const profile = selectedAiProfile();
+          const aiActor = { kind: "ai" };
+          for (const key of ["strategy", "modelId", "seed", "simulations", "cPuct", "depth"]) {
+            if (profile[key] !== undefined) aiActor[key] = profile[key];
+          }
+          const actors = Object.fromEntries([Player.BLACK, Player.WHITE, ...(selectedPlayerCount.value === 3 ? [Player.PURPLE] : [])]
+            .map((player) => [player, player === aiPlayer ? aiActor : { kind: "human" }]));
+          const signature = JSON.stringify(actors);
+          if (!contributionContext) {
+            contributionContext = { source: "local", actors, mixedProfiles: nextSession.actions.length > 1, hintsEnabled: selectedHintEnabled.value || contributionAssisted };
+            contributionProfileSignature = signature;
+          } else if (signature !== contributionProfileSignature) contributionContext.mixedProfiles = true;
+          contributionContext.hintsEnabled ||= selectedHintEnabled.value || contributionAssisted;
+          if (nextState.gameOver) {
+            void contribution.enqueue(currentGameSettings(), nextSession.actions, contributionContext)
+              .then(retryContributions).catch(() => { contribution.status = "retry"; contribution.save(); });
+          }
+        }
       }
     };
 
@@ -4585,6 +4619,8 @@ const App = {
     };
 
     const requestHint = () => {
+      contributionAssisted = true;
+      if (contributionContext) contributionContext.hintsEnabled = true;
       if (!controller.value || hintDisabled.value) {
         return;
       }
@@ -5501,6 +5537,8 @@ const App = {
 
     onBeforeUnmount(() => {
       terminateAiWorker();
+      contribution.dispose();
+      globalThis.removeEventListener("online", retryContributions);
       cancelHintRequest();
       cancelAiComparison();
       clearActiveHint();
@@ -5523,6 +5561,8 @@ const App = {
 
     onMounted(() => {
       globalThis.addEventListener("keydown", handleEscapeKeydown);
+      globalThis.addEventListener("online", retryContributions);
+      retryContributions();
       if (storedAuth.token && normalizedStoredSession.roomId && normalizedStoredSession.playerId && normalizedStoredSession.url) {
         roomStatus.value = "offline";
         void attemptReconnect();
@@ -5545,6 +5585,9 @@ const App = {
       hintFeedback,
       localGameResumeNotice,
       localGameActions,
+      contributionState,
+      toggleContributions,
+      retryContributions,
       replayDocument,
       replayCursor,
       replayMode,
@@ -5798,6 +5841,7 @@ const App = {
             @exit-review="handleExitReplay"
             @seek="handleSeekReplay"
           />
+          <ContributionPanel :language="language" :state="contributionState" @toggle="toggleContributions" @retry="retryContributions" />
           <ReplayInspectorPanel
             v-if="replayMode"
             :language="language"

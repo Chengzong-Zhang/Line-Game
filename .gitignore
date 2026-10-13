@@ -38,12 +38,16 @@ phase4-check.png
 smoke-test.png
 *.db
 *.db-journal
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
 
 # Generated submission archives and demo recordings
 submission/*.zip
 submission/**/*.mp4
 /*.mp4
 /local_artifacts/
+/web/training-data/
 
 # Local-only candidate evidence, source packages, and reproducible paper QA.
 /research/iclr2027/paper/iclr-2027-style-files.zip

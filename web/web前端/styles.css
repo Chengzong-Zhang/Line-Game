@@ -3124,3 +3124,5 @@ body.large-board .result-overlay {
   vertical-align: middle;
   flex-shrink: 0;
 }
+ .training-contribution-toggle { display: flex; align-items: center; gap: .65rem; min-height: 44px; cursor: pointer; }
+ .training-contribution-toggle input { width: 20px; height: 20px; flex: none; }

@@ -1514,6 +1514,11 @@ class ConnectionManager:
 
 
 app = FastAPI(title="TriAxis Relay Server")
+try:
+    from .training_contributions import create_router as create_training_router
+except ImportError:
+    from training_contributions import create_router as create_training_router
+app.include_router(create_training_router())
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

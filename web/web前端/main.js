@@ -3,7 +3,7 @@ const VUE_CDN_URLS = [
   "https://unpkg.com/vue@3/dist/vue.global.prod.js",
   "https://fastly.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js",
 ];
-const APP_ASSET_VERSION = "20261013b";
+const APP_ASSET_VERSION = "20261013c";
 
 // main.js 只做两件事：
 // 1. 确保浏览器拿到 Vue 运行时
