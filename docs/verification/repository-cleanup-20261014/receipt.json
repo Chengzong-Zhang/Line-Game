@@ -1,0 +1,38 @@
+{
+  "date": "2026-10-14T13:06:02.9470764+08:00",
+  "base_commit": "a23ebd763868f9fd63b657d628c8eadacfcf2705",
+  "scope": "legacy-submission-and-generated-temporary-files",
+  "user_test_scope": "temporary-generated-files-only",
+  "status": "PASS_CURRENT_CLEANUP",
+  "tracked_submission_files_removed": 50,
+  "local_directories_recycled": 34,
+  "local_files_recycled": 3216.0,
+  "local_bytes_recycled": 727782630.0,
+  "retained_test_source_and_fixture_files": 92,
+  "original_non_submission_files_verified_unchanged_before_metadata_updates": 582,
+  "preserved_reference_and_replay_files": 2,
+  "runtime_assets_verified": 75,
+  "runtime_asset_version": "20261013-sync1",
+  "checks": [
+    {
+      "command": [
+        "node",
+        "--unhandled-rejections=strict",
+        "web/web前端/tests/verify-local-player-setup.mjs"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "node",
+        "--unhandled-rejections=strict",
+        "web/web前端/tests/verify-replay-codec.mjs"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "restore_commit": "a23ebd763868f9fd63b657d628c8eadacfcf2705",
+  "local_recovery": "Windows Recycle Bin",
+  "formal_evidence_changed": false,
+  "history_rewritten": false
+}

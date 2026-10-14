@@ -39,9 +39,8 @@ smoke-test.png
 *.db
 *.db-journal
 
-# Generated submission archives and demo recordings
-submission/*.zip
-submission/**/*.mp4
+# Retired course submission copies and generated demo recordings
+/submission/
 /*.mp4
 /local_artifacts/
 /line-game-ai-search-publish-20260910/

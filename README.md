@@ -247,6 +247,8 @@ node "web/web前端/tests/benchmark-territory.mjs"
 ## 版本管理与实验产物
 
 - 源码、测试、配置、协议、聚合结果和验证收据进入 Git。
+- 旧课程提交副本 `submission/` 已移除；运行和维护直接使用 `core algorithm/`、`web/` 与 `research/` 中的源码。
+- 自动化回归测试保留，测试临时目录、编译缓存及重复渲染产物在检查完成后清理。
 - 模型检查点、逐局 JSONL、smoke/pilot、中间任务目录、缓存和日志默认只保留在本机。
 - 推送前检查暂存差异、敏感信息、大文件并运行相关测试。
 - 详细协作与版本管理约定见 [`AGENTS.md`](./AGENTS.md)，研究结果边界见
