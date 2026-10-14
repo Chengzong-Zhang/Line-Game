@@ -1664,6 +1664,13 @@ html[data-ui-style="academic"] #ui-style-select .language-button.is-active {
   max-width: none;
 }
 
+.guide-inline-link {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  overflow-wrap: anywhere;
+}
+
 .guide-inline-code {
   padding: 0.08em 0.42em;
   border-radius: 0.4em;

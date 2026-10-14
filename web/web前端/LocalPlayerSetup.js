@@ -1,5 +1,5 @@
-import { LOCAL_PLAYER_CHOICES, normalizeLocalPlayers } from "./LocalAIModes.js?v=20261013-sync1";
-import { RESEARCH_FAMILIES, TRANSFER_SEEDS } from "./ResearchAIOptions.js?v=20261013-sync1";
+import { LOCAL_PLAYER_CHOICES, normalizeLocalPlayers } from "./LocalAIModes.js?v=20261014-code1";
+import { RESEARCH_FAMILIES, TRANSFER_SEEDS } from "./ResearchAIOptions.js?v=20261014-code1";
 
 export default {
   name: "LocalPlayerSetup",

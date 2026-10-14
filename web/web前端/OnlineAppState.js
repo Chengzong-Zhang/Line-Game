@@ -1,4 +1,4 @@
-import { Player, TerritoryRulesVersion } from "./GameEngine.js?v=20261013-sync1";
+import { Player, TerritoryRulesVersion } from "./GameEngine.js?v=20261014-code1";
 
 // 杩欎釜鏂囦欢涓撻棬瀛樻斁鈥滃彲澶嶇敤鐨勫墠绔姸鎬佸伐鍏封€濓紝
 // 閬垮厤 OnlineApp.js 鍐嶆鑶ㄨ儉鎴愪竴涓秴澶у伐鍏风鏂囦欢銆?

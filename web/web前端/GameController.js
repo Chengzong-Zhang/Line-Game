@@ -1,11 +1,11 @@
-import GameEngine, { Player, TerritoryRulesVersion } from "./GameEngine.js?v=20261013-sync1";
-import Renderer from "./Renderer.js?v=20261013-sync1";
-import { ServerEvent } from "./NetworkManager.js?v=20261013-sync1";
-import { serializeEngineState } from "./AIStateProtocol.js?v=20261013-sync1";
+import GameEngine, { Player, TerritoryRulesVersion } from "./GameEngine.js?v=20261014-code1";
+import Renderer from "./Renderer.js?v=20261014-code1";
+import { ServerEvent } from "./NetworkManager.js?v=20261014-code1";
+import { serializeEngineState } from "./AIStateProtocol.js?v=20261014-code1";
 import {
   OneShotTerritoryWorker,
   applyTerritoryWorkerResult,
-} from "./TerritoryWorkerSession.js?v=20261013-sync1";
+} from "./TerritoryWorkerSession.js?v=20261014-code1";
 
 // GameController 鏄墠绔殑鈥滆兌姘村眰鈥濓細
 // 瀹冩妸 Model(GameEngine)銆乂iew(Renderer) 鍜岃仈鏈哄眰(NetworkManager) 涓茶捣鏉ワ紝
@@ -57,7 +57,7 @@ export class GameController {
       ? options.createTerritoryWorker
       : (typeof globalThis.Worker === "function"
         ? () => new globalThis.Worker(
-            new URL("./TerritoryWorker.js?v=20261013-sync1", import.meta.url),
+            new URL("./TerritoryWorker.js?v=20261014-code1", import.meta.url),
             { type: "module" },
           )
         : null);

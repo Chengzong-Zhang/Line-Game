@@ -24,56 +24,7 @@ const WHY_TALK_ZH = `# Talk：扩张、防守与破绽
 
 所以，这个游戏不是单纯的占点竞赛。它要求玩家在效率、闭合、桥、割点、战线长度和后续空间之间寻找均衡。妙处不在规则复杂，而在规则把所有逃避都封死了：你必须扩张，也必须暴露；你必须防守，也必须留下空间。`;
 
-const WHY_CODE_ZH = `# Code：物理与逻辑的优雅分离
-
-工程实现的关键不是把棋盘画出来，而是承认棋盘有两层事实。
-
-* 物理层是 \`grid\`：每个格点现在显示为空、节点或线点。
-* 逻辑层是 \`adj_list / edges\`：哪些节点之间真的存在可见性边。
-
-这两层必须分开。渲染只需要 \`grid\`；连通性判断必须查询逻辑边；攻击结算则先改变物理层，再清理和重建逻辑层。
-
-\`\`\`python
-# 物理层：负责渲染和占用状态
-grid: dict[tuple[int, int], PointState]
-
-# 逻辑层：负责图论连通性
-black_edges: set[frozenset[tuple[int, int]]]
-white_edges: set[frozenset[tuple[int, int]]]
-
-def is_connected_to_initial(pos, player):
-    adj_list = build_adj_list(edges[player])
-    return bfs(adj_list, start=initial[player], target=pos)
-\`\`\`
-
-## 攻击结算
-
-一次落在敌方线点上的行动不是简单“覆盖格子”。它会触发一个确定的图重写流程。
-
-\`\`\`python
-def handle_attack(pos, player):
-    delete_enemy_line_cells_from(pos)
-    alive = bfs_component_from_enemy_base(grid)
-    remove_every_enemy_piece_not_in(alive)
-    edges[enemy].clear()
-    reconnect_player_nodes(player)
-    reconnect_player_nodes(enemy)
-\`\`\`
-
-这里的美感在于职责清晰：\`grid\` 记录物理事实，\`edges\` 记录逻辑事实，BFS 只回答一个问题：某个部分是否仍然连回基点。
-
-## 领土计算
-
-领土不是靠浮点几何射线判断，而是靠离散泛洪。
-
-\`\`\`python
-def covered_points(polygon):
-    wall = set(polygon)
-    water = flood_fill_from_board_boundary(blocked=wall)
-    return all_grid_points - water
-\`\`\`
-
-当前前端引擎还做了楔形泛洪优化：当一条候选捷径位于当前领土内部时，只对被替换的楔形区域做一次泛洪，再用整数公式更新候选面积。后端也保持同一逻辑，避免文档和生产规则分裂。`;
+const WHY_CODE_ZH = "# Code：规则、搜索与可靠状态\n\n源码按 `web/`、`core algorithm/`、`research/` 和 `docs/` 组织。物理 `grid` 记录占用，逻辑 `edges` 决定连通性；Web `territory-v2` 以离散领土结算，Superko 历史属于规则状态。\n\n蓝红双方可独立选择人类或 9 种 AI 策略。搜索与提示使用 Worker，并检查请求和局面归属；棋谱导入先隔离重放，再替换对局。\n\n[项目与完整 Code 文档](https://github.com/Chengzong-Zhang/Line-Game)";
 
 const WHY_THEORY_ZH = `# Theory：算力深渊与上帝的简洁逻辑
 
@@ -166,50 +117,7 @@ With three players, the game becomes even subtler: alliances and counter-allianc
 
 The game is not a simple occupation race. It asks the player to balance efficiency, closure, bridges, articulation points, frontage, and future space.`;
 
-const WHY_CODE_EN = `# Code: Separating Physics from Logic
-
-The implementation works because it keeps two facts separate.
-
-* The physical layer is \`grid\`: what each lattice point currently displays.
-* The logical layer is \`adj_list / edges\`: which nodes are truly connected by visibility edges.
-
-\`\`\`python
-# Physical layer: rendering and occupancy
-grid: dict[tuple[int, int], PointState]
-
-# Logical layer: graph connectivity
-black_edges: set[frozenset[tuple[int, int]]]
-white_edges: set[frozenset[tuple[int, int]]]
-
-def is_connected_to_initial(pos, player):
-    adj_list = build_adj_list(edges[player])
-    return bfs(adj_list, start=initial[player], target=pos)
-\`\`\`
-
-## Attack Resolution
-
-\`\`\`python
-def handle_attack(pos, player):
-    delete_enemy_line_cells_from(pos)
-    alive = bfs_component_from_enemy_base(grid)
-    remove_every_enemy_piece_not_in(alive)
-    edges[enemy].clear()
-    reconnect_player_nodes(player)
-    reconnect_player_nodes(enemy)
-\`\`\`
-
-The elegance is that \`grid\` records physical facts, \`edges\` records logical facts, and BFS answers one question: does this structure still connect to its base?
-
-## Territory
-
-\`\`\`python
-def covered_points(polygon):
-    wall = set(polygon)
-    water = flood_fill_from_board_boundary(blocked=wall)
-    return all_grid_points - water
-\`\`\`
-
-The engine also uses a wedge flood-fill optimization: when a shortcut lies inside the current territory, it flood-fills the replaced wedge once and updates candidate area with an integer formula.`;
+const WHY_CODE_EN = "# Code: Rules, Search, and Reliable State\n\nThe repository is organized into `web/`, `core algorithm/`, `research/`, and `docs/`. Physical `grid` occupancy and logical `edges` serve separate purposes. Web `territory-v2` uses discrete territory scores; Superko history is part of the rule state.\n\nBlue and red independently choose a human or one of nine AI strategies. Worker responses must belong to the current request and position. Replay import validates in an isolated engine before replacing the game.\n\n[Project and full Code documentation](https://github.com/Chengzong-Zhang/Line-Game)";
 
 const WHY_THEORY_EN = `# Theory: A Simple Law, a Deep Search Space
 
@@ -640,7 +548,7 @@ export function ensureGuideRuleImages(key, blocks = [], language = "zh") {
 function tokenizeInline(text) {
   const source = String(text ?? "");
   const tokens = [];
-  const pattern = /(\*\*[^*]+\*\*|`[^`]+`|\$[^$\n]+\$)/g;
+  const pattern = /(\[[^\]\n]+\]\([^\)\n]*\)|\*\*[^*]+\*\*|`[^`]+`|\$[^$\n]+\$)/g;
   let lastIndex = 0;
 
   for (const match of source.matchAll(pattern)) {
@@ -654,7 +562,19 @@ function tokenizeInline(text) {
       });
     }
 
-    if (matchText.startsWith("**") && matchText.endsWith("**")) {
+    if (matchText.startsWith("[")) {
+      const [, label, href] = matchText.match(/^\[([^\]]+)\]\(([^)]*)\)$/) ?? [];
+      let safeHref = null;
+      if (/^https?:\/\//i.test(href ?? "") && !/[\x00-\x20<>"'\\]/.test(href)) {
+        try {
+          const url = new URL(href);
+          if (["http:", "https:"].includes(url.protocol)) safeHref = url.href;
+        } catch (_) { /* Invalid URLs remain plain text. */ }
+      }
+      tokens.push(safeHref
+        ? { type: "link", text: label, href: safeHref }
+        : { type: "text", text: matchText });
+    } else if (matchText.startsWith("**") && matchText.endsWith("**")) {
       tokens.push({
         type: "strong",
         text: matchText.slice(2, -2),
@@ -883,7 +803,7 @@ export function parseGuideMarkdown(raw) {
       index += 1;
       continue;
     }
-    if (/^[^：:]{1,24}[：:]\s*.+$/.test(trimmed)) {
+    if (/^[^：:\[`$]{1,24}[：:]\s*.+$/.test(trimmed)) {
       flushParagraph(paragraphLines);
       const [, label, value] = trimmed.match(/^([^：:]{1,24})[：:]\s*(.+)$/) ?? [];
       blocks.push({

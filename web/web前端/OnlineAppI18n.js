@@ -1,5 +1,5 @@
-import { Player } from "./GameEngine.js?v=20261013-sync1";
-import { ALL_PLAYERS } from "./OnlineAppState.js?v=20261013-sync1";
+import { Player } from "./GameEngine.js?v=20261014-code1";
+import { ALL_PLAYERS } from "./OnlineAppState.js?v=20261014-code1";
 
 // 文案、比分格式化和错误提示都集中放在这里，避免 UI 文件里散落大量字符串。
 
@@ -61,7 +61,7 @@ const EN_TEXTS = Object.freeze({
   guideWhyTalkTitle: "Talk",
   guideWhyTalkSubtitle: "Expansion and fragile supply lines",
   guideWhyCodeTitle: "Code",
-  guideWhyCodeSubtitle: "Physical grid, logical graph",
+  guideWhyCodeSubtitle: "Rules, search, and reliable state",
   guideWhyTheoryTitle: "Theory",
   guideWhyTheorySubtitle: "Quadratic board, cubic visibility",
   guideThanksEyebrow: "Thanks",
@@ -309,7 +309,7 @@ const ZH_TEXTS = Object.freeze({
   guideWhyTalkTitle: "Talk（直觉）",
   guideWhyTalkSubtitle: "扩张与脆弱的战争张力",
   guideWhyCodeTitle: "Code（工程）",
-  guideWhyCodeSubtitle: "物理与逻辑的优雅分离",
+  guideWhyCodeSubtitle: "规则、搜索与可靠状态",
   guideWhyTheoryTitle: "Theory（理论）",
   guideWhyTheorySubtitle: "算力深渊与上帝的简洁逻辑",
   guideThanksEyebrow: "致谢",

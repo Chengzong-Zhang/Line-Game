@@ -1,7 +1,7 @@
 import {
   captureWorkerRequest,
   isWorkerResultForRequest,
-} from "./AIStateProtocol.js?v=20261013-sync1";
+} from "./AIStateProtocol.js?v=20261014-code1";
 
 function noop() {}
 

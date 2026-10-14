@@ -1,4 +1,4 @@
-import { GameEngine, Player, PointState } from "./GameEngine.js?v=20261013-sync1";
+import { GameEngine, Player, PointState } from "./GameEngine.js?v=20261014-code1";
 
 function pointKey(point) {
   return `${point[0]},${point[1]}`;

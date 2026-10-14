@@ -1,4 +1,4 @@
-import { DEFAULT_RESEARCH_VERSION, RESEARCH_FAMILIES, TRANSFER_SEEDS, researchProfile } from "./ResearchAIOptions.js?v=20261013-sync1";
+import { DEFAULT_RESEARCH_VERSION, RESEARCH_FAMILIES, TRANSFER_SEEDS, researchProfile } from "./ResearchAIOptions.js?v=20261014-code1";
 
 export const LOCAL_PLAYER_CHOICES = Object.freeze([
   "human", "minimax", ...RESEARCH_FAMILIES, "dqn", "ppo", "sac", "gail", "gan",

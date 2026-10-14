@@ -1,17 +1,17 @@
-import GameController from "./GameController.js?v=20261013-sync1";
-import { Player } from "./GameEngine.js?v=20261013-sync1";
-import { captureWorkerRequest, isWorkerResultForRequest, serializeEngineState } from "./AIStateProtocol.js?v=20261013-sync1";
-import { RESEARCH_FAMILIES, TRANSFER_SEEDS, researchProfile } from "./ResearchAIOptions.js?v=20261013-sync1";
+import GameController from "./GameController.js?v=20261014-code1";
+import { Player } from "./GameEngine.js?v=20261014-code1";
+import { captureWorkerRequest, isWorkerResultForRequest, serializeEngineState } from "./AIStateProtocol.js?v=20261014-code1";
+import { RESEARCH_FAMILIES, TRANSFER_SEEDS, researchProfile } from "./ResearchAIOptions.js?v=20261014-code1";
 import {
   OneShotHintWorker,
   applyHintWorkerResult,
-} from "./HintWorkerSession.js?v=20261013-sync1";
-import NetworkManager, { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js?v=20261013-sync1";
+} from "./HintWorkerSession.js?v=20261014-code1";
+import NetworkManager, { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js?v=20261014-code1";
 import {
   applyRoomSnapshotWithPostCommit,
   coordinateControllerRoomSnapshot,
   registerRoomSnapshotResponseListeners,
-} from "./OnlineRoomSync.js?v=20261013-sync1";
+} from "./OnlineRoomSync.js?v=20261014-code1";
 import {
   createEmptyAuth as createAppEmptyAuth,
   GRID_SIZE_OPTIONS as APP_GRID_SIZE_OPTIONS,
@@ -28,7 +28,7 @@ import {
   normalizeGameSettings as normalizeAppGameSettings,
   persistAuth as persistAppAuth,
   persistSession as persistAppSession,
-} from "./OnlineAppState.js?v=20261013-sync1";
+} from "./OnlineAppState.js?v=20261014-code1";
 import {
   formatArea as formatAppArea,
   formatConnectionState as formatAppConnectionState,
@@ -42,8 +42,8 @@ import {
   UI_STYLE_STORAGE_KEY,
   UI_STYLE_ACADEMIC,
   localizeErrorMessage as localizeAppErrorMessage,
-} from "./OnlineAppI18n.js?v=20261013-sync1";
-import { ensureGuideRuleImages, getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20261013-sync1";
+} from "./OnlineAppI18n.js?v=20261014-code1";
+import { ensureGuideRuleImages, getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20261014-code1";
 import {
   TUTORIAL_LEVELS,
   getTutorialEngineSettings,
@@ -51,22 +51,22 @@ import {
   getTutorialLevel,
   isTutorialTarget,
   isTutorialRestrictionAttempt,
-} from "./TutorialRunner.js?v=20261013-sync1";
+} from "./TutorialRunner.js?v=20261014-code1";
 import {
   appendLocalGameAction,
   clearLocalGameSession,
   createLocalGameSession,
   loadLocalGameSession,
   persistLocalGameSession,
-} from "./LocalGameSession.js?v=20261013-sync1";
+} from "./LocalGameSession.js?v=20261014-code1";
 import {
   createReplayDocument,
   downloadReplayDocument,
   parseAndValidateReplay,
-} from "./ReplayCodec.js?v=20261013-sync1";
-import { TrainingContribution, ContributionPanel } from "./TrainingContribution.js?v=20261013-sync1";
-import { resolveAIPlayer, localMatchActors, localMatchMode, localPlayerProfile, normalizeLocalPlayers, loadLocalMatchPreferences, persistLocalMatchPreferences } from "./LocalAIModes.js?v=20261013-sync1";
-import LocalPlayerSetup from "./LocalPlayerSetup.js?v=20261013-sync1";
+} from "./ReplayCodec.js?v=20261014-code1";
+import { TrainingContribution, ContributionPanel } from "./TrainingContribution.js?v=20261014-code1";
+import { resolveAIPlayer, localMatchActors, localMatchMode, localPlayerProfile, normalizeLocalPlayers, loadLocalMatchPreferences, persistLocalMatchPreferences } from "./LocalAIModes.js?v=20261014-code1";
+import LocalPlayerSetup from "./LocalPlayerSetup.js?v=20261014-code1";
 
 const {
   computed,
@@ -2273,6 +2273,7 @@ const GuideInlineText = {
       <strong v-if="token.type === 'strong'">{{ token.text }}</strong>
       <span v-else-if="token.type === 'math'" class="guide-inline-math">{{ formatGuideInlineMath(token.text) }}</span>
       <code v-else-if="token.type === 'code'" class="guide-inline-code">{{ token.text }}</code>
+      <a v-else-if="token.type === 'link'" class="guide-inline-link" :href="token.href" target="_blank" rel="noopener noreferrer">{{ token.text }}</a>
       <span v-else>{{ token.text }}</span>
     </template>
   `,
@@ -3043,10 +3044,10 @@ const App = {
     let activeAiRequestId = null;
     let activeAiRequest = null;
     const hintWorkerSession = new OneShotHintWorker(
-      () => new Worker(new URL("./AIWorker.js?v=20261013-sync1", import.meta.url), { type: "module" }),
+      () => new Worker(new URL("./AIWorker.js?v=20261014-code1", import.meta.url), { type: "module" }),
     );
     const aiComparisonWorkerSession = new OneShotHintWorker(
-      () => new Worker(new URL("./AIWorker.js?v=20261013-sync1", import.meta.url), { type: "module" }),
+      () => new Worker(new URL("./AIWorker.js?v=20261014-code1", import.meta.url), { type: "module" }),
     );
     const chatEmojiTimeoutIds = new Set();
 
@@ -3088,7 +3089,7 @@ const App = {
 
     const ensureAiWorker = () => {
       if (!aiWorker && canRunLocalAI()) {
-        aiWorker = new Worker(new URL("./AIWorker.js?v=20261013-sync1", import.meta.url), { type: "module" });
+        aiWorker = new Worker(new URL("./AIWorker.js?v=20261014-code1", import.meta.url), { type: "module" });
         const worker = aiWorker;
         aiWorker.onmessage = (event) => {
           if (event.data?.type !== "RESULT" && event.data?.type !== "ERROR") {
@@ -3247,7 +3248,7 @@ const App = {
           return;
         }
         try {
-          const response = await fetch(`${asset}?v=20260508a`, { cache: "no-cache" });
+          const response = await fetch(`${asset}?v=20261014-code1`, { cache: "no-cache" });
           if (response.ok) {
             nextOverrides[key] = await response.text();
           }

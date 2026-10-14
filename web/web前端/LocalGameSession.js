@@ -1,4 +1,4 @@
-import { LOCAL_PLAYER_CHOICES, normalizeLocalPlayers } from "./LocalAIModes.js?v=20261013-sync1";
+import { LOCAL_PLAYER_CHOICES, normalizeLocalPlayers } from "./LocalAIModes.js?v=20261014-code1";
 
 const LOCAL_GAME_SESSION_FORMAT = "lifeline-local-session";
 export const LOCAL_GAME_SESSION_SCHEMA_VERSION = 1;
