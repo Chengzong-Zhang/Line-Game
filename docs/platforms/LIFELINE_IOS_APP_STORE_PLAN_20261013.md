@@ -16,9 +16,9 @@
 
 补充历史核对（2026-10-13）：已读取本项目聊天“评估小游戏软著申请流程”（聊天 ID：`01a09064-ffc7-7990-9e45-63015c1df071`）。2026-09-11 20:15 用户询问软著可申请性、流程和周期，并提供申请采集表与认证流程；2026-09-12 00:32 用户进一步要求生成申请表草案、说明书大纲和代码材料清单。以下文件本次均已确认仍在本地：
 
-- [申请表草案](../softcopyright/01_申请表草案.md)
-- [软件说明书大纲](../softcopyright/02_软件说明书大纲.md)
-- [代码材料清单](../softcopyright/03_代码材料清单.md)
+- [申请表草案](../../softcopyright/01_%E7%94%B3%E8%AF%B7%E8%A1%A8%E8%8D%89%E6%A1%88.md)
+- [软件说明书大纲](../../softcopyright/02_%E8%BD%AF%E4%BB%B6%E8%AF%B4%E6%98%8E%E4%B9%A6%E5%A4%A7%E7%BA%B2.md)
+- [代码材料清单](../../softcopyright/03_%E4%BB%A3%E7%A0%81%E6%9D%90%E6%96%99%E6%B8%85%E5%8D%95.md)
 
 上述材料是基于当时 Web 主线、`territory-v2` 的 Markdown 准备稿；“生命线三角网格圈地对战软件”“生命线”“V1.0”均为建议值，说明书按约 24 页规划。申请人／著作权人、完成日期和发表情况等仍标注待确认。该聊天没有实名认证成功、正式提交、受理或获证的确认，不能将草稿完成写成登记完成。
 
@@ -47,7 +47,7 @@
 
 基线还需要特别处理：主工作区位于 `codex/territory-v2-page-correctness`，包含大量已有修改和未跟踪源码；当前 HEAD 为 `0c1b5fd`，发布清单关联提交为 `09b64f11e08126a4fb523ed4813b6fbde6ef4238`，且清单记录 `workspace_dirty: true`。因此，正式开工应由**发布清单、资源哈希与对应源码快照共同确定基线**，不能只取当前 HEAD，也不能假设一个提交包含全部发布资产。
 
-证据入口：[完整功能发布记录](WEB_FULL_FEATURES_RELEASE_20261013.md)、[发布清单](verification/full-features-release-20261013/release-manifest.json)、[既有发布门槛](LIFELINE_RELEASE_GATE.md)、[研究模型兼容性记录](WEB_SIZE_TRANSFER_V1_20261012.md)。
+证据入口：[完整功能发布记录](../releases/WEB_FULL_FEATURES_RELEASE_20261013.md)、[发布清单](../verification/full-features-release-20261013/release-manifest.json)、[既有发布门槛](../product/LIFELINE_RELEASE_GATE.md)、[研究模型兼容性记录](../releases/WEB_SIZE_TRANSFER_V1_20261012.md)。
 
 ## 3. 第一阶段必须确认大陆发行路径
 

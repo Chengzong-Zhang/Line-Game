@@ -37,7 +37,7 @@
 
 表中前端文件均位于 `web/web前端/`。源码存在不等于微信端已验证可用。
 
-已有 [Web 完整功能发布记录](WEB_FULL_FEATURES_RELEASE_20261013.md) 与 [验证收据](verification/full-features-release-20261013/validation-receipt.json) 记录了候选版本 `20261013-full-features1`、提交 `09b64f1`，以及 18 项 Web 回归、5 项后端测试和 17 个模型的浏览器 Worker 检查。该提交在本地可解析。它是迁移基线候选；本次未重新核验生产环境，不能把这些旧收据当作微信验收结果。
+已有 [Web 完整功能发布记录](../releases/WEB_FULL_FEATURES_RELEASE_20261013.md) 与 [验证收据](../verification/full-features-release-20261013/validation-receipt.json) 记录了候选版本 `20261013-full-features1`、提交 `09b64f1`，以及 18 项 Web 回归、5 项后端测试和 17 个模型的浏览器 Worker 检查。该提交在本地可解析。它是迁移基线候选；本次未重新核验生产环境，不能把这些旧收据当作微信验收结果。
 
 当前主工作区为 `codex/territory-v2-page-correctness`，有大量未提交和未跟踪改动，且 HEAD 并非上述发布提交。实施前先对照发布清单确认基线，再使用独立 `codex/wechat-minigame` 分支及合适的 checkout；不能直接从旧 main 复制，也不能把当前整个工作区一并提交。
 
@@ -153,7 +153,7 @@ flowchart LR
 
 第一版不下载神经网络权重，保证安装包小、本地首局离线可用。v1.1 先选择一个有明确来源和适用范围的模型做真机试点，模型按需从许可域名下载到本地缓存，校验失败拒绝使用，缓存支持清理。模型选择由适配、延迟、内存和实际棋力证据决定，不把默认 seed 当成排名。
 
-现有 [尺寸迁移报告](WEB_SIZE_TRANSFER_V1_20261012.md) 仍记录两处 Python/Web 终局计分差异，因此微信规则必须跟随网页 `GameEngine`；这些研究模型仅能按兼容性试用处理。迁移不要求重新训练，也不应修改冻结研究协议来迎合新端。
+现有 [尺寸迁移报告](../releases/WEB_SIZE_TRANSFER_V1_20261012.md) 仍记录两处 Python/Web 终局计分差异，因此微信规则必须跟随网页 `GameEngine`；这些研究模型仅能按兼容性试用处理。迁移不要求重新训练，也不应修改冻结研究协议来迎合新端。
 
 ## 5. 分阶段任务、依赖和验收
 

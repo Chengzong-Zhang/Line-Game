@@ -252,16 +252,16 @@ v1.0 发布门槛：核心闭环可完成；上述正确性与恢复检查通过
 
 ## 12. 本次计划所依据的仓库入口
 
-- [根说明与规则版本](../README.md)
-- [Web 规则引擎](../web/web前端/GameEngine.js)
-- [对局控制与恢复](../web/web前端/GameController.js)
-- [Worker 状态协议](../web/web前端/AIStateProtocol.js)
-- [当前页面与交互](../web/web前端/OnlineApp.js)
-- [规则图文素材](../web/web前端/GuideContent.js)
-- [启动与依赖](../web/web前端/main.js)
-- [现有验证脚本](../web/web前端/tests/)
-- [研究入口](../research/README.md)
-- [研究版历史样例](../research/iclr2027/state_aliasing/superko_n6_witness_v1.json)
-- [AAAI 内容稿及证据边界](../research/iclr2027/paper/aaai2027/README.md)
+- [根说明与规则版本](../../README.md)
+- [Web 规则引擎](../../web/web%E5%89%8D%E7%AB%AF/GameEngine.js)
+- [对局控制与恢复](../../web/web%E5%89%8D%E7%AB%AF/GameController.js)
+- [Worker 状态协议](../../web/web%E5%89%8D%E7%AB%AF/AIStateProtocol.js)
+- [当前页面与交互](../../web/web%E5%89%8D%E7%AB%AF/OnlineApp.js)
+- [规则图文素材](../../web/web%E5%89%8D%E7%AB%AF/GuideContent.js)
+- [启动与依赖](../../web/web%E5%89%8D%E7%AB%AF/main.js)
+- [现有验证脚本](../../web/web%E5%89%8D%E7%AB%AF/tests)
+- [研究入口](../../research/README.md)
+- [研究版历史样例](../../research/iclr2027/state_aliasing/superko_n6_witness_v1.json)
+- [AAAI 内容稿及证据边界](../../research/iclr2027/paper/aaai2027/README.md)
 
 本文件仅制定计划；不表示上线核对、用户试用、性能目标、神经网络兼容检查或各里程碑已完成。

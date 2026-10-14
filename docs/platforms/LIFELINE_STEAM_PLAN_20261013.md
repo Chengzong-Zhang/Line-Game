@@ -243,8 +243,8 @@ Steam Playtest 适合测试功能和稳定性，使用关联的独立 AppID；De
 ## 11. 本次依据与状态边界
 
 - 当前仓库：已读 `AGENTS.md`、README、Web 入口、保存/贡献/网络模块、后端动作转发，以及现有发布门。
-- 产品记录：[Web 完整功能发布](WEB_FULL_FEATURES_RELEASE_20261013.md)、[本地双方配置](LOCAL_PLAYER_SETUP_20261013.md)、[复盘与 AI 贡献整合](REPLAY_AI_CONTRIBUTION_INTEGRATION_20261013.md)。它们描述各自冻结候选，本次没有重新签署通过状态。
-- AI 边界：[尺寸迁移 Web 记录](WEB_SIZE_TRANSFER_V1_20261012.md)。历史研究模型验证不等于本计划的产品棋力验收。
-- Web 发布基线：[LIFELINE 发布门](LIFELINE_RELEASE_GATE.md)。Steam 版应追加桌面专属矩阵，保留原历史文档。
+- 产品记录：[Web 完整功能发布](../releases/WEB_FULL_FEATURES_RELEASE_20261013.md)、[本地双方配置](../releases/LOCAL_PLAYER_SETUP_20261013.md)、[复盘与 AI 贡献整合](../releases/REPLAY_AI_CONTRIBUTION_INTEGRATION_20261013.md)。它们描述各自冻结候选，本次没有重新签署通过状态。
+- AI 边界：[尺寸迁移 Web 记录](../releases/WEB_SIZE_TRANSFER_V1_20261012.md)。历史研究模型验证不等于本计划的产品棋力验收。
+- Web 发布基线：[LIFELINE 发布门](../product/LIFELINE_RELEASE_GATE.md)。Steam 版应追加桌面专属矩阵，保留原历史文档。
 - 外部来源：本文相关段落所链 Steamworks 官方文档、Electron 官方文档和第三方桥接源码；核对日期为 2026-10-13。
 - 本次产物仅为计划文档；Steam 工程、付费、账户变更、商店发布、用户招募和线上部署均未执行。

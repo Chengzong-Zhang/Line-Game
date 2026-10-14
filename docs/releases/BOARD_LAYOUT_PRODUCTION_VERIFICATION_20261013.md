@@ -9,7 +9,7 @@
 
 ## 验证结果
 
-公网独立核验：7 个覆盖文件及保留的 `TrainingContribution.js` 共 8 项 SHA-256 全部匹配，`/api/health` 返回正常。原子目录切换收据为 `ATOMIC_SWITCH_OK`。对应清单、激活收据和独立公网检查见 [部署证据](verification/tutorial-deploy-20261013/README.md)。
+公网独立核验：7 个覆盖文件及保留的 `TrainingContribution.js` 共 8 项 SHA-256 全部匹配，`/api/health` 返回正常。原子目录切换收据为 `ATOMIC_SWITCH_OK`。对应清单、激活收据和独立公网检查见 [部署证据](../verification/tutorial-deploy-20261013/README.md)。
 
 本次前序针对合并候选执行 `tests/verify-board-input.mjs`、`tests/verify-tutorial.mjs`、`tests/verify-replay-codec.mjs`，均退出 0。教学自动项覆盖三点限制拒绝后状态保持与合法重试；这些自动项不能替代真实手机触摸或线上教学操作。
 
@@ -21,7 +21,7 @@
 - 10 个表情按钮同一行，均为 44×44px，顶部均为 639px。
 - 当前已保存的用户会话未显示教学卡；未重置棋局或清空浏览器存储以强制重播教程。
 
-截图：`local_artifacts/layout-release-verify-20261013/production-desktop.jpg`，SHA-256 `d06e8f573fd005de6362135db6d40472c6edd8e03fcd777379c8a4f06fce1f68`。只读布局原始数据见 [production-desktop-layout.json](verification/layout-production-20261013/production-desktop-layout.json)。早期浏览器超时在直接截图路径下得到缓解；未完成的线上操作项仍保留为未运行。
+截图：`local_artifacts/layout-release-verify-20261013/production-desktop.jpg`，SHA-256 `d06e8f573fd005de6362135db6d40472c6edd8e03fcd777379c8a4f06fce1f68`。只读布局原始数据见 [production-desktop-layout.json](../verification/layout-production-20261013/production-desktop-layout.json)。早期浏览器超时在直接截图路径下得到缓解；未完成的线上操作项仍保留为未运行。
 
 ## 回滚与范围
 

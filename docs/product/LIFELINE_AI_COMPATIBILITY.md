@@ -95,10 +95,10 @@
 
 ### 当前 checkout 已核实
 
-- Web AI：[`web/web前端/AIEngine.js`](../web/web前端/AIEngine.js)、[`AIWorker.js`](../web/web前端/AIWorker.js)、[`AIStateProtocol.js`](../web/web前端/AIStateProtocol.js)、[`HintWorkerSession.js`](../web/web前端/HintWorkerSession.js)、[`GameEngine.js`](../web/web前端/GameEngine.js)、[`OnlineApp.js`](../web/web前端/OnlineApp.js)。
-- 研究规则/基线：[`research/iclr2027/lifeline_rl/core.py`](../research/iclr2027/lifeline_rl/core.py)、[`env.py`](../research/iclr2027/lifeline_rl/env.py)、`agents/`、[`alphazero/network.py`](../research/iclr2027/lifeline_rl/alphazero/network.py)、[`neural_agent.py`](../research/iclr2027/lifeline_rl/alphazero/neural_agent.py)。
-- 已有 D13 结果：[`research/iclr2027/results/formal/d13/topology_seed20260825_vs_random/summary.json`](../research/iclr2027/results/formal/d13/topology_seed20260825_vs_random/summary.json)、`gate.json`、`topology_seed20260825_learning_health.json`；记录 63,171 参数、训练尺寸 5/7/9、评估 PUCT-16、200 局/0.895 score rate（该结果是研究证据，不是 Web 线上证明）。
-- 研究边界：[`research/iclr2027/D1_research_contract.md`](../research/iclr2027/D1_research_contract.md)、[`CLAIM_EVIDENCE_LIMITATION.md`](../research/iclr2027/CLAIM_EVIDENCE_LIMITATION.md)、[`D14_D16_RESULTS.md`](../research/iclr2027/D14_D16_RESULTS.md)。
+- Web AI：[`web/web前端/AIEngine.js`](../../web/web%E5%89%8D%E7%AB%AF/AIEngine.js)、[`AIWorker.js`](../../web/web%E5%89%8D%E7%AB%AF/AIWorker.js)、[`AIStateProtocol.js`](../../web/web%E5%89%8D%E7%AB%AF/AIStateProtocol.js)、[`HintWorkerSession.js`](../../web/web%E5%89%8D%E7%AB%AF/HintWorkerSession.js)、[`GameEngine.js`](../../web/web%E5%89%8D%E7%AB%AF/GameEngine.js)、[`OnlineApp.js`](../../web/web%E5%89%8D%E7%AB%AF/OnlineApp.js)。
+- 研究规则/基线：[`research/iclr2027/lifeline_rl/core.py`](../../research/iclr2027/lifeline_rl/core.py)、[`env.py`](../../research/iclr2027/lifeline_rl/env.py)、`agents/`、[`alphazero/network.py`](../../research/iclr2027/lifeline_rl/alphazero/network.py)、[`neural_agent.py`](../../research/iclr2027/lifeline_rl/alphazero/neural_agent.py)。
+- 已有 D13 结果：[`research/iclr2027/results/formal/d13/topology_seed20260825_vs_random/summary.json`](../../research/iclr2027/results/formal/d13/topology_seed20260825_vs_random/summary.json)、`gate.json`、`topology_seed20260825_learning_health.json`；记录 63,171 参数、训练尺寸 5/7/9、评估 PUCT-16、200 局/0.895 score rate（该结果是研究证据，不是 Web 线上证明）。
+- 研究边界：[`research/iclr2027/D1_research_contract.md`](../../research/iclr2027/D1_research_contract.md)、[`CLAIM_EVIDENCE_LIMITATION.md`](../../research/iclr2027/CLAIM_EVIDENCE_LIMITATION.md)、[`D14_D16_RESULTS.md`](../../research/iclr2027/D14_D16_RESULTS.md)。
 - 本次只读 Web 回归均通过：`verify-ai-control-flow.mjs`、`verify-ai-search-15.mjs`、`verify-hint-worker.mjs`、`verify-territory-v2.mjs`，均 exit 0；未运行 Python/CUDA/训练。
 
 ### 历史记录（不等于当前能力）

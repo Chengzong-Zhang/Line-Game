@@ -44,7 +44,7 @@ Padded-CNN、Grid-GNN、Topology-GNN 各 3 个 seed（2026092201/02/03）的 tra
 
 ## 精确命令与证据
 
-[commands.json](verification/web-size-transfer-v1-20261012/commands.json) 记录实际命令、退出码和结果；[verification.json](verification/web-size-transfer-v1-20261012/verification.json) 记录 9 个 checkpoint/asset/config/source hash、源文件与冻结协议 hash、数值误差和差分。新 manifest 为 [transfer-v1/manifest.json](../web/web前端/assets/research-ai/transfer-v1/manifest.json)，创建收据为 [export-receipt.json](../web/web前端/assets/research-ai/transfer-v1/export-receipt.json)。
+[commands.json](../verification/web-size-transfer-v1-20261012/commands.json) 记录实际命令、退出码和结果；[verification.json](../verification/web-size-transfer-v1-20261012/verification.json) 记录 9 个 checkpoint/asset/config/source hash、源文件与冻结协议 hash、数值误差和差分。新 manifest 为 [transfer-v1/manifest.json](../../web/web%E5%89%8D%E7%AB%AF/assets/research-ai/transfer-v1/manifest.json)，创建收据为 [export-receipt.json](../../web/web%E5%89%8D%E7%AB%AF/assets/research-ai/transfer-v1/export-receipt.json)。
 
 导出时创建收据记录的 exporter hash 保持不变；后续导出器增加 stage1 原始来源锚定和导入适配。最终验证收据同时记录创建版本与当前 verifier 版本的 hash。训练 source hash 始终为 117ebe2fc3d4654e545da94ca8ef8d481b8e4de7391226e4788cb1610915ec6c。
 

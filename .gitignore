@@ -13,7 +13,7 @@ server.log
 .mypy_cache/
 .ruff_cache/
 .chrome-profile/
-examples/
+.claude/
 tmp/
 pytest-cache-files-*/
 **/pytest-cache-files-*/

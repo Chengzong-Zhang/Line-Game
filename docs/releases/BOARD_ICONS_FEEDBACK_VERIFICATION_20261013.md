@@ -18,7 +18,7 @@
 - 合并候选执行 `node --check .../frontend/OnlineApp.js`、`node --unhandled-rejections=strict .../frontend/tests/verify-board-input.mjs`、`node --unhandled-rejections=strict .../frontend/tests/verify-tutorial.mjs`，退出 0。`git diff --check` 通过。浏览器模拟视口不等于手机实机触摸验收。
 - `python local_artifacts/board-icons-release-20261013/verify_public.py before` 退出 0：当前 F 的 8 项公网 SHA-256 匹配且游戏健康接口正常。
 
-清单、包哈希、六组布局和反馈原始记录见 [紧凑验证证据](verification/board-icons-feedback-20261013/release-manifest.json)。本地截图与候选在 `local_artifacts/board-icons-release-20261013/`。
+清单、包哈希、六组布局和反馈原始记录见 [紧凑验证证据](../verification/board-icons-feedback-20261013/release-manifest.json)。本地截图与候选在 `local_artifacts/board-icons-release-20261013/`。
 
 ## 发布准备
 
