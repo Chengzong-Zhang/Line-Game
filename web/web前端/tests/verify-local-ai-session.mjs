@@ -67,12 +67,13 @@ function nextRequest() {
   const worker = workers.at(-1);
   return { worker, message: worker.messages.at(-1) };
 }
-function reply({ worker, message }, point = controller.engine.getLegalMoves(message.aiPlayer)[0]?.point) {
+function reply({ worker, message }, point = controller.engine.getLegalMoves(message.aiPlayer)[0]?.point, modelId = message.modelId) {
   worker.onmessage({ data: {
     type: "RESULT", requestId: message.requestId,
     positionRevision: message.serializedState.positionRevision,
     rulesVersion: message.serializedState.rulesVersion,
     currentPlayer: message.serializedState.currentPlayer,
+    modelInfo: modelId ? { id: modelId } : null,
     moves: point ? [{ point }] : [{ type: "pass", point: null }],
   } });
 }
@@ -229,6 +230,15 @@ try {
   assert.equal(restoredThree.aiDuelPaused.value, true);
   app.toggleAiDuel();
   await app.handleSkip();
+  const wrongThree = nextRequest();
+  const beforeWrongModel = ruleState();
+  console.error = () => {};
+  try { reply(wrongThree, undefined, "unexpected-three-player-model"); }
+  finally { console.error = originalConsoleError; }
+  assert.equal(ruleState(), beforeWrongModel, "a different three-player model cannot silently supply a move");
+  assert.equal(app.aiDuelPaused.value, true, "model identity mismatch pauses the match");
+  assert.equal(app.activeLocalPlayers.value.WHITE.choice, "three-player", "identity failure preserves the selected strategy");
+  app.toggleAiDuel();
   const timedOut = nextRequest();
   const deadline = [...timers].find(([, timer]) => timer.delay === 15000);
   assert.ok(deadline, "three-player inference must have a bounded timeout");

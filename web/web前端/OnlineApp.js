@@ -3051,7 +3051,7 @@ const App = {
 
     const getAiPlayer = (state = gameState.value) => localAIPlayer(activeLocalPlayers.value, activeLocalSettings.value.playerCount, state?.currentPlayer);
 
-    const selectedAiProfile = (player = gameState.value.currentPlayer) => localPlayerProfile(activeLocalPlayers.value[player], activeLocalSettings.value.playerCount);
+    const selectedAiProfile = (player = gameState.value.currentPlayer) => localPlayerProfile(activeLocalPlayers.value[player], activeLocalSettings.value.playerCount, activeLocalSettings.value.gridSize);
 
     const terminateAiWorker = () => {
       if (aiTimeoutId !== null) {
@@ -3132,6 +3132,10 @@ const App = {
               return;
             }
 
+            const appliedProfile = selectedAiProfile();
+            if (appliedProfile?.strategy === "three-player" && event.data.modelInfo?.id !== appliedProfile.modelId) {
+              throw new Error("三人 AI 返回的模型身份与当前选择不一致。");
+            }
             if (event.data.moves?.length) {
               const move = event.data.moves[0];
               if (move.type === "pass" && move.point === null) controller.value.skipTurn();
@@ -3625,7 +3629,7 @@ const App = {
         localGameActions.value = nextSession.actions;
         localGamePositionRevision.value = nextState.positionRevision;
         if (contribution.enabled) {
-          const actors = localMatchActors(activeLocalPlayers.value, activeLocalSettings.value.playerCount);
+          const actors = localMatchActors(activeLocalPlayers.value, activeLocalSettings.value.playerCount, activeLocalSettings.value.gridSize);
           const signature = JSON.stringify(actors);
           if (!contributionContext) {
             contributionContext = { source: "local", actors, mixedProfiles: nextSession.actions.length > 1, hintsEnabled: selectedHintEnabled.value || contributionAssisted };
