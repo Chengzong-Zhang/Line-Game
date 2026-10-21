@@ -46,7 +46,7 @@ if hasattr(socket,"SO_EXCLUSIVEADDRUSE"):guard.setsockopt(socket.SOL_SOCKET,sock
 port=40000+int(sha(("terminal-head:"+str(control.resolve()).lower()).encode())[:8],16)%20000;guard.bind(("127.0.0.1",port));guard.listen(1)
 try:run("controls",76)
 finally:guard.close()
-target=base/"clean"/clean["stages"][0]["asset"];original=target.read_bytes();target.write_bytes(original+b"x");run("clean",78);target.write_bytes(original)
+target=base/"clean"/clean["stages"][0]["asset"];original=target.read_bytes();target.write_bytes(original+b"x");run("clean",78);target.write_bytes(original);run("clean",0)
 cfg.write_text(json.dumps({**config,"parent_kl":.3}));run("killed",78);cfg.write_text(json.dumps(config))
 report_path=base/"independent.json";r=subprocess.run([sys.executable,"-B",str(verifier),"--run-root",str(base/"clean"),"--data-root",str(a.data_root),"--output",str(report_path)],cwd=ROOT,capture_output=True,text=True,timeout=90);assert r.returncode==0,r.stdout+r.stderr
 report={"status":"PASS_TERMINAL_HEAD_R3_RECOVERY","base":str(base),"cases":["actual-kill-resume","orphan-state-adoption","stage-checkpoint-before-export-recovery","all-stage-exact-model-Adam-RNG-equality","completed-stages-not-rewritten","pause-stop-yield","duplicate-worker","asset-corruption-and-config-drift-rejected","independent-full-update-and-Web-parity"],"sources":{str(x.relative_to(ROOT)):file_hash(x) for x in [script,verifier,Path(__file__)]},"independent":read(report_path)}
