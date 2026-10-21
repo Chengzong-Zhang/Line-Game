@@ -1,0 +1,18 @@
+{
+  "status": "PASS_INCREMENTAL_V4_VERIFIER",
+  "directory": "C:\\coding\\py\\line game\\local_artifacts\\three-v4-incremental-verifier-recovery-1792553072926",
+  "arena": "C:\\coding\\py\\line game\\local_artifacts\\three-player-v4-recovery-1792551305201\\clean",
+  "checks": [
+    "all-policy-decisions",
+    "real-kill-resume",
+    "verified-proof-bytes-and-mtime-preserved",
+    "orphan-proof-adoption",
+    "no-completed-game-reverification",
+    "partial-write-isolation",
+    "corrupt-proof-rejected",
+    "post-verification-game-mutation-rejected",
+    "post-verification-proof-mutation-rejected"
+  ],
+  "verifier_sha256": "5eed127324e4e14a0e618926f241bb60a0ed39af9ef157616386fd2628d34fb7",
+  "test_sha256": "bbc267f41c90ef4eb88845d48ba15f78fd72aa3b3dc6197fbcbf59001a4e831d"
+}
