@@ -8,11 +8,12 @@ import {encodeResearchPosition,researchRelations} from '../web前端/ResearchAI.
 import {root,sha,unseal,sealed,modelFreeState,lease} from './neural-posttraining-data.mjs';
 import {loadWarm,makePosition,plansFor,validate,durable} from './neural-terminal-rollout-data-r3.mjs';
 
-export async function verifyData(run,verifyRoot=resolve(run,'verification-work'),maxSeconds=250){
+export async function verifyData(run,verifyRoot=resolve(run,'verification-work'),maxSeconds=250,testHoldMs=0){
  const started=Date.now();await mkdir(verifyRoot,{recursive:true});const guard=await lease(verifyRoot);
  let done=0;try{
  run=resolve(run);const hashes=new Map(),read=async p=>{p=resolve(p);const b=await readFile(p),h=sha(b);if(hashes.has(p))assert.equal(h,hashes.get(p));hashes.set(p,h);return JSON.parse(b);};
  const identity=await read(resolve(run,'identity.json')),c=identity.config;validate(c);
+ assert.ok(Number.isFinite(maxSeconds)&&maxSeconds>0&&maxSeconds<=600);assert.ok(testHoldMs===0||c.recoveryTest===true);
  const manifest=await read(resolve(run,'manifest.json')),cp=unseal(await read(resolve(run,'checkpoint.json'))),dataProgress=await read(resolve(run,'progress.json'));
  assert.equal(dataProgress.status,'COMPLETE');assert.equal(cp.current,null);assert.equal(cp.identity,identity.identity);assert.equal(manifest.identity,identity.identity);
  assert.equal(sha(JSON.stringify({source_hashes:identity.source_hashes,binding:identity.binding})),identity.identity);
@@ -56,7 +57,7 @@ export async function verifyData(run,verifyRoot=resolve(run,'verification-work')
   ep.candidates.forEach((point,k)=>target[e._keyToIdx.get(point.join(','))]+=(1-c.uniformTargetMix)*exps[k]/denom);
   assert.deepEqual(sample.target,target);units++;
   await durable(proofPath,sealed({identity:proofIdentity,id:plan.id,game_sha256:ref.sha256,rollouts:rollouts-oldRollouts,actions:actions-oldActions}));
-  await read(proofPath);done++;await progress('RUNNING');
+  await read(proofPath);done++;await progress('RUNNING');if(testHoldMs)await new Promise(r=>setTimeout(r,testHoldMs));
  }
  assert.equal(cp.units,units);assert.equal(dataProgress.progress_units,units);for(const [p,h] of hashes)assert.equal(sha(await readFile(p)),h,'Evidence changed during verification');
  await progress('COMPLETE');
@@ -66,4 +67,4 @@ export async function verifyData(run,verifyRoot=resolve(run,'verification-work')
   scope:'All terminal rollout actions/behavior seeds, rule transitions, discrete area rewards, position encodings and target probabilities; shortlist uses existing frozen Web inference.',input_hashes:Object.fromEntries(hashes)};
  }finally{await new Promise(r=>guard.close(r));}
 }
-if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){try{const args=process.argv.slice(2),opt=(n,d)=>{const i=args.indexOf(n);return i<0?d:args[i+1];},run=resolve(opt('--run-root')),output=resolve(opt('--output'));assert.ok(args.includes('--run-root')&&args.includes('--output'));const r=await verifyData(run,resolve(opt('--verify-root',resolve(run,'verification-work'))),Number(opt('--max-seconds','250')));if(r){await mkdir(dirname(output),{recursive:true});await writeFile(output,JSON.stringify(r,null,2)+'\n');console.log(JSON.stringify({status:r.status,positions:r.positions,rollouts:r.rollouts,rolloutActions:r.rolloutActions}));}else process.exitCode=75;}catch(e){console.error(e.stack);process.exitCode=e.code==='EADDRINUSE'?76:78;}}
+if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){try{const args=process.argv.slice(2),opt=(n,d)=>{const i=args.indexOf(n);return i<0?d:args[i+1];},run=resolve(opt('--run-root')),output=resolve(opt('--output'));assert.ok(args.includes('--run-root')&&args.includes('--output'));const r=await verifyData(run,resolve(opt('--verify-root',resolve(run,'verification-work'))),Number(opt('--max-seconds','250')),Number(opt('--test-hold-ms','0')));if(r){await mkdir(dirname(output),{recursive:true});await writeFile(output,JSON.stringify(r,null,2)+'\n');console.log(JSON.stringify({status:r.status,positions:r.positions,rollouts:r.rollouts,rolloutActions:r.rolloutActions}));}else process.exitCode=75;}catch(e){console.error(e.stack);process.exitCode=e.code==='EADDRINUSE'?76:78;}}
