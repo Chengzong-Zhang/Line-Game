@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "path": "/",
+      "sha256": "9b2435687e242c4f5b55fd7f54dcdce0c2a10855363fdacab50daec86248e4c9",
+      "pass": true,
+      "cache_control": "no-store, no-cache, must-revalidate, max-age=0"
+    },
+    {
+      "path": "./main.js?v=20261021-hexai1",
+      "pass": true
+    }
+  ]
+}

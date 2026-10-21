@@ -1,0 +1,105 @@
+{
+  "status": "PASS_DEPLOYMENT_HTTP_AND_SERVER_RUNTIME",
+  "release_id": "web-multiplayer-ai-20261021",
+  "activation": {
+    "status": "ACTIVATED_VERIFIED",
+    "started_at": 1792554564.0584786,
+    "frontend_swapped": true,
+    "files_replaced": [
+      "web/web后端/server.py",
+      "web/web后端/online_bots.py",
+      "web/web后端/training_contributions.py",
+      "web/web后端/contribution_asgi.py",
+      "web/tools/online_bot_bridge.mjs",
+      "web/tools/validate_contribution.mjs"
+    ],
+    "old_stopped": true,
+    "stop_requested": true,
+    "collector_stopped": true,
+    "services_installed": true,
+    "database_backups": [
+      {
+        "path": "/home/ubuntu/line-game/.deploy-artifacts/web-multiplayer-ai-20261021/database-backups/game.db",
+        "integrity": "ok",
+        "counts": {
+          "users": 19
+        }
+      },
+      {
+        "path": "/home/ubuntu/line-game/.deploy-artifacts/web-multiplayer-ai-20261021/database-backups/contributions.sqlite3",
+        "integrity": "ok",
+        "counts": {
+          "inbox": 22
+        }
+      }
+    ],
+    "health": {
+      "status": "ok",
+      "filter_ready": true
+    },
+    "collector": {
+      "enabled": true,
+      "consent_policy": "anonymous-replay-training-v1"
+    },
+    "runtime_checks": {
+      "models": [
+        {
+          "players": 3,
+          "success": true,
+          "fallback": false
+        },
+        {
+          "players": 4,
+          "success": true,
+          "fallback": false
+        },
+        {
+          "players": 5,
+          "success": true,
+          "fallback": false
+        },
+        {
+          "players": 6,
+          "success": true,
+          "fallback": false
+        }
+      ],
+      "contribution_validator_sources": {
+        "GameEngine.js": "625e8d8a92801647702f963f56148040248cf471228a6ce5c719e20e4414a555",
+        "ReplayCodec.js": "11c9d4dd13b46a9eed77e9230b29043d36737f8b05bee8e6f748c89b85f9aee5",
+        "ResearchAI.js": "f20be33d27fc35c5b85fbf88da6325d508cccf2ae90f81286434722b3359b039"
+      }
+    },
+    "databases": [
+      {
+        "path": "/tmp/line-game/game.db",
+        "integrity": "ok",
+        "counts": {
+          "users": 19
+        }
+      },
+      {
+        "path": "/home/ubuntu/line-game-data/training-contributions-v1/contributions.sqlite3",
+        "integrity": "ok",
+        "counts": {
+          "inbox": 22
+        }
+      }
+    ],
+    "finished_at": 1792554571.9917908,
+    "main_pid": 936369,
+    "rollback_frontend": "/home/ubuntu/line-game/.deploy-artifacts/web-multiplayer-ai-20261021/candidate/web/web前端",
+    "database_restore_performed": false
+  },
+  "services": {
+    "lifeline-game.service": "MainPID=936369\nNRestarts=0\nWorkingDirectory=/home/ubuntu/line-game/web/web后端\nPrivateTmp=no\nActiveState=active\nSubState=running\n",
+    "lifeline-training-contributions.service": "MainPID=936372\nNRestarts=0\nWorkingDirectory=/home/ubuntu/line-game/web/web后端\nPrivateTmp=yes\nActiveState=active\nSubState=running\n"
+  },
+  "unexpected_database_recovery_files": [],
+  "controller_sha256": "d9806e15c35777fa870e7c31d579a7ca4dae60378380874b0d6a5bc77fca96d8",
+  "browser_interaction": "NOT_RUN_AFTER_DEPLOYMENT_CUA_TIMEOUT",
+  "mobile_and_safari": "NOT_RUN",
+  "database_restore_performed": false,
+  "new_training_started": false,
+  "model_promotion_performed": false
+}
