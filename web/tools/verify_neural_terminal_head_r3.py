@@ -30,6 +30,8 @@ def main():
     cp=sealed(run/"checkpoint.json");receipt=sealed(run/"training-receipt.json");manifest=sealed(run/"candidate-manifest.json");progress=sealed(run/"progress.json")
     assert all(o["identity"]==tid for o in [cp,receipt,manifest,progress]);assert progress["status"]=="COMPLETE" and cp["active"] is None
     assert receipt["candidate_manifest_sha256"]==file_hash(run/"candidate-manifest.json")
+    assert receipt["stages"]==cp["stages"]
+    assert manifest["models"]==[read(run/stage["spec"]) for stage in cp["stages"]]
     for path,h in identity["bindings"].items(): assert file_hash(Path(path))==h,path
     data,samples,_,_=load_dataset(args.data_root);assert data["identity"]==identity["dataset_identity"]
     dv=read(args.data_root/"verification.json");assert dv["status"]=="PASS_TERMINAL_ROLLOUT_DATA_R3" and dv["manifest_sha256"]==file_hash(args.data_root/"manifest.json")
@@ -61,6 +63,10 @@ def main():
             for name,tensor in saved["model"].items():
                 if not name.startswith("point_policy."):assert torch.equal(tensor,anchor.state_dict()[name])
             candidate=read(run/item["spec"]);assert candidate["parent_model_id"]==spec["parent_model_id"] and candidate["posttraining"]["warmstart_model_id"]==wid
+            assert (run/candidate["asset"]).resolve()==(run/item["asset"]).resolve()
+            assert candidate["asset_sha256"]==item["asset_sha256"]==file_hash(run/item["asset"])
+            assert candidate["posttraining"]["training_identity"]==tid and candidate["posttraining"]["dataset_identity"]==data["identity"]
+            assert candidate["posttraining"]["updates"]==step and candidate["posttraining"]["warmstart_asset_sha256"]==spec["asset_sha256"]
             actual_state=load_asset_state(candidate,run/item["asset"]);same(actual_state,saved["model"])
             model.eval();total_ce=0;value_checks=0
             with torch.no_grad():
