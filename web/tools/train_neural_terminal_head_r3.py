@@ -4,7 +4,10 @@ import argparse, copy, io, json, random, socket, sys, time
 from pathlib import Path
 import torch
 from neural_posttraining_core import ROOT, build_model, canonical, digest, distribution, export_bytes, file_hash, load_dataset, make_batch, sha, validation_loss
-from posttrain_neural_models import atomic_bytes, atomic_json, sealed, FatalError
+import importlib.util
+_helper_spec = importlib.util.spec_from_file_location("frozen_neural_worker_helpers", ROOT / "web/tools/posttrain-neural-models.py")
+_helper = importlib.util.module_from_spec(_helper_spec); _helper_spec.loader.exec_module(_helper)
+atomic_bytes, atomic_json, sealed = _helper.atomic_bytes, _helper.atomic_json, _helper.sealed
 
 SOURCES = ["web/tools/train_neural_terminal_head_r3.py", "web/tools/posttrain-neural-models.py", "web/tools/neural_posttraining_core.py",
            "research/iclr2027/lifeline_rl/alphazero/network.py", "web/web前端/ResearchAI.js"]
@@ -95,6 +98,23 @@ def main():
                 model.load_state_dict(saved["model"]); optimizer.load_state_dict(saved["optimizer"])
                 rng.setstate(saved["rng"]); torch.set_rng_state(saved["torch_rng"]); step = saved["step"]
             directory = run / "models" / spec["parent_model_id"]; directory.mkdir(parents=True, exist_ok=True)
+            def emit_stage(step, state_path, raw):
+                for name, value in model.state_dict().items():
+                    if not name.startswith("point_policy."): assert torch.equal(value, anchor.state_dict()[name]), "Frozen backbone/value/PASS drift"
+                candidate_id = spec["parent_model_id"] + f"-terminal-head-r3-s{step:03d}"
+                stage_dir = directory / f"stage-{step:03d}"; asset = stage_dir / (candidate_id + ".f32"); exported = export_bytes(model, spec); immutable(asset, exported)
+                candidate = copy.deepcopy(spec); candidate.update(id=candidate_id, asset=str(asset.relative_to(run)).replace("\\", "/"), asset_sha256=sha(exported),
+                    label=spec["label"] + f" terminal head stage {step}", parent_model_id=spec["parent_model_id"], posttraining={
+                     "method":"terminal-rollout teacher; point_policy only; frozen backbone/value/PASS", "warmstart_model_id":spec["id"],"warmstart_asset_sha256":spec["asset_sha256"],
+                     "training_identity":identity,"dataset_identity":dataset["identity"],"updates":step,"optimizer_reset":True,"same_experiment_rl_resume":False,
+                     "initial_validation_ce":initial_ce,"final_validation_ce":validation_loss(model,spec,val,"cpu"),"value_predictions_frozen":True,"pass_logits_frozen":True,
+                     "pass_probability_frozen":False,"selection":"three fixed stages; separate new DEV must select","evidence_tier":"training-only; no strength claim"})
+                spec_path = stage_dir / "candidate.json"; immutable(spec_path, canonical(candidate) + b"\n")
+                item = {"id":candidate_id,"warmstart_id":spec["id"],"step":step,"asset":str(asset.relative_to(run)),"asset_sha256":sha(exported),"spec":str(spec_path.relative_to(run)),"spec_sha256":file_hash(spec_path),"state":str(state_path.relative_to(run)),"state_sha256":sha(raw)}
+                if not any(s["id"] == candidate_id for s in cp["stages"]): cp["stages"].append(item)
+                atomic_json(cp_path, cp)
+            if step in c["stage_updates"]:
+                state_path = run / cp["active"]["path"]; emit_stage(step, state_path, state_path.read_bytes())
             while step < c["stage_updates"][-1]:
                 status = control()
                 if status: progress(status); return 75
@@ -113,24 +133,9 @@ def main():
                 if args.fault == "after-state": return 91
                 cp["active"] = {"id": spec["id"], "step": step, "path": str(state_path.relative_to(run)), "sha256": sha(raw)}
                 cp["units"] += 1; fresh += 1; atomic_json(cp_path, cp); progress("RUNNING")
-                if step in c["stage_updates"]:
-                    for name, value in model.state_dict().items():
-                        if not name.startswith("point_policy."): assert torch.equal(value, anchor.state_dict()[name]), "Frozen backbone/value/PASS drift"
-                    candidate_id = spec["parent_model_id"] + f"-terminal-head-r3-s{step:03d}"
-                    stage_dir = directory / f"stage-{step:03d}"; asset = stage_dir / (candidate_id + ".f32"); exported = export_bytes(model, spec); immutable(asset, exported)
-                    candidate = copy.deepcopy(spec); candidate.update(id=candidate_id, asset=str(asset.relative_to(run)).replace("\\", "/"), asset_sha256=sha(exported),
-                        label=spec["label"] + f" terminal head stage {step}", parent_model_id=spec["parent_model_id"], posttraining={
-                         "method":"terminal-rollout teacher; point_policy only; frozen backbone/value/PASS", "warmstart_model_id":spec["id"],"warmstart_asset_sha256":spec["asset_sha256"],
-                         "training_identity":identity,"dataset_identity":dataset["identity"],"updates":step,"optimizer_reset":True,"same_experiment_rl_resume":False,
-                         "initial_validation_ce":initial_ce,"final_validation_ce":validation_loss(model,spec,val,"cpu"),"value_predictions_frozen":True,"pass_logits_frozen":True,
-                         "pass_probability_frozen":False,"selection":"three fixed stages; separate new DEV must select","evidence_tier":"training-only; no strength claim"})
-                    spec_path = stage_dir / "candidate.json"; immutable(spec_path, canonical(candidate) + b"\n")
-                    item = {"id":candidate_id,"warmstart_id":spec["id"],"step":step,"asset":str(asset.relative_to(run)),"asset_sha256":sha(exported),"spec":str(spec_path.relative_to(run)),"spec_sha256":file_hash(spec_path),"state":str(state_path.relative_to(run)),"state_sha256":sha(raw)}
-                    if not any(s["id"] == candidate_id for s in cp["stages"]): cp["stages"].append(item)
-                    atomic_json(cp_path, cp)
+                if args.fault == "after-checkpoint": return 92
+                if step in c["stage_updates"]: emit_stage(step, state_path, raw)
                 if c.get("test_delay_ms"): time.sleep(c["test_delay_ms"] / 1000)
-            # Recover a process killed after the step checkpoint but before a
-            # stage export by replaying stage emission in a separate pass below.
             cp["completed"].append(spec["id"]); cp["active"] = None; atomic_json(cp_path, cp)
         inputs(); assert len(cp["stages"]) == len(specs) * 3, "Missing stage export; fail closed"
         models = [json.loads((run / s["spec"]).read_text(encoding="utf-8")) for s in cp["stages"]]
