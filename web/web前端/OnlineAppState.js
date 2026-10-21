@@ -1,12 +1,12 @@
-import { Player, TerritoryRulesVersion } from "./GameEngine.js?v=20261014-code1";
+import { Player, TerritoryRulesVersion } from "./GameEngine.js?v=20261020-three1";
 
 // 杩欎釜鏂囦欢涓撻棬瀛樻斁鈥滃彲澶嶇敤鐨勫墠绔姸鎬佸伐鍏封€濓紝
 // 閬垮厤 OnlineApp.js 鍐嶆鑶ㄨ儉鎴愪竴涓秴澶у伐鍏风鏂囦欢銆?
 export const LANGUAGE_STORAGE_KEY = "triaxis-language";
 export const SESSION_STORAGE_KEY = "triaxis-online-session";
 export const AUTH_STORAGE_KEY = "triaxis-auth";
-export const ALL_PLAYERS = Object.freeze([Player.BLACK, Player.WHITE, Player.PURPLE]);
-export const PLAYER_COUNT_OPTIONS = Object.freeze([2, 3]);
+export const ALL_PLAYERS = Object.freeze([Player.BLACK, Player.WHITE, Player.PURPLE, Player.GREEN, Player.ORANGE, Player.CYAN]);
+export const PLAYER_COUNT_OPTIONS = Object.freeze([2, 3, 4, 5, 6]);
 export const GRID_SIZE_OPTIONS = Object.freeze(Array.from({ length: 11 }, (_, index) => index + 5));
 export const TURN_TIMER_MIN_SECONDS = 15;
 export const TURN_TIMER_MAX_SECONDS = 200;
@@ -37,6 +37,8 @@ export function normalizeGameSettings(settings = {}) {
 
   return {
     playerCount: nextPlayerCount,
+    boardShape: nextPlayerCount >= 4 ? "hexagon" : "triangle",
+    botCount: nextPlayerCount >= 3 ? Math.max(0, Math.min(nextPlayerCount - 1, Math.trunc(Number(settings?.botCount) || 0))) : 0,
     gridSize: GRID_SIZE_OPTIONS.includes(gridSize) ? gridSize : 9,
     startPlayer,
     rulesVersion,
@@ -62,27 +64,16 @@ export function createDefaultGameState() {
     winner: null,
     turnCount: 0,
     consecutiveSkips: 0,
-    scores: {
-      [Player.BLACK]: 0,
-      [Player.WHITE]: 0,
-      [Player.PURPLE]: 0,
-    },
-    displayScores: {
-      [Player.BLACK]: 0,
-      [Player.WHITE]: 0,
-      [Player.PURPLE]: 0,
-    },
-    territories: {
-      [Player.BLACK]: { area: 0, polygon: null },
-      [Player.WHITE]: { area: 0, polygon: null },
-      [Player.PURPLE]: { area: 0, polygon: null },
-    },
+    scores: Object.fromEntries(ALL_PLAYERS.map((player) => [player, 0])),
+    displayScores: Object.fromEntries(ALL_PLAYERS.map((player) => [player, 0])),
+    territories: Object.fromEntries(ALL_PLAYERS.map((player) => [player, { area: 0, polygon: null }])),
     legalMoves: [],
     snapshot: null,
     lastAction: null,
     resignedPlayers: [],
     players: [Player.BLACK, Player.WHITE],
     playerCount: 2,
+    boardShape: "triangle",
     multiplayerEnabled: false,
     localPlayer: null,
     roomReady: false,

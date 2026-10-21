@@ -1,7 +1,10 @@
-import { GameEngine } from "./GameEngine.js?v=20261014-code1";
-import { GreedyAI, MCTSAI, MinimaxAI, restoreState } from "./AIEngine.js?v=20261014-code1";
-import { loadResearchModel, NeuralPUCTAI } from "./ResearchAI.js?v=20261014-code1";
-import { loadModelFreeModel, ModelFreeAI } from "./ModelFreeAI.js?v=20261014-code1";
+import { GameEngine } from "./GameEngine.js?v=20261020-three1";
+import { deserializeEngineEdges } from "./AIStateProtocol.js?v=20261020-three1";
+import { GreedyAI, MCTSAI, MinimaxAI, restoreState } from "./AIEngine.js?v=20261020-three1";
+import { loadResearchModel, NeuralPUCTAI } from "./ResearchAI.js?v=20261020-three1";
+import { loadModelFreeModel, ModelFreeAI } from "./ModelFreeAI.js?v=20261020-three1";
+import { loadThreePlayerModel, ThreePlayerAI } from "./ThreePlayerModels.js?v=20261021-three2";
+import { loadHexPlayerModel, HexPlayerAI } from "./HexPlayerAI.js?v=20261021-hexai1";
 
 self.onmessage = async (event) => {
   if (event.data?.type !== "COMPUTE") {
@@ -26,11 +29,7 @@ self.onmessage = async (event) => {
 
     restoreState(engine, {
       grid: new Map(serializedState.gridEntries),
-      edges: {
-        BLACK: new Set(serializedState.edgesBlack),
-        WHITE: new Set(serializedState.edgesWhite),
-        PURPLE: new Set(serializedState.edgesPurple),
-      },
+      edges: deserializeEngineEdges(serializedState, engine.activePlayers),
       historyHashes: new Set(serializedState.historyHashes),
       consecutiveSkips: serializedState.consecutiveSkips,
       resignedPlayers: new Set(serializedState.resignedPlayers ?? []),
@@ -69,6 +68,20 @@ self.onmessage = async (event) => {
     } else if (strategy === "model-free") {
       const model = await loadModelFreeModel(event.data?.modelId);
       ai = new ModelFreeAI(model);
+    } else if (strategy === "three-player") {
+      const model = await loadThreePlayerModel(event.data?.modelId);
+      ai = new ThreePlayerAI(model);
+      modelInfo = { id: model.spec.id, evidenceTier: model.spec.training.evidence_tier,
+        trainedBoardSizes: model.spec.training.trained_board_sizes, compatibility: "territory-v2 three-player" };
+    } else if (strategy === "hex-player") {
+      const model = await loadHexPlayerModel(event.data?.modelId);
+      ai = new HexPlayerAI(model);
+      modelInfo = {
+        id: model.spec.id,
+        evidenceTier: model.spec.training.evidence_tier,
+        trainedBoardSizes: model.spec.training.trained_board_sizes,
+        compatibility: "territory-v2 hexagon 4–6 players",
+      };
     }
     if (!ai) {
       throw new Error(`Unsupported AI strategy: ${strategy}`);

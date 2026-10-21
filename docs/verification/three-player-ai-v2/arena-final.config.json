@@ -1,0 +1,19 @@
+{
+  "schema": "lifeline-three-player-arena",
+  "version": 1,
+  "stage": "FINAL",
+  "sizes": [5, 7, 9],
+  "starters": ["BLACK", "WHITE", "PURPLE"],
+  "prefixesPerCell": 2,
+  "prefixMoves": 3,
+  "seedNamespace": "lifeline-three-player-v2/independent-final/20261021/protocol1",
+  "lineups": "paired",
+  "maxActions": 400,
+  "maxGameSeconds": 60,
+  "totalBudgetSeconds": 1800,
+  "promotion": {
+    "minimumMeanDelta": 0.04,
+    "minimumSizeDelta": -0.05,
+    "bootstrapReplicates": 10000
+  }
+}

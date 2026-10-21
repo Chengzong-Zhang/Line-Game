@@ -1,0 +1,21 @@
+{
+  "schema": "lifeline-hex-terminal-posttraining-v1",
+  "mode": "FINAL",
+  "modelId": "hex-player-policy-v3",
+  "rulesVersion": "territory-v2",
+  "sizes": [5, 7],
+  "counts": [4, 5, 6],
+  "prefixMoves": 4,
+  "maxActions": 3000,
+  "maxGameSeconds": 90,
+  "seedNamespace": "hex-v3-round-FINAL-20261021-unopened-r1",
+  "promotion": {
+    "minimumMeanDelta": 0.04,
+    "minimumGroupDelta": -0.05,
+    "bootstrapReplicates": 10000,
+    "bootstrapSeed": 2167653,
+    "requirePositiveLower95": true,
+    "requireNonnegativeEachLineup": true,
+    "requireAllTerminal": true
+  }
+}

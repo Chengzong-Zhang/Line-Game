@@ -62,8 +62,8 @@ const controllerSource = await readFrontendSource("GameController.js");
 const controllerUrl = asDataUrl(
   controllerSource
     .replace(
-      /^import GameEngine, \{ Player, TerritoryRulesVersion \} from "\.\/GameEngine\.js\?v=[^"]+";/m,
-      `import GameEngine, { Player, TerritoryRulesVersion } from "${engineUrl}";`,
+      /^import (GameEngine, \{[^}]+\}) from "\.\/GameEngine\.js\?v=[^"]+";/m,
+      `import $1 from "${engineUrl}";`,
     )
     .replace(
       /^import Renderer from "\.\/Renderer\.js\?v=[^"]+";/m,
@@ -460,8 +460,31 @@ const workerModelFreeAiUrl = asDataUrl(`
   export async function loadModelFreeModel() { throw new Error("not used by this Worker probe"); }
   export class ModelFreeAI {}
 `);
+const workerThreePlayerAiUrl = asDataUrl(`
+  export async function loadThreePlayerModel() { throw new Error("not used by this Worker probe"); }
+  export class ThreePlayerAI {}
+`);
+const workerHexPlayerAiUrl = asDataUrl(`
+  export async function loadHexPlayerModel() { throw new Error("not used by this Worker probe"); }
+  export class HexPlayerAI {}
+`);
+function rewriteWorkerSupportImports(source) {
+  return source
+    .replace(
+      /^import (\{[^}]+\}) from "\.\/AIStateProtocol\.js\?v=[^"]+";/m,
+      `import $1 from "${aiStateProtocolUrl}";`,
+    )
+    .replace(
+      /^import (\{[^}]+\}) from "\.\/ThreePlayer(?:AI|Models)\.js\?v=[^"]+";/m,
+      `import $1 from "${workerThreePlayerAiUrl}";`,
+    )
+    .replace(
+      /^import (\{[^}]+\}) from "\.\/HexPlayerAI\.js\?v=[^"]+";/m,
+      `import $1 from "${workerHexPlayerAiUrl}";`,
+    );
+}
 const workerUrl = asDataUrl(
-  workerSource
+  rewriteWorkerSupportImports(workerSource)
     .replace(
       /^import \{ GameEngine \} from "\.\/GameEngine\.js\?v=[^"]+";/m,
       `import { GameEngine } from "${engineUrl}";`,
@@ -517,7 +540,7 @@ const workerStateProbeAiUrl = asDataUrl(`
   export { MinimaxAI as GreedyAI, MinimaxAI as MCTSAI };
 `);
 const workerStateProbeUrl = asDataUrl(
-  workerSource
+  rewriteWorkerSupportImports(workerSource)
     .replace(
       /^import \{ GameEngine \} from "\.\/GameEngine\.js\?v=[^"]+";/m,
       `import { GameEngine } from "${engineUrl}";`,

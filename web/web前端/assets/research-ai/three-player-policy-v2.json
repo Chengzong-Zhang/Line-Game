@@ -1,0 +1,128 @@
+{
+  "schema": {
+    "name": "lifeline-three-player-policy",
+    "version": 1
+  },
+  "id": "three-player-policy-v2",
+  "rules_version": "territory-v2",
+  "features": [
+    "own_nodes",
+    "own_coverage",
+    "own_reach",
+    "node_lead",
+    "coverage_lead",
+    "reach_lead",
+    "captured_nodes",
+    "captured_coverage",
+    "own_node_gain",
+    "own_coverage_gain",
+    "attack",
+    "own_line",
+    "distance_from_home",
+    "centrality",
+    "own_frontier",
+    "opponent_frontier_lead"
+  ],
+  "weights": [
+    7.557808700460726e-15,
+    3.58959305398828,
+    -2.4475948070745512,
+    -0.2064619860790177,
+    2.376156912454001,
+    3.4965535285876213,
+    -0.035238875699359525,
+    -0.44259124087426643,
+    1.499866503568271e-15,
+    3.5895930539882763,
+    0.9259918344344285,
+    0.16147374003446202,
+    -0.3807226709448679,
+    0.39413333686111285,
+    -0.7122030198259947,
+    1.619216717017585
+  ],
+  "temperature": 1,
+  "browser_inference": {
+    "player_count": 3,
+    "board_size_range": [
+      5,
+      15
+    ]
+  },
+  "lineage": {
+    "type": "weights-only-warm-start",
+    "parent_id": "three-player-policy-v1",
+    "parent_sha256": "8cd1a2f36267f96b1e32b7749a9cdc785f489ea7ec12e31aee0beb0a72901794"
+  },
+  "training": {
+    "two_player_samples": 135,
+    "three_player_samples": 244,
+    "posttraining_samples": 1324,
+    "validation_samples": 446,
+    "trained_board_sizes": [
+      5,
+      7,
+      9
+    ],
+    "parent_model_id": "three-player-policy-v1",
+    "parent_model_sha256": "8cd1a2f36267f96b1e32b7749a9cdc785f489ea7ec12e31aee0beb0a72901794",
+    "source_hashes": {
+      "web/tools/finetune-three-player-ai.mjs": "d490b4b4ada24c0e28ee83680abadb652b5d800509bcba7bc865afc185c20457",
+      "web/tools/three-player-posttraining-core.mjs": "664525517f2cb2d46ba33ab7cc8d19b196b6f8bae4bba6f170b32aa7dfc79d80",
+      "web/web前端/GameEngine.js": "625e8d8a92801647702f963f56148040248cf471228a6ce5c719e20e4414a555",
+      "web/web前端/AIEngine.js": "6738fe3a98a616dfd6c060636f5d2684fd49ebc561c95a96247db28c7170ccc3",
+      "web/web前端/ThreePlayerAI.js": "edfa92c657fa28a617f18586191a09686336af15843a8423a07b863743e0381b"
+    },
+    "protocol_sha256": "c6534a65ca3c246ec470222d578a504eb65eca5619fec716157bc3b77c432a8f",
+    "selected_epoch": 900,
+    "initial_validation_cross_entropy": 1.5987505593931233,
+    "final_validation_cross_entropy": 1.5248056135881953,
+    "selection_basis": "maximum paired mean win-share delta over both 1-AI and 2-AI lineups; validation cross-entropy then earliest epoch break ties",
+    "development_summaries": [
+      {
+        "epoch": 900,
+        "games": 54,
+        "meanWinShareDelta": 0.02932098765432099,
+        "singleAiDelta": 0.030864197530864203,
+        "dualAiDelta": 0.027777777777777783,
+        "validationLoss": 1.5248056135881953,
+        "perSize": {
+          "5": -0.03703703703703703,
+          "7": 0.1111111111111111,
+          "9": 0.013888888888888888
+        }
+      },
+      {
+        "epoch": 500,
+        "games": 54,
+        "meanWinShareDelta": 0.02932098765432099,
+        "singleAiDelta": 0.030864197530864203,
+        "dualAiDelta": 0.027777777777777783,
+        "validationLoss": 1.5248297228333303,
+        "perSize": {
+          "5": -0.03703703703703703,
+          "7": 0.1111111111111111,
+          "9": 0.013888888888888888
+        }
+      },
+      {
+        "epoch": 200,
+        "games": 54,
+        "meanWinShareDelta": 0.02932098765432099,
+        "singleAiDelta": 0.030864197530864203,
+        "dualAiDelta": 0.027777777777777783,
+        "validationLoss": 1.5255678658706127,
+        "perSize": {
+          "5": -0.03703703703703703,
+          "7": 0.1111111111111111,
+          "9": 0.013888888888888888
+        }
+      }
+    ],
+    "completed_generation_episodes": 72,
+    "terminal_episodes": 54,
+    "truncated_episodes": 18,
+    "completed_development_games": 171,
+    "evidence_tier": "application-posttraining; independent final arena pending"
+  }
+}

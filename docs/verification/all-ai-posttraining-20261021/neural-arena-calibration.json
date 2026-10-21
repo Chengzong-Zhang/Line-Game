@@ -1,0 +1,70 @@
+{
+  "status": "PASS_CALIBRATION_ONLY",
+  "games": 4,
+  "terminal_games": 4,
+  "truncated_games": 0,
+  "representative_size": 9,
+  "inference": "shipped PUCT-16 and MLP",
+  "models": {
+    "padded-cnn-d14-s20260825-g200-calibration": [
+      {
+        "actions": 29,
+        "activity_ms": 15153.0941,
+        "terminal": true
+      },
+      {
+        "actions": 29,
+        "activity_ms": 14859.84989999999,
+        "terminal": true
+      }
+    ],
+    "dqn-all-sizes-e2000-calibration": [
+      {
+        "actions": 50,
+        "activity_ms": 210.6067000000039,
+        "terminal": true
+      },
+      {
+        "actions": 50,
+        "activity_ms": 212.00600000004124,
+        "terminal": true
+      }
+    ]
+  },
+  "activity_ms": 30435.556700000037,
+  "verifier_status": "PASS_APPLICATION_SCREEN_REPLAY",
+  "source_identity": "28a60149ff8666d1a66223ab3a2be6ecdfff9eec7c0746e776aa4f3f3260d627",
+  "source_hashes": {
+    "C:\\coding\\py\\line game\\web\\web\u524d\u7aef\\assets\\research-ai\\padded-cnn-d14-s20260825-g200.f32": "cea913f58d1694926fb6710ca355bf6d41e5a6c49b991af87b836ae26d43bf1f",
+    "C:\\coding\\py\\line game\\web\\web\u524d\u7aef\\assets\\research-ai\\grid-gnn-d14-s20260825-g200.f32": "92cc45bb2a3a6a56c896098c1e843a136587a9aaf07381fbf1d00ebb4fd02dfa",
+    "C:\\coding\\py\\line game\\web\\web\u524d\u7aef\\assets\\research-ai\\topology-gnn-d14-s20260825-g200.f32": "de7f1a4c9c204d0f88598f5d7d92e180e291060b11cc711c8f9e786207cf34d0",
+    "C:\\coding\\py\\line game\\web\\web\u524d\u7aef\\assets\\research-ai\\transfer-v1\\padded-cnn-transfer-v1-seed2026092201.f32": "416ee1a88f092ab514dd40c8a22604a761a20b223409eaaef64f61c691108242",
+    "C:\\coding\\py\\line game\\web\\web\u524d\u7aef\\assets\\research-ai\\transfer-v1\\padded-cnn-transfer-v1-seed2026092202.f32": "cd36fdd3a96e78066475fb67056fa179bf7765028fbf9e4db7a172857b134af3",
+    "C:\\coding\\py\\line game\\web\\web\u524d\u7aef\\assets\\research-ai\\transfer-v1\\padded-cnn-transfer-v1-seed2026092203.f32": "ee60f6d279941c78af999c6d051d514bf90f09b9478272d8557d482bb24dd07c",
+    "C:\\coding\\py\\line game\\web\\web\u524d\u7aef\\assets\\research-ai\\transfer-v1\\grid-gnn-transfer-v1-seed2026092201.f32": "e0b82a1736521fb967afb7861ba1fcc697b505990d5b6391abb8318dbef42a0b",
+    "C:\\coding\\py\\line game\\web\\web\u524d\u7aef\\assets\\research-ai\\transfer-v1\\grid-gnn-transfer-v1-seed2026092202.f32": "5db4b00462d8e30d2d293adf554da3e0e6b4cde6d40d3f82b590b23fa267000b",
+    "C:\\coding\\py\\line game\\web\\web\u524d\u7aef\\assets\\research-ai\\transfer-v1\\grid-gnn-transfer-v1-seed2026092203.f32": "67079d1d6108732cddfeecf74840ae63505488af052e068ab1a83bf96c56bf87",
+    "C:\\coding\\py\\line game\\web\\web\u524d\u7aef\\assets\\research-ai\\transfer-v1\\topology-gnn-transfer-v1-seed2026092201.f32": "0235947ee5a3eb6aa36627da06270e0854f3ece5c2b509d6a4f85d830a54f5ba",
+    "C:\\coding\\py\\line game\\web\\web\u524d\u7aef\\assets\\research-ai\\transfer-v1\\topology-gnn-transfer-v1-seed2026092202.f32": "4c424c0f0ac19724d7fa51741d199bd780781d7063b325671fe9197f6b6abc9b",
+    "C:\\coding\\py\\line game\\web\\web\u524d\u7aef\\assets\\research-ai\\transfer-v1\\topology-gnn-transfer-v1-seed2026092203.f32": "5a8f6f4ed6954c5dda131c16403f2f2c680edefffc050d19f2cab25850dcc84b",
+    "C:\\coding\\py\\line game\\web\\web\u524d\u7aef\\assets\\research-ai\\dqn-all-sizes-e2000.f32": "16f50c330ad7cc239cfb0b2334538817c7c0d6cf4c01f6048b05c9ee4a9466eb",
+    "C:\\coding\\py\\line game\\web\\web\u524d\u7aef\\assets\\research-ai\\ppo-all-sizes-e2000.f32": "af41359ca0ee00b3be86a2f5b9363a513af942f6cfa0c50f31cb0f252c86de85",
+    "C:\\coding\\py\\line game\\web\\web\u524d\u7aef\\assets\\research-ai\\sac-all-sizes-e2000.f32": "63a1b80b456427a2545a31ff9af209fdde1f9cf8d41ae6984f36c09c116932bd",
+    "C:\\coding\\py\\line game\\web\\web\u524d\u7aef\\assets\\research-ai\\gail-all-sizes.f32": "5951e4e3f057893275df6f44543f3747cd4275a616d52a5b8355e51760faea71",
+    "C:\\coding\\py\\line game\\web\\web\u524d\u7aef\\assets\\research-ai\\gan-all-sizes.f32": "63629d0027afb8ff2fdbc3e773be420c062361b315741d8371e47818c4ec30e5",
+    "web/tools/neural-posttraining-arena.mjs": "d3b26d8fee4dab53fe0fffdf27d4594d5669565fd52ff53248bb303c67de9e40",
+    "web/tools/neural-posttraining-data.mjs": "8d4f027ea0b60336763cda432977fd896517c683aca245269dac03c01e418655",
+    "web/web\u524d\u7aef/GameEngine.js": "625e8d8a92801647702f963f56148040248cf471228a6ce5c719e20e4414a555",
+    "web/web\u524d\u7aef/AIEngine.js": "6738fe3a98a616dfd6c060636f5d2684fd49ebc561c95a96247db28c7170ccc3",
+    "web/web\u524d\u7aef/ResearchAI.js": "f20be33d27fc35c5b85fbf88da6325d508cccf2ae90f81286434722b3359b039",
+    "web/web\u524d\u7aef/ModelFreeAI.js": "f17771f1af1b94ad637b61407e81af485f0c53b0137551a1eaf8a57d0eca01be",
+    "C:\\coding\\py\\line game\\local_artifacts\\all-ai-posttraining-20261021\\neural-arena-calibration\\candidate-manifest.json": "a5c9e38e13d0283f26c7657ca75053a0dab689300e22da96a89d7b2014adebfe",
+    "C:\\coding\\py\\line game\\local_artifacts\\all-ai-posttraining-20261021\\neural-arena-calibration\\config.json": "7d09f11f9171e9582fc03a49b1eedad1240c75f910f81715535a7f4eb25a9bdb"
+  },
+  "final_screen_budget_seconds": 3600,
+  "limitations": [
+    "Representative timing only; no candidate training or strength claim.",
+    "Final screening uses a v2 worker to bind parent manifest metadata and adopt immutable completed units.",
+    "Original calibration inputs and v1 worker are preserved."
+  ]
+}

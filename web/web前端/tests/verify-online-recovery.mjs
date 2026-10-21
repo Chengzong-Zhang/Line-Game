@@ -52,8 +52,8 @@ const territoryWorkerSessionStubUrl = asDataUrl(`
 const controllerSource = await readFrontendSource("GameController.js");
 const rewrittenControllerSource = controllerSource
   .replace(
-    /^import GameEngine, \{ Player, TerritoryRulesVersion \} from "\.\/GameEngine\.js\?v=[^"]+";/m,
-    `import GameEngine, { Player, TerritoryRulesVersion } from "${engineUrl}";`,
+    /^import (GameEngine, \{[^}]+\}) from "\.\/GameEngine\.js\?v=[^"]+";/m,
+    `import $1 from "${engineUrl}";`,
   )
   .replace(
     /^import Renderer from "\.\/Renderer\.js\?v=[^"]+";/m,

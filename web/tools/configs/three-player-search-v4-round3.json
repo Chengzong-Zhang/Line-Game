@@ -1,0 +1,116 @@
+{
+  "schema": {
+    "name": "lifeline-three-player-search",
+    "version": 4
+  },
+  "id": "three-player-search-v4-round3",
+  "rules_version": "territory-v2",
+  "features": [
+    "own_nodes",
+    "own_coverage",
+    "own_reach",
+    "node_lead",
+    "coverage_lead",
+    "reach_lead",
+    "captured_nodes",
+    "captured_coverage",
+    "own_node_gain",
+    "own_coverage_gain",
+    "attack",
+    "own_line",
+    "distance_from_home",
+    "centrality",
+    "own_frontier",
+    "opponent_frontier_lead"
+  ],
+  "weights": [
+    7.557808700460726e-15,
+    3.58959305398828,
+    -2.4475948070745512,
+    -0.2064619860790177,
+    2.376156912454001,
+    3.4965535285876213,
+    -0.035238875699359525,
+    -0.44259124087426643,
+    1.499866503568271e-15,
+    3.5895930539882763,
+    0.9259918344344285,
+    0.16147374003446202,
+    -0.3807226709448679,
+    0.39413333686111285,
+    -0.7122030198259947,
+    1.619216717017585
+  ],
+  "temperature": 1,
+  "lineage": [
+    {
+      "id": "three-player-policy-v1",
+      "path": "C:\\coding\\py\\line game\\web\\web前端\\assets\\research-ai\\three-player-policy-v1.json",
+      "sha256": "8cd1a2f36267f96b1e32b7749a9cdc785f489ea7ec12e31aee0beb0a72901794"
+    },
+    {
+      "id": "three-player-policy-v2",
+      "path": "C:\\coding\\py\\line game\\web\\web前端\\assets\\research-ai\\three-player-policy-v2.json",
+      "sha256": "00fc241c500dfd01ff85b5e2a4f1907cc5a9d8307d68bb78be64b0aad129f56e"
+    }
+  ],
+  "training": {
+    "newGradientUpdates": 0,
+    "method": "Inherited frozen v2 linear weights plus bounded ensemble rollout policy improvement."
+  },
+  "search": {
+    "id": "round3",
+    "rootWidth": 3,
+    "rolloutPlies": 3,
+    "minimumImprovement": 0.02,
+    "coverageWeight": 0.3,
+    "reachWeight": 0.05,
+    "valueTemperature": 0.12,
+    "opponents": [
+      {
+        "id": "three-player-policy-v1",
+        "weights": [
+          3.068344628658064e-17,
+          0.6199774834539716,
+          0.3808808087202156,
+          0.10275129394052988,
+          0.9175196402489464,
+          1.3112210860509383,
+          0.10839054193264783,
+          0.2873651440694504,
+          1.3867114075450387e-17,
+          0.6199774834539719,
+          1.1600217968758315,
+          0.07573687233700797,
+          1.0691487331301746,
+          -0.6687230236886617,
+          0.19513418386106526,
+          0.4217435781350474
+        ],
+        "temperature": 1
+      },
+      {
+        "id": "three-player-policy-v2",
+        "weights": [
+          7.557808700460726e-15,
+          3.58959305398828,
+          -2.4475948070745512,
+          -0.2064619860790177,
+          2.376156912454001,
+          3.4965535285876213,
+          -0.035238875699359525,
+          -0.44259124087426643,
+          1.499866503568271e-15,
+          3.5895930539882763,
+          0.9259918344344285,
+          0.16147374003446202,
+          -0.3807226709448679,
+          0.39413333686111285,
+          -0.7122030198259947,
+          1.619216717017585
+        ],
+        "temperature": 1
+      }
+    ]
+  }
+}

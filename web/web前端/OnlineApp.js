@@ -1,21 +1,22 @@
-import GameController from "./GameController.js?v=20261014-code1";
-import { Player } from "./GameEngine.js?v=20261014-code1";
-import { captureWorkerRequest, isWorkerResultForRequest, serializeEngineState } from "./AIStateProtocol.js?v=20261014-code1";
-import { RESEARCH_FAMILIES, TRANSFER_SEEDS, researchProfile } from "./ResearchAIOptions.js?v=20261014-code1";
+import GameController from "./GameController.js?v=20261020-three1";
+import { Player } from "./GameEngine.js?v=20261020-three1";
+import { captureWorkerRequest, isWorkerResultForRequest, serializeEngineState } from "./AIStateProtocol.js?v=20261020-three1";
+import { RESEARCH_FAMILIES, TRANSFER_SEEDS, researchProfile } from "./ResearchAIOptions.js?v=20261020-three1";
 import {
   OneShotHintWorker,
   applyHintWorkerResult,
-} from "./HintWorkerSession.js?v=20261014-code1";
-import NetworkManager, { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js?v=20261014-code1";
+} from "./HintWorkerSession.js?v=20261020-three1";
+import NetworkManager, { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js?v=20261020-three1";
 import {
   applyRoomSnapshotWithPostCommit,
   coordinateControllerRoomSnapshot,
   registerRoomSnapshotResponseListeners,
-} from "./OnlineRoomSync.js?v=20261014-code1";
+} from "./OnlineRoomSync.js?v=20261020-three1";
 import {
   createEmptyAuth as createAppEmptyAuth,
   GRID_SIZE_OPTIONS as APP_GRID_SIZE_OPTIONS,
   PLAYER_COUNT_OPTIONS as APP_PLAYER_COUNT_OPTIONS,
+  ALL_PLAYERS as APP_ALL_PLAYERS,
   DEFAULT_TURN_TIMER_SECONDS as APP_DEFAULT_TURN_TIMER_SECONDS,
   DEFAULT_RULES_VERSION as APP_DEFAULT_RULES_VERSION,
   TURN_TIMER_MAX_SECONDS as APP_TURN_TIMER_MAX_SECONDS,
@@ -28,7 +29,7 @@ import {
   normalizeGameSettings as normalizeAppGameSettings,
   persistAuth as persistAppAuth,
   persistSession as persistAppSession,
-} from "./OnlineAppState.js?v=20261014-code1";
+} from "./OnlineAppState.js?v=20261021-hexai1";
 import {
   formatArea as formatAppArea,
   formatConnectionState as formatAppConnectionState,
@@ -42,8 +43,8 @@ import {
   UI_STYLE_STORAGE_KEY,
   UI_STYLE_ACADEMIC,
   localizeErrorMessage as localizeAppErrorMessage,
-} from "./OnlineAppI18n.js?v=20261014-code1";
-import { ensureGuideRuleImages, getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20261014-code1";
+} from "./OnlineAppI18n.js?v=20261021-hexai1";
+import { ensureGuideRuleImages, getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20261020-three1";
 import {
   TUTORIAL_LEVELS,
   getTutorialEngineSettings,
@@ -51,22 +52,22 @@ import {
   getTutorialLevel,
   isTutorialTarget,
   isTutorialRestrictionAttempt,
-} from "./TutorialRunner.js?v=20261014-code1";
+} from "./TutorialRunner.js?v=20261020-three1";
 import {
   appendLocalGameAction,
   clearLocalGameSession,
   createLocalGameSession,
   loadLocalGameSession,
   persistLocalGameSession,
-} from "./LocalGameSession.js?v=20261014-code1";
+} from "./LocalGameSession.js?v=20261021-hexai1";
 import {
   createReplayDocument,
   downloadReplayDocument,
   parseAndValidateReplay,
-} from "./ReplayCodec.js?v=20261014-code1";
-import { TrainingContribution, ContributionPanel } from "./TrainingContribution.js?v=20261014-code1";
-import { resolveAIPlayer, localMatchActors, localMatchMode, localPlayerProfile, normalizeLocalPlayers, loadLocalMatchPreferences, persistLocalMatchPreferences } from "./LocalAIModes.js?v=20261014-code1";
-import LocalPlayerSetup from "./LocalPlayerSetup.js?v=20261014-code1";
+} from "./ReplayCodec.js?v=20261020-three1";
+import { TrainingContribution, ContributionPanel } from "./TrainingContribution.js?v=20261020-three1";
+import { localAIPlayer, localMatchActors, localMatchMode, localPlayerProfile, normalizeLocalPlayers, loadLocalMatchPreferences, persistLocalMatchPreferences } from "./LocalAIModes.js?v=20261021-hexai1";
+import LocalPlayerSetup from "./LocalPlayerSetup.js?v=20261021-hexai1";
 
 const {
   computed,
@@ -120,7 +121,7 @@ function resolveInitialServerUrl(storedUrl, locationLike = globalThis.location) 
     if (locationLike?.protocol === "https:" && parsed.protocol === "ws:") {
       return dynamicUrl;
     }
-    if (/^(localhost|127\.0\.0\.1|\[::1\]|::1)$/i.test(parsed.hostname) && parsed.port && parsed.port !== "8000") {
+    if (/^(localhost|127\.0\.0\.1|\[::1\]|::1)$/i.test(parsed.hostname)) {
       return dynamicUrl;
     }
     return parsed.toString();
@@ -275,7 +276,7 @@ function normalizeChatEmojiDisplay(display) {
     return null;
   }
 
-  const colorClass = ["blue", "red", "purple"].includes(display.colorClass)
+  const colorClass = ["blue", "red", "purple", "green", "orange", "cyan"].includes(display.colorClass)
     ? display.colorClass
     : "blue";
   return {
@@ -340,6 +341,9 @@ const PLAYER_ACCENT_CLASS = Object.freeze({
   [Player.BLACK]: "player-accent-blue",
   [Player.WHITE]: "player-accent-red",
   [Player.PURPLE]: "player-accent-purple",
+  [Player.GREEN]: "player-accent-green",
+  [Player.ORANGE]: "player-accent-orange",
+  [Player.CYAN]: "player-accent-cyan",
 });
 
 function getPlayerAccentClass(player) {
@@ -357,6 +361,7 @@ function findRoomPlayerByColor(roomPlayers, color) {
 function resolveOnlinePlayerName(roomPlayers, color, language, uiStyle) {
   const player = findRoomPlayerByColor(roomPlayers, color);
   const roleLabel = formatAppPlayerName(color, language, uiStyle);
+  if (player?.isBot) return `${roleLabel} AI`;
   const identity = player?.username ?? player?.playerId ?? "";
 
   if (!identity) {
@@ -375,6 +380,9 @@ function formatIndexedPlayerName(player, players, language) {
 }
 
 function formatGamePlayerName(player, players, roomPlayers, language, uiStyle) {
+  if (findRoomPlayerByColor(roomPlayers, player)?.isBot) {
+    return resolveOnlinePlayerName(roomPlayers, player, language, uiStyle);
+  }
   const activePlayers = Array.isArray(players) && players.length
     ? players
     : [Player.BLACK, Player.WHITE];
@@ -391,7 +399,7 @@ function formatGameWinner(winner, players, roomPlayers, language, uiStyle) {
   if (winner === "DRAW") {
     return texts.draw;
   }
-  if (![Player.BLACK, Player.WHITE, Player.PURPLE].includes(winner)) {
+  if (!APP_ALL_PLAYERS.includes(winner)) {
     return texts.inProgress;
   }
   if (uiStyle === UI_STYLE_ACADEMIC) {
@@ -521,15 +529,7 @@ const ScorePanel = {
       props.language,
       props.uiStyle,
     ));
-    const turnBannerClass = computed(() => {
-      if (props.gameState.currentPlayer === Player.BLACK) {
-        return "is-blue";
-      }
-      if (props.gameState.currentPlayer === Player.WHITE) {
-        return "is-red";
-      }
-      return "is-purple";
-    });
+    const turnBannerClass = computed(() => `is-${getPlayerAccentClass(props.gameState.currentPlayer).replace("player-accent-", "")}`);
     const scoreCards = computed(() => {
       const players = activePlayers.value;
       const scores = getDisplayScores(props.gameState);
@@ -549,29 +549,12 @@ const ScorePanel = {
           isNamed: showPlayerNames,
         };
 
-        if (player === Player.BLACK) {
-          return {
-            ...namedCard,
-            label: texts.value.blueTerritory,
-            value: scores?.[Player.BLACK],
-            className: "score-card-blue",
-          };
-        }
-
-        if (player === Player.WHITE) {
-          return {
-            ...namedCard,
-            label: texts.value.redTerritory,
-            value: scores?.[Player.WHITE],
-            className: "score-card-red",
-          };
-        }
-
+        const accent = getPlayerAccentClass(player).replace("player-accent-", "");
         return {
           ...namedCard,
-          label: texts.value.purpleTerritory,
-          value: scores?.[Player.PURPLE],
-          className: "score-card-purple",
+          label: texts.value[`${accent}Territory`],
+          value: scores?.[player],
+          className: `score-card-${accent}`,
         };
       });
     });
@@ -773,7 +756,7 @@ const SetupPanel = {
             <label id="player-count-label" class="field-label">{{ texts.playerCountLabel }}</label>
             <div
               id="player-count"
-              class="language-switcher language-switcher-inline"
+              class="language-switcher language-switcher-inline player-count-choices"
               role="radiogroup"
               aria-labelledby="player-count-label"
             >
@@ -792,17 +775,18 @@ const SetupPanel = {
               </button>
             </div>
           </div>
+          <p class="help-copy settings-grid-item-wide board-geometry-summary">{{ texts.boardGeometry(playerCount) }}</p>
           <div class="settings-grid-item-wide" v-if="aiAvailable">
             <LocalPlayerSetup :texts="texts" :players="localPlayers" :player-count="playerCount"
               :start-player="startPlayer" :pending="localPending" :started="localStarted" :locked="busy || settingsLocked"
               @update-player="$emit('update-local-player', $event)" @update:start-player="$emit('update:start-player', $event)"
               @swap="$emit('swap-local-players')" @start="$emit('start-local-match')">
               <template #contribution>
-                <ContributionPanel :language="language" :state="contributionState" @toggle="$emit('toggle-contributions', $event)" @retry="$emit('retry-contributions')" />
+                <ContributionPanel v-if="playerCount <= 3" :language="language" :state="contributionState" @toggle="$emit('toggle-contributions', $event)" @retry="$emit('retry-contributions')" />
               </template>
             </LocalPlayerSetup>
           </div>
-          <div v-else class="settings-grid-item-wide">
+          <div v-else-if="playerCount <= 3" class="settings-grid-item-wide">
             <ContributionPanel :language="language" :state="contributionState" @toggle="$emit('toggle-contributions', $event)" @retry="$emit('retry-contributions')" />
           </div>
           <div class="settings-grid-item-wide">
@@ -856,7 +840,7 @@ const SetupPanel = {
               @change="$emit('update:turn-time-limit-seconds', Number($event.target.value))"
             />
           </div>
-          <div>
+          <div v-if="playerCount <= 3">
             <label class="field-label" for="hint-enabled">{{ texts.hintSwitchLabel }}</label>
             <label class="toggle-field" for="hint-enabled">
               <input
@@ -869,7 +853,7 @@ const SetupPanel = {
               <span>{{ hintEnabled ? texts.toggleOn : texts.toggleOff }}</span>
             </label>
           </div>
-          <div>
+          <div v-if="playerCount <= 3">
             <label class="field-label" for="hint-max-count">{{ texts.hintMaxCountLabel }}</label>
             <input
               id="hint-max-count"
@@ -1032,8 +1016,12 @@ const RoomPanel = {
     "update:start-player",
     "close-prompt",
     "update:room-id",
+    "update:bot-count",
+    "retry-bots",
   ],
   props: {
+    playerCount: { type: Number, default: 2 },
+    botCount: { type: Number, default: 0 },
     roomId: {
       type: String,
       required: true,
@@ -1116,6 +1104,9 @@ const RoomPanel = {
       "is-blue": option.value === Player.BLACK,
       "is-red": option.value === Player.WHITE,
       "is-purple": option.value === Player.PURPLE,
+      "is-green": option.value === Player.GREEN,
+      "is-orange": option.value === Player.ORANGE,
+      "is-cyan": option.value === Player.CYAN,
     });
     const readyActionLabel = computed(() => (
       roomPlaying.value
@@ -1180,6 +1171,13 @@ const RoomPanel = {
       />
 
       <div class="actions actions-stack">
+        <div v-if="playerCount >= 3 && !session.roomId">
+          <label class="field-label" for="room-bot-count">{{ texts.roomBotCount }}</label>
+          <select id="room-bot-count" class="input-field" :value="botCount" :disabled="busy" @change="$emit('update:bot-count', Number($event.target.value))">
+            <option v-for="count in playerCount" :key="count - 1" :value="count - 1">{{ texts.roomBotOption(playerCount, count - 1) }}</option>
+          </select>
+          <p class="help-copy">{{ texts.roomBotHint }}</p>
+        </div>
         <button class="action-button action-button-primary" :disabled="busy || !authenticated" @click="$emit('connect')">
           {{ texts.connectServer }}
         </button>
@@ -1195,6 +1193,7 @@ const RoomPanel = {
       </div>
 
       <div class="room-lobby" v-if="session.roomId">
+        <button v-if="isHost && roomInfo?.settings?.botCount && roomPlaying" type="button" class="action-button action-button-ghost" :disabled="busy" @click="$emit('retry-bots')">{{ texts.roomRetryBots }}</button>
         <div class="panel-subhead">
           <h3>{{ texts.roomPlayers }}</h3>
         </div>
@@ -1228,6 +1227,7 @@ const RoomPanel = {
               <strong :class="getPlayerAccentClass(player.color)">{{ roomPlayerName(player) }}</strong>
               <span class="room-player-meta" v-if="player.playerId === session.playerId">{{ texts.roomYou }}</span>
               <span class="room-player-meta" v-if="player.isHost">{{ texts.roomHost }}</span>
+              <span class="room-player-meta" v-if="player.isBot">{{ roomInfo?.settings?.playerCount >= 4 ? texts.localHexAI : texts.localThreeAI }}</span>
             </div>
             <span
               class="status-pill"
@@ -1410,15 +1410,7 @@ const ControlPanel = {
         )
         : ""
     ));
-    const turnBannerClass = computed(() => {
-      if (props.gameState.currentPlayer === Player.BLACK) {
-        return "is-blue";
-      }
-      if (props.gameState.currentPlayer === Player.WHITE) {
-        return "is-red";
-      }
-      return "is-purple";
-    });
+    const turnBannerClass = computed(() => `is-${getPlayerAccentClass(props.gameState.currentPlayer).replace("player-accent-", "")}`);
     const hintLabel = computed(() => (
       props.hintRemainingCount === 0
         ? texts.value.hintExhausted
@@ -1722,7 +1714,7 @@ const ReplayInspectorPanel = {
           none: "No clearing or territory change was detected for this step.",
           ended: "This step triggered terminal settlement.",
         });
-    const playerName = (player) => ({ BLACK: props.language === "zh" ? "蓝方" : "Blue", WHITE: props.language === "zh" ? "红方" : "Red", PURPLE: props.language === "zh" ? "紫方" : "Purple" }[player] ?? player ?? "—");
+    const playerName = (player) => APP_ALL_PLAYERS.includes(player) ? formatAppPlayerName(player, props.language, props.uiStyle) : player ?? "—";
     const occupiedCount = computed(() => (
       props.gameState.snapshot?.boardMatrix?.flat?.().filter((state) => Number(state) > 0).length ?? 0
     ));
@@ -1853,9 +1845,9 @@ const ReplayInspectorPanel = {
         <div class="replay-ai-head">
           <div>
             <p class="replay-inspector-label">{{ copy.aiTitle }}</p>
-            <p class="replay-panel-description">{{ copy.aiDescription }}</p>
+            <p class="replay-panel-description">{{ gameState.playerCount >= 4 ? (language === "zh" ? "正六边形棋盘支持逐步复盘与规则检查；暂不提供 AI 对比。" : "Hexagonal boards support step-by-step replay and rule inspection. AI comparison is not available yet.") : copy.aiDescription }}</p>
           </div>
-          <button type="button" class="action-button action-button-secondary" :disabled="aiComparisonBusy || !gameState.legalMoves?.length" @click="$emit('compare-ai')">
+          <button type="button" class="action-button action-button-secondary" :disabled="aiComparisonBusy || gameState.playerCount >= 4 || !gameState.legalMoves?.length" @click="$emit('compare-ai')">
             {{ aiComparisonBusy ? copy.aiRunning : copy.aiRun }}
           </button>
         </div>
@@ -2797,6 +2789,7 @@ const BoardCanvas = {
       default: null,
     },
     inputLocked: { type: Boolean, default: false },
+    playerCount: { type: Number, default: 2 },
   },
   emits: ["state-change", "controller-ready"],
   setup(props, { emit }) {
@@ -2842,7 +2835,7 @@ const BoardCanvas = {
             ref="canvasRef"
             class="game-canvas"
             :class="{ 'game-canvas-ai-thinking': aiThinking || inputLocked }"
-            :aria-label="texts.boardAriaLabel"
+            :aria-label="playerCount >= 4 ? texts.hexBoardAriaLabel : texts.boardAriaLabel"
             :aria-disabled="inputLocked ? 'true' : 'false'"
             :aria-busy="aiThinking ? 'true' : 'false'"
           ></canvas>
@@ -2993,8 +2986,9 @@ const App = {
     const selectedRulesVersion = ref(initialSettings.rulesVersion ?? APP_DEFAULT_RULES_VERSION);
     const selectedTurnTimerEnabled = ref(initialSettings.turnTimerEnabled);
     const selectedTurnTimeLimitSeconds = ref(initialSettings.turnTimeLimitSeconds);
-    const selectedLocalPlayers = ref(normalizeLocalPlayers(storedLocalGame?.match?.players ?? storedMatchPreferences?.players));
-    const activeLocalPlayers = ref(normalizeLocalPlayers(storedLocalGame?.match?.players));
+    const selectedLocalPlayers = ref(normalizeLocalPlayers(storedLocalGame?.match?.players ?? storedMatchPreferences?.players, initialSettings.playerCount));
+    const activeLocalPlayers = ref(normalizeLocalPlayers(storedLocalGame?.match?.players, normalGameSettings.playerCount));
+    const selectedRoomBotCount = ref(0);
     const activeLocalSettings = ref(normalGameSettings);
     const localMatchStarted = ref(storedLocalGame?.match?.started ?? Boolean(storedLocalGame?.actions.length));
     const localSetupPending = computed(() => !localMatchStarted.value
@@ -3039,26 +3033,31 @@ const App = {
     let roomSnapshotRecoveryFailed = false;
     let guideMarkdownLoadId = 0;
     let aiWorker = null;
+    let aiTimeoutId = null;
     let aiScheduleId = null;
     let aiRequestSequence = 0;
     let activeAiRequestId = null;
     let activeAiRequest = null;
     const hintWorkerSession = new OneShotHintWorker(
-      () => new Worker(new URL("./AIWorker.js?v=20261014-code1", import.meta.url), { type: "module" }),
+      () => new Worker(new URL("./AIWorker.js?v=20261021-hexai1", import.meta.url), { type: "module" }),
     );
     const aiComparisonWorkerSession = new OneShotHintWorker(
-      () => new Worker(new URL("./AIWorker.js?v=20261014-code1", import.meta.url), { type: "module" }),
+      () => new Worker(new URL("./AIWorker.js?v=20261021-hexai1", import.meta.url), { type: "module" }),
     );
     const chatEmojiTimeoutIds = new Set();
 
     const cancelHintRequest = () => hintWorkerSession.cancel();
     const cancelAiComparison = () => aiComparisonWorkerSession.cancel();
 
-    const getAiPlayer = (state = gameState.value) => resolveAIPlayer(selectedAiMode.value, state?.currentPlayer);
+    const getAiPlayer = (state = gameState.value) => localAIPlayer(activeLocalPlayers.value, activeLocalSettings.value.playerCount, state?.currentPlayer);
 
-    const selectedAiProfile = (player = gameState.value.currentPlayer) => localPlayerProfile(activeLocalPlayers.value[player]);
+    const selectedAiProfile = (player = gameState.value.currentPlayer) => localPlayerProfile(activeLocalPlayers.value[player], activeLocalSettings.value.playerCount);
 
     const terminateAiWorker = () => {
+      if (aiTimeoutId !== null) {
+        globalThis.clearTimeout(aiTimeoutId);
+        aiTimeoutId = null;
+      }
       if (aiScheduleId !== null) {
         globalThis.clearTimeout(aiScheduleId);
         aiScheduleId = null;
@@ -3078,7 +3077,7 @@ const App = {
       && !replayBusy.value
       && !localGameRestoring.value
       && roomStatus.value === "solo"
-      && activeLocalSettings.value.playerCount === 2
+      && APP_PLAYER_COUNT_OPTIONS.includes(activeLocalSettings.value.playerCount)
       && !localSetupPending.value
       && selectedAiMode.value !== "none"
       && !aiDuelPaused.value
@@ -3089,7 +3088,7 @@ const App = {
 
     const ensureAiWorker = () => {
       if (!aiWorker && canRunLocalAI()) {
-        aiWorker = new Worker(new URL("./AIWorker.js?v=20261014-code1", import.meta.url), { type: "module" });
+        aiWorker = new Worker(new URL("./AIWorker.js?v=20261021-hexai1", import.meta.url), { type: "module" });
         const worker = aiWorker;
         aiWorker.onmessage = (event) => {
           if (event.data?.type !== "RESULT" && event.data?.type !== "ERROR") {
@@ -3097,6 +3096,10 @@ const App = {
           }
           if (event.data.requestId !== activeAiRequestId) {
             return;
+          }
+          if (aiTimeoutId !== null) {
+            globalThis.clearTimeout(aiTimeoutId);
+            aiTimeoutId = null;
           }
           const request = activeAiRequest;
           activeAiRequestId = null;
@@ -3114,7 +3117,7 @@ const App = {
               if (event.data.type === "ERROR" && sourceStillCurrent && profileStillCurrent && canRunLocalAI()) {
                 console.error(`AI worker failed: ${event.data.message}`);
                 const side = gameState.value.currentPlayer;
-                const fallback = activeLocalPlayers.value[side].choice !== "minimax";
+                const fallback = activeLocalSettings.value.playerCount === 2 && activeLocalPlayers.value[side].choice !== "minimax";
                 terminateAiWorker();
                 if (fallback) {
                   activeLocalPlayers.value = normalizeLocalPlayers({ ...activeLocalPlayers.value, [side]: { ...activeLocalPlayers.value[side], choice: "minimax" } });
@@ -3208,16 +3211,29 @@ const App = {
             ...profile,
             topN: 5,
           });
+          if (["three-player", "hex-player"].includes(profile.strategy)) {
+            aiTimeoutId = globalThis.setTimeout(() => {
+              if (activeAiRequestId !== requestId) return;
+              terminateAiWorker();
+              aiDuelPaused.value = true;
+              saveLocalMatch();
+              showLocalGameNotice(language.value === "zh"
+                ? "AI 响应超时，棋局已保留。点击“继续 AI”重试。"
+                : "AI timed out. Your match is saved. Press Resume AI to retry.");
+            }, 15000);
+          }
         } catch (error) {
           console.error("Could not start AI worker.", error);
           terminateAiWorker();
+          aiDuelPaused.value = true;
+          saveLocalMatch();
+          showLocalGameNotice(getAppTexts(language.value, uiStyle.value).localAiFailure(formatAppPlayerName(gameState.value.currentPlayer, language.value, uiStyle.value), false));
         }
       }, selectedAiMode.value === "ai_duel" ? 400 : 0);
     };
 
     const restartLocalAiWorker = () => {
       terminateAiWorker();
-      ensureAiWorker();
       scheduleAiMove();
     };
 
@@ -3248,7 +3264,7 @@ const App = {
           return;
         }
         try {
-          const response = await fetch(`${asset}?v=20261014-code1`, { cache: "no-cache" });
+          const response = await fetch(`${asset}?v=20261020-three1`, { cache: "no-cache" });
           if (response.ok) {
             nextOverrides[key] = await response.text();
           }
@@ -3307,6 +3323,10 @@ const App = {
         hintMaxCount,
       });
       selectedPlayerCount.value = normalized.playerCount;
+      selectedRoomBotCount.value = normalizeAppGameSettings({ ...normalized, botCount: selectedRoomBotCount.value }).botCount;
+      if (normalized.playerCount !== previousPlayerCount && roomStatus.value === "solo") {
+        selectedLocalPlayers.value = normalizeLocalPlayers(selectedLocalPlayers.value, normalized.playerCount);
+      }
       selectedGridSize.value = normalized.gridSize;
       selectedStartPlayer.value = normalized.startPlayer;
       selectedRulesVersion.value = normalized.rulesVersion;
@@ -3344,7 +3364,7 @@ const App = {
         const starterChanged = normalized.startPlayer !== previousStartPlayer;
 
         if (settingsChanged) {
-          void networkManager.updateRoomSettings(normalized).catch(handleNetworkError);
+          void networkManager.updateRoomSettings(normalizeAppGameSettings({ ...normalized, botCount: roomInfo.value.settings?.botCount ?? 0 })).catch(handleNetworkError);
         } else if (starterChanged) {
           void networkManager.updateStartPlayer(normalized.startPlayer).catch(handleNetworkError);
         }
@@ -3363,20 +3383,20 @@ const App = {
       if (!pending) scheduleAiMove(gameState.value);
     });
     const updateLocalPlayer = ({ color, patch }) => {
-      if (settingsLocked.value || roomStatus.value !== "solo" || !["BLACK", "WHITE"].includes(color)) return;
+      if (settingsLocked.value || roomStatus.value !== "solo" || !APP_ALL_PLAYERS.slice(0, selectedPlayerCount.value).includes(color)) return;
       terminateAiWorker();
       selectedLocalPlayers.value = normalizeLocalPlayers({ ...selectedLocalPlayers.value,
-        [color]: { ...selectedLocalPlayers.value[color], ...patch } });
+        [color]: { ...selectedLocalPlayers.value[color], ...patch } }, selectedPlayerCount.value);
       persistLocalMatchPreferences(selectedLocalPlayers.value, draftGameSettings());
     };
     const swapLocalPlayers = () => {
       if (settingsLocked.value || roomStatus.value !== "solo") return;
       terminateAiWorker();
-      selectedLocalPlayers.value = normalizeLocalPlayers({ BLACK: selectedLocalPlayers.value.WHITE, WHITE: selectedLocalPlayers.value.BLACK });
+      selectedLocalPlayers.value = normalizeLocalPlayers({ ...selectedLocalPlayers.value, BLACK: selectedLocalPlayers.value.WHITE, WHITE: selectedLocalPlayers.value.BLACK }, selectedPlayerCount.value);
       persistLocalMatchPreferences(selectedLocalPlayers.value, draftGameSettings());
     };
     const toggleAiDuel = () => {
-      if (selectedAiMode.value !== "ai_duel" || localSetupPending.value || roomStatus.value !== "solo" || tutorialActive.value || replayMode.value || gameState.value.gameOver) return;
+      if (selectedAiMode.value === "none" || localSetupPending.value || roomStatus.value !== "solo" || tutorialActive.value || replayMode.value || gameState.value.gameOver) return;
       aiDuelPaused.value = !aiDuelPaused.value;
       terminateAiWorker();
       saveLocalMatch();
@@ -3489,7 +3509,7 @@ const App = {
     const starterOptions = computed(() => {
       const sourcePlayers = Array.isArray(roomInfo.value.players) && roomInfo.value.players.length
         ? roomInfo.value.players.map((player) => player.color)
-        : [Player.BLACK, Player.WHITE, Player.PURPLE].slice(0, selectedPlayerCount.value);
+        : APP_ALL_PLAYERS.slice(0, selectedPlayerCount.value);
       return sourcePlayers.map((color) => ({
         value: color,
         label: formatAppPlayerName(color, language.value, uiStyle.value),
@@ -3524,7 +3544,7 @@ const App = {
       localGameRestoring.value = true;
       try {
         activeLocalSettings.value = normalizeAppGameSettings(draftGameSettings());
-        activeLocalPlayers.value = normalizeLocalPlayers(selectedLocalPlayers.value);
+        activeLocalPlayers.value = normalizeLocalPlayers(selectedLocalPlayers.value, activeLocalSettings.value.playerCount);
         localMatchStarted.value = true;
         aiDuelPaused.value = false;
         clearSavedLocalGame();
@@ -3800,7 +3820,6 @@ const App = {
       } finally {
         replayRestoring.value = false;
       }
-      ensureAiWorker();
       scheduleAiMove(gameState.value);
     };
 
@@ -3865,7 +3884,7 @@ const App = {
     });
 
     const runAiComparison = async () => {
-      if (aiComparisonBusy.value || !replayMode.value || !controller.value?.engine) {
+      if (aiComparisonBusy.value || !replayMode.value || !controller.value?.engine || controller.value.engine.playerCount >= 4) {
         return;
       }
 
@@ -4077,8 +4096,8 @@ const App = {
         }
         applySettingsToController(restore.settings, false, false);
         activeLocalSettings.value = normalizeAppGameSettings(restore.settings);
-        activeLocalPlayers.value = normalizeLocalPlayers(restore.match?.players);
-        selectedLocalPlayers.value = normalizeLocalPlayers(restore.match?.players ?? selectedLocalPlayers.value);
+        activeLocalPlayers.value = normalizeLocalPlayers(restore.match?.players, restore.settings.playerCount);
+        selectedLocalPlayers.value = normalizeLocalPlayers(restore.match?.players ?? selectedLocalPlayers.value, restore.settings.playerCount);
         localMatchStarted.value = restore.match?.started ?? Boolean(restore.actions.length);
         aiDuelPaused.value = restore.match?.paused ?? false;
         gameState.value = restored.state;
@@ -4125,7 +4144,7 @@ const App = {
     ));
     const turnTimerEnabled = computed(() => effectiveGameSettings.value.turnTimerEnabled);
     const turnTimeLimitSeconds = computed(() => effectiveGameSettings.value.turnTimeLimitSeconds);
-    const hintEnabled = computed(() => effectiveGameSettings.value.hintEnabled);
+    const hintEnabled = computed(() => effectiveGameSettings.value.playerCount <= 3 && effectiveGameSettings.value.hintEnabled);
     const hintMaxCount = computed(() => effectiveGameSettings.value.hintMaxCount);
 
     const applySettingsToController = (settings, reset = true, commitToController = true) => {
@@ -4712,7 +4731,6 @@ const App = {
           clearSavedLocalGame();
           gameState.value = controller.value.resetGame({ force: true });
           resetHintUsage();
-          ensureAiWorker();
           scheduleAiMove(gameState.value);
         }
         persistAppSession(createAppEmptySession());
@@ -4942,7 +4960,7 @@ const App = {
 
       try {
         await ensureConnected();
-        await networkManager.createRoom(currentGameSettings());
+        await networkManager.createRoom(normalizeAppGameSettings({ ...draftGameSettings(), botCount: selectedRoomBotCount.value }));
       } catch (error) {
         handleNetworkError(error);
       } finally {
@@ -4989,7 +5007,6 @@ const App = {
           clearSavedLocalGame();
           gameState.value = controller.value.resetGame({ force: true });
           resetHintUsage();
-          ensureAiWorker();
           scheduleAiMove(gameState.value);
         }
         persistAppSession(createAppEmptySession());
@@ -5091,7 +5108,7 @@ const App = {
     const chatEmojiDisabled = computed(() => false);
 
     const resolveChatEmojiColor = (sender, payloadColor = null) => {
-      if (payloadColor === Player.BLACK || payloadColor === Player.WHITE || payloadColor === Player.PURPLE) {
+      if (APP_ALL_PLAYERS.includes(payloadColor)) {
         return payloadColor;
       }
       const player = Array.isArray(roomInfo.value.players)
@@ -5101,6 +5118,11 @@ const App = {
     };
 
     const getChatEmojiAnchor = (color) => {
+      if (effectiveGameSettings.value.playerCount >= 4) {
+        const index = APP_ALL_PLAYERS.indexOf(color);
+        const vertex = effectiveGameSettings.value.playerCount === 4 ? [0, 1, 3, 4][index] : index;
+        return [{ x: 32, y: 14 }, { x: 68, y: 14 }, { x: 87, y: 50 }, { x: 68, y: 86 }, { x: 32, y: 86 }, { x: 13, y: 50 }][vertex] ?? { x: 50, y: 50 };
+      }
       if (color === Player.WHITE) {
         return effectiveGameSettings.value.playerCount === 3
           ? { x: 20, y: 78 }
@@ -5112,15 +5134,7 @@ const App = {
       return { x: 20, y: 18 };
     };
 
-    const getChatEmojiColorClass = (color) => {
-      if (color === Player.WHITE) {
-        return "red";
-      }
-      if (color === Player.PURPLE) {
-        return "purple";
-      }
-      return "blue";
-    };
+    const getChatEmojiColorClass = (color) => getPlayerAccentClass(color).replace("player-accent-", "") || "blue";
 
     const normalizeChatEmojiPayload = (payload) => {
       const content = String(payload?.content ?? "").trim();
@@ -5253,7 +5267,6 @@ const App = {
         gameState.value = controller.value.resetGame();
         resetHintUsage();
         if (roomStatus.value === "solo") {
-          ensureAiWorker();
           scheduleAiMove(gameState.value);
         }
       }
@@ -5395,7 +5408,7 @@ const App = {
       return !controller.value
         || replayMode.value
         || tutorialActive.value
-        || !selectedHintEnabled.value
+        || !hintEnabled.value
         || gameState.value.gameOver
         || gameState.value.multiplayerEnabled
         || roomStatus.value !== "solo"
@@ -5533,7 +5546,6 @@ const App = {
           gameState.value = controller.value.resetGame();
           resetHintUsage();
           if (roomStatus.value === "solo") {
-            ensureAiWorker();
             scheduleAiMove(gameState.value);
           }
         }
@@ -5698,6 +5710,14 @@ const App = {
       }),
     );
 
+    for (const event of [ServerEvent.OPPONENT_MOVE, ServerEvent.TURN_SKIPPED]) {
+      unsubscribers.push(networkManager.on(event, (payload) => {
+        if (payload?.aiFallback) setActionFeedback(language.value === "zh"
+          ? "AI 模型暂时不可用，本回合已使用基础策略继续。"
+          : "The AI model is unavailable. This turn used the basic fallback policy.", "neutral");
+      }));
+    }
+
     unsubscribers.push(
       networkManager.on(ServerEvent.ERROR, (payload) => {
         readyPending.value = false;
@@ -5802,6 +5822,8 @@ const App = {
       serverUrl,
       roomIdInput,
       selectedPlayerCount,
+      selectedRoomBotCount,
+      retryRoomBots: () => networkManager.retryBots().catch(handleNetworkError),
       selectedGridSize,
       selectedStartPlayer,
       selectedTurnTimerEnabled,
@@ -5913,6 +5935,7 @@ const App = {
           />
 
           <BoardCanvas
+            :player-count="gameState.playerCount"
             :language="language"
             :ui-style="uiStyle"
             :hint-text="boardHint"
@@ -5979,7 +6002,7 @@ const App = {
 
           <ControlPanel
             v-else
-            :ai-duel="roomStatus === 'solo' && !tutorialActive && !localSetupPending && selectedAiMode === 'ai_duel'"
+            :ai-duel="roomStatus === 'solo' && !tutorialActive && !localSetupPending && selectedAiMode !== 'none'"
             :ai-duel-paused="aiDuelPaused"
             :game-state="gameState"
             :language="language"
@@ -6128,6 +6151,8 @@ const App = {
           />
 
           <RoomPanel
+            :player-count="selectedPlayerCount"
+            :bot-count="selectedRoomBotCount"
             :language="language"
             :ui-style="uiStyle"
             :room-id="roomIdInput"
@@ -6146,6 +6171,8 @@ const App = {
             :starter-options="starterOptions"
             :show-close-prompt="showClosePrompt"
             @update:room-id="roomIdInput = $event"
+            @update:bot-count="selectedRoomBotCount = $event"
+            @retry-bots="retryRoomBots"
             @connect="handleConnect"
             @create-room="handleCreateRoom"
             @join-room="handleJoinRoom"

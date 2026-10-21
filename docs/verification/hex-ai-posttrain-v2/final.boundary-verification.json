@@ -1,0 +1,28 @@
+{
+  "status": "PASS_LEGALITY_AREA_BOUNDARY_ONLY",
+  "identity": "e89b2258d24d180d777b3b5d46ac9b4a50231d51e9767389264fb68ae4d2111e",
+  "sourceIdentity": "cef118b61bf0540c1e9306ad87380950e9515dfb5f295ff72f9f161066a36246",
+  "sourceStopReason": "BUDGET_EXHAUSTED",
+  "plannedGames": 90,
+  "indexedCompletedGames": 77,
+  "terminalGames": 77,
+  "truncatedGames": 0,
+  "remainingGames": 13,
+  "inFlight": {
+    "id": "final-n7-p6-WHITE-s1-multi",
+    "unitHash": "7108306c0cd7bf46c38129f4f6ec438ef488ac5b4b383473fc4c31098f15c2a4",
+    "indexed": false,
+    "terminal": false,
+    "actions": 61,
+    "policyDecisions": 57
+  },
+  "validatedUnindexedGameIds": [],
+  "actions": 21944,
+  "policyDecisionsRecomputed": 0,
+  "policyDecisionsNotRecomputed": 21632,
+  "promote": false,
+  "meanDelta": null,
+  "bootstrap95": null,
+  "scope": "halted FINAL legality, full history, seeded prefix and fresh terminal area only; policy scoring was NOT recomputed; no complete-arena result or strength conclusion",
+  "integrity": "5fbfd844ad372ad3a742dd2fc6d254f1c62cb0123f1d7d1981c0c628987ea88d"
+}

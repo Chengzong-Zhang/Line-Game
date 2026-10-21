@@ -1,0 +1,26 @@
+{
+  "schema": "lifeline-web-neural-screen-v1",
+  "evidenceTier": "FRESH_PAIRED_CONFIRMATION_WITH_EXTERNAL_HOLM_GATE",
+  "autoPromote": false,
+  "sizes": [5, 7, 9],
+  "prefixesPerSize": 10,
+  "prefixPlies": 4,
+  "maximumPlies": 400,
+  "maximumGameMs": 120000,
+  "puctSimulations": 16,
+  "seedNamespace": "ai-improvement-round2-20261021-neural-confirmation-FINAL-v1",
+  "confirmation_gate": {
+    "schema": "lifeline-neural-confirmation-gate-v1",
+    "familySize": 7,
+    "gamesPerModel": 60,
+    "clustersPerModel": 30,
+    "minimumMeanScore": 0.55,
+    "minimumPerSizeScore": 0.45,
+    "signTest": "one-sided-exact-binomial-non-tied-cluster-sign",
+    "holmAlpha": 0.05,
+    "bootstrapReplicates": 10000,
+    "bootstrapSeed": 2026102137,
+    "bootstrapStratifyBy": "size"
+  },
+  "decision": "Frozen seven-model family selected using only the earlier exploratory screen. Independent assessment follows complete verified new games. Promotion is restricted to tested sizes 5/7/9 and these paired parent comparisons. No automatic replacement or claim for other sizes or opponents."
+}

@@ -27,6 +27,9 @@ export const Player = Object.freeze({
   BLACK: "BLACK",
   WHITE: "WHITE",
   PURPLE: "PURPLE",
+  GREEN: "GREEN",
+  ORANGE: "ORANGE",
+  CYAN: "CYAN",
 });
 
 export const PointState = Object.freeze({
@@ -37,9 +40,17 @@ export const PointState = Object.freeze({
   WHITE_LINE: 4,
   PURPLE_NODE: 5,
   PURPLE_LINE: 6,
+  GREEN_NODE: 7,
+  GREEN_LINE: 8,
+  ORANGE_NODE: 9,
+  ORANGE_LINE: 10,
+  CYAN_NODE: 11,
+  CYAN_LINE: 12,
 });
 
-const PLAYER_ORDER = [Player.BLACK, Player.WHITE, Player.PURPLE];
+export const PLAYER_ORDER = Object.freeze([
+  Player.BLACK, Player.WHITE, Player.PURPLE, Player.GREEN, Player.ORANGE, Player.CYAN,
+]);
 const DIRECTIONS = Object.freeze([
   [1, 0],
   [-1, 0],
@@ -65,9 +76,58 @@ const PLAYER_POINT_STATES = Object.freeze({
     node: PointState.PURPLE_NODE,
     line: PointState.PURPLE_LINE,
   }),
+  [Player.GREEN]: Object.freeze({
+    node: PointState.GREEN_NODE,
+    line: PointState.GREEN_LINE,
+  }),
+  [Player.ORANGE]: Object.freeze({
+    node: PointState.ORANGE_NODE,
+    line: PointState.ORANGE_LINE,
+  }),
+  [Player.CYAN]: Object.freeze({
+    node: PointState.CYAN_NODE,
+    line: PointState.CYAN_LINE,
+  }),
 });
 
+/** Vertices follow the renderer's clockwise order, beginning at upper left.
+ *  gridSize is the number of lattice points along each board side. */
+export function getBoardVertices(gridSize, playerCount = 2) {
+  const r = gridSize - 1;
+  return playerCount >= 4
+    ? [[r, 0], [2 * r, 0], [2 * r, r], [r, 2 * r], [0, 2 * r], [0, r]]
+    : [[0, 0], [r, 0], [0, r]];
+}
+
+export function isBoardPoint(point, gridSize, playerCount = 2) {
+  const x = point?.[0];
+  const y = point?.[1];
+  if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0) return false;
+  const r = gridSize - 1;
+  return playerCount >= 4
+    ? x <= 2 * r && y <= 2 * r && x + y >= r && x + y <= 3 * r
+    : x + y <= r;
+}
+
+export function getBoardPositions(gridSize, playerCount = 2) {
+  const extent = playerCount >= 4 ? 2 * gridSize - 1 : gridSize;
+  const positions = [];
+  for (let y = 0; y < extent; y += 1) {
+    for (let x = 0; x < extent; x += 1) {
+      if (isBoardPoint([x, y], gridSize, playerCount)) positions.push([x, y]);
+    }
+  }
+  return positions;
+}
+
 function buildInitialPositions(gridSize, playerCount) {
+  if (playerCount >= 4) {
+    const vertices = getBoardVertices(gridSize, playerCount);
+    const occupiedVertices = playerCount === 4 ? [0, 1, 3, 4] : [0, 1, 2, 3, 4, 5];
+    return Object.freeze(Object.fromEntries(PLAYER_ORDER.slice(0, playerCount).map(
+      (player, index) => [player, Object.freeze(vertices[occupiedVertices[index]])],
+    )));
+  }
   // Three-player mode starts from the three corners to keep opening pressure balanced.
   if (playerCount === 2) {
     return Object.freeze({
@@ -103,6 +163,19 @@ function pointEquals(a, b) {
 function applyBarycentricTransform(point, gridSize, permutation) {
   const barycentric = [point[0], point[1], gridSize - 1 - point[0] - point[1]];
   return [barycentric[permutation[0]], barycentric[permutation[1]]];
+}
+
+// D6 acts on centered axial coordinates. Rotation advances one vertex clockwise;
+// reflection fixes vertex 1. These maps preserve all six lattice directions.
+function applyHexTransform(point, gridSize, transform, inverse = false) {
+  const r = gridSize - 1;
+  let x = point[0] - r;
+  let y = point[1] - r;
+  if (inverse && transform.reflected) [x, y] = [-x, x + y];
+  const rotations = ((inverse ? -transform.rotation : transform.rotation) % 6 + 6) % 6;
+  for (let index = 0; index < rotations; index += 1) [x, y] = [-y, x + y];
+  if (!inverse && transform.reflected) [x, y] = [-x, x + y];
+  return [x + r, y + r];
 }
 
 function invertPermutation(permutation) {
@@ -182,9 +255,11 @@ export class GameEngine {
       configurable: false,
     });
     this.playerCount = options.playerCount ?? 2;
-    if (this.playerCount !== 2 && this.playerCount !== 3) {
-      throw new Error("Only 2-player and 3-player modes are supported.");
+    if (!Number.isInteger(this.playerCount) || this.playerCount < 2 || this.playerCount > 6) {
+      throw new Error("playerCount must be an integer between 2 and 6.");
     }
+    this.boardShape = this.playerCount >= 4 ? "hexagon" : "triangle";
+    this.boardVertices = getBoardVertices(this.gridSize, this.playerCount);
     // activePlayers is the single source of truth for turn order and rules.
     this.activePlayers = PLAYER_ORDER.slice(0, this.playerCount);
     this.initialPositions = buildInitialPositions(this.gridSize, this.playerCount);
@@ -230,16 +305,13 @@ export class GameEngine {
   _initGrid() {
     // 第一遍：建立索引映射
     this._keyToIdx = new Map();
-    for (let y = 0; y < this.gridSize; y += 1) {
-      for (let x = 0; x < this.gridSize - y; x += 1) {
-        const point = [x, y];
-        const key = pointKey(point);
-        const idx = this.validPositions.length;
-        this.validPositions.push(point);
-        this.positionKeys.add(key);
-        this.grid.set(key, PointState.EMPTY);
-        this._keyToIdx.set(key, idx);
-      }
+    for (const point of getBoardPositions(this.gridSize, this.playerCount)) {
+      const key = pointKey(point);
+      const idx = this.validPositions.length;
+      this.validPositions.push(point);
+      this.positionKeys.add(key);
+      this.grid.set(key, PointState.EMPTY);
+      this._keyToIdx.set(key, idx);
     }
 
     const n = this.validPositions.length;
@@ -257,11 +329,11 @@ export class GameEngine {
       this._adjIdxList[i] = adj;
     }
 
-    // 预计算边界点下标（x==0, y==0, x+y==gridSize-1 三条物理边）
+    // A boundary point has at least one lattice neighbor outside the board.
+    // This includes all six physical sides of a hexagonal board.
     this._boundaryIdxs = [];
     for (let i = 0; i < n; i += 1) {
-      const [x, y] = this.validPositions[i];
-      if (x === 0 || y === 0 || x + y === this.gridSize - 1) {
+      if (this._adjIdxList[i].length < DIRECTIONS.length) {
         this._boundaryIdxs.push(i);
       }
     }
@@ -275,6 +347,11 @@ export class GameEngine {
   }
 
   _pointToIndex(point) {
+    if (this.boardShape === "hexagon") {
+      return isBoardPoint(point, this.gridSize, this.playerCount)
+        ? this._keyToIdx.get(pointKey(point)) ?? -1
+        : -1;
+    }
     const x = point?.[0];
     const y = point?.[1];
     if (
@@ -350,9 +427,10 @@ export class GameEngine {
 
   getBoardMatrix() {
     const matrix = [];
-    for (let y = 0; y < this.gridSize; y += 1) {
+    const extent = this.boardShape === "hexagon" ? 2 * this.gridSize - 1 : this.gridSize;
+    for (let y = 0; y < extent; y += 1) {
       const row = [];
-      for (let x = 0; x < this.gridSize; x += 1) {
+      for (let x = 0; x < extent; x += 1) {
         row.push(this.isValidPosition([x, y]) ? this._getState([x, y]) : null);
       }
       matrix.push(row);
@@ -391,9 +469,9 @@ export class GameEngine {
         },
       ]),
     );
-    // 始终输出全部三个玩家的边集合，避免渲染器因 undefined 回退到 O(N²) 的 _collectRenderableSegments
+    // Include empty edge sets for inactive colors to avoid renderer fallbacks.
     const edges = Object.fromEntries(
-      PLAYER_ORDER.map((player) => [
+      PLAYER_ORDER.slice(0, Math.max(3, this.playerCount)).map((player) => [
         player,
         this.activePlayers.includes(player) ? [...this._getEdges(player)] : [],
       ]),
@@ -401,6 +479,8 @@ export class GameEngine {
     return {
       gridSize: this.gridSize,
       playerCount: this.playerCount,
+      boardShape: this.boardShape,
+      boardVertices: this.boardVertices.map(clonePoint),
       rulesVersion: this.rulesVersion,
       positionRevision: this.positionRevision,
       players: [...this.activePlayers],
@@ -1404,6 +1484,15 @@ export class GameEngine {
   }
 
   _getCanonicalTerritoryTransforms(player) {
+    if (this.boardShape === "hexagon") {
+      const vertexIndex = this.boardVertices.findIndex(
+        (point) => pointEquals(point, this.initialPositions[player]),
+      );
+      return [
+        { rotation: -vertexIndex, reflected: false },
+        { rotation: -vertexIndex, reflected: true },
+      ];
+    }
     if (this.playerCount === 2) {
       return player === Player.BLACK
         ? [BARYCENTRIC_TRANSFORMS.IDENTITY]
@@ -1420,7 +1509,10 @@ export class GameEngine {
   }
 
   _computeCanonicalTerritoryCandidate(player, permutation) {
-    const transform = (point) => applyBarycentricTransform(point, this.gridSize, permutation);
+    const isHexagon = this.boardShape === "hexagon";
+    const transform = (point) => isHexagon
+      ? applyHexTransform(point, this.gridSize, permutation)
+      : applyBarycentricTransform(point, this.gridSize, permutation);
     const friendlyNodes = this._getPlayerNodes(player).map(transform);
     const friendlyLines = this._getPlayerLines(player).map(transform);
     const enemyPoints = this._getOpponents(player).flatMap((opponent) => [
@@ -1433,10 +1525,12 @@ export class GameEngine {
       enemyPoints,
       { requireClosedRegion: true },
     );
-    const inverse = invertPermutation(permutation);
+    const inverse = isHexagon ? null : invertPermutation(permutation);
     const polygon = canonicalTerritory.polygon
       ? canonicalTerritory.polygon.map(
-          (point) => applyBarycentricTransform(point, this.gridSize, inverse),
+          (point) => isHexagon
+            ? applyHexTransform(point, this.gridSize, permutation, true)
+            : applyBarycentricTransform(point, this.gridSize, inverse),
         )
       : null;
     return {
@@ -1448,7 +1542,8 @@ export class GameEngine {
   /** Public scoring dispatch. v1 is the frozen legacy implementation. v2
    *  requires an actual boundary cycle and scores every player in a canonical
    *  base-oriented coordinate view. Three-player scoring minimizes over the
-   *  two transformations in the base stabilizer, giving full D3 equivariance. */
+   *  two transformations in the base stabilizer. Hexagonal boards use the
+   *  corresponding D6 base stabilizer and never triangular barycentrics. */
   _computeTerritory(player) {
     switch (this.rulesVersion) {
       case TerritoryRulesVersion.V1:

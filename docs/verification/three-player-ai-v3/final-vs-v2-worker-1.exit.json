@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "host_pid": 59336,
+  "worker_pid": 14892,
+  "started_epoch_ms": 1792517144436,
+  "identity": "35557363cc57190df2fccb4c91a994b94a1c5973221f5c608436b48379dbb9ff",
+  "exit_code": 0,
+  "signal": null,
+  "cancelled": null,
+  "finished_epoch_ms": 1792517328977
+}

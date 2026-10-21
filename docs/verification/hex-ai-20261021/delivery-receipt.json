@@ -1,0 +1,67 @@
+{
+  "status": "PASS-CURRENT",
+  "scope": "local web 4-6-player AI; not production or mini game",
+  "recorded_at": "2026-10-20T16:25:57.399022+00:00",
+  "url": "http://127.0.0.1:8014/",
+  "branch": "codex/three-player-ai-web-20261020",
+  "model_sha256": "74aa7f945c3ea7ff5ca3edc9e7bdc431dc0ec5ad56d2563ce6d6d24c0494162b",
+  "source_sha256": {
+    "web/web前端/HexPlayerAI.js": "62340c349b53a13e20d47171187228a2359c5d8dcbf12344a4bf6a0017b9f673",
+    "web/tools/train-hex-player-ai.mjs": "f2bb4e7cd64c2aca42647cb60a74865785534ea6786bfd4088e794e67cdaa73f",
+    "web/web前端/assets/research-ai/hex-player-policy-v1.json": "74aa7f945c3ea7ff5ca3edc9e7bdc431dc0ec5ad56d2563ce6d6d24c0494162b",
+    "web/web前端/AIWorker.js": "0da3487ac13a430e9d590ef4c654698b7f6ea520eccda73bd5b72f220a8a2ad9",
+    "web/web前端/OnlineApp.js": "28ff2610850ae6b8280384f195750c40de805b891f3c7a72f4ed5fc0e99f58c4",
+    "web/web前端/LocalAIModes.js": "c9263530a40681c99528c6c81e7f2b44d67be929307340bc66c153a5748f42ff",
+    "web/web前端/LocalPlayerSetup.js": "27bedcdc6d1610e3b3043a41304500e79c3a55206cb0bc3536e13e3da6707a2c",
+    "web/web前端/LocalGameSession.js": "664a161f46650e44acd24573c1879151774f87d599249af1e0e64e94b41b0fd3",
+    "web/web前端/OnlineAppState.js": "dca57fdd4a48049f88c6af62bebe8908f16ad9cb9dc0509e51fcc6f87822d895",
+    "web/web前端/OnlineAppI18n.js": "fea689a1374d06dbf12ece9659f502234ba8797e320d2b07412ef6ea79204019",
+    "web/web后端/server.py": "e7858e42b9301fa5096576f887e149fa8a912d7126beb8efe0117ff0fb61fb6b",
+    "web/web后端/online_bots.py": "2588490910517e3b9536850e730216c0be01906c791a889a638fe4913b2ed9ad",
+    "web/tools/online_bot_bridge.mjs": "758a4657bbcdd0379760e298b818f8cf087d93fa096a5d87d84c361a3767fc1f",
+    "web/web前端/ThreePlayerModels.js": "6e3418678171db6fbfa4832bce8c34313924d75cca81eb9d7461756fb10986bd"
+  },
+  "training": {
+    "status": "COMPLETE",
+    "episodes": 30,
+    "truncated_episodes": 30,
+    "dual_train_samples": 45,
+    "hex_train_samples": 144,
+    "heldout_samples": 48,
+    "split": "whole trajectory"
+  },
+  "checks": {
+    "backend_unittest_count": 31,
+    "backend_exit_code": 0,
+    "model_inference_probes": 48,
+    "model_verifier_exit_code": 0,
+    "training_recovery": "PASS",
+    "web_ui_sessions": "PASS",
+    "legacy_2_3_player_regressions": "PASS",
+    "local_http_model_identity": "PASS"
+  },
+  "browser": {
+    "browser": "Chrome on Windows",
+    "local_counts": [
+      4,
+      5,
+      6
+    ],
+    "six_player_all_ai_observed_actions": 79,
+    "six_player_room_ai_count": 5,
+    "pause_refresh_restore": true,
+    "replay_step_and_return": true,
+    "languages": [
+      "zh",
+      "en"
+    ]
+  },
+  "limits": [
+    "not independently strength-evaluated",
+    "80-step algorithm games ended by explicit skip sequence, not natural termination",
+    "not mobile device verified",
+    "not production deployed",
+    "in-memory rooms do not survive backend restart"
+  ],
+  "evidence": "docs/releases/HEX_PLAYER_AI_LOCAL_20261021.md"
+}

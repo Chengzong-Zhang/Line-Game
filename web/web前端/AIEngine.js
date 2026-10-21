@@ -1,4 +1,4 @@
-import { GameEngine, Player, PointState } from "./GameEngine.js?v=20261014-code1";
+import { GameEngine, Player, PointState } from "./GameEngine.js?v=20261020-three1";
 
 function pointKey(point) {
   return `${point[0]},${point[1]}`;
@@ -30,11 +30,9 @@ function cloneCachedTerritories(engine) {
 function saveState(engine) {
   return {
     grid: new Map(engine.grid),
-    edges: {
-      BLACK: new Set(engine.edges.BLACK ?? []),
-      WHITE: new Set(engine.edges.WHITE ?? []),
-      PURPLE: new Set(engine.edges.PURPLE ?? []),
-    },
+    edges: Object.fromEntries(
+      engine.activePlayers.map((player) => [player, new Set(engine.edges[player] ?? [])]),
+    ),
     historyHashes: new Set(engine.historyHashes),
     consecutiveSkips: engine.consecutiveSkips,
     resignedPlayers: new Set(engine.resignedPlayers ?? []),
@@ -53,11 +51,9 @@ function saveState(engine) {
 
 function restoreState(engine, snapshot) {
   engine.grid = new Map(snapshot.grid);
-  engine.edges = {
-    BLACK: new Set(snapshot.edges.BLACK),
-    WHITE: new Set(snapshot.edges.WHITE),
-    PURPLE: new Set(snapshot.edges.PURPLE),
-  };
+  engine.edges = Object.fromEntries(
+    engine.activePlayers.map((player) => [player, new Set(snapshot.edges[player] ?? [])]),
+  );
   engine.historyHashes = new Set(snapshot.historyHashes);
   engine.consecutiveSkips = snapshot.consecutiveSkips;
   engine.resignedPlayers = new Set(snapshot.resignedPlayers ?? []);

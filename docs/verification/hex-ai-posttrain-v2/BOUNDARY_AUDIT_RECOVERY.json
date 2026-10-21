@@ -1,0 +1,41 @@
+{
+  "status": "PASS_CURRENT_BOUNDARY_FIXTURE",
+  "exit_code": 0,
+  "source_sha256": "35dd9b57345615bea21fe3cf43a97a18f0de74e92e90f0f181ed29ef26d10c05",
+  "evidenceRoot": "C:\\coding\\py\\line game\\local_artifacts\\hex-boundary-audit-fixture-1792519165237",
+  "checks": [
+    "complete-prefix-and-inflight-legality",
+    "fresh-terminal-area",
+    "explicit-zero-policy-recomputation",
+    "bounded-yield-resume",
+    "no-partial-promotion-delta-or-CI"
+  ],
+  "report": {
+    "status": "PASS_LEGALITY_AREA_BOUNDARY_ONLY",
+    "identity": "ed2f9cbbe858ba96cd82a9980bcb8f8ce9f9bc7a972ac334ca8910fc3382119f",
+    "sourceIdentity": "cef118b61bf0540c1e9306ad87380950e9515dfb5f295ff72f9f161066a36246",
+    "sourceStopReason": "BUDGET_EXHAUSTED",
+    "plannedGames": 90,
+    "indexedCompletedGames": 2,
+    "terminalGames": 2,
+    "truncatedGames": 0,
+    "remainingGames": 88,
+    "inFlight": {
+      "id": "final-n5-p4-BLACK-s1-multi",
+      "unitHash": "dad24a715bbac40ab9ef031fd5dfe15747638176ab2b4e07bf96348cefbe04d9",
+      "indexed": false,
+      "terminal": false,
+      "actions": 8,
+      "policyDecisions": 4
+    },
+    "validatedUnindexedGameIds": [],
+    "actions": 245,
+    "policyDecisionsRecomputed": 0,
+    "policyDecisionsNotRecomputed": 233,
+    "promote": false,
+    "meanDelta": null,
+    "bootstrap95": null,
+    "scope": "halted FINAL legality, full history, seeded prefix and fresh terminal area only; policy scoring was NOT recomputed; no complete-arena result or strength conclusion",
+    "integrity": "3beb5bbb41afd7705b1d0cd8ccf90ad36eeacaef2ab25717881c37159de9f5b8"
+  }
+}

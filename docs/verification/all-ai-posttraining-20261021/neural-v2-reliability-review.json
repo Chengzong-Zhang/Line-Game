@@ -1,0 +1,41 @@
+{
+  "status": "PASS-CURRENT",
+  "scope": "Versioned neural arena/source-integrity and orphan adoption fixes",
+  "source_hashes": {
+    "web/tools/neural-posttraining-arena-v2.mjs": "12c4b0633131ae3b0f87343430604caac7eaf68f1cb9f66a14d8f93ecdda2256",
+    "web/tools/verify-neural-posttraining-v2.mjs": "8eb8635f3271915b3507615bc02716a941bf672cf641f872601459b99915b119",
+    "web/tools/neural-posttraining-data-v2.mjs": "372743f1371e06b19d6ddfdc9240d647114d2b0cc138386bde3a5958bd27119a",
+    "web/web前端/tests/verify-neural-posttraining-arena-v2.mjs": "db9cde6c62e03f57bd021c08309835be671e960345e76ec43215fa8f627b0b20",
+    "web/web前端/tests/verify-neural-posttraining-data-v2.mjs": "aefb65ae6e05761b210c65a04357749e6fa1a8e6765d96505eb79c662667978c"
+  },
+  "preserved_v1_source_hashes": {
+    "web/tools/neural-posttraining-arena.mjs": "d3b26d8fee4dab53fe0fffdf27d4594d5669565fd52ff53248bb303c67de9e40",
+    "web/tools/verify-neural-posttraining.mjs": "a27a22e10304fd6bdf7c81f62361cad12eea28bba872d6d42e6980cdae405fb2",
+    "web/tools/neural-posttraining-data.mjs": "8d4f027ea0b60336763cda432977fd896517c683aca245269dac03c01e418655"
+  },
+  "arena_fixes": [
+    "Bind original bytes of all three parent model manifests, candidate manifest, config, inference sources and assets",
+    "Check all frozen inputs again before completion",
+    "Adopt byte-identical unindexed complete games without modifying mtime; preserve mismatches and exit 78",
+    "Validate completed unit order and identity",
+    "Independently reconstruct all emitted summary fields and exact expected completed-unit list"
+  ],
+  "arena_recovery_exit_code": 0,
+  "arena_test_run": "local_artifacts/neural-arena-v2-recovery-1792517887310",
+  "future_data_fixes": [
+    "Separate data-v2 default run directory and own source hash",
+    "Adopt byte-identical unindexed complete episodes; preserve corruption and exit 78",
+    "Validate completed unit order and sources at completion"
+  ],
+  "data_recovery_exit_code": 0,
+  "data_test_run": "local_artifacts/neural-data-v2-recovery-1792518018157",
+  "boundaries": [
+    "Original v1 data generation and calibration outputs remain unchanged.",
+    "data-v2 is a future entry point tested only with two fixture episodes; current 17-model training still uses already completed v1 data.",
+    "Parent-manifest drift tests mutate isolated copies only; actual manifests and weight assets are read-only.",
+    "Neural screen remains exploratory with promotionPass=false; policy re-evaluation remains first and middle decision per game.",
+    "Formal arena dispatch and final reporting belong to the coordinating agent."
+  ],
+  "reviewed_by": "three_player_ai subagent",
+  "deployed": false
+}

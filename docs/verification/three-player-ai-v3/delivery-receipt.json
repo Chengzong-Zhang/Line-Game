@@ -1,0 +1,72 @@
+{
+  "schema": "lifeline-three-player-v3-delivery-v1",
+  "status": "TRAINING-VERIFIED-NOT-PROMOTED",
+  "candidate_model": "web/web前端/assets/research-ai/three-player-policy-v3.json",
+  "candidate_sha256": "1335fdaaedc227a8176696b720b2e93827fef4baed79790630c59fbe5a3e08b9",
+  "parent": "three-player-policy-v2",
+  "production_retained": "three-player-policy-v1",
+  "training_episodes": 216,
+  "terminal_training_episodes": 216,
+  "training_samples": 3418,
+  "training_updates_executed": 36,
+  "selected_stage": 1,
+  "selected_model_updates": 12,
+  "development_games": 342,
+  "training_verification": "PASS-CURRENT",
+  "comparisons": {
+    "v1": {
+      "completed_games": 126,
+      "terminal_games": 126,
+      "truncated_games": 0,
+      "clusters": 18,
+      "mean_win_share_delta": -0.012345679012345678,
+      "cluster_bootstrap_95": [
+        -0.0617283950617284,
+        0.03703703703703703
+      ],
+      "single_ai_delta": -0.015432098765432098,
+      "dual_ai_delta": -0.009259259259259259,
+      "promotion_pass": false,
+      "verification_status": "PASS_APPLICATION_EVALUATION",
+      "verified_actions": 4354,
+      "verified_policy_decisions": 3850,
+      "supervisor_status": "COMPLETE",
+      "attempts": 1,
+      "abnormal_exits": 0,
+      "verifier_command": "node --unhandled-rejections=strict web/tools/verify-three-player-arena.mjs --run-root local_artifacts/three-player-v3-final-vs-v1-20261021",
+      "verifier_exit_code": 0
+    },
+    "v2": {
+      "completed_games": 126,
+      "terminal_games": 126,
+      "truncated_games": 0,
+      "clusters": 18,
+      "mean_win_share_delta": -0.06944444444444443,
+      "cluster_bootstrap_95": [
+        -0.1111111111111111,
+        -0.027777777777777776
+      ],
+      "single_ai_delta": -0.09259259259259259,
+      "dual_ai_delta": -0.046296296296296294,
+      "promotion_pass": false,
+      "verification_status": "PASS_APPLICATION_EVALUATION",
+      "verified_actions": 4487,
+      "verified_policy_decisions": 3983,
+      "supervisor_status": "COMPLETE",
+      "attempts": 1,
+      "abnormal_exits": 0,
+      "verifier_command": "node --unhandled-rejections=strict web/tools/verify-three-player-arena.mjs --run-root local_artifacts/three-player-v3-final-vs-v2-20261021",
+      "verifier_exit_code": 0
+    }
+  },
+  "runtime_loader_modified": false,
+  "deployed": false,
+  "cloud_compute_used": false,
+  "limitations": [
+    "Fresh fixed 18-prefix-cluster evaluation per comparator; no universal strength claim.",
+    "The two comparator evaluations use different fresh seeds; their deltas are not a direct common-opening v1-v2 comparison.",
+    "No held-out FINAL tuning; no further training after these FINAL outcomes.",
+    "Model metadata and original training receipt remain frozen with final evaluation pending; this side receipt records the completed final verdict.",
+    "Sizes 11-15 have not been strength-evaluated in this run."
+  ]
+}

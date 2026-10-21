@@ -38,10 +38,15 @@ try:
 except ImportError:
     from sensitive_filter import SensitiveFilter, UIStyle
 
+try:
+    from .online_bots import BotBridgeUnavailable, evaluate_room
+except ImportError:
+    from online_bots import BotBridgeUnavailable, evaluate_room
+
 
 # 这个服务负责账号、静态资源、房间、连接和动作同步，
-# 但不负责棋盘几何规则判定；胜负与面积仍由浏览器端 GameEngine 计算。
-ROOM_SIZE = 3
+# 普通真人房间仍采用转发协议；含 AI 的房间复用 Web GameEngine 校验完整动作历史。
+ROOM_SIZE = 6
 ROOM_CODE_LENGTH = 4
 ROOM_TTL_SECONDS = 300
 HEARTBEAT_TIMEOUT_SECONDS = 35
@@ -64,6 +69,10 @@ CHAT_EMOJI_ALLOWED_ANIMATIONS = {"bounce", "fade", "shake"}
 PLAYER_BLACK = "BLACK"
 PLAYER_WHITE = "WHITE"
 PLAYER_PURPLE = "PURPLE"
+PLAYER_GREEN = "GREEN"
+PLAYER_ORANGE = "ORANGE"
+PLAYER_CYAN = "CYAN"
+PLAYER_COLORS = (PLAYER_BLACK, PLAYER_WHITE, PLAYER_PURPLE, PLAYER_GREEN, PLAYER_ORANGE, PLAYER_CYAN)
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "replace-this-with-a-long-random-secret-key")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_DAYS = 7
@@ -265,6 +274,7 @@ class PlayerSession:
     websocket: Optional[WebSocket] = None
     connected: bool = False
     last_seen: float = field(default_factory=time.time)
+    is_bot: bool = False
 
 
 @dataclass
@@ -281,6 +291,11 @@ class Room:
     countdown_task: Optional[asyncio.Task[Any]] = None
     created_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
+    action_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+    bot_task: Optional[asyncio.Task[Any]] = None
+    generation: int = 0
+    game_over: bool = False
+    bot_error: Optional[str] = None
 
     def connected_players(self) -> list[PlayerSession]:
         return [player for player in self.players.values() if player.connected and player.websocket is not None]
@@ -289,7 +304,14 @@ class Room:
         return len(self.players)
 
     def has_connected_player(self) -> bool:
-        return any(player.connected for player in self.players.values())
+        return any(player.connected and not player.is_bot for player in self.players.values())
+
+    def has_bots(self) -> bool:
+        return any(player.is_bot for player in self.players.values())
+
+    def all_humans_connected(self) -> bool:
+        humans = [player for player in self.players.values() if not player.is_bot]
+        return bool(humans) and all(player.connected and player.websocket is not None for player in humans)
 
     def player_capacity(self) -> int:
         return int(self.settings.get("playerCount", 2))
@@ -297,7 +319,7 @@ class Room:
     def available_color(self) -> str:
         # Keep color assignment order stable so the frontend can map colors consistently.
         used_colors = {player.color for player in self.players.values()}
-        allowed_colors = (PLAYER_BLACK, PLAYER_WHITE, PLAYER_PURPLE)[:self.player_capacity()]
+        allowed_colors = PLAYER_COLORS[:self.player_capacity()]
         for color in allowed_colors:
             if color not in used_colors:
                 return color
@@ -321,6 +343,14 @@ class ConnectionManager:
             self._heartbeat_task = asyncio.create_task(self._heartbeat_loop())
 
     async def stop(self) -> None:
+        pending = []
+        for room in self.rooms.values():
+            self._cancel_countdown_locked(room)
+            if room.bot_task and not room.bot_task.done():
+                room.bot_task.cancel()
+                pending.append(room.bot_task)
+        if pending:
+            await asyncio.gather(*pending, return_exceptions=True)
         if self._heartbeat_task is None:
             return
 
@@ -361,15 +391,25 @@ class ConnectionManager:
 
         if message_type == "player_move":
             point = message.get("point")
-            await self.forward_move(websocket, point)
+            if not await self._route_bot_room_action(websocket, "player_move", point):
+                await self.forward_move(websocket, point)
             return
 
         if message_type == "player_skip":
-            await self.forward_skip(websocket)
+            if not await self._route_bot_room_action(websocket, "player_skip"):
+                await self.forward_skip(websocket)
             return
 
         if message_type == "player_resign":
-            await self.forward_resign(websocket)
+            if not await self._route_bot_room_action(websocket, "player_resign"):
+                await self.forward_resign(websocket)
+            return
+
+        if message_type == "retry_bots":
+            async with self.lock:
+                action = self._prepare_room_member_locked(websocket)
+                if action["error"] is None:
+                    self._schedule_bots_locked(action["room"])
             return
 
         if message_type == "player_reset":
@@ -440,6 +480,7 @@ class ConnectionManager:
                 settings=normalized_settings,
                 host_player_id=username,
             )
+            self._configure_bots_locked(room)
             self.rooms[room_id] = room
             self.websocket_index[websocket] = (room_id, username)
             self.player_room_index[username] = room_id
@@ -488,6 +529,12 @@ class ConnectionManager:
             session: Optional[PlayerSession] = None
             if username in room.players:
                 candidate = room.players[username]
+                if candidate.is_bot:
+                    await self.send_json(websocket, {
+                        "type": "ERROR", "code": "RESERVED_PLAYER_ID",
+                        "message": "AI seats cannot be claimed by a user.",
+                    })
+                    return
                 if candidate.connected and candidate.websocket is not websocket and candidate.websocket is not None:
                     self.websocket_index.pop(candidate.websocket, None)
                     try:
@@ -533,6 +580,7 @@ class ConnectionManager:
                 and not room.match_started
                 and room.active_player_count() >= room.player_capacity()
                 and len(room.ready_players) >= room.player_capacity()
+                and room.all_humans_connected()
                 and room.countdown_started_at is None
             ):
                 self._start_countdown_locked(room)
@@ -559,6 +607,8 @@ class ConnectionManager:
             if target_websocket is websocket:
                 continue
             await self.send_json(target_websocket, payload)
+        async with self.lock:
+            self._schedule_bots_locked(room)
 
     async def handle_ping(self, websocket: WebSocket, timestamp: Any) -> None:
         async with self.lock:
@@ -577,6 +627,207 @@ class ConnectionManager:
                 "timestamp": timestamp,
             },
         )
+
+    def _configure_bots_locked(self, room: Room) -> None:
+        room.players = {key: player for key, player in room.players.items() if not player.is_bot}
+        room.ready_players.intersection_update(room.players)
+        for index in range(int(room.settings.get("botCount", 0))):
+            color = room.available_color()
+            player_id = f"@AI:{uuid4().hex}"
+            room.players[player_id] = PlayerSession(
+                player_id=player_id, color=color, connected=True, is_bot=True,
+            )
+            room.ready_players.add(player_id)
+
+    def _reset_bot_state_locked(self, room: Room) -> None:
+        self._cancel_bot_task_locked(room)
+        room.generation += 1
+        room.game_over = False
+        room.bot_error = None
+        room.ready_players.update(player.player_id for player in room.players.values() if player.is_bot)
+
+    def _cancel_bot_task_locked(self, room: Room) -> None:
+        if room.bot_task is not None and room.bot_task is not asyncio.current_task():
+            room.bot_task.cancel()
+            room.bot_task = None
+
+    def _schedule_bots_locked(self, room: Room) -> None:
+        if not room.has_bots() or not room.match_started or room.game_over or not room.all_humans_connected():
+            return
+        if room.bot_task is None or room.bot_task.done():
+            room.bot_task = asyncio.create_task(self._run_bot_turns(room))
+
+    def _bot_snapshot_locked(self, room: Room) -> Dict[str, Any]:
+        return {
+            "settings": dict(room.settings),
+            "actions": [dict(action) for action in room.actions],
+            "bot_colors": [player.color for player in room.players.values() if player.is_bot],
+            "generation": room.generation,
+        }
+
+    def _bot_snapshot_current_locked(self, room: Room, snapshot: Dict[str, Any]) -> bool:
+        return (
+            self.rooms.get(room.room_id) is room
+            and room.generation == snapshot["generation"]
+            and len(room.actions) == len(snapshot["actions"])
+            and room.match_started
+            and room.all_humans_connected()
+        )
+
+    async def _evaluate_bot_snapshot(self, snapshot, action=None):
+        # A fresh process always reconstructs accepted history. Retry only worker
+        # exits/timeouts, never an invalid configuration or corrupt replay.
+        for attempt in range(3):
+            try:
+                return await evaluate_room(
+                    snapshot["settings"], snapshot["actions"], snapshot["bot_colors"], action,
+                )
+            except (BotBridgeUnavailable, asyncio.TimeoutError):
+                if attempt == 2:
+                    raise
+                await asyncio.sleep(0.2 * (attempt + 1))
+
+    def _commit_bot_action_locked(self, room: Room, action, result, sender_websocket=None):
+        actor = next(player for player in room.players.values() if player.color == action["color"])
+        recorded = {
+            "type": action["type"], "playerId": actor.player_id, "color": actor.color,
+        }
+        if action["type"] == "player_move":
+            recorded["point"] = list(action["point"])
+        room.actions.append(recorded)
+        room.reset_votes.clear()
+        room.updated_at = time.time()
+        room.game_over = bool(result["gameOver"])
+        room.bot_error = None
+        event_type = {
+            "player_move": "OPPONENT_MOVE",
+            "player_skip": "TURN_SKIPPED",
+            "player_resign": "PLAYER_RESIGNED",
+        }[action["type"]]
+        payload = {
+            **recorded, "type": event_type, "roomId": room.room_id,
+            "actionIndex": len(room.actions), "isBot": actor.is_bot,
+            "aiFallback": bool(result.get("fallback")),
+        }
+        return [
+            (target, payload)
+            for target, payload in self._connected_room_payloads(room, payload)
+            if action["type"] != "player_move" or target is not sender_websocket
+        ]
+
+    async def _reject_bot_action(self, websocket, room, code, message):
+        await self.send_json(websocket, {"type": "ERROR", "code": code, "message": message})
+        identity = self.websocket_index.get(websocket)
+        if self.rooms.get(room.room_id) is room and identity and identity[0] == room.room_id:
+            await self.send_json(websocket, self._room_payload("ROOM_STATE", room, your_player_id=identity[1]))
+
+    async def _route_bot_room_action(self, websocket, action_type, point=None) -> bool:
+        identity = self.websocket_index.get(websocket)
+        room = self.rooms.get(identity[0]) if identity else None
+        if room is None or not room.has_bots():
+            return False
+        async with room.action_lock:
+            async with self.lock:
+                prepared = self._prepare_room_action_locked(websocket)
+                if prepared["error"] is not None:
+                    error = prepared["error"]
+                    snapshot = None
+                elif not room.all_humans_connected():
+                    error = {"code": "OPPONENT_OFFLINE", "message": "Waiting for the other human player to reconnect."}
+                    snapshot = None
+                else:
+                    sender = prepared["sender"]
+                    action = {"type": action_type, "color": sender.color}
+                    if action_type == "player_move":
+                        action["point"] = point
+                    snapshot = self._bot_snapshot_locked(room)
+                    error = None
+            if error:
+                await self._reject_bot_action(websocket, room, error["code"], error["message"])
+                return True
+            try:
+                result = await self._evaluate_bot_snapshot(snapshot, action)
+            except (BotBridgeUnavailable, asyncio.TimeoutError) as exc:
+                await self._reject_bot_action(
+                    websocket, room, "AI_UNAVAILABLE",
+                    "AI service is temporarily unavailable. Reconnect to retry; the accepted game history is preserved.",
+                )
+                logger.warning("bot validation unavailable room=%s error=%s", room.room_id, exc)
+                return True
+            async with self.lock:
+                valid = (
+                    self._bot_snapshot_current_locked(room, snapshot)
+                    and self.websocket_index.get(websocket) == identity
+                )
+                if valid and result.get("success"):
+                    payloads = self._commit_bot_action_locked(room, action, result, websocket)
+                else:
+                    payloads = None
+            if payloads is None:
+                await self._reject_bot_action(
+                    websocket, room, "ACTION_REJECTED",
+                    result.get("reason", "The room changed while the action was being checked."),
+                )
+                return True
+            for target, payload in payloads:
+                await self.send_json(target, payload)
+        async with self.lock:
+            self._schedule_bots_locked(room)
+        return True
+
+    async def _run_bot_turns(self, room: Room) -> None:
+        try:
+            while True:
+                async with room.action_lock:
+                    async with self.lock:
+                        if (
+                            self.rooms.get(room.room_id) is not room or not room.match_started
+                            or room.game_over or not room.all_humans_connected()
+                        ):
+                            return
+                        snapshot = self._bot_snapshot_locked(room)
+                    result = await self._evaluate_bot_snapshot(snapshot)
+                    async with self.lock:
+                        if not self._bot_snapshot_current_locked(room, snapshot):
+                            return
+                        if not result.get("success"):
+                            room.bot_error = result.get("reason", "AI_INVALID_STATE")
+                            payloads = self._connected_room_payloads(room, {
+                                "type": "ERROR", "code": "AI_INVALID_STATE",
+                                "message": "The AI game history could not be verified. Restart this match.",
+                            })
+                            finished = True
+                        else:
+                            room.game_over = bool(result["gameOver"])
+                            action = result.get("action")
+                            if action is None:
+                                return
+                            payloads = self._commit_bot_action_locked(room, action, result)
+                            finished = room.game_over
+                    for target, payload in payloads:
+                        await self.send_json(target, payload)
+                    if finished:
+                        return
+                await asyncio.sleep(0.15)
+        except (BotBridgeUnavailable, asyncio.TimeoutError) as exc:
+            async with self.lock:
+                if not self._bot_snapshot_current_locked(room, snapshot):
+                    return
+                room.bot_error = "AI_UNAVAILABLE"
+                payloads = self._connected_room_payloads(room, {
+                    "type": "ERROR", "code": "AI_UNAVAILABLE",
+                    "message": "AI service is temporarily unavailable. Reconnect to retry; the accepted game history is preserved.",
+                })
+            logger.warning("bot worker unavailable room=%s error=%s", room.room_id, exc)
+            for target, payload in payloads:
+                await self.send_json(target, payload)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception("bot room task failed room=%s", room.room_id)
+        finally:
+            if room.bot_task is asyncio.current_task():
+                room.bot_task = None
 
     async def forward_move(self, websocket: WebSocket, point: Any) -> None:
         if not self._is_valid_point(point):
@@ -741,6 +992,7 @@ class ConnectionManager:
                     room.actions = []
                     room.match_started = False
                     room.ready_players.clear()
+                    self._reset_bot_state_locked(room)
                     room.reset_votes.clear()
                     self._cancel_countdown_locked(room)
                     payloads = self._connected_room_payloads_with_identity(
@@ -760,6 +1012,7 @@ class ConnectionManager:
                     room.actions = []
                     room.match_started = False
                     room.ready_players.clear()
+                    self._reset_bot_state_locked(room)
                     room.reset_votes.clear()
                     self._cancel_countdown_locked(room)
                     extra = {
@@ -835,7 +1088,7 @@ class ConnectionManager:
                     if room.active_player_count() < room.player_capacity():
                         self._cancel_countdown_locked(room)
                         payloads = self._connected_room_payloads(room, self._room_payload("ROOM_STATE", room))
-                    elif len(room.ready_players) >= room.player_capacity():
+                    elif len(room.ready_players) >= room.player_capacity() and room.all_humans_connected():
                         if room.countdown_started_at is None and not room.match_started:
                             self._start_countdown_locked(room)
                         payloads = self._connected_room_payloads(room, self._room_payload("ROOM_COUNTDOWN", room))
@@ -875,9 +1128,10 @@ class ConnectionManager:
                     payloads = []
                 else:
                     normalized_settings = self._normalize_room_settings(settings)
-                    allowed_colors = (PLAYER_BLACK, PLAYER_WHITE, PLAYER_PURPLE)[: int(normalized_settings["playerCount"])]
-                    if len(room.players) > int(normalized_settings["playerCount"]) or any(
-                        player.color not in allowed_colors for player in room.players.values()
+                    allowed_colors = PLAYER_COLORS[: int(normalized_settings["playerCount"])]
+                    humans = [player for player in room.players.values() if not player.is_bot]
+                    if len(humans) + normalized_settings["botCount"] > int(normalized_settings["playerCount"]) or any(
+                        player.color not in allowed_colors for player in humans
                     ):
                         error_payload = {
                             "type": "ERROR",
@@ -890,6 +1144,8 @@ class ConnectionManager:
                         room.actions = []
                         room.match_started = False
                         room.ready_players.clear()
+                        self._configure_bots_locked(room)
+                        self._reset_bot_state_locked(room)
                         room.reset_votes.clear()
                         self._cancel_countdown_locked(room)
                         room.updated_at = time.time()
@@ -975,6 +1231,7 @@ class ConnectionManager:
                     )
                     room.settings = normalized_settings
                     room.ready_players.clear()
+                    self._reset_bot_state_locked(room)
                     room.reset_votes.clear()
                     self._cancel_countdown_locked(room)
                     room.updated_at = time.time()
@@ -1076,6 +1333,8 @@ class ConnectionManager:
                 "connected": player.connected,
                 "ready": player.player_id in room.ready_players,
                 "isHost": player.player_id == room.host_player_id,
+                "isBot": player.is_bot,
+                "displayName": f"AI {player.color}" if player.is_bot else player.player_id,
             }
             for player in room.players.values()
         ]
@@ -1090,6 +1349,7 @@ class ConnectionManager:
             "matchState": self._match_state(room),
             "countdownEndsAt": self._countdown_ends_at_ms(room),
             "serverTimestamp": int(room.updated_at * 1000),
+            "botError": room.bot_error,
         }
         if reason:
             payload["reason"] = reason
@@ -1127,8 +1387,12 @@ class ConnectionManager:
                 if len(room.ready_players) < room.player_capacity():
                     self._cancel_countdown_locked(room)
                     return
+                if not room.all_humans_connected():
+                    self._cancel_countdown_locked(room)
+                    return
 
                 room.actions = []
+                self._reset_bot_state_locked(room)
                 room.match_started = True
                 room.reset_votes.clear()
                 room.updated_at = time.time()
@@ -1145,6 +1409,8 @@ class ConnectionManager:
 
         for target_websocket, payload in payloads:
             await self.send_json(target_websocket, payload)
+        async with self.lock:
+            self._schedule_bots_locked(room)
 
     async def send_json(self, websocket: WebSocket, payload: Dict[str, Any]) -> None:
         logger.info("outgoing payload=%s", payload)
@@ -1217,12 +1483,15 @@ class ConnectionManager:
         player.websocket = None
         player.connected = False
         player.last_seen = time.time()
+        room.generation += 1
+        self._cancel_bot_task_locked(room)
         room.updated_at = time.time()
         room.reset_votes.clear()
         # 永久离开时才重置 match_started 和 ready 状态；临时断线只取消倒计时。
         if remove_player:
             room.ready_players.discard(player_id)
             room.match_started = False
+            self._reset_bot_state_locked(room)
         self._cancel_countdown_locked(room)
 
         if remove_player:
@@ -1232,7 +1501,9 @@ class ConnectionManager:
             room.reset_votes.discard(player_id)
             room.reset_votes.clear()
             if room.host_player_id == player_id:
-                room.host_player_id = next(iter(room.players.keys()), None)
+                room.host_player_id = next(
+                    (candidate.player_id for candidate in room.players.values() if not candidate.is_bot), None,
+                )
 
         if notify_opponent:
             for other_player in other_players:
@@ -1249,7 +1520,7 @@ class ConnectionManager:
                     )
                     await self.send_json(other_player.websocket, self._room_payload("ROOM_STATE", room))
 
-        if not room.players:
+        if not any(not candidate.is_bot for candidate in room.players.values()):
             self.rooms.pop(room_id, None)
             return
 
@@ -1301,7 +1572,7 @@ class ConnectionManager:
         opponents = [
             player
             for player in self._find_other_players(room, sender_id)
-            if player.websocket is not None and player.connected
+            if player.connected and (player.websocket is not None or player.is_bot)
         ]
         if not opponents:
             return {
@@ -1440,7 +1711,7 @@ class ConnectionManager:
             numeric_fields[field] = int(max(minimum, min(maximum, value)))
 
         color_class = str(display.get("colorClass", "")).strip()
-        if color_class not in {"blue", "red", "purple"}:
+        if color_class not in {"blue", "red", "purple", "green", "orange", "cyan"}:
             color_class = "blue"
 
         return {
@@ -1459,10 +1730,11 @@ class ConnectionManager:
         grid_size = settings.get("gridSize", 9)
         start_player = settings.get("startPlayer", PLAYER_BLACK)
         rules_version = settings.get("rulesVersion", DEFAULT_RULES_VERSION)
+        bot_count = settings.get("botCount", 0)
         turn_timer_enabled = bool(settings.get("turnTimerEnabled", False))
         turn_time_limit_seconds = settings.get("turnTimeLimitSeconds", DEFAULT_TURN_TIMER_SECONDS)
 
-        if player_count not in (2, 3):
+        if type(player_count) is not int or player_count not in (2, 3, 4, 5, 6):
             player_count = 2
         if not isinstance(grid_size, int) or grid_size < MIN_GRID_SIZE or grid_size > MAX_GRID_SIZE:
             grid_size = 9
@@ -1475,11 +1747,15 @@ class ConnectionManager:
             TURN_TIMER_MIN_SECONDS,
             min(TURN_TIMER_MAX_SECONDS, turn_time_limit_seconds),
         )
-        allowed_players = (PLAYER_BLACK, PLAYER_WHITE, PLAYER_PURPLE)[:player_count]
+        allowed_players = PLAYER_COLORS[:player_count]
         if start_player not in allowed_players:
             start_player = allowed_players[0]
         if not isinstance(rules_version, str) or rules_version not in ALLOWED_RULES_VERSIONS:
             rules_version = DEFAULT_RULES_VERSION
+        if type(bot_count) is not int or player_count < 3 or not 0 <= bot_count < player_count:
+            bot_count = 0
+        if bot_count:
+            rules_version = TERRITORY_RULE_V2
 
         return {
             "playerCount": player_count,
@@ -1488,6 +1764,7 @@ class ConnectionManager:
             "rulesVersion": rules_version,
             "turnTimerEnabled": turn_timer_enabled,
             "turnTimeLimitSeconds": turn_time_limit_seconds,
+            "botCount": bot_count,
         }
 
     def _room_snapshot(self, room: Room) -> Dict[str, Any]:
@@ -1499,6 +1776,7 @@ class ConnectionManager:
                     "playerId": player.player_id,
                     "color": player.color,
                     "connected": player.connected,
+                    "isBot": player.is_bot,
                 }
                 for player in room.players.values()
             ],

@@ -1,0 +1,23 @@
+{
+  "status": "PASS-CURRENT",
+  "command": "node --unhandled-rejections=strict web/web前端/tests/verify-three-player-v3-training.mjs",
+  "exit_code": 0,
+  "fixture_run_root": "local_artifacts/three-player-v3-recovery-1792516464062",
+  "completed_fixture_episodes": 16,
+  "completed_fixture_updates": 4,
+  "completed_development_games": 13,
+  "checks": [
+    "PPO finite-difference gradient",
+    "positive and negative advantage clipping",
+    "Adam descent",
+    "forced exit during generation, optimizer and development",
+    "exact resumed actions, RNG, samples, Adam, candidates and model bytes",
+    "completed-unit deduplication and completion idempotence",
+    "PAUSE, STOP, yield budget, duplicate exclusion",
+    "checkpoint corruption and configuration drift fail closed"
+  ],
+  "test_sha256": "c96c39acc4effe7a1de80995c27db3554ec90fc6bbebb7276bf12fead5304608",
+  "trainer_sha256": "c4439d3a9f8890aff7006e41f277c2bdbc7b85dfc570e8440b6927e1771e209c",
+  "ppo_core_sha256": "dfdafce7647e85e60619f3b66d461705cc4bf4c0da60ccf1e44af7a50a8f5bfc",
+  "scope_note": "Real process-kill recovery on Windows; power-loss and user-login auto-start were not exercised."
+}

@@ -1,0 +1,31 @@
+{
+  "status": "PASS-CURRENT",
+  "evidence_tier": "RECOVERY-ONLY",
+  "client_date": "2026-10-21",
+  "command": "node --unhandled-rejections=strict web/web前端/tests/verify-three-player-arena-recovery.mjs",
+  "exit_code": 0,
+  "local_evidence_root": "local_artifacts/three-player-ai-v2-arena/recovery-1792512853645",
+  "source_sha256": {
+    "web/tools/evaluate-three-player-ai.mjs": "3b4b3a34f72ee1fab89137096942f482480029f6a166ce718c975e204de5ceab",
+    "web/tools/verify-three-player-arena.mjs": "e1bb3db1494c7039fabbb8cb062902fe58ac5ce2454105f119960f15e0024b74",
+    "web/tools/three-player-arena-lib.mjs": "4cc3c30f82d4881c7c72e1e29a342bd62d938abde0e80292ab3b38401173a56b",
+    "web/web前端/tests/verify-three-player-arena-recovery.mjs": "3e86850f453f0a0399669769ace1f8b90597c124385ee37c2895aa7302bc3393"
+  },
+  "checks": [
+    "clean-resume-equality",
+    "action-checkpoint-recovery",
+    "partial-write-isolation",
+    "committed-game-no-rerun",
+    "pause-stop",
+    "duplicate-worker-exclusion",
+    "killed-process-resume",
+    "corrupt-record-refusal",
+    "forged-area-independent-verification",
+    "fresh-terminal-area",
+    "cluster-order-invariance"
+  ],
+  "limits": [
+    "Reliability checks are separate from model strength and final holdout.",
+    "Intentional corrupt fixtures remain quarantined/local."
+  ]
+}

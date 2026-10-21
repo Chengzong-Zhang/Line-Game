@@ -1,0 +1,289 @@
+{
+  "schema": "lifeline-all-ai-posttraining-delivery-v1",
+  "generated_at": "2026-10-20T18:19:48.781801+00:00",
+  "status": "ALL_TRAINING_COMPLETE_VERIFIED_HEX_FINAL_INCOMPLETE",
+  "scope": "local-only",
+  "candidate_routes": 19,
+  "training_routes_complete": 19,
+  "updates_executed": 1772,
+  "two_player": {
+    "models": 17,
+    "updates": 1700,
+    "method": "Web-compatible supervised policy distillation; weights-only initialization with reset optimizer/RNG",
+    "training_output_status": "PASS_NEURAL_CANDIDATE_INTEGRITY_VALIDATION_AND_WEB_PARITY",
+    "validation_samples": 593,
+    "validation_ce_decreased_models": 17,
+    "web_parity": {
+      "status": "PASS_ACTUAL_WEB_ENCODER_AND_F32_PROBABILITY_PARITY",
+      "probes": 102,
+      "board_sizes": [
+        5,
+        9,
+        15
+      ],
+      "model_ids": 34,
+      "replayed_prefix_actions": 1666,
+      "checked_probabilities": 2346,
+      "max_probability_error": 1.402807780492843e-07,
+      "tolerance": 3e-05
+    },
+    "screen_games": 204,
+    "terminal_games": 204,
+    "truncated_games": 0,
+    "models_scoring_above_half": 7,
+    "models_scoring_half": 5,
+    "models_scoring_below_half": 5,
+    "screen_verification": {
+      "status": "PASS_APPLICATION_SCREEN_REPLAY",
+      "games": 204,
+      "actions": 4942,
+      "sampledPolicyDecisions": 408,
+      "terminalGames": 204,
+      "truncatedGames": 0,
+      "promotionPass": false,
+      "identity": "9905d6d9e99699fb072974613c1c449cfd9935b6a3bde6b962546f41e4f759b7",
+      "verifier_sha256": "8eb8635f3271915b3507615bc02716a941bf672cf641f872601459b99915b119",
+      "summaryFieldsVerified": "all",
+      "limitations": "All histories, terminal scores, completed-unit index and every summary field verified; first and middle policy decisions per game re-evaluated. Exploratory screening only."
+    },
+    "promotion_pass": false,
+    "candidate_manifest": "local_artifacts/all-ai-posttraining-20261021/neural-training/candidate-manifest.json",
+    "candidate_manifest_sha256": "69c6f45209f08c9acef9cb0b1a01264185e8a711789428dac362b4b3812a9545"
+  },
+  "three_player": {
+    "training_games": 216,
+    "development_games": 342,
+    "updates_executed": 36,
+    "selected_model_updates": 12,
+    "candidate_id": "three-player-policy-v3",
+    "candidate_sha256": "1335fdaaedc227a8176696b720b2e93827fef4baed79790630c59fbe5a3e08b9",
+    "final_games": 252,
+    "comparisons": {
+      "v1": {
+        "completed_games": 126,
+        "terminal_games": 126,
+        "truncated_games": 0,
+        "clusters": 18,
+        "mean_win_share_delta": -0.012345679012345678,
+        "cluster_bootstrap_95": [
+          -0.0617283950617284,
+          0.03703703703703703
+        ],
+        "single_ai_delta": -0.015432098765432098,
+        "dual_ai_delta": -0.009259259259259259,
+        "promotion_pass": false,
+        "verification_status": "PASS_APPLICATION_EVALUATION",
+        "verified_actions": 4354,
+        "verified_policy_decisions": 3850,
+        "supervisor_status": "COMPLETE",
+        "attempts": 1,
+        "abnormal_exits": 0,
+        "verifier_command": "node --unhandled-rejections=strict web/tools/verify-three-player-arena.mjs --run-root local_artifacts/three-player-v3-final-vs-v1-20261021",
+        "verifier_exit_code": 0
+      },
+      "v2": {
+        "completed_games": 126,
+        "terminal_games": 126,
+        "truncated_games": 0,
+        "clusters": 18,
+        "mean_win_share_delta": -0.06944444444444443,
+        "cluster_bootstrap_95": [
+          -0.1111111111111111,
+          -0.027777777777777776
+        ],
+        "single_ai_delta": -0.09259259259259259,
+        "dual_ai_delta": -0.046296296296296294,
+        "promotion_pass": false,
+        "verification_status": "PASS_APPLICATION_EVALUATION",
+        "verified_actions": 4487,
+        "verified_policy_decisions": 3983,
+        "supervisor_status": "COMPLETE",
+        "attempts": 1,
+        "abnormal_exits": 0,
+        "verifier_command": "node --unhandled-rejections=strict web/tools/verify-three-player-arena.mjs --run-root local_artifacts/three-player-v3-final-vs-v2-20261021",
+        "verifier_exit_code": 0
+      }
+    },
+    "promotion_pass": false,
+    "default_retained": "three-player-policy-v1"
+  },
+  "hex_player": {
+    "training": {
+      "status": "COMPLETE_VERIFIED",
+      "games": 45,
+      "development_games": 105,
+      "terminal_games": 150,
+      "truncated_games": 0,
+      "optimizer_updates": 36,
+      "selected_stage": 3,
+      "new_training_sizes": [
+        5
+      ],
+      "player_counts": [
+        4,
+        5,
+        6
+      ],
+      "development_mean_delta": 0.030000000000000006,
+      "development_delta_scope": "candidate selection only; not FINAL strength evidence",
+      "verification": {
+        "status": "PASS",
+        "command": [
+          "C:\\Program Files\\nodejs\\node.exe",
+          "--unhandled-rejections=strict",
+          "C:\\coding\\py\\line game\\web\\tools\\verify-hex-posttraining.mjs",
+          "--run-root",
+          "C:\\coding\\py\\line game\\local_artifacts\\hex-player-posttrain-v2\\train-20261021-r1",
+          "--output-root",
+          "C:\\coding\\py\\line game\\local_artifacts\\hex-player-posttrain-v2\\train-verification-20261021-r1",
+          "--max-seconds",
+          "120"
+        ],
+        "exit_code": 0,
+        "signal": null,
+        "supervisor_status": "COMPLETE",
+        "report_identity": "48033a3160cb1a5813200236dc7d2d64bd49c9bab61adcebd949a341f5d5ce2a",
+        "games": 150,
+        "actions": 16258,
+        "policy_decisions_recomputed": 15658
+      }
+    },
+    "final": {
+      "status": "LIMIT_BUDGET",
+      "evaluation_status": "INCOMPLETE",
+      "planned_games": 90,
+      "indexed_completed_games": 77,
+      "terminal_games": 77,
+      "truncated_games": 0,
+      "in_progress_games": 1,
+      "unstarted_games": 12,
+      "in_flight": {
+        "id": "final-n7-p6-WHITE-s1-multi",
+        "actions": 61,
+        "active_elapsed_ms": 3044,
+        "terminal_at_saved_position": false
+      },
+      "by_size": {
+        "5": {
+          "planned": 45,
+          "completed": 45,
+          "terminal": 45,
+          "truncated": 0
+        },
+        "7": {
+          "planned": 45,
+          "completed": 32,
+          "terminal": 32,
+          "truncated": 0
+        }
+      },
+      "by_player_count": {
+        "4": {
+          "planned": 24,
+          "completed": 24,
+          "terminal": 24,
+          "truncated": 0
+        },
+        "5": {
+          "planned": 30,
+          "completed": 30,
+          "terminal": 30,
+          "truncated": 0
+        },
+        "6": {
+          "planned": 36,
+          "completed": 23,
+          "terminal": 23,
+          "truncated": 0
+        }
+      },
+      "mean_delta": null,
+      "bootstrap_95": null,
+      "promote": false,
+      "promotion_decision": "NOT_ELIGIBLE_INCOMPLETE_FINAL",
+      "default_model_retained": "hex-player-policy-v1",
+      "original_budget_seconds": 1800,
+      "budget_renewed": false,
+      "supervisor_status": "BUDGET_EXHAUSTED",
+      "raw_last_worker_exit_code": null,
+      "raw_last_worker_signal": "SIGKILL",
+      "cancellation": "BUDGET_EXHAUSTED",
+      "attempts": 15,
+      "abnormal_exits": 0,
+      "source_identity": "cef118b61bf0540c1e9306ad87380950e9515dfb5f295ff72f9f161066a36246",
+      "source_checkpoint_sha256": "90709cca562c29523712ccd4135c408a185adb378f24e0cd031ccae0388a0eaa",
+      "verified_processes_stopped": [
+        54928,
+        56496,
+        65608
+      ],
+      "process_absence_check": "Get-CimInstance Win32_Process for exact supervisor/host/worker PIDs returned no rows",
+      "verification": {
+        "status": "PASS_LEGALITY_AREA_BOUNDARY_ONLY",
+        "command": [
+          "C:\\Program Files\\nodejs\\node.exe",
+          "--unhandled-rejections=strict",
+          "C:\\coding\\py\\line game\\web\\tools\\verify-hex-posttraining-boundary.mjs",
+          "--run-root",
+          "C:\\coding\\py\\line game\\local_artifacts\\hex-player-posttrain-v2\\final-20261021-r1",
+          "--output-root",
+          "C:\\coding\\py\\line game\\local_artifacts\\hex-player-posttrain-v2\\boundary-verification-20261021-r1",
+          "--max-seconds",
+          "30"
+        ],
+        "exit_code": 0,
+        "signal": null,
+        "supervisor_status": "COMPLETE",
+        "report_identity": "e89b2258d24d180d777b3b5d46ac9b4a50231d51e9767389264fb68ae4d2111e",
+        "hard_budget_seconds": 120,
+        "policy_decisions_recomputed": 0,
+        "policy_decisions_not_recomputed": 21632,
+        "actions_checked": 21944,
+        "scope": "halted FINAL legality, full history, seeded prefix and fresh terminal area only; policy scoring was NOT recomputed; no complete-arena result or strength conclusion"
+      }
+    },
+    "candidate_id": "hex-player-policy-v2",
+    "candidate_sha256": "8cce4228dd835112e62db8fc397f86284380880fd21c62305f8f4aaa523bd910",
+    "default_retained": "hex-player-policy-v1"
+  },
+  "preservation": {
+    "parent_assets_rehashed": 19,
+    "candidate_assets_rehashed": 19,
+    "three_player_v1_rehashed": true,
+    "bound_source_and_input_files_rehashed": 49,
+    "defaults_replaced": false,
+    "runtime_loader_changed_by_this_posttraining_round": false,
+    "server_deployed": false,
+    "mini_program_synced": false,
+    "paid_cloud_compute": false
+  },
+  "verification_scope": "Aggregate receipt cross-checks hashes/counts/default IDs and references the task-specific verifiers; it is not a new independent training replay.",
+  "evidence_sha256": {
+    "docs/verification/all-ai-posttraining-20261021/inventory.json": "c156d269558a245e6ce74d5004f7622478fb9760a04a7964c34c58610619ed6a",
+    "docs/verification/all-ai-posttraining-20261021/PROTOCOL.md": "58838ccbf5d9f9e042483c790b134d2ed320531bdd00077d5e82c7e59e7056a3",
+    "docs/verification/all-ai-posttraining-20261021/REVIEW_NOTES.md": "8f14bc2f87a30a8804624377c4c403ea196d39f07b694f91a7d7442b1145e2ad",
+    "docs/verification/all-ai-posttraining-20261021/training-summary.csv": "73b425fab50a58d58982328a75892d0aadfdd4ab1975fe3573cf5f1c3a73ea66",
+    "docs/verification/all-ai-posttraining-20261021/neural-data-verification.json": "1cbf5abfcda73bfc56c6636182621cc261fe80d55ba36dae6367ea97547a8efb",
+    "docs/verification/all-ai-posttraining-20261021/neural-training-receipt.json": "ab9cc16bf7fafa9059184bcaea1d3be28ca0d07b7ddfda0c6d600b555ffd2dcd",
+    "docs/verification/all-ai-posttraining-20261021/neural-candidate-verification.json": "79ef3031b256e1c4eef031473b27dab7892b6a709fa15dd212a98b9eb39cd61f",
+    "docs/verification/all-ai-posttraining-20261021/neural-output-index.json": "125dccf206368387de8c27a49a1b31934dc0df98031073925a208c2a0d648ea6",
+    "docs/verification/all-ai-posttraining-20261021/neural-validation-ce.csv": "08268261d2d528079b9fceb7739edf75d9783bfa6767cf4c11eb88f4e3841aa7",
+    "docs/verification/all-ai-posttraining-20261021/neural-training-recovery.json": "b1d5fb5aeb52315cf9402f1457489e53c31d323ea2bf87bdfb1c0d62412823c2",
+    "docs/verification/all-ai-posttraining-20261021/neural-v2-reliability-review.json": "093841e15fa0f6ac8b5a7af3ec53003dc81bd982ffb9f3db6b888b95c2e40ebd",
+    "docs/verification/all-ai-posttraining-20261021/neural-arena-summary.json": "01c6812f138bb9342753d47c109a4d9ba021e58834730c98454f95a2bf070f99",
+    "docs/verification/all-ai-posttraining-20261021/neural-arena-verification.json": "8298888a489be48d8c948d8c88d02f70da6fc1201711d58efe2c1c98cfde4cb4",
+    "docs/verification/all-ai-posttraining-20261021/neural-arena-verification-execution.json": "8f9b03efeece5b0a2c36e911058b9fa1fcf87ac83383d1bdde7979b62b1805d4",
+    "docs/verification/all-ai-posttraining-20261021/neural-arena-supervisor-receipt.json": "a90756e030100eca6c64ec2e3d08c1f450de6946e8d1c2ebf0e56801762fee97",
+    "docs/verification/all-ai-posttraining-20261021/neural-arena-verification-adapter-recovery.json": "00f6a437b958421887c421de1373783dbf215131444c036c58874befe098d0d5",
+    "docs/verification/three-player-ai-v3/delivery-receipt.json": "a82e84b83a25593a827ec77769262d5da3af9cc3b083b6da44ca4875c0962e85",
+    "docs/verification/hex-ai-posttrain-v2/delivery-receipt.json": "b6cb54289e63b53aae31ab9608eea346bcf79b8174888f9af098171c72d47375",
+    "docs/ALL_AI_POSTTRAINING_20261021.md": "d876c7a947a28d6e38b114809c114c64fc0df031f5fa3dfecedbfe3354240edb"
+  },
+  "limitations": [
+    "Two-player screen: 12 games / 6 shared paired opening clusters per model at sizes5/7/9; no family-wide promotion proof.",
+    "Two-player numerical probes: 3 fixed positions times34 parent/candidate models; not102 distinct positions.",
+    "Three-player candidate failed its fixed promotion gate.",
+    "Hex final77/90 is incomplete; no overall delta/CI and no policy-score replay for its final games.",
+    "Candidates are preserved locally, not installed as the default opponents."
+  ]
+}

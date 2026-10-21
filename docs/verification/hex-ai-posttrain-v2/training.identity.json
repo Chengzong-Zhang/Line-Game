@@ -1,0 +1,20 @@
+{
+  "identity": "62e3c7dc5bb7fe99b573d849715e9e2292f4b46da24b45fd3bfb48909ca41f9f",
+  "schema": "lifeline-hex-posttraining-identity-v1",
+  "config": "98cc22dee97707fb029958754900891f71a9fa1439c6ed075572c9524549b700",
+  "sources": {
+    "web/tools/run-hex-posttraining.mjs": "0a6772dd76befcd238f4769c2ec9832d305decde8d99162c4acec76ecd09dc2e",
+    "web/tools/hex-posttrain-core.mjs": "853dac68a3b9c404e2bca9827fe1fa20b51d599263d88e8885d2e1f9b7db1ad3",
+    "web/tools/hex-posttrain-protocol.mjs": "2d5751dd2bc586d836791af54d026400abc5ec88d60ebe80113dc44e090fd7d0",
+    "web/tools/linear-three-v3-core.mjs": "dfdafce7647e85e60619f3b66d461705cc4bf4c0da60ccf1e44af7a50a8f5bfc",
+    "web/tools/three-player-arena-lib.mjs": "4cc3c30f82d4881c7c72e1e29a342bd62d938abde0e80292ab3b38401173a56b",
+    "web/web前端/GameEngine.js": "625e8d8a92801647702f963f56148040248cf471228a6ce5c719e20e4414a555",
+    "web/web前端/AIEngine.js": "6738fe3a98a616dfd6c060636f5d2684fd49ebc561c95a96247db28c7170ccc3",
+    "web/web前端/HexPlayerAI.js": "62340c349b53a13e20d47171187228a2359c5d8dcbf12344a4bf6a0017b9f673"
+  },
+  "parent": "74aa7f945c3ea7ff5ca3edc9e7bdc431dc0ec5ad56d2563ce6d6d24c0494162b",
+  "candidate": null,
+  "runRoot": "local_artifacts/hex-player-posttrain-v2/train-20261021-r1",
+  "selectedStage": 3,
+  "outputSha256": "8cce4228dd835112e62db8fc397f86284380880fd21c62305f8f4aaa523bd910"
+}

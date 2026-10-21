@@ -16,7 +16,15 @@ assert.equal(setup.localPlayerProfile({ choice: "human" }), null);
 assert.equal(setup.normalizeLocalPlayers({ BLACK: { choice: "unknown" } }).BLACK.choice, "human");
 assert.equal(setup.localMatchActors(players).BLACK.depth, 2);
 assert.equal(setup.localMatchActors(players).WHITE.seed, 2026092203);
-assert.ok(Object.values(setup.localMatchActors(players, 3)).every((actor) => actor.kind === "human"));
+assert.equal(setup.localMatchActors(players, 3).BLACK.strategy, "three-player");
+assert.equal(setup.localMatchActors(players, 3).PURPLE.kind, "human");
+for (const human of ["BLACK", "WHITE", "PURPLE"]) {
+  const three = Object.fromEntries(["BLACK", "WHITE", "PURPLE"].map((color) =>
+    [color, { choice: color === human ? "human" : "three-player" }]));
+  assert.equal(setup.localMatchMode(three, 3), "mixed");
+  for (const color of Object.keys(three)) assert.equal(setup.localAIPlayer(three, 3, color), color === human ? null : color);
+  assert.equal(Object.values(setup.localMatchActors(three, 3)).filter((actor) => actor.kind === "ai").length, 2);
+}
 for (const choice of setup.LOCAL_PLAYER_CHOICES.filter((choice) => choice !== "human")) {
   assert.ok(setup.localPlayerProfile({ choice }).strategy, `${choice} must resolve a supported profile`);
 }

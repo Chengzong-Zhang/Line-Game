@@ -1,12 +1,18 @@
-import GameEngine from "./GameEngine.js?v=20261014-code1";
-import { Player } from "./GameEngine.js?v=20261014-code1";
+import GameEngine from "./GameEngine.js?v=20261020-three1";
+import { Player } from "./GameEngine.js?v=20261020-three1";
 
 export const REPLAY_FORMAT = "lifeline-replay";
 export const REPLAY_SCHEMA_VERSION = 1;
 export const REPLAY_ENGINE_FAMILY = "web-game-engine";
 const GENESIS_EVENT_HASH = "GENESIS";
 const SUPPORTED_RULES = new Set(["territory-v1", "territory-v2"]);
-const PLAYERS = [Player.BLACK, Player.WHITE, Player.PURPLE];
+const PLAYERS = [Player.BLACK, Player.WHITE, Player.PURPLE, Player.GREEN, Player.ORANGE, Player.CYAN];
+
+// Schema 1 triangular replays hash three edge/effect keys, including the unused
+// purple seat in two-player games. Keep that representation byte-compatible.
+function serializedPlayers(playerCount) {
+  return PLAYERS.slice(0, Math.max(3, playerCount));
+}
 
 function isPlainObject(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -70,7 +76,7 @@ export function serializeRuleState(engine) {
     .sort((a, b) => comparePoints(a.point, b.point))
     .map(({ point, state }) => [...point, state]);
   const edges = Object.fromEntries(
-    PLAYERS.map((player) => [
+    serializedPlayers(engine.playerCount).map((player) => [
       player,
       [...(engine.edges?.[player] ?? [])].map(normalizeEdge).sort(),
     ]),
@@ -125,6 +131,14 @@ function engineOptionsFromSettings(settings) {
   };
 }
 
+function isValidSettings(settings) {
+  return Number.isInteger(settings.playerCount) && settings.playerCount >= 2 && settings.playerCount <= 6
+    && Number.isInteger(settings.gridSize) && settings.gridSize >= 5 && settings.gridSize <= 15
+    && SUPPORTED_RULES.has(settings.rulesVersion)
+    && canonicalize(settings.players) === canonicalize(PLAYERS.slice(0, settings.playerCount))
+    && settings.players.includes(settings.startPlayer);
+}
+
 function normalizeAction(action) {
   if (!isPlainObject(action)) return null;
   const type = action.type === "player_move" ? "move" : action.type === "player_skip" ? "skip" : action.type === "player_resign" ? "resign" : action.type;
@@ -154,12 +168,12 @@ function buildEventEffects(beforeState, beforeSnapshot, afterState, afterSnapsho
     }
   }
   const addedEdgesByPlayer = {};
-  for (const player of PLAYERS) {
+  for (const player of serializedPlayers(beforeState.playerCount)) {
     const beforeEdges = new Set(beforeState.edges[player] ?? []);
     addedEdgesByPlayer[player] = (afterState.edges[player] ?? []).filter((edge) => !beforeEdges.has(edge));
   }
   const territoryDelta = Object.fromEntries(
-    PLAYERS.map((player) => [
+    serializedPlayers(beforeState.playerCount).map((player) => [
       player,
       Number(afterSnapshot.territories?.[player]?.area ?? 0) - Number(beforeSnapshot.territories?.[player]?.area ?? 0),
     ]),
@@ -197,7 +211,7 @@ function buildTerminalSummary(engine, finalStateHash, eventCount) {
 
 export async function createReplayDocument(settings, actions = []) {
   const config = normalizeSettings(settings);
-  if (!SUPPORTED_RULES.has(config.rulesVersion) || ![2, 3].includes(config.playerCount)) {
+  if (!isValidSettings(config)) {
     throw new Error("当前规则或玩家配置不支持导出棋谱。");
   }
   const engine = new GameEngine(engineOptionsFromSettings(config));
@@ -273,7 +287,7 @@ export async function validateReplayDocument(document) {
   if (document.engineFamily !== REPLAY_ENGINE_FAMILY || !SUPPORTED_RULES.has(document.rulesVersion)) return fail("棋谱规则版本或引擎版本不兼容。");
   if (!isPlainObject(document.config) || !Array.isArray(document.actions) || !isPlainObject(document.initialState)) return fail("棋谱缺少必要字段。");
   const config = normalizeSettings(document.config);
-  if (config.rulesVersion !== document.rulesVersion || ![2, 3].includes(config.playerCount)) return fail("棋谱配置无效。");
+  if (config.rulesVersion !== document.rulesVersion || !isValidSettings(config)) return fail("棋谱配置无效。");
   const engine = new GameEngine(engineOptionsFromSettings(config));
   const initialHash = await hashRuleState(engine);
   if (document.initialState.stateHash !== initialHash

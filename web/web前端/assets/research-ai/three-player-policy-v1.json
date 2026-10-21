@@ -1,0 +1,79 @@
+{
+  "schema": {
+    "name": "lifeline-three-player-policy",
+    "version": 1
+  },
+  "id": "three-player-policy-v1",
+  "rules_version": "territory-v2",
+  "features": [
+    "own_nodes",
+    "own_coverage",
+    "own_reach",
+    "node_lead",
+    "coverage_lead",
+    "reach_lead",
+    "captured_nodes",
+    "captured_coverage",
+    "own_node_gain",
+    "own_coverage_gain",
+    "attack",
+    "own_line",
+    "distance_from_home",
+    "centrality",
+    "own_frontier",
+    "opponent_frontier_lead"
+  ],
+  "weights": [
+    3.068344628658064e-17,
+    0.6199774834539716,
+    0.3808808087202156,
+    0.10275129394052988,
+    0.9175196402489464,
+    1.3112210860509383,
+    0.10839054193264783,
+    0.2873651440694504,
+    1.3867114075450387e-17,
+    0.6199774834539719,
+    1.1600217968758315,
+    0.07573687233700797,
+    1.0691487331301746,
+    -0.6687230236886617,
+    0.19513418386106526,
+    0.4217435781350474
+  ],
+  "temperature": 1,
+  "browser_inference": {
+    "player_count": 3,
+    "board_size_range": [
+      5,
+      15
+    ]
+  },
+  "training": {
+    "two_player_samples": 135,
+    "three_player_samples": 244,
+    "heldout_three_player_samples": 67,
+    "completed_generation_episodes": 36,
+    "generated_samples": 479,
+    "terminal_episodes": 13,
+    "truncated_episodes": 23,
+    "pretraining_teacher": "existing MinimaxAI depth=2 (maximum 20 candidates)",
+    "finetuning_teacher": "MaxN depth=2; each player maximizes own utility; top 8 heuristic candidates",
+    "trained_board_sizes": [
+      5,
+      7,
+      9
+    ],
+    "source_hashes": {
+      "web/tools/train-three-player-ai.mjs": "10452b3b8cea88344a7c3124ec3058a0a65cd48a10c91cd53177d54099ae4dcb",
+      "web/web前端/ThreePlayerAI.js": "edfa92c657fa28a617f18586191a09686336af15843a8423a07b863743e0381b",
+      "web/web前端/AIEngine.js": "6738fe3a98a616dfd6c060636f5d2684fd49ebc561c95a96247db28c7170ccc3",
+      "web/web前端/GameEngine.js": "625e8d8a92801647702f963f56148040248cf471228a6ce5c719e20e4414a555"
+    },
+    "protocol_sha256": "6a5d18a1e162056070591877c89edf1a3159887655d18578b00f054366d533ae",
+    "initial_heldout_cross_entropy": 1.8965364481719391,
+    "final_heldout_cross_entropy": 1.5375684235502434,
+    "final_training_cross_entropy": 1.3332485513825847,
+    "evidence_tier": "application-bootstrap; not a strength benchmark or formal research result"
+  }
+}

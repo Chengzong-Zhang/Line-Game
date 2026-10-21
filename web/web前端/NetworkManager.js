@@ -43,19 +43,14 @@ function resolveWebSocketUrl(locationLike = globalThis.location) {
   }
 
   const protocol = locationLike.protocol === "https:" ? "wss:" : "ws:";
-  const hostname = locationLike.hostname || "";
-  const port = locationLike.port || "";
   const host = locationLike.host;
 
   if (!host) {
     return "ws://localhost:8000/ws";
   }
 
-  if (/^(localhost|127\.0\.0\.1|\[::1\]|::1)$/i.test(hostname) && port !== "8000") {
-    const localHost = hostname === "::1" ? "[::1]" : hostname;
-    return `${protocol}//${localHost}:8000/ws`;
-  }
-
+  // A local server may use any free port; use the page's own backend first.
+  // The application retains explicit 8000–8004 fallbacks for static previews.
   return `${protocol}//${host}/ws`;
 }
 
@@ -312,6 +307,11 @@ export class NetworkManager {
       type: "update_start_player",
       startPlayer,
     });
+  }
+
+  async retryBots() {
+    await this._ensureOpen();
+    this._send({ type: "retry_bots" });
   }
 
   async sendChatEmoji(content, metadata = {}) {

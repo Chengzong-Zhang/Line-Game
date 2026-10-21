@@ -1,0 +1,57 @@
+{
+  "status": "PASS_CURRENT_RECOVERY",
+  "date": "2026-10-21",
+  "platform": "win32",
+  "node": "v22.22.3",
+  "checks": [
+    {
+      "command": "node web/web前端/tests/verify-hex-posttraining-recovery.mjs",
+      "exit_code": 0,
+      "scope": [
+        "real terminal PPO",
+        "exact RNG and Adam resume",
+        "atomic orphan adoption",
+        "partial write isolation",
+        "training optimization arena interruption",
+        "actual process kill",
+        "duplicate worker exclusion",
+        "PAUSE STOP budget",
+        "immutable output",
+        "corruption and configuration drift rejection",
+        "independent policy area optimizer replay",
+        "FINAL 90 games and 30 clusters"
+      ],
+      "local_evidence": "local_artifacts/hex-posttrain-v2-recovery-1792516574642"
+    },
+    {
+      "command": "node web/web前端/tests/verify-supervised-three-player-job.mjs",
+      "exit_code": 0,
+      "scope": [
+        "worker kill automatic recovery",
+        "supervisor kill orphan worker cleanup",
+        "duplicate supervisor refusal",
+        "PAUSE STOP explicit resume",
+        "no-progress bounded retry",
+        "hard wall budget",
+        "corrupt and source drift no retry"
+      ],
+      "local_evidence": "local_artifacts/three-player-supervisor-recovery-1792516602823"
+    }
+  ],
+  "source_sha256": {
+    "web/tools/run-hex-posttraining.mjs": "0a6772dd76befcd238f4769c2ec9832d305decde8d99162c4acec76ecd09dc2e",
+    "web/tools/hex-posttrain-core.mjs": "853dac68a3b9c404e2bca9827fe1fa20b51d599263d88e8885d2e1f9b7db1ad3",
+    "web/tools/hex-posttrain-protocol.mjs": "2d5751dd2bc586d836791af54d026400abc5ec88d60ebe80113dc44e090fd7d0",
+    "web/tools/linear-three-v3-core.mjs": "dfdafce7647e85e60619f3b66d461705cc4bf4c0da60ccf1e44af7a50a8f5bfc",
+    "web/tools/three-player-arena-lib.mjs": "4cc3c30f82d4881c7c72e1e29a342bd62d938abde0e80292ab3b38401173a56b",
+    "web/web前端/GameEngine.js": "625e8d8a92801647702f963f56148040248cf471228a6ce5c719e20e4414a555",
+    "web/web前端/AIEngine.js": "6738fe3a98a616dfd6c060636f5d2684fd49ebc561c95a96247db28c7170ccc3",
+    "web/web前端/HexPlayerAI.js": "62340c349b53a13e20d47171187228a2359c5d8dcbf12344a4bf6a0017b9f673",
+    "web/tools/verify-hex-posttraining.mjs": "a221aa4fd0a15e8a3bf566215ccf42387898a7ed1b97a37acfa84687dc22235d",
+    "web/tools/launch-hex-posttraining.mjs": "8385cc4e5d1de33ad170c935f6404fa25e6b877a61be25042311280580596e1d",
+    "web/web前端/tests/verify-hex-posttraining-recovery.mjs": "998ece21f35490d14df97963d138c18138e282f8087ccbf0eb364bb2545df206",
+    "web/tools/configs/hex-player-policy-v2-train.json": "98cc22dee97707fb029958754900891f71a9fa1439c6ed075572c9524549b700",
+    "web/tools/configs/hex-player-policy-v2-final.json": "3f2c0dce2f9ecf36ef163bf888b1b22e70bdbe581e3ac544f3f955d968b8eecd"
+  },
+  "limitation": "Recovery fixtures; not final strength evidence or deployment."
+}

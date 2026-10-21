@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "scope": "Real frozen in-flight checkpoint; crash after durable action; deterministic resume vs clean continuation",
+  "originalIdentity": "cef118b61bf0540c1e9306ad87380950e9515dfb5f295ff72f9f161066a36246",
+  "originalCompletedGames": 77,
+  "originalCurrentActions": 61,
+  "crashExit": 91,
+  "resumedExit": 75,
+  "cleanExit": 75,
+  "resumedActions": 63,
+  "originalFilesUnchanged": true,
+  "completedGamesByteIdentical": true,
+  "comparisonExclusion": "Only execution elapsedMs and its enclosing integrity differ; all scientific state compared",
+  "command": "node web/tools/continue-hex-posttraining-v2.mjs test"
+}

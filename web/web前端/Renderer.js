@@ -1,4 +1,4 @@
-import { Player, PointState } from "./GameEngine.js?v=20261014-code1";
+import { Player, PointState, PLAYER_ORDER, getBoardVertices, getBoardPositions, isBoardPoint } from "./GameEngine.js?v=20261020-three1";
 
 const SQRT3_OVER_2 = Math.sqrt(3) / 2;
 
@@ -16,14 +16,31 @@ const DEFAULT_THEME = Object.freeze({
   redLine: "#a83434",
   purpleNode: "#8b5cf6",
   purpleLine: "#6d28d9",
+  greenNode: "#22965a",
+  greenLine: "#166b3d",
+  orangeNode: "#e79824",
+  orangeLine: "#a8620d",
+  cyanNode: "#16a6b6",
+  cyanLine: "#087785",
   blueTerritoryFill: "rgba(43, 111, 255, 0.18)",
   blueTerritoryStroke: "rgba(31, 79, 186, 0.75)",
   redTerritoryFill: "rgba(228, 75, 75, 0.18)",
   redTerritoryStroke: "rgba(168, 52, 52, 0.75)",
   purpleTerritoryFill: "rgba(139, 92, 246, 0.18)",
   purpleTerritoryStroke: "rgba(109, 40, 217, 0.75)",
+  greenTerritoryFill: "rgba(34, 150, 90, 0.18)",
+  greenTerritoryStroke: "rgba(22, 107, 61, 0.75)",
+  orangeTerritoryFill: "rgba(231, 152, 36, 0.18)",
+  orangeTerritoryStroke: "rgba(168, 98, 13, 0.75)",
+  cyanTerritoryFill: "rgba(22, 166, 182, 0.18)",
+  cyanTerritoryStroke: "rgba(8, 119, 133, 0.75)",
   legalMoveFill: "#2fba63",
   legalMoveStroke: "rgba(17, 84, 40, 0.35)",
+});
+
+const PLAYER_THEME_KEYS = Object.freeze({
+  BLACK: "blue", WHITE: "red", PURPLE: "purple",
+  GREEN: "green", ORANGE: "orange", CYAN: "cyan",
 });
 
 function keyToPoint(key) {
@@ -270,14 +287,8 @@ export class Renderer {
     return { cssWidth, cssHeight, dpr };
   }
 
-  _getValidPoints(gridSize) {
-    const points = [];
-    for (let y = 0; y < gridSize; y += 1) {
-      for (let x = 0; x < gridSize - y; x += 1) {
-        points.push([x, y]);
-      }
-    }
-    return points;
+  _getValidPoints(gridSize, playerCount = 2) {
+    return getBoardPositions(gridSize, playerCount);
   }
 
   _computeLayout(snapshot) {
@@ -287,7 +298,8 @@ export class Renderer {
     const topInset = clamp(this.topInset ?? 0, 0, Math.max(0, cssHeight - 1));
     const boardHeight = Math.max(1, cssHeight - topInset);
     const gridSize = snapshot?.gridSize ?? 9;
-    const validPoints = this._getValidPoints(gridSize);
+    const playerCount = snapshot?.playerCount ?? 2;
+    const validPoints = this._getValidPoints(gridSize, playerCount);
     const normalizedPoints = validPoints.map(([gx, gy]) => [gx + gy * 0.5, gy * SQRT3_OVER_2]);
 
     let minNX = Number.POSITIVE_INFINITY;
@@ -319,6 +331,7 @@ export class Renderer {
       cssHeight,
       topInset,
       gridSize,
+      playerCount,
       scale,
       offsetX,
       offsetY,
@@ -428,16 +441,15 @@ export class Renderer {
     });
   }
 
-  _isValidGridPoint(point, gridSize) {
-    const [x, y] = point;
-    return y >= 0 && y < gridSize && x >= 0 && x < gridSize - y;
+  _isValidGridPoint(point, gridSize, playerCount = 2) {
+    return isBoardPoint(point, gridSize, playerCount);
   }
 
   _canConnect(a, b) {
     return a[0] === b[0] || a[1] === b[1] || a[0] + a[1] === b[0] + b[1];
   }
 
-  _getLinePoints(start, end, gridSize) {
+  _getLinePoints(start, end, gridSize, playerCount = 2) {
     if (!this._canConnect(start, end)) {
       return [];
     }
@@ -449,7 +461,7 @@ export class Renderer {
     if (x1 === x2) {
       for (let y = Math.min(y1, y2); y <= Math.max(y1, y2); y += 1) {
         const point = [x1, y];
-        if (this._isValidGridPoint(point, gridSize)) {
+        if (this._isValidGridPoint(point, gridSize, playerCount)) {
           points.push(point);
         }
       }
@@ -459,7 +471,7 @@ export class Renderer {
     if (y1 === y2) {
       for (let x = Math.min(x1, x2); x <= Math.max(x1, x2); x += 1) {
         const point = [x, y1];
-        if (this._isValidGridPoint(point, gridSize)) {
+        if (this._isValidGridPoint(point, gridSize, playerCount)) {
           points.push(point);
         }
       }
@@ -470,7 +482,7 @@ export class Renderer {
     const right = x1 < x2 ? [x2, y2] : [x1, y1];
     for (let i = 0; i <= right[0] - left[0]; i += 1) {
       const point = [left[0] + i, left[1] - i];
-      if (this._isValidGridPoint(point, gridSize)) {
+      if (this._isValidGridPoint(point, gridSize, playerCount)) {
         points.push(point);
       }
     }
@@ -478,59 +490,38 @@ export class Renderer {
   }
 
   _getOwnedStates(player) {
-    if (player === Player.BLACK) {
-      return [PointState.BLACK_NODE, PointState.BLACK_LINE];
-    }
-    if (player === Player.WHITE) {
-      return [PointState.WHITE_NODE, PointState.WHITE_LINE];
-    }
-    return [PointState.PURPLE_NODE, PointState.PURPLE_LINE];
+    return [this._getNodeState(player), this._getLineState(player)];
   }
 
   _getNodeState(player) {
-    if (player === Player.BLACK) {
-      return PointState.BLACK_NODE;
-    }
-    if (player === Player.WHITE) {
-      return PointState.WHITE_NODE;
-    }
-    return PointState.PURPLE_NODE;
+    return PointState[`${player}_NODE`];
   }
 
   _getLineState(player) {
-    if (player === Player.BLACK) {
-      return PointState.BLACK_LINE;
-    }
-    if (player === Player.WHITE) {
-      return PointState.WHITE_LINE;
-    }
-    return PointState.PURPLE_LINE;
+    return PointState[`${player}_LINE`];
+  }
+
+  _getPlayerStyle(player, part) {
+    return this.theme[`${PLAYER_THEME_KEYS[player]}${part}`] ?? this.theme.outline;
   }
 
   _collectBoardData(snapshot) {
     const gridSize = snapshot.gridSize;
+    const playerCount = snapshot.playerCount ?? 2;
     const board = snapshot.boardMatrix;
-    const validPoints = this._getValidPoints(gridSize);
-    const nodes = {
-      [Player.BLACK]: [],
-      [Player.WHITE]: [],
-      [Player.PURPLE]: [],
-    };
+    const validPoints = this._getValidPoints(gridSize, playerCount);
+    const nodes = Object.fromEntries(PLAYER_ORDER.map((player) => [player, []]));
 
     for (const point of validPoints) {
       const [x, y] = point;
       const state = board[y][x];
-      if (state === PointState.BLACK_NODE) {
-        nodes[Player.BLACK].push(point);
-      } else if (state === PointState.WHITE_NODE) {
-        nodes[Player.WHITE].push(point);
-      } else if (state === PointState.PURPLE_NODE) {
-        nodes[Player.PURPLE].push(point);
-      }
+      const player = PLAYER_ORDER.find((candidate) => state === this._getNodeState(candidate));
+      if (player) nodes[player].push(point);
     }
 
     return {
       gridSize,
+      playerCount,
       validPoints,
       board,
       nodes,
@@ -552,7 +543,7 @@ export class Renderer {
           continue;
         }
 
-        const linePoints = this._getLinePoints(start, end, boardData.gridSize);
+        const linePoints = this._getLinePoints(start, end, boardData.gridSize, boardData.playerCount);
         // O(1) 浜岀淮鏁扮粍绱㈠紩锛屾棤瀛楃涓叉嫾鎺?Map 鏌ユ壘
         const fullyOwned = linePoints.every((point) => ownedStates.has(board[point[1]][point[0]]));
         if (!fullyOwned) {
@@ -591,6 +582,7 @@ export class Renderer {
   _getStaticLayerKey(snapshot, layout) {
     return [
       snapshot?.gridSize ?? 9,
+      snapshot?.playerCount ?? 2,
       layout.cssWidth,
       layout.cssHeight,
       Math.round(layout.scale * 1000),
@@ -626,11 +618,8 @@ export class Renderer {
     ctx.fillStyle = this.theme.background;
     ctx.fillRect(0, 0, layout.cssWidth, layout.cssHeight);
 
-    const corners = [
-      this._gridToPixel(0, 0, layout),
-      this._gridToPixel(layout.gridSize - 1, 0, layout),
-      this._gridToPixel(0, layout.gridSize - 1, layout),
-    ];
+    const corners = getBoardVertices(layout.gridSize, layout.playerCount)
+      .map(([x, y]) => this._gridToPixel(x, y, layout));
     const centerX = corners.reduce((sum, [x]) => sum + x, 0) / corners.length;
     const centerY = corners.reduce((sum, [, y]) => sum + y, 0) / corners.length;
     const borderInset = layout.pointRadius * 1.6;
@@ -659,8 +648,7 @@ export class Renderer {
 
     ctx.beginPath();
     ctx.moveTo(expandedCorners[0][0], expandedCorners[0][1]);
-    ctx.lineTo(expandedCorners[1][0], expandedCorners[1][1]);
-    ctx.lineTo(expandedCorners[2][0], expandedCorners[2][1]);
+    for (const [x, y] of expandedCorners.slice(1)) ctx.lineTo(x, y);
     ctx.closePath();
     ctx.fillStyle = this.theme.boardFill;
     ctx.strokeStyle = this.theme.boardStroke;
@@ -677,7 +665,7 @@ export class Renderer {
     ctx.beginPath();
     for (const point of boardData.validPoints) {
       for (const neighbor of [[point[0] + 1, point[1]], [point[0], point[1] + 1], [point[0] + 1, point[1] - 1]]) {
-        if (!this._isValidGridPoint(neighbor, boardData.gridSize)) {
+        if (!this._isValidGridPoint(neighbor, boardData.gridSize, boardData.playerCount)) {
           continue;
         }
         const [x1, y1] = this._gridToPixel(point[0], point[1], layout);
@@ -701,20 +689,14 @@ export class Renderer {
 
   _drawSegments(snapshot, boardData, layout) {
     const ctx = this.ctx;
-    const styles = {
-      [Player.BLACK]: this.theme.blueLine,
-      [Player.WHITE]: this.theme.redLine,
-      [Player.PURPLE]: this.theme.purpleLine,
-    };
-
-    for (const player of [Player.BLACK, Player.WHITE, Player.PURPLE]) {
+    for (const player of PLAYER_ORDER.slice(0, boardData.playerCount)) {
       const segments = this._getSnapshotSegments(snapshot, player)
         ?? this._collectRenderableSegments(player, boardData);
       if (!segments.length) {
         continue;
       }
 
-      ctx.strokeStyle = styles[player];
+      ctx.strokeStyle = this._getPlayerStyle(player, "Line");
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
       ctx.lineWidth = layout.lineWidth;
@@ -737,23 +719,11 @@ export class Renderer {
       return;
     }
     const ctx = this.ctx;
-    const territories = [
-      {
-        data: snapshot.territories?.[Player.BLACK],
-        fill: this.theme.blueTerritoryFill,
-        stroke: this.theme.blueTerritoryStroke,
-      },
-      {
-        data: snapshot.territories?.[Player.WHITE],
-        fill: this.theme.redTerritoryFill,
-        stroke: this.theme.redTerritoryStroke,
-      },
-      {
-        data: snapshot.territories?.[Player.PURPLE],
-        fill: this.theme.purpleTerritoryFill,
-        stroke: this.theme.purpleTerritoryStroke,
-      },
-    ];
+    const territories = PLAYER_ORDER.map((player) => ({
+      data: snapshot.territories?.[player],
+      fill: this._getPlayerStyle(player, "TerritoryFill"),
+      stroke: this._getPlayerStyle(player, "TerritoryStroke"),
+    }));
 
     for (const territory of territories) {
       const polygon = territory.data?.polygon;
@@ -784,11 +754,9 @@ export class Renderer {
 
   _drawNodes(boardData, layout) {
     const ctx = this.ctx;
-    const groups = [
-      { points: boardData.nodes[Player.BLACK], fill: this.theme.blueNode },
-      { points: boardData.nodes[Player.WHITE], fill: this.theme.redNode },
-      { points: boardData.nodes[Player.PURPLE], fill: this.theme.purpleNode },
-    ];
+    const groups = PLAYER_ORDER.map((player) => ({
+      points: boardData.nodes[player], fill: this._getPlayerStyle(player, "Node"),
+    }));
 
     ctx.lineWidth = Math.max(1.5, layout.lineWidth * 0.25);
     ctx.strokeStyle = this.theme.outline;
@@ -846,11 +814,7 @@ export class Renderer {
     }
 
     const ctx = this.ctx;
-    const playerColors = {
-      [Player.BLACK]: this.theme.blueLine,
-      [Player.WHITE]: this.theme.redLine,
-      [Player.PURPLE]: this.theme.purpleLine,
-    };
+    const playerColors = Object.fromEntries(PLAYER_ORDER.map((player) => [player, this._getPlayerStyle(player, "Line")]));
     const [x, y] = this._gridToPixel(action.point[0], action.point[1], layout);
     const stroke = playerColors[action.player] ?? this.theme.outline;
 
@@ -886,11 +850,7 @@ export class Renderer {
     }
 
     const ctx = this.ctx;
-    const playerColors = {
-      [Player.BLACK]: this.theme.blueLine,
-      [Player.WHITE]: this.theme.redLine,
-      [Player.PURPLE]: this.theme.purpleLine,
-    };
+    const playerColors = Object.fromEntries(PLAYER_ORDER.map((player) => [player, this._getPlayerStyle(player, "Line")]));
 
     // In a lesson, cleared lines must stay absent from the resulting board.
     // The crossed-out empty points show what disappeared without redrawing it.

@@ -1,4 +1,5 @@
-import { GameEngine } from "./GameEngine.js?v=20261014-code1";
+import { GameEngine } from "./GameEngine.js?v=20261020-three1";
+import { deserializeEngineEdges } from "./AIStateProtocol.js?v=20261020-three1";
 
 function cloneTerritories(engine) {
   return Object.fromEntries(
@@ -15,11 +16,7 @@ function cloneTerritories(engine) {
 
 function restoreSerializedState(engine, serializedState) {
   engine.grid = new Map(serializedState.gridEntries);
-  engine.edges = {
-    BLACK: new Set(serializedState.edgesBlack),
-    WHITE: new Set(serializedState.edgesWhite),
-    PURPLE: new Set(serializedState.edgesPurple),
-  };
+  engine.edges = deserializeEngineEdges(serializedState, engine.activePlayers);
   engine.historyHashes = new Set(serializedState.historyHashes);
   engine.consecutiveSkips = serializedState.consecutiveSkips;
   engine.resignedPlayers = new Set(serializedState.resignedPlayers ?? []);

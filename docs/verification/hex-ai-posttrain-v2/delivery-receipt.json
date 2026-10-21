@@ -1,0 +1,197 @@
+{
+  "schema": "lifeline-hex-posttraining-delivery-v1",
+  "status": "LIMIT_BUDGET",
+  "date": "2026-10-21",
+  "candidate_id": "hex-player-policy-v2",
+  "candidate_sha256": "8cce4228dd835112e62db8fc397f86284380880fd21c62305f8f4aaa523bd910",
+  "parent_id": "hex-player-policy-v1",
+  "parent_sha256": "74aa7f945c3ea7ff5ca3edc9e7bdc431dc0ec5ad56d2563ce6d6d24c0494162b",
+  "training": {
+    "status": "COMPLETE_VERIFIED",
+    "games": 45,
+    "development_games": 105,
+    "terminal_games": 150,
+    "truncated_games": 0,
+    "optimizer_updates": 36,
+    "selected_stage": 3,
+    "new_training_sizes": [
+      5
+    ],
+    "player_counts": [
+      4,
+      5,
+      6
+    ],
+    "development_mean_delta": 0.030000000000000006,
+    "development_delta_scope": "candidate selection only; not FINAL strength evidence",
+    "verification": {
+      "status": "PASS",
+      "command": [
+        "C:\\Program Files\\nodejs\\node.exe",
+        "--unhandled-rejections=strict",
+        "C:\\coding\\py\\line game\\web\\tools\\verify-hex-posttraining.mjs",
+        "--run-root",
+        "C:\\coding\\py\\line game\\local_artifacts\\hex-player-posttrain-v2\\train-20261021-r1",
+        "--output-root",
+        "C:\\coding\\py\\line game\\local_artifacts\\hex-player-posttrain-v2\\train-verification-20261021-r1",
+        "--max-seconds",
+        "120"
+      ],
+      "exit_code": 0,
+      "signal": null,
+      "supervisor_status": "COMPLETE",
+      "report_identity": "48033a3160cb1a5813200236dc7d2d64bd49c9bab61adcebd949a341f5d5ce2a",
+      "games": 150,
+      "actions": 16258,
+      "policy_decisions_recomputed": 15658
+    }
+  },
+  "final": {
+    "status": "LIMIT_BUDGET",
+    "evaluation_status": "INCOMPLETE",
+    "planned_games": 90,
+    "indexed_completed_games": 77,
+    "terminal_games": 77,
+    "truncated_games": 0,
+    "in_progress_games": 1,
+    "unstarted_games": 12,
+    "in_flight": {
+      "id": "final-n7-p6-WHITE-s1-multi",
+      "actions": 61,
+      "active_elapsed_ms": 3044,
+      "terminal_at_saved_position": false
+    },
+    "by_size": {
+      "5": {
+        "planned": 45,
+        "completed": 45,
+        "terminal": 45,
+        "truncated": 0
+      },
+      "7": {
+        "planned": 45,
+        "completed": 32,
+        "terminal": 32,
+        "truncated": 0
+      }
+    },
+    "by_player_count": {
+      "4": {
+        "planned": 24,
+        "completed": 24,
+        "terminal": 24,
+        "truncated": 0
+      },
+      "5": {
+        "planned": 30,
+        "completed": 30,
+        "terminal": 30,
+        "truncated": 0
+      },
+      "6": {
+        "planned": 36,
+        "completed": 23,
+        "terminal": 23,
+        "truncated": 0
+      }
+    },
+    "mean_delta": null,
+    "bootstrap_95": null,
+    "promote": false,
+    "promotion_decision": "NOT_ELIGIBLE_INCOMPLETE_FINAL",
+    "default_model_retained": "hex-player-policy-v1",
+    "original_budget_seconds": 1800,
+    "budget_renewed": false,
+    "supervisor_status": "BUDGET_EXHAUSTED",
+    "raw_last_worker_exit_code": null,
+    "raw_last_worker_signal": "SIGKILL",
+    "cancellation": "BUDGET_EXHAUSTED",
+    "attempts": 15,
+    "abnormal_exits": 0,
+    "source_identity": "cef118b61bf0540c1e9306ad87380950e9515dfb5f295ff72f9f161066a36246",
+    "source_checkpoint_sha256": "90709cca562c29523712ccd4135c408a185adb378f24e0cd031ccae0388a0eaa",
+    "verified_processes_stopped": [
+      54928,
+      56496,
+      65608
+    ],
+    "process_absence_check": "Get-CimInstance Win32_Process for exact supervisor/host/worker PIDs returned no rows",
+    "verification": {
+      "status": "PASS_LEGALITY_AREA_BOUNDARY_ONLY",
+      "command": [
+        "C:\\Program Files\\nodejs\\node.exe",
+        "--unhandled-rejections=strict",
+        "C:\\coding\\py\\line game\\web\\tools\\verify-hex-posttraining-boundary.mjs",
+        "--run-root",
+        "C:\\coding\\py\\line game\\local_artifacts\\hex-player-posttrain-v2\\final-20261021-r1",
+        "--output-root",
+        "C:\\coding\\py\\line game\\local_artifacts\\hex-player-posttrain-v2\\boundary-verification-20261021-r1",
+        "--max-seconds",
+        "30"
+      ],
+      "exit_code": 0,
+      "signal": null,
+      "supervisor_status": "COMPLETE",
+      "report_identity": "e89b2258d24d180d777b3b5d46ac9b4a50231d51e9767389264fb68ae4d2111e",
+      "hard_budget_seconds": 120,
+      "policy_decisions_recomputed": 0,
+      "policy_decisions_not_recomputed": 21632,
+      "actions_checked": 21944,
+      "scope": "halted FINAL legality, full history, seeded prefix and fresh terminal area only; policy scoring was NOT recomputed; no complete-arena result or strength conclusion"
+    }
+  },
+  "compatibility": {
+    "size": 9,
+    "initial_position_probes": 15,
+    "status": "PASS_INITIAL_POSITION_ONLY",
+    "full_games": false,
+    "strength_claim": false
+  },
+  "release": {
+    "runtime_loader_changed": false,
+    "default_model_changed": false,
+    "server_deployed": false,
+    "scope": "this hex v2 posttraining candidate only"
+  },
+  "evidence_directory": "C:\\coding\\py\\line game\\docs\\verification\\hex-ai-posttrain-v2",
+  "local_raw_run_roots": {
+    "training": "C:\\coding\\py\\line game\\local_artifacts\\hex-player-posttrain-v2\\train-20261021-r1",
+    "training_verification": "C:\\coding\\py\\line game\\local_artifacts\\hex-player-posttrain-v2\\train-verification-20261021-r1",
+    "final": "C:\\coding\\py\\line game\\local_artifacts\\hex-player-posttrain-v2\\final-20261021-r1",
+    "boundary_verification": "C:\\coding\\py\\line game\\local_artifacts\\hex-player-posttrain-v2\\boundary-verification-20261021-r1"
+  },
+  "commands": {
+    "training": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "--unhandled-rejections=strict",
+      "C:\\coding\\py\\line game\\web\\tools\\run-hex-posttraining.mjs",
+      "--run-root",
+      "C:\\coding\\py\\line game\\local_artifacts\\hex-player-posttrain-v2\\train-20261021-r1",
+      "--config",
+      "C:\\coding\\py\\line game\\web\\tools\\configs\\hex-player-policy-v2-train.json",
+      "--max-seconds",
+      "120"
+    ],
+    "final": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "--unhandled-rejections=strict",
+      "C:\\coding\\py\\line game\\web\\tools\\run-hex-posttraining.mjs",
+      "--run-root",
+      "C:\\coding\\py\\line game\\local_artifacts\\hex-player-posttrain-v2\\final-20261021-r1",
+      "--config",
+      "C:\\coding\\py\\line game\\web\\tools\\configs\\hex-player-policy-v2-final.json",
+      "--max-seconds",
+      "120",
+      "--candidate",
+      "C:\\coding\\py\\line game\\local_artifacts\\hex-player-posttrain-v2\\train-20261021-r1\\hex-player-policy-v2.json"
+    ],
+    "recovery": "node web/web前端/tests/verify-hex-posttraining-recovery.mjs",
+    "compatibility": "node web/web前端/tests/verify-hex-posttraining-compatibility.mjs --model docs/verification/hex-ai-posttrain-v2/hex-player-policy-v2.candidate.json"
+  },
+  "limitations": [
+    "FINAL stopped at the original wall budget; no budget extension and no seed or threshold change.",
+    "Completed FINAL legality/history/terminal-area and in-flight history checked; FINAL policy scores were not recomputed.",
+    "No overall FINAL delta or confidence interval is reported from the incomplete sample.",
+    "Only size5 received new training; size7 was independent evaluation and size9 only initial-position compatibility."
+  ]
+}

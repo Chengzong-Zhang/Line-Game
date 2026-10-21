@@ -1,6 +1,7 @@
-import { LOCAL_PLAYER_CHOICES, normalizeLocalPlayers } from "./LocalAIModes.js?v=20261014-code1";
+import { ALL_LOCAL_PLAYER_CHOICES, normalizeLocalPlayers } from "./LocalAIModes.js?v=20261021-hexai1";
 
 const LOCAL_GAME_SESSION_FORMAT = "lifeline-local-session";
+const PLAYER_COLORS = Object.freeze(["BLACK", "WHITE", "PURPLE", "GREEN", "ORANGE", "CYAN"]);
 export const LOCAL_GAME_SESSION_SCHEMA_VERSION = 1;
 export const LOCAL_GAME_SESSION_STORAGE_KEY = "lifeline-local-game-session-v1";
 
@@ -35,9 +36,13 @@ function normalizeSettings(settings) {
   if (!Number.isInteger(normalized.playerCount) || !Number.isInteger(normalized.gridSize)) {
     return null;
   }
+  if (normalized.playerCount < 2 || normalized.playerCount > 6 || normalized.gridSize < 5 || normalized.gridSize > 15) {
+    return null;
+  }
   if (typeof normalized.startPlayer !== "string" || typeof normalized.rulesVersion !== "string") {
     return null;
   }
+  if (!PLAYER_COLORS.slice(0, normalized.playerCount).includes(normalized.startPlayer)) return null;
 
   return normalized;
 }
@@ -89,7 +94,13 @@ function normalizeSession(value) {
 
   const match = value.match;
   if (match !== undefined && (!match || typeof match.started !== "boolean" || typeof match.paused !== "boolean"
-    || ["BLACK", "WHITE"].some((color) => !LOCAL_PLAYER_CHOICES.includes(match.players?.[color]?.choice)))) return null;
+    || ["BLACK", "WHITE"].some((color) => !ALL_LOCAL_PLAYER_CHOICES.includes(match.players?.[color]?.choice))
+    || PLAYER_COLORS.slice(2).some((color) => match.players?.[color] && !ALL_LOCAL_PLAYER_CHOICES.includes(match.players[color].choice))
+    || (settings.playerCount >= 4 && PLAYER_COLORS.slice(0, settings.playerCount).some((color) => !ALL_LOCAL_PLAYER_CHOICES.includes(match.players?.[color]?.choice))))) return null;
+  if (match && settings.playerCount >= 4
+    && PLAYER_COLORS.slice(0, settings.playerCount).some((color) => !["human", "hex-player"].includes(match.players[color].choice))) return null;
+  if (match && settings.playerCount >= 4 && settings.rulesVersion !== "territory-v2"
+    && PLAYER_COLORS.slice(0, settings.playerCount).some((color) => match.players[color].choice === "hex-player")) return null;
 
   return {
     format: LOCAL_GAME_SESSION_FORMAT,
@@ -97,7 +108,7 @@ function normalizeSession(value) {
     savedAt: Number.isFinite(Number(value.savedAt)) ? Number(value.savedAt) : 0,
     settings,
     actions,
-    ...(match ? { match: { players: normalizeLocalPlayers(match.players), started: match.started, paused: match.paused } } : {}),
+    ...(match ? { match: { players: normalizeLocalPlayers(match.players, settings.playerCount), started: match.started, paused: match.paused } } : {}),
   };
 }
 
@@ -118,7 +129,7 @@ export function createLocalGameSession(settings, actions = [], match) {
     savedAt: Date.now(),
     settings: normalizedSettings,
     actions: normalizedActions,
-    ...(match ? { match: { players: normalizeLocalPlayers(match.players), started: Boolean(match.started), paused: Boolean(match.paused) } } : {}),
+    ...(match ? { match: { players: normalizeLocalPlayers(match.players, normalizedSettings.playerCount), started: Boolean(match.started), paused: Boolean(match.paused) } } : {}),
   };
 }
 

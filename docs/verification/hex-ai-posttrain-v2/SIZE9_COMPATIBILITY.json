@@ -1,0 +1,128 @@
+{
+  "status": "PASS",
+  "candidateSha256": "8cce4228dd835112e62db8fc397f86284380880fd21c62305f8f4aaa523bd910",
+  "checks": [
+    {
+      "size": 9,
+      "players": 4,
+      "start": "BLACK",
+      "legal": true,
+      "statePreserved": true,
+      "finite": true
+    },
+    {
+      "size": 9,
+      "players": 4,
+      "start": "WHITE",
+      "legal": true,
+      "statePreserved": true,
+      "finite": true
+    },
+    {
+      "size": 9,
+      "players": 4,
+      "start": "PURPLE",
+      "legal": true,
+      "statePreserved": true,
+      "finite": true
+    },
+    {
+      "size": 9,
+      "players": 4,
+      "start": "GREEN",
+      "legal": true,
+      "statePreserved": true,
+      "finite": true
+    },
+    {
+      "size": 9,
+      "players": 5,
+      "start": "BLACK",
+      "legal": true,
+      "statePreserved": true,
+      "finite": true
+    },
+    {
+      "size": 9,
+      "players": 5,
+      "start": "WHITE",
+      "legal": true,
+      "statePreserved": true,
+      "finite": true
+    },
+    {
+      "size": 9,
+      "players": 5,
+      "start": "PURPLE",
+      "legal": true,
+      "statePreserved": true,
+      "finite": true
+    },
+    {
+      "size": 9,
+      "players": 5,
+      "start": "GREEN",
+      "legal": true,
+      "statePreserved": true,
+      "finite": true
+    },
+    {
+      "size": 9,
+      "players": 5,
+      "start": "ORANGE",
+      "legal": true,
+      "statePreserved": true,
+      "finite": true
+    },
+    {
+      "size": 9,
+      "players": 6,
+      "start": "BLACK",
+      "legal": true,
+      "statePreserved": true,
+      "finite": true
+    },
+    {
+      "size": 9,
+      "players": 6,
+      "start": "WHITE",
+      "legal": true,
+      "statePreserved": true,
+      "finite": true
+    },
+    {
+      "size": 9,
+      "players": 6,
+      "start": "PURPLE",
+      "legal": true,
+      "statePreserved": true,
+      "finite": true
+    },
+    {
+      "size": 9,
+      "players": 6,
+      "start": "GREEN",
+      "legal": true,
+      "statePreserved": true,
+      "finite": true
+    },
+    {
+      "size": 9,
+      "players": 6,
+      "start": "ORANGE",
+      "legal": true,
+      "statePreserved": true,
+      "finite": true
+    },
+    {
+      "size": 9,
+      "players": 6,
+      "start": "CYAN",
+      "legal": true,
+      "statePreserved": true,
+      "finite": true
+    }
+  ],
+  "command": "node web/web前端/tests/verify-hex-posttraining-compatibility.mjs --model \"C:\\coding\\py\\line game\\local_artifacts\\hex-player-posttrain-v2\\train-20261021-r1\\hex-player-policy-v2.json\"",
+  "scope": "15 initial-position legal finite inference and state-preservation probes on size9; not complete games or strength evidence"
+}

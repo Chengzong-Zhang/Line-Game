@@ -1,0 +1,26 @@
+{
+  "status": "PASS_V4_RUNTIME_AND_RECOVERY",
+  "fixture": "C:\\coding\\py\\line game\\local_artifacts\\three-player-v4-recovery-1792551305201",
+  "games": 7,
+  "checks": [
+    "one-and-two-AI",
+    "actual-kill-resume",
+    "action-resume",
+    "partial-isolation",
+    "completed-game-byte-and-mtime-preservation",
+    "pause-stop",
+    "duplicate-exclusion",
+    "deterministic-search",
+    "complete-state-and-cache-restoration",
+    "exception-restoration",
+    "worker-suppressed-updater-parity",
+    "full-policy-replay",
+    "forged-score-rejection"
+  ],
+  "sources": {
+    "C:\\coding\\py\\line game\\web\\tools\\evaluate-three-player-v4.mjs": "6bcc42f6925b57135d2728646b0e78ed2648a1d643ebc8a8eefc5fd526fdc76f",
+    "C:\\coding\\py\\line game\\web\\tools\\verify-three-player-v4-arena.mjs": "def97df9edd5da2aa3c0424e86db90ce950e5f51ee7fe91e67d981ad21781aab",
+    "C:\\coding\\py\\line game\\web\\web前端\\ThreePlayerSearchAI.js": "32bc2f6c0ef90059b8bccb9eed5c37b278613d023da58ee03769eba49a8bc0d2",
+    "C:\\coding\\py\\line game\\web\\web前端\\tests\\verify-three-player-v4-recovery.mjs": "fb10b39b483fb495be150c4f2d7bf02912bcb4ae8009d762f159d455f96dee47"
+  }
+}

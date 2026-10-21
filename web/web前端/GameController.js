@@ -1,11 +1,11 @@
-import GameEngine, { Player, TerritoryRulesVersion } from "./GameEngine.js?v=20261014-code1";
-import Renderer from "./Renderer.js?v=20261014-code1";
-import { ServerEvent } from "./NetworkManager.js?v=20261014-code1";
-import { serializeEngineState } from "./AIStateProtocol.js?v=20261014-code1";
+import GameEngine, { Player, TerritoryRulesVersion, PLAYER_ORDER, getBoardPositions } from "./GameEngine.js?v=20261020-three1";
+import Renderer from "./Renderer.js?v=20261020-three1";
+import { ServerEvent } from "./NetworkManager.js?v=20261020-three1";
+import { serializeEngineState } from "./AIStateProtocol.js?v=20261020-three1";
 import {
   OneShotTerritoryWorker,
   applyTerritoryWorkerResult,
-} from "./TerritoryWorkerSession.js?v=20261014-code1";
+} from "./TerritoryWorkerSession.js?v=20261020-three1";
 
 // GameController 鏄墠绔殑鈥滆兌姘村眰鈥濓細
 // 瀹冩妸 Model(GameEngine)銆乂iew(Renderer) 鍜岃仈鏈哄眰(NetworkManager) 涓茶捣鏉ワ紝
@@ -28,7 +28,7 @@ function distanceBetween(a, b) {
 }
 
 function isKnownPlayer(player) {
-  return player === Player.BLACK || player === Player.WHITE || player === Player.PURPLE;
+  return PLAYER_ORDER.includes(player);
 }
 
 function isGridPoint(point) {
@@ -57,7 +57,7 @@ export class GameController {
       ? options.createTerritoryWorker
       : (typeof globalThis.Worker === "function"
         ? () => new globalThis.Worker(
-            new URL("./TerritoryWorker.js?v=20261014-code1", import.meta.url),
+            new URL("./TerritoryWorker.js?v=20261020-three1", import.meta.url),
             { type: "module" },
           )
         : null);
@@ -101,7 +101,7 @@ export class GameController {
   _updateLargeBoardClass() {
     const gridSize = this.options.engine?.gridSize ?? 9;
     if (typeof document !== "undefined" && document.body) {
-      if (gridSize >= 15) {
+      if (gridSize >= 15 || (this.options.engine?.playerCount >= 4 && gridSize >= 9)) {
         document.body.classList.add("large-board");
       } else {
         document.body.classList.remove("large-board");
@@ -115,7 +115,7 @@ export class GameController {
       ...(engineOptions ?? {}),
     };
     const deferTerritoryUpdates = normalizedOptions.deferTerritoryUpdates
-      ?? normalizedOptions.gridSize >= ASYNC_TERRITORY_MIN_GRID_SIZE;
+      ?? (normalizedOptions.gridSize >= ASYNC_TERRITORY_MIN_GRID_SIZE || normalizedOptions.playerCount >= 4);
     return new GameEngine({
       ...normalizedOptions,
       deferTerritoryUpdates,
@@ -451,9 +451,7 @@ export class GameController {
 
   _buildGameState(snapshot = this.engine.getSnapshot()) {
     // 这里把底层快照补齐成 UI 可直接消费的状态，包含联机锁定原因等派生字段。
-    const black = snapshot.territories?.[Player.BLACK] ?? { area: 0, polygon: null };
-    const white = snapshot.territories?.[Player.WHITE] ?? { area: 0, polygon: null };
-    const purple = snapshot.territories?.[Player.PURPLE] ?? { area: 0, polygon: null };
+    const scorePlayers = PLAYER_ORDER.slice(0, Math.max(3, snapshot.playerCount ?? 2));
     const interactionLockReason = this._getInteractionLockReason(snapshot);
     const skipLockReason = this._getSkipLockReason(snapshot);
     const resetLockReason = this._getResetLockReason(snapshot);
@@ -468,24 +466,19 @@ export class GameController {
       turnCount: snapshot.turnCount,
       consecutiveSkips: snapshot.consecutiveSkips,
       resignedPlayers: Array.isArray(snapshot.resignedPlayers) ? [...snapshot.resignedPlayers] : [],
-      scores: {
-        [Player.BLACK]: black.area,
-        [Player.WHITE]: white.area,
-        [Player.PURPLE]: purple.area,
-      },
-      displayScores: {
-        [Player.BLACK]: black.displayArea ?? black.area,
-        [Player.WHITE]: white.displayArea ?? white.area,
-        [Player.PURPLE]: purple.displayArea ?? purple.area,
-      },
+      scores: Object.fromEntries(scorePlayers.map((player) => [player, snapshot.territories?.[player]?.area ?? 0])),
+      displayScores: Object.fromEntries(scorePlayers.map((player) => [
+        player, snapshot.territories?.[player]?.displayArea ?? snapshot.territories?.[player]?.area ?? 0,
+      ])),
       territories: snapshot.territories,
       legalMoves: snapshot.legalMoves,
       snapshot,
       lastAction: this._cloneLastAction(),
       players: Array.isArray(snapshot.players)
         ? [...snapshot.players]
-        : [Player.BLACK, Player.WHITE, Player.PURPLE].slice(0, snapshot.playerCount ?? this.options.engine.playerCount),
+        : PLAYER_ORDER.slice(0, snapshot.playerCount ?? this.options.engine.playerCount),
       playerCount: snapshot.playerCount ?? this.options.engine.playerCount,
+      boardShape: snapshot.boardShape ?? ((snapshot.playerCount ?? 2) >= 4 ? "hexagon" : "triangle"),
       multiplayerEnabled: this.multiplayerEnabled,
       localPlayer: this.localPlayer,
       roomReady: this.roomReady,
@@ -512,7 +505,7 @@ export class GameController {
   _findNearestGridPoint(pixelX, pixelY) {
     const validPoints = this._validGridPoints?.length
       ? this._validGridPoints
-      : this._deriveValidPoints(this.engine.gridSize ?? this.options.engine.gridSize);
+      : this._deriveValidPoints(this.engine.gridSize ?? this.options.engine.gridSize, this.engine.playerCount);
 
     let nearestPoint = null;
     let nearestDistance = Number.POSITIVE_INFINITY;
@@ -534,14 +527,8 @@ export class GameController {
     return clonePoint(nearestPoint);
   }
 
-  _deriveValidPoints(gridSize) {
-    const points = [];
-    for (let y = 0; y < gridSize; y += 1) {
-      for (let x = 0; x < gridSize - y; x += 1) {
-        points.push([x, y]);
-      }
-    }
-    return points;
+  _deriveValidPoints(gridSize, playerCount = 2) {
+    return getBoardPositions(gridSize, playerCount);
   }
 
   _getInteractionLockReason(snapshot = this.engine.getSnapshot()) {

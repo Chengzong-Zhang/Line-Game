@@ -1,0 +1,83 @@
+{
+  "status": "PASS-CURRENT_LOCAL_WEB",
+  "date": "2026-10-20",
+  "timezone": "Asia/Shanghai",
+  "scope": "Local Web hexagon for 4/5/6 human players. Shared working tree with the separately developed three-player AI feature.",
+  "branch": "codex/three-player-ai-web-20261020",
+  "runtime_cache_version": "20261020-three1",
+  "local_url": "http://127.0.0.1:8013/",
+  "configuration": {
+    "side_lengths": [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+    "side_unit": "lattice points",
+    "vertex_order": "clockwise from upper left",
+    "seats": {
+      "4": [1, 2, 4, 5],
+      "5": [1, 2, 3, 4, 5],
+      "6": [1, 2, 3, 4, 5, 6]
+    }
+  },
+  "node_checks": {
+    "command_template": "node --unhandled-rejections=strict \"web/web前端/tests/<script>\"",
+    "exit_code": 0,
+    "scripts": [
+      "verify-hexagon-engine.mjs",
+      "verify-hex-replay-session.mjs",
+      "verify-hex-player-setup.mjs",
+      "verify-hex-render-worker.mjs",
+      "verify-territory-v2.mjs",
+      "verify-online-recovery.mjs",
+      "verify-ai-control-flow.mjs",
+      "verify-board-input.mjs",
+      "verify-territory-worker.mjs",
+      "verify-hint-worker.mjs",
+      "verify-replay-codec.mjs",
+      "verify-local-game-session.mjs",
+      "verify-local-player-setup.mjs",
+      "verify-training-contribution.mjs"
+    ]
+  },
+  "backend_check": {
+    "command": "python -m unittest discover -s web/tests -p test_hex_rooms.py -v",
+    "exit_code": 0,
+    "tests": 3,
+    "boundary": "Local room protocol probes, not real multi-browser websocket acceptance."
+  },
+  "browser": {
+    "browser": "Chrome via Codex extension",
+    "six_player_size5": "PASS: six actual canvas moves, six line colors, full turn cycle, six score cards; refresh then skip existing tutorial restores six moves.",
+    "replay": "PASS: actual JSON download; review to start and return to live match.",
+    "downloaded_replay_validation": {
+      "status": "PASS",
+      "playerCount": 6,
+      "gridSize": 5,
+      "eventCount": 6,
+      "finalStateHash": "sha256:c88b384deb205eba1b90897049675dc5381f8e7e32ad91cedcaaac172948081f",
+      "method": "parseAndValidateReplay from current ReplayCodec.js on the browser-downloaded JSON"
+    },
+    "four_player_size15_mobile": "PASS: vertices 1,2,4,5; 390x844; document.scrollWidth=innerWidth=390; all corners fit.",
+    "five_player_size9_english": "PASS: Orange first; corner 6 empty; five consecutive skips produce draw with all five scores.",
+    "file_picker_import": "NOT-RUN: extension Allow access to file URLs is disabled. No permissions changed. Codec/import isolation covered by Node tests.",
+    "final_view": "Chinese six-player size9 local match",
+    "screenshots": [
+      "local_artifacts/hex-board-20261020/four-player-size15-mobile.png",
+      "local_artifacts/hex-board-20261020/six-player-desktop.png"
+    ]
+  },
+  "not_run": [
+    "physical mobile touch",
+    "real multi-client 4/5/6-player websocket game",
+    "production deployment"
+  ],
+  "source_sha256": {
+    "web/web前端/GameEngine.js": "625e8d8a92801647702f963f56148040248cf471228a6ce5c719e20e4414a555",
+    "web/web前端/AIEngine.js": "6738fe3a98a616dfd6c060636f5d2684fd49ebc561c95a96247db28c7170ccc3",
+    "web/web前端/Renderer.js": "71634dca3f5897b98b8a19d4cedbbdaf5ed56b94f3f582115a60d13f29339dcb",
+    "web/web前端/GameController.js": "1ca30e7d8d04cd07c07d143ed0516dbf22de6c15ccfcba1cec3d14f4f17d3fa4",
+    "web/web前端/ReplayCodec.js": "11c9d4dd13b46a9eed77e9230b29043d36737f8b05bee8e6f748c89b85f9aee5",
+    "web/web前端/AIStateProtocol.js": "3696e9db4d5a7b43393daa17214a0009702d2604fbfbed04c62e801d9ebb5748",
+    "web/web前端/OnlineApp.js": "427202d7a33fae3251e964da2f51db958d30ce84bf25d54b9f6b12d485a9466c",
+    "web/web前端/OnlineAppState.js": "9f01e5fb70b1b70d6b5c4724ded1ff76b2a390aa76d3f97b132dbec092d8805b",
+    "web/web前端/LocalGameSession.js": "f6c29449b6cb9b4e92ec084488e8d59dfe942a46689dadfa4ace00364ce28eea",
+    "web/web后端/server.py": "28fb8bc6bf57622b72425764f727392a4b29724ecfed98c6a4162eac66c87daf"
+  }
+}

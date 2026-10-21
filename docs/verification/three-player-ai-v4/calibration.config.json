@@ -1,0 +1,25 @@
+{
+  "schema": "lifeline-three-player-arena",
+  "version": 1,
+  "stage": "CALIBRATION",
+  "sizes": [
+    5,
+    7,
+    9
+  ],
+  "starters": [
+    "BLACK"
+  ],
+  "prefixesPerCell": 1,
+  "prefixMoves": 4,
+  "seedNamespace": "lifeline-three-player-v4/calibration/20261021/f8d33c",
+  "lineups": "paired",
+  "maxActions": 400,
+  "maxGameSeconds": 60,
+  "totalBudgetSeconds": 900,
+  "promotion": {
+    "minimumMeanDelta": 0.04,
+    "minimumSizeDelta": -0.05,
+    "bootstrapReplicates": 10000
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "status": "PASS_CURRENT_RECOVERY_FIXTURES",
+  "real_training_started": false,
+  "cases": [
+    {
+      "case": "actual-worker-kill",
+      "pass": true,
+      "attempts": 2,
+      "no_completed_units_repeated": true
+    },
+    {
+      "case": "actual-supervisor-kill-and-restart",
+      "pass": true,
+      "orphan_worker_alive": false,
+      "orphan_exit_receipt": "not-written-before-process-tree-exit"
+    },
+    {
+      "case": "duplicate-supervisor-rejected",
+      "pass": true
+    },
+    {
+      "case": "PAUSE-explicit-resume",
+      "pass": true,
+      "preserved_units": 3
+    },
+    {
+      "case": "STOP-explicit-resume",
+      "pass": true,
+      "preserved_units": 3
+    },
+    {
+      "case": "incremental-budget-yields",
+      "pass": true
+    },
+    {
+      "case": "corrupt-fatal-without-retry",
+      "pass": true
+    },
+    {
+      "case": "drift-fatal-without-retry",
+      "pass": true
+    },
+    {
+      "case": "semantic-corrupt-fatal-without-retry",
+      "pass": true
+    },
+    {
+      "case": "no-progress-bounded-retry",
+      "pass": true,
+      "attempts": 2
+    },
+    {
+      "case": "hard-wall-budget",
+      "pass": true
+    },
+    {
+      "case": "clean-versus-resumed-equivalence",
+      "pass": true
+    },
+    {
+      "case": "completed-checkpoint-revalidated-without-rerun",
+      "pass": true
+    }
+  ],
+  "operating_system": "win32",
+  "node": "v22.22.3",
+  "files": {
+    "web/tools/supervise-three-player-job.mjs": "a4f05cb802ad9479faae0e7121bce0ad66bc81f56fe5bbdeaa4d33e0bb63fe8c",
+    "web/web前端/tests/fixtures/supervised-job-worker.mjs": "9df6d885462f4bb6cdcb83331838edaa24e311d75055762e774d80bef9133648",
+    "web/web前端/tests/verify-supervised-three-player-job.mjs": "99e5c4747a44d7003677bc12d46b380c8d4370bc4d74ca086eae6fc30a9a30b4"
+  },
+  "scope": "OS leases, killed worker/supervisor, atomic deterministic fixture recovery, explicit pause/stop, corruption/source drift, retry and wall bounds; not real trainer/arena recovery.",
+  "artifact_directory": "C:\\coding\\py\\line game\\local_artifacts\\three-player-supervisor-recovery-1792512794698"
+}

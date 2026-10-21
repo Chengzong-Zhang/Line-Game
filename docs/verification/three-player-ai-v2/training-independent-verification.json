@@ -1,0 +1,877 @@
+{
+  "status": "PASS_INDEPENDENT_POSTTRAINING_REPLAY_AND_OPTIMIZER",
+  "identity": "3fee1a7c95e47f1351127c7451f1a6e8aec0b6374ffb2ff10a756894aaa92ea8",
+  "source_hashes": {
+    "web/tools/finetune-three-player-ai.mjs": "d490b4b4ada24c0e28ee83680abadb652b5d800509bcba7bc865afc185c20457",
+    "web/tools/three-player-posttraining-core.mjs": "664525517f2cb2d46ba33ab7cc8d19b196b6f8bae4bba6f170b32aa7dfc79d80",
+    "web/web前端/GameEngine.js": "625e8d8a92801647702f963f56148040248cf471228a6ce5c719e20e4414a555",
+    "web/web前端/AIEngine.js": "6738fe3a98a616dfd6c060636f5d2684fd49ebc561c95a96247db28c7170ccc3",
+    "web/web前端/ThreePlayerAI.js": "edfa92c657fa28a617f18586191a09686336af15843a8423a07b863743e0381b"
+  },
+  "config_sha256": "c6534a65ca3c246ec470222d578a504eb65eca5619fec716157bc3b77c432a8f",
+  "parent_sha256": "8cd1a2f36267f96b1e32b7749a9cdc785f489ea7ec12e31aee0beb0a72901794",
+  "model_sha256": "00fc241c500dfd01ff85b5e2a4f1907cc5a9d8307d68bb78be64b0aad129f56e",
+  "verifier_sha256": "2543b1053dc14c3b0be27bc7b7d0ce9fca866c586ca6184b5085f610025498e3",
+  "episode_count": 72,
+  "terminal_episodes": 54,
+  "truncated_generation_episodes": 18,
+  "replayed_episode_actions": 2063,
+  "feature_vectors_recomputed": 12852,
+  "training_samples": 1324,
+  "validation_samples": 446,
+  "split_balance": {
+    "5/BLACK/train": 6,
+    "5/BLACK/validation": 2,
+    "5/WHITE/train": 6,
+    "5/WHITE/validation": 2,
+    "5/PURPLE/train": 6,
+    "5/PURPLE/validation": 2,
+    "7/BLACK/train": 6,
+    "7/BLACK/validation": 2,
+    "7/WHITE/train": 6,
+    "7/WHITE/validation": 2,
+    "7/PURPLE/train": 6,
+    "7/PURPLE/validation": 2,
+    "9/BLACK/train": 6,
+    "9/BLACK/validation": 2,
+    "9/WHITE/train": 6,
+    "9/WHITE/validation": 2,
+    "9/PURPLE/train": 6,
+    "9/PURPLE/validation": 2
+  },
+  "episode_manifest_sha256": "e03760dc5c08f0b20fbf68d76ad4d33b29f1d06aae9ffb9ec0a4acdd6f154705",
+  "optimizer_epochs_recomputed": 900,
+  "candidate_epochs_verified": [
+    200,
+    500,
+    900
+  ],
+  "selected_epoch_verified": 900,
+  "development_games_reconstructed": 171,
+  "development_replay_manifest_sha256": "94c77d0543c9b3f451c09eda244b2356c0ab4fd3ba925cdd9f02695cf8dc2295",
+  "development_summaries": [
+    {
+      "epoch": 900,
+      "games": 54,
+      "meanWinShareDelta": 0.02932098765432099,
+      "singleAiDelta": 0.030864197530864203,
+      "dualAiDelta": 0.027777777777777783,
+      "validationLoss": 1.5248056135881953,
+      "perSize": {
+        "5": -0.03703703703703703,
+        "7": 0.1111111111111111,
+        "9": 0.013888888888888888
+      }
+    },
+    {
+      "epoch": 500,
+      "games": 54,
+      "meanWinShareDelta": 0.02932098765432099,
+      "singleAiDelta": 0.030864197530864203,
+      "dualAiDelta": 0.027777777777777783,
+      "validationLoss": 1.5248297228333303,
+      "perSize": {
+        "5": -0.03703703703703703,
+        "7": 0.1111111111111111,
+        "9": 0.013888888888888888
+      }
+    },
+    {
+      "epoch": 200,
+      "games": 54,
+      "meanWinShareDelta": 0.02932098765432099,
+      "singleAiDelta": 0.030864197530864203,
+      "dualAiDelta": 0.027777777777777783,
+      "validationLoss": 1.5255678658706127,
+      "perSize": {
+        "5": -0.03703703703703703,
+        "7": 0.1111111111111111,
+        "9": 0.013888888888888888
+      }
+    }
+  ],
+  "teacher_recomputations": [
+    {
+      "episode": "5-BLACK-train-0",
+      "ply": 3,
+      "actor": "BLACK",
+      "legal_actions": 4,
+      "action_prefix": [
+        {
+          "player": "BLACK",
+          "point": [
+            2,
+            0
+          ]
+        },
+        {
+          "player": "WHITE",
+          "point": [
+            1,
+            3
+          ]
+        },
+        {
+          "player": "PURPLE",
+          "point": [
+            2,
+            2
+          ]
+        }
+      ],
+      "targets_sha256": "c46540eafb75b284dc2bc821485ca369da2900c79d0e30c47ec6ff2db2161ccd"
+    },
+    {
+      "episode": "5-WHITE-train-0",
+      "ply": 2,
+      "actor": "BLACK",
+      "legal_actions": 3,
+      "action_prefix": [
+        {
+          "player": "WHITE",
+          "point": [
+            0,
+            2
+          ]
+        },
+        {
+          "player": "PURPLE",
+          "point": [
+            3,
+            1
+          ]
+        }
+      ],
+      "targets_sha256": "67cdf995df5afeaf6865f6204f5bd7215ba3a8aa0eb4eb3bf790eaf563ab78cd"
+    },
+    {
+      "episode": "5-PURPLE-train-0",
+      "ply": 3,
+      "actor": "PURPLE",
+      "legal_actions": 3,
+      "action_prefix": [
+        {
+          "player": "PURPLE",
+          "point": [
+            2,
+            0
+          ]
+        },
+        {
+          "player": "BLACK",
+          "point": [
+            0,
+            2
+          ]
+        },
+        {
+          "player": "WHITE",
+          "point": [
+            2,
+            2
+          ]
+        }
+      ],
+      "targets_sha256": "f17f81ae68bc08371ddd593b5546bf49e9515eb57f1de24d8b17cdee5ce1384c"
+    },
+    {
+      "episode": "7-BLACK-train-0",
+      "ply": 11,
+      "actor": "BLACK",
+      "legal_actions": 11,
+      "action_prefix": [
+        {
+          "player": "BLACK",
+          "point": [
+            4,
+            0
+          ]
+        },
+        {
+          "player": "WHITE",
+          "point": [
+            0,
+            2
+          ]
+        },
+        {
+          "player": "PURPLE",
+          "point": [
+            2,
+            4
+          ]
+        },
+        {
+          "player": "BLACK",
+          "point": [
+            0,
+            4
+          ]
+        },
+        {
+          "player": "WHITE",
+          "point": [
+            0,
+            5
+          ]
+        },
+        {
+          "player": "PURPLE",
+          "point": [
+            2,
+            2
+          ]
+        },
+        {
+          "player": "BLACK",
+          "point": [
+            4,
+            2
+          ]
+        },
+        {
+          "player": "WHITE",
+          "point": [
+            4,
+            1
+          ]
+        },
+        {
+          "player": "PURPLE",
+          "point": [
+            2,
+            4
+          ]
+        },
+        {
+          "player": "BLACK",
+          "point": [
+            1,
+            4
+          ]
+        },
+        {
+          "player": "PURPLE",
+          "point": [
+            2,
+            2
+          ]
+        }
+      ],
+      "targets_sha256": "a52e16617e36b3553f1531dbc408576e63fefc53e8d7b7bd865ff324784815c0"
+    },
+    {
+      "episode": "7-WHITE-train-0",
+      "ply": 13,
+      "actor": "WHITE",
+      "legal_actions": 6,
+      "action_prefix": [
+        {
+          "player": "WHITE",
+          "point": [
+            0,
+            2
+          ]
+        },
+        {
+          "player": "PURPLE",
+          "point": [
+            2,
+            0
+          ]
+        },
+        {
+          "player": "BLACK",
+          "point": [
+            1,
+            0
+          ]
+        },
+        {
+          "player": "WHITE",
+          "point": [
+            4,
+            2
+          ]
+        },
+        {
+          "player": "PURPLE",
+          "point": [
+            4,
+            0
+          ]
+        },
+        {
+          "player": "BLACK",
+          "point": [
+            1,
+            2
+          ]
+        },
+        {
+          "player": "WHITE",
+          "point": [
+            1,
+            1
+          ]
+        },
+        {
+          "player": "PURPLE",
+          "point": [
+            2,
+            2
+          ]
+        },
+        {
+          "player": "WHITE",
+          "point": [
+            1,
+            4
+          ]
+        },
+        {
+          "player": "PURPLE",
+          "point": [
+            1,
+            2
+          ]
+        },
+        {
+          "player": "WHITE",
+          "point": [
+            2,
+            1
+          ]
+        },
+        {
+          "player": "PURPLE",
+          "point": [
+            0,
+            4
+          ]
+        },
+        {
+          "player": "BLACK",
+          "point": [
+            0,
+            3
+          ]
+        }
+      ],
+      "targets_sha256": "e4304d3152d69b9eb6d97e42527b4c27e29087e08abb36310dd066f304e940f4"
+    },
+    {
+      "episode": "7-PURPLE-train-0",
+      "ply": 9,
+      "actor": "BLACK",
+      "legal_actions": 3,
+      "action_prefix": [
+        {
+          "player": "PURPLE",
+          "point": [
+            2,
+            0
+          ]
+        },
+        {
+          "player": "BLACK",
+          "point": [
+            0,
+            4
+          ]
+        },
+        {
+          "player": "WHITE",
+          "point": [
+            4,
+            2
+          ]
+        },
+        {
+          "player": "PURPLE",
+          "point": [
+            2,
+            4
+          ]
+        },
+        {
+          "player": "BLACK",
+          "point": [
+            0,
+            2
+          ]
+        },
+        {
+          "player": "WHITE",
+          "point": [
+            1,
+            5
+          ]
+        },
+        {
+          "player": "PURPLE",
+          "point": [
+            2,
+            2
+          ]
+        },
+        {
+          "player": "BLACK",
+          "point": [
+            1,
+            4
+          ]
+        },
+        {
+          "player": "PURPLE",
+          "point": [
+            1,
+            2
+          ]
+        }
+      ],
+      "targets_sha256": "13401345a0816bfc1b5bd80ed8a5f9d2957db7f2519c6f4820092fb52472cd9c"
+    },
+    {
+      "episode": "9-BLACK-train-0",
+      "ply": 23,
+      "actor": "BLACK",
+      "legal_actions": 14,
+      "action_prefix": [
+        {
+          "player": "BLACK",
+          "point": [
+            6,
+            0
+          ]
+        },
+        {
+          "player": "WHITE",
+          "point": [
+            0,
+            2
+          ]
+        },
+        {
+          "player": "PURPLE",
+          "point": [
+            2,
+            6
+          ]
+        },
+        {
+          "player": "BLACK",
+          "point": [
+            0,
+            6
+          ]
+        },
+        {
+          "player": "WHITE",
+          "point": [
+            0,
+            7
+          ]
+        },
+        {
+          "player": "PURPLE",
+          "point": [
+            3,
+            5
+          ]
+        },
+        {
+          "player": "BLACK",
+          "point": [
+            5,
+            1
+          ]
+        },
+        {
+          "player": "WHITE",
+          "point": [
+            6,
+            1
+          ]
+        },
+        {
+          "player": "PURPLE",
+          "point": [
+            6,
+            2
+          ]
+        },
+        {
+          "player": "BLACK",
+          "point": [
+            1,
+            6
+          ]
+        },
+        {
+          "player": "PURPLE",
+          "point": [
+            1,
+            5
+          ]
+        },
+        {
+          "player": "BLACK",
+          "point": [
+            2,
+            5
+          ]
+        },
+        {
+          "player": "PURPLE",
+          "point": [
+            3,
+            3
+          ]
+        },
+        {
+          "player": "BLACK",
+          "point": [
+            0,
+            4
+          ]
+        },
+        {
+          "player": "PURPLE",
+          "point": [
+            5,
+            2
+          ]
+        },
+        {
+          "player": "BLACK",
+          "point": [
+            3,
+            4
+          ]
+        },
+        {
+          "player": "PURPLE",
+          "point": [
+            4,
+            2
+          ]
+        },
+        {
+          "player": "BLACK",
+          "point": [
+            4,
+            4
+          ]
+        },
+        {
+          "player": "WHITE",
+          "point": [
+            2,
+            6
+          ]
+        },
+        {
+          "player": "PURPLE",
+          "point": [
+            4,
+            0
+          ]
+        },
+        {
+          "player": "BLACK",
+          "point": [
+            3,
+            0
+          ]
+        },
+        {
+          "player": "WHITE",
+          "point": [
+            3,
+            5
+          ]
+        },
+        {
+          "player": "PURPLE",
+          "point": [
+            3,
+            3
+          ]
+        }
+      ],
+      "targets_sha256": "00344acf644bcbe00ad7e38d035218b03ecb4b53ae947d7f9dc34ed5ef14612f"
+    },
+    {
+      "episode": "9-WHITE-train-0",
+      "ply": 23,
+      "actor": "BLACK",
+      "legal_actions": 15,
+      "action_prefix": [
+        {
+          "player": "WHITE",
+          "point": [
+            0,
+            2
+          ]
+        },
+        {
+          "player": "PURPLE",
+          "point": [
+            6,
+            0
+          ]
+        },
+        {
+          "player": "BLACK",
+          "point": [
+            5,
+            0
+          ]
+        },
+        {
+          "player": "WHITE",
+          "point": [
+            6,
+            2
+          ]
+        },
+        {
+          "player": "PURPLE",
+          "point": [
+            4,
+            2
+          ]
+        },
+        {
+          "player": "BLACK",
+          "point": [
+            0,
+            5
+          ]
+        },
+        {
+          "player": "WHITE",
+          "point": [
+            6,
+            1
+          ]
+        },
+        {
+          "player": "PURPLE",
+          "point": [
+            4,
+            4
+          ]
+        },
+        {
+          "player": "BLACK",
+          "point": [
+            3,
+            2
+          ]
+        },
+        {
+          "player": "WHITE",
+          "point": [
+            3,
+            5
+          ]
+        },
+        {
+          "player": "PURPLE",
+          "point": [
+            4,
+            1
+          ]
+        },
+        {
+          "player": "BLACK",
+          "point": [
+            5,
+            1
+          ]
+        },
+        {
+          "player": "WHITE",
+          "point": [
+            0,
+            6
+          ]
+        },
+        {
+          "player": "PURPLE",
+          "point": [
+            1,
+            4
+          ]
+        },
+        {
+          "player": "BLACK",
+          "point": [
+            5,
+            3
+          ]
+        },
+        {
+          "player": "WHITE",
+          "point": [
+            3,
+            2
+          ]
+        },
+        {
+          "player": "PURPLE",
+          "point": [
+            6,
+            2
+          ]
+        },
+        {
+          "player": "BLACK",
+          "point": [
+            3,
+            3
+          ]
+        },
+        {
+          "player": "WHITE",
+          "point": [
+            1,
+            5
+          ]
+        },
+        {
+          "player": "PURPLE",
+          "point": [
+            5,
+            2
+          ]
+        },
+        {
+          "player": "BLACK",
+          "point": [
+            0,
+            3
+          ]
+        },
+        {
+          "player": "WHITE",
+          "point": [
+            1,
+            4
+          ]
+        },
+        {
+          "player": "PURPLE",
+          "point": [
+            4,
+            3
+          ]
+        }
+      ],
+      "targets_sha256": "8b45e367cb2c073cf48d28f96ee5a8b00eac1923e8a41bb18a9537d3d9350587"
+    },
+    {
+      "episode": "9-PURPLE-train-0",
+      "ply": 12,
+      "actor": "WHITE",
+      "legal_actions": 12,
+      "action_prefix": [
+        {
+          "player": "PURPLE",
+          "point": [
+            7,
+            0
+          ]
+        },
+        {
+          "player": "BLACK",
+          "point": [
+            0,
+            6
+          ]
+        },
+        {
+          "player": "WHITE",
+          "point": [
+            6,
+            2
+          ]
+        },
+        {
+          "player": "PURPLE",
+          "point": [
+            3,
+            0
+          ]
+        },
+        {
+          "player": "BLACK",
+          "point": [
+            6,
+            0
+          ]
+        },
+        {
+          "player": "WHITE",
+          "point": [
+            2,
+            6
+          ]
+        },
+        {
+          "player": "PURPLE",
+          "point": [
+            1,
+            6
+          ]
+        },
+        {
+          "player": "BLACK",
+          "point": [
+            4,
+            0
+          ]
+        },
+        {
+          "player": "WHITE",
+          "point": [
+            6,
+            1
+          ]
+        },
+        {
+          "player": "BLACK",
+          "point": [
+            4,
+            1
+          ]
+        },
+        {
+          "player": "WHITE",
+          "point": [
+            4,
+            2
+          ]
+        },
+        {
+          "player": "BLACK",
+          "point": [
+            0,
+            5
+          ]
+        }
+      ],
+      "targets_sha256": "481a0b8a2f9a897e53f0904ee4b2331c5168cd894376097237bd667ed7d82b12"
+    }
+  ],
+  "elapsed_seconds": 68.778,
+  "limits": [
+    "All episode actions, legal masks, feature vectors, RNG/behavior choices, split balance and terminal discrete areas were replayed.",
+    "Adam, cross-entropy, development policy replay, shared-win scoring and selection were recomputed independently of trainer helpers.",
+    "Canonical GameEngine and feature extraction are shared, hash-checked application sources.",
+    "Teacher targets were fully recomputed for one deterministic middle sample per size/start stratum; other stored labels were shape/normalization checked, not fully regenerated.",
+    "Development verification does not establish independent playing strength; no final arena inputs were read."
+  ]
+}

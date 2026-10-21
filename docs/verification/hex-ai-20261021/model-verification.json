@@ -1,0 +1,412 @@
+{
+  "status": "PASS",
+  "model": "hex-player-policy-v1",
+  "probes": 48,
+  "maxMilliseconds": 767.2,
+  "observations": [
+    {
+      "count": 4,
+      "size": 5,
+      "player": "BLACK",
+      "plies": 4,
+      "candidates": 14,
+      "milliseconds": 11.2
+    },
+    {
+      "count": 4,
+      "size": 5,
+      "player": "WHITE",
+      "plies": 4,
+      "candidates": 14,
+      "milliseconds": 9
+    },
+    {
+      "count": 4,
+      "size": 5,
+      "player": "PURPLE",
+      "plies": 4,
+      "candidates": 22,
+      "milliseconds": 13.8
+    },
+    {
+      "count": 4,
+      "size": 5,
+      "player": "GREEN",
+      "plies": 4,
+      "candidates": 16,
+      "milliseconds": 7.5
+    },
+    {
+      "count": 4,
+      "size": 9,
+      "player": "BLACK",
+      "plies": 12,
+      "candidates": 62,
+      "milliseconds": 68.3
+    },
+    {
+      "count": 4,
+      "size": 9,
+      "player": "WHITE",
+      "plies": 12,
+      "candidates": 45,
+      "milliseconds": 40.8
+    },
+    {
+      "count": 4,
+      "size": 9,
+      "player": "PURPLE",
+      "plies": 12,
+      "candidates": 21,
+      "milliseconds": 25
+    },
+    {
+      "count": 4,
+      "size": 9,
+      "player": "GREEN",
+      "plies": 12,
+      "candidates": 71,
+      "milliseconds": 66
+    },
+    {
+      "count": 4,
+      "size": 15,
+      "player": "BLACK",
+      "plies": 12,
+      "candidates": 28,
+      "milliseconds": 222.2
+    },
+    {
+      "count": 4,
+      "size": 15,
+      "player": "WHITE",
+      "plies": 12,
+      "candidates": 89,
+      "milliseconds": 337
+    },
+    {
+      "count": 4,
+      "size": 15,
+      "player": "PURPLE",
+      "plies": 12,
+      "candidates": 120,
+      "milliseconds": 376.1
+    },
+    {
+      "count": 4,
+      "size": 15,
+      "player": "GREEN",
+      "plies": 12,
+      "candidates": 122,
+      "milliseconds": 410
+    },
+    {
+      "count": 5,
+      "size": 5,
+      "player": "BLACK",
+      "plies": 5,
+      "candidates": 11,
+      "milliseconds": 7.9
+    },
+    {
+      "count": 5,
+      "size": 5,
+      "player": "WHITE",
+      "plies": 5,
+      "candidates": 9,
+      "milliseconds": 4.9
+    },
+    {
+      "count": 5,
+      "size": 5,
+      "player": "PURPLE",
+      "plies": 5,
+      "candidates": 14,
+      "milliseconds": 5.8
+    },
+    {
+      "count": 5,
+      "size": 5,
+      "player": "GREEN",
+      "plies": 5,
+      "candidates": 10,
+      "milliseconds": 6.3
+    },
+    {
+      "count": 5,
+      "size": 5,
+      "player": "ORANGE",
+      "plies": 5,
+      "candidates": 14,
+      "milliseconds": 6.2
+    },
+    {
+      "count": 5,
+      "size": 9,
+      "player": "BLACK",
+      "plies": 15,
+      "candidates": 30,
+      "milliseconds": 40.8
+    },
+    {
+      "count": 5,
+      "size": 9,
+      "player": "WHITE",
+      "plies": 15,
+      "candidates": 28,
+      "milliseconds": 44.8
+    },
+    {
+      "count": 5,
+      "size": 9,
+      "player": "PURPLE",
+      "plies": 15,
+      "candidates": 42,
+      "milliseconds": 59.3
+    },
+    {
+      "count": 5,
+      "size": 9,
+      "player": "GREEN",
+      "plies": 15,
+      "candidates": 67,
+      "milliseconds": 72.8
+    },
+    {
+      "count": 5,
+      "size": 9,
+      "player": "ORANGE",
+      "plies": 15,
+      "candidates": 61,
+      "milliseconds": 63.7
+    },
+    {
+      "count": 5,
+      "size": 15,
+      "player": "BLACK",
+      "plies": 15,
+      "candidates": 57,
+      "milliseconds": 286.6
+    },
+    {
+      "count": 5,
+      "size": 15,
+      "player": "WHITE",
+      "plies": 15,
+      "candidates": 33,
+      "milliseconds": 245.6
+    },
+    {
+      "count": 5,
+      "size": 15,
+      "player": "PURPLE",
+      "plies": 15,
+      "candidates": 77,
+      "milliseconds": 299.9
+    },
+    {
+      "count": 5,
+      "size": 15,
+      "player": "GREEN",
+      "plies": 15,
+      "candidates": 122,
+      "milliseconds": 405.5
+    },
+    {
+      "count": 5,
+      "size": 15,
+      "player": "ORANGE",
+      "plies": 15,
+      "candidates": 122,
+      "milliseconds": 405.3
+    },
+    {
+      "count": 6,
+      "size": 5,
+      "player": "BLACK",
+      "plies": 6,
+      "candidates": 9,
+      "milliseconds": 4.6
+    },
+    {
+      "count": 6,
+      "size": 5,
+      "player": "WHITE",
+      "plies": 6,
+      "candidates": 9,
+      "milliseconds": 7
+    },
+    {
+      "count": 6,
+      "size": 5,
+      "player": "PURPLE",
+      "plies": 6,
+      "candidates": 19,
+      "milliseconds": 6.4
+    },
+    {
+      "count": 6,
+      "size": 5,
+      "player": "GREEN",
+      "plies": 6,
+      "candidates": 12,
+      "milliseconds": 6
+    },
+    {
+      "count": 6,
+      "size": 5,
+      "player": "ORANGE",
+      "plies": 6,
+      "candidates": 8,
+      "milliseconds": 4.8
+    },
+    {
+      "count": 6,
+      "size": 5,
+      "player": "CYAN",
+      "plies": 6,
+      "candidates": 9,
+      "milliseconds": 4.8
+    },
+    {
+      "count": 6,
+      "size": 9,
+      "player": "BLACK",
+      "plies": 18,
+      "candidates": 45,
+      "milliseconds": 57.9
+    },
+    {
+      "count": 6,
+      "size": 9,
+      "player": "WHITE",
+      "plies": 18,
+      "candidates": 16,
+      "milliseconds": 33.6
+    },
+    {
+      "count": 6,
+      "size": 9,
+      "player": "PURPLE",
+      "plies": 18,
+      "candidates": 59,
+      "milliseconds": 100.1
+    },
+    {
+      "count": 6,
+      "size": 9,
+      "player": "GREEN",
+      "plies": 18,
+      "candidates": 19,
+      "milliseconds": 38.8
+    },
+    {
+      "count": 6,
+      "size": 9,
+      "player": "ORANGE",
+      "plies": 18,
+      "candidates": 54,
+      "milliseconds": 66.4
+    },
+    {
+      "count": 6,
+      "size": 9,
+      "player": "CYAN",
+      "plies": 18,
+      "candidates": 55,
+      "milliseconds": 69
+    },
+    {
+      "count": 6,
+      "size": 15,
+      "player": "BLACK",
+      "plies": 18,
+      "candidates": 46,
+      "milliseconds": 265.5
+    },
+    {
+      "count": 6,
+      "size": 15,
+      "player": "WHITE",
+      "plies": 18,
+      "candidates": 32,
+      "milliseconds": 249.3
+    },
+    {
+      "count": 6,
+      "size": 15,
+      "player": "PURPLE",
+      "plies": 18,
+      "candidates": 145,
+      "milliseconds": 477.3
+    },
+    {
+      "count": 6,
+      "size": 15,
+      "player": "GREEN",
+      "plies": 18,
+      "candidates": 80,
+      "milliseconds": 335.4
+    },
+    {
+      "count": 6,
+      "size": 15,
+      "player": "ORANGE",
+      "plies": 18,
+      "candidates": 143,
+      "milliseconds": 454.5
+    },
+    {
+      "count": 6,
+      "size": 15,
+      "player": "CYAN",
+      "plies": 18,
+      "candidates": 123,
+      "milliseconds": 422.3
+    },
+    {
+      "count": 6,
+      "size": 15,
+      "player": "BLACK",
+      "plies": 24,
+      "candidates": 144,
+      "milliseconds": 767.2
+    },
+    {
+      "count": 6,
+      "size": 15,
+      "player": "GREEN",
+      "plies": 24,
+      "candidates": 85,
+      "milliseconds": 584.5
+    },
+    {
+      "count": 6,
+      "size": 15,
+      "player": "CYAN",
+      "plies": 24,
+      "candidates": 122,
+      "milliseconds": 683.7
+    }
+  ],
+  "completedGames": [
+    {
+      "count": 4,
+      "steps": 80,
+      "naturalTermination": false,
+      "winner": "WHITE"
+    },
+    {
+      "count": 5,
+      "steps": 80,
+      "naturalTermination": false,
+      "winner": "ORANGE"
+    },
+    {
+      "count": 6,
+      "steps": 80,
+      "naturalTermination": false,
+      "winner": "CYAN"
+    }
+  ]
+}

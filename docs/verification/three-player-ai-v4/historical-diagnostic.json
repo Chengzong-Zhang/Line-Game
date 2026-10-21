@@ -1,0 +1,758 @@
+{
+  "status": "DIAGNOSTIC_AND_COST_CALIBRATION_ONLY",
+  "parents": [
+    {
+      "path": "C:\\coding\\py\\line game\\web\\web前端\\assets\\research-ai\\three-player-policy-v1.json",
+      "sha256": "8cd1a2f36267f96b1e32b7749a9cdc785f489ea7ec12e31aee0beb0a72901794"
+    },
+    {
+      "path": "C:\\coding\\py\\line game\\web\\web前端\\assets\\research-ai\\three-player-policy-v2.json",
+      "sha256": "00fc241c500dfd01ff85b5e2a4f1907cc5a9d8307d68bb78be64b0aad129f56e"
+    }
+  ],
+  "hypotheses": [
+    "The inherited policy ranks only immediate post-move features and never checks both opponent replies.",
+    "The v3 PPO update preserved that one-step architecture and did not meet the prior independent gate."
+  ],
+  "findings": [
+    {
+      "size": 5,
+      "source": "C:\\coding\\py\\line game\\local_artifacts\\three-player-v3-final-vs-v2-20261021\\games\\n5-black-p1-single-black.json",
+      "source_sha256": "668d181cfb060a115c185f7aa79bfd2d9501f1c80a923345cf00ccbdd84d878a",
+      "ply": 5,
+      "focal": "BLACK",
+      "oldFinalUsedOnlyAsDiagnostic": true,
+      "basePoint": [
+        1,
+        2
+      ],
+      "baseMs": 9,
+      "candidates": [
+        {
+          "id": "three-player-search-v4-round3",
+          "point": [
+            2,
+            0
+          ],
+          "simulations": 4,
+          "simulatedActions": 14,
+          "terminalLeaves": 2,
+          "elapsedMs": 73,
+          "evaluated": [
+            {
+              "point": [
+                2,
+                0
+              ],
+              "baseScore": 0.5206330496261924,
+              "score": 0.5,
+              "margin": 0,
+              "leaves": [
+                {
+                  "value": 0.5,
+                  "margin": 0,
+                  "terminal": true,
+                  "areas": {
+                    "BLACK": 6,
+                    "WHITE": 6,
+                    "PURPLE": 0
+                  }
+                },
+                {
+                  "value": 0.5,
+                  "margin": 0,
+                  "terminal": true,
+                  "areas": {
+                    "BLACK": 6,
+                    "WHITE": 6,
+                    "PURPLE": 0
+                  }
+                }
+              ],
+              "visits": 2
+            },
+            {
+              "point": [
+                1,
+                2
+              ],
+              "baseScore": 1.4549472575446027,
+              "score": 0.17484516445211293,
+              "margin": -0.13333333333333333,
+              "leaves": [
+                {
+                  "value": 0.17484516445211293,
+                  "margin": -0.13333333333333333,
+                  "terminal": false,
+                  "areas": {
+                    "BLACK": 4,
+                    "WHITE": 6,
+                    "PURPLE": 0
+                  }
+                },
+                {
+                  "value": 0.17484516445211293,
+                  "margin": -0.13333333333333333,
+                  "terminal": false,
+                  "areas": {
+                    "BLACK": 4,
+                    "WHITE": 6,
+                    "PURPLE": 0
+                  }
+                }
+              ],
+              "visits": 2
+            }
+          ]
+        },
+        {
+          "id": "three-player-search-v4-round6",
+          "point": [
+            2,
+            0
+          ],
+          "simulations": 4,
+          "simulatedActions": 16,
+          "terminalLeaves": 4,
+          "elapsedMs": 46,
+          "evaluated": [
+            {
+              "point": [
+                2,
+                0
+              ],
+              "baseScore": 0.5206330496261924,
+              "score": 0.5,
+              "margin": 0,
+              "leaves": [
+                {
+                  "value": 0.5,
+                  "margin": 0,
+                  "terminal": true,
+                  "areas": {
+                    "BLACK": 6,
+                    "WHITE": 6,
+                    "PURPLE": 0
+                  }
+                },
+                {
+                  "value": 0.5,
+                  "margin": 0,
+                  "terminal": true,
+                  "areas": {
+                    "BLACK": 6,
+                    "WHITE": 6,
+                    "PURPLE": 0
+                  }
+                }
+              ],
+              "visits": 2
+            },
+            {
+              "point": [
+                1,
+                2
+              ],
+              "baseScore": 1.4549472575446027,
+              "score": 0,
+              "margin": -0.26666666666666666,
+              "leaves": [
+                {
+                  "value": 0,
+                  "margin": -0.26666666666666666,
+                  "terminal": true,
+                  "areas": {
+                    "BLACK": 4,
+                    "WHITE": 8,
+                    "PURPLE": 0
+                  }
+                },
+                {
+                  "value": 0,
+                  "margin": -0.26666666666666666,
+                  "terminal": true,
+                  "areas": {
+                    "BLACK": 4,
+                    "WHITE": 8,
+                    "PURPLE": 0
+                  }
+                }
+              ],
+              "visits": 2
+            }
+          ]
+        },
+        {
+          "id": "three-player-search-v4-round12",
+          "point": [
+            2,
+            0
+          ],
+          "simulations": 4,
+          "simulatedActions": 16,
+          "terminalLeaves": 4,
+          "elapsedMs": 53,
+          "evaluated": [
+            {
+              "point": [
+                2,
+                0
+              ],
+              "baseScore": 0.5206330496261924,
+              "score": 0.5,
+              "margin": 0,
+              "leaves": [
+                {
+                  "value": 0.5,
+                  "margin": 0,
+                  "terminal": true,
+                  "areas": {
+                    "BLACK": 6,
+                    "WHITE": 6,
+                    "PURPLE": 0
+                  }
+                },
+                {
+                  "value": 0.5,
+                  "margin": 0,
+                  "terminal": true,
+                  "areas": {
+                    "BLACK": 6,
+                    "WHITE": 6,
+                    "PURPLE": 0
+                  }
+                }
+              ],
+              "visits": 2
+            },
+            {
+              "point": [
+                1,
+                2
+              ],
+              "baseScore": 1.4549472575446027,
+              "score": 0,
+              "margin": -0.26666666666666666,
+              "leaves": [
+                {
+                  "value": 0,
+                  "margin": -0.26666666666666666,
+                  "terminal": true,
+                  "areas": {
+                    "BLACK": 4,
+                    "WHITE": 8,
+                    "PURPLE": 0
+                  }
+                },
+                {
+                  "value": 0,
+                  "margin": -0.26666666666666666,
+                  "terminal": true,
+                  "areas": {
+                    "BLACK": 4,
+                    "WHITE": 8,
+                    "PURPLE": 0
+                  }
+                }
+              ],
+              "visits": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "size": 7,
+      "source": "C:\\coding\\py\\line game\\local_artifacts\\three-player-v3-final-vs-v2-20261021\\games\\n7-black-p0-single-black.json",
+      "source_sha256": "937cbe62c7af4620d2a5d2425a71891f60b7b7e231e4b86a07706fe54019f1fa",
+      "ply": 15,
+      "focal": "BLACK",
+      "oldFinalUsedOnlyAsDiagnostic": true,
+      "basePoint": [
+        3,
+        1
+      ],
+      "baseMs": 16,
+      "candidates": [
+        {
+          "id": "three-player-search-v4-round3",
+          "point": [
+            3,
+            1
+          ],
+          "simulations": 6,
+          "simulatedActions": 24,
+          "terminalLeaves": 0,
+          "elapsedMs": 166,
+          "evaluated": [
+            {
+              "point": [
+                3,
+                1
+              ],
+              "baseScore": 1.311050125932676,
+              "score": 0.3583294160694155,
+              "margin": -0.03571428571428571,
+              "leaves": [
+                {
+                  "value": 0.3583294160694155,
+                  "margin": -0.03571428571428571,
+                  "terminal": false,
+                  "areas": {
+                    "BLACK": 11,
+                    "WHITE": 12,
+                    "PURPLE": 5
+                  }
+                },
+                {
+                  "value": 0.3583294160694155,
+                  "margin": -0.03571428571428571,
+                  "terminal": false,
+                  "areas": {
+                    "BLACK": 11,
+                    "WHITE": 12,
+                    "PURPLE": 5
+                  }
+                }
+              ],
+              "visits": 2
+            },
+            {
+              "point": [
+                2,
+                1
+              ],
+              "baseScore": 0.03732791923384289,
+              "score": 0.36694390964309787,
+              "margin": -0.03571428571428571,
+              "leaves": [
+                {
+                  "value": 0.36694390964309787,
+                  "margin": -0.03571428571428571,
+                  "terminal": false,
+                  "areas": {
+                    "BLACK": 11,
+                    "WHITE": 4,
+                    "PURPLE": 12
+                  }
+                },
+                {
+                  "value": 0.36694390964309787,
+                  "margin": -0.03571428571428571,
+                  "terminal": false,
+                  "areas": {
+                    "BLACK": 11,
+                    "WHITE": 4,
+                    "PURPLE": 12
+                  }
+                }
+              ],
+              "visits": 2
+            },
+            {
+              "point": [
+                1,
+                2
+              ],
+              "baseScore": 0.03732791923384289,
+              "score": 0.36694390964309787,
+              "margin": -0.03571428571428571,
+              "leaves": [
+                {
+                  "value": 0.36694390964309787,
+                  "margin": -0.03571428571428571,
+                  "terminal": false,
+                  "areas": {
+                    "BLACK": 11,
+                    "WHITE": 4,
+                    "PURPLE": 12
+                  }
+                },
+                {
+                  "value": 0.36694390964309787,
+                  "margin": -0.03571428571428571,
+                  "terminal": false,
+                  "areas": {
+                    "BLACK": 11,
+                    "WHITE": 4,
+                    "PURPLE": 12
+                  }
+                }
+              ],
+              "visits": 2
+            }
+          ]
+        },
+        {
+          "id": "three-player-search-v4-round6",
+          "point": [
+            2,
+            1
+          ],
+          "simulations": 6,
+          "simulatedActions": 42,
+          "terminalLeaves": 0,
+          "elapsedMs": 170,
+          "evaluated": [
+            {
+              "point": [
+                2,
+                1
+              ],
+              "baseScore": 0.03732791923384289,
+              "score": 0.07825895498321747,
+              "margin": -0.21428571428571427,
+              "leaves": [
+                {
+                  "value": 0.07825895498321747,
+                  "margin": -0.21428571428571427,
+                  "terminal": false,
+                  "areas": {
+                    "BLACK": 7,
+                    "WHITE": 4,
+                    "PURPLE": 13
+                  }
+                },
+                {
+                  "value": 0.07825895498321747,
+                  "margin": -0.21428571428571427,
+                  "terminal": false,
+                  "areas": {
+                    "BLACK": 7,
+                    "WHITE": 4,
+                    "PURPLE": 13
+                  }
+                }
+              ],
+              "visits": 2
+            },
+            {
+              "point": [
+                3,
+                1
+              ],
+              "baseScore": 1.311050125932676,
+              "score": 0.05577470214307034,
+              "margin": -0.32142857142857145,
+              "leaves": [
+                {
+                  "value": 0.05577470214307034,
+                  "margin": -0.32142857142857145,
+                  "terminal": false,
+                  "areas": {
+                    "BLACK": 0,
+                    "WHITE": 9,
+                    "PURPLE": 5
+                  }
+                },
+                {
+                  "value": 0.05577470214307034,
+                  "margin": -0.32142857142857145,
+                  "terminal": false,
+                  "areas": {
+                    "BLACK": 0,
+                    "WHITE": 9,
+                    "PURPLE": 5
+                  }
+                }
+              ],
+              "visits": 2
+            },
+            {
+              "point": [
+                1,
+                2
+              ],
+              "baseScore": 0.03732791923384289,
+              "score": 0.011631801276464909,
+              "margin": -0.39285714285714285,
+              "leaves": [
+                {
+                  "value": 0.011631801276464909,
+                  "margin": -0.39285714285714285,
+                  "terminal": false,
+                  "areas": {
+                    "BLACK": 5,
+                    "WHITE": 4,
+                    "PURPLE": 16
+                  }
+                },
+                {
+                  "value": 0.011631801276464909,
+                  "margin": -0.39285714285714285,
+                  "terminal": false,
+                  "areas": {
+                    "BLACK": 5,
+                    "WHITE": 4,
+                    "PURPLE": 16
+                  }
+                }
+              ],
+              "visits": 2
+            }
+          ]
+        },
+        {
+          "id": "three-player-search-v4-round12",
+          "point": [
+            3,
+            1
+          ],
+          "simulations": 6,
+          "simulatedActions": 76,
+          "terminalLeaves": 2,
+          "elapsedMs": 249,
+          "evaluated": [
+            {
+              "point": [
+                3,
+                1
+              ],
+              "baseScore": 1.311050125932676,
+              "score": 0.008588656062575783,
+              "margin": -0.42857142857142855,
+              "leaves": [
+                {
+                  "value": 0.008588656062575783,
+                  "margin": -0.42857142857142855,
+                  "terminal": false,
+                  "areas": {
+                    "BLACK": 0,
+                    "WHITE": 12,
+                    "PURPLE": 8
+                  }
+                },
+                {
+                  "value": 0.008588656062575783,
+                  "margin": -0.42857142857142855,
+                  "terminal": false,
+                  "areas": {
+                    "BLACK": 0,
+                    "WHITE": 12,
+                    "PURPLE": 8
+                  }
+                }
+              ],
+              "visits": 2
+            },
+            {
+              "point": [
+                2,
+                1
+              ],
+              "baseScore": 0.03732791923384289,
+              "score": 0.0015994792836220996,
+              "margin": -0.6071428571428571,
+              "leaves": [
+                {
+                  "value": 0.0015994792836220996,
+                  "margin": -0.6071428571428571,
+                  "terminal": false,
+                  "areas": {
+                    "BLACK": 0,
+                    "WHITE": 5,
+                    "PURPLE": 17
+                  }
+                },
+                {
+                  "value": 0.0015994792836220996,
+                  "margin": -0.6071428571428571,
+                  "terminal": false,
+                  "areas": {
+                    "BLACK": 0,
+                    "WHITE": 5,
+                    "PURPLE": 17
+                  }
+                }
+              ],
+              "visits": 2
+            },
+            {
+              "point": [
+                1,
+                2
+              ],
+              "baseScore": 0.03732791923384289,
+              "score": 0,
+              "margin": -0.6428571428571429,
+              "leaves": [
+                {
+                  "value": 0,
+                  "margin": -0.6428571428571429,
+                  "terminal": true,
+                  "areas": {
+                    "BLACK": 0,
+                    "WHITE": 6,
+                    "PURPLE": 18
+                  }
+                },
+                {
+                  "value": 0,
+                  "margin": -0.6428571428571429,
+                  "terminal": true,
+                  "areas": {
+                    "BLACK": 0,
+                    "WHITE": 6,
+                    "PURPLE": 18
+                  }
+                }
+              ],
+              "visits": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "size": 9,
+      "source": "C:\\coding\\py\\line game\\local_artifacts\\three-player-v3-final-vs-v2-20261021\\games\\n9-black-p0-single-purple.json",
+      "source_sha256": "f067b85d3aa283280e0f26dfbbb60d034d27dcd4abe5df05fefcd70702a55882",
+      "ply": 20,
+      "focal": "PURPLE",
+      "oldFinalUsedOnlyAsDiagnostic": true,
+      "basePoint": [
+        6,
+        1
+      ],
+      "baseMs": 5,
+      "candidates": [
+        {
+          "id": "three-player-search-v4-round3",
+          "point": [
+            6,
+            1
+          ],
+          "simulations": 2,
+          "simulatedActions": 8,
+          "terminalLeaves": 0,
+          "elapsedMs": 193,
+          "evaluated": [
+            {
+              "point": [
+                6,
+                1
+              ],
+              "baseScore": -2.277790503679438,
+              "score": 0.0021048349535006416,
+              "margin": -0.6,
+              "leaves": [
+                {
+                  "value": 0.0021048349535006416,
+                  "margin": -0.6,
+                  "terminal": false,
+                  "areas": {
+                    "BLACK": 4,
+                    "WHITE": 27,
+                    "PURPLE": 0
+                  }
+                },
+                {
+                  "value": 0.0021048349535006416,
+                  "margin": -0.6,
+                  "terminal": false,
+                  "areas": {
+                    "BLACK": 4,
+                    "WHITE": 27,
+                    "PURPLE": 0
+                  }
+                }
+              ],
+              "visits": 2
+            }
+          ]
+        },
+        {
+          "id": "three-player-search-v4-round6",
+          "point": [
+            6,
+            1
+          ],
+          "simulations": 2,
+          "simulatedActions": 14,
+          "terminalLeaves": 0,
+          "elapsedMs": 151,
+          "evaluated": [
+            {
+              "point": [
+                6,
+                1
+              ],
+              "baseScore": -2.277790503679438,
+              "score": 0.0015343337374253588,
+              "margin": -0.6222222222222222,
+              "leaves": [
+                {
+                  "value": 0.0015343337374253588,
+                  "margin": -0.6222222222222222,
+                  "terminal": false,
+                  "areas": {
+                    "BLACK": 7,
+                    "WHITE": 28,
+                    "PURPLE": 0
+                  }
+                },
+                {
+                  "value": 0.0015343337374253588,
+                  "margin": -0.6222222222222222,
+                  "terminal": false,
+                  "areas": {
+                    "BLACK": 7,
+                    "WHITE": 28,
+                    "PURPLE": 0
+                  }
+                }
+              ],
+              "visits": 2
+            }
+          ]
+        },
+        {
+          "id": "three-player-search-v4-round12",
+          "point": [
+            6,
+            1
+          ],
+          "simulations": 2,
+          "simulatedActions": 26,
+          "terminalLeaves": 0,
+          "elapsedMs": 248,
+          "evaluated": [
+            {
+              "point": [
+                6,
+                1
+              ],
+              "baseScore": -2.277790503679438,
+              "score": 0.007276562208084007,
+              "margin": -0.4666666666666667,
+              "leaves": [
+                {
+                  "value": 0.003977745842257626,
+                  "margin": -0.5333333333333333,
+                  "terminal": false,
+                  "areas": {
+                    "BLACK": 11,
+                    "WHITE": 24,
+                    "PURPLE": 0
+                  }
+                },
+                {
+                  "value": 0.010575378573910388,
+                  "margin": -0.4,
+                  "terminal": false,
+                  "areas": {
+                    "BLACK": 10,
+                    "WHITE": 25,
+                    "PURPLE": 7
+                  }
+                }
+              ],
+              "visits": 2
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "selectionOrFinalEvidence": false
+}

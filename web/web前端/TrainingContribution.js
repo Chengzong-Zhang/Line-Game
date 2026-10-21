@@ -1,4 +1,4 @@
-import { createReplayDocument } from "./ReplayCodec.js?v=20261014-code1";
+import { createReplayDocument } from "./ReplayCodec.js?v=20261020-three1";
 
 export const CONTRIBUTION_POLICY = "anonymous-replay-training-v1";
 export const CONTRIBUTION_STORAGE = "lifeline-training-contribution-v1";
@@ -36,6 +36,9 @@ export class TrainingContribution {
   }
   async enqueue(settings, actions, context) {
     if (!this.enabled) return false;
+    // The current reviewed-data pipeline encodes triangular boards only.
+    // Hexagonal games remain exportable replays without entering that inbox.
+    if (Number(settings?.playerCount) >= 4) return false;
     const generation = this.generation;
     const replay = await createReplayDocument(settings, structuredClone(actions));
     if (!this.enabled || generation !== this.generation || !replay.terminal) return false;

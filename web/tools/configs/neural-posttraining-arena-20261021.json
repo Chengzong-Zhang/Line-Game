@@ -1,0 +1,13 @@
+{
+  "schema": "lifeline-web-neural-screen-v1",
+  "evidenceTier": "APPLICATION_POSTTRAINING_SCREEN_NOT_RELEASE_GATE",
+  "autoPromote": false,
+  "sizes": [5, 7, 9],
+  "prefixesPerSize": 2,
+  "prefixPlies": 4,
+  "maximumPlies": 400,
+  "maximumGameMs": 120000,
+  "puctSimulations": 16,
+  "seedNamespace": "all-ai-posttraining-20261021-neural-independent-screen-v1",
+  "decision": "Keep existing defaults. Twelve paired games per model are an exploratory screen, not proof of improvement across seventeen models or all supported sizes."
+}

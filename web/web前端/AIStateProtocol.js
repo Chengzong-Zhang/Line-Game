@@ -10,6 +10,7 @@ export function serializeEngineState(engine) {
     positionRevision: engine.positionRevision,
     activePlayers: [...engine.activePlayers],
     gridEntries: [...engine.grid.entries()],
+    edges: Object.fromEntries(engine.activePlayers.map((player) => [player, [...(engine.edges[player] ?? [])]])),
     edgesBlack: [...(engine.edges.BLACK ?? [])],
     edgesWhite: [...(engine.edges.WHITE ?? [])],
     edgesPurple: [...(engine.edges.PURPLE ?? [])],
@@ -20,6 +21,18 @@ export function serializeEngineState(engine) {
     gameOver: engine.gameOver,
     turnCount: engine.turnCount,
   };
+}
+
+// Keep legacy fields readable for existing callers while carrying every seat.
+export function deserializeEngineEdges(serializedState, players) {
+  const legacy = {
+    BLACK: serializedState.edgesBlack,
+    WHITE: serializedState.edgesWhite,
+    PURPLE: serializedState.edgesPurple,
+  };
+  return Object.fromEntries(players.map((player) => [
+    player, new Set(serializedState.edges?.[player] ?? legacy[player] ?? []),
+  ]));
 }
 
 export function isWorkerResultCurrent(engine, message) {

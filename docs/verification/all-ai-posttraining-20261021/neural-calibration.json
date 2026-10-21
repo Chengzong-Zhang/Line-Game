@@ -1,0 +1,133 @@
+{
+  "status": "PASS_BOUNDED_CPU_TENSOR_CALIBRATION",
+  "device": "cpu",
+  "threads": 1,
+  "torch_version": "2.7.1+cu118",
+  "rows": [
+    {
+      "family": "padded_cnn",
+      "size": 5,
+      "batch_size": 16,
+      "median_step_seconds": 0.057487600002787076
+    },
+    {
+      "family": "padded_cnn",
+      "size": 9,
+      "batch_size": 16,
+      "median_step_seconds": 0.1132008999993559
+    },
+    {
+      "family": "padded_cnn",
+      "size": 15,
+      "batch_size": 16,
+      "median_step_seconds": 0.2617541999934474
+    },
+    {
+      "family": "padded_cnn",
+      "checkpoint_bytes": 763423,
+      "checkpoint_write_and_sync_seconds": 0.051034600008279085
+    },
+    {
+      "family": "grid_gnn",
+      "size": 5,
+      "batch_size": 16,
+      "median_step_seconds": 0.02283770000212826
+    },
+    {
+      "family": "grid_gnn",
+      "size": 9,
+      "batch_size": 16,
+      "median_step_seconds": 0.05137680000916589
+    },
+    {
+      "family": "grid_gnn",
+      "size": 15,
+      "batch_size": 16,
+      "median_step_seconds": 0.13128120001056232
+    },
+    {
+      "family": "grid_gnn",
+      "checkpoint_bytes": 672591,
+      "checkpoint_write_and_sync_seconds": 0.26547140000911895
+    },
+    {
+      "family": "topology_gnn",
+      "size": 5,
+      "batch_size": 16,
+      "median_step_seconds": 0.026327800005674362
+    },
+    {
+      "family": "topology_gnn",
+      "size": 9,
+      "batch_size": 16,
+      "median_step_seconds": 0.05178439999872353
+    },
+    {
+      "family": "topology_gnn",
+      "size": 15,
+      "batch_size": 16,
+      "median_step_seconds": 0.1235148000123445
+    },
+    {
+      "family": "topology_gnn",
+      "checkpoint_bytes": 729663,
+      "checkpoint_write_and_sync_seconds": 0.13875990000087768
+    },
+    {
+      "family": "dqn",
+      "size": 5,
+      "batch_size": 16,
+      "median_step_seconds": 0.024295999988680705
+    },
+    {
+      "family": "dqn",
+      "size": 9,
+      "batch_size": 16,
+      "median_step_seconds": 0.03493989999697078
+    },
+    {
+      "family": "dqn",
+      "size": 15,
+      "batch_size": 16,
+      "median_step_seconds": 0.0727745999902254
+    },
+    {
+      "family": "dqn",
+      "checkpoint_bytes": 9084715,
+      "checkpoint_write_and_sync_seconds": 0.20986299999640323
+    },
+    {
+      "family": "ppo",
+      "size": 5,
+      "batch_size": 16,
+      "median_step_seconds": 0.025394699987373315
+    },
+    {
+      "family": "ppo",
+      "size": 9,
+      "batch_size": 16,
+      "median_step_seconds": 0.04064970000763424
+    },
+    {
+      "family": "ppo",
+      "size": 15,
+      "batch_size": 16,
+      "median_step_seconds": 0.07993839999835473
+    },
+    {
+      "family": "ppo",
+      "checkpoint_bytes": 9087317,
+      "checkpoint_write_and_sync_seconds": 0.11949070000264328
+    }
+  ],
+  "maximum_measured_step_seconds": 0.2617541999934474,
+  "1700_updates_at_slowest_measured_shape_seconds": 444.9821399888606,
+  "suggested_hard_budget_seconds": 1800,
+  "full_training_started": false,
+  "limits": [
+    "Synthetic shape/density calibration, not trajectory or strength evidence.",
+    "LR=0 preserved parent parameters; measured training-shaped forward/backward/Adam only.",
+    "1700-step estimate excludes validation, repeated hashes, checkpoint I/O and system contention."
+  ],
+  "calibrator_sha256": "c67e3d530d3dcef115ee217b1e8948e99dee675b0a220102962ec73525ea1536"
+}

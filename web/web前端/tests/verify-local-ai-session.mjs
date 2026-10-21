@@ -52,6 +52,7 @@ const controller = Object.assign(Object.create(GameController.prototype), {
 });
 const ruleState = () => JSON.stringify(serializeRuleState(controller.engine));
 async function configure(blue, red, startPlayer = "BLACK") {
+  app.selectedPlayerCount.value = 2;
   app.updateLocalPlayer({ color: "BLACK", patch: blue });
   app.updateLocalPlayer({ color: "WHITE", patch: red });
   app.selectedGridSize.value = 5;
@@ -206,6 +207,39 @@ try {
   assert.equal([...timers.values()].some((timer) => timer.delay <= 400), false);
 
   app.selectedPlayerCount.value = 3;
+  app.updateLocalPlayer({ color: "BLACK", patch: { choice: "human" } });
+  app.updateLocalPlayer({ color: "WHITE", patch: { choice: "three-player" } });
+  app.updateLocalPlayer({ color: "PURPLE", patch: { choice: "three-player" } });
+  app.selectedStartPlayer.value = "WHITE";
+  await app.startLocalMatch();
+  assert.equal(app.selectedAiMode.value, "mixed");
+  const firstThree = nextRequest();
+  assert.equal(firstThree.message.strategy, "three-player");
+  assert.equal(firstThree.message.aiPlayer, "WHITE");
+  reply(firstThree);
+  const secondThree = nextRequest();
+  assert.equal(secondThree.message.aiPlayer, "PURPLE", "a second AI must act without human intervention");
+  reply(secondThree);
+  assert.equal(controller.engine.currentPlayer, "BLACK");
+  assert.equal(app.isLocalAiTurn(), false);
+  assert.equal(app.skipDisabled.value, false);
+  app.toggleAiDuel();
+  const restoredThree = App.setup();
+  assert.equal(restoredThree.activeLocalPlayers.value.PURPLE.choice, "three-player");
+  assert.equal(restoredThree.aiDuelPaused.value, true);
+  app.toggleAiDuel();
+  await app.handleSkip();
+  const timedOut = nextRequest();
+  const deadline = [...timers].find(([, timer]) => timer.delay === 15000);
+  assert.ok(deadline, "three-player inference must have a bounded timeout");
+  timers.delete(deadline[0]); deadline[1].callback();
+  const beforeTimeoutReply = ruleState();
+  reply(timedOut);
+  assert.equal(ruleState(), beforeTimeoutReply, "late result after timeout is ignored");
+  assert.equal(app.aiDuelPaused.value, true);
+  app.toggleAiDuel();
+  assert.equal(nextRequest().message.strategy, "three-player", "retry preserves the selected three-player model");
+  for (const color of ["BLACK", "WHITE", "PURPLE"]) app.updateLocalPlayer({ color, patch: { choice: "human" } });
   await app.startLocalMatch();
   assert.equal(app.selectedAiMode.value, "none");
   assert.equal(app.skipDisabled.value, false, "three-player human matches remain playable");

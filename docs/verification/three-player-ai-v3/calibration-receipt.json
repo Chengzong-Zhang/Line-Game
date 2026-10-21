@@ -1,0 +1,198 @@
+{
+  "status": "CALIBRATION-ONLY",
+  "games": [
+    {
+      "size": 5,
+      "start": "BLACK",
+      "plies": 8,
+      "milliseconds": 41.1305,
+      "outcome": {
+        "scores": {
+          "BLACK": 5,
+          "WHITE": 4,
+          "PURPLE": 5
+        },
+        "leaders": [
+          "BLACK",
+          "PURPLE"
+        ],
+        "shares": {
+          "BLACK": 0.5,
+          "WHITE": 0,
+          "PURPLE": 0.5
+        }
+      }
+    },
+    {
+      "size": 5,
+      "start": "WHITE",
+      "plies": 8,
+      "milliseconds": 12.22659999999999,
+      "outcome": {
+        "scores": {
+          "BLACK": 4,
+          "WHITE": 5,
+          "PURPLE": 5
+        },
+        "leaders": [
+          "WHITE",
+          "PURPLE"
+        ],
+        "shares": {
+          "BLACK": 0,
+          "WHITE": 0.5,
+          "PURPLE": 0.5
+        }
+      }
+    },
+    {
+      "size": 5,
+      "start": "PURPLE",
+      "plies": 9,
+      "milliseconds": 19.892200000000003,
+      "outcome": {
+        "scores": {
+          "BLACK": 6,
+          "WHITE": 6,
+          "PURPLE": 0
+        },
+        "leaders": [
+          "BLACK",
+          "WHITE"
+        ],
+        "shares": {
+          "BLACK": 0.5,
+          "WHITE": 0.5,
+          "PURPLE": 0
+        }
+      }
+    },
+    {
+      "size": 7,
+      "start": "BLACK",
+      "plies": 25,
+      "milliseconds": 171.45510000000002,
+      "outcome": {
+        "scores": {
+          "BLACK": 5,
+          "WHITE": 7,
+          "PURPLE": 15
+        },
+        "leaders": [
+          "PURPLE"
+        ],
+        "shares": {
+          "BLACK": 0,
+          "WHITE": 0,
+          "PURPLE": 1
+        }
+      }
+    },
+    {
+      "size": 7,
+      "start": "WHITE",
+      "plies": 45,
+      "milliseconds": 236.7957,
+      "outcome": {
+        "scores": {
+          "BLACK": 16,
+          "WHITE": 5,
+          "PURPLE": 7
+        },
+        "leaders": [
+          "BLACK"
+        ],
+        "shares": {
+          "BLACK": 1,
+          "WHITE": 0,
+          "PURPLE": 0
+        }
+      }
+    },
+    {
+      "size": 7,
+      "start": "PURPLE",
+      "plies": 29,
+      "milliseconds": 134.50250000000005,
+      "outcome": {
+        "scores": {
+          "BLACK": 5,
+          "WHITE": 17,
+          "PURPLE": 4
+        },
+        "leaders": [
+          "WHITE"
+        ],
+        "shares": {
+          "BLACK": 0,
+          "WHITE": 1,
+          "PURPLE": 0
+        }
+      }
+    },
+    {
+      "size": 9,
+      "start": "BLACK",
+      "plies": 75,
+      "milliseconds": 619.3722,
+      "outcome": {
+        "scores": {
+          "BLACK": 11,
+          "WHITE": 10,
+          "PURPLE": 20
+        },
+        "leaders": [
+          "PURPLE"
+        ],
+        "shares": {
+          "BLACK": 0,
+          "WHITE": 0,
+          "PURPLE": 1
+        }
+      }
+    },
+    {
+      "size": 9,
+      "start": "WHITE",
+      "plies": 59,
+      "milliseconds": 448.31510000000003,
+      "outcome": {
+        "scores": {
+          "BLACK": 8,
+          "WHITE": 23,
+          "PURPLE": 8
+        },
+        "leaders": [
+          "WHITE"
+        ],
+        "shares": {
+          "BLACK": 0,
+          "WHITE": 1,
+          "PURPLE": 0
+        }
+      }
+    },
+    {
+      "size": 9,
+      "start": "PURPLE",
+      "plies": 58,
+      "milliseconds": 463.6482000000001,
+      "outcome": {
+        "scores": {
+          "BLACK": 11,
+          "WHITE": 9,
+          "PURPLE": 24
+        },
+        "leaders": [
+          "PURPLE"
+        ],
+        "shares": {
+          "BLACK": 0,
+          "WHITE": 0,
+          "PURPLE": 1
+        }
+      }
+    }
+  ],
+  "source_sha256": "dfdafce7647e85e60619f3b66d461705cc4bf4c0da60ccf1e44af7a50a8f5bfc"
+}

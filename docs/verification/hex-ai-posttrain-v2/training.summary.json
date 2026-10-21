@@ -1,0 +1,31 @@
+{
+  "identity": "62e3c7dc5bb7fe99b573d849715e9e2292f4b46da24b45fd3bfb48909ca41f9f",
+  "mode": "TRAIN",
+  "status": "COMPLETE",
+  "trainingGames": 45,
+  "developmentGames": 105,
+  "terminalGames": 150,
+  "truncated": 0,
+  "optimizerSteps": 36,
+  "scores": [
+    {
+      "stage": 3,
+      "meanDelta": 0.030000000000000006,
+      "anchorKl": 0.001969077579849373
+    },
+    {
+      "stage": 2,
+      "meanDelta": -0.0033333333333333335,
+      "anchorKl": 0.0016548194500560518
+    },
+    {
+      "stage": 1,
+      "meanDelta": -0.008333333333333333,
+      "anchorKl": 0.004402963423803553
+    }
+  ],
+  "selectedStage": 3,
+  "outputSha256": "8cce4228dd835112e62db8fc397f86284380880fd21c62305f8f4aaa523bd910",
+  "promotion": "REQUIRES_INDEPENDENT_FINAL",
+  "integrity": "0120fe02a22e147fbce52f235c211a3eabc4fdb26f9f773570bbe8666ac855a5"
+}

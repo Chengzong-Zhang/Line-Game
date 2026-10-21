@@ -14,6 +14,8 @@ import time
 from fastapi import APIRouter, HTTPException, Request
 
 POLICY = "anonymous-replay-training-v1"
+THREE_PLAYER_MODEL_ID = "three-player-policy-v1"
+THREE_PLAYER_MODEL_IDS = frozenset({THREE_PLAYER_MODEL_ID, "three-player-policy-v2"})
 MAX_REQUEST_BYTES = 512000
 VALIDATOR = Path(__file__).resolve().parents[1] / "tools/validate_contribution.mjs"
 
@@ -32,8 +34,13 @@ def normalize_context(context):
             raise ValueError("Unexpected actor fields")
         if actor["kind"] == "human" and set(actor) != {"kind"}:
             raise ValueError("Human actor must have no identifiers")
-        if actor["kind"] == "ai" and actor.get("strategy") not in {"minimax", "mcts", "neural-puct", "model-free"}:
+        if actor["kind"] == "ai" and actor.get("strategy") not in {"minimax", "mcts", "neural-puct", "model-free", "three-player"}:
             raise ValueError("Unknown AI strategy")
+        if actor.get("strategy") == "three-player":
+            if set(actors) != {"BLACK", "WHITE", "PURPLE"} or actor.get("modelId") not in THREE_PLAYER_MODEL_IDS:
+                raise ValueError("Invalid three-player AI identity")
+        elif actor.get("modelId") in THREE_PLAYER_MODEL_IDS:
+            raise ValueError("Three-player model requires its matching strategy")
         for key, value in actor.items():
             if key in ("kind", "strategy", "modelId"):
                 if not isinstance(value, str) or not re.fullmatch(r"[a-zA-Z0-9_.-]{1,96}", value):
@@ -68,6 +75,9 @@ class ContributionStore:
         game_id = verified["game_id"]
         expected_colors = {"BLACK", "WHITE", *(["PURPLE"] if verified["replay"]["config"]["playerCount"] == 3 else [])}
         if set(context["actors"]) != expected_colors: raise ValueError("Actor/config mismatch")
+        if any(actor.get("strategy") == "three-player" for actor in context["actors"].values()):
+            if verified["replay"]["config"]["playerCount"] != 3 or verified["replay"]["rulesVersion"] != "territory-v2":
+                raise ValueError("Three-player AI requires a territory-v2 three-player replay")
         document = json.dumps({**verified, "context": context, "consent_policy": POLICY, "status": "awaiting_review"}, ensure_ascii=False, allow_nan=False)
         with self.connect() as db:
             db.execute("BEGIN IMMEDIATE")

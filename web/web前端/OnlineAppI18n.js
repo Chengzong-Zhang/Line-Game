@@ -1,5 +1,5 @@
-import { Player } from "./GameEngine.js?v=20261014-code1";
-import { ALL_PLAYERS } from "./OnlineAppState.js?v=20261014-code1";
+import { Player } from "./GameEngine.js?v=20261020-three1";
+import { ALL_PLAYERS } from "./OnlineAppState.js?v=20261021-hexai1";
 
 // 文案、比分格式化和错误提示都集中放在这里，避免 UI 文件里散落大量字符串。
 
@@ -171,7 +171,7 @@ const EN_TEXTS = Object.freeze({
   countdownStatus: (seconds) => `Both sides agreed. Match starts in ${seconds}s.`,
   turnTimerStatus: (seconds) => `Turn timer: ${seconds}s`,
   offlineStatus: "Connection was lost. Reconnect to the relay server before continuing the online match.",
-  playingStatus: "Both sides are ready and the match is live.",
+  playingStatus: "All players are ready and the match is live.",
   finalStatus: (winner, scoreLine) => `${winner}. Final score: ${scoreLine}.`,
   victorySuffix: "You won",
   defeatSuffix: "You lost",
@@ -218,15 +218,37 @@ const EN_TEXTS = Object.freeze({
   aiModeWhite: "AI Second",
   aiModeBlack: "AI First",
   aiModeDuel: "AI vs AI",
-  aiDuelPause: "Pause AI match",
-  aiDuelResume: "Resume AI match",
+  aiDuelPause: "Pause AI",
+  aiDuelResume: "Resume AI",
   aiDuelModelHint: "Both sides use the selected model and difficulty.",
   aiDifficulty: "AI Difficulty",
   localBluePlayer: "Blue player",
   localRedPlayer: "Red player",
+  localPurplePlayer: "Purple player",
+  localThreeAI: "Three-player AI",
+  localHexAI: "Hexagon AI",
+  roomBotOption: (players, bots) => bots ? `${players - bots} human${players - bots === 1 ? "" : "s"} + ${bots} AI${bots === 1 ? "" : "s"}` : `${players} humans`,
+  roomBotCount: "AI seats in the new room",
+  roomBotOptions: ["3 humans", "2 humans + 1 AI", "1 human + 2 AIs"],
+  roomBotHint: "AI players are ready automatically. All human players must press Ready.",
+  roomRetryBots: "Retry AI turn",
   localBlue: "Blue",
   localRed: "Red",
   localPurple: "Purple",
+  localGreen: "Green",
+  localGreenPlayer: "Green player",
+  greenTerritory: "Green Territory",
+  localOrange: "Orange",
+  localOrangePlayer: "Orange player",
+  orangeTerritory: "Orange Territory",
+  localCyan: "Cyan",
+  localCyanPlayer: "Cyan player",
+  cyanTerritory: "Cyan Territory",
+  hexBoardTitle: "Regular Hexagonal Board",
+  hexBoardAriaLabel: "LIFELINE regular hexagonal board",
+  hexVertex: (vertex) => `Vertex ${vertex}`,
+  localHexHuman: "Choose a human or Hexagon AI for each corner, including matches with multiple AIs or all AI players. AI hints and training contributions are not available for this board.",
+  boardGeometry: (count) => count >= 4 ? `Regular hexagon · ${count} players · corners ${count === 4 ? "1, 2, 4, 5" : count === 5 ? "1–5" : "1–6"}. Corners run clockwise from the upper left; side length counts nodes.` : "Triangular board · the existing two- and three-player rules.",
   localHuman: "Human",
   localHumanDescription: "A person plays this side on the board.",
   localController: "Player",
@@ -239,11 +261,11 @@ const EN_TEXTS = Object.freeze({
   localAdvanced: "Model options",
   localLegacyModel: "Legacy model · 20260825",
   localResearchNote: "Experimental model; playing strength has not been independently evaluated.",
-  localThreeHuman: "Three-player matches currently use human players.",
+  localThreeHuman: "Choose a human or AI for each side. One or two AIs can join a three-player match.",
   localPendingSettings: "Choose the players and starting side, then start a match. Starting a new match resets the board.",
   localAppliedSettings: "These settings are active. You can swap sides for the next match.",
-  localSetupPrompt: "Choose both players in Board settings and press Start match.",
-  localAiFailure: (side, fallback) => fallback ? `${side} AI could not load. This side is continuing with Minimax.` : `${side} AI stopped. Start a new match to retry.`,
+  localSetupPrompt: "Choose the players in Board settings and press Start match.",
+  localAiFailure: (side, fallback) => fallback ? `${side} AI could not load. This side is continuing with Minimax.` : `${side} AI stopped. Your match is saved. Press Resume AI to retry.`,
   aiDifficultyEasy: "Easy",
   aiDifficultyMedium: "Medium",
   aiDifficultyHard: "Hard",
@@ -253,6 +275,8 @@ const EN_TEXTS = Object.freeze({
   aiModelGridGnn: "Grid-GNN + PUCT",
   aiModelTopologyGnn: "Topology-GNN + PUCT",
   aiModelDescriptions: Object.freeze({
+    "three-player": "A lightweight trained policy that considers both opponents.",
+    "hex-player": "A policy for four- to six-player hexagonal boards that considers all opponents. Playing strength has not been independently evaluated.",
     minimax: "Searches ahead to choose a move.",
     "padded-cnn": "Recognizes board patterns, then searches.",
     "grid-gnn": "Uses grid neighbors, then searches.",
@@ -419,7 +443,7 @@ const ZH_TEXTS = Object.freeze({
   countdownStatus: (seconds) => `双方都已同意，将在 ${seconds} 秒后开始对局。`,
   turnTimerStatus: (seconds) => `当前读秒：${seconds} 秒`,
   offlineStatus: "连接已断开，继续联机对局前请先重新连接服务器。",
-  playingStatus: "双方已准备，对局已开始。",
+  playingStatus: "所有玩家已准备，对局已开始。",
   finalStatus: (winner, scoreLine) => `${winner}。最终比分：${scoreLine}。`,
   victorySuffix: "你赢了",
   defeatSuffix: "你输了",
@@ -466,15 +490,37 @@ const ZH_TEXTS = Object.freeze({
   aiModeWhite: "AI后手",
   aiModeBlack: "AI先手",
   aiModeDuel: "AI对战",
-  aiDuelPause: "暂停对战",
-  aiDuelResume: "继续对战",
+  aiDuelPause: "暂停 AI",
+  aiDuelResume: "继续 AI",
   aiDuelModelHint: "双方使用下方选择的模型与难度。",
   aiDifficulty: "AI 难度",
   localBluePlayer: "蓝方玩家",
   localRedPlayer: "红方玩家",
+  localPurplePlayer: "紫方玩家",
+  localThreeAI: "三人 AI",
+  localHexAI: "六边形 AI",
+  roomBotOption: (players, bots) => bots ? `${players - bots} 位真人 + ${bots} 个 AI` : `${players} 位真人`,
+  roomBotCount: "新房间的 AI 席位",
+  roomBotOptions: ["3 位真人", "2 位真人 + 1 个 AI", "1 位真人 + 2 个 AI"],
+  roomBotHint: "AI 会自动准备；所有真人点击“准备”后开始对局。",
+  roomRetryBots: "重试 AI 回合",
   localBlue: "蓝方",
   localRed: "红方",
   localPurple: "紫方",
+  localGreen: "绿方",
+  localGreenPlayer: "绿方玩家",
+  greenTerritory: "绿方领地",
+  localOrange: "橙方",
+  localOrangePlayer: "橙方玩家",
+  orangeTerritory: "橙方领地",
+  localCyan: "青方",
+  localCyanPlayer: "青方玩家",
+  cyanTerritory: "青方领地",
+  hexBoardTitle: "正六边形棋盘",
+  hexBoardAriaLabel: "生命线正六边形棋盘",
+  hexVertex: (vertex) => `顶点 ${vertex}`,
+  localHexHuman: "每个角都可选择人类或六边形 AI，支持一人对战多个 AI，也支持全 AI 对战；暂不提供 AI 提示与训练数据贡献。",
+  boardGeometry: (count) => count >= 4 ? `正六边形 · ${count} 人 · 占据${count === 4 ? " 1、2、4、5" : count === 5 ? " 1—5" : " 1—6"} 号顶点。自左上角起顺时针编号，边长表示每边格点数。` : "三角棋盘 · 沿用原有的两人、三人规则。",
   localHuman: "人类",
   localHumanDescription: "由玩家在棋盘上操作这一方。",
   localController: "选择玩家",
@@ -487,11 +533,11 @@ const ZH_TEXTS = Object.freeze({
   localAdvanced: "模型高级设置",
   localLegacyModel: "旧模型 · 20260825",
   localResearchNote: "实验模型，棋力尚未独立评估。",
-  localThreeHuman: "三人对局目前由三位人类玩家操作。",
-  localPendingSettings: "选好双方和先手后开始对局；开始新对局会重置棋盘。",
+  localThreeHuman: "每一方都可选择人类或 AI，支持一人对战两个 AI，也支持两人对战一个 AI。",
+  localPendingSettings: "选好各方棋手和先手后开始对局；开始新对局会重置棋盘。",
   localAppliedSettings: "当前设置已应用，可以交换双方准备下一局。",
-  localSetupPrompt: "请在棋盘设置中选好双方，点击“开始对局”。",
-  localAiFailure: (side, fallback) => fallback ? `${side} AI 加载失败，该方已改用 Minimax 继续。` : `${side} AI 已停止，请开始新对局重试。`,
+  localSetupPrompt: "请在棋盘设置中选好各方棋手，点击“开始对局”。",
+  localAiFailure: (side, fallback) => fallback ? `${side} AI 加载失败，该方已改用 Minimax 继续。` : `${side} AI 已停止，棋局已保留。点击“继续 AI”重试。`,
   aiDifficultyEasy: "简单",
   aiDifficultyMedium: "中等",
   aiDifficultyHard: "困难",
@@ -501,6 +547,8 @@ const ZH_TEXTS = Object.freeze({
   aiModelGridGnn: "Grid-GNN + PUCT",
   aiModelTopologyGnn: "Topology-GNN + PUCT",
   aiModelDescriptions: Object.freeze({
+    "three-player": "经过训练的轻量策略，会同时考虑另外两方的局面。",
+    "hex-player": "用于四至六人正六边形棋盘，同时考虑各对手的局面；棋力尚未独立评估。",
     minimax: "推演双方后续落子，择优行动。",
     "padded-cnn": "识别棋盘布局，再搜索落点。",
     "grid-gnn": "分析网格邻接，再搜索落点。",
@@ -785,11 +833,16 @@ export function formatPlayerName(player, language = "zh", uiStyle = UI_STYLE_CAS
     }
     return language === "en" ? "Red" : "红方";
   }
-  if (player === Player.PURPLE) {
-    if (academic) {
-      return language === "en" ? "Node Gamma" : "节点 Gamma";
-    }
-    return language === "en" ? "Purple" : "紫方";
+  const extraPlayers = {
+    [Player.PURPLE]: ["Purple", "紫方", "Gamma"],
+    [Player.GREEN]: ["Green", "绿方", "Delta"],
+    [Player.ORANGE]: ["Orange", "橙方", "Epsilon"],
+    [Player.CYAN]: ["Cyan", "青方", "Zeta"],
+  };
+  if (extraPlayers[player]) {
+    const [english, chinese, academicName] = extraPlayers[player];
+    return academic ? (language === "en" ? `Node ${academicName}` : `节点 ${academicName}`)
+      : (language === "en" ? english : chinese);
   }
   return texts.unassigned;
 }
@@ -797,20 +850,8 @@ export function formatPlayerName(player, language = "zh", uiStyle = UI_STYLE_CAS
 export function formatWinner(winner, language = "zh", uiStyle = UI_STYLE_CASUAL) {
   const texts = getTexts(language, uiStyle);
   const academic = normalizeUiStyle(uiStyle) === UI_STYLE_ACADEMIC;
-  if (winner === Player.BLACK) {
-    const player = formatPlayerName(Player.BLACK, language, uiStyle);
-    return academic
-      ? (language === "en" ? `${player} reached Winning Position` : `${player} 达到胜势态`)
-      : (language === "en" ? `${player} Wins` : `${player}获胜`);
-  }
-  if (winner === Player.WHITE) {
-    const player = formatPlayerName(Player.WHITE, language, uiStyle);
-    return academic
-      ? (language === "en" ? `${player} reached Winning Position` : `${player} 达到胜势态`)
-      : (language === "en" ? `${player} Wins` : `${player}获胜`);
-  }
-  if (winner === Player.PURPLE) {
-    const player = formatPlayerName(Player.PURPLE, language, uiStyle);
+  if (ALL_PLAYERS.includes(winner)) {
+    const player = formatPlayerName(winner, language, uiStyle);
     return academic
       ? (language === "en" ? `${player} reached Winning Position` : `${player} 达到胜势态`)
       : (language === "en" ? `${player} Wins` : `${player}获胜`);

@@ -1,0 +1,17 @@
+{
+  "status": "PASS_SUPERVISED_TRAINING_COMPLETION",
+  "supervisor_status": "COMPLETE",
+  "attempts": 1,
+  "abnormal_exits": 0,
+  "no_progress_exits": 0,
+  "worker_exit_code": 0,
+  "worker_elapsed_seconds": 578.379,
+  "hard_budget_seconds": 1800,
+  "worker_budget_seconds": 660,
+  "progress_units": 1700,
+  "completed_models": 17,
+  "training_identity": "c7fc59f4ba25b90240dd9c54fafb1d44952472814dc5c4b8e53ad9963328dfbc",
+  "job_sha256": "0600735d9b1693e1186472bbec82c8d1efcbf036ef1d119693c260449b74f971",
+  "supervisor_source_sha256": "a4f05cb802ad9479faae0e7121bce0ad66bc81f56fe5bbdeaa4d33e0bb63fe8c",
+  "limitations": "Completion and supervision only; independent numerical verification and application arena are recorded separately."
+}

@@ -1,0 +1,26 @@
+{
+  "status": "PASS_OUTPUT_VERIFIER_FIXTURES",
+  "cases": [
+    {
+      "case": "complete-fixture-independent-replay",
+      "pass": true
+    },
+    {
+      "case": "resealed-feature-corruption-rejected",
+      "pass": true
+    },
+    {
+      "case": "resealed-candidate-corruption-rejected",
+      "pass": true
+    },
+    {
+      "case": "resealed-development-corruption-rejected",
+      "pass": true
+    }
+  ],
+  "full_training_started_by_this_test": false,
+  "verifier_sha256": "2543b1053dc14c3b0be27bc7b7d0ce9fca866c586ca6184b5085f610025498e3",
+  "test_sha256": "fe11696d377e7628cff4653085a31413648a4d55021e699151ba287a9a69ea8b",
+  "scope": "A fresh two-episode fixture and independently resealed feature, optimizer-candidate and development-outcome corruption.",
+  "artifact_directory": "C:\\coding\\py\\line game\\local_artifacts\\three-player-output-verifier-1792513326404"
+}

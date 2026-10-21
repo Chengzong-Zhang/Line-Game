@@ -1,0 +1,59 @@
+{
+  "date": "2026-10-20",
+  "status": "PASS-CURRENT",
+  "scope": "Local three-player model training, inference and interruption recovery; browser/network/deployment acceptance is separate.",
+  "model_id": "three-player-policy-v1",
+  "model_sha256": "8cd1a2f36267f96b1e32b7749a9cdc785f489ea7ec12e31aee0beb0a72901794",
+  "rules_version": "territory-v2",
+  "runtime": "Windows, Node v22.22.3, CPU",
+  "training": {
+    "command": "node --unhandled-rejections=strict web/tools/train-three-player-ai.mjs --run-root local_artifacts/three-player-ai-final-v1 --max-seconds 90",
+    "exit_code": 0,
+    "elapsed_seconds": 46.093,
+    "completed_generation_episodes": 36,
+    "terminal_episodes": 13,
+    "truncated_episodes": 23,
+    "generated_positions": 479,
+    "two_player_training_positions": 135,
+    "three_player_training_positions": 244,
+    "heldout_three_player_positions": 67,
+    "heldout_cross_entropy_before": 1.8965364481719391,
+    "heldout_cross_entropy_after": 1.5375684235502434,
+    "trained_sizes": [5, 7, 9],
+    "boundary": "Behavior cloning from existing two-player Minimax followed by three-player MaxN teachers. No game-strength or formal RL claim."
+  },
+  "inference_verification": {
+    "command": "node --unhandled-rejections=strict web/web前端/tests/verify-three-player-ai.mjs",
+    "exit_code": 0,
+    "sizes": [5, 9, 15],
+    "seats": ["BLACK", "WHITE", "PURPLE"],
+    "checks": [
+      "Artifact SHA-256 and every recorded training source byte hash match",
+      "All legal candidates scored with finite logits and normalized priors",
+      "Complete source state preserved on success and injected failure",
+      "Superko history excludes forbidden actions",
+      "Each single-AI seat and each pair of AI seats finish bounded size-5 fixtures",
+      "Actual async AIWorker branch preserves request ID, rules version, current player and position revision",
+      "Malformed model, missing training provenance and unsupported player count rejected"
+    ],
+    "completed_fixture_games": 6,
+    "initial_position_inference_ms": {"minimum": 2, "maximum": 100},
+    "timing_boundary": "One local CPU probe per seat and size; not a device or performance guarantee."
+  },
+  "recovery_verification": {
+    "command": "node --unhandled-rejections=strict web/web前端/tests/verify-three-player-training-recovery.mjs",
+    "exit_code": 0,
+    "completed_fixture_episodes": 2,
+    "fixture_positions": 25,
+    "checks": [
+      "Force-kill a live generator after its first durable episode",
+      "Resume without repeating the completed episode",
+      "Compare the resumed checkpoint and samples exactly with clean execution",
+      "Quarantine an incomplete trailing temporary write",
+      "Reject duplicate worker lease acquisition",
+      "Reject checkpoint corruption and source/config identity drift"
+    ]
+  },
+  "deployment_status": "NOT-RUN",
+  "mini_program_status": "NOT-RUN"
+}
