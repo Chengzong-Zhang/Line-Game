@@ -1,0 +1,15 @@
+{
+  "status": "PASS_TERMINAL_ROLLOUT_DATA_R3",
+  "identity": "7fc734f2e70b59bcde781e357323f5dc88bd91d7ef3a4a87bb8c8457b9950a56",
+  "positions": 144,
+  "rollouts": 870,
+  "rolloutActions": 16794,
+  "trainSamples": 96,
+  "validationSamples": 48,
+  "manifest_sha256": "43f45cc533a95e805011c5c3088837a4683638f400e254cfce202e7890621689",
+  "verifier_sha256": "6482d6bc6d15ed54576e65179ebcbac8b534fa354a28b01255989f968aec9eec",
+  "scope": "All terminal rollout actions/behavior seeds, rule transitions, discrete area rewards, position encodings and target probabilities; shortlist uses existing frozen Web inference.",
+  "full_report_sha256": "ce20807d4537902fbf9aeb86dc34daa64f324827e2a94089efb4f9600e46c1c5",
+  "verified_input_files": 302,
+  "full_report_path": "local_artifacts\\neural-terminal-headonly-r3-20261021\\data\\verification.json"
+}

@@ -1,0 +1,200 @@
+{
+  "status": "TRAINING_AND_INDEPENDENT_NUMERICAL_VERIFICATION_COMPLETE_NOT_STRENGTH_CONFIRMED",
+  "routes": 2,
+  "updates": 240,
+  "stages": 6,
+  "data_positions": 144,
+  "train_positions": 96,
+  "validation_positions": 48,
+  "terminal_rollouts": 870,
+  "replayed_rollout_actions": 16794,
+  "training_identity": "04377920c49a40240f30739da29051d059735bef81f225d50f4ee0f30fa4ad40",
+  "candidate_manifest": "local_artifacts\\neural-terminal-headonly-r3-20261021\\training\\candidate-manifest.json",
+  "candidate_manifest_sha256": "ec4d30147863869c50c2ca9a0f2a935e314f3179305229f964f3f5e894232836",
+  "data_manifest_sha256": "43f45cc533a95e805011c5c3088837a4683638f400e254cfce202e7890621689",
+  "source_hashes": {
+    "web/tools/neural-terminal-rollout-data-r3.mjs": "d28d8ddbff52bb2de5d68f1302b7a2fcc7fd56980f931d6d1893a1147aa65cfb",
+    "web/tools/verify-neural-terminal-data-r3.mjs": "6482d6bc6d15ed54576e65179ebcbac8b534fa354a28b01255989f968aec9eec",
+    "web/tools/train_neural_terminal_head_r3.py": "2c702d1dc91fc1ac5a9da9a36b32d2b7aa27abefda5996db45cee12b05d56495",
+    "web/tools/verify_neural_terminal_head_r3.py": "29d418c51417709ee8ac20fd889b7531055dedfe06e01f851fce5691aa84871a",
+    "web/tools/test_neural_terminal_head_r3.py": "47963bcc337f0e6aea50ac0e1a2658333c426147a27c19d5cd65cca07d67c7d1",
+    "web/web\u524d\u7aef/tests/verify-neural-terminal-data-r3-recovery.mjs": "36ef596870386845ac2421c35d994efda8c8b9cef6d6bc44dbabb427a60a526e",
+    "web/web\u524d\u7aef/tests/verify-neural-terminal-data-r3-verifier-recovery.mjs": "d7823be9e82268dbbefa1ea285854d779f5b2c3671e7a540c2a6b472fb19068c",
+    "web/tools/configs/neural-terminal-headonly-r3-20261021.json": "12443ccbc2d6ed9043762ed0d7f5a6e2dad0e558c6a3869b9366311c0b0e5b31"
+  },
+  "supervisors": {
+    "data": {
+      "schema": "lifeline-supervisor-state-v1",
+      "identity": "6dea9b2f7a1ece132344c0110628128d5032c6edc012aa41292d547d4160e341",
+      "status": "COMPLETE",
+      "attempts": 1,
+      "abnormal_exits": 0,
+      "no_progress_exits": 0,
+      "progress_units": 1014,
+      "worker_identity": "7fc734f2e70b59bcde781e357323f5dc88bd91d7ef3a4a87bb8c8457b9950a56",
+      "active_attempt": null,
+      "deadline_epoch_ms": 1792555673576,
+      "supervisor_pid": 61436,
+      "supervisor_lease_port": 23656,
+      "attempt_start_units": 0,
+      "worker_pid": null,
+      "updated_epoch_ms": 1792555317290,
+      "integrity": "c2d3a4936c88cfe6568c1a4252a742a3bf2e6a14899437bf5115043bb411e3ef"
+    },
+    "data_verification": {
+      "schema": "lifeline-supervisor-state-v1",
+      "identity": "1af0bd38b5e641fe48a936a25754c3e38e558daa333e9bab47de89d92d239ae5",
+      "status": "COMPLETE",
+      "attempts": 1,
+      "abnormal_exits": 0,
+      "no_progress_exits": 0,
+      "progress_units": 144,
+      "worker_identity": "973b0a4ae8d2489f77fef9fc03d6c711fd1010770eafd01537c68a63ad026123",
+      "active_attempt": null,
+      "deadline_epoch_ms": 1792555971549,
+      "supervisor_pid": 54428,
+      "supervisor_lease_port": 37450,
+      "attempt_start_units": 0,
+      "worker_pid": null,
+      "updated_epoch_ms": 1792555532999,
+      "integrity": "ad439815d92c3a58ae6070923849419260fff2d728dcb06d10cf4de81fe1fd6c"
+    },
+    "training": {
+      "schema": "lifeline-supervisor-state-v1",
+      "identity": "9f0099d89f589ef33eb5d6edc01595d56b458877cbb700b7a84a9e1e82536834",
+      "status": "COMPLETE",
+      "attempts": 1,
+      "abnormal_exits": 0,
+      "no_progress_exits": 0,
+      "progress_units": 240,
+      "worker_identity": "04377920c49a40240f30739da29051d059735bef81f225d50f4ee0f30fa4ad40",
+      "active_attempt": null,
+      "deadline_epoch_ms": 1792555886065,
+      "supervisor_pid": 4292,
+      "supervisor_lease_port": 24693,
+      "attempt_start_units": 0,
+      "worker_pid": null,
+      "updated_epoch_ms": 1792555647948,
+      "integrity": "a1d307be181b5ca301d59fe47277a1e5f1829939b6799dde2c05e4a89ff8677e"
+    }
+  },
+  "worker_exits": {
+    "data": {
+      "attempt": 1,
+      "host_pid": 35100,
+      "worker_pid": 56428,
+      "started_epoch_ms": 1792555073778,
+      "identity": "6dea9b2f7a1ece132344c0110628128d5032c6edc012aa41292d547d4160e341",
+      "exit_code": 0,
+      "signal": null,
+      "cancelled": null,
+      "finished_epoch_ms": 1792555317257
+    },
+    "data_verification": {
+      "attempt": 1,
+      "host_pid": 55520,
+      "worker_pid": 42016,
+      "started_epoch_ms": 1792555371761,
+      "identity": "1af0bd38b5e641fe48a936a25754c3e38e558daa333e9bab47de89d92d239ae5",
+      "exit_code": 0,
+      "signal": null,
+      "cancelled": null,
+      "finished_epoch_ms": 1792555532885
+    },
+    "training": {
+      "attempt": 1,
+      "host_pid": 60832,
+      "worker_pid": 40552,
+      "started_epoch_ms": 1792555586264,
+      "identity": "9f0099d89f589ef33eb5d6edc01595d56b458877cbb700b7a84a9e1e82536834",
+      "exit_code": 0,
+      "signal": null,
+      "cancelled": null,
+      "finished_epoch_ms": 1792555647725
+    }
+  },
+  "independent_execution": {
+    "status": "PASS_INDEPENDENT_TRAINING_VERIFICATION_EXECUTION",
+    "command": [
+      "C:/Users/zcz/anaconda3/envs/rl310/python.exe",
+      "-B",
+      "web/tools/verify_neural_terminal_head_r3.py",
+      "--run-root",
+      "local_artifacts/neural-terminal-headonly-r3-20261021/training",
+      "--data-root",
+      "local_artifacts/neural-terminal-headonly-r3-20261021/data",
+      "--output",
+      "local_artifacts/neural-terminal-headonly-r3-20261021/training-verification.json"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": null,
+    "elapsed_upper_bound_seconds": 56.60215209960938,
+    "timing_boundary": "No standalone timer was recorded. Invocation followed confirmed training exit; report creation minus training exit is a conservative upper bound, excluding no verification work.",
+    "verifier_sha256": "29d418c51417709ee8ac20fd889b7531055dedfe06e01f851fce5691aa84871a",
+    "report_sha256": "2eb106961ca1b96dfd85dffc64272bf2615f99c3b363d7f0fb5373aaf0029c26",
+    "manifest_sha256": "ec4d30147863869c50c2ca9a0f2a935e314f3179305229f964f3f5e894232836"
+  },
+  "stage_validation": [
+    {
+      "id": "padded-cnn-transfer-v1-seed2026092203-terminal-head-r3-s040",
+      "warmstart_model_id": "padded-cnn-transfer-v1-seed2026092203-distill-v1",
+      "updates": 40,
+      "initial_ce": 1.5660425027211506,
+      "validation_ce": 1.565398673216502,
+      "asset_sha256": "653d59c2957bb2580c2e24139325a2cab74df8fea703a22d53c73c8271e6d076"
+    },
+    {
+      "id": "padded-cnn-transfer-v1-seed2026092203-terminal-head-r3-s080",
+      "warmstart_model_id": "padded-cnn-transfer-v1-seed2026092203-distill-v1",
+      "updates": 80,
+      "initial_ce": 1.5660425027211506,
+      "validation_ce": 1.5651666124661763,
+      "asset_sha256": "ce760286d54bd28d894038cf4c7eac6dac51e4e145aad3304cab40daed1e7745"
+    },
+    {
+      "id": "padded-cnn-transfer-v1-seed2026092203-terminal-head-r3-s120",
+      "warmstart_model_id": "padded-cnn-transfer-v1-seed2026092203-distill-v1",
+      "updates": 120,
+      "initial_ce": 1.5660425027211506,
+      "validation_ce": 1.5650251706441243,
+      "asset_sha256": "fac1bb78f176812eb687f5481d241016aa151f659e4c8e34e4cbb575f8e9b32c"
+    },
+    {
+      "id": "grid-gnn-transfer-v1-seed2026092202-terminal-head-r3-s040",
+      "warmstart_model_id": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "updates": 40,
+      "initial_ce": 1.7219983140627544,
+      "validation_ce": 1.677561640739441,
+      "asset_sha256": "c08b058f052528a4c5b07e9571a92b860ba8ae9213265a36e9967d4fa4e41a73"
+    },
+    {
+      "id": "grid-gnn-transfer-v1-seed2026092202-terminal-head-r3-s080",
+      "warmstart_model_id": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "updates": 80,
+      "initial_ce": 1.7219983140627544,
+      "validation_ce": 1.6607856154441833,
+      "asset_sha256": "e8730b0ab3887bfc97cc4412a95cc2a828189c25e1666b4c3e50eb065ff461d0"
+    },
+    {
+      "id": "grid-gnn-transfer-v1-seed2026092202-terminal-head-r3-s120",
+      "warmstart_model_id": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "updates": 120,
+      "initial_ce": 1.7219983140627544,
+      "validation_ce": 1.6544883847236633,
+      "asset_sha256": "d3e84f28b6f866c488ac513a3130dd434dda663c2d9d15cfd94968b57ef96a3f"
+    }
+  ],
+  "parity": {
+    "status": "PASS_PYTHON_WEB_F32_PARITY",
+    "probes": 18,
+    "max_probability_error": 1.1008082845265221e-07
+  },
+  "boundaries": [
+    "New terminal-label supervision; weights-only warm start, not historical RL resume.",
+    "Only Research point_policy updated; backbone/value/PASS head and their fixed-input predictions frozen; PASS probabilities may change.",
+    "No MLP training was performed; dynamic PASS-row guarantee must not be inferred.",
+    "Recovery tests include an earlier verifier revision; the final output-contract tightening has a separate passing addendum and the full formal verification above.",
+    "Old 420 games are diagnosis only. New DEV/FINAL and promotion remain separate root-owned work.",
+    "No runtime default, deployment, commit or push performed by this worker."
+  ]
+}

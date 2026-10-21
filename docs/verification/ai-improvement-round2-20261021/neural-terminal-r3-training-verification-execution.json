@@ -1,0 +1,21 @@
+{
+  "status": "PASS_INDEPENDENT_TRAINING_VERIFICATION_EXECUTION",
+  "command": [
+    "C:/Users/zcz/anaconda3/envs/rl310/python.exe",
+    "-B",
+    "web/tools/verify_neural_terminal_head_r3.py",
+    "--run-root",
+    "local_artifacts/neural-terminal-headonly-r3-20261021/training",
+    "--data-root",
+    "local_artifacts/neural-terminal-headonly-r3-20261021/data",
+    "--output",
+    "local_artifacts/neural-terminal-headonly-r3-20261021/training-verification.json"
+  ],
+  "exit_code": 0,
+  "elapsed_seconds": null,
+  "elapsed_upper_bound_seconds": 56.60215209960938,
+  "timing_boundary": "No standalone timer was recorded. Invocation followed confirmed training exit; report creation minus training exit is a conservative upper bound, excluding no verification work.",
+  "verifier_sha256": "29d418c51417709ee8ac20fd889b7531055dedfe06e01f851fce5691aa84871a",
+  "report_sha256": "2eb106961ca1b96dfd85dffc64272bf2615f99c3b363d7f0fb5373aaf0029c26",
+  "manifest_sha256": "ec4d30147863869c50c2ca9a0f2a935e314f3179305229f964f3f5e894232836"
+}
