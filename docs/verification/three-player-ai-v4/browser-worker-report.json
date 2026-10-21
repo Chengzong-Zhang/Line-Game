@@ -1,0 +1,121 @@
+{
+  "status": "PASS_BROWSER_WORKER_LATENCY_AND_STATE",
+  "modelId": "three-player-search-v4-round12",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+  "hardwareConcurrency": 16,
+  "rows": [
+    {
+      "id": "n5-black-p0-single-black-ply4",
+      "size": 5,
+      "timingsMs": [
+        44.80000001192093,
+        23.599999994039536,
+        23.19999998807907
+      ],
+      "point": [
+        1,
+        1
+      ],
+      "simulatedActions": 22
+    },
+    {
+      "id": "n5-black-p0-single-black-ply6",
+      "size": 5,
+      "timingsMs": [
+        14.100000023841858,
+        13.5,
+        12.899999976158142
+      ],
+      "point": [
+        2,
+        1
+      ],
+      "simulatedActions": 12
+    },
+    {
+      "id": "n7-black-p0-single-black-ply4",
+      "size": 7,
+      "timingsMs": [
+        349.7999999821186,
+        358.90000000596046,
+        343.60000002384186
+      ],
+      "point": [
+        0,
+        2
+      ],
+      "simulatedActions": 78
+    },
+    {
+      "id": "n7-black-p0-single-black-ply12",
+      "size": 7,
+      "timingsMs": [
+        238.5,
+        196.19999998807907,
+        225.09999999403954
+      ],
+      "point": [
+        0,
+        3
+      ],
+      "simulatedActions": 78
+    },
+    {
+      "id": "n7-black-p0-single-black-ply18",
+      "size": 7,
+      "timingsMs": [
+        1.4000000059604645,
+        1.5,
+        1.300000011920929
+      ],
+      "point": [
+        4,
+        2
+      ],
+      "simulatedActions": 0
+    },
+    {
+      "id": "n9-black-p0-single-black-ply4",
+      "size": 9,
+      "timingsMs": [
+        779.5999999940395,
+        847.0999999940395,
+        782.2000000178814
+      ],
+      "point": [
+        6,
+        1
+      ],
+      "simulatedActions": 78
+    },
+    {
+      "id": "n9-black-p0-single-black-ply21",
+      "size": 9,
+      "timingsMs": [
+        752.9000000059605,
+        739.0999999940395,
+        800.7000000178814
+      ],
+      "point": [
+        5,
+        3
+      ],
+      "simulatedActions": 78
+    },
+    {
+      "id": "n9-black-p0-single-black-ply31",
+      "size": 9,
+      "timingsMs": [
+        577.7000000178814,
+        566.7000000178814,
+        536.9000000059605
+      ],
+      "point": [
+        0,
+        1
+      ],
+      "simulatedActions": 70
+    }
+  ],
+  "scope": "Fixed local calibration positions, native module Worker, production instance updater suppression; no human-play or production deployment claim."
+}

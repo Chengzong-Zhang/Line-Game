@@ -1,0 +1,32 @@
+{
+  "status": "PASS_BROWSER_WORKER_LATENCY_AND_STATE",
+  "observedAt": "2026-10-21T11:51:26.8600839+08:00",
+  "url": "http://127.0.0.1:8014/tests/three-player-v4-browser-benchmark.html",
+  "surface": "Codex in-app browser; native module Worker",
+  "positions": 8,
+  "repetitionsPerPosition": 3,
+  "candidateSha256": "9b85f5fff27001d68407c30d6f707b461b1b468d657c8292339e97d23868c230",
+  "checks": [
+    "same move across three repetitions",
+    "rule state hash unchanged",
+    "Superko history unchanged",
+    "production instance territory updater suppressed",
+    "console warnings and errors empty"
+  ],
+  "scope": "Fixed calibration positions on this Windows desktop; not main UI one/two-seat complete-game acceptance, mobile performance, human-play strength, or deployment.",
+  "sourceHashes": {
+    "web/web前端/ThreePlayerSearchAI.js": "32bc2f6c0ef90059b8bccb9eed5c37b278613d023da58ee03769eba49a8bc0d2",
+    "web/web前端/ThreePlayerAI.js": "edfa92c657fa28a617f18586191a09686336af15843a8423a07b863743e0381b",
+    "web/web前端/AIEngine.js": "6738fe3a98a616dfd6c060636f5d2684fd49ebc561c95a96247db28c7170ccc3",
+    "web/web前端/GameEngine.js": "625e8d8a92801647702f963f56148040248cf471228a6ce5c719e20e4414a555",
+    "web/web前端/tests/three-player-v4-browser-benchmark.html": "4be591ed4bbfb8b9f1482990ba73bac237ecefacdbd7d7bcd758b0560f71c28c",
+    "web/web前端/tests/three-player-v4-browser-benchmark-worker.js": "e04f91b9645e088390e81f660626f18fb1b292a3e4956077613e0e5ed2453f23",
+    "web/web前端/tests/fixtures/three-player-v4-browser-positions.json": "9395298243dd3dd27dce87870b8d5f2e77671d2d64dbfa7f192426ce30e4fdb0",
+    "web/web前端/tests/fixtures/three-player-v4-browser-candidate.json": "9b85f5fff27001d68407c30d6f707b461b1b468d657c8292339e97d23868c230",
+    "docs/verification/three-player-ai-v4/selected-candidate.json": "9b85f5fff27001d68407c30d6f707b461b1b468d657c8292339e97d23868c230",
+    "docs/verification/three-player-ai-v4/selection.json": "bb2b528562abe6d0ae296a060cdb4b002d829b65d39a080693ba26625b3e8835",
+    "docs/verification/three-player-ai-v4/browser-worker-report.json": "e3578c84c1126b928a06090d97f49572bcd18cc47ba762e318078e6ab58b42e6",
+    "docs/verification/three-player-ai-v4/browser-worker-console.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+  },
+  "localScreenshot": "local_artifacts/three-player-v4-browser-benchmark.png"
+}
