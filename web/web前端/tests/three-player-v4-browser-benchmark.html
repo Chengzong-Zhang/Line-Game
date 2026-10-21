@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>三人 AI v4 本地浏览器验证</title>
+<style>body{max-width:960px;margin:40px auto;padding:0 20px;font:16px system-ui;background:#f7f5ef;color:#1e3029}button{padding:12px 20px;font:inherit;border:0;border-radius:8px;background:#245842;color:white}pre{white-space:pre-wrap;background:white;padding:20px;border-radius:12px}</style>
+<h1>三人 AI v4 本地浏览器验证</h1>
+<p>使用固定的 5、7、9 路局面，在浏览器 Worker 中检查走法一致性、棋局恢复和推理时间。</p>
+<button id="run">开始验证</button><pre id="report">等待开始</pre>
+<script type="module">
+  const report = document.querySelector("#report"), button = document.querySelector("#run");
+  button.onclick = async () => {
+    button.disabled = true; report.textContent = "正在加载冻结候选与固定局面…";
+    try {
+      const [candidate, positions] = await Promise.all(["./fixtures/three-player-v4-browser-candidate.json", "./fixtures/three-player-v4-browser-positions.json"]
+        .map(async (url) => { const response = await fetch(url, { cache: "no-store" }); if (!response.ok) throw new Error(`${url}: ${response.status}`); return response.json(); }));
+      const worker = new Worker("./three-player-v4-browser-benchmark-worker.js", { type: "module" });
+      worker.onmessage = ({ data }) => { report.textContent = JSON.stringify(data, null, 2); if (data.status !== "RUNNING") { worker.terminate(); button.disabled = false; } };
+      worker.onerror = (event) => { report.textContent = JSON.stringify({ status: "FAIL", error: event.message }); worker.terminate(); button.disabled = false; };
+      worker.postMessage({ candidate, positions });
+    } catch (error) { report.textContent = JSON.stringify({ status: "FAIL", error: error.message }); button.disabled = false; }
+  };
+</script></html>

@@ -1,0 +1,148 @@
+{
+  "identity": "3fe2f29ef8cc76784a35e8fb64e9793de7a3424fa36e90858a3da3ba61006d8f",
+  "evidenceTier": "application-evaluation; bounded to frozen models, seeds and sizes",
+  "stage": "DEVELOPMENT",
+  "plannedGames": 63,
+  "completedGames": 63,
+  "terminalGames": 63,
+  "truncatedGames": 0,
+  "clusters": 9,
+  "clusterResults": [
+    {
+      "cluster": "n5-black-p0",
+      "size": 5,
+      "meanDelta": 0,
+      "games": 6
+    },
+    {
+      "cluster": "n5-purple-p0",
+      "size": 5,
+      "meanDelta": 0,
+      "games": 6
+    },
+    {
+      "cluster": "n5-white-p0",
+      "size": 5,
+      "meanDelta": 0,
+      "games": 6
+    },
+    {
+      "cluster": "n7-black-p0",
+      "size": 7,
+      "meanDelta": 0,
+      "games": 6
+    },
+    {
+      "cluster": "n7-purple-p0",
+      "size": 7,
+      "meanDelta": 0.041666666666666664,
+      "games": 6
+    },
+    {
+      "cluster": "n7-white-p0",
+      "size": 7,
+      "meanDelta": -0.16666666666666666,
+      "games": 6
+    },
+    {
+      "cluster": "n9-black-p0",
+      "size": 9,
+      "meanDelta": 0,
+      "games": 6
+    },
+    {
+      "cluster": "n9-purple-p0",
+      "size": 9,
+      "meanDelta": 0.16666666666666666,
+      "games": 6
+    },
+    {
+      "cluster": "n9-white-p0",
+      "size": 9,
+      "meanDelta": -0.16666666666666666,
+      "games": 6
+    }
+  ],
+  "meanDelta": -0.013888888888888888,
+  "clusterBootstrap95": [
+    -0.07407407407407407,
+    0.046296296296296294
+  ],
+  "bySize": {
+    "5": {
+      "games": 18,
+      "meanDelta": 0,
+      "sharedWin": 0.33333333333333326,
+      "pairwiseDelta": 0
+    },
+    "7": {
+      "games": 18,
+      "meanDelta": -0.041666666666666664,
+      "sharedWin": 0.2916666666666667,
+      "pairwiseDelta": -0.0625
+    },
+    "9": {
+      "games": 18,
+      "meanDelta": 0,
+      "sharedWin": 0.3333333333333333,
+      "pairwiseDelta": -0.05555555555555555
+    }
+  },
+  "byLineup": {
+    "double": {
+      "games": 27,
+      "meanDelta": -0.027777777777777776,
+      "sharedWin": 0.3055555555555556,
+      "pairwiseDelta": -0.041666666666666664
+    },
+    "single": {
+      "games": 27,
+      "meanDelta": 0,
+      "sharedWin": 0.3333333333333333,
+      "pairwiseDelta": -0.037037037037037035
+    }
+  },
+  "byFocalSeat": {
+    "BLACK": {
+      "games": 18,
+      "meanDelta": -0.027777777777777776,
+      "sharedWin": 0.27314814814814814,
+      "pairwiseDelta": -0.04861111111111111
+    },
+    "PURPLE": {
+      "games": 18,
+      "meanDelta": 0.1111111111111111,
+      "sharedWin": 0.43981481481481477,
+      "pairwiseDelta": 0.05555555555555555
+    },
+    "WHITE": {
+      "games": 18,
+      "meanDelta": -0.125,
+      "sharedWin": 0.24537037037037035,
+      "pairwiseDelta": -0.125
+    }
+  },
+  "byStartPlayer": {
+    "BLACK": {
+      "games": 18,
+      "meanDelta": 0,
+      "sharedWin": 0.3333333333333333,
+      "pairwiseDelta": -0.041666666666666664
+    },
+    "PURPLE": {
+      "games": 18,
+      "meanDelta": 0.06944444444444445,
+      "sharedWin": 0.4027777777777778,
+      "pairwiseDelta": 0.020833333333333332
+    },
+    "WHITE": {
+      "games": 18,
+      "meanDelta": -0.1111111111111111,
+      "sharedWin": 0.2222222222222222,
+      "pairwiseDelta": -0.09722222222222222
+    }
+  },
+  "promotionPass": false,
+  "complete": true,
+  "integrity": "1b6538d1883d10737e027425a606b535091a29612553696df6ef8ea7d0832708"
+}

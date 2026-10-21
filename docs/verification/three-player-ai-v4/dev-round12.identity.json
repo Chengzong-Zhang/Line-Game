@@ -1,0 +1,19 @@
+{
+  "configSha256": "c6e74e98053273204307d733e8cf93f014b63865e9f5545b68aeda4bdd5c965f",
+  "candidateSha256": "9b85f5fff27001d68407c30d6f707b461b1b468d657c8292339e97d23868c230",
+  "baselineSha256": "8cd1a2f36267f96b1e32b7749a9cdc785f489ea7ec12e31aee0beb0a72901794",
+  "toolHashes": {
+    "evaluate-three-player-v4.mjs": "6bcc42f6925b57135d2728646b0e78ed2648a1d643ebc8a8eefc5fd526fdc76f",
+    "three-player-v4-arena-lib.mjs": "47b17689fd83c2678175ba8526610d70b158f9260479313495ec6b1fb1624fa8",
+    "three-player-arena-lib.mjs": "4cc3c30f82d4881c7c72e1e29a342bd62d938abde0e80292ab3b38401173a56b",
+    "verify-three-player-v4-arena.mjs": "def97df9edd5da2aa3c0424e86db90ce950e5f51ee7fe91e67d981ad21781aab"
+  },
+  "ruleHashes": {
+    "GameEngine.js": "625e8d8a92801647702f963f56148040248cf471228a6ce5c719e20e4414a555",
+    "AIEngine.js": "6738fe3a98a616dfd6c060636f5d2684fd49ebc561c95a96247db28c7170ccc3",
+    "ThreePlayerAI.js": "edfa92c657fa28a617f18586191a09686336af15843a8423a07b863743e0381b",
+    "ThreePlayerSearchAI.js": "32bc2f6c0ef90059b8bccb9eed5c37b278613d023da58ee03769eba49a8bc0d2"
+  },
+  "id": "53751e758183a3e9b84c5d79ee8ff96bb51aed2ccc4a51eefe9ef941c3f8bc72",
+  "integrity": "bb5b801caa80918f8d494d8300610407d5ee5f479ea08bd80739940171970f32"
+}

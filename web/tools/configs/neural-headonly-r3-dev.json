@@ -1,0 +1,12 @@
+{
+  "schema": "lifeline-web-neural-screen-v1",
+  "evidenceTier": "DEVELOPMENT_CHECKPOINT_SELECTION_ONLY",
+  "autoPromote": false,
+  "sizes": [5, 7, 9],
+  "prefixesPerSize": 2,
+  "prefixPlies": 4,
+  "maximumPlies": 400,
+  "maximumGameMs": 120000,
+  "puctSimulations": 16,
+  "seedNamespace": "neural-terminal-headonly-r3-20261021-DEV-v1"
+}

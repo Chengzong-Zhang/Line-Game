@@ -1,0 +1,41 @@
+{
+  "schema": "lifeline-supervised-job-v1",
+  "run_root": "C:\\coding\\py\\line game\\local_artifacts\\three-player-v4-20261021\\dev-round6-verification-v2",
+  "cwd": "C:\\coding\\py\\line game",
+  "command": [
+    "C:\\Program Files\\nodejs\\node.exe",
+    "--unhandled-rejections=strict",
+    "C:\\coding\\py\\line game\\web\\tools\\verify-three-player-v4-arena-v2.mjs",
+    "--run-root",
+    "C:\\coding\\py\\line game\\local_artifacts\\three-player-v4-20261021\\dev-round6",
+    "--verify-root",
+    "C:\\coding\\py\\line game\\local_artifacts\\three-player-v4-20261021\\dev-round6-verification-v2",
+    "--max-seconds",
+    "240"
+  ],
+  "identity_files": [
+    "C:\\coding\\py\\line game\\web\\tools\\evaluate-three-player-v4.mjs",
+    "web/tools/three-player-v4-arena-lib.mjs",
+    "web/tools/three-player-arena-lib.mjs",
+    "web/tools/verify-three-player-v4-arena.mjs",
+    "web/web前端/GameEngine.js",
+    "web/web前端/AIEngine.js",
+    "web/web前端/ThreePlayerAI.js",
+    "web/web前端/ThreePlayerSearchAI.js",
+    "C:\\coding\\py\\line game\\web\\tools\\configs\\three-player-search-v4-round6.json",
+    "C:\\coding\\py\\line game\\docs\\verification\\three-player-ai-v4\\development.config.json",
+    "C:\\coding\\py\\line game\\web\\web前端\\assets\\research-ai\\three-player-policy-v1.json",
+    "web/tools/verify-three-player-v4-arena-v2.mjs",
+    "web/tools/neural-posttraining-data.mjs",
+    "C:\\coding\\py\\line game\\local_artifacts\\three-player-v4-20261021\\dev-round6\\identity.json",
+    "C:\\coding\\py\\line game\\local_artifacts\\three-player-v4-20261021\\dev-round6\\config.json",
+    "C:\\coding\\py\\line game\\local_artifacts\\three-player-v4-20261021\\dev-round6\\candidate.json",
+    "C:\\coding\\py\\line game\\local_artifacts\\three-player-v4-20261021\\dev-round6\\baseline.json",
+    "C:\\coding\\py\\line game\\local_artifacts\\three-player-v4-20261021\\dev-round6\\summary.json",
+    "C:\\coding\\py\\line game\\local_artifacts\\three-player-v4-20261021\\dev-round6\\checkpoint.json"
+  ],
+  "max_wall_seconds": 1800,
+  "worker_wall_seconds": 330,
+  "max_restarts": 3,
+  "max_no_progress_exits": 3
+}

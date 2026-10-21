@@ -1,0 +1,25 @@
+{
+  "schema": "lifeline-web-neural-screen-v1",
+  "evidenceTier": "HEADONLY_FRESH_CONFIRMATION_WITH_EXTERNAL_HOLM_GATE",
+  "autoPromote": false,
+  "sizes": [5, 7, 9],
+  "prefixesPerSize": 10,
+  "prefixPlies": 4,
+  "maximumPlies": 400,
+  "maximumGameMs": 120000,
+  "puctSimulations": 16,
+  "seedNamespace": "neural-terminal-headonly-r3-20261021-FINAL-v1",
+  "confirmation_gate": {
+    "schema": "lifeline-neural-headonly-confirmation-gate-v1",
+    "familySize": 2,
+    "gamesPerModel": 60,
+    "clustersPerModel": 30,
+    "minimumMeanScore": 0.55,
+    "minimumPerSizeScore": 0.45,
+    "signTest": "one-sided-exact-binomial-non-tied-cluster-sign",
+    "holmAlpha": 0.05,
+    "bootstrapReplicates": 10000,
+    "bootstrapSeed": 2026102191,
+    "bootstrapStratifyBy": "size"
+  }
+}

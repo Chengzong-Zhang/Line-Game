@@ -1,0 +1,33 @@
+{
+  "status": "MEASURED_LOCAL_NODE",
+  "source": "calibration-only",
+  "arenaIdentity": "6fcafb30abd9e502c087d6fc9894b427032c33e43af2fe8620c0177b653813fa",
+  "candidate": "three-player-search-v4-round12",
+  "quantile": "nearest-rank",
+  "clock": "Date.now wall time in milliseconds during complete arena games",
+  "rows": [
+    {
+      "size": 5,
+      "samples": 15,
+      "p50Ms": 20.0,
+      "p95Ms": 61.0,
+      "maxMs": 61.0
+    },
+    {
+      "size": 7,
+      "samples": 67,
+      "p50Ms": 236.0,
+      "p95Ms": 397.0,
+      "maxMs": 413.0
+    },
+    {
+      "size": 9,
+      "samples": 166,
+      "p50Ms": 788.0,
+      "p95Ms": 1109.0,
+      "maxMs": 1808.0
+    }
+  ],
+  "browserStatus": "NOT-RUN",
+  "limitations": "Local Node timings include forced-move decisions and shared-machine scheduling. They do not establish real browser or mobile latency."
+}

@@ -148,7 +148,7 @@ def bridge_checks(base):
             raise RuntimeError('AI model fallback or missing action')
         results.append({'players': count, 'success': True, 'fallback': False})
     validator = base / 'web/tools/validate_contribution.mjs'
-    code = 'import {pathToFileURL} from "node:url";const m=await import(pathToFileURL(process.argv[1]));console.log(JSON.stringify(await m.engineSources()));'
+    code = 'import {pathToFileURL} from "node:url";const target=pathToFileURL(process.argv[1]);process.argv[1]="lifeline-import-probe";const m=await import(target);console.log(JSON.stringify(await m.engineSources()));'
     sources = json.loads(run([NODE, '--input-type=module', '-e', code, validator]))
     if sources['GameEngine.js'] != manifest()['frontend_files']['web/web前端/GameEngine.js']['sha256']:
         raise RuntimeError('Contribution validator source identity differs')
