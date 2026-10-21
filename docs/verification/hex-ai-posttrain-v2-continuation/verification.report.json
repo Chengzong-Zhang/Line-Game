@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "identity": "d03a281849cde6c0a1cdcd4452520fd76d725bbdd0bb97f6103a2380b5ee10f5",
+  "sourceIdentity": "cef118b61bf0540c1e9306ad87380950e9515dfb5f295ff72f9f161066a36246",
+  "games": 90,
+  "actions": 28864,
+  "policyDecisions": 28504,
+  "terminal": 90,
+  "scope": "full-history replay; legal deterministic and seeded actions; terminal discrete area; PPO/Adam replay; immutable model; paired summary",
+  "integrity": "e41f9192a4f629ccb0772b5f1bfe477d6d67692e8df31a2da9d5d33b940a4252"
+}

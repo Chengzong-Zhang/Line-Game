@@ -1,0 +1,41 @@
+{
+  "schema": "lifeline-supervised-job-v1",
+  "run_root": "C:\\coding\\py\\line game\\local_artifacts\\hex-player-posttrain-v2\\final-continuation-20261021-r1",
+  "cwd": "C:\\coding\\py\\line game",
+  "command": [
+    "C:\\Program Files\\nodejs\\node.exe",
+    "--unhandled-rejections=strict",
+    "C:\\coding\\py\\line game\\web\\tools\\run-hex-posttraining.mjs",
+    "--run-root",
+    "C:\\coding\\py\\line game\\local_artifacts\\hex-player-posttrain-v2\\final-continuation-20261021-r1",
+    "--config",
+    "C:\\coding\\py\\line game\\web\\tools\\configs\\hex-player-policy-v2-final.json",
+    "--candidate",
+    "C:\\coding\\py\\line game\\local_artifacts\\hex-player-posttrain-v2\\train-20261021-r1\\hex-player-policy-v2.json",
+    "--max-seconds",
+    "120"
+  ],
+  "identity_files": [
+    "C:\\coding\\py\\line game\\web\\tools\\run-hex-posttraining.mjs",
+    "C:\\coding\\py\\line game\\web\\tools\\hex-posttrain-core.mjs",
+    "C:\\coding\\py\\line game\\web\\tools\\hex-posttrain-protocol.mjs",
+    "C:\\coding\\py\\line game\\web\\tools\\linear-three-v3-core.mjs",
+    "C:\\coding\\py\\line game\\web\\tools\\three-player-arena-lib.mjs",
+    "C:\\coding\\py\\line game\\web\\web前端\\GameEngine.js",
+    "C:\\coding\\py\\line game\\web\\web前端\\AIEngine.js",
+    "C:\\coding\\py\\line game\\web\\web前端\\HexPlayerAI.js",
+    "C:\\coding\\py\\line game\\web\\tools\\continue-hex-posttraining-v2.mjs",
+    "C:\\coding\\py\\line game\\web\\tools\\verify-hex-posttraining.mjs",
+    "C:\\coding\\py\\line game\\web\\tools\\configs\\hex-player-policy-v2-final.json",
+    "C:\\coding\\py\\line game\\web\\web前端\\assets\\research-ai\\hex-player-policy-v1.json",
+    "C:\\coding\\py\\line game\\local_artifacts\\hex-player-posttrain-v2\\train-20261021-r1\\hex-player-policy-v2.json",
+    "C:\\coding\\py\\line game\\docs\\verification\\hex-ai-posttrain-v2-continuation\\COPY_MANIFEST.json",
+    "C:\\coding\\py\\line game\\docs\\verification\\hex-ai-posttrain-v2-continuation\\BUDGET_EXTENSION.md"
+  ],
+  "max_wall_seconds": 1800,
+  "worker_wall_seconds": 240,
+  "max_restarts": 3,
+  "max_no_progress_exits": 3,
+  "stop_grace_seconds": 3,
+  "poll_ms": 200
+}

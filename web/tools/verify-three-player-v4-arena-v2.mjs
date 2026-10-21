@@ -1,11 +1,11 @@
 // Incremental independent replay: durable per-game proofs bind exact input
 // bytes. A restart rechecks those hashes, without repeating verified policies.
 import assert from "node:assert/strict";
-import { mkdir, readFile, readdir, realpath, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, realpath, rename } from "node:fs/promises";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { lease } from "./neural-posttraining-data.mjs";
-import { PLAYERS, sha256, canonical, atomic, readChecked, exists, validateConfig, buildUnits,
+import { PLAYERS, sha256, canonical, atomic, readChecked, validateChecked, exists, validateConfig, buildUnits,
   loadRuntime, policyModel, newEngine, createPrefix, summarize } from "./three-player-v4-arena-lib.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -13,6 +13,7 @@ const args = process.argv.slice(2), opt = (name, fallback) => { const i = args.i
 const arena = opt("--run-root") && resolve(root, opt("--run-root"));
 const output = opt("--verify-root") && resolve(root, opt("--verify-root"));
 const maxSeconds = Number(opt("--max-seconds", "300")), fault = opt("--fault", "");
+const holdMs = Number(opt("--test-progress-hold-ms", "0"));
 const started = Date.now();
 let guard, identity, trusted = false, completed = [], units = [], restoredGames = 0, freshGames = 0;
 const check = (condition, message) => assert.ok(condition, message);
@@ -56,7 +57,8 @@ try {
   check((await readChecked(resolve(arena, "progress.json"))).status === "COMPLETE", "Arena not complete");
   identity = sha256(canonical(hashes));
   const config = validateConfig(JSON.parse(await readFile(resolve(arena, "config.json"))));
-  check(!fault || config.stage === "RECOVERY_TEST", "INVALID fault outside fixture");
+  check((!fault && !holdMs) || config.stage === "RECOVERY_TEST", "INVALID fault outside fixture");
+  check(Number.isFinite(holdMs) && holdMs >= 0 && holdMs <= 1000, "INVALID test hold");
   units = buildUnits(config);
   const unitMap = new Map(units.map((unit) => [unit.id, unit]));
   const previous = await exists(resolve(output, "checkpoint.json")) ? await readChecked(resolve(output, "checkpoint.json")) : null;
@@ -67,14 +69,22 @@ try {
   }
   trusted = true;
   await mkdir(resolve(output, "verified-games"), { recursive: true });
+  for (const directory of [output, resolve(output, "verified-games")]) {
+    for (const name of await readdir(directory)) if (name.includes(".tmp-")) {
+      await mkdir(resolve(output, "interrupted"), { recursive: true });
+      await rename(resolve(directory, name), resolve(output, "interrupted", `${Date.now()}-${name}`));
+    }
+  }
   const files = (await readdir(resolve(arena, "games"))).filter((file) => file.endsWith(".json")).sort();
   check(files.length === units.length, "Incomplete arena games");
-  const restored = new Map();
+  const restored = new Map(), durableProofHashes = new Map();
   for (const file of (await readdir(resolve(output, "verified-games"))).filter((file) => file.endsWith(".json")).sort()) {
-    const proof = await readChecked(resolve(output, "verified-games", file));
+    const bytes = await readFile(resolve(output, "verified-games", file));
+    const proof = validateChecked(JSON.parse(bytes), file);
     check(proof.identity === identity && file === `${proof.unitId}.json` && unitMap.has(proof.unitId), "CORRUPT verification proof");
     check(sha256(await readFile(resolve(arena, "games", file))) === proof.gameSha256, "CORRUPT previously verified game");
     restored.set(proof.unitId, proof);
+    durableProofHashes.set(proof.unitId, sha256(bytes));
   }
   check((previous?.completed ?? []).every((unitId) => restored.has(unitId)), "CORRUPT missing verification proof");
   completed = files.filter((file) => restored.has(file.slice(0, -5))).map((file) => file.slice(0, -5));
@@ -86,9 +96,11 @@ try {
   const records = [], gameHashes = {}, proofHashes = {};
   let verifiedActions = 0, verifiedDecisions = 0, verifiedSearchActions = 0;
   for (const file of files) {
-    const path = resolve(arena, "games", file), record = await readChecked(path), unitId = record.unit?.id;
+    const path = resolve(arena, "games", file), gameBytes = await readFile(path);
+    const record = validateChecked(JSON.parse(gameBytes), path), unitId = record.unit?.id;
     check(record.identity === id && file === `${unitId}.json` && canonical(record.unit) === canonical(unitMap.get(unitId)), `CORRUPT game identity ${file}`);
-    const gameSha256 = sha256(await readFile(path));
+    check(Number.isFinite(record.elapsedMs) && record.elapsedMs >= 0, `Invalid elapsed time ${file}`);
+    const gameSha256 = sha256(gameBytes);
     let proof = restored.get(unitId);
     if (!proof) {
       const requested = await control();
@@ -128,14 +140,19 @@ try {
       proof = { identity, unitId, gameSha256, actions: record.actions.length,
         decisions: record.actions.length - prefix.length, searchActions: simulatedActions };
       await atomic(resolve(output, "verified-games", file), proof);
+      const proofBytes = await readFile(resolve(output, "verified-games", file));
+      const { integrity: _proofSeal, ...writtenProof } = validateChecked(JSON.parse(proofBytes), file);
+      check(canonical(writtenProof) === canonical(proof), `CORRUPT committed proof ${file}`);
+      durableProofHashes.set(unitId, sha256(proofBytes));
       if (fault === "after-proof") process.exit(91);
       completed.push(unitId); freshGames++;
       completed.sort(); await progress("RUNNING", { last_verified_game: unitId });
+      if (holdMs) await new Promise((done) => setTimeout(done, holdMs));
     }
     check(proof.gameSha256 === gameSha256 && proof.actions === record.actions.length
       && proof.decisions === record.actions.length - record.prefixLength && proof.searchActions === record.simulatedActions, `CORRUPT proof counts ${file}`);
     records.push(record); gameHashes[unitId] = gameSha256;
-    proofHashes[unitId] = sha256(await readFile(resolve(output, "verified-games", file)));
+    proofHashes[unitId] = durableProofHashes.get(unitId);
     verifiedActions += proof.actions; verifiedDecisions += proof.decisions; verifiedSearchActions += proof.searchActions;
   }
   if (process.exitCode !== 75) {
@@ -145,6 +162,8 @@ try {
     const { identity: summaryIdentity, integrity: _seal, ...savedBody } = saved;
     check(summaryIdentity === id && canonical(savedBody) === canonical(summary), "Aggregate summary mismatch");
     for (const [path, digest] of Object.entries(hashes)) check(sha256(await readFile(path)) === digest, `SOURCE_MISMATCH finish ${path}`);
+    for (const [unitId, digest] of Object.entries(gameHashes)) check(sha256(await readFile(resolve(arena, "games", `${unitId}.json`))) === digest, `GAME_MISMATCH finish ${unitId}`);
+    for (const [unitId, digest] of Object.entries(proofHashes)) check(sha256(await readFile(resolve(output, "verified-games", `${unitId}.json`))) === digest, `PROOF_MISMATCH finish ${unitId}`);
     const report = { status: "PASS_APPLICATION_EVALUATION", identity: id, verificationIdentity: identity,
       verifiedGames: records.length, plannedGames: units.length, verifiedActions, verifiedDecisions, verifiedSearchActions,
       terminalGames: summary.terminalGames, truncatedGames: summary.truncatedGames, promotionPass: summary.promotionPass,

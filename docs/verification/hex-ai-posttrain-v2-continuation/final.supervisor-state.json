@@ -1,0 +1,18 @@
+{
+  "schema": "lifeline-supervisor-state-v1",
+  "identity": "4f71be277fc4ed22418e26e1790ea4fab2b37ead9f87f4269842816af7ecac17",
+  "status": "COMPLETE",
+  "attempts": 5,
+  "abnormal_exits": 0,
+  "no_progress_exits": 0,
+  "progress_units": 28954,
+  "worker_identity": "cef118b61bf0540c1e9306ad87380950e9515dfb5f295ff72f9f161066a36246",
+  "active_attempt": null,
+  "deadline_epoch_ms": 1792551754461,
+  "supervisor_pid": 37568,
+  "supervisor_lease_port": 26606,
+  "attempt_start_units": 27738,
+  "worker_pid": null,
+  "updated_epoch_ms": 1792550542376,
+  "integrity": "5bffb6591c4c2b24fa2df5881bc30a69a7cac7fb4100cbec3bf8910203fd5bdf"
+}

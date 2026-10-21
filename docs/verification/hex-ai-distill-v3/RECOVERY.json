@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "root": "C:\\coding\\py\\line game\\local_artifacts\\hex-player-distill-v3\\recovery-1792552663330",
+  "actionResume": true,
+  "orphanSampleAdoption": true,
+  "gradientFiniteDifference": true,
+  "adamResume": true,
+  "pauseStop": true,
+  "duplicateRejected": true,
+  "corruptCheckpointRejected": true,
+  "fixtureBoundary": "Optimizer test alone uses synthetic trajectory bookkeeping; no training or strength result is claimed",
+  "command": "node web/web前端/tests/verify-hex-distillation-v3-recovery.mjs",
+  "integrity": "147b2231a042837c6eff75f76949a11e2828eb589e525a1815e98727862e892d"
+}

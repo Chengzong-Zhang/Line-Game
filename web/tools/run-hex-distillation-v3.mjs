@@ -52,20 +52,21 @@ try {
   const identityData = { schema: "lifeline-hex-distillation-v3-identity", config: sha256(configBytes), sources, parent: parent.hash };
   identity = sha256(canonical(identityData));
   await mkdir(runRoot, { recursive: true });
-  for (const folder of ["samples", "candidates", "games"]) await mkdir(resolve(runRoot, folder), { recursive: true });
+  for (const folder of ["samples", "candidates", "games", "trajectories"]) await mkdir(resolve(runRoot, folder), { recursive: true });
   lease = createServer((socket) => socket.destroy());
   const port = 40000 + seedFor(runRoot.toLowerCase()) % 20000;
   await new Promise((accept, reject) => { lease.once("error", reject); lease.listen({ host: "127.0.0.1", port, exclusive: true }, accept); });
   owns = true; lease.unref();
   await atomic(resolve(runRoot, "worker.json"), { identity, pid: process.pid, port });
-  for (const folder of ["", "samples", "candidates", "games"]) await quarantine(resolve(runRoot, folder));
+  for (const folder of ["", "samples", "candidates", "games", "trajectories"]) await quarantine(resolve(runRoot, folder));
   state = { schema: "lifeline-hex-distillation-v3-checkpoint", identity, identityData, config, parentPath,
     phase: "dataset", progressUnits: 0, samples: [], trajectories: [], candidates: [], games: [], current: null,
     optimizer: { step: 0, weights: [...parent.model.weights], m: Array(16).fill(0), v: Array(16).fill(0) } };
   if (await exists(resolve(runRoot, "checkpoint.json"))) state = await readChecked(resolve(runRoot, "checkpoint.json"));
   assert.equal(state.identity, identity, "Source/config/parent drift");
-  const samples = [], models = new Map(), games = new Map();
-  for (const [entries, directory, sink] of [[state.samples, "samples", samples], [state.candidates, "candidates", models], [state.games, "games", games]]) {
+  if (option("--test-hold-ms", null)) await new Promise((done) => setTimeout(done, Math.min(10000, Number(option("--test-hold-ms")))));
+  const samples = [], models = new Map(), games = new Map(), paths = new Map();
+  for (const [entries, directory, sink] of [[state.samples, "samples", samples], [state.candidates, "candidates", models], [state.games, "games", games], [state.trajectories, "trajectories", paths]]) {
     assert.equal(new Set(entries.map((x) => x.id)).size, entries.length);
     for (const entry of entries) {
       const value = await readChecked(resolve(runRoot, directory, `${entry.id}.json`));
@@ -79,7 +80,7 @@ try {
     await progress("COMPLETE"); process.exitCode = 0;
   } else {
     for (const spec of trajectories(config)) {
-      if (state.trajectories.includes(spec.id)) continue;
+      if (paths.has(spec.id)) continue;
       await control();
       if (state.current && state.current.id !== spec.id) throw new Error("Trajectory order mismatch");
       state.current ??= { id: spec.id, actions: [], rngState: spec.seed }; await save();
@@ -99,7 +100,10 @@ try {
         const action = { actor: engine.currentPlayer, point };
         apply(engine, action); current.actions.push(action); current.rngState = random.state; await advance("action");
       }
-      state.trajectories.push(spec.id); state.current = null; await advance("trajectory");
+      const trajectory = await frozen(resolve(runRoot, "trajectories", `${spec.id}.json`),
+        { identity, ...spec, ...current, terminal: engine.gameOver }, "after-trajectory-commit");
+      paths.set(spec.id, trajectory); state.trajectories.push({ id: spec.id, integrity: trajectory.integrity });
+      state.current = null; await advance("trajectory");
     }
     state.phase = "optimization";
     for (const [index, checkpoint] of config.checkpoints.entries()) {
