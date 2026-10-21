@@ -3,7 +3,7 @@ import { deserializeEngineEdges } from "./AIStateProtocol.js?v=20261020-three1";
 import { GreedyAI, MCTSAI, MinimaxAI, restoreState } from "./AIEngine.js?v=20261020-three1";
 import { loadResearchModel, NeuralPUCTAI } from "./ResearchAI.js?v=20261020-three1";
 import { loadModelFreeModel, ModelFreeAI } from "./ModelFreeAI.js?v=20261020-three1";
-import { loadThreePlayerModel, ThreePlayerAI } from "./ThreePlayerModels.js?v=20261021-three2";
+import { loadThreePlayerRuntime } from "./ThreePlayerRuntime.js?v=20261021-three4";
 import { loadHexPlayerModel, HexPlayerAI } from "./HexPlayerAI.js?v=20261021-hexai1";
 
 self.onmessage = async (event) => {
@@ -69,10 +69,9 @@ self.onmessage = async (event) => {
       const model = await loadModelFreeModel(event.data?.modelId);
       ai = new ModelFreeAI(model);
     } else if (strategy === "three-player") {
-      const model = await loadThreePlayerModel(event.data?.modelId);
-      ai = new ThreePlayerAI(model);
-      modelInfo = { id: model.spec.id, evidenceTier: model.spec.training.evidence_tier,
-        trainedBoardSizes: model.spec.training.trained_board_sizes, compatibility: "territory-v2 three-player" };
+      const runtime = await loadThreePlayerRuntime(event.data?.modelId, engine);
+      ai = runtime.ai;
+      modelInfo = runtime.modelInfo;
     } else if (strategy === "hex-player") {
       const model = await loadHexPlayerModel(event.data?.modelId);
       ai = new HexPlayerAI(model);

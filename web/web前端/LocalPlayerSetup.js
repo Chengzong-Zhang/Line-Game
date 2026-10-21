@@ -1,4 +1,4 @@
-import { LOCAL_PLAYER_CHOICES, THREE_PLAYER_CHOICES, HEX_PLAYER_CHOICES, normalizeLocalPlayers } from "./LocalAIModes.js?v=20261021-hexai1";
+import { LOCAL_PLAYER_CHOICES, THREE_PLAYER_CHOICES, HEX_PLAYER_CHOICES, normalizeLocalPlayers } from "./LocalAIModes.js?v=20261021-three4";
 import { RESEARCH_FAMILIES, TRANSFER_SEEDS } from "./ResearchAIOptions.js?v=20261020-three1";
 
 export default {

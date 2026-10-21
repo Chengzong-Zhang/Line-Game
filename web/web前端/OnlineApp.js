@@ -59,15 +59,15 @@ import {
   createLocalGameSession,
   loadLocalGameSession,
   persistLocalGameSession,
-} from "./LocalGameSession.js?v=20261021-hexai1";
+} from "./LocalGameSession.js?v=20261021-three4";
 import {
   createReplayDocument,
   downloadReplayDocument,
   parseAndValidateReplay,
 } from "./ReplayCodec.js?v=20261020-three1";
 import { TrainingContribution, ContributionPanel } from "./TrainingContribution.js?v=20261020-three1";
-import { localAIPlayer, localMatchActors, localMatchMode, localPlayerProfile, normalizeLocalPlayers, loadLocalMatchPreferences, persistLocalMatchPreferences } from "./LocalAIModes.js?v=20261021-hexai1";
-import LocalPlayerSetup from "./LocalPlayerSetup.js?v=20261021-hexai1";
+import { localAIPlayer, localMatchActors, localMatchMode, localPlayerProfile, normalizeLocalPlayers, loadLocalMatchPreferences, persistLocalMatchPreferences } from "./LocalAIModes.js?v=20261021-three4";
+import LocalPlayerSetup from "./LocalPlayerSetup.js?v=20261021-three4";
 
 const {
   computed,
@@ -3039,17 +3039,17 @@ const App = {
     let activeAiRequestId = null;
     let activeAiRequest = null;
     const hintWorkerSession = new OneShotHintWorker(
-      () => new Worker(new URL("./AIWorker.js?v=20261021-hexai1", import.meta.url), { type: "module" }),
+      () => new Worker(new URL("./AIWorker.js?v=20261021-three4", import.meta.url), { type: "module" }),
     );
     const aiComparisonWorkerSession = new OneShotHintWorker(
-      () => new Worker(new URL("./AIWorker.js?v=20261021-hexai1", import.meta.url), { type: "module" }),
+      () => new Worker(new URL("./AIWorker.js?v=20261021-three4", import.meta.url), { type: "module" }),
     );
     const chatEmojiTimeoutIds = new Set();
 
     const cancelHintRequest = () => hintWorkerSession.cancel();
     const cancelAiComparison = () => aiComparisonWorkerSession.cancel();
 
-    const getAiPlayer = (state = gameState.value) => localAIPlayer(activeLocalPlayers.value, activeLocalSettings.value.playerCount, state?.currentPlayer);
+    const getAiPlayer = (state = gameState.value) => localAIPlayer(activeLocalPlayers.value, activeLocalSettings.value.playerCount, state?.currentPlayer, activeLocalSettings.value.gridSize);
 
     const selectedAiProfile = (player = gameState.value.currentPlayer) => localPlayerProfile(activeLocalPlayers.value[player], activeLocalSettings.value.playerCount, activeLocalSettings.value.gridSize);
 
@@ -3088,7 +3088,7 @@ const App = {
 
     const ensureAiWorker = () => {
       if (!aiWorker && canRunLocalAI()) {
-        aiWorker = new Worker(new URL("./AIWorker.js?v=20261021-hexai1", import.meta.url), { type: "module" });
+        aiWorker = new Worker(new URL("./AIWorker.js?v=20261021-three4", import.meta.url), { type: "module" });
         const worker = aiWorker;
         aiWorker.onmessage = (event) => {
           if (event.data?.type !== "RESULT" && event.data?.type !== "ERROR") {

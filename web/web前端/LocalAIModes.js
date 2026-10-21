@@ -1,4 +1,5 @@
 import { DEFAULT_RESEARCH_VERSION, RESEARCH_FAMILIES, TRANSFER_SEEDS, researchProfile } from "./ResearchAIOptions.js?v=20261020-three1";
+import { threePlayerModelIdForBoard } from "./ThreePlayerSearchOptions.js?v=20261021-three4";
 
 export const LOCAL_PLAYER_CHOICES = Object.freeze([
   "human", "minimax", ...RESEARCH_FAMILIES, "dqn", "ppo", "sac", "gail", "gan",
@@ -24,10 +25,10 @@ export function normalizeLocalPlayers(players = {}, playerCount) {
   }));
 }
 
-export function localPlayerProfile(player, playerCount) {
+export function localPlayerProfile(player, playerCount, gridSize) {
   const config = normalizeLocalPlayers({ BLACK: player }, playerCount).BLACK;
   if (config.choice === "human") return null;
-  if (config.choice === "three-player") return { strategy: "three-player", modelId: "three-player-policy-v1" };
+  if (config.choice === "three-player") return { strategy: "three-player", modelId: threePlayerModelIdForBoard(gridSize) };
   if (config.choice === "hex-player") return { strategy: "hex-player", modelId: "hex-player-policy-v1" };
   if (config.choice === "minimax") return { strategy: "minimax", depth: config.depth };
   if (RESEARCH_FAMILIES.includes(config.choice)) return researchProfile(config.choice, config.version);
@@ -45,9 +46,9 @@ export function localMatchMode(players, playerCount = 2) {
   return blueAI && redAI ? "ai_duel" : blueAI ? "ai_black" : redAI ? "ai_white" : "none";
 }
 
-export function localMatchActors(players, playerCount = 2) {
+export function localMatchActors(players, playerCount = 2, gridSize) {
   return Object.fromEntries(LOCAL_PLAYER_COLORS.slice(0, playerCount).map((color) => {
-    const profile = localPlayerProfile(players?.[color], playerCount);
+    const profile = localPlayerProfile(players?.[color], playerCount, gridSize);
     const actor = { kind: profile ? "ai" : "human" };
     for (const key of ["strategy", "modelId", "seed", "simulations", "cPuct", "depth"]) {
       if (profile?.[key] !== undefined) actor[key] = profile[key];
@@ -56,9 +57,9 @@ export function localMatchActors(players, playerCount = 2) {
   }));
 }
 
-export function localAIPlayer(players, playerCount, currentPlayer) {
+export function localAIPlayer(players, playerCount, currentPlayer, gridSize) {
   if (!LOCAL_PLAYER_COLORS.slice(0, playerCount).includes(currentPlayer)) return null;
-  return localPlayerProfile(players?.[currentPlayer], playerCount) ? currentPlayer : null;
+  return localPlayerProfile(players?.[currentPlayer], playerCount, gridSize) ? currentPlayer : null;
 }
 
 export function loadLocalMatchPreferences(storage = globalThis.localStorage) {

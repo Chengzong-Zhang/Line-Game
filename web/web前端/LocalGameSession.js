@@ -1,4 +1,4 @@
-import { ALL_LOCAL_PLAYER_CHOICES, normalizeLocalPlayers } from "./LocalAIModes.js?v=20261021-hexai1";
+import { ALL_LOCAL_PLAYER_CHOICES, normalizeLocalPlayers } from "./LocalAIModes.js?v=20261021-three4";
 
 const LOCAL_GAME_SESSION_FORMAT = "lifeline-local-session";
 const PLAYER_COLORS = Object.freeze(["BLACK", "WHITE", "PURPLE", "GREEN", "ORANGE", "CYAN"]);
