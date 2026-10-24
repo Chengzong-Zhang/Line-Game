@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "status": "PASS_EXACT_SOURCE_LOCAL_CANDIDATE_NOT_UPLOADED",
+  "version": "0.12.7",
+  "rulesVersion": "territory-v3",
+  "snapshot": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-mini-cnypk0q6\\repo",
+  "candidateDirectory": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-mini-cnypk0q6\\repo\\local_artifacts\\wechat-candidates\\0.12.7-e7945958e106-W7RCGP",
+  "candidateId": "0.12.7-e7945958e106-W7RCGP",
+  "candidateReceiptSha256": "fc65a7387ba9caabd7ba3283e749a49b7ba7d3d9979b8019f4a8a947d3d3c79e",
+  "engineSha256": "3b70b69c4c480117a4952b06c279054ec535268b4293b04b4d63f960ac4b0fca",
+  "workerSha256": "38b8f5dcc7b43643c9691a01c3f437af578b1c0c3764fd87f0057fa95e923811",
+  "gameSha256": "fc26354eae6892326d28622a882e05a0db9348687d7488e03f88a5e328b82fc6",
+  "mainPackageBytes": 1699088,
+  "packageBytes": 19852904,
+  "packageFiles": 35,
+  "inputBinding": {
+    "files": 557,
+    "changedBeforeAfter": [],
+    "inputHashesFile": "input-hashes.json",
+    "sha256": "6c3d812b69ae4c7ce2d5ce982f940954ba9ecd80933ddac77b32d4ce4e4f2a4f"
+  },
+  "fullSuite": {
+    "command": "npm test",
+    "cwd": "wechat/minigame",
+    "tests": 457,
+    "pass": 457,
+    "fail": 0,
+    "skipped": 0,
+    "exitCode": 0,
+    "durationMs": 106762.7948,
+    "log": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-mini-cnypk0q6\\full-suite-exact-final.log",
+    "logSha256": "b490c904dfb11924405e7af704576c2c740b3f37f805536e566f482ea03c00cd"
+  },
+  "offlineBrowser": {
+    "status": "PASS_BROWSER_ONLY_NOT_WECHAT_VERIFIED",
+    "checks": 14,
+    "receipt": "offline-browser.json",
+    "sourceMatches": "same final sources; offline configuration, no WeChat login/service calls"
+  },
+  "realCrossPlatform": {
+    "status": "PASS_REAL_LOOPBACK_HTTP_WS_COMPILED_MINI_WORKER",
+    "checks": 6,
+    "receipt": "crossplatform.json",
+    "compiledWorkerMatchesCandidate": true
+  },
+  "oldVersionCompatibility": {
+    "existingV2SavedGames": "preserved, no silent rescore",
+    "explicitNewLocalGame": "territory-v3",
+    "newSharedRoom": "explicit territory-v3 request including detached prior-v2-room regression",
+    "existingSharedV2Rooms": "supported by state restore and v2-compatible server",
+    "trainingContributions": "v2 consent protocol remains; default v3 games do not auto-upload into v2 dataset"
+  },
+  "portableRuntimeChanges": [
+    "Keep latest 2026-10-24 scoring/Hard algorithms; inject verified embedded resources without browser fetch",
+    "Lazy browser-only model URLs and injectable hash implementation",
+    "Portable pure-data clone and monotonic millisecond clock for native Worker",
+    "Preserve old Android Unicode-regex compatibility and new room error text"
+  ],
+  "boundaries": [
+    "No official upload/experience switch by this subtask",
+    "No actual WeChat authentication or phone validation in local fixtures",
+    "No platform review or public publication claim"
+  ],
+  "finishedAt": "2026-10-24T13:47:50.505589+00:00"
+}

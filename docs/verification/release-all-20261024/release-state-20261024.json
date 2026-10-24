@@ -1,0 +1,37 @@
+{
+  "status": "MINI_UPLOADED_SERVER_AWAITING_NATIVE_AUTHENTICATION",
+  "checkedAtUtc": "2026-10-24T13:54:03.751856+00:00",
+  "rulesVersion": "territory-v3",
+  "miniVersion": "0.12.7",
+  "miniCandidateId": "0.12.7-e7945958e106-W7RCGP",
+  "officialUploadReceiptSha256": "c5110e371bec479e68f1d78bd8c768aeed15c7da3527bbc3487c9643f45958f6",
+  "experienceVersionConfigured": false,
+  "published": false,
+  "webReleaseId": "web-all-features-20261024-r1",
+  "webBundle": "release-all-20261024-web-r3/bundle-r3",
+  "serviceReleaseId": "wechat-service-all-20261024-r2",
+  "serverPreparation": {
+    "release_id": "web-all-features-20261024-r1",
+    "status": "FROZEN_NOT_DEPLOYED",
+    "bootstrapSha256": "31cda9e6765194f1b6fb7d6fe83f31c6a8a78d94b36fe537bca0207153b1b9cf",
+    "planSha256": "f3e20e2e4b0b0a31f91d995170bce3cf8bad31c3393d4316f52aa6e6958cc80d",
+    "payloadFiles": 73,
+    "engineSha256": "3b70b69c4c480117a4952b06c279054ec535268b4293b04b4d63f960ac4b0fca",
+    "credentialsIncluded": false
+  },
+  "nativeTransport": "local_artifacts/release-all-20261024-native-r3/transport.json",
+  "databaseReplacement": false,
+  "validation": {
+    "miniNodeTests": 457,
+    "miniBrowserScenarios": 14,
+    "crossPlatformHttpWebSocketScenarios": 6,
+    "miniCandidateFiles": 35,
+    "webRuntimeFiles": 120,
+    "webAccountReturnLocalTests": 26,
+    "serviceCompatibilityChecks": 18,
+    "serviceEmptyRoomTests": 12,
+    "serviceActivationFailureModels": 6,
+    "actualEngineScoringAssertions": 21
+  },
+  "boundary": "Local and loopback validation plus official developer upload; no server activation, experience selection, phone verification, review, or public publication is claimed."
+}

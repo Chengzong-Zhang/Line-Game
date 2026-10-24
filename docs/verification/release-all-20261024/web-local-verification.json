@@ -1,0 +1,561 @@
+{
+  "status": "PASS_LOCAL_RELEASE_SCOPE_NOT_PUBLIC_ACTIVATION",
+  "finalBundle": {
+    "status": "FROZEN_LOCALLY_VERIFIED_NOT_DEPLOYED",
+    "release_id": "web-all-features-20261024-r1",
+    "asset_version": "20261024-all1",
+    "archive_sha256": "b35ad4df3fe77b43d05384af7467c46b87bf8a31952a20f612bb1cffedbf20dd",
+    "archive_bytes": 18532882,
+    "manifest_sha256": "9bfaaf64d6299eabc25360be6626c8ad4813942dd7ce2a6d6f2c6ee79b2732c4",
+    "overlay_file_count": 120,
+    "source_bytes": 21470213,
+    "predecessor_file_count": 108,
+    "literal_asset_references": 161,
+    "javascript_syntax_files": 65,
+    "game_engine_sha256": "3b70b69c4c480117a4952b06c279054ec535268b4293b04b4d63f960ac4b0fca",
+    "hard_bundle_sha256": "a6621442b775d6a6b8acdaed1cfbcf91b0ac3d24b4b4606b46274d324d6e7ec7"
+  },
+  "fourteenRegressionBinding": {
+    "runtimeSourceStable": true,
+    "runtimeManifestSha256": "f52466950c7b5428bc2fefba108f85dfd08206f22f65dd5fba93d98dea5e12a4",
+    "runtimeFiles": 120,
+    "tests": [
+      {
+        "test": "verify-territory-v3.mjs",
+        "command": [
+          "node",
+          "--unhandled-rejections=strict",
+          "web/web前端/tests/verify-territory-v3.mjs"
+        ],
+        "exitCode": 0,
+        "elapsedSec": 0.407
+      },
+      {
+        "test": "verify-territory-v2.mjs",
+        "command": [
+          "node",
+          "--unhandled-rejections=strict",
+          "web/web前端/tests/verify-territory-v2.mjs"
+        ],
+        "exitCode": 0,
+        "elapsedSec": 1.61
+      },
+      {
+        "test": "verify-replay-codec.mjs",
+        "command": [
+          "node",
+          "--unhandled-rejections=strict",
+          "web/web前端/tests/verify-replay-codec.mjs"
+        ],
+        "exitCode": 0,
+        "elapsedSec": 0.282
+      },
+      {
+        "test": "verify-local-game-session.mjs",
+        "command": [
+          "node",
+          "--unhandled-rejections=strict",
+          "web/web前端/tests/verify-local-game-session.mjs"
+        ],
+        "exitCode": 0,
+        "elapsedSec": 0.156
+      },
+      {
+        "test": "verify-local-ai-session.mjs",
+        "command": [
+          "node",
+          "--unhandled-rejections=strict",
+          "web/web前端/tests/verify-local-ai-session.mjs"
+        ],
+        "exitCode": 0,
+        "elapsedSec": 0.562
+      },
+      {
+        "test": "verify-hex-ai-session.mjs",
+        "command": [
+          "node",
+          "--unhandled-rejections=strict",
+          "web/web前端/tests/verify-hex-ai-session.mjs"
+        ],
+        "exitCode": 0,
+        "elapsedSec": 0.75
+      },
+      {
+        "test": "verify-online-start-undo.mjs",
+        "command": [
+          "node",
+          "--unhandled-rejections=strict",
+          "web/web前端/tests/verify-online-start-undo.mjs"
+        ],
+        "exitCode": 0,
+        "elapsedSec": 0.297
+      },
+      {
+        "test": "verify-online-recovery.mjs",
+        "command": [
+          "node",
+          "--unhandled-rejections=strict",
+          "web/web前端/tests/verify-online-recovery.mjs"
+        ],
+        "exitCode": 0,
+        "elapsedSec": 0.469
+      },
+      {
+        "test": "verify-guide-content.mjs",
+        "command": [
+          "node",
+          "--unhandled-rejections=strict",
+          "web/web前端/tests/verify-guide-content.mjs"
+        ],
+        "exitCode": 0,
+        "elapsedSec": 0.172
+      },
+      {
+        "test": "verify-minimax-defense.mjs",
+        "command": [
+          "node",
+          "--unhandled-rejections=strict",
+          "web/web前端/tests/verify-minimax-defense.mjs"
+        ],
+        "exitCode": 0,
+        "elapsedSec": 6.344
+      },
+      {
+        "test": "verify-minimax-defense-invariants.mjs",
+        "command": [
+          "node",
+          "--unhandled-rejections=strict",
+          "web/web前端/tests/verify-minimax-defense-invariants.mjs"
+        ],
+        "exitCode": 0,
+        "elapsedSec": 0.531
+      },
+      {
+        "test": "verify-multiplayer-hard-reply-resilience.mjs",
+        "command": [
+          "node",
+          "--unhandled-rejections=strict",
+          "web/web前端/tests/verify-multiplayer-hard-reply-resilience.mjs"
+        ],
+        "exitCode": 0,
+        "elapsedSec": 12.265
+      },
+      {
+        "test": "verify-territory-worker.mjs",
+        "command": [
+          "node",
+          "--unhandled-rejections=strict",
+          "web/web前端/tests/verify-territory-worker.mjs"
+        ],
+        "exitCode": 0,
+        "elapsedSec": 1.828
+      },
+      {
+        "test": "verify-shared-release-v3.mjs",
+        "command": [
+          "node",
+          "--unhandled-rejections=strict",
+          "web/web前端/tests/verify-shared-release-v3.mjs"
+        ],
+        "exitCode": 0,
+        "elapsedSec": 0.203
+      }
+    ]
+  },
+  "r3ChangesAfterFourteen": [
+    "OnlineApp.handleLeaveRoom and handleLogout create V3 local settings/engine/actions together"
+  ],
+  "r3SelectedChecks": [
+    {
+      "command": [
+        "node",
+        "web/web前端/tests/verify-local-ai-session.mjs"
+      ],
+      "cwd": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r3\\repo",
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "node",
+        "--test",
+        "test-fixtures/shared-web-ui.test.mjs",
+        "test-fixtures/shared-password.test.mjs"
+      ],
+      "environment": {
+        "LIFELINE_WEB_TEST_ROOT": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r3\\repo\\web\\web前端"
+      },
+      "cwd": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r3",
+      "exitCode": 0,
+      "tests": 26,
+      "pass": 26,
+      "fail": 0
+    }
+  ],
+  "hardWorker": {
+    "schema": "lifeline-hard-application-bundle-verification-v1",
+    "status": "PASS_APPLICATION_BUNDLE_CONTRACT",
+    "buildReceipt": {
+      "path": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r3\\hard-worker-build-release\\build-receipt.json",
+      "sha256": "4f8c429b4e908efe27ee358a9ae6ae44020275b32b63e7188e15c117b1bf222d",
+      "integrity": "078ea77e55f9a9245da8441d119ecb5d24a8e362e806e3d0630dc99d61855866"
+    },
+    "bundleSha256": "a6621442b775d6a6b8acdaed1cfbcf91b0ac3d24b4b4606b46274d324d6e7ec7",
+    "checks": [
+      "actual-bundle-early-public-id-ready-result-once",
+      "current-worker-handler-captured-without-double-dispatch",
+      "rejected-resource-promise-is-retryable",
+      "20-medium-policy-specs-identical",
+      "direct-runtime-and-bundle-use-same-hard-implementation",
+      "fresh-ai-fixed-budget-terminal-behavior",
+      "external-general-runtime-easy-medium-and-generic-hard",
+      "ultimate-admission-and-unknown-id-refusal-retained"
+    ],
+    "contexts": [
+      {
+        "playerCount": 3,
+        "gridSize": 5,
+        "boardShape": "triangle",
+        "rulesVersion": "territory-v2",
+        "mediumPolicyId": "three-player-search-v4-round12",
+        "policySha256": "69d7ed64f69b778a65cf64f58ee5974154396f355e924ff06691e39829592c8d"
+      },
+      {
+        "playerCount": 3,
+        "gridSize": 7,
+        "boardShape": "triangle",
+        "rulesVersion": "territory-v2",
+        "mediumPolicyId": "three-player-search-v4-round12",
+        "policySha256": "69d7ed64f69b778a65cf64f58ee5974154396f355e924ff06691e39829592c8d"
+      },
+      {
+        "playerCount": 3,
+        "gridSize": 9,
+        "boardShape": "triangle",
+        "rulesVersion": "territory-v2",
+        "mediumPolicyId": "three-player-search-v4-round12",
+        "policySha256": "69d7ed64f69b778a65cf64f58ee5974154396f355e924ff06691e39829592c8d"
+      },
+      {
+        "playerCount": 3,
+        "gridSize": 11,
+        "boardShape": "triangle",
+        "rulesVersion": "territory-v2",
+        "mediumPolicyId": "three-player-policy-v1",
+        "policySha256": "53413091708489582c81701dc6cb4a91459f2712c4faa560c44515d70d81d8ad"
+      },
+      {
+        "playerCount": 3,
+        "gridSize": 15,
+        "boardShape": "triangle",
+        "rulesVersion": "territory-v2",
+        "mediumPolicyId": "three-player-policy-v1",
+        "policySha256": "53413091708489582c81701dc6cb4a91459f2712c4faa560c44515d70d81d8ad"
+      },
+      {
+        "playerCount": 4,
+        "gridSize": 5,
+        "boardShape": "hexagon",
+        "rulesVersion": "territory-v2",
+        "mediumPolicyId": "hex-player-policy-v1",
+        "policySha256": "d00ad2ee70e953990fc7e4355c5771ce4e6daf1f0de04df1fddeabb397763682"
+      },
+      {
+        "playerCount": 4,
+        "gridSize": 7,
+        "boardShape": "hexagon",
+        "rulesVersion": "territory-v2",
+        "mediumPolicyId": "hex-player-policy-v1",
+        "policySha256": "d00ad2ee70e953990fc7e4355c5771ce4e6daf1f0de04df1fddeabb397763682"
+      },
+      {
+        "playerCount": 4,
+        "gridSize": 9,
+        "boardShape": "hexagon",
+        "rulesVersion": "territory-v2",
+        "mediumPolicyId": "hex-player-policy-v1",
+        "policySha256": "d00ad2ee70e953990fc7e4355c5771ce4e6daf1f0de04df1fddeabb397763682"
+      },
+      {
+        "playerCount": 4,
+        "gridSize": 11,
+        "boardShape": "hexagon",
+        "rulesVersion": "territory-v2",
+        "mediumPolicyId": "hex-player-policy-v1",
+        "policySha256": "d00ad2ee70e953990fc7e4355c5771ce4e6daf1f0de04df1fddeabb397763682"
+      },
+      {
+        "playerCount": 4,
+        "gridSize": 15,
+        "boardShape": "hexagon",
+        "rulesVersion": "territory-v2",
+        "mediumPolicyId": "hex-player-policy-v1",
+        "policySha256": "d00ad2ee70e953990fc7e4355c5771ce4e6daf1f0de04df1fddeabb397763682"
+      },
+      {
+        "playerCount": 5,
+        "gridSize": 5,
+        "boardShape": "hexagon",
+        "rulesVersion": "territory-v2",
+        "mediumPolicyId": "hex-player-policy-v1",
+        "policySha256": "d00ad2ee70e953990fc7e4355c5771ce4e6daf1f0de04df1fddeabb397763682"
+      },
+      {
+        "playerCount": 5,
+        "gridSize": 7,
+        "boardShape": "hexagon",
+        "rulesVersion": "territory-v2",
+        "mediumPolicyId": "hex-player-policy-v1",
+        "policySha256": "d00ad2ee70e953990fc7e4355c5771ce4e6daf1f0de04df1fddeabb397763682"
+      },
+      {
+        "playerCount": 5,
+        "gridSize": 9,
+        "boardShape": "hexagon",
+        "rulesVersion": "territory-v2",
+        "mediumPolicyId": "hex-player-policy-v1",
+        "policySha256": "d00ad2ee70e953990fc7e4355c5771ce4e6daf1f0de04df1fddeabb397763682"
+      },
+      {
+        "playerCount": 5,
+        "gridSize": 11,
+        "boardShape": "hexagon",
+        "rulesVersion": "territory-v2",
+        "mediumPolicyId": "hex-player-policy-v1",
+        "policySha256": "d00ad2ee70e953990fc7e4355c5771ce4e6daf1f0de04df1fddeabb397763682"
+      },
+      {
+        "playerCount": 5,
+        "gridSize": 15,
+        "boardShape": "hexagon",
+        "rulesVersion": "territory-v2",
+        "mediumPolicyId": "hex-player-policy-v1",
+        "policySha256": "d00ad2ee70e953990fc7e4355c5771ce4e6daf1f0de04df1fddeabb397763682"
+      },
+      {
+        "playerCount": 6,
+        "gridSize": 5,
+        "boardShape": "hexagon",
+        "rulesVersion": "territory-v2",
+        "mediumPolicyId": "hex-player-policy-v1",
+        "policySha256": "d00ad2ee70e953990fc7e4355c5771ce4e6daf1f0de04df1fddeabb397763682"
+      },
+      {
+        "playerCount": 6,
+        "gridSize": 7,
+        "boardShape": "hexagon",
+        "rulesVersion": "territory-v2",
+        "mediumPolicyId": "hex-player-policy-v1",
+        "policySha256": "d00ad2ee70e953990fc7e4355c5771ce4e6daf1f0de04df1fddeabb397763682"
+      },
+      {
+        "playerCount": 6,
+        "gridSize": 9,
+        "boardShape": "hexagon",
+        "rulesVersion": "territory-v2",
+        "mediumPolicyId": "hex-player-policy-v1",
+        "policySha256": "d00ad2ee70e953990fc7e4355c5771ce4e6daf1f0de04df1fddeabb397763682"
+      },
+      {
+        "playerCount": 6,
+        "gridSize": 11,
+        "boardShape": "hexagon",
+        "rulesVersion": "territory-v2",
+        "mediumPolicyId": "hex-player-policy-v1",
+        "policySha256": "d00ad2ee70e953990fc7e4355c5771ce4e6daf1f0de04df1fddeabb397763682"
+      },
+      {
+        "playerCount": 6,
+        "gridSize": 15,
+        "boardShape": "hexagon",
+        "rulesVersion": "territory-v2",
+        "mediumPolicyId": "hex-player-policy-v1",
+        "policySha256": "d00ad2ee70e953990fc7e4355c5771ce4e6daf1f0de04df1fddeabb397763682"
+      }
+    ],
+    "fetches": [
+      "file:///C:/Users/zcz/.codex/worktrees/wechat-minigame/line%20game/local_artifacts/release-all-20261024-web-r3/repo/web/web%E5%89%8D%E7%AB%AF/assets/research-ai/hex-player-policy-v1.json?v=20261024-all1",
+      "file:///C:/Users/zcz/.codex/worktrees/wechat-minigame/line%20game/local_artifacts/release-all-20261024-web-r3/repo/web/web%E5%89%8D%E7%AB%AF/assets/research-ai/three-player-search-v4-round12.json",
+      "file:///C:/Users/zcz/.codex/worktrees/wechat-minigame/line%20game/local_artifacts/release-all-20261024-web-r3/repo/web/web%E5%89%8D%E7%AB%AF/assets/research-ai/three-player-search-v4-round12.json",
+      "file:///C:/Users/zcz/.codex/worktrees/wechat-minigame/line%20game/local_artifacts/release-all-20261024-web-r3/repo/web/web%E5%89%8D%E7%AB%AF/assets/research-ai/three-player-search-v4-round12.json",
+      "file:///C:/Users/zcz/.codex/worktrees/wechat-minigame/line%20game/local_artifacts/release-all-20261024-web-r3/repo/web/web%E5%89%8D%E7%AB%AF/assets/research-ai/three-player-policy-v1.json?v=20261024-all1",
+      "file:///C:/Users/zcz/.codex/worktrees/wechat-minigame/line%20game/local_artifacts/release-all-20261024-web-r3/repo/web/web%E5%89%8D%E7%AB%AF/assets/research-ai/three-player-policy-v1.json?v=20261024-all1",
+      "file:///C:/Users/zcz/.codex/worktrees/wechat-minigame/line%20game/local_artifacts/release-all-20261024-web-r3/repo/web/web%E5%89%8D%E7%AB%AF/assets/research-ai/hex-player-policy-v1.json?v=20261024-all1",
+      "file:///C:/Users/zcz/.codex/worktrees/wechat-minigame/line%20game/local_artifacts/release-all-20261024-web-r3/repo/web/web%E5%89%8D%E7%AB%AF/assets/research-ai/multiplayer-v1/manifest.json",
+      "file:///C:/Users/zcz/.codex/worktrees/wechat-minigame/line%20game/local_artifacts/release-all-20261024-web-r3/repo/web/web%E5%89%8D%E7%AB%AF/assets/research-ai/multiplayer-v1/manifest.json",
+      "file:///C:/Users/zcz/.codex/worktrees/wechat-minigame/line%20game/local_artifacts/release-all-20261024-web-r3/repo/web/web%E5%89%8D%E7%AB%AF/assets/research-ai/multiplayer-v1/multiplayer-ultimate-v1.f32"
+    ],
+    "earlyMessages": [
+      {
+        "type": "READY",
+        "requestId": 1,
+        "strategy": "multiplayer",
+        "positionRevision": 0,
+        "rulesVersion": "territory-v2",
+        "currentPlayer": "BLACK",
+        "modelInfo": {
+          "implementationId": "multiplayer-hard-cut-resilience-v1",
+          "baseSourceManifestSha256": "8d89b9074be7a79b706a345eedfeda2d174337061e9424ebe8ff526ba41668bc",
+          "evidenceTier": "unqualified-application-algorithm-candidate",
+          "lineage": "hex-player-policy-v1",
+          "nonterminalEvaluation": "multiplayer-heuristic-value-v2",
+          "terminalEvaluation": "native-territory-v2",
+          "publicationMode": "completed-comparisons",
+          "absoluteDeadlineMs": 650,
+          "tacticalAlgorithm": "lexicographic-complete-next-opponent-resilience-v1",
+          "responseScope": "one-actual-next-opponent; conditional-actor-followup; topology-signal-only",
+          "fallbackPolicy": "interruptible-original-v4-or-linear; explicit-partial-linear-or-deadline-pass",
+          "strengthPreservationClaim": false,
+          "id": "multiplayer-hard-v1",
+          "compatibility": "territory-v2 native 3–6 players; size 5–15",
+          "startup": {
+            "loaderEnteredMs": 152.8969,
+            "resourceWaitMs": 9.179300000000012,
+            "resourcePromiseReused": true,
+            "factoryMs": 0.46459999999999013,
+            "mediumPolicyId": "hex-player-policy-v1",
+            "implementation": "native-hard-minimal-resources-v1"
+          }
+        },
+        "startupStats": {
+          "queuedBeforeHandler": true,
+          "formalDispatchCount": 1,
+          "requestReceivedMs": 120.0862,
+          "formalDispatchMs": 149.9956,
+          "bootstrapEnteredMs": 119.8991,
+          "implementation": "application-single-file-hard-v1"
+        }
+      },
+      {
+        "type": "RESULT",
+        "requestId": 1,
+        "strategy": "multiplayer",
+        "positionRevision": 0,
+        "rulesVersion": "territory-v2",
+        "currentPlayer": "BLACK",
+        "moves": [],
+        "modelInfo": {
+          "implementationId": "multiplayer-hard-cut-resilience-v1",
+          "baseSourceManifestSha256": "8d89b9074be7a79b706a345eedfeda2d174337061e9424ebe8ff526ba41668bc",
+          "evidenceTier": "unqualified-application-algorithm-candidate",
+          "lineage": "hex-player-policy-v1",
+          "nonterminalEvaluation": "multiplayer-heuristic-value-v2",
+          "terminalEvaluation": "native-territory-v2",
+          "publicationMode": "completed-comparisons",
+          "absoluteDeadlineMs": 650,
+          "tacticalAlgorithm": "lexicographic-complete-next-opponent-resilience-v1",
+          "responseScope": "one-actual-next-opponent; conditional-actor-followup; topology-signal-only",
+          "fallbackPolicy": "interruptible-original-v4-or-linear; explicit-partial-linear-or-deadline-pass",
+          "strengthPreservationClaim": false,
+          "id": "multiplayer-hard-v1",
+          "compatibility": "territory-v2 native 3–6 players; size 5–15",
+          "startup": {
+            "loaderEnteredMs": 152.8969,
+            "resourceWaitMs": 9.179300000000012,
+            "resourcePromiseReused": true,
+            "factoryMs": 0.46459999999999013,
+            "mediumPolicyId": "hex-player-policy-v1",
+            "implementation": "native-hard-minimal-resources-v1"
+          }
+        },
+        "searchStats": {
+          "algorithm": "hard-complete-next-opponent-resilience-v1",
+          "elapsedMs": 0,
+          "absoluteDeadline": 813.0751,
+          "fallbackChanged": false,
+          "partial": false,
+          "baselineComplete": false
+        },
+        "startupStats": {
+          "queuedBeforeHandler": true,
+          "formalDispatchCount": 1,
+          "requestReceivedMs": 120.0862,
+          "formalDispatchMs": 149.9956,
+          "bootstrapEnteredMs": 119.8991,
+          "implementation": "application-single-file-hard-v1"
+        }
+      }
+    ],
+    "command": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r3\\repo\\web\\web前端\\tests\\verify-multiplayer-hard-application-bundle.mjs",
+      "local_artifacts/release-all-20261024-web-r3/hard-worker-build-release",
+      "local_artifacts/release-all-20261024-web-r3/hard-worker-application-check.json"
+    ],
+    "verifierSha256": "4de57c3fa054ea002748755a5731c72b5b787a2998b874777f1c01c99421361e",
+    "limits": [
+      "Controlled Worker surface and file-backed assets, only topN-zero/terminal Hard decisions; no nontrivial search, browser scheduling, playing strength or latency claim."
+    ]
+  },
+  "actualV3WorkerRoute": {
+    "schema": "lifeline-territory-v3-hard-worker-verification-v1",
+    "status": "PASS_V3_HARD_WORKER_SOURCE_AND_ROUTE",
+    "bundleSha256": "a6621442b775d6a6b8acdaed1cfbcf91b0ac3d24b4b4606b46274d324d6e7ec7",
+    "currentGameEngineSha256": "3b70b69c4c480117a4952b06c279054ec535268b4293b04b4d63f960ac4b0fca",
+    "route": {
+      "kind": "native-hard-bundle",
+      "url": "file:///C:/Users/zcz/.codex/worktrees/wechat-minigame/line%20game/local_artifacts/release-all-20261024-web-r1/repo/web/web%E5%89%8D%E7%AB%AF/MultiplayerHardAIWorker.bundle.mjs?v=20261024-all1"
+    },
+    "request": {
+      "rulesVersion": "territory-v3",
+      "playerCount": 4,
+      "gridSize": 5,
+      "replyType": "RESULT",
+      "returnedMoves": 1,
+      "terminalEvaluation": "native-territory-v3"
+    },
+    "checks": [
+      "manifest GameEngine hash equals current source",
+      "captured production route targets emitted bundle",
+      "actual emitted Worker listener returns a V3 Hard result"
+    ],
+    "limits": [
+      "Controlled Node Worker shim with file-backed assets; no browser timing or playing-strength claim.",
+      "Current-score parity is established by the separate main-thread scoring fixture; this worker request verifies source identity and V3 route execution."
+    ]
+  },
+  "crossplatform": {
+    "status": "PASS_REAL_LOOPBACK_HTTP_WS_COMPILED_MINI_WORKER",
+    "checks": [
+      "web-create-v3-owned-point-score",
+      "compiled-mini-worker-joins-and-hashes-v3",
+      "web-host-settings-and-starter-broadcast-to-mini",
+      "both-ends-move-and-share-authoritative-hash",
+      "cross-platform-two-party-undo-with-action-lock-and-replay",
+      "web-socket-resume-retains-v3-position"
+    ],
+    "compiledWorkerSha256": "38b8f5dcc7b43643c9691a01c3f437af578b1c0c3764fd87f0057fa95e923811",
+    "sharedServiceRulesVersion": "territory-v3",
+    "webGameEngineSha256": "3b70b69c4c480117a4952b06c279054ec535268b4293b04b4d63f960ac4b0fca",
+    "scope": "Synthetic login only; frozen shared-service API+Node verifier, real HTTP/WebSocket, Web client and actual Mini compiled Worker",
+    "limits": [
+      "No production account, phone, production-domain transport or public release verification."
+    ]
+  },
+  "crossplatformExecution": {
+    "command": [
+      "node",
+      "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r1\\real-crossplatform.mjs",
+      "http://127.0.0.1:55594"
+    ],
+    "exitCode": 0,
+    "elapsedSec": 4.359000000000378,
+    "fixtureCommand": [
+      "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\.venv\\Scripts\\python.exe",
+      "-B",
+      "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\web\\tests\\wechat_release_fixture_server.py",
+      "--service-root",
+      "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\wechat-service-all-20261024-r2\\package\\service",
+      "--port",
+      "55594",
+      "--database",
+      "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r1\\real-crossplatform.sqlite3"
+    ]
+  },
+  "portabilitySources": [
+    "ReplayCodec.js",
+    "ModelFreeAI.js",
+    "GuideArticleFormat.js",
+    "GuideContent.js"
+  ],
+  "noProductionDeploymentByThisAgent": true
+}

@@ -1,0 +1,63 @@
+--- shared-api-settings-undo-source
++++ frozen-service-api-version-negotiation
+@@ -593,25 +593,34 @@
+                 "members": {p: member is not None for p, member in room["players"].items()}}
+ 
+     @staticmethod
+-    def room_settings(body):
+-        if not isinstance(body, dict) or set(body) - {"gridSize", "boardShape", "startingPointMode", "initialPositions", "undoEnabled", "undoMaxCount", "rulesVersion"}:
++    def room_settings(body, *, rules_default="territory-v2"):
++        if not isinstance(body, dict) or set(body) - {"gridSize", "boardShape", "startingPointMode", "initialPositions", "undoEnabled", "undoMaxCount", "rulesVersion", "playerCount", "startPlayer", "botCount", "turnTimerEnabled", "turnTimeLimitSeconds", "hintEnabled", "hintMaxCount"}:
+             fail("INVALID_SETTINGS", 422)
+         size = body.get("gridSize", 7)
+         shape = body.get("boardShape", "triangle")
+         mode = body.get("startingPointMode", "default")
+         enabled = body.get("undoEnabled", False)
+         count = body.get("undoMaxCount", 3)
+-        rules_version = body.get("rulesVersion", "territory-v2")
++        rules = body.get("rulesVersion", rules_default)
++        first = body.get("startPlayer", "BLACK")
++        hint = body.get("hintEnabled", False)
++        hints = body.get("hintMaxCount", 3 if hint else 0)
++        seconds = body.get("turnTimeLimitSeconds", 60)
+         if (type(size) is not int or not 5 <= size <= 15 or shape not in ("triangle", "hexagon")
+                 or mode not in ("default", "random", "custom") or type(enabled) is not bool
+                 or type(count) is not int or not 1 <= count <= 10
+-                or rules_version not in ("territory-v2", "territory-v3")):
++                or rules not in ("territory-v2", "territory-v3") or first not in ("BLACK", "WHITE")
++                or type(body.get("playerCount", 2)) is not int or body.get("playerCount", 2) != 2
++                or type(body.get("botCount", 0)) is not int or body.get("botCount", 0) != 0
++                or body.get("turnTimerEnabled", False) is not False
++                or type(seconds) is not int or not 15 <= seconds <= 200
++                or type(hint) is not bool or type(hints) is not int or not (1 if hint else 0) <= hints <= 10):
+             fail("INVALID_SETTINGS", 422)
+         positions = body.get("initialPositions")
+         if (mode == "default" and positions is not None) or (mode != "default" and not isinstance(positions, dict)):
+             fail("INVALID_SETTINGS", 422)
+-        settings = {"gridSize": size, "playerCount": 2, "startPlayer": "BLACK", "rulesVersion": rules_version,
+-                    "turnTimerEnabled": False, "turnTimeLimitSeconds": 60, "hintEnabled": False, "hintMaxCount": 0,
++        settings = {"gridSize": size, "playerCount": 2, "startPlayer": first, "rulesVersion": rules,
++                    "turnTimerEnabled": False, "turnTimeLimitSeconds": seconds, "hintEnabled": hint, "hintMaxCount": hints,
+                     "boardShape": shape, "undoEnabled": enabled, "undoMaxCount": count}
+         if mode != "default":
+             settings.update(startingPointMode=mode, initialPositions=positions)
+@@ -740,7 +749,9 @@
+             elif operation == "settings":
+                 if player != "BLACK" or room["status"] != "waiting" or room["seq"] or any(room["ready"].values()):
+                     fail("SETTINGS_LOCKED", 409)
+-                settings = self.room_settings(body.get("settings"))
++                settings = self.room_settings(body.get("settings"), rules_default=room["settings"]["rulesVersion"])
++                if settings["rulesVersion"] != room["settings"]["rulesVersion"]:
++                    fail("RULES_CHANGE_REQUIRES_NEW_ROOM", 409)
+                 room["state"] = await asyncio.to_thread(self.verifier, settings, [])
+                 room["settings"] = settings
+             elif operation == "rematch":
+@@ -909,6 +920,8 @@
+         try:
+             get_service()
+             return {"enabled": True, "protocol": PROTOCOL, "rulesVersion": "territory-v3",
++                    "supportedRulesVersions": ["territory-v2", "territory-v3"],
++                    "roomSettings": True, "undoVoting": True,
+                     "accounts": True, "webLogin": web_authenticate is not None or web_password_authenticate is not None,
+                     "accountProfile": True,
+                     "accountLinking": web_authenticate is not None or web_password_authenticate is not None,

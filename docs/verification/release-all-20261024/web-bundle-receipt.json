@@ -1,0 +1,15 @@
+{
+  "status": "FROZEN_LOCALLY_VERIFIED_NOT_DEPLOYED",
+  "release_id": "web-all-features-20261024-r1",
+  "asset_version": "20261024-all1",
+  "archive_sha256": "b35ad4df3fe77b43d05384af7467c46b87bf8a31952a20f612bb1cffedbf20dd",
+  "archive_bytes": 18532882,
+  "manifest_sha256": "9bfaaf64d6299eabc25360be6626c8ad4813942dd7ce2a6d6f2c6ee79b2732c4",
+  "overlay_file_count": 120,
+  "source_bytes": 21470213,
+  "predecessor_file_count": 108,
+  "literal_asset_references": 161,
+  "javascript_syntax_files": 65,
+  "game_engine_sha256": "3b70b69c4c480117a4952b06c279054ec535268b4293b04b4d63f960ac4b0fca",
+  "hard_bundle_sha256": "a6621442b775d6a6b8acdaed1cfbcf91b0ac3d24b4b4606b46274d324d6e7ec7"
+}

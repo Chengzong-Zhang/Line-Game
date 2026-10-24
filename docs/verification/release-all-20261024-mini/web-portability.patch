@@ -1,0 +1,674 @@
+--- a/web/web前端/AIEngine.js
++++ b/web/web前端/AIEngine.js
+@@ -1,4 +1,4 @@
+-import { GameEngine, Player, PointState } from "./GameEngine.js?v=20261024-all1";
++import { GameEngine, Player, PointState } from "./GameEngine.js?v=20261020-three1";
+ 
+ function pointKey(point) {
+   return `${point[0]},${point[1]}`;
+--- a/web/web前端/assets/research-ai/multiplayer-v1/easy.json
++++ b/web/web前端/assets/research-ai/multiplayer-v1/easy.json
+@@ -0,0 +1,119 @@
++{
++  "schema": {
++    "name": "lifeline-multiplayer-runtime",
++    "version": 1
++  },
++  "rulesVersion": "territory-v2",
++  "sourceManifestSha256": "d7560db53483ab9ee2a7c423509142924545f1679ec35201b369e3b91fe161a0",
++  "models": [
++    {
++      "id": "multiplayer-easy-v1",
++      "kind": "linear-16",
++      "status": "TRAINED_NUMERICALLY_VERIFIED_STRENGTH_PENDING",
++      "temperature": 1,
++      "training": {
++        "baseline_validation": {
++          "by_players": {
++            "2": {
++              "ce": 2.4282612220283712,
++              "count": 292,
++              "top1": 0.339041095890411
++            },
++            "3": {
++              "ce": 1.8493445312487893,
++              "count": 312,
++              "top1": 0.48717948717948717
++            },
++            "4": {
++              "ce": 2.853110675700009,
++              "count": 352,
++              "top1": 0.2897727272727273
++            },
++            "5": {
++              "ce": 3.0935836716777305,
++              "count": 352,
++              "top1": 0.2869318181818182
++            },
++            "6": {
++              "ce": 2.9516205974134873,
++              "count": 352,
++              "top1": 0.2784090909090909
++            }
++          },
++          "linear_ce": 2.993416259374963,
++          "policy_ce": 2.661599175039544,
++          "samples": 1660,
++          "teacher_top1_agreement": 0.3325301204819277
++        },
++        "config_sha256": "fbfacd0cfe8a4734b181c63ed6e088a4954d2f578565556099d2ec7a18ee1a36",
++        "dataset_identity": "9d614cd10d47e96ac4d99277cd288db1fc52b7fb4097cb91ff679f68ffb0b5ad",
++        "identity": "6ed344c3ce9af57c0f78089363ae24a79bd4e0fe43627bc902082e598fdd342e",
++        "method": "minimax/light-policy trajectory distillation",
++        "optimizer_reset": true,
++        "parent_asset_sha256": "4c424c0f0ac19724d7fa51741d199bd780781d7063b325671fe9197f6b6abc9b",
++        "parent_model_id": "topology-gnn-transfer-v1-seed2026092202",
++        "pass_head_frozen": true,
++        "source_hashes": {
++          "research/iclr2027/lifeline_rl/alphazero/network.py": "02d92f165ff445aa9e92266933d5ed83fe04c19d3201fcde6803705762c41f09",
++          "web/tools/neural_posttraining_core.py": "a6cbe99ac715ffc042b0e9e8772b4d5ea53e8530549a0632185d8cba60129dca",
++          "web/tools/train-multiplayer-models.py": "d3ad0fc5f5117755f7244105f823882c4321c70d057e5fffa043b252f4b560ba"
++        },
++        "training_samples": 1663,
++        "updates": 300,
++        "validation": {
++          "by_players": {
++            "2": {
++              "ce": 1.9540364736745337,
++              "count": 292,
++              "top1": 0.4589041095890411
++            },
++            "3": {
++              "ce": 1.6049450372274106,
++              "count": 312,
++              "top1": 0.483974358974359
++            },
++            "4": {
++              "ce": 2.0346904393624174,
++              "count": 352,
++              "top1": 0.4403409090909091
++            },
++            "5": {
++              "ce": 2.1638871067605745,
++              "count": 352,
++              "top1": 0.3977272727272727
++            },
++            "6": {
++              "ce": 1.8331361268647015,
++              "count": 352,
++              "top1": 0.5142045454545454
++            }
++          },
++          "linear_ce": 1.8546931752957494,
++          "policy_ce": 1.9243883888764555,
++          "samples": 1660,
++          "teacher_top1_agreement": 0.45843373493975903
++        },
++        "validation_samples": 1660,
++        "value_head_frozen": true
++      },
++      "weights": [
++        -0.14580607414245605,
++        4.890458583831787,
++        1.5119130611419678,
++        2.461515188217163,
++        4.132477283477783,
++        4.847853183746338,
++        2.18764328956604,
++        1.4035818576812744,
++        -0.03604307025671005,
++        4.890457630157471,
++        1.9455091953277588,
++        -0.188163623213768,
++        1.4107811450958252,
++        1.0532854795455933,
++        1.5060492753982544,
++        2.6598968505859375
++      ]
++    }
++  ]
++}
+--- a/web/web前端/GuideContent.js
++++ b/web/web前端/GuideContent.js
+@@ -1,5 +1,5 @@
+-import { implementationMarkdown } from "./GuideImplementation.js?v=20261024-all1";
+-import { guideHeadingId, isGuideAnchorId } from "./GuideArticleFormat.js?v=20261024-all1";
++import { implementationMarkdown } from "./GuideImplementation.js";
++import { guideHeadingId, isGuideAnchorId } from "./GuideArticleFormat.js";
+ 
+ const WHY_TALK_ZH = `# Talk：扩张、防守与破绽
+ 
+--- a/web/web前端/GuideImplementation.js
++++ b/web/web前端/GuideImplementation.js
+@@ -1,6 +1,6 @@
+-import { MATH_CHAPTERS } from './GuideMathChapters.js?v=20261024-all1';
+-import { TECHNICAL_CHAPTERS } from './GuideTechnicalChapters.js?v=20261024-all1';
+-import { blockText, blockMarkdown, guideHeadingId } from './GuideArticleFormat.js?v=20261024-all1';
++import { MATH_CHAPTERS } from './GuideMathChapters.js';
++import { TECHNICAL_CHAPTERS } from './GuideTechnicalChapters.js';
++import { blockText, blockMarkdown, guideHeadingId } from './GuideArticleFormat.js';
+ 
+ export function guideChapters(kind = 'rulesMath') {
+   return kind === 'whyCode' ? TECHNICAL_CHAPTERS : MATH_CHAPTERS;
+--- a/web/web前端/GuideMathChapters.js
++++ b/web/web前端/GuideMathChapters.js
+@@ -1,4 +1,4 @@
+-import { p, m, s, ch } from './GuideArticleFormat.js?v=20261024-all1';
++import { p, m, s, ch } from './GuideArticleFormat.js';
+ 
+ // Derived statements are conditional theorems, not experimental strength claims.
+ export const MATH_CHAPTERS = [
+--- a/web/web前端/GuideTechnicalChapters.js
++++ b/web/web前端/GuideTechnicalChapters.js
+@@ -1,5 +1,5 @@
+-import { IMPLEMENTATION_NOTES } from './GuideImplementationNotes.js?v=20261024-all1';
+-import { p, m, c, s, ch } from './GuideArticleFormat.js?v=20261024-all1';
++import { IMPLEMENTATION_NOTES } from './GuideImplementationNotes.js';
++import { p, m, c, s, ch } from './GuideArticleFormat.js';
+ 
+ function notes(id, omit = []) {
+   const item = IMPLEMENTATION_NOTES.find(item => item.id === id);
+--- a/web/web前端/HexFastSearchAI.js
++++ b/web/web前端/HexFastSearchAI.js
+@@ -1,7 +1,8 @@
++import { portableClone as structuredClone } from './PortableClone.js';
+ // V5 replaces only nonterminal leaf scoring; v4 remains frozen and unchanged.
+-import { saveState, restoreState, fastTerritoryBFS } from "./AIEngine.js?v=20261024-all1";
+-import { GameEngine } from "./GameEngine.js?v=20261024-all1";
+-import { HEX_PLAYER_FEATURES, hexPlayerCandidates } from "./HexPlayerAI.js?v=20261024-all1";
++import { saveState, restoreState, fastTerritoryBFS } from "./AIEngine.js";
++import { GameEngine } from "./GameEngine.js";
++import { HEX_PLAYER_FEATURES, hexPlayerCandidates } from "./HexPlayerAI.js";
+ 
+ const pointOrder = (a,b) => a.point[1]-b.point[1] || a.point[0]-b.point[0];
+ const samePoint = (a,b) => a[0]===b[0] && a[1]===b[1];
+--- a/web/web前端/HexPlayerAI.js
++++ b/web/web前端/HexPlayerAI.js
+@@ -1,4 +1,7 @@
+-import { restoreState, saveState } from "./AIEngine.js?v=20261024-all1";
++// Source: frozen deployed r4 HexPlayerAI.js, SHA-256 62340c349b53a13e20d47171187228a2359c5d8dcbf12344a4bf6a0017b9f673.
++// Compatibility only: lazy browser URL, injected SHA-256 of insertion-order JSON, JSON clone.
++// Candidate generation, features, weights, ranking, and model validation are unchanged.
++import { restoreState, saveState } from "./AIEngine.js?v=20261020-three1";
+ 
+ export const HEX_PLAYER_MODEL_ID = "hex-player-policy-v1";
+ export const HEX_PLAYER_FEATURES = Object.freeze([
+@@ -7,7 +10,7 @@
+   "own_coverage_gain", "attack", "own_line", "distance_from_home", "centrality",
+   "own_frontier", "opponent_frontier_lead",
+ ]);
+-const MODEL_URL = new URL("./assets/research-ai/hex-player-policy-v1.json?v=20261024-all1", import.meta.url);
++const MODEL_PATH = "./assets/research-ai/hex-player-policy-v1.json?v=20261021-hexai1";
+ let modelPromise = null;
+ 
+ // Integer-index scans avoid constructing coordinate strings for each player's
+@@ -107,7 +110,7 @@
+   }
+ }
+ 
+-export async function createHexPlayerModel(payload) {
++export async function createHexPlayerModel(payload, hashText) {
+   if (payload?.schema?.name !== "lifeline-hex-player-policy" || payload.schema.version !== 1
+     || payload.id !== HEX_PLAYER_MODEL_ID || payload.rules_version !== "territory-v2"
+     || JSON.stringify(payload.features) !== JSON.stringify(HEX_PLAYER_FEATURES)
+@@ -125,11 +128,15 @@
+   }
+   const body = { ...payload };
+   delete body.integrity;
+-  if (!globalThis.crypto?.subtle) throw new Error("无法校验六边形 AI 模型完整性。");
+-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(body)));
+-  const hash = Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, "0")).join("");
++  let hash;
++  if (hashText) hash = await hashText(JSON.stringify(body));
++  else {
++    if (!globalThis.crypto?.subtle) throw new Error("无法校验六边形 AI 模型完整性。");
++    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(body)));
++    hash = Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, "0")).join("");
++  }
+   if (hash !== payload.integrity.payload_sha256) throw new Error("六边形 AI 模型完整性校验失败。");
+-  const spec = structuredClone(payload);
++  const spec = JSON.parse(JSON.stringify(payload));
+   Object.freeze(spec.weights);
+   return {
+     spec,
+@@ -144,7 +151,7 @@
+ export async function loadHexPlayerModel(id = HEX_PLAYER_MODEL_ID) {
+   if (id !== HEX_PLAYER_MODEL_ID) throw new Error(`未找到六边形 AI 模型：${id}`);
+   if (!modelPromise) modelPromise = (async () => {
+-    const response = await fetch(MODEL_URL);
++    const response = await fetch(new URL(MODEL_PATH, import.meta.url));
+     if (!response.ok) throw new Error(`无法加载六边形 AI 模型（HTTP ${response.status}）。`);
+     return createHexPlayerModel(await response.json());
+   })().catch((error) => { modelPromise = null; throw error; });
+--- a/web/web前端/LocalAIModes.js
++++ b/web/web前端/LocalAIModes.js
+@@ -1,5 +1,5 @@
+-import { DEFAULT_RESEARCH_VERSION, RESEARCH_FAMILIES, TRANSFER_SEEDS, researchProfile } from "./ResearchAIOptions.js?v=20261024-all1";
+-import { threePlayerModelIdForBoard } from "./ThreePlayerSearchOptions.js?v=20261024-all1";
++import { DEFAULT_RESEARCH_VERSION, RESEARCH_FAMILIES, TRANSFER_SEEDS, researchProfile } from "./ResearchAIOptions.js?v=20261020-three1";
++import { threePlayerModelIdForBoard } from "./ThreePlayerSearchOptions.js?v=20261021-three4";
+ 
+ export const LOCAL_PLAYER_CHOICES = Object.freeze([
+   "human", "minimax", ...RESEARCH_FAMILIES, "dqn", "ppo", "sac", "gail", "gan",
+--- a/web/web前端/LocalGameSession.js
++++ b/web/web前端/LocalGameSession.js
+@@ -1,7 +1,7 @@
+-import { ALL_LOCAL_PLAYER_CHOICES, MULTIPLAYER_AI_CHOICES, normalizeLocalPlayers, usesGenericBoardAI } from "./LocalAIModes.js?v=20261024-all1";
+-import { startingPointSettings } from "./StartingPoints.js?v=20261024-all1";
+-import { resolveBoardShape } from "./GameEngine.js?v=20261024-all1";
+-import { normalizeUndoUsage } from "./LocalUndo.js?v=20261024-all1";
++import { ALL_LOCAL_PLAYER_CHOICES, MULTIPLAYER_AI_CHOICES, normalizeLocalPlayers, usesGenericBoardAI } from "./LocalAIModes.js?v=20261022-multiplayer1";
++import { startingPointSettings } from "./StartingPoints.js?v=20261021-boardshapes1";
++import { resolveBoardShape } from "./GameEngine.js?v=20261021-boardshapes1";
++import { normalizeUndoUsage } from "./LocalUndo.js?v=20261021-undo1";
+ 
+ const LOCAL_GAME_SESSION_FORMAT = "lifeline-local-session";
+ const PLAYER_COLORS = Object.freeze(["BLACK", "WHITE", "PURPLE", "GREEN", "ORANGE", "CYAN"]);
+--- a/web/web前端/LocalUndo.js
++++ b/web/web前端/LocalUndo.js
+@@ -1,4 +1,4 @@
+-import GameEngine from "./GameEngine.js?v=20261024-all1";
++import GameEngine from "./GameEngine.js?v=20261021-frame-latency2";
+ 
+ // Ask the rule engine for actors: automatic skips can change the turn order.
+ const COLORS = ["BLACK", "WHITE", "PURPLE", "GREEN", "ORANGE", "CYAN"];
+--- a/web/web前端/MultiplayerClock.js
++++ b/web/web前端/MultiplayerClock.js
+@@ -0,0 +1,11 @@
++// Standard performance.now() and Date.now() both use milliseconds. Do not use
++// wx.getPerformance() here: its native clock can have a different unit.
++// Keep the fallback nondecreasing when the wall clock is adjusted backwards.
++const nativeClock = globalThis.performance;
++let lastWallTime = 0;
++export const multiplayerClock = {
++  now: typeof nativeClock?.now === "function" ? () => nativeClock.now() : () => {
++    lastWallTime = Math.max(lastWallTime, Date.now());
++    return lastWallTime;
++  },
++};
+--- a/web/web前端/MultiplayerHardFallback.js
++++ b/web/web前端/MultiplayerHardFallback.js
+@@ -1,7 +1,9 @@
++import { multiplayerClock as performance } from "./MultiplayerClock.js";
++import { portableClone as structuredClone } from './PortableClone.js';
+ // Isolated candidate only. Cooperative deadlines are not equivalent pruning.
+-import { saveState, restoreState } from "./AIEngine.js?v=20261024-all1";
+-import { isolatedSearchEngine, visitPolicyCandidates } from "./MultiplayerSearch.js?v=20261024-all1";
+-import { ThreePlayerSearchAI, positionUtilityV4 } from "./ThreePlayerSearchAI.js?v=20261024-all1";
++import { saveState, restoreState } from "./AIEngine.js";
++import { isolatedSearchEngine, visitPolicyCandidates } from "./MultiplayerSearch.js";
++import { ThreePlayerSearchAI, positionUtilityV4 } from "./ThreePlayerSearchAI.js";
+ 
+ const EXPIRED = Symbol("isolated Hard v2 shared deadline");
+ const pointOrder = (a, b) => a.point[1] - b.point[1] || a.point[0] - b.point[0];
+--- a/web/web前端/MultiplayerHardResources.js
++++ b/web/web前端/MultiplayerHardResources.js
+@@ -1,5 +1,7 @@
+-import { createHardRuntimeV2 } from "./MultiplayerHardRuntime.js?v=20261024-all1";
+-import { threePlayerModelIdForBoard } from "./ThreePlayerSearchOptions.js?v=20261024-all1";
++import { multiplayerClock as performance } from "./MultiplayerClock.js";
++import { portableClone as structuredClone } from './PortableClone.js';
++import { createHardRuntimeV2 } from "./MultiplayerHardRuntime.js?v=20261023-hard2";
++import { threePlayerModelIdForBoard } from "./ThreePlayerSearchOptions.js";
+ 
+ export const HARD_MODEL_ID = "multiplayer-hard-v1";
+ const prepared = new Map();
+@@ -19,14 +21,14 @@
+   if (!reused) {
+     const promise = (async () => {
+       if (playerCount === 3) {
+-        const { loadThreePlayerRuntime } = await import("./ThreePlayerRuntime.js?v=20261024-all1");
++        const { loadThreePlayerRuntime } = await import("./ThreePlayerRuntime.js");
+         const id = threePlayerModelIdForBoard(gridSize);
+         const runtime = await loadThreePlayerRuntime(id, context);
+         if (runtime.modelInfo.id !== id) throw new Error("Three-player resource identity changed");
+         return { policySpec: runtime.ai.base ? runtime.ai.spec : runtime.ai.model.spec,
+           modelInfo: { id: runtime.modelInfo.id } };
+       }
+-      const { loadHexPlayerModel } = await import("./HexPlayerAI.js?v=20261024-all1");
++      const { loadHexPlayerModel } = await import("./HexPlayerAI.js");
+       const model = await loadHexPlayerModel();
+       if (model.spec.id !== "hex-player-policy-v1") throw new Error("Hex resource identity changed");
+       return { policySpec: model.spec, modelInfo: { id: model.spec.id } };
+--- a/web/web前端/MultiplayerHardRollout.js
++++ b/web/web前端/MultiplayerHardRollout.js
+@@ -1,11 +1,12 @@
++import { multiplayerClock as performance } from "./MultiplayerClock.js";
+ // NEW ALGORITHM: heuristic-v2 nonterminal values; exact native natural terminals. Not production.
+-import { evaluateNonterminalTeacher } from "./MultiplayerHardValue.js?v=20261024-all1";
++import { evaluateNonterminalTeacher } from "./MultiplayerHardValue.js?v=20261023-hard2";
+ // Experimental policy improvement: selfish opponent rollouts and canonical area.
+ // Candidate ordering never removes legal roots. Hard publishes complete sweeps;
+ // the opt-in mode can publish fully evaluated improvements within a sweep.
+-import { GameEngine } from "./GameEngine.js?v=20261024-all1";
+-import { saveState, restoreState } from "./AIEngine.js?v=20261024-all1";
+-import { isolatedSearchEngine, multiplayerMetrics, visitPolicyCandidates } from "./MultiplayerSearch.js?v=20261024-all1";
++import { GameEngine } from "./GameEngine.js";
++import { saveState, restoreState } from "./AIEngine.js";
++import { isolatedSearchEngine, multiplayerMetrics, visitPolicyCandidates } from "./MultiplayerSearch.js";
+ 
+ const DEADLINE = Symbol("multiplayer rollout budget");
+ const key = point => point === null ? "PASS" : point.join(",");
+--- a/web/web前端/MultiplayerHardRuntime.js
++++ b/web/web前端/MultiplayerHardRuntime.js
+@@ -1,9 +1,11 @@
++import { multiplayerClock as performance } from "./MultiplayerClock.js";
++import { portableClone as structuredClone } from './PortableClone.js';
+ // Hard V2 application factory. Registration and qualification remain external.
+-import { MultiplayerRolloutAI as Candidate } from "./MultiplayerHardRollout.js?v=20261024-all1";
+-import { HardDeadlineFallbackV2 } from "./MultiplayerHardFallback.js?v=20261024-all1";
+-import { isolatedSearchEngine, potentialMoves, probeMultiplayerReplyResilience } from "./MultiplayerSearch.js?v=20261024-all1";
+-import { compareCompletedReplyResilience } from "./MultiplayerHardValue.js?v=20261024-all1";
+-import { saveState, restoreState } from "./AIEngine.js?v=20261024-all1";
++import { MultiplayerRolloutAI as Candidate } from "./MultiplayerHardRollout.js?v=20261023-hard2";
++import { HardDeadlineFallbackV2 } from "./MultiplayerHardFallback.js?v=20261023-hard2";
++import { isolatedSearchEngine, potentialMoves, probeMultiplayerReplyResilience } from "./MultiplayerSearch.js";
++import { compareCompletedReplyResilience } from "./MultiplayerHardValue.js";
++import { saveState, restoreState } from "./AIEngine.js";
+ 
+ export const HARD_EXPERIMENT_OPTIONS = Object.freeze({ timeMs: 650, rolloutPlies: Object.freeze([12,24]),
+   minimumImprovement: .02, candidateCap: null, allowPass: true, rootPriors: null });
+--- a/web/web前端/MultiplayerModel.js
++++ b/web/web前端/MultiplayerModel.js
+@@ -1,4 +1,4 @@
+-import { createResearchModel, researchRelations } from "./ResearchAI.js?v=20261024-all1";
++import { createResearchModel, researchRelations } from "./ResearchAI.js";
+ 
+ const FEATURE_COUNT = 11;
+ const EPSILON = 1e-5;
+--- a/web/web前端/MultiplayerNativeGeometry.js
++++ b/web/web前端/MultiplayerNativeGeometry.js
+@@ -1,6 +1,6 @@
+ // Private search optimization: only edge coordinates/keys survive a position.
+ // Occupancy, explicit edge membership and connectivity are read on every call.
+-import { GameEngine } from './GameEngine.js?v=20261024-all1';
++import { GameEngine } from './GameEngine.js';
+ 
+ export function installNativeEdgeGeometry(engine, { maximumEntries = 2048 } = {}) {
+   if (!Number.isInteger(maximumEntries) || maximumEntries < 1) throw new Error('Invalid edge geometry limit');
+--- a/web/web前端/MultiplayerRollout.js
++++ b/web/web前端/MultiplayerRollout.js
+@@ -1,9 +1,10 @@
++import { multiplayerClock as performance } from "./MultiplayerClock.js";
+ // Experimental policy improvement: selfish opponent rollouts and canonical area.
+ // Candidate ordering never removes legal roots. Hard publishes complete sweeps;
+ // the opt-in mode can publish fully evaluated improvements within a sweep.
+-import { GameEngine } from "./GameEngine.js?v=20261024-all1";
+-import { saveState, restoreState } from "./AIEngine.js?v=20261024-all1";
+-import { isolatedSearchEngine, multiplayerMetrics, visitPolicyCandidates } from "./MultiplayerSearch.js?v=20261024-all1";
++import { GameEngine } from "./GameEngine.js";
++import { saveState, restoreState } from "./AIEngine.js";
++import { isolatedSearchEngine, multiplayerMetrics, visitPolicyCandidates } from "./MultiplayerSearch.js";
+ 
+ const DEADLINE = Symbol("multiplayer rollout budget");
+ const key = point => point === null ? "PASS" : point.join(",");
+--- a/web/web前端/MultiplayerRuntime.js
++++ b/web/web前端/MultiplayerRuntime.js
+@@ -1,13 +1,14 @@
+-import { fastPolicyCandidates, isolatedSearchEngine, MultiplayerMinimaxAI } from "./MultiplayerSearch.js?v=20261024-all1";
+-import { createMultiplayerModel } from "./MultiplayerModel.js?v=20261024-all1";
+-import { MultiplayerRolloutAI } from "./MultiplayerRollout.js?v=20261024-all1";
+-import { loadThreePlayerRuntime } from "./ThreePlayerRuntime.js?v=20261024-all1";
+-import { threePlayerModelIdForBoard } from "./ThreePlayerSearchOptions.js?v=20261024-all1";
+-import { loadHexPlayerModel } from "./HexPlayerAI.js?v=20261024-all1";
+-import { createUltimateAdmissionGuard } from "./MultiplayerUltimateAdmission.js?v=20261024-all1";
++import { multiplayerClock as performance } from "./MultiplayerClock.js";
++import { fastPolicyCandidates, isolatedSearchEngine, MultiplayerMinimaxAI } from "./MultiplayerSearch.js";
++import { createMultiplayerModel } from "./MultiplayerModel.js";
++import { MultiplayerRolloutAI } from "./MultiplayerRollout.js";
++import { loadThreePlayerRuntime } from "./ThreePlayerRuntime.js";
++import { threePlayerModelIdForBoard } from "./ThreePlayerSearchOptions.js";
++import { loadHexPlayerModel } from "./HexPlayerAI.js";
++import { createUltimateAdmissionGuard } from "./MultiplayerUltimateAdmission.js?v=20261023-admission1";
+ 
+ export const MULTIPLAYER_MODEL_IDS=Object.freeze(["multiplayer-easy-v1","multiplayer-medium-v1","multiplayer-hard-v1","multiplayer-ultimate-v1"]);
+-const promises=new Map(), baseUrl=new URL("./assets/research-ai/multiplayer-v1/",import.meta.url);
++const promises=new Map();
+ const ultimateAdmission=createUltimateAdmissionGuard();
+ const compare=(a,b)=>b.score-a.score||a.point[1]-b.point[1]||a.point[0]-b.point[0];
+ export class FastMultiplayerPolicy {
+@@ -29,6 +30,7 @@
+   }
+ }
+ async function assetModel(id){
++  const baseUrl=new URL("./assets/research-ai/multiplayer-v1/",import.meta.url);
+   if(!promises.has(id)) promises.set(id,(async()=>{
+     const response=await fetch(new URL("manifest.json",baseUrl));
+     if(!response.ok) throw new Error("多人训练模型尚未就绪，请选择中等或困难 AI。");
+@@ -51,9 +53,9 @@
+   })().catch(error=>{promises.delete(id);throw error;}));
+   return promises.get(id);
+ }
+-export async function createMediumRuntime(engine){
++export async function createMediumRuntime(engine,resources = { loadThreePlayerRuntime, loadHexPlayerModel }){
+   if(engine.playerCount===3){
+-    const runtime=await loadThreePlayerRuntime(threePlayerModelIdForBoard(engine.gridSize),engine);
++    const runtime=await resources.loadThreePlayerRuntime(threePlayerModelIdForBoard(engine.gridSize),engine);
+     if(runtime.ai.base){
+       // Same v4 weights, shortlist, opponents, rollout length and canonical leaf
+       // scoring. Only equivalent candidate enumeration/feature work changes.
+@@ -69,30 +71,31 @@
+     return {ai:new FastMultiplayerPolicy(runtime.ai.model.spec),modelInfo:runtime.modelInfo,weights:runtime.ai.model.spec.weights,
+       policySpec:runtime.ai.model.spec,responseSpecs:[runtime.ai.model.spec]};
+   }
+-  const model=await loadHexPlayerModel();
++  const model=await resources.loadHexPlayerModel();
+   return {ai:new FastMultiplayerPolicy(model.spec),modelInfo:{id:model.spec.id},weights:model.spec.weights,
+     policySpec:model.spec,responseSpecs:[model.spec]};
+ }
+-export async function loadMultiplayerRuntime(modelId,engine){
++export async function loadMultiplayerRuntime(modelId,engine,resources = { loadThreePlayerRuntime, loadHexPlayerModel, loadAssetModel: assetModel }){
+   if(!MULTIPLAYER_MODEL_IDS.includes(modelId)||![3,4,5,6].includes(engine.playerCount)
+     ||!["territory-v2", "territory-v3"].includes(engine.rulesVersion)||engine.gridSize<5||engine.gridSize>15) throw new Error("Unsupported multiplayer AI configuration");
+   const native=engine.boardShape===(engine.playerCount===3?"triangle":"hexagon");
+   if(!native&&["multiplayer-medium-v1","multiplayer-ultimate-v1"].includes(modelId)) throw new Error("This AI requires the native multiplayer board shape");
+   let ai, lineage=null;
+   if(modelId==="multiplayer-medium-v1"){
+-    const medium=await createMediumRuntime(engine); ai=medium.ai; lineage=medium.modelInfo.id;
++    const medium=await createMediumRuntime(engine,resources); ai=medium.ai; lineage=medium.modelInfo.id;
+   }else if(modelId==="multiplayer-easy-v1"){
+-    const model=await assetModel(modelId); ai=new FastMultiplayerPolicy(model.spec); lineage=model.spec.training;
++    const model=await resources.loadAssetModel(modelId); ai=new FastMultiplayerPolicy(model.spec); lineage=model.spec.training;
+   }else if(modelId==="multiplayer-hard-v1"){
+     if(native){
+-      const { loadNativeHardRuntime } = await import("./MultiplayerHardResources.js?v=20261024-all1");
++      if (resources.loadNativeHardRuntime) return resources.loadNativeHardRuntime(engine);
++      const { loadNativeHardRuntime } = await import("./MultiplayerHardResources.js?v=20261023-hardbundle1");
+       return loadNativeHardRuntime(engine);
+     }else ai=new MultiplayerMinimaxAI({depth:Math.min(engine.playerCount+1,6),timeMs:650});
+   }else{
+-    const model=await assetModel(modelId); lineage=model.spec.training;
++    const model=await resources.loadAssetModel(modelId); lineage=model.spec.training;
+     const admission=ultimateAdmission.checkProfile({strategy:"multiplayer",modelId},engine,model.spec);
+     if(!admission.allowed){const error=new Error(admission.message);error.code=admission.code;throw error;}
+-    const medium=await createMediumRuntime(engine);
++    const medium=await createMediumRuntime(engine,resources);
+     ai={lastSearch:null,getTopMoves(source,player=source.currentPlayer,n=5){
+       const start=performance.now(), isolated=isolatedSearchEngine(source);
+       const output=model.evaluate(isolated), inferenceMs=performance.now()-start;
+--- a/web/web前端/MultiplayerSearch.js
++++ b/web/web前端/MultiplayerSearch.js
+@@ -1,9 +1,10 @@
+-import { installNativeEdgeGeometry } from "./MultiplayerNativeGeometry.js?v=20261024-all1";
++import { multiplayerClock as performance } from "./MultiplayerClock.js";
++import { installNativeEdgeGeometry } from "./MultiplayerNativeGeometry.js";
+ // Full legal-action paranoid minimax. Only alpha/beta bounds prune branches;
+ // elapsed time ends an iteration, never masquerades as an equivalent cutoff.
+-import { GameEngine } from "./GameEngine.js?v=20261024-all1";
+-import { saveState, restoreState } from "./AIEngine.js?v=20261024-all1";
+-import { evaluateReplyResilience } from "./MultiplayerHardValue.js?v=20261024-all1";
++import { GameEngine } from "./GameEngine.js";
++import { saveState, restoreState } from "./AIEngine.js";
++import { evaluateReplyResilience } from "./MultiplayerHardValue.js";
+ 
+ const order = (a, b) => a.point===null ? (b.point===null?0:1) : b.point===null ? -1 : a.point[1] - b.point[1] || a.point[0] - b.point[0];
+ const key = p => p===null ? "PASS" : p.join(",");
+--- a/web/web前端/MultiplayerUltimateAdmission.js
++++ b/web/web前端/MultiplayerUltimateAdmission.js
+@@ -1,3 +1,4 @@
++import { portableClone as structuredClone } from './PortableClone.js';
+ // Product admission policy. Current unqualified Ultimate has no accepted release.
+ // Releases must come from reviewed application configuration, never a save,
+ // request, model manifest, or experiment result supplied by the caller's user.
+--- a/web/web前端/PortableClone.js
++++ b/web/web前端/PortableClone.js
+@@ -0,0 +1,35 @@
++// Clone game protocol and model data on runtimes without structuredClone.
++// Plain records, collections and binary model buffers retain their value types.
++export function portableClone(value) {
++  if (typeof globalThis.structuredClone === 'function') return globalThis.structuredClone(value);
++  const seen = new Map();
++  const clone = source => {
++    if (source === null || typeof source !== 'object') {
++      if (typeof source === 'function' || typeof source === 'symbol') throw new TypeError('Unsupported clone value');
++      return source;
++    }
++    if (seen.has(source)) return seen.get(source);
++    if (source instanceof ArrayBuffer) { const result = source.slice(0); seen.set(source, result); return result; }
++    if (ArrayBuffer.isView(source)) {
++      const buffer = clone(source.buffer);
++      const result = source instanceof DataView ? new DataView(buffer, source.byteOffset, source.byteLength)
++        : new source.constructor(buffer, source.byteOffset, source.length);
++      seen.set(source, result); return result;
++    }
++    if (source instanceof Date) { const result = new Date(source.getTime()); seen.set(source, result); return result; }
++    if (source instanceof Map) {
++      const result = new Map(); seen.set(source, result);
++      for (const [key, item] of source) result.set(clone(key), clone(item)); return result;
++    }
++    if (source instanceof Set) {
++      const result = new Set(); seen.set(source, result);
++      for (const item of source) result.add(clone(item)); return result;
++    }
++    const result = Array.isArray(source) ? [] : {};
++    seen.set(source, result);
++    for (const key of Object.keys(source)) Object.defineProperty(result, key,
++      { value: clone(source[key]), enumerable: true, writable: true, configurable: true });
++    return result;
++  };
++  return clone(value);
++}
+--- a/web/web前端/ReplayCodec.js
++++ b/web/web前端/ReplayCodec.js
+@@ -1,6 +1,6 @@
+-import GameEngine from "./GameEngine.js?v=20261024-all1";
+-import { Player, resolveBoardShape } from "./GameEngine.js?v=20261024-all1";
+-import { startingPointSettings } from "./StartingPoints.js?v=20261024-all1";
++import GameEngine from "./GameEngine.js?v=20261021-boardshapes1";
++import { Player, resolveBoardShape } from "./GameEngine.js?v=20261021-boardshapes1";
++import { startingPointSettings } from "./StartingPoints.js?v=20261021-boardshapes1";
+ 
+ export const REPLAY_FORMAT = "lifeline-replay";
+ export const REPLAY_SCHEMA_VERSION = 1;
+--- a/web/web前端/ResearchAI.js
++++ b/web/web前端/ResearchAI.js
+@@ -1,11 +1,9 @@
+-import { saveState, restoreState } from "./AIEngine.js?v=20261024-all1";
+-import { GameEngine } from "./GameEngine.js?v=20261024-all1";
++import { saveState, restoreState } from "./AIEngine.js?v=20261020-three1";
++import { GameEngine } from "./GameEngine.js?v=20261020-three1";
+ 
+ const FEATURE_COUNT = 11;
+ const EPSILON = 1e-5;
+ const DEFAULT_WEB_INFERENCE_BOARD_SIZE_RANGE = Object.freeze([5, 15]);
+-const manifestUrl = new URL("./assets/research-ai/manifest.json", import.meta.url);
+-const transferManifestUrl = new URL("./assets/research-ai/transfer-v1/manifest.json", import.meta.url);
+ let manifestPromise = null;
+ const modelPromises = new Map();
+ 
+@@ -106,6 +104,8 @@
+ 
+ export async function loadResearchManifest() {
+   if (!manifestPromise) {
++    const manifestUrl = new URL("./assets/research-ai/manifest.json", import.meta.url);
++    const transferManifestUrl = new URL("./assets/research-ai/transfer-v1/manifest.json", import.meta.url);
+     const readManifest = async (url) => {
+       const response = await fetch(url);
+       if (!response.ok) throw new Error(`无法加载研究模型清单（HTTP ${response.status}）。`);
+--- a/web/web前端/StartingPoints.js
++++ b/web/web前端/StartingPoints.js
+@@ -1,4 +1,4 @@
+-import { getBoardPositions, PLAYER_ORDER, resolveInitialPositions } from "./GameEngine.js?v=20261024-all1";
++import { getBoardPositions, PLAYER_ORDER, resolveInitialPositions } from "./GameEngine.js?v=20261021-boardshapes1";
+ 
+ export const STARTING_POINT_MODES = Object.freeze(["default", "random", "custom"]);
+ 
+--- a/web/web前端/ThreePlayerAI.js
++++ b/web/web前端/ThreePlayerAI.js
+@@ -1,4 +1,7 @@
+-import { fastTerritoryBFS, restoreState, saveState } from "./AIEngine.js?v=20261024-all1";
++// Source: frozen deployed r4 ThreePlayerAI.js, SHA-256 edfa92c657fa28a617f18586191a09686336af15843a8423a07b863743e0381b.
++// Mini Game adaptation only: lazy browser URL and JSON-only model clone.
++// Candidate features, policy scoring, ordering and model validation remain unchanged.
++import { fastTerritoryBFS, restoreState, saveState } from "./AIEngine.js?v=20261020-three1";
+ 
+ export const THREE_PLAYER_MODEL_ID = "three-player-policy-v1";
+ export const THREE_PLAYER_FEATURES = Object.freeze([
+@@ -7,7 +10,7 @@
+   "own_coverage_gain", "attack", "own_line", "distance_from_home", "centrality",
+   "own_frontier", "opponent_frontier_lead",
+ ]);
+-const MODEL_URL = new URL("./assets/research-ai/three-player-policy-v1.json?v=20261024-all1", import.meta.url);
++const MODEL_PATH = "./assets/research-ai/three-player-policy-v1.json?v=20261020-three1";
+ let modelPromise = null;
+ 
+ function counts(engine, player) {
+@@ -91,7 +94,7 @@
+       || !Number.isInteger(payload.training?.two_player_samples) || payload.training.two_player_samples < 1) {
+     throw new Error("三人 AI 模型格式或训练来源无效。");
+   }
+-  const spec = structuredClone(payload);
++  const spec = JSON.parse(JSON.stringify(payload));
+   return {
+     spec,
+     score(features) {
+@@ -103,7 +106,7 @@
+ export async function loadThreePlayerModel(id = THREE_PLAYER_MODEL_ID) {
+   if (id !== THREE_PLAYER_MODEL_ID) throw new Error(`未找到三人 AI 模型：${id}`);
+   if (!modelPromise) modelPromise = (async () => {
+-    const response = await fetch(MODEL_URL);
++    const response = await fetch(new URL(MODEL_PATH, import.meta.url));
+     if (!response.ok) throw new Error(`无法加载三人 AI 模型（HTTP ${response.status}）。`);
+     return createThreePlayerModel(await response.json());
+   })().catch((error) => { modelPromise = null; throw error; });
+--- a/web/web前端/ThreePlayerModels.js
++++ b/web/web前端/ThreePlayerModels.js
+@@ -1,9 +1,10 @@
++import { portableClone as structuredClone } from './PortableClone.js';
+ // Keep the frozen v1 implementation intact: both generations use exactly the
+ // same legal candidates, features and inference budget.
+ import {
+   THREE_PLAYER_FEATURES, ThreePlayerAI, createThreePlayerModel as createV1Model,
+   loadThreePlayerModel as loadV1Model,
+-} from "./ThreePlayerAI.js?v=20261024-all1";
++} from "./ThreePlayerAI.js?v=20261020-three1";
+ 
+ export { ThreePlayerAI };
+ // v2 failed the 2026-10-21 promotion gate; see docs/verification/three-player-ai-v2/ARENA_RESULTS.md.
+--- a/web/web前端/ThreePlayerRuntime.js
++++ b/web/web前端/ThreePlayerRuntime.js
+@@ -1,6 +1,7 @@
+-import { loadThreePlayerModel, ThreePlayerAI } from "./ThreePlayerModels.js?v=20261024-all1";
+-import { ThreePlayerSearchAI } from "./ThreePlayerSearchAI.js?v=20261024-all1";
+-import { THREE_PLAYER_SEARCH_MODEL_ID, THREE_PLAYER_SEARCH_MODEL_SHA256, THREE_PLAYER_SEARCH_SIZES } from "./ThreePlayerSearchOptions.js?v=20261024-all1";
++import { portableClone as structuredClone } from './PortableClone.js';
++import { loadThreePlayerModel, ThreePlayerAI } from "./ThreePlayerModels.js?v=20261021-three2";
++import { ThreePlayerSearchAI } from "./ThreePlayerSearchAI.js?v=20261021-three4";
++import { THREE_PLAYER_SEARCH_MODEL_ID, THREE_PLAYER_SEARCH_MODEL_SHA256, THREE_PLAYER_SEARCH_SIZES } from "./ThreePlayerSearchOptions.js?v=20261021-three4";
+ 
+ let searchModelPromise;
+ export async function loadThreePlayerSearchModel(id = THREE_PLAYER_SEARCH_MODEL_ID) {
+--- a/web/web前端/ThreePlayerSearchAI.js
++++ b/web/web前端/ThreePlayerSearchAI.js
+@@ -1,7 +1,8 @@
++import { portableClone as structuredClone } from './PortableClone.js';
+ // Local v4 candidate. No runtime registration: promotion is a separate gate.
+-import { fastTerritoryBFS, restoreState, saveState } from "./AIEngine.js?v=20261024-all1";
+-import { ThreePlayerAI, THREE_PLAYER_FEATURES } from "./ThreePlayerAI.js?v=20261024-all1";
+-import { GameEngine } from "./GameEngine.js?v=20261024-all1";
++import { fastTerritoryBFS, restoreState, saveState } from "./AIEngine.js";
++import { ThreePlayerAI, THREE_PLAYER_FEATURES } from "./ThreePlayerAI.js";
++import { GameEngine } from "./GameEngine.js";
+ 
+ const pointOrder = (a, b) => a.point[1] - b.point[1] || a.point[0] - b.point[0];
+ const linear = (spec) => ({ score: (values) => values.reduce((sum, value, i) => sum + value * spec.weights[i], 0) / spec.temperature });

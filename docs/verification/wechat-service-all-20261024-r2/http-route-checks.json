@@ -1,0 +1,14 @@
+{
+  "status": "PASS_LOCAL_FROZEN_HTTP_ROUTE_CHECKS",
+  "checks": [
+    "status-v3-dual-version-capabilities",
+    "http-full-normalized-settings-create-v3-white-first",
+    "http-legacy-create-v2-and-empty-room-switch",
+    "http-settings-preserve-rules",
+    "http-ready-move-both-undo-votes"
+  ],
+  "network": "loopback-only",
+  "authentication": "synthetic-only",
+  "productionChanged": false,
+  "serviceRoot": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\wechat-service-all-20261024-r2\\package\\service"
+}

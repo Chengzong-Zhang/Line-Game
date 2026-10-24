@@ -1,0 +1,316 @@
+{
+  "status": "FROZEN_RUNTIME_SOURCE_OVERLAYS",
+  "snapshot": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-mini-cnypk0q6\\repo",
+  "scope": "Mini integration plus actual bundled Web runtime dependencies only; test/helper/source hashes bound separately",
+  "changes": [
+    {
+      "file": "wechat/minigame/package-lock.json",
+      "patch": "mini-integration.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game",
+      "beforeSha256": "36d751a7f99c348c1713437bca50eabff43cd4eb556be2d687f62dfb51c1f56a",
+      "afterSha256": "a43fe1ef6daa8adf22b3532a1e111a983e633388e963e37e7d22a0aad2d6aac4"
+    },
+    {
+      "file": "wechat/minigame/package.json",
+      "patch": "mini-integration.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game",
+      "beforeSha256": "4b165347e5ef619cb84b69963515f630a92f58fbdb2ead4f208906cf28d40908",
+      "afterSha256": "e815fad6fd89492ef980e07d7aa16fba9666c692be7c240d47d3e2b3975cf694"
+    },
+    {
+      "file": "wechat/minigame/src/app.js",
+      "patch": "mini-integration.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game",
+      "beforeSha256": "005be203ad8ee792a13bc97972e3c20724ad5f2065b6375f7723889b3587be3b",
+      "afterSha256": "5f3bb96567122a6c727c94918b8d8adbde85c05aa21cbaa3247f6ead406d475b"
+    },
+    {
+      "file": "wechat/minigame/src/multiplayer-ai.js",
+      "patch": "mini-integration.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game",
+      "beforeSha256": "77901e19987057906dc3505d1fed4a9f8b2f86bcf5c64336817ef381c8db53c5",
+      "afterSha256": "884d2c8e5d168ff8cb35923cf59e78f5c084ff0ac8cab325c9063104f4972ac5"
+    },
+    {
+      "file": "wechat/minigame/src/online.js",
+      "patch": "mini-integration.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game",
+      "beforeSha256": "a372a89858e66d4d68a57e962791d6bed55cb6d4665a4ae3c1846f253a02a2ad",
+      "afterSha256": "c7ebc7003667c93176b06f76999faed1e47572432d683f90900bf2fd8d08d17b"
+    },
+    {
+      "file": "wechat/minigame/tests/hex-player-worker.test.mjs",
+      "patch": "mini-integration.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game",
+      "beforeSha256": "9993e22c5329cddaef2a33f16eaf01c69b8f8a810270a585d7d1342c930b887e",
+      "afterSha256": "93cdea0cd97dd97ff31eaaea860b8953d69347610c37de893b19e125ae5705d4"
+    },
+    {
+      "file": "wechat/minigame/tests/multiplayer-tier-runtime.test.mjs",
+      "patch": "mini-integration.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game",
+      "beforeSha256": "d6fd842e82fc61eb61b9a5565fdde5b9128289b1541b67d72b5715f7f132b5e7",
+      "afterSha256": "515e9402112a400d4b417b5918c7abf0fa775fa1e6d8fa9a71df27e3ec4174e9"
+    },
+    {
+      "file": "wechat/minigame/tests/online-navigation.test.mjs",
+      "patch": "mini-integration.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game",
+      "beforeSha256": "8a6262f5c6c6fe1d97c8da7f65474bc3e46ff1b116259747eefa2664746d742f",
+      "afterSha256": "d4d40121aad69fbb190b55810fef55e467fde37c4ba428f0782fd262cf769819"
+    },
+    {
+      "file": "wechat/minigame/tests/release-0127-compat.test.mjs",
+      "patch": "mini-integration.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game",
+      "beforeSha256": null,
+      "afterSha256": "bc52af5436cdd302d4b10d49d1143a9c7c00755102c740e2f9e0a05166780f04"
+    },
+    {
+      "file": "wechat/minigame/tests/service-package.test.mjs",
+      "patch": "mini-integration.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game",
+      "beforeSha256": "1052ae2170bdcbe51984baecc35b08543d10ea969d078028b55f609405310800",
+      "afterSha256": "c1813e8278adb7d91fcd5de6d6a493e14e46c3a50a6e4a2c9ad51af60ce256c9"
+    },
+    {
+      "file": "wechat/minigame/tests/shared-web-ui.test.mjs",
+      "patch": "mini-integration.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game",
+      "beforeSha256": "af9a93ab83b76c7aeb94159e5a9bf95acef12b2f39254d35092af041979a976c",
+      "afterSha256": "bc3af9e9571a6e2344063297e281a20e2e3041206dc0e15a7f90f2f8f9db0f93"
+    },
+    {
+      "file": "wechat/minigame/tools/offline-browser-check.mjs",
+      "patch": "mini-integration.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game",
+      "beforeSha256": "039802bc511889da09325bbacc1eb4eaa6f4ac7fdcfe2721078c9b614c0e4a9c",
+      "afterSha256": "4dfe84cade2e1fd9b02e7db3476eea583a6f798f53dd41dcb3371bef597f5bc0"
+    },
+    {
+      "file": "wechat/minigame/tools/prepare-candidate.mjs",
+      "patch": "mini-integration.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game",
+      "beforeSha256": "c6146ac2891c7d67b60b0db26164393725d16c26e75a121df45a925f0bf2710a",
+      "afterSha256": "210adcd6595ff64352f0d723141a6939ead176522e696c78c90b5d073a7eac39"
+    },
+    {
+      "file": "wechat/minigame/tools/prepare-service.mjs",
+      "patch": "mini-integration.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game",
+      "beforeSha256": "1527f6a8f6d7f61106546bac2af13bb40e84728933d9708002e05f116c252bd5",
+      "afterSha256": "f162a7b4a2438c11200cf9a1085dfa47ddc676444ee2f3fc3451b83b4627d65b"
+    },
+    {
+      "file": "web/web前端/AIEngine.js",
+      "patch": "web-portability.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r1\\repo",
+      "beforeSha256": "7c80d3c944e5d5407defd5937ebe7039a216e6f57ab35a22660efc36e36ce8c4",
+      "afterSha256": "f2b7c3bc79702ae8b6d9a95c19d525d36b519ed81cb53cd302f182de3d8c3f40"
+    },
+    {
+      "file": "web/web前端/assets/research-ai/multiplayer-v1/easy.json",
+      "patch": "web-portability.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r1\\repo",
+      "beforeSha256": null,
+      "afterSha256": "575f5cf1cf8c29210e4eb1e16845f09279ba8076d6a18474732b4659dd2b4e69"
+    },
+    {
+      "file": "web/web前端/GuideContent.js",
+      "patch": "web-portability.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r1\\repo",
+      "beforeSha256": "59dd1f2474bfe830674c58af6bccdd46cc32c9e7040bf4713d2b555fe9ef1cfd",
+      "afterSha256": "11ad1da7573052e1afb360df447664f346b15e160a7e7401a4dffe9420a8d9ee"
+    },
+    {
+      "file": "web/web前端/GuideImplementation.js",
+      "patch": "web-portability.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r1\\repo",
+      "beforeSha256": "5564b53f98253ff70b3dcc478a0d53eed73158eda55a70e9b45b0d3bafae203e",
+      "afterSha256": "37e17c7656a164ba2d66dbe8185ac1167594ea4d0b728887af04118245743995"
+    },
+    {
+      "file": "web/web前端/GuideMathChapters.js",
+      "patch": "web-portability.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r1\\repo",
+      "beforeSha256": "5c549aa279f13779203bd301df455386cc516769147e782734d12e1a9a7c0f9d",
+      "afterSha256": "0384abe62369a8ea4ccecced756eba8e5145542bf65e838af62fe9c4bb9abde0"
+    },
+    {
+      "file": "web/web前端/GuideTechnicalChapters.js",
+      "patch": "web-portability.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r1\\repo",
+      "beforeSha256": "d1e51902b97cc2799ed0f3577d51ade41620934725c9d04cb197095d12865586",
+      "afterSha256": "4b8c6eed5a33ebda0908d9e51fc9c23f462053ffae4ecd242c5031debcdad570"
+    },
+    {
+      "file": "web/web前端/HexFastSearchAI.js",
+      "patch": "web-portability.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r1\\repo",
+      "beforeSha256": "873014353d388e3686ea7b2801414c03fb89fa10eb9f2dd4eb4f62fa7d0831f9",
+      "afterSha256": "256d2380bdd2169becc535b26bc9fa17d3711ba9a6effdfd0b68a2cb44c9db68"
+    },
+    {
+      "file": "web/web前端/HexPlayerAI.js",
+      "patch": "web-portability.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r1\\repo",
+      "beforeSha256": "9dfe87cd233aab65ea3ebd8fde8e4d839e88a0795599d4336b735fa7364a60c0",
+      "afterSha256": "c6bfad2eb6798393347447eb417d73d3d0b5229c2c570dd7aa05009000434185"
+    },
+    {
+      "file": "web/web前端/LocalAIModes.js",
+      "patch": "web-portability.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r1\\repo",
+      "beforeSha256": "d030cb00a443163dfbf98a91a816d8a1fe5dd822cbc22e419e570b42a2e67e7c",
+      "afterSha256": "52ecf53c4aa958eb5e9188faedb35728947fb18a8f2431d81869ff2edd0c2bd8"
+    },
+    {
+      "file": "web/web前端/LocalGameSession.js",
+      "patch": "web-portability.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r1\\repo",
+      "beforeSha256": "26344902eada970d63220d55a87e1d11ec376a719f02278cf09c9541657b894e",
+      "afterSha256": "4968d215771a3cfe71cfd230e0dc3108faf40c56d2705231c0501440f55a12f0"
+    },
+    {
+      "file": "web/web前端/LocalUndo.js",
+      "patch": "web-portability.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r1\\repo",
+      "beforeSha256": "6541c958a24c1d1ef30533e206e8300a55b2ec78d0c40c04bb1c545a356d7eed",
+      "afterSha256": "8844fce34d440128e0e57982b0903cfe85ddacce62fd4a353aae3f39be7528c7"
+    },
+    {
+      "file": "web/web前端/MultiplayerClock.js",
+      "patch": "web-portability.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r1\\repo",
+      "beforeSha256": null,
+      "afterSha256": "9cc62a1da3400222c41b07d128fba047f2a57688f13bf42ef3620d66e8d9df80"
+    },
+    {
+      "file": "web/web前端/MultiplayerHardFallback.js",
+      "patch": "web-portability.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r1\\repo",
+      "beforeSha256": "4419869192166b5316002b977df5380e458772373dac0c286f5a7c6bc908fbad",
+      "afterSha256": "9ca75568835ab5e8c0174a762e7a40b2e1a1a9b4d7e9a094a89b6d4f466031dc"
+    },
+    {
+      "file": "web/web前端/MultiplayerHardResources.js",
+      "patch": "web-portability.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r1\\repo",
+      "beforeSha256": "cdf7f9049fe839fb4ab5aa857596db2815e58831f6dbae245d6d41b77052db50",
+      "afterSha256": "161d1ae5250ed3b9b62c05fca58596c2adc6b23de83edb08d3cccc0919565222"
+    },
+    {
+      "file": "web/web前端/MultiplayerHardRollout.js",
+      "patch": "web-portability.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r1\\repo",
+      "beforeSha256": "c70afccbbaa08745143c425d570ea39b3b758d612f512abd5691f115d0c4dbfa",
+      "afterSha256": "2ed6439701d89946e1a2cccd8d1cd0281380f850e6053718b6757cd3c1992b41"
+    },
+    {
+      "file": "web/web前端/MultiplayerHardRuntime.js",
+      "patch": "web-portability.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r1\\repo",
+      "beforeSha256": "2eb79348e8b7eb9ac6b0f58f56361be22b9c1a2411421a268971711ab88a7372",
+      "afterSha256": "0b4519fe5d743861416ae30927b6d6c9c2bc364beb27afe290b11df66a6a3d30"
+    },
+    {
+      "file": "web/web前端/MultiplayerModel.js",
+      "patch": "web-portability.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r1\\repo",
+      "beforeSha256": "2c89a401771c2ff4d6e3e329505cc74cce546f4a3973956cdf7c762c47c18b8e",
+      "afterSha256": "ceacba09821f421f2e7c5ff4a7a67443242ce09c7b5ad4d29c7ab745c3f95c67"
+    },
+    {
+      "file": "web/web前端/MultiplayerNativeGeometry.js",
+      "patch": "web-portability.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r1\\repo",
+      "beforeSha256": "ff1472494c1935b77d401be2d0535a1e519784ee4c8d6be9fc26e90fb0db55b3",
+      "afterSha256": "fc0a65a9c935d6922731e5f5ca983520cf8290de0d9b831b9ca05cffa65b13fe"
+    },
+    {
+      "file": "web/web前端/MultiplayerRollout.js",
+      "patch": "web-portability.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r1\\repo",
+      "beforeSha256": "54d7ba17ed254f6c94733042be7c459a2208087fb5879700821da398c0e09ef5",
+      "afterSha256": "b83f1fa20c9564764c0491408f890d6065c2f0c3ce7ec2900bca3066b509f463"
+    },
+    {
+      "file": "web/web前端/MultiplayerRuntime.js",
+      "patch": "web-portability.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r1\\repo",
+      "beforeSha256": "1bcb2e4bcb726883d05342ee4441791d423a7415bdc87236d8d412884b5d4797",
+      "afterSha256": "64a0795e984c57699b4aef6fccfd48b2b9e9d76e1187fcbeda3d045c5549b8bc"
+    },
+    {
+      "file": "web/web前端/MultiplayerSearch.js",
+      "patch": "web-portability.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r1\\repo",
+      "beforeSha256": "0930a850e5bae69fe45ceb2388094ad56df6053bf4ab0bded5bdc4a6192a0230",
+      "afterSha256": "1ec64e23727c576b13f5169f08fc44a93805b13001a24d693bd51ad44645fc52"
+    },
+    {
+      "file": "web/web前端/MultiplayerUltimateAdmission.js",
+      "patch": "web-portability.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r1\\repo",
+      "beforeSha256": "cc182005d5b74ca9fc0e4cecbe33222d65a547dbbf438318de93a30eeb0bb6a8",
+      "afterSha256": "b718e9202bcad5e72b755e035275d4e41d6bccbedd35ae2f861cec6361704051"
+    },
+    {
+      "file": "web/web前端/PortableClone.js",
+      "patch": "web-portability.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r1\\repo",
+      "beforeSha256": null,
+      "afterSha256": "80300ddf775eee0a2cbdd351905269bbb3b9eb47c4993bff21547e3012b7d4be"
+    },
+    {
+      "file": "web/web前端/ReplayCodec.js",
+      "patch": "web-portability.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r1\\repo",
+      "beforeSha256": "619c8c718a1f4fd227ddd74490a67b967713edfeb0804a7a78b518cff08ae7bc",
+      "afterSha256": "af552810d5eec5a551847989e9cf7bfea960128226b9671fd73f7667cc4e2829"
+    },
+    {
+      "file": "web/web前端/ResearchAI.js",
+      "patch": "web-portability.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r1\\repo",
+      "beforeSha256": "cc6d48b7fdef8d7f0d55c190f664f79c45423a429cdb835d2753245523ad5a93",
+      "afterSha256": "7aabf54343d5e6955fe8af0deda0943235660cde25b5e84faedab8944c6c7d2d"
+    },
+    {
+      "file": "web/web前端/StartingPoints.js",
+      "patch": "web-portability.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r1\\repo",
+      "beforeSha256": "0a5864a77c42218435d2126b6361c7e76149ce32c709114e6c0264db9bf704d7",
+      "afterSha256": "7b09547988a75cbccda06fbd554af8aaa18957f9b3029d772106894e4921894d"
+    },
+    {
+      "file": "web/web前端/ThreePlayerAI.js",
+      "patch": "web-portability.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r1\\repo",
+      "beforeSha256": "7593b73955ce7d7cc8c757049eb4f6c3efdc0f0b672b1a7e638e234bea33e09a",
+      "afterSha256": "3a6e8ef4d61534a55e975e2a292552f0784c0f19915db47cdd2ebca6e2b18690"
+    },
+    {
+      "file": "web/web前端/ThreePlayerModels.js",
+      "patch": "web-portability.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r1\\repo",
+      "beforeSha256": "85b229f37e999240846bd2df93949b59fe027fd34e46cc2984084eae10de425c",
+      "afterSha256": "feb441f1ef7b6a521e32d0410c0710ecc4739a8119ad647800579bde44943342"
+    },
+    {
+      "file": "web/web前端/ThreePlayerRuntime.js",
+      "patch": "web-portability.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r1\\repo",
+      "beforeSha256": "ca54ad0cba0c535bc271bb81b00bdcec6ef27aac5a7412da7d2c1e65017ecf7f",
+      "afterSha256": "f2bfd11ad790e5ca3d2d9398dc1681ee935fd6ab3797bb137ad6f997dc3d7910"
+    },
+    {
+      "file": "web/web前端/ThreePlayerSearchAI.js",
+      "patch": "web-portability.patch",
+      "base": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-web-r1\\repo",
+      "beforeSha256": "9d02b952e6516c3710d61a169a3294f8e4c2b11a743d9d14841496192421a7f0",
+      "afterSha256": "d03497a04f9946ad62de2363c8ad9141adc58d79005cab7f22ff031890a73ed3"
+    }
+  ],
+  "peerBoundary": "Web r1 is the runtime-portability comparison base. Final Web r3 adds GUI-only return-to-local/new-v3 guards in OnlineApp; OnlineApp is not bundled into Mini. Do not interpret this patch as a comparison of the complete final Web directory."
+}

@@ -1,0 +1,18 @@
+{
+  "status": "PASS_REAL_LOOPBACK_HTTP_WS_COMPILED_MINI_WORKER",
+  "checks": [
+    "web-create-v3-owned-point-score",
+    "compiled-mini-worker-joins-and-hashes-v3",
+    "web-host-settings-and-starter-broadcast-to-mini",
+    "both-ends-move-and-share-authoritative-hash",
+    "cross-platform-two-party-undo-with-action-lock-and-replay",
+    "web-socket-resume-retains-v3-position"
+  ],
+  "compiledWorkerSha256": "38b8f5dcc7b43643c9691a01c3f437af578b1c0c3764fd87f0057fa95e923811",
+  "sharedServiceRulesVersion": "territory-v3",
+  "webGameEngineSha256": "3b70b69c4c480117a4952b06c279054ec535268b4293b04b4d63f960ac4b0fca",
+  "scope": "Synthetic login only; frozen shared-service API+Node verifier, real HTTP/WebSocket, Web client and actual Mini compiled Worker",
+  "limits": [
+    "No production account, phone, production-domain transport or public release verification."
+  ]
+}

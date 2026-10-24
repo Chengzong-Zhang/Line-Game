@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "status": "PASS_LOCAL_COMPLETE_SERVICE_NOT_DEPLOYED",
+  "releaseId": "wechat-service-all-20261024-r2",
+  "rulesVersion": "territory-v3",
+  "supportedRulesVersions": [
+    "territory-v2",
+    "territory-v3"
+  ],
+  "legacyCreateDefaultsTo": "territory-v2",
+  "checks": [
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "-B",
+        "web/tests/wechat_release_compatibility_probe.py",
+        "--service-root",
+        "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\wechat-service-all-20261024-r2\\package\\service"
+      ],
+      "exitCode": 0,
+      "stdout": "{\"checks\": [\"legacy-create-default-v2-exact-uploaded-hash\", \"explicit-create-v3-open-lines-score\", \"empty-own-room-atomically-released-on-join\", \"guest-cannot-edit-settings\", \"waiting-settings-cannot-convert-existing-rules\", \"waiting-settings-inherit-v3-when-omitted\", \"hexagon-and-frozen-random-start-settings\", \"ready-locks-settings-and-both-players-start\", \"v3-server-move-scores-own-line-points\", \"undo-first-vote-pauses-actions\", \"undo-unanimous-vote-replays-authoritative-state\", \"acknowledged-undone-command-cannot-be-resurrected\", \"undo-rejection-keeps-position-and-budget\", \"undo-budget-enforced\", \"persisted-v2-room-survives-new-service-and-next-move-exact-hash\", \"sqlite-restart-preserves-acknowledged-moves\", \"terminal-undo-mutual-consent-restores-nonterminal-rule-state\", \"unsupported-rules-player-count-and-unenforced-timer-rejected\"], \"count\": 18, \"database\": \"temporary-synthetic-only\", \"networkUsed\": false, \"status\": \"PASS_SERVICE_RELEASE_COMPATIBILITY\", \"verifier\": \"real-node\"}",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "-B",
+        "web/tests/test_wechat_empty_room_join.py",
+        "--service-root",
+        "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\wechat-service-all-20261024-r2\\package\\service",
+        "--real-verifier"
+      ],
+      "exitCode": 0,
+      "stdout": "{\"errors\": 0, \"failures\": 0, \"fakeVerifier\": false, \"skipped\": 0, \"sourceSha256\": \"bf54e6188830aec2f7f3bc056efbbcbb727b594f19d73c19e9c94f059c545067\", \"status\": \"PASS_JOIN_FIX_SYNTHETIC\", \"tests\": 12}",
+      "stderr": "Executing <Task pending name='Task-35' coro=<IsolatedAsyncioTestCase._asyncioLoopRunner() running at C:\\Users\\zcz\\anaconda3\\envs\\rl310\\lib\\unittest\\async_case.py:101> wait_for=<Future pending cb=[Task.task_wakeup()] created at C:\\Users\\zcz\\anaconda3\\envs\\rl310\\lib\\asyncio\\base_events.py:429> created at C:\\Users\\zcz\\anaconda3\\envs\\rl310\\lib\\unittest\\async_case.py:117> took 0.234 seconds"
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "web/tests",
+        "-p",
+        "test_wechat_service_release_activation.py"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "......\n----------------------------------------------------------------------\nRan 6 tests in 0.001s\n\nOK"
+    },
+    {
+      "argv": [
+        "node",
+        "C:/coding/py/line game/web/web前端/tests/verify-territory-v3.mjs",
+        "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\wechat-service-all-20261024-r2\\package\\service\\web\\web前端\\GameEngine.js"
+      ],
+      "exitCode": 0,
+      "stdout": "territory-v3 open, closed, Cyan and terminal scoring: PASS",
+      "stderr": ""
+    }
+  ],
+  "manifestSha256": "914fb6d38d4626c0e2bfe4e5ef0894a986c9bcc26de644625b7758fddf05c16c",
+  "candidateRuntimeFiles": 58,
+  "baselineRuntimeFiles": 52,
+  "runtimeSourceHashes": {
+    "web/package.json": "d02836298858858f52f01f58c6afc45f02db04d86adad0fb3bba92ed1abb53f0",
+    "web/web前端/AIEngine.js": "6738fe3a98a616dfd6c060636f5d2684fd49ebc561c95a96247db28c7170ccc3",
+    "web/web前端/assets/research-ai/hex-player-policy-v1.json": "74aa7f945c3ea7ff5ca3edc9e7bdc431dc0ec5ad56d2563ce6d6d24c0494162b",
+    "web/web前端/assets/research-ai/hex-player-search-v5.json": "e19d45b26e5fb7e2783e392993622bede692838043a9cb4d5af91d170f8448b5",
+    "web/web前端/assets/research-ai/manifest.json": "a6148b97ffe2175d1f42fbff3f273f29899e4f7587840ff7734a2d04f0af2dfa",
+    "web/web前端/assets/research-ai/model-free-manifest.json": "4a2dc25e4d2c1a70823c5f6280355c5af5a0e751ebba96845530cb84d316be6c",
+    "web/web前端/assets/research-ai/multiplayer-v1/easy.json": "575f5cf1cf8c29210e4eb1e16845f09279ba8076d6a18474732b4659dd2b4e69",
+    "web/web前端/assets/research-ai/three-player-policy-v1.json": "8cd1a2f36267f96b1e32b7749a9cdc785f489ea7ec12e31aee0beb0a72901794",
+    "web/web前端/assets/research-ai/three-player-policy-v2.json": "00fc241c500dfd01ff85b5e2a4f1907cc5a9d8307d68bb78be64b0aad129f56e",
+    "web/web前端/assets/research-ai/three-player-search-v4-round12.json": "9b85f5fff27001d68407c30d6f707b461b1b468d657c8292339e97d23868c230",
+    "web/web前端/assets/research-ai/transfer-v1/manifest.json": "8c46031730fa746e2b1b5f091d5e140384619070fb36013bb650b8d026291e22",
+    "web/web前端/GameEngine.js": "3b70b69c4c480117a4952b06c279054ec535268b4293b04b4d63f960ac4b0fca",
+    "web/web前端/HexFastSearchAI.js": "a25eca4ea2842b821d75b7fbbd6983fb1651e3a6975c81da226080010dff102b",
+    "web/web前端/HexPlayerAI.js": "c6bfad2eb6798393347447eb417d73d3d0b5229c2c570dd7aa05009000434185",
+    "web/web前端/HexSearchOptions.js": "d82c0402a70156f38ce9504301bb01919c400a594aecaec831a1bb7cfb771f2d",
+    "web/web前端/LocalAIModes.js": "25ea469b575133a7150d3595052d41440536221843994735d4cb2c90328b85b4",
+    "web/web前端/LocalGameSession.js": "f8668927765d1e847d221d715d113cc06fb636c0a958561cac7462ec715cdc83",
+    "web/web前端/LocalUndo.js": "bbdcb1c2da39a9c1fff6389d977c7b8616a50e22d4527032ecd3038ee31f67ca",
+    "web/web前端/ModelFreeAI.js": "5589c9449210367a42859649d94424b75dd592994af47bd276fd26bf8ae4659d",
+    "web/web前端/MultiplayerClock.js": "9cc62a1da3400222c41b07d128fba047f2a57688f13bf42ef3620d66e8d9df80",
+    "web/web前端/MultiplayerRollout.js": "a9444f452dbac9c27e478c6189cb407fb6bd6aa352a7313f3c235a0878930f91",
+    "web/web前端/MultiplayerRuntime.js": "45ab6396ef58385ebaa76f2f67f235d6a55d172db7167f3e67177c1a5a6312e2",
+    "web/web前端/MultiplayerSearch.js": "68e80293f2586c282bacc40396dcf1b95ec07ebf55db9720a35f5776e7cef944",
+    "web/web前端/ReplayCodec.js": "efedd5d9104bf33fb2c23503e9c16c2a8c89bc02b0dfd938a3b0349e55ab3b40",
+    "web/web前端/ResearchAI.js": "a44bec9e7ea852bd378b9afc1462e7bc34131e7971b0d74332b7a4642c2be5c6",
+    "web/web前端/ResearchAIOptions.js": "0cc5e27993622422a9a5b77bf95750992d26e1fe1a7a26782d53606f3709fa1e",
+    "web/web前端/StartingPoints.js": "7b09547988a75cbccda06fbd554af8aaa18957f9b3029d772106894e4921894d",
+    "web/web前端/ThreePlayerAI.js": "3a6e8ef4d61534a55e975e2a292552f0784c0f19915db47cdd2ebca6e2b18690",
+    "web/web前端/ThreePlayerModels.js": "8a86f6b8a61722c37a6d60aa80d1b59e3ec80b86bb0edfe530593a82db418da9",
+    "web/web前端/ThreePlayerSearchAI.js": "bbafaa124065c2f3be622b3fecce5e0b1e119de7dcf581e5c43adf683caa3b01",
+    "web/web前端/ThreePlayerSearchOptions.js": "299e238d74acdcf6f86e5b4f7108a16393b8709439b7b8c3292197d512d39c87",
+    "web/web前端/TutorialRunner.js": "d88560aaa59257756b4541d951e23410d8491df9127a4ed8431fb3287041aa80",
+    "web/web后端/requirements.txt": "bf46fe8257dd3b495c58aa2e3838134c22d86f025764dce948e52037c7f8347c",
+    "web/web后端/wechat_online.py": "bf54e6188830aec2f7f3bc056efbbcbb727b594f19d73c19e9c94f059c545067",
+    "wechat/minigame/node_modules/@noble/hashes/_md.js": "60cf3010fda89e3e4d3f0e7ff1ce249e9c467f34b4fd41b6fd6101d9f69be763",
+    "wechat/minigame/node_modules/@noble/hashes/_u64.js": "b09da8c07fe8187c07649494cdb7cd0bcf13df90b506a9473d19e4d5f8c2e102",
+    "wechat/minigame/node_modules/@noble/hashes/LICENSE": "4f221aee6e072336700c408c68ab3b96a3fc09f6aebe6f48f1bd99e5ef13faec",
+    "wechat/minigame/node_modules/@noble/hashes/package.json": "3e361734f5269de162fa362483d7f45dee7efb533ec217157945338f7591baaf",
+    "wechat/minigame/node_modules/@noble/hashes/sha2.js": "471746bba6ec4c6238ca41358d1d3b40b6ff31cf3363f0b4d550c649c1a8e83b",
+    "wechat/minigame/node_modules/@noble/hashes/utils.js": "037ad49adb78168b6b699598fd33f85f7877456b1d28b4d032e2a1a16807947c",
+    "wechat/minigame/package.json": "4b165347e5ef619cb84b69963515f630a92f58fbdb2ead4f208906cf28d40908",
+    "wechat/minigame/src/controllers.js": "530835bfbbf946fcacbd39fb879c3932eb5c0db1b82e1881bbbbfdbb8a9706b6",
+    "wechat/minigame/src/core.js": "10df5239ea77d47180c3dcc01de29de5ca9974cc44b26a9d490b59ab77465e59",
+    "wechat/minigame/src/hex-player-ai.js": "e9885b8cf052599393a75f4e083df105662c1f6e2aaf4147ab8491fd0ca751f3",
+    "wechat/minigame/src/integrity.js": "d7d3677f64bf46796612b7f73174b45edb9a13d78a917e868dc613b5e1f98869",
+    "wechat/minigame/src/model-assets.js": "ccfbcde022a928e50ebe986cbb0f407c131afe68927849f4aa3c721ef796086a",
+    "wechat/minigame/src/model-catalog.js": "565b52f3ee5d50a6aed2848af4e99999c743cec942314425cf6c5752eb45039b",
+    "wechat/minigame/src/multiplayer-ai.js": "77901e19987057906dc3505d1fed4a9f8b2f86bcf5c64336817ef381c8db53c5",
+    "wechat/minigame/src/play-options.js": "4d9f0fee17baf14ec61511aea95476615cefc841119178b7f77d6f464fed57ca",
+    "wechat/minigame/src/state.js": "daf5e527fd79d5cf97b71f5318c55bc6cc4194388425aebf7a60956f59b2690f",
+    "wechat/minigame/src/three-player-ai.js": "50f50deb12f4f3a82a58679bc1ddb276ee90ac742e17076fffa5905c7bacd3fa",
+    "wechat/minigame/src/worker-runtime.js": "f237556209c67bc69f811da233d8f7bac8609c3c8187e907131b52a78369d952",
+    "wechat/minigame/THIRD_PARTY_NOTICES.txt": "aa050304323db5d85b2d446d19a38688d4e853a5f76841f0298bcf83b098829e",
+    "wechat/minigame/tools/validate-action.mjs": "151879914022054b4a7e57770e66134082f726a75181002300725689c327f851",
+    "wechat/tools/check_service_config.py": "83a37ab9d2ebf607ec79659a4eae17788a90c55c145f6f3ff3e04cf1be89649b",
+    "wechat/tools/maintain_store.py": "2cec1c2df99377f303a5a2487d85f74cc4d1b2ebd5cda4424117da7ec0b07dd3",
+    "wechat/tools/wechat_service_asgi_draft.py": "20d6795c7faa5629a5377c06e46f3c119d9efdae81dd1096fbfe3ef9eb6149ea",
+    "service-manifest.json": "efb190456102c59abb799948e8f5b5d2015b24786192d9951802471d9f80d57f"
+  },
+  "tools": {
+    "activate_service_release.py": "db502f9dd64344400f0e8bb6b69a4a1c73a0e717b3c40e7cebaa02387936e309",
+    "activate_profile_service_live.py": "6a645d8ca7e9d0b7bb8833adbc35df8e6dc0940ca51cfc921ed0d4d280b9ce4d"
+  },
+  "limits": [
+    "No Linux/systemd production activation was performed by these local checks",
+    "No real WeChat account/device acceptance is implied",
+    "Shared rooms support exactly two players; timer is disabled unless a later server-enforced implementation is released"
+  ],
+  "obsoleteFixture": {
+    "path": "web/web前端/tests/verify-territory-v3.mjs",
+    "result": "FAILED_STALE_SINGLE_POLYGON_EXPECTATION_9_NE_11",
+    "currentMainFixturePassed": true,
+    "reason": "Current rule sums owned walls and all safe cavities; enemy-containing cavities are excluded. The old shared test assumed a single rendering polygon."
+  }
+}

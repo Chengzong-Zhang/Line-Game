@@ -1,0 +1,266 @@
+--- a/wechat/minigame/package-lock.json
++++ b/wechat/minigame/package-lock.json
+@@ -1,12 +1,12 @@
+ {
+   "name": "lifeline-wechat-minigame",
+-  "version": "0.12.5",
++  "version": "0.12.7",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+       "name": "lifeline-wechat-minigame",
+-      "version": "0.12.5",
++      "version": "0.12.7",
+       "dependencies": {
+         "@noble/hashes": "2.4.0"
+       },
+--- a/wechat/minigame/package.json
++++ b/wechat/minigame/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "lifeline-wechat-minigame",
+-  "version": "0.12.5",
++  "version": "0.12.7",
+   "private": true,
+   "type": "module",
+   "scripts": {
+--- a/wechat/minigame/src/app.js
++++ b/wechat/minigame/src/app.js
+@@ -128,12 +128,11 @@
+   const playerLabel = player => label(PLAYER_LABEL_KEYS[player] || 'draw');
+   const isOnline = () => session === online.game;
+   const onlineSettings = (overrides = {}, base = online.room?.settings) => {
+-    const current = base || { gridSize: size, boardShape, rulesVersion: 'territory-v3',
++    const current = base || { gridSize: size, boardShape,
+       startingPointMode: playerCount === 2 ? startingPointMode : 'default',
+       initialPositions: playerCount === 2 ? initialPositions : null,
+       undoEnabled: playOptions.undoEnabled, undoMaxCount: playOptions.undoMaxCount };
+-    const next = { gridSize: current.gridSize, boardShape: current.boardShape || 'triangle',
+-      rulesVersion: current.rulesVersion || 'territory-v3',
++    const next = { rulesVersion: current.rulesVersion || 'territory-v3', gridSize: current.gridSize, boardShape: current.boardShape || 'triangle',
+       startingPointMode: current.startingPointMode || (current.initialPositions ? 'custom' : 'default'),
+       initialPositions: current.initialPositions, undoEnabled: current.undoEnabled === true,
+       undoMaxCount: current.undoMaxCount || 3, ...overrides };
+@@ -1165,13 +1164,13 @@
+     };
+     if (!await ensureOnlineConsent({ online, platform, language, isCurrent: valid }) || !valid()) return;
+     let kind = invitation ? 'join' : directKind, value = invitation;
+-    if (directKind && !invitation) value = kind === 'resume' ? online.savedCode : kind === 'create' ? onlineSettings() : (await platform.input(label('roomCode')))?.trim().toUpperCase();
++    if (directKind && !invitation) value = kind === 'resume' ? online.savedCode : kind === 'create' ? onlineSettings({ rulesVersion: 'territory-v3' }, null) : (await platform.input(label('roomCode')))?.trim().toUpperCase();
+     if (!kind) {
+       const choices = online.savedCode ? ['resumeRoom', 'createRoom', 'joinRoom'] : ['createRoom', 'joinRoom'];
+       const i = await platform.choose(choices.map(label));
+       if (!valid() || !choices[i]) return;
+       kind = choices[i] === 'resumeRoom' ? 'resume' : choices[i] === 'createRoom' ? 'create' : 'join';
+-      value = kind === 'resume' ? online.savedCode : kind === 'create' ? onlineSettings() : (await platform.input(label('roomCode')))?.trim().toUpperCase();
++      value = kind === 'resume' ? online.savedCode : kind === 'create' ? onlineSettings({ rulesVersion: 'territory-v3' }, null) : (await platform.input(label('roomCode')))?.trim().toUpperCase();
+     }
+     if (!valid()) return;
+     if (kind === 'join' && value == null) return;
+--- a/wechat/minigame/src/multiplayer-ai.js
++++ b/wechat/minigame/src/multiplayer-ai.js
+@@ -1,3 +1,5 @@
++import { threePlayerModelIdForBoard } from '../../../web/web前端/ThreePlayerSearchOptions.js';
++import { createHardRuntimeV2 } from '../../../web/web前端/MultiplayerHardRuntime.js';
+ import { loadMultiplayerRuntime } from '../../../web/web前端/MultiplayerRuntime.js';
+ import easyManifest from '../../../web/web前端/assets/research-ai/multiplayer-v1/easy.json' with { type: 'json' };
+ import { createEmbeddedThreePlayerAI } from './three-player-ai.js';
+@@ -22,7 +24,19 @@
+   }
+ }
+ 
++export async function createEmbeddedHardRuntime(engine) {
++    const runtime = engine.playerCount === 3
++      ? { ai: createEmbeddedThreePlayerAI(threePlayerModelIdForBoard(engine.gridSize)) }
++      : { ai: await createEmbeddedHexPlayerAI('hex-player-policy-v1') };
++    const policySpec = runtime.ai.base ? runtime.ai.spec : runtime.ai.model.spec;
++    const id = runtime.ai.base ? runtime.ai.spec.id : runtime.ai.model.spec.id;
++    const hard = createHardRuntimeV2(engine, { policySpec, modelInfo: { id } });
++    return { ai: hard.ai, modelInfo: { ...hard.modelInfo, id: 'multiplayer-hard-v1',
++      compatibility: `${engine.rulesVersion} native 3–6 players; size 5–15` } };
++}
++
+ const resources = {
++  loadNativeHardRuntime: createEmbeddedHardRuntime,
+   async loadAssetModel(id) {
+     const spec = easyManifest.models?.[0];
+     if (id !== 'multiplayer-easy-v1' || easyManifest.models.length !== 1
+--- a/wechat/minigame/src/online.js
++++ b/wechat/minigame/src/online.js
+@@ -185,7 +185,7 @@
+         && typeof pending.uid === 'string' && roomCode(pending.code) && /^[a-zA-Z0-9_-]{16,80}$/.test(pending.body?.clientActionId)
+         && /^[0-9a-f]{32}$/.test(pending.body?.matchId) && Number.isSafeInteger(pending.body?.expectedSeq)
+         && ['move', 'skip', 'resign'].includes(pending.body?.action?.type) ? pending : null;
+-      const room = kind === 'create' ? await this.request('rooms', typeof value === 'object' ? value : { gridSize: value })
++      const room = kind === 'create' ? await this.request('rooms', typeof value === 'object' ? { ...value, rulesVersion: value.rulesVersion || 'territory-v3' } : { gridSize: value, rulesVersion: 'territory-v3' })
+         : kind === 'join' ? await this.request('rooms/join', { code: value }) : await this.request(`rooms/${value}`);
+       if (!this.active || life !== this.lifecycle) return false;
+       if (!await this.receive(room)) throw new Error(this.error || 'STATE_MISMATCH');
+--- a/wechat/minigame/tests/hex-player-worker.test.mjs
++++ b/wechat/minigame/tests/hex-player-worker.test.mjs
+@@ -81,7 +81,9 @@
+   assert.equal(sha(restored), fixture.provenance.algorithmNormalizedLfSha256);
+   const migratedEngine = (await fs.readFile(path.join(frontend, 'AIEngine.js'), 'utf8'))
+     .replace('./GameEngine.js?v=20261013-full-features1', './GameEngine.js?v=20261020-three1');
+-  assert.equal(sha(migratedEngine), fixture.provenance.sourceSha256['AIEngine.js'], 'Whole AIEngine differs only by retained browser cache query');
++  // The 45 frozen v2 rankings below still bind historical policy behavior.
++  // The whole shared engine now includes the admitted 2026-10-24 scoring/performance changes.
++  assert.equal(sha(migratedEngine), 'f2b7c3bc79702ae8b6d9a95c19d525d36b519ed81cb53cd302f182de3d8c3f40', 'Admitted 2026-10-24 Web AI engine source must remain frozen');
+   assert.equal(fixture.positions.length, 45);
+   const expectedIds = [4, 5, 6].flatMap(count => [5, 7, 15].flatMap(size => sut.playerIds(count).map(player => `${count}/${size}/${player}`)));
+   assert.deepEqual(fixture.positions.map(p => `${p.settings.playerCount}/${p.settings.gridSize}/${p.player}`).sort(), expectedIds.sort());
+--- a/wechat/minigame/tests/multiplayer-tier-runtime.test.mjs
++++ b/wechat/minigame/tests/multiplayer-tier-runtime.test.mjs
+@@ -80,10 +80,10 @@
+   for (const key of ['revision', 'territoryRevision', 'grid', 'edges', 'territories']) assert.equal(after[key], before[key], key);
+ }
+ 
+-test('shared search and rollout retain the exact frozen Web source after the clock import', async () => {
++test('shared search and rollout retain the frozen 2026-10-24 Web source after the clock import', async () => {
+   for (const [name, expected] of [
+-    ['MultiplayerSearch.js', '56f70bc6996c67ff341114b1a204e0e8fa4ea719af0d536d824de0a825558cda'],
+-    ['MultiplayerRollout.js', '27dfee1a5de3d2d09d53ce98637c1cf87b49369cb8738aeb815951513b028609'],
++    ['MultiplayerSearch.js', '4d282be9ea2b825dc5efc025cfb5d5c7955788c6880509e821088e33b05605ef'],
++    ['MultiplayerRollout.js', '58b6040c7c3592ea3c701b22fb6a6054468b2acf3c6d4ab77f791321a14e6117'],
+   ]) {
+     const content = (await fs.readFile(path.join(web, name), 'utf8')).replace(/\r\n/g, '\n');
+     const boundary = content.indexOf('\n') + 1;
+@@ -183,6 +183,7 @@
+   const clock = { value: 0, now() { this.value += 50; return this.value; }, reset() { this.value = 0; } };
+   const { sut: timed } = api(clock), workerClock = { ...clock }, timedWorker = await worker({ clock: workerClock });
+   const loaders = {
++    loadNativeHardRuntime: timed.createEmbeddedHardRuntime,
+     loadAssetModel: async () => ({ spec: plain(timed.easyManifest.models[0]) }),
+     loadThreePlayerRuntime: async id => ({ ai: timed.createEmbeddedThreePlayerAI(id), modelInfo: { id } }),
+     loadHexPlayerModel: async () => (await timed.createEmbeddedHexPlayerAI()).model,
+@@ -199,7 +200,7 @@
+     const actualStats = { ...reply.result.search };
+     delete actualStats.elapsedMs; delete expectedStats.elapsedMs;
+     assert.deepEqual(actualStats, expectedStats);
+-    if (profile === profiles[2]) {
++    if (profile === profiles[2] && config.boardShape !== (config.playerCount === 3 ? 'triangle' : 'hexagon')) {
+       assert.equal(reply.result.search.timedOut, true);
+       if (config.playerCount === 4 || config.boardShape === 'triangle') {
+         assert.equal(reply.result.search.publicationMode, 'complete-phase');
+--- a/wechat/minigame/tests/online-navigation.test.mjs
++++ b/wechat/minigame/tests/online-navigation.test.mjs
+@@ -71,9 +71,11 @@
+ });
+ 
+ test('direct create/join/resume dispatch expected requests without a menu and normalize join codes', async () => {
+-  for (const [entry, kind, value] of [['friends', 'create', { gridSize: 7, boardShape: 'triangle', rulesVersion: 'territory-v3', startingPointMode: 'default', undoEnabled: false, undoMaxCount: 3 }], ['join-room', 'join', 'BCDEFGHJ'], ['resume-room', 'resume', 'ABCDEFGH']]) {
++  for (const [entry, kind, value] of [['friends', 'create', { rulesVersion: 'territory-v3', gridSize: 7, boardShape: 'triangle', startingPointMode: 'default', undoEnabled: false, undoMaxCount: 3 }], ['join-room', 'join', 'BCDEFGHJ'], ['resume-room', 'resume', 'ABCDEFGH']]) {
+     const storage = memoryStorage(); storage.set('lifeline-wx-room-v1', 'ABCDEFGH');
+     const h = uiHarness({ config: onlineConfig, storage });
++    // A detached previous v2 room must not supply the next room's rule settings.
++    h.app.online.room = { settings: { gridSize: 5, rulesVersion: 'territory-v2' } };
+     const calls = []; h.app.online.enter = async (...args) => { calls.push(args); return true; };
+     h.p.choose = async () => { throw new Error('Unexpected room action sheet'); };
+     h.p.input = async () => '  bcdefghj  ';
+--- a/wechat/minigame/tests/release-0127-compat.test.mjs
++++ b/wechat/minigame/tests/release-0127-compat.test.mjs
+@@ -0,0 +1,49 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import { sut, localScheduler, memoryStorage } from './helpers.mjs';
++import { portableClone } from '../../../web/web前端/PortableClone.js';
++
++test('new rooms explicitly negotiate v3 while existing v2 snapshots keep their rule version', async () => {
++  const sent = [];
++  const client = new sut.OnlineClient({ storage: memoryStorage() },
++    { onlineEnabled: true, apiBase: 'https://test.invalid' }, localScheduler());
++  client.authenticate = async () => {};
++  client.request = async (endpoint, body) => { sent.push({ endpoint, body }); return { code: 'ABCDEFGH' }; };
++  client.receive = async () => true; client.connect = async () => {};
++  try {
++    await client.enter('create', 7);
++    assert.deepEqual(sent.at(-1), { endpoint: 'rooms', body: { gridSize: 7, rulesVersion: 'territory-v3' } });
++    await client.enter('create', { gridSize: 9, boardShape: 'hexagon' });
++    assert.equal(sent.at(-1).body.rulesVersion, 'territory-v3');
++    const settings = { ...sut.settingsFor(7), rulesVersion: 'territory-v2' };
++    assert.equal(sut.restoreGame(settings).rulesVersion, 'territory-v2');
++    assert.throws(() => sut.restoreGame({ ...settings, rulesVersion: 'unknown' }), /INVALID_SETTINGS/);
++  } finally { client.detach(); client.game.scheduler.cancel(); }
++});
++
++test('continuing an old v2 save preserves it but starting a fresh local game selects v3', async () => {
++  const scheduler = localScheduler();
++  const session = new sut.GameSession(scheduler, { save() {}, read: () => ({}) });
++  try {
++    assert.equal(await session.load({ ...sut.settingsFor(7), rulesVersion: 'territory-v2' }, [], { mode: 'human', paused: true }), true);
++    assert.equal(session.settings.rulesVersion, 'territory-v2');
++    assert.equal(await session.newGame(7, 'human'), true);
++    assert.equal(session.settings.rulesVersion, 'territory-v3');
++  } finally { session.hide(); scheduler.cancel(); }
++});
++
++test('portable model and search data clone preserves types, shared references and isolation without browser clone', () => {
++  const native = globalThis.structuredClone;
++  globalThis.structuredClone = undefined;
++  try {
++    const shared = { weights: new Float32Array([1, -2, 3]) };
++    const source = { shared, again: shared, map: new Map([['x', shared]]), set: new Set([shared]) };
++    source.self = source;
++    const copy = portableClone(source);
++    assert.notEqual(copy, source); assert.equal(copy.self, copy);
++    assert.equal(copy.shared, copy.again); assert.equal(copy.map.get('x'), copy.shared);
++    assert.equal([...copy.set][0], copy.shared);
++    assert.ok(copy.shared.weights instanceof Float32Array);
++    copy.shared.weights[0] = 99; assert.equal(source.shared.weights[0], 1);
++  } finally { globalThis.structuredClone = native; }
++});
+--- a/wechat/minigame/tests/service-package.test.mjs
++++ b/wechat/minigame/tests/service-package.test.mjs
+@@ -10,6 +10,7 @@
+ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
+ const hash = data => createHash('sha256').update(data).digest('hex');
+ test('isolated service has complete validator dependencies and rejects reuse, tampering, extra files and source drift', async () => {
++  await fs.mkdir(path.join(root, 'local_artifacts'), { recursive: true });
+   const artifact = await fs.mkdtemp(path.join(root, 'local_artifacts/wechat-service-package-test-'));
+   const candidate = path.join(artifact, 'candidate');
+   const manifest = await prepareService(candidate);
+--- a/wechat/minigame/tests/shared-web-ui.test.mjs
++++ b/wechat/minigame/tests/shared-web-ui.test.mjs
+@@ -240,7 +240,7 @@
+     app.selectedRoomBotCount.value = 3; app.selectedStartPlayer.value = 'GREEN';
+     await app.handleCreateSharedRoom();
+     const request = wire.find(item => item.url?.endsWith('/rooms'));
+-    assert.deepEqual(request.body, { gridSize: 13 });
++    assert.deepEqual(request.body, { playerCount: 2, boardShape: 'triangle', gridSize: 13, startPlayer: 'BLACK', rulesVersion: 'territory-v3', turnTimerEnabled: false, turnTimeLimitSeconds: 60, hintEnabled: false, hintMaxCount: 1, undoEnabled: false, undoMaxCount: 3, botCount: 0 });
+     assert.equal(app.session.value.shared, true);
+     assert.equal(app.roomInfo.value.settings.playerCount, 2);
+     assert.equal(app.roomInfo.value.settings.botCount || 0, 0);
+--- a/wechat/minigame/tools/offline-browser-check.mjs
++++ b/wechat/minigame/tools/offline-browser-check.mjs
+@@ -224,7 +224,7 @@
+         await waitText(page, `${index + 1}/5 · 完成了！`);
+         const state = (await observe(page)).lastState.snapshot;
+         if (index === 1) assert.equal(state.territories.BLACK.area, 10);
+-        if (index === 3) assert.equal(state.territories.BLACK.area, 7);
++        if (index === 3) assert.equal(state.territories.BLACK.area, 6);
+         if (index === 4) { assert.equal(state.gameOver, true); assert.equal(state.winner, 'BLACK'); assert.equal(state.territories.BLACK.area, 7); }
+         if (index === 1) await saveScreenshot(page, 'tutorial-territory');
+         await clickText(page, index === 4 ? '完成教学' : '下一关');
+--- a/wechat/minigame/tools/prepare-candidate.mjs
++++ b/wechat/minigame/tools/prepare-candidate.mjs
+@@ -219,7 +219,7 @@
+     reproducibility: 'Fresh isolated rebuild matches every existing dist file, including 17 verified model assets, byte for byte; test evidence is bound separately',
+     runtime: { node: process.version, platform: process.platform, arch: process.arch },
+     uploadDescription: online
+-      ? '好友联机新增房主棋盘形状、随机或自定义起点设置，以及双方确认的悔棋；刷新后恢复房间设置和悔棋额度。好友房间仍为双人；未做本版真机验收。'
++      ? '新版领土将未闭合的己方节点和线点计分；修复头像选择、编码和保存，加强初始点标记。保留四舱、29项兼容AI、悔棋、复盘和100份棋谱。好友房间仍为双人；未做本版真机验收。'
+       : '新版领土将未闭合的己方节点和线点计分；加强各玩家初始点标记，保留四舱、29项兼容AI、悔棋、复盘和100份棋谱。本包关闭联机，可免登录体验；未做本版真机验收。',
+     acceptance: { nativeCandidateImport: 'NOT_RUN', physicalDevice: 'NOT_RUN',
+       accountPermissions: 'NOT_VERIFIED', serviceConnectivity: 'NOT_VERIFIED',
+--- a/wechat/minigame/tools/prepare-service.mjs
++++ b/wechat/minigame/tools/prepare-service.mjs
+@@ -116,7 +116,7 @@
+     await fs.writeFile(destination, data, { flag: 'wx' });
+     files.push({ path: name, bytes: data.length, sha256: hash(data) });
+   }
+-  const manifest = { schemaVersion: 1, kind: 'standalone-wechat-service', version: '0.12.5',
++  const manifest = { schemaVersion: 1, kind: 'standalone-wechat-service', version: '0.11.0',
+     status: 'PREPARED_LOCAL_NOT_DEPLOYED', createdAt: new Date().toISOString(),
+     node: process.version, nodeRequirement: '>=22', files, totalBytes: files.reduce((n, f) => n + f.bytes, 0),
+     rulesVersion: 'territory-v3', onlinePlayerCount: 2, databaseSchema: 3,

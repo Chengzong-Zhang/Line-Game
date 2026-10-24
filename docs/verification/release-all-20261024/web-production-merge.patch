@@ -1,0 +1,2245 @@
+--- a/web/web前端/AIEngine.js
++++ b/web/web前端/AIEngine.js
+@@ -317,6 +317,12 @@
+   return engine.activePlayers.filter((player) => !engine.resignedPlayers.has(player));
+ }
+ 
++function opponentNodeCount(engine, player) {
++  return survivingPlayers(engine)
++    .filter((candidate) => candidate !== player)
++    .reduce((total, opponent) => total + engine._getPlayerNodes(opponent).length, 0);
++}
++
+ function comparePersistentLoss(left, right) {
+   return left.nodes - right.nodes || left.coverage - right.coverage;
+ }
+@@ -432,109 +438,6 @@
+   }
+ }
+ 
+-function boundedRootCutChainAttack(engine, attacker, defenderReference) {
+-  const remainingPlayers = survivingPlayers(engine);
+-  if (remainingPlayers.length !== 2 || !remainingPlayers.includes(attacker)) return null;
+-  const defender = remainingPlayers.find((player) => player !== attacker);
+-  if (!defender || !defenderReference) return null;
+-
+-  const origin = saveState(engine);
+-  const budget = { responses: 0, secondCuts: 0, transitions: 0 };
+-  const spendTransition = () => {
+-    budget.transitions += 1;
+-    if (budget.transitions > ROOT_CUT_CHAIN_LIMITS.maxTransitions) {
+-      throw ROOT_CUT_CHAIN_LIMIT_REACHED;
+-    }
+-  };
+-
+-  try {
+-    if (engine.gameOver) {
+-      return { ...materialLoss(engine, defender, defenderReference), ...budget };
+-    }
+-
+-    let responses;
+-    if (engine.currentPlayer === attacker) {
+-      // The defender was canonically auto-skipped after the root action. The
+-      // attacker already owns the continuation, so there is no fabricated
+-      // defensive move between the first and second cuts.
+-      responses = [null];
+-    } else if (engine.currentPlayer === defender) {
+-      // Avoid a full legal-move scan on large open boards where this bounded
+-      // tactical overlay cannot cover every reply anyway. The connectivity
+-      // count is a cheap upper screen; canonical legality still decides every
+-      // branch once the position is inside the bound.
+-      const sourceNodes = engine._getPlayerNodes(defender);
+-      const potentialResponses = engine.validPositions.reduce((count, point) =>
+-        count + (sourceNodes.some((node) =>
+-          engine.canConnectWithBlocking(point, node, defender)) ? 1 : 0), 0);
+-      if (potentialResponses > ROOT_CUT_CHAIN_LIMITS.maxPotentialResponses) {
+-        throw ROOT_CUT_CHAIN_LIMIT_REACHED;
+-      }
+-      const legal = engine.getLegalMoves(defender).map(({ point }) => [...point]);
+-      responses = [...legal, "PASS"];
+-      if (responses.length > ROOT_CUT_CHAIN_LIMITS.maxResponsesPerCut) {
+-        throw ROOT_CUT_CHAIN_LIMIT_REACHED;
+-      }
+-    } else {
+-      return null;
+-    }
+-    budget.responses += responses.length;
+-
+-    let forcedLoss = null;
+-    for (const response of responses) {
+-      const beforeResponse = saveState(engine);
+-      try {
+-        if (response === "PASS") {
+-          spendTransition();
+-          if (!engine.skipTurn().success) continue;
+-        } else if (response !== null) {
+-          spendTransition();
+-          if (!engine.playMove(response).success) continue;
+-        }
+-
+-        let bestContinuation = materialLoss(engine, defender, defenderReference);
+-        if (!engine.gameOver && engine.currentPlayer === attacker) {
+-          // A damaging continuation must occupy a current defender line. Run
+-          // each candidate through the canonical transition so Superko,
+-          // clearing and automatic skips match the real game.
+-          const secondPoints = engine._getPlayerLines(defender)
+-            .map((point) => [...point]);
+-          for (const secondPoint of secondPoints) {
+-            const beforeSecond = saveState(engine);
+-            try {
+-              spendTransition();
+-              if (!engine.playMove(secondPoint).success) continue;
+-              const secondLoss = materialLoss(engine, defender, defenderReference);
+-              if (comparePersistentLoss(secondLoss, bestContinuation) > 0) {
+-                bestContinuation = secondLoss;
+-              }
+-              budget.secondCuts += 1;
+-            } finally {
+-              restoreState(engine, beforeSecond);
+-            }
+-          }
+-        }
+-
+-        // The defender chooses the reply that leaves the least persistent
+-        // damage after the attacker's strongest legal second cut.
+-        if (forcedLoss === null
+-          || comparePersistentLoss(bestContinuation, forcedLoss) < 0) {
+-          forcedLoss = bestContinuation;
+-        }
+-      } finally {
+-        restoreState(engine, beforeResponse);
+-      }
+-    }
+-
+-    return forcedLoss === null ? null : { ...forcedLoss, ...budget };
+-  } catch (error) {
+-    if (error === ROOT_CUT_CHAIN_LIMIT_REACHED) return null;
+-    throw error;
+-  } finally {
+-    restoreState(engine, origin);
+-  }
+-}
+-
+ function applyRootCutChainPreference(engine, player, scoredMoves, eligibleKeys) {
+   const remainingPlayers = survivingPlayers(engine);
+   if (remainingPlayers.length !== 2 || !remainingPlayers.includes(player)) return scoredMoves;
+@@ -550,8 +453,7 @@
+     return scoredMoves;
+   }
+ 
+-  const opponent = remainingPlayers.find((candidate) => candidate !== player);
+-  const opponentReference = materialCounts(engine, opponent);
++  const opponentNodesBefore = opponentNodeCount(engine, player);
+   const comparisons = new Map();
+   for (const move of window) {
+     const snapshot = saveState(engine);
+@@ -563,12 +465,12 @@
+       if (engine.gameOver || engine.currentPlayer === player) continue;
+       const risk = boundedRootCutChainRisk(engine, player);
+       if (risk === null) continue;
+-      const attack = boundedRootCutChainAttack(engine, player, opponentReference);
+-      if (attack === null) continue;
++      const capturedEnemyNodes = Math.max(0,
++        opponentNodesBefore - opponentNodeCount(engine, player));
+       comparisons.set(pointKey(move.point), {
+         risk,
+-        attack,
+-        netNodeGain: attack.nodes - risk.nodes,
++        capturedEnemyNodes,
++        netNodeGain: capturedEnemyNodes - risk.nodes,
+       });
+     } finally {
+       restoreState(engine, snapshot);
+@@ -580,31 +482,25 @@
+   if (!top) return scoredMoves;
+ 
+   // This is a dominance rule, not another evaluation term. The ordinary
+-  // Minimax score already includes leaf material and the one-cut root risk.
+-  // A root action may replace the original top move when it either preserves
+-  // net node gain while reducing our forced loss, or forces more enemy loss
+-  // without increasing our own. Keep every score intact so the bounded
+-  // comparison cannot manufacture value by double-counting.
+-  const dominant = window.filter((move) => {
++  // Minimax score already includes the leaf material and the one-cut root
++  // risk. A safer continuation may replace the original top move only when
++  // it preserves the same worst-case net node gain. Keep every score intact
++  // so the bounded comparison cannot manufacture value by double-counting.
++  const safer = window.filter((move) => {
+     const comparison = comparisons.get(pointKey(move.point));
+-    if (!comparison) return false;
+-    const riskComparison = comparePersistentLoss(comparison.risk, top.risk);
+-    const attackComparison = comparePersistentLoss(comparison.attack, top.attack);
+-    const defensiveDominance = comparison.netNodeGain >= top.netNodeGain
+-      && riskComparison < 0;
+-    const offensiveDominance = riskComparison <= 0 && attackComparison > 0;
+-    return defensiveDominance || offensiveDominance;
++    return comparison
++      && comparison.netNodeGain >= top.netNodeGain
++      && comparePersistentLoss(comparison.risk, top.risk) < 0;
+   });
+-  if (!dominant.length) return scoredMoves;
+-  dominant.sort((left, right) => {
++  if (!safer.length) return scoredMoves;
++  safer.sort((left, right) => {
+     const leftComparison = comparisons.get(pointKey(left.point));
+     const rightComparison = comparisons.get(pointKey(right.point));
+-    return rightComparison.netNodeGain - leftComparison.netNodeGain
+-      || comparePersistentLoss(rightComparison.attack, leftComparison.attack)
+-      || comparePersistentLoss(leftComparison.risk, rightComparison.risk)
++    return comparePersistentLoss(leftComparison.risk, rightComparison.risk)
++      || rightComparison.netNodeGain - leftComparison.netNodeGain
+       || window.indexOf(left) - window.indexOf(right);
+   });
+-  const preferred = dominant[0];
++  const preferred = safer[0];
+   const preferredIndex = scoredMoves.indexOf(preferred);
+   scoredMoves.splice(preferredIndex, 1);
+   scoredMoves.unshift(preferred);
+@@ -694,16 +590,6 @@
+   }
+ 
+   evaluate(engine, player) {
+-    if (engine.gameOver) {
+-      // A voluntary PASS can end the game while placements still exist.  Once
+-      // that happens, compare the canonical rule result instead of letting a
+-      // nonterminal reach/coverage heuristic decide whether ending was good.
+-      // getWinner() refreshes exact terminal territory when the display cache
+-      // is pending; the enclosing search snapshot restores that cache.
+-      const winner = engine.getWinner();
+-      if (winner === "DRAW") return 0;
+-      return winner === player ? 1_000_000 : -1_000_000;
+-    }
+     return evaluateMinimax(engine, player);
+   }
+ 
+@@ -769,10 +655,15 @@
+     try {
+       const legalMoves = this.getLegalMoves(engine, aiPlayer);
+       const ordered = this.orderMoves(engine, legalMoves, aiPlayer);
+-      // The first move of an unavoidable two-cut sequence can be a reinforcing
+-      // placement on an empty point, so compare the bounded leading window,
+-      // rather than only moves that already occupy a line.
+-      const rootCutChainEligible = new Set(ordered.map(pointKey));
++      const ownLine = engine._getPlayerStates(aiPlayer).line;
++      const enemyLines = new Set(getOpponents(engine, aiPlayer)
++        .map((opponent) => engine._getPlayerStates(opponent).line));
++      const rootCutChainEligible = new Set(ordered
++        .filter((point) => {
++          const state = engine._getState(point);
++          return state === ownLine || enemyLines.has(state);
++        })
++        .map(pointKey));
+       const previousOpponentMaterial = this.depth > 1
+         ? opponentRiskMaterial(engine, aiPlayer) : 0;
+       const scoredMoves = [];
+@@ -986,4 +877,4 @@
+   }
+ }
+ 
+-export { GreedyAI, MCTSAI, MinimaxAI, MINIMAX_WEIGHTS, boundedRootCutChainAttack, boundedRootCutChainRisk, cutAnalysis, evaluate, evaluateMinimax, fastTerritoryBFS, saveState, restoreState };
++export { GreedyAI, MCTSAI, MinimaxAI, MINIMAX_WEIGHTS, boundedRootCutChainRisk, cutAnalysis, evaluate, evaluateMinimax, fastTerritoryBFS, saveState, restoreState };
+--- a/web/web前端/AIWorker.js
++++ b/web/web前端/AIWorker.js
+@@ -1,6 +1,6 @@
+-import { GameEngine } from "./GameEngine.js";
++import { GameEngine } from "./GameEngine.js?v=VERSION";
+ import { deserializeEngineEdges } from "./AIStateProtocol.js?v=VERSION";
+-import { GreedyAI, MCTSAI, MinimaxAI, restoreState } from "./AIEngine.js";
++import { GreedyAI, MCTSAI, MinimaxAI, restoreState } from "./AIEngine.js?v=VERSION";
+ 
+ self.onmessage = async (event) => {
+   if (event.data?.type === "WARMUP") {
+@@ -45,21 +45,11 @@
+       gameOver: serializedState.gameOver,
+       turnCount: serializedState.turnCount,
+       positionRevision: serializedState.positionRevision ?? 0,
+-      // The compact worker protocol intentionally omits the display territory
+-      // cache.  Mark it stale so a terminal leaf reached only by PASS still
+-      // computes the exact native area instead of reading the fresh engine's
+-      // initial 0/1-point cache.
+-      territoryStateRevision: serializedState.territoryStateRevision
+-        ?? serializedState.positionRevision
+-        ?? 0,
+-      territoryCacheRevision: serializedState.territoryCacheRevision ?? -1,
+       cachedTerritories: engine.cachedTerritories,
+     });
+ 
+-    // Search implementations suppress display-only territory updates while
+-    // replaying speculative moves and use their fast heuristic at nonterminal
+-    // leaves.  Keep the native updater available: exact terminal evaluation,
+-    // including a voluntary PASS, must use the real area/winner.
++    // 搜索期间跳过昂贵的领土计算（评估函数用 fastTerritoryBFS 代替）
++    engine._updateTerritories = () => {};
+ 
+     const nativeShape = engine.playerCount >= 4 ? "hexagon" : "triangle";
+     if (engine.boardShape !== nativeShape && !["greedy", "minimax", "mcts", "multiplayer"].includes(strategy)) {
+--- a/web/web前端/CrossPlatformNetwork.js
++++ b/web/web前端/CrossPlatformNetwork.js
+@@ -0,0 +1,142 @@
++import NetworkManager, { ClientEvent, ServerEvent } from "./NetworkManager.js?v=VERSION";
++import { SharedRoomClient, sharedApiOrigin } from "./SharedRoomClient.js?v=VERSION";
++
++// Preserve existing four-digit Web rooms; eight-character rooms share the
++// authoritative Mini Game service. Callers still use the Web UI/controller API.
++export default class CrossPlatformNetwork extends NetworkManager {
++  constructor(options = {}) {
++    super(options);
++    this.sharedActive = false;
++    this.shared = new SharedRoomClient({ ...options,
++      onRoom: (payload, room) => {
++        if (!this.sharedActive) return;
++        this.roomId = room.code; this.playerId = payload.playerId; this.color = room.player;
++        this._emit(payload.type, payload);
++        if (room.status === "closed") this._emit(ServerEvent.PLAYER_LEFT, payload);
++        if (room.status === "finished" && Object.values(room.rematchVotes).some(Boolean)) {
++          this._emit(ServerEvent.RESET_STATUS, { confirmedVotes: Object.values(room.rematchVotes).filter(Boolean).length, requiredVotes: 2 });
++        }
++      },
++      onConnection: (connected, event) => {
++        if (this.sharedActive) this._emit(connected ? ClientEvent.OPEN : ClientEvent.CLOSE,
++          { type: connected ? ClientEvent.OPEN : ClientEvent.CLOSE, url: this.url, ...event });
++      },
++      onError: error => this._emit(ServerEvent.ERROR, { code: error.message, message: error.message }),
++      onEmote: emote => {
++        if (this.sharedActive) this._emit(ServerEvent.CHAT_EMOJI, {
++          type: ServerEvent.CHAT_EMOJI, sender: `${this.roomId}:${emote.player}`, color: emote.player,
++          content: emote.emoji, metadata: { seed: emote.id, animation: "bounce", duration: 1200 },
++        });
++      },
++      onEmoteError: error => this._emit(ServerEvent.ERROR, { code: error.message, message: error.message }),
++    });
++  }
++  get serverAuthoritative() { return this.sharedActive; }
++  canAct() { return !this.sharedActive || this.shared.canAct(); }
++  canEmote() { return this.sharedActive ? this.shared.canEmote() : this.isConnected(); }
++  _handleMessage(event) { if (!this.sharedActive) super._handleMessage(event); }
++  hydrateSession(value) { super.hydrateSession(value); this.sharedActive = /^[A-Z2-9]{8}$/.test(value?.roomId || ""); }
++  getSession() { return { ...super.getSession(), shared: this.sharedActive }; }
++  isConnected() { return this.sharedActive ? this.shared.connected : super.isConnected(); }
++  setAuthToken(token) {
++    if (this.authToken && this.authToken !== token && this.shared) {
++      this.shared.stop(); this.shared.token = null; this.shared.webToken = null; this.shared.room = null;
++    }
++    super.setAuthToken(token);
++  }
++  clearAuthToken() { this.setAuthToken(null); }
++  async connect(url, token = this.authToken) {
++    if (!this.sharedActive) return super.connect(url, token);
++    this.url = url; this.authToken = token;
++    await this.shared.open(sharedApiOrigin(url), token);
++    return this;
++  }
++  disconnect(...args) {
++    this.shared?.stop();
++    if (!this.sharedActive) return super.disconnect(...args);
++  }
++  async activateShared() {
++    if (this.roomId && !this.sharedActive) throw new Error("LEAVE_ROOM_FIRST");
++    // A cancelled password check must not close a working legacy connection.
++    await this.shared.open(sharedApiOrigin(this.url), this.authToken);
++    if (!this.sharedActive) {
++      this._closeCurrentConnection(1000, "switch_to_shared",
++        new Error("WebSocket connection was replaced."), false);
++      this.sharedActive = true;
++    }
++  }
++  selectLegacy() {
++    if (!this.sharedActive) return;
++    if (this.roomId) throw new Error("LEAVE_ROOM_FIRST");
++    this.shared.stop(); this.sharedActive = false;
++  }
++  async createSharedRoom(settings = {}) {
++    await this.activateShared();
++    return this.shared.enter("create", { ...settings, playerCount: 2, rulesVersion: "territory-v3" });
++  }
++  async createRoom(settings) {
++    if (this.sharedActive) {
++      if (this.roomId) throw new Error("LEAVE_ROOM_FIRST");
++      this.shared.stop(); this.sharedActive = false;
++      await super.connect(this.url, this.authToken);
++    }
++    return super.createRoom(settings);
++  }
++  async joinRoom(code, playerId) {
++    const normalized = String(code).trim().toUpperCase();
++    if (/^[A-Z2-9]{8}$/.test(normalized)) {
++      if (this.roomId && this.sharedActive && this.roomId !== normalized) throw new Error("LEAVE_ROOM_FIRST");
++      await this.activateShared();
++      return this.shared.enter(playerId ? "resume" : "join", normalized);
++    }
++    if (this.sharedActive) {
++      if (this.roomId) throw new Error("LEAVE_ROOM_FIRST");
++      this.shared.stop(); this.sharedActive = false; await super.connect(this.url, this.authToken);
++    }
++    return super.joinRoom(code, playerId);
++  }
++  async sendMove(point) { return this.sharedActive ? this.shared.act({ type: "move", point }) : super.sendMove(point); }
++  async sendSkip() { return this.sharedActive ? this.shared.act({ type: "skip" }) : super.sendSkip(); }
++  async sendResign() { return this.sharedActive ? this.shared.act({ type: "resign" }) : super.sendResign(); }
++  async sendReady(ready) {
++    if (!this.sharedActive) return super.sendReady(ready);
++    if (ready) return this.shared.command("ready");
++  }
++  async sendReset(reason) {
++    if (!this.sharedActive) return super.sendReset(reason);
++    if (this.shared.room?.status !== "finished") throw new Error("MATCH_NOT_FINISHED");
++    return this.shared.command("rematch");
++  }
++  async updateRoomSettings(settings) {
++    return this.sharedActive ? this.shared.updateSettings({ ...settings, playerCount: 2 }) : super.updateRoomSettings(settings);
++  }
++  async updateStartPlayer(player) {
++    return this.sharedActive ? this.shared.updateSettings({ ...this.shared.room.settings, startPlayer: player }) : super.updateStartPlayer(player);
++  }
++  async sendUndo(accept = true) { return this.sharedActive ? this.shared.undo(accept) : super.sendUndo(accept); }
++  async sendChatEmoji(...args) {
++    if (this.sharedActive) return this.shared.sendEmote(args[0]);
++    return super.sendChatEmoji(...args);
++  }
++  async leaveRoom({ bestEffort = false } = {}) {
++    if (!this.sharedActive) return super.leaveRoom();
++    if (this.shared.room && this.shared.room.status !== "closed") {
++      // Logging out must never demand a fresh password to end an old session.
++      if (bestEffort) {
++        if (this.shared.token) await this.shared.json(`rooms/${this.shared.room.code}/leave`, { matchId: this.shared.room.matchId });
++      } else await this.shared.command("leave");
++    }
++    this.shared.stop(); this.shared.clearPending(); this.shared.room = null;
++    this.roomId = this.playerId = this.color = null;
++  }
++  async issueLinkCode() {
++    await this.shared.open(sharedApiOrigin(this.url), this.authToken);
++    const generation = this.shared.generation, origin = this.shared.origin, token = this.authToken;
++    const result = this.shared.webAuthMode === "password"
++      ? await this.shared.request("account/link-code", {})
++      : await this.shared.json("account/link-code", {}, token);
++    if (generation !== this.shared.generation || token !== this.authToken || origin !== this.shared.origin
++      || origin !== sharedApiOrigin(this.url)) throw new Error("CANCELLED");
++    return result;
++  }
++}
+--- a/web/web前端/GameController.js
++++ b/web/web前端/GameController.js
+@@ -589,6 +589,10 @@
+       return "NETWORK_UNAVAILABLE";
+     }
+ 
++    if (this.networkManager.serverAuthoritative && !this.networkManager.canAct()) {
++      return "NETWORK_UNAVAILABLE";
++    }
++
+     if (snapshot.currentPlayer !== this.localPlayer) {
+       return "NOT_YOUR_TURN";
+     }
+@@ -611,6 +615,10 @@
+   _getResetLockReason(snapshot = this.engine.getSnapshot()) {
+     if (!this.multiplayerEnabled) {
+       return null;
++    }
++
++    if (this.networkManager?.serverAuthoritative && !snapshot.gameOver && !this.networkManager.canAct()) {
++      return "NOT_YOUR_TURN";
+     }
+ 
+     if (this._authoritativeSnapshotValid === false) {
+@@ -752,6 +760,16 @@
+       };
+     }
+ 
++    if (this.multiplayerEnabled && this.networkManager?.serverAuthoritative) {
++      // Shared Web/WeChat matches commit only a validated server snapshot.
++      // A dropped response cannot leave a locally advanced board behind.
++      if (!snapshot.legalMoves.some(move => move.point[0] === point[0] && move.point[1] === point[1])) {
++        this._emitActionFeedback({ type: "move", success: false, reason: "INVALID_MOVE", point });
++        return { success: false, reason: "INVALID_MOVE", state: this.getGameState() };
++      }
++      void this._syncLocalMove(point);
++      return { success: true, pending: true, reason: null, state: this.getGameState() };
++    }
+     const result = this._applyMove(point, snapshot.currentPlayer);
+     if (result.success) {
+       void this._syncLocalMove(point);
+--- a/web/web前端/GuideArticleFormat.js
++++ b/web/web前端/GuideArticleFormat.js
+@@ -4,8 +4,21 @@
+ export const c = (code, language = 'text', source = null) => ({ kind: 'code', code, language, source });
+ export const s = (id, zh, en, blocks) => ({ id, title: { zh, en }, blocks });
+ export const ch = (id, zh, en, overview, sections) => ({ id, title: { zh, en }, overview, sections });
++let letterOrNumber;
++try {
++  // Construct at runtime so older WeChat engines can load this module.
++  letterOrNumber = new RegExp('^[\\p{L}\\p{N}]$', 'u');
++} catch (_) {
++  letterOrNumber = /^[A-Za-z0-9\u00c0-\u024f\u0400-\u052f\u0600-\u06ff\u0900-\u097f\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]$/u;
++}
++export function isGuideAnchorId(id) {
++  return typeof id === 'string' && id.length > 0
++    && [...id].every(character => character === '_' || character === '-' || letterOrNumber.test(character));
++}
+ export function guideHeadingId(title) {
+-  return String(title).toLowerCase().replace(/[^\p{L}\p{N}\s_-]/gu, '').trim().replace(/\s+/g, '-');
++  return [...String(title).toLowerCase()]
++    .filter(character => character === '_' || character === '-' || /\s/u.test(character) || letterOrNumber.test(character))
++    .join('').trim().replace(/\s+/g, '-');
+ }
+ export function blockText(block, language) {
+   return block.kind === 'math' ? block.plain : block.kind === 'code' ? block.code : block.text[language];
+--- a/web/web前端/GuideContent.js
++++ b/web/web前端/GuideContent.js
+@@ -1,5 +1,5 @@
+-import { implementationMarkdown } from "./GuideImplementation.js";
+-import { guideHeadingId } from "./GuideArticleFormat.js";
++import { implementationMarkdown } from "./GuideImplementation.js?v=VERSION";
++import { guideHeadingId, isGuideAnchorId } from "./GuideArticleFormat.js?v=VERSION";
+ 
+ const WHY_TALK_ZH = `# Talk：扩张、防守与破绽
+ 
+@@ -510,7 +510,7 @@
+           if (["http:", "https:"].includes(url.protocol)) safeHref = url.href;
+         } catch (_) { /* Invalid URLs remain plain text. */ }
+       }
+-      tokens.push(/^#[\p{L}\p{N}_-]+$/u.test(href ?? "")
++      tokens.push((typeof href === "string" && href.startsWith("#") && isGuideAnchorId(href.slice(1)))
+         ? { type: "anchor", text: label, href }
+         : safeHref
+         ? { type: "link", text: label, href: safeHref }
+--- a/web/web前端/GuideImplementation.js
++++ b/web/web前端/GuideImplementation.js
+@@ -1,6 +1,6 @@
+-import { MATH_CHAPTERS } from './GuideMathChapters.js';
+-import { TECHNICAL_CHAPTERS } from './GuideTechnicalChapters.js';
+-import { blockText, blockMarkdown, guideHeadingId } from './GuideArticleFormat.js';
++import { MATH_CHAPTERS } from './GuideMathChapters.js?v=VERSION';
++import { TECHNICAL_CHAPTERS } from './GuideTechnicalChapters.js?v=VERSION';
++import { blockText, blockMarkdown, guideHeadingId } from './GuideArticleFormat.js?v=VERSION';
+ 
+ export function guideChapters(kind = 'rulesMath') {
+   return kind === 'whyCode' ? TECHNICAL_CHAPTERS : MATH_CHAPTERS;
+--- a/web/web前端/GuideImplementationNotes.js
++++ b/web/web前端/GuideImplementationNotes.js
+@@ -115,13 +115,13 @@
+   chapter('minimax', 'Minimax 与 α–β 剪枝', 'Minimax and alpha–beta', [
+     'Minimax 把“我选择最好的一步，对手选择对我最不利的一步”递归展开。以根玩家为评价视角：叶子返回 F(s)；当前行动方是根玩家时取所有被搜索后继的最大值，轮到对手时取最小值。界面中的深度 2、3、4 指搜索的行动层数，不是每一方各走那么多轮。',
+     'α 保存 MAX 已有的下界，β 保存 MIN 已有的上界；当 β≤α，继续展开这条分支已不可能改变祖先的选择，可以剪掉。α–β 在相同候选树和评价下保留 Minimax 的决策，但每层最多 20 个排序候选本身是另一种截断，会漏掉排序之外的合法招法。',
+-    '每个分支先保存 grid、edges、historyHashes、行动方、认输、跳过、终局、修订号和领土缓存，再通过 GameEngine.playMove 或 skipTurn 推进，随后恢复。自动跳过可能让同一玩家连续获得行动，MAX/MIN 因而由 currentPlayer 决定。深度耗尽的非终局分支使用启发式 F；真实终局通过规则引擎刷新精确 area 并按胜、平、负返回。有限深度搜索的非终局结果仍不是精确胜负证明。',
++    '每个分支先保存 grid、edges、historyHashes、行动方、认输、跳过、终局、修订号和领土缓存，再通过 GameEngine.playMove 推进，随后恢复。自动跳过可能让同一玩家连续获得行动，MAX/MIN 因而由 currentPlayer 决定。深度耗尽和当前旧版 Minimax 的终局分支都使用启发式 F；不能把搜索返回值当作精确胜负证明。',
+     '当前双人 Minimax 把 PASS 与合法落点一起作为根层和递归层候选，并通过 GameEngine.skipTurn 推进；因此即使有合法落点也可主动跳过。PASS 是否入选仍取决于同一启发式和有限深度搜索，不等于已经求解终局。多人困难搜索另有完整下一位对手 MOVE+PASS 回复包与时间门，两套实现的证据范围需要分别说明。',
+     '为减少等待，推演不生成界面快照、不反复计算只用于显示的领土；只到启发式叶子时还可省去不影响 F 的下一玩家自动跳过扫描。非叶子仍保持真实轮转，避免提速改变树的含义。',
+   ], [
+     'Minimax recursively models choosing the best move while an opponent chooses the worst reply for the root player. Leaves return F(s). Nodes where the root player acts take a maximum; opponent nodes take a minimum. Depths 2, 3 and 4 count action layers, not that many complete rounds for each side.',
+     'Alpha stores a lower bound already available to MAX; beta stores an upper bound for MIN. When beta is no greater than alpha, the branch cannot improve the ancestor’s decision and can be cut. Alpha–beta preserves Minimax on the same candidate tree and evaluation. The separate 20-candidate cap truncates that tree and can omit legal moves.',
+-    'Each branch saves the grid, edges, history, turn, resignations, passes, terminal state, revisions and territory cache, advances through GameEngine.playMove or skipTurn, and restores the saved state. Automatic passes can return control to the same player, so currentPlayer determines MAX versus MIN. Nonterminal depth-limited leaves use heuristic F; a true terminal refreshes canonical area and returns win, draw or loss utility. The bounded nonterminal search result is still not an exact proof of victory.',
++    'Each branch saves the grid, edges, history, turn, resignations, passes, terminal state, revisions and territory cache, advances through GameEngine.playMove and restores the saved state. Automatic passes can return control to the same player, so currentPlayer determines MAX versus MIN. The existing two-player implementation evaluates both depth-limited and terminal leaves with heuristic F; its returned score is not an exact proof of victory.',
+     'The current two-player Minimax includes PASS alongside legal placements at both root and recursive nodes, and advances it through GameEngine.skipTurn. It can therefore pass while placements remain. Selection still depends on the same heuristic and bounded-depth search; it is not an exact solution of the ending. Multiplayer Hard instead evaluates complete MOVE-plus-PASS reply packets from the actual next opponent under its own time gate, so the evidence scopes remain separate.',
+     'Search suppresses UI snapshots and display-only territory refreshes. At heuristic leaves it can also omit a next-player auto-skip scan that does not affect F. Non-leaf transitions keep actual turn normalization so the optimization preserves the searched tree’s meaning.',
+   ]),
+--- a/web/web前端/GuideMathChapters.js
++++ b/web/web前端/GuideMathChapters.js
+@@ -1,4 +1,4 @@
+-import { p, m, s, ch } from './GuideArticleFormat.js';
++import { p, m, s, ch } from './GuideArticleFormat.js?v=VERSION';
+ 
+ // Derived statements are conditional theorems, not experimental strength claims.
+ export const MATH_CHAPTERS = [
+--- a/web/web前端/GuideTechnicalChapters.js
++++ b/web/web前端/GuideTechnicalChapters.js
+@@ -1,5 +1,5 @@
+-import { IMPLEMENTATION_NOTES } from './GuideImplementationNotes.js';
+-import { p, m, c, s, ch } from './GuideArticleFormat.js';
++import { IMPLEMENTATION_NOTES } from './GuideImplementationNotes.js?v=VERSION';
++import { p, m, c, s, ch } from './GuideArticleFormat.js?v=VERSION';
+ 
+ function notes(id, omit = []) {
+   const item = IMPLEMENTATION_NOTES.find(item => item.id === id);
+--- a/web/web前端/HexFastSearchAI.js
++++ b/web/web前端/HexFastSearchAI.js
+@@ -1,7 +1,7 @@
+ // V5 replaces only nonterminal leaf scoring; v4 remains frozen and unchanged.
+-import { saveState, restoreState, fastTerritoryBFS } from "./AIEngine.js";
+-import { GameEngine } from "./GameEngine.js";
+-import { HEX_PLAYER_FEATURES, hexPlayerCandidates } from "./HexPlayerAI.js";
++import { saveState, restoreState, fastTerritoryBFS } from "./AIEngine.js?v=VERSION";
++import { GameEngine } from "./GameEngine.js?v=VERSION";
++import { HEX_PLAYER_FEATURES, hexPlayerCandidates } from "./HexPlayerAI.js?v=VERSION";
+ 
+ const pointOrder = (a,b) => a.point[1]-b.point[1] || a.point[0]-b.point[0];
+ const samePoint = (a,b) => a[0]===b[0] && a[1]===b[1];
+--- a/web/web前端/HexPlayerRuntime.js
++++ b/web/web前端/HexPlayerRuntime.js
+@@ -1,6 +1,6 @@
+-import { HEX_PLAYER_MODEL_ID, HexPlayerAI, loadHexPlayerModel } from "./HexPlayerAI.js";
+-import { HexFastSearchAI } from "./HexFastSearchAI.js";
+-import { HEX_SEARCH_MODEL_ID, HEX_SEARCH_MODEL_SHA256, HEX_SEARCH_SIZES, HEX_SEARCH_PLAYER_COUNTS } from "./HexSearchOptions.js";
++import { HEX_PLAYER_MODEL_ID, HexPlayerAI, loadHexPlayerModel } from "./HexPlayerAI.js?v=VERSION";
++import { HexFastSearchAI } from "./HexFastSearchAI.js?v=VERSION";
++import { HEX_SEARCH_MODEL_ID, HEX_SEARCH_MODEL_SHA256, HEX_SEARCH_SIZES, HEX_SEARCH_PLAYER_COUNTS } from "./HexSearchOptions.js?v=VERSION";
+ 
+ // Workers may explicitly request this candidate; default selection remains v1.
+ let candidatePromise;
+--- a/web/web前端/HexSearchAI.js
++++ b/web/web前端/HexSearchAI.js
+@@ -1,7 +1,7 @@
+ // Selective, v1-anchored local candidate. Runtime promotion is a separate gate.
+-import { saveState, restoreState, fastTerritoryBFS } from "./AIEngine.js";
+-import { GameEngine } from "./GameEngine.js";
+-import { HEX_PLAYER_FEATURES, hexPlayerCandidates } from "./HexPlayerAI.js";
++import { saveState, restoreState, fastTerritoryBFS } from "./AIEngine.js?v=VERSION";
++import { GameEngine } from "./GameEngine.js?v=VERSION";
++import { HEX_PLAYER_FEATURES, hexPlayerCandidates } from "./HexPlayerAI.js?v=VERSION";
+ 
+ const pointOrder = (a,b) => a.point[1]-b.point[1] || a.point[0]-b.point[0];
+ const samePoint = (a,b) => a[0]===b[0] && a[1]===b[1];
+--- a/web/web前端/ModelFreeAI.js
++++ b/web/web前端/ModelFreeAI.js
+@@ -1,4 +1,3 @@
+-const manifestUrl = new URL("./assets/research-ai/model-free-manifest.json", import.meta.url);
+ let manifestPromise = null;
+ const modelPromises = new Map();
+ const MAX_POINTS = 120;
+@@ -14,6 +13,7 @@
+ }
+ 
+ async function loadManifest() {
++  const manifestUrl = new URL("./assets/research-ai/model-free-manifest.json", import.meta.url);
+   if (!manifestPromise) manifestPromise = fetch(manifestUrl).then(async (response) => {
+     if (!response.ok) throw new Error(`无法加载 model-free 模型清单（HTTP ${response.status}）。`);
+     const manifest = await response.json();
+@@ -24,11 +24,34 @@
+ }
+ 
+ function tensorMap(spec, raw) {
++  if (!["dqn", "ppo", "sac", "gail", "gan"].includes(spec.model_family)
++    || spec.state_dimension !== 842 || spec.action_count !== ACTION_COUNT) throw new Error(`模型配置无效：${spec.id}`);
+   if (!(raw instanceof ArrayBuffer) || raw.byteLength !== spec.float_count * 4) throw new Error(`模型权重大小不匹配：${spec.id}`);
+-  const values = new Float32Array(raw); const tensors = new Map();
+-  for (const tensor of spec.tensors) tensors.set(tensor.name, values.subarray(tensor.offset, tensor.offset + tensor.length));
++  const body = spec.model_family === "dqn" ? "layers" : "body";
++  const head = spec.model_family === "dqn" ? "layers.4" : spec.model_family === "sac" ? "head" : "policy";
++  const expected = [[`${body}.0.weight`, [512, 842]], [`${body}.0.bias`, [512]],
++    [`${body}.2.weight`, [512, 512]], [`${body}.2.bias`, [512]],
++    [`${head}.weight`, [121, 512]], [`${head}.bias`, [121]],
++    ...(["ppo", "gail", "gan"].includes(spec.model_family) ? [["value.weight", [1, 512]], ["value.bias", [1]]] : [])];
++  if (!Array.isArray(spec.tensors) || spec.tensors.length !== expected.length
++    || !expected.every(([name, shape], i) => spec.tensors[i].name === name && JSON.stringify(spec.tensors[i].shape) === JSON.stringify(shape))) {
++    throw new Error(`模型张量顺序或形状不匹配：${spec.id}`);
++  }
++  const view = new DataView(raw);
++  const values = Float32Array.from({ length: spec.float_count }, (_, i) => view.getFloat32(i * 4, true));
++  if (!values.every(Number.isFinite)) throw new Error(`模型权重包含非有限值：${spec.id}`);
++  const tensors = new Map(); let offset = 0;
++  for (const tensor of spec.tensors) {
++    if (tensor.offset !== offset || tensor.length !== tensor.shape.reduce((a, b) => a * b, 1)
++      || offset + tensor.length > values.length) throw new Error(`模型张量清单无效：${spec.id}`);
++    tensors.set(tensor.name, values.subarray(offset, offset + tensor.length)); offset += tensor.length;
++  }
++  if (offset !== values.length) throw new Error(`模型张量清单不完整：${spec.id}`);
+   return tensors;
+ }
++
++// Shared, synchronous factory: callers supply verified exported weights.
++export function createModelFreeModel(spec, raw) { return new ModelFreeModel(spec, tensorMap(spec, raw)); }
+ 
+ function linear(input, inputSize, outputSize, weight, bias) {
+   const result = new Float32Array(outputSize);
+@@ -78,7 +101,7 @@
+ export async function loadModelFreeModel(id) {
+   if (!modelPromises.has(id)) modelPromises.set(id, (async () => {
+     const manifest = await loadManifest(); const spec = manifest.models.find((item) => item.id === id); if (!spec) throw new Error(`未找到 model-free 模型：${id}`);
+-    const response = await fetch(new URL(`./assets/research-ai/${spec.asset}`, import.meta.url)); if (!response.ok) throw new Error(`无法加载 ${spec.label} 权重。`); const raw = await response.arrayBuffer(); const actual = await digestHex(raw); if (actual && actual !== spec.asset_sha256) throw new Error(`${spec.label} 权重哈希不匹配。`); return new ModelFreeModel(spec, tensorMap(spec, raw));
++    const response = await fetch(new URL(`./assets/research-ai/${spec.asset}`, import.meta.url)); if (!response.ok) throw new Error(`无法加载 ${spec.label} 权重。`); const raw = await response.arrayBuffer(); const actual = await digestHex(raw); if (actual && actual !== spec.asset_sha256) throw new Error(`${spec.label} 权重哈希不匹配。`); return createModelFreeModel(spec, raw);
+   })());
+   return modelPromises.get(id);
+ }
+--- a/web/web前端/MultiplayerHardFallback.js
++++ b/web/web前端/MultiplayerHardFallback.js
+@@ -1,7 +1,7 @@
+ // Isolated candidate only. Cooperative deadlines are not equivalent pruning.
+-import { saveState, restoreState } from "./AIEngine.js";
+-import { isolatedSearchEngine, visitPolicyCandidates } from "./MultiplayerSearch.js";
+-import { ThreePlayerSearchAI, positionUtilityV4 } from "./ThreePlayerSearchAI.js";
++import { saveState, restoreState } from "./AIEngine.js?v=VERSION";
++import { isolatedSearchEngine, visitPolicyCandidates } from "./MultiplayerSearch.js?v=VERSION";
++import { ThreePlayerSearchAI, positionUtilityV4 } from "./ThreePlayerSearchAI.js?v=VERSION";
+ 
+ const EXPIRED = Symbol("isolated Hard v2 shared deadline");
+ const pointOrder = (a, b) => a.point[1] - b.point[1] || a.point[0] - b.point[0];
+--- a/web/web前端/MultiplayerHardResources.js
++++ b/web/web前端/MultiplayerHardResources.js
+@@ -1,5 +1,5 @@
+ import { createHardRuntimeV2 } from "./MultiplayerHardRuntime.js?v=VERSION";
+-import { threePlayerModelIdForBoard } from "./ThreePlayerSearchOptions.js";
++import { threePlayerModelIdForBoard } from "./ThreePlayerSearchOptions.js?v=VERSION";
+ 
+ export const HARD_MODEL_ID = "multiplayer-hard-v1";
+ const prepared = new Map();
+@@ -19,14 +19,14 @@
+   if (!reused) {
+     const promise = (async () => {
+       if (playerCount === 3) {
+-        const { loadThreePlayerRuntime } = await import("./ThreePlayerRuntime.js");
++        const { loadThreePlayerRuntime } = await import("./ThreePlayerRuntime.js?v=VERSION");
+         const id = threePlayerModelIdForBoard(gridSize);
+         const runtime = await loadThreePlayerRuntime(id, context);
+         if (runtime.modelInfo.id !== id) throw new Error("Three-player resource identity changed");
+         return { policySpec: runtime.ai.base ? runtime.ai.spec : runtime.ai.model.spec,
+           modelInfo: { id: runtime.modelInfo.id } };
+       }
+-      const { loadHexPlayerModel } = await import("./HexPlayerAI.js");
++      const { loadHexPlayerModel } = await import("./HexPlayerAI.js?v=VERSION");
+       const model = await loadHexPlayerModel();
+       if (model.spec.id !== "hex-player-policy-v1") throw new Error("Hex resource identity changed");
+       return { policySpec: model.spec, modelInfo: { id: model.spec.id } };
+--- a/web/web前端/MultiplayerHardRollout.js
++++ b/web/web前端/MultiplayerHardRollout.js
+@@ -3,9 +3,9 @@
+ // Experimental policy improvement: selfish opponent rollouts and canonical area.
+ // Candidate ordering never removes legal roots. Hard publishes complete sweeps;
+ // the opt-in mode can publish fully evaluated improvements within a sweep.
+-import { GameEngine } from "./GameEngine.js";
+-import { saveState, restoreState } from "./AIEngine.js";
+-import { isolatedSearchEngine, multiplayerMetrics, visitPolicyCandidates } from "./MultiplayerSearch.js";
++import { GameEngine } from "./GameEngine.js?v=VERSION";
++import { saveState, restoreState } from "./AIEngine.js?v=VERSION";
++import { isolatedSearchEngine, multiplayerMetrics, visitPolicyCandidates } from "./MultiplayerSearch.js?v=VERSION";
+ 
+ const DEADLINE = Symbol("multiplayer rollout budget");
+ const key = point => point === null ? "PASS" : point.join(",");
+--- a/web/web前端/MultiplayerHardRuntime.js
++++ b/web/web前端/MultiplayerHardRuntime.js
+@@ -1,9 +1,9 @@
+ // Hard V2 application factory. Registration and qualification remain external.
+ import { MultiplayerRolloutAI as Candidate } from "./MultiplayerHardRollout.js?v=VERSION";
+ import { HardDeadlineFallbackV2 } from "./MultiplayerHardFallback.js?v=VERSION";
+-import { isolatedSearchEngine, potentialMoves, probeMultiplayerReplyResilience } from "./MultiplayerSearch.js";
+-import { compareCompletedReplyResilience } from "./MultiplayerHardValue.js";
+-import { saveState, restoreState } from "./AIEngine.js";
++import { isolatedSearchEngine, potentialMoves, probeMultiplayerReplyResilience } from "./MultiplayerSearch.js?v=VERSION";
++import { compareCompletedReplyResilience } from "./MultiplayerHardValue.js?v=VERSION";
++import { saveState, restoreState } from "./AIEngine.js?v=VERSION";
+ 
+ export const HARD_EXPERIMENT_OPTIONS = Object.freeze({ timeMs: 650, rolloutPlies: Object.freeze([12,24]),
+   minimumImprovement: .02, candidateCap: null, allowPass: true, rootPriors: null });
+@@ -26,8 +26,7 @@
+ // actual next responder, and measure its worst immediate node/coverage loss.
+ // This bounded scan publishes no move. A later root is still eligible only
+ // after its full MOVE+PASS response domain completes in the main probe.
+-function scanTacticalDirectCutRisk(source, roots, { deadline, now = () => performance.now(),
+-  measurePlacementKeys = new Set() }) {
++function scanTacticalDirectCutRisk(source, roots, { deadline, now = () => performance.now() }) {
+   const actor = source.currentPlayer, engine = isolatedSearchEngine(source), rootSnapshot = saveState(engine);
+   const stats = { complete: false, reason: null, probes: 0, rootsChecked: 0, terminalRoot: null, rows: [] };
+   const STOP = Symbol('Hard tactical-ordering deadline');
+@@ -60,11 +59,9 @@
+         stats.terminalRoot = { point: copyPoint(root.point) };
+         return { byPoint, stats };
+       }
+-      // Ordinary placements need only the exact native terminal check, except
+-      // when one is the fixed entry anchor. Tactical candidates are compared
+-      // against that anchor, so omitting its risk row would make every such
+-      // position fail closed before the new defence/PASS layer can run.
+-      if (root.kind === 'placement' && !measurePlacementKeys.has(pointKey(root.point))) continue;
++      // Placement roots need only the exact native terminal check. Direct-cut
++      // ordering is reserved for attacks, reinforcements and PASS.
++      if (root.kind === 'placement') continue;
+       const own = engine._getPlayerStates(actor);
+       const ownNodes = new Set(engine.validPositions
+         .filter(point => engine._getState(point) === own.node).map(pointKey));
+@@ -183,8 +180,7 @@
+       ...others.filter(move => move.kind !== 'pass')];
+     stats.candidateReachability = provisionalOrder.map((move, visitOrder) => ({ ...move, visitOrder,
+       directCutPriority: false, directCutRisk: null }));
+-    const riskScan = scanTacticalDirectCutRisk(source, indexed, { deadline: end, now,
+-      measurePlacementKeys: new Set([pointKey(anchorRoot.point)]) });
++    const riskScan = scanTacticalDirectCutRisk(source, indexed, { deadline: end, now });
+     stats.orderingRiskScan = riskScan.stats;
+     if (!riskScan.stats.complete) { stats.reason = riskScan.stats.reason; return { moves: null, stats }; }
+     if (riskScan.stats.terminalRoot !== null) {
+--- a/web/web前端/MultiplayerModel.js
++++ b/web/web前端/MultiplayerModel.js
+@@ -1,4 +1,4 @@
+-import { createResearchModel, researchRelations } from "./ResearchAI.js";
++import { createResearchModel, researchRelations } from "./ResearchAI.js?v=VERSION";
+ 
+ const FEATURE_COUNT = 11;
+ const EPSILON = 1e-5;
+--- a/web/web前端/MultiplayerNativeGeometry.js
++++ b/web/web前端/MultiplayerNativeGeometry.js
+@@ -1,6 +1,6 @@
+ // Private search optimization: only edge coordinates/keys survive a position.
+ // Occupancy, explicit edge membership and connectivity are read on every call.
+-import { GameEngine } from './GameEngine.js';
++import { GameEngine } from './GameEngine.js?v=VERSION';
+ 
+ export function installNativeEdgeGeometry(engine, { maximumEntries = 2048 } = {}) {
+   if (!Number.isInteger(maximumEntries) || maximumEntries < 1) throw new Error('Invalid edge geometry limit');
+--- a/web/web前端/MultiplayerRollout.js
++++ b/web/web前端/MultiplayerRollout.js
+@@ -1,9 +1,9 @@
+ // Experimental policy improvement: selfish opponent rollouts and canonical area.
+ // Candidate ordering never removes legal roots. Hard publishes complete sweeps;
+ // the opt-in mode can publish fully evaluated improvements within a sweep.
+-import { GameEngine } from "./GameEngine.js";
+-import { saveState, restoreState } from "./AIEngine.js";
+-import { isolatedSearchEngine, multiplayerMetrics, visitPolicyCandidates } from "./MultiplayerSearch.js";
++import { GameEngine } from "./GameEngine.js?v=VERSION";
++import { saveState, restoreState } from "./AIEngine.js?v=VERSION";
++import { isolatedSearchEngine, multiplayerMetrics, visitPolicyCandidates } from "./MultiplayerSearch.js?v=VERSION";
+ 
+ const DEADLINE = Symbol("multiplayer rollout budget");
+ const key = point => point === null ? "PASS" : point.join(",");
+--- a/web/web前端/MultiplayerRuntime.js
++++ b/web/web前端/MultiplayerRuntime.js
+@@ -1,9 +1,9 @@
+-import { fastPolicyCandidates, isolatedSearchEngine, MultiplayerMinimaxAI } from "./MultiplayerSearch.js";
+-import { createMultiplayerModel } from "./MultiplayerModel.js";
+-import { MultiplayerRolloutAI } from "./MultiplayerRollout.js";
+-import { loadThreePlayerRuntime } from "./ThreePlayerRuntime.js";
+-import { threePlayerModelIdForBoard } from "./ThreePlayerSearchOptions.js";
+-import { loadHexPlayerModel } from "./HexPlayerAI.js";
++import { fastPolicyCandidates, isolatedSearchEngine, MultiplayerMinimaxAI } from "./MultiplayerSearch.js?v=VERSION";
++import { createMultiplayerModel } from "./MultiplayerModel.js?v=VERSION";
++import { MultiplayerRolloutAI } from "./MultiplayerRollout.js?v=VERSION";
++import { loadThreePlayerRuntime } from "./ThreePlayerRuntime.js?v=VERSION";
++import { threePlayerModelIdForBoard } from "./ThreePlayerSearchOptions.js?v=VERSION";
++import { loadHexPlayerModel } from "./HexPlayerAI.js?v=VERSION";
+ import { createUltimateAdmissionGuard } from "./MultiplayerUltimateAdmission.js?v=VERSION";
+ 
+ export const MULTIPLAYER_MODEL_IDS=Object.freeze(["multiplayer-easy-v1","multiplayer-medium-v1","multiplayer-hard-v1","multiplayer-ultimate-v1"]);
+--- a/web/web前端/MultiplayerSearch.js
++++ b/web/web前端/MultiplayerSearch.js
+@@ -1,9 +1,9 @@
+-import { installNativeEdgeGeometry } from "./MultiplayerNativeGeometry.js";
++import { installNativeEdgeGeometry } from "./MultiplayerNativeGeometry.js?v=VERSION";
+ // Full legal-action paranoid minimax. Only alpha/beta bounds prune branches;
+ // elapsed time ends an iteration, never masquerades as an equivalent cutoff.
+-import { GameEngine } from "./GameEngine.js";
+-import { saveState, restoreState } from "./AIEngine.js";
+-import { evaluateReplyResilience } from "./MultiplayerHardValue.js";
++import { GameEngine } from "./GameEngine.js?v=VERSION";
++import { saveState, restoreState } from "./AIEngine.js?v=VERSION";
++import { evaluateReplyResilience } from "./MultiplayerHardValue.js?v=VERSION";
+ 
+ const order = (a, b) => a.point===null ? (b.point===null?0:1) : b.point===null ? -1 : a.point[1] - b.point[1] || a.point[0] - b.point[0];
+ const key = p => p===null ? "PASS" : p.join(",");
+--- a/web/web前端/NetworkManager.js
++++ b/web/web前端/NetworkManager.js
+@@ -1,6 +1,7 @@
+-﻿const DEFAULT_REQUEST_TIMEOUT = 10000;
++const DEFAULT_REQUEST_TIMEOUT = 10000;
+ const DEFAULT_HEARTBEAT_INTERVAL = 4000;
+ const DEFAULT_HEARTBEAT_TIMEOUT = 12000;
++const DEFAULT_CONNECT_TIMEOUT = 10000;
+ 
+ // NetworkManager 璐熻矗鎶娾€滆姹?鍝嶅簲鈥濆拰鈥滃箍鎾簨浠垛€濇贩鍚堝湪鍚屼竴鏉?WebSocket 涓婄鐞嗚捣鏉ャ€?// 涓婂眰鍙渶瑕佽闃呬簨浠舵垨璋冪敤 sendXxx锛屾棤闇€鐩存帴鎿嶄綔 socket銆?
+ const ServerEvent = Object.freeze({
+@@ -84,6 +85,8 @@
+     this._listeners = new Map();
+     this._pendingRequests = [];
+     this._connectPromise = null;
++    this._connectAttempt = null;
++    this._socketAuthToken = null;
+     this._heartbeatTimerId = null;
+     this._heartbeatWatchdogId = null;
+     this._lastPongAt = 0;
+@@ -109,96 +112,106 @@
+     if (!url || typeof url !== "string") {
+       throw new Error("connect(url) requires a valid WebSocket URL.");
+     }
+-
+     if (!authToken || typeof authToken !== "string") {
+       throw new Error("Authentication token is required. Please log in first.");
+     }
+-
++    if (this.socket && this.socket.readyState === WebSocket.OPEN
++      && this.url === url && this._socketAuthToken === authToken) {
++      return this;
++    }
++    if (this._connectAttempt?.url === url && this._connectAttempt.authToken === authToken
++      && this.socket === this._connectAttempt.socket) {
++      return this._connectPromise;
++    }
++
++    // An old socket cannot settle the replacement's requests or stop its heartbeat.
++    this._closeCurrentConnection(1000, "connection_replaced",
++      new Error("WebSocket connection was replaced."), false);
+     this.authToken = authToken;
+-
+-    if (this.socket && this.socket.readyState === WebSocket.OPEN && this.url === url) {
+-      return this;
+-    }
+-
+-    if (this._connectPromise) {
+-      return this._connectPromise;
+-    }
+-
+-    if (this.socket && this.socket.readyState !== WebSocket.CLOSED) {
+-      this.disconnect();
+-    }
+-
+     this.url = url;
+-    const socketUrl = appendTokenToWebSocketUrl(url, this.authToken);
+-    this._connectPromise = new Promise((resolve, reject) => {
+-      // 同一时刻只允许存在一个激活连接，避免旧 socket 残留事件污染当前房间状态。
+-      const socket = new WebSocket(socketUrl);
+-      this.socket = socket;
+-
+-      socket.addEventListener("open", () => {
+-        this._connectPromise = null;
+-        this._lastPongAt = Date.now();
+-        this._startHeartbeat();
+-        this._emit(ClientEvent.OPEN, {
+-          type: ClientEvent.OPEN,
+-          url: this.url,
+-        });
+-        resolve(this);
+-      }, { once: true });
+-
+-      socket.addEventListener("message", (event) => {
+-        this._handleMessage(event);
++    let socket;
++    try {
++      socket = new WebSocket(appendTokenToWebSocketUrl(url, authToken));
++    } catch (_) {
++      // Browser exceptions can include the authenticated URL. Keep errors generic.
++      throw new Error("Failed to connect to WebSocket server.");
++    }
++    this.socket = socket;
++    this._socketAuthToken = authToken;
++    let resolveConnection, rejectConnection, timer = null, settled = false;
++    const promise = new Promise((resolve, reject) => {
++      resolveConnection = resolve; rejectConnection = reject;
++    });
++    const attempt = {
++      socket, url, authToken,
++      finish: (error) => {
++        if (settled) return;
++        settled = true;
++        globalThis.clearTimeout(timer);
++        if (this._connectAttempt === attempt) {
++          this._connectAttempt = null; this._connectPromise = null;
++        }
++        if (error) rejectConnection(error);
++        else resolveConnection(this);
++      },
++    };
++    this._connectAttempt = attempt;
++    this._connectPromise = promise;
++    const current = () => this.socket === socket;
++    const configuredTimeout = this.options.connectTimeout;
++    const timeout = Number.isFinite(configuredTimeout) && configuredTimeout > 0
++      ? configuredTimeout : DEFAULT_CONNECT_TIMEOUT;
++    timer = globalThis.setTimeout(() => {
++      const error = new Error("Failed to connect to WebSocket server: connection timed out.");
++      if (current()) this._closeCurrentConnection(1000, "connect_timeout", error);
++      else attempt.finish(error);
++    }, timeout);
++
++    socket.addEventListener("open", () => {
++      if (!current()) return;
++      attempt.finish();
++      this._lastPongAt = Date.now();
++      this._startHeartbeat();
++      this._emit(ClientEvent.OPEN, { type: ClientEvent.OPEN, url: this.url });
++    }, { once: true });
++    socket.addEventListener("message", (event) => {
++      if (current()) this._handleMessage(event);
++    });
++    socket.addEventListener("error", () => {
++      if (!current()) return;
++      this._closeCurrentConnection(1000, "connect_error",
++        new Error("Failed to connect to WebSocket server."), false);
++      this._emit(ClientEvent.CONNECTION_ERROR, { type: ClientEvent.CONNECTION_ERROR });
++      // An error listener may already have started a replacement connection.
++      if (!this.socket) this._emit(ClientEvent.CLOSE, {
++        type: ClientEvent.CLOSE, code: 1000, reason: "connect_error", wasClean: false,
+       });
+-
+-      socket.addEventListener("error", (event) => {
+-        this._emit(ClientEvent.CONNECTION_ERROR, {
+-          type: ClientEvent.CONNECTION_ERROR,
+-          event,
+-        });
+-      });
+-
+-      socket.addEventListener("close", (event) => {
+-        const wasCurrentSocket = this.socket === socket;
+-        this._connectPromise = null;
+-        this._stopHeartbeat();
+-
+-        if (wasCurrentSocket) {
+-          this.socket = null;
+-          this._rejectPendingRequests(new Error(`WebSocket closed: ${event.code} ${event.reason}`));
+-          this._emit(ClientEvent.CLOSE, {
+-            type: ClientEvent.CLOSE,
+-            code: event.code,
+-            reason: event.reason,
+-            wasClean: event.wasClean,
+-          });
+-        }
+-      }, { once: true });
+-
+-      socket.addEventListener("error", () => {
+-        if (socket.readyState === WebSocket.CONNECTING) {
+-          this._connectPromise = null;
+-          reject(new Error(`Failed to connect to ${url}`));
+-        }
+-      }, { once: true });
+-    });
+-
+-    return this._connectPromise;
++    });
++    socket.addEventListener("close", (event) => {
++      if (!current()) return;
++      this._closeCurrentConnection(event.code, event.reason,
++        new Error(`WebSocket closed: ${event.code}`), true, event.wasClean);
++    }, { once: true });
++    return promise;
+   }
+ 
+   disconnect(code = 1000, reason = "client_disconnect") {
++    this._closeCurrentConnection(code, reason, new Error(`WebSocket closed: ${code}`));
++  }
++
++  _closeCurrentConnection(code, reason, error, notify = true, wasClean = false) {
++    const socket = this.socket;
++    this.socket = null;
++    this._socketAuthToken = null;
+     this._stopHeartbeat();
+-    if (!this.socket) {
+-      return;
+-    }
+-
+-    const socket = this.socket;
+-    if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
+-      socket.close(code, reason);
+-      return;
+-    }
+-
+-    if (this.socket === socket) {
+-      this.socket = null;
++    this._connectAttempt?.finish(error);
++    this._rejectPendingRequests(error);
++    if (!socket) return;
++    try {
++      if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) socket.close(code, reason);
++    } catch (_) { /* Cleanup is complete even if the browser cannot close. */ }
++    if (notify) {
++      this._emit(ClientEvent.CLOSE, { type: ClientEvent.CLOSE, code, reason, wasClean });
+     }
+   }
+ 
+--- a/web/web前端/OnlineApp.js
++++ b/web/web前端/OnlineApp.js
+@@ -8,7 +8,8 @@
+   OneShotHintWorker,
+   applyHintWorkerResult,
+ } from "./HintWorkerSession.js?v=VERSION";
+-import NetworkManager, { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js?v=VERSION";
++import { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js?v=VERSION";
++import NetworkManager from "./CrossPlatformNetwork.js?v=VERSION";
+ import {
+   applyRoomSnapshotWithPostCommit,
+   coordinateControllerRoomSnapshot,
+@@ -662,6 +663,8 @@
+       required: true,
+     },
+     boardShape: { type: String, required: true },
++    rulesVersion: { type: String, default: "territory-v3" },
++    sharedRoom: { type: Boolean, default: false },
+     gridSize: {
+       type: Number,
+       required: true,
+@@ -709,7 +712,7 @@
+ 
+     return {
+       texts,
+-      contributionSupported: computed(() => supportsContributionActors(localMatchActors(props.localPlayers, props.playerCount, props.gridSize, props.boardShape))),
++      contributionSupported: computed(() => props.rulesVersion !== "territory-v3" && supportsContributionActors(localMatchActors(props.localPlayers, props.playerCount, props.gridSize, props.boardShape))),
+       PLAYER_COUNT_OPTIONS: APP_PLAYER_COUNT_OPTIONS,
+       GRID_SIZE_OPTIONS: APP_GRID_SIZE_OPTIONS,
+       TURN_TIMER_MAX_SECONDS: APP_TURN_TIMER_MAX_SECONDS,
+@@ -785,7 +788,7 @@
+                 :class="{ 'is-active': playerCount === count }"
+                 role="radio"
+                 :aria-checked="playerCount === count"
+-                :disabled="busy || settingsLocked"
++                :disabled="busy || settingsLocked || sharedRoom"
+                 @click="$emit('update:player-count', count)"
+               >
+                 {{ count }}
+@@ -815,7 +818,7 @@
+             </LocalPlayerSetup>
+           </div>
+           <div v-else-if="playerCount <= 3 && boardShape === 'triangle'" class="settings-grid-item-wide">
+-            <ContributionPanel :language="language" :state="contributionState" @toggle="$emit('toggle-contributions', $event)" @retry="$emit('retry-contributions')" />
++            <ContributionPanel :language="language" :state="contributionState" :supported="contributionSupported" @toggle="$emit('toggle-contributions', $event)" @retry="$emit('retry-contributions')" />
+           </div>
+           <div class="settings-grid-item-wide">
+             <label id="grid-size-label" class="field-label">{{ texts.gridSizeLabel }}</label>
+@@ -852,7 +855,7 @@
+                 id="turn-timer-enabled"
+                 type="checkbox"
+                 :checked="turnTimerEnabled"
+-                :disabled="busy || settingsLocked"
++                :disabled="busy || settingsLocked || sharedRoom"
+                 @change="$emit('update:turn-timer-enabled', $event.target.checked)"
+               />
+               <span>{{ turnTimerEnabled ? texts.toggleOn : texts.toggleOff }}</span>
+@@ -867,7 +870,7 @@
+               :min="TURN_TIMER_MIN_SECONDS"
+               :max="TURN_TIMER_MAX_SECONDS"
+               :value="turnTimeLimitSeconds"
+-              :disabled="busy || settingsLocked || !turnTimerEnabled"
++              :disabled="busy || settingsLocked || sharedRoom || !turnTimerEnabled"
+               @change="$emit('update:turn-time-limit-seconds', Number($event.target.value))"
+             />
+           </div>
+@@ -1056,6 +1059,7 @@
+   emits: [
+     "connect",
+     "create-room",
++    "create-shared-room",
+     "join-room",
+     "leave-room",
+     "toggle-ready",
+@@ -1210,12 +1214,13 @@
+       <input
+         id="room-id"
+         class="input-field"
+-        maxlength="4"
+-        :placeholder="texts.roomPlaceholder"
++        maxlength="8"
++        :placeholder="language === 'zh' ? '网页房间号或 8 位互通房间码' : 'Web room or 8-character shared code'"
+         :value="roomId"
+         :disabled="busy"
+         @input="$emit('update:room-id', $event.target.value)"
+       />
++      <p v-if="!session.roomId" class="field-note">{{ language === 'zh' ? '微信小游戏的 8 位房间码可直接点“加入房间”，无需先连接服务器。首次加入时请按页面提示验证原网页账号密码。' : 'For an 8-character Mini Game code, select Join Room directly. Verify your existing Web password when prompted.' }}</p>
+ 
+       <div class="actions actions-stack">
+         <div v-if="playerCount >= 3 && !session.roomId">
+@@ -1226,10 +1231,13 @@
+           <p class="help-copy">{{ texts.roomBotHint }}</p>
+         </div>
+         <button class="action-button action-button-primary" :disabled="busy || !authenticated" @click="$emit('connect')">
+-          {{ texts.connectServer }}
++          {{ !session.roomId && /^[A-Z2-9]{8}$/i.test(roomId.trim()) ? (language === 'zh' ? '连接并加入互通房间' : 'Connect and join shared room') : texts.connectServer }}
+         </button>
+         <button class="action-button action-button-secondary" :disabled="busy || !authenticated" @click="$emit('create-room')">
+           {{ texts.createRoom }}
++        </button>
++        <button class="action-button action-button-secondary" :disabled="busy || !authenticated || !!session.roomId" @click="$emit('create-shared-room')">
++          {{ language === 'zh' ? '创建微信 / 网页互通房间' : 'Create Web / WeChat room' }}
+         </button>
+         <button class="action-button action-button-secondary" :disabled="busy || !authenticated" @click="$emit('join-room')">
+           {{ texts.joinRoom }}
+@@ -1241,6 +1249,7 @@
+ 
+       <div class="room-lobby" v-if="session.roomId">
+         <button v-if="isHost && roomInfo?.settings?.botCount && roomPlaying" type="button" class="action-button action-button-ghost" :disabled="busy" @click="$emit('retry-bots')">{{ texts.roomRetryBots }}</button>
++        <p v-if="session.shared" class="field-note">{{ language === 'zh' ? '把上方 8 位房间码发给好友，对方可在微信小游戏或网页版加入。互通局采用双人规则，双方准备后开始；结束后可申请再来一局。' : 'Share the 8-character code with a Web or WeChat player. Both players ready up to begin; vote for a rematch after the game.' }}</p>
+         <div class="panel-subhead">
+           <h3>{{ texts.roomPlayers }}</h3>
+         </div>
+@@ -3038,7 +3047,9 @@
+     const language = ref(getAppInitialLanguage());
+     const uiStyle = ref(getAppInitialUiStyle());
+     const guideMarkdownOverrides = ref({});
+-    const networkManager = new NetworkManager();
++    const networkManager = new NetworkManager({
++      requestPasswordSession: ({ login, signal }) => requestSharedPasswordSession(login, signal),
++    });
+     networkManager.setAuthToken(storedAuth.token);
+     networkManager.hydrateSession(normalizedStoredSession);
+     const serverUrl = ref(initialServerUrl);
+@@ -3077,6 +3088,11 @@
+     const roomInfo = ref(createEmptyRoomInfo());
+     const networkBusy = ref(false);
+     const networkError = ref("");
++    const accountLinkCode = ref("");
++    const accountLinkError = ref("");
++    const accountLinkBusy = ref(false);
++    let accountLinkExpiry = null;
++    let accountLinkGeneration = 0;
+     const readyPending = ref(false);
+     const chatEmojiBursts = ref([]);
+     const chatEmojiOptions = CHAT_EMOJI_OPTIONS;
+@@ -3087,6 +3103,69 @@
+     let lastServerTimestamp = 0;
+     const overlayResult = ref(null);
+     const activeUtilityDeck = ref("");
++    const sharedPasswordOpen = ref(false);
++    const sharedPasswordUsername = ref("");
++    const sharedPassword = ref("");
++    const sharedPasswordBusy = ref(false);
++    const sharedPasswordError = ref("");
++    let sharedPasswordRequest = null;
++    const cancelSharedPassword = (cancelAuthentication = true) => {
++      const pending = sharedPasswordRequest;
++      sharedPasswordRequest = null;
++      sharedPassword.value = ""; sharedPasswordUsername.value = "";
++      sharedPasswordOpen.value = false; sharedPasswordBusy.value = false; sharedPasswordError.value = "";
++      pending?.dispose();
++      pending?.reject(new Error("CANCELLED"));
++      if (cancelAuthentication) {
++        accountLinkGeneration++; accountLinkCode.value = ""; clearTimeout(accountLinkExpiry);
++        networkManager.shared.cancelAuthentication();
++      }
++    };
++    function requestSharedPasswordSession(login, signal) {
++      cancelSharedPassword(false);
++      if (signal.aborted || !auth.value.token || !auth.value.username) return Promise.reject(new Error("CANCELLED"));
++      activeUtilityDeck.value = "network";
++      sharedPasswordOpen.value = true; sharedPasswordUsername.value = auth.value.username;
++      return new Promise((resolve, reject) => {
++        const cancel = () => cancelSharedPassword();
++        sharedPasswordRequest = { login, resolve, reject, token: auth.value.token, server: serverUrl.value,
++          dispose: () => signal.removeEventListener("abort", cancel) };
++        signal.addEventListener("abort", cancel, { once: true });
++        const pending = sharedPasswordRequest;
++        void nextTick(() => {
++          if (sharedPasswordRequest !== pending || !sharedPasswordOpen.value || activeUtilityDeck.value !== "network") return;
++          const input = globalThis.document?.getElementById("shared-password-input");
++          input?.focus({ preventScroll: true });
++          input?.scrollIntoView({ block: "center", behavior: "auto" });
++        });
++      });
++    }
++    const handleSharedPasswordSubmit = async () => {
++      const pending = sharedPasswordRequest;
++      if (!pending || sharedPasswordBusy.value) return;
++      if (!sharedPassword.value) {
++        sharedPasswordError.value = language.value === "zh" ? "请输入当前网页账号的密码。" : "Enter your current Web account password.";
++        return;
++      }
++      const password = sharedPassword.value;
++      sharedPassword.value = ""; sharedPasswordError.value = ""; sharedPasswordBusy.value = true;
++      try {
++        const result = await pending.login({ username: sharedPasswordUsername.value, password });
++        if (sharedPasswordRequest !== pending || pending.token !== auth.value.token || pending.server !== serverUrl.value) return;
++        sharedPasswordRequest = null; pending.dispose();
++        sharedPasswordOpen.value = false; sharedPasswordUsername.value = "";
++        pending.resolve(result);
++      } catch (error) {
++        if (sharedPasswordRequest === pending) {
++          if (error.message === "CANCELLED") cancelSharedPassword();
++          else sharedPasswordError.value = sharedErrorText(error.message);
++        }
++      } finally {
++        if (sharedPasswordRequest === pending || !sharedPasswordRequest) sharedPasswordBusy.value = false;
++      }
++    };
++    watch(activeUtilityDeck, deck => { if (deck !== "network") cancelSharedPassword(); }, { flush: "sync" });
++    watch(serverUrl, () => cancelSharedPassword(), { flush: "sync" });
+     const activeGuideKey = ref("");
+     const resultModalDismissed = ref(false);
+     const turnCountdown = ref(ROOM_START_COUNTDOWN_FALLBACK_SECONDS);
+@@ -3733,6 +3812,9 @@
+         if (!localSetupPending.value && !startingPointPreviewFresh && selectedStartingPoints.value.startingPointMode === "random") {
+           selectedStartingPoints.value = { startingPointMode: "random", initialPositions: randomInitialPositions(selectedGridSize.value, selectedPlayerCount.value, Math.random, selectedBoardShape.value) };
+         }
++        // Resume keeps its recorded rule; every explicitly started new match
++        // adopts the current rule even when settings came from an old save.
++        selectedRulesVersion.value = APP_DEFAULT_RULES_VERSION;
+         activeLocalSettings.value = normalizeAppGameSettings(draftGameSettings());
+         activeLocalPlayers.value = normalizeLocalPlayers(selectedLocalPlayers.value, activeLocalSettings.value.playerCount, activeLocalSettings.value.boardShape);
+         localMatchStarted.value = true;
+@@ -4744,7 +4826,7 @@
+     );
+ 
+     const handleNetworkError = (error) => {
+-      networkError.value = localizeAppErrorMessage(error?.message ?? String(error), language.value, uiStyle.value);
++      networkError.value = localizeAppErrorMessage(sharedErrorText(error?.message ?? String(error)), language.value, uiStyle.value);
+     };
+ 
+     const applyRoomPayload = (payload) => {
+@@ -4925,6 +5007,15 @@
+       } catch (error) {
+         handleNetworkError(error);
+         reconnectAttempt += 1;
++        if (/^(CANCELLED|WEB_PASSWORD_REQUIRED)$/.test(error.message)) {
++          connectionState.value = "disconnected"; clearReconnectTimer(); return;
++        }
++        if (networkManager.serverAuthoritative && /^(UNAUTHORIZED|HTTP_401|ACCOUNT_DELETED)$/.test(error.message)) {
++          clearReconnectTimer(); void handleLogout(); return;
++        }
++        if (networkManager.serverAuthoritative && reconnectAttempt >= 6) {
++          clearReconnectTimer(); return;
++        }
+         const delay = Math.min(8000, 1000 * reconnectAttempt);
+         reconnectTimerId = globalThis.setTimeout(() => {
+           void attemptReconnect();
+@@ -4984,13 +5075,17 @@
+     };
+ 
+     const handleLogout = async () => {
++      cancelSharedPassword();
+       authBusy.value = true;
+ 
+       try {
+         clearReconnectTimer();
+         resetRoomContext();
+         connectionState.value = "idle";
+-        await networkManager.leaveRoom();
++        try { await networkManager.leaveRoom({ bestEffort: true }); } catch (_) {
++          // Signing out must clear local credentials even while the room
++          // service is offline. The server room remains recoverable by login.
++        }
+         networkManager.disconnect(1000, "logout");
+         networkManager.clearAuthToken();
+         networkManager.url = null;
+@@ -5001,7 +5096,12 @@
+           terminateAiWorker();
+           controller.value.disableMultiplayer();
+           clearSavedLocalGame();
+-          gameState.value = controller.value.resetGame({ force: true });
++          selectedRulesVersion.value = APP_DEFAULT_RULES_VERSION;
++          activeLocalSettings.value = normalizeAppGameSettings(draftGameSettings());
++          activeLocalPlayers.value = normalizeLocalPlayers(selectedLocalPlayers.value, activeLocalSettings.value.playerCount, activeLocalSettings.value.boardShape);
++          gameState.value = controller.value.setGameConfig(activeLocalSettings.value, true);
++          localGamePositionRevision.value = gameState.value.positionRevision;
++          saveLocalMatch();
+           resetHintUsage();
+           scheduleAiMove(gameState.value);
+         }
+@@ -5207,6 +5307,10 @@
+     };
+ 
+     const handleConnect = async () => {
++      // Shared invitations do not depend on the separate legacy Web socket.
++      if (!session.value.roomId && /^[A-Z2-9]{8}$/i.test(roomIdInput.value.trim())) {
++        return handleJoinRoom();
++      }
+       networkBusy.value = true;
+       networkError.value = "";
+       overlayResult.value = null;
+@@ -5214,6 +5318,9 @@
+ 
+       try {
+         await ensureConnected();
++        if (networkManager.serverAuthoritative && session.value.roomId && !networkManager.isConnected()) {
++          await networkManager.joinRoom(session.value.roomId, session.value.playerId);
++        }
+         reconnectAttempt = 0;
+       } catch (error) {
+         connectionState.value = "disconnected";
+@@ -5231,14 +5338,78 @@
+       clearReconnectTimer();
+ 
+       try {
++        networkManager.selectLegacy();
+         await ensureConnected();
+-        await networkManager.createRoom(normalizeAppGameSettings({ ...draftGameSettings(), botCount: selectedRoomBotCount.value }));
++        await networkManager.createRoom(normalizeAppGameSettings({ ...draftGameSettings(),
++          rulesVersion: APP_DEFAULT_RULES_VERSION, botCount: selectedRoomBotCount.value }));
+       } catch (error) {
+         handleNetworkError(error);
+       } finally {
+         networkBusy.value = false;
+       }
+     };
++
++    const handleCreateSharedRoom = async () => {
++      networkBusy.value = true; networkError.value = ""; overlayResult.value = null;
++      clearReconnectTimer();
++      try {
++        networkManager.url = serverUrl.value.trim();
++        networkManager.setAuthToken(auth.value.token);
++        const rawDraft = draftGameSettings();
++        const draft = normalizeAppGameSettings({ ...rawDraft, playerCount: 2, botCount: 0,
++          rulesVersion: "territory-v3", turnTimerEnabled: false,
++          ...(rawDraft.initialPositions ? { initialPositions: {
++            BLACK: rawDraft.initialPositions.BLACK, WHITE: rawDraft.initialPositions.WHITE,
++          } } : {}) });
++        await networkManager.createSharedRoom(draft);
++      } catch (error) { handleNetworkError(error); }
++      finally { networkBusy.value = false; syncSession(); }
++    };
++    const handleLinkWechat = async () => {
++      accountLinkBusy.value = true; accountLinkError.value = ""; accountLinkCode.value = "";
++      const token = auth.value.token, server = serverUrl.value, generation = ++accountLinkGeneration;
++      const current = () => generation === accountLinkGeneration && token === auth.value.token && server === serverUrl.value;
++      try {
++        if (session.value.roomId) throw new Error("LEAVE_ROOM_FIRST");
++        networkManager.url = serverUrl.value.trim();
++        const result = await networkManager.issueLinkCode();
++        if (!current()) return;
++        accountLinkCode.value = result.code;
++        clearTimeout(accountLinkExpiry);
++        accountLinkExpiry = setTimeout(() => { accountLinkCode.value = ""; }, result.expiresIn * 1000);
++      } catch (error) { if (current()) accountLinkError.value = sharedErrorText(error.message); }
++      finally { accountLinkBusy.value = false; }
++    };
++    const handleCopyLinkCode = async () => {
++      try { await navigator.clipboard.writeText(accountLinkCode.value); }
++      catch (_) { accountLinkError.value = language.value === "zh" ? "请选中上方绑定码并复制。" : "Select and copy the code above."; }
++    };
++    const sharedErrorText = (code) => {
++      const errors = {
++        ONLINE_NOT_CONFIGURED: ["服务器尚未启用微信互通，仍可使用原有网页房间。", "Web / WeChat rooms are not enabled on this server yet."],
++        WEB_AUTH_NOT_CONFIGURED: ["服务器尚未启用网页账号互通。", "Web identity integration is not configured."],
++        WEB_LOGIN_NOT_CONFIGURED: ["服务器尚未启用网页账号互通。", "Web identity integration is not configured."],
++        WEB_PASSWORD_REQUIRED: ["请在对战舱重新验证网页账号密码。", "Verify your Web account password in the match cabin."],
++        UNAUTHORIZED: ["账号或密码不正确，请重新输入。", "Incorrect account or password. Please try again."],
++        INVALID_REQUEST: ["请检查账号和密码后重试。", "Check the account and password, then try again."],
++        TOO_MANY_REQUESTS: ["尝试次数较多，请稍后再试。", "Too many attempts. Please try again later."],
++        WEB_ACCOUNT_STORE_UNAVAILABLE: ["账号验证服务暂时不可用，请稍后再试。", "Account verification is temporarily unavailable."],
++        CANCELLED: ["已取消密码验证，原网页账号仍保持登录。", "Password verification cancelled. Your Web account remains signed in."],
++        LEAVE_ROOM_FIRST: ["请先退出当前房间。", "Leave your current room first."],
++        ACCOUNT_IN_ROOM: ["请先在两端退出好友房间。", "Leave friend rooms on both accounts first."],
++        ACCOUNT_ALREADY_LINKED: ["该网页版账号已经关联微信。", "This Web account is already linked."],
++        SHARED_CHAT_UNAVAILABLE: ["互通房间暂不支持表情。", "Emotes are not yet available in shared rooms."],
++        EMOTES_UNAVAILABLE: ["当前连接暂不能发送表情，请等待连接恢复。", "Emotes are unavailable on this connection. Wait for it to reconnect."],
++        EMOTE_RATE_LIMIT: ["表情发送太快了，请稍后再试。", "Emotes are being sent too quickly. Please wait a moment."],
++        INVALID_EMOTE: ["请选择表情栏中的表情。", "Choose an emote from the emote bar."],
++        MATCH_NOT_FINISHED: ["本局结束后才能申请再来一局。", "Finish the current game before requesting a rematch."],
++      };
++      return errors[code]?.[language.value === "zh" ? 0 : 1] || code;
++    };
++    watch(() => auth.value.token, () => {
++      cancelSharedPassword();
++      accountLinkCode.value = ""; accountLinkError.value = ""; clearTimeout(accountLinkExpiry);
++    }, { flush: "sync" });
+ 
+     const handleJoinRoom = async () => {
+       const normalizedRoomId = roomIdInput.value.trim();
+@@ -5253,7 +5424,13 @@
+       clearReconnectTimer();
+ 
+       try {
+-        await ensureConnected();
++        if (/^[A-Z2-9]{8}$/i.test(normalizedRoomId)) {
++          networkManager.url = serverUrl.value.trim();
++          networkManager.setAuthToken(auth.value.token);
++        } else {
++          networkManager.selectLegacy();
++          await ensureConnected();
++        }
+         await networkManager.joinRoom(normalizedRoomId);
+       } catch (error) {
+         handleNetworkError(error);
+@@ -5277,7 +5454,12 @@
+           terminateAiWorker();
+           controller.value.disableMultiplayer();
+           clearSavedLocalGame();
+-          gameState.value = controller.value.resetGame({ force: true });
++          selectedRulesVersion.value = APP_DEFAULT_RULES_VERSION;
++          activeLocalSettings.value = normalizeAppGameSettings(draftGameSettings());
++          activeLocalPlayers.value = normalizeLocalPlayers(selectedLocalPlayers.value, activeLocalSettings.value.playerCount, activeLocalSettings.value.boardShape);
++          gameState.value = controller.value.setGameConfig(activeLocalSettings.value, true);
++          localGamePositionRevision.value = gameState.value.positionRevision;
++          saveLocalMatch();
+           resetHintUsage();
+           scheduleAiMove(gameState.value);
+         }
+@@ -5377,7 +5559,11 @@
+       }
+     };
+ 
+-    const chatEmojiDisabled = computed(() => false);
++    const chatEmojiDisabled = computed(() => {
++      if (!session.value.shared || !session.value.roomId) return false;
++      // Connection/session refs invalidate this computed when the socket changes.
++      return connectionState.value !== "connected" || !session.value.connected || !networkManager.canEmote();
++    });
+ 
+     const resolveChatEmojiColor = (sender, payloadColor = null) => {
+       if (APP_ALL_PLAYERS.includes(payloadColor)) {
+@@ -5486,6 +5672,12 @@
+       }
+ 
+       networkError.value = "";
++      if (session.value.shared && session.value.roomId) {
++        // Shared rooms show only server-confirmed emotes, including our own echo.
++        try { await networkManager.sendChatEmoji(emoji?.content); }
++        catch (error) { handleNetworkError(error); }
++        return;
++      }
+       const seed = `${session.value.playerId ?? "local"}-${Date.now()}-${Math.round(Math.random() * 1000000)}`;
+       const burst = pushChatEmojiBurst({
+         sender: session.value.playerId ?? "local",
+@@ -5717,6 +5909,7 @@
+ 
+     const readyDisabled = computed(() => {
+       return !session.value.roomId
++        || (session.value.shared && localReady.value)
+         || networkBusy.value
+         || readyPending.value
+         || roomStatus.value === "waiting"
+@@ -5725,7 +5918,7 @@
+         || roomStatus.value === "inProgress"
+         || roomStatus.value === "countdown";
+     });
+-    const starterLocked = computed(() => !isHost.value || networkBusy.value || roomInfo.value.matchPhase === "PLAYING" || roomStatus.value === "inProgress" || roomStatus.value === "countdown");
++    const starterLocked = computed(() => !isHost.value || networkBusy.value || (session.value.shared && Object.values(roomInfo.value.players ?? []).some(player => player.ready)) || roomInfo.value.matchPhase === "PLAYING" || roomStatus.value === "inProgress" || roomStatus.value === "countdown");
+     const showClosePrompt = computed(() => Boolean(
+       !tutorialActive.value
+       && !replayMode.value
+@@ -5742,6 +5935,7 @@
+     });
+ 
+     const settingsLocked = computed(() => {
++      if (session.value.shared && roomInfo.value.players?.some(player => player.ready)) return true;
+       if (networkBusy.value || tutorialActive.value || replayMode.value) {
+         return true;
+       }
+@@ -5778,6 +5972,7 @@
+       }
+ 
+       if (hasUtilityModalOpen.value) {
++        cancelSharedPassword();
+         activeUtilityDeck.value = "";
+         return;
+       }
+@@ -5785,6 +5980,7 @@
+ 
+     const handleOpenUtilityDeck = async (deckKey) => {
+       if (deckKey === "network" && tutorialActive.value && !await skipTutorial()) return;
++      if (deckKey !== "network") cancelSharedPassword();
+       activeUtilityDeck.value = deckKey;
+     };
+ 
+@@ -5793,6 +5989,7 @@
+     };
+ 
+     const handleCloseUtilityDeck = () => {
++      cancelSharedPassword();
+       activeUtilityDeck.value = "";
+       activeGuideKey.value = "";
+     };
+@@ -5840,6 +6037,9 @@
+         connectionState.value = "connected";
+         clearReconnectTimer();
+         syncSession();
++        // Shared snapshots are verified before the socket becomes connected.
++        // Recompute cached button guards once connection/busy state changes.
++        if (session.value.shared && session.value.roomId) syncControllerState({});
+       }),
+     );
+ 
+@@ -5847,6 +6047,14 @@
+       networkManager.on(ClientEvent.CLOSE, (payload) => {
+         connectionState.value = "disconnected";
+         syncSession();
++        if (session.value.shared && [4008, 4009, 4010].includes(payload?.code)) {
++          clearReconnectTimer();
++          const message = language.value === "zh"
++            ? (payload.code === 4009 ? "这个账号已在另一端接管对局。此处已停止重连。" : "账号身份或房间已变更，请重新进入好友房间。")
++            : (payload.code === 4009 ? "Another device took over this account. Reconnect stopped." : "The account or room changed. Please enter a friend room again.");
++          void handleLeaveRoom().then(() => { networkError.value = message; });
++          return;
++        }
+         if (payload?.code === 4401) {
+           networkError.value = localizeAppErrorMessage(`WebSocket closed: ${payload.code} ${payload.reason}`, language.value, uiStyle.value);
+           clearReconnectTimer();
+@@ -5979,7 +6187,8 @@
+     unsubscribers.push(
+       networkManager.on(ServerEvent.CHAT_EMOJI, (payload) => {
+         if (
+-          payload?.sender === session.value.playerId
++          !session.value.shared
++          && payload?.sender === session.value.playerId
+           && String(payload?.content ?? "").trim() === optimisticChatEmoji.content
+           && Date.now() - optimisticChatEmoji.sentAt < 900
+         ) {
+@@ -5999,6 +6208,10 @@
+ 
+     unsubscribers.push(
+       networkManager.on(ServerEvent.ERROR, (payload) => {
++        if (["EMOTE_RATE_LIMIT", "INVALID_EMOTE", "EMOTES_UNAVAILABLE"].includes(payload?.code)) {
++          handleNetworkError(new Error(payload.code));
++          return;
++        }
+         readyPending.value = false;
+         if (payload?.code === "MATCH_IN_PROGRESS") {
+           roomStatus.value = "inProgress";
+@@ -6024,6 +6237,7 @@
+     );
+ 
+     onBeforeUnmount(() => {
++      cancelSharedPassword();
+       contribution.dispose();
+       globalThis.removeEventListener("online", retryContributions);
+       terminateAiWorker();
+@@ -6046,6 +6260,7 @@
+         }
+       }
+       networkManager.disconnect();
++      clearTimeout(accountLinkExpiry);
+     });
+ 
+     onMounted(() => {
+@@ -6111,6 +6326,7 @@
+       roomIdInput,
+       selectedPlayerCount,
+       selectedBoardShape,
++      selectedRulesVersion,
+       selectedRoomBotCount,
+       retryRoomBots: () => networkManager.retryBots().catch(handleNetworkError),
+       selectedGridSize,
+@@ -6149,6 +6365,9 @@
+       showClosePrompt,
+       networkBusy,
+       networkError,
++      accountLinkCode, accountLinkError, accountLinkBusy, handleLinkWechat, handleCopyLinkCode, handleCreateSharedRoom,
++      sharedPasswordOpen, sharedPasswordUsername, sharedPassword, sharedPasswordBusy, sharedPasswordError,
++      handleSharedPasswordSubmit, cancelSharedPassword,
+       overlayResult,
+       statusText,
+       boardHint,
+@@ -6369,6 +6588,8 @@
+             :ui-style="uiStyle"
+             :player-count="selectedPlayerCount"
+             :board-shape="selectedBoardShape"
++            :rules-version="selectedRulesVersion"
++            :shared-room="!!session.shared && !!session.roomId"
+             :grid-size="selectedGridSize"
+             :turn-timer-enabled="selectedTurnTimerEnabled"
+             :turn-time-limit-seconds="selectedTurnTimeLimitSeconds"
+@@ -6462,6 +6683,22 @@
+             @logout="handleLogout"
+           />
+ 
++          <section v-if="sharedPasswordOpen" class="panel modal-panel" aria-live="polite">
++            <h3>{{ language === 'zh' ? '确认原网页账号' : 'Verify your Web account' }}</h3>
++            <p>{{ language === 'zh' ? '进入微信互通对战或关联账号前，请验证一次原网页账号密码。验证成功后自动继续；密码不会保存。' : 'Verify your existing Web password before shared play or account linking. We will continue automatically and will not store the password.' }}</p>
++            <form @submit.prevent="handleSharedPasswordSubmit">
++              <label class="field-label" for="shared-password-username">{{ language === 'zh' ? '当前账号' : 'Current account' }}</label>
++              <input id="shared-password-username" class="input-field" readonly :value="sharedPasswordUsername" autocomplete="off" />
++              <label class="field-label" for="shared-password-input">{{ language === 'zh' ? '网页账号密码' : 'Web account password' }}</label>
++              <input id="shared-password-input" class="input-field" type="password" autocomplete="off" v-model="sharedPassword" :disabled="sharedPasswordBusy" />
++              <p v-if="sharedPasswordError" class="error-copy" role="alert">{{ sharedPasswordError }}</p>
++              <div class="button-row">
++                <button class="action-button action-button-primary" type="submit" :disabled="sharedPasswordBusy">{{ language === 'zh' ? (sharedPasswordBusy ? '正在验证…' : '验证并继续') : (sharedPasswordBusy ? 'Verifying…' : 'Verify and continue') }}</button>
++                <button class="action-button action-button-ghost" type="button" @click="cancelSharedPassword">{{ language === 'zh' ? '取消' : 'Cancel' }}</button>
++              </div>
++            </form>
++          </section>
++
+           <RoomPanel
+             :player-count="selectedPlayerCount"
+             :board-shape="selectedBoardShape"
+@@ -6474,7 +6711,7 @@
+             :session="session"
+             :network-error="networkError"
+             :authenticated="isAuthenticated"
+-            :busy="networkBusy"
++            :busy="networkBusy || sharedPasswordOpen"
+             :room-info="roomInfo"
+             :is-host="isHost"
+             :local-ready="localReady"
+@@ -6488,12 +6725,24 @@
+             @retry-bots="retryRoomBots"
+             @connect="handleConnect"
+             @create-room="handleCreateRoom"
++            @create-shared-room="handleCreateSharedRoom"
+             @join-room="handleJoinRoom"
+             @leave-room="handleLeaveRoom"
+             @toggle-ready="handleToggleReady"
+             @update:start-player="handleStartPlayerChange"
+             @close-prompt="handleClosePrompt"
+           />
++          <section v-if="isAuthenticated" class="panel modal-panel">
++            <h3>{{ language === 'zh' ? '关联微信账号' : 'Link WeChat account' }}</h3>
++            <p>{{ language === 'zh' ? '可选：把原网页版账号与微信身份关联。互通对战只需同一个房间码，不要求绑定账号。' : 'Optional: link this Web account to your WeChat identity. Linking is not required to play in the same room.' }}</p>
++            <button class="action-button action-button-secondary" :disabled="accountLinkBusy || sharedPasswordOpen || networkBusy || !!session.roomId" @click="handleLinkWechat">{{ language === 'zh' ? '生成一次性绑定码' : 'Generate one-time code' }}</button>
++            <template v-if="accountLinkCode">
++              <p>{{ language === 'zh' ? '5 分钟有效。仅在自己的小游戏“微信账号”中粘贴，勿发给别人。' : 'Expires in 5 minutes. Paste only into your own Mini Game account panel; do not share it.' }}</p>
++              <input class="input-field" readonly :value="accountLinkCode" aria-label="Account link code" />
++              <button class="action-button action-button-ghost" @click="handleCopyLinkCode">{{ language === 'zh' ? '复制绑定码' : 'Copy code' }}</button>
++            </template>
++            <p v-if="accountLinkError" class="error-copy">{{ accountLinkError }}</p>
++          </section>
+         </div>
+       </UtilityModal>
+ 
+--- a/web/web前端/OnlineAppI18n.js
++++ b/web/web前端/OnlineAppI18n.js
+@@ -982,9 +982,18 @@
+   if (message === "connect(url) requires a valid WebSocket URL.") {
+     return texts.invalidWebSocket;
+   }
++  if (message === "Failed to connect to WebSocket server: connection timed out.") {
++    return language === "zh" ? "连接超时，已结束等待。请重试；8 位互通码可以直接加入房间。" : "Connection timed out. You can retry; an 8-character shared code can be joined directly.";
++  }
++  if (message === "Failed to connect to WebSocket server.") {
++    return language === "zh" ? "连接失败，已结束等待。请重试；8 位互通码可以直接加入房间。" : "Connection failed. You can retry; an 8-character shared code can be joined directly.";
++  }
+   if (message.startsWith("Failed to connect to ")) {
+     return texts.connectFailed(message.slice("Failed to connect to ".length));
+   }
++  if (/^WebSocket closed: 4401(?:$|\s)/.test(message)) {
++    return texts.authInvalidToken;
++  }
+   if (message.startsWith("WebSocket closed:")) {
+     return texts.socketClosed;
+   }
+@@ -1015,9 +1024,6 @@
+   if (message === "Authentication token is required. Please log in first.") {
+     return texts.authTokenRequired;
+   }
+-  if (message === "WebSocket closed: 4401 invalid_token" || message === "WebSocket closed: 4401 missing_token") {
+-    return texts.authInvalidToken;
+-  }
+   if (message === "Username already exists.") {
+     return texts.authUsernameExists;
+   }
+--- a/web/web前端/ReplayCodec.js
++++ b/web/web前端/ReplayCodec.js
+@@ -101,8 +101,8 @@
+   };
+ }
+ 
+-async function hashRuleState(engine) {
+-  return sha256(serializeRuleState(engine));
++async function hashRuleState(engine, hashValue = sha256) {
++  return hashValue(serializeRuleState(engine));
+ }
+ 
+ function normalizeSettings(settings = {}) {
+@@ -190,7 +190,7 @@
+   return engine.resignPlayer(action.player);
+ }
+ 
+-function buildEventEffects(beforeState, beforeSnapshot, afterState, afterSnapshot) {
++export function buildEventEffects(beforeState, beforeSnapshot, afterState, afterSnapshot) {
+   const beforeGrid = new Map(beforeState.gridEntries.map(([x, y, state]) => [`${x},${y}`, state]));
+   const afterGrid = new Map(afterState.gridEntries.map(([x, y, state]) => [`${x},${y}`, state]));
+   const capturedPoints = [];
+@@ -241,14 +241,15 @@
+     : null;
+ }
+ 
+-export async function createReplayDocument(settings, actions = [], options = {}) {
++export async function createReplayDocument(settings, actions = [], options = {}, hashValue = sha256) {
++  if (typeof options === "function") { hashValue = options; options = {}; }
+   const config = normalizeSettings(settings);
+   if (!isValidSettings(config)) {
+     throw new Error("当前规则或玩家配置不支持导出棋谱。");
+   }
+   const engine = new GameEngine(engineOptionsFromSettings(config));
+   const initialRuleState = serializeRuleState(engine);
+-  const initialStateHash = await sha256(initialRuleState);
++  const initialStateHash = await hashValue(initialRuleState);
+   const events = [];
+   let previousEventHash = GENESIS_EVENT_HASH;
+ 
+@@ -259,7 +260,7 @@
+     if (engine.currentPlayer !== actor && action.type !== "resign") {
+       throw new Error(`第 ${index + 1} 个动作不是当前玩家的动作。`);
+     }
+-    const preStateHash = await hashRuleState(engine);
++    const preStateHash = await hashRuleState(engine, hashValue);
+     const preState = serializeRuleState(engine);
+     const preSnapshot = engine.getSnapshot();
+     const preTurnCount = engine.turnCount;
+@@ -275,19 +276,19 @@
+       actor,
+       ...(action.type === "move" ? { point: clonePoint(action.point) } : {}),
+       preStateHash,
+-      postStateHash: await hashRuleState(engine),
++      postStateHash: await hashRuleState(engine, hashValue),
+       preTurnCount,
+       postTurnCount: engine.turnCount,
+       prevEventHash: previousEventHash,
+       effects: buildEventEffects(preState, preSnapshot, postState, postSnapshot),
+     };
+-    const eventHash = await sha256(normalizedEvent);
++    const eventHash = await hashValue(normalizedEvent);
+     events.push({ ...normalizedEvent, eventHash });
+     previousEventHash = eventHash;
+   }
+ 
+   const finalRuleState = serializeRuleState(engine);
+-  const finalStateHash = await sha256(finalRuleState);
++  const finalStateHash = await hashValue(finalRuleState);
+   const terminal = buildTerminalSummary(engine, finalStateHash, events.length);
+   const document = {
+     format: REPLAY_FORMAT,
+@@ -308,11 +309,11 @@
+     },
+     extensions: options.actors === undefined ? {} : { actors: normalizeActors(options.actors, config) },
+   };
+-  document.integrity.canonicalDocumentHash = await sha256({ ...document, integrity: { ...document.integrity, canonicalDocumentHash: null } });
++  document.integrity.canonicalDocumentHash = await hashValue({ ...document, integrity: { ...document.integrity, canonicalDocumentHash: null } });
+   return document;
+ }
+ 
+-export async function validateReplayDocument(document) {
++export async function validateReplayDocument(document, hashValue = sha256) {
+   const fail = (reason, eventSeq = null) => ({ success: false, reason, eventSeq });
+   if (!isPlainObject(document)) return fail("棋谱不是 JSON 对象。");
+   if (document.format !== REPLAY_FORMAT || document.schemaVersion !== REPLAY_SCHEMA_VERSION) return fail("棋谱版本不受支持。");
+@@ -327,7 +328,7 @@
+     catch (error) { return fail(error.message); }
+   }
+   const engine = new GameEngine(engineOptionsFromSettings(config));
+-  const initialHash = await hashRuleState(engine);
++  const initialHash = await hashRuleState(engine, hashValue);
+   if (document.initialState.stateHash !== initialHash
+     || canonicalize(document.initialState.ruleState) !== canonicalize(serializeRuleState(engine))) return fail("初始局面校验失败。");
+   let previousEventHash = GENESIS_EVENT_HASH;
+@@ -338,29 +339,29 @@
+     const action = normalizeAction(event);
+     if (!action || event.actor !== action.player) return fail("事件动作格式无效。", seq);
+     if (action.type !== "resign" && event.actor !== engine.currentPlayer) return fail("事件行动方与当前回合不一致。", seq);
+-    const expectedPre = await hashRuleState(engine);
++    const expectedPre = await hashRuleState(engine, hashValue);
+     if (event.preStateHash !== expectedPre || event.preTurnCount !== engine.turnCount) return fail("动作前状态承诺不匹配。", seq);
+     const preState = serializeRuleState(engine);
+     const preSnapshot = engine.getSnapshot();
+     const result = applyAction(engine, action);
+     if (!result.success && !(action.type === "resign" && result.reason === "PLAYER_ALREADY_RESIGNED")) return fail(`第 ${seq} 步无法执行：${result.reason ?? "UNKNOWN"}。`, seq);
+-    const expectedPost = await hashRuleState(engine);
++    const expectedPost = await hashRuleState(engine, hashValue);
+     if (event.postStateHash !== expectedPost || event.postTurnCount !== engine.turnCount) return fail("动作后状态承诺不匹配。", seq);
+     const effects = buildEventEffects(preState, preSnapshot, serializeRuleState(engine), engine.getSnapshot());
+     if (canonicalize(event.effects) !== canonicalize(effects)) return fail("事件效果与规则重放不一致。", seq);
+     const eventWithoutHash = { ...event };
+     delete eventWithoutHash.eventHash;
+-    const expectedEventHash = await sha256(eventWithoutHash);
++    const expectedEventHash = await hashValue(eventWithoutHash);
+     if (event.eventHash !== expectedEventHash) return fail("事件哈希校验失败。", seq);
+     previousEventHash = event.eventHash;
+     actions.push(toControllerAction(action));
+   }
+-  const finalStateHash = await hashRuleState(engine);
++  const finalStateHash = await hashRuleState(engine, hashValue);
+   if (document.integrity?.eventCount !== actions.length || document.integrity?.finalStateHash !== finalStateHash) return fail("棋谱终局完整性校验失败。", actions.length);
+   if (document.integrity?.finalEventHash !== (actions.length ? previousEventHash : null)) return fail("棋谱最终事件哈希不匹配。", actions.length);
+   if (canonicalize(document.terminal) !== canonicalize(buildTerminalSummary(engine, finalStateHash, actions.length))) return fail("棋谱终局摘要与回放结果不一致。", actions.length);
+   if (document.integrity?.canonicalDocumentHash) {
+-    const expectedDocumentHash = await sha256({
++    const expectedDocumentHash = await hashValue({
+       ...document,
+       integrity: { ...document.integrity, canonicalDocumentHash: null },
+     });
+@@ -378,14 +379,14 @@
+   };
+ }
+ 
+-export async function parseAndValidateReplay(text) {
++export async function parseAndValidateReplay(text, hashValue = sha256) {
+   let document;
+   try {
+     document = JSON.parse(String(text));
+   } catch {
+     return { success: false, reason: "棋谱文件不是有效 JSON。", eventSeq: null };
+   }
+-  return validateReplayDocument(document);
++  return validateReplayDocument(document, hashValue);
+ }
+ 
+ export function downloadReplayDocument(replayDocument, filename = "lifeline-replay.json") {
+--- a/web/web前端/SharedRoomClient.js
++++ b/web/web前端/SharedRoomClient.js
+@@ -0,0 +1,354 @@
++import GameEngine from "./GameEngine.js?v=VERSION";
++import { canonicalize, serializeRuleState } from "./ReplayCodec.js?v=VERSION";
++
++const CODE = /^[A-Z2-9]{8}$/;
++const PENDING = "lifeline-shared-command-v1";
++const COLORS = ["BLACK", "WHITE"];
++export const SHARED_EMOTES = Object.freeze(["👏", "😭", "😎", "🤝", "❓", "🤔", "💀", "👎", "😓", "😤"]);
++const EMOTE_CAPABILITY = "emote-v1";
++
++export function sharedApiOrigin(socketUrl) {
++  const url = new URL(socketUrl, globalThis.location?.href);
++  if (url.username || url.password || !["wss:", "ws:", "https:", "http:"].includes(url.protocol)) throw new Error("INVALID_SERVER");
++  url.protocol = ["wss:", "https:"].includes(url.protocol) ? "https:" : "http:";
++  if (url.protocol !== "https:" && !["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)) throw new Error("HTTPS_REQUIRED");
++  return url.origin;
++}
++
++export async function verifySharedRoom(room) {
++  if (!room || room.protocol !== 1 || !CODE.test(room.code) || !/^[0-9a-f]{32}$/.test(room.matchId)
++    || !Number.isSafeInteger(room.revision) || room.revision < 1 || !Number.isSafeInteger(room.seq) || room.seq < 0 || room.seq > 3000
++    || !Array.isArray(room.actions) || room.actions.length !== room.seq
++    || !Array.isArray(room.actionIds) || room.actionIds.length !== room.seq || new Set(room.actionIds).size !== room.seq
++    || !COLORS.includes(room.player) || !COLORS.includes(room.currentPlayer)
++    || !["waiting", "playing", "finished", "closed"].includes(room.status)
++    || !room.ready || !room.members || !room.rematchVotes
++    || !["territory-v2", "territory-v3"].includes(room.settings?.rulesVersion) || room.settings.playerCount !== 2
++    || !COLORS.includes(room.settings.startPlayer) || !Number.isInteger(room.settings.gridSize)
++    || room.settings.gridSize < 5 || room.settings.gridSize > 15) throw new Error("INVALID_ROOM");
++  const engine = new GameEngine({ ...room.settings, deferTerritoryUpdates: false });
++  engine.replayBatch(game => {
++    for (const action of room.actions) {
++      if (!COLORS.includes(action.player) || (action.type !== "resign" && action.player !== game.currentPlayer)) throw new Error("INVALID_ROOM_ACTION");
++      let result;
++      if (action.type === "move" && Array.isArray(action.point) && action.point.length === 2 && action.point.every(Number.isInteger)) result = game.playMove(action.point);
++      else if (action.type === "skip") result = game.skipTurn();
++      else if (action.type === "resign") result = game.resignPlayer(action.player);
++      if (!result?.success) throw new Error("INVALID_ROOM_ACTION");
++    }
++    return { success: true };
++  });
++  if (!globalThis.crypto?.subtle) throw new Error("HTTPS_REQUIRED");
++  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(canonicalize(serializeRuleState(engine))));
++  const hash = `sha256:${Array.from(new Uint8Array(digest), v => v.toString(16).padStart(2, "0")).join("")}`;
++  const snapshot = engine.getSnapshot();
++  if (hash !== room.stateHash || snapshot.currentPlayer !== room.currentPlayer || snapshot.gameOver !== room.gameOver
++    || snapshot.winner !== room.winner || COLORS.some(p => snapshot.territories[p].area !== room.scores?.[p])) throw new Error("STATE_MISMATCH");
++  if ((room.status === "finished" && !snapshot.gameOver) || (room.status === "playing" && snapshot.gameOver)) throw new Error("INVALID_ROOM");
++  return engine;
++}
++
++// This adapter feeds the real Web GameController its existing snapshot contract.
++// Room state, turns, pass/resign and rematches are always decided by the same
++// service as the Mini Game. No opponent action is applied optimistically.
++export function sharedRoomPayload(room, type = "ROOM_STATE") {
++  const playing = room.status === "playing" || room.status === "finished";
++  const full = COLORS.every(p => room.members[p]);
++  const playerId = `${room.code}:${room.player}`;
++  return {
++    type, shared: true, roomId: room.code, playerId, yourPlayerId: playerId,
++    color: room.player, yourColor: room.player, hostPlayerId: `${room.code}:BLACK`,
++    status: playing ? "IN_PROGRESS" : full ? "LOBBY" : "WAITING",
++    matchPhase: playing ? "PLAYING" : full ? "LOBBY" : "WAITING_FOR_PLAYERS",
++    settings: room.settings, countdownEndsAt: null, serverTimestamp: room.revision,
++    undo: room.undo ? { ...room.undo, requiredVotes: 2,
++      votes: (room.undo.votes ?? []).map(color => `${room.code}:${color}`) } : undefined,
++    players: COLORS.filter(p => room.members[p]).map(p => ({
++      playerId: `${room.code}:${p}`, color: p, connected: room.status !== "closed",
++      ready: room.ready[p], isHost: p === "BLACK", username: room.profiles?.[p]?.displayName,
++    })),
++    matchState: { settings: room.settings, actions: room.actions.map(action => ({
++      type: { move: "player_move", skip: "player_skip", resign: "player_resign" }[action.type],
++      ...(action.point ? { point: [...action.point] } : {}), color: action.player,
++    })) },
++  };
++}
++
++export class SharedRoomClient {
++  constructor({ fetch: fetcher = globalThis.fetch?.bind(globalThis), WebSocket: Socket = globalThis.WebSocket,
++    storage = globalThis.localStorage, onRoom = () => {}, onConnection = () => {}, onError = () => {},
++    requestPasswordSession = null, onEmote = () => {}, onEmoteError = () => {} } = {}) {
++    Object.assign(this, { fetcher, Socket, storage, onRoom, onConnection, onError, requestPasswordSession, onEmote, onEmoteError });
++    this.room = null; this.engine = null; this.token = null; this.expires = 0;
++    this.generation = 0; this.connected = false; this.pending = null; this.busy = false;
++    this.queue = Promise.resolve(); this.socket = null; this.lastSeen = 0;
++    this.emotesSupported = false; this.lastEmote = null; this.emoteError = null; this.lastEmoteSentAt = 0;
++  }
++  async open(origin, webToken) {
++    if (origin !== this.origin || webToken !== this.webToken) {
++      this.stop(); this.room = null; this.engine = null; this.token = null; this.expires = 0; this.pending = null;
++      this.webAuthMode = null;
++    }
++    this.origin = origin; this.webToken = webToken;
++    await this.authenticate();
++    return this;
++  }
++  async json(path, data, token = this.token) {
++    const response = await this.fetcher(`${this.origin}/api/wechat/${path}`, {
++      method: data === undefined ? "GET" : "POST",
++      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), "Content-Type": "application/json" },
++      ...(data === undefined ? {} : { body: JSON.stringify(data) }), signal: AbortSignal.timeout(12000),
++    });
++    const result = await response.json();
++    if (!response.ok) throw new Error(typeof result.detail === "string" ? result.detail : `HTTP_${response.status}`);
++    return result;
++  }
++  async authenticate(force = false) {
++    if (!this.webToken) throw new Error("UNAUTHORIZED");
++    if (!force && this.token && this.expires > Date.now()) return;
++    if (!this.authenticating) {
++      const generation = this.generation, webToken = this.webToken, origin = this.origin;
++      const abort = new AbortController();
++      this.authAbort = abort;
++      this.token = null; this.expires = 0;
++      const assertCurrent = () => {
++        if (abort.signal.aborted || generation !== this.generation || webToken !== this.webToken || origin !== this.origin) throw new Error("CANCELLED");
++      };
++      const exchange = async () => {
++        const status = await this.json("status", undefined, null);
++        assertCurrent();
++        if (!status?.enabled) throw new Error("ONLINE_NOT_CONFIGURED");
++        if (!status.webLogin) throw new Error("WEB_AUTH_NOT_CONFIGURED");
++        this.webAuthMode = status.webAuthMode || "legacy-jwt";
++        if (this.webAuthMode === "legacy-jwt") return this.json("login/web", {}, webToken);
++        if (this.webAuthMode !== "password" || !status.passwordLogin) throw new Error("WEB_AUTH_NOT_CONFIGURED");
++        if (!this.requestPasswordSession) throw new Error("WEB_PASSWORD_REQUIRED");
++        // The password exists only inside the form submission and POST body.
++        // Neither the old Web JWT nor a stored password can renew this session.
++        return this.requestPasswordSession({ signal: abort.signal, login: async ({ username, password }) => {
++          assertCurrent();
++          const result = await this.json("login/password-session", { username, password }, null);
++          assertCurrent();
++          return result;
++        } });
++      };
++      const pending = exchange().then(result => {
++        assertCurrent();
++        if (!result.token || result.protocol !== 1 || !Number.isFinite(result.expiresIn)) throw new Error("LOGIN_FAILED");
++        if (this.account?.uid && result.account?.uid !== this.account.uid) {
++          // Binding changes room identity. Never replay commands belonging to
++          // the previous identity merely because the Web login is unchanged.
++          this.generation++; this.closeSocket(); this.clearPending(); this.room = null; this.engine = null; this.busy = false;
++        }
++        this.token = result.token; this.account = result.account; this.expires = Date.now() + (result.expiresIn - 60) * 1000;
++      }).finally(() => {
++        if (this.authenticating === pending) this.authenticating = null;
++        if (this.authAbort === abort) this.authAbort = null;
++      });
++      this.authenticating = pending;
++    }
++    return this.authenticating;
++  }
++  async request(path, data) {
++    const generation = this.generation, webToken = this.webToken, origin = this.origin;
++    await this.authenticate();
++    const current = () => generation === this.generation && webToken === this.webToken && origin === this.origin;
++    if (!current()) throw new Error("ACCOUNT_SESSION_CHANGED");
++    try { return await this.json(path, data, this.token); }
++    catch (error) {
++      if (!current()) throw new Error("CANCELLED");
++      if (!/^(UNAUTHORIZED|HTTP_401|ACCOUNT_SESSION_CHANGED)$/.test(error.message)) throw error;
++      await this.authenticate(true);
++      if (!current()) throw new Error("ACCOUNT_SESSION_CHANGED");
++      return this.json(path, data, this.token);
++    }
++  }
++  receive(room, type = "ROOM_STATE") {
++    const generation = this.generation;
++    const run = async () => {
++      if (generation !== this.generation) return false;
++      if (this.room && (this.room.code !== room.code || room.revision < this.room.revision)) return false;
++      if (this.room?.revision === room.revision && this.room.stateHash !== room.stateHash) throw new Error("STATE_MISMATCH");
++      const engine = await verifySharedRoom(room);
++      if (generation !== this.generation) return false;
++      if (this.pending?.code === room.code && (this.pending.body.matchId !== room.matchId
++        || room.actionIds.includes(this.pending.body.clientActionId))) this.clearPending();
++      if (this.pending?.code === room.code && (this.pending.body.expectedSeq !== room.seq || this.pending.body.beforeHash !== room.stateHash)) {
++        this.clearPending(); this.onError(new Error("STALE_POSITION"));
++      }
++      if (this.room?.matchId !== room.matchId) this.lastEmote = null;
++      this.room = room; this.engine = engine;
++      this.onRoom(sharedRoomPayload(room, type), room);
++      return true;
++    };
++    const result = this.queue.catch(() => {}).then(run);
++    this.queue = result;
++    return result;
++  }
++  async enter(kind, value) {
++    this.stop(); const generation = this.generation; this.room = null; this.pending = null;
++    const room = kind === "create" ? await this.request("rooms", {
++      ...(typeof value === "object" ? value : { gridSize: value || 7 }), rulesVersion: "territory-v3",
++    })
++      : kind === "resume" ? await this.request(`rooms/${value}`) : await this.request("rooms/join", { code: value });
++    if (generation !== this.generation) throw new Error("CANCELLED");
++    try {
++      const raw = this.storage?.getItem(PENDING);
++      if (raw && raw.length < 8192) {
++        const pending = JSON.parse(raw);
++        if (pending.origin === this.origin && pending.uid === this.account?.uid && pending.code === room.code
++          && /^[a-zA-Z0-9_-]{16,80}$/.test(pending.body?.clientActionId)) this.pending = pending;
++      }
++    } catch (_) { /* Malformed/foreign pending commands are never replayed. */ }
++    await this.receive(room, kind === "create" ? "ROOM_CREATED" : "ROOM_JOINED");
++    if (generation !== this.generation) throw new Error("CANCELLED");
++    await this.connect();
++    return sharedRoomPayload(this.room);
++  }
++  async connect() {
++    this.closeSocket();
++    const generation = this.generation, code = this.room?.code;
++    await this.authenticate();
++    if (generation !== this.generation || code !== this.room?.code) throw new Error("CANCELLED");
++    if (!code) throw new Error("ROOM_NOT_FOUND");
++    const socket = new this.Socket(`${this.origin.replace(/^http/, "ws")}/api/wechat/ws`);
++    this.socket = socket;
++    const current = () => this.socket === socket && generation === this.generation;
++    await new Promise((resolve, reject) => {
++      let settled = false;
++      const finish = error => { if (settled) return; settled = true; clearTimeout(timer); error ? reject(error) : resolve(); };
++      const timer = setTimeout(() => { finish(new Error("NETWORK_ERROR")); if (current()) socket.close(); }, 12000);
++      socket.addEventListener("open", () => { if (current()) socket.send(JSON.stringify({ protocol: 1, code, token: this.token, capabilities: [EMOTE_CAPABILITY] })); });
++      socket.addEventListener("message", async event => {
++        if (!current()) return;
++        try {
++          const data = JSON.parse(event.data); this.lastSeen = Date.now();
++          if (data.type === "room") {
++            if (Array.isArray(data.capabilities)) this.emotesSupported = data.capabilities.includes(EMOTE_CAPABILITY);
++            await this.receive(data.room);
++            if (!current()) return;
++            this.connected = true; this.onConnection(true); finish();
++            if (this.pending && !this.busy) void this.retryPending().catch(error => this.onError(error));
++          } else if (data.type === "emote" && this.emotesSupported) this.receiveEmote(data.emote);
++          else if (data.type === "emote_error" && this.emotesSupported) {
++            if (["EMOTE_RATE_LIMIT", "INVALID_EMOTE", "EMOTES_UNAVAILABLE"].includes(data.code)) {
++              this.emoteError = data.code; this.onEmoteError(new Error(data.code));
++            }
++          } else if (data.type !== "pong") throw new Error("INVALID_ROOM");
++        } catch (error) {
++          if (current()) { finish(error); this.onError(error); socket.close(); }
++        }
++      });
++      socket.addEventListener("error", () => finish(new Error("NETWORK_ERROR")));
++      socket.addEventListener("close", event => {
++        finish(new Error("NETWORK_ERROR"));
++        if (!current()) return;
++        this.closeSocket();
++        if (event.code === 4001) this.token = null;
++        if ([4008, 4009, 4010].includes(event.code)) {
++          this.generation++; this.clearPending(); this.room = null; this.engine = null;
++          if (event.code === 4008) { this.token = null; this.account = null; }
++        }
++        this.onConnection(false, event);
++      });
++      this.lastSeen = Date.now();
++      this.heartbeat = setInterval(() => {
++        if (!current()) return;
++        if (Date.now() - this.lastSeen > 40000) socket.close();
++        else if (socket.readyState === 1) socket.send('{"type":"ping"}');
++      }, 15000);
++    });
++  }
++  canAct() {
++    return Boolean(this.connected && !this.busy && !this.pending && !this.room?.undo?.pending && this.room?.status === "playing" && this.room.player === this.room.currentPlayer);
++  }
++  canEmote() {
++    return Boolean(this.connected && this.emotesSupported && this.socket?.readyState === 1
++      && this.room && this.room.status !== "closed");
++  }
++  receiveEmote(emote) {
++    if (!this.emotesSupported || !emote || !/^[0-9a-f]{16}$/.test(emote.id)
++      || !SHARED_EMOTES.includes(emote.emoji) || !COLORS.includes(emote.player)
++      || emote.matchId !== this.room?.matchId || emote.id === this.lastEmote?.id) return false;
++    this.lastEmote = { id: emote.id, emoji: emote.emoji, player: emote.player, matchId: emote.matchId };
++    this.emoteError = null; this.onEmote(this.lastEmote); return true;
++  }
++  async sendEmote(emoji) {
++    if (!SHARED_EMOTES.includes(emoji)) throw new Error("INVALID_EMOTE");
++    if (!this.canEmote()) throw new Error("EMOTES_UNAVAILABLE");
++    if (Date.now() - this.lastEmoteSentAt < 1000) throw new Error("EMOTE_RATE_LIMIT");
++    this.lastEmoteSentAt = Date.now(); this.emoteError = null;
++    try { this.socket.send(JSON.stringify({ type: "emote", emoji, matchId: this.room.matchId })); }
++    catch (_) { this.emoteError = "NETWORK_ERROR"; throw new Error("NETWORK_ERROR"); }
++    return true;
++  }
++  async act(action) {
++    if (!this.canAct()) throw new Error("NOT_YOUR_TURN");
++    const room = this.room, body = {
++      matchId: room.matchId, expectedSeq: room.seq, beforeHash: room.stateHash,
++      clientActionId: crypto.randomUUID(), action,
++    };
++    const pending = { origin: this.origin, uid: this.account?.uid, code: room.code, body };
++    const raw = JSON.stringify(pending);
++    if (!this.storage?.setItem) throw new Error("SAVE_WRITE_FAILED");
++    this.storage.setItem(PENDING, raw);
++    if (this.storage.getItem(PENDING) !== raw) throw new Error("SAVE_WRITE_FAILED");
++    this.pending = pending;
++    return this.retryPending();
++  }
++  async retryPending() {
++    if (!this.pending || this.busy || !this.room) return;
++    const pending = this.pending, generation = this.generation; this.busy = true;
++    try {
++      const room = await this.request(`rooms/${pending.code}/actions`, pending.body);
++      if (generation === this.generation) await this.receive(room);
++    } catch (error) {
++      if (generation === this.generation && /STALE_|NOT_YOUR_TURN|MATCH_NOT|COMMAND_ID|INVALID_ACTION|ROOM_CLOSED|ROOM_EXPIRED/.test(error.message)) this.clearPending();
++      if (generation === this.generation) {
++        // Never leave an optimistic state behind. A reconnect resolves lost ACKs.
++        this.closeSocket(); this.onConnection(false, { code: 1006, reason: error.message });
++      }
++      throw error;
++    } finally {
++      if (generation === this.generation) {
++        this.busy = false;
++        if (this.connected) this.onConnection(true);
++      }
++    }
++  }
++  async updateSettings(settings) {
++    return this.command("settings", { settings });
++  }
++  async undo(accept = true) {
++    const room = this.room;
++    if (!room) throw new Error("ROOM_NOT_FOUND");
++    return this.command("undo", { expectedSeq: room.seq, beforeHash: room.stateHash, accept });
++  }
++  async command(operation, body = {}) {
++    if (!this.room || this.busy) throw new Error("ROOM_BUSY");
++    const generation = this.generation, room = this.room; this.busy = true;
++    try {
++      const result = await this.request(`rooms/${room.code}/${operation}`, { ...body, matchId: room.matchId });
++      if (generation === this.generation) await this.receive(result);
++      return result;
++    } finally {
++      if (generation === this.generation) {
++        this.busy = false;
++        if (this.connected) this.onConnection(true);
++      }
++    }
++  }
++  clearPending() { this.pending = null; try { this.storage?.removeItem(PENDING); } catch (_) {} }
++  closeSocket() {
++    clearInterval(this.heartbeat); this.heartbeat = null;
++    const socket = this.socket; this.socket = null; this.connected = false;
++    this.emotesSupported = false; this.lastEmote = null;
++    try { socket?.close(); } catch (_) {}
++  }
++  cancelAuthentication() {
++    const abort = this.authAbort;
++    this.authAbort = null; this.authenticating = null;
++    abort?.abort();
++  }
++  stop() { this.generation++; this.cancelAuthentication(); this.busy = false; this.closeSocket(); }
++}
+--- a/web/web前端/ThreePlayerSearchAI.js
++++ b/web/web前端/ThreePlayerSearchAI.js
+@@ -1,7 +1,7 @@
+ // Local v4 candidate. No runtime registration: promotion is a separate gate.
+-import { fastTerritoryBFS, restoreState, saveState } from "./AIEngine.js";
+-import { ThreePlayerAI, THREE_PLAYER_FEATURES } from "./ThreePlayerAI.js";
+-import { GameEngine } from "./GameEngine.js";
++import { fastTerritoryBFS, restoreState, saveState } from "./AIEngine.js?v=VERSION";
++import { ThreePlayerAI, THREE_PLAYER_FEATURES } from "./ThreePlayerAI.js?v=VERSION";
++import { GameEngine } from "./GameEngine.js?v=VERSION";
+ 
+ const pointOrder = (a, b) => a.point[1] - b.point[1] || a.point[0] - b.point[0];
+ const linear = (spec) => ({ score: (values) => values.reduce((sum, value, i) => sum + value * spec.weights[i], 0) / spec.temperature });
+--- a/web/web前端/TrainingContribution.js
++++ b/web/web前端/TrainingContribution.js
+@@ -42,6 +42,8 @@
+   }
+   async enqueue(settings, actions, context) {
+     if (!this.enabled) return false;
++    // The reviewed inbox has no territory-v3 schema. Keep new-rule games local.
++    if (settings?.rulesVersion === "territory-v3") return false;
+     // The current reviewed-data pipeline encodes triangular boards only.
+     // Hexagonal games remain exportable replays without entering that inbox.
+     if (Number(settings?.playerCount) >= 4 || settings?.boardShape === "hexagon" || settings?.initialPositions) return false;
+--- a/web/web前端/guide/interesting/verify-superko-history-divergence.mjs
++++ b/web/web前端/guide/interesting/verify-superko-history-divergence.mjs
+@@ -1,6 +1,6 @@
+ import fs from "node:fs/promises";
+ 
+-const engineUrl = new URL("../../GameEngine.js", import.meta.url);
++const engineUrl = new URL("../../GameEngine.js?v=VERSION", import.meta.url);
+ const source = await fs.readFile(engineUrl, "utf8");
+ const { GameEngine, Player } = await import(
+   `data:text/javascript;base64,${Buffer.from(source).toString("base64")}`
+--- a/web/web前端/guide/interesting/verify-theory-counterexamples.mjs
++++ b/web/web前端/guide/interesting/verify-theory-counterexamples.mjs
+@@ -1,6 +1,6 @@
+ import fs from "node:fs/promises";
+ 
+-const engineUrl = new URL("../../GameEngine.js", import.meta.url);
++const engineUrl = new URL("../../GameEngine.js?v=VERSION", import.meta.url);
+ const source = await fs.readFile(engineUrl, "utf8");
+ const { GameEngine, Player, PointState } = await import(
+   `data:text/javascript;base64,${Buffer.from(source).toString("base64")}`
+--- a/web/web前端/main.js
++++ b/web/web前端/main.js
+@@ -3,7 +3,7 @@
+   "https://unpkg.com/vue@3/dist/vue.global.prod.js",
+   "https://fastly.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js",
+ ];
+-const APP_ASSET_VERSION = "20261024-online-settings2";
++const APP_ASSET_VERSION = "20261024-all1";
+ 
+ // main.js 只做两件事：
+ // 1. 确保浏览器拿到 Vue 运行时
