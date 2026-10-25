@@ -57,6 +57,10 @@ class TriangularGame:
         self.current_player = Player.BLACK
         self.game_over = False
         self.consecutive_skips = 0  # Counts consecutive skips; game ends when both players skip
+        # Display metadata only: starting nodes and speculative AI moves are not turns.
+        self.last_moves: Dict[Player, Optional[Tuple[int, int]]] = {
+            Player.BLACK: None, Player.WHITE: None,
+        }
 
         # 显式边集合：frozenset({node1, node2})，仅用于连通性判断，渲染仍依赖 self.grid
         self.black_edges: set = set()
@@ -1196,6 +1200,7 @@ class TriangularGame:
         if self.game_over:
             return
         if not self._has_valid_moves(self.current_player):
+            self.last_moves[self.current_player] = None
             self.consecutive_skips += 1
             if self.consecutive_skips >= 2:
                 self.game_over = True
@@ -1207,6 +1212,7 @@ class TriangularGame:
         """Current player skips their turn. If both players skip consecutively, game ends."""
         if self.game_over:
             return
+        self.last_moves[self.current_player] = None
         self.consecutive_skips += 1
         if self.consecutive_skips >= 2:
             self.game_over = True
@@ -1232,6 +1238,7 @@ class TriangularGame:
             except SuperkoViolationError:
                 success = False  # 全局同形再现禁手：静默拒绝，棋盘状态已由 _add_node 自动回滚
             if success:
+                self.last_moves[self.current_player] = grid_pos
                 self.consecutive_skips = 0  # Reset skip counter on a real move
                 self._switch_player()
                 self._check_and_auto_skip()
@@ -1267,11 +1274,26 @@ class TriangularGame:
                 self.history_hashes.add(state_hash)
 
         if success:
+            self.last_moves[self.current_player] = grid_pos
             self.consecutive_skips = 0
             self._switch_player()
             self._check_and_auto_skip()
             self._update_hulls()
     
+    def _draw_latest_moves(self):
+        """Mark each side's last placed node while that node still belongs to it."""
+        for player, node_state in (
+            (Player.BLACK, PointState.BLACK_NODE),
+            (Player.WHITE, PointState.WHITE_NODE),
+        ):
+            point = self.last_moves.get(player)
+            if point is None or self.grid.get(point) != node_state:
+                continue
+            center = self._get_screen_pos(*point)
+            pygame.draw.circle(self.screen, self.WHITE, center, self.POINT_RADIUS + 5, 3)
+            pygame.draw.circle(self.screen, (255, 193, 7), center, self.POINT_RADIUS + 3, 2)
+            pygame.draw.circle(self.screen, self.WHITE, center, 2)
+
     def draw(self):
         """Draw the game state"""
         self.screen.fill(self.WHITE)
@@ -1325,6 +1347,8 @@ class TriangularGame:
                 pygame.draw.circle(self.screen, self.LIGHT_GRAY, (screen_x, screen_y), self.POINT_RADIUS // 2)
                 pygame.draw.circle(self.screen, self.RED, (screen_x, screen_y), self.POINT_RADIUS // 2, 2)
         
+        self._draw_latest_moves()
+
         # Draw current player indicator
         player_text = "Blue's Turn" if self.current_player == Player.BLACK else "Red's Turn"
         color = self.BLUE if self.current_player == Player.BLACK else self.RED

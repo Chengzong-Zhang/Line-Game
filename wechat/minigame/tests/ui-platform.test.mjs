@@ -112,7 +112,7 @@ test('a failed first STATE offers a working new-game recovery in both languages'
   }
 });
 
-test('last-action annotation follows the replay prefix and clears the old move marker after pass/resign', async () => {
+test('last-action annotation follows the replay prefix while PASS clears only its own seat marker', async () => {
   for (const language of ['zh', 'en']) {
     const p = platform(320, 568, 64, language), texts = [], markers = [];
     const ctx = context();
@@ -129,9 +129,9 @@ test('last-action annotation follows the replay prefix and clears the old move m
       await app.session.act({ type: 'move', point: [1, 0] });
       await render(); assert.ok(last()[0]?.includes(language === 'zh' ? '落子' : 'Move')); assert.equal(markers.length, 1);
       await app.session.act({ type: 'skip' });
-      await render(); assert.ok(last()[0]?.includes(language === 'zh' ? '跳过' : 'Pass')); assert.equal(markers.length, 0);
+      await render(); assert.ok(last()[0]?.includes(language === 'zh' ? '跳过' : 'Pass')); assert.equal(markers.length, 1, 'White PASS preserves Black latest move');
       await app.session.restore(); // Saved logs use player_move/player_skip without a stored actor.
-      await render(); assert.ok(last()[0]?.includes(language === 'zh' ? '跳过' : 'Pass')); assert.equal(markers.length, 0);
+      await render(); assert.ok(last()[0]?.includes(language === 'zh' ? '跳过' : 'Pass')); assert.equal(markers.length, 1, 'restoring the actorless log preserves Black latest move');
       await app.session.replay(0);
       await render(); assert.equal(last().length, 0); assert.equal(markers.length, 0);
       await app.session.replay(1);

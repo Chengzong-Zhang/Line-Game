@@ -4,6 +4,7 @@ import { GameSession } from './session.js';
 import { TUTORIAL_LEVELS, createLocalGameSession, resolveInitialPositions, randomInitialPositions } from './core.js';
 import { TEXT, errorText } from './i18n.js';
 import { boardLayout, drawBoard, hitPoint, pointAtScreen, focusBoardLayout, panBoardFocus } from './board.js';
+import { createLatestMoveTracker } from './latest-moves.js';
 import { OnlineClient, ONLINE_EMOTES } from './online.js';
 import { ReplayLibrary } from './library.js';
 import { readPreferences, savePreferences } from './preferences.js';
@@ -29,6 +30,7 @@ const THEME = { background: '#f4ede1', ink: '#2a2118', muted: '#695749', border:
 
 export function createApp(platform, config = {}) {
   const canvas = platform.canvas, ctx = canvas.getContext('2d');
+  const latestMoveTracker = createLatestMoveTracker();
   let language = 'zh';
   try { if (platform.storage.get('lifeline-wx-language') === 'en') language = 'en'; } catch (_) { /* First run. */ }
   const preferences = readPreferences(platform.storage);
@@ -636,7 +638,8 @@ export function createApp(platform, config = {}) {
         { height: 36, font: 14, disabled: online.sending || (online.room.undo?.usedCount || 0) >= online.room.settings.undoMaxCount });
     if (zoomFocus) { ctx.save(); ctx.beginPath(); ctx.rect(boardRect.x, boardRect.y, boardRect.width, boardRect.height); ctx.clip(); }
     drawBoard(ctx, snapshot, layout, { selected, hint: session.hintPoint, target: session.tutorial?.done ? null : target, blocked,
-      lastMove: lastType === 'move' ? lastAction.point : null, effects: visibleInspection()?.effects,
+      lastMoves: lesson ? {} : latestMoveTracker(session.settings, session.actions, snapshot, session.replayIndex ?? session.actions.length),
+      effects: visibleInspection()?.effects,
       display: lesson ? { ...display, legalMoves: true, territories: true } : display });
     if (zoomFocus) { ctx.restore(); ctx.strokeStyle = THEME.border; ctx.lineWidth = 1; ctx.strokeRect(boardRect.x, boardRect.y, boardRect.width, boardRect.height); }
     if (session.saveError) {

@@ -921,35 +921,42 @@ export class Renderer {
   }
 
   _drawLastAction(snapshot, layout) {
-    const action = snapshot?.lastAction;
-    if (!action || action.type !== "move" || !Array.isArray(action.point) || action.point.length !== 2) {
-      return;
+    const actions = snapshot.lastMoves !== undefined
+      ? Object.entries(snapshot.lastMoves ?? {}).map(([player, point]) => ({ type: "move", player, point }))
+      : [snapshot.lastAction];
+    for (const action of actions) {
+      if (!action || action.type !== "move" || !Array.isArray(action.point) || action.point.length !== 2
+        || !PLAYER_ORDER.includes(action.player)
+        || !action.point.every(Number.isInteger)
+        || snapshot.resignedPlayers?.includes(action.player)
+        || snapshot.boardMatrix?.[action.point[1]]?.[action.point[0]] !== PointState[`${action.player}_NODE`]) continue;
+      this._drawLatestMove(action, layout);
     }
+  }
 
+  _drawLatestMove(action, layout) {
     const ctx = this.ctx;
-    const playerColors = Object.fromEntries(PLAYER_ORDER.map((player) => [player, this._getPlayerStyle(player, "Line")]));
     const [x, y] = this._gridToPixel(action.point[0], action.point[1], layout);
-    const stroke = playerColors[action.player] ?? this.theme.outline;
-
+    const stroke = this._getPlayerStyle(action.player, "Line");
     const ringRadius = layout.pointRadius + Math.max(6, layout.pointRadius * 0.55);
     const glowRadius = ringRadius + Math.max(5, layout.pointRadius * 0.7);
 
     ctx.save();
-    // 澶栧眰鍗婇€忔槑瀹炲績鍦嗘ā鎷熷厜鏅曪紙鏇夸唬 shadowBlur锛岀Щ鍔ㄧ鎬ц兘鏇村ソ锛?    ctx.beginPath();
+    // Separate paths prevent markers at different nodes from joining together.
+    ctx.beginPath();
     ctx.arc(x, y, glowRadius, 0, Math.PI * 2);
     ctx.fillStyle = stroke;
     ctx.globalAlpha = 0.22;
     ctx.fill();
     ctx.globalAlpha = 1;
 
-    // 鎻忚竟鍏夊湀
     ctx.beginPath();
     ctx.arc(x, y, ringRadius, 0, Math.PI * 2);
     ctx.strokeStyle = stroke;
     ctx.lineWidth = Math.max(2.5, layout.lineWidth * 0.3);
     ctx.stroke();
 
-    // 涓績灏忕櫧鐐?    ctx.beginPath();
+    ctx.beginPath();
     ctx.arc(x, y, Math.max(2.5, layout.pointRadius * 0.28), 0, Math.PI * 2);
     ctx.fillStyle = "rgba(255, 255, 255, 0.96)";
     ctx.fill();
@@ -1081,6 +1088,7 @@ export class Renderer {
       snapshot.lastAction?.type ?? "none",
       snapshot.lastAction?.player ?? "none",
       lp ? `${lp[0]},${lp[1]}` : "-",
+      JSON.stringify(snapshot.lastMoves ?? null),
       JSON.stringify(snapshot.inspectionOverlay ?? null),
       JSON.stringify(snapshot.initialPositions ?? null),
       // A same-revision snapshot can still carry a new preview, imported

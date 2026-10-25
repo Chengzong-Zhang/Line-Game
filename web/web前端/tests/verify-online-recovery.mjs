@@ -129,7 +129,7 @@ function createControllerProbe(engineOptions) {
 }
 
 function snapshotWithoutRenderFields(snapshot) {
-  const { renderEpoch, renderTerritories, lastAction, inspectionOverlay, ...rest } = snapshot;
+  const { renderEpoch, renderTerritories, lastAction, lastMoves, inspectionOverlay, ...rest } = snapshot;
   return rest;
 }
 
