@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "status": "TRANSFER_FAILED_OR_REMOTE_OUTCOME_UNCONFIRMED",
+  "action": "upload",
+  "startedAt": "2026-10-25T15:19:40.533Z",
+  "finishedAt": "2026-10-25T15:19:50.996Z",
+  "candidateId": "0.12.13-97815db19370-8sbNcd",
+  "candidateReceiptSha256": "30dd621dfc2f0970eff9626fbf3edef2be1ff667072192a37c0b84529f3f0cdb",
+  "version": "0.12.13",
+  "robot": 2,
+  "sdkVersion": "2.1.31",
+  "errorCode": 20003,
+  "experienceVersionConfigured": false,
+  "submittedForReview": false,
+  "published": false,
+  "safeDiagnostic": {
+    "rejectedIps": [],
+    "remoteErrorCodes": [
+      -1,
+      41001
+    ],
+    "categories": []
+  },
+  "reasonForSingleAttempt": "User reported administrator login completed; verified frozen candidate unchanged and no newer successful upload receipt found.",
+  "transport": "Explicit direct route; proxy variables cleared.",
+  "observedBrowserState": "Controlled Chrome tab remained on public QR login page after refresh; login window clarification requested.",
+  "credentialResetPerformed": false
+}
