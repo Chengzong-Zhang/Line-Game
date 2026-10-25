@@ -40,6 +40,7 @@ def immutable(path, raw):
         atomic_bytes(path, raw)
 
 def main():
+    raise ValueError("Historical rollout-only training is retired. Use train-defensive-policy-v1.mjs with complete defensive minimax depth >=3 labels; old frozen results remain unchanged.")
     p = argparse.ArgumentParser()
     p.add_argument("--run-root", required=True, type=Path); p.add_argument("--data-root", required=True, type=Path)
     p.add_argument("--config", required=True, type=Path); p.add_argument("--max-seconds", type=float, default=250)

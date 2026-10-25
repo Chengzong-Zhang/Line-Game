@@ -8,6 +8,9 @@ import { fileURLToPath } from "node:url";
 import { GameEngine } from "../web前端/GameEngine.js";
 import { MinimaxAI, fastTerritoryBFS, restoreState, saveState } from "../web前端/AIEngine.js";
 import { THREE_PLAYER_FEATURES, THREE_PLAYER_MODEL_ID, threePlayerCandidates } from "../web前端/ThreePlayerAI.js";
+import { rejectRetiredTrainingEntry } from "./training-policy-v1.mjs";
+
+rejectRetiredTrainingEntry("train-three-player-ai-v1");
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const args = process.argv.slice(2);

@@ -8,6 +8,9 @@ import { engineFor, apply, policy, outcome, rng } from "./hex-posttrain-core.mjs
 import { readModel, rawAtomic, sealModel, modelBody, arenaSpecs, pairedRows } from "./hex-posttrain-protocol.mjs";
 import { adamStep } from "./linear-three-v3-core.mjs";
 import { TRAIN_SOURCES, validateTraining, trajectories, example, objective } from "./hex-distill-v3-core.mjs";
+import { rejectRetiredTrainingEntry } from "./training-policy-v1.mjs";
+
+rejectRetiredTrainingEntry("run-hex-distillation-v3");
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../.."), args = process.argv.slice(2);
 const option = (name, fallback) => args.includes(name) ? args[args.indexOf(name) + 1] : fallback;

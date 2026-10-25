@@ -2,6 +2,20 @@
 
 These rules apply to all future work in this repository.
 
+## Default project skill
+
+- Use `lifeline-dev` by default when working on this project; the user does
+  not need to mention the skill explicitly.
+- At the start of a project task, read
+  `C:/Users/zcz/.codex/skills/lifeline-dev/SKILL.md` and follow its applicable
+  guidance. Load only the supporting references needed for the current task.
+- If that local path is unavailable, look for `lifeline-dev` in the current
+  skill catalog. If it cannot be found, report the missing skill rather than
+  silently claiming to have applied it.
+- The user's current instructions and this repository agreement take
+  precedence over the skill. Using the skill does not expand the task's scope
+  or grant permission to push, deploy, upload, or perform other external actions.
+
 ## Version control
 
 - Inspect `git status`, the current branch, and the configured remote before
@@ -39,6 +53,29 @@ These rules apply to all future work in this repository.
   smoke or partial run as a formal result.
 - Record source/config hashes and the exact verification command for formal
   claims whenever the workflow supports them.
+
+## Future product AI training
+
+- New product AI training data must come from the versioned defensive teacher:
+  `web/web前端/DefensiveTrainingTeacher.js`, through
+  `web/tools/defensive-training-data-v1.mjs`. Fit isolated candidates with
+  `web/tools/train-defensive-policy-v1.mjs`; do not restart retired shallow-label
+  or rollout-only product training protocols to bypass this requirement.
+- Every label must prove actual completed Minimax depth >= 3. Requested depth,
+  partial iterations, timed-out fallbacks and heuristic-only actions are not
+  sufficient. The current teacher additionally requires at least two rounds of
+  actual opponent actions (`max(3, 2 * surviving seats)` plies), full legal roots
+  including PASS, and exact root values. Insufficient budget emits no label.
+- Prioritize defense, prevention of repeated cuts, and persistent attacking
+  structures connected through intact logical edges to the initial node.
+  Preserve complete rules/history/actor state and verify the shared contract
+  both when generating and consuming labels. Frozen old data/results are
+  evidence, not compliant new training data; never silently relabel them.
+- Keep new models isolated until separate strength and product-admission
+  verification. See `docs/verification/defensive-training-20261025.md` and run
+  `node web/web前端/tests/verify-defensive-training-v1.mjs` for the bounded
+  teacher and recovery regressions. This does not authorize long training,
+  automatic promotion or external publication.
 
 ## Long-running experiment reliability
 

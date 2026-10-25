@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { GameEngine } from "../web前端/GameEngine.js";
 import { MinimaxAI, saveState, restoreState } from "../web前端/AIEngine.js";
 import { encodeResearchPosition, researchRelations } from "../web前端/ResearchAI.js";
+import { rejectRetiredTrainingEntry } from "./training-policy-v1.mjs";
 
 export const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 export const sha = (bytes) => createHash("sha256").update(bytes).digest("hex");
@@ -88,6 +89,7 @@ export function teacherSample(engine, config, ply) {
     target, modelFreeState: modelFreeState(engine) };
 }
 export async function dataMain(args) {
+  rejectRetiredTrainingEntry("neural-posttraining-data-v2");
   const opt = (name, fallback) => { const i = args.indexOf(name); return i < 0 ? fallback : args[i + 1]; };
   const runRoot = resolve(root, opt("--run-root", "local_artifacts/all-ai-posttraining-20261021/neural-data-v2"));
   const configPath = resolve(root, opt("--config", "web/tools/configs/neural-posttraining-data-20261021.json"));

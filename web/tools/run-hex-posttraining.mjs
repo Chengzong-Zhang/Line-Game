@@ -7,6 +7,7 @@ import { engineFor, apply, outcome, policy, rng, HEX_PLAYER_FEATURES } from "./h
 import { policyProbabilities, samplePolicy, ppoLossAndGradient, adamStep } from "./linear-three-v3-core.mjs";
 import { SOURCE_FILES, rawAtomic, readModel, sealModel, modelBody, validateProtocol, trainingSpecs,
   arenaSpecs, pairedRows, arenaSummary } from "./hex-posttrain-protocol.mjs";
+import { rejectRetiredTrainingEntry } from "./training-policy-v1.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const args = process.argv.slice(2);
@@ -115,6 +116,7 @@ try {
   if (!(maxSeconds > 0 && maxSeconds <= 1800) || !Number.isInteger(maxUnits) || maxUnits < 0) throw new Error("Invalid invocation budget.");
   const configBytes = await readFile(configPath);
   config = validateProtocol(JSON.parse(configBytes));
+  if (config.mode !== "FINAL") rejectRetiredTrainingEntry("run-hex-posttraining-v2");
   parent = await readModel(parentPath, "hex-player-policy-v1");
   if (canonical(parent.model.features) !== canonical(HEX_PLAYER_FEATURES)) throw new Error("Feature identity mismatch.");
   if (config.mode === "FINAL") {

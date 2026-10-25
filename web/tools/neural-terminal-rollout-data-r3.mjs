@@ -73,6 +73,7 @@ export function sampleFor(position,c){
  return {ply:position.actions.length,player:e.currentPlayer,features:[...encoded.features],relations:researchRelations(e,e.currentPlayer,true),legal:encoded.legal,target,modelFreeState:modelFreeState(e),teacherActionMeans:q};
 }
 export async function dataMain(args){
+ throw new Error('Historical rollout-only labels are retired. New training requires defensive-training-data-v1.mjs, complete minimax depth >=3 and two actual opponent rounds.');
  const opt=(n,d)=>{const i=args.indexOf(n);return i<0?d:args[i+1];},run=resolve(root,opt('--run-root','local_artifacts/neural-terminal-headonly-r3-20261021/data')),
  configPath=resolve(root,opt('--config','web/tools/configs/neural-terminal-headonly-r3-20261021.json')),maxSeconds=Number(opt('--max-seconds','250')),maxUnits=Number(opt('--max-new-units','1000000')),fault=opt('--fault','');
  assert.ok(maxSeconds>0&&maxSeconds<=1200&&maxUnits>=0);await mkdir(run,{recursive:true});const guard=await lease(run);

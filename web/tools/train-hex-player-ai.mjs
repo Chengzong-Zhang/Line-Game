@@ -8,6 +8,9 @@ import { fileURLToPath } from "node:url";
 import { GameEngine, PLAYER_ORDER } from "../web前端/GameEngine.js";
 import { MinimaxAI, fastTerritoryBFS, restoreState, saveState } from "../web前端/AIEngine.js";
 import { HEX_PLAYER_FEATURES, HEX_PLAYER_MODEL_ID, hexPlayerCandidates } from "../web前端/HexPlayerAI.js";
+import { rejectRetiredTrainingEntry } from "./training-policy-v1.mjs";
+
+rejectRetiredTrainingEntry("train-hex-player-ai-v1");
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const script = fileURLToPath(import.meta.url);

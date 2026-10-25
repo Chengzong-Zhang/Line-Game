@@ -75,6 +75,7 @@ def signature(path):
 
 
 def main():
+    raise ValueError("Historical shallow-label training is retired. Use train-defensive-policy-v1.mjs with complete defensive minimax depth >=3 labels; old frozen datasets remain unchanged.")
     parser = argparse.ArgumentParser()
     parser.add_argument("--run-root", type=Path, required=True)
     parser.add_argument("--data-root", type=Path, required=True)
