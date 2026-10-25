@@ -1,5 +1,6 @@
-import { Player } from "./GameEngine.js?v=20261025-room1";
-import { ALL_PLAYERS } from "./OnlineAppState.js?v=20261025-room1";
+import { PLAYER_PALETTE } from "./PlayerPalette.js?v=20261025-defense15";
+import { Player } from "./GameEngine.js?v=20261025-defense15";
+import { ALL_PLAYERS } from "./OnlineAppState.js?v=20261025-defense15";
 
 // 文案、比分格式化和错误提示都集中放在这里，避免 UI 文件里散落大量字符串。
 
@@ -261,7 +262,7 @@ const EN_TEXTS = Object.freeze({
   triangleMidpoint: (edge) => `Outer edge ${edge} · midpoint`,
   localGenericAI: "General AI",
   localGenericNote: "This shape and player count support human players or General AI. General AI chooses from legal moves using the current board.",
-  boardGeometry: (count, shape = count >= 4 ? "hexagon" : "triangle") => shape === "hexagon"
+  boardGeometry: (count, shape = count >= 4 ? "hexagon" : "triangle") => count > 6 ? `${shape === "hexagon" ? "Hexagon" : "Triangle"} · ${count} players · random or custom starts only.` : shape === "hexagon"
     ? `Regular hexagon · ${count} players · default vertices ${count === 2 ? "1, 4" : count === 3 ? "1, 3, 5" : count === 4 ? "1, 2, 4, 5" : count === 5 ? "1–5" : "1–6"}. Numbered clockwise from the upper left.`
     : count <= 3 ? "Triangle · default starts at the original corners."
       : "Triangle · first 3 players at the corners; players 4–6 at the midpoints of outer edges 1→2, 2→3, 3→1. With an even side length, use the first of the two central nodes along each edge.",
@@ -571,7 +572,7 @@ const ZH_TEXTS = Object.freeze({
   triangleMidpoint: (edge) => `外边 ${edge} · 中点`,
   localGenericAI: "通用 AI",
   localGenericNote: "当前人数与形状组合支持人类或通用 AI。通用 AI 会按当前棋盘的合法落点评分并选择行动。",
-  boardGeometry: (count, shape = count >= 4 ? "hexagon" : "triangle") => shape === "hexagon"
+  boardGeometry: (count, shape = count >= 4 ? "hexagon" : "triangle") => count > 6 ? `${shape === "hexagon" ? "正六边形" : "三角形"} · ${count} 人 · 仅支持随机或自定义起点。` : shape === "hexagon"
     ? `正六边形 · ${count} 人 · 默认占据 ${count === 2 ? "1、4" : count === 3 ? "1、3、5" : count === 4 ? "1、2、4、5" : count === 5 ? "1—5" : "1—6"} 号顶点，自左上角起顺时针编号。`
     : count <= 3 ? "三角形 · 默认起点沿用原来的顶点位置。"
       : "三角形 · 前 3 人占据顶点，第 4–6 人依次占据外边 1→2、2→3、3→1 的中点。偶数边长取沿该方向遇到的第一个中央格点。",
@@ -914,6 +915,7 @@ export function formatPlayerName(player, language = "zh", uiStyle = UI_STYLE_CAS
     [Player.GREEN]: ["Green", "绿方", "Delta"],
     [Player.ORANGE]: ["Orange", "橙方", "Epsilon"],
     [Player.CYAN]: ["Cyan", "青方", "Zeta"],
+    ...Object.fromEntries(ALL_PLAYERS.slice(6).map(player => [player, [PLAYER_PALETTE[player].english, PLAYER_PALETTE[player].chinese, String(PLAYER_PALETTE[player].number)]])),
   };
   if (extraPlayers[player]) {
     const [english, chinese, academicName] = extraPlayers[player];

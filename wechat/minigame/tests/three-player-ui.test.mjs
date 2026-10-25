@@ -19,19 +19,19 @@ test('two- and three-player controller drafts stay separate, persist across rest
     await ready(h); const hash = h.app.session.stateHash;
     await h.tap('cabin-board'); await choose(h, 'BLACK', 1); await choose(h, 'WHITE', 0); await h.tap('starter-WHITE');
     const two = { BLACK: 'greedy', WHITE: 'human' };
-    await h.slide('player-count', 3, 2, 6); await choose(h, 'BLACK', 1); await choose(h, 'PURPLE', 1); await h.tap('starter-PURPLE');
+    await h.slide('player-count', 3, 2, 15); await choose(h, 'BLACK', 1); await choose(h, 'PURPLE', 1); await h.tap('starter-PURPLE');
     const three = { BLACK: profile, WHITE: 'human', PURPLE: profile };
     assert.deepEqual(sut.readPreferences(storage).controllers, three);
     assert.equal(sut.readPreferences(storage).mode, 'three-human');
-    await h.slide('player-count', 2, 2, 6);
+    await h.slide('player-count', 2, 2, 15);
     assert.deepEqual(sut.readPreferences(storage).controllers, two); assert.equal(sut.readPreferences(storage).startPlayer, 'WHITE');
-    await h.slide('player-count', 3, 2, 6);
+    await h.slide('player-count', 3, 2, 15);
     assert.deepEqual(sut.readPreferences(storage).controllers, three); assert.equal(sut.readPreferences(storage).startPlayer, 'PURPLE');
     assert.equal(h.app.session.stateHash, hash, 'editing drafts never replaces the running game');
     h.app.dispose(); second = uiHarness({ storage }); await ready(second);
     await second.tap('cabin-board');
-    await second.slide('player-count', 2, 2, 6); assert.deepEqual(sut.readPreferences(storage).controllers, two);
-    await second.slide('player-count', 3, 2, 6); assert.deepEqual(sut.readPreferences(storage).controllers, three);
+    await second.slide('player-count', 2, 2, 15); assert.deepEqual(sut.readPreferences(storage).controllers, two);
+    await second.slide('player-count', 3, 2, 15); assert.deepEqual(sut.readPreferences(storage).controllers, three);
     await second.tap('cabin-close'); await second.tap('new-game');
     await until(() => second.app.session.settings.playerCount === 3 && second.app.session.actions.length >= 2 && !second.app.session.busy);
     assert.deepEqual(second.app.session.controllers, three); assert.equal(second.app.session.settings.startPlayer, 'PURPLE');
@@ -52,10 +52,10 @@ test('each three-player seat offers compatible AI versions; delayed two-player c
     await ready(h); await h.tap('cabin-board');
     h.p.choose = () => new Promise(resolve => { finish = resolve; });
     await h.tap('controller-BLACK');
-    await h.slide('player-count', 3, 2, 6); await h.slide('player-count', 2, 2, 6);
+    await h.slide('player-count', 3, 2, 15); await h.slide('player-count', 2, 2, 15);
     finish(4); await h.render();
     assert.equal(sut.readPreferences(h.p.storage).controllers, undefined);
-    await h.slide('player-count', 3, 2, 6);
+    await h.slide('player-count', 3, 2, 15);
     for (const player of ['BLACK', 'WHITE', 'PURPLE']) {
       let offered;
       h.p.choose = async labels => { offered = labels; return 1; };
@@ -72,7 +72,7 @@ test('one, two and three AI seats configured through the cabin execute their own
   for (const seats of [['WHITE'], ['WHITE', 'PURPLE'], ['BLACK', 'WHITE', 'PURPLE']]) {
     const h = uiHarness();
     try {
-      await ready(h); await h.tap('cabin-board'); await h.slide('player-count', 3, 2, 6); await h.slide('board-size', 5, 5, 15);
+      await ready(h); await h.tap('cabin-board'); await h.slide('player-count', 3, 2, 15); await h.slide('board-size', 5, 5, 15);
       for (const player of seats) await choose(h, player, 1);
       await h.tap('cabin-close'); await h.tap('new-game');
       await until(() => h.app.session.settings.playerCount === 3 && (h.app.session.canPlay() || h.app.session.actions.length >= 3));
@@ -96,7 +96,7 @@ test('three-player hints and replay analysis use the dedicated strategy without 
   for (const language of ['zh', 'en']) {
     const h = uiHarness({ language, width: 320, height: 568, top: 64 });
     try {
-      await ready(h); await h.tap('cabin-board'); await h.slide('player-count', 3, 2, 6); await h.slide('board-size', 5, 5, 15);
+      await ready(h); await h.tap('cabin-board'); await h.slide('player-count', 3, 2, 15); await h.slide('board-size', 5, 5, 15);
       await h.tap('cabin-close'); await h.tap('new-game'); await until(() => h.app.session.canPlay());
       const hash = h.app.session.stateHash;
       await h.tap('hint'); await until(() => !h.app.session.busy && h.app.session.hintPoint);

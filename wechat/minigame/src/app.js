@@ -36,8 +36,9 @@ export function createApp(platform, config = {}) {
   let startPlayer = preferences.startPlayer || 'BLACK', controllers = preferences.controllers || null;
   let playerCount = preferences.playerCount ?? (mode === 'three-human' ? 3 : 2), playersPage = 0;
   let boardShape = preferences.boardShape || (playerCount >= 4 ? 'hexagon' : 'triangle');
-  let startingPointMode = preferences.startingPointMode || 'default', initialPositions = preferences.initialPositions || null;
-  let startDraft = null, startSeat = 'BLACK', startPoint = null;
+  let startingPointMode = preferences.startingPointMode || (playerCount > 6 ? 'random' : 'default'), initialPositions = preferences.initialPositions || null;
+  let startDraft = null, startSeat = 'BLACK', startPoint = null, startSeatPage = 0;
+  let scorePage = 0, scorePosition = null, resultPage = 0;
   let roomDraft = null;
   const draftSettings = () => ({ gridSize: size, playerCount, boardShape });
   const playerDrafts = preferences.playerDrafts || {};
@@ -52,14 +53,14 @@ export function createApp(platform, config = {}) {
       boardShape, startingPointMode, initialPositions };
   }
   function changePlayerCount(count) {
-    if (!Number.isInteger(count) || count < 2 || count > 6 || count === draftPlayerCount()) return;
+    if (!Number.isInteger(count) || count < 2 || count > 15 || count === draftPlayerCount()) return;
     rememberPlayerDraft(); cabinGeneration++;
     const saved = playerDrafts[count];
     playerCount = count; playersPage = 0;
     mode = saved?.mode || (count === 3 ? 'three-human' : count >= 4 ? 'human' : 'ai-white');
     startPlayer = saved?.startPlayer || 'BLACK'; controllers = saved?.controllers ? { ...saved.controllers } : null;
     boardShape = saved?.boardShape || (count >= 4 ? 'hexagon' : 'triangle');
-    startingPointMode = saved?.startingPointMode || 'default'; initialPositions = saved?.initialPositions || null;
+    startingPointMode = saved?.startingPointMode || (count > 6 ? 'random' : 'default'); initialPositions = saved?.initialPositions || null;
     persistPreferences();
   }
   function selectController(player, profile) {
@@ -156,11 +157,11 @@ export function createApp(platform, config = {}) {
     const previous = roomDraft.settings, settings = { ...previous, ...overrides };
     if (settings.playerCount !== previous.playerCount) {
       settings.boardShape = settings.playerCount >= 4 ? 'hexagon' : 'triangle';
-      settings.startingPointMode = 'default'; delete settings.initialPositions;
+      settings.startingPointMode = settings.playerCount > 6 ? 'random' : 'default'; delete settings.initialPositions;
     }
     if (settings.gridSize !== previous.gridSize || settings.boardShape !== previous.boardShape) {
       delete settings.initialPositions;
-      if (settings.startingPointMode === 'custom') settings.startingPointMode = 'default';
+      if (settings.startingPointMode === 'custom') settings.startingPointMode = settings.playerCount > 6 ? 'random' : 'default';
     }
     if (!playerIds(settings.playerCount).includes(settings.startPlayer)) settings.startPlayer = 'BLACK';
     roomDraft.settings = settings;
@@ -334,12 +335,21 @@ export function createApp(platform, config = {}) {
       text(label('customStarts'), 24, top, 20, THEME.ink, 'left', 'bold');
       wrap(label('customStartsHelp'), 24, top + 32, w - 48, 13, THEME.muted, 2);
       const seats = playerIds(startCount), columns = 3, cell = (w - 64) / columns;
-      seats.forEach((player, index) => button(`start-seat-${player}`, `${playerLabel(player)} (${startDraft[player].join(',')})`,
+      const seatsPerPage = startCount > 6 && h - metrics.bottom - 108 - top < 293 ? 3 : 6;
+      const seatPages = Math.ceil(seats.length / seatsPerPage); startSeatPage = Math.max(0, Math.min(seatPages - 1, startSeatPage));
+      const visibleSeats = seats.slice(startSeatPage * seatsPerPage, (startSeatPage + 1) * seatsPerPage);
+      visibleSeats.forEach((player, index) => button(`start-seat-${player}`, `${playerLabel(player)} (${startDraft[player].join(',')})`,
         24 + index % columns * (cell + 8), top + 70 + Math.floor(index / columns) * 45, cell,
         () => { startSeat = player; startPoint = null; redraw(); }, { height: 39, font: 12, primary: startSeat === player }));
-      const footer = h - metrics.bottom - 108;
-      boardRect = { x: 30, y: top + 76 + Math.ceil(seats.length / columns) * 45,
-        width: w - 60, height: Math.max(65, footer - top - 94 - Math.ceil(seats.length / columns) * 45) };
+      const footer = h - metrics.bottom - 108, seatRows = Math.ceil(visibleSeats.length / columns), pageSpace = seatPages > 1 ? 44 : 0;
+      if (seatPages > 1) {
+        const pageY = top + 73 + seatRows * 45;
+        button('start-seats-prev', label('previousPage'), 24, pageY, 84, () => { startSeatPage--; redraw(); }, { height: 36, font: 12, disabled: startSeatPage <= 0 });
+        text(`${startSeatPage + 1} / ${seatPages}`, w / 2, pageY + 18, 13, THEME.muted, 'center');
+        button('start-seats-next', label('nextPage'), w - 108, pageY, 84, () => { startSeatPage++; redraw(); }, { height: 36, font: 12, disabled: startSeatPage >= seatPages - 1 });
+      }
+      boardRect = { x: 30, y: top + 76 + seatRows * 45 + pageSpace,
+        width: w - 60, height: Math.max(65, footer - top - 94 - seatRows * 45 - pageSpace) };
       baseLayout = boardLayout(startSize, boardRect, startCount, startShape);
       layout = zoomFocus ? focusBoardLayout(startSize, boardRect, zoomFocus, 44, startCount, startShape) : baseLayout;
       const extent = startShape === 'hexagon' ? 2 * startSize - 1 : startSize;
@@ -354,7 +364,7 @@ export function createApp(platform, config = {}) {
       if (duplicate) text(label('startPointOccupied'), w / 2, footer - 12, 13, '#a43730', 'center');
       button('start-point-confirm', `${label('confirmStart')} · ${playerLabel(startSeat)}`, 24, footer, w - 48,
         () => { if (!startPoint || duplicate) return; startDraft = { ...startDraft, [startSeat]: [...startPoint] }; startPoint = null;
-          startSeat = seats[(seats.indexOf(startSeat) + 1) % seats.length]; redraw(); }, { height: 44, primary: true, disabled: !startPoint || duplicate });
+          startSeat = seats[(seats.indexOf(startSeat) + 1) % seats.length]; startSeatPage = Math.floor(seats.indexOf(startSeat) / seatsPerPage); redraw(); }, { height: 44, primary: true, disabled: !startPoint || duplicate });
       button('starts-save', label('saveStarts'), 24, footer + 54, (w - 60) / 2, async () => {
         const positions = resolveInitialPositions(startSize, startCount, startDraft, startShape);
         if (roomDraft) editRoomDraft({ startingPointMode: 'custom', initialPositions: positions });
@@ -362,7 +372,7 @@ export function createApp(platform, config = {}) {
         openCabin('board'); }, { height: 44, disabled: Boolean(startPoint) });
       button('starts-cancel', label('cancelStarts'), 36 + (w - 60) / 2, footer + 54, (w - 60) / 2, () => openCabin('board'), { height: 44 });
       if (baseLayout.spacing < 44) button('start-zoom', label(zoomFocus ? 'overviewShort' : 'zoomShort'), w - 81, boardRect.y - 12, 57,
-        () => { zoomFocus = zoomFocus ? null : startPoint || startDraft[startSeat]; startPoint = null; redraw(); }, { height: 32, font: 12 });
+        () => { zoomFocus = zoomFocus ? null : startPoint || startDraft[startSeat]; startPoint = null; redraw(); }, { height: 36, font: 12 });
       return;
     }
     if (scene === 'setup') {
@@ -414,7 +424,8 @@ export function createApp(platform, config = {}) {
     if (scene === 'result') {
       const result = summarizeResult(session.snapshot);
       if (!result) { scene = 'game'; redraw(); return; }
-      drawResult(ui, { result, playerLabel, online: isOnline() }, {
+      drawResult(ui, { result, playerLabel, online: isOnline(), page: resultPage }, {
+        page: value => { resultPage = value; redraw(); },
         back: () => { scene = 'game'; redraw(); },
         replay: () => { scene = 'game'; selected = null; void session.replay(0); redraw(); },
         save: async () => { if (!isOnline() && !session.hidden) { archiveCurrent(); await platform.message(label('replaySaved')); } },
@@ -500,7 +511,12 @@ export function createApp(platform, config = {}) {
     }
     const boxW = (w - 60) / 2;
     const compact = h - metrics.top - metrics.bottom < 620;
-    const multiScore = snapshot.players.length >= 4, scoreExtra = multiScore ? 48 : 0;
+    const multiScore = snapshot.players.length >= 4, scoresPerPage = snapshot.players.length > 6 && compact ? 3 : 6;
+    const scorePages = Math.ceil(snapshot.players.length / scoresPerPage), scoreRows = Math.ceil(Math.min(scoresPerPage, snapshot.players.length) / 3);
+    const positionKey = `${session.epoch}:${session.replayIndex}:${snapshot.currentPlayer}:${snapshot.gameOver}`;
+    if (scorePosition !== positionKey) { scorePage = Math.floor(snapshot.players.indexOf(snapshot.currentPlayer) / scoresPerPage); scorePosition = positionKey; }
+    scorePage = Math.max(0, Math.min(scorePages - 1, scorePage));
+    const scoreExtra = (multiScore ? (scoreRows - 1) * 48 : 0) + (scorePages > 1 ? 42 : 0);
     const replaying = session.replayIndex !== null;
     const boardOffset = (session.tutorial ? 160 : replaying ? visibleInspection() ? 190 : 172 : 132) + scoreExtra, statusTop = top + scoreExtra;
     const footer = h - metrics.bottom - 102;
@@ -513,7 +529,7 @@ export function createApp(platform, config = {}) {
     const ownSide = isOnline() ? online.room?.player : null;
     const roundWidth = 64, scoreGap = 6;
     const scoreWidth = multiScore ? (w - 44) / 3 : (w - 32 - roundWidth - snapshot.players.length * scoreGap) / snapshot.players.length;
-    const scoreOrder = snapshot.players.length === 2 ? [snapshot.players[0], null, snapshot.players[1]] : multiScore ? snapshot.players : [...snapshot.players, null];
+    const scoreOrder = snapshot.players.length === 2 ? [snapshot.players[0], null, snapshot.players[1]] : multiScore ? snapshot.players.slice(scorePage * scoresPerPage, (scorePage + 1) * scoresPerPage) : [...snapshot.players, null];
     const roundNumber = Math.max(1, (session.replayIndex ?? session.actions.length) + (snapshot.gameOver ? 0 : 1));
     let scoreX = 16;
     for (const [scoreIndex, player] of scoreOrder.entries()) {
@@ -535,6 +551,11 @@ export function createApp(platform, config = {}) {
       // A vector underline identifies whose turn it is without emoji font variation.
       if (activeTurn) rect(scoreX + 12, scoreY + 38, scoreWidth - 24, 3, 1, color);
       scoreX += scoreWidth + scoreGap;
+    }
+    if (scorePages > 1) {
+      button('score-prev', label('previousPage'), 24, top + scoreRows * 48, 84, () => { scorePage--; redraw(); }, { height: 36, font: 12, disabled: scorePage <= 0 });
+      text(`${scorePage + 1} / ${scorePages}`, w / 2, top + scoreRows * 48 + 18, 13, THEME.muted, 'center');
+      button('score-next', label('nextPage'), w - 108, top + scoreRows * 48, 84, () => { scorePage++; redraw(); }, { height: 36, font: 12, disabled: scorePage >= scorePages - 1 });
     }
     let instruction = session.busy ? label('thinking') : snapshot.gameOver
       ? `${label('result')} · ${snapshot.winner === 'DRAW' ? label('draw') : `${playerLabel(snapshot.winner)} ${label('wins')}`}`
@@ -560,7 +581,7 @@ export function createApp(platform, config = {}) {
     if (replaying) drawReplayPrimary(ui, { busy: session.busy,
       canBranch: !isOnline() && !snapshot.gameOver, canAnalyze: !snapshot.gameOver }, { select: replayAction }, statusTop + 84);
     if (hasResult) button('result-detail', label('resultDetails'), w - 106, statusTop + (compact ? 44 : 47), 82,
-      () => { if (!session.hidden) { session.pause(); scene = 'result'; redraw(); } }, { height: 36, disabled: session.busy });
+      () => { if (!session.hidden) { session.pause(); resultPage = 0; scene = 'result'; redraw(); } }, { height: 36, disabled: session.busy });
     if (lesson) wrap(session.tutorial.done ? (language === 'zh' ? lesson.successZh : lesson.successEn)
       : session.tutorial.restrictionObserved && lesson.allowedInstructionZh
         ? (language === 'zh' ? lesson.allowedInstructionZh : lesson.allowedInstructionEn)
@@ -743,11 +764,11 @@ export function createApp(platform, config = {}) {
         starter: player => { if (roomDraft) return editRoomDraft({ startPlayer: player }); startPlayer = player; persistPreferences(); },
         shape: value => { if (roomDraft) return editRoomDraft({ boardShape: value });
           if (boardShape === value) return; boardShape = value; initialPositions = null;
-          if (startingPointMode === 'custom') startingPointMode = 'default'; cabinGeneration++; persistPreferences(); },
-        startingPoints: value => { if (value === 'custom') openStartingPoints(); else if (roomDraft) editRoomDraft({ startingPointMode: value, initialPositions: undefined });
+          if (startingPointMode === 'custom') startingPointMode = playerCount > 6 ? 'random' : 'default'; cabinGeneration++; persistPreferences(); },
+        startingPoints: value => { if (value === 'default' && (roomDraft?.settings.playerCount ?? playerCount) > 6) return; if (value === 'custom') openStartingPoints(); else if (roomDraft) editRoomDraft({ startingPointMode: value, initialPositions: undefined });
           else { startingPointMode = value; initialPositions = null; persistPreferences(); } },
         size: value => { if (roomDraft) return editRoomDraft({ gridSize: value });
-          if (size !== value) { initialPositions = null; if (startingPointMode === 'custom') startingPointMode = 'default'; } size = value; persistPreferences(); }, option: (key, value) => {
+          if (size !== value) { initialPositions = null; if (startingPointMode === 'custom') startingPointMode = playerCount > 6 ? 'random' : 'default'; } size = value; persistPreferences(); }, option: (key, value) => {
           if (roomDraft) return editRoomDraft({ ...(key === 'hintEnabled' && value
             ? { hintMaxCount: Math.max(1, roomDraft.settings.hintMaxCount ?? 3) } : {}), [key]: value });
           playOptions = normalizePlayOptions({ ...playOptions, ...(key === 'hintEnabled' && value ? { hintMaxCount: Math.max(1, playOptions.hintMaxCount) } : {}), [key]: value });
@@ -998,9 +1019,10 @@ export function createApp(platform, config = {}) {
   function openStartingPoints() {
     if (session.hidden || (isOnline() && !online.canEditSettings())) return;
     const setup = roomDraft?.settings || { gridSize: size, playerCount, boardShape, initialPositions };
-    pauseForPanel(); cabin = null; cabinGeneration++; startSeat = playerIds(setup.playerCount)[0]; startPoint = null;
+    pauseForPanel(); cabin = null; cabinGeneration++; startSeat = playerIds(setup.playerCount)[0]; startPoint = null; startSeatPage = 0;
     try { startDraft = resolveInitialPositions(setup.gridSize, setup.playerCount, setup.initialPositions, setup.boardShape); }
-    catch (_) { startDraft = resolveInitialPositions(setup.gridSize, setup.playerCount, null, setup.boardShape); }
+    catch (_) { startDraft = setup.playerCount > 6 ? randomInitialPositions(setup.gridSize, setup.playerCount, Math.random, setup.boardShape)
+      : resolveInitialPositions(setup.gridSize, setup.playerCount, null, setup.boardShape); }
     scene = 'starts'; clearBoardView(); redraw();
   }
   async function configureDuration() {

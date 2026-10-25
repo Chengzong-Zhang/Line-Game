@@ -55,7 +55,7 @@ def random_initial_positions(grid_size, player_count, board_shape, previous):
         return max(abs(dx), abs(dy), abs(dx + dy))
     def draw():
         available, chosen, result = points.copy(), [], {}
-        for color in ("BLACK", "WHITE", "PURPLE", "GREEN", "ORANGE", "CYAN")[:player_count]:
+        for color in PLAYER_COLORS[:player_count]:
             if chosen:
                 scores = [min(distance(point, other) for other in chosen) for point in available]
                 best = max(scores)
@@ -79,7 +79,7 @@ def random_initial_positions(grid_size, player_count, board_shape, previous):
 
 # 这个服务负责账号、静态资源、房间、连接和动作同步，
 # 普通真人房间仍采用转发协议；含 AI 的房间复用 Web GameEngine 校验完整动作历史。
-ROOM_SIZE = 6
+ROOM_SIZE = 15
 ROOM_CODE_LENGTH = 4
 ROOM_TTL_SECONDS = 300
 HEARTBEAT_TIMEOUT_SECONDS = 35
@@ -106,7 +106,7 @@ PLAYER_PURPLE = "PURPLE"
 PLAYER_GREEN = "GREEN"
 PLAYER_ORANGE = "ORANGE"
 PLAYER_CYAN = "CYAN"
-PLAYER_COLORS = (PLAYER_BLACK, PLAYER_WHITE, PLAYER_PURPLE, PLAYER_GREEN, PLAYER_ORANGE, PLAYER_CYAN)
+PLAYER_COLORS = ('BLACK', 'WHITE', 'PURPLE', 'GREEN', 'ORANGE', 'CYAN', 'PINK', 'BROWN', 'LIME', 'NAVY', 'GOLD', 'TEAL', 'MAGENTA', 'SLATE', 'CORAL')
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "replace-this-with-a-long-random-secret-key")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_DAYS = 7
@@ -1850,7 +1850,7 @@ class ConnectionManager:
             numeric_fields[field] = int(max(minimum, min(maximum, value)))
 
         color_class = str(display.get("colorClass", "")).strip()
-        if color_class not in {"blue", "red", "purple", "green", "orange", "cyan"}:
+        if color_class not in {'gold', 'navy', 'pink', 'lime', 'purple', 'brown', 'teal', 'green', 'magenta', 'slate', 'coral', 'red', 'cyan', 'orange', 'blue'}:
             color_class = "blue"
 
         return {
@@ -1878,7 +1878,7 @@ class ConnectionManager:
         turn_timer_enabled = bool(settings.get("turnTimerEnabled", False))
         turn_time_limit_seconds = settings.get("turnTimeLimitSeconds", DEFAULT_TURN_TIMER_SECONDS)
 
-        if type(player_count) is not int or player_count not in (2, 3, 4, 5, 6):
+        if type(player_count) is not int or not 2 <= player_count <= 15:
             player_count = 2
         if not isinstance(grid_size, int) or grid_size < MIN_GRID_SIZE or grid_size > MAX_GRID_SIZE:
             grid_size = 9
@@ -1921,6 +1921,8 @@ class ConnectionManager:
                 used.add((x, y))
             if valid:
                 starts = {"startingPointMode": starting_mode, "initialPositions": {color: list(initial_positions[color]) for color in allowed_players}}
+        if player_count > 6 and not starts:
+            starts = {"startingPointMode": "random", "initialPositions": random_initial_positions(grid_size, player_count, board_shape, None)}
         if bot_count:
             if rules_version == TERRITORY_RULE_V1:
                 rules_version = DEFAULT_RULES_VERSION

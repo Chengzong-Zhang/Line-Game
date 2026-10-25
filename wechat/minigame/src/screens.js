@@ -55,7 +55,7 @@ export function drawPlayers(ui, state, actions) {
   button('swap-players', label('swapPlayers'), w - 128, top - 18, 104, actions.swap, { height: 36, disabled: state.playerCount !== 2 });
   button('players-minus', '−', 24, top + 28, 44, () => actions.players(state.playerCount - 1), { height: 40, disabled: state.playerCount <= 2 });
   text(`${state.playerCount} ${label('players')} · ${label(state.boardShape === 'hexagon' ? 'hexBoard' : 'triangleBoard')}`, w / 2, top + 48, 14, '#244d3d', 'center');
-  button('players-plus', '+', w - 68, top + 28, 44, () => actions.players(state.playerCount + 1), { height: 40, disabled: state.playerCount >= 6 });
+  button('players-plus', '+', w - 68, top + 28, 44, () => actions.players(state.playerCount + 1), { height: 40, disabled: state.playerCount >= 15 });
   const colors = playerIds(state.playerCount), footer = h - bottom - 112;
   const count = Math.max(1, Math.min(3, Math.floor((footer - top - 120) / 66)));
   const pages = Math.ceil(colors.length / count), page = Math.max(0, Math.min(pages - 1, state.page || 0));

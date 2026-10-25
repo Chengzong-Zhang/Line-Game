@@ -1,6 +1,6 @@
-import { MATH_CHAPTERS } from './GuideMathChapters.js?v=20261025-room1';
-import { TECHNICAL_CHAPTERS } from './GuideTechnicalChapters.js?v=20261025-room1';
-import { blockText, blockMarkdown, guideHeadingId } from './GuideArticleFormat.js?v=20261025-room1';
+import { MATH_CHAPTERS } from './GuideMathChapters.js?v=20261025-defense15';
+import { TECHNICAL_CHAPTERS } from './GuideTechnicalChapters.js?v=20261025-defense15';
+import { blockText, blockMarkdown, guideHeadingId } from './GuideArticleFormat.js?v=20261025-defense15';
 
 export function guideChapters(kind = 'rulesMath') {
   return kind === 'whyCode' ? TECHNICAL_CHAPTERS : MATH_CHAPTERS;

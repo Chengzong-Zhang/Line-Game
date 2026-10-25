@@ -114,7 +114,7 @@ test('new scenes fit safe areas, persist settings, select all lessons and expose
     };
     try {
       await render(); check(); assert.deepEqual(p.calls, { read: 0, write: 0 });
-      await tap('cabin-board'); check(); await h.slide('player-count', 3, 2, 6); await h.slide('board-size', 8, 5, 15);
+      await tap('cabin-board'); check(); await h.slide('player-count', 3, 2, 15); await h.slide('board-size', 8, 5, 15);
       const preferences = sut.readPreferences(p.storage);
       assert.equal(preferences.size, 8); assert.equal(preferences.mode, 'three-human'); assert.equal(preferences.difficulty, 'normal');
       assert.equal(preferences.playerDrafts[2].mode, 'ai-white'); assert.equal(preferences.playerDrafts[3].mode, 'three-human');

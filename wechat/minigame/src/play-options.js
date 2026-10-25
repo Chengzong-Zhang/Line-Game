@@ -1,3 +1,5 @@
+import { PLAYER_ORDER } from './core.js';
+
 export const DEFAULT_PLAY_OPTIONS = Object.freeze({ turnTimerEnabled: false, turnTimeLimitSeconds: 60,
   hintEnabled: true, hintMaxCount: 3, undoEnabled: false, undoMaxCount: 3 });
 
@@ -17,7 +19,7 @@ export function normalizePlayOptions(value = {}) {
 
 export function validateUndoUsage(value, settings) {
   if (value == null) return { usedCount: 0, blockedPlayers: [] };
-  const players = ['BLACK', 'WHITE', 'PURPLE', 'GREEN', 'ORANGE', 'CYAN'].slice(0, settings.playerCount);
+  const players = PLAYER_ORDER.slice(0, settings.playerCount);
   if (typeof value !== 'object' || Array.isArray(value) || !Number.isInteger(value.usedCount)
     || value.usedCount < 0 || value.usedCount > normalizePlayOptions(settings).undoMaxCount
     || !Array.isArray(value.blockedPlayers) || new Set(value.blockedPlayers).size !== value.blockedPlayers.length

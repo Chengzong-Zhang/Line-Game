@@ -46,7 +46,7 @@ MAX_AVATAR_DATA_URL = 4 * ((MAX_AVATAR_BYTES + 2) // 3) + 32
 SOCKET_IO_TIMEOUT = 2
 EMOTE_CAPABILITY = "emote-v1"
 BOT_MEMBER = "@AI:WHITE"
-PLAYER_COLORS = ("BLACK", "WHITE", "PURPLE", "GREEN", "ORANGE", "CYAN")
+PLAYER_COLORS = ('BLACK', 'WHITE', 'PURPLE', 'GREEN', 'ORANGE', 'CYAN', 'PINK', 'BROWN', 'LIME', 'NAVY', 'GOLD', 'TEAL', 'MAGENTA', 'SLATE', 'CORAL')
 PLAYER_CHOICES = frozenset(("human", "minimax", "padded-cnn", "grid-gnn", "topology-gnn",
                             "dqn", "ppo", "sac", "gail", "gan", "ai-easy", "ai-medium",
                             "ai-hard", "ai-ultimate", "three-player", "hex-player", "greedy"))
@@ -86,7 +86,7 @@ def random_initial_positions(grid_size, player_count, board_shape, previous):
         return max(abs(dx), abs(dy), abs(dx + dy))
     def draw():
         available, chosen, result = points.copy(), [], {}
-        for color in ("BLACK", "WHITE", "PURPLE", "GREEN", "ORANGE", "CYAN")[:player_count]:
+        for color in PLAYER_COLORS[:player_count]:
             if chosen:
                 scores = [min(distance(point, other) for other in chosen) for point in available]
                 best = max(scores)
@@ -911,7 +911,8 @@ class WechatService:
                 or mode not in ("default", "random", "custom") or type(enabled) is not bool
                 or type(count) is not int or not 1 <= count <= 10
                 or rules not in ("territory-v2", "territory-v3")
-                or type(players) is not int or not 2 <= players <= 6
+                or type(players) is not int or not 2 <= players <= 15
+                or (type(players) is int and players > 6 and mode == "default")
                 or not isinstance(first, str) or first not in PLAYER_COLORS[:players]
                 or type(body.get("botCount", 0)) is not int or not 0 <= body.get("botCount", 0) < players
                 or type(body.get("turnTimerEnabled", False)) is not bool
@@ -947,6 +948,8 @@ class WechatService:
                     fail("INVALID_SETTINGS", 422)
             setup = {color: {"choice": setup[color]["choice"], "depth": setup[color].get("depth", 3),
                              "version": setup[color].get("version", "2026092201")} for color in colors}
+            if players > 6 and any(value["choice"] not in ("human", "greedy", "ai-easy", "ai-hard") for value in setup.values()):
+                fail("INVALID_SETTINGS", 422)
             if not any(value["choice"] == "human" for value in setup.values()):
                 fail("HUMAN_SEAT_REQUIRED", 422)
         settings = {"gridSize": size, "playerCount": players, "startPlayer": first, "rulesVersion": rules,
@@ -1318,7 +1321,7 @@ def create_router(service=None, *, web_authenticate=None, web_password_authentic
             return {"enabled": True, "protocol": PROTOCOL, "rulesVersion": "territory-v3",
                     "supportedRulesVersions": ["territory-v2", "territory-v3"],
                     "roomSettings": True, "undoVoting": True,
-                    "mixedPlayerRooms": True, "playerCounts": [2, 3, 4, 5, 6], "pendingRoomSettings": True,
+                    "mixedPlayerRooms": True, "playerCounts": list(range(2, 16)), "pendingRoomSettings": True,
                     "timedTurns": True,
                     "accounts": True, "webLogin": web_authenticate is not None or web_password_authenticate is not None,
                     "accountProfile": True,

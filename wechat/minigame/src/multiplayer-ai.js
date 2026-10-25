@@ -1,3 +1,4 @@
+import { MultiplayerMinimaxAI } from '../../../web/web前端/MultiplayerSearch.js';
 import { threePlayerModelIdForBoard } from '../../../web/web前端/ThreePlayerSearchOptions.js';
 import { createHardRuntimeV2 } from '../../../web/web前端/MultiplayerHardRuntime.js';
 import { loadMultiplayerRuntime } from '../../../web/web前端/MultiplayerRuntime.js';
@@ -16,9 +17,10 @@ export function isMultiplayerTierProfile(profile) {
 }
 
 function validateConfiguration(profile, engine) {
-  if (!isMultiplayerTierProfile(profile) || ![3, 4, 5, 6].includes(engine?.playerCount)
+  if (!isMultiplayerTierProfile(profile) || !Number.isInteger(engine?.playerCount) || engine.playerCount < 3 || engine.playerCount > 15
     || !['territory-v2', 'territory-v3'].includes(engine.rulesVersion) || !Number.isInteger(engine.gridSize)
     || engine.gridSize < 5 || engine.gridSize > 15 || !['triangle', 'hexagon'].includes(engine.boardShape)
+    || engine.playerCount > 6 && profile !== 'multiplayer-hard-v1'
     || profile === 'multiplayer-medium-v1' && engine.boardShape !== (engine.playerCount === 3 ? 'triangle' : 'hexagon')) {
     throw new Error('INVALID_CONTROLLERS');
   }
@@ -61,7 +63,11 @@ const resources = {
 
 export async function createEmbeddedMultiplayerRuntime(profile, engine) {
   validateConfiguration(profile, engine);
-  const runtime = await loadMultiplayerRuntime(profile, engine, resources);
+  const runtime = engine.playerCount > 6
+    ? { ai: new MultiplayerMinimaxAI({ depth: Math.min(engine.playerCount + 1, 6), timeMs: 650 }),
+      modelInfo: { id: profile, algorithm: 'paranoid-minimax', training: null,
+        compatibility: `${engine.rulesVersion} generic 7–15 players; size 5–15` } }
+    : await loadMultiplayerRuntime(profile, engine, resources);
   if (runtime.modelInfo.id !== profile) throw new Error('MODEL_INTEGRITY');
   const algorithm = runtime.ai;
   return {

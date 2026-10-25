@@ -23,7 +23,7 @@ test('native paged AI picker selects the last new tier, then starts a real AI tu
     const h = uiHarness({ language, platformOverrides: { choose } });
     try {
       await until(() => h.app.session.canPlay());
-      await h.tap('cabin-board'); await h.slide('player-count', 3, 2, 6);
+      await h.tap('cabin-board'); await h.slide('player-count', 3, 2, 15);
       await h.slide('board-size', 5, 5, 15); await h.scrollTo('controller-BLACK');
       await h.tap('controller-BLACK');
       await until(() => sut.readPreferences(h.p.storage).controllers?.BLACK === 'multiplayer-hard-v1');
@@ -44,7 +44,7 @@ test('backgrounding during a native AI picker cannot open its next page or chang
   const h = uiHarness({ platformOverrides: { choose: nativeChoices(options => { pending = options; sheets++; }) } });
   try {
     await until(() => h.app.session.canPlay());
-    await h.tap('cabin-board'); await h.slide('player-count', 3, 2, 6); await h.scrollTo('controller-BLACK');
+    await h.tap('cabin-board'); await h.slide('player-count', 3, 2, 15); await h.scrollTo('controller-BLACK');
     const before = plain(sut.readPreferences(h.p.storage));
     await h.tap('controller-BLACK'); assert.ok(pending);
     h.p.callbacks.hide();

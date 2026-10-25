@@ -32,7 +32,7 @@ export async function processBotRequest(request, { chooseBotPoint = chooseRoomBo
   const settings = request?.settings;
   const playerCount = settings?.playerCount;
   const colors = PLAYER_ORDER.slice(0, playerCount);
-  if (![2, 3, 4, 5, 6].includes(playerCount) || !["territory-v2", "territory-v3"].includes(settings.rulesVersion)
+  if ((!Number.isInteger(playerCount) || playerCount < 2 || playerCount > 15) || !["territory-v2", "territory-v3"].includes(settings.rulesVersion)
     || !Number.isInteger(settings.gridSize) || settings.gridSize < 5 || settings.gridSize > 15
     || !colors.includes(settings.startPlayer ?? "BLACK")
     || !Array.isArray(request.actions) || request.actions.length > 4096
@@ -48,6 +48,7 @@ export async function processBotRequest(request, { chooseBotPoint = chooseRoomBo
     if (!setup || typeof setup !== "object" || Array.isArray(setup)
       || Object.entries(setup).some(([color, player]) => !PLAYER_ORDER.includes(color) || !player || typeof player !== "object" || Array.isArray(player)
         || !ALL_LOCAL_PLAYER_CHOICES.includes(player.choice)
+        || playerCount > 6 && !["human", "greedy", "ai-easy", "ai-hard"].includes(player.choice)
         || player.depth !== undefined && ![2, 3, 4].includes(player.depth)
         || player.version !== undefined && !versions.has(player.version))
       || colors.every(color => setup[color] && setup[color].choice !== "human")) {

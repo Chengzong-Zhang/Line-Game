@@ -31,6 +31,8 @@ export const Player = Object.freeze({
   GREEN: "GREEN",
   ORANGE: "ORANGE",
   CYAN: "CYAN",
+  PINK: "PINK", BROWN: "BROWN", LIME: "LIME", NAVY: "NAVY", GOLD: "GOLD",
+  TEAL: "TEAL", MAGENTA: "MAGENTA", SLATE: "SLATE", CORAL: "CORAL",
 });
 
 export const PointState = Object.freeze({
@@ -47,10 +49,21 @@ export const PointState = Object.freeze({
   ORANGE_LINE: 10,
   CYAN_NODE: 11,
   CYAN_LINE: 12,
+  PINK_NODE: 13, PINK_LINE: 14,
+  BROWN_NODE: 15, BROWN_LINE: 16,
+  LIME_NODE: 17, LIME_LINE: 18,
+  NAVY_NODE: 19, NAVY_LINE: 20,
+  GOLD_NODE: 21, GOLD_LINE: 22,
+  TEAL_NODE: 23, TEAL_LINE: 24,
+  MAGENTA_NODE: 25, MAGENTA_LINE: 26,
+  SLATE_NODE: 27, SLATE_LINE: 28,
+  CORAL_NODE: 29, CORAL_LINE: 30,
 });
 
 export const PLAYER_ORDER = Object.freeze([
   Player.BLACK, Player.WHITE, Player.PURPLE, Player.GREEN, Player.ORANGE, Player.CYAN,
+  Player.PINK, Player.BROWN, Player.LIME, Player.NAVY, Player.GOLD,
+  Player.TEAL, Player.MAGENTA, Player.SLATE, Player.CORAL,
 ]);
 const DIRECTIONS = Object.freeze([
   [1, 0],
@@ -65,6 +78,9 @@ const DIRECTIONS = Object.freeze([
 const DIRS_CW = Object.freeze([[1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1], [1, -1]]);
 
 const PLAYER_POINT_STATES = Object.freeze({
+  ...Object.fromEntries(PLAYER_ORDER.map(player => [player, Object.freeze({
+    node: PointState[`${player}_NODE`], line: PointState[`${player}_LINE`],
+  })])),
   [Player.BLACK]: Object.freeze({
     node: PointState.BLACK_NODE,
     line: PointState.BLACK_LINE,
@@ -128,6 +144,7 @@ export function getBoardPositions(gridSize, playerCount = 2, boardShape = null) 
 }
 
 function buildInitialPositions(gridSize, playerCount, boardShape = null) {
+  if (playerCount > 6) throw new Error("7-15 players require random or custom starting points.");
   if (resolveBoardShape(playerCount, boardShape) === "hexagon") {
     const vertices = getBoardVertices(gridSize, playerCount, "hexagon");
     const occupiedVertices = playerCount === 2 ? [0, 3] : playerCount === 3 ? [0, 2, 4]
@@ -290,8 +307,8 @@ export class GameEngine {
       configurable: false,
     });
     this.playerCount = options.playerCount ?? 2;
-    if (!Number.isInteger(this.playerCount) || this.playerCount < 2 || this.playerCount > 6) {
-      throw new Error("playerCount must be an integer between 2 and 6.");
+    if (!Number.isInteger(this.playerCount) || this.playerCount < 2 || this.playerCount > 15) {
+      throw new Error("playerCount must be an integer between 2 and 15.");
     }
     this.boardShape = resolveBoardShape(this.playerCount, options.boardShape);
     this.boardVertices = getBoardVertices(this.gridSize, this.playerCount, this.boardShape);
@@ -1987,6 +2004,11 @@ export class GameEngine {
   }
 
   _getCanonicalTerritoryTransforms(player) {
+    // Extra seats have no default vertex. Their configured roots must never
+    // invoke the six-seat default opening while rendering or scoring.
+    if (this.playerCount > 6) return this.boardShape === "hexagon"
+      ? [{ rotation: 0, reflected: false }, { rotation: 0, reflected: true }]
+      : [BARYCENTRIC_TRANSFORMS.IDENTITY, BARYCENTRIC_TRANSFORMS.SWAP_XY];
     if (this.boardShape === "hexagon") {
       // Preserve the established seat-based scoring orientation when the
       // connectivity root is moved away from its original vertex.

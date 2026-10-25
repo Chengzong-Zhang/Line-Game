@@ -1,20 +1,21 @@
-import { MultiplayerWarmupSession } from "./MultiplayerAIWarmup.js?v=20261025-room1";
-import { createLocalAIWorker } from "./LocalAIWorkerFactory.js?v=20261025-room1";
-import GameController from "./GameController.js?v=20261025-room1";
-import { Player } from "./GameEngine.js?v=20261025-room1";
-import { captureWorkerRequest, isWorkerResultForRequest, serializeEngineState } from "./AIStateProtocol.js?v=20261025-room1";
-import { RESEARCH_FAMILIES, TRANSFER_SEEDS, researchProfile } from "./ResearchAIOptions.js?v=20261025-room1";
+import { MultiplayerWarmupSession } from "./MultiplayerAIWarmup.js?v=20261025-defense15";
+import { createLocalAIWorker } from "./LocalAIWorkerFactory.js?v=20261025-defense15";
+import GameController from "./GameController.js?v=20261025-defense15";
+import { PLAYER_PALETTE } from "./PlayerPalette.js?v=20261025-defense15";
+import { Player } from "./GameEngine.js?v=20261025-defense15";
+import { captureWorkerRequest, isWorkerResultForRequest, serializeEngineState } from "./AIStateProtocol.js?v=20261025-defense15";
+import { RESEARCH_FAMILIES, TRANSFER_SEEDS, researchProfile } from "./ResearchAIOptions.js?v=20261025-defense15";
 import {
   OneShotHintWorker,
   applyHintWorkerResult,
-} from "./HintWorkerSession.js?v=20261025-room1";
-import { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js?v=20261025-room1";
-import NetworkManager from "./CrossPlatformNetwork.js?v=20261025-room1";
+} from "./HintWorkerSession.js?v=20261025-defense15";
+import { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js?v=20261025-defense15";
+import NetworkManager from "./CrossPlatformNetwork.js?v=20261025-defense15";
 import {
   applyRoomSnapshotWithPostCommit,
   coordinateControllerRoomSnapshot,
   registerRoomSnapshotResponseListeners,
-} from "./OnlineRoomSync.js?v=20261025-room1";
+} from "./OnlineRoomSync.js?v=20261025-defense15";
 import {
   createEmptyAuth as createAppEmptyAuth,
   GRID_SIZE_OPTIONS as APP_GRID_SIZE_OPTIONS,
@@ -32,7 +33,7 @@ import {
   normalizeGameSettings as normalizeAppGameSettings,
   persistAuth as persistAppAuth,
   persistSession as persistAppSession,
-} from "./OnlineAppState.js?v=20261025-room1";
+} from "./OnlineAppState.js?v=20261025-defense15";
 import {
   formatArea as formatAppArea,
   formatConnectionState as formatAppConnectionState,
@@ -46,8 +47,8 @@ import {
   UI_STYLE_STORAGE_KEY,
   UI_STYLE_ACADEMIC,
   localizeErrorMessage as localizeAppErrorMessage,
-} from "./OnlineAppI18n.js?v=20261025-room1";
-import { ensureGuideRuleImages, getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20261025-room1";
+} from "./OnlineAppI18n.js?v=20261025-defense15";
+import { ensureGuideRuleImages, getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20261025-defense15";
 import {
   TUTORIAL_LEVELS,
   getTutorialEngineSettings,
@@ -55,27 +56,27 @@ import {
   getTutorialLevel,
   isTutorialTarget,
   isTutorialRestrictionAttempt,
-} from "./TutorialRunner.js?v=20261025-room1";
+} from "./TutorialRunner.js?v=20261025-defense15";
 import {
   appendLocalGameAction,
   clearLocalGameSession,
   createLocalGameSession,
   loadLocalGameSession,
   persistLocalGameSession,
-} from "./LocalGameSession.js?v=20261025-room1";
+} from "./LocalGameSession.js?v=20261025-defense15";
 import {
   createReplayDocument,
   downloadReplayDocument,
   parseAndValidateReplay,
-} from "./ReplayCodec.js?v=20261025-room1";
-import { TrainingContribution, ContributionPanel, supportsContributionActors } from "./TrainingContribution.js?v=20261025-room1";
-import { localAIPlayer, localMatchActors, localMatchMode, localPlayerProfile, normalizeLocalPlayers, loadLocalMatchPreferences, persistLocalMatchPreferences } from "./LocalAIModes.js?v=20261025-room1";
-import { roomSettingsFromBoard, normalizeRoomPlayerSetup } from "./OnlineRoomSettings.js?v=20261025-room1";
-import LocalPlayerSetup from "./LocalPlayerSetup.js?v=20261025-room1";
-import StartingPointSetup from "./StartingPointSetup.js?v=20261025-room1";
-import { randomInitialPositions, startingPointSettings } from "./StartingPoints.js?v=20261025-room1";
-import { resolveInitialPositions, resolveBoardShape } from "./GameEngine.js?v=20261025-room1";
-import { normalizeUndoUsage, recordUndoAction, createLocalUndoTimeline, planLocalUndo, consumeLocalUndo } from "./LocalUndo.js?v=20261025-room1";
+} from "./ReplayCodec.js?v=20261025-defense15";
+import { TrainingContribution, ContributionPanel, supportsContributionActors } from "./TrainingContribution.js?v=20261025-defense15";
+import { localAIPlayer, localMatchActors, localMatchMode, localPlayerProfile, normalizeLocalPlayers, loadLocalMatchPreferences, persistLocalMatchPreferences } from "./LocalAIModes.js?v=20261025-defense15";
+import { roomSettingsFromBoard, normalizeRoomPlayerSetup } from "./OnlineRoomSettings.js?v=20261025-defense15";
+import LocalPlayerSetup from "./LocalPlayerSetup.js?v=20261025-defense15";
+import StartingPointSetup from "./StartingPointSetup.js?v=20261025-defense15";
+import { randomInitialPositions, startingPointSettings } from "./StartingPoints.js?v=20261025-defense15";
+import { resolveInitialPositions, resolveBoardShape } from "./GameEngine.js?v=20261025-defense15";
+import { normalizeUndoUsage, recordUndoAction, createLocalUndoTimeline, planLocalUndo, consumeLocalUndo } from "./LocalUndo.js?v=20261025-defense15";
 
 const {
   computed,
@@ -357,6 +358,7 @@ const PLAYER_ACCENT_CLASS = Object.freeze({
   [Player.GREEN]: "player-accent-green",
   [Player.ORANGE]: "player-accent-orange",
   [Player.CYAN]: "player-accent-cyan",
+  ...Object.fromEntries(APP_ALL_PLAYERS.slice(6).map(player => [player, `player-accent-${PLAYER_PALETTE[player].accent}`])),
 });
 
 function getPlayerAccentClass(player) {
@@ -565,7 +567,7 @@ const ScorePanel = {
         const accent = getPlayerAccentClass(player).replace("player-accent-", "");
         return {
           ...namedCard,
-          label: texts.value[`${accent}Territory`],
+          label: texts.value[`${accent}Territory`] ?? formatAppPlayerName(player, props.language, props.uiStyle),
           value: scores?.[player],
           className: `score-card-${accent}`,
         };
@@ -1163,6 +1165,7 @@ const RoomPanel = {
       "is-green": option.value === Player.GREEN,
       "is-orange": option.value === Player.ORANGE,
       "is-cyan": option.value === Player.CYAN,
+      [`is-${PLAYER_PALETTE[option.value]?.accent}`]: true,
     });
     const readyActionLabel = computed(() => (
       roomPlaying.value
@@ -3194,10 +3197,10 @@ const App = {
     let activeAiRequestId = null;
     let activeAiRequest = null;
     const hintWorkerSession = new OneShotHintWorker(
-      () => new Worker(new URL("./AIWorker.js?v=20261025-room1", import.meta.url), { type: "module" }),
+      () => new Worker(new URL("./AIWorker.js?v=20261025-defense15", import.meta.url), { type: "module" }),
     );
     const aiComparisonWorkerSession = new OneShotHintWorker(
-      () => new Worker(new URL("./AIWorker.js?v=20261025-room1", import.meta.url), { type: "module" }),
+      () => new Worker(new URL("./AIWorker.js?v=20261025-defense15", import.meta.url), { type: "module" }),
     );
     const chatEmojiTimeoutIds = new Set();
 
@@ -3542,10 +3545,11 @@ const App = {
           startingPointSettings({ ...selectedStartingPoints.value, playerCount, gridSize, boardShape });
       }
       catch (_) {
-        const mode = selectedStartingPoints.value.startingPointMode ?? "default";
+        const mode = playerCount > 6 && (!selectedStartingPoints.value.startingPointMode || selectedStartingPoints.value.startingPointMode === "default")
+          ? "random" : selectedStartingPoints.value.startingPointMode ?? "default";
         selectedStartingPoints.value = mode === "default" ? {} : {
           startingPointMode: mode,
-          initialPositions: mode === "random" ? randomInitialPositions(gridSize, playerCount, Math.random, boardShape) : resolveInitialPositions(gridSize, playerCount, null, boardShape),
+          initialPositions: mode === "random" || playerCount > 6 ? randomInitialPositions(gridSize, playerCount, Math.random, boardShape) : resolveInitialPositions(gridSize, playerCount, null, boardShape),
         };
       }
 

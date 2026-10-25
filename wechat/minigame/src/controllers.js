@@ -1,3 +1,4 @@
+import { PLAYER_ORDER } from './core.js';
 import { MODEL_CATALOG, MULTIPLAYER_AI_CATALOG } from './model-catalog.js';
 export const BASIC_CONTROLLERS = ['human', 'greedy', 'minimax-2', 'minimax-3', 'minimax-4'];
 export const CONTROLLER_CHOICES = [...BASIC_CONTROLLERS, ...MODEL_CATALOG.map(model => model.profile)];
@@ -5,9 +6,8 @@ export const THREE_PLAYER_PROFILE = 'three-player-policy-v1';
 export const THREE_PLAYER_CONTROLLERS = ['human', ...MULTIPLAYER_AI_CATALOG.filter(item => item.playerCounts.includes(3)).map(item => item.profile)];
 export const HEX_PLAYER_PROFILE = 'hex-player-policy-v1';
 export const HEX_PLAYER_CONTROLLERS = ['human', ...MULTIPLAYER_AI_CATALOG.filter(item => item.playerCounts.includes(4)).map(item => item.profile)];
-const PLAYER_ORDER = ['BLACK', 'WHITE', 'PURPLE', 'GREEN', 'ORANGE', 'CYAN'];
 export function playerIds(playerCount = 2) {
-  return Number.isInteger(playerCount) && playerCount >= 2 && playerCount <= 6 ? PLAYER_ORDER.slice(0, playerCount) : [];
+  return Number.isInteger(playerCount) && playerCount >= 2 && playerCount <= PLAYER_ORDER.length ? PLAYER_ORDER.slice(0, playerCount) : [];
 }
 function contextFor(countOrSettings = 2, options = {}) {
   const settings = typeof countOrSettings === 'object' && countOrSettings !== null ? { ...countOrSettings, ...options }
@@ -20,6 +20,7 @@ export function controllerChoices(countOrSettings = 2, options = {}) {
   const { playerCount, boardShape, gridSize, rulesVersion } = contextFor(countOrSettings, options);
   if (!playerIds(playerCount).length || !['triangle', 'hexagon'].includes(boardShape)
     || !Number.isInteger(gridSize) || gridSize < 5 || gridSize > 15 || !['territory-v2', 'territory-v3'].includes(rulesVersion)) return [];
+  if (playerCount > 6) return ['human', 'greedy', 'multiplayer-hard-v1'];
   const nativeShape = boardShape === (playerCount >= 4 ? 'hexagon' : 'triangle');
   if (playerCount === 2 && !nativeShape) return ['human', 'greedy'];
   if (playerCount === 2) return CONTROLLER_CHOICES.filter(profile => {
@@ -36,6 +37,7 @@ export function defaultAIProfile(countOrSettings = 2, options = {}) {
   const settings = contextFor(countOrSettings, options), choices = controllerChoices(settings);
   if (!choices.length) throw new Error('INVALID_CONTROLLERS');
   if (choices.includes('greedy') && settings.boardShape !== (settings.playerCount >= 4 ? 'hexagon' : 'triangle')) return 'greedy';
+  if (settings.playerCount > 6) return 'multiplayer-hard-v1';
   if (settings.playerCount === 2) return 'minimax-2';
   if (settings.playerCount === 3) return choices.includes('three-player-search-v4-round12') ? 'three-player-search-v4-round12' : THREE_PLAYER_PROFILE;
   return HEX_PLAYER_PROFILE;

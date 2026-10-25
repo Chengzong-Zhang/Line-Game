@@ -1,7 +1,8 @@
-import { getBoardPositions, PLAYER_ORDER, resolveInitialPositions } from "./GameEngine.js?v=20261025-room1";
-import { randomInitialPositions, STARTING_POINT_MODES } from "./StartingPoints.js?v=20261025-room1";
+import { getBoardPositions, PLAYER_ORDER, resolveInitialPositions } from "./GameEngine.js?v=20261025-defense15";
+import { PLAYER_PALETTE, playerLabel } from "./PlayerPalette.js?v=20261025-defense15";
+import { randomInitialPositions, STARTING_POINT_MODES } from "./StartingPoints.js?v=20261025-defense15";
 
-const COLORS = ["#2473bd", "#cc4852", "#9654b5", "#368655", "#d87825", "#168d9c"];
+
 
 export default {
   name: "StartingPointSetup",
@@ -42,11 +43,13 @@ export default {
     });
     const positions = computed(() => {
       try { return resolveInitialPositions(props.gridSize, props.playerCount, props.selection.initialPositions, props.boardShape); }
-      catch (_) { return resolveInitialPositions(props.gridSize, props.playerCount, null, props.boardShape); }
+      catch (_) { return props.playerCount > 6
+        ? randomInitialPositions(props.gridSize, props.playerCount, () => 0, props.boardShape)
+        : resolveInitialPositions(props.gridSize, props.playerCount, null, props.boardShape); }
     });
     const sides = computed(() => PLAYER_ORDER.slice(0, props.playerCount).map((player, index) => ({
-      player, color: COLORS[index], number: index + 1, point: positions.value[player],
-      name: props.texts[["localBluePlayer", "localRedPlayer", "localPurplePlayer", "localGreenPlayer", "localOrangePlayer", "localCyanPlayer"][index]],
+      player, color: PLAYER_PALETTE[player].color, number: index + 1, point: positions.value[player],
+      name: playerLabel(player, props.language),
     })));
     const activeSide = computed(() => sides.value.find((side) => side.player === activePlayer.value) ?? sides.value[0]);
     const preview = computed(() => {
@@ -78,7 +81,7 @@ export default {
       syncCoordinates();
     }, { immediate: true });
     const chooseMode = (value) => {
-      if (props.locked) return;
+      if (props.locked || props.playerCount > 6 && value === "default") return;
       error.value = "";
       emit("update", value === "default" ? {} : {
         startingPointMode: value,
@@ -98,7 +101,7 @@ export default {
         emit("update", { startingPointMode: "custom", initialPositions: next });
       } catch (_) { error.value = copy.value.invalid; }
     };
-    return { mode, modes: STARTING_POINT_MODES, copy, sides, activePlayer, activeSide, preview,
+    return { mode, modes: computed(() => STARTING_POINT_MODES.filter(item => props.playerCount <= 6 || item !== "default")), copy, sides, activePlayer, activeSide, preview,
       column, row, error, chooseMode, choosePoint,
       applyCoordinates: () => choosePoint([Number(column.value) - 1, Number(row.value) - 1]),
     };

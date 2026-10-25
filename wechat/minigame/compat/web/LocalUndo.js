@@ -1,7 +1,7 @@
-import GameEngine from "./GameEngine.js?v=20261021-frame-latency2";
+import GameEngine, { PLAYER_ORDER } from "./GameEngine.js?v=20261021-frame-latency2";
 
 // Ask the rule engine for actors: automatic skips can change the turn order.
-const COLORS = ["BLACK", "WHITE", "PURPLE", "GREEN", "ORANGE", "CYAN"];
+const COLORS = PLAYER_ORDER;
 export const UNDO_MAX_COUNT_MIN = 1;
 export const UNDO_MAX_COUNT_MAX = 10;
 export const DEFAULT_UNDO_MAX_COUNT = 3;

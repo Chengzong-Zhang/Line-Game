@@ -108,10 +108,10 @@ export async function createMediumRuntime(engine,resources = { loadThreePlayerRu
     policySpec:model.spec,responseSpecs:[model.spec]};
 }
 export async function loadMultiplayerRuntime(modelId,engine,resources = { loadThreePlayerRuntime, loadHexPlayerModel, loadAssetModel: assetModel }){
-  if(!MULTIPLAYER_MODEL_IDS.includes(modelId)||![3,4,5,6].includes(engine.playerCount)
+  if(!MULTIPLAYER_MODEL_IDS.includes(modelId)||(!Number.isInteger(engine.playerCount)||engine.playerCount<3||engine.playerCount>15)
     ||!["territory-v2", "territory-v3"].includes(engine.rulesVersion)||engine.gridSize<5||engine.gridSize>15) throw new Error("Unsupported multiplayer AI configuration");
-  const native=engine.boardShape===(engine.playerCount===3?"triangle":"hexagon");
-  if(!native&&["multiplayer-medium-v1","multiplayer-ultimate-v1"].includes(modelId)) throw new Error("This AI requires the native multiplayer board shape");
+  const native=engine.playerCount<=6&&engine.boardShape===(engine.playerCount===3?"triangle":"hexagon");
+  if((engine.playerCount>6&&modelId!=="multiplayer-hard-v1")||(!native&&["multiplayer-medium-v1","multiplayer-ultimate-v1"].includes(modelId))) throw new Error("This AI requires the native multiplayer board shape");
   let ai, lineage=null;
   if(modelId==="multiplayer-medium-v1"){
     const medium=await createMediumRuntime(engine,resources); ai=medium.ai; lineage=medium.modelInfo.id;
@@ -180,5 +180,6 @@ export async function loadMultiplayerRuntime(modelId,engine,resources = { loadTh
     if(requested>0&&!gate.moves.length&&!source.getLegalMoves(player).length) return [{type:"pass",point:null,score:0,visits:1}];
     return gate.moves.slice(0,requested);
   }};
-  return {ai,modelInfo:{id:modelId,lineage,evidenceTier:"application-candidate",compatibility:`${engine.rulesVersion} 3–6 players; size 5–15`}};
+  return {ai,modelInfo:{id:modelId,lineage,evidenceTier:"application-candidate",
+    compatibility:`${engine.rulesVersion} ${engine.playerCount > 6 ? "7–15 players; generic search without trained model" : "3–6 players"}; size 5–15`}};
 }

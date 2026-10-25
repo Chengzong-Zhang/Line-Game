@@ -37,6 +37,7 @@ function getBoardPositions(gridSize, playerCount = 2, boardShape = null) {
   return positions;
 }
 function buildInitialPositions(gridSize, playerCount, boardShape = null) {
+  if (playerCount > 6) throw new Error("7-15 players require random or custom starting points.");
   if (resolveBoardShape(playerCount, boardShape) === "hexagon") {
     const vertices = getBoardVertices(gridSize, playerCount, "hexagon");
     const occupiedVertices = playerCount === 2 ? [0, 3] : playerCount === 3 ? [0, 2, 4] : playerCount === 4 ? [0, 1, 3, 4] : [0, 1, 2, 3, 4, 5];
@@ -290,7 +291,16 @@ var init_GameEngine = __esm({
       PURPLE: "PURPLE",
       GREEN: "GREEN",
       ORANGE: "ORANGE",
-      CYAN: "CYAN"
+      CYAN: "CYAN",
+      PINK: "PINK",
+      BROWN: "BROWN",
+      LIME: "LIME",
+      NAVY: "NAVY",
+      GOLD: "GOLD",
+      TEAL: "TEAL",
+      MAGENTA: "MAGENTA",
+      SLATE: "SLATE",
+      CORAL: "CORAL"
     });
     PointState = Object.freeze({
       EMPTY: 0,
@@ -305,7 +315,25 @@ var init_GameEngine = __esm({
       ORANGE_NODE: 9,
       ORANGE_LINE: 10,
       CYAN_NODE: 11,
-      CYAN_LINE: 12
+      CYAN_LINE: 12,
+      PINK_NODE: 13,
+      PINK_LINE: 14,
+      BROWN_NODE: 15,
+      BROWN_LINE: 16,
+      LIME_NODE: 17,
+      LIME_LINE: 18,
+      NAVY_NODE: 19,
+      NAVY_LINE: 20,
+      GOLD_NODE: 21,
+      GOLD_LINE: 22,
+      TEAL_NODE: 23,
+      TEAL_LINE: 24,
+      MAGENTA_NODE: 25,
+      MAGENTA_LINE: 26,
+      SLATE_NODE: 27,
+      SLATE_LINE: 28,
+      CORAL_NODE: 29,
+      CORAL_LINE: 30
     });
     PLAYER_ORDER = Object.freeze([
       Player.BLACK,
@@ -313,7 +341,16 @@ var init_GameEngine = __esm({
       Player.PURPLE,
       Player.GREEN,
       Player.ORANGE,
-      Player.CYAN
+      Player.CYAN,
+      Player.PINK,
+      Player.BROWN,
+      Player.LIME,
+      Player.NAVY,
+      Player.GOLD,
+      Player.TEAL,
+      Player.MAGENTA,
+      Player.SLATE,
+      Player.CORAL
     ]);
     DIRECTIONS = Object.freeze([
       [1, 0],
@@ -325,6 +362,10 @@ var init_GameEngine = __esm({
     ]);
     DIRS_CW = Object.freeze([[1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1], [1, -1]]);
     PLAYER_POINT_STATES = Object.freeze({
+      ...Object.fromEntries(PLAYER_ORDER.map((player) => [player, Object.freeze({
+        node: PointState[`${player}_NODE`],
+        line: PointState[`${player}_LINE`]
+      })])),
       [Player.BLACK]: Object.freeze({
         node: PointState.BLACK_NODE,
         line: PointState.BLACK_LINE
@@ -387,8 +428,8 @@ var init_GameEngine = __esm({
           configurable: false
         });
         this.playerCount = options.playerCount ?? 2;
-        if (!Number.isInteger(this.playerCount) || this.playerCount < 2 || this.playerCount > 6) {
-          throw new Error("playerCount must be an integer between 2 and 6.");
+        if (!Number.isInteger(this.playerCount) || this.playerCount < 2 || this.playerCount > 15) {
+          throw new Error("playerCount must be an integer between 2 and 15.");
         }
         this.boardShape = resolveBoardShape(this.playerCount, options.boardShape);
         this.boardVertices = getBoardVertices(this.gridSize, this.playerCount, this.boardShape);
@@ -1772,6 +1813,7 @@ var init_GameEngine = __esm({
         return { polygon: closedPoly, area: curArea, displayArea: computeTriangularPolygonArea(currentPoly) };
       }
       _getCanonicalTerritoryTransforms(player) {
+        if (this.playerCount > 6) return this.boardShape === "hexagon" ? [{ rotation: 0, reflected: false }, { rotation: 0, reflected: true }] : [BARYCENTRIC_TRANSFORMS.IDENTITY, BARYCENTRIC_TRANSFORMS.SWAP_XY];
         if (this.boardShape === "hexagon") {
           const vertexIndex = this.boardVertices.findIndex(
             (point) => pointEquals(point, buildInitialPositions(this.gridSize, this.playerCount, this.boardShape)[player])
@@ -5804,7 +5846,7 @@ __export(MultiplayerHardWorkerRuntime_exports, {
 });
 async function loadMultiplayerRuntime(modelId, engine) {
   if (modelId === HARD_MODEL_ID && supportsNativeHardContext(engine)) return loadNativeHardRuntime(engine);
-  const general = await import("./MultiplayerRuntime.js?v=20261025-room1");
+  const general = await import("./MultiplayerRuntime.js?v=20261025-defense15");
   return general.loadMultiplayerRuntime(modelId, engine);
 }
 var init_MultiplayerHardWorkerRuntime = __esm({
@@ -6078,7 +6120,7 @@ var init_AIWorker = __esm({
           });
         } else if (strategy === "neural-puct") {
           if (engine.playerCount !== 2) throw new Error("\u6A21\u578B\u4E0D\u652F\u6301\u6B64\u68CB\u76D8/\u89C4\u5219/\u73A9\u5BB6\u6570\u3002");
-          const { loadResearchModel, NeuralPUCTAI, supportsResearchInference } = await import("./ResearchAI.js?v=20261025-room1");
+          const { loadResearchModel, NeuralPUCTAI, supportsResearchInference } = await import("./ResearchAI.js?v=20261025-defense15");
           const model = await loadResearchModel(event.data?.modelId);
           if (!supportsResearchInference(model.spec, engine)) throw new Error("\u6A21\u578B\u4E0D\u652F\u6301\u6B64\u68CB\u76D8/\u89C4\u5219/\u73A9\u5BB6\u6570\u3002");
           modelInfo = {
@@ -6097,7 +6139,7 @@ var init_AIWorker = __esm({
           });
         } else if (strategy === "model-free") {
           if (engine.playerCount !== 2) throw new Error("model-free \u7F51\u9875\u6A21\u578B\u4EC5\u652F\u6301\u53CC\u4EBA\u5C40\u9762\u3002");
-          const { loadModelFreeModel, ModelFreeAI } = await import("./ModelFreeAI.js?v=20261025-room1");
+          const { loadModelFreeModel, ModelFreeAI } = await import("./ModelFreeAI.js?v=20261025-defense15");
           const model = await loadModelFreeModel(event.data?.modelId);
           ai = new ModelFreeAI(model);
         } else if (strategy === "multiplayer") {
@@ -6112,7 +6154,7 @@ var init_AIWorker = __esm({
           ai = runtime.ai;
           modelInfo = runtime.modelInfo;
         } else if (strategy === "hex-player") {
-          const { loadHexPlayerRuntime } = await import("./HexPlayerRuntime.js?v=20261025-room1");
+          const { loadHexPlayerRuntime } = await import("./HexPlayerRuntime.js?v=20261025-defense15");
           const runtime = await loadHexPlayerRuntime(event.data?.modelId, engine);
           ai = runtime.ai;
           modelInfo = runtime.modelInfo;

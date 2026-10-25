@@ -1,4 +1,6 @@
-import { Player, PointState, PLAYER_ORDER, getBoardVertices, getBoardPositions, isBoardPoint } from "./GameEngine.js?v=20261025-room1";
+import { Player, PointState, PLAYER_ORDER, getBoardVertices, getBoardPositions, isBoardPoint } from "./GameEngine.js?v=20261025-defense15";
+
+import { PLAYER_PALETTE } from "./PlayerPalette.js?v=20261025-defense15";
 
 const SQRT3_OVER_2 = Math.sqrt(3) / 2;
 
@@ -34,13 +36,17 @@ const DEFAULT_THEME = Object.freeze({
   orangeTerritoryStroke: "rgba(168, 98, 13, 0.75)",
   cyanTerritoryFill: "rgba(22, 166, 182, 0.18)",
   cyanTerritoryStroke: "rgba(8, 119, 133, 0.75)",
+  ...Object.fromEntries(PLAYER_ORDER.slice(6).flatMap(player => {
+    const { accent, color } = PLAYER_PALETTE[player];
+    return [[`${accent}Node`, color], [`${accent}Line`, color], [`${accent}TerritoryFill`, `${color}2e`], [`${accent}TerritoryStroke`, `${color}bf`]];
+  })),
   legalMoveFill: "#2fba63",
   legalMoveStroke: "rgba(17, 84, 40, 0.35)",
 });
 
 const PLAYER_THEME_KEYS = Object.freeze({
   BLACK: "blue", WHITE: "red", PURPLE: "purple",
-  GREEN: "green", ORANGE: "orange", CYAN: "cyan",
+  ...Object.fromEntries(PLAYER_ORDER.map(player => [player, PLAYER_PALETTE[player].accent])),
 });
 
 const NODE_PLAYERS = new Map(PLAYER_ORDER.map((player) => [PointState[`${player}_NODE`], player]));

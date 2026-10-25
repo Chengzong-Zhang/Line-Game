@@ -5,6 +5,7 @@ export const STARTING_POINT_MODES = Object.freeze(["default", "random", "custom"
 export function startingPointSettings(settings) {
   const mode = settings.startingPointMode ?? (settings.initialPositions ? "custom" : "default");
   if (!STARTING_POINT_MODES.includes(mode)) throw new Error("Unknown starting point mode.");
+  if (settings.playerCount > 6 && mode === "default") throw new Error("7-15 players require random or custom starting points.");
   if (mode === "default" && settings.initialPositions == null) return {};
   if (settings.initialPositions == null) throw new Error("Starting points have not been selected.");
   return {
@@ -17,6 +18,9 @@ export function startingPointSettings(settings) {
 // replay/refresh never calls the random generator again.
 export function randomInitialPositions(gridSize, playerCount, random = Math.random, boardShape = null) {
   const points = getBoardPositions(gridSize, playerCount, boardShape);
+  if (!Number.isInteger(playerCount) || playerCount < 2 || playerCount > PLAYER_ORDER.length || points.length < playerCount) {
+    throw new Error("The board cannot fit all starting points.");
+  }
   const positions = {};
   const chosen = [];
   for (const player of PLAYER_ORDER.slice(0, playerCount)) {

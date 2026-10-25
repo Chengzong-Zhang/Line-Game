@@ -1,4 +1,4 @@
-import { p, m, s, ch } from './GuideArticleFormat.js?v=20261025-room1';
+import { p, m, s, ch } from './GuideArticleFormat.js?v=20261025-defense15';
 
 // Derived statements are conditional theorems, not experimental strength claims.
 export const MATH_CHAPTERS = [

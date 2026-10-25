@@ -178,7 +178,10 @@ export function drawResult(ui, state, actions) {
   text(label('resultScoreUnits'), 24, top + 34, 12, '#738476');
   const columns = result.rows.length >= 4 ? 2 : 1;
   const step = compact ? 50 : 68, cardHeight = compact ? 44 : 58, cardWidth = (w - 48 - (columns - 1) * 8) / columns;
-  result.rows.forEach((row, index) => {
+  const pageSize = result.rows.length > 6 ? compact ? 4 : 6 : result.rows.length;
+  const pages = Math.ceil(result.rows.length / pageSize), page = Math.max(0, Math.min(pages - 1, state.page || 0));
+  const visibleRows = result.rows.slice(page * pageSize, (page + 1) * pageSize);
+  visibleRows.forEach((row, index) => {
     const x = 24 + (index % columns) * (cardWidth + 8), y = top + 61 + Math.floor(index / columns) * step;
     rect(x, y, cardWidth, cardHeight, 13, row.winner ? '#e2ecdd' : '#fffef9');
     const color = PLAYER_COLORS[row.player];
@@ -186,8 +189,13 @@ export function drawResult(ui, state, actions) {
     text(label(row.resigned ? columns > 1 ? 'resignedShort' : 'resultResigned' : row.winner ? 'wins' : 'resultCounted'), x + 12, y + (compact ? 32 : 42), 11, '#738476');
     text(row.area, x + cardWidth - 12, y + cardHeight / 2, columns > 1 ? 21 : 24, row.resigned ? '#738476' : '#244d3d', 'right', 'bold');
   });
-  wrap(label(`result-${result.reason}`), 24, top + 76 + Math.ceil(result.rows.length / columns) * step, w - 48, 12, '#738476', compact ? 4 : 5);
+  wrap(label(`result-${result.reason}`), 24, top + 76 + Math.ceil(visibleRows.length / columns) * step, w - 48, 12, '#738476', compact ? 4 : 5);
   const half = (w - 60) / 2, footer = h - bottom - 108;
+  if (pages > 1) {
+    button('result-page-prev', label('previousPage'), 24, footer - 44, 84, () => actions.page(page - 1), { height: 36, font: 12, disabled: page <= 0 });
+    text(`${page + 1} / ${pages}`, w / 2, footer - 26, 13, '#738476', 'center');
+    button('result-page-next', label('nextPage'), w - 108, footer - 44, 84, () => actions.page(page + 1), { height: 36, font: 12, disabled: page >= pages - 1 });
+  }
   button('result-replay', label('replay'), 24, footer, half, actions.replay, { primary: true });
   button('result-save', label('saveResult'), 36 + half, footer, half, actions.save, { disabled: state.online });
   button('result-back', label('backToReplay'), 24, footer + 54, w - 48, actions.back);

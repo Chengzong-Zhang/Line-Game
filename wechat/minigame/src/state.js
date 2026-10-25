@@ -14,7 +14,7 @@ export function settingsFor(size = 7, playerCount = 2, startPlayer = 'BLACK') {
 export function validateSettings(settings) {
   if (!settings || typeof settings !== 'object' || Array.isArray(settings)
     || !['territory-v2', RULES].includes(settings.rulesVersion)
-    || !Number.isInteger(settings.playerCount) || settings.playerCount < 2 || settings.playerCount > 6
+    || !Number.isInteger(settings.playerCount) || settings.playerCount < 2 || settings.playerCount > PLAYER_ORDER.length
     || !Number.isInteger(settings.gridSize) || settings.gridSize < 5 || settings.gridSize > 15
     || !PLAYER_ORDER.slice(0, settings.playerCount).includes(settings.startPlayer)) throw new Error('INVALID_SETTINGS');
   normalizePlayOptions(settings);

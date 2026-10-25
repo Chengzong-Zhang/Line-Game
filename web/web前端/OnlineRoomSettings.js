@@ -1,10 +1,10 @@
-import { LOCAL_PLAYER_COLORS, normalizeLocalPlayers, localPlayerProfile, usesGenericBoardAI } from "./LocalAIModes.js?v=20261025-room1";
-import { DEFAULT_RESEARCH_VERSION, RESEARCH_FAMILIES } from "./ResearchAIOptions.js?v=20261025-room1";
+import { LOCAL_PLAYER_COLORS, normalizeLocalPlayers, localPlayerProfile, usesGenericBoardAI } from "./LocalAIModes.js?v=20261025-defense15";
+import { DEFAULT_RESEARCH_VERSION, RESEARCH_FAMILIES } from "./ResearchAIOptions.js?v=20261025-defense15";
 
 export const ROOM_PLAYER_COLORS = LOCAL_PLAYER_COLORS;
 const THREE_MODELS = new Set(["three-player-policy-v1", "three-player-policy-v2", "three-player-search-v4-round12"]);
 const HEX_MODELS = new Set(["hex-player-policy-v1", "hex-player-search-v5"]);
-const activeColors = settings => ROOM_PLAYER_COLORS.slice(0, [2, 3, 4, 5, 6].includes(Number(settings?.playerCount)) ? Number(settings.playerCount) : 2);
+const activeColors = settings => ROOM_PLAYER_COLORS.slice(0, Number.isInteger(Number(settings?.playerCount)) && Number(settings.playerCount) >= 2 && Number(settings.playerCount) <= 15 ? Number(settings.playerCount) : 2);
 const shapeFor = settings => settings?.boardShape ?? (Number(settings?.playerCount) >= 4 ? "hexagon" : "triangle");
 
 function defaultBot(settings) {
@@ -28,13 +28,13 @@ export function normalizeRoomPlayerSetup(settings = {}, playerSetup = settings.p
     const input = source[color];
     let player = { ...normalized[color] };
     // Native local play also exposes Greedy on its native two-player board.
-    if (input?.choice === "greedy") player.choice = "greedy";
+    if (count <= 6 && input?.choice === "greedy") player.choice = "greedy";
     // Historical native models are explicit choices; keep their identity when
     // sharing a Mini Game cabin instead of silently swapping model weights.
     if (count === 3 && shape === "triangle" && input?.choice === "three-player" && THREE_MODELS.has(input.version)) {
       player = { ...player, choice: "three-player", version: input.version };
     }
-    if (count >= 4 && shape === "hexagon" && input?.choice === "hex-player" && HEX_MODELS.has(input.version)) {
+    if (count >= 4 && count <= 6 && shape === "hexagon" && input?.choice === "hex-player" && HEX_MODELS.has(input.version)) {
       player = { ...player, choice: "hex-player", version: input.version };
     }
     return [color, player];
@@ -67,7 +67,7 @@ export function roomPlayerProfile(player, settings = {}) {
   if (player?.choice === "three-player" && count === 3 && shape === "triangle" && THREE_MODELS.has(player.version)) {
     return { strategy: "three-player", modelId: player.version };
   }
-  if (player?.choice === "hex-player" && count >= 4 && shape === "hexagon" && HEX_MODELS.has(player.version)) {
+  if (player?.choice === "hex-player" && count >= 4 && count <= 6 && shape === "hexagon" && HEX_MODELS.has(player.version)) {
     return { strategy: "hex-player", modelId: player.version };
   }
   return localPlayerProfile(player, count, settings.gridSize, shape);

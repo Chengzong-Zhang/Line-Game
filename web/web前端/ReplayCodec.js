@@ -1,13 +1,13 @@
-import GameEngine from "./GameEngine.js?v=20261025-room1";
-import { Player, resolveBoardShape } from "./GameEngine.js?v=20261025-room1";
-import { startingPointSettings } from "./StartingPoints.js?v=20261025-room1";
+import GameEngine from "./GameEngine.js?v=20261025-defense15";
+import { Player, PLAYER_ORDER, resolveBoardShape } from "./GameEngine.js?v=20261025-defense15";
+import { startingPointSettings } from "./StartingPoints.js?v=20261025-defense15";
 
 export const REPLAY_FORMAT = "lifeline-replay";
 export const REPLAY_SCHEMA_VERSION = 1;
 export const REPLAY_ENGINE_FAMILY = "web-game-engine";
 const GENESIS_EVENT_HASH = "GENESIS";
 const SUPPORTED_RULES = new Set(["territory-v1", "territory-v2", "territory-v3"]);
-const PLAYERS = [Player.BLACK, Player.WHITE, Player.PURPLE, Player.GREEN, Player.ORANGE, Player.CYAN];
+const PLAYERS = PLAYER_ORDER;
 
 // Schema 1 triangular replays hash three edge/effect keys, including the unused
 // purple seat in two-player games. Keep that representation byte-compatible.
@@ -140,7 +140,7 @@ function engineOptionsFromSettings(settings) {
 }
 
 function isValidSettings(settings) {
-  return Number.isInteger(settings.playerCount) && settings.playerCount >= 2 && settings.playerCount <= 6
+  return Number.isInteger(settings.playerCount) && settings.playerCount >= 2 && settings.playerCount <= 15
     && Number.isInteger(settings.gridSize) && settings.gridSize >= 5 && settings.gridSize <= 15
     && SUPPORTED_RULES.has(settings.rulesVersion)
     && canonicalize(settings.players) === canonicalize(PLAYERS.slice(0, settings.playerCount))
@@ -165,6 +165,7 @@ function normalizeActors(actors, settings) {
     for (const key of ["seed", "simulations", "cPuct", "depth"]) {
       if (actor[key] !== undefined && (typeof actor[key] !== "number" || !Number.isFinite(actor[key]) || actor[key] < 0)) throw new Error("棋谱 AI 参数无效。");
     }
+    if (settings.playerCount > 6 && (actor.strategy !== "greedy" && !(actor.strategy === "multiplayer" && actor.modelId === "multiplayer-hard-v1"))) throw new Error("Unsupported AI for 7-15 players.");
     if (actor.strategy === "multiplayer" && (settings.playerCount < 3 || !["territory-v2", "territory-v3"].includes(settings.rulesVersion)
       || !/^multiplayer-(easy|medium|hard|ultimate)-v1$/.test(actor.modelId))) throw new Error("棋谱多人 AI 模型配置无效。");
     return [player, { ...actor }];

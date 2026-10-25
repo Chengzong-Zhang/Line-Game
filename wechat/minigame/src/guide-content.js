@@ -7,30 +7,30 @@ import { GUIDE_ASSETS } from './guide-assets.js';
 export function multiplayerGuideSections(language) {
   return language === 'en' ? [
     { id: 'multiplayer-board', title: 'Players, shape and starting points', paragraphs: [
-      'Choose 2–6 players and either a triangular or hexagonal board in the Board cabin. The default is a triangle for two or three players and a hexagon for four, five or six. Side length means grid points along each outer side, from 5 to 15.',
+      'Choose 2–15 players and either a triangular or hexagonal board in the Board cabin. The default is a triangle for two or three players and a hexagon for four to fifteen. Games with 7–15 players require random or custom starting nodes. Side length means grid points along each outer side, from 5 to 15.',
       'Starting points can be Default, Random or Custom. Random points are drawn once when a new game starts and kept in saves and replays. For Custom, choose a distinct valid point for each side. Any participating side may start.',
       'With default hexagonal starting points, number corners clockwise from the upper left, 1–6. Four players occupy 1, 2, 4 and 5 in Blue, Red, Purple, Green order. Five occupy 1–5; Orange is fifth. Six occupy all corners; Cyan is sixth.',
       'Every valid neighbor of an enemy starting node is protected, including random and custom starting points. The number depends on its actual position: a triangular corner has two and a hexagonal corner has three. Direct cuts do not bypass this protection. Both shapes share the connection, capture, three-point and Superko rules.',
     ] },
     { id: 'multiplayer-ai', title: 'Local players, AI and shared rules', paragraphs: [
-      'Each side can be human or an AI compatible with the current player count, shape and side length. Three-player AI is for triangular three-player games; Hex AI is for hexagonal 4–6-player games. Choosing a non-default shape for a player count offers Greedy AI.',
+      'Each side can be human or an AI compatible with the current player count, shape and side length. Three-player AI is for triangular three-player games; Hex AI is for hexagonal 4–6-player games. Choosing a non-default shape for a player count offers Greedy AI. Games with 7–15 players offer generic Greedy and Minimax AI without using the 3–6-player trained models.',
       'One, several or every seat may be AI. The list shows only compatible choices. If changing the board makes a selected AI incompatible, choose again before restarting; it is not silently replaced. Hints and replay analysis use a compatible strategy; policy scores are not probabilities.',
-      'The 2, 3, 4, 5 and 6 player setups keep their own seats and first player. Editing settings preserves the running position; restart to apply them. Hints share a saved budget among humans. Replays can keep all players when branching.',
-      'Resigned players leave the turn order. Play continues while at least two remain; a sole remaining player wins immediately. All remaining players passing consecutively settles territory. Online friend rooms remain two-player. The existing training-contribution protocol accepts older territory-v2 games; new territory-v3 games are not uploaded to that dataset.',
+      'Each of the 2–15 player setups keep their own seats and first player. Editing settings preserves the running position; restart to apply them. Hints share a saved budget among humans. Replays can keep all players when branching.',
+      'Resigned players leave the turn order. Play continues while at least two remain; a sole remaining player wins immediately. All remaining players passing consecutively settles territory. Shared online rooms also accept these player settings. The existing training-contribution protocol accepts older territory-v2 games; new territory-v3 games are not uploaded to that dataset.',
       'The original Web stories and illustrations below use triangular examples. Their local connection and cut mechanics also apply to the hexagon; use the shape and opening rules described above.',
     ] },
   ] : [
     { id: 'multiplayer-board', title: '人数、棋盘与初始点', paragraphs: [
-      '在棋盘舱选择 2–6 人，每种人数都可选三角形或六边形棋盘。默认双人、三人为三角形，四、五、六人为六边形。边长指每条外边上的格点数，可选 5–15。',
+      '在棋盘舱选择 2–15 人，每种人数都可选三角形或六边形棋盘。默认双人、三人为三角形，四至十五人为六边形；7–15 人仅支持随机或自定义起点。边长指每条外边上的格点数，可选 5–15。',
       '起点可选默认、随机或自定义。随机起点在重开时生成一次，实际位置随存档和复盘保留；自定义时，为每一方选择互不重合的有效格点。任意参与方都可先手。',
       '使用六边形默认起点时，从左上角顺时针编号 1–6。四人按蓝、红、紫、绿占据 1、2、4、5 号角；五人占据 1–5 号角，第五方为橙方；六人占满六角，第六方为青方。',
       '敌方起点旁所有有效相邻格点都受保护，随机与自定义起点也按实际位置确定：三角形角点旁为两个，六边形角点旁为三个，其他位置可能更多。直接切线也不能越过保护。两种棋盘沿用相同的连接、切断、三点限制和同形禁手。',
     ] },
     { id: 'multiplayer-ai', title: '同机玩家、AI 与共同规则', paragraphs: [
-      '各席可分别选择真人，或与当前人数、形状、边长兼容的 AI。三人 AI 用于三角形三人局，六边形 AI 用于六边形 4–6 人局；选用该人数默认形状之外的棋盘时，可用贪心 AI。',
+      '各席可分别选择真人，或与当前人数、形状、边长兼容的 AI。三人 AI 用于三角形三人局，六边形 AI 用于六边形 4–6 人局；选用该人数默认形状之外的棋盘时，可用贪心 AI。7–15 人提供通用贪心与 Minimax 搜索，不套用 3–6 人训练模型。',
       '一席、多席或全部 AI 都可开局，列表只显示兼容选项。更改棋盘后，若已选 AI 不兼容，需重选后再开局，不会自动换成另一种。提示与复盘分析使用兼容策略；策略评分不是概率。',
-      '2、3、4、5、6 人各自保留席位和先手设置，切换时不会互相覆盖。修改设置会保留当前棋局，重开后才生效。所有真人共用本局提示次数，续局保留；复盘分支可沿用全部玩家配置。',
-      '认输后退出轮转，至少还有两方就继续；只剩一方时立即获胜。所有未认输玩家连续各跳过一次后，按领土结算。好友联机仍为双人。现有训练贡献协议仅收旧 territory-v2 棋谱，新 territory-v3 对局不会混入该数据集。',
+      '2–15 人各自保留席位和先手设置，切换时不会互相覆盖。修改设置会保留当前棋局，重开后才生效。所有真人共用本局提示次数，续局保留；复盘分支可沿用全部玩家配置。',
+      '认输后退出轮转，至少还有两方就继续；只剩一方时立即获胜。所有未认输玩家连续各跳过一次后，按领土结算。好友联机也支持这些人数与起点设置。现有训练贡献协议仅收旧 territory-v2 棋谱，新 territory-v3 对局不会混入该数据集。',
       '下方网页版故事与原图沿用三角棋盘示例。连接和切断等局部机制同样适用于六边形，棋盘形状与起步保护以上文为准。',
     ] },
   ];

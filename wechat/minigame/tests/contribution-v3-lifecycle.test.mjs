@@ -365,7 +365,7 @@ test('six-player hex V3 games keep legacy retry available but never add a V3 rec
     await ready(h);
     h.wire.network({ isConnected: false });
     await h.tap('cabin-board');
-    await h.slide('player-count', 6, 2, 6);
+    await h.slide('player-count', 6, 2, 15);
     await h.scrollTo('training-contribution');
     await h.tap('training-contribution');
     await h.tap('cabin-close');

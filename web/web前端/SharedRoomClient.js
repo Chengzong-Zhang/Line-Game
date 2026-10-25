@@ -1,6 +1,6 @@
-import GameEngine from "./GameEngine.js?v=20261025-room1";
-import { canonicalize, serializeRuleState } from "./ReplayCodec.js?v=20261025-room1";
-import { ROOM_PLAYER_COLORS, roomBotColors } from "./OnlineRoomSettings.js?v=20261025-room1";
+import GameEngine from "./GameEngine.js?v=20261025-defense15";
+import { canonicalize, serializeRuleState } from "./ReplayCodec.js?v=20261025-defense15";
+import { ROOM_PLAYER_COLORS, roomBotColors } from "./OnlineRoomSettings.js?v=20261025-defense15";
 
 const CODE = /^[A-Z2-9]{8}$/;
 const PENDING = "lifeline-shared-command-v1";
@@ -26,7 +26,7 @@ export async function verifySharedRoom(room) {
     || !colors.includes(room.player) || !colors.includes(room.currentPlayer)
     || !["waiting", "playing", "finished", "closed"].includes(room.status)
     || !room.ready || !room.members || !room.rematchVotes
-    || !["territory-v2", "territory-v3"].includes(room.settings?.rulesVersion) || ![2, 3, 4, 5, 6].includes(count)
+    || !["territory-v2", "territory-v3"].includes(room.settings?.rulesVersion) || (!Number.isInteger(count) || count < 2 || count > 15)
     || !colors.includes(room.settings.startPlayer) || !Number.isInteger(room.settings.botCount ?? 0)
     || (room.settings.botCount ?? 0) < 0 || (room.settings.botCount ?? 0) >= count
     || !Number.isInteger(room.settings.gridSize)

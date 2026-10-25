@@ -135,7 +135,7 @@ export class GameSession {
     this.tutorial = null; this.replayIndex = null; this.savedGame = null;
     const initial = { ...settingsFor(size, playerCount, options.startPlayer || 'BLACK'), ...normalizePlayOptions(options.playOptions),
       ...(options.boardShape ? { boardShape: options.boardShape } : {}) };
-    const modeOfStarts = options.startingPointMode || 'default';
+    const modeOfStarts = options.startingPointMode || (playerCount > 6 ? 'random' : 'default');
     const starts = modeOfStarts === 'random' ? randomInitialPositions(size, playerCount, Math.random, initial.boardShape) : options.initialPositions;
     Object.assign(initial, startingPointSettings({ ...initial, startingPointMode: modeOfStarts,
       ...(starts ? { initialPositions: starts } : {}) }));

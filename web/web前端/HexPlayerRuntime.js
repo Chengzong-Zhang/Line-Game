@@ -1,6 +1,6 @@
-import { HEX_PLAYER_MODEL_ID, HexPlayerAI, loadHexPlayerModel } from "./HexPlayerAI.js?v=20261025-room1";
-import { HexFastSearchAI } from "./HexFastSearchAI.js?v=20261025-room1";
-import { HEX_SEARCH_MODEL_ID, HEX_SEARCH_MODEL_SHA256, HEX_SEARCH_SIZES, HEX_SEARCH_PLAYER_COUNTS } from "./HexSearchOptions.js?v=20261025-room1";
+import { HEX_PLAYER_MODEL_ID, HexPlayerAI, loadHexPlayerModel } from "./HexPlayerAI.js?v=20261025-defense15";
+import { HexFastSearchAI } from "./HexFastSearchAI.js?v=20261025-defense15";
+import { HEX_SEARCH_MODEL_ID, HEX_SEARCH_MODEL_SHA256, HEX_SEARCH_SIZES, HEX_SEARCH_PLAYER_COUNTS } from "./HexSearchOptions.js?v=20261025-defense15";
 
 // Workers may explicitly request this candidate; default selection remains v1.
 let candidatePromise;

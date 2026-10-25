@@ -170,7 +170,7 @@ test('sliding settings keeps the active position, applies only on reset, and exp
   const h = uiHarness({ width: 320, height: 568, top: 64 });
   try {
     await ready(h); const hash = h.app.session.stateHash;
-    await h.tap('cabin-board'); await h.slide('player-count', 3, 2, 6);
+    await h.tap('cabin-board'); await h.slide('player-count', 3, 2, 15);
     await h.scrollTo('controller-PURPLE');
     assert.equal(h.app.getButtons().find(b => b.id === 'controller-PURPLE').disabled, false);
     await h.slide('board-size', 10, 5, 15);
@@ -200,7 +200,7 @@ test('three-player hint settings remain usable and switching player count preser
       await h.tap('cabin-board'); await h.slide('hint-count', 7, 1, 10);
       const before = sut.readPreferences(h.p.storage).playOptions;
       assert.equal(before.hintEnabled, true); assert.equal(before.hintMaxCount, 7);
-      await h.slide('player-count', 3, 2, 6); await h.scrollTo('hint-enabled');
+      await h.slide('player-count', 3, 2, 15); await h.scrollTo('hint-enabled');
       const toggle = h.app.getButtons().find(button => button.id === 'hint-enabled');
       assert.equal(toggle?.disabled, false);
       h.app.tap(toggle.x + toggle.width / 2, toggle.y + toggle.height / 2); await h.render();
@@ -210,7 +210,7 @@ test('three-player hint settings remain usable and switching player count preser
       const count = h.app.getButtons().find(button => button.id === 'hint-count');
       assert.equal(count?.disabled, false);
       assert.deepEqual(sut.readPreferences(h.p.storage).playOptions, before);
-      await h.slide('player-count', 2, 2, 6); await h.scrollTo('hint-enabled');
+      await h.slide('player-count', 2, 2, 15); await h.scrollTo('hint-enabled');
       assert.equal(h.app.getButtons().find(button => button.id === 'hint-enabled')?.disabled, false);
       await h.scrollTo('hint-count');
       assert.equal(h.app.getButtons().find(button => button.id === 'hint-count')?.disabled, false);

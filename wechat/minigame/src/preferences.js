@@ -7,7 +7,7 @@ const KEY = 'lifeline-wx-preferences-v1';
 const defaults = () => ({ size: 7, mode: 'ai-white', difficulty: 'normal' });
 function readDraftControllers(value, count) {
   if (value == null) return null;
-  const known = new Set(count === 2 ? CONTROLLER_CHOICES : ['greedy', ...(count === 3 ? THREE_PLAYER_CONTROLLERS : HEX_PLAYER_CONTROLLERS)]);
+  const known = new Set(count > 6 ? ['human', 'greedy', 'multiplayer-hard-v1'] : count === 2 ? CONTROLLER_CHOICES : ['greedy', ...(count === 3 ? THREE_PLAYER_CONTROLLERS : HEX_PLAYER_CONTROLLERS)]);
   const players = playerIds(count);
   if (typeof value !== 'object' || Array.isArray(value) || Object.keys(value).length !== players.length
     || !players.every(player => known.has(value[player]))) throw new Error('INVALID_CONTROLLERS');
@@ -28,13 +28,14 @@ function readBoardDraft(value, count, size) {
     out.startingPointMode = value.startingPointMode;
   }
   if (value.initialPositions != null) out.initialPositions = resolveInitialPositions(size, count, value.initialPositions, out.boardShape);
+  if (count > 6 && (!out.startingPointMode || out.startingPointMode === 'default')) out.startingPointMode = 'random';
   if (out.startingPointMode === 'custom' && !out.initialPositions) throw new Error('INVALID_STARTS');
   return out;
 }
 function readPlayerDrafts(value, size) {
   const drafts = {};
   if (!value || typeof value !== 'object' || Array.isArray(value)) return drafts;
-  for (const count of [2, 3, 4, 5, 6]) {
+  for (const count of Array.from({ length: 14 }, (_, index) => index + 2)) {
     try {
       const draft = value[count];
       if (!draft || typeof draft !== 'object' || Array.isArray(draft) || !PLAY_MODES.includes(draft.mode)
@@ -53,7 +54,7 @@ export function readPreferences(storage) {
     if (Number.isInteger(value.size) && value.size >= 5 && value.size <= 15
       && PLAY_MODES.includes(value.mode) && ['easy', 'normal'].includes(value.difficulty)) {
       const players = value.playerCount ?? (value.mode === 'three-human' ? 3 : 2);
-      if (!Number.isInteger(players) || players < 2 || players > 6 || (value.mode === 'three-human') !== (players === 3)
+      if (!Number.isInteger(players) || players < 2 || players > 15 || (value.mode === 'three-human') !== (players === 3)
         || players >= 4 && value.mode !== 'human') return defaults();
       const startPlayer = playerIds(players).includes(value.startPlayer) ? value.startPlayer : 'BLACK';
       const board = readBoardDraft(value, players, value.size);

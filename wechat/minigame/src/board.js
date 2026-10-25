@@ -2,7 +2,7 @@ import { DEFAULT_DISPLAY, PLAYER_COLORS, PLAYER_CONTRAST_COLORS } from './displa
 import { getBoardPositions, getBoardVertices, isBoardPoint, resolveBoardShape, resolveInitialPositions, PLAYER_ORDER } from './core.js';
 export const COLORS = PLAYER_COLORS;
 const CONTRAST_COLORS = PLAYER_CONTRAST_COLORS, SQRT3_OVER_2 = Math.sqrt(3) / 2;
-const NODE_PLAYERS = { 1: 'BLACK', 3: 'WHITE', 5: 'PURPLE', 7: 'GREEN', 9: 'ORANGE', 11: 'CYAN' };
+const NODE_PLAYERS = Object.fromEntries(PLAYER_ORDER.map((player, index) => [2 * index + 1, player]));
 const normalized = ([x, y]) => [x + y / 2, y * SQRT3_OVER_2];
 function boardBounds(size, playerCount, boardShape) {
   const vertices = getBoardVertices(size, playerCount, boardShape).map(normalized);

@@ -1,10 +1,11 @@
-import { DEFAULT_RESEARCH_VERSION, RESEARCH_FAMILIES, TRANSFER_SEEDS, researchProfile } from "./ResearchAIOptions.js?v=20261025-room1";
-import { threePlayerModelIdForBoard } from "./ThreePlayerSearchOptions.js?v=20261025-room1";
+import { PLAYER_ORDER } from "./GameEngine.js?v=20261025-defense15";
+import { DEFAULT_RESEARCH_VERSION, RESEARCH_FAMILIES, TRANSFER_SEEDS, researchProfile } from "./ResearchAIOptions.js?v=20261025-defense15";
+import { threePlayerModelIdForBoard } from "./ThreePlayerSearchOptions.js?v=20261025-defense15";
 
 export const LOCAL_PLAYER_CHOICES = Object.freeze([
   "human", "minimax", ...RESEARCH_FAMILIES, "dqn", "ppo", "sac", "gail", "gan",
 ]);
-export const LOCAL_PLAYER_COLORS = Object.freeze(["BLACK", "WHITE", "PURPLE", "GREEN", "ORANGE", "CYAN"]);
+export const LOCAL_PLAYER_COLORS = PLAYER_ORDER;
 export const MULTIPLAYER_AI_CHOICES = Object.freeze(["ai-easy", "ai-medium", "ai-hard", "ai-ultimate"]);
 export const MULTIPLAYER_PLAYER_CHOICES = Object.freeze(["human", ...MULTIPLAYER_AI_CHOICES]);
 export const MULTIPLAYER_GENERIC_CHOICES = Object.freeze(["human", "ai-easy", "ai-hard"]);
@@ -19,7 +20,7 @@ export function localPlayerChoices(playerCount, boardShape) {
   return usesGenericBoardAI(playerCount, boardShape) ? GENERIC_PLAYER_CHOICES : LOCAL_PLAYER_CHOICES;
 }
 export function usesGenericBoardAI(playerCount, boardShape) {
-  return Boolean(boardShape && boardShape !== (playerCount >= 4 ? "hexagon" : "triangle"));
+  return playerCount > 6 || Boolean(boardShape && boardShape !== (playerCount >= 4 ? "hexagon" : "triangle"));
 }
 export const LOCAL_MATCH_PREFERENCES_KEY = "lifeline-local-match-preferences-v1";
 
@@ -27,7 +28,10 @@ export function normalizeLocalPlayers(players = {}, playerCount, boardShape) {
   return Object.fromEntries(LOCAL_PLAYER_COLORS.map((color) => {
     const value = players?.[color];
     let choice = ALL_LOCAL_PLAYER_CHOICES.includes(value?.choice) ? value.choice : "human";
-    if (playerCount >= 3 && MULTIPLAYER_AI_CHOICES.includes(choice)) {
+    if (playerCount > 6) {
+      if (choice === "greedy") choice = "ai-easy";
+      else if (choice !== "human" && !MULTIPLAYER_GENERIC_CHOICES.includes(choice)) choice = "ai-hard";
+    } else if (playerCount >= 3 && MULTIPLAYER_AI_CHOICES.includes(choice)) {
       if (usesGenericBoardAI(playerCount, boardShape) && !MULTIPLAYER_GENERIC_CHOICES.includes(choice)) choice = "ai-hard";
     } else if (usesGenericBoardAI(playerCount, boardShape)) {
       if (choice !== "human") choice = "greedy";
@@ -49,6 +53,7 @@ export function normalizeLocalPlayers(players = {}, playerCount, boardShape) {
 export function localPlayerProfile(player, playerCount, gridSize, boardShape) {
   const config = normalizeLocalPlayers({ BLACK: player }, playerCount, boardShape).BLACK;
   if (config.choice === "human") return null;
+  if (playerCount > 6 && config.choice === "ai-easy") return { strategy: "greedy" };
   if (MULTIPLAYER_AI_CHOICES.includes(config.choice)) return { strategy: "multiplayer", modelId: `multiplayer-${config.choice.slice(3)}-v1` };
   if (config.choice === "greedy") return { strategy: "greedy" };
   if (config.choice === "three-player") return { strategy: "three-player", modelId: threePlayerModelIdForBoard(gridSize) };

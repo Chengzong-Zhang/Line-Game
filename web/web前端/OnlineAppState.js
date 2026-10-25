@@ -1,15 +1,15 @@
-import { Player, TerritoryRulesVersion, resolveBoardShape } from "./GameEngine.js?v=20261025-room1";
-import { startingPointSettings } from "./StartingPoints.js?v=20261025-room1";
-import { DEFAULT_UNDO_MAX_COUNT, UNDO_MAX_COUNT_MIN, UNDO_MAX_COUNT_MAX } from "./LocalUndo.js?v=20261025-room1";
-import { normalizeRoomPlayerSetup, roomBotColors } from "./OnlineRoomSettings.js?v=20261025-room1";
+import { Player, PLAYER_ORDER, TerritoryRulesVersion, resolveBoardShape } from "./GameEngine.js?v=20261025-defense15";
+import { startingPointSettings, randomInitialPositions } from "./StartingPoints.js?v=20261025-defense15";
+import { DEFAULT_UNDO_MAX_COUNT, UNDO_MAX_COUNT_MIN, UNDO_MAX_COUNT_MAX } from "./LocalUndo.js?v=20261025-defense15";
+import { normalizeRoomPlayerSetup, roomBotColors } from "./OnlineRoomSettings.js?v=20261025-defense15";
 
 // 杩欎釜鏂囦欢涓撻棬瀛樻斁鈥滃彲澶嶇敤鐨勫墠绔姸鎬佸伐鍏封€濓紝
 // 閬垮厤 OnlineApp.js 鍐嶆鑶ㄨ儉鎴愪竴涓秴澶у伐鍏风鏂囦欢銆?
 export const LANGUAGE_STORAGE_KEY = "triaxis-language";
 export const SESSION_STORAGE_KEY = "triaxis-online-session";
 export const AUTH_STORAGE_KEY = "triaxis-auth";
-export const ALL_PLAYERS = Object.freeze([Player.BLACK, Player.WHITE, Player.PURPLE, Player.GREEN, Player.ORANGE, Player.CYAN]);
-export const PLAYER_COUNT_OPTIONS = Object.freeze([2, 3, 4, 5, 6]);
+export const ALL_PLAYERS = PLAYER_ORDER;
+export const PLAYER_COUNT_OPTIONS = Object.freeze(Array.from({ length: 14 }, (_, index) => index + 2));
 export const GRID_SIZE_OPTIONS = Object.freeze(Array.from({ length: 11 }, (_, index) => index + 5));
 export const TURN_TIMER_MIN_SECONDS = 15;
 export const TURN_TIMER_MAX_SECONDS = 200;
@@ -45,7 +45,9 @@ export function normalizeGameSettings(settings = {}) {
   let starts = {};
   try {
     starts = startingPointSettings({ ...settings, gridSize: nextGridSize, playerCount: nextPlayerCount, boardShape });
-  } catch (_) { /* Invalid preferences fall back to the original opening. Saves validate strictly. */ }
+  } catch (_) {
+    if (nextPlayerCount > 6) starts = { startingPointMode: "random", initialPositions: randomInitialPositions(nextGridSize, nextPlayerCount, Math.random, boardShape) };
+  }
 
   return {
     playerCount: nextPlayerCount,

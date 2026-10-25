@@ -4273,3 +4273,68 @@ body.large-board .result-overlay {
   .local-player-grid.has-hex-players { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .local-player-grid.has-hex-players .local-player-card { padding: 12px; }
 }
+
+/* Extra seats use the shared 15-player palette. */
+.turn-banner.is-pink { background: #d96ba5; }
+.player-accent-pink, .score-card-pink p, .score-card-pink strong { color: #d96ba5; }
+.score-card-pink { box-shadow: inset 0 0 0 1px #d96ba529; }
+.local-player-card.is-pink { border-left-color: #d96ba5; }
+.local-player-card.is-pink h3 { color: #d96ba5; }
+.board-choice-player.is-pink .board-choice-stone { background: #d96ba5; }
+.chat-emoji-bubble.is-color-pink { border: 2px solid #d96ba56b; }
+.turn-banner.is-brown { background: #8c593b; }
+.player-accent-brown, .score-card-brown p, .score-card-brown strong { color: #8c593b; }
+.score-card-brown { box-shadow: inset 0 0 0 1px #8c593b29; }
+.local-player-card.is-brown { border-left-color: #8c593b; }
+.local-player-card.is-brown h3 { color: #8c593b; }
+.board-choice-player.is-brown .board-choice-stone { background: #8c593b; }
+.chat-emoji-bubble.is-color-brown { border: 2px solid #8c593b6b; }
+.turn-banner.is-lime { background: #79a92b; }
+.player-accent-lime, .score-card-lime p, .score-card-lime strong { color: #79a92b; }
+.score-card-lime { box-shadow: inset 0 0 0 1px #79a92b29; }
+.local-player-card.is-lime { border-left-color: #79a92b; }
+.local-player-card.is-lime h3 { color: #79a92b; }
+.board-choice-player.is-lime .board-choice-stone { background: #79a92b; }
+.chat-emoji-bubble.is-color-lime { border: 2px solid #79a92b6b; }
+.turn-banner.is-navy { background: #344a8c; }
+.player-accent-navy, .score-card-navy p, .score-card-navy strong { color: #344a8c; }
+.score-card-navy { box-shadow: inset 0 0 0 1px #344a8c29; }
+.local-player-card.is-navy { border-left-color: #344a8c; }
+.local-player-card.is-navy h3 { color: #344a8c; }
+.board-choice-player.is-navy .board-choice-stone { background: #344a8c; }
+.chat-emoji-bubble.is-color-navy { border: 2px solid #344a8c6b; }
+.turn-banner.is-gold { background: #b99016; }
+.player-accent-gold, .score-card-gold p, .score-card-gold strong { color: #b99016; }
+.score-card-gold { box-shadow: inset 0 0 0 1px #b9901629; }
+.local-player-card.is-gold { border-left-color: #b99016; }
+.local-player-card.is-gold h3 { color: #b99016; }
+.board-choice-player.is-gold .board-choice-stone { background: #b99016; }
+.chat-emoji-bubble.is-color-gold { border: 2px solid #b990166b; }
+.turn-banner.is-teal { background: #238b78; }
+.player-accent-teal, .score-card-teal p, .score-card-teal strong { color: #238b78; }
+.score-card-teal { box-shadow: inset 0 0 0 1px #238b7829; }
+.local-player-card.is-teal { border-left-color: #238b78; }
+.local-player-card.is-teal h3 { color: #238b78; }
+.board-choice-player.is-teal .board-choice-stone { background: #238b78; }
+.chat-emoji-bubble.is-color-teal { border: 2px solid #238b786b; }
+.turn-banner.is-magenta { background: #b13ba8; }
+.player-accent-magenta, .score-card-magenta p, .score-card-magenta strong { color: #b13ba8; }
+.score-card-magenta { box-shadow: inset 0 0 0 1px #b13ba829; }
+.local-player-card.is-magenta { border-left-color: #b13ba8; }
+.local-player-card.is-magenta h3 { color: #b13ba8; }
+.board-choice-player.is-magenta .board-choice-stone { background: #b13ba8; }
+.chat-emoji-bubble.is-color-magenta { border: 2px solid #b13ba86b; }
+.turn-banner.is-slate { background: #667085; }
+.player-accent-slate, .score-card-slate p, .score-card-slate strong { color: #667085; }
+.score-card-slate { box-shadow: inset 0 0 0 1px #66708529; }
+.local-player-card.is-slate { border-left-color: #667085; }
+.local-player-card.is-slate h3 { color: #667085; }
+.board-choice-player.is-slate .board-choice-stone { background: #667085; }
+.chat-emoji-bubble.is-color-slate { border: 2px solid #6670856b; }
+.turn-banner.is-coral { background: #d7684b; }
+.player-accent-coral, .score-card-coral p, .score-card-coral strong { color: #d7684b; }
+.score-card-coral { box-shadow: inset 0 0 0 1px #d7684b29; }
+.local-player-card.is-coral { border-left-color: #d7684b; }
+.local-player-card.is-coral h3 { color: #d7684b; }
+.board-choice-player.is-coral .board-choice-stone { background: #d7684b; }
+.chat-emoji-bubble.is-color-coral { border: 2px solid #d7684b6b; }

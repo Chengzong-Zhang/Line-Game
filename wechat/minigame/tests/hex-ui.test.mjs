@@ -41,18 +41,18 @@ test('2–6 player drafts keep separate seats and starters across switching, res
   try {
     await ready(h); const hash = h.app.session.stateHash; await h.tap('cabin-board');
     for (const count of [2, 3, 4, 5, 6]) {
-      await h.slide('player-count', count, 2, 6); const last = sut.playerIds(count).at(-1);
+      await h.slide('player-count', count, 2, 15); const last = sut.playerIds(count).at(-1);
       await choose(h, last, 1); await h.tap(`starter-${last}`);
     }
     for (const count of [6, 4, 2, 5, 3, 6]) {
-      await h.slide('player-count', count, 2, 6); const preferences = sut.readPreferences(storage), last = sut.playerIds(count).at(-1);
+      await h.slide('player-count', count, 2, 15); const preferences = sut.readPreferences(storage), last = sut.playerIds(count).at(-1);
       assert.equal(preferences.playerCount, count); assert.equal(preferences.startPlayer, last);
       assert.equal(preferences.controllers[last], count >= 4 ? profile : count === 3 ? 'three-player-policy-v1' : 'greedy');
       assert.equal(preferences.mode, count === 3 ? 'three-human' : count === 2 ? 'ai-white' : 'human');
     }
     assert.equal(h.app.session.stateHash, hash);
     h.app.dispose(); second = uiHarness({ storage }); await ready(second); await second.tap('cabin-board');
-    for (const count of [2, 3, 4, 5, 6]) { await second.slide('player-count', count, 2, 6); assert.equal(sut.readPreferences(storage).startPlayer, sut.playerIds(count).at(-1)); }
+    for (const count of [2, 3, 4, 5, 6]) { await second.slide('player-count', count, 2, 15); assert.equal(sut.readPreferences(storage).startPlayer, sut.playerIds(count).at(-1)); }
     await second.slide('board-size', 5, 5, 15); await second.tap('cabin-close'); await second.tap('new-game');
     await until(() => second.app.session.settings.playerCount === 6 && second.app.session.actions.length === 1 && !second.app.session.busy);
     assert.equal(second.app.session.settings.startPlayer, 'CYAN'); assert.equal(second.app.session.actions[0].player, 'CYAN');
@@ -64,7 +64,7 @@ test('every hexagon seat offers compatible Hex AI versions, rejects stale menu c
   const h = uiHarness({ config: { apiBase: 'https://example.invalid', onlineEnabled: false }, platformOverrides: { contributionRequest: async () => ({}) } }); let finish;
   try {
     await ready(h); await h.tap('cabin-board'); h.p.choose = () => new Promise(resolve => { finish = resolve; });
-    await h.tap('controller-BLACK'); await h.slide('player-count', 6, 2, 6); finish(4); await h.render();
+    await h.tap('controller-BLACK'); await h.slide('player-count', 6, 2, 15); finish(4); await h.render();
     assert.equal(sut.readPreferences(h.p.storage).controllers, undefined);
     for (const player of sut.playerIds(6)) {
       let labels; h.p.choose = async options => { labels = options; return 1; };
@@ -84,7 +84,7 @@ test('four, five and six-player hints and replay analysis remain read-only and c
   for (const count of [4, 5, 6]) for (const language of ['zh', 'en']) {
     const h = uiHarness({ language, width: 320, height: 568, top: 64 });
     try {
-      await ready(h); await h.tap('cabin-board'); await h.slide('player-count', count, 2, 6); await h.slide('board-size', 5, 5, 15);
+      await ready(h); await h.tap('cabin-board'); await h.slide('player-count', count, 2, 15); await h.slide('board-size', 5, 5, 15);
       await h.tap('cabin-close'); await h.tap('new-game'); await until(() => h.app.session.canPlay());
       const hash = h.app.session.stateHash; await h.tap('hint'); await until(() => !h.app.session.busy && h.app.session.hintPoint);
       assert.equal(h.app.session.stateHash, hash); assert.equal(h.app.session.hintsUsed, 1);

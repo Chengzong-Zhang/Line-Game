@@ -1,12 +1,12 @@
-import { fastPolicyCandidates, isolatedSearchEngine, MultiplayerMinimaxAI } from "./MultiplayerSearch.js?v=20261025-room1";
-import { createMultiplayerModel } from "./MultiplayerModel.js?v=20261025-room1";
-import { MultiplayerRolloutAI } from "./MultiplayerRollout.js?v=20261025-room1";
-import { loadThreePlayerRuntime } from "./ThreePlayerRuntime.js?v=20261025-room1";
-import { threePlayerModelIdForBoard } from "./ThreePlayerSearchOptions.js?v=20261025-room1";
-import { loadHexPlayerModel } from "./HexPlayerAI.js?v=20261025-room1";
-import { createUltimateAdmissionGuard } from "./MultiplayerUltimateAdmission.js?v=20261025-room1";
-import { GameEngine } from "./GameEngine.js?v=20261025-room1";
-import { applyStandardDefenseGate } from "./MultiplayerStandardDefense.js?v=20261025-room1";
+import { fastPolicyCandidates, isolatedSearchEngine, MultiplayerMinimaxAI } from "./MultiplayerSearch.js?v=20261025-defense15";
+import { createMultiplayerModel } from "./MultiplayerModel.js?v=20261025-defense15";
+import { MultiplayerRolloutAI } from "./MultiplayerRollout.js?v=20261025-defense15";
+import { loadThreePlayerRuntime } from "./ThreePlayerRuntime.js?v=20261025-defense15";
+import { threePlayerModelIdForBoard } from "./ThreePlayerSearchOptions.js?v=20261025-defense15";
+import { loadHexPlayerModel } from "./HexPlayerAI.js?v=20261025-defense15";
+import { createUltimateAdmissionGuard } from "./MultiplayerUltimateAdmission.js?v=20261025-defense15";
+import { GameEngine } from "./GameEngine.js?v=20261025-defense15";
+import { applyStandardDefenseGate } from "./MultiplayerStandardDefense.js?v=20261025-defense15";
 
 export const MULTIPLAYER_MODEL_IDS=Object.freeze(["multiplayer-easy-v1","multiplayer-medium-v1","multiplayer-hard-v1","multiplayer-ultimate-v1"]);
 const promises=new Map(), baseUrl=new URL("./assets/research-ai/multiplayer-v1/",import.meta.url);
@@ -106,10 +106,10 @@ export async function createMediumRuntime(engine){
     policySpec:model.spec,responseSpecs:[model.spec]};
 }
 export async function loadMultiplayerRuntime(modelId,engine){
-  if(!MULTIPLAYER_MODEL_IDS.includes(modelId)||![3,4,5,6].includes(engine.playerCount)
+  if(!MULTIPLAYER_MODEL_IDS.includes(modelId)||(!Number.isInteger(engine.playerCount)||engine.playerCount<3||engine.playerCount>15)
     ||!["territory-v2", "territory-v3"].includes(engine.rulesVersion)||engine.gridSize<5||engine.gridSize>15) throw new Error("Unsupported multiplayer AI configuration");
-  const native=engine.boardShape===(engine.playerCount===3?"triangle":"hexagon");
-  if(!native&&["multiplayer-medium-v1","multiplayer-ultimate-v1"].includes(modelId)) throw new Error("This AI requires the native multiplayer board shape");
+  const native=engine.playerCount<=6&&engine.boardShape===(engine.playerCount===3?"triangle":"hexagon");
+  if((engine.playerCount>6&&modelId!=="multiplayer-hard-v1")||(!native&&["multiplayer-medium-v1","multiplayer-ultimate-v1"].includes(modelId))) throw new Error("This AI requires the native multiplayer board shape");
   let ai, lineage=null;
   if(modelId==="multiplayer-medium-v1"){
     const medium=await createMediumRuntime(engine); ai=medium.ai; lineage=medium.modelInfo.id;
@@ -117,7 +117,7 @@ export async function loadMultiplayerRuntime(modelId,engine){
     const model=await assetModel(modelId); ai=new FastMultiplayerPolicy(model.spec); lineage=model.spec.training;
   }else if(modelId==="multiplayer-hard-v1"){
     if(native){
-      const { loadNativeHardRuntime } = await import("./MultiplayerHardResources.js?v=20261025-room1");
+      const { loadNativeHardRuntime } = await import("./MultiplayerHardResources.js?v=20261025-defense15");
       return loadNativeHardRuntime(engine);
     }else ai=new MultiplayerMinimaxAI({depth:Math.min(engine.playerCount+1,6),timeMs:650});
   }else{
@@ -177,5 +177,6 @@ export async function loadMultiplayerRuntime(modelId,engine){
     if(requested>0&&!gate.moves.length&&!source.getLegalMoves(player).length) return [{type:"pass",point:null,score:0,visits:1}];
     return gate.moves.slice(0,requested);
   }};
-  return {ai,modelInfo:{id:modelId,lineage,evidenceTier:"application-candidate",compatibility:`${engine.rulesVersion} 3–6 players; size 5–15`}};
+  return {ai,modelInfo:{id:modelId,lineage,evidenceTier:"application-candidate",
+    compatibility:`${engine.rulesVersion} ${engine.playerCount > 6 ? "7–15 players; generic search without trained model" : "3–6 players"}; size 5–15`}};
 }

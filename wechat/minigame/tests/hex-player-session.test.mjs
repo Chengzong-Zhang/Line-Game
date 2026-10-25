@@ -27,7 +27,7 @@ test('4–6 player controllers match every seat exactly and reject strategies fo
       { ...roles(count), BLACK: 'model:unknown' }]) assert.throws(() => sut.validateControllers(invalid, count), /INVALID_CONTROLLERS/);
   }
   for (const count of [2, 3]) assert.throws(() => sut.validateControllers({ ...sut.presetControllers('human', 'easy', count), BLACK: profile }, count), /INVALID_CONTROLLERS/);
-  for (const count of [0, 1, 3.5, 7, '4']) {
+  for (const count of [0, 1, 3.5, 16, '4']) {
     assert.deepEqual(sut.playerIds(count), []); assert.deepEqual(sut.controllerChoices(count), []);
     assert.throws(() => sut.validateControllers({}, count), /INVALID_CONTROLLERS/);
   }

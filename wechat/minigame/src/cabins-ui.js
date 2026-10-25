@@ -1,4 +1,5 @@
 import { playerIds } from './controllers.js';
+import { PLAYER_LABEL_KEYS } from './display.js';
 export const CABIN_COLORS = { ink: '#2a2118', muted: '#695749', panel: '#fff9ee', gold: '#c69a4b' };
 export function cabinGeometry(metrics, top) {
   const dock = { x: 16, y: top, width: metrics.width - 32, height: 42 };
@@ -42,7 +43,7 @@ export function drawBoardCabin(ui, area, state, actions) {
   }
   const onlineLocked = state.online && !state.canEditOnline;
   group(en ? 'Players' : '参与者');
-  slider('player-count', en ? 'Players' : '玩家人数', state.playerCount, 2, 6, x, y, area.width, actions.players, onlineLocked); y += 72;
+  slider('player-count', en ? 'Players' : '玩家人数', state.playerCount, 2, 15, x, y, area.width, actions.players, onlineLocked); y += 72;
   for (const player of playerIds(state.playerCount)) {
     const name = actions.playerLabel(player), profile = state.controllers[player] || 'human';
     const incompatible = state.compatibleProfiles && !state.compatibleProfiles.includes(profile);
@@ -50,7 +51,7 @@ export function drawBoardCabin(ui, area, state, actions) {
       [`starter-${player}`, `${state.startPlayer === player ? '✓ ' : ''}${name}${en ? ' starts' : '先手'}`, () => actions.starter(player), onlineLocked, state.startPlayer === player]);
   }
   if (state.playerCount > 2) y += ui.wrap(label('compatibleAIHelp'), x, y + 8, area.width, 14, CABIN_COLORS.muted, 3) + 18;
-  const v2Eligible = state.rulesVersion === 'territory-v2';
+  const v2Eligible = state.rulesVersion === 'territory-v2' && state.playerCount <= 6;
   const hasPendingContribution = Boolean(state.contributionStatus?.pending);
   const canManageStored = Boolean(state.contribution || hasPendingContribution);
   const contributionLabel = v2Eligible
@@ -75,13 +76,14 @@ export function drawBoardCabin(ui, area, state, actions) {
   pair(['shape-triangle', en ? 'Triangle' : '三角形棋盘', () => actions.shape('triangle'), onlineLocked, state.boardShape === 'triangle'],
     ['shape-hexagon', en ? 'Hexagon' : '六边形棋盘', () => actions.shape('hexagon'), onlineLocked, state.boardShape === 'hexagon']);
   slider('board-size', en ? 'Points per side' : '棋盘边长', state.size, 5, 15, x, y, area.width, actions.size, onlineLocked); y += 72;
-  pair(['starts-default', en ? 'Default roots' : '默认起点', () => actions.startingPoints('default'), onlineLocked, state.startingPointMode === 'default'],
+  pair(['starts-default', en ? 'Default roots' : '默认起点', () => actions.startingPoints('default'), onlineLocked || state.playerCount > 6, state.startingPointMode === 'default'],
     ['starts-random', en ? 'Random roots' : '随机起点', () => actions.startingPoints('random'), onlineLocked, state.startingPointMode === 'random']);
   pair(['starts-custom', en ? 'Place starting nodes' : '自定义起点', () => actions.startingPoints('custom'), onlineLocked, state.startingPointMode === 'custom'],
     ['undo-enabled', `${en ? 'Undo' : '悔棋'} · ${state.playOptions.undoEnabled ? (en ? 'On' : '开') : (en ? 'Off' : '关')}`,
       () => actions.option('undoEnabled', !state.playOptions.undoEnabled), onlineLocked, state.playOptions.undoEnabled]);
   slider('undo-count', en ? 'Undos per match' : '每局悔棋次数', state.playOptions.undoMaxCount ?? 3, 1, 10, x, y, area.width,
     value => actions.option('undoMaxCount', value), onlineLocked || !state.playOptions.undoEnabled); y += 72;
+  if (state.playerCount > 6) y += ui.wrap(en ? '7–15 players use random or custom starting nodes.' : '7–15 人仅支持随机或自定义起点。', x, y + 8, area.width, 13, CABIN_COLORS.muted, 2) + 18;
   if (state.startingPointMode === 'random') y += ui.wrap(en ? 'Roots are drawn once when a new game starts, then kept in saves and replays.' : '重开时随机一次，实际起点会随存档和复盘保留。', x, y + 8, area.width, 13, CABIN_COLORS.muted, 2) + 18;
   pair(['clock-enabled', `${en ? 'Clock' : '回合计时'} · ${state.playOptions.turnTimerEnabled ? (en ? 'On' : '开') : (en ? 'Off' : '关')}`, () => actions.option('turnTimerEnabled', !state.playOptions.turnTimerEnabled), onlineLocked],
     ['hint-enabled', `${en ? 'Hints' : '落子提示'} · ${state.playOptions.hintEnabled ? (en ? 'On' : '开') : (en ? 'Off' : '关')}`,
@@ -122,7 +124,7 @@ export function drawBattleCabin(ui, area, state, actions) {
   y += wrap(state.online ? `${label('roomLabel')} ${state.code || ''}` : label('crossPlatformHelp'), area.x, y, area.width, 14, CABIN_COLORS.muted, 3) + 10;
   if (state.online) for (const player of playerIds(state.playerCount || 2)) {
     const profile = state.roomProfiles?.[player], bot = state.bots?.includes(player);
-    const side = label({ BLACK: 'black', WHITE: 'white', PURPLE: 'purple', GREEN: 'green', ORANGE: 'orange', CYAN: 'cyan' }[player]);
+    const side = label(PLAYER_LABEL_KEYS[player]);
     const own = state.ownPlayer === player ? (en ? ' · you' : ' · 你') : '';
     const seat = bot ? label(`controller-${state.controllers?.[player] || 'greedy'}`) : profile?.displayName
       ? `${profile.displayName}${state.ready?.[player] ? (en ? ' · ready' : ' · 已准备') : ''}` : (en ? 'Waiting for invitation' : '等待邀请加入');

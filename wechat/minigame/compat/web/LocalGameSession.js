@@ -1,10 +1,10 @@
 import { ALL_LOCAL_PLAYER_CHOICES, MULTIPLAYER_AI_CHOICES, normalizeLocalPlayers, usesGenericBoardAI } from "./LocalAIModes.js?v=20261022-multiplayer1";
 import { startingPointSettings } from "./StartingPoints.js?v=20261021-boardshapes1";
-import { resolveBoardShape } from "./GameEngine.js?v=20261021-boardshapes1";
+import { PLAYER_ORDER, resolveBoardShape } from "./GameEngine.js?v=20261021-boardshapes1";
 import { normalizeUndoUsage } from "./LocalUndo.js?v=20261021-undo1";
 
 const LOCAL_GAME_SESSION_FORMAT = "lifeline-local-session";
-const PLAYER_COLORS = Object.freeze(["BLACK", "WHITE", "PURPLE", "GREEN", "ORANGE", "CYAN"]);
+const PLAYER_COLORS = PLAYER_ORDER;
 export const LOCAL_GAME_SESSION_SCHEMA_VERSION = 1;
 export const LOCAL_GAME_SESSION_STORAGE_KEY = "lifeline-local-game-session-v1";
 
@@ -42,7 +42,7 @@ function normalizeSettings(settings) {
   if (!Number.isInteger(normalized.playerCount) || !Number.isInteger(normalized.gridSize)) {
     return null;
   }
-  if (normalized.playerCount < 2 || normalized.playerCount > 6 || normalized.gridSize < 5 || normalized.gridSize > 15) {
+  if (normalized.playerCount < 2 || normalized.playerCount > 15 || normalized.gridSize < 5 || normalized.gridSize > 15) {
     return null;
   }
   if (typeof normalized.startPlayer !== "string" || typeof normalized.rulesVersion !== "string") {

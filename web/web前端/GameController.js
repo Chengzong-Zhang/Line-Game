@@ -1,11 +1,11 @@
-import GameEngine, { Player, TerritoryRulesVersion, PLAYER_ORDER, getBoardPositions, resolveBoardShape } from "./GameEngine.js?v=20261025-room1";
-import Renderer from "./Renderer.js?v=20261025-room1";
-import { ServerEvent } from "./NetworkManager.js?v=20261025-room1";
-import { serializeEngineState } from "./AIStateProtocol.js?v=20261025-room1";
+import GameEngine, { Player, TerritoryRulesVersion, PLAYER_ORDER, getBoardPositions, resolveBoardShape } from "./GameEngine.js?v=20261025-defense15";
+import Renderer from "./Renderer.js?v=20261025-defense15";
+import { ServerEvent } from "./NetworkManager.js?v=20261025-defense15";
+import { serializeEngineState } from "./AIStateProtocol.js?v=20261025-defense15";
 import {
   applyTerritoryWorkerResult,
-} from "./TerritoryWorkerSession.js?v=20261025-room1";
-import TerritoryWorkerPool from "./TerritoryWorkerPool.js?v=20261025-room1";
+} from "./TerritoryWorkerSession.js?v=20261025-defense15";
+import TerritoryWorkerPool from "./TerritoryWorkerPool.js?v=20261025-defense15";
 
 // GameController 鏄墠绔殑鈥滆兌姘村眰鈥濓細
 // 瀹冩妸 Model(GameEngine)銆乂iew(Renderer) 鍜岃仈鏈哄眰(NetworkManager) 涓茶捣鏉ワ紝
@@ -57,7 +57,7 @@ export class GameController {
       ? options.createTerritoryWorker
       : (typeof globalThis.Worker === "function"
         ? () => new globalThis.Worker(
-            new URL("./TerritoryWorker.js?v=20261025-room1", import.meta.url),
+            new URL("./TerritoryWorker.js?v=20261025-defense15", import.meta.url),
             { type: "module" },
           )
         : null);

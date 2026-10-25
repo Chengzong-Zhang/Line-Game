@@ -98,7 +98,7 @@ export function contributionContext(session) {
 
 function sanitizeV2(settings, actions, context) {
   if (!settings || settings.rulesVersion !== 'territory-v2' || !Number.isInteger(settings.gridSize)
-    || settings.gridSize < 5 || settings.gridSize > 15 || !playerIds(settings.playerCount).length) throw new Error('UNSUPPORTED');
+    || settings.gridSize < 5 || settings.gridSize > 15 || settings.playerCount > 6 || !playerIds(settings.playerCount).length) throw new Error('UNSUPPORTED');
   const players = playerIds(settings.playerCount), options = normalizePlayOptions(settings);
   const boardShape = settings.boardShape ?? (settings.playerCount >= 4 ? 'hexagon' : 'triangle');
   const startingPointMode = settings.startingPointMode ?? (settings.initialPositions ? 'custom' : 'default');

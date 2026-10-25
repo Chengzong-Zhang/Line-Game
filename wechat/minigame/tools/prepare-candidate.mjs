@@ -218,7 +218,7 @@ export async function prepareCandidate({
     importDirectory: 'project', files, sourceHashes: before.inputHashes,
     reproducibility: 'Fresh isolated rebuild matches every existing dist file, including 17 verified model assets, byte for byte; test evidence is bound separately',
     runtime: { node: process.version, platform: process.platform, arch: process.arch },
-    uploadDescription: '统一创建真人与 AI 混合房间，支持 2–6 席配置、棋盘舱完整设置、邀请真人、各席 AI 与随机/自定义起点；房主可随时改设置，开局后下一局生效。',
+    uploadDescription: '支持 2–15 人本地与混合联机房间；7–15 人仅随机或自定义起点，补齐小屏席位、比分与结算分页。后续训练强制完整至少三层 Minimax，并优先防守和起点连通切断链；本版保留既有模型权重。',
     acceptance: { nativeCandidateImport: 'NOT_RUN', physicalDevice: 'NOT_RUN',
       accountPermissions: 'NOT_VERIFIED', serviceConnectivity: 'NOT_VERIFIED',
       actualWechatLogin: 'NOT_RUN', crossPlatformDeviceMatch: 'NOT_RUN',

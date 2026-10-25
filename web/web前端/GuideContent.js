@@ -1,5 +1,5 @@
-import { implementationMarkdown } from "./GuideImplementation.js?v=20261025-room1";
-import { guideHeadingId, isGuideAnchorId } from "./GuideArticleFormat.js?v=20261025-room1";
+import { implementationMarkdown } from "./GuideImplementation.js?v=20261025-defense15";
+import { guideHeadingId, isGuideAnchorId } from "./GuideArticleFormat.js?v=20261025-defense15";
 
 const WHY_TALK_ZH = `# Talk：扩张、防守与破绽
 
@@ -189,8 +189,11 @@ CNNs see local texture. This game is valued by base connectivity, bridges, artic
 
 const GUIDE_MARKDOWN = Object.freeze({
   zh: Object.freeze({
-    rulesEssential: `【胜利条件】
-双方轮流在三角网格落子。己方节点和连线经过的格点直接计入领土；由己方点线围住、与棋盘外界隔绝且不含敌方元素的每个空腔也计入，包括甜甜圈形状的内孔；含敌方元素的空腔不计。无需形成单一闭环；开链和单线仍按己方点数计分。同一格点只算一次。显示轮廓（displayArea）仅用于展示，不决定正式分数；最终格点数多者获胜。
+    rulesEssential: `【人数、棋盘与起点】
+支持 2–15 人在三角形或正六边形棋盘上对局。2–6 人可选择默认、随机或自定义起点；7–15 人仅可选择随机或自定义起点，每位玩家各有一个不同的起点。开局采用预览中选定的起点，保存、复盘与重连保留原起点，重开随机对局才重新抽取。
+
+【胜利条件】
+各方轮流在网格落子。己方节点和连线经过的格点直接计入领土；由己方点线围住、与棋盘外界隔绝且不含敌方元素的每个空腔也计入，包括甜甜圈形状的内孔；含敌方元素的空腔不计。无需形成单一闭环；开链和单线仍按己方点数计分。同一格点只算一次。显示轮廓（displayArea）仅用于展示，不决定正式分数；最终格点数多者获胜。
 ![可落子区域示意](./guide-images/可以走的区域png.png)
 
 【核心机制】
@@ -199,14 +202,16 @@ const GUIDE_MARKDOWN = Object.freeze({
 ![切断示意二](./guide-images/切断2.png)
 
 【限制规则】
-为保证博弈的平衡与推进，游戏设定了三项强制约束。首先是起步保护，靠近初始点的两个相邻位置绝对禁止敌方落子。
+为保证博弈的平衡与推进，游戏设定了三项强制约束。首先是起步保护，棋盘内紧邻己方起点的所有格点都禁止敌方落子；图中的三角角点起点只有两个这样的相邻格点。
 ![起点限制示意](./guide-images/起点限制.png)
 
 其次是阵型限制，禁止主动形成三个节点互相紧挨的最小三角形阵型，除非该次落子直接切断了敌方的连线。
 ![三点限制示意](./guide-images/三点限制.png)
 
 最后是同形禁手，禁止任何会使全局节点与连线状态恢复至历史重复局面的落子，以防止双方陷入无限互相切断的死循环`,
-    rulesWar: `最高指挥官，欢迎来到这片由点与线交织的三角阵地。
+    rulesWar: `最高指挥官，欢迎来到这片由点与线交织的战场。
+
+本局支持 2–15 人，可选择三角形或正六边形棋盘。2–6 人可使用默认、随机或自定义起点；7–15 人仅使用随机或自定义起点，每位指挥官都有一个不同的基地。开局采用选定的起点，保存、复盘与重连保留原起点；重开随机对局才重新抽取。
 
 常言道，兵马未动，粮草先行。在这片残酷的战场上，如果你前方的部队失去了和总基地的联系，就会因为断水断粮而直接在棋盘上溃散消失。这是你在接下来的指挥中最需要牢记的铁律。
 
@@ -227,7 +232,7 @@ const GUIDE_MARKDOWN = Object.freeze({
 ![切断示意一](./guide-images/切断1.png)
 ![切断示意二](./guide-images/切断2.png)
 
-当所有的硝烟散去，双方都无兵可派、无地可占时，谁控制的领土格点更多，谁就是这场战争真正的赢家。去吧，指挥官，愿你的防线坚不可摧。`,
+当所有仍在场的玩家连续各跳过一回合后，谁控制的领土格点更多，谁就是这场战争真正的赢家。去吧，指挥官，愿你的防线坚不可摧。`,
     rulesMath: implementationMarkdown("rulesMath", "zh"),
     whyTalk: WHY_TALK_ZH,
     whyCode: WHY_CODE_ZH,
@@ -248,8 +253,11 @@ UE设计师：zcz, LeoYan, Codex(GPT5.4), Pigeon
 内测用户：Mandy, zfp, smy, zzd, slz, zxy, Orange, Puppy, yxy, hmy, RobinTian, zjy, wyc, fjh, lh, O, lhh, lhr, jhd`,
   }),
   en: Object.freeze({
-    rulesEssential: `【Victory Condition】
-Players take turns placing nodes on a triangular grid. Your nodes and link points always count. Every enemy-free pocket cut off from the board exterior by friendly points also counts, including the inner hole of a donut-shaped structure; pockets containing an enemy are excluded. No single closed loop is required; an open chain or single line still scores its owned points. Each point counts once. The displayed outline (displayArea) is for presentation and does not determine the official score; the higher total wins.
+    rulesEssential: `【Players, Boards, and Starting Points】
+Play with 2–15 players on a triangular or regular hexagonal board. With 2–6 players, choose default, random, or custom starts. With 7–15 players, only random or custom starts are available, with one distinct starting point per player. A match uses the selected preview; saves, replays, and reconnections preserve those starts. Restarting a random match draws new starts.
+
+【Victory Condition】
+Players take turns placing nodes on the grid. Your nodes and link points always count. Every enemy-free pocket cut off from the board exterior by friendly points also counts, including the inner hole of a donut-shaped structure; pockets containing an enemy are excluded. No single closed loop is required; an open chain or single line still scores its owned points. Each point counts once. The displayed outline (displayArea) is for presentation and does not determine the official score; the higher total wins.
 ![Playable area example](./guide-images/可以走的区域png.png)
 
 【Core Mechanic】
@@ -258,14 +266,16 @@ Adjacent friendly nodes connect automatically as long as nothing blocks the line
 ![Cut example two](./guide-images/切断2.png)
 
 【Restriction Rules】
-To keep the game balanced and moving, three constraints always apply. First, there is opening protection: the two positions adjacent to a player's starting node are absolutely forbidden to the opponent.
+To keep the game balanced and moving, three constraints always apply. First, there is opening protection: every on-board grid point immediately adjacent to a player's starting node is forbidden to opponents. The triangular corner start in the illustration has two such neighbors.
 ![Starting-point restriction](./guide-images/起点限制.png)
 
 Second, there is a formation restriction: you may not voluntarily create the smallest triangle made of three mutually adjacent nodes, unless that move directly cuts an enemy link.
 ![Three-point restriction](./guide-images/三点限制.png)
 
 Third, there is a superko-style repetition ban: any move that recreates a previously seen global node-and-link state is illegal, preventing endless cut-and-recut loops.`,
-    rulesWar: `Commander, welcome to this triangular theater woven from points and lines.
+    rulesWar: `Commander, welcome to this battlefield woven from points and lines.
+
+Play with 2–15 commanders on a triangular or regular hexagonal board. With 2–6 players, choose default, random, or custom starts. With 7–15 players, only random or custom starts are available, with one distinct base per commander. A match uses your selected starts; saves, replays, and reconnections preserve them. Restarting a random match draws new starts.
 
 There is an old rule of war: supply must move before the army does. On this battlefield, if your forward troops lose contact with headquarters, they collapse from the board at once. That is the iron law you must remember above all else.
 
@@ -286,7 +296,7 @@ But the battlefield changes instantly. If your move lands directly on an enemy s
 ![Cut example one](./guide-images/切断1.png)
 ![Cut example two](./guide-images/切断2.png)
 
-When the smoke clears and neither side has any move or expansion left, the side controlling more territory grid points is the true winner. Go on, Commander. May your lines hold.`,
+When every remaining player has passed consecutively, the side controlling more territory grid points is the true winner. Go on, Commander. May your lines hold.`,
     rulesMath: implementationMarkdown("rulesMath", "en"),
     whyTalk: WHY_TALK_EN,
     whyCode: WHY_CODE_EN,
