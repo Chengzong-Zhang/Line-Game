@@ -1,0 +1,66 @@
+{
+  "status": "OFFICIAL_0128_DEVELOPER_UPLOAD_AND_PREVIEW_CONFIRMED",
+  "version": "0.12.8",
+  "candidateId": "0.12.8-3d52cced85f8-4adHPq",
+  "candidateReceiptSha256": "0b96558776fcd6ac5a0f00a4721edfc5e38eb203f67c41cd1be44c30f9cb56d1",
+  "upload": {
+    "status": "CODE_UPLOADED_EXPERIENCE_NOT_CONFIGURED",
+    "receipt": "official-upload.json",
+    "receiptSha256": "34ffadc448ec48c6927d33a92224cbfce9a69700890f03168d703b2be2d4b96a",
+    "finishedAt": "2026-10-25T03:43:06.697Z",
+    "packageInfo": [
+      {
+        "name": "/models/dqn/",
+        "size": 3025461
+      },
+      {
+        "name": "/models/gail/",
+        "size": 3027513
+      },
+      {
+        "name": "/models/gan/",
+        "size": 3027513
+      },
+      {
+        "name": "/models/ppo/",
+        "size": 3027513
+      },
+      {
+        "name": "/models/research/",
+        "size": 3020433
+      },
+      {
+        "name": "/models/sac/",
+        "size": 3025461
+      },
+      {
+        "name": "__APP__",
+        "size": 1573631
+      },
+      {
+        "name": "__FULL__",
+        "size": 19727525
+      }
+    ]
+  },
+  "preview": {
+    "status": "PREVIEW_GENERATED_NOT_DEVICE_VERIFIED",
+    "receipt": "official-preview.json",
+    "receiptSha256": "7d1cdc7c36745ef2bfee770065b882f4d0b300c8f1b11111a9ffe5d3a5c4834b",
+    "finishedAt": "2026-10-25T03:43:51.383Z",
+    "qr": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\wechat-preview-0.12.8-20261025-114351.jpg",
+    "qrSha256": "efc05fa8a15533a6f3e298d78ce231b24e269ed0a84d0799daa4033367d76419"
+  },
+  "experienceVersionConfiguredHere": false,
+  "testersAddedHere": false,
+  "submittedForReviewHere": false,
+  "publishedHere": false,
+  "previousFailedTask": {
+    "processId": 46076,
+    "status": "STOPPED_AFTER_VERIFYING_FAILED_RECEIPT",
+    "receipt": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261025-mini-q5uv3qh8\\repo\\local_artifacts\\wechat-transfers\\upload-0.12.8-czyzI6\\receipt.json",
+    "errorCode": 20003
+  },
+  "scope": "Frozen candidate/runtime unchanged; one newly authorized upload and one preview; no account/member/experience/review/publication changes",
+  "recordedAt": "2026-10-25T03:44:09.671878+00:00"
+}

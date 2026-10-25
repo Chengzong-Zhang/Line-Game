@@ -1,0 +1,13 @@
+{
+  "status": "PASS_ACTUAL_PYTHON_FORMAL_SCORE_METHODS",
+  "checks": 5,
+  "sourceSha256": "769b4054ed5b2bd3e38f1e79f0b4dc8f59eead2ee93bfc1ad99a7bc973a123a3",
+  "scores": {
+    "initial-owned-point": 1,
+    "open-line": 3,
+    "safe-pocket": 7,
+    "occupied-pocket": 6
+  },
+  "command": ".venv/Scripts/python.exe docs/verification/release-all-20261025-server/verify-python-formal-score.py",
+  "scope": "AST-extracted actual methods only; legacy game movement and Pygame rendering are not verified"
+}

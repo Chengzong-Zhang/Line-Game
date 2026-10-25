@@ -1,0 +1,233 @@
+{
+  "schemaVersion": 1,
+  "status": "CODE_UPLOADED_EXPERIENCE_NOT_CONFIGURED",
+  "action": "upload",
+  "startedAt": "2026-10-25T03:42:44.721Z",
+  "candidateId": "0.12.8-3d52cced85f8-4adHPq",
+  "candidateReceiptSha256": "0b96558776fcd6ac5a0f00a4721edfc5e38eb203f67c41cd1be44c30f9cb56d1",
+  "version": "0.12.8",
+  "type": "miniGame",
+  "robot": 2,
+  "profile": "online",
+  "apiBase": "https://lifelinegame.cn",
+  "serviceConnectivity": "NOT_VERIFIED",
+  "actualWechatLogin": "NOT_VERIFIED",
+  "inputFiles": [
+    {
+      "path": "dist/build-manifest.json",
+      "bytes": 20738,
+      "sha256": "3d52cced85f89928ae0d36b9ec2f900287eaaba15ecf6d7fe9e9dbade27693e9"
+    },
+    {
+      "path": "dist/game.js",
+      "bytes": 540248,
+      "sha256": "b9b25ba71b318fa63a48a932cfdd567ba1720fb68cccfebc498253bd6dde5292"
+    },
+    {
+      "path": "dist/game.json",
+      "bytes": 474,
+      "sha256": "02b60661390a75feb4b027d8ad349988564fc9d4c760338b7e66670bd31ae810"
+    },
+    {
+      "path": "dist/guide/cut-after.png",
+      "bytes": 180003,
+      "sha256": "9bc0d8f3c1b4acca5ac36a13f1d696a9c08971f0d308f2525ef35053bd08bbb9"
+    },
+    {
+      "path": "dist/guide/cut-before.png",
+      "bytes": 181936,
+      "sha256": "a02817f967e9b2dc2103c04fbc0fb1cbbd4630d574bdd3b61a8e6aba24cf2d1f"
+    },
+    {
+      "path": "dist/guide/opening.png",
+      "bytes": 129899,
+      "sha256": "243f8eb898e011d08eadd9fa13d2f5f922c385d04e82a569a0ec36c787144a24"
+    },
+    {
+      "path": "dist/guide/playable.png",
+      "bytes": 153674,
+      "sha256": "5085eeede1c51b2c79fd062d306f854b96259190e53d1850b89c9ebe2eab3b35"
+    },
+    {
+      "path": "dist/guide/three-balance.jpg",
+      "bytes": 75654,
+      "sha256": "f764ae3428ce942964729b2fd30850b46a96df2b70282af8652fd52c977a863e"
+    },
+    {
+      "path": "dist/guide/triangle.png",
+      "bytes": 141728,
+      "sha256": "481e28f13a32dac2ab8b91d320cf20ade246eb513d8f09c5eb047536bb7e0d13"
+    },
+    {
+      "path": "dist/models/dqn/dqn-all-sizes-e2000.bin",
+      "bytes": 3025380,
+      "sha256": "16f50c330ad7cc239cfb0b2334538817c7c0d6cf4c01f6048b05c9ee4a9466eb"
+    },
+    {
+      "path": "dist/models/dqn/game.js",
+      "bytes": 68,
+      "sha256": "609947afe43f7d9666352a482d5a31675728b1c863f1c5786424b2d1bfeb058a"
+    },
+    {
+      "path": "dist/models/gail/gail-all-sizes.bin",
+      "bytes": 3027432,
+      "sha256": "5951e4e3f057893275df6f44543f3747cd4275a616d52a5b8355e51760faea71"
+    },
+    {
+      "path": "dist/models/gail/game.js",
+      "bytes": 68,
+      "sha256": "609947afe43f7d9666352a482d5a31675728b1c863f1c5786424b2d1bfeb058a"
+    },
+    {
+      "path": "dist/models/gan/game.js",
+      "bytes": 68,
+      "sha256": "609947afe43f7d9666352a482d5a31675728b1c863f1c5786424b2d1bfeb058a"
+    },
+    {
+      "path": "dist/models/gan/gan-all-sizes.bin",
+      "bytes": 3027432,
+      "sha256": "63629d0027afb8ff2fdbc3e773be420c062361b315741d8371e47818c4ec30e5"
+    },
+    {
+      "path": "dist/models/ppo/game.js",
+      "bytes": 68,
+      "sha256": "609947afe43f7d9666352a482d5a31675728b1c863f1c5786424b2d1bfeb058a"
+    },
+    {
+      "path": "dist/models/ppo/ppo-all-sizes-e2000.bin",
+      "bytes": 3027432,
+      "sha256": "af41359ca0ee00b3be86a2f5b9363a513af942f6cfa0c50f31cb0f252c86de85"
+    },
+    {
+      "path": "dist/models/research/game.js",
+      "bytes": 68,
+      "sha256": "609947afe43f7d9666352a482d5a31675728b1c863f1c5786424b2d1bfeb058a"
+    },
+    {
+      "path": "dist/models/research/grid-gnn-d14-s20260825-g200.bin",
+      "bytes": 250932,
+      "sha256": "92cc45bb2a3a6a56c896098c1e843a136587a9aaf07381fbf1d00ebb4fd02dfa"
+    },
+    {
+      "path": "dist/models/research/grid-gnn-transfer-v1-seed2026092201.bin",
+      "bytes": 250932,
+      "sha256": "e0b82a1736521fb967afb7861ba1fcc697b505990d5b6391abb8318dbef42a0b"
+    },
+    {
+      "path": "dist/models/research/grid-gnn-transfer-v1-seed2026092202.bin",
+      "bytes": 250932,
+      "sha256": "5db4b00462d8e30d2d293adf554da3e0e6b4cde6d40d3f82b590b23fa267000b"
+    },
+    {
+      "path": "dist/models/research/grid-gnn-transfer-v1-seed2026092203.bin",
+      "bytes": 250932,
+      "sha256": "67079d1d6108732cddfeecf74840ae63505488af052e068ab1a83bf96c56bf87"
+    },
+    {
+      "path": "dist/models/research/padded-cnn-d14-s20260825-g200.bin",
+      "bytes": 251472,
+      "sha256": "cea913f58d1694926fb6710ca355bf6d41e5a6c49b991af87b836ae26d43bf1f"
+    },
+    {
+      "path": "dist/models/research/padded-cnn-transfer-v1-seed2026092201.bin",
+      "bytes": 251472,
+      "sha256": "416ee1a88f092ab514dd40c8a22604a761a20b223409eaaef64f61c691108242"
+    },
+    {
+      "path": "dist/models/research/padded-cnn-transfer-v1-seed2026092202.bin",
+      "bytes": 251472,
+      "sha256": "cd36fdd3a96e78066475fb67056fa179bf7765028fbf9e4db7a172857b134af3"
+    },
+    {
+      "path": "dist/models/research/padded-cnn-transfer-v1-seed2026092203.bin",
+      "bytes": 251472,
+      "sha256": "ee60f6d279941c78af999c6d051d514bf90f09b9478272d8557d482bb24dd07c"
+    },
+    {
+      "path": "dist/models/research/topology-gnn-d14-s20260825-g200.bin",
+      "bytes": 252684,
+      "sha256": "de7f1a4c9c204d0f88598f5d7d92e180e291060b11cc711c8f9e786207cf34d0"
+    },
+    {
+      "path": "dist/models/research/topology-gnn-transfer-v1-seed2026092201.bin",
+      "bytes": 252684,
+      "sha256": "0235947ee5a3eb6aa36627da06270e0854f3ece5c2b509d6a4f85d830a54f5ba"
+    },
+    {
+      "path": "dist/models/research/topology-gnn-transfer-v1-seed2026092202.bin",
+      "bytes": 252684,
+      "sha256": "4c424c0f0ac19724d7fa51741d199bd780781d7063b325671fe9197f6b6abc9b"
+    },
+    {
+      "path": "dist/models/research/topology-gnn-transfer-v1-seed2026092203.bin",
+      "bytes": 252684,
+      "sha256": "5a8f6f4ed6954c5dda131c16403f2f2c680edefffc050d19f2cab25850dcc84b"
+    },
+    {
+      "path": "dist/models/sac/game.js",
+      "bytes": 68,
+      "sha256": "609947afe43f7d9666352a482d5a31675728b1c863f1c5786424b2d1bfeb058a"
+    },
+    {
+      "path": "dist/models/sac/sac-all-sizes-e2000.bin",
+      "bytes": 3025380,
+      "sha256": "63a1b80b456427a2545a31ff9af209fdde1f9cf8d41ae6984f36c09c116932bd"
+    },
+    {
+      "path": "dist/THIRD_PARTY_NOTICES.txt",
+      "bytes": 1396,
+      "sha256": "aa050304323db5d85b2d446d19a38688d4e853a5f76841f0298bcf83b098829e"
+    },
+    {
+      "path": "dist/workers/index.js",
+      "bytes": 281145,
+      "sha256": "4608d14e6b0ddc87e7f7d43fe981ea7477e928a0f6fe130b95fce777282dfc09"
+    },
+    {
+      "path": "project.config.json",
+      "bytes": 413,
+      "sha256": "03e842f6fed66133568b63aeed72ae009dc5d13df146b874ac2ff6dc2cd3d019"
+    }
+  ],
+  "sdkVersion": "2.1.31",
+  "experienceVersionConfigured": false,
+  "testersAdded": false,
+  "submittedForReview": false,
+  "published": false,
+  "sdkResolved": true,
+  "packageInfo": [
+    {
+      "name": "/models/dqn/",
+      "size": 3025461
+    },
+    {
+      "name": "/models/gail/",
+      "size": 3027513
+    },
+    {
+      "name": "/models/gan/",
+      "size": 3027513
+    },
+    {
+      "name": "/models/ppo/",
+      "size": 3027513
+    },
+    {
+      "name": "/models/research/",
+      "size": 3020433
+    },
+    {
+      "name": "/models/sac/",
+      "size": 3025461
+    },
+    {
+      "name": "__APP__",
+      "size": 1573631
+    },
+    {
+      "name": "__FULL__",
+      "size": 19727525
+    }
+  ],
+  "finishedAt": "2026-10-25T03:43:06.697Z"
+}

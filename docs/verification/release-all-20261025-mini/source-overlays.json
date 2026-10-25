@@ -1,0 +1,102 @@
+{
+  "baseline": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261024-mini-cnypk0q6\\repo",
+  "snapshot": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261025-mini-q5uv3qh8\\repo",
+  "changes": [
+    {
+      "file": "wechat/minigame/package-lock.json",
+      "beforeSha256": "a43fe1ef6daa8adf22b3532a1e111a983e633388e963e37e7d22a0aad2d6aac4",
+      "afterSha256": "ea75b38c03df6e9bebb1dfb48f9545726687891e52ae32228222a87a2ea3bdaf"
+    },
+    {
+      "file": "wechat/minigame/package.json",
+      "beforeSha256": "e815fad6fd89492ef980e07d7aa16fba9666c692be7c240d47d3e2b3975cf694",
+      "afterSha256": "4e23c1f1afb20c0655ca2d3ba33b3c7cb44fdfbd10076021bb5dc4d1efc0f879"
+    },
+    {
+      "file": "wechat/minigame/src/worker-pass.js",
+      "beforeSha256": null,
+      "afterSha256": "2fb7c88ed4fcfa70cc97d92fd2ea37385ceb279a41e5a98eb0399461824e4b28"
+    },
+    {
+      "file": "wechat/minigame/src/worker-runtime.js",
+      "beforeSha256": "f237556209c67bc69f811da233d8f7bac8609c3c8187e907131b52a78369d952",
+      "afterSha256": "5b808b26f6c03a68add0efd618d72e6eca3a463ae88960b343802d6b03feb32e"
+    },
+    {
+      "file": "wechat/minigame/tests/fixtures/multiplayer-cut-chain-defense-v1.json",
+      "beforeSha256": null,
+      "afterSha256": "f220fd0a32a06d2dbbc9070f5fd8971a67576684e6f54e14a97abf57176dc634"
+    },
+    {
+      "file": "wechat/minigame/tests/hex-player-worker.test.mjs",
+      "beforeSha256": "93cdea0cd97dd97ff31eaaea860b8953d69347610c37de893b19e125ae5705d4",
+      "afterSha256": "3defafd281fde0821d44a06beccdd293ff9a4f03b5005a5d54b87f7dc401530e"
+    },
+    {
+      "file": "wechat/minigame/tests/latest-ai-0128.test.mjs",
+      "beforeSha256": null,
+      "afterSha256": "fbfcd3f7e54fa5e7a235642ab045d43c29f265f6f876784d165b286c8ba67133"
+    },
+    {
+      "file": "wechat/minigame/tests/multiplayer-tier-runtime.test.mjs",
+      "beforeSha256": "515e9402112a400d4b417b5918c7abf0fa775fa1e6d8fa9a71df27e3ec4174e9",
+      "afterSha256": "39c586746ade15848e15f76e784ee8b4c427ed939259a6c8eb65aaf8b1ebb6cf"
+    },
+    {
+      "file": "wechat/minigame/tools/prepare-candidate.mjs",
+      "beforeSha256": "210adcd6595ff64352f0d723141a6939ead176522e696c78c90b5d073a7eac39",
+      "afterSha256": "014cd29e0325b47121b0fbfd877eb7b476246fbb37e18662fa0ad58865f5d359"
+    },
+    {
+      "file": "web/web前端/AIEngine.js",
+      "beforeSha256": "f2b7c3bc79702ae8b6d9a95c19d525d36b519ed81cb53cd302f182de3d8c3f40",
+      "afterSha256": "fd43cd3053a0b92569a4d26524a036f45a2920271cc06a49ef0200aec07ffabf"
+    },
+    {
+      "file": "web/web前端/ModelFreeAI.js",
+      "beforeSha256": "5589c9449210367a42859649d94424b75dd592994af47bd276fd26bf8ae4659d",
+      "afterSha256": "070412e94762ffa9d394f74f14cf4ca9ad997533506468c238d89d55db255a9a"
+    },
+    {
+      "file": "web/web前端/MultiplayerHardFallback.js",
+      "beforeSha256": "9ca75568835ab5e8c0174a762e7a40b2e1a1a9b4d7e9a094a89b6d4f466031dc",
+      "afterSha256": "1b7ef02c3bad6835028ff404b27f2cf3b8c8a64af51952069e4e3d9aa92ab0fd"
+    },
+    {
+      "file": "web/web前端/MultiplayerHardRollout.js",
+      "beforeSha256": "2ed6439701d89946e1a2cccd8d1cd0281380f850e6053718b6757cd3c1992b41",
+      "afterSha256": "25c83d849b4816ab258747a7d90e75a1404b0919fb4b85715335196bdb452568"
+    },
+    {
+      "file": "web/web前端/MultiplayerHardRuntime.js",
+      "beforeSha256": "0b4519fe5d743861416ae30927b6d6c9c2bc364beb27afe290b11df66a6a3d30",
+      "afterSha256": "eba0adf2ba3137d3992f672c2d9b710d980b7710718c067590940ea84f07deaf"
+    },
+    {
+      "file": "web/web前端/MultiplayerRuntime.js",
+      "beforeSha256": "64a0795e984c57699b4aef6fccfd48b2b9e9d76e1187fcbeda3d045c5549b8bc",
+      "afterSha256": "442b56678fe8e0edd3d8aedce89f21cc683072a2169f9eed7e1e3bd63a02bc63"
+    },
+    {
+      "file": "web/web前端/MultiplayerStandardDefense.js",
+      "beforeSha256": null,
+      "afterSha256": "44c3bd08345bdbd2e543b4031755922a0d6fa6268f286f89b03d8e4c7b98cb4e"
+    }
+  ],
+  "latestMainRawHashes": {
+    "AIEngine.js": "fd43cd3053a0b92569a4d26524a036f45a2920271cc06a49ef0200aec07ffabf",
+    "MultiplayerRuntime.js": "1893d77350363b9c31d2a29a21adb3cbee87122160ba40ab24d68495221f22d9",
+    "MultiplayerStandardDefense.js": "7e488f0c4cac8f1f57298f8a2518adb8aed235472f1f4e2e886c8f7c12292239",
+    "MultiplayerHardRollout.js": "532faccaa495c2fac3acb02c9787d2784ca3e6aa516e4b2f08479ed3ee2ffd4a",
+    "MultiplayerSearch.js": "0deab47c0f8e1ad7cac630b31ce99b31b3765e6c3c99a6ebb303c661f970fa4e",
+    "MultiplayerNativeGeometry.js": "fc0a65a9c935d6922731e5f5ca983520cf8290de0d9b831b9ca05cffa65b13fe",
+    "MultiplayerHardRuntime.js": "779d0d48704307dec4c1c517510632adcaabdbd35bf5f3353730da0c063dedb9",
+    "MultiplayerHardFallback.js": "0df510a7455f94c64d1d77db61b0acc31e14fefea661e83b2eb1c3e47e46a753",
+    "MultiplayerHardValue.js": "6bb9dc21c72773b6dbca6a268173f5e93daebe83a7a4bb1ab21687269a7ea25e",
+    "AIWorker.js": "4ce952a544111fdfba3e786992023e48665973257ae1669a4ff8c378584ae8b6",
+    "ModelFreeAI.js": "0c3aaebd0ede1b7b6c00c7757301c12ed5bfd16bcfee3fc3b8dbe7e20b430627",
+    "GameEngine.js": "3b70b69c4c480117a4952b06c279054ec535268b4293b04b4d63f960ac4b0fca"
+  },
+  "nativePassGuardMatchesWebFunctionExactly": true,
+  "guardSourceHash": "2c71ca0f985c8868d13a3fa7dd9b38bd206fc03a78344ccc7aae5708ef717d5e"
+}

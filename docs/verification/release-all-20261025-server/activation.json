@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "status": "ACTIVATED_ALL_COMPONENTS_VERIFIED",
+  "releaseId": "web-all-features-20261025-r4",
+  "publicUrl": "https://lifelinegame.cn",
+  "startedAtUtc": "2026-10-25T03:51:21.637499+00:00",
+  "finishedAtUtc": "2026-10-25T03:51:39.539050+00:00",
+  "frontend": {
+    "status": "ACTIVATED_HASHES_V3_FIXTURE_VERIFIED",
+    "runtimeFilesMatched": 121,
+    "activeTreeSha256": "7c258601afa7d246b62bd27e8451467ff58b91e98f346cd27f765ce947d9cd12"
+  },
+  "legacy": {
+    "status": "ACTIVATED_LEGACY_V3_SETTINGS_UNDO",
+    "preflight": {
+      "status": "PASS_LEGACY_RELEASE_PREFLIGHT",
+      "liveChanged": false
+    },
+    "databaseRestored": false,
+    "changedFiles": [
+      "web/web后端/server.py",
+      "web/tools/online_bot_bridge.mjs"
+    ]
+  },
+  "wechat": {
+    "status": "ACTIVATED_SERVICE_RELEASE",
+    "preflight": {
+      "status": "PREFLIGHT_PASSED_NO_LIVE_CHANGE",
+      "releaseId": "wechat-service-all-20261025-r3",
+      "databaseRestored": false,
+      "runtimeFiles": 69
+    },
+    "databaseRestored": false,
+    "frontendModified": false,
+    "accountProfile": true,
+    "releaseId": "wechat-service-all-20261025-r3",
+    "runtimeFiles": 69
+  },
+  "healthAfter": {
+    "game": {
+      "status": "ok",
+      "enabled": null,
+      "rulesVersion": null,
+      "supportedRulesVersions": null,
+      "accountProfile": null,
+      "roomSettings": null,
+      "undoVoting": null
+    },
+    "wechat": {
+      "status": null,
+      "enabled": true,
+      "rulesVersion": "territory-v3",
+      "supportedRulesVersions": [
+        "territory-v2",
+        "territory-v3"
+      ],
+      "accountProfile": true,
+      "roomSettings": true,
+      "undoVoting": true
+    },
+    "collector": {
+      "status": null,
+      "enabled": true,
+      "rulesVersion": null,
+      "supportedRulesVersions": null,
+      "accountProfile": null,
+      "roomSettings": null,
+      "undoVoting": null
+    }
+  },
+  "collectorStatusUnchanged": true,
+  "territoryFixture": {
+    "status": "PASS_ACTUAL_V3_ENGINE",
+    "checks": 21,
+    "engineSha256": "3b70b69c4c480117a4952b06c279054ec535268b4293b04b4d63f960ac4b0fca",
+    "initialScoreV2": 0,
+    "initialScoreV3": 1,
+    "openLineScoreV3": 3,
+    "safePocketScore": 7,
+    "enemyPocketScore": 6,
+    "closedPositionScores": [
+      10,
+      9
+    ]
+  },
+  "databaseReplacedOrRestored": false,
+  "previousAttempt": {
+    "releaseId": "web-all-features-20261025-r3",
+    "status": "FAILED_BEFORE_RUNTIME_EXCHANGE_BASELINE_RECOVERED",
+    "reason": "READ_ONLY_CLOUD_SECURITY_DESCRIPTOR_MISCLASSIFIED_AS_WRITER",
+    "baselineRecovery": "RECOVERED_VERIFIED_BASELINE_SAME_DATABASE",
+    "cloudSecurityChanged": false
+  },
+  "preparation": {
+    "release_id": "web-all-features-20261025-r4",
+    "status": "FROZEN_NOT_DEPLOYED",
+    "bootstrapSha256": "46edb763cce7770a7069982724e80c45256d86eac1a567ae44342e5b388a61c3",
+    "planSha256": "2213ec4db7e8727cad5dd58c8f3879c27ddab76ed18c458236e3442053cb50af",
+    "payloadFiles": 85,
+    "engineSha256": "3b70b69c4c480117a4952b06c279054ec535268b4293b04b4d63f960ac4b0fca",
+    "credentialsIncluded": false,
+    "frontendRebind": {
+      "sourceReleaseId": "web-all-features-20261025-r3",
+      "release_id": "web-all-features-20261025-r4",
+      "sourceManifestSha256": "a99f981627c52861f244dca7e1487361dc6e4021e963769b270a2fdd7a632ad8",
+      "sourceArchiveSha256": "7e65262a81f81d1b3edb0512f7c6ccd757a56e7e5467917d311d808c03f8192f",
+      "runtimeMembersUnchanged": 121
+    }
+  },
+  "relayResultSha256": "3ee2b08956d64b2c57db171ed528bd907e9beb4b4f8672f909c88be32045536f",
+  "publicHttpsBytesVerified": {
+    "status": "PASS_PUBLIC_HTTPS_R4_BYTES_AND_V3_SCORING",
+    "runtimeFilesMatched": 121,
+    "bytes": 21495433,
+    "checks": 21,
+    "evidence": "../release-all-20261025-public-web-r4/web-public-https-receipt.json"
+  },
+  "deviceVerificationRequested": false,
+  "secretsIncluded": false
+}

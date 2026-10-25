@@ -1,0 +1,13 @@
+{
+  "status": "PASS_ACTUAL_PYTHON_FORMAL_SCORE_METHODS",
+  "checks": 5,
+  "sourceSha256": "3f0b68d5ebbd586b13c5015f94f185f3d368f6cf9ffc3c411bda1d2a53796346",
+  "scores": {
+    "initial-owned-point": 1,
+    "open-line": 3,
+    "safe-pocket": 7,
+    "occupied-pocket": 6
+  },
+  "scope": "AST-extracted actual methods only; legacy game movement and Pygame rendering are not verified",
+  "sourceNormalization": "Git product source is LF-normalized; historical WORK receipt remains untouched."
+}

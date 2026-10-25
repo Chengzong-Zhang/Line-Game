@@ -1,0 +1,1031 @@
+{
+  "status": "PASS_PUBLIC_HTTPS_R4_BYTES_AND_V3_SCORING",
+  "release_id": "web-all-features-20261025-r4",
+  "asset_version": "20261025-unified1",
+  "manifest_sha256": "313ff7f9b09655b25479dad68734df6711c85d43c900f817ab0a261b404cd02a",
+  "same_runtime_as_r3": true,
+  "r3_manifest_sha256": "a99f981627c52861f244dca7e1487361dc6e4021e963769b270a2fdd7a632ad8",
+  "scoring_probe_sha256": "e044aa564abf799c324ba143ab8d392c9b853813f54137e1ecccf483b227e756",
+  "expected_files": 121,
+  "expected_total_bytes": 21495433,
+  "base_url": "https://lifelinegame.cn",
+  "network_route": "direct HTTPS; inherited proxies bypassed; TLS verification enabled",
+  "scope": "Public HTTPS runtime bytes and 21 assertions on the downloaded GameEngine; no UI or device claim",
+  "started_at": "2026-10-25T03:53:22.231448+00:00",
+  "completed_at": "2026-10-25T03:54:11.545347+00:00",
+  "matched_files": 121,
+  "downloaded_total_bytes": 21495433,
+  "no_deployment_or_account_mutations": true,
+  "script_sha256": "8b0b90ae03a74fa1d57f54f19eecca0de4bdf23a7de7465ffd0991fb51ae9329",
+  "original_receipt": {
+    "path": "local_artifacts/release-all-20261025-web-public-r4/runs/20261025T035322Z-5899fcbb/receipt.json",
+    "sha256": "b81de5fffaef99e27f221dc2ccafe7607c1e6280875066b0d388b833409290f8"
+  },
+  "execution_command": [
+    ".venv/Scripts/python.exe",
+    "local_artifacts/release-all-20261025-web-public-r4/verify_public_r4.py",
+    "--execute"
+  ],
+  "file_results": [
+    {
+      "path": "AIEngine.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 37767,
+      "sha256": "df5a2a04087ad9fb61ca3269706918183ac98a54acce849b94b06bee7b1737cd",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "AIStateProtocol.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 2692,
+      "sha256": "bd82e144304f429b354d7d7a722f1a691b7902a6e6e418f3739342191b5291a2",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "AIWorker.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 9277,
+      "sha256": "2404a32594ea20f017a9a7ba6a7ec3540e6a5e35972c53aff59ddae1f0f9ee7f",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "CrossPlatformNetwork.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 7291,
+      "sha256": "2ae7c2777f07a8e78b02082f4cd2b9fcdefda594d53ed197d18595fe31e0df5b",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "GameController.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 38696,
+      "sha256": "de0a21bab7c6268fc1fcbae9ddb37b572d703f59be0bce2435f2966bd1577e4a",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "GameEngine.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 107430,
+      "sha256": "3b70b69c4c480117a4952b06c279054ec535268b4293b04b4d63f960ac4b0fca",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "GuideArticleFormat.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 1632,
+      "sha256": "151f1b08779da81cbdc86dd1129816b8d53c6912b4f56d1635b20f909dea84f3",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "GuideContent.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 39964,
+      "sha256": "986a420f27add29697d433709a90623d0f787dd0708c8a2871ff4240bc229ca6",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "GuideImplementation.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 5307,
+      "sha256": "4b5e76e7076107d0c993e063d7c906ed3eb6a43dbd648fdb727783500b5a04b3",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "GuideImplementationNotes.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 61797,
+      "sha256": "bc86a00196e914a40224569952c0e0725faa376f7b5d9b0cd58a58eb8247a4b1",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "GuideMathChapters.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 46998,
+      "sha256": "ced87f6095984407b38ff19a36f0468f34ef17d0874cdd0c8f00eaf46934f82a",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "GuideTechnicalChapters.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 42024,
+      "sha256": "ff78892a48865b0439dd519ba09e0aed4c02c3e27d97f5aae5a61038f7914893",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "HexFastSearchAI.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 10151,
+      "sha256": "824ac6b26efa6c9950cb50e3808c9e6a022c93c86cad36a3b7307a5782902b6c",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "HexPlayerAI.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 8945,
+      "sha256": "336ae5e5ba3fc1fb2ca4ac3e1a0ca0066dee5c347eebba67ef95c5e0bba5bb4d",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "HexPlayerRuntime.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 3579,
+      "sha256": "b8c93661da06caa1b58d08a07db618782349c8a4746cce0d9d8551613ffc4ba5",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "HexSearchAI.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 9320,
+      "sha256": "fea0c4a0c96e0ecd676709659f763ff9b93dfd8cd0d4e34c6619eca35178f24d",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "HexSearchOptions.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 433,
+      "sha256": "d82c0402a70156f38ce9504301bb01919c400a594aecaec831a1bb7cfb771f2d",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "HintWorkerSession.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 4626,
+      "sha256": "f4f58b9f97d754ae73fff9fd214b1942f67c702c46bb7601779a379f61cac818",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "LocalAIModes.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 6971,
+      "sha256": "3f3d060a8f7b4201f15643dcf13ad7c4c4b5b82369858e7fdac1c67e8c3a9c94",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "LocalAIWorkerFactory.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 1541,
+      "sha256": "647c5bd9191aac4f410ca1fc355ddc7a98fc5249698f85365c5958663844c66d",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "LocalGameSession.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 7777,
+      "sha256": "0fcbfc8daaaa345d77439d432ce6b5d31f33e963f88cdb82c630955d0f49a96a",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "LocalPlayerSetup.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 7597,
+      "sha256": "ba6f7898b4f3b21899d27da067c10acb2a19d6ed623256c4e75f1bf35c2cf582",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "LocalUndo.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 3907,
+      "sha256": "058c7746465ef22b117c6e0bf536f61d42c015c2877eaa7d0c7085fddcce3672",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "ModelFreeAI.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 7947,
+      "sha256": "baeccb4aba92d79dda581f64f145675d6558892aeb4cb3f7df0b05507e24ffa6",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "MultiplayerAIWarmup.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 3474,
+      "sha256": "58f841eaf4c5938c29deddc050561808f0f0d3ad6aa576ccf95bb5c8fc807ef6",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "MultiplayerHardAIWorker.bundle.manifest.json",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 2468,
+      "sha256": "d47976a98b3210e2bf899305aa316997f5b1d2f250d7ddf93fb0c92819668443",
+      "content_type": "application/json"
+    },
+    {
+      "path": "MultiplayerHardAIWorker.bundle.mjs",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 290019,
+      "sha256": "d7326a7780428a496090696c33d95df5960adf6c5886588eb6cfa8ebd0270768",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "MultiplayerHardFallback.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 9166,
+      "sha256": "84423212442f31f8796d4eff857af598347bba87578308e05d5f8cefaa8b2d14",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "MultiplayerHardResources.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 3041,
+      "sha256": "f9bae7b79b82fe6482fb29371535c0f4d43577519268a319edce0bcb378ab49b",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "MultiplayerHardRollout.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 21265,
+      "sha256": "402b2bad36770ef09941ecc48f9f6459ceda0cd2b108fa190d249c053c1fc120",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "MultiplayerHardRuntime.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 24393,
+      "sha256": "d1596da4e41974d33f56754e35b636f2d6f1f5e1f63206b8e946717f5392365d",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "MultiplayerHardValue.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 5770,
+      "sha256": "6bb9dc21c72773b6dbca6a268173f5e93daebe83a7a4bb1ab21687269a7ea25e",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "MultiplayerHardWorkerEntry.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 2358,
+      "sha256": "06adb258ab3552670ee1ae61226a62a8aea5ce47f05457b2293e1f10d6522d27",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "MultiplayerHardWorkerRuntime.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 598,
+      "sha256": "c0205f2457b6a14049cb09cefaa41128003d52e4efafd5726c802d92b61edc1a",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "MultiplayerModel.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 7399,
+      "sha256": "1cc72dfa738dec87feb341a86595abb1bd2aea26e915c8679c74734f2d46ec57",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "MultiplayerNativeGeometry.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 3483,
+      "sha256": "22b347a0ee6e92594596f78abfae882b26cdc8761ef5010eec79cca8c375ed25",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "MultiplayerRollout.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 19653,
+      "sha256": "bcf26f1613b556617d0910763eeea95f38d3695e16c017d5320d93ce4411e79d",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "MultiplayerRuntime.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 11599,
+      "sha256": "d242e7fb8071a80592a5065ba99cfb79674c6de5c4ec86aaa76ab9aa88b68885",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "MultiplayerSearch.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 32226,
+      "sha256": "04546a7f92aaf41d6d3643fba048f7052cf95a7b184303dec9d9a5eca4fcc6aa",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "MultiplayerStandardDefense.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 6238,
+      "sha256": "dd82b70f3e6737b48aaf8fbb0f5f4a4ef18f00df4a8fd3a5835b3ff1ff029996",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "MultiplayerUltimateAdmission.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 5563,
+      "sha256": "cc182005d5b74ca9fc0e4cecbe33222d65a547dbbf438318de93a30eeb0bb6a8",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "NetworkManager.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 19195,
+      "sha256": "bffe4eb870fe86993453be3349b346c586a113a7f4fd47b94b15a5e44a64c1af",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "OnlineApp.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 270430,
+      "sha256": "729c2a8fedae827bdcd5354a985015e3410d54a2ec787b6f83950aa1f0a4e20d",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "OnlineAppI18n.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 52653,
+      "sha256": "4d09f1126d99ba307a58bda868caa93162c9fc2091f6af399711495321da9d52",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "OnlineAppState.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 6889,
+      "sha256": "8cfd557084d6ed727f1f16e3b4c6b1fa7fe6c268de558ce1b9d8c540aea98cbe",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "OnlineRoomSync.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 2341,
+      "sha256": "9164783f2626e9be9cecb115cae3828e7d0a2652849cf256342a0af6d169ae8c",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "Renderer.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 42252,
+      "sha256": "0f990b5e819c7cd4f2ae475096ed92a7ea4f37ad0312f6333cc733a21502a5d5",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "ReplayCodec.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 19194,
+      "sha256": "7ab133d10373963668cf22df267e8e19b7157af0c2fa744418093d882ff6e4f9",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "ResearchAI.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 23461,
+      "sha256": "3ccf1413267049db36b3ae2e6fdc945ffc661a2b38bc211e119c0e7087c5ab2b",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "ResearchAIOptions.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 1599,
+      "sha256": "0cc5e27993622422a9a5b77bf95750992d26e1fe1a7a26782d53606f3709fa1e",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "SharedRoomClient.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 19791,
+      "sha256": "e962dd0e647ef8606b61f1fd3ea00d0a6771b19f95f5b27c629248ee6e02f728",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "StartingPointSetup.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 11105,
+      "sha256": "d275421d3ec8c2ab5d57ca6fa87d5bbb52810136283b153ea33dab85a448571d",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "StartingPoints.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 1530,
+      "sha256": "78499ca10a3360c2b03c52fafa1d4932c8f89079e69b2698f82eb32bd515dd11",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "TerritoryWorker.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 3672,
+      "sha256": "fd469b7edc6e091237b5c1f481f649bf236806813ada69b6a108840f8e4627b8",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "TerritoryWorkerPool.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 6991,
+      "sha256": "e93a6b9fdb57b4f574b3edd71fcdfc45a70a129982dc6af21fde99f7f6b89597",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "TerritoryWorkerSession.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 4899,
+      "sha256": "f42b4cb01b33bc846c36fcc606f0abdc913eccac32f32f25f54095e64025ef88",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "ThreePlayerAI.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 6651,
+      "sha256": "a62c6454913dce9792d91bf16208bf5481693263cc16e84b87d2fecbd59bcf81",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "ThreePlayerModels.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 3886,
+      "sha256": "533850a26d280874c9220535afdcba2146fbb19fce12f41db9b37f10fad51aa1",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "ThreePlayerRuntime.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 3141,
+      "sha256": "b23caf643c97fe7887a757b5c8f63dad6760aa6c21334379b90dcb4d321fd58c",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "ThreePlayerSearchAI.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 6618,
+      "sha256": "921a5de4fab786a3a8f931dadcd8fedc74736f3a5194ebc35ea8797c3ac34cf1",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "ThreePlayerSearchOptions.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 522,
+      "sha256": "299e238d74acdcf6f86e5b4f7108a16393b8709439b7b8c3292197d512d39c87",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "TrainingContribution.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 7934,
+      "sha256": "006dbd141818107bc5237a8a10021f05829c0a0ef721a2c18971eea2278ccfca",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "TutorialRunner.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 9760,
+      "sha256": "feb02d1d3c742b3973273c175abc0ed1fd1929408791f563e727b0f9b29d8ddf",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "app.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 163,
+      "sha256": "b13bf07df4d8f8bd5377aa0b3b235a3fa679a83077926b22408442c1c0951ee2",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "assets/beian.png",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 1403,
+      "sha256": "8dfecad0dfcb3dc584f2c2447943eefb1fd65a058856eb0611e2c56ddc4c1fe1",
+      "content_type": "image/png"
+    },
+    {
+      "path": "assets/research-ai/dqn-all-sizes-e2000.f32",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 3025380,
+      "sha256": "16f50c330ad7cc239cfb0b2334538817c7c0d6cf4c01f6048b05c9ee4a9466eb",
+      "content_type": "text/plain; charset=utf-8"
+    },
+    {
+      "path": "assets/research-ai/gail-all-sizes.f32",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 3027432,
+      "sha256": "5951e4e3f057893275df6f44543f3747cd4275a616d52a5b8355e51760faea71",
+      "content_type": "text/plain; charset=utf-8"
+    },
+    {
+      "path": "assets/research-ai/gan-all-sizes.f32",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 3027432,
+      "sha256": "63629d0027afb8ff2fdbc3e773be420c062361b315741d8371e47818c4ec30e5",
+      "content_type": "text/plain; charset=utf-8"
+    },
+    {
+      "path": "assets/research-ai/grid-gnn-d14-s20260825-g200.f32",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 250932,
+      "sha256": "92cc45bb2a3a6a56c896098c1e843a136587a9aaf07381fbf1d00ebb4fd02dfa",
+      "content_type": "text/plain; charset=utf-8"
+    },
+    {
+      "path": "assets/research-ai/hex-player-policy-v1.json",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 3321,
+      "sha256": "74aa7f945c3ea7ff5ca3edc9e7bdc431dc0ec5ad56d2563ce6d6d24c0494162b",
+      "content_type": "application/json"
+    },
+    {
+      "path": "assets/research-ai/hex-player-search-v5.json",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 1828,
+      "sha256": "e19d45b26e5fb7e2783e392993622bede692838043a9cb4d5af91d170f8448b5",
+      "content_type": "application/json"
+    },
+    {
+      "path": "assets/research-ai/manifest.json",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 20468,
+      "sha256": "e8908ce0d22b54fb31d3bdac5c97eb88b3aa6e3068a7599a7c8be517f3b42250",
+      "content_type": "application/json"
+    },
+    {
+      "path": "assets/research-ai/model-free-manifest.json",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 10694,
+      "sha256": "0762301fad905a62d1381777f2dd58bfe883d3320faeba94faa09fd19880e83d",
+      "content_type": "application/json"
+    },
+    {
+      "path": "assets/research-ai/multiplayer-v1/manifest.json",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 15312,
+      "sha256": "d7560db53483ab9ee2a7c423509142924545f1679ec35201b369e3b91fe161a0",
+      "content_type": "application/json"
+    },
+    {
+      "path": "assets/research-ai/multiplayer-v1/multiplayer-ultimate-v1.f32",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 252684,
+      "sha256": "34f7129f4495d5e914b94051ba4b220d7ab0185a1620b324bda1bfad3fe4586a",
+      "content_type": "text/plain; charset=utf-8"
+    },
+    {
+      "path": "assets/research-ai/padded-cnn-d14-s20260825-g200.f32",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 251472,
+      "sha256": "cea913f58d1694926fb6710ca355bf6d41e5a6c49b991af87b836ae26d43bf1f",
+      "content_type": "text/plain; charset=utf-8"
+    },
+    {
+      "path": "assets/research-ai/ppo-all-sizes-e2000.f32",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 3027432,
+      "sha256": "af41359ca0ee00b3be86a2f5b9363a513af942f6cfa0c50f31cb0f252c86de85",
+      "content_type": "text/plain; charset=utf-8"
+    },
+    {
+      "path": "assets/research-ai/sac-all-sizes-e2000.f32",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 3025380,
+      "sha256": "63a1b80b456427a2545a31ff9af209fdde1f9cf8d41ae6984f36c09c116932bd",
+      "content_type": "text/plain; charset=utf-8"
+    },
+    {
+      "path": "assets/research-ai/three-player-policy-v1.json",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 2354,
+      "sha256": "8cd1a2f36267f96b1e32b7749a9cdc785f489ea7ec12e31aee0beb0a72901794",
+      "content_type": "application/json"
+    },
+    {
+      "path": "assets/research-ai/three-player-policy-v2.json",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 3973,
+      "sha256": "00fc241c500dfd01ff85b5e2a4f1907cc5a9d8307d68bb78be64b0aad129f56e",
+      "content_type": "application/json"
+    },
+    {
+      "path": "assets/research-ai/three-player-search-v4-round12.json",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 3032,
+      "sha256": "9b85f5fff27001d68407c30d6f707b461b1b468d657c8292339e97d23868c230",
+      "content_type": "application/json"
+    },
+    {
+      "path": "assets/research-ai/topology-gnn-d14-s20260825-g200.f32",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 252684,
+      "sha256": "de7f1a4c9c204d0f88598f5d7d92e180e291060b11cc711c8f9e786207cf34d0",
+      "content_type": "text/plain; charset=utf-8"
+    },
+    {
+      "path": "assets/research-ai/transfer-v1/grid-gnn-transfer-v1-seed2026092201.f32",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 250932,
+      "sha256": "e0b82a1736521fb967afb7861ba1fcc697b505990d5b6391abb8318dbef42a0b",
+      "content_type": "text/plain; charset=utf-8"
+    },
+    {
+      "path": "assets/research-ai/transfer-v1/grid-gnn-transfer-v1-seed2026092202.f32",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 250932,
+      "sha256": "5db4b00462d8e30d2d293adf554da3e0e6b4cde6d40d3f82b590b23fa267000b",
+      "content_type": "text/plain; charset=utf-8"
+    },
+    {
+      "path": "assets/research-ai/transfer-v1/grid-gnn-transfer-v1-seed2026092203.f32",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 250932,
+      "sha256": "67079d1d6108732cddfeecf74840ae63505488af052e068ab1a83bf96c56bf87",
+      "content_type": "text/plain; charset=utf-8"
+    },
+    {
+      "path": "assets/research-ai/transfer-v1/manifest.json",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 84394,
+      "sha256": "847fd30c08a145e202fafe58bcfc5a70ddaf5bf422c74d9efbb2ec35b46ef1c4",
+      "content_type": "application/json"
+    },
+    {
+      "path": "assets/research-ai/transfer-v1/padded-cnn-transfer-v1-seed2026092201.f32",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 251472,
+      "sha256": "416ee1a88f092ab514dd40c8a22604a761a20b223409eaaef64f61c691108242",
+      "content_type": "text/plain; charset=utf-8"
+    },
+    {
+      "path": "assets/research-ai/transfer-v1/padded-cnn-transfer-v1-seed2026092202.f32",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 251472,
+      "sha256": "cd36fdd3a96e78066475fb67056fa179bf7765028fbf9e4db7a172857b134af3",
+      "content_type": "text/plain; charset=utf-8"
+    },
+    {
+      "path": "assets/research-ai/transfer-v1/padded-cnn-transfer-v1-seed2026092203.f32",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 251472,
+      "sha256": "ee60f6d279941c78af999c6d051d514bf90f09b9478272d8557d482bb24dd07c",
+      "content_type": "text/plain; charset=utf-8"
+    },
+    {
+      "path": "assets/research-ai/transfer-v1/topology-gnn-transfer-v1-seed2026092201.f32",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 252684,
+      "sha256": "0235947ee5a3eb6aa36627da06270e0854f3ece5c2b509d6a4f85d830a54f5ba",
+      "content_type": "text/plain; charset=utf-8"
+    },
+    {
+      "path": "assets/research-ai/transfer-v1/topology-gnn-transfer-v1-seed2026092202.f32",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 252684,
+      "sha256": "4c424c0f0ac19724d7fa51741d199bd780781d7063b325671fe9197f6b6abc9b",
+      "content_type": "text/plain; charset=utf-8"
+    },
+    {
+      "path": "assets/research-ai/transfer-v1/topology-gnn-transfer-v1-seed2026092203.f32",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 252684,
+      "sha256": "5a8f6f4ed6954c5dda131c16403f2f2c680edefffc050d19f2cab25850dcc84b",
+      "content_type": "text/plain; charset=utf-8"
+    },
+    {
+      "path": "guide/Thanks.en.md",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 1689,
+      "sha256": "50b18b925325236c289fde88b5b665d99751e4367931d3b6e935263e2464013a",
+      "content_type": "text/markdown; charset=utf-8"
+    },
+    {
+      "path": "guide/Thanks.md",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 1640,
+      "sha256": "5e08ebdba3db8280cf941d66ac49db1c7b1aff0a1a8a8d6621f901d52c89fdc1",
+      "content_type": "text/markdown; charset=utf-8"
+    },
+    {
+      "path": "guide/guide-images/三人制衡.jpg",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 75654,
+      "sha256": "f764ae3428ce942964729b2fd30850b46a96df2b70282af8652fd52c977a863e",
+      "content_type": "image/jpeg"
+    },
+    {
+      "path": "guide/guide-images/三点限制.png",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 141728,
+      "sha256": "481e28f13a32dac2ab8b91d320cf20ade246eb513d8f09c5eb047536bb7e0d13",
+      "content_type": "image/png"
+    },
+    {
+      "path": "guide/guide-images/切断1.png",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 181936,
+      "sha256": "a02817f967e9b2dc2103c04fbc0fb1cbbd4630d574bdd3b61a8e6aba24cf2d1f",
+      "content_type": "image/png"
+    },
+    {
+      "path": "guide/guide-images/切断2.png",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 180003,
+      "sha256": "9bc0d8f3c1b4acca5ac36a13f1d696a9c08971f0d308f2525ef35053bd08bbb9",
+      "content_type": "image/png"
+    },
+    {
+      "path": "guide/guide-images/可以走的区域png.png",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 153674,
+      "sha256": "5085eeede1c51b2c79fd062d306f854b96259190e53d1850b89c9ebe2eab3b35",
+      "content_type": "image/png"
+    },
+    {
+      "path": "guide/guide-images/起点限制.png",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 129899,
+      "sha256": "243f8eb898e011d08eadd9fa13d2f5f922c385d04e82a569a0ec36c787144a24",
+      "content_type": "image/png"
+    },
+    {
+      "path": "guide/interesting/Talk is Cheap, Show Me the Code.md",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 469,
+      "sha256": "6e8182563200d5866bb87f5a404570b8e6aae85d3a5ebca69f6b8b58095fe623",
+      "content_type": "text/markdown; charset=utf-8"
+    },
+    {
+      "path": "guide/interesting/Theory-M.tex",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 14356,
+      "sha256": "6193dc6bd9a3b61975c05f1e1fcd2f25859876d5c0f3fb8591da5b06a902e7c5",
+      "content_type": "text/x-tex; charset=utf-8"
+    },
+    {
+      "path": "guide/interesting/Theory.md",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 2225,
+      "sha256": "e6d779d198f3dd31e4a91b77552704fd1a4a2ddfb56c1459b2f1b1a1cd60ac10",
+      "content_type": "text/markdown; charset=utf-8"
+    },
+    {
+      "path": "guide/interesting/deep-research-report.md",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 2245,
+      "sha256": "b123c3adfbb24111ee0e2c1b745471b10429412503d59ec196a830dec298c360",
+      "content_type": "text/markdown; charset=utf-8"
+    },
+    {
+      "path": "guide/interesting/verify-superko-history-divergence.mjs",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 15597,
+      "sha256": "1968953f3008b62641396a5d360f04711685d29860939795f2b1f11edbf4f434",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "guide/interesting/verify-theory-counterexamples.mjs",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 12419,
+      "sha256": "423b73fc1556ebf05c216fbe678ccce8930dd67f2132e0af684126d84780bddc",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "guide/interesting/why this.md",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 465,
+      "sha256": "a2ee3d4660a82e7d06264dc93b93a0bac8970a4a8efcc79d9a163db535c9b29b",
+      "content_type": "text/markdown; charset=utf-8"
+    },
+    {
+      "path": "guide/interesting/why-code.en.md",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 56117,
+      "sha256": "7a226fb4b5961077153afda12bc1d248fcb8634675bbb2498cc7c2dee5129cf8",
+      "content_type": "text/markdown; charset=utf-8"
+    },
+    {
+      "path": "guide/interesting/why-code.zh.md",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 54128,
+      "sha256": "55a806f7ba385bbbed0afa6ac9b5fb839220fd6db8999368464600b66308f171",
+      "content_type": "text/markdown; charset=utf-8"
+    },
+    {
+      "path": "guide/interesting/why-talk.en.md",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 3475,
+      "sha256": "452b5c426824e32dbaeac3a46c07f78b7ae5dc4fae9665ffaa80a29e30013b9f",
+      "content_type": "text/markdown; charset=utf-8"
+    },
+    {
+      "path": "guide/interesting/why-talk.zh.md",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 2943,
+      "sha256": "6c1534645c2b1dea1cc9b0b2f753feae54b529489c1a40e39c8a48d485a0fea2",
+      "content_type": "text/markdown; charset=utf-8"
+    },
+    {
+      "path": "guide/interesting/why-theory.cn.md",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 100076,
+      "sha256": "6ef6832dcc2ef91644667a2493ca41cc2cf20dab8a4f4c2f562d8efa30aeb614",
+      "content_type": "text/markdown; charset=utf-8"
+    },
+    {
+      "path": "guide/interesting/why-theory.en.md",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 122700,
+      "sha256": "93f8db1b24ba9a64c33dfa56348920fd82190eba6c963dd29f275b176c6f8f5f",
+      "content_type": "text/markdown; charset=utf-8"
+    },
+    {
+      "path": "guide/interesting/why-theory.zh.md",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 100076,
+      "sha256": "6ef6832dcc2ef91644667a2493ca41cc2cf20dab8a4f4c2f562d8efa30aeb614",
+      "content_type": "text/markdown; charset=utf-8"
+    },
+    {
+      "path": "guide/rule/essential rule.md",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 1245,
+      "sha256": "869d3c4b5c70ad7535bd0933e64db66e5032fcffad221f41cc2c0fbcd516e078",
+      "content_type": "text/markdown; charset=utf-8"
+    },
+    {
+      "path": "guide/rule/math rule.en.md",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 25434,
+      "sha256": "3525a42775cc4defe828026230201d92ca664a32cbee675818191c62504e2d6f",
+      "content_type": "text/markdown; charset=utf-8"
+    },
+    {
+      "path": "guide/rule/math rule.md",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 25034,
+      "sha256": "cd8f741f5f9466a81315ce69de79c10b441b878ecaa6acc78bd0ad5996414489",
+      "content_type": "text/markdown; charset=utf-8"
+    },
+    {
+      "path": "guide/rule/war rule.md",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 2477,
+      "sha256": "d10f637b8698ca18d502cce4ff6cd0e74a0c6d9d61a0419129d565a4401eabeb",
+      "content_type": "text/markdown; charset=utf-8"
+    },
+    {
+      "path": "index.html",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 981,
+      "sha256": "2ee7373d68f7e66c56c3c0ac8a52fc6b8163872d93693e9b7ef3ce3a3735d18b",
+      "content_type": "text/html; charset=utf-8"
+    },
+    {
+      "path": "main.js",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 4182,
+      "sha256": "11246da207f19527063ee396923090de6ab6bbd0784a885db8f4508322581eb3",
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "styles.css",
+      "http_status": 200,
+      "status": "PASS",
+      "bytes": 82636,
+      "sha256": "7a678bdb55eee3d98c489dc93a41a1c1e76feb572f6a0079f20f2d94467542ef",
+      "content_type": "text/css; charset=utf-8"
+    }
+  ],
+  "live_scoring": {
+    "status": "PASS_ACTUAL_V3_ENGINE",
+    "checks": 21,
+    "engineSha256": "3b70b69c4c480117a4952b06c279054ec535268b4293b04b4d63f960ac4b0fca",
+    "initialScoreV2": 0,
+    "initialScoreV3": 1,
+    "openLineScoreV3": 3,
+    "safePocketScore": 7,
+    "enemyPocketScore": 6,
+    "closedPositionScores": [
+      10,
+      9
+    ],
+    "exit_code": 0,
+    "probe": "verify-live-scoring.mjs --engine <downloaded GameEngine.js>"
+  },
+  "prior_failed_attempt": {
+    "status": "FAIL_PUBLIC_HTTPS_R4_VERIFICATION",
+    "receipt": "local_artifacts/release-all-20261025-web-public-r4/runs/20261025T035217Z-c56e092d/receipt.json",
+    "receipt_sha256": "5f14f1553d377b4bfd684390e878af47c84f3757419496ceeafb33738701d3e0",
+    "downloaded_total_bytes": 0,
+    "error_counts": {
+      "URLError: <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1010)>": 121
+    },
+    "resolution": "Use the repository .venv Python and an explicit direct HTTPS opener inside this verification process; normal TLS validation retained. Frozen source, manifest and all expected hashes unchanged."
+  },
+  "verification_boundaries": [
+    "This is an independent public HTTPS byte and rule-engine check, not browser UI/Worker or phone acceptance.",
+    "No account/login or WebSocket mutation was performed.",
+    "Root owns deployment; this verification performed no SSH, deploy, upload or publish.",
+    "The 21 MB downloaded runtime remains in ignored local_artifacts; no downloaded runtime or archive is included in this Git evidence."
+  ]
+}

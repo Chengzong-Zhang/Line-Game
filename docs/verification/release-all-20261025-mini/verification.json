@@ -1,0 +1,76 @@
+{
+  "status": "PASS_EXACT_SOURCE_0128_LOCAL_CANDIDATE_NOT_UPLOADED",
+  "version": "0.12.8",
+  "rulesVersion": "territory-v3",
+  "snapshot": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261025-mini-q5uv3qh8\\repo",
+  "candidateDirectory": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261025-mini-q5uv3qh8\\repo\\local_artifacts\\wechat-candidates\\0.12.8-3d52cced85f8-4adHPq",
+  "candidateId": "0.12.8-3d52cced85f8-4adHPq",
+  "candidateReceiptSha256": "0b96558776fcd6ac5a0f00a4721edfc5e38eb203f67c41cd1be44c30f9cb56d1",
+  "mainPackageBytes": 1706895,
+  "packageBytes": 19860711,
+  "files": 35,
+  "gameSha256": "b9b25ba71b318fa63a48a932cfdd567ba1720fb68cccfebc498253bd6dde5292",
+  "workerSha256": "4608d14e6b0ddc87e7f7d43fe981ea7477e928a0f6fe130b95fce777282dfc09",
+  "sourceBinding": {
+    "files": 561,
+    "changedBeforeAfter": [],
+    "inputHashes": "input-hashes.json"
+  },
+  "regressions": {
+    "tests": 461,
+    "passed": 461,
+    "failed": 0,
+    "skipped": 0,
+    "command": "npm test",
+    "cwd": "wechat/minigame",
+    "exitCode": 0,
+    "durationMs": 88275.238
+  },
+  "newBehavior": {
+    "focused": 11,
+    "failed": 0,
+    "compiledWorkerTerminalPassCases": "v2/v3, 2-6 players; unique winner only; ordinary/draw/loss preserve original decision",
+    "integrity": "wrong profiles and corrupt models reject before PASS; clock deadline/error falls through without state mutation",
+    "modelFreePass": "strict native tensor constructor retains PASS head",
+    "standardDefense": "actual compiled easy/medium promote completed strict countercut repair",
+    "offensiveCut": "actual frozen compiled minimax-2 selects [2,1] setup on native v2/v3 fixture",
+    "sourceFunction": "native PASS guard matches main AIWorker function exactly, invoked in Mini worker-runtime rank after model validation"
+  },
+  "browser": {
+    "checks": 14,
+    "status": "PASS_BROWSER_ONLY_NOT_WECHAT_VERIFIED"
+  },
+  "latestMainRawHashes": {
+    "AIEngine.js": "fd43cd3053a0b92569a4d26524a036f45a2920271cc06a49ef0200aec07ffabf",
+    "MultiplayerRuntime.js": "1893d77350363b9c31d2a29a21adb3cbee87122160ba40ab24d68495221f22d9",
+    "MultiplayerStandardDefense.js": "7e488f0c4cac8f1f57298f8a2518adb8aed235472f1f4e2e886c8f7c12292239",
+    "MultiplayerHardRollout.js": "532faccaa495c2fac3acb02c9787d2784ca3e6aa516e4b2f08479ed3ee2ffd4a",
+    "MultiplayerSearch.js": "0deab47c0f8e1ad7cac630b31ce99b31b3765e6c3c99a6ebb303c661f970fa4e",
+    "MultiplayerNativeGeometry.js": "fc0a65a9c935d6922731e5f5ca983520cf8290de0d9b831b9ca05cffa65b13fe",
+    "MultiplayerHardRuntime.js": "779d0d48704307dec4c1c517510632adcaabdbd35bf5f3353730da0c063dedb9",
+    "MultiplayerHardFallback.js": "0df510a7455f94c64d1d77db61b0acc31e14fefea661e83b2eb1c3e47e46a753",
+    "MultiplayerHardValue.js": "6bb9dc21c72773b6dbca6a268173f5e93daebe83a7a4bb1ab21687269a7ea25e",
+    "AIWorker.js": "4ce952a544111fdfba3e786992023e48665973257ae1669a4ff8c378584ae8b6",
+    "ModelFreeAI.js": "0c3aaebd0ede1b7b6c00c7757301c12ed5bfd16bcfee3fc3b8dbe7e20b430627",
+    "GameEngine.js": "3b70b69c4c480117a4952b06c279054ec535268b4293b04b4d63f960ac4b0fca"
+  },
+  "logSha256": {
+    "full-suite-final.log": "db55f7c5d1884141fb620f438eee49e7aac576398077bcbf4b722a8429b02f74",
+    "latest-behavior-r2.log": "a2e391c9de9a8617e19c443db61fdbc2956e28caaa965a174d236fd1485707b0",
+    "offline-browser-final.log": "131116b0772a5defe4e0a26927ddeba9fa4bbfb22db4696ca0f16d2987353ec8"
+  },
+  "ciDependencies": "snapshot wechat/ci/node_modules junction to migration worktree CI SDK; excluded from package and Git",
+  "preserved": [
+    "verified 0.12.7 UI/account/avatar/root markers/V3 rules/rooms/replay/multiplayer",
+    "existing v2 save/room compatibility",
+    "v2 training upload boundary; V3 contribution still excluded",
+    "unqualified Ultimate remains closed"
+  ],
+  "notRun": [
+    "official upload by this subtask",
+    "production activation",
+    "phone/real WeChat acceptance",
+    "public release or review"
+  ],
+  "finishedAt": "2026-10-25T03:35:55.054140+00:00"
+}

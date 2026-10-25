@@ -1,0 +1,113 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "test": "web/web前端/tests/verify-minimax-voluntary-pass.mjs",
+      "exitCode": 0,
+      "summary": [
+        "      }",
+        "    }",
+        "  ]",
+        "}"
+      ]
+    },
+    {
+      "test": "web/web前端/tests/verify-minimax-offensive-cut-chain.mjs",
+      "exitCode": 0,
+      "summary": [
+        "      \"responseLimitFailsClosed\": true",
+        "    }",
+        "  ]",
+        "}"
+      ]
+    },
+    {
+      "test": "web/web前端/tests/verify-model-free-voluntary-pass.mjs",
+      "exitCode": 0,
+      "summary": [
+        "{\"status\":\"PASS_MODEL_FREE_VOLUNTARY_PASS\",\"legalPlacements\":6,\"highPassPrior\":0.9997276746027485,\"lowPassPrior\":0.0000075665977065800715}"
+      ]
+    },
+    {
+      "test": "web/web前端/tests/verify-model-free-worker-pass.mjs",
+      "exitCode": 0,
+      "summary": [
+        "{\"status\":\"PASS_MODEL_FREE_WORKER_ROUTE\",\"passPrior\":0.9997276746027485,\"cacheIdentity\":\"20261024-model-free-pass2\"}"
+      ]
+    },
+    {
+      "test": "web/web前端/tests/verify-worker-terminal-winning-pass.mjs",
+      "exitCode": 0,
+      "summary": [
+        "PASS_WORKER_TERMINAL_WINNING_PASS; ignored model assets staged locally, no model binary committed."
+      ]
+    },
+    {
+      "test": "web/web前端/tests/verify-multiplayer-safe-pass.mjs",
+      "exitCode": 0,
+      "summary": [
+        "{\"status\":\"PASS_MULTIPLAYER_SAFE_PASS\",\"cases\":16}"
+      ]
+    },
+    {
+      "test": "web/web前端/tests/verify-multiplayer-standard-defense.mjs",
+      "exitCode": 0,
+      "summary": [
+        "PASS_MULTIPLAYER_STANDARD_DEFENSE, 16 cases; quiet rerun after concurrent build load. Initial fallback preserved-deadline was recorded locally."
+      ]
+    },
+    {
+      "test": "web/web前端/tests/verify-multiplayer-hard-reply-resilience.mjs",
+      "exitCode": 0,
+      "summary": [
+        "    \"accepted-packet-bypasses-rollout\"",
+        "  ],",
+        "  \"elapsedMs\": 13956.645199999999",
+        "}"
+      ]
+    },
+    {
+      "test": "web/web前端/tests/verify-local-ai-session.mjs",
+      "exitCode": 0,
+      "summary": [
+        "verify-local-ai-session: PASS (explicit start, AI PASS application, red first, independent models/depths/seeds, saved roles/pause, swap cancellation, replay restoration, reset, V3 upload isolation and distinct AI labels)"
+      ]
+    },
+    {
+      "test": "web/web前端/tests/verify-online-start-undo.mjs",
+      "exitCode": 0,
+      "summary": [
+        "verify-online-start-undo: PASS (create, room update, online voting controls)"
+      ]
+    },
+    {
+      "test": "web/web前端/tests/verify-territory-v3-hard-worker.mjs",
+      "exitCode": 0,
+      "summary": [
+        "PASS_V3_HARD_WORKER_SOURCE_AND_ROUTE using fresh Git-source hard-worker build; runtime bytes unchanged."
+      ],
+      "receipt": "hard-worker-rebuild.json"
+    },
+    {
+      "test": "web/web前端/tests/verify-local-undo.mjs",
+      "exitCode": 0,
+      "summary": [
+        "verify-local-undo: PASS (20 rule/shape/player restore cases; turn windows, quotas, save, actual app handlers, failed restore)"
+      ]
+    },
+    {
+      "test": "web/web前端/tests/verify-territory-v3.mjs",
+      "exitCode": 0,
+      "summary": [
+        "territory-v3 open, closed, Cyan and terminal scoring: PASS"
+      ]
+    },
+    {
+      "test": "web/web前端/tests/verify-guide-content.mjs",
+      "exitCode": 0,
+      "summary": [
+        "verify-guide-content: PASS (four articles, three main chapters each, distinct paper/report, readable equations, 11 verified source excerpts)"
+      ]
+    }
+  ]
+}

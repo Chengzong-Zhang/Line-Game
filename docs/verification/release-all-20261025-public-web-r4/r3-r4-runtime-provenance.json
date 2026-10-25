@@ -1,0 +1,20 @@
+{
+  "status": "PASS_R4_RUNTIME_IDENTICAL_TO_REVIEWED_R3",
+  "r4_source_manifest": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\release-all-20261025-r4-frozen\\payload\\frontend\\release-manifest.json",
+  "r4_manifest_sha256": "313ff7f9b09655b25479dad68734df6711c85d43c900f817ab0a261b404cd02a",
+  "r3_manifest_sha256": "a99f981627c52861f244dca7e1487361dc6e4021e963769b270a2fdd7a632ad8",
+  "r3_release_id": "web-all-features-20261025-r3",
+  "r4_release_id": "web-all-features-20261025-r4",
+  "asset_version": "20261025-unified1",
+  "runtime_files_equal": true,
+  "rehash_actual_r4_archive_runtime_files": 121,
+  "extra_archive_metadata": [
+    "release-manifest.json"
+  ],
+  "embedded_manifest_sha256": "313ff7f9b09655b25479dad68734df6711c85d43c900f817ab0a261b404cd02a",
+  "total_runtime_bytes": 21495433,
+  "r4_archive_sha256": "07622bf84155c4ff5ef8d20f280d8c9a19d771996f89f23269c3fa559405d982",
+  "r3_reviewed_archive_sha256": "7e65262a81f81d1b3edb0512f7c6ccd757a56e7e5467917d311d808c03f8192f",
+  "scope": "Local identity only; no public request, SSH, deployment or upload",
+  "preparation_note": "Initial local inventory assertion included the embedded release-manifest metadata; final check separately verifies 121 runtime files and the embedded r4 metadata. Runtime expectations unchanged."
+}

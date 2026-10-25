@@ -1,0 +1,12 @@
+{
+  "status": "PASS_GIT_NATIVE_SOURCE_SUITE",
+  "command": "node --test --test-concurrency=4 --test-timeout=180000 wechat/minigame/tests/*.test.mjs",
+  "tests": 466,
+  "passed": 466,
+  "failed": 0,
+  "skipped": 0,
+  "newCompatibilityTests": 5,
+  "nativeHashAssertionsPreserved": true,
+  "logSha256": "c4243cb18a8664fd836ad5012c5e0a9bf5576331d4b3ac8d4bf34676c2b37dfe",
+  "scope": "Local Node/native-Worker simulations and packaging checks; not a new WeChat device verification."
+}
