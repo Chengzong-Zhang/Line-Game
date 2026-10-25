@@ -1,0 +1,158 @@
+{
+  "schema": "lifeline-product-pass-discipline-v3-integration",
+  "status": "FROZEN_RUNTIME_TARGETED_REGRESSIONS_PASS",
+  "checkedAtUtc": "2026-10-25T19:00:39.914452+00:00",
+  "changedPaths": [
+    "web/web前端/AIPassDisciplineV3.js",
+    "web/web前端/AIWorker.js",
+    "web/web前端/MultiplayerRuntime.js",
+    "web/tools/online_bot_runtime.mjs",
+    "wechat/minigame/src/multiplayer-ai.js",
+    "wechat/minigame/src/worker-runtime.js",
+    "wechat/minigame/compat/web/MultiplayerRuntime.js",
+    "wechat/minigame/compat/web/manifest.json",
+    "web/web前端/MultiplayerHardAIWorker.bundle.mjs",
+    "web/web前端/MultiplayerHardAIWorker.bundle.manifest.json",
+    "web/web前端/tests/verify-pass-discipline-v3.mjs",
+    "web/web前端/tests/fixtures/pass-discipline-v3-real-states.json",
+    "wechat/minigame/tests/pass-discipline-v3.test.mjs",
+    "web/web前端/tests/verify-pass-discipline-v2.mjs",
+    "wechat/minigame/tests/pass-discipline-v2.test.mjs"
+  ],
+  "sourceSha256": {
+    "web/web前端/AIPassDisciplineV3.js": "76545670cca5861024ff6422b643ae33dfe30c6a1e9d53849ae86e167d4ee33b",
+    "web/web前端/AIWorker.js": "98c738e7198c2baf6e2cd15dcaca184b53bc755c8b1c266e3a9db5f454d4827f",
+    "web/web前端/MultiplayerRuntime.js": "549c3adcc49f1edf58506be5d2eebba45dc8f54f8f117785601def5f70c892d0",
+    "web/tools/online_bot_runtime.mjs": "5949af082e73d76f9ee03c9e0c47cdb5173ae811c1ca6e49ea585b448cdb70e9",
+    "wechat/minigame/src/multiplayer-ai.js": "97a4d6d8f34593843afaed5c7e8b4908f8f1a665ae41048b0e316ea2d91e9cce",
+    "wechat/minigame/src/worker-runtime.js": "4391dfe1aebcc976fb6d6160097cb7af676d2695b7e8e1445b2bc69e8b434fbb",
+    "wechat/minigame/compat/web/MultiplayerRuntime.js": "217ae41307127fc0cbe95fd6a805d104d04a4210cc0ba6c8fbaf14a500537103",
+    "wechat/minigame/compat/web/manifest.json": "1ca79cb478cb4ec89571ee7d3044b77d999fb68054a58806d53a92841b76d444",
+    "web/web前端/MultiplayerHardAIWorker.bundle.mjs": "a87d479035766195c2ab3609eeb9ac7d3d4ca43582dc52eba4a516a999b5d97d",
+    "web/web前端/MultiplayerHardAIWorker.bundle.manifest.json": "59c6b15bd7d214ace52e94c4bd44b0a3d05ca51ed2c7fa63d46c8fac846e4f43",
+    "web/web前端/tests/verify-pass-discipline-v3.mjs": "ee8ad32e7106cb8b285626f6ec31d61e64a8f62b12149ae4854d836c678a0357",
+    "web/web前端/tests/fixtures/pass-discipline-v3-real-states.json": "1d98a93096a870eb1e54ec10b44c96a0a0abfb06bb89f976e7859e56111307a4",
+    "wechat/minigame/tests/pass-discipline-v3.test.mjs": "6726852600a325a7685c8bc0089c2031f49e81aae66408be8714124cfda4bc61",
+    "web/web前端/tests/verify-pass-discipline-v2.mjs": "884c322349e2755904d64fb667e79a3835651ae1a84bdda3cd4cbdde8237308d",
+    "wechat/minigame/tests/pass-discipline-v2.test.mjs": "3a981eaa834ce0cbe662acd3ba6c3fa5175b415ff32cadebd73364485fd0cb24"
+  },
+  "problem": "Three real hex PASS false negatives: v1 spent the full 200ms proof budget before the v2 immutable-root fallback could run. The failed natural games and original source snapshot remain unchanged.",
+  "sourceFailure": {
+    "game": "seed-74051-seat-WHITE",
+    "gameSha256": "a17e5ac5d701eebc80bda3782d6eafcdc4a5ba0bf65fd09f2f093e843e565d71",
+    "zeroBasedPlies": [
+      17,
+      21,
+      24
+    ],
+    "certifiedRoot": [
+      4,
+      7
+    ],
+    "nativeAreaBefore": 1,
+    "nativeAreaLowerBoundAfter": 2,
+    "sourceSnapshot": "local_artifacts/pass-v5-operational-v3-fatal-source-snapshot"
+  },
+  "design": {
+    "schema": "lifeline-ai-pass-discipline-v3",
+    "explicitRawPassOnly": true,
+    "immediatelyTerminalPass": "Preserves old V2/v1 full-round and margin path.",
+    "setupAndPass": "Isolation allocation, canonical PASS preflight and restoration use the shared total proof budget; measured separately.",
+    "rootSearch": "At most 12 candidate roots ordered by birth distance; canonical playMove validates each; at most min(8ms,5 percent of configured total proof budget). No eager full legal-root enumeration before the quick search.",
+    "proof": "Reuses the unchanged V2 retained pieces, full birth-edge connectivity, birth-neighbor LINE protection and strict occupied-coverage versus native-area invariant.",
+    "hash": "Reuses unchanged V2 SHA256 helper; hash formatting counts against the shared total deadline.",
+    "fallback": "If no quick certificate, unchanged V2 gets only actual remaining time/nodes.",
+    "recordedTimings": [
+      "setupAndPassElapsedMs",
+      "quickElapsedMs",
+      "totalElapsedMs"
+    ],
+    "noPolicyDowngrade": "Model weights, policy/Minimax depths and model-search budgets unchanged.",
+    "scope": "Product only. Invariant proof explicitly distinguishes itself from full-round enumeration; no fabricated replies."
+  },
+  "checks": [
+    {
+      "command": "node web/web前端/tests/verify-pass-discipline-v3.mjs",
+      "exitCode": 0,
+      "actualCases": 3,
+      "result": "All actual hex states pick [4,7]; strict gain, cold and slow preflight, <=12 roots/8ms cap, total budget, current real room/Web Worker, request ownership, no source mutation, unsafe/missing-output rejection, old terminal margin path."
+    },
+    {
+      "command": "node web/web前端/tests/verify-pass-discipline-v2.mjs",
+      "exitCode": 0,
+      "actualCases": 5,
+      "result": "Original direct V2 proof/counterexamples/SHA remain exact; current product room/Worker schema assertions updated specifically to V3."
+    },
+    {
+      "command": "node --test tests/multiplayer-tier-runtime.test.mjs tests/three-player-worker.test.mjs tests/hex-player-worker.test.mjs tests/production-worker.test.mjs tests/pass-discipline-v2.test.mjs tests/pass-discipline-v3.test.mjs",
+      "cwd": "wechat/minigame",
+      "exitCode": 0,
+      "tests": 33,
+      "pass": 33,
+      "fail": 0,
+      "durationMs": 17936.34,
+      "log": "local_artifacts\\terminal-v5-mini-runtime-v3-tests.txt",
+      "logSha256": "4091bf9f013d65994dd7db1c0248f1c1b12494281a8ca6260760257d749e9a15",
+      "scope": "Original 23 plus 8 real states x AI/HINT/ANALYZE, native no browser globals and wrong actor rejection."
+    },
+    {
+      "command": "node web/web前端/tests/verify-pass-discipline-v1.mjs",
+      "exitCode": 0
+    },
+    {
+      "command": "node web/web前端/tests/verify-worker-terminal-winning-pass.mjs",
+      "exitCode": 0
+    },
+    {
+      "command": "node web/web前端/tests/verify-territory-v3-hard-worker.mjs local_artifacts/terminal-v5-pass-v3-hard-evaluation-20261026-r1 local_artifacts/terminal-v5-pass-v3-hard-evaluation-20261026-r1/v3-verification.json",
+      "exitCode": 0,
+      "result": {
+        "schema": "lifeline-territory-v3-hard-worker-verification-v1",
+        "status": "PASS_V3_HARD_WORKER_SOURCE_AND_ROUTE",
+        "bundleSha256": "a87d479035766195c2ab3609eeb9ac7d3d4ca43582dc52eba4a516a999b5d97d",
+        "currentGameEngineSha256": "1aec9d73d06c7243ac71d1eb27c8f9692dc5f33576d298d2ecd2d2d55464acfb",
+        "route": {
+          "kind": "native-hard-bundle",
+          "url": "file:///C:/Users/zcz/.codex/worktrees/pass-discipline/line%20game/web/web%E5%89%8D%E7%AB%AF/MultiplayerHardAIWorker.bundle.mjs?v=20261025-terminal-v4"
+        },
+        "request": {
+          "rulesVersion": "territory-v3",
+          "playerCount": 4,
+          "gridSize": 5,
+          "replyType": "RESULT",
+          "returnedMoves": 1,
+          "terminalEvaluation": "native-territory-v3"
+        },
+        "checks": [
+          "manifest GameEngine hash equals current source",
+          "captured production route targets emitted bundle",
+          "actual emitted Worker listener returns a V3 Hard result"
+        ],
+        "limits": [
+          "Controlled Node Worker shim with file-backed assets; no browser timing or playing-strength claim.",
+          "Current-score parity is established by the separate main-thread scoring fixture; this worker request verifies source identity and V3 route execution."
+        ]
+      }
+    }
+  ],
+  "hardBundle": {
+    "buildRoot": "local_artifacts\\terminal-v5-pass-v3-hard-evaluation-20261026-r1",
+    "sha256": "a87d479035766195c2ab3609eeb9ac7d3d4ca43582dc52eba4a516a999b5d97d",
+    "bytes": 341674,
+    "allGuardVersionsBound": true
+  },
+  "freeze": {
+    "trainingIdentityInputsChecked": 29,
+    "changed": [],
+    "v1Sha256Unchanged": "4850b3af425e3b7d3153b43c45c223fad3b89b4870cdfce75425955cb3454419",
+    "v2Sha256Unchanged": "1e4a89dcb347776b866647ba0019a7615b897d11c9679551ae73cfb620164231",
+    "runtimeChangedAfterFreezeReady": false
+  },
+  "knownInheritedFailure": "verify-ai-control-flow.mjs CONTROL-SKIP frozen-score failure is retained and documented in the V2 receipt; no full-suite PASS claim.",
+  "limits": [
+    "Targeted runtime correctness only; fresh formal evaluation and admission remain separate.",
+    "No push, deploy or upload by this task.",
+    "No new phone strength/latency claim.",
+    "Parent owns activation-only changes, final release build and external publication."
+  ]
+}

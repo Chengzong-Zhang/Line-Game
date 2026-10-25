@@ -6,6 +6,7 @@ import vm from 'node:vm';
 import { createHash } from 'node:crypto';
 import { build } from '../tools/native-build.mjs';
 import { sut, root, plain } from './helpers.mjs';
+import { PASS_DISCIPLINE_CONTRACT as PRODUCT_PASS_CONTRACT } from '../../../web/web前端/AIPassDisciplineV3.js';
 import { passDisciplineRuleState } from '../../../web/web前端/AIPassDisciplineV2.js';
 const fixture = JSON.parse(await fs.readFile(new URL('../../../web/web前端/tests/fixtures/pass-discipline-v2-real-states.json', import.meta.url), 'utf8'));
 const queries = { name: 'strip-cache-query', setup(ctx) {
@@ -32,7 +33,7 @@ for (const entry of fixture.cases) test(`real native Worker replaces conservativ
     assert.equal(answer.ok, true, answer.error); assert.equal(answer.context.player, entry.actor);
     assert.equal(answer.result.player, entry.actor); assert.equal(answer.result.stateHash, before.stateHash);
     const receipt = answer.result.passDiscipline;
-    assert.equal(receipt.schema, 'lifeline-ai-pass-discipline-v2');
+    assert.equal(receipt.schema, PRODUCT_PASS_CONTRACT.schema);
     assert.equal(receipt.sourceStateHash, expectedHash);
     assert.equal(receipt.witness.proofType, 'immutable-birth-root-protection-invariant');
     assert.equal(receipt.witness.completeOpponentRound, false);

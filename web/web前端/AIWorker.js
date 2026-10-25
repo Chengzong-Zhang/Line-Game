@@ -1,7 +1,7 @@
 import { GameEngine } from "./GameEngine.js?v=20261025-terminal-v4";
 import { deserializeEngineEdges } from "./AIStateProtocol.js?v=20261025-terminal-v4";
 import { GreedyAI, MCTSAI, MinimaxAI, restoreState } from "./AIEngine.js?v=20261025-terminal-v4";
-import { applyPassDiscipline } from "./AIPassDisciplineV2.js?v=20261025-terminal-v4";
+import { applyPassDiscipline } from "./AIPassDisciplineV3.js?v=20261025-terminal-v4";
 
 self.onmessage = async (event) => {
   if (event.data?.type === "WARMUP") {

@@ -71,9 +71,9 @@ function resolveInitialPositions(gridSize, playerCount, positions = null, boardS
     if (!Array.isArray(point) || point.length !== 2 || !isBoardPoint(point, gridSize, playerCount, boardShape)) {
       throw new Error(`Invalid starting point for ${player}.`);
     }
-    const key5 = pointKey(point);
-    if (occupied.has(key5)) throw new Error("Starting points must not overlap.");
-    occupied.add(key5);
+    const key6 = pointKey(point);
+    if (occupied.has(key6)) throw new Error("Starting points must not overlap.");
+    occupied.add(key6);
     result[player] = Object.freeze(clonePoint(point));
   }
   return Object.freeze(result);
@@ -84,8 +84,8 @@ function clonePoint(point) {
 function pointKey(point) {
   return `${point[0]},${point[1]}`;
 }
-function keyToPoint(key5) {
-  const [x, y] = key5.split(",").map(Number);
+function keyToPoint(key6) {
+  const [x, y] = key6.split(",").map(Number);
   return [x, y];
 }
 function pointEquals(a, b) {
@@ -134,9 +134,9 @@ function dedupePoints(points) {
   const seen = /* @__PURE__ */ new Set();
   const result = [];
   for (const point of points) {
-    const key5 = pointKey(point);
-    if (!seen.has(key5)) {
-      seen.add(key5);
+    const key6 = pointKey(point);
+    if (!seen.has(key6)) {
+      seen.add(key6);
       result.push(clonePoint(point));
     }
   }
@@ -187,23 +187,23 @@ function updateDependencyGeometry(engine, memo) {
     memo.bfs = dependencyBfsBucket();
   }
 }
-function dependencyGet(bucket, key5) {
-  const record = bucket.entries.get(key5);
+function dependencyGet(bucket, key6) {
+  const record = bucket.entries.get(key6);
   if (!record) return null;
-  bucket.entries.delete(key5);
-  bucket.entries.set(key5, record);
+  bucket.entries.delete(key6);
+  bucket.entries.set(key6, record);
   return record.value;
 }
-function dependencyPut(bucket, key5, value, units) {
-  if (key5.length > bucket.maxCharacters || units > bucket.maxUnits) return;
-  while (bucket.entries.size >= 64 || bucket.characters + key5.length > bucket.maxCharacters || bucket.units + units > bucket.maxUnits) {
+function dependencyPut(bucket, key6, value, units) {
+  if (key6.length > bucket.maxCharacters || units > bucket.maxUnits) return;
+  while (bucket.entries.size >= 64 || bucket.characters + key6.length > bucket.maxCharacters || bucket.units + units > bucket.maxUnits) {
     const [oldKey, record] = bucket.entries.entries().next().value;
     bucket.entries.delete(oldKey);
     bucket.characters -= oldKey.length;
     bucket.units -= record.units;
   }
-  bucket.entries.set(key5, { value, units });
-  bucket.characters += key5.length;
+  bucket.entries.set(key6, { value, units });
+  bucket.characters += key6.length;
   bucket.units += units;
 }
 function dependencyPointsKey(points) {
@@ -238,12 +238,12 @@ function dependencyBfsPut(bucket, obstacleKey, srcIdx, entry) {
   let group = bucket.groups.get(obstacleKey);
   if (group?.entries.has(srcIdx) || group && group.entries.size >= 6) return;
   while (!group && bucket.groups.size >= 12 || bucket.characters + (group ? 0 : obstacleKey.length) > 65536 || bucket.units + entry.units > 524288) {
-    const [key5, removed] = bucket.groups.entries().next().value;
-    bucket.groups.delete(key5);
-    bucket.characters -= key5.length;
+    const [key6, removed] = bucket.groups.entries().next().value;
+    bucket.groups.delete(key6);
+    bucket.characters -= key6.length;
     bucket.entries -= removed.entries.size;
     bucket.units -= removed.units;
-    if (key5 === obstacleKey) group = null;
+    if (key6 === obstacleKey) group = null;
   }
   if (!group) {
     group = { entries: /* @__PURE__ */ new Map(), units: 0 };
@@ -472,12 +472,12 @@ var init_GameEngine = __esm({
         this._rowIndexGridSize = this.gridSize;
         this._rowIndexBoardShape = this.boardShape;
         for (const point of getBoardPositions(this.gridSize, this.playerCount, this.boardShape)) {
-          const key5 = pointKey(point);
+          const key6 = pointKey(point);
           const idx = this.validPositions.length;
           this.validPositions.push(point);
-          this.positionKeys.add(key5);
-          this.grid.set(key5, PointState.EMPTY);
-          this._keyToIdx.set(key5, idx);
+          this.positionKeys.add(key6);
+          this.grid.set(key6, PointState.EMPTY);
+          this._keyToIdx.set(key6, idx);
           this._rowIndexOffsets[point[1]] ??= idx - point[0];
         }
         const n = this.validPositions.length;
@@ -538,11 +538,11 @@ var init_GameEngine = __esm({
         return this.grid.get(pointKey(point));
       }
       _setState(point, state) {
-        const key5 = pointKey(point);
-        if (this._moveProbeUndo && !this._moveProbeUndo.has(key5)) {
-          this._moveProbeUndo.set(key5, this.grid.get(key5));
+        const key6 = pointKey(point);
+        if (this._moveProbeUndo && !this._moveProbeUndo.has(key6)) {
+          this._moveProbeUndo.set(key6, this.grid.get(key6));
         }
-        this.grid.set(key5, state);
+        this.grid.set(key6, state);
       }
       _getPlayerStates(player) {
         return PLAYER_POINT_STATES[player];
@@ -635,7 +635,7 @@ var init_GameEngine = __esm({
         };
       }
       _getSnapshotLegalMoves() {
-        const key5 = JSON.stringify([
+        const key6 = JSON.stringify([
           this.gridSize,
           this.boardShape,
           this.rulesVersion,
@@ -654,8 +654,8 @@ var init_GameEngine = __esm({
           [...this.historyHashes],
           [...this.resignedPlayers]
         ]);
-        if (this._snapshotLegalCache?.key !== key5) {
-          this._snapshotLegalCache = { key: key5, moves: this.getLegalMoves(this.currentPlayer) };
+        if (this._snapshotLegalCache?.key !== key6) {
+          this._snapshotLegalCache = { key: key6, moves: this.getLegalMoves(this.currentPlayer) };
         }
         return this._snapshotLegalCache.moves.map((move) => ({ ...move, point: clonePoint(move.point) }));
       }
@@ -967,8 +967,8 @@ var init_GameEngine = __esm({
       }
       _getCrawlRays(node) {
         this._crawlRays ??= /* @__PURE__ */ new Map();
-        const key5 = pointKey(node);
-        if (!this._crawlRays.has(key5)) {
+        const key6 = pointKey(node);
+        if (!this._crawlRays.has(key6)) {
           const rays = DIRECTIONS.map(([dx, dy]) => {
             const ray = [];
             let x = node[0] + dx, y = node[1] + dy;
@@ -979,9 +979,9 @@ var init_GameEngine = __esm({
             }
             return ray;
           });
-          this._crawlRays.set(key5, rays);
+          this._crawlRays.set(key6, rays);
         }
-        return this._crawlRays.get(key5);
+        return this._crawlRays.get(key6);
       }
       /** 攻击结束后，沿6个方向爬行重建所有被解锁的连线 */
       _connectAllCrawl(player, knownNodes = null) {
@@ -1115,8 +1115,8 @@ var init_GameEngine = __esm({
         }
         if (friendlySet.size === 0) return [];
         let start = null;
-        for (const key5 of friendlySet) {
-          const p = keyToPoint(key5);
+        for (const key6 of friendlySet) {
+          const p = keyToPoint(key6);
           if (!start || p[0] < start[0] || p[0] === start[0] && p[1] < start[1]) {
             start = p;
           }
@@ -1241,7 +1241,7 @@ var init_GameEngine = __esm({
       _coversFriendlyNodes(polygon, friendlyKeys) {
         if (this._getCoveredPoints !== NATIVE_FLOOD_COVERAGE || this._pointToIndex !== NATIVE_FLOOD_POINT_INDEX) {
           const covered = this._getCoveredPoints(polygon);
-          return [...friendlyKeys].every((key5) => covered.has(key5));
+          return [...friendlyKeys].every((key6) => covered.has(key6));
         }
         this._bfsEpoch += 1;
         if (this._bfsEpoch === 2147483647) {
@@ -1260,8 +1260,8 @@ var init_GameEngine = __esm({
           if (index >= 0) wall[index] = epoch;
         }
         let needsFlood = false;
-        for (const key5 of friendlyKeys) {
-          const index = this._keyToIdx.get(key5);
+        for (const key6 of friendlyKeys) {
+          const index = this._keyToIdx.get(key6);
           if (index === void 0) return false;
           if (wall[index] !== epoch) {
             required[index] = epoch;
@@ -1293,8 +1293,8 @@ var init_GameEngine = __esm({
       _getValidatedTerritoryArea(polygon, friendlyKeys, enemyKeys) {
         if (this._getCoveredPoints !== NATIVE_FLOOD_COVERAGE || this._pointToIndex !== NATIVE_FLOOD_POINT_INDEX) {
           const covered = this._getCoveredPoints(polygon);
-          if (![...friendlyKeys].every((key5) => covered.has(key5))) return null;
-          if ([...enemyKeys].some((key5) => covered.has(key5))) return null;
+          if (![...friendlyKeys].every((key6) => covered.has(key6))) return null;
+          if ([...enemyKeys].some((key6) => covered.has(key6))) return null;
           return covered.size;
         }
         this._bfsEpoch += 1;
@@ -1313,8 +1313,8 @@ var init_GameEngine = __esm({
           const index = directIdx >= 0 ? directIdx : this._keyToIdx.get(pointKey(point));
           if (index >= 0) wall[index] = epoch;
         }
-        for (const key5 of friendlyKeys) {
-          const index = this._keyToIdx.get(key5);
+        for (const key6 of friendlyKeys) {
+          const index = this._keyToIdx.get(key6);
           if (index === void 0) return null;
           required[index] = epoch;
         }
@@ -1335,8 +1335,8 @@ var init_GameEngine = __esm({
             }
           }
         }
-        for (const key5 of enemyKeys) {
-          const index = this._keyToIdx.get(key5);
+        for (const key6 of enemyKeys) {
+          const index = this._keyToIdx.get(key6);
           if (index !== void 0 && water[index] !== epoch) return null;
         }
         return this.validPositions.length - length;
@@ -1468,7 +1468,7 @@ var init_GameEngine = __esm({
           return;
         }
         const makeAreaBound = /* @__PURE__ */ __name((fixed) => {
-          const required = new Set([...fixed.map(pointKey), ...friendlyKeys].map((key5) => this._keyToIdx.get(key5)).filter((index) => index !== void 0));
+          const required = new Set([...fixed.map(pointKey), ...friendlyKeys].map((key6) => this._keyToIdx.get(key6)).filter((index) => index !== void 0));
           const weight = /* @__PURE__ */ __name((index) => required.has(index) ? 0 : 1, "weight");
           const costs = /* @__PURE__ */ new Map([[srcIdx, weight(srcIdx)]]);
           const minimumExtra = /* @__PURE__ */ __name((index) => {
@@ -1525,7 +1525,7 @@ var init_GameEngine = __esm({
             const couldCover = /* @__PURE__ */ __name((fixed) => {
               if (sharedPaths) return engine._coversFriendlyNodes([...fixed, ...envelope], friendlyKeys);
               const covered = engine._getCoveredPoints([...fixed, ...envelope]);
-              return [...friendlyKeys].every((key5) => covered.has(key5));
+              return [...friendlyKeys].every((key6) => covered.has(key6));
             }, "couldCover");
             if (sharedPaths) {
               if (sides & 1 && !couldCover(fixedA)) sides &= ~1;
@@ -1560,13 +1560,13 @@ var init_GameEngine = __esm({
         }
         const nodeKey = dependencyPointsKey(friendlyNodes), lineKey = dependencyPointsKey(friendlyLines);
         const enemyKey = dependencyPointsKey(rawEnemyPoints), contourKey = initialContour ? dependencyPointsKey(initialContour) : "";
-        if ([nodeKey, lineKey, enemyKey, contourKey].some((key6) => key6 === null)) {
+        if ([nodeKey, lineKey, enemyKey, contourKey].some((key7) => key7 === null)) {
           return this._rawTerritoryUncached(friendlyNodes, friendlyLines, rawEnemyPoints, options);
         }
         const memo = dependencyMemo(this);
         updateDependencyGeometry(this, memo);
-        const key5 = `${requireClosedRegion ? 1 : 0}|${nodeKey}|${lineKey}|${[...new Set(enemyKey.split(";"))].sort().join(";")}|${initialContour ? 1 : 0}:${contourKey}`;
-        const cached = dependencyGet(memo.raw, key5);
+        const key6 = `${requireClosedRegion ? 1 : 0}|${nodeKey}|${lineKey}|${[...new Set(enemyKey.split(";"))].sort().join(";")}|${initialContour ? 1 : 0}:${contourKey}`;
+        const cached = dependencyGet(memo.raw, key6);
         if (cached) {
           memo.stats.rawHits++;
           return copyDependencyTerritory(cached);
@@ -1576,7 +1576,7 @@ var init_GameEngine = __esm({
         memo.context = {};
         try {
           const result = this._rawTerritoryUncached(friendlyNodes, friendlyLines, rawEnemyPoints, options);
-          dependencyPut(memo.raw, key5, copyDependencyTerritory(result), (result.polygon?.length || 0) * 2);
+          dependencyPut(memo.raw, key6, copyDependencyTerritory(result), (result.polygon?.length || 0) * 2);
           return result;
         } finally {
           memo.context = previousContext;
@@ -1640,8 +1640,8 @@ var init_GameEngine = __esm({
             const area = useScalarValidation ? this._getValidatedTerritoryArea(candidate, friendlyNodeKeys, enemyKeySet) : covered.size;
             if (area === null) return;
             if (candidate.length === bestCandPerim && area >= bestCandArea) return;
-            if (!useScalarValidation && ![...friendlyNodeKeys].every((key5) => covered.has(key5))) return;
-            if (!useScalarValidation && [...enemyKeySet].some((key5) => covered.has(key5))) return;
+            if (!useScalarValidation && ![...friendlyNodeKeys].every((key6) => covered.has(key6))) return;
+            if (!useScalarValidation && [...enemyKeySet].some((key6) => covered.has(key6))) return;
             bestCandPerim = candidate.length;
             bestCandArea = area;
             bestOverallCand = candidate;
@@ -1696,7 +1696,7 @@ var init_GameEngine = __esm({
                 const couldCoverNodes = /* @__PURE__ */ __name((wall) => {
                   if (useSharedValidation) return this._coversFriendlyNodes(wall, friendlyNodeKeys);
                   const covered = this._getCoveredPoints(wall);
-                  return [...friendlyNodeKeys].every((key5) => covered.has(key5));
+                  return [...friendlyNodeKeys].every((key6) => covered.has(key6));
                 }, "couldCoverNodes");
                 possibleA = possibleA && couldCoverNodes([...currentPoly.slice(0, i), ...pathEnvelope, ...currentPoly.slice(j + 1)]);
                 possibleB = possibleB && couldCoverNodes([...currentPoly.slice(i, j + 1), ...pathEnvelope]);
@@ -1804,7 +1804,7 @@ var init_GameEngine = __esm({
         }
         if (requireClosedRegion) {
           const finalCovered = this._getCoveredPoints(currentPoly);
-          if ([...enemyKeySet].some((key5) => finalCovered.has(key5))) {
+          if ([...enemyKeySet].some((key6) => finalCovered.has(key6))) {
             return { polygon: null, area: 0, displayArea: 0 };
           }
           curArea = finalCovered.size;
@@ -1884,9 +1884,9 @@ var init_GameEngine = __esm({
             componentSize += 1;
             if (enemyKeys.has(currentKey)) containsEnemy = true;
             for (const neighbor of this.getAdjacentPositions(current)) {
-              const key5 = pointKey(neighbor);
-              if (ownedKeys.has(key5) || visited.has(key5) || !covered.has(key5)) continue;
-              visited.add(key5);
+              const key6 = pointKey(neighbor);
+              if (ownedKeys.has(key6) || visited.has(key6) || !covered.has(key6)) continue;
+              visited.add(key6);
               queue.push(neighbor);
             }
           }
@@ -1936,12 +1936,12 @@ var init_GameEngine = __esm({
        *  包含：网格物理层（非空点）、逻辑拓扑层（各方边集合）、即将行棋方。 */
       _getStateHashOrder() {
         this._stateHashCoordinates ??= /* @__PURE__ */ new Map();
-        return [...this.grid.keys()].map((key5) => {
-          if (!this._stateHashCoordinates.has(key5)) {
-            const [x, y] = key5.split(",").map(Number);
-            this._stateHashCoordinates.set(key5, { key: key5, x, y, cells: /* @__PURE__ */ new Map() });
+        return [...this.grid.keys()].map((key6) => {
+          if (!this._stateHashCoordinates.has(key6)) {
+            const [x, y] = key6.split(",").map(Number);
+            this._stateHashCoordinates.set(key6, { key: key6, x, y, cells: /* @__PURE__ */ new Map() });
           }
-          return this._stateHashCoordinates.get(key5);
+          return this._stateHashCoordinates.get(key6);
         }).sort((a, b) => a.x - b.x || a.y - b.y);
       }
       _computeStateHash(nextPlayer, orderedPoints = this._getStateHashOrder()) {
@@ -2036,9 +2036,9 @@ var init_GameEngine = __esm({
           return { legal: true, reason: null, state: originalState, isAttack: isAttackingMove };
         } finally {
           this.grid = gridSnapshot;
-          for (const [key5, state] of undo) {
-            if (state === void 0) this.grid.delete(key5);
-            else this.grid.set(key5, state);
+          for (const [key6, state] of undo) {
+            if (state === void 0) this.grid.delete(key6);
+            else this.grid.set(key6, state);
           }
           this._moveProbeUndo = previousUndo;
           for (const candidate of this.activePlayers) {
@@ -2465,16 +2465,16 @@ function fastTerritoryBFS(engine, player) {
   for (const point of engine.validPositions) {
     const state = engine._getState(point);
     if (state === myStates.node || state === myStates.line) {
-      const key5 = pointKey2(point);
-      visited.add(key5);
+      const key6 = pointKey2(point);
+      visited.add(key6);
       frontier.push(point);
     }
   }
   for (let index = 0; index < frontier.length; index += 1) {
     for (const adjacent of engine.getAdjacentPositions(frontier[index])) {
-      const key5 = pointKey2(adjacent);
-      if (!visited.has(key5) && !opponentStates.has(engine._getState(adjacent))) {
-        visited.add(key5);
+      const key6 = pointKey2(adjacent);
+      if (!visited.has(key6) && !opponentStates.has(engine._getState(adjacent))) {
+        visited.add(key6);
         frontier.push(adjacent);
       }
     }
@@ -2540,7 +2540,7 @@ function materialKeys(engine, player) {
   return { nodes, coverage };
 }
 function lostKeys(before, after) {
-  return new Set([...before].filter((key5) => !after.has(key5)));
+  return new Set([...before].filter((key6) => !after.has(key6)));
 }
 function weightedLoss(nodes, coverage) {
   return MINIMAX_WEIGHTS.lostNodes * nodes.size + MINIMAX_WEIGHTS.lostCoverage * coverage.size;
@@ -2561,10 +2561,10 @@ function cutAnalysis(engine, defender) {
         const lostNodes = lostKeys(before.nodes, after.nodes);
         const lostCoverage = lostKeys(before.coverage, after.coverage);
         const loss = weightedLoss(lostNodes, lostCoverage);
-        const key5 = pointKey2(point);
-        const previous = threats.get(key5);
+        const key6 = pointKey2(point);
+        const previous = threats.get(key6);
         if (!previous || loss > previous.loss) {
-          threats.set(key5, {
+          threats.set(key6, {
             attacker,
             point: [...point],
             loss,
@@ -2583,7 +2583,7 @@ function cutAnalysis(engine, defender) {
   return { threats, immediate };
 }
 function cutThreats(engine, defender) {
-  return new Map([...cutAnalysis(engine, defender).threats].map(([key5, threat]) => [key5, threat.loss]));
+  return new Map([...cutAnalysis(engine, defender).threats].map(([key6, threat]) => [key6, threat.loss]));
 }
 function materialCounts(engine, player) {
   const material = materialKeys(engine, player);
@@ -3215,7 +3215,7 @@ function stateFeatures(engine) {
 function featuresForMove(engine, player, point, before, after, previousState) {
   const count = engine.validPositions.length;
   const opponents = engine.activePlayers.filter((other) => other !== player && !engine.resignedPlayers?.has(other));
-  const own = after[player];
+  const own2 = after[player];
   const maximum = /* @__PURE__ */ __name((field) => Math.max(0, ...opponents.map((other) => after[other][field])), "maximum");
   const lost = /* @__PURE__ */ __name((field) => opponents.reduce((total, other) => total + before[other][field] - after[other][field], 0), "lost");
   const scale = engine.gridSize - 1;
@@ -3224,22 +3224,22 @@ function featuresForMove(engine, player, point, before, after, previousState) {
   const distance = Math.max(Math.abs(dx), Math.abs(dy), Math.abs(dx + dy)) / scale;
   const barycentric = [point[0], point[1], scale - point[0] - point[1]];
   return [
-    own.nodes / count,
-    own.coverage / count,
-    own.reach / count,
-    (own.nodes - maximum("nodes")) / count,
-    (own.coverage - maximum("coverage")) / count,
-    (own.reach - maximum("reach")) / count,
+    own2.nodes / count,
+    own2.coverage / count,
+    own2.reach / count,
+    (own2.nodes - maximum("nodes")) / count,
+    (own2.coverage - maximum("coverage")) / count,
+    (own2.reach - maximum("reach")) / count,
     lost("nodes") / count,
     lost("coverage") / count,
-    (own.nodes - before[player].nodes) / count,
-    (own.coverage - before[player].coverage) / count,
+    (own2.nodes - before[player].nodes) / count,
+    (own2.coverage - before[player].coverage) / count,
     Number(opponents.some((other) => previousState === engine._getPlayerStates(other).line)),
     Number(previousState === engine._getPlayerStates(player).line),
     distance,
     3 * Math.min(...barycentric) / scale,
-    own.frontier / count,
-    (own.frontier - maximum("frontier")) / count
+    own2.frontier / count,
+    (own2.frontier - maximum("frontier")) / count
   ];
 }
 function threePlayerCandidates(engine, player = engine.currentPlayer) {
@@ -4010,7 +4010,7 @@ function stateFeatures2(engine) {
 function moveFeatures(engine, player, point, before, after, previousState) {
   const count = engine.validPositions.length;
   const opponents = engine.activePlayers.filter((other) => other !== player && !engine.resignedPlayers.has(other));
-  const own = after[player];
+  const own2 = after[player];
   const maximum = /* @__PURE__ */ __name((field) => Math.max(0, ...opponents.map((other) => after[other][field])), "maximum");
   const lost = /* @__PURE__ */ __name((field) => opponents.reduce((sum, other) => sum + before[other][field] - after[other][field], 0), "lost");
   const radius = engine.gridSize - 1;
@@ -4019,22 +4019,22 @@ function moveFeatures(engine, player, point, before, after, previousState) {
   const isHex = engine.playerCount >= 4;
   const centrality = isHex ? 1 - axialDistance(point[0] - radius, point[1] - radius) / radius : 3 * Math.min(point[0], point[1], radius - point[0] - point[1]) / radius;
   return [
-    own.nodes / count,
-    own.coverage / count,
-    own.reach / count,
-    (own.nodes - maximum("nodes")) / count,
-    (own.coverage - maximum("coverage")) / count,
-    (own.reach - maximum("reach")) / count,
+    own2.nodes / count,
+    own2.coverage / count,
+    own2.reach / count,
+    (own2.nodes - maximum("nodes")) / count,
+    (own2.coverage - maximum("coverage")) / count,
+    (own2.reach - maximum("reach")) / count,
     lost("nodes") / count,
     lost("coverage") / count,
-    (own.nodes - before[player].nodes) / count,
-    (own.coverage - before[player].coverage) / count,
+    (own2.nodes - before[player].nodes) / count,
+    (own2.coverage - before[player].coverage) / count,
     Number(opponents.some((other) => previousState === engine._getPlayerStates(other).line)),
     Number(previousState === engine._getPlayerStates(player).line),
     axialDistance(point[0] - home[0], point[1] - home[1]) / (radius * (isHex ? 2 : 1)),
     centrality,
-    own.frontier / count,
-    (own.frontier - maximum("frontier")) / count
+    own2.frontier / count,
+    (own2.frontier - maximum("frontier")) / count
   ];
 }
 function hexPlayerCandidates(engine, player = engine.currentPlayer) {
@@ -4262,7 +4262,7 @@ function installNativeEdgeGeometry(engine, { maximumEntries = 2048 } = {}) {
     }
     stats.misses++;
     const [a, b] = edge.split("|");
-    const parse = /* @__PURE__ */ __name((key5) => key5.split(",").map(Number), "parse");
+    const parse = /* @__PURE__ */ __name((key6) => key6.split(",").map(Number), "parse");
     const keys = engine.getLinePoints(parse(a), parse(b)).map((p) => `${p[0]},${p[1]}`);
     const compiled = { a, b, keys };
     if (edges.size >= maximumEntries) {
@@ -4276,8 +4276,8 @@ function installNativeEdgeGeometry(engine, { maximumEntries = 2048 } = {}) {
     guard(this);
     const { node, line } = this._getPlayerStates(player), edgeSet = this._getEdges(player);
     for (const edge of [...edgeSet]) {
-      if (!compile(edge).keys.every((key5) => {
-        const state = this.grid.get(key5);
+      if (!compile(edge).keys.every((key6) => {
+        const state = this.grid.get(key6);
         return state === node || state === line;
       })) edgeSet.delete(edge);
     }
@@ -4307,7 +4307,7 @@ function installNativeEdgeGeometry(engine, { maximumEntries = 2048 } = {}) {
     const alive = new Set(aliveNodes);
     for (const edge of edgeSet) {
       const { a, b, keys } = compile(edge);
-      if (aliveNodes.has(a) && aliveNodes.has(b)) for (const key5 of keys) alive.add(key5);
+      if (aliveNodes.has(a) && aliveNodes.has(b)) for (const key6 of keys) alive.add(key6);
     }
     return alive;
   };
@@ -4333,12 +4333,12 @@ function boardGeometry(engine) {
 }
 function potentialMoves(engine, player = engine.currentPlayer) {
   if (engine.gameOver || engine.resignedPlayers.has(player)) return [];
-  const own = engine._getPlayerStates(player), indices = /* @__PURE__ */ new Set(), geo = boardGeometry(engine);
+  const own2 = engine._getPlayerStates(player), indices = /* @__PURE__ */ new Set(), geo = boardGeometry(engine);
   const states = geo.keys.map((k) => engine.grid.get(k));
   const enemy = new Set(engine._getOpponents(player).flatMap((p) => Object.values(engine._getPlayerStates(p))));
   const nodes = new Set(engine.activePlayers.map((p) => engine._getPlayerStates(p).node));
   for (let i = 0; i < states.length; i++) {
-    if (states[i] !== own.node) continue;
+    if (states[i] !== own2.node) continue;
     for (const ray of geo.rays[i]) for (const index of ray) {
       const state = states[index];
       if (!nodes.has(state)) indices.add(index);
@@ -4349,8 +4349,8 @@ function potentialMoves(engine, player = engine.currentPlayer) {
   return [...indices].sort((a, b) => a - b).filter((i) => {
     if (protectedPoints.has(i)) return false;
     if (enemy.has(states[i])) return true;
-    const adjacent = engine._adjIdxList[i].filter((j) => states[j] === own.node);
-    return adjacent.length < 2 && adjacent.every((j) => !engine._adjIdxList[j].some((k) => states[k] === own.node));
+    const adjacent = engine._adjIdxList[i].filter((j) => states[j] === own2.node);
+    return adjacent.length < 2 && adjacent.every((j) => !engine._adjIdxList[j].some((k) => states[k] === own2.node));
   }).map((i) => engine.validPositions[i]);
 }
 function isolatedSearchEngine(source) {
@@ -4435,27 +4435,27 @@ function multiplayerMetrics(engine) {
 function multiplayerMoveFeatures(engine, player, point, before, after, previous) {
   const n = engine.validPositions.length, r = engine.gridSize - 1;
   const opponents = engine.activePlayers.filter((p) => p !== player && !engine.resignedPlayers.has(p));
-  const own = after[player], max = /* @__PURE__ */ __name((f) => Math.max(0, ...opponents.map((p) => after[p][f])), "max");
+  const own2 = after[player], max = /* @__PURE__ */ __name((f) => Math.max(0, ...opponents.map((p) => after[p][f])), "max");
   const lost = /* @__PURE__ */ __name((f) => opponents.reduce((v, p) => v + before[p][f] - after[p][f], 0), "lost");
   const home = engine.initialPositions[player], distance = /* @__PURE__ */ __name((x, y) => Math.max(Math.abs(x), Math.abs(y), Math.abs(x + y)), "distance");
   const hex = engine.boardShape === "hexagon";
   return [
-    own.nodes / n,
-    own.coverage / n,
-    own.reach / n,
-    (own.nodes - max("nodes")) / n,
-    (own.coverage - max("coverage")) / n,
-    (own.reach - max("reach")) / n,
+    own2.nodes / n,
+    own2.coverage / n,
+    own2.reach / n,
+    (own2.nodes - max("nodes")) / n,
+    (own2.coverage - max("coverage")) / n,
+    (own2.reach - max("reach")) / n,
     lost("nodes") / n,
     lost("coverage") / n,
-    (own.nodes - before[player].nodes) / n,
-    (own.coverage - before[player].coverage) / n,
+    (own2.nodes - before[player].nodes) / n,
+    (own2.coverage - before[player].coverage) / n,
     Number(opponents.some((p) => previous === engine._getPlayerStates(p).line)),
     Number(previous === engine._getPlayerStates(player).line),
     distance(point[0] - home[0], point[1] - home[1]) / (r * (hex ? 2 : 1)),
     hex ? 1 - distance(point[0] - r, point[1] - r) / r : 3 * Math.min(point[0], point[1], r - point[0] - point[1]) / r,
-    own.frontier / n,
-    (own.frontier - max("frontier")) / n
+    own2.frontier / n,
+    (own2.frontier - max("frontier")) / n
   ];
 }
 function checkpoint(engine) {
@@ -4886,8 +4886,8 @@ var init_MultiplayerSearch = __esm({
           return value;
         }, "evaluate");
         const rank = /* @__PURE__ */ __name((points, actor, preferred) => points.map((point) => {
-          const state = point === null ? 0 : engine._getState(point), own = engine._getPlayerStates(actor);
-          let score = state && state !== own.line ? 1e3 : state === own.line ? 1 : 0;
+          const state = point === null ? 0 : engine._getState(point), own2 = engine._getPlayerStates(actor);
+          let score = state && state !== own2.line ? 1e3 : state === own2.line ? 1 : 0;
           if (preferred?.point && key(point) === key(preferred.point)) score += 1e4;
           return { point, score };
         }).sort((a, b) => b.score - a.score || order(a, b)), "rank");
@@ -5540,9 +5540,9 @@ var init_MultiplayerHardFallback = __esm({
         const scoreLeaf = /* @__PURE__ */ __name(() => {
           const index = engine._keyToIdx, originalGet = index.get, descriptor = Object.getOwnPropertyDescriptor(index, "get");
           let probes = 0;
-          index.get = function(key5) {
+          index.get = function(key6) {
             if ((++probes & 63) === 0) check4();
-            return originalGet.call(this, key5);
+            return originalGet.call(this, key6);
           };
           try {
             check4();
@@ -5683,9 +5683,9 @@ function scanTacticalDirectCutRisk(source, roots, {
         return { byPoint, stats };
       }
       if (root.kind === "placement" && !measurePlacementKeys.has(pointKey3(root.point))) continue;
-      const own = engine._getPlayerStates(actor);
-      const ownNodes = new Set(engine.validPositions.filter((point) => engine._getState(point) === own.node).map(pointKey3));
-      const ownCoverage = new Set(engine.validPositions.filter((point) => [own.node, own.line].includes(engine._getState(point))).map(pointKey3));
+      const own2 = engine._getPlayerStates(actor);
+      const ownNodes = new Set(engine.validPositions.filter((point) => engine._getState(point) === own2.node).map(pointKey3));
+      const ownCoverage = new Set(engine.validPositions.filter((point) => [own2.node, own2.line].includes(engine._getState(point))).map(pointKey3));
       const capturedNodes = enemyNodes.filter((row2) => engine.grid.get(row2.coordinate) !== engine._getPlayerStates(row2.player).node).length;
       const row = {
         point: copyPoint(root.point),
@@ -5702,7 +5702,7 @@ function scanTacticalDirectCutRisk(source, roots, {
         const replySnapshot = saveState(engine);
         for (const reply of potentialMoves(engine, row.replyPlayer)) {
           check4();
-          if (engine._getState(reply) !== own.line) continue;
+          if (engine._getState(reply) !== own2.line) continue;
           stats.probes++;
           const replyOutcome = engine.playMove(reply);
           check4();
@@ -5713,8 +5713,8 @@ function scanTacticalDirectCutRisk(source, roots, {
           }
           row.directCutReplies++;
           const connected = engine._getOpponentConnectedPieces(actor);
-          const retainedNodes = [...ownNodes].filter((coordinate) => connected.has(coordinate) && engine.grid.get(coordinate) === own.node).length;
-          const retainedCoverage = [...ownCoverage].filter((coordinate) => connected.has(coordinate) && [own.node, own.line].includes(engine.grid.get(coordinate))).length;
+          const retainedNodes = [...ownNodes].filter((coordinate) => connected.has(coordinate) && engine.grid.get(coordinate) === own2.node).length;
+          const retainedCoverage = [...ownCoverage].filter((coordinate) => connected.has(coordinate) && [own2.node, own2.line].includes(engine.grid.get(coordinate))).length;
           row.maximumNodeLoss = Math.max(row.maximumNodeLoss, ownNodes.size - retainedNodes);
           row.maximumCoverageLoss = Math.max(row.maximumCoverageLoss, ownCoverage.size - retainedCoverage);
           restoreState(engine, replySnapshot);
@@ -5816,9 +5816,9 @@ function selectCompleteReplyResilience(source, {
     if (!roots.some((move) => move.point === null)) roots.push({ point: null });
     if (!roots.some((move) => pointKey3(move.point) === pointKey3(anchor.point)))
       throw new Error("Hard reply anchor missing from complete root domain");
-    const own = source._getPlayerStates(source.currentPlayer);
+    const own2 = source._getPlayerStates(source.currentPlayer);
     const enemyLines = new Set(source._getOpponents(source.currentPlayer).map((player) => source._getPlayerStates(player).line));
-    const kind = /* @__PURE__ */ __name((point) => point === null ? "pass" : enemyLines.has(source._getState(point)) ? "attack" : source._getState(point) === own.line ? "reinforcement" : "placement", "kind");
+    const kind = /* @__PURE__ */ __name((point) => point === null ? "pass" : enemyLines.has(source._getState(point)) ? "attack" : source._getState(point) === own2.line ? "reinforcement" : "placement", "kind");
     const indexed = roots.map((move, rank) => ({ point: copyPoint(move.point), rank, kind: kind(move.point) }));
     const anchorRoot = indexed.find((move) => pointKey3(move.point) === pointKey3(anchor.point));
     const others = indexed.filter((move) => move !== anchorRoot);
@@ -6159,7 +6159,7 @@ async function prepareHardResources(source) {
   if (!supportsNativeHardContext(source)) throw new Error("Unsupported native Hard AI configuration");
   const { playerCount, gridSize, boardShape, rulesVersion } = source;
   const context = { playerCount, gridSize, boardShape, rulesVersion };
-  const key5 = JSON.stringify(context), started = performance.now(), reused = prepared.has(key5);
+  const key6 = JSON.stringify(context), started = performance.now(), reused = prepared.has(key6);
   if (!reused) {
     const promise = (async () => {
       if (playerCount === 3) {
@@ -6178,13 +6178,13 @@ async function prepareHardResources(source) {
       if (model.spec.id !== "hex-player-policy-v1") throw new Error("Hex resource identity changed");
       return { policySpec: model.spec, modelInfo: { id: model.spec.id } };
     })().catch((error) => {
-      if (prepared.get(key5) === promise) prepared.delete(key5);
+      if (prepared.get(key6) === promise) prepared.delete(key6);
       throw error;
     });
-    prepared.set(key5, promise);
+    prepared.set(key6, promise);
   }
   return {
-    medium: structuredClone(await prepared.get(key5)),
+    medium: structuredClone(await prepared.get(key6)),
     context,
     resourceWaitMs: performance.now() - started,
     resourcePromiseReused: reused
@@ -6254,17 +6254,17 @@ function createMultiplayerWarmupLoader(importRuntime = () => Promise.resolve().t
   return (message) => {
     const context = contextOf(message?.context);
     if (message?.type !== "WARMUP" || !supported(message) || !context) return Promise.resolve(false);
-    const key5 = identity(message.modelId, context);
-    if (pending2.has(key5)) return pending2.get(key5);
+    const key6 = identity(message.modelId, context);
+    if (pending2.has(key6)) return pending2.get(key6);
     const promise = Promise.resolve().then(importRuntime).then(async ({ loadMultiplayerRuntime: loadMultiplayerRuntime2 }) => {
       const runtime = await loadMultiplayerRuntime2(message.modelId, context);
       if (runtime?.modelInfo?.id !== message.modelId) throw new Error("Multiplayer warmup model identity mismatch");
       return true;
     }).catch((error) => {
-      if (pending2.get(key5) === promise) pending2.delete(key5);
+      if (pending2.get(key6) === promise) pending2.delete(key6);
       throw error;
     });
-    pending2.set(key5, promise);
+    pending2.set(key6, promise);
     return promise;
   };
 }
@@ -6308,11 +6308,11 @@ var init_MultiplayerAIWarmup = __esm({
         }
         let count = 0;
         for (const modelId of modelIds) {
-          const key5 = identity(modelId, context);
-          if (sent.has(key5)) continue;
+          const key6 = identity(modelId, context);
+          if (sent.has(key6)) continue;
           try {
             worker.postMessage({ type: "WARMUP", strategy: "multiplayer", modelId, context });
-            sent.add(key5);
+            sent.add(key6);
             count++;
           } catch (_) {
           }
@@ -6944,6 +6944,188 @@ var init_AIPassDisciplineV2 = __esm({
   }
 });
 
+// application-hard:AIPassDisciplineV3.js
+function applyPassDiscipline3(source, rankedMoves, {
+  player = source.currentPlayer,
+  topN = 5,
+  timeMs = 200,
+  maxNodes = 1e4,
+  now = /* @__PURE__ */ __name(() => multiplayerClock.now(), "now"),
+  ...options
+} = {}) {
+  const original = Array.isArray(rankedMoves) ? rankedMoves : [], requested = Math.max(0, Math.floor(topN));
+  const legacy = /* @__PURE__ */ __name((extra) => applyPassDiscipline2(source, original, { ...options, player, topN, timeMs, maxNodes, now, ...extra }), "legacy");
+  if (!requested || source.gameOver || source.rulesVersion !== "territory-v3" || original[0]?.type !== "pass" || original[0]?.point !== null || player !== source.currentPlayer || source.resignedPlayers.has(player) || !Number.isFinite(timeMs) || timeMs < 0 || !Number.isInteger(maxNodes) || maxNodes < 0) return legacy();
+  const started = now();
+  if (!Number.isFinite(started)) return legacy();
+  const quickBudgetMs = Math.min(8, timeMs * 0.05);
+  let quickStarted = null, setupAndPassElapsedMs = 0;
+  let nodes = 0, rootsExamined = 0, quickElapsedMs = 0, quickStatus = "no-structural-certificate";
+  const elapsed = /* @__PURE__ */ __name(() => {
+    const time = now();
+    if (!Number.isFinite(time)) throw new Error("Invalid PASS discipline clock");
+    return time - started;
+  }, "elapsed");
+  const totalBudget = /* @__PURE__ */ __name(() => {
+    if (elapsed() >= timeMs || nodes >= maxNodes) throw TIMEOUT3;
+  }, "totalBudget");
+  const quickBudget = /* @__PURE__ */ __name(() => {
+    totalBudget();
+    if (elapsed() - setupAndPassElapsedMs >= quickBudgetMs) throw QUICK_DONE;
+  }, "quickBudget");
+  const fallback = /* @__PURE__ */ __name(() => {
+    const spent = elapsed(), result = legacy({ timeMs: Math.max(0, timeMs - spent), maxNodes: Math.max(0, maxNodes - nodes) });
+    return { ...result, receipt: { ...result.receipt, productQuickProbe: {
+      schema: PASS_DISCIPLINE_CONTRACT3.schema,
+      status: quickStatus,
+      budgetMs: quickBudgetMs,
+      elapsedMs: quickElapsedMs,
+      setupAndPassElapsedMs,
+      rootsExamined,
+      nodes
+    } } };
+  }, "fallback");
+  try {
+    totalBudget();
+    const engine = isolatedSearchEngine(source), initial = saveState(engine);
+    totalBudget();
+    nodes++;
+    if (!engine.skipTurn().success) throw new Error("Canonical nonterminal PASS failed");
+    totalBudget();
+    if (engine.gameOver) {
+      quickStatus = "terminal-PASS-retains-V2-margin";
+      setupAndPassElapsedMs = elapsed();
+      return fallback();
+    }
+    restoreState(engine, initial);
+    quickStarted = now();
+    setupAndPassElapsedMs = quickStarted - started;
+    const before = own(engine, player), beforeArea = nativeDiscreteAreas(engine, [player])[player];
+    const birth = engine.initialPositions[player];
+    const distance = /* @__PURE__ */ __name((point) => Math.max(
+      Math.abs(point[0] - birth[0]),
+      Math.abs(point[1] - birth[1]),
+      Math.abs(point[0] - birth[0] + point[1] - birth[1])
+    ), "distance");
+    const lineStates = new Set(engine.activePlayers.map((actor) => engine._getPlayerStates(actor).line));
+    const roots = engine.validPositions.filter((point) => engine._getState(point) === 0 || lineStates.has(engine._getState(point))).map((point) => [...point]).sort((a, b) => distance(a) - distance(b) || a[1] - b[1] || a[0] - b[0]).slice(0, 12);
+    quickBudget();
+    for (const point of roots) {
+      quickBudget();
+      restoreState(engine, initial);
+      nodes++;
+      rootsExamined++;
+      const result = engine.playMove(point);
+      quickBudget();
+      if (!result.success) continue;
+      if (!protectedRootInvariantHolds(engine, player, before, beforeArea)) continue;
+      quickBudget();
+      quickElapsedMs = elapsed() - setupAndPassElapsedMs;
+      quickStatus = "certified-immutable-root";
+      totalBudget();
+      const sourceStateHash = passDisciplineStateHash(source), postRootStateHash = passDisciplineStateHash(engine);
+      totalBudget();
+      const coverage = own(engine, player).coverage.size;
+      const receipt = {
+        schema: PASS_DISCIPLINE_CONTRACT3.schema,
+        status: "safe-profitable-expansion",
+        complete: true,
+        actor: player,
+        rulesVersion: source.rulesVersion,
+        positionRevision: source.positionRevision,
+        sourceStateHash,
+        passWouldEnd: false,
+        nodes,
+        setupAndPassElapsedMs,
+        quickBudgetMs,
+        quickElapsedMs,
+        totalElapsedMs: elapsed(),
+        elapsedMs: elapsed(),
+        rootsExamined,
+        safetyScope: PASS_DISCIPLINE_CONTRACT3.safetyScope,
+        witness: {
+          point: [...point],
+          beforeArea,
+          minimumReplyAreaLowerBound: coverage,
+          profitKind: "strict-native-area-gain",
+          proofType: "immutable-birth-root-protection-invariant",
+          proofOrder: "bounded-structural-precheck-before-V2",
+          beforeNodesRetained: true,
+          beforeCoverageRetained: true,
+          allPostRootNodesBirthConnected: true,
+          allPostRootLinesBirthProtected: true,
+          birth: [...birth],
+          postRootCoverage: coverage,
+          sourceStateHash,
+          postRootStateHash,
+          completeOpponentRound: false,
+          scope: PASS_DISCIPLINE_CONTRACT3.safetyScope
+        }
+      };
+      const existing = original.find((move) => Array.isArray(move.point) && key5(move.point) === key5(point));
+      const selected = existing ? { ...existing } : { type: "move", point: [...point], score: coverage - beforeArea, visits: 1 };
+      selected.passDiscipline = {
+        schema: receipt.schema,
+        status: receipt.status,
+        profitKind: receipt.witness.profitKind,
+        proofType: receipt.witness.proofType
+      };
+      return { moves: [selected, ...original.filter((move) => key5(move.point) !== key5(point))].slice(0, requested), receipt };
+    }
+    quickElapsedMs = elapsed() - setupAndPassElapsedMs;
+    return fallback();
+  } catch (error) {
+    if (error !== TIMEOUT3 && error !== QUICK_DONE) throw error;
+    quickStatus = error === TIMEOUT3 ? "total-budget-exhausted" : "quick-budget-exhausted";
+    if (quickStarted === null) {
+      setupAndPassElapsedMs = elapsed();
+      quickElapsedMs = 0;
+    } else quickElapsedMs = elapsed() - setupAndPassElapsedMs;
+    return fallback();
+  }
+}
+function withPassDiscipline3(policy) {
+  if (policy?.passDisciplineContract === PASS_DISCIPLINE_CONTRACT3.schema) return policy;
+  return {
+    passDisciplineContract: PASS_DISCIPLINE_CONTRACT3.schema,
+    lastSearch: null,
+    getTopMoves(source, player = source.currentPlayer, topN = 5, options = {}) {
+      const ranked = policy.getTopMoves(
+        source,
+        player,
+        topN > 0 ? Math.max(5, topN) : topN,
+        { ...options, passDisciplinePrechecked: true }
+      );
+      const result = options.passDisciplinePrechecked === true ? { moves: ranked, receipt: null } : applyPassDiscipline3(source, ranked, { player, topN });
+      this.lastSearch = { ...policy.lastSearch ?? {}, ...result.receipt ? { passDiscipline: result.receipt } : {} };
+      return result.moves;
+    }
+  };
+}
+var PASS_DISCIPLINE_CONTRACT3, key5, own, TIMEOUT3, QUICK_DONE;
+var init_AIPassDisciplineV3 = __esm({
+  "application-hard:AIPassDisciplineV3.js"() {
+    init_AIPassDisciplineV2();
+    init_AIEngine();
+    init_MultiplayerSearch();
+    init_MultiplayerClock();
+    PASS_DISCIPLINE_CONTRACT3 = Object.freeze({
+      schema: "lifeline-ai-pass-discipline-v3",
+      quickProof: "Explicit policy PASS and canonical nonterminal PASS only: at most 12 roots by birth distance; structural root search uses at most min(8ms, 5% of total proof budget); isolation and canonical PASS preflight use the shared total budget",
+      safetyScope: "Same v3 immutable birth-root protection invariant as V2, through arbitrary opponent-only legal action sequences until the actor next acts or resigns, or native terminal; no reply enumeration claimed",
+      budget: "Certificate hashes use the total proof budget; no certificate on exhaustion. Unproved quick probes pass only actual remaining total time/nodes to unchanged V2. Policy/Minimax search budgets are unaffected."
+    });
+    key5 = /* @__PURE__ */ __name((point) => point === null ? "PASS" : point.join(","), "key");
+    own = /* @__PURE__ */ __name((engine, actor) => ({
+      nodes: new Set(engine._getPlayerNodes(actor).map(key5)),
+      coverage: new Set([...engine._getPlayerNodes(actor), ...engine._getPlayerLines(actor)].map(key5))
+    }), "own");
+    TIMEOUT3 = Symbol("v3 shared proof budget"), QUICK_DONE = Symbol("v3 bounded structural probe");
+    __name(applyPassDiscipline3, "applyPassDiscipline");
+    __name(withPassDiscipline3, "withPassDiscipline");
+  }
+});
+
 // application-hard:AIWorker.js
 var AIWorker_exports = {};
 var init_AIWorker = __esm({
@@ -6951,7 +7133,7 @@ var init_AIWorker = __esm({
     init_GameEngine();
     init_AIStateProtocol();
     init_AIEngine();
-    init_AIPassDisciplineV2();
+    init_AIPassDisciplineV3();
     self.onmessage = async (event) => {
       if (event.data?.type === "WARMUP") {
         try {
@@ -7077,7 +7259,7 @@ var init_AIWorker = __esm({
           topN > 0 ? Math.max(5, topN) : topN,
           strategy === "multiplayer" ? { passDisciplinePrechecked: true } : void 0
         );
-        const disciplined = applyPassDiscipline2(engine, ranked, { player: aiPlayer, topN });
+        const disciplined = applyPassDiscipline3(engine, ranked, { player: aiPlayer, topN });
         const moves = disciplined.moves;
         self.postMessage({
           type: "RESULT",

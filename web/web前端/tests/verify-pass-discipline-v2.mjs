@@ -9,6 +9,7 @@ import { applyPassDiscipline as applyV1, withPassDiscipline as wrapV1, nativeDis
 import { applyPassDiscipline, withPassDiscipline, PASS_DISCIPLINE_CONTRACT, passDisciplineRuleState,
   passDisciplineStateHash, passDisciplineAsciiSha256, protectedRootInvariantHolds } from "../AIPassDisciplineV2.js";
 import { engineFromTrainingState } from "../../tools/defensive-training-data-v1.mjs";
+import { PASS_DISCIPLINE_CONTRACT as PRODUCT_PASS_CONTRACT } from "../AIPassDisciplineV3.js";
 import { chooseRoomBotMove, installLocalModelAssetFetch } from "../../tools/online_bot_runtime.mjs";
 
 const fixture = JSON.parse(await readFile(new URL("./fixtures/pass-discipline-v2-real-states.json", import.meta.url), "utf8"));
@@ -94,7 +95,7 @@ for (const entry of fixture.cases) {
   if (terminalResult.receipt.witness) assert.equal(terminalResult.receipt.witness.completeOpponentRound, true);
   const room = await chooseRoomBotMove(engine, { strategy: "multiplayer", modelId: "multiplayer-easy-v1" });
   assert.ok(Array.isArray(room.point), "Room bot uses a certified placement instead of the old PASS");
-  assert.equal(room.searchStats.passDiscipline.schema, PASS_DISCIPLINE_CONTRACT.schema);
+  assert.equal(room.searchStats.passDiscipline.schema, PRODUCT_PASS_CONTRACT.schema);
   messages.length = 0;
   await compute({ data: { type: "COMPUTE", strategy: "multiplayer", modelId: "multiplayer-easy-v1",
     serializedState: serializeEngineState(engine), aiPlayer: actor, requestId: entry.ply, topN: 1 } });
@@ -102,7 +103,7 @@ for (const entry of fixture.cases) {
   assert.ok(answer, JSON.stringify(messages));
   assert.deepEqual(answer.moves[0].point, room.point, "Web Worker and room adapter preserve the same policy alternative order");
   assert.equal(answer.requestId, entry.ply); assert.equal(answer.positionRevision, engine.positionRevision);
-  assert.equal(answer.searchStats.passDiscipline.schema, PASS_DISCIPLINE_CONTRACT.schema);
+  assert.equal(answer.searchStats.passDiscipline.schema, PRODUCT_PASS_CONTRACT.schema);
   assert.equal(passDisciplineStateHash(engine), result.receipt.sourceStateHash);
   rows.push({ gameId: entry.gameId, ply: entry.ply, point: entry.expectedPoint, sourceStateHash: result.receipt.sourceStateHash });
 }
