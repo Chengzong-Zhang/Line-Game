@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "status": "GITHUB_PUSHED_MINI_UPLOADED_WEB_AWAITING_AUTHENTICATION",
-  "recordedAtUtc": "2026-10-25T09:43:56.192891+00:00",
+  "status": "WEB_ACTIVATED_GITHUB_PUSHED_MINI_CODE_UPLOADED",
+  "recordedAtUtc": "2026-10-25T10:13:42.091694+00:00",
   "sourceCommit": "5094e10b95125173b94b679367d8dc47eee36102",
   "github": {
     "url": "https://github.com/Chengzong-Zhang/Line-Game/tree/codex/defense-15-players-20261025",
@@ -20,17 +20,35 @@
   },
   "web": {
     "releaseId": "web-defense15-20261025-r1",
-    "status": "FROZEN_FRONTEND_AWAITING_SSH_AUTHENTICATION",
+    "status": "ACTIVATED_ALL_COMPONENTS_VERIFIED",
     "files": 133,
-    "activationAttempted": false,
+    "activationAttempted": true,
     "currentPublicPlayerCounts": [
       2,
       3,
       4,
       5,
-      6
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15
     ],
-    "databaseReplaced": false
+    "databaseReplaced": false,
+    "publicStatus": "PASS_INSTALLED_AND_PUBLIC_RESOURCES",
+    "publicResourcesVerified": 133,
+    "receipt": "server-activation.json",
+    "publicReceipt": "public-verification.json",
+    "rollbackLocation": "/home/ubuntu/line-game/.deploy-artifacts/web-defense15-20261025-r1/rollback",
+    "limits": [
+      "Client full-resource download timed out; certificate-checked public HTTPS inventory succeeded from server host.",
+      "In-app browser navigation timed out; no new public-browser or device acceptance claim."
+    ]
   },
   "training": {
     "futureContract": "complete minimax >=3 and two actual opponent rounds; defense and unbroken rooted cut chains first",

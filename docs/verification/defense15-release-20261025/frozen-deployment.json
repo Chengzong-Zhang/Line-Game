@@ -1,0 +1,11 @@
+{
+  "status": "FROZEN_NOT_DEPLOYED",
+  "releaseId": "web-defense15-20261025-r1",
+  "commit": "5094e10b95125173b94b679367d8dc47eee36102",
+  "completeFrontendFiles": 133,
+  "sameFrontendForService": true,
+  "databaseReplacement": false,
+  "payloadFiles": 11,
+  "archiveSha256": "72e222ad5126bbbe9604d9e309b020e0e1cde75cfe96fd640a7cfbf8c94529c9",
+  "deployerSha256": "13e357fb73d6fb28daa9556798b8faa994c505c997c8dbacd01e19935465e70e"
+}

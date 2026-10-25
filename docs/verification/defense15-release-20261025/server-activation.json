@@ -1,0 +1,397 @@
+{
+  "status": "ACTIVATED_ALL_COMPONENTS_VERIFIED",
+  "release": "web-defense15-20261025-r1",
+  "stagedProbes": [
+    {
+      "players": 2,
+      "botProfile": {
+        "strategy": "minimax",
+        "depth": 2
+      },
+      "modelInfo": {
+        "strategy": "minimax",
+        "depth": 2
+      },
+      "rules": {
+        "success": true,
+        "players": 2,
+        "rulesVersion": "territory-v3",
+        "currentPlayer": "WHITE",
+        "scores": {
+          "BLACK": 3,
+          "WHITE": 1
+        }
+      }
+    },
+    {
+      "players": 6,
+      "botProfile": {
+        "strategy": "multiplayer",
+        "modelId": "multiplayer-easy-v1"
+      },
+      "modelInfo": {
+        "id": "multiplayer-easy-v1",
+        "lineage": {
+          "baseline_validation": {
+            "by_players": {
+              "2": {
+                "ce": 2.4282612220283712,
+                "count": 292,
+                "top1": 0.339041095890411
+              },
+              "3": {
+                "ce": 1.8493445312487893,
+                "count": 312,
+                "top1": 0.48717948717948717
+              },
+              "4": {
+                "ce": 2.853110675700009,
+                "count": 352,
+                "top1": 0.2897727272727273
+              },
+              "5": {
+                "ce": 3.0935836716777305,
+                "count": 352,
+                "top1": 0.2869318181818182
+              },
+              "6": {
+                "ce": 2.9516205974134873,
+                "count": 352,
+                "top1": 0.2784090909090909
+              }
+            },
+            "linear_ce": 2.993416259374963,
+            "policy_ce": 2.661599175039544,
+            "samples": 1660,
+            "teacher_top1_agreement": 0.3325301204819277
+          },
+          "config_sha256": "fbfacd0cfe8a4734b181c63ed6e088a4954d2f578565556099d2ec7a18ee1a36",
+          "dataset_identity": "9d614cd10d47e96ac4d99277cd288db1fc52b7fb4097cb91ff679f68ffb0b5ad",
+          "identity": "6ed344c3ce9af57c0f78089363ae24a79bd4e0fe43627bc902082e598fdd342e",
+          "method": "minimax/light-policy trajectory distillation",
+          "optimizer_reset": true,
+          "parent_asset_sha256": "4c424c0f0ac19724d7fa51741d199bd780781d7063b325671fe9197f6b6abc9b",
+          "parent_model_id": "topology-gnn-transfer-v1-seed2026092202",
+          "pass_head_frozen": true,
+          "source_hashes": {
+            "research/iclr2027/lifeline_rl/alphazero/network.py": "02d92f165ff445aa9e92266933d5ed83fe04c19d3201fcde6803705762c41f09",
+            "web/tools/neural_posttraining_core.py": "a6cbe99ac715ffc042b0e9e8772b4d5ea53e8530549a0632185d8cba60129dca",
+            "web/tools/train-multiplayer-models.py": "d3ad0fc5f5117755f7244105f823882c4321c70d057e5fffa043b252f4b560ba"
+          },
+          "training_samples": 1663,
+          "updates": 300,
+          "validation": {
+            "by_players": {
+              "2": {
+                "ce": 1.9540364736745337,
+                "count": 292,
+                "top1": 0.4589041095890411
+              },
+              "3": {
+                "ce": 1.6049450372274106,
+                "count": 312,
+                "top1": 0.483974358974359
+              },
+              "4": {
+                "ce": 2.0346904393624174,
+                "count": 352,
+                "top1": 0.4403409090909091
+              },
+              "5": {
+                "ce": 2.1638871067605745,
+                "count": 352,
+                "top1": 0.3977272727272727
+              },
+              "6": {
+                "ce": 1.8331361268647015,
+                "count": 352,
+                "top1": 0.5142045454545454
+              }
+            },
+            "linear_ce": 1.8546931752957494,
+            "policy_ce": 1.9243883888764555,
+            "samples": 1660,
+            "teacher_top1_agreement": 0.45843373493975903
+          },
+          "validation_samples": 1660,
+          "value_head_frozen": true
+        },
+        "evidenceTier": "application-candidate",
+        "compatibility": "territory-v3 3–6 players; size 5–15"
+      },
+      "rules": {
+        "success": true,
+        "players": 6,
+        "rulesVersion": "territory-v3",
+        "currentPlayer": "WHITE",
+        "scores": {
+          "BLACK": 7,
+          "WHITE": 1,
+          "PURPLE": 1,
+          "GREEN": 1,
+          "ORANGE": 1,
+          "CYAN": 1
+        }
+      }
+    },
+    {
+      "players": 7,
+      "botProfile": {
+        "strategy": "greedy"
+      },
+      "modelInfo": {
+        "strategy": "greedy"
+      },
+      "rules": {
+        "success": true,
+        "players": 7,
+        "rulesVersion": "territory-v3",
+        "currentPlayer": "WHITE",
+        "scores": {
+          "BLACK": 1,
+          "WHITE": 1,
+          "PURPLE": 1,
+          "GREEN": 1,
+          "ORANGE": 1,
+          "CYAN": 1,
+          "PINK": 1
+        }
+      }
+    },
+    {
+      "players": 15,
+      "botProfile": {
+        "strategy": "greedy"
+      },
+      "modelInfo": {
+        "strategy": "greedy"
+      },
+      "rules": {
+        "success": true,
+        "players": 15,
+        "rulesVersion": "territory-v3",
+        "currentPlayer": "LIME",
+        "scores": {
+          "BLACK": 1,
+          "WHITE": 1,
+          "PURPLE": 1,
+          "GREEN": 1,
+          "ORANGE": 1,
+          "CYAN": 1,
+          "PINK": 1,
+          "BROWN": 1,
+          "LIME": 1,
+          "NAVY": 1,
+          "GOLD": 1,
+          "TEAL": 1,
+          "MAGENTA": 1,
+          "SLATE": 1,
+          "CORAL": 1
+        }
+      }
+    }
+  ],
+  "siteChanged": true,
+  "liveServiceProbes": [
+    {
+      "players": 2,
+      "botProfile": {
+        "strategy": "minimax",
+        "depth": 2
+      },
+      "modelInfo": {
+        "strategy": "minimax",
+        "depth": 2
+      },
+      "rules": {
+        "success": true,
+        "players": 2,
+        "rulesVersion": "territory-v3",
+        "currentPlayer": "WHITE",
+        "scores": {
+          "BLACK": 3,
+          "WHITE": 1
+        },
+        "authoritativeValidatorMatched": true
+      }
+    },
+    {
+      "players": 6,
+      "botProfile": {
+        "strategy": "multiplayer",
+        "modelId": "multiplayer-easy-v1"
+      },
+      "modelInfo": {
+        "id": "multiplayer-easy-v1",
+        "lineage": {
+          "baseline_validation": {
+            "by_players": {
+              "2": {
+                "ce": 2.4282612220283712,
+                "count": 292,
+                "top1": 0.339041095890411
+              },
+              "3": {
+                "ce": 1.8493445312487893,
+                "count": 312,
+                "top1": 0.48717948717948717
+              },
+              "4": {
+                "ce": 2.853110675700009,
+                "count": 352,
+                "top1": 0.2897727272727273
+              },
+              "5": {
+                "ce": 3.0935836716777305,
+                "count": 352,
+                "top1": 0.2869318181818182
+              },
+              "6": {
+                "ce": 2.9516205974134873,
+                "count": 352,
+                "top1": 0.2784090909090909
+              }
+            },
+            "linear_ce": 2.993416259374963,
+            "policy_ce": 2.661599175039544,
+            "samples": 1660,
+            "teacher_top1_agreement": 0.3325301204819277
+          },
+          "config_sha256": "fbfacd0cfe8a4734b181c63ed6e088a4954d2f578565556099d2ec7a18ee1a36",
+          "dataset_identity": "9d614cd10d47e96ac4d99277cd288db1fc52b7fb4097cb91ff679f68ffb0b5ad",
+          "identity": "6ed344c3ce9af57c0f78089363ae24a79bd4e0fe43627bc902082e598fdd342e",
+          "method": "minimax/light-policy trajectory distillation",
+          "optimizer_reset": true,
+          "parent_asset_sha256": "4c424c0f0ac19724d7fa51741d199bd780781d7063b325671fe9197f6b6abc9b",
+          "parent_model_id": "topology-gnn-transfer-v1-seed2026092202",
+          "pass_head_frozen": true,
+          "source_hashes": {
+            "research/iclr2027/lifeline_rl/alphazero/network.py": "02d92f165ff445aa9e92266933d5ed83fe04c19d3201fcde6803705762c41f09",
+            "web/tools/neural_posttraining_core.py": "a6cbe99ac715ffc042b0e9e8772b4d5ea53e8530549a0632185d8cba60129dca",
+            "web/tools/train-multiplayer-models.py": "d3ad0fc5f5117755f7244105f823882c4321c70d057e5fffa043b252f4b560ba"
+          },
+          "training_samples": 1663,
+          "updates": 300,
+          "validation": {
+            "by_players": {
+              "2": {
+                "ce": 1.9540364736745337,
+                "count": 292,
+                "top1": 0.4589041095890411
+              },
+              "3": {
+                "ce": 1.6049450372274106,
+                "count": 312,
+                "top1": 0.483974358974359
+              },
+              "4": {
+                "ce": 2.0346904393624174,
+                "count": 352,
+                "top1": 0.4403409090909091
+              },
+              "5": {
+                "ce": 2.1638871067605745,
+                "count": 352,
+                "top1": 0.3977272727272727
+              },
+              "6": {
+                "ce": 1.8331361268647015,
+                "count": 352,
+                "top1": 0.5142045454545454
+              }
+            },
+            "linear_ce": 1.8546931752957494,
+            "policy_ce": 1.9243883888764555,
+            "samples": 1660,
+            "teacher_top1_agreement": 0.45843373493975903
+          },
+          "validation_samples": 1660,
+          "value_head_frozen": true
+        },
+        "evidenceTier": "application-candidate",
+        "compatibility": "territory-v3 3–6 players; size 5–15"
+      },
+      "rules": {
+        "success": true,
+        "players": 6,
+        "rulesVersion": "territory-v3",
+        "currentPlayer": "WHITE",
+        "scores": {
+          "BLACK": 7,
+          "WHITE": 1,
+          "PURPLE": 1,
+          "GREEN": 1,
+          "ORANGE": 1,
+          "CYAN": 1
+        },
+        "authoritativeValidatorMatched": true
+      }
+    },
+    {
+      "players": 7,
+      "botProfile": {
+        "strategy": "greedy"
+      },
+      "modelInfo": {
+        "strategy": "greedy"
+      },
+      "rules": {
+        "success": true,
+        "players": 7,
+        "rulesVersion": "territory-v3",
+        "currentPlayer": "WHITE",
+        "scores": {
+          "BLACK": 1,
+          "WHITE": 1,
+          "PURPLE": 1,
+          "GREEN": 1,
+          "ORANGE": 1,
+          "CYAN": 1,
+          "PINK": 1
+        },
+        "authoritativeValidatorMatched": true
+      }
+    },
+    {
+      "players": 15,
+      "botProfile": {
+        "strategy": "greedy"
+      },
+      "modelInfo": {
+        "strategy": "greedy"
+      },
+      "rules": {
+        "success": true,
+        "players": 15,
+        "rulesVersion": "territory-v3",
+        "currentPlayer": "LIME",
+        "scores": {
+          "BLACK": 1,
+          "WHITE": 1,
+          "PURPLE": 1,
+          "GREEN": 1,
+          "ORANGE": 1,
+          "CYAN": 1,
+          "PINK": 1,
+          "BROWN": 1,
+          "LIME": 1,
+          "NAVY": 1,
+          "GOLD": 1,
+          "TEAL": 1,
+          "MAGENTA": 1,
+          "SLATE": 1,
+          "CORAL": 1
+        },
+        "authoritativeValidatorMatched": true
+      }
+    }
+  ],
+  "serviceHealthBeforeSiteSwap": {
+    "game": true,
+    "wechat": true
+  },
+  "healthAfter": {
+    "game": true,
+    "wechat": true
+  }
+}
