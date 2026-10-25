@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "feature": "per-player latest move highlights; own PASS clears own marker",
+  "sourceCommit": "6628bd10b2136038e0850151bbd569e014e1092f",
+  "sourceBranch": "codex/latest-move-highlight-20261025",
+  "github": {
+    "status": "SOURCE_PUSHED_MAIN_AND_FEATURE_BRANCH",
+    "repository": "https://github.com/Chengzong-Zhang/Line-Game"
+  },
+  "web": {
+    "status": "ACTIVATED_BOTH_FRONTENDS_PUBLIC_HASHES_VERIFIED",
+    "releaseId": "web-latest-moves-20261025-r1",
+    "url": "https://lifelinegame.cn/",
+    "runtimeFiles": 133,
+    "publicApplicationUi": "PASS",
+    "receipt": "web-activation.json"
+  },
+  "originalWorkspace": {
+    "status": "NARROW_PATCH_APPLIED_AND_REGRESSIONS_PASSED",
+    "path": "C:/coding/py/line game",
+    "otherUncommittedTerritoryEditsPreserved": true,
+    "availableSeatCatalog": 6
+  },
+  "minigame": {
+    "status": "PREPARED_VERIFIED_UPLOAD_BLOCKED_BY_WECHAT_CGI",
+    "version": "0.12.13",
+    "candidateId": "0.12.13-97815db19370-8sbNcd",
+    "fullTests": {
+      "passed": 487,
+      "failed": 0
+    },
+    "uploadErrorCode": 20003,
+    "internalCgiCodes": [
+      -1,
+      41001
+    ],
+    "proxyExcluded": true,
+    "accountKeyState": "NOT_VERIFIED_LOGIN_REQUIRED",
+    "experienceVersionConfigured": false,
+    "physicalDevice": "NOT_RUN",
+    "submittedForReview": false,
+    "published": false,
+    "receipt": "mini-upload-blocked.json"
+  },
+  "remaining": "Login to the open WeChat administrator page to inspect account/upload-key status; no key reset has been performed."
+}

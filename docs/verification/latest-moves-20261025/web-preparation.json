@@ -1,0 +1,19 @@
+{
+  "status": "FROZEN_NOT_DEPLOYED",
+  "releaseId": "web-latest-moves-20261025-r1",
+  "commit": "6628bd10b2136038e0850151bbd569e014e1092f",
+  "overlayFiles": [
+    "GameController.js",
+    "OnlineApp.js",
+    "Renderer.js",
+    "index.html",
+    "main.js"
+  ],
+  "totalRuntimeFiles": 133,
+  "preservedBackendFiles": 9,
+  "databaseReplacement": false,
+  "serviceRestarts": 0,
+  "sourceMutation": false,
+  "archiveSha256": "b9d8b6ffe1657b99f8ef829f245d0d17eab2f159a79d5fc63f19befebf08a0a8",
+  "deployerSha256": "887c1f56026daf90b8cdaa903ee6d4ad8aff34187becf8a2f1ebe5ce0df782d2"
+}

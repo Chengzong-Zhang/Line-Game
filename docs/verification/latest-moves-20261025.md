@@ -20,6 +20,7 @@
 | 本地悔棋/存档/棋谱/重连 | `verify-local-undo.mjs`、`verify-local-game-session.mjs`、`verify-replay-codec.mjs`、`verify-online-recovery.mjs`（均在 `web/web前端/tests/`） | PASS |
 | 小游戏完整现有测试 | `npm --prefix wechat/minigame test` | 487/487 PASS；更新旧测试中“任意一方 PASS 清空所有标记”的过时预期 |
 | Python headless | `python "core algorithm/test_latest_move_highlight.py"` | PASS；真实提交、Superko、PASS、搜索不污染、捕获过滤及重开 |
+| 发布故障恢复 | `python web/tools/test_latest_moves_deployment.py` | 5/5 PASS；有限合成测试，目录交换和权限模拟 |
 
 额外尝试的旧 `verify-ai-control-flow.mjs` 在 frozen CONTROL-SKIP 分值断言失败，`verify-online-start-undo.mjs` 在旧缓存版本的 mock 房间创建处失败；两者在未修改的 defense15 工作树复跑产生相同失败。本次没有修改冻结 AI 分值或测试预期，也没有改变 AI/规则/服务协议。项目地图提及的 `verify-starting-point-session.mjs` 在所选生产提交中不存在。
 
@@ -30,3 +31,7 @@
 Web 计划仅覆盖 Controller/Renderer 及必要的入口缓存依赖，同时原子更新主站与微信服务的两份前端。其他运行资源、后端、数据库和服务进程不变；前驱树和后端哈希必须与现场快照相符，失败恢复前驱。新版本 `web-latest-moves-20261025-r1`，缓存 `20261025-latestmoves1`。
 
 小游戏候选 `0.12.13` 通过独立双次构建和逐文件哈希验证；官方上传、网页激活及 GitHub 推送状态在后续 `latest-moves-20261025/delivery.json` 收据记录。上传开发代码与设置体验版、真机验收、提审和公开分别记录，不能互相替代。
+
+当前交付：GitHub 主分支及功能分支已推送 `6628bd1`；网页双前端已激活，133 个公开资源哈希和公开应用实际两方落子/PASS 均通过。原工作区保留原有 2–6 席源码目录的其他在途修改，高亮和自动 PASS/回滚回归通过；统一生产/GitHub 候选验证 2–15 席。
+
+小游戏 `0.12.13-97815db19370-8sbNcd` 已冻结，最终版本构建及 16 项针对性测试通过。官方 CGI 返回上传错误 `20003`、内部 `-1 / 41001`，在明确直连后仍相同；不得据此声称上传成功，也不能把社区同类案例当作本账号密钥失效证明。微信管理员登录页已交接，待核实账号/现有上传密钥状态。未重置密钥、未配置体验版、未提审或公开。

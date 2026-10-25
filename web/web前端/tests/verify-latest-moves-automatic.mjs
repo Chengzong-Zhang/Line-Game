@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import GameEngine, { PointState } from '../GameEngine.js?v=20261025-defense15';
+import GameEngine, { PointState, PLAYER_ORDER } from '../GameEngine.js?v=20261025-defense15';
 import GameController from '../GameController.js?v=20261025-defense15';
 import Renderer from '../Renderer.js?v=20261025-defense15';
 import { randomInitialPositions } from '../StartingPoints.js';
@@ -7,7 +7,7 @@ import { randomInitialPositions } from '../StartingPoints.js';
 const noop = () => {};
 const totals = { actions: 0, automaticPasses: 0, resignations: 0, rollbackCases: 0 };
 
-for (let playerCount = 2; playerCount <= 15; playerCount += 1) {
+for (let playerCount = 2; playerCount <= PLAYER_ORDER.length; playerCount += 1) {
   const settings = {
     gridSize: 5, playerCount, rulesVersion: 'territory-v3',
     boardShape: playerCount >= 4 ? 'hexagon' : 'triangle',
@@ -101,5 +101,5 @@ for (let playerCount = 2; playerCount <= 15; playerCount += 1) {
 
 assert.ok(totals.automaticPasses > 0, 'fixtures must reach real automatic passes');
 assert.ok(totals.resignations > 0, 'fixtures must include resignations');
-assert.equal(totals.rollbackCases, 28, 'both replay and render failures covered for 2..15 seats');
-console.log(`PASS: latest moves across 2..15 seats; ${JSON.stringify(totals)}`);
+assert.equal(totals.rollbackCases, 2 * (PLAYER_ORDER.length - 1), 'both replay and render failures covered for every supported seat count');
+console.log(`PASS: latest moves across 2..${PLAYER_ORDER.length} seats; ${JSON.stringify(totals)}`);
