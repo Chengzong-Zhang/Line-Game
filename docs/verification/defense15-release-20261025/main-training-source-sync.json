@@ -1,0 +1,34 @@
+{
+  "status": "PASS_MAIN_SOURCE_TRAINING_ENTRY_SYNC",
+  "existingTrainingScriptsGuarded": 25,
+  "newPaths": [
+    "web/web前端/DefensiveTrainingTeacher.js",
+    "web/tools/defensive-training-data-v1.mjs",
+    "web/tools/train-defensive-policy-v1.mjs"
+  ],
+  "preservedOriginalBytesAndHashes": true,
+  "sourceDirectory": "C:/coding/py/line game",
+  "localBackupRoot": "local_artifacts/defense15-source-sync",
+  "batches": [
+    {
+      "group": "20261025T093431892037Z-training-policy-gates",
+      "receiptSha256": "5e67e5e925a2e55cb9ede7c3027ab0c88d1cfdf177fd7ef85e939cdc32b94d8b",
+      "verificationSha256": "1b192dfa4b0bb3611b3d13d2725df35d52dbb41034679dc29dfdf3a4fe2d586d"
+    },
+    {
+      "group": "20261025T094443681628Z-common-training-gates-and-new-path",
+      "receiptSha256": "65b0f9e49fc788c7256aaaaf093cad48d4382aa4d3461cd58f9782985eb94a13",
+      "verificationSha256": "a6aea12e0f88175b02654f1ea87f2bbc773e1bb1dc9253cf00feb092b11d9866"
+    }
+  ],
+  "verification": [
+    "new modules import",
+    "Node retired entries reject",
+    "Python main-entry guards reject",
+    "non-inserted source bytes unchanged"
+  ],
+  "productionLabelsGenerated": 0,
+  "optimizerUpdates": 0,
+  "existingProcessesStopped": false,
+  "dirtyProductCoreOverwritten": false
+}
