@@ -1,0 +1,11 @@
+{
+  "schema": "lifeline-defensive-neural-config-v2",
+  "updates_per_model": 100,
+  "batch_size": 16,
+  "learning_rate": 0.00005,
+  "parent_kl": 0.25,
+  "gradient_clip": 1,
+  "seed": 20261025,
+  "threads": 1,
+  "device": "cuda"
+}

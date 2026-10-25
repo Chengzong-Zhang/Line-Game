@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "status": "PASS_BOUNDED_DEFENSIVE_NEURAL_BRIDGE_AND_RECOVERY_ONLY",
+  "recordedAtUtc": "2026-10-25T10:18:48.805999+00:00",
+  "sourceHashes": {
+    "web/tools/export-defensive-neural-v2.mjs": "ed99f16027509fbbd842a3ab7f3babfca2454d7aa88701becd5c7833e092d6fd",
+    "web/tools/defensive_neural_core_v2.py": "4bf3f0c4c7f3facc9ca645ceb13d28385064410d0d4095e7eaf1e7a884a88d75",
+    "web/tools/train-defensive-neural-v2.py": "073111b88c41b254949747d0643a424ab055a922a5d4a7166708a96370a79abd",
+    "web/web前端/tests/verify-defensive-neural-v2.mjs": "ef8455ce3ca86d660ba0cf109bc60605e97465e615afc1f65107e04061eb2550",
+    "web/tools/tests/verify_defensive_neural_v2.py": "958a11685372a64c9166eb390c0b5b127c6dffc28617251402270fe47a059644",
+    "web/tools/neural_posttraining_core.py": "a6cbe99ac715ffc042b0e9e8772b4d5ea53e8530549a0632185d8cba60129dca",
+    "research/iclr2027/lifeline_rl/alphazero/network.py": "02d92f165ff445aa9e92266933d5ed83fe04c19d3201fcde6803705762c41f09",
+    "web/web前端/ResearchAI.js": "6183caaa6cb739b6062aa25612fc5de9047f3fb30e2936e7a262104bb561298b",
+    "web/web前端/ModelFreeAI.js": "baeccb4aba92d79dda581f64f145675d6558892aeb4cb3f7df0b05507e24ffa6",
+    "web/web前端/DefensiveTrainingTeacher.js": "7166ac4fc50f24dceaeb87723d102dff58f792f939e219094d2a4f2b1d8ee366"
+  },
+  "scope": {
+    "newFilesOnly": true,
+    "existingParentModels": 17,
+    "exactParentF32Roundtrips": 17,
+    "modelsWithPassParametersUpdatedInTinyCheck": 17,
+    "productionModelsTrained": 0,
+    "runtimeAssetsReplaced": false,
+    "strength_verified": false,
+    "runtime_admitted": false
+  },
+  "tests": [
+    {
+      "command": "node web/web前端/tests/verify-defensive-neural-v2.mjs",
+      "exitCode": 0,
+      "device": "cpu",
+      "recoveryModels": [
+        "grid-gnn-d14-s20260825-g200",
+        "dqn-all-sizes-e2000"
+      ],
+      "updatesPerModel": 2,
+      "interruptedVsCleanF32": "EXACT_HASH_MATCH",
+      "checks": [
+        "sourceBound>=3 and two actual opponent rounds",
+        "full legal roots and PASS",
+        "incremental export unindexed adoption",
+        "rehash shallow receipt rejected",
+        "export corruption rejected",
+        "17 exact parent initializations",
+        "17 PASS parameter updates",
+        "value parameter freeze",
+        "mixed-board PASS masks",
+        "Adam/Python/Torch RNG recovery",
+        "pause",
+        "duplicate socket",
+        "checkpoint corruption",
+        "config identity drift",
+        "empty model list",
+        "NaN optimizer config",
+        "boolean update count"
+      ]
+    },
+    {
+      "command": "C:/Users/zcz/anaconda3/envs/rl310/python.exe web/tools/tests/verify_defensive_neural_v2.py --data-root C:/Users/zcz/AppData/Local/Temp/lifeline-defensive-neural-v2-vjEdW0/export --recovery-device cuda",
+      "exitCode": 0,
+      "device": "cuda / local RTX 4060",
+      "updatesPerModel": 2,
+      "recoveryModels": [
+        "grid-gnn-d14-s20260825-g200",
+        "dqn-all-sizes-e2000"
+      ],
+      "interruptedVsCleanF32": "EXACT_HASH_MATCH",
+      "cudaRngRestoration": "CPU ByteTensor restored after map_location=cuda"
+    }
+  ],
+  "commitAuthority": "checkpoint.json atomic sealed commit",
+  "unindexedCompleteStateFiles": "preserved, uncommitted; not adopted by mtime",
+  "independentReview": "warmstart_inventory found CUDA RNG restore and stale PASS-head-freeze description; both corrected before final CPU/CUDA recovery checks",
+  "limits": [
+    "Tiny fitting and engineering evidence only",
+    "New source-bound full-action defensive labels only",
+    "Candidates remain isolated pending separate strength and admission",
+    "No formal long-running job launched by this implementation task"
+  ]
+}

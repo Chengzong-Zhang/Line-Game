@@ -1,0 +1,68 @@
+{
+  "schema": "lifeline-defensive-warmstart-recovery-verification-v2",
+  "status": "PASS_DEFENSIVE_WARMSTART_PIPELINE_RECOVERY_FIXTURES",
+  "command": "node web/web前端/tests/verify-defensive-warmstart-pipeline-v2.mjs",
+  "exit_code": 0,
+  "cases": [
+    {
+      "case": "seeded-real-legal-prefix-sampling",
+      "positions": 4,
+      "pass": true
+    },
+    {
+      "case": "pilot-unindexed-receipt-adopted-without-reprobe",
+      "pass": true
+    },
+    {
+      "case": "sample-and-update-fault-resume-clean-parity",
+      "completedUnits": 6,
+      "pass": true
+    },
+    {
+      "case": "pause-preserved-by-worker-and-supervisor",
+      "pass": true
+    },
+    {
+      "case": "stop-preserved",
+      "pass": true
+    },
+    {
+      "case": "duplicate-pipeline-lease",
+      "pass": true
+    },
+    {
+      "case": "corrupt-evidence-fail-closed",
+      "pass": true
+    },
+    {
+      "case": "teacher-budget-rejection-stops-supervisor-without-fallback",
+      "pass": true
+    },
+    {
+      "case": "actual-supervisor-kill-reap-restart-and-duplicate",
+      "attempts": 6,
+      "pass": true
+    },
+    {
+      "case": "actual-worker-kill-automatic-recovery",
+      "pass": true
+    },
+    {
+      "case": "hidden-launcher-checkonly-and-login-complete-refusal",
+      "pass": true
+    }
+  ],
+  "source_hashes": {
+    "web/tools/prepare-defensive-warmstart-v2.mjs": "8b605c895bd5600d16f47ae5c4f75a08e2704bab4f8563a47bf4d6a68c18abbe",
+    "web/tools/defensive-warmstart-pipeline-v2.mjs": "e8518d8b01ac9f5dc078e33faafa0e19d0a1320927c26e360446d81ad84512ac",
+    "web/tools/launch-defensive-warmstart-v2.ps1": "432049e11d6c6aac0378da3fbf089e41ccd213c232facfc071eb3ad445c44f01",
+    "web/tools/recover-defensive-warmstart-at-login-v2.ps1": "2ff1dbed5b9c2c3dffdf417ff4dbd3e6a95752228802b7dad678a02381e6e5f9",
+    "web/web前端/tests/verify-defensive-warmstart-pipeline-v2.mjs": "19cc0304e8bd5f95c53bce646405f5773bc45d8ff8ca2809f6c5421df326069d",
+    "web/tools/train-defensive-warmstart-v2.mjs": "f69809cb1494e9b1ad823f80eb78952417c35c0fc5a7186db455033a3b7502bc",
+    "web/tools/verify-defensive-warmstart-v2.mjs": "31778d136e2798301bd82e42a6563ba28fa570b5f85406cf928723619a912ec4"
+  },
+  "formalTrainingStarted": false,
+  "strengthVerified": false,
+  "runtime_admitted": false,
+  "scope": "Tiny recovery fixtures and reproducible sampling only; no candidate admitted."
+}
