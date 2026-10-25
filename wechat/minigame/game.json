@@ -1,0 +1,13 @@
+{
+  "deviceOrientation": "portrait",
+  "workers": "workers",
+  "subpackages": [
+    { "name": "ai-research", "root": "models/research" },
+    { "name": "ai-dqn", "root": "models/dqn" },
+    { "name": "ai-ppo", "root": "models/ppo" },
+    { "name": "ai-sac", "root": "models/sac" },
+    { "name": "ai-gail", "root": "models/gail" },
+    { "name": "ai-gan", "root": "models/gan" }
+  ],
+  "networkTimeout": { "request": 10000, "connectSocket": 10000, "downloadFile": 20000 }
+}

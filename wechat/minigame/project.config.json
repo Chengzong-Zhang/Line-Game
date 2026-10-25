@@ -1,0 +1,38 @@
+{
+  "description": "LIFELINE 微信小游戏：同源规则、独立平台界面",
+  "projectname": "lifeline-wechat",
+  "compileType": "game",
+  "miniprogramRoot": "dist/",
+  "appid": "wxf986ac5d7e8bb8a0",
+  "libVersion": "3.17.4",
+  "setting": {
+    "es6": false,
+    "minified": false,
+    "urlCheck": true,
+    "postcss": false,
+    "compileWorklet": false,
+    "uglifyFileName": false,
+    "uploadWithSourceMap": true,
+    "enhance": false,
+    "packNpmManually": false,
+    "packNpmRelationList": [],
+    "minifyWXSS": true,
+    "minifyWXML": true,
+    "localPlugins": false,
+    "disableUseStrict": false,
+    "useCompilerPlugins": false,
+    "condition": false,
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    }
+  },
+  "simulatorPluginLibVersion": {},
+  "packOptions": {
+    "ignore": [],
+    "include": []
+  },
+  "isGameTourist": false,
+  "editorSetting": {}
+}

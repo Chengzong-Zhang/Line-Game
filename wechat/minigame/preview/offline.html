@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <link rel="icon" href="data:,">
+  <title>生命线 · 免登录试玩</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#e4e8dd;color:#244d3d;font:15px system-ui,sans-serif;min-height:100vh;display:grid;grid-template-columns:minmax(230px,310px) auto;justify-content:center;align-items:center;gap:38px;padding:24px}
+    h1{font-size:28px;margin:8px 0 12px}p{line-height:1.8}aside{max-width:310px}.eyebrow{font-size:12px;letter-spacing:3px;color:#657f65}.status{padding:14px 16px;background:#f6f6ee;border:1px solid #c9d4c1;border-radius:14px;line-height:1.7;font-size:13px}
+    canvas{display:block;max-width:100%;touch-action:none;box-shadow:0 16px 64px #244d3d25;border-radius:12px;background:#f4f3e9}
+    button{font:inherit;color:inherit;background:#fffef9;border:1px solid #c9d4c1;border-radius:10px;min-height:44px;padding:10px 14px;cursor:pointer}button:hover{background:#eef2e7}.controls{display:flex;gap:8px;margin:18px 0;flex-wrap:wrap}.muted{color:#637761;font-size:13px}
+    dialog{border:0;border-radius:18px;background:#fffef9;color:#244d3d;max-width:340px;width:calc(100% - 40px);padding:24px;box-shadow:0 12px 64px #244d3d33}dialog::backdrop{background:#244d3d66}dialog button,dialog input{display:block;width:100%;margin-top:10px;min-height:44px;font:inherit}dialog p{white-space:pre-line}dialog input{border:1px solid #c9d4c1;border-radius:8px;padding:8px}
+    @media(max-width:760px){body{display:block;padding:0}aside{max-width:none;padding:16px 20px}h1{font-size:22px}aside p,.controls{margin:8px 0}.muted{margin-bottom:10px}canvas{margin:auto;border-radius:0}.status{padding:8px 12px}}
+  </style>
+</head>
+<body>
+  <aside>
+    <div class="eyebrow">LIFELINE / LOCAL PLAY</div>
+    <h1>不用登录，先玩一局。</h1>
+    <p>支持同机 2–6 人，每方可选真人或对应 AI；4–6 人使用六边形棋盘，还有五关教学和复盘。落点选好后，再点确认。</p>
+    <div class="status" id="status" role="status">正在载入游戏…</div>
+    <div class="controls"><button id="background">模拟切到后台</button><button id="reload">重新打开游戏</button></div>
+    <p class="muted">使用小游戏的实际构建包。这里模拟微信接口；微信客户端、手机性能与上线审核仍需分别验证。</p>
+  </aside>
+  <main><canvas id="game" aria-label="生命线游戏画布"></canvas></main>
+  <script type="module" src="/preview/offline-host.js"></script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "description": "LIFELINE 独立设备测量工具，禁止作为正式游戏发布",
+  "projectname": "lifeline-device-bench",
+  "compileType": "game",
+  "miniprogramRoot": "dist/",
+  "appid": "wxf986ac5d7e8bb8a0",
+  "libVersion": "3.17.4",
+  "setting": { "es6": false, "minified": false, "urlCheck": true },
+  "isGameTourist": false
+}

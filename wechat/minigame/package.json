@@ -1,0 +1,26 @@
+{
+  "name": "lifeline-wechat-minigame",
+  "version": "0.12.8",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "pretest": "node tools/build.mjs",
+    "test": "node --test --test-timeout=180000 tests/*.test.mjs",
+    "preview": "node tools/preview.mjs",
+    "preview:offline": "node tools/build.mjs && node tools/offline-server.mjs",
+    "test:offline": "node tools/offline-check.mjs",
+    "release:prepare": "node tools/prepare-candidate.mjs",
+    "release:verify": "node tools/prepare-candidate.mjs --verify"
+  },
+  "dependencies": {
+    "@noble/hashes": "2.4.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "playwright-core": "1.64.1"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

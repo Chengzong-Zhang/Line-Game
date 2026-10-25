@@ -1,0 +1,28 @@
+import { getBoardPositions, PLAYER_ORDER, resolveInitialPositions } from "./GameEngine.js?v=20261021-boardshapes1";
+
+export const STARTING_POINT_MODES = Object.freeze(["default", "random", "custom"]);
+
+export function startingPointSettings(settings) {
+  const mode = settings.startingPointMode ?? (settings.initialPositions ? "custom" : "default");
+  if (!STARTING_POINT_MODES.includes(mode)) throw new Error("Unknown starting point mode.");
+  if (mode === "default" && settings.initialPositions == null) return {};
+  if (settings.initialPositions == null) throw new Error("Starting points have not been selected.");
+  return {
+    startingPointMode: mode === "default" ? "custom" : mode,
+    initialPositions: resolveInitialPositions(settings.gridSize, settings.playerCount, settings.initialPositions, settings.boardShape),
+  };
+}
+
+// Sample lattice positions without replacement. The resolved points are saved;
+// replay/refresh never calls the random generator again.
+export function randomInitialPositions(gridSize, playerCount, random = Math.random, boardShape = null) {
+  const points = getBoardPositions(gridSize, playerCount, boardShape);
+  const positions = {};
+  for (const player of PLAYER_ORDER.slice(0, playerCount)) {
+    const sample = random();
+    if (!(sample >= 0 && sample < 1)) throw new Error("Invalid random sample.");
+    const index = Math.floor(sample * points.length);
+    positions[player] = points.splice(index, 1)[0];
+  }
+  return resolveInitialPositions(gridSize, playerCount, positions, boardShape);
+}

@@ -26,9 +26,11 @@ research/iclr2027/results/formal/d14_d16/aggregate_v1/training_curve.csv -text
 
 # The reviewed native compatibility overlay is byte pinned.
 wechat/minigame/compat/web/*.js -text whitespace=cr-at-eol
-wechat/minigame/compat/web/manifest.json -text
+wechat/minigame/compat/web/manifest.json -text whitespace=cr-at-eol
+wechat/minigame/package.json -text whitespace=cr-at-eol
 # Native source receipts and imported guide text must survive a fresh checkout.
 wechat/minigame/src/*.js -text whitespace=cr-at-eol
+wechat/minigame/src/worker-pass.js -text whitespace=cr-at-eol,-blank-at-eof
 web/web前端/PortableClone.js -text whitespace=cr-at-eol
 web/web前端/assets/research-ai/manifest.json -text whitespace=cr-at-eol
 web/web前端/assets/research-ai/model-free-manifest.json -text whitespace=cr-at-eol
