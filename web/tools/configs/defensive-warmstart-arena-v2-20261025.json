@@ -1,0 +1,19 @@
+{
+  "schema": "lifeline-defensive-warmstart-arena-plan-v2",
+  "status": "FIXED_BEFORE_APPLICATION_GAME_EVALUATION",
+  "rules_version": "territory-v3",
+  "seed_namespace": "defensive-actual-parent-arena-v2-fresh-20261025",
+  "seeds": ["2026102501", "2026102502"],
+  "opening_plies": 4,
+  "max_game_plies": 200,
+  "contexts": [
+    {"parent": "easy", "players": 3, "size": 5},
+    {"parent": "three-v4", "players": 3, "size": 5},
+    {"parent": "three-v1", "players": 3, "size": 6},
+    {"parent": "hex-v1", "players": 4, "size": 5}
+  ],
+  "design": "Each independent seed block has one all-parent control and one candidate replacement per focal seat; controls are shared within the block.",
+  "scores": "Natural terminal native discrete area; capped games retained separately and excluded from win/loss.",
+  "budget_per_context": {"max_wall_seconds": 600, "worker_wall_seconds": 60, "worker_max_new_units": 32, "worker_max_seconds": 25, "max_restarts": 3, "max_no_progress_exits": 3},
+  "scope": "34 planned games across four actual-parent contexts; bounded application evaluation, no product admission or global strength claim. Laboratory CPU times are not browser or phone latency."
+}

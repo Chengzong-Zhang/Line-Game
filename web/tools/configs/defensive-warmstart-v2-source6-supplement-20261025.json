@@ -1,0 +1,32 @@
+{
+  "schema": "lifeline-defensive-warmstart-protocol-v2",
+  "status": "SOURCE6_SUPPLEMENT_COST_PLAN_NOT_STARTED",
+  "rules_version": "territory-v3",
+  "parents": ["easy", "hex-v1"],
+  "sampling": {
+    "player_counts": [6],
+    "board_sizes": [5, 6, 7],
+    "board_shapes": ["native", "triangle"],
+    "seed_namespace": "defensive-six-seat-supplement-20261025-v1",
+    "games_per_cell_per_split": 3,
+    "samples_per_game": 4,
+    "max_game_plies": 160,
+    "minimum_prefix_plies": 4,
+    "maximum_legal_placements": 2,
+    "attack_sampling_probability": 0.7
+  },
+  "labels": { "max_nodes_per_label": 100000, "time_ms_per_label": 5000 },
+  "training": { "updates": 100, "learning_rate": 0.03 },
+  "verification": { "enabled": true, "scope": "held-out finite teacher comparison; no arena strength claim" },
+  "supervision": {
+    "max_wall_seconds": 300,
+    "worker_wall_seconds": 90,
+    "worker_units": 4,
+    "max_restarts": 3,
+    "max_no_progress_exits": 3,
+    "poll_ms": 200,
+    "stop_grace_seconds": 3
+  },
+  "source_selection": "New independently seeded six-seat legal games; source roots limited to one or two legal placements, never a teacher action cap. Before formal data, require complete exact 12-ply receipt and maxReachedPly>=12; exclude canonically solved earlier trees from the actual-depth training claim. Preserve all original failed/early-terminal receipts.",
+  "scope": "Unlaunched supplemental source/cost plan only. This file does not grant a long run, change already frozen jobs, or establish 6-player training coverage."
+}
