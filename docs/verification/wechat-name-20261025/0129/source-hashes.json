@@ -1,0 +1,62 @@
+{
+  "wechat/minigame/src/app.js": {
+    "before": "5f3bb96567122a6c727c94918b8d8adbde85c05aa21cbaa3247f6ead406d475b",
+    "after": "5d1d7608e9b52b50232b532fc411248ce4bce988641dbd0d8c50678c388eefeb"
+  },
+  "wechat/minigame/src/i18n.js": {
+    "before": "8b202e6ac6c5ea9a7b091b2bbf5e700790b28442da3802bf03bab9880a4c5f72",
+    "after": "d3d54e8b6c463f98da52d42536fe4911fead604899dd4375dc02cae964025e89"
+  },
+  "wechat/minigame/src/online.js": {
+    "before": "c7ebc7003667c93176b06f76999faed1e47572432d683f90900bf2fd8d08d17b",
+    "after": "e1145220507883ff05d1aaa2b654e4a253895201b03c39bbe1e412aeea6c6ac9"
+  },
+  "wechat/minigame/src/platform.js": {
+    "before": "a1722e36caa8a8d570078861cf1e40e6111ce0b8a5ebd6e70d5dbffd8690c856",
+    "after": "3ebf9d7cb68a819846844b840ddc9e4960dbaab96449d9d0fd256dd177b1d1e3"
+  },
+  "wechat/minigame/src/cabins-ui.js": {
+    "before": "e75e3a958b5fbf88c9457134ebaf8862bc79776466a03df777adb71501f26457",
+    "after": "a8066c68a4c59776748c51eb02925b4204c7f8221b57919b788e1f06f96bf898"
+  },
+  "wechat/minigame/src/guide-content.js": {
+    "before": "7beebc27bbcad09b262a68f072f7aa759ab10cd34c20ca47f1fc85908b734057",
+    "after": "61694366ea1dc375f78faf5ab04b6c26caf52df84a2c89f931e5914b1da3d9a8"
+  },
+  "wechat/minigame/project.config.json": {
+    "before": "feacdab1e10cf168bcfa0fcb2f1b2b363e1cca02ea629a091c71d4bc11934e22",
+    "after": "8f8c027583c5c7e5a3e71e75f01eef906a48d4875bfdb583d7be68db42942546"
+  },
+  "wechat/minigame/preview/index.html": {
+    "before": "4763da9156a7edd1dbcec453ff019a5bf31161d284e7f78855dbebab605fe50b",
+    "after": "f4a7760a36d8d63ae924d6d5760ea59e0cc8859908bd7e3de45f97eedd230c10"
+  },
+  "wechat/minigame/preview/offline.html": {
+    "before": "d75ffdf9266d02a05d5d9eac479eaed2a144413367e4e6635566aa215068adb3",
+    "after": "d8392a40bb132fbb5e8fb3cb72629a7ce673df2f5c8d8a6dd72bb84610569816"
+  },
+  "wechat/minigame/tools/prepare-candidate.mjs": {
+    "before": "014cd29e0325b47121b0fbfd877eb7b476246fbb37e18662fa0ad58865f5d359",
+    "after": "248d0667afa96ea1de1b627ea03e622f84b7ee65daa796e2ed6d4522df6ba5fa"
+  },
+  "wechat/minigame/tools/offline-browser-check.mjs": {
+    "before": "4dfe84cade2e1fd9b02e7db3476eea583a6f798f53dd41dcb3371bef597f5bc0",
+    "after": "9c22dac856719e7bec0e6a1c5eef109114f3629022ffefa35daac8eac20cdd28"
+  },
+  "wechat/minigame/tools/offline-check.mjs": {
+    "before": "260e1852ce5f51113ba70cb176d9eb84f106d6ba5f8e4c62a8938cdeaa40534c",
+    "after": "a59c962ba25a58ec40c996d679b960e19450e6a59c8974c382137c4bf5a108f7"
+  },
+  "wechat/minigame/tools/render-guide-cabin.mjs": {
+    "before": "076ac1e5b97dd67b7c84735a27976ce3106ff9fd203f346b4adcbc5a91b5bc62",
+    "after": "6cf87dd147df3b9e093023f85033dfa3efb0a5fea9a3cb75827ee991c1569677"
+  },
+  "wechat/minigame/package.json": {
+    "before": "4e23c1f1afb20c0655ca2d3ba33b3c7cb44fdfbd10076021bb5dc4d1efc0f879",
+    "after": "c4b7d9473883e58a86dd3eb292407b33fde3e8bbf0c8cd379044f832f96f8141"
+  },
+  "wechat/minigame/package-lock.json": {
+    "before": "ea75b38c03df6e9bebb1dfb48f9545726687891e52ae32228222a87a2ea3bdaf",
+    "after": "bb9c0b82fbf770b8b2e42d2562f88c389773b831275c7f24cf40ce91cc4fb1cc"
+  }
+}

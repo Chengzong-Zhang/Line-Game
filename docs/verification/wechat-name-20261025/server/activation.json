@@ -1,0 +1,48 @@
+{
+  "release_id": "web-name-20261025-r1",
+  "status": "ACTIVATED_NAME_OVERLAY_121_RUNTIME_HASHES_VERIFIED",
+  "startedAtUtc": "2026-10-25T03:59:22.940544+00:00",
+  "changedRuntimeFiles": [
+    "index.html",
+    "main.js",
+    "OnlineApp.js",
+    "OnlineAppI18n.js"
+  ],
+  "healthBefore": {
+    "game": {
+      "ok": true
+    },
+    "wechat": {
+      "ok": true,
+      "rulesVersion": "territory-v3"
+    },
+    "collector": {
+      "ok": true
+    }
+  },
+  "servicePidsBefore": {
+    "lifeline-game.service": "2254743",
+    "lifeline-wechat.service": "2254681"
+  },
+  "databasesModified": false,
+  "healthAfter": {
+    "game": {
+      "ok": true
+    },
+    "wechat": {
+      "ok": true,
+      "rulesVersion": "territory-v3"
+    },
+    "collector": {
+      "ok": true
+    }
+  },
+  "servicePidsAfter": {
+    "lifeline-game.service": "2254743",
+    "lifeline-wechat.service": "2254681"
+  },
+  "runtimeFilesMatched": 121,
+  "activeTreeSha256": "892f8c5c01510f4b489f264d5503daeced707e4d3f4fb814e4dc22cd3da913b8",
+  "rollback": "/home/ubuntu/line-game/.deploy-artifacts/web-name-20261025-r1.rollback-web前端",
+  "finishedAtUtc": "2026-10-25T03:59:23.920845+00:00"
+}

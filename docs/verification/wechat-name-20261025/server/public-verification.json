@@ -1,0 +1,52 @@
+{
+  "status": "PASS_PUBLIC_NAME_CACHE_GRAPH_AND_UNCHANGED_V3_ENGINE",
+  "url": "https://lifelinegame.cn/",
+  "files": [
+    {
+      "path": "index.html",
+      "sha256": "717fb1efebaac1143120d18c6da1c0463cb5020f8a27fdc992a482d2aa218916",
+      "bytes": 973,
+      "status": "MATCHED"
+    },
+    {
+      "path": "main.js",
+      "sha256": "158a8a095e3e2d1f4c81f8b0ea3f76b5f3006a48967f831bad418a323acf9a8d",
+      "bytes": 4179,
+      "status": "MATCHED"
+    },
+    {
+      "path": "OnlineApp.js",
+      "sha256": "c67fc66f54cfc4cb67c25810328f5d216233d88f910b73e0d7e78de2f2fee743",
+      "bytes": 270427,
+      "status": "MATCHED"
+    },
+    {
+      "path": "OnlineAppI18n.js",
+      "sha256": "b69bf22369d3134ad5166e130b4134429a51a34422601dbdc85299083f8e37cc",
+      "bytes": 52692,
+      "status": "MATCHED"
+    },
+    {
+      "path": "GameEngine.js",
+      "sha256": "3b70b69c4c480117a4952b06c279054ec535268b4293b04b4d63f960ac4b0fca",
+      "bytes": 107430,
+      "status": "MATCHED"
+    }
+  ],
+  "scoring": {
+    "status": "PASS_ACTUAL_V3_ENGINE",
+    "checks": 21,
+    "engineSha256": "3b70b69c4c480117a4952b06c279054ec535268b4293b04b4d63f960ac4b0fca",
+    "initialScoreV2": 0,
+    "initialScoreV3": 1,
+    "openLineScoreV3": 3,
+    "safePocketScore": 7,
+    "enemyPocketScore": 6,
+    "closedPositionScores": [
+      10,
+      9
+    ]
+  },
+  "backendAccountName": "USER_REPORTED_TEMPORARILY_UNCHANGEABLE",
+  "realWechatDeviceAcceptance": "NOT_RUN"
+}

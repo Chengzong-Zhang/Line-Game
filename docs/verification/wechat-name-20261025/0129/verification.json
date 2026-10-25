@@ -1,0 +1,35 @@
+{
+  "status": "CODE_UPLOADED_EXPERIENCE_NOT_CONFIGURED",
+  "version": "0.12.9",
+  "candidateId": "0.12.9-da319b641728-09FNre",
+  "baseVersion": "0.12.8",
+  "candidateDirectory": "C:\\Users\\zcz\\.codex\\worktrees\\wechat-minigame\\line game\\local_artifacts\\wechat-name-0129-20261025\\repo\\local_artifacts\\wechat-candidates\\0.12.9-da319b641728-09FNre",
+  "candidateSha256": "2e71c58a3c4b6d840ab88505af367f310f247e4eb02644c688bc734d9338f12d",
+  "uploadFinishedAt": "2026-10-25T03:57:38.980Z",
+  "validation": {
+    "fullInitial": {
+      "tests": 461,
+      "passed": 454,
+      "failed": 7,
+      "reason": "Dependency junction resolved outside repository; source/package guards correctly refused these paths."
+    },
+    "packagingAfterOrdinaryDependencyCopy": {
+      "command": "node --test --test-timeout=180000 tests/candidate-package.test.mjs tests/candidate-review-boundaries.test.mjs tests/online-candidate.test.mjs tests/service-package.test.mjs",
+      "tests": 13,
+      "passed": 13,
+      "failed": 0,
+      "coversAllSevenInitialFailures": true
+    },
+    "browser": {
+      "status": "PASS_BROWSER_ONLY_NOT_WECHAT_VERIFIED",
+      "checks": 14,
+      "receiptSha256": "60e0f5aa5d5f761ea83be33de416b192ea55dfc78290ed828da45977ef9f7f1a"
+    },
+    "packageFiles": 35
+  },
+  "backendAccountName": "USER_REPORTED_TEMPORARILY_UNCHANGEABLE",
+  "experienceConfigured": false,
+  "submittedForReview": false,
+  "publiclyReleased": false,
+  "physicalDeviceTest": "NOT_RUN"
+}
