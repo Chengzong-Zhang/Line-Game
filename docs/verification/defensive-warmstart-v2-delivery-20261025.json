@@ -1,0 +1,39 @@
+{
+  "schema": "lifeline-defensive-warmstart-delivery-v2",
+  "recorded_at_utc": "2026-10-25T10:54:04.080062+00:00",
+  "status": "TRAINING_FINISHED_CANDIDATES_SAVED_SOURCE_AND_GITHUB_SYNCED_NO_WEIGHT_ACTIVATION",
+  "trained_sources_and_evidence_commit": "6aacba5f0aaf632c5be9eb44f2a418a7b96132fc",
+  "verified_github_branch": "codex/defense-15-players-20261025",
+  "github_main_changed": false,
+  "github_url": "https://github.com/Chengzong-Zhang/Line-Game/tree/codex/defense-15-players-20261025",
+  "training": {
+    "unique_existing_parent_models": 21,
+    "main_candidates": 21,
+    "additional_six_seat_variants": 2,
+    "parameter_updates": 2300,
+    "all_runs_complete": true
+  },
+  "primary_source_sync": {
+    "files_verified": 41,
+    "root": "C:\\coding\\py\\line game",
+    "prior_bytes_preserved": true,
+    "receipt_sha256": "f43abe3ae11c68ce54c31e51801d8248d1d165639e71281ec108e489b236c2d4",
+    "receipt_path": "C:\\coding\\py\\line game\\local_artifacts\\defense15-source-sync\\20261025T105305367953Z-warmstart-v2-complete\\receipt.json"
+  },
+  "local_candidate_bundle": {
+    "path": "C:\\coding\\py\\line game\\local_artifacts\\defensive-trained-candidates-20261025-r1",
+    "files_verified": 48,
+    "model_parameter_bytes_and_evidence_total": 18621297,
+    "manifest_sha256": "feb82955223b707cf058daa8cc7578c0908cd9421f036cdd7aff890ecf80893a",
+    "large_weights_committed_to_git": false
+  },
+  "runtime_weights_activated": false,
+  "neural_candidate_strength_verified": false,
+  "six_seat_candidate_strength_verified": false,
+  "existing_web_release": "web-defense15-20261025-r1",
+  "mini_version": "0.12.12",
+  "mini_status": "CODE_UPLOADED_EXPERIENCE_NOT_CONFIGURED",
+  "completed_task_login_recovery_shortcuts_removed": 10,
+  "deployment_ssh_connection_closed": true,
+  "results": "docs/verification/defensive-warmstart-v2-results-20261025.md"
+}
