@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
-import GameController from "../GameController.js";
-import GameEngine from "../GameEngine.js";
-import { serializeRuleState } from "../ReplayCodec.js";
-import { validateContribution } from "../../tools/validate_contribution.mjs";
+import GameController from "../GameController.js?v=20261025-unified1";
+import GameEngine from "../GameEngine.js?v=20261025-unified1";
+import { serializeRuleState } from "../ReplayCodec.js?v=20261025-unified1";
+import { validateContribution } from "../../tools/validate_contribution.mjs?v=20261025-unified1";
 
 // Exercise app orchestration with the real controller/rules. Browser verification
 // separately covers Vue scheduling, actual Workers, Canvas and responsive layout.
@@ -39,7 +39,7 @@ globalThis.Worker = class {
   postMessage(message) { this.messages.push(message); }
   terminate() { this.terminated = true; }
 };
-const { default: App } = await import("../OnlineApp.js");
+const { default: App } = await import("../OnlineApp.js?v=20261025-unified1");
 const app = App.setup();
 const settings = { playerCount: 2, gridSize: 5, startPlayer: "BLACK", rulesVersion: "territory-v2", hintEnabled: false };
 const controller = Object.assign(Object.create(GameController.prototype), {
@@ -69,7 +69,7 @@ function nextRequest() {
 }
 function reply({ worker, message }, point = controller.engine.getLegalMoves(message.aiPlayer)[0]?.point, modelId = message.modelId) {
   worker.onmessage({ data: {
-    type: "RESULT", requestId: message.requestId,
+    type: "RESULT", requestId: message.requestId, strategy: message.strategy,
     positionRevision: message.serializedState.positionRevision,
     rulesVersion: message.serializedState.rulesVersion,
     currentPlayer: message.serializedState.currentPlayer,
@@ -91,6 +91,40 @@ try {
   await configure({ choice: "minimax", depth: 2 }, { choice: "topology-gnn", version: "2026092203" }, "WHITE");
   assert.equal(app.isLocalAiTurn(), true);
   assert.equal(app.skipDisabled.value, true);
+
+  const openingWhite = nextRequest();
+  assert.equal(openingWhite.message.aiPlayer, "WHITE");
+  assert.equal(openingWhite.message.modelId, "topology-gnn-transfer-v1-seed2026092203");
+  assert.equal(openingWhite.message.seed, 2026092203);
+  reply(openingWhite);
+
+  // A real Minimax RESULT with a deliberate PASS must reach GameController's
+  // canonical skip path even though legal placements remain.
+  const minimaxPass = nextRequest();
+  assert.equal(minimaxPass.message.aiPlayer, "BLACK");
+  assert.equal(minimaxPass.message.strategy, "minimax");
+  assert.ok([...timers.values()].some((timer) => timer.delay === 15000),
+    "two-player Worker requests must have a total timeout");
+  assert.ok(controller.engine.getLegalMoves("BLACK").length > 0,
+    "the local-session PASS witness must retain legal placements");
+  const passGridBefore = [...controller.engine.grid];
+  const passHistoryBefore = new Set(controller.engine.historyHashes);
+  const passTurnCountBefore = controller.engine.turnCount;
+  const passRevisionBefore = controller.engine.positionRevision;
+  reply(minimaxPass, null);
+  assert.deepEqual([...controller.engine.grid], passGridBefore,
+    "AI PASS must not place or remove a board point");
+  assert.deepEqual(controller.engine.historyHashes, passHistoryBefore,
+    "AI PASS must not fabricate a Superko placement hash");
+  assert.equal(controller.engine.turnCount, passTurnCountBefore,
+    "AI PASS must not increment placement turnCount");
+  assert.equal(controller.engine.positionRevision, passRevisionBefore + 1);
+  assert.equal(controller.engine.consecutiveSkips, 1);
+  assert.equal(controller.engine.currentPlayer, "WHITE");
+  assert.deepEqual(controller.lastAction, { type: "skip", player: "BLACK", point: null });
+  assert.deepEqual(app.localGameActions.value.at(-1), { type: "player_skip" },
+    "OnlineApp must persist the AI PASS as a real skip action");
+
   const players = new Set();
   for (let turn = 0; turn < 3; turn++) {
     const request = nextRequest(); players.add(request.message.aiPlayer);
@@ -207,6 +241,22 @@ try {
   assert.equal(app.aiDuelPaused.value, true, "invalid results stop automatic retries");
   assert.equal([...timers.values()].some((timer) => timer.delay <= 400), false);
 
+  await configure({ choice: "minimax", depth: 2 }, { choice: "human" });
+  const rejectedPass = nextRequest();
+  const beforeRejectedPass = ruleState();
+  const originalSkipTurn = controller.skipTurn;
+  controller.skipTurn = () => ({ success: false, reason: "INJECTED_PASS_REJECTION",
+    state: controller.getGameState() });
+  console.error = () => {};
+  try { reply(rejectedPass, null); }
+  finally {
+    console.error = originalConsoleError;
+    controller.skipTurn = originalSkipTurn;
+  }
+  assert.equal(ruleState(), beforeRejectedPass, "a rejected AI PASS must preserve the position");
+  assert.equal(app.aiDuelPaused.value, true, "a rejected AI PASS must stop automatic retries");
+  assert.equal([...timers.values()].some((timer) => timer.delay <= 400), false);
+
   app.selectedPlayerCount.value = 3;
   app.updateLocalPlayer({ color: "BLACK", patch: { choice: "human" } });
   app.updateLocalPlayer({ color: "WHITE", patch: { choice: "three-player" } });
@@ -261,17 +311,11 @@ try {
     reply(request);
   }
   assert.equal(controller.engine.gameOver, true);
-  const uploadDeadline = performance.now() + 5000;
-  while (uploads.length === 0 && performance.now() < uploadDeadline) await new Promise((done) => setImmediate(done));
-  assert.equal(uploads.length, 1, `one complete AI match must reach the contribution queue: ${JSON.stringify(app.contributionState.value)}`);
-  assert.ok(uploads[0].replay.terminal);
-  assert.deepEqual(uploads[0].context.actors, {
-    BLACK: { kind: "ai", strategy: "model-free", modelId: "dqn-all-sizes-e2000" },
-    WHITE: { kind: "ai", strategy: "model-free", modelId: "ppo-all-sizes-e2000" },
-  });
-  assert.equal(uploads[0].context.mixedProfiles, false);
-  assert.equal(uploads[0].context.hintsEnabled, false);
-  console.log("verify-local-ai-session: PASS (explicit start, red first, independent models/depths/seeds, saved roles/pause, swap cancellation, replay restoration, reset, complete-game upload and distinct AI labels)");
+  await new Promise((done) => setImmediate(done));
+  assert.equal(controller.engine.rulesVersion, "territory-v3");
+  assert.equal(uploads.length, 0, "V3 games do not enter the old reviewed upload schema");
+  assert.equal(app.contributionState.value.pending, 0);
+  console.log("verify-local-ai-session: PASS (explicit start, AI PASS application, red first, independent models/depths/seeds, saved roles/pause, swap cancellation, replay restoration, reset, V3 upload isolation and distinct AI labels)");
 } finally {
   for (const unmount of unmounts) unmount();
 }

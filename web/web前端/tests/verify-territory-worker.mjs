@@ -3,14 +3,14 @@ import {
   GameEngine,
   Player,
   TerritoryRulesVersion,
-} from "../GameEngine.js?v=20260910c";
-import { serializeEngineState } from "../AIStateProtocol.js?v=20260910c";
+} from "../GameEngine.js?v=20261025-unified1";
+import { serializeEngineState } from "../AIStateProtocol.js?v=20261025-unified1";
 import {
   OneShotTerritoryWorker,
   applyTerritoryWorkerResult,
-} from "../TerritoryWorkerSession.js?v=20260910c";
-import { GameController } from "../GameController.js?v=20260910c";
-import { TERRITORY_V2_HOT_PATH_FIXTURES } from "./territory-v2-fixtures.mjs";
+} from "../TerritoryWorkerSession.js?v=20261025-unified1";
+import { GameController } from "../GameController.js?v=20261025-unified1";
+import { TERRITORY_V2_HOT_PATH_FIXTURES } from "./territory-v2-fixtures.mjs?v=20261025-unified1";
 
 class FakeWorker {
   constructor() {
@@ -445,7 +445,7 @@ for (const errorMode of ["worker-message", "worker-event", "protocol", "request-
 }
 
 // Controller integration: a current worker result writes the revision-checked
-// cache and forces a render, while a response made stale by the next board
+// cache and publishes the exact render snapshot, while a response stale by the next board
 // position has no rendering or scoring side effect.
 {
   const fixture = TERRITORY_V2_HOT_PATH_FIXTURES.find(
@@ -470,7 +470,7 @@ for (const errorMode of ["worker-message", "worker-event", "protocol", "request-
   assert.deepEqual(source.getScoreboard(), territories, "controller applies exact worker territories");
   assert.equal(renders.length, 1, "current worker result rerenders once");
   assert.equal(renders[0].snapshot.territoryPending, false, "accepted result clears the renderer pending state");
-  assert.equal(renders[0].options.forceRender, true, "worker result bypasses the old render fingerprint");
+  assert.deepEqual(renders[0].snapshot.territories, territories, "renderer receives the complete exact result");
   assert.equal(renders[0].options.scheduleTerritory, false, "accepted result does not start a duplicate worker");
   assert.deepEqual(fallbacks, [], "successful worker result needs no fallback");
 
@@ -664,7 +664,7 @@ console.log(JSON.stringify({
   parityFixtures: ["two-player-15-midgame", "three-player-15-midgame"],
   controllerIntegration: [
     "15x15-default-deferred",
-    "accepted-result-forced-render",
+    "accepted-result-exact-snapshot",
     "stale-result-no-render",
   ],
   terminalSnapshotRegression: ["skip", "resign"],

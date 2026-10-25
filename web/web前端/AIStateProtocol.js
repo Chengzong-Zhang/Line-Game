@@ -5,7 +5,9 @@ export function serializeEngineState(engine) {
   return {
     gridSize: engine.gridSize,
     playerCount: engine.playerCount,
+    boardShape: engine.boardShape,
     startPlayer: engine.startPlayer,
+    ...(engine.hasCustomInitialPositions ? { initialPositions: structuredClone(engine.initialPositions) } : {}),
     rulesVersion: engine.rulesVersion,
     positionRevision: engine.positionRevision,
     activePlayers: [...engine.activePlayers],

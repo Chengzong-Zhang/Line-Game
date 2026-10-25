@@ -1,4 +1,6 @@
-import { Player, TerritoryRulesVersion } from "./GameEngine.js?v=20261020-three1";
+import { Player, TerritoryRulesVersion, resolveBoardShape } from "./GameEngine.js?v=20261025-unified1";
+import { startingPointSettings } from "./StartingPoints.js?v=20261025-unified1";
+import { DEFAULT_UNDO_MAX_COUNT, UNDO_MAX_COUNT_MIN, UNDO_MAX_COUNT_MAX } from "./LocalUndo.js?v=20261025-unified1";
 
 // 杩欎釜鏂囦欢涓撻棬瀛樻斁鈥滃彲澶嶇敤鐨勫墠绔姸鎬佸伐鍏封€濓紝
 // 閬垮厤 OnlineApp.js 鍐嶆鑶ㄨ儉鎴愪竴涓秴澶у伐鍏风鏂囦欢銆?
@@ -14,7 +16,7 @@ export const DEFAULT_TURN_TIMER_SECONDS = 60;
 export const HINT_MAX_COUNT_MIN = 1;
 export const HINT_MAX_COUNT_MAX = 10;
 export const DEFAULT_HINT_MAX_COUNT = 3;
-export const DEFAULT_RULES_VERSION = TerritoryRulesVersion.V2;
+export const DEFAULT_RULES_VERSION = TerritoryRulesVersion.V3;
 export const RULES_VERSION_OPTIONS = Object.freeze(Object.values(TerritoryRulesVersion));
 
 export function normalizeGameSettings(settings = {}) {
@@ -22,6 +24,7 @@ export function normalizeGameSettings(settings = {}) {
   const gridSize = Number(settings?.gridSize);
   const turnTimeLimitSeconds = Number(settings?.turnTimeLimitSeconds);
   const hintMaxCount = Number(settings?.hintMaxCount);
+  const undoMaxCount = Number(settings?.undoMaxCount);
   const rulesVersion = RULES_VERSION_OPTIONS.includes(settings?.rulesVersion)
     ? settings.rulesVersion
     : DEFAULT_RULES_VERSION;
@@ -34,10 +37,16 @@ export function normalizeGameSettings(settings = {}) {
   const normalizedHintMaxCount = Number.isFinite(hintMaxCount)
     ? Math.max(HINT_MAX_COUNT_MIN, Math.min(HINT_MAX_COUNT_MAX, Math.round(hintMaxCount)))
     : DEFAULT_HINT_MAX_COUNT;
+  const nextGridSize = GRID_SIZE_OPTIONS.includes(gridSize) ? gridSize : 9;
+  const boardShape = resolveBoardShape(nextPlayerCount, ["triangle", "hexagon"].includes(settings?.boardShape) ? settings.boardShape : null);
+  let starts = {};
+  try {
+    starts = startingPointSettings({ ...settings, gridSize: nextGridSize, playerCount: nextPlayerCount, boardShape });
+  } catch (_) { /* Invalid preferences fall back to the original opening. Saves validate strictly. */ }
 
   return {
     playerCount: nextPlayerCount,
-    boardShape: nextPlayerCount >= 4 ? "hexagon" : "triangle",
+    boardShape,
     botCount: nextPlayerCount >= 3 ? Math.max(0, Math.min(nextPlayerCount - 1, Math.trunc(Number(settings?.botCount) || 0))) : 0,
     gridSize: GRID_SIZE_OPTIONS.includes(gridSize) ? gridSize : 9,
     startPlayer,
@@ -46,6 +55,11 @@ export function normalizeGameSettings(settings = {}) {
     turnTimeLimitSeconds: normalizedTurnTimeLimitSeconds,
     hintEnabled: Boolean(settings?.hintEnabled),
     hintMaxCount: normalizedHintMaxCount,
+    undoEnabled: Boolean(settings?.undoEnabled),
+    undoMaxCount: Number.isFinite(undoMaxCount)
+      ? Math.max(UNDO_MAX_COUNT_MIN, Math.min(UNDO_MAX_COUNT_MAX, Math.round(undoMaxCount)))
+      : DEFAULT_UNDO_MAX_COUNT,
+    ...starts,
   };
 }
 

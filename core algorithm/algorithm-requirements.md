@@ -1,6 +1,6 @@
 # 三角网格圈地博弈游戏 — 核心算法需求文档（重构版）
 
-> **适用范围**：本文档描述 `core algorithm/triangular_game.py` 的固定 9×9、双人 Python/Pygame legacy 实现。它属于 v1 lineage，但因最短路截断与枚举顺序不同，不是 Web `territory-v1` 的逐状态一致规范，也不实现 Web `territory-v2`。
+> **适用范围**：本文档描述 `core algorithm/triangular_game.py` 的固定 9×9、双人 Python/Pygame 实现。棋盘、落子与收紧流程仍属 legacy lineage；当前正式领土分数按己方节点/线点与安全空腔计算。它不是 Web `territory-v1/v2/v3` 的逐状态一致规范，尤其收紧候选仍有最短路枚举上限。
 
 ---
 
@@ -137,7 +137,7 @@
 
 **方法**：`_get_outer_contour(player)`
 
-**目标**：沿己方棋子（节点+线点）的物理外边缘，追踪出一条闭合轮廓路径 `current_poly`。
+**目标**：沿己方节点与线点追踪用于渲染/收紧的外轮廓 `current_poly`。该轮廓不是正式领土计分的前提；正式分数由阶段三从所有己方占点计算。
 
 **算法流程**：
 
@@ -164,7 +164,7 @@
 
 每轮循环中：
 
-1. **当前基准**：记录 `cur_perim = len(current_poly)`，调用泛洪法得到 `cur_area = len(_get_covered_points(current_poly))`。
+1. **当前基准**：记录 `cur_perim = len(current_poly)`，调用泛洪法得到闭合轮廓的诊断覆盖数 `cur_area = len(_get_covered_points(current_poly))`。它用于比较显示轮廓候选，不是最终比分。
 2. **最短路预计算与重建**：每轮先从各轮廓锚点执行一次内部 `bfs_from_source`，缓存距离与前驱；随后正序枚举起点 `i`、倒序枚举终点 `j`（`j > i+1`），仅对比原弧更短的端点对调用内部 `reconstruct_paths(..., limit=100)`，重建避开敌方点的等长最短格点路径。
 3. **生成双向候选**：对每条 `path`，生成两个候选多边形：
    - **方案 A（替换内弧）**：`poly[:i] + path + poly[j+1:]`
@@ -185,16 +185,26 @@
 
 **方法**：`_get_covered_points(polygon)`
 
-**目标**：确定轮廓多边形真正围住的网格点集合，**完全不依赖几何射线法**，天然支持自交多边形。
+**目标**：给定一组墙点，找出与棋盘外界隔绝的点；正式计分时墙点是己方全部节点与线点，无需闭合轮廓，也无需简单多边形。
+
+令 `F_i` 为己方节点与线点，`X_i` 为删除 `F_i` 后从棋盘边缘注水可到达的格点，`E_i` 为所有敌方节点与线点。
 
 **算法流程**：
 
-1. **建立防水墙**：将 `polygon` 中所有点加入 `wall_set`。
+1. **建立防水墙**：将输入点加入 `wall_set`。正式计分调用 `_compute_owned_wall_area(friendlies, enemies)` 时，输入为己方全部节点和线点。
 2. **边缘注水**：从棋盘三条物理边缘（`x==0`、`y==0`、`x+y==8`）的所有**非墙**点开始，加入 BFS 队列。
 3. **BFS 蔓延**：水流向六向相邻格点扩散，遇到 `wall_set` 中的点则停止（墙体不可穿透）。
-4. **计算领土**：`领土点集 = 全图所有格点 - 被水淹没的点集`（含轮廓墙体本身）。
+4. **计算覆盖集**：`covered = 全图所有格点 - 被水淹没的点集`（含墙点）。再将 `covered - friendlies` 分成连通分量；含敌方节点/线点的分量整块排除，其余分量计入。
 
-**输出**：`set[Tuple[int, int]]`，即真实覆盖领土的所有格点。
+**输出**：`set[Tuple[int, int]]`，即相对于输入墙点的未被水访问格点；正式领土由下式计算。
+
+$$
+F_i=U_i\cup L_i,\qquad
+B_i=\bigcup_{Q\in\operatorname{CC}(V\setminus(F_i\cup X_i)),\ Q\cap E_i=\varnothing}Q,\qquad
+\operatorname{area}_i=|F_i|+|B_i|.
+$$
+
+开链和单线没有安全空腔时仍按 `|F_i|` 计分；多个空腔及甜甜圈内孔分别计入，含敌方元素的空腔整块不计。同一格点只计一次。
 
 ---
 
@@ -202,7 +212,7 @@
 
 `_compute_inner_hull(player)` 返回：
 - `screen_polygon: List[Tuple[int, int]]`：用于 Pygame 渲染的屏幕坐标轮廓（首尾相接，闭合）。
-- `area: int`：泛洪法确定的领土格点总数（代替几何面积参与大小比较）。
+- `area: int`：己方节点/线点与所有安全空腔的格点总数；不要求存在可渲染的闭合轮廓。
 
 ---
 

@@ -1,7 +1,7 @@
 // Local v4 candidate. No runtime registration: promotion is a separate gate.
-import { fastTerritoryBFS, restoreState, saveState } from "./AIEngine.js";
-import { ThreePlayerAI, THREE_PLAYER_FEATURES } from "./ThreePlayerAI.js";
-import { GameEngine } from "./GameEngine.js";
+import { fastTerritoryBFS, restoreState, saveState } from "./AIEngine.js?v=20261025-unified1";
+import { ThreePlayerAI, THREE_PLAYER_FEATURES } from "./ThreePlayerAI.js?v=20261025-unified1";
+import { GameEngine } from "./GameEngine.js?v=20261025-unified1";
 
 const pointOrder = (a, b) => a.point[1] - b.point[1] || a.point[0] - b.point[0];
 const linear = (spec) => ({ score: (values) => values.reduce((sum, value, i) => sum + value * spec.weights[i], 0) / spec.temperature });
@@ -53,7 +53,7 @@ export class ThreePlayerSearchAI {
 
   getTopMoves(engine, player = engine.currentPlayer, topN = 5) {
     this.lastSearch = { simulations: 0, simulatedActions: 0, terminalLeaves: 0, elapsedMs: 0, evaluated: [] };
-    if (engine.playerCount !== 3 || engine.rulesVersion !== "territory-v2" || engine.currentPlayer !== player
+    if (engine.playerCount !== 3 || !["territory-v2", "territory-v3"].includes(engine.rulesVersion) || engine.currentPlayer !== player
       || engine.gridSize < 5 || engine.gridSize > 15) throw new Error("INVALID v4 game contract");
     if (engine.gameOver) return [];
     const snapshot = saveState(engine), flag = engine._isReplayingBatch;

@@ -5,6 +5,7 @@ const MAX_GRID_SIZE = 15;
 export const TerritoryRulesVersion = Object.freeze({
   V1: "territory-v1",
   V2: "territory-v2",
+  V3: "territory-v3",
 });
 
 const SUPPORTED_TERRITORY_RULES = new Set(Object.values(TerritoryRulesVersion));
@@ -92,38 +93,45 @@ const PLAYER_POINT_STATES = Object.freeze({
 
 /** Vertices follow the renderer's clockwise order, beginning at upper left.
  *  gridSize is the number of lattice points along each board side. */
-export function getBoardVertices(gridSize, playerCount = 2) {
+export function resolveBoardShape(playerCount = 2, boardShape = null) {
+  const shape = boardShape ?? (playerCount >= 4 ? "hexagon" : "triangle");
+  if (!["triangle", "hexagon"].includes(shape)) throw new Error("Unknown board shape.");
+  return shape;
+}
+
+export function getBoardVertices(gridSize, playerCount = 2, boardShape = null) {
   const r = gridSize - 1;
-  return playerCount >= 4
+  return resolveBoardShape(playerCount, boardShape) === "hexagon"
     ? [[r, 0], [2 * r, 0], [2 * r, r], [r, 2 * r], [0, 2 * r], [0, r]]
     : [[0, 0], [r, 0], [0, r]];
 }
 
-export function isBoardPoint(point, gridSize, playerCount = 2) {
+export function isBoardPoint(point, gridSize, playerCount = 2, boardShape = null) {
   const x = point?.[0];
   const y = point?.[1];
   if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0) return false;
   const r = gridSize - 1;
-  return playerCount >= 4
+  return resolveBoardShape(playerCount, boardShape) === "hexagon"
     ? x <= 2 * r && y <= 2 * r && x + y >= r && x + y <= 3 * r
     : x + y <= r;
 }
 
-export function getBoardPositions(gridSize, playerCount = 2) {
-  const extent = playerCount >= 4 ? 2 * gridSize - 1 : gridSize;
+export function getBoardPositions(gridSize, playerCount = 2, boardShape = null) {
+  const extent = resolveBoardShape(playerCount, boardShape) === "hexagon" ? 2 * gridSize - 1 : gridSize;
   const positions = [];
   for (let y = 0; y < extent; y += 1) {
     for (let x = 0; x < extent; x += 1) {
-      if (isBoardPoint([x, y], gridSize, playerCount)) positions.push([x, y]);
+      if (isBoardPoint([x, y], gridSize, playerCount, boardShape)) positions.push([x, y]);
     }
   }
   return positions;
 }
 
-function buildInitialPositions(gridSize, playerCount) {
-  if (playerCount >= 4) {
-    const vertices = getBoardVertices(gridSize, playerCount);
-    const occupiedVertices = playerCount === 4 ? [0, 1, 3, 4] : [0, 1, 2, 3, 4, 5];
+function buildInitialPositions(gridSize, playerCount, boardShape = null) {
+  if (resolveBoardShape(playerCount, boardShape) === "hexagon") {
+    const vertices = getBoardVertices(gridSize, playerCount, "hexagon");
+    const occupiedVertices = playerCount === 2 ? [0, 3] : playerCount === 3 ? [0, 2, 4]
+      : playerCount === 4 ? [0, 1, 3, 4] : [0, 1, 2, 3, 4, 5];
     return Object.freeze(Object.fromEntries(PLAYER_ORDER.slice(0, playerCount).map(
       (player, index) => [player, Object.freeze(vertices[occupiedVertices[index]])],
     )));
@@ -136,11 +144,38 @@ function buildInitialPositions(gridSize, playerCount) {
     });
   }
 
-  return Object.freeze({
-    [Player.BLACK]: Object.freeze([0, 0]),
-    [Player.WHITE]: Object.freeze([0, gridSize - 1]),
-    [Player.PURPLE]: Object.freeze([gridSize - 1, 0]),
-  });
+  const r = gridSize - 1;
+  const mid = Math.floor(r / 2);
+  // Extra seats follow the outer sides BLACK→WHITE→PURPLE→BLACK.
+  // Even side lengths have two central nodes: use the first along each side.
+  const seats = [[0, 0], [0, r], [r, 0], [0, mid], [mid, r - mid], [r - mid, 0]];
+  return Object.freeze(Object.fromEntries(PLAYER_ORDER.slice(0, playerCount).map(
+    (player, index) => [player, Object.freeze(seats[index])],
+  )));
+}
+
+// Starting nodes are part of the match configuration, not editable board state.
+// Validate and copy them so a settings draft cannot move a live game's roots.
+export function resolveInitialPositions(gridSize, playerCount, positions = null, boardShape = null) {
+  if (positions == null) return buildInitialPositions(gridSize, playerCount, boardShape);
+  const players = PLAYER_ORDER.slice(0, playerCount);
+  if (typeof positions !== "object" || Array.isArray(positions)
+    || Object.keys(positions).length !== players.length) {
+    throw new Error("Each player must have exactly one starting point.");
+  }
+  const occupied = new Set();
+  const result = {};
+  for (const player of players) {
+    const point = positions[player];
+    if (!Array.isArray(point) || point.length !== 2 || !isBoardPoint(point, gridSize, playerCount, boardShape)) {
+      throw new Error(`Invalid starting point for ${player}.`);
+    }
+    const key = pointKey(point);
+    if (occupied.has(key)) throw new Error("Starting points must not overlap.");
+    occupied.add(key);
+    result[player] = Object.freeze(clonePoint(point));
+  }
+  return Object.freeze(result);
 }
 
 function clonePoint(point) {
@@ -258,11 +293,12 @@ export class GameEngine {
     if (!Number.isInteger(this.playerCount) || this.playerCount < 2 || this.playerCount > 6) {
       throw new Error("playerCount must be an integer between 2 and 6.");
     }
-    this.boardShape = this.playerCount >= 4 ? "hexagon" : "triangle";
-    this.boardVertices = getBoardVertices(this.gridSize, this.playerCount);
+    this.boardShape = resolveBoardShape(this.playerCount, options.boardShape);
+    this.boardVertices = getBoardVertices(this.gridSize, this.playerCount, this.boardShape);
     // activePlayers is the single source of truth for turn order and rules.
     this.activePlayers = PLAYER_ORDER.slice(0, this.playerCount);
-    this.initialPositions = buildInitialPositions(this.gridSize, this.playerCount);
+    this.hasCustomInitialPositions = options.initialPositions != null;
+    this.initialPositions = resolveInitialPositions(this.gridSize, this.playerCount, options.initialPositions, this.boardShape);
     this.startPlayer = this.activePlayers.includes(options.startPlayer) ? options.startPlayer : this.activePlayers[0];
 
     this.validPositions = [];
@@ -295,8 +331,13 @@ export class GameEngine {
     for (const player of this.activePlayers) {
       this._setState(this.initialPositions[player], this._getPlayerStates(player).node);
     }
-    // A fresh board contains only isolated starting nodes, so the zero-valued
-    // territory cache above is already exact. Avoid an unnecessary full scan.
+    // A fresh board contains only one isolated starting node per player.
+    // v3 counts that node immediately; earlier rules start at zero.
+    if (this.rulesVersion === TerritoryRulesVersion.V3) {
+      for (const player of this.activePlayers) {
+        this.cachedTerritories[player] = { polygon: null, area: 1, displayArea: 1 };
+      }
+    }
 
     // 将初始局面写入历史，防止任何操作回到起始状态
     this.historyHashes.add(this._computeStateHash(this.startPlayer));
@@ -305,13 +346,19 @@ export class GameEngine {
   _initGrid() {
     // 第一遍：建立索引映射
     this._keyToIdx = new Map();
-    for (const point of getBoardPositions(this.gridSize, this.playerCount)) {
+    // Each board row is contiguous. Keep the integer offset so scoring does
+    // not repeatedly allocate coordinate strings for hexagon vertices.
+    this._rowIndexOffsets = [];
+    this._rowIndexGridSize = this.gridSize;
+    this._rowIndexBoardShape = this.boardShape;
+    for (const point of getBoardPositions(this.gridSize, this.playerCount, this.boardShape)) {
       const key = pointKey(point);
       const idx = this.validPositions.length;
       this.validPositions.push(point);
       this.positionKeys.add(key);
       this.grid.set(key, PointState.EMPTY);
       this._keyToIdx.set(key, idx);
+      this._rowIndexOffsets[point[1]] ??= idx - point[0];
     }
 
     const n = this.validPositions.length;
@@ -342,18 +389,24 @@ export class GameEngine {
     this._bfsQueue = new Int32Array(n);
     this._bfsWall = new Int32Array(n);
     this._bfsWater = new Int32Array(n);
+    this._bfsRequired = new Int32Array(n);
     this._bfsEpoch = 0;
     this._wallKeyWordCount = Math.ceil(n / 32);
   }
 
   _pointToIndex(point) {
-    if (this.boardShape === "hexagon") {
-      return isBoardPoint(point, this.gridSize, this.playerCount)
-        ? this._keyToIdx.get(pointKey(point)) ?? -1
-        : -1;
-    }
     const x = point?.[0];
     const y = point?.[1];
+    if (this.boardShape === "hexagon") {
+      const radius = this.gridSize - 1;
+      return Number.isInteger(x) && Number.isInteger(y)
+        && x >= 0 && y >= 0 && x <= 2 * radius && y <= 2 * radius
+        && x + y >= radius && x + y <= 3 * radius
+        ? (this._rowIndexGridSize === this.gridSize && this._rowIndexBoardShape === this.boardShape
+          ? this._rowIndexOffsets[y] + x
+          : this._keyToIdx.get(pointKey(point)) ?? -1)
+        : -1;
+    }
     if (
       !Number.isInteger(x)
       || !Number.isInteger(y)
@@ -391,7 +444,13 @@ export class GameEngine {
   }
 
   _setState(point, state) {
-    this.grid.set(pointKey(point), state);
+    const key = pointKey(point);
+    // A legality probe only needs to undo the cells it actually touches.
+    // Keep the first value even when a cut/reconnection writes a cell twice.
+    if (this._moveProbeUndo && !this._moveProbeUndo.has(key)) {
+      this._moveProbeUndo.set(key, this.grid.get(key));
+    }
+    this.grid.set(key, state);
   }
 
   _getPlayerStates(player) {
@@ -481,6 +540,7 @@ export class GameEngine {
       playerCount: this.playerCount,
       boardShape: this.boardShape,
       boardVertices: this.boardVertices.map(clonePoint),
+      initialPositions: Object.fromEntries(this.activePlayers.map((player) => [player, this._getInitialPosition(player)])),
       rulesVersion: this.rulesVersion,
       positionRevision: this.positionRevision,
       players: [...this.activePlayers],
@@ -495,8 +555,28 @@ export class GameEngine {
       territories,
       edges,
       winner,
-      legalMoves: this.getLegalMoves(this.currentPlayer),
+      legalMoves: this._getSnapshotLegalMoves(),
     };
+  }
+
+  _getSnapshotLegalMoves() {
+    // UI events and territory completions often request the same position.
+    // Compare full rule inputs, not just revision: search/replay clients can
+    // edit Maps/Sets in place, and Superko history changes legality by itself.
+    // This single-entry cache is only for snapshots; search enumeration keeps
+    // using getLegalMoves directly, without constructing cache keys per node.
+    const key = JSON.stringify([
+      this.gridSize, this.boardShape, this.rulesVersion, this.activePlayers,
+      this.positionRevision, this.startPlayer, this.turnCount, this.gameOver, this.consecutiveSkips,
+      this.currentPlayer, this.initialPositions, this.validPositions, [...this.positionKeys],
+      [...this.grid], this.activePlayers.map(player => [...this._getEdges(player)]),
+      [...this.historyHashes], [...this.resignedPlayers],
+    ]);
+    if (this._snapshotLegalCache?.key !== key) {
+      this._snapshotLegalCache = { key, moves: this.getLegalMoves(this.currentPlayer) };
+    }
+    // Snapshots are detached: a UI caller must not be able to poison the cache.
+    return this._snapshotLegalCache.moves.map(move => ({ ...move, point: clonePoint(move.point) }));
   }
 
   /** Whether the cached display territory belongs to the current board.
@@ -658,15 +738,15 @@ export class GameEngine {
     }
 
     const linePoints = this.getLinePoints(pointA, pointB);
+    const opponentStates = this._getOpponents(player).map(opponent => this._getPlayerStates(opponent));
 
     for (const point of linePoints) {
       if (pointEquals(point, pointA) || pointEquals(point, pointB)) {
         continue;
       }
       const state = this._getState(point);
-      for (const opponent of this._getOpponents(player)) {
-        const opponentStates = this._getPlayerStates(opponent);
-        if (state === opponentStates.node || state === opponentStates.line) {
+      for (const states of opponentStates) {
+        if (state === states.node || state === states.line) {
           return false;
         }
       }
@@ -675,16 +755,15 @@ export class GameEngine {
   }
 
   _checkThreePointLimitation(newPoint, player) {
-    const currentNodes = this._getPlayerNodes(player);
-    const nodeKeys = new Set(currentNodes.map(pointKey));
-    const adjacentNodes = this.getAdjacentPositions(newPoint).filter((point) => nodeKeys.has(pointKey(point)));
+    const nodeState = this._getPlayerStates(player).node;
+    const adjacentNodes = this.getAdjacentPositions(newPoint).filter((point) => this._getState(point) === nodeState);
 
     if (adjacentNodes.length >= 2) {
       return false;
     }
 
     for (const adjacentNode of adjacentNodes) {
-      const adjacentExistingNodes = this.getAdjacentPositions(adjacentNode).filter((point) => nodeKeys.has(pointKey(point)));
+      const adjacentExistingNodes = this.getAdjacentPositions(adjacentNode).filter((point) => this._getState(point) === nodeState);
       if (adjacentExistingNodes.length >= 1) {
         return false;
       }
@@ -694,9 +773,11 @@ export class GameEngine {
   }
 
   _isInProtectionZone(point, player) {
+    if (!this.isValidPosition(point)) return false;
     return this._getOpponents(player).some((opponent) => {
-      const protectedPoints = this.getAdjacentPositions(this._getInitialPosition(opponent));
-      return protectedPoints.some((protectedPoint) => pointEquals(protectedPoint, point));
+      const root = this.initialPositions[opponent];
+      const dx = point[0] - root[0], dy = point[1] - root[1];
+      return DIRECTIONS.some(([x, y]) => dx === x && dy === y);
     });
   }
 
@@ -860,8 +941,28 @@ export class GameEngine {
     }
   }
 
+  _getCrawlRays(node) {
+    // Geometry is fixed for the lifetime of an engine. Reuse the six ordered
+    // rays; occupancy and stopping conditions are still read on every crawl.
+    this._crawlRays ??= new Map();
+    const key = pointKey(node);
+    if (!this._crawlRays.has(key)) {
+      const rays = DIRECTIONS.map(([dx, dy]) => {
+        const ray = [];
+        let x = node[0] + dx, y = node[1] + dy;
+        while (this.isValidPosition([x, y])) {
+          ray.push({ point: [x, y], key: `${x},${y}` });
+          x += dx; y += dy;
+        }
+        return ray;
+      });
+      this._crawlRays.set(key, rays);
+    }
+    return this._crawlRays.get(key);
+  }
+
   /** 攻击结束后，沿6个方向爬行重建所有被解锁的连线 */
-  _connectAllCrawl(player) {
+  _connectAllCrawl(player, knownNodes = null) {
     const { node: nodeState, line: lineState } = this._getPlayerStates(player);
     const oppStates = this._getOpponents(player).flatMap((opp) => {
       const s = this._getPlayerStates(opp);
@@ -869,33 +970,26 @@ export class GameEngine {
     });
     const isEnemy = (state) => oppStates.includes(state);
     const edgeSet = this._getEdges(player);
-    const nodes = this._getPlayerNodes(player);
+    const nodes = knownNodes ?? this._getPlayerNodes(player);
 
     for (const node of nodes) {
-      const [x, y] = node;
-      for (const [dx, dy] of DIRECTIONS) {
-        let cx = x + dx;
-        let cy = y + dy;
-        const pathPts = [];
-        while (this.isValidPosition([cx, cy])) {
-          const st = this._getState([cx, cy]);
+      for (const ray of this._getCrawlRays(node)) {
+        for (let index = 0; index < ray.length; index++) {
+          const st = this.grid.get(ray[index].key);
           if (isEnemy(st)) break;
           if (st === nodeState) {
-            const other = [cx, cy];
+            const other = ray[index].point;
             const ek = this._edgeKey(node, other);
             if (!edgeSet.has(ek)) {
-              for (const pt of pathPts) {
-                if (this._getState(pt) === PointState.EMPTY) {
-                  this._setState(pt, lineState);
+              for (let before = 0; before < index; before++) {
+                if (this.grid.get(ray[before].key) === PointState.EMPTY) {
+                  this._setState(ray[before].point, lineState);
                 }
               }
               edgeSet.add(ek);
             }
             break;
           }
-          pathPts.push([cx, cy]);
-          cx += dx;
-          cy += dy;
         }
       }
     }
@@ -1123,17 +1217,21 @@ export class GameEngine {
     if (this._bfsEpoch === 0x7fffffff) {
       this._bfsWall.fill(0);
       this._bfsWater.fill(0);
+      this._bfsRequired.fill(0);
       this._bfsEpoch = 1;
     }
     const epoch = this._bfsEpoch;
     const wall = this._bfsWall;
     const water = this._bfsWater;
     const queue = this._bfsQueue;
+    const indexedGeometry = this._rowIndexGridSize === this.gridSize
+      && this._rowIndexBoardShape === this.boardShape;
 
     // 标记墙体（polygon 各顶点）
     for (const p of polygon) {
-      const idx = this._keyToIdx.get(pointKey(p));
-      if (idx !== undefined) wall[idx] = epoch;
+      const directIdx = indexedGeometry ? this._pointToIndex(p) : -1;
+      const idx = directIdx >= 0 ? directIdx : this._keyToIdx.get(pointKey(p));
+      if (idx >= 0) wall[idx] = epoch;
     }
 
     // 从预计算的边界点注水
@@ -1157,11 +1255,8 @@ export class GameEngine {
     }
 
     // 统计领土点数（water[i]===epoch 表示被淹没，不计入领土）
-    let count = 0;
-    const n = this.validPositions.length;
-    for (let i = 0; i < n; i += 1) {
-      if (water[i] !== epoch) count += 1;
-    }
+    // Each flooded vertex enters the queue exactly once.
+    const count = this.validPositions.length - qlen;
 
     // 拍摄 water 快照，供 .has() 查询（typed array 拷贝比字符串 Set 快得多）
     const waterSnap = new Int32Array(water);
@@ -1178,9 +1273,175 @@ export class GameEngine {
     };
   }
 
+  /** Exact boolean form of the native flood-fill coverage test. Envelope
+   *  pruning only needs to know whether every friendly node stays dry, so it
+   *  can stop at the first flooded friend and need not copy the water buffer.
+   *  Full coverage callers still receive an independent snapshot above. */
+  _coversFriendlyNodes(polygon, friendlyKeys) {
+    if (this._getCoveredPoints !== NATIVE_FLOOD_COVERAGE
+      || this._pointToIndex !== NATIVE_FLOOD_POINT_INDEX) {
+      const covered = this._getCoveredPoints(polygon);
+      return [...friendlyKeys].every(key => covered.has(key));
+    }
+
+    this._bfsEpoch += 1;
+    if (this._bfsEpoch === 0x7fffffff) {
+      this._bfsWall.fill(0);
+      this._bfsWater.fill(0);
+      this._bfsRequired.fill(0);
+      this._bfsEpoch = 1;
+    }
+    const epoch = this._bfsEpoch;
+    const wall = this._bfsWall, water = this._bfsWater;
+    const required = this._bfsRequired, queue = this._bfsQueue;
+    const indexedGeometry = this._rowIndexGridSize === this.gridSize
+      && this._rowIndexBoardShape === this.boardShape;
+    for (const point of polygon) {
+      const directIdx = indexedGeometry ? this._pointToIndex(point) : -1;
+      const index = directIdx >= 0 ? directIdx : this._keyToIdx.get(pointKey(point));
+      if (index >= 0) wall[index] = epoch;
+    }
+
+    let needsFlood = false;
+    for (const key of friendlyKeys) {
+      const index = this._keyToIdx.get(key);
+      if (index === undefined) return false;
+      if (wall[index] !== epoch) {
+        required[index] = epoch;
+        needsFlood = true;
+      }
+    }
+    // Empty friendly sets and friends already on walls are covered by
+    // definition. Marking the polygon first retains malformed-input errors.
+    if (!needsFlood) return true;
+
+    let length = 0;
+    for (const index of this._boundaryIdxs) {
+      if (wall[index] !== epoch && water[index] !== epoch) {
+        if (required[index] === epoch) return false;
+        water[index] = epoch;
+        queue[length++] = index;
+      }
+    }
+    for (let head = 0; head < length; head++) {
+      for (const next of this._adjIdxList[queue[head]]) {
+        if (wall[next] !== epoch && water[next] !== epoch) {
+          if (required[next] === epoch) return false;
+          water[next] = epoch;
+          queue[length++] = next;
+        }
+      }
+    }
+    return true;
+  }
+
+  /** Exact candidate validation without exporting a coverage snapshot. Only
+   *  this synchronous scalar result escapes; public coverage remains detached. */
+  _getValidatedTerritoryArea(polygon, friendlyKeys, enemyKeys) {
+    if (this._getCoveredPoints !== NATIVE_FLOOD_COVERAGE
+      || this._pointToIndex !== NATIVE_FLOOD_POINT_INDEX) {
+      const covered = this._getCoveredPoints(polygon);
+      if (![...friendlyKeys].every(key => covered.has(key))) return null;
+      if ([...enemyKeys].some(key => covered.has(key))) return null;
+      return covered.size;
+    }
+    this._bfsEpoch += 1;
+    if (this._bfsEpoch === 0x7fffffff) {
+      this._bfsWall.fill(0);
+      this._bfsWater.fill(0);
+      this._bfsRequired.fill(0);
+      this._bfsEpoch = 1;
+    }
+    const epoch = this._bfsEpoch;
+    const wall = this._bfsWall, water = this._bfsWater;
+    const required = this._bfsRequired, queue = this._bfsQueue;
+    const indexedGeometry = this._rowIndexGridSize === this.gridSize
+      && this._rowIndexBoardShape === this.boardShape;
+    for (const point of polygon) {
+      const directIdx = indexedGeometry ? this._pointToIndex(point) : -1;
+      const index = directIdx >= 0 ? directIdx : this._keyToIdx.get(pointKey(point));
+      if (index >= 0) wall[index] = epoch;
+    }
+    for (const key of friendlyKeys) {
+      const index = this._keyToIdx.get(key);
+      if (index === undefined) return null;
+      required[index] = epoch;
+    }
+    let length = 0;
+    for (const index of this._boundaryIdxs) {
+      if (wall[index] !== epoch && water[index] !== epoch) {
+        if (required[index] === epoch) return null;
+        water[index] = epoch;
+        queue[length++] = index;
+      }
+    }
+    for (let head = 0; head < length; head++) {
+      for (const next of this._adjIdxList[queue[head]]) {
+        if (wall[next] !== epoch && water[next] !== epoch) {
+          if (required[next] === epoch) return null;
+          water[next] = epoch;
+          queue[length++] = next;
+        }
+      }
+    }
+    for (const key of enemyKeys) {
+      const index = this._keyToIdx.get(key);
+      if (index !== undefined && water[index] !== epoch) return null;
+    }
+    return this.validPositions.length - length;
+  }
+
   /** 从源点对整张棋盘做 BFS（整数下标），返回距离表和前驱表。
    *  使用预计算的 _adjIdxList，避免热路径中的字符串操作。 */
   _bfsFromSource(srcIdx, enemyIdxSet) {
+    if (!NATIVE_DEPENDENCY_METHODS.every(([name, method]) => this[name] === method)
+      || !(enemyIdxSet instanceof Set) || Object.getPrototypeOf(enemyIdxSet) !== Set.prototype
+      || enemyIdxSet.has !== Set.prototype.has || enemyIdxSet[Symbol.iterator] !== Set.prototype[Symbol.iterator]
+      || !Number.isInteger(srcIdx) || srcIdx < 0 || srcIdx >= this.validPositions.length) {
+      return this._territoryBfsUncached(srcIdx, enemyIdxSet);
+    }
+    const memo = dependencyMemo(this);
+    if (!memo.context) updateDependencyGeometry(this, memo);
+    const obstacleKey = memo.context?.enemyIdxSet === enemyIdxSet
+      ? memo.context.obstacleKey : [...enemyIdxSet].filter(index => Number.isInteger(index)
+        && index >= 0 && index < this.validPositions.length).sort((a, b) => a - b).join(',');
+    if (memo.context) Object.assign(memo.context, { enemyIdxSet, obstacleKey });
+    const exact = dependencyBfsGet(memo.bfs, obstacleKey, srcIdx);
+    if (exact) {
+      memo.stats.bfsExactHits++;
+      return unpackDependencyBfs(exact.result);
+    }
+    // A BFS reads obstacle membership only in neighbors of reached vertices.
+    // If that entire read set agrees, induction on the original queue proves
+    // identical distance/predecessor arrays, including predecessor order.
+    let checked = 0;
+    for (const [oldKey, group] of [...memo.bfs.groups].reverse()) {
+      const entry = group.entries.get(srcIdx);
+      if (!entry) continue;
+      if (++checked > 2) break;
+      if (entry.dependencies.every((state, index) => !state || enemyIdxSet.has(index) === (state === 2))) {
+        dependencyBfsGet(memo.bfs, oldKey, srcIdx);
+        memo.stats.bfsDependencyHits++;
+        dependencyBfsPut(memo.bfs, obstacleKey, srcIdx, entry);
+        return unpackDependencyBfs(entry.result);
+      }
+    }
+    memo.stats.bfsMisses++;
+    const result = this._territoryBfsUncached(srcIdx, enemyIdxSet);
+    // The per-view admission bound also avoids packing results that would be
+    // discarded immediately; the original caller still receives its result.
+    if ((memo.bfs.groups.get(obstacleKey)?.entries.size || 0) >= 6) return result;
+    const dependencies = new Uint8Array(this.validPositions.length);
+    for (let index = 0; index < result.dist.length; index++) {
+      if (result.dist[index] < 0) continue;
+      for (const next of this._adjIdxList[index]) dependencies[next] = enemyIdxSet.has(next) ? 2 : 1;
+    }
+    const units = result.dist.length * 3 + 1 + result.pred.reduce((sum, previous) => sum + (previous?.length || 0), 0);
+    dependencyBfsPut(memo.bfs, obstacleKey, srcIdx, { dependencies, units, result: packDependencyBfs(result) });
+    return result;
+  }
+
+  _territoryBfsUncached(srcIdx, enemyIdxSet) {
     const gridN = this.validPositions.length;
     const dist = new Int32Array(gridN).fill(-1);
     const pred = new Array(gridN).fill(null);
@@ -1243,6 +1504,122 @@ export class GameEngine {
     yield* this._iterateReconstructedPaths(bfsResult, srcIdx, tgtIdx);
   }
 
+  /** Prune a predecessor subtree only when its entire remaining wall union
+   *  cannot contain the required friendly nodes. This keeps the native path
+   *  order and every potentially valid path, without a path-count budget. */
+  *_iterateCoveredTerritoryPaths(bfsResult, srcIdx, tgtIdx, fixedA, fixedB, friendlyKeys, possibleSides, sharedPaths = null, areaLimit = null) {
+    const { pred, dist } = bfsResult;
+    if (dist[tgtIdx] === -1) return;
+    const vp = this.validPositions;
+    const counts = sharedPaths?.counts ?? new Map([[srcIdx, 1]]);
+    const countPaths = index => {
+      if (!counts.has(index)) {
+        let count = 0;
+        for (const previous of pred[index] ?? []) count = Math.min(16, count + countPaths(previous));
+        counts.set(index, count);
+      }
+      return counts.get(index);
+    };
+    if (countPaths(tgtIdx) < 16 && (!sharedPaths || !areaLimit)) {
+      if (!sharedPaths) {
+        yield* this._iterateTerritoryPaths(bfsResult, srcIdx, tgtIdx);
+        return;
+      }
+      for (const path of this._iterateTerritoryPaths(bfsResult, srcIdx, tgtIdx)) {
+        const sides = possibleSides();
+        if (!sides) return;
+        if (sharedPaths) sharedPaths.emittedSides = sides;
+        yield path;
+      }
+      return;
+    }
+    // A valid territory contains its walls AND every friendly node. Remaining
+    // shortest-path vertices strictly decrease BFS distance, so they never
+    // repeat the selected suffix (apart from the current endpoint). A 0/1
+    // shortest-path DP therefore gives a lower bound on final covered points.
+    const makeAreaBound = fixed => {
+      const required = new Set([...fixed.map(pointKey), ...friendlyKeys]
+        .map(key => this._keyToIdx.get(key)).filter(index => index !== undefined));
+      const weight = index => required.has(index) ? 0 : 1;
+      const costs = new Map([[srcIdx, weight(srcIdx)]]);
+      const minimumExtra = index => {
+        if (!costs.has(index)) {
+          let best = Infinity;
+          for (const previous of pred[index] ?? []) best = Math.min(best, minimumExtra(previous));
+          costs.set(index, best + weight(index));
+        }
+        return costs.get(index);
+      };
+      return { required, weight, minimumExtra };
+    };
+    const areaBounds = sharedPaths && areaLimit ? [makeAreaBound(fixedA), makeAreaBound(fixedB)] : null;
+    const ancestors = new Map();
+    const ancestorPoints = index => {
+      if (!ancestors.has(index)) {
+        const union = new Set([index]), pending = [index];
+        for (let i = 0; i < pending.length; i++) {
+          for (const previous of pred[pending[i]] ?? []) {
+            if (!union.has(previous)) { union.add(previous); pending.push(previous); }
+          }
+        }
+        ancestors.set(index, [...union].map(i => vp[i]));
+      }
+      return ancestors.get(index);
+    };
+    const engine = this;
+    const reversedPath = [tgtIdx];
+    function* visit(index, inheritedSides, extraA, extraB) {
+      // A failed envelope remains impossible in every descendant: every
+      // descendant's wall union is a subset of its ancestor's wall union.
+      let sides = sharedPaths ? possibleSides() & inheritedSides : possibleSides();
+      if (!sides) return;
+      if (areaBounds) {
+        for (let side = 0; side < 2; side++) {
+          const bit = 1 << side;
+          if (!(sides & bit)) continue;
+          const limit = areaLimit(bit);
+          if (limit === Infinity) continue;
+          const bound = areaBounds[side];
+          const lowerArea = bound.required.size + (side ? extraB : extraA)
+            + bound.minimumExtra(index) - bound.weight(index);
+          if (lowerArea >= limit) sides &= ~bit;
+        }
+        if (!sides) return;
+      }
+      if (index === srcIdx) {
+        if (sharedPaths) sharedPaths.emittedSides = sides;
+        yield [...reversedPath].reverse().map(i => clonePoint(vp[i]));
+        return;
+      }
+      // Below sixteen completions the bound costs more than the exact leaf
+      // checks. The threshold controls work spent proving impossibility only.
+      if (reversedPath.length > 1 && counts.get(index) >= 16) {
+        const envelope = [...reversedPath.map(i => vp[i]), ...ancestorPoints(index)];
+        const couldCover = fixed => {
+          if (sharedPaths) return engine._coversFriendlyNodes([...fixed, ...envelope], friendlyKeys);
+          const covered = engine._getCoveredPoints([...fixed, ...envelope]);
+          return [...friendlyKeys].every(key => covered.has(key));
+        };
+        // Prove each side separately, so a successful A envelope does not
+        // conceal an impossible B subtree all the way down to the leaves.
+        if (sharedPaths) {
+          if ((sides & 1) && !couldCover(fixedA)) sides &= ~1;
+          if ((sides & 2) && !couldCover(fixedB)) sides &= ~2;
+          if (!sides) return;
+        } else if (!((sides & 1) && couldCover(fixedA)) && !((sides & 2) && couldCover(fixedB))) return;
+      }
+      for (const previous of pred[index] ?? []) {
+        reversedPath.push(previous);
+        yield* visit(previous, sides,
+          extraA + (areaBounds ? areaBounds[0].weight(previous) : 0),
+          extraB + (areaBounds ? areaBounds[1].weight(previous) : 0));
+        reversedPath.pop();
+      }
+    }
+    yield* visit(tgtIdx, 3, areaBounds ? areaBounds[0].weight(tgtIdx) : 0,
+      areaBounds ? areaBounds[1].weight(tgtIdx) : 0);
+  }
+
   /** Raw contour-tightening scorer over an explicitly supplied coordinate view. */
   _computeRawTerritory(
     friendlyNodes,
@@ -1250,7 +1627,61 @@ export class GameEngine {
     rawEnemyPoints,
     { requireClosedRegion = false, initialContour = null } = {},
   ) {
+    const options = { requireClosedRegion, initialContour };
+    if (!NATIVE_DEPENDENCY_METHODS.every(([name, method]) => this[name] === method)) {
+      return this._rawTerritoryUncached(friendlyNodes, friendlyLines, rawEnemyPoints, options);
+    }
+    const nodeKey = dependencyPointsKey(friendlyNodes), lineKey = dependencyPointsKey(friendlyLines);
+    const enemyKey = dependencyPointsKey(rawEnemyPoints), contourKey = initialContour ? dependencyPointsKey(initialContour) : '';
+    if ([nodeKey, lineKey, enemyKey, contourKey].some(key => key === null)) {
+      return this._rawTerritoryUncached(friendlyNodes, friendlyLines, rawEnemyPoints, options);
+    }
+    const memo = dependencyMemo(this);
+    updateDependencyGeometry(this, memo);
+    // Friendly order and an explicit initial walk are preserved. Enemy order
+    // is irrelevant: the scorer consults only their union as obstacles and in
+    // boolean containment tests. This is a pure geometry memo, not a state or
+    // legality cache; Superko history, logical edges and turn state are unused.
+    const key = `${requireClosedRegion ? 1 : 0}|${nodeKey}|${lineKey}|${[...new Set(enemyKey.split(';'))].sort().join(';')}|${initialContour ? 1 : 0}:${contourKey}`;
+    const cached = dependencyGet(memo.raw, key);
+    if (cached) {
+      memo.stats.rawHits++;
+      return copyDependencyTerritory(cached);
+    }
+    memo.stats.rawMisses++;
+    const previousContext = memo.context;
+    memo.context = {};
+    try {
+      const result = this._rawTerritoryUncached(friendlyNodes, friendlyLines, rawEnemyPoints, options);
+      dependencyPut(memo.raw, key, copyDependencyTerritory(result), (result.polygon?.length || 0) * 2);
+      return result;
+    } finally { memo.context = previousContext; }
+  }
+
+  _getTerritoryDependencyStats() {
+    const memo = dependencyMemo(this);
+    return { ...memo.stats, rawEntries: memo.raw.entries.size, rawKeyCharacters: memo.raw.characters,
+      rawCoordinateUnits: memo.raw.units, bfsEntries: memo.bfs.entries, bfsObstacleGroups: memo.bfs.groups.size,
+      bfsKeyCharacters: memo.bfs.characters, bfsNumericUnits: memo.bfs.units };
+  }
+
+  _rawTerritoryUncached(
+    friendlyNodes,
+    friendlyLines,
+    rawEnemyPoints,
+    { requireClosedRegion = false, initialContour = null } = {},
+  ) {
     const friendlyNodeKeys = new Set(friendlyNodes.map(pointKey));
+    // The envelope proof relies on the native predecessor-DAG enumerator and
+    // monotone flood fill. Keep subclass/diagnostic overrides on the old path.
+    const usePathEnvelope = requireClosedRegion
+      && NATIVE_TERRITORY_METHODS.every(([name, method]) => this[name] === method);
+    // Existing overrides retain the pre-round-3 envelope and oracle call
+    // order. Only the new bounds, persistent wall memo and scalar queries
+    // require the stricter native dependency set.
+    const useSharedValidation = usePathEnvelope
+      && NATIVE_SHARED_TERRITORY_METHODS.every(([name, method]) => this[name] === method);
+    const useScalarValidation = useSharedValidation;
     const enemyPoints = dedupePoints(rawEnemyPoints);
     const enemyKeySet = new Set(enemyPoints.map(pointKey));
 
@@ -1273,11 +1704,25 @@ export class GameEngine {
     }
 
     let curArea = 0;
+    // Enemy obstacles and board geometry are constant throughout this one
+    // tightening pass, even as the contour changes. Do not retain this cache
+    // across positions, players or canonical transformations.
+    const bfsBySource = new Map();
+    // A previously validated wall has fixed coverage and friendly/enemy
+    // validity during this raw pass. If its perimeter is no worse than a
+    // later identical wall, the monotonically improving incumbent already
+    // dominates the later candidate; a shorter perimeter must still be tried.
+    const sharedValidatedWallPerimeters = useSharedValidation ? new Map() : null;
 
     // 阶段二：动态贪心修剪（皮筋收紧）
     while (true) {
       const polyLen = currentPoly.length;
       if (polyLen < 3) break;
+      // With no adjacent duplicate contour vertices, joining a simple shortest
+      // path adds no adjacent duplicates. These are exact post-dedup lengths.
+      // Custom/diagnostic contour or path behavior retains the original checks.
+      const usePerimeterBounds = usePathEnvelope
+        && currentPoly.every((point, index) => index === 0 || !pointEquals(point, currentPoly[index - 1]));
 
       // 每轮开始精确计算覆盖集：
       //   curCovered — 用于向内/向外捷径判定（.has(key) 查询）
@@ -1289,7 +1734,9 @@ export class GameEngine {
       let bestOverallCand = null;
       let bestCandPerim = curPerim;
       let bestCandArea = curArea;
-      const validatedWallPerimeters = requireClosedRegion ? new Map() : null;
+      // Diagnostic or subclass oracles retain the original per-round scope.
+      const validatedWallPerimeters = sharedValidatedWallPerimeters
+        ?? (requireClosedRegion ? new Map() : null);
 
       const considerFullyValidatedCandidate = (rawCandidate) => {
         const candidate = rawCandidate.filter(
@@ -1304,11 +1751,14 @@ export class GameEngine {
         if (previousPerimeter !== undefined && previousPerimeter <= candidate.length) return;
         if (!this._hasBoundaryCycle(candidate)) return;
         validatedWallPerimeters.set(wallKey, candidate.length);
-        const covered = this._getCoveredPoints(candidate);
-        const area = covered.size;
+        const covered = useScalarValidation ? null : this._getCoveredPoints(candidate);
+        const area = useScalarValidation
+          ? this._getValidatedTerritoryArea(candidate, friendlyNodeKeys, enemyKeySet)
+          : covered.size;
+        if (area === null) return;
         if (candidate.length === bestCandPerim && area >= bestCandArea) return;
-        if (![...friendlyNodeKeys].every((key) => covered.has(key))) return;
-        if ([...enemyKeySet].some((key) => covered.has(key))) return;
+        if (!useScalarValidation && ![...friendlyNodeKeys].every((key) => covered.has(key))) return;
+        if (!useScalarValidation && [...enemyKeySet].some((key) => covered.has(key))) return;
         bestCandPerim = candidate.length;
         bestCandArea = area;
         bestOverallCand = candidate;
@@ -1317,13 +1767,18 @@ export class GameEngine {
       // BFS 预计算：相同轮廓顶点可能在回折/自交 walk 中重复出现，按唯一
       // srcIdx 复用结果，避免对同一源点重复遍历全图。
       const bfsCache = new Array(polyLen);
-      const bfsBySource = new Map();
-      for (let i = 0; i < polyLen; i += 1) {
+      for (let i = 0; i < polyLen - 2; i += 1) {
         const srcIdx = this._keyToIdx.get(pointKey(currentPoly[i]));
         if (srcIdx !== undefined) {
           if (!bfsBySource.has(srcIdx)) {
             const bfs = this._bfsFromSource(srcIdx, enemyIdxSet);
-            bfsBySource.set(srcIdx, { srcIdx, dist: bfs.dist, pred: bfs.pred });
+            bfsBySource.set(srcIdx, {
+              srcIdx, dist: bfs.dist, pred: bfs.pred,
+              // These subproblems depend only on this source and the fixed
+              // obstacle map, so all endpoint pairs and tightening rounds in
+              // this one raw scoring pass can share them.
+              paths: { counts: new Map([[srcIdx, 1]]) },
+            });
           }
           bfsCache[i] = bfsBySource.get(srcIdx);
         } else {
@@ -1344,7 +1799,55 @@ export class GameEngine {
           // 剪枝：最短路 ≥ 弧段长度，无法缩短周长，跳过
           if (shortestDist === -1 || shortestDist >= arcLen) continue;
 
-          for (const path of this._iterateTerritoryPaths(bfsCache[i], srcIdx, tgtIdx)) {
+          // Every shortest-path wall is contained in its predecessor-DAG union.
+          // Adding walls can only remove reachable water. If a friendly node is
+          // still flooded with this superset, no path on that side can cover it.
+          // This rejects impossible candidates without changing exact area,
+          // path order, tie-breaking, or placing a cap on path enumeration.
+          let possibleA = true, possibleB = true;
+          const perimeterA = polyLen - arcLen + shortestDist;
+          const perimeterB = arcLen + 1 + Math.max(0, shortestDist - 1);
+          if (usePathEnvelope) {
+            possibleA = !usePerimeterBounds || perimeterA <= bestCandPerim;
+            possibleB = !usePerimeterBounds || perimeterB <= bestCandPerim;
+            if (!possibleA && !possibleB) continue;
+            const union = new Set([tgtIdx]), pending = [tgtIdx];
+            for (let k = 0; k < pending.length; k++) {
+              for (const previous of bfsCache[i].pred[pending[k]] || []) {
+                if (!union.has(previous)) { union.add(previous); pending.push(previous); }
+              }
+            }
+            const pathEnvelope = [...union].map(index => this.validPositions[index]);
+            const couldCoverNodes = wall => {
+              if (useSharedValidation) return this._coversFriendlyNodes(wall, friendlyNodeKeys);
+              const covered = this._getCoveredPoints(wall);
+              return [...friendlyNodeKeys].every(key => covered.has(key));
+            };
+            possibleA = possibleA && couldCoverNodes([...currentPoly.slice(0, i), ...pathEnvelope, ...currentPoly.slice(j + 1)]);
+            possibleB = possibleB && couldCoverNodes([...currentPoly.slice(i, j + 1), ...pathEnvelope]);
+            if (!possibleA && !possibleB) continue;
+          }
+          const possibleSides = () => (
+            (possibleA && (!usePerimeterBounds || perimeterA <= bestCandPerim) ? 1 : 0)
+            | (possibleB && (!usePerimeterBounds || perimeterB <= bestCandPerim) ? 2 : 0)
+          );
+          const paths = usePathEnvelope
+            ? this._iterateCoveredTerritoryPaths(bfsCache[i], srcIdx, tgtIdx,
+              [...currentPoly.slice(0, i), ...currentPoly.slice(j + 1)],
+              currentPoly.slice(i, j + 1), friendlyNodeKeys, possibleSides,
+              useSharedValidation ? bfsCache[i].paths : null,
+              useSharedValidation && usePerimeterBounds ? side => (
+                (side === 1 ? perimeterA : perimeterB) === bestCandPerim ? bestCandArea : Infinity
+              ) : null)
+            : this._iterateTerritoryPaths(bfsCache[i], srcIdx, tgtIdx);
+          for (const path of paths) {
+            if (usePerimeterBounds && !possibleSides()) break;
+            // The generator emits ordinary path arrays. Only the private
+            // raw-call context carries the side proof; diagnostics retain
+            // the original array shape, and the live incumbent still wins.
+            const candidateSides = useSharedValidation
+              ? bfsCache[i].paths.emittedSides & possibleSides()
+              : 3;
             const pathLen = path.length; // 顶点数（含两端点）
             const pathInterior = path.slice(1, -1); // 中间顶点（不含端点）
 
@@ -1353,12 +1856,12 @@ export class GameEngine {
             // the current coverage already excludes every enemy element.
             if (requireClosedRegion) {
               const reversedMiddle = pathInterior.slice().reverse();
-              considerFullyValidatedCandidate([
+              if (possibleA && (candidateSides & 1)) considerFullyValidatedCandidate([
                 ...currentPoly.slice(0, i),
                 ...path,
                 ...currentPoly.slice(j + 1),
               ]);
-              considerFullyValidatedCandidate([
+              if (possibleB && (candidateSides & 2)) considerFullyValidatedCandidate([
                 ...currentPoly.slice(i, j + 1),
                 ...reversedMiddle,
               ]);
@@ -1485,8 +1988,10 @@ export class GameEngine {
 
   _getCanonicalTerritoryTransforms(player) {
     if (this.boardShape === "hexagon") {
+      // Preserve the established seat-based scoring orientation when the
+      // connectivity root is moved away from its original vertex.
       const vertexIndex = this.boardVertices.findIndex(
-        (point) => pointEquals(point, this.initialPositions[player]),
+        (point) => pointEquals(point, buildInitialPositions(this.gridSize, this.playerCount, this.boardShape)[player]),
       );
       return [
         { rotation: -vertexIndex, reflected: false },
@@ -1499,6 +2004,11 @@ export class GameEngine {
         : [BARYCENTRIC_TRANSFORMS.SWAP_XZ];
     }
 
+    // Map each edge seat to the same reference edge and compare its two
+    // orientations, just as corner seats use their two base orientations.
+    if (player === Player.GREEN) return [BARYCENTRIC_TRANSFORMS.IDENTITY, BARYCENTRIC_TRANSFORMS.SWAP_YZ];
+    if (player === Player.ORANGE) return [BARYCENTRIC_TRANSFORMS.CYCLE_XZY, BARYCENTRIC_TRANSFORMS.SWAP_XZ];
+    if (player === Player.CYAN) return [BARYCENTRIC_TRANSFORMS.CYCLE_XYZ, BARYCENTRIC_TRANSFORMS.SWAP_XY];
     if (player === Player.BLACK) {
       return [BARYCENTRIC_TRANSFORMS.IDENTITY, BARYCENTRIC_TRANSFORMS.SWAP_XY];
     }
@@ -1539,6 +2049,43 @@ export class GameEngine {
     };
   }
 
+  /** Count friendly points plus enemy-free pockets cut off by friendly points.
+   *  Treat every friendly node/line point as a flood-fill wall. This handles
+   *  open chains, several pockets and ring-shaped structures with holes; no
+   *  single simple polygon is required for the score. */
+  _computeOwnedWallArea(ownedPoints, enemyPoints) {
+    const ownedKeys = new Set(ownedPoints.map(pointKey));
+    const enemyKeys = new Set(enemyPoints.map(pointKey));
+    const covered = this._getCoveredPoints(ownedPoints);
+    const visited = new Set();
+    let area = ownedKeys.size;
+
+    for (const point of this.validPositions) {
+      const startKey = pointKey(point);
+      if (ownedKeys.has(startKey) || visited.has(startKey) || !covered.has(startKey)) continue;
+
+      const queue = [point];
+      visited.add(startKey);
+      let componentSize = 0;
+      let containsEnemy = false;
+      for (let head = 0; head < queue.length; head += 1) {
+        const current = queue[head];
+        const currentKey = pointKey(current);
+        componentSize += 1;
+        if (enemyKeys.has(currentKey)) containsEnemy = true;
+
+        for (const neighbor of this.getAdjacentPositions(current)) {
+          const key = pointKey(neighbor);
+          if (ownedKeys.has(key) || visited.has(key) || !covered.has(key)) continue;
+          visited.add(key);
+          queue.push(neighbor);
+        }
+      }
+      if (!containsEnemy) area += componentSize;
+    }
+    return area;
+  }
+
   /** Public scoring dispatch. v1 is the frozen legacy implementation. v2
    *  requires an actual boundary cycle and scores every player in a canonical
    *  base-oriented coordinate view. Three-player scoring minimizes over the
@@ -1557,6 +2104,7 @@ export class GameEngine {
           { initialContour: this._getOuterContour(player) },
         );
       case TerritoryRulesVersion.V2:
+      case TerritoryRulesVersion.V3:
         break;
       default:
         throw new Error(`Unsupported territory rules version: ${this.rulesVersion}`);
@@ -1568,27 +2116,52 @@ export class GameEngine {
       left.territory.area - right.territory.area
       || left.canonicalKey.localeCompare(right.canonicalKey)
     ));
-    return candidates[0].territory;
+    const territory = candidates[0].territory;
+    if (this.rulesVersion === TerritoryRulesVersion.V2) return territory;
+
+    // Keep v2's polygon for rendering, but compute the official v3 score from
+    // all friendly walls so multiple enclosed components and holes are counted.
+    const ownedPoints = [...this._getPlayerNodes(player), ...this._getPlayerLines(player)];
+    const enemyPoints = this._getOpponents(player).flatMap((opponent) => [
+      ...this._getPlayerNodes(opponent), ...this._getPlayerLines(opponent),
+    ]);
+    return {
+      ...territory,
+      area: this._computeOwnedWallArea(ownedPoints, enemyPoints),
+      displayArea: territory.polygon ? territory.displayArea : ownedPoints.length,
+    };
   }
 
   /** 将当前局面序列化为唯一字符串，用于 Superko 判断。
    *  包含：网格物理层（非空点）、逻辑拓扑层（各方边集合）、即将行棋方。 */
-  _computeStateHash(nextPlayer) {
-    const gridEntries = [];
-    for (const [key, state] of this.grid.entries()) {
-      if (state !== PointState.EMPTY) {
+  _getStateHashOrder() {
+    this._stateHashCoordinates ??= new Map();
+    return [...this.grid.keys()].map(key => {
+      if (!this._stateHashCoordinates.has(key)) {
         const [x, y] = key.split(",").map(Number);
-        gridEntries.push([x, y, state]);
+        this._stateHashCoordinates.set(key, { key, x, y, cells: new Map() });
       }
+      return this._stateHashCoordinates.get(key);
+    }).sort((a, b) => a.x - b.x || a.y - b.y);
+  }
+
+  _computeStateHash(nextPlayer, orderedPoints = this._getStateHashOrder()) {
+    const gridEntries = [];
+    for (const entry of orderedPoints) {
+      const state = this.grid.get(entry.key);
+      if (state === PointState.EMPTY) continue;
+      if (!entry.cells.has(state)) entry.cells.set(state, JSON.stringify([entry.x, entry.y, state]));
+      gridEntries.push(entry.cells.get(state));
     }
-    gridEntries.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
 
     const edgeLists = this.activePlayers.map((player) =>
       [...this._getEdges(player)].sort(),
     );
 
     const resignedPlayers = this.activePlayers.filter((player) => this.resignedPlayers.has(player));
-    return JSON.stringify([nextPlayer, resignedPlayers, gridEntries, edgeLists]);
+    // Exactly the original JSON bytes, with cached cell serialization. Each
+    // probe still checks the full board/edge/player hash against full history.
+    return `[${JSON.stringify(nextPlayer)},${JSON.stringify(resignedPlayers)},[${gridEntries.join(",")}],${JSON.stringify(edgeLists)}]`;
   }
 
   _updateTerritories() {
@@ -1637,7 +2210,7 @@ export class GameEngine {
     return false;
   }
 
-  _evaluateMove(point, player = this.currentPlayer) {
+  _evaluateMove(point, player = this.currentPlayer, sourceNodes = null, hashOrder = undefined) {
     if (this.resignedPlayers.has(player)) {
       return { legal: false, reason: "PLAYER_RESIGNED", state: null, isAttack: false };
     }
@@ -1652,19 +2225,22 @@ export class GameEngine {
     );
     const isAttackingMove = attackableLineStates.has(originalState);
     const currentPlayerSnapshot = this.currentPlayer;
-    const gridSnapshot = new Map(this.grid);
+    const gridSnapshot = this.grid;
+    const previousUndo = this._moveProbeUndo;
+    const undo = new Map();
     const edgesSnapshot = Object.fromEntries(
       this.activePlayers.map((candidate) => [candidate, new Set(this._getEdges(candidate))]),
     );
 
     try {
+      this._moveProbeUndo = undo;
       this.currentPlayer = player;
-      const success = this._addNode(point);
+      const success = this._addNode(point, sourceNodes);
       if (!success) {
         return { legal: false, reason: "INVALID_MOVE", state: originalState, isAttack: isAttackingMove };
       }
 
-      const stateHash = this._computeStateHash(this._getNextPlayer(player));
+      const stateHash = this._computeStateHash(this._getNextPlayer(player), hashOrder);
       if (this.historyHashes.has(stateHash)) {
         return {
           legal: false,
@@ -1677,6 +2253,11 @@ export class GameEngine {
       return { legal: true, reason: null, state: originalState, isAttack: isAttackingMove };
     } finally {
       this.grid = gridSnapshot;
+      for (const [key, state] of undo) {
+        if (state === undefined) this.grid.delete(key);
+        else this.grid.set(key, state);
+      }
+      this._moveProbeUndo = previousUndo;
       for (const candidate of this.activePlayers) {
         this.edges[candidate] = edgesSnapshot[candidate];
       }
@@ -1689,8 +2270,10 @@ export class GameEngine {
       return false;
     }
 
+    const sourceNodes = this._getPlayerNodes(player);
+    const hashOrder = this._getStateHashOrder();
     for (const point of this.validPositions) {
-      if (this._evaluateMove(point, player).legal) {
+      if (this._evaluateMove(point, player, sourceNodes, hashOrder).legal) {
         return true;
       }
     }
@@ -1700,9 +2283,12 @@ export class GameEngine {
 
   getLegalMoves(player = this.currentPlayer) {
     const result = [];
-
+    // A probe restores the position in finally, so these source nodes remain
+    // valid throughout this enumeration. No cross-position node cache.
+    const sourceNodes = this._getPlayerNodes(player);
+    const hashOrder = this._getStateHashOrder();
     for (const point of this.validPositions) {
-      const evaluation = this._evaluateMove(point, player);
+      const evaluation = this._evaluateMove(point, player, sourceNodes, hashOrder);
       if (evaluation.legal) {
         result.push({
           point: clonePoint(point),
@@ -1741,7 +2327,7 @@ export class GameEngine {
     }
   }
 
-  _addNode(point) {
+  _addNode(point, sourceNodes = null) {
     if (!this.isValidPosition(point)) {
       return false;
     }
@@ -1768,7 +2354,7 @@ export class GameEngine {
 
     this._setState(point, currentStates.node);
 
-    const existingNodes = this._getPlayerNodes(this.currentPlayer).filter((node) => !pointEquals(node, point));
+    const existingNodes = sourceNodes ?? this._getPlayerNodes(this.currentPlayer).filter((node) => !pointEquals(node, point));
     let connected = false;
 
     for (const node of existingNodes) {
@@ -1798,7 +2384,21 @@ export class GameEngine {
     }
 
     this._handleBlockingAttack(point, this.currentPlayer, originalState);
-    this._connectAllCrawl(this.currentPlayer);
+    // Blocking attacks only remove the opponent's nodes. Preserve the original
+    // row-major crawl order, including the newly placed node.
+    const crawlNodes = sourceNodes
+      ? [...sourceNodes, point].sort((a, b) => a[1] - b[1] || a[0] - b[0]) : null;
+    this._connectAllCrawl(this.currentPlayer, crawlNodes);
+    if (isAttackingMove) {
+      // Removing a blocking line/node can unlock any player's connections.
+      // The attack's saved edges omit connections cut on earlier turns, so
+      // rescan every other player's surviving nodes before the next move's
+      // connectivity cleanup. Keep the acting player's existing priority.
+      // Crawling only adds edges; one pass cannot unlock further connections.
+      for (const player of this.activePlayers) {
+        if (player !== this.currentPlayer) this._connectAllCrawl(player);
+      }
+    }
     return true;
   }
 
@@ -1879,7 +2479,9 @@ export class GameEngine {
     const transaction = new GameEngine({
       gridSize: this.gridSize,
       playerCount: this.playerCount,
+      boardShape: this.boardShape,
       startPlayer: this.startPlayer,
+      initialPositions: this.hasCustomInitialPositions ? this.initialPositions : undefined,
       rulesVersion: this.rulesVersion,
     });
     transaction._restoreReplayState(this._captureReplayState());
@@ -2011,6 +2613,129 @@ export class GameEngine {
 
     return this._createActionResult(true, null);
   }
+}
+
+// Capture native references once, so even prototype monkey-patches cannot
+// accidentally activate the optimization for a different path/coverage oracle.
+const NATIVE_TERRITORY_METHODS = Object.freeze([
+  '_bfsFromSource', '_reconstructPaths', '_iterateReconstructedPaths',
+  '_iterateTerritoryPaths', '_iterateCoveredTerritoryPaths', '_getCoveredPoints',
+].map(name => [name, GameEngine.prototype[name]]));
+const NATIVE_SHARED_TERRITORY_METHODS = Object.freeze([
+  '_pointToIndex', '_getWallSetKey', '_getOuterContourFromPoints', '_hasBoundaryCycle',
+  '_territoryBfsUncached', '_coversFriendlyNodes', '_getValidatedTerritoryArea',
+].map(name => [name, GameEngine.prototype[name]]));
+const NATIVE_FLOOD_COVERAGE = GameEngine.prototype._getCoveredPoints;
+const NATIVE_FLOOD_POINT_INDEX = GameEngine.prototype._pointToIndex;
+
+// The memo survives undo/restore because every hit validates its dependencies.
+// Weak ownership excludes it from snapshots and lets temporary AI engines die.
+const TERRITORY_DEPENDENCY_MEMOS = new WeakMap();
+const NATIVE_DEPENDENCY_METHODS = Object.freeze([
+  '_pointToIndex', '_getWallSetKey', '_getOuterContourFromPoints', '_hasBoundaryCycle',
+  '_getCoveredPoints', '_bfsFromSource', '_territoryBfsUncached', '_rawTerritoryUncached',
+  '_coversFriendlyNodes', '_getValidatedTerritoryArea',
+  '_reconstructPaths', '_iterateReconstructedPaths', '_iterateTerritoryPaths', '_iterateCoveredTerritoryPaths',
+].map(name => [name, GameEngine.prototype[name]]));
+
+function dependencyBucket(maxCharacters, maxUnits) {
+  return { entries: new Map(), characters: 0, units: 0, maxCharacters, maxUnits };
+}
+function dependencyMemo(engine) {
+  if (!TERRITORY_DEPENDENCY_MEMOS.has(engine)) TERRITORY_DEPENDENCY_MEMOS.set(engine, {
+    geometry: null, context: null, raw: dependencyBucket(131072, 16384), bfs: dependencyBfsBucket(),
+    stats: { rawHits: 0, rawMisses: 0, bfsExactHits: 0, bfsDependencyHits: 0, bfsMisses: 0, geometryChanges: 0 },
+  });
+  return TERRITORY_DEPENDENCY_MEMOS.get(engine);
+}
+function updateDependencyGeometry(engine, memo) {
+  // Include actual ordered topology, not just board size or object identity.
+  const geometry = JSON.stringify([engine.gridSize, engine.boardShape, engine.validPositions,
+    engine._adjIdxList, engine._boundaryIdxs, [...engine._keyToIdx], engine._rowIndexOffsets,
+    engine._rowIndexGridSize, engine._rowIndexBoardShape, engine._wallKeyWordCount]);
+  if (geometry !== memo.geometry) {
+    if (memo.geometry !== null) memo.stats.geometryChanges++;
+    memo.geometry = geometry;
+    memo.raw = dependencyBucket(131072, 16384);
+    memo.bfs = dependencyBfsBucket();
+  }
+}
+function dependencyGet(bucket, key) {
+  const record = bucket.entries.get(key);
+  if (!record) return null;
+  bucket.entries.delete(key); bucket.entries.set(key, record);
+  return record.value;
+}
+function dependencyPut(bucket, key, value, units) {
+  if (key.length > bucket.maxCharacters || units > bucket.maxUnits) return;
+  while (bucket.entries.size >= 64 || bucket.characters + key.length > bucket.maxCharacters || bucket.units + units > bucket.maxUnits) {
+    const [oldKey, record] = bucket.entries.entries().next().value;
+    bucket.entries.delete(oldKey); bucket.characters -= oldKey.length; bucket.units -= record.units;
+  }
+  bucket.entries.set(key, { value, units }); bucket.characters += key.length; bucket.units += units;
+}
+function dependencyPointsKey(points) {
+  if (!Array.isArray(points) || Object.getPrototypeOf(points) !== Array.prototype || points.length > 4096
+    || points.map !== Array.prototype.map || points[Symbol.iterator] !== Array.prototype[Symbol.iterator]) return null;
+  const parts = [];
+  for (let index = 0; index < points.length; index++) {
+    const descriptor = Object.getOwnPropertyDescriptor(points, String(index));
+    if (!descriptor || !('value' in descriptor)) return null;
+    const point = descriptor.value;
+    if (!Array.isArray(point) || point.length !== 2) return null;
+    const x = Object.getOwnPropertyDescriptor(point, '0'), y = Object.getOwnPropertyDescriptor(point, '1');
+    if (!x || !y || !('value' in x) || !('value' in y)
+      || !Number.isSafeInteger(x.value) || !Number.isSafeInteger(y.value)
+      || Object.is(x.value, -0) || Object.is(y.value, -0)) return null;
+    parts.push(`${x.value},${y.value}`);
+  }
+  return parts.join(';');
+}
+function copyDependencyTerritory(result) {
+  return { ...result, polygon: result.polygon ? result.polygon.map(clonePoint) : null };
+}
+function dependencyBfsBucket() {
+  return { groups: new Map(), entries: 0, characters: 0, units: 0 };
+}
+function dependencyBfsGet(bucket, obstacleKey, srcIdx) {
+  const group = bucket.groups.get(obstacleKey);
+  if (!group) return null;
+  bucket.groups.delete(obstacleKey); bucket.groups.set(obstacleKey, group);
+  return group.entries.get(srcIdx) || null;
+}
+function dependencyBfsPut(bucket, obstacleKey, srcIdx, entry) {
+  if (obstacleKey.length > 65536 || entry.units > 524288) return;
+  let group = bucket.groups.get(obstacleKey);
+  // Admission preserves the first six sources for each obstacle view instead
+  // of evicting them during a sequential contour scan. Twelve complete enemy
+  // views cover the two canonical orientations of six active players.
+  if (group?.entries.has(srcIdx) || (group && group.entries.size >= 6)) return;
+  while ((!group && bucket.groups.size >= 12) || bucket.characters + (group ? 0 : obstacleKey.length) > 65536
+    || bucket.units + entry.units > 524288) {
+    const [key, removed] = bucket.groups.entries().next().value;
+    bucket.groups.delete(key); bucket.characters -= key.length;
+    bucket.entries -= removed.entries.size; bucket.units -= removed.units;
+    if (key === obstacleKey) group = null;
+  }
+  if (!group) {
+    group = { entries: new Map(), units: 0 };
+    bucket.groups.set(obstacleKey, group); bucket.characters += obstacleKey.length;
+  }
+  group.entries.set(srcIdx, entry); group.units += entry.units;
+  bucket.entries++; bucket.units += entry.units;
+}
+function packDependencyBfs(result) {
+  const offsets = new Int32Array(result.pred.length + 1);
+  for (let index = 0; index < result.pred.length; index++) offsets[index + 1] = offsets[index] + (result.pred[index]?.length || 0);
+  const predecessors = new Int32Array(offsets[offsets.length - 1]);
+  for (let index = 0; index < result.pred.length; index++) if (result.pred[index]) predecessors.set(result.pred[index], offsets[index]);
+  return { dist: new Int32Array(result.dist), offsets, predecessors };
+}
+function unpackDependencyBfs(result) {
+  // Never expose retained typed arrays or iterator-specific extra metadata.
+  return { dist: new Int32Array(result.dist), pred: Array.from({length:result.dist.length}, (_, index) =>
+    result.offsets[index + 1] > result.offsets[index]
+      ? Array.from(result.predecessors.subarray(result.offsets[index], result.offsets[index + 1])) : null) };
 }
 
 export default GameEngine;

@@ -1,3 +1,6 @@
+import { implementationMarkdown } from "./GuideImplementation.js?v=20261025-unified1";
+import { guideHeadingId, isGuideAnchorId } from "./GuideArticleFormat.js?v=20261025-unified1";
+
 const WHY_TALK_ZH = `# Talk：扩张、防守与破绽
 
 最高指挥官，如果要一句话说明这个游戏为什么值得玩：它有围棋的圈地灵魂，却不只在点与气上较量，而是把点、线、面同时推上战场；它也不像国际象棋、中国象棋、将棋那样依靠不同棋子的能力差异制造复杂度，更不像跳棋主要沿固定吃子路径推进。这里每个节点本质相同，公平而简洁，但一条线的连接或切断会改变整片面的生死。真正抓人的地方，不是“谁占的点更多”，而是每一次扩张都会改变自己的脆弱面。三角棋盘像一条从狭窄前线展开到广阔纵深的战场：靠近大本营，补给短、结构稳；推进到中央，空间变大，防线也被拉长。
@@ -24,7 +27,7 @@ const WHY_TALK_ZH = `# Talk：扩张、防守与破绽
 
 所以，这个游戏不是单纯的占点竞赛。它要求玩家在效率、闭合、桥、割点、战线长度和后续空间之间寻找均衡。妙处不在规则复杂，而在规则把所有逃避都封死了：你必须扩张，也必须暴露；你必须防守，也必须留下空间。`;
 
-const WHY_CODE_ZH = "# Code：规则、搜索与可靠状态\n\n源码按 `web/`、`core algorithm/`、`research/` 和 `docs/` 组织。物理 `grid` 记录占用，逻辑 `edges` 决定连通性；Web `territory-v2` 以离散领土结算，Superko 历史属于规则状态。\n\n蓝红双方可独立选择人类或 9 种 AI 策略。搜索与提示使用 Worker，并检查请求和局面归属；棋谱导入先隔离重放，再替换对局。\n\n[项目与完整 Code 文档](https://github.com/Chengzong-Zhang/Line-Game)";
+const WHY_CODE_ZH = implementationMarkdown("whyCode", "zh");
 
 const WHY_THEORY_ZH = `# Theory：算力深渊与上帝的简洁逻辑
 
@@ -117,7 +120,7 @@ With three players, the game becomes even subtler: alliances and counter-allianc
 
 The game is not a simple occupation race. It asks the player to balance efficiency, closure, bridges, articulation points, frontage, and future space.`;
 
-const WHY_CODE_EN = "# Code: Rules, Search, and Reliable State\n\nThe repository is organized into `web/`, `core algorithm/`, `research/`, and `docs/`. Physical `grid` occupancy and logical `edges` serve separate purposes. Web `territory-v2` uses discrete territory scores; Superko history is part of the rule state.\n\nBlue and red independently choose a human or one of nine AI strategies. Worker responses must belong to the current request and position. Replay import validates in an isolated engine before replacing the game.\n\n[Project and full Code documentation](https://github.com/Chengzong-Zhang/Line-Game)";
+const WHY_CODE_EN = implementationMarkdown("whyCode", "en");
 
 const WHY_THEORY_EN = `# Theory: A Simple Law, a Deep Search Space
 
@@ -187,7 +190,7 @@ CNNs see local texture. This game is valued by base connectivity, bridges, artic
 const GUIDE_MARKDOWN = Object.freeze({
   zh: Object.freeze({
     rulesEssential: `【胜利条件】
-双方轮流在三角网格落子，最终由己方节点与连线完全闭合且内部无敌方元素的区域即为领土，领土所包含的网格点数多者获胜。
+双方轮流在三角网格落子。己方节点和连线经过的格点直接计入领土；由己方点线围住、与棋盘外界隔绝且不含敌方元素的每个空腔也计入，包括甜甜圈形状的内孔；含敌方元素的空腔不计。无需形成单一闭环；开链和单线仍按己方点数计分。同一格点只算一次。显示轮廓（displayArea）仅用于展示，不决定正式分数；最终格点数多者获胜。
 ![可落子区域示意](./guide-images/可以走的区域png.png)
 
 【核心机制】
@@ -215,7 +218,7 @@ const GUIDE_MARKDOWN = Object.freeze({
 随着战役打响，你需要和敌军轮流派出士兵，占据新的网格点。只要视线不被阻挡，你的新兵就会和原有的部队自动拉起一条相互呼应的补给线。
 ![可落子区域示意](./guide-images/可以走的区域png.png)
 
-你的终极目标是尽可能扩大你的安全领土。在这片战场上，领土就是由你的士兵和补给线完完全全包围起来的区域。为了减轻前线的防御压力，我们聪明的参谋部会自动为你规划出最精简的防线。这条防线会尽可能缩短周长、减少多余的防守面积，但一定会把你所有的部队都安全地保护在内，并且保证圈进来的地盘里绝对没有任何敌军的影子。
+你的终极目标是尽可能扩大你的安全领土。在这片战场上，士兵所在格点和补给线经过的格点始终计分，不要求闭合。己方点线隔开的安全空腔也计分；多个空腔和甜甜圈内孔分别计算，含敌军的空腔不计。同一格点只算一次。显示轮廓（displayArea）仅用于展示，不决定正式分数。参谋部仍可收紧可视边界，同时保护全部己方节点。
 
 在这场鏖战中，战备资源十分紧张。为了避免兵力浪费，你不能把三个士兵紧挨着挤在一个小三角里。
 ![三点限制示意](./guide-images/三点限制.png)
@@ -224,51 +227,8 @@ const GUIDE_MARKDOWN = Object.freeze({
 ![切断示意一](./guide-images/切断1.png)
 ![切断示意二](./guide-images/切断2.png)
 
-当所有的硝烟散去，双方都无兵可派、无地可占时，谁圈出的领土面积更大，谁就是这场战争真正的赢家。去吧，指挥官，愿你的防线坚不可摧。`,
-    rulesMath: `# 离散数学与强化学习视角：三角圈地博弈的形式化定义与理论分析
-
-本文档旨在从离散数学中的图论、组合博弈论（CGT）以及强化学习的视角，对本博弈游戏进行严谨的数学定义、模型构建与复杂性评估。
-
-## 一、组合博弈论属性、策梅洛定理与迫移局面
-
-本游戏是一个**双人、有限步数、完备信息、确定性（无随机因素）的零和博弈**。
-
-根据组合博弈论中的策梅洛定理（Zermelo's Theorem），满足上述条件的有限博弈必然存在纯策略的纳什均衡。这意味着在完美算力下，必定存在确定的最优策略。
-
-然而，在经典的对称博弈中，增加己方棋子永远能带来严格的正向收益，理论上先手方可以通过随便落子并假装自己是后手，从而完成“策略窃取（Strategy Stealing）”，这在逻辑上排除了后手必胜的可能。但在本博弈模型中，这种经典证明被彻底摧毁。由于引入了动态拓扑解绑与防拥挤约束，额外增加一个节点极有可能成为敌方发起切割攻击的物理跳板，或者不慎堵死己方后续的布阵空间。这意味着在特定盘面下，落子不仅无法产生收益，反而会帮倒忙。由于玩家无法放弃行动回合，系统极易陷入被迫落子从而破坏自身完美防线的状态，即博弈论中经典的**迫移局面（Zugzwang）**。
-![三点限制示意](./guide-images/三点限制.png)
-
-迫移局面的客观存在，使得后手方具备了通过精准诱导实现反杀的理论可能。这不仅彻底瓦解了试图建立“先手无脑必不败”的粗暴证明，更赋予了游戏极深的反击战术维度，使得博弈树的分支因子和状态价值评估呈现出高度的非线性。寻找理论最优解因此成为一个计算复杂性极高的问题，非常适合作为深度强化学习的研究环境。
-
-## 二、状态空间的图论建模（Graph Representation）
-
-游戏的物理基底是一个有限的离散点集，由边长为 $N$ 的三角网格的所有坐标构成，记为全局顶点集 $V_{grid}$。在任意离散时间步 $t$，游戏的全局状态可被严谨地定义为一张带色彩属性的无向图 $S_t = \\langle G_t, C_t \\rangle$，其中：
-
-* $G_t = (V_t, E_t)$，$V_t \\subseteq V_{grid}$ 为当前棋盘上存活的节点集合，$E_t$ 为节点间通过直线规则生成的边集合。
-* $C_t: V_t \\cup E_t \\rightarrow \\{Black, White\\}$ 为特征函数，映射点与边的阵营归属。
-
-【图论连通性公理】
-图 $G_t$ 中存在两个特殊的固定基点 $v_{black}^* = (0,0)$ 与 $v_{white}^* = (N-1,0)$。对于任意时刻 $t$ 的任意同色子图 $G^{color}_t$，其包含的所有顶点和边，必须在图论意义上与对应的基点 $v_{color}^*$ 属于同一个连通分量。
-![起点限制示意](./guide-images/起点限制.png)
-
-## 三、动作空间与图结构的动态演化
-
-玩家的动作空间定义为在集合 $V_{grid} \\setminus V_t$ 中选择一个合法空顶点。系统状态的转移函数表现为对无向图 $G_t$ 的离散算子操作，严格按以下顺序执行：
-![可落子区域示意](./guide-images/可以走的区域png.png)
-
-1. 落子后，沿六个离散网格方向进行射线扫描，若遇到同色节点且无异色元素遮挡，则生成新边。
-2. 若动作坐标正好落在敌方某条边的离散路径上，则该边会被永久删除，这会导致敌方图结构直接分裂。
-![切断示意一](./guide-images/切断1.png)
-3. 应用广度优先搜索，在敌方子图中寻找包含其基点的极大连通分量。所有不属于该连通分量的顶点与边都会因违背连通性公理而被剔除。
-![切断示意二](./guide-images/切断2.png)
-
-## 四、强化学习建模：回合制马尔可夫决策过程
-
-为使现代强化学习算法能够求解该博弈，需将其抽象为一个马尔可夫决策过程 $\\mathcal{M} = \\langle \\mathcal{S}, \\mathcal{A}, \\mathcal{P}, \\mathcal{R} \\rangle$。
-
-* 状态张量编码：系统状态可以被编码为一个多通道的二维特征矩阵集合，分别表示黑方节点特征、白方节点特征以及全局邻接矩阵。
-* Superko 与 DAG 转移约束：为防止由于割边算子引发的循环博弈，引入基于图结构哈希的历史状态集 $H$。状态转移必须满足 $Hash(S_{t+1}) \\notin H$，从而保证单个 Episode 必然在有限步内到达终局状态。
-* 稀疏奖励函数：游戏过程中的即时奖励为 0，仅在终局时调用泛洪注水算法计算各方最终圈地的离散格点基数，并给出最终奖励。`,
+当所有的硝烟散去，双方都无兵可派、无地可占时，谁控制的领土格点更多，谁就是这场战争真正的赢家。去吧，指挥官，愿你的防线坚不可摧。`,
+    rulesMath: implementationMarkdown("rulesMath", "zh"),
     whyTalk: WHY_TALK_ZH,
     whyCode: WHY_CODE_ZH,
     whyTheory: WHY_THEORY_ZH,
@@ -289,7 +249,7 @@ UE设计师：zcz, LeoYan, Codex(GPT5.4), Pigeon
   }),
   en: Object.freeze({
     rulesEssential: `【Victory Condition】
-Players take turns placing nodes on a triangular grid. Any region fully enclosed by your own nodes and links, with no enemy elements inside, counts as your territory. The side controlling more grid points inside its territories wins.
+Players take turns placing nodes on a triangular grid. Your nodes and link points always count. Every enemy-free pocket cut off from the board exterior by friendly points also counts, including the inner hole of a donut-shaped structure; pockets containing an enemy are excluded. No single closed loop is required; an open chain or single line still scores its owned points. Each point counts once. The displayed outline (displayArea) is for presentation and does not determine the official score; the higher total wins.
 ![Playable area example](./guide-images/可以走的区域png.png)
 
 【Core Mechanic】
@@ -317,7 +277,7 @@ To prevent headquarters from being sealed off on turn one, a powerful guard prot
 As the campaign unfolds, you and your opponent alternate sending units to occupy new grid points. Whenever sight lines remain open, a new unit automatically links up with the rest of its side's formation and extends the supply network.
 ![Playable area example](./guide-images/可以走的区域png.png)
 
-Your ultimate objective is to expand secure territory. On this battlefield, territory means land completely surrounded by your troops and supply lines. To reduce the burden on your front, the staff automatically tightens your border into the leanest defensive outline it can find. That outline tries to shorten the perimeter and remove waste, while still protecting all of your forces and guaranteeing that no enemy presence remains inside the enclosed land.
+Your ultimate objective is to expand secure territory. Your troops and supply lines always count their grid points. Enemy-free pockets cut off from the board exterior also count; multiple pockets and donut holes are evaluated separately, while a pocket containing an enemy is excluded. No loop is required to score owned points. Each point counts once. The displayed outline (displayArea) is for presentation and does not determine the official score. The staff may tighten the displayed boundary while keeping every friendly node protected.
 
 Resources are tight in a drawn-out war. To avoid waste, you cannot crowd three soldiers into the smallest possible triangle.
 ![Three-point restriction](./guide-images/三点限制.png)
@@ -326,51 +286,8 @@ But the battlefield changes instantly. If your move lands directly on an enemy s
 ![Cut example one](./guide-images/切断1.png)
 ![Cut example two](./guide-images/切断2.png)
 
-When the smoke clears and neither side has any move or expansion left, the side that enclosed more territory is the true winner. Go on, Commander. May your lines hold.`,
-    rulesMath: `# A Formal View of the Triangular Territory Game from Discrete Math and Reinforcement Learning
-
-This note describes the game through graph theory, combinatorial game theory (CGT), and reinforcement learning, with the goal of giving it a precise mathematical model and a clear complexity profile.
-
-## I. Combinatorial Game Structure, Zermelo's Theorem, and Zugzwang
-
-This game is a **two-player, finite, perfect-information, deterministic, zero-sum game**.
-
-By Zermelo's Theorem, every finite game of this kind has an optimal pure-strategy equilibrium. In principle, perfect play must therefore exist.
-
-In many classical symmetric games, adding one more friendly piece is never harmful. That supports the usual strategy-stealing argument: the first player can imagine being second and still not lose. Here that logic breaks down. Because the game includes dynamic topological disconnection and anti-crowding constraints, an extra node can become a physical stepping stone for an enemy cut or can block your own future shape. In some positions, playing more is not just unhelpful, it is actively harmful. Since players cannot pass forever, the game naturally creates **zugzwang** positions in which being forced to move damages an otherwise stable defense.
-![Three-point restriction](./guide-images/三点限制.png)
-
-The existence of zugzwang gives the second player real counterplay. It destroys any naive proof that the first player must always be safe, and it gives the game a strongly nonlinear tactical structure. That also makes the search for optimal play computationally expensive, which is exactly why the game is interesting as a reinforcement-learning environment.
-
-## II. Graph Representation of the State Space
-
-The physical substrate of the game is a finite set of lattice points: all coordinates of a triangular grid with side length $N$. Call that global vertex set $V_{grid}$. At any discrete time step $t$, the full game state can be written as a colored undirected graph $S_t = \\langle G_t, C_t \\rangle$, where:
-
-* $G_t = (V_t, E_t)$, with $V_t \\subseteq V_{grid}$ the currently surviving nodes and $E_t$ the links generated by the line-connection rules.
-* $C_t: V_t \\cup E_t \\rightarrow \\{Black, White\\}$, a feature function assigning each node and edge to a side.
-
-【Connectivity Axiom】
-The graph $G_t$ contains two distinguished anchor nodes, $v_{black}^* = (0,0)$ and $v_{white}^* = (N-1,0)$. For any time $t$ and any monochromatic subgraph $G^{color}_t$, every contained node and edge must belong to the same connected component as that side's anchor.
-![Starting-point restriction](./guide-images/起点限制.png)
-
-## III. Action Space and Dynamic Graph Evolution
-
-The action space consists of choosing a legal empty vertex from $V_{grid} \\setminus V_t$. State transitions are discrete operators applied to the graph $G_t$, in the following order:
-![Playable area example](./guide-images/可以走的区域png.png)
-
-1. After a move is placed, cast rays along the six lattice directions. If a same-color node is found with no opposing element blocking the path, add a new edge.
-2. If the chosen coordinate lies on the discrete path of an enemy edge, that edge is deleted permanently, which may split the enemy graph.
-![Cut example one](./guide-images/切断1.png)
-3. Run breadth-first search on the enemy subgraph to find the maximal connected component containing its anchor. Every node and edge outside that component is removed for violating the connectivity axiom.
-![Cut example two](./guide-images/切断2.png)
-
-## IV. Reinforcement-Learning Model: Turn-Based Markov Decision Process
-
-To make the game solvable by modern RL methods, we model it as a Markov decision process $\\mathcal{M} = \\langle \\mathcal{S}, \\mathcal{A}, \\mathcal{P}, \\mathcal{R} \\rangle$.
-
-* State tensor encoding: the board can be encoded as multi-channel two-dimensional features, including black-node features, white-node features, and a global adjacency structure.
-* Superko and DAG transition constraint: to prevent cycles caused by repeated cutting, maintain a history set $H$ over graph hashes. Legal transitions must satisfy $Hash(S_{t+1}) \\notin H$, guaranteeing that each episode still reaches a terminal state in finitely many steps.
-* Sparse reward function: the immediate reward during play is 0. Only at the end of the game do we evaluate enclosed territory with a flood-fill style area operator and assign the final reward.`,
+When the smoke clears and neither side has any move or expansion left, the side controlling more territory grid points is the true winner. Go on, Commander. May your lines hold.`,
+    rulesMath: implementationMarkdown("rulesMath", "en"),
     whyTalk: WHY_TALK_EN,
     whyCode: WHY_CODE_EN,
     whyTheory: WHY_THEORY_EN,
@@ -525,6 +442,28 @@ export function ensureGuideRuleImages(key, blocks = [], language = "zh") {
   }
 
   const pending = new Map(missingImages.map((block) => [block.id, block]));
+  // The paper has an explicit contents list: keyword matching would place
+  // diagrams inside that list. Bind these illustrations to body sections.
+  if (key === "rulesMath" && normalizedBlocks.some(block => block.type === "heading3" && /^1\.2\s/.test(block.text))) {
+    const sectionImages = { "1.2": ["triangle", "start", "playable"], "2.1": ["cut1", "cut2"] };
+    const result = [];
+    let section = null;
+    const appendSectionImages = () => {
+      for (const id of sectionImages[section] ?? []) {
+        if (pending.has(id)) result.push(pending.get(id));
+        pending.delete(id);
+      }
+    };
+    for (const block of normalizedBlocks) {
+      if (/^heading[123]$/.test(block.type)) {
+        appendSectionImages();
+        section = block.type === "heading3" ? block.text.match(/^(\d+\.\d+)\s/)?.[1] : null;
+      }
+      result.push(block);
+    }
+    appendSectionImages();
+    return [...result, ...pending.values()];
+  }
   const anchors = GUIDE_RULE_IMAGE_ANCHORS[key] ?? {};
   const result = [];
 
@@ -571,7 +510,9 @@ function tokenizeInline(text) {
           if (["http:", "https:"].includes(url.protocol)) safeHref = url.href;
         } catch (_) { /* Invalid URLs remain plain text. */ }
       }
-      tokens.push(safeHref
+      tokens.push((typeof href === "string" && href.startsWith("#") && isGuideAnchorId(href.slice(1)))
+        ? { type: "anchor", text: label, href }
+        : safeHref
         ? { type: "link", text: label, href: safeHref }
         : { type: "text", text: matchText });
     } else if (matchText.startsWith("**") && matchText.endsWith("**")) {
@@ -649,6 +590,7 @@ export function getGuideMarkdownAsset(key, language = "zh") {
       thanks: "./guide/Thanks.md",
     },
     en: {
+      rulesMath: "./guide/rule/math%20rule.en.md",
       whyTalk: "./guide/interesting/why-talk.en.md",
       whyCode: "./guide/interesting/why-code.en.md",
       whyTheory: "./guide/interesting/why-theory.en.md",
@@ -733,19 +675,19 @@ export function parseGuideMarkdown(raw) {
     }
     if (trimmed.startsWith("# ")) {
       flushParagraph(paragraphLines);
-      blocks.push(createTextBlock("heading1", trimmed.slice(2)));
+      blocks.push(createTextBlock("heading1", trimmed.slice(2), { id: guideHeadingId(trimmed.slice(2)) }));
       index += 1;
       continue;
     }
     if (trimmed.startsWith("## ")) {
       flushParagraph(paragraphLines);
-      blocks.push(createTextBlock("heading2", trimmed.slice(3)));
+      blocks.push(createTextBlock("heading2", trimmed.slice(3), { id: guideHeadingId(trimmed.slice(3)) }));
       index += 1;
       continue;
     }
     if (trimmed.startsWith("### ")) {
       flushParagraph(paragraphLines);
-      blocks.push(createTextBlock("heading3", trimmed.slice(4)));
+      blocks.push(createTextBlock("heading3", trimmed.slice(4), { id: guideHeadingId(trimmed.slice(4)) }));
       index += 1;
       continue;
     }

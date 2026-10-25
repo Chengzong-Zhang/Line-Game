@@ -1,4 +1,4 @@
-import { fastTerritoryBFS, restoreState, saveState } from "./AIEngine.js?v=20261020-three1";
+import { fastTerritoryBFS, restoreState, saveState } from "./AIEngine.js?v=20261025-unified1";
 
 export const THREE_PLAYER_MODEL_ID = "three-player-policy-v1";
 export const THREE_PLAYER_FEATURES = Object.freeze([
@@ -7,7 +7,7 @@ export const THREE_PLAYER_FEATURES = Object.freeze([
   "own_coverage_gain", "attack", "own_line", "distance_from_home", "centrality",
   "own_frontier", "opponent_frontier_lead",
 ]);
-const MODEL_URL = new URL("./assets/research-ai/three-player-policy-v1.json?v=20261020-three1", import.meta.url);
+const MODEL_URL = new URL("./assets/research-ai/three-player-policy-v1.json?v=20261025-unified1", import.meta.url);
 let modelPromise = null;
 
 function counts(engine, player) {
@@ -114,7 +114,7 @@ export class ThreePlayerAI {
   constructor(model) { this.model = model; }
 
   getTopMoves(engine, player, topN = 5) {
-    if (engine.playerCount !== 3 || engine.rulesVersion !== "territory-v2"
+    if (engine.playerCount !== 3 || !["territory-v2", "territory-v3"].includes(engine.rulesVersion)
         || engine.gridSize < 5 || engine.gridSize > 15) {
       throw new Error("三人 AI 需要 5–15 边长的 territory-v2 三人对局。");
     }

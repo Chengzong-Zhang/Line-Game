@@ -1,6 +1,6 @@
-import { loadThreePlayerModel, ThreePlayerAI } from "./ThreePlayerModels.js?v=20261021-three2";
-import { ThreePlayerSearchAI } from "./ThreePlayerSearchAI.js?v=20261021-three4";
-import { THREE_PLAYER_SEARCH_MODEL_ID, THREE_PLAYER_SEARCH_MODEL_SHA256, THREE_PLAYER_SEARCH_SIZES } from "./ThreePlayerSearchOptions.js?v=20261021-three4";
+import { loadThreePlayerModel, ThreePlayerAI } from "./ThreePlayerModels.js?v=20261025-unified1";
+import { ThreePlayerSearchAI } from "./ThreePlayerSearchAI.js?v=20261025-unified1";
+import { THREE_PLAYER_SEARCH_MODEL_ID, THREE_PLAYER_SEARCH_MODEL_SHA256, THREE_PLAYER_SEARCH_SIZES } from "./ThreePlayerSearchOptions.js?v=20261025-unified1";
 
 let searchModelPromise;
 export async function loadThreePlayerSearchModel(id = THREE_PLAYER_SEARCH_MODEL_ID) {
@@ -26,7 +26,7 @@ export async function loadThreePlayerSearchModel(id = THREE_PLAYER_SEARCH_MODEL_
 
 export async function loadThreePlayerRuntime(modelId = "three-player-policy-v1", engine) {
   if (modelId === THREE_PLAYER_SEARCH_MODEL_ID) {
-    if (engine.playerCount !== 3 || engine.rulesVersion !== "territory-v2"
+    if (engine.playerCount !== 3 || !["territory-v2", "territory-v3"].includes(engine.rulesVersion)
         || !THREE_PLAYER_SEARCH_SIZES.includes(engine.gridSize)) {
       throw new Error("三人搜索 AI 仅支持 territory-v2 的 5、7、9 路三人对局。");
     }

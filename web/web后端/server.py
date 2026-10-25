@@ -59,8 +59,9 @@ TURN_TIMER_MAX_SECONDS = 200
 DEFAULT_TURN_TIMER_SECONDS = 60
 TERRITORY_RULE_V1 = "territory-v1"
 TERRITORY_RULE_V2 = "territory-v2"
-DEFAULT_RULES_VERSION = TERRITORY_RULE_V2
-ALLOWED_RULES_VERSIONS = {TERRITORY_RULE_V1, TERRITORY_RULE_V2}
+TERRITORY_RULE_V3 = "territory-v3"
+DEFAULT_RULES_VERSION = TERRITORY_RULE_V3
+ALLOWED_RULES_VERSIONS = {TERRITORY_RULE_V1, TERRITORY_RULE_V2, TERRITORY_RULE_V3}
 CHAT_EMOJI_MAX_CONTENT_LENGTH = 32
 CHAT_EMOJI_MIN_DURATION_MS = 300
 CHAT_EMOJI_MAX_DURATION_MS = 3000
@@ -285,6 +286,9 @@ class Room:
     settings: Dict[str, Any] = field(default_factory=dict)
     host_player_id: Optional[str] = None
     reset_votes: set[str] = field(default_factory=set)
+    undo_votes: set[str] = field(default_factory=set)
+    undo_target: Optional[int] = None
+    undo_used_count: int = 0
     ready_players: set[str] = field(default_factory=set)
     match_started: bool = False
     countdown_started_at: Optional[float] = None
@@ -414,6 +418,10 @@ class ConnectionManager:
 
         if message_type == "player_reset":
             await self.forward_reset(websocket, message.get("reason"))
+            return
+
+        if message_type == "player_undo":
+            await self.forward_undo(websocket, message.get("accept", True))
             return
 
         if message_type == "player_ready":
@@ -644,6 +652,8 @@ class ConnectionManager:
         room.generation += 1
         room.game_over = False
         room.bot_error = None
+        room.undo_votes.clear()
+        room.undo_target = None
         room.ready_players.update(player.player_id for player in room.players.values() if player.is_bot)
 
     def _cancel_bot_task_locked(self, room: Room) -> None:
@@ -652,7 +662,7 @@ class ConnectionManager:
             room.bot_task = None
 
     def _schedule_bots_locked(self, room: Room) -> None:
-        if not room.has_bots() or not room.match_started or room.game_over or not room.all_humans_connected():
+        if not room.has_bots() or not room.match_started or room.game_over or room.undo_target is not None or not room.all_humans_connected():
             return
         if room.bot_task is None or room.bot_task.done():
             room.bot_task = asyncio.create_task(self._run_bot_turns(room))
@@ -671,6 +681,7 @@ class ConnectionManager:
             and room.generation == snapshot["generation"]
             and len(room.actions) == len(snapshot["actions"])
             and room.match_started
+            and room.undo_target is None
             and room.all_humans_connected()
         )
 
@@ -735,6 +746,9 @@ class ConnectionManager:
                 elif not room.all_humans_connected():
                     error = {"code": "OPPONENT_OFFLINE", "message": "Waiting for the other human player to reconnect."}
                     snapshot = None
+                elif room.undo_target is not None:
+                    error = {"code": "UNDO_PENDING", "message": "Resolve the undo vote before playing."}
+                    snapshot = None
                 else:
                     sender = prepared["sender"]
                     action = {"type": action_type, "color": sender.color}
@@ -757,6 +771,7 @@ class ConnectionManager:
             async with self.lock:
                 valid = (
                     self._bot_snapshot_current_locked(room, snapshot)
+                    and room.undo_target is None
                     and self.websocket_index.get(websocket) == identity
                 )
                 if valid and result.get("success"):
@@ -865,6 +880,10 @@ class ConnectionManager:
                         "message": "The room no longer exists.",
                     },
                 )
+                return
+
+            if room.undo_target is not None:
+                await self.send_json(websocket, {"type": "ERROR", "code": "UNDO_PENDING", "message": "Resolve the undo vote before playing."})
                 return
 
             sender = room.players[sender_id]
@@ -990,6 +1009,7 @@ class ConnectionManager:
 
                 if restart_reason == "normal_restart":
                     room.actions = []
+                    room.undo_used_count = 0
                     room.match_started = False
                     room.ready_players.clear()
                     self._reset_bot_state_locked(room)
@@ -1010,6 +1030,7 @@ class ConnectionManager:
                         None,
                     )
                     room.actions = []
+                    room.undo_used_count = 0
                     room.match_started = False
                     room.ready_players.clear()
                     self._reset_bot_state_locked(room)
@@ -1038,6 +1059,71 @@ class ConnectionManager:
 
         for target_websocket, payload in payloads:
             await self.send_json(target_websocket, payload)
+
+    async def forward_undo(self, websocket: WebSocket, accept: Any) -> None:
+        async with self.lock:
+            action = self._prepare_room_member_locked(websocket)
+            if action["error"] is not None:
+                error_payload = action["error"]
+                payloads = []
+            else:
+                room = action["room"]
+                sender = action["sender"]
+                humans = {player.player_id for player in room.players.values() if not player.is_bot}
+                if not room.match_started or not room.settings.get("undoEnabled") or not room.actions:
+                    error_payload = {"type": "ERROR", "code": "UNDO_UNAVAILABLE", "message": "Undo is unavailable for this match."}
+                    payloads = []
+                elif room.undo_used_count >= room.settings.get("undoMaxCount", 3):
+                    error_payload = {"type": "ERROR", "code": "UNDO_LIMIT", "message": "The undo limit has been reached."}
+                    payloads = []
+                elif not room.all_humans_connected():
+                    error_payload = {"type": "ERROR", "code": "OPPONENT_OFFLINE", "message": "Wait for every player to reconnect before undoing."}
+                    payloads = []
+                elif accept is not True and accept is not False:
+                    error_payload = {"type": "ERROR", "code": "INVALID_UNDO_VOTE", "message": "Invalid undo vote."}
+                    payloads = []
+                elif accept is False and room.undo_target is None:
+                    error_payload = {"type": "ERROR", "code": "UNDO_NOT_PENDING", "message": "There is no undo request."}
+                    payloads = []
+                else:
+                    error_payload = None
+                    if accept is False:
+                        room.undo_votes.clear()
+                        room.undo_target = None
+                        event_type = "UNDO_STATUS"
+                    else:
+                        if room.undo_target is None:
+                            room.undo_target = len(room.actions)
+                            self._cancel_bot_task_locked(room)
+                            room.generation += 1
+                        if room.undo_target != len(room.actions):
+                            room.undo_votes.clear()
+                            room.undo_target = None
+                            error_payload = {"type": "ERROR", "code": "UNDO_STALE", "message": "The match changed. Request undo again."}
+                            payloads = []
+                        else:
+                            room.undo_votes.add(sender.player_id)
+                            if humans <= room.undo_votes:
+                                room.actions.pop()
+                                room.undo_used_count += 1
+                                room.undo_votes.clear()
+                                room.undo_target = None
+                                self._reset_bot_state_locked(room)
+                                event_type = "ROOM_UNDO"
+                            else:
+                                event_type = "UNDO_STATUS"
+                    if error_payload is None:
+                        room.updated_at = time.time()
+                        payloads = self._connected_room_payloads_with_identity(room, event_type)
+
+        if error_payload is not None:
+            await self.send_json(websocket, error_payload)
+            return
+        for target_websocket, payload in payloads:
+            await self.send_json(target_websocket, payload)
+        if event_type == "ROOM_UNDO" or accept is False:
+            async with self.lock:
+                self._schedule_bots_locked(room)
 
     async def player_leave(self, websocket: WebSocket, reason: str = "player_leave") -> None:
         async with self.lock:
@@ -1142,6 +1228,7 @@ class ConnectionManager:
                     else:
                         room.settings = normalized_settings
                         room.actions = []
+                        room.undo_used_count = 0
                         room.match_started = False
                         room.ready_players.clear()
                         self._configure_bots_locked(room)
@@ -1350,6 +1437,12 @@ class ConnectionManager:
             "countdownEndsAt": self._countdown_ends_at_ms(room),
             "serverTimestamp": int(room.updated_at * 1000),
             "botError": room.bot_error,
+            "undo": {
+                "usedCount": room.undo_used_count,
+                "pending": room.undo_target is not None,
+                "votes": list(room.undo_votes),
+                "requiredVotes": len([player for player in room.players.values() if not player.is_bot]),
+            },
         }
         if reason:
             payload["reason"] = reason
@@ -1392,6 +1485,7 @@ class ConnectionManager:
                     return
 
                 room.actions = []
+                room.undo_used_count = 0
                 self._reset_bot_state_locked(room)
                 room.match_started = True
                 room.reset_votes.clear()
@@ -1487,6 +1581,8 @@ class ConnectionManager:
         self._cancel_bot_task_locked(room)
         room.updated_at = time.time()
         room.reset_votes.clear()
+        room.undo_votes.clear()
+        room.undo_target = None
         # 永久离开时才重置 match_started 和 ready 状态；临时断线只取消倒计时。
         if remove_player:
             room.ready_players.discard(player_id)
@@ -1569,6 +1665,8 @@ class ConnectionManager:
                     "message": "The room is still in the lobby. Wait for everyone to get ready.",
                 },
             }
+        if room.undo_target is not None:
+            return {"error": {"type": "ERROR", "code": "UNDO_PENDING", "message": "Resolve the undo vote before playing."}}
         opponents = [
             player
             for player in self._find_other_players(room, sender_id)
@@ -1731,6 +1829,11 @@ class ConnectionManager:
         start_player = settings.get("startPlayer", PLAYER_BLACK)
         rules_version = settings.get("rulesVersion", DEFAULT_RULES_VERSION)
         bot_count = settings.get("botCount", 0)
+        board_shape = settings.get("boardShape")
+        starting_mode = settings.get("startingPointMode", "default")
+        initial_positions = settings.get("initialPositions")
+        undo_enabled = settings.get("undoEnabled") is True
+        undo_max_count = settings.get("undoMaxCount", 3)
         turn_timer_enabled = bool(settings.get("turnTimerEnabled", False))
         turn_time_limit_seconds = settings.get("turnTimeLimitSeconds", DEFAULT_TURN_TIMER_SECONDS)
 
@@ -1754,17 +1857,45 @@ class ConnectionManager:
             rules_version = DEFAULT_RULES_VERSION
         if type(bot_count) is not int or player_count < 3 or not 0 <= bot_count < player_count:
             bot_count = 0
+        if board_shape not in ("triangle", "hexagon"):
+            board_shape = "hexagon" if player_count >= 4 else "triangle"
+        if type(undo_max_count) is not int:
+            undo_max_count = 3
+        undo_max_count = max(1, min(10, undo_max_count))
+        starts = {}
+        if starting_mode in ("random", "custom") and isinstance(initial_positions, dict):
+            radius = grid_size - 1
+            used = set()
+            valid = set(initial_positions) == set(allowed_players)
+            for color in allowed_players:
+                point = initial_positions.get(color)
+                if not isinstance(point, list) or len(point) != 2 or any(type(axis) is not int for axis in point):
+                    valid = False
+                    break
+                x, y = point
+                on_board = (0 <= x <= 2 * radius and 0 <= y <= 2 * radius and radius <= x + y <= 3 * radius) if board_shape == "hexagon" else (x >= 0 and y >= 0 and x + y <= radius)
+                if not on_board or (x, y) in used:
+                    valid = False
+                    break
+                used.add((x, y))
+            if valid:
+                starts = {"startingPointMode": starting_mode, "initialPositions": {color: list(initial_positions[color]) for color in allowed_players}}
         if bot_count:
-            rules_version = TERRITORY_RULE_V2
+            if rules_version == TERRITORY_RULE_V1:
+                rules_version = DEFAULT_RULES_VERSION
 
         return {
             "playerCount": player_count,
+            "boardShape": board_shape,
             "gridSize": grid_size,
             "startPlayer": start_player,
             "rulesVersion": rules_version,
             "turnTimerEnabled": turn_timer_enabled,
             "turnTimeLimitSeconds": turn_time_limit_seconds,
             "botCount": bot_count,
+            "undoEnabled": undo_enabled,
+            "undoMaxCount": undo_max_count,
+            **starts,
         }
 
     def _room_snapshot(self, room: Room) -> Dict[str, Any]:

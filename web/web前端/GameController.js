@@ -1,11 +1,11 @@
-import GameEngine, { Player, TerritoryRulesVersion, PLAYER_ORDER, getBoardPositions } from "./GameEngine.js?v=20261020-three1";
-import Renderer from "./Renderer.js?v=20261020-three1";
-import { ServerEvent } from "./NetworkManager.js?v=20261020-three1";
-import { serializeEngineState } from "./AIStateProtocol.js?v=20261020-three1";
+import GameEngine, { Player, TerritoryRulesVersion, PLAYER_ORDER, getBoardPositions, resolveBoardShape } from "./GameEngine.js?v=20261025-unified1";
+import Renderer from "./Renderer.js?v=20261025-unified1";
+import { ServerEvent } from "./NetworkManager.js?v=20261025-unified1";
+import { serializeEngineState } from "./AIStateProtocol.js?v=20261025-unified1";
 import {
-  OneShotTerritoryWorker,
   applyTerritoryWorkerResult,
-} from "./TerritoryWorkerSession.js?v=20261020-three1";
+} from "./TerritoryWorkerSession.js?v=20261025-unified1";
+import TerritoryWorkerPool from "./TerritoryWorkerPool.js?v=20261025-unified1";
 
 // GameController 鏄墠绔殑鈥滆兌姘村眰鈥濓細
 // 瀹冩妸 Model(GameEngine)銆乂iew(Renderer) 鍜岃仈鏈哄眰(NetworkManager) 涓茶捣鏉ワ紝
@@ -13,7 +13,7 @@ import {
 const DEFAULT_ENGINE_OPTIONS = Object.freeze({
   playerCount: 2,
   gridSize: 9,
-  rulesVersion: TerritoryRulesVersion.V2,
+  rulesVersion: TerritoryRulesVersion.V3,
 });
 const ASYNC_TERRITORY_MIN_GRID_SIZE = 15;
 
@@ -57,12 +57,14 @@ export class GameController {
       ? options.createTerritoryWorker
       : (typeof globalThis.Worker === "function"
         ? () => new globalThis.Worker(
-            new URL("./TerritoryWorker.js?v=20261020-three1", import.meta.url),
+            new URL("./TerritoryWorker.js?v=20261025-unified1", import.meta.url),
             { type: "module" },
           )
         : null);
     this._territoryWorkerSession = createTerritoryWorker
-      ? new OneShotTerritoryWorker(createTerritoryWorker)
+      ? new TerritoryWorkerPool(createTerritoryWorker, {
+          size: Math.max(1, Math.min(3, (globalThis.navigator?.hardwareConcurrency ?? 4) - 1)),
+        })
       : null;
     this._territoryFallbackToken = 0;
     this.engine = this._createEngine(this.options.engine);
@@ -101,7 +103,7 @@ export class GameController {
   _updateLargeBoardClass() {
     const gridSize = this.options.engine?.gridSize ?? 9;
     if (typeof document !== "undefined" && document.body) {
-      if (gridSize >= 15 || (this.options.engine?.playerCount >= 4 && gridSize >= 9)) {
+      if (gridSize >= 15 || (resolveBoardShape(this.options.engine?.playerCount, this.options.engine?.boardShape) === "hexagon" && gridSize >= 9)) {
         document.body.classList.add("large-board");
       } else {
         document.body.classList.remove("large-board");
@@ -115,7 +117,7 @@ export class GameController {
       ...(engineOptions ?? {}),
     };
     const deferTerritoryUpdates = normalizedOptions.deferTerritoryUpdates
-      ?? (normalizedOptions.gridSize >= ASYNC_TERRITORY_MIN_GRID_SIZE || normalizedOptions.playerCount >= 4);
+      ?? (normalizedOptions.gridSize >= ASYNC_TERRITORY_MIN_GRID_SIZE || normalizedOptions.playerCount >= 3 || resolveBoardShape(normalizedOptions.playerCount, normalizedOptions.boardShape) === "hexagon");
     return new GameEngine({
       ...normalizedOptions,
       deferTerritoryUpdates,
@@ -123,6 +125,7 @@ export class GameController {
   }
 
   _cancelTerritoryRefresh() {
+    this._territoryPreview = null;
     this._territoryFallbackToken = (this._territoryFallbackToken ?? 0) + 1;
     return this._territoryWorkerSession?.cancel?.() ?? false;
   }
@@ -160,17 +163,24 @@ export class GameController {
       !engine?.deferTerritoryUpdates
       || !engine.hasPendingTerritoryUpdate?.()
     ) {
-      this._cancelTerritoryRefresh();
+      this._territoryPreview = null;
+      // Leave idle workers warm. Explicit reset/destroy still terminates them.
+      if (this._territoryWorkerSession?.cancelPending) this._territoryWorkerSession.cancelPending();
+      else this._cancelTerritoryRefresh();
       return;
     }
 
-    // A new position invalidates any queued fallback; OneShotTerritoryWorker
-    // itself cancels an older in-flight Worker before starting this request.
+    // Invalidate fallback work; the pool coalesces duplicate/current requests
+    // and queues only the latest board behind any already-running calculation.
     this._territoryFallbackToken = (this._territoryFallbackToken ?? 0) + 1;
     if (!this._territoryWorkerSession) {
       this._scheduleTerritoryFallback(engine);
       return;
     }
+
+    // The pool already keeps this exact request alive. Avoid serializing the
+    // board, edges and complete Superko history again for duplicate UI syncs.
+    if (this._territoryWorkerSession.hasCurrentRequest?.(engine)) return;
 
     try {
       this._territoryWorkerSession.start({
@@ -180,7 +190,15 @@ export class GameController {
           type: "COMPUTE_TERRITORIES",
           serializedState: serializeEngineState(engine),
         },
+        onProgress: (response) => {
+          this._territoryPreview = { engine, ...response };
+          const snapshot = this.renderer.lastSnapshot;
+          if (snapshot?.positionRevision === response.positionRevision) {
+            this.renderer.render({ ...snapshot, renderTerritories: response.territories });
+          }
+        },
         onResult: (response) => {
+          this._territoryPreview = null;
           const applied = applyTerritoryWorkerResult({
             engine,
             territories: response.territories,
@@ -191,7 +209,6 @@ export class GameController {
             return;
           }
           this._syncSnapshot(engine.getSnapshot(), {
-            forceRender: true,
             scheduleTerritory: false,
           });
         },
@@ -299,9 +316,13 @@ export class GameController {
   }
 
   setGameConfig(engineOptions = {}, reset = true) {
+    const previousOptions = { ...this.options.engine };
+    delete previousOptions.initialPositions;
+    delete previousOptions.startingPointMode;
+    if (engineOptions.playerCount != null && !Object.hasOwn(engineOptions, "boardShape")) delete previousOptions.boardShape;
     this.options.engine = {
       ...DEFAULT_ENGINE_OPTIONS,
-      ...this.options.engine,
+      ...previousOptions,
       ...(engineOptions ?? {}),
     };
 
@@ -505,7 +526,7 @@ export class GameController {
   _findNearestGridPoint(pixelX, pixelY) {
     const validPoints = this._validGridPoints?.length
       ? this._validGridPoints
-      : this._deriveValidPoints(this.engine.gridSize ?? this.options.engine.gridSize, this.engine.playerCount);
+      : this._deriveValidPoints(this.engine.gridSize ?? this.options.engine.gridSize, this.engine.playerCount, this.engine.boardShape);
 
     let nearestPoint = null;
     let nearestDistance = Number.POSITIVE_INFINITY;
@@ -527,8 +548,8 @@ export class GameController {
     return clonePoint(nearestPoint);
   }
 
-  _deriveValidPoints(gridSize, playerCount = 2) {
-    return getBoardPositions(gridSize, playerCount);
+  _deriveValidPoints(gridSize, playerCount = 2, boardShape = null) {
+    return getBoardPositions(gridSize, playerCount, boardShape);
   }
 
   _getInteractionLockReason(snapshot = this.engine.getSnapshot()) {
@@ -568,6 +589,10 @@ export class GameController {
       return "NETWORK_UNAVAILABLE";
     }
 
+    if (this.networkManager.serverAuthoritative && !this.networkManager.canAct()) {
+      return "NETWORK_UNAVAILABLE";
+    }
+
     if (snapshot.currentPlayer !== this.localPlayer) {
       return "NOT_YOUR_TURN";
     }
@@ -590,6 +615,10 @@ export class GameController {
   _getResetLockReason(snapshot = this.engine.getSnapshot()) {
     if (!this.multiplayerEnabled) {
       return null;
+    }
+
+    if (this.networkManager?.serverAuthoritative && !snapshot.gameOver && !this.networkManager.canAct()) {
+      return "NOT_YOUR_TURN";
     }
 
     if (this._authoritativeSnapshotValid === false) {
@@ -627,8 +656,16 @@ export class GameController {
   }
 
   _syncSnapshot(snapshot, { forceRender = false, scheduleTerritory = true } = {}) {
+    const preview = this._territoryPreview;
+    const renderTerritories = snapshot.territoryPending && preview?.engine === this.engine
+      && preview.positionRevision === snapshot.positionRevision
+      && preview.rulesVersion === snapshot.rulesVersion
+      && preview.currentPlayer === snapshot.currentPlayer
+      && preview.territoryStateRevision === this.engine.getTerritoryStateRevision()
+      ? preview.territories : null;
     this.renderer.render({
       ...snapshot,
+      renderTerritories,
       legalMoves: this.readOnlyMode ? [] : snapshot.legalMoves,
       renderEpoch: this._engineEpoch,
       lastAction: this._cloneLastAction(),
@@ -723,6 +760,16 @@ export class GameController {
       };
     }
 
+    if (this.multiplayerEnabled && this.networkManager?.serverAuthoritative) {
+      // Shared Web/WeChat matches commit only a validated server snapshot.
+      // A dropped response cannot leave a locally advanced board behind.
+      if (!snapshot.legalMoves.some(move => move.point[0] === point[0] && move.point[1] === point[1])) {
+        this._emitActionFeedback({ type: "move", success: false, reason: "INVALID_MOVE", point });
+        return { success: false, reason: "INVALID_MOVE", state: this.getGameState() };
+      }
+      void this._syncLocalMove(point);
+      return { success: true, pending: true, reason: null, state: this.getGameState() };
+    }
     const result = this._applyMove(point, snapshot.currentPlayer);
     if (result.success) {
       void this._syncLocalMove(point);
@@ -837,9 +884,15 @@ export class GameController {
     // 联机重连后，在临时引擎上批量回放；只有完整成功才替换当前棋盘。
     const actions = Array.isArray(matchState?.actions) ? matchState.actions : [];
     const incomingSettings = matchState?.settings;
+    const previousOptions = { ...(this.options.engine ?? {}) };
+    if (incomingSettings && typeof incomingSettings === "object") {
+      delete previousOptions.initialPositions;
+      delete previousOptions.startingPointMode;
+      delete previousOptions.boardShape;
+    }
     const nextEngineOptions = {
       ...DEFAULT_ENGINE_OPTIONS,
-      ...(this.options.engine ?? {}),
+      ...previousOptions,
       ...(incomingSettings && typeof incomingSettings === "object" ? incomingSettings : {}),
     };
 

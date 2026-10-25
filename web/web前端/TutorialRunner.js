@@ -4,7 +4,7 @@ export const TUTORIAL_LEVELS = Object.freeze([
     gridSize: 6,
     playerCount: 2,
     startPlayer: "BLACK",
-    rulesVersion: "territory-v2",
+    rulesVersion: "territory-v3",
     prefix: Object.freeze([
       Object.freeze({ type: "move", player: "BLACK", point: Object.freeze([1, 0]) }),
       Object.freeze({ type: "move", player: "WHITE", point: Object.freeze([4, 0]) }),
@@ -23,7 +23,7 @@ export const TUTORIAL_LEVELS = Object.freeze([
     gridSize: 6,
     playerCount: 2,
     startPlayer: "BLACK",
-    rulesVersion: "territory-v2",
+    rulesVersion: "territory-v3",
     prefix: Object.freeze([
       Object.freeze({ type: "move", player: "BLACK", point: Object.freeze([3, 0]) }),
       Object.freeze({ type: "skip", player: "WHITE" }),
@@ -46,7 +46,7 @@ export const TUTORIAL_LEVELS = Object.freeze([
     gridSize: 6,
     playerCount: 2,
     startPlayer: "BLACK",
-    rulesVersion: "territory-v2",
+    rulesVersion: "territory-v3",
     prefix: Object.freeze([
       Object.freeze({ type: "move", player: "BLACK", point: Object.freeze([3, 0]) }),
       Object.freeze({ type: "move", player: "WHITE", point: Object.freeze([2, 3]) }),
@@ -71,7 +71,7 @@ export const TUTORIAL_LEVELS = Object.freeze([
     gridSize: 6,
     playerCount: 2,
     startPlayer: "BLACK",
-    rulesVersion: "territory-v2",
+    rulesVersion: "territory-v3",
     prefix: Object.freeze([
       Object.freeze({ type: "move", player: "BLACK", point: Object.freeze([0, 3]) }),
       Object.freeze({ type: "move", player: "WHITE", point: Object.freeze([4, 1]) }),
@@ -103,7 +103,7 @@ export const TUTORIAL_LEVELS = Object.freeze([
     gridSize: 6,
     playerCount: 2,
     startPlayer: "BLACK",
-    rulesVersion: "territory-v2",
+    rulesVersion: "territory-v3",
     prefix: Object.freeze([
       Object.freeze({ type: "move", player: "BLACK", point: Object.freeze([2, 0]) }),
       Object.freeze({ type: "move", player: "WHITE", point: Object.freeze([2, 3]) }),

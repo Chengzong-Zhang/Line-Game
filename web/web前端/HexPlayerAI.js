@@ -1,4 +1,4 @@
-import { restoreState, saveState } from "./AIEngine.js?v=20261020-three1";
+import { restoreState, saveState } from "./AIEngine.js?v=20261025-unified1";
 
 export const HEX_PLAYER_MODEL_ID = "hex-player-policy-v1";
 export const HEX_PLAYER_FEATURES = Object.freeze([
@@ -7,7 +7,7 @@ export const HEX_PLAYER_FEATURES = Object.freeze([
   "own_coverage_gain", "attack", "own_line", "distance_from_home", "centrality",
   "own_frontier", "opponent_frontier_lead",
 ]);
-const MODEL_URL = new URL("./assets/research-ai/hex-player-policy-v1.json?v=20261021-hexai1", import.meta.url);
+const MODEL_URL = new URL("./assets/research-ai/hex-player-policy-v1.json?v=20261025-unified1", import.meta.url);
 let modelPromise = null;
 
 // Integer-index scans avoid constructing coordinate strings for each player's
@@ -155,7 +155,7 @@ export class HexPlayerAI {
   constructor(model) { this.model = model; }
 
   getTopMoves(engine, player, topN = 5) {
-    if (![4, 5, 6].includes(engine.playerCount) || engine.rulesVersion !== "territory-v2"
+    if (![4, 5, 6].includes(engine.playerCount) || !["territory-v2", "territory-v3"].includes(engine.rulesVersion)
       || engine.gridSize < 5 || engine.gridSize > 15) {
       throw new Error("六边形 AI 需要边长 5–15、4–6 人的 territory-v2 对局。");
     }

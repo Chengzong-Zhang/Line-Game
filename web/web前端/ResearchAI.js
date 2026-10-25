@@ -1,5 +1,5 @@
-import { saveState, restoreState } from "./AIEngine.js?v=20261020-three1";
-import { GameEngine } from "./GameEngine.js?v=20261020-three1";
+import { saveState, restoreState } from "./AIEngine.js?v=20261025-unified1";
+import { GameEngine } from "./GameEngine.js?v=20261025-unified1";
 
 const FEATURE_COUNT = 11;
 const EPSILON = 1e-5;
@@ -23,12 +23,17 @@ function webInferenceBoardSizeRange(spec) {
 }
 
 export function supportsResearchInference(spec, engine) {
+  // A v2 policy may be tried on v3 positions; this is runtime compatibility,
+  // not evidence of strength or calibration under the new terminal score.
   const [minimumSize, maximumSize] = webInferenceBoardSizeRange(spec);
   return engine?.playerCount === 2
     && Number.isInteger(engine?.gridSize)
     && engine.gridSize >= minimumSize
     && engine.gridSize <= maximumSize
-    && (!spec?.browser_inference?.rules_versions || spec.browser_inference.rules_versions.includes(engine.rulesVersion));
+    && (!spec?.browser_inference?.rules_versions
+      || spec.browser_inference.rules_versions.includes(engine.rulesVersion)
+      || (engine.rulesVersion === "territory-v3"
+        && spec.browser_inference.rules_versions.includes("territory-v2")));
 }
 
 export function describeResearchInferenceRange(spec) {

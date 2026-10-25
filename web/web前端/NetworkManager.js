@@ -1,6 +1,7 @@
-﻿const DEFAULT_REQUEST_TIMEOUT = 10000;
+const DEFAULT_REQUEST_TIMEOUT = 10000;
 const DEFAULT_HEARTBEAT_INTERVAL = 4000;
 const DEFAULT_HEARTBEAT_TIMEOUT = 12000;
+const DEFAULT_CONNECT_TIMEOUT = 10000;
 
 // NetworkManager 璐熻矗鎶娾€滆姹?鍝嶅簲鈥濆拰鈥滃箍鎾簨浠垛€濇贩鍚堝湪鍚屼竴鏉?WebSocket 涓婄鐞嗚捣鏉ャ€?// 涓婂眰鍙渶瑕佽闃呬簨浠舵垨璋冪敤 sendXxx锛屾棤闇€鐩存帴鎿嶄綔 socket銆?
 const ServerEvent = Object.freeze({
@@ -14,6 +15,8 @@ const ServerEvent = Object.freeze({
   PLAYER_RESIGNED: "PLAYER_RESIGNED",
   RESET_STATUS: "RESET_STATUS",
   MATCH_RESET: "MATCH_RESET",
+  UNDO_STATUS: "UNDO_STATUS",
+  ROOM_UNDO: "ROOM_UNDO",
   PLAYER_LEFT: "PLAYER_LEFT",
   CHAT_EMOJI: "chat_emoji",
   PONG: "PONG",
@@ -82,6 +85,8 @@ export class NetworkManager {
     this._listeners = new Map();
     this._pendingRequests = [];
     this._connectPromise = null;
+    this._connectAttempt = null;
+    this._socketAuthToken = null;
     this._heartbeatTimerId = null;
     this._heartbeatWatchdogId = null;
     this._lastPongAt = 0;
@@ -107,96 +112,106 @@ export class NetworkManager {
     if (!url || typeof url !== "string") {
       throw new Error("connect(url) requires a valid WebSocket URL.");
     }
-
     if (!authToken || typeof authToken !== "string") {
       throw new Error("Authentication token is required. Please log in first.");
     }
-
-    this.authToken = authToken;
-
-    if (this.socket && this.socket.readyState === WebSocket.OPEN && this.url === url) {
+    if (this.socket && this.socket.readyState === WebSocket.OPEN
+      && this.url === url && this._socketAuthToken === authToken) {
       return this;
     }
-
-    if (this._connectPromise) {
+    if (this._connectAttempt?.url === url && this._connectAttempt.authToken === authToken
+      && this.socket === this._connectAttempt.socket) {
       return this._connectPromise;
     }
 
-    if (this.socket && this.socket.readyState !== WebSocket.CLOSED) {
-      this.disconnect();
-    }
-
+    // An old socket cannot settle the replacement's requests or stop its heartbeat.
+    this._closeCurrentConnection(1000, "connection_replaced",
+      new Error("WebSocket connection was replaced."), false);
+    this.authToken = authToken;
     this.url = url;
-    const socketUrl = appendTokenToWebSocketUrl(url, this.authToken);
-    this._connectPromise = new Promise((resolve, reject) => {
-      // 同一时刻只允许存在一个激活连接，避免旧 socket 残留事件污染当前房间状态。
-      const socket = new WebSocket(socketUrl);
-      this.socket = socket;
-
-      socket.addEventListener("open", () => {
-        this._connectPromise = null;
-        this._lastPongAt = Date.now();
-        this._startHeartbeat();
-        this._emit(ClientEvent.OPEN, {
-          type: ClientEvent.OPEN,
-          url: this.url,
-        });
-        resolve(this);
-      }, { once: true });
-
-      socket.addEventListener("message", (event) => {
-        this._handleMessage(event);
-      });
-
-      socket.addEventListener("error", (event) => {
-        this._emit(ClientEvent.CONNECTION_ERROR, {
-          type: ClientEvent.CONNECTION_ERROR,
-          event,
-        });
-      });
-
-      socket.addEventListener("close", (event) => {
-        const wasCurrentSocket = this.socket === socket;
-        this._connectPromise = null;
-        this._stopHeartbeat();
-
-        if (wasCurrentSocket) {
-          this.socket = null;
-          this._rejectPendingRequests(new Error(`WebSocket closed: ${event.code} ${event.reason}`));
-          this._emit(ClientEvent.CLOSE, {
-            type: ClientEvent.CLOSE,
-            code: event.code,
-            reason: event.reason,
-            wasClean: event.wasClean,
-          });
-        }
-      }, { once: true });
-
-      socket.addEventListener("error", () => {
-        if (socket.readyState === WebSocket.CONNECTING) {
-          this._connectPromise = null;
-          reject(new Error(`Failed to connect to ${url}`));
-        }
-      }, { once: true });
+    let socket;
+    try {
+      socket = new WebSocket(appendTokenToWebSocketUrl(url, authToken));
+    } catch (_) {
+      // Browser exceptions can include the authenticated URL. Keep errors generic.
+      throw new Error("Failed to connect to WebSocket server.");
+    }
+    this.socket = socket;
+    this._socketAuthToken = authToken;
+    let resolveConnection, rejectConnection, timer = null, settled = false;
+    const promise = new Promise((resolve, reject) => {
+      resolveConnection = resolve; rejectConnection = reject;
     });
+    const attempt = {
+      socket, url, authToken,
+      finish: (error) => {
+        if (settled) return;
+        settled = true;
+        globalThis.clearTimeout(timer);
+        if (this._connectAttempt === attempt) {
+          this._connectAttempt = null; this._connectPromise = null;
+        }
+        if (error) rejectConnection(error);
+        else resolveConnection(this);
+      },
+    };
+    this._connectAttempt = attempt;
+    this._connectPromise = promise;
+    const current = () => this.socket === socket;
+    const configuredTimeout = this.options.connectTimeout;
+    const timeout = Number.isFinite(configuredTimeout) && configuredTimeout > 0
+      ? configuredTimeout : DEFAULT_CONNECT_TIMEOUT;
+    timer = globalThis.setTimeout(() => {
+      const error = new Error("Failed to connect to WebSocket server: connection timed out.");
+      if (current()) this._closeCurrentConnection(1000, "connect_timeout", error);
+      else attempt.finish(error);
+    }, timeout);
 
-    return this._connectPromise;
+    socket.addEventListener("open", () => {
+      if (!current()) return;
+      attempt.finish();
+      this._lastPongAt = Date.now();
+      this._startHeartbeat();
+      this._emit(ClientEvent.OPEN, { type: ClientEvent.OPEN, url: this.url });
+    }, { once: true });
+    socket.addEventListener("message", (event) => {
+      if (current()) this._handleMessage(event);
+    });
+    socket.addEventListener("error", () => {
+      if (!current()) return;
+      this._closeCurrentConnection(1000, "connect_error",
+        new Error("Failed to connect to WebSocket server."), false);
+      this._emit(ClientEvent.CONNECTION_ERROR, { type: ClientEvent.CONNECTION_ERROR });
+      // An error listener may already have started a replacement connection.
+      if (!this.socket) this._emit(ClientEvent.CLOSE, {
+        type: ClientEvent.CLOSE, code: 1000, reason: "connect_error", wasClean: false,
+      });
+    });
+    socket.addEventListener("close", (event) => {
+      if (!current()) return;
+      this._closeCurrentConnection(event.code, event.reason,
+        new Error(`WebSocket closed: ${event.code}`), true, event.wasClean);
+    }, { once: true });
+    return promise;
   }
 
   disconnect(code = 1000, reason = "client_disconnect") {
-    this._stopHeartbeat();
-    if (!this.socket) {
-      return;
-    }
+    this._closeCurrentConnection(code, reason, new Error(`WebSocket closed: ${code}`));
+  }
 
+  _closeCurrentConnection(code, reason, error, notify = true, wasClean = false) {
     const socket = this.socket;
-    if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
-      socket.close(code, reason);
-      return;
-    }
-
-    if (this.socket === socket) {
-      this.socket = null;
+    this.socket = null;
+    this._socketAuthToken = null;
+    this._stopHeartbeat();
+    this._connectAttempt?.finish(error);
+    this._rejectPendingRequests(error);
+    if (!socket) return;
+    try {
+      if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) socket.close(code, reason);
+    } catch (_) { /* Cleanup is complete even if the browser cannot close. */ }
+    if (notify) {
+      this._emit(ClientEvent.CLOSE, { type: ClientEvent.CLOSE, code, reason, wasClean });
     }
   }
 
@@ -282,6 +297,14 @@ export class NetworkManager {
         reason: normalizedReason,
       },
       [ServerEvent.RESET_STATUS, ServerEvent.MATCH_RESET],
+    );
+  }
+
+  async sendUndo(accept = true) {
+    await this._ensureOpen();
+    return this._sendRequest(
+      { type: "player_undo", accept: Boolean(accept) },
+      [ServerEvent.UNDO_STATUS, ServerEvent.ROOM_UNDO],
     );
   }
 

@@ -15,7 +15,7 @@ from fastapi import APIRouter, HTTPException, Request
 
 POLICY = "anonymous-replay-training-v1"
 THREE_PLAYER_MODEL_ID = "three-player-policy-v1"
-THREE_PLAYER_MODEL_IDS = frozenset({THREE_PLAYER_MODEL_ID, "three-player-policy-v2"})
+THREE_PLAYER_MODEL_IDS = frozenset({THREE_PLAYER_MODEL_ID, "three-player-policy-v2", "three-player-search-v4-round12"})
 MAX_REQUEST_BYTES = 512000
 VALIDATOR = Path(__file__).resolve().parents[1] / "tools/validate_contribution.mjs"
 

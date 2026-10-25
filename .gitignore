@@ -63,6 +63,7 @@ smoke-test.png
 # an explicit release/asset channel rather than ordinary Git history.
 web/web前端/assets/research-ai/*.f32
 web/web前端/assets/research-ai/transfer-v1/*.f32
+web/web前端/assets/research-ai/**/*.f32
 
 # Research artifacts kept locally because they are large, provisional, or
 # reproducible from the tracked code/configuration. Curated summaries,

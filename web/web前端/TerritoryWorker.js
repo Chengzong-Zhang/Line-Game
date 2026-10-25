@@ -1,9 +1,9 @@
-import { GameEngine } from "./GameEngine.js?v=20261020-three1";
-import { deserializeEngineEdges } from "./AIStateProtocol.js?v=20261020-three1";
+import { GameEngine } from "./GameEngine.js?v=20261025-unified1";
+import { deserializeEngineEdges } from "./AIStateProtocol.js?v=20261025-unified1";
 
-function cloneTerritories(engine) {
+function cloneTerritories(engine, players = engine.activePlayers) {
   return Object.fromEntries(
-    engine.activePlayers.map((player) => {
+    players.map((player) => {
       const territory = engine.cachedTerritories[player];
       return [player, {
         polygon: territory.polygon ? territory.polygon.map((point) => [...point]) : null,
@@ -26,6 +26,11 @@ function restoreSerializedState(engine, serializedState) {
   engine.positionRevision = serializedState.positionRevision ?? 0;
 }
 
+// Keep topology buffers and the module/JIT warm between exact calculations.
+// Rule code and candidate order remain entirely inside GameEngine.
+let reusableEngine = null;
+let reusableConfig = "";
+
 self.onmessage = (event) => {
   if (event.data?.type !== "COMPUTE_TERRITORIES") {
     return;
@@ -41,15 +46,28 @@ self.onmessage = (event) => {
       throw new Error("Territory worker received an invalid state payload.");
     }
 
-    const engine = new GameEngine({
+    const options = {
       gridSize: serializedState.gridSize,
       playerCount: serializedState.playerCount,
+      boardShape: serializedState.boardShape,
       startPlayer: serializedState.startPlayer,
+      initialPositions: serializedState.initialPositions,
       rulesVersion: serializedState.rulesVersion,
-    });
+    };
+    const config = JSON.stringify(options);
+    if (!reusableEngine || config !== reusableConfig) {
+      reusableEngine = new GameEngine(options);
+      reusableConfig = config;
+    }
+    const engine = reusableEngine;
     restoreSerializedState(engine, serializedState);
     engine._territoryStateRevision = territoryStateRevision;
-    engine._updateTerritories();
+    const players = event.data.players ?? engine.activePlayers;
+    if (!Array.isArray(players) || !players.length || players.some(player => !engine.activePlayers.includes(player))) {
+      throw new Error("Territory worker received invalid players.");
+    }
+    const started = performance.now();
+    for (const player of players) engine.cachedTerritories[player] = engine._computeTerritory(player);
 
     self.postMessage({
       type: "RESULT",
@@ -59,7 +77,8 @@ self.onmessage = (event) => {
       currentPlayer: serializedState.currentPlayer,
       territoryStateRevision,
       gameOver,
-      territories: cloneTerritories(engine),
+      territories: cloneTerritories(engine, players),
+      computeMs: performance.now() - started,
     });
   } catch (error) {
     self.postMessage({

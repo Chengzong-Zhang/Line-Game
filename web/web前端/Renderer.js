@@ -1,4 +1,4 @@
-import { Player, PointState, PLAYER_ORDER, getBoardVertices, getBoardPositions, isBoardPoint } from "./GameEngine.js?v=20261020-three1";
+import { Player, PointState, PLAYER_ORDER, getBoardVertices, getBoardPositions, isBoardPoint } from "./GameEngine.js?v=20261025-unified1";
 
 const SQRT3_OVER_2 = Math.sqrt(3) / 2;
 
@@ -42,6 +42,8 @@ const PLAYER_THEME_KEYS = Object.freeze({
   BLACK: "blue", WHITE: "red", PURPLE: "purple",
   GREEN: "green", ORANGE: "orange", CYAN: "cyan",
 });
+
+const NODE_PLAYERS = new Map(PLAYER_ORDER.map((player) => [PointState[`${player}_NODE`], player]));
 
 function keyToPoint(key) {
   const [x, y] = String(key).split(",").map(Number);
@@ -112,6 +114,13 @@ export class Renderer {
     this._pendingRafHandle = null;
     this._pendingOptions = {};
     this._lastRenderFingerprint = "";
+    this.cacheTerritoryPaths = options.cacheTerritoryPaths !== false;
+    this._territoryPaths = new Map();
+    // One entry per geometry/data kind, never per turn or snapshot. Compare
+    // actual inputs: imported/replayed snapshots may share a revision number.
+    this._renderCaches = new Map();
+    this.cacheBoardPaths = options.cacheBoardPaths !== false;
+    this._boardPaths = new Map();
     this.hintPoint = null;
     this._hintPulsePhase = 0;
     this._lastHintTimestamp = 0;
@@ -194,11 +203,17 @@ export class Renderer {
       this._hintCtx = null;
     }
     this._staticLayerKey = "";
+    this._renderCaches?.clear();
+    this._territoryPaths?.clear();
+    this._boardPaths?.clear();
   }
 
   invalidate() {
     this._lastRenderFingerprint = "";
     this._staticLayerKey = "";
+    this._territoryPaths?.clear();
+    this._renderCaches?.clear();
+    this._boardPaths?.clear();
   }
 
   _scheduleResize() {
@@ -287,8 +302,14 @@ export class Renderer {
     return { cssWidth, cssHeight, dpr };
   }
 
-  _getValidPoints(gridSize, playerCount = 2) {
-    return getBoardPositions(gridSize, playerCount);
+  _getValidPoints(gridSize, playerCount = 2, boardShape = null) {
+    const key = JSON.stringify([gridSize, playerCount, boardShape]);
+    this._renderCaches ??= new Map();
+    const cached = this._renderCaches.get("points");
+    if (cached?.key === key) return cached.value;
+    const value = getBoardPositions(gridSize, playerCount, boardShape);
+    this._renderCaches.set("points", { key, value });
+    return value;
   }
 
   _computeLayout(snapshot) {
@@ -299,7 +320,12 @@ export class Renderer {
     const boardHeight = Math.max(1, cssHeight - topInset);
     const gridSize = snapshot?.gridSize ?? 9;
     const playerCount = snapshot?.playerCount ?? 2;
-    const validPoints = this._getValidPoints(gridSize, playerCount);
+    const boardShape = snapshot?.boardShape;
+    const layoutKey = JSON.stringify([cssWidth, cssHeight, topInset, gridSize, playerCount, boardShape, this.paddingRatio]);
+    this._renderCaches ??= new Map();
+    const cachedLayout = this._renderCaches.get("layout");
+    if (cachedLayout?.key === layoutKey) return cachedLayout.value;
+    const validPoints = this._getValidPoints(gridSize, playerCount, boardShape);
     const normalizedPoints = validPoints.map(([gx, gy]) => [gx + gy * 0.5, gy * SQRT3_OVER_2]);
 
     let minNX = Number.POSITIVE_INFINITY;
@@ -326,12 +352,13 @@ export class Renderer {
     const offsetX = (cssWidth - logicalWidth * scale) * 0.5 - minNX * scale;
     const offsetY = topInset + (boardHeight - logicalHeight * scale) * 0.5 - minNY * scale;
 
-    return {
+    const layout = {
       cssWidth,
       cssHeight,
       topInset,
       gridSize,
       playerCount,
+      boardShape,
       scale,
       offsetX,
       offsetY,
@@ -344,6 +371,8 @@ export class Renderer {
       legalMoveRadius: Math.max(4, scale * 0.08),
       normalizedBounds: { minNX, maxNX, minNY, maxNY },
     };
+    this._renderCaches.set("layout", { key: layoutKey, value: layout });
+    return layout;
   }
 
   _gridToPixel(gx, gy, layout = this.layout) {
@@ -441,15 +470,15 @@ export class Renderer {
     });
   }
 
-  _isValidGridPoint(point, gridSize, playerCount = 2) {
-    return isBoardPoint(point, gridSize, playerCount);
+  _isValidGridPoint(point, gridSize, playerCount = 2, boardShape = null) {
+    return isBoardPoint(point, gridSize, playerCount, boardShape);
   }
 
   _canConnect(a, b) {
     return a[0] === b[0] || a[1] === b[1] || a[0] + a[1] === b[0] + b[1];
   }
 
-  _getLinePoints(start, end, gridSize, playerCount = 2) {
+  _getLinePoints(start, end, gridSize, playerCount = 2, boardShape = null) {
     if (!this._canConnect(start, end)) {
       return [];
     }
@@ -461,7 +490,7 @@ export class Renderer {
     if (x1 === x2) {
       for (let y = Math.min(y1, y2); y <= Math.max(y1, y2); y += 1) {
         const point = [x1, y];
-        if (this._isValidGridPoint(point, gridSize, playerCount)) {
+        if (this._isValidGridPoint(point, gridSize, playerCount, boardShape)) {
           points.push(point);
         }
       }
@@ -471,7 +500,7 @@ export class Renderer {
     if (y1 === y2) {
       for (let x = Math.min(x1, x2); x <= Math.max(x1, x2); x += 1) {
         const point = [x, y1];
-        if (this._isValidGridPoint(point, gridSize, playerCount)) {
+        if (this._isValidGridPoint(point, gridSize, playerCount, boardShape)) {
           points.push(point);
         }
       }
@@ -482,7 +511,7 @@ export class Renderer {
     const right = x1 < x2 ? [x2, y2] : [x1, y1];
     for (let i = 0; i <= right[0] - left[0]; i += 1) {
       const point = [left[0] + i, left[1] - i];
-      if (this._isValidGridPoint(point, gridSize, playerCount)) {
+      if (this._isValidGridPoint(point, gridSize, playerCount, boardShape)) {
         points.push(point);
       }
     }
@@ -509,23 +538,36 @@ export class Renderer {
     const gridSize = snapshot.gridSize;
     const playerCount = snapshot.playerCount ?? 2;
     const board = snapshot.boardMatrix;
-    const validPoints = this._getValidPoints(gridSize, playerCount);
+    const boardShape = snapshot?.boardShape;
+    const key = JSON.stringify([gridSize, playerCount, boardShape, board]);
+    this._renderCaches ??= new Map();
+    const cached = this._renderCaches.get("board");
+    if (cached?.key === key) {
+      // Snapshot producers may clone matrices or mutate an older snapshot.
+      // Keep the current matrix, while reusing only the derived node lists.
+      cached.value.board = board;
+      return cached.value;
+    }
+    const validPoints = this._getValidPoints(gridSize, playerCount, boardShape);
     const nodes = Object.fromEntries(PLAYER_ORDER.map((player) => [player, []]));
 
     for (const point of validPoints) {
       const [x, y] = point;
       const state = board[y][x];
-      const player = PLAYER_ORDER.find((candidate) => state === this._getNodeState(candidate));
+      const player = NODE_PLAYERS.get(state);
       if (player) nodes[player].push(point);
     }
 
-    return {
+    const value = {
       gridSize,
       playerCount,
+      boardShape,
       validPoints,
       board,
       nodes,
     };
+    this._renderCaches.set("board", { key, value });
+    return value;
   }
 
   _collectRenderableSegments(player, boardData) {
@@ -543,7 +585,7 @@ export class Renderer {
           continue;
         }
 
-        const linePoints = this._getLinePoints(start, end, boardData.gridSize, boardData.playerCount);
+        const linePoints = this._getLinePoints(start, end, boardData.gridSize, boardData.playerCount, boardData.boardShape);
         // O(1) 浜岀淮鏁扮粍绱㈠紩锛屾棤瀛楃涓叉嫾鎺?Map 鏌ユ壘
         const fullyOwned = linePoints.every((point) => ownedStates.has(board[point[1]][point[0]]));
         if (!fullyOwned) {
@@ -573,20 +615,31 @@ export class Renderer {
       return null;
     }
 
-    return edgeKeys.map((edgeKey) => {
+    const key = JSON.stringify(edgeKeys);
+    const cacheName = `segments:${player}`;
+    this._renderCaches ??= new Map();
+    const cached = this._renderCaches.get(cacheName);
+    if (cached?.key === key) return cached.value;
+    const value = edgeKeys.map((edgeKey) => {
       const [startKey, endKey] = String(edgeKey).split("|");
       return [keyToPoint(startKey), keyToPoint(endKey)];
     });
+    this._renderCaches.set(cacheName, { key, value });
+    return value;
   }
 
   _getStaticLayerKey(snapshot, layout) {
     return [
       snapshot?.gridSize ?? 9,
       snapshot?.playerCount ?? 2,
+      snapshot?.boardShape ?? "legacy",
       layout.cssWidth,
       layout.cssHeight,
       Math.round(layout.scale * 1000),
+      layout.offsetX,
+      layout.offsetY,
       Math.round((this._lastMeasuredDpr || 1) * 10),
+      JSON.stringify(this.theme),
     ].join(":");
   }
 
@@ -618,7 +671,7 @@ export class Renderer {
     ctx.fillStyle = this.theme.background;
     ctx.fillRect(0, 0, layout.cssWidth, layout.cssHeight);
 
-    const corners = getBoardVertices(layout.gridSize, layout.playerCount)
+    const corners = getBoardVertices(layout.gridSize, layout.playerCount, layout.boardShape)
       .map(([x, y]) => this._gridToPixel(x, y, layout));
     const centerX = corners.reduce((sum, [x]) => sum + x, 0) / corners.length;
     const centerY = corners.reduce((sum, [, y]) => sum + y, 0) / corners.length;
@@ -665,7 +718,7 @@ export class Renderer {
     ctx.beginPath();
     for (const point of boardData.validPoints) {
       for (const neighbor of [[point[0] + 1, point[1]], [point[0], point[1] + 1], [point[0] + 1, point[1] - 1]]) {
-        if (!this._isValidGridPoint(neighbor, boardData.gridSize, boardData.playerCount)) {
+        if (!this._isValidGridPoint(neighbor, boardData.gridSize, boardData.playerCount, boardData.boardShape)) {
           continue;
         }
         const [x1, y1] = this._gridToPixel(point[0], point[1], layout);
@@ -687,7 +740,21 @@ export class Renderer {
     ctx.fill();
   }
 
-  _drawSegments(snapshot, boardData, layout) {
+  _getBoardPath(name, content, layout, trace) {
+    this._boardPaths ??= new Map();
+    const key = JSON.stringify([layout.scale, layout.offsetX, layout.offsetY,
+      layout.pointRadius, layout.legalMoveRadius, content]);
+    const previous = this._boardPaths.get(name);
+    if (previous?.key === key) return previous.path;
+    const path = new Path2D();
+    trace(path);
+    // Each entry replaces its predecessor: six edge groups, at most six
+    // node groups and one legal-move group, independent of game length.
+    this._boardPaths.set(name, { key, path });
+    return path;
+  }
+
+  _drawSegments(snapshot, boardData, layout, cachePaths = false) {
     const ctx = this.ctx;
     for (const player of PLAYER_ORDER.slice(0, boardData.playerCount)) {
       const segments = this._getSnapshotSegments(snapshot, player)
@@ -702,25 +769,28 @@ export class Renderer {
       ctx.lineWidth = layout.lineWidth;
       ctx.beginPath();
 
-      for (const [start, end] of segments) {
-        const [x1, y1] = this._gridToPixel(start[0], start[1], layout);
-        const [x2, y2] = this._gridToPixel(end[0], end[1], layout);
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-      }
-      ctx.stroke();
+      const trace = target => {
+        for (const [start, end] of segments) {
+          const [x1, y1] = this._gridToPixel(start[0], start[1], layout);
+          const [x2, y2] = this._gridToPixel(end[0], end[1], layout);
+          target.moveTo(x1, y1);
+          target.lineTo(x2, y2);
+        }
+      };
+      if (cachePaths) ctx.stroke(this._getBoardPath(`edges:${player}`, segments, layout, trace));
+      else { trace(ctx); ctx.stroke(); }
     }
   }
 
   _drawTerritories(snapshot, layout) {
-    // A large-board result can be settling in a Worker. Do not paint the
-    // prior position's polygons during that brief interval.
-    if (snapshot.territoryPending) {
-      return;
-    }
+    // During calculation, only independently completed CURRENT-position
+    // polygons are visible. Never substitute the previous board's score cache.
+    const visible = snapshot.territoryPending ? snapshot.renderTerritories : snapshot.territories;
+    if (!visible) return;
     const ctx = this.ctx;
     const territories = PLAYER_ORDER.map((player) => ({
-      data: snapshot.territories?.[player],
+      player,
+      data: visible?.[player],
       fill: this._getPlayerStyle(player, "TerritoryFill"),
       stroke: this._getPlayerStyle(player, "TerritoryStroke"),
     }));
@@ -732,31 +802,61 @@ export class Renderer {
       }
 
       ctx.save();
-      ctx.beginPath();
-      polygon.forEach(([gx, gy], index) => {
-        const [x, y] = this._gridToPixel(gx, gy, layout);
-        if (index === 0) {
-          ctx.moveTo(x, y);
-        } else {
-          ctx.lineTo(x, y);
+      this._territoryPaths ??= new Map();
+      let path = null;
+      if (this.cacheTerritoryPaths !== false && typeof Path2D === "function") {
+        const cached = this._territoryPaths.get(territory.player);
+        const unchanged = cached?.scale === layout.scale && cached?.offsetX === layout.offsetX
+          && cached?.offsetY === layout.offsetY && cached.points.length === polygon.length
+          && polygon.every((point, index) => point[0] === cached.points[index][0] && point[1] === cached.points[index][1]);
+        if (unchanged) path = cached.path;
+        else {
+          path = new Path2D();
+          this._traceTerritory(path, polygon, layout);
+          this._territoryPaths.set(territory.player, { path, scale: layout.scale,
+            offsetX: layout.offsetX, offsetY: layout.offsetY, points: polygon.map(point => [...point]) });
         }
-      });
-      ctx.closePath();
+      } else {
+        ctx.beginPath();
+        this._traceTerritory(ctx, polygon, layout);
+      }
       ctx.globalAlpha = 1;
       ctx.fillStyle = territory.fill;
-      ctx.fill();
+      if (path) ctx.fill(path); else ctx.fill();
       ctx.strokeStyle = territory.stroke;
       ctx.lineWidth = layout.territoryLineWidth;
-      ctx.stroke();
+      if (path) ctx.stroke(path); else ctx.stroke();
       ctx.restore();
     }
   }
 
-  _drawNodes(boardData, layout) {
+  _traceTerritory(target, polygon, layout) {
+    polygon.forEach(([gx, gy], index) => {
+      const [x, y] = this._gridToPixel(gx, gy, layout);
+      if (index === 0) target.moveTo(x, y); else target.lineTo(x, y);
+    });
+    target.closePath();
+  }
+
+  _drawStartingPoints(snapshot, layout) {
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.lineWidth = Math.max(1.5, layout.lineWidth * 0.35);
+    for (const [player, point] of Object.entries(snapshot.initialPositions ?? {})) {
+      const [x, y] = this._gridToPixel(point[0], point[1], layout);
+      ctx.strokeStyle = this._getPlayerStyle(player, "Node");
+      ctx.beginPath();
+      ctx.arc(x, y, layout.pointRadius + 4, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  _drawNodes(boardData, layout, cachePaths = false) {
     const ctx = this.ctx;
     const groups = PLAYER_ORDER.map((player) => ({
-      points: boardData.nodes[player], fill: this._getPlayerStyle(player, "Node"),
-    }));
+      player, points: boardData.nodes[player], fill: this._getPlayerStyle(player, "Node"),
+    })).filter(group => group.points?.length);
 
     ctx.lineWidth = Math.max(1.5, layout.lineWidth * 0.25);
     ctx.strokeStyle = this.theme.outline;
@@ -766,18 +866,25 @@ export class Renderer {
       }
 
       ctx.beginPath();
-      for (const point of group.points) {
-        const [x, y] = this._gridToPixel(point[0], point[1], layout);
-        ctx.moveTo(x + layout.pointRadius, y);
-        ctx.arc(x, y, layout.pointRadius, 0, Math.PI * 2);
-      }
-      ctx.fillStyle = group.fill;
-      ctx.fill();
-      ctx.stroke();
+      const trace = target => {
+        for (const point of group.points) {
+          const [x, y] = this._gridToPixel(point[0], point[1], layout);
+          target.moveTo(x + layout.pointRadius, y);
+          target.arc(x, y, layout.pointRadius, 0, Math.PI * 2);
+        }
+      };
+      // Canvas save/restore does not save currentPath. The legacy last-action
+      // drawing may inherit it, so the final nonempty group always traces the
+      // original context path. Earlier groups can use equivalent cached paths.
+      if (cachePaths && group !== groups[groups.length - 1]) {
+        const path = this._getBoardPath(`nodes:${group.player}`, group.points, layout, trace);
+        ctx.fillStyle = group.fill;
+        ctx.fill(path); ctx.stroke(path);
+      } else { trace(ctx); ctx.fillStyle = group.fill; ctx.fill(); ctx.stroke(); }
     }
   }
 
-  _drawLegalMoves(snapshot, layout) {
+  _drawLegalMoves(snapshot, layout, cachePaths = false) {
     const ctx = this.ctx;
     const legalMoves = Array.isArray(snapshot.legalMoves) ? snapshot.legalMoves : [];
     if (!legalMoves.length) {
@@ -786,25 +893,25 @@ export class Renderer {
 
     const r = layout.legalMoveRadius;
     ctx.beginPath();
-    for (const candidate of legalMoves) {
-      const point = Array.isArray(candidate) ? candidate : candidate?.point;
-      if (!Array.isArray(point) || point.length !== 2) {
-        continue;
+    const trace = target => {
+      for (const candidate of legalMoves) {
+        const point = Array.isArray(candidate) ? candidate : candidate?.point;
+        if (!Array.isArray(point) || point.length !== 2) continue;
+        const [x, y] = this._gridToPixel(point[0], point[1], layout);
+        target.moveTo(x, y - r);
+        target.lineTo(x + r, y);
+        target.lineTo(x, y + r);
+        target.lineTo(x - r, y);
+        target.closePath();
       }
-
-      const [x, y] = this._gridToPixel(point[0], point[1], layout);
-      // 鑿卞舰鏇夸唬 arc锛屾棤涓夎鍑芥暟寮€閿€
-      ctx.moveTo(x, y - r);
-      ctx.lineTo(x + r, y);
-      ctx.lineTo(x, y + r);
-      ctx.lineTo(x - r, y);
-      ctx.closePath();
-    }
+    };
+    const path = cachePaths ? this._getBoardPath("legal", legalMoves, layout, trace) : null;
+    if (!path) trace(ctx);
     ctx.fillStyle = this.theme.legalMoveFill;
-    ctx.fill();
+    if (path) ctx.fill(path); else ctx.fill();
     ctx.lineWidth = Math.max(1.25, layout.guideLineWidth * 1.8);
     ctx.strokeStyle = this.theme.legalMoveStroke;
-    ctx.stroke();
+    if (path) ctx.stroke(path); else ctx.stroke();
   }
 
   _drawLastAction(snapshot, layout) {
@@ -960,6 +1067,7 @@ export class Renderer {
       snapshot.renderEpoch ?? 0,
       snapshot.positionRevision ?? snapshot.turnCount ?? 0,
       snapshot.playerCount ?? 2,
+      snapshot.boardShape ?? "legacy",
       snapshot.rulesVersion ?? "territory-v1",
       snapshot.gameOver ? 1 : 0,
       snapshot.territoryPending ? 1 : 0,
@@ -968,6 +1076,11 @@ export class Renderer {
       snapshot.lastAction?.player ?? "none",
       lp ? `${lp[0]},${lp[1]}` : "-",
       JSON.stringify(snapshot.inspectionOverlay ?? null),
+      JSON.stringify(snapshot.initialPositions ?? null),
+      // A same-revision snapshot can still carry a new preview, imported
+      // board or legal-move list. These are display inputs, not rule state.
+      JSON.stringify([snapshot.boardMatrix, snapshot.edges, snapshot.legalMoves,
+        snapshot.territoryPending ? snapshot.renderTerritories : snapshot.territories]),
     ].join(":");
   }
 
@@ -1002,15 +1115,15 @@ export class Renderer {
     }
     this.layout = this._computeLayout(snapshot);
 
-    const boardData = this._collectBoardData(snapshot);
-    this._ensureStaticLayer(snapshot, boardData, this.layout);
-
     // 鑴忔鏌ワ細闈欐€佸眰 key 鍙樺寲锛坮esize/gridSize 鏀瑰彉锛変篃闇€瑕侀噸缁樺姩鎬佸眰
-    const fingerprint = `${this._getBoardFingerprint(snapshot)}:${this._staticLayerKey}`;
+    const fingerprint = `${this._getBoardFingerprint(snapshot)}:${this._getStaticLayerKey(snapshot, this.layout)}`;
     if (!options.force && fingerprint === this._lastRenderFingerprint) {
       return;
     }
     this._lastRenderFingerprint = fingerprint;
+
+    const boardData = this._collectBoardData(snapshot);
+    this._ensureStaticLayer(snapshot, boardData, this.layout);
 
     // 鍙竻闄ゅ姩鎬佸眰锛堥《灞傦級锛岄潤鎬佸眰锛堝簳灞?DOM canvas锛夋寔涔呬繚瀛橈紝鏃犻渶姣忓抚 blit
     if (this._staticCtx) {
@@ -1021,10 +1134,17 @@ export class Renderer {
       this._drawBackground(this.layout);
       this._drawGridSkeleton(boardData, this.layout);
     }
-    this._drawSegments(snapshot, boardData, this.layout);
+    // All cached paths precede an original context-path node draw. This keeps
+    // both drawing order and the final currentPath identical, including old
+    // snapshots without starting-point rings. Minimal Path2D shims fall back.
+    const cachePaths = this.cacheBoardPaths !== false && typeof Path2D === "function"
+      && typeof Path2D.prototype.arc === "function"
+      && PLAYER_ORDER.some(player => boardData.nodes[player]?.length);
+    this._drawSegments(snapshot, boardData, this.layout, cachePaths);
     this._drawTerritories(snapshot, this.layout);
-    this._drawLegalMoves(snapshot, this.layout);
-    this._drawNodes(boardData, this.layout);
+    this._drawLegalMoves(snapshot, this.layout, cachePaths);
+    this._drawNodes(boardData, this.layout, cachePaths);
+    this._drawStartingPoints(snapshot, this.layout);
     this._drawLastAction(snapshot, this.layout);
     this._drawInspectionOverlay(snapshot, this.layout);
     if (this._hintCtx) {

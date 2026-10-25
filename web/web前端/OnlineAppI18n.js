@@ -1,5 +1,5 @@
-import { Player } from "./GameEngine.js?v=20261020-three1";
-import { ALL_PLAYERS } from "./OnlineAppState.js?v=20261021-hexai1";
+import { Player } from "./GameEngine.js?v=20261025-unified1";
+import { ALL_PLAYERS } from "./OnlineAppState.js?v=20261025-unified1";
 
 // 文案、比分格式化和错误提示都集中放在这里，避免 UI 文件里散落大量字符串。
 
@@ -227,6 +227,12 @@ const EN_TEXTS = Object.freeze({
   localPurplePlayer: "Purple player",
   localThreeAI: "Three-player AI",
   localHexAI: "Hexagon AI",
+  localEasyAI: "Easy",
+  localMediumAI: "Medium",
+  localHardAI: "Hard",
+  localUltimateAI: "Ultimate",
+  localAIUnavailable: "Not yet available",
+  localMultiplayerGenericNote: "This board supports Easy and Hard AI. Medium and Ultimate use models trained for the standard board of each player count.",
   roomBotOption: (players, bots) => bots ? `${players - bots} human${players - bots === 1 ? "" : "s"} + ${bots} AI${bots === 1 ? "" : "s"}` : `${players} humans`,
   roomBotCount: "AI seats in the new room",
   roomBotOptions: ["3 humans", "2 humans + 1 AI", "1 human + 2 AIs"],
@@ -247,8 +253,18 @@ const EN_TEXTS = Object.freeze({
   hexBoardTitle: "Regular Hexagonal Board",
   hexBoardAriaLabel: "LIFELINE regular hexagonal board",
   hexVertex: (vertex) => `Vertex ${vertex}`,
-  localHexHuman: "Choose a human or Hexagon AI for each corner, including matches with multiple AIs or all AI players. AI hints and training contributions are not available for this board.",
-  boardGeometry: (count) => count >= 4 ? `Regular hexagon · ${count} players · corners ${count === 4 ? "1, 2, 4, 5" : count === 5 ? "1–5" : "1–6"}. Corners run clockwise from the upper left; side length counts nodes.` : "Triangular board · the existing two- and three-player rules.",
+  startingPointLabel: "Start",
+  localHexHuman: "Choose a human or an AI difficulty for each player. Multiple AIs and all-AI matches are supported. AI hints and training contributions are not available for this board.",
+  boardShapeLabel: "Board shape",
+  triangleBoard: "Triangle",
+  hexagonBoard: "Hexagon",
+  triangleMidpoint: (edge) => `Outer edge ${edge} · midpoint`,
+  localGenericAI: "General AI",
+  localGenericNote: "This shape and player count support human players or General AI. General AI chooses from legal moves using the current board.",
+  boardGeometry: (count, shape = count >= 4 ? "hexagon" : "triangle") => shape === "hexagon"
+    ? `Regular hexagon · ${count} players · default vertices ${count === 2 ? "1, 4" : count === 3 ? "1, 3, 5" : count === 4 ? "1, 2, 4, 5" : count === 5 ? "1–5" : "1–6"}. Numbered clockwise from the upper left.`
+    : count <= 3 ? "Triangle · default starts at the original corners."
+      : "Triangle · first 3 players at the corners; players 4–6 at the midpoints of outer edges 1→2, 2→3, 3→1. With an even side length, use the first of the two central nodes along each edge.",
   localHuman: "Human",
   localHumanDescription: "A person plays this side on the board.",
   localController: "Player",
@@ -261,11 +277,12 @@ const EN_TEXTS = Object.freeze({
   localAdvanced: "Model options",
   localLegacyModel: "Legacy model · 20260825",
   localResearchNote: "Experimental model; playing strength has not been independently evaluated.",
-  localThreeHuman: "Choose a human or AI for each side. One or two AIs can join a three-player match.",
+  localThreeHuman: "Choose a human or an AI difficulty for each side, including matches with multiple AIs or all AI players.",
   localPendingSettings: "Choose the players and starting side, then start a match. Starting a new match resets the board.",
   localAppliedSettings: "These settings are active. You can swap sides for the next match.",
   localSetupPrompt: "Choose the players in Board settings and press Start match.",
   localAiFailure: (side, fallback) => fallback ? `${side} AI could not load. This side is continuing with Minimax.` : `${side} AI stopped. Your match is saved. Press Resume AI to retry.`,
+  localUltimateUnavailable: "Ultimate AI has not passed strength and release checks. AI turns are paused. Your match and difficulty selection are preserved.",
   aiDifficultyEasy: "Easy",
   aiDifficultyMedium: "Medium",
   aiDifficultyHard: "Hard",
@@ -275,6 +292,11 @@ const EN_TEXTS = Object.freeze({
   aiModelGridGnn: "Grid-GNN + PUCT",
   aiModelTopologyGnn: "Topology-GNN + PUCT",
   aiModelDescriptions: Object.freeze({
+    "ai-easy": "A basic multiplayer AI trained from minimax games.",
+    "ai-medium": "The existing lightweight trained multiplayer AI.",
+    "ai-hard": "Looks further ahead to compare territory and opponents' responses, with a short thinking budget.",
+    "ai-ultimate": "A new multiplayer model trained from minimax and lightweight AI games, combined with search. Playing strength is still being evaluated.",
+    greedy: "Evaluates legal moves on the current board and chooses one with a higher score.",
     "three-player": "A lightweight trained policy that considers both opponents.",
     "hex-player": "A policy for four- to six-player hexagonal boards that considers all opponents. Playing strength has not been independently evaluated.",
     minimax: "Searches ahead to choose a move.",
@@ -289,12 +311,28 @@ const EN_TEXTS = Object.freeze({
   }),
   aiModelSeed: "PUCT version",
   aiThinking: "AI thinking…",
+  aiLoading: "Loading AI…",
+  localAiLoadingTimeout: "AI loading timed out. Your match is saved. Check your connection and press Resume AI to retry.",
+  localAiThinkingTimeout: "AI thinking timed out. Your match is saved. Press Resume AI to retry.",
   hintButton: "Hint",
   hintRemaining: "Hint ({n})",
   hintExhausted: "No hints left",
   hintNoMoves: "No suggestion available",
   hintSwitchLabel: "Hint Switch",
   hintMaxCountLabel: "Hint Count",
+  undoSwitchLabel: "Undo",
+  undoMaxCountLabel: "Undo Count",
+  undoRemaining: (count) => `Undo (${count})`,
+  undoHelp: "Local matches only. Before your next move, take back your latest move and all replies. Each move can be undone once; the quota is shared for this match.",
+  undoSuccess: "Your latest move and all replies were undone. Play again.",
+  undoFailed: "Could not undo. The current match and undo quota were preserved.",
+  onlineUndoHelp: "Online matches: undo the latest action only after every human player agrees. The quota is shared by the room.",
+  onlineUndoAgree: "Agree to undo",
+  onlineUndoReject: "Reject undo",
+  onlineUndoCancel: "Cancel request",
+  onlineUndoWaiting: "Waiting for votes",
+  onlineUndoVotes: (confirmed, required) => `Undo votes ${confirmed}/${required}`,
+  onlineUndoSuccess: "The last action was undone by agreement.",
 });
 
 const ZH_TEXTS = Object.freeze({
@@ -499,6 +537,12 @@ const ZH_TEXTS = Object.freeze({
   localPurplePlayer: "紫方玩家",
   localThreeAI: "三人 AI",
   localHexAI: "六边形 AI",
+  localEasyAI: "简单AI",
+  localMediumAI: "中等AI",
+  localHardAI: "困难AI",
+  localUltimateAI: "终极AI",
+  localAIUnavailable: "暂未开放",
+  localMultiplayerGenericNote: "当前棋盘支持简单AI和困难AI。中等AI与终极AI使用对应人数常规棋盘训练的模型。",
   roomBotOption: (players, bots) => bots ? `${players - bots} 位真人 + ${bots} 个 AI` : `${players} 位真人`,
   roomBotCount: "新房间的 AI 席位",
   roomBotOptions: ["3 位真人", "2 位真人 + 1 个 AI", "1 位真人 + 2 个 AI"],
@@ -519,8 +563,18 @@ const ZH_TEXTS = Object.freeze({
   hexBoardTitle: "正六边形棋盘",
   hexBoardAriaLabel: "生命线正六边形棋盘",
   hexVertex: (vertex) => `顶点 ${vertex}`,
-  localHexHuman: "每个角都可选择人类或六边形 AI，支持一人对战多个 AI，也支持全 AI 对战；暂不提供 AI 提示与训练数据贡献。",
-  boardGeometry: (count) => count >= 4 ? `正六边形 · ${count} 人 · 占据${count === 4 ? " 1、2、4、5" : count === 5 ? " 1—5" : " 1—6"} 号顶点。自左上角起顺时针编号，边长表示每边格点数。` : "三角棋盘 · 沿用原有的两人、三人规则。",
+  startingPointLabel: "起点",
+  localHexHuman: "每位玩家都可选择人类或不同难度的AI，支持一人对战多个AI，也支持全AI对战；暂不提供AI提示与训练数据贡献。",
+  boardShapeLabel: "棋盘形状",
+  triangleBoard: "三角形",
+  hexagonBoard: "六边形",
+  triangleMidpoint: (edge) => `外边 ${edge} · 中点`,
+  localGenericAI: "通用 AI",
+  localGenericNote: "当前人数与形状组合支持人类或通用 AI。通用 AI 会按当前棋盘的合法落点评分并选择行动。",
+  boardGeometry: (count, shape = count >= 4 ? "hexagon" : "triangle") => shape === "hexagon"
+    ? `正六边形 · ${count} 人 · 默认占据 ${count === 2 ? "1、4" : count === 3 ? "1、3、5" : count === 4 ? "1、2、4、5" : count === 5 ? "1—5" : "1—6"} 号顶点，自左上角起顺时针编号。`
+    : count <= 3 ? "三角形 · 默认起点沿用原来的顶点位置。"
+      : "三角形 · 前 3 人占据顶点，第 4–6 人依次占据外边 1→2、2→3、3→1 的中点。偶数边长取沿该方向遇到的第一个中央格点。",
   localHuman: "人类",
   localHumanDescription: "由玩家在棋盘上操作这一方。",
   localController: "选择玩家",
@@ -533,11 +587,12 @@ const ZH_TEXTS = Object.freeze({
   localAdvanced: "模型高级设置",
   localLegacyModel: "旧模型 · 20260825",
   localResearchNote: "实验模型，棋力尚未独立评估。",
-  localThreeHuman: "每一方都可选择人类或 AI，支持一人对战两个 AI，也支持两人对战一个 AI。",
+  localThreeHuman: "每一方都可选择人类或不同难度的AI，支持多人混合对局，也支持全AI对战。",
   localPendingSettings: "选好各方棋手和先手后开始对局；开始新对局会重置棋盘。",
   localAppliedSettings: "当前设置已应用，可以交换双方准备下一局。",
   localSetupPrompt: "请在棋盘设置中选好各方棋手，点击“开始对局”。",
   localAiFailure: (side, fallback) => fallback ? `${side} AI 加载失败，该方已改用 Minimax 继续。` : `${side} AI 已停止，棋局已保留。点击“继续 AI”重试。`,
+  localUltimateUnavailable: "终极 AI 尚未通过棋力与发布验收，AI 回合已暂停。棋局和难度选择已保留。",
   aiDifficultyEasy: "简单",
   aiDifficultyMedium: "中等",
   aiDifficultyHard: "困难",
@@ -547,6 +602,11 @@ const ZH_TEXTS = Object.freeze({
   aiModelGridGnn: "Grid-GNN + PUCT",
   aiModelTopologyGnn: "Topology-GNN + PUCT",
   aiModelDescriptions: Object.freeze({
+    "ai-easy": "从多人 Minimax 对局学习的基础AI。",
+    "ai-medium": "沿用现有经过训练的轻量多人AI。",
+    "ai-hard": "推演后续领土变化与各方应对，在短时间内比较走法。",
+    "ai-ultimate": "用 Minimax 与轻量AI对局训练的新多人模型，结合搜索选择行动；棋力仍在评估。",
+    greedy: "比较当前棋盘的合法落子，选择评分较高的一步。",
     "three-player": "经过训练的轻量策略，会同时考虑另外两方的局面。",
     "hex-player": "用于四至六人正六边形棋盘，同时考虑各对手的局面；棋力尚未独立评估。",
     minimax: "推演双方后续落子，择优行动。",
@@ -561,12 +621,28 @@ const ZH_TEXTS = Object.freeze({
   }),
   aiModelSeed: "PUCT 版本",
   aiThinking: "AI 思考中…",
+  aiLoading: "正在加载 AI…",
+  localAiLoadingTimeout: "AI 加载超时，棋局已保留。请检查网络后点击“继续 AI”重试。",
+  localAiThinkingTimeout: "AI 思考超时，棋局已保留。点击“继续 AI”重试。",
   hintButton: "提示",
   hintRemaining: "提示 ({n})",
   hintExhausted: "提示已用完",
   hintNoMoves: "暂无推荐落点",
   hintSwitchLabel: "提示开关",
   hintMaxCountLabel: "提示次数",
+  undoSwitchLabel: "悔棋开关",
+  undoMaxCountLabel: "悔棋次数",
+  undoRemaining: (count) => `悔棋（${count}）`,
+  undoHelp: "仅本地对局：自己下一手落子前，可撤回自己最近一手及其后其他方的行动。同一手只能撤回一次，次数为本局共用额度。",
+  undoSuccess: "已撤回自己最近一手及其后其他方的行动，请重新落子。",
+  undoFailed: "悔棋失败，当前棋局和剩余次数已保留。",
+  onlineUndoHelp: "联机对局：所有真人玩家同意后撤回最近一步；次数为房间共用额度。",
+  onlineUndoAgree: "同意悔棋",
+  onlineUndoReject: "拒绝悔棋",
+  onlineUndoCancel: "取消申请",
+  onlineUndoWaiting: "等待投票",
+  onlineUndoVotes: (confirmed, required) => `悔棋确认 ${confirmed}/${required}`,
+  onlineUndoSuccess: "全员同意，已撤回最近一步。",
 });
 
 const EN_ACADEMIC_TEXT_OVERRIDES = Object.freeze({
@@ -906,8 +982,17 @@ export function localizeErrorMessage(message, language = "zh", uiStyle = UI_STYL
   if (message === "connect(url) requires a valid WebSocket URL.") {
     return texts.invalidWebSocket;
   }
+  if (message === "Failed to connect to WebSocket server: connection timed out.") {
+    return language === "zh" ? "连接超时，已结束等待。请重试；8 位互通码可以直接加入房间。" : "Connection timed out. You can retry; an 8-character shared code can be joined directly.";
+  }
+  if (message === "Failed to connect to WebSocket server.") {
+    return language === "zh" ? "连接失败，已结束等待。请重试；8 位互通码可以直接加入房间。" : "Connection failed. You can retry; an 8-character shared code can be joined directly.";
+  }
   if (message.startsWith("Failed to connect to ")) {
     return texts.connectFailed(message.slice("Failed to connect to ".length));
+  }
+  if (/^WebSocket closed: 4401(?:$|\s)/.test(message)) {
+    return texts.authInvalidToken;
   }
   if (message.startsWith("WebSocket closed:")) {
     return texts.socketClosed;
@@ -938,9 +1023,6 @@ export function localizeErrorMessage(message, language = "zh", uiStyle = UI_STYL
   }
   if (message === "Authentication token is required. Please log in first.") {
     return texts.authTokenRequired;
-  }
-  if (message === "WebSocket closed: 4401 invalid_token" || message === "WebSocket closed: 4401 missing_token") {
-    return texts.authInvalidToken;
   }
   if (message === "Username already exists.") {
     return texts.authUsernameExists;

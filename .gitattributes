@@ -23,3 +23,17 @@ research/iclr2027/results/formal/d14_d16/aggregate_v1/arena_learning_curve.csv -
 research/iclr2027/results/formal/d14_d16/aggregate_v1/final_vs_search.csv -text
 research/iclr2027/results/formal/d14_d16/aggregate_v1/representation_round_robin.csv -text
 research/iclr2027/results/formal/d14_d16/aggregate_v1/training_curve.csv -text
+
+# The reviewed native compatibility overlay is byte pinned.
+wechat/minigame/compat/web/*.js -text whitespace=cr-at-eol
+wechat/minigame/compat/web/manifest.json -text
+# Native source receipts and imported guide text must survive a fresh checkout.
+wechat/minigame/src/*.js -text whitespace=cr-at-eol
+web/web前端/PortableClone.js -text whitespace=cr-at-eol
+web/web前端/assets/research-ai/manifest.json -text whitespace=cr-at-eol
+web/web前端/assets/research-ai/model-free-manifest.json -text whitespace=cr-at-eol
+web/web前端/assets/research-ai/transfer-v1/manifest.json -text whitespace=cr-at-eol
+"web/web前端/guide/rule/essential rule.md" -text whitespace=cr-at-eol
+"web/web前端/guide/rule/war rule.md" -text whitespace=cr-at-eol
+# Preserve the already verified runtime's deliberate final blank line.
+web/web前端/MultiplayerHardValue.js whitespace=-blank-at-eof

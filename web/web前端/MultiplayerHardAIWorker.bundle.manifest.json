@@ -1,0 +1,33 @@
+{
+  "schema": "lifeline-application-hard-worker-bundle-v1",
+  "publicModelId": "multiplayer-hard-v1",
+  "implementationId": "multiplayer-hard-cut-resilience-v1",
+  "bundleSha256": "d7326a7780428a496090696c33d95df5960adf6c5886588eb6cfa8ebd0270768",
+  "bundleBytes": 290019,
+  "sourceMapSha256": "580979eccb6eb6128c09c5808f423e42752cdd42184ffe5a6ad2706c4f74847e",
+  "compiler": "0.25.12",
+  "configSha256": "282ed37ebcc553faa451f0f41fc55e4ef2b8ceb1a6e03c27f8b1dd9063e282f1",
+  "sourceHashes": {
+    "AIEngine.js": "df5a2a04087ad9fb61ca3269706918183ac98a54acce849b94b06bee7b1737cd",
+    "AIStateProtocol.js": "bd82e144304f429b354d7d7a722f1a691b7902a6e6e418f3739342191b5291a2",
+    "AIWorker.js": "2404a32594ea20f017a9a7ba6a7ec3540e6a5e35972c53aff59ddae1f0f9ee7f",
+    "GameEngine.js": "3b70b69c4c480117a4952b06c279054ec535268b4293b04b4d63f960ac4b0fca",
+    "HexPlayerAI.js": "336ae5e5ba3fc1fb2ca4ac3e1a0ca0066dee5c347eebba67ef95c5e0bba5bb4d",
+    "MultiplayerAIWarmup.js": "58f841eaf4c5938c29deddc050561808f0f0d3ad6aa576ccf95bb5c8fc807ef6",
+    "MultiplayerHardFallback.js": "84423212442f31f8796d4eff857af598347bba87578308e05d5f8cefaa8b2d14",
+    "MultiplayerHardResources.js": "f9bae7b79b82fe6482fb29371535c0f4d43577519268a319edce0bcb378ab49b",
+    "MultiplayerHardRollout.js": "402b2bad36770ef09941ecc48f9f6459ceda0cd2b108fa190d249c053c1fc120",
+    "MultiplayerHardRuntime.js": "d1596da4e41974d33f56754e35b636f2d6f1f5e1f63206b8e946717f5392365d",
+    "MultiplayerHardValue.js": "6bb9dc21c72773b6dbca6a268173f5e93daebe83a7a4bb1ab21687269a7ea25e",
+    "MultiplayerHardWorkerEntry.js": "06adb258ab3552670ee1ae61226a62a8aea5ce47f05457b2293e1f10d6522d27",
+    "MultiplayerHardWorkerRuntime.js": "c0205f2457b6a14049cb09cefaa41128003d52e4efafd5726c802d92b61edc1a",
+    "MultiplayerNativeGeometry.js": "22b347a0ee6e92594596f78abfae882b26cdc8761ef5010eec79cca8c375ed25",
+    "MultiplayerSearch.js": "04546a7f92aaf41d6d3643fba048f7052cf95a7b184303dec9d9a5eca4fcc6aa",
+    "ThreePlayerAI.js": "a62c6454913dce9792d91bf16208bf5481693263cc16e84b87d2fecbd59bcf81",
+    "ThreePlayerModels.js": "533850a26d280874c9220535afdcba2146fbb19fce12f41db9b37f10fad51aa1",
+    "ThreePlayerRuntime.js": "b23caf643c97fe7887a757b5c8f63dad6760aa6c21334379b90dcb4d321fd58c",
+    "ThreePlayerSearchAI.js": "921a5de4fab786a3a8f931dadcd8fedc74736f3a5194ebc35ea8797c3ac34cf1",
+    "ThreePlayerSearchOptions.js": "299e238d74acdcf6f86e5b4f7108a16393b8709439b7b8c3292197d512d39c87"
+  },
+  "verified": false
+}

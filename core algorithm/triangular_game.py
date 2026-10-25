@@ -215,6 +215,22 @@ class TriangularGame:
         """Get all line points belonging to a player"""
         target_state = PointState.BLACK_LINE if player == Player.BLACK else PointState.WHITE_LINE
         return [pos for pos, state in self.grid.items() if state == target_state]
+
+    def _has_boundary_cycle(self, polygon: List[Tuple[int, int]]) -> bool:
+        """A retraced open chain is not an enclosing boundary."""
+        points = polygon[:-1] if polygon and polygon[0] == polygon[-1] else polygon
+        if len(points) < 3:
+            return False
+        vertices, edges = set(), set()
+        for start, end in zip(points, points[1:] + points[:1]):
+            if start == end:
+                continue
+            dx, dy = end[0] - start[0], end[1] - start[1]
+            if start not in self.grid or end not in self.grid or max(abs(dx), abs(dy), abs(dx + dy)) != 1:
+                return False
+            vertices.update((start, end))
+            edges.add(frozenset((start, end)))
+        return len(vertices) >= 3 and len(edges) >= len(vertices)
     
 
     def _get_covered_points(self, polygon: List[Tuple[int, int]]) -> set:
@@ -244,6 +260,32 @@ class TriangularGame:
         # 全图所有点 - 被水淹点 = 领土（含轮廓墙体）
         all_points = {(x, y) for y in range(self.GRID_SIZE) for x in range(self.GRID_SIZE - y)}
         return all_points - water_reached
+
+    def _compute_owned_wall_area(self, friendlies: set, enemies: set) -> int:
+        """Count owned node/line points plus enemy-free pockets disconnected from the edge."""
+        covered = self._get_covered_points(list(friendlies))
+        visited = set(friendlies)
+        area = len(friendlies)
+
+        for start in covered - friendlies:
+            if start in visited:
+                continue
+            queue = deque([start])
+            visited.add(start)
+            component = set()
+            contains_enemy = False
+            while queue:
+                current = queue.popleft()
+                component.add(current)
+                if current in enemies:
+                    contains_enemy = True
+                for neighbor in self._get_adjacent_positions(current):
+                    if neighbor in covered and neighbor not in visited and neighbor not in friendlies:
+                        visited.add(neighbor)
+                        queue.append(neighbor)
+            if not contains_enemy:
+                area += len(component)
+        return area
 
     def _get_all_shortest_grid_paths(self, start: Tuple[int, int], end: Tuple[int, int],
                                      enemies: set, max_paths: int = 50) -> List[List[Tuple[int, int]]]:
@@ -357,8 +399,8 @@ class TriangularGame:
         # Step 1: 直接调用封装好的右手摸墙法获取外轮廓
         current_poly = self._get_outer_contour(player)
 
-        if len(current_poly) < 3:
-            return None, 0.0
+        if not self._has_boundary_cycle(current_poly):
+            return None, self._compute_owned_wall_area(friendlies, enemies)
 
         # Step 2: 动态贪心修剪（泛洪法校验版，彻底替代射线法）
         while True:
@@ -425,13 +467,13 @@ class TriangularGame:
             else:
                 break
 
-        if len(current_poly) < 3:
-            return None, 0.0
+        if not self._has_boundary_cycle(current_poly):
+            return None, self._compute_owned_wall_area(friendlies, enemies)
 
         final_covered = self._get_covered_points(current_poly)
         final_closed = get_closed(current_poly)
         screen_polygon = [self._get_screen_pos(*p) for p in final_closed]
-        area = len(final_covered)
+        area = self._compute_owned_wall_area(friendlies, enemies)
         return screen_polygon, area
 
     def _compute_inner_hull(self, player: Player):
@@ -493,8 +535,8 @@ class TriangularGame:
             return results
 
         current_poly = self._get_outer_contour(player)
-        if len(current_poly) < 3:
-            return None, 0.0
+        if not self._has_boundary_cycle(current_poly):
+            return None, self._compute_owned_wall_area(friendlies, enemies)
 
         cur_area = 0
         while True:
@@ -594,13 +636,13 @@ class TriangularGame:
             else:
                 break
 
-        if len(current_poly) < 3:
-            return None, 0.0
+        if not self._has_boundary_cycle(current_poly):
+            return None, self._compute_owned_wall_area(friendlies, enemies)
 
         final_covered = self._get_covered_points(current_poly)
         final_closed = get_closed(current_poly)
         screen_polygon = [self._get_screen_pos(*p) for p in final_closed]
-        return screen_polygon, len(final_covered)
+        return screen_polygon, self._compute_owned_wall_area(friendlies, enemies)
     
     def _update_hulls(self):
         """Recompute both players' inner hull and cache the results.
@@ -626,13 +668,11 @@ class TriangularGame:
         self.screen.blit(overlay, (0, 0))
 
         # Area labels: Blue on left, Red on right
-        if black_coords:
-            label = self._font_sm.render(f"Blue territory: {black_area} pts", True, (0, 0, 200))
-            self.screen.blit(label, (10, self.SCREEN_HEIGHT - 30))
-        if white_coords:
-            label = self._font_sm.render(f"Red territory:  {white_area} pts", True, (200, 0, 0))
-            lw = label.get_width()
-            self.screen.blit(label, (self.SCREEN_WIDTH - lw - 10, self.SCREEN_HEIGHT - 30))
+        label = self._font_sm.render(f"Blue territory: {black_area} pts", True, (0, 0, 200))
+        self.screen.blit(label, (10, self.SCREEN_HEIGHT - 30))
+        label = self._font_sm.render(f"Red territory:  {white_area} pts", True, (200, 0, 0))
+        lw = label.get_width()
+        self.screen.blit(label, (self.SCREEN_WIDTH - lw - 10, self.SCREEN_HEIGHT - 30))
 
     def _get_adjacent_positions(self, pos: Tuple[int, int]) -> List[Tuple[int, int]]:
         """Get all adjacent positions to a given position"""

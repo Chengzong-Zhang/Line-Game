@@ -67,7 +67,7 @@ export async function processBotRequest(request, { chooseBotPoint = chooseBotPoi
   const settings = request?.settings;
   const playerCount = settings?.playerCount;
   const colors = PLAYER_ORDER.slice(0, playerCount);
-  if (![3, 4, 5, 6].includes(playerCount) || settings.rulesVersion !== "territory-v2"
+  if (![3, 4, 5, 6].includes(playerCount) || !["territory-v2", "territory-v3"].includes(settings.rulesVersion)
     || !Number.isInteger(settings.gridSize) || settings.gridSize < 5 || settings.gridSize > 15
     || !colors.includes(settings.startPlayer ?? "BLACK")
     || !Array.isArray(request.actions) || request.actions.length > 4096

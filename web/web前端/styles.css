@@ -2515,9 +2515,9 @@ body.large-board .result-overlay {
 
 .settings-timing-controls {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
-  min-width: 440px;
+  min-width: 0;
 }
 
 .settings-timing-controls .toggle-field,
@@ -4248,6 +4248,27 @@ body.large-board .result-overlay {
 .player-count-choices { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .player-count-choices .language-button { min-width: 0; padding-inline: 8px; }
 .board-geometry-summary { margin: 0; }
+.starting-point-setup { min-width: 0; padding: 16px; border: 1px solid var(--border, #dfd5c5); border-radius: 16px; }
+.starting-point-modes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.starting-point-modes button { min-height: 44px; padding: 9px 6px; }
+.starting-point-seats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-block: 12px; }
+.starting-point-seat { display: flex; align-items: center; gap: 6px; min-height: 44px; border: 1px solid #d8d0c5; border-radius: 10px; background: transparent; color: inherit; padding: 8px; font: inherit; cursor: pointer; }
+.starting-point-seat.is-active { border-color: var(--start-color); box-shadow: inset 0 0 0 1px var(--start-color); }
+.starting-point-seat:disabled { opacity: 1; cursor: default; }
+.starting-point-number { display: inline-grid; place-items: center; flex: 0 0 22px; height: 22px; border-radius: 50%; background: var(--start-color); color: white; font-size: 12px; }
+.starting-point-coordinate { margin-left: auto; white-space: nowrap; font-size: 12px; }
+.starting-point-preview-scroll { width: 100%; overflow-x: auto; border-radius: 12px; background: rgba(209, 187, 150, .08); }
+.starting-point-preview { display: block; width: 100%; max-width: 640px; margin-inline: auto; }
+.starting-point-grid-line { stroke: #c4b9a8; stroke-width: 1; }
+.starting-point-preview .is-editable { cursor: pointer; }
+.starting-point-preview .is-editable:hover > circle:first-child, .starting-point-preview .is-editable:focus > circle:first-child { fill: rgba(36, 115, 189, .2); }
+.starting-point-preview text { pointer-events: none; }
+.starting-point-coordinate-form { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; margin-top: 12px; }
+.starting-point-coordinate-form label { flex: 1 1 110px; font-size: 12px; }
+.starting-point-coordinate-form input { display: block; width: 100%; margin-top: 6px; }
+.starting-point-coordinate-form button { min-height: 44px; }
+.starting-point-error { color: #b43b43; font-size: 14px; }
+.starting-point-start { width: 100%; margin-top: 12px; min-height: 44px; }
 @media (max-width: 640px) {
   .local-player-grid.has-hex-players { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .local-player-grid.has-hex-players .local-player-card { padding: 12px; }
