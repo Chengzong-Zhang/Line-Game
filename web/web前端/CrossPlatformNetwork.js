@@ -1,5 +1,5 @@
-import NetworkManager, { ClientEvent, ServerEvent } from "./NetworkManager.js?v=20261025-ai1";
-import { SharedRoomClient, sharedApiOrigin } from "./SharedRoomClient.js?v=20261025-ai1";
+import NetworkManager, { ClientEvent, ServerEvent } from "./NetworkManager.js?v=20261025-room1";
+import { SharedRoomClient, sharedApiOrigin } from "./SharedRoomClient.js?v=20261025-room1";
 
 // Preserve existing four-digit Web rooms; eight-character rooms share the
 // authoritative Mini Game service. Callers still use the Web UI/controller API.
@@ -14,7 +14,8 @@ export default class CrossPlatformNetwork extends NetworkManager {
         this._emit(payload.type, payload);
         if (room.status === "closed") this._emit(ServerEvent.PLAYER_LEFT, payload);
         if (room.status === "finished" && Object.values(room.rematchVotes).some(Boolean)) {
-          this._emit(ServerEvent.RESET_STATUS, { confirmedVotes: Object.values(room.rematchVotes).filter(Boolean).length, requiredVotes: 2 });
+          this._emit(ServerEvent.RESET_STATUS, { confirmedVotes: Object.values(room.rematchVotes).filter(Boolean).length,
+            requiredVotes: Object.keys(room.members).filter(color => room.members[color] && !room.bots?.includes(color)).length });
         }
       },
       onConnection: (connected, event) => {
@@ -72,15 +73,10 @@ export default class CrossPlatformNetwork extends NetworkManager {
   }
   async createSharedRoom(settings = {}) {
     await this.activateShared();
-    return this.shared.enter("create", { ...settings, playerCount: 2, rulesVersion: "territory-v3" });
+    return this.shared.enter("create", { ...settings, rulesVersion: "territory-v3" });
   }
   async createRoom(settings) {
-    if (this.sharedActive) {
-      if (this.roomId) throw new Error("LEAVE_ROOM_FIRST");
-      this.shared.stop(); this.sharedActive = false;
-      await super.connect(this.url, this.authToken);
-    }
-    return super.createRoom(settings);
+    return this.createSharedRoom(settings);
   }
   async joinRoom(code, playerId) {
     const normalized = String(code).trim().toUpperCase();
@@ -108,12 +104,18 @@ export default class CrossPlatformNetwork extends NetworkManager {
     return this.shared.command("rematch");
   }
   async updateRoomSettings(settings) {
-    return this.sharedActive ? this.shared.updateSettings({ ...settings, playerCount: 2 }) : super.updateRoomSettings(settings);
+    return this.sharedActive ? this.shared.updateSettings(settings) : super.updateRoomSettings(settings);
   }
   async updateStartPlayer(player) {
-    return this.sharedActive ? this.shared.updateSettings({ ...this.shared.room.settings, startPlayer: player }) : super.updateStartPlayer(player);
+    return this.sharedActive ? this.shared.updateSettings({ ...(this.shared.room.pendingSettings ?? this.shared.room.settings), startPlayer: player }) : super.updateStartPlayer(player);
   }
   async sendUndo(accept = true) { return this.sharedActive ? this.shared.undo(accept) : super.sendUndo(accept); }
+  async retryBots() {
+    if (!this.sharedActive) return super.retryBots();
+    const room = await this.shared.request(`rooms/${this.shared.room.code}`);
+    await this.shared.receive(room);
+    return room;
+  }
   async sendChatEmoji(...args) {
     if (this.sharedActive) return this.shared.sendEmote(args[0]);
     return super.sendChatEmoji(...args);

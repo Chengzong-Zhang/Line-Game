@@ -1,4 +1,4 @@
-import { fastTerritoryBFS, restoreState, saveState } from "./AIEngine.js?v=20261025-ai1";
+import { fastTerritoryBFS, restoreState, saveState } from "./AIEngine.js?v=20261025-room1";
 
 export const THREE_PLAYER_MODEL_ID = "three-player-policy-v1";
 export const THREE_PLAYER_FEATURES = Object.freeze([
@@ -7,7 +7,7 @@ export const THREE_PLAYER_FEATURES = Object.freeze([
   "own_coverage_gain", "attack", "own_line", "distance_from_home", "centrality",
   "own_frontier", "opponent_frontier_lead",
 ]);
-const MODEL_URL = new URL("./assets/research-ai/three-player-policy-v1.json?v=20261025-unified1", import.meta.url);
+const MODEL_URL = new URL("./assets/research-ai/three-player-policy-v1.json?v=20261025-room1", import.meta.url);
 let modelPromise = null;
 
 function counts(engine, player) {

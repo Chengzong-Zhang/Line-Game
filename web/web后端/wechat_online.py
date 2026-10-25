@@ -1,4 +1,4 @@
-"""Opt-in WeChat identity and durable two-player rooms, separate from legacy /ws.
+"""Opt-in WeChat identity and durable mixed-player rooms, separate from legacy /ws.
 
 Run one ASGI worker: room broadcasts are process-local; SQLite still uses CAS to
 protect acknowledged actions. No AppSecret, session_key or openid reaches clients.
@@ -46,6 +46,33 @@ MAX_AVATAR_DATA_URL = 4 * ((MAX_AVATAR_BYTES + 2) // 3) + 32
 SOCKET_IO_TIMEOUT = 2
 EMOTE_CAPABILITY = "emote-v1"
 BOT_MEMBER = "@AI:WHITE"
+PLAYER_COLORS = ("BLACK", "WHITE", "PURPLE", "GREEN", "ORANGE", "CYAN")
+PLAYER_CHOICES = frozenset(("human", "minimax", "padded-cnn", "grid-gnn", "topology-gnn",
+                            "dqn", "ppo", "sac", "gail", "gan", "ai-easy", "ai-medium",
+                            "ai-hard", "ai-ultimate", "three-player", "hex-player", "greedy"))
+PLAYER_VERSIONS = frozenset(("legacy", "2026092201", "2026092202", "2026092203"))
+NATIVE_PLAYER_VERSIONS = {"three-player": frozenset(("three-player-policy-v1", "three-player-policy-v2",
+                                                     "three-player-search-v4-round12")),
+                          "hex-player": frozenset(("hex-player-policy-v1", "hex-player-search-v5"))}
+
+
+def is_bot(member):
+    return isinstance(member, str) and member.startswith("@AI:")
+
+
+def active_colors(settings):
+    return PLAYER_COLORS[:settings.get("playerCount", 2)]
+
+
+def player_setup(settings):
+    """Old clients retain botCount; new clients explicitly configure every seat."""
+    if "playerSetup" in settings:
+        return {color: settings["playerSetup"][color] for color in active_colors(settings)}
+    colors = active_colors(settings)
+    bots = set(colors[len(colors) - settings.get("botCount", 0):]) if settings.get("botCount") else set()
+    return {color: {"choice": "minimax" if len(colors) == 2 else "ai-easy",
+                    "depth": 2, "version": "2026092201"} if color in bots else
+                   {"choice": "human", "depth": 3, "version": "2026092201"} for color in colors}
 
 
 def random_initial_positions(grid_size, player_count, board_shape, previous):
@@ -93,7 +120,14 @@ async def evaluate_shared_bot(settings, actions):
             stderr=asyncio.subprocess.PIPE,
         )
         output, _ = await asyncio.wait_for(process.communicate(canonical({
-            "settings": settings, "actions": actions, "botColors": ["WHITE"]}).encode()), 15)
+            "settings": settings, "actions": actions,
+            "botColors": [color for color, setup in player_setup(settings).items()
+                          if setup["choice"] != "human"]}).encode()), 15)
+    except asyncio.CancelledError:
+        if "process" in locals() and process.returncode is None:
+            process.kill()
+            await process.communicate()
+        raise
     except (OSError, asyncio.TimeoutError) as exc:
         if "process" in locals() and process.returncode is None:
             process.kill()
@@ -511,14 +545,108 @@ class WechatService:
         self.mutation_lock = asyncio.Lock()
         self.arrivals = {}
         self.bot_tasks = {}
+        self.timer_tasks = {}
+        self.timer_keys = {}
+
+    @staticmethod
+    def human_colors(room):
+        return [color for color in active_colors(room["settings"])
+                if room["players"].get(color) is not None and not is_bot(room["players"][color])]
+
+    @staticmethod
+    def bot_colors(room):
+        return [color for color in active_colors(room["settings"]) if is_bot(room["players"].get(color))]
+
+    @staticmethod
+    def host_player(room):
+        humans = WechatService.human_colors(room)
+        return room.get("hostPlayer") if room.get("hostPlayer") in humans else (humans[0] if humans else None)
+
+    @staticmethod
+    def seat_members(settings, previous=None):
+        previous = previous or {}
+        return {color: ("@AI:" + color if setup["choice"] != "human" else
+                        previous.get(color) if not is_bot(previous.get(color)) else None)
+                for color, setup in player_setup(settings).items()}
+
+    @staticmethod
+    def check_occupied_seats(room, settings):
+        setup = player_setup(settings)
+        if any(color not in setup or setup[color]["choice"] != "human"
+               for color in WechatService.human_colors(room)):
+            fail("ROOM_FULL", 409)
+
+    @staticmethod
+    def reset_ready(room):
+        room["ready"] = {color: is_bot(member) for color, member in room["players"].items()}
+        room["rematchVotes"] = {color: False for color in room["players"]}
+
+    @staticmethod
+    def reset_turn_deadline(room):
+        room["turnDeadline"] = (time.time() + room["settings"]["turnTimeLimitSeconds"]
+                                if room["status"] == "playing" and room["settings"].get("turnTimerEnabled")
+                                and not room.get("undo", {}).get("pending") else None)
 
     @staticmethod
     def bot_room(room):
-        return room["players"].get("WHITE") == BOT_MEMBER and room["settings"].get("botCount") == 1
+        return bool(WechatService.bot_colors(room))
+
+    def schedule_timer(self, room):
+        code = room["code"]
+        deadline = room.get("turnDeadline")
+        key = ((room["matchId"], room["seq"], room["state"]["stateHash"], deadline)
+               if room["status"] == "playing" and deadline and not room.get("undo", {}).get("pending") else None)
+        old = self.timer_tasks.get(code)
+        if self.timer_keys.get(code) == key and old is not None and not old.done():
+            return
+        if old is not None and old is not asyncio.current_task():
+            old.cancel()
+        self.timer_keys.pop(code, None)
+        self.timer_tasks.pop(code, None)
+        if key is None:
+            return
+        task = asyncio.create_task(self.run_timer(code, key))
+        self.timer_tasks[code], self.timer_keys[code] = task, key
+
+        def finished(done):
+            if self.timer_tasks.get(code) is done:
+                self.timer_tasks.pop(code, None)
+                self.timer_keys.pop(code, None)
+            if not done.cancelled():
+                done.exception()
+        task.add_done_callback(finished)
+
+    async def run_timer(self, code, key):
+        try:
+            await asyncio.sleep(max(0, key[3] - time.time()))
+            async with self.mutation_lock:
+                room = self.store.room(code)
+                if (room["status"] != "playing" or room.get("undo", {}).get("pending")
+                        or len(room["actions"]) >= MAX_ACTIONS
+                        or (room["matchId"], room["seq"], room["state"]["stateHash"], room.get("turnDeadline")) != key):
+                    return
+                revision = room["revision"]
+                action = {"type": "skip", "player": room["state"]["currentPlayer"]}
+                state = await asyncio.to_thread(self.verifier, room["settings"], room["actions"], action)
+                room["actions"].append(action)
+                room["actionIds"].append("timeout-" + secrets.token_hex(16))
+                room["seq"] += 1
+                room["state"] = state
+                if state["gameOver"]:
+                    room["status"] = "finished"
+                self.reset_turn_deadline(room)
+                room["revision"] += 1
+                room["expiresAt"] = int(time.time()) + ROOM_TTL
+                self.store.commit(room, revision)
+            await self.broadcast(room)
+            self.schedule_bot(room)
+        except (HTTPException, OSError, KeyError, ValueError):
+            return
 
     def schedule_bot(self, room):
+        self.schedule_timer(room)
         if (not self.bot_room(room) or room["status"] != "playing"
-                or room["state"]["currentPlayer"] != "WHITE"
+                or room["state"]["currentPlayer"] not in self.bot_colors(room)
                 or room.get("undo", {}).get("pending")):
             return
         task = self.bot_tasks.get(room["code"])
@@ -530,21 +658,46 @@ class WechatService:
                 if self.bot_tasks.get(code) is not done:
                     return
                 self.bot_tasks.pop(code, None)
+                if not done.cancelled():
+                    done.exception()
                 try:
                     latest = self.store.room(code)
                 except HTTPException:
                     return
                 # A newer match/turn may have arrived while this task was running.
                 # Retry only after a revision change, so a failed runtime cannot loop.
-                if latest["revision"] != scheduled_revision:
+                last_bot = latest.get("lastBotResult") or {}
+                recorded_failure = last_bot.get("success") is False and last_bot.get("revision") == latest["revision"]
+                if latest["revision"] != scheduled_revision and not recorded_failure:
                     self.schedule_bot(latest)
             task.add_done_callback(finished)
+
+    async def record_bot_failure(self, code, match_id, revision, color, reason, profile=None):
+        try:
+            async with self.mutation_lock:
+                room = self.store.room(code)
+                if (room["matchId"] != match_id or room["revision"] != revision
+                        or room["status"] != "playing" or room["state"]["currentPlayer"] != color):
+                    return
+                room["revision"] += 1
+                room["lastBotResult"] = {"success": False, "matchId": match_id, "seq": room["seq"],
+                                         "color": color, "fallback": False, "revision": room["revision"],
+                                         "reason": reason if isinstance(reason, str) and re.fullmatch(r"[A-Z0-9_:.-]{1,120}", reason)
+                                         else "AI_RUNTIME_UNAVAILABLE"}
+                if profile is not None:
+                    room["lastBotResult"]["botProfile"] = profile
+                self.store.commit(room, revision)
+            await self.broadcast(room)
+        except (HTTPException, OSError, KeyError, ValueError):
+            return
 
     async def run_bot(self, code):
         try:
             async with self.mutation_lock:
                 room = self.store.room(code)
-                if not self.bot_room(room) or room["status"] != "playing" or room["state"]["currentPlayer"] != "WHITE":
+                color = room["state"]["currentPlayer"]
+                if (color not in self.bot_colors(room) or room["status"] != "playing"
+                        or room.get("undo", {}).get("pending") or len(room["actions"]) >= MAX_ACTIONS):
                     return
                 match_id, revision = room["matchId"], room["revision"]
                 settings = dict(room["settings"])
@@ -554,29 +707,38 @@ class WechatService:
                       for action in actions]
             result = await evaluate_shared_bot(settings, legacy)
             action = result.get("action") if result.get("success") else None
-            if not action or action.get("color") != "WHITE":
+            if not action or action.get("color") != color:
+                await self.record_bot_failure(code, match_id, revision, color,
+                                              result.get("reason", "AI_INVALID_DECISION"), result.get("botProfile"))
                 return
             normalized = {"type": {"player_move": "move", "player_skip": "skip"}[action["type"]],
-                          "player": "WHITE", **({"point": action["point"]} if "point" in action else {})}
+                          "player": color, **({"point": action["point"]} if "point" in action else {})}
             state = await asyncio.to_thread(self.verifier, settings, actions, normalized)
             async with self.mutation_lock:
                 room = self.store.room(code)
                 if (room["matchId"] != match_id or room["revision"] != revision
                         or room["status"] != "playing" or not self.bot_room(room)
-                        or room["state"]["currentPlayer"] != "WHITE" or room.get("undo", {}).get("pending")):
+                        or room["state"]["currentPlayer"] != color or color not in self.bot_colors(room)
+                        or room.get("undo", {}).get("pending")):
                     return
                 room["actions"].append(normalized)
                 room["actionIds"].append("bot-" + secrets.token_hex(16))
                 room["seq"] += 1
                 room["state"] = state
+                room["lastBotResult"] = {"success": True, "matchId": match_id, "seq": room["seq"], "color": color,
+                                         "fallback": bool(result.get("fallback")),
+                                         **{key: result[key] for key in ("fallbackReason", "botProfile", "modelInfo") if key in result}}
                 if state["gameOver"]:
                     room["status"] = "finished"
+                self.reset_turn_deadline(room)
                 room["revision"] += 1
                 room["expiresAt"] = int(time.time()) + ROOM_TTL
                 self.store.commit(room, revision)
             await self.broadcast(room)
         except (BotBridgeUnavailable, asyncio.TimeoutError, HTTPException, OSError, KeyError, ValueError):
             # Keep the accepted history intact. A room refresh retries the turn.
+            if "match_id" in locals() and "revision" in locals() and "color" in locals():
+                await self.record_bot_failure(code, match_id, revision, color, "AI_RUNTIME_UNAVAILABLE")
             return
 
     def rate(self, key, limit=90):
@@ -709,30 +871,34 @@ class WechatService:
                 return player
         fail("NOT_ROOM_MEMBER", 403)
 
-    def view(self, room, uid):
-        color = self.player(room, uid)
+    def view(self, room, uid, *, departing_player=None):
+        color = departing_player or self.player(room, uid)
         profiles = {}
         for player, member in room["players"].items():
             if member is None:
                 profiles[player] = None
-            elif member == BOT_MEMBER:
-                profiles[player] = {"uid": BOT_MEMBER, "displayName": "AI", "avatarUrl": None}
+            elif is_bot(member):
+                profiles[player] = {"uid": member, "displayName": "AI", "avatarUrl": None}
             else:
                 profile = self.store.profile(member, "wechat")
                 profiles[player] = {key: profile[key] for key in ("uid", "displayName", "avatarUrl")}
         return {**{k: room[k] for k in ("code", "matchId", "revision", "seq", "status", "settings", "actions", "actionIds", "ready", "rematchVotes", "expiresAt")},
                 **room["state"], "protocol": PROTOCOL, "player": color,
                 "undo": room.get("undo", {"usedCount": 0, "pending": False, "votes": []}),
+                "hostPlayer": self.host_player(room), "pendingSettings": room.get("pendingSettings"),
+                "turnDeadline": room.get("turnDeadline"),
+                "lastBotResult": room.get("lastBotResult"),
                 "playerProfiles": profiles,
                 "members": {p: member is not None for p, member in room["players"].items()},
-                "bots": ["WHITE"] if self.bot_room(room) else []}
+                "bots": self.bot_colors(room)}
 
     @staticmethod
     def room_settings(body, *, rules_default="territory-v2"):
-        if not isinstance(body, dict) or set(body) - {"gridSize", "boardShape", "startingPointMode", "initialPositions", "undoEnabled", "undoMaxCount", "rulesVersion", "playerCount", "startPlayer", "botCount", "turnTimerEnabled", "turnTimeLimitSeconds", "hintEnabled", "hintMaxCount"}:
+        if not isinstance(body, dict) or set(body) - {"gridSize", "boardShape", "startingPointMode", "initialPositions", "undoEnabled", "undoMaxCount", "rulesVersion", "playerCount", "startPlayer", "botCount", "playerSetup", "turnTimerEnabled", "turnTimeLimitSeconds", "hintEnabled", "hintMaxCount"}:
             fail("INVALID_SETTINGS", 422)
         size = body.get("gridSize", 7)
-        shape = body.get("boardShape", "triangle")
+        players = body.get("playerCount", 2)
+        shape = body.get("boardShape", "hexagon" if type(players) is int and players >= 4 else "triangle")
         mode = body.get("startingPointMode", "default")
         enabled = body.get("undoEnabled", False)
         count = body.get("undoMaxCount", 3)
@@ -744,20 +910,52 @@ class WechatService:
         if (type(size) is not int or not 5 <= size <= 15 or shape not in ("triangle", "hexagon")
                 or mode not in ("default", "random", "custom") or type(enabled) is not bool
                 or type(count) is not int or not 1 <= count <= 10
-                or rules not in ("territory-v2", "territory-v3") or first not in ("BLACK", "WHITE")
-                or type(body.get("playerCount", 2)) is not int or body.get("playerCount", 2) != 2
-                or type(body.get("botCount", 0)) is not int or body.get("botCount", 0) not in (0, 1)
-                or body.get("turnTimerEnabled", False) is not False
+                or rules not in ("territory-v2", "territory-v3")
+                or type(players) is not int or not 2 <= players <= 6
+                or not isinstance(first, str) or first not in PLAYER_COLORS[:players]
+                or type(body.get("botCount", 0)) is not int or not 0 <= body.get("botCount", 0) < players
+                or type(body.get("turnTimerEnabled", False)) is not bool
                 or type(seconds) is not int or not 15 <= seconds <= 200
                 or type(hint) is not bool or type(hints) is not int or not (1 if hint else 0) <= hints <= 10):
             fail("INVALID_SETTINGS", 422)
         positions = body.get("initialPositions")
+        if mode == "random" and positions is None:
+            positions = random_initial_positions(size, players, shape, None)
         if (mode == "default" and positions is not None) or (mode != "default" and not isinstance(positions, dict)):
             fail("INVALID_SETTINGS", 422)
-        settings = {"gridSize": size, "playerCount": 2, "startPlayer": first, "rulesVersion": rules,
-                    "turnTimerEnabled": False, "turnTimeLimitSeconds": seconds, "hintEnabled": hint, "hintMaxCount": hints,
+        colors = PLAYER_COLORS[:players]
+        if positions is not None:
+            extent = (size - 1) * (2 if shape == "hexagon" else 1)
+            if (set(positions) != set(colors) or any(not isinstance(point, list) or len(point) != 2
+                    or any(type(n) is not int or not 0 <= n <= extent for n in point)
+                    or (not size - 1 <= sum(point) <= 3 * (size - 1) if shape == "hexagon" else sum(point) > size - 1)
+                    for point in positions.values())
+                    or len({tuple(point) for point in positions.values()}) != players):
+                fail("INVALID_SETTINGS", 422)
+            positions = {color: list(positions[color]) for color in colors}
+        setup = body.get("playerSetup")
+        if "playerSetup" in body:
+            if (not isinstance(setup, dict) or set(setup) - set(PLAYER_COLORS) or not set(colors).issubset(setup)):
+                fail("INVALID_SETTINGS", 422)
+            for color, value in setup.items():
+                if (not isinstance(value, dict) or set(value) - {"choice", "depth", "version"}
+                        or not isinstance(value.get("choice"), str) or value["choice"] not in PLAYER_CHOICES
+                        or type(value.get("depth", 3)) is not int or value.get("depth", 3) not in (2, 3, 4)
+                        or not isinstance(value.get("version", "2026092201"), str)
+                        or value.get("version", "2026092201") not in
+                        PLAYER_VERSIONS | NATIVE_PLAYER_VERSIONS.get(value.get("choice"), frozenset())):
+                    fail("INVALID_SETTINGS", 422)
+            setup = {color: {"choice": setup[color]["choice"], "depth": setup[color].get("depth", 3),
+                             "version": setup[color].get("version", "2026092201")} for color in colors}
+            if not any(value["choice"] == "human" for value in setup.values()):
+                fail("HUMAN_SEAT_REQUIRED", 422)
+        settings = {"gridSize": size, "playerCount": players, "startPlayer": first, "rulesVersion": rules,
+                    "turnTimerEnabled": body.get("turnTimerEnabled", False), "turnTimeLimitSeconds": seconds, "hintEnabled": hint, "hintMaxCount": hints,
                     "boardShape": shape, "undoEnabled": enabled, "undoMaxCount": count,
                     "botCount": body.get("botCount", 0)}
+        if setup is not None:
+            settings["playerSetup"] = setup
+            settings["botCount"] = sum(value["choice"] != "human" for value in setup.values())
         if mode != "default":
             settings.update(startingPointMode=mode, initialPositions=positions)
         return settings
@@ -819,6 +1017,7 @@ class WechatService:
             if auth_token is not None and self.authenticate(auth_token)["sub"] != uid:
                 fail("UNAUTHORIZED", 401)
             replaced_rooms = []
+            departing_player = self.player(self.store.room(code), uid) if operation == "leave" else None
             result = await self._mutate(uid, operation, body, code, replaced_rooms=replaced_rooms)
         finally:
             self.mutation_lock.release()
@@ -826,7 +1025,7 @@ class WechatService:
             await self.broadcast(previous)
         await self.broadcast(result)
         self.schedule_bot(result)
-        return self.view(result, uid)
+        return self.view(result, uid, departing_player=departing_player)
 
     async def _mutate(self, uid, operation, body, code, *, replaced_rooms=None):
         # An HTTP request may have authenticated before a queued deletion acquired
@@ -839,10 +1038,14 @@ class WechatService:
                 return current
             settings = self.room_settings(body)
             state = await asyncio.to_thread(self.verifier, settings, [])
+            members = self.seat_members(settings)
+            host = next(color for color, member in members.items() if member is None)
+            members[host] = uid
             room = {"code": "".join(secrets.choice("ABCDEFGHJKLMNPQRSTUVWXYZ23456789") for _ in range(8)),
                     "matchId": secrets.token_hex(16), "revision": 1, "seq": 0, "settings": settings,
-                    "status": "waiting", "players": {"BLACK": uid, "WHITE": BOT_MEMBER if settings["botCount"] else None}, "actions": [], "actionIds": [],
-                    "ready": {"BLACK": False, "WHITE": bool(settings["botCount"])}, "rematchVotes": {"BLACK": False, "WHITE": False},
+                    "status": "waiting", "players": members, "hostPlayer": host, "actions": [], "actionIds": [],
+                    "ready": {color: is_bot(member) for color, member in members.items()},
+                    "rematchVotes": {color: False for color in members}, "pendingSettings": None, "turnDeadline": None,
                     "undo": {"usedCount": 0, "pending": False, "votes": []},
                     "state": state, "expiresAt": int(time.time()) + ROOM_TTL}
             self.store.create(room)
@@ -856,23 +1059,24 @@ class WechatService:
         if operation == "join":
             if uid in room["players"].values():
                 return room
-            if room["players"]["WHITE"] is not None or room["status"] != "waiting":
+            seat = next((color for color in active_colors(room["settings"]) if room["players"].get(color) is None), None)
+            if seat is None or room["status"] != "waiting":
                 fail("ROOM_FULL", 409)
             current = self.store.active_room(uid)
             if current:
                 # A prior "create room" tap must not trap its sole owner.
                 # Preserve every room that has another player or progress.
                 if not (current["status"] == "waiting"
-                        and [member for member in current["players"].values() if member is not None] == [uid]
+                        and [member for member in current["players"].values() if member is not None and not is_bot(member)] == [uid]
                         and current["seq"] == 0 and not current["actions"] and not current["actionIds"]
                         and all(value is False for player, value in current["ready"].items()
-                                if current["players"].get(player) != uid)
+                                if current["players"].get(player) != uid and not is_bot(current["players"].get(player)))
                         and all(value is False for value in current["rematchVotes"].values())):
                     fail("ALREADY_IN_ROOM", 409)
                 abandoned = (current, current["revision"])
                 current["status"] = "closed"
                 current["revision"] += 1
-            room["players"]["WHITE"] = uid
+            room["players"][seat] = uid
         else:
             player = self.player(room, uid)
             if body.get("matchId") != room["matchId"]:
@@ -883,40 +1087,52 @@ class WechatService:
                 room["ready"][player] = True
                 if all(room["ready"].values()) and all(room["players"].values()):
                     room["status"] = "playing"
+                    self.reset_turn_deadline(room)
             elif operation == "settings":
-                if (player != "BLACK" or room["status"] != "waiting" or room["seq"]
-                        or any(ready for seat, ready in room["ready"].items()
-                               if room["players"].get(seat) != BOT_MEMBER)):
+                if player != self.host_player(room):
                     fail("SETTINGS_LOCKED", 409)
                 settings = self.room_settings(body.get("settings"), rules_default=room["settings"]["rulesVersion"])
                 if settings["rulesVersion"] != room["settings"]["rulesVersion"]:
                     fail("RULES_CHANGE_REQUIRES_NEW_ROOM", 409)
-                if room["players"]["WHITE"] not in (None, BOT_MEMBER) and settings["botCount"]:
-                    fail("ROOM_FULL", 409)
-                room["state"] = await asyncio.to_thread(self.verifier, settings, [])
-                room["settings"] = settings
-                room["players"]["WHITE"] = BOT_MEMBER if settings["botCount"] else (
-                    None if room["players"]["WHITE"] == BOT_MEMBER else room["players"]["WHITE"])
-                room["ready"]["WHITE"] = bool(settings["botCount"])
+                self.check_occupied_seats(room, settings)
+                state = await asyncio.to_thread(self.verifier, settings, [])
+                if room["status"] == "waiting":
+                    room["state"], room["settings"] = state, settings
+                    room["players"] = self.seat_members(settings, room["players"])
+                    room["pendingSettings"] = None
+                    room["lastBotResult"] = None
+                    self.reset_ready(room)
+                    self.reset_turn_deadline(room)
+                else:
+                    room["pendingSettings"] = settings
+                    room["rematchVotes"] = {color: False for color in room["players"]}
             elif operation == "rematch":
                 if room["status"] != "finished":
                     fail("MATCH_NOT_FINISHED", 409)
                 room["rematchVotes"][player] = True
-                if self.bot_room(room) or all(room["rematchVotes"].values()):
+                if all(room["rematchVotes"].get(color) for color in self.human_colors(room)):
+                    settings = room.get("pendingSettings") or room["settings"]
+                    self.check_occupied_seats(room, settings)
+                    room["settings"] = settings
+                    room["pendingSettings"] = None
+                    room["players"] = self.seat_members(settings, room["players"])
                     if room["settings"].get("startingPointMode") == "random":
                         room["settings"]["initialPositions"] = random_initial_positions(
-                            room["settings"]["gridSize"], 2, room["settings"]["boardShape"],
+                            room["settings"]["gridSize"], room["settings"]["playerCount"], room["settings"]["boardShape"],
                             room["settings"]["initialPositions"])
                     room.update(matchId=secrets.token_hex(16), seq=0, actions=[], actionIds=[], status="waiting",
-                                ready={"BLACK": False, "WHITE": self.bot_room(room)}, rematchVotes={"BLACK": False, "WHITE": False},
-                                undo={"usedCount": 0, "pending": False, "votes": []},
+                                undo={"usedCount": 0, "pending": False, "votes": []}, undoFloorSeq=0, lastBotResult=None,
                                 state=await asyncio.to_thread(self.verifier, room["settings"], []))
+                    self.reset_ready(room)
+                    self.reset_turn_deadline(room)
             elif operation == "undo":
                 undo = room.setdefault("undo", {"usedCount": 0, "pending": False, "votes": []})
                 if (not room["settings"].get("undoEnabled") or room["status"] not in ("playing", "finished")
-                        or not room["actions"] or undo["usedCount"] >= room["settings"].get("undoMaxCount", 3)):
+                        or not room["actions"] or room["seq"] <= room.get("undoFloorSeq", 0)
+                        or undo["usedCount"] >= room["settings"].get("undoMaxCount", 3)):
                     fail("UNDO_UNAVAILABLE", 409)
-                if self.bot_room(room) and not any(action["player"] == "BLACK" for action in room["actions"]):
+                humans = self.human_colors(room)
+                if len(humans) == 1 and self.bot_room(room) and not any(action["player"] == humans[0] for action in room["actions"]):
                     fail("UNDO_UNAVAILABLE", 409)
                 if (type(body.get("accept")) is not bool or type(body.get("expectedSeq")) is not int
                         or body["expectedSeq"] != room["seq"] or body.get("beforeHash") != room["state"]["stateHash"]):
@@ -929,19 +1145,43 @@ class WechatService:
                     undo["pending"] = True
                     if player not in undo["votes"]:
                         undo["votes"].append(player)
-                    if self.bot_room(room) or all(seat in undo["votes"] for seat in ("BLACK", "WHITE")):
+                    if all(seat in undo["votes"] for seat in humans):
                         count = next((len(room["actions"]) - index for index in range(len(room["actions"]) - 1, -1, -1)
-                                      if room["actions"][index]["player"] == "BLACK"), 1) if self.bot_room(room) else 1
+                                      if room["actions"][index]["player"] == humans[0]), 1) if len(humans) == 1 and self.bot_room(room) else 1
+                        if room["seq"] - count < room.get("undoFloorSeq", 0):
+                            fail("UNDO_UNAVAILABLE", 409)
                         remaining = room["actions"][:-count]
                         state = await asyncio.to_thread(self.verifier, room["settings"], remaining)
                         room["actions"] = remaining
                         room["actionIds"] = room["actionIds"][:-count]
                         room["seq"] -= count
                         room["state"] = state
+                        room["lastBotResult"] = None
                         room["status"] = "playing"
                         undo.update(usedCount=undo["usedCount"] + 1, pending=False, votes=[])
+                self.reset_turn_deadline(room)
             elif operation == "leave":
-                room["status"] = "closed"
+                others = [color for color in self.human_colors(room) if color != player]
+                if not others:
+                    room["status"] = "closed"
+                else:
+                    if room["status"] == "playing" and player not in room["state"].get("resignedPlayers", []):
+                        action = {"type": "resign", "player": player}
+                        room["state"] = await asyncio.to_thread(self.verifier, room["settings"], room["actions"], action)
+                        room["actions"].append(action)
+                        room["actionIds"].append("leave-" + secrets.token_hex(16))
+                        room["seq"] += 1
+                        if room["state"]["gameOver"]:
+                            room["status"] = "finished"
+                    room["players"][player] = None
+                    room["ready"][player] = False
+                    room["rematchVotes"][player] = False
+                    room["hostPlayer"] = self.host_player(room)
+                    room["undo"] = {**room.get("undo", {}), "pending": False, "votes": []}
+                    # A departed human has no actor to resume a resurrected turn.
+                    # Later undo votes may rewind play after this departure only.
+                    room["undoFloorSeq"] = room["seq"]
+                self.reset_turn_deadline(room)
             elif operation == "actions":
                 command_id = body.get("clientActionId")
                 if not isinstance(command_id, str) or not re.fullmatch(r"[a-zA-Z0-9_-]{16,80}", command_id):
@@ -956,6 +1196,9 @@ class WechatService:
                     fail("MATCH_NOT_PLAYING", 409)
                 if room.get("undo", {}).get("pending"):
                     fail("UNDO_PENDING", 409)
+                if room.get("turnDeadline") and room["turnDeadline"] <= time.time():
+                    self.schedule_timer(room)
+                    fail("TURN_EXPIRED", 409)
                 if type(body.get("expectedSeq")) is not int or body["expectedSeq"] != room["seq"] or body.get("beforeHash") != room["state"]["stateHash"]:
                     fail("STALE_POSITION", 409)
                 if room["state"]["currentPlayer"] != player:
@@ -979,6 +1222,7 @@ class WechatService:
                 room["state"] = state
                 if state["gameOver"]:
                     room["status"] = "finished"
+                self.reset_turn_deadline(room)
                 command = (code, room["matchId"], command_id, uid, digest)
             else:
                 fail("UNKNOWN_OPERATION", 404)
@@ -1074,6 +1318,8 @@ def create_router(service=None, *, web_authenticate=None, web_password_authentic
             return {"enabled": True, "protocol": PROTOCOL, "rulesVersion": "territory-v3",
                     "supportedRulesVersions": ["territory-v2", "territory-v3"],
                     "roomSettings": True, "undoVoting": True,
+                    "mixedPlayerRooms": True, "playerCounts": [2, 3, 4, 5, 6], "pendingRoomSettings": True,
+                    "timedTurns": True,
                     "accounts": True, "webLogin": web_authenticate is not None or web_password_authenticate is not None,
                     "accountProfile": True,
                     "accountLinking": web_authenticate is not None or web_password_authenticate is not None,
@@ -1291,6 +1537,7 @@ def create_router(service=None, *, web_authenticate=None, web_password_authentic
                 return
             room = svc.store.room(code)
             initial = {"type": "room", "room": svc.view(room, uid)}
+            svc.schedule_bot(room)
             if EMOTE_CAPABILITY in capabilities:
                 initial["capabilities"] = [EMOTE_CAPABILITY]
             await send_socket(ws, initial)
@@ -1312,7 +1559,9 @@ def create_router(service=None, *, web_authenticate=None, web_password_authentic
                     await send_socket(ws, {"type": "pong"})
                 elif message == '{"type":"sync"}':
                     svc.rate(f"ping:{uid}", 12)
-                    await send_socket(ws, {"type": "room", "room": svc.view(svc.store.room(code), uid)})
+                    room = svc.store.room(code)
+                    svc.schedule_bot(room)
+                    await send_socket(ws, {"type": "room", "room": svc.view(room, uid)})
                 elif ws in svc.emote_sockets:
                     decoded = json.loads(message)
                     if not isinstance(decoded, dict) or decoded.get("type") != "emote":

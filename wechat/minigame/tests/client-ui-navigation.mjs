@@ -40,7 +40,9 @@ try {
     await d.render(); await d.local.newGame(7, 'human'); await d.local.act({ type: 'move', point: [1, 0] }); d.local.pause();
   }
   const localHash = blue.local.stateHash;
-  await blue.tap('cabin-battle'); await blue.scrollTo('friends'); await blue.tap('friends'); await until(() => blue.client.room);
+  await blue.tap('cabin-battle'); await blue.scrollTo('friends'); await blue.tap('friends');
+  blue.p.choose = async () => 0; await blue.scrollTo('controller-WHITE'); await blue.tap('controller-WHITE');
+  await blue.scrollTo('room-submit'); await blue.tap('room-submit'); await until(() => blue.client.room);
   red.p.input = async () => blue.client.room.code;
   await red.tap('cabin-battle'); await red.scrollTo('join-room'); await red.tap('join-room');
   await both(c => c.connected); await both(c => !c.receiving);
@@ -91,6 +93,8 @@ try {
   // A removed room has a direct return button; only then create a different room.
   await red.render(); await red.tap('room-closed'); await red.tap('cabin-battle');
   await red.scrollTo('friends'); await red.tap('friends');
+  red.p.choose = async () => 0; await red.scrollTo('controller-WHITE'); await red.tap('controller-WHITE');
+  await red.scrollTo('room-submit'); await red.tap('room-submit');
   await until(() => red.client.room && red.client.active);
   blue.p.callbacks.hide(); blue.p.callbacks.show({ query: { room: red.client.room.code } });
   await both(c => c.connected && !c.receiving);

@@ -1,9 +1,10 @@
-import GameEngine from "./GameEngine.js?v=20261025-ai1";
-import { canonicalize, serializeRuleState } from "./ReplayCodec.js?v=20261025-ai1";
+import GameEngine from "./GameEngine.js?v=20261025-room1";
+import { canonicalize, serializeRuleState } from "./ReplayCodec.js?v=20261025-room1";
+import { ROOM_PLAYER_COLORS, roomBotColors } from "./OnlineRoomSettings.js?v=20261025-room1";
 
 const CODE = /^[A-Z2-9]{8}$/;
 const PENDING = "lifeline-shared-command-v1";
-const COLORS = ["BLACK", "WHITE"];
+const COLORS = ROOM_PLAYER_COLORS;
 export const SHARED_EMOTES = Object.freeze(["👏", "😭", "😎", "🤝", "❓", "🤔", "💀", "👎", "😓", "😤"]);
 const EMOTE_CAPABILITY = "emote-v1";
 
@@ -16,21 +17,27 @@ export function sharedApiOrigin(socketUrl) {
 }
 
 export async function verifySharedRoom(room) {
+  const count = room?.settings?.playerCount;
+  const colors = COLORS.slice(0, count);
   if (!room || room.protocol !== 1 || !CODE.test(room.code) || !/^[0-9a-f]{32}$/.test(room.matchId)
     || !Number.isSafeInteger(room.revision) || room.revision < 1 || !Number.isSafeInteger(room.seq) || room.seq < 0 || room.seq > 3000
     || !Array.isArray(room.actions) || room.actions.length !== room.seq
     || !Array.isArray(room.actionIds) || room.actionIds.length !== room.seq || new Set(room.actionIds).size !== room.seq
-    || !COLORS.includes(room.player) || !COLORS.includes(room.currentPlayer)
+    || !colors.includes(room.player) || !colors.includes(room.currentPlayer)
     || !["waiting", "playing", "finished", "closed"].includes(room.status)
     || !room.ready || !room.members || !room.rematchVotes
-    || !["territory-v2", "territory-v3"].includes(room.settings?.rulesVersion) || room.settings.playerCount !== 2
-    || !COLORS.includes(room.settings.startPlayer) || ![0, 1].includes(room.settings.botCount ?? 0)
+    || !["territory-v2", "territory-v3"].includes(room.settings?.rulesVersion) || ![2, 3, 4, 5, 6].includes(count)
+    || !colors.includes(room.settings.startPlayer) || !Number.isInteger(room.settings.botCount ?? 0)
+    || (room.settings.botCount ?? 0) < 0 || (room.settings.botCount ?? 0) >= count
     || !Number.isInteger(room.settings.gridSize)
-    || room.settings.gridSize < 5 || room.settings.gridSize > 15) throw new Error("INVALID_ROOM");
+    || room.settings.gridSize < 5 || room.settings.gridSize > 15
+    || colors.some(color => typeof room.members[color] !== "boolean" || typeof room.ready[color] !== "boolean")
+    || (room.hostPlayer !== undefined && !colors.includes(room.hostPlayer))) throw new Error("INVALID_ROOM");
+  if (room.settings.playerSetup && JSON.stringify(roomBotColors(room.settings)) !== JSON.stringify(room.bots ?? [])) throw new Error("INVALID_ROOM");
   const engine = new GameEngine({ ...room.settings, deferTerritoryUpdates: false });
   engine.replayBatch(game => {
     for (const action of room.actions) {
-      if (!COLORS.includes(action.player) || (action.type !== "resign" && action.player !== game.currentPlayer)) throw new Error("INVALID_ROOM_ACTION");
+      if (!colors.includes(action.player) || (action.type !== "resign" && action.player !== game.currentPlayer)) throw new Error("INVALID_ROOM_ACTION");
       let result;
       if (action.type === "move" && Array.isArray(action.point) && action.point.length === 2 && action.point.every(Number.isInteger)) result = game.playMove(action.point);
       else if (action.type === "skip") result = game.skipTurn();
@@ -44,7 +51,7 @@ export async function verifySharedRoom(room) {
   const hash = `sha256:${Array.from(new Uint8Array(digest), v => v.toString(16).padStart(2, "0")).join("")}`;
   const snapshot = engine.getSnapshot();
   if (hash !== room.stateHash || snapshot.currentPlayer !== room.currentPlayer || snapshot.gameOver !== room.gameOver
-    || snapshot.winner !== room.winner || COLORS.some(p => snapshot.territories[p].area !== room.scores?.[p])) throw new Error("STATE_MISMATCH");
+    || snapshot.winner !== room.winner || colors.some(p => snapshot.territories[p].area !== room.scores?.[p])) throw new Error("STATE_MISMATCH");
   if ((room.status === "finished" && !snapshot.gameOver) || (room.status === "playing" && snapshot.gameOver)) throw new Error("INVALID_ROOM");
   return engine;
 }
@@ -53,20 +60,22 @@ export async function verifySharedRoom(room) {
 // Room state, turns, pass/resign and rematches are always decided by the same
 // service as the Mini Game. No opponent action is applied optimistically.
 export function sharedRoomPayload(room, type = "ROOM_STATE") {
+  const colors = COLORS.slice(0, room.settings.playerCount);
   const playing = room.status === "playing" || room.status === "finished";
-  const full = COLORS.every(p => room.members[p]);
+  const full = colors.every(p => room.members[p]);
   const playerId = `${room.code}:${room.player}`;
   return {
-    type, shared: true, roomId: room.code, playerId, yourPlayerId: playerId,
-    color: room.player, yourColor: room.player, hostPlayerId: `${room.code}:BLACK`,
+    type, shared: true, roomId: room.code, matchId: room.matchId, playerId, yourPlayerId: playerId,
+    color: room.player, yourColor: room.player, hostPlayerId: `${room.code}:${room.hostPlayer ?? "BLACK"}`,
     status: playing ? "IN_PROGRESS" : full ? "LOBBY" : "WAITING",
     matchPhase: playing ? "PLAYING" : full ? "LOBBY" : "WAITING_FOR_PLAYERS",
-    settings: room.settings, countdownEndsAt: null, serverTimestamp: room.revision,
-    undo: room.undo ? { ...room.undo, requiredVotes: room.settings.botCount ? 1 : 2,
+    settings: room.settings, pendingSettings: room.pendingSettings ?? null, lastBotResult: room.lastBotResult ?? null,
+    turnDeadline: room.turnDeadline ?? null, countdownEndsAt: null, serverTimestamp: room.revision,
+    undo: room.undo ? { ...room.undo, requiredVotes: colors.filter(p => room.members[p] && !room.bots?.includes(p)).length,
       votes: (room.undo.votes ?? []).map(color => `${room.code}:${color}`) } : undefined,
-    players: COLORS.filter(p => room.members[p]).map(p => ({
-      playerId: `${room.code}:${p}`, color: p, connected: room.status !== "closed",
-      ready: room.ready[p], isHost: p === "BLACK", isBot: room.bots?.includes(p) ?? false,
+    players: colors.map(p => ({
+      playerId: `${room.code}:${p}`, color: p, connected: Boolean(room.members[p]) && room.status !== "closed",
+      empty: !room.members[p], ready: room.ready[p], isHost: p === (room.hostPlayer ?? "BLACK"), isBot: room.bots?.includes(p) ?? false,
       username: room.playerProfiles?.[p]?.displayName,
     })),
     matchState: { settings: room.settings, actions: room.actions.map(action => ({
@@ -270,7 +279,7 @@ export class SharedRoomClient {
   }
   receiveEmote(emote) {
     if (!this.emotesSupported || !emote || !/^[0-9a-f]{16}$/.test(emote.id)
-      || !SHARED_EMOTES.includes(emote.emoji) || !COLORS.includes(emote.player)
+      || !SHARED_EMOTES.includes(emote.emoji) || !COLORS.slice(0, this.room?.settings?.playerCount ?? 2).includes(emote.player)
       || emote.matchId !== this.room?.matchId || emote.id === this.lastEmote?.id) return false;
     this.lastEmote = { id: emote.id, emoji: emote.emoji, player: emote.player, matchId: emote.matchId };
     this.emoteError = null; this.onEmote(this.lastEmote); return true;

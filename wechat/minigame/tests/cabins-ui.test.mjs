@@ -132,12 +132,14 @@ test('friend-game cabins preserve the authoritative room and reject stale direct
   };
   h.app.online.act = async () => { sends++; return true; };
   try {
-    await ready(h); await h.tap('cabin-battle'); await h.tap('friends');
+    await ready(h); await h.tap('cabin-battle'); await h.tap('friends'); await h.tap('room-submit');
     await until(() => h.app.online.room); await h.render();
     const hash = h.app.session.stateHash;
     await h.tap('cabin-board'); await h.render();
-    for (const id of ['player-count', 'controller-BLACK', 'controller-WHITE', 'starter-BLACK'])
-      assert.equal(h.app.getButtons().find(b => b.id === id)?.disabled, true, id);
+    for (const id of ['player-count', 'controller-BLACK', 'controller-WHITE', 'starter-BLACK']) {
+      await h.scrollTo(id);
+      assert.equal(h.app.getButtons().find(b => b.id === id)?.disabled, false, id);
+    }
     await h.tap('cabin-close');
     h.p.confirm = () => new Promise(resolve => { confirmation = resolve; });
     await h.tap('resign'); await until(() => confirmation);

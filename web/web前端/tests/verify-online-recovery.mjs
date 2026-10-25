@@ -72,7 +72,11 @@ const rewrittenControllerSource = controllerSource
     `import { OneShotTerritoryWorker, applyTerritoryWorkerResult } from "${territoryWorkerSessionStubUrl}";`,
   );
 assert.notEqual(rewrittenControllerSource, controllerSource, "controller imports must be rewritten");
-const { GameController } = await import(asDataUrl(rewrittenControllerSource));
+// Keep additional controller dependencies on their native module paths. This
+// fixture stubs rendering/network I/O, while recovery uses the real rule code.
+const resolvedControllerSource = rewrittenControllerSource.replace(/from "(\.\/[^"\r\n]+)";/g,
+  (_match, name) => `from ${JSON.stringify(new URL(name, frontendRoot).href)};`);
+const { GameController } = await import(asDataUrl(resolvedControllerSource));
 const {
   applyRoomSnapshotWithPostCommit,
   coordinateControllerRoomSnapshot,
@@ -125,7 +129,7 @@ function createControllerProbe(engineOptions) {
 }
 
 function snapshotWithoutRenderFields(snapshot) {
-  const { renderEpoch, lastAction, inspectionOverlay, ...rest } = snapshot;
+  const { renderEpoch, renderTerritories, lastAction, inspectionOverlay, ...rest } = snapshot;
   return rest;
 }
 

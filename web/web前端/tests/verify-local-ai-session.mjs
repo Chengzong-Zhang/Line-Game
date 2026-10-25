@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
-import GameController from "../GameController.js?v=20261025-unified1";
-import GameEngine from "../GameEngine.js?v=20261025-unified1";
-import { serializeRuleState } from "../ReplayCodec.js?v=20261025-unified1";
-import { validateContribution } from "../../tools/validate_contribution.mjs?v=20261025-unified1";
+import GameController from "../GameController.js?v=20261025-room1";
+import GameEngine from "../GameEngine.js?v=20261025-room1";
+import { serializeRuleState } from "../ReplayCodec.js?v=20261025-room1";
+import { validateContribution } from "../../tools/validate_contribution.mjs?v=20261025-room1";
 
 // Exercise app orchestration with the real controller/rules. Browser verification
 // separately covers Vue scheduling, actual Workers, Canvas and responsive layout.
@@ -39,7 +39,7 @@ globalThis.Worker = class {
   postMessage(message) { this.messages.push(message); }
   terminate() { this.terminated = true; }
 };
-const { default: App } = await import("../OnlineApp.js?v=20261025-unified1");
+const { default: App } = await import("../OnlineApp.js?v=20261025-room1");
 const app = App.setup();
 const settings = { playerCount: 2, gridSize: 5, startPlayer: "BLACK", rulesVersion: "territory-v2", hintEnabled: false };
 const controller = Object.assign(Object.create(GameController.prototype), {

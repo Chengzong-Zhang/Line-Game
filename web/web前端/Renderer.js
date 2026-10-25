@@ -1,4 +1,4 @@
-import { Player, PointState, PLAYER_ORDER, getBoardVertices, getBoardPositions, isBoardPoint } from "./GameEngine.js?v=20261025-ai1";
+import { Player, PointState, PLAYER_ORDER, getBoardVertices, getBoardPositions, isBoardPoint } from "./GameEngine.js?v=20261025-room1";
 
 const SQRT3_OVER_2 = Math.sqrt(3) / 2;
 

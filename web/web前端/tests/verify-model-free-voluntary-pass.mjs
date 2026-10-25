@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { GameEngine } from "../GameEngine.js?v=20261025-unified1";
-import { saveState } from "../AIEngine.js?v=20261025-unified1";
+import { GameEngine } from "../GameEngine.js?v=20261025-room1";
+import { saveState } from "../AIEngine.js?v=20261025-room1";
 
 const tensors = [
   ["layers.0.weight", 431104], ["layers.0.bias", 512],
@@ -42,7 +42,7 @@ globalThis.fetch = async input => {
 };
 
 try {
-  const { loadModelFreeModel, ModelFreeAI } = await import("../ModelFreeAI.js?v=20261025-unified1");
+  const { loadModelFreeModel, ModelFreeAI } = await import("../ModelFreeAI.js?v=20261025-room1");
   const before = saveState(engine);
   const high = new ModelFreeAI(await loadModelFreeModel("synthetic-pass-high"));
   const highMoves = high.getTopMoves(engine, engine.currentPlayer, Infinity);

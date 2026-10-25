@@ -1,4 +1,4 @@
-import { createReplayDocument } from "./ReplayCodec.js?v=20261025-ai1";
+import { createReplayDocument } from "./ReplayCodec.js?v=20261025-room1";
 
 export const CONTRIBUTION_POLICY = "anonymous-replay-training-v1";
 export const CONTRIBUTION_STORAGE = "lifeline-training-contribution-v1";

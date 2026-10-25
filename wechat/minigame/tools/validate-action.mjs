@@ -10,5 +10,6 @@ try {
   const { snapshot, stateHash } = executeTask({ kind: payload.action ? 'APPLY' : 'STATE', payload });
   process.stdout.write(JSON.stringify({ stateHash, currentPlayer: snapshot.currentPlayer,
     gameOver: snapshot.gameOver, winner: snapshot.winner,
-    scores: { BLACK: snapshot.territories.BLACK.area, WHITE: snapshot.territories.WHITE.area } }));
+    resignedPlayers: snapshot.resignedPlayers,
+    scores: Object.fromEntries(snapshot.players.map(color => [color, snapshot.territories[color].area])) }));
 } catch (_) { process.stderr.write('RULE_VALIDATION_FAILED'); process.exitCode = 1; }

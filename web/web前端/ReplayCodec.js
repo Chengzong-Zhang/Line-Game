@@ -1,6 +1,6 @@
-import GameEngine from "./GameEngine.js?v=20261025-ai1";
-import { Player, resolveBoardShape } from "./GameEngine.js?v=20261025-ai1";
-import { startingPointSettings } from "./StartingPoints.js?v=20261025-ai1";
+import GameEngine from "./GameEngine.js?v=20261025-room1";
+import { Player, resolveBoardShape } from "./GameEngine.js?v=20261025-room1";
+import { startingPointSettings } from "./StartingPoints.js?v=20261025-room1";
 
 export const REPLAY_FORMAT = "lifeline-replay";
 export const REPLAY_SCHEMA_VERSION = 1;

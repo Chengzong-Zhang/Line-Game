@@ -87,7 +87,7 @@ async function onlineHarness(actions = []) {
   });
   await ready(h);
   const local = h.app.session;
-  await h.tap('cabin-battle'); await h.tap('friends');
+  await h.tap('cabin-battle'); await h.tap('friends'); await h.tap('room-submit');
   await until(() => h.app.online.connected && !h.app.online.receiving && !h.app.session.busy);
   await h.render();
   return { h, local, gate, wire };

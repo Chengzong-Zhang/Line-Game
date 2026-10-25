@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { webcrypto } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { GameEngine } from "../GameEngine.js?v=20261025-unified1";
-import { serializeEngineState } from "../AIStateProtocol.js?v=20261025-unified1";
+import { GameEngine } from "../GameEngine.js?v=20261025-room1";
+import { serializeEngineState } from "../AIStateProtocol.js?v=20261025-room1";
 
 if (!globalThis.crypto?.subtle) globalThis.crypto = webcrypto;
 

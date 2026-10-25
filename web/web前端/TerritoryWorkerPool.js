@@ -1,4 +1,4 @@
-import { captureWorkerRequest, isWorkerResultForRequest } from "./AIStateProtocol.js?v=20261025-ai1";
+import { captureWorkerRequest, isWorkerResultForRequest } from "./AIStateProtocol.js?v=20261025-room1";
 
 const noop = () => {};
 

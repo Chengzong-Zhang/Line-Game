@@ -1,7 +1,7 @@
 // Isolated candidate only. Cooperative deadlines are not equivalent pruning.
-import { saveState, restoreState } from "./AIEngine.js?v=20261025-ai1";
-import { isolatedSearchEngine, visitPolicyCandidates } from "./MultiplayerSearch.js?v=20261025-ai1";
-import { ThreePlayerSearchAI, positionUtilityV4 } from "./ThreePlayerSearchAI.js?v=20261025-ai1";
+import { saveState, restoreState } from "./AIEngine.js?v=20261025-room1";
+import { isolatedSearchEngine, visitPolicyCandidates } from "./MultiplayerSearch.js?v=20261025-room1";
+import { ThreePlayerSearchAI, positionUtilityV4 } from "./ThreePlayerSearchAI.js?v=20261025-room1";
 
 const EXPIRED = Symbol("isolated Hard v2 shared deadline");
 const pointOrder = (a, b) => a.point[1] - b.point[1] || a.point[0] - b.point[0];

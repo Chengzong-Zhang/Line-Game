@@ -223,7 +223,7 @@ test('app forwards network status only to a foreground online session and dispos
     await until(() => h.app.session.snapshot && !h.app.session.busy);
     assert.equal(typeof listener, 'function');
     listener({ isConnected: true }); assert.equal(received.length, 0, 'local game must remain offline');
-    await h.tap('friends'); await until(() => h.app.online.room);
+    await h.tap('friends'); await h.tap('room-submit'); await until(() => h.app.online.room);
     listener({ isConnected: false }); assert.deepEqual(received, [{ isConnected: false }]);
     h.p.callbacks.hide(); listener({ isConnected: true }); assert.equal(received.length, 1);
     h.p.callbacks.show(); listener({ isConnected: true }); assert.equal(received.length, 2);

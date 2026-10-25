@@ -54,7 +54,7 @@ async function enter(h) {
     status: h.wire.status, player: 'BLACK', currentPlayer: 'BLACK', actions: [], actionIds: [],
     stateHash: local.stateHash, settings: plain(local.settings),
     ready: { BLACK: false, WHITE: true }, members: { BLACK: true, WHITE: true }, rematchVotes: { BLACK: false, WHITE: false } };
-  await h.tap('cabin-battle'); await h.scrollTo('friends'); await h.tap('friends');
+  await h.tap('cabin-battle'); await h.scrollTo('friends'); await h.tap('friends'); await h.tap('room-submit');
   await until(() => h.app.session === h.app.online.game && h.app.online.connected && !h.app.session.busy);
   await h.render();
   assert.deepEqual(h.wire.sockets.at(-1).sent[0].capabilities, ['emote-v1']);

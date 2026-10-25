@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { parseGuideMarkdown, getGuideMarkdown, getGuideMarkdownAsset, ensureGuideRuleImages } from "../GuideContent.js?v=20261025-unified1";
-import { guideChapters, implementationSections } from "../GuideImplementation.js?v=20261025-unified1";
+import { parseGuideMarkdown, getGuideMarkdown, getGuideMarkdownAsset, ensureGuideRuleImages } from "../GuideContent.js?v=20261025-room1";
+import { guideChapters, implementationSections } from "../GuideImplementation.js?v=20261025-room1";
 
 const sourceUrl = "https://github.com/Chengzong-Zhang/Line-Game/blob/main/README.md";
 const source = parseGuideMarkdown(`[源码](${sourceUrl})`);

@@ -2,55 +2,55 @@
   "schemaVersion": 1,
   "purpose": "WeChat-only native compatibility over the canonical browser product sources",
   "sourceMiniCandidate": "0.12.8-3d52cced85f8-4adHPq",
-  "browserSourceVersion": "20261025-ai1",
+  "browserSourceVersion": "20261025-room1",
   "overrides": {
     "web/web前端/HexFastSearchAI.js": {
-      "canonicalSha256": "c7d776528b9bb922837a1363f902ee0c5d44cc033c31777c1e9e6f98eedce54b",
+      "canonicalSha256": "a2c87ed4d7ad48807ab31e6b7da8af65962250d58e0f35fb51019b61ae1e9f8a",
       "override": "wechat/minigame/compat/web/HexFastSearchAI.js",
       "overrideSha256": "256d2380bdd2169becc535b26bc9fa17d3711ba9a6effdfd0b68a2cb44c9db68"
     },
     "web/web前端/HexPlayerAI.js": {
-      "canonicalSha256": "0d95fdac4b40e79921e9da1024bbee510061653e9c080c7126bbb945d23cc6a1",
+      "canonicalSha256": "7fbd1c917ab97eaf758eeb5096f79a84d1271041513caf00dd88889d049846db",
       "override": "wechat/minigame/compat/web/HexPlayerAI.js",
       "overrideSha256": "c6bfad2eb6798393347447eb417d73d3d0b5229c2c570dd7aa05009000434185"
     },
     "web/web前端/MultiplayerHardFallback.js": {
-      "canonicalSha256": "2b388256440d6fbf2fa328fcc2d48cc9a30068e6ba342d6c48e3b164923be17a",
+      "canonicalSha256": "80293c0949f19b65392935bed2bc98aded8339de43d7dea5c4dcf27e268193e1",
       "override": "wechat/minigame/compat/web/MultiplayerHardFallback.js",
       "overrideSha256": "1b7ef02c3bad6835028ff404b27f2cf3b8c8a64af51952069e4e3d9aa92ab0fd"
     },
     "web/web前端/MultiplayerHardResources.js": {
-      "canonicalSha256": "0683e3633bd6f9a3b68593a3ea3cd396a55c78c53cf6fadf09526f629ad475a6",
+      "canonicalSha256": "429a6830aa2c409f526f1cd97d906e4445ebf91f736eaabe0e1debe58173644a",
       "override": "wechat/minigame/compat/web/MultiplayerHardResources.js",
       "overrideSha256": "161d1ae5250ed3b9b62c05fca58596c2adc6b23de83edb08d3cccc0919565222"
     },
     "web/web前端/MultiplayerHardRollout.js": {
-      "canonicalSha256": "ef342149209072125b6e0bc532164369f326d44844f859542b90a13a8f82bdc0",
+      "canonicalSha256": "c4e93c239c201af7266af341d41a100cb21e4d6054da511e769ff019032457d1",
       "override": "wechat/minigame/compat/web/MultiplayerHardRollout.js",
       "overrideSha256": "25c83d849b4816ab258747a7d90e75a1404b0919fb4b85715335196bdb452568"
     },
     "web/web前端/MultiplayerHardRuntime.js": {
-      "canonicalSha256": "6703b05801f5daabfe7fc49c66de8bf01befff156c79ddfe471301fec908c2af",
+      "canonicalSha256": "099bce9c32a72a1b54fea261fbe2a920ecd08af6ea987f5efb3a340710575293",
       "override": "wechat/minigame/compat/web/MultiplayerHardRuntime.js",
       "overrideSha256": "eba0adf2ba3137d3992f672c2d9b710d980b7710718c067590940ea84f07deaf"
     },
     "web/web前端/MultiplayerRollout.js": {
-      "canonicalSha256": "4fdf867c8f10c03b41fd4f39c27a3e3058d555fda082a979eeae1cfc0b43574d",
+      "canonicalSha256": "bbafeeede2576c162c76585009b5b3bc5efdf54cf4119f76ff78d5c5a96e4c1a",
       "override": "wechat/minigame/compat/web/MultiplayerRollout.js",
       "overrideSha256": "b83f1fa20c9564764c0491408f890d6065c2f0c3ce7ec2900bca3066b509f463"
     },
     "web/web前端/MultiplayerRuntime.js": {
-      "canonicalSha256": "4cb174659ce9372b47fb770a8b98c51b1e1860056f4edd56e5638e079b486ba8",
+      "canonicalSha256": "e3ab672f6dc8349d46bd54755c6c7664a62a097ba5bba5c902f277cc62c3ccea",
       "override": "wechat/minigame/compat/web/MultiplayerRuntime.js",
       "overrideSha256": "442b56678fe8e0edd3d8aedce89f21cc683072a2169f9eed7e1e3bd63a02bc63"
     },
     "web/web前端/MultiplayerSearch.js": {
-      "canonicalSha256": "0474e0df462c75af7b7ee8c2f514b6329da6b9ac68b603e3dbe4f09b42d8ffa2",
+      "canonicalSha256": "36a48afbf6981ffdd24da839b4956cfb22892d3497149c4ab00cfe58455f064b",
       "override": "wechat/minigame/compat/web/MultiplayerSearch.js",
       "overrideSha256": "1ec64e23727c576b13f5169f08fc44a93805b13001a24d693bd51ad44645fc52"
     },
     "web/web前端/MultiplayerStandardDefense.js": {
-      "canonicalSha256": "119b1f6f16734fd2cdceb35c16deb76b9cc8d32ed3c4b08ffd5fea8aaa70eba8",
+      "canonicalSha256": "e6c36c259c34f14e82c3cd8d07187e15875827dab757de443a9805188d229ba7",
       "override": "wechat/minigame/compat/web/MultiplayerStandardDefense.js",
       "overrideSha256": "44c3bd08345bdbd2e543b4031755922a0d6fa6268f286f89b03d8e4c7b98cb4e"
     },
@@ -60,38 +60,38 @@
       "overrideSha256": "b718e9202bcad5e72b755e035275d4e41d6bccbedd35ae2f861cec6361704051"
     },
     "web/web前端/ResearchAI.js": {
-      "canonicalSha256": "f850f1e60ee4ac99a20382b26ec682611251e3cb1c540d40cbbb1bf78a64fdd1",
+      "canonicalSha256": "d13ad05bf9159a44dac4907ba28e1fe1b67d841f4960de733517343a021bbc25",
       "override": "wechat/minigame/compat/web/ResearchAI.js",
       "overrideSha256": "7aabf54343d5e6955fe8af0deda0943235660cde25b5e84faedab8944c6c7d2d"
     },
     "web/web前端/ThreePlayerAI.js": {
-      "canonicalSha256": "f34aaffb8051997c70986d5f22ab29f19776cec7dcf67980b40bdc05fcf2dad7",
+      "canonicalSha256": "b006d58de1b9774a1c308e2922d04ac703ca864efb67664753c30a22d1cb30bf",
       "override": "wechat/minigame/compat/web/ThreePlayerAI.js",
       "overrideSha256": "3a6e8ef4d61534a55e975e2a292552f0784c0f19915db47cdd2ebca6e2b18690"
     },
     "web/web前端/ThreePlayerModels.js": {
-      "canonicalSha256": "f874de8b45643f8a7e533218ba0ddee8260be0125b4239dbd77036c0fe31ac3e",
+      "canonicalSha256": "832db5f1f3520653a705cbaecb0af2237b7e1177d065d670230bfcb3e09e7db2",
       "override": "wechat/minigame/compat/web/ThreePlayerModels.js",
       "overrideSha256": "feb441f1ef7b6a521e32d0410c0710ecc4739a8119ad647800579bde44943342"
     },
     "web/web前端/ThreePlayerRuntime.js": {
-      "canonicalSha256": "21be1ca2113ba0f4429d8fc65b3f6ac0f7f87c2862fc487fdd5bbe95845ce57e",
+      "canonicalSha256": "b5a776331f3bc4f4a925e1f4937dc35b611e2768a718eb98b3da7c1c0f8e7251",
       "override": "wechat/minigame/compat/web/ThreePlayerRuntime.js",
       "overrideSha256": "f2bfd11ad790e5ca3d2d9398dc1681ee935fd6ab3797bb137ad6f997dc3d7910"
     },
     "web/web前端/ThreePlayerSearchAI.js": {
-      "canonicalSha256": "f483234575c94d9f3b58dcdb27e1bb51f36fc4d1202285b5c4c2b0a58e6561e3",
+      "canonicalSha256": "25bf33b0904aa7c0e2b6c8c0cd080de760cc6779def542e13634b98511adc3fe",
       "override": "wechat/minigame/compat/web/ThreePlayerSearchAI.js",
       "overrideSha256": "d03497a04f9946ad62de2363c8ad9141adc58d79005cab7f22ff031890a73ed3"
     },
     "web/web前端/GuideTechnicalChapters.js": {
-      "canonicalSha256": "ef60838e4154afbe89b2b5fb8358450c2b4a08bb4edfe5aee5b488e3f643fcd9",
+      "canonicalSha256": "0bfb8062f34933de8d5b48cfe738dd016f9313f053d89e8ba964803e40a01ba9",
       "override": "wechat/minigame/compat/web/GuideTechnicalChapters.js",
       "overrideSha256": "4b8c6eed5a33ebda0908d9e51fc9c23f462053ffae4ecd242c5031debcdad570",
       "reason": "Preserve the verified 0.12.8 native guide source excerpt; browser guide follows canonical Web updates."
     },
     "web/web前端/AIEngine.js": {
-      "canonicalSha256": "0ce1222460342154bf5512c79006e5aba024b86a000dce8a57e0b86e01bbd093",
+      "canonicalSha256": "e5bf143c0c3d74fd9f5c729dbfa41b6799c1fc4a7326f469def2233a08d05655",
       "override": "wechat/minigame/compat/web/AIEngine.js",
       "overrideSha256": "fd43cd3053a0b92569a4d26524a036f45a2920271cc06a49ef0200aec07ffabf",
       "reason": "Preserve the native service source bytes, including its historical import query token; browser source remains canonical."
@@ -103,43 +103,43 @@
       "reason": "Preserve the native service source bytes, including its historical import query token; browser source remains canonical."
     },
     "web/web前端/ReplayCodec.js": {
-      "canonicalSha256": "82dd5324d3cb290e30a0eaa7051bce43d92c9dee2336fef286ea2529dc6decd7",
+      "canonicalSha256": "ff445e8dc2fb4c91f4b19ef6d758066a5691cf970fa9d8febc3d4d8d010dc65e",
       "override": "wechat/minigame/compat/web/ReplayCodec.js",
       "overrideSha256": "af552810d5eec5a551847989e9cf7bfea960128226b9671fd73f7667cc4e2829",
       "reason": "Preserve the native service source bytes, including its historical import query token; browser source remains canonical."
     },
     "web/web前端/LocalAIModes.js": {
-      "canonicalSha256": "b3eaa9e6da8d38acf2fde6f5fe4096e8f38b71da4cb88257562c5bc69ee8e940",
+      "canonicalSha256": "33356a7f8d99ffdb513c1ad48a4853a9eb58c6f607e99eaf0a0dea595431978c",
       "override": "wechat/minigame/compat/web/LocalAIModes.js",
       "overrideSha256": "52ecf53c4aa958eb5e9188faedb35728947fb18a8f2431d81869ff2edd0c2bd8",
       "reason": "Preserve exact native service bytes and platform import tokens; canonical browser source remains unchanged."
     },
     "web/web前端/LocalGameSession.js": {
-      "canonicalSha256": "a63943b5443a9fbce717e31ee72e93ffa5fd2baa1f060ae3b3e59b93e53e111e",
+      "canonicalSha256": "d32a726c389b103972e89db306787e5fa0695697c1b60638d983e1bf06caf8a8",
       "override": "wechat/minigame/compat/web/LocalGameSession.js",
       "overrideSha256": "4968d215771a3cfe71cfd230e0dc3108faf40c56d2705231c0501440f55a12f0",
       "reason": "Preserve exact native service bytes and platform import tokens; canonical browser source remains unchanged."
     },
     "web/web前端/LocalUndo.js": {
-      "canonicalSha256": "e830e72b68c62b146fdc3b6262a65134d7a413b4759b338cc7d34d059d2d110e",
+      "canonicalSha256": "7a3da0050eea1e2f343dcaeafbcd395c92f4eff21429f93c094a91ff03819c66",
       "override": "wechat/minigame/compat/web/LocalUndo.js",
       "overrideSha256": "8844fce34d440128e0e57982b0903cfe85ddacce62fd4a353aae3f39be7528c7",
       "reason": "Preserve exact native service bytes and platform import tokens; canonical browser source remains unchanged."
     },
     "web/web前端/MultiplayerModel.js": {
-      "canonicalSha256": "56bb7aa6e2d3b57e0837e1aa53abe3650ec987ae9247f2696e93cca7b7af6b4c",
+      "canonicalSha256": "fb530ad60e26ff8b4606cd3f250ec29adb3ab059a2dfde4134f412bdb8d32b14",
       "override": "wechat/minigame/compat/web/MultiplayerModel.js",
       "overrideSha256": "ceacba09821f421f2e7c5ff4a7a67443242ce09c7b5ad4d29c7ab745c3f95c67",
       "reason": "Preserve exact native service bytes and platform import tokens; canonical browser source remains unchanged."
     },
     "web/web前端/MultiplayerNativeGeometry.js": {
-      "canonicalSha256": "db1ea3f71156abc0d052f85839afd6057b79f5a231ead2abbe7e6f00f3b5ec7f",
+      "canonicalSha256": "28c630cb147d6f6afea6d461f8e72837c01a5f8c7a22dafecba7d85ab6c324af",
       "override": "wechat/minigame/compat/web/MultiplayerNativeGeometry.js",
       "overrideSha256": "fc0a65a9c935d6922731e5f5ca983520cf8290de0d9b831b9ca05cffa65b13fe",
       "reason": "Preserve exact native service bytes and platform import tokens; canonical browser source remains unchanged."
     },
     "web/web前端/StartingPoints.js": {
-      "canonicalSha256": "40aad1e9504cbba974441cb376a87419b8912cae60a9be7d0f0600fbb6adee02",
+      "canonicalSha256": "d0b77b6ec0032cd43762b2c40f57c51b09664a996d8a70c8f21c84d11d7f5ed7",
       "override": "wechat/minigame/compat/web/StartingPoints.js",
       "overrideSha256": "dbf22e06b1fba7f503f52afe5ed8b824ee30cd2e3ddeff9f19a5aa62da1c3973",
       "reason": "Share spread random openings with Web while retaining native platform import tokens."

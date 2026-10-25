@@ -1,12 +1,12 @@
-import { fastPolicyCandidates, isolatedSearchEngine, MultiplayerMinimaxAI } from "./MultiplayerSearch.js?v=20261025-ai1";
-import { createMultiplayerModel } from "./MultiplayerModel.js?v=20261025-ai1";
-import { MultiplayerRolloutAI } from "./MultiplayerRollout.js?v=20261025-ai1";
-import { loadThreePlayerRuntime } from "./ThreePlayerRuntime.js?v=20261025-ai1";
-import { threePlayerModelIdForBoard } from "./ThreePlayerSearchOptions.js?v=20261025-ai1";
-import { loadHexPlayerModel } from "./HexPlayerAI.js?v=20261025-ai1";
-import { createUltimateAdmissionGuard } from "./MultiplayerUltimateAdmission.js?v=20261025-ai1";
-import { GameEngine } from "./GameEngine.js?v=20261025-ai1";
-import { applyStandardDefenseGate } from "./MultiplayerStandardDefense.js?v=20261025-ai1";
+import { fastPolicyCandidates, isolatedSearchEngine, MultiplayerMinimaxAI } from "./MultiplayerSearch.js?v=20261025-room1";
+import { createMultiplayerModel } from "./MultiplayerModel.js?v=20261025-room1";
+import { MultiplayerRolloutAI } from "./MultiplayerRollout.js?v=20261025-room1";
+import { loadThreePlayerRuntime } from "./ThreePlayerRuntime.js?v=20261025-room1";
+import { threePlayerModelIdForBoard } from "./ThreePlayerSearchOptions.js?v=20261025-room1";
+import { loadHexPlayerModel } from "./HexPlayerAI.js?v=20261025-room1";
+import { createUltimateAdmissionGuard } from "./MultiplayerUltimateAdmission.js?v=20261025-room1";
+import { GameEngine } from "./GameEngine.js?v=20261025-room1";
+import { applyStandardDefenseGate } from "./MultiplayerStandardDefense.js?v=20261025-room1";
 
 export const MULTIPLAYER_MODEL_IDS=Object.freeze(["multiplayer-easy-v1","multiplayer-medium-v1","multiplayer-hard-v1","multiplayer-ultimate-v1"]);
 const promises=new Map(), baseUrl=new URL("./assets/research-ai/multiplayer-v1/",import.meta.url);
@@ -117,7 +117,7 @@ export async function loadMultiplayerRuntime(modelId,engine){
     const model=await assetModel(modelId); ai=new FastMultiplayerPolicy(model.spec); lineage=model.spec.training;
   }else if(modelId==="multiplayer-hard-v1"){
     if(native){
-      const { loadNativeHardRuntime } = await import("./MultiplayerHardResources.js?v=20261025-ai1");
+      const { loadNativeHardRuntime } = await import("./MultiplayerHardResources.js?v=20261025-room1");
       return loadNativeHardRuntime(engine);
     }else ai=new MultiplayerMinimaxAI({depth:Math.min(engine.playerCount+1,6),timeMs:650});
   }else{

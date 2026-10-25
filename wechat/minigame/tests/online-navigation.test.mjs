@@ -21,7 +21,7 @@ test('late direct create/join/resume consent and join input never enter after le
     try {
       await until(() => app.session.snapshot && !app.session.busy);
       await tap('cabin-battle'); await scrollTo(entry);
-      await tap(entry); await until(() => resolve);
+      await tap(entry); if (entry === 'friends') await tap('room-submit'); await until(() => resolve);
       if (leave === 'home') await tap('cabin-board');
       if (leave === 'hide') { p.callbacks.hide(); p.callbacks.show(); }
       if (leave === 'dispose') app.dispose();
@@ -51,7 +51,7 @@ test('direct resign/leave confirmations remain bound to room, position and foreg
     app.online.foreground = async () => { app.online.active = app.online.connected = true; app.online.game.show(); };
     try {
       await until(() => app.session.snapshot && !app.session.busy);
-      await tap('cabin-battle'); await scrollTo('friends'); await tap('friends'); await until(() => app.online.room);
+      await tap('cabin-battle'); await scrollTo('friends'); await tap('friends'); await tap('room-submit'); await until(() => app.online.room);
       await render();
       p.confirm = () => new Promise(done => { confirmation = done; });
       if (kind.startsWith('leave-')) { await tap('cabin-battle'); await scrollTo('battle-leave'); await tap('battle-leave'); }
@@ -70,10 +70,9 @@ test('direct resign/leave confirmations remain bound to room, position and foreg
   }
 });
 
-test('direct create/join/resume dispatch expected requests without a menu and normalize join codes', async () => {
+test('one room creation draft copies board settings and normalizes join codes', async () => {
   for (const [entry, kind, value] of [
-    ['friends', 'create', { rulesVersion: 'territory-v3', gridSize: 7, boardShape: 'triangle', startingPointMode: 'default', undoEnabled: false, undoMaxCount: 3 }],
-    ['create-ai-room', 'create', { rulesVersion: 'territory-v3', gridSize: 7, boardShape: 'triangle', startingPointMode: 'default', undoEnabled: false, undoMaxCount: 3, botCount: 1 }],
+    ['friends', 'create', null],
     ['join-room', 'join', 'BCDEFGHJ'], ['resume-room', 'resume', 'ABCDEFGH']]) {
     const storage = memoryStorage(); storage.set('lifeline-wx-room-v1', 'ABCDEFGH');
     const h = uiHarness({ config: onlineConfig, storage });
@@ -84,8 +83,18 @@ test('direct create/join/resume dispatch expected requests without a menu and no
     h.p.input = async () => '  bcdefghj  ';
     try {
       await until(() => h.app.session.snapshot && !h.app.session.busy);
-      await h.tap('cabin-battle'); await h.scrollTo(entry); await h.tap(entry); await until(() => calls.length);
-      assert.deepEqual(calls, [[kind, value]]);
+      await h.tap('cabin-battle'); await h.scrollTo(entry); await h.tap(entry);
+      if (entry === 'friends') {
+        assert.equal(calls.length, 0, 'creation opens the same board controls before sending');
+        assert.equal(h.app.getCabin(), 'board'); await h.tap('room-submit');
+      }
+      await until(() => calls.length);
+      if (kind === 'create') {
+        const settings = calls[0][1];
+        assert.equal(settings.playerCount, 2); assert.equal(settings.startPlayer, 'BLACK');
+        assert.equal(settings.playerSetup.BLACK.choice, 'human'); assert.equal(settings.playerSetup.WHITE.choice, 'minimax');
+        assert.equal(settings.botCount, 1); assert.equal(settings.rulesVersion, 'territory-v3');
+      } else assert.deepEqual(calls, [[kind, value]]);
       assert.equal(h.app.session, h.app.online.game);
       assert.equal(h.app.getCabin(), null);
     } finally { h.app.dispose(); }
@@ -109,14 +118,16 @@ test('room host can change starting points and undo settings; guest votes on an 
   app.online.voteUndo = async value => { votes.push(value); return true; };
   try {
     await until(() => app.session.snapshot && !app.session.busy);
-    await tap('cabin-battle'); await scrollTo('friends'); await tap('friends'); await until(() => app.online.room);
+    await tap('cabin-battle'); await scrollTo('friends'); await tap('friends'); await tap('room-submit'); await until(() => app.online.room);
     await tap('cabin-board'); await scrollTo('starts-random'); await render();
     assert.equal(app.getButtons().find(button => button.id === 'starts-random').disabled, false);
     await tap('starts-random');
+    assert.equal(edits.length, 0, 'draft is saved as one room update');
+    await scrollTo('room-submit'); await tap('room-submit');
     assert.equal(edits.length, 1);
     assert.equal(edits[0].startingPointMode, 'random');
     assert.notDeepEqual(edits[0].initialPositions.BLACK, edits[0].initialPositions.WHITE);
-    app.online.room = { ...app.online.room, player: 'WHITE' }; await render();
+    app.online.room = { ...app.online.room, player: 'WHITE' }; await tap('cabin-board'); await scrollTo('starts-random'); await render();
     assert.equal(app.getButtons().find(button => button.id === 'starts-random').disabled, true);
     await tap('cabin-close');
     await app.online.game.load(settings, [{ type: 'skip', player: 'BLACK' }], { mode: 'human', paused: true, save: false });
@@ -146,7 +157,7 @@ test('direct skip rejects a stale touch; visible share/resign/leave actions disp
   app.online.command = async command => { commands.push(command); return true; };
   try {
     await until(() => app.session.snapshot && !app.session.busy);
-    await tap('cabin-battle'); await scrollTo('friends'); await tap('friends'); await until(() => app.online.room);
+    await tap('cabin-battle'); await scrollTo('friends'); await tap('friends'); await tap('room-submit'); await until(() => app.online.room);
     await tap('skip'); assert.deepEqual(actions, [{ type: 'skip' }]);
     await render();
     const button = app.getButtons().find(item => item.id === 'skip');

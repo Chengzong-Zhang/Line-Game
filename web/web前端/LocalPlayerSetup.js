@@ -1,11 +1,13 @@
-import { localPlayerChoices, MULTIPLAYER_ULTIMATE_AVAILABLE, usesGenericBoardAI, normalizeLocalPlayers } from "./LocalAIModes.js?v=20261025-ai1";
-import { RESEARCH_FAMILIES, TRANSFER_SEEDS } from "./ResearchAIOptions.js?v=20261025-ai1";
+import { localPlayerChoices, MULTIPLAYER_ULTIMATE_AVAILABLE, usesGenericBoardAI, normalizeLocalPlayers } from "./LocalAIModes.js?v=20261025-room1";
+import { RESEARCH_FAMILIES, TRANSFER_SEEDS } from "./ResearchAIOptions.js?v=20261025-room1";
+import { normalizeRoomPlayerSetup } from "./OnlineRoomSettings.js?v=20261025-room1";
 
 export default {
   name: "LocalPlayerSetup",
   emits: ["update-player", "update:start-player", "swap", "start"],
   props: {
     texts: { type: Object, required: true },
+    language: { type: String, default: "zh" },
     players: { type: Object, required: true },
     playerCount: { type: Number, required: true },
     boardShape: { type: String, required: true },
@@ -14,6 +16,7 @@ export default {
     locked: { type: Boolean, default: false },
     pending: { type: Boolean, default: true },
     started: { type: Boolean, default: false },
+    online: { type: Boolean, default: false },
   },
   setup(props) {
     return {
@@ -27,7 +30,8 @@ export default {
       families: RESEARCH_FAMILIES,
       versions: TRANSFER_SEEDS.map(String),
       sides: globalThis.Vue.computed(() => {
-        const players = normalizeLocalPlayers(props.players, props.playerCount, props.boardShape);
+        const players = props.online ? normalizeRoomPlayerSetup(props, props.players)
+          : normalizeLocalPlayers(props.players, props.playerCount, props.boardShape);
         return [
           { color: "BLACK", accent: "blue", name: props.texts.localBluePlayer, ...players.BLACK },
           { color: "WHITE", accent: "red", name: props.texts.localRedPlayer, ...players.WHITE },
@@ -86,9 +90,9 @@ export default {
           </template>
         </section>
       </div>
-      <p v-if="genericAI" class="help-copy">{{ playerCount >= 3 ? texts.localMultiplayerGenericNote : texts.localGenericNote }}</p>
-      <p v-else-if="playerCount === 3" class="help-copy">{{ texts.localThreeHuman }}</p>
-      <p v-else-if="playerCount >= 4" class="help-copy">{{ texts.localHexHuman }}</p>
+      <p v-if="genericAI && !online" class="help-copy">{{ playerCount >= 3 ? texts.localMultiplayerGenericNote : texts.localGenericNote }}</p>
+      <p v-else-if="!online && playerCount === 3" class="help-copy">{{ texts.localThreeHuman }}</p>
+      <p v-else-if="!online && playerCount >= 4" class="help-copy">{{ texts.localHexHuman }}</p>
       <div class="local-match-toolbar">
         <div class="local-starter-field">
           <label for="local-start-player" class="field-label">{{ texts.starterLabel }}</label>
@@ -98,7 +102,8 @@ export default {
         </div>
         <slot name="contribution" />
       </div>
-      <p class="help-copy" role="status">{{ pending ? texts.localPendingSettings : texts.localAppliedSettings }}</p>
+      <p v-if="online" class="help-copy">{{ language === 'zh' ? '创建人占用第一个真人席位，其他真人席位等待好友加入；其余席位按所选 AI 配置补位。' : 'The creator takes the first human seat. Friends join the other human seats; AI fills each configured AI seat.' }}</p>
+      <p v-else class="help-copy" role="status">{{ pending ? texts.localPendingSettings : texts.localAppliedSettings }}</p>
     </div>
   `,
 };

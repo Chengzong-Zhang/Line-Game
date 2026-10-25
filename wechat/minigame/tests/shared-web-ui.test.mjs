@@ -37,6 +37,7 @@ globalThis.fetch = async (url, options = {}) => {
     return { ok: true, json: async () => ({ code: 'FIXTURE-LINK-CODE', expiresIn: 300 }) };
   }
   if (url.endsWith('/login/web')) return { ok: true, json: async () => ({ token: 'fixture-shared-token', expiresIn: 3600, protocol: 1, account: { uid: 'fixture-user' } }) };
+  if (url.endsWith('/rooms') && body) room = freshRoom(body);
   if (url.endsWith('/ready')) room = { ...room, revision: room.revision + 1, status: 'playing', ready: { BLACK: true, WHITE: true } };
   return { ok: true, json: async () => room };
 };
@@ -77,15 +78,18 @@ function mount() {
   return app;
 }
 function cleanup() { for (const dispose of unmounts.splice(0)) dispose(); }
-function freshRoom() {
-  const settings = { gridSize: 7, playerCount: 2, startPlayer: 'BLACK', rulesVersion: 'territory-v2' };
+function freshRoom(settings = { gridSize: 7, playerCount: 2, startPlayer: 'BLACK', rulesVersion: 'territory-v2' }) {
   const engine = new GameEngine(settings), snapshot = engine.getSnapshot();
+  const colors = ['BLACK', 'WHITE', 'PURPLE', 'GREEN', 'ORANGE', 'CYAN'].slice(0, settings.playerCount);
+  const bots = colors.filter(color => settings.playerSetup?.[color]?.choice && settings.playerSetup[color].choice !== 'human');
+  const host = colors.find(color => !bots.includes(color));
   return {
     protocol: 1, code: 'ABCDEFGH', matchId: 'a'.repeat(32), revision: 1, seq: 0,
-    actions: [], actionIds: [], player: 'BLACK', currentPlayer: 'BLACK', status: 'waiting',
-    settings, ready: { BLACK: false, WHITE: false }, members: { BLACK: true, WHITE: false },
-    rematchVotes: { BLACK: false, WHITE: false }, gameOver: false, winner: snapshot.winner,
-    scores: { BLACK: snapshot.territories.BLACK.area, WHITE: snapshot.territories.WHITE.area },
+    actions: [], actionIds: [], player: host, hostPlayer: host, bots, currentPlayer: settings.startPlayer, status: 'waiting',
+    settings, ready: Object.fromEntries(colors.map(color => [color, bots.includes(color)])),
+    members: Object.fromEntries(colors.map(color => [color, color === host || bots.includes(color)])),
+    rematchVotes: Object.fromEntries(colors.map(color => [color, false])), gameOver: false, winner: snapshot.winner,
+    scores: Object.fromEntries(colors.map(color => [color, snapshot.territories[color].area])),
     stateHash: `sha256:${createHash('sha256').update(canonicalize(serializeRuleState(engine))).digest('hex')}`,
   };
 }
@@ -105,16 +109,15 @@ async function attachController(app) {
   return controller;
 }
 
-test('failed shared authentication rolls back transport mode and actual Web buttons can create and join legacy rooms', async () => {
+test('failed unified room authentication rolls back transport mode and legacy room codes can still join', async () => {
   fetchMode = 'disabled'; const app = mount();
   try {
     await app.handleCreateSharedRoom();
     assert.match(app.networkError.value, /尚未启用|not enabled/);
     assert.equal(app.session.value.shared, false);
-    await app.handleCreateRoom();
-    assert.equal(app.session.value.roomId, '2345'); assert.equal(app.session.value.shared, false);
-    assert.ok(wire.some(item => item.payload?.type === 'create_room'));
-    await app.handleLeaveRoom();
+    app.openRoomSetup(); await app.saveRoomSettings();
+    assert.equal(app.session.value.roomId, null); assert.equal(app.session.value.shared, false);
+    assert.equal(wire.some(item => item.payload?.type === 'create_room'), false);
     app.roomIdInput.value = '3456'; await app.handleJoinRoom();
     assert.equal(app.session.value.roomId, '3456');
     assert.ok(wire.some(item => item.payload?.type === 'join_room' && item.payload.roomId === '3456'));
@@ -218,32 +221,40 @@ test('the manual connect button restores a disconnected shared-room socket inste
   } finally { cleanup(); }
 });
 
-test('production multiplayer and Bot room creation retain the current settings draft', async context => {
+test('unified Web creation keeps all six interleaved human and AI seats and the board draft', async () => {
   fetchMode = 'online'; room = freshRoom(); const app = mount();
   try {
-    if (!app.selectedRoomBotCount) return context.skip('This older frontend does not have production Bot seats.');
     app.selectedPlayerCount.value = 6; app.selectedGridSize.value = 13;
-    app.selectedStartPlayer.value = 'GREEN'; app.selectedRoomBotCount.value = 3;
-    await app.handleCreateRoom();
-    const request = wire.find(item => item.payload?.type === 'create_room').payload;
-    assert.equal(request.settings.playerCount, 6); assert.equal(request.settings.botCount, 3);
-    assert.equal(request.settings.gridSize, 13); assert.equal(request.settings.startPlayer, 'GREEN');
-    assert.equal(app.session.value.shared, false);
+    app.selectedBoardShape.value = 'hexagon'; app.selectedStartPlayer.value = 'GREEN';
+    app.selectedLocalPlayers.value = { BLACK: { choice: 'ai-easy' }, WHITE: { choice: 'human' }, PURPLE: { choice: 'ai-hard' },
+      GREEN: { choice: 'human' }, ORANGE: { choice: 'ai-medium' }, CYAN: { choice: 'human' } };
+    app.openRoomSetup(); assert.equal(app.roomSetupOpen.value, true);
+    assert.equal(wire.some(item => item.url?.endsWith('/rooms')), false);
+    await app.saveRoomSettings();
+    const request = wire.find(item => item.url?.endsWith('/rooms')).body;
+    assert.equal(request.playerCount, 6); assert.equal(request.botCount, 3);
+    assert.equal(request.gridSize, 13); assert.equal(request.startPlayer, 'GREEN');
+    assert.equal(request.playerSetup.BLACK.choice, 'ai-easy'); assert.equal(request.playerSetup.PURPLE.choice, 'ai-hard');
+    assert.equal(request.playerSetup.CYAN.choice, 'human');
+    assert.equal(app.session.value.shared, true); assert.equal(app.roomInfo.value.settings.playerCount, 6);
+    assert.equal(app.session.value.color, 'WHITE'); assert.equal(app.roomSetupOpen.value, false);
   } finally { cleanup(); }
 });
 
-test('production shared-room creation keeps one AI seat when a multiplayer AI draft is selected', async context => {
+test('the shared creation alias preserves every configured AI seat', async () => {
   fetchMode = 'online'; room = freshRoom(); const app = mount();
   try {
-    if (!app.selectedRoomBotCount) return context.skip('This older frontend does not have independent settings drafts.');
     app.selectedPlayerCount.value = 6; app.selectedGridSize.value = 13;
-    app.selectedRoomBotCount.value = 3; app.selectedStartPlayer.value = 'GREEN';
+    app.selectedBoardShape.value = 'hexagon'; app.selectedStartPlayer.value = 'GREEN';
+    app.selectedLocalPlayers.value = Object.fromEntries(['BLACK', 'WHITE', 'PURPLE', 'GREEN', 'ORANGE', 'CYAN'].map((color, index) =>
+      [color, { choice: index ? 'ai-easy' : 'human' }]));
     await app.handleCreateSharedRoom();
     const request = wire.find(item => item.url?.endsWith('/rooms'));
-    assert.deepEqual(request.body, { playerCount: 2, boardShape: 'triangle', gridSize: 13, startPlayer: 'BLACK', rulesVersion: 'territory-v3', turnTimerEnabled: false, turnTimeLimitSeconds: 60, hintEnabled: false, hintMaxCount: 1, undoEnabled: false, undoMaxCount: 3, botCount: 1 });
+    assert.equal(request.body.playerCount, 6); assert.equal(request.body.botCount, 5);
+    assert.equal(request.body.boardShape, 'hexagon'); assert.equal(request.body.startPlayer, 'GREEN');
     assert.equal(app.session.value.shared, true);
-    assert.equal(app.roomInfo.value.settings.playerCount, 2);
-    assert.equal(app.roomInfo.value.settings.botCount || 0, 0);
+    assert.equal(app.roomInfo.value.settings.playerCount, 6);
+    assert.equal(app.roomInfo.value.settings.botCount, 5);
   } finally { cleanup(); }
 });
 

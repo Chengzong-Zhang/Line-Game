@@ -5,9 +5,9 @@ import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL, fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
-import GameEngine from "../GameEngine.js?v=20261025-unified1";
-import { serializeEngineState } from "../AIStateProtocol.js?v=20261025-unified1";
-import { createLocalAIWorker, localAIWorkerRoute } from "../LocalAIWorkerFactory.js?v=20261025-unified1";
+import GameEngine from "../GameEngine.js?v=20261025-room1";
+import { serializeEngineState } from "../AIStateProtocol.js?v=20261025-room1";
+import { createLocalAIWorker, localAIWorkerRoute } from "../LocalAIWorkerFactory.js?v=20261025-room1";
 
 const [buildName, receiptName] = process.argv.slice(2);
 assert(buildName && receiptName, "Expected a fresh build directory and receipt path");
@@ -21,7 +21,7 @@ assert.equal(buildReceipt.status, "BUILT_NOT_VERIFIED");
 const frontend = fileURLToPath(new URL("..", import.meta.url));
 const manifestPath = resolve(frontend, "MultiplayerHardAIWorker.bundle.manifest.json");
 const manifest = JSON.parse(await readFile(manifestPath));
-const engineBytes = await readFile(new URL("../GameEngine.js?v=20261025-unified1", import.meta.url));
+const engineBytes = await readFile(new URL("../GameEngine.js?v=20261025-room1", import.meta.url));
 assert.equal(manifest.sourceHashes["GameEngine.js"], sha(engineBytes),
   "emitted bundle must embed the exact current GameEngine source");
 assert.equal(buildReceipt.manifest.sourceHashes["GameEngine.js"], sha(engineBytes));
@@ -31,7 +31,7 @@ const context = { rulesVersion: "territory-v3", playerCount: 4, gridSize: 5, boa
 const profile = { strategy: "multiplayer", modelId: "multiplayer-hard-v1" };
 const route = localAIWorkerRoute(context, [profile]);
 assert.equal(route.kind, "native-hard-bundle");
-assert.equal(route.url.searchParams.get("v"), "20261025-unified1");
+assert.equal(route.url.searchParams.get("v"), "20261025-room1");
 assert.equal(route.url.pathname, pathToFileURL(buildReceipt.output.path).pathname);
 
 class CapturedWorker {

@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
-import { GameEngine, TerritoryRulesVersion } from "../GameEngine.js?v=20261025-unified1";
+import { GameEngine, TerritoryRulesVersion } from "../GameEngine.js?v=20261025-room1";
 import {
   MinimaxAI,
   boundedRootCutChainAttack,
   boundedRootCutChainRisk,
   saveState,
-} from "../AIEngine.js?v=20261025-unified1";
+} from "../AIEngine.js?v=20261025-room1";
 
 const PREFIX = [[2, 0], [3, 1], [0, 1], [0, 4]];
 const ORDINARY_CUT = [2, 2];

@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 
-const engineUrl = new URL("../../GameEngine.js?v=20261025-unified1", import.meta.url);
+const engineUrl = new URL("../../GameEngine.js?v=20261025-room1", import.meta.url);
 const source = await fs.readFile(engineUrl, "utf8");
 const { GameEngine, Player } = await import(
   `data:text/javascript;base64,${Buffer.from(source).toString("base64")}`

@@ -46,7 +46,7 @@ test('actual production Worker exports/imports without crypto, TextEncoder or DO
   assert.equal(messages[1].result.stateHash, doc.integrity.finalStateHash);
 });
 
-test('three-player sessions retain Purple, replay, restore and terminal outcomes; rooms stay two-player', async () => {
+test('three-player sessions retain Purple, replay, restore and terminal outcomes, including room validation', async () => {
   const scheduler = localScheduler(), store = new sut.SaveStore(memoryStorage()), session = new sut.GameSession(scheduler, store);
   try {
     assert.equal(await session.newGame(5, 'ai-duel', 'easy', 3), true);
@@ -65,7 +65,8 @@ test('three-player sessions retain Purple, replay, restore and terminal outcomes
     const room = { protocol: 1, code: 'ABCDEFGH', matchId: 'a'.repeat(32), revision: 1, seq: 0,
       status: 'playing', player: 'BLACK', currentPlayer: 'BLACK', actions: [], actionIds: [],
       stateHash: `sha256:${'a'.repeat(64)}`, ready: {}, members: {}, rematchVotes: {}, settings: sut.settingsFor(5, 3) };
-    assert.throws(() => sut.validateRoom(room), /INVALID_ROOM/);
+    assert.equal(sut.validateRoom({ ...room, player: 'PURPLE', currentPlayer: 'PURPLE' }).player, 'PURPLE');
+    assert.throws(() => sut.validateRoom({ ...room, player: 'GREEN' }), /INVALID_ROOM/);
   } finally { session.hide(); scheduler.cancel(); }
 });
 

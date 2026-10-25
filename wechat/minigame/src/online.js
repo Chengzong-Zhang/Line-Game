@@ -3,6 +3,7 @@ import { GameSession } from './session.js';
 import { validateSettings, MAX_ACTIONS } from './state.js';
 import { ONLINE_CONSENT_KEY, LEGACY_ONLINE_CONSENT_KEY } from './online-consent.js';
 import { profileCache, validateProfile } from './profile-cache.js';
+import { playerIds } from './controllers.js';
 
 const ROOM_KEY = 'lifeline-wx-room-v1', PENDING_KEY = 'lifeline-wx-command-v1';
 const roomCode = (value) => typeof value === 'string' && /^[A-Z2-9]{8}$/.test(value);
@@ -14,18 +15,21 @@ export function validateRoom(room) {
   if (!room || room.protocol !== 1 || !roomCode(room.code) || !/^[0-9a-f]{32}$/.test(room.matchId)
     || !Number.isSafeInteger(room.revision) || room.revision < 1 || !Number.isSafeInteger(room.seq)
     || !['waiting', 'playing', 'finished', 'closed'].includes(room.status)
-    || !['BLACK', 'WHITE'].includes(room.player) || !['BLACK', 'WHITE'].includes(room.currentPlayer)
     || !Array.isArray(room.actions) || room.actions.length !== room.seq || room.seq > MAX_ACTIONS
     || !Array.isArray(room.actionIds) || room.actionIds.length !== room.seq
     || !/^sha256:[0-9a-f]{64}$/.test(room.stateHash)
     || !room.ready || !room.members || !room.rematchVotes) throw new Error('INVALID_ROOM');
   validateSettings(room.settings);
-  if (room.settings.playerCount !== 2) throw new Error('INVALID_ROOM');
+  const players = playerIds(room.settings.playerCount), bots = room.bots || [];
+  if (!players.includes(room.player) || !players.includes(room.currentPlayer)
+    || !Array.isArray(bots) || new Set(bots).size !== bots.length || bots.some(player => !players.includes(player))
+    || bots.includes(room.player) || (room.hostPlayer !== undefined && !players.includes(room.hostPlayer))) throw new Error('INVALID_ROOM');
+  if (room.pendingSettings != null) validateSettings(room.pendingSettings);
   if (room.undo !== undefined && (!room.undo || !Number.isInteger(room.undo.usedCount)
     || room.undo.usedCount < 0 || room.undo.usedCount > (room.settings.undoMaxCount ?? 3)
     || typeof room.undo.pending !== 'boolean' || !Array.isArray(room.undo.votes)
     || new Set(room.undo.votes).size !== room.undo.votes.length
-    || room.undo.votes.some(player => !['BLACK', 'WHITE'].includes(player)))) throw new Error('INVALID_ROOM');
+    || room.undo.votes.some(player => !players.includes(player) || bots.includes(player)))) throw new Error('INVALID_ROOM');
   return room;
 }
 
@@ -220,7 +224,9 @@ export class OnlineClient {
     // Metadata-only updates must not cancel an action verification in flight.
     if (this.room?.stateHash !== room.stateHash || JSON.stringify(this.room?.settings) !== JSON.stringify(room.settings)
       || this.game.replayIndex !== null) {
-      const ok = await this.game.load(room.settings, room.actions, { mode: 'human', save: false, paused: true, expectedHash: room.stateHash });
+      const sameMatch = this.room?.matchId === room.matchId;
+      const ok = await this.game.load(room.settings, room.actions, { mode: 'human', save: false, paused: true, expectedHash: room.stateHash,
+        progress: { hintsUsed: sameMatch ? this.game.hintsUsed : 0, remainingMs: (room.settings.turnTimeLimitSeconds || 60) * 1000 } });
       if (!ok) { if (id === this.syncId) this.error = this.game.error || 'STATE_MISMATCH'; this.notify(); return false; }
     }
     if (!this.active || life !== this.lifecycle || id !== this.syncId) return false;
@@ -349,9 +355,16 @@ export class OnlineClient {
       && this.room?.status === 'playing' && !this.room.undo?.pending && this.room.player === this.game.snapshot?.currentPlayer;
   }
   canEditSettings() {
-    return this.active && this.room?.player === 'BLACK' && this.room.status === 'waiting' && this.room.seq === 0
-      && !Object.entries(this.room.ready).some(([seat, ready]) => ready && !this.room.bots?.includes(seat))
+    return this.active && this.room && this.room.player === (this.room.hostPlayer || 'BLACK')
+      && ['waiting', 'playing', 'finished'].includes(this.room.status)
       && !this.sending && !this.game.busy;
+  }
+  async hint() {
+    if (!this.canPlay() || !this.game.hintsRemaining) return false;
+    const game = this.game;
+    game.paused = false;
+    try { return await game.hint(); }
+    finally { game.paused = true; }
   }
   async updateSettings(settings) {
     if (!this.canEditSettings()) return false;
@@ -380,7 +393,7 @@ export class OnlineClient {
   }
   receiveEmote(emote) {
     if (!this.emotesSupported || !emote || !/^[0-9a-f]{16}$/.test(emote.id)
-      || !ONLINE_EMOTES.includes(emote.emoji) || !['BLACK', 'WHITE'].includes(emote.player)
+      || !ONLINE_EMOTES.includes(emote.emoji) || !playerIds(this.room?.settings?.playerCount || 2).includes(emote.player)
       || emote.matchId !== this.room?.matchId || emote.id === this.lastEmote?.id) return false;
     this.lastEmote = { id: emote.id, emoji: emote.emoji, player: emote.player, matchId: emote.matchId };
     this.emoteError = null; this.onEmote(this.lastEmote); this.notify(); return true;

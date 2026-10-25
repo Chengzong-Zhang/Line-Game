@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
-import GameEngine from "../GameEngine.js?v=20261025-unified1";
-import GameController from "../GameController.js?v=20261025-unified1";
-import { serializeEngineState, captureWorkerRequest, isWorkerResultForRequest } from "../AIStateProtocol.js?v=20261025-unified1";
-import { normalizeGameSettings } from "../OnlineAppState.js?v=20261025-unified1";
-import { normalizeLocalPlayers } from "../LocalAIModes.js?v=20261025-unified1";
-import { createLocalGameSession, persistLocalGameSession, loadLocalGameSession } from "../LocalGameSession.js?v=20261025-unified1";
-import { localUndoTimeline, planLocalUndo, consumeLocalUndo, recordUndoAction } from "../LocalUndo.js?v=20261025-unified1";
+import GameEngine from "../GameEngine.js?v=20261025-room1";
+import GameController from "../GameController.js?v=20261025-room1";
+import { serializeEngineState, captureWorkerRequest, isWorkerResultForRequest } from "../AIStateProtocol.js?v=20261025-room1";
+import { normalizeGameSettings } from "../OnlineAppState.js?v=20261025-room1";
+import { normalizeLocalPlayers } from "../LocalAIModes.js?v=20261025-room1";
+import { createLocalGameSession, persistLocalGameSession, loadLocalGameSession } from "../LocalGameSession.js?v=20261025-room1";
+import { localUndoTimeline, planLocalUndo, consumeLocalUndo, recordUndoAction } from "../LocalUndo.js?v=20261025-room1";
 
 const noop = () => {};
 const colors = ["BLACK", "WHITE", "PURPLE", "GREEN", "ORANGE", "CYAN"];
@@ -94,7 +94,7 @@ globalThis.Vue = {
   computed: (get) => ({ get value() { return get(); } }),
   watch: noop, onMounted: noop, onBeforeUnmount: (fn) => cleanups.push(fn), nextTick: async () => {},
 };
-const { default: App } = await import("../OnlineApp.js?v=20261025-unified1");
+const { default: App } = await import("../OnlineApp.js?v=20261025-room1");
 const app = App.setup();
 const controller = controllerFor(settings);
 controller.stateChangeListener = app.handleStateChange;

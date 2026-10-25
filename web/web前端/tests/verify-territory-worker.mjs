@@ -3,14 +3,14 @@ import {
   GameEngine,
   Player,
   TerritoryRulesVersion,
-} from "../GameEngine.js?v=20261025-unified1";
-import { serializeEngineState } from "../AIStateProtocol.js?v=20261025-unified1";
+} from "../GameEngine.js?v=20261025-room1";
+import { serializeEngineState } from "../AIStateProtocol.js?v=20261025-room1";
 import {
   OneShotTerritoryWorker,
   applyTerritoryWorkerResult,
-} from "../TerritoryWorkerSession.js?v=20261025-unified1";
-import { GameController } from "../GameController.js?v=20261025-unified1";
-import { TERRITORY_V2_HOT_PATH_FIXTURES } from "./territory-v2-fixtures.mjs?v=20261025-unified1";
+} from "../TerritoryWorkerSession.js?v=20261025-room1";
+import { GameController } from "../GameController.js?v=20261025-room1";
+import { TERRITORY_V2_HOT_PATH_FIXTURES } from "./territory-v2-fixtures.mjs?v=20261025-room1";
 
 class FakeWorker {
   constructor() {

@@ -69,10 +69,13 @@ async def check(root):
         passed("hexagon-and-frozen-random-start-settings")
         await command(host, "settings", {"settings": {"gridSize": 7, "undoEnabled": True, "undoMaxCount": 2}})
         await command(host, "ready")
-        await rejected(command(host, "settings", {"settings": {"gridSize": 9}}), "SETTINGS_LOCKED")
+        await command(host, "settings", {"settings": {"gridSize": 9, "undoEnabled": True, "undoMaxCount": 2}})
+        assert room["ready"] == {"BLACK": False, "WHITE": False}
+        await command(host, "settings", {"settings": {"gridSize": 7, "undoEnabled": True, "undoMaxCount": 2}})
+        await command(host, "ready")
         await command(guest, "ready")
         assert room["status"] == "playing"
-        passed("ready-locks-settings-and-both-players-start")
+        passed("waiting-settings-reset-ready-and-both-players-start")
 
         move_body = {"expectedSeq": room["seq"], "beforeHash": room["stateHash"], "clientActionId": "release-probe-command-00001",
                      "action": {"type": "move", "point": [2, 0]}}
@@ -151,9 +154,13 @@ async def check(root):
 
         fresh = store.identity("synthetic-settings-outsider")
         await rejected(svc.mutate(fresh, "create", {"gridSize": 7, "rulesVersion": "territory-v4"}), "INVALID_SETTINGS")
-        await rejected(svc.mutate(fresh, "create", {"gridSize": 7, "playerCount": 3}), "INVALID_SETTINGS")
-        await rejected(svc.mutate(fresh, "create", {"gridSize": 7, "turnTimerEnabled": True}), "INVALID_SETTINGS")
-        passed("unsupported-rules-player-count-and-unenforced-timer-rejected")
+        await rejected(svc.mutate(fresh, "create", {"gridSize": 7, "playerCount": 7}), "INVALID_SETTINGS")
+        await rejected(svc.mutate(fresh, "create", {"gridSize": 7, "turnTimerEnabled": 1}), "INVALID_SETTINGS")
+        passed("unsupported-rules-player-count-and-malformed-timer-rejected")
+        mixed = await svc.mutate(fresh, "create", {"gridSize": 7, "playerCount": 3, "turnTimerEnabled": True})
+        assert mixed["settings"]["playerCount"] == 3 and mixed["settings"]["turnTimerEnabled"]
+        assert set(mixed["scores"]) == {"BLACK", "WHITE", "PURPLE"}
+        passed("three-player-room-and-authoritative-timer-config-accepted")
 
     return {"status": "PASS_SERVICE_RELEASE_COMPATIBILITY", "checks": checks, "count": len(checks),
             "networkUsed": False, "database": "temporary-synthetic-only", "verifier": "real-node"}

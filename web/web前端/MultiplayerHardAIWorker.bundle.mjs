@@ -3270,7 +3270,7 @@ var init_ThreePlayerAI = __esm({
       "own_frontier",
       "opponent_frontier_lead"
     ]);
-    MODEL_URL = new URL("./assets/research-ai/three-player-policy-v1.json?v=20261025-unified1", new URL("./ThreePlayerAI.js", self.location.href).href);
+    MODEL_URL = new URL("./assets/research-ai/three-player-policy-v1.json?v=20261025-room1", new URL("./ThreePlayerAI.js", self.location.href).href);
     modelPromise = null;
     __name(counts, "counts");
     __name(stateFeatures, "stateFeatures");
@@ -3702,7 +3702,7 @@ var init_HexPlayerAI = __esm({
       "own_frontier",
       "opponent_frontier_lead"
     ]);
-    MODEL_URL2 = new URL("./assets/research-ai/hex-player-policy-v1.json?v=20261025-unified1", new URL("./HexPlayerAI.js", self.location.href).href);
+    MODEL_URL2 = new URL("./assets/research-ai/hex-player-policy-v1.json?v=20261025-room1", new URL("./HexPlayerAI.js", self.location.href).href);
     modelPromise2 = null;
     __name(stateFeatures2, "stateFeatures");
     __name(moveFeatures, "moveFeatures");
@@ -5804,7 +5804,7 @@ __export(MultiplayerHardWorkerRuntime_exports, {
 });
 async function loadMultiplayerRuntime(modelId, engine) {
   if (modelId === HARD_MODEL_ID && supportsNativeHardContext(engine)) return loadNativeHardRuntime(engine);
-  const general = await import("./MultiplayerRuntime.js?v=20261025-unified1");
+  const general = await import("./MultiplayerRuntime.js?v=20261025-room1");
   return general.loadMultiplayerRuntime(modelId, engine);
 }
 var init_MultiplayerHardWorkerRuntime = __esm({
@@ -6078,7 +6078,7 @@ var init_AIWorker = __esm({
           });
         } else if (strategy === "neural-puct") {
           if (engine.playerCount !== 2) throw new Error("\u6A21\u578B\u4E0D\u652F\u6301\u6B64\u68CB\u76D8/\u89C4\u5219/\u73A9\u5BB6\u6570\u3002");
-          const { loadResearchModel, NeuralPUCTAI, supportsResearchInference } = await import("./ResearchAI.js?v=20261025-unified1");
+          const { loadResearchModel, NeuralPUCTAI, supportsResearchInference } = await import("./ResearchAI.js?v=20261025-room1");
           const model = await loadResearchModel(event.data?.modelId);
           if (!supportsResearchInference(model.spec, engine)) throw new Error("\u6A21\u578B\u4E0D\u652F\u6301\u6B64\u68CB\u76D8/\u89C4\u5219/\u73A9\u5BB6\u6570\u3002");
           modelInfo = {
@@ -6097,7 +6097,7 @@ var init_AIWorker = __esm({
           });
         } else if (strategy === "model-free") {
           if (engine.playerCount !== 2) throw new Error("model-free \u7F51\u9875\u6A21\u578B\u4EC5\u652F\u6301\u53CC\u4EBA\u5C40\u9762\u3002");
-          const { loadModelFreeModel, ModelFreeAI } = await import("./ModelFreeAI.js?v=20261025-unified1");
+          const { loadModelFreeModel, ModelFreeAI } = await import("./ModelFreeAI.js?v=20261025-room1");
           const model = await loadModelFreeModel(event.data?.modelId);
           ai = new ModelFreeAI(model);
         } else if (strategy === "multiplayer") {
@@ -6112,7 +6112,7 @@ var init_AIWorker = __esm({
           ai = runtime.ai;
           modelInfo = runtime.modelInfo;
         } else if (strategy === "hex-player") {
-          const { loadHexPlayerRuntime } = await import("./HexPlayerRuntime.js?v=20261025-unified1");
+          const { loadHexPlayerRuntime } = await import("./HexPlayerRuntime.js?v=20261025-room1");
           const runtime = await loadHexPlayerRuntime(event.data?.modelId, engine);
           ai = runtime.ai;
           modelInfo = runtime.modelInfo;

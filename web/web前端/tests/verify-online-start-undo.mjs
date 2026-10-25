@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
-import { NetworkManager } from "../NetworkManager.js?v=20261025-unified1";
-import CrossPlatformNetwork from "../CrossPlatformNetwork.js?v=20261025-unified1";
-import { sharedRoomPayload } from "../SharedRoomClient.js?v=20261025-unified1";
-import { normalizeGameSettings } from "../OnlineAppState.js?v=20261025-unified1";
+import { NetworkManager } from "../NetworkManager.js?v=20261025-room1";
+import CrossPlatformNetwork from "../CrossPlatformNetwork.js?v=20261025-room1";
+import { sharedRoomPayload } from "../SharedRoomClient.js?v=20261025-room1";
+import { normalizeGameSettings } from "../OnlineAppState.js?v=20261025-room1";
 
 const noop = () => {};
 globalThis.localStorage = { getItem: () => null, setItem: noop, removeItem: noop };
@@ -23,7 +23,7 @@ NetworkManager.prototype.createRoom = async function (settings) { calls.created.
 NetworkManager.prototype.updateRoomSettings = async function (settings) { calls.updated.push(settings); return {}; };
 NetworkManager.prototype.sendUndo = async function (accept) { calls.undo.push(accept); return {}; };
 CrossPlatformNetwork.prototype.createSharedRoom = async function (settings) { calls.shared.push(settings); return {}; };
-const { default: App } = await import("../OnlineApp.js?v=20261025-unified1");
+const { default: App } = await import("../OnlineApp.js?v=20261025-room1");
 const app = App.setup();
 app.tutorialActive.value = false;
 app.auth.value = { username: "host", token: "test-token" };
@@ -33,13 +33,13 @@ app.selectedBoardShape.value = "hexagon";
 const starts = { BLACK: [4, 0], WHITE: [0, 4] };
 app.updateStartingPoints({ startingPointMode: "custom", initialPositions: starts });
 await app.handleCreateRoom();
-assert.equal(calls.created.length, 1, `create failed: ${app.networkError?.value}`);
-assert.deepEqual(calls.created[0].initialPositions, starts);
-assert.equal(calls.created[0].boardShape, "hexagon");
+assert.equal(calls.shared.length, 1, `create failed: ${app.networkError?.value}`);
+assert.deepEqual(calls.shared[0].initialPositions, starts);
+assert.equal(calls.shared[0].boardShape, "hexagon");
 
 app.roomStatus.value = "lobby";
 app.session.value = { ...app.session.value, shared: false, roomId: "1234", playerId: "host" };
-app.roomInfo.value = { ...app.roomInfo.value, hostPlayerId: "host", settings: normalizeGameSettings(calls.created[0]), matchPhase: "LOBBY" };
+app.roomInfo.value = { ...app.roomInfo.value, hostPlayerId: "host", settings: normalizeGameSettings(calls.shared[0]), matchPhase: "LOBBY" };
 app.updateStartingPoints({ startingPointMode: "random", initialPositions: { BLACK: [8, 4], WHITE: [4, 8] } });
 assert.equal(calls.updated.length, 1);
 assert.equal(calls.updated[0].startingPointMode, "random");
@@ -47,16 +47,16 @@ assert.deepEqual(calls.updated[0].initialPositions, { BLACK: [8, 4], WHITE: [4, 
 
 app.roomStatus.value = "solo";
 app.session.value = { ...app.session.value, roomId: null };
-app.selectedRoomBotCount.value = 1;
+app.selectedLocalPlayers.value = { BLACK: { choice: "human" }, WHITE: { choice: "greedy" } };
 await app.handleCreateSharedRoom();
-assert.equal(calls.shared.length, 1);
-assert.equal(calls.shared[0].botCount, 1);
-assert.equal(calls.shared[0].startingPointMode, "random");
-assert.deepEqual(calls.shared[0].initialPositions, { BLACK: [8, 4], WHITE: [4, 8] });
+assert.equal(calls.shared.length, 2);
+assert.equal(calls.shared[1].botCount, 1);
+assert.equal(calls.shared[1].startingPointMode, "random");
+assert.deepEqual(calls.shared[1].initialPositions, { BLACK: [8, 4], WHITE: [4, 8] });
 assert.equal(normalizeGameSettings({ playerCount: 2, botCount: 1 }).botCount, 1);
 const botPayload = sharedRoomPayload({
   code: "ABCDEFGH", player: "BLACK", status: "playing", revision: 2,
-  settings: calls.shared[0], bots: ["WHITE"],
+  settings: calls.shared[1], bots: ["WHITE"],
   members: { BLACK: true, WHITE: true }, ready: { BLACK: true, WHITE: true },
   undo: { usedCount: 0, pending: false, votes: [] }, actions: [],
   playerProfiles: { BLACK: { displayName: "Host" }, WHITE: { displayName: "AI" } },

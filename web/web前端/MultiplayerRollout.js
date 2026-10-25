@@ -1,9 +1,9 @@
 // Experimental policy improvement: selfish opponent rollouts and canonical area.
 // Candidate ordering never removes legal roots. Hard publishes complete sweeps;
 // the opt-in mode can publish fully evaluated improvements within a sweep.
-import { GameEngine } from "./GameEngine.js?v=20261025-ai1";
-import { saveState, restoreState } from "./AIEngine.js?v=20261025-ai1";
-import { isolatedSearchEngine, multiplayerMetrics, visitPolicyCandidates } from "./MultiplayerSearch.js?v=20261025-ai1";
+import { GameEngine } from "./GameEngine.js?v=20261025-room1";
+import { saveState, restoreState } from "./AIEngine.js?v=20261025-room1";
+import { isolatedSearchEngine, multiplayerMetrics, visitPolicyCandidates } from "./MultiplayerSearch.js?v=20261025-room1";
 
 const DEADLINE = Symbol("multiplayer rollout budget");
 const key = point => point === null ? "PASS" : point.join(",");

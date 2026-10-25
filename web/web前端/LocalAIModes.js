@@ -1,5 +1,5 @@
-import { DEFAULT_RESEARCH_VERSION, RESEARCH_FAMILIES, TRANSFER_SEEDS, researchProfile } from "./ResearchAIOptions.js?v=20261025-ai1";
-import { threePlayerModelIdForBoard } from "./ThreePlayerSearchOptions.js?v=20261025-ai1";
+import { DEFAULT_RESEARCH_VERSION, RESEARCH_FAMILIES, TRANSFER_SEEDS, researchProfile } from "./ResearchAIOptions.js?v=20261025-room1";
+import { threePlayerModelIdForBoard } from "./ThreePlayerSearchOptions.js?v=20261025-room1";
 
 export const LOCAL_PLAYER_CHOICES = Object.freeze([
   "human", "minimax", ...RESEARCH_FAMILIES, "dqn", "ppo", "sac", "gail", "gan",

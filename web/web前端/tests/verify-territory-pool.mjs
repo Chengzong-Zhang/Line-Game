@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
-import GameEngine from "../GameEngine.js?v=20261025-unified1";
-import { serializeEngineState } from "../AIStateProtocol.js?v=20261025-unified1";
-import TerritoryWorkerPool from "../TerritoryWorkerPool.js?v=20261025-unified1";
+import GameEngine from "../GameEngine.js?v=20261025-room1";
+import { serializeEngineState } from "../AIStateProtocol.js?v=20261025-room1";
+import TerritoryWorkerPool from "../TerritoryWorkerPool.js?v=20261025-room1";
 
 class FakeWorker {
   messages = [];

@@ -185,7 +185,7 @@ async function enterOnline(h) {
   };
   await h.tap('cabin-battle');
   await h.scrollTo('friends');
-  await h.tap('friends');
+  await h.tap('friends'); await h.tap('room-submit');
 }
 
 test('pending V2 retry consent stays off when declined or when its board cabin becomes stale', async () => {

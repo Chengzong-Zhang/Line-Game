@@ -1,6 +1,6 @@
-import { loadThreePlayerModel, ThreePlayerAI } from "./ThreePlayerModels.js?v=20261025-ai1";
-import { ThreePlayerSearchAI } from "./ThreePlayerSearchAI.js?v=20261025-ai1";
-import { THREE_PLAYER_SEARCH_MODEL_ID, THREE_PLAYER_SEARCH_MODEL_SHA256, THREE_PLAYER_SEARCH_SIZES } from "./ThreePlayerSearchOptions.js?v=20261025-ai1";
+import { loadThreePlayerModel, ThreePlayerAI } from "./ThreePlayerModels.js?v=20261025-room1";
+import { ThreePlayerSearchAI } from "./ThreePlayerSearchAI.js?v=20261025-room1";
+import { THREE_PLAYER_SEARCH_MODEL_ID, THREE_PLAYER_SEARCH_MODEL_SHA256, THREE_PLAYER_SEARCH_SIZES } from "./ThreePlayerSearchOptions.js?v=20261025-room1";
 
 let searchModelPromise;
 export async function loadThreePlayerSearchModel(id = THREE_PLAYER_SEARCH_MODEL_ID) {

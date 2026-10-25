@@ -2,12 +2,12 @@
 // No server-game, strength, complete-multiplayer-round, bundle or latency claim.
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
-import { GameEngine } from '../GameEngine.js?v=20261025-unified1';
-import { saveState } from '../AIEngine.js?v=20261025-unified1';
-import { probeMultiplayerReplyResilience } from '../MultiplayerSearch.js?v=20261025-unified1';
-import { compareCompletedReplyResilience } from '../MultiplayerHardValue.js?v=20261025-unified1';
-import { createHardRuntimeV2, selectCompleteReplyResilience } from '../MultiplayerHardRuntime.js?v=20261025-unified1';
-import { MultiplayerRolloutAI } from '../MultiplayerHardRollout.js?v=20261025-unified1';
+import { GameEngine } from '../GameEngine.js?v=20261025-room1';
+import { saveState } from '../AIEngine.js?v=20261025-room1';
+import { probeMultiplayerReplyResilience } from '../MultiplayerSearch.js?v=20261025-room1';
+import { compareCompletedReplyResilience } from '../MultiplayerHardValue.js?v=20261025-room1';
+import { createHardRuntimeV2, selectCompleteReplyResilience } from '../MultiplayerHardRuntime.js?v=20261025-room1';
+import { MultiplayerRolloutAI } from '../MultiplayerHardRollout.js?v=20261025-room1';
 
 const started = performance.now(), limitMs = 18000;
 const guard = () => assert(performance.now() - started < limitMs, 'Short integration limit exceeded; no partial PASS');

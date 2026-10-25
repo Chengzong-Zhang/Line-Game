@@ -4,7 +4,7 @@ import { pathToFileURL } from "node:url";
 
 const sourceUrl = process.argv[2]
   ? pathToFileURL(process.argv[2])
-  : new URL("../GameEngine.js?v=20261025-unified1", import.meta.url);
+  : new URL("../GameEngine.js?v=20261025-room1", import.meta.url);
 const source = await fs.readFile(sourceUrl, "utf8");
 const { GameEngine, Player, PointState, TerritoryRulesVersion } = await import(
   `data:text/javascript;base64,${Buffer.from(source).toString("base64")}`
@@ -93,7 +93,7 @@ assert.equal(closedNew.skipTurn().success, true);
 assert.equal(closedNew.skipTurn().success, true);
 assert.equal(closedNew.getSnapshot().gameOver, true);
 if (!process.argv[2]) {
-  const { createReplayDocument, validateReplayDocument } = await import("../ReplayCodec.js?v=20261025-unified1");
+  const { createReplayDocument, validateReplayDocument } = await import("../ReplayCodec.js?v=20261025-room1");
   for (const version of [TerritoryRulesVersion.V2, TerritoryRulesVersion.V3]) {
     const settings = { gridSize: 7, playerCount: 2, startPlayer: Player.BLACK, rulesVersion: version };
     const document = await createReplayDocument(settings, [{ type: "skip" }, { type: "skip" }]);

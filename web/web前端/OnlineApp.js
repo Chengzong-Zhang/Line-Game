@@ -1,20 +1,20 @@
-import { MultiplayerWarmupSession } from "./MultiplayerAIWarmup.js?v=20261025-ai1";
-import { createLocalAIWorker } from "./LocalAIWorkerFactory.js?v=20261025-ai1";
-import GameController from "./GameController.js?v=20261025-ai1";
-import { Player } from "./GameEngine.js?v=20261025-ai1";
-import { captureWorkerRequest, isWorkerResultForRequest, serializeEngineState } from "./AIStateProtocol.js?v=20261025-ai1";
-import { RESEARCH_FAMILIES, TRANSFER_SEEDS, researchProfile } from "./ResearchAIOptions.js?v=20261025-ai1";
+import { MultiplayerWarmupSession } from "./MultiplayerAIWarmup.js?v=20261025-room1";
+import { createLocalAIWorker } from "./LocalAIWorkerFactory.js?v=20261025-room1";
+import GameController from "./GameController.js?v=20261025-room1";
+import { Player } from "./GameEngine.js?v=20261025-room1";
+import { captureWorkerRequest, isWorkerResultForRequest, serializeEngineState } from "./AIStateProtocol.js?v=20261025-room1";
+import { RESEARCH_FAMILIES, TRANSFER_SEEDS, researchProfile } from "./ResearchAIOptions.js?v=20261025-room1";
 import {
   OneShotHintWorker,
   applyHintWorkerResult,
-} from "./HintWorkerSession.js?v=20261025-ai1";
-import { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js?v=20261025-ai1";
-import NetworkManager from "./CrossPlatformNetwork.js?v=20261025-ai1";
+} from "./HintWorkerSession.js?v=20261025-room1";
+import { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js?v=20261025-room1";
+import NetworkManager from "./CrossPlatformNetwork.js?v=20261025-room1";
 import {
   applyRoomSnapshotWithPostCommit,
   coordinateControllerRoomSnapshot,
   registerRoomSnapshotResponseListeners,
-} from "./OnlineRoomSync.js?v=20261025-ai1";
+} from "./OnlineRoomSync.js?v=20261025-room1";
 import {
   createEmptyAuth as createAppEmptyAuth,
   GRID_SIZE_OPTIONS as APP_GRID_SIZE_OPTIONS,
@@ -32,7 +32,7 @@ import {
   normalizeGameSettings as normalizeAppGameSettings,
   persistAuth as persistAppAuth,
   persistSession as persistAppSession,
-} from "./OnlineAppState.js?v=20261025-ai1";
+} from "./OnlineAppState.js?v=20261025-room1";
 import {
   formatArea as formatAppArea,
   formatConnectionState as formatAppConnectionState,
@@ -46,8 +46,8 @@ import {
   UI_STYLE_STORAGE_KEY,
   UI_STYLE_ACADEMIC,
   localizeErrorMessage as localizeAppErrorMessage,
-} from "./OnlineAppI18n.js?v=20261025-ai1";
-import { ensureGuideRuleImages, getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20261025-ai1";
+} from "./OnlineAppI18n.js?v=20261025-room1";
+import { ensureGuideRuleImages, getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20261025-room1";
 import {
   TUTORIAL_LEVELS,
   getTutorialEngineSettings,
@@ -55,26 +55,27 @@ import {
   getTutorialLevel,
   isTutorialTarget,
   isTutorialRestrictionAttempt,
-} from "./TutorialRunner.js?v=20261025-ai1";
+} from "./TutorialRunner.js?v=20261025-room1";
 import {
   appendLocalGameAction,
   clearLocalGameSession,
   createLocalGameSession,
   loadLocalGameSession,
   persistLocalGameSession,
-} from "./LocalGameSession.js?v=20261025-ai1";
+} from "./LocalGameSession.js?v=20261025-room1";
 import {
   createReplayDocument,
   downloadReplayDocument,
   parseAndValidateReplay,
-} from "./ReplayCodec.js?v=20261025-ai1";
-import { TrainingContribution, ContributionPanel, supportsContributionActors } from "./TrainingContribution.js?v=20261025-ai1";
-import { localAIPlayer, localMatchActors, localMatchMode, localPlayerProfile, normalizeLocalPlayers, loadLocalMatchPreferences, persistLocalMatchPreferences } from "./LocalAIModes.js?v=20261025-ai1";
-import LocalPlayerSetup from "./LocalPlayerSetup.js?v=20261025-ai1";
-import StartingPointSetup from "./StartingPointSetup.js?v=20261025-ai1";
-import { randomInitialPositions, startingPointSettings } from "./StartingPoints.js?v=20261025-ai1";
-import { resolveInitialPositions, resolveBoardShape } from "./GameEngine.js?v=20261025-ai1";
-import { normalizeUndoUsage, recordUndoAction, createLocalUndoTimeline, planLocalUndo, consumeLocalUndo } from "./LocalUndo.js?v=20261025-ai1";
+} from "./ReplayCodec.js?v=20261025-room1";
+import { TrainingContribution, ContributionPanel, supportsContributionActors } from "./TrainingContribution.js?v=20261025-room1";
+import { localAIPlayer, localMatchActors, localMatchMode, localPlayerProfile, normalizeLocalPlayers, loadLocalMatchPreferences, persistLocalMatchPreferences } from "./LocalAIModes.js?v=20261025-room1";
+import { roomSettingsFromBoard, normalizeRoomPlayerSetup } from "./OnlineRoomSettings.js?v=20261025-room1";
+import LocalPlayerSetup from "./LocalPlayerSetup.js?v=20261025-room1";
+import StartingPointSetup from "./StartingPointSetup.js?v=20261025-room1";
+import { randomInitialPositions, startingPointSettings } from "./StartingPoints.js?v=20261025-room1";
+import { resolveInitialPositions, resolveBoardShape } from "./GameEngine.js?v=20261025-room1";
+import { normalizeUndoUsage, recordUndoAction, createLocalUndoTimeline, planLocalUndo, consumeLocalUndo } from "./LocalUndo.js?v=20261025-room1";
 
 const {
   computed,
@@ -302,6 +303,10 @@ function createEmptyRoomInfo() {
     hostPlayerId: null,
     players: [],
     settings: normalizeAppGameSettings(),
+    pendingSettings: null,
+    matchId: null,
+    turnDeadline: null,
+    lastBotResult: null,
     countdownEndsAt: null,
     matchPhase: "solo",
     undo: { usedCount: 0, pending: false, votes: [], requiredVotes: 0 },
@@ -788,7 +793,7 @@ const SetupPanel = {
                 :class="{ 'is-active': playerCount === count }"
                 role="radio"
                 :aria-checked="playerCount === count"
-                :disabled="busy || settingsLocked || sharedRoom"
+                :disabled="busy || settingsLocked"
                 @click="$emit('update:player-count', count)"
               >
                 {{ count }}
@@ -806,14 +811,15 @@ const SetupPanel = {
             </div>
           </div>
           <p class="help-copy settings-grid-item-wide board-geometry-summary">{{ texts.boardGeometry(playerCount, boardShape) }}</p>
-          <div class="settings-grid-item-wide" v-if="aiAvailable">
-            <LocalPlayerSetup :texts="texts" :players="localPlayers" :player-count="playerCount" :board-shape="boardShape"
+          <div class="settings-grid-item-wide" v-if="aiAvailable || onlineAvailable">
+            <LocalPlayerSetup :texts="texts" :language="language" :players="localPlayers" :player-count="playerCount" :board-shape="boardShape"
+              :online="onlineAvailable"
               :initial-positions="startingPoints.initialPositions"
               :start-player="startPlayer" :pending="localPending" :started="localStarted" :locked="busy || settingsLocked"
               @update-player="$emit('update-local-player', $event)" @update:start-player="$emit('update:start-player', $event)"
               @swap="$emit('swap-local-players')" @start="$emit('start-local-match')">
               <template #contribution>
-                <ContributionPanel v-if="playerCount <= 3 && boardShape === 'triangle' && !startingPoints.initialPositions" :language="language" :state="contributionState" :supported="contributionSupported" @toggle="$emit('toggle-contributions', $event)" @retry="$emit('retry-contributions')" />
+                <ContributionPanel v-if="aiAvailable && !onlineAvailable && playerCount <= 3 && boardShape === 'triangle' && !startingPoints.initialPositions" :language="language" :state="contributionState" :supported="contributionSupported" @toggle="$emit('toggle-contributions', $event)" @retry="$emit('retry-contributions')" />
               </template>
             </LocalPlayerSetup>
           </div>
@@ -855,7 +861,7 @@ const SetupPanel = {
                 id="turn-timer-enabled"
                 type="checkbox"
                 :checked="turnTimerEnabled"
-                :disabled="busy || settingsLocked || sharedRoom"
+                :disabled="busy || settingsLocked"
                 @change="$emit('update:turn-timer-enabled', $event.target.checked)"
               />
               <span>{{ turnTimerEnabled ? texts.toggleOn : texts.toggleOff }}</span>
@@ -870,7 +876,7 @@ const SetupPanel = {
               :min="TURN_TIMER_MIN_SECONDS"
               :max="TURN_TIMER_MAX_SECONDS"
               :value="turnTimeLimitSeconds"
-              :disabled="busy || settingsLocked || sharedRoom || !turnTimerEnabled"
+              :disabled="busy || settingsLocked || !turnTimerEnabled"
               @change="$emit('update:turn-time-limit-seconds', Number($event.target.value))"
             />
           </div>
@@ -1059,20 +1065,18 @@ const RoomPanel = {
   emits: [
     "connect",
     "create-room",
-    "create-shared-room",
+    "edit-room-settings",
     "join-room",
     "leave-room",
     "toggle-ready",
     "update:start-player",
     "close-prompt",
     "update:room-id",
-    "update:bot-count",
     "retry-bots",
   ],
   props: {
     playerCount: { type: Number, default: 2 },
     boardShape: { type: String, default: "triangle" },
-    botCount: { type: Number, default: 0 },
     roomId: {
       type: String,
       required: true,
@@ -1148,7 +1152,8 @@ const RoomPanel = {
     const connectionLabel = computed(() => formatAppConnectionState(props.connectionState, props.language, props.uiStyle));
     const roomStatusLabel = computed(() => formatAppConnectionState(props.roomStatus, props.language, props.uiStyle));
     const roomPlayers = computed(() => Array.isArray(props.roomInfo?.players) ? props.roomInfo.players : []);
-    const roomPlayerName = (player) => resolveOnlinePlayerName(props.roomInfo?.players, player?.color, props.language, props.uiStyle);
+    const roomPlayerName = (player) => player?.empty ? formatAppPlayerName(player.color, props.language, props.uiStyle)
+      : resolveOnlinePlayerName(props.roomInfo?.players, player?.color, props.language, props.uiStyle);
     const roomPlaying = computed(() => props.roomStatus === "inProgress" || props.roomInfo?.matchPhase === "PLAYING");
     const getStarterOptionClass = (option) => ({
       "is-active": option.value === props.startPlayer,
@@ -1165,6 +1170,7 @@ const RoomPanel = {
         : (props.localReady ? texts.value.cancelReadyAction : texts.value.readyAction)
     ));
     const resolvePlayerState = (player) => {
+      if (player?.empty) return { className: "status-pill-warn", label: props.language === "zh" ? "等待好友加入" : "Waiting for a friend" };
       if (!player?.connected) {
         return {
           className: "status-pill-muted",
@@ -1223,21 +1229,14 @@ const RoomPanel = {
       <p v-if="!session.roomId" class="field-note">{{ language === 'zh' ? '微信小游戏的 8 位房间码可直接点“加入房间”，无需先连接服务器。首次加入时请按页面提示验证原网页账号密码。' : 'For an 8-character Mini Game code, select Join Room directly. Verify your existing Web password when prompted.' }}</p>
 
       <div class="actions actions-stack">
-        <div v-if="playerCount >= 2 && !session.roomId">
-          <label class="field-label" for="room-bot-count">{{ texts.roomBotCount }}</label>
-          <select id="room-bot-count" class="input-field" :value="botCount" :disabled="busy" @change="$emit('update:bot-count', Number($event.target.value))">
-            <option v-for="count in playerCount" :key="count - 1" :value="count - 1">{{ texts.roomBotOption(playerCount, count - 1) }}</option>
-          </select>
-          <p class="help-copy">{{ texts.roomBotHint }}</p>
-        </div>
         <button class="action-button action-button-primary" :disabled="busy || !authenticated" @click="$emit('connect')">
           {{ !session.roomId && /^[A-Z2-9]{8}$/i.test(roomId.trim()) ? (language === 'zh' ? '连接并加入互通房间' : 'Connect and join shared room') : texts.connectServer }}
         </button>
-        <button class="action-button action-button-secondary" :disabled="busy || !authenticated" @click="$emit('create-room')">
+        <button v-if="!session.roomId" class="action-button action-button-secondary" :disabled="busy || !authenticated" @click="$emit('create-room')">
           {{ texts.createRoom }}
         </button>
-        <button class="action-button action-button-secondary" :disabled="busy || !authenticated || !!session.roomId" @click="$emit('create-shared-room')">
-          {{ language === 'zh' ? '创建微信 / 网页互通房间' : 'Create Web / WeChat room' }}
+        <button v-if="session.roomId && isHost" class="action-button action-button-secondary" :disabled="busy" @click="$emit('edit-room-settings')">
+          {{ language === 'zh' ? '房间设置' : 'Room settings' }}
         </button>
         <button class="action-button action-button-secondary" :disabled="busy || !authenticated" @click="$emit('join-room')">
           {{ texts.joinRoom }}
@@ -1249,7 +1248,8 @@ const RoomPanel = {
 
       <div class="room-lobby" v-if="session.roomId">
         <button v-if="isHost && roomInfo?.settings?.botCount && roomPlaying" type="button" class="action-button action-button-ghost" :disabled="busy" @click="$emit('retry-bots')">{{ texts.roomRetryBots }}</button>
-        <p v-if="session.shared" class="field-note">{{ language === 'zh' ? '把上方 8 位房间码发给好友，对方可在微信小游戏或网页版加入。互通局采用双人规则，双方准备后开始；结束后可申请再来一局。' : 'Share the 8-character code with a Web or WeChat player. Both players ready up to begin; vote for a rematch after the game.' }}</p>
+        <p v-if="session.shared" class="field-note">{{ language === 'zh' ? '将房间码发给好友，微信和网页都能加入空着的真人席位。AI 占用所配置的席位；真人到齐并准备后开始。房主可随时修改设置，开局后的修改在下一局生效。' : 'Share this code with Web or WeChat friends. Friends fill the human seats and AI fills the configured seats. All humans ready up to start. The host can edit settings at any time; edits during a match apply next game.' }}</p>
+        <p v-if="roomInfo.pendingSettings" class="success-copy" role="status">{{ language === 'zh' ? '已保存下一局设置，当前对局继续。' : 'Next-game settings saved. The current game continues.' }}</p>
         <div class="panel-subhead">
           <h3>{{ texts.roomPlayers }}</h3>
         </div>
@@ -1283,7 +1283,7 @@ const RoomPanel = {
               <strong :class="getPlayerAccentClass(player.color)">{{ roomPlayerName(player) }}</strong>
               <span class="room-player-meta" v-if="player.playerId === session.playerId">{{ texts.roomYou }}</span>
               <span class="room-player-meta" v-if="player.isHost">{{ texts.roomHost }}</span>
-              <span class="room-player-meta" v-if="player.isBot">{{ roomInfo?.settings?.playerCount >= 4 ? texts.localHexAI : texts.localThreeAI }}</span>
+              <span class="room-player-meta" v-if="player.isBot">AI</span>
             </div>
             <span
               class="status-pill"
@@ -3072,7 +3072,7 @@ const App = {
     const selectedTurnTimeLimitSeconds = ref(initialSettings.turnTimeLimitSeconds);
     const selectedLocalPlayers = ref(normalizeLocalPlayers(storedLocalGame?.match?.players ?? storedMatchPreferences?.players, initialSettings.playerCount, initialSettings.boardShape));
     const activeLocalPlayers = ref(normalizeLocalPlayers(storedLocalGame?.match?.players, normalGameSettings.playerCount, normalGameSettings.boardShape));
-    const selectedRoomBotCount = ref(0);
+    const roomSetupOpen = ref(false);
     const activeLocalSettings = ref(normalGameSettings);
     const localMatchStarted = ref(storedLocalGame?.match?.started ?? Boolean(storedLocalGame?.actions.length));
     const localSetupPending = computed(() => !localMatchStarted.value
@@ -3183,6 +3183,7 @@ const App = {
     let localGameNoticeTimeoutId = null;
     let reconnectAttempt = 0;
     let syncingRemoteSettings = false;
+    let remoteSettingsGeneration = 0;
     let roomSnapshotRecoveryFailed = false;
     let guideMarkdownLoadId = 0;
     let aiWorker = null;
@@ -3193,10 +3194,10 @@ const App = {
     let activeAiRequestId = null;
     let activeAiRequest = null;
     const hintWorkerSession = new OneShotHintWorker(
-      () => new Worker(new URL("./AIWorker.js?v=20261025-ai1", import.meta.url), { type: "module" }),
+      () => new Worker(new URL("./AIWorker.js?v=20261025-room1", import.meta.url), { type: "module" }),
     );
     const aiComparisonWorkerSession = new OneShotHintWorker(
-      () => new Worker(new URL("./AIWorker.js?v=20261025-ai1", import.meta.url), { type: "module" }),
+      () => new Worker(new URL("./AIWorker.js?v=20261025-room1", import.meta.url), { type: "module" }),
     );
     const chatEmojiTimeoutIds = new Set();
 
@@ -3482,7 +3483,7 @@ const App = {
           return;
         }
         try {
-          const response = await fetch(`${asset}?v=20261025-unified1`, { cache: "no-cache" });
+          const response = await fetch(`${asset}?v=20261025-room1`, { cache: "no-cache" });
           if (response.ok) {
             nextOverrides[key] = await response.text();
           }
@@ -3564,9 +3565,10 @@ const App = {
       });
       selectedPlayerCount.value = normalized.playerCount;
       selectedBoardShape.value = normalized.boardShape;
-      selectedRoomBotCount.value = normalizeAppGameSettings({ ...normalized, botCount: selectedRoomBotCount.value }).botCount;
-      if ((normalized.playerCount !== previousPlayerCount || normalized.boardShape !== previousBoardShape) && roomStatus.value === "solo") {
-        selectedLocalPlayers.value = normalizeLocalPlayers(selectedLocalPlayers.value, normalized.playerCount, normalized.boardShape);
+      if (normalized.playerCount !== previousPlayerCount || normalized.boardShape !== previousBoardShape) {
+        selectedLocalPlayers.value = session.value.shared || roomSetupOpen.value
+          ? normalizeRoomPlayerSetup(normalized, selectedLocalPlayers.value)
+          : normalizeLocalPlayers(selectedLocalPlayers.value, normalized.playerCount, normalized.boardShape);
       }
       selectedGridSize.value = normalized.gridSize;
       selectedStartPlayer.value = normalized.startPlayer;
@@ -3596,12 +3598,12 @@ const App = {
         if (gameAffectingChanged || hintChanged) {
           cancelHintRequest();
           terminateAiWorker();
-          persistLocalMatchPreferences(selectedLocalPlayers.value, normalized);
+          if (!roomSetupOpen.value) persistLocalMatchPreferences(selectedLocalPlayers.value, normalized);
         }
         return;
       }
 
-      if (isHost.value && roomStatus.value !== "solo" && roomStatus.value !== "inProgress" && roomStatus.value !== "countdown") {
+      if (isHost.value && !session.value.shared && roomStatus.value !== "solo" && roomStatus.value !== "inProgress" && roomStatus.value !== "countdown") {
         const settingsChanged = normalized.playerCount !== previousPlayerCount
           || normalized.boardShape !== previousBoardShape
           || normalized.gridSize !== previousGridSize
@@ -3621,16 +3623,17 @@ const App = {
     });
 
     watch(selectedLocalPlayers, () => {
+      if (syncingRemoteSettings || roomStatus.value !== "solo" || roomSetupOpen.value) return;
       cancelHintRequest();
       terminateAiWorker();
-      persistLocalMatchPreferences(selectedLocalPlayers.value, draftGameSettings());
+      if (roomStatus.value === "solo") persistLocalMatchPreferences(selectedLocalPlayers.value, draftGameSettings());
       if (!localSetupPending.value) scheduleAiMove(gameState.value);
     }, { deep: true });
     watch(selectedStartingPoints, () => {
-      if (syncingRemoteSettings || tutorialActive.value || roomStatus.value !== "solo") return;
+      if (syncingRemoteSettings || tutorialActive.value || roomStatus.value !== "solo" || roomSetupOpen.value) return;
       cancelHintRequest();
       terminateAiWorker();
-      persistLocalMatchPreferences(selectedLocalPlayers.value, draftGameSettings());
+      if (roomStatus.value === "solo") persistLocalMatchPreferences(selectedLocalPlayers.value, draftGameSettings());
       if (!localSetupPending.value) scheduleAiMove(gameState.value);
     }, { deep: true });
     watch(localSetupPending, (pending) => {
@@ -3639,17 +3642,22 @@ const App = {
       if (!pending) scheduleAiMove(gameState.value);
     });
     const updateLocalPlayer = ({ color, patch }) => {
-      if (settingsLocked.value || roomStatus.value !== "solo" || !APP_ALL_PLAYERS.slice(0, selectedPlayerCount.value).includes(color)) return;
+      if (settingsLocked.value || (roomStatus.value !== "solo" && !session.value.shared) || !APP_ALL_PLAYERS.slice(0, selectedPlayerCount.value).includes(color)) return;
       terminateAiWorker();
-      selectedLocalPlayers.value = normalizeLocalPlayers({ ...selectedLocalPlayers.value,
-        [color]: { ...selectedLocalPlayers.value[color], ...patch } }, selectedPlayerCount.value, selectedBoardShape.value);
-      persistLocalMatchPreferences(selectedLocalPlayers.value, draftGameSettings());
+      const players = { ...selectedLocalPlayers.value, [color]: { ...selectedLocalPlayers.value[color], ...patch } };
+      selectedLocalPlayers.value = session.value.shared || roomSetupOpen.value
+        ? normalizeRoomPlayerSetup(draftGameSettings(), players)
+        : normalizeLocalPlayers(players, selectedPlayerCount.value, selectedBoardShape.value);
+      if (roomStatus.value === "solo" && !roomSetupOpen.value) persistLocalMatchPreferences(selectedLocalPlayers.value, draftGameSettings());
     };
     const swapLocalPlayers = () => {
-      if (settingsLocked.value || roomStatus.value !== "solo") return;
+      if (settingsLocked.value || (roomStatus.value !== "solo" && !session.value.shared)) return;
       terminateAiWorker();
-      selectedLocalPlayers.value = normalizeLocalPlayers({ ...selectedLocalPlayers.value, BLACK: selectedLocalPlayers.value.WHITE, WHITE: selectedLocalPlayers.value.BLACK }, selectedPlayerCount.value, selectedBoardShape.value);
-      persistLocalMatchPreferences(selectedLocalPlayers.value, draftGameSettings());
+      const players = { ...selectedLocalPlayers.value, BLACK: selectedLocalPlayers.value.WHITE, WHITE: selectedLocalPlayers.value.BLACK };
+      selectedLocalPlayers.value = session.value.shared || roomSetupOpen.value
+        ? normalizeRoomPlayerSetup(draftGameSettings(), players)
+        : normalizeLocalPlayers(players, selectedPlayerCount.value, selectedBoardShape.value);
+      if (roomStatus.value === "solo" && !roomSetupOpen.value) persistLocalMatchPreferences(selectedLocalPlayers.value, draftGameSettings());
     };
     const updateStartingPoints = (selection) => {
       if (settingsLocked.value || tutorialActive.value || replayMode.value) return;
@@ -3657,8 +3665,9 @@ const App = {
       startingPointPreviewFresh = true;
       cancelHintRequest();
       terminateAiWorker();
-      if (roomStatus.value === "solo") persistLocalMatchPreferences(selectedLocalPlayers.value, draftGameSettings());
-      else void networkManager.updateRoomSettings(normalizeAppGameSettings({ ...draftGameSettings(), botCount: roomInfo.value.settings?.botCount ?? 0 })).catch(handleNetworkError);
+      if (roomStatus.value === "solo") {
+        if (!roomSetupOpen.value) persistLocalMatchPreferences(selectedLocalPlayers.value, draftGameSettings());
+      } else if (!session.value.shared) void networkManager.updateRoomSettings(normalizeAppGameSettings({ ...draftGameSettings(), botCount: roomInfo.value.settings?.botCount ?? 0 })).catch(handleNetworkError);
     };
     const toggleAiDuel = () => {
       if (selectedAiMode.value === "none" || localSetupPending.value || roomStatus.value !== "solo" || tutorialActive.value || replayMode.value || gameState.value.gameOver) return;
@@ -3701,19 +3710,7 @@ const App = {
       session.value = {
         ...createAppEmptySession(),
         ...networkManager.getSession(),
-        settings: {
-          playerCount: selectedPlayerCount.value,
-          boardShape: selectedBoardShape.value,
-          gridSize: selectedGridSize.value,
-          startPlayer: selectedStartPlayer.value,
-          rulesVersion: selectedRulesVersion.value,
-          turnTimerEnabled: selectedTurnTimerEnabled.value,
-          turnTimeLimitSeconds: selectedTurnTimeLimitSeconds.value,
-          hintEnabled: selectedHintEnabled.value,
-          hintMaxCount: selectedHintMaxCount.value,
-          undoEnabled: selectedUndoEnabled.value,
-          undoMaxCount: selectedUndoMaxCount.value,
-        },
+        settings: normalizeAppGameSettings(roomStatus.value === "solo" ? draftGameSettings() : roomInfo.value.settings),
       };
       if (!standaloneTutorial) persistAppSession(session.value);
     };
@@ -3801,7 +3798,7 @@ const App = {
       };
     }
     const currentGameSettings = () => roomStatus.value === "solo" && !tutorialActive.value
-      ? { ...activeLocalSettings.value } : draftGameSettings();
+      ? { ...activeLocalSettings.value } : roomStatus.value !== "solo" ? roomInfo.value.settings : draftGameSettings();
     const currentLocalMatch = () => ({ players: activeLocalPlayers.value, started: localMatchStarted.value, paused: aiDuelPaused.value, undo: undoUsage.value });
     const saveLocalMatch = () => {
       if (roomStatus.value !== "solo" || tutorialActive.value || localGameRestoring.value || replayMode.value) return;
@@ -4447,11 +4444,12 @@ const App = {
       players: activeLocalPlayers.value, currentPlayer: gameState.value.currentPlayer, usage: undoUsage.value,
       timeline: undoTimeline.value,
     }));
+    const onlineHumanPlayers = computed(() => (roomInfo.value.players ?? []).filter(player => !player.isBot && !player.empty));
     const undoDisabled = computed(() => roomStatus.value !== "solo"
       ? !undoEnabled.value || undoRemainingCount.value <= 0 || !session.value.roomId || !networkManager.isConnected()
         || roomStatus.value !== "inProgress" || roomSnapshotRecoveryFailed || networkBusy.value
-        || (session.value.shared && roomInfo.value.settings?.botCount === 1
-          && !(roomInfo.value.matchState?.actions ?? []).some(action => action.color === "BLACK"))
+        || (session.value.shared && onlineHumanPlayers.value.length === 1
+          && !(roomInfo.value.matchState?.actions ?? []).some(action => action.color === onlineHumanPlayers.value[0].color))
         || onlineUndoVoted.value || (!onlineUndoPending.value && gameState.value.positionRevision <= 0)
       : !controller.value || !undoEnabled.value || undoRemainingCount.value <= 0
         || !undoPlan.value || gameState.value.gameOver || networkBusy.value
@@ -4502,11 +4500,13 @@ const App = {
       catch (error) { handleNetworkError(error); }
     };
 
-    const applySettingsToController = (settings, reset = true, commitToController = true) => {
+    const applySettingsToController = (settings, reset = true, commitToController = true, updateSession = true) => {
       cancelHintRequest();
       const normalized = normalizeAppGameSettings(settings);
+      const syncGeneration = ++remoteSettingsGeneration;
       syncingRemoteSettings = true;
       try {
+        if (!roomSetupOpen.value) {
         selectedPlayerCount.value = normalized.playerCount;
         selectedBoardShape.value = normalized.boardShape;
         selectedGridSize.value = normalized.gridSize;
@@ -4524,7 +4524,9 @@ const App = {
         if (settings && Object.prototype.hasOwnProperty.call(settings, "hintMaxCount")) {
           selectedHintMaxCount.value = normalized.hintMaxCount;
         }
-        syncSession();
+        if (normalized.playerSetup) selectedLocalPlayers.value = normalizeRoomPlayerSetup(normalized);
+        }
+        if (updateSession) syncSession();
 
         if (!controller.value || !commitToController) {
           return normalized;
@@ -4533,7 +4535,9 @@ const App = {
         controller.value.setGameConfig(normalized, reset);
         return normalized;
       } finally {
-        syncingRemoteSettings = false;
+        void nextTick().then(() => {
+          if (syncGeneration === remoteSettingsGeneration) syncingRemoteSettings = false;
+        });
       }
     };
 
@@ -4750,7 +4754,7 @@ const App = {
         return true;
       }
 
-      return gameState.value.isLocalTurn;
+      return !session.value.shared && gameState.value.isLocalTurn;
     };
 
     const updateTurnTimerRemaining = () => {
@@ -4784,7 +4788,8 @@ const App = {
         return;
       }
 
-      turnTimerDeadline = Date.now() + turnTimeLimitSeconds.value * 1000;
+      turnTimerDeadline = session.value.shared
+        ? (roomInfo.value.turnDeadline ?? 0) * 1000 : Date.now() + turnTimeLimitSeconds.value * 1000;
       turnTimerPhase.value = "running";
       updateTurnTimerRemaining();
       turnTimerId = globalThis.setInterval(() => {
@@ -4807,6 +4812,7 @@ const App = {
         Boolean(overlayResult.value),
         roomStatus.value,
         roomInfo.value.countdownEndsAt,
+        roomInfo.value.turnDeadline,
       ],
       () => {
         restartTurnCountdown();
@@ -4824,6 +4830,8 @@ const App = {
         roomStatus.value,
         turnTimerEnabled.value,
         turnTimeLimitSeconds.value,
+        roomInfo.value.turnDeadline,
+        onlineUndoPending.value,
         aiThinking.value,
         tutorialActive.value,
         replayMode.value,
@@ -4854,6 +4862,10 @@ const App = {
           hostPlayerId: payload?.hostPlayerId ?? roomInfo.value.hostPlayerId,
           players: Array.isArray(payload?.players) ? payload.players : roomInfo.value.players,
           settings: normalizeAppGameSettings(payload?.settings ?? roomInfo.value.settings),
+          pendingSettings: payload?.pendingSettings ?? null,
+          lastBotResult: payload?.lastBotResult ?? null,
+          matchId: payload?.matchId ?? roomInfo.value.matchId,
+          turnDeadline: payload?.turnDeadline ?? null,
           countdownEndsAt: payload?.countdownEndsAt ?? null,
           matchPhase: normalizeMatchPhase(
             readPayloadMatchPhase(payload, roomInfo.value.matchPhase),
@@ -4892,6 +4904,10 @@ const App = {
         hostPlayerId: payload?.hostPlayerId ?? roomInfo.value.hostPlayerId,
         players: Array.isArray(payload?.players) ? payload.players : roomInfo.value.players,
         settings: normalizeAppGameSettings(payload?.settings ?? roomInfo.value.settings),
+        pendingSettings: payload?.pendingSettings ?? null,
+        lastBotResult: payload?.lastBotResult ?? null,
+        matchId: payload?.matchId ?? roomInfo.value.matchId,
+        turnDeadline: payload?.turnDeadline ?? null,
         countdownEndsAt: payload?.countdownEndsAt ?? null,
         matchPhase: nextPhase,
         undo: payload?.undo ?? roomInfo.value.undo,
@@ -4931,9 +4947,9 @@ const App = {
       const players = Array.isArray(payload?.players) ? payload.players : roomInfo.value.players;
       const normalizedStatus = normalizeRoomStatus(payload?.status ?? roomStatus.value);
       const normalizedPhase = normalizeMatchPhase(readPayloadMatchPhase(payload, roomInfo.value.matchPhase), normalizedStatus);
-      const everyoneConnected = Array.isArray(players)
-        && players.length >= normalizedSettings.playerCount
-        && players.every((player) => player.connected);
+      const everyoneConnected = (payload?.shared || session.value.shared) && normalizedPhase === "PLAYING"
+        ? true : Array.isArray(players) && players.length >= normalizedSettings.playerCount
+          && players.every((player) => player.connected);
 
       const nextState = controller.value.enableMultiplayer({
         networkManager,
@@ -4947,6 +4963,7 @@ const App = {
     };
 
     const applyRoomSnapshot = (payload, resetController = true) => {
+      const previousMatchId = roomInfo.value.matchId;
       if (!applyRoomPayload(payload)) {
         return false;
       }
@@ -4966,6 +4983,12 @@ const App = {
       });
       if (controllerResult.state) {
         gameState.value = controllerResult.state;
+      }
+      if (payload?.matchId && payload.matchId !== previousMatchId) resetHintUsage();
+      if (payload?.lastBotResult?.fallback || payload?.lastBotResult?.success === false) {
+        setActionFeedback(language.value === "zh"
+          ? (payload.lastBotResult.success === false ? "AI 暂时无法行动，可在房间中点“重试 AI”。" : "所选 AI 模型暂时不可用，本回合已使用备用策略。")
+          : (payload.lastBotResult.success === false ? "AI could not move. Select Retry AI in the room." : "The selected AI model was unavailable; this turn used the fallback policy."), "neutral");
       }
       if (!controllerResult.success) {
         roomSnapshotRecoveryFailed = true;
@@ -5152,7 +5175,8 @@ const App = {
       cancelHintRequest();
       clearActiveHint();
       clearHintFeedback();
-      hintRemainingCount.value = selectedHintEnabled.value ? selectedHintMaxCount.value : 0;
+      const settings = effectiveGameSettings.value;
+      hintRemainingCount.value = settings.hintEnabled ? settings.hintMaxCount : 0;
       hintThinking.value = false;
     };
 
@@ -5186,14 +5210,14 @@ const App = {
       if (
         !currentEngine
         || replayMode.value
-        || roomStatus.value !== "solo"
+        || (roomStatus.value !== "solo" && !(session.value.shared && networkManager.canAct()))
         || !hintEnabled.value
         || hintRemainingCount.value <= 0
         || gameState.value.gameOver
-        || gameState.value.multiplayerEnabled
-        || controller.value?.multiplayerEnabled
+        || (gameState.value.multiplayerEnabled && !session.value.shared)
+        || (controller.value?.multiplayerEnabled && !session.value.shared)
         || localSetupPending.value
-        || currentIsAiTurn
+        || (roomStatus.value === "solo" && currentIsAiTurn)
       ) {
         return null;
       }
@@ -5348,10 +5372,12 @@ const App = {
       clearReconnectTimer();
 
       try {
-        networkManager.selectLegacy();
-        await ensureConnected();
-        await networkManager.createRoom(normalizeAppGameSettings({ ...draftGameSettings(),
-          rulesVersion: APP_DEFAULT_RULES_VERSION, botCount: selectedRoomBotCount.value }));
+        networkManager.url = serverUrl.value.trim();
+        networkManager.setAuthToken(auth.value.token);
+        await networkManager.createRoom(roomSettingsFromBoard({ ...draftGameSettings(),
+          rulesVersion: APP_DEFAULT_RULES_VERSION }, selectedLocalPlayers.value));
+        roomSetupOpen.value = false;
+        activeUtilityDeck.value = "network";
       } catch (error) {
         handleNetworkError(error);
       } finally {
@@ -5359,22 +5385,29 @@ const App = {
       }
     };
 
-    const handleCreateSharedRoom = async () => {
-      networkBusy.value = true; networkError.value = ""; overlayResult.value = null;
-      clearReconnectTimer();
+    const handleCreateSharedRoom = handleCreateRoom;
+    const openRoomSetup = () => {
+      if (networkBusy.value || (session.value.roomId && !isHost.value)) return;
+      roomSetupOpen.value = false;
+      const source = session.value.roomId
+        ? roomInfo.value.pendingSettings ?? roomInfo.value.settings : draftGameSettings();
+      const draft = roomSettingsFromBoard(source, session.value.roomId ? source.playerSetup : selectedLocalPlayers.value);
+      applySettingsToController(draft, false, false, false);
+      selectedLocalPlayers.value = normalizeRoomPlayerSetup(draft);
+      roomSetupOpen.value = true;
+      activeUtilityDeck.value = "board";
+    };
+    const saveRoomSettings = async () => {
+      if (!session.value.roomId) return handleCreateRoom();
+      if (!isHost.value || !session.value.shared || networkBusy.value) return;
+      networkBusy.value = true;
+      networkError.value = "";
       try {
-        networkManager.url = serverUrl.value.trim();
-        networkManager.setAuthToken(auth.value.token);
-        const rawDraft = draftGameSettings();
-        const draft = normalizeAppGameSettings({ ...rawDraft, playerCount: 2,
-          botCount: Math.min(1, selectedRoomBotCount.value),
-          rulesVersion: "territory-v3", turnTimerEnabled: false,
-          ...(rawDraft.initialPositions ? { initialPositions: {
-            BLACK: rawDraft.initialPositions.BLACK, WHITE: rawDraft.initialPositions.WHITE,
-          } } : {}) });
-        await networkManager.createSharedRoom(draft);
+        await networkManager.updateRoomSettings(roomSettingsFromBoard(draftGameSettings(), selectedLocalPlayers.value));
+        roomSetupOpen.value = false;
+        activeUtilityDeck.value = "network";
       } catch (error) { handleNetworkError(error); }
-      finally { networkBusy.value = false; syncSession(); }
+      finally { networkBusy.value = false; }
     };
     const handleLinkWechat = async () => {
       accountLinkBusy.value = true; accountLinkError.value = ""; accountLinkCode.value = "";
@@ -5403,6 +5436,10 @@ const App = {
         WEB_PASSWORD_REQUIRED: ["请在对战舱重新验证网页账号密码。", "Verify your Web account password in the match cabin."],
         UNAUTHORIZED: ["账号或密码不正确，请重新输入。", "Incorrect account or password. Please try again."],
         INVALID_REQUEST: ["请检查账号和密码后重试。", "Check the account and password, then try again."],
+        INVALID_SETTINGS: ["请检查房间的棋盘与真人／AI 席位设置。", "Check the board and human/AI seat settings."],
+        ROOM_FULL: ["没有可用的真人席位；已加入的真人席位不能移除或改成 AI。", "No human seat is available. An occupied human seat cannot be removed or changed to AI."],
+        SETTINGS_LOCKED: ["只有房主可以修改房间设置。", "Only the host can change room settings."],
+        TURN_EXPIRED: ["本回合已超时，正在同步新回合。", "The turn expired. Syncing the next turn."],
         TOO_MANY_REQUESTS: ["尝试次数较多，请稍后再试。", "Too many attempts. Please try again later."],
         WEB_ACCOUNT_STORE_UNAVAILABLE: ["账号验证服务暂时不可用，请稍后再试。", "Account verification is temporarily unavailable."],
         CANCELLED: ["已取消密码验证，原网页账号仍保持登录。", "Password verification cancelled. Your Web account remains signed in."],
@@ -5728,6 +5765,10 @@ const App = {
 
     const handleStartPlayerChange = (value) => {
       selectedStartPlayer.value = value;
+      if (session.value.shared && isHost.value) {
+        const settings = roomInfo.value.pendingSettings ?? roomInfo.value.settings;
+        void networkManager.updateRoomSettings({ ...settings, startPlayer: value }).catch(handleNetworkError);
+      }
     };
 
     const handleClosePrompt = () => {
@@ -5882,12 +5923,12 @@ const App = {
         || tutorialActive.value
         || !hintEnabled.value
         || gameState.value.gameOver
-        || gameState.value.multiplayerEnabled
-        || roomStatus.value !== "solo"
+        || (gameState.value.multiplayerEnabled && !session.value.shared)
+        || (roomStatus.value !== "solo" && !(session.value.shared && networkManager.canAct()))
         || hintRemainingCount.value <= 0
         || hintThinking.value
         || localSetupPending.value
-        || currentIsAiTurn;
+        || (roomStatus.value === "solo" && currentIsAiTurn);
     });
 
     const resetDisabled = computed(() => {
@@ -5929,7 +5970,7 @@ const App = {
         || roomStatus.value === "inProgress"
         || roomStatus.value === "countdown";
     });
-    const starterLocked = computed(() => !isHost.value || networkBusy.value || (session.value.shared && Object.values(roomInfo.value.players ?? []).some(player => player.ready && !player.isBot)) || roomInfo.value.matchPhase === "PLAYING" || roomStatus.value === "inProgress" || roomStatus.value === "countdown");
+    const starterLocked = computed(() => !isHost.value || networkBusy.value || (session.value.shared ? false : roomInfo.value.matchPhase === "PLAYING" || roomStatus.value === "inProgress" || roomStatus.value === "countdown"));
     const showClosePrompt = computed(() => Boolean(
       !tutorialActive.value
       && !replayMode.value
@@ -5946,13 +5987,13 @@ const App = {
     });
 
     const settingsLocked = computed(() => {
-      if (session.value.shared && roomInfo.value.players?.some(player => player.ready)) return true;
       if (networkBusy.value || tutorialActive.value || replayMode.value) {
         return true;
       }
       if (roomStatus.value === "solo") {
         return false;
       }
+      if (session.value.shared) return !isHost.value;
       return !isHost.value || roomInfo.value.matchPhase === "PLAYING" || roomStatus.value === "inProgress" || roomStatus.value === "countdown";
     });
 
@@ -5991,7 +6032,9 @@ const App = {
 
     const handleOpenUtilityDeck = async (deckKey) => {
       if (deckKey === "network" && tutorialActive.value && !await skipTutorial()) return;
+      if (deckKey === "board" && session.value.shared && session.value.roomId && isHost.value) return openRoomSetup();
       if (deckKey !== "network") cancelSharedPassword();
+      roomSetupOpen.value = false;
       activeUtilityDeck.value = deckKey;
     };
 
@@ -6001,6 +6044,7 @@ const App = {
 
     const handleCloseUtilityDeck = () => {
       cancelSharedPassword();
+      roomSetupOpen.value = false;
       activeUtilityDeck.value = "";
       activeGuideKey.value = "";
     };
@@ -6338,7 +6382,7 @@ const App = {
       selectedPlayerCount,
       selectedBoardShape,
       selectedRulesVersion,
-      selectedRoomBotCount,
+      roomSetupOpen, openRoomSetup, saveRoomSettings,
       retryRoomBots: () => networkManager.retryBots().catch(handleNetworkError),
       selectedGridSize,
       selectedStartPlayer,
@@ -6614,8 +6658,8 @@ const App = {
             :local-started="localMatchStarted"
             :starting-points="selectedStartingPoints"
             :contribution-state="contributionState"
-            :ai-available="roomStatus === 'solo' && !tutorialActive"
-            :online-available="roomStatus !== 'solo' && !tutorialActive"
+            :ai-available="roomStatus === 'solo' && !roomSetupOpen && !tutorialActive"
+            :online-available="(roomSetupOpen || roomStatus !== 'solo') && !tutorialActive"
             :settings-locked="settingsLocked"
             :busy="networkBusy"
             @update:language="language = $event"
@@ -6638,7 +6682,15 @@ const App = {
             @retry-contributions="retryContributions"
           />
 
-          <div class="board-status-stack">
+          <section v-if="roomSetupOpen" class="panel modal-panel room-settings-submit">
+            <h3>{{ language === 'zh' ? (session.roomId ? '保存房间设置' : '创建房间') : (session.roomId ? 'Save room settings' : 'Create room') }}</h3>
+            <p class="help-copy">{{ language === 'zh' ? '房间直接使用上方棋盘舱的全部设置。创建人占用第一个真人席位，其他真人席位留给好友，AI 席位按所选配置自动补位。' : 'The room uses all board-cabin settings above. The creator takes the first human seat, friends join the remaining human seats, and AI fills the configured AI seats.' }}</p>
+            <p v-if="session.roomId" class="field-note">{{ language === 'zh' ? '开局前保存会清除准备状态；开局后保存会在下一局生效，当前棋局继续。' : 'Saving before play resets readiness. Saving during play applies next game while the current game continues.' }}</p>
+            <button class="action-button action-button-primary" :disabled="networkBusy || !isAuthenticated" @click="saveRoomSettings">{{ language === 'zh' ? (session.roomId ? '保存设置' : '确认创建房间') : (session.roomId ? 'Save settings' : 'Create this room') }}</button>
+            <p v-if="networkError" class="error-copy" role="alert">{{ networkError }}</p>
+          </section>
+
+          <div v-if="!roomSetupOpen" class="board-status-stack">
           <ScorePanel
             :game-state="gameState"
             :local-pending="roomStatus === 'solo' && !tutorialActive && localSetupPending"
@@ -6713,7 +6765,6 @@ const App = {
           <RoomPanel
             :player-count="selectedPlayerCount"
             :board-shape="selectedBoardShape"
-            :bot-count="selectedRoomBotCount"
             :language="language"
             :ui-style="uiStyle"
             :room-id="roomIdInput"
@@ -6732,11 +6783,10 @@ const App = {
             :starter-options="starterOptions"
             :show-close-prompt="showClosePrompt"
             @update:room-id="roomIdInput = $event"
-            @update:bot-count="selectedRoomBotCount = $event"
             @retry-bots="retryRoomBots"
             @connect="handleConnect"
-            @create-room="handleCreateRoom"
-            @create-shared-room="handleCreateSharedRoom"
+            @create-room="openRoomSetup"
+            @edit-room-settings="openRoomSetup"
             @join-room="handleJoinRoom"
             @leave-room="handleLeaveRoom"
             @toggle-ready="handleToggleReady"

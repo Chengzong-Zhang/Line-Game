@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { GameEngine } from "../GameEngine.js?v=20261025-unified1";
-import { saveState } from "../AIEngine.js?v=20261025-unified1";
-import { isolatedSearchEngine } from "../MultiplayerSearch.js?v=20261025-unified1";
+import { GameEngine } from "../GameEngine.js?v=20261025-room1";
+import { saveState } from "../AIEngine.js?v=20261025-room1";
+import { isolatedSearchEngine } from "../MultiplayerSearch.js?v=20261025-room1";
 
 const originalFetch = globalThis.fetch;
 globalThis.fetch = async input => new Response(await readFile(fileURLToPath(input instanceof URL ? input : new URL(input))));
-const { loadMultiplayerRuntime } = await import("../MultiplayerRuntime.js?v=20261025-unified1");
+const { loadMultiplayerRuntime } = await import("../MultiplayerRuntime.js?v=20261025-room1");
 
 function nativeAreas(engine) {
   GameEngine.prototype._updateTerritories.call(engine);

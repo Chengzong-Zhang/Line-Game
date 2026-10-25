@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { GameEngine } from "../GameEngine.js?v=20261025-unified1";
-import { saveState } from "../AIEngine.js?v=20261025-unified1";
-import { serializeEngineState } from "../AIStateProtocol.js?v=20261025-unified1";
-import { probeMultiplayerReplyResilience } from "../MultiplayerSearch.js?v=20261025-unified1";
+import { GameEngine } from "../GameEngine.js?v=20261025-room1";
+import { saveState } from "../AIEngine.js?v=20261025-room1";
+import { serializeEngineState } from "../AIStateProtocol.js?v=20261025-room1";
+import { probeMultiplayerReplyResilience } from "../MultiplayerSearch.js?v=20261025-room1";
 import { applyStandardDefenseGate, STANDARD_DEFENSE_GATE,
-  strictlyImprovesStandardDefense } from "../MultiplayerStandardDefense.js?v=20261025-unified1";
+  strictlyImprovesStandardDefense } from "../MultiplayerStandardDefense.js?v=20261025-room1";
 
 const originalFetch = globalThis.fetch;
 globalThis.fetch = async input => new Response(await readFile(fileURLToPath(input instanceof URL ? input : new URL(input))));
@@ -297,7 +297,7 @@ function measureCompleteWindow(runtimeModule, easySpec, count) {
 
 try {
   pureGateChecks();
-  const runtimeModule = await import("../MultiplayerRuntime.js?v=20261025-unified1");
+  const runtimeModule = await import("../MultiplayerRuntime.js?v=20261025-room1");
   const manifest = JSON.parse(await readFile(new URL("../assets/research-ai/multiplayer-v1/manifest.json", import.meta.url), "utf8"));
   const easySpec = manifest.models.find(model => model.id === "multiplayer-easy-v1");
   const rows = await realFixtureChecks(runtimeModule, easySpec);

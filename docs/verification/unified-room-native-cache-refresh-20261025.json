@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "reviewedOn": "2026-10-25",
+  "status": "PASS_LOCAL_BUILD_TARGETED_AND_CROSS_CLIENT_FIXTURES",
+  "miniGameVersion": "0.12.11",
+  "browserSourceVersion": "20261025-room1",
+  "cacheCompatibilityRefresh": {
+    "priorBrowserSourceVersion": "20261025-ai1",
+    "comparedBaseCommit": "953a687691c7eecb55fd1b9de4b40d993adc1628",
+    "canonicalPinsRefreshed": 24,
+    "overrideFilesChecked": 27,
+    "nativeOverrideBytesChanged": false,
+    "verification": "All previous canonical pins matched the compared Git commit. Current canonical input differences disappear after normalizing cache query tokens. Every native adapter still matches its existing pinned SHA256; strict nativeWebCompatibility remains enabled."
+  },
+  "checks": [
+    {
+      "kind": "MiniGameBuild",
+      "command": "npm run build",
+      "workingDirectory": "wechat/minigame",
+      "exitCode": 0,
+      "status": "BUILT_NOT_WECHAT_VERIFIED"
+    },
+    {
+      "kind": "MiniGameTargetedTests",
+      "command": "node --test --test-timeout=180000 tests/unified-room-settings.test.mjs tests/shared-web-ui.test.mjs tests/online-navigation.test.mjs tests/feature-parity.test.mjs tests/web-compat.test.mjs tests/release-0127-compat.test.mjs",
+      "workingDirectory": "wechat/minigame",
+      "passed": 48,
+      "failed": 0,
+      "skipped": 0,
+      "exitCode": 0,
+      "includesFinalZeroHintBudgetRoomDraftFix": true
+    },
+    {
+      "kind": "DurableSharedRoomCrossClientFixtures",
+      "command": "python -m unittest web.tests.test_shared_room_seats web.tests.test_shared_online_ai_random",
+      "pythonEnvironment": "Existing local Anaconda environment with PyJWT",
+      "passed": 14,
+      "failed": 0,
+      "exitCode": 0,
+      "runtimeSeconds": 33.474,
+      "scope": "Temporary SQLite, actual Node rules/AI bridge, real Web and bundled Mini client snapshot reconstruction. Run before the final zero-hint-budget UI-only adjustment; targeted Mini tests were repeated after that adjustment."
+    },
+    {
+      "kind": "OnlineCandidate",
+      "command": "node tools/prepare-candidate.mjs --online --api-base https://lifelinegame.cn",
+      "exitCode": 0,
+      "status": "PREPARED_LOCAL_NOT_UPLOADED"
+    },
+    {
+      "kind": "OnlineCandidateInventory",
+      "command": "node tools/prepare-candidate.mjs --verify local_artifacts/wechat-candidates/0.12.11-94d209574766-RQM8cw",
+      "exitCode": 0,
+      "status": "PASS_CANDIDATE_FILES"
+    }
+  ],
+  "candidate": {
+    "id": "0.12.11-94d209574766-RQM8cw",
+    "profile": "online",
+    "config": {
+      "apiBase": "https://lifelinegame.cn",
+      "onlineEnabled": true,
+      "workerTimeoutMs": 15000
+    },
+    "packageBytes": 19881586,
+    "mainPackageBytes": 1727770,
+    "files": 35,
+    "receiptSha256": "17cd92f823b3c9c49c89ac7ccf3eab0f963550769823d4c7de9f15dc69e8f15b",
+    "runtimeFiles": [
+      {
+        "path": "dist/game.js",
+        "bytes": 549224,
+        "sha256": "848597ce8336e33392508f5056c340d70bd979e53d944a20ea4cc860248a0f5e"
+      },
+      {
+        "path": "dist/workers/index.js",
+        "bytes": 281145,
+        "sha256": "4608d14e6b0ddc87e7f7d43fe981ea7477e928a0f6fe130b95fce777282dfc09"
+      }
+    ]
+  },
+  "sourceHashes": {
+    "wechat/minigame/src/app.js": "1a3e823333bf090c2cf0258af00f5953e58d8b6b827a47221e0447a395a8690e",
+    "wechat/minigame/src/online.js": "1e776bdcacbe03a2d2972ed977119e326bb5fa395b776d78599aa0e93d486003",
+    "wechat/minigame/src/cabins-ui.js": "48b7c2094ee672686941855450657bb5c5014b28b366ea79aec7543bcbb20bce",
+    "wechat/minigame/compat/web/manifest.json": "770f20d6a71aeabbd1f9dd844844caa09237d3ca99f1871d6279781616c7794b",
+    "wechat/minigame/tools/prepare-candidate.mjs": "ca9adcc2558c5f215109b79d69dfd42bde8f6faf2f39619d87cbbc2b63671cf0",
+    "wechat/minigame/package.json": "4d88fd9aead08f1dec814cf1fa3562ab3e48a642700a82ebacabde3bbb6e37f7",
+    "web/web前端/OnlineRoomSettings.js": "7cfc6b255d3638d949c6e3cda004a5dfe9ba3cf549e3b69800abd26df8e5b386",
+    "web/web后端/wechat_online.py": "d8655c90b28b168565e19dae7e3ff23859a25d41d76c79eb82ac5887a5e92f1e",
+    "web/tests/test_shared_room_seats.py": "0091f794400ae295c3092d25dfb20f7d7cd4cd383cb8193f39cca376f7f032a4",
+    "web/tests/test_shared_online_ai_random.py": "f67469b7e4bab2eaffe0f02c40e096e7c33abceff59510b4cb42613939c01760",
+    "wechat/minigame/tests/unified-room-settings.test.mjs": "cb46c85328f7abb2e2b271633611eb79dd8b59f4927f5c1da1353f50f94c855a"
+  },
+  "acceptance": {
+    "physicalDevice": "NOT_RUN",
+    "actualWechatLogin": "NOT_RUN",
+    "crossPlatformDeviceMatch": "NOT_RUN",
+    "officialUpload": "NOT_RUN",
+    "publication": "NOT_RUN"
+  }
+}

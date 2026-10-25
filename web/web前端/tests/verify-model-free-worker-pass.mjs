@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { GameEngine } from "../GameEngine.js?v=20261025-unified1";
-import { serializeEngineState } from "../AIStateProtocol.js?v=20261025-unified1";
+import { GameEngine } from "../GameEngine.js?v=20261025-room1";
+import { serializeEngineState } from "../AIStateProtocol.js?v=20261025-room1";
 
-const workerSource = await readFile(new URL("../AIWorker.js?v=20261025-unified1", import.meta.url), "utf8");
-assert.match(workerSource, /import\("\.\/ModelFreeAI\.js\?v=20261025-unified1"\)/);
+const workerSource = await readFile(new URL("../AIWorker.js?v=20261025-room1", import.meta.url), "utf8");
+assert.match(workerSource, /import\("\.\/ModelFreeAI\.js\?v=20261025-room1"\)/);
 assert.doesNotMatch(workerSource, /ModelFreeAI\.js\?v=20261020-three1/);
 
 const tensors = [
