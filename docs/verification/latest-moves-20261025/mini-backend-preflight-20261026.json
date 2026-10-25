@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "recordedDate": "2026-10-26",
+  "timezone": "Asia/Shanghai",
+  "status": "BACKEND_PREFLIGHT_CONFIRMED_CI_UPLOAD_FAILED_USER_KEY_REFRESH_REQUESTED",
+  "account": {
+    "displayName": "生命补给线策略棋",
+    "appid": "wxf986ac5d7e8bb8a0",
+    "officialConsoleAuthenticated": true,
+    "candidateAppidMatches": true
+  },
+  "officialVersionManagement": {
+    "developmentVersion": "0.12.12",
+    "developmentMarkedAsExperienceVersion": true,
+    "reviewVersion": "0.12.11",
+    "reviewStatus": "IN_REVIEW",
+    "reviewTimestampAsDisplayed": "2026-10-25 15:25:18",
+    "onlineVersionPresent": false,
+    "newSuccessfulUploadObserved": false
+  },
+  "developerSettings": {
+    "codeUploadKeyPresent": true,
+    "availableKeyActionObserved": "RESET_ONLY",
+    "keyValidity": "NOT_ESTABLISHED_BY_PRESENCE_OR_RESET_CONTROL",
+    "uploadIpAllowlistEnabled": true,
+    "uploadIpAllowlistEntryCount": 5,
+    "actualDirectUploadEgressMatchesExistingAllowlist": true,
+    "requestDomain": "https://lifelinegame.cn",
+    "socketDomain": "wss://lifelinegame.cn",
+    "requiredDomainsMatch": true
+  },
+  "postLoginOfficialCiAttempt": {
+    "action": "upload",
+    "version": "0.12.13",
+    "candidateId": "0.12.13-97815db19370-8sbNcd",
+    "sdkVersion": "2.1.31",
+    "robot": 2,
+    "status": "TRANSFER_FAILED_OR_REMOTE_OUTCOME_UNCONFIRMED",
+    "errorCode": 20003,
+    "safelyClassifiedRemoteErrorCodes": [-1, 41001],
+    "finishedAtUtc": "2026-10-25T18:00:54.160Z",
+    "receipt": "local_artifacts/wechat-transfers/upload-0.12.13-csouXp/receipt.json",
+    "successfulUploadConfirmed": false
+  },
+  "nextAction": {
+    "status": "USER_REQUESTED_TO_RESET_AND_DOWNLOAD_CODE_UPLOAD_KEY",
+    "agentResetCodeUploadKey": false,
+    "agentChangedAppSecret": false,
+    "agentChangedNetworkSecuritySettings": false
+  },
+  "evidenceScope": [
+    "Read-only observations from the authenticated official WeChat console in this task.",
+    "Post-login upload receipt fields were read locally; nested error codes come from the task's safe diagnostic classification.",
+    "An existing code-upload-key control does not establish whether the local key is current or valid.",
+    "No browser session tokens, query strings, concrete IP addresses, private key material or other credentials are recorded."
+  ]
+}
