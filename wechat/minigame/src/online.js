@@ -349,7 +349,8 @@ export class OnlineClient {
   }
   canEditSettings() {
     return this.active && this.room?.player === 'BLACK' && this.room.status === 'waiting' && this.room.seq === 0
-      && !Object.values(this.room.ready).some(Boolean) && !this.sending && !this.game.busy;
+      && !Object.entries(this.room.ready).some(([seat, ready]) => ready && !this.room.bots?.includes(seat))
+      && !this.sending && !this.game.busy;
   }
   async updateSettings(settings) {
     if (!this.canEditSettings()) return false;

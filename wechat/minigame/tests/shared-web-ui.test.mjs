@@ -232,7 +232,7 @@ test('production multiplayer and Bot room creation retain the current settings d
   } finally { cleanup(); }
 });
 
-test('production shared-room creation reads draft board size without forwarding multiplayer Bot settings', async context => {
+test('production shared-room creation keeps one AI seat when a multiplayer AI draft is selected', async context => {
   fetchMode = 'online'; room = freshRoom(); const app = mount();
   try {
     if (!app.selectedRoomBotCount) return context.skip('This older frontend does not have independent settings drafts.');
@@ -240,7 +240,7 @@ test('production shared-room creation reads draft board size without forwarding 
     app.selectedRoomBotCount.value = 3; app.selectedStartPlayer.value = 'GREEN';
     await app.handleCreateSharedRoom();
     const request = wire.find(item => item.url?.endsWith('/rooms'));
-    assert.deepEqual(request.body, { playerCount: 2, boardShape: 'triangle', gridSize: 13, startPlayer: 'BLACK', rulesVersion: 'territory-v3', turnTimerEnabled: false, turnTimeLimitSeconds: 60, hintEnabled: false, hintMaxCount: 1, undoEnabled: false, undoMaxCount: 3, botCount: 0 });
+    assert.deepEqual(request.body, { playerCount: 2, boardShape: 'triangle', gridSize: 13, startPlayer: 'BLACK', rulesVersion: 'territory-v3', turnTimerEnabled: false, turnTimeLimitSeconds: 60, hintEnabled: false, hintMaxCount: 1, undoEnabled: false, undoMaxCount: 3, botCount: 1 });
     assert.equal(app.session.value.shared, true);
     assert.equal(app.roomInfo.value.settings.playerCount, 2);
     assert.equal(app.roomInfo.value.settings.botCount || 0, 0);

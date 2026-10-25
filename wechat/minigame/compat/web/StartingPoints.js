@@ -13,16 +13,24 @@ export function startingPointSettings(settings) {
   };
 }
 
-// Sample lattice positions without replacement. The resolved points are saved;
+// Keep random openings spread across the board. The resolved points are saved;
 // replay/refresh never calls the random generator again.
 export function randomInitialPositions(gridSize, playerCount, random = Math.random, boardShape = null) {
   const points = getBoardPositions(gridSize, playerCount, boardShape);
   const positions = {};
+  const chosen = [];
   for (const player of PLAYER_ORDER.slice(0, playerCount)) {
+    const distance = ([x, y], [a, b]) => Math.max(Math.abs(x - a), Math.abs(y - b), Math.abs(x + y - a - b));
+    const best = chosen.length ? Math.max(...points.map(point => Math.min(...chosen.map(other => distance(point, other))))) : 0;
+    const candidates = chosen.length
+      ? points.filter(point => Math.min(...chosen.map(other => distance(point, other))) >= best * 0.75)
+      : points;
     const sample = random();
     if (!(sample >= 0 && sample < 1)) throw new Error("Invalid random sample.");
-    const index = Math.floor(sample * points.length);
-    positions[player] = points.splice(index, 1)[0];
+    const point = candidates[Math.floor(sample * candidates.length)];
+    positions[player] = point;
+    chosen.push(point);
+    points.splice(points.indexOf(point), 1);
   }
   return resolveInitialPositions(gridSize, playerCount, positions, boardShape);
 }

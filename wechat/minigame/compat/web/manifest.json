@@ -139,10 +139,10 @@
       "reason": "Preserve exact native service bytes and platform import tokens; canonical browser source remains unchanged."
     },
     "web/web前端/StartingPoints.js": {
-      "canonicalSha256": "78499ca10a3360c2b03c52fafa1d4932c8f89079e69b2698f82eb32bd515dd11",
+      "canonicalSha256": "84fc4e50644b6294c440e42c5199885c04c805c8aa28716ad70871557bfcd845",
       "override": "wechat/minigame/compat/web/StartingPoints.js",
-      "overrideSha256": "7b09547988a75cbccda06fbd554af8aaa18957f9b3029d772106894e4921894d",
-      "reason": "Preserve exact native service bytes and platform import tokens; canonical browser source remains unchanged."
+      "overrideSha256": "dbf22e06b1fba7f503f52afe5ed8b824ee30cd2e3ddeff9f19a5aa62da1c3973",
+      "reason": "Share spread random openings with Web while retaining native platform import tokens."
     },
     "web/web前端/TutorialRunner.js": {
       "canonicalSha256": "feb02d1d3c742b3973273c175abc0ed1fd1929408791f563e727b0f9b29d8ddf",

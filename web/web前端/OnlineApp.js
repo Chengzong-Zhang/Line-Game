@@ -1223,7 +1223,7 @@ const RoomPanel = {
       <p v-if="!session.roomId" class="field-note">{{ language === 'zh' ? '微信小游戏的 8 位房间码可直接点“加入房间”，无需先连接服务器。首次加入时请按页面提示验证原网页账号密码。' : 'For an 8-character Mini Game code, select Join Room directly. Verify your existing Web password when prompted.' }}</p>
 
       <div class="actions actions-stack">
-        <div v-if="playerCount >= 3 && !session.roomId">
+        <div v-if="playerCount >= 2 && !session.roomId">
           <label class="field-label" for="room-bot-count">{{ texts.roomBotCount }}</label>
           <select id="room-bot-count" class="input-field" :value="botCount" :disabled="busy" @change="$emit('update:bot-count', Number($event.target.value))">
             <option v-for="count in playerCount" :key="count - 1" :value="count - 1">{{ texts.roomBotOption(playerCount, count - 1) }}</option>
@@ -4450,6 +4450,8 @@ const App = {
     const undoDisabled = computed(() => roomStatus.value !== "solo"
       ? !undoEnabled.value || undoRemainingCount.value <= 0 || !session.value.roomId || !networkManager.isConnected()
         || roomStatus.value !== "inProgress" || roomSnapshotRecoveryFailed || networkBusy.value
+        || (session.value.shared && roomInfo.value.settings?.botCount === 1
+          && !(roomInfo.value.matchState?.actions ?? []).some(action => action.color === "BLACK"))
         || onlineUndoVoted.value || (!onlineUndoPending.value && gameState.value.positionRevision <= 0)
       : !controller.value || !undoEnabled.value || undoRemainingCount.value <= 0
         || !undoPlan.value || gameState.value.gameOver || networkBusy.value
@@ -5364,7 +5366,8 @@ const App = {
         networkManager.url = serverUrl.value.trim();
         networkManager.setAuthToken(auth.value.token);
         const rawDraft = draftGameSettings();
-        const draft = normalizeAppGameSettings({ ...rawDraft, playerCount: 2, botCount: 0,
+        const draft = normalizeAppGameSettings({ ...rawDraft, playerCount: 2,
+          botCount: Math.min(1, selectedRoomBotCount.value),
           rulesVersion: "territory-v3", turnTimerEnabled: false,
           ...(rawDraft.initialPositions ? { initialPositions: {
             BLACK: rawDraft.initialPositions.BLACK, WHITE: rawDraft.initialPositions.WHITE,
@@ -5926,7 +5929,7 @@ const App = {
         || roomStatus.value === "inProgress"
         || roomStatus.value === "countdown";
     });
-    const starterLocked = computed(() => !isHost.value || networkBusy.value || (session.value.shared && Object.values(roomInfo.value.players ?? []).some(player => player.ready)) || roomInfo.value.matchPhase === "PLAYING" || roomStatus.value === "inProgress" || roomStatus.value === "countdown");
+    const starterLocked = computed(() => !isHost.value || networkBusy.value || (session.value.shared && Object.values(roomInfo.value.players ?? []).some(player => player.ready && !player.isBot)) || roomInfo.value.matchPhase === "PLAYING" || roomStatus.value === "inProgress" || roomStatus.value === "countdown");
     const showClosePrompt = computed(() => Boolean(
       !tutorialActive.value
       && !replayMode.value

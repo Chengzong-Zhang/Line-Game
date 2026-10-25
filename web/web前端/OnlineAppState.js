@@ -47,7 +47,7 @@ export function normalizeGameSettings(settings = {}) {
   return {
     playerCount: nextPlayerCount,
     boardShape,
-    botCount: nextPlayerCount >= 3 ? Math.max(0, Math.min(nextPlayerCount - 1, Math.trunc(Number(settings?.botCount) || 0))) : 0,
+    botCount: Math.max(0, Math.min(nextPlayerCount - 1, Math.trunc(Number(settings?.botCount) || 0))),
     gridSize: GRID_SIZE_OPTIONS.includes(gridSize) ? gridSize : 9,
     startPlayer,
     rulesVersion,

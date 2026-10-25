@@ -120,6 +120,8 @@ export function drawBattleCabin(ui, area, state, actions) {
     pair(['battle-leave', label('leaveRoom'), actions.leave, state.busy, true]);
   } else {
     pair(['friends', label('createRoom'), actions.create, !state.enabled || state.busy], ['join-room', label('joinRoom'), actions.join, !state.enabled || state.busy]);
+    button('create-ai-room', en ? 'Create room with AI' : '创建 AI 对战房间', area.x, y, area.width,
+      actions.createAi, { height: 44, font: 14, disabled: !state.enabled || state.busy }); y += 54;
     if (state.retryCode) { button('retry-room', `${en ? 'Retry joining' : '重试加入'} · ${state.retryCode}`, area.x, y, area.width,
       actions.retry, { height: 44, font: 14, disabled: !state.enabled || state.busy }); y += 54; }
     if (state.savedCode) pair(['resume-room', label('resumeRoom'), actions.resume, !state.enabled || state.busy]);

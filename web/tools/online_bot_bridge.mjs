@@ -33,6 +33,10 @@ async function chooseBotPointFromModel(engine) {
   const aiSource = (await readFile(new URL("AIEngine.js", frontend), "utf8"))
     .replace(/(["'])\.\/GameEngine\.js(?:\?[^"']*)?\1/g, JSON.stringify(engineUrl));
   const aiUrl = moduleUrl(aiSource);
+  if (engine.playerCount === 2) {
+    const { GreedyAI } = await import(aiUrl);
+    return new GreedyAI().getTopMoves(engine, engine.currentPlayer, 1)[0]?.point ?? null;
+  }
   const hexagonal = engine.playerCount >= 4;
   const moduleName = hexagonal ? "HexPlayerAI.js" : "ThreePlayerAI.js";
   const source = (await readFile(new URL(moduleName, frontend), "utf8"))
@@ -67,7 +71,7 @@ export async function processBotRequest(request, { chooseBotPoint = chooseBotPoi
   const settings = request?.settings;
   const playerCount = settings?.playerCount;
   const colors = PLAYER_ORDER.slice(0, playerCount);
-  if (![3, 4, 5, 6].includes(playerCount) || !["territory-v2", "territory-v3"].includes(settings.rulesVersion)
+  if (![2, 3, 4, 5, 6].includes(playerCount) || !["territory-v2", "territory-v3"].includes(settings.rulesVersion)
     || !Number.isInteger(settings.gridSize) || settings.gridSize < 5 || settings.gridSize > 15
     || !colors.includes(settings.startPlayer ?? "BLACK")
     || !Array.isArray(request.actions) || request.actions.length > 4096

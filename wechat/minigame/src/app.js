@@ -135,7 +135,8 @@ export function createApp(platform, config = {}) {
     const next = { rulesVersion: current.rulesVersion || 'territory-v3', gridSize: current.gridSize, boardShape: current.boardShape || 'triangle',
       startingPointMode: current.startingPointMode || (current.initialPositions ? 'custom' : 'default'),
       initialPositions: current.initialPositions, undoEnabled: current.undoEnabled === true,
-      undoMaxCount: current.undoMaxCount || 3, ...overrides };
+      undoMaxCount: current.undoMaxCount || 3,
+      ...(current.botCount ? { botCount: current.botCount } : {}), ...overrides };
     if (next.startingPointMode === 'default') delete next.initialPositions;
     else if (next.startingPointMode === 'random' && (overrides.startingPointMode === 'random' || !next.initialPositions))
       next.initialPositions = randomInitialPositions(next.gridSize, 2, Math.random, next.boardShape);
@@ -559,7 +560,8 @@ export function createApp(platform, config = {}) {
         { height: 36, font: 14, disabled: !session.undoAvailable });
     }
     if (isOnline() && !lesson && session.replayIndex === null && online.room?.settings?.undoEnabled
-      && online.room.actions.length && !online.room.undo?.pending)
+      && online.room.actions.length && !online.room.undo?.pending
+      && (!online.room.settings.botCount || online.room.actions.some(action => action.player === 'BLACK')))
       button('undo', `${label('undo')} · ${Math.max(0, online.room.settings.undoMaxCount - (online.room.undo?.usedCount || 0))}`,
         w / 2 - 49, statusTop + 48, 98, () => online.voteUndo(true),
         { height: 36, font: 14, disabled: online.sending || (online.room.undo?.usedCount || 0) >= online.room.settings.undoMaxCount });
@@ -702,7 +704,8 @@ export function createApp(platform, config = {}) {
       if (active === 'battle') contentHeight = drawBattleCabin(ui, content, { online: isOnline(), code: online.room?.code, enabled: online.enabled,
         roomProfiles: online.room?.playerProfiles, ownPlayer: online.room?.player,
         account: online.account, savedCode: online.savedCode, retryCode: roomRetryCode, busy: online.deleting || accountBusy, message: accountMessage }, {
-        create: () => friendsMenu(null, 'create'), join: () => friendsMenu(null, 'join'), resume: () => friendsMenu(null, 'resume'),
+        create: () => friendsMenu(null, 'create'), createAi: () => friendsMenu(null, 'create-ai'),
+        join: () => friendsMenu(null, 'join'), resume: () => friendsMenu(null, 'resume'),
         retry: () => roomRetryCode && friendsMenu(roomRetryCode),
         account: () => accountAction('load'), link: () => accountAction('link'), delete: () => accountAction('delete'),
         editName: () => accountAction('name'), editAvatar: () => accountAction('avatar'), avatar: drawAvatar,
@@ -1163,16 +1166,19 @@ export function createApp(platform, config = {}) {
       accountMessage = message; roomFeedbackPending = true; redraw();
     };
     if (!await ensureOnlineConsent({ online, platform, language, isCurrent: valid }) || !valid()) return;
-    let kind = invitation ? 'join' : directKind, value = invitation;
-    if (directKind && !invitation) value = kind === 'resume' ? online.savedCode : kind === 'create' ? onlineSettings({ rulesVersion: 'territory-v3' }, null) : (await platform.input(label('roomCode')))?.trim().toUpperCase();
+    const withAi = directKind === 'create-ai';
+    let kind = invitation ? 'join' : withAi ? 'create' : directKind, value = invitation;
+    if (directKind && !invitation) value = kind === 'resume' ? online.savedCode : kind === 'create' ? null : (await platform.input(label('roomCode')))?.trim().toUpperCase();
     if (!kind) {
       const choices = online.savedCode ? ['resumeRoom', 'createRoom', 'joinRoom'] : ['createRoom', 'joinRoom'];
       const i = await platform.choose(choices.map(label));
       if (!valid() || !choices[i]) return;
       kind = choices[i] === 'resumeRoom' ? 'resume' : choices[i] === 'createRoom' ? 'create' : 'join';
-      value = kind === 'resume' ? online.savedCode : kind === 'create' ? onlineSettings({ rulesVersion: 'territory-v3' }, null) : (await platform.input(label('roomCode')))?.trim().toUpperCase();
+      value = kind === 'resume' ? online.savedCode : kind === 'create' ? null : (await platform.input(label('roomCode')))?.trim().toUpperCase();
     }
     if (!valid()) return;
+    if (kind === 'create') value = onlineSettings({ rulesVersion: 'territory-v3',
+      ...(withAi ? { botCount: 1 } : {}) }, null);
     if (kind === 'join' && value == null) return;
     if (kind !== 'create' && !/^[A-Z2-9]{8}$/.test(value || '')) {
       roomRetryCode = null; showRoomError(label('invalidRoomCode')); return;

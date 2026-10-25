@@ -33,6 +33,7 @@ from fastapi.responses import Response
 
 ROOT = Path(__file__).resolve().parents[2]
 VALIDATOR = ROOT / "wechat/minigame/tools/validate-action.mjs"
+BOT_BRIDGE = ROOT / "web/tools/online_bot_bridge.mjs"
 AUDIENCE = "lifeline-wechat-v1"
 PROTOCOL = 1
 ROOM_TTL = 24 * 60 * 60
@@ -44,6 +45,69 @@ MAX_AVATAR_SIDE = 512
 MAX_AVATAR_DATA_URL = 4 * ((MAX_AVATAR_BYTES + 2) // 3) + 32
 SOCKET_IO_TIMEOUT = 2
 EMOTE_CAPABILITY = "emote-v1"
+BOT_MEMBER = "@AI:WHITE"
+
+
+def random_initial_positions(grid_size, player_count, board_shape, previous):
+    radius = grid_size - 1
+    extent = 2 * radius if board_shape == "hexagon" else radius
+    points = [[x, y] for y in range(extent + 1) for x in range(extent + 1)
+              if (board_shape == "hexagon" and radius <= x + y <= 3 * radius)
+              or (board_shape != "hexagon" and x + y <= radius)]
+    def distance(point, other):
+        dx, dy = point[0] - other[0], point[1] - other[1]
+        return max(abs(dx), abs(dy), abs(dx + dy))
+    def draw():
+        available, chosen, result = points.copy(), [], {}
+        for color in ("BLACK", "WHITE", "PURPLE", "GREEN", "ORANGE", "CYAN")[:player_count]:
+            if chosen:
+                scores = [min(distance(point, other) for other in chosen) for point in available]
+                best = max(scores)
+                candidates = [point for point, score in zip(available, scores) if 4 * score >= 3 * best]
+            else:
+                candidates = available
+            point = candidates[secrets.randbelow(len(candidates))]
+            result[color] = point
+            chosen.append(point)
+            available.remove(point)
+        return result
+    result = draw()
+    for _ in range(8):
+        if result != previous:
+            break
+        result = draw()
+    if result == previous:
+        result["BLACK"], result["WHITE"] = result["WHITE"], result["BLACK"]
+    return result
+
+
+class BotBridgeUnavailable(RuntimeError):
+    pass
+
+
+async def evaluate_shared_bot(settings, actions):
+    try:
+        process = await asyncio.create_subprocess_exec(
+            os.getenv("LIFELINE_NODE", "node"), str(BOT_BRIDGE),
+            stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        output, _ = await asyncio.wait_for(process.communicate(canonical({
+            "settings": settings, "actions": actions, "botColors": ["WHITE"]}).encode()), 15)
+    except (OSError, asyncio.TimeoutError) as exc:
+        if "process" in locals() and process.returncode is None:
+            process.kill()
+            await process.communicate()
+        raise BotBridgeUnavailable("AI runtime unavailable") from exc
+    if process.returncode:
+        raise BotBridgeUnavailable("AI runtime failed")
+    try:
+        result = json.loads(output)
+    except ValueError as exc:
+        raise BotBridgeUnavailable("AI runtime returned invalid output") from exc
+    if not isinstance(result, dict) or not isinstance(result.get("success"), bool):
+        raise BotBridgeUnavailable("AI runtime returned an invalid result")
+    return result
 FIXED_EMOTES = frozenset(("👏", "😭", "😎", "🤝", "❓", "🤔", "💀", "👎", "😓", "😤"))
 STORE_COLUMNS = {
     "wx_users": ["subject", "uid"],
@@ -446,6 +510,74 @@ class WechatService:
         self.emote_sockets = set()
         self.mutation_lock = asyncio.Lock()
         self.arrivals = {}
+        self.bot_tasks = {}
+
+    @staticmethod
+    def bot_room(room):
+        return room["players"].get("WHITE") == BOT_MEMBER and room["settings"].get("botCount") == 1
+
+    def schedule_bot(self, room):
+        if (not self.bot_room(room) or room["status"] != "playing"
+                or room["state"]["currentPlayer"] != "WHITE"
+                or room.get("undo", {}).get("pending")):
+            return
+        task = self.bot_tasks.get(room["code"])
+        if task is None or task.done():
+            task = asyncio.create_task(self.run_bot(room["code"]))
+            self.bot_tasks[room["code"]] = task
+            code, scheduled_revision = room["code"], room["revision"]
+            def finished(done):
+                if self.bot_tasks.get(code) is not done:
+                    return
+                self.bot_tasks.pop(code, None)
+                try:
+                    latest = self.store.room(code)
+                except HTTPException:
+                    return
+                # A newer match/turn may have arrived while this task was running.
+                # Retry only after a revision change, so a failed runtime cannot loop.
+                if latest["revision"] != scheduled_revision:
+                    self.schedule_bot(latest)
+            task.add_done_callback(finished)
+
+    async def run_bot(self, code):
+        try:
+            async with self.mutation_lock:
+                room = self.store.room(code)
+                if not self.bot_room(room) or room["status"] != "playing" or room["state"]["currentPlayer"] != "WHITE":
+                    return
+                match_id, revision = room["matchId"], room["revision"]
+                settings = dict(room["settings"])
+                actions = [dict(action) for action in room["actions"]]
+            legacy = [{"type": {"move": "player_move", "skip": "player_skip", "resign": "player_resign"}[action["type"]],
+                       "color": action["player"], **({"point": action["point"]} if "point" in action else {})}
+                      for action in actions]
+            result = await evaluate_shared_bot(settings, legacy)
+            action = result.get("action") if result.get("success") else None
+            if not action or action.get("color") != "WHITE":
+                return
+            normalized = {"type": {"player_move": "move", "player_skip": "skip"}[action["type"]],
+                          "player": "WHITE", **({"point": action["point"]} if "point" in action else {})}
+            state = await asyncio.to_thread(self.verifier, settings, actions, normalized)
+            async with self.mutation_lock:
+                room = self.store.room(code)
+                if (room["matchId"] != match_id or room["revision"] != revision
+                        or room["status"] != "playing" or not self.bot_room(room)
+                        or room["state"]["currentPlayer"] != "WHITE" or room.get("undo", {}).get("pending")):
+                    return
+                room["actions"].append(normalized)
+                room["actionIds"].append("bot-" + secrets.token_hex(16))
+                room["seq"] += 1
+                room["state"] = state
+                if state["gameOver"]:
+                    room["status"] = "finished"
+                room["revision"] += 1
+                room["expiresAt"] = int(time.time()) + ROOM_TTL
+                self.store.commit(room, revision)
+            await self.broadcast(room)
+        except (BotBridgeUnavailable, asyncio.TimeoutError, HTTPException, OSError, KeyError, ValueError):
+            # Keep the accepted history intact. A room refresh retries the turn.
+            return
 
     def rate(self, key, limit=90):
         now = time.monotonic()
@@ -583,6 +715,8 @@ class WechatService:
         for player, member in room["players"].items():
             if member is None:
                 profiles[player] = None
+            elif member == BOT_MEMBER:
+                profiles[player] = {"uid": BOT_MEMBER, "displayName": "AI", "avatarUrl": None}
             else:
                 profile = self.store.profile(member, "wechat")
                 profiles[player] = {key: profile[key] for key in ("uid", "displayName", "avatarUrl")}
@@ -590,7 +724,8 @@ class WechatService:
                 **room["state"], "protocol": PROTOCOL, "player": color,
                 "undo": room.get("undo", {"usedCount": 0, "pending": False, "votes": []}),
                 "playerProfiles": profiles,
-                "members": {p: member is not None for p, member in room["players"].items()}}
+                "members": {p: member is not None for p, member in room["players"].items()},
+                "bots": ["WHITE"] if self.bot_room(room) else []}
 
     @staticmethod
     def room_settings(body, *, rules_default="territory-v2"):
@@ -611,7 +746,7 @@ class WechatService:
                 or type(count) is not int or not 1 <= count <= 10
                 or rules not in ("territory-v2", "territory-v3") or first not in ("BLACK", "WHITE")
                 or type(body.get("playerCount", 2)) is not int or body.get("playerCount", 2) != 2
-                or type(body.get("botCount", 0)) is not int or body.get("botCount", 0) != 0
+                or type(body.get("botCount", 0)) is not int or body.get("botCount", 0) not in (0, 1)
                 or body.get("turnTimerEnabled", False) is not False
                 or type(seconds) is not int or not 15 <= seconds <= 200
                 or type(hint) is not bool or type(hints) is not int or not (1 if hint else 0) <= hints <= 10):
@@ -621,7 +756,8 @@ class WechatService:
             fail("INVALID_SETTINGS", 422)
         settings = {"gridSize": size, "playerCount": 2, "startPlayer": first, "rulesVersion": rules,
                     "turnTimerEnabled": False, "turnTimeLimitSeconds": seconds, "hintEnabled": hint, "hintMaxCount": hints,
-                    "boardShape": shape, "undoEnabled": enabled, "undoMaxCount": count}
+                    "boardShape": shape, "undoEnabled": enabled, "undoMaxCount": count,
+                    "botCount": body.get("botCount", 0)}
         if mode != "default":
             settings.update(startingPointMode=mode, initialPositions=positions)
         return settings
@@ -689,6 +825,7 @@ class WechatService:
         for previous in replaced_rooms:
             await self.broadcast(previous)
         await self.broadcast(result)
+        self.schedule_bot(result)
         return self.view(result, uid)
 
     async def _mutate(self, uid, operation, body, code, *, replaced_rooms=None):
@@ -704,8 +841,8 @@ class WechatService:
             state = await asyncio.to_thread(self.verifier, settings, [])
             room = {"code": "".join(secrets.choice("ABCDEFGHJKLMNPQRSTUVWXYZ23456789") for _ in range(8)),
                     "matchId": secrets.token_hex(16), "revision": 1, "seq": 0, "settings": settings,
-                    "status": "waiting", "players": {"BLACK": uid, "WHITE": None}, "actions": [], "actionIds": [],
-                    "ready": {"BLACK": False, "WHITE": False}, "rematchVotes": {"BLACK": False, "WHITE": False},
+                    "status": "waiting", "players": {"BLACK": uid, "WHITE": BOT_MEMBER if settings["botCount"] else None}, "actions": [], "actionIds": [],
+                    "ready": {"BLACK": False, "WHITE": bool(settings["botCount"])}, "rematchVotes": {"BLACK": False, "WHITE": False},
                     "undo": {"usedCount": 0, "pending": False, "votes": []},
                     "state": state, "expiresAt": int(time.time()) + ROOM_TTL}
             self.store.create(room)
@@ -747,26 +884,39 @@ class WechatService:
                 if all(room["ready"].values()) and all(room["players"].values()):
                     room["status"] = "playing"
             elif operation == "settings":
-                if player != "BLACK" or room["status"] != "waiting" or room["seq"] or any(room["ready"].values()):
+                if (player != "BLACK" or room["status"] != "waiting" or room["seq"]
+                        or any(ready for seat, ready in room["ready"].items()
+                               if room["players"].get(seat) != BOT_MEMBER)):
                     fail("SETTINGS_LOCKED", 409)
                 settings = self.room_settings(body.get("settings"), rules_default=room["settings"]["rulesVersion"])
                 if settings["rulesVersion"] != room["settings"]["rulesVersion"]:
                     fail("RULES_CHANGE_REQUIRES_NEW_ROOM", 409)
+                if room["players"]["WHITE"] not in (None, BOT_MEMBER) and settings["botCount"]:
+                    fail("ROOM_FULL", 409)
                 room["state"] = await asyncio.to_thread(self.verifier, settings, [])
                 room["settings"] = settings
+                room["players"]["WHITE"] = BOT_MEMBER if settings["botCount"] else (
+                    None if room["players"]["WHITE"] == BOT_MEMBER else room["players"]["WHITE"])
+                room["ready"]["WHITE"] = bool(settings["botCount"])
             elif operation == "rematch":
                 if room["status"] != "finished":
                     fail("MATCH_NOT_FINISHED", 409)
                 room["rematchVotes"][player] = True
-                if all(room["rematchVotes"].values()):
+                if self.bot_room(room) or all(room["rematchVotes"].values()):
+                    if room["settings"].get("startingPointMode") == "random":
+                        room["settings"]["initialPositions"] = random_initial_positions(
+                            room["settings"]["gridSize"], 2, room["settings"]["boardShape"],
+                            room["settings"]["initialPositions"])
                     room.update(matchId=secrets.token_hex(16), seq=0, actions=[], actionIds=[], status="waiting",
-                                ready={"BLACK": False, "WHITE": False}, rematchVotes={"BLACK": False, "WHITE": False},
+                                ready={"BLACK": False, "WHITE": self.bot_room(room)}, rematchVotes={"BLACK": False, "WHITE": False},
                                 undo={"usedCount": 0, "pending": False, "votes": []},
                                 state=await asyncio.to_thread(self.verifier, room["settings"], []))
             elif operation == "undo":
                 undo = room.setdefault("undo", {"usedCount": 0, "pending": False, "votes": []})
                 if (not room["settings"].get("undoEnabled") or room["status"] not in ("playing", "finished")
                         or not room["actions"] or undo["usedCount"] >= room["settings"].get("undoMaxCount", 3)):
+                    fail("UNDO_UNAVAILABLE", 409)
+                if self.bot_room(room) and not any(action["player"] == "BLACK" for action in room["actions"]):
                     fail("UNDO_UNAVAILABLE", 409)
                 if (type(body.get("accept")) is not bool or type(body.get("expectedSeq")) is not int
                         or body["expectedSeq"] != room["seq"] or body.get("beforeHash") != room["state"]["stateHash"]):
@@ -779,12 +929,14 @@ class WechatService:
                     undo["pending"] = True
                     if player not in undo["votes"]:
                         undo["votes"].append(player)
-                    if all(seat in undo["votes"] for seat in ("BLACK", "WHITE")):
-                        remaining = room["actions"][:-1]
+                    if self.bot_room(room) or all(seat in undo["votes"] for seat in ("BLACK", "WHITE")):
+                        count = next((len(room["actions"]) - index for index in range(len(room["actions"]) - 1, -1, -1)
+                                      if room["actions"][index]["player"] == "BLACK"), 1) if self.bot_room(room) else 1
+                        remaining = room["actions"][:-count]
                         state = await asyncio.to_thread(self.verifier, room["settings"], remaining)
                         room["actions"] = remaining
-                        room["actionIds"].pop()
-                        room["seq"] -= 1
+                        room["actionIds"] = room["actionIds"][:-count]
+                        room["seq"] -= count
                         room["state"] = state
                         room["status"] = "playing"
                         undo.update(usedCount=undo["usedCount"] + 1, pending=False, votes=[])
@@ -1094,7 +1246,10 @@ def create_router(service=None, *, web_authenticate=None, web_password_authentic
     @router.get("/rooms/{code}")
     async def state(code: str, request: Request):
         svc = get_service()
-        return svc.view(svc.store.room(code), identity(request, svc))
+        room = svc.store.room(code)
+        result = svc.view(room, identity(request, svc))
+        svc.schedule_bot(room)
+        return result
 
     @router.post("/rooms/{code}/{operation}")
     async def mutate(code: str, operation: str, request: Request):

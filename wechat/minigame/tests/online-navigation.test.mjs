@@ -71,7 +71,10 @@ test('direct resign/leave confirmations remain bound to room, position and foreg
 });
 
 test('direct create/join/resume dispatch expected requests without a menu and normalize join codes', async () => {
-  for (const [entry, kind, value] of [['friends', 'create', { rulesVersion: 'territory-v3', gridSize: 7, boardShape: 'triangle', startingPointMode: 'default', undoEnabled: false, undoMaxCount: 3 }], ['join-room', 'join', 'BCDEFGHJ'], ['resume-room', 'resume', 'ABCDEFGH']]) {
+  for (const [entry, kind, value] of [
+    ['friends', 'create', { rulesVersion: 'territory-v3', gridSize: 7, boardShape: 'triangle', startingPointMode: 'default', undoEnabled: false, undoMaxCount: 3 }],
+    ['create-ai-room', 'create', { rulesVersion: 'territory-v3', gridSize: 7, boardShape: 'triangle', startingPointMode: 'default', undoEnabled: false, undoMaxCount: 3, botCount: 1 }],
+    ['join-room', 'join', 'BCDEFGHJ'], ['resume-room', 'resume', 'ABCDEFGH']]) {
     const storage = memoryStorage(); storage.set('lifeline-wx-room-v1', 'ABCDEFGH');
     const h = uiHarness({ config: onlineConfig, storage });
     // A detached previous v2 room must not supply the next room's rule settings.

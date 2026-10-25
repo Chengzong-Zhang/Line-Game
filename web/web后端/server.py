@@ -2,6 +2,7 @@
 import hashlib
 import logging
 import os
+import secrets
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -42,6 +43,38 @@ try:
     from .online_bots import BotBridgeUnavailable, evaluate_room
 except ImportError:
     from online_bots import BotBridgeUnavailable, evaluate_room
+
+def random_initial_positions(grid_size, player_count, board_shape, previous):
+    radius = grid_size - 1
+    extent = 2 * radius if board_shape == "hexagon" else radius
+    points = [[x, y] for y in range(extent + 1) for x in range(extent + 1)
+              if (board_shape == "hexagon" and radius <= x + y <= 3 * radius)
+              or (board_shape != "hexagon" and x + y <= radius)]
+    def distance(point, other):
+        dx, dy = point[0] - other[0], point[1] - other[1]
+        return max(abs(dx), abs(dy), abs(dx + dy))
+    def draw():
+        available, chosen, result = points.copy(), [], {}
+        for color in ("BLACK", "WHITE", "PURPLE", "GREEN", "ORANGE", "CYAN")[:player_count]:
+            if chosen:
+                scores = [min(distance(point, other) for other in chosen) for point in available]
+                best = max(scores)
+                candidates = [point for point, score in zip(available, scores) if 4 * score >= 3 * best]
+            else:
+                candidates = available
+            point = candidates[secrets.randbelow(len(candidates))]
+            result[color] = point
+            chosen.append(point)
+            available.remove(point)
+        return result
+    result = draw()
+    for _ in range(8):
+        if result != previous:
+            break
+        result = draw()
+    if result == previous:
+        result["BLACK"], result["WHITE"] = result["WHITE"], result["BLACK"]
+    return result
 
 
 # 这个服务负责账号、静态资源、房间、连接和动作同步，
@@ -1008,6 +1041,10 @@ class ConnectionManager:
                 restart_reason = "normal_restart" if reason == "normal_restart" else "resign_restart"
 
                 if restart_reason == "normal_restart":
+                    if room.settings.get("startingPointMode") == "random":
+                        room.settings["initialPositions"] = random_initial_positions(
+                            room.settings["gridSize"], room.settings["playerCount"], room.settings["boardShape"],
+                            room.settings["initialPositions"])
                     room.actions = []
                     room.undo_used_count = 0
                     room.match_started = False
@@ -1025,6 +1062,10 @@ class ConnectionManager:
                         },
                     )
                 else:
+                    if room.settings.get("startingPointMode") == "random":
+                        room.settings["initialPositions"] = random_initial_positions(
+                            room.settings["gridSize"], room.settings["playerCount"], room.settings["boardShape"],
+                            room.settings["initialPositions"])
                     winner = next(
                         (player for player in self._find_other_players(room, action["sender"].player_id)),
                         None,
@@ -1855,7 +1896,7 @@ class ConnectionManager:
             start_player = allowed_players[0]
         if not isinstance(rules_version, str) or rules_version not in ALLOWED_RULES_VERSIONS:
             rules_version = DEFAULT_RULES_VERSION
-        if type(bot_count) is not int or player_count < 3 or not 0 <= bot_count < player_count:
+        if type(bot_count) is not int or not 0 <= bot_count < player_count:
             bot_count = 0
         if board_shape not in ("triangle", "hexagon"):
             board_shape = "hexagon" if player_count >= 4 else "triangle"

@@ -88,6 +88,19 @@ class OnlineBotTests(unittest.IsolatedAsyncioTestCase):
         verification = await bridge.evaluate_room(room.settings, room.actions, [])
         self.assertTrue(verification["success"])
 
+    async def test_two_player_web_room_accepts_one_ai_and_bot_starts(self):
+        await self.manager.create_room(self.host, "Host", {
+            "playerCount": 2, "botCount": 1, "gridSize": 5,
+            "rulesVersion": "territory-v3", "startPlayer": "WHITE",
+        })
+        room = self.manager.rooms[self.manager.websocket_index[self.host][0]]
+        self.assertEqual(room.settings["botCount"], 1)
+        self.assertEqual(sum(player.is_bot for player in room.players.values()), 1)
+        await self.start(room)
+        await self.settle(room)
+        self.assertEqual(room.actions[0]["color"], "WHITE")
+        self.assertTrue((await bridge.evaluate_room(room.settings, room.actions, []))["success"])
+
     async def test_one_bot_two_humans_and_turn_spoof_rejected(self):
         room = await self.create(1)
         await self.manager.join_room(self.peer, room.room_id, "Guest")

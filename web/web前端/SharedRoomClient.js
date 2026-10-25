@@ -24,7 +24,8 @@ export async function verifySharedRoom(room) {
     || !["waiting", "playing", "finished", "closed"].includes(room.status)
     || !room.ready || !room.members || !room.rematchVotes
     || !["territory-v2", "territory-v3"].includes(room.settings?.rulesVersion) || room.settings.playerCount !== 2
-    || !COLORS.includes(room.settings.startPlayer) || !Number.isInteger(room.settings.gridSize)
+    || !COLORS.includes(room.settings.startPlayer) || ![0, 1].includes(room.settings.botCount ?? 0)
+    || !Number.isInteger(room.settings.gridSize)
     || room.settings.gridSize < 5 || room.settings.gridSize > 15) throw new Error("INVALID_ROOM");
   const engine = new GameEngine({ ...room.settings, deferTerritoryUpdates: false });
   engine.replayBatch(game => {
@@ -61,11 +62,12 @@ export function sharedRoomPayload(room, type = "ROOM_STATE") {
     status: playing ? "IN_PROGRESS" : full ? "LOBBY" : "WAITING",
     matchPhase: playing ? "PLAYING" : full ? "LOBBY" : "WAITING_FOR_PLAYERS",
     settings: room.settings, countdownEndsAt: null, serverTimestamp: room.revision,
-    undo: room.undo ? { ...room.undo, requiredVotes: 2,
+    undo: room.undo ? { ...room.undo, requiredVotes: room.settings.botCount ? 1 : 2,
       votes: (room.undo.votes ?? []).map(color => `${room.code}:${color}`) } : undefined,
     players: COLORS.filter(p => room.members[p]).map(p => ({
       playerId: `${room.code}:${p}`, color: p, connected: room.status !== "closed",
-      ready: room.ready[p], isHost: p === "BLACK", username: room.profiles?.[p]?.displayName,
+      ready: room.ready[p], isHost: p === "BLACK", isBot: room.bots?.includes(p) ?? false,
+      username: room.playerProfiles?.[p]?.displayName,
     })),
     matchState: { settings: room.settings, actions: room.actions.map(action => ({
       type: { move: "player_move", skip: "player_skip", resign: "player_resign" }[action.type],
