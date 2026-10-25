@@ -193,11 +193,28 @@ export async function defensiveArenaMain(args) {
   const candidatePolicy = createDefensiveWarmstartPolicy(candidate), parent = await loadWarmstartParent(candidate.lineage.parent_id);
   check(parent.sha256 === candidate.lineage.parent_sha256, "Arena parent differs from candidate provenance");
   const [defaultPlayers, defaultSize] = DEFAULTS[parent.alias];
+  const protocolPath = option("--protocol", null) ? resolve(option("--protocol")) : null;
+  const protocolBytes = protocolPath ? await readFile(protocolPath) : null;
+  const protocol = protocolBytes ? JSON.parse(protocolBytes) : null;
+  let preset;
+  if (protocol) {
+    check(protocol.schema === "lifeline-defensive-actual-parent-arena-protocol-v2"
+      && Array.isArray(protocol.parents) && protocol.parents.filter(row => row.parent === parent.alias).length === 1,
+    "Invalid fixed arena protocol or missing/duplicate selected parent");
+    for (const name of ["--players", "--size", "--rules-version", "--seed-namespace", "--seeds", "--opening-plies", "--max-game-plies"])
+      check(!args.includes(name), "A fixed --protocol cannot be overridden by scientific CLI options");
+    preset = protocol.parents.find(row => row.parent === parent.alias);
+    check(protocol.candidate_updates === undefined || candidate.training.updates === protocol.candidate_updates,
+      "Candidate does not have the fixed protocol's preselected update count");
+  }
   const config = { schema: "lifeline-defensive-warmstart-actual-parent-arena-v2", parent: parent.alias,
-    playerCount: Number(option("--players", String(defaultPlayers))), gridSize: Number(option("--size", String(defaultSize))),
-    rulesVersion: option("--rules-version", "territory-v3"), seedNamespace: option("--seed-namespace", "defensive-actual-parent-arena-v2-fresh-20261025"),
-    seeds: option("--seeds", "2026102501,2026102502").split(","), openingPlies: Number(option("--opening-plies", "4")),
-    maxGamePlies: Number(option("--max-game-plies", "200")) };
+    playerCount: preset?.player_count ?? Number(option("--players", String(defaultPlayers))),
+    gridSize: preset?.grid_size ?? Number(option("--size", String(defaultSize))),
+    rulesVersion: protocol?.rules_version ?? option("--rules-version", "territory-v3"),
+    seedNamespace: protocol?.seed_namespace ?? option("--seed-namespace", "defensive-actual-parent-arena-v2-fresh-20261025"),
+    seeds: protocol?.seeds ?? option("--seeds", "2026102501,2026102502").split(","),
+    openingPlies: protocol?.opening_plies ?? Number(option("--opening-plies", "4")),
+    maxGamePlies: protocol?.max_game_plies ?? Number(option("--max-game-plies", "200")) };
   config.boardShape = config.playerCount === 3 ? "triangle" : "hexagon";
   validateArenaContext(parent.alias, config);
   check(config.seeds.length > 0 && config.seeds.length <= 20 && new Set(config.seeds).size === config.seeds.length
@@ -205,6 +222,8 @@ export async function defensiveArenaMain(args) {
     && Number.isInteger(config.openingPlies) && config.openingPlies >= 0 && config.openingPlies <= 20
     && Number.isInteger(config.maxGamePlies) && config.maxGamePlies >= 1 && config.maxGamePlies <= 1000,
   "Invalid bounded arena seed/opening/game cap configuration");
+  check(preset?.planned_games === undefined || preset.planned_games === config.seeds.length * (config.playerCount + 1),
+    "Fixed per-parent game denominator differs from its seeds/all-seat plan");
   const maxUnits = Number(option("--max-new-units", "1")), maxSeconds = Number(option("--max-seconds", "25"));
   check(Number.isInteger(maxUnits) && maxUnits >= 0 && Number.isFinite(maxSeconds) && maxSeconds > 0 && maxSeconds <= 60,
     "Arena segment must have a bounded unit budget and at most 60 seconds between recovery boundaries");
@@ -219,11 +238,13 @@ export async function defensiveArenaMain(args) {
   }
   const sources = await sourceHashes([THIS]); sources[parent.path] = parent.sha256;
   const identityBody = { config, candidate_sha256: sha(candidateBytes), dataset_manifest_sha256: dataset.manifestHash,
+    protocol_sha256: protocolBytes ? sha(protocolBytes) : null,
     parent_id: parent.id, parent_sha256: parent.sha256, source_hashes: sources,
     plan: plans.map(plan => ({ id: plan.id, seed: plan.seed, arm: plan.arm, focal: plan.focal, opening_hash: sha(JSON.stringify(plan.opening.state)) })) };
   const identity = sha(JSON.stringify(identityBody));
   const checkInputs = async () => {
     check(sha(await readFile(candidatePath)) === identityBody.candidate_sha256, "Arena candidate changed");
+    if (protocolPath) check(sha(await readFile(protocolPath)) === identityBody.protocol_sha256, "Arena fixed protocol changed");
     check(sha(await readFile(resolve(dataRoot, "manifest.json"))) === dataset.manifestHash, "Arena source dataset changed");
     for (const [path, expected] of Object.entries(sources)) check(sha(await readFile(resolve(root, path))) === expected, `Arena source/model drift: ${path}`);
   };

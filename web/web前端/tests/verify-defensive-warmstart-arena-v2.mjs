@@ -81,10 +81,21 @@ assert.equal((await readJson(resolve(paused, "progress.json"))).status, "PAUSED"
 const guard = await lease(paused);
 try { await assert.rejects(defensiveArenaMain([...args, "--run-root", paused]), { code: "EADDRINUSE" }); }
 finally { await new Promise(done => guard.close(done)); }
+const protocol = resolve(testRoot, "arena-protocol.json");
+await writeFile(protocol, JSON.stringify({ schema: "lifeline-defensive-actual-parent-arena-protocol-v2",
+  rules_version: "territory-v3", seed_namespace: "tiny-fixed-arena-protocol", seeds: ["tiny-fixed-1"],
+  opening_plies: 4, max_game_plies: 1, parents: [{ parent: "easy", player_count: 3, grid_size: 5 }] }));
+const fixedArgs = ["--candidate", resolve(model, "candidate.json"), "--data-root", data, "--protocol", protocol,
+  "--run-root", resolve(testRoot, "fixed-protocol"), "--max-new-units", "0"];
+assert.equal(await defensiveArenaMain(fixedArgs), 75);
+await assert.rejects(defensiveArenaMain([...fixedArgs, "--size", "7"]), /cannot be overridden/);
+const frozen = JSON.parse(await readFile(protocol)); frozen.seeds = ["changed-fixed-seed"];
+await writeFile(protocol, JSON.stringify(frozen));
+await assert.rejects(defensiveArenaMain(fixedArgs), /checkpoint identity\/counter corruption/);
 await atomic(resolve(run, "checkpoint.json"), { ...sealed(completed), integrity: "corrupt" });
 await assert.rejects(defensiveArenaMain([...args, "--run-root", run]), /Corrupt evidence integrity/);
 console.log(JSON.stringify({ status: "PASS_TINY_ACTUAL_PARENT_ARENA_RECOVERY_ONLY", routes,
   tests: ["actual-runtime-routing", "unsupported-route-rejected", "actual-terminal-winning-PASS", "native-area-terminal",
     "midgame-committed-ply-resume", "game-orphan-adoption", "all-seats-shared-control", "truncations-excluded",
-    "completed-idempotent", "pause", "duplicate-worker", "corruption-rejected"], fixtureRoot: testRoot,
+    "completed-idempotent", "pause", "duplicate-worker", "fixed-protocol-no-override", "protocol-drift-rejected", "corruption-rejected"], fixtureRoot: testRoot,
   productionArenaPlayed: false, strengthVerified: false, runtimeAdmitted: false }));
