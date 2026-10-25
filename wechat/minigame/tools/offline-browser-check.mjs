@@ -296,7 +296,7 @@ export async function runBrowserChecks({ origin, output }) {
       assert.equal(await small.evaluate(key => localStorage.getItem(key), injected.key), injected.bad);
       const last = (await observe(small)).tasks.filter(t => t.kind === 'STATE' && t.response.ok).at(-1);
       assert.deepEqual(last.payload.actions, injected.backup.payload.session.actions);
-      assert.ok((await observe(small)).texts.some(t => t.text === 'LIFELINE'));
+      assert.ok((await observe(small)).texts.some(t => t.text === '生命补给线'));
       await saveScreenshot(small, 'backup-recovery');
     });
     await check('浏览器延后动画帧时，首屏和实际落子仍可绘制', async () => {

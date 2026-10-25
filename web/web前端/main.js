@@ -3,7 +3,7 @@ const VUE_CDN_URLS = [
   "https://unpkg.com/vue@3/dist/vue.global.prod.js",
   "https://fastly.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js",
 ];
-const APP_ASSET_VERSION = "20261025-unified1";
+const APP_ASSET_VERSION = "20261025-ai1";
 
 // main.js 只做两件事：
 // 1. 确保浏览器拿到 Vue 运行时
@@ -88,9 +88,9 @@ async function ensureVueRuntime() {
 async function importAppModule() {
   const candidates = [
     new URL(`./OnlineApp.js?v=${APP_ASSET_VERSION}`, import.meta.url).href,
-    new URL("./OnlineApp.js?v=20261025-unified1", import.meta.url).href,
+    new URL("./OnlineApp.js?v=20261025-ai1", import.meta.url).href,
     `./OnlineApp.js?v=${APP_ASSET_VERSION}`,
-    "./OnlineApp.js?v=20261025-unified1",
+    "./OnlineApp.js?v=20261025-ai1",
   ];
   let lastError = null;
 

@@ -273,7 +273,7 @@ export function createApp(platform, config = {}) {
     const middle = y + (metrics.capsuleHeight || 32) / 2;
     button('account-avatar', '', 16, middle - 18, 36, () => openCabin('battle'), { height: 36 });
     drawAvatar(18, middle - 16, 32);
-    text('LIFELINE', 62, middle, nativeLeft < 220 ? 20 : 23, THEME.ink, 'left', 'bold');
+    text(label('title'), 62, middle, nativeLeft < 220 ? 20 : 23, THEME.ink, 'left', 'bold');
     if (!onStage) button('home', label('backToBoard'), 16, metrics.top + 8, 96, returnToBoard, { height: 40, font: 14 });
     return metrics.top + (onStage ? 8 : 64);
   }
@@ -1329,7 +1329,7 @@ export function createApp(platform, config = {}) {
     if (appVisible && isOnline()) void online.networkChanged(status);
   });
   platform.onResize(resize);
-  platform.setupShare(() => isOnline() ? online.sharePayload() : { title: 'LIFELINE · 生命线' });
+  platform.setupShare(() => isOnline() ? online.sharePayload() : { title: TEXT.zh.title });
   resize();
   void localSession.restore().then(async restored => {
     if (disposed || !appVisible || session !== localSession || scene !== 'game' || cabin) return;

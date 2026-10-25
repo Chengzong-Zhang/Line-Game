@@ -1,20 +1,20 @@
-import { MultiplayerWarmupSession } from "./MultiplayerAIWarmup.js?v=20261025-unified1";
-import { createLocalAIWorker } from "./LocalAIWorkerFactory.js?v=20261025-unified1";
-import GameController from "./GameController.js?v=20261025-unified1";
-import { Player } from "./GameEngine.js?v=20261025-unified1";
-import { captureWorkerRequest, isWorkerResultForRequest, serializeEngineState } from "./AIStateProtocol.js?v=20261025-unified1";
-import { RESEARCH_FAMILIES, TRANSFER_SEEDS, researchProfile } from "./ResearchAIOptions.js?v=20261025-unified1";
+import { MultiplayerWarmupSession } from "./MultiplayerAIWarmup.js?v=20261025-ai1";
+import { createLocalAIWorker } from "./LocalAIWorkerFactory.js?v=20261025-ai1";
+import GameController from "./GameController.js?v=20261025-ai1";
+import { Player } from "./GameEngine.js?v=20261025-ai1";
+import { captureWorkerRequest, isWorkerResultForRequest, serializeEngineState } from "./AIStateProtocol.js?v=20261025-ai1";
+import { RESEARCH_FAMILIES, TRANSFER_SEEDS, researchProfile } from "./ResearchAIOptions.js?v=20261025-ai1";
 import {
   OneShotHintWorker,
   applyHintWorkerResult,
-} from "./HintWorkerSession.js?v=20261025-unified1";
-import { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js?v=20261025-unified1";
-import NetworkManager from "./CrossPlatformNetwork.js?v=20261025-unified1";
+} from "./HintWorkerSession.js?v=20261025-ai1";
+import { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js?v=20261025-ai1";
+import NetworkManager from "./CrossPlatformNetwork.js?v=20261025-ai1";
 import {
   applyRoomSnapshotWithPostCommit,
   coordinateControllerRoomSnapshot,
   registerRoomSnapshotResponseListeners,
-} from "./OnlineRoomSync.js?v=20261025-unified1";
+} from "./OnlineRoomSync.js?v=20261025-ai1";
 import {
   createEmptyAuth as createAppEmptyAuth,
   GRID_SIZE_OPTIONS as APP_GRID_SIZE_OPTIONS,
@@ -32,7 +32,7 @@ import {
   normalizeGameSettings as normalizeAppGameSettings,
   persistAuth as persistAppAuth,
   persistSession as persistAppSession,
-} from "./OnlineAppState.js?v=20261025-unified1";
+} from "./OnlineAppState.js?v=20261025-ai1";
 import {
   formatArea as formatAppArea,
   formatConnectionState as formatAppConnectionState,
@@ -46,8 +46,8 @@ import {
   UI_STYLE_STORAGE_KEY,
   UI_STYLE_ACADEMIC,
   localizeErrorMessage as localizeAppErrorMessage,
-} from "./OnlineAppI18n.js?v=20261025-unified1";
-import { ensureGuideRuleImages, getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20261025-unified1";
+} from "./OnlineAppI18n.js?v=20261025-ai1";
+import { ensureGuideRuleImages, getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20261025-ai1";
 import {
   TUTORIAL_LEVELS,
   getTutorialEngineSettings,
@@ -55,26 +55,26 @@ import {
   getTutorialLevel,
   isTutorialTarget,
   isTutorialRestrictionAttempt,
-} from "./TutorialRunner.js?v=20261025-unified1";
+} from "./TutorialRunner.js?v=20261025-ai1";
 import {
   appendLocalGameAction,
   clearLocalGameSession,
   createLocalGameSession,
   loadLocalGameSession,
   persistLocalGameSession,
-} from "./LocalGameSession.js?v=20261025-unified1";
+} from "./LocalGameSession.js?v=20261025-ai1";
 import {
   createReplayDocument,
   downloadReplayDocument,
   parseAndValidateReplay,
-} from "./ReplayCodec.js?v=20261025-unified1";
-import { TrainingContribution, ContributionPanel, supportsContributionActors } from "./TrainingContribution.js?v=20261025-unified1";
-import { localAIPlayer, localMatchActors, localMatchMode, localPlayerProfile, normalizeLocalPlayers, loadLocalMatchPreferences, persistLocalMatchPreferences } from "./LocalAIModes.js?v=20261025-unified1";
-import LocalPlayerSetup from "./LocalPlayerSetup.js?v=20261025-unified1";
-import StartingPointSetup from "./StartingPointSetup.js?v=20261025-unified1";
-import { randomInitialPositions, startingPointSettings } from "./StartingPoints.js?v=20261025-unified1";
-import { resolveInitialPositions, resolveBoardShape } from "./GameEngine.js?v=20261025-unified1";
-import { normalizeUndoUsage, recordUndoAction, createLocalUndoTimeline, planLocalUndo, consumeLocalUndo } from "./LocalUndo.js?v=20261025-unified1";
+} from "./ReplayCodec.js?v=20261025-ai1";
+import { TrainingContribution, ContributionPanel, supportsContributionActors } from "./TrainingContribution.js?v=20261025-ai1";
+import { localAIPlayer, localMatchActors, localMatchMode, localPlayerProfile, normalizeLocalPlayers, loadLocalMatchPreferences, persistLocalMatchPreferences } from "./LocalAIModes.js?v=20261025-ai1";
+import LocalPlayerSetup from "./LocalPlayerSetup.js?v=20261025-ai1";
+import StartingPointSetup from "./StartingPointSetup.js?v=20261025-ai1";
+import { randomInitialPositions, startingPointSettings } from "./StartingPoints.js?v=20261025-ai1";
+import { resolveInitialPositions, resolveBoardShape } from "./GameEngine.js?v=20261025-ai1";
+import { normalizeUndoUsage, recordUndoAction, createLocalUndoTimeline, planLocalUndo, consumeLocalUndo } from "./LocalUndo.js?v=20261025-ai1";
 
 const {
   computed,
@@ -3193,10 +3193,10 @@ const App = {
     let activeAiRequestId = null;
     let activeAiRequest = null;
     const hintWorkerSession = new OneShotHintWorker(
-      () => new Worker(new URL("./AIWorker.js?v=20261025-unified1", import.meta.url), { type: "module" }),
+      () => new Worker(new URL("./AIWorker.js?v=20261025-ai1", import.meta.url), { type: "module" }),
     );
     const aiComparisonWorkerSession = new OneShotHintWorker(
-      () => new Worker(new URL("./AIWorker.js?v=20261025-unified1", import.meta.url), { type: "module" }),
+      () => new Worker(new URL("./AIWorker.js?v=20261025-ai1", import.meta.url), { type: "module" }),
     );
     const chatEmojiTimeoutIds = new Set();
 

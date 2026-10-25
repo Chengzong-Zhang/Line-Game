@@ -1,3 +1,4 @@
+import { TEXT } from './i18n.js';
 import { GameSession } from './session.js';
 import { validateSettings, MAX_ACTIONS } from './state.js';
 import { ONLINE_CONSENT_KEY, LEGACY_ONLINE_CONSENT_KEY } from './online-consent.js';
@@ -457,7 +458,7 @@ export class OnlineClient {
       return false;
     } finally { if (life === this.lifecycle) { this.sending = false; this.notify(); } }
   }
-  sharePayload() { return this.room ? { title: 'LIFELINE · 生命线', query: `room=${this.room.code}` } : { title: 'LIFELINE · 生命线' }; }
+  sharePayload() { return this.room ? { title: TEXT.zh.title, query: `room=${this.room.code}` } : { title: TEXT.zh.title }; }
   async deleteAccount() {
     if (this.deleting) return false;
     this.deleting = true; this.authEpoch++; this.authenticating = null; this.detach(); this.error = null; this.notify();

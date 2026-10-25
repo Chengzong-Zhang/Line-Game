@@ -1,5 +1,5 @@
-import { Player } from "./GameEngine.js?v=20261025-unified1";
-import { ALL_PLAYERS } from "./OnlineAppState.js?v=20261025-unified1";
+import { Player } from "./GameEngine.js?v=20261025-ai1";
+import { ALL_PLAYERS } from "./OnlineAppState.js?v=20261025-ai1";
 
 // 文案、比分格式化和错误提示都集中放在这里，避免 UI 文件里散落大量字符串。
 
@@ -26,12 +26,12 @@ function inferUiStyleFromHostname(hostname = globalThis.location?.hostname) {
 }
 
 const EN_TEXTS = Object.freeze({
-  pageTitle: "LIFELINE",
+  pageTitle: "生命补给线",
   languageLabel: "Language",
   uiStyleLabel: "Terminology",
   uiStyleCasualAction: "Casual",
   uiStyleAcademicAction: "Academic",
-  heroTitle: "LIFELINE",
+  heroTitle: "生命补给线",
   heroCopy: "Rules still run in the browser. The FastAPI relay server only creates rooms and forwards match actions.",
   statusLabel: "Match Feed",
   stageFocusEyebrow: "Center Stage",
@@ -251,7 +251,7 @@ const EN_TEXTS = Object.freeze({
   localCyanPlayer: "Cyan player",
   cyanTerritory: "Cyan Territory",
   hexBoardTitle: "Regular Hexagonal Board",
-  hexBoardAriaLabel: "LIFELINE regular hexagonal board",
+  hexBoardAriaLabel: "生命补给线 regular hexagonal board",
   hexVertex: (vertex) => `Vertex ${vertex}`,
   startingPointLabel: "Start",
   localHexHuman: "Choose a human or an AI difficulty for each player. Multiple AIs and all-AI matches are supported. AI hints and training contributions are not available for this board.",
@@ -336,12 +336,12 @@ const EN_TEXTS = Object.freeze({
 });
 
 const ZH_TEXTS = Object.freeze({
-  pageTitle: "生命线",
+  pageTitle: "生命补给线",
   languageLabel: "语言",
   uiStyleLabel: "术语风格",
   uiStyleCasualAction: "生活直观",
   uiStyleAcademicAction: "学术研究",
-  heroTitle: "生命线",
+  heroTitle: "生命补给线",
   heroCopy: "规则计算仍在浏览器内完成，FastAPI 中继服务只负责创建房间、同步状态和转发对局操作。",
   statusLabel: "对局播报",
   stageFocusEyebrow: "核心棋盘",
@@ -561,7 +561,7 @@ const ZH_TEXTS = Object.freeze({
   localCyanPlayer: "青方玩家",
   cyanTerritory: "青方领地",
   hexBoardTitle: "正六边形棋盘",
-  hexBoardAriaLabel: "生命线正六边形棋盘",
+  hexBoardAriaLabel: "生命补给线正六边形棋盘",
   hexVertex: (vertex) => `顶点 ${vertex}`,
   startingPointLabel: "起点",
   localHexHuman: "每位玩家都可选择人类或不同难度的AI，支持一人对战多个AI，也支持全AI对战；暂不提供AI提示与训练数据贡献。",

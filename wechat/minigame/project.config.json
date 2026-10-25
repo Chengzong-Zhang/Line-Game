@@ -1,5 +1,5 @@
 {
-  "description": "LIFELINE 微信小游戏：同源规则、独立平台界面",
+  "description": "生命补给线：原创连线圈地策略游戏",
   "projectname": "lifeline-wechat",
   "compileType": "game",
   "miniprogramRoot": "dist/",

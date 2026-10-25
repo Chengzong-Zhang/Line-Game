@@ -1,5 +1,5 @@
-import { localPlayerChoices, MULTIPLAYER_ULTIMATE_AVAILABLE, usesGenericBoardAI, normalizeLocalPlayers } from "./LocalAIModes.js?v=20261025-unified1";
-import { RESEARCH_FAMILIES, TRANSFER_SEEDS } from "./ResearchAIOptions.js?v=20261025-unified1";
+import { localPlayerChoices, MULTIPLAYER_ULTIMATE_AVAILABLE, usesGenericBoardAI, normalizeLocalPlayers } from "./LocalAIModes.js?v=20261025-ai1";
+import { RESEARCH_FAMILIES, TRANSFER_SEEDS } from "./ResearchAIOptions.js?v=20261025-ai1";
 
 export default {
   name: "LocalPlayerSetup",

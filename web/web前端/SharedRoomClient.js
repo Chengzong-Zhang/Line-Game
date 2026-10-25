@@ -1,5 +1,5 @@
-import GameEngine from "./GameEngine.js?v=20261025-unified1";
-import { canonicalize, serializeRuleState } from "./ReplayCodec.js?v=20261025-unified1";
+import GameEngine from "./GameEngine.js?v=20261025-ai1";
+import { canonicalize, serializeRuleState } from "./ReplayCodec.js?v=20261025-ai1";
 
 const CODE = /^[A-Z2-9]{8}$/;
 const PENDING = "lifeline-shared-command-v1";

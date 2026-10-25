@@ -126,7 +126,7 @@ export function guideDocument(kind, language) {
   }
   if (kind === 'why-talk') {
     const blocks = parseGuideMarkdown(getGuideMarkdown(kind === 'why-talk' ? 'whyTalk' : 'whyCode', lang));
-    const sections = []; let section = { id: `${kind}-0`, title: lang === 'zh' ? '游戏的趣味' : 'Why LIFELINE?', paragraphs: [] };
+    const sections = []; let section = { id: `${kind}-0`, title: lang === 'zh' ? '游戏的趣味' : 'Why 生命补给线?', paragraphs: [] };
     for (const block of blocks) {
       if (block.type.startsWith('heading')) { if (section.paragraphs.length) sections.push(section); section = { id: `${kind}-${sections.length}`, title: clean(block.text), paragraphs: [] }; }
       else if (block.type === 'codeblock') section.paragraphs.push(block.code);

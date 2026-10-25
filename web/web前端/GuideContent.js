@@ -1,5 +1,5 @@
-import { implementationMarkdown } from "./GuideImplementation.js?v=20261025-unified1";
-import { guideHeadingId, isGuideAnchorId } from "./GuideArticleFormat.js?v=20261025-unified1";
+import { implementationMarkdown } from "./GuideImplementation.js?v=20261025-ai1";
+import { guideHeadingId, isGuideAnchorId } from "./GuideArticleFormat.js?v=20261025-ai1";
 
 const WHY_TALK_ZH = `# Talk：扩张、防守与破绽
 

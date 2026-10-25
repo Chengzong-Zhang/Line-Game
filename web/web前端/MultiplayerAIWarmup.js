@@ -37,7 +37,7 @@ export class MultiplayerWarmupSession {
   }
 }
 
-export function createMultiplayerWarmupLoader(importRuntime = () => import("./MultiplayerRuntime.js?v=20261025-unified1")) {
+export function createMultiplayerWarmupLoader(importRuntime = () => import("./MultiplayerRuntime.js?v=20261025-ai1")) {
   const pending = new Map();
   return message => {
     const context = contextOf(message?.context);

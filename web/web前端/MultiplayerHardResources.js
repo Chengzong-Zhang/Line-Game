@@ -1,5 +1,5 @@
-import { createHardRuntimeV2 } from "./MultiplayerHardRuntime.js?v=20261025-unified1";
-import { threePlayerModelIdForBoard } from "./ThreePlayerSearchOptions.js?v=20261025-unified1";
+import { createHardRuntimeV2 } from "./MultiplayerHardRuntime.js?v=20261025-ai1";
+import { threePlayerModelIdForBoard } from "./ThreePlayerSearchOptions.js?v=20261025-ai1";
 
 export const HARD_MODEL_ID = "multiplayer-hard-v1";
 const prepared = new Map();
@@ -19,14 +19,14 @@ export async function prepareHardResources(source) {
   if (!reused) {
     const promise = (async () => {
       if (playerCount === 3) {
-        const { loadThreePlayerRuntime } = await import("./ThreePlayerRuntime.js?v=20261025-unified1");
+        const { loadThreePlayerRuntime } = await import("./ThreePlayerRuntime.js?v=20261025-ai1");
         const id = threePlayerModelIdForBoard(gridSize);
         const runtime = await loadThreePlayerRuntime(id, context);
         if (runtime.modelInfo.id !== id) throw new Error("Three-player resource identity changed");
         return { policySpec: runtime.ai.base ? runtime.ai.spec : runtime.ai.model.spec,
           modelInfo: { id: runtime.modelInfo.id } };
       }
-      const { loadHexPlayerModel } = await import("./HexPlayerAI.js?v=20261025-unified1");
+      const { loadHexPlayerModel } = await import("./HexPlayerAI.js?v=20261025-ai1");
       const model = await loadHexPlayerModel();
       if (model.spec.id !== "hex-player-policy-v1") throw new Error("Hex resource identity changed");
       return { policySpec: model.spec, modelInfo: { id: model.spec.id } };

@@ -1,5 +1,5 @@
-import { getBoardPositions, PLAYER_ORDER, resolveInitialPositions } from "./GameEngine.js?v=20261025-unified1";
-import { randomInitialPositions, STARTING_POINT_MODES } from "./StartingPoints.js?v=20261025-unified1";
+import { getBoardPositions, PLAYER_ORDER, resolveInitialPositions } from "./GameEngine.js?v=20261025-ai1";
+import { randomInitialPositions, STARTING_POINT_MODES } from "./StartingPoints.js?v=20261025-ai1";
 
 const COLORS = ["#2473bd", "#cc4852", "#9654b5", "#368655", "#d87825", "#168d9c"];
 

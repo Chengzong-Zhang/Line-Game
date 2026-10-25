@@ -1,3 +1,4 @@
+import { TEXT } from './i18n.js';
 import { createAnonymousContributionRequest } from './contribution-transport.js';
 import { avatarPlatform } from './avatar-platform.js';
 import { userInfoPlatform } from './user-info-platform.js';
@@ -66,8 +67,8 @@ export function createWxPlatform(api) {
       return () => { if (listening) { listening = false; api.offNetworkStatusChange(handler); } };
     },
     frame: (fn) => requestAnimationFrame(fn),
-    confirm: async (content) => Boolean((await modal({ title: 'LIFELINE', content })).confirm),
-    message: (content) => modal({ title: 'LIFELINE', content, showCancel: false }),
+    confirm: async (content) => Boolean((await modal({ title: TEXT.zh.title, content })).confirm),
+    message: (content) => modal({ title: TEXT.zh.title, content, showCancel: false }),
     choose: async (itemList, { previousLabel = 'Previous', nextLabel = 'Next', isCurrent = () => true } = {}) => {
       if (!Array.isArray(itemList) || !itemList.length) return -1;
       const items = itemList.slice(), pageSize = items.length > 6 ? 4 : 6;

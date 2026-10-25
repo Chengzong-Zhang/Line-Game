@@ -1,5 +1,5 @@
-import { GameEngine } from "./GameEngine.js?v=20261025-unified1";
-import { deserializeEngineEdges } from "./AIStateProtocol.js?v=20261025-unified1";
+import { GameEngine } from "./GameEngine.js?v=20261025-ai1";
+import { deserializeEngineEdges } from "./AIStateProtocol.js?v=20261025-ai1";
 
 function cloneTerritories(engine, players = engine.activePlayers) {
   return Object.fromEntries(

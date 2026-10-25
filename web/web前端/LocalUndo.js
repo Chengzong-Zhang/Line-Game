@@ -1,4 +1,4 @@
-import GameEngine from "./GameEngine.js?v=20261025-unified1";
+import GameEngine from "./GameEngine.js?v=20261025-ai1";
 
 // Ask the rule engine for actors: automatic skips can change the turn order.
 const COLORS = ["BLACK", "WHITE", "PURPLE", "GREEN", "ORANGE", "CYAN"];

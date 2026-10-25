@@ -202,7 +202,7 @@ export async function prepareCandidate({
   // Only public, relevant project settings enter the import directory. Tool-local
   // editor settings and project.private.config.json are deliberately not copied.
   const project = {
-    description: 'LIFELINE 核心体验候选', projectname: 'lifeline-wechat', compileType: 'game', miniprogramRoot: 'dist/',
+    description: '生命补给线：原创连线圈地策略游戏', projectname: 'lifeline-wechat', compileType: 'game', miniprogramRoot: 'dist/',
     appid: before.project.appid, libVersion: before.project.libVersion,
     setting: { es6: false, minified: false, urlCheck: true, postcss: false, enhance: false },
     packOptions: { ignore: [], include: [] }, isGameTourist: false,
@@ -218,9 +218,7 @@ export async function prepareCandidate({
     importDirectory: 'project', files, sourceHashes: before.inputHashes,
     reproducibility: 'Fresh isolated rebuild matches every existing dist file, including 17 verified model assets, byte for byte; test evidence is bound separately',
     runtime: { node: process.version, platform: process.platform, arch: process.arch },
-    uploadDescription: online
-      ? '同步最新防守、主动切断和PASS修复；原生Worker新增唯一终局获胜跳过预检。保留V3领土、四舱、头像、起点标记、悔棋复盘和好友联机；未做本版真机验收。'
-      : '新版领土将未闭合的己方节点和线点计分；加强各玩家初始点标记，保留四舱、29项兼容AI、悔棋、复盘和100份棋谱。本包关闭联机，可免登录体验；未做本版真机验收。',
+    uploadDescription: '新增网页和微信互通房间AI、双人网页联机AI及分散随机起点；保留生命补给线名称、V3规则、悔棋与现有模型。',
     acceptance: { nativeCandidateImport: 'NOT_RUN', physicalDevice: 'NOT_RUN',
       accountPermissions: 'NOT_VERIFIED', serviceConnectivity: 'NOT_VERIFIED',
       actualWechatLogin: 'NOT_RUN', crossPlatformDeviceMatch: 'NOT_RUN',
@@ -228,7 +226,7 @@ export async function prepareCandidate({
   };
   await fs.writeFile(path.join(directory, 'candidate.json'), `${JSON.stringify(receipt, null, 2)}\n`, { flag: 'wx' });
   await fs.writeFile(path.join(directory, '导入说明.txt'),
-    `LIFELINE 核心体验候选 ${receipt.version}\n\n微信开发者工具选择“小游戏”，导入本文件旁的 project 文件夹。\n` +
+    `生命补给线 核心体验候选 ${receipt.version}\n\n微信开发者工具选择“小游戏”，导入本文件旁的 project 文件夹。\n` +
     `工程已配置现有 AppID 和基础库 ${receipt.baseLibrary}；AppSecret 只能在服务器配置，不能放入小游戏包。\n` +
     (online ? `联机服务地址：${receipt.config.apiBase}。请配置对应的 request/socket 合法域名；生成候选没有验证服务或微信登录。\n`
       : '当前为离线候选，不需要配置联机服务即可玩本地对局。\n') +

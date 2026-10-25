@@ -1,8 +1,8 @@
 // Bundled together with the unchanged current AIWorker. Explicit queuing also
 // handles messages delivered before its asynchronous module installs onmessage.
-import { HARD_MODEL_ID, prepareHardResources, supportsNativeHardContext } from "./MultiplayerHardResources.js?v=20261025-unified1";
-export { prepareHardResources, loadNativeHardRuntime } from "./MultiplayerHardResources.js?v=20261025-unified1";
-export { loadMultiplayerRuntime } from "./MultiplayerHardWorkerRuntime.js?v=20261025-unified1";
+import { HARD_MODEL_ID, prepareHardResources, supportsNativeHardContext } from "./MultiplayerHardResources.js?v=20261025-ai1";
+export { prepareHardResources, loadNativeHardRuntime } from "./MultiplayerHardResources.js?v=20261025-ai1";
+export { loadMultiplayerRuntime } from "./MultiplayerHardWorkerRuntime.js?v=20261025-ai1";
 const pending = [], requests = new Map();
 const post = self.postMessage.bind(self), bootstrapEnteredMs = performance.now();
 let originalHandler = null;
@@ -41,7 +41,7 @@ self.postMessage = (message, ...rest) => {
   return post({ ...message, startupStats }, ...rest);
 };
 
-await import("./AIWorker.js?v=20261025-unified1");
+await import("./AIWorker.js?v=20261025-ai1");
 originalHandler = self.onmessage;
 if (typeof originalHandler !== "function") throw new Error("AIWorker message handler was not installed");
 self.onmessage = null;

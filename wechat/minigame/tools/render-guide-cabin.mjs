@@ -44,7 +44,7 @@ for (const [language, width, height, safeTop] of [['zh', 390, 844, 88], ['en', 3
   function clear() {
     buttons = []; ctx.setTransform(2, 0, 0, 2, 0, 0);
     ctx.fillStyle = '#f4f3e9'; ctx.fillRect(0, 0, width, height);
-    text('LIFELINE', 24, safeTop + 28, 24, '#244d3d', 'left', 'bold');
+    text('生命补给线', 24, safeTop + 28, 24, '#244d3d', 'left', 'bold');
   }
   const save = async name => {
     const filename = `${language}-${name}.png`;

@@ -1,9 +1,9 @@
-import { installNativeEdgeGeometry } from "./MultiplayerNativeGeometry.js?v=20261025-unified1";
+import { installNativeEdgeGeometry } from "./MultiplayerNativeGeometry.js?v=20261025-ai1";
 // Full legal-action paranoid minimax. Only alpha/beta bounds prune branches;
 // elapsed time ends an iteration, never masquerades as an equivalent cutoff.
-import { GameEngine } from "./GameEngine.js?v=20261025-unified1";
-import { saveState, restoreState } from "./AIEngine.js?v=20261025-unified1";
-import { evaluateReplyResilience } from "./MultiplayerHardValue.js?v=20261025-unified1";
+import { GameEngine } from "./GameEngine.js?v=20261025-ai1";
+import { saveState, restoreState } from "./AIEngine.js?v=20261025-ai1";
+import { evaluateReplyResilience } from "./MultiplayerHardValue.js?v=20261025-ai1";
 
 const order = (a, b) => a.point===null ? (b.point===null?0:1) : b.point===null ? -1 : a.point[1] - b.point[1] || a.point[0] - b.point[0];
 const key = p => p===null ? "PASS" : p.join(",");

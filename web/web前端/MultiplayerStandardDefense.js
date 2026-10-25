@@ -1,4 +1,4 @@
-import { probeMultiplayerReplyResilience } from "./MultiplayerSearch.js?v=20261025-unified1";
+import { probeMultiplayerReplyResilience } from "./MultiplayerSearch.js?v=20261025-ai1";
 
 export const STANDARD_DEFENSE_GATE = Object.freeze({
   shortlistWidth: 4,

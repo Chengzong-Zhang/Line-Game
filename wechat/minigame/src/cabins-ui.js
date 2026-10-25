@@ -93,7 +93,7 @@ export function drawBattleCabin(ui, area, state, actions) {
   if (state.account) {
     ui.rect(area.x, y, area.width, 72, 14, '#f2eadc');
     actions.avatar?.(area.x + 12, y + 10, 50);
-    y += wrap(state.account.displayName || (en ? 'LIFELINE player' : '生命线玩家'), area.x + 76, y + 23, area.width - 90, 17, CABIN_COLORS.ink, 2) + 55;
+    y += wrap(state.account.displayName || (en ? 'Player' : '玩家'), area.x + 76, y + 23, area.width - 90, 17, CABIN_COLORS.ink, 2) + 55;
     pair(['profile-name', en ? 'Edit nickname' : '修改昵称', actions.editName, state.busy],
       ['profile-avatar', en ? 'Choose avatar' : '选择头像', actions.editAvatar, state.busy]);
     pair(['profile-wechat', en ? 'Use WeChat profile' : '导入微信昵称头像', actions.importWechat, state.busy],

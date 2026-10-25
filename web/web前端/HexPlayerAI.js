@@ -1,4 +1,4 @@
-import { restoreState, saveState } from "./AIEngine.js?v=20261025-unified1";
+import { restoreState, saveState } from "./AIEngine.js?v=20261025-ai1";
 
 export const HEX_PLAYER_MODEL_ID = "hex-player-policy-v1";
 export const HEX_PLAYER_FEATURES = Object.freeze([

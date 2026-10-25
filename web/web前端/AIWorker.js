@@ -1,6 +1,6 @@
-import { GameEngine } from "./GameEngine.js?v=20261025-unified1";
-import { deserializeEngineEdges } from "./AIStateProtocol.js?v=20261025-unified1";
-import { GreedyAI, MCTSAI, MinimaxAI, restoreState, saveState } from "./AIEngine.js?v=20261025-unified1";
+import { GameEngine } from "./GameEngine.js?v=20261025-ai1";
+import { deserializeEngineEdges } from "./AIStateProtocol.js?v=20261025-ai1";
+import { GreedyAI, MCTSAI, MinimaxAI, restoreState, saveState } from "./AIEngine.js?v=20261025-ai1";
 
 const TERMINAL_WINNING_PASS_WINDOW_MS = 60;
 
@@ -45,7 +45,7 @@ function canonicalTerminalWinningPass(engine, player, now = () => performance.no
 self.onmessage = async (event) => {
   if (event.data?.type === "WARMUP") {
     try {
-      const { warmMultiplayerResources } = await import("./MultiplayerAIWarmup.js?v=20261025-unified1");
+      const { warmMultiplayerResources } = await import("./MultiplayerAIWarmup.js?v=20261025-ai1");
       await warmMultiplayerResources(event.data);
     } catch (_) {
       // Resource failure is speculative, never a formal result or request error.
@@ -120,7 +120,7 @@ self.onmessage = async (event) => {
       });
     } else if (strategy === "neural-puct") {
       if (engine.playerCount !== 2) throw new Error("模型不支持此棋盘/规则/玩家数。");
-      const { loadResearchModel, NeuralPUCTAI, supportsResearchInference } = await import("./ResearchAI.js?v=20261025-unified1");
+      const { loadResearchModel, NeuralPUCTAI, supportsResearchInference } = await import("./ResearchAI.js?v=20261025-ai1");
       const model = await loadResearchModel(event.data?.modelId);
       if (!supportsResearchInference(model.spec, engine)) throw new Error("模型不支持此棋盘/规则/玩家数。");
       modelInfo = { id: model.spec.id, seed: model.spec.seed ?? 20260825,
@@ -133,22 +133,22 @@ self.onmessage = async (event) => {
       });
     } else if (strategy === "model-free") {
       if (engine.playerCount !== 2) throw new Error("model-free 网页模型仅支持双人局面。");
-      const { loadModelFreeModel, ModelFreeAI } = await import("./ModelFreeAI.js?v=20261025-unified1");
+      const { loadModelFreeModel, ModelFreeAI } = await import("./ModelFreeAI.js?v=20261025-ai1");
       const model = await loadModelFreeModel(event.data?.modelId);
       ai = new ModelFreeAI(model);
     } else if (strategy === "multiplayer") {
-      const { loadMultiplayerRuntime } = await import("./MultiplayerRuntime.js?v=20261025-unified1");
+      const { loadMultiplayerRuntime } = await import("./MultiplayerRuntime.js?v=20261025-ai1");
       const runtime = await loadMultiplayerRuntime(event.data?.modelId, engine);
       ai = runtime.ai;
       modelInfo = runtime.modelInfo;
       if (modelInfo?.id !== event.data?.modelId) throw new Error("多人 AI 模型身份校验失败。");
     } else if (strategy === "three-player") {
-      const { loadThreePlayerRuntime } = await import("./ThreePlayerRuntime.js?v=20261025-unified1");
+      const { loadThreePlayerRuntime } = await import("./ThreePlayerRuntime.js?v=20261025-ai1");
       const runtime = await loadThreePlayerRuntime(event.data?.modelId, engine);
       ai = runtime.ai;
       modelInfo = runtime.modelInfo;
     } else if (strategy === "hex-player") {
-      const { loadHexPlayerRuntime } = await import("./HexPlayerRuntime.js?v=20261025-unified1");
+      const { loadHexPlayerRuntime } = await import("./HexPlayerRuntime.js?v=20261025-ai1");
       const runtime = await loadHexPlayerRuntime(event.data?.modelId, engine);
       ai = runtime.ai;
       modelInfo = runtime.modelInfo;
