@@ -83,7 +83,7 @@ class SharedRoomSeatTests(unittest.IsolatedAsyncioTestCase):
         room = await self.create(settings(6, ("BLACK", "PURPLE", "CYAN")))
         self.assertEqual(room["bots"], ["WHITE", "GREEN", "ORANGE"])
         self.assertEqual(room["settings"]["botCount"], 3)
-        self.assertEqual(set(room["scores"]), set(wx.PLAYER_COLORS))
+        self.assertEqual(set(room["scores"]), set(wx.PLAYER_COLORS[:6]))
         self.assertEqual(room["members"], {"BLACK": True, "WHITE": True, "PURPLE": False,
                                            "GREEN": True, "ORANGE": True, "CYAN": False})
         self.assertEqual((await self.join(self.peer, room))["player"], "PURPLE")
@@ -201,7 +201,7 @@ class SharedRoomSeatTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(after["seq"], 1)
         self.assertEqual(after["actions"][0]["player"], "WHITE")
         self.assertEqual(after["state"]["currentPlayer"], "PURPLE")
-        self.assertEqual(set(after["state"]["scores"]), set(wx.PLAYER_COLORS))
+        self.assertEqual(set(after["state"]["scores"]), set(wx.PLAYER_COLORS[:6]))
 
     async def test_ai_failure_stops_retry_loop_and_fallback_is_visible_after_explicit_retry(self):
         room = await self.start_pair(settings(startPlayer="WHITE"))

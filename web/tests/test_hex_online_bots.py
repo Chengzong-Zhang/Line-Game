@@ -108,7 +108,7 @@ class HexOnlineBotTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(joined["yourColor"], "BLACK")
         self.assertEqual(joined["matchState"]["actions"], room.actions)
         await self.settle(room)
-        self.assertEqual([a["color"] for a in room.actions], list(server.PLAYER_COLORS))
+        self.assertEqual([a["color"] for a in room.actions], list(server.PLAYER_COLORS[:6]))
 
     async def test_reset_rejects_stale_work_and_rearms_all_five_bots(self):
         room, humans = await self.create(6, 5)

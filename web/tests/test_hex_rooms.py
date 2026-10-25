@@ -106,7 +106,7 @@ class HexRoomTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(normalized["startPlayer"], server.PLAYER_COLORS[count - 1])
             if count >= 4:
                 self.assertEqual(normalized.get("botCount", 0), 2)
-        for count in (1, 7, True, 4.5):
+        for count in (1, 16, True, 4.5):
             self.assertEqual(self.manager._normalize_room_settings({"playerCount": count})["playerCount"], 2)
 
 
