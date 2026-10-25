@@ -2,7 +2,7 @@
 
 摘要：本报告按数学、算法、AI 三大章组织。重点是数据结构、执行顺序、伪代码、源码摘录、复杂度与实现边界；让读者能从一条规则追踪到实际函数及返回值。
 
-2026-10-23 源码核对版。编号伪代码是控制流说明，标明来源的摘录才是原始代码。模型训练、导出推理和 Web/小程序可用性分别说明；配套数学版给出定义、命题与证明。
+2026-10-25 源码核对版。编号伪代码是控制流说明，标明来源的摘录才是原始代码。终局奖励下的线性继续训练、历史神经模型与固定深度 Minimax 分别说明；训练、推理、限定准入和 Web/小程序发布由各自收据确认。
 
 阅读路径：第一章建立符号和完整状态，第二章讨论规则算法，第三章讨论 AI。目录可直接定位各章与小节。territory-v3 始终计算己方占点，并逐个加入与外界隔绝且无敌方点的空腔；旧棋谱保留原规则版本。
 
@@ -358,6 +358,12 @@ _computeOwnedWallArea 把己方节点与线点标成墙，并调用 _getCoveredP
 
 对固定有限棋盘，记录历史的合法落子不能无限重复同一状态键；连续跳过又有结算规则。这个终止机制并不意味着 AI 已经求解游戏，也不能把旧文中“玩家无法跳过，因此必然被迫落子”的论证沿用到当前规则。
 
+2026-10-25 的产品选步取消了“跳过立即独胜就直接返回 PASS”的捷径。共享 AIPassDiscipline 先保留原策略；原策略首选 PASS 时，才在隔离的完整状态中寻找可保持己方节点、覆盖和起点连通的增长落点，并枚举实际对手的全部合法落子与 PASS，直到原行动方再次行动或原生终局。若原 PASS 会独胜，替代落点还须在这个窗口内保持领先。
+
+该检查默认最多 200 毫秒、10000 个节点，只在完整证书成立时替换 PASS；开局还允许节点增长且正式 area 不减的完整发展证书。预算不足或没有证书时保留真实策略 PASS，无合法落点按引擎规则跳过，策略完全无结果则报告可重试错误。一轮应对证书只证明所检查的一轮，也不是训练所需的深层 Minimax 标签。
+
+V2 对不会立即结算的真实策略 PASS 另加起点保护区证明：落子后保留全部原节点和覆盖，所有己方节点沿完好的逻辑边连回起点，全部己方线点位于起点相邻保护区，且占据格点数严格超过落子前的正式 area。对手既不能占己方节点，也不能落在受保护线点，因此在自己下次实际行动、认输或原生终局前，任意对手行动序列都不能切断这些棋形。即使自己被自动跳过，也可用此证书继续安全扩张；它不证明未来分差、胜率或整体最优。会立即结算的 PASS 继续保留原有领先检查。
+
 ```text
 01 PASS: increment consecutiveSkips
 02 If skips >= remaining-player count: set gameOver
@@ -368,7 +374,7 @@ _computeOwnedWallArea 把己方节点与线点标成墙，并调用 _getCoveredP
 07 Otherwise at settlement: recompute exact area and compare survivors
 ```
 
-性能优化可以延后非终局着色，但终局读取比分前必须完成精确更新。神经 PUCT 在模拟终局显式调用规范更新；旧版 Minimax 的 F 分支不具备这个精确胜负语义，不能把二者的输出统一标成“胜率”。
+性能优化可以延后非终局着色，但终局读取比分前必须完成精确更新。当前 Minimax 的真实终局分支与神经 PUCT 都按规范 area 判胜负；两者的非终局估值、访问次数或网络先验仍不能统一标成“胜率”。
 
 源码定位：web/web前端/GameEngine.js → skipTurn, resignPlayer, _checkAndAutoSkip, getWinner。
 
@@ -408,11 +414,11 @@ fastTerritoryBFS 从己方全部节点和线点向外扩张，敌方元素作为
 
 ### 3.2 Minimax 控制流
 
-Minimax 把“我选择最好的一步，对手选择对我最不利的一步”递归展开。以根玩家为评价视角：叶子返回 F(s)；当前行动方是根玩家时取所有被搜索后继的最大值，轮到对手时取最小值。界面中的深度 2、3、4 指搜索的行动层数，不是每一方各走那么多轮。
+Minimax 把“我选择最好的一步，对手选择对我最不利的一步”递归展开。以根玩家为评价视角：当前行动方是根玩家时取所有被搜索后继的最大值，轮到对手时取最小值。Web 与小程序的 Minimax 简单、中等、困难分别为深度 2、3、4，指行动层数而非每方轮数；它是固定深度搜索，没有多人困难路径的 650 毫秒总预算。比较速度应固定局面、尺寸和实际深度。
 
 α 保存 MAX 已有的下界，β 保存 MIN 已有的上界；当 β≤α，继续展开这条分支已不可能改变祖先的选择，可以剪掉。α–β 在相同候选树和评价下保留 Minimax 的决策，但每层最多 20 个排序候选本身是另一种截断，会漏掉排序之外的合法招法。
 
-每个分支先保存 grid、edges、historyHashes、行动方、认输、跳过、终局、修订号和领土缓存，再通过 GameEngine.playMove 推进，随后恢复。自动跳过可能让同一玩家连续获得行动，MAX/MIN 因而由 currentPlayer 决定。深度耗尽和当前旧版 Minimax 的终局分支都使用启发式 F；不能把搜索返回值当作精确胜负证明。
+每个分支先保存 grid、edges、historyHashes、行动方、认输、跳过、终局、修订号和领土缓存，再通过 GameEngine.playMove 或 skipTurn 推进，随后恢复。自动跳过可能让同一玩家连续获得行动，MAX/MIN 因而由 currentPlayer 决定。非终局深度耗尽使用 Minimax 的启发式估值；真实终局按正式 area 判胜、平、负，返回 +1000000、0、−1000000。有限候选与有限深度的非终局结果仍不是整局胜负证明。
 
 当前双人 Minimax 把 PASS 与合法落点一起作为根层和递归层候选，并通过 GameEngine.skipTurn 推进；因此即使有合法落点也可主动跳过。PASS 是否入选仍取决于同一启发式和有限深度搜索，不等于已经求解终局。多人困难搜索另有完整下一位对手 MOVE+PASS 回复包与时间门，两套实现的证据范围需要分别说明。
 
@@ -420,13 +426,13 @@ Minimax 把“我选择最好的一步，对手选择对我最不利的一步”
 
 ```text
 01 SEARCH(S,d,alpha,beta,root):
-02   If d=0 OR gameOver: return F(S,root)
-03   Get real legal placements; handle no-placement pass
-04   Retain ordered candidates (at most 20)
+02   If gameOver: return exact area win/draw/loss utility
+03   If d=0: return the nonterminal Minimax heuristic
+04   Get legal placements; retain <=20 ordered placements and append PASS
 05   maximizing <- (S.currentPlayer == root)
 06   value <- -infinity if maximizing, otherwise +infinity
-07   For each candidate:
-08     saved <- saveState; apply the actual move
+07   For each placement or PASS:
+08     saved <- saveState; apply playMove or skipTurn
 09     child <- SEARCH(successor,d-1,alpha,beta,root)
 10     restoreState(saved)
 11     Update value and alpha (MAX) or beta (MIN)
@@ -440,7 +446,7 @@ Minimax 把“我选择最好的一步，对手选择对我最不利的一步”
 
 伪代码省略非法候选返回分支与缓存字段，不是新求解器。正常分支恢复与 finally 的实际覆盖范围应按源码阅读；不能仅凭伪代码推断任意中途异常都有完整事务回滚。全候选枚举成本仍会发生在取前 20 个之前，故“只搜 20 个”不等于“只试走 20 个”。
 
-源码定位：web/web前端/AIEngine.js → MinimaxAI.minimax, MinimaxAI.getTopMoves, applyMoveForAI。
+源码定位：web/web前端/AIEngine.js → MinimaxAI.minimax, MinimaxAI.getTopMoves, applyMinimaxAction。
 
 ### 3.3 普通 MCTS
 
@@ -534,7 +540,7 @@ Topology GNN 使用三类关系：格点邻接、己方逻辑连接、敌方逻�
 
 DQN 导出的动作头输出 Q 值；PPO、SAC、GAIL、GAN 导出策略 logits。当前推理器用真实引擎的合法点索引过滤，再做稳定 softmax 并排序，不在每次落子时执行反向传播。DQN 的 softmax(Q) 只是排序用的先验，不能解释为 Q 值天然就是概率。PPO、GAIL、GAN 资产还可带价值头，但这条直接选步路径没有用它做树搜索。
 
-实际动作适配还有一个细节：ModelFreeAI 的 softmax 分母包含该局面的 PASS 槽，但返回的候选列表只保留落子点。因此当前只要存在落点，它就不会因为 PASS 概率最高而主动跳过；返回各落子 prior 的和也可能小于 1。没有落点时由外层处理跳过。这里如实记录现有实现，不把理论算法的一般能力写成菜单里的实际行为。
+当前 ModelFreeAI 在同一合法 softmax 中保留落子与显式 PASS 槽，因此有合法落点时也可能首选主动 PASS。完整动作分布的 prior 和为 1，截取前几个候选后不保证仍为 1。产品 Worker 随后应用共享 PASS 检查；该运行时修正没有重训这些双人神经权重。
 
 ```text
 01 Encode <=120 triangular points into 7 features each; pad missing points
@@ -542,11 +548,11 @@ DQN 导出的动作头输出 Q 值；PPO、SAC、GAIL、GAN 导出策略 logits�
 03 ReLU(W1*x+b1) -> ReLU(W2*h+b2) -> 121 action outputs
 04 DQN reads Q-head weights; other families read policy-head weights
 05 Softmax over legal indices including the PASS slot
-06 Filter returned candidates to placements; sort by prior
-07 If there is no placement, outer control handles passing
+06 Return explicit placement and PASS candidates; sort by prior
+07 Product Worker applies the shared bounded PASS-discipline check
 ```
 
-源码摘录：过滤发生在 softmax 分母计算之后，所以当前返回的落子 prior 不一定和为 1。这是动作适配行为，不是数学 softmax 失效。
+源码摘录：真实合法落子与 PASS 使用同一 softmax 分母，返回显式动作类型；完整分布归一化，截取 top-N 后无需重新归一化。共享检查不改写这些模型的神经权重。
 
 ```javascript
     return { priors: legal.map((index, order) => index < engine.validPositions.length
@@ -557,6 +563,12 @@ DQN 导出的动作头输出 Q 值；PPO、SAC、GAIL、GAN 导出策略 logits�
 源码定位：web/web前端/ModelFreeAI.js → encode, forwardBody, logits, evaluate, ModelFreeAI.getTopMoves。
 
 ### 3.7 训练源码与损失
+
+本次继续训练的对象是四个既有线性 parent：easy、three-v4 的线性基准、three-v1、hex-v1。继承的 16 个系数先除以原 temperature，再增加一个从 0 开始的 PASS 系数；新策略温度为 1。CNN、GNN 以及 DQN/PPO/SAC/GAIL/GAN 的神经权重不属于这次重训，固定深度 Minimax 也不是训练得到的模型。
+
+新协议仅在原生自然终局给予奖励 R=sign(己方面积−最大对手面积)+0.1×面积差/总点数+0.01×己方面积/总点数，折扣系数 gamma=1；所有非终局奖励为 0，没有中间面积增量或时长奖励。截断对局不产生终局回报或参数更新。梯度样本须有实际完成至少三层、覆盖两轮真实对手行动且全部合法根含 PASS 的精确 Minimax 分析；它只决定固定防守掩码与样本资格，不替代环境奖励。
+
+候选继续使用原生规则与完整历史；只有完成分析且防守掩码保留至少两个动作的选定状态才参与策略梯度，因此不能声称覆盖全部状态或尺寸。新覆盖仅用于 territory-v3，旧 v1/v2 证据与存档不改写。easy、three-v1、hex 的新 PASS 系数参与排序；three-v4 与困难路径保留原搜索并使用新落子系数，不把线性 PASS 分数混同于搜索价值。实际训练、独立评估、限定准入与发布分别由对应收据确认。
 
 研究训练入口与 Web 推理入口分开。以下是当前可阅读的训练源码，不单凭文件同名推断现行二进制权重由这份源码生成；资产来源仍需 manifest/训练收据。研究环境与 Web 的规则和自动跳过语义也须另行比对。
 
@@ -587,7 +599,7 @@ GAIL/GAN：train_imitation_adversarial.py 从 greedy expert 收集数据；两�
             g_loss = -(probs * torch.log(rewards.clamp_min(1e-6))).sum(dim=1).mean()
 ```
 
-这里的负号很关键：固定 D 时，最小化 −log σ(−D) 偏向较小 D，而专家正标签训练偏向较大 D。因此当前循环不能直接享有标准 GAIL 的模仿保证；两个名称也不等于两种独立算法。脚本在固定专家状态批次上更新，并非完整在线占用分布匹配；训练采样未在该循环应用合法掩码，Web 推理另做真实合法过滤。上述是源码行为说明，本次没有修订训练、重训或替换模型。
+这里的负号很关键：固定 D 时，最小化 −log σ(−D) 偏向较小 D，而专家正标签训练偏向较大 D。因此当前循环不能直接享有标准 GAIL 的模仿保证；两个名称也不等于两种独立算法。脚本在固定专家状态批次上更新，并非完整在线占用分布匹配；训练采样未在该循环应用合法掩码，Web 推理另做真实合法过滤。这些历史神经训练循环仅作源码说明；本次线性继续训练不修改这些循环或神经权重。
 
 ### 3.8 多人线性策略
 

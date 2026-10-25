@@ -1,7 +1,8 @@
-import { multiplayerClock as performance } from "./MultiplayerClock.js";
+import { multiplayerClock as performance } from './MultiplayerClock.js';
 import { portableClone as structuredClone } from './PortableClone.js';
-import { createHardRuntimeV2 } from "./MultiplayerHardRuntime.js?v=20261023-hard2";
-import { threePlayerModelIdForBoard } from "./ThreePlayerSearchOptions.js";
+import { createHardRuntimeV2 } from "./MultiplayerHardRuntime.js?v=20261025-defense15";
+import { threePlayerModelIdForBoard } from "./ThreePlayerSearchOptions.js?v=20261025-defense15";
+import { trainedPolicySpec, trainedPolicyInfo } from "./PassTrainedPolicies.js";
 
 export const HARD_MODEL_ID = "multiplayer-hard-v1";
 const prepared = new Map();
@@ -21,15 +22,16 @@ export async function prepareHardResources(source) {
   if (!reused) {
     const promise = (async () => {
       if (playerCount === 3) {
-        const { loadThreePlayerRuntime } = await import("./ThreePlayerRuntime.js");
+        const { loadThreePlayerRuntime } = await import("./ThreePlayerRuntime.js?v=20261025-defense15");
         const id = threePlayerModelIdForBoard(gridSize);
         const runtime = await loadThreePlayerRuntime(id, context);
         if (runtime.modelInfo.id !== id) throw new Error("Three-player resource identity changed");
         return { policySpec: runtime.ai.base ? runtime.ai.spec : runtime.ai.model.spec,
           modelInfo: { id: runtime.modelInfo.id } };
       }
-      const { loadHexPlayerModel } = await import("./HexPlayerAI.js");
-      const model = await loadHexPlayerModel();
+      const { loadHexPlayerModel } = await import("./HexPlayerAI.js?v=20261025-defense15");
+      const parent = await loadHexPlayerModel();
+      const model = { ...parent, spec: trainedPolicySpec(parent.spec, "hex-v1", rulesVersion) };
       if (model.spec.id !== "hex-player-policy-v1") throw new Error("Hex resource identity changed");
       return { policySpec: model.spec, modelInfo: { id: model.spec.id } };
     })().catch(error => {
@@ -48,6 +50,10 @@ export async function loadNativeHardRuntime(engine) {
   const loaderEnteredMs = performance.now(), loaded = await prepareHardResources(engine);
   const started = performance.now(), runtime = createHardRuntimeV2(engine, loaded.medium);
   return { ai: runtime.ai, modelInfo: { ...runtime.modelInfo, id: HARD_MODEL_ID,
+    ...trainedPolicyInfo(loaded.medium.policySpec),
+    runtime_uses_learned_pass: false,
+    runtime_uses_trained_placement: Boolean(loaded.medium.policySpec.passDisciplineTraining),
+    runtime_policy: "original-native-hard-search-with-trained-placement-base-and-shared-PASS-guard",
     compatibility: `${engine.rulesVersion} native 3–6 players; size 5–15`,
     startup: { loaderEnteredMs, resourceWaitMs: loaded.resourceWaitMs,
       resourcePromiseReused: loaded.resourcePromiseReused, factoryMs: performance.now() - started,

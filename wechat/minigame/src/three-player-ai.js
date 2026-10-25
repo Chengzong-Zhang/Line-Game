@@ -5,6 +5,8 @@ import payloadV4 from '../../../web/web前端/assets/research-ai/three-player-se
 import { createSupportedThreePlayerModel } from '../../../web/web前端/ThreePlayerModels.js';
 import { ThreePlayerSearchAI } from '../../../web/web前端/ThreePlayerSearchAI.js';
 import { checksum } from './integrity.js';
+import { trainedPolicySpec, trainedPolicyModel } from '../../../web/web前端/PassTrainedPolicies.js';
+import { withLearnedPass } from '../../../web/web前端/LearnedPassPolicy.js';
 
 // Fixed deployed r4 v1 model, SHA-256:
 // 8cd1a2f36267f96b1e32b7749a9cdc785f489ea7ec12e31aee0beb0a72901794.
@@ -16,10 +18,11 @@ export const THREE_PLAYER_MODEL_CHECKSUMS = Object.freeze({
   'three-player-policy-v2': 'sha256:a79a0e10c1ab64e54b5d302123a34c1ffcb61ebabbddc74752f12d27e774152d',
   'three-player-search-v4-round12': 'sha256:b1876e3070cf103a4273c29cf41988aa726b7fec073a92ca4ac285ab03243aee',
 });
-export function createEmbeddedThreePlayerAI(profile = 'three-player-policy-v1') {
+export function createEmbeddedThreePlayerAI(profile = 'three-player-policy-v1', rulesVersion = 'territory-v3') {
   const selected = { 'three-player-policy-v1': payload, 'three-player-policy-v2': payloadV2,
     'three-player-search-v4-round12': payloadV4 }[profile];
   if (!selected || selected.id !== profile || checksum(selected) !== THREE_PLAYER_MODEL_CHECKSUMS[profile]) throw new Error('MODEL_INTEGRITY');
-  if (profile === 'three-player-search-v4-round12') return new ThreePlayerSearchAI(selected);
-  return new ThreePlayerAI(profile === 'three-player-policy-v1' ? createThreePlayerModel(selected) : createSupportedThreePlayerModel(selected));
+  if (profile === 'three-player-search-v4-round12') return new ThreePlayerSearchAI(trainedPolicySpec(selected, 'three-v4', rulesVersion));
+  return withLearnedPass(new ThreePlayerAI(profile === 'three-player-policy-v1'
+    ? trainedPolicyModel(createThreePlayerModel(selected), 'three-v1', rulesVersion) : createSupportedThreePlayerModel(selected)));
 }

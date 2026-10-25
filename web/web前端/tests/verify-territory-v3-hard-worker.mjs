@@ -31,7 +31,7 @@ const context = { rulesVersion: "territory-v3", playerCount: 4, gridSize: 5, boa
 const profile = { strategy: "multiplayer", modelId: "multiplayer-hard-v1" };
 const route = localAIWorkerRoute(context, [profile]);
 assert.equal(route.kind, "native-hard-bundle");
-assert.equal(route.url.searchParams.get("v"), "20261025-room1");
+assert.equal(route.url.searchParams.get("v"), "20261025-terminal-v4");
 assert.equal(route.url.pathname, pathToFileURL(buildReceipt.output.path).pathname);
 
 class CapturedWorker {

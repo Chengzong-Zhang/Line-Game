@@ -1,7 +1,7 @@
 // Selective, v1-anchored local candidate. Runtime promotion is a separate gate.
-import { saveState, restoreState, fastTerritoryBFS } from "./AIEngine.js?v=20261025-defense15";
-import { GameEngine } from "./GameEngine.js?v=20261025-defense15";
-import { HEX_PLAYER_FEATURES, hexPlayerCandidates } from "./HexPlayerAI.js?v=20261025-defense15";
+import { saveState, restoreState, fastTerritoryBFS } from "./AIEngine.js?v=20261025-terminal-v4";
+import { GameEngine } from "./GameEngine.js?v=20261025-terminal-v4";
+import { HEX_PLAYER_FEATURES, hexPlayerCandidates } from "./HexPlayerAI.js?v=20261025-terminal-v4";
 
 const pointOrder = (a,b) => a.point[1]-b.point[1] || a.point[0]-b.point[0];
 const samePoint = (a,b) => a[0]===b[0] && a[1]===b[1];

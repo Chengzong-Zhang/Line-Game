@@ -1,51 +1,12 @@
-import { GameEngine } from "./GameEngine.js?v=20261025-defense15";
-import { deserializeEngineEdges } from "./AIStateProtocol.js?v=20261025-defense15";
-import { GreedyAI, MCTSAI, MinimaxAI, restoreState, saveState } from "./AIEngine.js?v=20261025-defense15";
-
-const TERMINAL_WINNING_PASS_WINDOW_MS = 60;
-
-function canonicalTerminalWinningPass(engine, player, now = () => performance.now()) {
-  try {
-    const started = now();
-    if (!Number.isFinite(started)) return null;
-    const deadline = started + TERMINAL_WINNING_PASS_WINDOW_MS;
-    if (engine.gameOver || engine.currentPlayer !== player) return null;
-    const remaining = engine.activePlayers.filter((candidate) => !engine.resignedPlayers.has(candidate));
-    if (remaining.length < 2 || engine.consecutiveSkips !== remaining.length - 1) return null;
-
-    const isolated = new GameEngine({
-      gridSize: engine.gridSize,
-      playerCount: engine.playerCount,
-      boardShape: engine.boardShape,
-      startPlayer: engine.startPlayer,
-      initialPositions: engine.initialPositions,
-      rulesVersion: engine.rulesVersion,
-      deferTerritoryUpdates: true,
-    });
-    restoreState(isolated, saveState(engine));
-    isolated._isReplayingBatch = true;
-    if (!isolated._hasValidMoves(player)) return null;
-    if (now() >= deadline) return null;
-
-    const result = isolated.skipTurn();
-    if (!result.success || !isolated.gameOver) return null;
-    if (now() >= deadline) return null;
-    GameEngine.prototype._updateTerritories.call(isolated);
-    if (now() >= deadline) return null;
-    const bestArea = Math.max(...remaining.map((candidate) => isolated.cachedTerritories[candidate].area));
-    const winners = remaining.filter((candidate) => isolated.cachedTerritories[candidate].area === bestArea);
-    const winner = isolated.getWinner();
-    if (now() >= deadline || winners.length !== 1 || winners[0] !== player || winner !== player) return null;
-    return { point: null, type: "pass", score: 1_000_000 };
-  } catch (_) {
-    return null;
-  }
-}
+import { GameEngine } from "./GameEngine.js?v=20261025-terminal-v4";
+import { deserializeEngineEdges } from "./AIStateProtocol.js?v=20261025-terminal-v4";
+import { GreedyAI, MCTSAI, MinimaxAI, restoreState } from "./AIEngine.js?v=20261025-terminal-v4";
+import { applyPassDiscipline } from "./AIPassDisciplineV2.js?v=20261025-terminal-v4";
 
 self.onmessage = async (event) => {
   if (event.data?.type === "WARMUP") {
     try {
-      const { warmMultiplayerResources } = await import("./MultiplayerAIWarmup.js?v=20261025-defense15");
+      const { warmMultiplayerResources } = await import("./MultiplayerAIWarmup.js?v=20261025-terminal-v4");
       await warmMultiplayerResources(event.data);
     } catch (_) {
       // Resource failure is speculative, never a formal result or request error.
@@ -120,7 +81,7 @@ self.onmessage = async (event) => {
       });
     } else if (strategy === "neural-puct") {
       if (engine.playerCount !== 2) throw new Error("模型不支持此棋盘/规则/玩家数。");
-      const { loadResearchModel, NeuralPUCTAI, supportsResearchInference } = await import("./ResearchAI.js?v=20261025-defense15");
+      const { loadResearchModel, NeuralPUCTAI, supportsResearchInference } = await import("./ResearchAI.js?v=20261025-terminal-v4");
       const model = await loadResearchModel(event.data?.modelId);
       if (!supportsResearchInference(model.spec, engine)) throw new Error("模型不支持此棋盘/规则/玩家数。");
       modelInfo = { id: model.spec.id, seed: model.spec.seed ?? 20260825,
@@ -133,22 +94,22 @@ self.onmessage = async (event) => {
       });
     } else if (strategy === "model-free") {
       if (engine.playerCount !== 2) throw new Error("model-free 网页模型仅支持双人局面。");
-      const { loadModelFreeModel, ModelFreeAI } = await import("./ModelFreeAI.js?v=20261025-defense15");
+      const { loadModelFreeModel, ModelFreeAI } = await import("./ModelFreeAI.js?v=20261025-terminal-v4");
       const model = await loadModelFreeModel(event.data?.modelId);
       ai = new ModelFreeAI(model);
     } else if (strategy === "multiplayer") {
-      const { loadMultiplayerRuntime } = await import("./MultiplayerRuntime.js?v=20261025-defense15");
+      const { loadMultiplayerRuntime } = await import("./MultiplayerRuntime.js?v=20261025-terminal-v4");
       const runtime = await loadMultiplayerRuntime(event.data?.modelId, engine);
       ai = runtime.ai;
       modelInfo = runtime.modelInfo;
       if (modelInfo?.id !== event.data?.modelId) throw new Error("多人 AI 模型身份校验失败。");
     } else if (strategy === "three-player") {
-      const { loadThreePlayerRuntime } = await import("./ThreePlayerRuntime.js?v=20261025-defense15");
+      const { loadThreePlayerRuntime } = await import("./ThreePlayerRuntime.js?v=20261025-terminal-v4");
       const runtime = await loadThreePlayerRuntime(event.data?.modelId, engine);
       ai = runtime.ai;
       modelInfo = runtime.modelInfo;
     } else if (strategy === "hex-player") {
-      const { loadHexPlayerRuntime } = await import("./HexPlayerRuntime.js?v=20261025-defense15");
+      const { loadHexPlayerRuntime } = await import("./HexPlayerRuntime.js?v=20261025-terminal-v4");
       const runtime = await loadHexPlayerRuntime(event.data?.modelId, engine);
       ai = runtime.ai;
       modelInfo = runtime.modelInfo;
@@ -156,10 +117,6 @@ self.onmessage = async (event) => {
     if (!ai) {
       throw new Error(`Unsupported AI strategy: ${strategy}`);
     }
-    // Resolve a certain terminal PASS before READY. Multiplayer callers start
-    // their decision watchdog at READY, so exact legality/area work must remain
-    // part of loading rather than silently consuming the model's move budget.
-    const exactWinningPass = topN > 0 ? canonicalTerminalWinningPass(engine, aiPlayer) : null;
     if (strategy === "multiplayer") {
       // Loading can include network requests. Start the caller's decision
       // watchdog only once this exact model is ready to compute this position.
@@ -168,9 +125,10 @@ self.onmessage = async (event) => {
         rulesVersion: serializedState.rulesVersion,
         currentPlayer: serializedState.currentPlayer, modelInfo });
     }
-    const moves = exactWinningPass ? [exactWinningPass]
-      : ai.getTopMoves(engine, aiPlayer, topN,
-        strategy === "multiplayer" ? { terminalWinningPassPrechecked: true } : undefined);
+    const ranked = ai.getTopMoves(engine, aiPlayer, topN > 0 ? Math.max(5, topN) : topN,
+      strategy === "multiplayer" ? { passDisciplinePrechecked: true } : undefined);
+    const disciplined = applyPassDiscipline(engine, ranked, { player: aiPlayer, topN });
+    const moves = disciplined.moves;
     self.postMessage({
       type: "RESULT",
       requestId,
@@ -180,7 +138,7 @@ self.onmessage = async (event) => {
       currentPlayer: serializedState.currentPlayer,
       moves,
       modelInfo,
-      ...(ai.lastSearch ? { searchStats: ai.lastSearch } : {}),
+      searchStats: { ...(ai.lastSearch ?? {}), passDiscipline: disciplined.receipt },
     });
   } catch (error) {
     self.postMessage({
@@ -190,7 +148,8 @@ self.onmessage = async (event) => {
       rulesVersion: event.data?.serializedState?.rulesVersion,
       currentPlayer: event.data?.serializedState?.currentPlayer,
       message: error instanceof Error ? error.message : String(error),
-      ...(typeof error?.code === "string" && error.code.startsWith("ULTIMATE_") ? { code: error.code } : {}),
+      ...(typeof error?.code === "string" && (error.code.startsWith("ULTIMATE_") || error.code === "AI_NO_RELIABLE_ACTION") ? { code: error.code } : {}),
+      ...(error?.passDiscipline ? { passDiscipline: error.passDiscipline } : {}),
     });
   }
 };

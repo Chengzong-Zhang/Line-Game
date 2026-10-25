@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { parseArgs } from 'node:util';
 import { buildGame } from './build.mjs';
+import { verifyTerminalReleaseAdmission, assertTerminalAdmissionSummary } from '../../../web/tools/verify-terminal-release-admission-v4.mjs';
 import { CONFIG_KEYS, readClientConfig, validateClientConfig, requireProfile } from './client-config.mjs';
 import { BASE_RUNTIME_FILES, RUNTIME_FILES, PACKAGE_FILES, PACKAGE_DIRECTORIES, MODEL_PACKAGES,
   LEGACY_MODEL_PACKAGE_FILES, LEGACY_MODEL_PACKAGE_DIRECTORIES,
@@ -164,15 +165,20 @@ export async function verifyCandidate(directory) {
     JSON.stringify(receipt.subpackages) === JSON.stringify(subpackages) &&
     JSON.stringify(manifest.subpackages) === JSON.stringify(subpackages) &&
     subpackages.every(pack => pack.bytes <= SUBPACKAGE_BUDGET), 'Candidate package sizes mismatch');
+  if (receipt.terminalAdmission) assertTerminalAdmissionSummary(receipt.terminalAdmission,
+    receipt.sourceHashes?.['web/web前端/PassTrainedPolicyData.js']);
   return receipt;
 }
 
 export async function prepareCandidate({
-  outputBase = path.join(repoRoot, 'local_artifacts/wechat-candidates'), online = false, apiBase,
+  outputBase = path.join(repoRoot, 'local_artifacts/wechat-candidates'), online = false, apiBase, terminalAdmission = null,
 } = {}) {
   requireCondition(typeof online === 'boolean' && (online || apiBase === undefined),
     'apiBase requires the explicit online entry');
   const profile = online ? 'online' : 'offline';
+  const admission = await verifyTerminalReleaseAdmission({
+    dataPath: path.join(repoRoot, 'web/web前端/PassTrainedPolicyData.js'), admissionPath: terminalAdmission,
+  });
   let options = {};
   if (online) {
     // An explicit origin is required even if a developer has a local config.
@@ -218,7 +224,10 @@ export async function prepareCandidate({
     importDirectory: 'project', files, sourceHashes: before.inputHashes,
     reproducibility: 'Fresh isolated rebuild matches every existing dist file, including 17 verified model assets, byte for byte; test evidence is bound separately',
     runtime: { node: process.version, platform: process.platform, arch: process.arch },
-    uploadDescription: '支持 2–15 人本地与混合联机房间；7–15 人仅随机或自定义起点，补齐小屏席位、比分与结算分页。后续训练强制完整至少三层 Minimax，并优先防守和起点连通切断链；本版保留既有模型权重。',
+    ...(admission.status === 'PASS_TERMINAL_RELEASE_ADMISSION_V4' ? { terminalAdmission: admission } : {}),
+    uploadDescription: admission.status === 'PASS_TERMINAL_RELEASE_ADMISSION_V4'
+      ? '支持 2–15 人；7–15 人仅随机或自定义起点。在既有模型上继续训练，仅自然终局奖励、折扣系数1；修复开局过早PASS和可安全增长时提前结算，并检查完整实际对手轮的切断风险。Minimax简单/中等/困难对应2/3/4层；各方分别高亮最新落点，本方跳过后清除标记，保留其他方高亮。'
+      : '支持 2–15 人；7–15 人仅随机或自定义起点。修复开局过早PASS和可安全增长时提前结算，并检查完整实际对手轮的切断风险。Minimax简单/中等/困难对应2/3/4层；本候选没有新模型覆盖。各方分别高亮最新落点，本方跳过后清除标记，保留其他方高亮。',
     acceptance: { nativeCandidateImport: 'NOT_RUN', physicalDevice: 'NOT_RUN',
       accountPermissions: 'NOT_VERIFIED', serviceConnectivity: 'NOT_VERIFIED',
       actualWechatLogin: 'NOT_RUN', crossPlatformDeviceMatch: 'NOT_RUN',
@@ -242,14 +251,16 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   try {
     const { values } = parseArgs({ strict: true, options: {
       verify: { type: 'string' }, online: { type: 'boolean', default: false }, 'api-base': { type: 'string' },
+      'terminal-admission': { type: 'string' },
     } });
     if (values.verify !== undefined) {
       requireCondition(values.verify.trim().length > 0, 'Verify requires a non-empty candidate directory');
-      requireCondition(!values.online && values['api-base'] === undefined, 'Verify cannot be combined with build options');
+      requireCondition(!values.online && values['api-base'] === undefined && values['terminal-admission'] === undefined,
+        'Verify cannot be combined with build options');
       const receipt = await verifyCandidate(path.resolve(values.verify));
       console.log(JSON.stringify({ status: 'PASS_CANDIDATE_FILES', candidateId: receipt.candidateId, files: receipt.files.length }, null, 2));
     } else {
-      const result = await prepareCandidate({ online: values.online, apiBase: values['api-base'] });
+      const result = await prepareCandidate({ online: values.online, apiBase: values['api-base'], terminalAdmission: values['terminal-admission'] });
       console.log(JSON.stringify({ status: result.receipt.status, version: result.receipt.version,
         directory: result.directory, importDirectory: result.importDirectory,
         packageBytes: result.receipt.packageBytes, files: result.receipt.files.length }, null, 2));

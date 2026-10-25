@@ -1,7 +1,9 @@
 import { portableClone as structuredClone } from './PortableClone.js';
-import { loadThreePlayerModel, ThreePlayerAI } from "./ThreePlayerModels.js?v=20261021-three2";
-import { ThreePlayerSearchAI } from "./ThreePlayerSearchAI.js?v=20261021-three4";
-import { THREE_PLAYER_SEARCH_MODEL_ID, THREE_PLAYER_SEARCH_MODEL_SHA256, THREE_PLAYER_SEARCH_SIZES } from "./ThreePlayerSearchOptions.js?v=20261021-three4";
+import { loadThreePlayerModel, ThreePlayerAI } from "./ThreePlayerModels.js?v=20261025-defense15";
+import { ThreePlayerSearchAI } from "./ThreePlayerSearchAI.js?v=20261025-defense15";
+import { THREE_PLAYER_SEARCH_MODEL_ID, THREE_PLAYER_SEARCH_MODEL_SHA256, THREE_PLAYER_SEARCH_SIZES } from "./ThreePlayerSearchOptions.js?v=20261025-defense15";
+import { trainedPolicySpec, trainedPolicyModel, trainedPolicyInfo } from "./PassTrainedPolicies.js";
+import { withLearnedPass } from "./LearnedPassPolicy.js";
 
 let searchModelPromise;
 export async function loadThreePlayerSearchModel(id = THREE_PLAYER_SEARCH_MODEL_ID) {
@@ -31,7 +33,7 @@ export async function loadThreePlayerRuntime(modelId = "three-player-policy-v1",
         || !THREE_PLAYER_SEARCH_SIZES.includes(engine.gridSize)) {
       throw new Error("三人搜索 AI 仅支持 territory-v2 的 5、7、9 路三人对局。");
     }
-    const payload = await loadThreePlayerSearchModel(modelId);
+    const payload = trainedPolicySpec(await loadThreePlayerSearchModel(modelId), "three-v4", engine.rulesVersion);
     return { ai: new ThreePlayerSearchAI(payload), modelInfo: {
       id: payload.id, evidenceTier: "independently-verified-application-final-v4",
       evaluatedBoardSizes: [...THREE_PLAYER_SEARCH_SIZES],
@@ -39,14 +41,22 @@ export async function loadThreePlayerRuntime(modelId = "three-player-policy-v1",
       inheritedModelId: "three-player-policy-v2", newGradientUpdates: 0,
       candidateSha256: THREE_PLAYER_SEARCH_MODEL_SHA256,
       search: { rootWidth: payload.search.rootWidth, rolloutPlies: payload.search.rolloutPlies },
+      ...trainedPolicyInfo(payload),
+      runtime_uses_learned_pass: false,
+      runtime_uses_trained_placement: Boolean(payload.passDisciplineTraining),
+      runtime_policy: "original-three-player-v4-search-with-trained-placement-base-and-shared-PASS-guard",
     } };
   }
   // Honor explicit v1/v2 requests, including historical/replay fixtures. A
   // missing or invalid v4 asset never silently substitutes a different model.
-  const model = await loadThreePlayerModel(modelId);
-  return { ai: new ThreePlayerAI(model), modelInfo: {
+  const parent = await loadThreePlayerModel(modelId);
+  const model = modelId === "three-player-policy-v1" ? trainedPolicyModel(parent, "three-v1", engine.rulesVersion) : parent;
+  return { ai: withLearnedPass(new ThreePlayerAI(model)), modelInfo: {
     id: model.spec.id, evidenceTier: model.spec.training.evidence_tier,
     trainedBoardSizes: model.spec.training.trained_board_sizes,
     compatibility: "territory-v2 three-player",
+    ...trainedPolicyInfo(model.spec),
+    runtime_uses_learned_pass: Number.isFinite(model.spec.passBias),
+    runtime_uses_trained_placement: Boolean(model.spec.passDisciplineTraining),
   } };
 }

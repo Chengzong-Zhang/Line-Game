@@ -1,6 +1,8 @@
-import { HEX_PLAYER_MODEL_ID, HexPlayerAI, loadHexPlayerModel } from "./HexPlayerAI.js?v=20261025-defense15";
-import { HexFastSearchAI } from "./HexFastSearchAI.js?v=20261025-defense15";
-import { HEX_SEARCH_MODEL_ID, HEX_SEARCH_MODEL_SHA256, HEX_SEARCH_SIZES, HEX_SEARCH_PLAYER_COUNTS } from "./HexSearchOptions.js?v=20261025-defense15";
+import { HEX_PLAYER_MODEL_ID, HexPlayerAI, loadHexPlayerModel } from "./HexPlayerAI.js?v=20261025-terminal-v4";
+import { HexFastSearchAI } from "./HexFastSearchAI.js?v=20261025-terminal-v4";
+import { HEX_SEARCH_MODEL_ID, HEX_SEARCH_MODEL_SHA256, HEX_SEARCH_SIZES, HEX_SEARCH_PLAYER_COUNTS } from "./HexSearchOptions.js?v=20261025-terminal-v4";
+import { trainedPolicyModel, trainedPolicyInfo } from "./PassTrainedPolicies.js?v=20261025-terminal-v4";
+import { withLearnedPass } from "./LearnedPassPolicy.js?v=20261025-terminal-v4";
 
 // Workers may explicitly request this candidate; default selection remains v1.
 let candidatePromise;
@@ -49,10 +51,13 @@ export async function loadHexPlayerRuntime(modelId = HEX_PLAYER_MODEL_ID, engine
   }
   if (modelId !== HEX_PLAYER_MODEL_ID) throw new Error(`未找到六边形 AI 模型：${modelId}`);
   requireHexContext(engine);
-  const model = await loadHexPlayerModel(modelId);
-  return { ai: new HexPlayerAI(model), modelInfo: {
+  const model = trainedPolicyModel(await loadHexPlayerModel(modelId), "hex-v1", engine.rulesVersion);
+  return { ai: withLearnedPass(new HexPlayerAI(model)), modelInfo: {
     id: model.spec.id, evidenceTier: model.spec.training.evidence_tier,
     trainedBoardSizes: model.spec.training.trained_board_sizes,
     compatibility: "territory-v2 hexagon 4–6 players; 5–15",
+    ...trainedPolicyInfo(model.spec),
+    runtime_uses_learned_pass: Number.isFinite(model.spec.passBias),
+    runtime_uses_trained_placement: Boolean(model.spec.passDisciplineTraining),
   } };
 }

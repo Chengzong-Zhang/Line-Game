@@ -1,9 +1,9 @@
 // The bundle resolves AIWorker/Warmup runtime imports to this adapter. The
 // general runtime remains external and is loaded only for another exact ID.
-import { HARD_MODEL_ID, supportsNativeHardContext, loadNativeHardRuntime } from "./MultiplayerHardResources.js?v=20261025-defense15";
+import { HARD_MODEL_ID, supportsNativeHardContext, loadNativeHardRuntime } from "./MultiplayerHardResources.js?v=20261025-terminal-v4";
 
 export async function loadMultiplayerRuntime(modelId, engine) {
   if (modelId === HARD_MODEL_ID && supportsNativeHardContext(engine)) return loadNativeHardRuntime(engine);
-  const general = await import("./MultiplayerRuntime.js?v=20261025-defense15");
+  const general = await import("./MultiplayerRuntime.js?v=20261025-terminal-v4");
   return general.loadMultiplayerRuntime(modelId, engine);
 }

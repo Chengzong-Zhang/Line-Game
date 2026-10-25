@@ -2,7 +2,7 @@
 
 Abstract. This report has three chapters: Mathematics, Algorithms and AI. It emphasizes data structures, execution order, pseudocode, source excerpts, complexity and implementation limits, connecting each rule to functions and outputs.
 
-Source inspection: 2026-10-23. Numbered pseudocode explains control flow; attributed excerpts quote actual source. Training, exported inference and Web/Mini Game availability are distinguished. The companion mathematical edition supplies definitions and proofs.
+Source inspection: 2026-10-25. Numbered pseudocode explains control flow; attributed excerpts quote actual source. Terminal-only linear continuation, historical neural models and fixed-depth Minimax are distinguished. Training, inference, scoped admission and Web/Mini Game release require separate receipts.
 
 Reading path: chapter I defines notation and full state; II develops rule algorithms; III develops AI. In territory-v3 the score always counts owned points and separately adds enemy-free pockets cut off from the exterior; old replays retain their recorded rule versions.
 
@@ -358,6 +358,12 @@ Normal settlement occurs after all remaining players pass consecutively once eac
 
 On a fixed finite board, accepted placements cannot repeat recorded state keys indefinitely, while consecutive passes have an ending rule. This termination mechanism does not mean an AI has solved the game. Arguments based on an inability to pass do not describe the current rules.
 
+The 2026-10-25 product path removes the shortcut that immediately returned PASS whenever it ended in a unique win. Shared AIPassDiscipline first preserves the real policy. When PASS ranks first, it uses an isolated complete state to seek profitable growth retaining own nodes, coverage and logical connection to the start, enumerating every legal placement and PASS by actual opponents until the original actor returns or native termination occurs. A replacement for a uniquely winning PASS must retain the lead throughout that window.
+
+The default check has a 200 ms/10000-node budget and replaces PASS only with a complete certificate; opening development may instead add nodes while exact area does not decrease. Incomplete or absent evidence preserves a real policy PASS. No-placement passing follows the engine, while missing policy output reports a retryable error. A full-round certificate certifies that examined round only and is not a deep Minimax training label.
+
+For a real policy PASS that would not immediately end the game, V2 also checks a birth-root protection invariant: every old node and coverage point survives the placement, every friendly node connects to the birth root through intact logical edges, every friendly LINE cell is adjacent to the birth root, and occupied coverage strictly exceeds the previous native area. Opponents cannot occupy friendly nodes or protected line cells, so any opponent-only action sequence preserves these pieces until the actor next acts, resigns or the game naturally ends. This also permits certified growth when the actor is automatically skipped. It proves no future score margin, win rate or overall optimality; immediately ending PASS retains the original lead check.
+
 ```text
 01 PASS: increment consecutiveSkips
 02 If skips >= remaining-player count: set gameOver
@@ -368,7 +374,7 @@ On a fixed finite board, accepted placements cannot repeat recorded state keys i
 07 Otherwise at settlement: recompute exact area and compare survivors
 ```
 
-Nonterminal shading may be deferred, but exact scores must be ready before settlement reads them. Neural PUCT explicitly refreshes canonical territory at terminal simulations; old Minimax’s F leaf does not have the same exact-outcome semantics. Their outputs should not share an unqualified win-probability label.
+Nonterminal shading may be deferred, but exact scores must be ready before settlement. Current Minimax true-terminal leaves and neural PUCT both use canonical area outcomes; their nonterminal values, visits and network priors are not a common win-probability measure.
 
 Source: web/web前端/GameEngine.js → skipTurn, resignPlayer, _checkAndAutoSkip, getWinner.
 
@@ -408,11 +414,11 @@ Source: web/web前端/AIEngine.js → evaluate, fastTerritoryBFS, orderMoves, Gr
 
 ### 3.2 Minimax control flow
 
-Minimax recursively models choosing the best move while an opponent chooses the worst reply for the root player. Leaves return F(s). Nodes where the root player acts take a maximum; opponent nodes take a minimum. Depths 2, 3 and 4 count action layers, not that many complete rounds for each side.
+Minimax recursively models the best move against the worst reply for the root player. Root-player nodes take a maximum and opponent nodes a minimum. Web and Mini Game Minimax Easy/Medium/Hard use depths 2/3/4, counting action layers rather than complete seat rounds. This fixed-depth search has no 650 ms total budget from Multiplayer Hard; compare speed at the same position, size and actual depth.
 
 Alpha stores a lower bound already available to MAX; beta stores an upper bound for MIN. When beta is no greater than alpha, the branch cannot improve the ancestor’s decision and can be cut. Alpha–beta preserves Minimax on the same candidate tree and evaluation. The separate 20-candidate cap truncates that tree and can omit legal moves.
 
-Each branch saves the grid, edges, history, turn, resignations, passes, terminal state, revisions and territory cache, advances through GameEngine.playMove and restores the saved state. Automatic passes can return control to the same player, so currentPlayer determines MAX versus MIN. The existing two-player implementation evaluates both depth-limited and terminal leaves with heuristic F; its returned score is not an exact proof of victory.
+Each branch saves grid, edges, history, turn, resignations, passes, terminal state, revisions and territory cache, advances through GameEngine.playMove or skipTurn and restores the state. Automatic passes can return control to the same player, so currentPlayer determines MAX versus MIN. Nonterminal depth-limited leaves use the Minimax heuristic. True terminal leaves use official area and return +1000000/0/−1000000 for win/draw/loss. Bounded nonterminal search still does not prove the outcome of the whole game.
 
 The current two-player Minimax includes PASS alongside legal placements at both root and recursive nodes, and advances it through GameEngine.skipTurn. It can therefore pass while placements remain. Selection still depends on the same heuristic and bounded-depth search; it is not an exact solution of the ending. Multiplayer Hard instead evaluates complete MOVE-plus-PASS reply packets from the actual next opponent under its own time gate, so the evidence scopes remain separate.
 
@@ -420,13 +426,13 @@ Search suppresses UI snapshots and display-only territory refreshes. At heuristi
 
 ```text
 01 SEARCH(S,d,alpha,beta,root):
-02   If d=0 OR gameOver: return F(S,root)
-03   Get real legal placements; handle no-placement pass
-04   Retain ordered candidates (at most 20)
+02   If gameOver: return exact area win/draw/loss utility
+03   If d=0: return the nonterminal Minimax heuristic
+04   Get legal placements; retain <=20 ordered placements and append PASS
 05   maximizing <- (S.currentPlayer == root)
 06   value <- -infinity if maximizing, otherwise +infinity
-07   For each candidate:
-08     saved <- saveState; apply the actual move
+07   For each placement or PASS:
+08     saved <- saveState; apply playMove or skipTurn
 09     child <- SEARCH(successor,d-1,alpha,beta,root)
 10     restoreState(saved)
 11     Update value and alpha (MAX) or beta (MIN)
@@ -440,7 +446,7 @@ Search suppresses UI snapshots and display-only territory refreshes. At heuristi
 
 This is explanatory pseudocode, omitting rejected-candidate branches and cache fields. Read the actual finally scope before assuming full transaction rollback under every exception. Full legal enumeration occurs before retaining 20 moves; searching 20 candidates does not mean only 20 legality trials.
 
-Source: web/web前端/AIEngine.js → MinimaxAI.minimax, MinimaxAI.getTopMoves, applyMoveForAI.
+Source: web/web前端/AIEngine.js → MinimaxAI.minimax, MinimaxAI.getTopMoves, applyMinimaxAction.
 
 ### 3.3 Plain MCTS
 
@@ -534,7 +540,7 @@ These five models share a lightweight on-device inference path. Up to 120 triang
 
 DQN exports Q values; PPO, SAC, GAIL and GAN export policy logits. The runtime obtains legal point indices from the real engine, applies stable softmax and ranks them. It performs no gradient update during a move. Softmax of DQN Q values is a ranking prior, not evidence that Q values are probabilities. PPO, GAIL and GAN assets can include a value head, but this direct-policy path does not use it for tree search.
 
-One runtime detail matters: the softmax denominator includes the position’s PASS slot, but ModelFreeAI returns only placement candidates. With available placements it therefore does not voluntarily pass because PASS has the highest probability, and the returned placement priors may sum to less than one. The outer controller handles no-placement passing. This describes the actual adapter rather than attributing every theoretical capability of an algorithm family to the menu option.
+Current ModelFreeAI retains placements and an explicit PASS slot in the same legal softmax, so PASS can rank first while placements exist. Priors sum to one over the complete action distribution, but need not after a top-candidate slice. The product Worker then applies the shared PASS check. This runtime change does not retrain those two-player neural weights.
 
 ```text
 01 Encode <=120 triangular points into 7 features each; pad missing points
@@ -542,11 +548,11 @@ One runtime detail matters: the softmax denominator includes the position’s PA
 03 ReLU(W1*x+b1) -> ReLU(W2*h+b2) -> 121 action outputs
 04 DQN reads Q-head weights; other families read policy-head weights
 05 Softmax over legal indices including the PASS slot
-06 Filter returned candidates to placements; sort by prior
-07 If there is no placement, outer control handles passing
+06 Return explicit placement and PASS candidates; sort by prior
+07 Product Worker applies the shared bounded PASS-discipline check
 ```
 
-Source excerpt: filtering occurs after normalization, so returned placement priors need not sum to one. This is adapter behavior, not a failure of softmax.
+Source excerpt: legal placements and PASS share one softmax denominator and retain explicit action types. The complete distribution is normalized; a top-N slice need not be renormalized. The shared check changes no neural weights.
 
 ```javascript
     return { priors: legal.map((index, order) => index < engine.validPositions.length
@@ -557,6 +563,12 @@ Source excerpt: filtering occurs after normalization, so returned placement prio
 Source: web/web前端/ModelFreeAI.js → encode, forwardBody, logits, evaluate, ModelFreeAI.getTopMoves.
 
 ### 3.7 Training source and losses
+
+This continuation targets four existing linear parents: easy, the linear base of three-v4, three-v1 and hex-v1. The inherited 16 coefficients are divided by the original temperature, then a PASS coefficient starts at zero; the candidate uses temperature one. CNN/GNN and DQN/PPO/SAC/GAIL/GAN neural weights are not retrained here. Fixed-depth Minimax is a search algorithm rather than a fitted model.
+
+The protocol gives reward only at a natural native terminal: R=sign(own area−maximum opponent area)+0.1×margin/point count+0.01×own area/point count, with gamma=1. Every nonterminal reward is zero, with no intermediate area-gain or duration reward. Truncated games produce no terminal return or parameter update. Gradient samples require actually completed exact Minimax of at least three plies, two actual opponent rounds and all legal roots including PASS. That analysis controls a fixed defensive mask and eligibility, not the environment reward.
+
+Candidates retain native rules and full history. Only selected states with completed analysis and at least two defensively allowed actions contribute policy gradients; this does not establish uniform state or size coverage. New overlays apply only to territory-v3 and preserve historical v1/v2 evidence and saved games. Easy/three-v1/hex use the learned PASS coefficient in ranking. Three-v4 and Hard retain their original search with trained placement coefficients, without comparing linear PASS logits to search values. Training, independent evaluation, scoped admission and release each require their own receipts.
 
 Research training is separate from Web inference. These are current inspectable trainers; matching names alone do not prove that a deployed binary was generated by these exact sources. Asset lineage requires manifests/receipts, and rule/auto-skip parity between research and Web is a separate check.
 
@@ -587,7 +599,7 @@ GAIL/GAN: train_imitation_adversarial.py collects greedy-expert data. Both label
             g_loss = -(probs * torch.log(rewards.clamp_min(1e-6))).sum(dim=1).mean()
 ```
 
-The sign matters: holding D fixed, minimizing −log σ(−D) favors smaller D, whereas expert-positive classification favors larger D. This loop cannot directly inherit standard GAIL guarantees, and two names do not establish two independent algorithms. Updates use fixed expert-state batches, not full online occupancy matching; this loop does not mask sampled actions, while Web inference separately filters actual legality. This report changes no training, weights or model selection.
+The sign matters: holding D fixed, minimizing −log σ(−D) favors smaller D, whereas expert-positive classification favors larger D. This loop cannot directly inherit standard GAIL guarantees, and two names do not establish two independent algorithms. Updates use fixed expert-state batches, not full online occupancy matching; this loop does not mask sampled actions, while Web inference separately filters actual legality. These historical neural loops are documented only; the linear continuation changes neither those loops nor their neural weights.
 
 ### 3.8 Multiplayer features
 

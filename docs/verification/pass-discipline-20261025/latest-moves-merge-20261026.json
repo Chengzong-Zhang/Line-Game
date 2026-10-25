@@ -1,0 +1,213 @@
+{
+  "schema": "lifeline-latest-moves-integration-v1",
+  "status": "RUNTIME_STABLE_TARGETED_REGRESSIONS_PASS",
+  "checkedAtUtc": "2026-10-25T18:09:50.363535+00:00",
+  "worktree": "C:\\Users\\zcz\\.codex\\worktrees\\pass-discipline\\line game",
+  "branch": "codex/pass-discipline-20261025",
+  "featureSourceCommit": "6628bd10b2136038e0850151bbd569e014e1092f",
+  "mergeMethod": "per-file checked patch application; manual Mini version and conditional admission description merge; preserve preexisting dirty work",
+  "miniVersion": "0.12.14",
+  "frontendImportVersion": "20261025-terminal-v4",
+  "preserved": [
+    "current PASS and terminal policy changes",
+    "conditional terminal admission and model gates",
+    "gamma 1 and natural terminal reward wording",
+    "Minimax easy/standard/hard 2/3/4 labels",
+    "2..15 player behavior",
+    "existing guide changes"
+  ],
+  "integratedPaths": [
+    "core algorithm/test_latest_move_highlight.py",
+    "core algorithm/triangular_game.py",
+    "docs/verification/latest-moves-20261025.md",
+    "docs/verification/latest-moves-20261025/browser.json",
+    "web/tools/deploy_latest_moves_20261025.py",
+    "web/tools/prepare_latest_moves_20261025.py",
+    "web/tools/test_latest_moves_deployment.py",
+    "web/tools/verify-latest-moves-browser.mjs",
+    "web/web前端/GameController.js",
+    "web/web前端/Renderer.js",
+    "web/web前端/tests/latest-moves-browser.html",
+    "web/web前端/tests/verify-latest-moves-automatic.mjs",
+    "web/web前端/tests/verify-latest-moves.mjs",
+    "web/web前端/tests/verify-online-recovery.mjs",
+    "wechat/minigame/package-lock.json",
+    "wechat/minigame/package.json",
+    "wechat/minigame/src/app.js",
+    "wechat/minigame/src/board.js",
+    "wechat/minigame/src/i18n.js",
+    "wechat/minigame/src/latest-moves.js",
+    "wechat/minigame/tests/latest-move-markers.test.mjs",
+    "wechat/minigame/tests/ui-platform.test.mjs",
+    "wechat/minigame/tools/prepare-candidate.mjs"
+  ],
+  "sourceHashes": {
+    "core algorithm/test_latest_move_highlight.py": "eb3d3fd41963c7046369d99335e66e4a4c613455394e59c7c130fe4167ff6a00",
+    "core algorithm/triangular_game.py": "054aafb46dbb3b8102c1425989acb26fc56e8edcef6dc85ea1610985c0173524",
+    "docs/verification/latest-moves-20261025.md": "79804f3316e7aebc59989042c4404181622f9b404fd2340763c374545ae44b8a",
+    "docs/verification/latest-moves-20261025/browser.json": "41b2a0249b03862058c324e3499c303d88e6cec3e267cac8e32cc0297b9d6c9f",
+    "web/tools/deploy_latest_moves_20261025.py": "887c1f56026daf90b8cdaa903ee6d4ad8aff34187becf8a2f1ebe5ce0df782d2",
+    "web/tools/prepare_latest_moves_20261025.py": "c20fd7dc714904f66971a06c2cd75e2f70700c85041f18d0fdb19747db581463",
+    "web/tools/test_latest_moves_deployment.py": "5a18f2931863c7229ac8ae4f795e4f577723d91ddfbb1e1f05b15b079a14d593",
+    "web/tools/verify-latest-moves-browser.mjs": "9b361c918ba1e3fab7d014f327c57afca6461dafa5961f695bc348d72793eeeb",
+    "web/web前端/GameController.js": "52c8a04c5a0cf89ffd278e3ab13d25b935a45470d273d6419e872676773c24f8",
+    "web/web前端/Renderer.js": "1dbbbc298b7d5262d41da9f37da11646e0d30164c718cc64407ac1d926988793",
+    "web/web前端/tests/latest-moves-browser.html": "3ed3b087a7f6d12a7a8250139071742c979790f840513e3131dbddeafa284063",
+    "web/web前端/tests/verify-latest-moves-automatic.mjs": "4e1ae14adc156275c21a3dbee7dec037a44f9964ff876faf768a7e76c6ea75ba",
+    "web/web前端/tests/verify-latest-moves.mjs": "f8b8d55a407d2f7c8a23bd574e2057b0d8f1b9be3ac417733f4833c3a14c1399",
+    "web/web前端/tests/verify-online-recovery.mjs": "083fc94fa14d2c9a8904343ec129507f144dd0a9fdbfdc3fde2608020d7dce8d",
+    "wechat/minigame/package-lock.json": "e98db4694fdb93ef13390bc6a8f20fba172dcbbd0d455d111850b54727d6cc4f",
+    "wechat/minigame/package.json": "02037fb4fa900daed714abcb78ae8ac1a82cd8d65b52c7afd28f3bf54b039af3",
+    "wechat/minigame/src/app.js": "ad888e67375297b20d41fa12f3096bca6dbebb07c8f873ef076bf2dae172f1ca",
+    "wechat/minigame/src/board.js": "9aac91648fbb83043c60b97568f34f4c46504be10abde98dc581a3cde2cccbe6",
+    "wechat/minigame/src/i18n.js": "2dde5f790a303655d836c9e40eec2f5437ad7a72e2dea992df3ad50672a29926",
+    "wechat/minigame/src/latest-moves.js": "f452d6f0354ca4d29e3c402b79109accfc5dd8eb07daab72e9ebb9194365a1c3",
+    "wechat/minigame/tests/latest-move-markers.test.mjs": "0741949375dcd6a29338804ad12faac25b00540e5a5e5496db70c96f7c0cab54",
+    "wechat/minigame/tests/ui-platform.test.mjs": "8b2b9115627fee8f7234e5ad7312bff6f301fd8cee1b37de97474fb319946fd8",
+    "wechat/minigame/tools/prepare-candidate.mjs": "8f4f85e5b486c8b1b5580c2b58773a92bc859530bc89e70f7b3afacd138b4d2a"
+  },
+  "frozenTrainingInputs": {
+    "identityFiles": 29,
+    "changed": [],
+    "sha256": {
+      "web/tools/train-terminal-policy-v4.mjs": "20756366d95b4221f4fdc479547875f9e13d698f5fbfaba25139f5e87d36e74a",
+      "web/tools/train-pass-opportunity-v3.mjs": "31fa4f344609acd576fd2017536526fc2ddbbb5a1b876912296aa63b30e8da74",
+      "web/tools/pass-opportunity-data-v3.mjs": "b29bf7492bc633d05a9568397fc310c79f001803da598df68979dc559adbe688",
+      "web/web前端/PassOpportunityTrainingTeacher.js": "bb0b77ccc1f42ff53fb260e4ceb4a7492aeef94f8e25de3ce29f6260ea3f3b97",
+      "web/web前端/AIPassDiscipline.js": "4850b3af425e3b7d3153b43c45c223fad3b89b4870cdfce75425955cb3454419",
+      "web/web前端/GameEngine.js": "1aec9d73d06c7243ac71d1eb27c8f9692dc5f33576d298d2ecd2d2d55464acfb",
+      "web/web前端/AIStateProtocol.js": "bd82e144304f429b354d7d7a722f1a691b7902a6e6e418f3739342191b5291a2",
+      "web/web前端/AIEngine.js": "792b8225aea9b4c68990a47a1658fed2a13bd2e4e52186113c9a25efdd5c2694",
+      "web/web前端/MultiplayerSearch.js": "4397c0a464960801d513c5076716f0e3b9b94cdb263bd0eb87c95ae43e68658c",
+      "web/web前端/MultiplayerNativeGeometry.js": "014fe84e3037c60639ab3d1f31d5b1ad481baed2903d7c39da5e7b747538b7e1",
+      "web/web前端/MultiplayerHardValue.js": "6bb9dc21c72773b6dbca6a268173f5e93daebe83a7a4bb1ab21687269a7ea25e",
+      "web/web前端/HexPlayerAI.js": "ad612f3bc03bb44ea5505d06b42250efaaf1045ccbd105d7cebda080bd5c4f12",
+      "web/tools/neural-posttraining-data-v2.mjs": "8550db664fc57ce0e3a84b8123801c0657f1238aef4202d329546eebeb016827",
+      "web/tools/prepare-terminal-policy-v4.mjs": "64f78063c0435b46c53b5503189723f8d191078354b756c052d0bfc3f27acc90",
+      "web/tools/supervise-three-player-job.mjs": "a4f05cb802ad9479faae0e7121bce0ad66bc81f56fe5bbdeaa4d33e0bb63fe8c",
+      "web/web前端/assets/research-ai/hex-player-policy-v1.json": "74aa7f945c3ea7ff5ca3edc9e7bdc431dc0ec5ad56d2563ce6d6d24c0494162b",
+      "web/web前端/assets/research-ai/multiplayer-v1/manifest.json": "d7560db53483ab9ee2a7c423509142924545f1679ec35201b369e3b91fe161a0",
+      "web/web前端/assets/research-ai/three-player-search-v4-round12.json": "9b85f5fff27001d68407c30d6f707b461b1b468d657c8292339e97d23868c230",
+      "web/web前端/assets/research-ai/three-player-policy-v1.json": "8cd1a2f36267f96b1e32b7749a9cdc785f489ea7ec12e31aee0beb0a72901794",
+      "C:\\Users\\zcz\\.codex\\worktrees\\pass-discipline\\line game\\local_artifacts\\terminal-policy-v5-hex-extension-20261025-r2-prepared\\protocol.json": "832230504a54ffc1a692356f73b001e1954852ee90d0a7f2ec03a8fc9a12cda4",
+      "C:\\Users\\zcz\\.codex\\worktrees\\pass-discipline\\line game\\local_artifacts\\terminal-policy-v5-hex-extension-20261025-r2-prepared\\frozen-sources.json": "24c71148d218ab3c07a64a38866074dcf849df06bd5535e94e4ef60a70bede72",
+      "web/tools/terminal-policy-extension-v5.mjs": "bf39b6e4c8277a95f4f45e24a190d5758364070b0426f3e31b5e930a3429621b",
+      "web/tools/review-terminal-policy-evidence-v4.mjs": "529637977a15d1d92cdaa3e49e4fdeb11e6cfa398fefc727799949110d66eed1",
+      "web/tools/review-terminal-canonical-features-v5.mjs": "689f38c0f9aac61f1886e3dd545f9fffcd65b207f2d0516a99c5ae051264e79e",
+      "web/web前端/MultiplayerClock.js": "9cc62a1da3400222c41b07d128fba047f2a57688f13bf42ef3620d66e8d9df80",
+      "web/web前端/ResearchAI.js": "628ff031f0052f525c34c67ad6b3bc12d62340d941b6e95b51adc6d1241ba46d",
+      "web/tools/training-policy-v1.mjs": "1200571b911371992366ec21a3a5216811964a6a7204e5a8a8baf192bbfb460d",
+      "C:\\Users\\zcz\\.codex\\worktrees\\pass-discipline\\line game\\local_artifacts\\terminal-policy-v5-hex-extension-20261025-r2-prepared\\extension-input.json": "be7f6ea2cce8c8fdaa13febbf6555f7d81852c9279f314403a3c75b1ff3b046a",
+      "C:\\Users\\zcz\\.codex\\worktrees\\pass-discipline\\line game\\local_artifacts\\terminal-policy-v4-formal-20261025-stamped\\checkpoint.json": "5616fe5befb59e311193cb4d7e9106962c3b9b4df2164f2811d8cbd91275430e"
+    }
+  },
+  "checks": [
+    {
+      "command": "node web/web前端/tests/verify-latest-moves.mjs",
+      "exitCode": 0,
+      "result": "PASS: per-player latest moves, PASS, invalid moves, restore, undo/replay, detached state, captured nodes and render invalidation"
+    },
+    {
+      "command": "node web/web前端/tests/verify-latest-moves-automatic.mjs",
+      "exitCode": 0,
+      "result": {
+        "status": "PASS",
+        "players": "2..15",
+        "actions": 430,
+        "automaticPasses": 269,
+        "resignations": 25,
+        "rollbackCases": 28
+      }
+    },
+    {
+      "command": "node --test tests/latest-move-markers.test.mjs tests/ui-platform.test.mjs",
+      "cwd": "wechat/minigame",
+      "exitCode": 0,
+      "result": {
+        "tests": 16,
+        "pass": 16,
+        "fail": 0
+      }
+    },
+    {
+      "command": "python \"core algorithm/test_latest_move_highlight.py\"",
+      "exitCode": 0,
+      "result": "PASS: real rules and headless pygame stub"
+    },
+    {
+      "command": "node web/web前端/tests/verify-online-recovery.mjs",
+      "exitCode": 0,
+      "result": "PASS: atomic recovery and response ownership"
+    },
+    {
+      "command": "node web/web前端/tests/verify-local-undo.mjs",
+      "exitCode": 0,
+      "result": "PASS: 20 restore cases, turn windows, quotas, saves, actual app handlers and failed restore"
+    },
+    {
+      "command": "node web/web前端/tests/verify-local-game-session.mjs",
+      "exitCode": 0,
+      "result": "PASS"
+    },
+    {
+      "command": "node web/web前端/tests/verify-replay-codec.mjs",
+      "exitCode": 0,
+      "result": "PASS"
+    },
+    {
+      "command": "node web/tools/verify-latest-moves-browser.mjs",
+      "exitCode": 0,
+      "result": {
+        "status": "PASS",
+        "environment": "headless Microsoft Edge; real Canvas, mouse and Worker",
+        "results": [
+          {
+            "width": 1024,
+            "height": 800,
+            "players": 3,
+            "checks": [
+              "real Canvas clicks",
+              "two white centers",
+              "undo",
+              "PASS preserves others",
+              "PASS clears own previous node",
+              "restart"
+            ]
+          },
+          {
+            "width": 390,
+            "height": 844,
+            "players": 3,
+            "checks": [
+              "real Canvas clicks",
+              "two white centers",
+              "undo",
+              "PASS preserves others",
+              "PASS clears own previous node",
+              "restart"
+            ]
+          },
+          {
+            "width": 1024,
+            "height": 800,
+            "players": 15,
+            "checks": [
+              "real Canvas clicks",
+              "two white centers",
+              "undo",
+              "PASS preserves others",
+              "PASS clears own previous node",
+              "restart"
+            ]
+          }
+        ],
+        "pageErrors": []
+      }
+    }
+  ],
+  "limits": [
+    "No push, deploy, upload, production switch or primary checkout edit performed by this integration task.",
+    "Mini tests ran with native source harness; no new Mini build or physical-device validation performed.",
+    "Copied latest-moves-20261025 report and deployment tools retain their historical context; this receipt records the current integration."
+  ]
+}

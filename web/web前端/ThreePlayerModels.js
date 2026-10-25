@@ -3,7 +3,7 @@
 import {
   THREE_PLAYER_FEATURES, ThreePlayerAI, createThreePlayerModel as createV1Model,
   loadThreePlayerModel as loadV1Model,
-} from "./ThreePlayerAI.js?v=20261025-defense15";
+} from "./ThreePlayerAI.js?v=20261025-terminal-v4";
 
 export { ThreePlayerAI };
 // v2 failed the 2026-10-21 promotion gate; see docs/verification/three-player-ai-v2/ARENA_RESULTS.md.

@@ -215,8 +215,9 @@ async function realFixtureChecks(runtimeModule, easySpec) {
     const move = runtime.ai.getTopMoves(engine, engine.currentPlayer, 1)[0];
     assert.ok(move); assert.equal(samePoint(move.point, chainPoint), false,
       `${modelId}: defense gate must not force the lower-capture chain witness`);
-    assert.equal(move.point, null); assert.equal(move.evaluation, "canonical-terminal-unique-win",
-      "The existing unique terminal PASS gate stays ahead of defense ranking");
+    assert.notEqual(move.evaluation, "canonical-terminal-unique-win",
+      "An unconditional unique-win shortcut must not replace the actual policy");
+    assert.ok(runtime.ai.lastSearch.passDiscipline);
     assertRestored(engine, before, `chain/${modelId}`);
   }
   return rows;

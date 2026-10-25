@@ -1,5 +1,5 @@
-import NetworkManager, { ClientEvent, ServerEvent } from "./NetworkManager.js?v=20261025-defense15";
-import { SharedRoomClient, sharedApiOrigin } from "./SharedRoomClient.js?v=20261025-defense15";
+import NetworkManager, { ClientEvent, ServerEvent } from "./NetworkManager.js?v=20261025-terminal-v4";
+import { SharedRoomClient, sharedApiOrigin } from "./SharedRoomClient.js?v=20261025-terminal-v4";
 
 // Preserve existing four-digit Web rooms; eight-character rooms share the
 // authoritative Mini Game service. Callers still use the Web UI/controller API.

@@ -1,9 +1,9 @@
 // Hard V2 application factory. Registration and qualification remain external.
-import { MultiplayerRolloutAI as Candidate } from "./MultiplayerHardRollout.js?v=20261025-defense15";
-import { HardDeadlineFallbackV2 } from "./MultiplayerHardFallback.js?v=20261025-defense15";
-import { isolatedSearchEngine, potentialMoves, probeMultiplayerReplyResilience } from "./MultiplayerSearch.js?v=20261025-defense15";
-import { compareCompletedReplyResilience } from "./MultiplayerHardValue.js?v=20261025-defense15";
-import { saveState, restoreState } from "./AIEngine.js?v=20261025-defense15";
+import { MultiplayerRolloutAI as Candidate } from "./MultiplayerHardRollout.js?v=20261025-terminal-v4";
+import { HardDeadlineFallbackV2 } from "./MultiplayerHardFallback.js?v=20261025-terminal-v4";
+import { isolatedSearchEngine, potentialMoves, probeMultiplayerReplyResilience } from "./MultiplayerSearch.js?v=20261025-terminal-v4";
+import { compareCompletedReplyResilience } from "./MultiplayerHardValue.js?v=20261025-terminal-v4";
+import { saveState, restoreState } from "./AIEngine.js?v=20261025-terminal-v4";
 
 export const HARD_EXPERIMENT_OPTIONS = Object.freeze({ timeMs: 650, rolloutPlies: Object.freeze([12,24]),
   minimumImprovement: .02, candidateCap: null, allowPass: true, rootPriors: null });

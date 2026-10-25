@@ -4,8 +4,8 @@ import { readFile } from "node:fs/promises";
 import { GameEngine } from "../GameEngine.js?v=20261025-room1";
 import { serializeEngineState } from "../AIStateProtocol.js?v=20261025-room1";
 
-const workerSource = await readFile(new URL("../AIWorker.js?v=20261025-room1", import.meta.url), "utf8");
-assert.match(workerSource, /import\("\.\/ModelFreeAI\.js\?v=20261025-room1"\)/);
+const workerSource = await readFile(new URL("../AIWorker.js", import.meta.url), "utf8");
+assert.match(workerSource, /import\("\.\/ModelFreeAI\.js\?v=[^"]+"\)/);
 assert.doesNotMatch(workerSource, /ModelFreeAI\.js\?v=20261020-three1/);
 
 const tensors = [
@@ -13,10 +13,10 @@ const tensors = [
   ["layers.2.weight", 262144], ["layers.2.bias", 512],
   ["layers.4.weight", 61952], ["layers.4.bias", 121],
 ];
-const engine = new GameEngine({ gridSize: 5, playerCount: 2, rulesVersion: "territory-v2" });
+const engine = new GameEngine({ gridSize: 5, playerCount: 2, rulesVersion: "territory-v3" });
 const passIndex = engine.validPositions.length;
 const values = new Float32Array(756345);
-values[756224 + passIndex] = 10;
+values[756224 + passIndex] = 100;
 const bytes = new Uint8Array(values.buffer);
 let offset = 0;
 const spec = {
@@ -40,19 +40,37 @@ globalThis.self = { postMessage: message => messages.push(message) };
 try {
   await import(`../AIWorker.js?worker-pass-route=${Date.now()}`);
   assert.equal(typeof globalThis.self.onmessage, "function");
-  const serializedState = serializeEngineState(engine);
-  await globalThis.self.onmessage({ data: { type: "COMPUTE", requestId: "model-free-pass-route",
-    strategy: "model-free", modelId: spec.id, aiPlayer: engine.currentPlayer, topN: 1, serializedState } });
-  assert.equal(messages.length, 1);
-  assert.equal(messages[0].type, "RESULT");
-  assert.equal(messages[0].requestId, "model-free-pass-route");
-  assert.deepEqual(messages[0].moves[0], {
-    type: "pass", point: null, actionIndex: passIndex, prior: messages[0].moves[0].prior,
-    score: messages[0].moves[0].prior, meanValue: messages[0].moves[0].prior, visits: 1,
-  });
-  assert.ok(messages[0].moves[0].prior > 0.99);
-  console.log(JSON.stringify({ status: "PASS_MODEL_FREE_WORKER_ROUTE", passPrior: messages[0].moves[0].prior,
-    cacheIdentity: "20261024-model-free-pass2" }));
+  const { createModelFreeModel, ModelFreeAI } = await import("../ModelFreeAI.js");
+  const raw = new ModelFreeAI(createModelFreeModel(spec, values.buffer));
+  const rows = [];
+  for (const label of ["opening", "winning-with-safe-growth"]) {
+    if (label !== "opening") {
+      assert.equal(engine.playMove([1, 0]).success, true);
+      assert.equal(engine.skipTurn().success, true);
+    }
+    assert.equal(raw.getTopMoves(engine, engine.currentPlayer, 1)[0].point, null,
+      "Synthetic raw model must actually prefer PASS before the runtime contract");
+    const serializedState = serializeEngineState(engine), before = structuredClone(serializedState);
+    messages.length = 0;
+    const requestId = `model-free-pass-${label}`;
+    await globalThis.self.onmessage({ data: { type: "COMPUTE", requestId,
+      strategy: "model-free", modelId: spec.id, aiPlayer: engine.currentPlayer, topN: 1, serializedState } });
+    assert.equal(messages.length, 1);
+    const result = messages[0];
+    assert.equal(result.type, "RESULT"); assert.equal(result.requestId, requestId);
+    assert.equal(result.positionRevision, serializedState.positionRevision);
+    assert.equal(result.rulesVersion, serializedState.rulesVersion);
+    assert.equal(result.currentPlayer, serializedState.currentPlayer);
+    assert.ok(Array.isArray(result.moves[0].point), "Shared Worker gate must replace raw PASS only with a completed witness");
+    assert.equal(result.searchStats.passDiscipline.status, "safe-profitable-expansion");
+    assert.equal(result.searchStats.passDiscipline.witness.completeOpponentRound, true);
+    assert.equal(result.searchStats.passDiscipline.witness.passWouldEnd, label !== "opening");
+    assert.deepEqual(serializedState, before);
+    assert.deepEqual(serializeEngineState(engine), before);
+    rows.push({ label, rawPolicy: "PASS", final: result.moves[0].point,
+      replyActions: result.searchStats.passDiscipline.witness.replyActionsCompleted });
+  }
+  console.log(JSON.stringify({ status: "PASS_MODEL_FREE_WORKER_ROUTE", rows, sourceStatePreserved: true }));
 } finally {
   globalThis.fetch = originalFetch;
   if (originalSelf === undefined) delete globalThis.self;

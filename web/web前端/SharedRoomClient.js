@@ -1,6 +1,6 @@
-import GameEngine from "./GameEngine.js?v=20261025-defense15";
-import { canonicalize, serializeRuleState } from "./ReplayCodec.js?v=20261025-defense15";
-import { ROOM_PLAYER_COLORS, roomBotColors } from "./OnlineRoomSettings.js?v=20261025-defense15";
+import GameEngine from "./GameEngine.js?v=20261025-terminal-v4";
+import { canonicalize, serializeRuleState } from "./ReplayCodec.js?v=20261025-terminal-v4";
+import { ROOM_PLAYER_COLORS, roomBotColors } from "./OnlineRoomSettings.js?v=20261025-terminal-v4";
 
 const CODE = /^[A-Z2-9]{8}$/;
 const PENDING = "lifeline-shared-command-v1";

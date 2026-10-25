@@ -21,6 +21,7 @@ const source = await build({ stdin: { contents: [
   ...['core', 'state', 'integrity', 'controllers', 'hex-player-ai'].map(name => `export * from './src/${name}.js';`),
   "export * from '../../web/web前端/HexPlayerAI.js';",
   "export { saveState, restoreState } from '../../web/web前端/AIEngine.js';",
+  "export { PASS_TRAINED_POLICY_DATA } from '../../web/web前端/PassTrainedPolicyData.js';",
 ].join('\n'), resolveDir: root }, bundle: true, write: false, platform: 'node', format: 'esm', plugins: [queries], logLevel: 'silent' });
 const sut = await import(`data:text/javascript;base64,${Buffer.from(source.outputFiles[0].text).toString('base64')}`);
 async function nativeWorker({ tamper = false } = {}) {
@@ -90,8 +91,10 @@ test('portable frozen r4 fixture and v1 model are pinned; only explicit compatib
 });
 
 test('all 45 frozen seat/size rankings are legal and identical, preserving full six-seat state and caches', async () => {
-  const ai = await sut.createEmbeddedHexPlayerAI();
   for (const position of fixture.positions) {
+    assert.equal(position.settings.rulesVersion, 'territory-v2', `${position.id}: frozen parent fixture`);
+    const ai = await sut.createEmbeddedHexPlayerAI(sut.HEX_PLAYER_PROFILE, position.settings.rulesVersion);
+    assert.equal(ai.model.spec.passDisciplineTraining, undefined, `${position.id}: v2 keeps frozen parent weights`);
     const { settings, actions, player, expected, id } = position;
     assert.ok(actions.length >= settings.playerCount, id);
     const engine = sut.restoreGame(settings, actions), before = completeState(engine);
@@ -108,15 +111,44 @@ test('all 45 frozen seat/size rankings are legal and identical, preserving full 
   }
 });
 
-test('territory-v3 compatibility returns legal hex moves without mutating game state; strength is not asserted', async () => {
-  const settings = sut.settingsFor(5, 4);
-  const engine = sut.restoreGame(settings);
-  const before = completeState(engine);
-  const moves = plain((await sut.createEmbeddedHexPlayerAI()).getTopMoves(engine, engine.currentPlayer, 10000));
-  const legal = new Set(engine.getLegalMoves().map(move => move.point.join(',')));
-  assert.ok(moves.length > 0);
-  assert.ok(moves.every(move => legal.has(move.point.join(','))));
-  assert.equal(completeState(engine), before);
+// Evaluate all 17 current coefficients independently of the model loader and
+// PASS wrapper, including the exact raw placement logits and normalized prior.
+function raw17Ranking(candidates, weights) {
+  assert.equal(weights.length, 17);
+  const moves = candidates.map(({ point, features }) => ({ point,
+    score: features.reduce((sum, feature, index) => sum + feature * weights[index], 0), visits: 1 }));
+  moves.push({ type: 'pass', point: null, score: weights[16], visits: 1 });
+  moves.sort((a, b) => b.score - a.score || (a.point === null ? 1 : b.point === null ? -1
+    : a.point[1] - b.point[1] || a.point[0] - b.point[0]));
+  const maximum = moves[0].score, total = moves.reduce((sum, move) => sum + Math.exp(move.score - maximum), 0);
+  return moves.map(move => ({ ...move, prior: Math.exp(move.score - maximum) / total }));
+}
+
+test('territory-v3 current hex candidate matches independent raw17 rankings with legal PASS and complete rollback; strength is not asserted', async () => {
+  const entry = sut.PASS_TRAINED_POLICY_DATA.models['hex-v1'];
+  assert.match(entry.candidate_sha256, /^[a-f0-9]{64}$/);
+  const ai = await sut.createEmbeddedHexPlayerAI(sut.HEX_PLAYER_PROFILE, 'territory-v3');
+  assert.deepEqual(plain(ai.model.spec.weights), plain(entry.weights.slice(0, 16)));
+  assert.equal(ai.model.spec.temperature, 1);
+  assert.equal(ai.model.spec.passBias, entry.weights[16]);
+  assert.equal(ai.model.spec.passDisciplineTraining.candidate_sha256, entry.candidate_sha256);
+  for (const position of fixture.positions) {
+    const settings = { ...position.settings, rulesVersion: 'territory-v3' };
+    const engine = sut.restoreGame(settings, position.actions), before = completeState(engine);
+    const candidates = sut.hexPlayerCandidates(engine, engine.currentPlayer);
+    const moves = plain(ai.getTopMoves(engine, engine.currentPlayer, 10000));
+    assert.deepEqual(moves, plain(raw17Ranking(candidates, entry.weights)), `${position.id}: exact raw17 ranking`);
+    const legal = new Set(engine.getLegalMoves().map(move => move.point.join(',')));
+    assert.equal(moves.length, legal.size + 1, position.id);
+    assert.equal(new Set(moves.map(move => move.point === null ? 'PASS' : move.point.join(','))).size, moves.length);
+    assert.equal(moves.filter(move => move.type === 'pass' && move.point === null).length, 1);
+    assert.ok(moves.every(move => move.point === null ? move.type === 'pass'
+      : legal.has(move.point.join(','))), position.id);
+    assert.ok(Math.abs(moves.reduce((sum, move) => sum + move.prior, 0) - 1) < 1e-12);
+    const passProbe = sut.restoreGame(settings, position.actions);
+    assert.equal(passProbe.skipTurn().success, true, `${position.id}: PASS must be legal`);
+    assert.equal(completeState(engine), before, `${position.id}: full state/history preserved`);
+  }
 });
 
 test('real compiled native Worker infers every hex seat and all three maximum-size variants without browser globals', async () => {
@@ -138,8 +170,8 @@ test('real compiled native Worker infers every hex seat and all three maximum-si
 });
 
 test('six-seat snapshots preserve GREEN/ORANGE/CYAN edges, resignations, Superko and exception rollback', async () => {
-  const ai = await sut.createEmbeddedHexPlayerAI();
   const position = fixture.positions.find(p => p.id === 'players-6-size-5-black');
+  const ai = await sut.createEmbeddedHexPlayerAI(sut.HEX_PLAYER_PROFILE, position.settings.rulesVersion);
   for (const ownAutoSkip of [false, true]) for (const batch of [false, true]) {
     const engine = sut.restoreGame(position.settings, position.actions);
     for (const p of ['GREEN', 'ORANGE', 'CYAN']) assert.ok(engine.edges[p].size > 0, `${p} must have a real edge witness`);

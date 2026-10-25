@@ -1,0 +1,65 @@
+{
+  "schema": "lifeline-mini-current-terminal-runtime-regressions-v1",
+  "status": "PASS",
+  "checkedAtUtc": "2026-10-25T18:13:15.225325+00:00",
+  "changedPaths": [
+    "wechat/minigame/tests/three-player-worker.test.mjs",
+    "wechat/minigame/tests/hex-player-worker.test.mjs"
+  ],
+  "runtimeChanged": false,
+  "frontendAssetsChanged": false,
+  "fixturesChanged": false,
+  "legacyV2AssertionsPreserved": {
+    "exactThreePlayerRankings": 9,
+    "exactHexRankings": 45,
+    "originalExpectedValuesPreserved": true,
+    "compiledWorkerRouteAndIntegrityAssertionsPreserved": true
+  },
+  "changes": [
+    "Construct embedded legacy parent with the fixture rulesVersion instead of default v3 current overlay.",
+    "Replace placement-only v3 assumption with independent evaluation of the current exported 17-coefficient candidate, including PASS.",
+    "Check exact scores, softmax priors and full ordering on all 54 fixture positions restored under territory-v3.",
+    "Check candidate SHA metadata, 16 placement coefficients, temperature 1, 17th PASS coefficient, exactly one legal PASS and no full-state/history mutation.",
+    "Handle PASS null points in the Superko rejection assertion while still requiring the blocked placement to be excluded."
+  ],
+  "command": "node --test tests/multiplayer-tier-runtime.test.mjs tests/three-player-worker.test.mjs tests/hex-player-worker.test.mjs tests/production-worker.test.mjs",
+  "cwd": "wechat/minigame",
+  "result": {
+    "exitCode": 0,
+    "tests": 23,
+    "pass": 23,
+    "fail": 0,
+    "durationMs": 16315.8034
+  },
+  "originalFailure": {
+    "log": "local_artifacts\\terminal-v5-mini-runtime-tests.txt",
+    "sha256": "dd05993728caaeaf7f7f5ef3d0e8c099ad93e750a05c8bb79389192eae180ad3",
+    "tests": 23,
+    "pass": 18,
+    "fail": 5,
+    "failedTests": [
+      "all 45 frozen seat/size rankings are legal and identical, preserving full six-seat state and caches",
+      "territory-v3 compatibility returns legal hex moves without mutating game state; strength is not asserted",
+      "three seats at sizes 5/7/15 retain legal complete rankings and exactly match frozen Web policy/model",
+      "territory-v3 compatibility returns legal three-player moves without mutating game state; strength is not asserted",
+      "three-player speculation retains Superko history, resignation and replay-batch flags"
+    ]
+  },
+  "fixedLog": {
+    "path": "local_artifacts\\terminal-v5-mini-runtime-tests-fixed.txt",
+    "sha256": "fc03bb941e64d17e41c5ac7d49bdc46a8448d1a7c0aa461c15f3d430683d199b"
+  },
+  "testSha256": {
+    "wechat/minigame/tests/three-player-worker.test.mjs": "bbe0db12393e402834c658465aae570094ff4d883e930b90492c9037d8b49f38",
+    "wechat/minigame/tests/hex-player-worker.test.mjs": "00e298eeed6bc5d6fee8a4c95dd8581949e4a18ff80cc13c3196e177eb4e932b"
+  },
+  "fixtureSha256UnchangedFromHead": {
+    "wechat/minigame/tests/fixtures/three-player-r4-v1.json": "0fef3c58dd78ed1346037d25efd627f5527cceea1c7297bd33d9ac7216ad5584",
+    "wechat/minigame/tests/fixtures/hex-player-r4-v1.json": "bd7b4bcd01ad7730369f1e5bae5911ff9a72f4562122f771b91cfe563762906d"
+  },
+  "frozenTrainingIdentityInputs": {
+    "checked": 29,
+    "drift": []
+  },
+  "scope": "Node compiled native source/Worker harness; no phone strength or latency claim."
+}

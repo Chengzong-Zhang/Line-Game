@@ -140,7 +140,7 @@ function drawStartingPoints(ctx, snapshot, layout) {
   ctx.restore();
 }
 
-export function drawBoard(ctx, snapshot, layout, { selected, hint, target, blocked, lastMove, effects, display = DEFAULT_DISPLAY } = {}) {
+export function drawBoard(ctx, snapshot, layout, { selected, hint, target, blocked, lastMove, lastMoves, effects, display = DEFAULT_DISPLAY } = {}) {
   const colors = display.highContrast ? CONTRAST_COLORS : COLORS;
   const geometry = screenGeometry(layout), corners = geometry.vertices;
   const point = p => toScreen(p, layout);
@@ -199,8 +199,11 @@ export function drawBoard(ctx, snapshot, layout, { selected, hint, target, block
     }
     ctx.restore();
   }
-  if (display.lastMove && lastMove) {
-    const [x, y] = point(lastMove), r = Math.max(2, Math.min(4, layout.spacing * 0.1));
+  const markedPoints = lastMoves ? Object.entries(lastMoves).filter(([player, [x, y]]) => snapshot.players.includes(player)
+    && !(snapshot.resignedPlayers || []).includes(player) && snapshot.boardMatrix[y]?.[x] === PLAYER_ORDER.indexOf(player) * 2 + 1)
+    .map(([, marked]) => marked) : lastMove ? [lastMove] : [];
+  if (display.lastMove) for (const marked of markedPoints) {
+    const [x, y] = point(marked), r = Math.max(2, Math.min(4, layout.spacing * 0.1));
     ctx.fillStyle = '#fffef9'; ctx.fillRect(x - r, y - r, r * 2, r * 2);
     ctx.strokeStyle = '#244d3d'; ctx.lineWidth = 1; ctx.strokeRect(x - r, y - r, r * 2, r * 2);
   }

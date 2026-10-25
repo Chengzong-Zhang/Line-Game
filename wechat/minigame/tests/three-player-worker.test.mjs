@@ -8,6 +8,8 @@ import { build, readNativeWebSource } from '../tools/native-build.mjs';
 import { sut, root, plain } from './helpers.mjs';
 import { createEmbeddedThreePlayerAI, THREE_PLAYER_MODEL_CHECKSUM } from '../src/three-player-ai.js';
 import { THREE_PLAYER_PROFILE } from '../src/controllers.js';
+import { threePlayerCandidates } from '../../../web/web前端/ThreePlayerAI.js';
+import { PASS_TRAINED_POLICY_DATA } from '../../../web/web前端/PassTrainedPolicyData.js';
 
 const repo = path.resolve(root, '../..');
 const copied = path.join(repo, 'web/web前端');
@@ -72,8 +74,10 @@ test('frozen r4 algorithm/model provenance and canonical integrity are pinned wi
 });
 
 test('three seats at sizes 5/7/15 retain legal complete rankings and exactly match frozen Web policy/model', () => {
-  const actualAI = createEmbeddedThreePlayerAI();
   for (const { id: label, settings, actions, player, expected } of fixture.positions) {
+    assert.equal(settings.rulesVersion, 'territory-v2', `${label}: frozen parent fixture`);
+    const actualAI = createEmbeddedThreePlayerAI(THREE_PLAYER_PROFILE, settings.rulesVersion);
+    assert.equal(actualAI.model.spec.passDisciplineTraining, undefined, `${label}: v2 keeps frozen parent weights`);
     assert.ok(actions.length > 0, `${label}: use a non-opening position`);
     const engine = sut.restoreGame(settings, actions);
     const before = completeState(engine), actor = engine.currentPlayer;
@@ -98,14 +102,44 @@ test('three seats at sizes 5/7/15 retain legal complete rankings and exactly mat
   }
 });
 
-test('territory-v3 compatibility returns legal three-player moves without mutating game state; strength is not asserted', () => {
-  const engine = sut.restoreGame(sut.settingsFor(5, 3));
-  const before = completeState(engine);
-  const moves = plain(createEmbeddedThreePlayerAI().getTopMoves(engine, engine.currentPlayer, 1000));
-  const legal = new Set(engine.getLegalMoves().map(move => move.point.join(',')));
-  assert.ok(moves.length > 0);
-  assert.ok(moves.every(move => legal.has(move.point.join(','))));
-  assert.equal(completeState(engine), before);
+// Independent 17-coefficient evaluation: the reference uses current exported
+// weights and real rule features, without the overlay loader or PASS wrapper.
+function raw17Ranking(candidates, weights) {
+  assert.equal(weights.length, 17);
+  const moves = candidates.map(({ point, features }) => ({ point,
+    score: features.reduce((sum, feature, index) => sum + feature * weights[index], 0), visits: 1 }));
+  moves.push({ type: 'pass', point: null, score: weights[16], visits: 1 });
+  moves.sort((a, b) => b.score - a.score || (a.point === null ? 1 : b.point === null ? -1
+    : a.point[1] - b.point[1] || a.point[0] - b.point[0]));
+  const maximum = moves[0].score, total = moves.reduce((sum, move) => sum + Math.exp(move.score - maximum), 0);
+  return moves.map(move => ({ ...move, prior: Math.exp(move.score - maximum) / total }));
+}
+
+test('territory-v3 current candidate matches independent raw17 rankings with legal PASS and complete rollback; strength is not asserted', () => {
+  const entry = PASS_TRAINED_POLICY_DATA.models['three-v1'];
+  assert.match(entry.candidate_sha256, /^[a-f0-9]{64}$/);
+  const ai = createEmbeddedThreePlayerAI(THREE_PLAYER_PROFILE, 'territory-v3');
+  assert.deepEqual(plain(ai.model.spec.weights), entry.weights.slice(0, 16));
+  assert.equal(ai.model.spec.temperature, 1);
+  assert.equal(ai.model.spec.passBias, entry.weights[16]);
+  assert.equal(ai.model.spec.passDisciplineTraining.candidate_sha256, entry.candidate_sha256);
+  for (const position of fixture.positions) {
+    const settings = { ...position.settings, rulesVersion: 'territory-v3' };
+    const engine = sut.restoreGame(settings, position.actions), before = completeState(engine);
+    const candidates = threePlayerCandidates(engine, engine.currentPlayer);
+    const moves = plain(ai.getTopMoves(engine, engine.currentPlayer, 1000));
+    assert.deepEqual(moves, raw17Ranking(candidates, entry.weights), `${position.id}: exact raw17 ranking`);
+    const legal = new Set(engine.getLegalMoves().map(move => move.point.join(',')));
+    assert.equal(moves.length, legal.size + 1, position.id);
+    assert.equal(new Set(moves.map(move => move.point === null ? 'PASS' : move.point.join(','))).size, moves.length);
+    assert.equal(moves.filter(move => move.type === 'pass' && move.point === null).length, 1);
+    assert.ok(moves.every(move => move.point === null ? move.type === 'pass'
+      : legal.has(move.point.join(','))), position.id);
+    assert.ok(Math.abs(moves.reduce((sum, move) => sum + move.prior, 0) - 1) < 1e-12);
+    const passProbe = sut.restoreGame(settings, position.actions);
+    assert.equal(passProbe.skipTurn().success, true, `${position.id}: PASS must be legal`);
+    assert.equal(completeState(engine), before, `${position.id}: full state/history preserved`);
+  }
 });
 
 test('three-player speculation retains Superko history, resignation and replay-batch flags', () => {
@@ -118,7 +152,7 @@ test('three-player speculation retains Superko history, resignation and replay-b
     engine._isReplayingBatch = batch;
     const before = completeState(engine);
     const moves = createEmbeddedThreePlayerAI().getTopMoves(engine, engine.currentPlayer, 1000);
-    assert.equal(moves.some(move => move.point.join(',') === blocked.join(',')), false);
+    assert.equal(moves.some(move => move.point?.join(',') === blocked.join(',')), false);
     assert.equal(completeState(engine), before);
     assert.throws(() => createEmbeddedThreePlayerAI().getTopMoves(engine, 'WHITE'), /当前行动方/);
     assert.equal(completeState(engine), before);

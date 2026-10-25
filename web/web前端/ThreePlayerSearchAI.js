@@ -1,7 +1,7 @@
 // Local v4 candidate. No runtime registration: promotion is a separate gate.
-import { fastTerritoryBFS, restoreState, saveState } from "./AIEngine.js?v=20261025-defense15";
-import { ThreePlayerAI, THREE_PLAYER_FEATURES } from "./ThreePlayerAI.js?v=20261025-defense15";
-import { GameEngine } from "./GameEngine.js?v=20261025-defense15";
+import { fastTerritoryBFS, restoreState, saveState } from "./AIEngine.js?v=20261025-terminal-v4";
+import { ThreePlayerAI, THREE_PLAYER_FEATURES } from "./ThreePlayerAI.js?v=20261025-terminal-v4";
+import { GameEngine } from "./GameEngine.js?v=20261025-terminal-v4";
 
 const pointOrder = (a, b) => a.point[1] - b.point[1] || a.point[0] - b.point[0];
 const linear = (spec) => ({ score: (values) => values.reduce((sum, value, i) => sum + value * spec.weights[i], 0) / spec.temperature });

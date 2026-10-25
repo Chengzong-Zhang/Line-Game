@@ -1,8 +1,8 @@
-import { PLAYER_ORDER } from "./GameEngine.js?v=20261025-defense15";
-import { PLAYER_PALETTE, playerLabel } from "./PlayerPalette.js?v=20261025-defense15";
-import { localPlayerChoices, MULTIPLAYER_ULTIMATE_AVAILABLE, usesGenericBoardAI, normalizeLocalPlayers } from "./LocalAIModes.js?v=20261025-defense15";
-import { RESEARCH_FAMILIES, TRANSFER_SEEDS } from "./ResearchAIOptions.js?v=20261025-defense15";
-import { normalizeRoomPlayerSetup } from "./OnlineRoomSettings.js?v=20261025-defense15";
+import { PLAYER_ORDER } from "./GameEngine.js?v=20261025-terminal-v4";
+import { PLAYER_PALETTE, playerLabel } from "./PlayerPalette.js?v=20261025-terminal-v4";
+import { localPlayerChoices, MULTIPLAYER_ULTIMATE_AVAILABLE, usesGenericBoardAI, normalizeLocalPlayers } from "./LocalAIModes.js?v=20261025-terminal-v4";
+import { RESEARCH_FAMILIES, TRANSFER_SEEDS } from "./ResearchAIOptions.js?v=20261025-terminal-v4";
+import { normalizeRoomPlayerSetup } from "./OnlineRoomSettings.js?v=20261025-terminal-v4";
 
 export default {
   name: "LocalPlayerSetup",

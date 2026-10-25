@@ -1,4 +1,4 @@
-import GameEngine, { PLAYER_ORDER } from "./GameEngine.js?v=20261025-defense15";
+import GameEngine, { PLAYER_ORDER } from "./GameEngine.js?v=20261025-terminal-v4";
 
 // Ask the rule engine for actors: automatic skips can change the turn order.
 const COLORS = PLAYER_ORDER;

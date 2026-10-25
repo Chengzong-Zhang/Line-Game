@@ -209,11 +209,12 @@ for (const rulesVersion of [TerritoryRulesVersion.V2, TerritoryRulesVersion.V3])
     `${rulesVersion}: actual-worker witness must retain five legal placements`);
   const workerSourceBefore = capture(workerWin);
   const workerResponse = await computeWithActualWorker(workerWin, rulesVersion);
-  assert.deepEqual(workerResponse.moves[0], {
-    point: null,
-    type: "pass",
-    score: 1_000_000,
-  }, `${rulesVersion}: actual AIWorker must choose the exact winning PASS`);
+  assert.ok(Array.isArray(workerResponse.moves[0].point),
+    `${rulesVersion}: actual AIWorker must retain witnessed safe growth despite the raw winning PASS`);
+  assert.equal(workerResponse.searchStats.passDiscipline.status, "safe-profitable-expansion");
+  assert.equal(workerResponse.searchStats.passDiscipline.witness.completeOpponentRound, true);
+  assert.equal(workerResponse.searchStats.passDiscipline.witness.passWouldEnd, true);
+  assert.ok(workerResponse.searchStats.passDiscipline.witness.minimumReplyMargin > 0);
   assert.deepEqual(capture(workerWin), workerSourceBefore,
     `${rulesVersion}: actual AIWorker changed the source game`);
 

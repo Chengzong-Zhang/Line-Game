@@ -66,10 +66,19 @@ try {
       const beforeWin = saveState(winning);
       const winningRuntime = await loadMultiplayerRuntime(modelId, winning);
       const winningMoves = winningRuntime.ai.getTopMoves(winning, player, 5);
-      assert.deepEqual(winningMoves, [{ type: "pass", point: null, score: 1, prior: 1, visits: 1,
-        evaluation: "canonical-terminal-unique-win" }]);
-      assert.equal(winningRuntime.ai.lastSearch.algorithm, "canonical-terminal-unique-win");
-      assert.deepEqual(saveState(winning), beforeWin, "Winning PASS analysis must preserve source state");
+      assert.ok(winningMoves.length > 0);
+      assert.notEqual(winningMoves[0].evaluation, "canonical-terminal-unique-win",
+        "Winning PASS must not replace the loaded policy unconditionally");
+      assert.notEqual(winningRuntime.ai.lastSearch.algorithm, "canonical-terminal-unique-win");
+      const winningDiscipline = winningRuntime.ai.lastSearch.passDiscipline;
+      assert.ok(winningDiscipline, "Every direct multiplayer runtime must use the shared final gate");
+      if (winningDiscipline.status === "safe-profitable-expansion") {
+        assert.ok(Array.isArray(winningMoves[0].point));
+        assert.equal(winningDiscipline.witness.completeOpponentRound, true);
+      } else if (winningMoves[0].point === null) {
+        assert.ok(["incomplete", "no-certified-expansion", "forced-pass"].includes(winningDiscipline.status));
+      }
+      assert.deepEqual(saveState(winning), beforeWin, "Winning decision analysis must preserve source state");
 
       const draw = drawFixture(playerCount, rulesVersion);
       assert.ok(draw.getLegalMoves(draw.currentPlayer).length > 0);
@@ -81,9 +90,12 @@ try {
       const drawRuntime = await loadMultiplayerRuntime(modelId, draw);
       const drawMoves = drawRuntime.ai.getTopMoves(draw, draw.currentPlayer, 1);
       assert.equal(drawMoves.length, 1);
-      assert.ok(Array.isArray(drawMoves[0].point), "A draw must fall through to the original placement policy");
+      assert.notEqual(drawMoves[0].evaluation, "canonical-terminal-unique-win");
+      assert.ok(drawMoves[0].point === null || draw.getLegalMoves().some(m => m.point.join(",") === drawMoves[0].point.join(",")),
+        "A draw must use a real policy action or a certified legal expansion");
       assert.deepEqual(saveState(draw), beforeDraw, "Rejected PASS gate must preserve source state");
-      cases.push({ rulesVersion, playerCount, modelId, uniqueWinningPass: true, drawFallsThrough: true });
+      cases.push({ rulesVersion, playerCount, modelId, unconditionalWinningShortcutRemoved: true,
+        sharedDiscipline: winningDiscipline.status, drawUsesPolicy: true });
     }
   }
   console.log(JSON.stringify({ status: "PASS_MULTIPLAYER_SAFE_PASS", cases: cases.length }));

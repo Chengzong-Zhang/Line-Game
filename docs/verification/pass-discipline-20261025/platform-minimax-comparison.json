@@ -1,0 +1,35 @@
+{
+  "schema": "lifeline-platform-minimax-comparison-v1",
+  "webRelease": "web-defense15-20261025-r1",
+  "uploadedMiniVersion": "0.12.12",
+  "webCanonicalAiSource": "2d3e2de8cf0d39b8bb5302b7998a8f8008e4ffd4e38a8327ec2dc628debba7da",
+  "miniCanonicalAiSource": "2d3e2de8cf0d39b8bb5302b7998a8f8008e4ffd4e38a8327ec2dc628debba7da",
+  "webHardDepth": 4,
+  "miniDefaultDepth": 2,
+  "miniExplicitHardDepth": 4,
+  "fixture": {
+    "gridSize": 5,
+    "rulesVersion": "territory-v3",
+    "prefix": [
+      [
+        1,
+        0
+      ],
+      [
+        3,
+        1
+      ]
+    ],
+    "playerCount": 2
+  },
+  "nodeProbe": {
+    "depth4MiniMs": 134.3,
+    "trials": 1,
+    "depth4WebMs": 133.5,
+    "depth2MiniMs": 31.2,
+    "depth2WebMs": 41.3,
+    "identicalDecisions": true
+  },
+  "scope": "Verified public Web manifest and latest known developer-upload build sources; one Node shared-fixture adapter comparison. The version and settings running on the user device, browser paint latency and phone speed are not established.",
+  "newMiniLabels": "Minimax simple/medium/hard = 2/3/4 plies; 0.12.13 pending final upload"
+}

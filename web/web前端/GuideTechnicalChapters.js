@@ -1,5 +1,5 @@
-import { IMPLEMENTATION_NOTES } from './GuideImplementationNotes.js?v=20261025-defense15';
-import { p, m, c, s, ch } from './GuideArticleFormat.js?v=20261025-defense15';
+import { IMPLEMENTATION_NOTES } from './GuideImplementationNotes.js?v=20261025-terminal-v4';
+import { p, m, c, s, ch } from './GuideArticleFormat.js?v=20261025-terminal-v4';
 
 function notes(id, omit = []) {
   const item = IMPLEMENTATION_NOTES.find(item => item.id === id);
@@ -198,8 +198,8 @@ export const TECHNICAL_CHAPTERS = [
 05 A successful placement or resignation resets the pass count
 06 If only one player remains: that player wins
 07 Otherwise at settlement: recompute exact area and compare survivors`),
-      p('性能优化可以延后非终局着色，但终局读取比分前必须完成精确更新。神经 PUCT 在模拟终局显式调用规范更新；旧版 Minimax 的 F 分支不具备这个精确胜负语义，不能把二者的输出统一标成“胜率”。',
-        'Nonterminal shading may be deferred, but exact scores must be ready before settlement reads them. Neural PUCT explicitly refreshes canonical territory at terminal simulations; old Minimax’s F leaf does not have the same exact-outcome semantics. Their outputs should not share an unqualified win-probability label.'),
+      p('性能优化可以延后非终局着色，但终局读取比分前必须完成精确更新。当前 Minimax 的真实终局分支与神经 PUCT 都按规范 area 判胜负；两者的非终局估值、访问次数或网络先验仍不能统一标成“胜率”。',
+        'Nonterminal shading may be deferred, but exact scores must be ready before settlement. Current Minimax true-terminal leaves and neural PUCT both use canonical area outcomes; their nonterminal values, visits and network priors are not a common win-probability measure.'),
       ref(engine, 'skipTurn, resignPlayer, _checkAndAutoSkip, getWinner'),
     ]),
     s('verification', '2.10 源码与验证路径', '2.10 Source and verification', [
@@ -227,13 +227,13 @@ node --test --test-timeout=180000 wechat/minigame/tests/guide-cabin.test.mjs`, '
     s('minimax', '3.2 Minimax 控制流', '3.2 Minimax control flow', [
       ...notes('minimax'),
       c(`01 SEARCH(S,d,alpha,beta,root):
-02   If d=0 OR gameOver: return F(S,root)
-03   Get real legal placements; handle no-placement pass
-04   Retain ordered candidates (at most 20)
+02   If gameOver: return exact area win/draw/loss utility
+03   If d=0: return the nonterminal Minimax heuristic
+04   Get legal placements; retain <=20 ordered placements and append PASS
 05   maximizing <- (S.currentPlayer == root)
 06   value <- -infinity if maximizing, otherwise +infinity
-07   For each candidate:
-08     saved <- saveState; apply the actual move
+07   For each placement or PASS:
+08     saved <- saveState; apply playMove or skipTurn
 09     child <- SEARCH(successor,d-1,alpha,beta,root)
 10     restoreState(saved)
 11     Update value and alpha (MAX) or beta (MIN)
@@ -242,7 +242,7 @@ node --test --test-timeout=180000 wechat/minigame/tests/guide-cabin.test.mjs`, '
       src(ai, 'MinimaxAI.minimax', `    const maximizingPlayer = engine.currentPlayer === aiPlayer;`),
       p('伪代码省略非法候选返回分支与缓存字段，不是新求解器。正常分支恢复与 finally 的实际覆盖范围应按源码阅读；不能仅凭伪代码推断任意中途异常都有完整事务回滚。全候选枚举成本仍会发生在取前 20 个之前，故“只搜 20 个”不等于“只试走 20 个”。',
         'This is explanatory pseudocode, omitting rejected-candidate branches and cache fields. Read the actual finally scope before assuming full transaction rollback under every exception. Full legal enumeration occurs before retaining 20 moves; searching 20 candidates does not mean only 20 legality trials.'),
-      ref(ai, 'MinimaxAI.minimax, MinimaxAI.getTopMoves, applyMoveForAI'),
+      ref(ai, 'MinimaxAI.minimax, MinimaxAI.getTopMoves, applyMinimaxAction'),
     ]),
     s('mcts', '3.3 普通 MCTS', '3.3 Plain MCTS', [
       ...notes('mcts'),
@@ -300,16 +300,17 @@ node --test --test-timeout=180000 wechat/minigame/tests/guide-cabin.test.mjs`, '
 03 ReLU(W1*x+b1) -> ReLU(W2*h+b2) -> 121 action outputs
 04 DQN reads Q-head weights; other families read policy-head weights
 05 Softmax over legal indices including the PASS slot
-06 Filter returned candidates to placements; sort by prior
-07 If there is no placement, outer control handles passing`),
-      p('源码摘录：过滤发生在 softmax 分母计算之后，所以当前返回的落子 prior 不一定和为 1。这是动作适配行为，不是数学 softmax 失效。',
-        'Source excerpt: filtering occurs after normalization, so returned placement priors need not sum to one. This is adapter behavior, not a failure of softmax.'),
+06 Return explicit placement and PASS candidates; sort by prior
+07 Product Worker applies the shared bounded PASS-discipline check`),
+      p('源码摘录：真实合法落子与 PASS 使用同一 softmax 分母，返回显式动作类型；完整分布归一化，截取 top-N 后无需重新归一化。共享检查不改写这些模型的神经权重。',
+        'Source excerpt: legal placements and PASS share one softmax denominator and retain explicit action types. The complete distribution is normalized; a top-N slice need not be renormalized. The shared check changes no neural weights.'),
       src('web/web前端/ModelFreeAI.js', 'ModelFreeModel.evaluate', `    return { priors: legal.map((index, order) => index < engine.validPositions.length
       ? { type: "move", point: [...engine.validPositions[index]], actionIndex: index, prior: exp[order] / total }
       : { type: "pass", point: null, actionIndex: engine.validPositions.length, prior: exp[order] / total }) };`),
       ref('web/web前端/ModelFreeAI.js', 'encode, forwardBody, logits, evaluate, ModelFreeAI.getTopMoves'),
     ]),
     s('training', '3.7 训练源码与损失', '3.7 Training source and losses', [
+      ...notes('terminal-training'),
       p('研究训练入口与 Web 推理入口分开。以下是当前可阅读的训练源码，不单凭文件同名推断现行二进制权重由这份源码生成；资产来源仍需 manifest/训练收据。研究环境与 Web 的规则和自动跳过语义也须另行比对。',
         'Research training is separate from Web inference. These are current inspectable trainers; matching names alone do not prove that a deployed binary was generated by these exact sources. Asset lineage requires manifests/receipts, and rule/auto-skip parity between research and Web is a separate check.'),
       p('DQNTrainer.update：从 replay 抽批量，在线 Q 在合法掩码内取 argmax，目标网络读取该动作 Q；使用 smooth-L1、梯度裁剪 5。下列原文固定采用负续局值，对应对手视角假设；自动跳过后是否仍换人应由训练状态约定验证。',
@@ -329,8 +330,8 @@ node --test --test-timeout=180000 wechat/minigame/tests/guide-cabin.test.mjs`, '
         'GAIL/GAN: train_imitation_adversarial.py collects greedy-expert data. Both labels use one loop, mainly changing seed offset and metadata. D consumes state plus action one-hot, with expert=1 and generated=0. The generator enumerates all actions and differentiates a probability-weighted expectation instead of differentiating through a sampled discrete action.'),
       src('research/iclr2027/scripts/train_imitation_adversarial.py', 'train', `            rewards = torch.sigmoid(-discriminator(repeated_states, action_grid)).reshape(batch_states.shape[0], ACTION_COUNT)
             g_loss = -(probs * torch.log(rewards.clamp_min(1e-6))).sum(dim=1).mean()`),
-      p('这里的负号很关键：固定 D 时，最小化 −log σ(−D) 偏向较小 D，而专家正标签训练偏向较大 D。因此当前循环不能直接享有标准 GAIL 的模仿保证；两个名称也不等于两种独立算法。脚本在固定专家状态批次上更新，并非完整在线占用分布匹配；训练采样未在该循环应用合法掩码，Web 推理另做真实合法过滤。上述是源码行为说明，本次没有修订训练、重训或替换模型。',
-        'The sign matters: holding D fixed, minimizing −log σ(−D) favors smaller D, whereas expert-positive classification favors larger D. This loop cannot directly inherit standard GAIL guarantees, and two names do not establish two independent algorithms. Updates use fixed expert-state batches, not full online occupancy matching; this loop does not mask sampled actions, while Web inference separately filters actual legality. This report changes no training, weights or model selection.'),
+      p('这里的负号很关键：固定 D 时，最小化 −log σ(−D) 偏向较小 D，而专家正标签训练偏向较大 D。因此当前循环不能直接享有标准 GAIL 的模仿保证；两个名称也不等于两种独立算法。脚本在固定专家状态批次上更新，并非完整在线占用分布匹配；训练采样未在该循环应用合法掩码，Web 推理另做真实合法过滤。这些历史神经训练循环仅作源码说明；本次线性继续训练不修改这些循环或神经权重。',
+        'The sign matters: holding D fixed, minimizing −log σ(−D) favors smaller D, whereas expert-positive classification favors larger D. This loop cannot directly inherit standard GAIL guarantees, and two names do not establish two independent algorithms. Updates use fixed expert-state batches, not full online occupancy matching; this loop does not mask sampled actions, while Web inference separately filters actual legality. These historical neural loops are documented only; the linear continuation changes neither those loops nor their neural weights.'),
     ]),
     s('multi-policy', '3.8 多人线性策略', '3.8 Multiplayer features', [
       ...notes('multi-policy'),

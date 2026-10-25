@@ -1,5 +1,5 @@
-import { LOCAL_PLAYER_COLORS, normalizeLocalPlayers, localPlayerProfile, usesGenericBoardAI } from "./LocalAIModes.js?v=20261025-defense15";
-import { DEFAULT_RESEARCH_VERSION, RESEARCH_FAMILIES } from "./ResearchAIOptions.js?v=20261025-defense15";
+import { LOCAL_PLAYER_COLORS, normalizeLocalPlayers, localPlayerProfile, usesGenericBoardAI } from "./LocalAIModes.js?v=20261025-terminal-v4";
+import { DEFAULT_RESEARCH_VERSION, RESEARCH_FAMILIES } from "./ResearchAIOptions.js?v=20261025-terminal-v4";
 
 export const ROOM_PLAYER_COLORS = LOCAL_PLAYER_COLORS;
 const THREE_MODELS = new Set(["three-player-policy-v1", "three-player-policy-v2", "three-player-search-v4-round12"]);

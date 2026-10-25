@@ -1,6 +1,6 @@
-import GameEngine from "./GameEngine.js?v=20261025-defense15";
-import { Player, PLAYER_ORDER, resolveBoardShape } from "./GameEngine.js?v=20261025-defense15";
-import { startingPointSettings } from "./StartingPoints.js?v=20261025-defense15";
+import GameEngine from "./GameEngine.js?v=20261025-terminal-v4";
+import { Player, PLAYER_ORDER, resolveBoardShape } from "./GameEngine.js?v=20261025-terminal-v4";
+import { startingPointSettings } from "./StartingPoints.js?v=20261025-terminal-v4";
 
 export const REPLAY_FORMAT = "lifeline-replay";
 export const REPLAY_SCHEMA_VERSION = 1;

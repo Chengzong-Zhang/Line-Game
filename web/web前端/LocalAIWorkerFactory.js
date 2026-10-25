@@ -1,7 +1,7 @@
 // Select once from the active match, not the current seat or unsaved setup.
 // All mixed seats keep one compatible Worker until the session cancels it.
-const ordinaryUrl = new URL("./AIWorker.js?v=20261025-defense15", import.meta.url);
-const hardUrl = new URL("./MultiplayerHardAIWorker.bundle.mjs?v=20261025-room1", import.meta.url);
+const ordinaryUrl = new URL("./AIWorker.js?v=20261025-terminal-v4", import.meta.url);
+const hardUrl = new URL("./MultiplayerHardAIWorker.bundle.mjs?v=20261025-terminal-v4", import.meta.url);
 
 export function localAIWorkerRoute(context, profiles = []) {
   const native = context && [3, 4, 5, 6].includes(context.playerCount)

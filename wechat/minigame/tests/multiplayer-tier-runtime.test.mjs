@@ -186,14 +186,14 @@ test('resource injection and native adapter return identical rankings with deter
   const loaders = {
     loadNativeHardRuntime: timed.createEmbeddedHardRuntime,
     loadAssetModel: async () => ({ spec: plain(timed.easyManifest.models[0]) }),
-    loadThreePlayerRuntime: async id => ({ ai: timed.createEmbeddedThreePlayerAI(id), modelInfo: { id } }),
-    loadHexPlayerModel: async () => (await timed.createEmbeddedHexPlayerAI()).model,
+    loadThreePlayerRuntime: async (id, source) => ({ ai: timed.createEmbeddedThreePlayerAI(id, source.rulesVersion), modelInfo: { id } }),
+    loadHexPlayerModel: async (_id, source) => (await timed.createEmbeddedHexPlayerAI(undefined, source.rulesVersion)).model,
   };
   for (const config of [settings(3, 5), settings(4, 5), settings(3, 5, 'hexagon')]) for (const profile of profiles) {
     if (profile === profiles[1] && config.boardShape === 'hexagon' && config.playerCount === 3) continue;
     const engine = timed.restoreGame(config), runtime = await timed.resourceRuntime(profile, engine, loaders);
-    clock.reset(); assert.equal(timed.canonicalTerminalWinningPass(engine, engine.currentPlayer), null);
-    const expected = plain(runtime.ai.getTopMoves(engine, engine.currentPlayer, 3, { terminalWinningPassPrechecked: true }));
+    clock.reset();
+    const expected = plain(runtime.ai.getTopMoves(engine, engine.currentPlayer, 3));
     const expectedStats = plain(runtime.ai.lastSearch);
     workerClock.reset(); const reply = await timedWorker.send('ANALYZE', config, profile);
     assert.equal(reply.ok, true, reply.error); assert.deepEqual(reply.result.moves, expected);

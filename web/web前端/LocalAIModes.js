@@ -1,6 +1,6 @@
-import { PLAYER_ORDER } from "./GameEngine.js?v=20261025-defense15";
-import { DEFAULT_RESEARCH_VERSION, RESEARCH_FAMILIES, TRANSFER_SEEDS, researchProfile } from "./ResearchAIOptions.js?v=20261025-defense15";
-import { threePlayerModelIdForBoard } from "./ThreePlayerSearchOptions.js?v=20261025-defense15";
+import { PLAYER_ORDER } from "./GameEngine.js?v=20261025-terminal-v4";
+import { DEFAULT_RESEARCH_VERSION, RESEARCH_FAMILIES, TRANSFER_SEEDS, researchProfile } from "./ResearchAIOptions.js?v=20261025-terminal-v4";
+import { threePlayerModelIdForBoard } from "./ThreePlayerSearchOptions.js?v=20261025-terminal-v4";
 
 export const LOCAL_PLAYER_CHOICES = Object.freeze([
   "human", "minimax", ...RESEARCH_FAMILIES, "dqn", "ppo", "sac", "gail", "gan",

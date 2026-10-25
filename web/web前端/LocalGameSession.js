@@ -1,7 +1,7 @@
-import { ALL_LOCAL_PLAYER_CHOICES, MULTIPLAYER_AI_CHOICES, normalizeLocalPlayers, usesGenericBoardAI } from "./LocalAIModes.js?v=20261025-defense15";
-import { startingPointSettings } from "./StartingPoints.js?v=20261025-defense15";
-import { PLAYER_ORDER, resolveBoardShape } from "./GameEngine.js?v=20261025-defense15";
-import { normalizeUndoUsage } from "./LocalUndo.js?v=20261025-defense15";
+import { ALL_LOCAL_PLAYER_CHOICES, MULTIPLAYER_AI_CHOICES, normalizeLocalPlayers, usesGenericBoardAI } from "./LocalAIModes.js?v=20261025-terminal-v4";
+import { startingPointSettings } from "./StartingPoints.js?v=20261025-terminal-v4";
+import { PLAYER_ORDER, resolveBoardShape } from "./GameEngine.js?v=20261025-terminal-v4";
+import { normalizeUndoUsage } from "./LocalUndo.js?v=20261025-terminal-v4";
 
 const LOCAL_GAME_SESSION_FORMAT = "lifeline-local-session";
 const PLAYER_COLORS = PLAYER_ORDER;

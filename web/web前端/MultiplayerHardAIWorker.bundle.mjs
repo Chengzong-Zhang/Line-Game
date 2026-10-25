@@ -71,9 +71,9 @@ function resolveInitialPositions(gridSize, playerCount, positions = null, boardS
     if (!Array.isArray(point) || point.length !== 2 || !isBoardPoint(point, gridSize, playerCount, boardShape)) {
       throw new Error(`Invalid starting point for ${player}.`);
     }
-    const key3 = pointKey(point);
-    if (occupied.has(key3)) throw new Error("Starting points must not overlap.");
-    occupied.add(key3);
+    const key5 = pointKey(point);
+    if (occupied.has(key5)) throw new Error("Starting points must not overlap.");
+    occupied.add(key5);
     result[player] = Object.freeze(clonePoint(point));
   }
   return Object.freeze(result);
@@ -84,8 +84,8 @@ function clonePoint(point) {
 function pointKey(point) {
   return `${point[0]},${point[1]}`;
 }
-function keyToPoint(key3) {
-  const [x, y] = key3.split(",").map(Number);
+function keyToPoint(key5) {
+  const [x, y] = key5.split(",").map(Number);
   return [x, y];
 }
 function pointEquals(a, b) {
@@ -134,9 +134,9 @@ function dedupePoints(points) {
   const seen = /* @__PURE__ */ new Set();
   const result = [];
   for (const point of points) {
-    const key3 = pointKey(point);
-    if (!seen.has(key3)) {
-      seen.add(key3);
+    const key5 = pointKey(point);
+    if (!seen.has(key5)) {
+      seen.add(key5);
       result.push(clonePoint(point));
     }
   }
@@ -187,23 +187,23 @@ function updateDependencyGeometry(engine, memo) {
     memo.bfs = dependencyBfsBucket();
   }
 }
-function dependencyGet(bucket, key3) {
-  const record = bucket.entries.get(key3);
+function dependencyGet(bucket, key5) {
+  const record = bucket.entries.get(key5);
   if (!record) return null;
-  bucket.entries.delete(key3);
-  bucket.entries.set(key3, record);
+  bucket.entries.delete(key5);
+  bucket.entries.set(key5, record);
   return record.value;
 }
-function dependencyPut(bucket, key3, value, units) {
-  if (key3.length > bucket.maxCharacters || units > bucket.maxUnits) return;
-  while (bucket.entries.size >= 64 || bucket.characters + key3.length > bucket.maxCharacters || bucket.units + units > bucket.maxUnits) {
+function dependencyPut(bucket, key5, value, units) {
+  if (key5.length > bucket.maxCharacters || units > bucket.maxUnits) return;
+  while (bucket.entries.size >= 64 || bucket.characters + key5.length > bucket.maxCharacters || bucket.units + units > bucket.maxUnits) {
     const [oldKey, record] = bucket.entries.entries().next().value;
     bucket.entries.delete(oldKey);
     bucket.characters -= oldKey.length;
     bucket.units -= record.units;
   }
-  bucket.entries.set(key3, { value, units });
-  bucket.characters += key3.length;
+  bucket.entries.set(key5, { value, units });
+  bucket.characters += key5.length;
   bucket.units += units;
 }
 function dependencyPointsKey(points) {
@@ -238,12 +238,12 @@ function dependencyBfsPut(bucket, obstacleKey, srcIdx, entry) {
   let group = bucket.groups.get(obstacleKey);
   if (group?.entries.has(srcIdx) || group && group.entries.size >= 6) return;
   while (!group && bucket.groups.size >= 12 || bucket.characters + (group ? 0 : obstacleKey.length) > 65536 || bucket.units + entry.units > 524288) {
-    const [key3, removed] = bucket.groups.entries().next().value;
-    bucket.groups.delete(key3);
-    bucket.characters -= key3.length;
+    const [key5, removed] = bucket.groups.entries().next().value;
+    bucket.groups.delete(key5);
+    bucket.characters -= key5.length;
     bucket.entries -= removed.entries.size;
     bucket.units -= removed.units;
-    if (key3 === obstacleKey) group = null;
+    if (key5 === obstacleKey) group = null;
   }
   if (!group) {
     group = { entries: /* @__PURE__ */ new Map(), units: 0 };
@@ -472,12 +472,12 @@ var init_GameEngine = __esm({
         this._rowIndexGridSize = this.gridSize;
         this._rowIndexBoardShape = this.boardShape;
         for (const point of getBoardPositions(this.gridSize, this.playerCount, this.boardShape)) {
-          const key3 = pointKey(point);
+          const key5 = pointKey(point);
           const idx = this.validPositions.length;
           this.validPositions.push(point);
-          this.positionKeys.add(key3);
-          this.grid.set(key3, PointState.EMPTY);
-          this._keyToIdx.set(key3, idx);
+          this.positionKeys.add(key5);
+          this.grid.set(key5, PointState.EMPTY);
+          this._keyToIdx.set(key5, idx);
           this._rowIndexOffsets[point[1]] ??= idx - point[0];
         }
         const n = this.validPositions.length;
@@ -538,11 +538,11 @@ var init_GameEngine = __esm({
         return this.grid.get(pointKey(point));
       }
       _setState(point, state) {
-        const key3 = pointKey(point);
-        if (this._moveProbeUndo && !this._moveProbeUndo.has(key3)) {
-          this._moveProbeUndo.set(key3, this.grid.get(key3));
+        const key5 = pointKey(point);
+        if (this._moveProbeUndo && !this._moveProbeUndo.has(key5)) {
+          this._moveProbeUndo.set(key5, this.grid.get(key5));
         }
-        this.grid.set(key3, state);
+        this.grid.set(key5, state);
       }
       _getPlayerStates(player) {
         return PLAYER_POINT_STATES[player];
@@ -635,7 +635,7 @@ var init_GameEngine = __esm({
         };
       }
       _getSnapshotLegalMoves() {
-        const key3 = JSON.stringify([
+        const key5 = JSON.stringify([
           this.gridSize,
           this.boardShape,
           this.rulesVersion,
@@ -654,8 +654,8 @@ var init_GameEngine = __esm({
           [...this.historyHashes],
           [...this.resignedPlayers]
         ]);
-        if (this._snapshotLegalCache?.key !== key3) {
-          this._snapshotLegalCache = { key: key3, moves: this.getLegalMoves(this.currentPlayer) };
+        if (this._snapshotLegalCache?.key !== key5) {
+          this._snapshotLegalCache = { key: key5, moves: this.getLegalMoves(this.currentPlayer) };
         }
         return this._snapshotLegalCache.moves.map((move) => ({ ...move, point: clonePoint(move.point) }));
       }
@@ -967,8 +967,8 @@ var init_GameEngine = __esm({
       }
       _getCrawlRays(node) {
         this._crawlRays ??= /* @__PURE__ */ new Map();
-        const key3 = pointKey(node);
-        if (!this._crawlRays.has(key3)) {
+        const key5 = pointKey(node);
+        if (!this._crawlRays.has(key5)) {
           const rays = DIRECTIONS.map(([dx, dy]) => {
             const ray = [];
             let x = node[0] + dx, y = node[1] + dy;
@@ -979,9 +979,9 @@ var init_GameEngine = __esm({
             }
             return ray;
           });
-          this._crawlRays.set(key3, rays);
+          this._crawlRays.set(key5, rays);
         }
-        return this._crawlRays.get(key3);
+        return this._crawlRays.get(key5);
       }
       /** 攻击结束后，沿6个方向爬行重建所有被解锁的连线 */
       _connectAllCrawl(player, knownNodes = null) {
@@ -1115,8 +1115,8 @@ var init_GameEngine = __esm({
         }
         if (friendlySet.size === 0) return [];
         let start = null;
-        for (const key3 of friendlySet) {
-          const p = keyToPoint(key3);
+        for (const key5 of friendlySet) {
+          const p = keyToPoint(key5);
           if (!start || p[0] < start[0] || p[0] === start[0] && p[1] < start[1]) {
             start = p;
           }
@@ -1241,7 +1241,7 @@ var init_GameEngine = __esm({
       _coversFriendlyNodes(polygon, friendlyKeys) {
         if (this._getCoveredPoints !== NATIVE_FLOOD_COVERAGE || this._pointToIndex !== NATIVE_FLOOD_POINT_INDEX) {
           const covered = this._getCoveredPoints(polygon);
-          return [...friendlyKeys].every((key3) => covered.has(key3));
+          return [...friendlyKeys].every((key5) => covered.has(key5));
         }
         this._bfsEpoch += 1;
         if (this._bfsEpoch === 2147483647) {
@@ -1260,8 +1260,8 @@ var init_GameEngine = __esm({
           if (index >= 0) wall[index] = epoch;
         }
         let needsFlood = false;
-        for (const key3 of friendlyKeys) {
-          const index = this._keyToIdx.get(key3);
+        for (const key5 of friendlyKeys) {
+          const index = this._keyToIdx.get(key5);
           if (index === void 0) return false;
           if (wall[index] !== epoch) {
             required[index] = epoch;
@@ -1293,8 +1293,8 @@ var init_GameEngine = __esm({
       _getValidatedTerritoryArea(polygon, friendlyKeys, enemyKeys) {
         if (this._getCoveredPoints !== NATIVE_FLOOD_COVERAGE || this._pointToIndex !== NATIVE_FLOOD_POINT_INDEX) {
           const covered = this._getCoveredPoints(polygon);
-          if (![...friendlyKeys].every((key3) => covered.has(key3))) return null;
-          if ([...enemyKeys].some((key3) => covered.has(key3))) return null;
+          if (![...friendlyKeys].every((key5) => covered.has(key5))) return null;
+          if ([...enemyKeys].some((key5) => covered.has(key5))) return null;
           return covered.size;
         }
         this._bfsEpoch += 1;
@@ -1313,8 +1313,8 @@ var init_GameEngine = __esm({
           const index = directIdx >= 0 ? directIdx : this._keyToIdx.get(pointKey(point));
           if (index >= 0) wall[index] = epoch;
         }
-        for (const key3 of friendlyKeys) {
-          const index = this._keyToIdx.get(key3);
+        for (const key5 of friendlyKeys) {
+          const index = this._keyToIdx.get(key5);
           if (index === void 0) return null;
           required[index] = epoch;
         }
@@ -1335,8 +1335,8 @@ var init_GameEngine = __esm({
             }
           }
         }
-        for (const key3 of enemyKeys) {
-          const index = this._keyToIdx.get(key3);
+        for (const key5 of enemyKeys) {
+          const index = this._keyToIdx.get(key5);
           if (index !== void 0 && water[index] !== epoch) return null;
         }
         return this.validPositions.length - length;
@@ -1468,7 +1468,7 @@ var init_GameEngine = __esm({
           return;
         }
         const makeAreaBound = /* @__PURE__ */ __name((fixed) => {
-          const required = new Set([...fixed.map(pointKey), ...friendlyKeys].map((key3) => this._keyToIdx.get(key3)).filter((index) => index !== void 0));
+          const required = new Set([...fixed.map(pointKey), ...friendlyKeys].map((key5) => this._keyToIdx.get(key5)).filter((index) => index !== void 0));
           const weight = /* @__PURE__ */ __name((index) => required.has(index) ? 0 : 1, "weight");
           const costs = /* @__PURE__ */ new Map([[srcIdx, weight(srcIdx)]]);
           const minimumExtra = /* @__PURE__ */ __name((index) => {
@@ -1525,7 +1525,7 @@ var init_GameEngine = __esm({
             const couldCover = /* @__PURE__ */ __name((fixed) => {
               if (sharedPaths) return engine._coversFriendlyNodes([...fixed, ...envelope], friendlyKeys);
               const covered = engine._getCoveredPoints([...fixed, ...envelope]);
-              return [...friendlyKeys].every((key3) => covered.has(key3));
+              return [...friendlyKeys].every((key5) => covered.has(key5));
             }, "couldCover");
             if (sharedPaths) {
               if (sides & 1 && !couldCover(fixedA)) sides &= ~1;
@@ -1560,13 +1560,13 @@ var init_GameEngine = __esm({
         }
         const nodeKey = dependencyPointsKey(friendlyNodes), lineKey = dependencyPointsKey(friendlyLines);
         const enemyKey = dependencyPointsKey(rawEnemyPoints), contourKey = initialContour ? dependencyPointsKey(initialContour) : "";
-        if ([nodeKey, lineKey, enemyKey, contourKey].some((key4) => key4 === null)) {
+        if ([nodeKey, lineKey, enemyKey, contourKey].some((key6) => key6 === null)) {
           return this._rawTerritoryUncached(friendlyNodes, friendlyLines, rawEnemyPoints, options);
         }
         const memo = dependencyMemo(this);
         updateDependencyGeometry(this, memo);
-        const key3 = `${requireClosedRegion ? 1 : 0}|${nodeKey}|${lineKey}|${[...new Set(enemyKey.split(";"))].sort().join(";")}|${initialContour ? 1 : 0}:${contourKey}`;
-        const cached = dependencyGet(memo.raw, key3);
+        const key5 = `${requireClosedRegion ? 1 : 0}|${nodeKey}|${lineKey}|${[...new Set(enemyKey.split(";"))].sort().join(";")}|${initialContour ? 1 : 0}:${contourKey}`;
+        const cached = dependencyGet(memo.raw, key5);
         if (cached) {
           memo.stats.rawHits++;
           return copyDependencyTerritory(cached);
@@ -1576,7 +1576,7 @@ var init_GameEngine = __esm({
         memo.context = {};
         try {
           const result = this._rawTerritoryUncached(friendlyNodes, friendlyLines, rawEnemyPoints, options);
-          dependencyPut(memo.raw, key3, copyDependencyTerritory(result), (result.polygon?.length || 0) * 2);
+          dependencyPut(memo.raw, key5, copyDependencyTerritory(result), (result.polygon?.length || 0) * 2);
           return result;
         } finally {
           memo.context = previousContext;
@@ -1640,8 +1640,8 @@ var init_GameEngine = __esm({
             const area = useScalarValidation ? this._getValidatedTerritoryArea(candidate, friendlyNodeKeys, enemyKeySet) : covered.size;
             if (area === null) return;
             if (candidate.length === bestCandPerim && area >= bestCandArea) return;
-            if (!useScalarValidation && ![...friendlyNodeKeys].every((key3) => covered.has(key3))) return;
-            if (!useScalarValidation && [...enemyKeySet].some((key3) => covered.has(key3))) return;
+            if (!useScalarValidation && ![...friendlyNodeKeys].every((key5) => covered.has(key5))) return;
+            if (!useScalarValidation && [...enemyKeySet].some((key5) => covered.has(key5))) return;
             bestCandPerim = candidate.length;
             bestCandArea = area;
             bestOverallCand = candidate;
@@ -1696,7 +1696,7 @@ var init_GameEngine = __esm({
                 const couldCoverNodes = /* @__PURE__ */ __name((wall) => {
                   if (useSharedValidation) return this._coversFriendlyNodes(wall, friendlyNodeKeys);
                   const covered = this._getCoveredPoints(wall);
-                  return [...friendlyNodeKeys].every((key3) => covered.has(key3));
+                  return [...friendlyNodeKeys].every((key5) => covered.has(key5));
                 }, "couldCoverNodes");
                 possibleA = possibleA && couldCoverNodes([...currentPoly.slice(0, i), ...pathEnvelope, ...currentPoly.slice(j + 1)]);
                 possibleB = possibleB && couldCoverNodes([...currentPoly.slice(i, j + 1), ...pathEnvelope]);
@@ -1804,7 +1804,7 @@ var init_GameEngine = __esm({
         }
         if (requireClosedRegion) {
           const finalCovered = this._getCoveredPoints(currentPoly);
-          if ([...enemyKeySet].some((key3) => finalCovered.has(key3))) {
+          if ([...enemyKeySet].some((key5) => finalCovered.has(key5))) {
             return { polygon: null, area: 0, displayArea: 0 };
           }
           curArea = finalCovered.size;
@@ -1884,9 +1884,9 @@ var init_GameEngine = __esm({
             componentSize += 1;
             if (enemyKeys.has(currentKey)) containsEnemy = true;
             for (const neighbor of this.getAdjacentPositions(current)) {
-              const key3 = pointKey(neighbor);
-              if (ownedKeys.has(key3) || visited.has(key3) || !covered.has(key3)) continue;
-              visited.add(key3);
+              const key5 = pointKey(neighbor);
+              if (ownedKeys.has(key5) || visited.has(key5) || !covered.has(key5)) continue;
+              visited.add(key5);
               queue.push(neighbor);
             }
           }
@@ -1936,12 +1936,12 @@ var init_GameEngine = __esm({
        *  包含：网格物理层（非空点）、逻辑拓扑层（各方边集合）、即将行棋方。 */
       _getStateHashOrder() {
         this._stateHashCoordinates ??= /* @__PURE__ */ new Map();
-        return [...this.grid.keys()].map((key3) => {
-          if (!this._stateHashCoordinates.has(key3)) {
-            const [x, y] = key3.split(",").map(Number);
-            this._stateHashCoordinates.set(key3, { key: key3, x, y, cells: /* @__PURE__ */ new Map() });
+        return [...this.grid.keys()].map((key5) => {
+          if (!this._stateHashCoordinates.has(key5)) {
+            const [x, y] = key5.split(",").map(Number);
+            this._stateHashCoordinates.set(key5, { key: key5, x, y, cells: /* @__PURE__ */ new Map() });
           }
-          return this._stateHashCoordinates.get(key3);
+          return this._stateHashCoordinates.get(key5);
         }).sort((a, b) => a.x - b.x || a.y - b.y);
       }
       _computeStateHash(nextPlayer, orderedPoints = this._getStateHashOrder()) {
@@ -2036,9 +2036,9 @@ var init_GameEngine = __esm({
           return { legal: true, reason: null, state: originalState, isAttack: isAttackingMove };
         } finally {
           this.grid = gridSnapshot;
-          for (const [key3, state] of undo) {
-            if (state === void 0) this.grid.delete(key3);
-            else this.grid.set(key3, state);
+          for (const [key5, state] of undo) {
+            if (state === void 0) this.grid.delete(key5);
+            else this.grid.set(key5, state);
           }
           this._moveProbeUndo = previousUndo;
           for (const candidate of this.activePlayers) {
@@ -2465,16 +2465,16 @@ function fastTerritoryBFS(engine, player) {
   for (const point of engine.validPositions) {
     const state = engine._getState(point);
     if (state === myStates.node || state === myStates.line) {
-      const key3 = pointKey2(point);
-      visited.add(key3);
+      const key5 = pointKey2(point);
+      visited.add(key5);
       frontier.push(point);
     }
   }
   for (let index = 0; index < frontier.length; index += 1) {
     for (const adjacent of engine.getAdjacentPositions(frontier[index])) {
-      const key3 = pointKey2(adjacent);
-      if (!visited.has(key3) && !opponentStates.has(engine._getState(adjacent))) {
-        visited.add(key3);
+      const key5 = pointKey2(adjacent);
+      if (!visited.has(key5) && !opponentStates.has(engine._getState(adjacent))) {
+        visited.add(key5);
         frontier.push(adjacent);
       }
     }
@@ -2540,7 +2540,7 @@ function materialKeys(engine, player) {
   return { nodes, coverage };
 }
 function lostKeys(before, after) {
-  return new Set([...before].filter((key3) => !after.has(key3)));
+  return new Set([...before].filter((key5) => !after.has(key5)));
 }
 function weightedLoss(nodes, coverage) {
   return MINIMAX_WEIGHTS.lostNodes * nodes.size + MINIMAX_WEIGHTS.lostCoverage * coverage.size;
@@ -2561,10 +2561,10 @@ function cutAnalysis(engine, defender) {
         const lostNodes = lostKeys(before.nodes, after.nodes);
         const lostCoverage = lostKeys(before.coverage, after.coverage);
         const loss = weightedLoss(lostNodes, lostCoverage);
-        const key3 = pointKey2(point);
-        const previous = threats.get(key3);
+        const key5 = pointKey2(point);
+        const previous = threats.get(key5);
         if (!previous || loss > previous.loss) {
-          threats.set(key3, {
+          threats.set(key5, {
             attacker,
             point: [...point],
             loss,
@@ -2583,7 +2583,7 @@ function cutAnalysis(engine, defender) {
   return { threats, immediate };
 }
 function cutThreats(engine, defender) {
-  return new Map([...cutAnalysis(engine, defender).threats].map(([key3, threat]) => [key3, threat.loss]));
+  return new Map([...cutAnalysis(engine, defender).threats].map(([key5, threat]) => [key5, threat.loss]));
 }
 function materialCounts(engine, player) {
   const material = materialKeys(engine, player);
@@ -3418,12 +3418,12 @@ function positionUtilityV4(engine, player, spec) {
   const bestArea = Math.max(...players.map((p) => areas[p]));
   const leaders = players.filter((p) => areas[p] === bestArea);
   const count = engine.validPositions.length;
-  const margin = (areas[player] - Math.max(...players.filter((p) => p !== player).map((p) => areas[p]))) / count;
-  if (engine.gameOver) return { value: leaders.includes(player) ? 1 / leaders.length : 0, margin, terminal: true, areas };
+  const margin2 = (areas[player] - Math.max(...players.filter((p) => p !== player).map((p) => areas[p]))) / count;
+  if (engine.gameOver) return { value: leaders.includes(player) ? 1 / leaders.length : 0, margin: margin2, terminal: true, areas };
   const strengths = players.map((p) => areas[p] + spec.coverageWeight * (engine._getPlayerNodes(p).length + engine._getPlayerLines(p).length) + spec.reachWeight * fastTerritoryBFS(engine, p));
   const maximum = Math.max(...strengths);
   const exp = strengths.map((value) => Math.exp((value - maximum) / (count * spec.valueTemperature)));
-  return { value: exp[players.indexOf(player)] / exp.reduce((a, b) => a + b, 0), margin, terminal: false, areas };
+  return { value: exp[players.indexOf(player)] / exp.reduce((a, b) => a + b, 0), margin: margin2, terminal: false, areas };
 }
 var pointOrder, linear, ThreePlayerSearchAI;
 var init_ThreePlayerSearchAI = __esm({
@@ -3522,6 +3522,376 @@ var init_ThreePlayerSearchOptions = __esm({
   }
 });
 
+// application-hard:PassTrainedPolicyData.js
+var PASS_TRAINED_POLICY_DATA;
+var init_PassTrainedPolicyData = __esm({
+  "application-hard:PassTrainedPolicyData.js"() {
+    PASS_TRAINED_POLICY_DATA = Object.freeze({
+      "schema": "lifeline-terminal-trained-policies-v4",
+      "revision": "terminal-policy-explicit-extension-v5-20261025",
+      "activation": "EVALUATION_ONLY",
+      "reward": {
+        "type": "terminal-outcome-native-margin-area-v1",
+        "gamma": 1,
+        "outcome": 1,
+        "margin": 0.1,
+        "own_area": 0.01,
+        "nonterminal_reward": 0,
+        "formula": "sign(A_i-maxOpponentArea)+0.1*(A_i-maxOpponentArea)/N+0.01*A_i/N"
+      },
+      "training_identity": "3ff84e2e1458681404064611007901864b22423e09dc16d44aa6c4528adeeb59",
+      "training_completion_sha256": "ce5896dea2421c9b1ec190866233c6d7a344fcd0358479ea53efd53389fdb552",
+      "composite_schema": "lifeline-terminal-policy-composite-v5",
+      "per_model_identities": {
+        "easy": "858cd0e839d71ecb6aa61e115eac3daa2ebce5313626f919bfad139587742909",
+        "three-v4": "858cd0e839d71ecb6aa61e115eac3daa2ebce5313626f919bfad139587742909",
+        "three-v1": "858cd0e839d71ecb6aa61e115eac3daa2ebce5313626f919bfad139587742909",
+        "hex-v1": "fb343cdf48ae26ff27449fc77b72bb559ceb084ce9c0c2cefe71336d53f3339a"
+      },
+      "models": {
+        "easy": {
+          "id": "terminal-policy-easy-v4",
+          "parent_id": "multiplayer-easy-v1",
+          "parent_sha256": "d7560db53483ab9ee2a7c423509142924545f1679ec35201b369e3b91fe161a0",
+          "parent_weights": [
+            -0.14580607414245605,
+            4.890458583831787,
+            1.5119130611419678,
+            2.461515188217163,
+            4.132477283477783,
+            4.847853183746338,
+            2.18764328956604,
+            1.4035818576812744,
+            -0.03604307025671005,
+            4.890457630157471,
+            1.9455091953277588,
+            -0.188163623213768,
+            1.4107811450958252,
+            1.0532854795455933,
+            1.5060492753982544,
+            2.6598968505859375
+          ],
+          "parent_temperature": 1,
+          "weights": [
+            -0.14735341197804402,
+            4.876093329481814,
+            1.5095510189158239,
+            2.4634478866898646,
+            4.124779865181485,
+            4.849517720847708,
+            2.188097403445385,
+            1.404584846914868,
+            -0.03672288974131799,
+            4.8771881403576005,
+            1.9685804149335158,
+            -0.1877203006347369,
+            1.344917552433391,
+            1.039232167691653,
+            1.50138967686103,
+            2.6602968825467395,
+            0.017686925073865493
+          ],
+          "passBias": 0.017686925073865493,
+          "candidate_sha256": "698429df7e40b7550afca3fec044b6c31eff4059dcfe438bfbc6abbf674c3b3a",
+          "training_identity": "858cd0e839d71ecb6aa61e115eac3daa2ebce5313626f919bfad139587742909",
+          "updates": 22,
+          "training_samples": 60,
+          "naturally_completed_episodes": 24,
+          "truncated_episodes": 0,
+          "minimum_completed_depth": 4,
+          "training_provenance": {
+            "composite_identity": "3ff84e2e1458681404064611007901864b22423e09dc16d44aa6c4528adeeb59",
+            "source_kind": "original-v4-candidate",
+            "source_run_identity": "858cd0e839d71ecb6aa61e115eac3daa2ebce5313626f919bfad139587742909",
+            "cumulative_counts": false,
+            "new_stage_updates": 22
+          }
+        },
+        "three-v4": {
+          "id": "terminal-policy-three-v4-v4",
+          "parent_id": "three-player-search-v4-round12",
+          "parent_sha256": "9b85f5fff27001d68407c30d6f707b461b1b468d657c8292339e97d23868c230",
+          "parent_weights": [
+            7557808700460726e-30,
+            3.58959305398828,
+            -2.4475948070745512,
+            -0.2064619860790177,
+            2.376156912454001,
+            3.4965535285876213,
+            -0.035238875699359525,
+            -0.44259124087426643,
+            1499866503568271e-30,
+            3.5895930539882763,
+            0.9259918344344285,
+            0.16147374003446202,
+            -0.3807226709448679,
+            0.39413333686111285,
+            -0.7122030198259947,
+            1.619216717017585
+          ],
+          "parent_temperature": 1,
+          "weights": [
+            -0.007407135958821675,
+            3.578031170406704,
+            -2.46672324707446,
+            -0.1970214499446639,
+            2.40788973106073,
+            3.5352183578431857,
+            -0.036633447882062325,
+            -0.45118987941528244,
+            -0.002664791080819255,
+            3.5868280583837033,
+            0.8479506963758441,
+            0.228269492627285,
+            -0.4145736150415411,
+            0.3422444382096576,
+            -0.7238569664215129,
+            1.6313317652470358,
+            0.07508836127232199
+          ],
+          "passBias": 0.07508836127232199,
+          "candidate_sha256": "c5795f61b1127475b34f04f9288723ec4de7a4a704241a1515437fac7287829a",
+          "training_identity": "858cd0e839d71ecb6aa61e115eac3daa2ebce5313626f919bfad139587742909",
+          "updates": 19,
+          "training_samples": 44,
+          "naturally_completed_episodes": 24,
+          "truncated_episodes": 0,
+          "minimum_completed_depth": 6,
+          "training_provenance": {
+            "composite_identity": "3ff84e2e1458681404064611007901864b22423e09dc16d44aa6c4528adeeb59",
+            "source_kind": "original-v4-candidate",
+            "source_run_identity": "858cd0e839d71ecb6aa61e115eac3daa2ebce5313626f919bfad139587742909",
+            "cumulative_counts": false,
+            "new_stage_updates": 19
+          }
+        },
+        "three-v1": {
+          "id": "terminal-policy-three-v1-v4",
+          "parent_id": "three-player-policy-v1",
+          "parent_sha256": "8cd1a2f36267f96b1e32b7749a9cdc785f489ea7ec12e31aee0beb0a72901794",
+          "parent_weights": [
+            3068344628658064e-32,
+            0.6199774834539716,
+            0.3808808087202156,
+            0.10275129394052988,
+            0.9175196402489464,
+            1.3112210860509383,
+            0.10839054193264783,
+            0.2873651440694504,
+            13867114075450387e-33,
+            0.6199774834539719,
+            1.1600217968758315,
+            0.07573687233700797,
+            1.0691487331301746,
+            -0.6687230236886617,
+            0.19513418386106526,
+            0.4217435781350474
+          ],
+          "parent_temperature": 1,
+          "weights": [
+            -0.006868965621510802,
+            0.6072146719868378,
+            0.3591041839392895,
+            0.10675376791750454,
+            0.9509487404532334,
+            1.3484908558175237,
+            0.104663713925398,
+            0.2857660694819171,
+            -0.0037689440568095087,
+            0.610626784519622,
+            1.13042915898805,
+            0.07060206217819902,
+            1.0370011717266046,
+            -0.6871058978026476,
+            0.18428825230775311,
+            0.42664621112278,
+            0.07914782519300001
+          ],
+          "passBias": 0.07914782519300001,
+          "candidate_sha256": "aafb3d36704093d1ea2c98a2944e49b7d96792697f40d1a5ea88ef3136846a68",
+          "training_identity": "858cd0e839d71ecb6aa61e115eac3daa2ebce5313626f919bfad139587742909",
+          "updates": 24,
+          "training_samples": 92,
+          "naturally_completed_episodes": 24,
+          "truncated_episodes": 0,
+          "minimum_completed_depth": 6,
+          "training_provenance": {
+            "composite_identity": "3ff84e2e1458681404064611007901864b22423e09dc16d44aa6c4528adeeb59",
+            "source_kind": "original-v4-candidate",
+            "source_run_identity": "858cd0e839d71ecb6aa61e115eac3daa2ebce5313626f919bfad139587742909",
+            "cumulative_counts": false,
+            "new_stage_updates": 24
+          }
+        },
+        "hex-v1": {
+          "id": "terminal-policy-hex-v1-v4",
+          "parent_id": "hex-player-policy-v1",
+          "parent_sha256": "74aa7f945c3ea7ff5ca3edc9e7bdc431dc0ec5ad56d2563ce6d6d24c0494162b",
+          "parent_weights": [
+            8135268971555845e-32,
+            0.9377629018413943,
+            0.3626223678237569,
+            0.08817486873394614,
+            1.3399195234521817,
+            2.431764273936774,
+            0.08455189306792454,
+            0.3744258540418652,
+            29506074066088154e-33,
+            0.9377629018413944,
+            1.95992123518648,
+            -1.301018018616623,
+            4.354269287868578,
+            1.6412211056729025,
+            0.630816620720099,
+            0.8803912980895015
+          ],
+          "parent_temperature": 1,
+          "weights": [
+            46189357902778324e-20,
+            0.9472821274808638,
+            0.3657724473219778,
+            0.08859517453548732,
+            1.349586520326192,
+            2.441431270810784,
+            0.08455189306792454,
+            0.3744258540418652,
+            23094678951388045e-20,
+            0.9470511806913501,
+            1.95992123518648,
+            -1.301018018616623,
+            4.389100333555912,
+            1.6412211056729025,
+            0.6405667931490823,
+            0.8892176833604294,
+            -0.003464201842707806
+          ],
+          "passBias": -0.003464201842707806,
+          "candidate_sha256": "a536966b8927a3c3badd5df5e63801b27329cb683a238af8b926661b5ccc8ce7",
+          "training_identity": "fb343cdf48ae26ff27449fc77b72bb559ceb084ce9c0c2cefe71336d53f3339a",
+          "updates": 4,
+          "training_samples": 5,
+          "naturally_completed_episodes": 25,
+          "truncated_episodes": 0,
+          "minimum_completed_depth": 8,
+          "training_provenance": {
+            "composite_identity": "3ff84e2e1458681404064611007901864b22423e09dc16d44aa6c4528adeeb59",
+            "source_kind": "explicit-v5-state-continuation",
+            "source_run_identity": "fb343cdf48ae26ff27449fc77b72bb559ceb084ce9c0c2cefe71336d53f3339a",
+            "cumulative_counts": true,
+            "new_stage_updates": 1,
+            "native_hex_gradient_samples": 0
+          }
+        }
+      }
+    });
+  }
+});
+
+// application-hard:PassTrainedPolicies.js
+function trainedPolicySpec(base, alias, rulesVersion = "territory-v3") {
+  if (rulesVersion !== "territory-v3") return base;
+  const entry = PASS_TRAINED_POLICY_DATA.models[alias];
+  if (!entry) return base;
+  if (base.passDisciplineTraining?.candidate_sha256 === entry.candidate_sha256) {
+    check(JSON.stringify(base.weights) === JSON.stringify(entry.weights.slice(0, 16)) && base.temperature === 1 && base.passBias === entry.passBias, "PASS_OPPORTUNITY_OVERLAY_CHANGED");
+    return base;
+  }
+  check(
+    PASS_TRAINED_POLICY_DATA.schema === "lifeline-terminal-trained-policies-v4" && ["EVALUATION_ONLY", "PASS_DISCIPLINE_SCOPED"].includes(PASS_TRAINED_POLICY_DATA.activation) && PASS_TRAINED_POLICY_DATA.reward?.gamma === 1 && PASS_TRAINED_POLICY_DATA.reward?.nonterminal_reward === 0 && PASS_TRAINED_POLICY_DATA.reward?.type === "terminal-outcome-native-margin-area-v1" && entry.parent_id === base.id && Array.isArray(entry.weights) && entry.weights.length === 17 && entry.weights.every(Number.isFinite) && entry.weights[16] === entry.passBias && JSON.stringify(entry.parent_weights) === JSON.stringify(base.weights) && entry.parent_temperature === base.temperature && /^[a-f0-9]{64}$/.test(entry.candidate_sha256) && Number.isInteger(entry.updates) && entry.updates > 0 && Number.isInteger(entry.naturally_completed_episodes) && entry.naturally_completed_episodes >= entry.updates && Number.isInteger(entry.training_samples) && entry.training_samples > 0 && Number.isInteger(entry.minimum_completed_depth) && entry.minimum_completed_depth >= 3 && /^[a-f0-9]{64}$/.test(entry.training_identity) && /^[a-f0-9]{64}$/.test(entry.parent_sha256),
+    "PASS_OPPORTUNITY_MODEL_IDENTITY_MISMATCH"
+  );
+  const spec = clone(base);
+  spec.weights = entry.weights.slice(0, 16);
+  spec.temperature = 1;
+  spec.passBias = entry.passBias;
+  spec.passDisciplineTraining = {
+    revision: PASS_TRAINED_POLICY_DATA.revision,
+    id: entry.id,
+    parent_id: entry.parent_id,
+    parent_sha256: entry.parent_sha256,
+    candidate_sha256: entry.candidate_sha256,
+    training_identity: entry.training_identity,
+    updates: entry.updates,
+    training_samples: entry.training_samples,
+    naturally_completed_episodes: entry.naturally_completed_episodes,
+    truncated_episodes: entry.truncated_episodes,
+    minimum_completed_depth: entry.minimum_completed_depth,
+    reward: clone(PASS_TRAINED_POLICY_DATA.reward),
+    policy: "Existing 16 placement coefficients continued with terminal-only REINFORCE, plus learned PASS bias; shared opportunity guard",
+    strength_verified: false,
+    admission_scope: PASS_TRAINED_POLICY_DATA.activation,
+    admission_report_sha256: PASS_TRAINED_POLICY_DATA.admission_report_sha256 ?? null
+  };
+  return spec;
+}
+function trainedPolicyModel(model, alias, rulesVersion = "territory-v3") {
+  const spec = trainedPolicySpec(model.spec, alias, rulesVersion);
+  if (spec === model.spec) return model;
+  return { ...model, spec, score(features) {
+    check(Array.isArray(features) && features.length === 16 && features.every(Number.isFinite), "PASS_OPPORTUNITY_FEATURES");
+    return features.reduce((sum, value, index) => sum + value * spec.weights[index], 0);
+  } };
+}
+function trainedPolicyInfo(spec) {
+  return spec?.passDisciplineTraining ? {
+    terminalPolicyTraining: clone(spec.passDisciplineTraining),
+    passDisciplineTraining: clone(spec.passDisciplineTraining)
+  } : {};
+}
+var check, clone;
+var init_PassTrainedPolicies = __esm({
+  "application-hard:PassTrainedPolicies.js"() {
+    init_PassTrainedPolicyData();
+    check = /* @__PURE__ */ __name((ok, message) => {
+      if (!ok) throw new Error(message);
+    }, "check");
+    clone = /* @__PURE__ */ __name((value) => JSON.parse(JSON.stringify(value)), "clone");
+    __name(trainedPolicySpec, "trainedPolicySpec");
+    __name(trainedPolicyModel, "trainedPolicyModel");
+    __name(trainedPolicyInfo, "trainedPolicyInfo");
+  }
+});
+
+// application-hard:LearnedPassPolicy.js
+function rankWithLearnedPass(placements, spec) {
+  if (!Number.isFinite(spec?.passBias)) return placements;
+  const moves = placements.map((move) => {
+    const copy = { ...move };
+    if (move.features) Object.defineProperty(copy, "features", { value: move.features, enumerable: false });
+    return copy;
+  });
+  moves.push({ type: "pass", point: null, score: spec.passBias / (spec.temperature ?? 1), visits: 1 });
+  moves.sort((a, b) => b.score - a.score || (a.point === null ? b.point === null ? 0 : 1 : b.point === null ? -1 : a.point[1] - b.point[1] || a.point[0] - b.point[0]));
+  const maximum = moves[0].score, total = moves.reduce((sum, move) => sum + Math.exp(move.score - maximum), 0);
+  moves.forEach((move) => {
+    move.prior = Math.exp(move.score - maximum) / total;
+  });
+  return moves;
+}
+function withLearnedPass(policy, spec = policy?.model?.spec) {
+  if (!Number.isFinite(spec?.passBias)) return policy;
+  const wrapped = Object.create(policy);
+  wrapped.getTopMoves = function(source, player = source.currentPlayer, topN = 5) {
+    if (source.gameOver || topN <= 0) return [];
+    const placements = policy.getTopMoves(source, player, source.validPositions.length + 1);
+    const moves = rankWithLearnedPass(placements, spec);
+    this.lastSearch = {
+      ...policy.lastSearch ?? {},
+      includesLearnedPass: true,
+      passBias: spec.passBias,
+      ...spec.passDisciplineTraining ? { passDisciplineTraining: spec.passDisciplineTraining } : {}
+    };
+    return moves.slice(0, Math.max(0, Math.floor(topN)));
+  };
+  return wrapped;
+}
+var init_LearnedPassPolicy = __esm({
+  "application-hard:LearnedPassPolicy.js"() {
+    __name(rankWithLearnedPass, "rankWithLearnedPass");
+    __name(withLearnedPass, "withLearnedPass");
+  }
+});
+
 // application-hard:ThreePlayerRuntime.js
 var ThreePlayerRuntime_exports = {};
 __export(ThreePlayerRuntime_exports, {
@@ -3554,7 +3924,7 @@ async function loadThreePlayerRuntime(modelId = "three-player-policy-v1", engine
     if (engine.playerCount !== 3 || !["territory-v2", "territory-v3"].includes(engine.rulesVersion) || !THREE_PLAYER_SEARCH_SIZES.includes(engine.gridSize)) {
       throw new Error("\u4E09\u4EBA\u641C\u7D22 AI \u4EC5\u652F\u6301 territory-v2 \u7684 5\u30017\u30019 \u8DEF\u4E09\u4EBA\u5BF9\u5C40\u3002");
     }
-    const payload = await loadThreePlayerSearchModel(modelId);
+    const payload = trainedPolicySpec(await loadThreePlayerSearchModel(modelId), "three-v4", engine.rulesVersion);
     return { ai: new ThreePlayerSearchAI(payload), modelInfo: {
       id: payload.id,
       evidenceTier: "independently-verified-application-final-v4",
@@ -3563,15 +3933,23 @@ async function loadThreePlayerRuntime(modelId = "three-player-policy-v1", engine
       inheritedModelId: "three-player-policy-v2",
       newGradientUpdates: 0,
       candidateSha256: THREE_PLAYER_SEARCH_MODEL_SHA256,
-      search: { rootWidth: payload.search.rootWidth, rolloutPlies: payload.search.rolloutPlies }
+      search: { rootWidth: payload.search.rootWidth, rolloutPlies: payload.search.rolloutPlies },
+      ...trainedPolicyInfo(payload),
+      runtime_uses_learned_pass: false,
+      runtime_uses_trained_placement: Boolean(payload.passDisciplineTraining),
+      runtime_policy: "original-three-player-v4-search-with-trained-placement-base-and-shared-PASS-guard"
     } };
   }
-  const model = await loadThreePlayerModel2(modelId);
-  return { ai: new ThreePlayerAI(model), modelInfo: {
+  const parent = await loadThreePlayerModel2(modelId);
+  const model = modelId === "three-player-policy-v1" ? trainedPolicyModel(parent, "three-v1", engine.rulesVersion) : parent;
+  return { ai: withLearnedPass(new ThreePlayerAI(model)), modelInfo: {
     id: model.spec.id,
     evidenceTier: model.spec.training.evidence_tier,
     trainedBoardSizes: model.spec.training.trained_board_sizes,
-    compatibility: "territory-v2 three-player"
+    compatibility: "territory-v2 three-player",
+    ...trainedPolicyInfo(model.spec),
+    runtime_uses_learned_pass: Number.isFinite(model.spec.passBias),
+    runtime_uses_trained_placement: Boolean(model.spec.passDisciplineTraining)
   } };
 }
 var searchModelPromise;
@@ -3580,6 +3958,8 @@ var init_ThreePlayerRuntime = __esm({
     init_ThreePlayerModels();
     init_ThreePlayerSearchAI();
     init_ThreePlayerSearchOptions();
+    init_PassTrainedPolicies();
+    init_LearnedPassPolicy();
     __name(loadThreePlayerSearchModel, "loadThreePlayerSearchModel");
     __name(loadThreePlayerRuntime, "loadThreePlayerRuntime");
   }
@@ -3787,10 +4167,10 @@ function evaluateNonterminalTeacher(metrics, actor, alive, boardPointCount, {
   reachWeight = 20 / 43,
   valueTemperature = 0.12
 } = {}) {
-  check(Number.isInteger(boardPointCount) && boardPointCount > 0 && Array.isArray(alive) && alive.length > 0 && new Set(alive).size === alive.length && metrics?.[actor] && alive.every((player) => metrics[player]), "Invalid heuristic evaluation state");
-  check([nodeWeight, coverageWeight, reachWeight, valueTemperature].every(Number.isFinite) && nodeWeight >= 0 && coverageWeight >= 0 && reachWeight >= 0 && nodeWeight + coverageWeight + reachWeight > 0 && valueTemperature > 0, "Invalid explicit heuristic evaluation weights");
+  check2(Number.isInteger(boardPointCount) && boardPointCount > 0 && Array.isArray(alive) && alive.length > 0 && new Set(alive).size === alive.length && metrics?.[actor] && alive.every((player) => metrics[player]), "Invalid heuristic evaluation state");
+  check2([nodeWeight, coverageWeight, reachWeight, valueTemperature].every(Number.isFinite) && nodeWeight >= 0 && coverageWeight >= 0 && reachWeight >= 0 && nodeWeight + coverageWeight + reachWeight > 0 && valueTemperature > 0, "Invalid explicit heuristic evaluation weights");
   const heuristicStrengths = Object.fromEntries(Object.entries(metrics).map(([player, row]) => {
-    check(["nodes", "coverage", "reach"].every((name) => Number.isFinite(row[name]) && row[name] >= 0), "Invalid heuristic graph counts");
+    check2(["nodes", "coverage", "reach"].every((name) => Number.isFinite(row[name]) && row[name] >= 0), "Invalid heuristic graph counts");
     return [player, nodeWeight * row.nodes + coverageWeight * row.coverage + reachWeight * row.reach];
   }));
   const values = alive.map((player) => heuristicStrengths[player]), maximum = Math.max(...values);
@@ -3816,7 +4196,7 @@ function evaluateReplyResilience({
     retainedCapturedNodes,
     followupCutNodes
   ];
-  check(counts2.every(Number.isInteger) && boardPointCount > 0 && counts2.slice(1).every((value) => value >= 0 && value <= boardPointCount) && retainedOwnNodes <= ownNodesAfterRoot && retainedCapturedNodes <= capturedNodesAfterRoot && typeof attackNodeSurvives === "boolean", "Invalid reply-resilience counts");
+  check2(counts2.every(Number.isInteger) && boardPointCount > 0 && counts2.slice(1).every((value) => value >= 0 && value <= boardPointCount) && retainedOwnNodes <= ownNodesAfterRoot && retainedCapturedNodes <= capturedNodesAfterRoot && typeof attackNodeSurvives === "boolean", "Invalid reply-resilience counts");
   const lostOwnNodes = ownNodesAfterRoot - retainedOwnNodes;
   const sustainedCutNodes = attackNodeSurvives ? retainedCapturedNodes : 0;
   return {
@@ -3831,7 +4211,7 @@ function evaluateReplyResilience({
 }
 function compareCompletedReplyResilience(candidate, incumbent, { anchor = incumbent } = {}) {
   for (const packet of [candidate, incumbent, anchor]) {
-    check(
+    check2(
       packet?.complete === true && packet.reason === "complete" && packet.terminalRoot === false && typeof packet.replyPlayer === "string" && Number.isInteger(packet.repliesCompleted) && packet.repliesCompleted > 0 && ["maximumNodeLoss", "maximumCoverageLoss", "minimumRetainedCapturedNodes"].every((name) => Number.isInteger(packet[name]) && packet[name] >= 0) && Number.isInteger(packet.worstNetNodeGain) && packet.worstNetNodeGain === packet.minimumRetainedCapturedNodes - packet.maximumNodeLoss && Number.isFinite(packet.minimumDefenseSignal) && typeof packet.rootWasAttack === "boolean" && typeof packet.allRepliesRetainAttackNode === "boolean" && typeof packet.conditionalFollowupComplete === "boolean" && (packet.conditionalFollowupComplete ? Number.isInteger(packet.minimumFollowupCutNodes) && packet.minimumFollowupCutNodes >= 0 && typeof packet.allRepliesRetainFollowupCut === "boolean" && packet.allRepliesRetainFollowupCut === packet.minimumFollowupCutNodes >= 1 : packet.minimumFollowupCutNodes === null && packet.allRepliesRetainFollowupCut === null) && (!packet.allRepliesRetainAttackNode || packet.rootWasAttack),
       "Incomplete or invalid reply-resilience comparison"
     );
@@ -3841,10 +4221,10 @@ function compareCompletedReplyResilience(candidate, incumbent, { anchor = incumb
   const chain = /* @__PURE__ */ __name((packet) => packet.allRepliesRetainFollowupCut ? packet.minimumFollowupCutNodes : 0, "chain");
   return incumbent.maximumNodeLoss - candidate.maximumNodeLoss || candidate.worstNetNodeGain - incumbent.worstNetNodeGain || incumbent.maximumCoverageLoss - candidate.maximumCoverageLoss || Number(candidate.allRepliesRetainAttackNode) - Number(incumbent.allRepliesRetainAttackNode) || (candidate.conditionalFollowupComplete && incumbent.conditionalFollowupComplete ? chain(candidate) - chain(incumbent) : 0);
 }
-var check;
+var check2;
 var init_MultiplayerHardValue = __esm({
   "application-hard:MultiplayerHardValue.js"() {
-    check = /* @__PURE__ */ __name((condition, message) => {
+    check2 = /* @__PURE__ */ __name((condition, message) => {
       if (!condition) throw new Error(message);
     }, "check");
     __name(evaluateNonterminalTeacher, "evaluateNonterminalTeacher");
@@ -3882,7 +4262,7 @@ function installNativeEdgeGeometry(engine, { maximumEntries = 2048 } = {}) {
     }
     stats.misses++;
     const [a, b] = edge.split("|");
-    const parse = /* @__PURE__ */ __name((key3) => key3.split(",").map(Number), "parse");
+    const parse = /* @__PURE__ */ __name((key5) => key5.split(",").map(Number), "parse");
     const keys = engine.getLinePoints(parse(a), parse(b)).map((p) => `${p[0]},${p[1]}`);
     const compiled = { a, b, keys };
     if (edges.size >= maximumEntries) {
@@ -3896,8 +4276,8 @@ function installNativeEdgeGeometry(engine, { maximumEntries = 2048 } = {}) {
     guard(this);
     const { node, line } = this._getPlayerStates(player), edgeSet = this._getEdges(player);
     for (const edge of [...edgeSet]) {
-      if (!compile(edge).keys.every((key3) => {
-        const state = this.grid.get(key3);
+      if (!compile(edge).keys.every((key5) => {
+        const state = this.grid.get(key5);
         return state === node || state === line;
       })) edgeSet.delete(edge);
     }
@@ -3927,7 +4307,7 @@ function installNativeEdgeGeometry(engine, { maximumEntries = 2048 } = {}) {
     const alive = new Set(aliveNodes);
     for (const edge of edgeSet) {
       const { a, b, keys } = compile(edge);
-      if (aliveNodes.has(a) && aliveNodes.has(b)) for (const key3 of keys) alive.add(key3);
+      if (aliveNodes.has(a) && aliveNodes.has(b)) for (const key5 of keys) alive.add(key5);
     }
     return alive;
   };
@@ -4472,7 +4852,7 @@ var init_MultiplayerSearch = __esm({
           partialIterationDiscarded: false,
           terminalScoringInterrupted: false
         };
-        const check2 = /* @__PURE__ */ __name(() => {
+        const check4 = /* @__PURE__ */ __name(() => {
           if (performance.now() >= deadline || stats.nodes >= this.nodeBudget) throw TIMEOUT;
         }, "check");
         const terminalCache = /* @__PURE__ */ new Map();
@@ -4485,13 +4865,13 @@ var init_MultiplayerSearch = __esm({
           const index = engine._keyToIdx, originalGet = index.get;
           let probes = 0;
           index.get = function(k) {
-            if ((++probes & 63) === 0) check2();
+            if ((++probes & 63) === 0) check4();
             return originalGet.call(this, k);
           };
           try {
-            check2();
+            check4();
             GameEngine.prototype._updateTerritories.call(engine);
-            check2();
+            check4();
           } catch (error) {
             if (error === TIMEOUT) stats.terminalScoringInterrupted = true;
             throw error;
@@ -4512,13 +4892,13 @@ var init_MultiplayerSearch = __esm({
           return { point, score };
         }).sort((a, b) => b.score - a.score || order(a, b)), "rank");
         const visit = /* @__PURE__ */ __name((depth, alpha, beta) => {
-          check2();
+          check4();
           stats.nodes++;
           if (depth === 0 || engine.gameOver) return evaluate2();
           const actor = engine.currentPlayer, maximizing = actor === player;
           let best = maximizing ? -Infinity : Infinity, found = false;
           for (const move of rank(actions(), actor)) {
-            check2();
+            check4();
             const s = enter(engine);
             try {
               if (!apply(move.point).success) continue;
@@ -4550,7 +4930,7 @@ var init_MultiplayerSearch = __esm({
         try {
           const before = multiplayerMetrics(engine);
           for (const move of roots) {
-            if (completed.length) check2();
+            if (completed.length) check4();
             const previous = move.point === null ? 0 : engine._getState(move.point), s = enter(engine);
             try {
               if (!apply(move.point).success) continue;
@@ -4577,7 +4957,7 @@ var init_MultiplayerSearch = __esm({
           for (const move of completed) {
             let score = move.score;
             if (move.terminal) {
-              check2();
+              check4();
               const s = enter(engine);
               try {
                 if (!apply(move.point).success) throw new Error("Legal root changed during isolated search");
@@ -4595,7 +4975,7 @@ var init_MultiplayerSearch = __esm({
             const iteration = [];
             let alpha = -Infinity;
             for (const move of completed) {
-              check2();
+              check4();
               const s = enter(engine);
               try {
                 if (!apply(move.point).success) throw new Error("Legal root changed during isolated search");
@@ -4764,7 +5144,7 @@ var init_MultiplayerHardRollout = __esm({
         };
         if (source.gameOver || topN <= 0) return [];
         const engine = isolatedSearchEngine(source), root = saveState(engine);
-        const check2 = /* @__PURE__ */ __name(() => {
+        const check4 = /* @__PURE__ */ __name(() => {
           if (performance.now() >= deadline || stats.policyCandidates + stats.simulatedActions >= this.nodeBudget) throw DEADLINE;
         }, "check");
         const apply = /* @__PURE__ */ __name((point) => point === null ? engine.skipTurn() : engine.playMove(point), "apply");
@@ -4778,7 +5158,7 @@ var init_MultiplayerHardRollout = __esm({
             if (ensureOne && (!fallback.length || value > fallback[0].score || value === fallback[0].score && order2({ point }, fallback[0]) < 0))
               fallback = [{ type: "move", point: [...point], score: value, baseScore: value, visits: 1 }];
           }, { beforeCandidate: /* @__PURE__ */ __name(() => {
-            if (!ensureOne || candidates.length) check2();
+            if (!ensureOne || candidates.length) check4();
             stats.policyCandidates++;
           }, "beforeCandidate") });
           return candidates.sort((a, b) => b.baseScore - a.baseScore || order2(a, b));
@@ -4794,15 +5174,15 @@ var init_MultiplayerHardRollout = __esm({
           const descriptor = Object.getOwnPropertyDescriptor(index, "get");
           let probes = 0;
           index.get = function(k) {
-            if ((++probes & 63) === 0) check2();
+            if ((++probes & 63) === 0) check4();
             return originalGet.call(this, k);
           };
           engine.cachedTerritories = { ...engine.cachedTerritories };
           try {
-            check2();
+            check4();
             stats.canonicalScoreCalls++;
             GameEngine.prototype._updateTerritories.call(engine);
-            check2();
+            check4();
           } catch (error) {
             if (error === DEADLINE) {
               stats.canonicalScoringInterrupted = true;
@@ -4820,26 +5200,26 @@ var init_MultiplayerHardRollout = __esm({
         const leaf = /* @__PURE__ */ __name(() => {
           const alive = engine.activePlayers.filter((p) => !engine.resignedPlayers.has(p));
           if (!engine.gameOver) {
-            check2();
+            check4();
             const metrics = multiplayerMetrics(engine);
-            check2();
+            check4();
             const evaluated = evaluateNonterminalTeacher(metrics, player, alive, engine.validPositions.length, {
               nodeWeight: 15 / 43,
               coverageWeight: 8 / 43,
               reachWeight: 20 / 43,
               valueTemperature: 0.12
             });
-            check2();
+            check4();
             stats.evaluatedLeaves++;
             stats.heuristicLeaves++;
             return { value: evaluated.heuristicValue, margin: evaluated.heuristicMargin, terminal: false };
           }
           const areas = canonicalAreas();
           const best = Math.max(...alive.map((p) => areas[p])), winners = alive.filter((p) => areas[p] === best);
-          const margin = (areas[player] - Math.max(0, ...alive.filter((p) => p !== player).map((p) => areas[p]))) / engine.validPositions.length;
+          const margin2 = (areas[player] - Math.max(0, ...alive.filter((p) => p !== player).map((p) => areas[p]))) / engine.validPositions.length;
           stats.evaluatedLeaves++;
           stats.terminalLeaves++;
-          return { value: winners.includes(player) ? 1 / winners.length : 0, margin, terminal: true };
+          return { value: winners.includes(player) ? 1 / winners.length : 0, margin: margin2, terminal: true };
         }, "leaf");
         let fallback = [], published = [], completeLinearRanking = null;
         try {
@@ -4870,15 +5250,15 @@ var init_MultiplayerHardRollout = __esm({
               if (!(move.point === null || engine._evaluateMove(move.point, player, validationNodes, validationHashOrder).legal))
                 throw new Error("Illegal fallback policy action");
             }
-            check2();
+            check4();
             if (completeLinearRanking) {
               for (let index = fallback.length; index < completeLinearRanking.length; index++) {
-                check2();
+                check4();
                 if (!engine._evaluateMove(completeLinearRanking[index].point, player, validationNodes, validationHashOrder).legal)
                   throw new Error("Illegal fallback policy action");
               }
             }
-            check2();
+            check4();
           }
           const roots = completeLinearRanking ? completeLinearRanking.map((move) => ({ point: [...move.point], baseScore: move.score })) : policyActions(this.base, !fallback.length);
           stats.reusedLinearRootRanking = completeLinearRanking !== null;
@@ -4890,20 +5270,20 @@ var init_MultiplayerHardRollout = __esm({
           stats.rootPreparationMs = performance.now() - started;
           const fallbackKey = key2(fallback[0].point);
           const evaluateResponse = /* @__PURE__ */ __name((move, plies, responseIndex) => {
-            check2();
+            check4();
             restoreState(engine, root);
             if (!apply(move.point).success) throw new Error("Legal rollout root changed");
             const rootTerminal = engine.gameOver;
             stats.simulatedActions++;
             for (let ply = 0; ply < plies && !engine.gameOver; ply++) {
-              check2();
+              check4();
               const policy = engine.currentPlayer === player ? this.base : this.responses[responseIndex];
               const action = policyActions(policy)[0]?.point ?? null;
               if (!apply(action).success) throw new Error("Illegal rollout continuation");
               stats.simulatedActions++;
             }
             const result = leaf();
-            if (this.publishCompletedComparisons) check2();
+            if (this.publishCompletedComparisons) check4();
             if (source.rulesVersion === "territory-v3" && rootTerminal && result.terminal && result.value === 1 && result.margin > 0 && engine._getRemainingPlayers().length >= 2)
               return { ...result, immediateTerminalWin: true };
             return result;
@@ -4990,7 +5370,7 @@ var init_MultiplayerHardRollout = __esm({
                   total.margin += cached[variant].margin;
                   if (cached[variant].immediateTerminalWin) total.immediateTerminalWins = (total.immediateTerminalWins ?? 0) + 1;
                 }
-                check2();
+                check4();
                 return scoredMove(move, total, count);
               }, "evaluate");
               const entry = evaluate2(entryRoot), evaluated = [entry];
@@ -5052,14 +5432,14 @@ var init_MultiplayerHardRollout = __esm({
 });
 
 // application-hard:MultiplayerHardFallback.js
-function linearRanking(engine, player, spec, check2, completed = []) {
+function linearRanking(engine, player, spec, check4, completed = []) {
   visitPolicyCandidates(engine, player, (candidate) => {
     const score = candidate.features.reduce((sum, value, i) => sum + value * spec.weights[i], 0) / (spec.temperature ?? 1);
     if (!Number.isFinite(score)) throw new Error("Invalid isolated Hard linear score");
-    check2();
+    check4();
     completed.push({ point: candidate.point, score, visits: 1 });
-  }, { beforeCandidate: check2 });
-  check2();
+  }, { beforeCandidate: check4 });
+  check4();
   return finishLinear(completed);
 }
 function rankEvaluated(evaluated, baseline, minimumImprovement) {
@@ -5145,14 +5525,14 @@ var init_MultiplayerHardFallback = __esm({
           return [];
         }
         const engine = isolatedSearchEngine(source), snapshot = saveState(engine);
-        const check2 = /* @__PURE__ */ __name(() => {
+        const check4 = /* @__PURE__ */ __name(() => {
           if (now() >= deadline) throw EXPIRED;
         }, "check");
         const originalEvaluate = engine._evaluateMove, evaluateDescriptor = Object.getOwnPropertyDescriptor(engine, "_evaluateMove");
         engine._evaluateMove = function(...args) {
-          check2();
+          check4();
           const result2 = originalEvaluate.apply(this, args);
-          check2();
+          check4();
           return result2;
         };
         const baselineCandidates = [];
@@ -5160,15 +5540,15 @@ var init_MultiplayerHardFallback = __esm({
         const scoreLeaf = /* @__PURE__ */ __name(() => {
           const index = engine._keyToIdx, originalGet = index.get, descriptor = Object.getOwnPropertyDescriptor(index, "get");
           let probes = 0;
-          index.get = function(key3) {
-            if ((++probes & 63) === 0) check2();
-            return originalGet.call(this, key3);
+          index.get = function(key5) {
+            if ((++probes & 63) === 0) check4();
+            return originalGet.call(this, key5);
           };
           try {
-            check2();
+            check4();
             stats.canonicalScoreCalls++;
             const leaf = positionUtilityV4(engine, player, this.spec.search);
-            check2();
+            check4();
             return leaf;
           } catch (error) {
             if (error === EXPIRED) {
@@ -5182,8 +5562,8 @@ var init_MultiplayerHardFallback = __esm({
           }
         }, "scoreLeaf");
         try {
-          check2();
-          baseline = linearRanking(engine, player, this.spec, check2, baselineCandidates);
+          check4();
+          baseline = linearRanking(engine, player, this.spec, check4, baselineCandidates);
           stats.baselineComplete = true;
           this.fullRanking = structuredClone(baseline);
           result = this.searchV4 ? baseline.slice(0, this.spec.search.rootWidth) : baseline;
@@ -5197,17 +5577,17 @@ var init_MultiplayerHardFallback = __esm({
               evaluatingRoot = true;
               const leaves = [];
               for (const opponent of this.spec.search.opponents) {
-                check2();
+                check4();
                 restoreState(engine, snapshot);
                 if (!engine.playMove(move.point).success) throw new Error("Invalid isolated v4 root action");
-                check2();
+                check4();
                 stats.simulatedActions++;
                 for (let ply = 0; ply < this.spec.search.rolloutPlies && !engine.gameOver; ply++) {
-                  check2();
+                  check4();
                   const spec = engine.currentPlayer === player ? this.spec : opponent;
-                  const reply = linearRanking(engine, engine.currentPlayer, spec, check2)[0]?.point ?? null;
+                  const reply = linearRanking(engine, engine.currentPlayer, spec, check4)[0]?.point ?? null;
                   if (!(reply ? engine.playMove(reply) : engine.skipTurn()).success) throw new Error("Invalid isolated v4 rollout action");
-                  check2();
+                  check4();
                   stats.simulatedActions++;
                 }
                 const leaf = scoreLeaf();
@@ -5215,7 +5595,7 @@ var init_MultiplayerHardFallback = __esm({
                 stats.simulations++;
                 stats.terminalLeaves += Number(leaf.terminal);
               }
-              check2();
+              check4();
               evaluated.push({
                 point: [...move.point],
                 baseScore: move.score,
@@ -5271,7 +5651,7 @@ function scanTacticalDirectCutRisk(source, roots, {
   const actor = source.currentPlayer, engine = isolatedSearchEngine(source), rootSnapshot = saveState(engine);
   const stats = { complete: false, reason: null, probes: 0, rootsChecked: 0, terminalRoot: null, rows: [] };
   const STOP = Symbol("Hard tactical-ordering deadline");
-  const check2 = /* @__PURE__ */ __name(() => {
+  const check4 = /* @__PURE__ */ __name(() => {
     const time = now();
     if (!Number.isFinite(time)) throw new Error("Invalid tactical-ordering clock");
     if (time >= deadline) throw STOP;
@@ -5279,10 +5659,10 @@ function scanTacticalDirectCutRisk(source, roots, {
   const evaluate2 = engine._evaluateMove;
   const descriptor = Object.getOwnPropertyDescriptor(engine, "_evaluateMove");
   engine._evaluateMove = function(...args) {
-    check2();
+    check4();
     stats.probes++;
     const result = evaluate2.apply(this, args);
-    check2();
+    check4();
     return result;
   };
   try {
@@ -5290,11 +5670,11 @@ function scanTacticalDirectCutRisk(source, roots, {
     const enemyNodes = enemies.flatMap((player) => engine.validPositions.filter((point) => engine._getState(point) === engine._getPlayerStates(player).node).map((point) => ({ player, coordinate: pointKey3(point) })));
     const byPoint = /* @__PURE__ */ new Map();
     for (const root of roots) {
-      check2();
+      check4();
       restoreState(engine, rootSnapshot);
       stats.rootsChecked++;
       const outcome = root.point === null ? engine.skipTurn() : engine.playMove(root.point);
-      check2();
+      check4();
       if (!outcome.success) throw new Error(`Illegal Hard tactical-order root: ${outcome.reason}`);
       if (engine.gameOver) {
         stats.complete = true;
@@ -5321,11 +5701,11 @@ function scanTacticalDirectCutRisk(source, roots, {
         row.replyPlayer = engine.currentPlayer;
         const replySnapshot = saveState(engine);
         for (const reply of potentialMoves(engine, row.replyPlayer)) {
-          check2();
+          check4();
           if (engine._getState(reply) !== own.line) continue;
           stats.probes++;
           const replyOutcome = engine.playMove(reply);
-          check2();
+          check4();
           if (!replyOutcome.success) {
             restoreState(engine, replySnapshot);
             if (["INVALID_MOVE", "SUPERKO_VIOLATION"].includes(replyOutcome.reason)) continue;
@@ -5344,7 +5724,7 @@ function scanTacticalDirectCutRisk(source, roots, {
       stats.rows.push(row);
       byPoint.set(pointKey3(root.point), row);
     }
-    check2();
+    check4();
     stats.complete = true;
     stats.reason = "complete";
     return { byPoint, stats };
@@ -5361,24 +5741,24 @@ function scanTacticalDirectCutRisk(source, roots, {
 function preflightImmediateTerminalRoots(source, roots, { deadline, now = /* @__PURE__ */ __name(() => performance.now(), "now") }) {
   const stats = { complete: false, terminalRoot: null, attemptedRoots: 0, reason: null };
   const engine = isolatedSearchEngine(source), snapshot = saveState(engine), STOP = Symbol("terminal preflight deadline");
-  const check2 = /* @__PURE__ */ __name(() => {
+  const check4 = /* @__PURE__ */ __name(() => {
     const time = now();
     if (!Number.isFinite(time)) throw new Error("Invalid terminal preflight clock");
     if (time >= deadline) throw STOP;
   }, "check");
   const evaluate2 = engine._evaluateMove, descriptor = Object.getOwnPropertyDescriptor(engine, "_evaluateMove");
   engine._evaluateMove = function(...args) {
-    check2();
+    check4();
     const value = evaluate2.apply(this, args);
-    check2();
+    check4();
     return value;
   };
   try {
     for (const root of roots) {
-      check2();
+      check4();
       stats.attemptedRoots++;
       const outcome = root.point === null ? engine.skipTurn() : engine.playMove(root.point);
-      check2();
+      check4();
       if (!outcome.success) throw new Error(`Illegal Hard terminal preflight root: ${outcome.reason}`);
       if (engine.gameOver) {
         stats.terminalRoot = { point: copyPoint(root.point) };
@@ -5387,7 +5767,7 @@ function preflightImmediateTerminalRoots(source, roots, { deadline, now = /* @__
       }
       restoreState(engine, snapshot);
     }
-    check2();
+    check4();
     stats.complete = true;
     stats.reason = "complete";
     return stats;
@@ -5779,7 +6159,7 @@ async function prepareHardResources(source) {
   if (!supportsNativeHardContext(source)) throw new Error("Unsupported native Hard AI configuration");
   const { playerCount, gridSize, boardShape, rulesVersion } = source;
   const context = { playerCount, gridSize, boardShape, rulesVersion };
-  const key3 = JSON.stringify(context), started = performance.now(), reused = prepared.has(key3);
+  const key5 = JSON.stringify(context), started = performance.now(), reused = prepared.has(key5);
   if (!reused) {
     const promise = (async () => {
       if (playerCount === 3) {
@@ -5793,17 +6173,18 @@ async function prepareHardResources(source) {
         };
       }
       const { loadHexPlayerModel: loadHexPlayerModel2 } = await Promise.resolve().then(() => (init_HexPlayerAI(), HexPlayerAI_exports));
-      const model = await loadHexPlayerModel2();
+      const parent = await loadHexPlayerModel2();
+      const model = { ...parent, spec: trainedPolicySpec(parent.spec, "hex-v1", rulesVersion) };
       if (model.spec.id !== "hex-player-policy-v1") throw new Error("Hex resource identity changed");
       return { policySpec: model.spec, modelInfo: { id: model.spec.id } };
     })().catch((error) => {
-      if (prepared.get(key3) === promise) prepared.delete(key3);
+      if (prepared.get(key5) === promise) prepared.delete(key5);
       throw error;
     });
-    prepared.set(key3, promise);
+    prepared.set(key5, promise);
   }
   return {
-    medium: structuredClone(await prepared.get(key3)),
+    medium: structuredClone(await prepared.get(key5)),
     context,
     resourceWaitMs: performance.now() - started,
     resourcePromiseReused: reused
@@ -5815,6 +6196,10 @@ async function loadNativeHardRuntime(engine) {
   return { ai: runtime.ai, modelInfo: {
     ...runtime.modelInfo,
     id: HARD_MODEL_ID,
+    ...trainedPolicyInfo(loaded.medium.policySpec),
+    runtime_uses_learned_pass: false,
+    runtime_uses_trained_placement: Boolean(loaded.medium.policySpec.passDisciplineTraining),
+    runtime_policy: "original-native-hard-search-with-trained-placement-base-and-shared-PASS-guard",
     compatibility: `${engine.rulesVersion} native 3\u20136 players; size 5\u201315`,
     startup: {
       loaderEnteredMs,
@@ -5831,6 +6216,7 @@ var init_MultiplayerHardResources = __esm({
   "application-hard:MultiplayerHardResources.js"() {
     init_MultiplayerHardRuntime();
     init_ThreePlayerSearchOptions();
+    init_PassTrainedPolicies();
     HARD_MODEL_ID = "multiplayer-hard-v1";
     prepared = /* @__PURE__ */ new Map();
     __name(supportsNativeHardContext, "supportsNativeHardContext");
@@ -5846,7 +6232,7 @@ __export(MultiplayerHardWorkerRuntime_exports, {
 });
 async function loadMultiplayerRuntime(modelId, engine) {
   if (modelId === HARD_MODEL_ID && supportsNativeHardContext(engine)) return loadNativeHardRuntime(engine);
-  const general = await import("./MultiplayerRuntime.js?v=20261025-defense15");
+  const general = await import("./MultiplayerRuntime.js?v=20261025-terminal-v4");
   return general.loadMultiplayerRuntime(modelId, engine);
 }
 var init_MultiplayerHardWorkerRuntime = __esm({
@@ -5868,17 +6254,17 @@ function createMultiplayerWarmupLoader(importRuntime = () => Promise.resolve().t
   return (message) => {
     const context = contextOf(message?.context);
     if (message?.type !== "WARMUP" || !supported(message) || !context) return Promise.resolve(false);
-    const key3 = identity(message.modelId, context);
-    if (pending2.has(key3)) return pending2.get(key3);
+    const key5 = identity(message.modelId, context);
+    if (pending2.has(key5)) return pending2.get(key5);
     const promise = Promise.resolve().then(importRuntime).then(async ({ loadMultiplayerRuntime: loadMultiplayerRuntime2 }) => {
       const runtime = await loadMultiplayerRuntime2(message.modelId, context);
       if (runtime?.modelInfo?.id !== message.modelId) throw new Error("Multiplayer warmup model identity mismatch");
       return true;
     }).catch((error) => {
-      if (pending2.get(key3) === promise) pending2.delete(key3);
+      if (pending2.get(key5) === promise) pending2.delete(key5);
       throw error;
     });
-    pending2.set(key3, promise);
+    pending2.set(key5, promise);
     return promise;
   };
 }
@@ -5922,11 +6308,11 @@ var init_MultiplayerAIWarmup = __esm({
         }
         let count = 0;
         for (const modelId of modelIds) {
-          const key3 = identity(modelId, context);
-          if (sent.has(key3)) continue;
+          const key5 = identity(modelId, context);
+          if (sent.has(key5)) continue;
           try {
             worker.postMessage({ type: "WARMUP", strategy: "multiplayer", modelId, context });
-            sent.add(key3);
+            sent.add(key5);
             count++;
           } catch (_) {
           }
@@ -6009,51 +6395,563 @@ var init_AIStateProtocol = __esm({
   }
 });
 
-// application-hard:AIWorker.js
-var AIWorker_exports = {};
-function canonicalTerminalWinningPass(engine, player, now = () => performance.now()) {
+// application-hard:MultiplayerClock.js
+var nativeClock, lastWallTime, multiplayerClock;
+var init_MultiplayerClock = __esm({
+  "application-hard:MultiplayerClock.js"() {
+    nativeClock = globalThis.performance;
+    lastWallTime = 0;
+    multiplayerClock = {
+      now: typeof nativeClock?.now === "function" ? () => nativeClock.now() : () => {
+        lastWallTime = Math.max(lastWallTime, Date.now());
+        return lastWallTime;
+      }
+    };
+  }
+});
+
+// application-hard:AIPassDiscipline.js
+function nativeDiscreteAreas(engine, players = engine.activePlayers) {
+  const pieces2 = Object.fromEntries(engine.activePlayers.map((player) => [
+    player,
+    [...engine._getPlayerNodes(player), ...engine._getPlayerLines(player)]
+  ]));
+  return Object.fromEntries(players.map((player) => {
+    const area = engine.rulesVersion === "territory-v3" ? GameEngine.prototype._computeOwnedWallArea.call(engine, pieces2[player], engine._getOpponents(player).flatMap((other) => pieces2[other])) : GameEngine.prototype._computeTerritory.call(engine, player).area;
+    check3(Number.isInteger(area) && area >= 0, "PASS discipline requires native discrete area");
+    return [player, area];
+  }));
+}
+function ownPieces(engine, player) {
+  const nodes = new Set(engine._getPlayerNodes(player).map(key3));
+  return { nodes, coverage: /* @__PURE__ */ new Set([...nodes, ...engine._getPlayerLines(player).map(key3)]) };
+}
+function assessPassAlternatives(source, player = source.currentPlayer, {
+  preferredMoves = [],
+  timeMs = 200,
+  maxNodes = 1e4,
+  now = /* @__PURE__ */ __name(() => multiplayerClock.now(), "now")
+} = {}) {
+  check3(player === source.currentPlayer && !source.resignedPlayers.has(player), "PASS discipline requires the actual current actor");
+  check3(Number.isFinite(timeMs) && timeMs >= 0 && Number.isInteger(maxNodes) && maxNodes >= 0, "Invalid PASS discipline proof budget");
+  const started = now();
+  check3(Number.isFinite(started), "Invalid PASS discipline clock");
+  const receipt = {
+    schema: PASS_DISCIPLINE_CONTRACT.schema,
+    status: "no-certified-expansion",
+    complete: false,
+    actor: player,
+    rulesVersion: source.rulesVersion,
+    positionRevision: source.positionRevision,
+    safetyScope: PASS_DISCIPLINE_CONTRACT.safetyScope,
+    examinedRoots: 0,
+    nodes: 0,
+    legalPlacements: 0,
+    rootsExhausted: false,
+    witness: null,
+    elapsedMs: 0,
+    reason: null
+  };
+  const finish = /* @__PURE__ */ __name((status, reason) => {
+    receipt.status = status;
+    receipt.reason = reason;
+    receipt.elapsedMs = now() - started;
+    return receipt;
+  }, "finish");
+  if (source.gameOver) {
+    receipt.complete = true;
+    return finish("game-over", "terminal-source");
+  }
+  const budget = /* @__PURE__ */ __name(() => {
+    const time = now();
+    if (!Number.isFinite(time) || time - started >= timeMs || receipt.nodes >= maxNodes) throw BUDGET;
+  }, "budget");
   try {
-    const started = now();
-    if (!Number.isFinite(started)) return null;
-    const deadline = started + TERMINAL_WINNING_PASS_WINDOW_MS;
-    if (engine.gameOver || engine.currentPlayer !== player) return null;
-    const remaining = engine.activePlayers.filter((candidate) => !engine.resignedPlayers.has(candidate));
-    if (remaining.length < 2 || engine.consecutiveSkips !== remaining.length - 1) return null;
-    const isolated = new GameEngine({
-      gridSize: engine.gridSize,
-      playerCount: engine.playerCount,
-      boardShape: engine.boardShape,
-      startPlayer: engine.startPlayer,
-      initialPositions: engine.initialPositions,
-      rulesVersion: engine.rulesVersion,
-      deferTerritoryUpdates: true
+    budget();
+    const engine = isolatedSearchEngine(source), original = saveState(engine);
+    const legal = engine.getLegalMoves(player).map((move) => [...move.point]);
+    receipt.legalPlacements = legal.length;
+    if (!legal.length) {
+      receipt.complete = true;
+      receipt.rootsExhausted = true;
+      return finish("forced-pass", "no-canonical-legal-placement");
+    }
+    budget();
+    const before = ownPieces(engine, player), beforeAreas = nativeDiscreteAreas(engine), beforeArea = beforeAreas[player];
+    budget();
+    check3(engine.skipTurn().success, "Canonical nonterminal PASS failed");
+    const passWouldEnd = engine.gameOver;
+    const passAreas = passWouldEnd ? nativeDiscreteAreas(engine) : null;
+    const passMargin = passWouldEnd ? margin(passAreas, engine, player) : null;
+    const opening = !passWouldEnd && source.turnCount < 2 * source.activePlayers.filter((p) => !source.resignedPlayers.has(p)).length;
+    receipt.passWouldEnd = passWouldEnd;
+    receipt.beforeArea = beforeArea;
+    receipt.openingDevelopmentEligible = opening;
+    const preferred = preferredMoves.filter((move) => Array.isArray(move?.point)).map((move) => key3(move.point));
+    const roots = [...legal].sort((a, b) => {
+      const ai = preferred.indexOf(key3(a)), bi = preferred.indexOf(key3(b));
+      return (ai < 0 ? Infinity : ai) - (bi < 0 ? Infinity : bi) || a[1] - b[1] || a[0] - b[0];
     });
-    restoreState(isolated, saveState(engine));
-    isolated._isReplayingBatch = true;
-    if (!isolated._hasValidMoves(player)) return null;
-    if (now() >= deadline) return null;
-    const result = isolated.skipTurn();
-    if (!result.success || !isolated.gameOver) return null;
-    if (now() >= deadline) return null;
-    GameEngine.prototype._updateTerritories.call(isolated);
-    if (now() >= deadline) return null;
-    const bestArea = Math.max(...remaining.map((candidate) => isolated.cachedTerritories[candidate].area));
-    const winners = remaining.filter((candidate) => isolated.cachedTerritories[candidate].area === bestArea);
-    const winner = isolated.getWinner();
-    if (now() >= deadline || winners.length !== 1 || winners[0] !== player || winner !== player) return null;
-    return { point: null, type: "pass", score: 1e6 };
-  } catch (_) {
-    return null;
+    for (const point of roots) {
+      budget();
+      restoreState(engine, original);
+      receipt.examinedRoots++;
+      receipt.nodes++;
+      check3(engine.playMove(point).success, "PASS discipline root ceased to be legal");
+      budget();
+      const after = ownPieces(engine, player), connected = engine._getOpponentConnectedPieces(player);
+      if (!contains(after.nodes, before.nodes) || !contains(after.coverage, before.coverage) || !contains(connected, after.nodes)) continue;
+      const afterRootArea = nativeDiscreteAreas(engine, [player])[player];
+      budget();
+      const strictGain = afterRootArea > beforeArea;
+      const development = opening && afterRootArea >= beforeArea && after.nodes.size > before.nodes.size;
+      if (!strictGain && !development) continue;
+      const replyPlayer = !engine.gameOver && engine.currentPlayer !== player ? engine.currentPlayer : null;
+      let minimumArea = Infinity, minimumMargin = Infinity, completed = 0, total = 0, maxReplyPlies = 0, leaves = 0;
+      const replyActors = /* @__PURE__ */ new Set();
+      const inspect = /* @__PURE__ */ __name(() => {
+        budget();
+        const retained = ownPieces(engine, player), rooted = engine._getOpponentConnectedPieces(player);
+        if (!contains(retained.nodes, after.nodes) || !contains(retained.coverage, after.coverage) || !contains(rooted, retained.nodes)) return false;
+        const lowerBound = engine.rulesVersion === "territory-v3" && retained.coverage.size > beforeArea ? retained.coverage.size : nativeDiscreteAreas(engine, [player])[player];
+        minimumArea = Math.min(minimumArea, lowerBound);
+        if (passWouldEnd && passMargin >= 0) {
+          const currentMargin = margin(nativeDiscreteAreas(engine), engine, player);
+          minimumMargin = Math.min(minimumMargin, currentMargin);
+          if (passMargin > 0 ? currentMargin <= 0 : currentMargin < 0) return false;
+        }
+        budget();
+        return strictGain ? lowerBound > beforeArea : lowerBound >= beforeArea;
+      }, "inspect");
+      const proveRound = /* @__PURE__ */ __name((depth, branchActors) => {
+        if (!inspect()) return false;
+        maxReplyPlies = Math.max(maxReplyPlies, depth);
+        if (engine.gameOver || engine.currentPlayer === player) {
+          leaves++;
+          return true;
+        }
+        const actor = engine.currentPlayer;
+        if (branchActors.has(actor)) return false;
+        const visited = new Set(branchActors);
+        visited.add(actor);
+        replyActors.add(actor);
+        budget();
+        const replies = [...engine.getLegalMoves(actor).map((move) => [...move.point]), null];
+        const state = saveState(engine);
+        total += replies.length;
+        budget();
+        for (const reply of replies) {
+          budget();
+          restoreState(engine, state);
+          receipt.nodes++;
+          check3(engine.currentPlayer === actor, "PASS discipline fabricated the reply actor");
+          check3((reply === null ? engine.skipTurn() : engine.playMove(reply)).success, "PASS discipline reply ceased to be legal");
+          completed++;
+          if (!proveRound(depth + 1, visited)) return false;
+        }
+        return true;
+      }, "proveRound");
+      const safe = proveRound(0, /* @__PURE__ */ new Set());
+      if (!safe) continue;
+      budget();
+      receipt.complete = true;
+      receipt.witness = {
+        point: [...point],
+        beforeArea,
+        afterRootArea,
+        minimumReplyAreaLowerBound: minimumArea,
+        profitKind: strictGain ? "strict-native-area-gain" : "opening-node-development-area-nondecreasing",
+        rootNodesRetained: true,
+        rootCoverageRetained: true,
+        rootConnected: true,
+        preservesAllAfterRootNodesAndCoverage: true,
+        actualReplyPlayer: replyPlayer,
+        replyPlies: maxReplyPlies,
+        maxReplyPlies,
+        actualReplyActors: [...replyActors],
+        replyActionsCompleted: completed,
+        replyActionsTotal: total,
+        replyLeavesCompleted: leaves,
+        replyWindow: "one-complete-actual-opponent-round",
+        completeOpponentRound: true,
+        includesPass: replyActors.size > 0,
+        complete: true,
+        passWouldEnd,
+        minimumReplyMargin: Number.isFinite(minimumMargin) ? minimumMargin : null,
+        scope: PASS_DISCIPLINE_CONTRACT.safetyScope
+      };
+      return finish("safe-profitable-expansion", replyPlayer ? "complete-actual-opponent-round-domain" : "canonical-terminal-or-auto-skipped-to-actor");
+    }
+    receipt.complete = true;
+    receipt.rootsExhausted = true;
+    return finish("no-certified-expansion", "all-legal-roots-rejected-by-bounded-safety-contract");
+  } catch (error) {
+    if (error !== BUDGET) throw error;
+    return finish("incomplete", "proof-budget-exhausted-no-safety-claim");
   }
 }
-var TERMINAL_WINNING_PASS_WINDOW_MS;
+function applyPassDiscipline(source, rankedMoves, { player = source.currentPlayer, topN = 5, ...options } = {}) {
+  const requested = Math.max(0, Math.floor(topN));
+  if (!requested || source.gameOver) return { moves: [], receipt: {
+    schema: PASS_DISCIPLINE_CONTRACT.schema,
+    status: source.gameOver ? "game-over" : "not-requested",
+    witness: null
+  } };
+  check3(player === source.currentPlayer && !source.resignedPlayers.has(player), "PASS discipline actor mismatch");
+  const original = Array.isArray(rankedMoves) ? rankedMoves : [];
+  if (Array.isArray(original[0]?.point)) return {
+    moves: original.slice(0, requested),
+    receipt: { schema: PASS_DISCIPLINE_CONTRACT.schema, status: "placement-policy-preserved", witness: null }
+  };
+  check3(!original.length || original[0]?.point === null, "AI returned an invalid action instead of an explicit placement/PASS");
+  const receipt = assessPassAlternatives(source, player, { ...options, preferredMoves: original });
+  if (receipt.status === "forced-pass") return { moves: [{
+    type: "pass",
+    point: null,
+    score: 0,
+    visits: 1,
+    evaluation: "canonical-forced-pass"
+  }], receipt };
+  if (receipt.status === "safe-profitable-expansion") {
+    const point = receipt.witness.point, existing = original.find((move) => Array.isArray(move.point) && key3(move.point) === key3(point));
+    const selected = existing ? { ...existing } : { type: "move", point: [...point], score: receipt.witness.minimumReplyAreaLowerBound - receipt.witness.beforeArea, visits: 1 };
+    selected.passDiscipline = { schema: receipt.schema, status: receipt.status, profitKind: receipt.witness.profitKind };
+    return { moves: [selected, ...original.filter((move) => key3(move.point) !== key3(point))].slice(0, requested), receipt };
+  }
+  if (original.length) return { moves: original.slice(0, requested), receipt };
+  const error = new Error("AI \u672A\u7ED9\u51FA\u53EF\u9760\u884C\u52A8\uFF0C\u8BF7\u91CD\u8BD5\uFF1B\u5F53\u524D\u68CB\u5C40\u5DF2\u4FDD\u7559\u3002");
+  error.code = "AI_NO_RELIABLE_ACTION";
+  error.passDiscipline = receipt;
+  throw error;
+}
+function withPassDiscipline(policy) {
+  if (policy?.passDisciplineContract === PASS_DISCIPLINE_CONTRACT.schema) return policy;
+  return {
+    passDisciplineContract: PASS_DISCIPLINE_CONTRACT.schema,
+    lastSearch: null,
+    getTopMoves(source, player = source.currentPlayer, topN = 5, options = {}) {
+      const ranked = policy.getTopMoves(source, player, topN > 0 ? Math.max(5, topN) : topN, options);
+      const result = options.passDisciplinePrechecked === true ? { moves: ranked, receipt: null } : applyPassDiscipline(source, ranked, { player, topN });
+      this.lastSearch = { ...policy.lastSearch ?? {}, ...result.receipt ? { passDiscipline: result.receipt } : {} };
+      return result.moves;
+    }
+  };
+}
+var PASS_DISCIPLINE_CONTRACT, key3, check3, BUDGET, contains, margin;
+var init_AIPassDiscipline = __esm({
+  "application-hard:AIPassDiscipline.js"() {
+    init_GameEngine();
+    init_AIEngine();
+    init_MultiplayerSearch();
+    init_MultiplayerClock();
+    PASS_DISCIPLINE_CONTRACT = Object.freeze({
+      schema: "lifeline-ai-pass-discipline-v1",
+      safetyScope: "root placement and all legal action sequences including PASS through one complete actual opponent round, ending at the actor's next turn or native terminal; canonical auto-skips",
+      terminalPass: "winning alone never bypasses the policy; prefer a witnessed strictly profitable native-area expansion",
+      openingPass: "prefer witnessed intact development with native area nondecreasing during the first two seat rounds",
+      timeout: "incomplete proof preserves a real policy PASS; missing policy output is never converted to voluntary PASS",
+      training: "one-complete-opponent-round runtime evidence only; labels still require independently completed >=3-ply/two-round Minimax"
+    });
+    key3 = /* @__PURE__ */ __name((point) => point === null ? "PASS" : point.join(","), "key");
+    check3 = /* @__PURE__ */ __name((ok, message) => {
+      if (!ok) throw new Error(message);
+    }, "check");
+    BUDGET = Symbol("PASS discipline proof budget");
+    __name(nativeDiscreteAreas, "nativeDiscreteAreas");
+    __name(ownPieces, "ownPieces");
+    contains = /* @__PURE__ */ __name((all, required) => [...required].every((point) => all.has(point)), "contains");
+    margin = /* @__PURE__ */ __name((areas, engine, actor) => areas[actor] - Math.max(0, ...engine.activePlayers.filter((player) => player !== actor && !engine.resignedPlayers.has(player)).map((player) => areas[player])), "margin");
+    __name(assessPassAlternatives, "assessPassAlternatives");
+    __name(applyPassDiscipline, "applyPassDiscipline");
+    __name(withPassDiscipline, "withPassDiscipline");
+  }
+});
+
+// application-hard:AIPassDisciplineV2.js
+function protectedRootInvariantHolds(engine, player, before, beforeArea) {
+  if (engine.rulesVersion !== "territory-v3" || engine.resignedPlayers.has(player)) return false;
+  const after = pieces(engine, player), connected = engine._getOpponentConnectedPieces(player);
+  const protectedKeys = new Set(engine.getAdjacentPositions(engine.initialPositions[player]).map(key4));
+  return contains2(after.nodes, before.nodes) && contains2(after.coverage, before.coverage) && contains2(connected, after.nodes) && after.lines.every((line) => protectedKeys.has(key4(line))) && after.coverage.size > beforeArea;
+}
+function passDisciplineAsciiSha256(text) {
+  const bytes = Array.from(text, (c) => c.charCodeAt(0));
+  if (bytes.some((byte) => byte > 127)) throw new Error("Non-ASCII rule-state hash input");
+  const bitLength = bytes.length * 8;
+  bytes.push(128);
+  while (bytes.length % 64 !== 56) bytes.push(0);
+  for (let i = 7; i >= 0; i--) bytes.push(i >= 4 ? 0 : Math.floor(bitLength / 2 ** (8 * i)) & 255);
+  const k = [
+    1116352408,
+    1899447441,
+    3049323471,
+    3921009573,
+    961987163,
+    1508970993,
+    2453635748,
+    2870763221,
+    3624381080,
+    310598401,
+    607225278,
+    1426881987,
+    1925078388,
+    2162078206,
+    2614888103,
+    3248222580,
+    3835390401,
+    4022224774,
+    264347078,
+    604807628,
+    770255983,
+    1249150122,
+    1555081692,
+    1996064986,
+    2554220882,
+    2821834349,
+    2952996808,
+    3210313671,
+    3336571891,
+    3584528711,
+    113926993,
+    338241895,
+    666307205,
+    773529912,
+    1294757372,
+    1396182291,
+    1695183700,
+    1986661051,
+    2177026350,
+    2456956037,
+    2730485921,
+    2820302411,
+    3259730800,
+    3345764771,
+    3516065817,
+    3600352804,
+    4094571909,
+    275423344,
+    430227734,
+    506948616,
+    659060556,
+    883997877,
+    958139571,
+    1322822218,
+    1537002063,
+    1747873779,
+    1955562222,
+    2024104815,
+    2227730452,
+    2361852424,
+    2428436474,
+    2756734187,
+    3204031479,
+    3329325298
+  ];
+  const hash = [1779033703, 3144134277, 1013904242, 2773480762, 1359893119, 2600822924, 528734635, 1541459225];
+  const rotate = /* @__PURE__ */ __name((value, count) => value >>> count | value << 32 - count, "rotate");
+  for (let offset = 0; offset < bytes.length; offset += 64) {
+    const w = Array(64);
+    for (let i = 0; i < 16; i++) w[i] = bytes[offset + i * 4] << 24 | bytes[offset + i * 4 + 1] << 16 | bytes[offset + i * 4 + 2] << 8 | bytes[offset + i * 4 + 3];
+    for (let i = 16; i < 64; i++) w[i] = (rotate(w[i - 15], 7) ^ rotate(w[i - 15], 18) ^ w[i - 15] >>> 3) + w[i - 16] + (rotate(w[i - 2], 17) ^ rotate(w[i - 2], 19) ^ w[i - 2] >>> 10) + w[i - 7] | 0;
+    let [a, b, c, d, e, f, g, h] = hash;
+    for (let i = 0; i < 64; i++) {
+      const t1 = h + (rotate(e, 6) ^ rotate(e, 11) ^ rotate(e, 25)) + (e & f ^ ~e & g) + k[i] + w[i] | 0;
+      const t2 = (rotate(a, 2) ^ rotate(a, 13) ^ rotate(a, 22)) + (a & b ^ a & c ^ b & c) | 0;
+      h = g;
+      g = f;
+      f = e;
+      e = d + t1 | 0;
+      d = c;
+      c = b;
+      b = a;
+      a = t1 + t2 | 0;
+    }
+    [a, b, c, d, e, f, g, h].forEach((value, index) => {
+      hash[index] = hash[index] + value | 0;
+    });
+  }
+  return "sha256:" + hash.map((value) => (value >>> 0).toString(16).padStart(8, "0")).join("");
+}
+function passDisciplineRuleState(source) {
+  return {
+    gridSize: source.gridSize,
+    playerCount: source.playerCount,
+    boardShape: source.boardShape,
+    startPlayer: source.startPlayer,
+    rulesVersion: source.rulesVersion,
+    initialPositions: Object.fromEntries(source.activePlayers.map((player) => [player, [...source.initialPositions[player]]])),
+    activePlayers: [...source.activePlayers],
+    gridEntries: [...source.grid].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0),
+    edges: Object.fromEntries(source.activePlayers.map((player) => [player, [...source.edges[player]].sort()])),
+    historyHashes: [...source.historyHashes].sort(),
+    resignedPlayers: [...source.resignedPlayers].sort(),
+    consecutiveSkips: source.consecutiveSkips,
+    currentPlayer: source.currentPlayer,
+    gameOver: source.gameOver,
+    turnCount: source.turnCount,
+    positionRevision: source.positionRevision
+  };
+}
+function applyPassDiscipline2(source, rankedMoves, {
+  player = source.currentPlayer,
+  topN = 5,
+  timeMs = 200,
+  maxNodes = 1e4,
+  now = /* @__PURE__ */ __name(() => multiplayerClock.now(), "now"),
+  ...options
+} = {}) {
+  const original = Array.isArray(rankedMoves) ? rankedMoves : [];
+  const requested = Math.max(0, Math.floor(topN));
+  const legacy = /* @__PURE__ */ __name((extra) => applyPassDiscipline(source, original, { ...options, player, topN, timeMs, maxNodes, now, ...extra }), "legacy");
+  if (!requested || source.gameOver || source.rulesVersion !== "territory-v3" || original[0]?.type !== "pass" || original[0]?.point !== null) return legacy();
+  if (player !== source.currentPlayer || source.resignedPlayers.has(player)) return legacy();
+  if (!Number.isFinite(timeMs) || timeMs < 0 || !Number.isInteger(maxNodes) || maxNodes < 0) return legacy();
+  const started = now();
+  if (!Number.isFinite(started)) return legacy();
+  let nodes = 0;
+  const remainingTime = /* @__PURE__ */ __name(() => {
+    const time = now();
+    if (!Number.isFinite(time)) throw new Error("Invalid PASS discipline clock");
+    return Math.max(0, timeMs - (time - started));
+  }, "remainingTime");
+  const budget = /* @__PURE__ */ __name(() => {
+    if (remainingTime() <= 0 || nodes >= maxNodes) throw TIMEOUT2;
+  }, "budget");
+  let oldResult;
+  try {
+    budget();
+    const engine = isolatedSearchEngine(source), initial = saveState(engine);
+    budget();
+    nodes++;
+    if (!engine.skipTurn().success) throw new Error("Canonical nonterminal PASS failed");
+    budget();
+    if (engine.gameOver) return legacy({ timeMs: remainingTime(), maxNodes: maxNodes - nodes });
+    const oldBudget = Math.max(0, maxNodes - nodes);
+    oldResult = legacy({ timeMs: remainingTime(), maxNodes: oldBudget });
+    nodes += oldResult.receipt?.nodes ?? 0;
+    if (oldResult.receipt?.witness || oldResult.moves[0]?.point !== null) return oldResult;
+    budget();
+    restoreState(engine, initial);
+    const before = pieces(engine, player), beforeArea = nativeDiscreteAreas(engine, [player])[player];
+    const legal = engine.getLegalMoves(player).map((move) => [...move.point]);
+    const preferred = original.filter((move) => Array.isArray(move?.point)).map((move) => key4(move.point));
+    legal.sort((a, b) => {
+      const ai = preferred.indexOf(key4(a)), bi = preferred.indexOf(key4(b));
+      return (ai < 0 ? Infinity : ai) - (bi < 0 ? Infinity : bi) || a[1] - b[1] || a[0] - b[0];
+    });
+    for (const point of legal) {
+      budget();
+      restoreState(engine, initial);
+      nodes++;
+      if (!engine.playMove(point).success) throw new Error("PASS discipline root ceased to be legal");
+      budget();
+      if (!protectedRootInvariantHolds(engine, player, before, beforeArea)) continue;
+      const after = pieces(engine, player), birth = engine.initialPositions[player];
+      budget();
+      const sourceStateHash = passDisciplineStateHash(source), postRootStateHash = passDisciplineStateHash(engine);
+      budget();
+      const receipt = {
+        schema: PASS_DISCIPLINE_CONTRACT2.schema,
+        status: "safe-profitable-expansion",
+        complete: true,
+        actor: player,
+        rulesVersion: source.rulesVersion,
+        positionRevision: source.positionRevision,
+        sourceStateHash,
+        safetyScope: PASS_DISCIPLINE_CONTRACT2.safetyScope,
+        passWouldEnd: false,
+        nodes,
+        elapsedMs: now() - started,
+        legacyReceipt: oldResult.receipt,
+        witness: {
+          point: [...point],
+          beforeArea,
+          minimumReplyAreaLowerBound: after.coverage.size,
+          profitKind: "strict-native-area-gain",
+          proofType: "immutable-birth-root-protection-invariant",
+          beforeNodesRetained: true,
+          beforeCoverageRetained: true,
+          allPostRootNodesBirthConnected: true,
+          allPostRootLinesBirthProtected: true,
+          birth: [...birth],
+          postRootCoverage: after.coverage.size,
+          sourceStateHash,
+          postRootStateHash,
+          completeOpponentRound: false,
+          scope: "All opponent-only legal action sequences, including repeated actors after automatic PASS, until actor next acts or resigns, or native terminal; no reply enumeration claimed"
+        }
+      };
+      const existing = original.find((move) => Array.isArray(move.point) && key4(move.point) === key4(point));
+      const selected = existing ? { ...existing } : { type: "move", point: [...point], score: after.coverage.size - beforeArea, visits: 1 };
+      selected.passDiscipline = {
+        schema: receipt.schema,
+        status: receipt.status,
+        profitKind: receipt.witness.profitKind,
+        proofType: receipt.witness.proofType
+      };
+      return { moves: [selected, ...original.filter((move) => key4(move.point) !== key4(point))].slice(0, requested), receipt };
+    }
+    return oldResult;
+  } catch (error) {
+    if (error !== TIMEOUT2) throw error;
+    return oldResult ?? legacy({ timeMs: 0, maxNodes: 0 });
+  }
+}
+function withPassDiscipline2(policy) {
+  if (policy?.passDisciplineContract === PASS_DISCIPLINE_CONTRACT2.schema) return policy;
+  return {
+    passDisciplineContract: PASS_DISCIPLINE_CONTRACT2.schema,
+    lastSearch: null,
+    getTopMoves(source, player = source.currentPlayer, topN = 5, options = {}) {
+      const ranked = policy.getTopMoves(
+        source,
+        player,
+        topN > 0 ? Math.max(5, topN) : topN,
+        { ...options, passDisciplinePrechecked: true }
+      );
+      const result = options.passDisciplinePrechecked === true ? { moves: ranked, receipt: null } : applyPassDiscipline2(source, ranked, { player, topN });
+      this.lastSearch = { ...policy.lastSearch ?? {}, ...result.receipt ? { passDiscipline: result.receipt } : {} };
+      return result.moves;
+    }
+  };
+}
+var PASS_DISCIPLINE_CONTRACT2, key4, pieces, contains2, TIMEOUT2, passDisciplineStateHash;
+var init_AIPassDisciplineV2 = __esm({
+  "application-hard:AIPassDisciplineV2.js"() {
+    init_AIPassDiscipline();
+    init_AIEngine();
+    init_MultiplayerSearch();
+    init_MultiplayerClock();
+    PASS_DISCIPLINE_CONTRACT2 = Object.freeze({
+      schema: "lifeline-ai-pass-discipline-v2",
+      safetyScope: "v1 complete actual opponent round, or a separately identified v3 immutable birth-root protection invariant through arbitrary opponent-only sequences until the actor next acts or resigns, or native terminal",
+      structuralEligibility: "explicit real policy PASS; v1 produced no witness; canonical PASS is nonterminal; retained nodes/coverage, all post-root nodes joined to birth by intact logical edges, every own LINE cell adjacent to birth, occupied coverage strictly exceeds pre-move native area",
+      training: "product runtime only; frozen v1 teacher, labels, policies and experiment inputs are unchanged"
+    });
+    key4 = /* @__PURE__ */ __name((point) => point === null ? "PASS" : point.join(","), "key");
+    pieces = /* @__PURE__ */ __name((engine, player) => {
+      const nodes = new Set(engine._getPlayerNodes(player).map(key4));
+      return { nodes, lines: engine._getPlayerLines(player), coverage: /* @__PURE__ */ new Set([...nodes, ...engine._getPlayerLines(player).map(key4)]) };
+    }, "pieces");
+    contains2 = /* @__PURE__ */ __name((all, required) => [...required].every((point) => all.has(point)), "contains");
+    TIMEOUT2 = Symbol("v2 shared proof budget");
+    __name(protectedRootInvariantHolds, "protectedRootInvariantHolds");
+    __name(passDisciplineAsciiSha256, "passDisciplineAsciiSha256");
+    __name(passDisciplineRuleState, "passDisciplineRuleState");
+    passDisciplineStateHash = /* @__PURE__ */ __name((source) => passDisciplineAsciiSha256(JSON.stringify(passDisciplineRuleState(source))), "passDisciplineStateHash");
+    __name(applyPassDiscipline2, "applyPassDiscipline");
+    __name(withPassDiscipline2, "withPassDiscipline");
+  }
+});
+
+// application-hard:AIWorker.js
+var AIWorker_exports = {};
 var init_AIWorker = __esm({
   "application-hard:AIWorker.js"() {
     init_GameEngine();
     init_AIStateProtocol();
     init_AIEngine();
-    TERMINAL_WINNING_PASS_WINDOW_MS = 60;
-    __name(canonicalTerminalWinningPass, "canonicalTerminalWinningPass");
+    init_AIPassDisciplineV2();
     self.onmessage = async (event) => {
       if (event.data?.type === "WARMUP") {
         try {
@@ -6120,7 +7018,7 @@ var init_AIWorker = __esm({
           });
         } else if (strategy === "neural-puct") {
           if (engine.playerCount !== 2) throw new Error("\u6A21\u578B\u4E0D\u652F\u6301\u6B64\u68CB\u76D8/\u89C4\u5219/\u73A9\u5BB6\u6570\u3002");
-          const { loadResearchModel, NeuralPUCTAI, supportsResearchInference } = await import("./ResearchAI.js?v=20261025-defense15");
+          const { loadResearchModel, NeuralPUCTAI, supportsResearchInference } = await import("./ResearchAI.js?v=20261025-terminal-v4");
           const model = await loadResearchModel(event.data?.modelId);
           if (!supportsResearchInference(model.spec, engine)) throw new Error("\u6A21\u578B\u4E0D\u652F\u6301\u6B64\u68CB\u76D8/\u89C4\u5219/\u73A9\u5BB6\u6570\u3002");
           modelInfo = {
@@ -6139,7 +7037,7 @@ var init_AIWorker = __esm({
           });
         } else if (strategy === "model-free") {
           if (engine.playerCount !== 2) throw new Error("model-free \u7F51\u9875\u6A21\u578B\u4EC5\u652F\u6301\u53CC\u4EBA\u5C40\u9762\u3002");
-          const { loadModelFreeModel, ModelFreeAI } = await import("./ModelFreeAI.js?v=20261025-defense15");
+          const { loadModelFreeModel, ModelFreeAI } = await import("./ModelFreeAI.js?v=20261025-terminal-v4");
           const model = await loadModelFreeModel(event.data?.modelId);
           ai = new ModelFreeAI(model);
         } else if (strategy === "multiplayer") {
@@ -6154,7 +7052,7 @@ var init_AIWorker = __esm({
           ai = runtime.ai;
           modelInfo = runtime.modelInfo;
         } else if (strategy === "hex-player") {
-          const { loadHexPlayerRuntime } = await import("./HexPlayerRuntime.js?v=20261025-defense15");
+          const { loadHexPlayerRuntime } = await import("./HexPlayerRuntime.js?v=20261025-terminal-v4");
           const runtime = await loadHexPlayerRuntime(event.data?.modelId, engine);
           ai = runtime.ai;
           modelInfo = runtime.modelInfo;
@@ -6162,7 +7060,6 @@ var init_AIWorker = __esm({
         if (!ai) {
           throw new Error(`Unsupported AI strategy: ${strategy}`);
         }
-        const exactWinningPass = topN > 0 ? canonicalTerminalWinningPass(engine, aiPlayer) : null;
         if (strategy === "multiplayer") {
           self.postMessage({
             type: "READY",
@@ -6174,12 +7071,14 @@ var init_AIWorker = __esm({
             modelInfo
           });
         }
-        const moves = exactWinningPass ? [exactWinningPass] : ai.getTopMoves(
+        const ranked = ai.getTopMoves(
           engine,
           aiPlayer,
-          topN,
-          strategy === "multiplayer" ? { terminalWinningPassPrechecked: true } : void 0
+          topN > 0 ? Math.max(5, topN) : topN,
+          strategy === "multiplayer" ? { passDisciplinePrechecked: true } : void 0
         );
+        const disciplined = applyPassDiscipline2(engine, ranked, { player: aiPlayer, topN });
+        const moves = disciplined.moves;
         self.postMessage({
           type: "RESULT",
           requestId,
@@ -6189,7 +7088,7 @@ var init_AIWorker = __esm({
           currentPlayer: serializedState.currentPlayer,
           moves,
           modelInfo,
-          ...ai.lastSearch ? { searchStats: ai.lastSearch } : {}
+          searchStats: { ...ai.lastSearch ?? {}, passDiscipline: disciplined.receipt }
         });
       } catch (error) {
         self.postMessage({
@@ -6199,7 +7098,8 @@ var init_AIWorker = __esm({
           rulesVersion: event.data?.serializedState?.rulesVersion,
           currentPlayer: event.data?.serializedState?.currentPlayer,
           message: error instanceof Error ? error.message : String(error),
-          ...typeof error?.code === "string" && error.code.startsWith("ULTIMATE_") ? { code: error.code } : {}
+          ...typeof error?.code === "string" && (error.code.startsWith("ULTIMATE_") || error.code === "AI_NO_RELIABLE_ACTION") ? { code: error.code } : {},
+          ...error?.passDiscipline ? { passDiscipline: error.passDiscipline } : {}
         });
       }
     };

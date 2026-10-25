@@ -1,11 +1,11 @@
-import GameEngine, { Player, TerritoryRulesVersion, PLAYER_ORDER, getBoardPositions, resolveBoardShape } from "./GameEngine.js?v=20261025-defense15";
-import Renderer from "./Renderer.js?v=20261025-defense15";
-import { ServerEvent } from "./NetworkManager.js?v=20261025-defense15";
-import { serializeEngineState } from "./AIStateProtocol.js?v=20261025-defense15";
+import GameEngine, { Player, TerritoryRulesVersion, PLAYER_ORDER, getBoardPositions, resolveBoardShape } from "./GameEngine.js?v=20261025-terminal-v4";
+import Renderer from "./Renderer.js?v=20261025-terminal-v4";
+import { ServerEvent } from "./NetworkManager.js?v=20261025-terminal-v4";
+import { serializeEngineState } from "./AIStateProtocol.js?v=20261025-terminal-v4";
 import {
   applyTerritoryWorkerResult,
-} from "./TerritoryWorkerSession.js?v=20261025-defense15";
-import TerritoryWorkerPool from "./TerritoryWorkerPool.js?v=20261025-defense15";
+} from "./TerritoryWorkerSession.js?v=20261025-terminal-v4";
+import TerritoryWorkerPool from "./TerritoryWorkerPool.js?v=20261025-terminal-v4";
 
 // GameController 鏄墠绔殑鈥滆兌姘村眰鈥濓細
 // 瀹冩妸 Model(GameEngine)銆乂iew(Renderer) 鍜岃仈鏈哄眰(NetworkManager) 涓茶捣鏉ワ紝
@@ -38,6 +38,20 @@ function isGridPoint(point) {
     && Number.isInteger(point[1]);
 }
 
+// Display metadata follows confirmed actions, including rule-driven automatic PASS.
+// It never enters the rule state, search state or persisted replay format.
+function updateLastMoves(lastMoves, action, engine, previousSkips = 0) {
+  if (!action || !isKnownPlayer(action.player)) return;
+  lastMoves[action.player] = action.type === "move" ? clonePoint(action.point) : null;
+  const explicitSkips = action.type === "skip" ? previousSkips + 1 : 0;
+  const automaticSkips = Math.max(0, engine.consecutiveSkips - explicitSkips);
+  let player = action.player;
+  for (let index = 0; index < automaticSkips; index += 1) {
+    player = engine._getNextPlayer(player);
+    lastMoves[player] = null;
+  }
+}
+
 export class GameController {
   constructor(canvas, options = {}) {
     if (!(canvas instanceof HTMLCanvasElement)) {
@@ -57,7 +71,7 @@ export class GameController {
       ? options.createTerritoryWorker
       : (typeof globalThis.Worker === "function"
         ? () => new globalThis.Worker(
-            new URL("./TerritoryWorker.js?v=20261025-defense15", import.meta.url),
+            new URL("./TerritoryWorker.js?v=20261025-terminal-v4", import.meta.url),
             { type: "module" },
           )
         : null);
@@ -81,6 +95,7 @@ export class GameController {
     this.opponentConnected = false;
     this.networkManager = null;
     this.lastAction = null;
+    this.lastMoves = {};
     this.inspectionOverlay = null;
     this.readOnlyMode = false;
     this._networkUnsubscribers = [];
@@ -246,6 +261,7 @@ export class GameController {
       ...snapshot,
       renderEpoch: this._engineEpoch,
       lastAction: this._cloneLastAction(),
+      lastMoves: this._cloneLastMoves(),
       inspectionOverlay: this.inspectionOverlay,
     });
     this._syncCanvasInteractivity(snapshot);
@@ -457,12 +473,21 @@ export class GameController {
     };
   }
 
-  _setLastAction(action = null) {
+  _cloneLastMoves() {
+    return Object.fromEntries(Object.entries(this.lastMoves ?? {}).map(([player, point]) => [
+      player, Array.isArray(point) ? clonePoint(point) : null,
+    ]));
+  }
+
+  _setLastAction(action = null, previousSkips = 0) {
     if (!action) {
       this.lastAction = null;
+      this.lastMoves = {};
       return;
     }
 
+    this.lastMoves ??= {};
+    updateLastMoves(this.lastMoves, action, this.engine, previousSkips);
     this.lastAction = {
       type: action.type ?? null,
       player: action.player ?? null,
@@ -495,6 +520,7 @@ export class GameController {
       legalMoves: snapshot.legalMoves,
       snapshot,
       lastAction: this._cloneLastAction(),
+      lastMoves: this._cloneLastMoves(),
       players: Array.isArray(snapshot.players)
         ? [...snapshot.players]
         : PLAYER_ORDER.slice(0, snapshot.playerCount ?? this.options.engine.playerCount),
@@ -669,6 +695,7 @@ export class GameController {
       legalMoves: this.readOnlyMode ? [] : snapshot.legalMoves,
       renderEpoch: this._engineEpoch,
       lastAction: this._cloneLastAction(),
+      lastMoves: this._cloneLastMoves(),
       inspectionOverlay: this.inspectionOverlay,
     }, { force: forceRender });
     this._syncCanvasInteractivity(snapshot);
@@ -819,13 +846,14 @@ export class GameController {
     }
 
     const actingPlayer = this.engine.getCurrentPlayer();
+    const previousSkips = this.engine.consecutiveSkips;
     const result = this.engine.skipTurn();
     if (result.success) {
       this._setLastAction({
         type: "skip",
         player: actingPlayer,
         point: null,
-      });
+      }, previousSkips);
       this._syncSnapshot(result.snapshot);
     } else {
       this._reportNetworkError(new Error(`Remote skip could not be applied: ${result.reason}`));
@@ -919,6 +947,7 @@ export class GameController {
       candidateEngine = this._createEngine(nextEngineOptions);
       replayResult = candidateEngine.replayBatch((engine) => {
         let lastAction = null;
+        const lastMoves = {};
 
         for (let index = 0; index < actions.length; index += 1) {
           const action = actions[index];
@@ -949,11 +978,13 @@ export class GameController {
               player: actingPlayer,
               point: clonePoint(action.point),
             };
+            updateLastMoves(lastMoves, lastAction, engine);
             continue;
           }
 
           if (action.type === "player_skip") {
             const actingPlayer = engine.getCurrentPlayer();
+            const previousSkips = engine.consecutiveSkips;
             const result = engine.skipTurn();
             if (!result.success) {
               return {
@@ -966,6 +997,7 @@ export class GameController {
               player: actingPlayer,
               point: null,
             };
+            updateLastMoves(lastMoves, lastAction, engine, previousSkips);
             continue;
           }
 
@@ -988,6 +1020,8 @@ export class GameController {
               player: action.color,
               point: null,
             };
+            if (result.success) updateLastMoves(lastMoves, lastAction, engine);
+            else lastMoves[action.color] = null;
             continue;
           }
 
@@ -1001,6 +1035,7 @@ export class GameController {
           success: true,
           reason: null,
           lastAction,
+          lastMoves,
         };
       });
     } catch (error) {
@@ -1017,6 +1052,7 @@ export class GameController {
       validGridPoints: this._validGridPoints,
       engineEpoch: this._engineEpoch,
       lastAction: this._cloneLastAction(),
+      lastMoves: this._cloneLastMoves(),
     };
 
     try {
@@ -1027,7 +1063,8 @@ export class GameController {
       this._engineEpoch += 1;
       this.setAuthoritativeSnapshotValid(true);
       this.renderer.invalidate();
-      this._setLastAction(replayResult.lastAction);
+      this.lastAction = replayResult.lastAction;
+      this.lastMoves = replayResult.lastMoves;
       this._updateLargeBoardClass();
       this._syncSnapshot(replayResult.snapshot);
     } catch (error) {
@@ -1035,7 +1072,8 @@ export class GameController {
       this.engine = previousControllerState.engine;
       this._validGridPoints = previousControllerState.validGridPoints;
       this._engineEpoch = previousControllerState.engineEpoch;
-      this._setLastAction(previousControllerState.lastAction);
+      this.lastAction = previousControllerState.lastAction;
+      this.lastMoves = previousControllerState.lastMoves;
       this._updateLargeBoardClass();
       const previousSnapshot = this.engine.getSnapshot();
       try {
@@ -1044,6 +1082,7 @@ export class GameController {
           ...previousSnapshot,
           renderEpoch: this._engineEpoch,
           lastAction: this._cloneLastAction(),
+          lastMoves: this._cloneLastMoves(),
           inspectionOverlay: this.inspectionOverlay,
         });
       } catch {
@@ -1070,13 +1109,14 @@ export class GameController {
     }
 
     const actingPlayer = this.engine.getCurrentPlayer();
+    const previousSkips = this.engine.consecutiveSkips;
     const result = this.engine.skipTurn();
     if (result.success) {
       this._setLastAction({
         type: "skip",
         player: actingPlayer,
         point: null,
-      });
+      }, previousSkips);
       this._syncSnapshot(result.snapshot);
     }
     this._emitActionFeedback({

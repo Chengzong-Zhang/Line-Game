@@ -1,6 +1,6 @@
-import { getBoardPositions, PLAYER_ORDER, resolveInitialPositions } from "./GameEngine.js?v=20261025-defense15";
-import { PLAYER_PALETTE, playerLabel } from "./PlayerPalette.js?v=20261025-defense15";
-import { randomInitialPositions, STARTING_POINT_MODES } from "./StartingPoints.js?v=20261025-defense15";
+import { getBoardPositions, PLAYER_ORDER, resolveInitialPositions } from "./GameEngine.js?v=20261025-terminal-v4";
+import { PLAYER_PALETTE, playerLabel } from "./PlayerPalette.js?v=20261025-terminal-v4";
+import { randomInitialPositions, STARTING_POINT_MODES } from "./StartingPoints.js?v=20261025-terminal-v4";
 
 
 

@@ -1,4 +1,4 @@
-import { canonicalTerminalWinningPass } from './worker-pass.js';
+import { applyPassDiscipline } from '../../../web/web前端/AIPassDisciplineV2.js';
 import { GreedyAI, MinimaxAI, createReplayDocument, validateReplayDocument, buildEventEffects } from './core.js';
 import { controllerChoices } from './controllers.js';
 import { restoreGame, ruleView, applyAction, validateSettings, MAX_ACTIONS } from './state.js';
@@ -59,14 +59,17 @@ function runTask(message, restore = restoreGame, recordAction = () => {}) {
     const entry = modelForProfile(profile);
     if (!entry && payload.model != null) throw new Error('MODEL_INTEGRITY');
     const rank = (algorithm, modelInfo = null) => {
-      const exactWinningPass = canonicalTerminalWinningPass(engine, engine.currentPlayer);
-      const moves = exactWinningPass ? [exactWinningPass] : algorithm.getTopMoves(engine, engine.currentPlayer, kind === 'ANALYZE' ? 3 : 1,
-        tier ? { terminalWinningPassPrechecked: true } : undefined);
+      const requested = kind === 'ANALYZE' ? 3 : 1;
+      const ranked = algorithm.getTopMoves(engine, engine.currentPlayer, Math.max(5, requested),
+        tier ? { passDisciplinePrechecked: true } : undefined);
+      const disciplined = applyPassDiscipline(engine, ranked, { player: engine.currentPlayer, topN: requested });
+      const moves = disciplined.moves;
       if (ruleView(engine).stateHash !== before.stateHash) throw new Error('SEARCH_MUTATED_STATE');
       const metric = tier && algorithm.lastSearch?.algorithm === 'trained-linear-policy' ? 'policy-score'
         : embedded ? embedded.metric : entry ? entry.research ? 'puct' : 'prior' : 'heuristic';
       return { moves, stateHash: before.stateHash, player: engine.currentPlayer,
-        ...(tier ? { profile, modelInfo, search: exactWinningPass ? { algorithm: 'canonical-terminal-unique-win', prechecked: true } : algorithm.lastSearch } : {}),
+        passDiscipline: disciplined.receipt,
+        ...(tier ? { profile, modelInfo, search: { ...(algorithm.lastSearch || {}), passDiscipline: disciplined.receipt } } : {}),
         ...(kind === 'ANALYZE' ? { profile, metric } : {}) };
     };
     // The new tiers include several player counts, so route them before the
@@ -74,10 +77,10 @@ function runTask(message, restore = restoreGame, recordAction = () => {}) {
     if (tier) return createEmbeddedMultiplayerRuntime(profile, engine).then(runtime => rank(runtime.ai, runtime.modelInfo));
     // Hex model validation is asynchronous, including on the Web. Existing 2/3
     // player tasks retain their synchronous response path and ranking semantics.
-    if (hexPlayer) return createEmbeddedHexPlayerAI(profile).then(rank);
+    if (hexPlayer) return createEmbeddedHexPlayerAI(profile, engine.rulesVersion).then(rank);
     let algorithm;
     if (threePlayer) {
-      algorithm = createEmbeddedThreePlayerAI(profile);
+      algorithm = createEmbeddedThreePlayerAI(profile, engine.rulesVersion);
     } else if (entry) {
       if (payload.model?.id !== entry.id) throw new Error('MODEL_INTEGRITY');
       const bytes = checkedModelBytes(entry, payload.model.raw);
