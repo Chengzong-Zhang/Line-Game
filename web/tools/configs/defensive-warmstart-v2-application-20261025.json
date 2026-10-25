@@ -1,0 +1,68 @@
+{
+  "schema": "lifeline-defensive-warmstart-protocol-v2",
+  "status": "APPLICATION_CONTINUATION_FIXED_AFTER_COST_PILOT_BEFORE_TRAINING",
+  "rules_version": "territory-v3",
+  "parents": [
+    "easy",
+    "three-v4",
+    "three-v1",
+    "hex-v1"
+  ],
+  "sampling": {
+    "player_counts": [
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "board_sizes": [
+      5,
+      6,
+      7,
+      9
+    ],
+    "board_shapes": [
+      "native",
+      "triangle"
+    ],
+    "seed_namespace": "defensive-existing-weights-20261025-v2",
+    "games_per_cell_per_split": 1,
+    "games_per_cell_per_split_by_player_count": {
+      "2": 6,
+      "3": 2
+    },
+    "samples_per_game": 3,
+    "samples_per_game_by_player_count": {
+      "2": 4,
+      "3": 4
+    },
+    "max_game_plies": 160,
+    "minimum_prefix_plies": 4,
+    "maximum_legal_placements": 4,
+    "attack_sampling_probability": 0.7
+  },
+  "labels": {
+    "max_nodes_per_label": 100000,
+    "time_ms_per_label": 5000
+  },
+  "training": {
+    "updates": 100,
+    "learning_rate": 0.03
+  },
+  "verification": {
+    "enabled": true,
+    "scope": "held-out complete teacher comparisons; no arena strength claim"
+  },
+  "supervision": {
+    "max_wall_seconds": 1800,
+    "worker_wall_seconds": 90,
+    "worker_units": 8,
+    "max_restarts": 3,
+    "max_no_progress_exits": 3,
+    "poll_ms": 200,
+    "stop_grace_seconds": 3
+  },
+  "source_selection": "Whole-game independent splits; crowded/recent-cut preference; separately receipted 1500ms/20000-node feasibility prefilter. Only completed sources enter training, all labels recomputed through the unchanged teacher. Additional independent review excludes complete early-terminal-only searches unless maxReachedPly >= requiredDepth; original pilot and all exclusions are preserved. Other branches may naturally terminate earlier.",
+  "scope": "Weights-only continuation of four existing linear product parents. The two-player triangle subset separately continues 17 existing neural F32 parents. This is application training with complete defensive labels, not a broad playing-strength or automatic promotion claim."
+}
