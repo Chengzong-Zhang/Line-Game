@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 4,
+  "profile": "online",
+  "status": "PREPARED_LOCAL_NOT_UPLOADED",
+  "candidateId": "0.12.12-e597123b3629-FzaKeX",
+  "version": "0.12.12",
+  "rulesVersion": "territory-v3",
+  "config": {
+    "apiBase": "https://lifelinegame.cn",
+    "onlineEnabled": true,
+    "workerTimeoutMs": 15000
+  },
+  "packageBytes": 19889195,
+  "mainPackageBytes": 1735379,
+  "reproducibility": "Fresh isolated rebuild matches every existing dist file, including 17 verified model assets, byte for byte; test evidence is bound separately",
+  "uploadDescription": "支持 2–15 人本地与混合联机房间；7–15 人仅随机或自定义起点，补齐小屏席位、比分与结算分页。后续训练强制完整至少三层 Minimax，并优先防守和起点连通切断链；本版保留既有模型权重。"
+}

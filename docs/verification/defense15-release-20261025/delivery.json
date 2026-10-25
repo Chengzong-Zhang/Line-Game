@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "status": "GITHUB_PUSHED_MINI_UPLOADED_WEB_AWAITING_AUTHENTICATION",
+  "recordedAtUtc": "2026-10-25T09:43:56.192891+00:00",
+  "sourceCommit": "5094e10b95125173b94b679367d8dc47eee36102",
+  "github": {
+    "url": "https://github.com/Chengzong-Zhang/Line-Game/tree/codex/defense-15-players-20261025",
+    "verifiedRemoteProductHead": "5094e10b95125173b94b679367d8dc47eee36102",
+    "mainChanged": false
+  },
+  "miniGame": {
+    "version": "0.12.12",
+    "candidateId": "0.12.12-e597123b3629-FzaKeX",
+    "candidateReceiptSha256": "bb17418aa4ad7b8a469f2fe56549c466d9e6794cc747d73cdcfff166ebec5632",
+    "status": "CODE_UPLOADED_EXPERIENCE_NOT_CONFIGURED",
+    "experienceConfigured": false,
+    "deviceAcceptance": "NOT_RUN",
+    "reviewSubmitted": false,
+    "publiclyPublished": false
+  },
+  "web": {
+    "releaseId": "web-defense15-20261025-r1",
+    "status": "FROZEN_FRONTEND_AWAITING_SSH_AUTHENTICATION",
+    "files": 133,
+    "activationAttempted": false,
+    "currentPublicPlayerCounts": [
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "databaseReplaced": false
+  },
+  "training": {
+    "futureContract": "complete minimax >=3 and two actual opponent rounds; defense and unbroken rooted cut chains first",
+    "productionRetrainingRun": false,
+    "runtimeWeightsChanged": false
+  }
+}
