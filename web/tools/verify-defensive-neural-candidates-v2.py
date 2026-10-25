@@ -127,6 +127,8 @@ def verify(run, data_root, config_path):
         require(file_hash(Path(path)) == expected, "Frozen dataset file changed")
     dataset, samples, dataset_files, _ = load_dataset(data_root)
     require(identity["dataset_identity"] == dataset["identity"] and identity["dataset_files"] == dataset_files, "Different defensive neural dataset")
+    require(all(sample["sourceReceipt"]["search"]["maxReachedPly"] >= sample["sourceReceipt"]["search"]["requiredDepth"]
+                for sample in samples), "This candidate audit requires actual source search to reach its complete reply horizon")
     specs, manifests = available_models(); by_id = {spec["id"]: spec for spec in specs}
     wanted = config.get("model_ids", list(by_id))
     selected = [spec["id"] for spec in specs if spec["id"] in wanted]
@@ -150,7 +152,8 @@ def verify(run, data_root, config_path):
         model.load_state_dict(load_asset_state(parent_spec, contained(run, record["asset"])), strict=True)
         require(export_bytes(model, parent_spec) == contained(run, record["asset"]).read_bytes(), "F32 export closure mismatch")
         frozen = [name for name in parent.state_dict() if name.startswith(("value_head.", "value."))]
-        require(all(torch.equal(parent.state_dict()[name], model.state_dict()[name]) for name in frozen), "Frozen value parameter changed")
+        value_bytes = lambda tensor: tensor.detach().cpu().numpy().astype("<f4", copy=False).tobytes()
+        require(all(value_bytes(parent.state_dict()[name]) == value_bytes(model.state_dict()[name]) for name in frozen), "Frozen value parameter bytes changed")
         parent_rows = evaluate(parent, parent_spec, validation)
         parent_product_rows = evaluate(parent, parent_spec, validation, product_mask=True)
         candidate_rows = evaluate(model, candidate, validation)
@@ -168,19 +171,28 @@ def verify(run, data_root, config_path):
             "graph_value_prediction_drift": None if not drift else {"positions": len(drift), "mean_absolute": float(np.abs(drift).mean()),
                 "max_absolute": float(np.abs(drift).max()), "mean_signed": float(np.mean(drift))},
             "active_pass_runtime_contract": bool("model_kind" not in candidate or candidate.get("action_contract", {}).get("pass"))})
-    split_counts = {}
+    split_counts, coverage = {}, {}
     for sample in samples:
         key = f"{sample['size']}/{sample['split']}"; split_counts[key] = split_counts.get(key, 0) + 1
+        state = sample["sourceEvidence"]["sourceState"]; search = sample["sourceReceipt"]["search"]
+        cell = coverage.setdefault(key, {"positions": 0, "min_prefix_turns": state["turnCount"], "max_prefix_turns": state["turnCount"],
+            "max_legal_placements": 0, "min_completed_depth": search["completedDepth"], "min_actual_reached_ply": search["maxReachedPly"]})
+        cell["positions"] += 1; cell["min_prefix_turns"] = min(cell["min_prefix_turns"], state["turnCount"])
+        cell["max_prefix_turns"] = max(cell["max_prefix_turns"], state["turnCount"])
+        cell["max_legal_placements"] = max(cell["max_legal_placements"], len(sample["legal"]) - 1)
+        cell["min_completed_depth"] = min(cell["min_completed_depth"], search["completedDepth"])
+        cell["min_actual_reached_ply"] = min(cell["min_actual_reached_ply"], search["maxReachedPly"])
     return {"schema": "lifeline-defensive-neural-independent-verification-v2", "recordedAtUtc": datetime.now(timezone.utc).isoformat(),
         "status": "COMPLETE_ARTIFACTS_VERIFIED_HELDOUT_TEACHER_ONLY", "training_identity": cp["identity"],
         "run_root": str(run), "data_root": str(data_root), "config_sha256": file_hash(config_path),
         "verifier_sha256": file_hash(Path(__file__)), "parent_manifest_hashes": manifests,
         "dataset_identity": dataset["identity"], "source_manifest_sha256": dataset["sourceManifestHash"],
-        "models_verified": len(results), "updates_per_model": config["updates_per_model"], "split_counts": split_counts,
+        "models_verified": len(results), "updates_per_model": config["updates_per_model"], "split_counts": split_counts, "data_coverage": coverage,
         "finite_legal_normalized": True, "models": results, "strength_verified": False, "runtime_admitted": False,
         "limitations": ["Source subset is two-player triangle only; current plan selects crowded tactical positions with <=4 legal placements.",
             "Whole-game holdout is independent of fitting, but the same feasibility prefilter and late-state selection apply.",
             "Teacher vectors are finite-horizon paranoid-minimax counterfactual values, not realized match outcomes.",
+            "Defense metrics attach exact teacher root vectors to raw policy argmax actions; they do not evaluate the candidate's subsequent policy or actual PUCT search.",
             "Frozen value parameters do not freeze value outputs when the shared backbone changes; no terminal-outcome calibration is established.",
             "Legacy graph manifests without action_contract.pass hide voluntary PASS under current ResearchAI runtime.",
             "No full-game arena, browser/native numerical parity, device acceptance, or product admission is claimed."]}
