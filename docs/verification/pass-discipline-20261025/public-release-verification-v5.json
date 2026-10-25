@@ -1,0 +1,766 @@
+{
+  "schema": "lifeline-terminal-policy-public-verification-v5",
+  "status": "PASS_PUBLIC_RELEASE_AND_ALL_RESOURCES",
+  "observed_at_utc": "2026-10-25T19:54:06.892098+00:00",
+  "url": "https://lifelinegame.cn/",
+  "release_id": "web-terminal-policy-20261025-r1",
+  "asset_version": "20261025-terminal-v4",
+  "source_commit": "65fa1fffedc0524e7c125c195b7fdec3d1b0a83f",
+  "public_manifest_sha256": "63760efa67ff5a7ee649bac4cd11ff9b19282ae4d03ae8ad46097ddf0b376458",
+  "public_resource_count": 141,
+  "public_resource_bytes": 21755033,
+  "all_resource_hashes_match_final_candidate": true,
+  "public_https_health": {
+    "game_status": "ok",
+    "wechat_enabled": true
+  },
+  "server_verification": {
+    "status": "ACTIVATED_ALL_COMPONENTS_VERIFIED",
+    "release": "web-terminal-policy-20261025-r1",
+    "healthAfter": {
+      "game": true,
+      "wechat": true
+    },
+    "components": {
+      "legacy-server": "23093b46f0dbf4178eb4f12fbecae892af92c90090496518a0b9cab64fad514d",
+      "legacy-bridge": "a6e92c81c77294f2e5159cb51e3c8958e10148641bd825db5de3c21dc073f6a7",
+      "legacy-runtime": "559f376537120d26bd8be8cd53f84ce71894092eaeffa4b5cc6aae2f8a8cdea8",
+      "legacy-package": "d02836298858858f52f01f58c6afc45f02db04d86adad0fb3bba92ed1abb53f0",
+      "wechat-server": "bdcb12746fd421822acb2c76e8b6a19d0210473a7b29fe532fbb105c7b0b80b0",
+      "wechat-bridge": "a6e92c81c77294f2e5159cb51e3c8958e10148641bd825db5de3c21dc073f6a7",
+      "wechat-runtime": "559f376537120d26bd8be8cd53f84ce71894092eaeffa4b5cc6aae2f8a8cdea8",
+      "wechat-package": "d02836298858858f52f01f58c6afc45f02db04d86adad0fb3bba92ed1abb53f0",
+      "wechat-validator": "63aa268f7fb42bc911705149a074673fd5f29281b21dedbd6f244f67dc0237eb"
+    },
+    "siteManifest": "63760efa67ff5a7ee649bac4cd11ff9b19282ae4d03ae8ad46097ddf0b376458",
+    "siteTree": "effd0e4b9af8b6ec5f3efd24abb2bdf3ce4e533bca33608ece52c86cfcf37870",
+    "wechatFrontendTree": "effd0e4b9af8b6ec5f3efd24abb2bdf3ce4e533bca33608ece52c86cfcf37870",
+    "stagedProbePlayers": [
+      2,
+      6,
+      7,
+      15
+    ],
+    "liveProbePlayers": [
+      2,
+      6,
+      7,
+      15
+    ],
+    "rollbackAvailable": true,
+    "sourceCommit": "65fa1fffedc0524e7c125c195b7fdec3d1b0a83f",
+    "assetVersion": "20261025-terminal-v4",
+    "policyActivation": "PASS_DISCIPLINE_SCOPED",
+    "admissionReportSha256": "c49570f4a3d0a6c35d02049f0aeec74f1b43aa240e983c06983f4d424c8f0f11",
+    "deploymentReceiptSha256": "620e2ea418f5662a620f8a461722ece3c88d03624c3db403f91b9b48d9b9d4c3"
+  },
+  "resources": [
+    {
+      "path": "AIEngine.js",
+      "sha256": "792b8225aea9b4c68990a47a1658fed2a13bd2e4e52186113c9a25efdd5c2694",
+      "bytes": 37770
+    },
+    {
+      "path": "AIPassDiscipline.js",
+      "sha256": "4850b3af425e3b7d3153b43c45c223fad3b89b4870cdfce75425955cb3454419",
+      "bytes": 13363
+    },
+    {
+      "path": "AIPassDisciplineV2.js",
+      "sha256": "1e4a89dcb347776b866647ba0019a7615b897d11c9679551ae73cfb620164231",
+      "bytes": 12118
+    },
+    {
+      "path": "AIPassDisciplineV3.js",
+      "sha256": "76545670cca5861024ff6422b643ae33dfe30c6a1e9d53849ae86e167d4ee33b",
+      "bytes": 8549
+    },
+    {
+      "path": "AIPassDisciplineV4.js",
+      "sha256": "96d69a3d9567b63ae7f38ffe34b7ffdf05379ba65ee04ccee5a376d629a0ad69",
+      "bytes": 12426
+    },
+    {
+      "path": "AIStateProtocol.js",
+      "sha256": "bd82e144304f429b354d7d7a722f1a691b7902a6e6e418f3739342191b5291a2",
+      "bytes": 2692
+    },
+    {
+      "path": "AIWorker.js",
+      "sha256": "d2239f1f245e5b1cfb9190253595a29e8a2b3b63b36a414938bfc5c8c3dcd294",
+      "bytes": 7534
+    },
+    {
+      "path": "app.js",
+      "sha256": "b13bf07df4d8f8bd5377aa0b3b235a3fa679a83077926b22408442c1c0951ee2",
+      "bytes": 163
+    },
+    {
+      "path": "assets/beian.png",
+      "sha256": "8dfecad0dfcb3dc584f2c2447943eefb1fd65a058856eb0611e2c56ddc4c1fe1",
+      "bytes": 1403
+    },
+    {
+      "path": "assets/research-ai/dqn-all-sizes-e2000.f32",
+      "sha256": "16f50c330ad7cc239cfb0b2334538817c7c0d6cf4c01f6048b05c9ee4a9466eb",
+      "bytes": 3025380
+    },
+    {
+      "path": "assets/research-ai/gail-all-sizes.f32",
+      "sha256": "5951e4e3f057893275df6f44543f3747cd4275a616d52a5b8355e51760faea71",
+      "bytes": 3027432
+    },
+    {
+      "path": "assets/research-ai/gan-all-sizes.f32",
+      "sha256": "63629d0027afb8ff2fdbc3e773be420c062361b315741d8371e47818c4ec30e5",
+      "bytes": 3027432
+    },
+    {
+      "path": "assets/research-ai/grid-gnn-d14-s20260825-g200.f32",
+      "sha256": "92cc45bb2a3a6a56c896098c1e843a136587a9aaf07381fbf1d00ebb4fd02dfa",
+      "bytes": 250932
+    },
+    {
+      "path": "assets/research-ai/hex-player-policy-v1.json",
+      "sha256": "74aa7f945c3ea7ff5ca3edc9e7bdc431dc0ec5ad56d2563ce6d6d24c0494162b",
+      "bytes": 3321
+    },
+    {
+      "path": "assets/research-ai/hex-player-policy-v1.training-receipt.json",
+      "sha256": "60dc0d22edcbbc41aad88cbe12eda54e6847f2805b1b504a74c95ae34d671adf",
+      "bytes": 3840
+    },
+    {
+      "path": "assets/research-ai/hex-player-search-v5.json",
+      "sha256": "e19d45b26e5fb7e2783e392993622bede692838043a9cb4d5af91d170f8448b5",
+      "bytes": 1828
+    },
+    {
+      "path": "assets/research-ai/manifest.json",
+      "sha256": "e8908ce0d22b54fb31d3bdac5c97eb88b3aa6e3068a7599a7c8be517f3b42250",
+      "bytes": 20468
+    },
+    {
+      "path": "assets/research-ai/model-free-manifest.json",
+      "sha256": "0762301fad905a62d1381777f2dd58bfe883d3320faeba94faa09fd19880e83d",
+      "bytes": 10694
+    },
+    {
+      "path": "assets/research-ai/multiplayer-v1/easy.json",
+      "sha256": "575f5cf1cf8c29210e4eb1e16845f09279ba8076d6a18474732b4659dd2b4e69",
+      "bytes": 3925
+    },
+    {
+      "path": "assets/research-ai/multiplayer-v1/manifest.json",
+      "sha256": "d7560db53483ab9ee2a7c423509142924545f1679ec35201b369e3b91fe161a0",
+      "bytes": 15312
+    },
+    {
+      "path": "assets/research-ai/multiplayer-v1/multiplayer-ultimate-v1.f32",
+      "sha256": "34f7129f4495d5e914b94051ba4b220d7ab0185a1620b324bda1bfad3fe4586a",
+      "bytes": 252684
+    },
+    {
+      "path": "assets/research-ai/padded-cnn-d14-s20260825-g200.f32",
+      "sha256": "cea913f58d1694926fb6710ca355bf6d41e5a6c49b991af87b836ae26d43bf1f",
+      "bytes": 251472
+    },
+    {
+      "path": "assets/research-ai/ppo-all-sizes-e2000.f32",
+      "sha256": "af41359ca0ee00b3be86a2f5b9363a513af942f6cfa0c50f31cb0f252c86de85",
+      "bytes": 3027432
+    },
+    {
+      "path": "assets/research-ai/sac-all-sizes-e2000.f32",
+      "sha256": "63a1b80b456427a2545a31ff9af209fdde1f9cf8d41ae6984f36c09c116932bd",
+      "bytes": 3025380
+    },
+    {
+      "path": "assets/research-ai/three-player-policy-v1.json",
+      "sha256": "8cd1a2f36267f96b1e32b7749a9cdc785f489ea7ec12e31aee0beb0a72901794",
+      "bytes": 2354
+    },
+    {
+      "path": "assets/research-ai/three-player-policy-v1.training-receipt.json",
+      "sha256": "97fd8f7de56606b1b78c68c6cb892533f6e34aa71ed15a49220f52e73c570463",
+      "bytes": 2394
+    },
+    {
+      "path": "assets/research-ai/three-player-policy-v2.json",
+      "sha256": "00fc241c500dfd01ff85b5e2a4f1907cc5a9d8307d68bb78be64b0aad129f56e",
+      "bytes": 3973
+    },
+    {
+      "path": "assets/research-ai/three-player-policy-v2.training-receipt.json",
+      "sha256": "b7a88c0d48efcf259f858e77b12a65ee1e40efa958c5278b96cec5cfd7ae5c78",
+      "bytes": 3344
+    },
+    {
+      "path": "assets/research-ai/three-player-policy-v3.json",
+      "sha256": "1335fdaaedc227a8176696b720b2e93827fef4baed79790630c59fbe5a3e08b9",
+      "bytes": 4192
+    },
+    {
+      "path": "assets/research-ai/three-player-policy-v3.training-receipt.json",
+      "sha256": "cb0e92fa03abff7b70ee9ab8492fc5ae819e8bd717079d599a25d503f0351b86",
+      "bytes": 3736
+    },
+    {
+      "path": "assets/research-ai/three-player-search-v4-round12.json",
+      "sha256": "9b85f5fff27001d68407c30d6f707b461b1b468d657c8292339e97d23868c230",
+      "bytes": 3032
+    },
+    {
+      "path": "assets/research-ai/topology-gnn-d14-s20260825-g200.f32",
+      "sha256": "de7f1a4c9c204d0f88598f5d7d92e180e291060b11cc711c8f9e786207cf34d0",
+      "bytes": 252684
+    },
+    {
+      "path": "assets/research-ai/transfer-v1/export-receipt.json",
+      "sha256": "22192615d1d9e07873f0712bd932ddae58bd562400c5cb7aa960007b5f93ca69",
+      "bytes": 34147
+    },
+    {
+      "path": "assets/research-ai/transfer-v1/grid-gnn-transfer-v1-seed2026092201.f32",
+      "sha256": "e0b82a1736521fb967afb7861ba1fcc697b505990d5b6391abb8318dbef42a0b",
+      "bytes": 250932
+    },
+    {
+      "path": "assets/research-ai/transfer-v1/grid-gnn-transfer-v1-seed2026092202.f32",
+      "sha256": "5db4b00462d8e30d2d293adf554da3e0e6b4cde6d40d3f82b590b23fa267000b",
+      "bytes": 250932
+    },
+    {
+      "path": "assets/research-ai/transfer-v1/grid-gnn-transfer-v1-seed2026092203.f32",
+      "sha256": "67079d1d6108732cddfeecf74840ae63505488af052e068ab1a83bf96c56bf87",
+      "bytes": 250932
+    },
+    {
+      "path": "assets/research-ai/transfer-v1/manifest.json",
+      "sha256": "847fd30c08a145e202fafe58bcfc5a70ddaf5bf422c74d9efbb2ec35b46ef1c4",
+      "bytes": 84394
+    },
+    {
+      "path": "assets/research-ai/transfer-v1/padded-cnn-transfer-v1-seed2026092201.f32",
+      "sha256": "416ee1a88f092ab514dd40c8a22604a761a20b223409eaaef64f61c691108242",
+      "bytes": 251472
+    },
+    {
+      "path": "assets/research-ai/transfer-v1/padded-cnn-transfer-v1-seed2026092202.f32",
+      "sha256": "cd36fdd3a96e78066475fb67056fa179bf7765028fbf9e4db7a172857b134af3",
+      "bytes": 251472
+    },
+    {
+      "path": "assets/research-ai/transfer-v1/padded-cnn-transfer-v1-seed2026092203.f32",
+      "sha256": "ee60f6d279941c78af999c6d051d514bf90f09b9478272d8557d482bb24dd07c",
+      "bytes": 251472
+    },
+    {
+      "path": "assets/research-ai/transfer-v1/topology-gnn-transfer-v1-seed2026092201.f32",
+      "sha256": "0235947ee5a3eb6aa36627da06270e0854f3ece5c2b509d6a4f85d830a54f5ba",
+      "bytes": 252684
+    },
+    {
+      "path": "assets/research-ai/transfer-v1/topology-gnn-transfer-v1-seed2026092202.f32",
+      "sha256": "4c424c0f0ac19724d7fa51741d199bd780781d7063b325671fe9197f6b6abc9b",
+      "bytes": 252684
+    },
+    {
+      "path": "assets/research-ai/transfer-v1/topology-gnn-transfer-v1-seed2026092203.f32",
+      "sha256": "5a8f6f4ed6954c5dda131c16403f2f2c680edefffc050d19f2cab25850dcc84b",
+      "bytes": 252684
+    },
+    {
+      "path": "CrossPlatformNetwork.js",
+      "sha256": "530c172e8261d05781644ed1885a5eb78e50d3974588b0f6bd2d33a54ce4f4b0",
+      "bytes": 7423
+    },
+    {
+      "path": "DefensiveTrainingTeacher.js",
+      "sha256": "204d6fa492c579c6b57acebe792d515d7921724d82d0784ce7b04b869344bf0b",
+      "bytes": 12134
+    },
+    {
+      "path": "GameController.js",
+      "sha256": "52c8a04c5a0cf89ffd278e3ab13d25b935a45470d273d6419e872676773c24f8",
+      "bytes": 40604
+    },
+    {
+      "path": "GameEngine.js",
+      "sha256": "1aec9d73d06c7243ac71d1eb27c8f9692dc5f33576d298d2ecd2d2d55464acfb",
+      "bytes": 108628
+    },
+    {
+      "path": "guide/guide-images/三人制衡.jpg",
+      "sha256": "f764ae3428ce942964729b2fd30850b46a96df2b70282af8652fd52c977a863e",
+      "bytes": 75654
+    },
+    {
+      "path": "guide/guide-images/三点限制.png",
+      "sha256": "481e28f13a32dac2ab8b91d320cf20ade246eb513d8f09c5eb047536bb7e0d13",
+      "bytes": 141728
+    },
+    {
+      "path": "guide/guide-images/切断1.png",
+      "sha256": "a02817f967e9b2dc2103c04fbc0fb1cbbd4630d574bdd3b61a8e6aba24cf2d1f",
+      "bytes": 181936
+    },
+    {
+      "path": "guide/guide-images/切断2.png",
+      "sha256": "9bc0d8f3c1b4acca5ac36a13f1d696a9c08971f0d308f2525ef35053bd08bbb9",
+      "bytes": 180003
+    },
+    {
+      "path": "guide/guide-images/可以走的区域png.png",
+      "sha256": "5085eeede1c51b2c79fd062d306f854b96259190e53d1850b89c9ebe2eab3b35",
+      "bytes": 153674
+    },
+    {
+      "path": "guide/guide-images/起点限制.png",
+      "sha256": "243f8eb898e011d08eadd9fa13d2f5f922c385d04e82a569a0ec36c787144a24",
+      "bytes": 129899
+    },
+    {
+      "path": "guide/interesting/deep-research-report.md",
+      "sha256": "b123c3adfbb24111ee0e2c1b745471b10429412503d59ec196a830dec298c360",
+      "bytes": 2245
+    },
+    {
+      "path": "guide/interesting/Talk is Cheap, Show Me the Code.md",
+      "sha256": "6e8182563200d5866bb87f5a404570b8e6aae85d3a5ebca69f6b8b58095fe623",
+      "bytes": 469
+    },
+    {
+      "path": "guide/interesting/Theory-M.tex",
+      "sha256": "9703204c5252d3cb7f62ecb7cd89fec034b84c1d542f442f4c451ba19a485565",
+      "bytes": 14015
+    },
+    {
+      "path": "guide/interesting/Theory.md",
+      "sha256": "e6d779d198f3dd31e4a91b77552704fd1a4a2ddfb56c1459b2f1b1a1cd60ac10",
+      "bytes": 2225
+    },
+    {
+      "path": "guide/interesting/verify-superko-history-divergence.mjs",
+      "sha256": "455bca7ba2620a919170af78314b2f4d15cb222c3211c80a2b2e22f5050cbbf1",
+      "bytes": 15594
+    },
+    {
+      "path": "guide/interesting/verify-theory-counterexamples.mjs",
+      "sha256": "d4e99d518261f75495a833fba41c4cec03d487dd47b1d18e1f3d375550b7f910",
+      "bytes": 12416
+    },
+    {
+      "path": "guide/interesting/why this.md",
+      "sha256": "db4310ce3dc1e73baca1d0c73c3689ddd6736e866c4f794ddfa01a70acaa6adc",
+      "bytes": 462
+    },
+    {
+      "path": "guide/interesting/why-code.en.md",
+      "sha256": "5a16ebabff8643c998df41628a3726d894810174d917c67d4ccdaa529f86d8b0",
+      "bytes": 61647
+    },
+    {
+      "path": "guide/interesting/why-code.zh.md",
+      "sha256": "ebb33a7b20d22289f6d5045484c15f234e22d47e0c81e39042379bc3b3d30920",
+      "bytes": 58976
+    },
+    {
+      "path": "guide/interesting/why-talk.en.md",
+      "sha256": "452b5c426824e32dbaeac3a46c07f78b7ae5dc4fae9665ffaa80a29e30013b9f",
+      "bytes": 3475
+    },
+    {
+      "path": "guide/interesting/why-talk.zh.md",
+      "sha256": "6c1534645c2b1dea1cc9b0b2f753feae54b529489c1a40e39c8a48d485a0fea2",
+      "bytes": 2943
+    },
+    {
+      "path": "guide/interesting/why-theory.cn.md",
+      "sha256": "6ef6832dcc2ef91644667a2493ca41cc2cf20dab8a4f4c2f562d8efa30aeb614",
+      "bytes": 100076
+    },
+    {
+      "path": "guide/interesting/why-theory.en.md",
+      "sha256": "93f8db1b24ba9a64c33dfa56348920fd82190eba6c963dd29f275b176c6f8f5f",
+      "bytes": 122700
+    },
+    {
+      "path": "guide/interesting/why-theory.zh.md",
+      "sha256": "6ef6832dcc2ef91644667a2493ca41cc2cf20dab8a4f4c2f562d8efa30aeb614",
+      "bytes": 100076
+    },
+    {
+      "path": "guide/rule/essential rule.md",
+      "sha256": "3c32225fd3c8561efcc730316bee7367704b13239ab78015a10460f91170d0fa",
+      "bytes": 1659
+    },
+    {
+      "path": "guide/rule/math rule.en.md",
+      "sha256": "3525a42775cc4defe828026230201d92ca664a32cbee675818191c62504e2d6f",
+      "bytes": 25434
+    },
+    {
+      "path": "guide/rule/math rule.md",
+      "sha256": "cd8f741f5f9466a81315ce69de79c10b441b878ecaa6acc78bd0ad5996414489",
+      "bytes": 25034
+    },
+    {
+      "path": "guide/rule/war rule.md",
+      "sha256": "68d3e8c27981a53fd72ebc1327fd0a2ac9535270fc746ac78673e4c499819a0c",
+      "bytes": 2796
+    },
+    {
+      "path": "guide/Thanks.en.md",
+      "sha256": "50b18b925325236c289fde88b5b665d99751e4367931d3b6e935263e2464013a",
+      "bytes": 1689
+    },
+    {
+      "path": "guide/Thanks.md",
+      "sha256": "5e08ebdba3db8280cf941d66ac49db1c7b1aff0a1a8a8d6621f901d52c89fdc1",
+      "bytes": 1640
+    },
+    {
+      "path": "GuideArticleFormat.js",
+      "sha256": "151f1b08779da81cbdc86dd1129816b8d53c6912b4f56d1635b20f909dea84f3",
+      "bytes": 1632
+    },
+    {
+      "path": "GuideContent.js",
+      "sha256": "819260a1f5645721636cb7563ef0f0fefb6981ddde970da8807c38115c3f6636",
+      "bytes": 41523
+    },
+    {
+      "path": "GuideImplementation.js",
+      "sha256": "7ab8ba6595d9be846572f2dde9087e524cb21422fe466bb3580cd4b9eb636aad",
+      "bytes": 5420
+    },
+    {
+      "path": "GuideImplementationNotes.js",
+      "sha256": "8524662c9376d33755902ce37a81457cfa79960a84786d3cbb34fcc746a195ef",
+      "bytes": 71958
+    },
+    {
+      "path": "GuideMathChapters.js",
+      "sha256": "c246986aec86ad4a2155722c13a4d7d9d91b2e50e764337cfb0de087750a20c3",
+      "bytes": 47001
+    },
+    {
+      "path": "GuideTechnicalChapters.js",
+      "sha256": "01689e2c34cedfb0b12676d1d9716dd539fa196481c43d798c854d8090e0de7e",
+      "bytes": 42314
+    },
+    {
+      "path": "HexFastSearchAI.js",
+      "sha256": "3f1dfa1128f314b0f78b7d60862060b224631fdbb7a990890d6d1ed15c885b72",
+      "bytes": 10160
+    },
+    {
+      "path": "HexPlayerAI.js",
+      "sha256": "ad612f3bc03bb44ea5505d06b42250efaaf1045ccbd105d7cebda080bd5c4f12",
+      "bytes": 8945
+    },
+    {
+      "path": "HexPlayerRuntime.js",
+      "sha256": "113c0b3bb4b2fb48b9f1161755de85e0fdc17ede4d84674dc26bf9bdd1514f32",
+      "bytes": 4029
+    },
+    {
+      "path": "HexSearchAI.js",
+      "sha256": "7725dec96d66b3fbeee5fe8cf4dca306cc8d9786b559389c8fdb2a10c18bf255",
+      "bytes": 9329
+    },
+    {
+      "path": "HexSearchOptions.js",
+      "sha256": "d82c0402a70156f38ce9504301bb01919c400a594aecaec831a1bb7cfb771f2d",
+      "bytes": 433
+    },
+    {
+      "path": "HintWorkerSession.js",
+      "sha256": "04b4d9252bc588ad5cb07f49b11f5953df3273714073f5e334db16de394b2d53",
+      "bytes": 4629
+    },
+    {
+      "path": "index.html",
+      "sha256": "8a73ae130d037314d2328a382f1f57e83c88062819e5fe0ec2d3a5d71cf9e538",
+      "bytes": 982
+    },
+    {
+      "path": "LearnedPassPolicy.js",
+      "sha256": "080a4e3b2813fde4bfcd61a0d1bfac66e630015237c907dc0dc85c2c51345eca",
+      "bytes": 1870
+    },
+    {
+      "path": "LocalAIModes.js",
+      "sha256": "f1dbf8e86dc60539f9e83c7269d14a494ec8ae91ff1fd5d5b9465d7a2eed26ad",
+      "bytes": 7283
+    },
+    {
+      "path": "LocalAIWorkerFactory.js",
+      "sha256": "bb350ef18eba625493f40a024195f2ca7ef3d4c5cb8248d26294df545862683e",
+      "bytes": 1547
+    },
+    {
+      "path": "LocalGameSession.js",
+      "sha256": "39b59218a8a40cfb6ea5dff77b61bed3847b1feab6918b80792376b9e59adcad",
+      "bytes": 7746
+    },
+    {
+      "path": "LocalPlayerSetup.js",
+      "sha256": "f68dec899d046d3f1c88ef2a115e0848b36d2874308941e9e793e9acaebf7697",
+      "bytes": 7969
+    },
+    {
+      "path": "LocalUndo.js",
+      "sha256": "ee289f085af2cdafac4da325656097af3f2cacad096f7886910a258e2747c033",
+      "bytes": 3885
+    },
+    {
+      "path": "main.js",
+      "sha256": "88315b33bee1ef1af1c4d91da89b43fb1c3885347bc85d02c6e8337b0bb93f37",
+      "bytes": 4191
+    },
+    {
+      "path": "ModelFreeAI.js",
+      "sha256": "baeccb4aba92d79dda581f64f145675d6558892aeb4cb3f7df0b05507e24ffa6",
+      "bytes": 7947
+    },
+    {
+      "path": "MultiplayerAIWarmup.js",
+      "sha256": "9443e0d70ed99b83256c5975188104e61c20a0ec46187168163356b6863f1626",
+      "bytes": 3477
+    },
+    {
+      "path": "MultiplayerClock.js",
+      "sha256": "9cc62a1da3400222c41b07d128fba047f2a57688f13bf42ef3620d66e8d9df80",
+      "bytes": 500
+    },
+    {
+      "path": "MultiplayerHardAIWorker.bundle.manifest.json",
+      "sha256": "51e8e0d542c6b0092955069e2baaca813bc52977c49c82686b13c9a05abab973",
+      "bytes": 3243
+    },
+    {
+      "path": "MultiplayerHardAIWorker.bundle.mjs",
+      "sha256": "ff91c2c91d333188bcf078e5182228dca11ba73ab74655cda56caf69e281ba57",
+      "bytes": 354080
+    },
+    {
+      "path": "MultiplayerHardFallback.js",
+      "sha256": "100c2a1f99f358de3fad8ae0ea551330efad7eddcdd17404b23c1b062833a5e0",
+      "bytes": 9175
+    },
+    {
+      "path": "MultiplayerHardResources.js",
+      "sha256": "9d3f5852143a66cbe19fb764855e0b897dd5aaa0177b7f08c2720a44c05f51a2",
+      "bytes": 3540
+    },
+    {
+      "path": "MultiplayerHardRollout.js",
+      "sha256": "e24a25eb89fc27ea3dfc3dc06a718f368ab967b5474ef28f146e403b2591f1ab",
+      "bytes": 21277
+    },
+    {
+      "path": "MultiplayerHardRuntime.js",
+      "sha256": "f071276ef92194f75a2032af0e0a35dba762dfe3e9a8bc657b5d47b11df7a630",
+      "bytes": 24408
+    },
+    {
+      "path": "MultiplayerHardValue.js",
+      "sha256": "6bb9dc21c72773b6dbca6a268173f5e93daebe83a7a4bb1ab21687269a7ea25e",
+      "bytes": 5770
+    },
+    {
+      "path": "MultiplayerHardWorkerEntry.js",
+      "sha256": "571f47a73a22c4dd3283af635acb899fa827d9f5f4c7443dcc334ef2b9ebc8f8",
+      "bytes": 2370
+    },
+    {
+      "path": "MultiplayerHardWorkerRuntime.js",
+      "sha256": "32fff0d6a7a2dfabb08a9ceb3fcca154d5cbcf5911d450551d27f383c90a9bff",
+      "bytes": 604
+    },
+    {
+      "path": "MultiplayerModel.js",
+      "sha256": "00b73f5d0fc037e9dcaff2c7eb5f082cdaaf771a8ed68a5a7a0724a6f68aa7a1",
+      "bytes": 7402
+    },
+    {
+      "path": "MultiplayerNativeGeometry.js",
+      "sha256": "014fe84e3037c60639ab3d1f31d5b1ad481baed2903d7c39da5e7b747538b7e1",
+      "bytes": 3486
+    },
+    {
+      "path": "MultiplayerRollout.js",
+      "sha256": "6f013239772bc3bea82fb2b225ac230240ff668c896495026d9345328c640a75",
+      "bytes": 19662
+    },
+    {
+      "path": "MultiplayerRuntime.js",
+      "sha256": "e30b344a19f1f1e03cf3688f1f7b13937e4e49df3f04a66dcf067fab1a57ed00",
+      "bytes": 13206
+    },
+    {
+      "path": "MultiplayerSearch.js",
+      "sha256": "4397c0a464960801d513c5076716f0e3b9b94cdb263bd0eb87c95ae43e68658c",
+      "bytes": 32238
+    },
+    {
+      "path": "MultiplayerStandardDefense.js",
+      "sha256": "0d5b64910a56e74abcdfaa7459463f06e58c47f28ffb85b9ebbc444b058fa01f",
+      "bytes": 6241
+    },
+    {
+      "path": "MultiplayerUltimateAdmission.js",
+      "sha256": "cc182005d5b74ca9fc0e4cecbe33222d65a547dbbf438318de93a30eeb0bb6a8",
+      "bytes": 5563
+    },
+    {
+      "path": "NetworkManager.js",
+      "sha256": "bffe4eb870fe86993453be3349b346c586a113a7f4fd47b94b15a5e44a64c1af",
+      "bytes": 19195
+    },
+    {
+      "path": "OnlineApp.js",
+      "sha256": "eb0b50a7d637fe61ecc97a7ab1ae4feca3b0bd48c5c7d9d5f6d3ee4bbe7a4ce9",
+      "bytes": 276595
+    },
+    {
+      "path": "OnlineAppI18n.js",
+      "sha256": "f45b82e302f32bef237074bf846cf00134c7034db7390e8f89df0cc762ebb166",
+      "bytes": 53195
+    },
+    {
+      "path": "OnlineAppState.js",
+      "sha256": "4f25df45192579b009b7f392e9d1e559c312499ffa6db4cadcdbd32de7183ae1",
+      "bytes": 7337
+    },
+    {
+      "path": "OnlineRoomSettings.js",
+      "sha256": "820b751814acb7647d9b5fbaf8b1241ceaac32e6a9cd69732dd4ce29b2236406",
+      "bytes": 6170
+    },
+    {
+      "path": "OnlineRoomSync.js",
+      "sha256": "9164783f2626e9be9cecb115cae3828e7d0a2652849cf256342a0af6d169ae8c",
+      "bytes": 2341
+    },
+    {
+      "path": "PassOpportunityTrainingTeacher.js",
+      "sha256": "bb0b77ccc1f42ff53fb260e4ceb4a7492aeef94f8e25de3ce29f6260ea3f3b97",
+      "bytes": 13341
+    },
+    {
+      "path": "PassTrainedPolicies.js",
+      "sha256": "3cb405b818d20dc5cc28f13206247a90b5c0330fd390c6fbc5d01aa4c7d2bc8e",
+      "bytes": 3672
+    },
+    {
+      "path": "PassTrainedPolicyData.js",
+      "sha256": "422bdec5bf500d54036a4afb9b16e5501c20f4f2880cc20f87706ccf5023a1db",
+      "bytes": 9235
+    },
+    {
+      "path": "PlayerPalette.js",
+      "sha256": "9a1e1292443b0cdfd21d5325755aae6c70cbec3bd91207b8a9626d4f1dbdeaa2",
+      "bytes": 1138
+    },
+    {
+      "path": "PortableClone.js",
+      "sha256": "310b384f34795b3d0626a7019fbc83ff2557e4deb0c5e52ae414625e3d68e3c7",
+      "bytes": 1815
+    },
+    {
+      "path": "Renderer.js",
+      "sha256": "1dbbbc298b7d5262d41da9f37da11646e0d30164c718cc64407ac1d926988793",
+      "bytes": 43012
+    },
+    {
+      "path": "ReplayCodec.js",
+      "sha256": "74b3221611fac5f1a6e9d8d846a6161edb1242ce76457655b91b7c37bbbd1756",
+      "bytes": 19347
+    },
+    {
+      "path": "ResearchAI.js",
+      "sha256": "628ff031f0052f525c34c67ad6b3bc12d62340d941b6e95b51adc6d1241ba46d",
+      "bytes": 23467
+    },
+    {
+      "path": "ResearchAIOptions.js",
+      "sha256": "0cc5e27993622422a9a5b77bf95750992d26e1fe1a7a26782d53606f3709fa1e",
+      "bytes": 1599
+    },
+    {
+      "path": "SharedRoomClient.js",
+      "sha256": "86f76aa59a9297cb8be6fa17ab8245ed2f8925eb0b56b8ea5d42084c8693a1ff",
+      "bytes": 20936
+    },
+    {
+      "path": "StartingPoints.js",
+      "sha256": "532f640176e87aca08f544f6676db72c85c21d309d11604b1b8bca0242248e06",
+      "bytes": 2340
+    },
+    {
+      "path": "StartingPointSetup.js",
+      "sha256": "f50208e6e7c9063845471952fc984477e17f5b51e8e1f9d38fa498282ef058b6",
+      "bytes": 11282
+    },
+    {
+      "path": "styles.css",
+      "sha256": "d690fe2d2cc6fd66c65856d35aaba4239f519e680f7b0ff979dc506fcb6ec9a7",
+      "bytes": 86703
+    },
+    {
+      "path": "TerritoryWorker.js",
+      "sha256": "068c6be39f701143ccd3844051fcd02cbaae296024472118200e2102008565b5",
+      "bytes": 3678
+    },
+    {
+      "path": "TerritoryWorkerPool.js",
+      "sha256": "26d1581c832b570da2327d4b556374db4d99e856dc412fb04f2165ac1215a60a",
+      "bytes": 6994
+    },
+    {
+      "path": "TerritoryWorkerSession.js",
+      "sha256": "9f00f2beec64f6e75b97403d15c69e20850dfc8b1ba48c05a9fbe06f56f9ba33",
+      "bytes": 4902
+    },
+    {
+      "path": "ThreePlayerAI.js",
+      "sha256": "0f96050188da60efa9ccf18bd3729839d3810721fb1184cbd5c889cf82293905",
+      "bytes": 6651
+    },
+    {
+      "path": "ThreePlayerModels.js",
+      "sha256": "3cd0faffa6a942ccb0e0d7c0203924e55d95e1e1cca7521d7a0e8177ce2c38f7",
+      "bytes": 3889
+    },
+    {
+      "path": "ThreePlayerRuntime.js",
+      "sha256": "1ef43c99fb6e1309e248035f7d77940a2c18de07cb1fc073b6f6b59e86da5ff3",
+      "bytes": 4000
+    },
+    {
+      "path": "ThreePlayerSearchAI.js",
+      "sha256": "05c6ac52532a7397ac1a3e1021fdce7238ef9d6cafa94aaf473b26b13c0ad732",
+      "bytes": 6627
+    },
+    {
+      "path": "ThreePlayerSearchOptions.js",
+      "sha256": "299e238d74acdcf6f86e5b4f7108a16393b8709439b7b8c3292197d512d39c87",
+      "bytes": 522
+    },
+    {
+      "path": "TrainingContribution.js",
+      "sha256": "200f9ab3ed4c9997e85d49ed247e061391731deab47fd19159c4b8d45068f155",
+      "bytes": 7937
+    },
+    {
+      "path": "TutorialRunner.js",
+      "sha256": "feb02d1d3c742b3973273c175abc0ed1fd1929408791f563e727b0f9b29d8ddf",
+      "bytes": 9760
+    }
+  ],
+  "command": "python local_artifacts/terminal-v5-final-promotion/verify-public.py",
+  "scope": "HTTPS resource bytes, nine installed service components, matching complete frontend trees, internal/public health and real 2/6/7/15-seat server probes; browser interaction and phone runtime are separate evidence."
+}

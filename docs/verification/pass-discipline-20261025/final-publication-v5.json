@@ -1,0 +1,185 @@
+{
+  "schema": "lifeline-terminal-policy-final-publication-v5",
+  "status": "WEB_PUBLIC_GITHUB_PUSHED_MINI_EXPERIENCE_VERIFIED",
+  "created_at_utc": "2026-10-25T20:15:44.625788+00:00",
+  "source": {
+    "application_commit": "65fa1fffedc0524e7c125c195b7fdec3d1b0a83f",
+    "branch": "codex/pass-discipline-20261025",
+    "remote": "https://github.com/Chengzong-Zhang/Line-Game.git",
+    "remote_application_head_verified": "65fa1fffedc0524e7c125c195b7fdec3d1b0a83f",
+    "later_receipt_only_commit": "This receipt is committed after the application commit; documentation HEAD does not change deployed bytes.",
+    "local_delivery": "C:\\coding\\py\\line game\\local_artifacts\\terminal-policy-delivery-20261026-v5",
+    "delivery_manifest_sha256": "0e771b883785d219adb369e831d8d2a05ed0768ad31f61149b8b5d85fac1705e",
+    "source_copy_receipt": {
+      "path": "docs/verification/pass-discipline-20261025/source-delivery-v5.json",
+      "sha256": "f2ea7aa69d2aaf7ad9f144098201d35c0d87bb36708b9659de6b361dd0147d76"
+    },
+    "source_snapshot_unchanged_by_final_verification_copy": true,
+    "primary_checkout_source_overwritten": false
+  },
+  "bindings": {
+    "admission_report": {
+      "path": "docs/verification/pass-discipline-20261025/combined-admission-v5-r2.json",
+      "sha256": "c49570f4a3d0a6c35d02049f0aeec74f1b43aa240e983c06983f4d424c8f0f11"
+    },
+    "candidate_hashes": {
+      "easy": "698429df7e40b7550afca3fec044b6c31eff4059dcfe438bfbc6abbf674c3b3a",
+      "three-v4": "c5795f61b1127475b34f04f9288723ec4de7a4a704241a1515437fac7287829a",
+      "three-v1": "aafb3d36704093d1ea2c98a2944e49b7d96792697f40d1a5ea88ef3136846a68",
+      "hex-v1": "a536966b8927a3c3badd5df5e63801b27329cb683a238af8b926661b5ccc8ce7"
+    },
+    "training_composite_identity": "3ff84e2e1458681404064611007901864b22423e09dc16d44aa6c4528adeeb59",
+    "policy_data_sha256": "422bdec5bf500d54036a4afb9b16e5501c20f4f2880cc20f87706ccf5023a1db",
+    "final_hard_bundle_sha256": "ff91c2c91d333188bcf078e5182228dca11ba73ab74655cda56caf69e281ba57",
+    "validator_bundle_sha256": "63aa268f7fb42bc911705149a074673fd5f29281b21dedbd6f244f67dc0237eb"
+  },
+  "web": {
+    "status": "PASS_PUBLIC_RELEASE_AND_ALL_RESOURCES",
+    "url": "https://lifelinegame.cn/",
+    "release_id": "web-terminal-policy-20261025-r1",
+    "asset_version": "20261025-terminal-v4",
+    "candidate_manifest": {
+      "path": "local_artifacts/web-terminal-policy-20261025-r1-final-20261026/release-manifest.json",
+      "sha256": "63760efa67ff5a7ee649bac4cd11ff9b19282ae4d03ae8ad46097ddf0b376458"
+    },
+    "archive_sha256": "9293aab4b7dadd6a9ae4e30105982b2a88fbbdde88ecb2fd8001dd5b3d829319",
+    "public_resources": 141,
+    "public_resource_bytes": 21755033,
+    "all_public_resources_match_candidate": true,
+    "public_manifest_sha256": "63760efa67ff5a7ee649bac4cd11ff9b19282ae4d03ae8ad46097ddf0b376458",
+    "public_tree_sha256": "effd0e4b9af8b6ec5f3efd24abb2bdf3ce4e533bca33608ece52c86cfcf37870",
+    "installed_component_count": 9,
+    "installed_components_match_payload": true,
+    "health": {
+      "game_status": "ok",
+      "wechat_enabled": true
+    },
+    "server_probe_seats": [
+      2,
+      6,
+      7,
+      15
+    ],
+    "rollback_available": true,
+    "deployment_receipt_sha256": "620e2ea418f5662a620f8a461722ece3c88d03624c3db403f91b9b48d9b9d4c3",
+    "verification": {
+      "path": "docs/verification/pass-discipline-20261025/public-release-verification-v5.json",
+      "sha256": "62577bff7a6d3fd3cd61b227865ccdd82351da52485e1ec5379aedb1bf6a9759"
+    },
+    "browser_scope": "Actual public tutorial/restored settlement and board rendering observed. This does not establish AI strength, phone performance or full cross-platform online acceptance."
+  },
+  "mini": {
+    "version": "0.12.14",
+    "candidate_id": "0.12.14-0743fb59cfdf-unDrhU",
+    "candidate_receipt": {
+      "path": "local_artifacts/wechat-candidates/0.12.14-0743fb59cfdf-unDrhU/candidate.json",
+      "sha256": "9badd3365d866d9c89d48d78a28f85acc0d7628e342067e6e7687366578a5b29"
+    },
+    "upload_receipt": {
+      "path": "local_artifacts/wechat-transfers/upload-0.12.14-o9iAiY/receipt.json",
+      "sha256": "90ddddd402b0bca74503d571db5e095d0cea2043ba82461dc3861f19c536b7d1"
+    },
+    "robot": 2,
+    "official_upload_succeeded": true,
+    "official_backend": "https://mp.weixin.qq.com/",
+    "backend_observation": {
+      "current_experience_version": "0.12.14",
+      "experience_version_verified": true,
+      "official_uploaded_time_local": "2026-10-26 03:46:27",
+      "public_online_version": null,
+      "online_panel_text": "尚未提交线上版本",
+      "review_version": "0.12.11",
+      "review_status": "审核中",
+      "review_submitted_time_local": "2026-10-25 15:25:18",
+      "release_remarks_match_task": true,
+      "experience_qr_opened": true
+    },
+    "sdk_status_at_upload": "CODE_UPLOADED_EXPERIENCE_NOT_CONFIGURED",
+    "status_reconciliation": "Upload SDK did not configure or verify experience status. Later actual official backend inspection showed 0.12.14 already marked as the current experience version; no experience setting was changed.",
+    "testers_added": false,
+    "review_0_12_11_cancelled_or_replaced": false,
+    "version_0_12_14_submitted_for_review": false,
+    "version_0_12_14_published_publicly": false,
+    "phone_runtime_and_latency_verified": false,
+    "remaining_public_stage": "0.12.14 has not been submitted for review; 0.12.11 is already under review. Public release remains incomplete."
+  },
+  "features": {
+    "player_count": "2..15",
+    "seats_7_to_15_start_modes": [
+      "random",
+      "custom"
+    ],
+    "per_player_latest_move_markers_preserved": true,
+    "pass_behavior": "Opening PASS protection and retained safe expansion before settlement; explicit opponent-cut protection and scoped terminal-growth proof.",
+    "continued_existing_policy_training": true,
+    "reward": "Natural terminal rewards only",
+    "gamma": 1,
+    "teacher_requirement": "Completed full-action Minimax depth >= max(3, 2 * surviving seats); incomplete decisions are ineligible training samples."
+  },
+  "evaluation": {
+    "status": "PASS_DISCIPLINE_SCOPED",
+    "fresh_natural_games": 34,
+    "independent_layout_blocks": 8,
+    "scenario_cases": 135,
+    "certified_bad_passes": 0,
+    "incomplete_opportunity_checks": 0,
+    "independent_review": {
+      "path": "docs/verification/pass-discipline-20261025/final-admission-independent-review.json",
+      "sha256": "2e2a95d0d4fbb3618a8bb755b7b5c48d41b84c1c236f1c0202a8c676e2768ce9"
+    },
+    "old_failures_preserved": true,
+    "global_win_rate_improvement_claimed": false
+  },
+  "speed_explanation": {
+    "earlier_comparison_receipt": {
+      "path": "docs/verification/pass-discipline-20261025/platform-minimax-comparison.json",
+      "sha256": "7058926db730076f380636000f2d5d1fc9e451651746b046fbae2662b5fccccc"
+    },
+    "web_minimax_hard_depth": 4,
+    "old_mini_default_computer_depth": 2,
+    "old_mini_explicit_hard_depth": 4,
+    "new_mini_labels": {
+      "simple": 2,
+      "medium": 3,
+      "hard": 4
+    },
+    "same_state_same_depth_core_decisions_match": true,
+    "comparison_scope": "One Node shared fixture; not a measurement of the user phone, current device settings or browser rendering latency."
+  },
+  "screenshots": [
+    {
+      "path": "local_artifacts/browser-terminal-v5-public-board.png",
+      "sha256": "baad7e340cb59184dbb9c56da3f5fb4742e441bd29e02e40d0d92e7a83b46f1f",
+      "scope": "Public Web board rendered after dismissing restored-game settlement. No phone timing or strength claim."
+    },
+    {
+      "path": "local_artifacts/wechat-01214-experience-version-full.png",
+      "sha256": "bb360b0f02b6708528508b34d33dbc0c53edb3d3db26875df9726bdf3d7dba5a",
+      "scope": "Official version management: online version absent, 0.12.11 under review, 0.12.14 explicitly marked experience version."
+    },
+    {
+      "path": "local_artifacts/wechat-01214-experience-qr.png",
+      "sha256": "196df1d8f54cc8a804b0658ba5d511a6c13f1ad72081d986aa3d2d71ea0149f6",
+      "scope": "Official experience QR modal opened from the 0.12.14 experience label; displayed valid until November 2, 2026."
+    }
+  ],
+  "limitations": [
+    "Continued existing 16 linear placement coefficients and PASS bias; existing neural network weights were not retrained.",
+    "Hex coefficient updates use triangle-trained transfer; prior native Hex episodes supplied zero gradient samples.",
+    "Three-v4 production search uses continued placement coefficients and its original search, not the auxiliary learned PASS head; that unused head retains documented opening failures.",
+    "Admission covers PASS behavior in the evaluated scope, not proof of stronger overall play or prevention of every future cut.",
+    "Inherited verify-ai-control-flow CONTROL-SKIP score assertion remains failed; full-suite success is not claimed.",
+    "Mini 0.12.14 is a verified experience version, not a public release. Phone timing, device runtime and tester authorization were not verified.",
+    "Earlier local-readiness and source-copy receipts preserve their historical pre-publication statuses; this receipt records the later publication evidence."
+  ],
+  "cleanup": {
+    "owned_ssh_bridge_closed": true,
+    "ssh_close_response": {
+      "path": "local_artifacts/ssh-control-terminal-v4/response-terminal-v5-close-final-r1.json",
+      "sha256": "dfae7d991eca51d12ce16a0e0970701cb04e6dfa6a283c291bd28ac5a8fc854c"
+    },
+    "owned_preview_server": "PID 43456 identity checked as python http.server 9018 bound to 127.0.0.1, then stopped.",
+    "training_and_evaluation_jobs_completed": true,
+    "dedicated_campaign_startup_links_cleaned": true
+  }
+}

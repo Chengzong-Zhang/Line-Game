@@ -39,3 +39,6 @@ web/web前端/assets/research-ai/transfer-v1/manifest.json -text whitespace=cr-a
 "web/web前端/guide/rule/war rule.md" -text whitespace=cr-at-eol
 # Preserve the already verified runtime's deliberate final blank line.
 web/web前端/MultiplayerHardValue.js whitespace=-blank-at-eof
+# Publication receipts are bound to the exact delivered bytes.
+docs/verification/pass-discipline-20261025/final-publication-v5.json -text whitespace=cr-at-eol
+docs/verification/pass-discipline-20261025/public-release-verification-v5.json -text whitespace=cr-at-eol

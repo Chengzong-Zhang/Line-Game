@@ -1,0 +1,64 @@
+{
+  "schema": "lifeline-source-delivery-v5-receipt",
+  "status": "VERIFIED_FRESH_LOCAL_COPY",
+  "created_at_utc": "2026-10-25T19:50:23.682833+00:00",
+  "destination": "C:\\coding\\py\\line game\\local_artifacts\\terminal-policy-delivery-20261026-v5",
+  "source_root": "C:\\Users\\zcz\\.codex\\worktrees\\pass-discipline\\line game",
+  "source_commit": "65fa1fffedc0524e7c125c195b7fdec3d1b0a83f",
+  "source_branch": "codex/pass-discipline-20261025",
+  "remote_head_verified": "65fa1fffedc0524e7c125c195b7fdec3d1b0a83f",
+  "delivery_manifest": "C:\\coding\\py\\line game\\local_artifacts\\terminal-policy-delivery-20261026-v5\\delivery-manifest.json",
+  "delivery_manifest_sha256": "0e771b883785d219adb369e831d8d2a05ed0768ad31f61149b8b5d85fac1705e",
+  "sections": {
+    "source": {
+      "root": "C:\\coding\\py\\line game\\local_artifacts\\terminal-policy-delivery-20261026-v5\\source",
+      "inventory_path": "C:\\coding\\py\\line game\\local_artifacts\\terminal-policy-delivery-20261026-v5\\inventories\\source.json",
+      "inventory_sha256": "2f00eb1b76af9e2ca52598182868fa9ae3477c628facc5cbfae028a33c9237f0",
+      "files": 1540,
+      "bytes": 26187997,
+      "exact_copy_verified": true
+    },
+    "web-candidate": {
+      "root": "C:\\coding\\py\\line game\\local_artifacts\\terminal-policy-delivery-20261026-v5\\web-candidate",
+      "inventory_path": "C:\\coding\\py\\line game\\local_artifacts\\terminal-policy-delivery-20261026-v5\\inventories\\web-candidate.json",
+      "inventory_sha256": "2b17117d361c622daac12d116aa25d84d32b3f2e7da28b6bd3cdd2ce77ab9b66",
+      "files": 3,
+      "bytes": 18650147,
+      "exact_copy_verified": true
+    },
+    "mini-candidate": {
+      "root": "C:\\coding\\py\\line game\\local_artifacts\\terminal-policy-delivery-20261026-v5\\mini-candidate",
+      "inventory_path": "C:\\coding\\py\\line game\\local_artifacts\\terminal-policy-delivery-20261026-v5\\inventories\\mini-candidate.json",
+      "inventory_sha256": "20bb967c0f6cb8774fc41ae58e847407464b3cc9ed49cef20042da32d6721aa1",
+      "files": 37,
+      "bytes": 19969434,
+      "exact_copy_verified": true
+    }
+  },
+  "entry_paths": {
+    "web_source": "C:\\coding\\py\\line game\\local_artifacts\\terminal-policy-delivery-20261026-v5\\source\\web\\web前端\\index.html",
+    "source_readme": "C:\\coding\\py\\line game\\local_artifacts\\terminal-policy-delivery-20261026-v5\\source\\README.md",
+    "web_archive": "C:\\coding\\py\\line game\\local_artifacts\\terminal-policy-delivery-20261026-v5\\web-candidate\\frontend-overlay.zip",
+    "web_release_manifest": "C:\\coding\\py\\line game\\local_artifacts\\terminal-policy-delivery-20261026-v5\\web-candidate\\release-manifest.json",
+    "mini_candidate_receipt": "C:\\coding\\py\\line game\\local_artifacts\\terminal-policy-delivery-20261026-v5\\mini-candidate\\candidate.json",
+    "mini_project": "C:\\coding\\py\\line game\\local_artifacts\\terminal-policy-delivery-20261026-v5\\mini-candidate\\project"
+  },
+  "publication_statuses_at_copy": {
+    "GitHub": "PUSHED_VERIFIED_REMOTE_HEAD",
+    "Web": "AUTHENTICATION_PENDING_NOT_DEPLOYED",
+    "Mini": "UPLOAD_PENDING_NOT_UPLOADED"
+  },
+  "primary_source_overwritten": false,
+  "links_or_unsafe_paths_accepted": false,
+  "private_key_material_copied": false,
+  "credential_marker_exceptions": [
+    {
+      "section": "source",
+      "path": "web/tests/test_prepare_multiplayer_release.py",
+      "classification": "Artificial header-only regression-test marker; no PEM key payload"
+    }
+  ],
+  "git_metadata_copied": false,
+  "copy_verification": "All section file sets match inventories; every copied file and its original source hash was checked after copying. Source HEAD/status unchanged during copy.",
+  "later_publication_status": "Separate platform receipts from root task; this source copy does not deploy or upload."
+}
