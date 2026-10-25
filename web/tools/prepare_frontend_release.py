@@ -18,12 +18,13 @@ def main():
     parser.add_argument("--stamp-only", action="store_true")
     parser.add_argument("--release-id", required=True)
     parser.add_argument("--asset-version", required=True)
+    parser.add_argument("--terminal-admission", type=Path)
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
     frontend = root / "web/web前端"
     # One version per module graph prevents a cached earlier dependency from
     # silently losing a feature while the new application entry point loads.
-    imports = re.compile(r"(['\"])((?:\./|\.\./)[^'\"\r\n]+?\.js)(?:\?v=[^'\"\r\n]*)?\1")
+    imports = re.compile(r"(['\"])((?:\./|\.\./)[^'\"\r\n]+?\.m?js)(?:\?v=[^'\"\r\n]*)?\1")
     for source in frontend.glob("*.js"):
         text = source.read_text(encoding="utf-8")
         text = imports.sub(lambda match: f"{match[1]}{match[2]}?v={args.asset_version}{match[1]}", text)
@@ -39,6 +40,25 @@ def main():
         return
     if args.output is None:
         parser.error("--output is required when building a bundle")
+    trained_policy = None
+    terminal_admission = None
+    policy_data = frontend / "PassTrainedPolicyData.js"
+    if policy_data.exists():
+        trained_policy = json.loads(subprocess.check_output([
+            "node", "--input-type=module", "-e",
+            "const p=await import(process.argv[1]);process.stdout.write(JSON.stringify(p.PASS_TRAINED_POLICY_DATA));",
+            policy_data.as_uri(),
+        ], cwd=root, text=True, encoding="utf-8"))
+        if trained_policy.get("models") and (trained_policy.get("activation") != "PASS_DISCIPLINE_SCOPED"
+                or not re.fullmatch(r"[a-f0-9]{64}", trained_policy.get("admission_report_sha256", ""))):
+            raise ValueError("Terminal-trained runtime is still evaluation-only; scoped admission receipt required")
+        if trained_policy.get("models"):
+            if args.terminal_admission is None:
+                raise ValueError("Use --terminal-admission with the actual sealed combined admission report")
+            terminal_admission = json.loads(subprocess.check_output([
+                "node", str(root / "web/tools/verify-terminal-release-admission-v4.mjs"),
+                "--data", str(policy_data), "--admission", str(args.terminal_admission.resolve()),
+            ], cwd=root, text=True, encoding="utf-8"))
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=False)
     files = {}
@@ -57,6 +77,8 @@ def main():
         "commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True, encoding="utf-8").strip(),
         "workspace_dirty": bool(subprocess.check_output(["git", "status", "--porcelain", "--", "web/web前端"], cwd=root, text=True, encoding="utf-8").strip()),
         "deployment_scope": "complete-current-web-frontend-runtime",
+        "terminal_trained_policy": trained_policy,
+        "terminal_admission": terminal_admission,
         "files": files,
         "source_bytes": sum((frontend / name).stat().st_size for name in files),
         "deleted_files": [],

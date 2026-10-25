@@ -1,0 +1,44 @@
+{
+  "schema": "lifeline-local-release-preparation-tools-v2",
+  "status": "PASS_LOCAL_EVAL_BUNDLE_AND_INTEGRITY_REGRESSIONS_NOT_DEPLOYED",
+  "recordedAtUtc": "2026-10-25T18:11:23.883Z",
+  "sources": {
+    "web/tools/build-server-validator-v2.mjs": "fd599de53260e7a5973af20ff58e1d255ce15fa3b0480993ccabd86a446afe58",
+    "web/tools/prepare_terminal_policy_20261025.py": "69508c69e7f868a85fcc9c9e18e8e24ad492a64c14769f3819a72a507efb2881",
+    "web/tools/tests/test_terminal_payload_20261025.py": "df55e213f1a2d770fbf010d3f40342aeff813636f49042c0ba587745aeb3b3b7",
+    "web/web前端/tests/verify-server-validator-bundle-v2.mjs": "1aa9f9f69cfef9d72b67bf69a02fef293c557a6a0698e2dac2add9d777b62d97",
+    "web/tools/deploy_terminal_policy_20261025.py": "3fbc680852444dc5b9525a1707349e789a9df7c618a7502b6c7e4c4ab3498e43"
+  },
+  "validator": {
+    "root": "local_artifacts/terminal-validator-v2-eval-20261026-r4",
+    "bundleSha256": "925ebed32e95a5314d1cde1ca324af15232ea3142b70257e8e83ff6fd9bbe410",
+    "manifestSha256": "161f74f89c7ed27215063f2606ac5d45016b6e75a94a9b26654b503c6149446f",
+    "verificationSha256": "e957c0b564aaa517c28646b458fe2d89711667bfd35f1f84672740929a4bde15",
+    "buildReceiptSha256": "a7e954c8dbfa28367fe54f5af213236e8a02610586a9a36b967cc90752cd8653",
+    "sourceCount": 91,
+    "nativeCompatibilityCount": 26,
+    "actualNode22Probes": 24
+  },
+  "tests": [
+    {
+      "command": "python -m unittest web/tools/tests/test_terminal_payload_20261025.py",
+      "exitCode": 0,
+      "cases": 14,
+      "scope": "Structural fixtures; closure call mocked; exact terminal parameter binding uses real shared Node verifier."
+    },
+    {
+      "command": "node web/web前端/tests/verify-server-validator-bundle-v2.mjs --bundle local_artifacts/terminal-validator-v2-eval-20261026-r4/validate-action.mjs",
+      "exitCode": 0,
+      "cases": 10,
+      "receipt": "local_artifacts/validator-v2-input-tests-sLoPbz/receipt.json",
+      "receiptSha256": "af0d8a9e378312cc1987c1074ff6a9b4a347bebc67ecc5b99a0ea67f87cb327c",
+      "scope": "Real in-memory rebuild and source/compiler/native-closure deletion/path attacks against copies; original bytes preserved."
+    },
+    {
+      "command": "prepare_terminal_policy_20261025.validate_validator(ROOT, actual_r4_bundle)",
+      "exitCode": 0,
+      "scope": "Actual Python helper admission of current 91-source/26-override EVAL validator metadata and independent complete rebuild."
+    }
+  ],
+  "scope": "Local build/payload preparation tools only. No training rerun, promotion, formal payload, external network/deployment/upload or edits to frozen training sources/runs."
+}

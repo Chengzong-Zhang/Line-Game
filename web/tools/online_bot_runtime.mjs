@@ -6,6 +6,7 @@ import { relative, isAbsolute, sep } from "node:path";
 import { webcrypto } from "node:crypto";
 import { GreedyAI, MinimaxAI } from "../web前端/AIEngine.js?v=20261025-room1";
 import { createUltimateAdmissionGuard } from "../web前端/MultiplayerUltimateAdmission.js?v=20261025-room1";
+import { applyPassDiscipline } from "../web前端/AIPassDisciplineV2.js";
 
 if (!globalThis.crypto?.subtle) globalThis.crypto = webcrypto;
 const assetRoot = fileURLToPath(new URL("../web前端/assets/research-ai/", import.meta.url));
@@ -76,11 +77,13 @@ export async function createRoomBotRuntime(engine, profile) {
 
 export async function chooseRoomBotMove(engine, profile) {
   const { ai, modelInfo } = await createRoomBotRuntime(engine, profile);
-  const move = ai.getTopMoves(engine, engine.currentPlayer, 1)[0];
+  const ranked = ai.getTopMoves(engine, engine.currentPlayer, 5, { passDisciplinePrechecked: true });
+  const disciplined = applyPassDiscipline(engine, ranked, { player: engine.currentPlayer, topN: 1 });
+  const move = disciplined.moves[0];
   if (!move) {
     if (engine.getLegalMoves().length) throw new Error("AI_RETURNED_NO_DECISION");
     return { point: null, modelInfo };
   }
   if (move.point == null && move.type !== "pass") throw new Error("AI_RETURNED_INVALID_DECISION");
-  return { point: move.point, modelInfo, ...(ai.lastSearch ? { searchStats: ai.lastSearch } : {}) };
+  return { point: move.point, modelInfo, searchStats: { ...(ai.lastSearch || {}), passDiscipline: disciplined.receipt } };
 }

@@ -1,0 +1,147 @@
+{
+  "schema": "lifeline-product-pass-discipline-v2-integration",
+  "status": "FROZEN_RUNTIME_TARGETED_REGRESSIONS_PASS",
+  "checkedAtUtc": "2026-10-25T18:27:24.681962+00:00",
+  "runtimeChangedAfterFreezeReady": false,
+  "feature": "Extend the product-only guard for five real conservative PASS false negatives while keeping all frozen training sources immutable.",
+  "contract": {
+    "schema": "lifeline-ai-pass-discipline-v2",
+    "oldWitnessFirst": true,
+    "terminalPass": "Uses the unchanged v1 complete-round and margin path.",
+    "fallback": "Only an explicit real raw-policy PASS retained by v1 without a witness, with a canonical nonterminal PASS.",
+    "premises": [
+      "Every pre-move node and occupied coverage point retained.",
+      "Every post-root node connected to birth through intact logical edges.",
+      "Every post-root friendly LINE cell adjacent to the actor birth and therefore unoccupiable by any opponent.",
+      "Post-root occupied coverage strictly exceeds pre-move native territory-v3 formal area."
+    ],
+    "scope": "Invariant through arbitrary opponent-only legal action sequences including repeated actors after automatic PASS, until actor next acts or resigns, or native terminal.",
+    "receipt": "v2 schema, immutable-birth-root-protection-invariant proofType, completeOpponentRound=false, no fabricated reply enumeration.",
+    "hash": "Synchronous SHA-256 of full rule/config/grid/edge/history/actor/PASS/resignation state; independently checked against Node crypto.",
+    "budgets": "V1 receives the entire remaining shared time/node budget after canonical PASS preparation; fallback spends only actual leftovers.",
+    "staleResponseGuards": "Existing request ID, actor, revision and rules guards unchanged."
+  },
+  "changedPaths": [
+    "web/web前端/AIPassDisciplineV2.js",
+    "web/web前端/AIWorker.js",
+    "web/web前端/MultiplayerRuntime.js",
+    "web/tools/online_bot_runtime.mjs",
+    "wechat/minigame/src/multiplayer-ai.js",
+    "wechat/minigame/src/worker-runtime.js",
+    "wechat/minigame/compat/web/MultiplayerRuntime.js",
+    "wechat/minigame/compat/web/manifest.json",
+    "web/web前端/MultiplayerHardAIWorker.bundle.mjs",
+    "web/web前端/MultiplayerHardAIWorker.bundle.manifest.json",
+    "web/web前端/tests/verify-pass-discipline-v2.mjs",
+    "web/web前端/tests/fixtures/pass-discipline-v2-real-states.json",
+    "wechat/minigame/tests/pass-discipline-v2.test.mjs"
+  ],
+  "sourceSha256": {
+    "web/web前端/AIPassDisciplineV2.js": "1e4a89dcb347776b866647ba0019a7615b897d11c9679551ae73cfb620164231",
+    "web/web前端/AIWorker.js": "b38ea731b5b1ce498f26cebb12c60ccb0f256ed780621a03c6b126d37152e14a",
+    "web/web前端/MultiplayerRuntime.js": "16dbddce77eed61e05d8d034a9230d31a25bdc68d4abebbe400008c881359114",
+    "web/tools/online_bot_runtime.mjs": "231c6476b913e26892b3bc9e9bd764fdbddcc258a6d883ba279e7b4c5de8cccc",
+    "wechat/minigame/src/multiplayer-ai.js": "a37a475c9785045a8b3eb83dea099ebb43d05a00c345f0f90b8ac79c6d9879e6",
+    "wechat/minigame/src/worker-runtime.js": "b73fcf67387abf21ac87b2739c584b149f6c62641da36ba9e81a4a93e07cf2c4",
+    "wechat/minigame/compat/web/MultiplayerRuntime.js": "3fde02a5ab8fad2724383db04dcaf93e8702720a4ce77fef9e249aeda6abb7df",
+    "wechat/minigame/compat/web/manifest.json": "db97e83ffcc9ecf95787e27818d621b5fd34f4138fb93c87c2d6051e26b0bb61",
+    "web/web前端/MultiplayerHardAIWorker.bundle.mjs": "78454b99df2b4b6733557c2ef891ef38414a9f7ee5911d552a277c44bddfe672",
+    "web/web前端/MultiplayerHardAIWorker.bundle.manifest.json": "1ceb1b65d3eee7d6c415e99cf0711f1946ee85661589f41127a2f449ed9c4fa1",
+    "web/web前端/tests/verify-pass-discipline-v2.mjs": "f64ba0fbb1cb71b84dfbc0ec5916f51d4ae7b6772a7aaad7bea63f6058f9b110",
+    "web/web前端/tests/fixtures/pass-discipline-v2-real-states.json": "2d801d40daec86aa2b08d978b23f306172a87639f3361311a4445bc2eba90ea6",
+    "wechat/minigame/tests/pass-discipline-v2.test.mjs": "5b388efa09ee9fd988c8179a0046d3feb149df3dffa8ceb7043da7bffe22814d"
+  },
+  "checks": [
+    {
+      "command": "node web/web前端/tests/verify-pass-discipline-v2.mjs",
+      "exitCode": 0,
+      "result": "5 real frozen failure states reproduced by original SHA; expected structural placements, independent logical BFS/protection checks, lost-node/coverage/disconnected/attackable-line/no-gain counterexamples, immediate terminal v1 margin preservation, shared time/node budget exhaustion, missing output error, nested adapters, full-state SHA-256 vectors and 5 state records, actual Web Worker and room integration."
+    },
+    {
+      "command": "node web/web前端/tests/verify-pass-discipline-v1.mjs",
+      "exitCode": 0,
+      "result": "Original full-round guard regressions pass unchanged."
+    },
+    {
+      "command": "node --test tests/multiplayer-tier-runtime.test.mjs tests/three-player-worker.test.mjs tests/hex-player-worker.test.mjs tests/production-worker.test.mjs tests/pass-discipline-v2.test.mjs",
+      "cwd": "wechat/minigame",
+      "exitCode": 0,
+      "tests": 29,
+      "pass": 29,
+      "fail": 0,
+      "durationMs": 17891.7945,
+      "log": "local_artifacts/terminal-v5-mini-runtime-v2-tests.txt"
+    },
+    {
+      "command": "node web/web前端/tests/verify-worker-terminal-winning-pass.mjs",
+      "exitCode": 0,
+      "result": "Terminal margin path, request ownership, forced PASS and incompatible routes pass."
+    },
+    {
+      "command": "node web/web前端/tests/verify-territory-v3-hard-worker.mjs local_artifacts/terminal-v5-pass-v2-hard-evaluation-20261026-r1 local_artifacts/terminal-v5-pass-v2-hard-evaluation-20261026-r1/v3-verification.json",
+      "exitCode": 0,
+      "result": {
+        "schema": "lifeline-territory-v3-hard-worker-verification-v1",
+        "status": "PASS_V3_HARD_WORKER_SOURCE_AND_ROUTE",
+        "bundleSha256": "78454b99df2b4b6733557c2ef891ef38414a9f7ee5911d552a277c44bddfe672",
+        "currentGameEngineSha256": "1aec9d73d06c7243ac71d1eb27c8f9692dc5f33576d298d2ecd2d2d55464acfb",
+        "route": {
+          "kind": "native-hard-bundle",
+          "url": "file:///C:/Users/zcz/.codex/worktrees/pass-discipline/line%20game/web/web%E5%89%8D%E7%AB%AF/MultiplayerHardAIWorker.bundle.mjs?v=20261025-terminal-v4"
+        },
+        "request": {
+          "rulesVersion": "territory-v3",
+          "playerCount": 4,
+          "gridSize": 5,
+          "replyType": "RESULT",
+          "returnedMoves": 1,
+          "terminalEvaluation": "native-territory-v3"
+        },
+        "checks": [
+          "manifest GameEngine hash equals current source",
+          "captured production route targets emitted bundle",
+          "actual emitted Worker listener returns a V3 Hard result"
+        ],
+        "limits": [
+          "Controlled Node Worker shim with file-backed assets; no browser timing or playing-strength claim.",
+          "Current-score parity is established by the separate main-thread scoring fixture; this worker request verifies source identity and V3 route execution."
+        ]
+      }
+    }
+  ],
+  "hardBundle": {
+    "buildRoot": "local_artifacts\\terminal-v5-pass-v2-hard-evaluation-20261026-r1",
+    "sha256": "78454b99df2b4b6733557c2ef891ef38414a9f7ee5911d552a277c44bddfe672",
+    "bytes": 332876,
+    "sourceContainsV1AndV2": true
+  },
+  "frozenTrainingIdentityInputs": {
+    "checked": 29,
+    "changed": [],
+    "originalGuardSha256": "4850b3af425e3b7d3153b43c45c223fad3b89b4870cdfce75425955cb3454419"
+  },
+  "knownUnrelatedFailure": {
+    "command": "node web/web前端/tests/verify-ai-control-flow.mjs",
+    "exitCode": 1,
+    "assertion": "CONTROL-SKIP frozen witness scores drifted",
+    "actualScores": [
+      1000000,
+      1000000,
+      1000000,
+      1000000
+    ],
+    "expectedScores": [
+      376,
+      376,
+      303,
+      376
+    ],
+    "context": "Same preexisting frozen-score failure documented in inherited latest-moves-20261025.md; GameEngine/AIEngine are among the 29 byte-identical frozen inputs. Neither frozen source nor expected values were edited."
+  },
+  "limits": [
+    "Targeted Node/real compiled native Worker and source-route tests; no phone strength or latency claim.",
+    "No push, deploy or upload performed by this task.",
+    "Mini source harness compiles current V2 Worker; final release dist/activation remains parent-owned.",
+    "Original failed r2 and logs retained; fresh r3 formal evaluation remains separate from these regressions."
+  ]
+}
