@@ -1,0 +1,65 @@
+{
+  "date": "2026-10-25",
+  "name": "生命补给线",
+  "status": "LOCAL_SOURCE_AND_BUILD_UPDATED_NOT_UPLOADED",
+  "scope": [
+    "header in both languages",
+    "offline and online share titles",
+    "native modal titles",
+    "project description",
+    "new release candidate description"
+  ],
+  "verification": {
+    "build": "node tools/build.mjs",
+    "tests": "node --test --test-timeout=180000 tests/ui-platform.test.mjs tests/ui-overlap.test.mjs tests/online-navigation.test.mjs tests/online-emotes.test.mjs",
+    "passed": 34,
+    "failed": 0
+  },
+  "sourceHashes": {
+    "wechat/minigame/project.config.json": {
+      "before": "feacdab1e10cf168bcfa0fcb2f1b2b363e1cca02ea629a091c71d4bc11934e22",
+      "after": "8f8c027583c5c7e5a3e71e75f01eef906a48d4875bfdb583d7be68db42942546"
+    },
+    "wechat/minigame/src/app.js": {
+      "before": "005be203ad8ee792a13bc97972e3c20724ad5f2065b6375f7723889b3587be3b",
+      "after": "0a52b846ec918bc43d1e153e497bf9dd0fd7c2d715ac33683e82b808d85a75c4"
+    },
+    "wechat/minigame/src/i18n.js": {
+      "before": "8b202e6ac6c5ea9a7b091b2bbf5e700790b28442da3802bf03bab9880a4c5f72",
+      "after": "d3d54e8b6c463f98da52d42536fe4911fead604899dd4375dc02cae964025e89"
+    },
+    "wechat/minigame/src/online.js": {
+      "before": "a372a89858e66d4d68a57e962791d6bed55cb6d4665a4ae3c1846f253a02a2ad",
+      "after": "4f8849461d65f61017f498e7258695ff5d258ff87e3fc59445d60abc4185a493"
+    },
+    "wechat/minigame/src/platform.js": {
+      "before": "a1722e36caa8a8d570078861cf1e40e6111ce0b8a5ebd6e70d5dbffd8690c856",
+      "after": "3ebf9d7cb68a819846844b840ddc9e4960dbaab96449d9d0fd256dd177b1d1e3"
+    },
+    "wechat/minigame/tools/offline-browser-check.mjs": {
+      "before": "039802bc511889da09325bbacc1eb4eaa6f4ac7fdcfe2721078c9b614c0e4a9c",
+      "after": "a507f66b8a08ef22bd3960b427fd77546564aaa19df60b662734582b1db3715d"
+    },
+    "wechat/minigame/tools/prepare-candidate.mjs": {
+      "before": "c6146ac2891c7d67b60b0db26164393725d16c26e75a121df45a925f0bf2710a",
+      "after": "832d3ad41427257f6fd646a6d25baa6704731d4ccb80bd3cbad69f5a2b94a19f"
+    }
+  },
+  "buildOutputs": [
+    {
+      "path": "game.js",
+      "bytes": 538313,
+      "sha256": "0f2b2bec5ba6f4c297fe2c711d0fe67f7a0c41a18a4fb8cc37e0dbcf8c74c017"
+    },
+    {
+      "path": "workers/index.js",
+      "bytes": 211212,
+      "sha256": "7d422528e5f9d731c60af202c66d8bed9e4279ebce317ef07443fedd8f52fa8a"
+    }
+  ],
+  "notVerified": [
+    "WeChat account name has not been changed",
+    "No upload, resubmission or real device verification performed"
+  ],
+  "sourceControl": "Mini Game baseline was already untracked before this task. A minimal source patch is versioned without importing unrelated baseline files."
+}
