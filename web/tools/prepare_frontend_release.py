@@ -26,15 +26,19 @@ def main():
     # silently losing a feature while the new application entry point loads.
     imports = re.compile(r"(['\"])((?:\./|\.\./)[^'\"\r\n]+?\.m?js)(?:\?v=[^'\"\r\n]*)?\1")
     for source in frontend.glob("*.js"):
-        text = source.read_text(encoding="utf-8")
+        original = source.read_text(encoding="utf-8")
+        text = original
         text = imports.sub(lambda match: f"{match[1]}{match[2]}?v={args.asset_version}{match[1]}", text)
         if source.name == "main.js":
             text = re.sub(r'const APP_ASSET_VERSION = "[^"]+";', f'const APP_ASSET_VERSION = "{args.asset_version}";', text)
-        source.write_text(text, encoding="utf-8", newline="\n")
+        if text != original:
+            source.write_text(text, encoding="utf-8", newline="\n")
     index = frontend / "index.html"
-    text = index.read_text(encoding="utf-8")
+    original = index.read_text(encoding="utf-8")
+    text = original
     text = re.sub(r'(styles\.css|main\.js)\?v=[^"\s]+', lambda match: f"{match[1]}?v={args.asset_version}", text)
-    index.write_text(text, encoding="utf-8", newline="\n")
+    if text != original:
+        index.write_text(text, encoding="utf-8", newline="\n")
     if args.stamp_only:
         print("Runtime version stamped")
         return

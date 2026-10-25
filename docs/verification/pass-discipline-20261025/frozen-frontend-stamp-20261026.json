@@ -1,0 +1,15 @@
+{
+  "schema": "lifeline-frozen-frontend-stamp-review-v1",
+  "status": "PASS",
+  "checkedUtc": "2026-10-25T18:45:52.573179+00:00",
+  "command": "python -m unittest web/tools/tests/test_prepare_frontend_stamp.py",
+  "exitCode": 0,
+  "unchangedStampPreservesMixedLineEndings": true,
+  "unchangedStampPreservesWorkerMjsReferenceBytes": true,
+  "changedStampUpdatesJsMjsHtmlReferences": true,
+  "runtimeSourceModifiedByTest": false,
+  "sourceSha256": {
+    "web/tools/prepare_frontend_release.py": "b88d4ea863b7e1e6cbd7d53016b5ddd3ddc889506584a3b135a1bb5e77276fcc",
+    "web/tools/tests/test_prepare_frontend_stamp.py": "e88caecc964385162d78cc75b779ef69f8dc19abd872831e98a9a00b75858f8e"
+  }
+}
