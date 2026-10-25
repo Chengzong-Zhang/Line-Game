@@ -1,0 +1,222 @@
+{
+  "schema": "lifeline-three-v4-unguarded-product-search-preflight-v1",
+  "status": "PRELIMINARY_NOT_FORMAL_ADMISSION",
+  "candidate_sha256": "c5795f61b1127475b34f04f9288723ec4de7a4a704241a1515437fac7287829a",
+  "runtime_parameters_sha256": "854f13ea07af31857e45f7f9a4f2a40ceb964f840385318d409eac48797d12fb",
+  "source_hashes": {
+    "web/web前端/ThreePlayerSearchAI.js": "05c6ac52532a7397ac1a3e1021fdce7238ef9d6cafa94aaf473b26b13c0ad732",
+    "web/web前端/MultiplayerRuntime.js": "11d9c7bf0b5b76bed1136ccc84075dda2eb862fa84d594fed6a8da551edac445",
+    "web/web前端/ThreePlayerRuntime.js": "1ef43c99fb6e1309e248035f7d77940a2c18de07cb1fc073b6f6b59e86da5ff3"
+  },
+  "product_contract": "Original v4 search, original search opponents and budgets, freshly trained placement coefficients, PASS head not used, no shared PASS guard",
+  "rows": [
+    {
+      "size": 5,
+      "kind": "opening",
+      "raw17Head": null,
+      "unguardedNativeSearchPoint": [
+        0,
+        2
+      ],
+      "unguardedOptimizedSearchPoint": [
+        0,
+        2
+      ],
+      "nativeAreaBefore": 1,
+      "nativeAreaAfter": 3,
+      "selectedRootIndependentFullRoundStatus": "certified-profitable-expansion",
+      "selectedRootProof": {
+        "point": [
+          0,
+          2
+        ],
+        "beforeArea": 1,
+        "afterRootArea": 3,
+        "minimumReplyArea": 3,
+        "actualReplyPlayer": "WHITE",
+        "replyActionsCompleted": 0,
+        "includesPass": false,
+        "rootAndPreviousPiecesRetained": true,
+        "rootConnected": true,
+        "structuralProtectedRootProof": true,
+        "scope": "all own nodes connected; every own line cell protected by the initial-node adjacency rule; area lower bound exceeds before"
+      },
+      "simulations": 6
+    },
+    {
+      "size": 5,
+      "kind": "winning-terminal-pass-with-expansion",
+      "raw17Head": [
+        0,
+        2
+      ],
+      "unguardedNativeSearchPoint": [
+        0,
+        2
+      ],
+      "unguardedOptimizedSearchPoint": [
+        0,
+        2
+      ],
+      "nativeAreaBefore": 3,
+      "nativeAreaAfter": 6,
+      "selectedRootIndependentFullRoundStatus": "certified-profitable-expansion",
+      "selectedRootProof": {
+        "point": [
+          0,
+          2
+        ],
+        "beforeArea": 3,
+        "afterRootArea": 6,
+        "minimumReplyArea": 6,
+        "actualReplyPlayer": "WHITE",
+        "replyActionsCompleted": 19,
+        "includesPass": true,
+        "rootAndPreviousPiecesRetained": true,
+        "rootConnected": true,
+        "structuralProtectedRootProof": false,
+        "scope": "root + every legal/PASS continuation through one full actual opponent round"
+      },
+      "simulations": 6
+    },
+    {
+      "size": 7,
+      "kind": "opening",
+      "raw17Head": null,
+      "unguardedNativeSearchPoint": [
+        4,
+        0
+      ],
+      "unguardedOptimizedSearchPoint": [
+        4,
+        0
+      ],
+      "nativeAreaBefore": 1,
+      "nativeAreaAfter": 5,
+      "selectedRootIndependentFullRoundStatus": "certified-profitable-expansion",
+      "selectedRootProof": {
+        "point": [
+          4,
+          0
+        ],
+        "beforeArea": 1,
+        "afterRootArea": 5,
+        "minimumReplyArea": 5,
+        "actualReplyPlayer": "WHITE",
+        "replyActionsCompleted": 57,
+        "includesPass": true,
+        "rootAndPreviousPiecesRetained": true,
+        "rootConnected": true,
+        "structuralProtectedRootProof": false,
+        "scope": "root + every legal/PASS continuation through one full actual opponent round"
+      },
+      "simulations": 6
+    },
+    {
+      "size": 7,
+      "kind": "winning-terminal-pass-with-expansion",
+      "raw17Head": [
+        2,
+        4
+      ],
+      "unguardedNativeSearchPoint": [
+        2,
+        4
+      ],
+      "unguardedOptimizedSearchPoint": [
+        2,
+        4
+      ],
+      "nativeAreaBefore": 3,
+      "nativeAreaAfter": 7,
+      "selectedRootIndependentFullRoundStatus": "certified-profitable-expansion",
+      "selectedRootProof": {
+        "point": [
+          2,
+          4
+        ],
+        "beforeArea": 3,
+        "afterRootArea": 7,
+        "minimumReplyArea": 7,
+        "actualReplyPlayer": "WHITE",
+        "replyActionsCompleted": 48,
+        "includesPass": true,
+        "rootAndPreviousPiecesRetained": true,
+        "rootConnected": true,
+        "structuralProtectedRootProof": false,
+        "scope": "root + every legal/PASS continuation through one full actual opponent round"
+      },
+      "simulations": 6
+    },
+    {
+      "size": 9,
+      "kind": "opening",
+      "raw17Head": null,
+      "unguardedNativeSearchPoint": [
+        6,
+        0
+      ],
+      "unguardedOptimizedSearchPoint": [
+        6,
+        0
+      ],
+      "nativeAreaBefore": 1,
+      "nativeAreaAfter": 7,
+      "selectedRootIndependentFullRoundStatus": "certified-profitable-expansion",
+      "selectedRootProof": {
+        "point": [
+          6,
+          0
+        ],
+        "beforeArea": 1,
+        "afterRootArea": 7,
+        "minimumReplyArea": 7,
+        "actualReplyPlayer": "WHITE",
+        "replyActionsCompleted": 102,
+        "includesPass": true,
+        "rootAndPreviousPiecesRetained": true,
+        "rootConnected": true,
+        "structuralProtectedRootProof": false,
+        "scope": "root + every legal/PASS continuation through one full actual opponent round"
+      },
+      "simulations": 6
+    },
+    {
+      "size": 9,
+      "kind": "winning-terminal-pass-with-expansion",
+      "raw17Head": [
+        2,
+        6
+      ],
+      "unguardedNativeSearchPoint": [
+        0,
+        6
+      ],
+      "unguardedOptimizedSearchPoint": [
+        0,
+        6
+      ],
+      "nativeAreaBefore": 3,
+      "nativeAreaAfter": 9,
+      "selectedRootIndependentFullRoundStatus": "certified-profitable-expansion",
+      "selectedRootProof": {
+        "point": [
+          0,
+          6
+        ],
+        "beforeArea": 3,
+        "afterRootArea": 9,
+        "minimumReplyArea": 9,
+        "actualReplyPlayer": "WHITE",
+        "replyActionsCompleted": 89,
+        "includesPass": true,
+        "rootAndPreviousPiecesRetained": true,
+        "rootConnected": true,
+        "structuralProtectedRootProof": false,
+        "scope": "root + every legal/PASS continuation through one full actual opponent round"
+      },
+      "simulations": 6
+    }
+  ],
+  "limitations": "Raw17 head failures retained; six probes do not establish full-game strength, browser/device or promotion."
+}

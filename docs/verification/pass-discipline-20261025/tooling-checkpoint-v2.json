@@ -1,0 +1,17 @@
+{
+  "schema": "lifeline-pass-discipline-tooling-checkpoint-v2",
+  "status": "BOUNDED_TOOLING_PASS_FORMAL_EVALUATION_NOT_STARTED",
+  "previous_checkpoint_sha256": "ed40595a06718791bb092acd45c46747cb8564a14e3239ba07cd7ed8978a8898",
+  "change": "Freeze top-level frontend JSON manifests in addition to JS/MJS and all research JSON/F32 assets. The bundle manifest now participates in exact formal source identity; no evaluation-stage metadata hash exception.",
+  "command": "node web/web前端/tests/verify-pass-discipline-evaluation-v1.mjs",
+  "exit_code": 0,
+  "passed_cases": 13,
+  "source_hashes": {
+    "web/tools/evaluate-pass-discipline-v1.mjs": "ad3f1cb1d1e70bd1758376c294baab53495fb7e5588d3d0862f3b5e98f374d59",
+    "web/web前端/tests/verify-pass-discipline-evaluation-v1.mjs": "e996fdc28a2358dfe174fd7ceffd815e6488e37fca6bf3acb7743ef6251b2a07"
+  },
+  "protocol_revision": 2,
+  "protocol_sha256": "6af123a320867571df97e73c65d82a758d97e5b34d53b8aab74305c52a599531",
+  "formal_games_completed": 0,
+  "strength_verified": false
+}

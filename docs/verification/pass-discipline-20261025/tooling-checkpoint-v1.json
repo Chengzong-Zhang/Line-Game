@@ -1,0 +1,62 @@
+{
+  "schema": "lifeline-pass-discipline-tooling-checkpoint-v1",
+  "status": "BOUNDED_TOOLING_PASS_FORMAL_EVALUATION_NOT_STARTED",
+  "runner_recovery_object_tests": {
+    "command": "node web/web前端/tests/verify-pass-discipline-evaluation-v1.mjs",
+    "exit_code": 0,
+    "passed_cases": 13,
+    "scope": "Independent full-round oracle including 6/7 trap, gamma1 terminal/truncation, ply0 layouts, per-action and pre-index receipt recovery, pause/stop, worker exclusion, corruption refusal, nine-stage resume, exact v4 product raw object and preserved auxiliary raw17 failure; decision injections are fixture-only."
+  },
+  "independent_audit_tests": {
+    "command": "node web/web前端/tests/verify-terminal-policy-independent-audit-v4.mjs --training-root local_artifacts/terminal-v4-smoke-lDs70u/run --config local_artifacts/terminal-v4-smoke-lDs70u/protocol.json",
+    "exit_code": 0,
+    "passed_cases": 7,
+    "actual_fixture_episodes": 1,
+    "actual_fixture_actions": 9,
+    "scope": "Real micro-run reconstructed; deliberate correctly-sealed intermediate reward, discounted return, invented update, false terminal, shallow label and opponent-gradient evidence refused. Historical source fixture, not current 96-episode formal result."
+  },
+  "source_hashes": {
+    "web/tools/evaluate-pass-discipline-v1.mjs": "032843aa5b1bcd308541d14f16108d15ce78bc13fb41143be1dfba59eadccc79",
+    "web/tools/run-pass-discipline-campaign-v1.mjs": "82c84d150710d95d804ab756097421be7990bf882bf30e1e68e687aa06ad337d",
+    "web/tools/prepare-pass-discipline-evaluation-v1.mjs": "112d58d3864b6092e319c9eb47de107fbb88a1c0eef2adf0c00ff56fa3cdec69",
+    "web/tools/verify-terminal-policy-evidence-v4.mjs": "1640eaacea003a366077ab9ca223109ff72c7db3a6b692077966dff529024a69",
+    "web/tools/finalize-pass-discipline-admission-v1.mjs": "da8d66832ca54e64382306f27776d792e5280673f3ad3dc61b0b6e215f81a930",
+    "web/tools/configs/pass-discipline-acceptance-v1-20261025.json": "8fc31542cb1bb6dce185d28ce9ead4dd5549fa5e56160c77b781cb76209234e1",
+    "web/tools/configs/pass-discipline-acceptance-v2-20261025.json": "6af123a320867571df97e73c65d82a758d97e5b34d53b8aab74305c52a599531",
+    "web/web前端/tests/verify-pass-discipline-evaluation-v1.mjs": "5624b6f6b3b6fe04ae8271664112a534ed34346e7e54548ea7f609d99051cba7",
+    "web/web前端/tests/verify-terminal-policy-independent-audit-v4.mjs": "632d28d40c5afcc747c2769c88b588da83b5cc23a6b3b119961a984144c7a0e6"
+  },
+  "cost_pilots": [
+    {
+      "alias": "easy",
+      "grid_size": 5,
+      "players": 3,
+      "natural": true,
+      "plies": 3,
+      "passes": 0,
+      "wall_ms": 1939,
+      "maximum_decision_ms": 67.5924,
+      "independently_certified_bad_passes": 0,
+      "report_sha256": "f4d00ec04589256804a5ab2b1a288a1b40a53c5b6e569aa98882e0a50eab7c4b",
+      "limitation": "Fresh size5 naturally ended after three placements; informationally weak, therefore full-game cell revised to size7."
+    },
+    {
+      "alias": "three-v4",
+      "grid_size": 7,
+      "players": 3,
+      "natural": true,
+      "plies": 12,
+      "passes": 1,
+      "wall_ms": 1563,
+      "maximum_decision_ms": 286.012,
+      "independently_certified_bad_passes": 1,
+      "report_sha256": "73fb631e315d6c1e6af78a7f44a8fedd860080c87105a606b4962b1d964d259a",
+      "limitation": "One cost game only; no candidate admission."
+    }
+  ],
+  "formal_training_completion_verified": false,
+  "formal_full_games": 0,
+  "task_admission": "PENDING",
+  "strength_verified": false,
+  "external_release_verified": false
+}

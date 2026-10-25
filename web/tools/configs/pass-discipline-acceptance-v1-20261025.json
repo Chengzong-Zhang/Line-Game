@@ -1,0 +1,442 @@
+{
+  "schema": "lifeline-pass-discipline-acceptance-v1",
+  "status": "FROZEN_BEFORE_FORMAL_RUN",
+  "rules_version": "territory-v3",
+  "max_game_plies": 600,
+  "total_campaign_wall_seconds": 1500,
+  "oracle": {
+    "maxRoots": 12,
+    "maxNodes": 30000,
+    "timeMs": 1000,
+    "fullOpponentRound": true
+  },
+  "contexts": [
+    {
+      "parent": "easy",
+      "player_count": 3,
+      "grid_size": 7,
+      "seeds": [
+        71051,
+        71059
+      ],
+      "scenario_sizes": [
+        5,
+        7,
+        9
+      ]
+    },
+    {
+      "parent": "three-v4",
+      "player_count": 3,
+      "grid_size": 7,
+      "seeds": [
+        72071,
+        72073
+      ],
+      "scenario_sizes": [
+        5,
+        7,
+        9
+      ]
+    },
+    {
+      "parent": "three-v1",
+      "player_count": 3,
+      "grid_size": 6,
+      "seeds": [
+        73061,
+        73067
+      ],
+      "scenario_sizes": [
+        6
+      ]
+    },
+    {
+      "parent": "hex-v1",
+      "player_count": 4,
+      "grid_size": 5,
+      "seeds": [
+        74051,
+        74057
+      ],
+      "scenario_sizes": [
+        5,
+        7,
+        9
+      ]
+    }
+  ],
+  "shared_worker_profiles": [
+    {
+      "player_count": 2,
+      "sizes": [
+        5,
+        7,
+        9
+      ],
+      "profile": {
+        "strategy": "greedy"
+      }
+    },
+    {
+      "player_count": 2,
+      "sizes": [
+        5,
+        7,
+        9
+      ],
+      "profile": {
+        "strategy": "minimax",
+        "depth": 2
+      }
+    },
+    {
+      "player_count": 2,
+      "sizes": [
+        5,
+        7,
+        9
+      ],
+      "profile": {
+        "strategy": "mcts",
+        "simulations": 8,
+        "rolloutDepth": 8,
+        "seed": 20261025
+      }
+    },
+    {
+      "player_count": 2,
+      "sizes": [
+        5,
+        7,
+        9
+      ],
+      "profile": {
+        "strategy": "model-free",
+        "modelId": "dqn-all-sizes-e2000"
+      }
+    },
+    {
+      "player_count": 2,
+      "sizes": [
+        5,
+        7,
+        9
+      ],
+      "profile": {
+        "strategy": "model-free",
+        "modelId": "ppo-all-sizes-e2000"
+      }
+    },
+    {
+      "player_count": 2,
+      "sizes": [
+        5,
+        7,
+        9
+      ],
+      "profile": {
+        "strategy": "model-free",
+        "modelId": "sac-all-sizes-e2000"
+      }
+    },
+    {
+      "player_count": 2,
+      "sizes": [
+        5,
+        7,
+        9
+      ],
+      "profile": {
+        "strategy": "model-free",
+        "modelId": "gail-all-sizes"
+      }
+    },
+    {
+      "player_count": 2,
+      "sizes": [
+        5,
+        7,
+        9
+      ],
+      "profile": {
+        "strategy": "model-free",
+        "modelId": "gan-all-sizes"
+      }
+    },
+    {
+      "player_count": 2,
+      "sizes": [
+        5,
+        7,
+        9
+      ],
+      "profile": {
+        "strategy": "neural-puct",
+        "modelId": "padded-cnn-d14-s20260825-g200",
+        "simulations": 2
+      }
+    },
+    {
+      "player_count": 2,
+      "sizes": [
+        5,
+        7,
+        9
+      ],
+      "profile": {
+        "strategy": "neural-puct",
+        "modelId": "grid-gnn-d14-s20260825-g200",
+        "simulations": 2
+      }
+    },
+    {
+      "player_count": 2,
+      "sizes": [
+        5,
+        7,
+        9
+      ],
+      "profile": {
+        "strategy": "neural-puct",
+        "modelId": "topology-gnn-d14-s20260825-g200",
+        "simulations": 2
+      }
+    },
+    {
+      "player_count": 3,
+      "sizes": [
+        5,
+        7,
+        9
+      ],
+      "profile": {
+        "strategy": "multiplayer",
+        "modelId": "multiplayer-easy-v1"
+      }
+    },
+    {
+      "player_count": 3,
+      "sizes": [
+        5,
+        7,
+        9
+      ],
+      "profile": {
+        "strategy": "multiplayer",
+        "modelId": "multiplayer-medium-v1"
+      }
+    },
+    {
+      "player_count": 3,
+      "sizes": [
+        5,
+        7,
+        9
+      ],
+      "profile": {
+        "strategy": "multiplayer",
+        "modelId": "multiplayer-hard-v1"
+      }
+    },
+    {
+      "player_count": 4,
+      "sizes": [
+        5
+      ],
+      "profile": {
+        "strategy": "multiplayer",
+        "modelId": "multiplayer-easy-v1"
+      }
+    },
+    {
+      "player_count": 4,
+      "sizes": [
+        5
+      ],
+      "profile": {
+        "strategy": "multiplayer",
+        "modelId": "multiplayer-medium-v1"
+      }
+    },
+    {
+      "player_count": 4,
+      "sizes": [
+        5
+      ],
+      "profile": {
+        "strategy": "multiplayer",
+        "modelId": "multiplayer-hard-v1"
+      }
+    },
+    {
+      "player_count": 5,
+      "sizes": [
+        5
+      ],
+      "profile": {
+        "strategy": "multiplayer",
+        "modelId": "multiplayer-easy-v1"
+      }
+    },
+    {
+      "player_count": 5,
+      "sizes": [
+        5
+      ],
+      "profile": {
+        "strategy": "multiplayer",
+        "modelId": "multiplayer-medium-v1"
+      }
+    },
+    {
+      "player_count": 5,
+      "sizes": [
+        5
+      ],
+      "profile": {
+        "strategy": "multiplayer",
+        "modelId": "multiplayer-hard-v1"
+      }
+    },
+    {
+      "player_count": 6,
+      "sizes": [
+        5
+      ],
+      "profile": {
+        "strategy": "multiplayer",
+        "modelId": "multiplayer-easy-v1"
+      }
+    },
+    {
+      "player_count": 6,
+      "sizes": [
+        5
+      ],
+      "profile": {
+        "strategy": "multiplayer",
+        "modelId": "multiplayer-medium-v1"
+      }
+    },
+    {
+      "player_count": 6,
+      "sizes": [
+        5
+      ],
+      "profile": {
+        "strategy": "multiplayer",
+        "modelId": "multiplayer-hard-v1"
+      }
+    },
+    {
+      "player_count": 7,
+      "sizes": [
+        9
+      ],
+      "profile": {
+        "strategy": "multiplayer",
+        "modelId": "multiplayer-hard-v1"
+      }
+    },
+    {
+      "player_count": 8,
+      "sizes": [
+        9
+      ],
+      "profile": {
+        "strategy": "multiplayer",
+        "modelId": "multiplayer-hard-v1"
+      }
+    },
+    {
+      "player_count": 9,
+      "sizes": [
+        9
+      ],
+      "profile": {
+        "strategy": "multiplayer",
+        "modelId": "multiplayer-hard-v1"
+      }
+    },
+    {
+      "player_count": 10,
+      "sizes": [
+        9
+      ],
+      "profile": {
+        "strategy": "multiplayer",
+        "modelId": "multiplayer-hard-v1"
+      }
+    },
+    {
+      "player_count": 11,
+      "sizes": [
+        9
+      ],
+      "profile": {
+        "strategy": "multiplayer",
+        "modelId": "multiplayer-hard-v1"
+      }
+    },
+    {
+      "player_count": 12,
+      "sizes": [
+        9
+      ],
+      "profile": {
+        "strategy": "multiplayer",
+        "modelId": "multiplayer-hard-v1"
+      }
+    },
+    {
+      "player_count": 13,
+      "sizes": [
+        9
+      ],
+      "profile": {
+        "strategy": "multiplayer",
+        "modelId": "multiplayer-hard-v1"
+      }
+    },
+    {
+      "player_count": 14,
+      "sizes": [
+        9
+      ],
+      "profile": {
+        "strategy": "multiplayer",
+        "modelId": "multiplayer-hard-v1"
+      }
+    },
+    {
+      "player_count": 15,
+      "sizes": [
+        9
+      ],
+      "profile": {
+        "strategy": "multiplayer",
+        "modelId": "multiplayer-hard-v1"
+      }
+    }
+  ],
+  "reward": {
+    "type": "terminal-outcome-native-margin-area-v1",
+    "gamma": 1,
+    "nonterminal_reward": 0,
+    "formula": "sign(A_i-maxOpponentArea)+0.1*(A_i-maxOpponentArea)/N+0.01*A_i/N",
+    "truncation": "no terminal reward, return or update"
+  },
+  "admission": {
+    "task_admission": "PASS_DISCIPLINE_SCOPED",
+    "required_fresh_games": 34,
+    "required_layout_blocks": 8,
+    "required_natural_games": 34,
+    "maximum_candidate_certified_bad_passes": 0,
+    "all_scenarios_must_pass": true,
+    "all_training_receipts_must_verify": true,
+    "strength_verified": false,
+    "runtime_global_admission": false
+  },
+  "scope": "Four newly terminal-trained linear parent policies and shared PASS guard. Full games only the four stated cells and eight fresh ply0 layouts. Size 9 and other player counts/strategies are bounded Node Worker/scenario checks, not full-game strength, browser or device evidence. Unchanged neural models are not retrained. Snapshot budgets are explicit; two simulations test neural routing/gating only."
+}

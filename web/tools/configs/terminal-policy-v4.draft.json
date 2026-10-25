@@ -1,0 +1,28 @@
+{
+  "schema": "lifeline-terminal-policy-protocol-v4",
+  "status": "DRAFT_BEFORE_BOUNDED_COST_AND_RECOVERY_CHECKS",
+  "rules_version": "territory-v3",
+  "seed_namespace": "lifeline-terminal-only-20261025-v4",
+  "reward": {"type": "terminal-outcome-native-margin-area-v1", "gamma": 1, "outcome": 1, "margin": 0.1, "own_area": 0.01, "nonterminal_reward": 0, "formula": "sign(A_i-maxOpponentArea)+0.1*(A_i-maxOpponentArea)/N+0.01*A_i/N"},
+  "parents": [
+    {"alias": "easy", "cells": [{"players": 2, "shape": "triangle", "size": 5}, {"players": 2, "shape": "triangle", "size": 7}, {"players": 2, "shape": "triangle", "size": 9}]},
+    {"alias": "three-v4", "cells": [{"players": 3, "shape": "triangle", "size": 5}, {"players": 3, "shape": "triangle", "size": 7}, {"players": 3, "shape": "triangle", "size": 9}]},
+    {"alias": "three-v1", "cells": [{"players": 3, "shape": "triangle", "size": 6}]},
+    {"alias": "hex-v1", "cells": [{"players": 4, "shape": "hexagon", "size": 5}, {"players": 5, "shape": "hexagon", "size": 5}, {"players": 6, "shape": "hexagon", "size": 5}, {"players": 4, "shape": "triangle", "size": 5}]}
+  ],
+  "episodes_per_parent": 24,
+  "maximum_game_plies": 300,
+  "minimum_actual_updates_per_parent": 4,
+  "learning_rate": 0.1,
+  "gradient_clip": 1,
+  "analysis": {"max_attempts_per_episode": 6, "learner_turns": [0, 2, 6, 12, 20, 30],
+    "learner_turns_by_cell": {
+      "2p-triangle-5": [0, 1, 2, 3, 4, 5], "2p-triangle-7": [0, 2, 4, 7, 10, 15],
+      "3p-triangle-5": [0, 1, 2, 3, 4, 5], "3p-triangle-6": [0, 1, 2, 3, 4, 5],
+      "3p-triangle-7": [0, 2, 4, 6, 8, 10], "3p-triangle-9": [0, 2, 5, 8, 12, 14],
+      "4p-triangle-5": [0, 1, 2, 3, 4, 5], "4p-hexagon-5": [0, 2, 6, 12, 20, 24],
+      "5p-hexagon-5": [0, 3, 6, 10, 15, 18], "6p-hexagon-5": [0, 2, 4, 6, 8, 10]
+    }, "max_nodes": 100000, "time_ms": 5000, "action_mask": "lexicographic-defense-prefix-0-1-4"},
+  "supervision": {"max_wall_seconds": 3600, "worker_wall_seconds": 90, "worker_units": 8, "max_restarts": 3, "max_no_progress_exits": 3, "poll_ms": 200, "stop_grace_seconds": 3},
+  "scope": "Raw full legal learner sampling except fixed complete-Minimax defensive-prefix masks; masked singleton/uncompleted/unselected states are context only. All gradient returns are undiscounted terminal-only R. Four original linear parents, separate fixed original-parent opponents plus shared PASS discipline. Record selected-state and configuration coverage; no universal policy-gradient theorem or automatic admission."
+}

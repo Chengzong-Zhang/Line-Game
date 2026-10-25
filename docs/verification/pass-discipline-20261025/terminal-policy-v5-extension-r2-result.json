@@ -1,0 +1,143 @@
+{
+  "schema": "lifeline-terminal-policy-extension-result-review-v5-r2",
+  "status": "PASS_ONE_NEW_NONZERO_UPDATE_AND_PRESERVED_PARENT_EVIDENCE",
+  "observed_utc": "2026-10-25T17:53:46.077Z",
+  "run_root": "local_artifacts/terminal-policy-v5-hex-extension-20261025-r2-prepared",
+  "identity": "fb343cdf48ae26ff27449fc77b72bb559ceb084ce9c0c2cefe71336d53f3339a",
+  "stage_id": "terminal-hex-v5-targeted-extension-20261025-r2",
+  "command": {
+    "audit": "node web/tools/terminal-policy-extension-v5.mjs audit --run-root local_artifacts/terminal-policy-v5-hex-extension-20261025-r2-prepared",
+    "exit_code": 0,
+    "status": "PASS_EXPLICIT_STATE_CONTINUATION_V5",
+    "scope": "Fresh read-only audit completed; no teacher search rerun."
+  },
+  "supervision": {
+    "status": "COMPLETE",
+    "attempts": 1,
+    "abnormal_exits": 0,
+    "progress_units": 6,
+    "meaning": "5 persisted actions plus 1 committed natural episode; not 6 games"
+  },
+  "frozen_sources_checked": 26,
+  "carry": {
+    "actual_updates": 3,
+    "optimizer_steps": 4,
+    "eligible_samples": 4,
+    "baseline": -0.5048333333333334,
+    "baseline_count": 4
+  },
+  "new_stage": {
+    "natural_episodes": 1,
+    "actual_updates": 1,
+    "optimizer_steps": 1,
+    "eligible_samples": 1,
+    "plies": 5,
+    "reward": 1.0093333333333332,
+    "gamma": 1,
+    "gradient_norm": 0.11041755905597167,
+    "cell": {
+      "players": 4,
+      "shape": "triangle",
+      "size": 5
+    },
+    "learner": "BLACK",
+    "global_episode_id": "terminal-hex-v5-targeted-extension-20261025-r2/fb343cdf48ae26ff27449fc77b72bb559ceb084ce9c0c2cefe71336d53f3339a/hex-v1-seed0",
+    "natural_terminal": true,
+    "truncated": false,
+    "N": 15,
+    "areas": {
+      "BLACK": 4,
+      "WHITE": 3,
+      "PURPLE": 2,
+      "GREEN": 2
+    },
+    "reward_sequence": [
+      0,
+      0,
+      0,
+      0,
+      1.0093333333333332
+    ],
+    "qualified_ply": 0,
+    "completed_depth": 8,
+    "required_depth": 8,
+    "legal_roots": 3,
+    "includes_PASS": true,
+    "all_root_scores_exact": true,
+    "defense_mask_indices": [
+      0,
+      1,
+      2
+    ],
+    "all_canonical_features_and_action_order_recomputed": true,
+    "last_ply_incomplete_analysis_excluded_from_gradient": true
+  },
+  "cumulative_hex": {
+    "natural_episodes": 25,
+    "actual_updates": 4,
+    "optimizer_steps": 5,
+    "eligible_samples": 5,
+    "baseline": -0.202,
+    "baseline_count": 5
+  },
+  "independent_arithmetic": {
+    "gradient_norm": 0.11041755905597167,
+    "max_weight_error": 0,
+    "carried_weights_sha256": "77ab77b849f0438385e03cbab26b927c47f441d18c589d5ce0b5a663a6b4a92b",
+    "new_weights_sha256": "b10df465d5be7dea32c4f005476ce0fab6f284ab03fbcfff0f0458b65216c3a7",
+    "baseline_after": -0.202
+  },
+  "prior_candidates": {
+    "easy": {
+      "sha256": "698429df7e40b7550afca3fec044b6c31eff4059dcfe438bfbc6abbf674c3b3a",
+      "expected_sha256": "698429df7e40b7550afca3fec044b6c31eff4059dcfe438bfbc6abbf674c3b3a",
+      "original_byte_hash_preserved": true,
+      "identity": "858cd0e839d71ecb6aa61e115eac3daa2ebce5313626f919bfad139587742909"
+    },
+    "three-v4": {
+      "sha256": "c5795f61b1127475b34f04f9288723ec4de7a4a704241a1515437fac7287829a",
+      "expected_sha256": "c5795f61b1127475b34f04f9288723ec4de7a4a704241a1515437fac7287829a",
+      "original_byte_hash_preserved": true,
+      "identity": "858cd0e839d71ecb6aa61e115eac3daa2ebce5313626f919bfad139587742909"
+    },
+    "three-v1": {
+      "sha256": "aafb3d36704093d1ea2c98a2944e49b7d96792697f40d1a5ea88ef3136846a68",
+      "expected_sha256": "aafb3d36704093d1ea2c98a2944e49b7d96792697f40d1a5ea88ef3136846a68",
+      "original_byte_hash_preserved": true,
+      "identity": "858cd0e839d71ecb6aa61e115eac3daa2ebce5313626f919bfad139587742909"
+    }
+  },
+  "hashes": {
+    "protocol": "832230504a54ffc1a692356f73b001e1954852ee90d0a7f2ec03a8fc9a12cda4",
+    "input": "be7f6ea2cce8c8fdaa13febbf6555f7d81852c9279f314403a3c75b1ff3b046a",
+    "episode": "4107c4aaffb9172823c18cedca2927f8b0019c47b26864caaf62641ad7f5b3de",
+    "checkpoint": "ddf612e7ced374b0d8faa207e317a5593ea9be23d3a8da5f24c7f7805ae985a8",
+    "candidate": "a536966b8927a3c3badd5df5e63801b27329cb683a238af8b926661b5ccc8ce7",
+    "receipt": "c9de615b2de3e1b6695dc1f894d4ebf34be6e92a4488b7145d6bdb60f8d800a1",
+    "extension_module": "bf39b6e4c8277a95f4f45e24a190d5758364070b0426f3e31b5e930a3429621b",
+    "canonical_reviewer": "689f38c0f9aac61f1886e3dd545f9fffcd65b207f2d0516a99c5ae051264e79e"
+  },
+  "original_evidence": {
+    "identity": "858cd0e839d71ecb6aa61e115eac3daa2ebce5313626f919bfad139587742909",
+    "checkpoint_sha256": "5616fe5befb59e311193cb4d7e9106962c3b9b4df2164f2811d8cbd91275430e",
+    "natural_games": 96,
+    "status": "FATAL_PARTIAL_PRESERVED",
+    "failure": "No sufficient actual parameter updates for hex-v1; do not call context-only games trained",
+    "global_completion_receipt_present": false,
+    "canonical_configuration_games": 96,
+    "canonical_learner_rows": 1038,
+    "canonical_feature_values": 134300
+  },
+  "limitations": {
+    "native_hex_prior_games": 18,
+    "native_hex_gradient_samples": 0,
+    "triangle_only_gradient_transfer": true,
+    "selected_state_configuration_bias": true,
+    "not_unbiased_full_trajectory_REINFORCE": true,
+    "strength_verified": false,
+    "runtime_admitted": false,
+    "composite_created_by_this_review": false,
+    "external_release": false
+  },
+  "scope": "Read-only completed training evidence review and compact result report only. Original run, frozen inputs/sources and prior candidate bytes were not modified."
+}
