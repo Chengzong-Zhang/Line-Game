@@ -1,0 +1,886 @@
+{
+  "schemaVersion": 1,
+  "status": "INDEPENDENT_ARTIFACTS_AND_HELDOUT_TEACHER_VERIFIED_STRENGTH_PENDING",
+  "recordedAtUtc": "2026-10-25T10:50:21.126974+00:00",
+  "training_source_commit": "59b2934",
+  "review_head_commit": "0f8d50b9de3b8dff1baadd188a3fe5f8413b6bf1",
+  "execution_command": [
+    "C:/Users/zcz/anaconda3/envs/rl310/python.exe",
+    "web/tools/verify-defensive-neural-candidates-v2.py",
+    "--run-root",
+    "local_artifacts/defensive-warmstart-v2/neural-train-r2",
+    "--data-root",
+    "local_artifacts/defensive-warmstart-v2/neural-export-r1",
+    "--config",
+    "web/tools/configs/defensive-neural-v2-20261025.json",
+    "--output",
+    "local_artifacts/defensive-warmstart-v2/neural-independent-review-r1/report.json"
+  ],
+  "exitCode": 0,
+  "source_hashes": {
+    "web/tools/defensive-training-data-v1.mjs": "ee3e8389bd06b21ad9ffc2020edc9896b0c8b394d2f428bd7b805922ee34eef8",
+    "web/web前端/DefensiveTrainingTeacher.js": "7166ac4fc50f24dceaeb87723d102dff58f792f939e219094d2a4f2b1d8ee366",
+    "web/web前端/GameEngine.js": "1aec9d73d06c7243ac71d1eb27c8f9692dc5f33576d298d2ecd2d2d55464acfb",
+    "web/web前端/AIEngine.js": "2d3e2de8cf0d39b8bb5302b7998a8f8008e4ffd4e38a8327ec2dc628debba7da",
+    "web/web前端/AIStateProtocol.js": "bd82e144304f429b354d7d7a722f1a691b7902a6e6e418f3739342191b5291a2",
+    "web/web前端/MultiplayerSearch.js": "08fc01e65bb19b8c6d062f956d53ffc90797f6426f0789a2320526277c9990a1",
+    "web/web前端/MultiplayerNativeGeometry.js": "bd8ef6f5cbfeb049779a842738b86940d4d17a4a79f78335c778c37b286ad35e",
+    "web/web前端/MultiplayerHardValue.js": "6bb9dc21c72773b6dbca6a268173f5e93daebe83a7a4bb1ab21687269a7ea25e",
+    "web/tools/neural-posttraining-data-v2.mjs": "8550db664fc57ce0e3a84b8123801c0657f1238aef4202d329546eebeb016827",
+    "web/tools/export-defensive-neural-v2.mjs": "ed99f16027509fbbd842a3ab7f3babfca2454d7aa88701becd5c7833e092d6fd",
+    "web/tools/train-defensive-policy-v1.mjs": "2c9a643a859bf14e6d18d7c1735583e751291aba6992eaa3c994cf9a6009a561",
+    "web/web前端/ResearchAI.js": "6183caaa6cb739b6062aa25612fc5de9047f3fb30e2936e7a262104bb561298b",
+    "web/web前端/ModelFreeAI.js": "baeccb4aba92d79dda581f64f145675d6558892aeb4cb3f7df0b05507e24ffa6",
+    "research/iclr2027/lifeline_rl/alphazero/network.py": "02d92f165ff445aa9e92266933d5ed83fe04c19d3201fcde6803705762c41f09",
+    "web/tools/defensive_neural_core_v2.py": "4bf3f0c4c7f3facc9ca645ceb13d28385064410d0d4095e7eaf1e7a884a88d75",
+    "web/tools/neural_posttraining_core.py": "a6cbe99ac715ffc042b0e9e8772b4d5ea53e8530549a0632185d8cba60129dca",
+    "web/tools/train-defensive-neural-v2.py": "073111b88c41b254949747d0643a424ab055a922a5d4a7166708a96370a79abd",
+    "web/tools/verify-defensive-neural-candidates-v2.py": "8e3755f7b42041a60b36b27d3bf55981289df02b464c3a18620bfa093b6719ba"
+  },
+  "parent_manifest_hashes": {
+    "web/web前端/assets/research-ai/manifest.json": "e8908ce0d22b54fb31d3bdac5c97eb88b3aa6e3068a7599a7c8be517f3b42250",
+    "web/web前端/assets/research-ai/transfer-v1/manifest.json": "847fd30c08a145e202fafe58bcfc5a70ddaf5bf422c74d9efbb2ec35b46ef1c4",
+    "web/web前端/assets/research-ai/model-free-manifest.json": "0762301fad905a62d1381777f2dd58bfe883d3320faeba94faa09fd19880e83d"
+  },
+  "evidence_hashes": {
+    "local_artifacts/defensive-warmstart-v2/neural-independent-review-r1/report.json": "d28926e59dda0f8e4fde647f0969d510b1794cec3ca912ee08b9d821c2b214c4",
+    "local_artifacts/defensive-warmstart-v2/neural-train-r2/checkpoint.json": "066a88dda9734dd63560c8baeadc34f7b51dad3c2862abe6d87e72f408fe19c0",
+    "local_artifacts/defensive-warmstart-v2/neural-train-r2/identity.json": "9102416b90dab844571ff8439435fcfc1a1e88c979cfab04f83f4d591841036e",
+    "local_artifacts/defensive-warmstart-v2/neural-train-r2/candidate-manifest.json": "f79d392f0fd0e796939fce1aa8ecb7fc400ec7320421d7888ad7ca0342023072",
+    "local_artifacts/defensive-warmstart-v2/neural-train-r2/training-receipt.json": "6c506e67a132b78707f9ad549e9aee32f9db6ccdd5b4e48caee14b39781f8ad9",
+    "local_artifacts/defensive-warmstart-v2/neural-export-r1/manifest.json": "83b59dbf30d84bb8731adda4edd5061e6484bd4a3fbf27d42ffbc78a45766fe3",
+    "web/tools/configs/defensive-neural-v2-20261025.json": "61e3b952dd9826d8413953bdc2ff50644a2bcdd6c96e8720cf6f18aa8ac47539"
+  },
+  "training_identity": "4c4dd1d32019523e8150310aa4ddf8fffa1bf8d59c0086381b679be355091e66",
+  "dataset_identity": "7471c9fae40d0b67c6b6aa8f315a33c08c8c68ec21e3fd5c0a0fd2500694bd79",
+  "source_manifest_sha256": "9bb52809324f3f962084a511fc292fd520adb7e5ca24dcba1bc00de3623b29d8",
+  "data_coverage": {
+    "5/train": {
+      "positions": 14,
+      "min_prefix_turns": 4,
+      "max_prefix_turns": 9,
+      "max_legal_placements": 4,
+      "min_completed_depth": 4,
+      "min_actual_reached_ply": 4
+    },
+    "5/validation": {
+      "positions": 12,
+      "min_prefix_turns": 4,
+      "max_prefix_turns": 9,
+      "max_legal_placements": 4,
+      "min_completed_depth": 4,
+      "min_actual_reached_ply": 4
+    },
+    "6/train": {
+      "positions": 15,
+      "min_prefix_turns": 5,
+      "max_prefix_turns": 20,
+      "max_legal_placements": 4,
+      "min_completed_depth": 4,
+      "min_actual_reached_ply": 4
+    },
+    "6/validation": {
+      "positions": 19,
+      "min_prefix_turns": 4,
+      "max_prefix_turns": 17,
+      "max_legal_placements": 4,
+      "min_completed_depth": 4,
+      "min_actual_reached_ply": 4
+    },
+    "7/train": {
+      "positions": 16,
+      "min_prefix_turns": 5,
+      "max_prefix_turns": 37,
+      "max_legal_placements": 4,
+      "min_completed_depth": 4,
+      "min_actual_reached_ply": 4
+    },
+    "7/validation": {
+      "positions": 22,
+      "min_prefix_turns": 5,
+      "max_prefix_turns": 24,
+      "max_legal_placements": 4,
+      "min_completed_depth": 4,
+      "min_actual_reached_ply": 4
+    },
+    "9/train": {
+      "positions": 16,
+      "min_prefix_turns": 6,
+      "max_prefix_turns": 48,
+      "max_legal_placements": 4,
+      "min_completed_depth": 4,
+      "min_actual_reached_ply": 4
+    },
+    "9/validation": {
+      "positions": 9,
+      "min_prefix_turns": 21,
+      "max_prefix_turns": 34,
+      "max_legal_placements": 4,
+      "min_completed_depth": 4,
+      "min_actual_reached_ply": 4
+    }
+  },
+  "summary": {
+    "models_trained_and_verified": 17,
+    "updates_per_model": 100,
+    "durable_optimizer_updates": 1700,
+    "weights_changed": 17,
+    "training_positions": 61,
+    "validation_positions": 62,
+    "player_count": 2,
+    "board_shape": "triangle",
+    "rules_version": "territory-v3",
+    "sizes": [
+      5,
+      6,
+      7,
+      9
+    ],
+    "max_legal_placements": 4,
+    "minimum_completed_and_actual_reached_ply": 4,
+    "finite_legal_normalized": true,
+    "heldout_ce_improved_models": 17,
+    "teacher_argmax_agreement": {
+      "improved": 14,
+      "unchanged": 2,
+      "worsened": 1
+    },
+    "own_nodes_lost_metric": {
+      "improved": 8,
+      "unchanged": 8,
+      "worsened": 1
+    },
+    "repeated_damage_metric": {
+      "improved": 6,
+      "unchanged": 9,
+      "worsened": 2
+    },
+    "frozen_value_parameter_bytes_equal_all_models": true,
+    "graph_models_with_changed_value_output": 12,
+    "maximum_value_output_drift": {
+      "model": "padded-cnn-transfer-v1-seed2026092201",
+      "positions": 62,
+      "mean_absolute": 0.33711122696085144,
+      "max_absolute": 0.8039203733205795,
+      "mean_signed": 0.33711122696085144
+    },
+    "missing_voluntary_pass_runtime_contract": [
+      "padded-cnn-d14-s20260825-g200",
+      "grid-gnn-d14-s20260825-g200",
+      "topology-gnn-d14-s20260825-g200"
+    ]
+  },
+  "models": [
+    {
+      "parent_model_id": "padded-cnn-d14-s20260825-g200",
+      "candidate_id": "padded-cnn-d14-s20260825-g200-defensive-neural-v2",
+      "parent_asset_sha256": "cea913f58d1694926fb6710ca355bf6d41e5a6c49b991af87b836ae26d43bf1f",
+      "candidate_asset_sha256": "1838ac02ef3e8dc7ceecac85e09553dd20df0436b600cb480c206bc9488a3bdc",
+      "asset_changed": true,
+      "updates": 100,
+      "parent_heldout_ce": 1.0629835853436658,
+      "candidate_heldout_ce": 0.9805236816343402,
+      "parent_teacher_optimal_action_agreement": 0.7580645161290323,
+      "candidate_teacher_optimal_action_agreement": 0.7580645161290323,
+      "candidate_current_product_mask_agreement": 0.7580645161290323,
+      "parent_finite_horizon_defense": {
+        "mean_own_nodes_lost": 0.3709677419354839,
+        "mean_repeated_damaging_replies": 0.06451612903225806,
+        "mean_own_coverage_lost": 0.7258064516129032,
+        "mean_disconnected_own_nodes": -0.0,
+        "mean_root_connected_unbroken_cut_count": 0.3387096774193548
+      },
+      "candidate_finite_horizon_defense": {
+        "mean_own_nodes_lost": 0.3709677419354839,
+        "mean_repeated_damaging_replies": 0.08064516129032258,
+        "mean_own_coverage_lost": 0.7580645161290323,
+        "mean_disconnected_own_nodes": -0.0,
+        "mean_root_connected_unbroken_cut_count": 0.3225806451612903
+      },
+      "teacher_vector_comparisons": {
+        "better": 5,
+        "same": 53,
+        "worse": 4
+      },
+      "frozen_value_tensor_count": 4,
+      "frozen_value_parameter_bytes_equal": true,
+      "graph_value_prediction_drift": {
+        "positions": 62,
+        "mean_absolute": 0.09663372439512562,
+        "max_absolute": 0.2118743434548378,
+        "mean_signed": -0.09663372439512562
+      },
+      "active_pass_runtime_contract": false,
+      "unrepresentable_pass_targets_under_current_product_mask": 13
+    },
+    {
+      "parent_model_id": "grid-gnn-d14-s20260825-g200",
+      "candidate_id": "grid-gnn-d14-s20260825-g200-defensive-neural-v2",
+      "parent_asset_sha256": "92cc45bb2a3a6a56c896098c1e843a136587a9aaf07381fbf1d00ebb4fd02dfa",
+      "candidate_asset_sha256": "1a45a14cb0ffc48c863349c5ed05c06540720ea52444c78339ce02f42c3fb576",
+      "asset_changed": true,
+      "updates": 100,
+      "parent_heldout_ce": 1.069206684803957,
+      "candidate_heldout_ce": 0.9345389603006717,
+      "parent_teacher_optimal_action_agreement": 0.6612903225806451,
+      "candidate_teacher_optimal_action_agreement": 0.7741935483870968,
+      "candidate_current_product_mask_agreement": 0.7741935483870968,
+      "parent_finite_horizon_defense": {
+        "mean_own_nodes_lost": 0.43548387096774194,
+        "mean_repeated_damaging_replies": 0.12903225806451613,
+        "mean_own_coverage_lost": 0.8870967741935484,
+        "mean_disconnected_own_nodes": -0.0,
+        "mean_root_connected_unbroken_cut_count": 0.2903225806451613
+      },
+      "candidate_finite_horizon_defense": {
+        "mean_own_nodes_lost": 0.41935483870967744,
+        "mean_repeated_damaging_replies": 0.0967741935483871,
+        "mean_own_coverage_lost": 0.8548387096774194,
+        "mean_disconnected_own_nodes": -0.0,
+        "mean_root_connected_unbroken_cut_count": 0.3225806451612903
+      },
+      "teacher_vector_comparisons": {
+        "better": 7,
+        "same": 55,
+        "worse": 0
+      },
+      "frozen_value_tensor_count": 4,
+      "frozen_value_parameter_bytes_equal": true,
+      "graph_value_prediction_drift": {
+        "positions": 62,
+        "mean_absolute": 0.14708703652685207,
+        "max_absolute": 0.22777418792247772,
+        "mean_signed": -0.14708703652685207
+      },
+      "active_pass_runtime_contract": false,
+      "unrepresentable_pass_targets_under_current_product_mask": 13
+    },
+    {
+      "parent_model_id": "topology-gnn-d14-s20260825-g200",
+      "candidate_id": "topology-gnn-d14-s20260825-g200-defensive-neural-v2",
+      "parent_asset_sha256": "de7f1a4c9c204d0f88598f5d7d92e180e291060b11cc711c8f9e786207cf34d0",
+      "candidate_asset_sha256": "209068099f40c99b344c8ac75f515595e7fd260a89d712dbd980e100fd34b29f",
+      "asset_changed": true,
+      "updates": 100,
+      "parent_heldout_ce": 1.0176764136037968,
+      "candidate_heldout_ce": 0.9359134529843998,
+      "parent_teacher_optimal_action_agreement": 0.6774193548387096,
+      "candidate_teacher_optimal_action_agreement": 0.7258064516129032,
+      "candidate_current_product_mask_agreement": 0.7258064516129032,
+      "parent_finite_horizon_defense": {
+        "mean_own_nodes_lost": 0.3709677419354839,
+        "mean_repeated_damaging_replies": 0.0967741935483871,
+        "mean_own_coverage_lost": 0.7741935483870968,
+        "mean_disconnected_own_nodes": -0.0,
+        "mean_root_connected_unbroken_cut_count": 0.3064516129032258
+      },
+      "candidate_finite_horizon_defense": {
+        "mean_own_nodes_lost": 0.4032258064516129,
+        "mean_repeated_damaging_replies": 0.0967741935483871,
+        "mean_own_coverage_lost": 0.8387096774193549,
+        "mean_disconnected_own_nodes": -0.0,
+        "mean_root_connected_unbroken_cut_count": 0.3064516129032258
+      },
+      "teacher_vector_comparisons": {
+        "better": 3,
+        "same": 59,
+        "worse": 0
+      },
+      "frozen_value_tensor_count": 4,
+      "frozen_value_parameter_bytes_equal": true,
+      "graph_value_prediction_drift": {
+        "positions": 62,
+        "mean_absolute": 0.059727011533874656,
+        "max_absolute": 0.14429278671741486,
+        "mean_signed": -0.059727011533874656
+      },
+      "active_pass_runtime_contract": false,
+      "unrepresentable_pass_targets_under_current_product_mask": 13
+    },
+    {
+      "parent_model_id": "padded-cnn-transfer-v1-seed2026092201",
+      "candidate_id": "padded-cnn-transfer-v1-seed2026092201-defensive-neural-v2",
+      "parent_asset_sha256": "416ee1a88f092ab514dd40c8a22604a761a20b223409eaaef64f61c691108242",
+      "candidate_asset_sha256": "77df1b0ddb3eeb32169941014d325f1ea70e1f4e72c54de8d106a75fe4759990",
+      "asset_changed": true,
+      "updates": 100,
+      "parent_heldout_ce": 1.267932988506682,
+      "candidate_heldout_ce": 1.0206194058957936,
+      "parent_teacher_optimal_action_agreement": 0.6935483870967742,
+      "candidate_teacher_optimal_action_agreement": 0.7258064516129032,
+      "candidate_current_product_mask_agreement": 0.7258064516129032,
+      "parent_finite_horizon_defense": {
+        "mean_own_nodes_lost": 0.43548387096774194,
+        "mean_repeated_damaging_replies": 0.0967741935483871,
+        "mean_own_coverage_lost": 0.8870967741935484,
+        "mean_disconnected_own_nodes": -0.0,
+        "mean_root_connected_unbroken_cut_count": 0.2903225806451613
+      },
+      "candidate_finite_horizon_defense": {
+        "mean_own_nodes_lost": 0.43548387096774194,
+        "mean_repeated_damaging_replies": 0.08064516129032258,
+        "mean_own_coverage_lost": 0.8870967741935484,
+        "mean_disconnected_own_nodes": -0.0,
+        "mean_root_connected_unbroken_cut_count": 0.3064516129032258
+      },
+      "teacher_vector_comparisons": {
+        "better": 3,
+        "same": 58,
+        "worse": 1
+      },
+      "frozen_value_tensor_count": 4,
+      "frozen_value_parameter_bytes_equal": true,
+      "graph_value_prediction_drift": {
+        "positions": 62,
+        "mean_absolute": 0.33711122696085144,
+        "max_absolute": 0.8039203733205795,
+        "mean_signed": 0.33711122696085144
+      },
+      "active_pass_runtime_contract": true,
+      "unrepresentable_pass_targets_under_current_product_mask": 0
+    },
+    {
+      "parent_model_id": "padded-cnn-transfer-v1-seed2026092202",
+      "candidate_id": "padded-cnn-transfer-v1-seed2026092202-defensive-neural-v2",
+      "parent_asset_sha256": "cd36fdd3a96e78066475fb67056fa179bf7765028fbf9e4db7a172857b134af3",
+      "candidate_asset_sha256": "f7729f1c99efecff5bad468244ef25821fdb97520c20ed769288a6d79dfccdb2",
+      "asset_changed": true,
+      "updates": 100,
+      "parent_heldout_ce": 1.2379818947398806,
+      "candidate_heldout_ce": 1.0294248709549085,
+      "parent_teacher_optimal_action_agreement": 0.6774193548387096,
+      "candidate_teacher_optimal_action_agreement": 0.7096774193548387,
+      "candidate_current_product_mask_agreement": 0.7096774193548387,
+      "parent_finite_horizon_defense": {
+        "mean_own_nodes_lost": 0.4032258064516129,
+        "mean_repeated_damaging_replies": 0.08064516129032258,
+        "mean_own_coverage_lost": 0.8225806451612904,
+        "mean_disconnected_own_nodes": -0.0,
+        "mean_root_connected_unbroken_cut_count": 0.2903225806451613
+      },
+      "candidate_finite_horizon_defense": {
+        "mean_own_nodes_lost": 0.4032258064516129,
+        "mean_repeated_damaging_replies": 0.08064516129032258,
+        "mean_own_coverage_lost": 0.8225806451612904,
+        "mean_disconnected_own_nodes": -0.0,
+        "mean_root_connected_unbroken_cut_count": 0.3064516129032258
+      },
+      "teacher_vector_comparisons": {
+        "better": 4,
+        "same": 57,
+        "worse": 1
+      },
+      "frozen_value_tensor_count": 4,
+      "frozen_value_parameter_bytes_equal": true,
+      "graph_value_prediction_drift": {
+        "positions": 62,
+        "mean_absolute": 0.07594092092251466,
+        "max_absolute": 0.6052540466189384,
+        "mean_signed": 0.04826113343944833
+      },
+      "active_pass_runtime_contract": true,
+      "unrepresentable_pass_targets_under_current_product_mask": 0
+    },
+    {
+      "parent_model_id": "padded-cnn-transfer-v1-seed2026092203",
+      "candidate_id": "padded-cnn-transfer-v1-seed2026092203-defensive-neural-v2",
+      "parent_asset_sha256": "ee60f6d279941c78af999c6d051d514bf90f09b9478272d8557d482bb24dd07c",
+      "candidate_asset_sha256": "990db1f34515b9867ae14e410b45fcd4af614f22d1749024b56596103224ca46",
+      "asset_changed": true,
+      "updates": 100,
+      "parent_heldout_ce": 1.1647324506548118,
+      "candidate_heldout_ce": 1.016540145319151,
+      "parent_teacher_optimal_action_agreement": 0.7258064516129032,
+      "candidate_teacher_optimal_action_agreement": 0.7419354838709677,
+      "candidate_current_product_mask_agreement": 0.7419354838709677,
+      "parent_finite_horizon_defense": {
+        "mean_own_nodes_lost": 0.43548387096774194,
+        "mean_repeated_damaging_replies": 0.08064516129032258,
+        "mean_own_coverage_lost": 0.8870967741935484,
+        "mean_disconnected_own_nodes": -0.0,
+        "mean_root_connected_unbroken_cut_count": 0.3064516129032258
+      },
+      "candidate_finite_horizon_defense": {
+        "mean_own_nodes_lost": 0.4032258064516129,
+        "mean_repeated_damaging_replies": 0.08064516129032258,
+        "mean_own_coverage_lost": 0.8387096774193549,
+        "mean_disconnected_own_nodes": -0.0,
+        "mean_root_connected_unbroken_cut_count": 0.3225806451612903
+      },
+      "teacher_vector_comparisons": {
+        "better": 3,
+        "same": 58,
+        "worse": 1
+      },
+      "frozen_value_tensor_count": 4,
+      "frozen_value_parameter_bytes_equal": true,
+      "graph_value_prediction_drift": {
+        "positions": 62,
+        "mean_absolute": 0.09091423465138031,
+        "max_absolute": 0.5491042286157608,
+        "mean_signed": 0.09091423465138031
+      },
+      "active_pass_runtime_contract": true,
+      "unrepresentable_pass_targets_under_current_product_mask": 0
+    },
+    {
+      "parent_model_id": "grid-gnn-transfer-v1-seed2026092201",
+      "candidate_id": "grid-gnn-transfer-v1-seed2026092201-defensive-neural-v2",
+      "parent_asset_sha256": "e0b82a1736521fb967afb7861ba1fcc697b505990d5b6391abb8318dbef42a0b",
+      "candidate_asset_sha256": "2ae2c69f08002ff62abb9500f0916539a2f68938d7689a7bc941ac9a6c9e9b11",
+      "asset_changed": true,
+      "updates": 100,
+      "parent_heldout_ce": 1.243077846958354,
+      "candidate_heldout_ce": 1.047265222051754,
+      "parent_teacher_optimal_action_agreement": 0.7096774193548387,
+      "candidate_teacher_optimal_action_agreement": 0.7419354838709677,
+      "candidate_current_product_mask_agreement": 0.7419354838709677,
+      "parent_finite_horizon_defense": {
+        "mean_own_nodes_lost": 0.43548387096774194,
+        "mean_repeated_damaging_replies": 0.11290322580645161,
+        "mean_own_coverage_lost": 0.9193548387096774,
+        "mean_disconnected_own_nodes": -0.0,
+        "mean_root_connected_unbroken_cut_count": 0.3064516129032258
+      },
+      "candidate_finite_horizon_defense": {
+        "mean_own_nodes_lost": 0.43548387096774194,
+        "mean_repeated_damaging_replies": 0.11290322580645161,
+        "mean_own_coverage_lost": 0.8709677419354839,
+        "mean_disconnected_own_nodes": -0.0,
+        "mean_root_connected_unbroken_cut_count": 0.3225806451612903
+      },
+      "teacher_vector_comparisons": {
+        "better": 3,
+        "same": 58,
+        "worse": 1
+      },
+      "frozen_value_tensor_count": 4,
+      "frozen_value_parameter_bytes_equal": true,
+      "graph_value_prediction_drift": {
+        "positions": 62,
+        "mean_absolute": 0.08992694077859333,
+        "max_absolute": 0.25977852940559387,
+        "mean_signed": -0.08840395846580636
+      },
+      "active_pass_runtime_contract": true,
+      "unrepresentable_pass_targets_under_current_product_mask": 0
+    },
+    {
+      "parent_model_id": "grid-gnn-transfer-v1-seed2026092202",
+      "candidate_id": "grid-gnn-transfer-v1-seed2026092202-defensive-neural-v2",
+      "parent_asset_sha256": "5db4b00462d8e30d2d293adf554da3e0e6b4cde6d40d3f82b590b23fa267000b",
+      "candidate_asset_sha256": "776bce595b28c1c7bfdf8cf923594f1edbb63dd11b34229388d2e0d1019519be",
+      "asset_changed": true,
+      "updates": 100,
+      "parent_heldout_ce": 1.2913846560810625,
+      "candidate_heldout_ce": 1.050562913215636,
+      "parent_teacher_optimal_action_agreement": 0.6451612903225806,
+      "candidate_teacher_optimal_action_agreement": 0.7258064516129032,
+      "candidate_current_product_mask_agreement": 0.7258064516129032,
+      "parent_finite_horizon_defense": {
+        "mean_own_nodes_lost": 0.43548387096774194,
+        "mean_repeated_damaging_replies": 0.11290322580645161,
+        "mean_own_coverage_lost": 0.9193548387096774,
+        "mean_disconnected_own_nodes": -0.0,
+        "mean_root_connected_unbroken_cut_count": 0.3064516129032258
+      },
+      "candidate_finite_horizon_defense": {
+        "mean_own_nodes_lost": 0.4032258064516129,
+        "mean_repeated_damaging_replies": 0.11290322580645161,
+        "mean_own_coverage_lost": 0.8064516129032258,
+        "mean_disconnected_own_nodes": -0.0,
+        "mean_root_connected_unbroken_cut_count": 0.3064516129032258
+      },
+      "teacher_vector_comparisons": {
+        "better": 7,
+        "same": 55,
+        "worse": 0
+      },
+      "frozen_value_tensor_count": 4,
+      "frozen_value_parameter_bytes_equal": true,
+      "graph_value_prediction_drift": {
+        "positions": 62,
+        "mean_absolute": 0.07426309596649522,
+        "max_absolute": 0.16631216555833817,
+        "mean_signed": 0.07034353081760328
+      },
+      "active_pass_runtime_contract": true,
+      "unrepresentable_pass_targets_under_current_product_mask": 0
+    },
+    {
+      "parent_model_id": "grid-gnn-transfer-v1-seed2026092203",
+      "candidate_id": "grid-gnn-transfer-v1-seed2026092203-defensive-neural-v2",
+      "parent_asset_sha256": "67079d1d6108732cddfeecf74840ae63505488af052e068ab1a83bf96c56bf87",
+      "candidate_asset_sha256": "1ac41ad2d5f0209427a85922760838a240c87da53e5abb8b7adb0fe2806ed1b6",
+      "asset_changed": true,
+      "updates": 100,
+      "parent_heldout_ce": 1.2210630919542413,
+      "candidate_heldout_ce": 1.0068379261619458,
+      "parent_teacher_optimal_action_agreement": 0.6451612903225806,
+      "candidate_teacher_optimal_action_agreement": 0.7258064516129032,
+      "candidate_current_product_mask_agreement": 0.7258064516129032,
+      "parent_finite_horizon_defense": {
+        "mean_own_nodes_lost": 0.4032258064516129,
+        "mean_repeated_damaging_replies": 0.12903225806451613,
+        "mean_own_coverage_lost": 0.8548387096774194,
+        "mean_disconnected_own_nodes": -0.0,
+        "mean_root_connected_unbroken_cut_count": 0.2903225806451613
+      },
+      "candidate_finite_horizon_defense": {
+        "mean_own_nodes_lost": 0.4032258064516129,
+        "mean_repeated_damaging_replies": 0.11290322580645161,
+        "mean_own_coverage_lost": 0.8064516129032258,
+        "mean_disconnected_own_nodes": -0.0,
+        "mean_root_connected_unbroken_cut_count": 0.3064516129032258
+      },
+      "teacher_vector_comparisons": {
+        "better": 7,
+        "same": 54,
+        "worse": 1
+      },
+      "frozen_value_tensor_count": 4,
+      "frozen_value_parameter_bytes_equal": true,
+      "graph_value_prediction_drift": {
+        "positions": 62,
+        "mean_absolute": 0.05038074186942991,
+        "max_absolute": 0.1696377843618393,
+        "mean_signed": -0.0484024663530891
+      },
+      "active_pass_runtime_contract": true,
+      "unrepresentable_pass_targets_under_current_product_mask": 0
+    },
+    {
+      "parent_model_id": "topology-gnn-transfer-v1-seed2026092201",
+      "candidate_id": "topology-gnn-transfer-v1-seed2026092201-defensive-neural-v2",
+      "parent_asset_sha256": "0235947ee5a3eb6aa36627da06270e0854f3ece5c2b509d6a4f85d830a54f5ba",
+      "candidate_asset_sha256": "4c8221184f82411a7597130b740f5c6a734e2fa9e42f1a8cfa7011fafd7bc220",
+      "asset_changed": true,
+      "updates": 100,
+      "parent_heldout_ce": 1.1086319796950064,
+      "candidate_heldout_ce": 1.0168112387614614,
+      "parent_teacher_optimal_action_agreement": 0.7258064516129032,
+      "candidate_teacher_optimal_action_agreement": 0.7258064516129032,
+      "candidate_current_product_mask_agreement": 0.7258064516129032,
+      "parent_finite_horizon_defense": {
+        "mean_own_nodes_lost": 0.4032258064516129,
+        "mean_repeated_damaging_replies": 0.0967741935483871,
+        "mean_own_coverage_lost": 0.8387096774193549,
+        "mean_disconnected_own_nodes": -0.0,
+        "mean_root_connected_unbroken_cut_count": 0.3064516129032258
+      },
+      "candidate_finite_horizon_defense": {
+        "mean_own_nodes_lost": 0.4032258064516129,
+        "mean_repeated_damaging_replies": 0.0967741935483871,
+        "mean_own_coverage_lost": 0.8387096774193549,
+        "mean_disconnected_own_nodes": -0.0,
+        "mean_root_connected_unbroken_cut_count": 0.3064516129032258
+      },
+      "teacher_vector_comparisons": {
+        "better": 0,
+        "same": 62,
+        "worse": 0
+      },
+      "frozen_value_tensor_count": 4,
+      "frozen_value_parameter_bytes_equal": true,
+      "graph_value_prediction_drift": {
+        "positions": 62,
+        "mean_absolute": 0.16499982174155453,
+        "max_absolute": 0.3682657703757286,
+        "mean_signed": -0.16499982174155453
+      },
+      "active_pass_runtime_contract": true,
+      "unrepresentable_pass_targets_under_current_product_mask": 0
+    },
+    {
+      "parent_model_id": "topology-gnn-transfer-v1-seed2026092202",
+      "candidate_id": "topology-gnn-transfer-v1-seed2026092202-defensive-neural-v2",
+      "parent_asset_sha256": "4c424c0f0ac19724d7fa51741d199bd780781d7063b325671fe9197f6b6abc9b",
+      "candidate_asset_sha256": "51dc159cb4d0498c56021238ed411c071450a42a2ab3d41c5cd1d8c9a8990719",
+      "asset_changed": true,
+      "updates": 100,
+      "parent_heldout_ce": 1.1672354156938078,
+      "candidate_heldout_ce": 1.0146338629957423,
+      "parent_teacher_optimal_action_agreement": 0.7096774193548387,
+      "candidate_teacher_optimal_action_agreement": 0.7258064516129032,
+      "candidate_current_product_mask_agreement": 0.7258064516129032,
+      "parent_finite_horizon_defense": {
+        "mean_own_nodes_lost": 0.4032258064516129,
+        "mean_repeated_damaging_replies": 0.0967741935483871,
+        "mean_own_coverage_lost": 0.8387096774193549,
+        "mean_disconnected_own_nodes": -0.0,
+        "mean_root_connected_unbroken_cut_count": 0.3064516129032258
+      },
+      "candidate_finite_horizon_defense": {
+        "mean_own_nodes_lost": 0.4032258064516129,
+        "mean_repeated_damaging_replies": 0.0967741935483871,
+        "mean_own_coverage_lost": 0.8225806451612904,
+        "mean_disconnected_own_nodes": -0.0,
+        "mean_root_connected_unbroken_cut_count": 0.3064516129032258
+      },
+      "teacher_vector_comparisons": {
+        "better": 1,
+        "same": 61,
+        "worse": 0
+      },
+      "frozen_value_tensor_count": 4,
+      "frozen_value_parameter_bytes_equal": true,
+      "graph_value_prediction_drift": {
+        "positions": 62,
+        "mean_absolute": 0.10663596062635582,
+        "max_absolute": 0.21489465981721878,
+        "mean_signed": -0.10663596062635582
+      },
+      "active_pass_runtime_contract": true,
+      "unrepresentable_pass_targets_under_current_product_mask": 0
+    },
+    {
+      "parent_model_id": "topology-gnn-transfer-v1-seed2026092203",
+      "candidate_id": "topology-gnn-transfer-v1-seed2026092203-defensive-neural-v2",
+      "parent_asset_sha256": "5a8f6f4ed6954c5dda131c16403f2f2c680edefffc050d19f2cab25850dcc84b",
+      "candidate_asset_sha256": "51b39c8bcf55dbe8b3bbeb98334ee0f5cc8e22128bcfa0c9f047d485eefe103a",
+      "asset_changed": true,
+      "updates": 100,
+      "parent_heldout_ce": 1.1781358787012168,
+      "candidate_heldout_ce": 1.0359751830909125,
+      "parent_teacher_optimal_action_agreement": 0.7096774193548387,
+      "candidate_teacher_optimal_action_agreement": 0.6935483870967742,
+      "candidate_current_product_mask_agreement": 0.6935483870967742,
+      "parent_finite_horizon_defense": {
+        "mean_own_nodes_lost": 0.4032258064516129,
+        "mean_repeated_damaging_replies": 0.0967741935483871,
+        "mean_own_coverage_lost": 0.8387096774193549,
+        "mean_disconnected_own_nodes": -0.0,
+        "mean_root_connected_unbroken_cut_count": 0.3064516129032258
+      },
+      "candidate_finite_horizon_defense": {
+        "mean_own_nodes_lost": 0.4032258064516129,
+        "mean_repeated_damaging_replies": 0.0967741935483871,
+        "mean_own_coverage_lost": 0.8387096774193549,
+        "mean_disconnected_own_nodes": -0.0,
+        "mean_root_connected_unbroken_cut_count": 0.3064516129032258
+      },
+      "teacher_vector_comparisons": {
+        "better": 0,
+        "same": 61,
+        "worse": 1
+      },
+      "frozen_value_tensor_count": 4,
+      "frozen_value_parameter_bytes_equal": true,
+      "graph_value_prediction_drift": {
+        "positions": 62,
+        "mean_absolute": 0.1412354956020511,
+        "max_absolute": 0.37109387665987015,
+        "mean_signed": -0.1412354956020511
+      },
+      "active_pass_runtime_contract": true,
+      "unrepresentable_pass_targets_under_current_product_mask": 0
+    },
+    {
+      "parent_model_id": "dqn-all-sizes-e2000",
+      "candidate_id": "dqn-all-sizes-e2000-defensive-neural-v2",
+      "parent_asset_sha256": "16f50c330ad7cc239cfb0b2334538817c7c0d6cf4c01f6048b05c9ee4a9466eb",
+      "candidate_asset_sha256": "1eb877aed4ce5911e4cbae6813a1019807cb3a881e9ce21485bb32717cf8d07b",
+      "asset_changed": true,
+      "updates": 100,
+      "parent_heldout_ce": 1.0675574170620032,
+      "candidate_heldout_ce": 0.9971895034670781,
+      "parent_teacher_optimal_action_agreement": 0.7096774193548387,
+      "candidate_teacher_optimal_action_agreement": 0.7741935483870968,
+      "candidate_current_product_mask_agreement": 0.7741935483870968,
+      "parent_finite_horizon_defense": {
+        "mean_own_nodes_lost": 0.46774193548387094,
+        "mean_repeated_damaging_replies": 0.0967741935483871,
+        "mean_own_coverage_lost": 0.9193548387096774,
+        "mean_disconnected_own_nodes": -0.0,
+        "mean_root_connected_unbroken_cut_count": 0.3387096774193548
+      },
+      "candidate_finite_horizon_defense": {
+        "mean_own_nodes_lost": 0.41935483870967744,
+        "mean_repeated_damaging_replies": 0.0967741935483871,
+        "mean_own_coverage_lost": 0.8387096774193549,
+        "mean_disconnected_own_nodes": -0.0,
+        "mean_root_connected_unbroken_cut_count": 0.3387096774193548
+      },
+      "teacher_vector_comparisons": {
+        "better": 7,
+        "same": 51,
+        "worse": 4
+      },
+      "frozen_value_tensor_count": 0,
+      "frozen_value_parameter_bytes_equal": true,
+      "graph_value_prediction_drift": null,
+      "active_pass_runtime_contract": true,
+      "unrepresentable_pass_targets_under_current_product_mask": 0
+    },
+    {
+      "parent_model_id": "ppo-all-sizes-e2000",
+      "candidate_id": "ppo-all-sizes-e2000-defensive-neural-v2",
+      "parent_asset_sha256": "af41359ca0ee00b3be86a2f5b9363a513af942f6cfa0c50f31cb0f252c86de85",
+      "candidate_asset_sha256": "24d6ca376a1ad3b969bdfe841dca0379a1ac6d92518988e484e1d3a2ce6db197",
+      "asset_changed": true,
+      "updates": 100,
+      "parent_heldout_ce": 4.584549867433982,
+      "candidate_heldout_ce": 2.9218917378831493,
+      "parent_teacher_optimal_action_agreement": 0.6935483870967742,
+      "candidate_teacher_optimal_action_agreement": 0.7258064516129032,
+      "candidate_current_product_mask_agreement": 0.7258064516129032,
+      "parent_finite_horizon_defense": {
+        "mean_own_nodes_lost": 0.41935483870967744,
+        "mean_repeated_damaging_replies": 0.06451612903225806,
+        "mean_own_coverage_lost": 0.8709677419354839,
+        "mean_disconnected_own_nodes": -0.0,
+        "mean_root_connected_unbroken_cut_count": 0.3064516129032258
+      },
+      "candidate_finite_horizon_defense": {
+        "mean_own_nodes_lost": 0.3870967741935484,
+        "mean_repeated_damaging_replies": 0.08064516129032258,
+        "mean_own_coverage_lost": 0.8064516129032258,
+        "mean_disconnected_own_nodes": -0.0,
+        "mean_root_connected_unbroken_cut_count": 0.3225806451612903
+      },
+      "teacher_vector_comparisons": {
+        "better": 2,
+        "same": 59,
+        "worse": 1
+      },
+      "frozen_value_tensor_count": 2,
+      "frozen_value_parameter_bytes_equal": true,
+      "graph_value_prediction_drift": null,
+      "active_pass_runtime_contract": true,
+      "unrepresentable_pass_targets_under_current_product_mask": 0
+    },
+    {
+      "parent_model_id": "sac-all-sizes-e2000",
+      "candidate_id": "sac-all-sizes-e2000-defensive-neural-v2",
+      "parent_asset_sha256": "63a1b80b456427a2545a31ff9af209fdde1f9cf8d41ae6984f36c09c116932bd",
+      "candidate_asset_sha256": "b052aa9bd9ca12741cc4419048cbc4263a4c309f086667bbcfe42ab723df37dc",
+      "asset_changed": true,
+      "updates": 100,
+      "parent_heldout_ce": 1.3107379081061274,
+      "candidate_heldout_ce": 1.1382132212377114,
+      "parent_teacher_optimal_action_agreement": 0.6451612903225806,
+      "candidate_teacher_optimal_action_agreement": 0.6935483870967742,
+      "candidate_current_product_mask_agreement": 0.6935483870967742,
+      "parent_finite_horizon_defense": {
+        "mean_own_nodes_lost": 0.4032258064516129,
+        "mean_repeated_damaging_replies": 0.11290322580645161,
+        "mean_own_coverage_lost": 0.8387096774193549,
+        "mean_disconnected_own_nodes": -0.0,
+        "mean_root_connected_unbroken_cut_count": 0.3225806451612903
+      },
+      "candidate_finite_horizon_defense": {
+        "mean_own_nodes_lost": 0.3709677419354839,
+        "mean_repeated_damaging_replies": 0.0967741935483871,
+        "mean_own_coverage_lost": 0.7419354838709677,
+        "mean_disconnected_own_nodes": -0.0,
+        "mean_root_connected_unbroken_cut_count": 0.3225806451612903
+      },
+      "teacher_vector_comparisons": {
+        "better": 5,
+        "same": 56,
+        "worse": 1
+      },
+      "frozen_value_tensor_count": 0,
+      "frozen_value_parameter_bytes_equal": true,
+      "graph_value_prediction_drift": null,
+      "active_pass_runtime_contract": true,
+      "unrepresentable_pass_targets_under_current_product_mask": 0
+    },
+    {
+      "parent_model_id": "gail-all-sizes",
+      "candidate_id": "gail-all-sizes-defensive-neural-v2",
+      "parent_asset_sha256": "5951e4e3f057893275df6f44543f3747cd4275a616d52a5b8355e51760faea71",
+      "candidate_asset_sha256": "bc807167de4f677f139c83d4232ac72448128cae60b56c41b518b58d08af201f",
+      "asset_changed": true,
+      "updates": 100,
+      "parent_heldout_ce": 1.597974002517165,
+      "candidate_heldout_ce": 1.1114025894117925,
+      "parent_teacher_optimal_action_agreement": 0.5,
+      "candidate_teacher_optimal_action_agreement": 0.7580645161290323,
+      "candidate_current_product_mask_agreement": 0.7580645161290323,
+      "parent_finite_horizon_defense": {
+        "mean_own_nodes_lost": 0.45161290322580644,
+        "mean_repeated_damaging_replies": 0.0967741935483871,
+        "mean_own_coverage_lost": 0.967741935483871,
+        "mean_disconnected_own_nodes": -0.0,
+        "mean_root_connected_unbroken_cut_count": 0.20967741935483872
+      },
+      "candidate_finite_horizon_defense": {
+        "mean_own_nodes_lost": 0.4032258064516129,
+        "mean_repeated_damaging_replies": 0.08064516129032258,
+        "mean_own_coverage_lost": 0.8225806451612904,
+        "mean_disconnected_own_nodes": -0.0,
+        "mean_root_connected_unbroken_cut_count": 0.3548387096774194
+      },
+      "teacher_vector_comparisons": {
+        "better": 19,
+        "same": 42,
+        "worse": 1
+      },
+      "frozen_value_tensor_count": 2,
+      "frozen_value_parameter_bytes_equal": true,
+      "graph_value_prediction_drift": null,
+      "active_pass_runtime_contract": true,
+      "unrepresentable_pass_targets_under_current_product_mask": 0
+    },
+    {
+      "parent_model_id": "gan-all-sizes",
+      "candidate_id": "gan-all-sizes-defensive-neural-v2",
+      "parent_asset_sha256": "63629d0027afb8ff2fdbc3e773be420c062361b315741d8371e47818c4ec30e5",
+      "candidate_asset_sha256": "3c1ace21fcbfe1c0c9e556e451635679c77c2aecfde5471268d25c25a824a93d",
+      "asset_changed": true,
+      "updates": 100,
+      "parent_heldout_ce": 1.6108875238514724,
+      "candidate_heldout_ce": 1.1975386281166263,
+      "parent_teacher_optimal_action_agreement": 0.3709677419354839,
+      "candidate_teacher_optimal_action_agreement": 0.7580645161290323,
+      "candidate_current_product_mask_agreement": 0.7580645161290323,
+      "parent_finite_horizon_defense": {
+        "mean_own_nodes_lost": 0.46774193548387094,
+        "mean_repeated_damaging_replies": 0.08064516129032258,
+        "mean_own_coverage_lost": 1.0,
+        "mean_disconnected_own_nodes": -0.0,
+        "mean_root_connected_unbroken_cut_count": 0.08064516129032258
+      },
+      "candidate_finite_horizon_defense": {
+        "mean_own_nodes_lost": 0.4032258064516129,
+        "mean_repeated_damaging_replies": 0.06451612903225806,
+        "mean_own_coverage_lost": 0.8225806451612904,
+        "mean_disconnected_own_nodes": -0.0,
+        "mean_root_connected_unbroken_cut_count": 0.3225806451612903
+      },
+      "teacher_vector_comparisons": {
+        "better": 28,
+        "same": 34,
+        "worse": 0
+      },
+      "frozen_value_tensor_count": 2,
+      "frozen_value_parameter_bytes_equal": true,
+      "graph_value_prediction_drift": null,
+      "active_pass_runtime_contract": true,
+      "unrepresentable_pass_targets_under_current_product_mask": 0
+    }
+  ],
+  "prior_failed_run": {
+    "run": "local_artifacts/defensive-warmstart-v2/neural-train-r1",
+    "status": "FATAL",
+    "durable_updates": 0,
+    "completed_models": 0,
+    "same_frozen_identity_as_successful_run": true,
+    "cause": "concurrent linear stage rewrote identical source manifest, triggering mtime/size input guard; no optimizer updates had committed",
+    "resolution": "preserved r1; launched fresh r2 after linear pipeline COMPLETE without weakening guards"
+  },
+  "strength_verified": false,
+  "runtime_admitted": false,
+  "neural_full_game_arena_run": false,
+  "browser_or_wechat_candidate_acceptance": false,
+  "limitations": [
+    "Source subset is two-player triangle only; current plan selects crowded tactical positions with <=4 legal placements.",
+    "Whole-game holdout is independent of fitting, but the same feasibility prefilter and late-state selection apply.",
+    "Teacher vectors are finite-horizon paranoid-minimax counterfactual values, not realized match outcomes.",
+    "Defense metrics attach exact teacher root vectors to raw policy argmax actions; they do not evaluate the candidate's subsequent policy or actual PUCT search.",
+    "Frozen value parameters do not freeze value outputs when the shared backbone changes; no terminal-outcome calibration is established.",
+    "Legacy graph manifests without action_contract.pass hide voluntary PASS under current ResearchAI runtime.",
+    "No full-game arena, browser/native numerical parity, device acceptance, or product admission is claimed."
+  ]
+}

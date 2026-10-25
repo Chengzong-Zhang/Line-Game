@@ -1,0 +1,106 @@
+{
+  "schema": "lifeline-source6-continuation-independent-closure-v1",
+  "status": "PASS_SOURCE6_TRAINING_CLOSURE_AND_FINITE_TEACHER_ARITHMETIC",
+  "run_root": "local_artifacts/defensive-warmstart-v2/application-source6-r1/",
+  "completion_receipt_sha256": "5a87e126d2a2168e28e72521eb57d3377883713e1b02a365ff370ed50d641a6c",
+  "dataset_manifest_sha256": "a3c1ef8d6ade2705bde369b0179f0c8f4b690af8b37bf9a1499b9eaf4e2f1ebb",
+  "input_sha256": "29e7f1885d9f9778c91b629e7bb39e7cf79dd4e707129a16a754ab5c6fdc13c9",
+  "protocol_sha256": "c2411b9aa5565a7412970040282861e284bb85b4ad76f04ad3ea7c97e2a42197",
+  "progress": {
+    "completed": 210,
+    "total": 210,
+    "labels": 6,
+    "model_updates": 200,
+    "heldout_position_comparisons": 4
+  },
+  "source_split": {
+    "train": 4,
+    "validation": 2,
+    "train_shape_size": "triangle/7",
+    "validation_shape_size": "hexagon/5",
+    "independent_episodes": 5
+  },
+  "actual_depth": {
+    "required": 12,
+    "minimum_completed": 12,
+    "minimum_actual_max_reached": 12,
+    "maximum_actual_max_reached": 12,
+    "labels_verified": 6,
+    "full_roots_with_pass": true,
+    "all_roots_exact": true,
+    "maximum_label_elapsed_ms": 3531.3316999999997
+  },
+  "supervision": {
+    "status": "COMPLETE",
+    "attempts": 27,
+    "abnormal_exits": 0,
+    "no_progress_exits": 0,
+    "original_absolute_deadline": 1792925821524
+  },
+  "models": {
+    "easy": {
+      "parent_id": "multiplayer-easy-v1",
+      "parent_sha256": "d7560db53483ab9ee2a7c423509142924545f1679ec35201b369e3b91fe161a0",
+      "updates": 100,
+      "changed_weights": 16,
+      "pass_bias": 0.735325412278329,
+      "initial_training_ce": 2.1298941919592242,
+      "training_ce": 1.624445110348351,
+      "parent_neutral_pass_heldout": {
+        "cross_entropy": 0.46324673962234614,
+        "teacher_top1_agreement": 1,
+        "samples": 2
+      },
+      "candidate_heldout": {
+        "cross_entropy": 0.351244867249287,
+        "teacher_top1_agreement": 1,
+        "samples": 2
+      },
+      "candidate_sha256": "ee6aff84cdc74542bcf5e91b073038e26aa3eface0026ea300217c394e57c14b",
+      "heldout_report_sha256": "e046e620a315d6f05016d283b4185f333db61205f7fb48e39666193d17167a6a",
+      "strength_verified": false,
+      "runtime_admitted": false
+    },
+    "hex-v1": {
+      "parent_id": "hex-player-policy-v1",
+      "parent_sha256": "74aa7f945c3ea7ff5ca3edc9e7bdc431dc0ec5ad56d2563ce6d6d24c0494162b",
+      "updates": 100,
+      "changed_weights": 16,
+      "pass_bias": 0.7163564695886487,
+      "initial_training_ce": 1.9341565412939075,
+      "training_ce": 1.4637585780400661,
+      "parent_neutral_pass_heldout": {
+        "cross_entropy": 0.8185358079654498,
+        "teacher_top1_agreement": 1,
+        "samples": 2
+      },
+      "candidate_heldout": {
+        "cross_entropy": 0.5462251718164588,
+        "teacher_top1_agreement": 1,
+        "samples": 2
+      },
+      "candidate_sha256": "94ab9c4f0a9cbc7fa63cdf52b713e4adc082f20c941ddd8d3fe524da1df76b85",
+      "heldout_report_sha256": "e12a2e34aacbccc7db5e8ec37764465aba21a95afe223294cbe41e14a8f2e876",
+      "strength_verified": false,
+      "runtime_admitted": false
+    }
+  },
+  "checks": [
+    "Complete supervisor/progress/parent+model+evaluation checkpoints agree",
+    "Frozen protocol/input/source and candidate/report hashes match",
+    "Strict v1 source-bound loader validates every complete defensive label",
+    "Six canonical nonterminal full-state labels actually reached 12 plies",
+    "Original parent16/temp+newPASS0 initialization and changed17weights verified",
+    "Independent softmax dot-product CE and heldout agreement match stored aggregates to1e-12"
+  ],
+  "teacher_search_recomputed": false,
+  "full_games_played_in_this_review": 0,
+  "strength_verified": false,
+  "runtime_admitted": false,
+  "limitations": [
+    "Four triangle7 training positions and two hex5 validation positions are a small shifted configuration sample.",
+    "Both inherited parent and candidate choose teacher-optimal actions on the same2heldout positions; only probabilities/CE differ.",
+    "Finite teacher imitation and checkpoint closure do not establish complete-game strength, latency, product admission or release.",
+    "Actual maximum depth12 permits earlier terminal branches and canonical skipped seats; no per-opponent2actual-actions witness."
+  ]
+}

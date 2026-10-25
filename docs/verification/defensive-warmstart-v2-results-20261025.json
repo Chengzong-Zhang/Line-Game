@@ -1,0 +1,836 @@
+{
+  "schema": "lifeline-existing-weight-defensive-training-results-v2",
+  "recorded_at_utc": "2026-10-25T10:51:20.197704+00:00",
+  "source_commit": "4bb6682e8f24a14037bb2e4198676989bf18beba",
+  "status": "ACTUAL_WARMSTART_COMPLETE_STRENGTH_PENDING",
+  "training_method": "Weights-only supervised policy continuation from existing product/research weights; new optimizer/RNG. Not an RL algorithm continuation.",
+  "linear_training": {
+    "completion_status": "TRAINING_COMPLETE_STRENGTH_PENDING",
+    "completed_units": 690,
+    "total_units": 690,
+    "data_manifest_sha256": "9bb52809324f3f962084a511fc292fd520adb7e5ca24dcba1bc00de3623b29d8",
+    "positions": 172,
+    "coverage": {
+      "2/train": 61,
+      "2/validation": 62,
+      "3/train": 23,
+      "3/validation": 16,
+      "4/train": 5,
+      "4/validation": 2,
+      "5/validation": 2,
+      "5/train": 1
+    },
+    "models": [
+      {
+        "parent": "easy",
+        "parent_id": "multiplayer-easy-v1",
+        "parent_sha256": "d7560db53483ab9ee2a7c423509142924545f1679ec35201b369e3b91fe161a0",
+        "candidate_sha256": "81c7be144af0d13dce6e54cdd81ced9b5d4362710c5cf84ecdbd996cacaf63ef",
+        "updates": 100,
+        "training_samples": 90,
+        "validation_samples": 82,
+        "initial_training_ce": 1.5114802615513883,
+        "final_training_ce": 1.445923169908366,
+        "initial_validation_ce": 1.7635364513764404,
+        "final_validation_ce": 1.6840076963016577,
+        "initial_teacher_top1": 0.5487804878048781,
+        "final_teacher_top1": 0.5609756097560976,
+        "candidate_worst_reply": {
+          "terminal_outcome": -0.4024390243902439,
+          "root_node_loss": 0.32926829268292684,
+          "repeated_damaging_replies_beyond_first": 0.10975609756097561,
+          "root_coverage_loss": 0.6829268292682927,
+          "disconnected_root_nodes": 0,
+          "persistent_root_connected_cuts": 0.3048780487804878,
+          "retained_enemy_node_losses": 0.7682926829268293,
+          "own_nodes": 4.585365853658536,
+          "own_coverage": 6.560975609756097
+        },
+        "parent_worst_reply": {
+          "terminal_outcome": -0.4146341463414634,
+          "root_node_loss": 0.32926829268292684,
+          "repeated_damaging_replies_beyond_first": 0.10975609756097561,
+          "root_coverage_loss": 0.6829268292682927,
+          "disconnected_root_nodes": 0,
+          "persistent_root_connected_cuts": 0.3048780487804878,
+          "retained_enemy_node_losses": 0.7682926829268293,
+          "own_nodes": 4.560975609756097,
+          "own_coverage": 6.536585365853658
+        },
+        "parent_comparison": "Parent placement coefficients divided by original temperature, extended with neutral PASS=0. Excludes original rollout search, safe-PASS branch and defensive runtime gate.",
+        "candidate_local_path": "C:\\Users\\zcz\\.codex\\worktrees\\defense-15-players\\line game\\local_artifacts\\defensive-warmstart-v2\\application-train-r1\\models\\easy\\candidate.json",
+        "strength_verified": false,
+        "runtime_admitted": false
+      },
+      {
+        "parent": "three-v4",
+        "parent_id": "three-player-search-v4-round12",
+        "parent_sha256": "9b85f5fff27001d68407c30d6f707b461b1b468d657c8292339e97d23868c230",
+        "candidate_sha256": "957ce98f5403c51f8e0633eda7e955f011273ef72f1bc7b2d3c42f55e5a81d34",
+        "updates": 100,
+        "training_samples": 23,
+        "validation_samples": 16,
+        "initial_training_ce": 1.1996317379441173,
+        "final_training_ce": 0.9083434804708045,
+        "initial_validation_ce": 1.8779734135394848,
+        "final_validation_ce": 1.4329116686861336,
+        "initial_teacher_top1": 0.25,
+        "final_teacher_top1": 0.375,
+        "candidate_worst_reply": {
+          "terminal_outcome": -0.625,
+          "root_node_loss": 0.125,
+          "repeated_damaging_replies_beyond_first": 0.0625,
+          "root_coverage_loss": 0.375,
+          "disconnected_root_nodes": 0,
+          "persistent_root_connected_cuts": 0.25,
+          "retained_enemy_node_losses": 0.375,
+          "own_nodes": 4.3125,
+          "own_coverage": 5.9375
+        },
+        "parent_worst_reply": {
+          "terminal_outcome": -0.75,
+          "root_node_loss": 0.0625,
+          "repeated_damaging_replies_beyond_first": 0,
+          "root_coverage_loss": 0.1875,
+          "disconnected_root_nodes": 0,
+          "persistent_root_connected_cuts": 0.1875,
+          "retained_enemy_node_losses": 0.3125,
+          "own_nodes": 4.125,
+          "own_coverage": 5.875
+        },
+        "parent_comparison": "Parent placement coefficients divided by original temperature, extended with neutral PASS=0. Excludes original rollout search, safe-PASS branch and defensive runtime gate.",
+        "candidate_local_path": "C:\\Users\\zcz\\.codex\\worktrees\\defense-15-players\\line game\\local_artifacts\\defensive-warmstart-v2\\application-train-r1\\models\\three-v4\\candidate.json",
+        "strength_verified": false,
+        "runtime_admitted": false
+      },
+      {
+        "parent": "three-v1",
+        "parent_id": "three-player-policy-v1",
+        "parent_sha256": "8cd1a2f36267f96b1e32b7749a9cdc785f489ea7ec12e31aee0beb0a72901794",
+        "candidate_sha256": "480473ce30ba144c8f3d44c6deb067c014af993f6ac28b3aff9895f8717798f7",
+        "updates": 100,
+        "training_samples": 23,
+        "validation_samples": 16,
+        "initial_training_ce": 0.7570690011923723,
+        "final_training_ce": 0.7260392642059601,
+        "initial_validation_ce": 1.0521585845222774,
+        "final_validation_ce": 0.9972702919527439,
+        "initial_teacher_top1": 0.5,
+        "final_teacher_top1": 0.5625,
+        "candidate_worst_reply": {
+          "terminal_outcome": -0.4375,
+          "root_node_loss": 0.25,
+          "repeated_damaging_replies_beyond_first": 0.0625,
+          "root_coverage_loss": 0.5625,
+          "disconnected_root_nodes": 0,
+          "persistent_root_connected_cuts": 0.375,
+          "retained_enemy_node_losses": 0.5625,
+          "own_nodes": 4.625,
+          "own_coverage": 6.5
+        },
+        "parent_worst_reply": {
+          "terminal_outcome": -0.5,
+          "root_node_loss": 0.25,
+          "repeated_damaging_replies_beyond_first": 0.0625,
+          "root_coverage_loss": 0.5625,
+          "disconnected_root_nodes": 0,
+          "persistent_root_connected_cuts": 0.3125,
+          "retained_enemy_node_losses": 0.5,
+          "own_nodes": 4.4375,
+          "own_coverage": 6.1875
+        },
+        "parent_comparison": "Parent placement coefficients divided by original temperature, extended with neutral PASS=0. Excludes original rollout search, safe-PASS branch and defensive runtime gate.",
+        "candidate_local_path": "C:\\Users\\zcz\\.codex\\worktrees\\defense-15-players\\line game\\local_artifacts\\defensive-warmstart-v2\\application-train-r1\\models\\three-v1\\candidate.json",
+        "strength_verified": false,
+        "runtime_admitted": false
+      },
+      {
+        "parent": "hex-v1",
+        "parent_id": "hex-player-policy-v1",
+        "parent_sha256": "74aa7f945c3ea7ff5ca3edc9e7bdc431dc0ec5ad56d2563ce6d6d24c0494162b",
+        "candidate_sha256": "51971a349263a9dac6dae673e5e60f54ee2eec1d33c668849116a62628db0274",
+        "updates": 100,
+        "training_samples": 6,
+        "validation_samples": 4,
+        "initial_training_ce": 1.0097714218148819,
+        "final_training_ce": 0.9604616390214152,
+        "initial_validation_ce": 0.5421800347784634,
+        "final_validation_ce": 0.5812895815008382,
+        "initial_teacher_top1": 0.75,
+        "final_teacher_top1": 0.75,
+        "candidate_worst_reply": {
+          "terminal_outcome": 0,
+          "root_node_loss": 0,
+          "repeated_damaging_replies_beyond_first": 0,
+          "root_coverage_loss": 0,
+          "disconnected_root_nodes": 0,
+          "persistent_root_connected_cuts": 0.5,
+          "retained_enemy_node_losses": 2.5,
+          "own_nodes": 10,
+          "own_coverage": 13.5
+        },
+        "parent_worst_reply": {
+          "terminal_outcome": 0,
+          "root_node_loss": 0,
+          "repeated_damaging_replies_beyond_first": 0,
+          "root_coverage_loss": 0,
+          "disconnected_root_nodes": 0,
+          "persistent_root_connected_cuts": 0.5,
+          "retained_enemy_node_losses": 2.5,
+          "own_nodes": 10,
+          "own_coverage": 13.5
+        },
+        "parent_comparison": "Parent placement coefficients divided by original temperature, extended with neutral PASS=0. Excludes original rollout search, safe-PASS branch and defensive runtime gate.",
+        "candidate_local_path": "C:\\Users\\zcz\\.codex\\worktrees\\defense-15-players\\line game\\local_artifacts\\defensive-warmstart-v2\\application-train-r1\\models\\hex-v1\\candidate.json",
+        "strength_verified": false,
+        "runtime_admitted": false
+      }
+    ]
+  },
+  "neural_training": {
+    "status": "COMPLETE_ARTIFACTS_VERIFIED_HELDOUT_TEACHER_ONLY",
+    "models": 17,
+    "updates": 1700,
+    "updates_per_model": 100,
+    "training_positions": 61,
+    "validation_positions": 62,
+    "all_parent_initializations_byte_exact": true,
+    "all_exported_weights_changed": true,
+    "heldout_ce_improved_models": 17,
+    "heldout_optimal_action_agreement_improved": 14,
+    "heldout_optimal_action_agreement_tied": 2,
+    "heldout_optimal_action_agreement_worsened": 1,
+    "candidate_local_root": "C:\\Users\\zcz\\.codex\\worktrees\\defense-15-players\\line game\\local_artifacts\\defensive-warmstart-v2\\neural-train-r2",
+    "training_receipt_sha256": "6c506e67a132b78707f9ad549e9aee32f9db6ccdd5b4e48caee14b39781f8ad9",
+    "independent_verification_sha256": "d28926e59dda0f8e4fde647f0969d510b1794cec3ca912ee08b9d821c2b214c4",
+    "source_hashes": {
+      "research/iclr2027/lifeline_rl/alphazero/network.py": "02d92f165ff445aa9e92266933d5ed83fe04c19d3201fcde6803705762c41f09",
+      "web/tools/defensive_neural_core_v2.py": "4bf3f0c4c7f3facc9ca645ceb13d28385064410d0d4095e7eaf1e7a884a88d75",
+      "web/tools/export-defensive-neural-v2.mjs": "ed99f16027509fbbd842a3ab7f3babfca2454d7aa88701becd5c7833e092d6fd",
+      "web/tools/neural_posttraining_core.py": "a6cbe99ac715ffc042b0e9e8772b4d5ea53e8530549a0632185d8cba60129dca",
+      "web/tools/train-defensive-neural-v2.py": "073111b88c41b254949747d0643a424ab055a922a5d4a7166708a96370a79abd",
+      "web/web前端/ModelFreeAI.js": "baeccb4aba92d79dda581f64f145675d6558892aeb4cb3f7df0b05507e24ffa6",
+      "web/web前端/ResearchAI.js": "6183caaa6cb739b6062aa25612fc5de9047f3fb30e2936e7a262104bb561298b"
+    },
+    "config_sha256": "61e3b952dd9826d8413953bdc2ff50644a2bcdd6c96e8720cf6f18aa8ac47539",
+    "parent_manifest_hashes": {
+      "web/web前端/assets/research-ai/manifest.json": "e8908ce0d22b54fb31d3bdac5c97eb88b3aa6e3068a7599a7c8be517f3b42250",
+      "web/web前端/assets/research-ai/transfer-v1/manifest.json": "847fd30c08a145e202fafe58bcfc5a70ddaf5bf422c74d9efbb2ec35b46ef1c4",
+      "web/web前端/assets/research-ai/model-free-manifest.json": "0762301fad905a62d1381777f2dd58bfe883d3320faeba94faa09fd19880e83d"
+    },
+    "legacy_candidates_missing_voluntary_pass_runtime_contract": 3,
+    "models_summary": [
+      {
+        "parent_id": "padded-cnn-d14-s20260825-g200",
+        "parent_sha256": "cea913f58d1694926fb6710ca355bf6d41e5a6c49b991af87b836ae26d43bf1f",
+        "candidate_sha256": "1838ac02ef3e8dc7ceecac85e09553dd20df0436b600cb480c206bc9488a3bdc",
+        "initial_ce": 1.0629835853436658,
+        "final_ce": 0.9805236816343402,
+        "initial_teacher_optimal_action_agreement": 0.7580645161290323,
+        "final_teacher_optimal_action_agreement": 0.7580645161290323,
+        "graph_value_prediction_drift": {
+          "positions": 62,
+          "mean_absolute": 0.09663372439512562,
+          "max_absolute": 0.2118743434548378,
+          "mean_signed": -0.09663372439512562
+        },
+        "candidate_defense_metrics": {
+          "mean_own_nodes_lost": 0.3709677419354839,
+          "mean_repeated_damaging_replies": 0.08064516129032258,
+          "mean_own_coverage_lost": 0.7580645161290323,
+          "mean_disconnected_own_nodes": -0.0,
+          "mean_root_connected_unbroken_cut_count": 0.3225806451612903
+        },
+        "parent_defense_metrics": {
+          "mean_own_nodes_lost": 0.3709677419354839,
+          "mean_repeated_damaging_replies": 0.06451612903225806,
+          "mean_own_coverage_lost": 0.7258064516129032,
+          "mean_disconnected_own_nodes": -0.0,
+          "mean_root_connected_unbroken_cut_count": 0.3387096774193548
+        }
+      },
+      {
+        "parent_id": "grid-gnn-d14-s20260825-g200",
+        "parent_sha256": "92cc45bb2a3a6a56c896098c1e843a136587a9aaf07381fbf1d00ebb4fd02dfa",
+        "candidate_sha256": "1a45a14cb0ffc48c863349c5ed05c06540720ea52444c78339ce02f42c3fb576",
+        "initial_ce": 1.069206684803957,
+        "final_ce": 0.9345389603006717,
+        "initial_teacher_optimal_action_agreement": 0.6612903225806451,
+        "final_teacher_optimal_action_agreement": 0.7741935483870968,
+        "graph_value_prediction_drift": {
+          "positions": 62,
+          "mean_absolute": 0.14708703652685207,
+          "max_absolute": 0.22777418792247772,
+          "mean_signed": -0.14708703652685207
+        },
+        "candidate_defense_metrics": {
+          "mean_own_nodes_lost": 0.41935483870967744,
+          "mean_repeated_damaging_replies": 0.0967741935483871,
+          "mean_own_coverage_lost": 0.8548387096774194,
+          "mean_disconnected_own_nodes": -0.0,
+          "mean_root_connected_unbroken_cut_count": 0.3225806451612903
+        },
+        "parent_defense_metrics": {
+          "mean_own_nodes_lost": 0.43548387096774194,
+          "mean_repeated_damaging_replies": 0.12903225806451613,
+          "mean_own_coverage_lost": 0.8870967741935484,
+          "mean_disconnected_own_nodes": -0.0,
+          "mean_root_connected_unbroken_cut_count": 0.2903225806451613
+        }
+      },
+      {
+        "parent_id": "topology-gnn-d14-s20260825-g200",
+        "parent_sha256": "de7f1a4c9c204d0f88598f5d7d92e180e291060b11cc711c8f9e786207cf34d0",
+        "candidate_sha256": "209068099f40c99b344c8ac75f515595e7fd260a89d712dbd980e100fd34b29f",
+        "initial_ce": 1.0176764136037968,
+        "final_ce": 0.9359134529843998,
+        "initial_teacher_optimal_action_agreement": 0.6774193548387096,
+        "final_teacher_optimal_action_agreement": 0.7258064516129032,
+        "graph_value_prediction_drift": {
+          "positions": 62,
+          "mean_absolute": 0.059727011533874656,
+          "max_absolute": 0.14429278671741486,
+          "mean_signed": -0.059727011533874656
+        },
+        "candidate_defense_metrics": {
+          "mean_own_nodes_lost": 0.4032258064516129,
+          "mean_repeated_damaging_replies": 0.0967741935483871,
+          "mean_own_coverage_lost": 0.8387096774193549,
+          "mean_disconnected_own_nodes": -0.0,
+          "mean_root_connected_unbroken_cut_count": 0.3064516129032258
+        },
+        "parent_defense_metrics": {
+          "mean_own_nodes_lost": 0.3709677419354839,
+          "mean_repeated_damaging_replies": 0.0967741935483871,
+          "mean_own_coverage_lost": 0.7741935483870968,
+          "mean_disconnected_own_nodes": -0.0,
+          "mean_root_connected_unbroken_cut_count": 0.3064516129032258
+        }
+      },
+      {
+        "parent_id": "padded-cnn-transfer-v1-seed2026092201",
+        "parent_sha256": "416ee1a88f092ab514dd40c8a22604a761a20b223409eaaef64f61c691108242",
+        "candidate_sha256": "77df1b0ddb3eeb32169941014d325f1ea70e1f4e72c54de8d106a75fe4759990",
+        "initial_ce": 1.267932988506682,
+        "final_ce": 1.0206194058957936,
+        "initial_teacher_optimal_action_agreement": 0.6935483870967742,
+        "final_teacher_optimal_action_agreement": 0.7258064516129032,
+        "graph_value_prediction_drift": {
+          "positions": 62,
+          "mean_absolute": 0.33711122696085144,
+          "max_absolute": 0.8039203733205795,
+          "mean_signed": 0.33711122696085144
+        },
+        "candidate_defense_metrics": {
+          "mean_own_nodes_lost": 0.43548387096774194,
+          "mean_repeated_damaging_replies": 0.08064516129032258,
+          "mean_own_coverage_lost": 0.8870967741935484,
+          "mean_disconnected_own_nodes": -0.0,
+          "mean_root_connected_unbroken_cut_count": 0.3064516129032258
+        },
+        "parent_defense_metrics": {
+          "mean_own_nodes_lost": 0.43548387096774194,
+          "mean_repeated_damaging_replies": 0.0967741935483871,
+          "mean_own_coverage_lost": 0.8870967741935484,
+          "mean_disconnected_own_nodes": -0.0,
+          "mean_root_connected_unbroken_cut_count": 0.2903225806451613
+        }
+      },
+      {
+        "parent_id": "padded-cnn-transfer-v1-seed2026092202",
+        "parent_sha256": "cd36fdd3a96e78066475fb67056fa179bf7765028fbf9e4db7a172857b134af3",
+        "candidate_sha256": "f7729f1c99efecff5bad468244ef25821fdb97520c20ed769288a6d79dfccdb2",
+        "initial_ce": 1.2379818947398806,
+        "final_ce": 1.0294248709549085,
+        "initial_teacher_optimal_action_agreement": 0.6774193548387096,
+        "final_teacher_optimal_action_agreement": 0.7096774193548387,
+        "graph_value_prediction_drift": {
+          "positions": 62,
+          "mean_absolute": 0.07594092092251466,
+          "max_absolute": 0.6052540466189384,
+          "mean_signed": 0.04826113343944833
+        },
+        "candidate_defense_metrics": {
+          "mean_own_nodes_lost": 0.4032258064516129,
+          "mean_repeated_damaging_replies": 0.08064516129032258,
+          "mean_own_coverage_lost": 0.8225806451612904,
+          "mean_disconnected_own_nodes": -0.0,
+          "mean_root_connected_unbroken_cut_count": 0.3064516129032258
+        },
+        "parent_defense_metrics": {
+          "mean_own_nodes_lost": 0.4032258064516129,
+          "mean_repeated_damaging_replies": 0.08064516129032258,
+          "mean_own_coverage_lost": 0.8225806451612904,
+          "mean_disconnected_own_nodes": -0.0,
+          "mean_root_connected_unbroken_cut_count": 0.2903225806451613
+        }
+      },
+      {
+        "parent_id": "padded-cnn-transfer-v1-seed2026092203",
+        "parent_sha256": "ee60f6d279941c78af999c6d051d514bf90f09b9478272d8557d482bb24dd07c",
+        "candidate_sha256": "990db1f34515b9867ae14e410b45fcd4af614f22d1749024b56596103224ca46",
+        "initial_ce": 1.1647324506548118,
+        "final_ce": 1.016540145319151,
+        "initial_teacher_optimal_action_agreement": 0.7258064516129032,
+        "final_teacher_optimal_action_agreement": 0.7419354838709677,
+        "graph_value_prediction_drift": {
+          "positions": 62,
+          "mean_absolute": 0.09091423465138031,
+          "max_absolute": 0.5491042286157608,
+          "mean_signed": 0.09091423465138031
+        },
+        "candidate_defense_metrics": {
+          "mean_own_nodes_lost": 0.4032258064516129,
+          "mean_repeated_damaging_replies": 0.08064516129032258,
+          "mean_own_coverage_lost": 0.8387096774193549,
+          "mean_disconnected_own_nodes": -0.0,
+          "mean_root_connected_unbroken_cut_count": 0.3225806451612903
+        },
+        "parent_defense_metrics": {
+          "mean_own_nodes_lost": 0.43548387096774194,
+          "mean_repeated_damaging_replies": 0.08064516129032258,
+          "mean_own_coverage_lost": 0.8870967741935484,
+          "mean_disconnected_own_nodes": -0.0,
+          "mean_root_connected_unbroken_cut_count": 0.3064516129032258
+        }
+      },
+      {
+        "parent_id": "grid-gnn-transfer-v1-seed2026092201",
+        "parent_sha256": "e0b82a1736521fb967afb7861ba1fcc697b505990d5b6391abb8318dbef42a0b",
+        "candidate_sha256": "2ae2c69f08002ff62abb9500f0916539a2f68938d7689a7bc941ac9a6c9e9b11",
+        "initial_ce": 1.243077846958354,
+        "final_ce": 1.047265222051754,
+        "initial_teacher_optimal_action_agreement": 0.7096774193548387,
+        "final_teacher_optimal_action_agreement": 0.7419354838709677,
+        "graph_value_prediction_drift": {
+          "positions": 62,
+          "mean_absolute": 0.08992694077859333,
+          "max_absolute": 0.25977852940559387,
+          "mean_signed": -0.08840395846580636
+        },
+        "candidate_defense_metrics": {
+          "mean_own_nodes_lost": 0.43548387096774194,
+          "mean_repeated_damaging_replies": 0.11290322580645161,
+          "mean_own_coverage_lost": 0.8709677419354839,
+          "mean_disconnected_own_nodes": -0.0,
+          "mean_root_connected_unbroken_cut_count": 0.3225806451612903
+        },
+        "parent_defense_metrics": {
+          "mean_own_nodes_lost": 0.43548387096774194,
+          "mean_repeated_damaging_replies": 0.11290322580645161,
+          "mean_own_coverage_lost": 0.9193548387096774,
+          "mean_disconnected_own_nodes": -0.0,
+          "mean_root_connected_unbroken_cut_count": 0.3064516129032258
+        }
+      },
+      {
+        "parent_id": "grid-gnn-transfer-v1-seed2026092202",
+        "parent_sha256": "5db4b00462d8e30d2d293adf554da3e0e6b4cde6d40d3f82b590b23fa267000b",
+        "candidate_sha256": "776bce595b28c1c7bfdf8cf923594f1edbb63dd11b34229388d2e0d1019519be",
+        "initial_ce": 1.2913846560810625,
+        "final_ce": 1.050562913215636,
+        "initial_teacher_optimal_action_agreement": 0.6451612903225806,
+        "final_teacher_optimal_action_agreement": 0.7258064516129032,
+        "graph_value_prediction_drift": {
+          "positions": 62,
+          "mean_absolute": 0.07426309596649522,
+          "max_absolute": 0.16631216555833817,
+          "mean_signed": 0.07034353081760328
+        },
+        "candidate_defense_metrics": {
+          "mean_own_nodes_lost": 0.4032258064516129,
+          "mean_repeated_damaging_replies": 0.11290322580645161,
+          "mean_own_coverage_lost": 0.8064516129032258,
+          "mean_disconnected_own_nodes": -0.0,
+          "mean_root_connected_unbroken_cut_count": 0.3064516129032258
+        },
+        "parent_defense_metrics": {
+          "mean_own_nodes_lost": 0.43548387096774194,
+          "mean_repeated_damaging_replies": 0.11290322580645161,
+          "mean_own_coverage_lost": 0.9193548387096774,
+          "mean_disconnected_own_nodes": -0.0,
+          "mean_root_connected_unbroken_cut_count": 0.3064516129032258
+        }
+      },
+      {
+        "parent_id": "grid-gnn-transfer-v1-seed2026092203",
+        "parent_sha256": "67079d1d6108732cddfeecf74840ae63505488af052e068ab1a83bf96c56bf87",
+        "candidate_sha256": "1ac41ad2d5f0209427a85922760838a240c87da53e5abb8b7adb0fe2806ed1b6",
+        "initial_ce": 1.2210630919542413,
+        "final_ce": 1.0068379261619458,
+        "initial_teacher_optimal_action_agreement": 0.6451612903225806,
+        "final_teacher_optimal_action_agreement": 0.7258064516129032,
+        "graph_value_prediction_drift": {
+          "positions": 62,
+          "mean_absolute": 0.05038074186942991,
+          "max_absolute": 0.1696377843618393,
+          "mean_signed": -0.0484024663530891
+        },
+        "candidate_defense_metrics": {
+          "mean_own_nodes_lost": 0.4032258064516129,
+          "mean_repeated_damaging_replies": 0.11290322580645161,
+          "mean_own_coverage_lost": 0.8064516129032258,
+          "mean_disconnected_own_nodes": -0.0,
+          "mean_root_connected_unbroken_cut_count": 0.3064516129032258
+        },
+        "parent_defense_metrics": {
+          "mean_own_nodes_lost": 0.4032258064516129,
+          "mean_repeated_damaging_replies": 0.12903225806451613,
+          "mean_own_coverage_lost": 0.8548387096774194,
+          "mean_disconnected_own_nodes": -0.0,
+          "mean_root_connected_unbroken_cut_count": 0.2903225806451613
+        }
+      },
+      {
+        "parent_id": "topology-gnn-transfer-v1-seed2026092201",
+        "parent_sha256": "0235947ee5a3eb6aa36627da06270e0854f3ece5c2b509d6a4f85d830a54f5ba",
+        "candidate_sha256": "4c8221184f82411a7597130b740f5c6a734e2fa9e42f1a8cfa7011fafd7bc220",
+        "initial_ce": 1.1086319796950064,
+        "final_ce": 1.0168112387614614,
+        "initial_teacher_optimal_action_agreement": 0.7258064516129032,
+        "final_teacher_optimal_action_agreement": 0.7258064516129032,
+        "graph_value_prediction_drift": {
+          "positions": 62,
+          "mean_absolute": 0.16499982174155453,
+          "max_absolute": 0.3682657703757286,
+          "mean_signed": -0.16499982174155453
+        },
+        "candidate_defense_metrics": {
+          "mean_own_nodes_lost": 0.4032258064516129,
+          "mean_repeated_damaging_replies": 0.0967741935483871,
+          "mean_own_coverage_lost": 0.8387096774193549,
+          "mean_disconnected_own_nodes": -0.0,
+          "mean_root_connected_unbroken_cut_count": 0.3064516129032258
+        },
+        "parent_defense_metrics": {
+          "mean_own_nodes_lost": 0.4032258064516129,
+          "mean_repeated_damaging_replies": 0.0967741935483871,
+          "mean_own_coverage_lost": 0.8387096774193549,
+          "mean_disconnected_own_nodes": -0.0,
+          "mean_root_connected_unbroken_cut_count": 0.3064516129032258
+        }
+      },
+      {
+        "parent_id": "topology-gnn-transfer-v1-seed2026092202",
+        "parent_sha256": "4c424c0f0ac19724d7fa51741d199bd780781d7063b325671fe9197f6b6abc9b",
+        "candidate_sha256": "51dc159cb4d0498c56021238ed411c071450a42a2ab3d41c5cd1d8c9a8990719",
+        "initial_ce": 1.1672354156938078,
+        "final_ce": 1.0146338629957423,
+        "initial_teacher_optimal_action_agreement": 0.7096774193548387,
+        "final_teacher_optimal_action_agreement": 0.7258064516129032,
+        "graph_value_prediction_drift": {
+          "positions": 62,
+          "mean_absolute": 0.10663596062635582,
+          "max_absolute": 0.21489465981721878,
+          "mean_signed": -0.10663596062635582
+        },
+        "candidate_defense_metrics": {
+          "mean_own_nodes_lost": 0.4032258064516129,
+          "mean_repeated_damaging_replies": 0.0967741935483871,
+          "mean_own_coverage_lost": 0.8225806451612904,
+          "mean_disconnected_own_nodes": -0.0,
+          "mean_root_connected_unbroken_cut_count": 0.3064516129032258
+        },
+        "parent_defense_metrics": {
+          "mean_own_nodes_lost": 0.4032258064516129,
+          "mean_repeated_damaging_replies": 0.0967741935483871,
+          "mean_own_coverage_lost": 0.8387096774193549,
+          "mean_disconnected_own_nodes": -0.0,
+          "mean_root_connected_unbroken_cut_count": 0.3064516129032258
+        }
+      },
+      {
+        "parent_id": "topology-gnn-transfer-v1-seed2026092203",
+        "parent_sha256": "5a8f6f4ed6954c5dda131c16403f2f2c680edefffc050d19f2cab25850dcc84b",
+        "candidate_sha256": "51b39c8bcf55dbe8b3bbeb98334ee0f5cc8e22128bcfa0c9f047d485eefe103a",
+        "initial_ce": 1.1781358787012168,
+        "final_ce": 1.0359751830909125,
+        "initial_teacher_optimal_action_agreement": 0.7096774193548387,
+        "final_teacher_optimal_action_agreement": 0.6935483870967742,
+        "graph_value_prediction_drift": {
+          "positions": 62,
+          "mean_absolute": 0.1412354956020511,
+          "max_absolute": 0.37109387665987015,
+          "mean_signed": -0.1412354956020511
+        },
+        "candidate_defense_metrics": {
+          "mean_own_nodes_lost": 0.4032258064516129,
+          "mean_repeated_damaging_replies": 0.0967741935483871,
+          "mean_own_coverage_lost": 0.8387096774193549,
+          "mean_disconnected_own_nodes": -0.0,
+          "mean_root_connected_unbroken_cut_count": 0.3064516129032258
+        },
+        "parent_defense_metrics": {
+          "mean_own_nodes_lost": 0.4032258064516129,
+          "mean_repeated_damaging_replies": 0.0967741935483871,
+          "mean_own_coverage_lost": 0.8387096774193549,
+          "mean_disconnected_own_nodes": -0.0,
+          "mean_root_connected_unbroken_cut_count": 0.3064516129032258
+        }
+      },
+      {
+        "parent_id": "dqn-all-sizes-e2000",
+        "parent_sha256": "16f50c330ad7cc239cfb0b2334538817c7c0d6cf4c01f6048b05c9ee4a9466eb",
+        "candidate_sha256": "1eb877aed4ce5911e4cbae6813a1019807cb3a881e9ce21485bb32717cf8d07b",
+        "initial_ce": 1.0675574170620032,
+        "final_ce": 0.9971895034670781,
+        "initial_teacher_optimal_action_agreement": 0.7096774193548387,
+        "final_teacher_optimal_action_agreement": 0.7741935483870968,
+        "graph_value_prediction_drift": null,
+        "candidate_defense_metrics": {
+          "mean_own_nodes_lost": 0.41935483870967744,
+          "mean_repeated_damaging_replies": 0.0967741935483871,
+          "mean_own_coverage_lost": 0.8387096774193549,
+          "mean_disconnected_own_nodes": -0.0,
+          "mean_root_connected_unbroken_cut_count": 0.3387096774193548
+        },
+        "parent_defense_metrics": {
+          "mean_own_nodes_lost": 0.46774193548387094,
+          "mean_repeated_damaging_replies": 0.0967741935483871,
+          "mean_own_coverage_lost": 0.9193548387096774,
+          "mean_disconnected_own_nodes": -0.0,
+          "mean_root_connected_unbroken_cut_count": 0.3387096774193548
+        }
+      },
+      {
+        "parent_id": "ppo-all-sizes-e2000",
+        "parent_sha256": "af41359ca0ee00b3be86a2f5b9363a513af942f6cfa0c50f31cb0f252c86de85",
+        "candidate_sha256": "24d6ca376a1ad3b969bdfe841dca0379a1ac6d92518988e484e1d3a2ce6db197",
+        "initial_ce": 4.584549867433982,
+        "final_ce": 2.9218917378831493,
+        "initial_teacher_optimal_action_agreement": 0.6935483870967742,
+        "final_teacher_optimal_action_agreement": 0.7258064516129032,
+        "graph_value_prediction_drift": null,
+        "candidate_defense_metrics": {
+          "mean_own_nodes_lost": 0.3870967741935484,
+          "mean_repeated_damaging_replies": 0.08064516129032258,
+          "mean_own_coverage_lost": 0.8064516129032258,
+          "mean_disconnected_own_nodes": -0.0,
+          "mean_root_connected_unbroken_cut_count": 0.3225806451612903
+        },
+        "parent_defense_metrics": {
+          "mean_own_nodes_lost": 0.41935483870967744,
+          "mean_repeated_damaging_replies": 0.06451612903225806,
+          "mean_own_coverage_lost": 0.8709677419354839,
+          "mean_disconnected_own_nodes": -0.0,
+          "mean_root_connected_unbroken_cut_count": 0.3064516129032258
+        }
+      },
+      {
+        "parent_id": "sac-all-sizes-e2000",
+        "parent_sha256": "63a1b80b456427a2545a31ff9af209fdde1f9cf8d41ae6984f36c09c116932bd",
+        "candidate_sha256": "b052aa9bd9ca12741cc4419048cbc4263a4c309f086667bbcfe42ab723df37dc",
+        "initial_ce": 1.3107379081061274,
+        "final_ce": 1.1382132212377114,
+        "initial_teacher_optimal_action_agreement": 0.6451612903225806,
+        "final_teacher_optimal_action_agreement": 0.6935483870967742,
+        "graph_value_prediction_drift": null,
+        "candidate_defense_metrics": {
+          "mean_own_nodes_lost": 0.3709677419354839,
+          "mean_repeated_damaging_replies": 0.0967741935483871,
+          "mean_own_coverage_lost": 0.7419354838709677,
+          "mean_disconnected_own_nodes": -0.0,
+          "mean_root_connected_unbroken_cut_count": 0.3225806451612903
+        },
+        "parent_defense_metrics": {
+          "mean_own_nodes_lost": 0.4032258064516129,
+          "mean_repeated_damaging_replies": 0.11290322580645161,
+          "mean_own_coverage_lost": 0.8387096774193549,
+          "mean_disconnected_own_nodes": -0.0,
+          "mean_root_connected_unbroken_cut_count": 0.3225806451612903
+        }
+      },
+      {
+        "parent_id": "gail-all-sizes",
+        "parent_sha256": "5951e4e3f057893275df6f44543f3747cd4275a616d52a5b8355e51760faea71",
+        "candidate_sha256": "bc807167de4f677f139c83d4232ac72448128cae60b56c41b518b58d08af201f",
+        "initial_ce": 1.597974002517165,
+        "final_ce": 1.1114025894117925,
+        "initial_teacher_optimal_action_agreement": 0.5,
+        "final_teacher_optimal_action_agreement": 0.7580645161290323,
+        "graph_value_prediction_drift": null,
+        "candidate_defense_metrics": {
+          "mean_own_nodes_lost": 0.4032258064516129,
+          "mean_repeated_damaging_replies": 0.08064516129032258,
+          "mean_own_coverage_lost": 0.8225806451612904,
+          "mean_disconnected_own_nodes": -0.0,
+          "mean_root_connected_unbroken_cut_count": 0.3548387096774194
+        },
+        "parent_defense_metrics": {
+          "mean_own_nodes_lost": 0.45161290322580644,
+          "mean_repeated_damaging_replies": 0.0967741935483871,
+          "mean_own_coverage_lost": 0.967741935483871,
+          "mean_disconnected_own_nodes": -0.0,
+          "mean_root_connected_unbroken_cut_count": 0.20967741935483872
+        }
+      },
+      {
+        "parent_id": "gan-all-sizes",
+        "parent_sha256": "63629d0027afb8ff2fdbc3e773be420c062361b315741d8371e47818c4ec30e5",
+        "candidate_sha256": "3c1ace21fcbfe1c0c9e556e451635679c77c2aecfde5471268d25c25a824a93d",
+        "initial_ce": 1.6108875238514724,
+        "final_ce": 1.1975386281166263,
+        "initial_teacher_optimal_action_agreement": 0.3709677419354839,
+        "final_teacher_optimal_action_agreement": 0.7580645161290323,
+        "graph_value_prediction_drift": null,
+        "candidate_defense_metrics": {
+          "mean_own_nodes_lost": 0.4032258064516129,
+          "mean_repeated_damaging_replies": 0.06451612903225806,
+          "mean_own_coverage_lost": 0.8225806451612904,
+          "mean_disconnected_own_nodes": -0.0,
+          "mean_root_connected_unbroken_cut_count": 0.3225806451612903
+        },
+        "parent_defense_metrics": {
+          "mean_own_nodes_lost": 0.46774193548387094,
+          "mean_repeated_damaging_replies": 0.08064516129032258,
+          "mean_own_coverage_lost": 1.0,
+          "mean_disconnected_own_nodes": -0.0,
+          "mean_root_connected_unbroken_cut_count": 0.08064516129032258
+        }
+      }
+    ],
+    "strength_verified": false,
+    "runtime_admitted": false
+  },
+  "runtime_weights_activated": false,
+  "limits": [
+    "Late tactical source selection, at most four legal placements; whole-game holdout does not imply broad state coverage.",
+    "Main run has 2-5 player labels only; native 4/5-player coverage is thin. Supplemental six-seat evidence is separately reported.",
+    "17 neural parents use only the 123 two-player triangular positions. Training fit is not PUCT or full-game strength.",
+    "Hex main heldout CE worsened; no candidate is admitted or automatically deployed.",
+    "Policy CE improvements do not imply better defense: some teacher argmax defense metrics worsened.",
+    "Graph value tensors stayed byte-identical but backbone training changed value outputs (maximum observed absolute change 0.803920).",
+    "Three legacy graph candidate manifests still lack voluntary PASS runtime contracts. Runtime integration and numerical parity are unfinished.",
+    "No trained weights were deployed, uploaded to Mini Game, or promoted. Raw F32/checkpoints remain local; compact evidence and tools are versioned."
+  ],
+  "existing_release": {
+    "web_url": "https://lifelinegame.cn/",
+    "release_id": "web-defense15-20261025-r1",
+    "player_count_range": [
+      2,
+      15
+    ],
+    "seven_to_fifteen_start_modes": [
+      "random",
+      "custom"
+    ],
+    "mini_version": "0.12.12",
+    "mini_status": "CODE_UPLOADED_EXPERIENCE_NOT_CONFIGURED",
+    "delivery_receipt": "docs/verification/defense15-release-20261025/delivery.json"
+  },
+  "six_seat_continuation": {
+    "status": "PASS_SOURCE6_TRAINING_CLOSURE_AND_FINITE_TEACHER_ARITHMETIC",
+    "completed_units": 210,
+    "total_units": 210,
+    "labels": 6,
+    "train_positions": 4,
+    "validation_positions": 2,
+    "actual_depth": 12,
+    "models": {
+      "easy": {
+        "parent_id": "multiplayer-easy-v1",
+        "parent_sha256": "d7560db53483ab9ee2a7c423509142924545f1679ec35201b369e3b91fe161a0",
+        "updates": 100,
+        "changed_weights": 16,
+        "pass_bias": 0.735325412278329,
+        "initial_training_ce": 2.1298941919592242,
+        "training_ce": 1.624445110348351,
+        "parent_neutral_pass_heldout": {
+          "cross_entropy": 0.46324673962234614,
+          "teacher_top1_agreement": 1,
+          "samples": 2
+        },
+        "candidate_heldout": {
+          "cross_entropy": 0.351244867249287,
+          "teacher_top1_agreement": 1,
+          "samples": 2
+        },
+        "candidate_sha256": "ee6aff84cdc74542bcf5e91b073038e26aa3eface0026ea300217c394e57c14b",
+        "heldout_report_sha256": "e046e620a315d6f05016d283b4185f333db61205f7fb48e39666193d17167a6a",
+        "strength_verified": false,
+        "runtime_admitted": false
+      },
+      "hex-v1": {
+        "parent_id": "hex-player-policy-v1",
+        "parent_sha256": "74aa7f945c3ea7ff5ca3edc9e7bdc431dc0ec5ad56d2563ce6d6d24c0494162b",
+        "updates": 100,
+        "changed_weights": 16,
+        "pass_bias": 0.7163564695886487,
+        "initial_training_ce": 1.9341565412939075,
+        "training_ce": 1.4637585780400661,
+        "parent_neutral_pass_heldout": {
+          "cross_entropy": 0.8185358079654498,
+          "teacher_top1_agreement": 1,
+          "samples": 2
+        },
+        "candidate_heldout": {
+          "cross_entropy": 0.5462251718164588,
+          "teacher_top1_agreement": 1,
+          "samples": 2
+        },
+        "candidate_sha256": "94ab9c4f0a9cbc7fa63cdf52b713e4adc082f20c941ddd8d3fe524da1df76b85",
+        "heldout_report_sha256": "e12a2e34aacbccc7db5e8ec37764465aba21a95afe223294cbe41e14a8f2e876",
+        "strength_verified": false,
+        "runtime_admitted": false
+      }
+    },
+    "scope": "Separate variants initialized from the original easy/hex parents. Train triangle7; validation hex5. Not a merged continuation of the main candidates."
+  },
+  "full_game_evaluation": {
+    "status": "PASS_REPLAY_METRICS_AND_AGGREGATES_ONLY",
+    "natural_terminal_games": 34,
+    "truncated_games": 0,
+    "replayed_evaluated_actions": 1134,
+    "seed_blocks_per_context": 2,
+    "contexts": [
+      {
+        "parent": "easy",
+        "mean_win_share_delta": 0,
+        "natural_games": 8
+      },
+      {
+        "parent": "three-v4",
+        "mean_win_share_delta": 0,
+        "natural_games": 8
+      },
+      {
+        "parent": "three-v1",
+        "mean_win_share_delta": 0,
+        "natural_games": 8
+      },
+      {
+        "parent": "hex-v1",
+        "mean_win_share_delta": 0.125,
+        "natural_games": 10
+      }
+    ],
+    "scope": "Actual-parent runtime comparison of main four linear candidates only; no neural or six-player arena. Shared controls and nearly terminal small boards limit inference."
+  },
+  "counts": {
+    "unique_existing_parent_models": 21,
+    "main_candidates": 21,
+    "extra_six_seat_variants": 2,
+    "exported_candidates": 23,
+    "total_parameter_updates": 2300,
+    "main_labels": 172,
+    "supplemental_labels": 6,
+    "actual_depth_by_players": {
+      "2": 4,
+      "3": 6,
+      "4": 8,
+      "5": 10,
+      "6": 12
+    }
+  },
+  "candidate_bundle": "C:\\coding\\py\\line game\\local_artifacts\\defensive-trained-candidates-20261025-r1",
+  "operational_incident": {
+    "failed_neural_run": "neural-train-r1",
+    "committed_updates": 0,
+    "cause": "The still-active linear pipeline rewrote byte-identical data manifests, triggering the neural mtime integrity guard. Evidence retained; frozen sources were unchanged. After linear completion a new neural-train-r2 finished all updates."
+  },
+  "verification_commands": [
+    "node web/tools/verify-defensive-warmstart-v2.mjs --data-root local_artifacts/defensive-warmstart-v2/application-train-r1/data --candidate local_artifacts/defensive-warmstart-v2/application-train-r1/models/<parent>/candidate.json --run-root <new-independent-review-root> --max-new-units 1000 --max-seconds 30",
+    "C:/Users/zcz/anaconda3/envs/rl310/python.exe web/tools/verify-defensive-neural-candidates-v2.py --run-root local_artifacts/defensive-warmstart-v2/neural-train-r2 --data-root local_artifacts/defensive-warmstart-v2/neural-export-r1 --config web/tools/configs/defensive-neural-v2-20261025.json --output <new-local-report.json>",
+    "node web/tools/verify-defensive-warmstart-arena-results-v2.mjs --base-root local_artifacts/defensive-warmstart-v2 --protocol web/tools/configs/defensive-actual-parent-arena-v2-20261025.json --output <new-local-report.json>"
+  ]
+}

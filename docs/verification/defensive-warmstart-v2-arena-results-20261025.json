@@ -1,0 +1,500 @@
+{
+  "schema": "lifeline-defensive-warmstart-arena-independent-verification-v2",
+  "status": "PASS_REPLAY_METRICS_AND_AGGREGATES_ONLY",
+  "protocol_sha256": "b9fbd814aa67f26762fe2bd8975b544dd4ae8ea5a7fb79c7071d50c426940abe",
+  "verifier_sha256": "1770e0f40014ee97d5dabbf8d1e27228a384069cdec66145d88d89d41de684a1",
+  "source_hashes": {
+    "web/tools/arena-defensive-warmstart-v2.mjs": "9923b308237dcf3a73d2da6b60cf3fe5345352417092ff0b9f9095b4a3c2e11e",
+    "web/tools/defensive-training-data-v1.mjs": "ee3e8389bd06b21ad9ffc2020edc9896b0c8b394d2f428bd7b805922ee34eef8",
+    "web/tools/neural-posttraining-data-v2.mjs": "8550db664fc57ce0e3a84b8123801c0657f1238aef4202d329546eebeb016827",
+    "web/tools/train-defensive-policy-v1.mjs": "2c9a643a859bf14e6d18d7c1735583e751291aba6992eaa3c994cf9a6009a561",
+    "web/tools/train-defensive-warmstart-v2.mjs": "f69809cb1494e9b1ad823f80eb78952417c35c0fc5a7186db455033a3b7502bc",
+    "web/tools/training-policy-v1.mjs": "1200571b911371992366ec21a3a5216811964a6a7204e5a8a8baf192bbfb460d",
+    "web/tools/verify-defensive-warmstart-v2.mjs": "31778d136e2798301bd82e42a6563ba28fa570b5f85406cf928723619a912ec4",
+    "web/web前端/AIEngine.js": "2d3e2de8cf0d39b8bb5302b7998a8f8008e4ffd4e38a8327ec2dc628debba7da",
+    "web/web前端/AIStateProtocol.js": "bd82e144304f429b354d7d7a722f1a691b7902a6e6e418f3739342191b5291a2",
+    "web/web前端/DefensiveTrainingTeacher.js": "7166ac4fc50f24dceaeb87723d102dff58f792f939e219094d2a4f2b1d8ee366",
+    "web/web前端/GameEngine.js": "1aec9d73d06c7243ac71d1eb27c8f9692dc5f33576d298d2ecd2d2d55464acfb",
+    "web/web前端/HexPlayerAI.js": "8fbc044a29f4124bb8e0f1125e1c809409f20728945455aca582a66ffb2d0878",
+    "web/web前端/MultiplayerHardFallback.js": "2e947852d9699b822b1c5685c5f3a4e18b19d1e91217fc6b8f9425c3c0aa5593",
+    "web/web前端/MultiplayerHardResources.js": "5c197d23d11570856708a8e34170b06b70ed5db558e274bcc5a0f3754f1af1e2",
+    "web/web前端/MultiplayerHardRollout.js": "913715f52dafa52f05646e2601f24e10bd587bc97a0423dcfbb62f74d0c5a111",
+    "web/web前端/MultiplayerHardRuntime.js": "e07ffbeb88f745da5ac3f7e85f465324d723699d9d5bb56ebd8cacb17658e6a8",
+    "web/web前端/MultiplayerHardValue.js": "6bb9dc21c72773b6dbca6a268173f5e93daebe83a7a4bb1ab21687269a7ea25e",
+    "web/web前端/MultiplayerModel.js": "b600f20519d154a851b41f9d04c8f4ca1222872a8d162ba8e5de44a2ea28a54d",
+    "web/web前端/MultiplayerNativeGeometry.js": "bd8ef6f5cbfeb049779a842738b86940d4d17a4a79f78335c778c37b286ad35e",
+    "web/web前端/MultiplayerRollout.js": "0aba815d70299ceaf214f7868a801eecdb66fed662d818cf392da2c7ea79bb63",
+    "web/web前端/MultiplayerRuntime.js": "f4b3b40ceaf2b7f526221a082bcc6b94fe021b77faffce027336cb09072fded1",
+    "web/web前端/MultiplayerSearch.js": "08fc01e65bb19b8c6d062f956d53ffc90797f6426f0789a2320526277c9990a1",
+    "web/web前端/MultiplayerStandardDefense.js": "970f506ef0b78ad6718fc0020cddfbdbadec90614988c022d1e3db6f5b8436b3",
+    "web/web前端/MultiplayerUltimateAdmission.js": "cc182005d5b74ca9fc0e4cecbe33222d65a547dbbf438318de93a30eeb0bb6a8",
+    "web/web前端/ResearchAI.js": "6183caaa6cb739b6062aa25612fc5de9047f3fb30e2936e7a262104bb561298b",
+    "web/web前端/ThreePlayerAI.js": "5c8ef4e9124c228e5e9a7d792692c6872851376a6b337e9066636991fa22fd93",
+    "web/web前端/ThreePlayerModels.js": "9b17d195c6195ffd177f59bd74e2cb39a6e63b9c309092331cea60967cff6771",
+    "web/web前端/ThreePlayerRuntime.js": "a5cb02ac2ad1c833386333ea9c89d433c58d4961ba827375bc3f29065044995f",
+    "web/web前端/ThreePlayerSearchAI.js": "a7495a3909b4aa62e908bfcde977eeceff44e8a974737b17b034ac9b2941f915",
+    "web/web前端/ThreePlayerSearchOptions.js": "299e238d74acdcf6f86e5b4f7108a16393b8709439b7b8c3292197d512d39c87",
+    "web/web前端/assets/research-ai/multiplayer-v1/manifest.json": "d7560db53483ab9ee2a7c423509142924545f1679ec35201b369e3b91fe161a0",
+    "web/web前端/assets/research-ai/three-player-search-v4-round12.json": "9b85f5fff27001d68407c30d6f707b461b1b468d657c8292339e97d23868c230",
+    "web/web前端/assets/research-ai/three-player-policy-v1.json": "8cd1a2f36267f96b1e32b7749a9cdc785f489ea7ec12e31aee0beb0a72901794",
+    "web/web前端/assets/research-ai/hex-player-policy-v1.json": "74aa7f945c3ea7ff5ca3edc9e7bdc431dc0ec5ad56d2563ce6d6d24c0494162b"
+  },
+  "dataset_manifest_sha256": "9bb52809324f3f962084a511fc292fd520adb7e5ca24dcba1bc00de3623b29d8",
+  "planned_games": 34,
+  "verified_game_receipts": 34,
+  "natural_terminal_games": 34,
+  "truncated_games": 0,
+  "replayed_evaluated_actions": 1134,
+  "replayed_opening_actions": 136,
+  "recomputed_candidate_decisions": 262,
+  "distinct_opening_full_states_across_contexts": 6,
+  "contexts": [
+    {
+      "parent": "easy",
+      "context": {
+        "player_count": 3,
+        "board_shape": "triangle",
+        "grid_size": 5,
+        "rules_version": "territory-v3"
+      },
+      "run_identity": "5d21650f3bf0d0757fb36354a3f0e5d561749e8438dfb33fe17ef3fa63519a78",
+      "candidate_sha256": "81c7be144af0d13dce6e54cdd81ced9b5d4362710c5cf84ecdbd996cacaf63ef",
+      "parent_id": "multiplayer-easy-v1",
+      "parent_sha256": "d7560db53483ab9ee2a7c423509142924545f1679ec35201b369e3b91fe161a0",
+      "report_sha256": "9751541de4ab10b4e66c98ce6b1183b2fd9e9c0e5b0e968bd21a2f79a5d9df32",
+      "game_index_sha256": "2a544467343e416b1729f47e9b9bbdee1763eec936d8b1c76646beff03f20e86",
+      "natural_games": 8,
+      "truncated_games": 0,
+      "independent_seed_blocks": 2,
+      "matched_focal_comparisons": 6,
+      "candidate_policy_decisions_recomputed": 10,
+      "mean_candidate_win_share": 0.3333333333333333,
+      "mean_parent_win_share": 0.3333333333333333,
+      "mean_win_share_delta": 0,
+      "per_seed": [
+        {
+          "seed": "2026102501",
+          "matched_seats": 3,
+          "mean_win_share_delta": 0
+        },
+        {
+          "seed": "2026102502",
+          "matched_seats": 3,
+          "mean_win_share_delta": 0
+        }
+      ],
+      "candidate_metrics": {
+        "nodes_lost_on_opponent_actions": 0.16666666666666666,
+        "coverage_lost_on_opponent_actions": 0.5,
+        "damaging_opponent_actions": 0.16666666666666666,
+        "repeated_damage_by_same_opponent_beyond_first": 0,
+        "maximum_damage_streak_by_same_opponent": 0.16666666666666666,
+        "enemy_nodes_captured": 0.16666666666666666,
+        "maximum_retained_root_connected_attacking_nodes": 0.16666666666666666,
+        "final_retained_root_connected_attacking_nodes": 0.16666666666666666,
+        "voluntary_passes": 0
+      },
+      "parent_metrics": {
+        "nodes_lost_on_opponent_actions": 0.16666666666666666,
+        "coverage_lost_on_opponent_actions": 0.5,
+        "damaging_opponent_actions": 0.16666666666666666,
+        "repeated_damage_by_same_opponent_beyond_first": 0,
+        "maximum_damage_streak_by_same_opponent": 0.16666666666666666,
+        "enemy_nodes_captured": 0.16666666666666666,
+        "maximum_retained_root_connected_attacking_nodes": 0.16666666666666666,
+        "final_retained_root_connected_attacking_nodes": 0.16666666666666666,
+        "voluntary_passes": 0
+      },
+      "evaluated_plies": {
+        "total": 40,
+        "minimum_per_game": 5,
+        "maximum_per_game": 5,
+        "mean_per_game": 5
+      },
+      "identical_candidate_control_trajectories": 6,
+      "opening_diagnostics": [
+        {
+          "seed": "2026102501",
+          "actor": "WHITE",
+          "legal_placements_for_current_actor": 2,
+          "nodes": {
+            "BLACK": 3,
+            "WHITE": 2,
+            "PURPLE": 2
+          },
+          "empty_cells": 5,
+          "point_count": 15,
+          "opening_sha256": "bf0b4a2b3901a610df4f5c3604548bd0a102304be2b8de9de106e246b03d1091"
+        },
+        {
+          "seed": "2026102502",
+          "actor": "PURPLE",
+          "legal_placements_for_current_actor": 2,
+          "nodes": {
+            "BLACK": 3,
+            "WHITE": 2,
+            "PURPLE": 2
+          },
+          "empty_cells": 7,
+          "point_count": 15,
+          "opening_sha256": "546b7aac12ad6160e65accd75209e0db0f2ec1c254641ac99645bfb7c1774333"
+        }
+      ],
+      "known_train_states_encountered": 0,
+      "known_validation_states_encountered": 0,
+      "training_context_source_positions": {
+        "train": 3,
+        "validation": 2
+      },
+      "supervisor": {
+        "attempts": 2,
+        "abnormal_exits": 0,
+        "no_progress_exits": 0,
+        "status": "COMPLETE"
+      },
+      "strength_verified": false,
+      "runtime_admitted": false
+    },
+    {
+      "parent": "three-v4",
+      "context": {
+        "player_count": 3,
+        "board_shape": "triangle",
+        "grid_size": 5,
+        "rules_version": "territory-v3"
+      },
+      "run_identity": "3e9c07a4f518404c25ed892a5c17a9d1596ed3eb83a5910e157e2154974e1617",
+      "candidate_sha256": "957ce98f5403c51f8e0633eda7e955f011273ef72f1bc7b2d3c42f55e5a81d34",
+      "parent_id": "three-player-search-v4-round12",
+      "parent_sha256": "9b85f5fff27001d68407c30d6f707b461b1b468d657c8292339e97d23868c230",
+      "report_sha256": "91efb4eca6f1b06a6b70cb2fcc00a47539395de79f5d949437f07eaaa4e021e4",
+      "game_index_sha256": "8a5551dd0a0e5f404cc7a56853132debb97f2d0a00201b6716b5d39be03afb8f",
+      "natural_games": 8,
+      "truncated_games": 0,
+      "independent_seed_blocks": 2,
+      "matched_focal_comparisons": 6,
+      "candidate_policy_decisions_recomputed": 10,
+      "mean_candidate_win_share": 0.3333333333333333,
+      "mean_parent_win_share": 0.3333333333333333,
+      "mean_win_share_delta": 0,
+      "per_seed": [
+        {
+          "seed": "2026102501",
+          "matched_seats": 3,
+          "mean_win_share_delta": 0
+        },
+        {
+          "seed": "2026102502",
+          "matched_seats": 3,
+          "mean_win_share_delta": 0
+        }
+      ],
+      "candidate_metrics": {
+        "nodes_lost_on_opponent_actions": 0.16666666666666666,
+        "coverage_lost_on_opponent_actions": 0.5,
+        "damaging_opponent_actions": 0.16666666666666666,
+        "repeated_damage_by_same_opponent_beyond_first": 0,
+        "maximum_damage_streak_by_same_opponent": 0.16666666666666666,
+        "enemy_nodes_captured": 0.16666666666666666,
+        "maximum_retained_root_connected_attacking_nodes": 0.16666666666666666,
+        "final_retained_root_connected_attacking_nodes": 0.16666666666666666,
+        "voluntary_passes": 0
+      },
+      "parent_metrics": {
+        "nodes_lost_on_opponent_actions": 0.16666666666666666,
+        "coverage_lost_on_opponent_actions": 0.5,
+        "damaging_opponent_actions": 0.16666666666666666,
+        "repeated_damage_by_same_opponent_beyond_first": 0,
+        "maximum_damage_streak_by_same_opponent": 0.16666666666666666,
+        "enemy_nodes_captured": 0.16666666666666666,
+        "maximum_retained_root_connected_attacking_nodes": 0.16666666666666666,
+        "final_retained_root_connected_attacking_nodes": 0.16666666666666666,
+        "voluntary_passes": 0
+      },
+      "evaluated_plies": {
+        "total": 40,
+        "minimum_per_game": 5,
+        "maximum_per_game": 5,
+        "mean_per_game": 5
+      },
+      "identical_candidate_control_trajectories": 6,
+      "opening_diagnostics": [
+        {
+          "seed": "2026102501",
+          "actor": "WHITE",
+          "legal_placements_for_current_actor": 2,
+          "nodes": {
+            "BLACK": 3,
+            "WHITE": 2,
+            "PURPLE": 2
+          },
+          "empty_cells": 5,
+          "point_count": 15,
+          "opening_sha256": "bf0b4a2b3901a610df4f5c3604548bd0a102304be2b8de9de106e246b03d1091"
+        },
+        {
+          "seed": "2026102502",
+          "actor": "PURPLE",
+          "legal_placements_for_current_actor": 2,
+          "nodes": {
+            "BLACK": 3,
+            "WHITE": 2,
+            "PURPLE": 2
+          },
+          "empty_cells": 7,
+          "point_count": 15,
+          "opening_sha256": "546b7aac12ad6160e65accd75209e0db0f2ec1c254641ac99645bfb7c1774333"
+        }
+      ],
+      "known_train_states_encountered": 0,
+      "known_validation_states_encountered": 0,
+      "training_context_source_positions": {
+        "train": 3,
+        "validation": 2
+      },
+      "supervisor": {
+        "attempts": 2,
+        "abnormal_exits": 0,
+        "no_progress_exits": 0,
+        "status": "COMPLETE"
+      },
+      "strength_verified": false,
+      "runtime_admitted": false
+    },
+    {
+      "parent": "three-v1",
+      "context": {
+        "player_count": 3,
+        "board_shape": "triangle",
+        "grid_size": 6,
+        "rules_version": "territory-v3"
+      },
+      "run_identity": "91b9766b97abeabee74386511a05283246ee78c0af0d109561a9301394fdf095",
+      "candidate_sha256": "480473ce30ba144c8f3d44c6deb067c014af993f6ac28b3aff9895f8717798f7",
+      "parent_id": "three-player-policy-v1",
+      "parent_sha256": "8cd1a2f36267f96b1e32b7749a9cdc785f489ea7ec12e31aee0beb0a72901794",
+      "report_sha256": "0472136ea9e76bb531535704571360ccccf8c877275383229b7a0bb91f6de7cb",
+      "game_index_sha256": "16ef4ef50c0f98289efb1800757387fe6eb2b6fcb0dc04b249a8b617f03539a9",
+      "natural_games": 8,
+      "truncated_games": 0,
+      "independent_seed_blocks": 2,
+      "matched_focal_comparisons": 6,
+      "candidate_policy_decisions_recomputed": 23,
+      "mean_candidate_win_share": 0.3333333333333333,
+      "mean_parent_win_share": 0.3333333333333333,
+      "mean_win_share_delta": 0,
+      "per_seed": [
+        {
+          "seed": "2026102501",
+          "matched_seats": 3,
+          "mean_win_share_delta": 0
+        },
+        {
+          "seed": "2026102502",
+          "matched_seats": 3,
+          "mean_win_share_delta": 0
+        }
+      ],
+      "candidate_metrics": {
+        "nodes_lost_on_opponent_actions": 1,
+        "coverage_lost_on_opponent_actions": 3.8333333333333335,
+        "damaging_opponent_actions": 0.8333333333333334,
+        "repeated_damage_by_same_opponent_beyond_first": 0,
+        "maximum_damage_streak_by_same_opponent": 0.6666666666666666,
+        "enemy_nodes_captured": 1,
+        "maximum_retained_root_connected_attacking_nodes": 0.8333333333333334,
+        "final_retained_root_connected_attacking_nodes": 0.6666666666666666,
+        "voluntary_passes": 0
+      },
+      "parent_metrics": {
+        "nodes_lost_on_opponent_actions": 1,
+        "coverage_lost_on_opponent_actions": 3.8333333333333335,
+        "damaging_opponent_actions": 0.8333333333333334,
+        "repeated_damage_by_same_opponent_beyond_first": 0,
+        "maximum_damage_streak_by_same_opponent": 0.6666666666666666,
+        "enemy_nodes_captured": 1,
+        "maximum_retained_root_connected_attacking_nodes": 0.8333333333333334,
+        "final_retained_root_connected_attacking_nodes": 0.6666666666666666,
+        "voluntary_passes": 0
+      },
+      "evaluated_plies": {
+        "total": 92,
+        "minimum_per_game": 11,
+        "maximum_per_game": 12,
+        "mean_per_game": 11.5
+      },
+      "identical_candidate_control_trajectories": 6,
+      "opening_diagnostics": [
+        {
+          "seed": "2026102501",
+          "actor": "WHITE",
+          "legal_placements_for_current_actor": 6,
+          "nodes": {
+            "BLACK": 3,
+            "WHITE": 2,
+            "PURPLE": 2
+          },
+          "empty_cells": 11,
+          "point_count": 21,
+          "opening_sha256": "242a2e9b680ef6dbfd63efd4215130a618c1985695af60d14c14ea8907e571d6"
+        },
+        {
+          "seed": "2026102502",
+          "actor": "WHITE",
+          "legal_placements_for_current_actor": 5,
+          "nodes": {
+            "BLACK": 3,
+            "WHITE": 2,
+            "PURPLE": 2
+          },
+          "empty_cells": 10,
+          "point_count": 21,
+          "opening_sha256": "96a7594199fa1a2362100762d57ac632ec7b80466c16e7300f911633f100515d"
+        }
+      ],
+      "known_train_states_encountered": 0,
+      "known_validation_states_encountered": 0,
+      "training_context_source_positions": {
+        "train": 8,
+        "validation": 4
+      },
+      "supervisor": {
+        "attempts": 4,
+        "abnormal_exits": 0,
+        "no_progress_exits": 0,
+        "status": "COMPLETE"
+      },
+      "strength_verified": false,
+      "runtime_admitted": false
+    },
+    {
+      "parent": "hex-v1",
+      "context": {
+        "player_count": 4,
+        "board_shape": "hexagon",
+        "grid_size": 5,
+        "rules_version": "territory-v3"
+      },
+      "run_identity": "b85ed6c5a477e8f85b32a01da0cefc0a61d3437e4edc19741465ed451ead2229",
+      "candidate_sha256": "51971a349263a9dac6dae673e5e60f54ee2eec1d33c668849116a62628db0274",
+      "parent_id": "hex-player-policy-v1",
+      "parent_sha256": "74aa7f945c3ea7ff5ca3edc9e7bdc431dc0ec5ad56d2563ce6d6d24c0494162b",
+      "report_sha256": "c1507dec92b83ace4f7b53c3dd4cbbff3df2a29a9c7fe18c4865f1128bff0267",
+      "game_index_sha256": "66cbfaf101affb935e5c6f0377fe05759be19c5d7f90891d956d396ff5208b94",
+      "natural_games": 10,
+      "truncated_games": 0,
+      "independent_seed_blocks": 2,
+      "matched_focal_comparisons": 8,
+      "candidate_policy_decisions_recomputed": 219,
+      "mean_candidate_win_share": 0.375,
+      "mean_parent_win_share": 0.25,
+      "mean_win_share_delta": 0.125,
+      "per_seed": [
+        {
+          "seed": "2026102501",
+          "matched_seats": 4,
+          "mean_win_share_delta": 0
+        },
+        {
+          "seed": "2026102502",
+          "matched_seats": 4,
+          "mean_win_share_delta": 0.25
+        }
+      ],
+      "candidate_metrics": {
+        "nodes_lost_on_opponent_actions": 14.5,
+        "coverage_lost_on_opponent_actions": 44.5,
+        "damaging_opponent_actions": 9.25,
+        "repeated_damage_by_same_opponent_beyond_first": 2,
+        "maximum_damage_streak_by_same_opponent": 2.5,
+        "enemy_nodes_captured": 15.375,
+        "maximum_retained_root_connected_attacking_nodes": 5.375,
+        "final_retained_root_connected_attacking_nodes": 3.625,
+        "voluntary_passes": 3.375
+      },
+      "parent_metrics": {
+        "nodes_lost_on_opponent_actions": 14,
+        "coverage_lost_on_opponent_actions": 40.75,
+        "damaging_opponent_actions": 9.125,
+        "repeated_damage_by_same_opponent_beyond_first": 2,
+        "maximum_damage_streak_by_same_opponent": 2.5,
+        "enemy_nodes_captured": 14,
+        "maximum_retained_root_connected_attacking_nodes": 4.75,
+        "final_retained_root_connected_attacking_nodes": 3,
+        "voluntary_passes": 0
+      },
+      "evaluated_plies": {
+        "total": 962,
+        "minimum_per_game": 68,
+        "maximum_per_game": 142,
+        "mean_per_game": 96.2
+      },
+      "identical_candidate_control_trajectories": 2,
+      "opening_diagnostics": [
+        {
+          "seed": "2026102501",
+          "actor": "BLACK",
+          "legal_placements_for_current_actor": 20,
+          "nodes": {
+            "BLACK": 2,
+            "WHITE": 2,
+            "PURPLE": 2,
+            "GREEN": 2
+          },
+          "empty_cells": 48,
+          "point_count": 61,
+          "opening_sha256": "fb64749ef12e210407d7d8ae478fe0c89934cc2eddbf2c9d1f4999c4c2bc2f2b"
+        },
+        {
+          "seed": "2026102502",
+          "actor": "BLACK",
+          "legal_placements_for_current_actor": 10,
+          "nodes": {
+            "BLACK": 2,
+            "WHITE": 2,
+            "PURPLE": 2,
+            "GREEN": 2
+          },
+          "empty_cells": 46,
+          "point_count": 61,
+          "opening_sha256": "497884e9cab744d88b9d41f84be0d5825b9e720b0f11aaa4ec85c3a4283b7cf7"
+        }
+      ],
+      "known_train_states_encountered": 0,
+      "known_validation_states_encountered": 0,
+      "training_context_source_positions": {
+        "train": 0,
+        "validation": 0
+      },
+      "supervisor": {
+        "attempts": 31,
+        "abnormal_exits": 0,
+        "no_progress_exits": 0,
+        "status": "COMPLETE"
+      },
+      "strength_verified": false,
+      "runtime_admitted": false
+    }
+  ],
+  "parent_policy_decisions_rerun": false,
+  "verified_scope": [
+    "source/protocol/candidate/parent/supervisor identities",
+    "all seats and shared controls",
+    "canonical full-state action replay",
+    "native discrete area and natural terminal",
+    "candidate17/PASS action choices",
+    "independent edge-BFS/cut-loss/connection metric arithmetic",
+    "aggregate denominators and paired means"
+  ],
+  "limitations": [
+    "Only two seed blocks per context; shared controls and seat rotations are correlated, not independent games.",
+    "Easy and three-v4 share the same two opening states. No broad statistical strength or promotion result.",
+    "Four random opening actions leave the small three-player boards close to natural termination; diagnostic lengths are reported.",
+    "Timed parent runtime decisions were not rerun; their route and complete frozen source/model identities were checked. Parent decision timing is recorded evidence, not an independently reproduced latency test.",
+    "Hex four-player size-5 training/validation coverage is absent in the parent continuation dataset; this arena is an extrapolation trial.",
+    "Hex win-share improvement in this tiny pilot coexists with higher average node and coverage loss; repeated-cut protection did not improve.",
+    "Hard, Ultimate, multiple candidate seats, five/six-player arenas, other sizes, browser/phone acceptance and model publication remain outside scope."
+  ],
+  "strength_verified": false,
+  "runtime_admitted": false
+}
