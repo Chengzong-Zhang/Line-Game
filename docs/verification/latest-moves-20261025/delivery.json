@@ -35,12 +35,29 @@
       41001
     ],
     "proxyExcluded": true,
-    "accountKeyState": "NOT_VERIFIED_LOGIN_REQUIRED",
+    "accountKeyState": "AUTHENTICATED_MATCHING_ACCOUNT_EXISTING_KEY_PRESERVED",
     "experienceVersionConfigured": false,
     "physicalDevice": "NOT_RUN",
     "submittedForReview": false,
     "published": false,
-    "receipt": "mini-upload-blocked.json"
+    "receipt": "mini-upload-blocked.json",
+    "userDeclinedKeyReset": true,
+    "observedBackendVersions": {
+      "development": "0.12.12",
+      "experience": "0.12.12",
+      "review": "0.12.11",
+      "reviewStatus": "IN_REVIEW",
+      "onlineVersionPresent": false
+    },
+    "alternativeUpload": {
+      "method": "Official WeChat Developer Tools with developer QR login; no CI private key required",
+      "installedLocally": false,
+      "independentProjectCopyVerified": true,
+      "copyFiles": 35,
+      "project": "local_artifacts/wechat-developer-tools-upload-0.12.13/project",
+      "status": "WAITING_USER_CHOICE_BEFORE_INSTALLATION_AND_LOGIN",
+      "officialDownloadPage": "https://developers.weixin.qq.com/miniprogram/dev/devtools/download.html"
+    }
   },
-  "remaining": "Login to the open WeChat administrator page to inspect account/upload-key status; no key reset has been performed."
+  "remaining": "User chose to preserve the existing upload key. The verified 0.12.13 project is ready for official Developer Tools; local installation and separate developer login require the user to choose that alternative."
 }
