@@ -1,0 +1,126 @@
+{
+  "deployment": {
+    "status": "ACTIVATED_ALL_COMPONENTS_VERIFIED",
+    "release": "web-unified-rooms-20261025-r1",
+    "stagedProbes": [
+      {
+        "players": 2,
+        "botProfile": {
+          "strategy": "minimax",
+          "depth": 2
+        },
+        "modelInfo": {
+          "strategy": "minimax",
+          "depth": 2
+        },
+        "rules": {
+          "success": true,
+          "players": 2,
+          "rulesVersion": "territory-v3",
+          "currentPlayer": "WHITE",
+          "scores": {
+            "BLACK": 3,
+            "WHITE": 1
+          }
+        }
+      },
+      {
+        "players": 6,
+        "botProfile": {
+          "strategy": "multiplayer",
+          "modelId": "multiplayer-easy-v1"
+        },
+        "modelInfo": {
+          "id": "multiplayer-easy-v1",
+          "evidenceTier": "application-candidate"
+        },
+        "rules": {
+          "success": true,
+          "players": 6,
+          "rulesVersion": "territory-v3",
+          "currentPlayer": "WHITE",
+          "scores": {
+            "BLACK": 7,
+            "WHITE": 1,
+            "PURPLE": 1,
+            "GREEN": 1,
+            "ORANGE": 1,
+            "CYAN": 1
+          }
+        }
+      }
+    ],
+    "siteChanged": true,
+    "liveServiceProbes": [
+      {
+        "players": 2,
+        "botProfile": {
+          "strategy": "minimax",
+          "depth": 2
+        },
+        "modelInfo": {
+          "strategy": "minimax",
+          "depth": 2
+        },
+        "rules": {
+          "success": true,
+          "players": 2,
+          "rulesVersion": "territory-v3",
+          "currentPlayer": "WHITE",
+          "scores": {
+            "BLACK": 3,
+            "WHITE": 1
+          },
+          "authoritativeValidatorMatched": true
+        }
+      },
+      {
+        "players": 6,
+        "botProfile": {
+          "strategy": "multiplayer",
+          "modelId": "multiplayer-easy-v1"
+        },
+        "modelInfo": {
+          "id": "multiplayer-easy-v1",
+          "evidenceTier": "application-candidate"
+        },
+        "rules": {
+          "success": true,
+          "players": 6,
+          "rulesVersion": "territory-v3",
+          "currentPlayer": "WHITE",
+          "scores": {
+            "BLACK": 7,
+            "WHITE": 1,
+            "PURPLE": 1,
+            "GREEN": 1,
+            "ORANGE": 1,
+            "CYAN": 1
+          },
+          "authoritativeValidatorMatched": true
+        }
+      }
+    ],
+    "serviceHealthBeforeSiteSwap": {
+      "game": true,
+      "wechat": true
+    },
+    "healthAfter": {
+      "game": true,
+      "wechat": true
+    }
+  },
+  "atomic": {
+    "status": "ATOMIC_SWITCH_OK",
+    "release_id": "web-unified-rooms-20261025-r1",
+    "commit": "21cb3231595d93b13511c7aeb1b4e3a406f1b7eb",
+    "overlay_files": 131,
+    "archive_sha256": "a82e08cfe760041473f66796074cebb78e8622d80304648370921c3388fd5469",
+    "live_tree_sha256": "8f4cb8f54830cd9d861ddef225a30c54a68f4c677423a2d26daf82e101eb6041",
+    "candidate_tree_sha256": "7a2b214ba9e1656d92e5e52538f1ec655600dc708796ce0a76eec43275845e65",
+    "time_utc_epoch": 1792911134.0079663,
+    "rollback": "/home/ubuntu/line-game/.deploy-artifacts/web-unified-rooms-20261025-r1.rollback-web前端",
+    "active_tree_sha256": "7a2b214ba9e1656d92e5e52538f1ec655600dc708796ce0a76eec43275845e65",
+    "rollback_tree_sha256": "8f4cb8f54830cd9d861ddef225a30c54a68f4c677423a2d26daf82e101eb6041"
+  }
+}

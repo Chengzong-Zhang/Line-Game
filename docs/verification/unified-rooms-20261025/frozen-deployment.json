@@ -1,0 +1,11 @@
+{
+  "status": "FROZEN_NOT_DEPLOYED",
+  "releaseId": "web-unified-rooms-20261025-r1",
+  "commit": "21cb3231595d93b13511c7aeb1b4e3a406f1b7eb",
+  "completeFrontendFiles": 131,
+  "sameFrontendForService": true,
+  "databaseReplacement": false,
+  "payloadFiles": 10,
+  "archiveSha256": "0f1c89b7ea839eed53fe951d77176d0ea417bf9c07dbfd47160fb1f75da88e63",
+  "deployerSha256": "50d4ecb6f014ea3a8581e8b0dc890968bc5f891a70742bc2cbee904d2ec35f8a"
+}
