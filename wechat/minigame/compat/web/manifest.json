@@ -40,9 +40,9 @@
       "overrideSha256": "b83f1fa20c9564764c0491408f890d6065c2f0c3ce7ec2900bca3066b509f463"
     },
     "web/web前端/MultiplayerRuntime.js": {
-      "canonicalSha256": "549c3adcc49f1edf58506be5d2eebba45dc8f54f8f117785601def5f70c892d0",
+      "canonicalSha256": "e30b344a19f1f1e03cf3688f1f7b13937e4e49df3f04a66dcf067fab1a57ed00",
       "override": "wechat/minigame/compat/web/MultiplayerRuntime.js",
-      "overrideSha256": "217ae41307127fc0cbe95fd6a805d104d04a4210cc0ba6c8fbaf14a500537103"
+      "overrideSha256": "16480e1877754f8f1bbc93df837748c8ffa274a49e0639915202773f78488341"
     },
     "web/web前端/MultiplayerSearch.js": {
       "canonicalSha256": "4397c0a464960801d513c5076716f0e3b9b94cdb263bd0eb87c95ae43e68658c",

@@ -1,0 +1,21 @@
+{
+  "schema": "lifeline-terminal-pass-margin-six-player-diagnostic-v1",
+  "status": "BOUNDED_DIAGNOSTIC_NOT_ADMISSION",
+  "sourceDiagnostic": "new-runtime-v4-terminal-margin-diagnostic.json",
+  "row": {
+    "playerCount": 6,
+    "point": [
+      4,
+      4
+    ],
+    "status": "COMPLETE_PROVED_NONNEGATIVE_MARGIN",
+    "nodes": 30744,
+    "leaves": 26839,
+    "maxDepth": 5,
+    "minArea": 7,
+    "minMargin": 3,
+    "counter": null,
+    "incompleteReason": null,
+    "elapsedMs": 22250.6129
+  }
+}

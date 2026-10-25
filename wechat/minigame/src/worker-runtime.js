@@ -1,4 +1,4 @@
-import { applyPassDiscipline } from '../../../web/web前端/AIPassDisciplineV3.js';
+import { applyPassDiscipline } from '../../../web/web前端/AIPassDisciplineV4.js';
 import { GreedyAI, MinimaxAI, createReplayDocument, validateReplayDocument, buildEventEffects } from './core.js';
 import { controllerChoices } from './controllers.js';
 import { restoreGame, ruleView, applyAction, validateSettings, MAX_ACTIONS } from './state.js';

@@ -1,0 +1,195 @@
+{
+  "schema": "lifeline-final-admission-independent-review-v1",
+  "status": "PASS_FINAL_SCOPED_ADMISSION_INDEPENDENT_REVIEW",
+  "decision": "NO_EVIDENCE_BLOCKER_FOR_SCOPED_METADATA_PROMOTION",
+  "executed_at_utc": "2026-10-25T19:39:22.595Z",
+  "reviewed_report": {
+    "path": "docs/verification/pass-discipline-20261025/combined-admission-v5-r2.json",
+    "sha256": "c49570f4a3d0a6c35d02049f0aeec74f1b43aa240e983c06983f4d424c8f0f11",
+    "seal_valid": true,
+    "independently_regenerated_byte_identical": true
+  },
+  "campaign": "local_artifacts/pass-discipline-product-v4-runtime-v5-20261026",
+  "verification": {
+    "cwd": "C:/Users/zcz/.codex/worktrees/pass-discipline/line game",
+    "command": "node --input-type=module -e \"import assert from'node:assert/strict';import{readFile}from'node:fs/promises';import{resolve}from'node:path';import{finalizePassDisciplineV5}from'./web/tools/finalize-pass-discipline-admission-v5.mjs';import{sealed,unseal,sha}from'./web/tools/neural-posttraining-data-v2.mjs';const campaign=resolve('local_artifacts/pass-discipline-product-v4-runtime-v5-20261026'),path=resolve('docs/verification/pass-discipline-20261025/combined-admission-v5-r2.json'),raw=await readFile(path),old=unseal(JSON.parse(raw)),job=JSON.parse(await readFile(resolve(campaign,'job.json'))),option=n=>job.command[job.command.indexOf(n)+1];assert.equal(sha(raw),'c49570f4a3d0a6c35d02049f0aeec74f1b43aa240e983c06983f4d424c8f0f11');const current=await finalizePassDisciplineV5({campaignRoot:campaign,protocolPath:option('--protocol'),compositeManifest:option('--composite-manifest'),sourceRoot:option('--candidate-root')});assert.deepEqual(JSON.parse(JSON.stringify(current)),old);const bytes=Buffer.from(JSON.stringify(sealed(current))+'\\n');assert.equal(bytes.equals(raw),true,'Resealed finalizer output must be byte identical');assert.equal((await readFile(path)).equals(raw),true);console.log(JSON.stringify({status:'PASS_READ_ONLY_V5_FINALIZER_BYTE_REPRODUCTION',admission_sha256:sha(raw),regenerated_sha256:sha(bytes),canonical_json_equal:true,byte_equal:true,report_seal_valid:true,fresh_natural_games:current.fresh_natural_games,layout_blocks:current.independent_layout_blocks,scenario_cases:current.scenario_cases,candidate_bad_passes:current.candidate_certified_bad_passes,incomplete_pass_checks:current.candidate_incomplete_pass_opportunity_checks,old1500_passed:current.old_1500_second_budget_passed,new_phase_passed:current.new_operational_phase_budget_passed,phase_wall_ms:current.campaign_budget.phaseWallIncludingPreparationMs,previous_games_reused:current.previous_runtime_games_reused}));\"",
+    "exit_code": 0,
+    "result": {
+      "status": "PASS_READ_ONLY_V5_FINALIZER_BYTE_REPRODUCTION",
+      "admission_sha256": "c49570f4a3d0a6c35d02049f0aeec74f1b43aa240e983c06983f4d424c8f0f11",
+      "regenerated_sha256": "c49570f4a3d0a6c35d02049f0aeec74f1b43aa240e983c06983f4d424c8f0f11",
+      "canonical_json_equal": true,
+      "byte_equal": true,
+      "report_seal_valid": true,
+      "fresh_natural_games": 34,
+      "layout_blocks": 8,
+      "scenario_cases": 135,
+      "candidate_bad_passes": 0,
+      "incomplete_pass_checks": 0,
+      "old1500_passed": false,
+      "new_phase_passed": true,
+      "phase_wall_ms": 186486,
+      "previous_games_reused": false
+    },
+    "comparison": "JSON serialization and re-sealing are compared byte-for-byte, matching the producer's persisted representation; undefined JavaScript properties are omitted by JSON.",
+    "writes_to_campaign_or_admission": false
+  },
+  "independent_durable_replay": {
+    "status": "PASS",
+    "natural_games": 34,
+    "persisted_plies": 890,
+    "independent_layout_blocks": 8,
+    "canonical_ply0_starts": true,
+    "receipt_seals_hashes_and_stage_identities_verified": true,
+    "actor_and_candidate_seat_ownership_verified": true,
+    "canonical_legal_transitions_and_natural_terminal_state_hashes_verified": true,
+    "scenario_cases": 135,
+    "parent_scenarios": 23,
+    "shared_scenarios": 112,
+    "scenario_failures": 0,
+    "candidate_certified_bad_passes": 0,
+    "incomplete_candidate_pass_checks": 0,
+    "complete_scenario_independent_certificates": 135,
+    "incomplete_scenario_independent_certificates": 0
+  },
+  "candidate_hashes": {
+    "easy": "698429df7e40b7550afca3fec044b6c31eff4059dcfe438bfbc6abbf674c3b3a",
+    "three-v4": "c5795f61b1127475b34f04f9288723ec4de7a4a704241a1515437fac7287829a",
+    "three-v1": "aafb3d36704093d1ea2c98a2944e49b7d96792697f40d1a5ea88ef3136846a68",
+    "hex-v1": "a536966b8927a3c3badd5df5e63801b27329cb683a238af8b926661b5ccc8ce7"
+  },
+  "runtime_parameter_sha256": {
+    "easy": "5d0952b2662d8c3c402ad40496df1ac593356f9cf9c5d1bdb50a02f0ee6264f6",
+    "three-v4": "854f13ea07af31857e45f7f9a4f2a40ceb964f840385318d409eac48797d12fb",
+    "three-v1": "ab1d7589d1a4eb4d44e66ab5d92367086c68290d6f9faf2d8427a2da86db9ad6",
+    "hex-v1": "b3decf1cae60ce6259ae9d7fe6a503a8a45617298d0d1381ff8892d6bf3fd890"
+  },
+  "parameter_binding": {
+    "actual_candidate_file_hashes_match_report_and_overlay": true,
+    "recomputed_overlay_runtime_parameter_digests_match_reconstructed_training": true,
+    "digest_contract": "{weights: first 16 weights, passBias, temperature: 1, rules_version: territory-v3}",
+    "training_composite_identity": "3ff84e2e1458681404064611007901864b22423e09dc16d44aa6c4528adeeb59",
+    "training_composite_manifest_sha256": "ce5896dea2421c9b1ec190866233c6d7a344fcd0358479ea53efd53389fdb552"
+  },
+  "source_binding": {
+    "runtime_source_path": "web/web前端/AIPassDisciplineV4.js",
+    "runtime_source_sha256": "96d69a3d9567b63ae7f38ffe34b7ffdf05379ba65ee04ccee5a376d629a0ad69",
+    "evaluation_overlay_sha256": "422bdec5bf500d54036a4afb9b16e5501c20f4f2880cc20f87706ccf5023a1db",
+    "finalizer_sha256": "a3752586aecce06ce93afa1f5c429edcb9565a373f32720bf649f4b925e080fc",
+    "base_finalizer_sha256": "cf9e43d8482707e5a1c55fc38021a18aa35b2fcc9c17f4a14672c8ad8e940e32",
+    "lineage_verifier_sha256": "d6f67741d2fca5e782532bd49a379a3933ac69ced03eee13e0baa8ac20d9991a",
+    "protocol_sha256": "6af123a320867571df97e73c65d82a758d97e5b34d53b8aab74305c52a599531"
+  },
+  "supervision_and_freshness": {
+    "status": "PASS_INDEPENDENT_SUPERVISION_FRESHNESS_AND_FAILURE_PRESERVATION",
+    "fresh_game_receipts": 34,
+    "old_game_byte_reuse": 0,
+    "carried_stages": 0,
+    "carried_actions": 0,
+    "source_freeze_files": 566,
+    "job_identity_files": 351,
+    "supervisor_attempts": 3,
+    "supervisor_abnormal_exits": 0,
+    "supervisor_identity": "af5fae1f7cd5d83bbe72154318f4f06ce005a0458c801fd0283e4507fcf23d53",
+    "completion_sha256": "8dba36acce68efd2ea2cf971efb16781c0678c0f5d3cda159e3489dd0d6a0a81",
+    "phase_created_epoch_ms": 1792956548365,
+    "phase_completed_epoch_ms": 1792956734851,
+    "absolute_deadline_epoch_ms": 1792957748365,
+    "phase_wall_ms": 186486,
+    "max_phase_ms": 1200000,
+    "old_1500_second_budget_passed": false,
+    "old_fatal_preserved": true,
+    "previous_snapshot_checks": [
+      {
+        "snapshot": "C:\\Users\\zcz\\.codex\\worktrees\\pass-discipline\\line game\\local_artifacts\\pass-v5-operational-v3-fatal-source-snapshot\\snapshot.json",
+        "files": 110,
+        "status": "EXACT_FAILED_SOURCE_PRESERVED"
+      },
+      {
+        "snapshot": "C:\\Users\\zcz\\.codex\\worktrees\\pass-discipline\\line game\\local_artifacts\\pass-v5-new-runtime-v4-fatal-source-snapshot\\snapshot.json",
+        "files": 111,
+        "status": "EXACT_FAILED_SOURCE_PRESERVED"
+      }
+    ]
+  },
+  "corrected_terminal_cases": [
+    {
+      "id": "shared-16-s5-terminal-expansion",
+      "scenario_state_sha256": "c649dc596db9ab391f036c5a6cacfe75073520352d2bfbaedc334af19888dcdb",
+      "new_point": [
+        4,
+        4
+      ],
+      "certificate_schema": "lifeline-ai-pass-discipline-v4",
+      "minimum_area": 7,
+      "minimum_margin": 2,
+      "reserved_return": [
+        4,
+        1
+      ],
+      "analytic_proof": true,
+      "enumerated_round": false,
+      "old_failure_preserved": true
+    },
+    {
+      "id": "shared-19-s5-terminal-expansion",
+      "scenario_state_sha256": "af313940ebf89b6960b7b7963b88cb407c7e40b5b7a2850bccf015a52eabd120",
+      "new_point": [
+        4,
+        4
+      ],
+      "certificate_schema": "lifeline-ai-pass-discipline-v4",
+      "minimum_area": 7,
+      "minimum_margin": 2,
+      "reserved_return": [
+        4,
+        1
+      ],
+      "analytic_proof": true,
+      "enumerated_round": false,
+      "old_failure_preserved": true
+    },
+    {
+      "id": "shared-22-s5-terminal-expansion",
+      "scenario_state_sha256": "a16da512ce447c572ba519a36c7cc6c18b1c23ee6f004180baa2cb0930b31a9b",
+      "new_point": [
+        4,
+        4
+      ],
+      "certificate_schema": "lifeline-ai-pass-discipline-v4",
+      "minimum_area": 7,
+      "minimum_margin": 2,
+      "reserved_return": [
+        4,
+        1
+      ],
+      "analytic_proof": true,
+      "enumerated_round": false,
+      "old_failure_preserved": true
+    }
+  ],
+  "prior_failure_preservation": {
+    "previous_v4_status": "FATAL_NOT_ADMITTED",
+    "previous_v4_natural_games": 34,
+    "previous_v4_shared_cases": 112,
+    "previous_v4_shared_failures": 3,
+    "previous_v4_source_snapshot_files": 111,
+    "previous_v3_certified_bad_passes": 3,
+    "previous_v3_source_snapshot_files": 110,
+    "previous_game_receipts_excluded_from_new_count": true,
+    "old_1500_second_budget_passed": false
+  },
+  "pre_promotion_state": {
+    "overlay_activation": "EVALUATION_ONLY",
+    "promotion_performed_by_reviewer": false,
+    "runtime_scoped_admitted": true,
+    "global_runtime_admission": false,
+    "strength_verified": false
+  },
+  "scope_and_limits": [
+    "The scoped combined gate is reproduced for the exact report, four candidate hashes, runtime parameters, source freeze, complete native games and stated scenario cells.",
+    "The three terminal certificates are analytic one-round bounds with own area lower bound 7 and winning-margin lower bound +2; they do not claim enumerated opponent rounds or completed Minimax training depth.",
+    "All limitations in the byte-identically regenerated report remain in force: dependent paired layouts, no population-strength/global-safety claim, preserved raw17/hex-transfer failures and boundaries, and no browser/device/public-release claim.",
+    "Metadata promotion changes the overlay source hash and requires the separate final-source hash and decision-parity checks. This review performs no promotion or publication."
+  ]
+}

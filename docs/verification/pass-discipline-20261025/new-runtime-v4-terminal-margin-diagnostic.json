@@ -1,0 +1,3803 @@
+{
+  "schema": "lifeline-terminal-pass-margin-diagnostic-v1",
+  "status": "BOUNDED_DIAGNOSTIC_NOT_ADMISSION",
+  "criteria": {
+    "nativeAreaStrictlyGreaterThanBefore": true,
+    "allPostRootPiecesRetainedAndBirthConnected": true,
+    "marginThreshold": 0,
+    "scope": "all legal placements and PASS through actual actor return or native terminal; repeated opponent marked incomplete"
+  },
+  "contexts": [
+    {
+      "playerCount": 4,
+      "sourceState": {
+        "gridSize": 5,
+        "playerCount": 4,
+        "boardShape": "hexagon",
+        "startPlayer": "BLACK",
+        "rulesVersion": "territory-v3",
+        "positionRevision": 4,
+        "activePlayers": [
+          "BLACK",
+          "WHITE",
+          "PURPLE",
+          "GREEN"
+        ],
+        "gridEntries": [
+          [
+            "4,0",
+            1
+          ],
+          [
+            "5,0",
+            2
+          ],
+          [
+            "6,0",
+            1
+          ],
+          [
+            "7,0",
+            0
+          ],
+          [
+            "8,0",
+            3
+          ],
+          [
+            "3,1",
+            0
+          ],
+          [
+            "4,1",
+            0
+          ],
+          [
+            "5,1",
+            0
+          ],
+          [
+            "6,1",
+            0
+          ],
+          [
+            "7,1",
+            0
+          ],
+          [
+            "8,1",
+            0
+          ],
+          [
+            "2,2",
+            0
+          ],
+          [
+            "3,2",
+            0
+          ],
+          [
+            "4,2",
+            0
+          ],
+          [
+            "5,2",
+            0
+          ],
+          [
+            "6,2",
+            0
+          ],
+          [
+            "7,2",
+            0
+          ],
+          [
+            "8,2",
+            0
+          ],
+          [
+            "1,3",
+            0
+          ],
+          [
+            "2,3",
+            0
+          ],
+          [
+            "3,3",
+            0
+          ],
+          [
+            "4,3",
+            0
+          ],
+          [
+            "5,3",
+            0
+          ],
+          [
+            "6,3",
+            0
+          ],
+          [
+            "7,3",
+            0
+          ],
+          [
+            "8,3",
+            0
+          ],
+          [
+            "0,4",
+            0
+          ],
+          [
+            "1,4",
+            0
+          ],
+          [
+            "2,4",
+            0
+          ],
+          [
+            "3,4",
+            0
+          ],
+          [
+            "4,4",
+            0
+          ],
+          [
+            "5,4",
+            0
+          ],
+          [
+            "6,4",
+            0
+          ],
+          [
+            "7,4",
+            0
+          ],
+          [
+            "8,4",
+            0
+          ],
+          [
+            "0,5",
+            0
+          ],
+          [
+            "1,5",
+            0
+          ],
+          [
+            "2,5",
+            0
+          ],
+          [
+            "3,5",
+            0
+          ],
+          [
+            "4,5",
+            0
+          ],
+          [
+            "5,5",
+            0
+          ],
+          [
+            "6,5",
+            0
+          ],
+          [
+            "7,5",
+            0
+          ],
+          [
+            "0,6",
+            0
+          ],
+          [
+            "1,6",
+            0
+          ],
+          [
+            "2,6",
+            0
+          ],
+          [
+            "3,6",
+            0
+          ],
+          [
+            "4,6",
+            0
+          ],
+          [
+            "5,6",
+            0
+          ],
+          [
+            "6,6",
+            0
+          ],
+          [
+            "0,7",
+            0
+          ],
+          [
+            "1,7",
+            0
+          ],
+          [
+            "2,7",
+            0
+          ],
+          [
+            "3,7",
+            0
+          ],
+          [
+            "4,7",
+            0
+          ],
+          [
+            "5,7",
+            0
+          ],
+          [
+            "0,8",
+            7
+          ],
+          [
+            "1,8",
+            0
+          ],
+          [
+            "2,8",
+            0
+          ],
+          [
+            "3,8",
+            0
+          ],
+          [
+            "4,8",
+            5
+          ]
+        ],
+        "edges": {
+          "BLACK": [
+            "4,0|6,0"
+          ],
+          "WHITE": [],
+          "PURPLE": [],
+          "GREEN": []
+        },
+        "edgesBlack": [
+          "4,0|6,0"
+        ],
+        "edgesWhite": [],
+        "edgesPurple": [],
+        "historyHashes": [
+          "[\"BLACK\",[],[[0,8,7],[4,0,1],[4,8,5],[8,0,3]],[[],[],[],[]]]",
+          "[\"WHITE\",[],[[0,8,7],[4,0,1],[4,8,5],[5,0,2],[6,0,1],[8,0,3]],[[\"4,0|6,0\"],[],[],[]]]"
+        ],
+        "consecutiveSkips": 3,
+        "resignedPlayers": [],
+        "currentPlayer": "BLACK",
+        "gameOver": false,
+        "turnCount": 1
+      },
+      "sourceStateSha256": "c649dc596db9ab391f036c5a6cacfe75073520352d2bfbaedc334af19888dcdb",
+      "beforeAreas": {
+        "BLACK": 3,
+        "WHITE": 1,
+        "PURPLE": 1,
+        "GREEN": 1
+      },
+      "canonicalPass": {
+        "gameOver": true,
+        "scores": {
+          "BLACK": 3,
+          "WHITE": 1,
+          "PURPLE": 1,
+          "GREEN": 1
+        }
+      },
+      "rootCount": 21,
+      "rows": [
+        {
+          "point": [
+            3,
+            1
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 4,
+          "nodes": 3,
+          "leaves": 0,
+          "minArea": 4,
+          "minMargin": -3,
+          "maxDepth": 2,
+          "counter": {
+            "reason": "native-margin-negative",
+            "scores": {
+              "BLACK": 4,
+              "WHITE": 2,
+              "PURPLE": 7,
+              "GREEN": 1
+            },
+            "margin": -3,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  4,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 9.011599999999987
+        },
+        {
+          "point": [
+            4,
+            1
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 4,
+          "nodes": 3,
+          "leaves": 0,
+          "minArea": 4,
+          "minMargin": -3,
+          "maxDepth": 2,
+          "counter": {
+            "reason": "native-margin-negative",
+            "scores": {
+              "BLACK": 4,
+              "WHITE": 2,
+              "PURPLE": 7,
+              "GREEN": 1
+            },
+            "margin": -3,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  4,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 6.9757999999999925
+        },
+        {
+          "point": [
+            5,
+            1
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 4,
+          "nodes": 3,
+          "leaves": 0,
+          "minArea": 4,
+          "minMargin": -3,
+          "maxDepth": 2,
+          "counter": {
+            "reason": "native-margin-negative",
+            "scores": {
+              "BLACK": 4,
+              "WHITE": 2,
+              "PURPLE": 7,
+              "GREEN": 1
+            },
+            "margin": -3,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  4,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 7.7423
+        },
+        {
+          "point": [
+            6,
+            1
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 4,
+          "nodes": 3,
+          "leaves": 0,
+          "minArea": 4,
+          "minMargin": -3,
+          "maxDepth": 2,
+          "counter": {
+            "reason": "native-margin-negative",
+            "scores": {
+              "BLACK": 4,
+              "WHITE": 2,
+              "PURPLE": 7,
+              "GREEN": 1
+            },
+            "margin": -3,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  4,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 8.023000000000025
+        },
+        {
+          "point": [
+            2,
+            2
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 5,
+          "nodes": 3,
+          "leaves": 0,
+          "minArea": 5,
+          "minMargin": -2,
+          "maxDepth": 2,
+          "counter": {
+            "reason": "native-margin-negative",
+            "scores": {
+              "BLACK": 5,
+              "WHITE": 2,
+              "PURPLE": 7,
+              "GREEN": 1
+            },
+            "margin": -2,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  4,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 6.056600000000003
+        },
+        {
+          "point": [
+            4,
+            2
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 6,
+          "nodes": 27,
+          "leaves": 21,
+          "minArea": 6,
+          "minMargin": -1,
+          "maxDepth": 3,
+          "counter": {
+            "reason": "native-margin-negative",
+            "scores": {
+              "BLACK": 6,
+              "WHITE": 2,
+              "PURPLE": 5,
+              "GREEN": 7
+            },
+            "margin": -1,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  4
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  6,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 23.52969999999999
+        },
+        {
+          "point": [
+            6,
+            2
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 5,
+          "nodes": 3,
+          "leaves": 0,
+          "minArea": 5,
+          "minMargin": -2,
+          "maxDepth": 2,
+          "counter": {
+            "reason": "native-margin-negative",
+            "scores": {
+              "BLACK": 5,
+              "WHITE": 2,
+              "PURPLE": 7,
+              "GREEN": 1
+            },
+            "margin": -2,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  4,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 2.9126999999999725
+        },
+        {
+          "point": [
+            1,
+            3
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 6,
+          "nodes": 3,
+          "leaves": 0,
+          "minArea": 6,
+          "minMargin": -1,
+          "maxDepth": 2,
+          "counter": {
+            "reason": "native-margin-negative",
+            "scores": {
+              "BLACK": 6,
+              "WHITE": 2,
+              "PURPLE": 7,
+              "GREEN": 1
+            },
+            "margin": -1,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  4,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 2.480099999999993
+        },
+        {
+          "point": [
+            3,
+            3
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 6,
+          "nodes": 3,
+          "leaves": 0,
+          "minArea": 3,
+          "minMargin": -4,
+          "maxDepth": 2,
+          "counter": {
+            "reason": "post-root-piece-or-birth-connection-lost",
+            "scores": {
+              "BLACK": 3,
+              "WHITE": 2,
+              "PURPLE": 7,
+              "GREEN": 1
+            },
+            "margin": -4,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  4,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 3.643799999999999
+        },
+        {
+          "point": [
+            4,
+            3
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 6,
+          "nodes": 15,
+          "leaves": 10,
+          "minArea": 6,
+          "minMargin": -1,
+          "maxDepth": 3,
+          "counter": {
+            "reason": "native-margin-negative",
+            "scores": {
+              "BLACK": 6,
+              "WHITE": 2,
+              "PURPLE": 5,
+              "GREEN": 7
+            },
+            "margin": -1,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  4
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  6,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 20.83299999999997
+        },
+        {
+          "point": [
+            6,
+            3
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 6,
+          "nodes": 3,
+          "leaves": 0,
+          "minArea": 6,
+          "minMargin": -1,
+          "maxDepth": 2,
+          "counter": {
+            "reason": "native-margin-negative",
+            "scores": {
+              "BLACK": 6,
+              "WHITE": 2,
+              "PURPLE": 7,
+              "GREEN": 1
+            },
+            "margin": -1,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  4,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 5.4535000000000196
+        },
+        {
+          "point": [
+            0,
+            4
+          ],
+          "status": "INCOMPLETE",
+          "afterRootArea": 7,
+          "nodes": 1370,
+          "leaves": 1244,
+          "minArea": 7,
+          "minMargin": 0,
+          "maxDepth": 3,
+          "counter": null,
+          "incompleteReason": "bounded-budget-exhausted",
+          "elapsedMs": 800.4019000000001
+        },
+        {
+          "point": [
+            2,
+            4
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 7,
+          "nodes": 3,
+          "leaves": 0,
+          "minArea": 3,
+          "minMargin": -4,
+          "maxDepth": 2,
+          "counter": {
+            "reason": "post-root-piece-or-birth-connection-lost",
+            "scores": {
+              "BLACK": 3,
+              "WHITE": 2,
+              "PURPLE": 7,
+              "GREEN": 1
+            },
+            "margin": -4,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  4,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 3.076999999999998
+        },
+        {
+          "point": [
+            4,
+            4
+          ],
+          "status": "COMPLETE_PROVED_NONNEGATIVE_MARGIN",
+          "afterRootArea": 7,
+          "nodes": 980,
+          "leaves": 881,
+          "minArea": 7,
+          "minMargin": 2,
+          "maxDepth": 3,
+          "counter": null,
+          "incompleteReason": null,
+          "elapsedMs": 506.9818
+        },
+        {
+          "point": [
+            6,
+            4
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 7,
+          "nodes": 39,
+          "leaves": 32,
+          "minArea": 3,
+          "minMargin": -4,
+          "maxDepth": 3,
+          "counter": {
+            "reason": "post-root-piece-or-birth-connection-lost",
+            "scores": {
+              "BLACK": 3,
+              "WHITE": 2,
+              "PURPLE": 5,
+              "GREEN": 7
+            },
+            "margin": -4,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  4
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  6,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 24.986899999999878
+        },
+        {
+          "point": [
+            1,
+            5
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 8,
+          "nodes": 3,
+          "leaves": 0,
+          "minArea": 3,
+          "minMargin": -4,
+          "maxDepth": 2,
+          "counter": {
+            "reason": "post-root-piece-or-birth-connection-lost",
+            "scores": {
+              "BLACK": 3,
+              "WHITE": 2,
+              "PURPLE": 7,
+              "GREEN": 1
+            },
+            "margin": -4,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  4,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 3.61850000000004
+        },
+        {
+          "point": [
+            4,
+            5
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 8,
+          "nodes": 5,
+          "leaves": 1,
+          "minArea": 3,
+          "minMargin": -2,
+          "maxDepth": 3,
+          "counter": {
+            "reason": "post-root-piece-or-birth-connection-lost",
+            "scores": {
+              "BLACK": 3,
+              "WHITE": 2,
+              "PURPLE": 5,
+              "GREEN": 5
+            },
+            "margin": -2,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  4
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  4
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 5.619999999999891
+        },
+        {
+          "point": [
+            6,
+            5
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 8,
+          "nodes": 39,
+          "leaves": 32,
+          "minArea": 3,
+          "minMargin": -4,
+          "maxDepth": 3,
+          "counter": {
+            "reason": "post-root-piece-or-birth-connection-lost",
+            "scores": {
+              "BLACK": 3,
+              "WHITE": 2,
+              "PURPLE": 5,
+              "GREEN": 7
+            },
+            "margin": -4,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  4
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  6,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 21.673900000000003
+        },
+        {
+          "point": [
+            0,
+            6
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 9,
+          "nodes": 3,
+          "leaves": 0,
+          "minArea": 3,
+          "minMargin": -4,
+          "maxDepth": 2,
+          "counter": {
+            "reason": "post-root-piece-or-birth-connection-lost",
+            "scores": {
+              "BLACK": 3,
+              "WHITE": 2,
+              "PURPLE": 7,
+              "GREEN": 1
+            },
+            "margin": -4,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  4,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 3.8937000000000808
+        },
+        {
+          "point": [
+            4,
+            6
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 9,
+          "nodes": 5,
+          "leaves": 1,
+          "minArea": 3,
+          "minMargin": -2,
+          "maxDepth": 3,
+          "counter": {
+            "reason": "post-root-piece-or-birth-connection-lost",
+            "scores": {
+              "BLACK": 3,
+              "WHITE": 2,
+              "PURPLE": 5,
+              "GREEN": 5
+            },
+            "margin": -2,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  4
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  4
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 3.3679000000001906
+        },
+        {
+          "point": [
+            6,
+            6
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 9,
+          "nodes": 39,
+          "leaves": 32,
+          "minArea": 3,
+          "minMargin": -4,
+          "maxDepth": 3,
+          "counter": {
+            "reason": "post-root-piece-or-birth-connection-lost",
+            "scores": {
+              "BLACK": 3,
+              "WHITE": 2,
+              "PURPLE": 4,
+              "GREEN": 7
+            },
+            "margin": -4,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  4,
+                  5
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  6,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 20.68380000000002
+        }
+      ],
+      "elapsedMs": 1523.0929
+    },
+    {
+      "playerCount": 5,
+      "sourceState": {
+        "gridSize": 5,
+        "playerCount": 5,
+        "boardShape": "hexagon",
+        "startPlayer": "BLACK",
+        "rulesVersion": "territory-v3",
+        "positionRevision": 5,
+        "activePlayers": [
+          "BLACK",
+          "WHITE",
+          "PURPLE",
+          "GREEN",
+          "ORANGE"
+        ],
+        "gridEntries": [
+          [
+            "4,0",
+            1
+          ],
+          [
+            "5,0",
+            2
+          ],
+          [
+            "6,0",
+            1
+          ],
+          [
+            "7,0",
+            0
+          ],
+          [
+            "8,0",
+            3
+          ],
+          [
+            "3,1",
+            0
+          ],
+          [
+            "4,1",
+            0
+          ],
+          [
+            "5,1",
+            0
+          ],
+          [
+            "6,1",
+            0
+          ],
+          [
+            "7,1",
+            0
+          ],
+          [
+            "8,1",
+            0
+          ],
+          [
+            "2,2",
+            0
+          ],
+          [
+            "3,2",
+            0
+          ],
+          [
+            "4,2",
+            0
+          ],
+          [
+            "5,2",
+            0
+          ],
+          [
+            "6,2",
+            0
+          ],
+          [
+            "7,2",
+            0
+          ],
+          [
+            "8,2",
+            0
+          ],
+          [
+            "1,3",
+            0
+          ],
+          [
+            "2,3",
+            0
+          ],
+          [
+            "3,3",
+            0
+          ],
+          [
+            "4,3",
+            0
+          ],
+          [
+            "5,3",
+            0
+          ],
+          [
+            "6,3",
+            0
+          ],
+          [
+            "7,3",
+            0
+          ],
+          [
+            "8,3",
+            0
+          ],
+          [
+            "0,4",
+            0
+          ],
+          [
+            "1,4",
+            0
+          ],
+          [
+            "2,4",
+            0
+          ],
+          [
+            "3,4",
+            0
+          ],
+          [
+            "4,4",
+            0
+          ],
+          [
+            "5,4",
+            0
+          ],
+          [
+            "6,4",
+            0
+          ],
+          [
+            "7,4",
+            0
+          ],
+          [
+            "8,4",
+            5
+          ],
+          [
+            "0,5",
+            0
+          ],
+          [
+            "1,5",
+            0
+          ],
+          [
+            "2,5",
+            0
+          ],
+          [
+            "3,5",
+            0
+          ],
+          [
+            "4,5",
+            0
+          ],
+          [
+            "5,5",
+            0
+          ],
+          [
+            "6,5",
+            0
+          ],
+          [
+            "7,5",
+            0
+          ],
+          [
+            "0,6",
+            0
+          ],
+          [
+            "1,6",
+            0
+          ],
+          [
+            "2,6",
+            0
+          ],
+          [
+            "3,6",
+            0
+          ],
+          [
+            "4,6",
+            0
+          ],
+          [
+            "5,6",
+            0
+          ],
+          [
+            "6,6",
+            0
+          ],
+          [
+            "0,7",
+            0
+          ],
+          [
+            "1,7",
+            0
+          ],
+          [
+            "2,7",
+            0
+          ],
+          [
+            "3,7",
+            0
+          ],
+          [
+            "4,7",
+            0
+          ],
+          [
+            "5,7",
+            0
+          ],
+          [
+            "0,8",
+            9
+          ],
+          [
+            "1,8",
+            0
+          ],
+          [
+            "2,8",
+            0
+          ],
+          [
+            "3,8",
+            0
+          ],
+          [
+            "4,8",
+            7
+          ]
+        ],
+        "edges": {
+          "BLACK": [
+            "4,0|6,0"
+          ],
+          "WHITE": [],
+          "PURPLE": [],
+          "GREEN": [],
+          "ORANGE": []
+        },
+        "edgesBlack": [
+          "4,0|6,0"
+        ],
+        "edgesWhite": [],
+        "edgesPurple": [],
+        "historyHashes": [
+          "[\"BLACK\",[],[[0,8,9],[4,0,1],[4,8,7],[8,0,3],[8,4,5]],[[],[],[],[],[]]]",
+          "[\"WHITE\",[],[[0,8,9],[4,0,1],[4,8,7],[5,0,2],[6,0,1],[8,0,3],[8,4,5]],[[\"4,0|6,0\"],[],[],[],[]]]"
+        ],
+        "consecutiveSkips": 4,
+        "resignedPlayers": [],
+        "currentPlayer": "BLACK",
+        "gameOver": false,
+        "turnCount": 1
+      },
+      "sourceStateSha256": "af313940ebf89b6960b7b7963b88cb407c7e40b5b7a2850bccf015a52eabd120",
+      "beforeAreas": {
+        "BLACK": 3,
+        "WHITE": 1,
+        "PURPLE": 1,
+        "GREEN": 1,
+        "ORANGE": 1
+      },
+      "canonicalPass": {
+        "gameOver": true,
+        "scores": {
+          "BLACK": 3,
+          "WHITE": 1,
+          "PURPLE": 1,
+          "GREEN": 1,
+          "ORANGE": 1
+        }
+      },
+      "rootCount": 21,
+      "rows": [
+        {
+          "point": [
+            3,
+            1
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 4,
+          "nodes": 4,
+          "leaves": 0,
+          "minArea": 4,
+          "minMargin": -3,
+          "maxDepth": 3,
+          "counter": {
+            "reason": "native-margin-negative",
+            "scores": {
+              "BLACK": 4,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 7,
+              "ORANGE": 1
+            },
+            "margin": -3,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 9.630599999999959
+        },
+        {
+          "point": [
+            4,
+            1
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 4,
+          "nodes": 4,
+          "leaves": 0,
+          "minArea": 4,
+          "minMargin": -3,
+          "maxDepth": 3,
+          "counter": {
+            "reason": "native-margin-negative",
+            "scores": {
+              "BLACK": 4,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 7,
+              "ORANGE": 1
+            },
+            "margin": -3,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 9.042599999999993
+        },
+        {
+          "point": [
+            5,
+            1
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 4,
+          "nodes": 4,
+          "leaves": 0,
+          "minArea": 4,
+          "minMargin": -3,
+          "maxDepth": 3,
+          "counter": {
+            "reason": "native-margin-negative",
+            "scores": {
+              "BLACK": 4,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 7,
+              "ORANGE": 1
+            },
+            "margin": -3,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 8.727399999999989
+        },
+        {
+          "point": [
+            6,
+            1
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 4,
+          "nodes": 4,
+          "leaves": 0,
+          "minArea": 4,
+          "minMargin": -3,
+          "maxDepth": 3,
+          "counter": {
+            "reason": "native-margin-negative",
+            "scores": {
+              "BLACK": 4,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 7,
+              "ORANGE": 1
+            },
+            "margin": -3,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 9.407799999999952
+        },
+        {
+          "point": [
+            2,
+            2
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 5,
+          "nodes": 4,
+          "leaves": 0,
+          "minArea": 5,
+          "minMargin": -2,
+          "maxDepth": 3,
+          "counter": {
+            "reason": "native-margin-negative",
+            "scores": {
+              "BLACK": 5,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 7,
+              "ORANGE": 1
+            },
+            "margin": -2,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 9.057199999999966
+        },
+        {
+          "point": [
+            4,
+            2
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 6,
+          "nodes": 28,
+          "leaves": 21,
+          "minArea": 6,
+          "minMargin": -1,
+          "maxDepth": 4,
+          "counter": {
+            "reason": "native-margin-negative",
+            "scores": {
+              "BLACK": 6,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 4,
+              "ORANGE": 7
+            },
+            "margin": -1,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  5
+                ]
+              },
+              {
+                "actor": "ORANGE",
+                "point": [
+                  6,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 22.95180000000005
+        },
+        {
+          "point": [
+            6,
+            2
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 5,
+          "nodes": 4,
+          "leaves": 0,
+          "minArea": 5,
+          "minMargin": -2,
+          "maxDepth": 3,
+          "counter": {
+            "reason": "native-margin-negative",
+            "scores": {
+              "BLACK": 5,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 7,
+              "ORANGE": 1
+            },
+            "margin": -2,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 4.845000000000027
+        },
+        {
+          "point": [
+            1,
+            3
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 6,
+          "nodes": 4,
+          "leaves": 0,
+          "minArea": 6,
+          "minMargin": -1,
+          "maxDepth": 3,
+          "counter": {
+            "reason": "native-margin-negative",
+            "scores": {
+              "BLACK": 6,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 7,
+              "ORANGE": 1
+            },
+            "margin": -1,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 4.571699999999964
+        },
+        {
+          "point": [
+            3,
+            3
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 6,
+          "nodes": 4,
+          "leaves": 0,
+          "minArea": 3,
+          "minMargin": -4,
+          "maxDepth": 3,
+          "counter": {
+            "reason": "post-root-piece-or-birth-connection-lost",
+            "scores": {
+              "BLACK": 3,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 7,
+              "ORANGE": 1
+            },
+            "margin": -4,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 7.759500000000116
+        },
+        {
+          "point": [
+            4,
+            3
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 6,
+          "nodes": 16,
+          "leaves": 10,
+          "minArea": 6,
+          "minMargin": -1,
+          "maxDepth": 4,
+          "counter": {
+            "reason": "native-margin-negative",
+            "scores": {
+              "BLACK": 6,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 4,
+              "ORANGE": 7
+            },
+            "margin": -1,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  5
+                ]
+              },
+              {
+                "actor": "ORANGE",
+                "point": [
+                  6,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 11.647600000000011
+        },
+        {
+          "point": [
+            6,
+            3
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 6,
+          "nodes": 4,
+          "leaves": 0,
+          "minArea": 6,
+          "minMargin": -1,
+          "maxDepth": 3,
+          "counter": {
+            "reason": "native-margin-negative",
+            "scores": {
+              "BLACK": 6,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 7,
+              "ORANGE": 1
+            },
+            "margin": -1,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 7.9103999999999814
+        },
+        {
+          "point": [
+            0,
+            4
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 7,
+          "nodes": 275,
+          "leaves": 248,
+          "minArea": 7,
+          "minMargin": -1,
+          "maxDepth": 4,
+          "counter": {
+            "reason": "native-margin-negative",
+            "scores": {
+              "BLACK": 7,
+              "WHITE": 2,
+              "PURPLE": 8,
+              "GREEN": 1,
+              "ORANGE": 1
+            },
+            "margin": -1,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  1,
+                  4
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 162.55859999999984
+        },
+        {
+          "point": [
+            2,
+            4
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 7,
+          "nodes": 4,
+          "leaves": 0,
+          "minArea": 3,
+          "minMargin": -4,
+          "maxDepth": 3,
+          "counter": {
+            "reason": "post-root-piece-or-birth-connection-lost",
+            "scores": {
+              "BLACK": 3,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 7,
+              "ORANGE": 1
+            },
+            "margin": -4,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 5.6896999999999025
+        },
+        {
+          "point": [
+            4,
+            4
+          ],
+          "status": "INCOMPLETE",
+          "afterRootArea": 7,
+          "nodes": 1369,
+          "leaves": 1225,
+          "minArea": 7,
+          "minMargin": 2,
+          "maxDepth": 4,
+          "counter": null,
+          "incompleteReason": "bounded-budget-exhausted",
+          "elapsedMs": 800.2035000000001
+        },
+        {
+          "point": [
+            6,
+            4
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 7,
+          "nodes": 40,
+          "leaves": 32,
+          "minArea": 3,
+          "minMargin": -4,
+          "maxDepth": 4,
+          "counter": {
+            "reason": "post-root-piece-or-birth-connection-lost",
+            "scores": {
+              "BLACK": 3,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 4,
+              "ORANGE": 7
+            },
+            "margin": -4,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  5
+                ]
+              },
+              {
+                "actor": "ORANGE",
+                "point": [
+                  6,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 20.196199999999862
+        },
+        {
+          "point": [
+            1,
+            5
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 8,
+          "nodes": 4,
+          "leaves": 0,
+          "minArea": 3,
+          "minMargin": -4,
+          "maxDepth": 3,
+          "counter": {
+            "reason": "post-root-piece-or-birth-connection-lost",
+            "scores": {
+              "BLACK": 3,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 7,
+              "ORANGE": 1
+            },
+            "margin": -4,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 6.984399999999823
+        },
+        {
+          "point": [
+            4,
+            5
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 8,
+          "nodes": 6,
+          "leaves": 1,
+          "minArea": 3,
+          "minMargin": -2,
+          "maxDepth": 4,
+          "counter": {
+            "reason": "post-root-piece-or-birth-connection-lost",
+            "scores": {
+              "BLACK": 3,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 3,
+              "ORANGE": 5
+            },
+            "margin": -2,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  6
+                ]
+              },
+              {
+                "actor": "ORANGE",
+                "point": [
+                  4,
+                  4
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 11.232299999999668
+        },
+        {
+          "point": [
+            6,
+            5
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 8,
+          "nodes": 40,
+          "leaves": 32,
+          "minArea": 3,
+          "minMargin": -4,
+          "maxDepth": 4,
+          "counter": {
+            "reason": "post-root-piece-or-birth-connection-lost",
+            "scores": {
+              "BLACK": 3,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 4,
+              "ORANGE": 7
+            },
+            "margin": -4,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  5
+                ]
+              },
+              {
+                "actor": "ORANGE",
+                "point": [
+                  6,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 24.372200000000248
+        },
+        {
+          "point": [
+            0,
+            6
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 9,
+          "nodes": 4,
+          "leaves": 0,
+          "minArea": 3,
+          "minMargin": -4,
+          "maxDepth": 3,
+          "counter": {
+            "reason": "post-root-piece-or-birth-connection-lost",
+            "scores": {
+              "BLACK": 3,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 7,
+              "ORANGE": 1
+            },
+            "margin": -4,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 5.481299999999919
+        },
+        {
+          "point": [
+            4,
+            6
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 9,
+          "nodes": 6,
+          "leaves": 1,
+          "minArea": 3,
+          "minMargin": -2,
+          "maxDepth": 4,
+          "counter": {
+            "reason": "post-root-piece-or-birth-connection-lost",
+            "scores": {
+              "BLACK": 3,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 3,
+              "ORANGE": 5
+            },
+            "margin": -2,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  6,
+                  6
+                ]
+              },
+              {
+                "actor": "ORANGE",
+                "point": [
+                  4,
+                  4
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 6.92009999999982
+        },
+        {
+          "point": [
+            6,
+            6
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 9,
+          "nodes": 40,
+          "leaves": 32,
+          "minArea": 3,
+          "minMargin": -4,
+          "maxDepth": 4,
+          "counter": {
+            "reason": "post-root-piece-or-birth-connection-lost",
+            "scores": {
+              "BLACK": 3,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 4,
+              "ORANGE": 7
+            },
+            "margin": -4,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  5
+                ]
+              },
+              {
+                "actor": "ORANGE",
+                "point": [
+                  6,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 25.311999999999898
+        }
+      ],
+      "elapsedMs": 1190.6112
+    },
+    {
+      "playerCount": 6,
+      "sourceState": {
+        "gridSize": 5,
+        "playerCount": 6,
+        "boardShape": "hexagon",
+        "startPlayer": "BLACK",
+        "rulesVersion": "territory-v3",
+        "positionRevision": 6,
+        "activePlayers": [
+          "BLACK",
+          "WHITE",
+          "PURPLE",
+          "GREEN",
+          "ORANGE",
+          "CYAN"
+        ],
+        "gridEntries": [
+          [
+            "4,0",
+            1
+          ],
+          [
+            "5,0",
+            2
+          ],
+          [
+            "6,0",
+            1
+          ],
+          [
+            "7,0",
+            0
+          ],
+          [
+            "8,0",
+            3
+          ],
+          [
+            "3,1",
+            0
+          ],
+          [
+            "4,1",
+            0
+          ],
+          [
+            "5,1",
+            0
+          ],
+          [
+            "6,1",
+            0
+          ],
+          [
+            "7,1",
+            0
+          ],
+          [
+            "8,1",
+            0
+          ],
+          [
+            "2,2",
+            0
+          ],
+          [
+            "3,2",
+            0
+          ],
+          [
+            "4,2",
+            0
+          ],
+          [
+            "5,2",
+            0
+          ],
+          [
+            "6,2",
+            0
+          ],
+          [
+            "7,2",
+            0
+          ],
+          [
+            "8,2",
+            0
+          ],
+          [
+            "1,3",
+            0
+          ],
+          [
+            "2,3",
+            0
+          ],
+          [
+            "3,3",
+            0
+          ],
+          [
+            "4,3",
+            0
+          ],
+          [
+            "5,3",
+            0
+          ],
+          [
+            "6,3",
+            0
+          ],
+          [
+            "7,3",
+            0
+          ],
+          [
+            "8,3",
+            0
+          ],
+          [
+            "0,4",
+            11
+          ],
+          [
+            "1,4",
+            0
+          ],
+          [
+            "2,4",
+            0
+          ],
+          [
+            "3,4",
+            0
+          ],
+          [
+            "4,4",
+            0
+          ],
+          [
+            "5,4",
+            0
+          ],
+          [
+            "6,4",
+            0
+          ],
+          [
+            "7,4",
+            0
+          ],
+          [
+            "8,4",
+            5
+          ],
+          [
+            "0,5",
+            0
+          ],
+          [
+            "1,5",
+            0
+          ],
+          [
+            "2,5",
+            0
+          ],
+          [
+            "3,5",
+            0
+          ],
+          [
+            "4,5",
+            0
+          ],
+          [
+            "5,5",
+            0
+          ],
+          [
+            "6,5",
+            0
+          ],
+          [
+            "7,5",
+            0
+          ],
+          [
+            "0,6",
+            0
+          ],
+          [
+            "1,6",
+            0
+          ],
+          [
+            "2,6",
+            0
+          ],
+          [
+            "3,6",
+            0
+          ],
+          [
+            "4,6",
+            0
+          ],
+          [
+            "5,6",
+            0
+          ],
+          [
+            "6,6",
+            0
+          ],
+          [
+            "0,7",
+            0
+          ],
+          [
+            "1,7",
+            0
+          ],
+          [
+            "2,7",
+            0
+          ],
+          [
+            "3,7",
+            0
+          ],
+          [
+            "4,7",
+            0
+          ],
+          [
+            "5,7",
+            0
+          ],
+          [
+            "0,8",
+            9
+          ],
+          [
+            "1,8",
+            0
+          ],
+          [
+            "2,8",
+            0
+          ],
+          [
+            "3,8",
+            0
+          ],
+          [
+            "4,8",
+            7
+          ]
+        ],
+        "edges": {
+          "BLACK": [
+            "4,0|6,0"
+          ],
+          "WHITE": [],
+          "PURPLE": [],
+          "GREEN": [],
+          "ORANGE": [],
+          "CYAN": []
+        },
+        "edgesBlack": [
+          "4,0|6,0"
+        ],
+        "edgesWhite": [],
+        "edgesPurple": [],
+        "historyHashes": [
+          "[\"BLACK\",[],[[0,4,11],[0,8,9],[4,0,1],[4,8,7],[8,0,3],[8,4,5]],[[],[],[],[],[],[]]]",
+          "[\"WHITE\",[],[[0,4,11],[0,8,9],[4,0,1],[4,8,7],[5,0,2],[6,0,1],[8,0,3],[8,4,5]],[[\"4,0|6,0\"],[],[],[],[],[]]]"
+        ],
+        "consecutiveSkips": 5,
+        "resignedPlayers": [],
+        "currentPlayer": "BLACK",
+        "gameOver": false,
+        "turnCount": 1
+      },
+      "sourceStateSha256": "a16da512ce447c572ba519a36c7cc6c18b1c23ee6f004180baa2cb0930b31a9b",
+      "beforeAreas": {
+        "BLACK": 3,
+        "WHITE": 1,
+        "PURPLE": 1,
+        "GREEN": 1,
+        "ORANGE": 1,
+        "CYAN": 1
+      },
+      "canonicalPass": {
+        "gameOver": true,
+        "scores": {
+          "BLACK": 3,
+          "WHITE": 1,
+          "PURPLE": 1,
+          "GREEN": 1,
+          "ORANGE": 1,
+          "CYAN": 1
+        }
+      },
+      "rootCount": 19,
+      "rows": [
+        {
+          "point": [
+            3,
+            1
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 4,
+          "nodes": 4,
+          "leaves": 0,
+          "minArea": 4,
+          "minMargin": -3,
+          "maxDepth": 3,
+          "counter": {
+            "reason": "native-margin-negative",
+            "scores": {
+              "BLACK": 4,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 7,
+              "ORANGE": 1,
+              "CYAN": 1
+            },
+            "margin": -3,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 3.954899999999725
+        },
+        {
+          "point": [
+            4,
+            1
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 4,
+          "nodes": 4,
+          "leaves": 0,
+          "minArea": 4,
+          "minMargin": -3,
+          "maxDepth": 3,
+          "counter": {
+            "reason": "native-margin-negative",
+            "scores": {
+              "BLACK": 4,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 7,
+              "ORANGE": 1,
+              "CYAN": 1
+            },
+            "margin": -3,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 3.4322000000001935
+        },
+        {
+          "point": [
+            5,
+            1
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 4,
+          "nodes": 4,
+          "leaves": 0,
+          "minArea": 4,
+          "minMargin": -3,
+          "maxDepth": 3,
+          "counter": {
+            "reason": "native-margin-negative",
+            "scores": {
+              "BLACK": 4,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 7,
+              "ORANGE": 1,
+              "CYAN": 1
+            },
+            "margin": -3,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 4.570300000000316
+        },
+        {
+          "point": [
+            6,
+            1
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 4,
+          "nodes": 4,
+          "leaves": 0,
+          "minArea": 4,
+          "minMargin": -3,
+          "maxDepth": 3,
+          "counter": {
+            "reason": "native-margin-negative",
+            "scores": {
+              "BLACK": 4,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 7,
+              "ORANGE": 1,
+              "CYAN": 1
+            },
+            "margin": -3,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 4.4164999999998145
+        },
+        {
+          "point": [
+            2,
+            2
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 5,
+          "nodes": 4,
+          "leaves": 0,
+          "minArea": 5,
+          "minMargin": -2,
+          "maxDepth": 3,
+          "counter": {
+            "reason": "native-margin-negative",
+            "scores": {
+              "BLACK": 5,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 7,
+              "ORANGE": 1,
+              "CYAN": 1
+            },
+            "margin": -2,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 9.059400000000096
+        },
+        {
+          "point": [
+            4,
+            2
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 6,
+          "nodes": 166,
+          "leaves": 142,
+          "minArea": 6,
+          "minMargin": -1,
+          "maxDepth": 5,
+          "counter": {
+            "reason": "native-margin-negative",
+            "scores": {
+              "BLACK": 6,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 4,
+              "ORANGE": 7,
+              "CYAN": 1
+            },
+            "margin": -1,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  5
+                ]
+              },
+              {
+                "actor": "ORANGE",
+                "point": [
+                  6,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 130.64969999999994
+        },
+        {
+          "point": [
+            6,
+            2
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 5,
+          "nodes": 4,
+          "leaves": 0,
+          "minArea": 5,
+          "minMargin": -2,
+          "maxDepth": 3,
+          "counter": {
+            "reason": "native-margin-negative",
+            "scores": {
+              "BLACK": 5,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 7,
+              "ORANGE": 1,
+              "CYAN": 1
+            },
+            "margin": -2,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 10.207100000000082
+        },
+        {
+          "point": [
+            3,
+            3
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 6,
+          "nodes": 4,
+          "leaves": 0,
+          "minArea": 3,
+          "minMargin": -4,
+          "maxDepth": 3,
+          "counter": {
+            "reason": "post-root-piece-or-birth-connection-lost",
+            "scores": {
+              "BLACK": 3,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 7,
+              "ORANGE": 1,
+              "CYAN": 1
+            },
+            "margin": -4,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 6.82529999999997
+        },
+        {
+          "point": [
+            4,
+            3
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 6,
+          "nodes": 77,
+          "leaves": 63,
+          "minArea": 6,
+          "minMargin": -1,
+          "maxDepth": 5,
+          "counter": {
+            "reason": "native-margin-negative",
+            "scores": {
+              "BLACK": 6,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 4,
+              "ORANGE": 7,
+              "CYAN": 1
+            },
+            "margin": -1,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  5
+                ]
+              },
+              {
+                "actor": "ORANGE",
+                "point": [
+                  6,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 54.032900000000154
+        },
+        {
+          "point": [
+            6,
+            3
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 6,
+          "nodes": 4,
+          "leaves": 0,
+          "minArea": 6,
+          "minMargin": -1,
+          "maxDepth": 3,
+          "counter": {
+            "reason": "native-margin-negative",
+            "scores": {
+              "BLACK": 6,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 7,
+              "ORANGE": 1,
+              "CYAN": 1
+            },
+            "margin": -1,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 3.3200999999999112
+        },
+        {
+          "point": [
+            2,
+            4
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 7,
+          "nodes": 4,
+          "leaves": 0,
+          "minArea": 3,
+          "minMargin": -4,
+          "maxDepth": 3,
+          "counter": {
+            "reason": "post-root-piece-or-birth-connection-lost",
+            "scores": {
+              "BLACK": 3,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 7,
+              "ORANGE": 1,
+              "CYAN": 1
+            },
+            "margin": -4,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 6.151100000000042
+        },
+        {
+          "point": [
+            4,
+            4
+          ],
+          "status": "INCOMPLETE",
+          "afterRootArea": 7,
+          "nodes": 1213,
+          "leaves": 1055,
+          "minArea": 7,
+          "minMargin": 3,
+          "maxDepth": 5,
+          "counter": null,
+          "incompleteReason": "bounded-budget-exhausted",
+          "elapsedMs": 800.6831999999999
+        },
+        {
+          "point": [
+            6,
+            4
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 7,
+          "nodes": 255,
+          "leaves": 221,
+          "minArea": 3,
+          "minMargin": -4,
+          "maxDepth": 5,
+          "counter": {
+            "reason": "post-root-piece-or-birth-connection-lost",
+            "scores": {
+              "BLACK": 3,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 4,
+              "ORANGE": 7,
+              "CYAN": 1
+            },
+            "margin": -4,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  5
+                ]
+              },
+              {
+                "actor": "ORANGE",
+                "point": [
+                  6,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 184.81269999999995
+        },
+        {
+          "point": [
+            1,
+            5
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 8,
+          "nodes": 4,
+          "leaves": 0,
+          "minArea": 3,
+          "minMargin": -4,
+          "maxDepth": 3,
+          "counter": {
+            "reason": "post-root-piece-or-birth-connection-lost",
+            "scores": {
+              "BLACK": 3,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 7,
+              "ORANGE": 1,
+              "CYAN": 1
+            },
+            "margin": -4,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 3.4864000000006854
+        },
+        {
+          "point": [
+            4,
+            5
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 8,
+          "nodes": 5,
+          "leaves": 0,
+          "minArea": 3,
+          "minMargin": -2,
+          "maxDepth": 4,
+          "counter": {
+            "reason": "post-root-piece-or-birth-connection-lost",
+            "scores": {
+              "BLACK": 3,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 3,
+              "ORANGE": 5,
+              "CYAN": 1
+            },
+            "margin": -2,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  6
+                ]
+              },
+              {
+                "actor": "ORANGE",
+                "point": [
+                  4,
+                  4
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 6.140500000000429
+        },
+        {
+          "point": [
+            6,
+            5
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 8,
+          "nodes": 255,
+          "leaves": 221,
+          "minArea": 3,
+          "minMargin": -4,
+          "maxDepth": 5,
+          "counter": {
+            "reason": "post-root-piece-or-birth-connection-lost",
+            "scores": {
+              "BLACK": 3,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 4,
+              "ORANGE": 7,
+              "CYAN": 1
+            },
+            "margin": -4,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  5
+                ]
+              },
+              {
+                "actor": "ORANGE",
+                "point": [
+                  6,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 171.51389999999992
+        },
+        {
+          "point": [
+            0,
+            6
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 9,
+          "nodes": 4,
+          "leaves": 0,
+          "minArea": 3,
+          "minMargin": -4,
+          "maxDepth": 3,
+          "counter": {
+            "reason": "post-root-piece-or-birth-connection-lost",
+            "scores": {
+              "BLACK": 3,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 7,
+              "ORANGE": 1,
+              "CYAN": 1
+            },
+            "margin": -4,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 3.5226000000002387
+        },
+        {
+          "point": [
+            4,
+            6
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 9,
+          "nodes": 5,
+          "leaves": 0,
+          "minArea": 3,
+          "minMargin": -2,
+          "maxDepth": 4,
+          "counter": {
+            "reason": "post-root-piece-or-birth-connection-lost",
+            "scores": {
+              "BLACK": 3,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 3,
+              "ORANGE": 5,
+              "CYAN": 1
+            },
+            "margin": -2,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  6,
+                  6
+                ]
+              },
+              {
+                "actor": "ORANGE",
+                "point": [
+                  4,
+                  4
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 8.130300000000716
+        },
+        {
+          "point": [
+            6,
+            6
+          ],
+          "status": "COMPLETE_COUNTEREXAMPLE",
+          "afterRootArea": 9,
+          "nodes": 255,
+          "leaves": 221,
+          "minArea": 3,
+          "minMargin": -4,
+          "maxDepth": 5,
+          "counter": {
+            "reason": "post-root-piece-or-birth-connection-lost",
+            "scores": {
+              "BLACK": 3,
+              "WHITE": 2,
+              "PURPLE": 3,
+              "GREEN": 4,
+              "ORANGE": 7,
+              "CYAN": 1
+            },
+            "margin": -4,
+            "actions": [
+              {
+                "actor": "WHITE",
+                "point": [
+                  7,
+                  0
+                ]
+              },
+              {
+                "actor": "PURPLE",
+                "point": [
+                  8,
+                  2
+                ]
+              },
+              {
+                "actor": "GREEN",
+                "point": [
+                  4,
+                  5
+                ]
+              },
+              {
+                "actor": "ORANGE",
+                "point": [
+                  6,
+                  2
+                ]
+              }
+            ]
+          },
+          "incompleteReason": null,
+          "elapsedMs": 158.92680000000018
+        }
+      ],
+      "elapsedMs": 1586.0926
+    }
+  ],
+  "notes": "This deliberately tests margin>=0 as requested. Original V1 additionally requires margin>0 when the immediate terminal PASS is a strict win. A witness with only own-area retention cannot certify this condition."
+}

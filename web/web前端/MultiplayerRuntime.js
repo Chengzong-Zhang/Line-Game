@@ -6,7 +6,7 @@ import { threePlayerModelIdForBoard } from "./ThreePlayerSearchOptions.js?v=2026
 import { loadHexPlayerModel } from "./HexPlayerAI.js?v=20261025-terminal-v4";
 import { createUltimateAdmissionGuard } from "./MultiplayerUltimateAdmission.js?v=20261025-terminal-v4";
 import { applyStandardDefenseGate } from "./MultiplayerStandardDefense.js?v=20261025-terminal-v4";
-import { withPassDiscipline } from "./AIPassDisciplineV3.js?v=20261025-terminal-v4";
+import { withPassDiscipline } from "./AIPassDisciplineV4.js?v=20261025-terminal-v4";
 import { rankWithLearnedPass } from "./LearnedPassPolicy.js?v=20261025-terminal-v4";
 import { trainedPolicySpec, trainedPolicyInfo } from "./PassTrainedPolicies.js?v=20261025-terminal-v4";
 

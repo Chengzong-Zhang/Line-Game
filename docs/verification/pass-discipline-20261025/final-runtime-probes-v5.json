@@ -1,0 +1,143 @@
+{
+  "schema": "lifeline-terminal-policy-final-runtime-probes-v5",
+  "status": "PASS_FINAL_SOURCE_IDENTITY_AND_WORKER_PROBES",
+  "observed_at_utc": "2026-10-25T19:40:24.365Z",
+  "admission_report_sha256": "c49570f4a3d0a6c35d02049f0aeec74f1b43aa240e983c06983f4d424c8f0f11",
+  "promotion_changed_frozen_inputs": [
+    "web/web前端/MultiplayerHardAIWorker.bundle.manifest.json",
+    "web/web前端/MultiplayerHardAIWorker.bundle.mjs",
+    "web/web前端/PassTrainedPolicyData.js"
+  ],
+  "only_direct_change_is_admission_metadata": true,
+  "rebuilt_hard_module_source_changes": [
+    "PassTrainedPolicyData.js"
+  ],
+  "hard_bundle_sha256": "ff91c2c91d333188bcf078e5182228dca11ba73ab74655cda56caf69e281ba57",
+  "hard_actual_worker": {
+    "schema": "lifeline-territory-v3-hard-worker-verification-v1",
+    "status": "PASS_V3_HARD_WORKER_SOURCE_AND_ROUTE",
+    "bundleSha256": "ff91c2c91d333188bcf078e5182228dca11ba73ab74655cda56caf69e281ba57",
+    "currentGameEngineSha256": "1aec9d73d06c7243ac71d1eb27c8f9692dc5f33576d298d2ecd2d2d55464acfb",
+    "route": {
+      "kind": "native-hard-bundle",
+      "url": "file:///C:/Users/zcz/.codex/worktrees/pass-discipline/line%20game/web/web%E5%89%8D%E7%AB%AF/MultiplayerHardAIWorker.bundle.mjs?v=20261025-terminal-v4"
+    },
+    "request": {
+      "rulesVersion": "territory-v3",
+      "playerCount": 4,
+      "gridSize": 5,
+      "replyType": "RESULT",
+      "returnedMoves": 1,
+      "terminalEvaluation": "native-territory-v3"
+    },
+    "checks": [
+      "manifest GameEngine hash equals current source",
+      "captured production route targets emitted bundle",
+      "actual emitted Worker listener returns a V3 Hard result"
+    ],
+    "limits": [
+      "Controlled Node Worker shim with file-backed assets; no browser timing or playing-strength claim.",
+      "Current-score parity is established by the separate main-thread scoring fixture; this worker request verifies source identity and V3 route execution."
+    ]
+  },
+  "validator_bundle_sha256": "63aa268f7fb42bc911705149a074673fd5f29281b21dedbd6f244f67dc0237eb",
+  "validator_probes": 24,
+  "parent_worker_probes": [
+    {
+      "alias": "easy",
+      "size": 7,
+      "players": 3,
+      "point": [
+        4,
+        0
+      ],
+      "same_point_as_evaluation": true,
+      "candidate_sha256": "698429df7e40b7550afca3fec044b6c31eff4059dcfe438bfbc6abbf674c3b3a",
+      "admission_report_sha256": "c49570f4a3d0a6c35d02049f0aeec74f1b43aa240e983c06983f4d424c8f0f11",
+      "runtime_parameters_sha256": "5d0952b2662d8c3c402ad40496df1ac593356f9cf9c5d1bdb50a02f0ee6264f6",
+      "source_state_unchanged": true
+    },
+    {
+      "alias": "three-v4",
+      "size": 7,
+      "players": 3,
+      "point": [
+        4,
+        0
+      ],
+      "same_point_as_evaluation": true,
+      "candidate_sha256": "c5795f61b1127475b34f04f9288723ec4de7a4a704241a1515437fac7287829a",
+      "admission_report_sha256": "c49570f4a3d0a6c35d02049f0aeec74f1b43aa240e983c06983f4d424c8f0f11",
+      "runtime_parameters_sha256": "854f13ea07af31857e45f7f9a4f2a40ceb964f840385318d409eac48797d12fb",
+      "source_state_unchanged": true
+    },
+    {
+      "alias": "three-v1",
+      "size": 6,
+      "players": 3,
+      "point": [
+        3,
+        0
+      ],
+      "same_point_as_evaluation": true,
+      "candidate_sha256": "aafb3d36704093d1ea2c98a2944e49b7d96792697f40d1a5ea88ef3136846a68",
+      "admission_report_sha256": "c49570f4a3d0a6c35d02049f0aeec74f1b43aa240e983c06983f4d424c8f0f11",
+      "runtime_parameters_sha256": "ab1d7589d1a4eb4d44e66ab5d92367086c68290d6f9faf2d8427a2da86db9ad6",
+      "source_state_unchanged": true
+    },
+    {
+      "alias": "hex-v1",
+      "size": 5,
+      "players": 4,
+      "point": [
+        4,
+        6
+      ],
+      "same_point_as_evaluation": true,
+      "candidate_sha256": "a536966b8927a3c3badd5df5e63801b27329cb683a238af8b926661b5ccc8ce7",
+      "admission_report_sha256": "c49570f4a3d0a6c35d02049f0aeec74f1b43aa240e983c06983f4d424c8f0f11",
+      "runtime_parameters_sha256": "b3decf1cae60ce6259ae9d7fe6a503a8a45617298d0d1381ff8892d6bf3fd890",
+      "source_state_unchanged": true
+    }
+  ],
+  "release_admission": {
+    "schema": "lifeline-terminal-release-admission-v4",
+    "status": "PASS_TERMINAL_RELEASE_ADMISSION_V4",
+    "verifier_sha256": "41fd154c0e901b2bb522b3cd6b8fcf73f2bc3e9154596cba3d955a6b21bb1363",
+    "policy_data_sha256": "422bdec5bf500d54036a4afb9b16e5501c20f4f2880cc20f87706ccf5023a1db",
+    "admission_report_sha256": "c49570f4a3d0a6c35d02049f0aeec74f1b43aa240e983c06983f4d424c8f0f11",
+    "candidate_hashes": {
+      "easy": "698429df7e40b7550afca3fec044b6c31eff4059dcfe438bfbc6abbf674c3b3a",
+      "three-v4": "c5795f61b1127475b34f04f9288723ec4de7a4a704241a1515437fac7287829a",
+      "three-v1": "aafb3d36704093d1ea2c98a2944e49b7d96792697f40d1a5ea88ef3136846a68",
+      "hex-v1": "a536966b8927a3c3badd5df5e63801b27329cb683a238af8b926661b5ccc8ce7"
+    },
+    "runtime_parameters_sha256": {
+      "easy": "5d0952b2662d8c3c402ad40496df1ac593356f9cf9c5d1bdb50a02f0ee6264f6",
+      "three-v4": "854f13ea07af31857e45f7f9a4f2a40ceb964f840385318d409eac48797d12fb",
+      "three-v1": "ab1d7589d1a4eb4d44e66ab5d92367086c68290d6f9faf2d8427a2da86db9ad6",
+      "hex-v1": "b3decf1cae60ce6259ae9d7fe6a503a8a45617298d0d1381ff8892d6bf3fd890"
+    },
+    "training_identity": "3ff84e2e1458681404064611007901864b22423e09dc16d44aa6c4528adeeb59",
+    "training_completion_sha256": "ce5896dea2421c9b1ec190866233c6d7a344fcd0358479ea53efd53389fdb552",
+    "fresh_natural_games": 34,
+    "independent_layout_blocks": 8,
+    "scenario_cases": 135,
+    "strength_verified": false,
+    "global_runtime_admission": false,
+    "scope": "Four terminal-trained native linear parents in the stated four complete-game cells; shared PASS scenarios across explicit strategies/2–15 players. Size 9 is snapshot-only. Existing neural weights unchanged.",
+    "summary_sha256": "88d629a47520d77ec28ea0408fd0802d6beb3971616cf65a1e48bc8701006016"
+  },
+  "local_browser": {
+    "url": "http://127.0.0.1:9018/",
+    "players": 3,
+    "size": 7,
+    "opening_placed": true,
+    "latest_move_marker_visible": true,
+    "warnings_or_errors": 0,
+    "screenshot": "local_artifacts/browser-terminal-v5-v4-opening.png",
+    "scope": "Candidate UI before admission metadata promotion; not production or phone evidence."
+  },
+  "inherited_failure": "CONTROL-SKIP score assertion in verify-ai-control-flow is inherited and not represented as passing.",
+  "scope": "Four final actual parent Worker identities and unchanged opening decisions; exact frozen graph differences limited to metadata and rebuilt Hard output. Hard source/route and native validator separately verified. No phone timing or global-strength conclusion."
+}

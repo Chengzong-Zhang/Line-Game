@@ -1,0 +1,33 @@
+{
+  "schema": "lifeline-terminal-policy-metadata-promotion-v5",
+  "status": "PASS_METADATA_ONLY_PROMOTION",
+  "observed_at_utc": "2026-10-25T19:38:22.825Z",
+  "phase_identity": "0b10a69793e529202858e2cee02c508114088f69a56bb1644334a5c074c6e908",
+  "admission_report_sha256": "c49570f4a3d0a6c35d02049f0aeec74f1b43aa240e983c06983f4d424c8f0f11",
+  "input_count": 566,
+  "changed_frozen_inputs": [
+    "web/web前端/PassTrainedPolicyData.js"
+  ],
+  "changed_fields": [
+    "activation",
+    "admission_report_sha256"
+  ],
+  "weights_and_all_other_fields_identical": true,
+  "before_sha256": "fbeb0b090c68c61d62a655757ca6fd9f3844a127d882e7408f22dc0dc96e6880",
+  "after_sha256": "422bdec5bf500d54036a4afb9b16e5501c20f4f2880cc20f87706ccf5023a1db",
+  "candidate_hashes": {
+    "easy": "698429df7e40b7550afca3fec044b6c31eff4059dcfe438bfbc6abbf674c3b3a",
+    "three-v4": "c5795f61b1127475b34f04f9288723ec4de7a4a704241a1515437fac7287829a",
+    "three-v1": "aafb3d36704093d1ea2c98a2944e49b7d96792697f40d1a5ea88ef3136846a68",
+    "hex-v1": "a536966b8927a3c3badd5df5e63801b27329cb683a238af8b926661b5ccc8ce7"
+  },
+  "runtime_parameters_sha256": {
+    "easy": "5d0952b2662d8c3c402ad40496df1ac593356f9cf9c5d1bdb50a02f0ee6264f6",
+    "three-v4": "854f13ea07af31857e45f7f9a4f2a40ceb964f840385318d409eac48797d12fb",
+    "three-v1": "ab1d7589d1a4eb4d44e66ab5d92367086c68290d6f9faf2d8427a2da86db9ad6",
+    "hex-v1": "b3decf1cae60ce6259ae9d7fe6a503a8a45617298d0d1381ff8892d6bf3fd890"
+  },
+  "reproduction_script": "local_artifacts/terminal-v5-final-promotion/promote.mjs",
+  "reproduction_script_sha256": "c7b0bfb9a45e9270568cad938eca84d45e74111979f170e13e54402df48fbf70",
+  "scope": "Only release-admission metadata changed after independent scoped evaluation; final Hard rebuild and actual Worker probes remain required."
+}

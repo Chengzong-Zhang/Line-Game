@@ -1,0 +1,149 @@
+{
+  "schema": "lifeline-product-pass-discipline-v4-independent-review-v1",
+  "status": "PASS_BOUNDED_ANALYTIC_PROOF_REVIEW",
+  "decision": "GO_NARROW_PROOF_ONLY",
+  "executed_at_utc": "2026-10-25T19:25:51.239Z",
+  "reviewed_runtime": {
+    "path": "web/web前端/AIPassDisciplineV4.js",
+    "sha256": "96d69a3d9567b63ae7f38ffe34b7ffdf05379ba65ee04ccee5a376d629a0ad69"
+  },
+  "canonical_fixture": {
+    "path": "web/web前端/tests/fixtures/pass-discipline-v4-terminal-states.json",
+    "sha256": "0aea75636860a64ab8ad384c9d83ab568880e63d6d1a2af99c838044c36346c4",
+    "generated_sources_match_frozen_fixture_hashes": true
+  },
+  "verification": {
+    "command": "node local_artifacts/product-pass-discipline-v4-independent-review-20261026/reproduce.mjs",
+    "cwd": "C:/Users/zcz/.codex/worktrees/pass-discipline/line game",
+    "local_reproduction_script": "local_artifacts/product-pass-discipline-v4-independent-review-20261026/reproduce.mjs",
+    "script_sha256": "dbd6cf104c51b79f150ef179f4c3cc0fef49e6bf264a96a907375836aa268a78",
+    "script_policy": "Local reproduction aid; do not commit the local artifact tree or raw logs.",
+    "node_version": "v22.22.3",
+    "exit_code": 0,
+    "total_cases": 11,
+    "script_writes_files": false,
+    "method": "Independent source-level proof audit and in-memory positive/counterexample execution against the production helper; not an independently reimplemented solver."
+  },
+  "input_hashes": {
+    "web/web前端/AIPassDisciplineV4.js": "96d69a3d9567b63ae7f38ffe34b7ffdf05379ba65ee04ccee5a376d629a0ad69",
+    "web/web前端/tests/fixtures/pass-discipline-v4-terminal-states.json": "0aea75636860a64ab8ad384c9d83ab568880e63d6d1a2af99c838044c36346c4",
+    "web/web前端/GameEngine.js": "1aec9d73d06c7243ac71d1eb27c8f9692dc5f33576d298d2ecd2d2d55464acfb",
+    "web/web前端/AIStateProtocol.js": "bd82e144304f429b354d7d7a722f1a691b7902a6e6e418f3739342191b5291a2",
+    "web/web前端/AIPassDiscipline.js": "4850b3af425e3b7d3153b43c45c223fad3b89b4870cdfce75425955cb3454419",
+    "web/tools/evaluate-pass-discipline-v1.mjs": "b018d646f0def481c84eedc06749ef1590bb1f95cd73abcda7a4c1e490b9e8f0"
+  },
+  "cases": [
+    {
+      "case": "canonical-4p",
+      "result": "CERTIFIED",
+      "source_state_sha256": "c649dc596db9ab391f036c5a6cacfe75073520352d2bfbaedc334af19888dcdb",
+      "root": [
+        4,
+        4
+      ],
+      "own_area_lower_bound": 7,
+      "maximum_enemy_area_upper_bound": 5,
+      "margin_lower_bound": 2,
+      "reserved_return": [
+        4,
+        1
+      ]
+    },
+    {
+      "case": "canonical-5p",
+      "result": "CERTIFIED",
+      "source_state_sha256": "af313940ebf89b6960b7b7963b88cb407c7e40b5b7a2850bccf015a52eabd120",
+      "root": [
+        4,
+        4
+      ],
+      "own_area_lower_bound": 7,
+      "maximum_enemy_area_upper_bound": 5,
+      "margin_lower_bound": 2,
+      "reserved_return": [
+        4,
+        1
+      ]
+    },
+    {
+      "case": "canonical-6p",
+      "result": "CERTIFIED",
+      "source_state_sha256": "a16da512ce447c572ba519a36c7cc6c18b1c23ee6f004180baa2cb0930b31a9b",
+      "root": [
+        4,
+        4
+      ],
+      "own_area_lower_bound": 7,
+      "maximum_enemy_area_upper_bound": 5,
+      "margin_lower_bound": 2,
+      "reserved_return": [
+        4,
+        1
+      ]
+    },
+    {
+      "case": "reserved-actor-node-in-history",
+      "result": "REJECTED"
+    },
+    {
+      "case": "malformed-history",
+      "result": "REJECTED"
+    },
+    {
+      "case": "enemy-second-node",
+      "result": "REJECTED"
+    },
+    {
+      "case": "enemy-line",
+      "result": "REJECTED"
+    },
+    {
+      "case": "orphan-actor-line",
+      "result": "REJECTED"
+    },
+    {
+      "case": "unshielded-actor-line",
+      "result": "REJECTED",
+      "enemy_birth": [
+        2,
+        2
+      ]
+    },
+    {
+      "case": "losing-static-margin",
+      "result": "REJECTED",
+      "enemy_birth": [
+        0,
+        5
+      ]
+    },
+    {
+      "case": "wrong-actor-and-zero-budget",
+      "result": "REJECTED",
+      "assertions": 2
+    }
+  ],
+  "proof_audit": [
+    "All retained post-root actor coverage must be connected to its birth through intact logical edges and strictly exceed pre-move native area.",
+    "Before each enemy's first actual action, that enemy still has one birth NODE and no LINE. Every geometrically aligned attack on an unprotected actor LINE has an interior actor NODE blocker. Thus no first cut of the retained actor coverage can occur.",
+    "A protected birth-adjacent actor LINE remains canonically occupiable: fixed actor NODEs preserve local connection and three-point predicates. Parsed full history excludes an actor NODE at the reserved point; enemy-only transitions cannot introduce it. The resulting fresh actor NODE makes Superko impossible, preventing actor auto-skip and any enemy second action before return.",
+    "Each enemy's walls after at most one placement are a subset of one birth-to-target segment avoiding retained actor coverage. Native area of each full segment with retained actor coverage as enemy obstacles bounds actual enemy area; other enemies are removed only for this conservative bound.",
+    "For an originally winning terminal PASS, the certified margin lower bound must remain strictly positive; an original tie requires a nonnegative bound. The receipt distinguishes analyticCompleteRound from enumerated opponent replies."
+  ],
+  "scope": {
+    "rules_version": "territory-v3",
+    "proof_domain": "Native hexagonal boards with 4-6 seats, only when every implemented singleton, first-cut, rooted-coverage, reserved-return, history, margin and shared-budget guard passes.",
+    "executed_positive_domain": "Three canonical size-5 terminal-expansion sources with 4, 5 and 6 seats; root [4,4], actor area lower bound 7, maximum enemy area upper bound 5, margin lower bound +2, reserved return [4,1].",
+    "shared_proof_budget_ms": 200,
+    "previous_versions_modified_by_reviewer": false,
+    "runtime_scoped_admitted": false,
+    "strength_verified": false,
+    "publication_authorized_by_this_review": false
+  },
+  "limits": [
+    "No exhaustive reply-tree enumeration was performed by this independent script; the safety argument is an analytic one-round bound ending at actor return or native terminal.",
+    "Synthetic malformed-history and piece-state counterexamples test fail-closed guards; they are not claims of canonical game reachability.",
+    "The 200ms setting is a proof budget, not a worst-case end-to-end latency guarantee. This script verifies zero-budget rejection and makes no representative performance claim.",
+    "This review does not establish full-game admission, global strength, browser/WeChat/device behavior, training completion or public release. Those require their separate frozen-source gates and receipts."
+  ]
+}

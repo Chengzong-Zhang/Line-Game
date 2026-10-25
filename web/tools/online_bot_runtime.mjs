@@ -6,7 +6,7 @@ import { relative, isAbsolute, sep } from "node:path";
 import { webcrypto } from "node:crypto";
 import { GreedyAI, MinimaxAI } from "../web前端/AIEngine.js?v=20261025-room1";
 import { createUltimateAdmissionGuard } from "../web前端/MultiplayerUltimateAdmission.js?v=20261025-room1";
-import { applyPassDiscipline } from "../web前端/AIPassDisciplineV3.js";
+import { applyPassDiscipline } from "../web前端/AIPassDisciplineV4.js";
 
 if (!globalThis.crypto?.subtle) globalThis.crypto = webcrypto;
 const assetRoot = fileURLToPath(new URL("../web前端/assets/research-ai/", import.meta.url));

@@ -1,0 +1,39 @@
+{
+  "schema": "lifeline-terminal-pass-margin-extended-diagnostic-v1",
+  "status": "BOUNDED_DIAGNOSTIC_NOT_ADMISSION",
+  "sourceDiagnostic": "new-runtime-v4-terminal-margin-diagnostic.json",
+  "rows": [
+    {
+      "playerCount": 5,
+      "point": [
+        4,
+        4
+      ],
+      "status": "COMPLETE_PROVED_NONNEGATIVE_MARGIN",
+      "nodes": 4771,
+      "leaves": 4275,
+      "maxDepth": 4,
+      "minArea": 7,
+      "minMargin": 2,
+      "counter": null,
+      "incompleteReason": null,
+      "elapsedMs": 3565.5901
+    },
+    {
+      "playerCount": 6,
+      "point": [
+        4,
+        4
+      ],
+      "status": "INCOMPLETE",
+      "nodes": 16692,
+      "leaves": 14570,
+      "maxDepth": 5,
+      "minArea": 7,
+      "minMargin": 3,
+      "counter": null,
+      "incompleteReason": "bounded-budget-exhausted",
+      "elapsedMs": 12000.483699999999
+    }
+  ]
+}

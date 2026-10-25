@@ -1,0 +1,313 @@
+{
+  "schema": "lifeline-product-pass-discipline-v4-integration",
+  "status": "FROZEN_RUNTIME_TARGETED_REGRESSIONS_PASS",
+  "checkedAtUtc": "2026-10-25T19:40:23.082703+00:00",
+  "changedPaths": [
+    "web/web前端/AIPassDisciplineV4.js",
+    "web/web前端/AIWorker.js",
+    "web/web前端/MultiplayerRuntime.js",
+    "web/tools/online_bot_runtime.mjs",
+    "wechat/minigame/src/multiplayer-ai.js",
+    "wechat/minigame/src/worker-runtime.js",
+    "wechat/minigame/compat/web/MultiplayerRuntime.js",
+    "wechat/minigame/compat/web/manifest.json",
+    "web/web前端/MultiplayerHardAIWorker.bundle.mjs",
+    "web/web前端/MultiplayerHardAIWorker.bundle.manifest.json",
+    "web/web前端/tests/verify-pass-discipline-v4.mjs",
+    "web/web前端/tests/fixtures/pass-discipline-v4-terminal-states.json",
+    "wechat/minigame/tests/pass-discipline-v4.test.mjs",
+    "web/web前端/GuideImplementationNotes.js",
+    "web/web前端/guide/interesting/why-code.zh.md",
+    "web/web前端/guide/interesting/why-code.en.md"
+  ],
+  "sourceSha256AtReceipt": {
+    "web/web前端/AIPassDisciplineV4.js": "96d69a3d9567b63ae7f38ffe34b7ffdf05379ba65ee04ccee5a376d629a0ad69",
+    "web/web前端/AIWorker.js": "d2239f1f245e5b1cfb9190253595a29e8a2b3b63b36a414938bfc5c8c3dcd294",
+    "web/web前端/MultiplayerRuntime.js": "e30b344a19f1f1e03cf3688f1f7b13937e4e49df3f04a66dcf067fab1a57ed00",
+    "web/tools/online_bot_runtime.mjs": "559f376537120d26bd8be8cd53f84ce71894092eaeffa4b5cc6aae2f8a8cdea8",
+    "wechat/minigame/src/multiplayer-ai.js": "f4a810f8ff30662ebd1e75b8e6a48768d9fc85e06c97dacd6c4dde780d80382b",
+    "wechat/minigame/src/worker-runtime.js": "4734f89cb8c10c501e5a6a9a0bea124798a40726be6e6e906b5cdce6c56d173e",
+    "wechat/minigame/compat/web/MultiplayerRuntime.js": "16480e1877754f8f1bbc93df837748c8ffa274a49e0639915202773f78488341",
+    "wechat/minigame/compat/web/manifest.json": "a79933107a79bc01127bb871120b3e1f76f1426655111e095badd8b08a7479a4",
+    "web/web前端/MultiplayerHardAIWorker.bundle.mjs": "ff91c2c91d333188bcf078e5182228dca11ba73ab74655cda56caf69e281ba57",
+    "web/web前端/MultiplayerHardAIWorker.bundle.manifest.json": "51e8e0d542c6b0092955069e2baaca813bc52977c49c82686b13c9a05abab973",
+    "web/web前端/tests/verify-pass-discipline-v4.mjs": "e1f61abdfe5c0589bb25a0de7bed76b65859119aa29b158bdacca67af3292738",
+    "web/web前端/tests/fixtures/pass-discipline-v4-terminal-states.json": "0aea75636860a64ab8ad384c9d83ab568880e63d6d1a2af99c838044c36346c4",
+    "wechat/minigame/tests/pass-discipline-v4.test.mjs": "2bc5ccffd761bd64f88cb42f45e10bb7bbc7e21457519ce5bada0075635a3cbd",
+    "web/web前端/GuideImplementationNotes.js": "8524662c9376d33755902ce37a81457cfa79960a84786d3cbb34fcc746a195ef",
+    "web/web前端/guide/interesting/why-code.zh.md": "ebb33a7b20d22289f6d5045484c15f234e22d47e0c81e39042379bc3b3d30920",
+    "web/web前端/guide/interesting/why-code.en.md": "5a16ebabff8643c998df41628a3726d894810174d917c67d4ccdaa529f86d8b0"
+  },
+  "synchronizedGuideSha256AtReceipt": {
+    "web/web前端/guide/rule/math rule.md": "cd8f741f5f9466a81315ce69de79c10b441b878ecaa6acc78bd0ad5996414489",
+    "web/web前端/guide/rule/math rule.en.md": "3525a42775cc4defe828026230201d92ca664a32cbee675818191c62504e2d6f",
+    "web/web前端/guide/interesting/why-code.zh.md": "ebb33a7b20d22289f6d5045484c15f234e22d47e0c81e39042379bc3b3d30920",
+    "web/web前端/guide/interesting/why-code.en.md": "5a16ebabff8643c998df41628a3726d894810174d917c67d4ccdaa529f86d8b0"
+  },
+  "problem": {
+    "sourceCampaign": "local_artifacts/pass-discipline-new-runtime-v4-20261026",
+    "retainedRejections": [
+      "shared/units/shared-16-s5-terminal-expansion.json",
+      "shared/units/shared-19-s5-terminal-expansion.json",
+      "shared/units/shared-22-s5-terminal-expansion.json"
+    ],
+    "immutableFatalSnapshot": "local_artifacts/pass-v5-new-runtime-v4-fatal-source-snapshot/snapshot.json",
+    "refutedRoot": [
+      4,
+      1
+    ],
+    "counterexampleReply": {
+      "actor": "WHITE",
+      "point": [
+        2,
+        6
+      ],
+      "actorArea": 4,
+      "enemyArea": 7
+    },
+    "correction": "Do not weaken strict winning terminal-PASS margin. True root [4,4] gives actor occupied/native LB7 and separate enemy native UB5."
+  },
+  "design": {
+    "schema": "lifeline-ai-pass-discipline-v4",
+    "proofType": "singleton-first-cut-and-native-segment-envelope-with-reserved-return",
+    "scope": "Product only: terminal real raw PASS, territory-v3 native hex, 4-6 seats, singleton birth enemies without lines. Every other case delegates unchanged V3.",
+    "premises": [
+      "Pre-root actor nodes/coverage survive; every post-root actor node and LINE point is birth-connected through intact logical edges.",
+      "Every enemy-birth-aligned attack on an unprotected actor LINE has an actor NODE strictly between birth and target; no first cut can remove retained actor P0.",
+      "A protected birth-adjacent actor LINE is canonically legal and never an actor NODE in any parsed full raw JSON history state; malformed history fails closed. This reserved return prevents actor auto-skip.",
+      "Each enemy therefore acts at most once before actual actor return/native terminal, and its walls are a subset of one birth-to-target segment.",
+      "Enumerate segments separately per enemy avoiding P0. Keep P0 as obstacles, remove other enemies for the conservative bound, and call canonical _computeOwnedWallArea(fullSegment,P0). Never union incompatible segments.",
+      "Actor occupied LB strictly exceeds old native area; margin LB >0 for an originally uniquely winning terminal PASS, >=0 for an original tie."
+    ],
+    "budget": {
+      "timeMs": 200,
+      "maxCanonicalActions": 10000,
+      "maxCandidateRoots": 12,
+      "rootOrdering": "Estimated occupied gain",
+      "allWorkUsesSharedDeadline": true,
+      "fallback": "V3 gets only actual remaining time/actions. Model and Minimax depths/search budgets unchanged."
+    },
+    "accounting": {
+      "completeOpponentRound": false,
+      "analyticCompleteRound": true,
+      "canonicalActions": "Actual canonical PASS/root actions",
+      "nodeUnit": "canonical PASS/root actions",
+      "analyticalProbes": "Separate actorLineTargets/historyRecords/segmentTargets/nativeAreaCalls; no fabricated enumerated replies."
+    }
+  },
+  "canonicalRealStates": [
+    {
+      "playerCount": 4,
+      "sourceStateSha256": "c649dc596db9ab391f036c5a6cacfe75073520352d2bfbaedc334af19888dcdb",
+      "root": [
+        4,
+        4
+      ],
+      "minimumReplyAreaLowerBound": 7,
+      "maximumEnemyAreaUpperBound": 5,
+      "minimumReplyMargin": 2,
+      "reservedReturn": [
+        4,
+        1
+      ]
+    },
+    {
+      "playerCount": 5,
+      "sourceStateSha256": "af313940ebf89b6960b7b7963b88cb407c7e40b5b7a2850bccf015a52eabd120",
+      "root": [
+        4,
+        4
+      ],
+      "minimumReplyAreaLowerBound": 7,
+      "maximumEnemyAreaUpperBound": 5,
+      "minimumReplyMargin": 2,
+      "reservedReturn": [
+        4,
+        1
+      ]
+    },
+    {
+      "playerCount": 6,
+      "sourceStateSha256": "a16da512ce447c572ba519a36c7cc6c18b1c23ee6f004180baa2cb0930b31a9b",
+      "root": [
+        4,
+        4
+      ],
+      "minimumReplyAreaLowerBound": 7,
+      "maximumEnemyAreaUpperBound": 5,
+      "minimumReplyMargin": 2,
+      "reservedReturn": [
+        4,
+        1
+      ]
+    }
+  ],
+  "independentReview": {
+    "path": "docs/verification/pass-discipline-20261025/product-pass-discipline-v4-independent-review.json",
+    "sha256": "c16986eeea3f437522524d0d55fc2301d9cb79fee009d4da6f92dd45a206a3b5",
+    "decision": "GO_NARROW_PROOF_ONLY",
+    "status": "PASS_BOUNDED_ANALYTIC_PROOF_REVIEW",
+    "scope": "Independent source proof audit and 11 in-memory cases, not an independently reimplemented solver/full-game admission."
+  },
+  "independentDiagnostic": {
+    "scope": "Completed exhaustive native reply trees, separate diagnostic not admission. Earlier incomplete attempts retained in original receipts.",
+    "completed": [
+      {
+        "playerCount": 4,
+        "nodes": 980,
+        "leaves": 881,
+        "exactMinimumMargin": 2,
+        "receipt": "docs/verification/pass-discipline-20261025/new-runtime-v4-terminal-margin-diagnostic.json"
+      },
+      {
+        "playerCount": 5,
+        "nodes": 4771,
+        "leaves": 4275,
+        "exactMinimumMargin": 2,
+        "receipt": "docs/verification/pass-discipline-20261025/new-runtime-v4-terminal-margin-extended.json"
+      },
+      {
+        "playerCount": 6,
+        "nodes": 30744,
+        "leaves": 26839,
+        "exactMinimumMargin": 3,
+        "receipt": "docs/verification/pass-discipline-20261025/new-runtime-v4-terminal-margin-six-player.json"
+      }
+    ]
+  },
+  "checks": [
+    {
+      "command": "node web/web前端/tests/verify-pass-discipline-v4.mjs",
+      "exitCode": 0,
+      "realStates": 3,
+      "result": "Exact 4/5/6-seat states: [4,4], LB7/UB5/+2/reserve[4,1]; real room/Hard route; rejected losing old root, historical reserved NODE, malformed history, enemy extra NODE/LINE, orphan own LINE, reachable unshielded cut, wrong actor, absent output, zero/expired budgets. Preserves original placements/idempotence/source state."
+    },
+    {
+      "command": "node web/web前端/tests/verify-pass-discipline-v2.mjs",
+      "exitCode": 0,
+      "realStates": 5
+    },
+    {
+      "command": "node web/web前端/tests/verify-pass-discipline-v3.mjs",
+      "exitCode": 0,
+      "realStates": 3
+    },
+    {
+      "command": "node web/web前端/tests/verify-pass-discipline-v1.mjs",
+      "exitCode": 0
+    },
+    {
+      "command": "node web/web前端/tests/verify-worker-terminal-winning-pass.mjs",
+      "exitCode": 0
+    },
+    {
+      "command": "node --test tests/multiplayer-tier-runtime.test.mjs tests/three-player-worker.test.mjs tests/hex-player-worker.test.mjs tests/production-worker.test.mjs tests/pass-discipline-v2.test.mjs tests/pass-discipline-v3.test.mjs tests/pass-discipline-v4.test.mjs",
+      "cwd": "wechat/minigame",
+      "firstCombinedRun": {
+        "tests": 37,
+        "pass": 36,
+        "fail": 1,
+        "durationMs": 17709.7805,
+        "log": "local_artifacts/terminal-v5-mini-runtime-v4-tests.txt",
+        "sha256": "72bbe35026585091690f2f594aea7e1c3d2285c2546c550c57ec3bb1443a4d73",
+        "failure": "New 4-seat test demanded exact [4,4], but real bounded 650ms Hard originally chose legal [4,6] under parallel load. Guard correctly preserved the placement."
+      },
+      "testContractCorrection": "Test-only separate real and forced-probe native VM Workers. Validate real Hard provenance, legal placement and unchanged state/cache, preserving original placements. Explicit esbuild in-memory raw-PASS stub probes V4 AI/HINT/ANALYZE on all 3 exact states: [4,4], LB7/UB5/+2/reserve[4,1]. Forced probe is not natural model choice/strength/latency evidence.",
+      "correctedCombinedRun": {
+        "exitCode": 0,
+        "tests": 37,
+        "pass": 37,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "durationMs": 17948.2254,
+        "log": "local_artifacts/terminal-v5-mini-runtime-v4-tests-fixed.txt",
+        "sha256": "f634ca2b8b8edc8e8c5a25512513ba934e7b1c7ada4572dce8eaeff776495cc5",
+        "runsAfterCorrection": 1
+      }
+    },
+    {
+      "command": "node web/tools/sync-implementation-guides.mjs",
+      "exitCode": 0
+    },
+    {
+      "command": "node web/tools/sync-implementation-guides.mjs --check",
+      "exitCode": 0
+    },
+    {
+      "command": "node web/web前端/tests/verify-guide-content.mjs",
+      "exitCode": 0
+    },
+    {
+      "command": "node web/web前端/tests/verify-territory-v3-hard-worker.mjs local_artifacts/terminal-v5-pass-v4-hard-evaluation-20261026-r2 local_artifacts/terminal-v5-pass-v4-hard-evaluation-20261026-r2/v3-verification.json",
+      "exitCode": 0,
+      "status": "PASS_V3_HARD_WORKER_SOURCE_AND_ROUTE",
+      "receipt": "local_artifacts/terminal-v5-pass-v4-hard-evaluation-20261026-r2/v3-verification.json"
+    }
+  ],
+  "evaluatedHardBundleR2": {
+    "buildRoot": "local_artifacts/terminal-v5-pass-v4-hard-evaluation-20261026-r2",
+    "sha256": "df69745b33760e55f64f1a3bd3bd2c65a4d2e50b3314af4e17896237e21d26db",
+    "bytes": 353972,
+    "modules": 28,
+    "compiler": "0.25.12",
+    "allFourGuardsBound": true,
+    "scope": "Actual emitted Worker production source/route; no browser/device latency claim."
+  },
+  "postEvaluationParentBuildObserved": {
+    "sha256": "ff91c2c91d333188bcf078e5182228dca11ba73ab74655cda56caf69e281ba57",
+    "bytes": 354080,
+    "scope": "Parent metadata-promotion rebuild observed during receipt creation. Current source hashes are observations; the R2 verification above binds only immutable evaluated R2. Parent owns final-source probes and release receipt."
+  },
+  "freeze": {
+    "trainingIdentityFiles": 29,
+    "drift": [],
+    "baseline": "local_artifacts/latest-moves-merge-20261026/frozen-inputs-before.json",
+    "previousGuardsSha256Unchanged": {
+      "web/web前端/AIPassDiscipline.js": "4850b3af425e3b7d3153b43c45c223fad3b89b4870cdfce75425955cb3454419",
+      "web/web前端/AIPassDisciplineV2.js": "1e4a89dcb347776b866647ba0019a7615b897d11c9679551ae73cfb620164231",
+      "web/web前端/AIPassDisciplineV3.js": "76545670cca5861024ff6422b643ae33dfe30c6a1e9d53849ae86e167d4ee33b"
+    },
+    "guardBaseline": "local_artifacts/terminal-v5-pass-v3-hard-evaluation-20261026-r1/manifest.json",
+    "runtimeAssetsGuidesChangedByFinalTestCorrection": false
+  },
+  "separateFormalGate": {
+    "receipt": "docs/verification/pass-discipline-20261025/runtime-v5-completion.json",
+    "sha256": "07986bdc456f169ff35bf04ad684bb70f9d81d4be0b9181f9b4df918080e5968",
+    "report": "docs/verification/pass-discipline-20261025/combined-admission-v5-r2.json",
+    "reportSha256": "c49570f4a3d0a6c35d02049f0aeec74f1b43aa240e983c06983f4d424c8f0f11",
+    "status": "INDEPENDENT_SCOPED_ADMISSION_COMPLETE",
+    "freshNaturalGames": 34,
+    "scenarios": 135,
+    "sharedScenarios": 112,
+    "certifiedBadPasses": 0,
+    "incompletePassChecks": 0,
+    "strengthVerified": false,
+    "globalRuntimeAdmission": false,
+    "activationPerformedByEvaluator": false
+  },
+  "knownInheritedFailure": {
+    "command": "node web/web前端/tests/verify-ai-control-flow.mjs",
+    "error": "CONTROL-SKIP frozen witness scores drifted",
+    "actual": [
+      1000000,
+      1000000,
+      1000000,
+      1000000
+    ],
+    "expected": [
+      376,
+      376,
+      303,
+      376
+    ],
+    "evidence": "docs/verification/latest-moves-20261025.md",
+    "scope": "Inherited frozen AIEngine/GameEngine witness retained; no full-suite PASS claim."
+  },
+  "limits": [
+    "Targeted runtime correctness and separately cited formal scoped admission do not establish global strength.",
+    "Mini executes built native code in Node VM, not a real WeChat/device or representative timing run.",
+    "No weights, Minimax labels/depths, old guards or frozen training identities changed.",
+    "Parent owns metadata promotion/final release builds/activation/external publication. Subtask performed no push/deploy/upload."
+  ]
+}

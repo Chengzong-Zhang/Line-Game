@@ -1,0 +1,22 @@
+{
+  "schema": "lifeline-terminal-policy-local-release-readiness-v5",
+  "status": "VERIFIED_LOCAL_NOT_YET_PUSHED_DEPLOYED_OR_UPLOADED",
+  "admission_report_sha256": "c49570f4a3d0a6c35d02049f0aeec74f1b43aa240e983c06983f4d424c8f0f11",
+  "policy_data_sha256": "422bdec5bf500d54036a4afb9b16e5501c20f4f2880cc20f87706ccf5023a1db",
+  "hard_bundle_sha256": "ff91c2c91d333188bcf078e5182228dca11ba73ab74655cda56caf69e281ba57",
+  "validator_bundle_sha256": "63aa268f7fb42bc911705149a074673fd5f29281b21dedbd6f244f67dc0237eb",
+  "checks": [
+    {"command": "node local_artifacts/terminal-v5-final-promotion/promote.mjs", "exit_code": 0, "result": "566 frozen inputs checked; only two policy metadata fields changed"},
+    {"command": "node local_artifacts/terminal-v5-final-promotion/probe.mjs", "exit_code": 0, "result": "four final actual parent Worker identities and unchanged opening decisions; only metadata and derived Hard outputs differ"},
+    {"command": "node web/web前端/tests/verify-territory-v3-hard-worker.mjs local_artifacts/terminal-v5-pass-v4-hard-release-20261026-r1 local_artifacts/terminal-v5-pass-v4-hard-release-20261026-r1/actual-worker-verification.json", "exit_code": 0},
+    {"command": "node web/tools/build-server-validator-v2.mjs build --tool-root C:/coding/py/line game/local_artifacts/territory-v3-hard-worker-20261024/toolroot --output local_artifacts/terminal-v5-validator-release-20261026-r1", "exit_code": 0, "native_rule_probes": 24},
+    {"command": "node web/web前端/tests/verify-fifteen-players.mjs", "exit_code": 0, "board_configuration_cases": 28},
+    {"command": "node web/web前端/tests/verify-latest-moves.mjs", "exit_code": 0},
+    {"command": "node web/web前端/tests/verify-latest-moves-automatic.mjs", "exit_code": 0, "actions": 430, "automatic_passes": 269, "resignations": 25, "rollback_cases": 28},
+    {"command": "python -m unittest web/tools/tests/test_prepare_frontend_stamp.py", "exit_code": 0, "tests": 1},
+    {"command": "git diff --cached --check", "exit_code": 0}
+  ],
+  "final_precommit_scan": {"changed_files_from_task_base": 232, "strong_credential_matches": 0, "files_over_1MiB": 0, "forbidden_artifacts": 0},
+  "preserved_features": ["2..15 players", "7..15 random/custom starts only", "per-player latest move markers", "Minimax depth unchanged"],
+  "limitations": "Inherited CONTROL-SKIP score assertion is not claimed passing. Existing neural weights were not retrained. Hex parameter updates are triangle-trained transfer; native hex gradient samples remain zero. This is scoped PASS admission, not proof of stronger overall win rate, phone performance or public release."
+}

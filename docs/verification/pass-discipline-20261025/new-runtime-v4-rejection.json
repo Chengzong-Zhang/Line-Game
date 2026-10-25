@@ -1,0 +1,235 @@
+{
+  "schema": "lifeline-pass-runtime-v4-rejection-v1",
+  "status": "REJECTED_SHARED_SCENARIO_FAILURES",
+  "campaign_root": "C:\\Users\\zcz\\.codex\\worktrees\\pass-discipline\\line game\\local_artifacts\\pass-discipline-new-runtime-v4-20261026",
+  "phase_identity": "ff35ceb3edead4e99de8607d4e708bb0043d1e5c9d053ee0fec118c751217b57",
+  "old_failure_preserved": true,
+  "freshNaturalGames": 34,
+  "truncatedGames": 0,
+  "candidateCertifiedBadPasses": 0,
+  "gameReports": {
+    "easy": {
+      "path": "C:\\Users\\zcz\\.codex\\worktrees\\pass-discipline\\line game\\local_artifacts\\pass-discipline-new-runtime-v4-20261026\\easy\\games\\report.json",
+      "sha256": "8e0d523501c747c39c16df681fec141dabf8f42d4472ec0429070a4c1c7f6734",
+      "naturalGames": 8,
+      "truncatedGames": 0,
+      "candidateCertifiedBadPasses": 0
+    },
+    "three-v4": {
+      "path": "C:\\Users\\zcz\\.codex\\worktrees\\pass-discipline\\line game\\local_artifacts\\pass-discipline-new-runtime-v4-20261026\\three-v4\\games\\report.json",
+      "sha256": "77c49c043d265d6299767fea64fd11054e7303a59932aedd9c246009c62e5345",
+      "naturalGames": 8,
+      "truncatedGames": 0,
+      "candidateCertifiedBadPasses": 0
+    },
+    "three-v1": {
+      "path": "C:\\Users\\zcz\\.codex\\worktrees\\pass-discipline\\line game\\local_artifacts\\pass-discipline-new-runtime-v4-20261026\\three-v1\\games\\report.json",
+      "sha256": "4369c02f4c76e5a281bc5e8be51a1f4a4add0550fcb8c8e6020cd316fb5df09f",
+      "naturalGames": 8,
+      "truncatedGames": 0,
+      "candidateCertifiedBadPasses": 0
+    },
+    "hex-v1": {
+      "path": "C:\\Users\\zcz\\.codex\\worktrees\\pass-discipline\\line game\\local_artifacts\\pass-discipline-new-runtime-v4-20261026\\hex-v1\\games\\report.json",
+      "sha256": "a452f07fd7ad8f7a20028c595f20bdfc46272b622d6489fac3c07d77a0735878",
+      "naturalGames": 10,
+      "truncatedGames": 0,
+      "candidateCertifiedBadPasses": 0
+    }
+  },
+  "shared": {
+    "cases": 112,
+    "failures": 3,
+    "report_sha256": "89f656f84d8bab79ff6b8e1ebef47c9dab531b172dd4ea47cf61845c28ab2511",
+    "failedCases": [
+      {
+        "id": "shared-16-s5-terminal-expansion",
+        "path": "C:\\Users\\zcz\\.codex\\worktrees\\pass-discipline\\line game\\local_artifacts\\pass-discipline-new-runtime-v4-20261026\\shared\\units\\shared-16-s5-terminal-expansion.json",
+        "sha256": "2a3c434806bb081a13248f8efeaa235c366595ea88a92c768aa076c82ba4c06e",
+        "kind": "winning-terminal-pass-with-expansion",
+        "stateHash": "c649dc596db9ab391f036c5a6cacfe75073520352d2bfbaedc334af19888dcdb",
+        "point": null,
+        "independentCertificate": {
+          "status": "certified-profitable-expansion",
+          "complete": true,
+          "probes": 1,
+          "roots": 1,
+          "witness": {
+            "point": [
+              4,
+              1
+            ],
+            "beforeArea": 3,
+            "afterRootArea": 4,
+            "minimumReplyArea": 4,
+            "actualReplyPlayer": "WHITE",
+            "replyActionsCompleted": 0,
+            "includesPass": false,
+            "rootAndPreviousPiecesRetained": true,
+            "rootConnected": true,
+            "structuralProtectedRootProof": true,
+            "scope": "all own nodes connected; every own line cell protected by the initial-node adjacency rule; area lower bound exceeds before"
+          }
+        },
+        "passDiscipline": {
+          "schema": "lifeline-ai-pass-discipline-v1",
+          "status": "incomplete",
+          "complete": false,
+          "actor": "BLACK",
+          "rulesVersion": "territory-v3",
+          "positionRevision": 4,
+          "safetyScope": "root placement and all legal action sequences including PASS through one complete actual opponent round, ending at the actor's next turn or native terminal; canonical auto-skips",
+          "examinedRoots": 18,
+          "nodes": 264,
+          "legalPlacements": 21,
+          "rootsExhausted": false,
+          "witness": null,
+          "elapsedMs": 199.68959999999788,
+          "reason": "proof-budget-exhausted-no-safety-claim",
+          "passWouldEnd": true,
+          "beforeArea": 3,
+          "openingDevelopmentEligible": false,
+          "productQuickProbe": {
+            "schema": "lifeline-ai-pass-discipline-v3",
+            "status": "terminal-PASS-retains-V2-margin",
+            "budgetMs": 8,
+            "elapsedMs": 0,
+            "setupAndPassElapsedMs": 0.4598000000041793,
+            "rootsExamined": 0,
+            "nodes": 1
+          }
+        }
+      },
+      {
+        "id": "shared-19-s5-terminal-expansion",
+        "path": "C:\\Users\\zcz\\.codex\\worktrees\\pass-discipline\\line game\\local_artifacts\\pass-discipline-new-runtime-v4-20261026\\shared\\units\\shared-19-s5-terminal-expansion.json",
+        "sha256": "9f2f1812ff7a621a50291609a946306e1d72f832e9e1c11f6b5c2293ccd1f831",
+        "kind": "winning-terminal-pass-with-expansion",
+        "stateHash": "af313940ebf89b6960b7b7963b88cb407c7e40b5b7a2850bccf015a52eabd120",
+        "point": null,
+        "independentCertificate": {
+          "status": "certified-profitable-expansion",
+          "complete": true,
+          "probes": 1,
+          "roots": 1,
+          "witness": {
+            "point": [
+              4,
+              1
+            ],
+            "beforeArea": 3,
+            "afterRootArea": 4,
+            "minimumReplyArea": 4,
+            "actualReplyPlayer": "WHITE",
+            "replyActionsCompleted": 0,
+            "includesPass": false,
+            "rootAndPreviousPiecesRetained": true,
+            "rootConnected": true,
+            "structuralProtectedRootProof": true,
+            "scope": "all own nodes connected; every own line cell protected by the initial-node adjacency rule; area lower bound exceeds before"
+          }
+        },
+        "passDiscipline": {
+          "schema": "lifeline-ai-pass-discipline-v1",
+          "status": "incomplete",
+          "complete": false,
+          "actor": "BLACK",
+          "rulesVersion": "territory-v3",
+          "positionRevision": 5,
+          "safetyScope": "root placement and all legal action sequences including PASS through one complete actual opponent round, ending at the actor's next turn or native terminal; canonical auto-skips",
+          "examinedRoots": 1,
+          "nodes": 333,
+          "legalPlacements": 21,
+          "rootsExhausted": false,
+          "witness": null,
+          "elapsedMs": 199.72829999999522,
+          "reason": "proof-budget-exhausted-no-safety-claim",
+          "passWouldEnd": true,
+          "beforeArea": 3,
+          "openingDevelopmentEligible": false,
+          "productQuickProbe": {
+            "schema": "lifeline-ai-pass-discipline-v3",
+            "status": "terminal-PASS-retains-V2-margin",
+            "budgetMs": 8,
+            "elapsedMs": 0,
+            "setupAndPassElapsedMs": 0.6604000000006636,
+            "rootsExamined": 0,
+            "nodes": 1
+          }
+        }
+      },
+      {
+        "id": "shared-22-s5-terminal-expansion",
+        "path": "C:\\Users\\zcz\\.codex\\worktrees\\pass-discipline\\line game\\local_artifacts\\pass-discipline-new-runtime-v4-20261026\\shared\\units\\shared-22-s5-terminal-expansion.json",
+        "sha256": "d82d4334ba7b8cd1c050a36f91b8c5aaf664040c568a8a289d21e4ef78b2dcaf",
+        "kind": "winning-terminal-pass-with-expansion",
+        "stateHash": "a16da512ce447c572ba519a36c7cc6c18b1c23ee6f004180baa2cb0930b31a9b",
+        "point": null,
+        "independentCertificate": {
+          "status": "certified-profitable-expansion",
+          "complete": true,
+          "probes": 1,
+          "roots": 1,
+          "witness": {
+            "point": [
+              4,
+              1
+            ],
+            "beforeArea": 3,
+            "afterRootArea": 4,
+            "minimumReplyArea": 4,
+            "actualReplyPlayer": "WHITE",
+            "replyActionsCompleted": 0,
+            "includesPass": false,
+            "rootAndPreviousPiecesRetained": true,
+            "rootConnected": true,
+            "structuralProtectedRootProof": true,
+            "scope": "all own nodes connected; every own line cell protected by the initial-node adjacency rule; area lower bound exceeds before"
+          }
+        },
+        "passDiscipline": {
+          "schema": "lifeline-ai-pass-discipline-v1",
+          "status": "incomplete",
+          "complete": false,
+          "actor": "BLACK",
+          "rulesVersion": "territory-v3",
+          "positionRevision": 6,
+          "safetyScope": "root placement and all legal action sequences including PASS through one complete actual opponent round, ending at the actor's next turn or native terminal; canonical auto-skips",
+          "examinedRoots": 2,
+          "nodes": 291,
+          "legalPlacements": 19,
+          "rootsExhausted": false,
+          "witness": null,
+          "elapsedMs": 199.67960000000312,
+          "reason": "proof-budget-exhausted-no-safety-claim",
+          "passWouldEnd": true,
+          "beforeArea": 3,
+          "openingDevelopmentEligible": false,
+          "productQuickProbe": {
+            "schema": "lifeline-ai-pass-discipline-v3",
+            "status": "terminal-PASS-retains-V2-margin",
+            "budgetMs": 8,
+            "elapsedMs": 0,
+            "setupAndPassElapsedMs": 0.23489999999583233,
+            "rootsExamined": 0,
+            "nodes": 1
+          }
+        }
+      }
+    ]
+  },
+  "failed_source_snapshot": {
+    "path": "C:\\Users\\zcz\\.codex\\worktrees\\pass-discipline\\line game\\local_artifacts\\pass-v5-new-runtime-v4-fatal-source-snapshot\\snapshot.json",
+    "sha256": "3f6ccf99266907caa54657ecdaeffbe4f33d8c58ecff0733963b0c2e23a6ca62",
+    "file_count": 111
+  },
+  "evidence": {
+    "runtime-evaluation-v4.json": "180759e5130c786e0900abeff7812f036b8ca40ec79a6214e75a7238211000ef",
+    "checkpoint.json": "d298b8891b1b2cddfcbfeeb93ae23c75f413c65787f2e09b8590240644cda59b",
+    "progress.json": "8ef62911f1c53531cc0c4bbd93ea418ade41f7a939c206339cd961affa701c93",
+    "supervisor-state.json": "c1d64e722bbd37e3de3d86a19fef7feb4d9c4e3294d8935234b513947900a201",
+    "supervisor-events.jsonl": "504fc39c10e0333d27e0cc431cee8b4b1f8eb5bad0c17af63781e4edf96d7f6b",
+    "job.json": "c0e166ae92ef83caacd467250491485541123849c7837a1cfad749b84d136892"
+  },
+  "admission_created": false
+}

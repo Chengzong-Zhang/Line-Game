@@ -2,7 +2,8 @@
 export const PASS_TRAINED_POLICY_DATA = Object.freeze({
   "schema": "lifeline-terminal-trained-policies-v4",
   "revision": "terminal-policy-explicit-extension-v5-20261025",
-  "activation": "EVALUATION_ONLY",
+  "activation": "PASS_DISCIPLINE_SCOPED",
+  "admission_report_sha256": "c49570f4a3d0a6c35d02049f0aeec74f1b43aa240e983c06983f4d424c8f0f11",
   "reward": {
     "type": "terminal-outcome-native-margin-area-v1",
     "gamma": 1,

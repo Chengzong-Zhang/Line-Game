@@ -1,0 +1,18 @@
+{
+  "schema": "lifeline-pass-runtime-lineage-v5-regression-receipt",
+  "status": "PASS",
+  "exit_code": 0,
+  "total_cases": 10,
+  "preserved_prior_evidence_files": 346,
+  "command": "node web/web前端/tests/verify-pass-runtime-lineage-v5.mjs --previous-campaign local_artifacts/pass-discipline-new-runtime-v4-20261026 --previous-runtime-snapshot local_artifacts/pass-v5-new-runtime-v4-fatal-source-snapshot/snapshot.json",
+  "source_sha256": {
+    "web/tools/pass-runtime-evaluation-v4.mjs": "4ea4ef61386a9797f02c59aec4d44be6d4bed27e3deefd271543e9251e9cab0c",
+    "web/tools/prepare-pass-runtime-evaluation-v4.mjs": "e71f023353b4435b0f218e51b67f80e27419682dd75b0937dbe2cdccad3cde5f",
+    "web/tools/run-pass-discipline-campaign-v4.mjs": "7b7813583f9617522a427889f9ef58bc1a3e94e16c49f7504d3e58ea56da06e9",
+    "web/tools/finalize-pass-discipline-admission-v4.mjs": "cf9e43d8482707e5a1c55fc38021a18aa35b2fcc9c17f4a14672c8ad8e940e32",
+    "web/tools/prepare-pass-runtime-evaluation-v5.mjs": "d6f67741d2fca5e782532bd49a379a3933ac69ced03eee13e0baa8ac20d9991a",
+    "web/tools/finalize-pass-discipline-admission-v5.mjs": "a3752586aecce06ce93afa1f5c429edcb9565a373f32720bf649f4b925e080fc",
+    "web/web前端/tests/verify-pass-runtime-lineage-v5.mjs": "9f7ffa3e21138feaa5e6a6c26beb5b0c25f0c51e74aeb28eb754261943792e6f"
+  },
+  "scope": "Read-only V4 preserved receipts and source snapshots; synthetic nine-stage runner interruption/resume and resealed corruption/omission/reuse/revision rejection. No product runtime freeze, real game, long job or admission from these tests."
+}

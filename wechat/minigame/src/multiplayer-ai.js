@@ -7,7 +7,7 @@ import { createEmbeddedThreePlayerAI } from './three-player-ai.js';
 import { createEmbeddedHexPlayerAI } from './hex-player-ai.js';
 import { checksum } from './integrity.js';
 import { trainedPolicyInfo } from '../../../web/web前端/PassTrainedPolicies.js';
-import { withPassDiscipline } from '../../../web/web前端/AIPassDisciplineV3.js';
+import { withPassDiscipline } from '../../../web/web前端/AIPassDisciplineV4.js';
 
 export const MULTIPLAYER_TIER_PROFILES = Object.freeze([
   'multiplayer-easy-v1', 'multiplayer-medium-v1', 'multiplayer-hard-v1',
