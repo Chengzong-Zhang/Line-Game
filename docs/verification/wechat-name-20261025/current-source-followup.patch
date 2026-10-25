@@ -1,25 +1,25 @@
 --- a/wechat/minigame/src/cabins-ui.js
 +++ b/wechat/minigame/src/cabins-ui.js
 @@ -93,7 +93,7 @@
-   if (state.account) {
-     ui.rect(area.x, y, area.width, 72, 14, '#f2eadc');
-     actions.avatar?.(area.x + 12, y + 10, 50);
--    y += wrap(state.account.displayName || (en ? 'LIFELINE player' : '生命线玩家'), area.x + 76, y + 23, area.width - 90, 17, CABIN_COLORS.ink, 2) + 55;
-+    y += wrap(state.account.displayName || (en ? 'Player' : '玩家'), area.x + 76, y + 23, area.width - 90, 17, CABIN_COLORS.ink, 2) + 55;
-     pair(['profile-name', en ? 'Edit nickname' : '修改昵称', actions.editName, state.busy],
-       ['profile-avatar', en ? 'Choose avatar' : '选择头像', actions.editAvatar, state.busy]);
-     pair(['profile-wechat', en ? 'Use WeChat profile' : '导入微信昵称头像', actions.importWechat, state.busy],
+   if (state.account) {
+     ui.rect(area.x, y, area.width, 72, 14, '#f2eadc');
+     actions.avatar?.(area.x + 12, y + 10, 50);
+-    y += wrap(state.account.displayName || (en ? 'LIFELINE player' : '生命线玩家'), area.x + 76, y + 23, area.width - 90, 17, CABIN_COLORS.ink, 2) + 55;
++    y += wrap(state.account.displayName || (en ? 'Player' : '玩家'), area.x + 76, y + 23, area.width - 90, 17, CABIN_COLORS.ink, 2) + 55;
+     pair(['profile-name', en ? 'Edit nickname' : '修改昵称', actions.editName, state.busy],
+       ['profile-avatar', en ? 'Choose avatar' : '选择头像', actions.editAvatar, state.busy]);
+     pair(['profile-wechat', en ? 'Use WeChat profile' : '导入微信昵称头像', actions.importWechat, state.busy],
 --- a/wechat/minigame/src/guide-content.js
 +++ b/wechat/minigame/src/guide-content.js
 @@ -126,7 +126,7 @@
-   }
-   if (kind === 'why-talk') {
-     const blocks = parseGuideMarkdown(getGuideMarkdown(kind === 'why-talk' ? 'whyTalk' : 'whyCode', lang));
--    const sections = []; let section = { id: `${kind}-0`, title: lang === 'zh' ? '游戏的趣味' : 'Why LIFELINE?', paragraphs: [] };
-+    const sections = []; let section = { id: `${kind}-0`, title: lang === 'zh' ? '游戏的趣味' : 'Why 生命补给线?', paragraphs: [] };
-     for (const block of blocks) {
-       if (block.type.startsWith('heading')) { if (section.paragraphs.length) sections.push(section); section = { id: `${kind}-${sections.length}`, title: clean(block.text), paragraphs: [] }; }
-       else if (block.type === 'codeblock') section.paragraphs.push(block.code);
+   }
+   if (kind === 'why-talk') {
+     const blocks = parseGuideMarkdown(getGuideMarkdown(kind === 'why-talk' ? 'whyTalk' : 'whyCode', lang));
+-    const sections = []; let section = { id: `${kind}-0`, title: lang === 'zh' ? '游戏的趣味' : 'Why LIFELINE?', paragraphs: [] };
++    const sections = []; let section = { id: `${kind}-0`, title: lang === 'zh' ? '游戏的趣味' : 'Why 生命补给线?', paragraphs: [] };
+     for (const block of blocks) {
+       if (block.type.startsWith('heading')) { if (section.paragraphs.length) sections.push(section); section = { id: `${kind}-${sections.length}`, title: clean(block.text), paragraphs: [] }; }
+       else if (block.type === 'codeblock') section.paragraphs.push(block.code);
 --- a/wechat/minigame/preview/index.html
 +++ b/wechat/minigame/preview/index.html
 @@ -1,4 +1,4 @@
@@ -91,11 +91,11 @@
 --- a/wechat/README.md
 +++ b/wechat/README.md
 @@ -1,4 +1,4 @@
--# LIFELINE 微信小游戏
-+# 生命补给线 微信小游戏
- 
- **最新为 0.10.0：官方在线预览与开发版本上传已成功。** 本地支持2–6人，4–6人六边形棋盘与专用AI、提示、分析、续局和手机布局已迁入。295项回归通过、0失败、2跳过；最终通用Edge 14项、三人13项、4–6人19项、本机双人跨端31项通过。参见[最新入口与二维码](release/EXPERIENCE_CANDIDATE_0.10.0_ONLINE_20261021.md)及[验证记录](../docs/verification/wechat-0100-integration-20261021/README.md)，其中保留测试定位修正前的失败。r3/r4服务器已部署，无需再次输入密码；手机互通/性能、体验权限及正式发布仍未完成。
- 
+-# LIFELINE 微信小游戏
++# 生命补给线 微信小游戏
+ 
+ **最新为 0.10.0：官方在线预览与开发版本上传已成功。** 本地支持2–6人，4–6人六边形棋盘与专用AI、提示、分析、续局和手机布局已迁入。295项回归通过、0失败、2跳过；最终通用Edge 14项、三人13项、4–6人19项、本机双人跨端31项通过。参见[最新入口与二维码](release/EXPERIENCE_CANDIDATE_0.10.0_ONLINE_20261021.md)及[验证记录](../docs/verification/wechat-0100-integration-20261021/README.md)，其中保留测试定位修正前的失败。r3/r4服务器已部署，无需再次输入密码；手机互通/性能、体验权限及正式发布仍未完成。
+ 
 --- a/web/web前端/index.html
 +++ b/web/web前端/index.html
 @@ -3,7 +3,7 @@
