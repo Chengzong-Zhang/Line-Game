@@ -1,0 +1,17 @@
+// Backend-only entry. Uses exactly the same rules/state hash as the Mini Game.
+import { executeTask } from '../src/worker-runtime.js';
+import { rankedReply } from './ranked-ai.mjs';
+let raw = '';
+for await (const chunk of process.stdin) {
+  raw += chunk;
+  if (raw.length > 512000) throw new Error('INPUT_TOO_LARGE');
+}
+try {
+  const payload = JSON.parse(raw);
+  const { snapshot, stateHash, aiAction } = payload.aiProfile
+    ? await rankedReply(payload.settings, payload.actions, payload.aiProfile)
+    : executeTask({ kind: payload.action ? 'APPLY' : 'STATE', payload });
+  process.stdout.write(JSON.stringify({ stateHash, currentPlayer: snapshot.currentPlayer,
+    gameOver: snapshot.gameOver, winner: snapshot.winner, ...(aiAction ? { aiAction } : {}),
+    scores: { BLACK: snapshot.territories.BLACK.area, WHITE: snapshot.territories.WHITE.area } }));
+} catch (_) { process.stderr.write('RULE_VALIDATION_FAILED'); process.exitCode = 1; }
