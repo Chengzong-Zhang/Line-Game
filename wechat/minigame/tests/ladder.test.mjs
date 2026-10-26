@@ -1,11 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { LadderClient, drawLadder } from '../src/ladder.js';
+import { LadderClient, drawLadder, RANKED_PROFILES, RANKED_LABELS, LADDER_RULES } from '../src/ladder.js';
 import { uiHarness } from './ui-harness.mjs';
 import { sut, until, memoryStorage, localScheduler } from './helpers.mjs';
 
-const entry = { displayName: '测试玩家', isMe: true, points: 1058, games: 12, wins: 8, draws: 1, winRate: 2 / 3, ratedGames: 9, rank: 2 };
-const result = (board, offset = 0) => ({ version: 'ladder-v1', board, entries: [entry], me: entry, offset, hasMore: offset === 0, total: 21 });
+const entry = { displayName: '测试玩家', isMe: true, points: 1058, games: 12, wins: 8, draws: 1, winRate: 2 / 3, ratedGames: 9, rank: 2, provisional: false, interval: [938, 1178] };
+const result = (board, offset = 0) => ({ version: 'ladder-v2-glicko2', board, entries: [entry], me: entry, offset, hasMore: offset === 0, total: 21,
+  aiOpponents: board === 'ai' ? RANKED_PROFILES.map(profile => ({ profile, points: 1500, provisional: true })) : [] });
+
+test('unrevised server scores and invented difficulty weights are not shown as skill ratings', async () => {
+  const online = { authEpoch: 0, account: { uid: 'one' }, authenticate: async () => {}, request: async () => ({ ...result('ai'), version: 'ladder-v1' }) };
+  const ladder = new LadderClient(online, () => {});
+  await ladder.load('ai');
+  assert.equal(ladder.error, 'LADDER_UNAVAILABLE'); assert.equal(ladder.data, null);
+  assert.ok(RANKED_LABELS.zh.every(label => !label.includes('×')));
+  assert.ok(LADDER_RULES.zh.includes('不加场次分'));
+});
 
 test('late board responses and changed identities never replace current standings', async () => {
   const pending = [], online = { authEpoch: 0, account: { uid: 'one' }, authenticate: async () => {}, request: path => new Promise(resolve => pending.push({ path, resolve })) };
@@ -38,7 +48,7 @@ test('a result receipt stays on its own board and names the scoring board', () =
   assert.ok(!texts.some(s => s.includes('当前 2 分')));
   texts.length = 0;
   drawLadder(ui, { x: 0, y: 0, width: 300 }, { ...state, kind: 'ai' }, {});
-  assert.ok(texts.some(s => s.includes('AI 榜积分 +2 · 当前 2 分')));
+  assert.ok(texts.some(s => s.includes('AI 榜实力分 +2 · 当前 2 分')));
 });
 
 test('returning to Battle refreshes the selected board after a new result', async () => {
@@ -53,10 +63,10 @@ test('returning to Battle refreshes the selected board after a new result', asyn
     await until(() => h.app.session.snapshot && !h.app.session.busy);
     await h.tap('cabin-battle'); await h.tap('ladder-human');
     await until(() => reads === 1); await h.render();
-    assert.ok(h.texts.some(s => s.includes('我的积分 1058')));
+    assert.ok(h.texts.some(s => s.includes('我的实力分 1058')));
     await h.tap('cabin-close'); await h.tap('cabin-battle');
     await until(() => reads === 2); await h.render();
-    assert.ok(h.texts.some(s => s.includes('我的积分 1068')));
+    assert.ok(h.texts.some(s => s.includes('我的实力分 1068')));
   } finally { h.app.dispose(); }
 });
 
@@ -90,6 +100,8 @@ for (const language of ['zh', 'en']) test(`battle ladder, rules, own score and p
     await h.tap('cabin-battle');
     assert.equal(requests.length, 0, 'opening cabin does not silently sign in');
     await h.tap('ladder-rules'); assert.equal(h.app.getScene(), 'reader');
+    assert.ok(h.texts.includes(language === 'zh' ? '天梯实力评分' : 'Ladder skill ratings'));
+    assert.ok(!h.texts.includes('undefined'));
     await h.tap('reader-next'); await h.tap('reader-back');
     await h.tap('ladder-ai'); await until(() => requests.some(x => x.includes('/ladder/ai'))); await h.render();
     assert.ok(h.texts.some(x => x.includes('1058')));

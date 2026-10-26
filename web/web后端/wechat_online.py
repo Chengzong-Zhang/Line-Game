@@ -171,17 +171,17 @@ class WechatStore:
         db.execute("CREATE TABLE IF NOT EXISTS wx_link_codes (digest TEXT PRIMARY KEY, web_subject TEXT NOT NULL, expires INTEGER NOT NULL, created INTEGER NOT NULL)")
         db.execute("CREATE TABLE IF NOT EXISTS wx_profiles (uid TEXT PRIMARY KEY, display_name TEXT, avatar_mime TEXT, avatar_blob BLOB, avatar_hash TEXT, updated INTEGER NOT NULL)")
         ladder.migrate(db)
-        db.execute("PRAGMA user_version=4")
+        db.execute("PRAGMA user_version=5")
 
     @staticmethod
     def validate_schema(db):
         tables = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
         base, accounts = set(STORE_COLUMNS), set(STORE_COLUMNS) | set(ACCOUNT_COLUMNS)
-        if tables not in (base, accounts, accounts | set(PROFILE_COLUMNS), accounts | set(PROFILE_COLUMNS) | set(ladder.TABLES)):
-            raise ValueError("Expected the dedicated WeChat database schema")
         version = db.execute("PRAGMA user_version").fetchone()[0]
-        if (version not in (0, 1, 2, 3, 4) or (version >= 2) != ("wx_web_accounts" in tables)
-                or (version >= 3) != ("wx_profiles" in tables) or (version == 4) != ("wx_ladder_stats" in tables)):
+        full = accounts | set(PROFILE_COLUMNS)
+        expected = {0: base, 1: base, 2: accounts, 3: full,
+                    4: full | set(ladder.legacy.TABLES), 5: full | set(ladder.TABLES)}
+        if version not in expected or tables != expected[version]:
             raise ValueError("Unsupported WeChat database version")
         for table, columns in {**STORE_COLUMNS, **ACCOUNT_COLUMNS, **PROFILE_COLUMNS, **ladder.TABLES}.items():
             if table not in tables:
@@ -715,7 +715,7 @@ class WechatService:
             fail("ACCOUNT_DELETED", 401)
         if operation in ("create", "create-ai"):
             profile = body.get("profile") if operation == "create-ai" else None
-            if operation == "create-ai" and (profile not in ladder.AI_WEIGHTS or set(body) != {"profile"}):
+            if operation == "create-ai" and (profile not in ladder.AI_PROFILES or set(body) != {"profile"}):
                 fail("INVALID_AI_DIFFICULTY", 422)
             current = self.store.active_room(uid)
             if current:

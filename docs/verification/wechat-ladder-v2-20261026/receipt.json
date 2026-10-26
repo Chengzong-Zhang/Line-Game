@@ -1,0 +1,168 @@
+{
+  "status": "IMPLEMENTED_TESTED_LOCAL_NOT_DEPLOYED",
+  "date": "2026-10-26",
+  "baseCommit": "42fafe3f32265c4f620c13a075f6abc00d9635ab",
+  "ladderVersion": "ladder-v2-glicko2",
+  "databaseSchema": 5,
+  "backend": {
+    "passed": 113,
+    "deselected": 1,
+    "seconds": 48.77
+  },
+  "client": {
+    "passed": 46,
+    "failed": 0,
+    "seconds": 22.3296564
+  },
+  "build": {
+    "onlineEnabled": false,
+    "mainPackageBytes": 1655882,
+    "totalBytes": 19809698
+  },
+  "browser": {
+    "environment": "local preview, fake WeChat identity, real loopback HTTP/WS/SQLite",
+    "freshAI": 1500,
+    "afterOneLoss": 1338,
+    "provisional": true,
+    "AIafterWin": 1662
+  },
+  "legacyModuleMatchesV1": true,
+  "hashScope": "Working-tree bytes; i18n includes pre-existing product rename, excluded from task commit. Generated packages stay local.",
+  "files": [
+    {
+      "path": "web/web后端/wechat_glicko2.py",
+      "bytes": 3506,
+      "sha256": "8f71f602be97ba9fcc3a73e55b6d0fcf772846b07be2e8d9bde2c6b3473fe206"
+    },
+    {
+      "path": "web/web后端/wechat_ladder.py",
+      "bytes": 11763,
+      "sha256": "33fa5bab7b4c6355b13fbacf9237bd4d42d78ae4c07057eda61e0cc2d5a44662"
+    },
+    {
+      "path": "web/web后端/wechat_ladder_v1.py",
+      "bytes": 9204,
+      "sha256": "a0387ac4c70c28444fbca9e560f69eb5a0df6ad0605a35a2650e78c88748f932"
+    },
+    {
+      "path": "web/web后端/wechat_online.py",
+      "bytes": 66493,
+      "sha256": "4fb3420b13e9364fde6f9e3daa61dede6bd8b8d24f4e942640a338b0b5a2a237"
+    },
+    {
+      "path": "web/tests/test_wechat_ladder.py",
+      "bytes": 16830,
+      "sha256": "289129b2a49d6bf23bc7529620ec8fc6ba9803e2fa0dc890ba93650e85cc25e2"
+    },
+    {
+      "path": "web/tests/test_wechat_accounts.py",
+      "bytes": 18430,
+      "sha256": "53bf61acc5f15623318e88ea308d1b0663d6d1923941df1be9c8b2bee56b1a5a"
+    },
+    {
+      "path": "web/tests/test_wechat_profiles.py",
+      "bytes": 15003,
+      "sha256": "9421d81b27416081ba056a078a091efe26313543bb7a55e7a4783860018d4296"
+    },
+    {
+      "path": "web/tests/test_wechat_profile_preflight.py",
+      "bytes": 2933,
+      "sha256": "ece68ff46350e8b31f701fd8cc9140a8c37ed89bd1f07e239217fbb29e527471"
+    },
+    {
+      "path": "wechat/minigame/src/ladder.js",
+      "bytes": 11154,
+      "sha256": "8c684400da5bd9fa01acf4ef467d616fa68a8a64dcb80845b6a4f40539c9ce2c"
+    },
+    {
+      "path": "wechat/minigame/src/help-content.js",
+      "bytes": 16233,
+      "sha256": "63d18dd3f1df9203f2001166592357d6db27de1a5236f93d5bbc493028757de2"
+    },
+    {
+      "path": "wechat/minigame/src/i18n.js",
+      "bytes": 32014,
+      "sha256": "1d2a298f4022db6f3965838439f71ac3bacaded3e625466c3a68ef02f9bac42d"
+    },
+    {
+      "path": "wechat/minigame/src/online-consent.js",
+      "bytes": 3627,
+      "sha256": "5b9a0006515c2951e5ad1a77b1171408fefacfc75d44bc7930af2db965a0c826"
+    },
+    {
+      "path": "wechat/minigame/tests/ladder.test.mjs",
+      "bytes": 8009,
+      "sha256": "be03814668fafa558c60358a03ff37a5d1204687e459b3737d959dc40ec08f03"
+    },
+    {
+      "path": "wechat/minigame/tests/service-package.test.mjs",
+      "bytes": 5267,
+      "sha256": "6c0ac11f957960d1ffbd03d122b029d238dc5fef22b46cbd29840b79c6b47d13"
+    },
+    {
+      "path": "wechat/minigame/tools/prepare-service.mjs",
+      "bytes": 8814,
+      "sha256": "deb6645ece157ecc6ac3549f9a9b0933eccd607af96e254b62c8f90f2c1a9e72"
+    },
+    {
+      "path": "wechat/tools/maintain_store.py",
+      "bytes": 19180,
+      "sha256": "a0f25622c5f65dbf0752ebfd1824572b33a2f7de1a3fc37815077c98245dcf50"
+    },
+    {
+      "path": "wechat/tools/check_service_config.py",
+      "bytes": 15023,
+      "sha256": "6390fa0e1f8be4484467e32cfd6d0549134305749a6b5dc6730ca9a1d400554d"
+    },
+    {
+      "path": "docs/product/WECHAT_LADDER_V2.md",
+      "bytes": 9299,
+      "sha256": "68f8bf1c6becd76c27d33494de084ed335e2efb3db33c3c3f47b14e197db0c1d"
+    },
+    {
+      "path": "docs/verification/wechat-ladder-v2-20261026.md",
+      "bytes": 5321,
+      "sha256": "a19a0412e3cde1c2ef00a9f4ecb343fde4c5aa0dc6d479259f06696cee63ac28"
+    },
+    {
+      "path": "docs/verification/wechat-ladder-v2-20261026/ai-after-result.png",
+      "bytes": 38830,
+      "sha256": "698f913136c5a3b1da3bd707b4b87d07abd261f8c8abfa57107a6a6aca4c8e4c"
+    },
+    {
+      "path": "docs/verification/wechat-ladder-v2-20261026/ai-initial.png",
+      "bytes": 39313,
+      "sha256": "bd761bc41582924a4929bf47d7d3d501ade3ef912f93095b547e35ceaa839312"
+    },
+    {
+      "path": "docs/verification/wechat-ladder-v2-20261026/ai-result.png",
+      "bytes": 25502,
+      "sha256": "15dbf79cac75da7a5555b4ab7ab631aa557401818d2ba708c8635859f615714e"
+    },
+    {
+      "path": "docs/verification/wechat-ladder-v2-20261026/human-initial.png",
+      "bytes": 38214,
+      "sha256": "7e2248afb2b47665973a49623697b5ce27cfb697917aacee905922b2676a800f"
+    },
+    {
+      "path": "docs/verification/wechat-ladder-v2-20261026/rules.png",
+      "bytes": 38826,
+      "sha256": "e5d66a15a0a43a994bcbd427b9627d8657d4aa955361fd7ec6befc06bb09071a"
+    },
+    {
+      "path": "wechat/minigame/dist/build-manifest.json",
+      "bytes": 19670,
+      "sha256": "b641108edbfc7f3ed9203bbc7eddbe2a6f6c917d9af8fe4bcba8132790dc5791"
+    },
+    {
+      "path": "wechat/minigame/dist/game.js",
+      "bytes": 559021,
+      "sha256": "f9965953fb966ce571a13df55355cece3732c934aa40d69b710787542e5dc50e"
+    },
+    {
+      "path": "local_artifacts/wechat-ladder-v2-service-20261026-r1/manifest.json",
+      "bytes": 11615,
+      "sha256": "704cc1b736d0268efcd12b3038f77c69c3a8ddd27e12b11c8ec8bfda2ec1b5c0"
+    }
+  ]
+}

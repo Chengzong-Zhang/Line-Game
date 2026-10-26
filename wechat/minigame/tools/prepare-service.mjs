@@ -13,6 +13,7 @@ const hash = data => createHash('sha256').update(data).digest('hex');
 const entry = 'wechat/minigame/tools/validate-action.mjs';
 const fixed = ['web/package.json', 'web/web后端/wechat_online.py', 'web/web后端/requirements.txt',
   'web/web后端/wechat_ladder.py', 'wechat/minigame/tools/ranked-ai.mjs',
+  'web/web后端/wechat_ladder_v1.py', 'web/web后端/wechat_glicko2.py',
   'wechat/tools/wechat_service_asgi_draft.py', 'wechat/tools/check_service_config.py',
   'wechat/tools/maintain_store.py', 'wechat/minigame/package.json',
   'wechat/minigame/THIRD_PARTY_NOTICES.txt', 'wechat/minigame/node_modules/@noble/hashes/package.json',
@@ -74,7 +75,7 @@ export async function verifyService(directory, { checkSources = false } = {}) {
   await ordinaryDirectory(path.join(directory, 'service'));
   const manifest = JSON.parse(await safeRead(directory, 'manifest.json'));
   assert.equal(manifest.schemaVersion, 1); assert.equal(manifest.kind, 'standalone-wechat-service');
-  assert.equal(manifest.databaseSchema, 4); assert.equal(manifest.ladderVersion, 'ladder-v1');
+  assert.equal(manifest.databaseSchema, 5); assert.equal(manifest.ladderVersion, 'ladder-v2-glicko2');
   const expected = new Set(manifest.files.map(f => f.path));
   assert.equal(expected.size, manifest.files.length);
   for (const file of [...fixed, entry]) assert.ok(expected.has(file), `Missing required package input: ${file}`);
@@ -118,17 +119,17 @@ export async function prepareService(directory) {
     await fs.writeFile(destination, data, { flag: 'wx' });
     files.push({ path: name, bytes: data.length, sha256: hash(data) });
   }
-  const manifest = { schemaVersion: 1, kind: 'standalone-wechat-service', version: '0.13.0-ladder.1',
+  const manifest = { schemaVersion: 1, kind: 'standalone-wechat-service', version: '0.13.0-ladder.2',
     status: 'PREPARED_LOCAL_NOT_DEPLOYED', createdAt: new Date().toISOString(),
     node: process.version, nodeRequirement: '>=22', files, totalBytes: files.reduce((n, f) => n + f.bytes, 0),
-    rulesVersion: 'territory-v3', onlinePlayerCount: 2, databaseSchema: 4, ladderVersion: 'ladder-v1',
+    rulesVersion: 'territory-v3', onlinePlayerCount: 2, databaseSchema: 5, ladderVersion: 'ladder-v2-glicko2',
     entry: 'wechat/tools/wechat_service_asgi_draft.py', validator: entry,
     requirements: 'web/web后端/requirements.txt',
     sourceLayout: 'Preserved original paths and bytes; one Node rule-validator subprocess per command',
     boundaries: ['No remote connection, environment file, credential or database read',
       'Package creation is not runtime, deployment or rollback acceptance',
       'Use one ASGI worker, existing separately configured secrets and dedicated database',
-      'Previous service code rejects schema4; preserve ladder data and use a schema4-compatible rollback before activation'] };
+      'Previous service code rejects schema5; preserve both ladder versions and use a schema5-compatible rollback before activation'] };
   await fs.writeFile(path.join(directory, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n', { flag: 'wx' });
   await verifyService(directory, { checkSources: true });
   return manifest;

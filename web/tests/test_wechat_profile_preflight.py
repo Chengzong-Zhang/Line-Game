@@ -9,7 +9,7 @@ import pytest
 from test_wechat_service_preflight import check, codes, environment, snapshot, no_node_probe
 
 
-@pytest.mark.parametrize("schema_version", [3, 4])
+@pytest.mark.parametrize("schema_version", [3, 4, 5])
 def test_profile_preflight_does_not_downgrade_or_mutate_profiles(tmp_path, no_node_probe, schema_version):
     spec = importlib.util.spec_from_file_location("profile_preflight_backend", check.ROOT / "web/web后端/wechat_online.py")
     wx = importlib.util.module_from_spec(spec)
@@ -18,10 +18,10 @@ def test_profile_preflight_does_not_downgrade_or_mutate_profiles(tmp_path, no_no
     store = wx.WechatStore(database)
     uid = store.identity("a" * 64)
     with closing(sqlite3.connect(database)) as db:
-        if schema_version == 3:
-            for table in wx.ladder.TABLES:
+        if schema_version < 5:
+            for table in (wx.ladder.TABLES if schema_version == 3 else wx.ladder.CURRENT_TABLES):
                 db.execute(f"DROP TABLE {table}")
-            db.execute("PRAGMA user_version=3")
+            db.execute(f"PRAGMA user_version={schema_version}")
         db.execute("INSERT INTO wx_profiles(uid,display_name,updated) VALUES(?,?,?)", (uid, "测试昵称", 1))
         db.commit()
     before = snapshot(tmp_path)

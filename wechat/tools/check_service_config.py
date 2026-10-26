@@ -102,7 +102,7 @@ def inspect_database(value, environment, schema_validator):
         return "DATABASE_SCHEMA_UNSUPPORTED_OR_CORRUPT", None
     if before != [file_state(p) for p in [path, *sidecars]]:
         return "DATABASE_CHANGED_DURING_CHECK", None
-    return None, {4: "VALID_V4_READ_ONLY", 3: "VALID_V3_READ_ONLY", 2: "VALID_V2_READ_ONLY"}.get(version, "VALID_V1_MIGRATION_NOT_RUN")
+    return None, {5: "VALID_V5_READ_ONLY", 4: "VALID_V4_READ_ONLY", 3: "VALID_V3_READ_ONLY", 2: "VALID_V2_READ_ONLY"}.get(version, "VALID_V1_MIGRATION_NOT_RUN")
 
 
 def probe_profile_images():

@@ -253,7 +253,7 @@ def test_v1_migration_preserves_identity_and_rolls_back_on_failure(tmp_path, mon
     store = wx.WechatStore(database)
     assert store.identity("fixture-subject") == "0123456789abcdef0123456789abcdef"
     with store.connect() as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 4
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 5
         assert db.execute("SELECT count(*) FROM wx_web_accounts").fetchone()[0] == 0
 
 

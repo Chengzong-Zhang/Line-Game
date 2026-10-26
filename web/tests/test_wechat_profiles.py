@@ -49,7 +49,7 @@ def test_name_persists_without_changing_web_login_identity(env):
     assert reopened.profile(session["account"]["uid"], "web") == saved.json()
     with reopened.connect() as db:
         assert db.execute("SELECT display_name FROM wx_web_accounts").fetchone()[0] == "alice"
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 4
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 5
 
 
 @pytest.mark.parametrize("kind,mime", [("PNG", "png"), ("JPEG", "jpeg")])
@@ -281,7 +281,7 @@ def test_v2_migration_preserves_identity_and_rejects_partial_profile_schema(env,
     migrated = wx.WechatStore(service.store.database)
     assert migrated.identity("v2-fixture-subject") == uid
     with migrated.connect() as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 4
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 5
         db.execute("DROP TABLE wx_profiles")
         db.execute("CREATE TABLE wx_profiles (uid TEXT PRIMARY KEY, unexpected TEXT)")
     before = service.store.database.read_bytes()

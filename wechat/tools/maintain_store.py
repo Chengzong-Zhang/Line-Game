@@ -8,6 +8,7 @@ from contextlib import closing
 import hashlib
 import importlib.util
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -50,10 +51,10 @@ def inspect_connection(db):
         raise ValueError("Database integrity check failed")
     tables = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     full = set(TABLES) | set(ACCOUNT_TABLES) | set(PROFILE_TABLES)
-    if tables not in (set(TABLES), set(TABLES) | set(ACCOUNT_TABLES), full, full | set(ladder.TABLES)):
-        raise ValueError("Unexpected database schema; only the dedicated WeChat database is supported")
     version = db.execute("PRAGMA user_version").fetchone()[0]
-    if version not in (0, 1, 2, 3, 4) or (version >= 2) != ("wx_web_accounts" in tables) or (version >= 3) != ("wx_profiles" in tables) or (version == 4) != ("wx_ladder_stats" in tables):
+    expected = {0: set(TABLES), 1: set(TABLES), 2: set(TABLES) | set(ACCOUNT_TABLES),
+                3: full, 4: full | set(ladder.legacy.TABLES), 5: full | set(ladder.TABLES)}
+    if version not in expected or tables != expected[version]:
         raise ValueError("Database schema version is not supported")
     for table, columns in {**TABLES, **ACCOUNT_TABLES, **PROFILE_TABLES, **ladder.TABLES}.items():
         if table not in tables:
@@ -99,7 +100,7 @@ def inspect_connection(db):
                 or not re.fullmatch(r"[0-9a-f]{32}", room.get("matchId", ""))):
             raise ValueError("Inconsistent room metadata")
         members = room.get("players", {})
-        bot = room.get("rankedAI") in ladder.AI_WEIGHTS and members.get("WHITE") == "ai:" + room["rankedAI"]
+        bot = room.get("rankedAI") in ladder.AI_PROFILES and members.get("WHITE") == "ai:" + room["rankedAI"]
         if set(members) != {"BLACK", "WHITE"} or members["BLACK"] not in users or (members["WHITE"] is not None and members["WHITE"] not in users and not bot):
             raise ValueError("Room refers to a missing identity")
         actions, ids = room.get("actions"), room.get("actionIds")
@@ -122,18 +123,39 @@ def inspect_connection(db):
         commands += 1
     if any(current_ids[code] != set(room["actionIds"]) for code, room in rooms.items()):
         raise ValueError("Accepted action IDs do not match the idempotency records")
-    if version == 4:
+    if version >= 4:
         for values in db.execute("SELECT * FROM wx_ladder_stats"):
             s = dict(zip(ladder.TABLES["wx_ladder_stats"], values))
             if (s["uid"] not in users or s["board"] not in ("ai", "human")
                     or not 0 <= s["wins"] + s["draws"] <= s["games"]
-                    or not 0 <= s["rated_games"] <= s["games"] or ladder.points(s) != s["points"]):
+                    or not 0 <= s["rated_games"] <= s["games"] or ladder.legacy.points(s) != s["points"]):
                 raise ValueError("Invalid ladder aggregate")
         for match_id, board, uid, opponent, day, rated, outcome, difficulty, delta, created in db.execute("SELECT * FROM wx_ladder_results"):
             if (not re.fullmatch(r"[0-9a-f]{32}", match_id) or uid not in users or board not in ("ai", "human")
                     or rated not in (0, 1) or outcome not in (0, 0.5, 1)
-                    or (board == "ai" and difficulty not in ladder.AI_WEIGHTS)):
+                    or (board == "ai" and difficulty not in ladder.AI_PROFILES)):
                 raise ValueError("Invalid ladder result")
+    if version == 5:
+        bot_ids = {ladder.bot_uid(p) for p in ladder.AI_PROFILES}
+        for values in db.execute("SELECT * FROM wx_skill_stats"):
+            s = dict(zip(ladder.CURRENT_TABLES["wx_skill_stats"], values))
+            if (s["uid"] not in users and not (s["board"] == "ai" and s["uid"] in bot_ids)
+                    or s["board"] not in ("ai", "human")
+                    or not all(math.isfinite(s[k]) for k in ("rating", "deviation", "volatility"))
+                    or not 0 < s["deviation"] <= 350 or not 0 < s["volatility"] <= 0.1
+                    or not 0 <= s["wins"] + s["draws"] <= s["games"]
+                    or not 0 <= s["rated_games"] <= s["games"] or ladder.points(s) != s["points"]):
+                raise ValueError("Invalid skill aggregate")
+        for values in db.execute("SELECT * FROM wx_skill_results"):
+            r = dict(zip(ladder.CURRENT_TABLES["wx_skill_results"], values))
+            if (not re.fullmatch(r"[0-9a-f]{32}", r["match_id"]) or r["uid"] not in users
+                    or r["board"] not in ("ai", "human") or r["rated"] not in (0, 1)
+                    or r["outcome"] not in (0, 0.5, 1)
+                    or (r["board"] == "ai" and r["difficulty"] not in ladder.AI_PROFILES)
+                    or (r["rated"] and (not all(isinstance(r[k], (int, float)) and math.isfinite(r[k])
+                        for k in ("opponent_rating", "opponent_deviation", "expected"))
+                        or not 0 < r["opponent_deviation"] <= 350 or not 0 <= r["expected"] <= 1))):
+                raise ValueError("Invalid skill result")
     return {"users": len(users), "rooms": len(rooms), "commands": commands}
 
 
@@ -152,7 +174,7 @@ def identity_snapshot(source):
         return {"wechat": dict(db.execute("SELECT uid,subject FROM wx_users")),
                 "web": sorted(db.execute("SELECT subject,uid,display_name FROM wx_web_accounts")) if "wx_web_accounts" in tables else [],
                 "profiles": sorted(db.execute("SELECT * FROM wx_profiles")) if "wx_profiles" in tables else [],
-                "ladder": {table: sorted(db.execute(f"SELECT * FROM {table}")) for table in ladder.TABLES} if "wx_ladder_stats" in tables else {},
+                "ladder": {table: sorted(db.execute(f"SELECT * FROM {table}")) for table in ladder.TABLES if table in tables},
                 "version": db.execute("PRAGMA user_version").fetchone()[0] or 1}
 
 
@@ -201,7 +223,8 @@ def copy_store(source, destination, *, expected_sha256=None, current_store=None)
                 tables = {row[0] for row in outgoing.execute("SELECT name FROM sqlite_master WHERE type='table'")}
                 if ("wx_web_accounts" in tables and current_users["version"] < 2
                         or "wx_profiles" in tables and current_users["version"] < 3
-                        or "wx_ladder_stats" in tables and current_users["version"] < 4):
+                        or "wx_ladder_stats" in tables and current_users["version"] < 4
+                        or "wx_skill_stats" in tables and current_users["version"] < 5):
                     raise ValueError("Current identity schema predates the backup")
                 if "wx_web_accounts" in tables:
                     backup_uids.update(row[0] for row in outgoing.execute("SELECT uid FROM wx_web_accounts"))
@@ -232,13 +255,13 @@ def copy_store(source, destination, *, expected_sha256=None, current_store=None)
                         outgoing.execute("DELETE FROM wx_profiles")
                         outgoing.executemany("INSERT INTO wx_profiles VALUES (?,?,?,?,?,?)", current_users["profiles"])
                         outgoing.execute("PRAGMA user_version=3")
-                    if current_users["version"] == 4:
-                        ladder.migrate(outgoing)
+                    if current_users["version"] >= 4:
+                        (ladder.migrate if current_users["version"] >= 5 else ladder.legacy.migrate)(outgoing)
                         for table, rows in current_users["ladder"].items():
                             outgoing.execute(f"DELETE FROM {table}")
                             placeholders = ','.join('?' for _ in ladder.TABLES[table])
                             outgoing.executemany(f"INSERT INTO {table} VALUES ({placeholders})", rows)
-                        outgoing.execute("PRAGMA user_version=4")
+                        outgoing.execute(f"PRAGMA user_version={current_users['version']}")
                 dropped_users = len(stale)
                 expected_counts = inspect_connection(outgoing)
         if expected_sha256 is not None and digest(source) != expected_sha256:
