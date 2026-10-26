@@ -1,4 +1,4 @@
-import { captureWorkerRequest, isWorkerResultForRequest } from "./AIStateProtocol.js?v=20261025-terminal-v4";
+import { captureWorkerRequest, isWorkerResultForRequest } from "./AIStateProtocol.js?v=20261026-start-protection-v1";
 
 const noop = () => {};
 
@@ -6,6 +6,7 @@ function matches(engine, request) {
   return engine === request.engine
     && engine?.positionRevision === request.positionRevision
     && engine?.rulesVersion === request.rulesVersion
+    && (engine?.protectionRule ?? "symmetric-v1") === (request.protectionRule ?? "symmetric-v1")
     && engine?.currentPlayer === request.currentPlayer
     && engine?.getTerritoryStateRevision() === request.territoryStateRevision
     && Boolean(engine?.gameOver) === request.gameOver;

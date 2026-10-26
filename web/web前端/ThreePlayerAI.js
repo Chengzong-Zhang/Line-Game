@@ -1,4 +1,4 @@
-import { fastTerritoryBFS, restoreState, saveState } from "./AIEngine.js?v=20261025-terminal-v4";
+import { fastTerritoryBFS, restoreState, saveState } from "./AIEngine.js?v=20261026-start-protection-v1";
 
 export const THREE_PLAYER_MODEL_ID = "three-player-policy-v1";
 export const THREE_PLAYER_FEATURES = Object.freeze([

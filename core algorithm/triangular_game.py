@@ -19,13 +19,31 @@ class Player(Enum):
     BLACK = 1
     WHITE = 2
 
+
+PROTECTION_RULE_SYMMETRIC = "symmetric-v1"
+PROTECTION_RULE_DUEL_FIRST_UNPROTECTED = "duel-first-unprotected-v1"
+SUPPORTED_PROTECTION_RULES = frozenset({
+    PROTECTION_RULE_SYMMETRIC,
+    PROTECTION_RULE_DUEL_FIRST_UNPROTECTED,
+})
+
+
 class SuperkoViolationError(Exception):
     """落子后局面哈希已存在于历史记录中，触发全局同形再现禁手（Superko Rule）。"""
     pass
 
 
 class TriangularGame:
-    def __init__(self):
+    def __init__(
+        self,
+        start_player: Player = Player.BLACK,
+        protection_rule: str = PROTECTION_RULE_DUEL_FIRST_UNPROTECTED,
+    ):
+        if not isinstance(start_player, Player):
+            raise TypeError("start_player must be a Player")
+        if protection_rule not in SUPPORTED_PROTECTION_RULES:
+            raise ValueError(f"Unsupported protection rule: {protection_rule}")
+
         pygame.init()
         
         # Screen settings
@@ -54,7 +72,12 @@ class TriangularGame:
         
         # Initialize game state
         self.grid = {}  # Dictionary to store point states: (x, y) -> PointState
-        self.current_player = Player.BLACK
+        # These immutable match settings are part of the rules, not display
+        # metadata. Old saved/replayed games can opt into symmetric-v1, while
+        # new two-player triangular games use the asymmetric default below.
+        self.start_player = start_player
+        self.protection_rule = protection_rule
+        self.current_player = start_player
         self.game_over = False
         self.consecutive_skips = 0  # Counts consecutive skips; game ends when both players skip
         # Display metadata only: starting nodes and speculative AI moves are not turns.
@@ -77,7 +100,7 @@ class TriangularGame:
         self.grid[(8, 0)] = PointState.WHITE_NODE
 
         # 将初始局面写入历史，防止任何操作回到起始状态
-        self.history_hashes.add(self._compute_state_hash(Player.BLACK))
+        self.history_hashes.add(self._compute_state_hash(self.start_player))
         
         # Skip button
         self.skip_button_rect = pygame.Rect(650, 540, 120, 40)
@@ -726,8 +749,18 @@ class TriangularGame:
     
     def _is_in_protection_zone(self, pos: Tuple[int, int], player: Player) -> bool:
         """Check if a position is in the opponent's protection zone"""
-        # Get opponent's initial position
-        opponent_initial = (8, 0) if player == Player.BLACK else (0, 0)
+        opponent = Player.WHITE if player == Player.BLACK else Player.BLACK
+
+        # In the new two-player triangular rule, the actual first player's
+        # starting point has no protected zone. The second player's starting
+        # point remains protected, which weakens the first-move advantage.
+        if (
+            self.protection_rule == PROTECTION_RULE_DUEL_FIRST_UNPROTECTED
+            and opponent == self.start_player
+        ):
+            return False
+
+        opponent_initial = (8, 0) if opponent == Player.WHITE else (0, 0)
         
         # Get adjacent positions to opponent's initial node
         protected_positions = self._get_adjacent_positions(opponent_initial)

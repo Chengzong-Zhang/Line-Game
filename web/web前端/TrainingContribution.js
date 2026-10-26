@@ -1,4 +1,4 @@
-import { createReplayDocument } from "./ReplayCodec.js?v=20261025-terminal-v4";
+import { createReplayDocument } from "./ReplayCodec.js?v=20261026-start-protection-v1";
 
 export const CONTRIBUTION_POLICY = "anonymous-replay-training-v1";
 export const CONTRIBUTION_STORAGE = "lifeline-training-contribution-v1";
@@ -44,6 +44,7 @@ export class TrainingContribution {
     if (!this.enabled) return false;
     // The reviewed inbox has no territory-v3 schema. Keep new-rule games local.
     if (settings?.rulesVersion === "territory-v3") return false;
+    if (settings?.protectionRule && settings.protectionRule !== "symmetric-v1") return false;
     // The current reviewed-data pipeline encodes triangular boards only.
     // Hexagonal games remain exportable replays without entering that inbox.
     if (Number(settings?.playerCount) >= 4 || settings?.boardShape === "hexagon" || settings?.initialPositions) return false;

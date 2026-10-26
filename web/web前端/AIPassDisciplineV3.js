@@ -1,9 +1,9 @@
 // Product-only bounded structural precheck. V1/V2 and training remain frozen.
 import { applyPassDiscipline as applyV2, protectedRootInvariantHolds,
-  passDisciplineStateHash, nativeDiscreteAreas } from "./AIPassDisciplineV2.js?v=20261025-terminal-v4";
-import { saveState, restoreState } from "./AIEngine.js?v=20261025-terminal-v4";
-import { isolatedSearchEngine } from "./MultiplayerSearch.js?v=20261025-terminal-v4";
-import { multiplayerClock } from "./MultiplayerClock.js?v=20261025-terminal-v4";
+  passDisciplineStateHash, nativeDiscreteAreas } from "./AIPassDisciplineV2.js?v=20261026-start-protection-v1";
+import { saveState, restoreState } from "./AIEngine.js?v=20261026-start-protection-v1";
+import { isolatedSearchEngine } from "./MultiplayerSearch.js?v=20261026-start-protection-v1";
+import { multiplayerClock } from "./MultiplayerClock.js?v=20261026-start-protection-v1";
 
 export const PASS_DISCIPLINE_CONTRACT = Object.freeze({
   schema: "lifeline-ai-pass-discipline-v3",

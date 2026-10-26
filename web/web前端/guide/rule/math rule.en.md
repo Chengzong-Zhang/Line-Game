@@ -70,13 +70,13 @@ Proof: triangular rows contain N,N−1,…,1 vertices. Hexagonal ring k contains
 
 ### 1.2 State and legal actions
 
-Let B:V→{∅,NODE₁,LINE₁,…,NODEₚ,LINEₚ}. Player i has node set Uᵢ, line-point set Lᵢ, explicit undirected links Eᵢ and actual start rᵢ. The complete rule state includes the actual actor i, consecutive passes c, resignations D, terminal flag g and Superko history H; configuration Ω is fixed. Counters, caches and revisions are implementation state, excluded from strategic counting unless an added rule depends on them.
+Let B:V→{∅,NODE₁,LINE₁,…,NODEₚ,LINEₚ}. Player i has node set Uᵢ, line-point set Lᵢ, explicit undirected links Eᵢ and actual start rᵢ. The complete rule state includes the actual actor i, consecutive passes c, resignations D, terminal flag g and Superko history H; fixed configuration Ω includes the actual first player and protectionRule. A missing legacy field means symmetric-v1, while a new two-player triangular game uses duel-first-unprotected-v1. Counters, caches and revisions are implementation state, excluded from strategic counting unless an added rule depends on them.
 
 $$
 S=(\Omega,B,(E_j)_{j=1}^{p},i,c,D,g,H),\qquad A(S)=A_{\rm place}(S)\cup A_{\rm pass}(S)\cup A_{\rm resign}(S).
 $$
 
-Voluntary passing is allowed before termination. A placement must satisfy occupancy, start protection, the three-point limit, a clear friendly connection and no repeated trial key. Put dᵢ(v)=|N₀(v)∩Uᵢ|. Unless directly cutting an enemy LINE, require dᵢ(v)=0, or dᵢ(v)=1 with its sole friendly neighbor u satisfying dᵢ(u)=0 in the old occupancy. This forbids three-node chains or clusters, not only elementary triangles. A direct cut bypasses only this condition.
+Voluntary passing is allowed before termination. A placement must satisfy occupancy, start protection still active under the match protectionRule, the three-point limit, a clear friendly connection and no repeated trial key. duel-first-unprotected-v1 removes only the actual first player’s protected start in a two-player triangular game; the second player’s start stays protected, while other configurations and symmetric-v1 retain mutual protection. Put dᵢ(v)=|N₀(v)∩Uᵢ|. Unless directly cutting an enemy LINE, require dᵢ(v)=0, or dᵢ(v)=1 with its sole friendly neighbor u satisfying dᵢ(u)=0 in the old occupancy. This forbids three-node chains or clusters, not only elementary triangles. A direct cut bypasses only this condition.
 
 ### 1.3 History and transitions
 

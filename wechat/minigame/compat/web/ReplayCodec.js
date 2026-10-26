@@ -1,5 +1,5 @@
 import GameEngine from "./GameEngine.js?v=20261021-boardshapes1";
-import { Player, PLAYER_ORDER, resolveBoardShape } from "./GameEngine.js?v=20261021-boardshapes1";
+import { Player, PLAYER_ORDER, StartProtectionRule, resolveBoardShape } from "./GameEngine.js?v=20261021-boardshapes1";
 import { startingPointSettings } from "./StartingPoints.js?v=20261021-boardshapes1";
 
 export const REPLAY_FORMAT = "lifeline-replay";
@@ -7,6 +7,7 @@ export const REPLAY_SCHEMA_VERSION = 1;
 export const REPLAY_ENGINE_FAMILY = "web-game-engine";
 const GENESIS_EVENT_HASH = "GENESIS";
 const SUPPORTED_RULES = new Set(["territory-v1", "territory-v2", "territory-v3"]);
+const SUPPORTED_PROTECTION_RULES = new Set(Object.values(StartProtectionRule));
 const PLAYERS = PLAYER_ORDER;
 
 // Schema 1 triangular replays hash three edge/effect keys, including the unused
@@ -90,6 +91,8 @@ export function serializeRuleState(engine) {
     startPlayer: engine.startPlayer,
     ...(engine.hasCustomInitialPositions ? { initialPositions: cloneJson(engine.initialPositions) } : {}),
     rulesVersion: engine.rulesVersion,
+    ...(engine.protectionRule !== StartProtectionRule.SYMMETRIC
+      ? { protectionRule: engine.protectionRule } : {}),
     gridEntries,
     edges,
     historyHashes: [...(engine.historyHashes ?? [])].sort(),
@@ -110,6 +113,7 @@ function normalizeSettings(settings = {}) {
   const players = Array.isArray(settings.players)
     ? [...settings.players]
     : PLAYERS.slice(0, playerCount);
+  const protectionRule = settings.protectionRule ?? StartProtectionRule.SYMMETRIC;
   return {
     playerCount,
     ...(resolveBoardShape(playerCount, settings.boardShape) !== resolveBoardShape(playerCount)
@@ -118,6 +122,7 @@ function normalizeSettings(settings = {}) {
     players,
     startPlayer: settings.startPlayer ?? players[0],
     rulesVersion: settings.rulesVersion ?? "territory-v3",
+    ...(protectionRule !== StartProtectionRule.SYMMETRIC ? { protectionRule } : {}),
     superko: "enforce",
     turnTimerEnabled: Boolean(settings.turnTimerEnabled),
     turnTimeLimitSeconds: Number(settings.turnTimeLimitSeconds ?? 60),
@@ -135,6 +140,7 @@ function engineOptionsFromSettings(settings) {
     startPlayer: settings.startPlayer,
     initialPositions: settings.initialPositions,
     rulesVersion: settings.rulesVersion,
+    protectionRule: settings.protectionRule,
     deferTerritoryUpdates: false,
   };
 }
@@ -143,6 +149,7 @@ function isValidSettings(settings) {
   return Number.isInteger(settings.playerCount) && settings.playerCount >= 2 && settings.playerCount <= 15
     && Number.isInteger(settings.gridSize) && settings.gridSize >= 5 && settings.gridSize <= 15
     && SUPPORTED_RULES.has(settings.rulesVersion)
+    && SUPPORTED_PROTECTION_RULES.has(settings.protectionRule ?? StartProtectionRule.SYMMETRIC)
     && canonicalize(settings.players) === canonicalize(PLAYERS.slice(0, settings.playerCount))
     && settings.players.includes(settings.startPlayer);
 }
@@ -296,6 +303,7 @@ export async function createReplayDocument(settings, actions = [], options = {},
     schemaVersion: REPLAY_SCHEMA_VERSION,
     engineFamily: REPLAY_ENGINE_FAMILY,
     rulesVersion: config.rulesVersion,
+    ...(config.protectionRule ? { protectionRule: config.protectionRule } : {}),
     engineBuild: { id: "lifeline-web-runtime-v1", sourceHash: "unavailable" },
     config,
     initialState: { stateVersion: 1, ruleState: initialRuleState, stateHash: initialStateHash },
@@ -318,12 +326,16 @@ export async function validateReplayDocument(document, hashValue = sha256) {
   const fail = (reason, eventSeq = null) => ({ success: false, reason, eventSeq });
   if (!isPlainObject(document)) return fail("棋谱不是 JSON 对象。");
   if (document.format !== REPLAY_FORMAT || document.schemaVersion !== REPLAY_SCHEMA_VERSION) return fail("棋谱版本不受支持。");
-  if (document.engineFamily !== REPLAY_ENGINE_FAMILY || !SUPPORTED_RULES.has(document.rulesVersion)) return fail("棋谱规则版本或引擎版本不兼容。");
+  const documentProtectionRule = document.protectionRule ?? StartProtectionRule.SYMMETRIC;
+  if (document.engineFamily !== REPLAY_ENGINE_FAMILY || !SUPPORTED_RULES.has(document.rulesVersion)
+    || !SUPPORTED_PROTECTION_RULES.has(documentProtectionRule)) return fail("棋谱规则版本或引擎版本不兼容。");
   if (!isPlainObject(document.config) || !Array.isArray(document.actions) || !isPlainObject(document.initialState)) return fail("棋谱缺少必要字段。");
   let config;
   try { config = normalizeSettings(document.config); }
   catch (_) { return fail("棋谱起点配置无效。"); }
-  if (config.rulesVersion !== document.rulesVersion || !isValidSettings(config)) return fail("棋谱配置无效。");
+  if (config.rulesVersion !== document.rulesVersion
+    || (config.protectionRule ?? StartProtectionRule.SYMMETRIC) !== documentProtectionRule
+    || !isValidSettings(config)) return fail("棋谱配置无效。");
   if (document.extensions?.actors !== undefined) {
     try { normalizeActors(document.extensions.actors, config); }
     catch (error) { return fail(error.message); }

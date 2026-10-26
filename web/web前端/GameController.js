@@ -1,11 +1,11 @@
-import GameEngine, { Player, TerritoryRulesVersion, PLAYER_ORDER, getBoardPositions, resolveBoardShape } from "./GameEngine.js?v=20261025-terminal-v4";
-import Renderer from "./Renderer.js?v=20261025-terminal-v4";
-import { ServerEvent } from "./NetworkManager.js?v=20261025-terminal-v4";
-import { serializeEngineState } from "./AIStateProtocol.js?v=20261025-terminal-v4";
+import GameEngine, { Player, StartProtectionRule, TerritoryRulesVersion, PLAYER_ORDER, getBoardPositions, resolveBoardShape } from "./GameEngine.js?v=20261026-start-protection-v1";
+import Renderer from "./Renderer.js?v=20261026-start-protection-v1";
+import { ServerEvent } from "./NetworkManager.js?v=20261026-start-protection-v1";
+import { serializeEngineState } from "./AIStateProtocol.js?v=20261026-start-protection-v1";
 import {
   applyTerritoryWorkerResult,
-} from "./TerritoryWorkerSession.js?v=20261025-terminal-v4";
-import TerritoryWorkerPool from "./TerritoryWorkerPool.js?v=20261025-terminal-v4";
+} from "./TerritoryWorkerSession.js?v=20261026-start-protection-v1";
+import TerritoryWorkerPool from "./TerritoryWorkerPool.js?v=20261026-start-protection-v1";
 
 // GameController 鏄墠绔殑鈥滆兌姘村眰鈥濓細
 // 瀹冩妸 Model(GameEngine)銆乂iew(Renderer) 鍜岃仈鏈哄眰(NetworkManager) 涓茶捣鏉ワ紝
@@ -71,7 +71,7 @@ export class GameController {
       ? options.createTerritoryWorker
       : (typeof globalThis.Worker === "function"
         ? () => new globalThis.Worker(
-            new URL("./TerritoryWorker.js?v=20261025-terminal-v4", import.meta.url),
+            new URL("./TerritoryWorker.js?v=20261026-start-protection-v1", import.meta.url),
             { type: "module" },
           )
         : null);
@@ -131,6 +131,10 @@ export class GameController {
       ...DEFAULT_ENGINE_OPTIONS,
       ...(engineOptions ?? {}),
     };
+    normalizedOptions.protectionRule ??= normalizedOptions.playerCount === 2
+      && resolveBoardShape(normalizedOptions.playerCount, normalizedOptions.boardShape) === "triangle"
+      ? StartProtectionRule.DUEL_FIRST_UNPROTECTED
+      : StartProtectionRule.SYMMETRIC;
     const deferTerritoryUpdates = normalizedOptions.deferTerritoryUpdates
       ?? (normalizedOptions.gridSize >= ASYNC_TERRITORY_MIN_GRID_SIZE || normalizedOptions.playerCount >= 3 || resolveBoardShape(normalizedOptions.playerCount, normalizedOptions.boardShape) === "hexagon");
     return new GameEngine({
@@ -504,6 +508,7 @@ export class GameController {
 
     return {
       rulesVersion: snapshot.rulesVersion,
+      protectionRule: snapshot.protectionRule,
       positionRevision: snapshot.positionRevision,
       currentPlayer: snapshot.currentPlayer,
       gameOver: snapshot.gameOver,
@@ -912,6 +917,13 @@ export class GameController {
     // 联机重连后，在临时引擎上批量回放；只有完整成功才替换当前棋盘。
     const actions = Array.isArray(matchState?.actions) ? matchState.actions : [];
     const incomingSettings = matchState?.settings;
+    const normalizedIncomingSettings = incomingSettings && typeof incomingSettings === "object"
+      ? {
+          ...incomingSettings,
+          protectionRule: Object.hasOwn(incomingSettings, "protectionRule")
+            ? incomingSettings.protectionRule : StartProtectionRule.SYMMETRIC,
+        }
+      : null;
     const previousOptions = { ...(this.options.engine ?? {}) };
     if (incomingSettings && typeof incomingSettings === "object") {
       delete previousOptions.initialPositions;
@@ -921,7 +933,7 @@ export class GameController {
     const nextEngineOptions = {
       ...DEFAULT_ENGINE_OPTIONS,
       ...previousOptions,
-      ...(incomingSettings && typeof incomingSettings === "object" ? incomingSettings : {}),
+      ...(normalizedIncomingSettings ?? {}),
     };
 
     const preserveCurrentEngine = (reason, preservedSnapshot = null) => {

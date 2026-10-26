@@ -10,6 +10,13 @@ export const TerritoryRulesVersion = Object.freeze({
 
 const SUPPORTED_TERRITORY_RULES = new Set(Object.values(TerritoryRulesVersion));
 
+export const StartProtectionRule = Object.freeze({
+  SYMMETRIC: "symmetric-v1",
+  DUEL_FIRST_UNPROTECTED: "duel-first-unprotected-v1",
+});
+
+const SUPPORTED_START_PROTECTION_RULES = new Set(Object.values(StartProtectionRule));
+
 // Triangular coordinates are barycentric triples (x, y, z) with
 // z = gridSize - 1 - x - y. Every D3 board symmetry is a permutation of
 // those three coordinates. A permutation stores new[i] = old[permutation[i]].
@@ -306,6 +313,16 @@ export class GameEngine {
       writable: false,
       configurable: false,
     });
+    const protectionRule = options.protectionRule ?? StartProtectionRule.SYMMETRIC;
+    if (!SUPPORTED_START_PROTECTION_RULES.has(protectionRule)) {
+      throw new Error(`Unsupported start protection rule: ${protectionRule}`);
+    }
+    Object.defineProperty(this, "protectionRule", {
+      value: protectionRule,
+      enumerable: true,
+      writable: false,
+      configurable: false,
+    });
     this.playerCount = options.playerCount ?? 2;
     if (!Number.isInteger(this.playerCount) || this.playerCount < 2 || this.playerCount > 15) {
       throw new Error("playerCount must be an integer between 2 and 15.");
@@ -559,6 +576,8 @@ export class GameEngine {
       boardVertices: this.boardVertices.map(clonePoint),
       initialPositions: Object.fromEntries(this.activePlayers.map((player) => [player, this._getInitialPosition(player)])),
       rulesVersion: this.rulesVersion,
+      ...(this.protectionRule !== StartProtectionRule.SYMMETRIC
+        ? { protectionRule: this.protectionRule } : {}),
       positionRevision: this.positionRevision,
       players: [...this.activePlayers],
       startPlayer: this.startPlayer,
@@ -792,6 +811,14 @@ export class GameEngine {
   _isInProtectionZone(point, player) {
     if (!this.isValidPosition(point)) return false;
     return this._getOpponents(player).some((opponent) => {
+      if (
+        this.protectionRule === StartProtectionRule.DUEL_FIRST_UNPROTECTED
+        && this.playerCount === 2
+        && this.boardShape === "triangle"
+        && opponent === this.startPlayer
+      ) {
+        return false;
+      }
       const root = this.initialPositions[opponent];
       const dx = point[0] - root[0], dy = point[1] - root[1];
       return DIRECTIONS.some(([x, y]) => dx === x && dy === y);
@@ -2505,6 +2532,7 @@ export class GameEngine {
       startPlayer: this.startPlayer,
       initialPositions: this.hasCustomInitialPositions ? this.initialPositions : undefined,
       rulesVersion: this.rulesVersion,
+      protectionRule: this.protectionRule,
     });
     transaction._restoreReplayState(this._captureReplayState());
 

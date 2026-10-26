@@ -10,7 +10,7 @@ export function multiplayerGuideSections(language) {
       'Choose 2–15 players and either a triangular or hexagonal board in the Board cabin. The default is a triangle for two or three players and a hexagon for four to fifteen. Games with 7–15 players require random or custom starting nodes. Side length means grid points along each outer side, from 5 to 15.',
       'Starting points can be Default, Random or Custom. Random points are drawn once when a new game starts and kept in saves and replays. For Custom, choose a distinct valid point for each side. Any participating side may start.',
       'With default hexagonal starting points, number corners clockwise from the upper left, 1–6. Four players occupy 1, 2, 4 and 5 in Blue, Red, Purple, Green order. Five occupy 1–5; Orange is fifth. Six occupy all corners; Cyan is sixth.',
-      'Every valid neighbor of an enemy starting node is protected, including random and custom starting points. The number depends on its actual position: a triangular corner has two and a hexagonal corner has three. Direct cuts do not bypass this protection. Both shapes share the connection, capture, three-point and Superko rules.',
+      "In a two-player triangular game, the first player's starting node has no protected zone; the second player's start keeps all of its protected neighbors, so the first player still cannot enter them. Hexagonal and multiplayer boards retain symmetric protection for every side. Random and custom starts use their actual neighbors. Direct cuts do not bypass protection.",
     ] },
     { id: 'multiplayer-ai', title: 'Local players, AI and shared rules', paragraphs: [
       'Each side can be human or an AI compatible with the current player count, shape and side length. Three-player AI is for triangular three-player games; Hex AI is for hexagonal 4–6-player games. Choosing a non-default shape for a player count offers Greedy AI. Games with 7–15 players offer generic Greedy and Minimax AI without using the 3–6-player trained models.',
@@ -24,7 +24,7 @@ export function multiplayerGuideSections(language) {
       '在棋盘舱选择 2–15 人，每种人数都可选三角形或六边形棋盘。默认双人、三人为三角形，四至十五人为六边形；7–15 人仅支持随机或自定义起点。边长指每条外边上的格点数，可选 5–15。',
       '起点可选默认、随机或自定义。随机起点在重开时生成一次，实际位置随存档和复盘保留；自定义时，为每一方选择互不重合的有效格点。任意参与方都可先手。',
       '使用六边形默认起点时，从左上角顺时针编号 1–6。四人按蓝、红、紫、绿占据 1、2、4、5 号角；五人占据 1–5 号角，第五方为橙方；六人占满六角，第六方为青方。',
-      '敌方起点旁所有有效相邻格点都受保护，随机与自定义起点也按实际位置确定：三角形角点旁为两个，六边形角点旁为三个，其他位置可能更多。直接切线也不能越过保护。两种棋盘沿用相同的连接、切断、三点限制和同形禁手。',
+      '双人三角棋盘中，先手起点不设禁区；后手起点保留全部保护邻点，先手仍不能进入。六边形或多人棋盘继续对每一方起点对称保护。随机与自定义起点按实际邻点判断；直接切线也不能越过保护。',
     ] },
     { id: 'multiplayer-ai', title: '同机玩家、AI 与共同规则', paragraphs: [
       '各席可分别选择真人，或与当前人数、形状、边长兼容的 AI。三人 AI 用于三角形三人局，六边形 AI 用于六边形 4–6 人局；选用该人数默认形状之外的棋盘时，可用贪心 AI。7–15 人提供通用贪心与 Minimax 搜索，不套用 3–6 人训练模型。',
@@ -41,14 +41,14 @@ const IMAGE_TEXT = {
     playable: ['可落子区域', '图中绿色标记展示示例局面的可落点。实际对局以当前棋盘上的合法落点为准。', 0],
     cut1: ['切断之前', '观察连回初始点的路径。攻击敌方连线，可能让整段结构失去连接。', 2],
     cut2: ['切断之后', '失去所有起点路径的节点与连线被清除；仍有其他连接的部分会保留。', 2],
-    start: ['起步保护', '图中的三角形角点旁有两个保护点；六边形角点旁有三个。所有有效相邻点都禁止敌方落子。'],
+    start: ['起步保护', '双人三角局仅后手起点保留图示保护点，先手起点不设禁区；六边形或多人局仍保护各方起点邻点。'],
     triangle: ['三点限制', '不能主动形成三个节点互相紧挨的最小三角形；直接切断敌方连线时可豁免这一项限制。', 3],
   },
   en: {
     playable: ['Playable points', 'Green markers show legal points in this example. Use the legal markers on your current board when playing.', 0],
     cut1: ['Before a cut', 'Look for paths back to the starting node. Cutting an enemy link may disconnect a whole structure.', 2],
     cut2: ['After a cut', 'Nodes and links with no remaining path to their start are removed. An alternative route keeps a structure alive.', 2],
-    start: ['Protected opening', 'This triangular example has two protected neighbors at each corner. A hexagonal corner has three. Opponents cannot occupy any of these valid neighboring points.'],
+    start: ['Protected opening', "In a two-player triangle, only the second player's start keeps the illustrated protected neighbors; the first player's start has no protected zone. Hexagonal and multiplayer games still protect every side's start."],
     triangle: ['Three-point limit', 'Do not form the smallest triangle of three mutually adjacent nodes. A move cutting an enemy link is exempt from this limit.', 3],
   },
 };
@@ -60,9 +60,9 @@ const imageSection = (id, lang) => {
 const clean = value => String(value).replace(/\*\*([^*]+)\*\*/g, '$1').replace(/`([^`]+)`/g, '$1');
 const blockText = block => clean(block.label ? `${block.label}：${block.text}` : block.text || '')
   .replace('双方轮流在三角网格落子', '玩家轮流在三角或六边形棋盘的格点落子')
-  .replace('靠近初始点的两个相邻位置', '靠近初始点的所有有效相邻位置（三角形角点旁两个、六边形角点旁三个；随机或自定义起点按实际位置确定）')
+  .replace('靠近初始点的两个相邻位置', '双人三角局仅后手起点旁的有效相邻位置（先手起点不设禁区；六边形或多人局仍保护各方起点）')
   .replace('Players take turns placing nodes on a triangular grid.', 'Players take turns placing nodes on a triangular or hexagonal board.')
-  .replace("the two positions adjacent to a player's starting node", "all valid positions adjacent to a player's starting node (two at triangular corners, three at hexagonal corners; random and custom starts use their actual neighbors)");
+  .replace("the two positions adjacent to a player's starting node", "the valid neighbors of the second player's start in a two-player triangle (the first player's start has no protected zone; hexagonal and multiplayer games still protect every side's start)");
 
 function essentialSections(lang) {
   const blocks = parseGuideMarkdown(lang === 'zh' ? essentialZh : getGuideMarkdown('rulesEssential', 'en'));

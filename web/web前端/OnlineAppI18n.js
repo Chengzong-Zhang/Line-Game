@@ -1,6 +1,6 @@
-import { PLAYER_PALETTE } from "./PlayerPalette.js?v=20261025-terminal-v4";
-import { Player } from "./GameEngine.js?v=20261025-terminal-v4";
-import { ALL_PLAYERS } from "./OnlineAppState.js?v=20261025-terminal-v4";
+import { PLAYER_PALETTE } from "./PlayerPalette.js?v=20261026-start-protection-v1";
+import { Player } from "./GameEngine.js?v=20261026-start-protection-v1";
+import { ALL_PLAYERS } from "./OnlineAppState.js?v=20261026-start-protection-v1";
 
 // 文案、比分格式化和错误提示都集中放在这里，避免 UI 文件里散落大量字符串。
 

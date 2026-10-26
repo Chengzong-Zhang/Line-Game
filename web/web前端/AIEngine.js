@@ -1,4 +1,4 @@
-import { GameEngine, Player, PointState } from "./GameEngine.js?v=20261025-terminal-v4";
+import { GameEngine, Player, PointState } from "./GameEngine.js?v=20261026-start-protection-v1";
 
 function pointKey(point) {
   return `${point[0]},${point[1]}`;

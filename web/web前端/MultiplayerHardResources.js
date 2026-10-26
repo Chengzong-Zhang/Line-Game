@@ -1,6 +1,6 @@
-import { createHardRuntimeV2 } from "./MultiplayerHardRuntime.js?v=20261025-terminal-v4";
-import { threePlayerModelIdForBoard } from "./ThreePlayerSearchOptions.js?v=20261025-terminal-v4";
-import { trainedPolicySpec, trainedPolicyInfo } from "./PassTrainedPolicies.js?v=20261025-terminal-v4";
+import { createHardRuntimeV2 } from "./MultiplayerHardRuntime.js?v=20261026-start-protection-v1";
+import { threePlayerModelIdForBoard } from "./ThreePlayerSearchOptions.js?v=20261026-start-protection-v1";
+import { trainedPolicySpec, trainedPolicyInfo } from "./PassTrainedPolicies.js?v=20261026-start-protection-v1";
 
 export const HARD_MODEL_ID = "multiplayer-hard-v1";
 const prepared = new Map();
@@ -20,14 +20,14 @@ export async function prepareHardResources(source) {
   if (!reused) {
     const promise = (async () => {
       if (playerCount === 3) {
-        const { loadThreePlayerRuntime } = await import("./ThreePlayerRuntime.js?v=20261025-terminal-v4");
+        const { loadThreePlayerRuntime } = await import("./ThreePlayerRuntime.js?v=20261026-start-protection-v1");
         const id = threePlayerModelIdForBoard(gridSize);
         const runtime = await loadThreePlayerRuntime(id, context);
         if (runtime.modelInfo.id !== id) throw new Error("Three-player resource identity changed");
         return { policySpec: runtime.ai.base ? runtime.ai.spec : runtime.ai.model.spec,
           modelInfo: { id: runtime.modelInfo.id } };
       }
-      const { loadHexPlayerModel } = await import("./HexPlayerAI.js?v=20261025-terminal-v4");
+      const { loadHexPlayerModel } = await import("./HexPlayerAI.js?v=20261026-start-protection-v1");
       const parent = await loadHexPlayerModel();
       const model = { ...parent, spec: trainedPolicySpec(parent.spec, "hex-v1", rulesVersion) };
       if (model.spec.id !== "hex-player-policy-v1") throw new Error("Hex resource identity changed");

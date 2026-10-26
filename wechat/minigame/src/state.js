@@ -3,17 +3,41 @@ import { checksum } from './integrity.js';
 import { normalizePlayOptions } from './play-options.js';
 
 export const RULES = 'territory-v3';
+export const LEGACY_PROTECTION_RULE = 'symmetric-v1';
+export const DEFAULT_PROTECTION_RULE = 'duel-first-unprotected-v1';
+export const PROTECTION_RULES = Object.freeze([LEGACY_PROTECTION_RULE, DEFAULT_PROTECTION_RULE]);
 export const MAX_ACTIONS = 3000;
 export const MODES = ['human', 'ai-white', 'ai-black', 'ai-duel'];
 
-export function settingsFor(size = 7, playerCount = 2, startPlayer = 'BLACK') {
-  return { gridSize: size, playerCount, startPlayer, rulesVersion: RULES,
-    turnTimerEnabled: false, turnTimeLimitSeconds: 60, hintEnabled: true, hintMaxCount: 3 };
+const asymmetricProtectionApplies = settings => Boolean(settings) && (settings.playerCount ?? 2) === 2
+  && (settings.boardShape ?? 'triangle') === 'triangle';
+const cloneSettings = settings => Object.defineProperties({}, Object.getOwnPropertyDescriptors(settings));
+
+export function withoutInactiveProtectionRule(settings) {
+  if (!settings || typeof settings !== 'object' || Array.isArray(settings)) return settings;
+  const normalized = cloneSettings(settings);
+  if (!asymmetricProtectionApplies(normalized) && normalized.protectionRule === DEFAULT_PROTECTION_RULE) {
+    delete normalized.protectionRule;
+  }
+  return normalized;
+}
+
+export function withNewGameProtectionRule(settings) {
+  const normalized = withoutInactiveProtectionRule(settings);
+  if (asymmetricProtectionApplies(normalized)) normalized.protectionRule ??= DEFAULT_PROTECTION_RULE;
+  return normalized;
+}
+
+export function settingsFor(size = 7, playerCount = 2, startPlayer = 'BLACK', boardShape) {
+  return withNewGameProtectionRule({ gridSize: size, playerCount, startPlayer, rulesVersion: RULES,
+    ...(boardShape ? { boardShape } : {}), turnTimerEnabled: false, turnTimeLimitSeconds: 60,
+    hintEnabled: true, hintMaxCount: 3 });
 }
 
 export function validateSettings(settings) {
   if (!settings || typeof settings !== 'object' || Array.isArray(settings)
     || !['territory-v2', RULES].includes(settings.rulesVersion)
+    || settings.protectionRule !== undefined && !PROTECTION_RULES.includes(settings.protectionRule)
     || !Number.isInteger(settings.playerCount) || settings.playerCount < 2 || settings.playerCount > PLAYER_ORDER.length
     || !Number.isInteger(settings.gridSize) || settings.gridSize < 5 || settings.gridSize > 15
     || !PLAYER_ORDER.slice(0, settings.playerCount).includes(settings.startPlayer)) throw new Error('INVALID_SETTINGS');
@@ -41,9 +65,10 @@ export function applyAction(engine, action) {
 }
 
 export function restoreGame(settings, actions = []) {
-  validateSettings(settings);
+  const normalizedSettings = withoutInactiveProtectionRule(settings);
+  validateSettings(normalizedSettings);
   if (!Array.isArray(actions) || actions.length > MAX_ACTIONS) throw new Error('INVALID_ACTIONS');
-  const engine = new GameEngine({ ...settings, deferTerritoryUpdates: false });
+  const engine = new GameEngine({ ...normalizedSettings, deferTerritoryUpdates: false });
   if (actions.length) {
     const result = engine.replayBatch((transaction) => {
       for (let i = 0; i < actions.length; i++) {

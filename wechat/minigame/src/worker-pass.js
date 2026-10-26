@@ -20,6 +20,7 @@ export function canonicalTerminalWinningPass(engine, player, now = () => perform
       startPlayer: engine.startPlayer,
       initialPositions: engine.initialPositions,
       rulesVersion: engine.rulesVersion,
+      protectionRule: engine.protectionRule,
       deferTerritoryUpdates: true,
     });
     restoreState(isolated, saveState(engine));

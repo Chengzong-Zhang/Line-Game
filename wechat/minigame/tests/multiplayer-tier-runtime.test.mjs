@@ -93,7 +93,23 @@ test('shared search and rollout retain the frozen 2026-10-24 Web source after th
     const frozenSource = content.slice(boundary);
     const v3Admission = '!["territory-v2", "territory-v3"].includes(source.rulesVersion)';
     assert.equal(frozenSource.split(v3Admission).length - 1, 1);
-    const normalized = frozenSource.replace(v3Admission, 'source.rulesVersion !== "territory-v2"');
+    const protectionFilter = `  return [...indices].sort((a, b) => a - b).filter(i => {
+    if (engine._isInProtectionZone(engine.validPositions[i], player)) return false;
+`;
+    const legacyFilter = `  const protectedPoints = new Set(engine._getOpponents(player).flatMap(p =>
+    engine._adjIdxList[engine._keyToIdx.get(key(engine.initialPositions[p]))]));
+  return [...indices].sort((a, b) => a - b).filter(i => {
+    if (protectedPoints.has(i)) return false;
+`;
+    const protectionClone = `    startPlayer: source.startPlayer, rulesVersion: source.rulesVersion,
+    protectionRule: source.protectionRule, deferTerritoryUpdates: true });`;
+    const legacyClone = '    startPlayer: source.startPlayer, rulesVersion: source.rulesVersion, deferTerritoryUpdates: true });';
+    if (name === 'MultiplayerSearch.js') {
+      assert.equal(frozenSource.split(protectionFilter).length - 1, 1);
+      assert.equal(frozenSource.split(protectionClone).length - 1, 1);
+    }
+    const normalized = frozenSource.replace(v3Admission, 'source.rulesVersion !== "territory-v2"')
+      .replace(protectionFilter, legacyFilter).replace(protectionClone, legacyClone);
     assert.equal(sha(normalized), expected);
   }
   assert.equal(sut.easyManifest.sourceManifestSha256, 'd7560db53483ab9ee2a7c423509142924545f1679ec35201b369e3b91fe161a0');

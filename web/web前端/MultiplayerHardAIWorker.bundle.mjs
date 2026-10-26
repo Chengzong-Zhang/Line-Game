@@ -265,7 +265,7 @@ function packDependencyBfs(result) {
 function unpackDependencyBfs(result) {
   return { dist: new Int32Array(result.dist), pred: Array.from({ length: result.dist.length }, (_, index) => result.offsets[index + 1] > result.offsets[index] ? Array.from(result.predecessors.subarray(result.offsets[index], result.offsets[index + 1])) : null) };
 }
-var DEFAULT_GRID_SIZE, MIN_GRID_SIZE, MAX_GRID_SIZE, TerritoryRulesVersion, SUPPORTED_TERRITORY_RULES, BARYCENTRIC_TRANSFORMS, Player, PointState, PLAYER_ORDER, DIRECTIONS, DIRS_CW, PLAYER_POINT_STATES, GameEngine, NATIVE_TERRITORY_METHODS, NATIVE_SHARED_TERRITORY_METHODS, NATIVE_FLOOD_COVERAGE, NATIVE_FLOOD_POINT_INDEX, TERRITORY_DEPENDENCY_MEMOS, NATIVE_DEPENDENCY_METHODS, GameEngine_default;
+var DEFAULT_GRID_SIZE, MIN_GRID_SIZE, MAX_GRID_SIZE, TerritoryRulesVersion, SUPPORTED_TERRITORY_RULES, StartProtectionRule, SUPPORTED_START_PROTECTION_RULES, BARYCENTRIC_TRANSFORMS, Player, PointState, PLAYER_ORDER, DIRECTIONS, DIRS_CW, PLAYER_POINT_STATES, GameEngine, NATIVE_TERRITORY_METHODS, NATIVE_SHARED_TERRITORY_METHODS, NATIVE_FLOOD_COVERAGE, NATIVE_FLOOD_POINT_INDEX, TERRITORY_DEPENDENCY_MEMOS, NATIVE_DEPENDENCY_METHODS, GameEngine_default;
 var init_GameEngine = __esm({
   "application-hard:GameEngine.js"() {
     DEFAULT_GRID_SIZE = 9;
@@ -277,6 +277,11 @@ var init_GameEngine = __esm({
       V3: "territory-v3"
     });
     SUPPORTED_TERRITORY_RULES = new Set(Object.values(TerritoryRulesVersion));
+    StartProtectionRule = Object.freeze({
+      SYMMETRIC: "symmetric-v1",
+      DUEL_FIRST_UNPROTECTED: "duel-first-unprotected-v1"
+    });
+    SUPPORTED_START_PROTECTION_RULES = new Set(Object.values(StartProtectionRule));
     BARYCENTRIC_TRANSFORMS = Object.freeze({
       IDENTITY: Object.freeze([0, 1, 2]),
       SWAP_XY: Object.freeze([1, 0, 2]),
@@ -423,6 +428,16 @@ var init_GameEngine = __esm({
         }
         Object.defineProperty(this, "rulesVersion", {
           value: rulesVersion,
+          enumerable: true,
+          writable: false,
+          configurable: false
+        });
+        const protectionRule = options.protectionRule ?? StartProtectionRule.SYMMETRIC;
+        if (!SUPPORTED_START_PROTECTION_RULES.has(protectionRule)) {
+          throw new Error(`Unsupported start protection rule: ${protectionRule}`);
+        }
+        Object.defineProperty(this, "protectionRule", {
+          value: protectionRule,
           enumerable: true,
           writable: false,
           configurable: false
@@ -618,6 +633,7 @@ var init_GameEngine = __esm({
           boardVertices: this.boardVertices.map(clonePoint),
           initialPositions: Object.fromEntries(this.activePlayers.map((player) => [player, this._getInitialPosition(player)])),
           rulesVersion: this.rulesVersion,
+          ...this.protectionRule !== StartProtectionRule.SYMMETRIC ? { protectionRule: this.protectionRule } : {},
           positionRevision: this.positionRevision,
           players: [...this.activePlayers],
           startPlayer: this.startPlayer,
@@ -823,6 +839,9 @@ var init_GameEngine = __esm({
       _isInProtectionZone(point, player) {
         if (!this.isValidPosition(point)) return false;
         return this._getOpponents(player).some((opponent) => {
+          if (this.protectionRule === StartProtectionRule.DUEL_FIRST_UNPROTECTED && this.playerCount === 2 && this.boardShape === "triangle" && opponent === this.startPlayer) {
+            return false;
+          }
           const root = this.initialPositions[opponent];
           const dx = point[0] - root[0], dy = point[1] - root[1];
           return DIRECTIONS.some(([x, y]) => dx === x && dy === y);
@@ -2223,7 +2242,8 @@ var init_GameEngine = __esm({
           boardShape: this.boardShape,
           startPlayer: this.startPlayer,
           initialPositions: this.hasCustomInitialPositions ? this.initialPositions : void 0,
-          rulesVersion: this.rulesVersion
+          rulesVersion: this.rulesVersion,
+          protectionRule: this.protectionRule
         });
         transaction._restoreReplayState(this._captureReplayState());
         let result;
@@ -4346,9 +4366,8 @@ function potentialMoves(engine, player = engine.currentPlayer) {
       if (enemy.has(state)) break;
     }
   }
-  const protectedPoints = new Set(engine._getOpponents(player).flatMap((p) => engine._adjIdxList[engine._keyToIdx.get(key(engine.initialPositions[p]))]));
   return [...indices].sort((a, b) => a - b).filter((i) => {
-    if (protectedPoints.has(i)) return false;
+    if (engine._isInProtectionZone(engine.validPositions[i], player)) return false;
     if (enemy.has(states[i])) return true;
     const adjacent = engine._adjIdxList[i].filter((j) => states[j] === own3.node);
     return adjacent.length < 2 && adjacent.every((j) => !engine._adjIdxList[j].some((k) => states[k] === own3.node));
@@ -4362,6 +4381,7 @@ function isolatedSearchEngine(source) {
     initialPositions: source.initialPositions,
     startPlayer: source.startPlayer,
     rulesVersion: source.rulesVersion,
+    protectionRule: source.protectionRule,
     deferTerritoryUpdates: true
   });
   restoreState(engine, saveState(source));
@@ -6233,7 +6253,7 @@ __export(MultiplayerHardWorkerRuntime_exports, {
 });
 async function loadMultiplayerRuntime(modelId, engine) {
   if (modelId === HARD_MODEL_ID && supportsNativeHardContext(engine)) return loadNativeHardRuntime(engine);
-  const general = await import("./MultiplayerRuntime.js?v=20261025-terminal-v4");
+  const general = await import("./MultiplayerRuntime.js?v=20261026-start-protection-v1");
   return general.loadMultiplayerRuntime(modelId, engine);
 }
 var init_MultiplayerHardWorkerRuntime = __esm({
@@ -6338,6 +6358,7 @@ function serializeEngineState(engine) {
     startPlayer: engine.startPlayer,
     ...engine.hasCustomInitialPositions ? { initialPositions: structuredClone(engine.initialPositions) } : {},
     rulesVersion: engine.rulesVersion,
+    ...engine.protectionRule !== "symmetric-v1" ? { protectionRule: engine.protectionRule } : {},
     positionRevision: engine.positionRevision,
     activePlayers: [...engine.activePlayers],
     gridEntries: [...engine.grid.entries()],
@@ -6366,7 +6387,7 @@ function deserializeEngineEdges(serializedState, players) {
 }
 function isWorkerResultCurrent(engine, message) {
   return Boolean(
-    engine && message && engine.positionRevision === message.positionRevision && engine.rulesVersion === message.rulesVersion && engine.currentPlayer === message.currentPlayer
+    engine && message && engine.positionRevision === message.positionRevision && engine.rulesVersion === message.rulesVersion && (engine.protectionRule ?? "symmetric-v1") === (message.protectionRule ?? "symmetric-v1") && engine.currentPlayer === message.currentPlayer
   );
 }
 function captureWorkerRequest(engine, requestId) {
@@ -6378,12 +6399,13 @@ function captureWorkerRequest(engine, requestId) {
     engine,
     positionRevision: engine.positionRevision,
     rulesVersion: engine.rulesVersion,
+    protectionRule: engine.protectionRule ?? "symmetric-v1",
     currentPlayer: engine.currentPlayer
   });
 }
 function isWorkerResultForRequest(engine, request, message) {
   return Boolean(
-    request && message && message.requestId === request.requestId && engine === request.engine && engine.positionRevision === request.positionRevision && engine.rulesVersion === request.rulesVersion && engine.currentPlayer === request.currentPlayer && message.positionRevision === request.positionRevision && message.rulesVersion === request.rulesVersion && message.currentPlayer === request.currentPlayer
+    request && message && message.requestId === request.requestId && engine === request.engine && engine.positionRevision === request.positionRevision && engine.rulesVersion === request.rulesVersion && (engine.protectionRule ?? "symmetric-v1") === (request.protectionRule ?? "symmetric-v1") && engine.currentPlayer === request.currentPlayer && message.positionRevision === request.positionRevision && message.rulesVersion === request.rulesVersion && (message.protectionRule ?? "symmetric-v1") === (request.protectionRule ?? "symmetric-v1") && message.currentPlayer === request.currentPlayer
   );
 }
 var init_AIStateProtocol = __esm({
@@ -6671,6 +6693,7 @@ var init_AIPassDiscipline = __esm({
 // application-hard:AIPassDisciplineV2.js
 function protectedRootInvariantHolds(engine, player, before, beforeArea) {
   if (engine.rulesVersion !== "territory-v3" || engine.resignedPlayers.has(player)) return false;
+  if (engine.protectionRule === "duel-first-unprotected-v1" && engine.playerCount === 2 && engine.boardShape === "triangle" && player === engine.startPlayer) return false;
   const after = pieces(engine, player), connected = engine._getOpponentConnectedPieces(player);
   const protectedKeys = new Set(engine.getAdjacentPositions(engine.initialPositions[player]).map(key4));
   return contains2(after.nodes, before.nodes) && contains2(after.coverage, before.coverage) && contains2(connected, after.nodes) && after.lines.every((line) => protectedKeys.has(key4(line))) && after.coverage.size > beforeArea;
@@ -6780,6 +6803,7 @@ function passDisciplineRuleState(source) {
     boardShape: source.boardShape,
     startPlayer: source.startPlayer,
     rulesVersion: source.rulesVersion,
+    ...source.protectionRule !== "symmetric-v1" ? { protectionRule: source.protectionRule } : {},
     initialPositions: Object.fromEntries(source.activePlayers.map((player) => [player, [...source.initialPositions[player]]])),
     activePlayers: [...source.activePlayers],
     gridEntries: [...source.grid].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0),
@@ -7387,7 +7411,8 @@ var init_AIWorker = __esm({
           boardShape: serializedState.boardShape,
           startPlayer: serializedState.startPlayer,
           initialPositions: serializedState.initialPositions,
-          rulesVersion: serializedState.rulesVersion
+          rulesVersion: serializedState.rulesVersion,
+          protectionRule: serializedState.protectionRule
         });
         restoreState(engine, {
           grid: new Map(serializedState.gridEntries),
@@ -7425,7 +7450,7 @@ var init_AIWorker = __esm({
           });
         } else if (strategy === "neural-puct") {
           if (engine.playerCount !== 2) throw new Error("\u6A21\u578B\u4E0D\u652F\u6301\u6B64\u68CB\u76D8/\u89C4\u5219/\u73A9\u5BB6\u6570\u3002");
-          const { loadResearchModel, NeuralPUCTAI, supportsResearchInference } = await import("./ResearchAI.js?v=20261025-terminal-v4");
+          const { loadResearchModel, NeuralPUCTAI, supportsResearchInference } = await import("./ResearchAI.js?v=20261026-start-protection-v1");
           const model = await loadResearchModel(event.data?.modelId);
           if (!supportsResearchInference(model.spec, engine)) throw new Error("\u6A21\u578B\u4E0D\u652F\u6301\u6B64\u68CB\u76D8/\u89C4\u5219/\u73A9\u5BB6\u6570\u3002");
           modelInfo = {
@@ -7444,7 +7469,7 @@ var init_AIWorker = __esm({
           });
         } else if (strategy === "model-free") {
           if (engine.playerCount !== 2) throw new Error("model-free \u7F51\u9875\u6A21\u578B\u4EC5\u652F\u6301\u53CC\u4EBA\u5C40\u9762\u3002");
-          const { loadModelFreeModel, ModelFreeAI } = await import("./ModelFreeAI.js?v=20261025-terminal-v4");
+          const { loadModelFreeModel, ModelFreeAI } = await import("./ModelFreeAI.js?v=20261026-start-protection-v1");
           const model = await loadModelFreeModel(event.data?.modelId);
           ai = new ModelFreeAI(model);
         } else if (strategy === "multiplayer") {
@@ -7459,7 +7484,7 @@ var init_AIWorker = __esm({
           ai = runtime.ai;
           modelInfo = runtime.modelInfo;
         } else if (strategy === "hex-player") {
-          const { loadHexPlayerRuntime } = await import("./HexPlayerRuntime.js?v=20261025-terminal-v4");
+          const { loadHexPlayerRuntime } = await import("./HexPlayerRuntime.js?v=20261026-start-protection-v1");
           const runtime = await loadHexPlayerRuntime(event.data?.modelId, engine);
           ai = runtime.ai;
           modelInfo = runtime.modelInfo;
@@ -7474,6 +7499,7 @@ var init_AIWorker = __esm({
             strategy,
             positionRevision: serializedState.positionRevision ?? 0,
             rulesVersion: serializedState.rulesVersion,
+            protectionRule: serializedState.protectionRule,
             currentPlayer: serializedState.currentPlayer,
             modelInfo
           });
@@ -7492,6 +7518,7 @@ var init_AIWorker = __esm({
           strategy,
           positionRevision: serializedState.positionRevision ?? 0,
           rulesVersion: serializedState.rulesVersion,
+          protectionRule: serializedState.protectionRule,
           currentPlayer: serializedState.currentPlayer,
           moves,
           modelInfo,
@@ -7503,6 +7530,7 @@ var init_AIWorker = __esm({
           requestId: event.data?.requestId ?? null,
           positionRevision: event.data?.serializedState?.positionRevision ?? 0,
           rulesVersion: event.data?.serializedState?.rulesVersion,
+          protectionRule: event.data?.serializedState?.protectionRule,
           currentPlayer: event.data?.serializedState?.currentPlayer,
           message: error instanceof Error ? error.message : String(error),
           ...typeof error?.code === "string" && (error.code.startsWith("ULTIMATE_") || error.code === "AI_NO_RELIABLE_ACTION") ? { code: error.code } : {},

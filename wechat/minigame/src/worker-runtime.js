@@ -62,6 +62,7 @@ function runTask(message, restore = restoreGame, recordAction = () => {}) {
       const requested = kind === 'ANALYZE' ? 3 : 1;
       const ranked = algorithm.getTopMoves(engine, engine.currentPlayer, Math.max(5, requested),
         tier ? { passDisciplinePrechecked: true } : undefined);
+      if (ruleView(engine).stateHash !== before.stateHash) throw new Error('SEARCH_MUTATED_STATE');
       const disciplined = applyPassDiscipline(engine, ranked, { player: engine.currentPlayer, topN: requested });
       const moves = disciplined.moves;
       if (ruleView(engine).stateHash !== before.stateHash) throw new Error('SEARCH_MUTATED_STATE');

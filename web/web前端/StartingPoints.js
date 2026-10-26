@@ -1,4 +1,4 @@
-import { getBoardPositions, PLAYER_ORDER, resolveInitialPositions } from "./GameEngine.js?v=20261025-terminal-v4";
+import { getBoardPositions, PLAYER_ORDER, resolveInitialPositions } from "./GameEngine.js?v=20261026-start-protection-v1";
 
 export const STARTING_POINT_MODES = Object.freeze(["default", "random", "custom"]);
 

@@ -1,6 +1,6 @@
 import { createLocalGameSession, TUTORIAL_LEVELS, randomInitialPositions, startingPointSettings,
   createLocalUndoTimeline, planLocalUndo, consumeLocalUndo, recordUndoAction } from './core.js';
-import { settingsFor, MODES } from './state.js';
+import { settingsFor, withNewGameProtectionRule, withoutInactiveProtectionRule, MODES, LEGACY_PROTECTION_RULE } from './state.js';
 import { presetControllers, validateControllers, controllersMode, defaultAIProfile, playerIds } from './controllers.js';
 import { normalizePlayOptions, validatePlayProgress, validateUndoUsage } from './play-options.js';
 import { TurnClock } from './turn-clock.js';
@@ -71,6 +71,7 @@ export class GameSession {
   }
   context() {
     return { epoch: this.epoch, revision: this.actions.length, rulesVersion: this.settings.rulesVersion,
+      protectionRule: this.settings.protectionRule ?? LEGACY_PROTECTION_RULE,
       player: this.snapshot?.currentPlayer || this.settings.startPlayer };
   }
   begin({ keepReplayPlayback = false } = {}) {
@@ -89,7 +90,7 @@ export class GameSession {
   async load(settings, actions = [], options = {}) {
     const epoch = this.begin();
     try {
-      settings = { ...settings, ...normalizePlayOptions(settings) };
+      settings = withoutInactiveProtectionRule({ ...settings, ...normalizePlayOptions(settings) });
       const controllers = validateControllers(options.controllers, settings);
       const progress = validatePlayProgress(options.progress, settings);
       const undoUsage = validateUndoUsage(options.undoUsage, settings);
@@ -133,8 +134,8 @@ export class GameSession {
     if (this.replayIndex !== null) this.exitReplay();
     if (this.tutorial) this.restoreOriginal();
     this.tutorial = null; this.replayIndex = null; this.savedGame = null;
-    const initial = { ...settingsFor(size, playerCount, options.startPlayer || 'BLACK'), ...normalizePlayOptions(options.playOptions),
-      ...(options.boardShape ? { boardShape: options.boardShape } : {}) };
+    const initial = withNewGameProtectionRule({ ...settingsFor(size, playerCount, options.startPlayer || 'BLACK'),
+      ...normalizePlayOptions(options.playOptions), ...(options.boardShape ? { boardShape: options.boardShape } : {}) });
     const modeOfStarts = options.startingPointMode || (playerCount > 6 ? 'random' : 'default');
     const starts = modeOfStarts === 'random' ? randomInitialPositions(size, playerCount, Math.random, initial.boardShape) : options.initialPositions;
     Object.assign(initial, startingPointSettings({ ...initial, startingPointMode: modeOfStarts,

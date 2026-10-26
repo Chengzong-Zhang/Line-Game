@@ -32,7 +32,9 @@ export async function processBotRequest(request, { chooseBotPoint = chooseRoomBo
   const settings = request?.settings;
   const playerCount = settings?.playerCount;
   const colors = PLAYER_ORDER.slice(0, playerCount);
+  const protectionRule = settings?.protectionRule ?? "symmetric-v1";
   if ((!Number.isInteger(playerCount) || playerCount < 2 || playerCount > 15) || !["territory-v2", "territory-v3"].includes(settings.rulesVersion)
+    || !["symmetric-v1", "duel-first-unprotected-v1"].includes(protectionRule)
     || !Number.isInteger(settings.gridSize) || settings.gridSize < 5 || settings.gridSize > 15
     || !colors.includes(settings.startPlayer ?? "BLACK")
     || !Array.isArray(request.actions) || request.actions.length > 4096

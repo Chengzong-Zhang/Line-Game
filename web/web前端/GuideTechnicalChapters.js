@@ -1,5 +1,5 @@
-import { IMPLEMENTATION_NOTES } from './GuideImplementationNotes.js?v=20261025-terminal-v4';
-import { p, m, c, s, ch } from './GuideArticleFormat.js?v=20261025-terminal-v4';
+import { IMPLEMENTATION_NOTES } from './GuideImplementationNotes.js?v=20261026-start-protection-v1';
+import { p, m, c, s, ch } from './GuideArticleFormat.js?v=20261026-start-protection-v1';
 
 function notes(id, omit = []) {
   const item = IMPLEMENTATION_NOTES.find(item => item.id === id);

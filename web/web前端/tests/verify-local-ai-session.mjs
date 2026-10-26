@@ -72,6 +72,7 @@ function reply({ worker, message }, point = controller.engine.getLegalMoves(mess
     type: "RESULT", requestId: message.requestId, strategy: message.strategy,
     positionRevision: message.serializedState.positionRevision,
     rulesVersion: message.serializedState.rulesVersion,
+    protectionRule: message.serializedState.protectionRule,
     currentPlayer: message.serializedState.currentPlayer,
     modelInfo: modelId ? { id: modelId } : null,
     moves: point ? [{ point }] : [{ type: "pass", point: null }],
@@ -225,6 +226,7 @@ try {
   try {
     failed.worker.onmessage({ data: { type: "ERROR", requestId: failed.message.requestId,
       positionRevision: failed.message.serializedState.positionRevision, rulesVersion: failed.message.serializedState.rulesVersion,
+      protectionRule: failed.message.serializedState.protectionRule,
       currentPlayer: failed.message.aiPlayer, message: "synthetic unavailable model" } });
   } finally { console.error = originalConsoleError; }
   assert.equal(ruleState(), beforeFailure, "model loading failure preserves the position");

@@ -1,7 +1,7 @@
-import { ALL_LOCAL_PLAYER_CHOICES, MULTIPLAYER_AI_CHOICES, normalizeLocalPlayers, usesGenericBoardAI } from "./LocalAIModes.js?v=20261025-terminal-v4";
-import { startingPointSettings } from "./StartingPoints.js?v=20261025-terminal-v4";
-import { PLAYER_ORDER, resolveBoardShape } from "./GameEngine.js?v=20261025-terminal-v4";
-import { normalizeUndoUsage } from "./LocalUndo.js?v=20261025-terminal-v4";
+import { ALL_LOCAL_PLAYER_CHOICES, MULTIPLAYER_AI_CHOICES, normalizeLocalPlayers, usesGenericBoardAI } from "./LocalAIModes.js?v=20261026-start-protection-v1";
+import { startingPointSettings } from "./StartingPoints.js?v=20261026-start-protection-v1";
+import { PLAYER_ORDER, StartProtectionRule, resolveBoardShape } from "./GameEngine.js?v=20261026-start-protection-v1";
+import { normalizeUndoUsage } from "./LocalUndo.js?v=20261026-start-protection-v1";
 
 const LOCAL_GAME_SESSION_FORMAT = "lifeline-local-session";
 const PLAYER_COLORS = PLAYER_ORDER;
@@ -14,6 +14,7 @@ const GAME_SETTING_KEYS = Object.freeze([
   "gridSize",
   "startPlayer",
   "rulesVersion",
+  "protectionRule",
   "turnTimerEnabled",
   "turnTimeLimitSeconds",
   "hintEnabled",
@@ -38,6 +39,7 @@ function normalizeSettings(settings) {
     }
     normalized[key] = settings[key];
   }
+  const protectionRule = normalized.protectionRule ?? StartProtectionRule.SYMMETRIC;
 
   if (!Number.isInteger(normalized.playerCount) || !Number.isInteger(normalized.gridSize)) {
     return null;
@@ -48,6 +50,8 @@ function normalizeSettings(settings) {
   if (typeof normalized.startPlayer !== "string" || typeof normalized.rulesVersion !== "string") {
     return null;
   }
+  if (!Object.values(StartProtectionRule).includes(protectionRule)) return null;
+  normalized.protectionRule = protectionRule;
   if (!PLAYER_COLORS.slice(0, normalized.playerCount).includes(normalized.startPlayer)) return null;
   try {
     normalized.boardShape = resolveBoardShape(normalized.playerCount, settings.boardShape);

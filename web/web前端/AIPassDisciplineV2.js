@@ -1,9 +1,9 @@
 // Product-only extension. Frozen training and the original full-round guard
 // continue to import AIPassDiscipline.js unchanged.
-import { applyPassDiscipline as applyV1, nativeDiscreteAreas } from "./AIPassDiscipline.js?v=20261025-terminal-v4";
-import { saveState, restoreState } from "./AIEngine.js?v=20261025-terminal-v4";
-import { isolatedSearchEngine } from "./MultiplayerSearch.js?v=20261025-terminal-v4";
-import { multiplayerClock } from "./MultiplayerClock.js?v=20261025-terminal-v4";
+import { applyPassDiscipline as applyV1, nativeDiscreteAreas } from "./AIPassDiscipline.js?v=20261026-start-protection-v1";
+import { saveState, restoreState } from "./AIEngine.js?v=20261026-start-protection-v1";
+import { isolatedSearchEngine } from "./MultiplayerSearch.js?v=20261026-start-protection-v1";
+import { multiplayerClock } from "./MultiplayerClock.js?v=20261026-start-protection-v1";
 
 export const PASS_DISCIPLINE_CONTRACT = Object.freeze({
   schema: "lifeline-ai-pass-discipline-v2",
@@ -24,6 +24,8 @@ const TIMEOUT = Symbol("v2 shared proof budget");
 // The decision function alone supplies the canonical root and native beforeArea.
 export function protectedRootInvariantHolds(engine, player, before, beforeArea) {
   if (engine.rulesVersion !== "territory-v3" || engine.resignedPlayers.has(player)) return false;
+  if (engine.protectionRule === "duel-first-unprotected-v1" && engine.playerCount === 2
+    && engine.boardShape === "triangle" && player === engine.startPlayer) return false;
   const after = pieces(engine, player), connected = engine._getOpponentConnectedPieces(player);
   const protectedKeys = new Set(engine.getAdjacentPositions(engine.initialPositions[player]).map(key));
   return contains(after.nodes, before.nodes) && contains(after.coverage, before.coverage)
@@ -68,6 +70,7 @@ export function passDisciplineAsciiSha256(text) {
 export function passDisciplineRuleState(source) {
   return { gridSize: source.gridSize, playerCount: source.playerCount, boardShape: source.boardShape,
     startPlayer: source.startPlayer, rulesVersion: source.rulesVersion,
+    ...(source.protectionRule !== "symmetric-v1" ? { protectionRule: source.protectionRule } : {}),
     initialPositions: Object.fromEntries(source.activePlayers.map(player => [player, [...source.initialPositions[player]]])),
     activePlayers: [...source.activePlayers], gridEntries: [...source.grid].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0),
     edges: Object.fromEntries(source.activePlayers.map(player => [player, [...source.edges[player]].sort()])),

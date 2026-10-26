@@ -54,6 +54,20 @@ PLAYER_VERSIONS = frozenset(("legacy", "2026092201", "2026092202", "2026092203")
 NATIVE_PLAYER_VERSIONS = {"three-player": frozenset(("three-player-policy-v1", "three-player-policy-v2",
                                                      "three-player-search-v4-round12")),
                           "hex-player": frozenset(("hex-player-policy-v1", "hex-player-search-v5"))}
+PROTECTION_RULE_SYMMETRIC = "symmetric-v1"
+PROTECTION_RULE_DUEL_FIRST_UNPROTECTED = "duel-first-unprotected-v1"
+PROTECTION_RULES = frozenset((PROTECTION_RULE_SYMMETRIC, PROTECTION_RULE_DUEL_FIRST_UNPROTECTED))
+
+
+def bind_legacy_protection_rule(room):
+    """Materialize the old symmetric rule without changing its state hash."""
+    if not isinstance(room, dict):
+        return room
+    for key in ("settings", "pendingSettings"):
+        settings = room.get(key)
+        if isinstance(settings, dict) and "protectionRule" not in settings:
+            room[key] = {**settings, "protectionRule": PROTECTION_RULE_SYMMETRIC}
+    return room
 
 
 def is_bot(member):
@@ -442,14 +456,14 @@ class WechatStore:
             fail("ROOM_NOT_FOUND", 404)
         if row[1] <= time.time():
             fail("ROOM_EXPIRED", 410)
-        return json.loads(row[0])
+        return bind_legacy_protection_rule(json.loads(row[0]))
 
     def active_room(self, uid):
         with self.connect() as db:
             # The bounded table is deliberately simple; no production account DB migration.
             rows = db.execute("SELECT document FROM wx_rooms WHERE expires>?", (int(time.time()),)).fetchall()
         for (raw,) in rows:
-            room = json.loads(raw)
+            room = bind_legacy_protection_rule(json.loads(raw))
             if uid in room["players"].values() and room["status"] != "closed":
                 return room
         return None
@@ -893,8 +907,9 @@ class WechatService:
                 "bots": self.bot_colors(room)}
 
     @staticmethod
-    def room_settings(body, *, rules_default="territory-v2"):
-        if not isinstance(body, dict) or set(body) - {"gridSize", "boardShape", "startingPointMode", "initialPositions", "undoEnabled", "undoMaxCount", "rulesVersion", "playerCount", "startPlayer", "botCount", "playerSetup", "turnTimerEnabled", "turnTimeLimitSeconds", "hintEnabled", "hintMaxCount"}:
+    def room_settings(body, *, rules_default="territory-v2",
+                      protection_default=PROTECTION_RULE_SYMMETRIC):
+        if not isinstance(body, dict) or set(body) - {"gridSize", "boardShape", "startingPointMode", "initialPositions", "undoEnabled", "undoMaxCount", "rulesVersion", "protectionRule", "playerCount", "startPlayer", "botCount", "playerSetup", "turnTimerEnabled", "turnTimeLimitSeconds", "hintEnabled", "hintMaxCount"}:
             fail("INVALID_SETTINGS", 422)
         size = body.get("gridSize", 7)
         players = body.get("playerCount", 2)
@@ -903,6 +918,7 @@ class WechatService:
         enabled = body.get("undoEnabled", False)
         count = body.get("undoMaxCount", 3)
         rules = body.get("rulesVersion", rules_default)
+        protection = body.get("protectionRule", protection_default)
         first = body.get("startPlayer", "BLACK")
         hint = body.get("hintEnabled", False)
         hints = body.get("hintMaxCount", 3 if hint else 0)
@@ -911,6 +927,7 @@ class WechatService:
                 or mode not in ("default", "random", "custom") or type(enabled) is not bool
                 or type(count) is not int or not 1 <= count <= 10
                 or rules not in ("territory-v2", "territory-v3")
+                or protection not in PROTECTION_RULES
                 or type(players) is not int or not 2 <= players <= 15
                 or (type(players) is int and players > 6 and mode == "default")
                 or not isinstance(first, str) or first not in PLAYER_COLORS[:players]
@@ -953,6 +970,7 @@ class WechatService:
             if not any(value["choice"] == "human" for value in setup.values()):
                 fail("HUMAN_SEAT_REQUIRED", 422)
         settings = {"gridSize": size, "playerCount": players, "startPlayer": first, "rulesVersion": rules,
+                    "protectionRule": protection,
                     "turnTimerEnabled": body.get("turnTimerEnabled", False), "turnTimeLimitSeconds": seconds, "hintEnabled": hint, "hintMaxCount": hints,
                     "boardShape": shape, "undoEnabled": enabled, "undoMaxCount": count,
                     "botCount": body.get("botCount", 0)}
@@ -1094,7 +1112,8 @@ class WechatService:
             elif operation == "settings":
                 if player != self.host_player(room):
                     fail("SETTINGS_LOCKED", 409)
-                settings = self.room_settings(body.get("settings"), rules_default=room["settings"]["rulesVersion"])
+                settings = self.room_settings(body.get("settings"), rules_default=room["settings"]["rulesVersion"],
+                                              protection_default=room["settings"].get("protectionRule", PROTECTION_RULE_SYMMETRIC))
                 if settings["rulesVersion"] != room["settings"]["rulesVersion"]:
                     fail("RULES_CHANGE_REQUIRES_NEW_ROOM", 409)
                 self.check_occupied_seats(room, settings)
@@ -1319,6 +1338,7 @@ def create_router(service=None, *, web_authenticate=None, web_password_authentic
         try:
             get_service()
             return {"enabled": True, "protocol": PROTOCOL, "rulesVersion": "territory-v3",
+                    "protectionRule": PROTECTION_RULE_DUEL_FIRST_UNPROTECTED,
                     "supportedRulesVersions": ["territory-v2", "territory-v3"],
                     "roomSettings": True, "undoVoting": True,
                     "mixedPlayerRooms": True, "playerCounts": list(range(2, 16)), "pendingRoomSettings": True,

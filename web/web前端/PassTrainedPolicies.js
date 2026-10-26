@@ -1,4 +1,4 @@
-import { PASS_TRAINED_POLICY_DATA } from "./PassTrainedPolicyData.js?v=20261025-terminal-v4";
+import { PASS_TRAINED_POLICY_DATA } from "./PassTrainedPolicyData.js?v=20261026-start-protection-v1";
 
 const check = (ok, message) => { if (!ok) throw new Error(message); };
 const clone = value => JSON.parse(JSON.stringify(value));

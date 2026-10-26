@@ -1,14 +1,14 @@
-import { fastPolicyCandidates, isolatedSearchEngine, MultiplayerMinimaxAI } from "./MultiplayerSearch.js?v=20261025-terminal-v4";
-import { createMultiplayerModel } from "./MultiplayerModel.js?v=20261025-terminal-v4";
-import { MultiplayerRolloutAI } from "./MultiplayerRollout.js?v=20261025-terminal-v4";
-import { loadThreePlayerRuntime } from "./ThreePlayerRuntime.js?v=20261025-terminal-v4";
-import { threePlayerModelIdForBoard } from "./ThreePlayerSearchOptions.js?v=20261025-terminal-v4";
-import { loadHexPlayerModel } from "./HexPlayerAI.js?v=20261025-terminal-v4";
-import { createUltimateAdmissionGuard } from "./MultiplayerUltimateAdmission.js?v=20261025-terminal-v4";
-import { applyStandardDefenseGate } from "./MultiplayerStandardDefense.js?v=20261025-terminal-v4";
-import { withPassDiscipline } from "./AIPassDisciplineV4.js?v=20261025-terminal-v4";
-import { rankWithLearnedPass } from "./LearnedPassPolicy.js?v=20261025-terminal-v4";
-import { trainedPolicySpec, trainedPolicyInfo } from "./PassTrainedPolicies.js?v=20261025-terminal-v4";
+import { fastPolicyCandidates, isolatedSearchEngine, MultiplayerMinimaxAI } from "./MultiplayerSearch.js?v=20261026-start-protection-v1";
+import { createMultiplayerModel } from "./MultiplayerModel.js?v=20261026-start-protection-v1";
+import { MultiplayerRolloutAI } from "./MultiplayerRollout.js?v=20261026-start-protection-v1";
+import { loadThreePlayerRuntime } from "./ThreePlayerRuntime.js?v=20261026-start-protection-v1";
+import { threePlayerModelIdForBoard } from "./ThreePlayerSearchOptions.js?v=20261026-start-protection-v1";
+import { loadHexPlayerModel } from "./HexPlayerAI.js?v=20261026-start-protection-v1";
+import { createUltimateAdmissionGuard } from "./MultiplayerUltimateAdmission.js?v=20261026-start-protection-v1";
+import { applyStandardDefenseGate } from "./MultiplayerStandardDefense.js?v=20261026-start-protection-v1";
+import { withPassDiscipline } from "./AIPassDisciplineV4.js?v=20261026-start-protection-v1";
+import { rankWithLearnedPass } from "./LearnedPassPolicy.js?v=20261026-start-protection-v1";
+import { trainedPolicySpec, trainedPolicyInfo } from "./PassTrainedPolicies.js?v=20261026-start-protection-v1";
 
 export const MULTIPLAYER_MODEL_IDS=Object.freeze(["multiplayer-easy-v1","multiplayer-medium-v1","multiplayer-hard-v1","multiplayer-ultimate-v1"]);
 const promises=new Map();
@@ -127,7 +127,7 @@ export async function loadMultiplayerRuntime(modelId,engine,resources = { loadTh
   }else if(modelId==="multiplayer-hard-v1"){
     if(native){
       const runtime=resources.loadNativeHardRuntime?await resources.loadNativeHardRuntime(engine)
-        :await (await import("./MultiplayerHardResources.js?v=20261025-terminal-v4")).loadNativeHardRuntime(engine);
+        :await (await import("./MultiplayerHardResources.js?v=20261026-start-protection-v1")).loadNativeHardRuntime(engine);
       return {...runtime,ai:withPassDiscipline(runtime.ai)};
     }else ai=new MultiplayerMinimaxAI({depth:Math.min(engine.playerCount+1,6),timeMs:650});
   }else{

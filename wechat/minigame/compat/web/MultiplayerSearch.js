@@ -36,10 +36,8 @@ export function potentialMoves(engine, player = engine.currentPlayer) {
       if (enemy.has(state)) break;
     }
   }
-  const protectedPoints = new Set(engine._getOpponents(player).flatMap(p =>
-    engine._adjIdxList[engine._keyToIdx.get(key(engine.initialPositions[p]))]));
   return [...indices].sort((a, b) => a - b).filter(i => {
-    if (protectedPoints.has(i)) return false;
+    if (engine._isInProtectionZone(engine.validPositions[i], player)) return false;
     if (enemy.has(states[i])) return true;
     const adjacent = engine._adjIdxList[i].filter(j => states[j] === own.node);
     return adjacent.length < 2 && adjacent.every(j => !engine._adjIdxList[j].some(k => states[k] === own.node));
@@ -49,7 +47,8 @@ export function potentialMoves(engine, player = engine.currentPlayer) {
 export function isolatedSearchEngine(source) {
   const engine = new GameEngine({ gridSize: source.gridSize, playerCount: source.playerCount,
     boardShape: source.boardShape, initialPositions: source.initialPositions,
-    startPlayer: source.startPlayer, rulesVersion: source.rulesVersion, deferTerritoryUpdates: true });
+    startPlayer: source.startPlayer, rulesVersion: source.rulesVersion,
+    protectionRule: source.protectionRule, deferTerritoryUpdates: true });
   restoreState(engine, saveState(source));
   engine._isReplayingBatch = true;
   engine.getLegalMoves = function(player = this.currentPlayer) {

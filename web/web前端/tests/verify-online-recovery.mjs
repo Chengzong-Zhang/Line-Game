@@ -25,6 +25,7 @@ const engineUrl = asDataUrl(engineSource);
 const {
   GameEngine,
   Player,
+  StartProtectionRule,
   TerritoryRulesVersion,
 } = await import(engineUrl);
 
@@ -242,6 +243,7 @@ const restoredOptions = {
   playerCount: fixture.playerCount,
   startPlayer: Player.BLACK,
   rulesVersion: TerritoryRulesVersion.V2,
+  protectionRule: StartProtectionRule.SYMMETRIC,
 };
 
 const referenceEngine = new GameEngine(restoredOptions);

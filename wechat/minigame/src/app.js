@@ -11,6 +11,7 @@ import { readPreferences, savePreferences } from './preferences.js';
 import { BASIC_CONTROLLERS, playerIds, controllerChoices, defaultAIProfile, presetControllers, controllersMode } from './controllers.js';
 import { drawSetup, drawPlayers, drawPlayOptions, drawLessons, drawLibrary, libraryPageSize, drawModels, drawAnalysis } from './screens.js';
 import { normalizePlayOptions } from './play-options.js';
+import { withNewGameProtectionRule, withoutInactiveProtectionRule } from './state.js';
 import { MODEL_CATALOG, controllerLabel } from './model-catalog.js';
 import { ModelAssets } from './model-assets.js';
 import { readDisplay, saveDisplay, PLAYER_COLORS, PLAYER_LABEL_KEYS } from './display.js';
@@ -145,8 +146,8 @@ export function createApp(platform, config = {}) {
     playerIds(settings.playerCount).map(player => [player, roomPlayerFromController(seats[player] || 'human', settings)])));
   function openRoomSetup(kind = 'settings') {
     if (session.hidden || kind === 'settings' && !online.room) return;
-    const settings = kind === 'create' ? { ...playOptions, rulesVersion: 'territory-v3', gridSize: size,
-      playerCount, startPlayer, boardShape, startingPointMode, ...(initialPositions ? { initialPositions } : {}) }
+    const settings = kind === 'create' ? withNewGameProtectionRule({ ...playOptions, rulesVersion: 'territory-v3', gridSize: size,
+      playerCount, startPlayer, boardShape, startingPointMode, ...(initialPositions ? { initialPositions } : {}) })
       : JSON.parse(JSON.stringify(online.room.pendingSettings || online.room.settings));
     const seats = kind === 'create' ? { ...draftControllers() } : roomControllers(settings);
     const hostSeatAdded = kind === 'create' && Object.values(seats).every(profile => profile !== 'human');
@@ -156,7 +157,7 @@ export function createApp(platform, config = {}) {
   }
   function editRoomDraft(overrides) {
     if (!roomDraft || isOnline() && !online.canEditSettings()) return;
-    const previous = roomDraft.settings, settings = { ...previous, ...overrides };
+    const previous = roomDraft.settings; let settings = { ...previous, ...overrides };
     if (settings.playerCount !== previous.playerCount) {
       settings.boardShape = settings.playerCount >= 4 ? 'hexagon' : 'triangle';
       settings.startingPointMode = settings.playerCount > 6 ? 'random' : 'default'; delete settings.initialPositions;
@@ -166,6 +167,7 @@ export function createApp(platform, config = {}) {
       if (settings.startingPointMode === 'custom') settings.startingPointMode = settings.playerCount > 6 ? 'random' : 'default';
     }
     if (!playerIds(settings.playerCount).includes(settings.startPlayer)) settings.startPlayer = 'BLACK';
+    settings = roomDraft.kind === 'create' ? withNewGameProtectionRule(settings) : withoutInactiveProtectionRule(settings);
     roomDraft.settings = settings;
     roomDraft.controllers = Object.fromEntries(playerIds(settings.playerCount).map(player => [player, roomDraft.controllers[player] || 'human']));
     cabinGeneration++; redraw();
@@ -179,6 +181,7 @@ export function createApp(platform, config = {}) {
     let settings;
     try {
       settings = settingsWithControllers(draft.settings, draft.controllers);
+      settings = draft.kind === 'create' ? withNewGameProtectionRule(settings) : withoutInactiveProtectionRule(settings);
       if (settings.startingPointMode === 'random' && !settings.initialPositions)
         settings.initialPositions = randomInitialPositions(settings.gridSize, settings.playerCount, Math.random, settings.boardShape);
       if (settings.startingPointMode === 'default') delete settings.initialPositions;

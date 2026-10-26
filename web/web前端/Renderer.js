@@ -1,6 +1,6 @@
-import { Player, PointState, PLAYER_ORDER, getBoardVertices, getBoardPositions, isBoardPoint } from "./GameEngine.js?v=20261025-terminal-v4";
+import { Player, PointState, PLAYER_ORDER, getBoardVertices, getBoardPositions, isBoardPoint } from "./GameEngine.js?v=20261026-start-protection-v1";
 
-import { PLAYER_PALETTE } from "./PlayerPalette.js?v=20261025-terminal-v4";
+import { PLAYER_PALETTE } from "./PlayerPalette.js?v=20261026-start-protection-v1";
 
 const SQRT3_OVER_2 = Math.sqrt(3) / 2;
 
@@ -1082,6 +1082,7 @@ export class Renderer {
       snapshot.playerCount ?? 2,
       snapshot.boardShape ?? "legacy",
       snapshot.rulesVersion ?? "territory-v1",
+      snapshot.protectionRule ?? "symmetric-v1",
       snapshot.gameOver ? 1 : 0,
       snapshot.territoryPending ? 1 : 0,
       snapshot.currentPlayer,

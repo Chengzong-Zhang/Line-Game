@@ -1,12 +1,12 @@
-import { GameEngine } from "./GameEngine.js?v=20261025-terminal-v4";
-import { deserializeEngineEdges } from "./AIStateProtocol.js?v=20261025-terminal-v4";
-import { GreedyAI, MCTSAI, MinimaxAI, restoreState } from "./AIEngine.js?v=20261025-terminal-v4";
-import { applyPassDiscipline } from "./AIPassDisciplineV4.js?v=20261025-terminal-v4";
+import { GameEngine } from "./GameEngine.js?v=20261026-start-protection-v1";
+import { deserializeEngineEdges } from "./AIStateProtocol.js?v=20261026-start-protection-v1";
+import { GreedyAI, MCTSAI, MinimaxAI, restoreState } from "./AIEngine.js?v=20261026-start-protection-v1";
+import { applyPassDiscipline } from "./AIPassDisciplineV4.js?v=20261026-start-protection-v1";
 
 self.onmessage = async (event) => {
   if (event.data?.type === "WARMUP") {
     try {
-      const { warmMultiplayerResources } = await import("./MultiplayerAIWarmup.js?v=20261025-terminal-v4");
+      const { warmMultiplayerResources } = await import("./MultiplayerAIWarmup.js?v=20261026-start-protection-v1");
       await warmMultiplayerResources(event.data);
     } catch (_) {
       // Resource failure is speculative, never a formal result or request error.
@@ -34,6 +34,7 @@ self.onmessage = async (event) => {
       startPlayer: serializedState.startPlayer,
       initialPositions: serializedState.initialPositions,
       rulesVersion: serializedState.rulesVersion,
+      protectionRule: serializedState.protectionRule,
     });
 
     restoreState(engine, {
@@ -81,7 +82,7 @@ self.onmessage = async (event) => {
       });
     } else if (strategy === "neural-puct") {
       if (engine.playerCount !== 2) throw new Error("模型不支持此棋盘/规则/玩家数。");
-      const { loadResearchModel, NeuralPUCTAI, supportsResearchInference } = await import("./ResearchAI.js?v=20261025-terminal-v4");
+      const { loadResearchModel, NeuralPUCTAI, supportsResearchInference } = await import("./ResearchAI.js?v=20261026-start-protection-v1");
       const model = await loadResearchModel(event.data?.modelId);
       if (!supportsResearchInference(model.spec, engine)) throw new Error("模型不支持此棋盘/规则/玩家数。");
       modelInfo = { id: model.spec.id, seed: model.spec.seed ?? 20260825,
@@ -94,22 +95,22 @@ self.onmessage = async (event) => {
       });
     } else if (strategy === "model-free") {
       if (engine.playerCount !== 2) throw new Error("model-free 网页模型仅支持双人局面。");
-      const { loadModelFreeModel, ModelFreeAI } = await import("./ModelFreeAI.js?v=20261025-terminal-v4");
+      const { loadModelFreeModel, ModelFreeAI } = await import("./ModelFreeAI.js?v=20261026-start-protection-v1");
       const model = await loadModelFreeModel(event.data?.modelId);
       ai = new ModelFreeAI(model);
     } else if (strategy === "multiplayer") {
-      const { loadMultiplayerRuntime } = await import("./MultiplayerRuntime.js?v=20261025-terminal-v4");
+      const { loadMultiplayerRuntime } = await import("./MultiplayerRuntime.js?v=20261026-start-protection-v1");
       const runtime = await loadMultiplayerRuntime(event.data?.modelId, engine);
       ai = runtime.ai;
       modelInfo = runtime.modelInfo;
       if (modelInfo?.id !== event.data?.modelId) throw new Error("多人 AI 模型身份校验失败。");
     } else if (strategy === "three-player") {
-      const { loadThreePlayerRuntime } = await import("./ThreePlayerRuntime.js?v=20261025-terminal-v4");
+      const { loadThreePlayerRuntime } = await import("./ThreePlayerRuntime.js?v=20261026-start-protection-v1");
       const runtime = await loadThreePlayerRuntime(event.data?.modelId, engine);
       ai = runtime.ai;
       modelInfo = runtime.modelInfo;
     } else if (strategy === "hex-player") {
-      const { loadHexPlayerRuntime } = await import("./HexPlayerRuntime.js?v=20261025-terminal-v4");
+      const { loadHexPlayerRuntime } = await import("./HexPlayerRuntime.js?v=20261026-start-protection-v1");
       const runtime = await loadHexPlayerRuntime(event.data?.modelId, engine);
       ai = runtime.ai;
       modelInfo = runtime.modelInfo;
@@ -123,6 +124,7 @@ self.onmessage = async (event) => {
       self.postMessage({ type: "READY", requestId, strategy,
         positionRevision: serializedState.positionRevision ?? 0,
         rulesVersion: serializedState.rulesVersion,
+        protectionRule: serializedState.protectionRule,
         currentPlayer: serializedState.currentPlayer, modelInfo });
     }
     const ranked = ai.getTopMoves(engine, aiPlayer, topN > 0 ? Math.max(5, topN) : topN,
@@ -135,6 +137,7 @@ self.onmessage = async (event) => {
       strategy,
       positionRevision: serializedState.positionRevision ?? 0,
       rulesVersion: serializedState.rulesVersion,
+      protectionRule: serializedState.protectionRule,
       currentPlayer: serializedState.currentPlayer,
       moves,
       modelInfo,
@@ -146,6 +149,7 @@ self.onmessage = async (event) => {
       requestId: event.data?.requestId ?? null,
       positionRevision: event.data?.serializedState?.positionRevision ?? 0,
       rulesVersion: event.data?.serializedState?.rulesVersion,
+      protectionRule: event.data?.serializedState?.protectionRule,
       currentPlayer: event.data?.serializedState?.currentPlayer,
       message: error instanceof Error ? error.message : String(error),
       ...(typeof error?.code === "string" && (error.code.startsWith("ULTIMATE_") || error.code === "AI_NO_RELIABLE_ACTION") ? { code: error.code } : {}),

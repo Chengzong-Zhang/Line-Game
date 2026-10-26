@@ -1,7 +1,7 @@
-import { Player, PLAYER_ORDER, TerritoryRulesVersion, resolveBoardShape } from "./GameEngine.js?v=20261025-terminal-v4";
-import { startingPointSettings, randomInitialPositions } from "./StartingPoints.js?v=20261025-terminal-v4";
-import { DEFAULT_UNDO_MAX_COUNT, UNDO_MAX_COUNT_MIN, UNDO_MAX_COUNT_MAX } from "./LocalUndo.js?v=20261025-terminal-v4";
-import { normalizeRoomPlayerSetup, roomBotColors } from "./OnlineRoomSettings.js?v=20261025-terminal-v4";
+import { Player, PLAYER_ORDER, StartProtectionRule, TerritoryRulesVersion, resolveBoardShape } from "./GameEngine.js?v=20261026-start-protection-v1";
+import { startingPointSettings, randomInitialPositions } from "./StartingPoints.js?v=20261026-start-protection-v1";
+import { DEFAULT_UNDO_MAX_COUNT, UNDO_MAX_COUNT_MIN, UNDO_MAX_COUNT_MAX } from "./LocalUndo.js?v=20261026-start-protection-v1";
+import { normalizeRoomPlayerSetup, roomBotColors } from "./OnlineRoomSettings.js?v=20261026-start-protection-v1";
 
 // 杩欎釜鏂囦欢涓撻棬瀛樻斁鈥滃彲澶嶇敤鐨勫墠绔姸鎬佸伐鍏封€濓紝
 // 閬垮厤 OnlineApp.js 鍐嶆鑶ㄨ儉鎴愪竴涓秴澶у伐鍏风鏂囦欢銆?
@@ -19,6 +19,8 @@ export const HINT_MAX_COUNT_MAX = 10;
 export const DEFAULT_HINT_MAX_COUNT = 3;
 export const DEFAULT_RULES_VERSION = TerritoryRulesVersion.V3;
 export const RULES_VERSION_OPTIONS = Object.freeze(Object.values(TerritoryRulesVersion));
+export const DEFAULT_PROTECTION_RULE = StartProtectionRule.DUEL_FIRST_UNPROTECTED;
+export const PROTECTION_RULE_OPTIONS = Object.freeze(Object.values(StartProtectionRule));
 
 export function normalizeGameSettings(settings = {}) {
   const playerCount = Number(settings?.playerCount);
@@ -40,6 +42,11 @@ export function normalizeGameSettings(settings = {}) {
     : DEFAULT_HINT_MAX_COUNT;
   const nextGridSize = GRID_SIZE_OPTIONS.includes(gridSize) ? gridSize : 9;
   const boardShape = resolveBoardShape(nextPlayerCount, ["triangle", "hexagon"].includes(settings?.boardShape) ? settings.boardShape : null);
+  const hasProtectionRule = PROTECTION_RULE_OPTIONS.includes(settings?.protectionRule);
+  const protectionRule = hasProtectionRule
+    ? settings.protectionRule
+    : (nextPlayerCount === 2 && boardShape === "triangle"
+      ? DEFAULT_PROTECTION_RULE : StartProtectionRule.SYMMETRIC);
   const playerSetup = settings?.playerSetup
     ? normalizeRoomPlayerSetup({ ...settings, playerCount: nextPlayerCount, boardShape }) : null;
   let starts = {};
@@ -58,6 +65,7 @@ export function normalizeGameSettings(settings = {}) {
     gridSize: GRID_SIZE_OPTIONS.includes(gridSize) ? gridSize : 9,
     startPlayer,
     rulesVersion,
+    ...(protectionRule !== StartProtectionRule.SYMMETRIC || hasProtectionRule ? { protectionRule } : {}),
     turnTimerEnabled: Boolean(settings?.turnTimerEnabled),
     turnTimeLimitSeconds: normalizedTurnTimeLimitSeconds,
     hintEnabled: Boolean(settings?.hintEnabled),
@@ -79,6 +87,7 @@ export function getPrimaryScores(gameState = null) {
 export function createDefaultGameState() {
   return {
     rulesVersion: DEFAULT_RULES_VERSION,
+    protectionRule: DEFAULT_PROTECTION_RULE,
     positionRevision: 0,
     currentPlayer: Player.BLACK,
     gameOver: false,

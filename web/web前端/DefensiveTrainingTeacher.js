@@ -1,7 +1,7 @@
 // Offline labels only. A budget fallback is never a training label.
-import { GameEngine } from "./GameEngine.js?v=20261025-terminal-v4";
-import { isolatedSearchEngine } from "./MultiplayerSearch.js?v=20261025-terminal-v4";
-import { saveState, restoreState } from "./AIEngine.js?v=20261025-terminal-v4";
+import { GameEngine } from "./GameEngine.js?v=20261026-start-protection-v1";
+import { isolatedSearchEngine } from "./MultiplayerSearch.js?v=20261026-start-protection-v1";
+import { saveState, restoreState } from "./AIEngine.js?v=20261026-start-protection-v1";
 
 export const DEFENSIVE_TRAINING_CONTRACT = Object.freeze({
   schema: "lifeline-defensive-minimax-training-v1",

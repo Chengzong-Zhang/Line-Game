@@ -160,6 +160,7 @@ export function getTutorialEngineSettings(level = getTutorialLevel()) {
     gridSize: level.gridSize,
     startPlayer: level.startPlayer,
     rulesVersion: level.rulesVersion,
+    protectionRule: "duel-first-unprotected-v1",
     turnTimerEnabled: false,
     turnTimeLimitSeconds: 60,
     hintEnabled: false,

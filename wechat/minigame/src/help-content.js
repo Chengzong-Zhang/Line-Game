@@ -19,7 +19,7 @@ const RULES = {
       '切断一条线不一定清除整片结构：如果还有其他路径连回起点，它们就仍然存活。',
     ], 2],
     ['protection', '起步保护', [
-      '每一方初始点旁的有效相邻位置受到保护：三角形角点旁为两个，六边形角点旁为三个。其他玩家不能在那里落子，直接切线也不例外。',
+      '双人三角棋盘采用非对称起步保护：先手的初始点不设禁区，后手初始点旁的有效相邻位置仍受保护，先手不能在那里落子。六边形或多人棋盘仍保护每一方初始点旁的所有有效相邻位置。随机和自定义起点按实际邻点判断；直接切线也不例外。',
     ]],
     ['triangle', '三点限制', [
       '不能主动摆出三个节点两两紧挨的最小三角形。',
@@ -49,7 +49,7 @@ const RULES = {
       'One cut does not always clear the whole structure: another route back to the starting node can keep it alive.',
     ], 2],
     ['protection', 'Protected openings', [
-      'All valid neighbors of each starting node are protected: two at triangular corners and three at hexagonal corners. Opponents cannot play there, even to cut a link.',
+      "Two-player triangular games use asymmetric opening protection: the first player's starting node has no protected zone, while every valid neighbor of the second player's start remains protected from the first player. Hexagonal and multiplayer boards still protect every side's starting-node neighbors. Random and custom starts use their actual neighbors, and a direct cut does not bypass protection.",
     ]],
     ['triangle', 'Three-point limit', [
       'You cannot voluntarily form the smallest triangle of three mutually adjacent nodes.',

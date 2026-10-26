@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Start protection Canvas regression</title>
+<style>
+  body { margin: 0; background: #f6f1e8; font: 16px sans-serif; }
+  #frame { position: relative; width: 100vw; height: 100vh; }
+</style>
+<div id="frame"><canvas id="board" aria-label="生命补给线棋盘"></canvas></div>
+<script type="module">
+import GameController from '../GameController.js';
+
+const query = new URL(location.href).searchParams;
+const playerCount = Number(query.get('players') || 2);
+const boardShape = query.get('shape') || 'triangle';
+const startPlayer = query.get('start') || 'BLACK';
+const settings = {
+  gridSize: 5,
+  playerCount,
+  boardShape,
+  startPlayer,
+  rulesVersion: 'territory-v3',
+};
+const feedback = [];
+const controller = new GameController(document.querySelector('canvas'), {
+  engine: settings,
+  onActionFeedback(action) { feedback.push(action); },
+});
+controller.init();
+window.fixture = { controller, settings, feedback };
+</script>
+</html>

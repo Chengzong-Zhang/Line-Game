@@ -1,6 +1,6 @@
-import GameEngine from "./GameEngine.js?v=20261025-terminal-v4";
-import { canonicalize, serializeRuleState } from "./ReplayCodec.js?v=20261025-terminal-v4";
-import { ROOM_PLAYER_COLORS, roomBotColors } from "./OnlineRoomSettings.js?v=20261025-terminal-v4";
+import GameEngine, { StartProtectionRule, resolveBoardShape } from "./GameEngine.js?v=20261026-start-protection-v1";
+import { canonicalize, serializeRuleState } from "./ReplayCodec.js?v=20261026-start-protection-v1";
+import { ROOM_PLAYER_COLORS, roomBotColors } from "./OnlineRoomSettings.js?v=20261026-start-protection-v1";
 
 const CODE = /^[A-Z2-9]{8}$/;
 const PENDING = "lifeline-shared-command-v1";
@@ -16,9 +16,26 @@ export function sharedApiOrigin(socketUrl) {
   return url.origin;
 }
 
+export function sharedRoomCreateSettings(settings = {}) {
+  const normalized = {
+    ...(typeof settings === "object" && settings ? settings : { gridSize: settings || 7 }),
+    rulesVersion: "territory-v3",
+  };
+  const playerCount = Number.isInteger(normalized.playerCount) ? normalized.playerCount : 2;
+  const applies = playerCount === 2
+    && resolveBoardShape(playerCount, normalized.boardShape) === "triangle";
+  if (applies && !Object.hasOwn(normalized, "protectionRule")) {
+    normalized.protectionRule = StartProtectionRule.DUEL_FIRST_UNPROTECTED;
+  } else if (!applies && normalized.protectionRule === StartProtectionRule.DUEL_FIRST_UNPROTECTED) {
+    delete normalized.protectionRule;
+  }
+  return normalized;
+}
+
 export async function verifySharedRoom(room) {
   const count = room?.settings?.playerCount;
   const colors = COLORS.slice(0, count);
+  const protectionRule = room?.settings?.protectionRule ?? StartProtectionRule.SYMMETRIC;
   if (!room || room.protocol !== 1 || !CODE.test(room.code) || !/^[0-9a-f]{32}$/.test(room.matchId)
     || !Number.isSafeInteger(room.revision) || room.revision < 1 || !Number.isSafeInteger(room.seq) || room.seq < 0 || room.seq > 3000
     || !Array.isArray(room.actions) || room.actions.length !== room.seq
@@ -27,12 +44,14 @@ export async function verifySharedRoom(room) {
     || !["waiting", "playing", "finished", "closed"].includes(room.status)
     || !room.ready || !room.members || !room.rematchVotes
     || !["territory-v2", "territory-v3"].includes(room.settings?.rulesVersion) || (!Number.isInteger(count) || count < 2 || count > 15)
+    || !Object.values(StartProtectionRule).includes(protectionRule)
     || !colors.includes(room.settings.startPlayer) || !Number.isInteger(room.settings.botCount ?? 0)
     || (room.settings.botCount ?? 0) < 0 || (room.settings.botCount ?? 0) >= count
     || !Number.isInteger(room.settings.gridSize)
     || room.settings.gridSize < 5 || room.settings.gridSize > 15
     || colors.some(color => typeof room.members[color] !== "boolean" || typeof room.ready[color] !== "boolean")
     || (room.hostPlayer !== undefined && !colors.includes(room.hostPlayer))) throw new Error("INVALID_ROOM");
+  room.settings = { ...room.settings, protectionRule };
   if (room.settings.playerSetup && JSON.stringify(roomBotColors(room.settings)) !== JSON.stringify(room.bots ?? [])) throw new Error("INVALID_ROOM");
   const engine = new GameEngine({ ...room.settings, deferTerritoryUpdates: false });
   engine.replayBatch(game => {
@@ -198,9 +217,7 @@ export class SharedRoomClient {
   }
   async enter(kind, value) {
     this.stop(); const generation = this.generation; this.room = null; this.pending = null;
-    const room = kind === "create" ? await this.request("rooms", {
-      ...(typeof value === "object" ? value : { gridSize: value || 7 }), rulesVersion: "territory-v3",
-    })
+    const room = kind === "create" ? await this.request("rooms", sharedRoomCreateSettings(value))
       : kind === "resume" ? await this.request(`rooms/${value}`) : await this.request("rooms/join", { code: value });
     if (generation !== this.generation) throw new Error("CANCELLED");
     try {

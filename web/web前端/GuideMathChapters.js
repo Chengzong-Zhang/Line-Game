@@ -1,4 +1,4 @@
-import { p, m, s, ch } from './GuideArticleFormat.js?v=20261025-terminal-v4';
+import { p, m, s, ch } from './GuideArticleFormat.js?v=20261026-start-protection-v1';
 
 // Derived statements are conditional theorems, not experimental strength claims.
 export const MATH_CHAPTERS = [
@@ -14,12 +14,12 @@ export const MATH_CHAPTERS = [
         'Proof: triangular rows contain N,N−1,…,1 vertices. Hexagonal ring k contains 6k vertices around the center. N=15 gives 120 and 631. These count vertices, not triangular faces. The direction set is D={(1,0),(−1,0),(0,1),(0,−1),(1,−1),(−1,1)}; screen projection does not change adjacency.'),
     ]),
     s('state', '1.2 完整状态与合法动作', '1.2 State and legal actions', [
-      p('定义 B:V→{∅,NODE₁,LINE₁,…,NODEₚ,LINEₚ}。Uᵢ 是玩家 i 的节点集，Lᵢ 是其线点集，Eᵢ 是显式无向逻辑边，rᵢ 是其实际起点。完整规则状态 S 同时含实际行动方 i、连续跳过数 c、认输集合 D、终局标记 g 和 Superko 历史 H；配置 Ω 固定。turnCount、缓存和修订号是实现状态，除非另行引入依赖它们的规则，否则不参与下述策略状态计数。',
-        'Let B:V→{∅,NODE₁,LINE₁,…,NODEₚ,LINEₚ}. Player i has node set Uᵢ, line-point set Lᵢ, explicit undirected links Eᵢ and actual start rᵢ. The complete rule state includes the actual actor i, consecutive passes c, resignations D, terminal flag g and Superko history H; configuration Ω is fixed. Counters, caches and revisions are implementation state, excluded from strategic counting unless an added rule depends on them.'),
+      p('定义 B:V→{∅,NODE₁,LINE₁,…,NODEₚ,LINEₚ}。Uᵢ 是玩家 i 的节点集，Lᵢ 是其线点集，Eᵢ 是显式无向逻辑边，rᵢ 是其实际起点。完整规则状态 S 同时含实际行动方 i、连续跳过数 c、认输集合 D、终局标记 g 和 Superko 历史 H；配置 Ω 固定，其中包括实际先手与起点保护版本 protectionRule。旧记录缺字段时取 symmetric-v1；新建双人三角局取 duel-first-unprotected-v1。turnCount、缓存和修订号是实现状态，除非另行引入依赖它们的规则，否则不参与下述策略状态计数。',
+        'Let B:V→{∅,NODE₁,LINE₁,…,NODEₚ,LINEₚ}. Player i has node set Uᵢ, line-point set Lᵢ, explicit undirected links Eᵢ and actual start rᵢ. The complete rule state includes the actual actor i, consecutive passes c, resignations D, terminal flag g and Superko history H; fixed configuration Ω includes the actual first player and protectionRule. A missing legacy field means symmetric-v1, while a new two-player triangular game uses duel-first-unprotected-v1. Counters, caches and revisions are implementation state, excluded from strategic counting unless an added rule depends on them.'),
       m(String.raw`S=(\Omega,B,(E_j)_{j=1}^{p},i,c,D,g,H),\qquad A(S)=A_{\rm place}(S)\cup A_{\rm pass}(S)\cup A_{\rm resign}(S).`,
         'S=(Ω,B,(Eⱼ),i,c,D,g,H)\nA(S)=Aplace(S)∪Apass(S)∪Aresign(S)'),
-      p('非终局允许主动跳过。落子需同时满足可占用、起点保护、三点限制、直线可连与试走后不重复。令 dᵢ(v)=|N₀(v)∩Uᵢ|：非直接切线时要求 dᵢ(v)=0，或 dᵢ(v)=1 且其唯一己方邻点 u 在原节点图上的局部邻接数 dᵢ(u)=0。因此禁止的是形成三个相邻节点的链或团，不仅是最小三角形。直接落在敌方 LINE 上只豁免这项三点条件。',
-        'Voluntary passing is allowed before termination. A placement must satisfy occupancy, start protection, the three-point limit, a clear friendly connection and no repeated trial key. Put dᵢ(v)=|N₀(v)∩Uᵢ|. Unless directly cutting an enemy LINE, require dᵢ(v)=0, or dᵢ(v)=1 with its sole friendly neighbor u satisfying dᵢ(u)=0 in the old occupancy. This forbids three-node chains or clusters, not only elementary triangles. A direct cut bypasses only this condition.'),
+      p('非终局允许主动跳过。落子需同时满足可占用、本局 protectionRule 仍生效的起点保护、三点限制、直线可连与试走后不重复。duel-first-unprotected-v1 仅在双人三角局取消实际先手起点的保护，后手起点仍保护；其他配置与 symmetric-v1 保持双方保护。令 dᵢ(v)=|N₀(v)∩Uᵢ|：非直接切线时要求 dᵢ(v)=0，或 dᵢ(v)=1 且其唯一己方邻点 u 在原节点图上的局部邻接数 dᵢ(u)=0。因此禁止的是形成三个相邻节点的链或团，不仅是最小三角形。直接落在敌方 LINE 上只豁免这项三点条件。',
+        'Voluntary passing is allowed before termination. A placement must satisfy occupancy, start protection still active under the match protectionRule, the three-point limit, a clear friendly connection and no repeated trial key. duel-first-unprotected-v1 removes only the actual first player’s protected start in a two-player triangular game; the second player’s start stays protected, while other configurations and symmetric-v1 retain mutual protection. Put dᵢ(v)=|N₀(v)∩Uᵢ|. Unless directly cutting an enemy LINE, require dᵢ(v)=0, or dᵢ(v)=1 with its sole friendly neighbor u satisfying dᵢ(u)=0 in the old occupancy. This forbids three-node chains or clusters, not only elementary triangles. A direct cut bypasses only this condition.'),
     ]),
     s('history', '1.3 历史与转移定义', '1.3 History and transitions', [
       p('对落子 a，先以引擎执行临时更新：放节点、连接、切断、失联清除与补线，得到临时棋盘 B′、边 E′。令 j 为当前方之后的下一位未认输玩家。源码在自动跳过无合法步玩家之前，以 j 构造键 κ；随后才加入历史、重置 c 并规范化轮转。因而不能把该键误写成自动跳过后的完整状态哈希。',

@@ -70,6 +70,17 @@ test('v2 collector accepts all board/count/root combinations and every selectabl
   h.client.dispose();
 });
 
+test('v2 collector accepts only missing or explicit symmetric start protection', () => {
+  const h = harness(); h.client.setEnabled(true);
+  const legacyContext = context(settings);
+  const symmetric = { ...settings, protectionRule: 'symmetric-v1' };
+  assert.ok(h.client.beginMatch({ settings: symmetric, context: legacyContext, source: 'local', actionCount: 0 }));
+  const asymmetric = { ...settings, protectionRule: 'duel-first-unprotected-v1' };
+  assert.equal(context(asymmetric), null);
+  assert.equal(h.client.beginMatch({ settings: asymmetric, context: legacyContext, source: 'local', actionCount: 0 }), null);
+  assert.equal(h.client.queue.length, 0); assert.equal(h.calls.length, 0); h.client.dispose();
+});
+
 test('a terminal snapshot is persisted synchronously and survives immediately starting another game', async () => {
   let exports = 0;
   const h = harness({ createReplay: (...args) => { exports++; return replay(...args); } }); h.client.setEnabled(true); h.setBusy(true);

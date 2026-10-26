@@ -1,10 +1,15 @@
 import assert from "node:assert/strict";
-import GameEngine from "../GameEngine.js?v=20261025-room1";
+import GameEngine, { StartProtectionRule } from "../GameEngine.js?v=20261025-room1";
 import GameController from "../GameController.js?v=20261025-room1";
 import { serializeEngineState, captureWorkerRequest, isWorkerResultForRequest } from "../AIStateProtocol.js?v=20261025-room1";
 import { normalizeGameSettings } from "../OnlineAppState.js?v=20261025-room1";
 import { normalizeLocalPlayers } from "../LocalAIModes.js?v=20261025-room1";
-import { createLocalGameSession, persistLocalGameSession, loadLocalGameSession } from "../LocalGameSession.js?v=20261025-room1";
+import {
+  LOCAL_GAME_SESSION_STORAGE_KEY,
+  createLocalGameSession,
+  persistLocalGameSession,
+  loadLocalGameSession,
+} from "../LocalGameSession.js?v=20261025-room1";
 import { localUndoTimeline, planLocalUndo, consumeLocalUndo, recordUndoAction } from "../LocalUndo.js?v=20261025-room1";
 
 const noop = () => {};
@@ -48,7 +53,13 @@ for (const rulesVersion of ["territory-v1", "territory-v2"]) {
       const plan = planLocalUndo({ settings, actions, players: humanPlayers, currentPlayer: settings.startPlayer });
       assert.equal(plan.actionIndex, 0);
       const request = captureWorkerRequest(controller.engine, 1);
-      const reply = { requestId: 1, positionRevision: request.positionRevision, rulesVersion, currentPlayer: request.currentPlayer };
+      const reply = {
+        requestId: 1,
+        positionRevision: request.positionRevision,
+        rulesVersion,
+        protectionRule: request.protectionRule,
+        currentPlayer: request.currentPlayer,
+      };
       assert.equal(isWorkerResultForRequest(controller.engine, request, reply), true);
       const oldEngine = controller.engine;
       assert.equal(controller.restoreMatchState({ settings, actions: actions.slice(0, plan.actionIndex) }).success, true);
@@ -83,6 +94,26 @@ const session = createLocalGameSession(settings, actions.slice(0, 2), { players:
 assert.equal(persistLocalGameSession(session, storage), true);
 assert.deepEqual(loadLocalGameSession(storage).match.undo, usage);
 
+// A real pre-rule save has no protectionRule. It must remain symmetric through
+// lesson return, undo replay, another move/save, and only switch on a new game.
+const legacySettings = normalize({
+  startPlayer: "WHITE",
+  protectionRule: StartProtectionRule.SYMMETRIC,
+  undoMaxCount: 2,
+});
+const legacyEngine = new GameEngine(legacySettings);
+const legacyActions = [];
+play(legacyEngine, legacyActions);
+play(legacyEngine, legacyActions);
+const legacyRawSession = createLocalGameSession(legacySettings, legacyActions, {
+  players: humanPlayers,
+  started: true,
+  paused: false,
+});
+delete legacyRawSession.settings.protectionRule;
+storage.setItem(LOCAL_GAME_SESSION_STORAGE_KEY, JSON.stringify(legacyRawSession));
+assert.equal(loadLocalGameSession(storage).settings.protectionRule, StartProtectionRule.SYMMETRIC);
+
 // Exercise the actual application handlers with a minimal Vue lifecycle harness.
 globalThis.localStorage = storage;
 globalThis.location = { origin: "http://localhost:8765", href: "http://localhost:8765/", search: "", hostname: "localhost", protocol: "http:" };
@@ -95,6 +126,34 @@ globalThis.Vue = {
   watch: noop, onMounted: noop, onBeforeUnmount: (fn) => cleanups.push(fn), nextTick: async () => {},
 };
 const { default: App } = await import("../OnlineApp.js?v=20261025-room1");
+const legacyApp = App.setup();
+const legacyController = controllerFor(legacySettings);
+legacyController.stateChangeListener = legacyApp.handleStateChange;
+legacyApp.handleControllerReady(legacyController);
+assert.equal(await legacyApp.skipTutorial(), true);
+assert.equal(legacyController.engine.protectionRule, StartProtectionRule.SYMMETRIC);
+assert.equal(legacyApp.localGameActions.value.length, 2);
+let undoProtectionRule = null;
+const legacyRestore = legacyController.restoreMatchState;
+legacyController.restoreMatchState = function captureUndoSettings(matchState) {
+  undoProtectionRule = matchState?.settings?.protectionRule ?? null;
+  return legacyRestore.call(this, matchState);
+};
+assert.equal(legacyApp.undoDisabled.value, false, "legacy symmetric saves must remain undoable after lesson return");
+assert.equal(legacyApp.requestUndo(), true);
+assert.equal(undoProtectionRule, StartProtectionRule.SYMMETRIC);
+assert.equal(legacyController.engine.protectionRule, StartProtectionRule.SYMMETRIC);
+assert.equal(loadLocalGameSession(storage).settings.protectionRule, StartProtectionRule.SYMMETRIC);
+const legacyNextPoint = legacyController.engine.getSnapshot().legalMoves[0]?.point;
+assert.ok(legacyNextPoint);
+assert.equal(legacyController._applyMove(legacyNextPoint).success, true);
+assert.equal(loadLocalGameSession(storage).settings.protectionRule, StartProtectionRule.SYMMETRIC);
+assert.equal(await legacyApp.startLocalMatch(), true);
+assert.equal(legacyController.engine.protectionRule, StartProtectionRule.DUEL_FIRST_UNPROTECTED);
+assert.equal(loadLocalGameSession(storage).settings.protectionRule, StartProtectionRule.DUEL_FIRST_UNPROTECTED);
+
+// Restore the modern fixture used by the existing quota and failure checks.
+assert.equal(persistLocalGameSession(session, storage), true);
 const app = App.setup();
 const controller = controllerFor(settings);
 controller.stateChangeListener = app.handleStateChange;

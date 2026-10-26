@@ -1,5 +1,5 @@
-import { implementationMarkdown } from "./GuideImplementation.js?v=20261025-terminal-v4";
-import { guideHeadingId, isGuideAnchorId } from "./GuideArticleFormat.js?v=20261025-terminal-v4";
+import { implementationMarkdown } from "./GuideImplementation.js?v=20261026-start-protection-v1";
+import { guideHeadingId, isGuideAnchorId } from "./GuideArticleFormat.js?v=20261026-start-protection-v1";
 
 const WHY_TALK_ZH = `# Talk：扩张、防守与破绽
 
@@ -202,7 +202,7 @@ const GUIDE_MARKDOWN = Object.freeze({
 ![切断示意二](./guide-images/切断2.png)
 
 【限制规则】
-为保证博弈的平衡与推进，游戏设定了三项强制约束。首先是起步保护，棋盘内紧邻己方起点的所有格点都禁止敌方落子；图中的三角角点起点只有两个这样的相邻格点。
+为保证博弈的平衡与推进，游戏设定了三项强制约束。首先是起步保护：新建双人三角棋盘对局为削弱先手优势，实际先手的起点不再设置禁区，后手可以进入其有效相邻格；后手起点的保护区仍保留，先手不能进入。其他人数、六边形棋盘，以及采用 symmetric-v1 的旧存档、棋谱和房间继续使用双方对称保护。保护区始终跟随实际起点，三角角点旁有两个有效相邻格。
 ![起点限制示意](./guide-images/起点限制.png)
 
 其次是阵型限制，禁止主动形成三个节点互相紧挨的最小三角形阵型，除非该次落子直接切断了敌方的连线。
@@ -217,7 +217,7 @@ const GUIDE_MARKDOWN = Object.freeze({
 
 仔细观察你眼前的这片三角战场，它形似二战时期的苏德战场，从狭窄的波德平原一路向广阔的东欧平原延伸。这种特殊的地形里隐藏着这场战争最本质的战略张力：越靠近你的大本营，战线越窄，虽然极易防守，但你能掌控的领土也十分可怜；而越向战场中央挺进，天地越广阔，圈占的领土越大，但拉长的防线也会暴露出致命的破绽。你越想激进进攻，破绽就越多；越想保守防御，就越容易被对方死死围住。是稳扎稳打，还是狂飙突进，全在你的一念之间。
 
-为了防止总司令部一开局就被敌方的闪电战彻底封锁，你的大本营周围驻扎着极其强大的禁卫军。敌方绝对无法在你大本营最靠近的区域落子，有了这层绝对的保护，你可以安心地从这里向外发兵。
+新的双人三角战场用非对称警戒线抵消先动优势：先手司令部周围不再设绝对禁区，后手可以逼近；后手基地的禁卫区仍然保留，先手不能在其有效相邻格落子。其他人数、六边形战场和采用 symmetric-v1 的旧对局仍由双方基地互相提供对称保护。警戒线跟随本局实际起点，而不是固定跟随某种颜色。
 ![起点限制示意](./guide-images/起点限制.png)
 
 随着战役打响，你需要和敌军轮流派出士兵，占据新的网格点。只要视线不被阻挡，你的新兵就会和原有的部队自动拉起一条相互呼应的补给线。
@@ -266,7 +266,7 @@ Adjacent friendly nodes connect automatically as long as nothing blocks the line
 ![Cut example two](./guide-images/切断2.png)
 
 【Restriction Rules】
-To keep the game balanced and moving, three constraints always apply. First, there is opening protection: every on-board grid point immediately adjacent to a player's starting node is forbidden to opponents. The triangular corner start in the illustration has two such neighbors.
+To keep the game balanced and moving, three constraints apply. First, opening protection is asymmetric in a new two-player triangular game: to reduce the first-move advantage, the actual first player's start has no protected zone, so the second player may enter its valid neighboring points. The second player's start remains protected from the first player. Other player counts, hexagonal boards, and older saves, replays, or rooms using symmetric-v1 retain protection around every start. Protection follows the actual configured starts; a triangular corner has two valid neighbors.
 ![Starting-point restriction](./guide-images/起点限制.png)
 
 Second, there is a formation restriction: you may not voluntarily create the smallest triangle made of three mutually adjacent nodes, unless that move directly cuts an enemy link.
@@ -281,7 +281,7 @@ There is an old rule of war: supply must move before the army does. On this batt
 
 Look carefully at the shape of this battlefield. It resembles a front that opens from a narrow approach into a wide plain. That geometry creates the deepest tension in the game: the closer you stay to home base, the easier your line is to defend, but the less land you can truly control. The farther you push toward the center, the larger the territory you may claim, but the longer your line becomes, and the more weak points you expose. The more aggressively you expand, the more cracks you create. The more cautiously you turtle, the easier it is for your opponent to box you in. Whether you advance steadily or charge forward recklessly is always your call.
 
-To prevent headquarters from being sealed off on turn one, a powerful guard protects the area nearest your base. The enemy simply cannot play there. That absolute shield gives you a safe zone from which to begin your outward march.
+New two-player triangular battles use an asymmetric guard line to offset the initiative of moving first. The first player's headquarters has no absolute protected zone, so the second player may approach it; the second player's headquarters keeps its guard, and the first player cannot enter its valid neighboring points. Other player counts, hexagonal battles, and older symmetric-v1 games keep mutual protection around every base. The guard follows the actual configured start rather than a fixed colour.
 ![Starting-point restriction](./guide-images/起点限制.png)
 
 As the campaign unfolds, you and your opponent alternate sending units to occupy new grid points. Whenever sight lines remain open, a new unit automatically links up with the rest of its side's formation and extends the supply network.

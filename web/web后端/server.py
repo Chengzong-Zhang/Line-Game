@@ -95,6 +95,13 @@ TERRITORY_RULE_V2 = "territory-v2"
 TERRITORY_RULE_V3 = "territory-v3"
 DEFAULT_RULES_VERSION = TERRITORY_RULE_V3
 ALLOWED_RULES_VERSIONS = {TERRITORY_RULE_V1, TERRITORY_RULE_V2, TERRITORY_RULE_V3}
+START_PROTECTION_SYMMETRIC = "symmetric-v1"
+START_PROTECTION_DUEL_FIRST_UNPROTECTED = "duel-first-unprotected-v1"
+DEFAULT_PROTECTION_RULE = START_PROTECTION_SYMMETRIC
+ALLOWED_PROTECTION_RULES = {
+    START_PROTECTION_SYMMETRIC,
+    START_PROTECTION_DUEL_FIRST_UNPROTECTED,
+}
 CHAT_EMOJI_MAX_CONTENT_LENGTH = 32
 CHAT_EMOJI_MIN_DURATION_MS = 300
 CHAT_EMOJI_MAX_DURATION_MS = 3000
@@ -1869,6 +1876,7 @@ class ConnectionManager:
         grid_size = settings.get("gridSize", 9)
         start_player = settings.get("startPlayer", PLAYER_BLACK)
         rules_version = settings.get("rulesVersion", DEFAULT_RULES_VERSION)
+        protection_rule = settings.get("protectionRule", DEFAULT_PROTECTION_RULE)
         bot_count = settings.get("botCount", 0)
         board_shape = settings.get("boardShape")
         starting_mode = settings.get("startingPointMode", "default")
@@ -1896,6 +1904,8 @@ class ConnectionManager:
             start_player = allowed_players[0]
         if not isinstance(rules_version, str) or rules_version not in ALLOWED_RULES_VERSIONS:
             rules_version = DEFAULT_RULES_VERSION
+        if not isinstance(protection_rule, str) or protection_rule not in ALLOWED_PROTECTION_RULES:
+            protection_rule = DEFAULT_PROTECTION_RULE
         if type(bot_count) is not int or not 0 <= bot_count < player_count:
             bot_count = 0
         if board_shape not in ("triangle", "hexagon"):
@@ -1933,6 +1943,7 @@ class ConnectionManager:
             "gridSize": grid_size,
             "startPlayer": start_player,
             "rulesVersion": rules_version,
+            "protectionRule": protection_rule,
             "turnTimerEnabled": turn_timer_enabled,
             "turnTimeLimitSeconds": turn_time_limit_seconds,
             "botCount": bot_count,

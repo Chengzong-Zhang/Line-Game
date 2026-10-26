@@ -1,9 +1,9 @@
 // New objective version. No frozen teacher or label is changed.
 // Native area is evaluated on terminal and nonterminal leaves on one scale.
-import { GameEngine } from "./GameEngine.js?v=20261025-terminal-v4";
-import { assessPassAlternatives } from "./AIPassDiscipline.js?v=20261025-terminal-v4";
-import { isolatedSearchEngine } from "./MultiplayerSearch.js?v=20261025-terminal-v4";
-import { saveState, restoreState } from "./AIEngine.js?v=20261025-terminal-v4";
+import { GameEngine } from "./GameEngine.js?v=20261026-start-protection-v1";
+import { assessPassAlternatives } from "./AIPassDiscipline.js?v=20261026-start-protection-v1";
+import { isolatedSearchEngine } from "./MultiplayerSearch.js?v=20261026-start-protection-v1";
+import { saveState, restoreState } from "./AIEngine.js?v=20261026-start-protection-v1";
 
 export const PASS_OPPORTUNITY_TRAINING_CONTRACT = Object.freeze({
   schema: "lifeline-pass-opportunity-minimax-training-v3",

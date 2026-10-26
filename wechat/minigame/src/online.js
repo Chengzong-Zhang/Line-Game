@@ -1,6 +1,6 @@
 import { TEXT } from './i18n.js';
 import { GameSession } from './session.js';
-import { validateSettings, MAX_ACTIONS } from './state.js';
+import { validateSettings, MAX_ACTIONS, withNewGameProtectionRule } from './state.js';
 import { ONLINE_CONSENT_KEY, LEGACY_ONLINE_CONSENT_KEY } from './online-consent.js';
 import { profileCache, validateProfile } from './profile-cache.js';
 import { playerIds } from './controllers.js';
@@ -190,7 +190,9 @@ export class OnlineClient {
         && typeof pending.uid === 'string' && roomCode(pending.code) && /^[a-zA-Z0-9_-]{16,80}$/.test(pending.body?.clientActionId)
         && /^[0-9a-f]{32}$/.test(pending.body?.matchId) && Number.isSafeInteger(pending.body?.expectedSeq)
         && ['move', 'skip', 'resign'].includes(pending.body?.action?.type) ? pending : null;
-      const room = kind === 'create' ? await this.request('rooms', typeof value === 'object' ? { ...value, rulesVersion: value.rulesVersion || 'territory-v3' } : { gridSize: value, rulesVersion: 'territory-v3' })
+      const room = kind === 'create' ? await this.request('rooms', withNewGameProtectionRule(typeof value === 'object'
+        ? { ...value, rulesVersion: value.rulesVersion || 'territory-v3' }
+        : { gridSize: value, rulesVersion: 'territory-v3' }))
         : kind === 'join' ? await this.request('rooms/join', { code: value }) : await this.request(`rooms/${value}`);
       if (!this.active || life !== this.lifecycle) return false;
       if (!await this.receive(room)) throw new Error(this.error || 'STATE_MISMATCH');

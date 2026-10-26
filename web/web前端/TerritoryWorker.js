@@ -1,5 +1,5 @@
-import { GameEngine } from "./GameEngine.js?v=20261025-terminal-v4";
-import { deserializeEngineEdges } from "./AIStateProtocol.js?v=20261025-terminal-v4";
+import { GameEngine } from "./GameEngine.js?v=20261026-start-protection-v1";
+import { deserializeEngineEdges } from "./AIStateProtocol.js?v=20261026-start-protection-v1";
 
 function cloneTerritories(engine, players = engine.activePlayers) {
   return Object.fromEntries(
@@ -53,6 +53,7 @@ self.onmessage = (event) => {
       startPlayer: serializedState.startPlayer,
       initialPositions: serializedState.initialPositions,
       rulesVersion: serializedState.rulesVersion,
+      protectionRule: serializedState.protectionRule,
     };
     const config = JSON.stringify(options);
     if (!reusableEngine || config !== reusableConfig) {
@@ -74,6 +75,7 @@ self.onmessage = (event) => {
       requestId,
       positionRevision: serializedState.positionRevision ?? 0,
       rulesVersion: serializedState.rulesVersion,
+      protectionRule: serializedState.protectionRule,
       currentPlayer: serializedState.currentPlayer,
       territoryStateRevision,
       gameOver,
@@ -86,6 +88,7 @@ self.onmessage = (event) => {
       requestId,
       positionRevision: serializedState?.positionRevision ?? 0,
       rulesVersion: serializedState?.rulesVersion,
+      protectionRule: serializedState?.protectionRule,
       currentPlayer: serializedState?.currentPlayer,
       territoryStateRevision,
       gameOver,

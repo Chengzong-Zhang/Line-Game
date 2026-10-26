@@ -1,6 +1,6 @@
 // Private search optimization: only edge coordinates/keys survive a position.
 // Occupancy, explicit edge membership and connectivity are read on every call.
-import { GameEngine } from './GameEngine.js?v=20261025-terminal-v4';
+import { GameEngine } from './GameEngine.js?v=20261026-start-protection-v1';
 
 export function installNativeEdgeGeometry(engine, { maximumEntries = 2048 } = {}) {
   if (!Number.isInteger(maximumEntries) || maximumEntries < 1) throw new Error('Invalid edge geometry limit');

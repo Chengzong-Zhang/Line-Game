@@ -9,6 +9,7 @@ export function serializeEngineState(engine) {
     startPlayer: engine.startPlayer,
     ...(engine.hasCustomInitialPositions ? { initialPositions: structuredClone(engine.initialPositions) } : {}),
     rulesVersion: engine.rulesVersion,
+    ...(engine.protectionRule !== "symmetric-v1" ? { protectionRule: engine.protectionRule } : {}),
     positionRevision: engine.positionRevision,
     activePlayers: [...engine.activePlayers],
     gridEntries: [...engine.grid.entries()],
@@ -43,6 +44,7 @@ export function isWorkerResultCurrent(engine, message) {
     && message
     && engine.positionRevision === message.positionRevision
     && engine.rulesVersion === message.rulesVersion
+    && (engine.protectionRule ?? "symmetric-v1") === (message.protectionRule ?? "symmetric-v1")
     && engine.currentPlayer === message.currentPlayer
   );
 }
@@ -57,6 +59,7 @@ export function captureWorkerRequest(engine, requestId) {
     engine,
     positionRevision: engine.positionRevision,
     rulesVersion: engine.rulesVersion,
+    protectionRule: engine.protectionRule ?? "symmetric-v1",
     currentPlayer: engine.currentPlayer,
   });
 }
@@ -69,9 +72,11 @@ export function isWorkerResultForRequest(engine, request, message) {
     && engine === request.engine
     && engine.positionRevision === request.positionRevision
     && engine.rulesVersion === request.rulesVersion
+    && (engine.protectionRule ?? "symmetric-v1") === (request.protectionRule ?? "symmetric-v1")
     && engine.currentPlayer === request.currentPlayer
     && message.positionRevision === request.positionRevision
     && message.rulesVersion === request.rulesVersion
+    && (message.protectionRule ?? "symmetric-v1") === (request.protectionRule ?? "symmetric-v1")
     && message.currentPlayer === request.currentPlayer
   );
 }

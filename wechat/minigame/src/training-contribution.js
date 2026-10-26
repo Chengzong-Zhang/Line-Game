@@ -6,8 +6,8 @@ import { CONTRIBUTION_V2_POLICY, CONTRIBUTION_V2_MAX_ACTIONS, normalizeV2Context
 export const CONTRIBUTION_POLICY = CONTRIBUTION_V2_POLICY;
 export const LEGACY_CONTRIBUTION_POLICY = 'anonymous-replay-training-v1';
 export const CONTRIBUTION_STORAGE = 'lifeline-wx-training-contribution-v1';
-export const CONTRIBUTION_NOTICE = '当前贡献协议仅收 territory-v2 旧规则对局；默认 territory-v3 新局不会上传或混入旧数据集。自愿贡献从开启后新开始的完整本地对局，供 AI 研究筛选；支持 2–6 人、不同棋盘和起点、全部 AI，并标注提示、计时与悔棋使用情况。终局后自动后台上传，断网时保存在本机并有限重试；待传队列最多 100 局、总计 768 KB，满时淘汰最早记录，不影响继续开局。再次开启也会允许重试本机待传棋谱。只发送棋谱与匿名玩法设置，不发送微信身份、昵称、头像或房间信息；服务器仍会接收连接所需的网络地址。关闭后清空本机待传记录并停止提交，已收到的记录不会自动撤回。复盘、教学、联机和开启前已开始的对局不上传。收到的棋谱先进入待审核区，不会自动训练或替换 AI。';
-export const CONTRIBUTION_NOTICE_EN = 'The current contribution protocol accepts only older territory-v2 games; new default territory-v3 games are not uploaded or mixed into that dataset. Optionally contribute complete local games started after you enable this setting for AI research review. Supports 2–6 players, different boards and starting points, and all compatible AI opponents; records hint, timer and undo usage. Completed games upload in the background. Offline records stay on this device with limited retries. The queue holds up to 100 games or 768 KiB; the oldest are removed when full, without blocking new games. Enabling again also allows pending games to retry. Only replays and anonymous game settings are sent, without WeChat identity, nickname, avatar or room information. The server still receives the network address needed for the connection. Disabling clears pending local records and stops further submissions; records already received are not automatically withdrawn. Replay, tutorial, online games and games started before enabling are excluded. Received games await review and never automatically train or replace an AI.';
+export const CONTRIBUTION_NOTICE = '当前贡献协议仅收 territory-v2 且使用传统“双方起点都受保护”的旧规则对局；默认 territory-v3 新局及新的双人非对称起步保护不会上传或混入旧数据集。自愿贡献从开启后新开始的完整本地对局，供 AI 研究筛选；支持 2–6 人、不同棋盘和起点、全部 AI，并标注提示、计时与悔棋使用情况。终局后自动后台上传，断网时保存在本机并有限重试；待传队列最多 100 局、总计 768 KB，满时淘汰最早记录，不影响继续开局。再次开启也会允许重试本机待传棋谱。只发送棋谱与匿名玩法设置，不发送微信身份、昵称、头像或房间信息；服务器仍会接收连接所需的网络地址。关闭后清空本机待传记录并停止提交，已收到的记录不会自动撤回。复盘、教学、联机和开启前已开始的对局不上传。收到的棋谱先进入待审核区，不会自动训练或替换 AI。';
+export const CONTRIBUTION_NOTICE_EN = 'The current contribution protocol accepts only older territory-v2 games using the classic symmetric starting-point protection. New default territory-v3 games and the asymmetric two-player opening rule are not uploaded or mixed into that dataset. Optionally contribute complete local games started after you enable this setting for AI research review. Supports 2–6 players, different boards and starting points, and all compatible AI opponents; records hint, timer and undo usage. Completed games upload in the background. Offline records stay on this device with limited retries. The queue holds up to 100 games or 768 KiB; the oldest are removed when full, without blocking new games. Enabling again also allows pending games to retry. Only replays and anonymous game settings are sent, without WeChat identity, nickname, avatar or room information. The server still receives the network address needed for the connection. Disabling clears pending local records and stops further submissions; records already received are not automatically withdrawn. Replay, tutorial, online games and games started before enabling are excluded. Received games await review and never automatically train or replace an AI.';
 export const CLEAR_PENDING_NOTICE = '当前网络或贡献服务不可用。确认后会清除本机待上传的 territory-v2 棋谱；已收到的记录不会撤回。默认 territory-v3 对局不会上传。';
 export const CLEAR_PENDING_NOTICE_EN = 'The contribution service is unavailable. Confirm to clear pending territory-v2 replays from this device. Records already received are not withdrawn. Default territory-v3 games are not uploaded.';
 export const CONTRIBUTION_LIMITS = Object.freeze({ games: 100, queueBytes: 768 * 1024, requestBytes: 500000, automaticAttempts: 4 });
@@ -19,10 +19,12 @@ const bytes = value => encodeURIComponent(JSON.stringify(value)).replace(/%[0-9A
 const exact = (value, keys) => value && typeof value === 'object' && !Array.isArray(value)
   && Object.keys(value).sort().join(',') === [...keys].sort().join(',');
 const idPattern = /^sha256:[a-f0-9]{64}$/;
+const usesLegacyProtection = settings => settings?.protectionRule === undefined || settings.protectionRule === 'symmetric-v1';
 
 // v1 collector uses actors.*.kind, not a separate actor_kind field.
 export function legacyContributionContext(session) {
   if (![2, 3].includes(session.settings.playerCount) || session.settings.boardShape && session.settings.boardShape !== 'triangle'
+    || !usesLegacyProtection(session.settings)
     || session.settings.initialPositions || session.settings.startingPointMode && session.settings.startingPointMode !== 'default'
     || session.settings.undoEnabled || session.undoUsage?.usedCount) return null;
   const actors = {};
@@ -44,6 +46,7 @@ export function legacyContributionContext(session) {
 
 function sanitizeV1(settings, actions, context) {
   if (!settings || settings.rulesVersion !== 'territory-v2' || ![2, 3].includes(settings.playerCount)
+    || !usesLegacyProtection(settings)
     || settings.boardShape && settings.boardShape !== 'triangle' || settings.initialPositions
     || settings.startingPointMode && settings.startingPointMode !== 'default' || settings.undoEnabled
     || !Number.isInteger(settings.gridSize) || settings.gridSize < 5 || settings.gridSize > 15
@@ -98,6 +101,7 @@ export function contributionContext(session) {
 
 function sanitizeV2(settings, actions, context) {
   if (!settings || settings.rulesVersion !== 'territory-v2' || !Number.isInteger(settings.gridSize)
+    || !usesLegacyProtection(settings)
     || settings.gridSize < 5 || settings.gridSize > 15 || settings.playerCount > 6 || !playerIds(settings.playerCount).length) throw new Error('UNSUPPORTED');
   const players = playerIds(settings.playerCount), options = normalizePlayOptions(settings);
   const boardShape = settings.boardShape ?? (settings.playerCount >= 4 ? 'hexagon' : 'triangle');

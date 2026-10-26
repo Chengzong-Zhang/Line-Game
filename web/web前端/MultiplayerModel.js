@@ -1,4 +1,4 @@
-import { createResearchModel, researchRelations } from "./ResearchAI.js?v=20261025-terminal-v4";
+import { createResearchModel, researchRelations } from "./ResearchAI.js?v=20261026-start-protection-v1";
 
 const FEATURE_COUNT = 11;
 const EPSILON = 1e-5;

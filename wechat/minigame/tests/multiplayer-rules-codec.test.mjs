@@ -182,7 +182,9 @@ test('six-seat settings round-trip through the existing local-session schema wit
   for (const c of cases) {
     const local = sut.createLocalGameSession(c.settings, c.actions);
     assert.equal(local.schemaVersion, 1); assert.equal(local.format, 'lifeline-local-session');
-    assert.deepEqual(plain(local.settings), { ...c.settings, boardShape: c.settings.playerCount >= 4 ? 'hexagon' : 'triangle' });
+    assert.deepEqual(plain(local.settings), { ...c.settings,
+      protectionRule: c.settings.protectionRule ?? 'symmetric-v1',
+      boardShape: c.settings.playerCount >= 4 ? 'hexagon' : 'triangle' });
     assert.equal(local.match, undefined);
     assert.equal(sut.ruleView(sut.restoreGame(local.settings, local.actions)).stateHash, c.expected.states.at(-1).stateHash);
   }

@@ -1,9 +1,9 @@
-import { installNativeEdgeGeometry } from "./MultiplayerNativeGeometry.js?v=20261025-terminal-v4";
+import { installNativeEdgeGeometry } from "./MultiplayerNativeGeometry.js?v=20261026-start-protection-v1";
 // Full legal-action paranoid minimax. Only alpha/beta bounds prune branches;
 // elapsed time ends an iteration, never masquerades as an equivalent cutoff.
-import { GameEngine } from "./GameEngine.js?v=20261025-terminal-v4";
-import { saveState, restoreState } from "./AIEngine.js?v=20261025-terminal-v4";
-import { evaluateReplyResilience } from "./MultiplayerHardValue.js?v=20261025-terminal-v4";
+import { GameEngine } from "./GameEngine.js?v=20261026-start-protection-v1";
+import { saveState, restoreState } from "./AIEngine.js?v=20261026-start-protection-v1";
+import { evaluateReplyResilience } from "./MultiplayerHardValue.js?v=20261026-start-protection-v1";
 
 const order = (a, b) => a.point===null ? (b.point===null?0:1) : b.point===null ? -1 : a.point[1] - b.point[1] || a.point[0] - b.point[0];
 const key = p => p===null ? "PASS" : p.join(",");
@@ -35,10 +35,8 @@ export function potentialMoves(engine, player = engine.currentPlayer) {
       if (enemy.has(state)) break;
     }
   }
-  const protectedPoints = new Set(engine._getOpponents(player).flatMap(p =>
-    engine._adjIdxList[engine._keyToIdx.get(key(engine.initialPositions[p]))]));
   return [...indices].sort((a, b) => a - b).filter(i => {
-    if (protectedPoints.has(i)) return false;
+    if (engine._isInProtectionZone(engine.validPositions[i], player)) return false;
     if (enemy.has(states[i])) return true;
     const adjacent = engine._adjIdxList[i].filter(j => states[j] === own.node);
     return adjacent.length < 2 && adjacent.every(j => !engine._adjIdxList[j].some(k => states[k] === own.node));
@@ -48,7 +46,8 @@ export function potentialMoves(engine, player = engine.currentPlayer) {
 export function isolatedSearchEngine(source) {
   const engine = new GameEngine({ gridSize: source.gridSize, playerCount: source.playerCount,
     boardShape: source.boardShape, initialPositions: source.initialPositions,
-    startPlayer: source.startPlayer, rulesVersion: source.rulesVersion, deferTerritoryUpdates: true });
+    startPlayer: source.startPlayer, rulesVersion: source.rulesVersion,
+    protectionRule: source.protectionRule, deferTerritoryUpdates: true });
   restoreState(engine, saveState(source));
   engine._isReplayingBatch = true;
   engine.getLegalMoves = function(player = this.currentPlayer) {

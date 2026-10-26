@@ -1,8 +1,8 @@
-import { loadThreePlayerModel, ThreePlayerAI } from "./ThreePlayerModels.js?v=20261025-terminal-v4";
-import { ThreePlayerSearchAI } from "./ThreePlayerSearchAI.js?v=20261025-terminal-v4";
-import { THREE_PLAYER_SEARCH_MODEL_ID, THREE_PLAYER_SEARCH_MODEL_SHA256, THREE_PLAYER_SEARCH_SIZES } from "./ThreePlayerSearchOptions.js?v=20261025-terminal-v4";
-import { trainedPolicySpec, trainedPolicyModel, trainedPolicyInfo } from "./PassTrainedPolicies.js?v=20261025-terminal-v4";
-import { withLearnedPass } from "./LearnedPassPolicy.js?v=20261025-terminal-v4";
+import { loadThreePlayerModel, ThreePlayerAI } from "./ThreePlayerModels.js?v=20261026-start-protection-v1";
+import { ThreePlayerSearchAI } from "./ThreePlayerSearchAI.js?v=20261026-start-protection-v1";
+import { THREE_PLAYER_SEARCH_MODEL_ID, THREE_PLAYER_SEARCH_MODEL_SHA256, THREE_PLAYER_SEARCH_SIZES } from "./ThreePlayerSearchOptions.js?v=20261026-start-protection-v1";
+import { trainedPolicySpec, trainedPolicyModel, trainedPolicyInfo } from "./PassTrainedPolicies.js?v=20261026-start-protection-v1";
+import { withLearnedPass } from "./LearnedPassPolicy.js?v=20261026-start-protection-v1";
 
 let searchModelPromise;
 export async function loadThreePlayerSearchModel(id = THREE_PLAYER_SEARCH_MODEL_ID) {

@@ -226,8 +226,8 @@ export async function prepareCandidate({
     runtime: { node: process.version, platform: process.platform, arch: process.arch },
     ...(admission.status === 'PASS_TERMINAL_RELEASE_ADMISSION_V4' ? { terminalAdmission: admission } : {}),
     uploadDescription: admission.status === 'PASS_TERMINAL_RELEASE_ADMISSION_V4'
-      ? '支持 2–15 人；7–15 人仅随机或自定义起点。在既有模型上继续训练，仅自然终局奖励、折扣系数1；修复开局过早PASS和可安全增长时提前结算，并检查完整实际对手轮的切断风险。Minimax简单/中等/困难对应2/3/4层；各方分别高亮最新落点，本方跳过后清除标记，保留其他方高亮。'
-      : '支持 2–15 人；7–15 人仅随机或自定义起点。修复开局过早PASS和可安全增长时提前结算，并检查完整实际对手轮的切断风险。Minimax简单/中等/困难对应2/3/4层；本候选没有新模型覆盖。各方分别高亮最新落点，本方跳过后清除标记，保留其他方高亮。',
+      ? '双人三角局改为非对称起步保护：先手起点不设禁区，后手保留；六角与多人不变。保留2–15人、Minimax 2/3/4层、终局PASS修复与各方最新落点。'
+      : '双人三角局改为非对称起步保护：先手起点不设禁区，后手保留；六角与多人不变。保留2–15人、Minimax 2/3/4层与各方最新落点；本候选没有新模型覆盖。',
     acceptance: { nativeCandidateImport: 'NOT_RUN', physicalDevice: 'NOT_RUN',
       accountPermissions: 'NOT_VERIFIED', serviceConnectivity: 'NOT_VERIFIED',
       actualWechatLogin: 'NOT_RUN', crossPlatformDeviceMatch: 'NOT_RUN',
