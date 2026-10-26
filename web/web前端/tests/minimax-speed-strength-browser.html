@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<title>LIFELINE 搜索速度与战术验证</title>
+<style>
+body{font:17px/1.6 system-ui;margin:36px auto;max-width:950px;padding:0 24px;background:#f5f7fb;color:#17243a}
+button{font:inherit;padding:10px 22px;background:#176b55;color:white;border:0;border-radius:8px;cursor:pointer}
+table{border-collapse:collapse;width:100%;background:white;margin:20px 0}td,th{text-align:left;padding:12px;border-bottom:1px solid #dce2ec}
+pre{font-size:13px;background:white;padding:18px;overflow:auto}#status{font-weight:650}
+</style>
+<h1>LIFELINE 搜索速度与战术验证</h1>
+<p>同一完整棋局，对照已交付的 4 层搜索与当前困难档真实 Web Worker。额外加深只采用完整迭代。</p>
+<button id="run">运行浏览器验证</button>
+<p id="status">等待运行</p>
+<table><thead><tr><th>局面</th><th>旧版计算</th><th>新版 Worker 往返</th><th>采用层数</th><th>动作与状态</th></tr></thead><tbody id="rows"></tbody></table>
+<p>耗时仅代表本机本次浏览器。旧版列是同步计算，新版列含 Worker 启动、传输和 PASS 检查，不能直接外推手机性能或整体胜率。</p>
+<pre id="evidence">尚无结果</pre>
+<script type="module">
+import { GameEngine } from '../GameEngine.js';
+import { serializeEngineState } from '../AIStateProtocol.js';
+const button=document.querySelector('#run'),status=document.querySelector('#status');
+const capture=engine=>JSON.stringify(engine._captureReplayState(),(_key,value)=>
+  value instanceof Map?{map:[...value]}:value instanceof Set?{set:[...value]}:value);
+const cases=[{id:'7 路开局',size:7,prefix:[]},
+  {id:'5 路战术：唯一必胜着',size:5,prefix:[[0,2],[1,3],[0,3],[3,1]],winning:[2,0]}];
+button.addEventListener('click',async()=>{
+  button.disabled=true;status.textContent='正在运行真实 Worker…';document.querySelector('#rows').replaceChildren();
+  const rows=[];
+  try{
+    const baseline=await import('/local_artifacts/ai-speed-strength-20261026/baseline/AIEngine.js');
+    const worker=new Worker(new URL('../AIWorker.js?v=ai-speed-strength-browser-v1',import.meta.url),{type:'module'});
+    try{
+      for(const spec of cases){
+        const engine=new GameEngine({gridSize:spec.size,playerCount:2,rulesVersion:'territory-v3',deferTerritoryUpdates:true});
+        engine._isReplayingBatch=true;
+        for(const point of spec.prefix)if(!engine.playMove(point).success)throw Error('非法局面前缀');
+        engine._isReplayingBatch=false;
+        const before=capture(engine),actor=engine.currentPlayer;
+        const oldStart=performance.now(),oldMoves=new baseline.MinimaxAI(4).getTopMoves(engine,actor,5),oldMs=performance.now()-oldStart;
+        if(capture(engine)!==before)throw Error('旧版搜索改变棋局');
+        const requestId='speed-'+rows.length,started=performance.now();
+        const response=await new Promise((resolve,reject)=>{
+          const timer=setTimeout(()=>reject(Error('Worker 未在验证窗口内返回')),15000);
+          worker.onmessage=event=>{if(event.data.requestId!==requestId)return;
+            if(event.data.type==='ERROR'){clearTimeout(timer);reject(Error(event.data.message));}
+            else if(event.data.type==='RESULT'){clearTimeout(timer);resolve(event.data);}};
+          worker.onerror=event=>{clearTimeout(timer);reject(Error(event.message));};
+          worker.postMessage({type:'COMPUTE',requestId,strategy:'minimax',depth:4,topN:5,aiPlayer:actor,serializedState:serializeEngineState(engine)});
+        });
+        const elapsedMs=performance.now()-started,point=response.moves[0]?.point;
+        if(capture(engine)!==before)throw Error('Worker 改变源棋局');
+        if(point!==null&&!engine._evaluateMove(point,actor).legal)throw Error('Worker 返回非法落点');
+        const completedDepth=response.searchStats.completedDepth??response.searchStats.depth;
+        if(completedDepth<4)throw Error('困难档未完成原 4 层');
+        const winningMoveSelected=spec.winning?JSON.stringify(point)===JSON.stringify(spec.winning):null;
+        const row={id:spec.id,baselineComputeMs:oldMs,workerTotalMs:elapsedMs,
+          baselinePoint:oldMoves[0]?.point,point,completedDepth,winningMoveSelected,sourceStatePreserved:true,search:response.searchStats};
+        rows.push(row);
+        const tr=document.createElement('tr');
+        for(const text of [spec.id,oldMs.toFixed(1)+' ms',elapsedMs.toFixed(1)+' ms',String(completedDepth),
+          `${JSON.stringify(point)}；棋局未改变${winningMoveSelected===true?'；找到唯一必胜着':''}`]){
+          const cell=document.createElement('td');cell.textContent=text;tr.append(cell);
+        }
+        document.querySelector('#rows').append(tr);
+      }
+    }finally{worker.terminate();}
+    const report={status:'PASS_ACTUAL_BROWSER_WORKER',rows,
+      limits:'Two fixed browser positions; no phone runtime or overall win-rate claim. Only complete deeper iterations may publish.'};
+    document.querySelector('#evidence').textContent=JSON.stringify(report,null,2);
+    status.textContent='验证通过：真实 Worker 返回合法动作，保留完整搜索与棋局状态。';
+    document.body.dataset.result='pass';
+  }catch(error){status.textContent='验证未通过：'+error.message;document.querySelector('#evidence').textContent=error.stack;
+    document.body.dataset.result='fail';}
+  finally{button.disabled=false;}
+});
+</script>
+</html>

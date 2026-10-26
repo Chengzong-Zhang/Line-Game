@@ -1,0 +1,230 @@
+{
+  "schema": "lifeline-ai-speed-strength-v1",
+  "status": "VERIFIED_CANDIDATES_NOT_YET_PUBLISHED",
+  "recorded_at_utc": "2026-10-26T09:05:50.397999+00:00",
+  "baseline_application_commit": "65fa1fffedc0524e7c125c195b7fdec3d1b0a83f",
+  "source_hashes": {
+    "web/web前端/AIEngine.js": "695c8ddf1db6e8d897929da7660dc8dc9f7e66e219b80e6dfab4c38067e4a082",
+    "web/web前端/AIWorker.js": "d8dd725e63502065a0ba3f2a893b5b6208a4ddbd931bd06c8ba5fadbb29bdefd",
+    "web/web前端/MultiplayerHardRollout.js": "01acae2c25004f6841846b199a57e9ea50d76a0046b419ad615f599b2bf7ee7d",
+    "web/web前端/MultiplayerHardFallback.js": "2758b8f11cb380b6e58c7651f0ec3ba73b4cc02964a34ff980778a29de261447",
+    "web/tools/online_bot_runtime.mjs": "a64584ad6593746e45401bed222c2b3ef942f6a99983e06e7b6264e22cbb9e66",
+    "wechat/minigame/src/worker-runtime.js": "917ea5a8f2ace3eed19c46245f510bebaea382f7400121a1ded274ddca18a62a",
+    "wechat/minigame/compat/web/AIEngine.js": "f5dc5b498ae9b684c1d7f4152b5f853e45d884894553894e9bbdbbe284280a95",
+    "wechat/minigame/compat/web/MultiplayerHardRollout.js": "8fdc052df99086c30c88f4a75a3b0142338c42d9ee32472d04bea74f3f05fb0a",
+    "wechat/minigame/compat/web/MultiplayerHardFallback.js": "7a5e5f681088991f2d9a88cc3f704e991faf408ef1f1675b3e74c77b832a4398",
+    "wechat/minigame/compat/web/manifest.json": "96dae636e96019bc14003eb2ec297bdd5bf994e7e708b5bf58d40f4051c17890"
+  },
+  "changes": [
+    "Exact stable top-K root alpha-beta, retaining 20 placements plus PASS and the four-placement cut-chain window",
+    "Call-local killer ordering changes traversal only",
+    "Static adjacency/typed-buffer reach BFS rereads current occupancy every call",
+    "Native V3 scalar terminal area avoids display polygons without changing scores",
+    "Hard completes its original 4-ply search first, then may publish complete 5/6-ply iterations in a cooperative extra 100ms window on two-player boards <=55 points",
+    "Same hard-deepening configuration in Web Worker, Mini Worker and room bots",
+    "Multiplayer continuation argmax preserves complete candidate domain, tie order and deadline polling"
+  ],
+  "training": "No new trained weights in this speed release; terminal GNN/value training is isolated in a separate worktree",
+  "kept": {
+    "players": "2..15",
+    "7..15_start_modes": [
+      "random",
+      "custom"
+    ],
+    "latest_move_markers": true,
+    "PASS_guards_and_weights_unchanged": true,
+    "multiplayer_hard_budget_ms": 650,
+    "multiplayer_horizons": [
+      12,
+      24
+    ]
+  },
+  "bounded_node_measurements": {
+    "repetitions": 3,
+    "cases": [
+      {
+        "id": "native7-v3-d4-n5",
+        "samples": 3,
+        "old_ms_median": 1294.4181,
+        "same_depth_new_ms_median": 788.7040999999999,
+        "product_hard_ms_median": 755.627,
+        "actual_complete_depths": [
+          4,
+          4,
+          4
+        ],
+        "exact_same_depth_results": true
+      },
+      {
+        "id": "native9-v3-mid-d2-n5",
+        "samples": 3,
+        "old_ms_median": 782.3722000000002,
+        "same_depth_new_ms_median": 737.1627,
+        "product_hard_ms_median": null,
+        "actual_complete_depths": [
+          null,
+          null,
+          null
+        ],
+        "exact_same_depth_results": true
+      },
+      {
+        "id": "native15-v3-mid-d2-n5",
+        "samples": 3,
+        "old_ms_median": 3366.6030999999994,
+        "same_depth_new_ms_median": 1190.2115999999996,
+        "product_hard_ms_median": null,
+        "actual_complete_depths": [
+          null,
+          null,
+          null
+        ],
+        "exact_same_depth_results": true
+      },
+      {
+        "id": "three-v3-d4-n1",
+        "samples": 3,
+        "old_ms_median": 81.7099,
+        "same_depth_new_ms_median": 88.76820000000001,
+        "product_hard_ms_median": 54.55090000000001,
+        "actual_complete_depths": [
+          4,
+          4,
+          4
+        ],
+        "exact_same_depth_results": true
+      },
+      {
+        "id": "autoskip-v3-d4-n1",
+        "samples": 3,
+        "old_ms_median": 44.63160000000002,
+        "same_depth_new_ms_median": 23.6199,
+        "product_hard_ms_median": 68.25520000000003,
+        "actual_complete_depths": [
+          6,
+          6,
+          6
+        ],
+        "exact_same_depth_results": true
+      },
+      {
+        "id": "chain-v3-d2-n5",
+        "samples": 3,
+        "old_ms_median": 33.69630000000001,
+        "same_depth_new_ms_median": 34.81320000000001,
+        "product_hard_ms_median": null,
+        "actual_complete_depths": [
+          null,
+          null,
+          null
+        ],
+        "exact_same_depth_results": true
+      },
+      {
+        "id": "native5-v3-deepening-witness",
+        "samples": 3,
+        "old_ms_median": 102.88029999999998,
+        "same_depth_new_ms_median": 99.0698,
+        "product_hard_ms_median": 160.2242,
+        "actual_complete_depths": [
+          5,
+          5,
+          5
+        ],
+        "exact_same_depth_results": true
+      }
+    ],
+    "reports": [
+      {
+        "path": "local_artifacts/minimax-speed-strength-benchmark-20261026-r1/report-1793002021051.json",
+        "sha256": "66d96e2c79a51dafdc6a48cf82408d6fcec893f453187a171a1d82c302344426",
+        "identity": "b69ba77bc5cc87f29cf1e6076d7555cef45f4a54c6c00d99f2daca7ea70f8f10"
+      },
+      {
+        "path": "local_artifacts/minimax-speed-strength-benchmark-20261026-r2/report-1793002208147.json",
+        "sha256": "a1e054b8274f06b81ba3bb9d72b2a8771b003c7b07ff984bf0c982c97f8f6aa2",
+        "identity": "b69ba77bc5cc87f29cf1e6076d7555cef45f4a54c6c00d99f2daca7ea70f8f10"
+      },
+      {
+        "path": "local_artifacts/minimax-speed-strength-benchmark-20261026-r3/report-1793002273083.json",
+        "sha256": "a37730136fb9cbf8273e9405063dc63a4115bb46e060a9ade55ac86521f18d49",
+        "identity": "b69ba77bc5cc87f29cf1e6076d7555cef45f4a54c6c00d99f2daca7ea70f8f10"
+      }
+    ],
+    "policy": "Single snapshot per child process and repetition; descriptive Node timings, full fixed-depth ranking/state checks; not phone/end-to-end/overall win-rate evidence"
+  },
+  "checks": {
+    "fixed_depth_differential_cases": 20,
+    "exception_restoration_cases": 2,
+    "scalar_terminal_area_cases": 69,
+    "hard_continuation_differential_cases": 15,
+    "mini_related_tests": 50,
+    "mini_failed": 0,
+    "mini_log_sha256": "0fa762cf04beb981c0d2f15cce537989046c7702d99e1964cf329d9483a67585",
+    "actual_browser": {
+      "path": "local_artifacts/ai-speed-strength-20261026/browser-proof.json",
+      "sha256": "5aa27926be112379d04918ef239a434da1425b230aa14728afd993bc22db9880",
+      "screenshot": "local_artifacts/ai-speed-strength-20261026/browser-proof.png",
+      "screenshot_sha256": "1de424e9f976e18307ca978357a5fbf70bd563fbbe02b7330f07a8fa3c04ad36"
+    },
+    "tactical_oracle": {
+      "command": "node web/web前端/tests/verify-minimax-deepening.mjs",
+      "natural_terminals": 387,
+      "visited_nodes": 886,
+      "unique_winning_point": [
+        2,
+        0
+      ],
+      "old_four_ply_point": [
+        2,
+        2
+      ],
+      "complete_six_ply_point": [
+        2,
+        0
+      ],
+      "real_browser_completed_depth": 5,
+      "real_browser_selected_winning_point": true,
+      "scope": "One completely solved tactical position, not a general strength claim"
+    },
+    "hard_bundle": {
+      "sha256": "e5c855c2441291ee4f6961be26c86a16a4320040c545d8fcc84e241373d84d38",
+      "actual_worker_verification": "local_artifacts/ai-speed-strength-20261026/hard-worker-build-r1/actual-worker-verification.json"
+    },
+    "validator": {
+      "sha256": "3603fdd522d51ea405fe0ef9caf1e7f99348ab68f786870ae2e79cdb8604fd94",
+      "probes": 24
+    },
+    "independent_review": {
+      "path": "docs/verification/ai-speed-strength-20261026/independent-review.json",
+      "sha256": "951bb4f7ea17cf60112692409f6b9d4bd7afc34119b8acf70c6ce1944e22eccf"
+    },
+    "legacy_v2_review": {
+      "path": "docs/verification/ai-speed-strength-20261026/independent-legacy-v2-review.json",
+      "sha256": "21549304002696427ff49c71aae7accc1b799a869781a47876eef6e790a1b8e0"
+    }
+  },
+  "mini_candidate": {
+    "id": "0.12.15-fdf84a01320f-1CYu03",
+    "version": "0.12.15",
+    "candidate_sha256": "7c85f914fdfcb93c7cf1895a7a3fe5448e89204069eb7e5d70a1d1da5df62613",
+    "package_bytes": 19943112,
+    "status": "PREPARED_LOCAL_NOT_UPLOADED"
+  },
+  "limitations": [
+    "Some small/three-player cases are slightly slower; the extra deeper search can deliberately spend up to its soft extra window",
+    "15-board measured case is depth 2 and still exceeds one second; no all-positions one-second claim",
+    "Browser proof compares old compute with new Worker total; these time boundaries differ",
+    "Old verify-ai-search-15 frozen scores fail identically on the original delivered baseline; unchanged assertions and failed logs remain; a separate exact three-way differential passed",
+    "Inherited CONTROL-SKIP frozen assertion is not claimed passing",
+    "PASS V4 strict room-coordinate integration failed once under concurrent tests, then the unchanged full test passed isolated; failure log retained",
+    "Mini V3 real-action schema assertion was corrected, retaining strict raw-PASS proof probes and independently validating real Easy/Hard safe growth",
+    "No phone performance/overall win-rate/public Mini claim",
+    "No new model promotion; existing scoped terminal-policy report remains historical evidence bound to its original runtime"
+  ],
+  "publication": {
+    "github": "PENDING_SOURCE_COMMIT",
+    "web": "PENDING_DEPLOYMENT",
+    "mini": "PENDING_UPLOAD"
+  }
+}

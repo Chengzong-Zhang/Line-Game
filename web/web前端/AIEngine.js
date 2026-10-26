@@ -100,6 +100,28 @@ function applyMinimaxAction(engine, point, skipLeafAutoSkip = false) {
     : applyMoveForAI(engine, point, skipLeafAutoSkip);
 }
 
+const reachTopologies = new WeakMap();
+
+function reachTopology(engine) {
+  let topology = reachTopologies.get(engine);
+  if (topology?.positions === engine.validPositions
+    && topology.adjacencyMethod === engine.getAdjacentPositions) return topology;
+  const positions = engine.validPositions;
+  const indices = new Map(positions.map((point, index) => [pointKey(point), index]));
+  topology = {
+    positions,
+    adjacencyMethod: engine.getAdjacentPositions,
+    adjacent: positions.map((point) => engine.getAdjacentPositions(point)
+      .map((neighbor) => indices.get(pointKey(neighbor)))
+      .filter((index) => index !== undefined)),
+    visited: new Uint8Array(positions.length),
+    blocked: new Uint8Array(positions.length),
+    frontier: new Int32Array(positions.length),
+  };
+  reachTopologies.set(engine, topology);
+  return topology;
+}
+
 function fastTerritoryBFS(engine, player) {
   const myStates = engine._getPlayerStates(player);
   const opponentStates = new Set();
@@ -109,28 +131,31 @@ function fastTerritoryBFS(engine, player) {
     opponentStates.add(states.line);
   }
 
-  const frontier = [];
-  const visited = new Set();
-  for (const point of engine.validPositions) {
+  // Only immutable board adjacency is reused. Read every point's CURRENT
+  // occupancy on every call; no result is shared across histories or states.
+  const { positions, adjacent, frontier, visited, blocked } = reachTopology(engine);
+  visited.fill(0);
+  let length = 0;
+  for (let index = 0; index < positions.length; index += 1) {
+    const point = positions[index];
     const state = engine._getState(point);
+    blocked[index] = opponentStates.has(state) ? 1 : 0;
     if (state === myStates.node || state === myStates.line) {
-      const key = pointKey(point);
-      visited.add(key);
-      frontier.push(point);
+      visited[index] = 1;
+      frontier[length++] = index;
     }
   }
 
-  for (let index = 0; index < frontier.length; index += 1) {
-    for (const adjacent of engine.getAdjacentPositions(frontier[index])) {
-      const key = pointKey(adjacent);
-      if (!visited.has(key) && !opponentStates.has(engine._getState(adjacent))) {
-        visited.add(key);
-        frontier.push(adjacent);
+  for (let index = 0; index < length; index += 1) {
+    for (const neighbor of adjacent[frontier[index]]) {
+      if (!visited[neighbor] && !blocked[neighbor]) {
+        visited[neighbor] = 1;
+        frontier[length++] = neighbor;
       }
     }
   }
 
-  return visited.size;
+  return length;
 }
 
 function evaluate(engine, player) {
@@ -321,7 +346,7 @@ function comparePersistentLoss(left, right) {
   return left.nodes - right.nodes || left.coverage - right.coverage;
 }
 
-function boundedRootCutChainRisk(engine, defender) {
+function boundedRootCutChainRisk(engine, defender, check = null) {
   const remainingPlayers = survivingPlayers(engine);
   if (remainingPlayers.length !== 2 || !remainingPlayers.includes(defender)) return null;
   if (engine.gameOver || engine.currentPlayer === defender) {
@@ -332,6 +357,7 @@ function boundedRootCutChainRisk(engine, defender) {
   const origin = saveState(engine);
   const budget = { firstCuts: 0, responses: 0, transitions: 0 };
   const spendTransition = () => {
+    check?.();
     budget.transitions += 1;
     if (budget.transitions > ROOT_CUT_CHAIN_LIMITS.maxTransitions) {
       throw ROOT_CUT_CHAIN_LIMIT_REACHED;
@@ -432,7 +458,7 @@ function boundedRootCutChainRisk(engine, defender) {
   }
 }
 
-function boundedRootCutChainAttack(engine, attacker, defenderReference) {
+function boundedRootCutChainAttack(engine, attacker, defenderReference, check = null) {
   const remainingPlayers = survivingPlayers(engine);
   if (remainingPlayers.length !== 2 || !remainingPlayers.includes(attacker)) return null;
   const defender = remainingPlayers.find((player) => player !== attacker);
@@ -441,6 +467,7 @@ function boundedRootCutChainAttack(engine, attacker, defenderReference) {
   const origin = saveState(engine);
   const budget = { responses: 0, secondCuts: 0, transitions: 0 };
   const spendTransition = () => {
+    check?.();
     budget.transitions += 1;
     if (budget.transitions > ROOT_CUT_CHAIN_LIMITS.maxTransitions) {
       throw ROOT_CUT_CHAIN_LIMIT_REACHED;
@@ -535,7 +562,7 @@ function boundedRootCutChainAttack(engine, attacker, defenderReference) {
   }
 }
 
-function applyRootCutChainPreference(engine, player, scoredMoves, eligibleKeys) {
+function applyRootCutChainPreference(engine, player, scoredMoves, eligibleKeys, check = null) {
   const remainingPlayers = survivingPlayers(engine);
   if (remainingPlayers.length !== 2 || !remainingPlayers.includes(player)) return scoredMoves;
   // A deliberate PASS has no placement key and cannot be compared by the
@@ -554,6 +581,7 @@ function applyRootCutChainPreference(engine, player, scoredMoves, eligibleKeys) 
   const opponentReference = materialCounts(engine, opponent);
   const comparisons = new Map();
   for (const move of window) {
+    check?.();
     const snapshot = saveState(engine);
     try {
       if (!engine.playMove(move.point).success) return scoredMoves;
@@ -561,9 +589,9 @@ function applyRootCutChainPreference(engine, player, scoredMoves, eligibleKeys) 
       // move or an automatic skip back to the AI. Leave the ordinary search
       // value untouched and avoid material probes on that guarded transition.
       if (engine.gameOver || engine.currentPlayer === player) continue;
-      const risk = boundedRootCutChainRisk(engine, player);
+      const risk = boundedRootCutChainRisk(engine, player, check);
       if (risk === null) continue;
-      const attack = boundedRootCutChainAttack(engine, player, opponentReference);
+      const attack = boundedRootCutChainAttack(engine, player, opponentReference, check);
       if (attack === null) continue;
       comparisons.set(pointKey(move.point), {
         risk,
@@ -680,9 +708,61 @@ function orderMinimaxMoves(engine, moves, player) {
     .slice(0, 20).map(({ point }) => point);
 }
 
+const MINIMAX_EXTENSION_EXPIRED = Symbol("Minimax optional deeper iteration expired");
+const nativeWinnerMethods = new WeakMap();
+
+function minimaxTerminalWinner(engine) {
+  const winnerMethod = engine.getWinner;
+  if (!nativeWinnerMethods.has(winnerMethod)) {
+    nativeWinnerMethods.set(winnerMethod, winnerMethod === GameEngine.prototype.getWinner
+      || Function.prototype.toString.call(winnerMethod)
+        === Function.prototype.toString.call(GameEngine.prototype.getWinner));
+  }
+  if (engine.rulesVersion !== "territory-v3" || !engine.hasPendingTerritoryUpdate()
+    || !nativeWinnerMethods.get(winnerMethod)) return engine.getWinner();
+  // Native v3 scores depend on owned walls and enemy-free pockets. Search
+  // needs only these exact integer areas, not the v2 display polygons that
+  // getWinner() normally refreshes for the visible board. Use the SAME native
+  // area routine without marking the caller's display cache as up to date.
+  const owned = new Map(engine.activePlayers.map((player) => [player,
+    [...engine._getPlayerNodes(player), ...engine._getPlayerLines(player)]]));
+  const alive = engine.activePlayers.filter((player) => !engine.resignedPlayers.has(player));
+  let bestArea = Number.NEGATIVE_INFINITY, winner = null, draw = false;
+  for (const player of alive.length ? alive : engine.activePlayers) {
+    const enemies = getOpponents(engine, player).flatMap((opponent) => owned.get(opponent));
+    const area = engine._computeOwnedWallArea(owned.get(player), enemies);
+    if (area > bestArea) { bestArea = area; winner = player; draw = false; }
+    else if (area === bestArea) draw = true;
+  }
+  return draw ? "DRAW" : winner;
+}
+
 class MinimaxAI {
-  constructor(depth = 3) {
+  constructor(depth = 3, { rootPruning = true, moveOrdering = true,
+    iterativeDeepening = false, extensionTimeMs = 100, maxExtraDepth = 2,
+    now = () => performance.now() } = {}) {
+    if (!Number.isFinite(extensionTimeMs) || !(extensionTimeMs > 0) || !Number.isInteger(maxExtraDepth)
+      || maxExtraDepth < 0 || maxExtraDepth > 2 || typeof now !== "function") {
+      throw new Error("Invalid Minimax deeper-search settings");
+    }
     this.depth = depth;
+    this.rootPruning = rootPruning;
+    this.moveOrdering = moveOrdering;
+    Object.assign(this, { iterativeDeepening, extensionTimeMs, maxExtraDepth, now });
+    this.lastSearch = null;
+  }
+
+  checkSearchBudget() {
+    if (this._searchDeadline !== undefined) {
+      const time = this.searchTime();
+      if (time >= this._searchDeadline) throw MINIMAX_EXTENSION_EXPIRED;
+    }
+  }
+
+  searchTime() {
+    const time = this.now();
+    if (!Number.isFinite(time)) throw new Error("Invalid Minimax search clock");
+    return time;
   }
 
   getLegalMoves(engine, player) {
@@ -698,9 +778,9 @@ class MinimaxAI {
       // A voluntary PASS can end the game while placements still exist.  Once
       // that happens, compare the canonical rule result instead of letting a
       // nonterminal reach/coverage heuristic decide whether ending was good.
-      // getWinner() refreshes exact terminal territory when the display cache
-      // is pending; the enclosing search snapshot restores that cache.
-      const winner = engine.getWinner();
+      // V3 can query the exact native area without generating display-only
+      // polygons; legacy rules retain their original canonical winner path.
+      const winner = minimaxTerminalWinner(engine);
       if (winner === "DRAW") return 0;
       return winner === player ? 1_000_000 : -1_000_000;
     }
@@ -708,13 +788,33 @@ class MinimaxAI {
   }
 
   minimax(engine, depth, alpha, beta, aiPlayer) {
+    this.checkSearchBudget();
+    if (this._searchStats) this._searchStats.nodes += 1;
     if (engine.gameOver || depth === 0) {
+      if (this._searchStats) this._searchStats.leaves += 1;
       return this.evaluate(engine, aiPlayer);
     }
 
     const legalMoves = this.getLegalMoves(engine, engine.currentPlayer);
     const ordered = this.orderMoves(engine, legalMoves, engine.currentPlayer);
     const actions = [...ordered, null];
+    // A cutoff from another branch is a useful first reply, not a value cache.
+    // Reorder ONLY the already selected legal actions, retaining PASS and the
+    // original 20-placement set. Histories and root values are never merged.
+    const killers = this._killerMoves?.get(depth);
+    if (killers?.length) {
+      const priority = (point) => {
+        const index = killers.indexOf(point === null ? "PASS" : pointKey(point));
+        return index < 0 ? killers.length : index;
+      };
+      actions.sort((left, right) => priority(left) - priority(right));
+    }
+    const rememberCutoff = (point) => {
+      if (!this._killerMoves) return;
+      const key = point === null ? "PASS" : pointKey(point);
+      const previous = this._killerMoves.get(depth) ?? [];
+      this._killerMoves.set(depth, [key, ...previous.filter((entry) => entry !== key)].slice(0, 2));
+    };
     // Automatic skip normalization can leave the same player in control.
     // Derive MAX/MIN from the engine state instead of recursion depth parity.
     const maximizingPlayer = engine.currentPlayer === aiPlayer;
@@ -733,6 +833,8 @@ class MinimaxAI {
           restoreState(engine, snapshot);
         }
         if (beta <= alpha) {
+          if (this._searchStats) this._searchStats.cutoffs += 1;
+          rememberCutoff(point);
           break;
         }
       }
@@ -753,6 +855,8 @@ class MinimaxAI {
         restoreState(engine, snapshot);
       }
       if (beta <= alpha) {
+        if (this._searchStats) this._searchStats.cutoffs += 1;
+        rememberCutoff(point);
         break;
       }
     }
@@ -760,15 +864,70 @@ class MinimaxAI {
   }
 
   getTopMoves(engine, aiPlayer, topN = 5) {
+    const base = this.searchAtDepth(engine, aiPlayer, topN);
+    // Finish the requested search FIRST. The optional Hard upgrade spends a
+    // separate small window on deeper COMPLETE iterations; a timed-out tree
+    // never replaces the complete baseline or leaks partial alternative scores.
+    if (!this.iterativeDeepening || this.depth < 4 || !base.length
+      || engine.gameOver || survivingPlayers(engine).length !== 2
+      || engine.validPositions.length > 55 || this.maxExtraDepth === 0) return base;
+    const baseDepth = this.depth, baseStats = this.lastSearch;
+    const previousDeadline = this._searchDeadline;
+    const started = this.searchTime();
+    this._searchDeadline = started + this.extensionTimeMs;
+    let moves = base, completedDepth = baseDepth, interrupted = false;
+    const iterations = [];
+    try {
+      for (let extra = 1; extra <= this.maxExtraDepth; extra += 1) {
+        this.depth = baseDepth + extra;
+        let iterationStarted = false;
+        try {
+          this.checkSearchBudget();
+          iterationStarted = true;
+          const deeper = this.searchAtDepth(engine, aiPlayer, topN);
+          this.checkSearchBudget();
+          iterations.push({ ...this.lastSearch, complete: true });
+          moves = deeper;
+          completedDepth = this.depth;
+        } catch (error) {
+          if (error !== MINIMAX_EXTENSION_EXPIRED) throw error;
+          iterations.push({ ...(iterationStarted ? this.lastSearch
+            : { nodes: 0, leaves: 0, cutoffs: 0, rootActions: 0 }),
+          depth: this.depth, complete: false });
+          interrupted = true;
+          break;
+        }
+      }
+      return moves;
+    } finally {
+      this.depth = baseDepth;
+      this._searchDeadline = previousDeadline;
+      this.lastSearch = { ...baseStats, depth: completedDepth, baseDepth,
+        iterativeDeepening: true, extensionTimeMs: this.extensionTimeMs,
+        extensionElapsedMs: this.searchTime() - started, extensionInterrupted: interrupted,
+        completedDepth, deeperIterations: iterations };
+    }
+  }
+
+  searchAtDepth(engine, aiPlayer, topN) {
     // Search transitions only need success/failure, never the UI snapshot that
     // GameEngine.playMove normally creates.  Reuse its replay flag while all
     // speculative branches are bracketed, then restore the caller's value.
     // This also suppresses display-only territory work during simulation.
     const previousReplayFlag = engine._isReplayingBatch;
+    const previousSearchStats = this._searchStats;
+    const previousKillerMoves = this._killerMoves;
+    const stats = { depth: this.depth, nodes: 0, leaves: 0, cutoffs: 0,
+      rootActions: 0, exactRoots: 0, prunedRoots: 0, rootPruning: this.rootPruning,
+      moveOrdering: this.moveOrdering };
+    this._searchStats = stats;
+    this._killerMoves = this.moveOrdering ? new Map() : null;
     engine._isReplayingBatch = true;
     try {
+      this.checkSearchBudget();
       const legalMoves = this.getLegalMoves(engine, aiPlayer);
       const ordered = this.orderMoves(engine, legalMoves, aiPlayer);
+      this.checkSearchBudget();
       // The first move of an unavoidable two-cut sequence can be a reinforcing
       // placement on an empty point, so compare the bounded leading window,
       // rather than only moves that already occupy a line.
@@ -776,7 +935,17 @@ class MinimaxAI {
       const previousOpponentMaterial = this.depth > 1
         ? opponentRiskMaterial(engine, aiPlayer) : 0;
       const scoredMoves = [];
+      // The cut-chain overlay compares four placements, and PASS can occupy
+      // one ranking slot. Retain enough EXACT scores for both that comparison
+      // and the requested alternatives. A later root tied with the threshold
+      // cannot displace an earlier root because the original sort is stable.
+      // Nonstandard slice requests retain the original full-window behavior.
+      const retainedRoots = this.rootPruning && Number.isFinite(topN) && topN > 0
+        ? Math.max(ROOT_CUT_CHAIN_LIMITS.rankingWidth + 1, Math.ceil(topN) + 1)
+        : Number.POSITIVE_INFINITY;
       for (const point of [...ordered, null]) {
+        this.checkSearchBudget();
+        stats.rootActions += 1;
         const snapshot = saveState(engine);
         try {
           const applied = applyMinimaxAction(engine, point, this.depth <= 1);
@@ -786,18 +955,34 @@ class MinimaxAI {
             // a speculative later recovery should not erase an imminent cut.
             const immediateRisk = this.depth > 1
               ? immediateRiskPenalty(engine, aiPlayer, previousOpponentMaterial) : 0;
+            this.checkSearchBudget();
+            const riskPenalty = MINIMAX_WEIGHTS.rootRiskAversion * immediateRisk;
+            const threshold = scoredMoves.length >= retainedRoots
+              ? scoredMoves[retainedRoots - 1].score : Number.NEGATIVE_INFINITY;
             const score = this.minimax(
               engine,
               this.depth - 1,
-              Number.NEGATIVE_INFINITY,
+              threshold + riskPenalty,
               Number.POSITIVE_INFINITY,
               aiPlayer,
-            );
+            ) - riskPenalty;
+            // With an infinite upper window, a result above alpha is exact.
+            // A fail-low result is only an upper bound: it can be discarded,
+            // but must NEVER be exposed as an exact alternative/root value.
+            if (Number.isFinite(threshold) && score <= threshold) {
+              stats.prunedRoots += 1;
+              continue;
+            }
+            stats.exactRoots += 1;
             scoredMoves.push({
               point,
               ...(point === null ? { type: "pass" } : {}),
-              score: score - MINIMAX_WEIGHTS.rootRiskAversion * immediateRisk,
+              score,
             });
+            if (Number.isFinite(retainedRoots)) {
+              scoredMoves.sort((a, b) => b.score - a.score);
+              if (scoredMoves.length > retainedRoots) scoredMoves.length = retainedRoots;
+            }
           }
         } finally {
           restoreState(engine, snapshot);
@@ -806,8 +991,10 @@ class MinimaxAI {
 
       scoredMoves.sort((a, b) => b.score - a.score);
       if (this.depth > 1) {
-        applyRootCutChainPreference(engine, aiPlayer, scoredMoves, rootCutChainEligible);
+        applyRootCutChainPreference(engine, aiPlayer, scoredMoves, rootCutChainEligible,
+          this._searchDeadline === undefined ? null : () => this.checkSearchBudget());
       }
+      this.checkSearchBudget();
       // Existing placement callers use topN as a list of alternative points.
       // PASS only needs to leave the search when it is the selected action;
       // omitting a lower-ranked pass keeps those alternatives and their frozen
@@ -817,6 +1004,9 @@ class MinimaxAI {
       return (selectedPass ? [selectedPass, ...placementMoves] : placementMoves).slice(0, topN);
     } finally {
       engine._isReplayingBatch = previousReplayFlag;
+      this._searchStats = previousSearchStats;
+      this._killerMoves = previousKillerMoves;
+      this.lastSearch = stats;
     }
   }
 }

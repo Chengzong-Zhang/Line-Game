@@ -15,9 +15,10 @@
       "overrideSha256": "c6bfad2eb6798393347447eb417d73d3d0b5229c2c570dd7aa05009000434185"
     },
     "web/web前端/MultiplayerHardFallback.js": {
-      "canonicalSha256": "100c2a1f99f358de3fad8ae0ea551330efad7eddcdd17404b23c1b062833a5e0",
+      "canonicalSha256": "2758b8f11cb380b6e58c7651f0ec3ba73b4cc02964a34ff980778a29de261447",
       "override": "wechat/minigame/compat/web/MultiplayerHardFallback.js",
-      "overrideSha256": "1b7ef02c3bad6835028ff404b27f2cf3b8c8a64af51952069e4e3d9aa92ab0fd"
+      "overrideSha256": "7a5e5f681088991f2d9a88cc3f704e991faf408ef1f1675b3e74c77b832a4398",
+      "reason": "Preserve native clock/clone imports and cache-query adaptations while synchronizing complete-domain continuation argmax; root ranking, softmax, scores and deadline polls remain unchanged."
     },
     "web/web前端/MultiplayerHardResources.js": {
       "canonicalSha256": "9d3f5852143a66cbe19fb764855e0b897dd5aaa0177b7f08c2720a44c05f51a2",
@@ -25,9 +26,10 @@
       "overrideSha256": "654f544b7129c996c2b120aed1782e2d98f0d9853dbda335fa194f076fcb1699"
     },
     "web/web前端/MultiplayerHardRollout.js": {
-      "canonicalSha256": "e24a25eb89fc27ea3dfc3dc06a718f368ab967b5474ef28f146e403b2591f1ab",
+      "canonicalSha256": "01acae2c25004f6841846b199a57e9ea50d76a0046b419ad615f599b2bf7ee7d",
       "override": "wechat/minigame/compat/web/MultiplayerHardRollout.js",
-      "overrideSha256": "25c83d849b4816ab258747a7d90e75a1404b0919fb4b85715335196bdb452568"
+      "overrideSha256": "8fdc052df99086c30c88f4a75a3b0142338c42d9ee32472d04bea74f3f05fb0a",
+      "reason": "Preserve native clock and historical cache queries while synchronizing complete-domain continuation argmax; root ranking, candidates, scores and deadline polls remain unchanged."
     },
     "web/web前端/MultiplayerHardRuntime.js": {
       "canonicalSha256": "f071276ef92194f75a2032af0e0a35dba762dfe3e9a8bc657b5d47b11df7a630",
@@ -91,10 +93,10 @@
       "reason": "Share the current canonical guide, including explicit ModelFree PASS actions and terminal-only linear continuation; native reader uses the same prose."
     },
     "web/web前端/AIEngine.js": {
-      "canonicalSha256": "792b8225aea9b4c68990a47a1658fed2a13bd2e4e52186113c9a25efdd5c2694",
+      "canonicalSha256": "695c8ddf1db6e8d897929da7660dc8dc9f7e66e219b80e6dfab4c38067e4a082",
       "override": "wechat/minigame/compat/web/AIEngine.js",
-      "overrideSha256": "fd43cd3053a0b92569a4d26524a036f45a2920271cc06a49ef0200aec07ffabf",
-      "reason": "Preserve the native service source bytes, including its historical import query token; browser source remains canonical."
+      "overrideSha256": "f5dc5b498ae9b684c1d7f4152b5f853e45d884894553894e9bbdbbe284280a95",
+      "reason": "Synchronize canonical exact Minimax search, BFS, scalar terminal scoring and bounded complete-iteration deepening; preserve the historical native import query token and use the shared monotonic millisecond clock without requiring a performance global."
     },
     "web/web前端/ModelFreeAI.js": {
       "canonicalSha256": "baeccb4aba92d79dda581f64f145675d6558892aeb4cb3f7df0b05507e24ffa6",

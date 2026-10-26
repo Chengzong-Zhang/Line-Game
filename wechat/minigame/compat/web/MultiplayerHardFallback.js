@@ -21,6 +21,19 @@ function linearRanking(engine, player, spec, check, completed = []) {
   }, { beforeCandidate: check });
   check(); return finishLinear(completed);
 }
+// Keep full ranking/softmax for roots. A continuation needs only its argmax,
+// with the same complete enumeration, arithmetic, tie order and deadline polls.
+function linearAction(engine, player, spec, check) {
+  let best = null;
+  visitPolicyCandidates(engine, player, candidate => {
+    const score = candidate.features.reduce((sum, value, i) => sum + value * spec.weights[i], 0) / (spec.temperature ?? 1);
+    if (!Number.isFinite(score)) throw new Error("Invalid isolated Hard linear score");
+    check();
+    if (!best || score > best.score || (score === best.score && pointOrder(candidate, best) < 0))
+      best = { point: candidate.point, score, visits: 1 };
+  }, { beforeCandidate: check });
+  check(); return best;
+}
 function rankEvaluated(evaluated, baseline, minimumImprovement) {
   const ranked = [...evaluated].sort((a, b) => b.score - a.score || b.margin - a.margin
     || b.baseScore - a.baseScore || pointOrder(a, b));
@@ -107,7 +120,7 @@ export class HardDeadlineFallbackV2 {
             check(); stats.simulatedActions++;
             for (let ply = 0; ply < this.spec.search.rolloutPlies && !engine.gameOver; ply++) {
               check(); const spec = engine.currentPlayer === player ? this.spec : opponent;
-              const reply = linearRanking(engine, engine.currentPlayer, spec, check)[0]?.point ?? null;
+              const reply = linearAction(engine, engine.currentPlayer, spec, check)?.point ?? null;
               if (!(reply ? engine.playMove(reply) : engine.skipTurn()).success) throw new Error("Invalid isolated v4 rollout action");
               check(); stats.simulatedActions++;
             }

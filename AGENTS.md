@@ -56,19 +56,11 @@ These rules apply to all future work in this repository.
 
 ## Future product AI training
 
-- New supervised product AI training data must come from the versioned defensive teacher:
+- New product AI training data must come from the versioned defensive teacher:
   `web/web前端/DefensiveTrainingTeacher.js`, through
   `web/tools/defensive-training-data-v1.mjs`. Fit isolated candidates with
   `web/tools/train-defensive-policy-v1.mjs`; do not restart retired shallow-label
   or rollout-only product training protocols to bypass this requirement.
-- Terminal-only reinforcement continuation is also supported by the separately
-  versioned `web/tools/train-terminal-policy-v4.mjs` protocol: nonterminal
-  rewards are exactly zero, gamma is 1, and returns use only native naturally
-  terminated games. A truncated game never supplies a return or an update.
-  Complete full-action Minimax from `PassOpportunityTrainingTeacher.js` gates
-  eligible decisions and a fixed defensive mask; its leaf scores are never
-  environment rewards. Keep selected-state coverage and this mask's effect
-  explicit. Do not call context-only or singleton-mask decisions training.
 - Every label must prove actual completed Minimax depth >= 3. Requested depth,
   partial iterations, timed-out fallbacks and heuristic-only actions are not
   sufficient. The current teacher additionally requires at least two rounds of

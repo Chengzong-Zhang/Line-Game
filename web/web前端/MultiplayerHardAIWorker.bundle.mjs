@@ -2452,6 +2452,22 @@ function applyMoveForAI(engine, point, skipLeafAutoSkip = false) {
 function applyMinimaxAction(engine, point, skipLeafAutoSkip = false) {
   return point === null ? engine.skipTurn().success : applyMoveForAI(engine, point, skipLeafAutoSkip);
 }
+function reachTopology(engine) {
+  let topology = reachTopologies.get(engine);
+  if (topology?.positions === engine.validPositions && topology.adjacencyMethod === engine.getAdjacentPositions) return topology;
+  const positions = engine.validPositions;
+  const indices = new Map(positions.map((point, index) => [pointKey2(point), index]));
+  topology = {
+    positions,
+    adjacencyMethod: engine.getAdjacentPositions,
+    adjacent: positions.map((point) => engine.getAdjacentPositions(point).map((neighbor) => indices.get(pointKey2(neighbor))).filter((index) => index !== void 0)),
+    visited: new Uint8Array(positions.length),
+    blocked: new Uint8Array(positions.length),
+    frontier: new Int32Array(positions.length)
+  };
+  reachTopologies.set(engine, topology);
+  return topology;
+}
 function fastTerritoryBFS(engine, player) {
   const myStates = engine._getPlayerStates(player);
   const opponentStates = /* @__PURE__ */ new Set();
@@ -2460,26 +2476,27 @@ function fastTerritoryBFS(engine, player) {
     opponentStates.add(states.node);
     opponentStates.add(states.line);
   }
-  const frontier = [];
-  const visited = /* @__PURE__ */ new Set();
-  for (const point of engine.validPositions) {
+  const { positions, adjacent, frontier, visited, blocked } = reachTopology(engine);
+  visited.fill(0);
+  let length = 0;
+  for (let index = 0; index < positions.length; index += 1) {
+    const point = positions[index];
     const state = engine._getState(point);
+    blocked[index] = opponentStates.has(state) ? 1 : 0;
     if (state === myStates.node || state === myStates.line) {
-      const key7 = pointKey2(point);
-      visited.add(key7);
-      frontier.push(point);
+      visited[index] = 1;
+      frontier[length++] = index;
     }
   }
-  for (let index = 0; index < frontier.length; index += 1) {
-    for (const adjacent of engine.getAdjacentPositions(frontier[index])) {
-      const key7 = pointKey2(adjacent);
-      if (!visited.has(key7) && !opponentStates.has(engine._getState(adjacent))) {
-        visited.add(key7);
-        frontier.push(adjacent);
+  for (let index = 0; index < length; index += 1) {
+    for (const neighbor of adjacent[frontier[index]]) {
+      if (!visited[neighbor] && !blocked[neighbor]) {
+        visited[neighbor] = 1;
+        frontier[length++] = neighbor;
       }
     }
   }
-  return visited.size;
+  return length;
 }
 function evaluate(engine, player) {
   const opponents = getOpponents(engine, player);
@@ -2602,7 +2619,7 @@ function survivingPlayers(engine) {
 function comparePersistentLoss(left, right) {
   return left.nodes - right.nodes || left.coverage - right.coverage;
 }
-function boundedRootCutChainRisk(engine, defender) {
+function boundedRootCutChainRisk(engine, defender, check4 = null) {
   const remainingPlayers = survivingPlayers(engine);
   if (remainingPlayers.length !== 2 || !remainingPlayers.includes(defender)) return null;
   if (engine.gameOver || engine.currentPlayer === defender) {
@@ -2612,6 +2629,7 @@ function boundedRootCutChainRisk(engine, defender) {
   const origin = saveState(engine);
   const budget = { firstCuts: 0, responses: 0, transitions: 0 };
   const spendTransition = /* @__PURE__ */ __name(() => {
+    check4?.();
     budget.transitions += 1;
     if (budget.transitions > ROOT_CUT_CHAIN_LIMITS.maxTransitions) {
       throw ROOT_CUT_CHAIN_LIMIT_REACHED;
@@ -2697,7 +2715,7 @@ function boundedRootCutChainRisk(engine, defender) {
     restoreState(engine, origin);
   }
 }
-function boundedRootCutChainAttack(engine, attacker, defenderReference) {
+function boundedRootCutChainAttack(engine, attacker, defenderReference, check4 = null) {
   const remainingPlayers = survivingPlayers(engine);
   if (remainingPlayers.length !== 2 || !remainingPlayers.includes(attacker)) return null;
   const defender = remainingPlayers.find((player) => player !== attacker);
@@ -2705,6 +2723,7 @@ function boundedRootCutChainAttack(engine, attacker, defenderReference) {
   const origin = saveState(engine);
   const budget = { responses: 0, secondCuts: 0, transitions: 0 };
   const spendTransition = /* @__PURE__ */ __name(() => {
+    check4?.();
     budget.transitions += 1;
     if (budget.transitions > ROOT_CUT_CHAIN_LIMITS.maxTransitions) {
       throw ROOT_CUT_CHAIN_LIMIT_REACHED;
@@ -2776,7 +2795,7 @@ function boundedRootCutChainAttack(engine, attacker, defenderReference) {
     restoreState(engine, origin);
   }
 }
-function applyRootCutChainPreference(engine, player, scoredMoves, eligibleKeys) {
+function applyRootCutChainPreference(engine, player, scoredMoves, eligibleKeys, check4 = null) {
   const remainingPlayers = survivingPlayers(engine);
   if (remainingPlayers.length !== 2 || !remainingPlayers.includes(player)) return scoredMoves;
   if (!scoredMoves.length || scoredMoves[0].point === null) return scoredMoves;
@@ -2788,13 +2807,14 @@ function applyRootCutChainPreference(engine, player, scoredMoves, eligibleKeys) 
   const opponentReference = materialCounts(engine, opponent);
   const comparisons = /* @__PURE__ */ new Map();
   for (const move of window) {
+    check4?.();
     const snapshot = saveState(engine);
     try {
       if (!engine.playMove(move.point).success) return scoredMoves;
       if (engine.gameOver || engine.currentPlayer === player) continue;
-      const risk = boundedRootCutChainRisk(engine, player);
+      const risk = boundedRootCutChainRisk(engine, player, check4);
       if (risk === null) continue;
-      const attack = boundedRootCutChainAttack(engine, player, opponentReference);
+      const attack = boundedRootCutChainAttack(engine, player, opponentReference, check4);
       if (attack === null) continue;
       comparisons.set(pointKey2(move.point), {
         risk,
@@ -2881,7 +2901,30 @@ function orderMinimaxMoves(engine, moves, player) {
     return { point, index, defense, tier };
   }).sort((left, right) => left.tier - right.tier || right.defense - left.defense || left.index - right.index).slice(0, 20).map(({ point }) => point);
 }
-var MINIMAX_WEIGHTS, ROOT_CUT_CHAIN_LIMITS, ROOT_CUT_CHAIN_LIMIT_REACHED, MinimaxAI, GreedyAI, MCTSAI;
+function minimaxTerminalWinner(engine) {
+  const winnerMethod = engine.getWinner;
+  if (!nativeWinnerMethods.has(winnerMethod)) {
+    nativeWinnerMethods.set(winnerMethod, winnerMethod === GameEngine.prototype.getWinner || Function.prototype.toString.call(winnerMethod) === Function.prototype.toString.call(GameEngine.prototype.getWinner));
+  }
+  if (engine.rulesVersion !== "territory-v3" || !engine.hasPendingTerritoryUpdate() || !nativeWinnerMethods.get(winnerMethod)) return engine.getWinner();
+  const owned = new Map(engine.activePlayers.map((player) => [
+    player,
+    [...engine._getPlayerNodes(player), ...engine._getPlayerLines(player)]
+  ]));
+  const alive = engine.activePlayers.filter((player) => !engine.resignedPlayers.has(player));
+  let bestArea = Number.NEGATIVE_INFINITY, winner = null, draw = false;
+  for (const player of alive.length ? alive : engine.activePlayers) {
+    const enemies = getOpponents(engine, player).flatMap((opponent) => owned.get(opponent));
+    const area = engine._computeOwnedWallArea(owned.get(player), enemies);
+    if (area > bestArea) {
+      bestArea = area;
+      winner = player;
+      draw = false;
+    } else if (area === bestArea) draw = true;
+  }
+  return draw ? "DRAW" : winner;
+}
+var reachTopologies, MINIMAX_WEIGHTS, ROOT_CUT_CHAIN_LIMITS, ROOT_CUT_CHAIN_LIMIT_REACHED, MINIMAX_EXTENSION_EXPIRED, nativeWinnerMethods, MinimaxAI, GreedyAI, MCTSAI;
 var init_AIEngine = __esm({
   "application-hard:AIEngine.js"() {
     init_GameEngine();
@@ -2892,6 +2935,8 @@ var init_AIEngine = __esm({
     __name(restoreState, "restoreState");
     __name(applyMoveForAI, "applyMoveForAI");
     __name(applyMinimaxAction, "applyMinimaxAction");
+    reachTopologies = /* @__PURE__ */ new WeakMap();
+    __name(reachTopology, "reachTopology");
     __name(fastTerritoryBFS, "fastTerritoryBFS");
     __name(evaluate, "evaluate");
     __name(orderMoves, "orderMoves");
@@ -2932,12 +2977,40 @@ var init_AIEngine = __esm({
     __name(immediateRiskPenalty, "immediateRiskPenalty");
     __name(evaluateMinimax, "evaluateMinimax");
     __name(orderMinimaxMoves, "orderMinimaxMoves");
+    MINIMAX_EXTENSION_EXPIRED = Symbol("Minimax optional deeper iteration expired");
+    nativeWinnerMethods = /* @__PURE__ */ new WeakMap();
+    __name(minimaxTerminalWinner, "minimaxTerminalWinner");
     MinimaxAI = class {
       static {
         __name(this, "MinimaxAI");
       }
-      constructor(depth = 3) {
+      constructor(depth = 3, {
+        rootPruning = true,
+        moveOrdering = true,
+        iterativeDeepening = false,
+        extensionTimeMs = 100,
+        maxExtraDepth = 2,
+        now = /* @__PURE__ */ __name(() => performance.now(), "now")
+      } = {}) {
+        if (!Number.isFinite(extensionTimeMs) || !(extensionTimeMs > 0) || !Number.isInteger(maxExtraDepth) || maxExtraDepth < 0 || maxExtraDepth > 2 || typeof now !== "function") {
+          throw new Error("Invalid Minimax deeper-search settings");
+        }
         this.depth = depth;
+        this.rootPruning = rootPruning;
+        this.moveOrdering = moveOrdering;
+        Object.assign(this, { iterativeDeepening, extensionTimeMs, maxExtraDepth, now });
+        this.lastSearch = null;
+      }
+      checkSearchBudget() {
+        if (this._searchDeadline !== void 0) {
+          const time = this.searchTime();
+          if (time >= this._searchDeadline) throw MINIMAX_EXTENSION_EXPIRED;
+        }
+      }
+      searchTime() {
+        const time = this.now();
+        if (!Number.isFinite(time)) throw new Error("Invalid Minimax search clock");
+        return time;
       }
       getLegalMoves(engine, player) {
         return engine.getLegalMoves(player).map((move) => move.point);
@@ -2947,19 +3020,36 @@ var init_AIEngine = __esm({
       }
       evaluate(engine, player) {
         if (engine.gameOver) {
-          const winner = engine.getWinner();
+          const winner = minimaxTerminalWinner(engine);
           if (winner === "DRAW") return 0;
           return winner === player ? 1e6 : -1e6;
         }
         return evaluateMinimax(engine, player);
       }
       minimax(engine, depth, alpha, beta, aiPlayer) {
+        this.checkSearchBudget();
+        if (this._searchStats) this._searchStats.nodes += 1;
         if (engine.gameOver || depth === 0) {
+          if (this._searchStats) this._searchStats.leaves += 1;
           return this.evaluate(engine, aiPlayer);
         }
         const legalMoves = this.getLegalMoves(engine, engine.currentPlayer);
         const ordered = this.orderMoves(engine, legalMoves, engine.currentPlayer);
         const actions = [...ordered, null];
+        const killers = this._killerMoves?.get(depth);
+        if (killers?.length) {
+          const priority = /* @__PURE__ */ __name((point) => {
+            const index = killers.indexOf(point === null ? "PASS" : pointKey2(point));
+            return index < 0 ? killers.length : index;
+          }, "priority");
+          actions.sort((left, right) => priority(left) - priority(right));
+        }
+        const rememberCutoff = /* @__PURE__ */ __name((point) => {
+          if (!this._killerMoves) return;
+          const key7 = point === null ? "PASS" : pointKey2(point);
+          const previous = this._killerMoves.get(depth) ?? [];
+          this._killerMoves.set(depth, [key7, ...previous.filter((entry) => entry !== key7)].slice(0, 2));
+        }, "rememberCutoff");
         const maximizingPlayer = engine.currentPlayer === aiPlayer;
         if (maximizingPlayer) {
           let bestValue2 = Number.NEGATIVE_INFINITY;
@@ -2976,6 +3066,8 @@ var init_AIEngine = __esm({
               restoreState(engine, snapshot);
             }
             if (beta <= alpha) {
+              if (this._searchStats) this._searchStats.cutoffs += 1;
+              rememberCutoff(point);
               break;
             }
           }
@@ -2995,38 +3087,121 @@ var init_AIEngine = __esm({
             restoreState(engine, snapshot);
           }
           if (beta <= alpha) {
+            if (this._searchStats) this._searchStats.cutoffs += 1;
+            rememberCutoff(point);
             break;
           }
         }
         return bestValue;
       }
       getTopMoves(engine, aiPlayer, topN = 5) {
+        const base = this.searchAtDepth(engine, aiPlayer, topN);
+        if (!this.iterativeDeepening || this.depth < 4 || !base.length || engine.gameOver || survivingPlayers(engine).length !== 2 || engine.validPositions.length > 55 || this.maxExtraDepth === 0) return base;
+        const baseDepth = this.depth, baseStats = this.lastSearch;
+        const previousDeadline = this._searchDeadline;
+        const started = this.searchTime();
+        this._searchDeadline = started + this.extensionTimeMs;
+        let moves = base, completedDepth = baseDepth, interrupted = false;
+        const iterations = [];
+        try {
+          for (let extra = 1; extra <= this.maxExtraDepth; extra += 1) {
+            this.depth = baseDepth + extra;
+            let iterationStarted = false;
+            try {
+              this.checkSearchBudget();
+              iterationStarted = true;
+              const deeper = this.searchAtDepth(engine, aiPlayer, topN);
+              this.checkSearchBudget();
+              iterations.push({ ...this.lastSearch, complete: true });
+              moves = deeper;
+              completedDepth = this.depth;
+            } catch (error) {
+              if (error !== MINIMAX_EXTENSION_EXPIRED) throw error;
+              iterations.push({
+                ...iterationStarted ? this.lastSearch : { nodes: 0, leaves: 0, cutoffs: 0, rootActions: 0 },
+                depth: this.depth,
+                complete: false
+              });
+              interrupted = true;
+              break;
+            }
+          }
+          return moves;
+        } finally {
+          this.depth = baseDepth;
+          this._searchDeadline = previousDeadline;
+          this.lastSearch = {
+            ...baseStats,
+            depth: completedDepth,
+            baseDepth,
+            iterativeDeepening: true,
+            extensionTimeMs: this.extensionTimeMs,
+            extensionElapsedMs: this.searchTime() - started,
+            extensionInterrupted: interrupted,
+            completedDepth,
+            deeperIterations: iterations
+          };
+        }
+      }
+      searchAtDepth(engine, aiPlayer, topN) {
         const previousReplayFlag = engine._isReplayingBatch;
+        const previousSearchStats = this._searchStats;
+        const previousKillerMoves = this._killerMoves;
+        const stats = {
+          depth: this.depth,
+          nodes: 0,
+          leaves: 0,
+          cutoffs: 0,
+          rootActions: 0,
+          exactRoots: 0,
+          prunedRoots: 0,
+          rootPruning: this.rootPruning,
+          moveOrdering: this.moveOrdering
+        };
+        this._searchStats = stats;
+        this._killerMoves = this.moveOrdering ? /* @__PURE__ */ new Map() : null;
         engine._isReplayingBatch = true;
         try {
+          this.checkSearchBudget();
           const legalMoves = this.getLegalMoves(engine, aiPlayer);
           const ordered = this.orderMoves(engine, legalMoves, aiPlayer);
+          this.checkSearchBudget();
           const rootCutChainEligible = new Set(ordered.map(pointKey2));
           const previousOpponentMaterial = this.depth > 1 ? opponentRiskMaterial(engine, aiPlayer) : 0;
           const scoredMoves = [];
+          const retainedRoots = this.rootPruning && Number.isFinite(topN) && topN > 0 ? Math.max(ROOT_CUT_CHAIN_LIMITS.rankingWidth + 1, Math.ceil(topN) + 1) : Number.POSITIVE_INFINITY;
           for (const point of [...ordered, null]) {
+            this.checkSearchBudget();
+            stats.rootActions += 1;
             const snapshot = saveState(engine);
             try {
               const applied = applyMinimaxAction(engine, point, this.depth <= 1);
               if (applied) {
                 const immediateRisk = this.depth > 1 ? immediateRiskPenalty(engine, aiPlayer, previousOpponentMaterial) : 0;
+                this.checkSearchBudget();
+                const riskPenalty = MINIMAX_WEIGHTS.rootRiskAversion * immediateRisk;
+                const threshold = scoredMoves.length >= retainedRoots ? scoredMoves[retainedRoots - 1].score : Number.NEGATIVE_INFINITY;
                 const score = this.minimax(
                   engine,
                   this.depth - 1,
-                  Number.NEGATIVE_INFINITY,
+                  threshold + riskPenalty,
                   Number.POSITIVE_INFINITY,
                   aiPlayer
-                );
+                ) - riskPenalty;
+                if (Number.isFinite(threshold) && score <= threshold) {
+                  stats.prunedRoots += 1;
+                  continue;
+                }
+                stats.exactRoots += 1;
                 scoredMoves.push({
                   point,
                   ...point === null ? { type: "pass" } : {},
-                  score: score - MINIMAX_WEIGHTS.rootRiskAversion * immediateRisk
+                  score
                 });
+                if (Number.isFinite(retainedRoots)) {
+                  scoredMoves.sort((a, b) => b.score - a.score);
+                  if (scoredMoves.length > retainedRoots) scoredMoves.length = retainedRoots;
+                }
               }
             } finally {
               restoreState(engine, snapshot);
@@ -3034,13 +3209,23 @@ var init_AIEngine = __esm({
           }
           scoredMoves.sort((a, b) => b.score - a.score);
           if (this.depth > 1) {
-            applyRootCutChainPreference(engine, aiPlayer, scoredMoves, rootCutChainEligible);
+            applyRootCutChainPreference(
+              engine,
+              aiPlayer,
+              scoredMoves,
+              rootCutChainEligible,
+              this._searchDeadline === void 0 ? null : () => this.checkSearchBudget()
+            );
           }
+          this.checkSearchBudget();
           const selectedPass = scoredMoves[0]?.point === null ? scoredMoves[0] : null;
           const placementMoves = scoredMoves.filter(({ point }) => point !== null);
           return (selectedPass ? [selectedPass, ...placementMoves] : placementMoves).slice(0, topN);
         } finally {
           engine._isReplayingBatch = previousReplayFlag;
+          this._searchStats = previousSearchStats;
+          this._killerMoves = previousKillerMoves;
+          this.lastSearch = stats;
         }
       }
     };
@@ -5164,6 +5349,19 @@ var init_MultiplayerHardRollout = __esm({
           }, "beforeCandidate") });
           return candidates.sort((a, b) => b.baseScore - a.baseScore || order2(a, b));
         }, "policyActions");
+        const policyAction = /* @__PURE__ */ __name((score) => {
+          let best = null;
+          visitPolicyCandidates(engine, engine.currentPlayer, (candidate) => {
+            const value = score(candidate.features), point = candidate.point;
+            if (!Number.isFinite(value)) throw new Error("Nonfinite rollout policy score");
+            if (!best || value > best.baseScore || value === best.baseScore && order2({ point }, best) < 0)
+              best = { point, baseScore: value };
+          }, { beforeCandidate: /* @__PURE__ */ __name(() => {
+            check4();
+            stats.policyCandidates++;
+          }, "beforeCandidate") });
+          return best;
+        }, "policyAction");
         const canonicalCache = /* @__PURE__ */ new Map();
         const canonicalAreas = /* @__PURE__ */ __name(() => {
           const identity2 = engine._computeStateHash(engine.currentPlayer);
@@ -5279,7 +5477,7 @@ var init_MultiplayerHardRollout = __esm({
             for (let ply = 0; ply < plies && !engine.gameOver; ply++) {
               check4();
               const policy = engine.currentPlayer === player ? this.base : this.responses[responseIndex];
-              const action = policyActions(policy)[0]?.point ?? null;
+              const action = policyAction(policy)?.point ?? null;
               if (!apply(action).success) throw new Error("Illegal rollout continuation");
               stats.simulatedActions++;
             }
@@ -5443,6 +5641,18 @@ function linearRanking(engine, player, spec, check4, completed = []) {
   check4();
   return finishLinear(completed);
 }
+function linearAction(engine, player, spec, check4) {
+  let best = null;
+  visitPolicyCandidates(engine, player, (candidate) => {
+    const score = candidate.features.reduce((sum, value, i) => sum + value * spec.weights[i], 0) / (spec.temperature ?? 1);
+    if (!Number.isFinite(score)) throw new Error("Invalid isolated Hard linear score");
+    check4();
+    if (!best || score > best.score || score === best.score && pointOrder2(candidate, best) < 0)
+      best = { point: candidate.point, score, visits: 1 };
+  }, { beforeCandidate: check4 });
+  check4();
+  return best;
+}
 function rankEvaluated(evaluated, baseline, minimumImprovement) {
   const ranked = [...evaluated].sort((a, b) => b.score - a.score || b.margin - a.margin || b.baseScore - a.baseScore || pointOrder2(a, b));
   const baseMove = ranked.find((move) => move.point.toString() === baseline.point.toString());
@@ -5481,6 +5691,7 @@ var init_MultiplayerHardFallback = __esm({
       return ranked.map((move) => ({ ...move, prior: Math.exp(move.score - maximum) / total }));
     }, "finishLinear");
     __name(linearRanking, "linearRanking");
+    __name(linearAction, "linearAction");
     __name(rankEvaluated, "rankEvaluated");
     __name(validateMoves, "validateMoves");
     HardDeadlineFallbackV2 = class {
@@ -5586,7 +5797,7 @@ var init_MultiplayerHardFallback = __esm({
                 for (let ply = 0; ply < this.spec.search.rolloutPlies && !engine.gameOver; ply++) {
                   check4();
                   const spec = engine.currentPlayer === player ? this.spec : opponent;
-                  const reply = linearRanking(engine, engine.currentPlayer, spec, check4)[0]?.point ?? null;
+                  const reply = linearAction(engine, engine.currentPlayer, spec, check4)?.point ?? null;
                   if (!(reply ? engine.playMove(reply) : engine.skipTurn()).success) throw new Error("Invalid isolated v4 rollout action");
                   check4();
                   stats.simulatedActions++;
@@ -7416,7 +7627,7 @@ var init_AIWorker = __esm({
         if (strategy === "greedy") {
           ai = new GreedyAI();
         } else if (strategy === "minimax") {
-          ai = new MinimaxAI(depth);
+          ai = new MinimaxAI(depth, { iterativeDeepening: depth >= 4 });
         } else if (strategy === "mcts") {
           ai = new MCTSAI({
             simulations: event.data?.simulations ?? 64,

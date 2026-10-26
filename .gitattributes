@@ -42,3 +42,9 @@ web/web前端/MultiplayerHardValue.js whitespace=-blank-at-eof
 # Publication receipts are bound to the exact delivered bytes.
 docs/verification/pass-discipline-20261025/final-publication-v5.json -text whitespace=cr-at-eol
 docs/verification/pass-discipline-20261025/public-release-verification-v5.json -text whitespace=cr-at-eol
+# Keep current browser/native build inputs byte-identical after a fresh checkout.
+web/web前端/AIEngine.js -text whitespace=cr-at-eol
+web/web前端/AIWorker.js -text whitespace=cr-at-eol
+web/web前端/MultiplayerHardFallback.js -text whitespace=cr-at-eol
+web/web前端/MultiplayerHardRollout.js -text whitespace=cr-at-eol
+web/tools/online_bot_runtime.mjs -text whitespace=cr-at-eol

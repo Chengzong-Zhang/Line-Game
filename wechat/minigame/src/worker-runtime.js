@@ -69,7 +69,9 @@ function runTask(message, restore = restoreGame, recordAction = () => {}) {
         : embedded ? embedded.metric : entry ? entry.research ? 'puct' : 'prior' : 'heuristic';
       return { moves, stateHash: before.stateHash, player: engine.currentPlayer,
         passDiscipline: disciplined.receipt,
-        ...(tier ? { profile, modelInfo, search: { ...(algorithm.lastSearch || {}), passDiscipline: disciplined.receipt } } : {}),
+        ...(tier || profile.startsWith('minimax-')
+          ? { profile, ...(tier ? { modelInfo } : {}),
+            search: { ...(algorithm.lastSearch || {}), passDiscipline: disciplined.receipt } } : {}),
         ...(kind === 'ANALYZE' ? { profile, metric } : {}) };
     };
     // The new tiers include several player counts, so route them before the
@@ -88,7 +90,8 @@ function runTask(message, restore = restoreGame, recordAction = () => {}) {
       const raw = new Uint8Array(bytes).buffer;
       algorithm = entry.research ? new NeuralPUCTAI(createResearchModel(entry.spec, raw), { simulations: 16, cPuct: 1.5 })
         : new ModelFreeAI(createModelFreeModel(entry.spec, raw));
-    } else algorithm = profile === 'greedy' ? new GreedyAI() : new MinimaxAI(Number(profile.slice(-1)));
+    } else algorithm = profile === 'greedy' ? new GreedyAI()
+      : new MinimaxAI(Number(profile.slice(-1)), { iterativeDeepening: profile === 'minimax-4' });
     return rank(algorithm);
   }
   throw new Error('UNKNOWN_TASK');

@@ -72,7 +72,7 @@ self.onmessage = async (event) => {
     if (strategy === "greedy") {
       ai = new GreedyAI();
     } else if (strategy === "minimax") {
-      ai = new MinimaxAI(depth);
+      ai = new MinimaxAI(depth, { iterativeDeepening: depth >= 4 });
     } else if (strategy === "mcts") {
       ai = new MCTSAI({
         simulations: event.data?.simulations ?? 64,

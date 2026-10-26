@@ -226,8 +226,8 @@ export async function prepareCandidate({
     runtime: { node: process.version, platform: process.platform, arch: process.arch },
     ...(admission.status === 'PASS_TERMINAL_RELEASE_ADMISSION_V4' ? { terminalAdmission: admission } : {}),
     uploadDescription: admission.status === 'PASS_TERMINAL_RELEASE_ADMISSION_V4'
-      ? '支持 2–15 人；7–15 人仅随机或自定义起点。在既有模型上继续训练，仅自然终局奖励、折扣系数1；修复开局过早PASS和可安全增长时提前结算，并检查完整实际对手轮的切断风险。Minimax简单/中等/困难对应2/3/4层；各方分别高亮最新落点，本方跳过后清除标记，保留其他方高亮。'
-      : '支持 2–15 人；7–15 人仅随机或自定义起点。修复开局过早PASS和可安全增长时提前结算，并检查完整实际对手轮的切断风险。Minimax简单/中等/困难对应2/3/4层；本候选没有新模型覆盖。各方分别高亮最新落点，本方跳过后清除标记，保留其他方高亮。',
+      ? 'AI 提速与困难增强：保留 Minimax 困难完整4层，额外100毫秒内仅采用完整5/6层，超时保留完整结果；精确剪枝、复用静态邻接、多人续盘流式选优。本次不训练新权重，保留既有终局奖励/折扣1策略及开局PASS和提前结算防护。支持2–15人，7–15人仅随机/自定义起点，保留各方最新落点。'
+      : 'AI 提速与困难增强：保留 Minimax 困难完整4层，额外100毫秒内仅采用完整5/6层，超时保留完整结果；本候选没有新模型覆盖。支持2–15人，7–15人仅随机/自定义起点，保留PASS防护和各方最新落点。',
     acceptance: { nativeCandidateImport: 'NOT_RUN', physicalDevice: 'NOT_RUN',
       accountPermissions: 'NOT_VERIFIED', serviceConnectivity: 'NOT_VERIFIED',
       actualWechatLogin: 'NOT_RUN', crossPlatformDeviceMatch: 'NOT_RUN',

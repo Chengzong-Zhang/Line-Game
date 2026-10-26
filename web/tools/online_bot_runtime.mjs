@@ -42,7 +42,10 @@ export async function createRoomBotRuntime(engine, profile) {
   }
   installLocalModelAssetFetch();
   if (profile.strategy === "greedy") return { ai: new GreedyAI(), modelInfo: { strategy: "greedy" } };
-  if (profile.strategy === "minimax") return { ai: new MinimaxAI(profile.depth), modelInfo: { strategy: "minimax", depth: profile.depth } };
+  if (profile.strategy === "minimax") return {
+    ai: new MinimaxAI(profile.depth, { iterativeDeepening: profile.depth >= 4 }),
+    modelInfo: { strategy: "minimax", depth: profile.depth },
+  };
   if (profile.strategy === "multiplayer") {
     const admission = createUltimateAdmissionGuard().checkProfile(profile, engine);
     if (!admission.allowed) { const error = new Error(admission.message); error.code = admission.code; throw error; }

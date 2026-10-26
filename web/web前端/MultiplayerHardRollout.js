@@ -95,6 +95,18 @@ export class MultiplayerRolloutAI {
       } });
       return candidates.sort((a, b) => b.baseScore - a.baseScore || order(a, b));
     };
+    // Continuations consume only the first action. Visit the identical complete
+    // candidate domain and keep the same score/tie order without sorting it.
+    const policyAction = score => {
+      let best = null;
+      visitPolicyCandidates(engine, engine.currentPlayer, candidate => {
+        const value = score(candidate.features), point = candidate.point;
+        if (!Number.isFinite(value)) throw new Error("Nonfinite rollout policy score");
+        if (!best || value > best.baseScore || (value === best.baseScore && order({ point }, best) < 0))
+          best = { point, baseScore: value };
+      }, { beforeCandidate: () => { check(); stats.policyCandidates++; } });
+      return best;
+    };
     const canonicalCache = new Map();
     const canonicalAreas = () => {
       // Canonical area depends on physical occupancy, geometry, rules and seats;
@@ -208,7 +220,7 @@ export class MultiplayerRolloutAI {
         for (let ply = 0; ply < plies && !engine.gameOver; ply++) {
           check();
           const policy = engine.currentPlayer === player ? this.base : this.responses[responseIndex];
-          const action = policyActions(policy)[0]?.point ?? null;
+          const action = policyAction(policy)?.point ?? null;
           if (!apply(action).success) throw new Error("Illegal rollout continuation");
           stats.simulatedActions++;
         }
