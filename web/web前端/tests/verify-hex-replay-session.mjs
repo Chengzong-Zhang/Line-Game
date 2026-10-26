@@ -67,6 +67,7 @@ for (const playerCount of [4, 5, 6]) {
   await assert.rejects(validateContribution({
     format: "lifeline-training-contribution", version: 1, consent: true,
     consent_policy: "anonymous-replay-training-v1", replay: completed,
+    context: { source: "local", actors: {}, mixedProfiles: false, hintsEnabled: false },
   }), /dimensions/);
 
   const invalidPlayers = structuredClone(replay);
