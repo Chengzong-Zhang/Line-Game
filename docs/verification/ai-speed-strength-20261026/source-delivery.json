@@ -1,0 +1,80 @@
+{
+  "schema": "lifeline-ai-speed-strength-source-delivery-v1",
+  "status": "VERIFIED_FRESH_LOCAL_COPY",
+  "created_at_utc": "2026-10-26T10:06:25.614Z",
+  "destination": "C:\\coding\\py\\line game\\local_artifacts\\ai-speed-strength-delivery-20261026-r1",
+  "source_root": "C:/Users/zcz/.codex/worktrees/pass-discipline/line game",
+  "source_commit": "25f0876b203ee64a347ebe6a01186f8c01688535",
+  "source_branch": "codex/ai-speed-strength-20261026",
+  "delivery_manifest": "C:\\coding\\py\\line game\\local_artifacts\\ai-speed-strength-delivery-20261026-r1\\delivery-manifest.json",
+  "delivery_manifest_sha256": "8ba74126bb889d91c023a887ec2a8cc714898b83dc498ca25bae6350102cb083",
+  "sections": {
+    "source": {
+      "root": "C:\\coding\\py\\line game\\local_artifacts\\ai-speed-strength-delivery-20261026-r1\\source",
+      "inventory_path": "C:\\coding\\py\\line game\\local_artifacts\\ai-speed-strength-delivery-20261026-r1\\inventories\\source.json",
+      "inventory_sha256": "14b3e09bcf604488f3767fa25a7db62b147a32381ec125629ea4966c5014d829",
+      "files": 1554,
+      "bytes": 26363364,
+      "exact_copy_verified": true
+    },
+    "web-candidate": {
+      "root": "C:\\coding\\py\\line game\\local_artifacts\\ai-speed-strength-delivery-20261026-r1\\web-candidate",
+      "inventory_path": "C:\\coding\\py\\line game\\local_artifacts\\ai-speed-strength-delivery-20261026-r1\\inventories\\web-candidate.json",
+      "inventory_sha256": "e9cd9b79c1d3830fa59d2effeba23f0d697bec44255dd570a147fc6035d03050",
+      "files": 3,
+      "bytes": 18655259,
+      "exact_copy_verified": true
+    },
+    "mini-candidate": {
+      "root": "C:\\coding\\py\\line game\\local_artifacts\\ai-speed-strength-delivery-20261026-r1\\mini-candidate",
+      "inventory_path": "C:\\coding\\py\\line game\\local_artifacts\\ai-speed-strength-delivery-20261026-r1\\inventories\\mini-candidate.json",
+      "inventory_sha256": "e478f3452dee78dd26588bc2c27bdd939d244647d0670574c7feaa5f7b9dc10a",
+      "files": 37,
+      "bytes": 19974503,
+      "exact_copy_verified": true
+    },
+    "verification": {
+      "root": "C:\\coding\\py\\line game\\local_artifacts\\ai-speed-strength-delivery-20261026-r1\\verification",
+      "inventory_path": "C:\\coding\\py\\line game\\local_artifacts\\ai-speed-strength-delivery-20261026-r1\\inventories\\verification.json",
+      "inventory_sha256": "4e6b3a35f2fa70786578e92da795cca9209ec11641cbd59eac41f3f236a7c780",
+      "files": 4,
+      "bytes": 52724,
+      "exact_copy_verified": true
+    }
+  },
+  "entry_paths": {
+    "source_readme": "C:\\coding\\py\\line game\\local_artifacts\\ai-speed-strength-delivery-20261026-r1\\source\\README.md",
+    "web_source": "C:\\coding\\py\\line game\\local_artifacts\\ai-speed-strength-delivery-20261026-r1\\source\\web\\web前端\\index.html",
+    "web_archive": "C:\\coding\\py\\line game\\local_artifacts\\ai-speed-strength-delivery-20261026-r1\\web-candidate\\frontend-overlay.zip",
+    "web_release_manifest": "C:\\coding\\py\\line game\\local_artifacts\\ai-speed-strength-delivery-20261026-r1\\web-candidate\\release-manifest.json",
+    "mini_candidate_receipt": "C:\\coding\\py\\line game\\local_artifacts\\ai-speed-strength-delivery-20261026-r1\\mini-candidate\\candidate.json",
+    "mini_project": "C:\\coding\\py\\line game\\local_artifacts\\ai-speed-strength-delivery-20261026-r1\\mini-candidate\\project"
+  },
+  "publication_statuses_at_copy": {
+    "GitHub": "PUSHED_CONFIRMED_BY_RELEASE_EXECUTOR_LOCAL_ORIGIN_REF_MATCHES",
+    "Web": "PASS_PUBLIC_RELEASE_AND_ALL_RESOURCES",
+    "Mini": "PREPARED_LOCAL_NOT_UPLOADED"
+  },
+  "primary_source_overwritten": false,
+  "old_delivery_overwritten": false,
+  "source_head_and_status_unchanged": true,
+  "links_or_unsafe_paths_accepted": false,
+  "git_metadata_copied": false,
+  "credential_payloads_copied": false,
+  "credential_marker_exceptions": [
+    {
+      "section": "source",
+      "path": "research/iclr2027/supplement_tools/selftest.py",
+      "classification": "Explicit deterministic alphabet token in secret-scanner rejection fixture; no live credential"
+    },
+    {
+      "section": "source",
+      "path": "web/tests/test_prepare_multiplayer_release.py",
+      "classification": "Artificial header-only regression-test marker; no PEM key payload"
+    }
+  ],
+  "scanned_files": 1598,
+  "copy_verification": "Exact file sets, byte lengths and SHA256 verified against actual originals after copying; primary/source Git HEAD/status and old delivery manifest preserved.",
+  "runtime_tests_repeated": false,
+  "external_operations_performed": false
+}

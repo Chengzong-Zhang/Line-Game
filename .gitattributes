@@ -48,3 +48,8 @@ web/web前端/AIWorker.js -text whitespace=cr-at-eol
 web/web前端/MultiplayerHardFallback.js -text whitespace=cr-at-eol
 web/web前端/MultiplayerHardRollout.js -text whitespace=cr-at-eol
 web/tools/online_bot_runtime.mjs -text whitespace=cr-at-eol
+# Preserve frozen publication and isolated-upload source hashes.
+docs/verification/ai-speed-strength-20261026/*.json -text whitespace=cr-at-eol
+wechat/ci/isolated-proxy-route.cjs -text whitespace=cr-at-eol
+wechat/ci/isolated-proxy-transfer.mjs -text whitespace=cr-at-eol
+wechat/ci/tests/isolated-proxy-transfer.test.mjs -text whitespace=cr-at-eol

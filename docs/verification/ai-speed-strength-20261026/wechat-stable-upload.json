@@ -1,0 +1,92 @@
+{
+  "schema": "lifeline-wechat-stable-upload-verification-v1",
+  "verifiedAt": "2026-10-26T10:20:40.010Z",
+  "status": "CODE_UPLOADED_EXPERIENCE_NOT_CONFIGURED",
+  "version": "0.12.15",
+  "candidateId": "0.12.15-fdf84a01320f-1CYu03",
+  "candidateReceiptSha256": "7c85f914fdfcb93c7cf1895a7a3fe5448e89204069eb7e5d70a1d1da5df62613",
+  "robot": 2,
+  "sdkVersion": "2.1.31",
+  "sdkResolved": true,
+  "processExitCode": 0,
+  "isolatedTransferAttempts": 1,
+  "automaticRetries": 0,
+  "candidateFilesStillVerified": true,
+  "candidateFileCount": 35,
+  "officialReceipt": {
+    "path": "local_artifacts/wechat-transfers/upload-0.12.15-S9PSbZ/receipt.json",
+    "sha256": "7eba07082b6893cefa1580f84d0353f0cb29eafc63d1371e615c30749c7b783e"
+  },
+  "routeReceipt": {
+    "path": "local_artifacts/wechat-isolated-uploads/route-a716cdea-4540-4676-8b37-d4c16e0380c1.json",
+    "sha256": "0e39e1a5c4c8d0495e3498865c82e884ae96366f5f9a3954e1c0db4c16d6dbc7"
+  },
+  "route": {
+    "officialHost": "servicewechat.com",
+    "connectStatus": 200,
+    "chains": [
+      "UPLOAD_SELECTED"
+    ],
+    "exitIps": [
+      "142.249.36.28",
+      "142.249.36.28",
+      "142.249.36.28"
+    ],
+    "expectedIp": "142.249.36.28",
+    "preUploadGlobalEvidence": "GLOBAL_UNCHANGED",
+    "globalEvidence": "GLOBAL_UNCHANGED",
+    "temporarySensitiveConfigDeleted": true,
+    "isolatedCoreStopped": true,
+    "remainingTaskDirectories": []
+  },
+  "packageInfo": [
+    {
+      "name": "/models/dqn/",
+      "size": 3025461
+    },
+    {
+      "name": "/models/gail/",
+      "size": 3027513
+    },
+    {
+      "name": "/models/gan/",
+      "size": 3027513
+    },
+    {
+      "name": "/models/ppo/",
+      "size": 3027513
+    },
+    {
+      "name": "/models/research/",
+      "size": 3020433
+    },
+    {
+      "name": "/models/sac/",
+      "size": 3025461
+    },
+    {
+      "name": "__APP__",
+      "size": 1619603
+    },
+    {
+      "name": "__FULL__",
+      "size": 19773497
+    }
+  ],
+  "experienceVersionConfigured": false,
+  "testersAdded": false,
+  "submittedForReview": false,
+  "published": false,
+  "checks": {
+    "mockGuardTestsPassed": 5,
+    "rawKeyPathInReceipts": false,
+    "privateKeyPemInReceipts": false
+  },
+  "source_hashes": {
+    "wechat/ci/isolated-proxy-route.cjs": "cd8e5eccafd64d120bebe0e463a784f31ed7e0da7c34ba6cc1eb991d18424e93",
+    "wechat/ci/isolated-proxy-transfer.mjs": "0a0a675d78deaa94707d4abc1e33a7392129fe8d3359f06c65d519e72c74813e",
+    "wechat/ci/tests/isolated-proxy-transfer.test.mjs": "6155f43dd5e0fd670b3181e104f09a1c9c105c9ba50cc0e924fb3260a60da3e9",
+    "wechat/ci/quiet-transfer.mjs": "1923b35e4f543cac5f838653c7586856b78d1e77abf63f52d12e2ef23a41c463",
+    "wechat/ci/transfer.mjs": "b4a8ccccd7d3fc414b1f66d7258d34a1c91414eb650f86661143d91e9cf9a4a9"
+  }
+}

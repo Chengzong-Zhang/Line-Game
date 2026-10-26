@@ -1,0 +1,99 @@
+{
+  "schema": "lifeline-ai-speed-strength-publication-v1",
+  "status": "WEB_PUBLIC_GITHUB_PUSHED_MINI_LOCAL_CANDIDATE_NOT_UPLOADED",
+  "recorded_at_utc": "2026-10-26T10:06:25.614Z",
+  "source": {
+    "application_commit": "25f0876b203ee64a347ebe6a01186f8c01688535",
+    "branch": "codex/ai-speed-strength-20261026",
+    "remote": "https://github.com/Chengzong-Zhang/Line-Game.git",
+    "local_origin_tracking_head": "25f0876b203ee64a347ebe6a01186f8c01688535",
+    "remote_push_confirmation": "Release executor confirmed this application commit was pushed; this copy made no network request.",
+    "later_receipt_only_commit": "These evidence documents do not change deployed application bytes.",
+    "local_delivery": "C:\\coding\\py\\line game\\local_artifacts\\ai-speed-strength-delivery-20261026-r1",
+    "delivery_manifest_sha256": "8ba74126bb889d91c023a887ec2a8cc714898b83dc498ca25bae6350102cb083",
+    "source_copy_receipt": {
+      "path": "docs/verification/ai-speed-strength-20261026/source-delivery.json",
+      "sha256": "d29e5de443bac7084bc84d8fa440e3c6c12ad7e9cfe31f2cec08f3b21440809b"
+    },
+    "primary_checkout_source_overwritten": false,
+    "old_delivery_overwritten": false
+  },
+  "web": {
+    "status": "PASS_PUBLIC_RELEASE_AND_ALL_RESOURCES",
+    "url": "https://lifelinegame.cn/",
+    "release_id": "web-ai-speed-strength-20261026-r1",
+    "asset_version": "20261025-terminal-v4",
+    "verification_observed_at_utc": "2026-10-26T09:41:03.208834+00:00",
+    "verification": {
+      "path": "docs/verification/ai-speed-strength-20261026/public-release-verification.json",
+      "sha256": "a5907fcb31cd5021031b84411096dea60b7957854a22bdcb4a82eb7a795b6ed0"
+    },
+    "public_resources": 141,
+    "public_resource_bytes": 21775892,
+    "all_public_resources_match_candidate": true,
+    "public_manifest_sha256": "db42b4078b7dc87a51e93253af0ab9804ed7ea35102db1b76a27d61130041002",
+    "public_tree_sha256": "487efbc846cc05ab8c43f56101b114d8ab208ed8e25e0b31457058d58148b4a9",
+    "archive_sha256": "90c81fe374cf80f5d81a7f222580421c832d7e48344993c699b5fe3928085990",
+    "installed_component_count": 9,
+    "health": {
+      "game_status": "ok",
+      "wechat_enabled": true
+    },
+    "rollback_available": true,
+    "deployment_receipt_sha256": "0592f2020b16030298ea4f0714bfa463e60200b054645443bccc628ae6e75ba9",
+    "server_probe_seats": [
+      2,
+      6,
+      7,
+      15
+    ],
+    "interpretation": "Recorded resource and health checks were performed by the release executor. This handoff only rechecked local evidence/candidate hashes; it did not repeat browser or runtime tests."
+  },
+  "mini": {
+    "version": "0.12.15",
+    "candidate_id": "0.12.15-fdf84a01320f-1CYu03",
+    "status": "PREPARED_LOCAL_NOT_UPLOADED",
+    "candidate_receipt": {
+      "path": "local_artifacts/wechat-candidates/0.12.15-fdf84a01320f-1CYu03/candidate.json",
+      "sha256": "7c85f914fdfcb93c7cf1895a7a3fe5448e89204069eb7e5d70a1d1da5df62613"
+    },
+    "package_bytes": 19943112,
+    "verified_source_hashes": 169,
+    "verified_packaged_files": 35,
+    "uploaded": false,
+    "experience_configured": false,
+    "submitted_for_review": false,
+    "publicly_released": false,
+    "phone_runtime_and_latency_verified": false,
+    "prior_experience_version": "0.12.14",
+    "prior_experience_evidence": "Historical final-publication-v5.json; not refreshed by this local delivery."
+  },
+  "behavior": {
+    "no_new_trained_weights_in_this_release": true,
+    "original_hard_depth": 4,
+    "deepening": "Only complete 5/6-ply iterations may replace the complete 4-ply result, within a cooperative extra 100ms window on supported two-player boards.",
+    "player_count": "2..15",
+    "seats_7_to_15_start_modes": [
+      "random",
+      "custom"
+    ],
+    "per_player_latest_move_markers_preserved": true,
+    "pass_guards_and_existing_weights_preserved": true
+  },
+  "verification_scope": {
+    "compact_runtime_evidence": {
+      "path": "docs/verification/ai-speed-strength-20261026/verification.json",
+      "sha256": "304cc6fae616506c21a0769b62f433b796a3ea17790240ee3a785022aff87c3c"
+    },
+    "no_general_win_rate_improvement_claim": true,
+    "no_all_positions_one_second_claim": true,
+    "no_phone_performance_claim": true,
+    "previous_failed_frozen_tests_are_preserved": true,
+    "historical_prepublication_receipts_not_rewritten": true
+  },
+  "cleanup_and_authority": {
+    "this_delivery_performed_network_actions": false,
+    "this_delivery_deployed_or_uploaded": false,
+    "this_delivery_retrained_models": false
+  }
+}
