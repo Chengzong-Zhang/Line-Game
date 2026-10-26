@@ -16,7 +16,7 @@ export function multiplayerGuideSections(language) {
       'Each side can be human or an AI compatible with the current player count, shape and side length. Three-player AI is for triangular three-player games; Hex AI is for hexagonal 4–6-player games. Choosing a non-default shape for a player count offers Greedy AI. Games with 7–15 players offer generic Greedy and Minimax AI without using the 3–6-player trained models.',
       'One, several or every seat may be AI. The list shows only compatible choices. If changing the board makes a selected AI incompatible, choose again before restarting; it is not silently replaced. Hints and replay analysis use a compatible strategy; policy scores are not probabilities.',
       'Each of the 2–15 player setups keep their own seats and first player. Editing settings preserves the running position; restart to apply them. Hints share a saved budget among humans. Replays can keep all players when branching.',
-      'Resigned players leave the turn order. Play continues while at least two remain; a sole remaining player wins immediately. All remaining players passing consecutively settles territory. Shared online rooms also accept these player settings. The existing training-contribution protocol accepts older territory-v2 games; new territory-v3 games are not uploaded to that dataset.',
+      'Resigned players leave the turn order. Play continues while at least two remain; a sole remaining player wins immediately. All remaining players passing consecutively settles territory. Shared online rooms also accept these player settings. Anonymous contribution is off by default; after explicit opt-in, only newly started complete territory-v3 local games for 2–6 players are eligible. Online, tutorial, replay and restored games are excluded.',
       'The original Web stories and illustrations below use triangular examples. Their local connection and cut mechanics also apply to the hexagon; use the shape and opening rules described above.',
     ] },
   ] : [
@@ -30,7 +30,7 @@ export function multiplayerGuideSections(language) {
       '各席可分别选择真人，或与当前人数、形状、边长兼容的 AI。三人 AI 用于三角形三人局，六边形 AI 用于六边形 4–6 人局；选用该人数默认形状之外的棋盘时，可用贪心 AI。7–15 人提供通用贪心与 Minimax 搜索，不套用 3–6 人训练模型。',
       '一席、多席或全部 AI 都可开局，列表只显示兼容选项。更改棋盘后，若已选 AI 不兼容，需重选后再开局，不会自动换成另一种。提示与复盘分析使用兼容策略；策略评分不是概率。',
       '2–15 人各自保留席位和先手设置，切换时不会互相覆盖。修改设置会保留当前棋局，重开后才生效。所有真人共用本局提示次数，续局保留；复盘分支可沿用全部玩家配置。',
-      '认输后退出轮转，至少还有两方就继续；只剩一方时立即获胜。所有未认输玩家连续各跳过一次后，按领土结算。好友联机也支持这些人数与起点设置。现有训练贡献协议仅收旧 territory-v2 棋谱，新 territory-v3 对局不会混入该数据集。',
+      '认输后退出轮转，至少还有两方就继续；只剩一方时立即获胜。所有未认输玩家连续各跳过一次后，按领土结算。好友联机也支持这些人数与起点设置。匿名棋谱贡献默认关闭；主动同意后，仅支持随后新开始并完整结束的 2–6 人 territory-v3 本地对局，联机、教学、复盘和恢复局均不参与。',
       '下方网页版故事与原图沿用三角棋盘示例。连接和切断等局部机制同样适用于六边形，棋盘形状与起步保护以上文为准。',
     ] },
   ];

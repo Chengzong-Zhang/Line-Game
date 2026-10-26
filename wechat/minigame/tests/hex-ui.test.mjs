@@ -74,9 +74,9 @@ test('every hexagon seat offers compatible Hex AI versions, rejects stale menu c
       assert.equal(sut.readPreferences(h.p.storage).controllers[player], profile);
     }
     await h.scrollTo('training-contribution'); await h.render();
-    assert.equal(h.app.getButtons().find(button => button.id === 'training-contribution').disabled, true,
-      'the V2-only contribution policy is unavailable for default V3 games');
-    assert.ok(h.texts.some(text => /仅 V2/.test(text)));
+    assert.equal(h.app.getButtons().find(button => button.id === 'training-contribution').disabled, false,
+      'the independent V3 policy is available for a six-player default V3 game');
+    assert.ok(h.texts.some(text => /帮 AI 学下棋/.test(text)));
   } finally { finish?.(-1); h.app.dispose(); }
 });
 

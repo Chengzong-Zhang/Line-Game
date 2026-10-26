@@ -1,15 +1,18 @@
 import { modelForProfile } from './model-catalog.js';
 import { controllerChoices, playerIds } from './controllers.js';
 import { normalizePlayOptions } from './play-options.js';
-import { CONTRIBUTION_V2_POLICY, CONTRIBUTION_V2_MAX_ACTIONS, normalizeV2Context } from '../../../web/tools/training_contribution_schema.mjs';
+import { CONTRIBUTION_V2_POLICY, CONTRIBUTION_V2_MAX_ACTIONS, normalizeV2Context,
+  CONTRIBUTION_V3_POLICY, CONTRIBUTION_V3_MAX_ACTIONS, normalizeV3Context } from '../../../web/tools/training_contribution_schema.mjs';
 
+// CONTRIBUTION_POLICY remains the frozen v2 alias for existing callers.
 export const CONTRIBUTION_POLICY = CONTRIBUTION_V2_POLICY;
+export { CONTRIBUTION_V3_POLICY };
 export const LEGACY_CONTRIBUTION_POLICY = 'anonymous-replay-training-v1';
 export const CONTRIBUTION_STORAGE = 'lifeline-wx-training-contribution-v1';
-export const CONTRIBUTION_NOTICE = '当前贡献协议仅收 territory-v2 旧规则对局；默认 territory-v3 新局不会上传或混入旧数据集。自愿贡献从开启后新开始的完整本地对局，供 AI 研究筛选；支持 2–6 人、不同棋盘和起点、全部 AI，并标注提示、计时与悔棋使用情况。终局后自动后台上传，断网时保存在本机并有限重试；待传队列最多 100 局、总计 768 KB，满时淘汰最早记录，不影响继续开局。再次开启也会允许重试本机待传棋谱。只发送棋谱与匿名玩法设置，不发送微信身份、昵称、头像或房间信息；服务器仍会接收连接所需的网络地址。关闭后清空本机待传记录并停止提交，已收到的记录不会自动撤回。复盘、教学、联机和开启前已开始的对局不上传。收到的棋谱先进入待审核区，不会自动训练或替换 AI。';
-export const CONTRIBUTION_NOTICE_EN = 'The current contribution protocol accepts only older territory-v2 games; new default territory-v3 games are not uploaded or mixed into that dataset. Optionally contribute complete local games started after you enable this setting for AI research review. Supports 2–6 players, different boards and starting points, and all compatible AI opponents; records hint, timer and undo usage. Completed games upload in the background. Offline records stay on this device with limited retries. The queue holds up to 100 games or 768 KiB; the oldest are removed when full, without blocking new games. Enabling again also allows pending games to retry. Only replays and anonymous game settings are sent, without WeChat identity, nickname, avatar or room information. The server still receives the network address needed for the connection. Disabling clears pending local records and stops further submissions; records already received are not automatically withdrawn. Replay, tutorial, online games and games started before enabling are excluded. Received games await review and never automatically train or replace an AI.';
-export const CLEAR_PENDING_NOTICE = '当前网络或贡献服务不可用。确认后会清除本机待上传的 territory-v2 棋谱；已收到的记录不会撤回。默认 territory-v3 对局不会上传。';
-export const CLEAR_PENDING_NOTICE_EN = 'The contribution service is unavailable. Confirm to clear pending territory-v2 replays from this device. Records already received are not withdrawn. Default territory-v3 games are not uploaded.';
+export const CONTRIBUTION_NOTICE = '匿名棋谱贡献默认关闭，需要你主动开启；每次重新启动小游戏都需再次同意。开启后，仅提交随后新开始并完整结束的 territory-v3 本地对局，供 AI 研究筛选；支持 2–6 人、不同棋盘和起点、全部兼容 AI，并标注提示、计时与悔棋使用情况。当前局、恢复中的对局、复盘、教学和联机对局不会上传。终局后自动后台上传，断网时保存在本机并有限重试；待传队列最多 100 局、总计 768 KB，满时淘汰最早记录，不影响继续开局。再次开启也会允许重试本机待传棋谱，包括旧版 territory-v2 待传记录。只发送棋谱与匿名玩法设置，不发送微信身份、昵称、头像或房间信息；服务器仍会接收连接所需的网络地址。关闭后清空本机待传记录并停止提交，已收到的记录不会自动撤回。收到的棋谱先进入待审核区，不会自动训练或替换 AI。';
+export const CONTRIBUTION_NOTICE_EN = 'Anonymous replay contribution is off by default and requires your explicit opt-in again after every Mini Game restart. Only complete territory-v3 local games newly started after you enable it are submitted for AI research review. It supports 2–6 players, different boards and starting points, and all compatible AI opponents, and records hint, timer and undo usage. The current match, restored matches, replay, tutorial and online games are excluded. Completed games upload in the background. Offline records stay on this device with limited retries. The queue holds up to 100 games or 768 KiB; the oldest are removed when full, without blocking new games. Enabling again also allows pending replays, including older territory-v2 records, to retry. Only replays and anonymous game settings are sent, without WeChat identity, nickname, avatar or room information. The server still receives the network address needed for the connection. Disabling clears pending local records and stops further submissions; records already received are not automatically withdrawn. Received games await review and never automatically train or replace an AI.';
+export const CLEAR_PENDING_NOTICE = '当前网络或贡献服务不可用。确认后会清除本机全部待上传棋谱（可能包含 territory-v2 与 territory-v3）；已收到的记录不会撤回。';
+export const CLEAR_PENDING_NOTICE_EN = 'The contribution service is unavailable. Confirm to clear every pending replay from this device, which may include territory-v2 and territory-v3 records. Records already received are not withdrawn.';
 export const CONTRIBUTION_LIMITS = Object.freeze({ games: 100, queueBytes: 768 * 1024, requestBytes: 500000, automaticAttempts: 4 });
 const MAX_QUEUE = CONTRIBUTION_LIMITS.games, MAX_ACTIONS = 512, MAX_BYTES = CONTRIBUTION_LIMITS.requestBytes;
 const clone = value => JSON.parse(JSON.stringify(value));
@@ -92,7 +95,7 @@ export function contributionContext(session) {
     const context = { source: 'local', actors, mixedProfiles: false,
       hintsEnabled: Boolean(options.hintEnabled || session.hintsUsed),
       undo: { enabled: options.undoEnabled, maxCount: options.undoMaxCount, usedCount: session.undoUsage?.usedCount || 0 } };
-    return sanitizeV2(session.settings, [], context).context;
+    return (session.settings.rulesVersion === 'territory-v3' ? sanitizeV3 : sanitizeV2)(session.settings, [], context).context;
   } catch (_) { return null; }
 }
 
@@ -138,13 +141,58 @@ function sanitizeV2(settings, actions, context) {
     actions: cleanActions, context: normalizeV2Context({ source: 'local', actors, mixedProfiles: false,
       hintsEnabled: context.hintsEnabled, undo: clone(context.undo) }, { ...settings, ...options, boardShape }) };
 }
-const sanitize = (settings, actions, context, version) => version === 1
-  ? sanitizeV1(settings, actions, context) : sanitizeV2(settings, actions, context);
+function sanitizeV3(settings, actions, context) {
+  if (!settings || settings.rulesVersion !== 'territory-v3' || !Number.isInteger(settings.gridSize)
+    || settings.gridSize < 5 || settings.gridSize > 15 || settings.playerCount > 6 || !playerIds(settings.playerCount).length) throw new Error('UNSUPPORTED');
+  const players = playerIds(settings.playerCount), options = normalizePlayOptions(settings);
+  const boardShape = settings.boardShape ?? (settings.playerCount >= 4 ? 'hexagon' : 'triangle');
+  const startingPointMode = settings.startingPointMode ?? (settings.initialPositions ? 'custom' : 'default');
+  if (!players.includes(settings.startPlayer) || !['triangle', 'hexagon'].includes(boardShape)
+    || !['default', 'random', 'custom'].includes(startingPointMode)
+    || !exact(context, ['source', 'actors', 'mixedProfiles', 'hintsEnabled', 'undo'])
+    || context.source !== 'local' || context.mixedProfiles !== false || typeof context.hintsEnabled !== 'boolean'
+    || (options.hintEnabled && !context.hintsEnabled) || !exact(context.actors, players)
+    || !exact(context.undo, ['enabled', 'maxCount', 'usedCount']) || context.undo.enabled !== options.undoEnabled
+    || context.undo.maxCount !== options.undoMaxCount || !Number.isInteger(context.undo.usedCount)
+    || context.undo.usedCount < 0 || context.undo.usedCount > (options.undoEnabled ? options.undoMaxCount : 0)) throw new Error('UNSUPPORTED');
+  const choices = controllerChoices({ ...settings, boardShape });
+  const actors = Object.fromEntries(players.map(player => {
+    const actor = context.actors[player];
+    if (exact(actor, ['kind']) && actor.kind === 'human') return [player, { kind: 'human' }];
+    if (!exact(actor, ['kind', 'profile']) || actor.kind !== 'ai' || actor.profile === 'human' || !choices.includes(actor.profile)) throw new Error('UNSUPPORTED');
+    return [player, { kind: 'ai', profile: actor.profile }];
+  }));
+  let initialPositions;
+  if (settings.initialPositions != null) {
+    if (!exact(settings.initialPositions, players)) throw new Error('UNSUPPORTED');
+    initialPositions = Object.fromEntries(players.map(player => {
+      const point = settings.initialPositions[player];
+      if (!Array.isArray(point) || point.length !== 2 || !point.every(value => Number.isInteger(value) && Math.abs(value) <= 30)) throw new Error('UNSUPPORTED');
+      return [player, [...point]];
+    }));
+  } else if (startingPointMode !== 'default') throw new Error('UNSUPPORTED');
+  if (!Array.isArray(actions) || actions.length > CONTRIBUTION_V3_MAX_ACTIONS) throw new Error('INVALID_ACTION');
+  const cleanActions = actions.map(action => {
+    const type = action?.type, player = action?.player || action?.actor;
+    if (!['move', 'skip', 'resign'].includes(type) || !players.includes(player)) throw new Error('INVALID_ACTION');
+    if (type === 'move' && (!Array.isArray(action.point) || action.point.length !== 2 || !action.point.every(Number.isInteger))) throw new Error('INVALID_ACTION');
+    return { type, player, ...(type === 'move' ? { point: [...action.point] } : {}) };
+  });
+  return { settings: { rulesVersion: 'territory-v3', gridSize: settings.gridSize, playerCount: settings.playerCount,
+    startPlayer: settings.startPlayer, boardShape, startingPointMode, ...options, ...(initialPositions ? { initialPositions } : {}) },
+    actions: cleanActions, context: normalizeV3Context({ source: 'local', actors, mixedProfiles: false,
+      hintsEnabled: context.hintsEnabled, undo: clone(context.undo) }, { ...settings, ...options, boardShape }) };
+}
+const sanitize = (settings, actions, context, version) => version === 1 ? sanitizeV1(settings, actions, context)
+  : version === 2 ? sanitizeV2(settings, actions, context)
+    : version === 3 ? sanitizeV3(settings, actions, context) : (() => { throw new Error('UNSUPPORTED_VERSION'); })();
+const policyForVersion = version => version === 1 ? LEGACY_CONTRIBUTION_POLICY
+  : version === 2 ? CONTRIBUTION_V2_POLICY : version === 3 ? CONTRIBUTION_V3_POLICY : null;
 const signature = (clean, version) => stable({ settings: clean.settings, context: version === 1 ? clean.context
   : { ...clean.context, hintsEnabled: Boolean(clean.settings.hintEnabled), undo: { ...clean.context.undo, usedCount: 0 } } });
 
 export class TrainingContribution {
-  constructor({ storage, request, origin, createReplay, onChange = () => {}, now = Date.now, version = 2,
+  constructor({ storage, request, origin, createReplay, onChange = () => {}, now = Date.now, version = 3,
     canRun = () => true, setTimer = setTimeout, clearTimer = clearTimeout } = {}) {
     Object.assign(this, { storage, request, createReplay, onChange, now, version, canRun, setTimer, clearTimer });
     // No fallback to an arbitrary URL or authenticated account transport.
@@ -152,16 +200,16 @@ export class TrainingContribution {
     this.enabled = false; this.queue = []; this.received = []; this.status = 'off'; this.reason = null; this.generation = 0;
     this.active = false; this.transport = null; this.tickets = new WeakSet(); this.retryAt = 0;
     this.timer = null; this.foreground = true; this.connected = true; this.failures = 0; this.runEpoch = 0; this.disposed = false; this.dropped = 0;
-    this.v2SupportedUntil = 0;
+    this.protocolSupportedUntil = new Map();
     this.itemKeys = new WeakMap(); this.itemSizes = new WeakMap();
     try {
       const raw = storage?.get(CONTRIBUTION_STORAGE);
       const saved = typeof raw === 'string' && raw.length < 2600000 ? JSON.parse(raw) : null;
-      if ([CONTRIBUTION_POLICY, LEGACY_CONTRIBUTION_POLICY].includes(saved?.policy) && saved.enabled === true) {
+      if ([CONTRIBUTION_V3_POLICY, CONTRIBUTION_V2_POLICY, LEGACY_CONTRIBUTION_POLICY].includes(saved?.policy) && saved.enabled === true) {
         this.received = Array.isArray(saved.received) ? saved.received.filter(id => idPattern.test(id)).slice(-100) : [];
         for (const item of (Array.isArray(saved.queue) ? saved.queue : []).slice(-MAX_QUEUE)) {
           const itemVersion = item?.version ?? 1;
-          if (![1, 2].includes(itemVersion) || !exact(item, item.version == null ? ['id', 'settings', 'actions', 'context'] : ['id', 'settings', 'actions', 'context', 'version'])
+          if (![1, 2, 3].includes(itemVersion) || !exact(item, item.version == null ? ['id', 'settings', 'actions', 'context'] : ['id', 'settings', 'actions', 'context', 'version'])
             || item.id !== null && !idPattern.test(item.id)) continue;
           try {
             const clean = sanitize(item.settings, item.actions, item.context, itemVersion);
@@ -178,7 +226,7 @@ export class TrainingContribution {
     } catch (_) { /* Storage is optional and cannot prevent play. */ }
   }
   snapshot() { return { enabled: this.enabled, pending: this.queue.length, status: this.status, reason: this.reason, dropped: this.dropped }; }
-  stored() { return { policy: this.version === 1 ? LEGACY_CONTRIBUTION_POLICY : CONTRIBUTION_POLICY,
+  stored() { return { policy: policyForVersion(this.version),
     enabled: this.enabled, queue: this.queue, received: this.received }; }
   itemKey(item) {
     if (!this.itemKeys.has(item)) this.itemKeys.set(item, stable({ settings: item.settings, actions: item.actions, context: item.context }));
@@ -260,7 +308,7 @@ export class TrainingContribution {
     } catch (_) { this.status = 'unsupported'; this.save(); return false; }
   }
   payload(replay, context, version = this.version) { return { format: 'lifeline-training-contribution', version, consent: true,
-    consent_policy: version === 1 ? LEGACY_CONTRIBUTION_POLICY : CONTRIBUTION_POLICY, replay, context }; }
+    consent_policy: policyForVersion(version), replay, context }; }
   canWork() {
     try { return !this.disposed && this.enabled && this.foreground && this.connected && this.canRun(); } catch (_) { return false; }
   }
@@ -286,20 +334,22 @@ export class TrainingContribution {
     this.retryAt = this.now() + Math.max(status === 429 ? 60000 : 15000, Math.min(120000, 15000 * 2 ** (this.failures - 1)));
   }
   async protocolAvailable(version, current) {
-    if (version === 1 || this.now() < this.v2SupportedUntil) return true;
-    // Old collectors reject the new schema as 422. Discover explicit v2 support
-    // without submitting a replay, and keep the outbox while a rollout is pending.
+    if (version === 1 || this.now() < (this.protocolSupportedUntil.get(version) || 0)) return true;
+    const policy = policyForVersion(version);
+    if (!policy || ![2, 3].includes(version)) return false;
+    // Discover exact schema support without submitting a replay, and keep the
+    // outbox while either independently versioned protocol is rolling out.
     this.transport = this.request({ url: `${this.origin}/api/training/contributions/status`, method: 'GET' });
     const response = await this.transport.promise;
     this.transport = null;
     if (!current()) return false;
     if (response.status < 200 || response.status >= 300) { this.deferRetry(response.status); this.reason = 'SERVER_STATUS_UNAVAILABLE'; return false; }
     const status = response.data;
-    if (status?.enabled !== true || !Array.isArray(status.supported_versions) || !status.supported_versions.includes(2)
-      || status.consent_policies?.[2] !== CONTRIBUTION_POLICY) {
+    if (status?.enabled !== true || !Array.isArray(status.supported_versions) || !status.supported_versions.includes(version)
+      || status.consent_policies?.[version] !== policy) {
       this.deferRetry(503); this.reason = 'PROTOCOL_NOT_AVAILABLE'; return false;
     }
-    this.v2SupportedUntil = this.now() + 5 * 60 * 1000; this.reason = null; return true;
+    this.protocolSupportedUntil.set(version, this.now() + 5 * 60 * 1000); this.reason = null; return true;
   }
   async flush() {
     if (!this.canWork() || this.active || !this.queue.length || this.now() < this.retryAt) return;
@@ -331,9 +381,9 @@ export class TrainingContribution {
         if (!current()) return;
         if (response.status < 200 || response.status >= 300) {
           // A server rollback can occur after the capability check. Do not
-          // discard a locally verified v2 replay on an ambiguous schema error.
-          if (item.version === 2 && [400, 422].includes(response.status)) {
-            this.v2SupportedUntil = 0; this.deferRetry(response.status); this.reason = 'SERVER_REJECTED'; return;
+          // discard a locally verified v2/v3 replay on an ambiguous schema error.
+          if ([2, 3].includes(item.version) && [400, 422].includes(response.status)) {
+            this.protocolSupportedUntil.delete(item.version); this.deferRetry(response.status); this.reason = 'SERVER_REJECTED'; return;
           }
           if ([400, 413, 415, 422].includes(response.status)) {
             this.queue = this.queue.filter(row => row !== item); this.status = 'invalid'; this.reason = 'SERVER_REJECTED'; return;

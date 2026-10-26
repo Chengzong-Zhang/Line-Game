@@ -16,7 +16,7 @@ const context = (config, profile = 'human', usedCount = 0) => contributionContex
 const replay = (config, actions) => createReplayDocument(config, actions, checksum);
 function harness(overrides = {}) {
   const values = new Map(), calls = [], timers = new Map(); let clock = 1000, nextTimer = 0, busy = false;
-  const options = { storage: { get: key => values.get(key), set: (key, value) => values.set(key, value), remove: key => values.delete(key) },
+  const options = { version: 2, storage: { get: key => values.get(key), set: (key, value) => values.set(key, value), remove: key => values.delete(key) },
     createReplay: replay, origin: 'https://fixture.invalid', now: () => clock, canRun: () => !busy,
     setTimer: (callback, delay) => { const id = ++nextTimer; timers.set(id, { callback, at: clock + delay }); return id; },
     clearTimer: id => timers.delete(id), request: request => { calls.push(request);

@@ -51,25 +51,25 @@ export function drawBoardCabin(ui, area, state, actions) {
       [`starter-${player}`, `${state.startPlayer === player ? '✓ ' : ''}${name}${en ? ' starts' : '先手'}`, () => actions.starter(player), onlineLocked, state.startPlayer === player]);
   }
   if (state.playerCount > 2) y += ui.wrap(label('compatibleAIHelp'), x, y + 8, area.width, 14, CABIN_COLORS.muted, 3) + 18;
-  const v2Eligible = state.rulesVersion === 'territory-v2' && state.playerCount <= 6;
+  const v3Eligible = state.rulesVersion === 'territory-v3' && state.playerCount <= 6;
   const hasPendingContribution = Boolean(state.contributionStatus?.pending);
   const canManageStored = Boolean(state.contribution || hasPendingContribution);
-  const contributionLabel = v2Eligible
+  const contributionLabel = v3Eligible
     ? `${en ? 'Help AI learn' : '帮 AI 学下棋'} · ${state.contribution ? (en ? 'On' : '开') : (en ? 'Off' : '关')}`
-    : en ? `V2 only · opt-in ${state.contribution ? 'on' : 'off'}`
-      : `仅 V2 · 授权${state.contribution ? '开' : '关'}`;
+    : en ? `V3 local only · opt-in ${state.contribution ? 'on' : 'off'}`
+      : `仅 V3 本地局 · 授权${state.contribution ? '开' : '关'}`;
   pair(['training-contribution', contributionLabel, actions.contribution,
-    (!state.contributionAvailable || !v2Eligible) && !canManageStored],
+    (!state.contributionAvailable || !v3Eligible) && !canManageStored],
     ['replay-mode', en ? 'Replay mode' : '复盘模式', actions.replay, state.online]);
-  if (!v2Eligible || state.contribution || state.contributionStatus?.pending) {
+  if (!v3Eligible || state.contribution || state.contributionStatus?.pending) {
     const pending = state.contributionStatus?.pending || 0;
-    const description = !v2Eligible
+    const description = !v3Eligible
       ? (pending
-        ? (en ? `${pending} older V2 games are waiting. ${state.contributionAvailable ? 'Re-enable consent to retry them.' : 'Use the switch to clear them.'} This V3 game cannot be added.` : `${pending} 局旧版 V2 对局待上传；${state.contributionAvailable ? '重新同意后会重试。' : '可用开关清除。'} 当前 V3 对局不会加入。`)
-        : (en ? 'The current protocol accepts V2 games only. New default V3 games are excluded.' : '当前协议仅接受 V2 对局；默认 V3 新局不会上传。'))
+        ? (en ? `${pending} games are waiting. ${state.contributionAvailable ? 'Re-enable consent to retry them.' : 'Use the switch to clear them.'} This setup cannot add a new record.` : `${pending} 局棋谱待上传；${state.contributionAvailable ? '重新同意后会重试。' : '可用开关清除。'} 当前设置不会新增记录。`)
+        : (en ? 'Contribution accepts new complete territory-v3 local games with 2–6 players only.' : '仅支持主动同意后新开始并完整结束的 2–6 人 territory-v3 本地对局。'))
       : pending
       ? (en ? `${pending} games waiting. Uploads resume when the game is idle and connected.` : `${pending} 局待上传，将在空闲且联网时自动继续。`)
-      : (en ? 'Complete local games upload automatically for AI research review.' : '完整本地对局会自动上传，供 AI 研究筛选。');
+      : (en ? 'After opt-in, newly started complete local games upload for AI research review.' : '主动开启后，新开始并完整结束的本地对局会上传，供 AI 研究筛选。');
     y += ui.wrap(description, x, y + 8, area.width, 14, CABIN_COLORS.muted, 3) + 18;
   }
   group(en ? 'Board & match' : '棋盘与对局');

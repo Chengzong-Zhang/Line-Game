@@ -108,7 +108,7 @@ test('hex sessions without controllers stay human in v2 anonymous training metad
       assert.equal(session.mode, 'human'); assert.equal(session.isAITurn(), false); assert.equal(session.canPlay(), true);
       assert.deepEqual(Object.values(contributionContext(session).actors), Array.from({ length: count }, () => ({ kind: 'human' })));
       let sent = 0;
-      const collector = new TrainingContribution({ storage: memoryStorage(), request: () => { sent++; }, origin: 'https://lifelinegame.cn' });
+      const collector = new TrainingContribution({ storage: memoryStorage(), request: () => { sent++; }, origin: 'https://lifelinegame.cn', version: 2 });
       collector.setEnabled(true);
       assert.ok(collector.beginMatch({ settings: session.settings, context: contributionContext(session), source: 'local', actionCount: 0 }));
       assert.equal(sent, 0); assert.equal(collector.snapshot().status, 'ready');

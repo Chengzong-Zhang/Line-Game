@@ -848,7 +848,7 @@ export function createApp(platform, config = {}) {
         && generation === cabinGeneration && scene === 'home' && appVisible) contribution.setEnabled(false);
       return;
     }
-    if (!available || localSession.settings?.rulesVersion !== 'territory-v2' && !pending) return;
+    if (!available || localSession.settings?.rulesVersion !== 'territory-v3' && !pending) return;
     if (await platform.confirm(language === 'en' ? CONTRIBUTION_NOTICE_EN : CONTRIBUTION_NOTICE) && generation === cabinGeneration && scene === 'home' && appVisible) contribution.setEnabled(true);
   }
   function toggleLanguage() {
