@@ -173,7 +173,7 @@ export function drawReader(ui, state, actions) {
 export function drawResult(ui, state, actions) {
   const { metrics: { width: w, height: h, bottom }, top, text, rect, wrap, button, label } = ui;
   const { result, playerLabel } = state, compact = h - bottom - top < 470;
-  text(result.winner === 'DRAW' ? label('draw') : `${playerLabel(result.winner)} ${label('wins')}`,
+  text(result.forfeited ? (ui.language === 'en' ? 'AI challenge forfeited' : 'AI 挑战已认输') : result.winner === 'DRAW' ? label('draw') : `${playerLabel(result.winner)} ${label('wins')}`,
     24, top, 25, '#244d3d', 'left', 'bold');
   text(label('resultScoreUnits'), 24, top + 34, 12, '#738476');
   const columns = result.rows.length >= 4 ? 2 : 1;
@@ -186,7 +186,7 @@ export function drawResult(ui, state, actions) {
     text(label(row.resigned ? columns > 1 ? 'resignedShort' : 'resultResigned' : row.winner ? 'wins' : 'resultCounted'), x + 12, y + (compact ? 32 : 42), 11, '#738476');
     text(row.area, x + cardWidth - 12, y + cardHeight / 2, columns > 1 ? 21 : 24, row.resigned ? '#738476' : '#244d3d', 'right', 'bold');
   });
-  wrap(label(`result-${result.reason}`), 24, top + 76 + Math.ceil(result.rows.length / columns) * step, w - 48, 12, '#738476', compact ? 4 : 5);
+  wrap(result.forfeited ? (ui.language === 'en' ? 'Recorded as a loss against every AI. The challenge ends here; remaining AI are not assigned a winner.' : '本次挑战按负于所有 AI 结算，到此结束；其余 AI 不判定相互名次。') : label(`result-${result.reason}`), 24, top + 76 + Math.ceil(result.rows.length / columns) * step, w - 48, 12, '#738476', compact ? 4 : 5);
   const half = (w - 60) / 2, footer = h - bottom - 108;
   if (state.ladderText) wrap(state.ladderText, 24, footer - 42, w - 48, 13, '#8b6427', 2);
   button('result-replay', label('replay'), 24, footer, half, actions.replay, { primary: true });

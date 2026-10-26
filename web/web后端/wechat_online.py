@@ -171,7 +171,7 @@ class WechatStore:
         db.execute("CREATE TABLE IF NOT EXISTS wx_link_codes (digest TEXT PRIMARY KEY, web_subject TEXT NOT NULL, expires INTEGER NOT NULL, created INTEGER NOT NULL)")
         db.execute("CREATE TABLE IF NOT EXISTS wx_profiles (uid TEXT PRIMARY KEY, display_name TEXT, avatar_mime TEXT, avatar_blob BLOB, avatar_hash TEXT, updated INTEGER NOT NULL)")
         ladder.migrate(db)
-        db.execute("PRAGMA user_version=5")
+        db.execute("PRAGMA user_version=6")
 
     @staticmethod
     def validate_schema(db):
@@ -180,7 +180,8 @@ class WechatStore:
         version = db.execute("PRAGMA user_version").fetchone()[0]
         full = accounts | set(PROFILE_COLUMNS)
         expected = {0: base, 1: base, 2: accounts, 3: full,
-                    4: full | set(ladder.legacy.TABLES), 5: full | set(ladder.TABLES)}
+                    4: full | set(ladder.legacy.TABLES), 5: full | set(ladder.legacy.TABLES) | set(ladder.V2_TABLES),
+                    6: full | set(ladder.TABLES)}
         if version not in expected or tables != expected[version]:
             raise ValueError("Unsupported WeChat database version")
         for table, columns in {**STORE_COLUMNS, **ACCOUNT_COLUMNS, **PROFILE_COLUMNS, **ladder.TABLES}.items():
@@ -391,7 +392,7 @@ class WechatStore:
             for action_id, action in zip(room["actionIds"], room["actions"]):
                 if action_id.startswith("server_"):
                     actor = room["players"][action["player"]]
-                    owner = room["players"]["BLACK"] if actor.startswith("ai:") else actor
+                    owner = room["players"][room.get("humanPlayer", "BLACK")] if actor.startswith("ai:") else actor
                     db.execute("INSERT OR IGNORE INTO wx_commands VALUES (?,?,?,?,?)", (room["code"], room["matchId"], action_id, owner, hashlib.sha256(canonical(action).encode()).hexdigest()))
 
     def leaderboard(self, uid, kind, offset):
@@ -437,12 +438,15 @@ async def exchange_wechat(code, app_id, secret):
     return data["openid"]  # Intentionally discard session_key/unionid.
 
 
-def verify_rules(settings, actions, action=None, *, ai_profile=None):
+def verify_rules(settings, actions, action=None, *, ai_profile=None, ai_runtime=None, ranked_setup=None):
     payload = {"settings": settings, "actions": actions}
     if action is not None:
         payload["action"] = action
     if ai_profile is not None:
         payload["aiProfile"] = ai_profile
+        payload["aiRuntime"] = ai_runtime
+    if ranked_setup is not None:
+        payload["rankedSetup"] = ranked_setup
     try:
         process = subprocess.run([os.getenv("LIFELINE_NODE", "node"), str(VALIDATOR)],
                                  input=canonical(payload).encode(), capture_output=True, timeout=15, check=False,
@@ -450,7 +454,10 @@ def verify_rules(settings, actions, action=None, *, ai_profile=None):
     except (OSError, subprocess.TimeoutExpired):
         fail("RULE_SERVICE_UNAVAILABLE", 503)
     if process.returncode:
-        fail("INVALID_ACTION", 422)
+        if process.stderr.strip() == b"AI_VERSION_CHANGED":
+            fail("AI_VERSION_CHANGED", 409)
+        fail("INVALID_AI_DIFFICULTY" if ranked_setup and set(ranked_setup) == {"profile"}
+             else "INVALID_SETTINGS" if ranked_setup else "INVALID_ACTION", 422)
     try:
         return json.loads(process.stdout)
     except ValueError:
@@ -616,6 +623,8 @@ class WechatService:
                 "undo": room.get("undo", {"usedCount": 0, "pending": False, "votes": []}),
                 "playerProfiles": profiles,
                 "rankedAI": room.get("rankedAI"), "ladderResult": room.get("ladderResult"),
+                "aiControllers": room.get("aiControllers"), "humanPlayer": room.get("humanPlayer"),
+                "rankedForfeit": room.get("rankedForfeit", False),
                 "members": {p: member is not None for p, member in room["players"].items()}}
 
     @staticmethod
@@ -642,6 +651,30 @@ class WechatService:
         if mode != "default":
             settings.update(startingPointMode=mode, initialPositions=positions)
         return settings
+
+    async def advance_ai(self, room):
+        """Bounded authoritative turn batch; a resume command continues bot-only turns."""
+        human = room.get("humanPlayer", "BLACK")
+        for _ in range(room["settings"]["playerCount"]):
+            state = room["state"]
+            if state["gameOver"] or state["currentPlayer"] == human:
+                break
+            if len(room["actions"]) >= MAX_ACTIONS:
+                fail("MATCH_LIMIT", 409)
+            actor = state["currentPlayer"]
+            options = {"ai_profile": room.get("aiControllers", {}).get(actor, room["rankedAI"])}
+            if room.get("rankedContext"):
+                options["ai_runtime"] = room["rankedContext"]["runtime"]
+            reply = await asyncio.to_thread(self.ai_verifier, room["settings"], room["actions"], **options)
+            action = reply.pop("aiAction")
+            if action.get("player") != actor:
+                fail("RULE_SERVICE_UNAVAILABLE", 503)
+            room["actions"].append(action)
+            room["actionIds"].append("server_" + secrets.token_hex(16))
+            room["seq"] += 1
+            room["state"] = reply
+        if room["state"]["gameOver"]:
+            room["status"] = "finished"
 
     async def broadcast(self, room):
         async def send(uid, socket):
@@ -715,15 +748,18 @@ class WechatService:
             fail("ACCOUNT_DELETED", 401)
         if operation in ("create", "create-ai"):
             profile = body.get("profile") if operation == "create-ai" else None
-            if operation == "create-ai" and (profile not in ladder.AI_PROFILES or set(body) != {"profile"}):
-                fail("INVALID_AI_DIFFICULTY", 422)
+            ranked = operation == "create-ai"
+            prepared = await asyncio.to_thread(verify_rules, {}, [], ranked_setup=body) if ranked else None
             current = self.store.active_room(uid)
             if current:
-                if profile and current.get("rankedAI") != profile:
+                if ranked and (not current.get("rankedAI") or current.get("rankedContext", {}).get("key") != prepared["context"]["key"]):
                     fail("ALREADY_IN_ROOM", 409)
                 return current
-            settings = self.room_settings({"gridSize": 7, "rulesVersion": "territory-v3"} if profile else body)
-            state = await asyncio.to_thread(self.verifier, settings, [])
+            settings = prepared.pop("settings") if ranked else self.room_settings(body)
+            controllers = prepared.pop("controllers") if ranked else None
+            human = prepared.pop("humanPlayer") if ranked else None
+            context = prepared.pop("context") if ranked else None
+            state = prepared if ranked else await asyncio.to_thread(self.verifier, settings, [])
             room = {"code": "".join(secrets.choice("ABCDEFGHJKLMNPQRSTUVWXYZ23456789") for _ in range(8)),
                     "matchId": secrets.token_hex(16), "revision": 1, "seq": 0, "settings": settings,
                     "status": "waiting", "players": {"BLACK": uid, "WHITE": None}, "actions": [], "actionIds": [],
@@ -732,10 +768,16 @@ class WechatService:
                     "state": state, "expiresAt": int(time.time()) + ROOM_TTL}
             if settings["rulesVersion"] == "territory-v3":
                 room["ladderVersion"] = ladder.VERSION
-            if profile:
-                room.update(rankedAI=profile, status="playing", ready={"BLACK": True, "WHITE": True})
-                room["players"]["WHITE"] = "ai:" + profile
+            if ranked:
+                room.update(rankedAI=profile or "configured", aiControllers=controllers, humanPlayer=human,
+                    rankedContext=context, status="playing", ready={p: True for p in controllers},
+                    rematchVotes={p: False for p in controllers},
+                    players={p: uid if p == human else f"ai:{context['key']}:{p}" for p in controllers})
             self.store.create(room)
+            if ranked and state["currentPlayer"] != human:
+                await self.advance_ai(room)
+                room["revision"] += 1
+                self.store.commit(room, 1)
             return room
         room = self.store.room(code)
         revision = room["revision"]
@@ -790,17 +832,32 @@ class WechatService:
                     fail("MATCH_NOT_FINISHED", 409)
                 room["rematchVotes"][player] = True
                 if room.get("rankedAI"):
-                    room["rematchVotes"]["WHITE"] = True
+                    for seat, member in room["players"].items():
+                        if member.startswith("ai:"):
+                            room["rematchVotes"][seat] = True
                 if all(room["rematchVotes"].values()):
+                    if room.get("rankedContext"):
+                        keys = ("gridSize", "playerCount", "boardShape", "startPlayer", "startingPointMode", "rulesVersion", "initialPositions")
+                        prepared = await asyncio.to_thread(verify_rules, {}, [], ranked_setup={
+                            "settings": {k: v for k, v in room["settings"].items() if k in keys}, "controllers": room["aiControllers"]})
+                        room["settings"] = prepared["settings"]
+                        room["rankedContext"] = prepared["context"]
+                        room["players"] = {p: uid if p == room["humanPlayer"] else f"ai:{prepared['context']['key']}:{p}" for p in room["players"]}
                     room.update(matchId=secrets.token_hex(16), seq=0, actions=[], actionIds=[], status="waiting",
-                                ready={"BLACK": False, "WHITE": False}, rematchVotes={"BLACK": False, "WHITE": False},
+                                ready={p: False for p in room["players"]}, rematchVotes={p: False for p in room["players"]},
                                 undo={"usedCount": 0, "pending": False, "votes": []},
                                 state=await asyncio.to_thread(self.verifier, room["settings"], []))
                     room.pop("ladderResult", None)
+                    room.pop("rankedForfeit", None)
                     if room["settings"]["rulesVersion"] == "territory-v3":
                         room["ladderVersion"] = ladder.VERSION
                     if room.get("rankedAI"):
-                        room.update(status="playing", ready={"BLACK": True, "WHITE": True})
+                        room.update(status="playing", ready={p: True for p in room["players"]})
+                        await self.advance_ai(room)
+            elif operation == "advance-ai":
+                if not room.get("rankedAI") or room["status"] != "playing":
+                    return room
+                await self.advance_ai(room)
             elif operation == "undo":
                 if room.get("ladderResult"):
                     fail("RANKED_RESULT_FINAL", 409)
@@ -855,6 +912,8 @@ class WechatService:
                     room["actions"].append(normalized)
                     room["actionIds"].append("server_" + secrets.token_hex(16))
                     room["seq"] += 1
+                    if room.get("rankedContext"):
+                        room["rankedForfeit"] = True
                 room["status"] = "closed"
             elif operation == "actions":
                 command_id = body.get("clientActionId")
@@ -883,7 +942,7 @@ class WechatService:
                         fail("INVALID_ACTION", 422)
                 elif "point" in action:
                     fail("INVALID_ACTION", 422)
-                if len(room["actions"]) >= MAX_ACTIONS - (1 if room.get("rankedAI") else 0):
+                if len(room["actions"]) >= MAX_ACTIONS - (room["settings"]["playerCount"] if room.get("rankedAI") else 0):
                     fail("MATCH_LIMIT", 409)
                 normalized = {**action, "player": player}
                 state = await asyncio.to_thread(self.verifier, room["settings"], room["actions"], normalized)
@@ -891,13 +950,12 @@ class WechatService:
                 room["actionIds"].append(command_id)
                 room["seq"] += 1
                 room["state"] = state
-                if room.get("rankedAI") and not state["gameOver"]:
-                    reply = await asyncio.to_thread(self.ai_verifier, room["settings"], room["actions"], ai_profile=room["rankedAI"])
-                    room["actions"].append(reply.pop("aiAction"))
-                    room["actionIds"].append("server_" + secrets.token_hex(16))
-                    room["seq"] += 1
-                    state = room["state"] = reply
-                if state["gameOver"]:
+                if room.get("rankedContext") and normalized["type"] == "resign":
+                    room["rankedForfeit"] = True
+                if room.get("rankedAI") and not room.get("rankedForfeit"):
+                    await self.advance_ai(room)
+                    state = room["state"]
+                if state["gameOver"] or room.get("rankedForfeit"):
                     room["status"] = "finished"
                 command = (code, room["matchId"], command_id, uid, digest)
             else:
@@ -1182,7 +1240,7 @@ def create_router(service=None, *, web_authenticate=None, web_password_authentic
 
     @router.post("/rooms/{code}/{operation}")
     async def mutate(code: str, operation: str, request: Request):
-        if operation not in ("ready", "rematch", "leave", "actions", "settings", "undo"):
+        if operation not in ("ready", "rematch", "leave", "actions", "settings", "undo", "advance-ai"):
             fail("UNKNOWN_OPERATION", 404)
         svc = get_service()
         return await svc.mutate(identity(request, svc), operation, await body(request), code, auth_token=bearer(request))

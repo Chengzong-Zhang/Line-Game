@@ -1,6 +1,6 @@
 export const ONLINE_CONSENT_KEY = 'lifeline-wx-online-consent-v2';
 export const LEGACY_ONLINE_CONSENT_KEY = 'lifeline-wx-online-consent-v1';
-export const ONLINE_CONSENT_VERSION = '2026-10-26.ladder2';
+export const ONLINE_CONSENT_VERSION = '2026-10-26.ladder3';
 
 // Production builds already validate a public HTTPS origin. Keep this small
 // runtime check independent of URL/DOM globals unavailable in Mini Games.
@@ -26,8 +26,8 @@ function accepted(storage, origin) {
 
 function notice(origin, language) {
   return language === 'en'
-    ? `Online service: ${origin}\nWeChat sign-in creates a game identity. The service stores rooms and online moves for reconnection. New online results are kept for ladders; your nickname, points and aggregate record appear to signed-in players once the skill rating is sufficiently reliable. AI ranking requires server-run ranked matches. Linking a Web account is optional; the service stores the link and displays the account name. You can choose a nickname and avatar; these are saved for display to other players. The game does not automatically read your WeChat avatar or nickname and never reads your friend list or contacts. Signing in does not upload local replays. Anonymous replay contributions require a separate, optional opt-in. Continue?`
-    : `联机服务：${origin}\n微信登录会建立游戏身份，服务器保存房间与联机动作以便重连，并保留新联机对局的战绩用于天梯。实力分估计足够可靠后，昵称、积分和汇总战绩会向已登录玩家展示。AI 榜仅记录服务器执行的 AI 排位。你可选择关联网页账号，关联后保存对应关系并显示账号名称；也可主动设置昵称和头像，保存后用于向其他玩家展示。不自动读取微信头像、昵称，不读取好友或通讯录。联机登录本身不会上传本地棋谱；匿名棋谱贡献需要另外主动开启。是否继续？`;
+    ? `Online service: ${origin}\nWeChat sign-in creates a game identity. The service stores rooms and online moves for reconnection. New online results are kept for ladders; your nickname, points and aggregate record appear to signed-in players after your first rated match. AI ranking requires server-run ranked matches. Linking a Web account is optional; the service stores the link and displays the account name. You can choose a nickname and avatar; these are saved for display to other players. The game does not automatically read your WeChat avatar or nickname and never reads your friend list or contacts. Signing in does not upload local replays. Anonymous replay contributions require a separate, optional opt-in. Continue?`
+    : `联机服务：${origin}\n微信登录会建立游戏身份，服务器保存房间与联机动作以便重连，并保留新联机对局的战绩用于天梯。完成首局有效计分对局后，昵称、积分和汇总战绩会向已登录玩家展示。AI 榜仅记录服务器执行的 AI 排位。你可选择关联网页账号，关联后保存对应关系并显示账号名称；也可主动设置昵称和头像，保存后用于向其他玩家展示。不自动读取微信头像、昵称，不读取好友或通讯录。联机登录本身不会上传本地棋谱；匿名棋谱贡献需要另外主动开启。是否继续？`;
 }
 
 export async function ensureOnlineConsent({ online, platform, language = 'zh', isCurrent = () => true }) {

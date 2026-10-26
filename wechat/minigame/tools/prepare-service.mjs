@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { parseArgs } from 'node:util';
 import { build } from 'esbuild';
+import { MODEL_CATALOG } from '../src/model-catalog.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const slash = value => value.split(path.sep).join('/');
@@ -17,7 +18,8 @@ const fixed = ['web/package.json', 'web/web后端/wechat_online.py', 'web/web后
   'wechat/tools/wechat_service_asgi_draft.py', 'wechat/tools/check_service_config.py',
   'wechat/tools/maintain_store.py', 'wechat/minigame/package.json',
   'wechat/minigame/THIRD_PARTY_NOTICES.txt', 'wechat/minigame/node_modules/@noble/hashes/package.json',
-  'wechat/minigame/node_modules/@noble/hashes/LICENSE'];
+  'wechat/minigame/node_modules/@noble/hashes/LICENSE',
+  ...MODEL_CATALOG.map(model => 'wechat/minigame/' + model.sourcePath)];
 const allowed = name => name.startsWith('web/web前端/') && /\.(js|json)$/.test(name)
   || name.startsWith('wechat/minigame/src/') && /\.js$/.test(name)
   || name.startsWith('wechat/minigame/node_modules/@noble/hashes/') && /\.(js|json)$/.test(name)
@@ -75,7 +77,7 @@ export async function verifyService(directory, { checkSources = false } = {}) {
   await ordinaryDirectory(path.join(directory, 'service'));
   const manifest = JSON.parse(await safeRead(directory, 'manifest.json'));
   assert.equal(manifest.schemaVersion, 1); assert.equal(manifest.kind, 'standalone-wechat-service');
-  assert.equal(manifest.databaseSchema, 5); assert.equal(manifest.ladderVersion, 'ladder-v2-glicko2');
+  assert.equal(manifest.databaseSchema, 6); assert.equal(manifest.ladderVersion, 'ladder-v3-conservative');
   const expected = new Set(manifest.files.map(f => f.path));
   assert.equal(expected.size, manifest.files.length);
   for (const file of [...fixed, entry]) assert.ok(expected.has(file), `Missing required package input: ${file}`);
@@ -119,17 +121,17 @@ export async function prepareService(directory) {
     await fs.writeFile(destination, data, { flag: 'wx' });
     files.push({ path: name, bytes: data.length, sha256: hash(data) });
   }
-  const manifest = { schemaVersion: 1, kind: 'standalone-wechat-service', version: '0.13.0-ladder.2',
+  const manifest = { schemaVersion: 1, kind: 'standalone-wechat-service', version: '0.13.0-ladder.3',
     status: 'PREPARED_LOCAL_NOT_DEPLOYED', createdAt: new Date().toISOString(),
     node: process.version, nodeRequirement: '>=22', files, totalBytes: files.reduce((n, f) => n + f.bytes, 0),
-    rulesVersion: 'territory-v3', onlinePlayerCount: 2, databaseSchema: 5, ladderVersion: 'ladder-v2-glicko2',
+    rulesVersion: 'territory-v3', onlinePlayerCount: 2, rankedAIPlayerCounts: [2,3,4,5,6], databaseSchema: 6, ladderVersion: 'ladder-v3-conservative',
     entry: 'wechat/tools/wechat_service_asgi_draft.py', validator: entry,
     requirements: 'web/web后端/requirements.txt',
     sourceLayout: 'Preserved original paths and bytes; one Node rule-validator subprocess per command',
     boundaries: ['No remote connection, environment file, credential or database read',
       'Package creation is not runtime, deployment or rollback acceptance',
       'Use one ASGI worker, existing separately configured secrets and dedicated database',
-      'Previous service code rejects schema5; preserve both ladder versions and use a schema5-compatible rollback before activation'] };
+      'Previous service code rejects schema6; preserve skill estimates and context evidence with a schema6-compatible rollback before activation'] };
   await fs.writeFile(path.join(directory, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n', { flag: 'wx' });
   await verifyService(directory, { checkSources: true });
   return manifest;

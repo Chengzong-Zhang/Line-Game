@@ -114,8 +114,8 @@ export function drawBattleCabin(ui, area, state, actions) {
   text(en ? 'Friend games' : '好友对战', area.x, y + 12, 16, CABIN_COLORS.ink, 'left', 'bold'); y += 36;
   y += wrap(state.online ? `${label('roomLabel')} ${state.code || ''}` : label('crossPlatformHelp'), area.x, y, area.width, 14, CABIN_COLORS.muted, 3) + 10;
   if (state.online && state.roomProfiles) for (const [player, profile] of Object.entries(state.roomProfiles)) {
-    if (!['BLACK', 'WHITE'].includes(player) || !profile) continue;
-    const side = label(player === 'BLACK' ? 'black' : 'white'), own = state.ownPlayer === player ? (en ? ' · you' : ' · 你') : '';
+    if (!['BLACK', 'WHITE', 'PURPLE', 'GREEN', 'ORANGE', 'CYAN'].includes(player) || !profile) continue;
+    const side = label(player.toLowerCase()), own = state.ownPlayer === player ? (en ? ' · you' : ' · 你') : '';
     y += wrap(`${side}${own} · ${profile.displayName || (en ? 'Player' : '玩家')}`, area.x, y + 6, area.width, 15, CABIN_COLORS.ink, 2) + 12;
   }
   if (state.online) {

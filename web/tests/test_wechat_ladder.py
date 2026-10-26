@@ -123,9 +123,11 @@ def test_qualifiers_ties_pagination_and_no_public_identity(env):
                      deviation=200 if index == 2 else 60, updated=int(time.time()))
             ladder.save(db, s)
     board = get_board(env)
-    assert [e["rank"] for e in board["entries"]] == [1, 1]
+    assert [e["rank"] for e in board["entries"]] == [1, 1, 3]
     assert board["me"]["rank"] == 1
-    assert get_board(env, who=2)["me"]["rank"] is None
+    assert get_board(env, who=2)["me"]["rank"] == 3
+    page = client.get("/api/wechat/ladder/human?offset=2", headers=header(sessions[0])).json()
+    assert [e["rank"] for e in page["entries"]] == [3]
     raw = json.dumps(board)
     assert all(s["account"]["uid"] not in raw for s in sessions)
     assert client.get("/api/wechat/ladder/human").status_code == 401
@@ -133,7 +135,7 @@ def test_qualifiers_ties_pagination_and_no_public_identity(env):
         assert client.get("/api/wechat/ladder/" + suffix, headers=header(sessions[0])).status_code == 422
 
 
-@pytest.mark.parametrize("change", [{"undo": {"usedCount": 1}}, {"settings": {"rulesVersion": "territory-v3", "startingPointMode": "custom"}}, {"actions": []}])
+@pytest.mark.parametrize("change", [{"undo": {"usedCount": 1}}, {"actions": []}])
 def test_practice_results_do_not_award_points(env, change):
     _, svc, sessions = env
     uids = [s["account"]["uid"] for s in sessions[:2]]
@@ -202,7 +204,7 @@ def test_real_engine_draw_counts_for_both_players_but_opening_passes_do_not_rate
     assert room["winner"] == "DRAW"
     for who in (0, 1):
         own = get_board(env, who=who)["me"]
-        assert (own["games"], own["draws"], own["ratedGames"], own["points"]) == (1, 1, 0, 1500)
+        assert (own["games"], own["draws"], own["ratedGames"], own["points"]) == (1, 1, 0, 800)
 
 
 def test_stale_cas_cannot_partially_settle(env):
@@ -250,7 +252,7 @@ def test_migration_and_backup_restore_preserve_scores(env, tmp_path):
     maintenance.copy_store(backup, destination, expected_sha256=receipt["sha256"], current_store=env[1].store.database)
     restored = wx.WechatStore(destination)
     assert restored.leaderboard(env[2][0]["account"]["uid"], "ai", 0)["me"] == get_board(env, "ai")["me"]
-    with restored.connect() as db: assert db.execute("PRAGMA user_version").fetchone()[0] == 5
+    with restored.connect() as db: assert db.execute("PRAGMA user_version").fetchone()[0] == 6
 
 
 def test_v3_migration_preserves_users_and_rejects_partial_ladder_tables(env):
@@ -262,7 +264,7 @@ def test_v3_migration_preserves_users_and_rejects_partial_ladder_tables(env):
     upgraded = wx.WechatStore(store.database)
     with upgraded.connect() as db:
         assert db.execute("SELECT * FROM wx_users ORDER BY uid").fetchall() == original
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 5
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 6
         db.execute("DROP TABLE wx_ladder_results")
     with pytest.raises(ValueError): wx.WechatStore(store.database)
 
@@ -271,7 +273,8 @@ def test_unknown_ai_profiles_share_prior_and_learn_actual_results(env):
     _, svc, sessions = env
     a, b = [s["account"]["uid"] for s in sessions[:2]]
     initial = get_board(env, "ai")
-    assert {bot["points"] for bot in initial["aiOpponents"]} == {1500}
+    assert initial["aiOpponents"] == []
+    assert {ladder.empty(ladder.bot_uid(p), "ai")["rating"] for p in ladder.AI_PROFILES} == {1500}
     assert all(bot["provisional"] for bot in initial["aiOpponents"])
     with svc.store.connect() as db:
         ladder.settle(db, room_fixture((a, b), "WHITE", profile="greedy"))
@@ -283,7 +286,7 @@ def test_unknown_ai_profiles_share_prior_and_learn_actual_results(env):
             bot = ladder.stats(db, ladder.bot_uid(p), "ai")
             bot.update(deviation=45, rated_games=100, games=100, updated=int(time.time()))
             ladder.save(db, bot)
-    assert get_board(env, "ai")["entries"] == [], 'bots never occupy human leaderboard positions'
+    assert len(get_board(env, "ai")["entries"]) == 2, 'only the two humans occupy leaderboard positions'
 
 
 def test_beating_measured_stronger_ai_earns_more_and_stable_ratings_move_less():
@@ -294,7 +297,7 @@ def test_beating_measured_stronger_ai_earns_more_and_stable_ratings_move_less():
     assert 1500 < weak < strong < provisional
 
 
-def test_inactivity_changes_uncertainty_not_skill_and_removes_stale_rank(env, monkeypatch):
+def test_inactivity_changes_uncertainty_and_conservative_score_but_keeps_rank(env, monkeypatch):
     _, svc, sessions = env
     uid = sessions[0]["account"]["uid"]
     now = int(time.time())
@@ -305,7 +308,7 @@ def test_inactivity_changes_uncertainty_not_skill_and_removes_stale_rank(env, mo
     assert get_board(env)["me"]["rank"] == 1
     monkeypatch.setattr(ladder.time, "time", lambda: now + 86400 * 365)
     own = get_board(env)["me"]
-    assert own["points"] == 1800 and own["rank"] is None and own["provisional"]
+    assert own["rating"] == 1800 and own["points"] < 1680 and own["rank"] == 1 and own["provisional"]
     bot = {**s, "uid": ladder.bot_uid("greedy")}
     assert ladder.live_deviation(bot, now + 86400 * 365) == 60
 

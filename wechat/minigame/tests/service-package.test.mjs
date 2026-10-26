@@ -13,8 +13,8 @@ test('isolated service has complete validator dependencies and rejects reuse, ta
   const artifact = await fs.mkdtemp(path.join(root, 'local_artifacts/wechat-service-package-test-'));
   const candidate = path.join(artifact, 'candidate');
   const manifest = await prepareService(candidate);
-  assert.equal(manifest.databaseSchema, 5);
-  assert.equal(manifest.ladderVersion, 'ladder-v2-glicko2');
+  assert.equal(manifest.databaseSchema, 6);
+  assert.equal(manifest.ladderVersion, 'ladder-v3-conservative');
   assert.ok(manifest.files.some(f => f.path.endsWith('/StartingPoints.js')));
   assert.ok(manifest.files.some(f => f.path.endsWith('/LocalUndo.js')));
   assert.ok(manifest.files.some(f => f.path.endsWith('/@noble/hashes/LICENSE')));

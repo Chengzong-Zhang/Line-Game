@@ -5,7 +5,7 @@ import { uiHarness } from './ui-harness.mjs';
 import { sut, until, memoryStorage, localScheduler } from './helpers.mjs';
 
 const entry = { displayName: '测试玩家', isMe: true, points: 1058, games: 12, wins: 8, draws: 1, winRate: 2 / 3, ratedGames: 9, rank: 2, provisional: false, interval: [938, 1178] };
-const result = (board, offset = 0) => ({ version: 'ladder-v2-glicko2', board, entries: [entry], me: entry, offset, hasMore: offset === 0, total: 21,
+const result = (board, offset = 0) => ({ version: 'ladder-v3-conservative', board, entries: [entry], me: entry, offset, hasMore: offset === 0, total: 21,
   aiOpponents: board === 'ai' ? RANKED_PROFILES.map(profile => ({ profile, points: 1500, provisional: true })) : [] });
 
 test('unrevised server scores and invented difficulty weights are not shown as skill ratings', async () => {
@@ -14,7 +14,7 @@ test('unrevised server scores and invented difficulty weights are not shown as s
   await ladder.load('ai');
   assert.equal(ladder.error, 'LADDER_UNAVAILABLE'); assert.equal(ladder.data, null);
   assert.ok(RANKED_LABELS.zh.every(label => !label.includes('×')));
-  assert.ok(LADDER_RULES.zh.includes('不加场次分'));
+  assert.ok(LADDER_RULES.zh.includes('不直接奖励分数'));
 });
 
 test('late board responses and changed identities never replace current standings', async () => {
@@ -48,7 +48,7 @@ test('a result receipt stays on its own board and names the scoring board', () =
   assert.ok(!texts.some(s => s.includes('当前 2 分')));
   texts.length = 0;
   drawLadder(ui, { x: 0, y: 0, width: 300 }, { ...state, kind: 'ai' }, {});
-  assert.ok(texts.some(s => s.includes('AI 榜实力分 +2 · 当前 2 分')));
+  assert.ok(texts.some(s => s.includes('AI 榜保守分 +2 · 当前 2 分')));
 });
 
 test('returning to Battle refreshes the selected board after a new result', async () => {
@@ -63,10 +63,10 @@ test('returning to Battle refreshes the selected board after a new result', asyn
     await until(() => h.app.session.snapshot && !h.app.session.busy);
     await h.tap('cabin-battle'); await h.tap('ladder-human');
     await until(() => reads === 1); await h.render();
-    assert.ok(h.texts.some(s => s.includes('我的实力分 1058')));
+    assert.ok(h.texts.some(s => s.includes('我的保守分 1058')));
     await h.tap('cabin-close'); await h.tap('cabin-battle');
     await until(() => reads === 2); await h.render();
-    assert.ok(h.texts.some(s => s.includes('我的实力分 1068')));
+    assert.ok(h.texts.some(s => s.includes('我的保守分 1068')));
   } finally { h.app.dispose(); }
 });
 
@@ -117,14 +117,16 @@ for (const language of ['zh', 'en']) test(`battle ladder, rules, own score and p
 test('ranked AI uses the chosen server difficulty and stale selection cannot start a match', async () => {
   const h = uiHarness({ config: { onlineEnabled: true, apiBase: 'https://test.invalid' } });
   let selected, entered;
-  h.p.choose = () => new Promise(resolve => { selected = resolve; });
+  h.p.confirm = text => text.includes('按棋盘舱配置') ? new Promise(resolve => { selected = resolve; }) : Promise.resolve(true);
   h.app.online.enter = async (kind, profile) => { entered = { kind, profile }; return true; };
   try {
     await until(() => h.app.session.snapshot && !h.app.session.busy);
     await h.tap('cabin-battle'); await h.tap('ladder-start-ai'); await until(() => selected);
-    await h.tap('cabin-close'); selected(2); await h.render(); assert.equal(entered, undefined);
-    h.p.choose = async () => 2;
+    await h.tap('cabin-close'); selected(true); await h.render(); assert.equal(entered, undefined);
+    h.p.confirm = async () => true;
     await h.tap('cabin-battle'); await h.tap('ladder-start-ai'); await until(() => entered);
-    assert.deepEqual(entered, { kind: 'ai', profile: 'minimax-3' });
+    assert.equal(entered.kind, 'ai');
+    assert.equal(entered.profile.controllers.BLACK, 'human');
+    assert.equal(entered.profile.settings.playerCount, 2);
   } finally { h.app.dispose(); }
 });

@@ -46,6 +46,25 @@ def readonly(path):
     return sqlite3.connect(source.as_uri() + "?mode=ro", uri=True, timeout=5)
 
 
+def inspect_ai_context(c):
+    seats = ["BLACK", "WHITE", "PURPLE", "GREEN", "ORANGE", "CYAN"]
+    if (not isinstance(c, dict) or c.get("version") != "ranked-context-v1"
+            or not isinstance(c.get("key"), str) or not re.fullmatch(r"[0-9a-f]{64}", c["key"])
+            or not isinstance(c.get("runtime"), str) or not re.fullmatch(r"[0-9a-f]{64}", c["runtime"])
+            or type(c.get("playerCount")) is not int or c["playerCount"] not in range(2, 7)
+            or type(c.get("gridSize")) is not int or not 5 <= c["gridSize"] <= 15
+            or c.get("rulesVersion") != "territory-v3" or c.get("boardShape") not in ("triangle", "hexagon")
+            or c.get("startingPointMode") not in ("default", "random", "custom")
+            or not isinstance(c.get("controllers"), dict) or set(c["controllers"]) != set(seats[:c["playerCount"]])
+            or c.get("startPlayer") not in c["controllers"] or c.get("humanPlayer") not in c["controllers"]
+            or list(c["controllers"].values()).count("human") != 1 or c["controllers"][c["humanPlayer"]] != "human"
+            or any(not isinstance(v, str) or not v for v in c["controllers"].values())):
+        raise ValueError("Invalid AI context")
+    raw = json.dumps({k: v for k, v in c.items() if k != "key"}, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    if hashlib.sha256(raw.encode()).hexdigest() != c["key"]:
+        raise ValueError("Invalid AI context hash")
+
+
 def inspect_connection(db):
     if db.execute("PRAGMA quick_check").fetchall() != [("ok",)]:
         raise ValueError("Database integrity check failed")
@@ -53,7 +72,8 @@ def inspect_connection(db):
     full = set(TABLES) | set(ACCOUNT_TABLES) | set(PROFILE_TABLES)
     version = db.execute("PRAGMA user_version").fetchone()[0]
     expected = {0: set(TABLES), 1: set(TABLES), 2: set(TABLES) | set(ACCOUNT_TABLES),
-                3: full, 4: full | set(ladder.legacy.TABLES), 5: full | set(ladder.TABLES)}
+                3: full, 4: full | set(ladder.legacy.TABLES),
+                5: full | set(ladder.legacy.TABLES) | set(ladder.V2_TABLES), 6: full | set(ladder.TABLES)}
     if version not in expected or tables != expected[version]:
         raise ValueError("Database schema version is not supported")
     for table, columns in {**TABLES, **ACCOUNT_TABLES, **PROFILE_TABLES, **ladder.TABLES}.items():
@@ -101,7 +121,16 @@ def inspect_connection(db):
             raise ValueError("Inconsistent room metadata")
         members = room.get("players", {})
         bot = room.get("rankedAI") in ladder.AI_PROFILES and members.get("WHITE") == "ai:" + room["rankedAI"]
-        if set(members) != {"BLACK", "WHITE"} or members["BLACK"] not in users or (members["WHITE"] is not None and members["WHITE"] not in users and not bot):
+        context = room.get("rankedContext")
+        if context is not None:
+            inspect_ai_context(context)
+        ranked = context and room.get("humanPlayer") in members and members[room["humanPlayer"]] in users
+        if ranked:
+            if (set(members) != set(context.get("controllers", {})) or len(members) != room["settings"]["playerCount"]
+                    or context.get("humanPlayer") != room["humanPlayer"]
+                    or any(value != (members[seat] if seat == room["humanPlayer"] else f"ai:{context['key']}:{seat}") for seat, value in members.items())):
+                raise ValueError("Invalid ranked AI room")
+        elif set(members) != {"BLACK", "WHITE"} or members["BLACK"] not in users or (members["WHITE"] is not None and members["WHITE"] not in users and not bot):
             raise ValueError("Room refers to a missing identity")
         actions, ids = room.get("actions"), room.get("actionIds")
         if (not isinstance(actions, list) or not isinstance(ids, list) or len(actions) != room.get("seq")
@@ -135,8 +164,29 @@ def inspect_connection(db):
                     or rated not in (0, 1) or outcome not in (0, 0.5, 1)
                     or (board == "ai" and difficulty not in ladder.AI_PROFILES)):
                 raise ValueError("Invalid ladder result")
-    if version == 5:
+    if version >= 5:
         bot_ids = {ladder.bot_uid(p) for p in ladder.AI_PROFILES}
+        contexts, evidence = {}, {}
+        if version >= 6:
+            for key, raw in db.execute("SELECT * FROM wx_skill_contexts"):
+                c = json.loads(raw)
+                inspect_ai_context(c)
+                if c["key"] != key:
+                    raise ValueError("Invalid AI context")
+                contexts[key] = c
+                bot_ids.update(f"ai:{key}:{seat}" for seat, profile in c["controllers"].items() if profile != "human")
+            for match, uid, context, raw in db.execute("SELECT * FROM wx_skill_evidence"):
+                observations = json.loads(raw)
+                if (uid not in users or context not in contexts or not isinstance(observations, list) or not 1 <= len(observations) <= 5
+                        or len(observations) != contexts[context]["playerCount"] - 1
+                        or not db.execute("SELECT 1 FROM wx_skill_results WHERE match_id=? AND uid=? AND difficulty='context'", (match, uid)).fetchone()
+                        or any(not isinstance(o, dict) or set(o) != {"rating", "deviation", "outcome", "weight"}
+                            or not all(isinstance(v, (int, float)) and math.isfinite(v) for v in o.values())
+                            or not 0 < o["deviation"] <= 350 or o["outcome"] not in (0, .5, 1)
+                            or abs(o["weight"] - 1 / len(observations)) > 1e-9 for o in observations)
+                        or abs(sum(o["weight"] for o in observations) - 1) > 1e-9):
+                    raise ValueError("Invalid skill evidence")
+                evidence[(match, uid)] = context
         for values in db.execute("SELECT * FROM wx_skill_stats"):
             s = dict(zip(ladder.CURRENT_TABLES["wx_skill_stats"], values))
             if (s["uid"] not in users and not (s["board"] == "ai" and s["uid"] in bot_ids)
@@ -151,8 +201,12 @@ def inspect_connection(db):
             if (not re.fullmatch(r"[0-9a-f]{32}", r["match_id"]) or r["uid"] not in users
                     or r["board"] not in ("ai", "human") or r["rated"] not in (0, 1)
                     or r["outcome"] not in (0, 0.5, 1)
-                    or (r["board"] == "ai" and r["difficulty"] not in ladder.AI_PROFILES)
-                    or (r["rated"] and (not all(isinstance(r[k], (int, float)) and math.isfinite(r[k])
+                    or type(r["ordinal"]) is not int or r["ordinal"] < 1
+                    or (r["rated"] and (not isinstance(r["expected"], (int, float)) or not math.isfinite(r["expected"]) or not 0 <= r["expected"] <= 1))
+                    or (r["board"] == "ai" and r["difficulty"] not in (*ladder.AI_PROFILES, "context"))
+                    or (r["difficulty"] == "context" and (r["board"] != "ai"
+                        or (r["match_id"], r["uid"]) not in evidence or r["opponent"] != "ai:" + evidence[(r["match_id"], r["uid"])]))
+                    or (r["rated"] and r["difficulty"] != "context" and (not all(isinstance(r[k], (int, float)) and math.isfinite(r[k])
                         for k in ("opponent_rating", "opponent_deviation", "expected"))
                         or not 0 < r["opponent_deviation"] <= 350 or not 0 <= r["expected"] <= 1))):
                 raise ValueError("Invalid skill result")
@@ -224,7 +278,8 @@ def copy_store(source, destination, *, expected_sha256=None, current_store=None)
                 if ("wx_web_accounts" in tables and current_users["version"] < 2
                         or "wx_profiles" in tables and current_users["version"] < 3
                         or "wx_ladder_stats" in tables and current_users["version"] < 4
-                        or "wx_skill_stats" in tables and current_users["version"] < 5):
+                        or "wx_skill_stats" in tables and current_users["version"] < 5
+                        or "wx_skill_contexts" in tables and current_users["version"] < 6):
                     raise ValueError("Current identity schema predates the backup")
                 if "wx_web_accounts" in tables:
                     backup_uids.update(row[0] for row in outgoing.execute("SELECT uid FROM wx_web_accounts"))
@@ -256,7 +311,7 @@ def copy_store(source, destination, *, expected_sha256=None, current_store=None)
                         outgoing.executemany("INSERT INTO wx_profiles VALUES (?,?,?,?,?,?)", current_users["profiles"])
                         outgoing.execute("PRAGMA user_version=3")
                     if current_users["version"] >= 4:
-                        (ladder.migrate if current_users["version"] >= 5 else ladder.legacy.migrate)(outgoing)
+                        (ladder.migrate if current_users["version"] >= 6 else ladder.migrate_v2 if current_users["version"] == 5 else ladder.legacy.migrate)(outgoing)
                         for table, rows in current_users["ladder"].items():
                             outgoing.execute(f"DELETE FROM {table}")
                             placeholders = ','.join('?' for _ in ladder.TABLES[table])

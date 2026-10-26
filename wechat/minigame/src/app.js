@@ -23,7 +23,8 @@ import { ACCOUNT_COPY, ACCOUNT_ERRORS } from './account-ui.js';
 import { TrainingContribution, contributionContext, CONTRIBUTION_NOTICE, CONTRIBUTION_NOTICE_EN,
   CLEAR_PENDING_NOTICE, CLEAR_PENDING_NOTICE_EN } from './training-contribution.js';
 import { ensureOnlineConsent } from './online-consent.js';
-import { LadderClient, RANKED_PROFILES, RANKED_LABELS, ladderResultText } from './ladder.js';
+import { LadderClient, ladderResultText } from './ladder.js';
+import { rankedSetupInput } from './ranked-setup.js';
 
 const THEME = { background: '#f4ede1', ink: '#2a2118', muted: '#695749', border: '#dfd1bb', white: '#fff9ee' };
 
@@ -390,7 +391,9 @@ export function createApp(platform, config = {}) {
       }); return;
     }
     if (scene === 'result') {
-      const result = summarizeResult(session.snapshot);
+      const result = isOnline() && online.room?.rankedForfeit ? { forfeited: true, winner: null, reason: 'resignation',
+        rows: session.snapshot.players.map(player => ({ player, area: session.snapshot.territories[player].area,
+          resigned: player === online.room.player, winner: false })) } : summarizeResult(session.snapshot);
       if (!result) { scene = 'game'; redraw(); return; }
       drawResult(ui, { result, playerLabel, online: isOnline(), ladderText: isOnline() ? ladderResultText(online.room?.ladderResult, online.room?.player, language) : '' }, {
         back: () => { scene = 'game'; redraw(); },
@@ -493,7 +496,8 @@ export function createApp(platform, config = {}) {
     const roundWidth = 64, scoreGap = 6;
     const scoreWidth = multiScore ? (w - 44) / 3 : (w - 32 - roundWidth - snapshot.players.length * scoreGap) / snapshot.players.length;
     const scoreOrder = snapshot.players.length === 2 ? [snapshot.players[0], null, snapshot.players[1]] : multiScore ? snapshot.players : [...snapshot.players, null];
-    const roundNumber = Math.max(1, (session.replayIndex ?? session.actions.length) + (snapshot.gameOver ? 0 : 1));
+    const rankedForfeit = isOnline() && online.room?.rankedForfeit && session.replayIndex === null;
+    const roundNumber = Math.max(1, (session.replayIndex ?? session.actions.length) + (snapshot.gameOver || rankedForfeit ? 0 : 1));
     let scoreX = 16;
     for (const [scoreIndex, player] of scoreOrder.entries()) {
       const scoreY = top + (multiScore ? Math.floor(scoreIndex / 3) * 48 : 0);
@@ -504,7 +508,7 @@ export function createApp(platform, config = {}) {
         scoreX += roundWidth + scoreGap; continue;
       }
       const color = PLAYER_COLORS[player];
-      const activeTurn = !snapshot.gameOver && snapshot.currentPlayer === player;
+      const activeTurn = !snapshot.gameOver && !rankedForfeit && snapshot.currentPlayer === player;
       rect(scoreX, scoreY, scoreWidth, 44, 12, activeTurn ? `${color}18` : THEME.white);
       const own = ownSide === player ? (language === 'en' ? ' (you)' : '·你') : '';
       text(`${playerLabel(player)}${own}  ${snapshot.territories[player].area}`, scoreX + scoreWidth / 2,
@@ -531,9 +535,10 @@ export function createApp(platform, config = {}) {
     if (session.replayIndex !== null) instruction = `${label('replay')} · ${session.replayIndex} / ${session.actions.length}`;
     if (isOnline() && session.replayIndex === null) instruction = `${online.room?.code || ''} · ${label(online.room?.status === 'waiting' ? 'roomWaiting' : online.room?.status === 'closed' ? 'roomClosed' : snapshot.gameOver ? 'result' : snapshot.currentPlayer === 'BLACK' ? 'black' : 'white')}`;
     if (isOnline() && online.room?.rankedAI && session.replayIndex === null)
-      instruction = `${language === 'en' ? 'Ranked AI' : 'AI 排位'} · ${RANKED_LABELS[language][RANKED_PROFILES.indexOf(online.room.rankedAI)] || ''}`;
-    const hasResult = snapshot.gameOver && !lesson && session.replayIndex === null;
-    if (hasResult) instruction = snapshot.winner === 'DRAW' ? label('draw') : `${playerLabel(snapshot.winner)} ${label('wins')}`;
+      instruction = rankedForfeit ? (language === 'en' ? 'AI challenge forfeited' : 'AI 挑战已认输结算')
+        : `${language === 'en' ? 'Ranked AI' : 'AI 排位'} · ${snapshot.players.length} ${language === 'en' ? 'seats' : '人'} · ${playerLabel(snapshot.currentPlayer)}`;
+    const hasResult = (snapshot.gameOver || rankedForfeit) && !lesson && session.replayIndex === null;
+    if (hasResult && !rankedForfeit) instruction = snapshot.winner === 'DRAW' ? label('draw') : `${playerLabel(snapshot.winner)} ${label('wins')}`;
     if (isOnline() || !session.settings.undoEnabled || replaying || lesson || snapshot.gameOver)
       text(instruction, session.replayIndex !== null || hasResult ? 24 : w / 2, statusTop + (compact && !lesson ? 59 : 65), 15, THEME.ink,
         session.replayIndex !== null || hasResult ? 'left' : 'center');
@@ -554,7 +559,8 @@ export function createApp(platform, config = {}) {
       const help = session.replayIndex !== null ? label(visibleInspection() ? 'inspectionMarks' : 'replayHelp')
         : isOnline() && online.room?.status === 'waiting' ? label('roomHelp')
         : isOnline() && online.room?.status === 'closed' ? label('roomClosed')
-        : isOnline() && snapshot.gameOver ? `${label(snapshot.winner === 'DRAW' ? 'draw' : snapshot.winner === 'BLACK' ? 'black' : 'white')}${snapshot.winner === 'DRAW' ? '' : ` ${label('wins')}`}`
+        : rankedForfeit ? (language === 'en' ? 'Challenge settled; view results or play again.' : '挑战已结算，可查看结果或再来一局。')
+        : isOnline() && snapshot.gameOver ? (snapshot.winner === 'DRAW' ? label('draw') : `${playerLabel(snapshot.winner)} ${label('wins')}`)
         : snapshot.gameOver ? label('gameOverHelp')
         : session.modelLoading ? `${label('modelLoading')} ${session.modelLoading.progress}%`
         : session.busy ? label('thinking')
@@ -570,7 +576,7 @@ export function createApp(platform, config = {}) {
           w / 2, statusTop + 117, 12, THEME.muted, 'center');
       }
     }
-    if (!lesson && session.replayIndex === null && !snapshot.gameOver) {
+    if (!lesson && session.replayIndex === null && !snapshot.gameOver && !rankedForfeit) {
       button('skip', label('skip'), 24, statusTop + 48, 58, () => quickAction('skip'), { height: 36, font: 14, disabled: !canPlay() });
       button('hint', label('hint'), w - 82, statusTop + 48, 58, () => quickAction('hint'), { height: 36, font: 14, disabled: isOnline() || !canPlay() || !session.hintsRemaining });
       if (!isOnline() && session.settings.undoEnabled) button('undo', `${label('undo')} · ${session.undoRemaining}`, w / 2 - 49, statusTop + 48, 98,
@@ -616,7 +622,7 @@ export function createApp(platform, config = {}) {
         () => online.voteUndo(false), { disabled: online.sending });
       // Voting has its own row above the match controls and the emote row.
       button('room-wait', label('pending'), 24, footer, w - 48, () => {}, { disabled: true });
-    } else if (isOnline() && snapshot.gameOver) {
+    } else if (isOnline() && (snapshot.gameOver || rankedForfeit)) {
       button('room-rematch', label(online.room.rematchVotes[online.room.player] ? 'readyWaiting' : 'rematch'), 24, footer, boxW,
         () => online.command('rematch'), { primary: true, disabled: online.sending || online.room.rematchVotes[online.room.player] });
       button('replay', label('replay'), 36 + boxW, footer, boxW, () => { selected = null; void session.replay(0); });
@@ -646,7 +652,7 @@ export function createApp(platform, config = {}) {
       } else {
         const quarter = (w - 64) / 4;
         // Special connection/replay/AI states retain their complete main controls.
-        if (!snapshot.gameOver && online.room?.status !== 'closed') {
+        if (!snapshot.gameOver && !rankedForfeit && online.room?.status !== 'closed') {
           for (const item of buttons) if (item.y === footer && item.width === w - 48) {
             item.x = 32 + quarter; item.width = quarter * 2;
             // Redraw the action within the central columns after changing its hit area.
@@ -694,10 +700,11 @@ export function createApp(platform, config = {}) {
       if (active === 'board') contentHeight = drawBoardCabin(ui, content, { language, terminology,
         size: isOnline() ? online.room?.settings?.gridSize || size : size, online: isOnline(),
         canEditOnline: isOnline() && online.canEditSettings(),
-        playerCount: isOnline() ? 2 : draftPlayerCount(),
+        playerCount: isOnline() ? online.room?.settings?.playerCount || 2 : draftPlayerCount(),
         boardShape: isOnline() ? online.room?.settings?.boardShape || 'triangle' : boardShape,
         startingPointMode: isOnline() ? online.room?.settings?.startingPointMode || 'default' : startingPointMode,
-        startPlayer, controllers: draftControllers(),
+        startPlayer: isOnline() ? online.room?.settings?.startPlayer : startPlayer,
+        controllers: isOnline() && online.room?.aiControllers || draftControllers(),
         playOptions: isOnline() ? normalizePlayOptions(online.room?.settings || {}) : playOptions,
         compatibleProfiles: controllerChoices(playerCount, draftSettings()),
         hasActions: Boolean(session.actions.length), rulesVersion: session.settings?.rulesVersion || 'territory-v3',
@@ -898,6 +905,9 @@ export function createApp(platform, config = {}) {
     if (valid()) accountMessage = [avatarFailed ? label('wechatAvatarImportFailed') : '',
       label(online.account?.profileSync === 'pending' ? 'profileLocalSaved' : 'profileSaved')].filter(Boolean).join('\n');
   }
+  const resignationPrompt = () => isOnline() && online.room?.aiControllers
+    ? (language === 'en' ? 'End this AI challenge as a loss to every AI opponent?' : '确认结束本次 AI 挑战，并按负于所有 AI 对手结算？')
+    : label('confirmResign');
   async function quickAction(action) {
     const current = session, epoch = current.epoch, life = online.lifecycle, room = online.room, generation = cabinGeneration;
     const valid = () => appVisible && session === current && session.epoch === epoch && generation === cabinGeneration
@@ -913,7 +923,7 @@ export function createApp(platform, config = {}) {
         return;
       }
       if (!canPlay() || cabin) return;
-      if (action === 'resign' && !await platform.confirm(label('confirmResign'))) return;
+      if (action === 'resign' && !await platform.confirm(resignationPrompt())) return;
       if (!valid() || !canPlay()) return;
       selected = null;
       if (action === 'hint') await session.hint();
@@ -1216,8 +1226,17 @@ export function createApp(platform, config = {}) {
     };
     if (!await ensureOnlineConsent({ online, platform, language, isCurrent: valid }) || !valid()) return;
     let kind = invitation ? 'join' : directKind, value = invitation;
-    if (directKind && !invitation) value = kind === 'ai' ? RANKED_PROFILES[await platform.choose(RANKED_LABELS[language], { isCurrent: valid })]
-      : kind === 'resume' ? online.savedCode : kind === 'create' ? onlineSettings() : (await platform.input(label('roomCode')))?.trim().toUpperCase();
+    if (directKind && !invitation) {
+      if (kind === 'ai') {
+        try { value = rankedSetupInput({ ...draftSettings(), startPlayer, startingPointMode, initialPositions }, draftControllers()); }
+        catch (_) { await platform.message(language === 'en' ? 'In Board cabin, keep one human seat and choose compatible AI for every other seat.' : '请在棋盘舱保留一个真人席位，其余席位选择当前棋盘兼容的 AI。'); return; }
+        const summary = Object.entries(value.controllers).map(([p, profile]) => `${playerLabel(p)} · ${label(`controller-${profile}`)}`).join('\n');
+        if (!await platform.confirm((language === 'en' ? 'Use the Board cabin setup for ranked AI?\n' : '按棋盘舱配置开始 AI 排位？\n')
+          + `${playerCount} ${language === 'en' ? 'seats' : '人'} · ${size} ${language === 'en' ? 'size' : '路'} · ${boardShape === 'hexagon' ? label('hexBoard') : label('triangleBoard')}\n`
+          + `${startingPointMode === 'random' ? (language === 'en' ? 'Server-drawn random starts' : '服务器随机起点') : startingPointMode === 'custom' ? (language === 'en' ? 'Custom starts' : '自定义起点') : (language === 'en' ? 'Default starts' : '默认起点')}\n`
+          + summary + (language === 'en' ? '\nHints and undo are disabled.' : '\n排位关闭提示和悔棋。')) || !valid()) return;
+      } else value = kind === 'resume' ? online.savedCode : kind === 'create' ? onlineSettings() : (await platform.input(label('roomCode')))?.trim().toUpperCase();
+    }
     if (!kind) {
       const choices = online.savedCode ? ['resumeRoom', 'createRoom', 'joinRoom'] : ['createRoom', 'joinRoom'];
       const i = await platform.choose(choices.map(label));
@@ -1283,7 +1302,7 @@ export function createApp(platform, config = {}) {
       if (!valid()) return;
       if (i === 0) platform.share(online.sharePayload());
       if (i === 1) { selected = null; await play({ type: 'skip' }); }
-      if (i === 2 && canPlay() && await platform.confirm(label('confirmResign')) && valid()) await play({ type: 'resign' });
+      if (i === 2 && canPlay() && await platform.confirm(resignationPrompt()) && valid()) await play({ type: 'resign' });
       if (i === 3 && await platform.confirm(label('confirmLeave')) && valid()) {
         if (await online.command('leave') && scene === 'game' && session === current && online.lifecycle === life) await goHome();
       }

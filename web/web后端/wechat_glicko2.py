@@ -33,13 +33,16 @@ def deviation_at(deviation, volatility, elapsed_periods):
         math.sqrt(deviation ** 2 + max(0, elapsed_periods) * (volatility * SCALE) ** 2)))
 
 
-def update(rating, deviation, volatility, results, *, periods=1.0):
+def update(rating, deviation, volatility, results, *, periods=1.0, weights=None):
     """Return (rating, RD, volatility). results: (opponent R, RD, score).
 
     periods=1 reproduces the published batch example. The service supplies
     elapsed wall-clock periods for immediate online updates, and applies its
     documented RD/volatility bounds separately.
     """
+    weights = [1.0] * len(results) if weights is None else list(weights)
+    if len(weights) != len(results) or any(not math.isfinite(w) or w <= 0 for w in weights):
+        raise ValueError("Invalid Glicko-2 weights")
     numbers = [rating, deviation, volatility, periods, *(v for row in results for v in row)]
     if not all(math.isfinite(v) for v in numbers) or deviation <= 0 or volatility <= 0 or periods < 0:
         raise ValueError("Invalid Glicko-2 state")
@@ -49,10 +52,10 @@ def update(rating, deviation, volatility, results, *, periods=1.0):
     if not results:
         return rating, math.sqrt(phi * phi + periods * volatility ** 2) * SCALE, volatility
     information, surprise = 0.0, 0.0
-    for opponent, rd, score in results:
+    for (opponent, rd, score), weight in zip(results, weights):
         factor, e = g(rd / SCALE), expected(rating, opponent, rd)
-        information += factor ** 2 * e * (1 - e)
-        surprise += factor * (score - e)
+        information += weight * factor ** 2 * e * (1 - e)
+        surprise += weight * factor * (score - e)
     if information <= 0:
         raise ValueError("Insufficient numerical rating information")
     variance = 1 / information

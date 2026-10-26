@@ -3,6 +3,7 @@ import { GameSession } from './session.js';
 import { validateSettings, MAX_ACTIONS } from './state.js';
 import { ONLINE_CONSENT_KEY, LEGACY_ONLINE_CONSENT_KEY } from './online-consent.js';
 import { profileCache, validateProfile } from './profile-cache.js';
+import { playerIds, validateControllers } from './controllers.js';
 
 const ROOM_KEY = 'lifeline-wx-room-v1', PENDING_KEY = 'lifeline-wx-command-v1';
 const roomCode = (value) => typeof value === 'string' && /^[A-Z2-9]{8}$/.test(value);
@@ -14,18 +15,22 @@ export function validateRoom(room) {
   if (!room || room.protocol !== 1 || !roomCode(room.code) || !/^[0-9a-f]{32}$/.test(room.matchId)
     || !Number.isSafeInteger(room.revision) || room.revision < 1 || !Number.isSafeInteger(room.seq)
     || !['waiting', 'playing', 'finished', 'closed'].includes(room.status)
-    || !['BLACK', 'WHITE'].includes(room.player) || !['BLACK', 'WHITE'].includes(room.currentPlayer)
+    || !playerIds(room.settings?.playerCount).includes(room.player) || !playerIds(room.settings?.playerCount).includes(room.currentPlayer)
     || !Array.isArray(room.actions) || room.actions.length !== room.seq || room.seq > MAX_ACTIONS
     || !Array.isArray(room.actionIds) || room.actionIds.length !== room.seq
     || !/^sha256:[0-9a-f]{64}$/.test(room.stateHash)
     || !room.ready || !room.members || !room.rematchVotes) throw new Error('INVALID_ROOM');
   validateSettings(room.settings);
-  if (room.settings.playerCount !== 2) throw new Error('INVALID_ROOM');
+  if (room.aiControllers) {
+    const controllers = validateControllers(room.aiControllers, room.settings);
+    if (!controllers || !room.rankedAI || room.humanPlayer !== room.player || controllers[room.player] !== 'human'
+      || Object.values(controllers).filter(p => p === 'human').length !== 1) throw Error('INVALID_ROOM');
+  } else if (room.settings.playerCount !== 2) throw new Error('INVALID_ROOM');
   if (room.undo !== undefined && (!room.undo || !Number.isInteger(room.undo.usedCount)
     || room.undo.usedCount < 0 || room.undo.usedCount > (room.settings.undoMaxCount ?? 3)
     || typeof room.undo.pending !== 'boolean' || !Array.isArray(room.undo.votes)
     || new Set(room.undo.votes).size !== room.undo.votes.length
-    || room.undo.votes.some(player => !['BLACK', 'WHITE'].includes(player)))) throw new Error('INVALID_ROOM');
+    || room.undo.votes.some(player => !playerIds(room.settings.playerCount).includes(player)))) throw new Error('INVALID_ROOM');
   return room;
 }
 
@@ -167,7 +172,7 @@ export class OnlineClient {
       && (!roomRequest || (life === this.lifecycle && this.active));
     await this.authenticate();
     if (!current()) throw new Error('CANCELLED');
-    const send = () => this.platform.request({ url: `${this.config.apiBase}/api/wechat/${path}`, timeout: this.room?.rankedAI ? 25000 : 10000,
+    const send = () => this.platform.request({ url: `${this.config.apiBase}/api/wechat/${path}`, timeout: this.room?.rankedAI || path === 'ranked-ai' ? 110000 : 10000,
       method: data === undefined ? 'GET' : 'POST', data,
       header: { Authorization: `Bearer ${this.token}`, 'Content-Type': 'application/json' } });
     try { return await send(); }
@@ -198,7 +203,7 @@ export class OnlineClient {
         && /^[0-9a-f]{32}$/.test(pending.body?.matchId) && Number.isSafeInteger(pending.body?.expectedSeq)
         && ['move', 'skip', 'resign'].includes(pending.body?.action?.type) ? pending : null;
       const room = kind === 'create' ? await this.request('rooms', typeof value === 'object' ? value : { gridSize: value })
-        : kind === 'ai' ? await this.request('ranked-ai', { profile: value })
+        : kind === 'ai' ? await this.request('ranked-ai', typeof value === 'object' ? value : { profile: value })
         : kind === 'join' ? await this.request('rooms/join', { code: value }) : await this.request(`rooms/${value}`);
       if (!this.active || life !== this.lifecycle) return false;
       if (!await this.receive(room)) throw new Error(this.error || 'STATE_MISMATCH');
@@ -253,7 +258,25 @@ export class OnlineClient {
         || (room.undo?.usedCount || 0) > previousUndoCount) this.clearPending();
       else if (room.seq !== body.expectedSeq || room.stateHash !== body.beforeHash) { this.clearPending(); this.error = 'STALE_POSITION'; }
     }
-    this.notify(); return true;
+    this.queueBots(); this.notify(); return true;
+  }
+  queueBots() {
+    clearTimeout(this.botTimer);
+    if (!this.active || this.game.hidden || this.error || !this.room?.aiControllers || this.room.status !== 'playing'
+      || this.room.currentPlayer === this.room.humanPlayer || this.game.replayIndex !== null) return;
+    const life = this.lifecycle, match = this.room.matchId;
+    this.botTimer = setTimeout(async () => {
+      if (!this.active || life !== this.lifecycle || this.room?.matchId !== match || this.game.hidden
+        || this.error || this.game.replayIndex !== null || this.room.status !== 'playing'
+        || this.room.currentPlayer === this.room.humanPlayer) return;
+      if (this.sending || this.botBusy || this.game.busy) { this.queueBots(); return; }
+      this.botBusy = true; this.notify();
+      try {
+        const room = await this.request(`rooms/${this.room.code}/advance-ai`, { matchId: match });
+        if (this.active && life === this.lifecycle && this.room?.matchId === match) await this.receive(room);
+      } catch (error) { if (life === this.lifecycle) this.error = error.message; }
+      finally { if (life === this.lifecycle) { this.botBusy = false; this.queueBots(); this.notify(); } }
+    }, 100);
   }
   async connect() {
     if (!this.active || !this.room || this.room.status === 'closed' || this.game.hidden || this.deleting) return;
@@ -346,6 +369,7 @@ export class OnlineClient {
     try { socket?.close({ code: 1000 }); } catch (_) { /* Already closed. */ }
   }
   detach() {
+    clearTimeout(this.botTimer); this.botBusy = false;
     this.active = false; this.lifecycle++; this.syncId++; this.closeSocket(); this.game.pause(); this.sending = false; this.networkConnected = null;
     this.deferredRoom = null;
   }
@@ -399,7 +423,7 @@ export class OnlineClient {
   }
   receiveEmote(emote) {
     if (!this.emotesSupported || !emote || !/^[0-9a-f]{16}$/.test(emote.id)
-      || !ONLINE_EMOTES.includes(emote.emoji) || !['BLACK', 'WHITE'].includes(emote.player)
+      || !ONLINE_EMOTES.includes(emote.emoji) || !playerIds(this.room?.settings?.playerCount).includes(emote.player)
       || emote.matchId !== this.room?.matchId || emote.id === this.lastEmote?.id) return false;
     this.lastEmote = { id: emote.id, emoji: emote.emoji, player: emote.player, matchId: emote.matchId };
     this.emoteError = null; this.onEmote(this.lastEmote); this.notify(); return true;

@@ -85,7 +85,7 @@ import { LADDER_RULES } from './ladder.js';
 export function helpDocument(kind, language, onlineEnabled = false) {
   const lang = language === 'en' ? 'en' : 'zh';
   if (kind === 'ladder') return LADDER_RULES[lang].split('\n\n').map((text, i) => ({ id: `ladder-${i}`,
-    title: (lang === 'zh' ? ['AI 榜实力分', '人类榜实力分', '定级与可靠性', '哪些对局计分', '评分依据'] : ['AI skill ratings', 'Human skill ratings', 'Placement & uncertainty', 'Rated matches', 'Rating sources'])[i], paragraphs: [text] }));
+    title: (lang === 'zh' ? ['保守分与一局上榜', '实力和可信度', '多种 AI 排位', '多人结算与校准', '计分边界与迁移', '评分依据'] : ['Conservative ranking', 'Skill and confidence', 'AI match options', 'Multiplayer calibration', 'Eligibility and migration', 'Rating sources'])[i], paragraphs: [text] }));
   const guide = guideDocument(kind, lang);
   if (guide) return guide;
   if (kind === 'rules' || kind === 'controls') return [
