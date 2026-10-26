@@ -43,6 +43,9 @@ smoke-test.png
 /submission/
 /*.mp4
 /local_artifacts/
+/working/local_artifacts/
+/working/tmp/
+/working/.pytest_cache/
 /line-game-ai-search-publish-20260910/
 
 # Local-only candidate evidence, source packages, and reproducible paper QA.
