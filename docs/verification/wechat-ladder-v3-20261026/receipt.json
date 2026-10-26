@@ -1,0 +1,76 @@
+{
+  "status": "PASS_LOCAL_TARGETED_VERIFICATION_NOT_DEPLOYED",
+  "createdAt": "2026-10-26T13:35:05.067300+00:00",
+  "branch": "codex/wechat-minigame",
+  "ladderVersion": "ladder-v3-conservative",
+  "databaseSchema": 6,
+  "backend": {
+    "passed": 131,
+    "deselected": 1,
+    "exitCode": 0,
+    "seconds": 72.24,
+    "exclusion": "actual_legacy_login_bridges_only_existing_unexpired_web_accounts: pre-existing legacy route not mounted (405), outside this task"
+  },
+  "client": {
+    "passed": 109,
+    "exitCode": 0,
+    "aiProfilesActuallyInvoked": 29
+  },
+  "browser": {
+    "kind": "IAB loopback HTTP/WS with fake WeChat identity and isolated SQLite",
+    "scenarios": [
+      "three-seat hexagon random start with mixed easy/hard AI",
+      "human move and server AI replies",
+      "reload and resume preserve board and turn",
+      "multiplayer resignation without invented engine winner",
+      "one rated match appears as provisional, conservative score 757",
+      "rematch samples new roots",
+      "final resignation prompt and separate opponent skill label"
+    ],
+    "initialFixtureCorrection": "Unsupported player query replaced with the supported blue fixture; no later page errors observed"
+  },
+  "minigame": {
+    "directory": "local_artifacts/wechat-ladder-v3-20261026/minigame",
+    "manifestSha256": "f420183d74350d471c3c20ad5b1a1773e3da5d9df9bbf203795354126622efb4",
+    "files": 33,
+    "bytes": 19815668,
+    "mainPackageBytes": 1661852,
+    "onlineEnabled": false,
+    "status": "BUILT_NOT_WECHAT_VERIFIED"
+  },
+  "service": {
+    "directory": "local_artifacts/wechat-ladder-v3-20261026/server-final",
+    "manifestSha256": "07bc541ac80979942b99344468a9f7772d9f6394a0a5d54d82a473e726ac72be",
+    "files": 79,
+    "bytes": 18822931,
+    "status": "PASS_SERVICE_PACKAGE_FILES_AND_NATIVE_SMOKE"
+  },
+  "boundaries": [
+    "Existing unrelated dirty/untracked runtime dependencies retained and hashed; task commit alone is not a clean full-platform snapshot",
+    "Existing product rename in i18n.js is visible in screenshots and not included in this task commit",
+    "No production data read, AI strength experiment, deployment, upload, push, device acceptance or public release"
+  ],
+  "implementationCommit": "039936b5b0fd55417ab037a91637d11f10475a15",
+  "screenshots": [
+    {
+      "file": "first-match-ladder.png",
+      "bytes": 38405,
+      "sha256": "3a2b8523aeb6292c62a2c3de20a945b6d2185739466d46776e1b39e05c59e248"
+    },
+    {
+      "file": "multiplayer-forfeit.png",
+      "bytes": 27104,
+      "sha256": "32ed9c72d2b9dd6f88671d5a96030028291276e472b050531ee399cbca0a1447"
+    },
+    {
+      "file": "random-hex-ai-reply.png",
+      "bytes": 33590,
+      "sha256": "8aa64d8d3b588c3a83a81c69e6f03fb74d88c54ddcea6dd762ecf0618a3588f6"
+    },
+    {
+      "file": "random-rematch.png",
+      "bytes": 32753,
+      "sha256": "d0670ffd25fb2b81aa0c759c38b52bfe5703841ce151e66b7056d8d4e00fdc4a"
+    }
+  ]
+}

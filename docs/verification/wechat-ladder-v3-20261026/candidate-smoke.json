@@ -1,0 +1,26 @@
+{
+  "status": "PASS_ISOLATED_CANDIDATE_SMOKE",
+  "candidate": "server-final",
+  "checks": [
+    {
+      "seats": 2,
+      "shape": "triangle",
+      "profile": "model:dqn-all-sizes-e2000",
+      "status": "PASS_NATIVE_CANDIDATE_AI_AND_RULES"
+    },
+    {
+      "seats": 3,
+      "shape": "hexagon",
+      "profile": "multiplayer-hard-v1",
+      "status": "PASS_NATIVE_CANDIDATE_AI_AND_RULES"
+    },
+    {
+      "seats": 6,
+      "shape": "hexagon",
+      "profile": "multiplayer-easy-v1",
+      "status": "PASS_NATIVE_CANDIDATE_AI_AND_RULES"
+    }
+  ],
+  "schema": 6,
+  "productionModified": false
+}

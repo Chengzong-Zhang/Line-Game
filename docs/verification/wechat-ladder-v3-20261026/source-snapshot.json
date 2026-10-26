@@ -1,0 +1,972 @@
+{
+  "baseline": "287914acad6a8f375d5270717762f1f65646ce21",
+  "hashScope": "Exact local file bytes, including existing CRLF; not Git-normalized blob hashes",
+  "files": [
+    {
+      "path": "docs/product/WECHAT_LADDER_V3.md",
+      "sha256": "73c96cc7db80d747042f7d309457b5f1c873ac6f756960db3a59eff518fd56e9",
+      "bytes": 7133,
+      "scope": "task",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "web/package.json",
+      "sha256": "d02836298858858f52f01f58c6afc45f02db04d86adad0fb3bba92ed1abb53f0",
+      "bytes": 36,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "tracked"
+    },
+    {
+      "path": "web/tests/test_wechat_accounts.py",
+      "sha256": "c480951766ba86f701eb7a29a4ce5dac22b08aba2aa2ce40bcd9b8904d7e9bbe",
+      "bytes": 18430,
+      "scope": "task",
+      "gitStateBeforeCommit": "modified"
+    },
+    {
+      "path": "web/tests/test_wechat_ladder.py",
+      "sha256": "da22e1d223fa9be23ed6d03389a0c252e8d34a8a484e616a3de8e79c427e9f37",
+      "bytes": 17333,
+      "scope": "task",
+      "gitStateBeforeCommit": "modified"
+    },
+    {
+      "path": "web/tests/test_wechat_ladder_v3.py",
+      "sha256": "980860f37740b9e252013934725700bc50d89adc72c951aa0ecd18e895822917",
+      "bytes": 11275,
+      "scope": "task",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "web/tests/test_wechat_profile_preflight.py",
+      "sha256": "e382a793f52ec96e6d1ba59eb3f9568f2fe70d7ac695c86cac930ee24d66f35d",
+      "bytes": 3052,
+      "scope": "task",
+      "gitStateBeforeCommit": "modified"
+    },
+    {
+      "path": "web/tests/test_wechat_profiles.py",
+      "sha256": "eae4aaf1da61191dc6c4635d6f3d1a227b4be946f1c20618a98bc4a844579a10",
+      "bytes": 15003,
+      "scope": "task",
+      "gitStateBeforeCommit": "modified"
+    },
+    {
+      "path": "web/tools/training_contribution_schema.mjs",
+      "sha256": "605cb220299faac9e60c73e8b7f3414d7a0b2babb26671600febf8f4b188700f",
+      "bytes": 4341,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "web/web前端/AIEngine.js",
+      "sha256": "fd3a9af8a3b33ae3a2864b634b8be4c5f5e975d71d285407216c8ac40171525a",
+      "bytes": 16118,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "modified"
+    },
+    {
+      "path": "web/web前端/GameEngine.js",
+      "sha256": "6fef8942869a6325c5f7867269984139eb0d799c8e337e87fe699efdbb434151",
+      "bytes": 109680,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "modified"
+    },
+    {
+      "path": "web/web前端/GuideArticleFormat.js",
+      "sha256": "151f1b08779da81cbdc86dd1129816b8d53c6912b4f56d1635b20f909dea84f3",
+      "bytes": 1632,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "web/web前端/GuideContent.js",
+      "sha256": "0160431d751443e2c2798d317eca1eef9468b092b3009be596b54e8acc1799bb",
+      "bytes": 39766,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "modified"
+    },
+    {
+      "path": "web/web前端/GuideImplementation.js",
+      "sha256": "37e17c7656a164ba2d66dbe8185ac1167594ea4d0b728887af04118245743995",
+      "bytes": 5248,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "web/web前端/GuideImplementationNotes.js",
+      "sha256": "f3ff40b3dc61cf375345a24c7e512ff466ffecd4acbb48d9b16aef60de15b0af",
+      "bytes": 61452,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "web/web前端/GuideMathChapters.js",
+      "sha256": "e7a5a5055c7f8f9d5674f4c9e2b5d67fd62204b058d4c5c2621a9e6ef57f906b",
+      "bytes": 47349,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "web/web前端/GuideTechnicalChapters.js",
+      "sha256": "ec3bc1544eb5fdc3173197ef165ddf7ff33e139c233484aae226f30ae7e539f5",
+      "bytes": 42270,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "web/web前端/HexFastSearchAI.js",
+      "sha256": "89e6a550347b450f9abb08781bc6274face186d577eded36f55d3624ec6c744d",
+      "bytes": 10313,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "web/web前端/HexPlayerAI.js",
+      "sha256": "c6bfad2eb6798393347447eb417d73d3d0b5229c2c570dd7aa05009000434185",
+      "bytes": 9535,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "web/web前端/HexSearchOptions.js",
+      "sha256": "d82c0402a70156f38ce9504301bb01919c400a594aecaec831a1bb7cfb771f2d",
+      "bytes": 433,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "web/web前端/LocalAIModes.js",
+      "sha256": "52ecf53c4aa958eb5e9188faedb35728947fb18a8f2431d81869ff2edd0c2bd8",
+      "bytes": 6967,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "modified"
+    },
+    {
+      "path": "web/web前端/LocalGameSession.js",
+      "sha256": "f8668927765d1e847d221d715d113cc06fb636c0a958561cac7462ec715cdc83",
+      "bytes": 7509,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "modified"
+    },
+    {
+      "path": "web/web前端/LocalUndo.js",
+      "sha256": "0a6086965b218894ebe488ad01b3b034b17094cd5ca7f2cff7525ca3cde38d5f",
+      "bytes": 3843,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "web/web前端/ModelFreeAI.js",
+      "sha256": "5589c9449210367a42859649d94424b75dd592994af47bd276fd26bf8ae4659d",
+      "bytes": 7818,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "modified"
+    },
+    {
+      "path": "web/web前端/MultiplayerClock.js",
+      "sha256": "9cc62a1da3400222c41b07d128fba047f2a57688f13bf42ef3620d66e8d9df80",
+      "bytes": 500,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "web/web前端/MultiplayerRollout.js",
+      "sha256": "a9444f452dbac9c27e478c6189cb407fb6bd6aa352a7313f3c235a0878930f91",
+      "bytes": 19731,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "web/web前端/MultiplayerRuntime.js",
+      "sha256": "45ab6396ef58385ebaa76f2f67f235d6a55d172db7167f3e67177c1a5a6312e2",
+      "bytes": 5051,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "web/web前端/MultiplayerSearch.js",
+      "sha256": "68e80293f2586c282bacc40396dcf1b95ec07ebf55db9720a35f5776e7cef944",
+      "bytes": 17255,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "web/web前端/ReplayCodec.js",
+      "sha256": "0451637bd9a2c4cb5535d501f135d914b8c068e0319f0fa30a30a8384733d341",
+      "bytes": 16948,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "modified"
+    },
+    {
+      "path": "web/web前端/ResearchAI.js",
+      "sha256": "a44bec9e7ea852bd378b9afc1462e7bc34131e7971b0d74332b7a4642c2be5c6",
+      "bytes": 23645,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "modified"
+    },
+    {
+      "path": "web/web前端/ResearchAIOptions.js",
+      "sha256": "0cc5e27993622422a9a5b77bf95750992d26e1fe1a7a26782d53606f3709fa1e",
+      "bytes": 1599,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "tracked"
+    },
+    {
+      "path": "web/web前端/StartingPoints.js",
+      "sha256": "7b09547988a75cbccda06fbd554af8aaa18957f9b3029d772106894e4921894d",
+      "bytes": 1534,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "web/web前端/ThreePlayerAI.js",
+      "sha256": "3a6e8ef4d61534a55e975e2a292552f0784c0f19915db47cdd2ebca6e2b18690",
+      "bytes": 7079,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "web/web前端/ThreePlayerModels.js",
+      "sha256": "8a86f6b8a61722c37a6d60aa80d1b59e3ec80b86bb0edfe530593a82db418da9",
+      "bytes": 3918,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "web/web前端/ThreePlayerSearchAI.js",
+      "sha256": "bbafaa124065c2f3be622b3fecce5e0b1e119de7dcf581e5c43adf683caa3b01",
+      "bytes": 6682,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "web/web前端/ThreePlayerSearchOptions.js",
+      "sha256": "299e238d74acdcf6f86e5b4f7108a16393b8709439b7b8c3292197d512d39c87",
+      "bytes": 522,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "web/web前端/TutorialRunner.js",
+      "sha256": "d88560aaa59257756b4541d951e23410d8491df9127a4ed8431fb3287041aa80",
+      "bytes": 9963,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "modified"
+    },
+    {
+      "path": "web/web前端/assets/research-ai/hex-player-policy-v1.json",
+      "sha256": "74aa7f945c3ea7ff5ca3edc9e7bdc431dc0ec5ad56d2563ce6d6d24c0494162b",
+      "bytes": 3321,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "web/web前端/assets/research-ai/hex-player-search-v5.json",
+      "sha256": "e19d45b26e5fb7e2783e392993622bede692838043a9cb4d5af91d170f8448b5",
+      "bytes": 1828,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "web/web前端/assets/research-ai/manifest.json",
+      "sha256": "a6148b97ffe2175d1f42fbff3f273f29899e4f7587840ff7734a2d04f0af2dfa",
+      "bytes": 19606,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "tracked"
+    },
+    {
+      "path": "web/web前端/assets/research-ai/model-free-manifest.json",
+      "sha256": "4a2dc25e4d2c1a70823c5f6280355c5af5a0e751ebba96845530cb84d316be6c",
+      "bytes": 10204,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "tracked"
+    },
+    {
+      "path": "web/web前端/assets/research-ai/multiplayer-v1/easy.json",
+      "sha256": "575f5cf1cf8c29210e4eb1e16845f09279ba8076d6a18474732b4659dd2b4e69",
+      "bytes": 3925,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "web/web前端/assets/research-ai/three-player-policy-v1.json",
+      "sha256": "8cd1a2f36267f96b1e32b7749a9cdc785f489ea7ec12e31aee0beb0a72901794",
+      "bytes": 2354,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "web/web前端/assets/research-ai/three-player-policy-v2.json",
+      "sha256": "00fc241c500dfd01ff85b5e2a4f1907cc5a9d8307d68bb78be64b0aad129f56e",
+      "bytes": 3973,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "web/web前端/assets/research-ai/three-player-search-v4-round12.json",
+      "sha256": "9b85f5fff27001d68407c30d6f707b461b1b468d657c8292339e97d23868c230",
+      "bytes": 3032,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "web/web前端/assets/research-ai/transfer-v1/manifest.json",
+      "sha256": "8c46031730fa746e2b1b5f091d5e140384619070fb36013bb650b8d026291e22",
+      "bytes": 81104,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "tracked"
+    },
+    {
+      "path": "web/web前端/guide/Thanks.en.md",
+      "sha256": "bfa790c0dd72cb368d06d78ec58deecd37dace292450410244cf7cfaf7508636",
+      "bytes": 1336,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "tracked"
+    },
+    {
+      "path": "web/web前端/guide/Thanks.md",
+      "sha256": "e55110ab8c418ffb2b38b527711fd7f971474cc9f059966419f6eeae26c8cce5",
+      "bytes": 1290,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "tracked"
+    },
+    {
+      "path": "web/web前端/guide/guide-images/三人制衡.jpg",
+      "sha256": "f764ae3428ce942964729b2fd30850b46a96df2b70282af8652fd52c977a863e",
+      "bytes": 75654,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "tracked"
+    },
+    {
+      "path": "web/web前端/guide/guide-images/三点限制.png",
+      "sha256": "481e28f13a32dac2ab8b91d320cf20ade246eb513d8f09c5eb047536bb7e0d13",
+      "bytes": 141728,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "tracked"
+    },
+    {
+      "path": "web/web前端/guide/guide-images/切断1.png",
+      "sha256": "a02817f967e9b2dc2103c04fbc0fb1cbbd4630d574bdd3b61a8e6aba24cf2d1f",
+      "bytes": 181936,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "tracked"
+    },
+    {
+      "path": "web/web前端/guide/guide-images/切断2.png",
+      "sha256": "9bc0d8f3c1b4acca5ac36a13f1d696a9c08971f0d308f2525ef35053bd08bbb9",
+      "bytes": 180003,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "tracked"
+    },
+    {
+      "path": "web/web前端/guide/guide-images/可以走的区域png.png",
+      "sha256": "5085eeede1c51b2c79fd062d306f854b96259190e53d1850b89c9ebe2eab3b35",
+      "bytes": 153674,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "tracked"
+    },
+    {
+      "path": "web/web前端/guide/guide-images/起点限制.png",
+      "sha256": "243f8eb898e011d08eadd9fa13d2f5f922c385d04e82a569a0ec36c787144a24",
+      "bytes": 129899,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "tracked"
+    },
+    {
+      "path": "web/web前端/guide/rule/essential rule.md",
+      "sha256": "78da4f37cd4c292483d4a8d3677c1e7e882203c05335e3627116655e8081038d",
+      "bytes": 1174,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "modified"
+    },
+    {
+      "path": "web/web前端/guide/rule/war rule.md",
+      "sha256": "32e4551554f71a1f75e5710d2e3d525c6b2f2e8bbded5d667912b8616ad5be8c",
+      "bytes": 2337,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "modified"
+    },
+    {
+      "path": "web/web后端/requirements.txt",
+      "sha256": "bf46fe8257dd3b495c58aa2e3838134c22d86f025764dce948e52037c7f8347c",
+      "bytes": 133,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "modified"
+    },
+    {
+      "path": "web/web后端/wechat_glicko2.py",
+      "sha256": "fb04e6d2aace239bb5d53572cbcc598d19b3175922b8298c54a0e80af0e0e5b3",
+      "bytes": 3781,
+      "scope": "task",
+      "gitStateBeforeCommit": "modified"
+    },
+    {
+      "path": "web/web后端/wechat_ladder.py",
+      "sha256": "f52e15adec883371b276ccc8339908d637de9d342e07c26aedbf7aa7f5ca4c63",
+      "bytes": 17199,
+      "scope": "task",
+      "gitStateBeforeCommit": "modified"
+    },
+    {
+      "path": "web/web后端/wechat_ladder_v1.py",
+      "sha256": "a0387ac4c70c28444fbca9e560f69eb5a0df6ad0605a35a2650e78c88748f932",
+      "bytes": 9204,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "tracked"
+    },
+    {
+      "path": "web/web后端/wechat_online.py",
+      "sha256": "7e2923f8c565c2f036ddb64ca2d22e13776459418302bd317beac67d5fb2eee4",
+      "bytes": 70229,
+      "scope": "task",
+      "gitStateBeforeCommit": "modified"
+    },
+    {
+      "path": "wechat/minigame/THIRD_PARTY_NOTICES.txt",
+      "sha256": "aa050304323db5d85b2d446d19a38688d4e853a5f76841f0298bcf83b098829e",
+      "bytes": 1396,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/model-assets/dqn-all-sizes-e2000.bin",
+      "sha256": "16f50c330ad7cc239cfb0b2334538817c7c0d6cf4c01f6048b05c9ee4a9466eb",
+      "bytes": 3025380,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/model-assets/gail-all-sizes.bin",
+      "sha256": "5951e4e3f057893275df6f44543f3747cd4275a616d52a5b8355e51760faea71",
+      "bytes": 3027432,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/model-assets/gan-all-sizes.bin",
+      "sha256": "63629d0027afb8ff2fdbc3e773be420c062361b315741d8371e47818c4ec30e5",
+      "bytes": 3027432,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/model-assets/grid-gnn-d14-s20260825-g200.bin",
+      "sha256": "92cc45bb2a3a6a56c896098c1e843a136587a9aaf07381fbf1d00ebb4fd02dfa",
+      "bytes": 250932,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/model-assets/grid-gnn-transfer-v1-seed2026092201.bin",
+      "sha256": "e0b82a1736521fb967afb7861ba1fcc697b505990d5b6391abb8318dbef42a0b",
+      "bytes": 250932,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/model-assets/grid-gnn-transfer-v1-seed2026092202.bin",
+      "sha256": "5db4b00462d8e30d2d293adf554da3e0e6b4cde6d40d3f82b590b23fa267000b",
+      "bytes": 250932,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/model-assets/grid-gnn-transfer-v1-seed2026092203.bin",
+      "sha256": "67079d1d6108732cddfeecf74840ae63505488af052e068ab1a83bf96c56bf87",
+      "bytes": 250932,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/model-assets/padded-cnn-d14-s20260825-g200.bin",
+      "sha256": "cea913f58d1694926fb6710ca355bf6d41e5a6c49b991af87b836ae26d43bf1f",
+      "bytes": 251472,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/model-assets/padded-cnn-transfer-v1-seed2026092201.bin",
+      "sha256": "416ee1a88f092ab514dd40c8a22604a761a20b223409eaaef64f61c691108242",
+      "bytes": 251472,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/model-assets/padded-cnn-transfer-v1-seed2026092202.bin",
+      "sha256": "cd36fdd3a96e78066475fb67056fa179bf7765028fbf9e4db7a172857b134af3",
+      "bytes": 251472,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/model-assets/padded-cnn-transfer-v1-seed2026092203.bin",
+      "sha256": "ee60f6d279941c78af999c6d051d514bf90f09b9478272d8557d482bb24dd07c",
+      "bytes": 251472,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/model-assets/ppo-all-sizes-e2000.bin",
+      "sha256": "af41359ca0ee00b3be86a2f5b9363a513af942f6cfa0c50f31cb0f252c86de85",
+      "bytes": 3027432,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/model-assets/sac-all-sizes-e2000.bin",
+      "sha256": "63a1b80b456427a2545a31ff9af209fdde1f9cf8d41ae6984f36c09c116932bd",
+      "bytes": 3025380,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/model-assets/topology-gnn-d14-s20260825-g200.bin",
+      "sha256": "de7f1a4c9c204d0f88598f5d7d92e180e291060b11cc711c8f9e786207cf34d0",
+      "bytes": 252684,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/model-assets/topology-gnn-transfer-v1-seed2026092201.bin",
+      "sha256": "0235947ee5a3eb6aa36627da06270e0854f3ece5c2b509d6a4f85d830a54f5ba",
+      "bytes": 252684,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/model-assets/topology-gnn-transfer-v1-seed2026092202.bin",
+      "sha256": "4c424c0f0ac19724d7fa51741d199bd780781d7063b325671fe9197f6b6abc9b",
+      "bytes": 252684,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/model-assets/topology-gnn-transfer-v1-seed2026092203.bin",
+      "sha256": "5a8f6f4ed6954c5dda131c16403f2f2c680edefffc050d19f2cab25850dcc84b",
+      "bytes": 252684,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/node_modules/@noble/hashes/LICENSE",
+      "sha256": "4f221aee6e072336700c408c68ab3b96a3fc09f6aebe6f48f1bd99e5ef13faec",
+      "bytes": 1109,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/node_modules/@noble/hashes/_md.js",
+      "sha256": "60cf3010fda89e3e4d3f0e7ff1ce249e9c467f34b4fd41b6fd6101d9f69be763",
+      "bytes": 9175,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/node_modules/@noble/hashes/_u64.js",
+      "sha256": "b09da8c07fe8187c07649494cdb7cd0bcf13df90b506a9473d19e4d5f8c2e102",
+      "bytes": 4794,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/node_modules/@noble/hashes/package.json",
+      "sha256": "3e361734f5269de162fa362483d7f45dee7efb533ec217157945338f7591baaf",
+      "bytes": 2583,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/node_modules/@noble/hashes/sha2.js",
+      "sha256": "471746bba6ec4c6238ca41358d1d3b40b6ff31cf3363f0b4d550c649c1a8e83b",
+      "bytes": 18997,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/node_modules/@noble/hashes/utils.js",
+      "sha256": "037ad49adb78168b6b699598fd33f85f7877456b1d28b4d032e2a1a16807947c",
+      "bytes": 26035,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/package.json",
+      "sha256": "4b165347e5ef619cb84b69963515f630a92f58fbdb2ead4f208906cf28d40908",
+      "bytes": 767,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/account-ui.js",
+      "sha256": "affa89181416e3c84ff68f2091910c11130af9659fd9a44b10203b1b09ffa24e",
+      "bytes": 4844,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/analysis-options.js",
+      "sha256": "e48e209e7b98a132f3703bd7ce095615229090271b78364d21fea82262af5f04",
+      "bytes": 678,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/app.js",
+      "sha256": "5657a80958d297eee7670807d3ed1f2f60321f11ffbf0fbad600e5fa9f414da9",
+      "bytes": 104928,
+      "scope": "task",
+      "gitStateBeforeCommit": "modified"
+    },
+    {
+      "path": "wechat/minigame/src/avatar-platform.js",
+      "sha256": "e269984019a89273f17b4e05fb1f0717d80929be362f037c50b6623c753443b2",
+      "bytes": 6980,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/board.js",
+      "sha256": "3b36de74e57e7e46e0e9e8b93a5970c68f3322d5336ddba506511eaf23093d82",
+      "bytes": 14249,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/cabins-ui.js",
+      "sha256": "7ffae380da2acec2269356a9dc19d0e676259824d00b275db25b40440abb19bd",
+      "bytes": 13792,
+      "scope": "task",
+      "gitStateBeforeCommit": "modified"
+    },
+    {
+      "path": "wechat/minigame/src/contribution-transport.js",
+      "sha256": "0e5a7c8a4ad12579eff478b952858b50bf4455786fa29d39b34e63fe667355f5",
+      "bytes": 1217,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/controllers.js",
+      "sha256": "530835bfbbf946fcacbd39fb879c3932eb5c0db1b82e1881bbbbfdbb8a9706b6",
+      "bytes": 4778,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/core.js",
+      "sha256": "10df5239ea77d47180c3dcc01de29de5ca9974cc44b26a9d490b59ab77465e59",
+      "bytes": 938,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/display.js",
+      "sha256": "11b560609c14b897ba063500776565776824615d336faca040329e4445542b65",
+      "bytes": 1262,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/game.js",
+      "sha256": "1f8c10fcc04dde03e54f5ea01af89360116ab7b60ef69726953278297a71bf91",
+      "bytes": 138,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/guide-assets.js",
+      "sha256": "830f3ddf2f92d5eb3f98dcb57cddc753d86dca7694d15ec965edb4197acff8d7",
+      "bytes": 1269,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/guide-content.js",
+      "sha256": "ac01866a537fe6710f2f66595321baa11ae13155c5bc11ce569761176dfc3c33",
+      "bytes": 15225,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/help-content.js",
+      "sha256": "a09b8fe3f1fd9e410a233f690d4869b381ddaf770a26e8b9a4946b80daf0e5cb",
+      "bytes": 16305,
+      "scope": "task",
+      "gitStateBeforeCommit": "modified"
+    },
+    {
+      "path": "wechat/minigame/src/help-ui.js",
+      "sha256": "736bd0fe64c1123a0588b3f77e3ca56d7946f5a19e6603175392e849e0ea6e87",
+      "bytes": 12167,
+      "scope": "task",
+      "gitStateBeforeCommit": "modified"
+    },
+    {
+      "path": "wechat/minigame/src/hex-player-ai.js",
+      "sha256": "e9885b8cf052599393a75f4e083df105662c1f6e2aaf4147ab8491fd0ca751f3",
+      "bytes": 1662,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/i18n.js",
+      "sha256": "1d2a298f4022db6f3965838439f71ac3bacaded3e625466c3a68ef02f9bac42d",
+      "bytes": 32014,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "modified"
+    },
+    {
+      "path": "wechat/minigame/src/input.js",
+      "sha256": "8a475a9e422dab84c2c69b03c6bfc77c84af4de939527cb8f804b279009b8419",
+      "bytes": 4318,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/integrity.js",
+      "sha256": "d7d3677f64bf46796612b7f73174b45edb9a13d78a917e868dc613b5e1f98869",
+      "bytes": 911,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/ladder.js",
+      "sha256": "ba521ad7b75205df59c15cfa50b2bd3ad0760b2d60744086b6facfb4846f844b",
+      "bytes": 12870,
+      "scope": "task",
+      "gitStateBeforeCommit": "modified"
+    },
+    {
+      "path": "wechat/minigame/src/library.js",
+      "sha256": "8d709920004f773677f04c99a1a0cff463240d76be40ce48d6b215dd2dde07c4",
+      "bytes": 8641,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/model-assets.js",
+      "sha256": "ccfbcde022a928e50ebe986cbb0f407c131afe68927849f4aa3c721ef796086a",
+      "bytes": 1953,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/model-catalog.js",
+      "sha256": "565b52f3ee5d50a6aed2848af4e99999c743cec942314425cf6c5752eb45039b",
+      "bytes": 4705,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/multiplayer-ai.js",
+      "sha256": "77901e19987057906dc3505d1fed4a9f8b2f86bcf5c64336817ef381c8db53c5",
+      "bytes": 3173,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/online-consent.js",
+      "sha256": "60308d8e5dc4a89638ec58b4fa1ceb88ebd306664e562b383363b1138db312c6",
+      "bytes": 3612,
+      "scope": "task",
+      "gitStateBeforeCommit": "modified"
+    },
+    {
+      "path": "wechat/minigame/src/online.js",
+      "sha256": "34f0f689f40997a534c87449073bc3405e302fe5e3da88983b7fa00f2607823e",
+      "bytes": 32236,
+      "scope": "task",
+      "gitStateBeforeCommit": "modified"
+    },
+    {
+      "path": "wechat/minigame/src/platform.js",
+      "sha256": "a8a1dfb4c2a844a73d32b6e94bc6a56697da6e6d0ff69fb09a2a24311170fb24",
+      "bytes": 7002,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/play-options.js",
+      "sha256": "e0014c74a1baf2ffd4d17d261b82612fa61637d2b4964589da3a25762c11e838",
+      "bytes": 2461,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/preferences.js",
+      "sha256": "c89cb563c12c90fcea6cc2f7e80b3a1644353d5838613522bdb73edf155ebbac",
+      "bytes": 4435,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/profile-cache.js",
+      "sha256": "845caba81a6884b5bc82365e6c841e5b4cc78471ce45c73c8ac6ec01bcf616b0",
+      "bytes": 3229,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/ranked-setup.js",
+      "sha256": "d62300b7d22f7b2824b25329ebec53fb96675b12701c6500ca67e1686f2bae71",
+      "bytes": 1115,
+      "scope": "task",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/reader-cache.js",
+      "sha256": "039b2e5f3b1d99cf709230e926567f57cc3d476b72e8a1b9daf06d4363c8abdc",
+      "bytes": 1231,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/replay-ui.js",
+      "sha256": "f6e6afc3608d66e354ae507b02c3a7e1e10cbb4c3021ae6d10cbeb1acda4b948",
+      "bytes": 5645,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/scheduler.js",
+      "sha256": "d09dfc804579c660fbd3f4803b10277faa7b4eb6c10c72acf63cd3b715f1e5b8",
+      "bytes": 3497,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/screens.js",
+      "sha256": "1a442eb340bb32752960852ff7cb0dfe0fc9f711e277125b4f938668b27a975d",
+      "bytes": 14089,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/session.js",
+      "sha256": "7de4dcb7d9a3ce83a57f85c7c5fb1ebe8b41d1f35ed746be770cd45fccc1119f",
+      "bytes": 22883,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/state.js",
+      "sha256": "daf5e527fd79d5cf97b71f5318c55bc6cc4194388425aebf7a60956f59b2690f",
+      "bytes": 3269,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/storage.js",
+      "sha256": "1ce47525725b030409808d7e103ad5847140719ad676a880f40c6e515a5db4cf",
+      "bytes": 2520,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/three-player-ai.js",
+      "sha256": "50f50deb12f4f3a82a58679bc1ddb276ee90ac742e17076fffa5905c7bacd3fa",
+      "bytes": 2021,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/training-contribution.js",
+      "sha256": "3aead3a22c24961a773d9a9f235e17e742a52e3254397039b7700d3ea8f1d755",
+      "bytes": 27781,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/turn-clock.js",
+      "sha256": "4a13ef25050357aac5b3700150893a858227c29572872f95dd0aed53b235e4ce",
+      "bytes": 1509,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/user-info-platform.js",
+      "sha256": "ac17c46236aed41eb9fbe23ba352fce72e814738c442b078792df1261f8fd6cd",
+      "bytes": 9266,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/worker-runtime.js",
+      "sha256": "f237556209c67bc69f811da233d8f7bac8609c3c8187e907131b52a78369d952",
+      "bytes": 9878,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/src/workers/index.js",
+      "sha256": "24e8740dffae5f8defd537c5ec36e65f2ed88ce438e92cf4d00f98bb064a8b2b",
+      "bytes": 493,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/tests/ladder.test.mjs",
+      "sha256": "2a271f7419f93cabe59c5168d1698d4c842d63dc93cb86ddd8555d430f44f6ab",
+      "bytes": 8184,
+      "scope": "task",
+      "gitStateBeforeCommit": "modified"
+    },
+    {
+      "path": "wechat/minigame/tests/ranked-v3.test.mjs",
+      "sha256": "01db0ce53df966cbf834bb645a138d2a16aa93aafa80a2c009c41f268d442210",
+      "bytes": 6937,
+      "scope": "task",
+      "gitStateBeforeCommit": "untracked"
+    },
+    {
+      "path": "wechat/minigame/tests/service-package.test.mjs",
+      "sha256": "b037371d2bc482d5b93649fc40bcda2c6cc81bcad4c850fcb52276b7385eb445",
+      "bytes": 5350,
+      "scope": "task",
+      "gitStateBeforeCommit": "modified"
+    },
+    {
+      "path": "wechat/minigame/tools/prepare-service.mjs",
+      "sha256": "1eab4d3a6313a1cf9ce1e3819efd2be14bc0801eb5279d4acb74a76627180df5",
+      "bytes": 9001,
+      "scope": "task",
+      "gitStateBeforeCommit": "modified"
+    },
+    {
+      "path": "wechat/minigame/tools/ranked-ai.mjs",
+      "sha256": "083cf1b22e68abbc0ea2969a05d83da19278bfe9e41a3b1835f10d8911059331",
+      "bytes": 5153,
+      "scope": "task",
+      "gitStateBeforeCommit": "modified"
+    },
+    {
+      "path": "wechat/minigame/tools/validate-action.mjs",
+      "sha256": "52d009a69d114d0fbfa5f9a6404b7555e8f2598d3a54b37819cfc76bbc8b978b",
+      "bytes": 1355,
+      "scope": "task",
+      "gitStateBeforeCommit": "modified"
+    },
+    {
+      "path": "wechat/tools/check_service_config.py",
+      "sha256": "c75780a91529d8993d294321f5d5a52ed3cd28f4fa5e28ca9241a8cfeb7deab2",
+      "bytes": 15048,
+      "scope": "task",
+      "gitStateBeforeCommit": "modified"
+    },
+    {
+      "path": "wechat/tools/maintain_store.py",
+      "sha256": "131e756c4e660e7d525caf69b9830f23d533f621da85f162ae80faf42fdd6ecf",
+      "bytes": 23573,
+      "scope": "task",
+      "gitStateBeforeCommit": "modified"
+    },
+    {
+      "path": "wechat/tools/wechat_service_asgi_draft.py",
+      "sha256": "20d6795c7faa5629a5377c06e46f3c119d9efdae81dd1096fbfe3ef9eb6149ea",
+      "bytes": 6102,
+      "scope": "existing_dependency",
+      "gitStateBeforeCommit": "untracked"
+    }
+  ]
+}
