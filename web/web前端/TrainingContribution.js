@@ -1,14 +1,92 @@
 import { createReplayDocument } from "./ReplayCodec.js?v=20261025-defense15";
 
-export const CONTRIBUTION_POLICY = "anonymous-replay-training-v1";
+export const LEGACY_CONTRIBUTION_POLICY = "anonymous-replay-training-v1";
+export const CONTRIBUTION_POLICY = "anonymous-replay-training-v3";
 export const CONTRIBUTION_STORAGE = "lifeline-training-contribution-v1";
 const MAX_QUEUE = 5;
 const MAX_BYTES = 500000;
+const PLAYER_ORDER = Object.freeze([
+  "BLACK", "WHITE", "PURPLE", "GREEN", "ORANGE", "CYAN", "PINK", "BROWN",
+  "LIME", "NAVY", "GOLD", "TEAL", "MAGENTA", "SLATE", "CORAL",
+]);
+const V3_MULTIPLAYER_LEVELS = new Set([
+  "multiplayer-easy-v1", "multiplayer-medium-v1", "multiplayer-hard-v1",
+]);
+const V3_LARGE_MULTIPLAYER_LEVELS = new Set([
+  "multiplayer-easy-v1", "multiplayer-hard-v1",
+]);
+const V3_TWO_PLAYER_MODEL = /^model:(?:(?:padded-cnn|grid-gnn|topology-gnn)-(?:transfer-v1-seed(?:2026092201|2026092202|2026092203)|d14-s20260825-g200)|(?:dqn|ppo|sac)-all-sizes-e2000|(?:gail|gan)-all-sizes)$/;
 
-// The reviewed inbox still uses the legacy actor schema. Keep new multiplayer
-// profiles local until the server and review pipeline explicitly support them.
-export function supportsContributionActors(actors) {
-  return !Object.values(actors ?? {}).some((actor) => actor?.strategy === "multiplayer");
+function actorProfile(actor) {
+  if (actor?.kind === "human") return { kind: "human" };
+  if (actor?.kind !== "ai") return null;
+  let profile = null;
+  if (actor.strategy === "greedy") profile = "greedy";
+  else if (actor.strategy === "minimax" && [2, 3, 4].includes(actor.depth)) profile = `minimax-${actor.depth}`;
+  else if (["neural-puct", "model-free"].includes(actor.strategy) && typeof actor.modelId === "string") profile = `model:${actor.modelId}`;
+  else if (["three-player", "hex-player", "multiplayer"].includes(actor.strategy) && typeof actor.modelId === "string") profile = actor.modelId;
+  return typeof profile === "string" && /^[a-zA-Z0-9_.:-]{1,96}$/.test(profile)
+    ? { kind: "ai", profile } : null;
+}
+
+function profileSupported(profile, settings) {
+  const count = settings.playerCount;
+  const shape = settings.boardShape ?? (count >= 4 ? "hexagon" : "triangle");
+  const nativeShape = shape === (count >= 4 ? "hexagon" : "triangle");
+  if (count === 2) {
+    if (!nativeShape) return profile === "greedy";
+    return profile === "greedy" || /^minimax-[234]$/.test(profile) || V3_TWO_PLAYER_MODEL.test(profile);
+  }
+  if (count > 6) return profile === "greedy" || V3_LARGE_MULTIPLAYER_LEVELS.has(profile);
+  if (!nativeShape) return profile === "greedy" || V3_LARGE_MULTIPLAYER_LEVELS.has(profile);
+  if (V3_MULTIPLAYER_LEVELS.has(profile)) return true;
+  if (count === 3) {
+    return ["three-player-policy-v1", "three-player-policy-v2"].includes(profile)
+      || (profile === "three-player-search-v4-round12" && [5, 7, 9].includes(settings.gridSize));
+  }
+  return profile === "hex-player-policy-v1"
+    || (profile === "hex-player-search-v5" && [5, 7].includes(settings.gridSize));
+}
+
+export function normalizeContributionV3Context(settings, context) {
+  const count = settings?.playerCount;
+  const shape = settings?.boardShape ?? (count >= 4 ? "hexagon" : "triangle");
+  if (settings?.rulesVersion !== "territory-v3" || !Number.isInteger(count) || count < 2 || count > PLAYER_ORDER.length
+    || !Number.isInteger(settings.gridSize) || settings.gridSize < 5 || settings.gridSize > 15
+    || !["triangle", "hexagon"].includes(shape) || !context || context.source !== "local"
+    || typeof context.mixedProfiles !== "boolean") return null;
+  const players = PLAYER_ORDER.slice(0, count);
+  if (!context.actors || Object.keys(context.actors).length !== players.length
+    || !players.every((player) => Object.prototype.hasOwnProperty.call(context.actors, player))) return null;
+  const actors = {};
+  for (const player of players) {
+    const normalized = actorProfile(context.actors[player]);
+    if (!normalized || (normalized.kind === "ai" && !profileSupported(normalized.profile, { ...settings, boardShape: shape }))) return null;
+    actors[player] = normalized;
+  }
+  const undoEnabled = settings.undoEnabled === true;
+  const undoMaxCount = Number(settings.undoMaxCount ?? 3);
+  const usedCount = Number(context.undo?.usedCount ?? 0);
+  if (!Number.isInteger(undoMaxCount) || undoMaxCount < 1 || undoMaxCount > 10
+    || !Number.isInteger(usedCount) || usedCount < 0 || usedCount > (undoEnabled ? undoMaxCount : 0)) return null;
+  return {
+    source: "local", actors, mixedProfiles: context.mixedProfiles,
+    // This field describes the replay configuration. Actual hint requests do
+    // not broaden the anonymous schema and undo usage has its own field.
+    hintsEnabled: settings.hintEnabled === true,
+    undo: { enabled: undoEnabled, maxCount: undoMaxCount, usedCount },
+  };
+}
+
+export function supportsContributionActors(actors, settings = null) {
+  if (settings?.rulesVersion === "territory-v3") {
+    return normalizeContributionV3Context(settings, {
+      source: "local", actors, mixedProfiles: false, undo: { usedCount: 0 },
+    }) !== null;
+  }
+  return (!settings || (Number(settings.playerCount) <= 3 && (settings.boardShape ?? "triangle") === "triangle"
+    && !settings.initialPositions))
+    && !Object.values(actors ?? {}).some((actor) => actor?.strategy === "multiplayer");
 }
 
 // No account, room, chat, device fingerprint or network address enters this queue.
@@ -20,10 +98,13 @@ export class TrainingContribution {
     this.active = false; this.generation = 0; this.controller = null;
     try {
       const saved = JSON.parse(storage?.getItem(CONTRIBUTION_STORAGE) ?? "null");
-      if (saved?.policy === CONTRIBUTION_POLICY && typeof saved.enabled === "boolean") {
+      // Policy upgrades must not revoke a user's explicit opt-out. Retain old
+      // v1 queue items so they can finish before newly captured v3 games.
+      if (saved && typeof saved.enabled === "boolean") {
         this.enabled = saved.enabled;
-        this.queue = this.enabled && Array.isArray(saved.queue) ? saved.queue.slice(0, MAX_QUEUE) : [];
-        this.lastReceipt = saved.lastReceipt ?? null;
+        const knownPolicy = [LEGACY_CONTRIBUTION_POLICY, CONTRIBUTION_POLICY].includes(saved.policy);
+        this.queue = this.enabled && knownPolicy && Array.isArray(saved.queue) ? saved.queue.slice(0, MAX_QUEUE) : [];
+        this.lastReceipt = knownPolicy ? saved.lastReceipt ?? null : null;
         this.status = this.enabled ? (this.queue.length ? "pending" : "ready") : "off";
       }
     } catch (_) { /* The live game does not depend on contribution storage. */ }
@@ -42,16 +123,22 @@ export class TrainingContribution {
   }
   async enqueue(settings, actions, context) {
     if (!this.enabled) return false;
-    // The reviewed inbox has no territory-v3 schema. Keep new-rule games local.
-    if (settings?.rulesVersion === "territory-v3") return false;
-    // The current reviewed-data pipeline encodes triangular boards only.
-    // Hexagonal games remain exportable replays without entering that inbox.
-    if (Number(settings?.playerCount) >= 4 || settings?.boardShape === "hexagon" || settings?.initialPositions) return false;
-    if (!supportsContributionActors(context?.actors)) return false;
+    const v3 = settings?.rulesVersion === "territory-v3";
+    let safeContext;
+    if (v3) {
+      safeContext = normalizeContributionV3Context(settings, context);
+      if (!safeContext) return false;
+    } else {
+      // Preserve the frozen v1 Web path for already-started legacy games.
+      if (Number(settings?.playerCount) >= 4 || settings?.boardShape === "hexagon" || settings?.initialPositions) return false;
+      if (!supportsContributionActors(context?.actors)) return false;
+      safeContext = structuredClone(context);
+    }
     const generation = this.generation;
     const replay = await createReplayDocument(settings, structuredClone(actions));
     if (!this.enabled || generation !== this.generation || !replay.terminal) return false;
-    const payload = { format: "lifeline-training-contribution", version: 1, consent: true, consent_policy: CONTRIBUTION_POLICY, replay, context: structuredClone(context) };
+    const payload = { format: "lifeline-training-contribution", version: v3 ? 3 : 1, consent: true,
+      consent_policy: v3 ? CONTRIBUTION_POLICY : LEGACY_CONTRIBUTION_POLICY, replay, context: safeContext };
     const id = replay.integrity.canonicalDocumentHash;
     if (this.lastReceipt?.documentHash === id || this.queue.some((item) => item.id === id)) return false;
     if (new TextEncoder().encode(JSON.stringify(payload)).length > MAX_BYTES) { this.status = "too-large"; this.save(); return false; }

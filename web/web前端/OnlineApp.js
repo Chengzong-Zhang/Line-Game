@@ -719,7 +719,14 @@ const SetupPanel = {
 
     return {
       texts,
-      contributionSupported: computed(() => props.rulesVersion !== "territory-v3" && supportsContributionActors(localMatchActors(props.localPlayers, props.playerCount, props.gridSize, props.boardShape))),
+      contributionSupported: computed(() => supportsContributionActors(
+        localMatchActors(props.localPlayers, props.playerCount, props.gridSize, props.boardShape),
+        {
+          rulesVersion: props.rulesVersion, playerCount: props.playerCount, boardShape: props.boardShape,
+          gridSize: props.gridSize, hintEnabled: props.hintEnabled,
+          undoEnabled: props.undoEnabled, undoMaxCount: props.undoMaxCount,
+        },
+      )),
       PLAYER_COUNT_OPTIONS: APP_PLAYER_COUNT_OPTIONS,
       GRID_SIZE_OPTIONS: APP_GRID_SIZE_OPTIONS,
       TURN_TIMER_MAX_SECONDS: APP_TURN_TIMER_MAX_SECONDS,
@@ -821,12 +828,9 @@ const SetupPanel = {
               @update-player="$emit('update-local-player', $event)" @update:start-player="$emit('update:start-player', $event)"
               @swap="$emit('swap-local-players')" @start="$emit('start-local-match')">
               <template #contribution>
-                <ContributionPanel v-if="aiAvailable && !onlineAvailable && playerCount <= 3 && boardShape === 'triangle' && !startingPoints.initialPositions" :language="language" :state="contributionState" :supported="contributionSupported" @toggle="$emit('toggle-contributions', $event)" @retry="$emit('retry-contributions')" />
+                <ContributionPanel v-if="aiAvailable && !onlineAvailable" :language="language" :state="contributionState" :supported="contributionSupported" @toggle="$emit('toggle-contributions', $event)" @retry="$emit('retry-contributions')" />
               </template>
             </LocalPlayerSetup>
-          </div>
-          <div v-else-if="playerCount <= 3 && boardShape === 'triangle'" class="settings-grid-item-wide">
-            <ContributionPanel :language="language" :state="contributionState" :supported="contributionSupported" @toggle="$emit('toggle-contributions', $event)" @retry="$emit('retry-contributions')" />
           </div>
           <div class="settings-grid-item-wide">
             <label id="grid-size-label" class="field-label">{{ texts.gridSizeLabel }}</label>
@@ -2996,10 +3000,13 @@ const App = {
     const contribution = new TrainingContribution({ onChange: (state) => { contributionState.value = state; } });
     contributionState.value = contribution.snapshot();
     let contributionContext = null;
-    let contributionAssisted = false;
     let contributionProfileSignature = null;
+    const invalidateContributionTicket = () => {
+      contributionContext = null;
+      contributionProfileSignature = null;
+    };
     const retryContributions = () => { void contribution.flush(); };
-    const toggleContributions = (enabled) => { contribution.setEnabled(enabled); contributionContext = null; retryContributions(); };
+    const toggleContributions = (enabled) => { contribution.setEnabled(enabled); invalidateContributionTicket(); retryContributions(); };
     const localGamePositionRevision = ref(-1);
     const localGameRestoring = ref(false);
     const localGameResumeNotice = ref("");
@@ -3808,6 +3815,20 @@ const App = {
       if (roomStatus.value !== "solo" || tutorialActive.value || localGameRestoring.value || replayMode.value) return;
       persistLocalGameSession(createLocalGameSession(currentGameSettings(), localGameActions.value, currentLocalMatch()));
     };
+    const armContributionForFreshLocalMatch = () => {
+      invalidateContributionTicket();
+      if (!contribution.enabled || roomStatus.value !== "solo" || tutorialActive.value || replayMode.value
+        || localGameActions.value.length !== 0) return false;
+      const settings = currentGameSettings();
+      const actors = localMatchActors(activeLocalPlayers.value, settings.playerCount, settings.gridSize, settings.boardShape);
+      if (!supportsContributionActors(actors, settings)) return false;
+      contributionContext = {
+        source: "local", actors, mixedProfiles: false, hintsEnabled: settings.hintEnabled === true,
+        undo: { enabled: settings.undoEnabled === true, maxCount: settings.undoMaxCount ?? 3, usedCount: 0 },
+      };
+      contributionProfileSignature = JSON.stringify(actors);
+      return true;
+    };
     const startLocalMatch = async () => {
       if (!controller.value || settingsLocked.value || roomStatus.value !== "solo" || localGameRestoring.value) return false;
       terminateAiWorker();
@@ -3829,6 +3850,7 @@ const App = {
         localMatchStarted.value = true;
         aiDuelPaused.value = false;
         clearSavedLocalGame();
+        armContributionForFreshLocalMatch();
         gameState.value = controller.value.setGameConfig(activeLocalSettings.value, true);
         startingPointPreviewFresh = false;
         localGamePositionRevision.value = gameState.value.positionRevision;
@@ -3868,20 +3890,20 @@ const App = {
     const clearSavedLocalGame = () => {
       localGameActions.value = [];
       undoUsage.value = normalizeUndoUsage();
-      contributionContext = null;
-      contributionAssisted = false;
-      contributionProfileSignature = null;
+      invalidateContributionTicket();
       localGamePositionRevision.value = -1;
       clearLocalGameSession();
     };
 
     const persistCurrentLocalGame = (nextState) => {
+      if (replayRestoring.value || replayMode.value || tutorialActive.value || roomStatus.value !== "solo") {
+        // Once a live game crosses an excluded mode boundary it cannot later
+        // re-enter the anonymous collection lifecycle as if it were untouched.
+        invalidateContributionTicket();
+        return;
+      }
       if (
         localGameRestoring.value
-        || replayRestoring.value
-        || replayMode.value
-        || tutorialActive.value
-        || roomStatus.value !== "solo"
         || !nextState
         || nextState.positionRevision === localGamePositionRevision.value
       ) {
@@ -3912,15 +3934,25 @@ const App = {
       localGameActions.value = nextSession.actions;
       localGamePositionRevision.value = nextState.positionRevision;
       if (contribution.enabled) {
+        const settings = currentGameSettings();
         const actors = localMatchActors(activeLocalPlayers.value, activeLocalSettings.value.playerCount, activeLocalSettings.value.gridSize, activeLocalSettings.value.boardShape);
         const signature = JSON.stringify(actors);
-        if (!contributionContext) {
-          contributionContext = { source: "local", actors, mixedProfiles: nextSession.actions.length > 1, hintsEnabled: selectedHintEnabled.value || contributionAssisted };
+        const actorsSupported = supportsContributionActors(actors, settings);
+        // The ticket was armed at action zero by startLocalMatch. Restored
+        // games and games enabled midway never acquire one here.
+        if (contributionContext && !actorsSupported) {
+          invalidateContributionTicket();
+        } else if (contributionContext && signature !== contributionProfileSignature) {
+          contributionContext.actors = actors;
+          contributionContext.mixedProfiles = true;
           contributionProfileSignature = signature;
-        } else if (signature !== contributionProfileSignature) contributionContext.mixedProfiles = true;
-        contributionContext.hintsEnabled ||= selectedHintEnabled.value || contributionAssisted;
-        if (nextState.gameOver) {
-          void contribution.enqueue(currentGameSettings(), nextSession.actions, contributionContext)
+        }
+        if (contributionContext) {
+          contributionContext.hintsEnabled = settings.hintEnabled === true;
+          contributionContext.undo = { enabled: settings.undoEnabled === true, maxCount: settings.undoMaxCount ?? 3, usedCount: undoUsage.value.usedCount };
+        }
+        if (nextState.gameOver && contributionContext) {
+          void contribution.enqueue(settings, nextSession.actions, contributionContext)
             .then(retryContributions).catch(() => { contribution.status = "retry"; contribution.save(); });
         }
       }
@@ -4390,7 +4422,6 @@ const App = {
         localMatchStarted.value = restore.match?.started ?? Boolean(restore.actions.length);
         aiDuelPaused.value = restore.match?.paused ?? false;
         undoUsage.value = normalizeUndoUsage(restore.match?.undo);
-        contributionAssisted = undoUsage.value.usedCount > 0;
         gameState.value = restored.state;
         localGameActions.value = [...restore.actions];
         localGamePositionRevision.value = restored.state.positionRevision;
@@ -4484,8 +4515,6 @@ const App = {
         localGameActions.value = actions;
         gameState.value = restored.state;
         localGamePositionRevision.value = restored.state.positionRevision;
-        contributionAssisted = true;
-        if (contributionContext) contributionContext.hintsEnabled = true;
         overlayResult.value = null;
         resultModalDismissed.value = false;
         setActionFeedback(getAppTexts(language.value, uiStyle.value).undoSuccess, "success");
@@ -5232,9 +5261,6 @@ const App = {
       if (!controller.value || hintDisabled.value) {
         return;
       }
-      contributionAssisted = true;
-      if (contributionContext) contributionContext.hintsEnabled = true;
-
       cancelHintRequest();
       hintThinking.value = true;
       clearActiveHint();

@@ -2,10 +2,14 @@ import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
-import { TrainingContribution, CONTRIBUTION_STORAGE } from "../TrainingContribution.js";
+import {
+  TrainingContribution, CONTRIBUTION_STORAGE, CONTRIBUTION_POLICY,
+  LEGACY_CONTRIBUTION_POLICY, normalizeContributionV3Context, supportsContributionActors,
+} from "../TrainingContribution.js";
 import { validateContribution } from "../../tools/validate_contribution.mjs";
 import { curate } from "../../tools/curate_web_replays.mjs";
 import { syntheticContribution } from "./fixtures/create-training-fixture.mjs";
+import { syntheticV3Contribution } from "./fixtures/create-training-v3-fixture.mjs";
 
 const payload = await syntheticContribution(1);
 const values = new Map(); const storage = { getItem: (key) => values.get(key), setItem: (key, value) => values.set(key, value) };
@@ -31,6 +35,52 @@ failure = false; await restored.flush(); assert.equal(restored.status, "received
 assert.equal(await restored.enqueue(payload.replay.config, payload.replay.actions, payload.context), false);
 restored.setEnabled(false); assert.equal(JSON.parse(values.get(CONTRIBUTION_STORAGE)).enabled, false);
 assert.equal(new TrainingContribution({ storage, fetcher }).enabled, false, "an explicit opt-out survives refresh");
+
+// A protocol upgrade preserves both an old explicit opt-out and queued v1
+// payloads. Only games completed after the upgrade are encoded as v3.
+const oldOptOutValues = new Map([[CONTRIBUTION_STORAGE, JSON.stringify({ policy: "unknown-future-policy", enabled: false,
+  queue: [{ id: "must-not-return", payload }] })]]);
+const oldOptOut = new TrainingContribution({ storage: { getItem: key => oldOptOutValues.get(key), setItem: (key, value) => oldOptOutValues.set(key, value) } });
+assert.equal(oldOptOut.enabled, false); assert.equal(oldOptOut.queue.length, 0);
+const legacyValues = new Map([[CONTRIBUTION_STORAGE, JSON.stringify({ policy: LEGACY_CONTRIBUTION_POLICY, enabled: true,
+  queue: [{ id: payload.replay.integrity.canonicalDocumentHash, payload }], lastReceipt: null })]]);
+let migratedBody = null;
+const migrated = new TrainingContribution({ storage: { getItem: key => legacyValues.get(key), setItem: (key, value) => legacyValues.set(key, value) },
+  fetcher: async (_url, options) => {
+    migratedBody = JSON.parse(options.body); const verified = await validateContribution(migratedBody);
+    return { ok: true, json: async () => ({ status: "awaiting_review", game_id: verified.game_id }) };
+  } });
+assert.equal(migrated.queue.length, 1); await migrated.flush();
+assert.equal(migratedBody.version, 1); assert.equal(migratedBody.consent_policy, LEGACY_CONTRIBUTION_POLICY);
+assert.equal(JSON.parse(legacyValues.get(CONTRIBUTION_STORAGE)).policy, CONTRIBUTION_POLICY);
+
+const v3Fixture = await syntheticV3Contribution({ playerCount: 15, boardShape: "hexagon", gridSize: 5,
+  startingPointMode: "custom", profile: "multiplayer-hard-v1" });
+const v3Settings = { ...v3Fixture.replay.config, boardShape: "hexagon", undoEnabled: true, undoMaxCount: 3 };
+const v3Actions = v3Fixture.replay.actions.map(({ type, actor, point }) => ({ type, actor, ...(point ? { point } : {}) }));
+const v3Actors = Object.fromEntries(v3Fixture.replay.config.players.map(player => [player, { kind: "human" }]));
+v3Actors.WHITE = { kind: "ai", strategy: "multiplayer", modelId: "multiplayer-hard-v1" };
+const v3Context = { source: "local", actors: v3Actors, mixedProfiles: false,
+  // Deliberately inconsistent input: the sanitizer must bind this field to
+  // replay.config.hintEnabled instead of hint/undo activity.
+  hintsEnabled: true, undo: { enabled: true, maxCount: 3, usedCount: 1 } };
+const normalizedV3 = normalizeContributionV3Context(v3Settings, v3Context);
+assert.equal(normalizedV3.hintsEnabled, false); assert.deepEqual(normalizedV3.actors.WHITE,
+  { kind: "ai", profile: "multiplayer-hard-v1" });
+assert.equal(normalizedV3.undo.usedCount, 1);
+assert.equal(supportsContributionActors(v3Actors, v3Settings), true);
+assert.equal(supportsContributionActors({ ...v3Actors, WHITE: { kind: "ai", strategy: "multiplayer", modelId: "multiplayer-medium-v1" } }, v3Settings), false,
+  "7-15 seats must reject unsupported medium/ultimate profiles");
+let v3Body = null;
+const v3Client = new TrainingContribution({ storage: { getItem: () => null, setItem: () => {} }, fetcher: async (_url, options) => {
+  v3Body = JSON.parse(options.body); const verified = await validateContribution(v3Body);
+  return { ok: true, json: async () => ({ status: "awaiting_review", game_id: verified.game_id }) };
+} });
+assert.equal(await v3Client.enqueue(v3Settings, v3Actions.slice(0, 1), v3Context), false, "incomplete v3 games stay local");
+assert.equal(await v3Client.enqueue(v3Settings, v3Actions, v3Context), true);
+assert.equal(v3Client.queue[0].payload.version, 3); assert.equal(v3Client.queue[0].payload.consent_policy, CONTRIBUTION_POLICY);
+assert.deepEqual(v3Client.queue[0].payload.context, normalizedV3);
+await v3Client.flush(); assert.equal(v3Body.version, 3); assert.equal(v3Client.queue.length, 0);
 await assert.rejects(validateContribution({ ...payload, consent: false }));
 await assert.rejects(validateContribution({ ...payload, replay: { ...payload.replay, terminal: { ...payload.replay.terminal, winner: "FAKE" } } }));
 // Revocation during an in-flight request must not recreate pending records.
@@ -73,4 +123,4 @@ const botRecord = await validateContribution(bots); const botInbox = resolve(roo
 await writeFile(resolve(botInbox, `${botRecord.game_id}.json`), JSON.stringify({ ...botRecord, context: bots.context, consent_policy: bots.consent_policy }));
 const excluded = await curate(botInbox, { policy: "human-review-v1", approved_game_ids: [botRecord.game_id] }, resolve(root, "bot-filtered"));
 assert.equal(excluded.samples, 0); assert.equal(excluded.decisions[0].reason, "no_human");
-process.stdout.write(JSON.stringify({ status: "PASS", synthetic_only: true, completed_games: manifest.games, train_games: manifest.train_games, validation_games: manifest.validation_games, samples: rows.length, consent_off_zero_requests: true, retry_restore: true, revoked_inflight: true, bot_moves_excluded: true, pass_verified: true, grouped_split: true, output: root }) + "\n");
+process.stdout.write(JSON.stringify({ status: "PASS", synthetic_only: true, completed_games: manifest.games, train_games: manifest.train_games, validation_games: manifest.validation_games, samples: rows.length, consent_off_zero_requests: true, retry_restore: true, revoked_inflight: true, legacy_queue_migrated: true, legacy_opt_out_preserved: true, v3_15_player_verified: true, bot_moves_excluded: true, pass_verified: true, grouped_split: true, output: root }) + "\n");
