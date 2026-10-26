@@ -218,7 +218,7 @@ export async function prepareCandidate({
     importDirectory: 'project', files, sourceHashes: before.inputHashes,
     reproducibility: 'Fresh isolated rebuild matches every existing dist file, including 17 verified model assets, byte for byte; test evidence is bound separately',
     runtime: { node: process.version, platform: process.platform, arch: process.arch },
-    uploadDescription: '各方分别高亮最新落点；本方跳过后清除标记，保留其他方高亮。同步复盘、悔棋、存档与联机恢复，支持现有 2–15 人棋盘。',
+    uploadDescription: '启用独立匿名棋谱贡献 V3：每次启动重新明确同意，仅上传新开始且完整结束的本地 2–6 人 territory-v3 对局；兼容旧 V2 待传队列，排除当前、恢复、复盘、教学和联机局。',
     acceptance: { nativeCandidateImport: 'NOT_RUN', physicalDevice: 'NOT_RUN',
       accountPermissions: 'NOT_VERIFIED', serviceConnectivity: 'NOT_VERIFIED',
       actualWechatLogin: 'NOT_RUN', crossPlatformDeviceMatch: 'NOT_RUN',

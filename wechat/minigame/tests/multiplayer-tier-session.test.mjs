@@ -66,8 +66,20 @@ test('three different new AI seats play in order and retain exact identities thr
     assert.deepEqual(session.actions.map(action => action.player), ['BLACK', 'WHITE', 'PURPLE']);
     const hash = session.stateHash, actions = plain(session.actions);
     assert.deepEqual(store.read().payload.controllers, controllers);
-    // The contribution-v2 dataset must not silently absorb v3 games.
-    assert.equal(contributionContext(session), null);
+    // The independent v3 contract preserves each actual controller without
+    // silently placing this territory-v3 game in the frozen v2 dataset.
+    assert.deepEqual(contributionContext(session), {
+      source: 'local',
+      actors: {
+        BLACK: { kind: 'ai', profile: 'multiplayer-easy-v1' },
+        WHITE: { kind: 'ai', profile: 'multiplayer-medium-v1' },
+        PURPLE: { kind: 'ai', profile: 'multiplayer-hard-v1' },
+        GREEN: { kind: 'human' },
+      },
+      mixedProfiles: false,
+      hintsEnabled: true,
+      undo: { enabled: false, maxCount: 3, usedCount: 0 },
+    });
     await session.replay(1); await session.exitReplay();
     assert.equal(session.stateHash, hash); assert.deepEqual(session.actions, actions);
     assert.deepEqual(session.controllers, controllers);
