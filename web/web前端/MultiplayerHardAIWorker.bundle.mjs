@@ -2619,7 +2619,7 @@ function survivingPlayers(engine) {
 function comparePersistentLoss(left, right) {
   return left.nodes - right.nodes || left.coverage - right.coverage;
 }
-function boundedRootCutChainRisk(engine, defender, check4 = null) {
+function boundedRootCutChainRisk(engine, defender, check5 = null) {
   const remainingPlayers = survivingPlayers(engine);
   if (remainingPlayers.length !== 2 || !remainingPlayers.includes(defender)) return null;
   if (engine.gameOver || engine.currentPlayer === defender) {
@@ -2629,7 +2629,7 @@ function boundedRootCutChainRisk(engine, defender, check4 = null) {
   const origin = saveState(engine);
   const budget = { firstCuts: 0, responses: 0, transitions: 0 };
   const spendTransition = /* @__PURE__ */ __name(() => {
-    check4?.();
+    check5?.();
     budget.transitions += 1;
     if (budget.transitions > ROOT_CUT_CHAIN_LIMITS.maxTransitions) {
       throw ROOT_CUT_CHAIN_LIMIT_REACHED;
@@ -2715,7 +2715,7 @@ function boundedRootCutChainRisk(engine, defender, check4 = null) {
     restoreState(engine, origin);
   }
 }
-function boundedRootCutChainAttack(engine, attacker, defenderReference, check4 = null) {
+function boundedRootCutChainAttack(engine, attacker, defenderReference, check5 = null) {
   const remainingPlayers = survivingPlayers(engine);
   if (remainingPlayers.length !== 2 || !remainingPlayers.includes(attacker)) return null;
   const defender = remainingPlayers.find((player) => player !== attacker);
@@ -2723,7 +2723,7 @@ function boundedRootCutChainAttack(engine, attacker, defenderReference, check4 =
   const origin = saveState(engine);
   const budget = { responses: 0, secondCuts: 0, transitions: 0 };
   const spendTransition = /* @__PURE__ */ __name(() => {
-    check4?.();
+    check5?.();
     budget.transitions += 1;
     if (budget.transitions > ROOT_CUT_CHAIN_LIMITS.maxTransitions) {
       throw ROOT_CUT_CHAIN_LIMIT_REACHED;
@@ -2795,7 +2795,7 @@ function boundedRootCutChainAttack(engine, attacker, defenderReference, check4 =
     restoreState(engine, origin);
   }
 }
-function applyRootCutChainPreference(engine, player, scoredMoves, eligibleKeys, check4 = null) {
+function applyRootCutChainPreference(engine, player, scoredMoves, eligibleKeys, check5 = null) {
   const remainingPlayers = survivingPlayers(engine);
   if (remainingPlayers.length !== 2 || !remainingPlayers.includes(player)) return scoredMoves;
   if (!scoredMoves.length || scoredMoves[0].point === null) return scoredMoves;
@@ -2807,14 +2807,14 @@ function applyRootCutChainPreference(engine, player, scoredMoves, eligibleKeys, 
   const opponentReference = materialCounts(engine, opponent);
   const comparisons = /* @__PURE__ */ new Map();
   for (const move of window) {
-    check4?.();
+    check5?.();
     const snapshot = saveState(engine);
     try {
       if (!engine.playMove(move.point).success) return scoredMoves;
       if (engine.gameOver || engine.currentPlayer === player) continue;
-      const risk = boundedRootCutChainRisk(engine, player, check4);
+      const risk = boundedRootCutChainRisk(engine, player, check5);
       if (risk === null) continue;
-      const attack = boundedRootCutChainAttack(engine, player, opponentReference, check4);
+      const attack = boundedRootCutChainAttack(engine, player, opponentReference, check5);
       if (attack === null) continue;
       comparisons.set(pointKey2(move.point), {
         risk,
@@ -4042,9 +4042,9 @@ var init_PassTrainedPolicies = __esm({
 function rankWithLearnedPass(placements, spec) {
   if (!Number.isFinite(spec?.passBias)) return placements;
   const moves = placements.map((move) => {
-    const copy = { ...move };
-    if (move.features) Object.defineProperty(copy, "features", { value: move.features, enumerable: false });
-    return copy;
+    const copy2 = { ...move };
+    if (move.features) Object.defineProperty(copy2, "features", { value: move.features, enumerable: false });
+    return copy2;
   });
   moves.push({ type: "pass", point: null, score: spec.passBias / (spec.temperature ?? 1), visits: 1 });
   moves.sort((a, b) => b.score - a.score || (a.point === null ? b.point === null ? 0 : 1 : b.point === null ? -1 : a.point[1] - b.point[1] || a.point[0] - b.point[0]));
@@ -5038,7 +5038,7 @@ var init_MultiplayerSearch = __esm({
           partialIterationDiscarded: false,
           terminalScoringInterrupted: false
         };
-        const check4 = /* @__PURE__ */ __name(() => {
+        const check5 = /* @__PURE__ */ __name(() => {
           if (performance.now() >= deadline || stats.nodes >= this.nodeBudget) throw TIMEOUT;
         }, "check");
         const terminalCache = /* @__PURE__ */ new Map();
@@ -5051,13 +5051,13 @@ var init_MultiplayerSearch = __esm({
           const index = engine._keyToIdx, originalGet = index.get;
           let probes = 0;
           index.get = function(k) {
-            if ((++probes & 63) === 0) check4();
+            if ((++probes & 63) === 0) check5();
             return originalGet.call(this, k);
           };
           try {
-            check4();
+            check5();
             GameEngine.prototype._updateTerritories.call(engine);
-            check4();
+            check5();
           } catch (error) {
             if (error === TIMEOUT) stats.terminalScoringInterrupted = true;
             throw error;
@@ -5078,13 +5078,13 @@ var init_MultiplayerSearch = __esm({
           return { point, score };
         }).sort((a, b) => b.score - a.score || order(a, b)), "rank");
         const visit = /* @__PURE__ */ __name((depth, alpha, beta) => {
-          check4();
+          check5();
           stats.nodes++;
           if (depth === 0 || engine.gameOver) return evaluate2();
           const actor = engine.currentPlayer, maximizing = actor === player;
           let best = maximizing ? -Infinity : Infinity, found = false;
           for (const move of rank(actions(), actor)) {
-            check4();
+            check5();
             const s = enter(engine);
             try {
               if (!apply(move.point).success) continue;
@@ -5116,7 +5116,7 @@ var init_MultiplayerSearch = __esm({
         try {
           const before = multiplayerMetrics(engine);
           for (const move of roots) {
-            if (completed.length) check4();
+            if (completed.length) check5();
             const previous = move.point === null ? 0 : engine._getState(move.point), s = enter(engine);
             try {
               if (!apply(move.point).success) continue;
@@ -5143,7 +5143,7 @@ var init_MultiplayerSearch = __esm({
           for (const move of completed) {
             let score = move.score;
             if (move.terminal) {
-              check4();
+              check5();
               const s = enter(engine);
               try {
                 if (!apply(move.point).success) throw new Error("Legal root changed during isolated search");
@@ -5161,7 +5161,7 @@ var init_MultiplayerSearch = __esm({
             const iteration = [];
             let alpha = -Infinity;
             for (const move of completed) {
-              check4();
+              check5();
               const s = enter(engine);
               try {
                 if (!apply(move.point).success) throw new Error("Legal root changed during isolated search");
@@ -5330,7 +5330,7 @@ var init_MultiplayerHardRollout = __esm({
         };
         if (source.gameOver || topN <= 0) return [];
         const engine = isolatedSearchEngine(source), root = saveState(engine);
-        const check4 = /* @__PURE__ */ __name(() => {
+        const check5 = /* @__PURE__ */ __name(() => {
           if (performance.now() >= deadline || stats.policyCandidates + stats.simulatedActions >= this.nodeBudget) throw DEADLINE;
         }, "check");
         const apply = /* @__PURE__ */ __name((point) => point === null ? engine.skipTurn() : engine.playMove(point), "apply");
@@ -5344,7 +5344,7 @@ var init_MultiplayerHardRollout = __esm({
             if (ensureOne && (!fallback.length || value > fallback[0].score || value === fallback[0].score && order2({ point }, fallback[0]) < 0))
               fallback = [{ type: "move", point: [...point], score: value, baseScore: value, visits: 1 }];
           }, { beforeCandidate: /* @__PURE__ */ __name(() => {
-            if (!ensureOne || candidates.length) check4();
+            if (!ensureOne || candidates.length) check5();
             stats.policyCandidates++;
           }, "beforeCandidate") });
           return candidates.sort((a, b) => b.baseScore - a.baseScore || order2(a, b));
@@ -5357,7 +5357,7 @@ var init_MultiplayerHardRollout = __esm({
             if (!best || value > best.baseScore || value === best.baseScore && order2({ point }, best) < 0)
               best = { point, baseScore: value };
           }, { beforeCandidate: /* @__PURE__ */ __name(() => {
-            check4();
+            check5();
             stats.policyCandidates++;
           }, "beforeCandidate") });
           return best;
@@ -5373,15 +5373,15 @@ var init_MultiplayerHardRollout = __esm({
           const descriptor = Object.getOwnPropertyDescriptor(index, "get");
           let probes = 0;
           index.get = function(k) {
-            if ((++probes & 63) === 0) check4();
+            if ((++probes & 63) === 0) check5();
             return originalGet.call(this, k);
           };
           engine.cachedTerritories = { ...engine.cachedTerritories };
           try {
-            check4();
+            check5();
             stats.canonicalScoreCalls++;
             GameEngine.prototype._updateTerritories.call(engine);
-            check4();
+            check5();
           } catch (error) {
             if (error === DEADLINE) {
               stats.canonicalScoringInterrupted = true;
@@ -5399,16 +5399,16 @@ var init_MultiplayerHardRollout = __esm({
         const leaf = /* @__PURE__ */ __name(() => {
           const alive = engine.activePlayers.filter((p) => !engine.resignedPlayers.has(p));
           if (!engine.gameOver) {
-            check4();
+            check5();
             const metrics = multiplayerMetrics(engine);
-            check4();
+            check5();
             const evaluated = evaluateNonterminalTeacher(metrics, player, alive, engine.validPositions.length, {
               nodeWeight: 15 / 43,
               coverageWeight: 8 / 43,
               reachWeight: 20 / 43,
               valueTemperature: 0.12
             });
-            check4();
+            check5();
             stats.evaluatedLeaves++;
             stats.heuristicLeaves++;
             return { value: evaluated.heuristicValue, margin: evaluated.heuristicMargin, terminal: false };
@@ -5449,15 +5449,15 @@ var init_MultiplayerHardRollout = __esm({
               if (!(move.point === null || engine._evaluateMove(move.point, player, validationNodes, validationHashOrder).legal))
                 throw new Error("Illegal fallback policy action");
             }
-            check4();
+            check5();
             if (completeLinearRanking) {
               for (let index = fallback.length; index < completeLinearRanking.length; index++) {
-                check4();
+                check5();
                 if (!engine._evaluateMove(completeLinearRanking[index].point, player, validationNodes, validationHashOrder).legal)
                   throw new Error("Illegal fallback policy action");
               }
             }
-            check4();
+            check5();
           }
           const roots = completeLinearRanking ? completeLinearRanking.map((move) => ({ point: [...move.point], baseScore: move.score })) : policyActions(this.base, !fallback.length);
           stats.reusedLinearRootRanking = completeLinearRanking !== null;
@@ -5469,20 +5469,20 @@ var init_MultiplayerHardRollout = __esm({
           stats.rootPreparationMs = performance.now() - started;
           const fallbackKey = key2(fallback[0].point);
           const evaluateResponse = /* @__PURE__ */ __name((move, plies, responseIndex) => {
-            check4();
+            check5();
             restoreState(engine, root);
             if (!apply(move.point).success) throw new Error("Legal rollout root changed");
             const rootTerminal = engine.gameOver;
             stats.simulatedActions++;
             for (let ply = 0; ply < plies && !engine.gameOver; ply++) {
-              check4();
+              check5();
               const policy = engine.currentPlayer === player ? this.base : this.responses[responseIndex];
               const action = policyAction(policy)?.point ?? null;
               if (!apply(action).success) throw new Error("Illegal rollout continuation");
               stats.simulatedActions++;
             }
             const result = leaf();
-            if (this.publishCompletedComparisons) check4();
+            if (this.publishCompletedComparisons) check5();
             if (source.rulesVersion === "territory-v3" && rootTerminal && result.terminal && result.value === 1 && result.margin > 0 && engine._getRemainingPlayers().length >= 2)
               return { ...result, immediateTerminalWin: true };
             return result;
@@ -5569,7 +5569,7 @@ var init_MultiplayerHardRollout = __esm({
                   total.margin += cached[variant].margin;
                   if (cached[variant].immediateTerminalWin) total.immediateTerminalWins = (total.immediateTerminalWins ?? 0) + 1;
                 }
-                check4();
+                check5();
                 return scoredMove(move, total, count);
               }, "evaluate");
               const entry = evaluate2(entryRoot), evaluated = [entry];
@@ -5631,26 +5631,26 @@ var init_MultiplayerHardRollout = __esm({
 });
 
 // application-hard:MultiplayerHardFallback.js
-function linearRanking(engine, player, spec, check4, completed = []) {
+function linearRanking(engine, player, spec, check5, completed = []) {
   visitPolicyCandidates(engine, player, (candidate) => {
     const score = candidate.features.reduce((sum, value, i) => sum + value * spec.weights[i], 0) / (spec.temperature ?? 1);
     if (!Number.isFinite(score)) throw new Error("Invalid isolated Hard linear score");
-    check4();
+    check5();
     completed.push({ point: candidate.point, score, visits: 1 });
-  }, { beforeCandidate: check4 });
-  check4();
+  }, { beforeCandidate: check5 });
+  check5();
   return finishLinear(completed);
 }
-function linearAction(engine, player, spec, check4) {
+function linearAction(engine, player, spec, check5) {
   let best = null;
   visitPolicyCandidates(engine, player, (candidate) => {
     const score = candidate.features.reduce((sum, value, i) => sum + value * spec.weights[i], 0) / (spec.temperature ?? 1);
     if (!Number.isFinite(score)) throw new Error("Invalid isolated Hard linear score");
-    check4();
+    check5();
     if (!best || score > best.score || score === best.score && pointOrder2(candidate, best) < 0)
       best = { point: candidate.point, score, visits: 1 };
-  }, { beforeCandidate: check4 });
-  check4();
+  }, { beforeCandidate: check5 });
+  check5();
   return best;
 }
 function rankEvaluated(evaluated, baseline, minimumImprovement) {
@@ -5737,14 +5737,14 @@ var init_MultiplayerHardFallback = __esm({
           return [];
         }
         const engine = isolatedSearchEngine(source), snapshot = saveState(engine);
-        const check4 = /* @__PURE__ */ __name(() => {
+        const check5 = /* @__PURE__ */ __name(() => {
           if (now() >= deadline) throw EXPIRED;
         }, "check");
         const originalEvaluate = engine._evaluateMove, evaluateDescriptor = Object.getOwnPropertyDescriptor(engine, "_evaluateMove");
         engine._evaluateMove = function(...args) {
-          check4();
+          check5();
           const result2 = originalEvaluate.apply(this, args);
-          check4();
+          check5();
           return result2;
         };
         const baselineCandidates = [];
@@ -5753,14 +5753,14 @@ var init_MultiplayerHardFallback = __esm({
           const index = engine._keyToIdx, originalGet = index.get, descriptor = Object.getOwnPropertyDescriptor(index, "get");
           let probes = 0;
           index.get = function(key7) {
-            if ((++probes & 63) === 0) check4();
+            if ((++probes & 63) === 0) check5();
             return originalGet.call(this, key7);
           };
           try {
-            check4();
+            check5();
             stats.canonicalScoreCalls++;
             const leaf = positionUtilityV4(engine, player, this.spec.search);
-            check4();
+            check5();
             return leaf;
           } catch (error) {
             if (error === EXPIRED) {
@@ -5774,8 +5774,8 @@ var init_MultiplayerHardFallback = __esm({
           }
         }, "scoreLeaf");
         try {
-          check4();
-          baseline = linearRanking(engine, player, this.spec, check4, baselineCandidates);
+          check5();
+          baseline = linearRanking(engine, player, this.spec, check5, baselineCandidates);
           stats.baselineComplete = true;
           this.fullRanking = structuredClone(baseline);
           result = this.searchV4 ? baseline.slice(0, this.spec.search.rootWidth) : baseline;
@@ -5789,17 +5789,17 @@ var init_MultiplayerHardFallback = __esm({
               evaluatingRoot = true;
               const leaves = [];
               for (const opponent of this.spec.search.opponents) {
-                check4();
+                check5();
                 restoreState(engine, snapshot);
                 if (!engine.playMove(move.point).success) throw new Error("Invalid isolated v4 root action");
-                check4();
+                check5();
                 stats.simulatedActions++;
                 for (let ply = 0; ply < this.spec.search.rolloutPlies && !engine.gameOver; ply++) {
-                  check4();
+                  check5();
                   const spec = engine.currentPlayer === player ? this.spec : opponent;
-                  const reply = linearAction(engine, engine.currentPlayer, spec, check4)?.point ?? null;
+                  const reply = linearAction(engine, engine.currentPlayer, spec, check5)?.point ?? null;
                   if (!(reply ? engine.playMove(reply) : engine.skipTurn()).success) throw new Error("Invalid isolated v4 rollout action");
-                  check4();
+                  check5();
                   stats.simulatedActions++;
                 }
                 const leaf = scoreLeaf();
@@ -5807,7 +5807,7 @@ var init_MultiplayerHardFallback = __esm({
                 stats.simulations++;
                 stats.terminalLeaves += Number(leaf.terminal);
               }
-              check4();
+              check5();
               evaluated.push({
                 point: [...move.point],
                 baseScore: move.score,
@@ -5863,7 +5863,7 @@ function scanTacticalDirectCutRisk(source, roots, {
   const actor = source.currentPlayer, engine = isolatedSearchEngine(source), rootSnapshot = saveState(engine);
   const stats = { complete: false, reason: null, probes: 0, rootsChecked: 0, terminalRoot: null, rows: [] };
   const STOP = Symbol("Hard tactical-ordering deadline");
-  const check4 = /* @__PURE__ */ __name(() => {
+  const check5 = /* @__PURE__ */ __name(() => {
     const time = now();
     if (!Number.isFinite(time)) throw new Error("Invalid tactical-ordering clock");
     if (time >= deadline) throw STOP;
@@ -5871,10 +5871,10 @@ function scanTacticalDirectCutRisk(source, roots, {
   const evaluate2 = engine._evaluateMove;
   const descriptor = Object.getOwnPropertyDescriptor(engine, "_evaluateMove");
   engine._evaluateMove = function(...args) {
-    check4();
+    check5();
     stats.probes++;
     const result = evaluate2.apply(this, args);
-    check4();
+    check5();
     return result;
   };
   try {
@@ -5882,11 +5882,11 @@ function scanTacticalDirectCutRisk(source, roots, {
     const enemyNodes = enemies.flatMap((player) => engine.validPositions.filter((point) => engine._getState(point) === engine._getPlayerStates(player).node).map((point) => ({ player, coordinate: pointKey3(point) })));
     const byPoint = /* @__PURE__ */ new Map();
     for (const root of roots) {
-      check4();
+      check5();
       restoreState(engine, rootSnapshot);
       stats.rootsChecked++;
       const outcome = root.point === null ? engine.skipTurn() : engine.playMove(root.point);
-      check4();
+      check5();
       if (!outcome.success) throw new Error(`Illegal Hard tactical-order root: ${outcome.reason}`);
       if (engine.gameOver) {
         stats.complete = true;
@@ -5913,11 +5913,11 @@ function scanTacticalDirectCutRisk(source, roots, {
         row.replyPlayer = engine.currentPlayer;
         const replySnapshot = saveState(engine);
         for (const reply of potentialMoves(engine, row.replyPlayer)) {
-          check4();
+          check5();
           if (engine._getState(reply) !== own3.line) continue;
           stats.probes++;
           const replyOutcome = engine.playMove(reply);
-          check4();
+          check5();
           if (!replyOutcome.success) {
             restoreState(engine, replySnapshot);
             if (["INVALID_MOVE", "SUPERKO_VIOLATION"].includes(replyOutcome.reason)) continue;
@@ -5936,7 +5936,7 @@ function scanTacticalDirectCutRisk(source, roots, {
       stats.rows.push(row);
       byPoint.set(pointKey3(root.point), row);
     }
-    check4();
+    check5();
     stats.complete = true;
     stats.reason = "complete";
     return { byPoint, stats };
@@ -5953,24 +5953,24 @@ function scanTacticalDirectCutRisk(source, roots, {
 function preflightImmediateTerminalRoots(source, roots, { deadline, now = /* @__PURE__ */ __name(() => performance.now(), "now") }) {
   const stats = { complete: false, terminalRoot: null, attemptedRoots: 0, reason: null };
   const engine = isolatedSearchEngine(source), snapshot = saveState(engine), STOP = Symbol("terminal preflight deadline");
-  const check4 = /* @__PURE__ */ __name(() => {
+  const check5 = /* @__PURE__ */ __name(() => {
     const time = now();
     if (!Number.isFinite(time)) throw new Error("Invalid terminal preflight clock");
     if (time >= deadline) throw STOP;
   }, "check");
   const evaluate2 = engine._evaluateMove, descriptor = Object.getOwnPropertyDescriptor(engine, "_evaluateMove");
   engine._evaluateMove = function(...args) {
-    check4();
+    check5();
     const value = evaluate2.apply(this, args);
-    check4();
+    check5();
     return value;
   };
   try {
     for (const root of roots) {
-      check4();
+      check5();
       stats.attemptedRoots++;
       const outcome = root.point === null ? engine.skipTurn() : engine.playMove(root.point);
-      check4();
+      check5();
       if (!outcome.success) throw new Error(`Illegal Hard terminal preflight root: ${outcome.reason}`);
       if (engine.gameOver) {
         stats.terminalRoot = { point: copyPoint(root.point) };
@@ -5979,7 +5979,7 @@ function preflightImmediateTerminalRoots(source, roots, { deadline, now = /* @__
       }
       restoreState(engine, snapshot);
     }
-    check4();
+    check5();
     stats.complete = true;
     stats.reason = "complete";
     return stats;
@@ -7562,6 +7562,220 @@ var init_AIPassDisciplineV4 = __esm({
   }
 });
 
+// application-hard:BudgetedMinimaxAI.js
+function copy(value) {
+  if (value instanceof Map) return new Map([...value].map(([key7, item]) => [key7, copy(item)]));
+  if (value instanceof Set) return new Set([...value].map(copy));
+  if (Array.isArray(value)) return value.map(copy);
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([key7, item]) => [key7, copy(item)]));
+  return value;
+}
+function isolatedEngine(source) {
+  const engine = new GameEngine({
+    gridSize: source.gridSize,
+    playerCount: source.playerCount,
+    boardShape: source.boardShape,
+    initialPositions: source.initialPositions,
+    startPlayer: source.startPlayer,
+    rulesVersion: source.rulesVersion,
+    deferTerritoryUpdates: source.deferTerritoryUpdates
+  });
+  engine.hasCustomInitialPositions = source.hasCustomInitialPositions;
+  engine._restoreReplayState(source._captureReplayState());
+  for (const name of ["lastMove", "lastMoves", "lastAction"]) {
+    if (Object.prototype.hasOwnProperty.call(source, name)) engine[name] = copy(source[name]);
+  }
+  engine._isReplayingBatch = true;
+  return engine;
+}
+var EXPIRED2, check4, nonnegative, BudgetedMinimaxAI;
+var init_BudgetedMinimaxAI = __esm({
+  "application-hard:BudgetedMinimaxAI.js"() {
+    init_AIEngine();
+    init_GameEngine();
+    init_MultiplayerClock();
+    EXPIRED2 = Symbol("budgeted Minimax iteration expired");
+    check4 = /* @__PURE__ */ __name((condition, message) => {
+      if (!condition) throw new Error(message);
+    }, "check");
+    nonnegative = /* @__PURE__ */ __name((value) => Number.isFinite(value) && value >= 0, "nonnegative");
+    __name(copy, "copy");
+    __name(isolatedEngine, "isolatedEngine");
+    BudgetedMinimaxAI = class extends MinimaxAI {
+      static {
+        __name(this, "BudgetedMinimaxAI");
+      }
+      constructor({
+        timeMs = 3e3,
+        reserveMs = Math.min(200, timeMs / 4),
+        maxDepth = 8,
+        now = multiplayerClock.now
+      } = {}) {
+        check4(
+          Number.isFinite(timeMs) && timeMs > 0 && nonnegative(reserveMs) && reserveMs < timeMs && Number.isInteger(maxDepth) && maxDepth >= 1 && maxDepth <= 8 && typeof now === "function",
+          "Invalid budgeted Minimax settings"
+        );
+        super(maxDepth, { now, iterativeDeepening: false, maxExtraDepth: 0 });
+        Object.assign(this, { timeMs, reserveMs, maxDepth });
+      }
+      searchTime() {
+        const time = this.now();
+        check4(
+          nonnegative(time) && (this._budgetClockPrevious === void 0 || time >= this._budgetClockPrevious),
+          "Invalid or backward budgeted Minimax clock"
+        );
+        this._budgetClockPrevious = time;
+        return time;
+      }
+      checkSearchBudget() {
+        if (this._searchDeadline !== void 0 && this.searchTime() >= this._searchDeadline) throw EXPIRED2;
+      }
+      minimax(engine, depth, alpha, beta, aiPlayer) {
+        const context = this._budgetContext;
+        if (context) context.maxMinimaxPly = Math.max(context.maxMinimaxPly, context.iterationDepth - depth);
+        return super.minimax(engine, depth, alpha, beta, aiPlayer);
+      }
+      evaluate(engine, aiPlayer) {
+        const context = this._budgetContext;
+        if (context) {
+          if (engine.gameOver) context.terminalEvaluations++;
+          else context.nonterminalEvaluations++;
+        }
+        return super.evaluate(engine, aiPlayer);
+      }
+      getTopMoves(source, aiPlayer, topN = 5, { startedAt, deadline } = {}) {
+        check4(!this._budgetContext, "Budgeted Minimax search is already running");
+        check4(Number.isInteger(topN) && topN > 0, "Budgeted Minimax needs a positive integer topN");
+        check4(source?.currentPlayer === aiPlayer && source.activePlayers?.includes(aiPlayer) && typeof source._captureReplayState === "function", "Invalid budgeted Minimax actor or engine");
+        check4(startedAt === void 0 || nonnegative(startedAt), "Invalid budgeted Minimax startedAt");
+        check4(deadline === void 0 || nonnegative(deadline), "Invalid budgeted Minimax deadline");
+        const previous = {
+          depth: this.depth,
+          deadline: this._searchDeadline,
+          clock: this._budgetClockPrevious,
+          context: this._budgetContext
+        };
+        this._budgetClockPrevious = void 0;
+        const context = {
+          iterationDepth: 0,
+          maxMinimaxPly: 0,
+          maxReachedPly: 0,
+          terminalEvaluations: 0,
+          nonterminalEvaluations: 0
+        };
+        this._budgetContext = context;
+        let started, ended, totalDeadline, searchDeadline, preparationMs = 0, moves = [], completedDepth = 0, interrupted = false, partialDiscarded = false, terminalTreeSolved = false, failure = null, fallback = null;
+        const iterations = [];
+        try {
+          const entered = this.searchTime();
+          started = startedAt ?? entered;
+          check4(started <= entered, "Budgeted Minimax startedAt lies in the future");
+          totalDeadline = Math.min(started + this.timeMs, deadline ?? Infinity);
+          check4(
+            Number.isFinite(started + this.timeMs) && Number.isFinite(totalDeadline),
+            "Budgeted Minimax deadline overflow"
+          );
+          searchDeadline = Math.max(started, totalDeadline - this.reserveMs);
+          this._searchDeadline = searchDeadline;
+          if (!source.gameOver) {
+            const engine = isolatedEngine(source), rootRevision = engine.positionRevision;
+            for (const name of ["playMove", "skipTurn"]) {
+              const native = engine[name];
+              engine[name] = function(...args) {
+                const result = native.apply(this, args);
+                if (result.success) context.maxReachedPly = Math.max(context.maxReachedPly, this.positionRevision - rootRevision);
+                return result;
+              };
+            }
+            const legal = this.getLegalMoves(engine, aiPlayer), ordered = this.orderMoves(engine, legal, aiPlayer);
+            const point = ordered[0] ?? null;
+            fallback = point === null ? "legal-pass" : "legal-placement";
+            moves = [{
+              point,
+              ...point === null ? { type: "pass" } : {},
+              score: 0,
+              fallback: true,
+              scoreSource: "unsearched-legal-fallback"
+            }];
+            preparationMs = this.searchTime() - started;
+            for (let depth = 1; depth <= this.maxDepth; depth++) {
+              this.depth = depth;
+              context.iterationDepth = depth;
+              context.terminalEvaluations = 0;
+              context.nonterminalEvaluations = 0;
+              let began = false;
+              try {
+                this.checkSearchBudget();
+                began = true;
+                const ranking = this.searchAtDepth(engine, aiPlayer, topN);
+                this.checkSearchBudget();
+                terminalTreeSolved = context.terminalEvaluations > 0 && context.nonterminalEvaluations === 0;
+                iterations.push({ ...this.lastSearch, complete: true, terminalTreeSolved });
+                moves = ranking;
+                completedDepth = depth;
+                fallback = null;
+                if (terminalTreeSolved) break;
+              } catch (error) {
+                if (error !== EXPIRED2) throw error;
+                iterations.push({
+                  ...began ? this.lastSearch : { nodes: 0, leaves: 0, rootActions: 0 },
+                  depth,
+                  complete: false,
+                  began
+                });
+                interrupted = true;
+                partialDiscarded = began;
+                break;
+              }
+            }
+          }
+          ended = this.searchTime();
+          return moves;
+        } catch (error) {
+          failure = error;
+          ended = this._budgetClockPrevious;
+          throw error;
+        } finally {
+          this.depth = previous.depth;
+          this._searchDeadline = previous.deadline;
+          this._budgetContext = previous.context;
+          this._budgetClockPrevious = previous.clock;
+          this.lastSearch = {
+            algorithm: "budgeted-minimax-candidate-v1",
+            requestedDepth: this.maxDepth,
+            completedDepth,
+            depth: completedDepth,
+            maxReachedPly: context.maxReachedPly,
+            maxMinimaxPly: context.maxMinimaxPly,
+            iterations,
+            interrupted,
+            partialDiscarded,
+            terminalTreeSolved,
+            terminalSolvedScope: "preserved 20-placement-plus-PASS candidate tree",
+            rootPlacementCap: 20,
+            fullLegalTeacher: false,
+            fallback,
+            shallowQualityTradeoff: completedDepth < 4 && !terminalTreeSolved,
+            shallowerThanRequested: completedDepth < this.maxDepth && !terminalTreeSolved,
+            timeMs: this.timeMs,
+            guardReserveMs: this.reserveMs,
+            startedAt: started ?? null,
+            totalDeadline: totalDeadline ?? null,
+            searchDeadline: searchDeadline ?? null,
+            preparationMs,
+            elapsedMs: started === void 0 || ended === void 0 ? 0 : ended - started,
+            remainingMs: totalDeadline === void 0 || ended === void 0 ? 0 : Math.max(0, totalDeadline - ended),
+            softOverrunMs: searchDeadline === void 0 || ended === void 0 ? 0 : Math.max(0, ended - searchDeadline),
+            totalOverrunMs: totalDeadline === void 0 || ended === void 0 ? 0 : Math.max(0, ended - totalDeadline),
+            error: failure ? String(failure.message ?? failure) : null,
+            scope: "Cooperative deadline including preparation; caller must share remaining total budget with its PASS guard. A shallow completed iteration or unsearched fallback is a quality tradeoff; no training label or strength claim."
+          };
+        }
+      }
+    };
+  }
+});
+
 // application-hard:AIWorker.js
 var AIWorker_exports = {};
 var init_AIWorker = __esm({
@@ -7570,6 +7784,8 @@ var init_AIWorker = __esm({
     init_AIStateProtocol();
     init_AIEngine();
     init_AIPassDisciplineV4();
+    init_BudgetedMinimaxAI();
+    init_MultiplayerClock();
     self.onmessage = async (event) => {
       if (event.data?.type === "WARMUP") {
         try {
@@ -7592,6 +7808,8 @@ var init_AIWorker = __esm({
           strategy = "minimax",
           requestId = null
         } = event.data;
+        const hardStartedAt = strategy === "minimax" && depth >= 4 ? multiplayerClock.now() : null;
+        const hardDeadline = hardStartedAt === null ? null : hardStartedAt + 3e3;
         const engine = new GameEngine({
           gridSize: serializedState.gridSize,
           playerCount: serializedState.playerCount,
@@ -7627,7 +7845,7 @@ var init_AIWorker = __esm({
         if (strategy === "greedy") {
           ai = new GreedyAI();
         } else if (strategy === "minimax") {
-          ai = new MinimaxAI(depth, { iterativeDeepening: depth >= 4 });
+          ai = hardStartedAt === null ? new MinimaxAI(depth, { iterativeDeepening: false }) : new BudgetedMinimaxAI({ timeMs: 3e3, reserveMs: 200, maxDepth: 8, now: multiplayerClock.now });
         } else if (strategy === "mcts") {
           ai = new MCTSAI({
             simulations: event.data?.simulations ?? 64,
@@ -7689,14 +7907,19 @@ var init_AIWorker = __esm({
             modelInfo
           });
         }
-        const ranked = ai.getTopMoves(
+        const ranked = hardStartedAt !== null && topN <= 0 ? [] : ai.getTopMoves(
           engine,
           aiPlayer,
           topN > 0 ? Math.max(5, topN) : topN,
-          strategy === "multiplayer" ? { passDisciplinePrechecked: true } : void 0
+          hardStartedAt !== null ? { startedAt: hardStartedAt, deadline: hardDeadline } : strategy === "multiplayer" ? { passDisciplinePrechecked: true } : void 0
         );
-        const disciplined = applyPassDiscipline4(engine, ranked, { player: aiPlayer, topN });
+        const disciplined = applyPassDiscipline4(engine, ranked, {
+          player: aiPlayer,
+          topN,
+          ...hardStartedAt !== null ? { timeMs: Math.max(0, hardDeadline - multiplayerClock.now()), now: multiplayerClock.now } : {}
+        });
         const moves = disciplined.moves;
+        const hardElapsedMs = hardStartedAt === null ? null : multiplayerClock.now() - hardStartedAt;
         self.postMessage({
           type: "RESULT",
           requestId,
@@ -7706,7 +7929,15 @@ var init_AIWorker = __esm({
           currentPlayer: serializedState.currentPlayer,
           moves,
           modelInfo,
-          searchStats: { ...ai.lastSearch ?? {}, passDiscipline: disciplined.receipt }
+          searchStats: {
+            ...ai.lastSearch ?? {},
+            passDiscipline: disciplined.receipt,
+            ...hardElapsedMs === null ? {} : {
+              totalElapsedMs: hardElapsedMs,
+              totalOverrunMs: Math.max(0, hardElapsedMs - 3e3),
+              trainingLabel: false
+            }
+          }
         });
       } catch (error) {
         self.postMessage({

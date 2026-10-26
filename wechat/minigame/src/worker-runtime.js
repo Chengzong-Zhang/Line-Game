@@ -1,4 +1,6 @@
 import { applyPassDiscipline } from '../../../web/web前端/AIPassDisciplineV4.js';
+import { BudgetedMinimaxAI } from '../../../web/web前端/BudgetedMinimaxAI.js';
+import { multiplayerClock } from '../../../web/web前端/MultiplayerClock.js';
 import { GreedyAI, MinimaxAI, createReplayDocument, validateReplayDocument, buildEventEffects } from './core.js';
 import { controllerChoices } from './controllers.js';
 import { restoreGame, ruleView, applyAction, validateSettings, MAX_ACTIONS } from './state.js';
@@ -37,6 +39,9 @@ function runTask(message, restore = restoreGame, recordAction = () => {}) {
       return { settings: result.settings, actions: result.actions, ...ruleView(engine) };
     });
   }
+  const hardStartedAt = ['AI', 'HINT', 'ANALYZE'].includes(kind) && payload.profile === 'minimax-4'
+    ? multiplayerClock.now() : null;
+  const hardDeadline = hardStartedAt === null ? null : hardStartedAt + 3000;
   const engine = restore(payload.settings, payload.actions);
   if (kind === 'EXPORT_REPLAY') return createReplayDocument(payload.settings, payload.actions, checksum);
   if (kind === 'STATE' || kind === 'TERRITORY') return ruleView(engine);
@@ -61,17 +66,22 @@ function runTask(message, restore = restoreGame, recordAction = () => {}) {
     const rank = (algorithm, modelInfo = null) => {
       const requested = kind === 'ANALYZE' ? 3 : 1;
       const ranked = algorithm.getTopMoves(engine, engine.currentPlayer, Math.max(5, requested),
-        tier ? { passDisciplinePrechecked: true } : undefined);
-      const disciplined = applyPassDiscipline(engine, ranked, { player: engine.currentPlayer, topN: requested });
+        hardStartedAt !== null ? { startedAt: hardStartedAt, deadline: hardDeadline }
+          : tier ? { passDisciplinePrechecked: true } : undefined);
+      const disciplined = applyPassDiscipline(engine, ranked, { player: engine.currentPlayer, topN: requested,
+        ...(hardStartedAt === null ? {} : { timeMs: Math.max(0, hardDeadline - multiplayerClock.now()), now: multiplayerClock.now }) });
       const moves = disciplined.moves;
       if (ruleView(engine).stateHash !== before.stateHash) throw new Error('SEARCH_MUTATED_STATE');
       const metric = tier && algorithm.lastSearch?.algorithm === 'trained-linear-policy' ? 'policy-score'
         : embedded ? embedded.metric : entry ? entry.research ? 'puct' : 'prior' : 'heuristic';
+      const hardElapsedMs = hardStartedAt === null ? null : multiplayerClock.now() - hardStartedAt;
       return { moves, stateHash: before.stateHash, player: engine.currentPlayer,
         passDiscipline: disciplined.receipt,
         ...(tier || profile.startsWith('minimax-')
           ? { profile, ...(tier ? { modelInfo } : {}),
-            search: { ...(algorithm.lastSearch || {}), passDiscipline: disciplined.receipt } } : {}),
+            search: { ...(algorithm.lastSearch || {}), passDiscipline: disciplined.receipt,
+              ...(hardElapsedMs === null ? {} : { totalElapsedMs: hardElapsedMs,
+                totalOverrunMs: Math.max(0, hardElapsedMs - 3000), trainingLabel: false }) } } : {}),
         ...(kind === 'ANALYZE' ? { profile, metric } : {}) };
     };
     // The new tiers include several player counts, so route them before the
@@ -91,7 +101,8 @@ function runTask(message, restore = restoreGame, recordAction = () => {}) {
       algorithm = entry.research ? new NeuralPUCTAI(createResearchModel(entry.spec, raw), { simulations: 16, cPuct: 1.5 })
         : new ModelFreeAI(createModelFreeModel(entry.spec, raw));
     } else algorithm = profile === 'greedy' ? new GreedyAI()
-      : new MinimaxAI(Number(profile.slice(-1)), { iterativeDeepening: profile === 'minimax-4' });
+      : profile === 'minimax-4' ? new BudgetedMinimaxAI({ timeMs: 3000, reserveMs: 200, maxDepth: 8, now: multiplayerClock.now })
+        : new MinimaxAI(Number(profile.slice(-1)), { iterativeDeepening: false });
     return rank(algorithm);
   }
   throw new Error('UNKNOWN_TASK');

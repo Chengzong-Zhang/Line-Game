@@ -7,6 +7,8 @@ import { webcrypto } from "node:crypto";
 import { GreedyAI, MinimaxAI } from "../web前端/AIEngine.js?v=20261025-room1";
 import { createUltimateAdmissionGuard } from "../web前端/MultiplayerUltimateAdmission.js?v=20261025-room1";
 import { applyPassDiscipline } from "../web前端/AIPassDisciplineV4.js";
+import { BudgetedMinimaxAI } from "../web前端/BudgetedMinimaxAI.js";
+import { multiplayerClock } from "../web前端/MultiplayerClock.js";
 
 if (!globalThis.crypto?.subtle) globalThis.crypto = webcrypto;
 const assetRoot = fileURLToPath(new URL("../web前端/assets/research-ai/", import.meta.url));
@@ -43,7 +45,8 @@ export async function createRoomBotRuntime(engine, profile) {
   installLocalModelAssetFetch();
   if (profile.strategy === "greedy") return { ai: new GreedyAI(), modelInfo: { strategy: "greedy" } };
   if (profile.strategy === "minimax") return {
-    ai: new MinimaxAI(profile.depth, { iterativeDeepening: profile.depth >= 4 }),
+    ai: profile.depth >= 4 ? new BudgetedMinimaxAI({ timeMs: 3000, reserveMs: 200, maxDepth: 8, now: multiplayerClock.now })
+      : new MinimaxAI(profile.depth, { iterativeDeepening: false }),
     modelInfo: { strategy: "minimax", depth: profile.depth },
   };
   if (profile.strategy === "multiplayer") {
@@ -78,15 +81,23 @@ export async function createRoomBotRuntime(engine, profile) {
   throw new Error(`UNSUPPORTED_AI_STRATEGY:${profile.strategy}`);
 }
 
-export async function chooseRoomBotMove(engine, profile) {
+export async function chooseRoomBotMove(engine, profile, timing = {}) {
+  const hardStartedAt = profile?.strategy === "minimax" && profile.depth >= 4
+    ? timing.startedAt ?? multiplayerClock.now() : null;
+  const hardDeadline = hardStartedAt === null ? null : hardStartedAt + 3000;
   const { ai, modelInfo } = await createRoomBotRuntime(engine, profile);
-  const ranked = ai.getTopMoves(engine, engine.currentPlayer, 5, { passDisciplinePrechecked: true });
-  const disciplined = applyPassDiscipline(engine, ranked, { player: engine.currentPlayer, topN: 1 });
+  const ranked = ai.getTopMoves(engine, engine.currentPlayer, 5, hardStartedAt === null
+    ? { passDisciplinePrechecked: true } : { startedAt: hardStartedAt, deadline: hardDeadline });
+  const disciplined = applyPassDiscipline(engine, ranked, { player: engine.currentPlayer, topN: 1,
+    ...(hardStartedAt === null ? {} : { timeMs: Math.max(0, hardDeadline - multiplayerClock.now()), now: multiplayerClock.now }) });
   const move = disciplined.moves[0];
   if (!move) {
     if (engine.getLegalMoves().length) throw new Error("AI_RETURNED_NO_DECISION");
     return { point: null, modelInfo };
   }
   if (move.point == null && move.type !== "pass") throw new Error("AI_RETURNED_INVALID_DECISION");
-  return { point: move.point, modelInfo, searchStats: { ...(ai.lastSearch || {}), passDiscipline: disciplined.receipt } };
+  const hardElapsedMs = hardStartedAt === null ? null : multiplayerClock.now() - hardStartedAt;
+  return { point: move.point, modelInfo, searchStats: { ...(ai.lastSearch || {}), passDiscipline: disciplined.receipt,
+    ...(hardElapsedMs === null ? {} : { totalElapsedMs: hardElapsedMs,
+      totalOverrunMs: Math.max(0, hardElapsedMs - 3000), trainingLabel: false }) } };
 }

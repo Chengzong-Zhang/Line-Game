@@ -1,0 +1,309 @@
+{
+  "schema": "lifeline-budgeted-hard-package-source-snapshot-v1",
+  "status": "PASS_STATIC_PACKAGE_SOURCE_BINDING_NOT_NEW_HARD_ADMISSION",
+  "command": "node working/docs/verification/hard-budget-20261026/verify-package-snapshot-v1.mjs",
+  "verifier_sha256": "e9488907a2ae03e74380062cafa807dfd9f1b4679cd417b8c6ccb86f38d712f7",
+  "candidateId": "0.12.16-36fc9ff53923-zIqb9H",
+  "candidateStatus": "PREPARED_LOCAL_NOT_UPLOADED",
+  "version": "0.12.16",
+  "config": {
+    "apiBase": "https://lifelinegame.cn",
+    "onlineEnabled": true,
+    "workerTimeoutMs": 15000
+  },
+  "files": 35,
+  "packageBytes": 19948691,
+  "mainPackageBytes": 1794875,
+  "workerSha256": "5d2e5b8ed99254529c6d2d124faff59f12ff4676c43ee50616d73c7ad9158a40",
+  "workerEqualsOfflineDist": true,
+  "candidateJsonSha256": "0211dd1695c88844488ed4c525142b2a5728261261a0d0267f6d2179de5416a3",
+  "buildManifestSha256": "36fc9ff53923853bf114f4452f382dd140d8d9943498f671fea721a870719c5c",
+  "frozenCandidateSourceCount": 170,
+  "buildSourceCount": 160,
+  "allFrozenCandidateSourcesMatchCurrentBytes": true,
+  "sourceHashes": {
+    "web/web前端/BudgetedMinimaxAI.js": "6083b9a3516c16fb835bf33f1c4cfb31f668444f57491f00a3bd7a3ee0305ccf",
+    "web/web前端/AIWorker.js": "7a306b24007f48a50dcaee407bb97bf4e28f8483f2fde612743d091d7539d411",
+    "web/tools/online_bot_runtime.mjs": "d5d8a0ced2ba74f5871a6c3d09ee310a55f4cd6b0f2b553e4e8cf64801d4ecc7",
+    "web/tools/online_bot_bridge.mjs": "660ff6aeeec7f86c52db86e38fb1397c280393f7817d0cbba6f696f79e9481c4",
+    "wechat/minigame/src/worker-runtime.js": "a5e9f9b294cec0fc04f224931c4684f950e576cbbfc00d35cc9bd56e8c99e0a0",
+    "web/web前端/AIEngine.js": "695c8ddf1db6e8d897929da7660dc8dc9f7e66e219b80e6dfab4c38067e4a082",
+    "wechat/minigame/compat/web/AIEngine.js": "f5dc5b498ae9b684c1d7f4152b5f853e45d884894553894e9bbdbbe284280a95",
+    "wechat/minigame/compat/web/manifest.json": "96dae636e96019bc14003eb2ec297bdd5bf994e7e708b5bf58d40f4051c17890",
+    "web/web前端/MultiplayerHardAIWorker.bundle.mjs": "aa0310a17dfc9d6ce829957d524abd2890a60d777ea68a7048fbf9e734a32369",
+    "web/web前端/MultiplayerHardAIWorker.bundle.manifest.json": "157692e9b06a28e9ea4a4e02e2ab045a4a0a2766c34c6a189e4767455d8422b7",
+    "wechat/minigame/package.json": "ff168045420bdc1ad89ed7611014ea0bfd9f81d32362059b0235aa11b42a03bc",
+    "wechat/minigame/package-lock.json": "3c01cbdaf532ec28308743013e9e1478cc73648c83130f3678e561045e08db11",
+    "wechat/minigame/tools/prepare-candidate.mjs": "a99d45e8d772ca2cb24afca2927f6a3d460bb094d3d1bf50cdc2df445b6a4903",
+    "web/web前端/PassTrainedPolicyData.js": "422bdec5bf500d54036a4afb9b16e5501c20f4f2880cc20f87706ccf5023a1db",
+    "web/tools/verify-terminal-release-admission-v4.mjs": "41fd154c0e901b2bb522b3cd6b8fcf73f2bc3e9154596cba3d955a6b21bb1363"
+  },
+  "nativeCompatibility": {
+    "web/web前端/AIEngine.js": {
+      "canonicalSha256": "695c8ddf1db6e8d897929da7660dc8dc9f7e66e219b80e6dfab4c38067e4a082",
+      "override": "wechat/minigame/compat/web/AIEngine.js",
+      "overrideSha256": "f5dc5b498ae9b684c1d7f4152b5f853e45d884894553894e9bbdbbe284280a95"
+    },
+    "web/web前端/GuideTechnicalChapters.js": {
+      "canonicalSha256": "01689e2c34cedfb0b12676d1d9716dd539fa196481c43d798c854d8090e0de7e",
+      "override": "wechat/minigame/compat/web/GuideTechnicalChapters.js",
+      "overrideSha256": "fca0ebad837a8d8404f6708ddd28c7614ec1c651ab9db3aa9be21b20495d9bc8"
+    },
+    "web/web前端/HexFastSearchAI.js": {
+      "canonicalSha256": "3f1dfa1128f314b0f78b7d60862060b224631fdbb7a990890d6d1ed15c885b72",
+      "override": "wechat/minigame/compat/web/HexFastSearchAI.js",
+      "overrideSha256": "256d2380bdd2169becc535b26bc9fa17d3711ba9a6effdfd0b68a2cb44c9db68"
+    },
+    "web/web前端/HexPlayerAI.js": {
+      "canonicalSha256": "ad612f3bc03bb44ea5505d06b42250efaaf1045ccbd105d7cebda080bd5c4f12",
+      "override": "wechat/minigame/compat/web/HexPlayerAI.js",
+      "overrideSha256": "c6bfad2eb6798393347447eb417d73d3d0b5229c2c570dd7aa05009000434185"
+    },
+    "web/web前端/LocalAIModes.js": {
+      "canonicalSha256": "f1dbf8e86dc60539f9e83c7269d14a494ec8ae91ff1fd5d5b9465d7a2eed26ad",
+      "override": "wechat/minigame/compat/web/LocalAIModes.js",
+      "overrideSha256": "613ee8a5ef55b90a4b4d175395da06007849d93b7b9180bc6dd17ab9d4f1d8e9"
+    },
+    "web/web前端/LocalGameSession.js": {
+      "canonicalSha256": "39b59218a8a40cfb6ea5dff77b61bed3847b1feab6918b80792376b9e59adcad",
+      "override": "wechat/minigame/compat/web/LocalGameSession.js",
+      "overrideSha256": "4791f7c8e3a78194279d835dc24fb4fb33b8fce9dbab33fceb77f60a0f2b945c"
+    },
+    "web/web前端/LocalUndo.js": {
+      "canonicalSha256": "ee289f085af2cdafac4da325656097af3f2cacad096f7886910a258e2747c033",
+      "override": "wechat/minigame/compat/web/LocalUndo.js",
+      "overrideSha256": "e7643ebacef2d098f59d5979c60ff3f823138ab0178c8ebea438e609dbb9521b"
+    },
+    "web/web前端/ModelFreeAI.js": {
+      "canonicalSha256": "baeccb4aba92d79dda581f64f145675d6558892aeb4cb3f7df0b05507e24ffa6",
+      "override": "wechat/minigame/compat/web/ModelFreeAI.js",
+      "overrideSha256": "070412e94762ffa9d394f74f14cf4ca9ad997533506468c238d89d55db255a9a"
+    },
+    "web/web前端/MultiplayerHardFallback.js": {
+      "canonicalSha256": "2758b8f11cb380b6e58c7651f0ec3ba73b4cc02964a34ff980778a29de261447",
+      "override": "wechat/minigame/compat/web/MultiplayerHardFallback.js",
+      "overrideSha256": "7a5e5f681088991f2d9a88cc3f704e991faf408ef1f1675b3e74c77b832a4398"
+    },
+    "web/web前端/MultiplayerHardResources.js": {
+      "canonicalSha256": "9d3f5852143a66cbe19fb764855e0b897dd5aaa0177b7f08c2720a44c05f51a2",
+      "override": "wechat/minigame/compat/web/MultiplayerHardResources.js",
+      "overrideSha256": "654f544b7129c996c2b120aed1782e2d98f0d9853dbda335fa194f076fcb1699"
+    },
+    "web/web前端/MultiplayerHardRollout.js": {
+      "canonicalSha256": "01acae2c25004f6841846b199a57e9ea50d76a0046b419ad615f599b2bf7ee7d",
+      "override": "wechat/minigame/compat/web/MultiplayerHardRollout.js",
+      "overrideSha256": "8fdc052df99086c30c88f4a75a3b0142338c42d9ee32472d04bea74f3f05fb0a"
+    },
+    "web/web前端/MultiplayerHardRuntime.js": {
+      "canonicalSha256": "f071276ef92194f75a2032af0e0a35dba762dfe3e9a8bc657b5d47b11df7a630",
+      "override": "wechat/minigame/compat/web/MultiplayerHardRuntime.js",
+      "overrideSha256": "eba0adf2ba3137d3992f672c2d9b710d980b7710718c067590940ea84f07deaf"
+    },
+    "web/web前端/MultiplayerModel.js": {
+      "canonicalSha256": "00b73f5d0fc037e9dcaff2c7eb5f082cdaaf771a8ed68a5a7a0724a6f68aa7a1",
+      "override": "wechat/minigame/compat/web/MultiplayerModel.js",
+      "overrideSha256": "ceacba09821f421f2e7c5ff4a7a67443242ce09c7b5ad4d29c7ab745c3f95c67"
+    },
+    "web/web前端/MultiplayerNativeGeometry.js": {
+      "canonicalSha256": "014fe84e3037c60639ab3d1f31d5b1ad481baed2903d7c39da5e7b747538b7e1",
+      "override": "wechat/minigame/compat/web/MultiplayerNativeGeometry.js",
+      "overrideSha256": "fc0a65a9c935d6922731e5f5ca983520cf8290de0d9b831b9ca05cffa65b13fe"
+    },
+    "web/web前端/MultiplayerRollout.js": {
+      "canonicalSha256": "6f013239772bc3bea82fb2b225ac230240ff668c896495026d9345328c640a75",
+      "override": "wechat/minigame/compat/web/MultiplayerRollout.js",
+      "overrideSha256": "b83f1fa20c9564764c0491408f890d6065c2f0c3ce7ec2900bca3066b509f463"
+    },
+    "web/web前端/MultiplayerRuntime.js": {
+      "canonicalSha256": "e30b344a19f1f1e03cf3688f1f7b13937e4e49df3f04a66dcf067fab1a57ed00",
+      "override": "wechat/minigame/compat/web/MultiplayerRuntime.js",
+      "overrideSha256": "16480e1877754f8f1bbc93df837748c8ffa274a49e0639915202773f78488341"
+    },
+    "web/web前端/MultiplayerSearch.js": {
+      "canonicalSha256": "4397c0a464960801d513c5076716f0e3b9b94cdb263bd0eb87c95ae43e68658c",
+      "override": "wechat/minigame/compat/web/MultiplayerSearch.js",
+      "overrideSha256": "1ec64e23727c576b13f5169f08fc44a93805b13001a24d693bd51ad44645fc52"
+    },
+    "web/web前端/MultiplayerStandardDefense.js": {
+      "canonicalSha256": "0d5b64910a56e74abcdfaa7459463f06e58c47f28ffb85b9ebbc444b058fa01f",
+      "override": "wechat/minigame/compat/web/MultiplayerStandardDefense.js",
+      "overrideSha256": "44c3bd08345bdbd2e543b4031755922a0d6fa6268f286f89b03d8e4c7b98cb4e"
+    },
+    "web/web前端/MultiplayerUltimateAdmission.js": {
+      "canonicalSha256": "cc182005d5b74ca9fc0e4cecbe33222d65a547dbbf438318de93a30eeb0bb6a8",
+      "override": "wechat/minigame/compat/web/MultiplayerUltimateAdmission.js",
+      "overrideSha256": "b718e9202bcad5e72b755e035275d4e41d6bccbedd35ae2f861cec6361704051"
+    },
+    "web/web前端/ReplayCodec.js": {
+      "canonicalSha256": "74b3221611fac5f1a6e9d8d846a6161edb1242ce76457655b91b7c37bbbd1756",
+      "override": "wechat/minigame/compat/web/ReplayCodec.js",
+      "overrideSha256": "2284fb60665cb31024bda4f0d6edc57051bd8f145ded9fb75e9931b3da3c3956"
+    },
+    "web/web前端/ResearchAI.js": {
+      "canonicalSha256": "628ff031f0052f525c34c67ad6b3bc12d62340d941b6e95b51adc6d1241ba46d",
+      "override": "wechat/minigame/compat/web/ResearchAI.js",
+      "overrideSha256": "7aabf54343d5e6955fe8af0deda0943235660cde25b5e84faedab8944c6c7d2d"
+    },
+    "web/web前端/StartingPoints.js": {
+      "canonicalSha256": "532f640176e87aca08f544f6676db72c85c21d309d11604b1b8bca0242248e06",
+      "override": "wechat/minigame/compat/web/StartingPoints.js",
+      "overrideSha256": "1f9f541a03835821e05bb06bd67de5ddf924ac5d59d937709621badaf8684926"
+    },
+    "web/web前端/ThreePlayerAI.js": {
+      "canonicalSha256": "0f96050188da60efa9ccf18bd3729839d3810721fb1184cbd5c889cf82293905",
+      "override": "wechat/minigame/compat/web/ThreePlayerAI.js",
+      "overrideSha256": "3a6e8ef4d61534a55e975e2a292552f0784c0f19915db47cdd2ebca6e2b18690"
+    },
+    "web/web前端/ThreePlayerModels.js": {
+      "canonicalSha256": "3cd0faffa6a942ccb0e0d7c0203924e55d95e1e1cca7521d7a0e8177ce2c38f7",
+      "override": "wechat/minigame/compat/web/ThreePlayerModels.js",
+      "overrideSha256": "feb441f1ef7b6a521e32d0410c0710ecc4739a8119ad647800579bde44943342"
+    },
+    "web/web前端/ThreePlayerRuntime.js": {
+      "canonicalSha256": "1ef43c99fb6e1309e248035f7d77940a2c18de07cb1fc073b6f6b59e86da5ff3",
+      "override": "wechat/minigame/compat/web/ThreePlayerRuntime.js",
+      "overrideSha256": "77ff6280729f646d110dfcbdeb4fd2fe2a5a879950a4bd148888eb2238d0f82b"
+    },
+    "web/web前端/ThreePlayerSearchAI.js": {
+      "canonicalSha256": "05c6ac52532a7397ac1a3e1021fdce7238ef9d6cafa94aaf473b26b13c0ad732",
+      "override": "wechat/minigame/compat/web/ThreePlayerSearchAI.js",
+      "overrideSha256": "d03497a04f9946ad62de2363c8ad9141adc58d79005cab7f22ff031890a73ed3"
+    },
+    "web/web前端/TutorialRunner.js": {
+      "canonicalSha256": "feb02d1d3c742b3973273c175abc0ed1fd1929408791f563e727b0f9b29d8ddf",
+      "override": "wechat/minigame/compat/web/TutorialRunner.js",
+      "overrideSha256": "d88560aaa59257756b4541d951e23410d8491df9127a4ed8431fb3287041aa80"
+    }
+  },
+  "modelAssets": [
+    {
+      "id": "padded-cnn-transfer-v1-seed2026092201",
+      "path": "models/research/padded-cnn-transfer-v1-seed2026092201.bin",
+      "bytes": 251472,
+      "sha256": "416ee1a88f092ab514dd40c8a22604a761a20b223409eaaef64f61c691108242"
+    },
+    {
+      "id": "padded-cnn-transfer-v1-seed2026092202",
+      "path": "models/research/padded-cnn-transfer-v1-seed2026092202.bin",
+      "bytes": 251472,
+      "sha256": "cd36fdd3a96e78066475fb67056fa179bf7765028fbf9e4db7a172857b134af3"
+    },
+    {
+      "id": "padded-cnn-transfer-v1-seed2026092203",
+      "path": "models/research/padded-cnn-transfer-v1-seed2026092203.bin",
+      "bytes": 251472,
+      "sha256": "ee60f6d279941c78af999c6d051d514bf90f09b9478272d8557d482bb24dd07c"
+    },
+    {
+      "id": "grid-gnn-transfer-v1-seed2026092201",
+      "path": "models/research/grid-gnn-transfer-v1-seed2026092201.bin",
+      "bytes": 250932,
+      "sha256": "e0b82a1736521fb967afb7861ba1fcc697b505990d5b6391abb8318dbef42a0b"
+    },
+    {
+      "id": "grid-gnn-transfer-v1-seed2026092202",
+      "path": "models/research/grid-gnn-transfer-v1-seed2026092202.bin",
+      "bytes": 250932,
+      "sha256": "5db4b00462d8e30d2d293adf554da3e0e6b4cde6d40d3f82b590b23fa267000b"
+    },
+    {
+      "id": "grid-gnn-transfer-v1-seed2026092203",
+      "path": "models/research/grid-gnn-transfer-v1-seed2026092203.bin",
+      "bytes": 250932,
+      "sha256": "67079d1d6108732cddfeecf74840ae63505488af052e068ab1a83bf96c56bf87"
+    },
+    {
+      "id": "topology-gnn-transfer-v1-seed2026092201",
+      "path": "models/research/topology-gnn-transfer-v1-seed2026092201.bin",
+      "bytes": 252684,
+      "sha256": "0235947ee5a3eb6aa36627da06270e0854f3ece5c2b509d6a4f85d830a54f5ba"
+    },
+    {
+      "id": "topology-gnn-transfer-v1-seed2026092202",
+      "path": "models/research/topology-gnn-transfer-v1-seed2026092202.bin",
+      "bytes": 252684,
+      "sha256": "4c424c0f0ac19724d7fa51741d199bd780781d7063b325671fe9197f6b6abc9b"
+    },
+    {
+      "id": "topology-gnn-transfer-v1-seed2026092203",
+      "path": "models/research/topology-gnn-transfer-v1-seed2026092203.bin",
+      "bytes": 252684,
+      "sha256": "5a8f6f4ed6954c5dda131c16403f2f2c680edefffc050d19f2cab25850dcc84b"
+    },
+    {
+      "id": "padded-cnn-d14-s20260825-g200",
+      "path": "models/research/padded-cnn-d14-s20260825-g200.bin",
+      "bytes": 251472,
+      "sha256": "cea913f58d1694926fb6710ca355bf6d41e5a6c49b991af87b836ae26d43bf1f"
+    },
+    {
+      "id": "grid-gnn-d14-s20260825-g200",
+      "path": "models/research/grid-gnn-d14-s20260825-g200.bin",
+      "bytes": 250932,
+      "sha256": "92cc45bb2a3a6a56c896098c1e843a136587a9aaf07381fbf1d00ebb4fd02dfa"
+    },
+    {
+      "id": "topology-gnn-d14-s20260825-g200",
+      "path": "models/research/topology-gnn-d14-s20260825-g200.bin",
+      "bytes": 252684,
+      "sha256": "de7f1a4c9c204d0f88598f5d7d92e180e291060b11cc711c8f9e786207cf34d0"
+    },
+    {
+      "id": "dqn-all-sizes-e2000",
+      "path": "models/dqn/dqn-all-sizes-e2000.bin",
+      "bytes": 3025380,
+      "sha256": "16f50c330ad7cc239cfb0b2334538817c7c0d6cf4c01f6048b05c9ee4a9466eb"
+    },
+    {
+      "id": "ppo-all-sizes-e2000",
+      "path": "models/ppo/ppo-all-sizes-e2000.bin",
+      "bytes": 3027432,
+      "sha256": "af41359ca0ee00b3be86a2f5b9363a513af942f6cfa0c50f31cb0f252c86de85"
+    },
+    {
+      "id": "sac-all-sizes-e2000",
+      "path": "models/sac/sac-all-sizes-e2000.bin",
+      "bytes": 3025380,
+      "sha256": "63a1b80b456427a2545a31ff9af209fdde1f9cf8d41ae6984f36c09c116932bd"
+    },
+    {
+      "id": "gail-all-sizes",
+      "path": "models/gail/gail-all-sizes.bin",
+      "bytes": 3027432,
+      "sha256": "5951e4e3f057893275df6f44543f3747cd4275a616d52a5b8355e51760faea71"
+    },
+    {
+      "id": "gan-all-sizes",
+      "path": "models/gan/gan-all-sizes.bin",
+      "bytes": 3027432,
+      "sha256": "63629d0027afb8ff2fdbc3e773be420c062361b315741d8371e47818c4ec30e5"
+    }
+  ],
+  "hardSearchBudget": {
+    "schema": "lifeline-budgeted-minimax-product-v1",
+    "timeMs": 3000,
+    "guardReserveMs": 200,
+    "maxDepth": 8,
+    "completeIterationsOnly": true,
+    "shallowOnDeadlineIsQualityTradeoff": true,
+    "legalFallbackPossible": true,
+    "trainingLabels": false,
+    "scope": "Minimax Hard only; legacy minimax-4 remains its profile ID, not a completed-depth guarantee"
+  },
+  "historicalTerminalAdmission": {
+    "status": "PASS_TERMINAL_RELEASE_ADMISSION_V4",
+    "report_sha256": "c49570f4a3d0a6c35d02049f0aeec74f1b43aa240e983c06983f4d424c8f0f11",
+    "policy_data_sha256": "422bdec5bf500d54036a4afb9b16e5501c20f4f2880cc20f87706ccf5023a1db",
+    "global_runtime_admission": false,
+    "strength_verified": false,
+    "scope": "Unchanged four-policy identity/parameters and historical narrow-policy evidence only; does not admit the new Budgeted Hard or changed runtime entry points."
+  },
+  "fullNativeSuite": {
+    "tests": 522,
+    "passed": 514,
+    "failed": 8,
+    "exitCode": 1,
+    "attribution": "working/docs/verification/hard-budget-20261026/inherited-native-failures-v1.json"
+  },
+  "scope": "Static source/package identity, byte-for-byte isolated rebuild previously verified by prepare-candidate, unchanged 17 packaged model identities, and candidate inventory. Separate integration/pipeline evidence is required for new Hard behavior. No browser/device performance, strength, upload, review, deployment or public-release claim."
+}

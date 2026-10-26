@@ -224,10 +224,14 @@ export async function prepareCandidate({
     importDirectory: 'project', files, sourceHashes: before.inputHashes,
     reproducibility: 'Fresh isolated rebuild matches every existing dist file, including 17 verified model assets, byte for byte; test evidence is bound separately',
     runtime: { node: process.version, platform: process.platform, arch: process.arch },
+    hardSearchBudget: { schema: 'lifeline-budgeted-minimax-product-v1', timeMs: 3000,
+      guardReserveMs: 200, maxDepth: 8, completeIterationsOnly: true,
+      shallowOnDeadlineIsQualityTradeoff: true, legalFallbackPossible: true, trainingLabels: false,
+      scope: 'Minimax Hard only; legacy minimax-4 remains its profile ID, not a completed-depth guarantee' },
     ...(admission.status === 'PASS_TERMINAL_RELEASE_ADMISSION_V4' ? { terminalAdmission: admission } : {}),
     uploadDescription: admission.status === 'PASS_TERMINAL_RELEASE_ADMISSION_V4'
-      ? 'AI 提速与困难增强：保留 Minimax 困难完整4层，额外100毫秒内仅采用完整5/6层，超时保留完整结果；精确剪枝、复用静态邻接、多人续盘流式选优。本次不训练新权重，保留既有终局奖励/折扣1策略及开局PASS和提前结算防护。支持2–15人，7–15人仅随机/自定义起点，保留各方最新落点。'
-      : 'AI 提速与困难增强：保留 Minimax 困难完整4层，额外100毫秒内仅采用完整5/6层，超时保留完整结果；本候选没有新模型覆盖。支持2–15人，7–15人仅随机/自定义起点，保留PASS防护和各方最新落点。',
+      ? 'Minimax 困难改用约3秒限时搜索，空余时间继续加深；复杂局面超时采用已完成的较浅搜索，必要时返回合法保底，不再等待固定4层。沿用PASS防护，简单/中等和训练教师保持原方式；本次没有新权重上线。支持2–15人，7–15人仅随机/自定义起点，保留各方最新落点。'
+      : 'Minimax 困难改用约3秒限时搜索，空余时间继续加深；复杂局面超时可采用较浅搜索或合法保底。本候选没有新模型覆盖，训练教师保持原方式。支持2–15人，7–15人仅随机/自定义起点，保留PASS防护和各方最新落点。',
     acceptance: { nativeCandidateImport: 'NOT_RUN', physicalDevice: 'NOT_RUN',
       accountPermissions: 'NOT_VERIFIED', serviceConnectivity: 'NOT_VERIFIED',
       actualWechatLogin: 'NOT_RUN', crossPlatformDeviceMatch: 'NOT_RUN',

@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { build } from '../tools/native-build.mjs';
 import { GameEngine as WebGameEngine } from '../../../web/web前端/GameEngine.js';
 import { MinimaxAI as WebMinimaxAI } from '../../../web/web前端/AIEngine.js';
+import { BudgetedMinimaxAI } from '../../../web/web前端/BudgetedMinimaxAI.js';
 import { serializeEngineState } from '../../../web/web前端/AIStateProtocol.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -140,19 +141,26 @@ function actualWorker(now = () => 0) {
   } };
 }
 const worker = actualWorker();
-for (const [profile, depth] of [['minimax-2', 2], ['minimax-3', 3], ['minimax-4', 6]])
+const budgetedReference = new BudgetedMinimaxAI({ timeMs: 3000, reserveMs: 200, maxDepth: 8, now: () => 0 });
+const hardRanking = plain(budgetedReference.getTopMoves(webPosition(), 'BLACK', 5, { startedAt: 0, deadline: 3000 }));
+for (const [profile, depth] of [['minimax-2', 2], ['minimax-3', 3], ['minimax-4', null]])
   test(`actual compiled native ${profile} exposes the correct completed search through result.search`, async () => {
     const before = await worker.send('STATE'); assert.equal(before.ok, true, before.error);
     for (const kind of ['AI', 'HINT', 'ANALYZE']) {
       const answer = await worker.send(kind, profile); assert.equal(answer.ok, true, answer.error);
-      const result = answer.result, expected = reference.get(depth).slice(0, kind === 'ANALYZE' ? 3 : 1);
+      const result = answer.result, expected = (profile === 'minimax-4' ? hardRanking : reference.get(depth)).slice(0, kind === 'ANALYZE' ? 3 : 1);
       assert.deepEqual(result.moves, expected);
       assert.equal(result.profile, profile); assert.equal(result.stateHash, before.result.stateHash);
       if (profile === 'minimax-4') {
-        assert.equal(result.search.iterativeDeepening, true);
-        assert.equal(result.search.baseDepth, 4); assert.equal(result.search.completedDepth, 6);
-        assert.equal(result.search.extensionTimeMs, 100);
-        assert.ok(result.search.deeperIterations.every(row => row.complete));
+        // Quality tradeoff: product Hard obeys a shared deadline. The old core
+        // base4 + completed5/6 behavior remains tested, unchanged, above.
+        assert.equal(result.search.algorithm, 'budgeted-minimax-candidate-v1');
+        assert.equal(result.search.requestedDepth, 8);
+        assert.equal(result.search.completedDepth, budgetedReference.lastSearch.completedDepth);
+        assert.equal(result.search.timeMs, 3000); assert.equal(result.search.guardReserveMs, 200);
+        assert.equal(result.search.totalDeadline - result.search.startedAt, 3000);
+        assert.equal(result.search.trainingLabel, false);
+        assert.ok(result.search.iterations.every(row => row.complete));
       } else {
         assert.equal(result.search.depth, depth);
         assert.equal(result.search.iterativeDeepening, undefined);
@@ -165,14 +173,17 @@ for (const [profile, depth] of [['minimax-2', 2], ['minimax-3', 3], ['minimax-4'
       assert.equal(vm.runInContext(`typeof ${name}`, worker.context), 'undefined', name);
   });
 
-test('actual compiled Hard clock expiry publishes the complete four-ply ranking', async () => {
+test('actual compiled Hard expiry reports its shallow/fallback quality tradeoff without an unlimited base four', async () => {
   let polls = 0;
-  const limited = actualWorker(() => ++polls >= 2 ? 1000 : 0);
+  const limited = actualWorker(() => ++polls >= 2 ? 5000 : 0);
   const before = await limited.send('STATE'); assert.equal(before.ok, true, before.error);
   const answer = await limited.send('ANALYZE', 'minimax-4'); assert.equal(answer.ok, true, answer.error);
-  assert.deepEqual(answer.result.moves, reference.get(4).slice(0, 3));
-  assert.equal(answer.result.search.completedDepth, 4);
-  assert.equal(answer.result.search.baseDepth, 4);
-  assert.equal(answer.result.search.extensionInterrupted, true);
+  assert.ok(answer.result.moves.length > 0);
+  assert.equal(answer.result.search.completedDepth, 0);
+  assert.equal(answer.result.search.fallback, 'legal-placement');
+  assert.equal(answer.result.search.shallowQualityTradeoff, true);
+  assert.equal(answer.result.search.requestedDepth, 8);
+  assert.equal(answer.result.search.trainingLabel, false);
+  assert.ok(Array.isArray(answer.result.moves[0].point));
   const after = await limited.send('STATE'); assert.deepEqual(after.result, before.result);
 });

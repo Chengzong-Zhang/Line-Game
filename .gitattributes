@@ -48,6 +48,16 @@ web/web前端/AIWorker.js -text whitespace=cr-at-eol
 web/web前端/MultiplayerHardFallback.js -text whitespace=cr-at-eol
 web/web前端/MultiplayerHardRollout.js -text whitespace=cr-at-eol
 web/tools/online_bot_runtime.mjs -text whitespace=cr-at-eol
+# Keep the time-budgeted Hard module and product integration byte pinned.
+web/web前端/BudgetedMinimaxAI.js -text whitespace=cr-at-eol
+web/web前端/tests/verify-budgeted-minimax-v1.mjs -text whitespace=cr-at-eol
+web/tools/online_bot_bridge.mjs -text whitespace=cr-at-eol
+web/web前端/OnlineApp.js -text whitespace=cr-at-eol
+web/web前端/OnlineAppI18n.js -text whitespace=cr-at-eol
+wechat/minigame/package-lock.json -text whitespace=cr-at-eol
+wechat/minigame/tools/prepare-candidate.mjs -text whitespace=cr-at-eol
+docs/verification/hard-budget-20261026/*.json -text whitespace=cr-at-eol
+working/docs/verification/hard-budget-20261026/*.json -text whitespace=cr-at-eol
 # Preserve frozen publication and isolated-upload source hashes.
 docs/verification/ai-speed-strength-20261026/*.json -text whitespace=cr-at-eol
 wechat/ci/isolated-proxy-route.cjs -text whitespace=cr-at-eol

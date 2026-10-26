@@ -1,0 +1,537 @@
+{
+  "schema": "lifeline-budgeted-hard-independent-core-compact-v1",
+  "status": "PASS_BOUNDED_CORE_DEVELOPMENT_PROBES_NO_PRODUCT_ADMISSION",
+  "recordCreatedAt": "2026-10-26T11:26:47.175Z",
+  "measuredScope": "Frozen core-only pre-integration development probe; later route changes need separate evidence.",
+  "trainingUseForbidden": true,
+  "oldHardRerun": false,
+  "source_hashes": {
+    "BudgetedMinimaxAI.js": "6083b9a3516c16fb835bf33f1c4cfb31f668444f57491f00a3bd7a3ee0305ccf",
+    "AIEngine.js": "695c8ddf1db6e8d897929da7660dc8dc9f7e66e219b80e6dfab4c38067e4a082",
+    "GameEngine.js": "1aec9d73d06c7243ac71d1eb27c8f9692dc5f33576d298d2ecd2d2d55464acfb",
+    "AIStateProtocol.js": "bd82e144304f429b354d7d7a722f1a691b7902a6e6e418f3739342191b5291a2",
+    "MultiplayerClock.js": "9cc62a1da3400222c41b07d128fba047f2a57688f13bf42ef3620d66e8d9df80"
+  },
+  "localArtifacts": {
+    "receipt": {
+      "path": "local_artifacts/hard-budget-20261026/core-benchmark-v1/receipt.json",
+      "sha256": "64e7c52613ce153d2356541d1565b63a5e89368369d488e6fd3c174351a04068"
+    },
+    "inputs": {
+      "path": "local_artifacts/hard-budget-20261026/independent-inputs-v1.json",
+      "sha256": "b9bda560110df223c96e28c881c263746bf7c4306fa0fb31eb1a25525eeaa10b"
+    },
+    "benchmarkRunner": {
+      "path": "local_artifacts/hard-budget-20261026/benchmark-independent.mjs",
+      "sha256": "c53a6b0238f072785bff232389a89848f27c800d1e9631490089932a210afee2"
+    },
+    "preparationRunner": {
+      "path": "local_artifacts/hard-budget-20261026/prepare-independent-inputs.mjs",
+      "sha256": "7c7f04ce492364e0d06df023118a1992a20d718d132413617d4f3d7e0b837c0c"
+    }
+  },
+  "inputProvenance": {
+    "purpose": "post-evaluation-development-benchmark-only",
+    "notTrainingData": true,
+    "feedbackIntoOldH16TrainingForbidden": true,
+    "casesArePostEvaluationDevelopmentOnly": true,
+    "casesExcludedFromOldH16Training": true,
+    "exclusionMeansNoFeedbackNotVerifiedStateDisjointness": true,
+    "heldOutStrengthSet": false,
+    "caseSelection": "Three slowest distinct pre-action states plus median n7 Hard action from frozen H16 arena; existing n5 native-terminal winning fixture.",
+    "oldTimesAreRecordedReferencesNotRerun": true
+  },
+  "frozenArenaProtection": {
+    "worktree": "C:/Users/zcz/.codex/worktrees/ultimate-terminal-v2/line game",
+    "manifestPath": "local_artifacts/ultimate-terminal-pilot-20261026-r1/arena/manifest.json",
+    "manifestSha256": "f5d203e0684dbbacf4997a4c2b740e704a9a6d2c71e04942fed2ff26eae28fc1",
+    "sourceCount": 17,
+    "allManifestSourcesUnchangedAtReportFinalization": true,
+    "sourcesHashMapSha256": "6665812eeef868646619fffbfeaacf4d9d802b0a195acc2a78a6c3e7aa29d79a",
+    "knownArenaActivityBefore": [
+      {
+        "name": "arena",
+        "status": "COMPLETE",
+        "progress_units": 395,
+        "completedGames": 16,
+        "totalGames": 16
+      },
+      {
+        "name": "legacy-arena",
+        "status": "COMPLETE",
+        "progress_units": 361,
+        "completedGames": 16,
+        "totalGames": 16
+      }
+    ],
+    "knownArenaActivityAfter": [
+      {
+        "name": "arena",
+        "status": "COMPLETE",
+        "progress_units": 395,
+        "completedGames": 16,
+        "totalGames": 16
+      },
+      {
+        "name": "legacy-arena",
+        "status": "COMPLETE",
+        "progress_units": 361,
+        "completedGames": 16,
+        "totalGames": 16
+      }
+    ],
+    "doesNotProveHostIdle": true
+  },
+  "protocol": {
+    "timeMs": 3000,
+    "reserveMs": 200,
+    "maxDepth": 8,
+    "topN": 5,
+    "startedAtAndDeadlinePassedExplicitly": true,
+    "includesPreparation": true,
+    "includesPassGuard": false,
+    "includesActionApplication": false,
+    "includesWorkerIpcRenderingPhone": false,
+    "actualTimingCallsPerCase": 1,
+    "functionalFakeClockFixturesAreNotTimingCalls": true
+  },
+  "environment": {
+    "node": "v22.22.3",
+    "platform": "win32",
+    "arch": "x64",
+    "cpuModel": "AMD Ryzen 9 8945HS w/ Radeon 780M Graphics",
+    "logicalCpus": 16
+  },
+  "cases": [
+    {
+      "id": "r1-hard-slowest-1",
+      "gridSize": 9,
+      "actor": "BLACK",
+      "sourceStateSha256": "6a592f3f452e9609dd5572f4064dcac6b9d3a5308d555af1dacaf29a274b1585",
+      "reference": {
+        "gamePath": "games/arena-d9fbb0d07467a41ca815065d487e2f6c.json",
+        "gameSha256": "c660f92288c474b7ad7ebea15782ad8fae4bcaf451c36765c03a3f0005d29929",
+        "actionIndex": 13,
+        "oldRecordedAppliedElapsedMs": 50402.1188,
+        "oldRecordedSelectionElapsedMs": 50400.013399999996,
+        "oldRecordedFinalPoint": [
+          6,
+          1
+        ],
+        "oldTimesIncludeSelectionApplicationAndAreNotEqualWorkComparison": true
+      },
+      "coreElapsedMs": 2800.6308999999997,
+      "selectedPoint": [
+        6,
+        1
+      ],
+      "completedDepth": 2,
+      "maxReachedPly": 3,
+      "maxMinimaxPly": 3,
+      "iterations": [
+        {
+          "depth": 1,
+          "nodes": 21,
+          "rootActions": 21,
+          "complete": true,
+          "terminalTreeSolved": false
+        },
+        {
+          "depth": 2,
+          "nodes": 426,
+          "rootActions": 21,
+          "complete": true,
+          "terminalTreeSolved": false
+        },
+        {
+          "depth": 3,
+          "nodes": 4007,
+          "rootActions": 11,
+          "complete": false
+        }
+      ],
+      "partialDiscarded": true,
+      "shallowQualityTradeoff": true,
+      "terminalTreeSolved": false,
+      "terminalSolvedScope": "preserved 20-placement-plus-PASS candidate tree",
+      "rootPlacementCap": 20,
+      "fullLegalTeacher": false,
+      "preparationMs": 10.900999999999996,
+      "remainingTotalBudgetForFutureGuardMs": 199.36910000000034,
+      "softSearchDeadlineOverrunMs": 0.48769999999967695,
+      "totalDeadlineOverrunMs": 0,
+      "sourceAllOwnPropertiesRestored": true,
+      "sourceRuleStateRestored": true,
+      "selectedActionCanonicallyLegal": true,
+      "passGuardApplied": false,
+      "error": null
+    },
+    {
+      "id": "r1-hard-slowest-2",
+      "gridSize": 9,
+      "actor": "WHITE",
+      "sourceStateSha256": "5e077f9d92a30e6959237d0964c038b4d2087e0f32eec1fcd0a90555d0d1375f",
+      "reference": {
+        "gamePath": "games/arena-5d4c93ddd77bc4f8c5efc26b1bfcbaea.json",
+        "gameSha256": "725ec10fec34bfcf3c7461edd09080f7d5059c55fa781297f97bc4e346eef20b",
+        "actionIndex": 16,
+        "oldRecordedAppliedElapsedMs": 36703.5481,
+        "oldRecordedSelectionElapsedMs": 36702.2737,
+        "oldRecordedFinalPoint": [
+          4,
+          0
+        ],
+        "oldTimesIncludeSelectionApplicationAndAreNotEqualWorkComparison": true
+      },
+      "coreElapsedMs": 2800.1951,
+      "selectedPoint": [
+        4,
+        0
+      ],
+      "completedDepth": 2,
+      "maxReachedPly": 3,
+      "maxMinimaxPly": 3,
+      "iterations": [
+        {
+          "depth": 1,
+          "nodes": 21,
+          "rootActions": 21,
+          "complete": true,
+          "terminalTreeSolved": false
+        },
+        {
+          "depth": 2,
+          "nodes": 431,
+          "rootActions": 21,
+          "complete": true,
+          "terminalTreeSolved": false
+        },
+        {
+          "depth": 3,
+          "nodes": 5325,
+          "rootActions": 15,
+          "complete": false
+        }
+      ],
+      "partialDiscarded": true,
+      "shallowQualityTradeoff": true,
+      "terminalTreeSolved": false,
+      "terminalSolvedScope": "preserved 20-placement-plus-PASS candidate tree",
+      "rootPlacementCap": 20,
+      "fullLegalTeacher": false,
+      "preparationMs": 5.017800000000079,
+      "remainingTotalBudgetForFutureGuardMs": 199.8049000000001,
+      "softSearchDeadlineOverrunMs": 0.1455999999998312,
+      "totalDeadlineOverrunMs": 0,
+      "sourceAllOwnPropertiesRestored": true,
+      "sourceRuleStateRestored": true,
+      "selectedActionCanonicallyLegal": true,
+      "passGuardApplied": false,
+      "error": null
+    },
+    {
+      "id": "r1-hard-slowest-3",
+      "gridSize": 9,
+      "actor": "BLACK",
+      "sourceStateSha256": "d649ca749daffe8669de55d342324dd511d8c8eec0ccb672235eee9dfeb0b64a",
+      "reference": {
+        "gamePath": "games/arena-d9fbb0d07467a41ca815065d487e2f6c.json",
+        "gameSha256": "c660f92288c474b7ad7ebea15782ad8fae4bcaf451c36765c03a3f0005d29929",
+        "actionIndex": 14,
+        "oldRecordedAppliedElapsedMs": 31463.791699999998,
+        "oldRecordedSelectionElapsedMs": 31461.810299999997,
+        "oldRecordedFinalPoint": [
+          1,
+          0
+        ],
+        "oldTimesIncludeSelectionApplicationAndAreNotEqualWorkComparison": true
+      },
+      "coreElapsedMs": 2800.271199999999,
+      "selectedPoint": [
+        1,
+        0
+      ],
+      "completedDepth": 2,
+      "maxReachedPly": 3,
+      "maxMinimaxPly": 3,
+      "iterations": [
+        {
+          "depth": 1,
+          "nodes": 21,
+          "rootActions": 21,
+          "complete": true,
+          "terminalTreeSolved": false
+        },
+        {
+          "depth": 2,
+          "nodes": 414,
+          "rootActions": 21,
+          "complete": true,
+          "terminalTreeSolved": false
+        },
+        {
+          "depth": 3,
+          "nodes": 6215,
+          "rootActions": 20,
+          "complete": false
+        }
+      ],
+      "partialDiscarded": true,
+      "shallowQualityTradeoff": true,
+      "terminalTreeSolved": false,
+      "terminalSolvedScope": "preserved 20-placement-plus-PASS candidate tree",
+      "rootPlacementCap": 20,
+      "fullLegalTeacher": false,
+      "preparationMs": 3.2380999999995765,
+      "remainingTotalBudgetForFutureGuardMs": 199.72880000000077,
+      "softSearchDeadlineOverrunMs": 0.22999999999956344,
+      "totalDeadlineOverrunMs": 0,
+      "sourceAllOwnPropertiesRestored": true,
+      "sourceRuleStateRestored": true,
+      "selectedActionCanonicallyLegal": true,
+      "passGuardApplied": false,
+      "error": null
+    },
+    {
+      "id": "r1-hard-n7-median",
+      "gridSize": 7,
+      "actor": "BLACK",
+      "sourceStateSha256": "ff8960ce26e2df2784687c5c93ea1ab1b94387b3f02409ee53396f9b243bf406",
+      "reference": {
+        "gamePath": "games/arena-c76731711239735f59d69d2477e57dc6.json",
+        "gameSha256": "cf994f9b5650e4a4409c8b47ecb2623c4da8cc36488598d5cd1cd81c720c7d8a",
+        "actionIndex": 9,
+        "oldRecordedAppliedElapsedMs": 520.4318999999996,
+        "oldRecordedSelectionElapsedMs": 518.4544999999998,
+        "oldRecordedFinalPoint": [
+          0,
+          2
+        ],
+        "oldTimesIncludeSelectionApplicationAndAreNotEqualWorkComparison": true
+      },
+      "coreElapsedMs": 2127.1281,
+      "selectedPoint": [
+        0,
+        2
+      ],
+      "completedDepth": 6,
+      "maxReachedPly": 5,
+      "maxMinimaxPly": 5,
+      "iterations": [
+        {
+          "depth": 1,
+          "nodes": 9,
+          "rootActions": 9,
+          "complete": true,
+          "terminalTreeSolved": false
+        },
+        {
+          "depth": 2,
+          "nodes": 73,
+          "rootActions": 9,
+          "complete": true,
+          "terminalTreeSolved": false
+        },
+        {
+          "depth": 3,
+          "nodes": 369,
+          "rootActions": 9,
+          "complete": true,
+          "terminalTreeSolved": false
+        },
+        {
+          "depth": 4,
+          "nodes": 1137,
+          "rootActions": 9,
+          "complete": true,
+          "terminalTreeSolved": false
+        },
+        {
+          "depth": 5,
+          "nodes": 1593,
+          "rootActions": 9,
+          "complete": true,
+          "terminalTreeSolved": false
+        },
+        {
+          "depth": 6,
+          "nodes": 1593,
+          "rootActions": 9,
+          "complete": true,
+          "terminalTreeSolved": true
+        }
+      ],
+      "partialDiscarded": false,
+      "shallowQualityTradeoff": false,
+      "terminalTreeSolved": true,
+      "terminalSolvedScope": "preserved 20-placement-plus-PASS candidate tree",
+      "rootPlacementCap": 20,
+      "fullLegalTeacher": false,
+      "preparationMs": 0.9297999999998865,
+      "remainingTotalBudgetForFutureGuardMs": 872.8719000000001,
+      "softSearchDeadlineOverrunMs": 0,
+      "totalDeadlineOverrunMs": 0,
+      "sourceAllOwnPropertiesRestored": true,
+      "sourceRuleStateRestored": true,
+      "selectedActionCanonicallyLegal": true,
+      "passGuardApplied": false,
+      "error": null
+    },
+    {
+      "id": "known-n5-native-winning-witness",
+      "gridSize": 5,
+      "actor": "BLACK",
+      "sourceStateSha256": "4a6b31dacafa1c820927d015575f3130b6b39a2d75c1b3a027b3e7ae9837d624",
+      "reference": {
+        "witnessFile": "web/web前端/tests/verify-minimax-deepening.mjs",
+        "witnessSourceSha256": "83dc3bb6613d48b3b9eef92b8f8a9ff2e5cf089f1b527d1e2750bf6a9d8481b7",
+        "expectedUniqueNaturalWinningPoint": [
+          2,
+          0
+        ],
+        "uniqueNativeWinningPointSelected": true,
+        "knownNativeOracleValueOfSelection": 1,
+        "oracleIsExistingRegressionNotNewStrengthEvaluation": true
+      },
+      "coreElapsedMs": 693.9907999999996,
+      "selectedPoint": [
+        2,
+        0
+      ],
+      "completedDepth": 8,
+      "maxReachedPly": 8,
+      "maxMinimaxPly": 8,
+      "iterations": [
+        {
+          "depth": 1,
+          "nodes": 5,
+          "rootActions": 5,
+          "complete": true,
+          "terminalTreeSolved": false
+        },
+        {
+          "depth": 2,
+          "nodes": 26,
+          "rootActions": 5,
+          "complete": true,
+          "terminalTreeSolved": false
+        },
+        {
+          "depth": 3,
+          "nodes": 58,
+          "rootActions": 5,
+          "complete": true,
+          "terminalTreeSolved": false
+        },
+        {
+          "depth": 4,
+          "nodes": 119,
+          "rootActions": 5,
+          "complete": true,
+          "terminalTreeSolved": false
+        },
+        {
+          "depth": 5,
+          "nodes": 181,
+          "rootActions": 5,
+          "complete": true,
+          "terminalTreeSolved": false
+        },
+        {
+          "depth": 6,
+          "nodes": 291,
+          "rootActions": 5,
+          "complete": true,
+          "terminalTreeSolved": false
+        },
+        {
+          "depth": 7,
+          "nodes": 414,
+          "rootActions": 5,
+          "complete": true,
+          "terminalTreeSolved": false
+        },
+        {
+          "depth": 8,
+          "nodes": 487,
+          "rootActions": 5,
+          "complete": true,
+          "terminalTreeSolved": false
+        }
+      ],
+      "partialDiscarded": false,
+      "shallowQualityTradeoff": false,
+      "terminalTreeSolved": false,
+      "terminalSolvedScope": "preserved 20-placement-plus-PASS candidate tree",
+      "rootPlacementCap": 20,
+      "fullLegalTeacher": false,
+      "preparationMs": 1.8551000000006752,
+      "remainingTotalBudgetForFutureGuardMs": 2306.0092000000004,
+      "softSearchDeadlineOverrunMs": 0,
+      "totalDeadlineOverrunMs": 0,
+      "sourceAllOwnPropertiesRestored": true,
+      "sourceRuleStateRestored": true,
+      "selectedActionCanonicallyLegal": true,
+      "passGuardApplied": false,
+      "error": null
+    }
+  ],
+  "clockRecoveryFixtures": [
+    {
+      "mode": "nonfinite-first",
+      "error": "Invalid or backward budgeted Minimax clock",
+      "calls": 0,
+      "completedDepth": 0,
+      "fallback": null,
+      "sourceAllOwnPropertiesRestored": true,
+      "depthAndTemporaryDeadlineRestored": true
+    },
+    {
+      "mode": "nonfinite-mid",
+      "error": "Invalid or backward budgeted Minimax clock",
+      "calls": 8,
+      "completedDepth": 0,
+      "fallback": "legal-placement",
+      "sourceAllOwnPropertiesRestored": true,
+      "depthAndTemporaryDeadlineRestored": true
+    },
+    {
+      "mode": "backward",
+      "error": "Invalid or backward budgeted Minimax clock",
+      "calls": 3,
+      "completedDepth": 0,
+      "fallback": "legal-placement",
+      "sourceAllOwnPropertiesRestored": true,
+      "depthAndTemporaryDeadlineRestored": true
+    },
+    {
+      "mode": "expired-before-iteration",
+      "error": null,
+      "calls": 0,
+      "completedDepth": 0,
+      "fallback": "legal-placement",
+      "sourceAllOwnPropertiesRestored": true,
+      "depthAndTemporaryDeadlineRestored": true
+    }
+  ],
+  "reviewFinding": {
+    "fixedBeforeMeasuredSourceFreeze": true,
+    "description": "PASS-aware actual-ply diagnostic uses positionRevision delta instead of turnCount; explicit placement/PASS each increment revision once and automatic skips do not.",
+    "statisticalOrStrengthImplication": "None; this corrects diagnostic counting only."
+  },
+  "limitations": [
+    "Five selected post-evaluation development cases; no speed-equivalence or strength claim.",
+    "Old recorded times include the old selection/application pipeline; new values time this core only.",
+    "Depth below four is an explicit quality tradeoff. Partial iteration rankings are discarded.",
+    "The reserved guard budget has not been consumed by a real integrated PASS guard in this probe.",
+    "No Worker/IPC/rendering, phone, new game, old Hard rerun, model training, deployment or publication.",
+    "Completed iteration depth and maximum actual traversed plies are distinct; terminal branches can stop earlier.",
+    "Terminal-solved flags refer only to the preserved 20-placement-plus-PASS candidate tree.",
+    "Cooperative core deadline is not a worst-case hard deadline or integrated three-second admission."
+  ],
+  "commands": {
+    "originalOneShotMeasurement": "node local_artifacts/hard-budget-20261026/benchmark-independent.mjs",
+    "originalOutputMustRemainPreserved": true,
+    "readOnlyVerification": "node docs/verification/hard-budget-20261026/verify-independent-core-benchmark-v1.mjs"
+  }
+}

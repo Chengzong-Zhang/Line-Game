@@ -1,0 +1,295 @@
+{
+  "schema": "lifeline-inherited-native-failure-attribution-v1",
+  "status": "PASS_BASELINE_ATTRIBUTION_NOT_FULL_SUITE",
+  "baseline": "14685b2c883991a2e870ef179941456ff7df6f31",
+  "command": "node docs/verification/hard-budget-20261026/verify-inherited-native-failures-v1.mjs",
+  "verifier_sha256": "fb705766798c4de7df5fd662d6d6b0a9a7562bca6a09fdc4b0148bedff452ada",
+  "historicalWorker": {
+    "injectedRuntimeSha256": "917ea5a8f2ace3eed19c46245f510bebaea382f7400121a1ded274ddca18a62a",
+    "dependencyCount": 90,
+    "dependencyHashesSha256": "a1f927803ddf9e75ec257d49b0d8c0e201c65335c91bc768de6f850c04acb1f4",
+    "allOtherDependencySourceContentEqualsBaseline": true,
+    "thirdPartyModuleCount": 4,
+    "thirdPartyHashesSha256": "efe11ec3f75b5dc6f11d78a43634006a6d84a544a4229e331bf6384706886c20",
+    "dependencyLockUnchangedExceptAppVersion": true,
+    "checkoutLineEndingOnlyDifferences": [
+      "web/web前端/AIPassDisciplineV2.js",
+      "web/web前端/AIPassDisciplineV3.js",
+      "web/web前端/AIPassDisciplineV4.js",
+      "wechat/minigame/tests/hex-player-worker.test.mjs"
+    ]
+  },
+  "currentWorkerSha256": "5d2e5b8ed99254529c6d2d124faff59f12ff4676c43ee50616d73c7ad9158a40",
+  "unchangedTests": {
+    "all-ai-0110.test.mjs": {
+      "workingTreeSha256": "e48bfb9360726b80b25a97c5846589c1fd467a572985ce73e206abec1e274ab9",
+      "baselineGitSha256": "e48bfb9360726b80b25a97c5846589c1fd467a572985ce73e206abec1e274ab9",
+      "byteIdentical": true
+    },
+    "candidate-package.test.mjs": {
+      "workingTreeSha256": "642adce7256f259295f28aebd8e1abdbc3894288070324fbb0e92a44319a0880",
+      "baselineGitSha256": "642adce7256f259295f28aebd8e1abdbc3894288070324fbb0e92a44319a0880",
+      "byteIdentical": true
+    },
+    "candidate-review-boundaries.test.mjs": {
+      "workingTreeSha256": "2c92755242c17e5f09323bd5db6bff80192722a9f20ba8f49c1264f11c61dc46",
+      "baselineGitSha256": "2c92755242c17e5f09323bd5db6bff80192722a9f20ba8f49c1264f11c61dc46",
+      "byteIdentical": true
+    },
+    "hex-player-worker.test.mjs": {
+      "workingTreeSha256": "00e298eeed6bc5d6fee8a4c95dd8581949e4a18ff80cc13c3196e177eb4e932b",
+      "baselineGitSha256": "82386047ca0983bddb9ed7cfa4f8ec82a53aed55d1d6de47b736b7f74e9ed876",
+      "byteIdentical": false
+    },
+    "latest-ai-0128.test.mjs": {
+      "workingTreeSha256": "bae3574d83c7181af447c69296ef3edd5e602553ea5a3f2015e2f07c4e1c2014",
+      "baselineGitSha256": "bae3574d83c7181af447c69296ef3edd5e602553ea5a3f2015e2f07c4e1c2014",
+      "byteIdentical": true
+    },
+    "online-candidate.test.mjs": {
+      "workingTreeSha256": "43aac832da4415e158c53c843825dfb39f6aa1f88cc959b7cd8acffd208737b2",
+      "baselineGitSha256": "43aac832da4415e158c53c843825dfb39f6aa1f88cc959b7cd8acffd208737b2",
+      "byteIdentical": true
+    }
+  },
+  "cases": [
+    {
+      "tests": [
+        "all-ai-0110:generic-Greedy"
+      ],
+      "genericCases": [
+        {
+          "count": 2,
+          "shape": "hexagon",
+          "directLegacyExpectation": [
+            {
+              "point": [
+                4,
+                6
+              ],
+              "score": 203
+            }
+          ],
+          "baselineMoves": [
+            {
+              "point": [
+                4,
+                6
+              ],
+              "score": 203
+            }
+          ],
+          "currentMoves": [
+            {
+              "point": [
+                4,
+                6
+              ],
+              "score": 203
+            }
+          ],
+          "equal": true,
+          "originalAssertionPasses": true
+        },
+        {
+          "count": 3,
+          "shape": "hexagon",
+          "directLegacyExpectation": [
+            {
+              "point": [
+                4,
+                8
+              ],
+              "score": 736
+            }
+          ],
+          "baselineMoves": [
+            {
+              "point": [
+                4,
+                8
+              ],
+              "score": 736
+            }
+          ],
+          "currentMoves": [
+            {
+              "point": [
+                4,
+                8
+              ],
+              "score": 736
+            }
+          ],
+          "equal": true,
+          "originalAssertionPasses": true
+        },
+        {
+          "count": 4,
+          "shape": "triangle",
+          "directLegacyExpectation": [
+            {
+              "point": [
+                2,
+                0
+              ],
+              "score": 45
+            }
+          ],
+          "baselineMoves": [
+            {
+              "point": [
+                2,
+                0
+              ],
+              "score": 45
+            }
+          ],
+          "currentMoves": [
+            {
+              "point": [
+                2,
+                0
+              ],
+              "score": 45
+            }
+          ],
+          "equal": true,
+          "originalAssertionPasses": true
+        },
+        {
+          "count": 5,
+          "shape": "triangle",
+          "directLegacyExpectation": [
+            {
+              "point": [
+                2,
+                0
+              ],
+              "score": 22
+            }
+          ],
+          "baselineMoves": [
+            {
+              "point": [
+                2,
+                0
+              ],
+              "score": 22
+            }
+          ],
+          "currentMoves": [
+            {
+              "point": [
+                2,
+                0
+              ],
+              "score": 22
+            }
+          ],
+          "equal": true,
+          "originalAssertionPasses": true
+        },
+        {
+          "count": 6,
+          "shape": "triangle",
+          "directLegacyExpectation": [],
+          "baselineMoves": [
+            {
+              "type": "pass",
+              "point": null,
+              "score": 0,
+              "visits": 1,
+              "evaluation": "canonical-forced-pass"
+            }
+          ],
+          "currentMoves": [
+            {
+              "type": "pass",
+              "point": null,
+              "score": 0,
+              "visits": 1,
+              "evaluation": "canonical-forced-pass"
+            }
+          ],
+          "equal": true,
+          "originalAssertionPasses": false
+        }
+      ],
+      "firstOriginalAssertionFailureCount": 6
+    },
+    {
+      "tests": [
+        "latest-ai-0128:unique-terminal-PASS"
+      ],
+      "baselineMoves": [
+        {
+          "point": [
+            1,
+            3
+          ],
+          "score": 309
+        },
+        {
+          "point": [
+            1,
+            2
+          ],
+          "score": 281
+        },
+        {
+          "point": [
+            2,
+            2
+          ],
+          "score": 281
+        }
+      ],
+      "currentMoves": [
+        {
+          "point": [
+            1,
+            3
+          ],
+          "score": 309
+        },
+        {
+          "point": [
+            1,
+            2
+          ],
+          "score": 281
+        },
+        {
+          "point": [
+            2,
+            2
+          ],
+          "score": 281
+        }
+      ],
+      "equal": true,
+      "fixtureActions": 4
+    },
+    {
+      "tests": [
+        "hex-player-worker:old-native-pin"
+      ],
+      "obsoletePin": "fd43cd3053a0b92569a4d26524a036f45a2920271cc06a49ef0200aec07ffabf",
+      "baselineAndCurrentNativeAiSha256": "f5dc5b498ae9b684c1d7f4152b5f853e45d884894553894e9bbdbbe284280a95"
+    },
+    {
+      "tests": [
+        "candidate-package:fresh-candidate",
+        "candidate-review-boundaries:floating-library",
+        "candidate-review-boundaries:legacy-schema",
+        "online-candidate:explicit-origin",
+        "online-candidate:isolated-recipe"
+      ],
+      "baselineVerifierSha256": "41fd154c0e901b2bb522b3cd6b8fcf73f2bc3e9154596cba3d955a6b21bb1363",
+      "currentVerifierSha256": "41fd154c0e901b2bb522b3cd6b8fcf73f2bc3e9154596cba3d955a6b21bb1363",
+      "baselineAndCurrentError": "Use --terminal-admission with the sealed combined scoped admission report"
+    }
+  ],
+  "scope": "Two failing non-Hard Worker branches reproduced using historical worker-runtime and unchanged dependency source content, with clean checkout CRLF/LF differences recorded; one stale pin and five unchanged missing-admission gate failures attributed. Original full suite remains 514 pass / 8 fail. No original assertions or admission gates were weakened."
+}

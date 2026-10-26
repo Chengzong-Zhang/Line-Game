@@ -4,6 +4,7 @@ import { GameEngine, PLAYER_ORDER } from "../web前端/GameEngine.js?v=20261025-
 import { normalizeRoomPlayerSetup, roomBotColors, roomPlayerProfile } from "../web前端/OnlineRoomSettings.js";
 import { ALL_LOCAL_PLAYER_CHOICES } from "../web前端/LocalAIModes.js?v=20261025-room1";
 import { chooseRoomBotMove } from "./online_bot_runtime.mjs";
+import { multiplayerClock } from "../web前端/MultiplayerClock.js";
 import { webcrypto } from "node:crypto";
 import { pathToFileURL } from "node:url";
 
@@ -70,6 +71,7 @@ export async function processBotRequest(request, { chooseBotPoint = chooseRoomBo
     const defaultBot = Object.values(defaults).find(player => player.choice !== "human");
     for (const color of colors) playerSetup[color] = botColors.includes(color) ? { ...defaultBot } : { ...playerSetup[color], choice: "human" };
   }
+  const reconstructionStartedAt = multiplayerClock.now();
   let engine;
   try { engine = new GameEngine(settings); }
   catch (_) { return { success: false, reason: "INVALID_CONFIGURATION" }; }
@@ -84,7 +86,7 @@ export async function processBotRequest(request, { chooseBotPoint = chooseRoomBo
 
   let action = request.action ?? null;
   let fallback = false;
-  let fallbackReason = null, modelInfo = null, botProfile = null;
+  let fallbackReason = null, modelInfo = null, botProfile = null, searchStats = null;
   if (action && botColors.includes(action.color)) {
     return { success: false, reason: "BOT_ACTOR_FORBIDDEN" };
   }
@@ -92,10 +94,11 @@ export async function processBotRequest(request, { chooseBotPoint = chooseRoomBo
     let point;
     botProfile = roomPlayerProfile(playerSetup[engine.currentPlayer], settings);
     try {
-      const selected = await chooseBotPoint(engine, botProfile);
+      const selected = await chooseBotPoint(engine, botProfile, { startedAt: reconstructionStartedAt });
       if (selected && !Array.isArray(selected) && typeof selected === "object") {
         point = selected.point;
         modelInfo = selected.modelInfo ?? null;
+        searchStats = selected.searchStats ?? null;
       } else point = selected;
       if (point !== null && (!Array.isArray(point) || point.length !== 2 || !point.every(Number.isInteger))) {
         throw new Error("AI_RETURNED_INVALID_DECISION");
@@ -125,6 +128,7 @@ export async function processBotRequest(request, { chooseBotPoint = chooseRoomBo
     gameOver: engine.gameOver,
     fallback,
     ...(botProfile ? { botProfile, modelInfo } : {}),
+    ...(searchStats ? { searchStats } : {}),
     ...(fallbackReason ? { fallbackReason } : {}),
   };
 }

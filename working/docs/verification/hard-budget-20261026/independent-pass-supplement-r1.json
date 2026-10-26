@@ -1,0 +1,567 @@
+{
+  "schema": "lifeline-independent-actual-pass-three-pipeline-supplement-v1",
+  "status": "PASS_SIX_REAL_PASS_BRANCH_ACTIONS_NODE_VM_NOT_PHONE",
+  "date": "2026-10-26",
+  "identity": "11fe2493e9b76176ebe06785166cd35445de6244861fe7138e1d1d4c8077aff9",
+  "candidate": {
+    "id": "0.12.16-36fc9ff53923-zIqb9H",
+    "version": "0.12.16",
+    "candidateSha256": "0211dd1695c88844488ed4c525142b2a5728261261a0d0267f6d2179de5416a3",
+    "workerSha256": "5d2e5b8ed99254529c6d2d124faff59f12ff4676c43ee50616d73c7ad9158a40",
+    "buildManifestSha256": "36fc9ff53923853bf114f4452f382dd140d8d9943498f671fea721a870719c5c"
+  },
+  "sourceHashesBeforeAfter": {
+    "web/web前端/BudgetedMinimaxAI.js": "6083b9a3516c16fb835bf33f1c4cfb31f668444f57491f00a3bd7a3ee0305ccf",
+    "web/web前端/AIEngine.js": "695c8ddf1db6e8d897929da7660dc8dc9f7e66e219b80e6dfab4c38067e4a082",
+    "web/web前端/GameEngine.js": "1aec9d73d06c7243ac71d1eb27c8f9692dc5f33576d298d2ecd2d2d55464acfb",
+    "web/web前端/AIWorker.js": "7a306b24007f48a50dcaee407bb97bf4e28f8483f2fde612743d091d7539d411",
+    "web/web前端/AIStateProtocol.js": "bd82e144304f429b354d7d7a722f1a691b7902a6e6e418f3739342191b5291a2",
+    "web/web前端/ReplayCodec.js": "74b3221611fac5f1a6e9d8d846a6161edb1242ce76457655b91b7c37bbbd1756",
+    "web/web前端/MultiplayerClock.js": "9cc62a1da3400222c41b07d128fba047f2a57688f13bf42ef3620d66e8d9df80",
+    "web/web前端/AIPassDiscipline.js": "4850b3af425e3b7d3153b43c45c223fad3b89b4870cdfce75425955cb3454419",
+    "web/web前端/AIPassDisciplineV2.js": "1e4a89dcb347776b866647ba0019a7615b897d11c9679551ae73cfb620164231",
+    "web/web前端/AIPassDisciplineV3.js": "76545670cca5861024ff6422b643ae33dfe30c6a1e9d53849ae86e167d4ee33b",
+    "web/web前端/AIPassDisciplineV4.js": "96d69a3d9567b63ae7f38ffe34b7ffdf05379ba65ee04ccee5a376d629a0ad69",
+    "web/tools/online_bot_bridge.mjs": "660ff6aeeec7f86c52db86e38fb1397c280393f7817d0cbba6f696f79e9481c4",
+    "web/tools/online_bot_runtime.mjs": "d5d8a0ced2ba74f5871a6c3d09ee310a55f4cd6b0f2b553e4e8cf64801d4ecc7",
+    "web/web前端/OnlineRoomSettings.js": "820b751814acb7647d9b5fbaf8b1241ceaac32e6a9cd69732dd4ce29b2236406",
+    "web/web前端/LocalAIModes.js": "f1dbf8e86dc60539f9e83c7269d14a494ec8ae91ff1fd5d5b9465d7a2eed26ad",
+    "wechat/minigame/src/worker-runtime.js": "a5e9f9b294cec0fc04f224931c4684f950e576cbbfc00d35cc9bd56e8c99e0a0",
+    "wechat/minigame/src/workers/index.js": "24e8740dffae5f8defd537c5ec36e65f2ed88ce438e92cf4d00f98bb064a8b2b",
+    "wechat/minigame/src/core.js": "10df5239ea77d47180c3dcc01de29de5ca9974cc44b26a9d490b59ab77465e59",
+    "wechat/minigame/src/state.js": "d7d2d848f29c5bc10f4eacfcfdf22318132d57a4cfbaae0257758769abac8422",
+    "wechat/minigame/src/integrity.js": "d7d3677f64bf46796612b7f73174b45edb9a13d78a917e868dc613b5e1f98869",
+    "wechat/minigame/compat/web/AIEngine.js": "f5dc5b498ae9b684c1d7f4152b5f853e45d884894553894e9bbdbbe284280a95",
+    "wechat/minigame/compat/web/manifest.json": "96dae636e96019bc14003eb2ec297bdd5bf994e7e708b5bf58d40f4051c17890",
+    "wechat/minigame/dist/workers/index.js": "5d2e5b8ed99254529c6d2d124faff59f12ff4676c43ee50616d73c7ad9158a40",
+    "wechat/minigame/package.json": "ff168045420bdc1ad89ed7611014ea0bfd9f81d32362059b0235aa11b42a03bc"
+  },
+  "allSourceHashesUnchanged": true,
+  "inputSha256": "3fe37996838c4d8e6049d9ac4a5b01d45fb1986e2801846d360072acefe65fef",
+  "wiring": {
+    "web/web前端/AIWorker.js": {
+      "guardCallsInSelectedRoute": 1,
+      "sharedRemainingBudgetAndClock": true
+    },
+    "web/tools/online_bot_runtime.mjs": {
+      "guardCallsInSelectedRoute": 1,
+      "sharedRemainingBudgetAndClock": true
+    },
+    "wechat/minigame/src/worker-runtime.js": {
+      "guardCallsInSelectedRoute": 1,
+      "sharedRemainingBudgetAndClock": true
+    }
+  },
+  "naturalInputConstruction": {
+    "winningSafeGrowth": {
+      "sourceFile": "web/web前端/tests/verify-worker-terminal-winning-pass.mjs",
+      "actions": [
+        {
+          "color": "BLACK",
+          "point": [
+            1,
+            0
+          ]
+        },
+        {
+          "color": "WHITE",
+          "point": null
+        }
+      ],
+      "actor": "BLACK",
+      "rulesVersion": "territory-v3",
+      "gridSize": 5,
+      "playerCount": 2
+    },
+    "voluntarySettlement": {
+      "sourceFile": "web/web前端/tests/verify-minimax-voluntary-pass.mjs",
+      "prefix": [
+        [
+          1,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          2,
+          2
+        ]
+      ],
+      "then": "canonical WHITE PASS",
+      "actor": "BLACK"
+    },
+    "noHistoryActorOrRankingEdits": true,
+    "fourToSixSeatV4HexFixtureNotUsed": "The final Mini product does not allow the basic minimax-4 profile for those player counts; no controller gate was bypassed."
+  },
+  "rawRankObservation": "Actual unmodified Budgeted core separately produced raw PASS on each matching complete source state. Transport does not expose raw rank; each product guard receipt branch plus frozen source proves its input was nonempty head PASS. No rank or AI stubs.",
+  "rows": [
+    {
+      "pipeline": "web-real-worker-thread",
+      "caseId": "existing-native-terminal-winning-safe-growth",
+      "rawRankPoint": null,
+      "finalPoint": [
+        0,
+        4
+      ],
+      "rawRankPointTransportField": false,
+      "rawRankEvidence": "Frozen guard selected branch requires a nonempty original head with type pass and point null. Matching frozen input also has an independently observed actual Budgeted core raw PASS.",
+      "requestToActionMs": 2830.944,
+      "internalTotalMs": 2821.319,
+      "guardAndPostCoreMs": 20.941,
+      "completedDepth": 7,
+      "requestedDepth": 8,
+      "maxReachedPly": 8,
+      "terminalTreeSolved": false,
+      "sharedTotalBudgetMs": 3000,
+      "internalOverrunMs": 0,
+      "sourceUnchangedBeforeApply": true,
+      "canonicalActionApplied": true,
+      "guardReceipt": {
+        "schema": "lifeline-ai-pass-discipline-v1",
+        "status": "safe-profitable-expansion",
+        "complete": true,
+        "actor": "BLACK",
+        "rulesVersion": "territory-v3",
+        "positionRevision": 2,
+        "safetyScope": "root placement and all legal action sequences including PASS through one complete actual opponent round, ending at the actor's next turn or native terminal; canonical auto-skips",
+        "examinedRoots": 3,
+        "nodes": 19,
+        "legalPlacements": 5,
+        "rootsExhausted": false,
+        "witness": {
+          "point": [
+            0,
+            4
+          ],
+          "beforeArea": 2,
+          "afterRootArea": 6,
+          "minimumReplyAreaLowerBound": 6,
+          "profitKind": "strict-native-area-gain",
+          "rootNodesRetained": true,
+          "rootCoverageRetained": true,
+          "rootConnected": true,
+          "preservesAllAfterRootNodesAndCoverage": true,
+          "actualReplyPlayer": "WHITE",
+          "replyPlies": 1,
+          "maxReplyPlies": 1,
+          "actualReplyActors": [
+            "WHITE"
+          ],
+          "replyActionsCompleted": 6,
+          "replyActionsTotal": 6,
+          "replyLeavesCompleted": 6,
+          "replyWindow": "one-complete-actual-opponent-round",
+          "completeOpponentRound": true,
+          "includesPass": true,
+          "complete": true,
+          "passWouldEnd": true,
+          "minimumReplyMargin": 2,
+          "scope": "root placement and all legal action sequences including PASS through one complete actual opponent round, ending at the actor's next turn or native terminal; canonical auto-skips"
+        },
+        "elapsedMs": 17.39659999999958,
+        "reason": "complete-actual-opponent-round-domain",
+        "passWouldEnd": true,
+        "beforeArea": 2,
+        "openingDevelopmentEligible": false,
+        "productQuickProbe": {
+          "schema": "lifeline-ai-pass-discipline-v3",
+          "status": "terminal-PASS-retains-V2-margin",
+          "budgetMs": 8,
+          "elapsedMs": 0,
+          "setupAndPassElapsedMs": 0.8096000000000458,
+          "rootsExamined": 0,
+          "nodes": 1
+        }
+      }
+    },
+    {
+      "pipeline": "web-real-worker-thread",
+      "caseId": "existing-native-voluntary-draw-settlement",
+      "rawRankPoint": null,
+      "finalPoint": null,
+      "rawRankPointTransportField": false,
+      "rawRankEvidence": "Frozen guard selected branch requires a nonempty original head with type pass and point null. Matching frozen input also has an independently observed actual Budgeted core raw PASS.",
+      "requestToActionMs": 318.155,
+      "internalTotalMs": 314.411,
+      "guardAndPostCoreMs": 25.081,
+      "completedDepth": 8,
+      "requestedDepth": 8,
+      "maxReachedPly": 7,
+      "terminalTreeSolved": true,
+      "sharedTotalBudgetMs": 3000,
+      "internalOverrunMs": 0,
+      "sourceUnchangedBeforeApply": true,
+      "canonicalActionApplied": true,
+      "guardReceipt": {
+        "schema": "lifeline-ai-pass-discipline-v1",
+        "status": "no-certified-expansion",
+        "complete": true,
+        "actor": "BLACK",
+        "rulesVersion": "territory-v3",
+        "positionRevision": 10,
+        "safetyScope": "root placement and all legal action sequences including PASS through one complete actual opponent round, ending at the actor's next turn or native terminal; canonical auto-skips",
+        "examinedRoots": 4,
+        "nodes": 8,
+        "legalPlacements": 4,
+        "rootsExhausted": true,
+        "witness": null,
+        "elapsedMs": 19.50400000000036,
+        "reason": "all-legal-roots-rejected-by-bounded-safety-contract",
+        "passWouldEnd": true,
+        "beforeArea": 6,
+        "openingDevelopmentEligible": false,
+        "productQuickProbe": {
+          "schema": "lifeline-ai-pass-discipline-v3",
+          "status": "terminal-PASS-retains-V2-margin",
+          "budgetMs": 8,
+          "elapsedMs": 0,
+          "setupAndPassElapsedMs": 1.493199999999888,
+          "rootsExamined": 0,
+          "nodes": 1
+        }
+      }
+    },
+    {
+      "pipeline": "room-real-stdin-stdout-bridge",
+      "caseId": "existing-native-terminal-winning-safe-growth",
+      "rawRankPoint": null,
+      "finalPoint": [
+        0,
+        4
+      ],
+      "rawRankPointTransportField": false,
+      "rawRankEvidence": "Frozen guard selected branch requires a nonempty original head with type pass and point null. Matching frozen input also has an independently observed actual Budgeted core raw PASS.",
+      "requestToActionMs": 3041.351,
+      "internalTotalMs": 2821.967,
+      "guardAndPostCoreMs": 21.809,
+      "completedDepth": 7,
+      "requestedDepth": 8,
+      "maxReachedPly": 8,
+      "terminalTreeSolved": false,
+      "sharedTotalBudgetMs": 3000,
+      "internalOverrunMs": 0,
+      "sourceUnchangedBeforeApply": true,
+      "canonicalActionApplied": true,
+      "guardReceipt": {
+        "schema": "lifeline-ai-pass-discipline-v1",
+        "status": "safe-profitable-expansion",
+        "complete": true,
+        "actor": "BLACK",
+        "rulesVersion": "territory-v3",
+        "positionRevision": 2,
+        "safetyScope": "root placement and all legal action sequences including PASS through one complete actual opponent round, ending at the actor's next turn or native terminal; canonical auto-skips",
+        "examinedRoots": 3,
+        "nodes": 19,
+        "legalPlacements": 5,
+        "rootsExhausted": false,
+        "witness": {
+          "point": [
+            0,
+            4
+          ],
+          "beforeArea": 2,
+          "afterRootArea": 6,
+          "minimumReplyAreaLowerBound": 6,
+          "profitKind": "strict-native-area-gain",
+          "rootNodesRetained": true,
+          "rootCoverageRetained": true,
+          "rootConnected": true,
+          "preservesAllAfterRootNodesAndCoverage": true,
+          "actualReplyPlayer": "WHITE",
+          "replyPlies": 1,
+          "maxReplyPlies": 1,
+          "actualReplyActors": [
+            "WHITE"
+          ],
+          "replyActionsCompleted": 6,
+          "replyActionsTotal": 6,
+          "replyLeavesCompleted": 6,
+          "replyWindow": "one-complete-actual-opponent-round",
+          "completeOpponentRound": true,
+          "includesPass": true,
+          "complete": true,
+          "passWouldEnd": true,
+          "minimumReplyMargin": 2,
+          "scope": "root placement and all legal action sequences including PASS through one complete actual opponent round, ending at the actor's next turn or native terminal; canonical auto-skips"
+        },
+        "elapsedMs": 15.436099999999897,
+        "reason": "complete-actual-opponent-round-domain",
+        "passWouldEnd": true,
+        "beforeArea": 2,
+        "openingDevelopmentEligible": false,
+        "productQuickProbe": {
+          "schema": "lifeline-ai-pass-discipline-v3",
+          "status": "terminal-PASS-retains-V2-margin",
+          "budgetMs": 8,
+          "elapsedMs": 0,
+          "setupAndPassElapsedMs": 2.9099999999998545,
+          "rootsExamined": 0,
+          "nodes": 1
+        }
+      }
+    },
+    {
+      "pipeline": "room-real-stdin-stdout-bridge",
+      "caseId": "existing-native-voluntary-draw-settlement",
+      "rawRankPoint": null,
+      "finalPoint": null,
+      "rawRankPointTransportField": false,
+      "rawRankEvidence": "Frozen guard selected branch requires a nonempty original head with type pass and point null. Matching frozen input also has an independently observed actual Budgeted core raw PASS.",
+      "requestToActionMs": 490.24,
+      "internalTotalMs": 285.065,
+      "guardAndPostCoreMs": 22.77,
+      "completedDepth": 8,
+      "requestedDepth": 8,
+      "maxReachedPly": 7,
+      "terminalTreeSolved": true,
+      "sharedTotalBudgetMs": 3000,
+      "internalOverrunMs": 0,
+      "sourceUnchangedBeforeApply": true,
+      "canonicalActionApplied": true,
+      "guardReceipt": {
+        "schema": "lifeline-ai-pass-discipline-v1",
+        "status": "no-certified-expansion",
+        "complete": true,
+        "actor": "BLACK",
+        "rulesVersion": "territory-v3",
+        "positionRevision": 10,
+        "safetyScope": "root placement and all legal action sequences including PASS through one complete actual opponent round, ending at the actor's next turn or native terminal; canonical auto-skips",
+        "examinedRoots": 4,
+        "nodes": 8,
+        "legalPlacements": 4,
+        "rootsExhausted": true,
+        "witness": null,
+        "elapsedMs": 17.304900000000032,
+        "reason": "all-legal-roots-rejected-by-bounded-safety-contract",
+        "passWouldEnd": true,
+        "beforeArea": 6,
+        "openingDevelopmentEligible": false,
+        "productQuickProbe": {
+          "schema": "lifeline-ai-pass-discipline-v3",
+          "status": "terminal-PASS-retains-V2-margin",
+          "budgetMs": 8,
+          "elapsedMs": 0,
+          "setupAndPassElapsedMs": 2.3052999999999884,
+          "rootsExamined": 0,
+          "nodes": 1
+        }
+      }
+    },
+    {
+      "pipeline": "mini-final-compiled-worker-vm",
+      "caseId": "existing-native-terminal-winning-safe-growth",
+      "rawRankPoint": null,
+      "finalPoint": [
+        0,
+        4
+      ],
+      "rawRankPointTransportField": false,
+      "rawRankEvidence": "Frozen guard selected branch requires a nonempty original head with type pass and point null. Matching frozen input also has an independently observed actual Budgeted core raw PASS.",
+      "requestToActionMs": 2838.908,
+      "internalTotalMs": 2822,
+      "guardAndPostCoreMs": 22,
+      "completedDepth": 6,
+      "requestedDepth": 8,
+      "maxReachedPly": 7,
+      "terminalTreeSolved": false,
+      "sharedTotalBudgetMs": 3000,
+      "internalOverrunMs": 0,
+      "sourceUnchangedBeforeApply": true,
+      "canonicalActionApplied": true,
+      "guardReceipt": {
+        "schema": "lifeline-ai-pass-discipline-v1",
+        "status": "safe-profitable-expansion",
+        "complete": true,
+        "actor": "BLACK",
+        "rulesVersion": "territory-v3",
+        "positionRevision": 2,
+        "safetyScope": "root placement and all legal action sequences including PASS through one complete actual opponent round, ending at the actor's next turn or native terminal; canonical auto-skips",
+        "examinedRoots": 3,
+        "nodes": 19,
+        "legalPlacements": 5,
+        "rootsExhausted": false,
+        "witness": {
+          "point": [
+            0,
+            4
+          ],
+          "beforeArea": 2,
+          "afterRootArea": 6,
+          "minimumReplyAreaLowerBound": 6,
+          "profitKind": "strict-native-area-gain",
+          "rootNodesRetained": true,
+          "rootCoverageRetained": true,
+          "rootConnected": true,
+          "preservesAllAfterRootNodesAndCoverage": true,
+          "actualReplyPlayer": "WHITE",
+          "replyPlies": 1,
+          "maxReplyPlies": 1,
+          "actualReplyActors": [
+            "WHITE"
+          ],
+          "replyActionsCompleted": 6,
+          "replyActionsTotal": 6,
+          "replyLeavesCompleted": 6,
+          "replyWindow": "one-complete-actual-opponent-round",
+          "completeOpponentRound": true,
+          "includesPass": true,
+          "complete": true,
+          "passWouldEnd": true,
+          "minimumReplyMargin": 2,
+          "scope": "root placement and all legal action sequences including PASS through one complete actual opponent round, ending at the actor's next turn or native terminal; canonical auto-skips"
+        },
+        "elapsedMs": 16,
+        "reason": "complete-actual-opponent-round-domain",
+        "passWouldEnd": true,
+        "beforeArea": 2,
+        "openingDevelopmentEligible": false,
+        "productQuickProbe": {
+          "schema": "lifeline-ai-pass-discipline-v3",
+          "status": "terminal-PASS-retains-V2-margin",
+          "budgetMs": 8,
+          "elapsedMs": 0,
+          "setupAndPassElapsedMs": 1,
+          "rootsExamined": 0,
+          "nodes": 1
+        }
+      }
+    },
+    {
+      "pipeline": "mini-final-compiled-worker-vm",
+      "caseId": "existing-native-voluntary-draw-settlement",
+      "rawRankPoint": null,
+      "finalPoint": null,
+      "rawRankPointTransportField": false,
+      "rawRankEvidence": "Frozen guard selected branch requires a nonempty original head with type pass and point null. Matching frozen input also has an independently observed actual Budgeted core raw PASS.",
+      "requestToActionMs": 431.997,
+      "internalTotalMs": 413,
+      "guardAndPostCoreMs": 20,
+      "completedDepth": 8,
+      "requestedDepth": 8,
+      "maxReachedPly": 7,
+      "terminalTreeSolved": true,
+      "sharedTotalBudgetMs": 3000,
+      "internalOverrunMs": 0,
+      "sourceUnchangedBeforeApply": true,
+      "canonicalActionApplied": true,
+      "guardReceipt": {
+        "schema": "lifeline-ai-pass-discipline-v1",
+        "status": "no-certified-expansion",
+        "complete": true,
+        "actor": "BLACK",
+        "rulesVersion": "territory-v3",
+        "positionRevision": 10,
+        "safetyScope": "root placement and all legal action sequences including PASS through one complete actual opponent round, ending at the actor's next turn or native terminal; canonical auto-skips",
+        "examinedRoots": 4,
+        "nodes": 8,
+        "legalPlacements": 4,
+        "rootsExhausted": true,
+        "witness": null,
+        "elapsedMs": 13,
+        "reason": "all-legal-roots-rejected-by-bounded-safety-contract",
+        "passWouldEnd": true,
+        "beforeArea": 6,
+        "openingDevelopmentEligible": false,
+        "productQuickProbe": {
+          "schema": "lifeline-ai-pass-discipline-v3",
+          "status": "terminal-PASS-retains-V2-margin",
+          "budgetMs": 8,
+          "elapsedMs": 0,
+          "setupAndPassElapsedMs": 1,
+          "rootsExamined": 0,
+          "nodes": 1
+        }
+      }
+    }
+  ],
+  "coreProbeSummary": [
+    {
+      "id": "existing-native-terminal-winning-safe-growth",
+      "rawRankPoint": null,
+      "finalPoint": [
+        0,
+        4
+      ],
+      "completedDepth": 6,
+      "terminalTreeSolved": false,
+      "guardStatus": "safe-profitable-expansion",
+      "sourceUnchanged": true,
+      "elapsedMs": 2832.842,
+      "coreAndGuardOnly": false
+    },
+    {
+      "id": "existing-native-voluntary-draw-settlement",
+      "rawRankPoint": null,
+      "finalPoint": null,
+      "completedDepth": 8,
+      "terminalTreeSolved": true,
+      "guardStatus": "no-certified-expansion",
+      "sourceUnchanged": true,
+      "elapsedMs": 232.978,
+      "coreAndGuardOnly": false
+    },
+    {
+      "id": "existing-canonical-fifteen-birth-forced-pass",
+      "rawRankPoint": null,
+      "finalPoint": null,
+      "completedDepth": 1,
+      "terminalTreeSolved": true,
+      "guardStatus": "forced-pass",
+      "sourceUnchanged": true,
+      "elapsedMs": 6.412,
+      "coreAndGuardOnly": true
+    }
+  ],
+  "forcedPassScope": "Canonical fully occupied fifteen-birth initial configuration, zero legal placements and no historical/actor edits. Actual core plus guard returned forced PASS. This is not the fifteen-seat product minimax route.",
+  "guardProofScope": "Winning growth uses six of six actual opponent responses including PASS, completeOpponentRound true, native area lower bound6 versus beforeArea2, minimum reply margin2. It is a one-opponent-round certificate, not an unlimited-horizon strength guarantee. Native two-player V4 entry delegates to the frozen legacy guard; actual receipt schema is v1.",
+  "concurrency": {
+    "rootReportedBackgroundR2SelfplayPid": 60456,
+    "namedPidPresentAtPrePipelineCheck": false,
+    "controlledQuietMachine": false,
+    "scope": "Root reported concurrent R2 development work; the named process was absent at this local precheck. CPU isolation/load was not measured, so no phone or strict timing guarantee."
+  },
+  "counts": {
+    "actualPipelineActions": 6,
+    "separateRealCoreProbes": 3,
+    "newAiDecisionCalls": 9,
+    "originalFifteenPipelineCasesRerun": 0,
+    "oldHardReruns": 0,
+    "trainingOrBattlesLaunchedByThisTask": 0,
+    "sourceEdits": 0,
+    "candidateEdits": 0
+  },
+  "evidence": {
+    "rawRoot": "C:\\coding\\py\\line game\\working\\local_artifacts\\hard-budget-pass-supplement-20261026-r1",
+    "rawVerificationSha256": "0b53de3403ceb34b49f3ef7c6de95e55ca720d35070c74d31eef364f0d004b8e",
+    "coreProbesSha256": "8310afb28107d265818d47151a240e2cef77474f476c5243e780525f8802226d",
+    "command": "node \"C:/coding/py/line game/working/local_artifacts/hard-budget-pass-supplement-20261026-r1/verify-pass-pipelines.mjs\"",
+    "exitCode": 0
+  },
+  "scope": "Actual Web Worker messages, room stdin/stdout bridge and final compiled Mini Worker VM followed by actual APPLY. Node/VM only; no phone/browser render/cache/network, all-state PASS completeness, general strength or publication admission claim."
+}

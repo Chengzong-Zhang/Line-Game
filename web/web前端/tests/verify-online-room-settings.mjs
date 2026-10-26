@@ -52,8 +52,16 @@ const engine = new GameEngine(two);
 for (const depth of [2, 3, 4]) {
   const profile = roomPlayerProfile({ choice: "minimax", depth }, two);
   const runtime = await createRoomBotRuntime(engine, profile);
-  assert.equal(runtime.ai.constructor.name, "MinimaxAI");
-  assert.equal(runtime.ai.depth, depth);
+  if (depth < 4) {
+    assert.equal(runtime.ai.constructor.name, "MinimaxAI");
+    assert.equal(runtime.ai.depth, depth);
+  } else {
+    // The historical depth4 profile selects the bounded product Hard tier.
+    // It is no longer a guarantee that every decision completes four plies.
+    assert.equal(runtime.ai.constructor.name, "BudgetedMinimaxAI");
+    assert.equal(runtime.ai.timeMs, 3000); assert.equal(runtime.ai.reserveMs, 200);
+    assert.equal(runtime.ai.maxDepth, 8);
+  }
 }
 assert.equal((await createRoomBotRuntime(engine, { strategy: "greedy" })).ai.constructor.name, "GreedyAI");
 

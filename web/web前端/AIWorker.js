@@ -2,6 +2,8 @@ import { GameEngine } from "./GameEngine.js?v=20261025-terminal-v4";
 import { deserializeEngineEdges } from "./AIStateProtocol.js?v=20261025-terminal-v4";
 import { GreedyAI, MCTSAI, MinimaxAI, restoreState } from "./AIEngine.js?v=20261025-terminal-v4";
 import { applyPassDiscipline } from "./AIPassDisciplineV4.js?v=20261025-terminal-v4";
+import { BudgetedMinimaxAI } from "./BudgetedMinimaxAI.js?v=20261025-terminal-v4";
+import { multiplayerClock } from "./MultiplayerClock.js";
 
 self.onmessage = async (event) => {
   if (event.data?.type === "WARMUP") {
@@ -27,6 +29,9 @@ self.onmessage = async (event) => {
       strategy = "minimax",
       requestId = null,
     } = event.data;
+    // Include native reconstruction in Hard's shared search/PASS budget.
+    const hardStartedAt = strategy === "minimax" && depth >= 4 ? multiplayerClock.now() : null;
+    const hardDeadline = hardStartedAt === null ? null : hardStartedAt + 3000;
     const engine = new GameEngine({
       gridSize: serializedState.gridSize,
       playerCount: serializedState.playerCount,
@@ -72,7 +77,8 @@ self.onmessage = async (event) => {
     if (strategy === "greedy") {
       ai = new GreedyAI();
     } else if (strategy === "minimax") {
-      ai = new MinimaxAI(depth, { iterativeDeepening: depth >= 4 });
+      ai = hardStartedAt === null ? new MinimaxAI(depth, { iterativeDeepening: false })
+        : new BudgetedMinimaxAI({ timeMs: 3000, reserveMs: 200, maxDepth: 8, now: multiplayerClock.now });
     } else if (strategy === "mcts") {
       ai = new MCTSAI({
         simulations: event.data?.simulations ?? 64,
@@ -125,10 +131,14 @@ self.onmessage = async (event) => {
         rulesVersion: serializedState.rulesVersion,
         currentPlayer: serializedState.currentPlayer, modelInfo });
     }
-    const ranked = ai.getTopMoves(engine, aiPlayer, topN > 0 ? Math.max(5, topN) : topN,
-      strategy === "multiplayer" ? { passDisciplinePrechecked: true } : undefined);
-    const disciplined = applyPassDiscipline(engine, ranked, { player: aiPlayer, topN });
+    const ranked = hardStartedAt !== null && topN <= 0 ? []
+      : ai.getTopMoves(engine, aiPlayer, topN > 0 ? Math.max(5, topN) : topN,
+        hardStartedAt !== null ? { startedAt: hardStartedAt, deadline: hardDeadline }
+          : strategy === "multiplayer" ? { passDisciplinePrechecked: true } : undefined);
+    const disciplined = applyPassDiscipline(engine, ranked, { player: aiPlayer, topN,
+      ...(hardStartedAt !== null ? { timeMs: Math.max(0, hardDeadline - multiplayerClock.now()), now: multiplayerClock.now } : {}) });
     const moves = disciplined.moves;
+    const hardElapsedMs = hardStartedAt === null ? null : multiplayerClock.now() - hardStartedAt;
     self.postMessage({
       type: "RESULT",
       requestId,
@@ -138,7 +148,9 @@ self.onmessage = async (event) => {
       currentPlayer: serializedState.currentPlayer,
       moves,
       modelInfo,
-      searchStats: { ...(ai.lastSearch ?? {}), passDiscipline: disciplined.receipt },
+      searchStats: { ...(ai.lastSearch ?? {}), passDiscipline: disciplined.receipt,
+        ...(hardElapsedMs === null ? {} : { totalElapsedMs: hardElapsedMs,
+          totalOverrunMs: Math.max(0, hardElapsedMs - 3000), trainingLabel: false }) },
     });
   } catch (error) {
     self.postMessage({

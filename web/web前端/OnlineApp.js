@@ -1737,6 +1737,7 @@ const ReplayInspectorPanel = {
           aiGreedy: "规则贪心基线",
           aiMcts: "UCT-MCTS（64 次模拟）",
           aiMinimax: "启发式 Minimax",
+          aiBudgetedHard: "Minimax · 困难（约3秒）",
           aiTime: "耗时",
           aiScore: "启发式分数",
           aiValue: "rollout value",
@@ -1781,6 +1782,7 @@ const ReplayInspectorPanel = {
           aiGreedy: "Rule-greedy baseline",
           aiMcts: "UCT-MCTS (64 simulations)",
           aiMinimax: "Heuristic Minimax",
+          aiBudgetedHard: "Minimax · Hard (~3s)",
           aiTime: "Time",
           aiScore: "Heuristic score",
           aiValue: "Rollout value",
@@ -1812,7 +1814,8 @@ const ReplayInspectorPanel = {
       ? copy.value.aiGreedy
       : run.strategy === "mcts"
         ? copy.value.aiMcts
-        : `${copy.value.aiMinimax} ${copy.value.aiDepth} ${run.depth}`);
+        : run.depth >= 4 ? copy.value.aiBudgetedHard
+          : `${copy.value.aiMinimax} ${copy.value.aiDepth} ${run.depth}`);
     const pointLabel = (point) => Array.isArray(point) ? `(${point[0]}, ${point[1]})` : String(point ?? "—");
     const edgeLabel = (edge) => String(edge ?? "")
       .split("|")
