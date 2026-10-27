@@ -26,7 +26,9 @@ export default {
     const rootMode = computed(() => props.selection.rootMode ?? RootMode.CLASSIC);
     const copy = computed(() => props.language === "zh" ? {
       title: "选择起点", default: "默认起点", random: "随机起点", custom: "自定义起点",
-      shuffle: "再随机一组", note: "每位玩家各有一个起点。与自己起点失去连线连接的棋子会被删除，其余规则不变。圆环标记起点。",
+      shuffle: "再随机一组", note: rootMode.value === RootMode.FIXED_DOUBLE
+        ? "每位玩家开局有两个起点。与全部己方起点失去连线连接的棋子会被删除。圆环标记当前起点。"
+        : "每位玩家开局有一个起点。与当前己方起点失去连线连接的棋子会被删除。圆环标记当前起点。",
       pick: "先选玩家，再点下方棋盘设置起点。每个位置只能属于一位玩家。",
       preview: "起点预览", occupied: "这个位置已有其他玩家的起点，请选另一个位置。",
       invalid: "坐标不在棋盘上，请重新选择。", column: "列（从 1 开始）", row: "行（从 1 开始）",
@@ -36,7 +38,9 @@ export default {
       rootNote: "固定双起点连接任一己方起点即可存活；迁移与增设各每人每局一次，并占用完整一回合。",
     } : {
       title: "Starting points", default: "Default", random: "Random", custom: "Custom",
-      shuffle: "Shuffle again", note: "Each player has one starting point. Pieces disconnected from their own start are removed. All other rules stay the same. Rings mark the starts.",
+      shuffle: "Shuffle again", note: rootMode.value === RootMode.FIXED_DOUBLE
+        ? "Each player begins with two roots. Pieces disconnected from every friendly root are removed. Rings mark the current roots."
+        : "Each player begins with one root. Pieces disconnected from the current friendly root are removed. Rings mark the current root.",
       pick: "Select a player, then tap the preview to place their start. Each point can belong to only one player.",
       preview: "Starting point preview", occupied: "Another player already starts here. Choose a different point.",
       invalid: "This coordinate is outside the board.", column: "Column (from 1)", row: "Row (from 1)",
