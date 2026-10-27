@@ -1,9 +1,15 @@
-import { createReplayDocument } from "./ReplayCodec.js?v=20261013-full-features1";
+import { createReplayDocument } from "./ReplayCodec.js?v=20261021-boardshapes1";
 
 export const CONTRIBUTION_POLICY = "anonymous-replay-training-v1";
 export const CONTRIBUTION_STORAGE = "lifeline-training-contribution-v1";
 const MAX_QUEUE = 5;
 const MAX_BYTES = 500000;
+
+// The reviewed inbox still uses the legacy actor schema. Keep new multiplayer
+// profiles local until the server and review pipeline explicitly support them.
+export function supportsContributionActors(actors) {
+  return !Object.values(actors ?? {}).some((actor) => actor?.strategy === "multiplayer");
+}
 
 // No account, room, chat, device fingerprint or network address enters this queue.
 export class TrainingContribution {
@@ -36,6 +42,12 @@ export class TrainingContribution {
   }
   async enqueue(settings, actions, context) {
     if (!this.enabled) return false;
+    // The current reviewed-data pipeline encodes triangular boards only.
+    // Hexagonal games remain exportable replays without entering that inbox.
+    if (Number(settings?.playerCount) >= 4 || settings?.boardShape === "hexagon" || settings?.initialPositions
+      || settings?.initialRoots || (settings?.rootMode && settings.rootMode !== "classic")
+      || (settings?.rootRulesVersion && settings.rootRulesVersion !== "root-v1")) return false;
+    if (!supportsContributionActors(context?.actors)) return false;
     const generation = this.generation;
     const replay = await createReplayDocument(settings, structuredClone(actions));
     if (!this.enabled || generation !== this.generation || !replay.terminal) return false;
@@ -73,24 +85,23 @@ export class TrainingContribution {
 }
 
 export const ContributionPanel = {
-  props: { language: String, state: Object }, emits: ["toggle", "retry"],
+  props: { language: String, state: Object, supported: { type: Boolean, default: true } }, emits: ["toggle", "retry"],
   computed: {
     copy() {
       return this.language === "zh" ? {
-        title: "帮 AI 学下棋", opt: "自愿贡献匿名棋谱", retry: "重试上传",
+        title: "帮 AI 学下棋", opt: "自愿贡献匿名棋谱", retry: "重试上传", unsupported: "当前AI组合暂不支持贡献，可导出棋谱保存在本机。",
         off: "未开启，不上传", ready: "已开启，完整对局结束后自动提交", pending: "已保存在本机，等待上传", received: "服务器已收到，等待筛选", unavailable: "采集服务尚未启用，记录留在本机", retryStatus: "上传失败，记录留在本机", storage: "本机存储不可用，待上传记录可能无法恢复", full: "待上传队列已满，请先重试", large: "棋谱超过上传大小限制",
       } : {
-        title: "Help the AI learn", opt: "Contribute anonymous replays", retry: "Retry upload",
+        title: "Help the AI learn", opt: "Contribute anonymous replays", retry: "Retry upload", unsupported: "Contributions are not available for these AI players. You can export a replay to keep it locally.",
         off: "Off: no uploads", ready: "On: submit after a local match ends", pending: "Saved on this device, awaiting upload", received: "Received by the server; awaiting selection", unavailable: "Collection is not enabled on the server; saved locally", retryStatus: "Upload failed; saved locally", storage: "Local storage unavailable; pending uploads may not survive refresh", full: "Upload queue full; retry first", large: "Replay exceeds the upload size limit",
       };
     },
     statusLabel() { return this.copy[({ retry: "retryStatus", "storage-error": "storage", "queue-full": "full", "too-large": "large" })[this.state.status] ?? this.state.status]; },
   },
-  template: `<div class="training-contribution training-contribution-inline" aria-live="polite">
+  template: `<div class="training-contribution training-contribution-inline">
     <p class="field-label">{{ copy.title }}</p>
-    <label class="training-contribution-toggle"><input type="checkbox" :checked="state.enabled" @change="$emit('toggle', $event.target.checked)" /> {{ copy.opt }}</label>
-    <p class="help-copy">{{ language === 'zh' ? '完整本地对局结束后，匿名棋谱自动上传服务器，供筛选与 AI 训练。关闭后清空待上传记录，已提交棋谱仍保留。' : 'Completed local matches are uploaded anonymously for selection and AI training. Turning this off clears pending uploads; submitted replays remain stored.' }}</p>
-    <p class="help-copy contribution-status">{{ statusLabel }}</p>
+    <button type="button" role="switch" class="board-choice-option training-contribution-toggle" :class="{ 'is-active': supported && state.enabled }" :aria-checked="supported && state.enabled" :disabled="!supported" @click="$emit('toggle', !state.enabled)"><span aria-hidden="true">{{ supported && state.enabled ? '✓' : '○' }}</span>{{ copy.opt }}</button>
+    <p v-if="!supported" class="help-copy">{{ copy.unsupported }}</p>
     <button v-if="state.enabled && state.pending && ['retry', 'unavailable', 'storage-error', 'queue-full'].includes(state.status)" type="button" class="contribution-retry" :title="statusLabel" @click="$emit('retry')">{{ copy.retry }} ({{ state.pending }})</button>
   </div>`,
 };

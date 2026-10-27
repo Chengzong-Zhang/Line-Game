@@ -13,13 +13,14 @@ function contextFor(countOrSettings = 2, options = {}) {
   const settings = typeof countOrSettings === 'object' && countOrSettings !== null ? { ...countOrSettings, ...options }
     : { playerCount: countOrSettings, ...options };
   const playerCount = settings.playerCount ?? 2;
-  return { playerCount, gridSize: settings.gridSize ?? 9,
+  return { playerCount, gridSize: settings.gridSize ?? 9, rootMode: settings.rootMode ?? 'classic',
     boardShape: settings.boardShape ?? (playerCount >= 4 ? 'hexagon' : 'triangle'), rulesVersion: settings.rulesVersion ?? 'territory-v3' };
 }
 export function controllerChoices(countOrSettings = 2, options = {}) {
-  const { playerCount, boardShape, gridSize, rulesVersion } = contextFor(countOrSettings, options);
+  const { playerCount, boardShape, gridSize, rulesVersion, rootMode } = contextFor(countOrSettings, options);
   if (!playerIds(playerCount).length || !['triangle', 'hexagon'].includes(boardShape)
     || !Number.isInteger(gridSize) || gridSize < 5 || gridSize > 15 || !['territory-v2', 'territory-v3'].includes(rulesVersion)) return [];
+  if (rootMode !== 'classic') return playerCount === 2 && rulesVersion === 'territory-v3' ? BASIC_CONTROLLERS : [];
   const nativeShape = boardShape === (playerCount >= 4 ? 'hexagon' : 'triangle');
   if (playerCount === 2 && !nativeShape) return ['human', 'greedy'];
   if (playerCount === 2) return CONTROLLER_CHOICES.filter(profile => {

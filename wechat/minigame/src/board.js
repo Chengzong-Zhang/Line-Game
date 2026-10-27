@@ -152,14 +152,16 @@ function drawTerritory(ctx, snapshot, territory, layout, point, color, corners) 
 function drawStartingPoints(ctx, snapshot, layout) {
   // Roots are part of the saved position, not the current pieces. Reading them
   // on every draw keeps random/custom games, replay and setup previews aligned.
-  const starts = snapshot.initialPositions || resolveInitialPositions(layout.size, snapshot.players.length, undefined, layout.boardShape);
+  const fallback = snapshot.initialPositions || resolveInitialPositions(layout.size, snapshot.players.length, undefined, layout.boardShape);
+  const starts = snapshot.roots || snapshot.initialRoots || Object.fromEntries(snapshot.players.map(player => [player, [fallback[player]]]));
   const radius = Math.min(10.5, layout.spacing * 0.36);
   const halo = Math.min(layout.spacing * 0.48, radius + 2);
   ctx.save();
   ctx.font = `bold ${Math.max(5, radius * 1.65)}px sans-serif`;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   for (const player of snapshot.players) {
-    const start = starts[player];
+    const roots = Array.isArray(starts[player]?.[0]) ? starts[player] : [starts[player]];
+    for (const start of roots) {
     if (!Array.isArray(start) || !isBoardPoint(start, layout.size, snapshot.players.length, layout.boardShape)) continue;
     const p = toScreen(start, layout);
     // A light separator remains visible over territories and edges; a dark
@@ -169,6 +171,7 @@ function drawStartingPoints(ctx, snapshot, layout) {
     circle(ctx, p, radius, CONTRAST_COLORS[player]);
     ctx.strokeStyle = '#173d31'; ctx.lineWidth = Math.min(1.2, layout.spacing * 0.06); ctx.stroke();
     ctx.fillStyle = '#ffffff'; ctx.fillText(String(PLAYER_ORDER.indexOf(player) + 1), p[0], p[1]);
+    }
   }
   ctx.restore();
 }

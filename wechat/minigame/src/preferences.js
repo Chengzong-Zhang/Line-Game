@@ -19,6 +19,10 @@ function readDraftControllers(value, count) {
 }
 function readBoardDraft(value, count, size) {
   const out = {};
+  if (value.rootMode != null) {
+    if (!['classic', 'fixed-double', 'relocate', 'add'].includes(value.rootMode) || value.rootMode !== 'classic' && count !== 2) throw new Error('INVALID_ROOT_MODE');
+    out.rootMode = value.rootMode;
+  }
   if (value.boardShape != null) {
     if (!['triangle', 'hexagon'].includes(value.boardShape)) throw new Error('INVALID_BOARD_SHAPE');
     out.boardShape = value.boardShape;

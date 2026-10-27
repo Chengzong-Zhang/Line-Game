@@ -159,7 +159,31 @@ export function createTaskRuntime() {
   };
 }
 
-export const executeTask = createTaskRuntime();
+const taskRuntime = createTaskRuntime();
+let cloneLeaseDepth = 0, installedClone = false;
+function withNativeClone(task) {
+  if (typeof globalThis.structuredClone !== 'function') {
+    globalThis.structuredClone = value => JSON.parse(JSON.stringify(value));
+    installedClone = true;
+  }
+  cloneLeaseDepth++;
+  const release = () => {
+    cloneLeaseDepth--;
+    if (!cloneLeaseDepth && installedClone) {
+      delete globalThis.structuredClone;
+      installedClone = false;
+    }
+  };
+  try {
+    const result = task();
+    if (result?.then) return result.finally(release);
+    release(); return result;
+  } catch (error) { release(); throw error; }
+}
+
+export function executeTask(message) {
+  return withNativeClone(() => taskRuntime(message));
+}
 
 export function handleWorkerMessage(message) {
   const success = result => ({ id: message.id, context: message.context, ok: true, result });

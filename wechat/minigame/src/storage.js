@@ -9,7 +9,7 @@ const LIMIT = 2 * 1024 * 1024;
 
 export function validateSave(payload) {
   const session = payload?.session;
-  if (session?.format !== 'lifeline-local-session' || session.schemaVersion !== 1
+  if (session?.format !== 'lifeline-local-session' || ![1, 2].includes(session.schemaVersion)
     || !MODES.includes(payload.mode) || !['easy', 'normal'].includes(payload.difficulty)
     || !Array.isArray(session.actions) || session.actions.length > MAX_ACTIONS) throw new Error('INVALID_SAVE');
   validateSettings(session.settings);

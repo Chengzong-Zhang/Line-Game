@@ -1,4 +1,5 @@
-import { GameEngine, PLAYER_ORDER, serializeRuleState, resolveBoardShape, resolveInitialPositions, startingPointSettings } from './core.js';
+import { GameEngine, PLAYER_ORDER, serializeRuleState, resolveBoardShape, resolveInitialPositions,
+  resolveInitialRoots, startingPointSettings, RootMode, RootRulesVersion } from './core.js';
 import { checksum } from './integrity.js';
 import { normalizePlayOptions } from './play-options.js';
 
@@ -22,6 +23,14 @@ export function validateSettings(settings) {
   const shape = resolveBoardShape(settings.playerCount, settings.boardShape);
   startingPointSettings(settings);
   if (settings.initialPositions !== undefined) resolveInitialPositions(settings.gridSize, settings.playerCount, settings.initialPositions, shape);
+  const rootMode = settings.rootMode ?? RootMode.CLASSIC;
+  if (!Object.values(RootMode).includes(rootMode)) throw new Error('INVALID_ROOT_MODE');
+  const rootRulesVersion = settings.rootRulesVersion ?? (rootMode === RootMode.CLASSIC ? RootRulesVersion.V1 : RootRulesVersion.V2);
+  if ((rootMode === RootMode.CLASSIC) !== (rootRulesVersion === RootRulesVersion.V1)) throw new Error('INVALID_ROOT_RULES');
+  if (rootMode !== RootMode.CLASSIC && (settings.playerCount !== 2 || settings.rulesVersion !== RULES)) throw new Error('INVALID_ROOT_MODE');
+  if (settings.initialRoots !== undefined || rootMode !== RootMode.CLASSIC) {
+    resolveInitialRoots(settings.gridSize, settings.playerCount, settings.initialRoots, shape, rootMode, settings.initialPositions);
+  }
   return settings;
 }
 
@@ -34,6 +43,11 @@ export function applyAction(engine, action) {
     if (!Array.isArray(action.point) || action.point.length !== 2 || !action.point.every(Number.isInteger)
       || !engine.isValidPosition(action.point)) throw new Error('INVALID_POINT');
     return engine.playMove(action.point);
+  }
+  if (type === 'root_relocate' || type === 'root_add') {
+    if (!Array.isArray(action.point) || action.point.length !== 2 || !action.point.every(Number.isInteger)
+      || !engine.isValidPosition(action.point)) throw new Error('INVALID_POINT');
+    return engine.playRootAction(type === 'root_relocate' ? 'relocate' : 'add', action.point);
   }
   if (type === 'skip') return engine.skipTurn();
   if (type === 'resign' && engine.activePlayers.includes(actor)) return engine.resignPlayer(actor);

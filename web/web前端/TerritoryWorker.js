@@ -1,13 +1,16 @@
-import { GameEngine } from "./GameEngine.js?v=20261013-full-features1";
+import { GameEngine } from "./GameEngine.js?v=20261025-territory-render1";
+import { deserializeEngineEdges, restoreEngineRootState } from "./AIStateProtocol.js?v=20261021-boardshapes1";
 
-function cloneTerritories(engine) {
+function cloneTerritories(engine, players = engine.activePlayers) {
   return Object.fromEntries(
-    engine.activePlayers.map((player) => {
+    players.map((player) => {
       const territory = engine.cachedTerritories[player];
       return [player, {
         polygon: territory.polygon ? territory.polygon.map((point) => [...point]) : null,
         area: territory.area,
         displayArea: territory.displayArea,
+        ...(Array.isArray(territory.renderPoints)
+          ? { renderPoints: territory.renderPoints.map((point) => [...point]) } : {}),
       }];
     }),
   );
@@ -15,11 +18,7 @@ function cloneTerritories(engine) {
 
 function restoreSerializedState(engine, serializedState) {
   engine.grid = new Map(serializedState.gridEntries);
-  engine.edges = {
-    BLACK: new Set(serializedState.edgesBlack),
-    WHITE: new Set(serializedState.edgesWhite),
-    PURPLE: new Set(serializedState.edgesPurple),
-  };
+  engine.edges = deserializeEngineEdges(serializedState, engine.activePlayers);
   engine.historyHashes = new Set(serializedState.historyHashes);
   engine.consecutiveSkips = serializedState.consecutiveSkips;
   engine.resignedPlayers = new Set(serializedState.resignedPlayers ?? []);
@@ -27,7 +26,13 @@ function restoreSerializedState(engine, serializedState) {
   engine.gameOver = serializedState.gameOver;
   engine.turnCount = serializedState.turnCount;
   engine.positionRevision = serializedState.positionRevision ?? 0;
+  restoreEngineRootState(engine, serializedState);
 }
+
+// Keep topology buffers and the module/JIT warm between exact calculations.
+// Rule code and candidate order remain entirely inside GameEngine.
+let reusableEngine = null;
+let reusableConfig = "";
 
 self.onmessage = (event) => {
   if (event.data?.type !== "COMPUTE_TERRITORIES") {
@@ -44,15 +49,31 @@ self.onmessage = (event) => {
       throw new Error("Territory worker received an invalid state payload.");
     }
 
-    const engine = new GameEngine({
+    const options = {
       gridSize: serializedState.gridSize,
       playerCount: serializedState.playerCount,
+      boardShape: serializedState.boardShape,
       startPlayer: serializedState.startPlayer,
+      initialPositions: serializedState.initialPositions,
+      initialRoots: serializedState.initialRoots,
+      rootMode: serializedState.rootMode,
+      rootRulesVersion: serializedState.rootRulesVersion,
       rulesVersion: serializedState.rulesVersion,
-    });
+    };
+    const config = JSON.stringify(options);
+    if (!reusableEngine || config !== reusableConfig) {
+      reusableEngine = new GameEngine(options);
+      reusableConfig = config;
+    }
+    const engine = reusableEngine;
     restoreSerializedState(engine, serializedState);
     engine._territoryStateRevision = territoryStateRevision;
-    engine._updateTerritories();
+    const players = event.data.players ?? engine.activePlayers;
+    if (!Array.isArray(players) || !players.length || players.some(player => !engine.activePlayers.includes(player))) {
+      throw new Error("Territory worker received invalid players.");
+    }
+    const started = performance.now();
+    for (const player of players) engine.cachedTerritories[player] = engine._computeTerritory(player);
 
     self.postMessage({
       type: "RESULT",
@@ -60,9 +81,11 @@ self.onmessage = (event) => {
       positionRevision: serializedState.positionRevision ?? 0,
       rulesVersion: serializedState.rulesVersion,
       currentPlayer: serializedState.currentPlayer,
+      rootStateIdentity: serializedState.rootStateIdentity,
       territoryStateRevision,
       gameOver,
-      territories: cloneTerritories(engine),
+      territories: cloneTerritories(engine, players),
+      computeMs: performance.now() - started,
     });
   } catch (error) {
     self.postMessage({
@@ -71,6 +94,7 @@ self.onmessage = (event) => {
       positionRevision: serializedState?.positionRevision ?? 0,
       rulesVersion: serializedState?.rulesVersion,
       currentPlayer: serializedState?.currentPlayer,
+      rootStateIdentity: serializedState?.rootStateIdentity,
       territoryStateRevision,
       gameOver,
       message: error instanceof Error ? error.message : String(error),

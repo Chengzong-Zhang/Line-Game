@@ -629,7 +629,7 @@ class WechatService:
 
     @staticmethod
     def room_settings(body):
-        if not isinstance(body, dict) or set(body) - {"gridSize", "boardShape", "startingPointMode", "initialPositions", "undoEnabled", "undoMaxCount", "rulesVersion"}:
+        if not isinstance(body, dict) or set(body) - {"gridSize", "boardShape", "startingPointMode", "initialPositions", "initialRoots", "rootMode", "rootRulesVersion", "undoEnabled", "undoMaxCount", "rulesVersion"}:
             fail("INVALID_SETTINGS", 422)
         size = body.get("gridSize", 7)
         shape = body.get("boardShape", "triangle")
@@ -637,19 +637,31 @@ class WechatService:
         enabled = body.get("undoEnabled", False)
         count = body.get("undoMaxCount", 3)
         rules_version = body.get("rulesVersion", "territory-v2")
+        root_mode = body.get("rootMode", "classic")
+        root_rules_version = body.get("rootRulesVersion", "root-v1" if root_mode == "classic" else "root-v2")
         if (type(size) is not int or not 5 <= size <= 15 or shape not in ("triangle", "hexagon")
                 or mode not in ("default", "random", "custom") or type(enabled) is not bool
                 or type(count) is not int or not 1 <= count <= 100
-                or rules_version not in ("territory-v2", "territory-v3")):
+                or rules_version not in ("territory-v2", "territory-v3")
+                or root_mode not in ("classic", "fixed-double", "relocate", "add")
+                or (root_mode == "classic") != (root_rules_version == "root-v1")
+                or (root_mode != "classic" and rules_version != "territory-v3")):
             fail("INVALID_SETTINGS", 422)
         positions = body.get("initialPositions")
-        if (mode == "default" and positions is not None) or (mode != "default" and not isinstance(positions, dict)):
+        roots = body.get("initialRoots")
+        initial = positions if root_mode == "classic" else roots
+        if (mode == "default" and initial is not None) or (mode != "default" and not isinstance(initial, dict)):
+            fail("INVALID_SETTINGS", 422)
+        if (root_mode == "classic" and roots is not None) or (root_mode != "classic" and positions is not None):
             fail("INVALID_SETTINGS", 422)
         settings = {"gridSize": size, "playerCount": 2, "startPlayer": "BLACK", "rulesVersion": rules_version,
                     "turnTimerEnabled": False, "turnTimeLimitSeconds": 60, "hintEnabled": False, "hintMaxCount": 0,
                     "boardShape": shape, "undoEnabled": enabled, "undoMaxCount": count}
+        if root_mode != "classic":
+            settings.update(rootMode=root_mode, rootRulesVersion=root_rules_version)
         if mode != "default":
-            settings.update(startingPointMode=mode, initialPositions=positions)
+            settings["startingPointMode"] = mode
+            settings["initialPositions" if root_mode == "classic" else "initialRoots"] = initial
         return settings
 
     async def advance_ai(self, room):
@@ -837,7 +849,8 @@ class WechatService:
                             room["rematchVotes"][seat] = True
                 if all(room["rematchVotes"].values()):
                     if room.get("rankedContext"):
-                        keys = ("gridSize", "playerCount", "boardShape", "startPlayer", "startingPointMode", "rulesVersion", "initialPositions")
+                        keys = ("gridSize", "playerCount", "boardShape", "startPlayer", "startingPointMode", "rulesVersion", "initialPositions",
+                                "rootMode", "rootRulesVersion", "initialRoots")
                         prepared = await asyncio.to_thread(verify_rules, {}, [], ranked_setup={
                             "settings": {k: v for k, v in room["settings"].items() if k in keys}, "controllers": room["aiControllers"]})
                         room["settings"] = prepared["settings"]
@@ -885,10 +898,10 @@ class WechatService:
                     if target is None:
                         target = next((index for index in range(len(room["actions"]) - 1, -1, -1)
                                        if room["actions"][index].get("player") == requester
-                                       and room["actions"][index].get("type") == "move"), None)
+                                       and room["actions"][index].get("type") in ("move", "root_relocate", "root_add")), None)
                     if (type(target) is not int or not 0 <= target < len(room["actions"])
                             or room["actions"][target].get("player") != requester
-                            or room["actions"][target].get("type") != "move"):
+                            or room["actions"][target].get("type") not in ("move", "root_relocate", "root_add")):
                         fail("UNDO_UNAVAILABLE", 409)
                     undo.update(requester=requester, actionIndex=target)
                     undo["pending"] = True
@@ -934,9 +947,9 @@ class WechatService:
                 if room["state"]["currentPlayer"] != player:
                     fail("NOT_YOUR_TURN", 409)
                 action = body.get("action")
-                if not isinstance(action, dict) or action.get("type") not in ("move", "skip", "resign") or set(action) - {"type", "point"}:
+                if not isinstance(action, dict) or action.get("type") not in ("move", "skip", "resign", "root_relocate", "root_add") or set(action) - {"type", "point"}:
                     fail("INVALID_ACTION", 422)
-                if action["type"] == "move":
+                if action["type"] in ("move", "root_relocate", "root_add"):
                     point = action.get("point")
                     if not isinstance(point, list) or len(point) != 2 or any(type(p) is not int for p in point):
                         fail("INVALID_ACTION", 422)

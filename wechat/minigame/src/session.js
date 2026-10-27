@@ -1,4 +1,4 @@
-import { createLocalGameSession, TUTORIAL_LEVELS, randomInitialPositions, startingPointSettings,
+import { createLocalGameSession, TUTORIAL_LEVELS, randomInitialPositions, randomInitialRoots, startingPointSettings,
   createLocalUndoTimeline, planLocalUndo, consumeLocalUndo, recordUndoAction } from './core.js';
 import { settingsFor, MODES } from './state.js';
 import { presetControllers, validateControllers, controllersMode, defaultAIProfile, playerIds } from './controllers.js';
@@ -42,7 +42,8 @@ export class GameSession {
   undoPlan() {
     if (!this.undoRemaining || !this.snapshot || this.snapshot.gameOver || this.hidden || this.tutorial
       || this.replayIndex !== null || this.undoPending) return null;
-    const actions = this.actions.map(action => ({ ...action, type: { move: 'player_move', skip: 'player_skip', resign: 'player_resign' }[action.type] || action.type,
+    const actions = this.actions.map(action => ({ ...action, type: { move: 'player_move', skip: 'player_skip', resign: 'player_resign',
+      root_relocate: 'player_root_relocate', root_add: 'player_root_add' }[action.type] || action.type,
       ...(action.type === 'resign' ? { color: action.player } : {}) }));
     return planLocalUndo({ settings: this.settings, actions, usage: this.undoUsage, currentPlayer: this.snapshot.currentPlayer,
       players: Object.fromEntries(playerIds(this.settings.playerCount).map(player => [player, { choice: this.controllerFor(player) }])),
@@ -134,11 +135,15 @@ export class GameSession {
     if (this.tutorial) this.restoreOriginal();
     this.tutorial = null; this.replayIndex = null; this.savedGame = null;
     const initial = { ...settingsFor(size, playerCount, options.startPlayer || 'BLACK'), ...normalizePlayOptions(options.playOptions),
-      ...(options.boardShape ? { boardShape: options.boardShape } : {}) };
+      ...(options.boardShape ? { boardShape: options.boardShape } : {}), ...(options.rootMode ? { rootMode: options.rootMode } : {}) };
     const modeOfStarts = options.startingPointMode || 'default';
-    const starts = modeOfStarts === 'random' ? randomInitialPositions(size, playerCount, Math.random, initial.boardShape) : options.initialPositions;
+    const rootMode = initial.rootMode || 'classic';
+    const starts = modeOfStarts === 'random' && rootMode === 'classic'
+      ? randomInitialPositions(size, playerCount, Math.random, initial.boardShape) : options.initialPositions;
+    const roots = modeOfStarts === 'random' && rootMode !== 'classic'
+      ? randomInitialRoots(size, playerCount, rootMode, Math.random, initial.boardShape) : options.initialRoots;
     Object.assign(initial, startingPointSettings({ ...initial, startingPointMode: modeOfStarts,
-      ...(starts ? { initialPositions: starts } : {}) }));
+      ...(starts ? { initialPositions: starts } : {}), ...(roots ? { initialRoots: roots } : {}) }));
     return this.load(initial, [],
       { mode, difficulty, controllers: options.controllers });
   }
@@ -198,7 +203,9 @@ export class GameSession {
       if (!this.isCurrent(epoch)) return;
       if (result.stateHash !== positionHash || result.player !== this.snapshot.currentPlayer) throw new Error('STALE_AI');
       this.busy = false;
-      await this.act(result.moves[0]?.point ? { type: 'move', point: result.moves[0].point } : { type: 'skip' }, true);
+      const chosen = result.moves[0];
+      await this.act(chosen ? { type: chosen.type || (chosen.point ? 'move' : 'skip'),
+        ...(chosen.point ? { point: chosen.point } : {}) } : { type: 'skip' }, true);
     } catch (error) { this.failed(epoch, error); }
   }
   async hint() {

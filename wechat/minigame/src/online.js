@@ -201,7 +201,7 @@ export class OnlineClient {
       this.pending = pending?.version === 2 && pending.apiBase === this.config.apiBase && pending.uid === this.account?.uid
         && typeof pending.uid === 'string' && roomCode(pending.code) && /^[a-zA-Z0-9_-]{16,80}$/.test(pending.body?.clientActionId)
         && /^[0-9a-f]{32}$/.test(pending.body?.matchId) && Number.isSafeInteger(pending.body?.expectedSeq)
-        && ['move', 'skip', 'resign'].includes(pending.body?.action?.type) ? pending : null;
+        && ['move', 'skip', 'resign', 'root_relocate', 'root_add'].includes(pending.body?.action?.type) ? pending : null;
       const room = kind === 'create' ? await this.request('rooms', typeof value === 'object' ? value : { gridSize: value })
         : kind === 'ai' ? await this.request('ranked-ai', typeof value === 'object' ? value : { profile: value })
         : kind === 'join' ? await this.request('rooms/join', { code: value }) : await this.request(`rooms/${value}`);

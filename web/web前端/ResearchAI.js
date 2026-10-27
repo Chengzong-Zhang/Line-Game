@@ -1,11 +1,9 @@
-import { saveState, restoreState } from "./AIEngine.js?v=20261013-full-features1";
-import { GameEngine } from "./GameEngine.js?v=20261013-full-features1";
+import { saveState, restoreState } from "./AIEngine.js?v=20261020-three1";
+import { GameEngine } from "./GameEngine.js?v=20261020-three1";
 
 const FEATURE_COUNT = 11;
 const EPSILON = 1e-5;
 const DEFAULT_WEB_INFERENCE_BOARD_SIZE_RANGE = Object.freeze([5, 15]);
-const manifestUrl = new URL("./assets/research-ai/manifest.json", import.meta.url);
-const transferManifestUrl = new URL("./assets/research-ai/transfer-v1/manifest.json", import.meta.url);
 let manifestPromise = null;
 const modelPromises = new Map();
 
@@ -23,12 +21,18 @@ function webInferenceBoardSizeRange(spec) {
 }
 
 export function supportsResearchInference(spec, engine) {
+  // A v2 policy may be tried on v3 positions; this is runtime compatibility,
+  // not evidence of strength or calibration under the new terminal score.
   const [minimumSize, maximumSize] = webInferenceBoardSizeRange(spec);
   return engine?.playerCount === 2
+    && (!engine.rootMode || engine.rootMode === "classic")
     && Number.isInteger(engine?.gridSize)
     && engine.gridSize >= minimumSize
     && engine.gridSize <= maximumSize
-    && (!spec?.browser_inference?.rules_versions || spec.browser_inference.rules_versions.includes(engine.rulesVersion));
+    && (!spec?.browser_inference?.rules_versions
+      || spec.browser_inference.rules_versions.includes(engine.rulesVersion)
+      || (engine.rulesVersion === "territory-v3"
+        && spec.browser_inference.rules_versions.includes("territory-v2")));
 }
 
 export function describeResearchInferenceRange(spec) {
@@ -101,6 +105,8 @@ async function digestHex(buffer) {
 
 export async function loadResearchManifest() {
   if (!manifestPromise) {
+    const manifestUrl = new URL("./assets/research-ai/manifest.json", import.meta.url);
+    const transferManifestUrl = new URL("./assets/research-ai/transfer-v1/manifest.json", import.meta.url);
     const readManifest = async (url) => {
       const response = await fetch(url);
       if (!response.ok) throw new Error(`无法加载研究模型清单（HTTP ${response.status}）。`);

@@ -1,12 +1,20 @@
-import GameEngine from "./GameEngine.js?v=20261013-full-features1";
-import { Player } from "./GameEngine.js?v=20261013-full-features1";
+import GameEngine from "./GameEngine.js?v=20261025-territory-render1";
+import { Player, resolveBoardShape } from "./GameEngine.js?v=20261025-territory-render1";
+import { startingPointSettings } from "./StartingPoints.js?v=20261021-boardshapes1";
 
 export const REPLAY_FORMAT = "lifeline-replay";
 export const REPLAY_SCHEMA_VERSION = 1;
+export const MULTI_ROOT_REPLAY_SCHEMA_VERSION = 2;
 export const REPLAY_ENGINE_FAMILY = "web-game-engine";
 const GENESIS_EVENT_HASH = "GENESIS";
-const SUPPORTED_RULES = new Set(["territory-v1", "territory-v2"]);
-const PLAYERS = [Player.BLACK, Player.WHITE, Player.PURPLE];
+const SUPPORTED_RULES = new Set(["territory-v1", "territory-v2", "territory-v3"]);
+const PLAYERS = [Player.BLACK, Player.WHITE, Player.PURPLE, Player.GREEN, Player.ORANGE, Player.CYAN];
+
+// Schema 1 triangular replays hash three edge/effect keys, including the unused
+// purple seat in two-player games. Keep that representation byte-compatible.
+function serializedPlayers(playerCount) {
+  return PLAYERS.slice(0, Math.max(3, playerCount));
+}
 
 function isPlainObject(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -70,7 +78,7 @@ export function serializeRuleState(engine) {
     .sort((a, b) => comparePoints(a.point, b.point))
     .map(({ point, state }) => [...point, state]);
   const edges = Object.fromEntries(
-    PLAYERS.map((player) => [
+    serializedPlayers(engine.playerCount).map((player) => [
       player,
       [...(engine.edges?.[player] ?? [])].map(normalizeEdge).sort(),
     ]),
@@ -79,7 +87,16 @@ export function serializeRuleState(engine) {
     stateVersion: 1,
     gridSize: engine.gridSize,
     playerCount: engine.playerCount,
+    ...(engine.boardShape !== resolveBoardShape(engine.playerCount) ? { boardShape: engine.boardShape } : {}),
     startPlayer: engine.startPlayer,
+    ...(engine.hasCustomInitialPositions ? { initialPositions: cloneJson(engine.initialPositions) } : {}),
+    ...(engine.rootRulesVersion === "root-v2" ? {
+      rootRulesVersion: engine.rootRulesVersion,
+      rootMode: engine.rootMode,
+      initialRoots: cloneJson(engine.initialRoots),
+      roots: Object.fromEntries(engine.activePlayers.map((player) => [player, engine.getRoots(player)])),
+      rootActionsRemaining: cloneJson(engine.rootActionsRemaining),
+    } : {}),
     rulesVersion: engine.rulesVersion,
     gridEntries,
     edges,
@@ -103,15 +120,18 @@ function normalizeSettings(settings = {}) {
     : PLAYERS.slice(0, playerCount);
   return {
     playerCount,
+    ...(resolveBoardShape(playerCount, settings.boardShape) !== resolveBoardShape(playerCount)
+      ? { boardShape: settings.boardShape } : {}),
     gridSize: Number(settings.gridSize ?? 9),
     players,
     startPlayer: settings.startPlayer ?? players[0],
-    rulesVersion: settings.rulesVersion ?? "territory-v2",
+    rulesVersion: settings.rulesVersion ?? "territory-v3",
     superko: "enforce",
     turnTimerEnabled: Boolean(settings.turnTimerEnabled),
     turnTimeLimitSeconds: Number(settings.turnTimeLimitSeconds ?? 60),
     hintEnabled: Boolean(settings.hintEnabled),
     hintMaxCount: Number(settings.hintMaxCount ?? 0),
+    ...startingPointSettings({ ...settings, playerCount, gridSize: Number(settings.gridSize ?? 9) }),
   };
 }
 
@@ -119,19 +139,58 @@ function engineOptionsFromSettings(settings) {
   return {
     gridSize: settings.gridSize,
     playerCount: settings.playerCount,
+    boardShape: settings.boardShape,
     startPlayer: settings.startPlayer,
+    initialPositions: settings.initialPositions,
+    initialRoots: settings.initialRoots,
+    rootMode: settings.rootMode,
+    rootRulesVersion: settings.rootRulesVersion,
     rulesVersion: settings.rulesVersion,
     deferTerritoryUpdates: false,
   };
 }
 
+function isValidSettings(settings) {
+  return Number.isInteger(settings.playerCount) && settings.playerCount >= 2 && settings.playerCount <= 6
+    && Number.isInteger(settings.gridSize) && settings.gridSize >= 5 && settings.gridSize <= 15
+    && SUPPORTED_RULES.has(settings.rulesVersion)
+    && canonicalize(settings.players) === canonicalize(PLAYERS.slice(0, settings.playerCount))
+    && settings.players.includes(settings.startPlayer);
+}
+
+function normalizeActors(actors, settings) {
+  if (!isPlainObject(actors) || Object.keys(actors).length !== settings.players.length
+    || settings.players.some((player) => !Object.hasOwn(actors, player))) throw new Error("棋谱棋手配置无效。");
+  return Object.fromEntries(settings.players.map((player) => {
+    const actor = actors[player];
+    if (!isPlainObject(actor) || !["human", "ai"].includes(actor.kind)) throw new Error("棋谱棋手类型无效。");
+    if (actor.kind === "human") {
+      if (Object.keys(actor).length !== 1) throw new Error("人类棋手不能包含 AI 模型配置。");
+      return [player, { kind: "human" }];
+    }
+    const keys = ["kind", "strategy", "modelId", "seed", "simulations", "cPuct", "depth"];
+    if (Object.keys(actor).some((key) => !keys.includes(key))
+      || !["greedy", "minimax", "mcts", "neural-puct", "model-free", "three-player", "hex-player", "multiplayer"].includes(actor.strategy)) throw new Error("棋谱 AI 策略无效。");
+    if (actor.modelId !== undefined && (typeof actor.modelId !== "string" || !actor.modelId.length || actor.modelId.length > 128)) throw new Error("棋谱 AI 模型标识无效。");
+    if (["neural-puct", "model-free", "three-player", "hex-player", "multiplayer"].includes(actor.strategy) && !actor.modelId) throw new Error("棋谱缺少 AI 模型标识。");
+    for (const key of ["seed", "simulations", "cPuct", "depth"]) {
+      if (actor[key] !== undefined && (typeof actor[key] !== "number" || !Number.isFinite(actor[key]) || actor[key] < 0)) throw new Error("棋谱 AI 参数无效。");
+    }
+    if (actor.strategy === "multiplayer" && (settings.playerCount < 3 || !["territory-v2", "territory-v3"].includes(settings.rulesVersion)
+      || !/^multiplayer-(easy|medium|hard|ultimate)-v1$/.test(actor.modelId))) throw new Error("棋谱多人 AI 模型配置无效。");
+    return [player, { ...actor }];
+  }));
+}
+
 function normalizeAction(action) {
   if (!isPlainObject(action)) return null;
-  const type = action.type === "player_move" ? "move" : action.type === "player_skip" ? "skip" : action.type === "player_resign" ? "resign" : action.type;
+  const type = action.type === "player_move" ? "move" : action.type === "player_skip" ? "skip"
+    : action.type === "player_resign" ? "resign" : action.type === "player_root_relocate" ? "root_relocate"
+      : action.type === "player_root_add" ? "root_add" : action.type;
   const player = action.player ?? action.color ?? action.actor;
-  if (!["move", "skip", "resign"].includes(type)) return null;
+  if (!["move", "skip", "resign", "root_relocate", "root_add"].includes(type)) return null;
   if (type === "resign" && !PLAYERS.includes(player)) return null;
-  if (type === "move") {
+  if (["move", "root_relocate", "root_add"].includes(type)) {
     if (!Array.isArray(action.point) || action.point.length !== 2 || !action.point.every(Number.isInteger)) return null;
     return { type, player: player ?? null, point: clonePoint(action.point) };
   }
@@ -141,10 +200,12 @@ function normalizeAction(action) {
 function applyAction(engine, action) {
   if (action.type === "move") return engine.playMove(action.point);
   if (action.type === "skip") return engine.skipTurn();
+  if (action.type === "root_relocate") return engine.playRootAction("relocate", action.point);
+  if (action.type === "root_add") return engine.playRootAction("add", action.point);
   return engine.resignPlayer(action.player);
 }
 
-function buildEventEffects(beforeState, beforeSnapshot, afterState, afterSnapshot) {
+export function buildEventEffects(beforeState, beforeSnapshot, afterState, afterSnapshot) {
   const beforeGrid = new Map(beforeState.gridEntries.map(([x, y, state]) => [`${x},${y}`, state]));
   const afterGrid = new Map(afterState.gridEntries.map(([x, y, state]) => [`${x},${y}`, state]));
   const capturedPoints = [];
@@ -154,12 +215,12 @@ function buildEventEffects(beforeState, beforeSnapshot, afterState, afterSnapsho
     }
   }
   const addedEdgesByPlayer = {};
-  for (const player of PLAYERS) {
+  for (const player of serializedPlayers(beforeState.playerCount)) {
     const beforeEdges = new Set(beforeState.edges[player] ?? []);
     addedEdgesByPlayer[player] = (afterState.edges[player] ?? []).filter((edge) => !beforeEdges.has(edge));
   }
   const territoryDelta = Object.fromEntries(
-    PLAYERS.map((player) => [
+    serializedPlayers(beforeState.playerCount).map((player) => [
       player,
       Number(afterSnapshot.territories?.[player]?.area ?? 0) - Number(beforeSnapshot.territories?.[player]?.area ?? 0),
     ]),
@@ -175,12 +236,42 @@ function buildEventEffects(beforeState, beforeSnapshot, afterState, afterSnapsho
 function toControllerAction(action) {
   if (action.type === "move") return { type: "player_move", point: clonePoint(action.point) };
   if (action.type === "skip") return { type: "player_skip" };
+  if (action.type === "root_relocate") return { type: "player_root_relocate", point: clonePoint(action.point) };
+  if (action.type === "root_add") return { type: "player_root_add", point: clonePoint(action.point) };
   return { type: "player_resign", color: action.player };
 }
 
-export async function createReplayDocument(settings, actions = []) {
+function buildTerminalSummary(engine, finalStateHash, eventCount) {
+  const snapshot = engine.getSnapshot();
+  // Replay schema v1 predates display-only v3 point geometry. Keep the stored
+  // terminal summary stable so old documents still compare byte-for-field with
+  // a fresh replay, while the live snapshot remains free to carry renderPoints.
+  const scores = Object.fromEntries(Object.entries(snapshot.territories ?? {}).map(([player, territory]) => [
+    player,
+    {
+      area: territory.area,
+      displayArea: territory.displayArea,
+      polygon: territory.polygon ? territory.polygon.map(clonePoint) : null,
+    },
+  ]));
+  return snapshot.gameOver
+    ? {
+        status: "completed",
+        reason: snapshot.resignedPlayers?.length ? "resignation" : "all_remaining_players_skipped",
+        lastEventSeq: eventCount,
+        winner: snapshot.winner ?? null,
+        scores,
+        resignedPlayers: [...(snapshot.resignedPlayers ?? [])],
+        finalStateHash,
+        turnCount: engine.turnCount,
+        verified: false,
+      }
+    : null;
+}
+
+export async function createReplayDocument(settings, actions = [], options = {}) {
   const config = normalizeSettings(settings);
-  if (!SUPPORTED_RULES.has(config.rulesVersion) || ![2, 3].includes(config.playerCount)) {
+  if (!isValidSettings(config)) {
     throw new Error("当前规则或玩家配置不支持导出棋谱。");
   }
   const engine = new GameEngine(engineOptionsFromSettings(config));
@@ -210,7 +301,7 @@ export async function createReplayDocument(settings, actions = []) {
       seq: index + 1,
       type: action.type,
       actor,
-      ...(action.type === "move" ? { point: clonePoint(action.point) } : {}),
+      ...(["move", "root_relocate", "root_add"].includes(action.type) ? { point: clonePoint(action.point) } : {}),
       preStateHash,
       postStateHash: await hashRuleState(engine),
       preTurnCount,
@@ -225,23 +316,10 @@ export async function createReplayDocument(settings, actions = []) {
 
   const finalRuleState = serializeRuleState(engine);
   const finalStateHash = await sha256(finalRuleState);
-  const snapshot = engine.getSnapshot();
-  const terminal = snapshot.gameOver
-    ? {
-        status: "completed",
-        reason: snapshot.resignedPlayers?.length ? "resignation" : "all_remaining_players_skipped",
-        lastEventSeq: events.length,
-        winner: snapshot.winner ?? null,
-        scores: cloneJson(snapshot.territories ?? {}),
-        resignedPlayers: [...(snapshot.resignedPlayers ?? [])],
-        finalStateHash,
-        turnCount: engine.turnCount,
-        verified: false,
-      }
-    : null;
+  const terminal = buildTerminalSummary(engine, finalStateHash, events.length);
   const document = {
     format: REPLAY_FORMAT,
-    schemaVersion: REPLAY_SCHEMA_VERSION,
+    schemaVersion: config.rootRulesVersion === "root-v2" ? MULTI_ROOT_REPLAY_SCHEMA_VERSION : REPLAY_SCHEMA_VERSION,
     engineFamily: REPLAY_ENGINE_FAMILY,
     rulesVersion: config.rulesVersion,
     engineBuild: { id: "lifeline-web-runtime-v1", sourceHash: "unavailable" },
@@ -256,7 +334,7 @@ export async function createReplayDocument(settings, actions = []) {
       finalStateHash,
       canonicalDocumentHash: null,
     },
-    extensions: {},
+    extensions: options.actors === undefined ? {} : { actors: normalizeActors(options.actors, config) },
   };
   document.integrity.canonicalDocumentHash = await sha256({ ...document, integrity: { ...document.integrity, canonicalDocumentHash: null } });
   return document;
@@ -265,14 +343,22 @@ export async function createReplayDocument(settings, actions = []) {
 export async function validateReplayDocument(document) {
   const fail = (reason, eventSeq = null) => ({ success: false, reason, eventSeq });
   if (!isPlainObject(document)) return fail("棋谱不是 JSON 对象。");
-  if (document.format !== REPLAY_FORMAT || document.schemaVersion !== REPLAY_SCHEMA_VERSION) return fail("棋谱版本不受支持。");
+  if (document.format !== REPLAY_FORMAT || ![REPLAY_SCHEMA_VERSION, MULTI_ROOT_REPLAY_SCHEMA_VERSION].includes(document.schemaVersion)) return fail("棋谱版本不受支持。");
   if (document.engineFamily !== REPLAY_ENGINE_FAMILY || !SUPPORTED_RULES.has(document.rulesVersion)) return fail("棋谱规则版本或引擎版本不兼容。");
   if (!isPlainObject(document.config) || !Array.isArray(document.actions) || !isPlainObject(document.initialState)) return fail("棋谱缺少必要字段。");
-  const config = normalizeSettings(document.config);
-  if (config.rulesVersion !== document.rulesVersion || ![2, 3].includes(config.playerCount)) return fail("棋谱配置无效。");
+  let config;
+  try { config = normalizeSettings(document.config); }
+  catch (_) { return fail("棋谱起点配置无效。"); }
+  if (config.rulesVersion !== document.rulesVersion || !isValidSettings(config)) return fail("棋谱配置无效。");
+  if (document.schemaVersion === 1 && config.rootRulesVersion === "root-v2") return fail("旧棋谱版本不能声明多起点规则。");
+  if (document.extensions?.actors !== undefined) {
+    try { normalizeActors(document.extensions.actors, config); }
+    catch (error) { return fail(error.message); }
+  }
   const engine = new GameEngine(engineOptionsFromSettings(config));
   const initialHash = await hashRuleState(engine);
-  if (document.initialState.stateHash !== initialHash) return fail("初始局面校验失败。");
+  if (document.initialState.stateHash !== initialHash
+    || canonicalize(document.initialState.ruleState) !== canonicalize(serializeRuleState(engine))) return fail("初始局面校验失败。");
   let previousEventHash = GENESIS_EVENT_HASH;
   const actions = [];
   for (const event of document.actions) {
@@ -280,12 +366,17 @@ export async function validateReplayDocument(document) {
     if (!isPlainObject(event) || seq !== actions.length + 1 || event.prevEventHash !== previousEventHash) return fail("事件顺序或链式哈希校验失败。", seq ?? null);
     const action = normalizeAction(event);
     if (!action || event.actor !== action.player) return fail("事件动作格式无效。", seq);
+    if (action.type !== "resign" && event.actor !== engine.currentPlayer) return fail("事件行动方与当前回合不一致。", seq);
     const expectedPre = await hashRuleState(engine);
     if (event.preStateHash !== expectedPre || event.preTurnCount !== engine.turnCount) return fail("动作前状态承诺不匹配。", seq);
+    const preState = serializeRuleState(engine);
+    const preSnapshot = engine.getSnapshot();
     const result = applyAction(engine, action);
     if (!result.success && !(action.type === "resign" && result.reason === "PLAYER_ALREADY_RESIGNED")) return fail(`第 ${seq} 步无法执行：${result.reason ?? "UNKNOWN"}。`, seq);
     const expectedPost = await hashRuleState(engine);
     if (event.postStateHash !== expectedPost || event.postTurnCount !== engine.turnCount) return fail("动作后状态承诺不匹配。", seq);
+    const effects = buildEventEffects(preState, preSnapshot, serializeRuleState(engine), engine.getSnapshot());
+    if (canonicalize(event.effects) !== canonicalize(effects)) return fail("事件效果与规则重放不一致。", seq);
     const eventWithoutHash = { ...event };
     delete eventWithoutHash.eventHash;
     const expectedEventHash = await sha256(eventWithoutHash);
@@ -295,7 +386,8 @@ export async function validateReplayDocument(document) {
   }
   const finalStateHash = await hashRuleState(engine);
   if (document.integrity?.eventCount !== actions.length || document.integrity?.finalStateHash !== finalStateHash) return fail("棋谱终局完整性校验失败。", actions.length);
-  if (document.terminal && (!engine.gameOver || document.terminal.finalStateHash !== finalStateHash)) return fail("棋谱终局摘要与回放结果不一致。", actions.length);
+  if (document.integrity?.finalEventHash !== (actions.length ? previousEventHash : null)) return fail("棋谱最终事件哈希不匹配。", actions.length);
+  if (canonicalize(document.terminal) !== canonicalize(buildTerminalSummary(engine, finalStateHash, actions.length))) return fail("棋谱终局摘要与回放结果不一致。", actions.length);
   if (document.integrity?.canonicalDocumentHash) {
     const expectedDocumentHash = await sha256({
       ...document,

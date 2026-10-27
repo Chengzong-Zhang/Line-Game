@@ -11,9 +11,12 @@ const ServerEvent = Object.freeze({
   ROOM_READY: "ROOM_READY",
   OPPONENT_MOVE: "OPPONENT_MOVE",
   TURN_SKIPPED: "TURN_SKIPPED",
+  ROOT_ACTION_APPLIED: "ROOT_ACTION_APPLIED",
   PLAYER_RESIGNED: "PLAYER_RESIGNED",
   RESET_STATUS: "RESET_STATUS",
   MATCH_RESET: "MATCH_RESET",
+  UNDO_STATUS: "UNDO_STATUS",
+  ROOM_UNDO: "ROOM_UNDO",
   PLAYER_LEFT: "PLAYER_LEFT",
   CHAT_EMOJI: "chat_emoji",
   PONG: "PONG",
@@ -43,19 +46,14 @@ function resolveWebSocketUrl(locationLike = globalThis.location) {
   }
 
   const protocol = locationLike.protocol === "https:" ? "wss:" : "ws:";
-  const hostname = locationLike.hostname || "";
-  const port = locationLike.port || "";
   const host = locationLike.host;
 
   if (!host) {
     return "ws://localhost:8000/ws";
   }
 
-  if (/^(localhost|127\.0\.0\.1|\[::1\]|::1)$/i.test(hostname) && port !== "8000") {
-    const localHost = hostname === "::1" ? "[::1]" : hostname;
-    return `${protocol}//${localHost}:8000/ws`;
-  }
-
+  // A local server may use any free port; use the page's own backend first.
+  // The application retains explicit 8000–8004 fallbacks for static previews.
   return `${protocol}//${host}/ws`;
 }
 
@@ -83,6 +81,7 @@ export class NetworkManager {
     this.roomId = null;
     this.playerId = null;
     this.color = null;
+    this._actionSequence = 0;
 
     this._listeners = new Map();
     this._pendingRequests = [];
@@ -234,6 +233,7 @@ export class NetworkManager {
         type: "join_room",
         roomId: normalizedRoomId,
         ...(playerId ? { playerId } : {}),
+        rootProtocolVersion: 2,
       },
       [ServerEvent.ROOM_JOINED],
     );
@@ -253,6 +253,7 @@ export class NetworkManager {
     this._send({
       type: "player_move",
       point: clonePoint(point),
+      actionId: this._nextActionId(),
     });
 
     return {
@@ -265,8 +266,20 @@ export class NetworkManager {
   async sendSkip() {
     await this._ensureOpen();
     return this._sendRequest(
-      { type: "player_skip" },
+      { type: "player_skip", actionId: this._nextActionId() },
       [ServerEvent.TURN_SKIPPED],
+    );
+  }
+
+  async sendRootAction(type, point) {
+    const normalizedType = String(type ?? "").replace(/^root_/, "");
+    if (!["relocate", "add"].includes(normalizedType) || !isValidPoint(point)) {
+      throw new Error("sendRootAction(type, point) requires relocate/add and [x, y] integers.");
+    }
+    await this._ensureOpen();
+    return this._sendRequest(
+      { type: `player_root_${normalizedType}`, point: clonePoint(point), actionId: this._nextActionId() },
+      [ServerEvent.ROOT_ACTION_APPLIED],
     );
   }
 
@@ -287,6 +300,14 @@ export class NetworkManager {
         reason: normalizedReason,
       },
       [ServerEvent.RESET_STATUS, ServerEvent.MATCH_RESET],
+    );
+  }
+
+  async sendUndo(accept = true) {
+    await this._ensureOpen();
+    return this._sendRequest(
+      { type: "player_undo", accept: Boolean(accept) },
+      [ServerEvent.UNDO_STATUS, ServerEvent.ROOM_UNDO],
     );
   }
 
@@ -312,6 +333,11 @@ export class NetworkManager {
       type: "update_start_player",
       startPlayer,
     });
+  }
+
+  async retryBots() {
+    await this._ensureOpen();
+    this._send({ type: "retry_bots" });
   }
 
   async sendChatEmoji(content, metadata = {}) {
@@ -486,6 +512,11 @@ export class NetworkManager {
     }
 
     this.socket.send(JSON.stringify(payload));
+  }
+
+  _nextActionId() {
+    this._actionSequence += 1;
+    return `${this.playerId ?? "anonymous"}:${Date.now().toString(36)}:${this._actionSequence.toString(36)}`;
   }
 
   _sendRequest(payload, expectedTypes) {

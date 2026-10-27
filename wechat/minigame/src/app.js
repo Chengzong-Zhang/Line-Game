@@ -1,7 +1,7 @@
 import { ComputeScheduler } from './scheduler.js';
 import { SaveStore } from './storage.js';
 import { GameSession } from './session.js';
-import { TUTORIAL_LEVELS, createLocalGameSession, resolveInitialPositions, randomInitialPositions } from './core.js';
+import { TUTORIAL_LEVELS, createLocalGameSession, resolveInitialPositions, randomInitialPositions, randomInitialRoots } from './core.js';
 import { TEXT, errorText } from './i18n.js';
 import { boardLayout, drawBoard, hitPoint, pointAtScreen, focusBoardLayout, panBoardFocus } from './board.js';
 import { OnlineClient, ONLINE_EMOTES } from './online.js';
@@ -33,13 +33,14 @@ export function createApp(platform, config = {}) {
   let language = 'zh';
   try { if (platform.storage.get('lifeline-wx-language') === 'en') language = 'en'; } catch (_) { /* First run. */ }
   const preferences = readPreferences(platform.storage);
-  let scene = 'game', cabin = null, cabinGeneration = 0, disposed = false, selected = null, size = preferences.size, mode = preferences.mode, difficulty = preferences.difficulty;
+  let scene = 'game', cabin = null, cabinGeneration = 0, disposed = false, selected = null, actionMode = 'move', size = preferences.size, mode = preferences.mode, difficulty = preferences.difficulty;
   let startPlayer = preferences.startPlayer || 'BLACK', controllers = preferences.controllers || null;
   let playerCount = preferences.playerCount ?? (mode === 'three-human' ? 3 : 2), playersPage = 0;
   let boardShape = preferences.boardShape || (playerCount >= 4 ? 'hexagon' : 'triangle');
+  let rootMode = playerCount === 2 ? preferences.rootMode || 'classic' : 'classic';
   let startingPointMode = preferences.startingPointMode || 'default', initialPositions = preferences.initialPositions || null;
   let startDraft = null, startSeat = 'BLACK', startPoint = null;
-  const draftSettings = () => ({ gridSize: size, playerCount, boardShape });
+  const draftSettings = () => ({ gridSize: size, playerCount, boardShape, rootMode, rulesVersion: 'territory-v3' });
   const playerDrafts = preferences.playerDrafts || {};
   const draftPlayerCount = () => playerCount;
   const draftControllers = () => controllers || presetControllers(mode, difficulty, draftPlayerCount(), draftSettings());
@@ -49,7 +50,7 @@ export function createApp(platform, config = {}) {
   };
   function rememberPlayerDraft() {
     playerDrafts[draftPlayerCount()] = { mode, startPlayer, controllers: controllers ? { ...controllers } : null,
-      boardShape, startingPointMode, initialPositions };
+      boardShape, rootMode, startingPointMode, initialPositions };
   }
   function changePlayerCount(count) {
     if (!Number.isInteger(count) || count < 2 || count > 6 || count === draftPlayerCount()) return;
@@ -59,6 +60,7 @@ export function createApp(platform, config = {}) {
     mode = saved?.mode || (count === 3 ? 'three-human' : count >= 4 ? 'human' : 'ai-white');
     startPlayer = saved?.startPlayer || 'BLACK'; controllers = saved?.controllers ? { ...saved.controllers } : null;
     boardShape = saved?.boardShape || (count >= 4 ? 'hexagon' : 'triangle');
+    rootMode = count === 2 ? saved?.rootMode || 'classic' : 'classic';
     startingPointMode = saved?.startingPointMode || 'default'; initialPositions = saved?.initialPositions || null;
     persistPreferences();
   }
@@ -134,27 +136,37 @@ export function createApp(platform, config = {}) {
   const isOnline = () => session === online.game;
   const onlineSettings = (overrides = {}, base = online.room?.settings) => {
     const current = base || { gridSize: size, boardShape, rulesVersion: 'territory-v3',
-      startingPointMode: playerCount === 2 ? startingPointMode : 'default',
+      rootMode: playerCount === 2 ? rootMode : 'classic', startingPointMode: playerCount === 2 ? startingPointMode : 'default',
       initialPositions: playerCount === 2 ? initialPositions : null,
       undoEnabled: playOptions.undoEnabled, undoMaxCount: playOptions.undoMaxCount };
     const next = { gridSize: current.gridSize, boardShape: current.boardShape || 'triangle',
       rulesVersion: current.rulesVersion || 'territory-v3',
+      rootMode: current.rootMode || 'classic',
       startingPointMode: current.startingPointMode || (current.initialPositions ? 'custom' : 'default'),
       initialPositions: current.initialPositions, undoEnabled: current.undoEnabled === true,
       undoMaxCount: current.undoMaxCount || 3, ...overrides };
+    delete next.initialRoots;
     if (next.startingPointMode === 'default') delete next.initialPositions;
-    else if (next.startingPointMode === 'random' && (overrides.startingPointMode === 'random' || !next.initialPositions))
+    else if (next.startingPointMode === 'random' && next.rootMode !== 'classic') {
+      delete next.initialPositions; next.initialRoots = randomInitialRoots(next.gridSize, 2, next.rootMode, Math.random, next.boardShape);
+    } else if (next.startingPointMode === 'random' && (overrides.startingPointMode === 'random' || !next.initialPositions))
       next.initialPositions = randomInitialPositions(next.gridSize, 2, Math.random, next.boardShape);
     else next.initialPositions = resolveInitialPositions(next.gridSize, 2, next.initialPositions, next.boardShape);
+    if (next.rootMode === 'classic') { delete next.rootMode; delete next.rootRulesVersion; delete next.initialRoots; }
+    else next.rootRulesVersion = 'root-v2';
     return next;
   };
   const editOnlineSettings = overrides => { if (online.canEditSettings()) void online.updateSettings(onlineSettings(overrides)); };
   const canPlay = () => isOnline() ? online.canPlay() : session.canPlay();
-  const play = (action) => isOnline() ? online.act(action) : session.act(action);
+  const play = async (action) => {
+    const played = await (isOnline() ? online.act(action) : session.act(action));
+    if (played) actionMode = 'move';
+    return played;
+  };
   const currentView = () => view?.session === session && view.epoch === session.epoch && view.snapshot === session.snapshot && view.scene === scene;
   const inBoard = (x, y) => boardRect && x >= boardRect.x && y >= boardRect.y
     && x <= boardRect.x + boardRect.width && y <= boardRect.y + boardRect.height;
-  function clearBoardView() { selected = null; zoomFocus = null; startTouch = null; replaySeekDraft = null; }
+  function clearBoardView() { selected = null; actionMode = 'move'; zoomFocus = null; startTouch = null; replaySeekDraft = null; }
 
   function clearUserInfoControl() {
     userInfoControl?.destroy(); userInfoControl = null; userInfoControlKey = null;
@@ -579,7 +591,13 @@ export function createApp(platform, config = {}) {
     if (!lesson && session.replayIndex === null && !snapshot.gameOver && !rankedForfeit) {
       button('skip', label('skip'), 24, statusTop + 48, 58, () => quickAction('skip'), { height: 36, font: 14, disabled: !canPlay() });
       button('hint', label('hint'), w - 82, statusTop + 48, 58, () => quickAction('hint'), { height: 36, font: 14, disabled: isOnline() || !canPlay() || !session.hintsRemaining });
-      if (!isOnline() && session.settings.undoEnabled) button('undo', `${label('undo')} · ${session.undoRemaining}`, w / 2 - 49, statusTop + 48, 98,
+      const dynamicRootType = snapshot.rootMode === 'relocate' ? 'relocate' : snapshot.rootMode === 'add' ? 'add' : null;
+      const rootAvailable = dynamicRootType && (snapshot.rootActionsRemaining?.[snapshot.currentPlayer]?.[dynamicRootType] || 0) > 0;
+      if (dynamicRootType) button('root-action', `${actionMode === 'root' ? '✓ ' : ''}${language === 'en' ? (dynamicRootType === 'relocate' ? 'Relocate' : 'Add root') : (dynamicRootType === 'relocate' ? '迁移' : '增设')}`,
+        !isOnline() && session.settings.undoEnabled ? w / 2 - 78 : w / 2 - 54, statusTop + 48, !isOnline() && session.settings.undoEnabled ? 74 : 108,
+        () => { actionMode = actionMode === 'root' ? 'move' : 'root'; selected = null; redraw(); },
+        { height: 36, font: 13, disabled: !canPlay() || !rootAvailable, primary: actionMode === 'root' });
+      if (!isOnline() && session.settings.undoEnabled) button('undo', `${label('undo')} · ${session.undoRemaining}`, dynamicRootType ? w / 2 + 2 : w / 2 - 49, statusTop + 48, dynamicRootType ? 76 : 98,
         async () => { selected = null; const current = session; if (await current.undo()) {
           // Undo retains this local match's settings and its existing opt-in
           // ticket. Terminal capture checks the original signature and records
@@ -641,7 +659,8 @@ export function createApp(platform, config = {}) {
       const passLesson = lesson?.objective.type === 'skip';
       const quarter = (w - 64) / 4;
       button('confirm', label(passLesson ? 'skip' : 'confirm'), lesson ? 24 : 32 + quarter, footer, lesson ? w - 48 : quarter * 2,
-        () => { const p = selected; selected = null; void play(passLesson ? { type: 'skip' } : { type: 'move', point: p }); },
+        () => { const p = selected; selected = null; const rootType = snapshot.rootMode === 'relocate' ? 'root_relocate' : 'root_add';
+          void play(passLesson ? { type: 'skip' } : { type: actionMode === 'root' ? rootType : 'move', point: p }); },
         { primary: true, disabled: !canPlay() || (!passLesson && !selected) });
     }
     if (session.replayIndex === null && !session.saveError) {
@@ -702,6 +721,7 @@ export function createApp(platform, config = {}) {
         canEditOnline: isOnline() && online.canEditSettings(),
         playerCount: isOnline() ? online.room?.settings?.playerCount || 2 : draftPlayerCount(),
         boardShape: isOnline() ? online.room?.settings?.boardShape || 'triangle' : boardShape,
+        rootMode: isOnline() ? online.room?.settings?.rootMode || 'classic' : rootMode,
         startingPointMode: isOnline() ? online.room?.settings?.startingPointMode || 'default' : startingPointMode,
         startPlayer: isOnline() ? online.room?.settings?.startPlayer : startPlayer,
         controllers: isOnline() && online.room?.aiControllers || draftControllers(),
@@ -723,6 +743,9 @@ export function createApp(platform, config = {}) {
         shape: value => { if (isOnline()) return editOnlineSettings({ boardShape: value, startingPointMode: 'default', initialPositions: undefined });
           if (boardShape === value) return; boardShape = value; initialPositions = null;
           if (startingPointMode === 'custom') startingPointMode = 'default'; cabinGeneration++; persistPreferences(); },
+        rootMode: value => { if (!['classic', 'fixed-double', 'relocate', 'add'].includes(value) || playerCount !== 2) return;
+          if (isOnline()) return editOnlineSettings({ rootMode: value, startingPointMode: 'default', initialPositions: undefined, initialRoots: undefined });
+          rootMode = value; startingPointMode = 'default'; initialPositions = null; controllers = null; cabinGeneration++; persistPreferences(); },
         startingPoints: value => { if (value === 'custom') openStartingPoints(); else if (isOnline()) editOnlineSettings({ startingPointMode: value, initialPositions: undefined });
           else { startingPointMode = value; initialPositions = null; persistPreferences(); } },
         size: value => { if (isOnline()) return editOnlineSettings({ gridSize: value, startingPointMode: 'default', initialPositions: undefined });
@@ -961,12 +984,12 @@ export function createApp(platform, config = {}) {
       if (session === localSession && session.snapshot && session.actions.length && !session.tutorial) archiveCurrent({ bestEffort: true });
       clearEmote(); invalidateContribution(); cabin = null; cabinGeneration++; selected = null; scene = 'game';
       await session.newGame(size, playerCount > 2 ? 'human' : mode, difficulty, playerCount,
-        { startPlayer, controllers, playOptions, boardShape, startingPointMode, initialPositions }); beginContribution(); redraw();
+        { startPlayer, controllers, playOptions, boardShape, rootMode, startingPointMode, initialPositions }); beginContribution(); redraw();
     } finally { releaseClock(); }
   }
   function persistPreferences() {
     rememberPlayerDraft();
-    try { savePreferences(platform.storage, { size, mode, difficulty, terminology, playerCount, boardShape, startingPointMode, initialPositions,
+    try { savePreferences(platform.storage, { size, mode, difficulty, terminology, playerCount, boardShape, rootMode, startingPointMode, initialPositions,
       ...(startPlayer !== 'BLACK' ? { startPlayer } : {}), ...(controllers ? { controllers } : {}),
       ...(Object.keys(playerDrafts).length > 1 ? { playerDrafts } : {}),
       ...(optionsConfigured ? { playOptions } : {}) }); }
@@ -1428,7 +1451,7 @@ export function createApp(platform, config = {}) {
     // A damaged save remains untouched; retry is an explicit player action.
     if (!restored && !localSession.error && !localSession.snapshot) await localSession.newGame(size,
       playerCount > 2 ? 'human' : mode, difficulty, playerCount,
-      { startPlayer, controllers, playOptions, boardShape, startingPointMode, initialPositions });
+      { startPlayer, controllers, playOptions, boardShape, rootMode, startingPointMode, initialPositions });
     if (!restored && localSession.snapshot && !localSession.actions.length) beginContribution();
     if (disposed || !appVisible || session !== localSession || scene !== 'game' || cabin) return;
     if (restored && localSession.snapshot && !localSession.error) localSession.resume();

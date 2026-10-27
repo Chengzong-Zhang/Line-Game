@@ -1,11 +1,11 @@
-import GameEngine, { Player, TerritoryRulesVersion } from "./GameEngine.js?v=20261013-full-features1";
-import Renderer from "./Renderer.js?v=20261013-full-features1";
-import { ServerEvent } from "./NetworkManager.js?v=20261013-full-features1";
-import { serializeEngineState } from "./AIStateProtocol.js?v=20261013-full-features1";
+import GameEngine, { Player, TerritoryRulesVersion, PLAYER_ORDER, getBoardPositions, resolveBoardShape } from "./GameEngine.js?v=20261025-territory-render1";
+import Renderer from "./Renderer.js?v=20261025-territory-render1";
+import { ServerEvent } from "./NetworkManager.js?v=20261020-three1";
+import { serializeEngineState } from "./AIStateProtocol.js?v=20261021-boardshapes1";
 import {
-  OneShotTerritoryWorker,
   applyTerritoryWorkerResult,
-} from "./TerritoryWorkerSession.js?v=20261013-full-features1";
+} from "./TerritoryWorkerSession.js?v=20261020-three1";
+import TerritoryWorkerPool from "./TerritoryWorkerPool.js?v=20261025-territory-render1";
 
 // GameController 鏄墠绔殑鈥滆兌姘村眰鈥濓細
 // 瀹冩妸 Model(GameEngine)銆乂iew(Renderer) 鍜岃仈鏈哄眰(NetworkManager) 涓茶捣鏉ワ紝
@@ -13,7 +13,7 @@ import {
 const DEFAULT_ENGINE_OPTIONS = Object.freeze({
   playerCount: 2,
   gridSize: 9,
-  rulesVersion: TerritoryRulesVersion.V2,
+  rulesVersion: TerritoryRulesVersion.V3,
 });
 const ASYNC_TERRITORY_MIN_GRID_SIZE = 15;
 
@@ -28,7 +28,7 @@ function distanceBetween(a, b) {
 }
 
 function isKnownPlayer(player) {
-  return player === Player.BLACK || player === Player.WHITE || player === Player.PURPLE;
+  return PLAYER_ORDER.includes(player);
 }
 
 function isGridPoint(point) {
@@ -36,6 +36,20 @@ function isGridPoint(point) {
     && point.length === 2
     && Number.isInteger(point[0])
     && Number.isInteger(point[1]);
+}
+
+// Display metadata follows confirmed actions, including rule-driven automatic PASS.
+// It never enters the rule state, search state or persisted replay format.
+function updateLastMoves(lastMoves, action, engine, previousSkips = 0) {
+  if (!action || !isKnownPlayer(action.player)) return;
+  lastMoves[action.player] = action.type === "move" ? clonePoint(action.point) : null;
+  const explicitSkips = action.type === "skip" ? previousSkips + 1 : 0;
+  const automaticSkips = Math.max(0, engine.consecutiveSkips - explicitSkips);
+  let player = action.player;
+  for (let index = 0; index < automaticSkips; index += 1) {
+    player = engine._getNextPlayer(player);
+    lastMoves[player] = null;
+  }
 }
 
 export class GameController {
@@ -57,12 +71,14 @@ export class GameController {
       ? options.createTerritoryWorker
       : (typeof globalThis.Worker === "function"
         ? () => new globalThis.Worker(
-            new URL("./TerritoryWorker.js?v=20261013-full-features1", import.meta.url),
+            new URL("./TerritoryWorker.js?v=20261025-territory-render1", import.meta.url),
             { type: "module" },
           )
         : null);
     this._territoryWorkerSession = createTerritoryWorker
-      ? new OneShotTerritoryWorker(createTerritoryWorker)
+      ? new TerritoryWorkerPool(createTerritoryWorker, {
+          size: Math.max(1, Math.min(3, (globalThis.navigator?.hardwareConcurrency ?? 4) - 1)),
+        })
       : null;
     this._territoryFallbackToken = 0;
     this.engine = this._createEngine(this.options.engine);
@@ -79,9 +95,11 @@ export class GameController {
     this.opponentConnected = false;
     this.networkManager = null;
     this.lastAction = null;
+    this.lastMoves = {};
     this.inspectionOverlay = null;
     this.readOnlyMode = false;
     this._networkUnsubscribers = [];
+    this._lastServerActionIndex = 0;
     this._authoritativeSnapshotValid = true;
 
     this._isInitialized = false;
@@ -101,7 +119,7 @@ export class GameController {
   _updateLargeBoardClass() {
     const gridSize = this.options.engine?.gridSize ?? 9;
     if (typeof document !== "undefined" && document.body) {
-      if (gridSize >= 15) {
+      if (gridSize >= 15 || (resolveBoardShape(this.options.engine?.playerCount, this.options.engine?.boardShape) === "hexagon" && gridSize >= 9)) {
         document.body.classList.add("large-board");
       } else {
         document.body.classList.remove("large-board");
@@ -115,7 +133,7 @@ export class GameController {
       ...(engineOptions ?? {}),
     };
     const deferTerritoryUpdates = normalizedOptions.deferTerritoryUpdates
-      ?? normalizedOptions.gridSize >= ASYNC_TERRITORY_MIN_GRID_SIZE;
+      ?? (normalizedOptions.gridSize >= ASYNC_TERRITORY_MIN_GRID_SIZE || normalizedOptions.playerCount >= 3 || resolveBoardShape(normalizedOptions.playerCount, normalizedOptions.boardShape) === "hexagon");
     return new GameEngine({
       ...normalizedOptions,
       deferTerritoryUpdates,
@@ -123,6 +141,7 @@ export class GameController {
   }
 
   _cancelTerritoryRefresh() {
+    this._territoryPreview = null;
     this._territoryFallbackToken = (this._territoryFallbackToken ?? 0) + 1;
     return this._territoryWorkerSession?.cancel?.() ?? false;
   }
@@ -160,17 +179,24 @@ export class GameController {
       !engine?.deferTerritoryUpdates
       || !engine.hasPendingTerritoryUpdate?.()
     ) {
-      this._cancelTerritoryRefresh();
+      this._territoryPreview = null;
+      // Leave idle workers warm. Explicit reset/destroy still terminates them.
+      if (this._territoryWorkerSession?.cancelPending) this._territoryWorkerSession.cancelPending();
+      else this._cancelTerritoryRefresh();
       return;
     }
 
-    // A new position invalidates any queued fallback; OneShotTerritoryWorker
-    // itself cancels an older in-flight Worker before starting this request.
+    // Invalidate fallback work; the pool coalesces duplicate/current requests
+    // and queues only the latest board behind any already-running calculation.
     this._territoryFallbackToken = (this._territoryFallbackToken ?? 0) + 1;
     if (!this._territoryWorkerSession) {
       this._scheduleTerritoryFallback(engine);
       return;
     }
+
+    // The pool already keeps this exact request alive. Avoid serializing the
+    // board, edges and complete Superko history again for duplicate UI syncs.
+    if (this._territoryWorkerSession.hasCurrentRequest?.(engine)) return;
 
     try {
       this._territoryWorkerSession.start({
@@ -180,7 +206,15 @@ export class GameController {
           type: "COMPUTE_TERRITORIES",
           serializedState: serializeEngineState(engine),
         },
+        onProgress: (response) => {
+          this._territoryPreview = { engine, ...response };
+          const snapshot = this.renderer.lastSnapshot;
+          if (snapshot?.positionRevision === response.positionRevision) {
+            this.renderer.render({ ...snapshot, renderTerritories: response.territories });
+          }
+        },
         onResult: (response) => {
+          this._territoryPreview = null;
           const applied = applyTerritoryWorkerResult({
             engine,
             territories: response.territories,
@@ -191,7 +225,6 @@ export class GameController {
             return;
           }
           this._syncSnapshot(engine.getSnapshot(), {
-            forceRender: true,
             scheduleTerritory: false,
           });
         },
@@ -212,6 +245,7 @@ export class GameController {
     this.engine = this._createEngine(engineOptions);
     this._validGridPoints = this.engine.getValidPositions();
     this._engineEpoch += 1;
+    this._lastServerActionIndex = 0;
     this.renderer.invalidate();
     return this.engine;
   }
@@ -229,6 +263,8 @@ export class GameController {
       ...snapshot,
       renderEpoch: this._engineEpoch,
       lastAction: this._cloneLastAction(),
+      lastMoves: this._cloneLastMoves(),
+      lastServerActionIndex: this._lastServerActionIndex ?? 0,
       inspectionOverlay: this.inspectionOverlay,
     });
     this._syncCanvasInteractivity(snapshot);
@@ -299,9 +335,16 @@ export class GameController {
   }
 
   setGameConfig(engineOptions = {}, reset = true) {
+    const previousOptions = { ...this.options.engine };
+    delete previousOptions.initialPositions;
+    delete previousOptions.initialRoots;
+    delete previousOptions.startingPointMode;
+    delete previousOptions.rootMode;
+    delete previousOptions.rootRulesVersion;
+    if (engineOptions.playerCount != null && !Object.hasOwn(engineOptions, "boardShape")) delete previousOptions.boardShape;
     this.options.engine = {
       ...DEFAULT_ENGINE_OPTIONS,
-      ...this.options.engine,
+      ...previousOptions,
       ...(engineOptions ?? {}),
     };
 
@@ -333,6 +376,7 @@ export class GameController {
     // only applies incremental gameplay events so one server frame has one owner.
     this._networkUnsubscribers.push(
       this.networkManager.on(ServerEvent.OPPONENT_MOVE, (payload) => {
+        if (!this._acceptServerAction(payload)) return;
         if (isGridPoint(payload.point)) {
           this.applyRemoteMove(payload.point);
         } else {
@@ -342,8 +386,19 @@ export class GameController {
     );
 
     this._networkUnsubscribers.push(
-      this.networkManager.on(ServerEvent.TURN_SKIPPED, () => {
+      this.networkManager.on(ServerEvent.TURN_SKIPPED, (payload) => {
+        if (!this._acceptServerAction(payload)) return;
         this.applyRemoteSkip();
+      }),
+    );
+
+    this._networkUnsubscribers.push(
+      this.networkManager.on(ServerEvent.ROOT_ACTION_APPLIED, (payload) => {
+        if (!this._acceptServerAction(payload)) return;
+        const type = payload?.actionType === "player_root_relocate" ? "relocate"
+          : payload?.actionType === "player_root_add" ? "add" : null;
+        if (type && isGridPoint(payload.point)) this.applyRemoteRootAction(type, payload.point);
+        else this._reportNetworkError(new Error("Received invalid ROOT_ACTION_APPLIED payload."));
       }),
     );
 
@@ -436,12 +491,21 @@ export class GameController {
     };
   }
 
-  _setLastAction(action = null) {
+  _cloneLastMoves() {
+    return Object.fromEntries(Object.entries(this.lastMoves ?? {}).map(([player, point]) => [
+      player, Array.isArray(point) ? clonePoint(point) : null,
+    ]));
+  }
+
+  _setLastAction(action = null, previousSkips = 0) {
     if (!action) {
       this.lastAction = null;
+      this.lastMoves = {};
       return;
     }
 
+    this.lastMoves ??= {};
+    updateLastMoves(this.lastMoves, action, this.engine, previousSkips);
     this.lastAction = {
       type: action.type ?? null,
       player: action.player ?? null,
@@ -451,9 +515,7 @@ export class GameController {
 
   _buildGameState(snapshot = this.engine.getSnapshot()) {
     // 这里把底层快照补齐成 UI 可直接消费的状态，包含联机锁定原因等派生字段。
-    const black = snapshot.territories?.[Player.BLACK] ?? { area: 0, polygon: null };
-    const white = snapshot.territories?.[Player.WHITE] ?? { area: 0, polygon: null };
-    const purple = snapshot.territories?.[Player.PURPLE] ?? { area: 0, polygon: null };
+    const scorePlayers = PLAYER_ORDER.slice(0, Math.max(3, snapshot.playerCount ?? 2));
     const interactionLockReason = this._getInteractionLockReason(snapshot);
     const skipLockReason = this._getSkipLockReason(snapshot);
     const resetLockReason = this._getResetLockReason(snapshot);
@@ -468,24 +530,25 @@ export class GameController {
       turnCount: snapshot.turnCount,
       consecutiveSkips: snapshot.consecutiveSkips,
       resignedPlayers: Array.isArray(snapshot.resignedPlayers) ? [...snapshot.resignedPlayers] : [],
-      scores: {
-        [Player.BLACK]: black.area,
-        [Player.WHITE]: white.area,
-        [Player.PURPLE]: purple.area,
-      },
-      displayScores: {
-        [Player.BLACK]: black.displayArea ?? black.area,
-        [Player.WHITE]: white.displayArea ?? white.area,
-        [Player.PURPLE]: purple.displayArea ?? purple.area,
-      },
+      scores: Object.fromEntries(scorePlayers.map((player) => [player, snapshot.territories?.[player]?.area ?? 0])),
+      displayScores: Object.fromEntries(scorePlayers.map((player) => [
+        player, snapshot.territories?.[player]?.displayArea ?? snapshot.territories?.[player]?.area ?? 0,
+      ])),
       territories: snapshot.territories,
       legalMoves: snapshot.legalMoves,
+      legalRootActions: snapshot.legalRootActions ?? [],
+      roots: snapshot.roots,
+      rootMode: snapshot.rootMode,
+      rootRulesVersion: snapshot.rootRulesVersion,
+      rootActionsRemaining: snapshot.rootActionsRemaining,
       snapshot,
       lastAction: this._cloneLastAction(),
+      lastMoves: this._cloneLastMoves(),
       players: Array.isArray(snapshot.players)
         ? [...snapshot.players]
-        : [Player.BLACK, Player.WHITE, Player.PURPLE].slice(0, snapshot.playerCount ?? this.options.engine.playerCount),
+        : PLAYER_ORDER.slice(0, snapshot.playerCount ?? this.options.engine.playerCount),
       playerCount: snapshot.playerCount ?? this.options.engine.playerCount,
+      boardShape: snapshot.boardShape ?? ((snapshot.playerCount ?? 2) >= 4 ? "hexagon" : "triangle"),
       multiplayerEnabled: this.multiplayerEnabled,
       localPlayer: this.localPlayer,
       roomReady: this.roomReady,
@@ -512,7 +575,7 @@ export class GameController {
   _findNearestGridPoint(pixelX, pixelY) {
     const validPoints = this._validGridPoints?.length
       ? this._validGridPoints
-      : this._deriveValidPoints(this.engine.gridSize ?? this.options.engine.gridSize);
+      : this._deriveValidPoints(this.engine.gridSize ?? this.options.engine.gridSize, this.engine.playerCount, this.engine.boardShape);
 
     let nearestPoint = null;
     let nearestDistance = Number.POSITIVE_INFINITY;
@@ -534,14 +597,8 @@ export class GameController {
     return clonePoint(nearestPoint);
   }
 
-  _deriveValidPoints(gridSize) {
-    const points = [];
-    for (let y = 0; y < gridSize; y += 1) {
-      for (let x = 0; x < gridSize - y; x += 1) {
-        points.push([x, y]);
-      }
-    }
-    return points;
+  _deriveValidPoints(gridSize, playerCount = 2, boardShape = null) {
+    return getBoardPositions(gridSize, playerCount, boardShape);
   }
 
   _getInteractionLockReason(snapshot = this.engine.getSnapshot()) {
@@ -640,11 +697,20 @@ export class GameController {
   }
 
   _syncSnapshot(snapshot, { forceRender = false, scheduleTerritory = true } = {}) {
+    const preview = this._territoryPreview;
+    const renderTerritories = snapshot.territoryPending && preview?.engine === this.engine
+      && preview.positionRevision === snapshot.positionRevision
+      && preview.rulesVersion === snapshot.rulesVersion
+      && preview.currentPlayer === snapshot.currentPlayer
+      && preview.territoryStateRevision === this.engine.getTerritoryStateRevision()
+      ? preview.territories : null;
     this.renderer.render({
       ...snapshot,
+      renderTerritories,
       legalMoves: this.readOnlyMode ? [] : snapshot.legalMoves,
       renderEpoch: this._engineEpoch,
       lastAction: this._cloneLastAction(),
+      lastMoves: this._cloneLastMoves(),
       inspectionOverlay: this.inspectionOverlay,
     }, { force: forceRender });
     this._syncCanvasInteractivity(snapshot);
@@ -681,6 +747,17 @@ export class GameController {
       point: normalizedPoint,
       state: this._buildGameState(result.snapshot),
     };
+  }
+
+  _applyRootAction(type, point, actingPlayer = this.engine.getCurrentPlayer()) {
+    const normalizedPoint = clonePoint(point);
+    const result = this.engine.playRootAction(type, normalizedPoint);
+    if (result.success) {
+      this._setLastAction({ type: `root_${type}`, player: actingPlayer, point: normalizedPoint });
+      this._syncSnapshot(result.snapshot);
+    }
+    this._emitActionFeedback({ type: `root_${type}`, success: result.success, reason: result.reason, player: actingPlayer, point: normalizedPoint });
+    return { success: result.success, reason: result.reason, point: normalizedPoint, state: this._buildGameState(result.snapshot) };
   }
 
   _reportNetworkError(error) {
@@ -785,13 +862,14 @@ export class GameController {
     }
 
     const actingPlayer = this.engine.getCurrentPlayer();
+    const previousSkips = this.engine.consecutiveSkips;
     const result = this.engine.skipTurn();
     if (result.success) {
       this._setLastAction({
         type: "skip",
         player: actingPlayer,
         point: null,
-      });
+      }, previousSkips);
       this._syncSnapshot(result.snapshot);
     } else {
       this._reportNetworkError(new Error(`Remote skip could not be applied: ${result.reason}`));
@@ -850,9 +928,18 @@ export class GameController {
     // 联机重连后，在临时引擎上批量回放；只有完整成功才替换当前棋盘。
     const actions = Array.isArray(matchState?.actions) ? matchState.actions : [];
     const incomingSettings = matchState?.settings;
+    const previousOptions = { ...(this.options.engine ?? {}) };
+    if (incomingSettings && typeof incomingSettings === "object") {
+      delete previousOptions.initialPositions;
+      delete previousOptions.initialRoots;
+      delete previousOptions.startingPointMode;
+      delete previousOptions.rootMode;
+      delete previousOptions.rootRulesVersion;
+      delete previousOptions.boardShape;
+    }
     const nextEngineOptions = {
       ...DEFAULT_ENGINE_OPTIONS,
-      ...(this.options.engine ?? {}),
+      ...previousOptions,
       ...(incomingSettings && typeof incomingSettings === "object" ? incomingSettings : {}),
     };
 
@@ -879,6 +966,7 @@ export class GameController {
       candidateEngine = this._createEngine(nextEngineOptions);
       replayResult = candidateEngine.replayBatch((engine) => {
         let lastAction = null;
+        const lastMoves = {};
 
         for (let index = 0; index < actions.length; index += 1) {
           const action = actions[index];
@@ -909,11 +997,13 @@ export class GameController {
               player: actingPlayer,
               point: clonePoint(action.point),
             };
+            updateLastMoves(lastMoves, lastAction, engine);
             continue;
           }
 
           if (action.type === "player_skip") {
             const actingPlayer = engine.getCurrentPlayer();
+            const previousSkips = engine.consecutiveSkips;
             const result = engine.skipTurn();
             if (!result.success) {
               return {
@@ -926,6 +1016,18 @@ export class GameController {
               player: actingPlayer,
               point: null,
             };
+            updateLastMoves(lastMoves, lastAction, engine, previousSkips);
+            continue;
+          }
+
+          if (action.type === "player_root_relocate" || action.type === "player_root_add") {
+            if (!isGridPoint(action.point)) return { success: false, reason: `Replay root action ${index + 1} has an invalid point.` };
+            const actingPlayer = engine.getCurrentPlayer();
+            const type = action.type === "player_root_relocate" ? "relocate" : "add";
+            const result = engine.playRootAction(type, clonePoint(action.point));
+            if (!result.success) return { success: false, reason: `Replay root action ${index + 1} failed: ${result.reason}` };
+            lastAction = { type: `root_${type}`, player: actingPlayer, point: clonePoint(action.point) };
+            updateLastMoves(lastMoves, lastAction, engine);
             continue;
           }
 
@@ -948,6 +1050,8 @@ export class GameController {
               player: action.color,
               point: null,
             };
+            if (result.success) updateLastMoves(lastMoves, lastAction, engine);
+            else lastMoves[action.color] = null;
             continue;
           }
 
@@ -961,6 +1065,7 @@ export class GameController {
           success: true,
           reason: null,
           lastAction,
+          lastMoves,
         };
       });
     } catch (error) {
@@ -977,6 +1082,7 @@ export class GameController {
       validGridPoints: this._validGridPoints,
       engineEpoch: this._engineEpoch,
       lastAction: this._cloneLastAction(),
+      lastMoves: this._cloneLastMoves(),
     };
 
     try {
@@ -987,7 +1093,10 @@ export class GameController {
       this._engineEpoch += 1;
       this.setAuthoritativeSnapshotValid(true);
       this.renderer.invalidate();
-      this._setLastAction(replayResult.lastAction);
+      this.lastAction = replayResult.lastAction;
+      this.lastMoves = replayResult.lastMoves;
+      this._lastServerActionIndex = actions.reduce((maximum, action, index) =>
+        Math.max(maximum, Number.isInteger(action?.actionIndex) ? action.actionIndex : index + 1), 0);
       this._updateLargeBoardClass();
       this._syncSnapshot(replayResult.snapshot);
     } catch (error) {
@@ -995,7 +1104,9 @@ export class GameController {
       this.engine = previousControllerState.engine;
       this._validGridPoints = previousControllerState.validGridPoints;
       this._engineEpoch = previousControllerState.engineEpoch;
-      this._setLastAction(previousControllerState.lastAction);
+      this.lastAction = previousControllerState.lastAction;
+      this.lastMoves = previousControllerState.lastMoves;
+      this._lastServerActionIndex = previousControllerState.lastServerActionIndex;
       this._updateLargeBoardClass();
       const previousSnapshot = this.engine.getSnapshot();
       try {
@@ -1004,6 +1115,7 @@ export class GameController {
           ...previousSnapshot,
           renderEpoch: this._engineEpoch,
           lastAction: this._cloneLastAction(),
+          lastMoves: this._cloneLastMoves(),
           inspectionOverlay: this.inspectionOverlay,
         });
       } catch {
@@ -1030,13 +1142,14 @@ export class GameController {
     }
 
     const actingPlayer = this.engine.getCurrentPlayer();
+    const previousSkips = this.engine.consecutiveSkips;
     const result = this.engine.skipTurn();
     if (result.success) {
       this._setLastAction({
         type: "skip",
         player: actingPlayer,
         point: null,
-      });
+      }, previousSkips);
       this._syncSnapshot(result.snapshot);
     }
     this._emitActionFeedback({
@@ -1051,6 +1164,38 @@ export class GameController {
       reason: result.reason,
       state: this._buildGameState(result.snapshot),
     };
+  }
+
+  playRootAction(type, point) {
+    if (this.multiplayerEnabled) return { success: false, reason: "MULTIPLAYER_ROOT_ACTION_UNSUPPORTED", state: this.getGameState() };
+    if (!isGridPoint(point)) return { success: false, reason: "INVALID_ROOT_TARGET", state: this.getGameState() };
+    return this._applyRootAction(type, point);
+  }
+
+  applyRemoteRootAction(type, point) {
+    const recoveryLock = this._getRemoteRecoveryLock();
+    if (recoveryLock) return recoveryLock;
+    if (!isGridPoint(point)) return { success: false, reason: "INVALID_REMOTE_ROOT_ACTION", state: this.getGameState() };
+    return this._applyRootAction(type, point);
+  }
+
+  async requestRootAction(type, point) {
+    const lockReason = this._getInteractionLockReason();
+    const normalizedType = String(type ?? "").replace(/^root_/, "");
+    if (lockReason) return { success: false, reason: lockReason, state: this.getGameState() };
+    if (!isGridPoint(point) || !["relocate", "add"].includes(normalizedType)) {
+      return { success: false, reason: "INVALID_ROOT_TARGET", state: this.getGameState() };
+    }
+    if (!this.networkManager || typeof this.networkManager.sendRootAction !== "function") {
+      return { success: false, reason: "NETWORK_UNAVAILABLE", state: this.getGameState() };
+    }
+    try {
+      await this.networkManager.sendRootAction(normalizedType, point);
+      return { success: true, reason: null, state: this.getGameState() };
+    } catch (error) {
+      this._reportNetworkError(error);
+      return { success: false, reason: "NETWORK_ERROR", state: this.getGameState() };
+    }
   }
 
   async requestSkipTurn() {
@@ -1181,6 +1326,14 @@ export class GameController {
       }
     }
     this._networkUnsubscribers = [];
+  }
+
+  _acceptServerAction(payload) {
+    const actionIndex = payload?.actionIndex;
+    if (!Number.isInteger(actionIndex) || actionIndex < 1) return true;
+    if (actionIndex <= (this._lastServerActionIndex ?? 0)) return false;
+    this._lastServerActionIndex = actionIndex;
+    return true;
   }
 }
 

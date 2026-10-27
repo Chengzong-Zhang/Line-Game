@@ -67,9 +67,15 @@ export function drawBoardCabin(ui, area, state, actions) {
   pair(['shape-triangle', en ? 'Triangle' : '三角形棋盘', () => actions.shape('triangle'), onlineLocked, state.boardShape === 'triangle'],
     ['shape-hexagon', en ? 'Hexagon' : '六边形棋盘', () => actions.shape('hexagon'), onlineLocked, state.boardShape === 'hexagon']);
   slider('board-size', en ? 'Points per side' : '棋盘边长', state.size, 5, 15, x, y, area.width, actions.size, onlineLocked); y += 72;
+  pair(['root-classic', en ? 'Classic' : '经典模式', () => actions.rootMode('classic'), onlineLocked, state.rootMode === 'classic'],
+    ['root-fixed-double', en ? 'Two fixed roots' : '固定双起点', () => actions.rootMode('fixed-double'), onlineLocked || state.playerCount !== 2, state.rootMode === 'fixed-double']);
+  pair(['root-relocate', en ? 'Relocate root' : '迁移起点', () => actions.rootMode('relocate'), onlineLocked || state.playerCount !== 2, state.rootMode === 'relocate'],
+    ['root-add', en ? 'Add a root' : '增设起点', () => actions.rootMode('add'), onlineLocked || state.playerCount !== 2, state.rootMode === 'add']);
+  y += ui.wrap(en ? 'New root modes are two-player territory-v3 games. Relocate/Add each consume a full turn and are available once per player.'
+    : '新起点玩法仅支持双人 territory-v3；迁移/增设均消耗完整一回合，且每人每局一次。', x, y + 3, area.width, 13, CABIN_COLORS.muted, 3) + 12;
   pair(['starts-default', en ? 'Default roots' : '默认起点', () => actions.startingPoints('default'), onlineLocked, state.startingPointMode === 'default'],
     ['starts-random', en ? 'Random roots' : '随机起点', () => actions.startingPoints('random'), onlineLocked, state.startingPointMode === 'random']);
-  pair(['starts-custom', en ? 'Place starting nodes' : '自定义起点', () => actions.startingPoints('custom'), onlineLocked, state.startingPointMode === 'custom'],
+  pair(['starts-custom', en ? 'Place starting nodes' : '自定义起点', () => actions.startingPoints('custom'), onlineLocked || state.rootMode !== 'classic', state.startingPointMode === 'custom'],
     ['undo-enabled', `${en ? 'Undo' : '悔棋'} · ${state.playOptions.undoEnabled ? (en ? 'On' : '开') : (en ? 'Off' : '关')}`,
       () => actions.option('undoEnabled', !state.playOptions.undoEnabled), onlineLocked, state.playOptions.undoEnabled]);
   slider('undo-count', en ? 'Undos per match' : '每局悔棋次数', state.playOptions.undoMaxCount ?? 3, 1, 100, x, y, area.width,
