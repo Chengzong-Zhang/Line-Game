@@ -1,0 +1,5 @@
+{
+  "apiBase": "",
+  "onlineEnabled": false,
+  "workerTimeoutMs": 15000
+}
