@@ -68,22 +68,52 @@ test('portable frozen r4 fixture and v1 model are pinned; only explicit compatib
   assert.equal(sha(JSON.stringify(body)), payload.integrity.payload_sha256);
   assert.notEqual(sut.checksum(body).slice(7), payload.integrity.payload_sha256, 'Internal integrity is insertion-order JSON, not canonical JSON');
   const migrated = (await fs.readFile(path.join(frontend, 'HexPlayerAI.js'), 'utf8')).replace(/\r\n/g, '\n').split('\n').slice(3).join('\n');
+  const currentAIEngineImport = 'import { restoreState, saveState } from "./AIEngine.js?v=20261026-allplatform1";';
+  const frozenAIEngineImport = 'import { restoreState, saveState } from "./AIEngine.js?v=20261020-three1";';
+  assert.equal(migrated.split(currentAIEngineImport).length - 1, 1,
+    'the policy source may only advance its AIEngine cache key, not its imported API or algorithm');
+  const currentModelLoading = `let modelPromise = null;
+
+function modelUrl() {
+  if (typeof URL !== "function" || typeof import.meta.url !== "string") {
+    throw new Error("六边形 AI 资源仅可在支持模块 URL 的 Web 环境中加载。");
+  }
+  return new URL("./assets/research-ai/hex-player-policy-v1.json?v=20261025-room1", import.meta.url);
+}`;
+  const frozenModelPath = 'const MODEL_PATH = "./assets/research-ai/hex-player-policy-v1.json?v=20261021-hexai1";';
+  const frozenModelLoading = `${frozenModelPath}\nlet modelPromise = null;`;
+  assert.equal(migrated.split(currentModelLoading).length - 1, 1,
+    'the policy source may only defer model URL resolution through the declared current cache key');
+  assert.equal(migrated.split('export async function createHexPlayerModel(payload, hashText) {').length - 1, 1,
+    'the native Worker must retain the injected insertion-order integrity verifier');
+  const nativeIntegrityBridge = '  let hash;\n  if (hashText) hash = await hashText(JSON.stringify(body));\n  else {\n    if (!globalThis.crypto?.subtle) throw new Error("无法校验六边形 AI 模型完整性。");\n    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(body)));\n    hash = Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, "0")).join("");\n  }';
+  assert.equal(migrated.split(nativeIntegrityBridge).length - 1, 1,
+    'the native Worker integrity bridge must remain the declared insertion-order SHA-256 fallback');
+  assert.equal(migrated.split('const spec = JSON.parse(JSON.stringify(payload));').length - 1, 1,
+    'the native Worker must retain its JSON-only model clone');
   const v3CompatibilityGate = '!["territory-v2", "territory-v3"].includes(engine.rulesVersion)';
-  assert.equal(migrated.split(v3CompatibilityGate).length - 1, 1, 'the only hash-normalized source difference is the declared v3 compatibility gate');
-  const frozenPolicySource = migrated.replace(v3CompatibilityGate, 'engine.rulesVersion !== "territory-v2"');
+  assert.equal(migrated.split(v3CompatibilityGate).length - 1, 1, 'the policy source may only add the declared v3 compatibility gate');
+  const frozenPolicySource = migrated
+    .replace(currentAIEngineImport, frozenAIEngineImport)
+    .replace(currentModelLoading, frozenModelLoading)
+    .replace('const response = await fetch(modelUrl());', 'const response = await fetch(new URL(MODEL_PATH, import.meta.url));')
+    .replace(v3CompatibilityGate, 'engine.rulesVersion !== "territory-v2"');
   const restored = frozenPolicySource
-    .replace('const MODEL_PATH = "./assets/research-ai/hex-player-policy-v1.json?v=20261021-hexai1";', 'const MODEL_URL = new URL("./assets/research-ai/hex-player-policy-v1.json?v=20261021-hexai1", import.meta.url);')
+    .replace(frozenModelPath,
+      'const MODEL_URL = new URL("./assets/research-ai/hex-player-policy-v1.json?v=20261021-hexai1", import.meta.url);')
     .replace('export async function createHexPlayerModel(payload, hashText) {', 'export async function createHexPlayerModel(payload) {')
-    .replace('  let hash;\n  if (hashText) hash = await hashText(JSON.stringify(body));\n  else {\n    if (!globalThis.crypto?.subtle) throw new Error("无法校验六边形 AI 模型完整性。");\n    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(body)));\n    hash = Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, "0")).join("");\n  }',
+    .replace(nativeIntegrityBridge,
       '  if (!globalThis.crypto?.subtle) throw new Error("无法校验六边形 AI 模型完整性。");\n  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(body)));\n  const hash = Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, "0")).join("");')
     .replace('const spec = JSON.parse(JSON.stringify(payload));', 'const spec = structuredClone(payload);')
     .replace('const response = await fetch(new URL(MODEL_PATH, import.meta.url));', 'const response = await fetch(MODEL_URL);');
   assert.equal(sha(restored), fixture.provenance.algorithmNormalizedLfSha256);
-  const migratedEngine = (await fs.readFile(path.join(frontend, 'AIEngine.js'), 'utf8'))
-    .replace('./GameEngine.js?v=20261025-territory-render2', './GameEngine.js?v=20261020-three1')
-    .replace(/\r?\n          \.\.\.\(Array\.isArray\(territory\.renderPoints\)\r?\n            \? \{ renderPoints: territory\.renderPoints\.map\(\(point\) => \[\.\.\.point\]\) \}\r?\n            : \{\}\),/, '');
-  assert.equal(sha(migratedEngine), fixture.provenance.sourceSha256['AIEngine.js'],
-    'Whole AIEngine differs only by cache identity and detached V3 render-point snapshots');
+  // HexPlayerAI deliberately imports only these two transactional helpers.
+  // AIEngine itself now also owns topology/root-v2/Minimax work, so its whole
+  // file hash is not policy provenance. The frozen 45-position loop below
+  // verifies the imported helpers through every policy speculation/rollback.
+  const aiEngineSource = await fs.readFile(path.join(frontend, 'AIEngine.js'), 'utf8');
+  assert.match(aiEngineSource, /export \{[^}]*\bsaveState\b[^}]*\brestoreState\b[^}]*\};/,
+    'HexPlayerAI requires the explicit transactional helper exports');
   assert.equal(fixture.positions.length, 45);
   const expectedIds = [4, 5, 6].flatMap(count => [5, 7, 15].flatMap(size => sut.playerIds(count).map(player => `${count}/${size}/${player}`)));
   assert.deepEqual(fixture.positions.map(p => `${p.settings.playerCount}/${p.settings.gridSize}/${p.player}`).sort(), expectedIds.sort());

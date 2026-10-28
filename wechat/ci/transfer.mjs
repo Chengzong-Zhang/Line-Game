@@ -8,6 +8,7 @@ import { verifyCandidate } from '../minigame/tools/prepare-candidate.mjs';
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const requireCondition = (value, code) => { if (!value) throw Object.assign(new Error(code), { code }); };
 const digest = data => createHash('sha256').update(data).digest('hex');
+const SUPPORTED_RULES_VERSIONS = Object.freeze(['territory-v2', 'territory-v3', 'surface-v1']);
 const within = (parent, file) => {
   const relative = path.relative(parent, file);
   return relative === '' || (!relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative));
@@ -31,7 +32,7 @@ export async function planTransfer({ candidateDirectory, action = 'plan', robot 
   const candidate = await verifyCandidate(directory);
   requireCondition(typeof online === 'boolean', 'INVALID_ONLINE_OPTION');
   requireCondition(/^\d+\.\d+\.\d+$/.test(candidate.version)
-    && ['territory-v2', 'territory-v3'].includes(candidate.rulesVersion), 'INVALID_CANDIDATE');
+    && SUPPORTED_RULES_VERSIONS.includes(candidate.rulesVersion), 'INVALID_CANDIDATE');
   const profile = candidate.schemaVersion >= 4 ? candidate.profile : 'offline';
   // The candidate has already passed its frozen receipt and package checks.
   // Report the missing explicit transfer opt-in before rechecking the editor
@@ -50,7 +51,7 @@ export async function planTransfer({ candidateDirectory, action = 'plan', robot 
     status: 'PLAN_ONLY_NO_KEY_READ_NO_NETWORK', action, candidateDirectory: directory, projectPath,
     candidateId: candidate.candidateId, candidateReceiptSha256: digest(await fs.readFile(path.join(directory, 'candidate.json'))),
     appid: project.appid, type: 'miniGame', version: candidate.version,
-    profile, apiBase: candidate.config.apiBase,
+    profile, apiBase: candidate.config.apiBase, supportedRulesVersions: candidate.supportedRulesVersions ?? [candidate.rulesVersion],
     serviceConnectivity: 'NOT_VERIFIED', actualWechatLogin: 'NOT_VERIFIED',
     description: candidate.uploadDescription, robot, baseLibrary: candidate.baseLibrary,
     packageBytes: candidate.packageBytes, files: candidate.files,

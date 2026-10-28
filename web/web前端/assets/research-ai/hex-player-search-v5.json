@@ -1,0 +1,80 @@
+{
+  "schema": {
+    "name": "lifeline-hex-player-search",
+    "version": 5
+  },
+  "id": "hex-player-search-v5",
+  "rules_version": "territory-v2",
+  "features": [
+    "own_nodes",
+    "own_coverage",
+    "own_reach",
+    "node_lead",
+    "coverage_lead",
+    "reach_lead",
+    "captured_nodes",
+    "captured_coverage",
+    "own_node_gain",
+    "own_coverage_gain",
+    "attack",
+    "own_line",
+    "distance_from_home",
+    "centrality",
+    "own_frontier",
+    "opponent_frontier_lead"
+  ],
+  "weights": [
+    8.135268971555845E-17,
+    0.9377629018413943,
+    0.3626223678237569,
+    0.08817486873394614,
+    1.3399195234521817,
+    2.431764273936774,
+    0.08455189306792454,
+    0.3744258540418652,
+    2.9506074066088154E-17,
+    0.9377629018413944,
+    1.95992123518648,
+    -1.301018018616623,
+    4.354269287868578,
+    1.6412211056729025,
+    0.630816620720099,
+    0.8803912980895015
+  ],
+  "temperature": 1,
+  "parent": {
+    "id": "hex-player-policy-v1",
+    "sha256": "74aa7f945c3ea7ff5ca3edc9e7bdc431dc0ec5ad56d2563ce6d6d24c0494162b",
+    "payload_sha256": "7128fb612fdc301a673074d8f3ca13664c30c367f95f0d14fb27aa1c80fa533a"
+  },
+  "browser_inference": {
+    "player_counts": [
+      4,
+      5,
+      6
+    ],
+    "board_size_range": [
+      5,
+      15
+    ],
+    "search_board_sizes": [
+      5,
+      7
+    ],
+    "other_sizes": "v1-fallback"
+  },
+  "search": {
+    "rootWidth": 2,
+    "maxBoardSize": 7,
+    "maxResponsePlies": 5,
+    "priorWindow": 0.4,
+    "lowLegalThreshold": 6,
+    "connectionGainThreshold": 3,
+    "minimumImprovement": 0.03,
+    "coverageWeight": 0.3,
+    "reachWeight": 0.7,
+    "valueTemperature": 0.15,
+    "leafEvaluation": "reach-coverage-v1"
+  },
+  "evidence": "Unassessed v5 local candidate; new leaf heuristic requires new evaluation; no new gradient updates or promotion."
+}

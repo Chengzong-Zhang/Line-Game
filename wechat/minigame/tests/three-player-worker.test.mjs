@@ -56,13 +56,41 @@ test('frozen r4 algorithm/model provenance and canonical integrity are pinned wi
   assert.equal(THREE_PLAYER_MODEL_CHECKSUM, fixture.provenance.modelCanonicalSha256);
   assert.equal(THREE_PLAYER_PROFILE, modelPayload.id);
   const migrated = (await fs.readFile(path.join(copied, 'ThreePlayerAI.js'), 'utf8')).replace(/\r\n/g, '\n').split('\n').slice(3).join('\n');
+  const currentAIEngineImport = 'import { fastTerritoryBFS, restoreState, saveState } from "./AIEngine.js?v=20261026-allplatform1";';
+  const frozenAIEngineImport = 'import { fastTerritoryBFS, restoreState, saveState } from "./AIEngine.js?v=20261020-three1";';
+  assert.equal(migrated.split(currentAIEngineImport).length - 1, 1,
+    'the policy source may only advance its AIEngine cache key, not its imported API or algorithm');
+  const portableCloneImport = 'import { portableClone } from "./PortableClone.js";\n';
+  assert.equal(migrated.split(portableCloneImport).length - 1, 1,
+    'the native Worker compatibility delta must use the declared portable model clone');
+  const currentModelLoading = `let modelPromise = null;
+
+function modelUrl() {
+  if (typeof URL !== "function" || typeof import.meta.url !== "string") {
+    throw new Error("三人 AI 资源仅可在支持模块 URL 的 Web 环境中加载。");
+  }
+  return new URL("./assets/research-ai/three-player-policy-v1.json?v=20261025-room1", import.meta.url);
+}`;
+  const frozenModelPath = 'const MODEL_PATH = "./assets/research-ai/three-player-policy-v1.json?v=20261020-three1";';
+  const frozenModelLoading = `${frozenModelPath}\nlet modelPromise = null;`;
+  assert.equal(migrated.split(currentModelLoading).length - 1, 1,
+    'the policy source may only defer model URL resolution through the declared current cache key');
+  assert.equal(migrated.split('const spec = portableClone(payload);').length - 1, 1,
+    'the native Worker compatibility delta must clone the frozen model without a native structuredClone');
+  assert.equal(migrated.split('const response = await fetch(modelUrl());').length - 1, 1,
+    'the policy source may only use the declared deferred model URL resolver');
   const v3CompatibilityGate = '!["territory-v2", "territory-v3"].includes(engine.rulesVersion)';
   assert.equal(migrated.split(v3CompatibilityGate).length - 1, 1, 'the only hash-normalized source difference is the declared v3 compatibility gate');
-  const frozenPolicySource = migrated.replace(v3CompatibilityGate, 'engine.rulesVersion !== "territory-v2"');
+  const frozenPolicySource = migrated
+    .replace(currentAIEngineImport, frozenAIEngineImport)
+    .replace(portableCloneImport, '')
+    .replace(currentModelLoading, frozenModelLoading)
+    .replace('const response = await fetch(modelUrl());', 'const response = await fetch(new URL(MODEL_PATH, import.meta.url));')
+    .replace('const spec = portableClone(payload);', 'const spec = structuredClone(payload);')
+    .replace(v3CompatibilityGate, 'engine.rulesVersion !== "territory-v2"');
   const restoredOriginal = frozenPolicySource
-    .replace('const MODEL_PATH = "./assets/research-ai/three-player-policy-v1.json?v=20261020-three1";',
+    .replace(frozenModelPath,
       'const MODEL_URL = new URL("./assets/research-ai/three-player-policy-v1.json?v=20261020-three1", import.meta.url);')
-    .replace('const spec = JSON.parse(JSON.stringify(payload));', 'const spec = structuredClone(payload);')
     .replace('const response = await fetch(new URL(MODEL_PATH, import.meta.url));', 'const response = await fetch(MODEL_URL);');
   assert.equal(sha256(restoredOriginal), fixture.provenance.algorithmNormalizedLfSha256,
     'only the declared compatibility substitutions may differ from deployed policy source');

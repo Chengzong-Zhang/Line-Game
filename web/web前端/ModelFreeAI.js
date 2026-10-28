@@ -94,7 +94,9 @@ class ModelFreeModel {
   }
   evaluate(engine) {
     const { state, legal } = encode(engine); const logits = this.logits(state); const max = Math.max(...legal.map((index) => logits[index])); const exp = legal.map((index) => Math.exp(logits[index] - max)); const total = exp.reduce((sum, value) => sum + value, 0);
-    return { priors: legal.filter((index) => index < engine.validPositions.length).map((index, order) => ({ point: [...engine.validPositions[index]], prior: exp[order] / total })) };
+    return { priors: legal.map((index, order) => index < engine.validPositions.length
+      ? { type: "move", point: [...engine.validPositions[index]], actionIndex: index, prior: exp[order] / total }
+      : { type: "pass", point: null, actionIndex: engine.validPositions.length, prior: exp[order] / total }) };
   }
 }
 

@@ -4,11 +4,12 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import vm from 'node:vm';
 import { createHash } from 'node:crypto';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { build } from 'esbuild';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const repo = path.resolve(root, '../..'), webRoot = path.join(repo, 'web/web前端');
+const webRuntimeUrl = pathToFileURL(path.join(webRoot, '__wechat_test_runtime__.mjs')).href;
 const plain = value => JSON.parse(JSON.stringify(value));
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const queries = { name: 'strip-query', setup(b) {
@@ -16,7 +17,7 @@ const queries = { name: 'strip-query', setup(b) {
 } };
 const exported = ['core', 'state', 'integrity', 'controllers', 'model-catalog', 'three-player-ai', 'hex-player-ai'];
 const bundled = await build({ stdin: { contents: exported.map(name => `export * from './src/${name}.js';`).join('\n'), resolveDir: root },
-  bundle: true, write: false, format: 'esm', platform: 'node', plugins: [queries], logLevel: 'silent' });
+  bundle: true, write: false, format: 'esm', platform: 'node', define: { 'import.meta.url': JSON.stringify(webRuntimeUrl) }, plugins: [queries], logLevel: 'silent' });
 const sut = await import(`data:text/javascript;base64,${Buffer.from(bundled.outputFiles[0].text).toString('base64')}`);
 const profiles = ['three-player-policy-v1', 'three-player-policy-v2', 'three-player-search-v4-round12', 'hex-player-policy-v1', 'hex-player-search-v5'];
 const multiplayerLevels = ['multiplayer-easy-v1', 'multiplayer-medium-v1', 'multiplayer-hard-v1'];

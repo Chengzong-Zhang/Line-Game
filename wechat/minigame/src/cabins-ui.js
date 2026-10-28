@@ -66,6 +66,8 @@ export function drawBoardCabin(ui, area, state, actions) {
   const onlineLocked = state.online && !state.canEditOnline;
   pair(['shape-triangle', en ? 'Triangle' : '三角形棋盘', () => actions.shape('triangle'), onlineLocked, state.boardShape === 'triangle'],
     ['shape-hexagon', en ? 'Hexagon' : '六边形棋盘', () => actions.shape('hexagon'), onlineLocked, state.boardShape === 'hexagon']);
+  pair(['topology-setup', en ? 'Topology boards' : '拓扑棋盘', actions.topology,
+    onlineLocked || typeof actions.topology !== 'function']);
   slider('board-size', en ? 'Points per side' : '棋盘边长', state.size, 5, 15, x, y, area.width, actions.size, onlineLocked); y += 72;
   pair(['root-classic', en ? 'Classic' : '经典模式', () => actions.rootMode('classic'), onlineLocked, state.rootMode === 'classic'],
     ['root-fixed-double', en ? 'Two fixed roots' : '固定双起点', () => actions.rootMode('fixed-double'), onlineLocked || state.playerCount !== 2, state.rootMode === 'fixed-double']);

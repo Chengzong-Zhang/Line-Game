@@ -2,9 +2,9 @@ import { multiplayerClock as performance } from "./MultiplayerClock.js";
 // Experimental policy improvement: selfish opponent rollouts and canonical area.
 // Candidate ordering never removes legal roots. Hard publishes complete sweeps;
 // the opt-in mode can publish fully evaluated improvements within a sweep.
-import { GameEngine } from "./GameEngine.js";
-import { saveState, restoreState } from "./AIEngine.js";
-import { isolatedSearchEngine, potentialMoves, multiplayerMetrics, multiplayerMoveFeatures } from "./MultiplayerSearch.js";
+import { GameEngine } from "./GameEngine.js?v=20261026-allplatform1";
+import { saveState, restoreState } from "./AIEngine.js?v=20261026-allplatform1";
+import { isolatedSearchEngine, multiplayerMetrics, visitPolicyCandidates } from "./MultiplayerSearch.js?v=20261026-allplatform1";
 
 const DEADLINE = Symbol("multiplayer rollout budget");
 const key = point => point === null ? "PASS" : point.join(",");
@@ -77,28 +77,18 @@ export class MultiplayerRolloutAI {
     const apply = point => point === null ? engine.skipTurn() : engine.playMove(point);
     const prior = point => this.rootPriors?.get(key(point)) ?? 0;
     const policyActions = (score, ensureOne = false) => {
-      const actor = engine.currentPlayer, before = multiplayerMetrics(engine), candidates = [];
-      const autoSkip = engine._checkAndAutoSkip;
-      engine._checkAndAutoSkip = () => {};
-      try {
-        for (const point of potentialMoves(engine, actor)) {
-          // Without a supplied fallback, establish one legal move first.
-          if (!ensureOne || candidates.length) check();
-          const previous = engine._getState(point), saved = branch(engine);
-          try {
-            stats.policyCandidates++;
-            if (!engine.playMove(point).success) continue;
-            const features = multiplayerMoveFeatures(engine, actor, point, before, multiplayerMetrics(engine), previous);
-            const value = score(features);
-            if (!Number.isFinite(value)) throw new Error("Nonfinite rollout policy score");
-            candidates.push({ point: [...point], baseScore: value });
-            if (ensureOne && (!fallback.length || value > fallback[0].score
-              || (value === fallback[0].score && order({ point }, fallback[0]) < 0))) {
-              fallback = [{ type: "move", point: [...point], score: value, baseScore: value, visits: 1 }];
-            }
-          } finally { rollback(engine, saved); }
-        }
-      } finally { engine._checkAndAutoSkip = autoSkip; }
+      const actor = engine.currentPlayer, candidates = [];
+      visitPolicyCandidates(engine, actor, candidate => {
+        const value = score(candidate.features), point = candidate.point;
+        if (!Number.isFinite(value)) throw new Error("Nonfinite rollout policy score");
+        candidates.push({ point, baseScore: value });
+        if (ensureOne && (!fallback.length || value > fallback[0].score
+          || (value === fallback[0].score && order({ point }, fallback[0]) < 0)))
+          fallback = [{ type: "move", point: [...point], score: value, baseScore: value, visits: 1 }];
+      }, { beforeCandidate: () => {
+        if (!ensureOne || candidates.length) check();
+        stats.policyCandidates++;
+      } });
       return candidates.sort((a, b) => b.baseScore - a.baseScore || order(a, b));
     };
     const canonicalCache = new Map();
@@ -159,12 +149,28 @@ export class MultiplayerRolloutAI {
         stats.fallbackMs = performance.now() - fallbackStarted;
         stats.fallbackBudgetExceeded = performance.now() >= deadline;
         if (!fallback.length && !engine.getLegalMoves(player).length) fallback = [{ type: "pass", point: null, score: 0 }];
-        const seen = new Set();
-        for (const move of completeLinearRanking ?? fallback) {
-          if (!(move.point === null || engine._evaluateMove(move.point, player).legal)) throw new Error("Illegal fallback policy action");
-          if (completeLinearRanking) {
-            if (move.point === null || !Number.isFinite(move.score) || seen.has(key(move.point))) throw new Error("Invalid complete linear ranking");
+        // Check the complete cheap ranking contract even when the time budget
+        // has elapsed. The native check below always covers every returnable
+        // fallback; unreturned roots are checked only if search can continue.
+        if (completeLinearRanking) {
+          const seen = new Set();
+          for (const move of completeLinearRanking) {
+            if (move.point === null || !Number.isFinite(move.score) || seen.has(key(move.point)))
+              throw new Error("Invalid complete linear ranking");
             seen.add(key(move.point));
+          }
+        }
+        const validationNodes = engine._getPlayerNodes(player), validationHashOrder = engine._getStateHashOrder();
+        for (const move of fallback) {
+          if (!(move.point === null || engine._evaluateMove(move.point, player, validationNodes, validationHashOrder).legal))
+            throw new Error("Illegal fallback policy action");
+        }
+        check();
+        if (completeLinearRanking) {
+          for (let index = fallback.length; index < completeLinearRanking.length; index++) {
+            check();
+            if (!engine._evaluateMove(completeLinearRanking[index].point, player, validationNodes, validationHashOrder).legal)
+              throw new Error("Illegal fallback policy action");
           }
         }
         check();

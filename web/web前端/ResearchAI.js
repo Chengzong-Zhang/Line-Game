@@ -1,11 +1,21 @@
-import { saveState, restoreState } from "./AIEngine.js?v=20261020-three1";
-import { GameEngine } from "./GameEngine.js?v=20261020-three1";
+import { saveState, restoreState } from "./AIEngine.js?v=20261026-allplatform1";
+import { GameEngine } from "./GameEngine.js?v=20261026-allplatform1";
 
 const FEATURE_COUNT = 11;
 const EPSILON = 1e-5;
 const DEFAULT_WEB_INFERENCE_BOARD_SIZE_RANGE = Object.freeze([5, 15]);
 let manifestPromise = null;
 const modelPromises = new Map();
+
+// The Mini Game reuses the scoring/model classes with embedded model bytes in
+// a Worker where URL is intentionally unavailable.  Do not resolve Web-only
+// assets while the module is loaded; only the browser fetch path needs them.
+function researchAssetUrl(path) {
+  if (typeof URL !== "function" || typeof import.meta.url !== "string") {
+    throw new Error("研究模型资源仅可在支持模块 URL 的 Web 环境中加载。");
+  }
+  return new URL(path, import.meta.url);
+}
 
 function keyFor(point) {
   return `${point[0]},${point[1]}`;
@@ -25,7 +35,6 @@ export function supportsResearchInference(spec, engine) {
   // not evidence of strength or calibration under the new terminal score.
   const [minimumSize, maximumSize] = webInferenceBoardSizeRange(spec);
   return engine?.playerCount === 2
-    && (!engine.rootMode || engine.rootMode === "classic")
     && Number.isInteger(engine?.gridSize)
     && engine.gridSize >= minimumSize
     && engine.gridSize <= maximumSize
@@ -105,8 +114,6 @@ async function digestHex(buffer) {
 
 export async function loadResearchManifest() {
   if (!manifestPromise) {
-    const manifestUrl = new URL("./assets/research-ai/manifest.json", import.meta.url);
-    const transferManifestUrl = new URL("./assets/research-ai/transfer-v1/manifest.json", import.meta.url);
     const readManifest = async (url) => {
       const response = await fetch(url);
       if (!response.ok) throw new Error(`无法加载研究模型清单（HTTP ${response.status}）。`);
@@ -117,7 +124,10 @@ export async function loadResearchManifest() {
       }
       return manifest;
     };
-    manifestPromise = Promise.all([readManifest(manifestUrl), readManifest(transferManifestUrl)]).then(([legacy, transfer]) => {
+    manifestPromise = Promise.all([
+      readManifest(researchAssetUrl("./assets/research-ai/manifest.json")),
+      readManifest(researchAssetUrl("./assets/research-ai/transfer-v1/manifest.json")),
+    ]).then(([legacy, transfer]) => {
       const models = [...legacy.models, ...transfer.models];
       if (new Set(models.map((spec) => spec.id)).size !== models.length) throw new Error("研究模型 ID 重复。");
       return { ...legacy, models, default_seed: transfer.default_seed, default_selection_basis: transfer.default_selection_basis };
@@ -132,7 +142,7 @@ export async function loadResearchModel(id) {
       const manifest = await loadResearchManifest();
       const spec = manifest.models.find((candidate) => candidate.id === id);
       if (!spec) throw new Error(`未找到研究模型：${id}`);
-      const response = await fetch(new URL(`./assets/research-ai/${spec.asset}`, import.meta.url));
+      const response = await fetch(researchAssetUrl(`./assets/research-ai/${spec.asset}`));
       if (!response.ok) throw new Error(`无法加载 ${spec.label} 权重（HTTP ${response.status}）。`);
       const raw = await response.arrayBuffer();
       const actualHash = await digestHex(raw);

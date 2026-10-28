@@ -1,4 +1,25 @@
 ﻿const DEFAULT_GRID_SIZE = 9;
+// The quotient-board runtime is deliberately registered instead of imported:
+// legacy data-URL probes must remain able to load this module without a
+// relative-module resolver, while product entries load TopologyGameEngine
+// before constructing a custom board.
+const TOPOLOGY_GAME_ENGINE_FACTORY = Symbol.for("lifeline.topology-game-engine-factory.v1");
+export const TOPOLOGY_ROOT_MODE_UNSUPPORTED = "TOPOLOGY_ROOT_MODE_UNSUPPORTED";
+
+function topologyRootModeUnsupportedError() {
+  const error = new Error("Topology boards currently support only classic root-v1 mode without initialRoots.");
+  error.code = TOPOLOGY_ROOT_MODE_UNSUPPORTED;
+  return error;
+}
+
+function getTopologyGameEngineFactory() {
+  const factory = globalThis[TOPOLOGY_GAME_ENGINE_FACTORY];
+  if (typeof factory !== "function") {
+    throw new Error("Topology board support is unavailable. Load TopologyGameEngine.js before creating a topology board.");
+  }
+  return factory;
+}
+
 const MIN_GRID_SIZE = 5;
 const MAX_GRID_SIZE = 15;
 
@@ -8,6 +29,9 @@ export const TerritoryRulesVersion = Object.freeze({
   V3: "territory-v3",
 });
 
+// Root identity is deliberately versioned independently of territory scoring.
+// Classic games retain their historical single-root state/hash representation;
+// root-v2 enables the bounded multi-root modes on legacy coordinate boards.
 export const RootRulesVersion = Object.freeze({
   V1: "root-v1",
   V2: "root-v2",
@@ -23,7 +47,23 @@ export const RootMode = Object.freeze({
 const SUPPORTED_ROOT_MODES = new Set(Object.values(RootMode));
 const SUPPORTED_ROOT_RULES = new Set(Object.values(RootRulesVersion));
 
+// Surface rules are only valid with a compiled topology board. Keeping this
+// separate from the legacy territory enum preserves callers that enumerate it
+// to build triangle/hexagon matches.
+export const TopologyRulesVersion = Object.freeze({
+  SURFACE_V1: "surface-v1",
+});
+
 const SUPPORTED_TERRITORY_RULES = new Set(Object.values(TerritoryRulesVersion));
+
+export const BOARD_SHAPES = Object.freeze(["triangle", "diamond", "hexagon"]);
+
+export const StartProtectionRule = Object.freeze({
+  SYMMETRIC: "symmetric-v1",
+  DUEL_FIRST_UNPROTECTED: "duel-first-unprotected-v1",
+});
+
+const SUPPORTED_START_PROTECTION_RULES = new Set(Object.values(StartProtectionRule));
 
 // Triangular coordinates are barycentric triples (x, y, z) with
 // z = gridSize - 1 - x - y. Every D3 board symmetry is a permutation of
@@ -37,6 +77,16 @@ const BARYCENTRIC_TRANSFORMS = Object.freeze({
   CYCLE_XZY: Object.freeze([2, 0, 1]),
 });
 
+// A diamond is the axial square 0 <= x,y <= r. In the renderer's triangular
+// lattice projection it is exactly two equilateral triangles joined base to
+// base. Its four D2 symmetries are all self-inverse.
+const DIAMOND_TRANSFORMS = Object.freeze({
+  IDENTITY: "identity",
+  SWAP_XY: "swap-xy",
+  ROTATE_180: "rotate-180",
+  SWAP_ANTI_DIAGONAL: "swap-anti-diagonal",
+});
+
 // GameEngine 鍙叧蹇冭鍒欑姸鎬侊紝涓嶅叧蹇?Canvas銆乂ue 鎴?WebSocket銆?// 鍙屼汉/涓変汉妯″紡鐨勫樊寮備富瑕佷綋鐜板湪鐜╁鏋氫妇銆佸垵濮嬭惤鐐瑰拰杞崲椤哄簭涓婏紝
 // 杈圭晫銆侀潰绉€佺鎾炵瓑鍑犱綍閫昏緫灏介噺淇濇寔涓庣帺瀹舵暟閲忚В鑰︺€?
 export const Player = Object.freeze({
@@ -46,6 +96,8 @@ export const Player = Object.freeze({
   GREEN: "GREEN",
   ORANGE: "ORANGE",
   CYAN: "CYAN",
+  PINK: "PINK", BROWN: "BROWN", LIME: "LIME", NAVY: "NAVY", GOLD: "GOLD",
+  TEAL: "TEAL", MAGENTA: "MAGENTA", SLATE: "SLATE", CORAL: "CORAL",
 });
 
 export const PointState = Object.freeze({
@@ -62,10 +114,21 @@ export const PointState = Object.freeze({
   ORANGE_LINE: 10,
   CYAN_NODE: 11,
   CYAN_LINE: 12,
+  PINK_NODE: 13, PINK_LINE: 14,
+  BROWN_NODE: 15, BROWN_LINE: 16,
+  LIME_NODE: 17, LIME_LINE: 18,
+  NAVY_NODE: 19, NAVY_LINE: 20,
+  GOLD_NODE: 21, GOLD_LINE: 22,
+  TEAL_NODE: 23, TEAL_LINE: 24,
+  MAGENTA_NODE: 25, MAGENTA_LINE: 26,
+  SLATE_NODE: 27, SLATE_LINE: 28,
+  CORAL_NODE: 29, CORAL_LINE: 30,
 });
 
 export const PLAYER_ORDER = Object.freeze([
   Player.BLACK, Player.WHITE, Player.PURPLE, Player.GREEN, Player.ORANGE, Player.CYAN,
+  Player.PINK, Player.BROWN, Player.LIME, Player.NAVY, Player.GOLD,
+  Player.TEAL, Player.MAGENTA, Player.SLATE, Player.CORAL,
 ]);
 const DIRECTIONS = Object.freeze([
   [1, 0],
@@ -80,6 +143,9 @@ const DIRECTIONS = Object.freeze([
 const DIRS_CW = Object.freeze([[1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1], [1, -1]]);
 
 const PLAYER_POINT_STATES = Object.freeze({
+  ...Object.fromEntries(PLAYER_ORDER.map(player => [player, Object.freeze({
+    node: PointState[`${player}_NODE`], line: PointState[`${player}_LINE`],
+  })])),
   [Player.BLACK]: Object.freeze({
     node: PointState.BLACK_NODE,
     line: PointState.BLACK_LINE,
@@ -110,15 +176,16 @@ const PLAYER_POINT_STATES = Object.freeze({
  *  gridSize is the number of lattice points along each board side. */
 export function resolveBoardShape(playerCount = 2, boardShape = null) {
   const shape = boardShape ?? (playerCount >= 4 ? "hexagon" : "triangle");
-  if (!["triangle", "hexagon"].includes(shape)) throw new Error("Unknown board shape.");
+  if (!BOARD_SHAPES.includes(shape)) throw new Error("Unknown board shape.");
   return shape;
 }
 
 export function getBoardVertices(gridSize, playerCount = 2, boardShape = null) {
   const r = gridSize - 1;
-  return resolveBoardShape(playerCount, boardShape) === "hexagon"
-    ? [[r, 0], [2 * r, 0], [2 * r, r], [r, 2 * r], [0, 2 * r], [0, r]]
-    : [[0, 0], [r, 0], [0, r]];
+  const shape = resolveBoardShape(playerCount, boardShape);
+  if (shape === "hexagon") return [[r, 0], [2 * r, 0], [2 * r, r], [r, 2 * r], [0, 2 * r], [0, r]];
+  if (shape === "diamond") return [[0, 0], [r, 0], [r, r], [0, r]];
+  return [[0, 0], [r, 0], [0, r]];
 }
 
 export function isBoardPoint(point, gridSize, playerCount = 2, boardShape = null) {
@@ -126,9 +193,10 @@ export function isBoardPoint(point, gridSize, playerCount = 2, boardShape = null
   const y = point?.[1];
   if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0) return false;
   const r = gridSize - 1;
-  return resolveBoardShape(playerCount, boardShape) === "hexagon"
-    ? x <= 2 * r && y <= 2 * r && x + y >= r && x + y <= 3 * r
-    : x + y <= r;
+  const shape = resolveBoardShape(playerCount, boardShape);
+  if (shape === "hexagon") return x <= 2 * r && y <= 2 * r && x + y >= r && x + y <= 3 * r;
+  if (shape === "diamond") return x <= r && y <= r;
+  return x + y <= r;
 }
 
 export function getBoardPositions(gridSize, playerCount = 2, boardShape = null) {
@@ -143,7 +211,17 @@ export function getBoardPositions(gridSize, playerCount = 2, boardShape = null) 
 }
 
 function buildInitialPositions(gridSize, playerCount, boardShape = null) {
-  if (resolveBoardShape(playerCount, boardShape) === "hexagon") {
+  if (playerCount > 6) throw new Error("7-15 players require random or custom starting points.");
+  const shape = resolveBoardShape(playerCount, boardShape);
+  if (shape === "diamond") {
+    if (playerCount !== 2) throw new Error("Diamond boards with 3-15 players require random or custom starting points.");
+    const r = gridSize - 1;
+    return Object.freeze({
+      [Player.BLACK]: Object.freeze([0, 0]),
+      [Player.WHITE]: Object.freeze([r, r]),
+    });
+  }
+  if (shape === "hexagon") {
     const vertices = getBoardVertices(gridSize, playerCount, "hexagon");
     const occupiedVertices = playerCount === 2 ? [0, 3] : playerCount === 3 ? [0, 2, 4]
       : playerCount === 4 ? [0, 1, 3, 4] : [0, 1, 2, 3, 4, 5];
@@ -213,10 +291,12 @@ function buildDefaultDoubleRoots(gridSize, playerCount, boardShape = null) {
   const primary = buildInitialPositions(gridSize, playerCount, shape);
   const [blackPrimary, whitePrimary] = [primary[Player.BLACK], primary[Player.WHITE]];
   const positions = getBoardPositions(gridSize, playerCount, shape);
-  const r = gridSize - 1;
+  const radius = gridSize - 1;
   const mirror = shape === "triangle"
-    ? ([x, y]) => [r - x - y, y]
-    : ([x, y]) => [2 * r - x, 2 * r - y];
+    ? ([x, y]) => [radius - x - y, y]
+    : shape === "diamond"
+      ? ([x, y]) => [radius - x, radius - y]
+      : ([x, y]) => [2 * radius - x, 2 * radius - y];
   const candidates = [];
   for (const point of positions) {
     const other = mirror(point);
@@ -227,7 +307,7 @@ function buildDefaultDoubleRoots(gridSize, playerCount, boardShape = null) {
     if ([blackPrimary, point].some((own) => [whitePrimary, other].some((enemy) => latticeDistance(own, enemy) <= 1))) continue;
     const ownDistance = Math.min(latticeDistance(blackPrimary, point), latticeDistance(whitePrimary, other));
     const enemyDistance = Math.min(...[blackPrimary, point].flatMap((own) => [whitePrimary, other].map((enemy) => latticeDistance(own, enemy))));
-    candidates.push({ point, other, score: ownDistance * 100 + enemyDistance * 10 - Math.abs(point[1] - r / 2) });
+    candidates.push({ point, other, score: ownDistance * 100 + enemyDistance * 10 - Math.abs(point[1] - radius / 2) });
   }
   candidates.sort((a, b) => b.score - a.score || a.point[1] - b.point[1] || a.point[0] - b.point[0]);
   if (!candidates.length) throw new Error("No valid fixed-double layout exists for this board.");
@@ -237,7 +317,8 @@ function buildDefaultDoubleRoots(gridSize, playerCount, boardShape = null) {
   };
 }
 
-export function resolveInitialRoots(gridSize, playerCount, roots = null, boardShape = null, rootMode = RootMode.CLASSIC, legacyPositions = null) {
+export function resolveInitialRoots(gridSize, playerCount, roots = null, boardShape = null,
+  rootMode = RootMode.CLASSIC, legacyPositions = null) {
   if (!SUPPORTED_ROOT_MODES.has(rootMode)) throw new Error(`Unsupported root mode: ${rootMode}`);
   const players = PLAYER_ORDER.slice(0, playerCount);
   const expectedCount = rootMode === RootMode.FIXED_DOUBLE ? 2 : 1;
@@ -283,15 +364,16 @@ export function resolveInitialRoots(gridSize, playerCount, roots = null, boardSh
       }
     }
   }
-  return Object.freeze(Object.fromEntries(players.map((player) => [
-    player, Object.freeze(normalized[player]),
-  ])));
+  return Object.freeze(Object.fromEntries(players.map((player) => [player, Object.freeze(normalized[player])] )));
 }
 
 function clonePoint(point) {
   return [point[0], point[1]];
 }
 
+// Root-action quotas are a small plain record. Keep this clone independent of
+// structuredClone because the Mini Game Worker intentionally runs without the
+// browser/Node structured-clone global.
 function cloneRootActions(value) {
   return Object.fromEntries(Object.entries(value).map(([player, quotas]) => [player, { ...quotas }]));
 }
@@ -312,6 +394,17 @@ function pointEquals(a, b) {
 function applyBarycentricTransform(point, gridSize, permutation) {
   const barycentric = [point[0], point[1], gridSize - 1 - point[0] - point[1]];
   return [barycentric[permutation[0]], barycentric[permutation[1]]];
+}
+
+function applyDiamondTransform(point, gridSize, transform) {
+  const r = gridSize - 1;
+  switch (transform) {
+    case DIAMOND_TRANSFORMS.IDENTITY: return [point[0], point[1]];
+    case DIAMOND_TRANSFORMS.SWAP_XY: return [point[1], point[0]];
+    case DIAMOND_TRANSFORMS.ROTATE_180: return [r - point[0], r - point[1]];
+    case DIAMOND_TRANSFORMS.SWAP_ANTI_DIAGONAL: return [r - point[1], r - point[0]];
+    default: throw new Error("Unknown diamond transform.");
+  }
 }
 
 // D6 acts on centered axial coordinates. Rotation advances one vertex clockwise;
@@ -389,6 +482,27 @@ function computeTriangularPolygonArea(polygon) {
 
 export class GameEngine {
   constructor(options = {}) {
+    // Do not send a quotient board through resolveBoardShape(): that legacy
+    // path would silently recreate a continuous triangle/hexagon and lose
+    // seams, gaps, and canonical vertex identity.
+    if (options.boardDefinition || options.compiledBoard) {
+      const rootMode = options.rootMode ?? RootMode.CLASSIC;
+      const rootRulesVersion = options.rootRulesVersion
+        ?? (rootMode === RootMode.CLASSIC ? RootRulesVersion.V1 : RootRulesVersion.V2);
+      // The surface engine deliberately has one fully verified root contract.
+      // Reject an unsupported mixed configuration instead of silently ignoring
+      // root-v2 state and turning a requested multi-root game into classic.
+      if (rootMode !== RootMode.CLASSIC || rootRulesVersion !== RootRulesVersion.V1 || Object.hasOwn(options, "initialRoots")) {
+        throw topologyRootModeUnsupportedError();
+      }
+      return getTopologyGameEngineFactory()(options, {
+        basePrototype: GameEngine.prototype,
+        playerOrder: PLAYER_ORDER,
+        pointState: PointState,
+        playerPointStates: PLAYER_POINT_STATES,
+        surfaceRulesVersion: TopologyRulesVersion.SURFACE_V1,
+      });
+    }
     this.gridSize = options.gridSize ?? DEFAULT_GRID_SIZE;
     if (!Number.isInteger(this.gridSize) || this.gridSize < MIN_GRID_SIZE || this.gridSize > MAX_GRID_SIZE) {
       throw new Error(`gridSize must be an integer between ${MIN_GRID_SIZE} and ${MAX_GRID_SIZE}.`);
@@ -403,9 +517,19 @@ export class GameEngine {
       writable: false,
       configurable: false,
     });
+    const protectionRule = options.protectionRule ?? StartProtectionRule.SYMMETRIC;
+    if (!SUPPORTED_START_PROTECTION_RULES.has(protectionRule)) {
+      throw new Error(`Unsupported start protection rule: ${protectionRule}`);
+    }
+    Object.defineProperty(this, "protectionRule", {
+      value: protectionRule,
+      enumerable: true,
+      writable: false,
+      configurable: false,
+    });
     this.playerCount = options.playerCount ?? 2;
-    if (!Number.isInteger(this.playerCount) || this.playerCount < 2 || this.playerCount > 6) {
-      throw new Error("playerCount must be an integer between 2 and 6.");
+    if (!Number.isInteger(this.playerCount) || this.playerCount < 2 || this.playerCount > 15) {
+      throw new Error("playerCount must be an integer between 2 and 15.");
     }
     this.boardShape = resolveBoardShape(this.playerCount, options.boardShape);
     this.boardVertices = getBoardVertices(this.gridSize, this.playerCount, this.boardShape);
@@ -553,6 +677,13 @@ export class GameEngine {
         ? (this._rowIndexGridSize === this.gridSize && this._rowIndexBoardShape === this.boardShape
           ? this._rowIndexOffsets[y] + x
           : this._keyToIdx.get(pointKey(point)) ?? -1)
+        : -1;
+    }
+    if (this.boardShape === "diamond") {
+      const radius = this.gridSize - 1;
+      return Number.isInteger(x) && Number.isInteger(y)
+        && x >= 0 && y >= 0 && x <= radius && y <= radius
+        ? y * this.gridSize + x
         : -1;
     }
     if (
@@ -708,6 +839,8 @@ export class GameEngine {
       rootRulesVersion: this.rootRulesVersion,
       rootActionsRemaining: cloneRootActions(this.rootActionsRemaining),
       rulesVersion: this.rulesVersion,
+      ...(this.protectionRule !== StartProtectionRule.SYMMETRIC
+        ? { protectionRule: this.protectionRule } : {}),
       positionRevision: this.positionRevision,
       players: [...this.activePlayers],
       startPlayer: this.startPlayer,
@@ -735,7 +868,8 @@ export class GameEngine {
     const key = JSON.stringify([
       this.gridSize, this.boardShape, this.rulesVersion, this.activePlayers,
       this.positionRevision, this.startPlayer, this.turnCount, this.gameOver, this.consecutiveSkips,
-      this.currentPlayer, this.initialPositions, this.validPositions, [...this.positionKeys],
+      this.currentPlayer, this.initialPositions, this.initialRoots, this.roots, this.rootMode,
+      this.rootRulesVersion, this.rootActionsRemaining, this.validPositions, [...this.positionKeys],
       [...this.grid], this.activePlayers.map(player => [...this._getEdges(player)]),
       [...this.historyHashes], [...this.resignedPlayers],
     ]);
@@ -967,10 +1101,20 @@ export class GameEngine {
 
   _isInProtectionZone(point, player) {
     if (!this.isValidPosition(point)) return false;
-    return this._getOpponents(player).some((opponent) => this._getRoots(opponent).some((root) => {
-      const dx = point[0] - root[0], dy = point[1] - root[1];
-      return DIRECTIONS.some(([x, y]) => dx === x && dy === y);
-    }));
+    return this._getOpponents(player).some((opponent) => {
+      if (
+        this.protectionRule === StartProtectionRule.DUEL_FIRST_UNPROTECTED
+        && this.playerCount === 2
+        && this.boardShape === "triangle"
+        && opponent === this.startPlayer
+      ) {
+        return false;
+      }
+      return this._getRoots(opponent).some((root) => {
+        const dx = point[0] - root[0], dy = point[1] - root[1];
+        return DIRECTIONS.some(([x, y]) => dx === x && dy === y);
+      });
+    });
   }
 
   // ── 边集合辅助方法 ────────────────────────────────────────────────────
@@ -1029,7 +1173,7 @@ export class GameEngine {
       adj.get(kb).push(ka);
     }
 
-    // BFS：从起始节点沿边图遍历可达节点
+    // BFS：从所有仍存在的起始节点沿边图遍历可达节点。
     const rootKeys = roots.map(pointKey);
     const aliveNodes = new Set(rootKeys);
     const queue = [...rootKeys];
@@ -2179,6 +2323,22 @@ export class GameEngine {
   }
 
   _getCanonicalTerritoryTransforms(player) {
+    if (this.boardShape === "diamond") {
+      if (this.playerCount === 2) {
+        return player === Player.BLACK
+          ? [DIAMOND_TRANSFORMS.IDENTITY, DIAMOND_TRANSFORMS.SWAP_XY]
+          : [DIAMOND_TRANSFORMS.ROTATE_180, DIAMOND_TRANSFORMS.SWAP_ANTI_DIAGONAL];
+      }
+      // Random/custom multiplayer roots have no privileged vertex. Evaluate
+      // every physical symmetry and keep the deterministic minimum, matching
+      // the existing canonical v2/v3 display contract.
+      return Object.values(DIAMOND_TRANSFORMS);
+    }
+    // Extra seats have no default vertex. Their configured roots must never
+    // invoke the six-seat default opening while rendering or scoring.
+    if (this.playerCount > 6) return this.boardShape === "hexagon"
+      ? [{ rotation: 0, reflected: false }, { rotation: 0, reflected: true }]
+      : [BARYCENTRIC_TRANSFORMS.IDENTITY, BARYCENTRIC_TRANSFORMS.SWAP_XY];
     if (this.boardShape === "hexagon") {
       // Preserve the established seat-based scoring orientation when the
       // connectivity root is moved away from its original vertex.
@@ -2212,9 +2372,12 @@ export class GameEngine {
 
   _computeCanonicalTerritoryCandidate(player, permutation) {
     const isHexagon = this.boardShape === "hexagon";
+    const isDiamond = this.boardShape === "diamond";
     const transform = (point) => isHexagon
       ? applyHexTransform(point, this.gridSize, permutation)
-      : applyBarycentricTransform(point, this.gridSize, permutation);
+      : isDiamond
+        ? applyDiamondTransform(point, this.gridSize, permutation)
+        : applyBarycentricTransform(point, this.gridSize, permutation);
     const friendlyNodes = this._getPlayerNodes(player).map(transform);
     const friendlyLines = this._getPlayerLines(player).map(transform);
     const enemyPoints = this._getOpponents(player).flatMap((opponent) => [
@@ -2227,12 +2390,14 @@ export class GameEngine {
       enemyPoints,
       { requireClosedRegion: true },
     );
-    const inverse = isHexagon ? null : invertPermutation(permutation);
+    const inverse = isHexagon || isDiamond ? null : invertPermutation(permutation);
     const polygon = canonicalTerritory.polygon
       ? canonicalTerritory.polygon.map(
           (point) => isHexagon
             ? applyHexTransform(point, this.gridSize, permutation, true)
-            : applyBarycentricTransform(point, this.gridSize, inverse),
+            : isDiamond
+              ? applyDiamondTransform(point, this.gridSize, permutation)
+              : applyBarycentricTransform(point, this.gridSize, inverse),
         )
       : null;
     return {
@@ -2745,6 +2910,7 @@ export class GameEngine {
       rootMode: this.rootMode,
       rootRulesVersion: this.rootRulesVersion,
       rulesVersion: this.rulesVersion,
+      protectionRule: this.protectionRule,
     });
     transaction._restoreReplayState(this._captureReplayState());
 
@@ -2830,7 +2996,7 @@ export class GameEngine {
   }
 
   playRootAction(type, point) {
-    const normalizedType = String(type ?? '').replace(/^root_/, '');
+    const normalizedType = String(type ?? "").replace(/^root_/, "");
     const normalizedPoint = Array.isArray(point) ? clonePoint(point) : point;
     const reason = this._validateRootAction(normalizedType, normalizedPoint, this.currentPlayer);
     if (reason) return this._createActionResult(false, reason);
@@ -2838,7 +3004,7 @@ export class GameEngine {
     const before = this._captureReplayState();
     const actingPlayer = this.currentPlayer;
     try {
-      if (normalizedType === 'relocate') this.roots[actingPlayer] = [clonePoint(normalizedPoint)];
+      if (normalizedType === "relocate") this.roots[actingPlayer] = [clonePoint(normalizedPoint)];
       else this.roots[actingPlayer] = [...this.roots[actingPlayer].map(clonePoint), clonePoint(normalizedPoint)];
       this.rootActionsRemaining[actingPlayer][normalizedType] -= 1;
       const stateHash = this._computeStateHash(this._getNextPlayer(actingPlayer));

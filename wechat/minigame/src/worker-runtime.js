@@ -1,6 +1,10 @@
-import { GreedyAI, MinimaxAI, createReplayDocument, validateReplayDocument, buildEventEffects } from './core.js';
+import { GreedyAI, MinimaxAI, createReplayDocument, validateReplayDocument, buildEventEffects,
+  TOPOLOGY_AI_ROUTE, TOPOLOGY_AI_ADAPTER_VERSION, buildTopologyAIState,
+  rankTopologyCandidates, validateTopologyAIRequest } from './core.js';
 import { controllerChoices } from './controllers.js';
-import { restoreGame, ruleView, applyAction, validateSettings, MAX_ACTIONS } from './state.js';
+import { restoreGame, ruleView, applyAction, validateSettings, MAX_ACTIONS,
+  createTopologyReplayDocument, validateTopologyReplayDocument, TOPOLOGY_REPLAY_FORMAT,
+  TOPOLOGY_PROTOCOL_VERSION } from './state.js';
 import { checksum } from './integrity.js';
 import { modelForProfile, multiplayerModelForProfile } from './model-catalog.js';
 import { checkedModelBytes } from './model-assets.js';
@@ -10,24 +14,113 @@ import { createEmbeddedThreePlayerAI } from './three-player-ai.js';
 import { createEmbeddedHexPlayerAI } from './hex-player-ai.js';
 import { createEmbeddedMultiplayerRuntime, isMultiplayerTierProfile } from './multiplayer-ai.js';
 
+const TOPOLOGY_GENERIC_PROFILE = 'topology-generic';
+const TOPOLOGY_AI_PASS = 'PASS';
+
+function assertLiveTopologyContext(message, engine) {
+  const context = message.context;
+  if (!context || context.boardHash !== engine.boardHash) throw new Error('STALE_TOPOLOGY_BOARD');
+  if (context.topologyProtocolVersion !== TOPOLOGY_PROTOCOL_VERSION) {
+    throw new Error('STALE_TOPOLOGY_PROTOCOL');
+  }
+  if (!Number.isInteger(context.revision) || context.revision !== engine.positionRevision) {
+    throw new Error('STALE_TOPOLOGY_REVISION');
+  }
+}
+
+function neutralTopologyEffects(snapshot) {
+  return {
+    addedEdgesByPlayer: Object.fromEntries((snapshot.players || []).map(player => [player, []])),
+    capturedPoints: [],
+    territoryDelta: Object.fromEntries((snapshot.players || []).map(player => [player, 0])),
+    gameEnded: Boolean(snapshot.gameOver),
+  };
+}
+
+function topologyAI(engine, message, payload, kind, before) {
+  const profile = payload.profile ?? TOPOLOGY_GENERIC_PROFILE;
+  if (profile !== TOPOLOGY_GENERIC_PROFILE) throw new Error('TOPOLOGY_FIXED_SHAPE_PROFILE_UNSUPPORTED');
+  if (payload.model != null) throw new Error('TOPOLOGY_MODEL_UNSUPPORTED');
+  if ([payload.player, message.context?.player].some(player => player != null && player !== engine.currentPlayer)) {
+    throw new Error('WRONG_PLAYER');
+  }
+  const legalMoveIds = engine.getLegalMoves(engine.currentPlayer).map(move => move.vertexId);
+  const coverageByPlayer = engine._coverageByPlayer();
+  const logicalPathsByPlayer = Object.fromEntries(engine.activePlayers.map(player => [player,
+    [...engine.topologyPaths[player].values()].map(path => ({ ...path })),
+  ]));
+  const state = buildTopologyAIState(engine.compiledBoard, {
+    rulesVersion: engine.rulesVersion,
+    positionRevision: engine.positionRevision,
+    currentPlayer: engine.currentPlayer,
+    legalMoveIds: [...legalMoveIds, TOPOLOGY_AI_PASS],
+    coverageByPlayer,
+    logicalPathsByPlayer,
+    historyHashes: [...engine.historyHashes],
+  });
+  const request = {
+    contractVersion: TOPOLOGY_AI_ADAPTER_VERSION,
+    boardHash: engine.boardHash,
+    rulesVersion: engine.rulesVersion,
+    positionRevision: engine.positionRevision,
+    currentPlayer: engine.currentPlayer,
+    modelRoute: TOPOLOGY_AI_ROUTE,
+    legalMoveIds: state.legalMoveIds,
+    state,
+  };
+  const validation = validateTopologyAIRequest(engine.compiledBoard, request, {
+    rulesVersion: engine.rulesVersion,
+    positionRevision: engine.positionRevision,
+    currentPlayer: engine.currentPlayer,
+  });
+  if (!validation.ok) throw new Error(`INVALID_TOPOLOGY_AI_REQUEST:${validation.errors.map(error => error.code).join(',')}`);
+  const anchors = engine._getPlayerNodes(engine.currentPlayer);
+  const candidates = rankTopologyCandidates(engine.compiledBoard,
+    legalMoveIds.length ? legalMoveIds : [TOPOLOGY_AI_PASS], { anchorVertexIds: anchors });
+  const count = kind === 'ANALYZE' ? 3 : 1;
+  const moves = candidates.slice(0, count).map((candidate, index) => candidate.vertexId === TOPOLOGY_AI_PASS
+    ? { type: 'skip', score: -index }
+    : { type: 'move', vertexId: candidate.vertexId, score: -index });
+  if (ruleView(engine).stateHash !== before.stateHash) throw new Error('SEARCH_MUTATED_STATE');
+  return {
+    moves,
+    stateHash: before.stateHash,
+    player: engine.currentPlayer,
+    profile,
+    ...(kind === 'ANALYZE' ? { metric: 'topology-generic' } : {}),
+    boardHash: engine.boardHash,
+    positionRevision: engine.positionRevision,
+    topologyProtocolVersion: TOPOLOGY_PROTOCOL_VERSION,
+    modelInfo: { id: TOPOLOGY_AI_ROUTE, route: TOPOLOGY_AI_ROUTE, strengthVerified: false },
+  };
+}
+
 function runTask(message, restore = restoreGame, recordAction = () => {}) {
   const { kind, payload } = message;
   if (kind === 'REPLAY_STEP') {
     const { settings, actions, cursor } = payload;
     if (!Array.isArray(actions) || actions.length > MAX_ACTIONS || !Number.isInteger(cursor)
       || cursor < 0 || cursor > actions.length) throw new Error('REPLAY_INVALID');
-    const engine = restoreGame(settings, actions.slice(0, Math.max(0, cursor - 1))), before = ruleView(engine);
+    const engine = restore(settings, actions.slice(0, Math.max(0, cursor - 1))), before = ruleView(engine);
     const action = cursor ? actions[cursor - 1] : null;
     const actor = action?.player || action?.color || (action ? engine.currentPlayer : null);
-    if (action) { const result = applyAction(engine, action); if (!result.success) throw new Error(result.reason); }
+    if (action) {
+      const result = applyAction(engine, action);
+      if (!result.success) throw new Error(result.reason);
+      recordAction(action);
+    }
     const after = ruleView(engine);
     return { cursor, actor, action, stateHash: after.stateHash, snapshot: after.snapshot,
-      effects: buildEventEffects(before.ruleState, before.snapshot, after.ruleState, after.snapshot) };
+      ...(after.topologyState ? { topologyState: after.topologyState, boardHash: after.boardHash,
+        topologyProtocolVersion: after.topologyProtocolVersion } : {}),
+      effects: engine.isTopologyBoard ? neutralTopologyEffects(after.snapshot)
+        : buildEventEffects(before.ruleState, before.snapshot, after.ruleState, after.snapshot) };
   }
   if (kind === 'IMPORT_REPLAY') {
     if (typeof payload.text !== 'string' || payload.text.length > 2 * 1024 * 1024) throw new Error('REPLAY_INVALID');
     let document;
     try { document = JSON.parse(payload.text); } catch (_) { throw new Error('REPLAY_INVALID'); }
+    if (document?.format === TOPOLOGY_REPLAY_FORMAT) return validateTopologyReplayDocument(document);
     validateSettings(document?.config);
     if (!Array.isArray(document.actions) || document.actions.length > MAX_ACTIONS) throw new Error('REPLAY_INVALID');
     return validateReplayDocument(document, checksum).then(result => {
@@ -37,9 +130,16 @@ function runTask(message, restore = restoreGame, recordAction = () => {}) {
     });
   }
   const engine = restore(payload.settings, payload.actions);
-  if (kind === 'EXPORT_REPLAY') return createReplayDocument(payload.settings, payload.actions, checksum);
-  if (kind === 'STATE' || kind === 'TERRITORY') return ruleView(engine);
+  if (kind === 'EXPORT_REPLAY') return engine.isTopologyBoard
+    ? createTopologyReplayDocument(payload.settings, payload.actions)
+    : createReplayDocument(payload.settings, payload.actions, checksum);
+  if (kind === 'STATE') return ruleView(engine);
+  if (kind === 'TERRITORY') {
+    if (engine.isTopologyBoard) assertLiveTopologyContext(message, engine);
+    return ruleView(engine);
+  }
   if (kind === 'APPLY') {
+    if (engine.isTopologyBoard) assertLiveTopologyContext(message, engine);
     const result = applyAction(engine, payload.action);
     if (!result.success) throw new Error(result.reason);
     recordAction(payload.action);
@@ -48,6 +148,10 @@ function runTask(message, restore = restoreGame, recordAction = () => {}) {
   if (kind === 'AI' || kind === 'HINT' || kind === 'ANALYZE') {
     if (engine.gameOver) throw new Error('GAME_OVER');
     const before = ruleView(engine);
+    if (engine.isTopologyBoard) {
+      assertLiveTopologyContext(message, engine);
+      return topologyAI(engine, message, payload, kind, before);
+    }
     const profile = payload.profile || (payload.difficulty === 'easy' ? 'greedy' : 'minimax-2');
     if (!controllerChoices(engine).includes(profile) || profile === 'human') throw new Error('INVALID_CONTROLLERS');
     const tier = isMultiplayerTierProfile(profile);

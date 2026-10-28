@@ -14,10 +14,35 @@ import time
 from fastapi import APIRouter, HTTPException, Request
 
 POLICY = "anonymous-replay-training-v1"
+POLICIES = {1: POLICY, 2: "anonymous-replay-training-v2"}
+COLORS = ("BLACK", "WHITE", "PURPLE", "GREEN", "ORANGE", "CYAN")
 MAX_REQUEST_BYTES = 512000
 VALIDATOR = Path(__file__).resolve().parents[1] / "tools/validate_contribution.mjs"
 
-def normalize_context(context):
+def normalize_context(context, version=1):
+    if version == 2:
+        if not isinstance(context, dict) or set(context) != {"source", "actors", "mixedProfiles", "hintsEnabled", "undo"}:
+            raise ValueError("Unexpected v2 context fields")
+        if context["source"] != "local" or type(context["mixedProfiles"]) is not bool or type(context["hintsEnabled"]) is not bool:
+            raise ValueError("Invalid v2 context")
+        actors = context["actors"]
+        if not isinstance(actors, dict) or len(actors) not in range(2, 7) or set(actors) != set(COLORS[:len(actors)]):
+            raise ValueError("Invalid v2 actors")
+        for actor in actors.values():
+            if not isinstance(actor, dict): raise ValueError("Invalid v2 actor")
+            if actor.get("kind") == "human" and set(actor) == {"kind"}: continue
+            # Exact profile/count/shape/size compatibility is checked by the
+            # shared JavaScript schema after this privacy and size boundary.
+            if actor.get("kind") != "ai" or set(actor) != {"kind", "profile"} or not isinstance(actor.get("profile"), str) \
+                or not re.fullmatch(r"[a-zA-Z0-9_.:-]{1,96}", actor["profile"]):
+                raise ValueError("Invalid v2 AI profile")
+        undo = context["undo"]
+        if not isinstance(undo, dict) or set(undo) != {"enabled", "maxCount", "usedCount"} \
+            or type(undo["enabled"]) is not bool or type(undo["maxCount"]) is not int or not 1 <= undo["maxCount"] <= 100 \
+            or type(undo["usedCount"]) is not int or not 0 <= undo["usedCount"] <= undo["maxCount"] \
+            or (not undo["enabled"] and undo["usedCount"] != 0):
+            raise ValueError("Invalid v2 undo declaration")
+        return context
     if not isinstance(context, dict) or set(context) != {"source", "actors", "mixedProfiles", "hintsEnabled"}:
         raise ValueError("Unexpected context fields")
     if context["source"] != "local" or type(context["mixedProfiles"]) is not bool or type(context["hintsEnabled"]) is not bool:
@@ -50,6 +75,8 @@ class ContributionStore:
         with self.connect() as db:
             db.execute("PRAGMA journal_mode=WAL")
             db.execute("CREATE TABLE IF NOT EXISTS inbox (game_id TEXT PRIMARY KEY, document TEXT NOT NULL, received_at INTEGER NOT NULL)")
+            # Modern protocol rows do not enter the legacy curation/export path.
+            db.execute("CREATE TABLE IF NOT EXISTS inbox_v2 (game_id TEXT PRIMARY KEY, document TEXT NOT NULL, received_at INTEGER NOT NULL)")
     @contextmanager
     def connect(self):
         connection = sqlite3.connect(self.database, timeout=10)
@@ -59,28 +86,42 @@ class ContributionStore:
     def accept(self, payload):
         if not isinstance(payload, dict) or set(payload) != {"format", "version", "consent", "consent_policy", "replay", "context"}:
             raise ValueError("Unexpected contribution fields")
-        context = normalize_context(payload["context"])
+        version = payload["version"]
+        if type(version) is not int or version not in POLICIES or payload["format"] != "lifeline-training-contribution" \
+            or payload["consent"] is not True or payload["consent_policy"] != POLICIES[version]:
+            raise ValueError("Contribution consent/schema required")
+        context = normalize_context(payload["context"], version)
         raw = json.dumps(payload, ensure_ascii=False, allow_nan=False).encode()
         if len(raw) > MAX_REQUEST_BYTES: raise ValueError("Payload too large")
         process = subprocess.run([self.node, str(VALIDATOR)], input=raw, capture_output=True, timeout=20, check=False)
         if process.returncode: raise ValueError("Replay validation failed")
         verified = json.loads(process.stdout)
         game_id = verified["game_id"]
-        expected_colors = {"BLACK", "WHITE", *(["PURPLE"] if verified["replay"]["config"]["playerCount"] == 3 else [])}
+        expected_colors = set(COLORS[:verified["replay"]["config"]["playerCount"]])
         if set(context["actors"]) != expected_colors: raise ValueError("Actor/config mismatch")
-        document = json.dumps({**verified, "context": context, "consent_policy": POLICY, "status": "awaiting_review"}, ensure_ascii=False, allow_nan=False)
+        if version == 2 and (verified.get("protocol_version") != 2 or verified.get("context") != context):
+            raise ValueError("V2 context verification mismatch")
+        document = json.dumps({**verified, "context": context, "consent_policy": POLICIES[version], "status": "awaiting_review"}, ensure_ascii=False, allow_nan=False)
+        table = {1: "inbox", 2: "inbox_v2"}[version]
         with self.connect() as db:
             db.execute("BEGIN IMMEDIATE")
-            if db.execute("SELECT 1 FROM inbox WHERE game_id=?", (game_id,)).fetchone():
+            existing = db.execute(f"SELECT document FROM {table} WHERE game_id=?", (game_id,)).fetchone()
+            if existing:
+                # Context is not part of the gameplay ID but remains material provenance.
+                if version == 2 and json.loads(existing[0])["context"] != context:
+                    raise ValueError("Conflicting gameplay metadata")
                 return {"game_id": game_id, "status": "duplicate"}
-            size = db.execute("SELECT COALESCE(SUM(length(CAST(document AS BLOB))),0) FROM inbox").fetchone()[0]
+            size = sum(db.execute(f"SELECT COALESCE(SUM(length(CAST(document AS BLOB))),0) FROM {name}").fetchone()[0]
+                       for name in ("inbox", "inbox_v2"))
             if size + len(document.encode()) > self.maximum_bytes: raise OverflowError("Inbox full")
-            db.execute("INSERT INTO inbox VALUES (?,?,?)", (game_id, document, int(time.time())))
+            db.execute(f"INSERT INTO {table} VALUES (?,?,?)", (game_id, document, int(time.time())))
         return {"game_id": game_id, "status": "awaiting_review"}
-    def export(self, output):
+    def export(self, output, *, version=1):
+        if type(version) is not int or version not in POLICIES: raise ValueError("Invalid export version")
+        table = {1: "inbox", 2: "inbox_v2"}[version]
         target = Path(output); target.mkdir(parents=True, exist_ok=False)
         with self.connect() as db:
-            rows = db.execute("SELECT game_id,document FROM inbox ORDER BY game_id").fetchall()
+            rows = db.execute(f"SELECT game_id,document FROM {table} ORDER BY game_id").fetchall()
         for game_id, document in rows:
             (target / f"{game_id}.json").write_text(document, encoding="utf-8")
         return len(rows)
@@ -97,7 +138,8 @@ def create_router(store=None):
             store = ContributionStore(directory, node=os.environ.get("LIFELINE_NODE", "node"))
         return store
     @router.get("/contributions/status")
-    async def status(): return {"enabled": store is not None or bool(os.environ.get("LIFELINE_CONTRIBUTIONS_DIR")), "consent_policy": POLICY}
+    async def status(): return {"enabled": store is not None or bool(os.environ.get("LIFELINE_CONTRIBUTIONS_DIR")),
+        "consent_policy": POLICY, "supported_versions": [1, 2], "consent_policies": POLICIES}
     @router.post("/contributions")
     async def contribute(request: Request):
         inbox = get_store()
@@ -124,4 +166,5 @@ def create_router(store=None):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(); parser.add_argument("--inbox", required=True); parser.add_argument("--export", required=True)
-    args = parser.parse_args(); print(json.dumps({"exported_games": ContributionStore(args.inbox).export(args.export)}))
+    parser.add_argument("--version", type=int, choices=(1, 2), default=1)
+    args = parser.parse_args(); print(json.dumps({"exported_games": ContributionStore(args.inbox).export(args.export, version=args.version)}))

@@ -1,7 +1,8 @@
 // Local v4 candidate. No runtime registration: promotion is a separate gate.
-import { fastTerritoryBFS, restoreState, saveState } from "./AIEngine.js";
-import { ThreePlayerAI, THREE_PLAYER_FEATURES } from "./ThreePlayerAI.js";
-import { GameEngine } from "./GameEngine.js";
+import { fastTerritoryBFS, restoreState, saveState } from "./AIEngine.js?v=20261026-allplatform1";
+import { ThreePlayerAI, THREE_PLAYER_FEATURES } from "./ThreePlayerAI.js?v=20261026-allplatform1";
+import { GameEngine } from "./GameEngine.js?v=20261026-allplatform1";
+import { portableClone } from "./PortableClone.js";
 
 const pointOrder = (a, b) => a.point[1] - b.point[1] || a.point[0] - b.point[0];
 const linear = (spec) => ({ score: (values) => values.reduce((sum, value, i) => sum + value * spec.weights[i], 0) / spec.temperature });
@@ -45,7 +46,7 @@ export class ThreePlayerSearchAI {
       || ![s.coverageWeight, s.reachWeight, s.valueTemperature, s.minimumImprovement].every(Number.isFinite)
       || s.coverageWeight < 0 || s.reachWeight < 0 || s.valueTemperature <= 0
       || s.minimumImprovement < 0 || s.minimumImprovement > 1) throw new Error("INVALID v4 search policy");
-    this.spec = JSON.parse(JSON.stringify(payload));
+    this.spec = portableClone(payload);
     this.base = new ThreePlayerAI(linear(payload));
     this.responses = s.opponents.map((opponent) => new ThreePlayerAI(linear(opponent)));
     this.lastSearch = null;
@@ -95,7 +96,7 @@ export class ThreePlayerSearchAI {
       }
       const values = evaluated.map((move) => Math.exp(4 * move.score));
       const total = values.reduce((a, b) => a + b, 0);
-      this.lastSearch = { ...stats, elapsedMs: Date.now() - started, evaluated: JSON.parse(JSON.stringify(evaluated)) };
+      this.lastSearch = { ...stats, elapsedMs: Date.now() - started, evaluated: portableClone(evaluated) };
       return evaluated.map((move, i) => ({ ...move, prior: values[i] / total })).slice(0, Math.max(0, Math.floor(topN)));
     } finally { restoreState(engine, snapshot); engine._isReplayingBatch = flag; }
   }

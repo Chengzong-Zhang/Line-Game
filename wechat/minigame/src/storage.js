@@ -1,17 +1,32 @@
 import { createLocalGameSession } from './core.js';
 import { checksum } from './integrity.js';
-import { validateSettings, MODES, MAX_ACTIONS } from './state.js';
+import { validateSettings, validateTopologyLocalGameSession, TOPOLOGY_LOCAL_SESSION_FORMAT, MODES, MAX_ACTIONS } from './state.js';
 import { validateControllers } from './controllers.js';
 import { validatePlayProgress, validateUndoUsage } from './play-options.js';
 
 const PREFIX = 'lifeline-wechat-session-v1';
 const LIMIT = 2 * 1024 * 1024;
 
+function validateTopologyControllers(value, settings) {
+  if (value == null) return null;
+  const players = ['BLACK', 'WHITE', 'PURPLE', 'GREEN', 'ORANGE', 'CYAN'].slice(0, settings.playerCount);
+  if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).length !== players.length
+    || !players.every(player => ['human', 'topology-generic'].includes(value[player]))) throw new Error('INVALID_CONTROLLERS');
+  return value;
+}
+
 export function validateSave(payload) {
   const session = payload?.session;
-  if (session?.format !== 'lifeline-local-session' || ![1, 2].includes(session.schemaVersion)
-    || !MODES.includes(payload.mode) || !['easy', 'normal'].includes(payload.difficulty)
-    || !Array.isArray(session.actions) || session.actions.length > MAX_ACTIONS) throw new Error('INVALID_SAVE');
+  if (!MODES.includes(payload?.mode) || !['easy', 'normal'].includes(payload.difficulty)
+    || !Array.isArray(session?.actions) || session.actions.length > MAX_ACTIONS) throw new Error('INVALID_SAVE');
+  if (session.format === TOPOLOGY_LOCAL_SESSION_FORMAT) {
+    const topology = validateTopologyLocalGameSession(session);
+    validateTopologyControllers(payload.controllers, topology.settings);
+    validatePlayProgress(payload.progress, topology.settings);
+    validateUndoUsage(payload.undoUsage, topology.settings);
+    return payload;
+  }
+  if (session.format !== 'lifeline-local-session' || ![1, 2].includes(session.schemaVersion)) throw new Error('INVALID_SAVE');
   validateSettings(session.settings);
   validateControllers(payload.controllers, session.settings);
   validatePlayProgress(payload.progress, session.settings);

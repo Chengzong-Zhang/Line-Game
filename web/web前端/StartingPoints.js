@@ -1,12 +1,19 @@
 import {
   getBoardPositions, PLAYER_ORDER, resolveInitialPositions, resolveInitialRoots, RootMode, RootRulesVersion,
-} from "./GameEngine.js?v=20261021-boardshapes1";
+} from "./GameEngine.js?v=20261027-topology-multistart-release1";
 
 export const STARTING_POINT_MODES = Object.freeze(["default", "random", "custom"]);
+
+export function requiresExplicitStartingPoints(playerCount, boardShape) {
+  return playerCount > 6 || (boardShape === "diamond" && playerCount >= 3);
+}
 
 export function startingPointSettings(settings) {
   const mode = settings.startingPointMode ?? (settings.initialPositions ? "custom" : "default");
   if (!STARTING_POINT_MODES.includes(mode)) throw new Error("Unknown starting point mode.");
+  if (requiresExplicitStartingPoints(settings.playerCount, settings.boardShape) && mode === "default") {
+    throw new Error("This board requires random or custom starting points.");
+  }
   const rootMode = settings.rootMode ?? RootMode.CLASSIC;
   if (rootMode !== RootMode.CLASSIC) {
     const initialRoots = resolveInitialRoots(
@@ -54,16 +61,27 @@ export function randomInitialRoots(gridSize, playerCount, rootMode, random = Mat
   throw new Error("No valid random root layout was found. Try a larger board or fewer players.");
 }
 
-// Sample lattice positions without replacement. The resolved points are saved;
+// Keep random openings spread across the board. The resolved points are saved;
 // replay/refresh never calls the random generator again.
 export function randomInitialPositions(gridSize, playerCount, random = Math.random, boardShape = null) {
   const points = getBoardPositions(gridSize, playerCount, boardShape);
+  if (!Number.isInteger(playerCount) || playerCount < 2 || playerCount > PLAYER_ORDER.length || points.length < playerCount) {
+    throw new Error("The board cannot fit all starting points.");
+  }
   const positions = {};
+  const chosen = [];
   for (const player of PLAYER_ORDER.slice(0, playerCount)) {
+    const distance = ([x, y], [a, b]) => Math.max(Math.abs(x - a), Math.abs(y - b), Math.abs(x + y - a - b));
+    const best = chosen.length ? Math.max(...points.map(point => Math.min(...chosen.map(other => distance(point, other))))) : 0;
+    const candidates = chosen.length
+      ? points.filter(point => Math.min(...chosen.map(other => distance(point, other))) >= best * 0.75)
+      : points;
     const sample = random();
     if (!(sample >= 0 && sample < 1)) throw new Error("Invalid random sample.");
-    const index = Math.floor(sample * points.length);
-    positions[player] = points.splice(index, 1)[0];
+    const point = candidates[Math.floor(sample * candidates.length)];
+    positions[player] = point;
+    chosen.push(point);
+    points.splice(points.indexOf(point), 1);
   }
   return resolveInitialPositions(gridSize, playerCount, positions, boardShape);
 }

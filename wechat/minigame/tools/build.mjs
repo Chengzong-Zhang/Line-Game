@@ -7,6 +7,12 @@ import { readClientConfig, validateClientConfig } from './client-config.mjs';
 import { MODEL_CATALOG, MODEL_PACKAGES, GUIDE_ASSETS, RUNTIME_FILES, SUBPACKAGE_ENTRY,
   MAIN_BUDGET, SUBPACKAGE_BUDGET, TOTAL_BUDGET } from './model-packaging.mjs';
 
+// The Mini Game bundle keeps legacy replay compatibility, while this release's
+// primary new-board contract is surface-v1.  Record both facts explicitly so a
+// topology bundle cannot be described as a territory-v3-only package.
+const PRIMARY_RULES_VERSION = 'surface-v1';
+const SUPPORTED_RULES_VERSIONS = Object.freeze(['territory-v2', 'territory-v3', PRIMARY_RULES_VERSION]);
+
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const repo = path.resolve(root, '../..');
 export async function buildGame(output = path.join(root, 'dist'), { config: override } = {}) {
@@ -57,7 +63,8 @@ export async function buildGame(output = path.join(root, 'dist'), { config: over
     const data = await fs.readFile(path.join(output, name));
     return { path: name, bytes: data.length, sha256: createHash('sha256').update(data).digest('hex') };
   }));
-  const manifest = { schemaVersion: 2, rulesVersion: 'territory-v3', config, outputs, sourceHashes: {} };
+  const manifest = { schemaVersion: 3, rulesVersion: PRIMARY_RULES_VERSION,
+    supportedRulesVersions: [...SUPPORTED_RULES_VERSIONS], config, outputs, sourceHashes: {} };
   for (const source of [...sources].sort()) {
     const relative = path.relative(repo, source).split(path.sep).join('/');
     manifest.sourceHashes[relative] = createHash('sha256').update(await fs.readFile(source)).digest('hex');

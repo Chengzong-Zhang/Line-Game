@@ -18,6 +18,23 @@ const digest = data => createHash('sha256').update(data).digest('hex');
 const json = async file => JSON.parse(await fs.readFile(file, 'utf8'));
 const slash = value => value.split(path.sep).join('/');
 const requireCondition = (condition, message) => { if (!condition) throw new Error(message); };
+const LEGACY_RULES_VERSIONS = Object.freeze(['territory-v2', 'territory-v3']);
+const TOPOLOGY_RULES_VERSION = 'surface-v1';
+const SUPPORTED_RULES_VERSIONS = Object.freeze([...LEGACY_RULES_VERSIONS, TOPOLOGY_RULES_VERSION]);
+
+function validateBuildRules(manifest, expectedRulesVersion = undefined, expectedSupportedVersions = undefined) {
+  const legacy = manifest?.schemaVersion === 2 && LEGACY_RULES_VERSIONS.includes(manifest.rulesVersion);
+  const topology = manifest?.schemaVersion === 3 && manifest.rulesVersion === TOPOLOGY_RULES_VERSION
+    && Array.isArray(manifest.supportedRulesVersions)
+    && JSON.stringify(manifest.supportedRulesVersions) === JSON.stringify(SUPPORTED_RULES_VERSIONS);
+  requireCondition(legacy || topology, 'Unsupported build manifest');
+  if (expectedRulesVersion !== undefined) requireCondition(manifest.rulesVersion === expectedRulesVersion, 'Candidate runtime manifest mismatch');
+  if (expectedSupportedVersions !== undefined) {
+    const actual = manifest.schemaVersion === 2 ? [manifest.rulesVersion] : manifest.supportedRulesVersions;
+    requireCondition(JSON.stringify(actual) === JSON.stringify(expectedSupportedVersions), 'Candidate runtime manifest mismatch');
+  }
+  return manifest.schemaVersion === 2 ? [manifest.rulesVersion] : manifest.supportedRulesVersions;
+}
 
 async function regularFile(root, relative) {
   requireCondition(typeof relative === 'string' && relative.length > 0 &&
@@ -72,7 +89,7 @@ export async function inspectProject(root = projectRoot, repo = repoRoot, {
   requireProfile(config, profile);
   const files = await inventory(dist, packageFiles, PACKAGE_DIRECTORIES);
   const manifest = await json(path.join(dist, 'build-manifest.json'));
-  requireCondition(manifest.schemaVersion === 2 && manifest.rulesVersion === 'territory-v3', 'Unsupported build manifest');
+  validateBuildRules(manifest);
   requireCondition(configKeys.every(key => manifest.config?.[key] === config[key]) &&
     Object.keys(manifest.config).length === configKeys.length, 'Build configuration is stale');
   requireCondition(Array.isArray(manifest.outputs) && manifest.outputs.length === runtimeFiles.length &&
@@ -147,8 +164,12 @@ export async function verifyCandidate(directory) {
     Object.keys(manifest.config).length === configKeys.length, 'Candidate configuration differs from bundled build manifest');
   const outputs = files.filter(item => item.path.startsWith('dist/') && item.path !== 'dist/build-manifest.json')
     .map(item => ({ ...item, path: item.path.slice(5) }));
-  requireCondition(manifest.schemaVersion === 2 && manifest.rulesVersion === receipt.rulesVersion &&
-    ['territory-v2', 'territory-v3'].includes(receipt.rulesVersion) && Array.isArray(manifest.outputs) &&
+  const receiptSupportedRules = receipt.supportedRulesVersions ?? [receipt.rulesVersion];
+  requireCondition(SUPPORTED_RULES_VERSIONS.includes(receipt.rulesVersion)
+    && Array.isArray(receiptSupportedRules)
+    && receiptSupportedRules.every(version => SUPPORTED_RULES_VERSIONS.includes(version)));
+  validateBuildRules(manifest, receipt.rulesVersion, receiptSupportedRules);
+  requireCondition(Array.isArray(manifest.outputs) &&
     manifest.outputs.length === outputs.length &&
     new Set(manifest.outputs.map(item => item.path)).size === outputs.length &&
     manifest.outputs.every(item => outputs.some(actual => item.path === actual.path &&
@@ -212,6 +233,8 @@ export async function prepareCandidate({
   const receipt = {
     schemaVersion: 4, profile, status: 'PREPARED_LOCAL_NOT_UPLOADED', createdAt: new Date().toISOString(),
     candidateId: path.basename(directory), version: before.version, rulesVersion: before.manifest.rulesVersion,
+    supportedRulesVersions: before.manifest.schemaVersion === 2
+      ? [before.manifest.rulesVersion] : before.manifest.supportedRulesVersions,
     baseLibrary: project.libVersion, config: before.manifest.config,
     runtimeBytes: before.manifest.runtimeBytes, packageBytes: before.manifest.totalBytes,
     mainPackageBytes: before.manifest.mainPackageBytes, subpackages: before.manifest.subpackages,
@@ -219,8 +242,8 @@ export async function prepareCandidate({
     reproducibility: 'Fresh isolated rebuild matches every existing dist file, including 17 verified model assets, byte for byte; test evidence is bound separately',
     runtime: { node: process.version, platform: process.platform, arch: process.arch },
     uploadDescription: online
-      ? '好友联机新增房主棋盘形状、随机或自定义起点设置，以及双方确认的悔棋；刷新后恢复房间设置和悔棋额度。好友房间仍为双人；未做本版真机验收。'
-      : '新版领土将未闭合的己方节点和线点计分；加强各玩家初始点标记，保留四舱、29项兼容AI、悔棋、复盘和100份棋谱。本包关闭联机，可免登录体验；未做本版真机验收。',
+      ? '新增自定义、随机及圆柱/莫比乌斯/环面/克莱因瓶拓扑棋盘；保留旧棋谱兼容。好友房间仍为双人；未做本版真机验收。'
+      : '新增自定义、随机及圆柱/莫比乌斯/环面/克莱因瓶拓扑棋盘；保留旧棋谱兼容。本包关闭联机；未做本版真机验收。',
     acceptance: { nativeCandidateImport: 'NOT_RUN', physicalDevice: 'NOT_RUN',
       accountPermissions: 'NOT_VERIFIED', serviceConnectivity: 'NOT_VERIFIED',
       actualWechatLogin: 'NOT_RUN', crossPlatformDeviceMatch: 'NOT_RUN',

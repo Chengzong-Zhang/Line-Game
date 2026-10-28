@@ -79,11 +79,29 @@ function assertUnchanged(engine, before) {
   assert.deepEqual(after.view, before.view); assert.deepEqual(after.history, before.history);
   for (const key of ['revision', 'territoryRevision', 'grid', 'edges', 'territories']) assert.equal(after[key], before[key], key);
 }
+function assertDeadlineDiagnostics(search) {
+  if (!Object.hasOwn(search, 'absoluteDeadline')) return;
+  assert.ok(Number.isFinite(search.absoluteDeadline));
+  if (search.fallbackSearch) {
+    assert.ok(Number.isFinite(search.fallbackSearch.absoluteDeadline));
+    assert.equal(search.fallbackSearch.absoluteDeadline, search.absoluteDeadline);
+  }
+}
+function comparableSearchStats(search) {
+  const result = plain(search);
+  // This is an absolute timestamp from a locally-owned clock. The injected
+  // runtime and the compiled native Worker start at different clock ticks;
+  // compare the decision diagnostics, while checking timestamp coherence
+  // independently above.
+  delete result.elapsedMs; delete result.absoluteDeadline;
+  if (result.fallbackSearch) delete result.fallbackSearch.absoluteDeadline;
+  return result;
+}
 
-test('shared search and rollout retain the exact frozen Web source after the clock import', async () => {
+test('shared search and rollout pin the admitted Web sources after native Worker compatibility imports', async () => {
   for (const [name, expected] of [
-    ['MultiplayerSearch.js', '56f70bc6996c67ff341114b1a204e0e8fa4ea719af0d536d824de0a825558cda'],
-    ['MultiplayerRollout.js', '27dfee1a5de3d2d09d53ce98637c1cf87b49369cb8738aeb815951513b028609'],
+    ['MultiplayerSearch.js', 'd7b5d616f59b2e8ced5f76e7a3d06f79f0a3a5bf8356fec3a2d4bfb4da48c3ec'],
+    ['MultiplayerRollout.js', 'ebd1f3be7ef8b3bf3de080c61d411d74d743078053319c26e4fbf2646f16d9c5'],
   ]) {
     const content = (await fs.readFile(path.join(web, name), 'utf8')).replace(/\r\n/g, '\n');
     const boundary = content.indexOf('\n') + 1;
@@ -94,6 +112,13 @@ test('shared search and rollout retain the exact frozen Web source after the clo
     assert.equal(frozenSource.split(v3Admission).length - 1, 1);
     const normalized = frozenSource.replace(v3Admission, 'source.rulesVersion !== "territory-v2"');
     assert.equal(sha(normalized), expected);
+    if (name === 'MultiplayerSearch.js') {
+      assert.match(frozenSource, /import \{ installNativeEdgeGeometry \} from "\.\/MultiplayerNativeGeometry\.js\?v=20261027-topology-multistart-release1";/);
+      assert.match(frozenSource, /engine\._isInProtectionZone\(engine\.validPositions\[i\], player\)/);
+      assert.match(frozenSource, /installNativeEdgeGeometry\(engine\);/);
+    } else {
+      assert.match(frozenSource, /visitPolicyCandidates\(engine, actor, candidate =>/);
+    }
   }
   assert.equal(sut.easyManifest.sourceManifestSha256, 'd7560db53483ab9ee2a7c423509142924545f1679ec35201b369e3b91fe161a0');
   assert.deepEqual(plain(sut.easyManifest.models.map(item => item.id)), ['multiplayer-easy-v1']);
@@ -196,16 +221,20 @@ test('resource injection and native adapter return identical rankings with deter
     assert.equal(reply.ok, true, reply.error); assert.deepEqual(reply.result.moves, expected);
     // The unchanged v4 implementation reports Date.now() timing only; it does
     // not use that elapsed field to choose moves or decide its fixed rollout.
-    const actualStats = { ...reply.result.search };
-    delete actualStats.elapsedMs; delete expectedStats.elapsedMs;
-    assert.deepEqual(actualStats, expectedStats);
+    assertDeadlineDiagnostics(reply.result.search); assertDeadlineDiagnostics(expectedStats);
+    assert.deepEqual(comparableSearchStats(reply.result.search), comparableSearchStats(expectedStats));
     if (profile === profiles[2]) {
       assert.equal(reply.result.search.timedOut, true);
       if (config.playerCount === 4 || config.boardShape === 'triangle') {
-        assert.equal(reply.result.search.publicationMode, 'complete-phase');
-        assert.deepEqual(reply.result.search.completedPhases, []);
+        // The native hard adapter now exposes its interruptible fallback receipt
+        // directly. A clock-expired fallback never claims a rollout phase.
         assert.equal(reply.result.search.usedFallback, true);
-        assert.equal(reply.result.search.partialPhasePublished, false);
+        assert.equal(reply.result.search.selectedEvaluation, 'fallback-only');
+        assert.equal(reply.result.search.decisionSource, 'partial-linear');
+        assert.equal(reply.result.search.fallbackSearch.baselineComplete, false);
+        assert.equal(reply.result.search.fallbackSearch.partial, true);
+        assert.equal(reply.result.search.fallbackSearch.timedOut, true);
+        assert.equal(reply.result.search.fallbackSearch.decisionSource, 'partial-linear');
       }
     }
   }

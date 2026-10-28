@@ -1,7 +1,7 @@
 // Source: frozen deployed r4 HexPlayerAI.js, SHA-256 62340c349b53a13e20d47171187228a2359c5d8dcbf12344a4bf6a0017b9f673.
-// Compatibility only: lazy browser URL, injected SHA-256 of insertion-order JSON, JSON clone.
-// Candidate generation, features, weights, ranking, and model validation are unchanged.
-import { restoreState, saveState } from "./AIEngine.js?v=20261020-three1";
+// Cache/URL, native-Worker integrity/clone, and territory-v3 deltas are declared by the Worker provenance test.
+// Candidate features, policy scoring, ordering and model validation remain unchanged.
+import { restoreState, saveState } from "./AIEngine.js?v=20261026-allplatform1";
 
 export const HEX_PLAYER_MODEL_ID = "hex-player-policy-v1";
 export const HEX_PLAYER_FEATURES = Object.freeze([
@@ -10,8 +10,14 @@ export const HEX_PLAYER_FEATURES = Object.freeze([
   "own_coverage_gain", "attack", "own_line", "distance_from_home", "centrality",
   "own_frontier", "opponent_frontier_lead",
 ]);
-const MODEL_PATH = "./assets/research-ai/hex-player-policy-v1.json?v=20261021-hexai1";
 let modelPromise = null;
+
+function modelUrl() {
+  if (typeof URL !== "function" || typeof import.meta.url !== "string") {
+    throw new Error("六边形 AI 资源仅可在支持模块 URL 的 Web 环境中加载。");
+  }
+  return new URL("./assets/research-ai/hex-player-policy-v1.json?v=20261025-room1", import.meta.url);
+}
 
 // Integer-index scans avoid constructing coordinate strings for each player's
 // reachability and frontier at every candidate on the 631-point maximum board.
@@ -151,7 +157,7 @@ export async function createHexPlayerModel(payload, hashText) {
 export async function loadHexPlayerModel(id = HEX_PLAYER_MODEL_ID) {
   if (id !== HEX_PLAYER_MODEL_ID) throw new Error(`未找到六边形 AI 模型：${id}`);
   if (!modelPromise) modelPromise = (async () => {
-    const response = await fetch(new URL(MODEL_PATH, import.meta.url));
+    const response = await fetch(modelUrl());
     if (!response.ok) throw new Error(`无法加载六边形 AI 模型（HTTP ${response.status}）。`);
     return createHexPlayerModel(await response.json());
   })().catch((error) => { modelPromise = null; throw error; });

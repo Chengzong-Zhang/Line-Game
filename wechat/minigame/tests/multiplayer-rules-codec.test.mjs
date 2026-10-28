@@ -32,12 +32,17 @@ const native = sandbox.RulesUnderTest;
 // capability probe small; VM overhead is not a phone performance measurement.
 const module = await build({ ...options, format: 'esm' });
 const sut = await import(`data:text/javascript;base64,${Buffer.from(module.outputFiles[0].text).toString('base64')}`);
+const localSessions = await import(new URL('../../../web/web前端/LocalGameSession.js', import.meta.url));
 const colors = ['BLACK', 'WHITE', 'PURPLE', 'GREEN', 'ORANGE', 'CYAN'];
 function checkpoint(engine) {
   const snapshot = engine.getSnapshot();
   // Resolved initial positions are additive in 0.11. Both independent fixtures
   // exclude this field; the 0.11.2 reconnection correction is pinned separately.
+  // The frozen r4 snapshots also predate v3's explicit paint set. Keep that
+  // historical digest focused on the old snapshot contract; v3 render-points
+  // have their own territory protocol regression coverage.
   delete snapshot.initialPositions;
+  for (const territory of Object.values(snapshot.territories)) delete territory.renderPoints;
   return plain({ stateHash: sut.checksum(sut.serializeRuleState(engine)), snapshotHash: sut.checksum(snapshot),
     currentPlayer: snapshot.currentPlayer, turnCount: snapshot.turnCount, gameOver: snapshot.gameOver,
     winner: snapshot.winner, area: Object.fromEntries(snapshot.players.map(p => [p, snapshot.territories[p].area])) });
@@ -155,7 +160,11 @@ test('native-like rules and six-player replay round-trip without DOM, TextEncode
 });
 
 test('strict settings and exported geometry reject unseated actors and triangular cutouts without mutating a hex board', () => {
-  assert.deepEqual(plain(sut.PLAYER_ORDER), colors);
+  // Legacy replay and six-seat products retain their original seat order even
+  // though the shared engine now has a bounded 15-seat palette for root-v2.
+  assert.deepEqual(plain(sut.PLAYER_ORDER.slice(0, colors.length)), colors);
+  assert.equal(sut.PLAYER_ORDER.length, 15);
+  assert.equal(new Set(sut.PLAYER_ORDER).size, sut.PLAYER_ORDER.length);
   for (const count of [2,3,4,5,6]) {
     for (const startPlayer of colors.slice(0, count)) assert.equal(sut.validateSettings(sut.settingsFor(5, count, startPlayer)).startPlayer, startPlayer);
     for (const startPlayer of [...colors.slice(count), '', 'BLACK ', 'GREEN_NODE', 0, null]) assert.throws(() => sut.restoreGame(sut.settingsFor(5, count, startPlayer)), /INVALID_SETTINGS/);
@@ -178,13 +187,27 @@ test('strict settings and exported geometry reject unseated actors and triangula
   }
 });
 
-test('six-seat settings round-trip through the existing local-session schema without adding Web role data', () => {
+test('six-seat settings round-trip through schema v2 while v1 sessions still decode without adding Web role data', () => {
   for (const c of cases) {
     const local = sut.createLocalGameSession(c.settings, c.actions);
-    assert.equal(local.schemaVersion, 1); assert.equal(local.format, 'lifeline-local-session');
-    assert.deepEqual(plain(local.settings), { ...c.settings, boardShape: c.settings.playerCount >= 4 ? 'hexagon' : 'triangle' });
+    assert.equal(local.schemaVersion, 2); assert.equal(local.format, 'lifeline-local-session');
+    assert.deepEqual(plain(local.settings), {
+      ...c.settings,
+      protectionRule: c.settings.protectionRule ?? 'symmetric-v1',
+      boardShape: c.settings.playerCount >= 4 ? 'hexagon' : 'triangle',
+    });
     assert.equal(local.match, undefined);
     assert.equal(sut.ruleView(sut.restoreGame(local.settings, local.actions)).stateHash, c.expected.states.at(-1).stateHash);
+
+    const oldEnvelope = { ...plain(local), schemaVersion: 1 };
+    const restored = localSessions.loadLocalGameSession({
+      getItem(key) {
+        return key === localSessions.LOCAL_GAME_SESSION_STORAGE_KEY ? JSON.stringify(oldEnvelope) : null;
+      },
+    });
+    assert.equal(restored?.schemaVersion, 2, `${c.id}: legacy envelope migrates to current schema`);
+    assert.deepEqual(restored?.settings, local.settings, `${c.id}: legacy settings survive migration`);
+    assert.deepEqual(restored?.actions, local.actions, `${c.id}: legacy actions survive migration`);
   }
   for (const patch of [{ playerCount: 7 }, { playerCount: 1 }, { playerCount: '4' }, { playerCount: 4, startPlayer: 'CYAN' }, { gridSize: 16 }]) {
     assert.throws(() => sut.createLocalGameSession({ ...sut.settingsFor(5,4), ...patch }), /valid settings/);

@@ -1,14 +1,19 @@
-import GameEngine from "./GameEngine.js?v=20261025-territory-render1";
-import { Player, resolveBoardShape } from "./GameEngine.js?v=20261025-territory-render1";
-import { startingPointSettings } from "./StartingPoints.js?v=20261021-boardshapes1";
+import GameEngine from "./GameEngine.js?v=20261027-topology-multistart-release1";
+import { Player, PLAYER_ORDER, StartProtectionRule, resolveBoardShape } from "./GameEngine.js?v=20261027-topology-multistart-release1";
+import { startingPointSettings } from "./StartingPoints.js?v=20261027-topology-multistart-release1";
+import { decodeTopologyState } from "./TopologyStateCodec.js?v=20261027-topology-multistart-release1";
 
 export const REPLAY_FORMAT = "lifeline-replay";
 export const REPLAY_SCHEMA_VERSION = 1;
 export const MULTI_ROOT_REPLAY_SCHEMA_VERSION = 2;
 export const REPLAY_ENGINE_FAMILY = "web-game-engine";
+export const TOPOLOGY_REPLAY_FORMAT = "lifeline-topology-replay";
+export const TOPOLOGY_REPLAY_SCHEMA_VERSION = 1;
 const GENESIS_EVENT_HASH = "GENESIS";
 const SUPPORTED_RULES = new Set(["territory-v1", "territory-v2", "territory-v3"]);
-const PLAYERS = [Player.BLACK, Player.WHITE, Player.PURPLE, Player.GREEN, Player.ORANGE, Player.CYAN];
+const SUPPORTED_PROTECTION_RULES = new Set(Object.values(StartProtectionRule));
+const PLAYERS = PLAYER_ORDER;
+const TOPOLOGY_PLAYERS = PLAYERS.slice(0, 6);
 
 // Schema 1 triangular replays hash three edge/effect keys, including the unused
 // purple seat in two-player games. Keep that representation byte-compatible.
@@ -98,6 +103,8 @@ export function serializeRuleState(engine) {
       rootActionsRemaining: cloneJson(engine.rootActionsRemaining),
     } : {}),
     rulesVersion: engine.rulesVersion,
+    ...(engine.protectionRule !== StartProtectionRule.SYMMETRIC
+      ? { protectionRule: engine.protectionRule } : {}),
     gridEntries,
     edges,
     historyHashes: [...(engine.historyHashes ?? [])].sort(),
@@ -109,8 +116,8 @@ export function serializeRuleState(engine) {
   };
 }
 
-async function hashRuleState(engine) {
-  return sha256(serializeRuleState(engine));
+async function hashRuleState(engine, hashValue = sha256) {
+  return hashValue(serializeRuleState(engine));
 }
 
 function normalizeSettings(settings = {}) {
@@ -118,6 +125,7 @@ function normalizeSettings(settings = {}) {
   const players = Array.isArray(settings.players)
     ? [...settings.players]
     : PLAYERS.slice(0, playerCount);
+  const protectionRule = settings.protectionRule ?? StartProtectionRule.SYMMETRIC;
   return {
     playerCount,
     ...(resolveBoardShape(playerCount, settings.boardShape) !== resolveBoardShape(playerCount)
@@ -126,6 +134,7 @@ function normalizeSettings(settings = {}) {
     players,
     startPlayer: settings.startPlayer ?? players[0],
     rulesVersion: settings.rulesVersion ?? "territory-v3",
+    ...(protectionRule !== StartProtectionRule.SYMMETRIC ? { protectionRule } : {}),
     superko: "enforce",
     turnTimerEnabled: Boolean(settings.turnTimerEnabled),
     turnTimeLimitSeconds: Number(settings.turnTimeLimitSeconds ?? 60),
@@ -146,14 +155,16 @@ function engineOptionsFromSettings(settings) {
     rootMode: settings.rootMode,
     rootRulesVersion: settings.rootRulesVersion,
     rulesVersion: settings.rulesVersion,
+    protectionRule: settings.protectionRule,
     deferTerritoryUpdates: false,
   };
 }
 
 function isValidSettings(settings) {
-  return Number.isInteger(settings.playerCount) && settings.playerCount >= 2 && settings.playerCount <= 6
+  return Number.isInteger(settings.playerCount) && settings.playerCount >= 2 && settings.playerCount <= 15
     && Number.isInteger(settings.gridSize) && settings.gridSize >= 5 && settings.gridSize <= 15
     && SUPPORTED_RULES.has(settings.rulesVersion)
+    && SUPPORTED_PROTECTION_RULES.has(settings.protectionRule ?? StartProtectionRule.SYMMETRIC)
     && canonicalize(settings.players) === canonicalize(PLAYERS.slice(0, settings.playerCount))
     && settings.players.includes(settings.startPlayer);
 }
@@ -175,6 +186,10 @@ function normalizeActors(actors, settings) {
     if (["neural-puct", "model-free", "three-player", "hex-player", "multiplayer"].includes(actor.strategy) && !actor.modelId) throw new Error("棋谱缺少 AI 模型标识。");
     for (const key of ["seed", "simulations", "cPuct", "depth"]) {
       if (actor[key] !== undefined && (typeof actor[key] !== "number" || !Number.isFinite(actor[key]) || actor[key] < 0)) throw new Error("棋谱 AI 参数无效。");
+    }
+    if (settings.playerCount > 6 && (actor.strategy !== "greedy" && !(actor.strategy === "multiplayer" && actor.modelId === "multiplayer-hard-v1"))) throw new Error("Unsupported AI for 7-15 players.");
+    if (settings.rootRulesVersion === "root-v2" && !["greedy", "minimax", "mcts"].includes(actor.strategy)) {
+      throw new Error("多起点棋谱仅支持已适配的通用 AI。");
     }
     if (actor.strategy === "multiplayer" && (settings.playerCount < 3 || !["territory-v2", "territory-v3"].includes(settings.rulesVersion)
       || !/^multiplayer-(easy|medium|hard|ultimate)-v1$/.test(actor.modelId))) throw new Error("棋谱多人 AI 模型配置无效。");
@@ -243,24 +258,13 @@ function toControllerAction(action) {
 
 function buildTerminalSummary(engine, finalStateHash, eventCount) {
   const snapshot = engine.getSnapshot();
-  // Replay schema v1 predates display-only v3 point geometry. Keep the stored
-  // terminal summary stable so old documents still compare byte-for-field with
-  // a fresh replay, while the live snapshot remains free to carry renderPoints.
-  const scores = Object.fromEntries(Object.entries(snapshot.territories ?? {}).map(([player, territory]) => [
-    player,
-    {
-      area: territory.area,
-      displayArea: territory.displayArea,
-      polygon: territory.polygon ? territory.polygon.map(clonePoint) : null,
-    },
-  ]));
   return snapshot.gameOver
     ? {
         status: "completed",
         reason: snapshot.resignedPlayers?.length ? "resignation" : "all_remaining_players_skipped",
         lastEventSeq: eventCount,
         winner: snapshot.winner ?? null,
-        scores,
+        scores: cloneJson(snapshot.territories ?? {}),
         resignedPlayers: [...(snapshot.resignedPlayers ?? [])],
         finalStateHash,
         turnCount: engine.turnCount,
@@ -269,14 +273,15 @@ function buildTerminalSummary(engine, finalStateHash, eventCount) {
     : null;
 }
 
-export async function createReplayDocument(settings, actions = [], options = {}) {
+export async function createReplayDocument(settings, actions = [], options = {}, hashValue = sha256) {
+  if (typeof options === "function") { hashValue = options; options = {}; }
   const config = normalizeSettings(settings);
   if (!isValidSettings(config)) {
     throw new Error("当前规则或玩家配置不支持导出棋谱。");
   }
   const engine = new GameEngine(engineOptionsFromSettings(config));
   const initialRuleState = serializeRuleState(engine);
-  const initialStateHash = await sha256(initialRuleState);
+  const initialStateHash = await hashValue(initialRuleState);
   const events = [];
   let previousEventHash = GENESIS_EVENT_HASH;
 
@@ -287,7 +292,7 @@ export async function createReplayDocument(settings, actions = [], options = {})
     if (engine.currentPlayer !== actor && action.type !== "resign") {
       throw new Error(`第 ${index + 1} 个动作不是当前玩家的动作。`);
     }
-    const preStateHash = await hashRuleState(engine);
+    const preStateHash = await hashRuleState(engine, hashValue);
     const preState = serializeRuleState(engine);
     const preSnapshot = engine.getSnapshot();
     const preTurnCount = engine.turnCount;
@@ -303,25 +308,26 @@ export async function createReplayDocument(settings, actions = [], options = {})
       actor,
       ...(["move", "root_relocate", "root_add"].includes(action.type) ? { point: clonePoint(action.point) } : {}),
       preStateHash,
-      postStateHash: await hashRuleState(engine),
+      postStateHash: await hashRuleState(engine, hashValue),
       preTurnCount,
       postTurnCount: engine.turnCount,
       prevEventHash: previousEventHash,
       effects: buildEventEffects(preState, preSnapshot, postState, postSnapshot),
     };
-    const eventHash = await sha256(normalizedEvent);
+    const eventHash = await hashValue(normalizedEvent);
     events.push({ ...normalizedEvent, eventHash });
     previousEventHash = eventHash;
   }
 
   const finalRuleState = serializeRuleState(engine);
-  const finalStateHash = await sha256(finalRuleState);
+  const finalStateHash = await hashValue(finalRuleState);
   const terminal = buildTerminalSummary(engine, finalStateHash, events.length);
   const document = {
     format: REPLAY_FORMAT,
     schemaVersion: config.rootRulesVersion === "root-v2" ? MULTI_ROOT_REPLAY_SCHEMA_VERSION : REPLAY_SCHEMA_VERSION,
     engineFamily: REPLAY_ENGINE_FAMILY,
     rulesVersion: config.rulesVersion,
+    ...(config.protectionRule ? { protectionRule: config.protectionRule } : {}),
     engineBuild: { id: "lifeline-web-runtime-v1", sourceHash: "unavailable" },
     config,
     initialState: { stateVersion: 1, ruleState: initialRuleState, stateHash: initialStateHash },
@@ -336,27 +342,36 @@ export async function createReplayDocument(settings, actions = [], options = {})
     },
     extensions: options.actors === undefined ? {} : { actors: normalizeActors(options.actors, config) },
   };
-  document.integrity.canonicalDocumentHash = await sha256({ ...document, integrity: { ...document.integrity, canonicalDocumentHash: null } });
+  document.integrity.canonicalDocumentHash = await hashValue({ ...document, integrity: { ...document.integrity, canonicalDocumentHash: null } });
   return document;
 }
 
-export async function validateReplayDocument(document) {
+export async function validateReplayDocument(document, hashValue = sha256) {
   const fail = (reason, eventSeq = null) => ({ success: false, reason, eventSeq });
   if (!isPlainObject(document)) return fail("棋谱不是 JSON 对象。");
   if (document.format !== REPLAY_FORMAT || ![REPLAY_SCHEMA_VERSION, MULTI_ROOT_REPLAY_SCHEMA_VERSION].includes(document.schemaVersion)) return fail("棋谱版本不受支持。");
-  if (document.engineFamily !== REPLAY_ENGINE_FAMILY || !SUPPORTED_RULES.has(document.rulesVersion)) return fail("棋谱规则版本或引擎版本不兼容。");
+  const documentProtectionRule = document.protectionRule ?? StartProtectionRule.SYMMETRIC;
+  if (document.engineFamily !== REPLAY_ENGINE_FAMILY || !SUPPORTED_RULES.has(document.rulesVersion)
+    || !SUPPORTED_PROTECTION_RULES.has(documentProtectionRule)) return fail("棋谱规则版本或引擎版本不兼容。");
   if (!isPlainObject(document.config) || !Array.isArray(document.actions) || !isPlainObject(document.initialState)) return fail("棋谱缺少必要字段。");
   let config;
   try { config = normalizeSettings(document.config); }
   catch (_) { return fail("棋谱起点配置无效。"); }
-  if (config.rulesVersion !== document.rulesVersion || !isValidSettings(config)) return fail("棋谱配置无效。");
-  if (document.schemaVersion === 1 && config.rootRulesVersion === "root-v2") return fail("旧棋谱版本不能声明多起点规则。");
+  if (config.rulesVersion !== document.rulesVersion
+    || (config.protectionRule ?? StartProtectionRule.SYMMETRIC) !== documentProtectionRule
+    || !isValidSettings(config)) return fail("棋谱配置无效。");
+  if (document.schemaVersion === REPLAY_SCHEMA_VERSION && config.rootRulesVersion === "root-v2") {
+    return fail("旧棋谱版本不能声明多起点规则。");
+  }
+  if (document.schemaVersion === MULTI_ROOT_REPLAY_SCHEMA_VERSION && config.rootRulesVersion !== "root-v2") {
+    return fail("多起点棋谱版本必须声明 root-v2 规则。");
+  }
   if (document.extensions?.actors !== undefined) {
     try { normalizeActors(document.extensions.actors, config); }
     catch (error) { return fail(error.message); }
   }
   const engine = new GameEngine(engineOptionsFromSettings(config));
-  const initialHash = await hashRuleState(engine);
+  const initialHash = await hashRuleState(engine, hashValue);
   if (document.initialState.stateHash !== initialHash
     || canonicalize(document.initialState.ruleState) !== canonicalize(serializeRuleState(engine))) return fail("初始局面校验失败。");
   let previousEventHash = GENESIS_EVENT_HASH;
@@ -367,29 +382,29 @@ export async function validateReplayDocument(document) {
     const action = normalizeAction(event);
     if (!action || event.actor !== action.player) return fail("事件动作格式无效。", seq);
     if (action.type !== "resign" && event.actor !== engine.currentPlayer) return fail("事件行动方与当前回合不一致。", seq);
-    const expectedPre = await hashRuleState(engine);
+    const expectedPre = await hashRuleState(engine, hashValue);
     if (event.preStateHash !== expectedPre || event.preTurnCount !== engine.turnCount) return fail("动作前状态承诺不匹配。", seq);
     const preState = serializeRuleState(engine);
     const preSnapshot = engine.getSnapshot();
     const result = applyAction(engine, action);
     if (!result.success && !(action.type === "resign" && result.reason === "PLAYER_ALREADY_RESIGNED")) return fail(`第 ${seq} 步无法执行：${result.reason ?? "UNKNOWN"}。`, seq);
-    const expectedPost = await hashRuleState(engine);
+    const expectedPost = await hashRuleState(engine, hashValue);
     if (event.postStateHash !== expectedPost || event.postTurnCount !== engine.turnCount) return fail("动作后状态承诺不匹配。", seq);
     const effects = buildEventEffects(preState, preSnapshot, serializeRuleState(engine), engine.getSnapshot());
     if (canonicalize(event.effects) !== canonicalize(effects)) return fail("事件效果与规则重放不一致。", seq);
     const eventWithoutHash = { ...event };
     delete eventWithoutHash.eventHash;
-    const expectedEventHash = await sha256(eventWithoutHash);
+    const expectedEventHash = await hashValue(eventWithoutHash);
     if (event.eventHash !== expectedEventHash) return fail("事件哈希校验失败。", seq);
     previousEventHash = event.eventHash;
     actions.push(toControllerAction(action));
   }
-  const finalStateHash = await hashRuleState(engine);
+  const finalStateHash = await hashRuleState(engine, hashValue);
   if (document.integrity?.eventCount !== actions.length || document.integrity?.finalStateHash !== finalStateHash) return fail("棋谱终局完整性校验失败。", actions.length);
   if (document.integrity?.finalEventHash !== (actions.length ? previousEventHash : null)) return fail("棋谱最终事件哈希不匹配。", actions.length);
   if (canonicalize(document.terminal) !== canonicalize(buildTerminalSummary(engine, finalStateHash, actions.length))) return fail("棋谱终局摘要与回放结果不一致。", actions.length);
   if (document.integrity?.canonicalDocumentHash) {
-    const expectedDocumentHash = await sha256({
+    const expectedDocumentHash = await hashValue({
       ...document,
       integrity: { ...document.integrity, canonicalDocumentHash: null },
     });
@@ -407,14 +422,14 @@ export async function validateReplayDocument(document) {
   };
 }
 
-export async function parseAndValidateReplay(text) {
+export async function parseAndValidateReplay(text, hashValue = sha256) {
   let document;
   try {
     document = JSON.parse(String(text));
   } catch {
     return { success: false, reason: "棋谱文件不是有效 JSON。", eventSeq: null };
   }
-  return validateReplayDocument(document);
+  return validateReplayDocument(document, hashValue);
 }
 
 export function downloadReplayDocument(replayDocument, filename = "lifeline-replay.json") {
@@ -425,4 +440,218 @@ export function downloadReplayDocument(replayDocument, filename = "lifeline-repl
   anchor.download = filename;
   anchor.click();
   globalThis.setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+function normalizeTopologyAction(action, sampleIds) {
+  if (!isPlainObject(action)) return null;
+  const type = action.type === "player_move" ? "move"
+    : action.type === "player_skip" ? "skip"
+      : action.type === "player_resign" ? "resign" : action.type;
+  const player = action.player ?? action.color ?? action.actor ?? null;
+  if (!["move", "skip", "resign"].includes(type)) return null;
+  if (player !== null && !TOPOLOGY_PLAYERS.includes(player)) return null;
+  if (type !== "move") return { type, player };
+  const vertexId = action.vertexId ?? action.point;
+  if (typeof vertexId !== "string" || !sampleIds.has(vertexId)) return null;
+  return { type, player, vertexId };
+}
+
+function applyTopologyAction(engine, action) {
+  if (action.type === "move") return engine.playMove(action.vertexId);
+  if (action.type === "skip") return engine.skipTurn();
+  return engine.resignPlayer(action.player ?? engine.currentPlayer);
+}
+
+function topologyTerminal(engine, finalStateHash, eventCount) {
+  const snapshot = engine.getSnapshot();
+  if (!snapshot.gameOver) return null;
+  return {
+    status: "completed",
+    reason: snapshot.resignedPlayers?.length ? "resignation" : "all_remaining_players_skipped",
+    lastEventSeq: eventCount,
+    winner: snapshot.winner ?? null,
+    scores: Object.fromEntries(Object.entries(snapshot.territories ?? {}).map(([player, territory]) => [
+      player,
+      { area: territory.area },
+    ])),
+    finalStateHash,
+    turnCount: engine.turnCount,
+  };
+}
+
+async function ensureTopologyGameEngineRuntime() {
+  // Keep normal replay loading compatible with the repository's data-URL
+  // isolation harness; a topology replay is the first operation that needs
+  // the sibling runtime.
+  await import("./TopologyGameEngine.js?v=20261027-topology-multistart-release1");
+}
+
+/**
+ * Create a replay for a board-definition-v1 match. This separate family keeps
+ * coordinate-pair replay schema v1 byte-compatible with historical games.
+ */
+export async function createTopologyReplayDocument(options = {}, actions = []) {
+  if (!isPlainObject(options) || (!options.boardDefinition && !options.compiledBoard)) {
+    throw new Error("Topology replay requires a boardDefinition or compiledBoard.");
+  }
+  await ensureTopologyGameEngineRuntime();
+  const engine = new GameEngine({
+    boardDefinition: options.boardDefinition,
+    compiledBoard: options.compiledBoard,
+    playerCount: options.playerCount,
+    startPlayer: options.startPlayer,
+    initialPositions: options.initialPositions,
+    rulesVersion: options.rulesVersion ?? "surface-v1",
+    deferTerritoryUpdates: false,
+  });
+  if (!engine.isTopologyBoard) throw new Error("Topology replay requires a topology board.");
+  const sampleIds = new Set(engine.getValidPositions());
+  const initialState = engine.encodeTopologyState();
+  const initialStateHash = await sha256(initialState);
+  const events = [];
+  let previousEventHash = GENESIS_EVENT_HASH;
+
+  for (let index = 0; index < actions.length; index += 1) {
+    const action = normalizeTopologyAction(actions[index], sampleIds);
+    if (!action) throw new Error("Invalid topology action at " + (index + 1) + ".");
+    const actor = action.player ?? engine.currentPlayer;
+    if (actor !== engine.currentPlayer && action.type !== "resign") {
+      throw new Error("Topology action is not owned by the current player at " + (index + 1) + ".");
+    }
+    const preStateHash = await sha256(engine.encodeTopologyState());
+    const preTurnCount = engine.turnCount;
+    const result = applyTopologyAction(engine, { ...action, player: actor });
+    if (!result.success) throw new Error("Topology action replay failed: " + (result.reason ?? "UNKNOWN"));
+    const event = {
+      seq: index + 1,
+      type: action.type,
+      actor,
+      ...(action.type === "move" ? { vertexId: action.vertexId } : {}),
+      preStateHash,
+      postStateHash: await sha256(engine.encodeTopologyState()),
+      preTurnCount,
+      postTurnCount: engine.turnCount,
+      prevEventHash: previousEventHash,
+    };
+    const eventHash = await sha256(event);
+    events.push({ ...event, eventHash });
+    previousEventHash = eventHash;
+  }
+
+  const finalStateHash = await sha256(engine.encodeTopologyState());
+  const document = {
+    format: TOPOLOGY_REPLAY_FORMAT,
+    schemaVersion: TOPOLOGY_REPLAY_SCHEMA_VERSION,
+    engineFamily: REPLAY_ENGINE_FAMILY,
+    boardHash: engine.boardHash,
+    initialState: { topologyState: initialState, stateHash: initialStateHash },
+    actions: events,
+    terminal: topologyTerminal(engine, finalStateHash, events.length),
+    integrity: {
+      eventCount: events.length,
+      finalEventHash: events.length ? previousEventHash : null,
+      finalStateHash,
+      canonicalDocumentHash: null,
+    },
+  };
+  document.integrity.canonicalDocumentHash = await sha256({
+    ...document,
+    integrity: { ...document.integrity, canonicalDocumentHash: null },
+  });
+  return document;
+}
+
+/** Validate a topology replay against an isolated topology engine. */
+export async function validateTopologyReplayDocument(document) {
+  const fail = (reason, eventSeq = null) => ({ success: false, reason, eventSeq });
+  if (!isPlainObject(document)
+    || document.format !== TOPOLOGY_REPLAY_FORMAT
+    || document.schemaVersion !== TOPOLOGY_REPLAY_SCHEMA_VERSION
+    || document.engineFamily !== REPLAY_ENGINE_FAMILY
+    || !isPlainObject(document.initialState)
+    || !Array.isArray(document.actions)) {
+    return fail("Topology replay format or version is unsupported.");
+  }
+  try {
+    await ensureTopologyGameEngineRuntime();
+  } catch (error) {
+    return fail("Topology replay runtime is unavailable: " + (error?.message ?? error));
+  }
+  let decoded;
+  try {
+    decoded = decodeTopologyState(document.initialState.topologyState);
+  } catch (error) {
+    return fail("Invalid topology initial state: " + (error.code ?? error.message));
+  }
+  if (document.boardHash !== decoded.boardHash) return fail("Topology board hash mismatch.");
+  const engine = new GameEngine({
+    compiledBoard: decoded.board,
+    playerCount: Object.keys(decoded.ruleState.startingVertices).length,
+    startPlayer: decoded.ruleState.currentPlayer ?? undefined,
+    rulesVersion: decoded.ruleState.rulesVersion,
+    deferTerritoryUpdates: false,
+  });
+  try {
+    engine.restoreTopologyState(document.initialState.topologyState);
+  } catch (error) {
+    return fail("Topology initial state cannot be restored: " + (error.code ?? error.message));
+  }
+  if (document.initialState.stateHash !== await sha256(engine.encodeTopologyState())) {
+    return fail("Topology initial-state commitment mismatch.");
+  }
+  const sampleIds = new Set(engine.getValidPositions());
+  let previousEventHash = GENESIS_EVENT_HASH;
+  const actions = [];
+  for (const event of document.actions) {
+    const seq = event?.seq;
+    if (!isPlainObject(event) || seq !== actions.length + 1 || event.prevEventHash !== previousEventHash) {
+      return fail("Topology event sequence or chain hash mismatch.", seq ?? null);
+    }
+    const action = normalizeTopologyAction(event, sampleIds);
+    if (!action || event.actor !== (action.player ?? engine.currentPlayer)
+      || (action.type !== "resign" && event.actor !== engine.currentPlayer)) {
+      return fail("Topology action or actor is invalid.", seq);
+    }
+    if (event.preStateHash !== await sha256(engine.encodeTopologyState())
+      || event.preTurnCount !== engine.turnCount) {
+      return fail("Topology pre-action commitment mismatch.", seq);
+    }
+    const result = applyTopologyAction(engine, { ...action, player: event.actor });
+    if (!result.success || event.postStateHash !== await sha256(engine.encodeTopologyState())
+      || event.postTurnCount !== engine.turnCount) {
+      return fail("Topology post-action commitment mismatch.", seq);
+    }
+    const withoutHash = { ...event };
+    delete withoutHash.eventHash;
+    if (event.eventHash !== await sha256(withoutHash)) return fail("Topology event hash mismatch.", seq);
+    previousEventHash = event.eventHash;
+    actions.push(action);
+  }
+  const finalStateHash = await sha256(engine.encodeTopologyState());
+  if (document.integrity?.eventCount !== actions.length
+    || document.integrity?.finalEventHash !== (actions.length ? previousEventHash : null)
+    || document.integrity?.finalStateHash !== finalStateHash) {
+    return fail("Topology replay terminal integrity mismatch.", actions.length);
+  }
+  if (canonicalize(document.terminal) !== canonicalize(topologyTerminal(engine, finalStateHash, actions.length))) {
+    return fail("Topology replay terminal summary mismatch.", actions.length);
+  }
+  if (document.integrity?.canonicalDocumentHash !== await sha256({
+    ...document,
+    integrity: { ...document.integrity, canonicalDocumentHash: null },
+  })) {
+    return fail("Topology replay document hash mismatch.", actions.length);
+  }
+  return {
+    success: true,
+    reason: null,
+    boardHash: decoded.boardHash,
+    actions: actions.map((action) => action.type === "move"
+      ? { type: "player_move", vertexId: action.vertexId }
+      : action.type === "skip" ? { type: "player_skip" }
+        : { type: "player_resign", color: action.player }),
+    document: cloneJson(document),
+    finalStateHash,
+    terminal: document.terminal,
+  };
 }

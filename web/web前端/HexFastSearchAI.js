@@ -1,7 +1,7 @@
 // V5 replaces only nonterminal leaf scoring; v4 remains frozen and unchanged.
-import { saveState, restoreState, fastTerritoryBFS } from "./AIEngine.js?v=20261025-territory-render2";
-import { GameEngine } from "./GameEngine.js?v=20261025-territory-render2";
-import { HEX_PLAYER_FEATURES, hexPlayerCandidates } from "./HexPlayerAI.js";
+import { saveState, restoreState, fastTerritoryBFS } from "./AIEngine.js?v=20261026-allplatform1";
+import { GameEngine } from "./GameEngine.js?v=20261026-allplatform1";
+import { HEX_PLAYER_FEATURES, hexPlayerCandidates } from "./HexPlayerAI.js?v=20261026-allplatform1";
 
 const pointOrder = (a,b) => a.point[1]-b.point[1] || a.point[0]-b.point[0];
 const samePoint = (a,b) => a[0]===b[0] && a[1]===b[1];
@@ -73,7 +73,7 @@ export class HexFastSearchAI {
       || s.priorWindow<0 || s.minimumImprovement<0 || s.minimumImprovement>1
       || s.coverageWeight<0 || s.reachWeight<0 || s.valueTemperature<=0
       || Math.abs(s.coverageWeight+s.reachWeight-1)>1e-12 || s.leafEvaluation!=="reach-coverage-v1") throw new Error("Invalid hex v5 search candidate");
-    this.spec=JSON.parse(JSON.stringify(payload)); this.lastSearch=null;
+    this.spec=structuredClone(payload); this.lastSearch=null;
   }
 
   rank(engine,player) {

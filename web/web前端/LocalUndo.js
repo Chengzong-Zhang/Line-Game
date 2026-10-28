@@ -1,7 +1,7 @@
-import GameEngine from "./GameEngine.js?v=20261025-territory-render1";
+import GameEngine, { PLAYER_ORDER } from "./GameEngine.js?v=20261027-topology-multistart-release1";
 
 // Ask the rule engine for actors: automatic skips can change the turn order.
-const COLORS = ["BLACK", "WHITE", "PURPLE", "GREEN", "ORANGE", "CYAN"];
+const COLORS = PLAYER_ORDER;
 export const UNDO_MAX_COUNT_MIN = 1;
 export const UNDO_MAX_COUNT_MAX = 100;
 export const DEFAULT_UNDO_MAX_COUNT = 3;
@@ -47,7 +47,12 @@ export function createLocalUndoTimeline() {
       for (let index = actionKeys.length; index < actions.length; index++) {
         const action = actions[index];
         const player = action.type === "player_resign" ? action.color : candidate.currentPlayer;
-        const result = action.type === "player_move" ? candidate.playMove(action.point)
+        // A topology replay stores its canonical vertex under `vertexId`,
+        // while legacy games retain their coordinate `point`. Both are rule
+        // positions, and the candidate engine is the authority that decides
+        // whether either is legal.
+        const move = action.vertexId ?? action.point;
+        const result = action.type === "player_move" ? candidate.playMove(move)
           : action.type === "player_root_relocate" ? candidate.playRootAction("relocate", action.point)
             : action.type === "player_root_add" ? candidate.playRootAction("add", action.point)
           : action.type === "player_skip" ? candidate.skipTurn()

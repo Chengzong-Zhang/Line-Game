@@ -1,7 +1,7 @@
 import { ComputeScheduler } from './scheduler.js';
 import { SaveStore } from './storage.js';
 import { GameSession } from './session.js';
-import { TUTORIAL_LEVELS, createLocalGameSession, resolveInitialPositions, randomInitialPositions, randomInitialRoots } from './core.js';
+import { TUTORIAL_LEVELS, TopologyRulesVersion, createLocalGameSession, resolveInitialPositions, randomInitialPositions, randomInitialRoots } from './core.js';
 import { TEXT, errorText } from './i18n.js';
 import { boardLayout, drawBoard, hitPoint, pointAtScreen, focusBoardLayout, panBoardFocus } from './board.js';
 import { OnlineClient, ONLINE_EMOTES } from './online.js';
@@ -25,6 +25,10 @@ import { TrainingContribution, contributionContext, CONTRIBUTION_NOTICE, CONTRIB
 import { ensureOnlineConsent } from './online-consent.js';
 import { LadderClient, ladderResultText } from './ladder.js';
 import { rankedSetupInput } from './ranked-setup.js';
+import { layoutTopologyBoard, hitTopologyVertex, drawTopologyBoard, layoutTopologyDraft, hitTopologyDraftPoint, drawTopologyDraft } from './topology-board.js';
+import { createTopologySetup, addTopologyBoundaryVertex, undoTopologyBoundary, closeTopologyBoundary,
+  selectTopologyBoundaryOccurrence, toggleTopologySeamDirection, addSelectedTopologySeam,
+  useTopologyPreset, generateTopologyBoard, topologySetupResult } from './topology-setup.js';
 
 const THEME = { background: '#f4ede1', ink: '#2a2118', muted: '#695749', border: '#dfd1bb', white: '#fff9ee' };
 
@@ -40,6 +44,7 @@ export function createApp(platform, config = {}) {
   let rootMode = playerCount === 2 ? preferences.rootMode || 'classic' : 'classic';
   let startingPointMode = preferences.startingPointMode || 'default', initialPositions = preferences.initialPositions || null;
   let startDraft = null, startSeat = 'BLACK', startPoint = null;
+  let topologySetup = null, topologyDraftLayout = null, topologyDraftSelectedIndex = null;
   const draftSettings = () => ({ gridSize: size, playerCount, boardShape, rootMode, rulesVersion: 'territory-v3' });
   const playerDrafts = preferences.playerDrafts || {};
   const draftPlayerCount = () => playerCount;
@@ -163,10 +168,82 @@ export function createApp(platform, config = {}) {
     if (played) actionMode = 'move';
     return played;
   };
+  const isTopologySnapshot = snapshot => snapshot?.rulesVersion === TopologyRulesVersion.SURFACE_V1
+    && Boolean(snapshot?.topology?.viewBoard);
   const currentView = () => view?.session === session && view.epoch === session.epoch && view.snapshot === session.snapshot && view.scene === scene;
   const inBoard = (x, y) => boardRect && x >= boardRect.x && y >= boardRect.y
     && x <= boardRect.x + boardRect.width && y <= boardRect.y + boardRect.height;
   function clearBoardView() { selected = null; actionMode = 'move'; zoomFocus = null; startTouch = null; replaySeekDraft = null; }
+
+  function topologyErrorText(result) {
+    const errors = result?.errors ?? result?.setup?.errors ?? topologySetup?.errors ?? [];
+    const first = Array.isArray(errors) ? errors[0] : null;
+    return first?.code || first?.detail || 'TOPOLOGY_SETUP_FAILED';
+  }
+  function adoptTopologySetup(result, { quiet = false } = {}) {
+    const next = result?.setup ?? result;
+    if (next?.contractVersion) topologySetup = next;
+    if (result?.ok === false && !quiet) void platform.message(topologyErrorText(result));
+    redraw();
+    return result?.ok !== false;
+  }
+  function openTopologySetup(definition = undefined) {
+    if (isOnline() || session.hidden) return;
+    pauseForPanel(); cabin = null; cabinGeneration++; clearBoardView();
+    topologySetup = createTopologySetup(definition === undefined ? {} : { definition }); topologyDraftLayout = null; topologyDraftSelectedIndex = null;
+    scene = 'topology-setup'; redraw();
+  }
+  async function addTopologyCoordinate() {
+    const value = await platform.input(language === 'en' ? 'Boundary vertex x,y' : '输入边界格点 x,y', '0,0');
+    if (scene !== 'topology-setup' || value == null) return;
+    const match = /^\s*(-?\d+)\s*,\s*(-?\d+)\s*$/.exec(String(value));
+    if (!match) { await platform.message(language === 'en' ? 'Use integer x,y.' : '请输入整数 x,y。'); return; }
+    adoptTopologySetup(addTopologyBoundaryVertex(topologySetup, [Number(match[1]), Number(match[2])]));
+  }
+  function loadTopologyLShape() {
+    let next = createTopologySetup();
+    for (const coordinate of [[0, 0], [1, 0], [2, 0], [2, 1], [1, 1], [1, 2], [0, 2], [0, 1]]) {
+      const added = addTopologyBoundaryVertex(next, coordinate);
+      if (!added.ok) { adoptTopologySetup(added); return; }
+      next = added.setup;
+    }
+    adoptTopologySetup(closeTopologyBoundary(next));
+  }
+  async function generateTopologyRandomBoard() {
+    const seed = await platform.input(language === 'en' ? 'Random board seed' : '随机棋盘种子', 'topology-random');
+    if (scene !== 'topology-setup' || seed == null) return;
+    adoptTopologySetup(generateTopologyBoard(topologySetup, {}, String(seed).trim() || 'topology-random'));
+  }
+  async function chooseTopologyBoundaryOccurrence() {
+    const ids = topologySetup?.draft?.boundaryOccurrenceIds ?? [];
+    if (!ids.length) return;
+    const index = await platform.choose(ids, { previousLabel: language === 'en' ? 'Previous' : '上一页', nextLabel: language === 'en' ? 'Next' : '下一页' });
+    if (scene !== 'topology-setup' || !Number.isInteger(index) || !ids[index]) return;
+    adoptTopologySetup(selectTopologyBoundaryOccurrence(topologySetup, ids[index]));
+  }
+  async function startTopologyGame() {
+    if (isOnline() || !topologySetup || scene !== 'topology-setup') return;
+    const prepared = topologySetupResult(topologySetup);
+    if (!prepared.ok) { await platform.message(topologyErrorText(prepared)); return; }
+    const current = localSession, epoch = current.epoch;
+    const releaseClock = current.holdClock();
+    try {
+      if (current.snapshot && !current.snapshot.gameOver && current.actions.length && !await platform.confirm(label('confirmNew'))) return;
+      if (current !== localSession || current.epoch !== epoch || scene !== 'topology-setup' || current.hidden) return;
+      if (current.snapshot && current.actions.length && !current.tutorial) archiveCurrent({ bestEffort: true });
+      clearEmote(); invalidateContribution(); cabin = null; cabinGeneration++; selected = null; scene = 'game';
+      const topologySettings = {
+        gridSize: prepared.compiled.sampleIds.length,
+        playerCount, startPlayer, rulesVersion: TopologyRulesVersion.SURFACE_V1, boardShape: 'custom',
+        boardDefinition: prepared.definition, boardHash: prepared.boardHash,
+        topologyProtocolVersion: 'board-topology-v1', rootMode: 'classic', rootRulesVersion: 'root-v1', ...playOptions,
+      };
+      const started = await current.newTopologyGame(topologySettings, playerCount > 2 ? 'human' : mode, difficulty);
+      if (started) beginContribution();
+      else scene = 'topology-setup';
+      redraw();
+    } finally { releaseClock(); }
+  }
 
   function clearUserInfoControl() {
     userInfoControl?.destroy(); userInfoControl = null; userInfoControlKey = null;
@@ -356,6 +433,60 @@ export function createApp(platform, config = {}) {
         () => { zoomFocus = zoomFocus ? null : startPoint || startDraft[startSeat]; startPoint = null; redraw(); }, { height: 32, font: 12 });
       return;
     }
+    if (scene === 'topology-setup') {
+      if (!topologySetup) topologySetup = createTopologySetup();
+      const setup = topologySetup, half = (w - 56) / 2;
+      let y = top;
+      const pair = (idA, labelA, actionA, disabledA, idB, labelB, actionB, disabledB) => {
+        button(idA, labelA, 24, y, half, actionA, { height: 42, font: 13, disabled: Boolean(disabledA), primary: false });
+        if (idB) button(idB, labelB, 32 + half, y, half, actionB, { height: 42, font: 13, disabled: Boolean(disabledB), primary: false });
+        y += 50;
+      };
+      text(language === 'en' ? 'Topology board' : '拓扑棋盘', 24, y, 21, THEME.ink, 'left', 'bold'); y += 28;
+      y += wrap(language === 'en'
+        ? 'Choose a surface, generate a reproducible board, or enter an axial-grid boundary. Seam choices always use compiler-issued boundary occurrence IDs.'
+        : '选择曲面、生成可复现棋盘，或输入轴向格线边界。接缝只会使用编译器给出的真实边界小边 ID。', 24, y, w - 48, 13, THEME.muted, 3) + 14;
+      pair('topology-cylinder', language === 'en' ? 'Cylinder' : '圆柱', () => adoptTopologySetup(useTopologyPreset(setup, 'cylinder')),
+        false, 'topology-mobius', language === 'en' ? 'Mobius' : '莫比乌斯', () => adoptTopologySetup(useTopologyPreset(setup, 'mobius')), false);
+      pair('topology-torus', language === 'en' ? 'Torus' : '环面', () => adoptTopologySetup(useTopologyPreset(setup, 'torus')),
+        false, 'topology-klein', language === 'en' ? 'Klein bottle' : '克莱因瓶', () => adoptTopologySetup(useTopologyPreset(setup, 'klein-bottle')), false);
+      pair('topology-random', language === 'en' ? 'Seeded random' : '种子随机', generateTopologyRandomBoard,
+        false, 'topology-custom', language === 'en' ? 'Custom boundary' : '自定义边界', () => {
+          topologySetup = createTopologySetup(); topologyDraftLayout = null; topologyDraftSelectedIndex = null; redraw();
+        }, false);
+      if (setup.draft) {
+        const draftRect = { x: 30, y: y + 4, width: w - 60, height: Math.max(84, Math.min(148, h - metrics.bottom - y - 182)) };
+        try {
+          topologyDraftLayout = layoutTopologyDraft(setup.draft, draftRect);
+          drawTopologyDraft(ctx, setup.draft, topologyDraftLayout, { selectedIndex: topologyDraftSelectedIndex });
+        } catch (error) { topologyDraftLayout = null; wrap(error.message, 24, y + 8, w - 48, 12, '#a43730', 2); }
+        y = draftRect.y + draftRect.height + 10;
+        pair('topology-add-boundary', language === 'en' ? 'Add x,y' : '添加 x,y', addTopologyCoordinate,
+          false, 'topology-l-shape', language === 'en' ? 'Load L sample' : '载入 L 形示例', loadTopologyLShape, false);
+        pair('topology-undo-boundary', language === 'en' ? 'Undo vertex' : '撤销顶点', () => adoptTopologySetup(undoTopologyBoundary(setup)),
+          !setup.draft.path?.length, 'topology-close-boundary', language === 'en' ? 'Close boundary' : '闭合边界', () => adoptTopologySetup(closeTopologyBoundary(setup)),
+          setup.draft.closed || (setup.draft.path?.length ?? 0) < 3);
+      } else topologyDraftLayout = null;
+      if (setup.compiled && setup.definition) {
+        const seams = setup.definition.seamPairs?.length || 0;
+        y += wrap(`${language === 'en' ? 'Board hash' : '棋盘哈希'} · ${setup.boardHash}\n${language === 'en' ? 'Seams' : '接缝'} · ${seams}`, 24, y + 2, w - 48, 12, THEME.muted, 2) + 10;
+        if (setup.mode === 'custom') {
+          const selectedOccurrences = setup.selectedBoundaryOccurrenceIds || [];
+          pair('topology-select-seam', language === 'en' ? `Choose seam edge · ${selectedOccurrences.length}/2` : `选择接缝边 · ${selectedOccurrences.length}/2`, chooseTopologyBoundaryOccurrence,
+            !(setup.draft?.boundaryOccurrenceIds?.length), 'topology-flip-seam', language === 'en' ? `Direction · ${setup.seamReverse ? 'reverse' : 'forward'}` : `方向 · ${setup.seamReverse ? '反向' : '正向'}`,
+            () => { topologySetup = toggleTopologySeamDirection(setup); redraw(); }, false);
+          button('topology-add-seam', language === 'en' ? 'Add selected seam' : '添加所选接缝', 24, y, w - 48,
+            () => adoptTopologySetup(addSelectedTopologySeam(setup)), { height: 42, font: 13, primary: true, disabled: selectedOccurrences.length !== 2 }); y += 50;
+        }
+        button('topology-start', language === 'en' ? 'Start topology match' : '开始拓扑对局', 24, y, w - 48, startTopologyGame,
+          { height: 44, primary: true }); y += 54;
+      }
+      const error = setup.errors?.[0];
+      if (error) y += wrap(`${error.code || 'TOPOLOGY_SETUP_FAILED'}${error.detail ? ` · ${error.detail}` : ''}`, 24, y + 3, w - 48, 12, '#a43730', 2) + 10;
+      button('topology-back', language === 'en' ? 'Back to board' : '返回棋盘', 24, Math.min(y, h - metrics.bottom - 46), w - 48,
+        () => { topologySetup = null; topologyDraftLayout = null; scene = 'home'; redraw(); }, { height: 42, font: 14 });
+      return;
+    }
     if (scene === 'setup') {
       drawSetup(ui, { size, mode, difficulty, controllers, playerCount }, { start: startNew, players: () => { playersPage = 0; scene = 'players'; redraw(); }, change: (key, value) => {
         if (key === 'size') size = Math.max(5, Math.min(15, value));
@@ -499,10 +630,17 @@ export function createApp(platform, config = {}) {
     const boardOffset = (session.tutorial ? 160 : compactReplayTools ? 96 : replaying ? visibleInspection() ? 190 : 172 : 132) + scoreExtra, statusTop = top + scoreExtra;
     const footer = h - metrics.bottom - (replaying ? 154 : 102);
     boardRect = { x: 30, y: top + boardOffset, width: w - 60, height: Math.max(replaying ? 24 : 60, footer - top - boardOffset - (undoVoting ? 72 : 18)) };
-    baseLayout = boardLayout(snapshot.gridSize, boardRect, snapshot.players.length, snapshot.boardShape);
-    layout = zoomFocus ? focusBoardLayout(snapshot.gridSize, boardRect, zoomFocus, 44, snapshot.players.length, snapshot.boardShape) : baseLayout;
-    if (zoomFocus) zoomFocus = layout.focus;
-    const zoomAvailable = baseLayout.spacing < 44 && !session.saveError;
+    const topologyBoard = isTopologySnapshot(snapshot);
+    if (topologyBoard) {
+      zoomFocus = null;
+      baseLayout = layoutTopologyBoard(snapshot, boardRect);
+      layout = baseLayout;
+    } else {
+      baseLayout = boardLayout(snapshot.gridSize, boardRect, snapshot.players.length, snapshot.boardShape);
+      layout = zoomFocus ? focusBoardLayout(snapshot.gridSize, boardRect, zoomFocus, 44, snapshot.players.length, snapshot.boardShape) : baseLayout;
+      if (zoomFocus) zoomFocus = layout.focus;
+    }
+    const zoomAvailable = !topologyBoard && baseLayout.spacing < 44 && !session.saveError;
     const secondaryX = 24, secondaryW = w - 48;
     const ownSide = isOnline() ? online.room?.player : null;
     const roundWidth = 64, scoreGap = 6;
@@ -578,7 +716,7 @@ export function createApp(platform, config = {}) {
         : session.busy ? label('thinking')
         : !isOnline() && session.paused ? label('pausedHelp')
         : selected ? label('selected') : isOnline() && online.room?.player !== snapshot.currentPlayer ? label('pending')
-        : zoomFocus ? label('zoomedHelp') : baseLayout.spacing < 28 ? label('zoomHelp') : label('choose');
+        : zoomFocus ? label('zoomedHelp') : !topologyBoard && baseLayout.spacing < 28 ? label('zoomHelp') : label('choose');
       const replayActionLabel = replaying && lastAction && !visibleInspection() && { move: 'played', skip: 'passed', resign: 'resigned' }[lastType];
       if (!compactReplayTools) wrap(error ? errorText(error, t()) : emoteMessage || archiveNotice || (replayActionLabel ? `${label('lastAction')} · ${label(replayActionLabel)}` : help), 24, statusTop + (replaying ? 146 : 96), w - 48, compact ? 13 : 14,
         error ? '#ac554c' : THEME.muted, visibleInspection() ? 2 : 1);
@@ -607,11 +745,17 @@ export function createApp(platform, config = {}) {
         } redraw(); },
         { height: 36, font: 14, disabled: !session.undoAvailable });
     }
-    if (zoomFocus) { ctx.save(); ctx.beginPath(); ctx.rect(boardRect.x, boardRect.y, boardRect.width, boardRect.height); ctx.clip(); }
-    drawBoard(ctx, snapshot, layout, { selected, hint: session.hintPoint, target: session.tutorial?.done ? null : target, blocked,
-      lastMove: lastType === 'move' ? lastAction.point : null, effects: visibleInspection()?.effects,
-      display: lesson ? { ...display, legalMoves: true, territories: true } : display });
-    if (zoomFocus) { ctx.restore(); ctx.strokeStyle = THEME.border; ctx.lineWidth = 1; ctx.strokeRect(boardRect.x, boardRect.y, boardRect.width, boardRect.height); }
+    if (topologyBoard) {
+      drawTopologyBoard(ctx, snapshot, layout, { selected, hint: session.hintPoint, target: session.tutorial?.done ? null : target,
+        lastMove: lastType === 'move' ? lastAction?.vertexId : null,
+        display: lesson ? { ...display, legalMoves: true, territories: true } : display });
+    } else {
+      if (zoomFocus) { ctx.save(); ctx.beginPath(); ctx.rect(boardRect.x, boardRect.y, boardRect.width, boardRect.height); ctx.clip(); }
+      drawBoard(ctx, snapshot, layout, { selected, hint: session.hintPoint, target: session.tutorial?.done ? null : target, blocked,
+        lastMove: lastType === 'move' ? lastAction.point : null, effects: visibleInspection()?.effects,
+        display: lesson ? { ...display, legalMoves: true, territories: true } : display });
+      if (zoomFocus) { ctx.restore(); ctx.strokeStyle = THEME.border; ctx.lineWidth = 1; ctx.strokeRect(boardRect.x, boardRect.y, boardRect.width, boardRect.height); }
+    }
     if (session.saveError) {
       wrap(label('saveError'), 24, footer - 28, w - 48, 12, '#ac554c', 2);
       button('save-retry', label('retrySave'), 24, footer + (replaying ? 106 : 54), session.replayIndex !== null ? boxW : w - 48, () => { session.save(); redraw(); });
@@ -660,7 +804,9 @@ export function createApp(platform, config = {}) {
       const quarter = (w - 64) / 4;
       button('confirm', label(passLesson ? 'skip' : 'confirm'), lesson ? 24 : 32 + quarter, footer, lesson ? w - 48 : quarter * 2,
         () => { const p = selected; selected = null; const rootType = snapshot.rootMode === 'relocate' ? 'root_relocate' : 'root_add';
-          void play(passLesson ? { type: 'skip' } : { type: actionMode === 'root' ? rootType : 'move', point: p }); },
+          void play(passLesson ? { type: 'skip' } : topologyBoard
+            ? { type: 'move', vertexId: p }
+            : { type: actionMode === 'root' ? rootType : 'move', point: p }); },
         { primary: true, disabled: !canPlay() || (!passLesson && !selected) });
     }
     if (session.replayIndex === null && !session.saveError) {
@@ -754,6 +900,7 @@ export function createApp(platform, config = {}) {
           playOptions = normalizePlayOptions({ ...playOptions, ...(key === 'hintEnabled' && value ? { hintMaxCount: Math.max(1, playOptions.hintMaxCount) } : {}), [key]: value });
           optionsConfigured = true; persistPreferences(); },
         contribution: toggleContribution,
+        topology: openTopologySetup,
         replay: () => { invalidateContribution(); closeCabin(false); scene = 'replay-hub'; redraw(); },
         library: () => { closeCabin(false); void openLibrary(); }, display: () => { closeCabin(false); openDisplay('board'); },
       });
@@ -973,6 +1120,7 @@ export function createApp(platform, config = {}) {
   }
   async function startNew() {
     if (isOnline()) return;
+    if (isTopologySnapshot(session.snapshot)) { openTopologySetup(session.settings.boardDefinition); return; }
     const compatible = controllerChoices(playerCount, draftSettings());
     if (Object.values(draftControllers()).some(profile => !compatible.includes(profile))) {
       await platform.message(label('incompatiblePlayers')); openCabin('board'); return;
@@ -1354,12 +1502,17 @@ export function createApp(platform, config = {}) {
       return;
     }
     if (!currentView()) { redraw(); return; }
+    if (scene === 'topology-setup' && topologyDraftLayout) {
+      const draftHit = hitTopologyDraftPoint(x, y, topologyDraftLayout);
+      topologyDraftSelectedIndex = draftHit?.index ?? null; redraw(); return;
+    }
     if (scene === 'starts' && layout && inBoard(x, y)) {
       if (!zoomFocus && layout.spacing < 28) { zoomFocus = pointAtScreen(x, y, layout); startPoint = null; }
       else startPoint = hitPoint(x, y, layout);
       redraw(); return;
     }
     if (scene === 'game' && !cabin && layout && inBoard(x, y) && canPlay()) {
+      if (isTopologySnapshot(session.snapshot)) { selected = hitTopologyVertex(x, y, layout); redraw(); return; }
       if (!zoomFocus && layout.spacing < 28) { zoomFocus = pointAtScreen(x, y, layout); selected = null; }
       else selected = hitPoint(x, y, layout);
       redraw();

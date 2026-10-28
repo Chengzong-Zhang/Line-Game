@@ -165,7 +165,18 @@ test('account deletion asks before login, prevents a new room while pending and 
     await until(() => app.getButtons().length > 0);
     await app.session.newGame(7, 'human'); await app.session.act({ type: 'move', point: [1, 0] });
     const hash = app.session.stateHash;
-    tap('cabin-battle'); await until(() => app.getButtons().some(b => b.id === 'account-privacy'));
+    tap('cabin-battle');
+    await until(() => app.getButtons().some(b => b.id === 'cabin-close'));
+    const scrollUp = () => {
+      p.callbacks.start({ touches: [{ clientX: 160, clientY: 500 }] });
+      p.callbacks.move({ touches: [{ clientX: 160, clientY: 180 }] });
+      p.callbacks.end({
+        touches: [],
+        changedTouches: [{ clientX: 160, clientY: 180 }],
+      });
+    };
+    scrollUp(); scrollUp(); scrollUp();
+    await until(() => app.getButtons().some(b => b.id === 'account-privacy'));
     tap('account-privacy'); await until(() => app.getButtons().some(b => b.id === 'delete-account'));
     tap('delete-account'); await until(() => confirmations === 1);
     assert.equal(calls.length, 0, 'cancel must not create or log into an account');

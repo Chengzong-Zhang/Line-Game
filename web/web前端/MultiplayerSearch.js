@@ -1,8 +1,10 @@
 import { multiplayerClock as performance } from "./MultiplayerClock.js";
+import { installNativeEdgeGeometry } from "./MultiplayerNativeGeometry.js?v=20261027-topology-multistart-release1";
 // Full legal-action paranoid minimax. Only alpha/beta bounds prune branches;
 // elapsed time ends an iteration, never masquerades as an equivalent cutoff.
-import { GameEngine } from "./GameEngine.js";
-import { saveState, restoreState } from "./AIEngine.js";
+import { GameEngine } from "./GameEngine.js?v=20261027-topology-multistart-release1";
+import { saveState, restoreState } from "./AIEngine.js?v=20261027-topology-multistart-release1";
+import { evaluateReplyResilience } from "./MultiplayerHardValue.js?v=20261026-allplatform1";
 
 const order = (a, b) => a.point===null ? (b.point===null?0:1) : b.point===null ? -1 : a.point[1] - b.point[1] || a.point[0] - b.point[0];
 const key = p => p===null ? "PASS" : p.join(",");
@@ -34,10 +36,8 @@ export function potentialMoves(engine, player = engine.currentPlayer) {
       if (enemy.has(state)) break;
     }
   }
-  const protectedPoints = new Set(engine._getOpponents(player).flatMap(p =>
-    engine._adjIdxList[engine._keyToIdx.get(key(engine.initialPositions[p]))]));
   return [...indices].sort((a, b) => a - b).filter(i => {
-    if (protectedPoints.has(i)) return false;
+    if (engine._isInProtectionZone(engine.validPositions[i], player)) return false;
     if (enemy.has(states[i])) return true;
     const adjacent = engine._adjIdxList[i].filter(j => states[j] === own.node);
     return adjacent.length < 2 && adjacent.every(j => !engine._adjIdxList[j].some(k => states[k] === own.node));
@@ -47,7 +47,8 @@ export function potentialMoves(engine, player = engine.currentPlayer) {
 export function isolatedSearchEngine(source) {
   const engine = new GameEngine({ gridSize: source.gridSize, playerCount: source.playerCount,
     boardShape: source.boardShape, initialPositions: source.initialPositions,
-    startPlayer: source.startPlayer, rulesVersion: source.rulesVersion, deferTerritoryUpdates: true });
+    startPlayer: source.startPlayer, rulesVersion: source.rulesVersion,
+    protectionRule: source.protectionRule, deferTerritoryUpdates: true });
   restoreState(engine, saveState(source));
   engine._isReplayingBatch = true;
   engine.getLegalMoves = function(player = this.currentPlayer) {
@@ -70,6 +71,7 @@ export function isolatedSearchEngine(source) {
     }
     return false;
   };
+  installNativeEdgeGeometry(engine);
   return engine;
 }
 
@@ -115,14 +117,16 @@ export function multiplayerMoveFeatures(engine, player, point, before, after, pr
   const own = after[player], max = f => Math.max(0, ...opponents.map(p => after[p][f]));
   const lost = f => opponents.reduce((v, p) => v + before[p][f] - after[p][f], 0);
   const home = engine.initialPositions[player], distance = (x, y) => Math.max(Math.abs(x), Math.abs(y), Math.abs(x + y));
-  const hex = engine.boardShape === "hexagon";
+  const hex = engine.boardShape === "hexagon", diamond = engine.boardShape === "diamond";
   return [own.nodes/n, own.coverage/n, own.reach/n, (own.nodes-max("nodes"))/n,
     (own.coverage-max("coverage"))/n, (own.reach-max("reach"))/n, lost("nodes")/n,
     lost("coverage")/n, (own.nodes-before[player].nodes)/n, (own.coverage-before[player].coverage)/n,
     Number(opponents.some(p => previous === engine._getPlayerStates(p).line)),
     Number(previous === engine._getPlayerStates(player).line),
-    distance(point[0]-home[0],point[1]-home[1])/(r*(hex?2:1)),
-    hex ? 1-distance(point[0]-r,point[1]-r)/r : 3*Math.min(point[0],point[1],r-point[0]-point[1])/r,
+    distance(point[0]-home[0],point[1]-home[1])/(r*(hex||diamond?2:1)),
+    hex ? 1-distance(point[0]-r,point[1]-r)/r
+      : diamond ? 2*Math.min(point[0],point[1],r-point[0],r-point[1])/r
+        : 3*Math.min(point[0],point[1],r-point[0]-point[1])/r,
     own.frontier/n, (own.frontier-max("frontier"))/n];
 }
 
@@ -148,19 +152,283 @@ function leave(engine, s) {
     _territoryStateRevision: s.territoryRevision });
 }
 
-export function fastPolicyCandidates(source, player = source.currentPlayer) {
-  if (player !== source.currentPlayer) throw new Error("Only the current player can be analysed");
-  const engine = isolatedSearchEngine(source), before = multiplayerMetrics(engine), candidates = [];
-  // Features do not depend on whose turn follows the move (same v1 policy).
-  engine._checkAndAutoSkip = () => {};
-  for (const point of potentialMoves(engine, player)) {
-    const previous = engine._getState(point), s = enter(engine);
-    try {
-      if (engine.playMove(point).success) candidates.push({ point: [...point],
-        features: multiplayerMoveFeatures(engine, player, point, before, multiplayerMetrics(engine), previous) });
-    } finally { leave(engine, s); }
+const defaultFeatures = (engine, player, point, before, previous) =>
+  multiplayerMoveFeatures(engine, player, point, before, multiplayerMetrics(engine), previous);
+
+// The caller must own this engine. The public wrapper below creates a private
+// search engine first. No history/board result cache survives an enumeration.
+export function visitPolicyCandidates(engine, player, visit, {
+  before = multiplayerMetrics(engine), beforeCandidate = null,
+  featureReader = defaultFeatures, diagnostics = null
+} = {}) {
+  if (player !== engine.currentPlayer) throw new Error("Only the current player can be analysed");
+  const sourceNodes = engine._getPlayerNodes(player), hashOrder = engine._getStateHashOrder();
+  const originalHash = engine._computeStateHash;
+  const descriptor = Object.getOwnPropertyDescriptor(engine, "_computeStateHash");
+  const stats = diagnostics ?? {};
+  Object.assign(stats, { potentialCandidates: 0, legalCandidates: 0, hashProbes: 0,
+    superkoRejected: 0, sampledLegalPositions: 0, nodeEnumerations: 1, hashOrderEnumerations: 1 });
+  let pending = null, features, readingFeatures = false;
+  // Native _evaluateMove calls this only after its real _addNode succeeds.
+  // Check exactly the same complete Superko hash before reading features; its
+  // own history check remains authoritative, and only its legal result emits.
+  // This avoids changing or copying GameEngine's rule implementation.
+  engine._computeStateHash = function (nextPlayer, orderedPoints) {
+    const identity = originalHash.call(this, nextPlayer, orderedPoints);
+    if (pending && !readingFeatures) {
+      pending.hashCalls++;
+      if (pending.hashCalls !== 1 || this !== engine || orderedPoints !== hashOrder)
+        throw new Error("Native move-probe hash contract changed");
+      stats.hashProbes++;
+      if (!this.historyHashes.has(identity)) {
+        readingFeatures = true;
+        try {
+          features = featureReader(this, player, pending.point, before, pending.previous);
+          stats.sampledLegalPositions++;
+        } finally { readingFeatures = false; }
+      }
+    }
+    return identity;
+  };
+  try {
+    for (const point of potentialMoves(engine, player)) {
+      beforeCandidate?.(point);
+      stats.potentialCandidates++;
+      pending = { point, previous: engine._getState(point), hashCalls: 0 }; features = undefined;
+      const result = engine._evaluateMove(point, player, sourceNodes, hashOrder);
+      pending = null;
+      if (result.legal) {
+        if (!Array.isArray(features) || features.length !== 16 || !features.every(Number.isFinite))
+          throw new Error("Native probe did not produce the complete finite 16-feature vector");
+        stats.legalCandidates++;
+        visit({ point: [...point], features });
+      } else {
+        if (features !== undefined) throw new Error("Native probe legality changed after feature sampling");
+        if (result.reason === "SUPERKO_VIOLATION") stats.superkoRejected++;
+      }
+    }
+  } finally {
+    pending = null;
+    if (descriptor) Object.defineProperty(engine, "_computeStateHash", descriptor);
+    else delete engine._computeStateHash;
   }
+  return stats;
+}
+
+export function fastPolicyCandidates(source, player = source.currentPlayer, options = {}) {
+  if (player !== source.currentPlayer) throw new Error("Only the current player can be analysed");
+  const engine = isolatedSearchEngine(source), candidates = [];
+  visitPolicyCandidates(engine, player, candidate => candidates.push(candidate), options);
   return candidates;
+}
+
+// Explicit opt-in: never invoke from a policy feature/hash callback. The root
+// action must commit its real history and auto-skips before choosing the actual
+// next responder. This checks ONE opponent, not a full multiplayer round or a
+// forced cut chain. Existing metrics and 16-feature policies are unchanged.
+export function probeMultiplayerReplyResilience(source, point, {
+  maxReplies = 32, maxProbes = 256, timeMs = 25,
+  now = () => performance.now(), deadline = null, followupMode = 'full',
+} = {}) {
+  if (![3, 4, 5, 6].includes(source.playerCount)
+    || !['territory-v2', 'territory-v3'].includes(source.rulesVersion)
+    || !Number.isInteger(source.gridSize) || source.gridSize < 5 || source.gridSize > 15
+    || source.gameOver || source.resignedPlayers.has(source.currentPlayer)
+    || !Number.isInteger(maxReplies) || maxReplies < 1
+    || !Number.isInteger(maxProbes) || maxProbes < 1
+    || !Number.isFinite(timeMs) || timeMs < 0 || typeof now !== 'function'
+    || (deadline !== null && !Number.isFinite(deadline))
+    || !['full', 'minimum', 'none'].includes(followupMode))
+    throw new Error('Invalid bounded reply-resilience request');
+  const started = now();
+  if (!Number.isFinite(started)) throw new Error('Invalid reply-resilience clock');
+  const end = Math.min(started + timeMs, deadline ?? Infinity);
+  const STOP = Symbol('bounded reply-resilience');
+  const result = { complete: false, reason: null, player: source.currentPlayer,
+    rootPoint: point === null ? null : [...point], replyPlayer: null,
+    repliesCompleted: 0, probes: 0, actions: 0, followupActions: 0, signal: null, worstReply: null,
+    minimumFollowupCutNodes: null, allRepliesRetainFollowupCut: null,
+    maximumNodeLoss: null, maximumCoverageLoss: null, allRepliesRetainAttackNode: null,
+    rootWasAttack: null, minimumDefenseSignal: null, defenseWorstReply: null,
+    minimumRetainedCapturedNodes: null, worstNetNodeGain: null, compositeSignalComplete: false,
+    followupMode, conditionalFollowupComplete: false,
+    scope: 'one-actual-next-opponent; conditional-actor-followup; topology-signal-only', terminalRoot: false };
+  const checkBudget = () => {
+    const time = now();
+    if (!Number.isFinite(time)) throw new Error('Invalid reply-resilience clock');
+    if (time >= end) { result.reason = 'deadline'; throw STOP; }
+  };
+  // Retain a single counter across every response and native auto-skip probe.
+  const engine = isolatedSearchEngine(source), actor = source.currentPlayer;
+  let knownZeroFollowup = false, omittedFollowups = false;
+  const boundProbes = target => {
+    const nativeEvaluate = target._evaluateMove;
+    const descriptor = Object.getOwnPropertyDescriptor(target, '_evaluateMove');
+    target._evaluateMove = function (...args) {
+      checkBudget();
+      if (result.probes >= maxProbes) { result.reason = 'probe-limit'; throw STOP; }
+      result.probes++;
+      const value = nativeEvaluate.apply(this, args);
+      checkBudget(); return value;
+    };
+    return () => {
+      if (descriptor) Object.defineProperty(target, '_evaluateMove', descriptor);
+      else delete target._evaluateMove;
+    };
+  };
+  const restoreEvaluate = boundProbes(engine);
+  const nodeKeys = player => new Set(engine.validPositions
+    .filter(p => engine._getState(p) === engine._getPlayerStates(player).node).map(key));
+  const apply = (action, target = engine) => {
+    checkBudget(); result.actions++;
+    const outcome = action === null ? target.skipTurn() : target.playMove(action);
+    checkBudget();
+    if (!outcome.success) throw new Error(`Illegal reply-resilience action: ${outcome.reason}`);
+  };
+  const bestConditionalFollowup = () => {
+    if (engine.gameOver || engine.resignedPlayers.has(actor)) return { nodes: 0, point: null };
+    // Other seats have NOT been played. This answers only whether a legal new
+    // cut exists if actor were to move on this stable physical/history state.
+    // Never rewrite the real responder state or publish this as a forced line.
+    // Reuse this probe's PRIVATE engine and restore the exact committed reply
+    // in finally. Avoid rebuilding board geometry for every conditional cut;
+    // the original caller and real responder state never escape this scope.
+    const next = engine, replySnapshot = saveState(next);
+    next.currentPlayer = actor;
+    const start = saveState(next), opponents = next._getOpponents(actor);
+    const enemyNodes = next.validPositions.flatMap(p => opponents.flatMap(player =>
+      next._getState(p) === next._getPlayerStates(player).node ? [{ coordinate: key(p), player }] : []));
+    const nodes = next._getPlayerNodes(actor), hashOrder = next._getStateHashOrder();
+    let best = { nodes: 0, point: null };
+    try {
+      for (const candidate of potentialMoves(next, actor)) {
+        checkBudget();
+        if (!opponents.some(player => next._getState(candidate) === next._getPlayerStates(player).line)) continue;
+        if (!next._evaluateMove(candidate, actor, nodes, hashOrder).legal) continue;
+        result.followupActions++; apply(candidate, next);
+        const captured = enemyNodes.filter(row => next.grid.get(row.coordinate) !== next._getPlayerStates(row.player).node).length;
+        if (captured > best.nodes) best = { nodes: captured, point: [...candidate] };
+        restoreState(next, start);
+      }
+      checkBudget(); return best;
+    } finally { restoreState(next, replySnapshot); }
+  };
+  try {
+    checkBudget();
+    const enemyNodes = engine.activePlayers.filter(p => p !== actor && !engine.resignedPlayers.has(p))
+      .flatMap(p => [...nodeKeys(p)].map(coordinate => ({ player: p, coordinate })));
+    const isAttack = point !== null && engine._getOpponents(actor)
+      .some(p => engine._getState(point) === engine._getPlayerStates(p).line);
+    apply(point);
+    const ownNodes = nodeKeys(actor);
+    const ownStates = engine._getPlayerStates(actor);
+    const ownCoverage = new Set(engine.validPositions.filter(p =>
+      [ownStates.node, ownStates.line].includes(engine._getState(p))).map(key));
+    const captured = enemyNodes.filter(row => engine.grid.get(row.coordinate) !== engine._getPlayerStates(row.player).node);
+    const snapshot = saveState(engine);
+    const measure = (withFollowup = true) => {
+      checkBudget();
+      const connected = engine._getOpponentConnectedPieces(actor);
+      const retainedOwnNodes = [...ownNodes].filter(coordinate => connected.has(coordinate)
+        && engine.grid.get(coordinate) === engine._getPlayerStates(actor).node).length;
+      const retainedOwnCoverage = [...ownCoverage].filter(coordinate => connected.has(coordinate)
+        && [ownStates.node, ownStates.line].includes(engine.grid.get(coordinate))).length;
+      const retainedCapturedNodes = captured.filter(row =>
+        engine.grid.get(row.coordinate) !== engine._getPlayerStates(row.player).node).length;
+      const attackNodeSurvives = Boolean(isAttack && connected.has(key(point))
+        && engine.grid.get(key(point)) === engine._getPlayerStates(actor).node);
+      // Once an actually checked reply has no conditional cut, the minimum is
+      // exactly zero. Later replies still undergo ALL native transitions and
+      // defense measurements; only their now-irrelevant conditional cuts may
+      // be skipped. Do not publish a composite min-score from these omissions.
+      const omitFollowup = withFollowup && (followupMode === 'none' || (followupMode === 'minimum' && knownZeroFollowup));
+      const followup = withFollowup && !omitFollowup ? bestConditionalFollowup() : { nodes: 0, point: null };
+      omittedFollowups ||= omitFollowup;
+      if (withFollowup && !omitFollowup && followup.nodes === 0) knownZeroFollowup = true;
+      checkBudget();
+      const defense = evaluateReplyResilience({ boardPointCount: engine.validPositions.length,
+        ownNodesAfterRoot: ownNodes.size, retainedOwnNodes,
+        capturedNodesAfterRoot: captured.length, retainedCapturedNodes, attackNodeSurvives });
+      return { ...evaluateReplyResilience({ boardPointCount: engine.validPositions.length,
+        ownNodesAfterRoot: ownNodes.size, retainedOwnNodes,
+        capturedNodesAfterRoot: captured.length, retainedCapturedNodes, attackNodeSurvives,
+        followupCutNodes: followup.nodes }), followupCutPoint: followup.point,
+        retainedOwnCoverage, lostOwnCoverage: ownCoverage.size - retainedOwnCoverage,
+        retainedCapturedNodes, defenseScore: defense.score };
+    };
+    result.terminalRoot = engine.gameOver;
+    if (engine.gameOver || engine.currentPlayer === actor) {
+      result.signal = measure(false); result.complete = true;
+      result.reason = engine.gameOver ? 'terminal-root' : 'no-immediate-opponent';
+      return result;
+    }
+    result.replyPlayer = engine.currentPlayer;
+    let worst = null, defenseWorst = null, minimumFollowupCutNodes = Infinity;
+    let maximumNodeLoss = 0, maximumCoverageLoss = 0, allRepliesRetainAttackNode = isAttack;
+    let minimumRetainedCapturedNodes = Infinity;
+    const evaluateReply = action => {
+      let outcome;
+      if (action === null) {
+        outcome = engine.skipTurn();
+      } else {
+        // potentialMoves supplies only necessary geometric candidates. Commit
+        // the native transition once and let its real legality/Superko result
+        // decide membership; probing with _evaluateMove and then playMove
+        // repeated the same crawl/hash work for every legal reply.
+        checkBudget();
+        if (result.probes >= maxProbes) { result.reason = 'probe-limit'; throw STOP; }
+        result.probes++;
+        outcome = engine.playMove(action);
+      }
+      checkBudget();
+      if (!outcome.success) {
+        restoreState(engine, snapshot);
+        if (action !== null && ['INVALID_MOVE', 'SUPERKO_VIOLATION'].includes(outcome.reason)) return false;
+        throw new Error(`Illegal reply-resilience action: ${outcome.reason}`);
+      }
+      if (result.repliesCompleted >= maxReplies) { result.reason = 'reply-limit'; throw STOP; }
+      result.actions++;
+      const signal = measure();
+      result.repliesCompleted++;
+      minimumFollowupCutNodes = Math.min(minimumFollowupCutNodes, signal.followupCutNodes);
+      maximumNodeLoss = Math.max(maximumNodeLoss, signal.lostOwnNodes);
+      maximumCoverageLoss = Math.max(maximumCoverageLoss, signal.lostOwnCoverage);
+      minimumRetainedCapturedNodes = Math.min(minimumRetainedCapturedNodes, signal.retainedCapturedNodes);
+      allRepliesRetainAttackNode &&= signal.attackNodeSurvives;
+      if (worst === null || signal.score < worst.signal.score)
+        worst = { action: action === null ? null : [...action], signal };
+      if (defenseWorst === null || signal.defenseScore < defenseWorst.signal.defenseScore)
+        defenseWorst = { action: action === null ? null : [...action], signal };
+      restoreState(engine, snapshot);
+      return true;
+    };
+    // No top-K reply filter: low policy-score cuts, repairs and PASS remain in
+    // the domain. Exhaustion returns no score, never a partial optimistic min.
+    for (const reply of potentialMoves(engine, result.replyPlayer)) {
+      checkBudget();
+      evaluateReply(reply);
+    }
+    evaluateReply(null);
+    checkBudget(); result.complete = true; result.reason = 'complete';
+    result.compositeSignalComplete = !omittedFollowups;
+    result.signal = omittedFollowups ? null : worst.signal;
+    result.worstReply = omittedFollowups ? null : worst.action;
+    result.conditionalFollowupComplete = followupMode !== 'none';
+    result.minimumFollowupCutNodes = followupMode === 'none' ? null : minimumFollowupCutNodes;
+    result.allRepliesRetainFollowupCut = followupMode === 'none' ? null : minimumFollowupCutNodes >= 1;
+    result.maximumNodeLoss = maximumNodeLoss; result.maximumCoverageLoss = maximumCoverageLoss;
+    result.allRepliesRetainAttackNode = allRepliesRetainAttackNode; result.rootWasAttack = isAttack;
+    result.minimumDefenseSignal = defenseWorst.signal.defenseScore;
+    result.defenseWorstReply = defenseWorst.action;
+    result.minimumRetainedCapturedNodes = minimumRetainedCapturedNodes;
+    result.worstNetNodeGain = minimumRetainedCapturedNodes - maximumNodeLoss;
+  } catch (error) {
+    if (error !== STOP) throw error;
+  } finally {
+    restoreEvaluate();
+    result.elapsedMs = now() - started;
+  }
+  return result;
 }
 
 export function relativeUtility(engine, player, metrics = multiplayerMetrics(engine)) {

@@ -3,7 +3,8 @@
 import {
   THREE_PLAYER_FEATURES, ThreePlayerAI, createThreePlayerModel as createV1Model,
   loadThreePlayerModel as loadV1Model,
-} from "./ThreePlayerAI.js?v=20261020-three1";
+} from "./ThreePlayerAI.js?v=20261026-allplatform1";
+import { portableClone } from "./PortableClone.js";
 
 export { ThreePlayerAI };
 // v2 failed the 2026-10-21 promotion gate; see docs/verification/three-player-ai-v2/ARENA_RESULTS.md.
@@ -16,7 +17,7 @@ const promises = new Map();
 const isHash = (value) => typeof value === "string" && /^[a-f0-9]{64}$/.test(value);
 
 export function threePlayerModelAsset(id = DEFAULT_THREE_PLAYER_MODEL_ID) {
-  if (!Object.prototype.hasOwnProperty.call(THREE_PLAYER_MODEL_HASHES, id)) throw new Error(`未找到三人 AI 模型：${id}`);
+  if (!Object.hasOwn(THREE_PLAYER_MODEL_HASHES, id)) throw new Error(`未找到三人 AI 模型：${id}`);
   return `assets/research-ai/${id}.json`;
 }
 
@@ -42,7 +43,7 @@ export function createSupportedThreePlayerModel(payload) {
       || payload.lineage.parent_sha256 !== training.parent_model_sha256) {
     throw new Error("三人 AI 模型格式或后训练来源无效。");
   }
-  const spec = JSON.parse(JSON.stringify(payload));
+  const spec = portableClone(payload);
   return {
     spec,
     score(features) {

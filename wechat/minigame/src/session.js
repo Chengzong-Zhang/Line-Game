@@ -1,18 +1,40 @@
 import { createLocalGameSession, TUTORIAL_LEVELS, randomInitialPositions, randomInitialRoots, startingPointSettings,
   createLocalUndoTimeline, planLocalUndo, consumeLocalUndo, recordUndoAction } from './core.js';
-import { settingsFor, MODES } from './state.js';
+import { settingsFor, MODES, SURFACE_RULES, isTopologySettings, normalizeGameSettings,
+  topologySettingsFor, createTopologyLocalGameSession } from './state.js';
 import { presetControllers, validateControllers, controllersMode, defaultAIProfile, playerIds } from './controllers.js';
 import { normalizePlayOptions, validatePlayProgress, validateUndoUsage } from './play-options.js';
 import { TurnClock } from './turn-clock.js';
 import { modelForProfile } from './model-catalog.js';
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
+export const TOPOLOGY_GENERIC_PROFILE = 'topology-generic';
+
+function topologyPresetControllers(mode, settings) {
+  const generic = TOPOLOGY_GENERIC_PROFILE;
+  return Object.fromEntries(playerIds(settings.playerCount).map(player => [player,
+    player === 'BLACK' ? ['ai-black', 'ai-duel'].includes(mode) ? generic : 'human'
+      : player === 'WHITE' ? ['ai-white', 'ai-duel'].includes(mode) ? generic : 'human'
+        : 'human',
+  ]));
+}
+
+function validateSessionControllers(value, settings) {
+  if (!isTopologySettings(settings)) return validateControllers(value, settings);
+  if (value == null) return null;
+  const players = playerIds(settings.playerCount);
+  if (typeof value !== 'object' || Array.isArray(value) || Object.keys(value).length !== players.length
+    || !players.every(player => ['human', TOPOLOGY_GENERIC_PROFILE].includes(value[player]))) {
+    throw new Error('INVALID_CONTROLLERS');
+  }
+  return Object.fromEntries(players.map(player => [player, value[player]]));
+}
 
 export class GameSession {
   constructor(scheduler, store, onChange = () => {}, { clock, timedTurns = true, allowUndo = true, models } = {}) {
     this.scheduler = scheduler; this.store = store; this.onChange = onChange;
     this.settings = settingsFor(); this.actions = []; this.mode = 'ai-white'; this.difficulty = 'normal';
-    this.snapshot = null; this.stateHash = null; this.busy = false; this.epoch = 0;
+    this.snapshot = null; this.stateHash = null; this.topologyState = null; this.busy = false; this.epoch = 0;
     this.hidden = false; this.paused = false; this.error = null; this.saveError = false;
     this.replayIndex = null; this.tutorial = null; this.savedGame = null; this.hintPoint = null;
     this.replayView = null; this.controllers = null;
@@ -42,6 +64,10 @@ export class GameSession {
   undoPlan() {
     if (!this.undoRemaining || !this.snapshot || this.snapshot.gameOver || this.hidden || this.tutorial
       || this.replayIndex !== null || this.undoPending) return null;
+    // The coordinate-only undo helper cannot reconstruct a quotient board.
+    // Retain the bounded local allowance while rolling back one canonical log
+    // action in an isolated Worker STATE request below.
+    if (isTopologySettings(this.settings)) return this.actions.length ? { actionIndex: this.actions.length - 1, topology: true } : null;
     const actions = this.actions.map(action => ({ ...action, type: { move: 'player_move', skip: 'player_skip', resign: 'player_resign',
       root_relocate: 'player_root_relocate', root_add: 'player_root_add' }[action.type] || action.type,
       ...(action.type === 'resign' ? { color: action.player } : {}) }));
@@ -52,27 +78,39 @@ export class GameSession {
   get undoAvailable() { try { return Boolean(this.undoPlan()); } catch (_) { return false; } }
   async undo() {
     const plan = this.undoPlan(); if (!plan) return false;
-    const actions = this.actions.slice(0, plan.actionIndex), usage = consumeLocalUndo(this.undoUsage, plan);
+    const actions = this.actions.slice(0, plan.actionIndex);
+    const usage = plan.topology
+      ? { ...this.undoUsage, usedCount: this.undoUsage.usedCount + 1 }
+      : consumeLocalUndo(this.undoUsage, plan);
     const epoch = this.begin();
     this.undoPending = true;
     try {
       const result = await this.scheduler.request('STATE', { settings: this.settings, actions }, this.context(), 0);
       if (!this.isCurrent(epoch)) return false;
-      this.actions = actions; this.snapshot = result.snapshot; this.stateHash = result.stateHash; this.undoUsage = usage;
+      this.actions = actions; this.snapshot = result.snapshot; this.stateHash = result.stateHash;
+      this.topologyState = result.topologyState ?? null; this.undoUsage = usage;
       this.clock.reset(this.settings.turnTimeLimitSeconds * 1000); this.busy = false; this.paused = false;
       this.undoPending = false; this.save(); this.notify(); void this.maybeAI(); return true;
     } catch (error) { this.failed(epoch, error); return false; }
     finally { if (epoch === this.epoch) { this.undoPending = false; this.notify(); } }
   }
   capture() {
-    return { session: createLocalGameSession(this.settings, this.actions), mode: this.mode, difficulty: this.difficulty,
+    const session = isTopologySettings(this.settings)
+      ? createTopologyLocalGameSession(this.settings, this.actions, this.topologyState, this.stateHash)
+      : createLocalGameSession(this.settings, this.actions);
+    return { session, mode: this.mode, difficulty: this.difficulty,
       ...(this.controllers ? { controllers: clone(this.controllers) } : {}),
       ...(this.undoUsage.usedCount ? { undoUsage: clone(this.undoUsage) } : {}),
       ...(this.settings.turnTimerEnabled || this.hintsUsed ? { progress: { remainingMs: this.clock.remaining(), hintsUsed: this.hintsUsed } } : {}) };
   }
-  context() {
-    return { epoch: this.epoch, revision: this.actions.length, rulesVersion: this.settings.rulesVersion,
-      player: this.snapshot?.currentPlayer || this.settings.startPlayer };
+  context(settings = this.settings, snapshot = this.snapshot) {
+    const topology = isTopologySettings(settings);
+    return { epoch: this.epoch,
+      revision: topology ? snapshot?.positionRevision ?? 0 : this.actions.length,
+      rulesVersion: settings.rulesVersion,
+      player: snapshot?.currentPlayer || settings.startPlayer,
+      ...(topology ? { boardHash: snapshot?.boardHash || settings.boardHash,
+        topologyProtocolVersion: settings.topologyProtocolVersion } : {}) };
   }
   begin({ keepReplayPlayback = false } = {}) {
     if (!keepReplayPlayback) this.stopReplayPlayback();
@@ -90,11 +128,17 @@ export class GameSession {
   async load(settings, actions = [], options = {}) {
     const epoch = this.begin();
     try {
-      settings = { ...settings, ...normalizePlayOptions(settings) };
-      const controllers = validateControllers(options.controllers, settings);
+      settings = normalizeGameSettings(settings);
+      const topology = isTopologySettings(settings);
+      const session = topology ? createTopologyLocalGameSession(settings, actions, options.topologyState, options.expectedHash) : null;
+      if (session) { settings = session.settings; actions = session.actions; }
+      else settings = { ...settings, ...normalizePlayOptions(settings) };
+      const controllers = validateSessionControllers(options.controllers, settings);
       const progress = validatePlayProgress(options.progress, settings);
       const undoUsage = validateUndoUsage(options.undoUsage, settings);
-      const result = await this.scheduler.request('STATE', { settings, actions }, { ...this.context(), epoch }, 0);
+      // A new topology game must not inherit a prior game's board identity or
+      // protocol in the Worker envelope while its initial state is built.
+      const result = await this.scheduler.request('STATE', { settings, actions }, { ...this.context(settings, null), epoch }, 0);
       if (!this.isCurrent(epoch)) return false;
       if (options.expectedHash && result.stateHash !== options.expectedHash) throw new Error('STATE_MISMATCH');
       this.settings = clone(settings); this.actions = clone(actions);
@@ -104,7 +148,7 @@ export class GameSession {
       this.difficulty = options.difficulty === 'easy' ? 'easy' : 'normal';
       this.hintsUsed = progress.hintsUsed; this.clock.reset(progress.remainingMs);
       this.undoUsage = undoUsage; this.undoPending = false;
-      this.snapshot = result.snapshot; this.stateHash = result.stateHash;
+      this.snapshot = result.snapshot; this.stateHash = result.stateHash; this.topologyState = result.topologyState ?? null;
       this.busy = false; this.paused = Boolean(options.paused);
       if (options.save !== false) this.save();
       this.notify();
@@ -119,8 +163,10 @@ export class GameSession {
     for (const record of stored.records) {
       const p = record.payload;
       const expectedEpoch = this.epoch + 1;
+      const topology = p.session?.format === 'lifeline-topology-local-session';
       const loaded = await this.load(p.session.settings, p.session.actions,
-        { ...p, save: false, autoplay: false, paused: true });
+        { ...p, ...(topology ? { topologyState: p.session.topologyState, expectedHash: p.session.stateHash } : {}),
+          save: false, autoplay: false, paused: true });
       if (this.epoch !== expectedEpoch) return false;
       if (loaded) {
         if (stored.damaged.length || record !== stored.records[0]) this.error = 'RECOVERED_BACKUP';
@@ -134,6 +180,13 @@ export class GameSession {
     if (this.replayIndex !== null) this.exitReplay();
     if (this.tutorial) this.restoreOriginal();
     this.tutorial = null; this.replayIndex = null; this.savedGame = null;
+    if (options.boardDefinition || options.compiledBoard || options.rulesVersion === SURFACE_RULES) {
+      const initial = topologySettingsFor(options.boardDefinition, {
+        ...options, ...options.playOptions, gridSize: options.gridSize ?? size, playerCount,
+        startPlayer: options.startPlayer || 'BLACK', compiledBoard: options.compiledBoard,
+      });
+      return this.load(initial, [], { mode, difficulty, controllers: options.controllers });
+    }
     const initial = { ...settingsFor(size, playerCount, options.startPlayer || 'BLACK'), ...normalizePlayOptions(options.playOptions),
       ...(options.boardShape ? { boardShape: options.boardShape } : {}), ...(options.rootMode ? { rootMode: options.rootMode } : {}) };
     const modeOfStarts = options.startingPointMode || 'default';
@@ -147,7 +200,26 @@ export class GameSession {
     return this.load(initial, [],
       { mode, difficulty, controllers: options.controllers });
   }
-  controllerFor(player) { return (this.controllers || presetControllers(this.mode, this.difficulty, this.settings))[player] || 'human'; }
+  /**
+   * Public topology-only start path for the native setup UI.  The supplied
+   * definition is normalized once here; subsequent moves and replays use
+   * canonical vertex IDs rather than chart coordinates.
+   */
+  async newTopologyGame(settings, mode = 'ai-white', difficulty = 'normal', options = {}) {
+    if (!settings || typeof settings !== 'object' || Array.isArray(settings)) throw new Error('INVALID_TOPOLOGY_SETTINGS');
+    const normalized = normalizeGameSettings({ ...settings, rulesVersion: SURFACE_RULES });
+    if (!isTopologySettings(normalized)) throw new Error('INVALID_TOPOLOGY_SETTINGS');
+    return this.load(normalized, options.actions || [], {
+      mode, difficulty, controllers: options.controllers, paused: options.paused,
+      autoplay: options.autoplay, save: options.save,
+    });
+  }
+  controllerFor(player) {
+    const defaults = isTopologySettings(this.settings)
+      ? topologyPresetControllers(this.mode, this.settings)
+      : presetControllers(this.mode, this.difficulty, this.settings);
+    return (this.controllers || defaults)[player] || 'human';
+  }
   isAITurn() {
     if (!playerIds(this.settings.playerCount).length) return false;
     return this.controllerFor(this.snapshot?.currentPlayer) !== 'human';
@@ -176,7 +248,8 @@ export class GameSession {
         action: normalized }, this.context(), 0);
       if (!this.isCurrent(epoch)) return false;
       this.actions = [...this.actions, normalized]; this.snapshot = result.snapshot; this.stateHash = result.stateHash;
-      this.undoUsage = recordUndoAction(this.undoUsage, normalized.player);
+      this.topologyState = result.topologyState ?? null;
+      this.undoUsage = isTopologySettings(this.settings) ? this.undoUsage : recordUndoAction(this.undoUsage, normalized.player);
       this.clock.reset(this.settings.turnTimeLimitSeconds * 1000);
       this.busy = false;
       if (tutorial) tutorial.done = true;
@@ -204,8 +277,14 @@ export class GameSession {
       if (result.stateHash !== positionHash || result.player !== this.snapshot.currentPlayer) throw new Error('STALE_AI');
       this.busy = false;
       const chosen = result.moves[0];
-      await this.act(chosen ? { type: chosen.type || (chosen.point ? 'move' : 'skip'),
-        ...(chosen.point ? { point: chosen.point } : {}) } : { type: 'skip' }, true);
+      // Neural/PUCT protocol uses "pass" while local state actions use
+      // "skip". Normalize at the Worker boundary so a null-coordinate pass
+      // cannot be interpreted as an invalid move.
+      const chosenType = chosen?.type === 'pass' ? 'skip' : chosen?.type;
+      const action = chosen ? { type: chosenType || (chosen.vertexId || chosen.point ? 'move' : 'skip'),
+        ...(chosen.vertexId ? { vertexId: chosen.vertexId } : {}),
+        ...(!chosen.vertexId && chosen.point ? { point: chosen.point } : {}) } : { type: 'skip' };
+      await this.act(action, true);
     } catch (error) { this.failed(epoch, error); }
   }
   async hint() {
@@ -213,13 +292,14 @@ export class GameSession {
     if (!this.hintsRemaining) { this.error = this.settings.hintEnabled === false ? 'HINT_DISABLED' : 'HINT_LIMIT'; this.notify(); return false; }
     const epoch = this.begin(), hash = this.stateHash;
     try {
-      const profile = defaultAIProfile(this.settings), model = await this.prepareModel(profile, epoch);
+      const profile = isTopologySettings(this.settings) ? TOPOLOGY_GENERIC_PROFILE : defaultAIProfile(this.settings);
+      const model = await this.prepareModel(profile, epoch);
       if (!this.isCurrent(epoch)) return false;
       const result = await this.scheduler.request('HINT', { settings: this.settings, actions: this.actions,
         difficulty: 'easy', profile, ...(model ? { model } : {}) }, this.context(), 2);
       if (!this.isCurrent(epoch)) return;
       if (hash !== result.stateHash || result.player !== this.snapshot.currentPlayer) throw new Error('STALE_HINT');
-      this.hintPoint = result.moves[0]?.point || null;
+      this.hintPoint = result.moves[0]?.vertexId || result.moves[0]?.point || null;
       if (this.hintPoint) { this.hintsUsed++; this.save(); }
       this.busy = false; this.notify(); return Boolean(this.hintPoint);
     } catch (error) { this.failed(epoch, error); }
@@ -240,7 +320,8 @@ export class GameSession {
   async replay(index, { autoplay = false } = {}) {
     if (!this.snapshot || this.tutorial || this.hidden || !Number.isInteger(index)) return false;
     if (this.replayIndex === null) {
-      this.replayView = { snapshot: clone(this.snapshot), stateHash: this.stateHash };
+      this.replayView = { snapshot: clone(this.snapshot), stateHash: this.stateHash,
+        topologyState: this.topologyState ? clone(this.topologyState) : null };
       this.replayIndex = this.actions.length;
       this.replayStateHash = this.stateHash;
     }
@@ -251,7 +332,8 @@ export class GameSession {
         actions: this.actions.slice(0, target) }, this.context(), 0);
       if (!this.isCurrent(epoch)) return false;
       // Commit cursor and board together; cancellation must not mislabel an older board.
-      this.snapshot = result.snapshot; this.replayStateHash = result.stateHash; this.replayIndex = target; this.busy = false; this.notify(); return true;
+      this.snapshot = result.snapshot; this.replayStateHash = result.stateHash; this.topologyState = result.topologyState ?? null;
+      this.replayIndex = target; this.busy = false; this.notify(); return true;
     } catch (error) { this.failed(epoch, error); return false; }
   }
   stopReplayPlayback() {
@@ -297,7 +379,10 @@ export class GameSession {
       // The room can keep receiving updates while this local verification runs.
       // Leaving the branch panel invalidates its pending write independently.
       if (!canCommit()) { this.busy = false; this.notify(); return false; }
-      const payload = { session: createLocalGameSession(settings, actions), mode, difficulty: this.difficulty,
+      const branchSession = isTopologySettings(settings)
+        ? createTopologyLocalGameSession(settings, actions, result.topologyState, result.stateHash)
+        : createLocalGameSession(settings, actions);
+      const payload = { session: branchSession, mode, difficulty: this.difficulty,
         ...(controllers ? { controllers } : {}) };
       // Both writes are synchronous. Preserve the complete original before the
       // branch becomes the automatic save. Commit memory only after both writes;
@@ -307,7 +392,7 @@ export class GameSession {
       if (target !== this) { target.epoch++; target.error = null; target.stopReplayPlayback(); }
       target.settings = settings; target.actions = actions; target.mode = mode; target.controllers = controllers;
       target.difficulty = this.difficulty;
-      target.snapshot = result.snapshot; target.stateHash = result.stateHash;
+      target.snapshot = result.snapshot; target.stateHash = result.stateHash; target.topologyState = result.topologyState ?? null;
       target.replayIndex = null; target.replayStateHash = null; target.replayView = null;
       target.tutorial = null; target.savedGame = null; target.hintPoint = null; target.modelLoading = null; target.undoPending = false;
       target.hintsUsed = 0; target.clock.reset(settings.turnTimeLimitSeconds * 1000);
@@ -318,6 +403,10 @@ export class GameSession {
     } catch (error) { this.failed(epoch, error); return false; }
   }
   async prepareModel(profile, epoch) {
+    if (isTopologySettings(this.settings)) {
+      if (profile === TOPOLOGY_GENERIC_PROFILE || profile === 'human') return null;
+      throw new Error('TOPOLOGY_FIXED_SHAPE_PROFILE_UNSUPPORTED');
+    }
     if (!modelForProfile(profile)) return null;
     if (!this.models) throw new Error('MODELS_UNAVAILABLE');
     this.modelLoading = { profile, progress: 0 }; this.notify();
@@ -330,14 +419,15 @@ export class GameSession {
   async analyzeReplay(profile) {
     if (this.replayIndex === null || this.hidden || !playerIds(this.settings.playerCount).length || this.snapshot?.gameOver) return null;
     const cursor = this.replayIndex, positionHash = this.replayStateHash, player = this.snapshot.currentPlayer;
+    const effectiveProfile = isTopologySettings(this.settings) ? TOPOLOGY_GENERIC_PROFILE : profile;
     const epoch = this.begin();
     try {
-      const model = await this.prepareModel(profile, epoch);
+      const model = await this.prepareModel(effectiveProfile, epoch);
       if (!this.isCurrent(epoch)) return null;
       const result = await this.scheduler.request('ANALYZE', { settings: this.settings,
-        actions: this.actions.slice(0, cursor), profile, ...(model ? { model } : {}) }, this.context(), 2);
+        actions: this.actions.slice(0, cursor), profile: effectiveProfile, ...(model ? { model } : {}) }, this.context(), 2);
       if (!this.isCurrent(epoch) || this.replayIndex !== cursor) return null;
-      if (result.stateHash !== positionHash || result.player !== player || result.profile !== profile) throw new Error('STALE_AI');
+      if (result.stateHash !== positionHash || result.player !== player || result.profile !== effectiveProfile) throw new Error('STALE_AI');
       this.busy = false; this.notify(); return { ...result, cursor };
     } catch (error) { this.failed(epoch, error); return null; }
   }
@@ -345,14 +435,18 @@ export class GameSession {
     this.begin(); this.busy = false; this.paused = true;
     this.replayIndex = null;
     this.replayStateHash = null;
-    if (this.replayView) { this.snapshot = this.replayView.snapshot; this.stateHash = this.replayView.stateHash; }
+    if (this.replayView) {
+      this.snapshot = this.replayView.snapshot; this.stateHash = this.replayView.stateHash;
+      this.topologyState = this.replayView.topologyState ?? null;
+    }
     this.replayView = null; this.notify(); return true;
   }
   async tutorialLevel(index) {
     let saved = this.savedGame;
     if (!this.tutorial) {
       if (this.replayIndex !== null) this.exitReplay();
-      saved = this.snapshot ? { ...this.capture(), snapshot: clone(this.snapshot), stateHash: this.stateHash } : null;
+      saved = this.snapshot ? { ...this.capture(), snapshot: clone(this.snapshot), stateHash: this.stateHash,
+        topologyState: this.topologyState ? clone(this.topologyState) : null } : null;
     }
     const level = TUTORIAL_LEVELS[index];
     if (!level) return this.exitTutorial();
@@ -373,8 +467,8 @@ export class GameSession {
       this.undoUsage = validateUndoUsage(saved.undoUsage, this.settings);
       const progress = validatePlayProgress(saved.progress, this.settings);
       this.hintsUsed = progress.hintsUsed; this.clock.reset(progress.remainingMs);
-      this.snapshot = saved.snapshot; this.stateHash = saved.stateHash;
-    } else { this.snapshot = null; this.actions = []; this.stateHash = null; }
+      this.snapshot = saved.snapshot; this.stateHash = saved.stateHash; this.topologyState = saved.topologyState ?? null;
+    } else { this.snapshot = null; this.actions = []; this.stateHash = null; this.topologyState = null; }
     return Boolean(saved);
   }
   async exitTutorial() {

@@ -1,11 +1,17 @@
 import { build } from 'esbuild';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
 export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+// The test subject is imported from a data: URL so repeated test files share
+// one bundled module.  Web-source dependencies construct asset URLs eagerly
+// from import.meta.url, and a data: URL cannot be a base for a relative URL.
+// Give only the test bundle a stable Web-root file URL; production builds keep
+// their real import.meta.url behavior.
+const webRuntimeUrl = pathToFileURL(path.resolve(root, '../../web/web前端/__wechat_test_runtime__.mjs')).href;
 const result = await build({ stdin: { contents: ['core', 'state', 'integrity', 'storage', 'scheduler', 'session', 'worker-runtime', 'board', 'app', 'platform', 'online', 'library', 'preferences', 'controllers', 'play-options', 'turn-clock', 'model-catalog', 'model-assets', 'display', 'analysis-options'].map(n => `export * from './src/${n}.js';`).join('\n'), resolveDir: root },
-  bundle: true, format: 'esm', platform: 'node', write: false, loader: { '.md': 'text' }, plugins: [{ name: 'queries', setup(b) {
+  bundle: true, format: 'esm', platform: 'node', write: false, loader: { '.md': 'text' }, define: { 'import.meta.url': JSON.stringify(webRuntimeUrl) }, plugins: [{ name: 'queries', setup(b) {
     b.onResolve({ filter: /\?v=/ }, a => ({ path: path.resolve(a.resolveDir, a.path.split('?')[0]) }));
   } }] });
 export const sut = await import(`data:text/javascript;base64,${Buffer.from(result.outputFiles[0].text).toString('base64')}`);
