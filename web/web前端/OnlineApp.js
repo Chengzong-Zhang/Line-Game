@@ -90,7 +90,7 @@ import { randomInitialPositions, randomInitialRoots, requiresExplicitStartingPoi
 import { resolveInitialPositions, resolveBoardShape, RootMode } from "./GameEngine.js?v=20261029-unified-r1";
 import { normalizeUndoUsage, recordUndoAction, createLocalUndoTimeline, planLocalUndo, consumeLocalUndo } from "./LocalUndo.js?v=20261029-unified-r1";
 import { compileBoard } from "./BoardCompiler.js?v=20261029-unified-r1";
-import { createSurfacePreset } from "./BoardPresets.js?v=20261029-unified-r1";
+import { createProductSurfacePreset as createSurfacePreset, PRODUCT_SURFACE_PRESETS } from "./ProductSurfacePresets.js?v=20261030-topology-fix";
 import { generateBoard, randomBoardGeometrySignature } from "./RandomBoard.js?v=20261029-unified-r1";
 import { TOPOLOGY_AI_ROUTE } from "./TopologyAIAdapter.js?v=20261029-unified-r1";
 import { TopologyGraphicEditor } from "./TopologyGraphicEditor.js?v=20261029-unified-r1";
@@ -1036,17 +1036,18 @@ const TopologySetupPanel = {
       canAddSeam,
       formattedPath,
       addSeam,
-      presetNames: ["cylinder", "mobius", "torus", "klein-bottle", "tetrahedron", "cone", "sphere"],
+      presetNames: PRODUCT_SURFACE_PRESETS,
       topologyTutorialSteps: TOPOLOGY_TUTORIAL_STEPS,
       topologyTutorialText: (step) => topologyTutorialText(step, props.language),
       presetLabel: (name) => (zh.value ? {
         cylinder: "圆柱", mobius: "莫比乌斯带", torus: "环面",
-        "klein-bottle": "克莱因瓶", tetrahedron: "三角锥", cone: "圆锥", sphere: "球面",
+        "klein-bottle": "克莱因瓶", tetrahedron: "三角锥", cone: "圆锥", sphere: "球面", "double-sphere": "双片球面", "double-torus": "双把手",
       } : {
         cylinder: "Cylinder", mobius: "Möbius strip", torus: "Torus",
-        "klein-bottle": "Klein bottle", tetrahedron: "Tetrahedron", cone: "Cone", sphere: "Sphere",
+        "klein-bottle": "Klein bottle", tetrahedron: "Tetrahedron", cone: "Cone", sphere: "Sphere", "double-sphere": "Two-chart sphere", "double-torus": "Double torus",
       })[name] ?? name,
       sourceLabel: (source) => ({
+        "double-torus": zh.value ? "双把手" : "Double torus", "double-sphere": zh.value ? "双片球面" : "Two-chart sphere",
         "随机棋盘": zh.value ? "随机棋盘" : "random board", "random board": zh.value ? "随机棋盘" : "random board",
         "自定义起点": zh.value ? "自定义起点" : "custom starts", "custom starts": zh.value ? "自定义起点" : "custom starts",
         "绘制边界": zh.value ? "手绘轮廓" : "drawn contour", "drawn boundary": zh.value ? "手绘轮廓" : "drawn contour",
@@ -3248,7 +3249,7 @@ const topologyGeometrySignature = (definition) => JSON.stringify({
 });
 function inferSavedTopologyPreset(definition) {
   const preset = definition?.topology?.preset;
-  if (!["cylinder", "mobius", "torus", "klein-bottle", "tetrahedron", "cone", "sphere"].includes(preset)) return null;
+  if (!PRODUCT_SURFACE_PRESETS.includes(preset)) return null;
   const presetGeometry = value => JSON.stringify({
     geometry: topologyGeometrySignature(value),
     vertices: (value?.vertices ?? []).map(({ id, coordinate }) => [id, coordinate])
@@ -4525,7 +4526,7 @@ const App = {
         // random; hand-drawn drafts stay cached separately for each size.
         const oldDefinition = selectedTopologyDefinition.value;
         const oldPreset = oldDefinition?.topology?.preset;
-        const supportedPreset = ["cylinder", "mobius", "torus", "klein-bottle", "tetrahedron", "cone", "sphere"].includes(oldPreset);
+        const supportedPreset = PRODUCT_SURFACE_PRESETS.includes(oldPreset);
         const wasRandom = Boolean(oldDefinition?.generator);
         const selected = supportedPreset ? selectTopologyPreset(oldPreset)
           : wasRandom ? generateTopologyBoard() : selectTopologyPreset("cylinder");

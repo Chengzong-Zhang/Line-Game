@@ -1,5 +1,5 @@
 import { compileBoard } from "./BoardCompiler.js?v=20261029-unified-r1";
-import { createSurfacePreset } from "./BoardPresets.js?v=20261029-unified-r1";
+import { createProductSurfacePreset as createSurfacePreset } from "./ProductSurfacePresets.js?v=20261030-topology-fix";
 
 const PLAYERS = ["BLACK", "WHITE", "PURPLE", "GREEN", "ORANGE", "CYAN"];
 const COLORS = ["#3378dc", "#e84c54", "#a263d2", "#36a968", "#ef9b35", "#2cb8c0"];
