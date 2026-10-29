@@ -35,8 +35,23 @@ def runtime_paths(frontend):
     return [path for path in sorted(frontend.rglob("*")) if is_runtime_file(frontend, path)]
 
 
+# These URLs define import.meta.url-equivalent bases for bundled model loaders;
+# they are not imports or requests and changing them changes the frozen bundle.
+WORKER_ASSET_BASES = frozenset({
+    "./ThreePlayerAI.js", "./ThreePlayerModels.js", "./ThreePlayerRuntime.js", "./HexPlayerAI.js",
+})
+
+
+def is_worker_asset_base(text, match):
+    return (match["path"] in WORKER_ASSET_BASES and match["query"] is None
+            and re.search(r"\bnew\s+URL\(\s*$", text[:match.start()]) is not None
+            and re.match(r"\s*,\s*self\.location\.href\s*\)\s*\.href\b", text[match.end():]) is not None)
+
+
 def stamp_module_urls(text, asset_version):
     def replace(match):
+        if is_worker_asset_base(text, match):
+            return match.group(0)
         return f"{match['quote']}{match['path']}?v={asset_version}{match['quote']}"
 
     return MODULE_URL.sub(replace, text)
@@ -66,10 +81,36 @@ def validate_module_closure(frontend, paths, text_by_path, asset_version):
                 problems.append(f"{path.relative_to(frontend)} references missing module {relative}")
             elif name not in manifest_names:
                 problems.append(f"{path.relative_to(frontend)} references excluded module {name}")
-            if match["query"] != expected_query:
+            if not is_worker_asset_base(text, match) and match["query"] != expected_query:
                 problems.append(f"{path.relative_to(frontend)} has stale module token {relative}{match['query'] or ''}")
     if problems:
         raise RuntimeError("Frontend module closure failed:\n- " + "\n- ".join(problems))
+
+
+def validate_hard_worker(frontend, proposed_texts):
+    """Fail before any write if the frozen worker or its source graph drifts."""
+    bundle = frontend / "MultiplayerHardAIWorker.bundle.mjs"
+    manifest_path = frontend / "MultiplayerHardAIWorker.bundle.manifest.json"
+    if not bundle.is_file() or not manifest_path.is_file():
+        raise RuntimeError("Hard Worker bundle and manifest are required")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if manifest.get("schema") != "lifeline-application-hard-worker-bundle-v1":
+        raise RuntimeError("Invalid Hard Worker manifest schema")
+    sources = manifest.get("sourceHashes")
+    if not isinstance(sources, dict) or not sources:
+        raise RuntimeError("Hard Worker manifest has no source identities")
+    candidates = {bundle: manifest.get("bundleSha256")}
+    for name, digest in sources.items():
+        if not isinstance(name, str) or Path(name).name != name or not name.endswith(".js"):
+            raise RuntimeError("Invalid Hard Worker source path")
+        candidates[frontend / name] = digest
+    for path, digest in candidates.items():
+        if not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
+            raise RuntimeError(f"Invalid Hard Worker hash for {path.name}")
+        if not path.is_file() or sha(path.read_bytes()) != digest:
+            raise RuntimeError(f"Hard Worker input drift: {path.name}")
+        if path in proposed_texts and sha(proposed_texts[path].encode("utf-8")) != digest:
+            raise RuntimeError(f"Stamp would change frozen Hard Worker input: {path.name}")
 
 
 def main():
@@ -86,7 +127,7 @@ def main():
     # Do this recursively, including generated .mjs Worker bundles.
     paths = runtime_paths(frontend)
     source_texts = {
-        path: stamp_module_urls(path.read_text(encoding="utf-8"), args.asset_version)
+        path: stamp_module_urls(path.read_bytes().decode("utf-8"), args.asset_version)
         for path in paths
         if path.suffix.lower() in {".js", ".mjs"}
     }
@@ -97,17 +138,24 @@ def main():
         source_texts[main_source],
     )
     validate_module_closure(frontend, paths, source_texts, args.asset_version)
-    for source, text in source_texts.items():
-        source.write_text(text, encoding="utf-8", newline="\n")
+    if not args.stamp_only:
+        if args.output is None:
+            parser.error("--output is required when building a bundle")
+        if args.output.resolve().exists():
+            raise FileExistsError("Release output must not already exist")
+        validate_hard_worker(frontend, source_texts)
     index = frontend / "index.html"
-    text = index.read_text(encoding="utf-8")
+    text = index.read_bytes().decode("utf-8")
     text = re.sub(r'(styles\.css|main\.js)\?v=[^"\s]+', lambda match: f"{match[1]}?v={args.asset_version}", text)
-    index.write_text(text, encoding="utf-8", newline="\n")
+    for source, stamped in source_texts.items():
+        raw = stamped.encode("utf-8")
+        if source.read_bytes() != raw:
+            source.write_bytes(raw)
+    if index.read_bytes() != text.encode("utf-8"):
+        index.write_bytes(text.encode("utf-8"))
     if args.stamp_only:
         print("Runtime version stamped")
         return
-    if args.output is None:
-        parser.error("--output is required when building a bundle")
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=False)
     files = {}

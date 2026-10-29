@@ -47,6 +47,9 @@ submission/*.zip
 submission/**/*.mp4
 /*.mp4
 /local_artifacts/
+/working/local_artifacts/
+/working/tmp/
+/working/.pytest_cache/
 /web/training-data/
 
 # Local WeChat Mini Game dependencies, staged model weights, and generated packages.
@@ -111,3 +114,4 @@ Thumbs.db
 # Browser model exports are release assets, not Git source binaries.
 web/web前端/assets/research-ai/*.f32
 web/web前端/assets/research-ai/transfer-v1/*.f32
+web/web前端/assets/research-ai/multiplayer-v1/*.f32
