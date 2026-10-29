@@ -167,7 +167,7 @@ class Adapter:
                'LINE_GAME_DB_PATH': str(self.run_dir / 'synthetic.sqlite3'),
                'JWT_SECRET_KEY': 'fixture-only-legacy-release-probe-key', 'LIFELINE_NODE': self.node}
         # The temporary DB is created by the synthetic user, outside all live DBs.
-        temp = self.run_dir / 'synthetic-user'
+        temp = self.run_dir / ('synthetic-user-' + str(time.time_ns()))
         temp.mkdir(); os.chown(temp, 1000, 1000); os.chmod(temp, 0o700)
         env['LINE_GAME_DB_PATH'] = str(temp / 'accounts.sqlite3')
         raw = base.command([self.python, '-B', str(probe), '--root', str(self.stage.parent)],
@@ -207,7 +207,8 @@ class Adapter:
             try:
                 with opener.open('http://127.0.0.1:8000/api/health', timeout=3) as response:
                     value = json.loads(response.read(8192))
-                require(value.get('status') == 'ok' and value.get('filter_ready') is True, 'LEGACY_HEALTH_FAILED')
+                require(value.get('status') == 'ok'
+                        and value.get('sensitiveFilterReady', value.get('filter_ready')) is True, 'LEGACY_HEALTH_FAILED')
                 current = self.capture()
                 require(base.relevant_environment(base.process_environment(current['pid'])) == self.environment, 'LEGACY_ENVIRONMENT_CHANGED')
                 break

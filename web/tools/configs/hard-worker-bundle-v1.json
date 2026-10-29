@@ -1,0 +1,32 @@
+{
+  "schema": "lifeline-hard-worker-build-v1",
+  "compiler": "esbuild",
+  "version": "0.25.12",
+  "entry": "MultiplayerHardWorkerEntry.js",
+  "output": "MultiplayerHardAIWorker.bundle.mjs",
+  "runtimeAdapter": "MultiplayerHardWorkerRuntime.js",
+  "runtimeImporters": ["AIWorker.js", "MultiplayerAIWarmup.js"],
+  "workerExternals": ["ResearchAI.js", "ModelFreeAI.js", "HexPlayerRuntime.js"],
+  "evidenceFiles": [
+    "OnlineApp.js", "LocalAIWorkerFactory.js", "LocalAIModes.js", "AIStateProtocol.js",
+    "MultiplayerRuntime.js", "MultiplayerStandardDefense.js", "MultiplayerUltimateAdmission.js", "MultiplayerModel.js",
+    "MultiplayerRollout.js", "MultiplayerSearch.js", "ResearchAI.js", "ModelFreeAI.js", "HexPlayerRuntime.js",
+    "assets/research-ai/three-player-policy-v1.json",
+    "assets/research-ai/three-player-search-v4-round12.json",
+    "assets/research-ai/hex-player-policy-v1.json",
+    "assets/research-ai/multiplayer-v1/manifest.json",
+    "assets/research-ai/multiplayer-v1/multiplayer-ultimate-v1.f32"
+  ],
+  "options": {
+    "bundle": true,
+    "format": "esm",
+    "platform": "browser",
+    "target": "es2022",
+    "splitting": false,
+    "minify": false,
+    "treeShaking": false,
+    "keepNames": true,
+    "sourcemap": "external",
+    "sourcesContent": true
+  }
+}

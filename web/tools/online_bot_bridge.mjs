@@ -1,17 +1,15 @@
 // One isolated, bounded request. Python owns room identity/order; this process
 // replays the complete rule history before accepting any human or AI action.
-import { readFile } from "node:fs/promises";
-import { createHash, webcrypto } from "node:crypto";
+// This candidate intentionally keeps the production 2--15 player profile
+// bridge, while adding the human-only root-v2 replay contract.
+import { GameEngine, PLAYER_ORDER } from "../web前端/GameEngine.js";
+import { normalizeRoomPlayerSetup, roomBotColors, roomPlayerProfile } from "../web前端/OnlineRoomSettings.js";
+import { ALL_LOCAL_PLAYER_CHOICES } from "../web前端/LocalAIModes.js";
+import { chooseRoomBotMove } from "./online_bot_runtime.mjs";
+import { webcrypto } from "node:crypto";
 import { pathToFileURL } from "node:url";
 
-// Node 18 exposes this API even when its browser-style global is disabled.
-// Preserve the model's SHA-256 validation in both runtime configurations.
 if (!globalThis.crypto?.subtle) globalThis.crypto = webcrypto;
-
-const frontend = new URL("../web前端/", import.meta.url);
-const moduleUrl = (source) => `data:text/javascript;base64,${Buffer.from(source).toString("base64")}`;
-const engineUrl = moduleUrl(await readFile(new URL("GameEngine.js", frontend), "utf8"));
-const { GameEngine, PLAYER_ORDER } = await import(engineUrl);
 
 function applyAction(engine, action) {
   if (!action || !engine.activePlayers.includes(action.color)) {
@@ -20,6 +18,12 @@ function applyAction(engine, action) {
   if (action.type === "player_resign") return engine.resignPlayer(action.color);
   if (action.color !== engine.currentPlayer) return { success: false, reason: "OUT_OF_TURN" };
   if (action.type === "player_skip") return engine.skipTurn();
+  if (action.type === "player_root_relocate" || action.type === "player_root_add") {
+    if (!Array.isArray(action.point) || action.point.length !== 2 || !action.point.every(Number.isInteger)) {
+      return { success: false, reason: "INVALID_POINT" };
+    }
+    return engine.playRootAction(action.type === "player_root_relocate" ? "relocate" : "add", action.point);
+  }
   if (action.type === "player_move") {
     if (!Array.isArray(action.point) || action.point.length !== 2 || !action.point.every(Number.isInteger)) {
       return { success: false, reason: "INVALID_POINT" };
@@ -29,55 +33,83 @@ function applyAction(engine, action) {
   return { success: false, reason: "INVALID_ACTION" };
 }
 
-async function chooseBotPointFromModel(engine) {
-  const aiSource = (await readFile(new URL("AIEngine.js", frontend), "utf8"))
-    .replace(/(["'])\.\/GameEngine\.js(?:\?[^"']*)?\1/g, JSON.stringify(engineUrl));
-  const aiUrl = moduleUrl(aiSource);
-  const hexagonal = engine.playerCount >= 4;
-  const moduleName = hexagonal ? "HexPlayerAI.js" : "ThreePlayerAI.js";
-  const source = (await readFile(new URL(moduleName, frontend), "utf8"))
-    .replace(/(["'])\.\/AIEngine\.js(?:\?[^"']*)?\1/g, JSON.stringify(aiUrl))
-    .replace(/(["'])\.\/GameEngine\.js(?:\?[^"']*)?\1/g, JSON.stringify(engineUrl))
-    .replaceAll("import.meta.url", JSON.stringify(new URL(moduleName, frontend).href));
-  const policyUrl = moduleUrl(source);
-  const loaded = await import(policyUrl);
-  const AI = hexagonal ? loaded.HexPlayerAI : loaded.ThreePlayerAI;
-  let createModel = hexagonal ? loaded.createHexPlayerModel : loaded.createThreePlayerModel;
-  let modelId = hexagonal ? "hex-player-policy-v1" : "three-player-policy-v1";
-  let expectedHash = null;
-  if (!hexagonal) {
-    const registrySource = (await readFile(new URL("ThreePlayerModels.js", frontend), "utf8"))
-      .replace(/(["'])\.\/ThreePlayerAI\.js(?:\?[^"']*)?\1/g, JSON.stringify(policyUrl))
-      .replaceAll("import.meta.url", JSON.stringify(new URL("ThreePlayerModels.js", frontend).href));
-    const registry = await import(moduleUrl(registrySource));
-    modelId = registry.DEFAULT_THREE_PLAYER_MODEL_ID;
-    createModel = registry.createSupportedThreePlayerModel;
-    expectedHash = registry.THREE_PLAYER_MODEL_HASHES[modelId];
-  }
-  const bytes = await readFile(new URL(`assets/research-ai/${modelId}.json`, frontend));
-  if (expectedHash && createHash("sha256").update(bytes).digest("hex") !== expectedHash) {
-    throw new Error("Three-player model integrity mismatch");
-  }
-  const payload = JSON.parse(bytes);
-  const moves = new AI(await createModel(payload)).getTopMoves(engine, engine.currentPlayer, 1);
-  return moves[0]?.point ?? null;
-}
-
-export async function processBotRequest(request, { chooseBotPoint = chooseBotPointFromModel } = {}) {
+export async function processBotRequest(request, { chooseBotPoint = chooseRoomBotMove } = {}) {
   const settings = request?.settings;
   const playerCount = settings?.playerCount;
   const colors = PLAYER_ORDER.slice(0, playerCount);
-  if (![3, 4, 5, 6].includes(playerCount) || settings.rulesVersion !== "territory-v2"
-    || !Number.isInteger(settings.gridSize) || settings.gridSize < 5 || settings.gridSize > 15
-    || !colors.includes(settings.startPlayer ?? "BLACK")
-    || !Array.isArray(request.actions) || request.actions.length > 4096
-    || !Array.isArray(request.botColors)
-    || request.botColors.length >= playerCount
-    || new Set(request.botColors).size !== request.botColors.length
-    || request.botColors.some((color) => !colors.includes(color))) {
+  const boardShape = settings?.boardShape ?? (playerCount >= 4 ? "hexagon" : "triangle");
+  const protectionRule = settings?.protectionRule ?? "symmetric-v1";
+  const rootMode = settings?.rootMode ?? "classic";
+  const rootRulesVersion = settings?.rootRulesVersion ?? (rootMode === "classic" ? "root-v1" : "root-v2");
+  if ((!Number.isInteger(playerCount) || playerCount < 2 || playerCount > 15)
+    || !["territory-v2", "territory-v3"].includes(settings?.rulesVersion)
+    || !["triangle", "diamond", "hexagon"].includes(boardShape)
+    || !["symmetric-v1", "duel-first-unprotected-v1"].includes(protectionRule)
+    || !["classic", "fixed-double", "relocate", "add"].includes(rootMode)
+    || (rootMode === "classic" && (rootRulesVersion !== "root-v1" || settings?.initialRoots != null))
+    || (rootMode !== "classic" && rootRulesVersion !== "root-v2")
+    || !Number.isInteger(settings?.gridSize) || settings.gridSize < 5 || settings.gridSize > 15
+    || !colors.includes(settings?.startPlayer ?? "BLACK")
+    || !Array.isArray(request?.actions) || request.actions.length > 4096
+    || (request?.botColors !== undefined && (!Array.isArray(request.botColors)
+      || request.botColors.length >= playerCount
+      || new Set(request.botColors).size !== request.botColors.length
+      || request.botColors.some((color) => !colors.includes(color))))) {
     return { success: false, reason: "INVALID_CONFIGURATION" };
   }
-  const engine = new GameEngine(settings);
+  if (settings.playerSetup !== undefined) {
+    const setup = settings.playerSetup;
+    const versions = new Set([
+      "legacy", "2026092201", "2026092202", "2026092203", "three-player-policy-v1",
+      "three-player-policy-v2", "three-player-search-v4-round12", "hex-player-policy-v1", "hex-player-search-v5",
+    ]);
+    const diamondChoices = new Set(playerCount === 2
+      ? ["human", "minimax"]
+      : ["human", "ai-easy", "ai-hard"]);
+    if (!setup || typeof setup !== "object" || Array.isArray(setup)
+      || Object.entries(setup).some(([color, player]) => !PLAYER_ORDER.includes(color) || !player
+        || typeof player !== "object" || Array.isArray(player)
+        || !ALL_LOCAL_PLAYER_CHOICES.includes(player.choice)
+        || (boardShape === "diamond" && !diamondChoices.has(player.choice))
+        || (playerCount > 6 && !["human", "greedy", "ai-easy", "ai-hard"].includes(player.choice))
+        || (player.depth !== undefined && ![2, 3, 4].includes(player.depth))
+        || (player.version !== undefined && !versions.has(player.version)))
+      || colors.every((color) => setup[color] && setup[color].choice !== "human")) {
+      return { success: false, reason: "INVALID_CONFIGURATION" };
+    }
+  }
+
+  // For older callers only botColors identifies configured seats. New rooms
+  // carry complete profiles and cannot override them with botColors.
+  const playerSetup = normalizeRoomPlayerSetup(settings);
+  const explicitSetup = settings.playerSetup && typeof settings.playerSetup === "object" && !Array.isArray(settings.playerSetup);
+  let botColors = roomBotColors({ ...settings, playerSetup });
+  if (explicitSetup && request.botColors !== undefined
+    && (request.botColors.length !== botColors.length || request.botColors.some((color) => !botColors.includes(color)))) {
+    return { success: false, reason: "INVALID_CONFIGURATION" };
+  }
+  if (!explicitSetup && request.botColors !== undefined) {
+    botColors = request.botColors;
+    const defaults = normalizeRoomPlayerSetup({ ...settings, botCount: playerCount - 1 });
+    const defaultBot = Object.values(defaults).find((player) => player.choice !== "human");
+    for (const color of colors) {
+      playerSetup[color] = botColors.includes(color)
+        ? { ...defaultBot }
+        : { ...playerSetup[color], choice: "human" };
+    }
+  }
+  if (rootMode !== "classic" && (
+    playerCount !== 2 || settings.rulesVersion !== "territory-v3" || botColors.length !== 0
+  )) {
+    return { success: false, reason: "INVALID_CONFIGURATION" };
+  }
+
+  let engine;
+  try {
+    engine = new GameEngine(settings);
+  } catch (_) {
+    return { success: false, reason: "INVALID_CONFIGURATION" };
+  }
   const replay = engine.replayBatch((branch) => {
     for (const action of request.actions) {
       const result = applyAction(branch, action);
@@ -89,17 +121,32 @@ export async function processBotRequest(request, { chooseBotPoint = chooseBotPoi
 
   let action = request.action ?? null;
   let fallback = false;
-  if (action && request.botColors.includes(action.color)) {
+  let fallbackReason = null;
+  let modelInfo = null;
+  let botProfile = null;
+  if (action && botColors.includes(action.color)) {
     return { success: false, reason: "BOT_ACTOR_FORBIDDEN" };
   }
-  if (!action && !engine.gameOver && request.botColors.includes(engine.currentPlayer)) {
+  if (!action && !engine.gameOver && botColors.includes(engine.currentPlayer)) {
     let point;
+    botProfile = roomPlayerProfile(playerSetup[engine.currentPlayer], settings);
     try {
-      point = await chooseBotPoint(engine);
+      const selected = await chooseBotPoint(engine, botProfile);
+      if (selected && !Array.isArray(selected) && typeof selected === "object") {
+        point = selected.point;
+        modelInfo = selected.modelInfo ?? null;
+      } else {
+        point = selected;
+      }
+      if (point !== null && (!Array.isArray(point) || point.length !== 2 || !point.every(Number.isInteger))) {
+        throw new Error("AI_RETURNED_INVALID_DECISION");
+      }
     } catch (error) {
-      // Model availability must not strand a match. Use a canonical legal move
-      // and explicitly return the degradation to the server.
+      if (error?.code?.startsWith("ULTIMATE_")) {
+        return { success: false, reason: error.code, message: error.message, botProfile };
+      }
       fallback = true;
+      fallbackReason = String(error?.message ?? error);
       point = engine.getLegalMoves()[0]?.point ?? null;
     }
     action = point
@@ -116,6 +163,8 @@ export async function processBotRequest(request, { chooseBotPoint = chooseBotPoi
     currentPlayer: engine.currentPlayer,
     gameOver: engine.gameOver,
     fallback,
+    ...(botProfile ? { botProfile, modelInfo } : {}),
+    ...(fallbackReason ? { fallbackReason } : {}),
   };
 }
 

@@ -18,6 +18,12 @@ class ContributionTests(unittest.TestCase):
     def setUpClass(cls):
         raw = subprocess.check_output(["node", str(ROOT / "web/web前端/tests/fixtures/create-training-fixture.mjs")])
         cls.payload = json.loads(raw)
+        fixture = str(ROOT / "web/web前端/tests/fixtures/create-three-player-training-fixture.mjs")
+        cls.three_player_payloads = {
+            count: json.loads(subprocess.check_output(["node", fixture, str(count)]))
+            for count in (1, 2)
+        }
+        cls.three_player_legacy = json.loads(subprocess.check_output(["node", fixture, "2", "territory-v1"]))
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory(); self.store = module.ContributionStore(self.temporary.name)
         app = FastAPI(); app.include_router(module.create_router(self.store)); self.client = TestClient(app)
@@ -51,4 +57,44 @@ class ContributionTests(unittest.TestCase):
             with TestClient(app) as client:
                 self.assertFalse(client.get("/api/training/contributions/status").json()["enabled"])
                 self.assertEqual(client.post("/api/training/contributions", json=self.payload).status_code, 503)
+    def test_complete_three_player_ai_games_are_received_with_actor_labels(self):
+        for count, payload in self.three_player_payloads.items():
+            with self.subTest(ai_count=count):
+                store = module.ContributionStore(Path(self.temporary.name) / str(count))
+                app = FastAPI(); app.include_router(module.create_router(store))
+                with TestClient(app) as client:
+                    self.assertIsNotNone(payload["replay"]["terminal"])
+                    self.assertGreaterEqual(len(payload["replay"]["actions"]), 6)
+                    response = client.post("/api/training/contributions", json=payload)
+                    self.assertEqual(response.status_code, 200, response.text)
+                    self.assertEqual(response.json()["status"], "awaiting_review")
+                with store.connect() as db:
+                    stored = json.loads(db.execute("SELECT document FROM inbox").fetchone()[0])
+                self.assertEqual(stored["context"]["actors"], payload["context"]["actors"])
+                self.assertEqual(sum(actor["kind"] == "ai" for actor in stored["context"]["actors"].values()), count)
+                self.assertEqual(stored["replay"]["terminal"], payload["replay"]["terminal"])
+    def test_three_player_strategy_rejects_wrong_model_player_count_and_rules(self):
+        source = self.three_player_payloads[2]
+        wrong_model = json.loads(json.dumps(source))
+        wrong_model["context"]["actors"]["WHITE"]["modelId"] = "other-model"
+        missing_model = json.loads(json.dumps(source))
+        del missing_model["context"]["actors"]["WHITE"]["modelId"]
+        wrong_strategy = json.loads(json.dumps(source))
+        wrong_strategy["context"]["actors"]["WHITE"]["strategy"] = "model-free"
+        wrong_count = json.loads(json.dumps(self.payload))
+        wrong_count["context"]["actors"]["WHITE"] = {
+            "kind": "ai", "strategy": "three-player", "modelId": module.THREE_PLAYER_MODEL_ID,
+        }
+        for payload in (wrong_model, missing_model, wrong_strategy, wrong_count, self.three_player_legacy):
+            self.assertEqual(self.client.post("/api/training/contributions", json=payload).status_code, 422)
+        with self.store.connect() as db:
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM inbox").fetchone()[0], 0)
+    def test_three_player_versions_preserve_identity_and_require_matching_strategy(self):
+        for model_id in module.THREE_PLAYER_MODEL_IDS:
+            context = json.loads(json.dumps(self.three_player_payloads[2]["context"]))
+            context["actors"]["WHITE"]["modelId"] = model_id
+            self.assertEqual(module.normalize_context(context)["actors"]["WHITE"]["modelId"], model_id)
+            context["actors"]["WHITE"]["strategy"] = "model-free"
+            with self.assertRaises(ValueError):
+                module.normalize_context(context)
 if __name__ == "__main__": unittest.main()

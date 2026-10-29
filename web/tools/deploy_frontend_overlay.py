@@ -8,7 +8,9 @@ import subprocess
 import time
 
 
-def prepare(bundle, predecessor):
+def prepare(bundle, predecessor, required_contribution_version=1):
+    if required_contribution_version not in (1, 2, 3):
+        raise ValueError("Unsupported contribution version")
     manifest = json.loads((bundle / "release-manifest.json").read_text(encoding="utf-8"))
     receipt = json.loads((bundle / "bundle-receipt.json").read_text(encoding="utf-8"))
     archive = (bundle / "frontend-overlay.zip").read_bytes()
@@ -18,7 +20,7 @@ def prepare(bundle, predecessor):
     predecessors = {name: hashlib.sha256((predecessor / name).read_bytes()).hexdigest()
                     for name in ("index.html", "OnlineApp.js", "TrainingContribution.js", "release-manifest.json")}
     # The uploaded payload contains only reviewed runtime files and deployment
-    # code. SSH obtains the password from its interactive console, not this file.
+    # code. Authentication uses the owner's existing passwordless SSH alias.
     bootstrap = f'''import base64,fcntl,hashlib,importlib.util,json,pathlib,subprocess,sys,urllib.request
 release_id={manifest['release_id']!r}
 archive_raw=base64.b64decode({base64.b64encode(archive).decode()!r},validate=True)
@@ -36,7 +38,7 @@ if activation.exists():
 for endpoint in ('api/health','api/training/contributions/status'):
  response=json.loads(urllib.request.urlopen('https://lifelinegame.cn/'+endpoint,timeout=15).read())
  if endpoint=='api/health':assert response.get('status')=='ok'
- else:assert response.get('enabled') is True and response.get('consent_policy')=='anonymous-replay-training-v1'
+ else:assert response.get('enabled') is True and {required_contribution_version!r} in response.get('supported_versions',[1]),'Collector format not active'
 with (artifacts/'frontend-release.lock').open('a') as lock:
  fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
  for name,expected in {predecessors!r}.items():assert ops.sha(live/name)==expected,'Production changed: '+name
@@ -65,18 +67,18 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--bundle", type=Path, required=True)
     parser.add_argument("--predecessor", type=Path, required=True)
-    parser.add_argument("--host", default="ubuntu@81.70.240.251")
+    parser.add_argument("--host", default="lifeline-cloud")
+    parser.add_argument("--required-contribution-version", type=int, choices=(1, 2, 3), default=1)
     parser.add_argument("--execute", action="store_true")
     args = parser.parse_args()
     bundle = args.bundle.resolve()
-    payload, manifest = prepare(bundle, args.predecessor.resolve())
+    payload, manifest = prepare(bundle, args.predecessor.resolve(), args.required_contribution_version)
     if not args.execute:
-        print("DEPLOYMENT_PREPARED; existing SSH password authentication required")
+        print("DEPLOYMENT_PREPARED; existing passwordless SSH will be used")
         return
     print("LIFELINE release " + manifest["release_id"], flush=True)
-    print("Enter the existing server password in the SSH prompt. It is not stored.", flush=True)
     started = time.time()
-    result = subprocess.run(["ssh", "-o", "BatchMode=no", "-o", "StrictHostKeyChecking=yes", "-o", "ConnectTimeout=15",
+    result = subprocess.run(["ssh", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=yes", "-o", "ConnectTimeout=15",
                              args.host, "python3 -"], input=payload, stdout=subprocess.PIPE)
     (bundle / "ssh-output.txt").write_bytes(result.stdout)
     output = result.stdout.decode("utf-8", errors="replace")
@@ -86,7 +88,7 @@ def main():
         if row.get("status") == "ATOMIC_SWITCH_OK":
             (bundle / "activation.json").write_text(json.dumps(row, ensure_ascii=False, indent=2), encoding="utf-8")
     (bundle / "ssh-exit.json").write_text(json.dumps({"exit_code": result.returncode, "started_epoch": started,
-        "finished_epoch": time.time(), "authentication": "existing interactive SSH; no keys created or passwords stored"}, indent=2), encoding="utf-8")
+        "finished_epoch": time.time(), "authentication": "existing passwordless SSH; no keys created or passwords stored"}, indent=2), encoding="utf-8")
     if result.returncode == 0:
         from verify_frontend_release import verify
         verified = verify(bundle)

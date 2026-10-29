@@ -4,3 +4,4 @@ websockets>=12,<16
 sqlalchemy>=2.0,<3.0
 PyJWT>=2.8,<3.0
 bcrypt>=4,<6
+Pillow>=11,<13

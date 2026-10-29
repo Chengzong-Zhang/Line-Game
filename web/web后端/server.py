@@ -1,7 +1,8 @@
-﻿import asyncio
+import asyncio
 import hashlib
 import logging
 import os
+import secrets
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -38,10 +39,67 @@ try:
 except ImportError:
     from sensitive_filter import SensitiveFilter, UIStyle
 
+try:
+    from .online_bots import BotBridgeUnavailable, evaluate_room
+except ImportError:
+    from online_bots import BotBridgeUnavailable, evaluate_room
+
+try:
+    from .board_validation import (
+        SURFACE_RULES_VERSION,
+        TOPOLOGY_BOARD_SHAPE,
+        TOPOLOGY_ROOM_PROTOCOL_VERSION,
+        canonicalize_topology_room_settings,
+        topology_canonical_vertex_ids,
+        topology_settings_requested,
+    )
+except ImportError:
+    from board_validation import (
+        SURFACE_RULES_VERSION,
+        TOPOLOGY_BOARD_SHAPE,
+        TOPOLOGY_ROOM_PROTOCOL_VERSION,
+        canonicalize_topology_room_settings,
+        topology_canonical_vertex_ids,
+        topology_settings_requested,
+    )
+
+def random_initial_positions(grid_size, player_count, board_shape, previous):
+    radius = grid_size - 1
+    extent = 2 * radius if board_shape == "hexagon" else radius
+    points = [[x, y] for y in range(extent + 1) for x in range(extent + 1)
+              if (board_shape == "hexagon" and radius <= x + y <= 3 * radius)
+              or (board_shape == "diamond")
+              or (board_shape == "triangle" and x + y <= radius)]
+    def distance(point, other):
+        dx, dy = point[0] - other[0], point[1] - other[1]
+        return max(abs(dx), abs(dy), abs(dx + dy))
+    def draw():
+        available, chosen, result = points.copy(), [], {}
+        for color in PLAYER_COLORS[:player_count]:
+            if chosen:
+                scores = [min(distance(point, other) for other in chosen) for point in available]
+                best = max(scores)
+                candidates = [point for point, score in zip(available, scores) if 4 * score >= 3 * best]
+            else:
+                candidates = available
+            point = candidates[secrets.randbelow(len(candidates))]
+            result[color] = point
+            chosen.append(point)
+            available.remove(point)
+        return result
+    result = draw()
+    for _ in range(8):
+        if result != previous:
+            break
+        result = draw()
+    if result == previous:
+        result["BLACK"], result["WHITE"] = result["WHITE"], result["BLACK"]
+    return result
+
 
 # 这个服务负责账号、静态资源、房间、连接和动作同步，
-# 但不负责棋盘几何规则判定；胜负与面积仍由浏览器端 GameEngine 计算。
-ROOM_SIZE = 3
+# 普通真人房间仍采用转发协议；含 AI 的房间复用 Web GameEngine 校验完整动作历史。
+ROOM_SIZE = 15
 ROOM_CODE_LENGTH = 4
 ROOM_TTL_SECONDS = 300
 HEARTBEAT_TIMEOUT_SECONDS = 35
@@ -54,8 +112,21 @@ TURN_TIMER_MAX_SECONDS = 200
 DEFAULT_TURN_TIMER_SECONDS = 60
 TERRITORY_RULE_V1 = "territory-v1"
 TERRITORY_RULE_V2 = "territory-v2"
-DEFAULT_RULES_VERSION = TERRITORY_RULE_V2
-ALLOWED_RULES_VERSIONS = {TERRITORY_RULE_V1, TERRITORY_RULE_V2}
+TERRITORY_RULE_V3 = "territory-v3"
+DEFAULT_RULES_VERSION = TERRITORY_RULE_V3
+ALLOWED_RULES_VERSIONS = {TERRITORY_RULE_V1, TERRITORY_RULE_V2, TERRITORY_RULE_V3, SURFACE_RULES_VERSION}
+START_PROTECTION_SYMMETRIC = "symmetric-v1"
+START_PROTECTION_DUEL_FIRST_UNPROTECTED = "duel-first-unprotected-v1"
+DEFAULT_PROTECTION_RULE = START_PROTECTION_SYMMETRIC
+ALLOWED_PROTECTION_RULES = {START_PROTECTION_SYMMETRIC, START_PROTECTION_DUEL_FIRST_UNPROTECTED}
+ROOT_MODE_CLASSIC = "classic"
+ROOT_MODE_FIXED_DOUBLE = "fixed-double"
+ROOT_MODE_RELOCATE = "relocate"
+ROOT_MODE_ADD = "add"
+ALLOWED_ROOT_MODES = {ROOT_MODE_CLASSIC, ROOT_MODE_FIXED_DOUBLE, ROOT_MODE_RELOCATE, ROOT_MODE_ADD}
+ROOT_RULE_V1 = "root-v1"
+ROOT_RULE_V2 = "root-v2"
+ROOT_PROTOCOL_VERSION = 2
 CHAT_EMOJI_MAX_CONTENT_LENGTH = 32
 CHAT_EMOJI_MIN_DURATION_MS = 300
 CHAT_EMOJI_MAX_DURATION_MS = 3000
@@ -64,11 +135,52 @@ CHAT_EMOJI_ALLOWED_ANIMATIONS = {"bounce", "fade", "shake"}
 PLAYER_BLACK = "BLACK"
 PLAYER_WHITE = "WHITE"
 PLAYER_PURPLE = "PURPLE"
+PLAYER_GREEN = "GREEN"
+PLAYER_ORANGE = "ORANGE"
+PLAYER_CYAN = "CYAN"
+PLAYER_COLORS = ('BLACK', 'WHITE', 'PURPLE', 'GREEN', 'ORANGE', 'CYAN', 'PINK', 'BROWN', 'LIME', 'NAVY', 'GOLD', 'TEAL', 'MAGENTA', 'SLATE', 'CORAL')
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "replace-this-with-a-long-random-secret-key")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_DAYS = 7
 PASSWORD_HASH_PREFIX = "bcrypt_sha256$"
 SENSITIVE_FILTER_VERSION = "v2"
+
+
+class RoomSettingsError(ValueError):
+    """A safe, user-visible rejection while preserving the current room."""
+
+    def __init__(self, code: str, message: str, errors: Optional[list[Dict[str, str]]] = None):
+        super().__init__(message)
+        self.code = code
+        self.message = message
+        self.errors = errors or []
+
+    def payload(self) -> Dict[str, Any]:
+        return {
+            "type": "ERROR",
+            "code": self.code,
+            "message": self.message,
+            **({"errors": self.errors} if self.errors else {}),
+        }
+
+
+def _topology_capabilities(value: Any) -> set[str]:
+    if not isinstance(value, list):
+        return set()
+    return {
+        capability
+        for capability in value
+        if isinstance(capability, str) and capability == TOPOLOGY_ROOM_PROTOCOL_VERSION
+    }
+
+
+def _is_topology_room_settings(settings: Any) -> bool:
+    return isinstance(settings, dict) and (
+        settings.get("rulesVersion") == SURFACE_RULES_VERSION
+        or settings.get("boardShape") == TOPOLOGY_BOARD_SHAPE
+        or "boardDefinition" in settings
+        or "boardHash" in settings
+    )
 
 
 def _resolve_bcrypt_rounds() -> int:
@@ -265,6 +377,8 @@ class PlayerSession:
     websocket: Optional[WebSocket] = None
     connected: bool = False
     last_seen: float = field(default_factory=time.time)
+    is_bot: bool = False
+    topology_capabilities: set[str] = field(default_factory=set)
 
 
 @dataclass
@@ -272,15 +386,25 @@ class Room:
     room_id: str
     players: Dict[str, PlayerSession] = field(default_factory=dict)
     actions: list[Dict[str, Any]] = field(default_factory=list)
+    action_ids: set[str] = field(default_factory=set)
     settings: Dict[str, Any] = field(default_factory=dict)
     host_player_id: Optional[str] = None
     reset_votes: set[str] = field(default_factory=set)
+    undo_votes: set[str] = field(default_factory=set)
+    undo_target: Optional[int] = None
+    undo_action_index: Optional[int] = None
+    undo_used_count: int = 0
     ready_players: set[str] = field(default_factory=set)
     match_started: bool = False
     countdown_started_at: Optional[float] = None
     countdown_task: Optional[asyncio.Task[Any]] = None
     created_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
+    action_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+    bot_task: Optional[asyncio.Task[Any]] = None
+    generation: int = 0
+    game_over: bool = False
+    bot_error: Optional[str] = None
 
     def connected_players(self) -> list[PlayerSession]:
         return [player for player in self.players.values() if player.connected and player.websocket is not None]
@@ -289,7 +413,14 @@ class Room:
         return len(self.players)
 
     def has_connected_player(self) -> bool:
-        return any(player.connected for player in self.players.values())
+        return any(player.connected and not player.is_bot for player in self.players.values())
+
+    def has_bots(self) -> bool:
+        return any(player.is_bot for player in self.players.values())
+
+    def all_humans_connected(self) -> bool:
+        humans = [player for player in self.players.values() if not player.is_bot]
+        return bool(humans) and all(player.connected and player.websocket is not None for player in humans)
 
     def player_capacity(self) -> int:
         return int(self.settings.get("playerCount", 2))
@@ -297,7 +428,7 @@ class Room:
     def available_color(self) -> str:
         # Keep color assignment order stable so the frontend can map colors consistently.
         used_colors = {player.color for player in self.players.values()}
-        allowed_colors = (PLAYER_BLACK, PLAYER_WHITE, PLAYER_PURPLE)[:self.player_capacity()]
+        allowed_colors = PLAYER_COLORS[:self.player_capacity()]
         for color in allowed_colors:
             if color not in used_colors:
                 return color
@@ -321,6 +452,14 @@ class ConnectionManager:
             self._heartbeat_task = asyncio.create_task(self._heartbeat_loop())
 
     async def stop(self) -> None:
+        pending = []
+        for room in self.rooms.values():
+            self._cancel_countdown_locked(room)
+            if room.bot_task and not room.bot_task.done():
+                room.bot_task.cancel()
+                pending.append(room.bot_task)
+        if pending:
+            await asyncio.gather(*pending, return_exceptions=True)
         if self._heartbeat_task is None:
             return
 
@@ -347,6 +486,8 @@ class ConnectionManager:
                 websocket,
                 username=self._authenticated_username(websocket),
                 settings=message.get("settings"),
+                topology_capabilities=message.get("topologyCapabilities"),
+                root_protocol_version=message.get("rootProtocolVersion"),
             )
             return
 
@@ -356,24 +497,82 @@ class ConnectionManager:
                 websocket,
                 room_id=room_id,
                 username=self._authenticated_username(websocket),
+                topology_capabilities=message.get("topologyCapabilities"),
+                root_protocol_version=message.get("rootProtocolVersion"),
             )
             return
 
         if message_type == "player_move":
             point = message.get("point")
-            await self.forward_move(websocket, point)
+            if not await self._route_bot_room_action(
+                websocket,
+                "player_move",
+                point,
+                action_id=message.get("actionId"),
+                expected_action_index=message.get("expectedActionIndex"),
+            ):
+                await self.forward_move(
+                    websocket,
+                    point,
+                    vertex_id=message.get("vertexId"),
+                    board_hash=message.get("boardHash"),
+                    action_id=message.get("actionId"),
+                    expected_action_index=message.get("expectedActionIndex"),
+                )
             return
 
         if message_type == "player_skip":
-            await self.forward_skip(websocket)
+            if not await self._route_bot_room_action(
+                websocket,
+                "player_skip",
+                action_id=message.get("actionId"),
+                expected_action_index=message.get("expectedActionIndex"),
+            ):
+                await self.forward_skip(
+                    websocket,
+                    action_id=message.get("actionId"),
+                    expected_action_index=message.get("expectedActionIndex"),
+                )
+            return
+
+        if message_type in ("player_root_relocate", "player_root_add"):
+            await self._route_bot_room_action(
+                websocket,
+                message_type,
+                message.get("point"),
+                action_id=message.get("actionId"),
+                expected_action_index=message.get("expectedActionIndex"),
+                require_versioned_room=True,
+            )
             return
 
         if message_type == "player_resign":
-            await self.forward_resign(websocket)
+            if not await self._route_bot_room_action(
+                websocket,
+                "player_resign",
+                action_id=message.get("actionId"),
+                expected_action_index=message.get("expectedActionIndex"),
+            ):
+                await self.forward_resign(
+                    websocket,
+                    action_id=message.get("actionId"),
+                    expected_action_index=message.get("expectedActionIndex"),
+                )
+            return
+
+        if message_type == "retry_bots":
+            async with self.lock:
+                action = self._prepare_room_member_locked(websocket)
+                if action["error"] is None:
+                    self._schedule_bots_locked(action["room"])
             return
 
         if message_type == "player_reset":
             await self.forward_reset(websocket, message.get("reason"))
+            return
+
+        if message_type == "player_undo":
+            await self.forward_undo(websocket, message.get("accept", True))
             return
 
         if message_type == "player_ready":
@@ -385,7 +584,12 @@ class ConnectionManager:
             return
 
         if message_type == "update_room_settings":
-            await self.update_room_settings(websocket, message.get("settings"))
+            await self.update_room_settings(
+                websocket,
+                message.get("settings"),
+                topology_capabilities=message.get("topologyCapabilities"),
+                root_protocol_version=message.get("rootProtocolVersion"),
+            )
             return
 
         if message_type == "update_start_player":
@@ -414,8 +618,32 @@ class ConnectionManager:
         websocket: WebSocket,
         username: str,
         settings: Optional[Dict[str, Any]] = None,
+        topology_capabilities: Any = None,
+        root_protocol_version: Any = None,
     ) -> None:
-        normalized_settings = self._normalize_room_settings(settings)
+        try:
+            normalized_settings = self._normalize_room_settings(settings)
+        except RoomSettingsError as error:
+            await self.send_json(websocket, error.payload())
+            return
+        capabilities = _topology_capabilities(topology_capabilities)
+        if _is_topology_room_settings(normalized_settings) and TOPOLOGY_ROOM_PROTOCOL_VERSION not in capabilities:
+            await self.send_json(websocket, {
+                "type": "ERROR",
+                "code": "TOPOLOGY_CAPABILITY_REQUIRED",
+                "message": "This room requires board-topology-v1 support.",
+            })
+            return
+        if (
+            normalized_settings.get("rootMode", ROOT_MODE_CLASSIC) != ROOT_MODE_CLASSIC
+            and root_protocol_version != ROOT_PROTOCOL_VERSION
+        ):
+            await self.send_json(websocket, {
+                "type": "ERROR",
+                "code": "ROOT_PROTOCOL_REQUIRED",
+                "message": "This room requires the versioned multi-root protocol.",
+            })
+            return
         async with self.lock:
             current_room_id = self.player_room_index.get(username)
             if current_room_id:
@@ -433,6 +661,7 @@ class ConnectionManager:
                 color=PLAYER_BLACK,
                 websocket=websocket,
                 connected=True,
+                topology_capabilities=capabilities,
             )
             room = Room(
                 room_id=room_id,
@@ -440,6 +669,7 @@ class ConnectionManager:
                 settings=normalized_settings,
                 host_player_id=username,
             )
+            self._configure_bots_locked(room)
             self.rooms[room_id] = room
             self.websocket_index[websocket] = (room_id, username)
             self.player_room_index[username] = room_id
@@ -447,7 +677,14 @@ class ConnectionManager:
         await self.send_json(websocket, self._room_payload("ROOM_CREATED", room, your_player_id=username))
         logger.info("room created room=%s player=%s color=%s", room_id, username, player.color)
 
-    async def join_room(self, websocket: WebSocket, room_id: str, username: str) -> None:
+    async def join_room(
+        self,
+        websocket: WebSocket,
+        room_id: str,
+        username: str,
+        topology_capabilities: Any = None,
+        root_protocol_version: Any = None,
+    ) -> None:
         if not room_id:
             await self.send_json(
                 websocket,
@@ -460,6 +697,7 @@ class ConnectionManager:
             return
 
         reconnected = False
+        capabilities = _topology_capabilities(topology_capabilities)
         async with self.lock:
             self._cleanup_stale_rooms_locked()
             room = self.rooms.get(room_id)
@@ -475,6 +713,29 @@ class ConnectionManager:
                 )
                 return
 
+            if (_is_topology_room_settings(room.settings)
+                and TOPOLOGY_ROOM_PROTOCOL_VERSION not in capabilities):
+                await self.send_json(
+                    websocket,
+                    {
+                        "type": "ERROR",
+                        "code": "TOPOLOGY_CAPABILITY_REQUIRED",
+                        "message": "This room requires board-topology-v1 support.",
+                    },
+                )
+                return
+
+            if (
+                room.settings.get("rootMode", ROOT_MODE_CLASSIC) != ROOT_MODE_CLASSIC
+                and root_protocol_version != ROOT_PROTOCOL_VERSION
+            ):
+                await self.send_json(websocket, {
+                    "type": "ERROR",
+                    "code": "ROOT_PROTOCOL_REQUIRED",
+                    "message": "This room requires the versioned multi-root protocol.",
+                })
+                return
+
             existing_room_id = self.player_room_index.get(username)
             if existing_room_id and existing_room_id != room_id:
                 await self._detach_player(
@@ -488,6 +749,12 @@ class ConnectionManager:
             session: Optional[PlayerSession] = None
             if username in room.players:
                 candidate = room.players[username]
+                if candidate.is_bot:
+                    await self.send_json(websocket, {
+                        "type": "ERROR", "code": "RESERVED_PLAYER_ID",
+                        "message": "AI seats cannot be claimed by a user.",
+                    })
+                    return
                 if candidate.connected and candidate.websocket is not websocket and candidate.websocket is not None:
                     self.websocket_index.pop(candidate.websocket, None)
                     try:
@@ -515,12 +782,14 @@ class ConnectionManager:
                     color=assigned_color,
                     websocket=websocket,
                     connected=True,
+                    topology_capabilities=capabilities,
                 )
                 room.players[session.player_id] = session
 
             session.websocket = websocket
             session.connected = True
             session.last_seen = time.time()
+            session.topology_capabilities = capabilities
             room.updated_at = time.time()
             room.reset_votes.clear()
             self.websocket_index[websocket] = (room_id, session.player_id)
@@ -533,6 +802,7 @@ class ConnectionManager:
                 and not room.match_started
                 and room.active_player_count() >= room.player_capacity()
                 and len(room.ready_players) >= room.player_capacity()
+                and room.all_humans_connected()
                 and room.countdown_started_at is None
             ):
                 self._start_countdown_locked(room)
@@ -559,6 +829,8 @@ class ConnectionManager:
             if target_websocket is websocket:
                 continue
             await self.send_json(target_websocket, payload)
+        async with self.lock:
+            self._schedule_bots_locked(room)
 
     async def handle_ping(self, websocket: WebSocket, timestamp: Any) -> None:
         async with self.lock:
@@ -578,18 +850,304 @@ class ConnectionManager:
             },
         )
 
-    async def forward_move(self, websocket: WebSocket, point: Any) -> None:
-        if not self._is_valid_point(point):
-            await self.send_json(
-                websocket,
-                {
-                    "type": "ERROR",
-                    "code": "INVALID_POINT",
-                    "message": "point must be a two-item integer array like [x, y].",
-                },
-            )
+    def _configure_bots_locked(self, room: Room) -> None:
+        if _is_topology_room_settings(room.settings):
+            # Validation rejects topology bot requests. Keep a defensive guard
+            # in case a future caller attempts to mutate settings in memory.
+            room.players = {key: player for key, player in room.players.items() if not player.is_bot}
+            room.ready_players.intersection_update(room.players)
             return
+        if room.settings.get("rootMode", ROOT_MODE_CLASSIC) != ROOT_MODE_CLASSIC:
+            # Root-v2 is intentionally human-only until its evaluator has a
+            # separately admitted bot contract.  Do not manufacture a legacy
+            # bot seat that would replay a different root state.
+            room.players = {key: player for key, player in room.players.items() if not player.is_bot}
+            room.ready_players.intersection_update(room.players)
+            return
+        room.players = {key: player for key, player in room.players.items() if not player.is_bot}
+        room.ready_players.intersection_update(room.players)
+        for index in range(int(room.settings.get("botCount", 0))):
+            color = room.available_color()
+            player_id = f"@AI:{uuid4().hex}"
+            room.players[player_id] = PlayerSession(
+                player_id=player_id, color=color, connected=True, is_bot=True,
+            )
+            room.ready_players.add(player_id)
 
+    def _reset_bot_state_locked(self, room: Room) -> None:
+        self._cancel_bot_task_locked(room)
+        room.generation += 1
+        room.game_over = False
+        room.bot_error = None
+        room.undo_votes.clear()
+        room.undo_target = None
+        room.undo_action_index = None
+        room.ready_players.update(player.player_id for player in room.players.values() if player.is_bot)
+
+    def _cancel_bot_task_locked(self, room: Room) -> None:
+        if room.bot_task is not None and room.bot_task is not asyncio.current_task():
+            room.bot_task.cancel()
+            room.bot_task = None
+
+    def _schedule_bots_locked(self, room: Room) -> None:
+        if _is_topology_room_settings(room.settings):
+            return
+        if not room.has_bots() or not room.match_started or room.game_over or room.undo_target is not None or not room.all_humans_connected():
+            return
+        if room.bot_task is None or room.bot_task.done():
+            room.bot_task = asyncio.create_task(self._run_bot_turns(room))
+
+    def _bot_snapshot_locked(self, room: Room) -> Dict[str, Any]:
+        return {
+            "settings": dict(room.settings),
+            "actions": [dict(action) for action in room.actions],
+            "bot_colors": [player.color for player in room.players.values() if player.is_bot],
+            "generation": room.generation,
+        }
+
+    def _bot_snapshot_current_locked(self, room: Room, snapshot: Dict[str, Any]) -> bool:
+        return (
+            self.rooms.get(room.room_id) is room
+            and room.generation == snapshot["generation"]
+            and len(room.actions) == len(snapshot["actions"])
+            and room.match_started
+            and room.undo_target is None
+            and room.all_humans_connected()
+        )
+
+    async def _evaluate_bot_snapshot(self, snapshot, action=None):
+        # A fresh process always reconstructs accepted history. Retry only worker
+        # exits/timeouts, never an invalid configuration or corrupt replay.
+        for attempt in range(3):
+            try:
+                return await evaluate_room(
+                    snapshot["settings"], snapshot["actions"], snapshot["bot_colors"], action,
+                )
+            except (BotBridgeUnavailable, asyncio.TimeoutError):
+                if attempt == 2:
+                    raise
+                await asyncio.sleep(0.2 * (attempt + 1))
+
+    def _commit_bot_action_locked(self, room: Room, action, result, sender_websocket=None):
+        actor = next(player for player in room.players.values() if player.color == action["color"])
+        recorded = {
+            "type": action["type"], "playerId": actor.player_id, "color": actor.color,
+        }
+        if action["type"] in ("player_move", "player_root_relocate", "player_root_add"):
+            recorded["point"] = list(action["point"])
+        if action.get("actionId"):
+            recorded["actionId"] = action["actionId"]
+            room.action_ids.add(action["actionId"])
+        recorded["actionIndex"] = len(room.actions) + 1
+        room.actions.append(recorded)
+        room.reset_votes.clear()
+        room.updated_at = time.time()
+        room.game_over = bool(result["gameOver"])
+        room.bot_error = None
+        event_type = {
+            "player_move": "OPPONENT_MOVE",
+            "player_skip": "TURN_SKIPPED",
+            "player_resign": "PLAYER_RESIGNED",
+            "player_root_relocate": "ROOT_ACTION_APPLIED",
+            "player_root_add": "ROOT_ACTION_APPLIED",
+        }[action["type"]]
+        payload = {
+            **recorded, "type": event_type, "actionType": action["type"], "roomId": room.room_id,
+            "actionIndex": len(room.actions), "isBot": actor.is_bot,
+            "aiFallback": bool(result.get("fallback")),
+        }
+        return [
+            (target, payload)
+            for target, payload in self._connected_room_payloads(room, payload)
+            if action["type"] != "player_move" or target is not sender_websocket
+        ]
+
+    async def _reject_bot_action(self, websocket, room, code, message):
+        await self.send_json(websocket, {"type": "ERROR", "code": code, "message": message})
+        identity = self.websocket_index.get(websocket)
+        if self.rooms.get(room.room_id) is room and identity and identity[0] == room.room_id:
+            await self.send_json(websocket, self._room_payload("ROOM_STATE", room, your_player_id=identity[1]))
+
+    async def _route_bot_room_action(
+        self,
+        websocket,
+        action_type,
+        point=None,
+        *,
+        action_id=None,
+        expected_action_index=None,
+        require_versioned_room=False,
+    ) -> bool:
+        identity = self.websocket_index.get(websocket)
+        room = self.rooms.get(identity[0]) if identity else None
+        if room is None:
+            if require_versioned_room:
+                await self.send_json(websocket, {
+                    "type": "ERROR",
+                    "code": "NOT_IN_ROOM",
+                    "message": "Join or create a room before sending root actions.",
+                })
+                return True
+            return False
+        if room is not None and _is_topology_room_settings(room.settings):
+            if (
+                require_versioned_room
+                or action_type in ("player_root_relocate", "player_root_add")
+                or room.settings.get("rootMode", ROOT_MODE_CLASSIC) != ROOT_MODE_CLASSIC
+            ):
+                await self.send_json(websocket, {
+                    "type": "ERROR",
+                    "code": "TOPOLOGY_ROOT_MODE_UNSUPPORTED",
+                    "message": "Topology rooms only support classic root-v1 rules.",
+                })
+                return True
+            if room.has_bots():
+                await self.send_json(websocket, {
+                    "type": "ERROR",
+                    "code": "TOPOLOGY_BOTS_UNSUPPORTED",
+                    "message": "Topology rooms do not support server bots.",
+                })
+                return True
+            return False
+        versioned_room = room.settings.get("rootMode", ROOT_MODE_CLASSIC) != ROOT_MODE_CLASSIC
+        if require_versioned_room and not versioned_room:
+            await self.send_json(websocket, {
+                "type": "ERROR",
+                "code": "ROOT_ACTION_UNAVAILABLE",
+                "message": "This room does not enable root actions.",
+            })
+            return True
+        if not room.has_bots() and not versioned_room:
+            return False
+        async with room.action_lock:
+            async with self.lock:
+                prepared = self._prepare_room_action_locked(websocket)
+                if prepared["error"] is not None:
+                    error = prepared["error"]
+                    snapshot = None
+                elif not room.all_humans_connected():
+                    error = {"code": "OPPONENT_OFFLINE", "message": "Waiting for the other human player to reconnect."}
+                    snapshot = None
+                elif room.undo_target is not None:
+                    error = {"code": "UNDO_PENDING", "message": "Resolve the undo vote before playing."}
+                    snapshot = None
+                elif versioned_room and (not isinstance(action_id, str) or not action_id or len(action_id) > 128):
+                    error = {"code": "INVALID_ACTION_ID", "message": "Versioned room actions require a bounded actionId."}
+                    snapshot = None
+                elif action_id and action_id in room.action_ids:
+                    error = {"code": "DUPLICATE_ACTION", "message": "This action was already accepted."}
+                    snapshot = None
+                elif (
+                    expected_action_index is not None
+                    and (type(expected_action_index) is not int or expected_action_index != len(room.actions))
+                ):
+                    error = {"code": "STALE_ACTION", "message": "The room action history changed; recover the latest snapshot."}
+                    snapshot = None
+                else:
+                    sender = prepared["sender"]
+                    action = {"type": action_type, "color": sender.color, "actionId": action_id}
+                    if action_type in ("player_move", "player_root_relocate", "player_root_add"):
+                        action["point"] = point
+                    snapshot = self._bot_snapshot_locked(room)
+                    error = None
+            if error:
+                await self._reject_bot_action(websocket, room, error["code"], error["message"])
+                return True
+            try:
+                result = await self._evaluate_bot_snapshot(snapshot, action)
+            except (BotBridgeUnavailable, asyncio.TimeoutError) as exc:
+                await self._reject_bot_action(
+                    websocket, room, "AI_UNAVAILABLE",
+                    "AI service is temporarily unavailable. Reconnect to retry; the accepted game history is preserved.",
+                )
+                logger.warning("bot validation unavailable room=%s error=%s", room.room_id, exc)
+                return True
+            async with self.lock:
+                valid = (
+                    self._bot_snapshot_current_locked(room, snapshot)
+                    and room.undo_target is None
+                    and self.websocket_index.get(websocket) == identity
+                )
+                if valid and result.get("success"):
+                    payloads = self._commit_bot_action_locked(room, action, result, websocket)
+                else:
+                    payloads = None
+            if payloads is None:
+                await self._reject_bot_action(
+                    websocket, room, "ACTION_REJECTED",
+                    result.get("reason", "The room changed while the action was being checked."),
+                )
+                return True
+            for target, payload in payloads:
+                await self.send_json(target, payload)
+        async with self.lock:
+            self._schedule_bots_locked(room)
+        return True
+
+    async def _run_bot_turns(self, room: Room) -> None:
+        try:
+            while True:
+                async with room.action_lock:
+                    async with self.lock:
+                        if (
+                            self.rooms.get(room.room_id) is not room or not room.match_started
+                            or room.game_over or not room.all_humans_connected()
+                        ):
+                            return
+                        snapshot = self._bot_snapshot_locked(room)
+                    result = await self._evaluate_bot_snapshot(snapshot)
+                    async with self.lock:
+                        if not self._bot_snapshot_current_locked(room, snapshot):
+                            return
+                        if not result.get("success"):
+                            room.bot_error = result.get("reason", "AI_INVALID_STATE")
+                            payloads = self._connected_room_payloads(room, {
+                                "type": "ERROR", "code": "AI_INVALID_STATE",
+                                "message": "The AI game history could not be verified. Restart this match.",
+                            })
+                            finished = True
+                        else:
+                            room.game_over = bool(result["gameOver"])
+                            action = result.get("action")
+                            if action is None:
+                                return
+                            payloads = self._commit_bot_action_locked(room, action, result)
+                            finished = room.game_over
+                    for target, payload in payloads:
+                        await self.send_json(target, payload)
+                    if finished:
+                        return
+                await asyncio.sleep(0.15)
+        except (BotBridgeUnavailable, asyncio.TimeoutError) as exc:
+            async with self.lock:
+                if not self._bot_snapshot_current_locked(room, snapshot):
+                    return
+                room.bot_error = "AI_UNAVAILABLE"
+                payloads = self._connected_room_payloads(room, {
+                    "type": "ERROR", "code": "AI_UNAVAILABLE",
+                    "message": "AI service is temporarily unavailable. Reconnect to retry; the accepted game history is preserved.",
+                })
+            logger.warning("bot worker unavailable room=%s error=%s", room.room_id, exc)
+            for target, payload in payloads:
+                await self.send_json(target, payload)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception("bot room task failed room=%s", room.room_id)
+        finally:
+            if room.bot_task is asyncio.current_task():
+                room.bot_task = None
+
+    async def forward_move(
+        self,
+        websocket: WebSocket,
+        point: Any = None,
+        *,
+        vertex_id: Any = None,
+        board_hash: Any = None,
+        action_id: Any = None,
+        expected_action_index: Any = None,
+    ) -> None:
         room_and_player = self.websocket_index.get(websocket)
         if room_and_player is None:
             await self.send_json(
@@ -616,13 +1174,75 @@ class ConnectionManager:
                 )
                 return
 
+            if room.undo_target is not None:
+                await self.send_json(websocket, {"type": "ERROR", "code": "UNDO_PENDING", "message": "Resolve the undo vote before playing."})
+                return
+
+            if room.settings.get("rootMode", ROOT_MODE_CLASSIC) != ROOT_MODE_CLASSIC:
+                await self.send_json(websocket, {
+                    "type": "ERROR",
+                    "code": "ROOT_ACTION_VALIDATION_REQUIRED",
+                    "message": "Versioned root-room actions must be replay-validated.",
+                })
+                return
+            if expected_action_index is not None and (
+                type(expected_action_index) is not int or expected_action_index != len(room.actions)
+            ):
+                await self.send_json(websocket, {
+                    "type": "ERROR",
+                    "code": "STALE_ACTION",
+                    "message": "The room action history changed; recover the latest snapshot.",
+                })
+                return
+
+            is_topology_room = _is_topology_room_settings(room.settings)
+            if is_topology_room:
+                if not isinstance(vertex_id, str) or not vertex_id:
+                    await self.send_json(websocket, {
+                        "type": "ERROR",
+                        "code": "TOPOLOGY_VERTEX_ID_REQUIRED",
+                        "message": "Topology moves require a non-empty vertexId.",
+                    })
+                    return
+                if not isinstance(board_hash, str) or board_hash != room.settings.get("boardHash"):
+                    await self.send_json(websocket, {
+                        "type": "ERROR",
+                        "code": "BOARD_HASH_MISMATCH",
+                        "message": "Topology move boardHash does not match this room.",
+                    })
+                    return
+                # The relay does not adjudicate topology tactics, but it must
+                # not let aliases or out-of-range canonical IDs enter a room
+                # action log that reconnecting clients will replay.
+                valid_vertex_ids = topology_canonical_vertex_ids(room.settings.get("boardDefinition"))
+                if vertex_id not in valid_vertex_ids:
+                    await self.send_json(websocket, {
+                        "type": "ERROR",
+                        "code": "UNKNOWN_TOPOLOGY_VERTEX_ID",
+                        "message": "Topology vertexId is not a canonical vertex on this room board.",
+                    })
+                    return
+                move_fields = {"vertexId": vertex_id, "boardHash": board_hash}
+            else:
+                if not self._is_valid_point(point):
+                    await self.send_json(
+                        websocket,
+                        {
+                            "type": "ERROR",
+                            "code": "INVALID_POINT",
+                            "message": "point must be a two-item integer array like [x, y].",
+                        },
+                    )
+                    return
+                move_fields = {"point": [int(point[0]), int(point[1])]}
+
             sender = room.players[sender_id]
             sender.last_seen = time.time()
             room.updated_at = time.time()
             room.actions.append(
                 {
                     "type": "player_move",
-                    "point": [int(point[0]), int(point[1])],
+                    **move_fields,
                     "playerId": sender.player_id,
                     "color": sender.color,
                 }
@@ -648,36 +1268,59 @@ class ConnectionManager:
         payload = {
             "type": "OPPONENT_MOVE",
             "roomId": room_id,
-            "point": [int(point[0]), int(point[1])],
+            **move_fields,
             "playerId": sender.player_id,
             "color": sender.color,
         }
         for recipient in recipients:
             await self.send_json(recipient.websocket, dict(payload))
 
-    async def forward_skip(self, websocket: WebSocket) -> None:
+    async def forward_skip(
+        self,
+        websocket: WebSocket,
+        *,
+        action_id: Any = None,
+        expected_action_index: Any = None,
+    ) -> None:
         async with self.lock:
             action = self._prepare_room_action_locked(websocket)
             if action["error"] is not None:
                 error_payload = action["error"]
                 payloads = []
             else:
-                payload = {
-                    "type": "TURN_SKIPPED",
-                    "roomId": action["room_id"],
-                    "playerId": action["sender"].player_id,
-                    "color": action["sender"].color,
-                }
-                action["room"].actions.append(
-                    {
-                        "type": "player_skip",
+                if action["room"].settings.get("rootMode", ROOT_MODE_CLASSIC) != ROOT_MODE_CLASSIC:
+                    error_payload = {
+                        "type": "ERROR",
+                        "code": "ROOT_ACTION_VALIDATION_REQUIRED",
+                        "message": "Versioned root-room actions must be replay-validated.",
+                    }
+                    payloads = []
+                elif expected_action_index is not None and (
+                    type(expected_action_index) is not int or expected_action_index != len(action["room"].actions)
+                ):
+                    error_payload = {
+                        "type": "ERROR",
+                        "code": "STALE_ACTION",
+                        "message": "The room action history changed; recover the latest snapshot.",
+                    }
+                    payloads = []
+                else:
+                    payload = {
+                        "type": "TURN_SKIPPED",
+                        "roomId": action["room_id"],
                         "playerId": action["sender"].player_id,
                         "color": action["sender"].color,
                     }
-                )
-                action["room"].reset_votes.clear()
-                payloads = self._connected_room_payloads(action["room"], payload)
-                error_payload = None
+                    action["room"].actions.append(
+                        {
+                            "type": "player_skip",
+                            "playerId": action["sender"].player_id,
+                            "color": action["sender"].color,
+                        }
+                    )
+                    action["room"].reset_votes.clear()
+                    payloads = self._connected_room_payloads(action["room"], payload)
+                    error_payload = None
 
         if error_payload is not None:
             await self.send_json(websocket, error_payload)
@@ -686,7 +1329,13 @@ class ConnectionManager:
         for target_websocket, payload in payloads:
             await self.send_json(target_websocket, payload)
 
-    async def forward_resign(self, websocket: WebSocket) -> None:
+    async def forward_resign(
+        self,
+        websocket: WebSocket,
+        *,
+        action_id: Any = None,
+        expected_action_index: Any = None,
+    ) -> None:
         async with self.lock:
             action = self._prepare_room_action_locked(websocket)
             if action["error"] is not None:
@@ -695,30 +1344,47 @@ class ConnectionManager:
             else:
                 room = action["room"]
                 sender = action["sender"]
-                already_resigned = any(
+                if room.settings.get("rootMode", ROOT_MODE_CLASSIC) != ROOT_MODE_CLASSIC:
+                    error_payload = {
+                        "type": "ERROR",
+                        "code": "ROOT_ACTION_VALIDATION_REQUIRED",
+                        "message": "Versioned root-room actions must be replay-validated.",
+                    }
+                    payloads = []
+                elif expected_action_index is not None and (
+                    type(expected_action_index) is not int or expected_action_index != len(room.actions)
+                ):
+                    error_payload = {
+                        "type": "ERROR",
+                        "code": "STALE_ACTION",
+                        "message": "The room action history changed; recover the latest snapshot.",
+                    }
+                    payloads = []
+                else:
+                    already_resigned = any(
                     logged_action.get("type") == "player_resign"
                     and logged_action.get("playerId") == sender.player_id
                     for logged_action in room.actions
-                )
-                if not already_resigned:
-                    room.actions.append(
-                        {
-                            "type": "player_resign",
-                            "playerId": sender.player_id,
-                            "color": sender.color,
-                        }
                     )
-                room.reset_votes.clear()
-                room.updated_at = time.time()
-                payload = {
-                    "type": "PLAYER_RESIGNED",
-                    "roomId": action["room_id"],
-                    "playerId": sender.player_id,
-                    "color": sender.color,
-                    "serverTimestamp": int(room.updated_at * 1000),
-                }
-                payloads = self._connected_room_payloads(room, payload)
-                error_payload = None
+                    if not already_resigned:
+                        room.actions.append(
+                            {
+                                "type": "player_resign",
+                                "playerId": sender.player_id,
+                                "color": sender.color,
+                            }
+                        )
+                    room.reset_votes.clear()
+                    room.updated_at = time.time()
+                    payload = {
+                        "type": "PLAYER_RESIGNED",
+                        "roomId": action["room_id"],
+                        "playerId": sender.player_id,
+                        "color": sender.color,
+                        "serverTimestamp": int(room.updated_at * 1000),
+                    }
+                    payloads = self._connected_room_payloads(room, payload)
+                    error_payload = None
 
         if error_payload is not None:
             await self.send_json(websocket, error_payload)
@@ -738,9 +1404,16 @@ class ConnectionManager:
                 restart_reason = "normal_restart" if reason == "normal_restart" else "resign_restart"
 
                 if restart_reason == "normal_restart":
+                    if room.settings.get("startingPointMode") == "random":
+                        room.settings["initialPositions"] = random_initial_positions(
+                            room.settings["gridSize"], room.settings["playerCount"], room.settings["boardShape"],
+                            room.settings["initialPositions"])
                     room.actions = []
+                    room.action_ids.clear()
+                    room.undo_used_count = 0
                     room.match_started = False
                     room.ready_players.clear()
+                    self._reset_bot_state_locked(room)
                     room.reset_votes.clear()
                     self._cancel_countdown_locked(room)
                     payloads = self._connected_room_payloads_with_identity(
@@ -753,13 +1426,20 @@ class ConnectionManager:
                         },
                     )
                 else:
+                    if room.settings.get("startingPointMode") == "random":
+                        room.settings["initialPositions"] = random_initial_positions(
+                            room.settings["gridSize"], room.settings["playerCount"], room.settings["boardShape"],
+                            room.settings["initialPositions"])
                     winner = next(
                         (player for player in self._find_other_players(room, action["sender"].player_id)),
                         None,
                     )
                     room.actions = []
+                    room.action_ids.clear()
+                    room.undo_used_count = 0
                     room.match_started = False
                     room.ready_players.clear()
+                    self._reset_bot_state_locked(room)
                     room.reset_votes.clear()
                     self._cancel_countdown_locked(room)
                     extra = {
@@ -785,6 +1465,99 @@ class ConnectionManager:
 
         for target_websocket, payload in payloads:
             await self.send_json(target_websocket, payload)
+
+    async def forward_undo(self, websocket: WebSocket, accept: Any) -> None:
+        async with self.lock:
+            action = self._prepare_room_member_locked(websocket)
+            if action["error"] is not None:
+                error_payload = action["error"]
+                payloads = []
+            else:
+                room = action["room"]
+                sender = action["sender"]
+                humans = {player.player_id for player in room.players.values() if not player.is_bot}
+                if not room.match_started or not room.settings.get("undoEnabled") or not room.actions:
+                    error_payload = {"type": "ERROR", "code": "UNDO_UNAVAILABLE", "message": "Undo is unavailable for this match."}
+                    payloads = []
+                elif room.undo_used_count >= room.settings.get("undoMaxCount", 3):
+                    error_payload = {"type": "ERROR", "code": "UNDO_LIMIT", "message": "The undo limit has been reached."}
+                    payloads = []
+                elif not room.all_humans_connected():
+                    error_payload = {"type": "ERROR", "code": "OPPONENT_OFFLINE", "message": "Wait for every player to reconnect before undoing."}
+                    payloads = []
+                elif accept is not True and accept is not False:
+                    error_payload = {"type": "ERROR", "code": "INVALID_UNDO_VOTE", "message": "Invalid undo vote."}
+                    payloads = []
+                elif accept is False and room.undo_target is None:
+                    error_payload = {"type": "ERROR", "code": "UNDO_NOT_PENDING", "message": "There is no undo request."}
+                    payloads = []
+                elif accept is True and room.undo_target is None and not any(
+                    item.get("type") in ("player_move", "player_root_relocate", "player_root_add")
+                    and item.get("color") == sender.color
+                    for item in room.actions
+                ):
+                    error_payload = {"type": "ERROR", "code": "UNDO_UNAVAILABLE", "message": "You have no move to take back."}
+                    payloads = []
+                else:
+                    error_payload = None
+                    if accept is False:
+                        room.undo_votes.clear()
+                        room.undo_target = None
+                        room.undo_action_index = None
+                        event_type = "UNDO_STATUS"
+                    else:
+                        if room.undo_target is None:
+                            room.undo_target = len(room.actions)
+                            # Freeze the requester's own most recent placement
+                            # (including any replies after it), rather than
+                            # accidentally undoing an unrelated last PASS.
+                            room.undo_action_index = next(
+                                index for index in range(len(room.actions) - 1, -1, -1)
+                                if room.actions[index].get("type") in (
+                                    "player_move", "player_root_relocate", "player_root_add",
+                                ) and room.actions[index].get("color") == sender.color
+                            )
+                            self._cancel_bot_task_locked(room)
+                            room.generation += 1
+                        if (
+                            room.undo_target != len(room.actions)
+                            or room.undo_action_index is None
+                            or not 0 <= room.undo_action_index < len(room.actions)
+                        ):
+                            room.undo_votes.clear()
+                            room.undo_target = None
+                            room.undo_action_index = None
+                            error_payload = {"type": "ERROR", "code": "UNDO_STALE", "message": "The match changed. Request undo again."}
+                            payloads = []
+                        else:
+                            room.undo_votes.add(sender.player_id)
+                            if humans <= room.undo_votes:
+                                del room.actions[room.undo_action_index:]
+                                room.action_ids = {
+                                    item["actionId"]
+                                    for item in room.actions
+                                    if isinstance(item.get("actionId"), str)
+                                }
+                                room.undo_used_count += 1
+                                room.undo_votes.clear()
+                                room.undo_target = None
+                                room.undo_action_index = None
+                                self._reset_bot_state_locked(room)
+                                event_type = "ROOM_UNDO"
+                            else:
+                                event_type = "UNDO_STATUS"
+                    if error_payload is None:
+                        room.updated_at = time.time()
+                        payloads = self._connected_room_payloads_with_identity(room, event_type)
+
+        if error_payload is not None:
+            await self.send_json(websocket, error_payload)
+            return
+        for target_websocket, payload in payloads:
+            await self.send_json(target_websocket, payload)
+        if event_type == "ROOM_UNDO" or accept is False:
+            async with self.lock:
+                self._schedule_bots_locked(room)
 
     async def player_leave(self, websocket: WebSocket, reason: str = "player_leave") -> None:
         async with self.lock:
@@ -835,7 +1608,7 @@ class ConnectionManager:
                     if room.active_player_count() < room.player_capacity():
                         self._cancel_countdown_locked(room)
                         payloads = self._connected_room_payloads(room, self._room_payload("ROOM_STATE", room))
-                    elif len(room.ready_players) >= room.player_capacity():
+                    elif len(room.ready_players) >= room.player_capacity() and room.all_humans_connected():
                         if room.countdown_started_at is None and not room.match_started:
                             self._start_countdown_locked(room)
                         payloads = self._connected_room_payloads(room, self._room_payload("ROOM_COUNTDOWN", room))
@@ -850,7 +1623,14 @@ class ConnectionManager:
         for target_websocket, payload in payloads:
             await self.send_json(target_websocket, payload)
 
-    async def update_room_settings(self, websocket: WebSocket, settings: Any) -> None:
+    async def update_room_settings(
+        self,
+        websocket: WebSocket,
+        settings: Any,
+        topology_capabilities: Any = None,
+        root_protocol_version: Any = None,
+    ) -> None:
+        capabilities = _topology_capabilities(topology_capabilities)
         async with self.lock:
             action = self._prepare_room_member_locked(websocket)
             if action["error"] is not None:
@@ -859,6 +1639,8 @@ class ConnectionManager:
             else:
                 room = action["room"]
                 sender = action["sender"]
+                if topology_capabilities is not None:
+                    sender.topology_capabilities = capabilities
                 if sender.player_id != room.host_player_id:
                     error_payload = {
                         "type": "ERROR",
@@ -874,30 +1656,64 @@ class ConnectionManager:
                     }
                     payloads = []
                 else:
-                    normalized_settings = self._normalize_room_settings(settings)
-                    allowed_colors = (PLAYER_BLACK, PLAYER_WHITE, PLAYER_PURPLE)[: int(normalized_settings["playerCount"])]
-                    if len(room.players) > int(normalized_settings["playerCount"]) or any(
-                        player.color not in allowed_colors for player in room.players.values()
-                    ):
-                        error_payload = {
-                            "type": "ERROR",
-                            "code": "ROOM_CAPACITY_CONFLICT",
-                            "message": "The new player count is smaller than the current room roster.",
-                        }
+                    try:
+                        normalized_settings = self._normalize_room_settings(settings)
+                    except RoomSettingsError as error:
+                        error_payload = error.payload()
                         payloads = []
                     else:
-                        room.settings = normalized_settings
-                        room.actions = []
-                        room.match_started = False
-                        room.ready_players.clear()
-                        room.reset_votes.clear()
-                        self._cancel_countdown_locked(room)
-                        room.updated_at = time.time()
-                        payloads = self._connected_room_payloads(
-                            room,
-                            self._room_payload("ROOM_STATE", room, reason="settings_updated"),
+                        allowed_colors = PLAYER_COLORS[: int(normalized_settings["playerCount"])]
+                        humans = [player for player in room.players.values() if not player.is_bot]
+                        topology_capability_missing = (
+                            _is_topology_room_settings(normalized_settings)
+                            and any(
+                                TOPOLOGY_ROOM_PROTOCOL_VERSION not in player.topology_capabilities
+                                for player in humans
+                            )
                         )
-                        error_payload = None
+                        if topology_capability_missing:
+                            error_payload = {
+                                "type": "ERROR",
+                                "code": "TOPOLOGY_CAPABILITY_REQUIRED",
+                                "message": "Every room player must support board-topology-v1 before switching to a topology board.",
+                            }
+                            payloads = []
+                        elif (
+                            normalized_settings.get("rootMode", ROOT_MODE_CLASSIC) != ROOT_MODE_CLASSIC
+                            and root_protocol_version != ROOT_PROTOCOL_VERSION
+                        ):
+                            error_payload = {
+                                "type": "ERROR",
+                                "code": "ROOT_PROTOCOL_REQUIRED",
+                                "message": "This room requires the versioned multi-root protocol.",
+                            }
+                            payloads = []
+                        elif len(humans) + normalized_settings["botCount"] > int(normalized_settings["playerCount"]) or any(
+                            player.color not in allowed_colors for player in humans
+                        ):
+                            error_payload = {
+                                "type": "ERROR",
+                                "code": "ROOM_CAPACITY_CONFLICT",
+                                "message": "The new player count is smaller than the current room roster.",
+                            }
+                            payloads = []
+                        else:
+                            room.settings = normalized_settings
+                            room.actions = []
+                            room.action_ids.clear()
+                            room.undo_used_count = 0
+                            room.match_started = False
+                            room.ready_players.clear()
+                            self._configure_bots_locked(room)
+                            self._reset_bot_state_locked(room)
+                            room.reset_votes.clear()
+                            self._cancel_countdown_locked(room)
+                            room.updated_at = time.time()
+                            payloads = self._connected_room_payloads(
+                                room,
+                                self._room_payload("ROOM_STATE", room, reason="settings_updated"),
+                            )
+                            error_payload = None
 
         if error_payload is not None:
             await self.send_json(websocket, error_payload)
@@ -967,22 +1783,28 @@ class ConnectionManager:
                     }
                     payloads = []
                 else:
-                    normalized_settings = self._normalize_room_settings(
-                        {
-                            **room.settings,
-                            "startPlayer": start_player,
-                        }
-                    )
-                    room.settings = normalized_settings
-                    room.ready_players.clear()
-                    room.reset_votes.clear()
-                    self._cancel_countdown_locked(room)
-                    room.updated_at = time.time()
-                    payloads = self._connected_room_payloads(
-                        room,
-                        self._room_payload("ROOM_STATE", room, reason="settings_updated"),
-                    )
-                    error_payload = None
+                    try:
+                        normalized_settings = self._normalize_room_settings(
+                            {
+                                **room.settings,
+                                "startPlayer": start_player,
+                            }
+                        )
+                    except RoomSettingsError as error:
+                        error_payload = error.payload()
+                        payloads = []
+                    else:
+                        room.settings = normalized_settings
+                        room.ready_players.clear()
+                        self._reset_bot_state_locked(room)
+                        room.reset_votes.clear()
+                        self._cancel_countdown_locked(room)
+                        room.updated_at = time.time()
+                        payloads = self._connected_room_payloads(
+                            room,
+                            self._room_payload("ROOM_STATE", room, reason="settings_updated"),
+                        )
+                        error_payload = None
 
         if error_payload is not None:
             await self.send_json(websocket, error_payload)
@@ -1076,6 +1898,8 @@ class ConnectionManager:
                 "connected": player.connected,
                 "ready": player.player_id in room.ready_players,
                 "isHost": player.player_id == room.host_player_id,
+                "isBot": player.is_bot,
+                "displayName": f"AI {player.color}" if player.is_bot else player.player_id,
             }
             for player in room.players.values()
         ]
@@ -1090,6 +1914,14 @@ class ConnectionManager:
             "matchState": self._match_state(room),
             "countdownEndsAt": self._countdown_ends_at_ms(room),
             "serverTimestamp": int(room.updated_at * 1000),
+            "botError": room.bot_error,
+            "rootProtocolVersion": ROOT_PROTOCOL_VERSION,
+            "undo": {
+                "usedCount": room.undo_used_count,
+                "pending": room.undo_target is not None,
+                "votes": list(room.undo_votes),
+                "requiredVotes": len([player for player in room.players.values() if not player.is_bot]),
+            },
         }
         if reason:
             payload["reason"] = reason
@@ -1127,8 +1959,14 @@ class ConnectionManager:
                 if len(room.ready_players) < room.player_capacity():
                     self._cancel_countdown_locked(room)
                     return
+                if not room.all_humans_connected():
+                    self._cancel_countdown_locked(room)
+                    return
 
                 room.actions = []
+                room.action_ids.clear()
+                room.undo_used_count = 0
+                self._reset_bot_state_locked(room)
                 room.match_started = True
                 room.reset_votes.clear()
                 room.updated_at = time.time()
@@ -1145,6 +1983,8 @@ class ConnectionManager:
 
         for target_websocket, payload in payloads:
             await self.send_json(target_websocket, payload)
+        async with self.lock:
+            self._schedule_bots_locked(room)
 
     async def send_json(self, websocket: WebSocket, payload: Dict[str, Any]) -> None:
         logger.info("outgoing payload=%s", payload)
@@ -1217,12 +2057,18 @@ class ConnectionManager:
         player.websocket = None
         player.connected = False
         player.last_seen = time.time()
+        room.generation += 1
+        self._cancel_bot_task_locked(room)
         room.updated_at = time.time()
         room.reset_votes.clear()
+        room.undo_votes.clear()
+        room.undo_target = None
+        room.undo_action_index = None
         # 永久离开时才重置 match_started 和 ready 状态；临时断线只取消倒计时。
         if remove_player:
             room.ready_players.discard(player_id)
             room.match_started = False
+            self._reset_bot_state_locked(room)
         self._cancel_countdown_locked(room)
 
         if remove_player:
@@ -1232,7 +2078,9 @@ class ConnectionManager:
             room.reset_votes.discard(player_id)
             room.reset_votes.clear()
             if room.host_player_id == player_id:
-                room.host_player_id = next(iter(room.players.keys()), None)
+                room.host_player_id = next(
+                    (candidate.player_id for candidate in room.players.values() if not candidate.is_bot), None,
+                )
 
         if notify_opponent:
             for other_player in other_players:
@@ -1249,7 +2097,7 @@ class ConnectionManager:
                     )
                     await self.send_json(other_player.websocket, self._room_payload("ROOM_STATE", room))
 
-        if not room.players:
+        if not any(not candidate.is_bot for candidate in room.players.values()):
             self.rooms.pop(room_id, None)
             return
 
@@ -1298,10 +2146,12 @@ class ConnectionManager:
                     "message": "The room is still in the lobby. Wait for everyone to get ready.",
                 },
             }
+        if room.undo_target is not None:
+            return {"error": {"type": "ERROR", "code": "UNDO_PENDING", "message": "Resolve the undo vote before playing."}}
         opponents = [
             player
             for player in self._find_other_players(room, sender_id)
-            if player.websocket is not None and player.connected
+            if player.connected and (player.websocket is not None or player.is_bot)
         ]
         if not opponents:
             return {
@@ -1440,7 +2290,7 @@ class ConnectionManager:
             numeric_fields[field] = int(max(minimum, min(maximum, value)))
 
         color_class = str(display.get("colorClass", "")).strip()
-        if color_class not in {"blue", "red", "purple"}:
+        if color_class not in {'gold', 'navy', 'pink', 'lime', 'purple', 'brown', 'teal', 'green', 'magenta', 'slate', 'coral', 'red', 'cyan', 'orange', 'blue'}:
             color_class = "blue"
 
         return {
@@ -1455,14 +2305,77 @@ class ConnectionManager:
         if not isinstance(settings, dict):
             settings = {}
 
+        # Detect custom/surface input before applying any legacy fallback. A
+        # malformed topology request must fail closed rather than becoming a
+        # default coordinate-board room.
+        if topology_settings_requested(settings):
+            player_count = settings.get("playerCount", 2)
+            if type(player_count) is not int or player_count not in (2, 3, 4, 5, 6):
+                raise RoomSettingsError(
+                    "INVALID_ROOM_PLAYERS",
+                    "Topology rooms require a playerCount from two through six.",
+                )
+            canonical = canonicalize_topology_room_settings(
+                settings,
+                list(PLAYER_COLORS[:player_count]),
+            )
+            if not canonical["ok"]:
+                first = canonical["errors"][0] if canonical["errors"] else {}
+                raise RoomSettingsError(
+                    str(first.get("code", "INVALID_TOPOLOGY_SETTINGS")),
+                    str(first.get("detail", "Topology room settings are invalid.")),
+                    list(canonical["errors"]),
+                )
+            start_player = settings.get("startPlayer", PLAYER_BLACK)
+            allowed_players = PLAYER_COLORS[:player_count]
+            if start_player not in allowed_players:
+                start_player = allowed_players[0]
+            grid_size = settings.get("gridSize", 9)
+            if type(grid_size) is not int or grid_size < MIN_GRID_SIZE or grid_size > MAX_GRID_SIZE:
+                grid_size = 9
+            turn_time_limit_seconds = settings.get("turnTimeLimitSeconds", DEFAULT_TURN_TIMER_SECONDS)
+            if not isinstance(turn_time_limit_seconds, int):
+                try:
+                    turn_time_limit_seconds = int(turn_time_limit_seconds)
+                except (TypeError, ValueError):
+                    turn_time_limit_seconds = DEFAULT_TURN_TIMER_SECONDS
+            turn_time_limit_seconds = max(
+                TURN_TIMER_MIN_SECONDS,
+                min(TURN_TIMER_MAX_SECONDS, turn_time_limit_seconds),
+            )
+            undo_max_count = settings.get("undoMaxCount", 3)
+            if type(undo_max_count) is not int:
+                undo_max_count = 3
+            return {
+                "playerCount": player_count,
+                "gridSize": grid_size,
+                "startPlayer": start_player,
+                "turnTimerEnabled": bool(settings.get("turnTimerEnabled", False)),
+                "turnTimeLimitSeconds": turn_time_limit_seconds,
+                "botCount": 0,
+                "undoEnabled": settings.get("undoEnabled") is True,
+                "undoMaxCount": max(1, min(100, undo_max_count)),
+                **canonical["settings"],
+            }
+
         player_count = settings.get("playerCount", 2)
         grid_size = settings.get("gridSize", 9)
         start_player = settings.get("startPlayer", PLAYER_BLACK)
         rules_version = settings.get("rulesVersion", DEFAULT_RULES_VERSION)
+        protection_rule = settings.get("protectionRule", DEFAULT_PROTECTION_RULE)
+        bot_count = settings.get("botCount", 0)
+        board_shape = settings.get("boardShape")
+        starting_mode = settings.get("startingPointMode", "default")
+        initial_positions = settings.get("initialPositions")
+        root_mode = settings.get("rootMode", ROOT_MODE_CLASSIC)
+        root_rules_version = settings.get("rootRulesVersion")
+        initial_roots = settings.get("initialRoots")
+        undo_enabled = settings.get("undoEnabled") is True
+        undo_max_count = settings.get("undoMaxCount", 3)
         turn_timer_enabled = bool(settings.get("turnTimerEnabled", False))
         turn_time_limit_seconds = settings.get("turnTimeLimitSeconds", DEFAULT_TURN_TIMER_SECONDS)
 
-        if player_count not in (2, 3):
+        if type(player_count) is not int or not 2 <= player_count <= 15:
             player_count = 2
         if not isinstance(grid_size, int) or grid_size < MIN_GRID_SIZE or grid_size > MAX_GRID_SIZE:
             grid_size = 9
@@ -1475,19 +2388,114 @@ class ConnectionManager:
             TURN_TIMER_MIN_SECONDS,
             min(TURN_TIMER_MAX_SECONDS, turn_time_limit_seconds),
         )
-        allowed_players = (PLAYER_BLACK, PLAYER_WHITE, PLAYER_PURPLE)[:player_count]
+        allowed_players = PLAYER_COLORS[:player_count]
         if start_player not in allowed_players:
             start_player = allowed_players[0]
         if not isinstance(rules_version, str) or rules_version not in ALLOWED_RULES_VERSIONS:
             rules_version = DEFAULT_RULES_VERSION
+        if not isinstance(protection_rule, str) or protection_rule not in ALLOWED_PROTECTION_RULES:
+            protection_rule = DEFAULT_PROTECTION_RULE
+        if type(bot_count) is not int or not 0 <= bot_count < player_count:
+            bot_count = 0
+        if board_shape not in ("triangle", "diamond", "hexagon"):
+            board_shape = "hexagon" if player_count >= 4 else "triangle"
+        if type(undo_max_count) is not int:
+            undo_max_count = 3
+        undo_max_count = max(1, min(100, undo_max_count))
+        starts = {}
+
+        def is_on_board(point: Any) -> bool:
+            if not isinstance(point, list) or len(point) != 2 or any(type(axis) is not int for axis in point):
+                return False
+            x, y = point
+            radius = grid_size - 1
+            if board_shape == "hexagon":
+                return 0 <= x <= 2 * radius and 0 <= y <= 2 * radius and radius <= x + y <= 3 * radius
+            if board_shape == "diamond":
+                return 0 <= x <= radius and 0 <= y <= radius
+            return x >= 0 and y >= 0 and x + y <= radius
+
+        if starting_mode in ("random", "custom") and isinstance(initial_positions, dict):
+            used = set()
+            valid = set(initial_positions) == set(allowed_players)
+            for color in allowed_players:
+                point = initial_positions.get(color)
+                if not is_on_board(point) or tuple(point) in used:
+                    valid = False
+                    break
+                used.add(tuple(point))
+            if valid:
+                starts = {"startingPointMode": starting_mode, "initialPositions": {color: list(initial_positions[color]) for color in allowed_players}}
+        requires_explicit_starts = player_count > 6 or (board_shape == "diamond" and player_count >= 3)
+        if (starting_mode == "random" or requires_explicit_starts) and not starts:
+            starts = {"startingPointMode": "random", "initialPositions": random_initial_positions(grid_size, player_count, board_shape, None)}
+        if root_mode not in ALLOWED_ROOT_MODES:
+            raise RoomSettingsError("INVALID_ROOT_SETTINGS", "Unsupported root mode.")
+        root_settings: Dict[str, Any] = {}
+        if root_mode != ROOT_MODE_CLASSIC:
+            if player_count != 2:
+                raise RoomSettingsError("INVALID_ROOT_SETTINGS", "New root modes currently require exactly two players.")
+            if rules_version != TERRITORY_RULE_V3:
+                raise RoomSettingsError("INVALID_ROOT_SETTINGS", "New root modes require territory-v3 scoring.")
+            if bot_count:
+                raise RoomSettingsError("INVALID_ROOT_SETTINGS", "Online trained bot seats are unavailable in new root modes.")
+            if root_rules_version not in (None, ROOT_RULE_V2):
+                raise RoomSettingsError("INVALID_ROOT_SETTINGS", "New root modes require root-v2.")
+            expected_root_count = 2 if root_mode == ROOT_MODE_FIXED_DOUBLE else 1
+            if initial_roots is not None:
+                if not isinstance(initial_roots, dict) or set(initial_roots) != set(allowed_players):
+                    raise RoomSettingsError("INVALID_ROOT_SETTINGS", "Each player must provide a complete root list.")
+                used_roots: set[tuple[int, int]] = set()
+                normalized_roots: Dict[str, list[list[int]]] = {}
+                for color in allowed_players:
+                    player_roots = initial_roots.get(color)
+                    if not isinstance(player_roots, list) or len(player_roots) != expected_root_count:
+                        raise RoomSettingsError("INVALID_ROOT_SETTINGS", "Each player has an invalid number of roots.")
+                    normalized_roots[color] = []
+                    for point in player_roots:
+                        if not is_on_board(point) or tuple(point) in used_roots:
+                            raise RoomSettingsError("INVALID_ROOT_SETTINGS", "Roots must be unique points on the board.")
+                        used_roots.add(tuple(point))
+                        normalized_roots[color].append([point[0], point[1]])
+                    if len(normalized_roots[color]) == 2:
+                        first, second = normalized_roots[color]
+                        dx, dy = first[0] - second[0], first[1] - second[1]
+                        if dx == 0 or dy == 0 or dx + dy == 0:
+                            raise RoomSettingsError("INVALID_ROOT_SETTINGS", "A player's fixed roots must not be collinear.")
+                for color in allowed_players:
+                    opponent = next(candidate for candidate in allowed_players if candidate != color)
+                    for root in normalized_roots[color]:
+                        for enemy_root in normalized_roots[opponent]:
+                            dx, dy = root[0] - enemy_root[0], root[1] - enemy_root[1]
+                            if max(abs(dx), abs(dy), abs(dx + dy)) <= 1:
+                                raise RoomSettingsError("INVALID_ROOT_SETTINGS", "Opponent roots must not overlap each other's protection zones.")
+                root_settings["initialRoots"] = normalized_roots
+            root_settings.update({
+                "rootMode": root_mode,
+                "rootRulesVersion": ROOT_RULE_V2,
+                "startingPointMode": starting_mode if starting_mode in ("default", "random", "custom") else "default",
+            })
+            starts = {}
+        elif root_rules_version not in (None, ROOT_RULE_V1):
+            raise RoomSettingsError("INVALID_ROOT_SETTINGS", "Classic rooms require root-v1.")
+        if bot_count:
+            if rules_version == TERRITORY_RULE_V1:
+                rules_version = DEFAULT_RULES_VERSION
 
         return {
             "playerCount": player_count,
+            "boardShape": board_shape,
             "gridSize": grid_size,
             "startPlayer": start_player,
             "rulesVersion": rules_version,
+            "protectionRule": protection_rule,
             "turnTimerEnabled": turn_timer_enabled,
             "turnTimeLimitSeconds": turn_time_limit_seconds,
+            "botCount": bot_count,
+            "undoEnabled": undo_enabled,
+            "undoMaxCount": undo_max_count,
+            **starts,
+            **root_settings,
         }
 
     def _room_snapshot(self, room: Room) -> Dict[str, Any]:
@@ -1499,6 +2507,7 @@ class ConnectionManager:
                     "playerId": player.player_id,
                     "color": player.color,
                     "connected": player.connected,
+                    "isBot": player.is_bot,
                 }
                 for player in room.players.values()
             ],

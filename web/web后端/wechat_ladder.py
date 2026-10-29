@@ -170,7 +170,11 @@ def settle(db, room):
         return
     if room.get("rankedContext"):
         return settle_ai(db, room)
-    ai, players = room.get("rankedAI"), room["players"]
+    ai, players = room.get("rankedAI"), room.get("ratingPlayers", room["players"])
+    # Human ratings currently calibrate duels only; mixed-bot and multiplayer
+    # friend rooms remain ordinary games, not fabricated pairwise ratings.
+    if set(players) != {"BLACK", "WHITE"} or (not ai and any(str(v).startswith(("@AI:", "ai:")) for v in players.values())):
+        return
     if not all(players.values()):
         return
     board = "ai" if ai else "human"

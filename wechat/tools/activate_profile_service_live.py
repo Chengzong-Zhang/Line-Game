@@ -186,6 +186,42 @@ def create_run_directory(path, gid):
     os.chmod(path, 0o750)
 
 
+def descriptor_writable(proc, descriptor, observed, target):
+    """Confirm a matching /proc descriptor's access mode without opening it.
+
+    Security scanners can retain read-only database descriptors. Only a proven
+    O_RDONLY descriptor may be excluded; missing, malformed or racing evidence
+    fails closed. Service membership/configuration reasons remain independent.
+    """
+    try:
+        raw = (proc / "fdinfo" / descriptor.name).read_text()
+    except FileNotFoundError:
+        # A descriptor that disappeared is an ordinary /proc race. A still-live
+        # descriptor without fdinfo does not establish read-only access.
+        descriptor.stat()
+        raise GateError("PROCESS_FD_ACCESS_UNCONFIRMED") from None
+    fields = {}
+    for line in raw.splitlines():
+        if ":" in line:
+            name, value = line.split(":", 1)
+            require(name not in fields, "PROCESS_FD_ACCESS_UNCONFIRMED")
+            fields[name] = value.strip()
+    flags, inode = fields.get("flags", ""), fields.get("ino", "")
+    require(re.fullmatch(r"[0-7]+", flags) is not None
+            and re.fullmatch(r"[0-9]+", inode) is not None,
+            "PROCESS_FD_ACCESS_UNCONFIRMED")
+    current = descriptor.stat()
+    require((current.st_dev, current.st_ino) == (observed.st_dev, observed.st_ino)
+            and int(inode) == current.st_ino
+            and os.readlink(descriptor).removesuffix(" (deleted)") == target,
+            "PROCESS_FD_IDENTITY_CHANGED")
+    # fdinfo is Linux data even when regression-tested on Windows: Linux's
+    # O_ACCMODE is 03, with RDONLY=0, WRONLY=1 and RDWR=2.
+    mode = int(flags, 8) & 0o3
+    require(mode in (0, 1, 2), "PROCESS_FD_ACCESS_UNCONFIRMED")
+    return mode != 0
+
+
 def writer_scan(database, live_root, control_group):
     """Fail closed on unreadable non-racing process evidence; never emit secrets."""
     db_info = database.stat()
@@ -213,7 +249,7 @@ def writer_scan(database, live_root, control_group):
                 try:
                     info = fd.stat()
                     target = os.readlink(fd).removesuffix(" (deleted)")
-                    if (info.st_dev, info.st_ino) == identity or target in paths:
+                    if ((info.st_dev, info.st_ino) == identity or target in paths) and descriptor_writable(proc, fd, info, target):
                         reasons.add("database-or-sidecar-open")
                 except FileNotFoundError:
                     continue
