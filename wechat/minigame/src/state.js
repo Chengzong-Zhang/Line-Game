@@ -207,7 +207,8 @@ export function topologySettingsFor(boardDefinition, options = {}) {
 
 export function applyAction(engine, action) {
   if (!action || typeof action !== 'object') throw new Error('INVALID_ACTION');
-  const type = { player_move: 'move', player_skip: 'skip', player_resign: 'resign' }[action.type] || action.type;
+  const type = { player_move: 'move', player_skip: 'skip', player_resign: 'resign',
+    player_root_relocate: 'root_relocate', player_root_add: 'root_add' }[action.type] || action.type;
   const actor = action.player || action.color;
   if (actor && actor !== engine.currentPlayer && type !== 'resign') throw new Error('WRONG_PLAYER');
   if (engine.isTopologyBoard) {

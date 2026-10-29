@@ -1,6 +1,6 @@
 import { CONTROLLER_CHOICES, THREE_PLAYER_CONTROLLERS, HEX_PLAYER_CONTROLLERS, normalControllerChoices, playerIds } from './controllers.js';
 import { normalizePlayOptions } from './play-options.js';
-import { requiresExplicitStartingPoints, resolveInitialPositions } from './core.js';
+import { requiresExplicitStartingPoints, resolveInitialPositions, resolveInitialRoots } from './core.js';
 
 export const PLAY_MODES = ['ai-white', 'ai-black', 'human', 'three-human', 'ai-duel'];
 const KEY = 'lifeline-wx-preferences-v1';
@@ -48,9 +48,13 @@ function readBoardDraft(value, count, size) {
     out.startingPointMode = value.startingPointMode;
   }
   if (value.initialPositions != null) out.initialPositions = resolveInitialPositions(size, count, value.initialPositions, out.boardShape);
+  if (value.initialRoots != null) {
+    out.initialRoots = resolveInitialRoots(size, count, value.initialRoots, out.boardShape,
+      out.rootMode || 'classic', out.initialPositions);
+  }
   if (requiresExplicitStartingPoints(count, out.boardShape)
     && (!out.startingPointMode || out.startingPointMode === 'default')) out.startingPointMode = 'random';
-  if (out.startingPointMode === 'custom' && !out.initialPositions) throw new Error('INVALID_STARTS');
+  if (out.startingPointMode === 'custom' && (!out.initialPositions || (out.rootMode && out.rootMode !== 'classic'))) throw new Error('INVALID_STARTS');
   return out;
 }
 function readPlayerDrafts(value, size, migrateLegacy = false) {

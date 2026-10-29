@@ -53,6 +53,17 @@ function buttonStyle(bounds) {
   } catch (_) { return null; }
 }
 
+function applyButtonStyle(button, nextStyle) {
+  // WeChat exposes button.style as a read-only object reference. Mutate its
+  // documented fields so native buttons follow the Canvas control while the
+  // cabin scrolls.
+  const nativeStyle = button?.style;
+  if (!nativeStyle || (typeof nativeStyle !== 'object' && typeof nativeStyle !== 'function')) {
+    throw new Error('WECHAT_PROFILE_UNAVAILABLE');
+  }
+  for (const [key, value] of Object.entries(nextStyle)) nativeStyle[key] = value;
+}
+
 export function userInfoPlatform(api) {
   return {
     async getAuthorizedUserInfo() {
@@ -105,7 +116,7 @@ export function userInfoPlatform(api) {
             style = next; validBounds = true;
           }
           if (options.language !== undefined) language = options.language;
-          try { button.style = style; button.text = text(); return true; }
+          try { applyButtonStyle(button, style); button.text = text(); return true; }
           catch (error) { fail(error); hide(); return false; }
         },
         show() {

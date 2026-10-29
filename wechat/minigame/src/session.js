@@ -191,10 +191,11 @@ export class GameSession {
       ...(options.boardShape ? { boardShape: options.boardShape } : {}), ...(options.rootMode ? { rootMode: options.rootMode } : {}) });
     const modeOfStarts = options.startingPointMode || (options.initialPositions ? 'custom' : requiresExplicitStartingPoints(playerCount, initial.boardShape) ? 'random' : 'default');
     const rootMode = initial.rootMode || 'classic';
+    const random = options.startRandom || Math.random;
     const starts = modeOfStarts === 'random' && rootMode === 'classic'
-      ? randomInitialPositions(size, playerCount, Math.random, initial.boardShape) : options.initialPositions;
+      ? options.preparedStarts?.initialPositions ?? randomInitialPositions(size, playerCount, random, initial.boardShape) : options.initialPositions;
     const roots = modeOfStarts === 'random' && rootMode !== 'classic'
-      ? randomInitialRoots(size, playerCount, rootMode, Math.random, initial.boardShape) : options.initialRoots;
+      ? options.preparedStarts?.initialRoots ?? randomInitialRoots(size, playerCount, rootMode, random, initial.boardShape) : options.initialRoots;
     Object.assign(initial, startingPointSettings({ ...initial, startingPointMode: modeOfStarts,
       ...(starts ? { initialPositions: starts } : {}), ...(roots ? { initialRoots: roots } : {}) }));
     return this.load(initial, [],

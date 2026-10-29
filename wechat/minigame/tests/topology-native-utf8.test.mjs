@@ -13,7 +13,7 @@ test('topology creation and state round trip work without the browser TextEncode
   try {
     globalThis.TextEncoder = undefined;
     assert.equal(sha256Hex('拓扑😀\ud800'), expected);
-    for (const name of ['cylinder', 'mobius', 'torus', 'klein-bottle', 'double-sphere', 'double-torus']) {
+    for (const name of ['cylinder', 'mobius', 'torus', 'klein-bottle', 'tetrahedron', 'cone', 'sphere', 'double-sphere', 'double-torus']) {
       const result = useTopologyPreset(createTopologySetup(), name, { gridSize: 9, playerCount: 2 });
       assert.equal(result.ok, true, `${name}: ${JSON.stringify(result.errors)}`);
     }

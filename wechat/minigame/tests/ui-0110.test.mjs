@@ -71,6 +71,27 @@ test('board cabin supports explicit shapes, custom starting-node selection, save
   } finally { h.app.dispose(); }
 });
 
+test('board cabin presents four equal shape choices in two rows and routes topology from the same grid', async () => {
+  const h = uiHarness({ width: 390, height: 844, top: 88 });
+  try {
+    await ready(h); await h.tap('cabin-board'); await h.scrollTo('shape-triangle');
+    let buttons = h.app.getButtons();
+    const byId = id => buttons.find(item => item.id === id);
+    const triangle = byId('shape-triangle'), hexagon = byId('shape-hexagon');
+    const diamond = byId('shape-diamond'), topology = byId('topology-setup');
+    assert.ok(triangle && hexagon && diamond && topology);
+    for (const item of [hexagon, diamond, topology]) {
+      assert.equal(item.width, triangle.width); assert.equal(item.height, triangle.height);
+    }
+    assert.equal(triangle.height, 44);
+    assert.equal(triangle.y, hexagon.y); assert.equal(diamond.y, topology.y);
+    assert.ok(diamond.y > triangle.y);
+    await h.tap('shape-hexagon');
+    assert.equal(sut.readPreferences(h.p.storage).boardShape, 'hexagon', 'tapping a shape selects it for the next match');
+    await h.tap('topology-setup'); assert.equal(h.app.getScene(), 'topology-setup');
+  } finally { h.app.dispose(); }
+});
+
 test('undo remains directly accessible while an AI reply is pending and persists the remaining quota', async () => {
   const h = uiHarness();
   try {

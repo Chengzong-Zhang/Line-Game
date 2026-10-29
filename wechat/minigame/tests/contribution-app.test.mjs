@@ -27,8 +27,8 @@ test('default territory-v3 offers explicit consent, never backfills the current 
     contributionRequest: request => {
       if (request.method === 'GET') return { promise: Promise.resolve({ status: 200, data: {
         enabled: true,
-        supported_versions: [1, 2, 3],
-        consent_policies: { 2: 'anonymous-replay-training-v2', 3: 'anonymous-replay-training-v3' },
+        supported_versions: [1, 2, 3, 4],
+        consent_policies: { 2: 'anonymous-replay-training-v2', 3: 'anonymous-replay-training-v3', 4: 'anonymous-replay-training-v4' },
       } }), abort() {} };
       uploads.push(request.data);
       return { promise: Promise.resolve({ status: 200, data: { game_id: 'a'.repeat(64), status: 'awaiting_review' } }), abort() {} };
@@ -43,7 +43,7 @@ test('default territory-v3 offers explicit consent, never backfills the current 
     assert.ok(h.texts.some(text => /帮 AI 学下棋/.test(text)));
     await h.tap('training-contribution');
     assert.equal(confirmations.length, 1);
-    assert.match(confirmations[0], /territory-v3/);
+    assert.match(confirmations[0], /棋盘定义、随机种子、完整动作/);
     assert.equal(saved(storage).enabled, true);
     await h.tap('cabin-close'); await h.tap('resign'); await until(() => h.app.session.snapshot.gameOver);
     await new Promise(resolve => setTimeout(resolve, 300));
@@ -53,8 +53,8 @@ test('default territory-v3 offers explicit consent, never backfills the current 
     await h.tap('resign');
     await until(() => h.app.session.snapshot.gameOver);
     await until(() => uploads.length === 1);
-    assert.equal(uploads[0].version, 3);
-    assert.equal(uploads[0].consent_policy, 'anonymous-replay-training-v3');
+    assert.equal(uploads[0].version, 4);
+    assert.equal(uploads[0].consent_policy, 'anonymous-replay-training-v4');
     assert.equal(uploads[0].replay.config.rulesVersion, 'territory-v3');
   } finally { h.app.dispose(); }
 });
@@ -64,7 +64,7 @@ test('pending V2 records can be retried with consent or cleared while viewing a 
   seedPendingV2(storage);
   let prompts = 0;
   const h = uiHarness({ language: 'en', storage, config: { onlineEnabled: true, apiBase: 'https://fixture.invalid' }, platformOverrides: {
-    confirm: async text => { prompts++; assert.match(text, /territory-v2/i); assert.match(text, /territory-v3/i); return true; },
+    confirm: async text => { prompts++; assert.match(text, /older pending records/i); return true; },
     contributionRequest: request => ({ promise: Promise.resolve({ status: request.method === 'GET' ? 503 : 200,
       data: request.method === 'GET' ? {} : { game_id: 'a'.repeat(64), status: 'awaiting_review' } }), abort() {} }),
   } });

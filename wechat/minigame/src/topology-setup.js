@@ -8,7 +8,7 @@ import {
   closeBoundaryDraft,
   undoBoundaryVertex,
 } from './core.js';
-import { createTopologyStartingDefinition } from './topology/TopologyStartingPoints.js';
+import { createTopologyStartingDefinition, topologyStartingRoots } from './topology/TopologyStartingPoints.js';
 import { createDoubleTorusBoardDefinition, createDoubleSphereBoardDefinition } from './topology/RandomSurfaceBoard.js';
 
 export const TOPOLOGY_SETUP_CONTRACT_VERSION = 'board-topology-v1';
@@ -31,6 +31,7 @@ function freshSetup(changes = {}) {
     mode: 'custom',
     draft: createBoardDraft(),
     definition: null,
+    defaultDefinition: null,
     compiled: null,
     boardHash: null,
     selectedBoundaryOccurrenceIds: [],
@@ -66,7 +67,7 @@ function compileDefinition(setup, definition, changes = {}) {
 export function createTopologySetup(options = {}) {
   const draft = createBoardDraft(options);
   if (!options.definition) return freshSetup({ draft });
-  const base = freshSetup({ draft, mode: 'definition' });
+  const base = freshSetup({ draft, mode: 'definition', defaultDefinition: copyJson(options.definition) });
   const result = compileDefinition(base, options.definition, { mode: 'definition' });
   return result.ok ? result.setup : result.setup;
 }
@@ -77,6 +78,28 @@ export function addTopologyBoundaryVertex(setup, coordinate) {
   if (!result.ok) return failure(setup, result.code, result.detail);
   return { ok: true, setup: { ...setup, mode: 'custom', draft: result.draft, definition: null, compiled: null,
     boardHash: null, selectedBoundaryOccurrenceIds: [], errors: [] } };
+}
+
+// Touch editing accepts straight lattice segments between tapped corners.
+// The rule-facing draft still stores each unit edge, exactly like the Web editor.
+export function extendTopologyBoundary(setup, coordinate, { close = false } = {}) {
+  const path = setup?.draft?.path;
+  if (!path?.length) return addTopologyBoundaryVertex(setup, coordinate);
+  if (!Array.isArray(coordinate) || coordinate.length !== 2 || !coordinate.every(Number.isInteger)) {
+    return failure(setup, 'INVALID_COORDINATE', 'Choose a grid point.');
+  }
+  const last = path[path.length - 1], dx = coordinate[0] - last[0], dy = coordinate[1] - last[1];
+  if (!(dx === 0 || dy === 0 || dx === -dy) || (dx === 0 && dy === 0)) {
+    return failure(setup, 'NON_LATTICE_EDGE', 'Follow a straight grid line.');
+  }
+  const length = Math.max(Math.abs(dx), Math.abs(dy)), step = [dx / length, dy / length];
+  let next = setup;
+  for (let i = 1; i <= length - (close ? 1 : 0); i++) {
+    const result = addTopologyBoundaryVertex(next, [last[0] + i * step[0], last[1] + i * step[1]]);
+    if (!result.ok) return { ...result, setup: { ...setup, errors: result.errors } };
+    next = result.setup;
+  }
+  return close ? closeTopologyBoundary(next) : { ok: true, setup: next };
 }
 
 export function undoTopologyBoundary(setup) {
@@ -104,7 +127,7 @@ export function closeTopologyBoundary(setup) {
     candidateDefinition: copyJson(closed.definition),
   };
   return { ok: true, setup: settled(setup, compiled.value, closed.definition, {
-    mode: 'custom', draft, selectedBoundaryOccurrenceIds: [], random: null,
+    mode: 'custom', draft, selectedBoundaryOccurrenceIds: [], random: null, defaultDefinition: copyJson(closed.definition),
   }), compiled: compiled.value };
 }
 
@@ -149,7 +172,7 @@ export function addSelectedTopologySeam(setup) {
     candidateDefinition: copyJson(added.definition),
   };
   return { ok: true, setup: settled(setup, compiled.value, added.definition, {
-    draft, selectedBoundaryOccurrenceIds: [],
+    draft, selectedBoundaryOccurrenceIds: [], defaultDefinition: copyJson(added.definition),
   }), compiled: compiled.value };
 }
 
@@ -170,7 +193,7 @@ export function useTopologyPreset(setup, name, options = {}) {
     }
   }
   catch (error) { return failure(setup ?? freshSetup(), 'INVALID_SURFACE_PRESET', error.message); }
-  const base = { ...(setup ?? freshSetup()), mode: 'preset', draft: null, selectedBoundaryOccurrenceIds: [], random: null };
+  const base = { ...(setup ?? freshSetup()), mode: 'preset', draft: null, selectedBoundaryOccurrenceIds: [], random: null, defaultDefinition: copyJson(definition) };
   return compileDefinition(base, definition, { mode: 'preset' });
 }
 
@@ -178,7 +201,7 @@ export function generateTopologyBoard(setup, options = {}, seed = 'topology-rand
   const generated = generateBoard(options, seed);
   if (!generated.ok) return { ok: false, setup: { ...(setup ?? freshSetup()), errors: copyJson(generated.errors) },
     errors: copyJson(generated.errors), stats: copyJson(generated.stats) };
-  const base = { ...(setup ?? freshSetup()), mode: 'random', draft: null, selectedBoundaryOccurrenceIds: [] };
+  const base = { ...(setup ?? freshSetup()), mode: 'random', draft: null, selectedBoundaryOccurrenceIds: [], defaultDefinition: copyJson(generated.definition) };
   const compiled = compileDefinition(base, generated.definition, {
     mode: 'random', random: { seed, generatorVersion: generated.definition.generator?.generatorVersion, stats: copyJson(generated.stats) },
   });
@@ -188,11 +211,38 @@ export function generateTopologyBoard(setup, options = {}, seed = 'topology-rand
 export function changeTopologyStarts(setup, options) {
   if (!setup?.compiled) return failure(setup ?? freshSetup(), 'BOARD_NOT_READY', 'Create a board first.');
   try {
-    const definition = createTopologyStartingDefinition(setup.compiled, options);
+    const defaults = options?.mode === 'default' && setup.defaultDefinition ? compileBoard(setup.defaultDefinition) : null;
+    if (defaults && !defaults.ok) return { ok: false, setup: { ...setup, errors: copyJson(defaults.errors) }, errors: copyJson(defaults.errors) };
+    const definition = createTopologyStartingDefinition(defaults?.value ?? setup.compiled, options);
     return compileDefinition(setup, definition);
   } catch (error) {
     return failure(setup, error.code || 'INVALID_STARTING_LAYOUT', error.message);
   }
+}
+
+// Reopening an existing surface after changing seats must freeze the very same
+// root layout that the engine will use. Retain every root of surviving seats.
+export function reconcileTopologySetupPlayers(setup, playerCount) {
+  if (!setup?.compiled) return { ok: true, setup };
+  const players = ['BLACK', 'WHITE', 'PURPLE', 'GREEN', 'ORANGE', 'CYAN'].slice(0, playerCount);
+  if (!Number.isInteger(playerCount) || playerCount < 2 || playerCount > 6) return failure(setup, 'INVALID_PLAYER_COUNT', 'Use two through six players.');
+  const board = setup.compiled, previous = topologyStartingRoots(board);
+  const roots = Object.fromEntries(players.filter(player => previous[player]?.length).map(player => [player, [...previous[player]]]));
+  const claimed = new Set(Object.values(roots).flat());
+  for (const player of players) {
+    if (roots[player]) continue;
+    const distance = new Map([...claimed].map(id => [id, 0])), queue = [...claimed];
+    for (let i = 0; i < queue.length; i++) for (const next of board.sampleAdjacency[queue[i]] ?? []) {
+      if (!distance.has(next)) { distance.set(next, distance.get(queue[i]) + 1); queue.push(next); }
+    }
+    let best = null, score = -1;
+    for (const id of board.sampleIds) if (!claimed.has(id) && (distance.get(id) ?? Infinity) > score) {
+      best = id; score = distance.get(id) ?? Infinity;
+    }
+    if (!best) return failure(setup, 'INSUFFICIENT_START_VERTICES', 'There are not enough unclaimed starting points.');
+    roots[player] = [best]; claimed.add(best);
+  }
+  return changeTopologyStarts(setup, { mode: 'custom', playerCount, roots });
 }
 
 /** Return a plain complete definition plus its compiled board identity for game creation. */

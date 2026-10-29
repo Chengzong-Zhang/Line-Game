@@ -126,7 +126,7 @@ test('room host can change starting points and undo settings; guest votes on an 
     await tap('cabin-battle'); await scrollTo('friends'); await tap('friends'); await tap('room-submit'); await until(() => app.online.room);
     await tap('cabin-board'); await scrollTo('starts-random'); await render();
     assert.equal(app.getButtons().find(button => button.id === 'starts-random').disabled, false);
-    await tap('starts-random');
+    await tap('starts-random'); await tap('starts-save');
     assert.equal(edits.length, 0, 'draft is saved as one room update');
     await scrollTo('room-submit'); await tap('room-submit');
     assert.equal(edits.length, 1);

@@ -138,8 +138,16 @@ function showDialog(options, sheet = false) {
   document.body.append(box); box.showModal(); input?.focus();
 }
 
+let screenCanvasCreated = false;
 globalThis.wx = {
-  createCanvas: () => canvas,
+  createCanvas: () => {
+    if (!screenCanvasCreated) { screenCanvasCreated = true; return canvas; }
+    return document.createElement('canvas');
+  },
+  createOffscreenCanvas: ({ width, height }) => {
+    const surface = document.createElement('canvas'); surface.width = width; surface.height = height;
+    return surface;
+  },
   getWindowInfo: () => ({ windowWidth: width, windowHeight: height, pixelRatio: devicePixelRatio, safeArea: { top: 48, bottom: height - bottom } }),
   getMenuButtonBoundingClientRect: () => ({ bottom: top }),
   getStorageSync: key => localStorage.getItem(storagePrefix + key),

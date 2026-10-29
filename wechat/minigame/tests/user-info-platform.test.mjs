@@ -9,17 +9,18 @@ const expected = { displayName: '微信棋手😀', avatarUrl: userInfo.avatarUr
 const resultFor = source => ({ userInfo: source, errMsg: 'getUserInfo:ok', encryptedData: 'private-encrypted', signature: 'private-signature' });
 
 function nativeHarness() {
-  const calls = [], results = [];
+  const calls = [], results = [], nativeStyle = {};
   let tap, options;
   const button = {
+    get style() { return nativeStyle; },
     onTap(callback) { tap = callback; calls.push('listen'); },
     offTap(callback) { assert.equal(callback, tap); calls.push('unlisten'); },
     show() { calls.push('show'); }, hide() { calls.push('hide'); }, destroy() { calls.push('destroy'); },
   };
-  const api = { createUserInfoButton(value) { options = value; return button; } };
+  const api = { createUserInfoButton(value) { options = value; Object.assign(nativeStyle, value.style); return button; } };
   const platform = userInfoPlatform(api);
   const control = platform.createUserInfoControl({ bounds, onResult: (profile, error) => results.push({ profile, error: error?.message }) });
-  return { api, button, calls, results, control, platform, tap: value => tap(value), options: () => options };
+  return { api, button, calls, results, control, platform, nativeStyle, tap: value => tap(value), options: () => options };
 }
 
 test('automatic import only reads an already authorized WeChat profile and strips unrelated data', async () => {
@@ -97,9 +98,25 @@ test('native user-info button imports minimal data, uses logical-pixel bounds an
   h.tap(resultFor(userInfo));
   assert.deepEqual(h.results, [{ profile: expected, error: undefined }]);
   assert.equal(h.control.update({ bounds: { left: 12, top: 40, width: 200, height: 36 }, language: 'en' }), true);
-  assert.equal(h.button.style.left, 12); assert.equal(h.button.style.top, 40);
+  assert.equal(h.nativeStyle.left, 12); assert.equal(h.nativeStyle.top, 40);
+  assert.equal(h.nativeStyle.width, 200); assert.equal(h.nativeStyle.height, 36);
   assert.equal(h.button.text, 'Use WeChat profile');
   h.control.destroy();
+});
+
+test('getter-only native style reference is updated field by field as the visible control moves', () => {
+  const h = nativeHarness();
+  assert.equal(Object.getOwnPropertyDescriptor(h.button, 'style').set, undefined,
+    'the native button exposes a getter-only style object');
+  assert.equal(h.control.update({ bounds: { x: 16, y: 520, width: 224, height: 44 } }), true);
+  assert.deepEqual({ left: h.nativeStyle.left, top: h.nativeStyle.top, width: h.nativeStyle.width, height: h.nativeStyle.height },
+    { left: 16, top: 520, width: 224, height: 44 });
+  assert.equal(h.nativeStyle.lineHeight, 44);
+  assert.equal(h.control.update({ bounds: { x: 16, y: 120, width: 224, height: 44 } }), true);
+  assert.equal(h.nativeStyle.top, 120, 'scrolling back restores the native hit target to the Canvas row');
+  h.control.hide(); h.tap(resultFor(userInfo)); assert.equal(h.results.length, 0);
+  assert.equal(h.control.show(), true); h.tap(resultFor(userInfo)); assert.equal(h.results.length, 1);
+  h.control.destroy(); h.tap(resultFor(userInfo)); assert.equal(h.results.length, 1);
 });
 
 test('native refusal and unconfigured privacy return actionable errors without importing data', () => {
@@ -140,7 +157,7 @@ test('missing, throwing and broken native controls safely degrade without blocki
   }
   assert.doesNotThrow(() => userInfoPlatform({}).createUserInfoControl({ bounds, onResult() { throw new Error('UI disposed'); } }));
   const h = nativeHarness();
-  Object.defineProperty(h.button, 'style', { set() { throw new Error('native unavailable'); } });
+  Object.defineProperty(h.button, 'style', { get() { throw new Error('native unavailable'); }, set() { throw new Error('native unavailable'); } });
   assert.equal(h.control.update({ bounds }), false);
   h.tap(resultFor(userInfo));
   assert.equal(h.results.length, 1); assert.equal(h.results[0].profile, null);

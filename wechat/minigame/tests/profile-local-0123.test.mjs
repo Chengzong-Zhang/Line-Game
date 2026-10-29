@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { sut, memoryStorage, until } from './helpers.mjs';
 import { uiHarness } from './ui-harness.mjs';
 import { avatarPlatform } from '../src/avatar-platform.js';
+import { userInfoPlatform } from '../src/user-info-platform.js';
 
 const uid = 'a'.repeat(32), otherUid = 'c'.repeat(32), origin = 'https://profile-local.invalid';
 const localAvatar = 'data:image/jpeg;base64,AQID';
@@ -143,7 +144,7 @@ function profileHarness(overrides = {}) {
   const h = uiHarness({ config: { onlineEnabled: true, apiBase: origin }, platformOverrides: {
     request: async options => { if (!options.data) return rawAccount(); posts.push(options.data); return { ...rawAccount(), ...options.data }; },
     createUserInfoControl: options => {
-      const item = { options, destroyed: false, updates: [], update(value) { this.updates.push(value); }, destroy() { this.destroyed = true; } };
+      const item = { options, destroyed: false, updates: [], update(value) { this.updates.push(value); }, show() {}, hide() {}, destroy() { this.destroyed = true; } };
       controls.push(item); return item;
     }, loadImage: async () => ({ width: 256, height: 256 }), importAvatar: async () => ({ dataUrl: localAvatar }),
     ...overrides,
@@ -187,6 +188,47 @@ test('native WeChat import stays inside the visible account row and ignores call
     h.p.callbacks.hide(); assert.equal(second.destroyed, true);
     second.options.onResult({ displayName: 'Hidden', avatarUrl: 'https://wx.qlogo.cn/mmopen/a/132' });
     await h.render(); assert.equal(h.posts.length, 0);
+  } finally { h.app.dispose(); }
+});
+
+test('native WeChat button follows a real cabin touch-scroll, stays hidden during the gesture and is destroyed on scene change', async () => {
+  const nativeButtons = [];
+  const native = userInfoPlatform({ createUserInfoButton(options) {
+    const style = { ...options.style };
+    let onTap;
+    const button = {
+      get style() { return style; },
+      text: options.text,
+      onTap(callback) { onTap = callback; },
+      offTap(callback) { if (onTap === callback) onTap = null; },
+      show() { this.visible = true; }, hide() { this.visible = false; },
+      destroy() { this.destroyed = true; this.visible = false; },
+      tap(value) { onTap?.(value); },
+      visible: true,
+    };
+    nativeButtons.push(button);
+    return button;
+  } });
+  const h = profileHarness({ createUserInfoControl: options => native.createUserInfoControl(options) });
+  try {
+    await ready(h, 'profile-wechat');
+    const button = nativeButtons.at(-1), row = h.app.getButtons().find(item => item.id === 'profile-wechat');
+    assert.ok(button && row); assert.equal(button.style.top, row.y);
+    const x = h.p.metrics().width - 34, y = 300;
+    h.p.callbacks.start({ touches: [{ clientX: x, clientY: y }] });
+    assert.equal(button.visible, false, 'the native hit target hides as soon as a battle-cabin scroll gesture starts');
+    h.p.callbacks.move({ touches: [{ clientX: x, clientY: y - 36 }] });
+    assert.equal(button.visible, false, 'the native layer stays hidden while the finger is moving');
+    h.p.callbacks.end({ changedTouches: [{ clientX: x, clientY: y - 36 }], touches: [] });
+    await h.render();
+    const movedRow = h.app.getButtons().find(item => item.id === 'profile-wechat');
+    assert.ok(movedRow); assert.equal(button.style.top, movedRow.y, 'native coordinates track the scrolled Canvas row');
+    assert.equal(button.visible, true, 'the native hit target returns after the gesture ends');
+    const staleTap = button.tap.bind(button);
+    await h.tap('cabin-guide');
+    assert.equal(button.destroyed, true, 'leaving the battle cabin destroys the native button');
+    staleTap({ userInfo: { nickName: 'Stale', avatarUrl: 'https://wx.qlogo.cn/mmopen/a/132' } });
+    assert.equal(h.posts.length, 0, 'a callback from the destroyed scene cannot write profile data');
   } finally { h.app.dispose(); }
 });
 

@@ -286,9 +286,17 @@ export function layoutTopologyDraft(draft, rect, options = {}) {
     const [x, y] = axialPoint(coordinate);
     return { index, coordinate: [...coordinate], x, y };
   });
+  const gridSize = Number.isInteger(options.gridSize) && options.gridSize >= 2 && options.gridSize <= 31 ? options.gridSize : null;
+  const grid = [];
+  if (gridSize) for (let q = 0; q < gridSize; q++) for (let r = 0; r < gridSize; r++) {
+    const coordinate = [q, r], [x, y] = axialPoint(coordinate);
+    const index = points.findIndex(point => point.coordinate[0] === q && point.coordinate[1] === r);
+    grid.push({ coordinate, index: index < 0 ? null : index, x, y });
+  }
   const padding = Math.min(normalizedPadding(options.padding), Math.min(rect.width, rect.height) / 2);
-  const xs = points.map((point) => point.x);
-  const ys = points.map((point) => point.y);
+  const extent = gridSize ? [...grid, ...points] : points;
+  const xs = extent.map((point) => point.x);
+  const ys = extent.map((point) => point.y);
   const minX = xs.length ? Math.min(...xs) : 0, maxX = xs.length ? Math.max(...xs) : 1;
   const minY = ys.length ? Math.min(...ys) : 0, maxY = ys.length ? Math.max(...ys) : 1;
   const scale = Math.min(Math.max(1, rect.width - padding * 2) / Math.max(1, maxX - minX),
@@ -300,6 +308,7 @@ export function layoutTopologyDraft(draft, rect, options = {}) {
     scale,
     padding,
     points: points.map((point) => ({ ...point, x: point.x * scale + offset[0], y: point.y * scale + offset[1] })),
+    gridPoints: grid.map((point) => ({ ...point, x: point.x * scale + offset[0], y: point.y * scale + offset[1] })),
     closed: Boolean(draft?.closed),
     hitRadius: Number.isFinite(options.hitRadius) && options.hitRadius >= 0 ? options.hitRadius : Math.max(15, scale * 0.25),
   });
@@ -309,7 +318,7 @@ export function hitTopologyDraftPoint(x, y, layout, options = {}) {
   if (!Number.isFinite(x) || !Number.isFinite(y) || !layout?.points) return null;
   const radius = Number.isFinite(options.radius) && options.radius >= 0 ? options.radius : layout.hitRadius;
   let nearest = null;
-  for (const point of layout.points) {
+  for (const point of layout.gridPoints?.length ? layout.gridPoints : layout.points) {
     const distance = Math.hypot(point.x - x, point.y - y);
     if (distance <= radius && (!nearest || distance < nearest.distance)) nearest = { point, distance };
   }
@@ -319,6 +328,16 @@ export function hitTopologyDraftPoint(x, y, layout, options = {}) {
 export function drawTopologyDraft(ctx, draft, layout, { selectedIndex = null, previewCoordinate = null } = {}) {
   if (!ctx || typeof ctx.beginPath !== 'function' || !layout?.points) {
     throw new TypeError('A Canvas context and topology draft layout are required.');
+  }
+  if (layout.gridPoints?.length) {
+    const grid = new Map(layout.gridPoints.map(point => [point.coordinate.join(','), point]));
+    for (const point of layout.gridPoints) {
+      for (const [dq, dr] of [[1, 0], [0, 1], [1, -1]]) {
+        const next = grid.get(`${point.coordinate[0] + dq},${point.coordinate[1] + dr}`);
+        if (next) drawPolyline(ctx, [[point.x, point.y], [next.x, next.y]], '#ded5c5', 0.8);
+      }
+      drawDisc(ctx, [point.x, point.y], Math.max(1.5, Math.min(3, layout.scale * 0.075)), '#a69c8c');
+    }
   }
   const points = layout.points.map((point) => [point.x, point.y]);
   if (points.length > 1) drawPolyline(ctx, points, '#244d3d', Math.max(1.5, layout.scale * 0.06));

@@ -38,7 +38,7 @@ export function uiHarness({ width = 390, height = 844, top = 88, language = 'zh'
     callbacks.end({ changedTouches: [{ clientX: sx, clientY: sy + 2000 }], touches: [] });
     for (let attempt = 0; attempt < 12; attempt++) {
       await render(); if (app.getButtons().some(item => item.id === id)) return;
-      const x = width - 34, y = height - 70;
+      const x = width - 34, y = height - 150;
       callbacks.start({ touches: [{ clientX: x, clientY: y }] });
       callbacks.move({ touches: [{ clientX: x, clientY: y - 140 }] });
       callbacks.end({ changedTouches: [{ clientX: x, clientY: y - 140 }], touches: [] });

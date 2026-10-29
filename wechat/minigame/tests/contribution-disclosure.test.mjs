@@ -32,11 +32,11 @@ for (const language of ['zh', 'en']) test(`${language}: V3 contribution disclosu
     assert.equal(toggle.disabled, false, 'the default V3 game offers a separate contribution opt-in');
     await h.tap('training-contribution');
     assert.equal(prompts.length, 2);
-    assert.match(prompts[1], language === 'en' ? /territory-v3/ : /territory-v3/);
-    assert.match(prompts[1], language === 'en' ? /complete territory-v3 local games newly started after/ : /随后新开始并完整结束的 territory-v3 本地对局/);
+    assert.match(prompts[1], language === 'en' ? /board definitions, random seeds, complete actions/ : /棋盘定义、随机种子、完整动作/);
+    assert.match(prompts[1], language === 'en' ? /local games newly started after consent and played to completion/ : /随后新开始并完整结束的本地对局/);
     assert.equal(enabled(), true);
     const privacy = help.helpDocument('privacy', language, true).flatMap(section => section.paragraphs).join(' ');
-    assert.match(privacy, language === 'en' ? /territory-v3 local games/ : /territory-v3 本地对局/);
+    assert.match(privacy, language === 'en' ? /2–6 players on topology boards/i : /2–6 人拓扑棋盘/);
     assert.match(privacy, language === 'en' ? /off by default/ : /默认关闭/);
     assert.match(privacy, language === 'en' ? /online games.*excluded/i : /联机.*不参与/);
     assert.equal(logins, 1); assert.equal(contributions, 0);

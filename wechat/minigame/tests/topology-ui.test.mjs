@@ -18,6 +18,7 @@ test('topology setup starts a canonical local match and UI submits vertexId acti
     assert.equal(h.app.getScene(), 'topology-setup');
 
     await h.tap('topology-torus');
+    await h.scrollTo('topology-start');
     await h.tap('topology-start');
     await until(() => h.app.session.snapshot?.rulesVersion === 'surface-v1' && !h.app.session.busy);
     await h.render();

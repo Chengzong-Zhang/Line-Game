@@ -14,6 +14,17 @@ export function createWxPlatform(api) {
     canvas: api.createCanvas(),
     createWebGLCanvas: (width, height) => typeof api.createOffscreenCanvas === 'function'
       ? api.createOffscreenCanvas({ type: 'webgl', width, height }) : null,
+    createSurfaceCanvas: (width, height) => {
+      let canvas = null;
+      try {
+        const candidate = api.createOffscreenCanvas?.({ type: '2d', width, height });
+        const context = candidate?.getContext?.('2d');
+        if (typeof context?.createImageData === 'function' && typeof context?.putImageData === 'function') canvas = candidate;
+      } catch (_) {}
+      if (!canvas) { try { canvas = api.createCanvas?.(); } catch (_) {} }
+      if (canvas) { canvas.width = width; canvas.height = height; }
+      return canvas;
+    },
     createImage: () => api.createImage(),
     metrics: () => {
       const info = api.getWindowInfo ? api.getWindowInfo() : api.getSystemInfoSync();

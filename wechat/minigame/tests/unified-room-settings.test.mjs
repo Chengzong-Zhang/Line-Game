@@ -74,7 +74,7 @@ test('live room edits use pending settings and keep the current match and room i
     const room = h.app.online.room, game = h.app.session, hash = game.stateHash;
     await h.tap('cabin-board'); await h.scrollTo('board-size');
     assert.ok(h.texts.some(text => text.includes('9')));
-    await h.slide('board-size', 10, 5, 15); await h.scrollTo('starts-random'); await h.tap('starts-random');
+    await h.slide('board-size', 10, 5, 15); await h.scrollTo('starts-random'); await h.tap('starts-random'); await h.tap('starts-save');
     assert.equal(saved.length, 0); assert.equal(game.stateHash, hash); assert.equal(game.settings.gridSize, 7);
     await h.scrollTo('room-submit'); await h.tap('room-submit');
     assert.equal(saved.length, 1); assert.equal(saved[0].gridSize, 10); assert.equal(saved[0].playerCount, 4);

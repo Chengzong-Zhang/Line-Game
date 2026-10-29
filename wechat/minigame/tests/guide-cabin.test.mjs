@@ -76,9 +76,11 @@ test('three guide editions keep Web essentials and original diagrams while clari
     assert.match(aiGuide, language === 'zh' ? /“简单”是不加载训练权重.*通用贪心/ : /Easy is the untrained, shape-aware Greedy rule baseline/i);
     assert.match(aiGuide, language === 'zh' ? /“困难”是通用 Multiplayer Minimax 搜索/ : /Hard is generic Multiplayer Minimax search/i);
     assert.match(aiGuide, /multiplayer-easy-v1/);
-    assert.match(aiGuide, language === 'zh' ? /菱形、拓扑、多根、联机、教学、复盘和恢复局均不参与/ : /Diamond, topology, multiple-root, online, tutorial, replay and restored games are excluded/);
+    assert.match(aiGuide, language === 'zh' ? /2–15 人三角形、六边形、菱形及多起点.*2–6 人拓扑/ : /2–15 players on triangle, hexagon and diamond boards.*multiple-root.*2–6 players on topology/);
+    assert.match(aiGuide, language === 'zh' ? /联机、教学、复盘和恢复局仍不参与/ : /Online, tutorial, replay and restored games remain excluded/);
     const privacy = helpDocument('privacy', language).flatMap(section => section.paragraphs).join(' ');
-    assert.match(privacy, language === 'zh' ? /菱形、拓扑与多根对局目前不参与训练贡献/ : /Diamond, topology and multiple-root games are not currently eligible for training contribution/);
+    assert.match(privacy, language === 'zh' ? /2–15 人三角形、六边形、菱形棋盘及多起点.*2–6 人拓扑/ : /2–15 players on triangle, hexagon and diamond boards.*multiple-root.*2–6 players on topology/);
+    assert.match(privacy, /4 MiB/); assert.match(privacy, /2 MiB/);
     assert.doesNotMatch(privacy, /either board shape/);
     const war = helpDocument('rules-war', language).flatMap(s => s.paragraphs).join(' ');
     assert.doesNotMatch(war, /最精简的防线|tightens your border|双方都无兵可派|neither side has any move/);

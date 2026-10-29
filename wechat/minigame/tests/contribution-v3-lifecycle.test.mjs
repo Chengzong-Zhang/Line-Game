@@ -67,8 +67,8 @@ function harness({ storage = preferencesStorage(), holdPost = false, gate = null
       requests.push(plain(request));
       if (request.method === 'GET') return { promise: Promise.resolve({ status: 200, data: {
         enabled: true,
-        supported_versions: [1, 2, 3],
-        consent_policies: { 2: 'anonymous-replay-training-v2', 3: 'anonymous-replay-training-v3' },
+        supported_versions: [1, 2, 3, 4],
+        consent_policies: { 2: 'anonymous-replay-training-v2', 3: 'anonymous-replay-training-v3', 4: 'anonymous-replay-training-v4' },
       } }), abort() {} };
       uploads.push(plain(request.data));
       const response = { status: 200, data: { game_id: 'a'.repeat(64), status: 'awaiting_review' } };
@@ -209,8 +209,8 @@ test('enabling mid-match never backfills it, while the next complete V3 local ma
     await fresh(h);
     await finish(h);
     await until(() => h.uploads.length === 1);
-    assert.equal(h.uploads[0].version, 3);
-    assert.equal(h.uploads[0].consent_policy, 'anonymous-replay-training-v3');
+    assert.equal(h.uploads[0].version, 4);
+    assert.equal(h.uploads[0].consent_policy, 'anonymous-replay-training-v4');
     assert.equal(h.uploads[0].replay.config.rulesVersion, 'territory-v3');
   } finally { h.app.dispose(); }
 });
@@ -274,8 +274,8 @@ test('a frozen pending V2 replay retries under v2, then a fresh V3 match uses v3
     await fresh(h);
     await finish(h);
     await until(() => h.uploads.length === 2);
-    assert.equal(h.uploads[1].version, 3);
-    assert.equal(h.uploads[1].consent_policy, 'anonymous-replay-training-v3');
+    assert.equal(h.uploads[1].version, 4);
+    assert.equal(h.uploads[1].consent_policy, 'anonymous-replay-training-v4');
   } finally { h.app.dispose(); }
 });
 
@@ -299,7 +299,7 @@ test('an offline V3 outbox survives restart but cannot retry without fresh conse
     assert.deepEqual(second.uploads, []);
     await enableContribution(second);
     await until(() => second.uploads.length === 1 && saved(storage).queue.length === 0);
-    assert.equal(second.uploads[0].version, 3);
+    assert.equal(second.uploads[0].version, 4);
   } finally { second.app.dispose(); }
 });
 
@@ -321,7 +321,7 @@ test('six-player hex V3 local games are eligible after explicit consent', async 
       await until(() => h.app.session.actions.length === before + 1 && !h.app.session.busy);
     }
     await until(() => h.uploads.length === 1);
-    assert.equal(h.uploads[0].version, 3);
+    assert.equal(h.uploads[0].version, 4);
     assert.equal(h.uploads[0].replay.config.playerCount, 6);
     assert.equal(Object.keys(h.uploads[0].context.actors).length, 6);
   } finally { h.app.dispose(); }

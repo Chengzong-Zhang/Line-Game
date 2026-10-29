@@ -16,8 +16,8 @@ test('a newly started consented territory-v3 match uploads its actual undo use a
     confirm: async () => true,
     contributionRequest: request => {
       if (request.method === 'GET') return { promise: Promise.resolve({ status: 200, data: {
-        enabled: true, supported_versions: [1, 2, 3],
-        consent_policies: { 2: 'anonymous-replay-training-v2', 3: 'anonymous-replay-training-v3' },
+        enabled: true, supported_versions: [1, 2, 3, 4],
+        consent_policies: { 2: 'anonymous-replay-training-v2', 3: 'anonymous-replay-training-v3', 4: 'anonymous-replay-training-v4' },
       } }), abort() {} };
       uploads.push(request.data);
       return { promise: Promise.resolve({ status: 200, data: { game_id: 'a'.repeat(64), status: 'awaiting_review' } }), abort() {} };
@@ -42,7 +42,7 @@ test('a newly started consented territory-v3 match uploads its actual undo use a
     assert.equal(h.app.session.actions.length, before);
     await h.tap('resign'); await until(() => h.app.session.snapshot.gameOver && !h.app.session.busy);
     await until(() => uploads.length === 1);
-    assert.equal(uploads[0].version, 3);
+    assert.equal(uploads[0].version, 4);
     assert.equal(uploads[0].replay.config.rulesVersion, 'territory-v3');
     assert.deepEqual(uploads[0].context.undo, { enabled: true, maxCount: 3, usedCount: 1 });
   } finally { h.app.dispose(); }

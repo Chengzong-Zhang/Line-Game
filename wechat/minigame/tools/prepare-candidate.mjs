@@ -248,7 +248,7 @@ export async function prepareCandidate({
     reproducibility: 'Fresh isolated rebuild matches every existing dist file, including 17 verified model assets, byte for byte; test evidence is bound separately',
     runtime: { node: process.version, platform: process.platform, arch: process.arch },
     ...(admission.status === 'PASS_TERMINAL_RELEASE_ADMISSION_V4' ? { terminalAdmission: admission } : {}),
-    uploadDescription: '生命线策略棋：同步拓扑棋盘、多根、菱形棋盘、联机恢复与指南。',
+    uploadDescription: '生命线策略棋：修复拓扑棋盘与3D、随机/多起点、领土显示、头像滚动，并扩展棋谱上传。',
     acceptance: { nativeCandidateImport: 'NOT_RUN', physicalDevice: 'NOT_RUN',
       accountPermissions: 'NOT_VERIFIED', serviceConnectivity: 'NOT_VERIFIED',
       actualWechatLogin: 'NOT_RUN', crossPlatformDeviceMatch: 'NOT_RUN',

@@ -30,12 +30,6 @@ export function drawBoardCabin(ui, area, state, actions) {
       item[2], { height: 44, font: 14, disabled: Boolean(item[3]), primary: Boolean(item[4]) });
     y += 54;
   };
-  const third = (area.width - 16) / 3;
-  const trio = (...items) => {
-    items.forEach((item, index) => button(item[0], item[1], x + index * (third + 8), y, third,
-      item[2], { height: 44, font: 12, disabled: Boolean(item[3]), primary: Boolean(item[4]) }));
-    y += 54;
-  };
   const group = title => { text(title, x + 2, y + 13, 15, CABIN_COLORS.ink, 'left', 'bold'); y += 32; };
   pair(['language', en ? 'Language · English' : '语言 · 中文', actions.language],
     ['terminology', en ? `Terms · ${state.terminology === 'war' ? 'Story' : 'Math'}` : `术语 · ${state.terminology === 'war' ? '战争' : '数学'}`, actions.terminology]);
@@ -61,34 +55,48 @@ export function drawBoardCabin(ui, area, state, actions) {
   }
   if (state.playerCount > 2) y += ui.wrap(label('compatibleAIHelp'), x, y + 8, area.width, 14, CABIN_COLORS.muted, 3) + 18;
   const contributionShape = state.boardShape || (state.playerCount >= 4 ? 'hexagon' : 'triangle');
-  const v3Eligible = state.rulesVersion === 'territory-v3' && state.playerCount <= 6
-    && ['triangle', 'hexagon'].includes(contributionShape);
+  const contributionEligible = state.rulesVersion === 'surface-v1'
+    ? state.playerCount >= 2 && state.playerCount <= 6
+    : state.rulesVersion === 'territory-v3' && state.playerCount >= 2 && state.playerCount <= 15
+      && ['triangle', 'hexagon', 'diamond', 'custom'].includes(contributionShape);
   const hasPendingContribution = Boolean(state.contributionStatus?.pending);
   const canManageStored = Boolean(state.contribution || hasPendingContribution);
-  const contributionLabel = v3Eligible
+  const contributionLabel = contributionEligible
     ? `${en ? 'Help AI learn' : '帮 AI 学下棋'} · ${state.contribution ? (en ? 'On' : '开') : (en ? 'Off' : '关')}`
-    : en ? `V3 local only · opt-in ${state.contribution ? 'on' : 'off'}`
-      : `仅 V3 本地局 · 授权${state.contribution ? '开' : '关'}`;
+    : en ? `Local replays · opt-in ${state.contribution ? 'on' : 'off'}`
+      : `本地棋谱 · 授权${state.contribution ? '开' : '关'}`;
   pair(['training-contribution', contributionLabel, actions.contribution,
-    (!state.contributionAvailable || !v3Eligible) && !canManageStored],
+    (!state.contributionAvailable || !contributionEligible) && !canManageStored],
     ['replay-mode', en ? 'Replay mode' : '复盘模式', actions.replay]);
-  if (!v3Eligible || state.contribution || state.contributionStatus?.pending) {
+  if (!contributionEligible || state.contribution || state.contributionStatus?.pending) {
     const pending = state.contributionStatus?.pending || 0;
-    const description = !v3Eligible
+    const description = !contributionEligible
       ? (pending
         ? (en ? `${pending} games are waiting. ${state.contributionAvailable ? 'Re-enable consent to retry them.' : 'Use the switch to clear them.'} This setup cannot add a new record.` : `${pending} 局棋谱待上传；${state.contributionAvailable ? '重新同意后会重试。' : '可用开关清除。'} 当前设置不会新增记录。`)
-        : (en ? 'Contribution accepts new complete territory-v3 local games with 2–6 players only.' : '仅支持主动同意后新开始并完整结束的 2–6 人 territory-v3 本地对局。'))
+        : (en ? 'Opt in, then start a new local game. Classic boards support 2–15 players; topology boards support 2–6.' : '主动开启后新开本地对局：普通棋盘支持 2–15 人，拓扑棋盘支持 2–6 人。'))
       : pending
       ? (en ? `${pending} games waiting. Uploads resume when the game is idle and connected.` : `${pending} 局待上传，将在空闲且联网时自动继续。`)
       : (en ? 'After opt-in, newly started complete local games upload for AI research review.' : '主动开启后，新开始并完整结束的本地对局会上传，供 AI 研究筛选。');
     y += ui.wrap(description, x, y + 8, area.width, 14, CABIN_COLORS.muted, 3) + 18;
+    const status = state.contributionStatus?.status;
+    const stateText = {
+      received: en ? 'Replay received · awaiting review' : '棋谱已收到 · 等待审核',
+      retry: en ? 'Upload will retry · replay is saved locally' : '上传将重试 · 棋谱已保存在本机',
+      unavailable: en ? 'Service is temporarily unavailable · replay is saved locally' : '服务暂时不可用 · 棋谱已保存在本机',
+      'too-large': en ? 'This replay exceeds the upload limit' : '这份棋谱超出上传大小限制',
+      unsupported: en ? 'This game cannot be contributed; the current match is preserved' : '这局暂时无法贡献，当前对局不受影响',
+      'storage-error': en ? 'Local replay storage failed; free some storage and retry' : '本机待传存储失败，请释放空间后重试',
+      invalid: en ? 'Replay validation failed; the current match is preserved' : '棋谱校验未通过，当前对局不受影响',
+    }[status];
+    if (stateText) y += ui.wrap(stateText, x, y + 4, area.width, 13, CABIN_COLORS.muted, 2) + 12;
   }
   group(en ? 'Board & match' : '棋盘与对局');
-  trio(['shape-triangle', en ? 'Triangle' : '三角形', () => actions.shape('triangle'), onlineLocked, state.boardShape === 'triangle'],
-    ['shape-diamond', en ? 'Diamond' : '菱形', () => actions.shape('diamond'), onlineLocked, state.boardShape === 'diamond'],
+  pair(['shape-triangle', en ? 'Triangle' : '三角形', () => actions.shape('triangle'), onlineLocked, state.boardShape === 'triangle'],
     ['shape-hexagon', en ? 'Hexagon' : '六边形', () => actions.shape('hexagon'), onlineLocked, state.boardShape === 'hexagon']);
+  pair(['shape-diamond', en ? 'Diamond' : '菱形', () => actions.shape('diamond'), onlineLocked, state.boardShape === 'diamond'],
+    ['topology-setup', en ? 'Topology board' : '拓扑棋盘', actions.topology,
+      onlineLocked || typeof actions.topology !== 'function', state.boardShape === 'custom']);
   slider('board-size', en ? 'Points per side' : '棋盘边长', state.size, 5, 15, x, y, area.width, actions.size, onlineLocked); y += 72;
-  pair(['topology-setup', en ? 'Topology boards' : '拓扑棋盘', actions.topology, onlineLocked || typeof actions.topology !== 'function']);
   pair(['root-classic', en ? 'Classic' : '经典模式', () => actions.rootMode('classic'), onlineLocked, state.rootMode === 'classic'], ['root-fixed-double', en ? 'Two fixed roots' : '固定双起点', () => actions.rootMode('fixed-double'), onlineLocked || state.playerCount !== 2, state.rootMode === 'fixed-double']);
   pair(['root-relocate', en ? 'Relocate root' : '迁移起点', () => actions.rootMode('relocate'), onlineLocked || state.playerCount !== 2, state.rootMode === 'relocate'], ['root-add', en ? 'Add a root' : '增设起点', () => actions.rootMode('add'), onlineLocked || state.playerCount !== 2, state.rootMode === 'add']);
   const explicitStartsRequired = requiresExplicitStartingPoints(state.playerCount, state.boardShape);
@@ -103,7 +111,7 @@ export function drawBoardCabin(ui, area, state, actions) {
     ? (en ? 'Diamond boards with 3–15 players use random or custom starting nodes.' : '菱形棋盘 3–15 人仅支持随机或自定义起点。')
     : (en ? '7–15 players use random or custom starting nodes.' : '7–15 人仅支持随机或自定义起点。'),
   x, y + 8, area.width, 13, CABIN_COLORS.muted, 2) + 18;
-  if (state.startingPointMode === 'random') y += ui.wrap(en ? 'Roots are drawn once when a new game starts, then kept in saves and replays.' : '重开时随机一次，实际起点会随存档和复盘保留。', x, y + 8, area.width, 13, CABIN_COLORS.muted, 2) + 18;
+  if (state.startingPointMode === 'random') y += ui.wrap(en ? 'Tap Random roots to preview or shuffle the next opening. Later new games draw again; saves and replays keep their roots.' : '点击随机起点可预览或重新抽取下一局；之后重开会重新抽取，存档和复盘保留原起点。', x, y + 8, area.width, 13, CABIN_COLORS.muted, 3) + 18;
   pair(['clock-enabled', `${en ? 'Clock' : '回合计时'} · ${state.playOptions.turnTimerEnabled ? (en ? 'On' : '开') : (en ? 'Off' : '关')}`, () => actions.option('turnTimerEnabled', !state.playOptions.turnTimerEnabled), onlineLocked],
     ['hint-enabled', `${en ? 'Hints' : '落子提示'} · ${state.playOptions.hintEnabled ? (en ? 'On' : '开') : (en ? 'Off' : '关')}`,
     () => actions.option('hintEnabled', !state.playOptions.hintEnabled), onlineLocked]);
