@@ -1,4 +1,4 @@
-import GameEngine, { PLAYER_ORDER } from "./GameEngine.js?v=20261027-topology-multistart-release1";
+import GameEngine, { PLAYER_ORDER } from "./GameEngine.js?v=20261029-unified-r1";
 
 // Ask the rule engine for actors: automatic skips can change the turn order.
 const COLORS = PLAYER_ORDER;

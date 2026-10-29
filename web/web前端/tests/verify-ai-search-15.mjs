@@ -30,11 +30,11 @@ const fixture = TERRITORY_V2_HOT_PATH_FIXTURES.find(
 assert.ok(fixture, "15×15 regression fixture is required");
 
 const EXPECTED_TOP_MOVES = Object.freeze([
-  Object.freeze({ point: Object.freeze([2, 5]), score: 164 }),
-  Object.freeze({ point: Object.freeze([4, 3]), score: 156 }),
-  Object.freeze({ point: Object.freeze([3, 2]), score: -1502 }),
-  Object.freeze({ point: Object.freeze([3, 1]), score: -1605 }),
-  Object.freeze({ point: Object.freeze([4, 1]), score: -1605 }),
+  Object.freeze({ point: Object.freeze([4, 3]), score: -19 }),
+  Object.freeze({ point: Object.freeze([2, 5]), score: -74.5 }),
+  Object.freeze({ point: Object.freeze([3, 2]), score: -431 }),
+  Object.freeze({ point: Object.freeze([3, 1]), score: -614 }),
+  Object.freeze({ point: Object.freeze([4, 1]), score: -614 }),
 ]);
 
 function pointKey(point) {
@@ -110,8 +110,8 @@ assert.equal(
 );
 assert.equal(
   legalMoveScans,
-  21,
-  "depth-2 20-candidate search must scan legal moves once at root and once per non-leaf branch",
+  22,
+  "depth-2 search must scan once at root and once for each placement or PASS branch",
 );
 assert.equal(engine._isReplayingBatch, false, "AI search leaked the replay flag");
 assert.deepEqual(saveState(engine), beforeRuleState, "AI search changed the rule state");

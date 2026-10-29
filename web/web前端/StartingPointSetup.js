@@ -1,5 +1,6 @@
-import { getBoardPositions, PLAYER_ORDER, resolveInitialPositions, resolveInitialRoots, RootMode } from "./GameEngine.js?v=20261021-boardshapes1";
-import { randomInitialPositions, randomInitialRoots, STARTING_POINT_MODES } from "./StartingPoints.js?v=20261021-boardshapes1";
+import { getBoardPositions, PLAYER_ORDER, resolveInitialPositions, resolveInitialRoots, RootMode } from "./GameEngine.js?v=20261029-unified-r1";
+import { randomInitialPositions, randomInitialRoots, requiresExplicitStartingPoints, STARTING_POINT_MODES } from "./StartingPoints.js?v=20261029-unified-r1";
+import { PLAYER_PALETTE, playerLabel } from "./PlayerPalette.js?v=20261029-unified-r1";
 
 const COLORS = ["#2473bd", "#cc4852", "#9654b5", "#368655", "#d87825", "#168d9c"];
 
@@ -24,6 +25,7 @@ export default {
     const row = ref(1);
     const mode = computed(() => props.selection.startingPointMode ?? "default");
     const rootMode = computed(() => props.selection.rootMode ?? RootMode.CLASSIC);
+    const explicitStartsRequired = computed(() => rootMode.value === RootMode.CLASSIC && requiresExplicitStartingPoints(props.playerCount, props.boardShape));
     const copy = computed(() => props.language === "zh" ? {
       title: "选择起点", default: "默认起点", random: "随机起点", custom: "自定义起点",
       shuffle: "再随机一组", note: rootMode.value === RootMode.FIXED_DOUBLE
@@ -51,15 +53,15 @@ export default {
     });
     const roots = computed(() => {
       try { return resolveInitialRoots(props.gridSize, props.playerCount, props.selection.initialRoots, props.boardShape, rootMode.value, props.selection.initialPositions); }
-      catch (_) { return resolveInitialRoots(props.gridSize, props.playerCount, null, props.boardShape, rootMode.value); }
+      catch (_) { return explicitStartsRequired.value ? randomInitialRoots(props.gridSize, props.playerCount, rootMode.value, () => 0, props.boardShape) : resolveInitialRoots(props.gridSize, props.playerCount, null, props.boardShape, rootMode.value); }
     });
     const positions = computed(() => {
       try { return resolveInitialPositions(props.gridSize, props.playerCount, props.selection.initialPositions, props.boardShape); }
       catch (_) { return resolveInitialPositions(props.gridSize, props.playerCount, null, props.boardShape); }
     });
     const sides = computed(() => PLAYER_ORDER.slice(0, props.playerCount).map((player, index) => ({
-      player, color: COLORS[index], number: index + 1, point: roots.value[player][0], roots: roots.value[player],
-      name: props.texts[["localBluePlayer", "localRedPlayer", "localPurplePlayer", "localGreenPlayer", "localOrangePlayer", "localCyanPlayer"][index]],
+      player, color: PLAYER_PALETTE[player]?.color ?? COLORS[index % COLORS.length], number: index + 1, point: roots.value[player][0], roots: roots.value[player],
+      name: playerLabel(player, props.language),
     })));
     const activeSide = computed(() => sides.value.find((side) => side.player === activePlayer.value) ?? sides.value[0]);
     const preview = computed(() => {
@@ -91,7 +93,7 @@ export default {
       syncCoordinates();
     }, { immediate: true });
     const chooseMode = (value) => {
-      if (props.locked) return;
+      if (props.locked || (explicitStartsRequired.value && value === "default")) return;
       error.value = "";
       if (rootMode.value !== RootMode.CLASSIC) {
         emit("update", {
@@ -131,7 +133,7 @@ export default {
         emit("update", { startingPointMode: "custom", initialPositions: next });
       } catch (_) { error.value = copy.value.invalid; }
     };
-    return { mode, rootMode, rootModes: [RootMode.CLASSIC, RootMode.FIXED_DOUBLE, RootMode.RELOCATE, RootMode.ADD],
+    return { mode, explicitStartsRequired, rootMode, rootModes: [RootMode.CLASSIC, RootMode.FIXED_DOUBLE, RootMode.RELOCATE, RootMode.ADD],
       modes: STARTING_POINT_MODES, copy, sides, activePlayer, activeSide, preview,
       column, row, error, chooseMode, chooseRootMode, choosePoint,
       applyCoordinates: () => choosePoint([Number(column.value) - 1, Number(row.value) - 1]),
@@ -150,11 +152,10 @@ export default {
       </div>
       <p class="help-copy">{{ copy.rootNote }}</p>
       <div class="starting-point-modes" role="group" :aria-label="copy.title">
-        <button v-for="item in modes" :key="item" type="button" class="board-choice-option"
+        <button v-for="item in modes.filter(value => !explicitStartsRequired || value !== 'default')" :key="item" type="button" class="board-choice-option"
           :class="{ 'is-active': mode === item }" :aria-pressed="mode === item" :disabled="locked || (item === 'custom' && rootMode !== 'classic')"
           :data-start-mode="item" @click="chooseMode(item)">{{ copy[item] }}</button>
       </div>
-      <p class="help-copy">{{ copy.note }}</p>
       <template v-if="preview">
         <button v-if="mode === 'random'" type="button" class="action-button action-button-secondary start-point-shuffle" :disabled="locked" @click="chooseMode('random')">{{ copy.shuffle }}</button>
         <p v-if="mode === 'custom' && rootMode === 'classic'" class="help-copy">{{ copy.pick }}</p>
@@ -170,7 +171,7 @@ export default {
         </div>
         <div class="starting-point-preview-scroll">
           <svg class="starting-point-preview" :style="{ minWidth: preview.minWidth + 'px' }"
-            :viewBox="'0 0 640 ' + preview.height" role="group" :aria-label="copy.preview">
+            :viewBox="'0 0 640 ' + preview.height" role="group" :aria-label="mode === 'custom' ? copy.preview + ' · ' + copy.pick : copy.preview">
             <line v-for="line in preview.lines" :key="line.key" :x1="line.from.x" :y1="line.from.y" :x2="line.to.x" :y2="line.to.y" class="starting-point-grid-line" />
             <g v-for="point in preview.points" :key="point.key" :transform="'translate(' + point.x + ',' + point.y + ')'"
               :role="mode === 'custom' && rootMode === 'classic' ? 'button' : 'img'" :tabindex="mode === 'custom' && rootMode === 'classic' && !locked ? 0 : -1"
@@ -190,7 +191,6 @@ export default {
           <button type="button" class="action-button action-button-secondary" :disabled="locked" @click="applyCoordinates">{{ copy.apply }}</button>
         </div>
         <p v-if="error" class="starting-point-error" role="alert">{{ error }}</p>
-        <p class="help-copy" role="status">{{ online ? (language === 'zh' ? '房主修改后将同步给房间内所有玩家；开局和重连使用这组起点。' : 'The host shares these starts with everyone in the room. Matches and reconnections use the same points.') : (mode === 'random' ? copy.randomReady : copy.ready) }}</p>
       </template>
       <button v-if="!online" type="button" class="action-button action-button-primary starting-point-start" :disabled="locked" @click="$emit('start')">{{ texts.localStart }}</button>
     </section>

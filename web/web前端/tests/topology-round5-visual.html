@@ -1,0 +1,22 @@
+<!doctype html><html lang="zh"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>双环面 3D 检查</title><style>body{font:16px system-ui;margin:1rem;color:#302b25}#status{overflow-wrap:anywhere}button{cursor:pointer}</style>
+<h1>双环面 3D 检查</h1><p>拖动棋盘旋转，或使用方向键。下方按钮可暂停自动旋转。</p><p id="status">生成中…</p><div id="surface"></div>
+<script type="module">
+import {generateBoard} from '../RandomBoard.js';
+import '../TopologyGameEngine.js';
+import {GameEngine} from '../GameEngine.js';
+import {mountTopologySurface3D,buildSurfaceCells} from '../TopologySurface3D.js';
+try {
+  let result;
+  for (let i=0; i<250 && !result; i++) {
+    const candidate=generateBoard({gridSize:9,playerCount:2},`round5-preview-${i}`);
+    if(candidate.ok && candidate.stats.category==='double-torus') result=candidate;
+  }
+  if(!result) throw Error('没有生成双环面样例');
+  const game=new GameEngine({boardDefinition:result.definition});
+  const first=game.getLegalMoves()[0]; if(first) game.playMove(first.point);
+  const snapshot=game.getSnapshot(), mesh=buildSurfaceCells(snapshot);
+  const viewer=mountTopologySurface3D(document.querySelector('#surface'),snapshot);
+  document.querySelector('#status').textContent=`${viewer.backend}；面片 ${mesh.cells.length}；线段 ${mesh.lines.length}；节点 ${mesh.nodes.length}；${result.boardHash}`;
+} catch(e) { document.querySelector('#status').textContent=`失败：${e.message}`; console.error(e); }
+</script></html>

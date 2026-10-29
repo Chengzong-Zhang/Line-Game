@@ -1,9 +1,8 @@
-import { GameEngine, Player, PointState } from "./GameEngine.js?v=20261027-topology-multistart-release1";
-
-// Search snapshots contain JSON-compatible root positions and quotas.  Keep
-// this explicit clone portable to Mini Game Workers, which do not expose
-// structuredClone.
-const cloneValue = (value) => JSON.parse(JSON.stringify(value));
+import { GameEngine, Player, PointState } from "./GameEngine.js?v=20261029-unified-r1";
+// The separately verified root-v2 search carries mutable roots and quotas.
+// Keep it isolated from the bounded classic-board search until both contracts
+// can be combined without losing complete root-action state.
+import { GreedyAI as RootGreedyAI, MCTSAI as RootMCTSAI, MinimaxAI as RootMinimaxAI } from "./RootModeSearch.js?v=20261029-unified-r1";
 
 function pointKey(point) {
   return `${point[0]},${point[1]}`;
@@ -26,6 +25,9 @@ function cloneCachedTerritories(engine) {
           polygon: territory.polygon
             ? territory.polygon.map((point) => [...point])
             : null,
+          ...(Array.isArray(territory.renderPoints)
+            ? { renderPoints: territory.renderPoints.map((point) => [...point]) }
+            : {}),
         },
       ];
     }),
@@ -39,11 +41,10 @@ function saveState(engine) {
       engine.activePlayers.map((player) => [player, new Set(engine.edges[player] ?? [])]),
     ),
     historyHashes: new Set(engine.historyHashes),
-    // Root state is rule state for root-v2, not a presentation annotation.
-    // Snapshot it with grid/edges so speculative AI branches cannot leak a
-    // relocation/addition into their siblings or the caller.
-    roots: Object.fromEntries(engine.activePlayers.map((player) => [player, engine.getRoots(player)])),
-    rootActionsRemaining: cloneValue(engine.rootActionsRemaining),
+    ...(engine.rootRulesVersion === "root-v2" ? {
+      roots: Object.fromEntries(engine.activePlayers.map(player => [player, engine.getRoots(player)])),
+      rootActionsRemaining: JSON.parse(JSON.stringify(engine.rootActionsRemaining)),
+    } : {}),
     consecutiveSkips: engine.consecutiveSkips,
     resignedPlayers: new Set(engine.resignedPlayers ?? []),
     currentPlayer: engine.currentPlayer,
@@ -65,10 +66,10 @@ function restoreState(engine, snapshot) {
     engine.activePlayers.map((player) => [player, new Set(snapshot.edges[player] ?? [])]),
   );
   engine.historyHashes = new Set(snapshot.historyHashes);
-  engine.roots = Object.fromEntries(engine.activePlayers.map((player) => [
-    player, cloneValue(snapshot.roots?.[player] ?? engine.initialRoots[player]),
-  ]));
-  engine.rootActionsRemaining = cloneValue(snapshot.rootActionsRemaining ?? engine.rootActionsRemaining);
+  if (snapshot.roots) {
+    engine.roots = Object.fromEntries(engine.activePlayers.map(player => [player, snapshot.roots[player].map(point => [...point])]));
+    engine.rootActionsRemaining = JSON.parse(JSON.stringify(snapshot.rootActionsRemaining));
+  }
   engine.consecutiveSkips = snapshot.consecutiveSkips;
   engine.resignedPlayers = new Set(snapshot.resignedPlayers ?? []);
   engine.currentPlayer = snapshot.currentPlayer;
@@ -104,66 +105,14 @@ function applyMoveForAI(engine, point, skipLeafAutoSkip = false) {
   }
 }
 
-function isRootSearchAction(action) {
-  return action && !Array.isArray(action) && ["root_relocate", "root_add"].includes(action.type);
-}
-
-function cloneSearchAction(action) {
-  if (action === null) return null;
-  if (Array.isArray(action)) return [...action];
-  return { type: action.type, point: [...action.point] };
-}
-
-function searchActionKey(action) {
-  if (action === null) return "pass";
-  if (Array.isArray(action)) return `move:${pointKey(action)}`;
-  return `${action.type}:${pointKey(action.point)}`;
-}
-
-function legalSearchActions(engine, player) {
-  const placements = engine.getLegalMoves(player).map((move) => move.point);
-  // Root actions can only be issued by the current actor. Never manufacture
-  // them for an opponent while evaluating an old/synthetic state.
-  const rootActions = player === engine.currentPlayer
-    ? engine.getLegalRootActions(player).map(cloneSearchAction)
-    : [];
-  return [...placements, ...rootActions];
-}
-
-function applySearchAction(engine, action, skipLeafAutoSkip = false) {
-  if (action === null || action?.type === "pass") return engine.skipTurn().success;
-  if (isRootSearchAction(action)) return engine.playRootAction(action.type, action.point).success;
-  return applyMoveForAI(engine, Array.isArray(action) ? action : action.point, skipLeafAutoSkip);
-}
-
-function applyMinimaxAction(engine, action, skipLeafAutoSkip = false) {
+function applyMinimaxAction(engine, point, skipLeafAutoSkip = false) {
   // PASS is legal in every non-terminal position, even when placements remain.
   // Use the canonical transition so consecutive skips, automatic skips and the
   // terminal boundary stay identical to a real game. The leaf shortcut above
   // is safe only for placements because a pass changes turn bookkeeping.
-  return applySearchAction(engine, action, skipLeafAutoSkip);
-}
-
-const reachTopologies = new WeakMap();
-
-function reachTopology(engine) {
-  let topology = reachTopologies.get(engine);
-  if (topology?.positions === engine.validPositions
-    && topology.adjacencyMethod === engine.getAdjacentPositions) return topology;
-  const positions = engine.validPositions;
-  const indices = new Map(positions.map((point, index) => [pointKey(point), index]));
-  topology = {
-    positions,
-    adjacencyMethod: engine.getAdjacentPositions,
-    adjacent: positions.map((point) => engine.getAdjacentPositions(point)
-      .map((neighbor) => indices.get(pointKey(neighbor)))
-      .filter((index) => index !== undefined)),
-    visited: new Uint8Array(positions.length),
-    blocked: new Uint8Array(positions.length),
-    frontier: new Int32Array(positions.length),
-  };
-  reachTopologies.set(engine, topology);
-  return topology;
+  return point === null
+    ? engine.skipTurn().success
+    : applyMoveForAI(engine, point, skipLeafAutoSkip);
 }
 
 function fastTerritoryBFS(engine, player) {
@@ -175,31 +124,28 @@ function fastTerritoryBFS(engine, player) {
     opponentStates.add(states.line);
   }
 
-  // Only immutable board adjacency is reused. Read every point's CURRENT
-  // occupancy on every call; no result is shared across histories or states.
-  const { positions, adjacent, frontier, visited, blocked } = reachTopology(engine);
-  visited.fill(0);
-  let length = 0;
-  for (let index = 0; index < positions.length; index += 1) {
-    const point = positions[index];
+  const frontier = [];
+  const visited = new Set();
+  for (const point of engine.validPositions) {
     const state = engine._getState(point);
-    blocked[index] = opponentStates.has(state) ? 1 : 0;
     if (state === myStates.node || state === myStates.line) {
-      visited[index] = 1;
-      frontier[length++] = index;
+      const key = pointKey(point);
+      visited.add(key);
+      frontier.push(point);
     }
   }
 
-  for (let index = 0; index < length; index += 1) {
-    for (const neighbor of adjacent[frontier[index]]) {
-      if (!visited[neighbor] && !blocked[neighbor]) {
-        visited[neighbor] = 1;
-        frontier[length++] = neighbor;
+  for (let index = 0; index < frontier.length; index += 1) {
+    for (const adjacent of engine.getAdjacentPositions(frontier[index])) {
+      const key = pointKey(adjacent);
+      if (!visited.has(key) && !opponentStates.has(engine._getState(adjacent))) {
+        visited.add(key);
+        frontier.push(adjacent);
       }
     }
   }
 
-  return length;
+  return visited.size;
 }
 
 function evaluate(engine, player) {
@@ -390,7 +336,7 @@ function comparePersistentLoss(left, right) {
   return left.nodes - right.nodes || left.coverage - right.coverage;
 }
 
-function boundedRootCutChainRisk(engine, defender, check = null) {
+function boundedRootCutChainRisk(engine, defender) {
   const remainingPlayers = survivingPlayers(engine);
   if (remainingPlayers.length !== 2 || !remainingPlayers.includes(defender)) return null;
   if (engine.gameOver || engine.currentPlayer === defender) {
@@ -401,7 +347,6 @@ function boundedRootCutChainRisk(engine, defender, check = null) {
   const origin = saveState(engine);
   const budget = { firstCuts: 0, responses: 0, transitions: 0 };
   const spendTransition = () => {
-    check?.();
     budget.transitions += 1;
     if (budget.transitions > ROOT_CUT_CHAIN_LIMITS.maxTransitions) {
       throw ROOT_CUT_CHAIN_LIMIT_REACHED;
@@ -502,7 +447,7 @@ function boundedRootCutChainRisk(engine, defender, check = null) {
   }
 }
 
-function boundedRootCutChainAttack(engine, attacker, defenderReference, check = null) {
+function boundedRootCutChainAttack(engine, attacker, defenderReference) {
   const remainingPlayers = survivingPlayers(engine);
   if (remainingPlayers.length !== 2 || !remainingPlayers.includes(attacker)) return null;
   const defender = remainingPlayers.find((player) => player !== attacker);
@@ -511,7 +456,6 @@ function boundedRootCutChainAttack(engine, attacker, defenderReference, check = 
   const origin = saveState(engine);
   const budget = { responses: 0, secondCuts: 0, transitions: 0 };
   const spendTransition = () => {
-    check?.();
     budget.transitions += 1;
     if (budget.transitions > ROOT_CUT_CHAIN_LIMITS.maxTransitions) {
       throw ROOT_CUT_CHAIN_LIMIT_REACHED;
@@ -606,7 +550,7 @@ function boundedRootCutChainAttack(engine, attacker, defenderReference, check = 
   }
 }
 
-function applyRootCutChainPreference(engine, player, scoredMoves, eligibleKeys, check = null) {
+function applyRootCutChainPreference(engine, player, scoredMoves, eligibleKeys) {
   const remainingPlayers = survivingPlayers(engine);
   if (remainingPlayers.length !== 2 || !remainingPlayers.includes(player)) return scoredMoves;
   // A deliberate PASS has no placement key and cannot be compared by the
@@ -625,7 +569,6 @@ function applyRootCutChainPreference(engine, player, scoredMoves, eligibleKeys, 
   const opponentReference = materialCounts(engine, opponent);
   const comparisons = new Map();
   for (const move of window) {
-    check?.();
     const snapshot = saveState(engine);
     try {
       if (!engine.playMove(move.point).success) return scoredMoves;
@@ -633,9 +576,9 @@ function applyRootCutChainPreference(engine, player, scoredMoves, eligibleKeys, 
       // move or an automatic skip back to the AI. Leave the ordinary search
       // value untouched and avoid material probes on that guarded transition.
       if (engine.gameOver || engine.currentPlayer === player) continue;
-      const risk = boundedRootCutChainRisk(engine, player, check);
+      const risk = boundedRootCutChainRisk(engine, player);
       if (risk === null) continue;
-      const attack = boundedRootCutChainAttack(engine, player, opponentReference, check);
+      const attack = boundedRootCutChainAttack(engine, player, opponentReference);
       if (attack === null) continue;
       comparisons.set(pointKey(move.point), {
         risk,
@@ -752,76 +695,23 @@ function orderMinimaxMoves(engine, moves, player) {
     .slice(0, 20).map(({ point }) => point);
 }
 
-const MINIMAX_EXTENSION_EXPIRED = Symbol("Minimax optional deeper iteration expired");
-// A fresh N=9+ diamond has enough legal roots that an exact depth-4 search
-// can outlive every product Worker's 15-second watchdog. Preserve a complete,
-// inexpensive depth-2 answer first, then spend one bounded total window on
-// complete depth-3/depth-4 iterations. A timed-out iteration is evidence only
-// and must never replace the deepest complete result or be reported complete.
-const LARGE_DIAMOND_HARD_MIN_GRID_SIZE = 9;
-const LARGE_DIAMOND_HARD_TOTAL_TIME_MS = 11_000;
-const nativeWinnerMethods = new WeakMap();
-
-function minimaxTerminalWinner(engine) {
-  const winnerMethod = engine.getWinner;
-  if (!nativeWinnerMethods.has(winnerMethod)) {
-    nativeWinnerMethods.set(winnerMethod, winnerMethod === GameEngine.prototype.getWinner
-      || Function.prototype.toString.call(winnerMethod)
-        === Function.prototype.toString.call(GameEngine.prototype.getWinner));
-  }
-  if (engine.rulesVersion !== "territory-v3" || !engine.hasPendingTerritoryUpdate()
-    || !nativeWinnerMethods.get(winnerMethod)) return engine.getWinner();
-  // Native v3 scores depend on owned walls and enemy-free pockets. Search
-  // needs only these exact integer areas, not the v2 display polygons that
-  // getWinner() normally refreshes for the visible board. Use the SAME native
-  // area routine without marking the caller's display cache as up to date.
-  const owned = new Map(engine.activePlayers.map((player) => [player,
-    [...engine._getPlayerNodes(player), ...engine._getPlayerLines(player)]]));
-  const alive = engine.activePlayers.filter((player) => !engine.resignedPlayers.has(player));
-  let bestArea = Number.NEGATIVE_INFINITY, winner = null, draw = false;
-  for (const player of alive.length ? alive : engine.activePlayers) {
-    const enemies = getOpponents(engine, player).flatMap((opponent) => owned.get(opponent));
-    const area = engine._computeOwnedWallArea(owned.get(player), enemies);
-    if (area > bestArea) { bestArea = area; winner = player; draw = false; }
-    else if (area === bestArea) draw = true;
-  }
-  return draw ? "DRAW" : winner;
-}
+const MINIMAX_DEADLINE = Symbol("minimax-deadline");
 
 class MinimaxAI {
-  constructor(depth = 3, { rootPruning = true, moveOrdering = true,
-    iterativeDeepening = false, extensionTimeMs = 100, maxExtraDepth = 2,
-    now = () => performance.now() } = {}) {
-    if (!Number.isFinite(extensionTimeMs) || !(extensionTimeMs > 0) || !Number.isInteger(maxExtraDepth)
-      || maxExtraDepth < 0 || maxExtraDepth > 2 || typeof now !== "function") {
-      throw new Error("Invalid Minimax deeper-search settings");
-    }
+  constructor(depth = 3, options = {}) {
+    const { iterativeDeepening = false, extensionTimeMs = 100, maxExtraDepth = 2,
+      now = () => performance.now() } = options;
+    if (!Number.isFinite(extensionTimeMs) || extensionTimeMs <= 0
+      || !Number.isInteger(maxExtraDepth) || maxExtraDepth < 0 || maxExtraDepth > 2
+      || typeof now !== "function") throw new Error("Invalid Minimax deeper-search settings");
     this.depth = depth;
-    this.rootPruning = rootPruning;
-    this.moveOrdering = moveOrdering;
+    this.searchOptions = options;
     Object.assign(this, { iterativeDeepening, extensionTimeMs, maxExtraDepth, now });
     this.lastSearch = null;
   }
 
-  checkSearchBudget() {
-    if (this._searchDeadline !== undefined) {
-      const time = this.searchTime();
-      if (time >= this._searchDeadline) throw MINIMAX_EXTENSION_EXPIRED;
-    }
-  }
-
-  searchTime() {
-    const time = this.now();
-    if (!Number.isFinite(time)) throw new Error("Invalid Minimax search clock");
-    return time;
-  }
-
   getLegalMoves(engine, player) {
     return engine.getLegalMoves(player).map((move) => move.point);
-  }
-
-  getLegalActions(engine, player) {
-    return legalSearchActions(engine, player);
   }
 
   orderMoves(engine, moves, player) {
@@ -833,9 +723,9 @@ class MinimaxAI {
       // A voluntary PASS can end the game while placements still exist.  Once
       // that happens, compare the canonical rule result instead of letting a
       // nonterminal reach/coverage heuristic decide whether ending was good.
-      // V3 can query the exact native area without generating display-only
-      // polygons; legacy rules retain their original canonical winner path.
-      const winner = minimaxTerminalWinner(engine);
+      // getWinner() refreshes exact terminal territory when the display cache
+      // is pending; the enclosing search snapshot restores that cache.
+      const winner = engine.getWinner();
       if (winner === "DRAW") return 0;
       return winner === player ? 1_000_000 : -1_000_000;
     }
@@ -843,44 +733,26 @@ class MinimaxAI {
   }
 
   minimax(engine, depth, alpha, beta, aiPlayer) {
-    this.checkSearchBudget();
-    if (this._searchStats) this._searchStats.nodes += 1;
+    this._checkDeadline?.();
     if (engine.gameOver || depth === 0) {
-      if (this._searchStats) this._searchStats.leaves += 1;
-      return this.evaluate(engine, aiPlayer);
+      const value = this.evaluate(engine, aiPlayer);
+      this._checkDeadline?.();
+      return value;
     }
 
-    const legalActions = this.getLegalActions(engine, engine.currentPlayer);
-    const placements = legalActions.filter(Array.isArray);
-    const rootActions = legalActions.filter(isRootSearchAction);
-    const ordered = [...this.orderMoves(engine, placements, engine.currentPlayer), ...rootActions];
+    const legalMoves = this.getLegalMoves(engine, engine.currentPlayer);
+    const ordered = this.orderMoves(engine, legalMoves, engine.currentPlayer);
     const actions = [...ordered, null];
-    // A cutoff from another branch is a useful first reply, not a value cache.
-    // Reorder ONLY the already selected legal actions, retaining PASS and the
-    // original 20-placement set. Histories and root values are never merged.
-    const killers = this._killerMoves?.get(depth);
-    if (killers?.length) {
-      const priority = (action) => {
-        const index = killers.indexOf(action === null ? "PASS" : searchActionKey(action));
-        return index < 0 ? killers.length : index;
-      };
-      actions.sort((left, right) => priority(left) - priority(right));
-    }
-    const rememberCutoff = (action) => {
-      if (!this._killerMoves) return;
-      const key = action === null ? "PASS" : searchActionKey(action);
-      const previous = this._killerMoves.get(depth) ?? [];
-      this._killerMoves.set(depth, [key, ...previous.filter((entry) => entry !== key)].slice(0, 2));
-    };
     // Automatic skip normalization can leave the same player in control.
     // Derive MAX/MIN from the engine state instead of recursion depth parity.
     const maximizingPlayer = engine.currentPlayer === aiPlayer;
     if (maximizingPlayer) {
       let bestValue = Number.NEGATIVE_INFINITY;
-      for (const action of actions) {
+      for (const point of actions) {
+        this._checkDeadline?.();
         const snapshot = saveState(engine);
         try {
-          const applied = applyMinimaxAction(engine, action, depth === 1);
+          const applied = applyMinimaxAction(engine, point, depth === 1);
           if (applied) {
             const value = this.minimax(engine, depth - 1, alpha, beta, aiPlayer);
             bestValue = Math.max(bestValue, value);
@@ -890,8 +762,6 @@ class MinimaxAI {
           restoreState(engine, snapshot);
         }
         if (beta <= alpha) {
-          if (this._searchStats) this._searchStats.cutoffs += 1;
-          rememberCutoff(action);
           break;
         }
       }
@@ -899,10 +769,11 @@ class MinimaxAI {
     }
 
     let bestValue = Number.POSITIVE_INFINITY;
-    for (const action of actions) {
+    for (const point of actions) {
+      this._checkDeadline?.();
       const snapshot = saveState(engine);
       try {
-        const applied = applyMinimaxAction(engine, action, depth === 1);
+        const applied = applyMinimaxAction(engine, point, depth === 1);
         if (applied) {
           const value = this.minimax(engine, depth - 1, alpha, beta, aiPlayer);
           bestValue = Math.min(bestValue, value);
@@ -912,221 +783,138 @@ class MinimaxAI {
         restoreState(engine, snapshot);
       }
       if (beta <= alpha) {
-        if (this._searchStats) this._searchStats.cutoffs += 1;
-        rememberCutoff(action);
         break;
       }
     }
     return bestValue;
   }
 
-  getTopMoves(engine, aiPlayer, topN = 5) {
-    // root-v2 snapshots carry rule state beyond legacy grid/edge search
-    // assumptions. Keep its already verified path untouched until that
-    // protocol has its own bounded-large-board search proof.
-    if (this.depth === 4 && engine.playerCount === 2 && engine.boardShape === "diamond"
-      && engine.gridSize >= LARGE_DIAMOND_HARD_MIN_GRID_SIZE && engine.rootMode === "classic") {
-      return this.getLargeDiamondHardMoves(engine, aiPlayer, topN);
+  getTopMoves(engine, aiPlayer, topN = 5, options = {}) {
+    if (engine.rootRulesVersion === "root-v2" || (engine.playerCount === 2 && engine.boardShape === "diamond")) {
+      const search = new RootMinimaxAI(this.depth, this.searchOptions);
+      // Keep depth visible to custom clocks during complete search iterations.
+      Object.defineProperty(search, "depth", {
+        configurable: true, get: () => this.depth, set: value => { this.depth = value; },
+      });
+      const moves = search.getTopMoves(engine, aiPlayer, topN, options);
+      this.lastSearch = search.lastSearch;
+      return moves;
     }
-    const base = this.searchAtDepth(engine, aiPlayer, topN);
-    // Finish the requested search FIRST. The optional Hard upgrade spends a
-    // separate small window on deeper COMPLETE iterations; a timed-out tree
-    // never replaces the complete baseline or leaks partial alternative scores.
-    if (!this.iterativeDeepening || this.depth < 4 || !base.length
-      || engine.gameOver || survivingPlayers(engine).length !== 2
-      || engine.validPositions.length > 55 || this.maxExtraDepth === 0) return base;
+    if (Number.isFinite(options.deadline)) {
+      return this.searchAtDepth(engine, aiPlayer, topN, options);
+    }
+    const base = this.searchAtDepth(engine, aiPlayer, topN, options);
+    if (!this.iterativeDeepening || this.depth < 4 || !base.length || engine.gameOver
+      || engine._getRemainingPlayers().length !== 2 || engine.validPositions.length > 55
+      || this.maxExtraDepth === 0) return base;
     const baseDepth = this.depth, baseStats = this.lastSearch;
-    const previousDeadline = this._searchDeadline;
-    const started = this.searchTime();
-    this._searchDeadline = started + this.extensionTimeMs;
+    const started = this.now(), deadline = started + this.extensionTimeMs;
+    if (!Number.isFinite(started) || !Number.isFinite(deadline)) throw new Error("Invalid Minimax search clock");
     let moves = base, completedDepth = baseDepth, interrupted = false;
     const iterations = [];
     try {
-      for (let extra = 1; extra <= this.maxExtraDepth; extra += 1) {
+      for (let extra = 1; extra <= this.maxExtraDepth; extra++) {
         this.depth = baseDepth + extra;
-        let iterationStarted = false;
-        try {
-          this.checkSearchBudget();
-          iterationStarted = true;
-          const deeper = this.searchAtDepth(engine, aiPlayer, topN);
-          this.checkSearchBudget();
-          iterations.push({ ...this.lastSearch, complete: true });
-          moves = deeper;
-          completedDepth = this.depth;
-        } catch (error) {
-          if (error !== MINIMAX_EXTENSION_EXPIRED) throw error;
-          iterations.push({ ...(iterationStarted ? this.lastSearch
-            : { nodes: 0, leaves: 0, cutoffs: 0, rootActions: 0 }),
-          depth: this.depth, complete: false });
+        if (this.now() >= deadline) {
+          iterations.push({ depth: this.depth, exactRoots: 0, complete: false });
           interrupted = true;
           break;
         }
+        // Optional iterations may publish only complete rankings.
+        const { onProgress: _onProgress, ...iterationOptions } = options;
+        const deeper = this.searchAtDepth(engine, aiPlayer, topN, { ...iterationOptions, deadline, clock: this.now });
+        const stats = this.lastSearch;
+        if (stats.partial || this.now() >= deadline) {
+          iterations.push({ ...stats, complete: false });
+          interrupted = true;
+          break;
+        }
+        iterations.push({ ...stats, complete: true });
+        moves = deeper;
+        completedDepth = this.depth;
       }
       return moves;
     } finally {
       this.depth = baseDepth;
-      this._searchDeadline = previousDeadline;
       this.lastSearch = { ...baseStats, depth: completedDepth, baseDepth,
         iterativeDeepening: true, extensionTimeMs: this.extensionTimeMs,
-        extensionElapsedMs: this.searchTime() - started, extensionInterrupted: interrupted,
+        extensionElapsedMs: this.now() - started, extensionInterrupted: interrupted,
         completedDepth, deeperIterations: iterations };
     }
   }
 
-  getLargeDiamondHardMoves(engine, aiPlayer, topN) {
-    const requestedDepth = this.depth;
-    const baseDepth = 2;
-    const previousDeadline = this._searchDeadline;
-    const started = this.searchTime();
-    const totalDeadline = started + LARGE_DIAMOND_HARD_TOTAL_TIME_MS;
-    const iterations = [];
-    let completedStats = null;
-    let completedDepth = baseDepth;
-    let interrupted = false;
-    let moves = [];
-    try {
-      // Depth 2 deliberately has no optional deadline: even a slow device
-      // gets one complete legal ranking before the Worker's outer watchdog.
-      this.depth = baseDepth;
-      this._searchDeadline = undefined;
-      moves = this.searchAtDepth(engine, aiPlayer, topN);
-      completedStats = { ...this.lastSearch };
-      if (!moves.length || engine.gameOver) return moves;
-
-      for (let depth = baseDepth + 1; depth <= requestedDepth; depth += 1) {
-        this.depth = depth;
-        // One absolute deadline covers every optional iteration. Recomputing
-        // it from a later clock sample would accidentally extend the budget.
-        this._searchDeadline = totalDeadline;
-        try {
-          const candidate = this.searchAtDepth(engine, aiPlayer, topN);
-          const attemptStats = { ...this.lastSearch };
-          this.checkSearchBudget();
-          moves = candidate;
-          completedDepth = depth;
-          completedStats = attemptStats;
-          iterations.push({ ...attemptStats, depth, complete: true });
-        } catch (error) {
-          const attemptStats = { ...this.lastSearch };
-          if (error !== MINIMAX_EXTENSION_EXPIRED) throw error;
-          iterations.push({ ...attemptStats, depth, complete: false });
-          interrupted = true;
-          break;
-        }
-      }
-      return moves;
-    } finally {
-      this.depth = requestedDepth;
-      this._searchDeadline = previousDeadline;
-      const elapsedMs = this.searchTime() - started;
-      this.lastSearch = {
-        ...(completedStats ?? this.lastSearch ?? {}),
-        depth: completedDepth,
-        requestedDepth,
-        completedDepth,
-        baseDepth,
-        iterativeDeepening: true,
-        largeDiamondGuard: true,
-        totalBudgetMs: LARGE_DIAMOND_HARD_TOTAL_TIME_MS,
-        elapsedMs,
-        extensionInterrupted: interrupted,
-        deeperIterations: iterations,
-      };
-    }
-  }
-
-  searchAtDepth(engine, aiPlayer, topN) {
+  searchAtDepth(engine, aiPlayer, topN = 5, options = {}) {
     // Search transitions only need success/failure, never the UI snapshot that
     // GameEngine.playMove normally creates.  Reuse its replay flag while all
     // speculative branches are bracketed, then restore the caller's value.
     // This also suppresses display-only territory work during simulation.
     const previousReplayFlag = engine._isReplayingBatch;
-    const previousSearchStats = this._searchStats;
-    const previousKillerMoves = this._killerMoves;
-    const stats = { depth: this.depth, nodes: 0, leaves: 0, cutoffs: 0,
-      rootActions: 0, exactRoots: 0, prunedRoots: 0, rootPruning: this.rootPruning,
-      moveOrdering: this.moveOrdering };
-    this._searchStats = stats;
-    this._killerMoves = this.moveOrdering ? new Map() : null;
+    const previousCheck = this._checkDeadline;
+    const deadline = Number.isFinite(options.deadline) ? options.deadline : Infinity;
+    const clock = options.clock ?? (() => performance.now());
+    this._checkDeadline = () => { if (clock() >= deadline) throw MINIMAX_DEADLINE; };
+    this.lastSearch = null;
     engine._isReplayingBatch = true;
     try {
-      this.checkSearchBudget();
-      const legalActions = this.getLegalActions(engine, aiPlayer);
-      const placements = legalActions.filter(Array.isArray);
-      const rootActions = legalActions.filter(isRootSearchAction);
-      const ordered = [...this.orderMoves(engine, placements, aiPlayer), ...rootActions];
-      this.checkSearchBudget();
+      const legalMoves = this.getLegalMoves(engine, aiPlayer);
+      const ordered = this.orderMoves(engine, legalMoves, aiPlayer);
       // The first move of an unavoidable two-cut sequence can be a reinforcing
       // placement on an empty point, so compare the bounded leading window,
       // rather than only moves that already occupy a line.
-      // The cut-chain overlay only analyzes physical placements. A root
-      // operation alters connectivity/identity without placing a new point.
-      const rootCutChainEligible = new Set(ordered.filter(Array.isArray).map(pointKey));
+      const rootCutChainEligible = new Set(ordered.map(pointKey));
       const previousOpponentMaterial = this.depth > 1
         ? opponentRiskMaterial(engine, aiPlayer) : 0;
       const scoredMoves = [];
-      // The cut-chain overlay compares four placements, and PASS can occupy
-      // one ranking slot. Retain enough EXACT scores for both that comparison
-      // and the requested alternatives. A later root tied with the threshold
-      // cannot displace an earlier root because the original sort is stable.
-      // Nonstandard slice requests retain the original full-window behavior.
-      const retainedRoots = this.rootPruning && Number.isFinite(topN) && topN > 0
-        ? Math.max(ROOT_CUT_CHAIN_LIMITS.rankingWidth + 1, Math.ceil(topN) + 1)
-        : Number.POSITIVE_INFINITY;
-      for (const action of [...ordered, null]) {
-        this.checkSearchBudget();
-        stats.rootActions += 1;
+      let incomplete = false;
+      for (const point of [...ordered, null]) {
+        if (clock() >= deadline) { incomplete = true; break; }
         const snapshot = saveState(engine);
         try {
-          const applied = applyMinimaxAction(engine, action, this.depth <= 1);
+          const applied = applyMinimaxAction(engine, point, this.depth <= 1);
           if (applied) {
             // At depth 1 the leaf already prices this exact exposure. Deeper
             // searches also get a conservative preference at the real choice;
             // a speculative later recovery should not erase an imminent cut.
             const immediateRisk = this.depth > 1
               ? immediateRiskPenalty(engine, aiPlayer, previousOpponentMaterial) : 0;
-            this.checkSearchBudget();
-            const riskPenalty = MINIMAX_WEIGHTS.rootRiskAversion * immediateRisk;
-            const threshold = scoredMoves.length >= retainedRoots
-              ? scoredMoves[retainedRoots - 1].score : Number.NEGATIVE_INFINITY;
             const score = this.minimax(
               engine,
               this.depth - 1,
-              threshold + riskPenalty,
+              Number.NEGATIVE_INFINITY,
               Number.POSITIVE_INFINITY,
               aiPlayer,
-            ) - riskPenalty;
-            // With an infinite upper window, a result above alpha is exact.
-            // A fail-low result is only an upper bound: it can be discarded,
-            // but must NEVER be exposed as an exact alternative/root value.
-            if (Number.isFinite(threshold) && score <= threshold) {
-              stats.prunedRoots += 1;
-              continue;
-            }
-            stats.exactRoots += 1;
-            const point = action === null ? null : Array.isArray(action) ? action : action.point;
+            );
             scoredMoves.push({
               point,
-              ...(action === null ? { type: "pass" }
-                : isRootSearchAction(action) ? { type: action.type } : {}),
-              score,
+              ...(point === null ? { type: "pass" } : {}),
+              score: score - MINIMAX_WEIGHTS.rootRiskAversion * immediateRisk,
             });
-            if (Number.isFinite(retainedRoots)) {
-              scoredMoves.sort((a, b) => b.score - a.score);
-              if (scoredMoves.length > retainedRoots) scoredMoves.length = retainedRoots;
+            if (typeof options.onProgress === "function") {
+              const best = scoredMoves.filter(move => move.point !== null)
+                .sort((a, b) => b.score - a.score)[0];
+              if (best) options.onProgress(best, { reason: "partial-policy-candidate", complete: false });
             }
           }
+        } catch (error) {
+          if (error !== MINIMAX_DEADLINE) throw error;
+          incomplete = true;
         } finally {
           restoreState(engine, snapshot);
         }
+        if (incomplete) break;
       }
 
       scoredMoves.sort((a, b) => b.score - a.score);
-      if (this.depth > 1) {
-        applyRootCutChainPreference(engine, aiPlayer, scoredMoves, rootCutChainEligible,
-          this._searchDeadline === undefined ? null : () => this.checkSearchBudget());
+      if (!incomplete && clock() >= deadline) incomplete = true;
+      if (!incomplete && this.depth > 1) {
+        applyRootCutChainPreference(engine, aiPlayer, scoredMoves, rootCutChainEligible);
+        if (clock() >= deadline) incomplete = true;
       }
-      this.checkSearchBudget();
+      this.lastSearch = {
+        algorithm: "minimax", depth: this.depth, requestedDepth: this.depth,
+        completedDepth: incomplete ? 0 : this.depth, partial: incomplete,
+        evaluatedRoots: scoredMoves.length, exactRoots: scoredMoves.length,
+      };
       // Existing placement callers use topN as a list of alternative points.
       // PASS only needs to leave the search when it is the selected action;
       // omitting a lower-ranked pass keeps those alternatives and their frozen
@@ -1135,10 +923,8 @@ class MinimaxAI {
       const placementMoves = scoredMoves.filter(({ point }) => point !== null);
       return (selectedPass ? [selectedPass, ...placementMoves] : placementMoves).slice(0, topN);
     } finally {
+      this._checkDeadline = previousCheck;
       engine._isReplayingBatch = previousReplayFlag;
-      this._searchStats = previousSearchStats;
-      this._killerMoves = previousKillerMoves;
-      this.lastSearch = stats;
     }
   }
 }
@@ -1148,40 +934,39 @@ class GreedyAI {
     return engine.getLegalMoves(player).map((move) => move.point);
   }
 
-  getLegalActions(engine, player) {
-    return legalSearchActions(engine, player);
-  }
-
   orderMoves(engine, moves, player) {
     return orderMoves(engine, moves, player);
   }
 
-  getTopMoves(engine, aiPlayer, topN = 5) {
+  getTopMoves(engine, aiPlayer, topN = 5, options = {}) {
+    if (engine.rootRulesVersion === "root-v2") return new RootGreedyAI().getTopMoves(engine, aiPlayer, topN, options);
     const previousReplayFlag = engine._isReplayingBatch;
     engine._isReplayingBatch = true;
     try {
-      const legalActions = this.getLegalActions(engine, aiPlayer);
-      if (legalActions.length === 0) {
+      const legalMoves = this.getLegalMoves(engine, aiPlayer);
+      if (legalMoves.length === 0) {
         return [];
       }
 
-      const placements = legalActions.filter(Array.isArray);
-      const ordered = [...this.orderMoves(engine, placements, aiPlayer), ...legalActions.filter(isRootSearchAction)];
+      const ordered = this.orderMoves(engine, legalMoves, aiPlayer);
       const scoredMoves = [];
-      for (const action of ordered) {
+      for (const point of ordered) {
+        if (Number.isFinite(options.deadline) && performance.now() >= options.deadline) break;
         const snapshot = saveState(engine);
-        const applied = applySearchAction(engine, action, true);
-        if (applied) {
-          scoredMoves.push({
-            point: Array.isArray(action) ? action : action.point,
-            ...(isRootSearchAction(action) ? { type: action.type } : {}),
-            score: evaluate(engine, aiPlayer),
-          });
+        try {
+          const applied = applyMoveForAI(engine, point, true);
+          if (applied) scoredMoves.push({ point, score: evaluate(engine, aiPlayer) });
+        } finally { restoreState(engine, snapshot); }
+        if (scoredMoves.length && typeof options.onProgress === "function") {
+          options.onProgress([...scoredMoves].sort((a, b) => b.score - a.score)[0]);
         }
-        restoreState(engine, snapshot);
       }
 
       scoredMoves.sort((a, b) => b.score - a.score);
+      if (Number.isFinite(options.deadline)) this.lastSearch = {
+        algorithm: "greedy", partial: scoredMoves.length < ordered.length,
+        evaluatedRoots: scoredMoves.length,
+      };
       return scoredMoves.slice(0, topN);
     } finally {
       engine._isReplayingBatch = previousReplayFlag;
@@ -1199,10 +984,6 @@ class MCTSAI {
 
   getLegalMoves(engine, player) {
     return engine.getLegalMoves(player).map((move) => move.point);
-  }
-
-  getLegalActions(engine, player) {
-    return legalSearchActions(engine, player);
   }
 
   nextRandom() {
@@ -1229,19 +1010,19 @@ class MCTSAI {
     return bestChildren[Math.floor(this.nextRandom() * bestChildren.length)];
   }
 
-  applyRandomMove(engine, action) {
-    return applySearchAction(engine, action, false);
+  applyRandomMove(engine, point) {
+    return applyMoveForAI(engine, point, false);
   }
 
   rollout(engine, rootPlayer) {
     for (let step = 0; step < this.rolloutDepth && !engine.gameOver; step += 1) {
-      const legalActions = this.getLegalActions(engine, engine.currentPlayer);
-      if (!legalActions.length) {
+      const legalMoves = this.getLegalMoves(engine, engine.currentPlayer);
+      if (!legalMoves.length) {
         engine.skipTurn();
         continue;
       }
-      const action = legalActions[Math.floor(this.nextRandom() * legalActions.length)];
-      if (!this.applyRandomMove(engine, action)) {
+      const point = legalMoves[Math.floor(this.nextRandom() * legalMoves.length)];
+      if (!this.applyRandomMove(engine, point)) {
         break;
       }
     }
@@ -1250,11 +1031,17 @@ class MCTSAI {
     return Math.tanh(evaluate(engine, rootPlayer) / 100);
   }
 
-  getTopMoves(engine, aiPlayer, topN = 5) {
+  getTopMoves(engine, aiPlayer, topN = 5, options = {}) {
+    if (engine.rootRulesVersion === "root-v2") {
+      const search = new RootMCTSAI({ simulations: this.simulations, rolloutDepth: this.rolloutDepth, exploration: this.exploration, seed: this.seed });
+      const moves = search.getTopMoves(engine, aiPlayer, topN, options);
+      this.seed = search.seed;
+      return moves;
+    }
     const previousReplayFlag = engine._isReplayingBatch;
     engine._isReplayingBatch = true;
     try {
-      const rootActions = this.getLegalActions(engine, aiPlayer);
+      const rootActions = this.getLegalMoves(engine, aiPlayer);
       if (!rootActions.length) return [];
 
       const rootSnapshot = saveState(engine);
@@ -1262,14 +1049,16 @@ class MCTSAI {
         playerToAct: aiPlayer,
         parent: null,
         action: null,
-        unexpandedActions: rootActions.map(cloneSearchAction),
+        unexpandedActions: rootActions.map((point) => [...point]),
         children: new Map(),
         visits: 0,
         valueSum: 0,
       };
 
+      let completedSimulations = 0;
       try {
         for (let simulation = 0; simulation < this.simulations; simulation += 1) {
+          if (Number.isFinite(options.deadline) && performance.now() >= options.deadline) break;
           restoreState(engine, rootSnapshot);
           let node = root;
 
@@ -1286,12 +1075,12 @@ class MCTSAI {
                 playerToAct: engine.currentPlayer,
                 parent: node,
                 action,
-                unexpandedActions: this.getLegalActions(engine, engine.currentPlayer).map(cloneSearchAction),
+                unexpandedActions: this.getLegalMoves(engine, engine.currentPlayer),
                 children: new Map(),
                 visits: 0,
                 valueSum: 0,
               };
-              node.children.set(searchActionKey(action), child);
+              node.children.set(pointKey(action), child);
               node = child;
             }
           }
@@ -1301,21 +1090,27 @@ class MCTSAI {
             cursor.visits += 1;
             cursor.valueSum += value;
           }
+          completedSimulations++;
+          if (typeof options.onProgress === "function" && root.children.size) {
+            const leading = [...root.children.values()].sort((a, b) => b.visits - a.visits
+              || b.valueSum / b.visits - a.valueSum / a.visits)[0];
+            options.onProgress({ point: leading.action, visits: leading.visits,
+              score: leading.valueSum / leading.visits });
+          }
         }
       } finally {
         restoreState(engine, rootSnapshot);
       }
 
+      if (Number.isFinite(options.deadline)) this.lastSearch = {
+        algorithm: "mcts", partial: completedSimulations < this.simulations, completedSimulations,
+      };
       return rootActions
-        .map((action) => {
-          const child = root.children.get(searchActionKey(action));
+        .map((point) => {
+          const child = root.children.get(pointKey(point));
           const visits = child?.visits ?? 0;
           const meanValue = visits ? child.valueSum / visits : 0;
-          return {
-            point: Array.isArray(action) ? action : action.point,
-            ...(isRootSearchAction(action) ? { type: action.type } : {}),
-            score: meanValue, visits, meanValue,
-          };
+          return { point, score: meanValue, visits, meanValue };
         })
         .sort((a, b) => b.visits - a.visits || b.meanValue - a.meanValue)
         .slice(0, topN);

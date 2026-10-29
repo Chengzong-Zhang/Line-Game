@@ -1,12 +1,18 @@
 // V5 replaces only nonterminal leaf scoring; v4 remains frozen and unchanged.
-import { saveState, restoreState, fastTerritoryBFS } from "./AIEngine.js?v=20261026-allplatform1";
-import { GameEngine } from "./GameEngine.js?v=20261026-allplatform1";
-import { HEX_PLAYER_FEATURES, hexPlayerCandidates } from "./HexPlayerAI.js?v=20261026-allplatform1";
+import { saveState, restoreState, fastTerritoryBFS } from "./AIEngine.js?v=20261029-unified-r1";
+import { GameEngine } from "./GameEngine.js?v=20261029-unified-r1";
+import { HEX_PLAYER_FEATURES, hexPlayerCandidates } from "./HexPlayerAI.js?v=20261029-unified-r1";
 
 const pointOrder = (a,b) => a.point[1]-b.point[1] || a.point[0]-b.point[0];
 const samePoint = (a,b) => a[0]===b[0] && a[1]===b[1];
 const cloneTerritories = (value) => Object.fromEntries(Object.entries(value).map(([p,t]) =>
-  [p,{...t,polygon:t.polygon?.map((point)=>[...point])??null}]));
+  [p,{
+    ...t,
+    polygon:t.polygon?.map((point)=>[...point])??null,
+    ...(Array.isArray(t.renderPoints)
+      ? {renderPoints:t.renderPoints.map((point)=>[...point])}
+      : {}),
+  }]));
 function restoreIsolated(engine,snapshot) {
   restoreState(engine,snapshot);
   // restoreState aliases its snapshot cache. Every branch must own its map.

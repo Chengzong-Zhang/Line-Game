@@ -1,5 +1,5 @@
-import { BOARD_TOPOLOGY_CONTRACT_VERSION, compareStableIdentifiers, stableStringify } from "./BoardDefinition.js?v=20261027-topology-multistart-release1";
-import { compileBoard } from "./BoardCompiler.js?v=20261027-topology-multistart-release1";
+import { BOARD_TOPOLOGY_CONTRACT_VERSION, compareStableIdentifiers, stableStringify } from "./BoardDefinition.js?v=20261029-unified-r1";
+import { compileBoard } from "./BoardCompiler.js?v=20261029-unified-r1";
 
 export const TOPOLOGY_STATE_FORMAT = "lifeline-topology-state";
 export const TOPOLOGY_STATE_SCHEMA_VERSION = 1;
@@ -109,19 +109,6 @@ function assertRequiredKeys(value, keys, label) {
   }
 }
 
-function rejectUnsupportedTopologyRoots(value, label) {
-  if (!isPlainObject(value)) return;
-  const rootMode = value.rootMode ?? "classic";
-  const rootRulesVersion = value.rootRulesVersion ?? "root-v1";
-  const hasInitialRoots = Object.hasOwn(value, "initialRoots");
-  if (rootMode !== "classic" || rootRulesVersion !== "root-v1" || hasInitialRoots) {
-    fail(
-      "TOPOLOGY_ROOT_MODE_UNSUPPORTED",
-      label + " must use classic root-v1 mode without initialRoots.",
-    );
-  }
-}
-
 function assertJsonValue(value, label, seen = new Set()) {
   if (value === null || typeof value === "string" || typeof value === "boolean") return;
   if (typeof value === "number") {
@@ -222,12 +209,16 @@ function canonicalStarts(value, sampleIds, maximumPlayers, label) {
   const entries = Object.entries(value);
   if (entries.length > maximumPlayers) fail("LIMIT_EXCEEDED", label + " exceeds maxPlayers.");
   const values = new Set();
-  for (const [player, vertexId] of entries) {
+  for (const [player, raw] of entries) {
     assertIdentifier(player, label + " player");
-    assertIdentifier(vertexId, label + "." + player);
-    if (!sampleIds.has(vertexId)) fail("UNKNOWN_CANONICAL_VERTEX", label + "." + player + " references " + vertexId);
-    if (values.has(vertexId)) fail("DUPLICATE_START_VERTEX", label + " repeats " + vertexId);
-    values.add(vertexId);
+    const roots = Array.isArray(raw) ? raw : [raw];
+    if (!roots.length || roots.length > 6) fail("INVALID_START_ROOT_COUNT", label + "." + player);
+    for (const vertexId of roots) {
+      assertIdentifier(vertexId, label + "." + player);
+      if (!sampleIds.has(vertexId)) fail("UNKNOWN_CANONICAL_VERTEX", label + "." + player + " references " + vertexId);
+      if (values.has(vertexId)) fail("DUPLICATE_START_VERTEX", label + " repeats " + vertexId);
+      values.add(vertexId);
+    }
   }
   return sortedObject(entries);
 }
@@ -342,7 +333,6 @@ function normalizePassHistory(value, limits) {
 
 function normalizeRuleState(value, compiledBoard, limits) {
   assertPlainObject(value, "ruleState");
-  rejectUnsupportedTopologyRoots(value, "ruleState");
   assertOnlyKeys(value, RULE_STATE_KEYS, "ruleState");
   assertRequiredKeys(value, RULE_STATE_KEYS, "ruleState");
   if (value.stateVersion !== TOPOLOGY_RULE_STATE_VERSION) {
@@ -355,7 +345,12 @@ function normalizeRuleState(value, compiledBoard, limits) {
   if (value.currentPlayer !== null) assertIdentifier(value.currentPlayer, "ruleState.currentPlayer");
   const sampleIds = new Set(compiledBoard.sampleIds);
   const starts = canonicalStarts(value.startingVertices, sampleIds, limits.maxPlayers, "ruleState.startingVertices");
-  if (!sameJson(starts, compiledBoard.startingVertices)) {
+  const expectedStarts = Object.fromEntries(Object.entries(compiledBoard.startingRoots ?? compiledBoard.startingVertices)
+    .map(([player, value]) => {
+      const roots = Array.isArray(value) ? value : [value];
+      return [player, Array.isArray(compiledBoard.definition.startingVertices?.[player]) ? roots : roots[0]];
+    }));
+  if (!sameJson(starts, expectedStarts)) {
     fail("STARTING_VERTICES_MISMATCH", "ruleState.startingVertices does not match the embedded board.");
   }
   const vertexStateById = normalizeVertexState(value.vertexStateById, sampleIds, limits);
@@ -482,7 +477,6 @@ export function encodeTopologyState(board, ruleState, limits = {}) {
 export function decodeTopologyState(json, limits = {}) {
   const resolvedLimits = mergeLimits(limits);
   const input = parseStateInput(json);
-  rejectUnsupportedTopologyRoots(input, "topology state");
   assertDocumentEnvelope(input, resolvedLimits);
   const definitionClone = cloneJson(input.boardDefinition, "boardDefinition");
   const compiledBoard = compileOrThrow(definitionClone, limits);

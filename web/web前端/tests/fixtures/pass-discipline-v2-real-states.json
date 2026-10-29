@@ -1,0 +1,595 @@
+{
+  "schema": "lifeline-pass-discipline-v2-real-regressions",
+  "source": "Frozen failed r2 natural games; compact prefixes only, old failure retained",
+  "games": {
+    "seed-71051-seat-PURPLE": {
+      "sourceGameSha256": "73a552cc129319c7b1647a79f481f461f8006c9ec20f7038a5c3f6791ecdc927",
+      "openingState": {
+        "gridSize": 7,
+        "playerCount": 3,
+        "boardShape": "triangle",
+        "startPlayer": "BLACK",
+        "initialPositions": {
+          "BLACK": [
+            0,
+            4
+          ],
+          "WHITE": [
+            3,
+            1
+          ],
+          "PURPLE": [
+            0,
+            0
+          ]
+        },
+        "rulesVersion": "territory-v3",
+        "positionRevision": 0,
+        "activePlayers": [
+          "BLACK",
+          "WHITE",
+          "PURPLE"
+        ],
+        "gridEntries": [
+          [
+            "0,0",
+            5
+          ],
+          [
+            "1,0",
+            0
+          ],
+          [
+            "2,0",
+            0
+          ],
+          [
+            "3,0",
+            0
+          ],
+          [
+            "4,0",
+            0
+          ],
+          [
+            "5,0",
+            0
+          ],
+          [
+            "6,0",
+            0
+          ],
+          [
+            "0,1",
+            0
+          ],
+          [
+            "1,1",
+            0
+          ],
+          [
+            "2,1",
+            0
+          ],
+          [
+            "3,1",
+            3
+          ],
+          [
+            "4,1",
+            0
+          ],
+          [
+            "5,1",
+            0
+          ],
+          [
+            "0,2",
+            0
+          ],
+          [
+            "1,2",
+            0
+          ],
+          [
+            "2,2",
+            0
+          ],
+          [
+            "3,2",
+            0
+          ],
+          [
+            "4,2",
+            0
+          ],
+          [
+            "0,3",
+            0
+          ],
+          [
+            "1,3",
+            0
+          ],
+          [
+            "2,3",
+            0
+          ],
+          [
+            "3,3",
+            0
+          ],
+          [
+            "0,4",
+            1
+          ],
+          [
+            "1,4",
+            0
+          ],
+          [
+            "2,4",
+            0
+          ],
+          [
+            "0,5",
+            0
+          ],
+          [
+            "1,5",
+            0
+          ],
+          [
+            "0,6",
+            0
+          ]
+        ],
+        "edges": {
+          "BLACK": [],
+          "WHITE": [],
+          "PURPLE": []
+        },
+        "edgesBlack": [],
+        "edgesWhite": [],
+        "edgesPurple": [],
+        "historyHashes": [
+          "[\"BLACK\",[],[[0,0,5],[0,4,1],[3,1,3]],[[],[],[]]]"
+        ],
+        "consecutiveSkips": 0,
+        "resignedPlayers": [],
+        "currentPlayer": "BLACK",
+        "gameOver": false,
+        "turnCount": 0
+      },
+      "prefix": [
+        {
+          "actor": "BLACK",
+          "point": [
+            2,
+            4
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "point": [
+            1,
+            1
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "point": [
+            6,
+            0
+          ]
+        },
+        {
+          "actor": "BLACK",
+          "point": [
+            5,
+            1
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "point": [
+            3,
+            3
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "point": [
+            4,
+            2
+          ]
+        },
+        {
+          "actor": "BLACK",
+          "point": [
+            0,
+            2
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "point": [
+            2,
+            0
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "point": null
+        },
+        {
+          "actor": "BLACK",
+          "point": [
+            1,
+            2
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "point": [
+            6,
+            0
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "point": null
+        },
+        {
+          "actor": "BLACK",
+          "point": [
+            0,
+            6
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "point": [
+            2,
+            3
+          ]
+        }
+      ]
+    },
+    "seed-71059-seat-PURPLE": {
+      "sourceGameSha256": "362e233d85831ee6189c1095912aa410dede7e6427c3ce3e1d2cbe7eb25bc5a1",
+      "openingState": {
+        "gridSize": 7,
+        "playerCount": 3,
+        "boardShape": "triangle",
+        "startPlayer": "BLACK",
+        "initialPositions": {
+          "BLACK": [
+            0,
+            4
+          ],
+          "WHITE": [
+            3,
+            1
+          ],
+          "PURPLE": [
+            6,
+            0
+          ]
+        },
+        "rulesVersion": "territory-v3",
+        "positionRevision": 0,
+        "activePlayers": [
+          "BLACK",
+          "WHITE",
+          "PURPLE"
+        ],
+        "gridEntries": [
+          [
+            "0,0",
+            0
+          ],
+          [
+            "1,0",
+            0
+          ],
+          [
+            "2,0",
+            0
+          ],
+          [
+            "3,0",
+            0
+          ],
+          [
+            "4,0",
+            0
+          ],
+          [
+            "5,0",
+            0
+          ],
+          [
+            "6,0",
+            5
+          ],
+          [
+            "0,1",
+            0
+          ],
+          [
+            "1,1",
+            0
+          ],
+          [
+            "2,1",
+            0
+          ],
+          [
+            "3,1",
+            3
+          ],
+          [
+            "4,1",
+            0
+          ],
+          [
+            "5,1",
+            0
+          ],
+          [
+            "0,2",
+            0
+          ],
+          [
+            "1,2",
+            0
+          ],
+          [
+            "2,2",
+            0
+          ],
+          [
+            "3,2",
+            0
+          ],
+          [
+            "4,2",
+            0
+          ],
+          [
+            "0,3",
+            0
+          ],
+          [
+            "1,3",
+            0
+          ],
+          [
+            "2,3",
+            0
+          ],
+          [
+            "3,3",
+            0
+          ],
+          [
+            "0,4",
+            1
+          ],
+          [
+            "1,4",
+            0
+          ],
+          [
+            "2,4",
+            0
+          ],
+          [
+            "0,5",
+            0
+          ],
+          [
+            "1,5",
+            0
+          ],
+          [
+            "0,6",
+            0
+          ]
+        ],
+        "edges": {
+          "BLACK": [],
+          "WHITE": [],
+          "PURPLE": []
+        },
+        "edgesBlack": [],
+        "edgesWhite": [],
+        "edgesPurple": [],
+        "historyHashes": [
+          "[\"BLACK\",[],[[0,4,1],[3,1,3],[6,0,5]],[[],[],[]]]"
+        ],
+        "consecutiveSkips": 0,
+        "resignedPlayers": [],
+        "currentPlayer": "BLACK",
+        "gameOver": false,
+        "turnCount": 0
+      },
+      "prefix": [
+        {
+          "actor": "BLACK",
+          "point": [
+            0,
+            0
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "point": [
+            0,
+            1
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "point": [
+            0,
+            6
+          ]
+        },
+        {
+          "actor": "BLACK",
+          "point": [
+            2,
+            4
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "point": [
+            3,
+            3
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "point": [
+            0,
+            0
+          ]
+        },
+        {
+          "actor": "BLACK",
+          "point": [
+            0,
+            2
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "point": [
+            1,
+            0
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "point": [
+            2,
+            0
+          ]
+        },
+        {
+          "actor": "BLACK",
+          "point": [
+            1,
+            1
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "point": [
+            3,
+            0
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "point": [
+            4,
+            2
+          ]
+        },
+        {
+          "actor": "BLACK",
+          "point": [
+            1,
+            5
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "point": [
+            1,
+            2
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "point": null
+        },
+        {
+          "actor": "BLACK",
+          "point": [
+            0,
+            0
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "point": [
+            1,
+            0
+          ]
+        }
+      ]
+    }
+  },
+  "cases": [
+    {
+      "gameId": "seed-71051-seat-PURPLE",
+      "ply": 8,
+      "actor": "PURPLE",
+      "originalStateSha256": "2db37da2f6b5355150e84dd72528b0c9649cce0dfb79d40f5023693d1e9e261a",
+      "expectedPoint": [
+        1,
+        0
+      ],
+      "minimumArea": 2
+    },
+    {
+      "gameId": "seed-71051-seat-PURPLE",
+      "ply": 11,
+      "actor": "PURPLE",
+      "originalStateSha256": "ba9201bc4bbdc28393df6ae9362836642cd19be884fac6a5809b4c65c2045377",
+      "expectedPoint": [
+        1,
+        0
+      ],
+      "minimumArea": 2
+    },
+    {
+      "gameId": "seed-71051-seat-PURPLE",
+      "ply": 14,
+      "actor": "PURPLE",
+      "originalStateSha256": "03f36ee8a4ab52b1302e807a76af4b97220215f160f002b016af573c561b698a",
+      "expectedPoint": [
+        1,
+        0
+      ],
+      "minimumArea": 2
+    },
+    {
+      "gameId": "seed-71059-seat-PURPLE",
+      "ply": 14,
+      "actor": "PURPLE",
+      "originalStateSha256": "638550193b67ec9dccd92c50fd9233645678d8ebed79e360d3530b1f448fbc3d",
+      "expectedPoint": [
+        5,
+        0
+      ],
+      "minimumArea": 4
+    },
+    {
+      "gameId": "seed-71059-seat-PURPLE",
+      "ply": 17,
+      "actor": "PURPLE",
+      "originalStateSha256": "eb885cb35cf3a4f52e1bc0a22eb65203f77309b2e301d782c18c867bf763637d",
+      "expectedPoint": [
+        5,
+        0
+      ],
+      "minimumArea": 4
+    }
+  ]
+}

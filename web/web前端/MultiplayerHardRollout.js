@@ -1,12 +1,11 @@
 // NEW ALGORITHM: heuristic-v2 nonterminal values; exact native natural terminals. Not production.
-import { evaluateNonterminalTeacher } from "./MultiplayerHardValue.js?v=20261026-allplatform1";
-import { multiplayerClock as performance } from "./MultiplayerClock.js";
+import { evaluateNonterminalTeacher } from "./MultiplayerHardValue.js?v=20261029-unified-r1";
 // Experimental policy improvement: selfish opponent rollouts and canonical area.
 // Candidate ordering never removes legal roots. Hard publishes complete sweeps;
 // the opt-in mode can publish fully evaluated improvements within a sweep.
-import { GameEngine } from "./GameEngine.js?v=20261026-allplatform1";
-import { saveState, restoreState } from "./AIEngine.js?v=20261026-allplatform1";
-import { isolatedSearchEngine, multiplayerMetrics, visitPolicyCandidates } from "./MultiplayerSearch.js?v=20261026-allplatform1";
+import { GameEngine } from "./GameEngine.js?v=20261029-unified-r1";
+import { saveState, restoreState } from "./AIEngine.js?v=20261029-unified-r1";
+import { isolatedSearchEngine, multiplayerMetrics, visitPolicyCandidates } from "./MultiplayerSearch.js?v=20261029-unified-r1";
 
 const DEADLINE = Symbol("multiplayer rollout budget");
 const key = point => point === null ? "PASS" : point.join(",");
@@ -95,18 +94,6 @@ export class MultiplayerRolloutAI {
         stats.policyCandidates++;
       } });
       return candidates.sort((a, b) => b.baseScore - a.baseScore || order(a, b));
-    };
-    // Continuations consume only the first action. Visit the identical complete
-    // candidate domain and keep the same score/tie order without sorting it.
-    const policyAction = score => {
-      let best = null;
-      visitPolicyCandidates(engine, engine.currentPlayer, candidate => {
-        const value = score(candidate.features), point = candidate.point;
-        if (!Number.isFinite(value)) throw new Error("Nonfinite rollout policy score");
-        if (!best || value > best.baseScore || (value === best.baseScore && order({ point }, best) < 0))
-          best = { point, baseScore: value };
-      }, { beforeCandidate: () => { check(); stats.policyCandidates++; } });
-      return best;
     };
     const canonicalCache = new Map();
     const canonicalAreas = () => {
@@ -221,7 +208,7 @@ export class MultiplayerRolloutAI {
         for (let ply = 0; ply < plies && !engine.gameOver; ply++) {
           check();
           const policy = engine.currentPlayer === player ? this.base : this.responses[responseIndex];
-          const action = policyAction(policy)?.point ?? null;
+          const action = policyActions(policy)[0]?.point ?? null;
           if (!apply(action).success) throw new Error("Illegal rollout continuation");
           stats.simulatedActions++;
         }

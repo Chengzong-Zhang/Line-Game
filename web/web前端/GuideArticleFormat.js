@@ -16,6 +16,7 @@ export function isGuideAnchorId(id) {
     && [...id].every(character => character === '_' || character === '-' || letterOrNumber.test(character));
 }
 export function guideHeadingId(title) {
+  if (/^(第四章\s+拓扑棋盘：|IV\.\s+Topology boards:)/i.test(String(title))) return 'rulesMath-topology';
   return [...String(title).toLowerCase()]
     .filter(character => character === '_' || character === '-' || /\s/u.test(character) || letterOrNumber.test(character))
     .join('').trim().replace(/\s+/g, '-');

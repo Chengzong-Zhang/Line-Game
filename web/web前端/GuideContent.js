@@ -1,5 +1,5 @@
-import { implementationMarkdown } from "./GuideImplementation.js?v=20261026-allplatform1";
-import { guideHeadingId, isGuideAnchorId } from "./GuideArticleFormat.js?v=20261026-allplatform1";
+import { implementationMarkdown } from "./GuideImplementation.js?v=20261029-unified-r1";
+import { guideHeadingId, isGuideAnchorId } from "./GuideArticleFormat.js?v=20261029-unified-r1";
 
 const WHY_TALK_ZH = `# Talk：扩张、防守与破绽
 
@@ -122,61 +122,7 @@ The game is not a simple occupation race. It asks the player to balance efficien
 
 const WHY_CODE_EN = implementationMarkdown("whyCode", "en");
 
-const TOPOLOGY_GUIDE_ZH = `# 拓扑棋盘：从展开图进入一局真实对局
-
-拓扑棋盘不是把普通棋盘画成甜甜圈。规则先把有限三角面片编译成规范顶点、规范边和真实边界；屏幕上的展开图只是便于操作的图册。同一规范顶点可以在图册边缘出现多个副本，但它仍是一个棋位：只落一次子，也不重复计分。
-
-## 先选图，再开局
-
-在“棋盘舱”打开“拓扑棋盘”。可以选择圆柱、莫比乌斯带、环面或克莱因瓶预设，也可以用种子生成随机简单闭边界。高级入口允许沿格线录入闭曲线，编译后再选择两条不同的边界单位边进行粘合。
-
-每次粘合都要明确箭头方向：同向 [0,1] 或反向 [1,0]。箭头规定端点如何对应，也决定生命线离开一侧后怎样从另一侧进入。每条边界边只能参与一次粘合；自粘、重复配对、退化或非流形组合会被拒绝。内部格边不能直接当作接缝；首版不提供切开内部边的编辑器。
-
-## 看懂接缝与落子
-
-接缝两侧的箭头和编号是规则提示，不是屏幕外的额外落点。跨过接缝的线会在图册中拆成几段画出；不要把屏幕边缘当成真实边界，只有未粘合的边才是真实边界。
-
-普通点仍遵守起点保护、三点限制、切断、断联和 Superko。系统沿离散方向追线：遇到真实边界、敌方阻挡、重复方向状态、预算上限，或没有唯一延续的特殊顶点时会停止。特殊顶点可以是一条线的端点，但系统不会擅自分叉或按编号挑一条路继续。
-
-## 领土为何不同
-
-正式分数始终用离散样本计算：己方节点和线覆盖的样本直接计分；其余样本按连通分量检查，只有不含敌方且不接触真实边界的分量才加入分数。显示填色和 displayArea 只是解释层，不能替代正式分数。
-
-圆柱和莫比乌斯带仍有真实边界；环面和克莱因瓶没有真实外部，所以一条绕一圈的闭线不自动围地。规则看去掉己方覆盖后剩下的离散分量是否真的被分开，以及其中是否有敌方样本。展开图上的副本不重复计分。
-
-## 保存、联机与 AI
-
-拓扑存档会保存完整定义、地图哈希、规范点状态、逻辑路径、当前行棋方、PASS、认输和 Superko 历史。导入先在隔离棋局中验证，失败不会清空正在下的局。房间同样固定完整地图和哈希；不兼容客户端应明确拒绝，不能回退成普通三角棋盘。
-
-“拓扑通用 AI”只走经过验证的图上合法步路径，并不继承旧固定棋盘模型的强度档位。它可以协助完成一局，但棋力尚未单独评测。`;
-
-const TOPOLOGY_GUIDE_EN = `# Topology boards: play a real match from an unfolded chart
-
-A topology board is not an ordinary board painted like a doughnut. The rules first compile finite triangular faces into canonical vertices, canonical edges, and real boundaries. The on-screen unfolded chart is only an operating view. One canonical vertex can have multiple copies near chart seams, but it remains one seat: it can be played once and never score twice.
-
-## Choose a board before the match
-
-Open **Topology board** in the Board Deck. Choose a cylinder, Möbius strip, torus, or Klein bottle preset, or use a seed to generate a random simple closed boundary. The advanced route lets you enter a lattice boundary, compile it, then glue two distinct boundary unit edges.
-
-Every seam needs an arrow choice: same direction [0,1] or reverse [1,0]. That choice says how endpoints match and how a lifeline leaving one side enters the other. Each boundary edge can be used only once. Self-gluing, repeated pairs, degeneracies, and non-manifold combinations are rejected rather than silently repaired. An internal grid edge is not a seam until it has been cut open; that editor operation is outside the first version.
-
-## Read seams and make moves
-
-Seam arrows and labels are rule cues, not extra points beyond the screen. A line crossing a seam is drawn as chart segments, so do not treat the screen edge as a real boundary. Only an unglued edge is a real boundary.
-
-Ordinary moves still obey starting protection, the three-point limit, cuts, disconnection, and Superko. The engine follows a discrete direction: it stops at a real boundary, enemy blocker, repeated direction state, safety budget, or special vertex with no unique continuation. A special vertex may be a legal line endpoint, but the engine never invents a branch or chooses one by ID.
-
-## Why territory can look different
-
-The official score is always discrete. Your covered node and line samples count directly. Other samples are checked by connected component; only a component without an enemy and without contact with a real boundary is added. Display fill and displayArea are explanatory only and never replace the official score.
-
-Cylinders and Möbius strips still have real boundaries. A torus and a Klein bottle have no outside, so one closed line around the surface does not automatically enclose territory. The rule asks whether removing friendly coverage really separates the remaining discrete samples and whether an enemy is present. Chart copies never score twice.
-
-## Saves, rooms, and AI
-
-A topology save stores the complete definition, board hash, canonical states, logical paths, player to move, passes, resignations, and Superko history. Import is verified in an isolated match, so a failed import does not erase the active game. Rooms also freeze the full map and hash; an incompatible client must reject it instead of falling back to a triangular board.
-
-The **Topology General AI** uses a verified graph-compatible legal-move route. It does not inherit a strength tier from models trained for fixed boards. It can help complete a match, but its strength has not been separately evaluated.`;
+// Legacy key remains an alias; the only topology article lives in rulesMath.
 
 const WHY_THEORY_EN = `# Theory: A Simple Law, a Deep Search Space
 
@@ -245,52 +191,47 @@ CNNs see local texture. This game is valued by base connectivity, bridges, artic
 
 const GUIDE_MARKDOWN = Object.freeze({
   zh: Object.freeze({
-    rulesEssential: `【人数、棋盘与起点】
-支持 2–15 人在三角形或正六边形棋盘上对局。2–6 人可选择默认、随机或自定义起点；7–15 人仅可选择随机或自定义起点，每位玩家各有一个不同的起点。开局采用预览中选定的起点，保存、复盘与重连保留原起点，重开随机对局才重新抽取。
-
-【胜利条件】
-各方轮流在网格落子。己方节点和连线经过的格点直接计入领土；由己方点线围住、与棋盘外界隔绝且不含敌方元素的每个空腔也计入，包括甜甜圈形状的内孔；含敌方元素的空腔不计。无需形成单一闭环；开链和单线仍按己方点数计分。同一格点只算一次。显示轮廓（displayArea）仅用于展示，不决定正式分数；最终格点数多者获胜。
+    rulesEssential: `【胜利条件】
+玩家轮流在三角网格落子。己方节点和连线经过的格点直接计入领土；由己方点线隔开、不接触真实边界且不含敌方元素的每个空腔也计入，包括甜甜圈形状的内孔；含敌方元素的空腔不计。无需形成单一闭环；开链和单线仍按己方点数计分。同一格点只算一次。着色保留凸包与收紧轮廓，最后裁剪到棋盘范围，排除棋盘外部和挖掉的孔洞；单根连线不铺领土色。显示轮廓（displayArea）仅用于展示，不决定正式分数；最终格点数多者获胜。
 ![可落子区域示意](./guide-images/可以走的区域png.png)
 
 【核心机制】
-相邻且无遮挡的己方节点会自动连线，盘面上所有的节点与连线必须与己方初始点保持物理连通。玩家可落子于敌方连线上将其切断，一旦连线断裂导致敌方部分节点或连线失去与初始点的连通路径，这些断联的元素将立即从棋盘上彻底清除。
+沿三角网格直线可见、且符合阻挡与禁交叉规则的己方节点会自动连线，不要求两点相邻。盘面结构必须沿实际存在的逻辑边连回己方任一起点。玩家可合法落子于敌方连线上将其切断；失去所有起点连通路径的敌方节点与线立即清除。粘合边两侧显示的是同一棋位，直线跨缝后按接缝方向继续。
 ![切断示意一](./guide-images/切断1.png)
 ![切断示意二](./guide-images/切断2.png)
 
 【限制规则】
-为保证博弈的平衡与推进，游戏设定了三项强制约束。首先是起步保护：新建双人三角棋盘对局为削弱先手优势，实际先手的起点不再设置禁区，后手可以进入其有效相邻格；后手起点的保护区仍保留，先手不能进入。其他人数、六边形棋盘，以及采用 symmetric-v1 的旧存档、棋谱和房间继续使用双方对称保护。保护区始终跟随实际起点，三角角点旁有两个有效相邻格。
+首先是起步保护：受保护起点的距离 1 实际邻点禁止敌方落子。新局中，双人普通三角棋盘的先手没有禁区；其他情况保留保护。旧棋谱按保存的规则版本解释。
 ![起点限制示意](./guide-images/起点限制.png)
 
-其次是阵型限制，禁止主动形成三个节点互相紧挨的最小三角形阵型，除非该次落子直接切断了敌方的连线。
+其次是三点限制：禁止主动形成三个己方节点构成的相邻链或簇，不仅限于小三角形；只有本次落子实际切断敌方连线时才豁免。
 ![三点限制示意](./guide-images/三点限制.png)
 
 最后是同形禁手，禁止任何会使全局节点与连线状态恢复至历史重复局面的落子，以防止双方陷入无限互相切断的死循环`,
-    rulesWar: `最高指挥官，欢迎来到这片由点与线交织的战场。
-
-本局支持 2–15 人，可选择三角形或正六边形棋盘。2–6 人可使用默认、随机或自定义起点；7–15 人仅使用随机或自定义起点，每位指挥官都有一个不同的基地。开局采用选定的起点，保存、复盘与重连保留原起点；重开随机对局才重新抽取。
+    rulesWar: `最高指挥官，欢迎来到这片由点与线交织的三角阵地。
 
 常言道，兵马未动，粮草先行。在这片残酷的战场上，如果你前方的部队失去了和总基地的联系，就会因为断水断粮而直接在棋盘上溃散消失。这是你在接下来的指挥中最需要牢记的铁律。
 
 仔细观察你眼前的这片三角战场，它形似二战时期的苏德战场，从狭窄的波德平原一路向广阔的东欧平原延伸。这种特殊的地形里隐藏着这场战争最本质的战略张力：越靠近你的大本营，战线越窄，虽然极易防守，但你能掌控的领土也十分可怜；而越向战场中央挺进，天地越广阔，圈占的领土越大，但拉长的防线也会暴露出致命的破绽。你越想激进进攻，破绽就越多；越想保守防御，就越容易被对方死死围住。是稳扎稳打，还是狂飙突进，全在你的一念之间。
 
-新的双人三角战场用非对称警戒线抵消先动优势：先手司令部周围不再设绝对禁区，后手可以逼近；后手基地的禁卫区仍然保留，先手不能在其有效相邻格落子。其他人数、六边形战场和采用 symmetric-v1 的旧对局仍由双方基地互相提供对称保护。警戒线跟随本局实际起点，而不是固定跟随某种颜色。
+起点的禁区像大本营的卫队：敌方不能落在受保护起点距离 1 的实际邻点。双人普通三角棋盘的新局中，先手没有这层禁区，其他情况保留；旧战报仍按原规则重放。
 ![起点限制示意](./guide-images/起点限制.png)
 
-随着战役打响，你需要和敌军轮流派出士兵，占据新的网格点。只要视线不被阻挡，你的新兵就会和原有的部队自动拉起一条相互呼应的补给线。
+随着战役打响，各方轮流占据网格点。新兵只能沿三角网格直线建立合法、无遮挡且不交叉的补给线，前线必须沿实际补给线连回己方任一大本营。
 ![可落子区域示意](./guide-images/可以走的区域png.png)
 
-你的终极目标是尽可能扩大你的安全领土。在这片战场上，士兵所在格点和补给线经过的格点始终计分，不要求闭合。己方点线隔开的安全空腔也计分；多个空腔和甜甜圈内孔分别计算，含敌军的空腔不计。同一格点只算一次。显示轮廓（displayArea）仅用于展示，不决定正式分数。参谋部仍可收紧可视边界，同时保护全部己方节点。
+你的终极目标是尽可能扩大安全领土。士兵所在格点和补给线经过的格点始终计分，不要求闭合。己方点线隔开且不接触真实边界的安全空腔也计分；多个空腔和甜甜圈内孔分别计算，含敌军的空腔不计。同一格点只算一次。填色保留凸包与收紧轮廓，再裁剪到实际棋盘范围，排除外部与孔洞；单根补给线不铺领土色。显示轮廓（displayArea）仅用于展示，不决定正式分数。
 
-在这场鏖战中，战备资源十分紧张。为了避免兵力浪费，你不能把三个士兵紧挨着挤在一个小三角里。
+在这场鏖战中，你不能主动把三个己方士兵排成紧挨着的链或簇；这项限制不只针对小三角形。
 ![三点限制示意](./guide-images/三点限制.png)
 
 但是战场瞬息万变，如果你这一步是直接踩在敌军的补给线上，狠狠切断了他们的粮草，那就相当于抢夺了敌方的物资。这说明该地段战况极其激烈，此时你就可以打破常规，不受不能拥挤的限制，大举集结兵力发起猛攻。
 ![切断示意一](./guide-images/切断1.png)
 ![切断示意二](./guide-images/切断2.png)
 
-当所有仍在场的玩家连续各跳过一回合后，谁控制的领土格点更多，谁就是这场战争真正的赢家。去吧，指挥官，愿你的防线坚不可摧。`,
+当仍在场的玩家连续各跳过一回合时，按正式领土格点结算；若只剩一方仍在场，则该方获胜。去吧，指挥官，愿你的防线坚不可摧。`,
     rulesMath: implementationMarkdown("rulesMath", "zh"),
-    topologyGuide: TOPOLOGY_GUIDE_ZH,
+    topologyGuide: implementationMarkdown("rulesMath", "zh"),
     whyTalk: WHY_TALK_ZH,
     whyCode: WHY_CODE_ZH,
     whyTheory: WHY_THEORY_ZH,
@@ -310,52 +251,47 @@ UE设计师：zcz, LeoYan, Codex(GPT5.4), Pigeon
 内测用户：Mandy, zfp, smy, zzd, slz, zxy, Orange, Puppy, yxy, hmy, RobinTian, zjy, wyc, fjh, lh, O, lhh, lhr, jhd`,
   }),
   en: Object.freeze({
-    rulesEssential: `【Players, Boards, and Starting Points】
-Play with 2–15 players on a triangular or regular hexagonal board. With 2–6 players, choose default, random, or custom starts. With 7–15 players, only random or custom starts are available, with one distinct starting point per player. A match uses the selected preview; saves, replays, and reconnections preserve those starts. Restarting a random match draws new starts.
-
-【Victory Condition】
-Players take turns placing nodes on the grid. Your nodes and link points always count. Every enemy-free pocket cut off from the board exterior by friendly points also counts, including the inner hole of a donut-shaped structure; pockets containing an enemy are excluded. No single closed loop is required; an open chain or single line still scores its owned points. Each point counts once. The displayed outline (displayArea) is for presentation and does not determine the official score; the higher total wins.
+    rulesEssential: `【Victory Condition】
+Players take turns placing nodes on a triangular grid. Your nodes and link points always count. Every enemy-free pocket separated by friendly points and not touching a true boundary also counts, including the inner hole of a donut-shaped structure; pockets containing an enemy are excluded. No single closed loop is required; an open chain or single line still scores its owned points. Each point counts once. Shading keeps the hull and tightened outlines, then clips them to the actual board, excluding its exterior and removed holes; a single link does not receive a territory fill. The displayed outline (displayArea) is for presentation and does not determine the official score. The higher total wins.
 ![Playable area example](./guide-images/可以走的区域png.png)
 
 【Core Mechanic】
-Adjacent friendly nodes connect automatically as long as nothing blocks the line of sight. Every node and every link on the board must remain physically connected to that side's starting node. You may place a node directly on an enemy link to cut it. If that cut causes part of the enemy structure to lose all connection back to its starting node, the disconnected nodes and links are removed from the board immediately.
+Friendly nodes connect along legal straight triangular-grid paths subject to blocking and crossing rules; endpoints need not be adjacent. Structures must connect through actual logical links to at least one friendly root. A legal move on an enemy link cuts it; enemy nodes and links that lose every route to their roots are removed. Copies on glued boundaries represent the same position, and a path continues across a seam using its direction transform.
 ![Cut example one](./guide-images/切断1.png)
 ![Cut example two](./guide-images/切断2.png)
 
 【Restriction Rules】
-To keep the game balanced and moving, three constraints apply. First, opening protection is asymmetric in a new two-player triangular game: to reduce the first-move advantage, the actual first player's start has no protected zone, so the second player may enter its valid neighboring points. The second player's start remains protected from the first player. Other player counts, hexagonal boards, and older saves, replays, or rooms using symmetric-v1 retain protection around every start. Protection follows the actual configured starts; a triangular corner has two valid neighbors.
+First, opening protection forbids enemy moves on the actual distance-one neighbors of a protected root. In new two-player games on the ordinary triangular board, the first player has no protected zone; other configurations retain protection. Old replays keep their saved rule version.
 ![Starting-point restriction](./guide-images/起点限制.png)
 
-Second, there is a formation restriction: you may not voluntarily create the smallest triangle made of three mutually adjacent nodes, unless that move directly cuts an enemy link.
+Second, you may not voluntarily create an adjacent chain or cluster of three friendly nodes; the restriction is not limited to small triangles. It is waived only when this move actually cuts an enemy link.
 ![Three-point restriction](./guide-images/三点限制.png)
 
 Third, there is a superko-style repetition ban: any move that recreates a previously seen global node-and-link state is illegal, preventing endless cut-and-recut loops.`,
-    rulesWar: `Commander, welcome to this battlefield woven from points and lines.
-
-Play with 2–15 commanders on a triangular or regular hexagonal board. With 2–6 players, choose default, random, or custom starts. With 7–15 players, only random or custom starts are available, with one distinct base per commander. A match uses your selected starts; saves, replays, and reconnections preserve them. Restarting a random match draws new starts.
+    rulesWar: `Commander, welcome to this triangular theater woven from points and lines.
 
 There is an old rule of war: supply must move before the army does. On this battlefield, if your forward troops lose contact with headquarters, they collapse from the board at once. That is the iron law you must remember above all else.
 
 Look carefully at the shape of this battlefield. It resembles a front that opens from a narrow approach into a wide plain. That geometry creates the deepest tension in the game: the closer you stay to home base, the easier your line is to defend, but the less land you can truly control. The farther you push toward the center, the larger the territory you may claim, but the longer your line becomes, and the more weak points you expose. The more aggressively you expand, the more cracks you create. The more cautiously you turtle, the easier it is for your opponent to box you in. Whether you advance steadily or charge forward recklessly is always your call.
 
-New two-player triangular battles use an asymmetric guard line to offset the initiative of moving first. The first player's headquarters has no absolute protected zone, so the second player may approach it; the second player's headquarters keeps its guard, and the first player cannot enter its valid neighboring points. Other player counts, hexagonal battles, and older symmetric-v1 games keep mutual protection around every base. The guard follows the actual configured start rather than a fixed colour.
+The protected zone is your headquarters' guard: enemies cannot occupy the actual distance-one neighbors of a protected root. The first player has no such zone in a new two-player game on the ordinary triangular board; other configurations retain it. Old battle records keep their saved rules.
 ![Starting-point restriction](./guide-images/起点限制.png)
 
-As the campaign unfolds, you and your opponent alternate sending units to occupy new grid points. Whenever sight lines remain open, a new unit automatically links up with the rest of its side's formation and extends the supply network.
+As the campaign unfolds, players take turns occupying grid points. Supply lines follow legal straight triangular-grid paths, subject to blocking and crossing rules. Every front must connect through actual supply lines to at least one friendly headquarters.
 ![Playable area example](./guide-images/可以走的区域png.png)
 
-Your ultimate objective is to expand secure territory. Your troops and supply lines always count their grid points. Enemy-free pockets cut off from the board exterior also count; multiple pockets and donut holes are evaluated separately, while a pocket containing an enemy is excluded. No loop is required to score owned points. Each point counts once. The displayed outline (displayArea) is for presentation and does not determine the official score. The staff may tighten the displayed boundary while keeping every friendly node protected.
+Your ultimate objective is to expand secure territory. Your troops and supply lines always count their grid points. Enemy-free pockets separated by friendly structures and not touching a true boundary also count; multiple pockets and donut holes are evaluated separately, while a pocket containing an enemy is excluded. No loop is required to score owned points. Each point counts once. Shading keeps the hull and tightened outlines, then clips them to the board, excluding its exterior and removed holes; a single supply line receives no territory fill. The displayed outline (displayArea) is for presentation and does not determine the official score.
 
-Resources are tight in a drawn-out war. To avoid waste, you cannot crowd three soldiers into the smallest possible triangle.
+You cannot voluntarily crowd three friendly soldiers into an adjacent chain or cluster; this restriction is not limited to small triangles.
 ![Three-point restriction](./guide-images/三点限制.png)
 
 But the battlefield changes instantly. If your move lands directly on an enemy supply line and cuts it, that is treated as a decisive tactical strike. In such a fierce moment, normal crowding restrictions are waived and concentrated force becomes legal.
 ![Cut example one](./guide-images/切断1.png)
 ![Cut example two](./guide-images/切断2.png)
 
-When every remaining player has passed consecutively, the side controlling more territory grid points is the true winner. Go on, Commander. May your lines hold.`,
+When all surviving players pass consecutively, the game is settled by official territory points. If only one player remains, that player wins. Go on, Commander. May your lines hold.`,
     rulesMath: implementationMarkdown("rulesMath", "en"),
-    topologyGuide: TOPOLOGY_GUIDE_EN,
+    topologyGuide: implementationMarkdown("rulesMath", "en"),
     whyTalk: WHY_TALK_EN,
     whyCode: WHY_CODE_EN,
     whyTheory: WHY_THEORY_EN,
@@ -578,7 +514,7 @@ function tokenizeInline(text) {
           if (["http:", "https:"].includes(url.protocol)) safeHref = url.href;
         } catch (_) { /* Invalid URLs remain plain text. */ }
       }
-      tokens.push((typeof href === "string" && href.startsWith("#") && isGuideAnchorId(href.slice(1)))
+      tokens.push(typeof href === "string" && href.startsWith("#") && isGuideAnchorId(href.slice(1))
         ? { type: "anchor", text: label, href }
         : safeHref
         ? { type: "link", text: label, href: safeHref }

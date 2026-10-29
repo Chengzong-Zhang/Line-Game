@@ -1,15 +1,16 @@
-import { multiplayerClock as performance } from "./MultiplayerClock.js";
-import { fastPolicyCandidates, isolatedSearchEngine, MultiplayerMinimaxAI } from "./MultiplayerSearch.js?v=20261027-topology-multistart-release1";
-import { createMultiplayerModel } from "./MultiplayerModel.js?v=20261026-allplatform1";
-import { MultiplayerRolloutAI } from "./MultiplayerRollout.js?v=20261026-allplatform1";
-import { loadThreePlayerRuntime } from "./ThreePlayerRuntime.js?v=20261026-allplatform1";
-import { threePlayerModelIdForBoard } from "./ThreePlayerSearchOptions.js?v=20261026-allplatform1";
-import { loadHexPlayerModel } from "./HexPlayerAI.js?v=20261026-allplatform1";
-import { createUltimateAdmissionGuard } from "./MultiplayerUltimateAdmission.js?v=20261026-allplatform1";
-import { applyStandardDefenseGate } from "./MultiplayerStandardDefense.js?v=20261026-allplatform1";
-import { withPassDiscipline } from "./AIPassDisciplineV4.js?v=20261026-allplatform1";
-import { rankWithLearnedPass } from "./LearnedPassPolicy.js?v=20261026-allplatform1";
-import { trainedPolicySpec, trainedPolicyInfo } from "./PassTrainedPolicies.js?v=20261026-allplatform1";
+import { multiplayerClock as performance } from "./MultiplayerClock.js?v=20261029-unified-r1";
+import { withPassDiscipline } from "./AIPassDisciplineV4.js?v=20261029-unified-r1";
+import { rankWithLearnedPass } from "./LearnedPassPolicy.js?v=20261029-unified-r1";
+import { trainedPolicySpec, trainedPolicyInfo } from "./PassTrainedPolicies.js?v=20261029-unified-r1";
+import { fastPolicyCandidates, isolatedSearchEngine, MultiplayerMinimaxAI } from "./MultiplayerSearch.js?v=20261029-unified-r1";
+import { createMultiplayerModel } from "./MultiplayerModel.js?v=20261029-unified-r1";
+import { MultiplayerRolloutAI } from "./MultiplayerRollout.js?v=20261029-unified-r1";
+import { loadThreePlayerRuntime } from "./ThreePlayerRuntime.js?v=20261029-unified-r1";
+import { threePlayerModelIdForBoard } from "./ThreePlayerSearchOptions.js?v=20261029-unified-r1";
+import { loadHexPlayerModel } from "./HexPlayerAI.js?v=20261029-unified-r1";
+import { createUltimateAdmissionGuard } from "./MultiplayerUltimateAdmission.js?v=20261029-unified-r1";
+import { GameEngine } from "./GameEngine.js?v=20261029-unified-r1";
+import { applyStandardDefenseGate } from "./MultiplayerStandardDefense.js?v=20261029-unified-r1";
 
 export const MULTIPLAYER_MODEL_IDS=Object.freeze(["multiplayer-easy-v1","multiplayer-medium-v1","multiplayer-hard-v1","multiplayer-ultimate-v1"]);
 const promises=new Map();
@@ -50,14 +51,15 @@ export class FastMultiplayerPolicy {
     return moves;
   }
 }
-export function prepareStandardDefenseRanking(policy,source,player,width){
+export function prepareStandardDefenseRanking(policy,source,player,width,options={}){
   const contract=policy.fullRankingContract;
   if(contract?.kind==="multiplayer-linear-full-ranking"&&contract.version===1
     &&typeof policy.getFullRanking==="function"){
     const completeRanking=policy.getFullRanking(source,player,{includeFeatures:true});
+    if(completeRanking.length&&typeof options.onProgress==="function") options.onProgress(completeRanking[0]);
     return {original:(typeof policy.withOptionalPass==="function"?policy.withOptionalPass(completeRanking):completeRanking).slice(0,width),completeRanking};
   }
-  return {original:policy.getTopMoves(source,player,width),completeRanking:null};
+  return {original:policy.getTopMoves(source,player,width,options),completeRanking:null};
 }
 async function assetModel(id){
   const baseUrl=new URL("./assets/research-ai/multiplayer-v1/",import.meta.url);
@@ -92,8 +94,8 @@ export async function createMediumRuntime(engine,resources = { loadThreePlayerRu
       runtime.ai.base=new FastMultiplayerPolicy(runtime.ai.spec,{includePass:false});
       runtime.ai.responses=runtime.ai.spec.search.opponents.map(s=>new FastMultiplayerPolicy(s,{includePass:false}));
       const original=runtime.ai;
-      return {ai:{lastSearch:null,getTopMoves(source,player,n){
-        const result=original.getTopMoves(isolatedSearchEngine(source),player,n);
+      return {ai:{lastSearch:null,getTopMoves(source,player,n,options={}){
+        const result=original.getTopMoves(isolatedSearchEngine(source),player,n,options);
         this.lastSearch=original.lastSearch; return result;
       }},modelInfo:runtime.modelInfo,weights:runtime.ai.spec.weights,
         policySpec:runtime.ai.spec,responseSpecs:runtime.ai.spec.search.opponents};
@@ -108,6 +110,7 @@ export async function createMediumRuntime(engine,resources = { loadThreePlayerRu
     policySpec:model.spec,responseSpecs:[model.spec]};
 }
 export async function loadMultiplayerRuntime(modelId,engine,resources = { loadThreePlayerRuntime, loadHexPlayerModel, loadAssetModel: assetModel }){
+  if (engine.rootRulesVersion === "root-v2") throw new Error("Multiplayer AI does not support multi-root state.");
   if(!MULTIPLAYER_MODEL_IDS.includes(modelId)||(!Number.isInteger(engine.playerCount)||engine.playerCount<3||engine.playerCount>15)
     ||!["territory-v2", "territory-v3"].includes(engine.rulesVersion)||engine.gridSize<5||engine.gridSize>15) throw new Error("Unsupported multiplayer AI configuration");
   const native=engine.playerCount<=6&&engine.boardShape===(engine.playerCount===3?"triangle":"hexagon");
@@ -130,7 +133,7 @@ export async function loadMultiplayerRuntime(modelId,engine,resources = { loadTh
   }else if(modelId==="multiplayer-hard-v1"){
     if(native){
       const runtime=resources.loadNativeHardRuntime?await resources.loadNativeHardRuntime(engine)
-        :await (await import("./MultiplayerHardResources.js?v=20261026-allplatform1")).loadNativeHardRuntime(engine,resources);
+        :await (await import("./MultiplayerHardResources.js?v=20261029-unified-r1")).loadNativeHardRuntime(engine,resources);
       return {...runtime,ai:withPassDiscipline(runtime.ai)};
     }else{
       ai=new MultiplayerMinimaxAI({depth:Math.min(engine.playerCount+1,6),timeMs:650});
@@ -142,7 +145,7 @@ export async function loadMultiplayerRuntime(modelId,engine,resources = { loadTh
     const admission=ultimateAdmission.checkProfile({strategy:"multiplayer",modelId},engine,model.spec);
     if(!admission.allowed){const error=new Error(admission.message);error.code=admission.code;throw error;}
     const medium=await createMediumRuntime(engine,resources);
-    ai={lastSearch:null,getTopMoves(source,player=source.currentPlayer,n=5){
+    ai={lastSearch:null,getTopMoves(source,player=source.currentPlayer,n=5,options={}){
       const start=performance.now(), isolated=isolatedSearchEngine(source);
       const output=model.evaluate(isolated), inferenceMs=performance.now()-start;
       const rootPrior=new Map(output.priors.map(p=>[p.point.join(","),p.prior]));
@@ -155,10 +158,11 @@ export async function loadMultiplayerRuntime(modelId,engine,resources = { loadTh
           ||candidate.point[1]===best.point[1]&&candidate.point[0]<best.point[0])) best=candidate;
       const fallbackMove=best?{type:"move",point:[...best.point],score:best.prior,prior:best.prior,visits:1}
         :{type:"pass",point:null,score:0,visits:1};
+      if(best&&typeof options.onProgress==="function") options.onProgress(fallbackMove);
       const search=new MultiplayerRolloutAI({basePolicy:medium.policySpec,responsePolicies:[medium.policySpec],
         fallbackMove,fallbackKind:best?"gnn-placement-argmax":"no-legal-placement-pass",
         publishCompletedComparisons:true,timeMs:Math.max(10,650-inferenceMs),rootPriors:rootPrior,rolloutPlies:[12,24,36]});
-      const moves=search.getTopMoves(isolated,player,n);
+      const moves=search.getTopMoves(isolated,player,n,options);
       this.lastSearch={...search.lastSearch,inferenceMs,elapsedMs:performance.now()-start,
         gnnFallbackPoint:fallbackMove.point,algorithm:"transferred-gnn-anytime-rollout-canonical-area"};
       return moves;
@@ -168,15 +172,15 @@ export async function loadMultiplayerRuntime(modelId,engine,resources = { loadTh
   ai={lastSearch:null,getTopMoves(source,player=source.currentPlayer,n=5,options={}){
     if(source.gameOver) return [];
     if(!safePassModels.has(modelId)){
-      const moves=policy.getTopMoves(source,player,n); this.lastSearch=policy.lastSearch;
+      const moves=policy.getTopMoves(source,player,n,options); this.lastSearch=policy.lastSearch;
       if(n>0&&!moves.length&&!source.getLegalMoves(player).length) return [{type:"pass",point:null,score:0,visits:1}];
       return moves;
     }
     const requested=Math.max(0,Math.floor(n));
     let prepared;
-    try { prepared=prepareStandardDefenseRanking(policy,source,player,Math.max(requested,4)); }
+    try { prepared=prepareStandardDefenseRanking(policy,source,player,Math.max(requested,4),options); }
     catch (_) {
-      const original=policy.getTopMoves(source,player,Math.max(requested,4));
+      const original=policy.getTopMoves(source,player,Math.max(requested,4),options);
       this.lastSearch=policy.lastSearch; return original.slice(0,requested);
     }
     const {original,completeRanking}=prepared;
@@ -185,7 +189,7 @@ export async function loadMultiplayerRuntime(modelId,engine,resources = { loadTh
     let gate={moves:original,receipt:{status:"preserved-not-run"}};
     if(original[0]?.point===null) gate={moves:original,receipt:{status:"preserved-policy-pass"}};
     else if(requested>0&&original.length>1) {
-      gate=applyStandardDefenseGate(source,original,{completeRanking,startedAt:gateStarted});
+      gate=applyStandardDefenseGate(source,original,{completeRanking,startedAt:gateStarted,absoluteDeadline:options.deadline});
     }
     this.lastSearch={...(originalSearch??{}),standardDefenseGate:gate.receipt};
     if(requested>0&&!gate.moves.length&&!source.getLegalMoves(player).length) return [{type:"pass",point:null,score:0,visits:1}];

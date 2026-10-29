@@ -1,6 +1,6 @@
-import { PLAYER_ORDER } from "./GameEngine.js?v=20261027-topology-multistart-release1";
-import { DEFAULT_RESEARCH_VERSION, RESEARCH_FAMILIES, TRANSFER_SEEDS, researchProfile } from "./ResearchAIOptions.js?v=20261026-allplatform1";
-import { threePlayerModelIdForBoard } from "./ThreePlayerSearchOptions.js?v=20261026-allplatform1";
+import { PLAYER_ORDER } from "./GameEngine.js?v=20261029-unified-r1";
+import { DEFAULT_RESEARCH_VERSION, RESEARCH_FAMILIES, TRANSFER_SEEDS, researchProfile } from "./ResearchAIOptions.js?v=20261029-unified-r1";
+import { threePlayerModelIdForBoard } from "./ThreePlayerSearchOptions.js?v=20261029-unified-r1";
 
 export const LOCAL_PLAYER_CHOICES = Object.freeze([
   "human", "minimax", ...RESEARCH_FAMILIES, "dqn", "ppo", "sac", "gail", "gan",
@@ -17,19 +17,9 @@ export const MULTIPLAYER_ULTIMATE_AVAILABLE = false;
 export const HEX_PLAYER_CHOICES = MULTIPLAYER_PLAYER_CHOICES;
 export const THREE_PLAYER_CHOICES = MULTIPLAYER_PLAYER_CHOICES;
 export const GENERIC_PLAYER_CHOICES = Object.freeze(["human", "greedy"]);
-// A topology board has canonical graph vertices rather than coordinate moves.
-// Keep its one currently admitted route explicit so a fixed-shape model cannot
-// be presented as a compatible difficulty tier.
 export const TOPOLOGY_GENERIC_CHOICE = "topology-generic";
 export const TOPOLOGY_GENERIC_CHOICES = Object.freeze(["human", TOPOLOGY_GENERIC_CHOICE]);
-export const ALL_LOCAL_PLAYER_CHOICES = Object.freeze([
-  ...LOCAL_PLAYER_CHOICES,
-  ...MULTIPLAYER_AI_CHOICES,
-  "three-player",
-  "hex-player",
-  "greedy",
-  TOPOLOGY_GENERIC_CHOICE,
-]);
+export const ALL_LOCAL_PLAYER_CHOICES = Object.freeze([...LOCAL_PLAYER_CHOICES, ...MULTIPLAYER_AI_CHOICES, "three-player", "hex-player", "greedy", TOPOLOGY_GENERIC_CHOICE]);
 export const LOCAL_LAB_MODELS = Object.freeze([
   ...RESEARCH_FAMILIES.flatMap((choice) => [
     ...TRANSFER_SEEDS.map((seed, index) => Object.freeze({
@@ -72,10 +62,6 @@ export function localPlayerChoices(playerCount, boardShape) {
 export function usesGenericBoardAI(playerCount, boardShape) {
   return playerCount > 6 || Boolean(boardShape && boardShape !== (playerCount >= 4 ? "hexagon" : "triangle"));
 }
-
-// Root-v2 changes both legal actions and the state identity.  Only the
-// generic search paths below have a validated complete-state contract; model
-// routes remain unavailable rather than being silently used as classic AI.
 export function supportsRootModeAI(profile, rootMode = "classic") {
   if (rootMode === "classic" || !profile) return true;
   return ["greedy", "minimax", "mcts"].includes(profile.strategy);
@@ -87,9 +73,6 @@ export function normalizeLocalPlayers(players = {}, playerCount, boardShape) {
     const value = players?.[color];
     let choice = ALL_LOCAL_PLAYER_CHOICES.includes(value?.choice) ? value.choice : "human";
     if (boardShape === "custom") {
-      // Migrate old generic/multiplayer choices to the graph-aware route. The
-      // choice intentionally carries no strength claim; it only means the
-      // Worker can return a legal canonical vertex or explicit PASS.
       if (choice !== "human") choice = TOPOLOGY_GENERIC_CHOICE;
     } else if (playerCount > 6) {
       if (choice === "greedy") choice = "ai-easy";
@@ -117,6 +100,7 @@ export function normalizeLocalPlayers(players = {}, playerCount, boardShape) {
 // through normalizeLocalPlayers, but choose an available tier for this draft.
 export function normalizeLocalPlayerDraft(players = {}, playerCount, boardShape) {
   const normalized = normalizeLocalPlayers(players, playerCount, boardShape);
+  if (boardShape === "custom") return normalized;
   const available = localPlayerChoices(playerCount, boardShape);
   const generic = usesGenericBoardAI(playerCount, boardShape);
   return Object.fromEntries(LOCAL_PLAYER_COLORS.map((color, index) => {
@@ -124,11 +108,6 @@ export function normalizeLocalPlayerDraft(players = {}, playerCount, boardShape)
     if (index >= playerCount || players?.[color]?.choice === "human") return [color, current];
     const original = players?.[color];
     if (!ALL_LOCAL_PLAYER_CHOICES.includes(original?.choice)) return [color, current];
-    if (boardShape === "custom") {
-      return [color, current.choice === "human"
-        ? current
-        : { ...current, choice: TOPOLOGY_GENERIC_CHOICE }];
-    }
     if (playerCount === 2) {
       if (generic) return [color, { ...current, choice: boardShape === "diamond" ? "minimax" : "greedy" }];
       const depth = original.choice === "ai-easy" || original.choice === "greedy" ? 2
@@ -151,9 +130,9 @@ export function localPlayerProfile(player, playerCount, gridSize, boardShape) {
   if (config.choice === "human") return null;
   if (config.choice === TOPOLOGY_GENERIC_CHOICE) return { strategy: TOPOLOGY_GENERIC_CHOICE };
   // The easy multiplayer weights were trained and admitted only on the
-  // triangle/hexagon product boards. Keep the visible Easy tier on a diamond,
+  // triangle/hexagon product boards.  Keep the visible Easy tier on a diamond,
   // but execute the untrained, shape-aware rule baseline instead of relabeling
-  // those weights as a diamond model. The same generic route is used for the
+  // those weights as a diamond model.  The same generic route is used for the
   // 7–15 player Easy tier.
   if (config.choice === "ai-easy" && (playerCount > 6 || boardShape === "diamond")) return { strategy: "greedy" };
   if (MULTIPLAYER_AI_CHOICES.includes(config.choice)) return { strategy: "multiplayer", modelId: `multiplayer-${config.choice.slice(3)}-v1` };

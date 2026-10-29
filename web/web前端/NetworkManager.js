@@ -1,6 +1,7 @@
 ﻿const DEFAULT_REQUEST_TIMEOUT = 10000;
 const DEFAULT_HEARTBEAT_INTERVAL = 4000;
 const DEFAULT_HEARTBEAT_TIMEOUT = 12000;
+export const TOPOLOGY_ROOM_CAPABILITY = "board-topology-v1";
 
 // NetworkManager 璐熻矗鎶娾€滆姹?鍝嶅簲鈥濆拰鈥滃箍鎾簨浠垛€濇贩鍚堝湪鍚屼竴鏉?WebSocket 涓婄鐞嗚捣鏉ャ€?// 涓婂眰鍙渶瑕佽闃呬簨浠舵垨璋冪敤 sendXxx锛屾棤闇€鐩存帴鎿嶄綔 socket銆?
 const ServerEvent = Object.freeze({
@@ -38,6 +39,18 @@ function isValidPoint(point) {
     && point.length === 2
     && Number.isInteger(point[0])
     && Number.isInteger(point[1]);
+}
+
+function isTopologyMove(move) {
+  return Boolean(
+    move
+    && typeof move === "object"
+    && !Array.isArray(move)
+    && typeof move.vertexId === "string"
+    && move.vertexId.length > 0
+    && typeof move.boardHash === "string"
+    && move.boardHash.length > 0,
+  );
 }
 
 function resolveWebSocketUrl(locationLike = globalThis.location) {
@@ -81,6 +94,12 @@ export class NetworkManager {
     this.roomId = null;
     this.playerId = null;
     this.color = null;
+    const requestedCapabilities = Array.isArray(options.topologyCapabilities)
+      ? options.topologyCapabilities
+      : [TOPOLOGY_ROOM_CAPABILITY];
+    this.topologyCapabilities = [...new Set(requestedCapabilities.filter(
+      (capability) => capability === TOPOLOGY_ROOM_CAPABILITY,
+    ))];
     this._actionSequence = 0;
 
     this._listeners = new Map();
@@ -206,7 +225,10 @@ export class NetworkManager {
 
   async createRoom(settings = null) {
     await this._ensureOpen();
-    const payloadToSend = { type: "create_room" };
+    const payloadToSend = {
+      type: "create_room",
+      topologyCapabilities: [...this.topologyCapabilities],
+    };
     if (settings && typeof settings === "object") {
       payloadToSend.settings = settings;
     }
@@ -232,6 +254,7 @@ export class NetworkManager {
       {
         type: "join_room",
         roomId: normalizedRoomId,
+        topologyCapabilities: [...this.topologyCapabilities],
         ...(playerId ? { playerId } : {}),
         rootProtocolVersion: 2,
       },
@@ -245,21 +268,32 @@ export class NetworkManager {
   }
 
   async sendMove(point) {
-    if (!isValidPoint(point)) {
-      throw new Error("sendMove(point) requires [x, y] integer coordinates.");
-    }
-
     await this._ensureOpen();
+    if (isTopologyMove(point)) {
+      const move = {
+        vertexId: point.vertexId,
+        boardHash: point.boardHash,
+      };
+      this._send({ type: "player_move", ...move });
+      return {
+        roomId: this.roomId,
+        playerId: this.playerId,
+        ...move,
+      };
+    }
+    if (!isValidPoint(point)) {
+      throw new Error("sendMove(point) requires [x, y] integer coordinates or { vertexId, boardHash }.");
+    }
+    const legacyPoint = clonePoint(point);
     this._send({
       type: "player_move",
-      point: clonePoint(point),
+      point: legacyPoint,
       actionId: this._nextActionId(),
     });
-
     return {
       roomId: this.roomId,
       playerId: this.playerId,
-      point: clonePoint(point),
+      point: legacyPoint,
     };
   }
 
@@ -324,6 +358,7 @@ export class NetworkManager {
     this._send({
       type: "update_room_settings",
       settings,
+      topologyCapabilities: [...this.topologyCapabilities],
     });
   }
 

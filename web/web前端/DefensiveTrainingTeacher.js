@@ -1,7 +1,7 @@
 // Offline labels only. A budget fallback is never a training label.
-import { GameEngine } from "./GameEngine.js?v=20261025-defense15";
-import { isolatedSearchEngine } from "./MultiplayerSearch.js?v=20261025-defense15";
-import { saveState, restoreState } from "./AIEngine.js?v=20261025-defense15";
+import { GameEngine } from "./GameEngine.js?v=20261029-unified-r1";
+import { isolatedSearchEngine } from "./MultiplayerSearch.js?v=20261029-unified-r1";
+import { saveState, restoreState } from "./AIEngine.js?v=20261029-unified-r1";
 
 export const DEFENSIVE_TRAINING_CONTRACT = Object.freeze({
   schema: "lifeline-defensive-minimax-training-v1",
@@ -17,11 +17,6 @@ export const DEFENSIVE_TRAINING_CONTRACT = Object.freeze({
 });
 const key = point => point === null ? "PASS" : point.join(",");
 const check = (condition, message) => { if (!condition) throw new Error(message); };
-function assertClassicRootContract(engine) {
-  check((engine.rootMode ?? "classic") === "classic" && (engine.rootRulesVersion ?? "root-v1") === "root-v1"
-    && engine.activePlayers.every((player) => (engine.getRoots?.(player) ?? [engine.initialPositions[player]]).length === 1),
-  "Defensive training v1 rejects multi-root and dynamic-root games");
-}
 const TIMEOUT = Symbol("defensive teacher budget");
 export function compareDefensiveValues(a, b) {
   for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return a[i] - b[i];
@@ -89,7 +84,6 @@ export function assertCompletedTrainingLabel(label) {
 
 export function defensiveTrainingLabel(source, { depth = requiredTrainingDepth(source),
   maxNodes = 100000, timeMs = 10000, now = () => performance.now(), pruning = true } = {}) {
-  assertClassicRootContract(source);
   const requiredDepth = requiredTrainingDepth(source);
   check(!source.gameOver && ["territory-v2", "territory-v3"].includes(source.rulesVersion)
     && Number.isInteger(depth) && depth >= requiredDepth && depth <= 64,

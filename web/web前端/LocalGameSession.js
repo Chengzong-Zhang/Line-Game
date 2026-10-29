@@ -1,8 +1,8 @@
-import { ALL_LOCAL_PLAYER_CHOICES, MULTIPLAYER_AI_CHOICES, normalizeLocalPlayers, usesGenericBoardAI } from "./LocalAIModes.js?v=20261027-topology-multistart-release1";
-import { startingPointSettings } from "./StartingPoints.js?v=20261027-topology-multistart-release1";
-import { PLAYER_ORDER, StartProtectionRule, resolveBoardShape } from "./GameEngine.js?v=20261027-topology-multistart-release1";
-import { normalizeUndoUsage } from "./LocalUndo.js?v=20261027-topology-multistart-release1";
-import { decodeTopologyState } from "./TopologyStateCodec.js?v=20261027-topology-multistart-release1";
+import { ALL_LOCAL_PLAYER_CHOICES, MULTIPLAYER_AI_CHOICES, normalizeLocalPlayers, usesGenericBoardAI } from "./LocalAIModes.js?v=20261029-unified-r1";
+import { startingPointSettings } from "./StartingPoints.js?v=20261029-unified-r1";
+import { PLAYER_ORDER, StartProtectionRule, resolveBoardShape } from "./GameEngine.js?v=20261029-unified-r1";
+import { normalizeUndoUsage } from "./LocalUndo.js?v=20261029-unified-r1";
+import { decodeTopologyState } from "./TopologyStateCodec.js?v=20261029-unified-r1";
 
 const LOCAL_GAME_SESSION_FORMAT = "lifeline-local-session";
 const PLAYER_COLORS = PLAYER_ORDER;
@@ -34,6 +34,7 @@ const GAME_SETTING_KEYS = Object.freeze([
 // Keep exactly those primitive controls in the session envelope; never trust
 // the envelope to replace the canonical topology definition.
 const TOPOLOGY_SESSION_SETTING_KEYS = Object.freeze([
+  "gridSize",
   "turnTimerEnabled",
   "turnTimeLimitSeconds",
   "hintEnabled",
@@ -281,8 +282,9 @@ function normalizeTopologySessionMetadata(value, decoded, actions) {
   const settings = {};
   for (const key of TOPOLOGY_SESSION_SETTING_KEYS) {
     const current = settingsSource[key];
-    if ((key.endsWith("Enabled") && typeof current === "boolean")
-      || (!key.endsWith("Enabled") && Number.isFinite(current))) {
+    if ((key === "gridSize" && Number.isInteger(current) && current >= 5 && current <= 15)
+      || (key.endsWith("Enabled") && typeof current === "boolean")
+      || (key !== "gridSize" && !key.endsWith("Enabled") && Number.isFinite(current))) {
       settings[key] = current;
     }
   }

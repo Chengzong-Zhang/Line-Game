@@ -1,5 +1,5 @@
-import { GameEngine } from "./GameEngine.js?v=20261025-territory-render1";
-import { deserializeEngineEdges, restoreEngineRootState } from "./AIStateProtocol.js?v=20261021-boardshapes1";
+import { GameEngine } from "./GameEngine.js?v=20261029-unified-r1";
+import { deserializeEngineEdges } from "./AIStateProtocol.js?v=20261029-unified-r1";
 
 function cloneTerritories(engine, players = engine.activePlayers) {
   return Object.fromEntries(
@@ -26,7 +26,6 @@ function restoreSerializedState(engine, serializedState) {
   engine.gameOver = serializedState.gameOver;
   engine.turnCount = serializedState.turnCount;
   engine.positionRevision = serializedState.positionRevision ?? 0;
-  restoreEngineRootState(engine, serializedState);
 }
 
 // Keep topology buffers and the module/JIT warm between exact calculations.
@@ -55,10 +54,8 @@ self.onmessage = (event) => {
       boardShape: serializedState.boardShape,
       startPlayer: serializedState.startPlayer,
       initialPositions: serializedState.initialPositions,
-      initialRoots: serializedState.initialRoots,
-      rootMode: serializedState.rootMode,
-      rootRulesVersion: serializedState.rootRulesVersion,
       rulesVersion: serializedState.rulesVersion,
+      protectionRule: serializedState.protectionRule,
     };
     const config = JSON.stringify(options);
     if (!reusableEngine || config !== reusableConfig) {
@@ -80,8 +77,8 @@ self.onmessage = (event) => {
       requestId,
       positionRevision: serializedState.positionRevision ?? 0,
       rulesVersion: serializedState.rulesVersion,
+      protectionRule: serializedState.protectionRule,
       currentPlayer: serializedState.currentPlayer,
-      rootStateIdentity: serializedState.rootStateIdentity,
       territoryStateRevision,
       gameOver,
       territories: cloneTerritories(engine, players),
@@ -93,8 +90,8 @@ self.onmessage = (event) => {
       requestId,
       positionRevision: serializedState?.positionRevision ?? 0,
       rulesVersion: serializedState?.rulesVersion,
+      protectionRule: serializedState?.protectionRule,
       currentPlayer: serializedState?.currentPlayer,
-      rootStateIdentity: serializedState?.rootStateIdentity,
       territoryStateRevision,
       gameOver,
       message: error instanceof Error ? error.message : String(error),

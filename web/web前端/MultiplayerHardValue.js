@@ -20,6 +20,7 @@ export function evaluateNonterminalTeacher(metrics, actor, alive, boardPointCoun
   const heuristicMargin = (heuristicStrengths[actor] - Math.max(0, ...alive.filter(player => player !== actor).map(player => heuristicStrengths[player]))) / boardPointCount;
   return { heuristicValue, heuristicMargin, heuristicStrengths };
 }
+
 // An opt-in tactical signal, not area or win probability. Counts refer to the
 // same root action before/after one real opponent reply. A captured node only
 // earns sustained-cut credit while the attacking node remains root-connected.

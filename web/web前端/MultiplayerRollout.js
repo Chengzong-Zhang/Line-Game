@@ -1,10 +1,9 @@
-import { multiplayerClock as performance } from "./MultiplayerClock.js";
 // Experimental policy improvement: selfish opponent rollouts and canonical area.
 // Candidate ordering never removes legal roots. Hard publishes complete sweeps;
 // the opt-in mode can publish fully evaluated improvements within a sweep.
-import { GameEngine } from "./GameEngine.js?v=20261026-allplatform1";
-import { saveState, restoreState } from "./AIEngine.js?v=20261026-allplatform1";
-import { isolatedSearchEngine, multiplayerMetrics, visitPolicyCandidates } from "./MultiplayerSearch.js?v=20261026-allplatform1";
+import { GameEngine } from "./GameEngine.js?v=20261029-unified-r1";
+import { saveState, restoreState } from "./AIEngine.js?v=20261029-unified-r1";
+import { isolatedSearchEngine, multiplayerMetrics, visitPolicyCandidates } from "./MultiplayerSearch.js?v=20261029-unified-r1";
 
 const DEADLINE = Symbol("multiplayer rollout budget");
 const key = point => point === null ? "PASS" : point.join(",");
@@ -54,10 +53,12 @@ export class MultiplayerRolloutAI {
     this.lastSearch = null;
   }
 
-  getTopMoves(source, player = source.currentPlayer, topN = 5) {
+  getTopMoves(source, player = source.currentPlayer, topN = 5, options = {}) {
     if (!["territory-v2", "territory-v3"].includes(source.rulesVersion) || source.currentPlayer !== player)
       throw new Error("Invalid multiplayer rollout state");
-    const started = performance.now(), deadline = started + this.timeMs;
+    const started = performance.now(), deadline = Math.min(started + this.timeMs,
+      Number.isFinite(options.deadline) ? options.deadline : Infinity,
+      Number.isFinite(this.absoluteDeadline) ? this.absoluteDeadline : Infinity);
     const stats = this.lastSearch = { algorithm: "selfish-policy-rollout-canonical-area", elapsedMs: 0,
       fallbackMs: 0, policyCandidates: 0, simulatedActions: 0, terminalLeaves: 0, evaluatedLeaves: 0,
       canonicalScoreCalls: 0, canonicalCacheHits: 0, completedPhases: [], legalRoots: 0,

@@ -2,13 +2,22 @@ import {
   Player,
   PointState,
   PLAYER_ORDER,
-  TerritoryRulesVersion,
   getBoardVertices,
   getBoardPositions,
   isBoardPoint,
-} from "./GameEngine.js?v=20261025-territory-render1";
+} from "./GameEngine.js?v=20261029-unified-r1";
 
 const SQRT3_OVER_2 = Math.sqrt(3) / 2;
+const TOPOLOGY_BOARD_VIEW_RUNTIME = Symbol.for("lifeline.topology-board-view-runtime.v1");
+
+function getTopologyBoardViewRuntime() {
+  const runtime = globalThis[TOPOLOGY_BOARD_VIEW_RUNTIME];
+  if (!runtime || typeof runtime.projectBoard !== "function"
+    || typeof runtime.projectPath !== "function" || typeof runtime.hitTestBoard !== "function") {
+    throw new Error("Topology board view support is unavailable. Load BoardView.js before rendering a topology board.");
+  }
+  return runtime;
+}
 
 // Renderer 鍙礋璐ｆ妸蹇収缁樺埗鍒?Canvas锛屼笉鍋氳鍒欏垽鏂€?// 杩欐牱鏃犺鏄湰鍦版ā寮忚繕鏄仈鏈哄洖鏀撅紝閮借兘鍏变韩瀹屽叏涓€鑷寸殑娓叉煋閫昏緫銆?
 const DEFAULT_THEME = Object.freeze({
@@ -52,6 +61,7 @@ const PLAYER_THEME_KEYS = Object.freeze({
 });
 
 const NODE_PLAYERS = new Map(PLAYER_ORDER.map((player) => [PointState[`${player}_NODE`], player]));
+const LINE_PLAYERS = new Map(PLAYER_ORDER.map((player) => [PointState[`${player}_LINE`], player]));
 
 function keyToPoint(key) {
   const [x, y] = String(key).split(",").map(Number);
@@ -129,6 +139,7 @@ export class Renderer {
     this._renderCaches = new Map();
     this.cacheBoardPaths = options.cacheBoardPaths !== false;
     this._boardPaths = new Map();
+    this._topologyProjection = null;
     this.hintPoint = null;
     this._hintPulsePhase = 0;
     this._lastHintTimestamp = 0;
@@ -222,6 +233,9 @@ export class Renderer {
     this._territoryPaths?.clear();
     this._renderCaches?.clear();
     this._boardPaths?.clear();
+    // Keep lightweight legacy renderer probes structurally unchanged; real
+    // Renderer instances initialize this cache in the constructor.
+    if (Object.hasOwn(this, "_topologyProjection")) this._topologyProjection = null;
   }
 
   _scheduleResize() {
@@ -383,6 +397,136 @@ export class Renderer {
     return layout;
   }
 
+  _topologyViewBoard(snapshot) {
+    const topology = snapshot?.topology;
+    const storedViewBoard = topology?.viewBoard;
+    // Tests, replay inspectors and future atlas editors may supply a compact
+    // display override at topology.*.  Only use it when it has explicit copy
+    // IDs; ordinary engine snapshots retain the richer compiled view board.
+    const hasExplicitCopies = Array.isArray(topology?.pointCopies)
+      && topology.pointCopies.length > 0
+      && topology.pointCopies.every((copy) => typeof copy?.id === "string");
+    const viewBoard = storedViewBoard && typeof storedViewBoard === "object"
+      ? {
+        ...storedViewBoard,
+        ...(hasExplicitCopies ? { pointCopies: topology.pointCopies } : {}),
+        ...(Array.isArray(topology?.realBoundarySegments) ? { realBoundarySegments: topology.realBoundarySegments } : {}),
+        ...(Array.isArray(topology?.seamPairs) ? { seamPairs: topology.seamPairs } : {}),
+      }
+      : topology;
+    if (!viewBoard || !Array.isArray(viewBoard.pointCopies) || viewBoard.pointCopies.length === 0) {
+      throw new Error("Topology snapshots require a non-empty topology.viewBoard atlas.");
+    }
+    return viewBoard;
+  }
+
+  _computeTopologyLayout(snapshot) {
+    const cssWidth = this._lastMeasuredWidth > 0 ? this._lastMeasuredWidth : this._measureCanvas().cssWidth;
+    const cssHeight = this._lastMeasuredHeight > 0 ? this._lastMeasuredHeight : this._measureCanvas().cssHeight;
+    const topInset = clamp(this.topInset ?? 0, 0, Math.max(0, cssHeight - 1));
+    const boardHeight = Math.max(1, cssHeight - topInset);
+    const viewBoard = this._topologyViewBoard(snapshot);
+    const chart = this._effectiveTopologyChart(snapshot);
+    const normalizedPoints = viewBoard.pointCopies.filter(copy => this._topologyCopyVisible(copy, chart)).map((copy) => {
+      const coordinate = copy?.coordinate;
+      if (!Array.isArray(coordinate) || coordinate.length !== 2
+        || !Number.isFinite(coordinate[0]) || !Number.isFinite(coordinate[1])) {
+        throw new Error("Topology atlas copies require finite two-dimensional coordinates.");
+      }
+      return [coordinate[0] + coordinate[1] * 0.5, coordinate[1] * SQRT3_OVER_2];
+    });
+    let minNX = Number.POSITIVE_INFINITY;
+    let maxNX = Number.NEGATIVE_INFINITY;
+    let minNY = Number.POSITIVE_INFINITY;
+    let maxNY = Number.NEGATIVE_INFINITY;
+    for (const [nx, ny] of normalizedPoints) {
+      minNX = Math.min(minNX, nx);
+      maxNX = Math.max(maxNX, nx);
+      minNY = Math.min(minNY, ny);
+      maxNY = Math.max(maxNY, ny);
+    }
+    const layoutKey = JSON.stringify([
+      "topology", snapshot?.boardHash ?? "", chart, cssWidth, cssHeight, topInset,
+      minNX, maxNX, minNY, maxNY, this.paddingRatio,
+    ]);
+    this._renderCaches ??= new Map();
+    const cachedLayout = this._renderCaches.get("topology-layout");
+    if (cachedLayout?.key === layoutKey) return cachedLayout.value;
+
+    const outerPadding = Math.max(12, Math.min(cssWidth, boardHeight) * this.paddingRatio);
+    const usableWidth = Math.max(1, cssWidth - outerPadding * 2);
+    const usableHeight = Math.max(1, boardHeight - outerPadding * 2);
+    const logicalWidth = Math.max(1, maxNX - minNX);
+    const logicalHeight = Math.max(1, maxNY - minNY);
+    const scale = Math.min(usableWidth / (logicalWidth + 0.9), usableHeight / (logicalHeight + 0.9));
+    const layout = {
+      isTopologyLayout: true,
+      cssWidth,
+      cssHeight,
+      topInset,
+      scale,
+      offsetX: (cssWidth - logicalWidth * scale) * 0.5 - minNX * scale,
+      offsetY: topInset + (boardHeight - logicalHeight * scale) * 0.5 - minNY * scale,
+      pointRadius: Math.max(5, scale * 0.13),
+      guidePointRadius: Math.max(2, scale * 0.04),
+      lineWidth: Math.max(3, scale * 0.08),
+      guideLineWidth: Math.max(1, scale * 0.028),
+      territoryLineWidth: Math.max(2, scale * 0.05),
+      legalMoveRadius: Math.max(4, scale * 0.08),
+      normalizedBounds: { minNX, maxNX, minNY, maxNY },
+    };
+    this._renderCaches.set("topology-layout", { key: layoutKey, value: layout });
+    return layout;
+  }
+
+  _effectiveTopologyChart(snapshot) {
+    return ["double-torus", "double-sphere"].includes(snapshot?.boardDefinition?.topology?.preset)
+      && ["front", "back"].includes(this.topologyChart) ? this.topologyChart : "both";
+  }
+
+  _topologyCopyVisible(copy, chart) {
+    if (chart === "both") return true;
+    return (String(copy?.sourceVertexId ?? "").startsWith("back:") ? "back" : "front") === chart;
+  }
+
+  setTopologyChart(chart = "both") {
+    if (!["both", "front", "back"].includes(chart)) throw new TypeError("Invalid topology chart.");
+    this.topologyChart = chart;
+    this._topologyProjection = null;
+    this._lastRenderFingerprint = "";
+    if (this.lastSnapshot?.isTopologyBoard) this.render(this.lastSnapshot, { _immediate: true, force: true, skipResize: true });
+  }
+
+  _getTopologyProjection(snapshot, layout) {
+    const viewBoard = this._topologyViewBoard(snapshot);
+    const chart = this._effectiveTopologyChart(snapshot);
+    const key = JSON.stringify([
+      snapshot?.boardHash ?? "", chart, layout.cssWidth, layout.cssHeight,
+      layout.scale, layout.offsetX, layout.offsetY,
+    ]);
+    if (this._topologyProjection?.key === key) return this._topologyProjection.value;
+    const runtime = getTopologyBoardViewRuntime();
+    const fullProjected = runtime.projectBoard(viewBoard, {
+      scale: layout.scale,
+      offset: [layout.offsetX, layout.offsetY],
+    });
+    const pointCopies = fullProjected.pointCopies.filter(copy => this._topologyCopyVisible(copy, chart));
+    const visibleCopyIds = new Set(pointCopies.map(copy => copy.id));
+    const projected = { ...fullProjected, pointCopies,
+      boundarySegments: fullProjected.boundarySegments.filter(segment => visibleCopyIds.has(segment.fromCopyId) && visibleCopyIds.has(segment.toCopyId)),
+    };
+    const byCopyId = new Map(projected.pointCopies.map((copy) => [copy.id, copy]));
+    const byCanonicalVertex = new Map();
+    for (const copy of projected.pointCopies) {
+      const copies = byCanonicalVertex.get(copy.canonicalVertexId) ?? [];
+      copies.push(copy);
+      byCanonicalVertex.set(copy.canonicalVertexId, copies);
+    }
+    const value = { runtime, viewBoard, projected, byCopyId, byCanonicalVertex, visibleCopyIds, chart };
+    this._topologyProjection = { key, value };
+    return value;
+  }
+
   _gridToPixel(gx, gy, layout = this.layout) {
     if (!layout) {
       throw new Error("Layout is not available. Call render(snapshot) first.");
@@ -395,6 +539,14 @@ export class Renderer {
   }
 
   getPointPixelCoordinates(gx, gy) {
+    if (typeof gx === "string" && this.lastSnapshot?.isTopologyBoard) {
+      if (!this.layout) this.layout = this._computeTopologyLayout(this.lastSnapshot);
+      const projection = this._getTopologyProjection(this.lastSnapshot, this.layout);
+      const copy = projection.byCopyId.get(gx)
+        ?? projection.byCanonicalVertex.get(gx)?.[0];
+      if (!copy) throw new Error("Unknown topology vertex or atlas copy: " + gx);
+      return { x: copy.x, y: copy.y };
+    }
     const point = Array.isArray(gx) ? gx : [gx, gy];
     if (!this.layout) {
       const snapshot = this.lastSnapshot ?? { gridSize: 9 };
@@ -407,11 +559,357 @@ export class Renderer {
   getHitRadius() {
     if (!this.layout) {
       const snapshot = this.lastSnapshot ?? { gridSize: 9 };
-      this.layout = this._computeLayout(snapshot);
+      this.layout = snapshot.isTopologyBoard
+        ? this._computeTopologyLayout(snapshot)
+        : this._computeLayout(snapshot);
     }
     // Pick the nearest grid point within almost one triangular grid cell.
     // Input still checks that exact point's legality, never a nearby legal move.
     return Math.max(12, this.layout.scale * 0.58);
+  }
+
+  /** Return a canonical topology vertex ID for a canvas-space click, if any. */
+  getTopologyHitVertexId(pixelX, pixelY) {
+    if (!this.lastSnapshot?.isTopologyBoard) return null;
+    if (!this.layout) this.layout = this._computeTopologyLayout(this.lastSnapshot);
+    const projection = this._getTopologyProjection(this.lastSnapshot, this.layout);
+    return projection.runtime.hitTestBoard(projection.projected, [pixelX, pixelY], {
+      radius: this.getHitRadius(),
+    });
+  }
+
+  _topologyCopiesForVertex(projection, vertexId) {
+    return typeof vertexId === "string"
+      ? (projection.byCanonicalVertex.get(vertexId) ?? [])
+      : [];
+  }
+
+  _drawTopologyStatic(ctx, projection, layout) {
+    ctx.clearRect(0, 0, layout.cssWidth, layout.cssHeight);
+    ctx.fillStyle = this.theme.background;
+    ctx.fillRect(0, 0, layout.cssWidth, layout.cssHeight);
+
+    // Atlas guide edges only join copies that occur in the same chart. A seam
+    // is an identification marker, never a visible chord through the atlas.
+    ctx.strokeStyle = this.theme.guideLine;
+    ctx.lineWidth = layout.guideLineWidth;
+    ctx.beginPath();
+    for (const edge of projection.viewBoard.displayEdges ?? []) {
+      const copyIds = edge?.copyIds ?? [edge?.fromCopyId, edge?.toCopyId];
+      const copies = copyIds.map((copyId) => projection.byCopyId.get(copyId)).filter(Boolean);
+      if (copies.length < 2) continue;
+      ctx.moveTo(copies[0].x, copies[0].y);
+      for (const copy of copies.slice(1)) ctx.lineTo(copy.x, copy.y);
+    }
+    ctx.stroke();
+
+    ctx.strokeStyle = this.theme.boardStroke;
+    ctx.lineWidth = Math.max(2, layout.guideLineWidth * 2);
+    ctx.beginPath();
+    for (const segment of projection.projected.boundarySegments ?? []) {
+      ctx.moveTo(segment.from[0], segment.from[1]);
+      ctx.lineTo(segment.to[0], segment.to[1]);
+    }
+    ctx.stroke();
+
+    ctx.fillStyle = this.theme.guidePoint;
+    ctx.beginPath();
+    for (const copy of projection.projected.pointCopies ?? []) {
+      ctx.moveTo(copy.x + layout.guidePointRadius, copy.y);
+      ctx.arc(copy.x, copy.y, layout.guidePointRadius, 0, Math.PI * 2);
+    }
+    ctx.fill();
+
+    for (const [markerIndex, marker] of (projection.projected.seamMarkers ?? []).entries()) {
+      const anchors = marker.anchors ?? [];
+      if (anchors.length < 4) continue;
+      ctx.save();
+      ctx.strokeStyle = this.theme.outline;
+      ctx.fillStyle = this.theme.outline;
+      ctx.lineWidth = Math.max(1.5, layout.guideLineWidth * 1.5);
+      const endpointMap = marker.endpointMap ?? [0, 1];
+      for (const [from, to] of [[anchors[0], anchors[1]], [anchors[2 + endpointMap[0]], anchors[2 + endpointMap[1]]]]) {
+        if (projection.visibleCopyIds && (!projection.visibleCopyIds.has(from.copyId) || !projection.visibleCopyIds.has(to.copyId))) continue;
+        const [x, y] = from.point;
+        const [endX, endY] = to.point;
+        const dx = endX - x, dy = endY - y;
+        const length = Math.hypot(dx, dy) || 1;
+        const ux = dx / length, uy = dy / length;
+        ctx.setLineDash([Math.max(3, layout.scale * 0.08), Math.max(2, layout.scale * 0.05)]);
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(endX, endY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        const arrowX = x + dx * 0.65, arrowY = y + dy * 0.65;
+        const arrowSize = Math.max(4, Math.min(9, length * 0.18));
+        ctx.beginPath();
+        ctx.moveTo(arrowX, arrowY);
+        ctx.lineTo(arrowX - ux * arrowSize - uy * arrowSize * 0.55, arrowY - uy * arrowSize + ux * arrowSize * 0.55);
+        ctx.moveTo(arrowX, arrowY);
+        ctx.lineTo(arrowX - ux * arrowSize + uy * arrowSize * 0.55, arrowY - uy * arrowSize - ux * arrowSize * 0.55);
+        ctx.stroke();
+        ctx.font = "bold " + Math.max(10, layout.scale * 0.12) + "px sans-serif";
+        ctx.fillText(String(markerIndex + 1), (x + endX) / 2 + uy * 10, (y + endY) / 2 - ux * 10);
+      }
+      ctx.restore();
+    }
+  }
+
+  _ensureTopologyStaticLayer(snapshot, projection, layout) {
+    if (!this._staticCtx) {
+      this._staticLayerKey = "";
+      return false;
+    }
+    const key = JSON.stringify([
+      "topology-static",
+      snapshot.boardHash ?? "",
+      layout.cssWidth,
+      layout.cssHeight,
+      Math.round(layout.scale * 1000),
+      layout.offsetX,
+      layout.offsetY,
+      this._lastMeasuredDpr ?? 1,
+      projection.viewBoard,
+      this.theme,
+    ]);
+    if (this._staticLayerKey === key) return true;
+    this._drawTopologyStatic(this._staticCtx, projection, layout);
+    this._staticLayerKey = key;
+    return true;
+  }
+
+  _drawTopologyPaths(snapshot, projection, layout) {
+    const pathsByPlayer = snapshot.topologyPaths ?? {};
+    const ctx = this.ctx;
+    for (const player of PLAYER_ORDER) {
+      const connections = Array.isArray(pathsByPlayer[player]) ? pathsByPlayer[player] : [];
+      if (!connections.length) continue;
+      ctx.save();
+      ctx.strokeStyle = this._getPlayerStyle(player, "Line");
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.lineWidth = layout.lineWidth;
+      for (const connection of connections) {
+        const segments = projection.runtime.projectPath(projection.viewBoard, connection, {
+          scale: layout.scale,
+          offset: [layout.offsetX, layout.offsetY],
+        });
+        for (const segment of segments) {
+          if (!segment.points?.length || segment.points.length < 2 || (projection.visibleCopyIds && segment.copyIds?.some(id => !projection.visibleCopyIds.has(id)))) continue;
+          ctx.beginPath();
+          ctx.moveTo(segment.points[0][0], segment.points[0][1]);
+          for (const point of segment.points.slice(1)) ctx.lineTo(point[0], point[1]);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+  }
+
+  _drawTopologyTerritories(snapshot, projection, layout) {
+    if (snapshot.territoryPending) return;
+    const ctx = this.ctx;
+    const runtime = projection.runtime ?? getTopologyBoardViewRuntime();
+    const geometry = runtime.buildTopologyTerritoryDisplay(snapshot).filter(part => !projection.chart || projection.chart === "both"
+      || (typeof part.faceId === "string" && (part.faceId.startsWith("back:") ? "back" : "front") === projection.chart));
+    for (const player of PLAYER_ORDER) {
+      const faces = geometry.filter((part) => part.player === player && part.kind === "face");
+      if (!faces.length) continue;
+      ctx.save();
+      ctx.beginPath();
+      for (const { polygon } of faces) this._traceTerritory(ctx, polygon, layout);
+      ctx.fillStyle = this._getPlayerStyle(player, "TerritoryFill");
+      ctx.fill();
+      ctx.restore();
+    }
+    for (const { player, polygon, kind } of geometry) {
+      if (kind === "face") continue;
+      ctx.save();
+      ctx.beginPath();
+      this._traceTerritory(ctx, polygon, layout);
+      ctx.fillStyle = this._getPlayerStyle(player, "TerritoryFill");
+      ctx.fill();
+      ctx.strokeStyle = this._getPlayerStyle(player, "TerritoryStroke");
+      ctx.lineWidth = layout.territoryLineWidth;
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  _drawTopologyProtectionZones(snapshot, projection, layout) {
+    const zones = snapshot.topology?.protectionZones ?? [];
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.lineWidth = Math.max(1.5, layout.guideLineWidth * 1.4);
+    ctx.setLineDash([3, 3]);
+    for (const zone of zones) {
+      for (const [index, owner] of (zone.owners ?? []).entries()) {
+        if (!PLAYER_ORDER.includes(owner)) continue;
+        ctx.strokeStyle = this._getPlayerStyle(owner, "Line");
+        for (const copy of this._topologyCopiesForVertex(projection, zone.canonicalVertexId)) {
+          ctx.beginPath();
+          ctx.arc(copy.x, copy.y, Math.max(layout.pointRadius + 3, layout.scale * 0.17) + index * 3, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+    }
+    ctx.restore();
+  }
+
+  _drawTopologyLegalMoves(snapshot, projection, layout) {
+    const candidates = Array.isArray(snapshot.legalMoves) ? snapshot.legalMoves : [];
+    if (!candidates.length) return;
+    const ctx = this.ctx;
+    const radius = layout.legalMoveRadius;
+    ctx.beginPath();
+    for (const candidate of candidates) {
+      const vertexId = typeof candidate === "string"
+        ? candidate
+        : candidate?.vertexId ?? candidate?.point;
+      for (const copy of this._topologyCopiesForVertex(projection, vertexId)) {
+        ctx.moveTo(copy.x, copy.y - radius);
+        ctx.lineTo(copy.x + radius, copy.y);
+        ctx.lineTo(copy.x, copy.y + radius);
+        ctx.lineTo(copy.x - radius, copy.y);
+        ctx.closePath();
+      }
+    }
+    ctx.fillStyle = this.theme.legalMoveFill;
+    ctx.fill();
+    ctx.lineWidth = Math.max(1.25, layout.guideLineWidth * 1.8);
+    ctx.strokeStyle = this.theme.legalMoveStroke;
+    ctx.stroke();
+  }
+
+  _drawTopologyNodes(snapshot, projection, layout) {
+    const boardStates = snapshot.boardStates ?? {};
+    const ctx = this.ctx;
+    ctx.lineWidth = Math.max(1.5, layout.lineWidth * 0.25);
+    ctx.strokeStyle = this.theme.outline;
+    for (const player of PLAYER_ORDER) {
+      const nodeState = PointState[player + "_NODE"];
+      const vertexIds = Object.entries(boardStates)
+        .filter(([, state]) => state === nodeState)
+        .map(([vertexId]) => vertexId);
+      if (!vertexIds.length) continue;
+      ctx.beginPath();
+      for (const vertexId of vertexIds) {
+        for (const copy of this._topologyCopiesForVertex(projection, vertexId)) {
+          ctx.moveTo(copy.x + layout.pointRadius, copy.y);
+          ctx.arc(copy.x, copy.y, layout.pointRadius, 0, Math.PI * 2);
+        }
+      }
+      ctx.fillStyle = this._getPlayerStyle(player, "Node");
+      ctx.fill();
+      ctx.stroke();
+    }
+  }
+
+  _drawTopologyStartingPoints(snapshot, projection, layout) {
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.lineWidth = Math.max(1.5, layout.lineWidth * 0.35);
+    const roots = snapshot.topology?.startingRoots ?? snapshot.initialRoots
+      ?? Object.fromEntries(Object.entries(snapshot.initialPositions ?? {}).map(([player, id]) => [player, [id]]));
+    for (const [player, vertices] of Object.entries(roots)) {
+      for (const vertexId of Array.isArray(vertices) ? vertices : [vertices]) {
+       for (const copy of this._topologyCopiesForVertex(projection, vertexId)) {
+        ctx.strokeStyle = this._getPlayerStyle(player, "Node");
+        ctx.beginPath();
+        ctx.arc(copy.x, copy.y, layout.pointRadius + 4, 0, Math.PI * 2);
+        ctx.stroke();
+       }
+      }
+    }
+    ctx.restore();
+  }
+
+  _drawTopologyInspectionOverlay(snapshot, projection, layout) {
+    const id = snapshot.inspectionOverlay?.selectedPoint;
+    if (typeof id !== "string") return;
+    const ctx = this.ctx;
+    const radius = layout.pointRadius + Math.max(8, layout.scale * 0.18);
+    for (const copy of this._topologyCopiesForVertex(projection, id)) {
+      ctx.save();
+      ctx.strokeStyle = "rgba(218, 151, 36, 0.98)";
+      ctx.fillStyle = "rgba(255, 226, 117, 0.2)";
+      ctx.lineWidth = Math.max(2.5, layout.lineWidth * 0.65);
+      ctx.beginPath();
+      ctx.arc(copy.x, copy.y, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  _drawTopologyLatestMove(action, projection, layout) {
+    if (!action || action.type !== "move" || typeof action.point !== "string"
+      || !PLAYER_ORDER.includes(action.player)) return;
+    const ctx = this.ctx;
+    const stroke = this._getPlayerStyle(action.player, "Line");
+    const ringRadius = layout.pointRadius + Math.max(6, layout.pointRadius * 0.55);
+    const glowRadius = ringRadius + Math.max(5, layout.pointRadius * 0.7);
+    for (const copy of this._topologyCopiesForVertex(projection, action.point)) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(copy.x, copy.y, glowRadius, 0, Math.PI * 2);
+      ctx.fillStyle = stroke;
+      ctx.globalAlpha = 0.22;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.beginPath();
+      ctx.arc(copy.x, copy.y, ringRadius, 0, Math.PI * 2);
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = Math.max(2.5, layout.lineWidth * 0.3);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(copy.x, copy.y, Math.max(2.5, layout.pointRadius * 0.28), 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.96)";
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  _drawTopologyLastAction(snapshot, projection, layout) {
+    const actions = snapshot.lastMoves !== undefined
+      ? Object.entries(snapshot.lastMoves ?? {}).map(([player, point]) => ({ type: "move", player, point }))
+      : [snapshot.lastAction];
+    for (const action of actions) {
+      if (snapshot.resignedPlayers?.includes(action?.player)
+        || snapshot.boardStates?.[action?.point] !== PointState[`${action?.player}_NODE`]) continue;
+      this._drawTopologyLatestMove(action, projection, layout);
+    }
+  }
+
+  _doRenderTopology(snapshot, options = {}) {
+    if (!options.skipResize) this.resize();
+    this.layout = this._computeTopologyLayout(snapshot);
+    const projection = this._getTopologyProjection(snapshot, this.layout);
+    const fingerprint = [
+      this._getBoardFingerprint(snapshot),
+      "topology",
+      projection.chart,
+      this.layout.cssWidth,
+      this.layout.cssHeight,
+      this.layout.scale,
+    ].join(":");
+    if (!options.force && fingerprint === this._lastRenderFingerprint) return;
+    this._lastRenderFingerprint = fingerprint;
+
+    const hasStaticLayer = this._ensureTopologyStaticLayer(snapshot, projection, this.layout);
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    if (!hasStaticLayer) this._drawTopologyStatic(this.ctx, projection, this.layout);
+    this._drawTopologyTerritories(snapshot, projection, this.layout);
+    this._drawTopologyPaths(snapshot, projection, this.layout);
+    this._drawTopologyProtectionZones(snapshot, projection, this.layout);
+    this._drawTopologyLegalMoves(snapshot, projection, this.layout);
+    this._drawTopologyNodes(snapshot, projection, this.layout);
+    this._drawTopologyStartingPoints(snapshot, projection, this.layout);
+    this._drawTopologyLastAction(snapshot, projection, this.layout);
+    this._drawTopologyInspectionOverlay(snapshot, projection, this.layout);
+    if (this._hintCtx) this._renderHintLayer();
+    else this._drawHint(this.layout);
   }
 
   setHintPoint(point) {
@@ -420,11 +918,15 @@ export class Renderer {
       return;
     }
 
-    this.hintPoint = [point[0], point[1]];
+    this.hintPoint = typeof point === "string" ? point : [point[0], point[1]];
     this._hintPulsePhase = 0;
     this._lastHintTimestamp = 0;
     if (this._hintCtx) {
-      if (!this.layout && this.lastSnapshot) this.layout = this._computeLayout(this.lastSnapshot);
+      if (!this.layout && this.lastSnapshot) {
+        this.layout = this.lastSnapshot.isTopologyBoard
+          ? this._computeTopologyLayout(this.lastSnapshot)
+          : this._computeLayout(this.lastSnapshot);
+      }
       this._renderHintLayer();
     } else {
       this._lastRenderFingerprint = "";
@@ -810,25 +1312,17 @@ export class Renderer {
 
     for (const territory of territories) {
       const polygon = territory.data?.polygon;
-      const renderPoints = snapshot.rulesVersion === TerritoryRulesVersion.V3
-        && Array.isArray(territory.data?.renderPoints)
-        ? territory.data.renderPoints
-        : null;
-      const mode = renderPoints ? "cells" : "polygon";
-      const points = renderPoints ?? polygon;
-      if (!points || (mode === "polygon" ? points.length < 3 : points.length === 0)) {
+      const mode = "polygon";
+      const points = polygon;
+      if (!points || points.length < 3) {
         continue;
       }
+      if (points.reduce((sum, point, index) => {
+        const next = points[(index + 1) % points.length];
+        return sum + point[0] * next[1] - point[1] * next[0];
+      }, 0) === 0) continue;
 
       ctx.save();
-      if (mode === "cells") {
-        const clipCorners = this._getExpandedBoardCorners(layout);
-        ctx.beginPath();
-        ctx.moveTo(clipCorners[0][0], clipCorners[0][1]);
-        for (const [x, y] of clipCorners.slice(1)) ctx.lineTo(x, y);
-        ctx.closePath();
-        ctx.clip();
-      }
       this._territoryPaths ??= new Map();
       let path = null;
       if (this.cacheTerritoryPaths !== false && typeof Path2D === "function") {
@@ -844,8 +1338,7 @@ export class Renderer {
         if (cached?.key === cacheKey) path = cached.path;
         else {
           path = new Path2D();
-          if (mode === "cells") this._traceTerritoryCells(path, points, layout);
-          else this._traceTerritory(path, points, layout);
+          this._traceTerritory(path, points, layout);
           this._territoryPaths.set(territory.player, {
             path,
             key: cacheKey,
@@ -853,8 +1346,7 @@ export class Renderer {
         }
       } else {
         ctx.beginPath();
-        if (mode === "cells") this._traceTerritoryCells(ctx, points, layout);
-        else this._traceTerritory(ctx, points, layout);
+        this._traceTerritory(ctx, points, layout);
       }
       ctx.globalAlpha = 1;
       ctx.fillStyle = territory.fill;
@@ -874,22 +1366,37 @@ export class Renderer {
     target.closePath();
   }
 
-  _traceTerritoryCells(target, points, layout) {
-    // V3 scores lattice points rather than the area of one contour. A compact
-    // hexagon around every scored point makes open chains, multiple pockets and
-    // donut holes visible without inventing another continuous boundary.
-    const radius = layout.scale / Math.sqrt(3) * 0.9;
-    for (const [gx, gy] of points) {
-      const [x, y] = this._gridToPixel(gx, gy, layout);
-      for (let vertex = 0; vertex < 6; vertex += 1) {
-        const angle = Math.PI / 6 + vertex * Math.PI / 3;
-        const px = x + Math.cos(angle) * radius;
-        const py = y + Math.sin(angle) * radius;
-        if (vertex === 0) target.moveTo(px, py);
-        else target.lineTo(px, py);
+  _drawProtectionZones(snapshot, layout) {
+    const ctx = this.ctx;
+    const directions = [[1,0],[-1,0],[0,1],[0,-1],[1,-1],[-1,1]];
+    const zones = new Map();
+    for (const [owner, root] of Object.entries(snapshot.initialPositions ?? {})) {
+      if (!PLAYER_ORDER.includes(owner) || !Array.isArray(root)) continue;
+      if (snapshot.protectionRule === "duel-first-unprotected-v1"
+        && layout.playerCount === 2 && layout.boardShape === "triangle"
+        && owner === snapshot.startPlayer) continue;
+      for (const [dx, dy] of directions) {
+        const point = [root[0] + dx, root[1] + dy];
+        if (!isBoardPoint(point, layout.gridSize, layout.playerCount, layout.boardShape)) continue;
+        const key = point.join(",");
+        const zone = zones.get(key) ?? { point, owners: [] };
+        zone.owners.push(owner);
+        zones.set(key, zone);
       }
-      target.closePath();
     }
+    ctx.save();
+    ctx.lineWidth = Math.max(1.5, layout.guideLineWidth * 1.4);
+    ctx.setLineDash([3, 3]);
+    for (const { point, owners } of zones.values()) {
+      const [x, y] = this._gridToPixel(point[0], point[1], layout);
+      for (const [index, owner] of owners.entries()) {
+        ctx.strokeStyle = this._getPlayerStyle(owner, "Line");
+        ctx.beginPath();
+        ctx.arc(x, y, Math.max(layout.pointRadius + 3, layout.scale * 0.17) + index * 3, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
   }
 
   _drawStartingPoints(snapshot, layout) {
@@ -1143,6 +1650,27 @@ export class Renderer {
   }
 
   _getBoardFingerprint(snapshot) {
+    if (snapshot?.isTopologyBoard) {
+      const actionPoint = snapshot.lastAction?.point;
+      return [
+        "topology",
+        snapshot.boardHash ?? "",
+        snapshot.renderEpoch ?? 0,
+        snapshot.positionRevision ?? snapshot.turnCount ?? 0,
+        snapshot.gameOver ? 1 : 0,
+        snapshot.territoryPending ? 1 : 0,
+        snapshot.currentPlayer ?? "",
+        typeof actionPoint === "string" ? actionPoint : JSON.stringify(actionPoint ?? null),
+        JSON.stringify(snapshot.lastMoves ?? null),
+        JSON.stringify(snapshot.boardStates ?? null),
+        JSON.stringify(snapshot.topology?.startingRoots ?? snapshot.initialRoots ?? snapshot.initialPositions ?? null),
+        JSON.stringify(snapshot.topologyPaths ?? null),
+        JSON.stringify(snapshot.legalMoves ?? null),
+        JSON.stringify(snapshot.territoryPending ? snapshot.renderTerritories : snapshot.territories),
+        JSON.stringify(snapshot.topology?.viewBoard ?? snapshot.topology ?? null),
+        JSON.stringify(snapshot.inspectionOverlay ?? null),
+      ].join(":");
+    }
     const lp = snapshot.lastAction?.point;
     return [
       snapshot.renderEpoch ?? 0,
@@ -1150,6 +1678,8 @@ export class Renderer {
       snapshot.playerCount ?? 2,
       snapshot.boardShape ?? "legacy",
       snapshot.rulesVersion ?? "territory-v1",
+      snapshot.protectionRule ?? "symmetric-v1",
+      snapshot.startPlayer ?? "BLACK",
       snapshot.gameOver ? 1 : 0,
       snapshot.territoryPending ? 1 : 0,
       snapshot.currentPlayer,
@@ -1167,7 +1697,7 @@ export class Renderer {
   }
 
   render(snapshot, options = {}) {
-    if (!snapshot || !snapshot.boardMatrix) {
+    if (!snapshot || (!snapshot.isTopologyBoard && !snapshot.boardMatrix)) {
       throw new Error("Renderer.render(snapshot) requires a valid GameEngine snapshot.");
     }
     this.lastSnapshot = snapshot;
@@ -1189,7 +1719,11 @@ export class Renderer {
   }
 
   _doRender(snapshot, options = {}) {
-    if (!snapshot || !snapshot.boardMatrix) {
+    if (!snapshot || (!snapshot.isTopologyBoard && !snapshot.boardMatrix)) {
+      return;
+    }
+    if (snapshot.isTopologyBoard) {
+      this._doRenderTopology(snapshot, options);
       return;
     }
     if (!options.skipResize) {
@@ -1224,6 +1758,7 @@ export class Renderer {
       && PLAYER_ORDER.some(player => boardData.nodes[player]?.length);
     this._drawSegments(snapshot, boardData, this.layout, cachePaths);
     this._drawTerritories(snapshot, this.layout);
+    this._drawProtectionZones(snapshot, this.layout);
     this._drawLegalMoves(snapshot, this.layout, cachePaths);
     this._drawNodes(boardData, this.layout, cachePaths);
     this._drawStartingPoints(snapshot, this.layout);

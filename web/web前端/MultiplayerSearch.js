@@ -1,10 +1,10 @@
-import { multiplayerClock as performance } from "./MultiplayerClock.js";
-import { installNativeEdgeGeometry } from "./MultiplayerNativeGeometry.js?v=20261027-topology-multistart-release1";
+import { multiplayerClock as performance } from "./MultiplayerClock.js?v=20261029-unified-r1";
+import { installNativeEdgeGeometry } from "./MultiplayerNativeGeometry.js?v=20261029-unified-r1";
 // Full legal-action paranoid minimax. Only alpha/beta bounds prune branches;
 // elapsed time ends an iteration, never masquerades as an equivalent cutoff.
-import { GameEngine } from "./GameEngine.js?v=20261027-topology-multistart-release1";
-import { saveState, restoreState } from "./AIEngine.js?v=20261027-topology-multistart-release1";
-import { evaluateReplyResilience } from "./MultiplayerHardValue.js?v=20261026-allplatform1";
+import { GameEngine } from "./GameEngine.js?v=20261029-unified-r1";
+import { saveState, restoreState } from "./AIEngine.js?v=20261029-unified-r1";
+import { evaluateReplyResilience } from "./MultiplayerHardValue.js?v=20261029-unified-r1";
 
 const order = (a, b) => a.point===null ? (b.point===null?0:1) : b.point===null ? -1 : a.point[1] - b.point[1] || a.point[0] - b.point[0];
 const key = p => p===null ? "PASS" : p.join(",");
@@ -45,6 +45,7 @@ export function potentialMoves(engine, player = engine.currentPlayer) {
 }
 
 export function isolatedSearchEngine(source) {
+  if (source.rootRulesVersion === "root-v2") throw new Error("Optimized multiplayer search does not support multi-root state.");
   const engine = new GameEngine({ gridSize: source.gridSize, playerCount: source.playerCount,
     boardShape: source.boardShape, initialPositions: source.initialPositions,
     startPlayer: source.startPlayer, rulesVersion: source.rulesVersion,
@@ -444,9 +445,10 @@ export class MultiplayerMinimaxAI {
     this.exactScores = exactScores; this.priorWeight = priorWeight;
     this.allowPass = allowPass;
   }
-  getTopMoves(source, player = source.currentPlayer, topN = 5) {
+  getTopMoves(source, player = source.currentPlayer, topN = 5, options = {}) {
     if (!["territory-v2", "territory-v3"].includes(source.rulesVersion) || source.currentPlayer !== player) throw new Error("Invalid multiplayer search state");
-    const started = performance.now(), deadline = started + this.timeMs;
+    const started = performance.now(), deadline = Math.min(started + this.timeMs,
+      Number.isFinite(options.deadline) ? options.deadline : Infinity);
     const engine = isolatedSearchEngine(source);
     const stats = this.lastSearch = { nodes: 0, cutoffs: 0, completedDepth: 0, elapsedMs: 0, timedOut: false,
       candidateCap: null, algorithm: "paranoid-alpha-beta", partialIterationDiscarded: false, terminalScoringInterrupted:false };

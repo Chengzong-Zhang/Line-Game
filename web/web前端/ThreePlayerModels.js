@@ -3,8 +3,7 @@
 import {
   THREE_PLAYER_FEATURES, ThreePlayerAI, createThreePlayerModel as createV1Model,
   loadThreePlayerModel as loadV1Model,
-} from "./ThreePlayerAI.js?v=20261026-allplatform1";
-import { portableClone } from "./PortableClone.js";
+} from "./ThreePlayerAI.js?v=20261029-unified-r1";
 
 export { ThreePlayerAI };
 // v2 failed the 2026-10-21 promotion gate; see docs/verification/three-player-ai-v2/ARENA_RESULTS.md.
@@ -43,7 +42,7 @@ export function createSupportedThreePlayerModel(payload) {
       || payload.lineage.parent_sha256 !== training.parent_model_sha256) {
     throw new Error("三人 AI 模型格式或后训练来源无效。");
   }
-  const spec = portableClone(payload);
+  const spec = structuredClone(payload);
   return {
     spec,
     score(features) {

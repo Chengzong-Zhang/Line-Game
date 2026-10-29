@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { createReplayDocument, validateReplayDocument } from "../ReplayCodec.js";
+import { canonicalize, createReplayDocument, validateReplayDocument } from "../ReplayCodec.js";
 
 const settings = {
   gridSize: 6,
@@ -53,4 +54,41 @@ assert.equal(territoryResult.success, true);
 assert.equal(territoryFixture.actions[2].effects.territoryDelta.BLACK, 10);
 assert.deepEqual(territoryFixture.actions[2].effects.addedEdgesByPlayer.BLACK, ["0,0|0,3", "3,0|0,3"]);
 
-console.log("verify-replay-codec: PASS");
+const hash = (value) => `sha256:${createHash("sha256").update(canonicalize(value)).digest("hex")}`;
+function rehash(replay) {
+  for (let i = 0; i < replay.actions.length; i++) {
+    const event = replay.actions[i];
+    if (i) event.prevEventHash = replay.actions[i - 1].eventHash;
+    const { eventHash, ...body } = event;
+    event.eventHash = hash(body);
+  }
+  replay.integrity.finalEventHash = replay.actions.at(-1)?.eventHash ?? null;
+  replay.integrity.canonicalDocumentHash = hash({ ...replay, integrity: { ...replay.integrity, canonicalDocumentHash: null } });
+  return replay;
+}
+assert.equal((await validateReplayDocument(rehash(structuredClone(document)))).success, true, "rehashing a valid replay must remain valid");
+const falseActor = structuredClone(document);
+falseActor.actions[0].actor = "WHITE";
+assert.equal((await validateReplayDocument(rehash(falseActor))).success, false, "rehashed false actor must be rejected");
+const falseEffects = structuredClone(document);
+falseEffects.actions[0].effects.capturedPoints = [[5, 0]];
+assert.equal((await validateReplayDocument(rehash(falseEffects))).success, false, "rehashed false captures must be rejected");
+const complete = await createReplayDocument(settings, [{ type: "skip" }, { type: "skip" }]);
+assert.equal((await validateReplayDocument(complete)).success, true);
+const completeV3 = await createReplayDocument(
+  { ...settings, rulesVersion: "territory-v3" },
+  [{ type: "skip" }, { type: "skip" }],
+);
+assert.equal((await validateReplayDocument(completeV3)).success, true);
+for (const score of Object.values(completeV3.terminal.scores)) {
+  assert.deepEqual(Object.keys(score).sort(), ["area", "displayArea", "polygon"]);
+  assert.equal(Object.hasOwn(score, "renderPoints"), false, "render-only geometry must not change replay schema v1");
+}
+const falseTerminal = structuredClone(complete);
+falseTerminal.terminal.winner = "FAKE";
+falseTerminal.terminal.scores = { BLACK: { area: 999999 } };
+assert.equal((await validateReplayDocument(rehash(falseTerminal))).success, false, "rehashed false winner and scores must be rejected");
+const missingTerminal = structuredClone(complete);
+missingTerminal.terminal = null;
+assert.equal((await validateReplayDocument(rehash(missingTerminal))).success, false);
+console.log("verify-replay-codec: PASS (rule replay rejects rehashed actors, effects and terminal summaries)");

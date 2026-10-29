@@ -3,7 +3,7 @@ const VUE_CDN_URLS = [
   "https://unpkg.com/vue@3/dist/vue.global.prod.js",
   "https://fastly.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js",
 ];
-const APP_ASSET_VERSION = "20261013-full-features1";
+const APP_ASSET_VERSION = "20261029-unified-r1";
 
 // main.js 只做两件事：
 // 1. 确保浏览器拿到 Vue 运行时
@@ -87,10 +87,10 @@ async function ensureVueRuntime() {
 
 async function importAppModule() {
   const candidates = [
-    new URL(`./OnlineApp.js?v=${APP_ASSET_VERSION}`, import.meta.url).href,
-    new URL("./OnlineApp.js?v=20261013-full-features1", import.meta.url).href,
-    `./OnlineApp.js?v=${APP_ASSET_VERSION}`,
-    "./OnlineApp.js?v=20261013-full-features1",
+    new URL(`./OnlineApp.js?v=20261029-unified-r1`, import.meta.url).href,
+    new URL("./OnlineApp.js?v=20261029-unified-r1", import.meta.url).href,
+    `./OnlineApp.js?v=20261029-unified-r1`,
+    "./OnlineApp.js?v=20261029-unified-r1",
   ];
   let lastError = null;
 
@@ -106,9 +106,20 @@ async function importAppModule() {
   throw lastError ?? new Error("OnlineApp.js could not be loaded from any candidate URL.");
 }
 
+async function installTopologyRuntime() {
+  // Custom boards are constructed synchronously by GameController and
+  // Renderer obtains atlas projection through the matching BoardView registry.
+  // Keep both bootstrap-only imports outside legacy data-URL rule modules.
+  await Promise.all([
+    import(new URL(`./TopologyGameEngine.js?v=20261029-unified-r1`, import.meta.url).href),
+    import(new URL(`./BoardView.js?v=20261029-unified-r1`, import.meta.url).href),
+  ]);
+}
+
 async function bootstrap() {
   try {
     const Vue = await ensureVueRuntime();
+    await installTopologyRuntime();
     const { default: App } = await importAppModule();
     Vue.createApp(App).mount("#app");
   } catch (error) {

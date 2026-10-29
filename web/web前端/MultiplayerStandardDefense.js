@@ -1,5 +1,4 @@
-import { probeMultiplayerReplyResilience } from "./MultiplayerSearch.js?v=20261026-allplatform1";
-import { multiplayerClock as performance } from "./MultiplayerClock.js";
+import { probeMultiplayerReplyResilience } from "./MultiplayerSearch.js?v=20261029-unified-r1";
 
 export const STANDARD_DEFENSE_GATE = Object.freeze({
   shortlistWidth: 4,
@@ -55,6 +54,7 @@ export function applyStandardDefenseGate(source, originalRanking, {
   now = () => performance.now(),
   probe = probeMultiplayerReplyResilience,
   startedAt = null,
+  absoluteDeadline = null,
 } = {}) {
   const original = Array.isArray(originalRanking) ? originalRanking : [];
   const fallback = (status, details = {}) => ({ moves: original, receipt: {
@@ -66,7 +66,8 @@ export function applyStandardDefenseGate(source, originalRanking, {
   try {
     const started = startedAt ?? now();
     if (!Number.isFinite(started)) return fallback("preserved-invalid-clock");
-    const deadline = started + STANDARD_DEFENSE_GATE.totalWindowMs;
+    const deadline = Math.min(started + STANDARD_DEFENSE_GATE.totalWindowMs,
+      Number.isFinite(absoluteDeadline) ? absoluteDeadline : Infinity);
     const roots = [original[0]], complete = Array.isArray(completeRanking) ? completeRanking : [];
     const anchorEvidence = complete.find(move => pointKey(move?.point) === pointKey(original[0].point));
     const repairs = complete.map((move, index) => ({ move, index }))

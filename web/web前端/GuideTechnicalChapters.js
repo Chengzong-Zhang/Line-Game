@@ -1,5 +1,6 @@
-import { IMPLEMENTATION_NOTES } from './GuideImplementationNotes.js?v=20261026-allplatform1';
-import { p, m, c, s, ch } from './GuideArticleFormat.js?v=20261026-allplatform1';
+import { IMPLEMENTATION_NOTES } from './GuideImplementationNotes.js?v=20261029-unified-r1';
+import { p, m, c, s, ch } from './GuideArticleFormat.js?v=20261029-unified-r1';
+import { TOPOLOGY_CODE_CHAPTER } from './GuideTopologyChapters.js?v=20261029-unified-r1';
 
 function notes(id, omit = []) {
   const item = IMPLEMENTATION_NOTES.find(item => item.id === id);
@@ -8,6 +9,7 @@ function notes(id, omit = []) {
 const ref = (file, symbols) => p(`源码定位：${file} → ${symbols}。`, `Source: ${file} → ${symbols}.`);
 const src = (file, symbol, code) => c(code, file.endsWith('.py') ? 'python' : 'javascript', { file, symbol });
 const engine = 'web/web前端/GameEngine.js';
+const renderer = 'web/web前端/Renderer.js';
 const ai = 'web/web前端/AIEngine.js';
 const research = 'web/web前端/ResearchAI.js';
 
@@ -22,14 +24,15 @@ export const TECHNICAL_CHAPTERS = [
 03 edges[player]: Set<canonicalEndpointPair>
 04 historyHashes: Set<serializedTrialKey>
 05 turn = {currentPlayer, consecutiveSkips, resignedPlayers, gameOver}
-06 display = {cachedTerritories, territoryRevision, positionRevision}`),
+06 territoryV3 = {area, renderPoints, polygon?, displayArea}
+07 display = {cachedTerritories, territoryRevision, positionRevision}`),
       p('工程上必须区分三种身份：规则状态用于判断下一手，几何依赖用于领土缓存，修订号/请求号用于拒绝异步旧结果。相同 grid 不意味着相同 edges；相同 grid+edges 不意味着相同历史；同一规则局面也可能来自不同 UI 请求。',
         'Distinguish rule identity for the next move, geometric dependencies for territory caches, and revision/request identity for stale-result rejection. Equal grid does not imply equal edges; equal grid+edges does not imply equal history; the same rule position can also belong to different UI requests.'),
       ref(engine, 'constructor, _captureReplayState, _computeStateHash'),
     ]),
     s('contracts', '1.2 分数与不变量', '1.2 Scores and invariants', [
-      p('接口约定：area 是正式计分，displayArea 是鞋带表达式对应的几何量，reach 是 AI 特征。它们即使都叫“面积”也不可互换。用类型或命名保持区分，终局读取规范领土，不能直接拿 evaluate 返回值判胜负。',
-        'The score contract distinguishes official area, geometric shoelace displayArea and heuristic reach. Names such as area do not make them interchangeable. Preserve that distinction in types/names and use canonical territory for settlement, not evaluate’s heuristic result.'),
+      p('接口约定：area 是正式计分，renderPoints 是同一正式集合的稳定格点枚举，必须满足 area=renderPoints.length；polygon 与鞋带式 displayArea 是诊断/旧规则兼容字段，reach 是 AI 特征。它们不可互换。territory-v3 的画面逐格读取 renderPoints，终局读取 area；二者由同一次洪水结果产生。',
+        'The contract defines area as the official score and renderPoints as a stable lattice enumeration of the same official set, with area=renderPoints.length. polygon and shoelace displayArea are diagnostic/legacy-rule fields, while reach is an AI feature. They are not interchangeable. territory-v3 shades renderPoints cell by cell and settles with area; both come from one flood result.'),
       m(String.raw`\operatorname{coverage}_i=|F_i|,\qquad \operatorname{area}_i=|F_i|+|B_i|,\qquad \operatorname{reach}_i=|\operatorname{Reach}_{G_0\setminus O_i}(F_i)|.`,
         'coverageᵢ=|Uᵢ|+|Lᵢ|\nareaᵢ=|Fᵢ|+Σ|Qₖ| for enemy-free non-exterior components Qₖ of G_V\\Fᵢ\nreachᵢ=|Reach(G₀ excluding enemies, Uᵢ∪Lᵢ)|'),
       p('应检查的不变量包括：节点不能被普通落子覆盖；存活节点沿显式边能回到实际起点；非法试走不提交历史；接受落子只增加新历史键；搜索恢复后规则状态不变；AI 返回值仍属于当前请求且执行时合法。断联、切线与终局都应通过 GameEngine，而不是让 UI 或网络模型各写一套近似规则。',
@@ -37,10 +40,14 @@ export const TECHNICAL_CHAPTERS = [
       ref(engine, '_getOpponentConnectedPieces, _evaluateMove, _computeTerritory'),
     ]),
     s('snapshots', '1.3 快照与恢复成本', '1.3 Snapshots and restoration', [
-      p('AIEngine 的 saveState 复制 grid、各方 edges、历史 Set 与轮转字段，并复制领土缓存；restoreState 重建棋盘/边/历史容器，但把 snapshot.cachedTerritories 直接赋回。随后要刷新精确领土的分支必须拥有自己的缓存对象，V4/V5 因而有额外隔离。只复制最外层对象会让分支互相污染。',
-        'AIEngine.saveState copies grid, per-player edges, history and turn fields, plus territory cache data. restoreState recreates grid/edge/history containers but assigns snapshot.cachedTerritories directly. A branch that refreshes exact territory therefore needs its own cache object; V4/V5 add isolation. Shallow outer-object copies can contaminate branches.'),
+      p('AIEngine 的 saveState 复制 grid、各方 edges、历史 Set 与轮转字段，并复制领土缓存；v3 缓存里的 renderPoints 与 polygon 都是可变坐标数组，跨快照或 Worker 边界必须逐点深复制。restoreState 重建棋盘/边/历史容器，但把 snapshot.cachedTerritories 直接赋回；随后要刷新精确领土的分支必须拥有自己的缓存对象。只复制最外层对象会让分支互相污染，甚至出现 area 已更新而着色仍属于旧局面。',
+        'AIEngine.saveState copies grid, per-player edges, history and turn fields, plus territory cache data. In v3, renderPoints and polygon are mutable coordinate arrays and must be copied point by point across snapshots or Worker boundaries. restoreState recreates grid/edge/history containers but assigns snapshot.cachedTerritories directly, so a branch that refreshes exact territory needs its own cache object. Shallow copies can contaminate branches or pair a new area with stale shading.'),
       p('源码摘录：这些字段正是同一盘面仍可能具有不同合法性的原因。', 'Source excerpt: these fields explain why visually identical positions can have different legality.'),
       src(ai, 'saveState', `    historyHashes: new Set(engine.historyHashes),
+    ...(engine.rootRulesVersion === "root-v2" ? {
+      roots: Object.fromEntries(engine.activePlayers.map(player => [player, engine.getRoots(player)])),
+      rootActionsRemaining: JSON.parse(JSON.stringify(engine.rootActionsRemaining)),
+    } : {}),
     consecutiveSkips: engine.consecutiveSkips,
     resignedPlayers: new Set(engine.resignedPlayers ?? []),
     currentPlayer: engine.currentPlayer,
@@ -51,8 +58,8 @@ export const TECHNICAL_CHAPTERS = [
     ]),
   ]),
   ch('algorithms', '第二章 算法', 'II. Algorithms', p(
-    '按一次落子经过的路径拆解：合法性 → 自动连线 → 切断清理 → Superko 提交 → 轮转 → 计分。每节列输入、核心步骤、输出与源码入口；领土的外轮廓、收紧和洪水是三个不同阶段。',
-    'Follow a placement through legality, connections, cut cleanup, Superko commit, turn normalization and scoring. Each section identifies inputs, steps, outputs and source entry points. Territory contour extraction, tightening and flood coverage are separate stages.'), [
+    '按一次落子经过的路径拆解：合法性 → 自动连线 → 切断清理 → Superko 提交 → 轮转 → 计分。每节列输入、核心步骤、输出与源码入口。territory-v3 的正式集合由洪水产生并逐格渲染；外轮廓与收紧仍是独立的诊断/兼容阶段。',
+    'Follow a placement through legality, connections, cut cleanup, Superko commit, turn normalization and scoring. Each section identifies inputs, steps, outputs and source entry points. In territory-v3 the official set comes from flood fill and is rendered cell by cell; contour extraction and tightening remain separate diagnostic/compatibility stages.'), [
     s('legality', '2.1 合法性试走', '2.1 Legal-move trials', [
       ...notes('legality'),
       c(`01 INPUT: full state S, candidate point v, actor i
@@ -124,7 +131,7 @@ export const TECHNICAL_CHAPTERS = [
         'Key generation includes sorting/serialization cost. Hash-table-style Set lookup does not make the whole operation O(1). Fixed coordinate order and cell serialization fragments are cached, while current occupancy, all links and the full history check remain.'),
       ref(engine, '_computeStateHash, _getStateHashOrder, playMove'),
     ]),
-    s('contour', '2.5 轮廓与闭环判定', '2.5 Contours and cycles', [
+    s('contour', '2.5 兼容轮廓与闭环判定', '2.5 Compatibility contours and cycles', [
       ...notes('contour'),
       c(`01 Walk the outer boundary using the fixed clockwise neighbor order
 02 Convert consecutive walk vertices into distinct undirected unit edges
@@ -158,7 +165,7 @@ export const TECHNICAL_CHAPTERS = [
     s('flood', '2.7 洪水与计分', '2.7 Flood fill and scoring', [
       ...notes('flood'),
       c(`01 wall <- distinct valid friendly NODE and LINE points
-02 outside <- empty; Q <- empty
+02 included <- copy(wall); outside <- empty; Q <- empty
 03 For every board boundary point b not in wall: mark/enqueue b
 04 WHILE Q is nonempty:
 05   u <- pop Q
@@ -166,13 +173,20 @@ export const TECHNICAL_CHAPTERS = [
 07     mark outside[v]; enqueue v
 08 END WHILE
 09 enclosed <- all board points minus outside minus wall
-10 area <- number of distinct wall points
-11 For each connected component q of enclosed points:
-12   If q contains no enemy NODE or LINE: area <- area + |q|
-13 Return area; no cycle or single-polygon requirement`),
-      p('实现将己方全部节点和线点作为墙，从棋盘边界注水，再逐个遍历未连到外界的空腔。含敌方节点或线点的整块空腔排除；其余空腔全部加入己方占点数。因而无需先找到有效闭环：开链、单线按占点计分，多个空腔与甜甜圈内孔分别统计。整数索引、预分配队列与访问标记只优化运行成本，不改变计分定义。鞋带式只用于 displayArea。',
-        'The implementation treats every friendly node and line point as a wall, floods from the board boundary, then visits each component disconnected from the exterior. An entire pocket containing an enemy node or line is excluded; all other pockets are added to the distinct owned-point count. No valid cycle is required: open chains and single lines score their owned points, while multiple pockets and donut holes are evaluated separately. Integer indices, reusable queues and visit marks change runtime cost, not the scoring rule. Shoelace displayArea remains diagnostic.'),
-      ref(engine, '_getCoveredPoints, _getValidatedTerritoryArea, computeTriangularPolygonArea'),
+10 For each connected component q of enclosed points:
+11   If q contains no enemy NODE or LINE: included <- included union q
+12 renderPoints <- board points filtered by included, in stable board order
+13 area <- renderPoints.length
+14 Return {area, renderPoints}; no cycle or single-polygon requirement
+15 Validate v3 result: all points valid and unique; length equals area
+16 Renderer: trace one compact cell tile per renderPoint
+17 Legacy v1/v2 only: polygon fill remains the fallback`),
+      p('实现将己方全部节点和线点作为墙，从棋盘边界注水，再逐个遍历未连到外界的空腔。含敌方节点或线点的整块空腔排除；其余空腔加入 included，最后一次性导出 area 与 renderPoints。因而开链、单线、多个空腔和甜甜圈内孔都由同一个集合决定分数与着色。Web 以格点为中心描出紧凑六边形 tile；Python 底层同样逐格绘制。单 polygon 不再承担 v3 填色，鞋带式 displayArea 只作诊断。',
+        'The implementation treats every friendly node and line point as a wall, floods from the board boundary, then visits each component disconnected from the exterior. An entire pocket containing an enemy is excluded; every other pocket enters included, from which area and renderPoints are emitted together. Open chains, single lines, multiple pockets and donut holes therefore use one set for both score and shading. Web traces a compact hexagonal tile around each lattice point, and the Python base renderer likewise draws cell by cell. A single polygon no longer fills v3 territory; shoelace displayArea remains diagnostic.'),
+      p('领土 Worker、运行时缓存和引擎/搜索快照传播完整 renderPoints，并在接收端校验坐标有效、无重复及长度等于 area。渲染路径缓存把模式、缩放、点半径、偏移和点集都放入键；局面 revision 或请求身份不匹配时丢弃结果。版本化 Replay 可不保存这个可重算派生集合，但加载后必须由规则引擎重建。这样“分数正确、颜色仍旧”不能由部分更新悄悄发生。',
+        'Territory Workers, runtime caches and engine/search snapshots propagate complete renderPoints; receivers validate coordinates, uniqueness and equality between length and area. The drawing-path cache keys mode, scale, point radius, offsets and points. Results with stale position revision or request identity are discarded. A versioned replay may omit this recomputable derived set, but the rules engine must rebuild it after loading. This prevents a partial update from silently pairing a correct score with old shading.'),
+      ref(engine, '_computeOwnedWallTerritory, _computeOwnedWallArea, _computeTerritory'),
+      ref(renderer, '_drawTerritories, _traceTerritoryCells'),
     ]),
     s('symmetry', '2.8 规范方向与缓存', '2.8 Canonical views and caches', [
       ...notes('symmetry'),
@@ -180,13 +194,14 @@ export const TECHNICAL_CHAPTERS = [
 02 FOR g in transforms:
 03   transform own NODEs/LINEs and all enemy occupancy
 04   run raw tightening with a required real cycle
-05   save display polygon and canonical polygon key; inverse-transform output
+05   save diagnostic/compatibility polygon and canonical polygon key; inverse-transform output
 06 END FOR
-07 Choose display contour by closed-contour coverage, then canonical polygon key
-08 area <- CountOwnedWallArea(all friendly NODE/LINE points, all enemy NODE/LINE points)
-09 Return display contour and official area; scoring is independent of contour`),
-      p('几何缓存键包括形状/尺寸、规则和规范方向依赖、己方节点/线点、敌方障碍并集及显式初始轮廓的相关次序。搜索缓存还需完整历史和轮转信息。缓存返回可变多边形时需复制；对覆盖了核心方法的诊断/子类对象，源码保留未优化路径，避免把原生方法的剪枝证明误用于不同语义。',
-        'Geometry keys include shape/size, rules/canonical-view dependencies, own nodes/lines, the enemy obstacle union and relevant ordering of an explicit initial walk. Search caches additionally need history and turns. Mutable polygon results are copied. Diagnostic/subclass overrides retain fallback paths so pruning arguments for native methods are not applied to different semantics.'),
+07 Choose diagnostic polygon by closed-contour coverage, then canonical key
+08 {area, renderPoints} <- OwnedWallTerritory(all friendly walls, all enemies)
+09 Return {polygon, displayArea, area, renderPoints}
+10 V3 renderer uses renderPoints; polygon is diagnostic/legacy only`),
+      p('几何缓存键包括形状/尺寸、规则和规范方向依赖、己方节点/线点、敌方障碍并集及显式初始轮廓的相关次序。搜索缓存还需完整历史和轮转信息。缓存返回 polygon 与 renderPoints 时都需逐点复制；v3 接收端强制 area=renderPoints.length。对覆盖了核心方法的诊断/子类对象，源码保留未优化路径，避免把原生方法的剪枝证明误用于不同语义。',
+        'Geometry keys include shape/size, rules/canonical-view dependencies, own nodes/lines, the enemy obstacle union and relevant ordering of an explicit initial walk. Search caches additionally need history and turns. Both polygon and renderPoints are copied point by point, and v3 receivers enforce area=renderPoints.length. Diagnostic/subclass overrides retain fallback paths so pruning arguments for native methods are not applied to different semantics.'),
       ref(engine, '_getCanonicalTerritoryTransforms, _computeCanonicalTerritoryCandidate, _computeTerritory, dependencyMemo'),
     ]),
     s('turns', '2.9 跳过与终局', '2.9 Passing and settlement', [
@@ -198,15 +213,15 @@ export const TECHNICAL_CHAPTERS = [
 05 A successful placement or resignation resets the pass count
 06 If only one player remains: that player wins
 07 Otherwise at settlement: recompute exact area and compare survivors`),
-      p('性能优化可以延后非终局着色，但终局读取比分前必须完成精确更新。当前 Minimax 的真实终局分支与神经 PUCT 都按规范 area 判胜负；两者的非终局估值、访问次数或网络先验仍不能统一标成“胜率”。',
-        'Nonterminal shading may be deferred, but exact scores must be ready before settlement. Current Minimax true-terminal leaves and neural PUCT both use canonical area outcomes; their nonterminal values, visits and network priors are not a common win-probability measure.'),
+      p('性能优化可以延后非终局着色，但终局读取比分前必须完成精确更新。神经 PUCT 在模拟终局显式调用规范更新；旧版 Minimax 的 F 分支不具备这个精确胜负语义，不能把二者的输出统一标成“胜率”。',
+        'Nonterminal shading may be deferred, but exact scores must be ready before settlement reads them. Neural PUCT explicitly refreshes canonical territory at terminal simulations; old Minimax’s F leaf does not have the same exact-outcome semantics. Their outputs should not share an unqualified win-probability label.'),
       ref(engine, 'skipTurn, resignPlayer, _checkAndAutoSkip, getWinner'),
     ]),
     s('verification', '2.10 源码与验证路径', '2.10 Source and verification', [
       p('引擎主路径在 web/web前端/GameEngine.js；搜索与快照在 AIEngine.js；跨 Worker 状态协议在 AIStateProtocol.js；棋谱恢复在 ReplayCodec.js 与 LocalGameSession.js。微信阅读/任务调度分别在 wechat/minigame/src/guide-content.js、help-ui.js 和 Worker 会话模块。后续多人开发路径见第三章，不把 Web 候选存在等同于手机已装入。',
         'The engine lives in web/web前端/GameEngine.js; search/snapshots in AIEngine.js; Worker state in AIStateProtocol.js; replay restoration in ReplayCodec.js and LocalGameSession.js. Mini Game reader content/UI live in wechat/minigame/src/guide-content.js and help-ui.js. Later multiplayer development paths are covered in chapter III; source existence does not mean phone installation.'),
-      p('建议验证顺序：固定动作重放 → 比较 grid/edges/history/turn → 精确面积与胜者 → 原状态恢复 → Worker 迟到结果拒绝 → 实际界面目录/公式/代码阅读。普通文档修改只运行相关检查；冻结实验与已有发布收据不改写。本报告源码摘录通过与当前文件逐字匹配检查；缩进规范化不改变代码标记。',
-        'A useful verification order is fixed-action replay, grid/edges/history/turn comparison, exact score/winner, source-state restoration, stale Worker rejection and actual reading of contents/formulas/code. Documentation edits run scoped checks and preserve frozen experiments/releases. Source excerpts are checked against current files with whitespace normalization that leaves code tokens intact.'),
+      p('建议验证顺序：固定动作重放 → 比较 grid/edges/history/turn → 对开链、甜甜圈、多空腔和敌方空腔逐项比较 area 与 renderPoints → 检查逐格画面 → 原状态恢复 → Worker 迟到结果拒绝 → 实际界面目录/公式/代码阅读。普通文档修改只运行相关检查；冻结实验与已有发布收据不改写。本报告源码摘录通过与当前文件逐字匹配检查。',
+        'A useful verification order is fixed replay, grid/edges/history/turn comparison, area/renderPoints equality on open-chain, donut, multiple-pocket and enemy-pocket fixtures, cell-render inspection, source-state restoration, stale Worker rejection and actual reading of contents/formulas/code. Documentation edits run scoped checks and preserve frozen experiments/releases. Source excerpts are checked verbatim against current files.'),
       c(`node web/tools/sync-implementation-guides.mjs --check
 node web/web前端/tests/verify-guide-content.mjs
 node --test --test-timeout=180000 wechat/minigame/tests/guide-cabin.test.mjs`, 'text'),
@@ -227,13 +242,13 @@ node --test --test-timeout=180000 wechat/minigame/tests/guide-cabin.test.mjs`, '
     s('minimax', '3.2 Minimax 控制流', '3.2 Minimax control flow', [
       ...notes('minimax'),
       c(`01 SEARCH(S,d,alpha,beta,root):
-02   If gameOver: return exact area win/draw/loss utility
-03   If d=0: return the nonterminal Minimax heuristic
-04   Get legal placements; retain <=20 ordered placements and append PASS
+02   If d=0 OR gameOver: return F(S,root)
+03   Get real legal placements; handle no-placement pass
+04   Retain ordered candidates (at most 20)
 05   maximizing <- (S.currentPlayer == root)
 06   value <- -infinity if maximizing, otherwise +infinity
-07   For each placement or PASS:
-08     saved <- saveState; apply playMove or skipTurn
+07   For each candidate:
+08     saved <- saveState; apply the actual move
 09     child <- SEARCH(successor,d-1,alpha,beta,root)
 10     restoreState(saved)
 11     Update value and alpha (MAX) or beta (MIN)
@@ -242,7 +257,7 @@ node --test --test-timeout=180000 wechat/minigame/tests/guide-cabin.test.mjs`, '
       src(ai, 'MinimaxAI.minimax', `    const maximizingPlayer = engine.currentPlayer === aiPlayer;`),
       p('伪代码省略非法候选返回分支与缓存字段，不是新求解器。正常分支恢复与 finally 的实际覆盖范围应按源码阅读；不能仅凭伪代码推断任意中途异常都有完整事务回滚。全候选枚举成本仍会发生在取前 20 个之前，故“只搜 20 个”不等于“只试走 20 个”。',
         'This is explanatory pseudocode, omitting rejected-candidate branches and cache fields. Read the actual finally scope before assuming full transaction rollback under every exception. Full legal enumeration occurs before retaining 20 moves; searching 20 candidates does not mean only 20 legality trials.'),
-      ref(ai, 'MinimaxAI.minimax, MinimaxAI.getTopMoves, applyMinimaxAction'),
+      ref(ai, 'MinimaxAI.minimax, MinimaxAI.getTopMoves, applyMoveForAI'),
     ]),
     s('mcts', '3.3 普通 MCTS', '3.3 Plain MCTS', [
       ...notes('mcts'),
@@ -300,17 +315,16 @@ node --test --test-timeout=180000 wechat/minigame/tests/guide-cabin.test.mjs`, '
 03 ReLU(W1*x+b1) -> ReLU(W2*h+b2) -> 121 action outputs
 04 DQN reads Q-head weights; other families read policy-head weights
 05 Softmax over legal indices including the PASS slot
-06 Return explicit placement and PASS candidates; sort by prior
-07 Product Worker applies the shared bounded PASS-discipline check`),
-      p('源码摘录：真实合法落子与 PASS 使用同一 softmax 分母，返回显式动作类型；完整分布归一化，截取 top-N 后无需重新归一化。共享检查不改写这些模型的神经权重。',
-        'Source excerpt: legal placements and PASS share one softmax denominator and retain explicit action types. The complete distribution is normalized; a top-N slice need not be renormalized. The shared check changes no neural weights.'),
+06 Filter returned candidates to placements; sort by prior
+07 If there is no placement, outer control handles passing`),
+      p('源码摘录：过滤发生在 softmax 分母计算之后，所以当前返回的落子 prior 不一定和为 1。这是动作适配行为，不是数学 softmax 失效。',
+        'Source excerpt: filtering occurs after normalization, so returned placement priors need not sum to one. This is adapter behavior, not a failure of softmax.'),
       src('web/web前端/ModelFreeAI.js', 'ModelFreeModel.evaluate', `    return { priors: legal.map((index, order) => index < engine.validPositions.length
       ? { type: "move", point: [...engine.validPositions[index]], actionIndex: index, prior: exp[order] / total }
       : { type: "pass", point: null, actionIndex: engine.validPositions.length, prior: exp[order] / total }) };`),
       ref('web/web前端/ModelFreeAI.js', 'encode, forwardBody, logits, evaluate, ModelFreeAI.getTopMoves'),
     ]),
     s('training', '3.7 训练源码与损失', '3.7 Training source and losses', [
-      ...notes('terminal-training'),
       p('研究训练入口与 Web 推理入口分开。以下是当前可阅读的训练源码，不单凭文件同名推断现行二进制权重由这份源码生成；资产来源仍需 manifest/训练收据。研究环境与 Web 的规则和自动跳过语义也须另行比对。',
         'Research training is separate from Web inference. These are current inspectable trainers; matching names alone do not prove that a deployed binary was generated by these exact sources. Asset lineage requires manifests/receipts, and rule/auto-skip parity between research and Web is a separate check.'),
       p('DQNTrainer.update：从 replay 抽批量，在线 Q 在合法掩码内取 argmax，目标网络读取该动作 Q；使用 smooth-L1、梯度裁剪 5。下列原文固定采用负续局值，对应对手视角假设；自动跳过后是否仍换人应由训练状态约定验证。',
@@ -330,8 +344,8 @@ node --test --test-timeout=180000 wechat/minigame/tests/guide-cabin.test.mjs`, '
         'GAIL/GAN: train_imitation_adversarial.py collects greedy-expert data. Both labels use one loop, mainly changing seed offset and metadata. D consumes state plus action one-hot, with expert=1 and generated=0. The generator enumerates all actions and differentiates a probability-weighted expectation instead of differentiating through a sampled discrete action.'),
       src('research/iclr2027/scripts/train_imitation_adversarial.py', 'train', `            rewards = torch.sigmoid(-discriminator(repeated_states, action_grid)).reshape(batch_states.shape[0], ACTION_COUNT)
             g_loss = -(probs * torch.log(rewards.clamp_min(1e-6))).sum(dim=1).mean()`),
-      p('这里的负号很关键：固定 D 时，最小化 −log σ(−D) 偏向较小 D，而专家正标签训练偏向较大 D。因此当前循环不能直接享有标准 GAIL 的模仿保证；两个名称也不等于两种独立算法。脚本在固定专家状态批次上更新，并非完整在线占用分布匹配；训练采样未在该循环应用合法掩码，Web 推理另做真实合法过滤。这些历史神经训练循环仅作源码说明；本次线性继续训练不修改这些循环或神经权重。',
-        'The sign matters: holding D fixed, minimizing −log σ(−D) favors smaller D, whereas expert-positive classification favors larger D. This loop cannot directly inherit standard GAIL guarantees, and two names do not establish two independent algorithms. Updates use fixed expert-state batches, not full online occupancy matching; this loop does not mask sampled actions, while Web inference separately filters actual legality. These historical neural loops are documented only; the linear continuation changes neither those loops nor their neural weights.'),
+      p('这里的负号很关键：固定 D 时，最小化 −log σ(−D) 偏向较小 D，而专家正标签训练偏向较大 D。因此当前循环不能直接享有标准 GAIL 的模仿保证；两个名称也不等于两种独立算法。脚本在固定专家状态批次上更新，并非完整在线占用分布匹配；训练采样未在该循环应用合法掩码，Web 推理另做真实合法过滤。上述是源码行为说明，本次没有修订训练、重训或替换模型。',
+        'The sign matters: holding D fixed, minimizing −log σ(−D) favors smaller D, whereas expert-positive classification favors larger D. This loop cannot directly inherit standard GAIL guarantees, and two names do not establish two independent algorithms. Updates use fixed expert-state batches, not full online occupancy matching; this loop does not mask sampled actions, while Web inference separately filters actual legality. This report changes no training, weights or model selection.'),
     ]),
     s('multi-policy', '3.8 多人线性策略', '3.8 Multiplayer features', [
       ...notes('multi-policy'),
@@ -398,4 +412,5 @@ node --test --test-timeout=180000 wechat/minigame/tests/guide-cabin.test.mjs`, '
       ref('web/web前端/AIStateProtocol.js / ReplayCodec.js', 'state identity, full restoration and isolated replay validation'),
     ]),
   ]),
+  TOPOLOGY_CODE_CHAPTER,
 ];

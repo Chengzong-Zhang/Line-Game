@@ -38,8 +38,8 @@ export const TUTORIAL_LEVELS = Object.freeze([
     titleEn: "Lesson 2: Close your first territory",
     instructionZh: "蓝方已有一条边。点击高亮节点 [0,3]，新增两条连接，围出闭合领土。",
     instructionEn: "Blue has one edge. Click the highlighted node [0,3] to add two connections and close a territory.",
-    successZh: "边界闭合了！只有闭合区域才会产生领土分数。",
-    successEn: "The boundary is closed! Only closed regions produce territory score.",
+    successZh: "边界闭合了！v3 中己方节点和线点始终计分；闭合后新增的无敌方空腔也会计分，并与正式领土一起逐格着色。",
+    successEn: "The boundary is closed! In v3, owned nodes and line points always score; a newly enclosed enemy-free pocket also scores and is shaded cell by cell with the official territory.",
   }),
   Object.freeze({
     id: "L3-cut-and-clear",

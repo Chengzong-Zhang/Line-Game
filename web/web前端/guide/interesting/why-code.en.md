@@ -1,1510 +1,800 @@
-## Talk is Cheap, Show Me the Code
+# Code: LIFELINE Algorithm Report
 
-## Engineering Scale
+Abstract. This report has four chapters: Mathematics, Algorithms, AI and Topology. It emphasizes data structures, execution order, pseudocode, source excerpts, complexity and implementation limits, connecting each rule to functions and outputs.
 
-GitHub repository:
+Base source inspection: 2026-10-25; topology chapter added and inspected on 2026-10-29. Numbered pseudocode explains control flow; attributed excerpts quote actual source. Training, exported inference and Web/Mini Game availability are distinguished. The companion mathematical edition supplies definitions and proofs.
+
+Reading path: chapter I defines notation and full state; II develops rule algorithms; III develops AI; IV gives triangulation, algebraic topology, a double-torus construction and permanent-connection certificates. In territory-v3 the score always counts owned points and separately adds enemy-free pockets cut off from the exterior. The official set supplies area and renderPoints. Display may use hull/tightened polygons intersected with actual board faces, without ribbons along lone lines or shading holes/exterior. Display never changes scores; old replays retain their recorded rule versions.
+
+**Contents**
+
+[I. Mathematics](#i-mathematics)
+
+- [1.1 State representation](#11-state-representation)
+
+- [1.2 Scores and invariants](#12-scores-and-invariants)
+
+- [1.3 Snapshots and restoration](#13-snapshots-and-restoration)
+
+[II. Algorithms](#ii-algorithms)
+
+- [2.1 Legal-move trials](#21-legal-move-trials)
+
+- [2.2 Automatic connections](#22-automatic-connections)
+
+- [2.3 Cuts and root BFS](#23-cuts-and-root-bfs)
+
+- [2.4 Superko transactions](#24-superko-transactions)
+
+- [2.5 Compatibility contours and cycles](#25-compatibility-contours-and-cycles)
+
+- [2.6 Territory tightening](#26-territory-tightening)
+
+- [2.7 Flood fill and scoring](#27-flood-fill-and-scoring)
+
+- [2.8 Canonical views and caches](#28-canonical-views-and-caches)
+
+- [2.9 Passing and settlement](#29-passing-and-settlement)
+
+- [2.10 Source and verification](#210-source-and-verification)
+
+[III. AI](#iii-ai)
+
+- [3.1 Greedy evaluation](#31-greedy-evaluation)
+
+- [3.2 Minimax control flow](#32-minimax-control-flow)
+
+- [3.3 Plain MCTS](#33-plain-mcts)
+
+- [3.4 Neural forward pass](#34-neural-forward-pass)
+
+- [3.5 PUCT move selection](#35-puct-move-selection)
+
+- [3.6 Five policy adapters](#36-five-policy-adapters)
+
+- [3.7 Training source and losses](#37-training-source-and-losses)
+
+- [3.8 Multiplayer features](#38-multiplayer-features)
+
+- [3.9 Three-player V4](#39-three-player-v4)
+
+- [3.10 Hexagonal V5](#310-hexagonal-v5)
+
+- [3.11 Later multiplayer search](#311-later-multiplayer-search)
+
+- [3.12 Runtime and reproduction](#312-runtime-and-reproduction)
+
+[IV. Topology implementation](#iv-topology-implementation)
+
+- [4.1 Compilation and homology diagnostics](#41-compilation-and-homology-diagnostics)
+
+- [4.2 Certified roots and tactical evaluation](#42-certified-roots-and-tactical-evaluation)
+
+- [4.3 Category sampling and complete board persistence](#43-category-sampling-and-complete-board-persistence)
+
+- [4.4 One rule mesh in two and three dimensions](#44-one-rule-mesh-in-two-and-three-dimensions)
+
+- [4.5 Versions, replay and validation](#45-versions-replay-and-validation)
+
+## I. Mathematics
+
+Map mathematical objects to engineering data and invariants. Numbered language-neutral pseudocode explains control flow; only blocks explicitly called source excerpts quote the current workspace. The companion mathematical article provides proofs.
+
+### 1.1 State representation
+
+Separate the board into three layers. Fixed lattice points and their six-neighbor adjacency form the geometry. The grid records empty points, player nodes and intermediate points occupied by links. Each player also owns an explicit edges set recording the logical links that actually exist. A point crossed by a line is not necessarily a placed node, and nearby graphics do not establish a logical connection.
+
+Side length N counts points along an outer side. A triangle contains N(N+1)/2 points; a hexagon contains 3N(N−1)+1. At N=15 these counts are 120 and 631. The six integer directions are (1,0), (−1,0), (0,1), (0,−1), (1,−1) and (−1,1). Projection into screen pixels happens only when drawing, so zoom and device resolution do not change the rules.
+
+The complete state also includes shape, rules version, actual starting points, the player to act, consecutive passes, resigned players, terminal status and the entire Superko history. Territory caches and revision numbers support efficient asynchronous display. Neither a screenshot nor the occupancy grid alone restores the full rule state.
 
 ```text
-https://github.com/Chengzong-Zhang/Line-Game
+01 CONFIG = {rules, shape, size, players, starts}
+02 grid: Map<pointKey, EMPTY | NODE(player) | LINE(player)>
+03 edges[player]: Set<canonicalEndpointPair>
+04 historyHashes: Set<serializedTrialKey>
+05 turn = {currentPlayer, consecutiveSkips, resignedPlayers, gameOver}
+06 territoryV3 = {area, renderPoints, polygon?, displayArea}
+07 display = {cachedTerritories, territoryRevision, positionRevision}
 ```
 
-Current project statistics, excluding `.git` and `__pycache__`, measured from the current working tree:
+Distinguish rule identity for the next move, geometric dependencies for territory caches, and revision/request identity for stale-result rejection. Equal grid does not imply equal edges; equal grid+edges does not imply equal history; the same rule position can also belong to different UI requests.
 
-| Metric | Value |
-|---|---:|
-| Total files | 47 |
-| Text source files | 32 |
-| Code files | 20 |
-| Total code lines | 11,548 |
-| Documentation and text lines | 13,228 |
-| Project size | About 7.6 MB |
+Source: web/web前端/GameEngine.js → constructor, _captureReplayState, _computeStateHash.
 
-Notes:
+### 1.2 Scores and invariants
 
-- Code files include `.py`, `.js`, `.html`, `.css`, `.ps1`, and `.bat`.
-- Text source files include code files, Markdown documents, scripts, and text configuration.
-- Images, compressed samples, Git metadata, and Python caches are not counted.
+The contract defines area as the official score and renderPoints as a stable lattice enumeration of the same official set, with area=renderPoints.length. polygon and shoelace displayArea are diagnostic/legacy-rule fields, while reach is an AI feature. They are not interchangeable. territory-v3 shades renderPoints cell by cell and settles with area; both come from one flood result.
 
-This document explains the core rule engine, topological model, territory calculation, forbidden-move system, and Web architecture boundary of LIFELINE / TriAxis.
+$$
+\operatorname{coverage}_i=|F_i|,\qquad \operatorname{area}_i=|F_i|+|B_i|,\qquad \operatorname{reach}_i=|\operatorname{Reach}_{G_0\setminus O_i}(F_i)|.
+$$
 
-The game runs on a triangular lattice. The player sees nodes, lines, and territory; the code handles discrete coordinates, state enums, explicit edge sets, BFS connectivity, flood-fill coverage sets, historical position hashes, and a turn state machine.
+Check that placements do not overwrite nodes, surviving nodes have explicit-link routes to their actual starts, rejected trials do not commit history, accepted placements add new keys, search restores rule state, and AI outputs remain current and legal at execution. Cuts, connectivity and settlement belong to GameEngine rather than parallel approximate UI/model rules.
 
-Core implementation goals:
+Source: web/web前端/GameEngine.js → _getOpponentConnectedPieces, _evaluateMove, _computeTerritory.
 
-- Use discrete coordinates instead of screen geometry.
-- Use explicit edge sets instead of visual lines.
-- Use BFS to decide whether a node still connects back to its starting point.
-- Use flood fill to calculate covered territory points.
-- Use snapshot rollback and hash sets to implement Superko.
-- Keep the Web responsibility boundary as "front-end rule engine + back-end room synchronization".
+### 1.3 Snapshots and restoration
 
-## Project Scope
+AIEngine.saveState copies grid, per-player edges, history and turn fields, plus territory cache data. In v3, renderPoints and polygon are mutable coordinate arrays and must be copied point by point across snapshots or Worker boundaries. restoreState recreates grid/edge/history containers but assigns snapshot.cachedTerritories directly, so a branch that refreshes exact territory needs its own cache object. Shallow copies can contaminate branches or pair a new area with stale shading.
 
-The core algorithm sample is located at:
-
-```text
-core algorithm/triangular_game.py
-```
-
-The current Web path is:
-
-```text
-web/web前端/GameEngine.js
-web/web前端/Renderer.js
-web/web前端/GameController.js
-web/web前端/NetworkManager.js
-web/web后端/server.py
-```
-
-The core algorithm notes use a `9x9` triangular grid as the reference board. The Web client supports configurable board side lengths from `6` to `15`; the data structures and algorithmic strategy are the same.
-
-## Board Coordinate Model
-
-The triangular board uses discrete coordinates `(x, y)`. When the side length is `N`, row `y` has `N - y` legal points:
-
-```python
-0 <= y < N
-0 <= x < N - y
-x + y <= N - 1
-```
-
-Initialization:
-
-```python
-def _init_grid(self):
-    for y in range(self.GRID_SIZE):
-        for x in range(self.GRID_SIZE - y):
-            self.grid[(x, y)] = PointState.EMPTY
-```
-
-In the code, `self.grid` is the physical board layer:
-
-```python
-self.grid: dict[tuple[int, int], PointState]
-```
-
-It stores the current occupancy state of every coordinate point. Each key is a legal triangular coordinate, and each value is a `PointState`.
-
-Screen coordinates are only for rendering:
-
-```python
-def _get_screen_pos(self, grid_x, grid_y):
-    offset_x = grid_y * self.cell_size // 2
-    screen_x = self.grid_start_x + grid_x * self.cell_size + offset_x
-    screen_y = self.grid_start_y + grid_y * self.cell_size * 0.866
-    return int(screen_x), int(screen_y)
-```
-
-Rule calculation does not depend on pixel coordinates. Click detection maps a screen point back to the nearest lattice point, but legality is still decided by `self.grid` and the rule functions.
-
-## Six-Direction Adjacency
-
-Each lattice point in the triangular grid has at most six adjacent points. The implementation uses a six-direction adjacency list:
-
-```python
-possible_adjacent = [
-    (x, y + 1),
-    (x, y - 1),
-    (x - 1, y),
-    (x + 1, y),
-    (x - 1, y + 1),
-    (x + 1, y - 1),
-]
-```
-
-Only legal points that exist in `self.grid` are returned:
-
-```python
-def _get_adjacent_positions(self, pos):
-    x, y = pos
-    adjacent = []
-
-    for adj_pos in possible_adjacent:
-        if adj_pos in self.grid:
-            adjacent.append(adj_pos)
-
-    return adjacent
-```
-
-The adjacency helper is reused by:
-
-- flood fill in `_get_covered_points`
-- shortest-path search in `_get_all_shortest_grid_paths`
-- outer-contour tracing in `_get_outer_contour`
-- the three-point restriction check
-- disconnected-region cleanup
-
-## State Enums
-
-Board point states are defined by `PointState`:
-
-```python
-class PointState(Enum):
-    EMPTY = 0
-    BLACK_NODE = 1
-    BLACK_LINE = 2
-    WHITE_NODE = 3
-    WHITE_LINE = 4
-```
-
-Players are represented by:
-
-```python
-class Player(Enum):
-    BLACK = 1
-    WHITE = 2
-```
-
-State meanings:
-
-- `EMPTY`: an unoccupied point.
-- `BLACK_NODE` / `WHITE_NODE`: a node actively placed by a player, used as a vertex in the topological graph.
-- `BLACK_LINE` / `WHITE_LINE`: an automatically generated line point between nodes, used for rendering and blocking detection.
-
-The distinction between nodes and line points matters:
-
-- Nodes participate in the explicit edge set.
-- Line points are not graph vertices.
-- Line points can be attacked and deleted.
-- Connectivity is checked only through explicit edges between nodes.
-
-Initial state:
-
-```python
-self.grid[(0, 0)] = PointState.BLACK_NODE
-self.grid[(8, 0)] = PointState.WHITE_NODE
-```
-
-## Two-Layer Data Structure
-
-The rule engine is split into two layers.
-
-### Grid Physical Layer
-
-```python
-self.grid: dict[tuple[int, int], PointState]
-```
-
-Responsibilities:
-
-- Store point occupancy.
-- Support Canvas / Pygame rendering.
-- Support move legality checks.
-- Support midpoint blocking checks.
-- Support line-point deletion during attacks.
-
-### Logical Topology Layer
-
-```python
-self.black_edges: set[frozenset[tuple[int, int]]]
-self.white_edges: set[frozenset[tuple[int, int]]]
-```
-
-Each edge is represented as `frozenset({node_a, node_b})`. `frozenset` removes endpoint order, so `(a, b)` and `(b, a)` normalize to the same undirected edge.
-
-Responsibilities:
-
-- Store explicit connections between nodes.
-- Build temporary adjacency lists.
-- Run BFS connectivity checks.
-- Participate in position-hash serialization.
-- Stay synchronized after attacks, node deletion, and reconnection.
-
-Design constraints:
-
-- `grid` may display continuous line points.
-- `edges` is the actual source of legal node connectivity.
-- Connectivity is not inferred by scanning same-color `grid` points.
-
-## Straight-Line Connection Rules
-
-Two nodes can connect if and only if they lie on one of the three line families of the triangular coordinate system:
-
-```python
-def _can_connect(self, pos1, pos2):
-    x1, y1 = pos1
-    x2, y2 = pos2
-
-    if x1 == x2:
-        return True
-    if y1 == y2:
-        return True
-    if x1 + y1 == x2 + y2:
-        return True
-
-    return False
-```
-
-The three directions are:
-
-- same column: `x1 == x2`
-- same row: `y1 == y2`
-- same anti-diagonal: `x1 + y1 == x2 + y2`
-
-Intermediate lattice points are extracted by `_get_line_points`:
-
-```python
-def _get_line_points(self, start, end):
-    x1, y1 = start
-    x2, y2 = end
-    points = []
-
-    if x1 == x2:
-        for y in range(min(y1, y2), max(y1, y2) + 1):
-            if (x1, y) in self.grid:
-                points.append((x1, y))
-
-    elif y1 == y2:
-        for x in range(min(x1, x2), max(x1, x2) + 1):
-            if (x, y1) in self.grid:
-                points.append((x, y1))
-
-    elif x1 + y1 == x2 + y2:
-        # Generate discrete lattice points along the anti-diagonal direction.
-        ...
-
-    return points
-```
-
-Blocking detection is handled by `_can_connect_with_blocking`:
-
-```python
-def _can_connect_with_blocking(self, pos1, pos2, player):
-    if not self._can_connect(pos1, pos2):
-        return False
-
-    line_points = self._get_line_points(pos1, pos2)
-    middle_points = [p for p in line_points if p != pos1 and p != pos2]
-
-    for point in middle_points:
-        if self.grid[point] in opponent_states:
-            return False
-
-    return True
-```
-
-This function asks whether an enemy node or enemy line point lies on the straight path. It does not reject friendly line points, because friendly line points may already be part of an existing connection.
-
-## Move Entry Point
-
-The core move function is `_add_node`. It owns the full single-move transaction.
-
-Main stages:
-
-1. Coordinate existence check.
-2. Target point state check.
-3. Protection-zone check.
-4. Three-point restriction check.
-5. Snapshot save.
-6. New node write.
-7. Automatic connection.
-8. Attack resolution.
-9. Superko hash check.
-10. Commit or rollback.
-
-Entry checks:
-
-```python
-if pos not in self.grid:
-    return False
-
-original_state = self.grid[pos]
-if original_state not in [PointState.EMPTY, PointState.WHITE_LINE, PointState.BLACK_LINE]:
-    return False
-```
-
-A move may be placed only on an empty point or on an enemy line point. Existing nodes cannot be overwritten, and friendly nodes cannot be replayed.
-
-Protection-zone restriction:
-
-```python
-if self._is_in_protection_zone(pos, self.current_player):
-    return False
-```
-
-Three-point restriction:
-
-```python
-opponent_line = PointState.WHITE_LINE if self.current_player == Player.BLACK else PointState.BLACK_LINE
-is_attacking_move = original_state == opponent_line
-
-if not is_attacking_move and not self._check_three_point_limitation(pos, self.current_player):
-    return False
-```
-
-An attacking move may bypass the three-point restriction. Ordinary expansion must pass the formation constraint.
-
-Transaction snapshot:
-
-```python
-grid_snapshot = dict(self.grid)
-black_edges_snapshot = set(self.black_edges)
-white_edges_snapshot = set(self.white_edges)
-```
-
-The snapshot is used to restore the position if the move violates Superko. A shallow copy is enough here because keys and values are immutable coordinates and enum values, and edge-set elements are `frozenset` objects.
-
-## Automatic Connection
-
-After the new node is written, the engine scans all existing friendly nodes:
-
-```python
-self.grid[pos] = node_state
-
-existing_nodes = self._get_player_nodes(self.current_player)
-existing_nodes.remove(pos)
-```
-
-For each existing node, it checks whether a connection is possible:
-
-```python
-connected = False
-
-for node_pos in existing_nodes:
-    if self._can_connect_with_blocking(pos, node_pos, self.current_player):
-        connected = True
-        line_points = self._get_line_points(pos, node_pos)
-
-        for point in line_points:
-            if self.grid[point] == PointState.EMPTY or self.grid[point] == line_state:
-                self.grid[point] = line_state
-            if point == pos or point == node_pos:
-                self.grid[point] = node_state
-
-        self._get_edges(self.current_player).add(frozenset({pos, node_pos}))
-```
-
-Details:
-
-- Intermediate empty points become friendly `LINE` points.
-- Both endpoints remain `NODE` points.
-- Existing friendly line points may be reused.
-- Each successful connection is written into `black_edges` or `white_edges`.
-- If no connection succeeds, the move fails and restores the original state.
-
-Connection-failure rollback:
-
-```python
-if not connected:
-    self.grid[pos] = original_state
-    return False
-```
-
-## Attack Trigger
-
-When the new node is placed on an enemy line point, `_handle_blocking_attack` is triggered:
-
-```python
-self._handle_blocking_attack(pos, self.current_player, original_state)
-```
-
-Attack condition:
-
-```python
-opponent = Player.WHITE if player == Player.BLACK else Player.BLACK
-opp_line = PointState.WHITE_LINE if player == Player.BLACK else PointState.BLACK_LINE
-
-if original_state != opp_line:
-    return
-```
-
-The function executes in a fixed order:
-
-1. Delete the enemy line points that were cut.
-2. Clean broken topological edges.
-3. Delete enemy nodes that no longer connect back to their starting point.
-4. Clean enemy line points with no surviving endpoint support.
-5. Rebuild legal connections for both attacker and defender.
-
-## Cascading Line-Point Deletion
-
-The attack point scans in six straight directions:
-
-```python
-directions = [(1, 0), (-1, 0), (0, 1), (0, -1), (1, -1), (-1, 1)]
-```
-
-Only directions whose adjacent point is an enemy line point are processed:
-
-```python
-nx, ny = x0 + dx, y0 + dy
-if (nx, ny) not in self.grid or self.grid[(nx, ny)] != opp_line:
-    continue
-```
-
-Enemy line points are collected continuously:
-
-```python
-cells_to_delete = []
-while (nx, ny) in self.grid and self.grid[(nx, ny)] == opp_line:
-    cells_to_delete.append((nx, ny))
-    nx += dx
-    ny += dy
-```
-
-The collected line points are deleted only if the scan ends at an enemy node:
-
-```python
-if (nx, ny) in self.grid and self.grid[(nx, ny)] == opp_node_state:
-    for cell in cells_to_delete:
-        self.grid[cell] = PointState.EMPTY
-```
-
-This distinguishes two cases:
-
-- continuous line points on the attacked connection
-- other line points created by crossings or adjacency in different directions
-
-If the scan ends at an empty point or the board boundary, that direction is left untouched, avoiding accidental deletion of line points that do not belong to the current connection segment.
-
-## Topological Edge Cleanup
-
-After line points are deleted, the physical layer and topological layer may disagree. `_cleanup_broken_edges` scans a player's edge set and removes edges whose physical paths are no longer intact.
-
-Core logic:
-
-```python
-def _cleanup_broken_edges(self, player):
-    edges = self._get_edges(player)
-    broken_edges = set()
-
-    for edge in edges:
-        n1, n2 = tuple(edge)
-        points = self._get_line_points(n1, n2)
-
-        if any(self.grid[p] not in owned_states(player) for p in points):
-            broken_edges.add(edge)
-
-    edges.difference_update(broken_edges)
-```
-
-Implementation goals:
-
-- Both endpoints of an edge must still be nodes owned by that player.
-- Intermediate points on the edge path must still be that player's line points or nodes.
-- If any path point is occupied by the enemy or cleared, the edge is invalid.
-
-This step is a precondition for the later BFS connectivity check.
-
-## Connectivity BFS
-
-`_is_connected_to_initial` decides whether a node can still reach its starting point through the explicit edge set.
-
-Implementation steps:
-
-1. Get `black_edges` or `white_edges` for the player.
-2. Convert `set[frozenset]` into a temporary adjacency list.
-3. Start BFS from the player's starting point.
-4. If the target node is visited, it is connected.
-
-Pseudocode:
-
-```python
-def _is_connected_to_initial(self, pos, player):
-    start = (0, 0) if player == Player.BLACK else (8, 0)
-    adj = defaultdict(list)
-
-    for edge in self._get_edges(player):
-        a, b = tuple(edge)
-        adj[a].append(b)
-        adj[b].append(a)
-
-    queue = deque([start])
-    visited = {start}
-
-    while queue:
-        current = queue.popleft()
-        if current == pos:
-            return True
-
-        for nxt in adj[current]:
-            if nxt not in visited:
-                visited.add(nxt)
-                queue.append(nxt)
-
-    return False
-```
-
-Data-structure terms:
-
-- `adjacency list`: adjacency list
-- `visited set`: visited set
-- `queue`: BFS queue
-- `connected component`: connected component
-- `root node`: starting point
-
-The function does not scan same-color points in `grid`, preventing visual continuity from being mistaken for topological connectivity.
-
-## Enclave Node Deletion
-
-An attack may split the enemy graph. During resolution, the engine traverses every enemy node:
-
-```python
-opp_start = (8, 0) if player == Player.BLACK else (0, 0)
-deleted_nodes = set()
-
-for node in self._get_player_nodes(opponent):
-    if node != opp_start and not self._is_connected_to_initial(node, opponent):
-        self.grid[node] = PointState.EMPTY
-        deleted_nodes.add(node)
-        self._remove_node_edges(node, opponent)
-```
-
-Rules:
-
-- The starting point is never deleted.
-- A node that cannot connect back to its starting point becomes `EMPTY`.
-- Every explicit edge incident to that node is removed at the same time.
-
-`_remove_node_edges` preserves edge-set consistency:
-
-```python
-def _remove_node_edges(node, player):
-    edges(player).difference_update(
-        edge for edge in edges(player) if node in edge
-    )
-```
-
-## Orphan Line-Point Cleanup
-
-After node deletion, enemy line points may remain. A line point is retained only if it lies on a complete connection whose two endpoints both survived.
-
-Check flow:
-
-```python
-for line_pt in list(self.grid.keys()):
-    if self.grid[line_pt] != opp_line:
-        continue
-
-    protected = False
-
-    for n1, n2 in all_surviving_node_pairs:
-        if not self._can_connect(n1, n2):
-            continue
-
-        pts = self._get_line_points(n1, n2)
-        if line_pt not in pts:
-            continue
-
-        if all(self.grid[p] in (opp_node_state, opp_line) for p in pts):
-            protected = True
-            break
-
-    if not protected:
-        self.grid[line_pt] = PointState.EMPTY
-```
-
-Conditions:
-
-- The line point must lie on a legal straight line between a pair of surviving nodes.
-- Every point on that line must still belong to the enemy.
-- Otherwise it is an orphan line point and is cleared.
-
-This step removes physical leftovers after an attack, preventing the renderer from displaying line points that no longer have topological meaning.
-
-## Defensive Reconnection
-
-Attack resolution ends with `_reconnect_player_nodes`. It rescans every pair of nodes for a specified player:
-
-```python
-def _reconnect_player_nodes(self, player):
-    player_nodes = self._get_player_nodes(player)
-
-    for i in range(len(player_nodes)):
-        for j in range(i + 1, len(player_nodes)):
-            node1, node2 = player_nodes[i], player_nodes[j]
-
-            if self._can_connect_with_blocking(node1, node2, player):
-                line_points = self._get_line_points(node1, node2)
-
-                for point in line_points:
-                    if point == node1 or point == node2:
-                        self.grid[point] = node_state
-                    elif self.grid[point] == PointState.EMPTY:
-                        self.grid[point] = line_state
-
-                self._get_edges(player).add(frozenset({node1, node2}))
-```
-
-It is run for both sides:
-
-```python
-self._reconnect_player_nodes(player)
-self._reconnect_player_nodes(opponent)
-```
-
-Reasons for reconnection:
-
-- The attacker's new node may open new connections.
-- After defender nodes are deleted, remaining nodes may form new unobstructed connections.
-- Cleared line points may free straight paths that used to be blocked.
-
-Complexity characteristics:
-
-- Node-pair enumeration is `O(V^2)`.
-- Each connection check scans path points.
-- The board is small enough that direct enumeration is acceptable.
-
-## Territory Calculation Flow
-
-Territory is calculated by `_compute_inner_hull(player)`.
-
-Inputs:
-
-- current player
-- player's node set
-- player's line-point set
-- opponent node set
-- opponent line-point set
-
-Outputs:
-
-- `screen_polygon`: screen-coordinate polygon for rendering
-- `area`: discrete territory point count from flood fill
-
-Main flow:
-
-```python
-def _compute_inner_hull(self, player):
-    friendlies = set(self._get_player_nodes(player) + self._get_player_lines(player))
-    enemies = set(self._get_player_nodes(opp) + self._get_player_lines(opp))
-    friendly_nodes = set(self._get_player_nodes(player))
-
-    current_poly = self._get_outer_contour(player)
-
-    while True:
-        # Enumerate anchor pairs, build candidate contours, and validate by flood fill.
-        ...
-
-    final_covered = self._get_covered_points(current_poly)
-    screen_polygon = [self._get_screen_pos(*p) for p in final_closed]
-    area = len(final_covered)
-    return screen_polygon, area
-```
-
-Implementation features:
-
-- The outer contour is a sequence of discrete points, not a continuous geometric curve.
-- Perimeter is approximated by contour point count, namely grid-path length.
-- Area is the number of covered points, not the Shoelace formula.
-- Candidate contours must pass enemy-avoidance and friendly-node containment checks.
-
-## Outer Contour Tracing
-
-`_get_outer_contour(player)` uses a right-hand wall-following method.
-
-Key variables:
-
-- `friendlies`: friendly nodes plus friendly line points
-- `start`: lexicographically smallest friendly point
-- `backtrack`: reverse direction index for entering the current point
-- `first_out_dir`: first outgoing direction, used to detect closure
-- `contour`: output contour-point list
-- `max_steps`: safety cap against abnormal loops
-
-Implementation skeleton:
-
-```python
-DIRS = self._DIRS_CW
-friendlies = set(self._get_player_nodes(player) + self._get_player_lines(player))
-start = min(friendlies, key=lambda p: (p[0], p[1]))
-
-backtrack = 3
-current = start
-first_out_dir = None
-max_steps = len(friendlies) * 6 + 10
-```
-
-Clockwise scan for the next friendly point:
-
-```python
-for i in range(6):
-    d = (backtrack + 1 + i) % 6
-    dx, dy = DIRS[d]
-    nxt = (current[0] + dx, current[1] + dy)
-
-    if nxt in friendlies:
-        out_dir = d
-        break
-```
-
-Closure condition:
-
-```python
-if first_out_dir is None:
-    first_out_dir = out_dir
-    contour.append(current)
-elif current == start and out_dir == first_out_dir:
-    break
-else:
-    contour.append(current)
-```
-
-The algorithm returns an implicitly closed ring without repeating the first point at the end. Rendering adds the first point back through `get_closed`.
-
-## Shortest-Path Candidates
-
-`_get_all_shortest_grid_paths(start, end, enemies, max_paths)` uses BFS to find equal-length shortest paths that avoid enemy points.
-
-Data structures:
-
-- `queue`: path queue; each item is a full path list
-- `shortest_paths`: candidate shortest paths
-- `min_length`: shortest length discovered so far
-- `visited_at_depth`: shallowest depth at which each point has appeared
-
-Implementation skeleton:
-
-```python
-queue = [[start]]
-shortest_paths = []
-min_length = float("inf")
-visited_at_depth = {start: 0}
-```
-
-Search rules:
-
-```python
-while queue:
-    path = queue.pop(0)
-    current = path[-1]
-
-    if len(path) > min_length:
-        continue
-    if len(shortest_paths) >= max_paths:
-        break
-
-    if current == end:
-        shortest_paths.append(path)
-        min_length = len(path)
-        continue
-
-    for nxt in self._get_adjacent_positions(current):
-        if nxt in enemies:
-            continue
-        depth = len(path)
-        if nxt not in visited_at_depth or visited_at_depth[nxt] >= depth:
-            visited_at_depth[nxt] = depth
-            queue.append(path + [nxt])
-```
-
-This function is used for contour trimming, not for player moves. It produces candidate grid paths that may replace an existing contour arc.
-
-## Dynamic Greedy Trimming
-
-The outer contour may contain redundant line points. The trimming phase enumerates two anchor points `i` and `j` on the contour and replaces part of the contour with a shortest path.
-
-Current-contour baseline:
-
-```python
-cur_perim = len(current_poly)
-cur_area = len(self._get_covered_points(current_poly))
-
-best_overall_cand = None
-best_cand_perim = cur_perim
-best_cand_area = cur_area
-```
-
-Anchor enumeration:
-
-```python
-for i in range(n):
-    for j in range(n - 1, i + 1, -1):
-        if j - i <= 1:
-            continue
-```
-
-Candidate generation:
-
-```python
-paths = self._get_all_shortest_grid_paths(
-    current_poly[i],
-    current_poly[j],
-    enemies,
-    max_paths=100,
-)
-
-for path in paths:
-    cand_A = current_poly[:i] + path + current_poly[j + 1:]
-    cand_B = current_poly[i:j + 1] + path[::-1][1:-1]
-```
-
-Candidate filters:
-
-```python
-cand = [p for k, p in enumerate(cand) if k == 0 or p != cand[k - 1]]
-
-if len(cand) < 3:
-    continue
-
-if cand_perim > best_cand_perim:
-    continue
-
-covered = self._get_covered_points(cand)
-cand_area = len(covered)
-
-if cand_perim == best_cand_perim and cand_area >= best_cand_area:
-    continue
-
-if not friendly_nodes.issubset(covered):
-    continue
-
-if any(e in covered for e in enemies):
-    continue
-```
-
-Optimization goals:
-
-1. Prefer shorter perimeter.
-2. If perimeter ties, prefer smaller covered area.
-3. Ensure all friendly nodes remain inside the covered region.
-4. Ensure the covered region contains no enemy point.
-
-Convergence condition:
-
-```python
-if best_overall_cand is not None:
-    current_poly = best_overall_cand
-else:
-    break
-```
-
-This is local search with greedy updates, not a global optimum polygon solver. It fits the current small board sizes and interactive calculation needs.
-
-## Flood-Fill Covered Points
-
-`_get_covered_points(polygon)` computes the discrete point set covered by a polygon with flood fill.
-
-Input:
-
-- `polygon`: contour point list
-
-Output:
-
-- `set[tuple[int, int]]`: every lattice point enclosed by the contour, including the contour points themselves
-
-Implementation steps:
-
-1. Convert contour points into `wall_set`.
-2. Enqueue non-wall points on the three board boundaries.
-3. Use BFS to expand all externally reachable points.
-4. Subtract the externally reachable set from the full lattice set to get the covered set.
-
-Code skeleton:
-
-```python
-wall_set = set(polygon)
-water_reached = set()
-queue = deque()
-
-for y in range(9):
-    for x in range(9 - y):
-        if x == 0 or y == 0 or x + y == 8:
-            if (x, y) not in wall_set:
-                water_reached.add((x, y))
-                queue.append((x, y))
-
-while queue:
-    curr = queue.popleft()
-    for nxt in self._get_adjacent_positions(curr):
-        if nxt not in wall_set and nxt not in water_reached:
-            water_reached.add(nxt)
-            queue.append(nxt)
-
-all_points = {(x, y) for y in range(9) for x in range(9 - y)}
-return all_points - water_reached
-```
-
-Algorithm properties:
-
-- It is a Flood Fill / Region Filling method.
-- It uses a BFS queue.
-- It does not rely on ray casting.
-- It does not rely on continuous geometric area.
-- Even under a self-intersecting contour, the result is decided by lattice reachability.
-
-## Superko Position Hash
-
-Superko prevents global shape repetition. The implementation has two parts:
-
-- `history_hashes: set[str]`
-- `_compute_state_hash(next_player)`
-
-The initial position is inserted during initialization:
-
-```python
-self.history_hashes = set()
-self.history_hashes.add(self._compute_state_hash(Player.BLACK))
-```
-
-Serialized content:
-
-```python
-grid_entries = sorted(
-    (x, y, state.value)
-    for (x, y), state in self.grid.items()
-    if state != PointState.EMPTY
-)
-
-black_edge_list = sorted(tuple(sorted(e)) for e in self.black_edges)
-white_edge_list = sorted(tuple(sorted(e)) for e in self.white_edges)
-
-raw = repr((next_player.value, grid_entries, black_edge_list, white_edge_list))
-return hashlib.sha256(raw.encode()).hexdigest()
-```
-
-Field meanings:
-
-- `next_player.value`: the player to move after resolution.
-- `grid_entries`: all non-empty lattice points and their state values.
-- `black_edge_list`: normalized black edge set.
-- `white_edge_list`: normalized white edge set.
-- `SHA-256`: fixed-length digest for set lookup.
-
-Post-move check:
-
-```python
-next_player = Player.WHITE if self.current_player == Player.BLACK else Player.BLACK
-state_hash = self._compute_state_hash(next_player)
-
-if state_hash in self.history_hashes:
-    self.grid = grid_snapshot
-    self.black_edges = black_edges_snapshot
-    self.white_edges = white_edges_snapshot
-    raise SuperkoViolationError(...)
-
-self.history_hashes.add(state_hash)
-```
-
-Important details:
-
-- Hash checking happens after attack resolution and reconnection.
-- On violation, `grid` and both edge sets are restored.
-- `_is_legal_move` additionally snapshots `history_hashes` and `current_player`, so legality probes cannot pollute the real game state.
-
-## Turns and Endgame
-
-Player switching:
-
-```python
-def _switch_player(self):
-    self.current_player = Player.WHITE if self.current_player == Player.BLACK else Player.BLACK
-```
-
-Legality probing:
-
-```python
-def _is_legal_move(self, pos, player):
-    grid_snapshot = dict(self.grid)
-    black_edges_snapshot = set(self.black_edges)
-    white_edges_snapshot = set(self.white_edges)
-    history_hashes_snapshot = set(self.history_hashes)
-    current_player_snapshot = self.current_player
-
-    try:
-        self.current_player = player
-        return self._add_node(pos)
-    except SuperkoViolationError:
-        return False
-    finally:
-        self.grid = grid_snapshot
-        self.black_edges = black_edges_snapshot
-        self.white_edges = white_edges_snapshot
-        self.history_hashes = history_hashes_snapshot
-        self.current_player = current_player_snapshot
-```
-
-This function decides whether a player has any legal action. Transaction rollback ensures the probe does not modify the real position.
-
-Automatic skip:
-
-```python
-def _has_valid_moves(self, player):
-    for pos in self.grid:
-        if self._is_legal_move(pos, player):
-            return True
-    return False
-```
-
-End conditions:
-
-- If the current player has no legal move, that player is skipped automatically.
-- If both players skip consecutively, the game ends.
-- A player-initiated skip also increments `consecutive_skips`.
-
-```python
-if self.consecutive_skips >= 2:
-    self.game_over = True
-```
-
-The winner is decided by comparing both players' territory point counts.
-
-## Rendering and Caching
-
-The Pygame sample renders in this order:
-
-- clear background
-- semi-transparent territory overlays
-- node-to-node line drawing
-- lattice point drawing
-- current player text
-- skip button
-- game-over overlay
-
-Territory cache:
-
-```python
-self._hull_black: tuple[Optional[list], float] = (None, 0.0)
-self._hull_white: tuple[Optional[list], float] = (None, 0.0)
-```
-
-Update after state changes:
-
-```python
-def _update_hulls(self):
-    self._hull_black = self._compute_inner_hull(Player.BLACK)
-    self._hull_white = self._compute_inner_hull(Player.WHITE)
-```
-
-Design purpose:
-
-- Avoid repeating contour tracing, shortest-path enumeration, and flood fill on every frame.
-- Let render frames read only cached results.
-- Keep rule calculation separate from drawing.
-
-Line drawing does not simply draw adjacent line points. It enumerates node pairs and validates ownership of the entire segment:
-
-```python
-for i in range(len(p_nodes)):
-    for j in range(i + 1, len(p_nodes)):
-        n1, n2 = p_nodes[i], p_nodes[j]
-        if not self._can_connect(n1, n2):
-            continue
-
-        pts = self._get_line_points(n1, n2)
-        if not all(self.grid[p] in owned for p in pts):
-            continue
-
-        if any(self.grid[p] == node_st for p in pts if p != n1 and p != n2):
-            continue
-
-        pygame.draw.line(...)
-```
-
-This prevents the renderer from accidentally drawing extra connections at corners.
-
-## Web Front-End Architecture
-
-Current real entry path:
-
-```text
-index.html -> main.js -> OnlineApp.js
-```
-
-Core modules:
-
-```text
-web/web前端/main.js
-web/web前端/OnlineApp.js
-web/web前端/OnlineAppState.js
-web/web前端/OnlineAppI18n.js
-web/web前端/GameController.js
-web/web前端/GameEngine.js
-web/web前端/Renderer.js
-web/web前端/NetworkManager.js
-web/web前端/styles.css
-```
-
-Responsibilities:
-
-- `main.js`: loads the Vue runtime, mounts the app, and handles startup failure states.
-- `OnlineApp.js`: main application orchestration layer for local mode, online mode, room flow, and page layout.
-- `OnlineAppState.js`: default settings, session-storage keys, authentication data, and locally persisted state.
-- `OnlineAppI18n.js`: Chinese/English text, titles, scores, states, and error formatting.
-- `GameController.js`: interaction-control layer connecting the rule engine, renderer, and network layer.
-- `GameEngine.js`: rule-calculation layer maintaining the board, moves, turns, territory, scores, and end state.
-- `Renderer.js`: Canvas drawing layer for board, nodes, lines, territory, highlights, and responsive sizing.
-- `NetworkManager.js`: WebSocket client wrapper for request sending, event subscription, heartbeat, and error handling.
-- `styles.css`: page layout, responsive strategy, collapsible information docks, and mobile adaptation.
-
-Architecture constraints:
-
-- The current rule source of truth is the front-end `GameEngine.js`.
-- The back end does not adjudicate triangular-board rules.
-- Rendering performance issues should be handled first in `Renderer.js`.
-- New text should usually be added to `OnlineAppI18n.js`.
-
-## Web Back-End Architecture
-
-Current back-end main service:
-
-```text
-web/web后端/server.py
-```
-
-Back-end responsibilities:
-
-- FastAPI application entry.
-- Static asset hosting.
-- User registration and login.
-- `bcrypt + sha256` password hashing.
-- JWT issuing and validation.
-- WebSocket authentication and connection.
-- Room creation, joining, and leaving.
-- Player identity, color, host, and ready-state management.
-- Match-start countdown.
-- Online reset voting.
-- Room action log.
-- Heartbeat detection.
-- Disconnection recovery.
-- Room timeout cleanup.
-
-The back end does not handle:
-
-- move legality adjudication
-- territory calculation
-- endgame winner adjudication
-- replacing the front-end rule engine
-
-The repository also contains:
-
-```text
-web/web后端/game_router.py
-```
-
-That file belongs to an experimental or historical back-end rule direction; it is not the current Web main path.
-
-## WebSocket Data Flow
-
-Online mode uses the pattern "server synchronizes actions, clients replay rules".
-
-Move data flow:
-
-```text
-User clicks the board
--> GameController receives the interaction
--> GameEngine executes local rules
--> Renderer refreshes the local view
--> NetworkManager sends player_move
--> server.py broadcasts to other room members
--> other clients replay the action with their local GameEngine
-```
-
-Main client messages:
-
-```text
-create_room
-join_room
-player_move
-player_skip
-player_reset
-player_ready
-update_room_settings
-update_start_player
-player_leave
-ping
-```
-
-Main server events:
-
-```text
-ROOM_CREATED
-ROOM_JOINED
-ROOM_STATE
-ROOM_COUNTDOWN
-ROOM_READY
-OPPONENT_MOVE
-TURN_SKIPPED
-RESET_STATUS
-MATCH_RESET
-PLAYER_LEFT
-PONG
-ERROR
-```
-
-Room constants:
-
-- Room code length: `4`
-- Room timeout cleanup: `300` seconds
-- Heartbeat timeout: `35` seconds
-- Heartbeat sweep interval: `5` seconds
-- Start countdown: `3` seconds
-- Board side-length range: `6` to `15`
-- Supported player count: `2` or `3`
-
-## UI Requirements
-
-The current UI treats the board as the main operation surface.
-
-Main constraints:
-
-- The first screen shows the title and central board.
-- The board must be fully visible on both desktop and mobile.
-- Page scrolling is mainly vertical.
-- The board area does not contain long explanatory text.
-- Current turn and local actions remain below the board.
-- The board dock is collapsed by default, with a summary showing player count and side length.
-- The online dock is collapsed by default, with a summary showing local status or room code.
-- The Chinese title is `生命线`.
-- The English title is `LIFELINE`.
-- New text is maintained centrally in `OnlineAppI18n.js`.
-
-## AI Opponent: Truncated Heuristic Minimax + Alpha-Beta
-
-The automatic Web AI is enabled only in two-player mode. Two-player LIFELINE is a turn-based, deterministic, perfect-information, zero-sum adversarial game with no randomness or hidden information, so the Minimax family is a natural fit. The current implementation is fixed-depth, keeps only the Top 20 candidates per node, and expands Place actions only; it is a truncated heuristic Minimax with Alpha-Beta pruning, move ordering, and heuristic evaluation rather than a complete optimal solver.
-
-AI module entry points:
-
-```text
-web/web前端/AIEngine.js
-web/web前端/AIWorker.js
-```
-
-### Move Ordering
-
-Move ordering determines the effectiveness of Alpha-Beta pruning. `orderMoves` partitions candidate moves into three tiers, expanding cutting attacks and friendly-line-adjacent expansions first:
+Source excerpt: these fields explain why visually identical positions can have different legality.
 
 ```javascript
-function orderMoves(engine, moves, player) {
-  const ownLine = engine._getPlayerStates(player).line;
-  const opponentLines = new Set(
-    getOpponents(engine, player).map(
-      (opponent) => engine._getPlayerStates(opponent).line,
-    ),
-  );
-  const tiers = [[], [], []];
-
-  for (const point of moves) {
-    if (opponentLines.has(engine._getState(point))) {
-      tiers[0].push(point); // Cutting attacks first
-    } else if (
-      engine
-        .getAdjacentPositions(point)
-        .some((adjacent) => engine._getState(adjacent) === ownLine)
-    ) {
-      tiers[1].push(point); // Expansions adjacent to own lines
-    } else {
-      tiers[2].push(point); // Remaining legal points
-    }
-  }
-
-  return [...tiers[0], ...tiers[1], ...tiers[2]].slice(0, 20);
-}
+    historyHashes: new Set(engine.historyHashes),
+    ...(engine.rootRulesVersion === "root-v2" ? {
+      roots: Object.fromEntries(engine.activePlayers.map(player => [player, engine.getRoots(player)])),
+      rootActionsRemaining: JSON.parse(JSON.stringify(engine.rootActionsRemaining)),
+    } : {}),
+    consecutiveSkips: engine.consecutiveSkips,
+    resignedPlayers: new Set(engine.resignedPlayers ?? []),
+    currentPlayer: engine.currentPlayer,
+    gameOver: engine.gameOver,
 ```
 
-Only the first `20` candidates are passed into the search, controlling the branching factor and preventing combinatorial explosion on large boards.
+For M points, e links and h history entries, a snapshot copies O(M+e+h) container entries; immutable history strings can share references, with their byte lengths counted separately. A depth-d stack retaining snapshots is not merely O(d) space. Normal restoration and the actual extent of finally-based exception cleanup must be audited separately.
 
-### Alpha-Beta Main Loop
+Source: web/web前端/AIEngine.js → saveState, restoreState, cloneCachedTerritories.
 
-At every node, `minimax` reads the `currentPlayer` left by rule resolution: it maximizes when that player is `aiPlayer` and minimizes otherwise. It uses `alpha` / `beta` bounds to cut branches that cannot become optimal:
+## II. Algorithms
 
-```javascript
-const ordered = this.orderMoves(engine, legalMoves, engine.currentPlayer);
-const maximizingPlayer = engine.currentPlayer === aiPlayer;
-if (maximizingPlayer) {
-  let bestValue = Number.NEGATIVE_INFINITY;
-  for (const point of ordered) {
-    const snapshot = saveState(engine);
-    const applied = applyMoveForAI(engine, point);
-    if (applied) {
-      const value = this.minimax(engine, depth - 1, alpha, beta, aiPlayer);
-      bestValue = Math.max(bestValue, value);
-      alpha = Math.max(alpha, bestValue);
-    }
-    restoreState(engine, snapshot);
-    if (beta <= alpha) {
-      break; // Alpha-Beta pruning
-    }
-  }
-  return bestValue;
-}
-```
+Follow a placement through legality, connections, cut cleanup, Superko commit, turn normalization and scoring. Each section identifies inputs, steps, outputs and source entry points. In territory-v3 the official set comes from flood fill and is rendered cell by cell; contour extraction and tightening remain separate diagnostic/compatibility stages.
 
-Every expansion uses `saveState` / `restoreState` for transactional rollback against the real rule engine, so the search uses exactly the same legality judgment as a human player, including protection zones, the three-point restriction, attack resolution, and Superko. Move resolution can automatically skip an opponent with no legal placement and leave the same player in control, so MAX/MIN cannot be flipped mechanically by recursion depth; it must follow the actual `currentPlayer` above.
+### 2.1 Legal-move trials
 
-Search depth is controlled directly by difficulty: Easy `2`, Normal `3`, Hard `4`. Deeper searches look further ahead but take longer to compute.
+The real engine tests placements, checking coordinates, occupiable state, protected neighbors of enemy starts, the three-point limit, a friendly connection and Superko after the transition. Empty points and line points can be candidates; existing NODE points cannot be overwritten. Protection follows every actual enemy start, including random and custom starts.
 
-### Evaluation: Fast BFS Approximation
+The current _checkThreePointLimitation rejects a new point with at least two adjacent friendly nodes. It also rejects a point adjacent to one friendly node that already has another friendly node as a neighbor. Thus a chain or cluster of three adjacent nodes can trigger the limit, including straight or bent chains; the check is broader than a smallest-triangle-only test.
 
-Leaf nodes cannot run the full territory algorithm — outer-contour tracing, dynamic greedy trimming, and flood-fill coverage together are too expensive to execute at every leaf. The evaluation function instead uses `fastTerritoryBFS` as a reachable-space approximation:
+A direct placement on an enemy line point bypasses this three-point check only. Starting-zone protection, the connection requirement and Superko still apply. The legality path does not consult a colored territory cache as a click mask: actual nodes, line points, blockers and full history determine the result.
 
-```javascript
-function fastTerritoryBFS(engine, player) {
-  const myStates = engine._getPlayerStates(player);
-  const opponentStates = new Set();
-  for (const opponent of getOpponents(engine, player)) {
-    const states = engine._getPlayerStates(opponent);
-    opponentStates.add(states.node);
-    opponentStates.add(states.line);
-  }
-
-  const frontier = [];
-  const visited = new Set();
-  for (const point of engine.validPositions) {
-    const state = engine._getState(point);
-    if (state === myStates.node || state === myStates.line) {
-      visited.add(pointKey(point));
-      frontier.push(point);
-    }
-  }
-
-  for (let index = 0; index < frontier.length; index += 1) {
-    for (const adjacent of engine.getAdjacentPositions(frontier[index])) {
-      const key = pointKey(adjacent);
-      if (!visited.has(key) && !opponentStates.has(engine._getState(adjacent))) {
-        visited.add(key);
-        frontier.push(adjacent);
-      }
-    }
-  }
-
-  return visited.size;
-}
-```
-
-The overall evaluation is a linear combination of five features:
-
-```javascript
-return (
-  15 * nodeAdvantage +
-  8 * coverageAdvantage +
-  20 * territoryAdvantage +
-  12 * attackThreats +
-  10 * connectionQuality
-);
-```
-
-| Feature | Meaning | Weight |
-| --- | --- | ---: |
-| `nodeAdvantage` | Node count differential | `15` |
-| `coverageAdvantage` | Node + line-point coverage differential | `8` |
-| `territoryAdvantage` | Fast BFS reachable-space differential | `20` |
-| `attackThreats` | Currently available cutting moves | `12` |
-| `connectionQuality` | Whether nodes still connect to the starting point | `10` |
-
-`territoryAdvantage` carries the highest weight because the final outcome is decided by territory; `attackThreats` pushes the AI to actively seek cutting opportunities rather than only comparing node counts; `connectionQuality` penalizes the AI for exposing its own nodes as isolated structures.
-
-Real moves and endgame scoring are still handled by the full rule engine; the search uses approximation only during evaluation.
-
-### Non-Blocking Web Worker Search
-
-The entire search runs inside a dedicated Web Worker so the UI thread never stalls:
-
-```javascript
-// AIWorker.js
-import { GameEngine } from "./GameEngine.js";
-import { MinimaxAI, restoreState } from "./AIEngine.js";
-
-self.onmessage = (event) => {
-  if (event.data?.type !== "COMPUTE") {
-    return;
-  }
-
-  const { serializedState, aiPlayer, depth = 3, topN = 5 } = event.data;
-  const engine = new GameEngine({
-    gridSize: serializedState.gridSize,
-    playerCount: serializedState.playerCount,
-    startPlayer: serializedState.startPlayer,
-  });
-
-  restoreState(engine, {
-    grid: new Map(serializedState.gridEntries),
-    edges: { /* ... */ },
-    historyHashes: new Set(serializedState.historyHashes),
-    /* ... */
-  });
-
-  // Skip expensive territory computation during search
-  engine._updateTerritories = () => {};
-
-  const moves = new MinimaxAI(depth).getTopMoves(engine, aiPlayer, topN);
-  self.postMessage({ type: "RESULT", moves });
-};
-```
-
-Key points:
-
-- On startup, the worker rebuilds an independent `GameEngine` from the main thread's serialized board state — no shared memory with the main thread.
-- During the search, `engine._updateTerritories` is explicitly disabled to avoid triggering the full territory pipeline at every search node.
-- The worker returns the Top-N candidate moves and their scores via `postMessage`; the main thread continues to drive animation, hints, and final legality confirmation.
-- Automatic AI reuses its own worker; every hint gets a separate one-shot worker that terminates after RESULT, ERROR, or cancellation, so the request lifecycles are never shared.
-- A hint is displayed and charged only when its requestId, original engine object, positionRevision, rulesVersion, and currentPlayer are all still current.
-
-### AI Hint Reuses the Same Search
-
-`getTopMoves` powers both the AI opponent's automatic moves and the AI Hint button:
-
-```javascript
-getTopMoves(engine, aiPlayer, topN = 5) {
-  const legalMoves = this.getLegalMoves(engine, aiPlayer);
-  if (legalMoves.length === 0) {
-    return [];
-  }
-
-  const ordered = this.orderMoves(engine, legalMoves, aiPlayer);
-  const scoredMoves = [];
-  for (const point of ordered) {
-    const snapshot = saveState(engine);
-    const applied = applyMoveForAI(engine, point);
-    if (applied) {
-      const score = this.minimax(
-        engine,
-        this.depth - 1,
-        Number.NEGATIVE_INFINITY,
-        Number.POSITIVE_INFINITY,
-        aiPlayer,
-      );
-      scoredMoves.push({ point, score });
-    }
-    restoreState(engine, snapshot);
-  }
-
-  scoredMoves.sort((a, b) => b.score - a.score);
-  return scoredMoves.slice(0, topN);
-}
-```
-
-This means the AI opponent and AI Hint use the same Minimax + Alpha-Beta algorithm but run in isolated worker instances. Hint search no longer blocks the UI, and a late result from an old position cannot overwrite the current board. Automatic AI is two-player only; a hint in a three-player game is still a binary heuristic ranking, not Max-N or a complete three-player solution. All visualizations — difficulty switching, thinking state, and recommended moves — come from the same search result.
-
-### Design Tradeoffs
-
-| Choice | Rationale |
-| --- | --- |
-| Two-player truncated Minimax + Alpha-Beta | Classic fit for perfect-information, zero-sum, turn-based adversarial games; no training required and results are interpretable, but global optimality is not guaranteed |
-| Move ordering + Top-20 cutoff | Controls branching factor; cuts and adjacent expansions are locally high-value moves and deserve priority expansion |
-| Fast BFS evaluation | Full territory computation is too slow; BFS reachable space correlates strongly with final territory in practice |
-| Isolated Web Workers | Automatic AI reuses a dedicated worker while hints use one-shot workers; search does not block Canvas and stale results cannot write into a newer position |
-| Search snapshot rollback | Reuses the full rule engine so the AI and human players share identical semantics for protection zones, the three-point rule, and Superko |
-
-## Modification Entry Points
-
-Common modification paths:
-
-- Rules and moves: `GameEngine.js`, with `core algorithm/triangular_game.py` as reference.
-- Territory, node deletion, connectivity: compare the core algorithm document and sample implementation first.
-- Rendering performance: `Renderer.js`.
-- Page structure: `OnlineApp.js`.
-- Default settings and local session: `OnlineAppState.js`.
-- Text and language: `OnlineAppI18n.js`.
-- Online protocol: `NetworkManager.js` and `server.py`.
-- Back-end room logic: `server.py`.
-
-Suggested verification items:
-
-- Two-player local game can start, place moves, skip, and end normally.
-- Three-player game has correct colors, turns, and territory statistics.
-- Side lengths `6`, `10`, and `15` display completely.
-- After attacking a line point, broken-edge cleanup, enclave deletion, orphan-line cleanup, and reconnection are consistent.
-- Superko violations roll the position back.
-- Online room creation, joining, ready flow, start, and move synchronization work normally.
-- Host setting changes reset ready states.
-- Online reset requires confirmation from every player.
-- After disconnection, room context can be restored.
-
-## GitHub
-
-Repository:
+_evaluateMove performs a reversible trial, computes the resulting state identity and restores the board and edge sets in finally. Listing legal moves may inspect many candidates without changing the live game.
 
 ```text
-https://github.com/Chengzong-Zhang/Line-Game
+01 INPUT: full state S, candidate point v, actor i
+02 Reject invalid v, existing NODE, or protected enemy-start neighbor
+03 If v is not an enemy LINE: enforce the three-point condition
+04 Temporarily apply node insertion, connections and attack cleanup
+05 If no friendly connection exists: restore and reject
+06 Compute trial key with next non-resigned actor
+07 Reject if trial key is already in H
+08 Restore all trial changes; return legal/illegal (do not commit)
 ```
+
+Enumerating M candidates can invoke many trial transitions: getLegalMoves costs on the order of M trial costs rather than one neighbor scan. Fixed coordinate order, ray geometry and reusable buffers help; a history-free cache of permanently legal points is unsound.
+
+Source: web/web前端/GameEngine.js → _evaluateMove, getLegalMoves, _checkThreePointLimitation, _isInProtectionZone.
+
+### 2.2 Automatic connections
+
+A placement must connect to an existing friendly node along a lattice straight line: constant x, constant y or constant x+y. Every intermediate point is checked. Any opponent node or opponent line point blocks the connection. If no friendly node is reachable this way, the placement fails.
+
+Successful connections keep endpoints as NODE, fill eligible empty intermediate points as LINE and add an undirected endpoint pair to edges. Endpoint order is canonicalized so A—B and B—A are not duplicated. The new-node checks can retain long links; connecting is not restricted to adjacent visible stones.
+
+The _connectAllCrawl pass then walks six rays from each friendly node. An enemy element stops a ray; the first friendly node supplies a missing edge and ends that ray. A direct cut can remove blockers, so the attack path also rescans the other players for newly unlocked connections. Only ray geometry is cached; occupancy is read again each time.
+
+A scoring contour is separate from a real link. If contour tightening crosses an empty point, that point does not become LINE and no attackable logical edge is invented.
+
+```text
+01 For every old friendly NODE u:
+02   If v,u are lattice-collinear AND the interior has no enemy:
+03     mark v,u as NODE; mark eligible interior cells as LINE
+04     add canonical undirected edge {v,u}
+05 For each friendly NODE u and each of six directions:
+06   walk the cached ray, reading current occupancy
+07   stop at enemy occupancy
+08   at first friendly NODE: add missing edge, then stop this ray
+09 After a direct cut: also crawl each other player's surviving nodes
+```
+
+Source excerpt: insertion records long logical edges, complementing the nearest-node-per-ray crawl.
+
+```javascript
+      // 记录显式边
+      this._getEdges(this.currentPlayer).add(this._edgeKey(point, node));
+```
+
+For maximum ray length D and k friendly nodes, direct checks and one six-ray crawl require O(kD) naive scanning, plus written line points and links. Precomputed rays remove repeated geometry work, but occupancy must be reread.
+
+Source: web/web前端/GameEngine.js → _addNode, canConnectWithBlocking, getLinePoints, _connectAllCrawl.
+
+### 2.3 Cuts and root BFS
+
+Placing on an opponent LINE cuts a link; it does not capture an arbitrary opponent node. The attack breaks logical edges passing through that position. _cleanupBrokenEdges checks the lattice points of each edge and removes edges that are no longer intact. Human play and AI simulations use the same state transition.
+
+A BFS starts at the attacked side’s actual initial node and follows the explicit node-to-node edge graph. Reachable nodes survive, together with the intermediate points of surviving links. Nodes and line points with no remaining route home are removed, followed by edge cleanup and restoration checks. This BFS finds a rooted supply component; it is different from flooding the board exterior to score territory.
+
+Suppose A—B—C is the only route from starting node A. Cutting A—B disconnects the B,C side. If C has another route back to A, that side may survive. Merely touching a line that passes nearby does not replace an actual endpoint-and-edge route.
+
+```text
+01 INPUT: attacked player's current grid and explicit edge set E
+02 Remove broken edges whose geometric path no longer survives
+03 Build endpoint adjacency from surviving E
+04 Q <- [actual start]; reached <- {actual start}
+05 WHILE Q is nonempty:
+06   u <- pop Q; enqueue each unreached logical neighbor of u
+07 END WHILE
+08 Keep reached NODEs and interior LINEs belonging to surviving links
+09 Clear disconnected elements; clean edges and restore eligible links
+```
+
+Determine which links survive before asking about reachability. The attack source also tracks broken links and restoration. This pseudocode isolates root connectivity; geometric path checks, edge maintenance and other players’ reconnections are additional work.
+
+Source: web/web前端/GameEngine.js → _handleBlockingAttack, _cleanupBrokenEdges, _getOpponentConnectedPieces.
+
+### 2.4 Superko transactions
+
+The rule is global repetition prohibition, or Superko. It prevents returning to a previously recorded global position after cuts and reconnections, rather than merely forbidding an immediate local recapture. It does not mean that the game has no forbidden moves.
+
+The current _computeStateHash key contains the next player, resigned-player list, all nonempty grid entries sorted by coordinate and every player’s sorted explicit edge set. Despite the name Hash, the implementation uses a stable JSON string as the Set key rather than a short integer digest. Equal occupancy with different logical edges gives a different key; a different next player can also distinguish keys.
+
+The initial key enters historyHashes. After a trial placement completes connections, cuts and cleanup, its resulting key is checked against that history. A match returns SUPERKO_VIOLATION and the trial is rolled back. Accepted placements add their keys. Passing follows separate turn rules: an unchanged board alone does not make a pass illegal. Resignation also has its own rotation and settlement behavior.
+
+Two saves can show the same board and player to act, yet only one history contains the result of placing at P. That placement may be legal only in the other save. Search snapshots, undo, replay branches and recovery must retain their own path histories; network features or screenshots cannot replace them.
+
+Exact timing: after _addNode succeeds, playMove builds the key using _getNextPlayer(currentPlayer). It adds history before _switchPlayer and _checkAndAutoSkip. It does not simply serialize the post-auto-skip actor.
+
+```text
+01 savedGrid, savedEdges <- copy current containers
+02 IF _addNode(v) fails: return INVALID_MOVE
+03 key <- _computeStateHash(nextNonResignedActor)
+04 IF historyHashes contains key:
+05   restore savedGrid and savedEdges; return SUPERKO_VIOLATION
+06 END IF
+07 add key; increment turn/revision; reset consecutiveSkips
+08 switch actor; normalize automatic skips; settle if required
+```
+
+```javascript
+    this.historyHashes.add(stateHash);
+    this.turnCount += 1;
+    this.positionRevision += 1;
+    this._territoryStateRevision += 1;
+    this.consecutiveSkips = 0;
+    this._switchPlayer();
+    this._checkAndAutoSkip();
+```
+
+Key generation includes sorting/serialization cost. Hash-table-style Set lookup does not make the whole operation O(1). Fixed coordinate order and cell serialization fragments are cached, while current occupancy, all links and the full history check remain.
+
+Source: web/web前端/GameEngine.js → _computeStateHash, _getStateHashOrder, playMove.
+
+### 2.5 Compatibility contours and cycles
+
+The compatibility contour collects friendly nodes and line points and treats every other side’s nodes and line points as enemy elements. _getOuterContourFromPoints uses a fixed clockwise neighbor order for a right-hand wall-following traversal. The result is a closed lattice walk that can travel out along a branch and return, so vertices may occur repeatedly in its sequence. This single polygon remains for geometric diagnostics and legacy-rule compatibility; it defines neither territory-v3 scoring nor its fill.
+
+A closed walk need not enclose a region: A—B—C—B—A merely retraces a line. _hasBoundaryCycle is used for contour candidates and display diagnostics, but official scoring does not depend on it. territory-v3 treats all friendly node and line points as walls and uses boundary flood fill to find every pocket; owned points still score without a cycle, and multiple pockets or donut holes are checked independently.
+
+territory-v3 does not fill this single contour. The official flood computation also constructs R=F∪B; renderPoints is a stable lattice enumeration of R, and the renderer shades those cells individually. Open chains, disjoint pockets and donut holes therefore stay visually synchronized with the score. polygon and displayArea remain diagnostic and legacy-compatible, but neither controls v3 shading or settlement.
+
+```text
+01 Walk the outer boundary using the fixed clockwise neighbor order
+02 Convert consecutive walk vertices into distinct undirected unit edges
+03 Reject an invalid point or a non-unit step
+04 Let n = distinct vertices, e = distinct edges
+05 Accept the cycle gate iff n >= 3 and e >= n
+```
+
+Source excerpt and justification: the deduplicated graph of a valid closed walk is connected. Such an undirected graph has a cycle iff e≥n. The criterion must not be applied without that premise to arbitrary disconnected graphs. Retracing a branch adds no distinct edge.
+
+```javascript
+    return vertices.size >= 3 && edges.size >= vertices.size;
+```
+
+Source: web/web前端/GameEngine.js → _getOuterContourFromPoints, _hasBoundaryCycle.
+
+### 2.6 Territory tightening
+
+_computeRawTerritory repeatedly searches for shortcuts. It chooses two positions on the contour, runs BFS on the six-neighbor board graph while excluding enemy points, and records shortest distances together with the predecessor relationships for shortest paths. Relevant shortest paths are joined to either side of the old contour to form candidate closed walks.
+
+A candidate must cover every friendly node, exclude every enemy node and line point, and retain a valid cycle. The comparison is lexicographic: fewer contour steps first, fewer covered lattice points second. The best improving candidate found in a round becomes the next contour, until no improvement remains. Perimeter here counts discrete contour-walk steps, including travel out and back along branches.
+
+Flood fill computes coverage. The implementation reuses BFS results from the same source and repeated wall-coverage checks. Perimeter bounds and coverage feasibility reject paths that cannot improve the result. It does not claim exact checking by arbitrarily retaining only a fixed number of shortest paths.
+
+This is deterministic greedy tightening, not a proof of globally minimum perimeter or coverage over all possible polygons. Shortcuts may use empty lattice points, so the resulting polygon is only a geometric diagnostic/compatibility result; it does not determine the official territory-v3 set or its cell fill.
+
+```text
+01 rho <- initial valid contour
+02 REPEAT:
+03   best <- rho; compute current coverage
+04   FOR endpoint pairs (u,v) on rho:
+05     BFS avoiding enemies -> shortest-distance predecessor DAG
+06     Enumerate relevant shortest paths; join each to either old side
+07     Reject non-cycle, missing-friendly or enemy-covering candidates
+08     If (length, coverageCount) is lexicographically better: keep it
+09   END FOR
+10   IF best equals rho: STOP
+11   rho <- best
+12 END REPEAT
+13 Return closed rho, unique covered-point count and shoelace measure
+```
+
+Cost accounting: supplied-wall flooding and one source BFS are each O(M), but a predecessor DAG may encode combinatorially many shortest paths. Count endpoint pairs and visited prefixes/candidates J separately. _rawTerritoryUncached uses perimeter bounds, path envelopes, validated-wall reuse and scalar coverage queries; _computeRawTerritory adds dependency caching. No O(M) bound is promised for the whole algorithm.
+
+Source: web/web前端/GameEngine.js → _computeRawTerritory, _rawTerritoryUncached, _bfsFromSource, _iterateTerritoryPaths, _iterateCoveredTerritoryPaths.
+
+### 2.7 Flood fill and scoring
+
+_computeOwnedWallTerritory marks all friendly node and line points as walls, then calls _getCoveredPoints to flood from the board boundary. It finds connected components among unvisited non-wall points; an entire component containing an enemy is excluded, while every other component enters the official set. That set is enumerated in stable board order to return area and renderPoints together; _computeOwnedWallArea only reads area from the same result. An open line creates no pocket but its owned points still score.
+
+Let V be all board points and F the owned node and line points. After deleting F, flood from the board boundary to obtain exterior-reachable points X. Let Qₖ be the connected components of V\(F∪X), and B the union of components containing no enemy node or line. In territory-v3, area=|F|+|B|. No valid cycle is required: open chains and single lines still score their owned points; multiple pockets and donut holes count separately, while a pocket containing an enemy is excluded in full. Every point counts once. The unit is lattice points, not triangular faces.
+
+The old territory-v2 six-player screenshot gave lattice scores 25, 10, 11, 13, 8 and 8; these are historical, not verified v3 scores. Under v3, Cyan’s three owned points score 3 even when their chain is open.
+
+The engine also computes displayArea with the shoelace formula, measured in smallest-triangle units. It and polygon are diagnostic/legacy-compatibility fields. The scoreboard uses area, while territory-v3 shading reads the same-source renderPoints and enforces area=renderPoints.length. Flood fill distinguishes inside from outside for a supplied wall. Flooding a graph of lattice points and flooding adjacency between triangular faces are different counting problems.
+
+```text
+01 wall <- distinct valid friendly NODE and LINE points
+02 included <- copy(wall); outside <- empty; Q <- empty
+03 For every board boundary point b not in wall: mark/enqueue b
+04 WHILE Q is nonempty:
+05   u <- pop Q
+06   For each lattice neighbor v not in wall and not yet outside:
+07     mark outside[v]; enqueue v
+08 END WHILE
+09 enclosed <- all board points minus outside minus wall
+10 For each connected component q of enclosed points:
+11   If q contains no enemy NODE or LINE: included <- included union q
+12 renderPoints <- board points filtered by included, in stable board order
+13 area <- renderPoints.length
+14 Return {area, renderPoints}; no cycle or single-polygon requirement
+15 Validate v3 result: all points valid and unique; length equals area
+16 Renderer: trace one compact cell tile per renderPoint
+17 Legacy v1/v2 only: polygon fill remains the fallback
+```
+
+The implementation treats every friendly node and line point as a wall, floods from the board boundary, then visits each component disconnected from the exterior. An entire pocket containing an enemy is excluded; every other pocket enters included, from which area and renderPoints are emitted together. Open chains, single lines, multiple pockets and donut holes therefore use one set for both score and shading. Web traces a compact hexagonal tile around each lattice point, and the Python base renderer likewise draws cell by cell. A single polygon no longer fills v3 territory; shoelace displayArea remains diagnostic.
+
+Territory Workers, runtime caches and engine/search snapshots propagate complete renderPoints; receivers validate coordinates, uniqueness and equality between length and area. The drawing-path cache keys mode, scale, point radius, offsets and points. Results with stale position revision or request identity are discarded. A versioned replay may omit this recomputable derived set, but the rules engine must rebuild it after loading. This prevents a partial update from silently pairing a correct score with old shading.
+
+Source: web/web前端/GameEngine.js → _computeOwnedWallTerritory, _computeOwnedWallArea, _computeTerritory.
+
+Source: web/web前端/Renderer.js → _drawTerritories, _traceTerritoryCells.
+
+### 2.8 Canonical views and caches
+
+A fixed absolute contour traversal can favor a seat. territory-v3 keeps v2’s canonical transforms to generate a diagnostic/compatibility polygon, while directly computing the official set R, area and renderPoints from all friendly points and lines. Triangles use barycentric permutations and hexagons D6 transforms. Canonical contour selection determines neither official area nor v3 cell shading.
+
+Boundary flooding for the official set is O(M); contour processing, shortest paths and tightening for the compatibility polygon can be more expensive. Integer point indices, precomputed adjacency, reusable TypedArray queues and epoch marks reduce allocation and repeated work. They change runtime cost, not the unit of area or the membership of renderPoints.
+
+The UI can cache territory or compute it in a Worker, but a returned result must belong to the correct position revision. A v3 result must also contain unique valid renderPoints whose length equals area, and runtime engine/search snapshots plus Worker responses deep-copy those coordinates. A versioned replay document may omit this recomputable derived set, but the rules engine must reconstruct it after loading. An old result cannot repaint a newer position. AI estimates such as fastTerritoryBFS must not populate the official cache.
+
+```text
+01 transforms <- seat-specific canonical transforms
+02 FOR g in transforms:
+03   transform own NODEs/LINEs and all enemy occupancy
+04   run raw tightening with a required real cycle
+05   save diagnostic/compatibility polygon and canonical polygon key; inverse-transform output
+06 END FOR
+07 Choose diagnostic polygon by closed-contour coverage, then canonical key
+08 {area, renderPoints} <- OwnedWallTerritory(all friendly walls, all enemies)
+09 Return {polygon, displayArea, area, renderPoints}
+10 V3 renderer uses renderPoints; polygon is diagnostic/legacy only
+```
+
+Geometry keys include shape/size, rules/canonical-view dependencies, own nodes/lines, the enemy obstacle union and relevant ordering of an explicit initial walk. Search caches additionally need history and turns. Both polygon and renderPoints are copied point by point, and v3 receivers enforce area=renderPoints.length. Diagnostic/subclass overrides retain fallback paths so pruning arguments for native methods are not applied to different semantics.
+
+Source: web/web前端/GameEngine.js → _getCanonicalTerritoryTransforms, _computeCanonicalTerritoryCandidate, _computeTerritory, dependencyMemo.
+
+### 2.9 Passing and settlement
+
+Voluntary passing is allowed. The engine also automatically skips a player with no legal placements and excludes resigned players from rotation. Consequently, a search must read the engine’s actual next player rather than infer the turn from recursion-depth parity.
+
+Normal settlement occurs after all remaining players pass consecutively once each. Their exact area scores are compared; equal highest scores draw. An accepted placement resets the consecutive-pass count. Resigned players leave both the turn order and the winner comparison; a sole remaining player wins immediately.
+
+On a fixed finite board, accepted placements cannot repeat recorded state keys indefinitely, while consecutive passes have an ending rule. This termination mechanism does not mean an AI has solved the game. Arguments based on an inability to pass do not describe the current rules.
+
+```text
+01 PASS: increment consecutiveSkips
+02 If skips >= remaining-player count: set gameOver
+03 Otherwise advance to the next non-resigned player
+04 While the current player has no legal placement: auto-skip
+05 A successful placement or resignation resets the pass count
+06 If only one player remains: that player wins
+07 Otherwise at settlement: recompute exact area and compare survivors
+```
+
+Nonterminal shading may be deferred, but exact scores must be ready before settlement reads them. Neural PUCT explicitly refreshes canonical territory at terminal simulations; old Minimax’s F leaf does not have the same exact-outcome semantics. Their outputs should not share an unqualified win-probability label.
+
+Source: web/web前端/GameEngine.js → skipTurn, resignPlayer, _checkAndAutoSkip, getWinner.
+
+### 2.10 Source and verification
+
+The engine lives in web/web前端/GameEngine.js; search/snapshots in AIEngine.js; Worker state in AIStateProtocol.js; replay restoration in ReplayCodec.js and LocalGameSession.js. Mini Game reader content/UI live in wechat/minigame/src/guide-content.js and help-ui.js. Later multiplayer development paths are covered in chapter III; source existence does not mean phone installation.
+
+A useful verification order is fixed replay, grid/edges/history/turn comparison, area/renderPoints equality on open-chain, donut, multiple-pocket and enemy-pocket fixtures, cell-render inspection, source-state restoration, stale Worker rejection and actual reading of contents/formulas/code. Documentation edits run scoped checks and preserve frozen experiments/releases. Source excerpts are checked verbatim against current files.
+
+```text
+node web/tools/sync-implementation-guides.mjs --check
+node web/web前端/tests/verify-guide-content.mjs
+node --test --test-timeout=180000 wechat/minigame/tests/guide-cabin.test.mjs
+```
+
+## III. AI
+
+Follow candidate generation, evaluation, search, forward inference and returned actions. Budgets and adapters below describe source behavior. Training objectives are separate from inference, and candidate labels are not a strength ranking.
+
+### 3.1 Greedy evaluation
+
+Greedy AI enumerates genuinely legal placements, prioritizes cuts on enemy links, then placements adjacent to friendly line points, then other placements, and retains at most 20 candidates. Each candidate is played once, evaluated and rolled back. The largest estimate wins; this need not maximize exact territory gain.
+
+AIEngine uses F=15Δnodes+8Δcoverage+20Δreach+12attackable line points+10root-connectivity quality. Coverage counts nodes plus line points. In two-player play the differences compare the opponent; generic multiplayer greedy sums some opponent counts but selects the opponent with most nodes for its reach comparison. Attack opportunities are checked by actual legality, including Superko. Connectivity quality checks each friendly node’s route to its start through logical edges.
+
+fastTerritoryBFS grows outward from all friendly nodes and line points while enemy elements block expansion. It estimates accessible space, which can be large without a closed region, and is not the official exterior flood fill. Search evaluation therefore remains separate from the official set. territory-v3 cell shading directly visualizes official renderPoints, and terminal area is the cardinality of that same set; polygon/displayArea remain separate diagnostic geometry.
+
+```text
+01 legal <- engine.getLegalMoves(actor)
+02 ranked <- cuts first, own-line adjacency next, other placements last
+03 candidates <- first 20 ranked placements
+04 For each candidate: save -> play -> evaluate F -> restore
+05 Sort by descending F; return top requested candidates
+```
+
+Source: web/web前端/AIEngine.js → evaluate, fastTerritoryBFS, orderMoves, GreedyAI.getTopMoves.
+
+### 3.2 Minimax control flow
+
+Minimax recursively models choosing the best move while an opponent chooses the worst reply for the root player. Leaves return F(s). Nodes where the root player acts take a maximum; opponent nodes take a minimum. Depths 2, 3 and 4 count action layers, not that many complete rounds for each side.
+
+Alpha stores a lower bound already available to MAX; beta stores an upper bound for MIN. When beta is no greater than alpha, the branch cannot improve the ancestor’s decision and can be cut. Alpha–beta preserves Minimax on the same candidate tree and evaluation. The separate 20-candidate cap truncates that tree and can omit legal moves.
+
+Each branch saves the grid, edges, history, turn, resignations, passes, terminal state, revisions and territory cache, advances through GameEngine.playMove or skipTurn, and restores the saved state. Automatic passes can return control to the same player, so currentPlayer determines MAX versus MIN. Nonterminal depth-limited leaves use heuristic F; a true terminal refreshes canonical area and returns win, draw or loss utility. The bounded nonterminal search result is still not an exact proof of victory.
+
+The current two-player Minimax includes PASS alongside legal placements at both root and recursive nodes, and advances it through GameEngine.skipTurn. It can therefore pass while placements remain. Selection still depends on the same heuristic and bounded-depth search; it is not an exact solution of the ending. Multiplayer Hard instead evaluates complete MOVE-plus-PASS reply packets from the actual next opponent under its own time gate, so the evidence scopes remain separate.
+
+Search suppresses UI snapshots and display-only territory refreshes. At heuristic leaves it can also omit a next-player auto-skip scan that does not affect F. Non-leaf transitions keep actual turn normalization so the optimization preserves the searched tree’s meaning.
+
+```text
+01 SEARCH(S,d,alpha,beta,root):
+02   If d=0 OR gameOver: return F(S,root)
+03   Get real legal placements; handle no-placement pass
+04   Retain ordered candidates (at most 20)
+05   maximizing <- (S.currentPlayer == root)
+06   value <- -infinity if maximizing, otherwise +infinity
+07   For each candidate:
+08     saved <- saveState; apply the actual move
+09     child <- SEARCH(successor,d-1,alpha,beta,root)
+10     restoreState(saved)
+11     Update value and alpha (MAX) or beta (MIN)
+12     If beta <= alpha: break
+13   Return value
+```
+
+```javascript
+    const maximizingPlayer = engine.currentPlayer === aiPlayer;
+```
+
+This is explanatory pseudocode, omitting rejected-candidate branches and cache fields. Read the actual finally scope before assuming full transaction rollback under every exception. Full legal enumeration occurs before retaining 20 moves; searching 20 candidates does not mean only 20 legality trials.
+
+Source: web/web前端/AIEngine.js → MinimaxAI.minimax, MinimaxAI.getTopMoves, applyMoveForAI.
+
+### 3.3 Plain MCTS
+
+The repository’s plain MCTSAI implements selection, expansion, random rollout and backpropagation. A mean return plus an exploration bonus selects a branch; an unvisited action is expanded; random play continues until termination or a depth limit; returns update the visited path. Its UCT bonus is proportional to sqrt(log(parent visits)/child visits).
+
+Defaults are 64 simulations, rollout depth 40 and exploration coefficient sqrt(2), with a seeded pseudo-random generator. A nonterminal cutoff uses tanh(F/100). This is an implementation retained in the codebase, not evidence of a separate plain-MCTS option in the current Mini Game menu.
+
+CNN, Grid GNN and Topology GNN instead use NeuralPUCTAI. A network provides action priors and position values, and PUCT allocates visits using those priors. Both methods search and backpropagate, but 16 neural simulations and 64 random simulations are not equivalent measures of compute or strength.
+
+```text
+01 Repeat simulation budget times:
+02   restore root state
+03   Select children by mean return + UCT exploration bonus
+04   Expand one unvisited action
+05   Roll out random actions until terminal or depth cap
+06   Evaluate rollout return; add it to every visited tree node
+07 Rank root actions using accumulated search statistics
+```
+
+The plain rollout implementation returns tanh(F/100), including when it reaches termination; that does not automatically become exact-area ±1. NeuralPUCTAI uses a different terminal rule below. A seeded generator helps reproduce decisions, while repeating the same start and seed is not a new independent statistical sample.
+
+Source: web/web前端/AIEngine.js → MCTSAI, rollout, evaluate.
+
+### 3.4 Neural forward pass
+
+Research models use 11 features per lattice point: empty, own node, own line, enemy node, enemy line, normalized x and y, boundary flag, own start, enemy start and consecutive-pass count. Features are relative to the player to act. The real engine supplies a separate legal-action mask; these 11 channels do not contain the full history set.
+
+CNN places the triangle into a padded square tensor, applies an input projection and residual 3×3 convolution blocks, then reads valid point embeddings. Grid GNN passes messages on six-neighbor lattice adjacency, combining mean neighbor projections with self projections, residual connections and normalization.
+
+Topology GNN uses three relations: lattice adjacency, friendly logical links and enemy logical links. Long-link relations participate directly in message passing. All three architectures produce point-policy logits, a pooled PASS logit and a pooled tanh value. Legal masking and a stable softmax turn the action logits into priors.
+
+Identical board features can accompany different histories, so the network observation is not the complete Markov rule state. Masks and transitions still rely on an engine retaining history. S01–S03 identify training seeds; D14 identifies an earlier model lineage. Names, seed numbers and parameter counts do not establish playing strength or validated transfer to every size and ruleset.
+
+```text
+01 encodeResearchPosition -> point features, actual actor, legal indices
+02 Input projection -> hidden vectors
+03 CNN: residual 3x3 convolutions on a padded square
+04 Grid GNN: mean messages over lattice neighbors
+05 Topology GNN: also mean over own/opponent logical-link neighbors
+06 Per-point head -> placement logits
+07 Global pooled heads -> PASS logit and tanh value
+08 Apply the real legal mask; stable softmax -> action priors
+```
+
+Source excerpt: link topology is provided as relation adjacency lists, not a drawing. This accumulates mean hidden vectors.
+
+```javascript
+          const neighbors = relations[relation][node];
+          if (neighbors.length) {
+            for (const neighbor of neighbors) for (let channel = 0; channel < channels; channel += 1) aggregate[channel] += hidden[neighbor * channels + channel] / neighbors.length;
+          }
+```
+
+For hidden width c, relation-edge count eᵣ and R relations, aggregation costs about O(eᵣc) per layer; relation/self linear projections cost O((R+1)Mc²). A 3×3 CNN convolution costs O(9N²c²), multiplied by actual convolutions per block. These count forward arithmetic only; real legality-mask generation is additional.
+
+Source: web/web前端/ResearchAI.js → encodeResearchPosition, researchRelations, forwardGnn, forwardCnn, applyHeads.
+
+### 3.5 PUCT move selection
+
+PUCT expands the root to obtain network prior P for each legal action. Child selection uses sign·Q+c·P·sqrt(max(1,N))/(1+n), where Q is mean accumulated return, N is parent visits and n is child visits. The actual player to act determines the sign for the root-player perspective.
+
+Each simulation restores the full root snapshot and follows real placements or passes. Reaching a new nonterminal node triggers a network evaluation whose value is converted to the root perspective and backed up along the path. A true terminal node forces exact rule-engine territory scoring and backs up +1, 0 or −1 for win, draw or loss.
+
+The Mini Game currently uses 16 simulations and cPuct=1.5 for these neural models. Final ranking prioritizes visits, then mean value. Priors guide where to look; visits record where this search spent its budget. Neither quantity is a calibrated probability of winning.
+
+The model action contract controls voluntary PASS availability when placements exist, and no-placement positions still need pass handling. Results must belong to the current position and pass legality checks when executed. A limited PUCT budget is not exhaustive game solving.
+
+```text
+01 Save full root state; expand root with network priors
+02 For each simulation:
+03   Restore root; path <- [root]
+04   Select by sign*Q + c*P*sqrt(max(1,N))/(1+n)
+05   Play the real action or PASS; append child to path
+06   Expand a new nonterminal child and convert value to root perspective
+07   If terminal: force exact territory and compute win/draw/loss
+08   Add the root-perspective value to all nodes on path
+09 Rank root children by visits, then mean value; restore source state
+```
+
+```javascript
+          GameEngine.prototype._updateTerritories.call(engine);
+          const winner = engine.getWinner();
+          value = winner === "DRAW" ? 0 : winner === aiPlayer ? 1 : -1;
+```
+
+Source: web/web前端/ResearchAI.js → NeuralPUCTAI.expand, select, getTopMoves.
+
+### 3.6 Five policy adapters
+
+These five models share a lightweight on-device inference path. Up to 120 triangular-board points receive seven features each: empty, own node, own line, enemy node, enemy line, x and y. Smaller boards are padded to 120 points; board size and consecutive passes bring the vector to 842 dimensions. The network is 842→512→512→121 with ReLU hidden layers and a reserved action space.
+
+DQN exports Q values; PPO, SAC, GAIL and GAN export policy logits. The runtime obtains legal point indices from the real engine, applies stable softmax and ranks them. It performs no gradient update during a move. Softmax of DQN Q values is a ranking prior, not evidence that Q values are probabilities. PPO, GAIL and GAN assets can include a value head, but this direct-policy path does not use it for tree search.
+
+One runtime detail matters: the softmax denominator includes the position’s PASS slot, but ModelFreeAI returns only placement candidates. With available placements it therefore does not voluntarily pass because PASS has the highest probability, and the returned placement priors may sum to less than one. The outer controller handles no-placement passing. This describes the actual adapter rather than attributing every theoretical capability of an algorithm family to the menu option.
+
+```text
+01 Encode <=120 triangular points into 7 features each; pad missing points
+02 Append size and pass count -> 842-dimensional vector
+03 ReLU(W1*x+b1) -> ReLU(W2*h+b2) -> 121 action outputs
+04 DQN reads Q-head weights; other families read policy-head weights
+05 Softmax over legal indices including the PASS slot
+06 Filter returned candidates to placements; sort by prior
+07 If there is no placement, outer control handles passing
+```
+
+Source excerpt: filtering occurs after normalization, so returned placement priors need not sum to one. This is adapter behavior, not a failure of softmax.
+
+```javascript
+    return { priors: legal.map((index, order) => index < engine.validPositions.length
+      ? { type: "move", point: [...engine.validPositions[index]], actionIndex: index, prior: exp[order] / total }
+      : { type: "pass", point: null, actionIndex: engine.validPositions.length, prior: exp[order] / total }) };
+```
+
+Source: web/web前端/ModelFreeAI.js → encode, forwardBody, logits, evaluate, ModelFreeAI.getTopMoves.
+
+### 3.7 Training source and losses
+
+Research training is separate from Web inference. These are current inspectable trainers; matching names alone do not prove that a deployed binary was generated by these exact sources. Asset lineage requires manifests/receipts, and rule/auto-skip parity between research and Web is a separate check.
+
+DQNTrainer.update samples replay, takes a masked online-Q argmax and reads its target-network Q. It uses smooth-L1 and gradient clipping at 5. The quoted fixed negative continuation assumes opponent perspective, which must be checked against training turns after auto-skips.
+
+```python
+            next_online = self._masked_argmax(self.online(next_states), next_masks)
+            next_values = self.target(next_states).gather(1, next_online.unsqueeze(1)).squeeze(1)
+            target = rewards - self.config.gamma * (1.0 - done) * next_values
+```
+
+PPOTrainer.run_episode stores actions, old log probabilities and values, computes reverse GAE with negative continuation values/advantages, normalizes advantages and optimizes clipped ratios. value_loss already contains 0.5 and is multiplied by another 0.5 in the total loss: its squared-error coefficient is 0.25. Entropy has coefficient 0.01; generic PPO defaults are not this source contract.
+
+```python
+            value_loss = 0.5 * (values_now - returns).square().mean()
+            entropy = dist.entropy().mean()
+            loss = policy_loss + value_loss * 0.5 - entropy * 0.01
+```
+
+SACTrainer.update maintains twin Q and target-Q networks, exactly sums over legal discrete actions for soft values, and also uses negative continuation. Q uses squared loss; the policy minimizes Σπ(α logπ−min(Q₁,Q₂)); targets use τ soft updates. Inference needs only the policy head, so absent runtime Q networks do not imply absent twin-Q training.
+
+Source: research/iclr2027/lifeline_rl/model_free/sac.py → SACTrainer.update.
+
+GAIL/GAN: train_imitation_adversarial.py collects greedy-expert data. Both labels use one loop, mainly changing seed offset and metadata. D consumes state plus action one-hot, with expert=1 and generated=0. The generator enumerates all actions and differentiates a probability-weighted expectation instead of differentiating through a sampled discrete action.
+
+```python
+            rewards = torch.sigmoid(-discriminator(repeated_states, action_grid)).reshape(batch_states.shape[0], ACTION_COUNT)
+            g_loss = -(probs * torch.log(rewards.clamp_min(1e-6))).sum(dim=1).mean()
+```
+
+The sign matters: holding D fixed, minimizing −log σ(−D) favors smaller D, whereas expert-positive classification favors larger D. This loop cannot directly inherit standard GAIL guarantees, and two names do not establish two independent algorithms. Updates use fixed expert-state batches, not full online occupancy matching; this loop does not mask sampled actions, while Web inference separately filters actual legality. This report changes no training, weights or model selection.
+
+### 3.8 Multiplayer features
+
+Three-player V1/V2 and hexagonal V1 trial each genuinely legal placement and compute 16 features from before-and-after positions: own nodes, coverage and reach; leads over the strongest opponent for those three metrics; captured enemy nodes and coverage; own node and coverage gains; attack flag; own-line placement flag; distance from home; centrality; own empty frontier; and frontier lead over opponents.
+
+Counts are normalized by board size, while distance and centrality use the appropriate geometry. The policy ranks score=(w·features)/temperature, then softmax produces priors. Coordinate order resolves ties reproducibly. This combines trained weights with hand-designed features; it is not a CNN or merely a recolored two-player network.
+
+Games with three or more players do not inherit two-player zero-sum conclusions. Features compare the player with the strongest opponent and aggregate opponents’ losses; a cut can benefit a third party. Different response policies and continuation models can therefore produce different recommendations. Mini Game compatibility filters use player count, shape and size; V2 and hex search V5 retain experimental labels.
+
+```text
+01 Save S and before-move metrics for all players
+02 For each real legal placement a:
+03   play a; measure nodes, coverage, reach, capture and frontier changes
+04   normalize the 16-feature vector; score = dot(w,features)/temperature
+05   restore S
+06 Stable rank by score and coordinate; softmax -> prior
+```
+
+Source: web/web前端/ThreePlayerAI.js / HexPlayerAI.js → feature extraction, candidate scoring, getTopMoves.
+
+### 3.9 Three-player V4
+
+three-player-search-v4-round12 shortlists the top three linear-policy root moves on a three-player triangle. It evaluates each under V1 and V2 opponent-response policies. The root player continues with its base policy, and each branch runs for up to 12 further action plies after the root move or stops at termination. Fewer candidates mean fewer trials; a single candidate returns directly.
+
+Every leaf computes exact discrete territory. Nonterminal strength is area+0.3×coverage+0.05×reach, converted to relative preferences with softmax temperature 0.12 times the board-point count. Terminal leaders receive 1 divided by the number of tied leaders; others receive zero. Territory margin over the strongest opponent is also recorded. Results are averaged over the two response models, with margin, base score and coordinates breaking ties.
+
+If the best search result improves on the original base choice by less than 0.02, the base choice remains first. The Mini Game V4 entry supports sizes 5, 7 and 9; other sizes use compatible listed policies. Averaging two response models is not a guarantee against all opponents or a solved three-player equilibrium.
+
+```text
+01 roots <- base policy's top 3 placements
+02 For each root a and response policy in {V1,V2}:
+03   restore full root state; play a
+04   simulate at most 12 further plies using actual turn order
+05   compute exact area and leaf preference / terminal winner share
+06 Average the two response-policy scores
+07 Rank by mean score, territory margin, base score and coordinate
+08 If improvement over original first choice <0.02: retain that choice
+```
+
+Source: web/web前端/ThreePlayerSearchAI.js → positionUtilityV4, ThreePlayerSearchAI.getTopMoves.
+
+### 3.10 Hexagonal V5
+
+hex-player-search-v5 is an optional experimental search for 4–6-player hexagons of size 5 or 7. V1 weights rank candidates; at most two remain within 0.4 of the best base score. Search is triggered by at most six legal moves or tactical features such as captures, cuts or coverage gain of at least three points. Quiet positions and clear base choices retain the base policy.
+
+After each candidate root move, opponents respond with V1 for at most five action plies. The rollout stops at termination, return to the root player or a repeated opponent turn. The actual engine determines rotation, including unavailable moves and resignations.
+
+Nonterminal strength is 0.7×reach+0.3×coverage. Since reach includes occupied points, this equals coverage+0.7×reachable empty points. Softmax temperature is 0.15 times the board-point count. This is a fast preference, not official territory or calibrated win probability. Only terminal leaves force exact area scoring.
+
+Comparison first distinguishes simulated confirmed wins, unfinished branches and simulated confirmed losses, then compares values within those categories. Ordinary nonterminal changes require an improvement of at least 0.03. A heuristic 0.9 therefore cannot displace a terminal win merely through numerical scale. Confirmation is conditional on the V1 responses simulated, not every possible opponent reply.
+
+```text
+01 Rank by V1; retain <=2 roots within base-score gap 0.4
+02 If quiet and legal count >6: return base ranking
+03 For each retained root: restore isolated state and play it
+04 Simulate <=5 V1 replies, stopping at terminal or return/repeated actor
+05 Terminal -> exact area; otherwise -> 0.7*reach+0.3*coverage
+06 Compare terminal tiers, then values; ordinary switch needs >=0.03
+07 Restore the source engine and its territory cache
+```
+
+Source: web/web前端/HexFastSearchAI.js → evaluateHexFastLeafV5, chooseHexFastSearchLeafV5, getTopMoves.
+
+### 3.11 Later multiplayer search
+
+Later Web development adds easy, medium, hard and ultimate-candidate paths. Easy uses a trained 16-feature linear policy. Medium reuses three-player V4 or hexagonal V1 with equivalent candidate/feature acceleration. Hard on native shapes uses selfish-policy rollouts. These paths are distinct from the Mini Game’s current V1, V2, V4 and V5 choices; inclusion in this article does not install them on a phone.
+
+These later rollouts recompute canonical territory at leaves and combine it with coverage and reach for nonterminal preferences. Opponents follow their own policy rather than jointly minimizing the root player. Non-default shapes also have MultiplayerMinimaxAI, which uses the conservative paranoid assumption: all other players are MIN. It includes alpha–beta, voluntary PASS, iterative deepening and complete-iteration fallback. Nonterminal evaluation uses relative nodes, coverage and reach; terminal scoring uses exact territory. Neither opponent model is universally correct.
+
+In Web source inspected on 2026-10-23, native-shape hard mode targets 650 ms and compares all legal roots plus PASS at 12/24-ply horizons. It publishes a phase only after all roots complete the same responses/horizon. Timeout retains the last complete phase or base fallback; a synchronous rule operation can overshoot the target.
+
+The ultimate candidate obtains transferred-GNN priors and charges inference to the budget, then checks 12/24/36 plies with publishCompletedComparisons=true. Before a whole sweep completes it may publish an improvement whose comparison against the fixed phase anchor has completed at the same depth and full response prefix. It does not always finish every root. Fallback is legal-placement GNN argmax, or PASS only with no placement, avoiding untrained PASS/value heads.
+
+```text
+01 Compute base / GNN fallback and remaining budget
+02 For each configured horizon and response prefix:
+03   Evaluate a common incumbent anchor
+04   Evaluate competing roots under the same comparison conditions
+05   Hard: publish only a complete root sweep
+06   Ultimate candidate: may publish a completed improving comparison
+07 On deadline: discard unfinished leaf/response work; keep valid incumbent
+08 Report whether decision came from fallback, full phase or comparison
+```
+
+On non-default shapes, MultiplayerMinimaxAI uses paranoid alpha–beta, PASS, iterative deepening and complete-iteration fallback. Multiplayer GNN pools enemy nodes/lines/starts and relations without explicit individual-opponent identity. MULTIPLAYER_ULTIMATE_AVAILABLE in LocalAIModes.js remains false and the runtime is application-candidate. Documenting it does not establish promotion or phone release.
+
+Source: web/web前端/MultiplayerRuntime.js / MultiplayerRollout.js / MultiplayerSearch.js / MultiplayerModel.js → loadMultiplayerRuntime, getTopMoves, canonical leaf evaluation, publication policy.
+
+### 3.12 Runtime and reproduction
+
+The Mini Game serializes AI, hint, territory and replay work through one Worker queue, ordered by priority and request ID. Responses must match both ID and the full request context. Restarting, undoing, changing replay position or cancelling work invalidates late results from the old Worker.
+
+The scheduler defaults to a 15-second timeout. Timeouts, Worker errors and process-killed notifications detach and terminate that Worker and report failure to the session, which preserves recoverable game state and supports retry. Computation must not block Canvas interaction or silently substitute another AI after failure.
+
+The Worker can reuse a restored engine only when configuration and the entire existing action prefix match, replaying just the added suffix. Otherwise it restores from scratch. History remains intact, and a later request cannot mutate an engine leased to asynchronous model loading. AI play, hints and replay analysis share the strategy implementation; analysis can return the top three candidates and a metric label.
+
+Before execution, the session checks position identity and player again, and the real engine validates the move. Web can organize separate AI, hint and territory Workers while the Mini Game uses one queue. Sharing rules does not require identical thread organization.
+
+Loading checks model ID, rules, player count, board compatibility, tensor names, dimensions, offsets, byte length, finite values and asset integrity. Binary two-player models arrive in Mini Game subpackages; small multiplayer JSON policies are embedded in the Worker. Each is bound to a specific identity rather than accepted through a similar filename.
+
+Ordinary games run inference, not on-phone training. Opting into complete-game contributions does not immediately update the model making the current move. Offline training, candidate evaluation, selection and release are separate steps. Research environments, Web and Mini Game also need explicit rules-version alignment.
+
+Saves and replay documents retain configuration and actions. The same rule engine replays them to reconstruct nodes, edges, history and turns. Imports validate in isolation before replacing the active view. Undo, replay branches and AI search need full restoration, not just repainting node colors.
+
+Reproducing a decision requires rules version, board configuration, complete actions or full state and history, player, model ID and asset hash, search parameters and any random seed. A screenshot can explain area but cannot reproduce all legality or decisions. Time-budgeted searches can also finish different complete phases on devices of different speed.
+
+```text
+01 Request <- {id, revision, rules, actor, config, full state/actions, model}
+02 Queue in the single Mini Game Worker; reject cancelled/stale tasks
+03 Restore engine (reuse only an identical config and action prefix)
+04 Validate model identity, dimensions, lengths and asset integrity
+05 Run the selected strategy; report candidates and metric meaning
+06 Receiver checks request/context again and validates the chosen action
+07 On timeout/error: preserve recoverable match and expose retry
+```
+
+Record model label, trainer, exported asset, runtime strategy and evidence tier separately to diagnose differences. Full state and comparable evaluations are algorithm contracts; contents, pagination and equation display are reader contracts. The two articles have independent exposition, while formulas, budgets and source references require version checks.
+
+Source: web/web前端/AIStateProtocol.js / ReplayCodec.js → state identity, full restoration and isolated replay validation.
+
+## IV. Topology implementation
+
+This corresponds to mathematical chapter IV. Algorithms consume canonical points, edge classes, face incidences and complete versioned state. Atlas and render subdivision are derived views. Snippets below are pseudocode unless stated otherwise; named modules contain the implementation.
+
+### 4.1 Compilation and homology diagnostics
+
+Pipeline: definition → triangle/directed-pair validation → union-find on vertices/edge occurrences → edgeClasses retaining multiplicity → vertex links, orientation and true boundary → F2 chains in TopologyAlgebra. sampleAdjacency cannot reconstruct 1-cells because it merges parallel edges. Diagnostics cache immutable compiled boards and do not enter per-move official scoring.
+
+```text
+// Pseudocode; see TopologyAlgebra.js
+for each edge class e: d1[e] = XOR(bits of canonical endpoints)
+for each face f: d2[f] = XOR(bits of its edge occurrences' classes)
+assert d1 * d2 == 0
+r1, r2 = exact_GF2_column_rank(d1), exact_GF2_column_rank(d2)
+betti = [V-r1, E-r1-r2, F-r2]
+assert betti[0]-betti[1]+betti[2] == V-E+F
+classify genus only if connected && all vertex links are circles/intervals
+```
+
+analyzeBoardAlgebra(board,{relativeBoundary}) returns field, cellCounts, boundaryRanks, betti, chainCondition, Euler and surface diagnostics. Relative chains remove boundary-cell basis vectors, not display contours. analyzeEdgeCycle cancels repeated edge IDs modulo two, checks cyclehood, then image membership under d2; separating is interpreted only for one embedded circle on a connected closed surface. Integer Smith normal form and torsion groups are not implemented. Bit elimination is a polynomial diagnostic, not a linear-time claim.
+
+### 4.2 Certified roots and tactical evaluation
+
+RootStability.computeRootStability reads nodes and actual logical paths. Ordinary boards adapt explicit edges and lattice interiors; topology reads topologyPaths directly instead of guessing a winding with getLinePoints(a,b). A directed certificate depends on a source and all interior nodes; once all are certified, enqueue the target. Each point enters once and each dependency is discharged once.
+
+```text
+// Pseudocode; sufficient certificate, never a capture oracle
+P = friendly roots; queue = roots
+for (path a -> b):
+  if every interior sample is a friendly NODE:
+    register dependency {a} union interior(path) => b
+while queue not empty:
+  for rule waiting on queue.pop():
+    if --rule.remaining == 0 and rule.target not in P:
+      P.add(rule.target); queue.push(rule.target)
+return {version:'root-stability-v1', kind:'sufficient-only', nodeKeys:[...P]}
+```
+
+Separate tactical integration from model identity: the core is a nonterminal feature, while outcomes use official scores. Confinement uses actual adjacency without scoring enclosed enemies. The real engine handles replies, Superko and actors; partial reply checks cannot certify safety. A shared approximately three-second deadline covers generation, base policy and tactical verification, coordinated with Worker timeouts and stale-response guards; generated Worker entry points also require verification.
+
+### 4.3 Category sampling and complete board persistence
+
+Keep RandomBoard v1–v3. V4 determines categories supported and validated for the size/player count, draws from the conditional distribution, and retries within that category. Persist category, display branch, requested/effective distribution, excludedCategories, version, seed, complete definition and hash. Closed-surface starts use canonical graph distance and actual-engine opening checks, never nonexistent true boundary samples.
+
+Acceptance checks connectivity, every link, boundary circles, orientability, Euler and Betti, not compilation alone. A size-five six-player layout may support only part of the construction family; record this generator limitation explicitly. Saves, rooms and replays freeze the result instead of redrawing independently. Changes to probabilities or sequences require a generator version change.
+
+### 4.4 One rule mesh in two and three dimensions
+
+Front and back share canonical IDs; rendering, screen projection and hit testing use the same active chart selection. The 3D interface includes source faceId and barycentric coordinates, not just a planar coordinate. For doubled perforated domains, each source face becomes six render triangles with positive interior midpoint/centroid heights, zero boundary heights and negated heights on the back.
+
+Face colors, segments and nodes share the embedding, with glued copies coincident in 3D. Use a WebGL depth buffer for concave-surface occlusion rather than mean-depth sorting. Render subdivision never changes legal samples, moves or scores. If the context is unavailable, expose a clear two-dimensional fallback instead of a false 3D success.
+
+### 4.5 Versions, replay and validation
+
+One content source: GuideTopologyChapters → GuideMathChapters/GuideTechnicalChapters → GuideImplementation → four bilingual Markdown articles. Redirect topologyGuide to the rulesMath-topology anchor inside rules-math, avoiding duplicate bodies. Replay moves and analysis are collapsed; playback and seek share isolated restoration and clear old candidates/requests. Topology candidates use canonical vertexId and highlight all atlas copies.
+
+```text
+node web/tools/sync-implementation-guides.mjs --check
+node web/web前端/tests/verify-guide-content.mjs
+node web/web前端/tests/verify-topology-algebra.mjs
+node web/web前端/tests/verify-root-stability.mjs
+```
+
+Further checks cover old seeds and v4 reproducibility, sizes 5/9/15 with 2–6 players, double-hole face/edge mapping, full-match persistence, deadlines/cancellation and actual-browser settings/replay/rotation. Report Node regressions, browser evidence, release, remote ranking and formal strength separately; source updates alone imply neither cross-platform release nor new model training.

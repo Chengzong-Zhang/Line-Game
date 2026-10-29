@@ -1,6 +1,7 @@
-import { GameEngine } from "./GameEngine.js?v=20261025-territory-render1";
-import { deserializeEngineEdges, restoreEngineRootState } from "./AIStateProtocol.js?v=20261021-boardshapes1";
-import { GreedyAI, MCTSAI, MinimaxAI, restoreState, saveState } from "./AIEngine.js?v=20261025-territory-render1";
+import { GameEngine } from "./GameEngine.js?v=20261029-unified-r1";
+import { deserializeEngineEdges, restoreEngineRootState } from "./AIStateProtocol.js?v=20261029-unified-r1";
+import { GreedyAI, MCTSAI, MinimaxAI, restoreState, saveState } from "./AIEngine.js?v=20261029-unified-r1";
+import { applyRootTacticalOverlay } from "./RootTacticalOverlay.js?v=20261029-unified-r1";
 
 const TERMINAL_WINNING_PASS_WINDOW_MS = 60;
 
@@ -23,6 +24,7 @@ function canonicalTerminalWinningPass(engine, player, now = () => performance.no
       rootMode: engine.rootMode,
       rootRulesVersion: engine.rootRulesVersion,
       rulesVersion: engine.rulesVersion,
+      protectionRule: engine.protectionRule,
       deferTerritoryUpdates: true,
     });
     restoreState(isolated, saveState(engine));
@@ -56,7 +58,7 @@ function canonicalTerminalWinningPass(engine, player, now = () => performance.no
 self.onmessage = async (event) => {
   if (event.data?.type === "WARMUP") {
     try {
-      const { warmMultiplayerResources } = await import("./MultiplayerAIWarmup.js?v=20261024-ai-cut-pass3");
+      const { warmMultiplayerResources } = await import("./MultiplayerAIWarmup.js?v=20261029-unified-r1");
       await warmMultiplayerResources(event.data);
     } catch (_) {
       // Resource failure is speculative, never a formal result or request error.
@@ -68,6 +70,7 @@ self.onmessage = async (event) => {
     return;
   }
 
+  const requestStarted = globalThis.performance?.now?.() ?? Date.now();
   try {
     const {
       serializedState,
@@ -77,6 +80,98 @@ self.onmessage = async (event) => {
       strategy = "minimax",
       requestId = null,
     } = event.data;
+    if (serializedState?.isTopologyBoard) {
+      // Resolve the topology runtime only for topology work.  Legacy worker
+      // test harnesses intentionally import this source through a data URL,
+      // where a top-level relative import would be invalid.
+      const [topologyStateModule, topologyAiModule, topologySearchModule] = await Promise.all([
+        import("./TopologyStateCodec.js?v=20261029-unified-r1"),
+        import("./TopologyAIAdapter.js?v=20261029-unified-r1"),
+        import("./TopologySearchAI.js?v=20261029-unified-r1"),
+        import("./TopologyGameEngine.js?v=20261029-unified-r1"),
+      ]);
+      const { decodeTopologyState } = topologyStateModule;
+      const {
+        TOPOLOGY_AI_ADAPTER_VERSION,
+        TOPOLOGY_AI_ROUTE,
+        TOPOLOGY_AI_PASS,
+        buildTopologyAIState,
+        validateTopologyAIRequest,
+      } = topologyAiModule;
+      if (strategy !== "topology-generic") {
+        throw new Error("Topology boards require the explicit topology-generic AI route.");
+      }
+      const decoded = decodeTopologyState(serializedState.topologyState);
+      if (decoded.boardHash !== serializedState.boardHash) {
+        throw new Error("Topology AI state boardHash does not match its encoded board.");
+      }
+      const engine = new GameEngine({
+        compiledBoard: decoded.board,
+        playerCount: Object.keys(decoded.ruleState.startingVertices).length,
+        startPlayer: decoded.ruleState.currentPlayer ?? undefined,
+        rulesVersion: decoded.ruleState.rulesVersion,
+        deferTerritoryUpdates: false,
+      });
+      engine.restoreTopologyState(serializedState.topologyState);
+      if (engine.currentPlayer !== aiPlayer) {
+        throw new Error("Topology AI request player is not the current player.");
+      }
+      const coverageByPlayer = engine._coverageByPlayer();
+      const logicalPathsByPlayer = Object.fromEntries(engine.activePlayers.map((player) => [
+        player,
+        [...engine.topologyPaths[player].values()].map((path) => ({ ...path })),
+      ]));
+      const state = buildTopologyAIState(engine.compiledBoard, {
+        rulesVersion: engine.rulesVersion,
+        positionRevision: engine.positionRevision,
+        currentPlayer: engine.currentPlayer,
+        // Search generates rule-checked moves under the same absolute budget;
+        // do not perform a separate, unbounded duplicate legality scan here.
+        legalMoveIds: [TOPOLOGY_AI_PASS],
+        coverageByPlayer,
+        logicalPathsByPlayer,
+        historyHashes: [...engine.historyHashes],
+      });
+      const request = {
+        contractVersion: TOPOLOGY_AI_ADAPTER_VERSION,
+        boardHash: engine.boardHash,
+        rulesVersion: engine.rulesVersion,
+        positionRevision: engine.positionRevision,
+        currentPlayer: engine.currentPlayer,
+        modelRoute: TOPOLOGY_AI_ROUTE,
+        legalMoveIds: state.legalMoveIds,
+        state,
+      };
+      const validation = validateTopologyAIRequest(engine.compiledBoard, request, {
+        rulesVersion: engine.rulesVersion,
+        positionRevision: engine.positionRevision,
+        currentPlayer: engine.currentPlayer,
+      });
+      if (!validation.ok) throw new Error("Invalid topology AI request: " + validation.errors.map((error) => error.code).join(","));
+      const topologyTimeLimitMs = Math.max(25, Math.min(5000, Number(event.data.timeLimitMs) || 3000));
+      const { moves, searchInfo } = topologySearchModule.searchTopologyMoves(engine, {
+        aiPlayer, maxDepth: event.data.depth ?? Math.max(3, 2 * engine._getRemainingPlayers().length), topN,
+        timeLimitMs: topologyTimeLimitMs,
+        deadline: requestStarted + topologyTimeLimitMs,
+      });
+      self.postMessage({
+        type: "RESULT",
+        requestId,
+        strategy,
+        boardHash: engine.boardHash,
+        positionRevision: engine.positionRevision,
+        rulesVersion: engine.rulesVersion,
+        currentPlayer: engine.currentPlayer,
+        moves,
+        searchInfo,
+        modelInfo: {
+          id: TOPOLOGY_AI_ROUTE,
+          route: TOPOLOGY_AI_ROUTE,
+          strengthVerified: false,
+        },
+      });
+      return;
+    }
     const engine = new GameEngine({
       gridSize: serializedState.gridSize,
       playerCount: serializedState.playerCount,
@@ -87,6 +182,7 @@ self.onmessage = async (event) => {
       rootMode: serializedState.rootMode,
       rootRulesVersion: serializedState.rootRulesVersion,
       rulesVersion: serializedState.rulesVersion,
+      protectionRule: serializedState.protectionRule,
     });
     restoreEngineRootState(engine, serializedState);
 
@@ -130,6 +226,7 @@ self.onmessage = async (event) => {
     let modelInfo = null;
     if (strategy === "greedy") {
       ai = new GreedyAI();
+      modelInfo = { strategy: "greedy", runtime_policy: "generic-rule-greedy", trained_model: false };
     } else if (strategy === "minimax") {
       ai = new MinimaxAI(depth);
     } else if (strategy === "mcts") {
@@ -140,7 +237,7 @@ self.onmessage = async (event) => {
       });
     } else if (strategy === "neural-puct") {
       if (engine.playerCount !== 2) throw new Error("模型不支持此棋盘/规则/玩家数。");
-      const { loadResearchModel, NeuralPUCTAI, supportsResearchInference } = await import("./ResearchAI.js?v=20261020-three1");
+      const { loadResearchModel, NeuralPUCTAI, supportsResearchInference } = await import("./ResearchAI.js?v=20261029-unified-r1");
       const model = await loadResearchModel(event.data?.modelId);
       if (!supportsResearchInference(model.spec, engine)) throw new Error("模型不支持此棋盘/规则/玩家数。");
       modelInfo = { id: model.spec.id, seed: model.spec.seed ?? 20260825,
@@ -153,22 +250,22 @@ self.onmessage = async (event) => {
       });
     } else if (strategy === "model-free") {
       if (engine.playerCount !== 2) throw new Error("model-free 网页模型仅支持双人局面。");
-      const { loadModelFreeModel, ModelFreeAI } = await import("./ModelFreeAI.js?v=20261024-model-free-pass2");
+      const { loadModelFreeModel, ModelFreeAI } = await import("./ModelFreeAI.js?v=20261029-unified-r1");
       const model = await loadModelFreeModel(event.data?.modelId);
       ai = new ModelFreeAI(model);
     } else if (strategy === "multiplayer") {
-      const { loadMultiplayerRuntime } = await import("./MultiplayerRuntime.js?v=20261024-ai-cut-pass3");
+      const { loadMultiplayerRuntime } = await import("./MultiplayerRuntime.js?v=20261029-unified-r1");
       const runtime = await loadMultiplayerRuntime(event.data?.modelId, engine);
       ai = runtime.ai;
       modelInfo = runtime.modelInfo;
       if (modelInfo?.id !== event.data?.modelId) throw new Error("多人 AI 模型身份校验失败。");
     } else if (strategy === "three-player") {
-      const { loadThreePlayerRuntime } = await import("./ThreePlayerRuntime.js?v=20261021-three4");
+      const { loadThreePlayerRuntime } = await import("./ThreePlayerRuntime.js?v=20261029-unified-r1");
       const runtime = await loadThreePlayerRuntime(event.data?.modelId, engine);
       ai = runtime.ai;
       modelInfo = runtime.modelInfo;
     } else if (strategy === "hex-player") {
-      const { loadHexPlayerRuntime } = await import("./HexPlayerRuntime.js?v=20261025-territory-render1");
+      const { loadHexPlayerRuntime } = await import("./HexPlayerRuntime.js?v=20261029-unified-r1");
       const runtime = await loadHexPlayerRuntime(event.data?.modelId, engine);
       ai = runtime.ai;
       modelInfo = runtime.modelInfo;
@@ -180,29 +277,78 @@ self.onmessage = async (event) => {
     // their decision watchdog at READY, so exact legality/area work must remain
     // part of loading rather than silently consuming the model's move budget.
     const exactWinningPass = topN > 0 ? canonicalTerminalWinningPass(engine, aiPlayer) : null;
-    if (strategy === "multiplayer") {
+    const decisionStarted = globalThis.performance?.now?.() ?? Date.now();
+    if (strategy === "multiplayer" || event.data.enableProgress === true) {
       // Loading can include network requests. Start the caller's decision
       // watchdog only once this exact model is ready to compute this position.
       self.postMessage({ type: "READY", requestId, strategy,
         positionRevision: serializedState.positionRevision ?? 0,
         rulesVersion: serializedState.rulesVersion,
-        currentPlayer: serializedState.currentPlayer,
-        rootStateIdentity: serializedState.rootStateIdentity, modelInfo });
+        protectionRule: serializedState.protectionRule,
+        currentPlayer: serializedState.currentPlayer, rootStateIdentity: serializedState.rootStateIdentity, modelInfo });
     }
-    const moves = exactWinningPass ? [exactWinningPass]
-      : ai.getTopMoves(engine, aiPlayer, topN,
-        strategy === "multiplayer" ? { terminalWinningPassPrechecked: true } : undefined);
+    const decisionDeadline = decisionStarted + Math.max(25, Math.min(5000, Number(event.data.timeLimitMs) || 3000));
+    let bestProgress = null;
+    let lastProgressAt = -Infinity, lastProgressReason = null;
+    const publishProgress = (move, reason) => {
+      if (event.data.enableProgress !== true || !Array.isArray(move?.point)
+          || move.point.length !== 2 || !move.point.every(Number.isInteger)) return;
+      const progressAt = globalThis.performance?.now?.() ?? Date.now();
+      if (reason === lastProgressReason && progressAt - lastProgressAt < 150) return;
+      bestProgress = { ...move, type: "move", point: [...move.point] };
+      lastProgressAt = progressAt;
+      lastProgressReason = reason;
+      self.postMessage({ type: "PROGRESS", requestId, strategy,
+        positionRevision: serializedState.positionRevision ?? 0,
+        rulesVersion: serializedState.rulesVersion,
+        protectionRule: serializedState.protectionRule,
+        currentPlayer: serializedState.currentPlayer, modelInfo,
+        moves: [bestProgress],
+        searchInfo: { complete: false, fallback: true, fallbackReason: reason } });
+    };
+    // Only opted-in live play receives progress; analysis and older consumers
+    // retain their single-result protocol. This is a legal emergency fallback,
+    // explicitly not a model prediction or completed search iteration.
+    if (event.data.enableProgress === true && !exactWinningPass && topN > 0) {
+      for (const point of engine.validPositions) {
+        if ((globalThis.performance?.now?.() ?? Date.now()) >= decisionDeadline) break;
+        if (!engine._evaluateMove(point, aiPlayer).legal) continue;
+        publishProgress({ point, score: null }, "first-legal-action-not-policy");
+        break;
+      }
+    }
+    let rankedMoves = exactWinningPass ? [exactWinningPass]
+      : ai.getTopMoves(engine, aiPlayer, topN > 0 ? Math.max(2, topN) : topN,
+        { terminalWinningPassPrechecked: strategy === "multiplayer", deadline: decisionDeadline,
+          onProgress: (move) => publishProgress(move, "partial-policy-candidate") });
+    const usedProgressFallback = topN > 0 && !rankedMoves.length && Boolean(bestProgress);
+    if (usedProgressFallback) rankedMoves = [bestProgress];
+    if (topN > 0 && !rankedMoves.length && event.data.enableProgress === true
+        && (globalThis.performance?.now?.() ?? Date.now()) >= decisionDeadline) {
+      throw new Error("AI decision budget expired without a verified legal action.");
+    }
+    const overlayDeadline = Math.min(decisionDeadline,
+      (globalThis.performance?.now?.() ?? Date.now()) + 200);
+    const tactical = exactWinningPass || topN <= 0 || engine.rootRulesVersion === "root-v2"
+      ? { moves: rankedMoves, receipt: { status: "not-applicable", complete: false } }
+      : applyRootTacticalOverlay(engine, aiPlayer, rankedMoves, { deadline: overlayDeadline });
+    const moves = tactical.moves.slice(0, Math.max(0, Math.floor(topN)));
     self.postMessage({
       type: "RESULT",
       requestId,
       strategy,
       positionRevision: serializedState.positionRevision ?? 0,
       rulesVersion: serializedState.rulesVersion,
+      protectionRule: serializedState.protectionRule,
       currentPlayer: serializedState.currentPlayer,
       rootStateIdentity: serializedState.rootStateIdentity,
       moves,
       modelInfo,
-      ...(ai.lastSearch ? { searchStats: ai.lastSearch } : {}),
+      tacticalInfo: tactical.receipt,
+      ...(ai.lastSearch || usedProgressFallback ? { searchStats: {
+        ...(ai.lastSearch ?? {}),
+        ...(usedProgressFallback ? { partial: true, decisionSource: "verified-progress-fallback" } : {}),
+      } } : {}),
     });
   } catch (error) {
     self.postMessage({
@@ -210,7 +356,10 @@ self.onmessage = async (event) => {
       requestId: event.data?.requestId ?? null,
       positionRevision: event.data?.serializedState?.positionRevision ?? 0,
       rulesVersion: event.data?.serializedState?.rulesVersion,
+      protectionRule: event.data?.serializedState?.protectionRule,
       currentPlayer: event.data?.serializedState?.currentPlayer,
+      ...(event.data?.serializedState?.isTopologyBoard
+        ? { boardHash: event.data?.serializedState?.boardHash } : {}),
       rootStateIdentity: event.data?.serializedState?.rootStateIdentity,
       message: error instanceof Error ? error.message : String(error),
       ...(typeof error?.code === "string" && error.code.startsWith("ULTIMATE_") ? { code: error.code } : {}),

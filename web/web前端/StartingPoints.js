@@ -1,6 +1,6 @@
 import {
   getBoardPositions, PLAYER_ORDER, resolveInitialPositions, resolveInitialRoots, RootMode, RootRulesVersion,
-} from "./GameEngine.js?v=20261027-topology-multistart-release1";
+} from "./GameEngine.js?v=20261029-unified-r1";
 
 export const STARTING_POINT_MODES = Object.freeze(["default", "random", "custom"]);
 
@@ -11,10 +11,10 @@ export function requiresExplicitStartingPoints(playerCount, boardShape) {
 export function startingPointSettings(settings) {
   const mode = settings.startingPointMode ?? (settings.initialPositions ? "custom" : "default");
   if (!STARTING_POINT_MODES.includes(mode)) throw new Error("Unknown starting point mode.");
-  if (requiresExplicitStartingPoints(settings.playerCount, settings.boardShape) && mode === "default") {
+  const rootMode = settings.rootMode ?? RootMode.CLASSIC;
+  if (rootMode === RootMode.CLASSIC && requiresExplicitStartingPoints(settings.playerCount, settings.boardShape) && mode === "default") {
     throw new Error("This board requires random or custom starting points.");
   }
-  const rootMode = settings.rootMode ?? RootMode.CLASSIC;
   if (rootMode !== RootMode.CLASSIC) {
     const initialRoots = resolveInitialRoots(
       settings.gridSize, settings.playerCount, settings.initialRoots, settings.boardShape, rootMode, settings.initialPositions,

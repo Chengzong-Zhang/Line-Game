@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import { TrainingContribution, CONTRIBUTION_STORAGE, CONTRIBUTION_POLICY, normalizeContributionV3Context } from '../TrainingContribution.js';
+const memory = value => ({ value, getItem(key) { return key === CONTRIBUTION_STORAGE ? this.value : null; }, setItem(key,v) { this.value=v; } });
+const empty = new TrainingContribution({storage:memory(null)});
+assert.equal(empty.snapshot().enabled,false,'new installations require an explicit opt-in');
+const saved=memory(JSON.stringify({policy:'anonymous-replay-training-v1',enabled:true,queue:[{id:'old'}]}));
+const migrated = new TrainingContribution({storage:saved});
+assert.equal(migrated.snapshot().enabled,false,'v1 opt-in must not authorize a broader v3 policy');
+assert.equal(migrated.snapshot().pending,1,'legacy queue is retained without sending');
+migrated.setEnabled(true);assert.equal(JSON.parse(saved.value).policy,CONTRIBUTION_POLICY);
+const settings={rulesVersion:'territory-v3',playerCount:2,boardShape:'triangle',gridSize:5,rootMode:'add',rootRulesVersion:'root-v2'};
+assert.equal(normalizeContributionV3Context(settings,{source:'local',actors:{BLACK:{kind:'human'},WHITE:{kind:'human'}},mixedProfiles:false}),null,'unadmitted multi-root data cannot be silently collected');
+console.log('verify-contribution-explicit-consent: PASS (default off, legacy queue preserved, new-policy opt-in, root-v2 exclusion)');

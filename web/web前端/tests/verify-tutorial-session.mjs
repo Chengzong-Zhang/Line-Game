@@ -67,8 +67,8 @@ function mountApp() {
     _authoritativeSnapshotValid: true,
     stateChangeListener: app.handleStateChange,
   });
-  app.handleControllerReady(controller);
-  return { app, controller };
+  const ready = app.handleControllerReady(controller);
+  return { app, controller, ready };
 }
 
 function assertFirstLesson(app, controller) {
@@ -109,11 +109,15 @@ try {
       values.clear();
       if (completed) values.set("lifeline-tutorial-completed-v1", "1");
       if (hasSave) values.set(LOCAL_GAME_SESSION_STORAGE_KEY, savedJson);
-      const { app, controller } = mountApp();
-      assertFirstLesson(app, controller);
-      if (hasSave) assertSavedUntouched();
-      assert.equal(await app.skipTutorial(), true);
-      if (hasSave) assertRestored(app, controller);
+      const { app, controller, ready } = mountApp();
+      if (hasSave) {
+        assert.equal(app.tutorialAutoRestoring.value, true);
+        assert.equal(await ready, true);
+        assertRestored(app, controller);
+      } else {
+        assertFirstLesson(app, controller);
+        assert.equal(await app.skipTutorial(), true);
+      }
       app.startTutorial();
       assertFirstLesson(app, controller);
       app.startTutorial();
@@ -125,7 +129,10 @@ try {
 
   values.clear();
   values.set(LOCAL_GAME_SESSION_STORAGE_KEY, savedJson);
-  const { app, controller } = mountApp();
+  const { app, controller, ready } = mountApp();
+  assert.equal(await ready, true);
+  assertRestored(app, controller);
+  app.startTutorial();
   for (const level of TUTORIAL_LEVELS) {
     assert.equal(app.currentTutorialLevel.value.id, level.id);
     if (level.restriction) act(controller, { type: "move", point: level.restriction.point, success: false });
@@ -144,8 +151,7 @@ try {
   assertFirstLesson(app, controller);
   assertSavedUntouched();
   const reloaded = mountApp();
-  assertFirstLesson(reloaded.app, reloaded.controller);
-  await reloaded.app.skipTutorial();
+  assert.equal(await reloaded.ready, true);
   assertRestored(reloaded.app, reloaded.controller);
 
   await app.skipTutorial();
@@ -172,8 +178,7 @@ try {
   const brokenSave = JSON.stringify(createLocalGameSession(settings, [{ type: "player_move", point: [99, 99] }]));
   values.set(LOCAL_GAME_SESSION_STORAGE_KEY, brokenSave);
   const broken = mountApp();
-  assertFirstLesson(broken.app, broken.controller);
-  assert.equal(await broken.app.skipTutorial(), true, "an invalid saved match must not trap the player in lessons");
+  assert.equal(await broken.ready, true, "an invalid saved match must not trap the player in lessons");
   assert.equal(broken.app.tutorialActive.value, false);
   assert.equal(values.get(LOCAL_GAME_SESSION_STORAGE_KEY), brokenSave, "retain an invalid save until a new match is played");
 

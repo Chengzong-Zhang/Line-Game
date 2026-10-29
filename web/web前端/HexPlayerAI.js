@@ -1,7 +1,4 @@
-// Source: frozen deployed r4 HexPlayerAI.js, SHA-256 62340c349b53a13e20d47171187228a2359c5d8dcbf12344a4bf6a0017b9f673.
-// Cache/URL, native-Worker integrity/clone, and territory-v3 deltas are declared by the Worker provenance test.
-// Candidate features, policy scoring, ordering and model validation remain unchanged.
-import { restoreState, saveState } from "./AIEngine.js?v=20261026-allplatform1";
+import { restoreState, saveState } from "./AIEngine.js?v=20261029-unified-r1";
 
 export const HEX_PLAYER_MODEL_ID = "hex-player-policy-v1";
 export const HEX_PLAYER_FEATURES = Object.freeze([
@@ -10,14 +7,8 @@ export const HEX_PLAYER_FEATURES = Object.freeze([
   "own_coverage_gain", "attack", "own_line", "distance_from_home", "centrality",
   "own_frontier", "opponent_frontier_lead",
 ]);
+const MODEL_URL = new URL("./assets/research-ai/hex-player-policy-v1.json?v=20261021-hexai1", import.meta.url);
 let modelPromise = null;
-
-function modelUrl() {
-  if (typeof URL !== "function" || typeof import.meta.url !== "string") {
-    throw new Error("六边形 AI 资源仅可在支持模块 URL 的 Web 环境中加载。");
-  }
-  return new URL("./assets/research-ai/hex-player-policy-v1.json?v=20261025-room1", import.meta.url);
-}
 
 // Integer-index scans avoid constructing coordinate strings for each player's
 // reachability and frontier at every candidate on the 631-point maximum board.
@@ -116,7 +107,7 @@ export function hexPlayerCandidates(engine, player = engine.currentPlayer) {
   }
 }
 
-export async function createHexPlayerModel(payload, hashText) {
+export async function createHexPlayerModel(payload) {
   if (payload?.schema?.name !== "lifeline-hex-player-policy" || payload.schema.version !== 1
     || payload.id !== HEX_PLAYER_MODEL_ID || payload.rules_version !== "territory-v2"
     || JSON.stringify(payload.features) !== JSON.stringify(HEX_PLAYER_FEATURES)
@@ -134,15 +125,11 @@ export async function createHexPlayerModel(payload, hashText) {
   }
   const body = { ...payload };
   delete body.integrity;
-  let hash;
-  if (hashText) hash = await hashText(JSON.stringify(body));
-  else {
-    if (!globalThis.crypto?.subtle) throw new Error("无法校验六边形 AI 模型完整性。");
-    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(body)));
-    hash = Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, "0")).join("");
-  }
+  if (!globalThis.crypto?.subtle) throw new Error("无法校验六边形 AI 模型完整性。");
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(body)));
+  const hash = Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, "0")).join("");
   if (hash !== payload.integrity.payload_sha256) throw new Error("六边形 AI 模型完整性校验失败。");
-  const spec = JSON.parse(JSON.stringify(payload));
+  const spec = structuredClone(payload);
   Object.freeze(spec.weights);
   return {
     spec,
@@ -157,7 +144,7 @@ export async function createHexPlayerModel(payload, hashText) {
 export async function loadHexPlayerModel(id = HEX_PLAYER_MODEL_ID) {
   if (id !== HEX_PLAYER_MODEL_ID) throw new Error(`未找到六边形 AI 模型：${id}`);
   if (!modelPromise) modelPromise = (async () => {
-    const response = await fetch(modelUrl());
+    const response = await fetch(MODEL_URL);
     if (!response.ok) throw new Error(`无法加载六边形 AI 模型（HTTP ${response.status}）。`);
     return createHexPlayerModel(await response.json());
   })().catch((error) => { modelPromise = null; throw error; });

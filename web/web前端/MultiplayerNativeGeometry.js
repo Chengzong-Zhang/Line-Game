@@ -1,9 +1,6 @@
 // Private search optimization: only edge coordinates/keys survive a position.
 // Occupancy, explicit edge membership and connectivity are read on every call.
-// This module is reached by the generic diamond search. It must share the
-// candidate GameEngine prototype with MultiplayerSearch rather than retain a
-// cached pre-release module instance.
-import { GameEngine } from './GameEngine.js?v=20261027-topology-multistart-release1';
+import { GameEngine } from './GameEngine.js?v=20261029-unified-r1';
 
 export function installNativeEdgeGeometry(engine, { maximumEntries = 2048 } = {}) {
   if (!Number.isInteger(maximumEntries) || maximumEntries < 1) throw new Error('Invalid edge geometry limit');

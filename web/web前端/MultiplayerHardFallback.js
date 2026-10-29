@@ -1,9 +1,7 @@
 // Isolated candidate only. Cooperative deadlines are not equivalent pruning.
-import { saveState, restoreState } from "./AIEngine.js?v=20261026-allplatform1";
-import { isolatedSearchEngine, visitPolicyCandidates } from "./MultiplayerSearch.js?v=20261026-allplatform1";
-import { ThreePlayerSearchAI, positionUtilityV4 } from "./ThreePlayerSearchAI.js?v=20261026-allplatform1";
-import { multiplayerClock as performance } from "./MultiplayerClock.js";
-import { portableClone } from "./PortableClone.js";
+import { saveState, restoreState } from "./AIEngine.js?v=20261029-unified-r1";
+import { isolatedSearchEngine, visitPolicyCandidates } from "./MultiplayerSearch.js?v=20261029-unified-r1";
+import { ThreePlayerSearchAI, positionUtilityV4 } from "./ThreePlayerSearchAI.js?v=20261029-unified-r1";
 
 const EXPIRED = Symbol("isolated Hard v2 shared deadline");
 const pointOrder = (a, b) => a.point[1] - b.point[1] || a.point[0] - b.point[0];
@@ -20,19 +18,6 @@ function linearRanking(engine, player, spec, check, completed = []) {
     check(); completed.push({ point: candidate.point, score, visits: 1 });
   }, { beforeCandidate: check });
   check(); return finishLinear(completed);
-}
-// Keep full ranking/softmax for roots. A continuation needs only its argmax,
-// with the same complete enumeration, arithmetic, tie order and deadline polls.
-function linearAction(engine, player, spec, check) {
-  let best = null;
-  visitPolicyCandidates(engine, player, candidate => {
-    const score = candidate.features.reduce((sum, value, i) => sum + value * spec.weights[i], 0) / (spec.temperature ?? 1);
-    if (!Number.isFinite(score)) throw new Error("Invalid isolated Hard linear score");
-    check();
-    if (!best || score > best.score || (score === best.score && pointOrder(candidate, best) < 0))
-      best = { point: candidate.point, score, visits: 1 };
-  }, { beforeCandidate: check });
-  check(); return best;
 }
 function rankEvaluated(evaluated, baseline, minimumImprovement) {
   const ranked = [...evaluated].sort((a, b) => b.score - a.score || b.margin - a.margin
@@ -68,7 +53,7 @@ export class HardDeadlineFallbackV2 {
       || !(Number.isFinite(spec.temperature ?? 1) && (spec.temperature ?? 1) > 0))
       throw new Error("Invalid isolated Hard fallback policy");
     if (searchV4) new ThreePlayerSearchAI(spec); // Reuse the frozen v4 schema validation.
-    this.spec = portableClone(spec); this.searchV4 = searchV4; this.lastSearch = null; this.fullRanking = null;
+    this.spec = structuredClone(spec); this.searchV4 = searchV4; this.lastSearch = null; this.fullRanking = null;
   }
   getTopMoves(source, player = source.currentPlayer, topN = 5, { deadline = Infinity, now = () => performance.now() } = {}) {
     this.lastSearch = null; this.fullRanking = null;
@@ -105,7 +90,7 @@ export class HardDeadlineFallbackV2 {
     };
     try {
       check(); baseline = linearRanking(engine, player, this.spec, check, baselineCandidates);
-      stats.baselineComplete = true; this.fullRanking = portableClone(baseline);
+      stats.baselineComplete = true; this.fullRanking = structuredClone(baseline);
       result = this.searchV4 ? baseline.slice(0, this.spec.search.rootWidth) : baseline;
       stats.decisionSource = "original-linear";
       if (!this.searchV4 || result.length <= 1) {
@@ -120,7 +105,7 @@ export class HardDeadlineFallbackV2 {
             check(); stats.simulatedActions++;
             for (let ply = 0; ply < this.spec.search.rolloutPlies && !engine.gameOver; ply++) {
               check(); const spec = engine.currentPlayer === player ? this.spec : opponent;
-              const reply = linearAction(engine, engine.currentPlayer, spec, check)?.point ?? null;
+              const reply = linearRanking(engine, engine.currentPlayer, spec, check)[0]?.point ?? null;
               if (!(reply ? engine.playMove(reply) : engine.skipTurn()).success) throw new Error("Invalid isolated v4 rollout action");
               check(); stats.simulatedActions++;
             }
@@ -134,7 +119,7 @@ export class HardDeadlineFallbackV2 {
           // ranked[0] is evaluated first, and every published root has ALL
           // original opponent responses. No partial-response average escapes.
           result = rankEvaluated(evaluated, baseline[0], this.spec.search.minimumImprovement);
-          stats.evaluated = portableClone(result.map(({ prior, ...move }) => move));
+          stats.evaluated = structuredClone(result.map(({ prior, ...move }) => move));
           stats.decisionSource = "completed-v4-comparisons";
         }
         stats.completed = true; stats.decisionSource = "original-v4-complete";

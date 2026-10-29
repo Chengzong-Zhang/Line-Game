@@ -1,14 +1,14 @@
-import { Player, RootMode, TerritoryRulesVersion, resolveBoardShape } from "./GameEngine.js?v=20261021-boardshapes1";
-import { startingPointSettings } from "./StartingPoints.js?v=20261021-boardshapes1";
-import { DEFAULT_UNDO_MAX_COUNT, UNDO_MAX_COUNT_MIN, UNDO_MAX_COUNT_MAX } from "./LocalUndo.js?v=20261021-undo1";
+import { Player, PLAYER_ORDER, BOARD_SHAPES, RootMode, StartProtectionRule, TerritoryRulesVersion, resolveBoardShape } from "./GameEngine.js?v=20261029-unified-r1";
+import { startingPointSettings, requiresExplicitStartingPoints, randomInitialPositions } from "./StartingPoints.js?v=20261029-unified-r1";
+import { DEFAULT_UNDO_MAX_COUNT, UNDO_MAX_COUNT_MIN, UNDO_MAX_COUNT_MAX } from "./LocalUndo.js?v=20261029-unified-r1";
 
 // 杩欎釜鏂囦欢涓撻棬瀛樻斁鈥滃彲澶嶇敤鐨勫墠绔姸鎬佸伐鍏封€濓紝
 // 閬垮厤 OnlineApp.js 鍐嶆鑶ㄨ儉鎴愪竴涓秴澶у伐鍏风鏂囦欢銆?
 export const LANGUAGE_STORAGE_KEY = "triaxis-language";
 export const SESSION_STORAGE_KEY = "triaxis-online-session";
 export const AUTH_STORAGE_KEY = "triaxis-auth";
-export const ALL_PLAYERS = Object.freeze([Player.BLACK, Player.WHITE, Player.PURPLE, Player.GREEN, Player.ORANGE, Player.CYAN]);
-export const PLAYER_COUNT_OPTIONS = Object.freeze([2, 3, 4, 5, 6]);
+export const ALL_PLAYERS = PLAYER_ORDER;
+export const PLAYER_COUNT_OPTIONS = Object.freeze(Array.from({ length: 14 }, (_, index) => index + 2));
 export const GRID_SIZE_OPTIONS = Object.freeze(Array.from({ length: 11 }, (_, index) => index + 5));
 export const TURN_TIMER_MIN_SECONDS = 15;
 export const TURN_TIMER_MAX_SECONDS = 200;
@@ -18,6 +18,25 @@ export const HINT_MAX_COUNT_MAX = 10;
 export const DEFAULT_HINT_MAX_COUNT = 3;
 export const DEFAULT_RULES_VERSION = TerritoryRulesVersion.V3;
 export const RULES_VERSION_OPTIONS = Object.freeze(Object.values(TerritoryRulesVersion));
+export const DEFAULT_PROTECTION_RULE = StartProtectionRule.DUEL_FIRST_UNPROTECTED;
+export const PROTECTION_RULE_OPTIONS = Object.freeze(Object.values(StartProtectionRule));
+export const TOPOLOGY_RULES_VERSION = "surface-v1";
+export const TOPOLOGY_BOARD_SHAPE = "custom";
+export const TOPOLOGY_PROTOCOL_VERSION = "board-topology-v1";
+
+/**
+ * This deliberately recognizes incomplete topology settings too.  Callers
+ * that receive authority from the network must reject an incomplete map,
+ * rather than normalize it into a playable legacy triangle.
+ */
+export function isTopologyGameSettings(settings = {}) {
+  return Boolean(settings && typeof settings === "object" && !Array.isArray(settings)
+    && (settings.rulesVersion === TOPOLOGY_RULES_VERSION
+      || settings.boardShape === TOPOLOGY_BOARD_SHAPE
+      || Object.hasOwn(settings, "boardDefinition")
+      || Object.hasOwn(settings, "boardHash")
+      || Object.hasOwn(settings, "topologyProtocolVersion")));
+}
 
 export function normalizeGameSettings(settings = {}) {
   const playerCount = Number(settings?.playerCount);
@@ -38,11 +57,51 @@ export function normalizeGameSettings(settings = {}) {
     ? Math.max(HINT_MAX_COUNT_MIN, Math.min(HINT_MAX_COUNT_MAX, Math.round(hintMaxCount)))
     : DEFAULT_HINT_MAX_COUNT;
   const nextGridSize = GRID_SIZE_OPTIONS.includes(gridSize) ? gridSize : 9;
-  const boardShape = resolveBoardShape(nextPlayerCount, ["triangle", "hexagon"].includes(settings?.boardShape) ? settings.boardShape : null);
+  if (isTopologyGameSettings(settings)) {
+    // A surface board owns its canonical starts inside boardDefinition.  In
+    // particular, do not run legacy resolveBoardShape/startingPointSettings:
+    // both operate on coordinate matrices and would silently replace the
+    // negotiated custom board with a triangle/hexagon.
+    return {
+      playerCount: nextPlayerCount,
+      boardShape: TOPOLOGY_BOARD_SHAPE,
+      botCount: 0,
+      gridSize: nextGridSize,
+      startPlayer,
+      rulesVersion: TOPOLOGY_RULES_VERSION,
+      topologyProtocolVersion: typeof settings?.topologyProtocolVersion === "string"
+        ? settings.topologyProtocolVersion
+        : TOPOLOGY_PROTOCOL_VERSION,
+      ...(Object.hasOwn(settings, "boardDefinition")
+        ? { boardDefinition: settings.boardDefinition }
+        : {}),
+      ...(Object.hasOwn(settings, "boardHash") ? { boardHash: settings.boardHash } : {}),
+      ...(settings?.initialPositions && typeof settings.initialPositions === "object"
+        ? { initialPositions: settings.initialPositions }
+        : {}),
+      turnTimerEnabled: Boolean(settings?.turnTimerEnabled),
+      turnTimeLimitSeconds: normalizedTurnTimeLimitSeconds,
+      hintEnabled: Boolean(settings?.hintEnabled),
+      hintMaxCount: normalizedHintMaxCount,
+      undoEnabled: Boolean(settings?.undoEnabled),
+      undoMaxCount: Number.isFinite(undoMaxCount)
+        ? Math.max(UNDO_MAX_COUNT_MIN, Math.min(UNDO_MAX_COUNT_MAX, Math.round(undoMaxCount)))
+        : DEFAULT_UNDO_MAX_COUNT,
+    };
+  }
+  const boardShape = resolveBoardShape(nextPlayerCount, BOARD_SHAPES.includes(settings?.boardShape) ? settings.boardShape : null);
+  const hasProtectionRule = PROTECTION_RULE_OPTIONS.includes(settings?.protectionRule);
+  const protectionRule = hasProtectionRule ? settings.protectionRule
+    : (nextPlayerCount === 2 && boardShape === "triangle"
+      ? DEFAULT_PROTECTION_RULE : StartProtectionRule.SYMMETRIC);
   let starts = {};
   try {
     starts = startingPointSettings({ ...settings, gridSize: nextGridSize, playerCount: nextPlayerCount, boardShape });
-  } catch (_) { /* Invalid preferences fall back to the original opening. Saves validate strictly. */ }
+  } catch (_) {
+    if (requiresExplicitStartingPoints(nextPlayerCount, boardShape)) {
+      starts = { startingPointMode: "random", initialPositions: randomInitialPositions(nextGridSize, nextPlayerCount, Math.random, boardShape) };
+    }
+  }
 
   const normalizedRulesVersion = starts.rootMode && starts.rootMode !== RootMode.CLASSIC
     ? TerritoryRulesVersion.V3
@@ -55,6 +114,7 @@ export function normalizeGameSettings(settings = {}) {
     gridSize: GRID_SIZE_OPTIONS.includes(gridSize) ? gridSize : 9,
     startPlayer,
     rulesVersion: normalizedRulesVersion,
+    ...(protectionRule !== StartProtectionRule.SYMMETRIC || hasProtectionRule ? { protectionRule } : {}),
     turnTimerEnabled: Boolean(settings?.turnTimerEnabled),
     turnTimeLimitSeconds: normalizedTurnTimeLimitSeconds,
     hintEnabled: Boolean(settings?.hintEnabled),
@@ -76,6 +136,7 @@ export function getPrimaryScores(gameState = null) {
 export function createDefaultGameState() {
   return {
     rulesVersion: DEFAULT_RULES_VERSION,
+    protectionRule: DEFAULT_PROTECTION_RULE,
     positionRevision: 0,
     currentPlayer: Player.BLACK,
     gameOver: false,
@@ -121,6 +182,7 @@ export function createEmptyAuth() {
   return {
     token: null,
     username: null,
+    authOrigin: null,
   };
 }
 
@@ -136,7 +198,10 @@ export function loadStoredSession() {
       ...createEmptySession(),
       ...parsed,
       connected: false,
-      settings: normalizeGameSettings(parsed?.settings),
+      settings: normalizeGameSettings({
+        ...parsed?.settings,
+        protectionRule: parsed?.settings?.protectionRule ?? StartProtectionRule.SYMMETRIC,
+      }),
     };
   } catch (_e) {
     return createEmptySession();
@@ -182,6 +247,7 @@ export function persistAuth(auth) {
   const normalized = {
     token: auth?.token ?? null,
     username: auth?.username ?? null,
+    authOrigin: auth?.authOrigin ?? null,
   };
 
   if (!normalized.token || !normalized.username) {

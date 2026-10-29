@@ -1,1510 +1,800 @@
-## Talk is Cheap, Show Me the Code
+# Code：LIFELINE 算法技术报告
 
-## 工程规模
+摘要：本报告按数学、算法、AI、拓扑棋盘四大章组织。重点是数据结构、执行顺序、伪代码、源码摘录、复杂度与实现边界；让读者能从一条规则追踪到实际函数及返回值。
 
-GitHub 仓库：
+2026-10-25 基础报告；拓扑第四章于 2026-10-29 补充并核对源码。编号伪代码是控制流说明，标明来源的摘录才是原始代码。模型训练、导出推理和 Web/小程序可用性分别说明；配套数学版给出定义、命题与证明。
+
+阅读路径：第一章建立符号和完整状态，第二章讨论规则算法，第三章讨论 AI，第四章给出三角剖分、代数拓扑、双把手构造与稳固连接证书。目录可直接定位各章与小节。territory-v3 始终计算己方占点，并逐个加入与外界隔绝且无敌方点的空腔；正式集合给出 area 与 renderPoints；显示领土可另用与棋盘面片取交的凸包／收紧轮廓，不沿单线铺色，孔洞和真实外部不染色。显示不能改变分数，旧棋谱保留原规则版本。
+
+**目录**
+
+[第一章 数学](#第一章-数学)
+
+- [1.1 状态的数据结构](#11-状态的数据结构)
+
+- [1.2 分数与不变量](#12-分数与不变量)
+
+- [1.3 快照与恢复成本](#13-快照与恢复成本)
+
+[第二章 算法](#第二章-算法)
+
+- [2.1 合法性试走](#21-合法性试走)
+
+- [2.2 自动连线](#22-自动连线)
+
+- [2.3 切断与根 BFS](#23-切断与根-bfs)
+
+- [2.4 Superko 提交](#24-superko-提交)
+
+- [2.5 兼容轮廓与闭环判定](#25-兼容轮廓与闭环判定)
+
+- [2.6 领土收紧](#26-领土收紧)
+
+- [2.7 洪水与计分](#27-洪水与计分)
+
+- [2.8 规范方向与缓存](#28-规范方向与缓存)
+
+- [2.9 跳过与终局](#29-跳过与终局)
+
+- [2.10 源码与验证路径](#210-源码与验证路径)
+
+[第三章 AI](#第三章-ai)
+
+- [3.1 贪心与估值](#31-贪心与估值)
+
+- [3.2 Minimax 控制流](#32-minimax-控制流)
+
+- [3.3 普通 MCTS](#33-普通-mcts)
+
+- [3.4 神经网络前向](#34-神经网络前向)
+
+- [3.5 PUCT 选步](#35-puct-选步)
+
+- [3.6 五类策略的推理](#36-五类策略的推理)
+
+- [3.7 训练源码与损失](#37-训练源码与损失)
+
+- [3.8 多人线性策略](#38-多人线性策略)
+
+- [3.9 三人 V4](#39-三人-v4)
+
+- [3.10 六边形 V5](#310-六边形-v5)
+
+- [3.11 后续多人搜索](#311-后续多人搜索)
+
+- [3.12 调度与可复现性](#312-调度与可复现性)
+
+[第四章 拓扑棋盘的工程实现](#第四章-拓扑棋盘的工程实现)
+
+- [4.1 编译与同调诊断](#41-编译与同调诊断)
+
+- [4.2 稳固核心与战术层](#42-稳固核心与战术层)
+
+- [4.3 分类别随机与完整棋盘保存](#43-分类别随机与完整棋盘保存)
+
+- [4.4 同一规则网格的二维与三维](#44-同一规则网格的二维与三维)
+
+- [4.5 版本、回放与验证](#45-版本回放与验证)
+
+## 第一章 数学
+
+这一章把数学对象映射为工程数据与不变量。后文伪代码用于讲清控制流，使用带行号的语言无关步骤；标为“源码摘录”的片段才是当前工作区的原文。完整证明见配套抽象废话版。
+
+### 1.1 状态的数据结构
+
+把屏幕上的棋盘拆成三层，会更容易理解后面的算法。第一层是固定的格点与六邻接关系；第二层 grid 记录每个位置为空、某方棋子节点或某方连线途经点；第三层 edges 为每一方单独保存真实存在的逻辑边。线经过某个位置，不表示那里放了一颗棋子；看起来挨在一起，也不自动等于逻辑上相连。
+
+边长 N 指外边上的格点数。三角棋盘有 N(N+1)/2 个格点，六边形有 3N(N−1)+1 个格点；N=15 时分别为 120、631。整数坐标的六个方向是 (1,0)、(−1,0)、(0,1)、(0,−1)、(1,−1)、(−1,1)。绘制时再投影到屏幕，规则计算不依赖像素、缩放或手机分辨率。
+
+完整状态还包括棋盘形状、规则版本、各方实际起点、当前行动方、连续跳过次数、认输集合、终局标记，以及全部 Superko 历史。领土缓存与局面修订号用于加速和异步显示；只保存一张棋盘图片，或者只保存 grid，都不足以恢复一局棋的全部规则。
 
 ```text
-https://github.com/Chengzong-Zhang/Line-Game
+01 CONFIG = {rules, shape, size, players, starts}
+02 grid: Map<pointKey, EMPTY | NODE(player) | LINE(player)>
+03 edges[player]: Set<canonicalEndpointPair>
+04 historyHashes: Set<serializedTrialKey>
+05 turn = {currentPlayer, consecutiveSkips, resignedPlayers, gameOver}
+06 territoryV3 = {area, renderPoints, polygon?, displayArea}
+07 display = {cachedTerritories, territoryRevision, positionRevision}
 ```
 
-当前工程统计口径：排除 `.git` 与 `__pycache__`，按当前工作区文件计算。
+工程上必须区分三种身份：规则状态用于判断下一手，几何依赖用于领土缓存，修订号/请求号用于拒绝异步旧结果。相同 grid 不意味着相同 edges；相同 grid+edges 不意味着相同历史；同一规则局面也可能来自不同 UI 请求。
 
-| 指标 | 数值 |
-|---|---:|
-| 总文件数 | 47 |
-| 文本源文件数 | 32 |
-| 代码文件数 | 20 |
-| 代码总行数 | 11,548 |
-| 文档与文本总行数 | 13,228 |
-| 工程体积 | 约 7.6 MB |
+源码定位：web/web前端/GameEngine.js → constructor, _captureReplayState, _computeStateHash。
 
-统计说明：
+### 1.2 分数与不变量
 
-- 代码文件包含 `.py`、`.js`、`.html`、`.css`、`.ps1`、`.bat`。
-- 文本源文件包含代码文件、Markdown 文档、脚本与配置文本。
-- 图片、压缩样例、Git 元数据和 Python 缓存文件不计入行数。
+接口约定：area 是正式计分，renderPoints 是同一正式集合的稳定格点枚举，必须满足 area=renderPoints.length；polygon 与鞋带式 displayArea 是诊断/旧规则兼容字段，reach 是 AI 特征。它们不可互换。territory-v3 的画面逐格读取 renderPoints，终局读取 area；二者由同一次洪水结果产生。
 
-本文说明 LIFELINE / TriAxis 的核心规则引擎、拓扑建模、领土计算、禁手机制与 Web 架构边界。
+$$
+\operatorname{coverage}_i=|F_i|,\qquad \operatorname{area}_i=|F_i|+|B_i|,\qquad \operatorname{reach}_i=|\operatorname{Reach}_{G_0\setminus O_i}(F_i)|.
+$$
 
-游戏运行在三角网格上。玩家看到的是节点、连线与领土；代码处理的是离散坐标、状态枚举、显式边集、BFS 连通性、泛洪覆盖集、历史局面哈希与回合状态机。
+应检查的不变量包括：节点不能被普通落子覆盖；存活节点沿显式边能回到实际起点；非法试走不提交历史；接受落子只增加新历史键；搜索恢复后规则状态不变；AI 返回值仍属于当前请求且执行时合法。断联、切线与终局都应通过 GameEngine，而不是让 UI 或网络模型各写一套近似规则。
 
-核心实现目标：
+源码定位：web/web前端/GameEngine.js → _getOpponentConnectedPieces, _evaluateMove, _computeTerritory。
 
-- 用离散坐标替代屏幕几何。
-- 用显式边集合替代视觉连线。
-- 用 BFS 判断节点是否连回出生点。
-- 用泛洪法计算领土覆盖点集。
-- 用快照回滚与哈希集合实现 Superko。
-- Web 端保持“前端规则引擎 + 后端房间同步”的职责边界。
+### 1.3 快照与恢复成本
 
-## 项目范围
+AIEngine 的 saveState 复制 grid、各方 edges、历史 Set 与轮转字段，并复制领土缓存；v3 缓存里的 renderPoints 与 polygon 都是可变坐标数组，跨快照或 Worker 边界必须逐点深复制。restoreState 重建棋盘/边/历史容器，但把 snapshot.cachedTerritories 直接赋回；随后要刷新精确领土的分支必须拥有自己的缓存对象。只复制最外层对象会让分支互相污染，甚至出现 area 已更新而着色仍属于旧局面。
 
-核心算法样本位于：
-
-```text
-core algorithm/triangular_game.py
-```
-
-Web 主线位于：
-
-```text
-web/web前端/GameEngine.js
-web/web前端/Renderer.js
-web/web前端/GameController.js
-web/web前端/NetworkManager.js
-web/web后端/server.py
-```
-
-核心算法文档以 `9x9` 三角网格为基准说明。Web 端支持边长 `6` 到 `15` 的可配置棋盘，数据结构和算法策略一致。
-
-## 棋盘坐标模型
-
-三角棋盘使用离散坐标 `(x, y)`。边长为 `N` 时，第 `y` 行有 `N - y` 个合法点：
-
-```python
-0 <= y < N
-0 <= x < N - y
-x + y <= N - 1
-```
-
-初始化方式：
-
-```python
-def _init_grid(self):
-    for y in range(self.GRID_SIZE):
-        for x in range(self.GRID_SIZE - y):
-            self.grid[(x, y)] = PointState.EMPTY
-```
-
-代码中的 `self.grid` 是棋盘物理层：
-
-```python
-self.grid: dict[tuple[int, int], PointState]
-```
-
-它保存所有坐标点当前的占用状态。每个 key 是合法三角坐标，每个 value 是 `PointState`。
-
-屏幕坐标仅用于渲染：
-
-```python
-def _get_screen_pos(self, grid_x, grid_y):
-    offset_x = grid_y * self.cell_size // 2
-    screen_x = self.grid_start_x + grid_x * self.cell_size + offset_x
-    screen_y = self.grid_start_y + grid_y * self.cell_size * 0.866
-    return int(screen_x), int(screen_y)
-```
-
-规则计算不依赖像素坐标。点击检测会从屏幕点反查最近的格点，但合法性仍由 `self.grid` 和规则函数决定。
-
-## 六向邻接
-
-三角网格的每个格点最多有六个相邻点。实现中使用六向邻接表：
-
-```python
-possible_adjacent = [
-    (x, y + 1),
-    (x, y - 1),
-    (x - 1, y),
-    (x + 1, y),
-    (x - 1, y + 1),
-    (x + 1, y - 1),
-]
-```
-
-只返回存在于 `self.grid` 的合法点：
-
-```python
-def _get_adjacent_positions(self, pos):
-    x, y = pos
-    adjacent = []
-
-    for adj_pos in possible_adjacent:
-        if adj_pos in self.grid:
-            adjacent.append(adj_pos)
-
-    return adjacent
-```
-
-邻接函数被以下模块复用：
-
-- 泛洪法 `_get_covered_points`
-- 最短路径搜索 `_get_all_shortest_grid_paths`
-- 外轮廓追踪 `_get_outer_contour`
-- 三点限制检查
-- 断联区域清理
-
-## 状态枚举
-
-棋盘点状态由 `PointState` 定义：
-
-```python
-class PointState(Enum):
-    EMPTY = 0
-    BLACK_NODE = 1
-    BLACK_LINE = 2
-    WHITE_NODE = 3
-    WHITE_LINE = 4
-```
-
-玩家枚举：
-
-```python
-class Player(Enum):
-    BLACK = 1
-    WHITE = 2
-```
-
-状态含义：
-
-- `EMPTY`：未占用点。
-- `BLACK_NODE` / `WHITE_NODE`：玩家主动落下的节点，作为拓扑图的顶点。
-- `BLACK_LINE` / `WHITE_LINE`：节点之间自动生成的线点，作为渲染和阻挡检测中的物理占用。
-
-节点与线点的区别：
-
-- 节点参与显式边集合。
-- 线点不作为图顶点。
-- 线点可被攻击删除。
-- 连通性只检查节点之间的显式边。
-
-初始状态：
-
-```python
-self.grid[(0, 0)] = PointState.BLACK_NODE
-self.grid[(8, 0)] = PointState.WHITE_NODE
-```
-
-## 双层数据结构
-
-规则引擎拆分为两个层次。
-
-### 网格物理层
-
-```python
-self.grid: dict[tuple[int, int], PointState]
-```
-
-职责：
-
-- 保存点位占用状态。
-- 支持 Canvas / Pygame 渲染。
-- 支持落点合法性检查。
-- 支持中间点阻挡判断。
-- 支持攻击时线点删除。
-
-### 逻辑拓扑层
-
-```python
-self.black_edges: set[frozenset[tuple[int, int]]]
-self.white_edges: set[frozenset[tuple[int, int]]]
-```
-
-每条边使用 `frozenset({node_a, node_b})` 表示。`frozenset` 的作用是消除端点顺序差异，使 `(a, b)` 与 `(b, a)` 在集合中归一为同一条无向边。
-
-职责：
-
-- 保存节点之间的显式连接。
-- 构建临时 adjacency list。
-- 执行 BFS 连通性判断。
-- 参与局面哈希序列化。
-- 在攻击、删点、重连后同步更新。
-
-设计约束：
-
-- `grid` 可以显示线点连续。
-- `edges` 才表示节点之间存在合法连接。
-- 连通性不通过扫描同色 `grid` 点判断。
-
-## 直线连接规则
-
-两个节点可连接，当且仅当它们落在三角坐标系的三类直线上：
-
-```python
-def _can_connect(self, pos1, pos2):
-    x1, y1 = pos1
-    x2, y2 = pos2
-
-    if x1 == x2:
-        return True
-    if y1 == y2:
-        return True
-    if x1 + y1 == x2 + y2:
-        return True
-
-    return False
-```
-
-三类方向：
-
-- 同列：`x1 == x2`
-- 同行：`y1 == y2`
-- 同反对角线：`x1 + y1 == x2 + y2`
-
-中间格点由 `_get_line_points` 提取：
-
-```python
-def _get_line_points(self, start, end):
-    x1, y1 = start
-    x2, y2 = end
-    points = []
-
-    if x1 == x2:
-        for y in range(min(y1, y2), max(y1, y2) + 1):
-            if (x1, y) in self.grid:
-                points.append((x1, y))
-
-    elif y1 == y2:
-        for x in range(min(x1, x2), max(x1, x2) + 1):
-            if (x, y1) in self.grid:
-                points.append((x, y1))
-
-    elif x1 + y1 == x2 + y2:
-        # 沿 x 增、y 减的反对角方向生成离散格点
-        ...
-
-    return points
-```
-
-阻挡检测由 `_can_connect_with_blocking` 完成：
-
-```python
-def _can_connect_with_blocking(self, pos1, pos2, player):
-    if not self._can_connect(pos1, pos2):
-        return False
-
-    line_points = self._get_line_points(pos1, pos2)
-    middle_points = [p for p in line_points if p != pos1 and p != pos2]
-
-    for point in middle_points:
-        if self.grid[point] in opponent_states:
-            return False
-
-    return True
-```
-
-该函数处理的是“直线路径上是否存在敌方节点或敌方线点”。它不检查己方线点，因为己方线点可以作为已有连接的一部分。
-
-## 落子入口
-
-核心落子函数是 `_add_node`。它负责单步落子的完整事务流程。
-
-主要阶段：
-
-1. 坐标存在性检查。
-2. 目标点状态检查。
-3. 保护区检查。
-4. 三点限制检查。
-5. 快照保存。
-6. 写入新节点。
-7. 自动连线。
-8. 攻击结算。
-9. Superko 哈希检查。
-10. 成功提交或回滚。
-
-入口检查：
-
-```python
-if pos not in self.grid:
-    return False
-
-original_state = self.grid[pos]
-if original_state not in [PointState.EMPTY, PointState.WHITE_LINE, PointState.BLACK_LINE]:
-    return False
-```
-
-落点只能是空点或敌方线点。已有节点不可覆盖，己方节点不可重复落子。
-
-保护区限制：
-
-```python
-if self._is_in_protection_zone(pos, self.current_player):
-    return False
-```
-
-三点限制：
-
-```python
-opponent_line = PointState.WHITE_LINE if self.current_player == Player.BLACK else PointState.BLACK_LINE
-is_attacking_move = original_state == opponent_line
-
-if not is_attacking_move and not self._check_three_point_limitation(pos, self.current_player):
-    return False
-```
-
-进攻落子可跳过三点限制。普通扩张必须通过阵型约束。
-
-事务快照：
-
-```python
-grid_snapshot = dict(self.grid)
-black_edges_snapshot = set(self.black_edges)
-white_edges_snapshot = set(self.white_edges)
-```
-
-快照用于 Superko 违规时恢复。这里保存的是浅拷贝，因为 key/value 均为不可变坐标与枚举值，边集合元素为 `frozenset`。
-
-## 自动连线
-
-新节点写入后，引擎扫描所有己方已有节点：
-
-```python
-self.grid[pos] = node_state
-
-existing_nodes = self._get_player_nodes(self.current_player)
-existing_nodes.remove(pos)
-```
-
-对每个已有节点检查是否可以连接：
-
-```python
-connected = False
-
-for node_pos in existing_nodes:
-    if self._can_connect_with_blocking(pos, node_pos, self.current_player):
-        connected = True
-        line_points = self._get_line_points(pos, node_pos)
-
-        for point in line_points:
-            if self.grid[point] == PointState.EMPTY or self.grid[point] == line_state:
-                self.grid[point] = line_state
-            if point == pos or point == node_pos:
-                self.grid[point] = node_state
-
-        self._get_edges(self.current_player).add(frozenset({pos, node_pos}))
-```
-
-处理细节：
-
-- 中间空点转为己方 `LINE`。
-- 两端保持 `NODE`。
-- 已有己方线点允许复用。
-- 每条成功连接写入 `black_edges` 或 `white_edges`。
-- 如果没有任何成功连接，本次落子失败并恢复原状态。
-
-连接失败回滚：
-
-```python
-if not connected:
-    self.grid[pos] = original_state
-    return False
-```
-
-## 攻击触发
-
-当新节点落在敌方线点上时，触发 `_handle_blocking_attack`：
-
-```python
-self._handle_blocking_attack(pos, self.current_player, original_state)
-```
-
-攻击触发条件：
-
-```python
-opponent = Player.WHITE if player == Player.BLACK else Player.BLACK
-opp_line = PointState.WHITE_LINE if player == Player.BLACK else PointState.BLACK_LINE
-
-if original_state != opp_line:
-    return
-```
-
-函数内部按固定顺序执行：
-
-1. 删除被切断的敌方线点。
-2. 清理断裂拓扑边。
-3. 删除不能连回出生点的敌方节点。
-4. 清理无端点支撑的敌方线点。
-5. 对攻守双方重新建立合法连接。
-
-## 线点级联删除
-
-攻击点向六个直线方向扫描：
-
-```python
-directions = [(1, 0), (-1, 0), (0, 1), (0, -1), (1, -1), (-1, 1)]
-```
-
-只处理相邻位置是敌方线点的方向：
-
-```python
-nx, ny = x0 + dx, y0 + dy
-if (nx, ny) not in self.grid or self.grid[(nx, ny)] != opp_line:
-    continue
-```
-
-连续收集敌方线点：
-
-```python
-cells_to_delete = []
-while (nx, ny) in self.grid and self.grid[(nx, ny)] == opp_line:
-    cells_to_delete.append((nx, ny))
-    nx += dx
-    ny += dy
-```
-
-只有扫描终点是敌方节点时，才删除已收集线点：
-
-```python
-if (nx, ny) in self.grid and self.grid[(nx, ny)] == opp_node_state:
-    for cell in cells_to_delete:
-        self.grid[cell] = PointState.EMPTY
-```
-
-该判断用于区分两类情况：
-
-- 同一条被攻击线上的连续线点。
-- 因交叉或邻接产生的其他方向线点。
-
-如果扫描最终遇到空点或边界，本方向不删除，避免误删不属于当前连接段的线点。
-
-## 拓扑边清理
-
-线点删除后，物理层和拓扑层可能不一致。`_cleanup_broken_edges` 扫描玩家边集，删除已经不完整的边。
-
-核心逻辑：
-
-```python
-def _cleanup_broken_edges(self, player):
-    edges = self._get_edges(player)
-    broken_edges = set()
-
-    for edge in edges:
-        n1, n2 = tuple(edge)
-        points = self._get_line_points(n1, n2)
-
-        if any(self.grid[p] not in owned_states(player) for p in points):
-            broken_edges.add(edge)
-
-    edges.difference_update(broken_edges)
-```
-
-实现目标：
-
-- 边的两个端点必须仍为该玩家节点。
-- 边路径上的中间点必须仍为该玩家线点或节点。
-- 任意路径点被敌方占据或清空，则边失效。
-
-该步骤是后续 BFS 判定的前置条件。
-
-## 连通性 BFS
-
-`_is_connected_to_initial` 判断指定节点是否仍能通过显式边集连回出生点。
-
-实现步骤：
-
-1. 根据玩家获取 `black_edges` 或 `white_edges`。
-2. 将 `set[frozenset]` 转换为临时 adjacency list。
-3. 从出生点启动 BFS。
-4. 如果目标节点被访问到，则连通。
-
-伪代码：
-
-```python
-def _is_connected_to_initial(self, pos, player):
-    start = (0, 0) if player == Player.BLACK else (8, 0)
-    adj = defaultdict(list)
-
-    for edge in self._get_edges(player):
-        a, b = tuple(edge)
-        adj[a].append(b)
-        adj[b].append(a)
-
-    queue = deque([start])
-    visited = {start}
-
-    while queue:
-        current = queue.popleft()
-        if current == pos:
-            return True
-
-        for nxt in adj[current]:
-            if nxt not in visited:
-                visited.add(nxt)
-                queue.append(nxt)
-
-    return False
-```
-
-数据结构名词：
-
-- `adjacency list`：邻接表。
-- `visited set`：已访问集合。
-- `queue`：BFS 队列。
-- `connected component`：连通分量。
-- `root node`：出生点。
-
-该函数不扫描 `grid` 的同色点，避免把视觉连续误判为拓扑连通。
-
-## 飞地节点删除
-
-攻击可能使敌方图结构分裂。结算时遍历敌方所有节点：
-
-```python
-opp_start = (8, 0) if player == Player.BLACK else (0, 0)
-deleted_nodes = set()
-
-for node in self._get_player_nodes(opponent):
-    if node != opp_start and not self._is_connected_to_initial(node, opponent):
-        self.grid[node] = PointState.EMPTY
-        deleted_nodes.add(node)
-        self._remove_node_edges(node, opponent)
-```
-
-处理规则：
-
-- 出生点不会被删除。
-- 不能连回出生点的节点置为 `EMPTY`。
-- 与该节点关联的所有显式边同步删除。
-
-`_remove_node_edges` 的职责是维护边集一致性：
-
-```python
-def _remove_node_edges(node, player):
-    edges(player).difference_update(
-        edge for edge in edges(player) if node in edge
-    )
-```
-
-## 孤立线点清理
-
-节点删除后，敌方可能残留线点。线点只有在位于两端均幸存的完整连接上时才保留。
-
-检查流程：
-
-```python
-for line_pt in list(self.grid.keys()):
-    if self.grid[line_pt] != opp_line:
-        continue
-
-    protected = False
-
-    for n1, n2 in all_surviving_node_pairs:
-        if not self._can_connect(n1, n2):
-            continue
-
-        pts = self._get_line_points(n1, n2)
-        if line_pt not in pts:
-            continue
-
-        if all(self.grid[p] in (opp_node_state, opp_line) for p in pts):
-            protected = True
-            break
-
-    if not protected:
-        self.grid[line_pt] = PointState.EMPTY
-```
-
-判定条件：
-
-- 线点必须属于某对幸存节点之间的合法直线。
-- 该直线上的所有格点仍归属敌方。
-- 否则视为 orphan line point，置空。
-
-该步骤清理攻击后的物理残留，防止渲染层显示已经没有拓扑意义的线点。
-
-## 防线重连
-
-攻击结算最后执行 `_reconnect_player_nodes`。它对指定玩家的所有节点对进行重新扫描：
-
-```python
-def _reconnect_player_nodes(self, player):
-    player_nodes = self._get_player_nodes(player)
-
-    for i in range(len(player_nodes)):
-        for j in range(i + 1, len(player_nodes)):
-            node1, node2 = player_nodes[i], player_nodes[j]
-
-            if self._can_connect_with_blocking(node1, node2, player):
-                line_points = self._get_line_points(node1, node2)
-
-                for point in line_points:
-                    if point == node1 or point == node2:
-                        self.grid[point] = node_state
-                    elif self.grid[point] == PointState.EMPTY:
-                        self.grid[point] = line_state
-
-                self._get_edges(player).add(frozenset({node1, node2}))
-```
-
-执行对象：
-
-```python
-self._reconnect_player_nodes(player)
-self._reconnect_player_nodes(opponent)
-```
-
-重连原因：
-
-- 攻击方新节点可能打开新的连接。
-- 防守方删除部分节点后，剩余节点可能形成新的无遮挡连接。
-- 清空线点可能释放原本被阻挡的直线路径。
-
-复杂度特征：
-
-- 节点对枚举为 `O(V^2)`。
-- 每次连接检查需要扫描路径点。
-- 棋盘规模较小，直接枚举可接受。
-
-## 领土计算总流程
-
-领土由 `_compute_inner_hull(player)` 计算。
-
-输入：
-
-- 当前玩家。
-- 玩家节点集合。
-- 玩家线点集合。
-- 对手节点集合。
-- 对手线点集合。
-
-输出：
-
-- `screen_polygon`：用于渲染的屏幕坐标多边形。
-- `area`：泛洪法得到的离散领土点数。
-
-主流程：
-
-```python
-def _compute_inner_hull(self, player):
-    friendlies = set(self._get_player_nodes(player) + self._get_player_lines(player))
-    enemies = set(self._get_player_nodes(opp) + self._get_player_lines(opp))
-    friendly_nodes = set(self._get_player_nodes(player))
-
-    current_poly = self._get_outer_contour(player)
-
-    while True:
-        # 枚举锚点对，生成候选轮廓，泛洪校验
-        ...
-
-    final_covered = self._get_covered_points(current_poly)
-    screen_polygon = [self._get_screen_pos(*p) for p in final_closed]
-    area = len(final_covered)
-    return screen_polygon, area
-```
-
-实现特征：
-
-- 外轮廓是离散点序列，不是连续几何曲线。
-- 周长使用轮廓点数近似，即格点路径长度。
-- 面积使用覆盖点数量，不使用 Shoelace 公式。
-- 候选轮廓必须通过敌方避障和己方节点包含检查。
-
-## 外轮廓追踪
-
-`_get_outer_contour(player)` 使用右手摸墙法。
-
-关键变量：
-
-- `friendlies`：己方节点与线点集合。
-- `start`：字典序最小的己方点。
-- `backtrack`：进入当前点的反方向编号。
-- `first_out_dir`：首步离开方向，用于闭合判定。
-- `contour`：输出轮廓点列表。
-- `max_steps`：防止异常循环的安全上限。
-
-实现骨架：
-
-```python
-DIRS = self._DIRS_CW
-friendlies = set(self._get_player_nodes(player) + self._get_player_lines(player))
-start = min(friendlies, key=lambda p: (p[0], p[1]))
-
-backtrack = 3
-current = start
-first_out_dir = None
-max_steps = len(friendlies) * 6 + 10
-```
-
-顺时针扫描下一个己方点：
-
-```python
-for i in range(6):
-    d = (backtrack + 1 + i) % 6
-    dx, dy = DIRS[d]
-    nxt = (current[0] + dx, current[1] + dy)
-
-    if nxt in friendlies:
-        out_dir = d
-        break
-```
-
-闭合条件：
-
-```python
-if first_out_dir is None:
-    first_out_dir = out_dir
-    contour.append(current)
-elif current == start and out_dir == first_out_dir:
-    break
-else:
-    contour.append(current)
-```
-
-该算法返回的是首尾不重复的隐式闭合环。渲染前由 `get_closed` 补上首点。
-
-## 最短路径候选
-
-`_get_all_shortest_grid_paths(start, end, enemies, max_paths)` 用 BFS 获取避开敌方点的等长最短路径。
-
-数据结构：
-
-- `queue`：路径队列，元素是完整路径列表。
-- `shortest_paths`：候选最短路径集合。
-- `min_length`：当前已发现最短长度。
-- `visited_at_depth`：记录某点出现过的最浅层数。
-
-实现骨架：
-
-```python
-queue = [[start]]
-shortest_paths = []
-min_length = float("inf")
-visited_at_depth = {start: 0}
-```
-
-搜索规则：
-
-```python
-while queue:
-    path = queue.pop(0)
-    current = path[-1]
-
-    if len(path) > min_length:
-        continue
-    if len(shortest_paths) >= max_paths:
-        break
-
-    if current == end:
-        shortest_paths.append(path)
-        min_length = len(path)
-        continue
-
-    for nxt in self._get_adjacent_positions(current):
-        if nxt in enemies:
-            continue
-        depth = len(path)
-        if nxt not in visited_at_depth or visited_at_depth[nxt] >= depth:
-            visited_at_depth[nxt] = depth
-            queue.append(path + [nxt])
-```
-
-该函数用于轮廓修剪，不用于玩家落子。它生成的是可能替换原轮廓弧段的格点路径。
-
-## 动态贪心修剪
-
-外轮廓可能包含冗余线点。修剪阶段枚举轮廓上的两个锚点 `i` 和 `j`，用最短路径替换原来的部分轮廓。
-
-当前轮廓基准：
-
-```python
-cur_perim = len(current_poly)
-cur_area = len(self._get_covered_points(current_poly))
-
-best_overall_cand = None
-best_cand_perim = cur_perim
-best_cand_area = cur_area
-```
-
-锚点枚举：
-
-```python
-for i in range(n):
-    for j in range(n - 1, i + 1, -1):
-        if j - i <= 1:
-            continue
-```
-
-候选生成：
-
-```python
-paths = self._get_all_shortest_grid_paths(
-    current_poly[i],
-    current_poly[j],
-    enemies,
-    max_paths=100,
-)
-
-for path in paths:
-    cand_A = current_poly[:i] + path + current_poly[j + 1:]
-    cand_B = current_poly[i:j + 1] + path[::-1][1:-1]
-```
-
-候选过滤：
-
-```python
-cand = [p for k, p in enumerate(cand) if k == 0 or p != cand[k - 1]]
-
-if len(cand) < 3:
-    continue
-
-if cand_perim > best_cand_perim:
-    continue
-
-covered = self._get_covered_points(cand)
-cand_area = len(covered)
-
-if cand_perim == best_cand_perim and cand_area >= best_cand_area:
-    continue
-
-if not friendly_nodes.issubset(covered):
-    continue
-
-if any(e in covered for e in enemies):
-    continue
-```
-
-排序目标：
-
-1. 优先减少轮廓周长。
-2. 周长相同时减少覆盖点数。
-3. 保证所有己方节点仍在覆盖区域内。
-4. 保证覆盖区域不包含任何敌方点。
-
-循环收敛条件：
-
-```python
-if best_overall_cand is not None:
-    current_poly = best_overall_cand
-else:
-    break
-```
-
-这是局部搜索加贪心更新，不是全局最优多边形求解。它适合当前小规模棋盘与交互式计算。
-
-## 泛洪覆盖点
-
-`_get_covered_points(polygon)` 用泛洪法计算多边形覆盖的离散点集。
-
-输入：
-
-- `polygon`: 轮廓点列表。
-
-输出：
-
-- `set[tuple[int, int]]`: 被轮廓包围的所有格点，包含轮廓点本身。
-
-实现步骤：
-
-1. 将轮廓点转换为 `wall_set`。
-2. 从棋盘三条边界的非墙点入队。
-3. BFS 扩展所有外部可达点。
-4. 用全集减去外部可达点，得到覆盖点集。
-
-代码骨架：
-
-```python
-wall_set = set(polygon)
-water_reached = set()
-queue = deque()
-
-for y in range(9):
-    for x in range(9 - y):
-        if x == 0 or y == 0 or x + y == 8:
-            if (x, y) not in wall_set:
-                water_reached.add((x, y))
-                queue.append((x, y))
-
-while queue:
-    curr = queue.popleft()
-    for nxt in self._get_adjacent_positions(curr):
-        if nxt not in wall_set and nxt not in water_reached:
-            water_reached.add(nxt)
-            queue.append(nxt)
-
-all_points = {(x, y) for y in range(9) for x in range(9 - y)}
-return all_points - water_reached
-```
-
-算法属性：
-
-- 属于 Flood Fill / Region Filling。
-- 使用 BFS 队列。
-- 不依赖射线法。
-- 不依赖连续几何面积。
-- 自交轮廓下仍按格点可达性判定。
-
-## Superko 局面哈希
-
-Superko 用于禁止全局同形再现。实现由两部分组成：
-
-- `history_hashes: set[str]`
-- `_compute_state_hash(next_player)`
-
-初始化时写入初始局面：
-
-```python
-self.history_hashes = set()
-self.history_hashes.add(self._compute_state_hash(Player.BLACK))
-```
-
-序列化内容：
-
-```python
-grid_entries = sorted(
-    (x, y, state.value)
-    for (x, y), state in self.grid.items()
-    if state != PointState.EMPTY
-)
-
-black_edge_list = sorted(tuple(sorted(e)) for e in self.black_edges)
-white_edge_list = sorted(tuple(sorted(e)) for e in self.white_edges)
-
-raw = repr((next_player.value, grid_entries, black_edge_list, white_edge_list))
-return hashlib.sha256(raw.encode()).hexdigest()
-```
-
-字段说明：
-
-- `next_player.value`：结算后即将行棋方。
-- `grid_entries`：所有非空格点与状态值。
-- `black_edge_list`：规范化后的黑方边集合。
-- `white_edge_list`：规范化后的白方边集合。
-- `SHA-256`：固定长度摘要，用于集合查询。
-
-落子后检查：
-
-```python
-next_player = Player.WHITE if self.current_player == Player.BLACK else Player.BLACK
-state_hash = self._compute_state_hash(next_player)
-
-if state_hash in self.history_hashes:
-    self.grid = grid_snapshot
-    self.black_edges = black_edges_snapshot
-    self.white_edges = white_edges_snapshot
-    raise SuperkoViolationError(...)
-
-self.history_hashes.add(state_hash)
-```
-
-注意点：
-
-- 哈希检查发生在攻击和重连完成之后。
-- 违规时恢复 `grid` 与两方边集。
-- `_is_legal_move` 会额外快照 `history_hashes` 与 `current_player`，用于合法性试算。
-
-## 回合与终局
-
-玩家切换：
-
-```python
-def _switch_player(self):
-    self.current_player = Player.WHITE if self.current_player == Player.BLACK else Player.BLACK
-```
-
-合法性试算：
-
-```python
-def _is_legal_move(self, pos, player):
-    grid_snapshot = dict(self.grid)
-    black_edges_snapshot = set(self.black_edges)
-    white_edges_snapshot = set(self.white_edges)
-    history_hashes_snapshot = set(self.history_hashes)
-    current_player_snapshot = self.current_player
-
-    try:
-        self.current_player = player
-        return self._add_node(pos)
-    except SuperkoViolationError:
-        return False
-    finally:
-        self.grid = grid_snapshot
-        self.black_edges = black_edges_snapshot
-        self.white_edges = white_edges_snapshot
-        self.history_hashes = history_hashes_snapshot
-        self.current_player = current_player_snapshot
-```
-
-该函数用于判断玩家是否存在合法行动。它通过事务回滚保证试算不污染真实局面。
-
-自动跳过：
-
-```python
-def _has_valid_moves(self, player):
-    for pos in self.grid:
-        if self._is_legal_move(pos, player):
-            return True
-    return False
-```
-
-终局条件：
-
-- 当前玩家无合法落子时自动跳过。
-- 双方连续跳过时结束。
-- 玩家主动跳过也计入 `consecutive_skips`。
-
-```python
-if self.consecutive_skips >= 2:
-    self.game_over = True
-```
-
-胜负由双方领土点数比较决定。
-
-## 渲染与缓存
-
-Pygame 样本中渲染分为：
-
-- 背景清空。
-- 领土半透明覆盖层。
-- 节点对连线绘制。
-- 格点绘制。
-- 当前玩家文字。
-- 跳过按钮。
-- 终局覆盖层。
-
-领土缓存：
-
-```python
-self._hull_black: tuple[Optional[list], float] = (None, 0.0)
-self._hull_white: tuple[Optional[list], float] = (None, 0.0)
-```
-
-状态改变后更新：
-
-```python
-def _update_hulls(self):
-    self._hull_black = self._compute_inner_hull(Player.BLACK)
-    self._hull_white = self._compute_inner_hull(Player.WHITE)
-```
-
-设计目的：
-
-- 避免每帧重复执行轮廓追踪、最短路径枚举和泛洪。
-- 渲染帧只读取缓存结果。
-- 规则计算与绘制逻辑分离。
-
-连线绘制时不直接画相邻线点，而是枚举节点对并验证整段归属：
-
-```python
-for i in range(len(p_nodes)):
-    for j in range(i + 1, len(p_nodes)):
-        n1, n2 = p_nodes[i], p_nodes[j]
-        if not self._can_connect(n1, n2):
-            continue
-
-        pts = self._get_line_points(n1, n2)
-        if not all(self.grid[p] in owned for p in pts):
-            continue
-
-        if any(self.grid[p] == node_st for p in pts if p != n1 and p != n2):
-            continue
-
-        pygame.draw.line(...)
-```
-
-该策略避免在拐角处把相邻点误画成额外连接。
-
-## Web 前端架构
-
-当前真实入口：
-
-```text
-index.html -> main.js -> OnlineApp.js
-```
-
-核心模块：
-
-```text
-web/web前端/main.js
-web/web前端/OnlineApp.js
-web/web前端/OnlineAppState.js
-web/web前端/OnlineAppI18n.js
-web/web前端/GameController.js
-web/web前端/GameEngine.js
-web/web前端/Renderer.js
-web/web前端/NetworkManager.js
-web/web前端/styles.css
-```
-
-职责说明：
-
-- `main.js`：加载 Vue 运行时，挂载应用，处理启动失败状态。
-- `OnlineApp.js`：主应用编排层，管理本地模式、联机模式、房间流程和页面布局。
-- `OnlineAppState.js`：默认配置、会话存储 Key、认证信息、本地持久化状态。
-- `OnlineAppI18n.js`：中英文文案、标题、比分、状态和错误提示格式化。
-- `GameController.js`：交互控制层，连接规则引擎、渲染器与网络层。
-- `GameEngine.js`：规则计算层，维护棋盘、落子、回合、领地、比分和终局状态。
-- `Renderer.js`：Canvas 绘制层，负责棋盘、节点、连线、领地、高亮和尺寸适配。
-- `NetworkManager.js`：WebSocket 客户端封装，负责请求发送、事件订阅、心跳和错误处理。
-- `styles.css`：页面布局、响应式策略、折叠信息仓和移动端适配。
-
-架构约束：
-
-- 当前规则真源在前端 `GameEngine.js`。
-- 后端不裁决三角棋盘规则。
-- 渲染性能问题优先在 `Renderer.js` 处理。
-- 文案新增优先进入 `OnlineAppI18n.js`。
-
-## Web 后端架构
-
-当前后端主服务：
-
-```text
-web/web后端/server.py
-```
-
-后端职责：
-
-- FastAPI 应用入口。
-- 静态资源托管。
-- 用户注册与登录。
-- `bcrypt + sha256` 密码哈希。
-- JWT 签发与校验。
-- WebSocket 鉴权连接。
-- 房间创建、加入、离开。
-- 玩家身份、颜色、房主与准备状态管理。
-- 开局倒计时。
-- 联机重置投票。
-- 房间动作记录。
-- 心跳检测。
-- 断线恢复。
-- 房间超时清理。
-
-后端不负责：
-
-- 落子合法性裁决。
-- 领土计算。
-- 终局胜负裁决。
-- 替代前端规则引擎。
-
-仓库中存在：
-
-```text
-web/web后端/game_router.py
-```
-
-该文件属于实验性或历史性后端规则方向，不是当前 Web 主线。
-
-## WebSocket 数据流
-
-联机模式采用“服务端同步动作，客户端回放规则”的模式。
-
-落子数据流：
-
-```text
-用户点击棋盘
--> GameController 接收交互
--> GameEngine 执行本地规则
--> Renderer 刷新本地画面
--> NetworkManager 发送 player_move
--> server.py 广播到房间其他成员
--> 其他客户端用本地 GameEngine 回放动作
-```
-
-主要客户端消息：
-
-```text
-create_room
-join_room
-player_move
-player_skip
-player_reset
-player_ready
-update_room_settings
-update_start_player
-player_leave
-ping
-```
-
-主要服务端事件：
-
-```text
-ROOM_CREATED
-ROOM_JOINED
-ROOM_STATE
-ROOM_COUNTDOWN
-ROOM_READY
-OPPONENT_MOVE
-TURN_SKIPPED
-RESET_STATUS
-MATCH_RESET
-PLAYER_LEFT
-PONG
-ERROR
-```
-
-房间关键常量：
-
-- 房间号长度：`4`
-- 房间超时清理：`300` 秒
-- 心跳超时：`35` 秒
-- 心跳巡检周期：`5` 秒
-- 开始倒计时：`3` 秒
-- 棋盘边长范围：`6` 到 `15`
-- 支持人数：`2` 或 `3`
-
-## UI 需求约束
-
-当前 UI 以棋盘为主要操作对象。
-
-主要约束：
-
-- 首屏显示标题与中央棋盘。
-- 棋盘在桌面端和移动端必须完整可见。
-- 页面滚动方向以竖向为主。
-- 棋盘区域不放说明性长文本。
-- 棋盘下方保留当前回合与本地操作。
-- 棋盘仓默认折叠，摘要显示人数和边长。
-- 联机仓默认折叠，摘要显示本地状态或房间号。
-- 中文标题为 `生命线`。
-- 英文标题为 `LIFELINE`。
-- 新增文案集中维护在 `OnlineAppI18n.js`。
-
-## AI 对手：截断启发式 Minimax + Alpha-Beta
-
-Web 自动 AI 只在双人模式启用。双人 LIFELINE 是回合制、确定性、完备信息的零和对抗游戏，没有随机事件也没有隐藏信息，因此适合使用 Minimax 家族。当前实现采用固定深度、每层 Top-20、只展开 Place 的截断启发式 Minimax，并结合 Alpha-Beta 剪枝、走法排序与启发式评估；它不是完整最优求解器。
-
-AI 模块入口：
-
-```text
-web/web前端/AIEngine.js
-web/web前端/AIWorker.js
-```
-
-### 走法排序
-
-走法排序决定了 Alpha-Beta 剪枝的效率。`orderMoves` 把候选落点分到三档，优先展开切断攻击和贴近己方连线的扩张：
+源码摘录：这些字段正是同一盘面仍可能具有不同合法性的原因。
 
 ```javascript
-function orderMoves(engine, moves, player) {
-  const ownLine = engine._getPlayerStates(player).line;
-  const opponentLines = new Set(
-    getOpponents(engine, player).map(
-      (opponent) => engine._getPlayerStates(opponent).line,
-    ),
-  );
-  const tiers = [[], [], []];
-
-  for (const point of moves) {
-    if (opponentLines.has(engine._getState(point))) {
-      tiers[0].push(point); // 切断攻击优先
-    } else if (
-      engine
-        .getAdjacentPositions(point)
-        .some((adjacent) => engine._getState(adjacent) === ownLine)
-    ) {
-      tiers[1].push(point); // 靠近己方连线的扩张
-    } else {
-      tiers[2].push(point); // 其余合法点
-    }
-  }
-
-  return [...tiers[0], ...tiers[1], ...tiers[2]].slice(0, 20);
-}
+    historyHashes: new Set(engine.historyHashes),
+    ...(engine.rootRulesVersion === "root-v2" ? {
+      roots: Object.fromEntries(engine.activePlayers.map(player => [player, engine.getRoots(player)])),
+      rootActionsRemaining: JSON.parse(JSON.stringify(engine.rootActionsRemaining)),
+    } : {}),
+    consecutiveSkips: engine.consecutiveSkips,
+    resignedPlayers: new Set(engine.resignedPlayers ?? []),
+    currentPlayer: engine.currentPlayer,
+    gameOver: engine.gameOver,
 ```
 
-每层只取前 `20` 个候选传入搜索，控制分支因子，避免在大棋盘上爆炸。
+若 M 为格点数、e 为逻辑边数、h 为历史条目数，一份快照通常复制 O(M+e+h) 个容器条目；不可变历史字符串可以共享引用，其实际字节长度另计。深度 d 的递归同时保留多份快照时，不能把空间成本简写成 O(d)。函数返回时的正常恢复与异常路径 finally 的覆盖范围也要分别审计。
 
-### Alpha-Beta 主循环
+源码定位：web/web前端/AIEngine.js → saveState, restoreState, cloneCachedTerritories。
 
-`minimax` 在每个节点读取规则引擎结算后的 `currentPlayer`：轮到 `aiPlayer` 时最大化，否则最小化，并用 `alpha` / `beta` 上下界裁剪不可能成为最优的分支：
+## 第二章 算法
 
-```javascript
-const ordered = this.orderMoves(engine, legalMoves, engine.currentPlayer);
-const maximizingPlayer = engine.currentPlayer === aiPlayer;
-if (maximizingPlayer) {
-  let bestValue = Number.NEGATIVE_INFINITY;
-  for (const point of ordered) {
-    const snapshot = saveState(engine);
-    const applied = applyMoveForAI(engine, point);
-    if (applied) {
-      const value = this.minimax(engine, depth - 1, alpha, beta, aiPlayer);
-      bestValue = Math.max(bestValue, value);
-      alpha = Math.max(alpha, bestValue);
-    }
-    restoreState(engine, snapshot);
-    if (beta <= alpha) {
-      break; // Alpha-Beta 剪枝
-    }
-  }
-  return bestValue;
-}
-```
+按一次落子经过的路径拆解：合法性 → 自动连线 → 切断清理 → Superko 提交 → 轮转 → 计分。每节列输入、核心步骤、输出与源码入口。territory-v3 的正式集合由洪水产生并逐格渲染；外轮廓与收紧仍是独立的诊断/兼容阶段。
 
-每一层展开都通过 `saveState` / `restoreState` 在真实规则引擎上做事务回滚，因此搜索过程使用与人类玩家完全相同的合法性裁决，包括保护区、三点限制、攻击结算与 Superko。一次落子结算可能自动跳过没有合法落点的对手，使同一玩家连续取得行动权；MAX/MIN 因而不能按递归深度机械翻转，必须以上述真实 `currentPlayer` 为准。
+### 2.1 合法性试走
 
-搜索深度由难度直接控制：简单 `2`、普通 `3`、困难 `4`。深度越大，AI 看得越远，思考时间越长。
+合法动作由真实引擎试走决定。检查包括有效坐标、可占用状态、敌方起点保护、三点限制、与己方建立连接，以及动作完成后是否触犯 Superko。空点与线点可以成为落子候选，已有 NODE 不能被覆盖。所有敌方实际起点的有效邻点都受保护，随机起点与自定义起点也按相同方法检查。
 
-### 评估函数：快速 BFS 近似
+三点限制以当前 _checkThreePointLimitation 的实现为准：新点若已有至少两个相邻己方节点，拒绝；如果它只邻接一个己方节点，但该节点已经邻接另一己方节点，也拒绝。因此它限制的是形成三个相邻节点的链或团，直线或折线三连也可能触发，并不只是检查最小三角形。
 
-叶节点不能跑完整领土算法 — 外轮廓追踪、动态贪心修剪与泛洪覆盖整体复杂度过高，放在每个叶节点会让搜索时间无法接受。因此评估函数使用 `fastTerritoryBFS` 作为可达空间近似：
+直接落在敌方线点上的切线动作可豁免这项三点检查，但不能豁免起点保护、连接要求或 Superko。合法性不会读取着色用的领土缓存来猜测能否落子；实际节点、线点、连线阻挡和完整历史共同决定结果。
 
-```javascript
-function fastTerritoryBFS(engine, player) {
-  const myStates = engine._getPlayerStates(player);
-  const opponentStates = new Set();
-  for (const opponent of getOpponents(engine, player)) {
-    const states = engine._getPlayerStates(opponent);
-    opponentStates.add(states.node);
-    opponentStates.add(states.line);
-  }
-
-  const frontier = [];
-  const visited = new Set();
-  for (const point of engine.validPositions) {
-    const state = engine._getState(point);
-    if (state === myStates.node || state === myStates.line) {
-      visited.add(pointKey(point));
-      frontier.push(point);
-    }
-  }
-
-  for (let index = 0; index < frontier.length; index += 1) {
-    for (const adjacent of engine.getAdjacentPositions(frontier[index])) {
-      const key = pointKey(adjacent);
-      if (!visited.has(key) && !opponentStates.has(engine._getState(adjacent))) {
-        visited.add(key);
-        frontier.push(adjacent);
-      }
-    }
-  }
-
-  return visited.size;
-}
-```
-
-整体评估线性组合五个特征：
-
-```javascript
-return (
-  15 * nodeAdvantage +
-  8 * coverageAdvantage +
-  20 * territoryAdvantage +
-  12 * attackThreats +
-  10 * connectionQuality
-);
-```
-
-| 特征 | 含义 | 权重 |
-| --- | --- | ---: |
-| `nodeAdvantage` | 节点数量差 | `15` |
-| `coverageAdvantage` | 节点加线点覆盖差 | `8` |
-| `territoryAdvantage` | 快速 BFS 可达空间差 | `20` |
-| `attackThreats` | 当前可执行的切断走法数 | `12` |
-| `connectionQuality` | 节点是否仍连回出生点 | `10` |
-
-`territoryAdvantage` 权重最高，因为最终胜负由领土决定；`attackThreats` 让 AI 主动寻找切断机会而不是只比节点数；`connectionQuality` 惩罚 AI 把自己的节点暴露成孤立结构。
-
-真实落子与终局结算仍由完整规则引擎处理，搜索仅在评估阶段使用近似。
-
-### Web Worker 非阻塞搜索
-
-搜索过程整体跑在独立的 Web Worker 中，UI 线程不会被卡住：
-
-```javascript
-// AIWorker.js
-import { GameEngine } from "./GameEngine.js";
-import { MinimaxAI, restoreState } from "./AIEngine.js";
-
-self.onmessage = (event) => {
-  if (event.data?.type !== "COMPUTE") {
-    return;
-  }
-
-  const { serializedState, aiPlayer, depth = 3, topN = 5 } = event.data;
-  const engine = new GameEngine({
-    gridSize: serializedState.gridSize,
-    playerCount: serializedState.playerCount,
-    startPlayer: serializedState.startPlayer,
-  });
-
-  restoreState(engine, {
-    grid: new Map(serializedState.gridEntries),
-    edges: { /* ... */ },
-    historyHashes: new Set(serializedState.historyHashes),
-    /* ... */
-  });
-
-  // 搜索期间跳过昂贵的领土计算
-  engine._updateTerritories = () => {};
-
-  const moves = new MinimaxAI(depth).getTopMoves(engine, aiPlayer, topN);
-  self.postMessage({ type: "RESULT", moves });
-};
-```
-
-要点：
-
-- Worker 启动时根据主线程序列化的棋盘状态重建一份独立的 `GameEngine`，与主线程零共享内存。
-- 搜索期间显式禁用 `engine._updateTerritories`，避免每个搜索节点重复触发完整领土流程。
-- Worker 通过 `postMessage` 返回 Top-N 候选落点及其分值，主线程继续负责动画、提示和落子合法性确认。
-- 自动 AI 复用自己的 Worker；每次提示另建一次性 Worker，收到 RESULT、ERROR 或取消后立即终止，不共享请求生命周期。
-- 提示结果只有在 requestId、原引擎对象、positionRevision、rulesVersion 与 currentPlayer 全部仍一致时才显示并扣次数。
-
-### AI 提示复用同一套搜索
-
-`getTopMoves` 不仅供 AI 自动落子使用，也直接被"AI 提示"按钮调用：
-
-```javascript
-getTopMoves(engine, aiPlayer, topN = 5) {
-  const legalMoves = this.getLegalMoves(engine, aiPlayer);
-  if (legalMoves.length === 0) {
-    return [];
-  }
-
-  const ordered = this.orderMoves(engine, legalMoves, aiPlayer);
-  const scoredMoves = [];
-  for (const point of ordered) {
-    const snapshot = saveState(engine);
-    const applied = applyMoveForAI(engine, point);
-    if (applied) {
-      const score = this.minimax(
-        engine,
-        this.depth - 1,
-        Number.NEGATIVE_INFINITY,
-        Number.POSITIVE_INFINITY,
-        aiPlayer,
-      );
-      scoredMoves.push({ point, score });
-    }
-    restoreState(engine, snapshot);
-  }
-
-  scoredMoves.sort((a, b) => b.score - a.score);
-  return scoredMoves.slice(0, topN);
-}
-```
-
-这意味着 AI 对手与 AI 提示使用同一套 Minimax + Alpha-Beta 算法，但运行在相互隔离的 Worker 实例中；提示不会阻塞 UI，也不会被旧局面的迟到结果覆盖。自动 AI 仅用于双人局；三人局提示仍是二元启发式排序，不等同于 Max-N 或完整三人博弈求解。AI 在难度调节、思考状态、推荐落点上的所有可视化都来自同一套搜索结果。
-
-### 设计取舍
-
-| 选择 | 理由 |
-| --- | --- |
-| 双人截断 Minimax + Alpha-Beta | 完备信息、零和、回合制对抗的经典选择；无需训练、结果可解释，但不保证全局最优 |
-| 走法排序 + Top-20 截断 | 控制分支因子；切断和贴线扩张是局部高价值走法，优先展开 |
-| 快速 BFS 评估 | 完整领土算法太慢；BFS 可达空间在统计意义上与最终领土高度相关 |
-| 隔离的 Web Worker | 自动 AI 复用专属 Worker，提示使用一次性 Worker；搜索不阻塞 Canvas，陈旧结果也不会回写新局面 |
-| 搜索快照回滚 | 复用完整规则引擎，确保 AI 与人类玩家在保护区、三点限制、Superko 上口径一致 |
-
-## 修改入口
-
-常见修改路径：
-
-- 规则与落子：`GameEngine.js`，参考 `core algorithm/triangular_game.py`
-- 领土、删点、连通性：优先对照核心算法文档与样本实现
-- 渲染性能：`Renderer.js`
-- 页面结构：`OnlineApp.js`
-- 默认配置与本地会话：`OnlineAppState.js`
-- 文案和语言：`OnlineAppI18n.js`
-- 联机协议：`NetworkManager.js` 与 `server.py`
-- 后端房间逻辑：`server.py`
-
-建议验证项：
-
-- 双人本地局可正常开始、落子、跳过、终局。
-- 三人局颜色、回合和领地统计正常。
-- 边长 `6`、`10`、`15` 显示完整。
-- 攻击线点后，断边、飞地删除、孤线清理与重连一致。
-- Superko 违规时局面回滚。
-- 联机建房、入房、准备、开始、落子同步正常。
-- 房主修改设置后准备状态重置。
-- 联机重置采用全员确认。
-- 断线后可恢复房间上下文。
-
-## GitHub
-
-仓库地址：
+试走必须可撤回。_evaluateMove 临时修改棋盘与边集，计算结果状态，然后在 finally 中恢复。合法点提示可以检查很多候选，却不应改变正在进行的棋局。
 
 ```text
-https://github.com/Chengzong-Zhang/Line-Game
+01 INPUT: full state S, candidate point v, actor i
+02 Reject invalid v, existing NODE, or protected enemy-start neighbor
+03 If v is not an enemy LINE: enforce the three-point condition
+04 Temporarily apply node insertion, connections and attack cleanup
+05 If no friendly connection exists: restore and reject
+06 Compute trial key with next non-resigned actor
+07 Reject if trial key is already in H
+08 Restore all trial changes; return legal/illegal (do not commit)
 ```
+
+枚举 M 个候选会执行许多试走，因此一次 getLegalMoves 的成本是 M 乘试走成本的量级，而非一次邻居扫描。固定坐标顺序、射线几何和可复用缓冲可以加速；不得缓存忽略历史的“永远合法点”。
+
+源码定位：web/web前端/GameEngine.js → _evaluateMove, getLegalMoves, _checkThreePointLimitation, _isInProtectionZone。
+
+### 2.2 自动连线
+
+一次落子先检查新点能否沿网格直线连接到已有己方节点。两点必须位于同一条 x 恒定、y 恒定或 x+y 恒定的网格线上；扫描中间格点时，遇到任一敌方节点或敌方线点就被阻挡。若没有任何可连的己方节点，这次落子不成立。
+
+连接成功后，端点记为 NODE，中间原本为空的点记为 LINE，并把两个端点组成的无向边加入 edges。端点顺序规范化，避免 A—B 与 B—A 重复入库。新点与已有节点的连接检查可以保留长边，因此规则并不是只把屏幕上相邻的一对棋子连起来。
+
+随后 _connectAllCrawl 从己方每个节点沿六个方向爬行：遇敌方元素停止，遇第一个己方节点就补上缺少的边，再结束该方向扫描。直接切线可能清走遮挡物，所以攻击后还会检查其他各方，补上新解锁的连接。扫描读取当前占用；预缓存的只是固定射线路径。
+
+领土着色轮廓与实际连线是两个对象。轮廓为了计分而经过某个空点，并不会把它变成 LINE，也不会凭空产生可攻击的逻辑边。
+
+```text
+01 For every old friendly NODE u:
+02   If v,u are lattice-collinear AND the interior has no enemy:
+03     mark v,u as NODE; mark eligible interior cells as LINE
+04     add canonical undirected edge {v,u}
+05 For each friendly NODE u and each of six directions:
+06   walk the cached ray, reading current occupancy
+07   stop at enemy occupancy
+08   at first friendly NODE: add missing edge, then stop this ray
+09 After a direct cut: also crawl each other player's surviving nodes
+```
+
+源码摘录：新点可直接记录长逻辑边；这与逐方向只找第一个节点的补线阶段相互补充。
+
+```javascript
+      // 记录显式边
+      this._getEdges(this.currentPlayer).add(this._edgeKey(point, node));
+```
+
+设射线最大长度为 D、己方节点 k 个，直接连接检查和一次六向 crawl 的朴素扫描量为 O(kD)，另需计写入的线点和边。预计算射线减少重复几何计算，但敌方占用必须每次重新读取。
+
+源码定位：web/web前端/GameEngine.js → _addNode, canConnectWithBlocking, getLinePoints, _connectAllCrawl。
+
+### 2.3 切断与根 BFS
+
+落在敌方 LINE 上是切线，而不是吃掉任意敌方棋子。攻击会破坏经过该位置的逻辑边；_cleanupBrokenEdges 逐条检查边上的格点，把已经不完整的边移除。双方的普通落子与 AI 模拟都走同一套状态转移。
+
+接着以被攻击方的实际初始节点为根，在显式边集形成的节点图上做 BFS。能沿存活逻辑边走到的节点留下；存活边的中间线点也留下。失去所有回家路径的节点与线点被清除，再处理边集与可能恢复的原有连接。这里的 BFS 是“沿补给图找根连通分量”，不是“从棋盘边缘注水算领土”。
+
+例如 A—B—C 是一条从起点 A 出发的唯一通路，切掉 A—B 会使 B、C 一侧失联；若 C 还有另一条绕回 A 的路径，则那一侧未必消失。视觉上碰到一条路过的线，也不能替代真实的端点—边路径。
+
+```text
+01 INPUT: attacked player's current grid and explicit edge set E
+02 Remove broken edges whose geometric path no longer survives
+03 Build endpoint adjacency from surviving E
+04 Q <- [actual start]; reached <- {actual start}
+05 WHILE Q is nonempty:
+06   u <- pop Q; enqueue each unreached logical neighbor of u
+07 END WHILE
+08 Keep reached NODEs and interior LINEs belonging to surviving links
+09 Clear disconnected elements; clean edges and restore eligible links
+```
+
+必须先明确边是否存活，才能讨论沿边可达。源码为攻击维护被破坏连线与恢复检查；这里的伪代码只抽取根连通性主干，不把几何路径检查、边集维护和跨玩家补线省略为免费操作。
+
+源码定位：web/web前端/GameEngine.js → _handleBlockingAttack, _cleanupBrokenEdges, _getOpponentConnectedPieces。
+
+### 2.4 Superko 提交
+
+这里的名称是“全局同形禁手”，不是“全局没有禁手”。它防止切断、重新连线之后反复回到已经记录过的同一全局局面，而不是只禁止紧接上一手的局部反吃。
+
+当前 _computeStateHash 的状态键依次包含：下一行动方、认输玩家列表、按坐标排序的所有非空格点及其状态、按玩家组织并排序的显式边集。虽然函数名叫 Hash，这里实际上用稳定的 JSON 字符串作为 Set 的键，不是只保留一个短整数哈希。相同棋子分布但逻辑边不同，不算同一个键；下一行动方不同，也可能是不同的键。
+
+开局键先进入 historyHashes。每次候选落子完成连接、切断和清理后，计算下一局面键；若历史里已有该键，则判 SUPERKO_VIOLATION 并撤回。真实合法落子才把新键加入历史。跳过按独立回合规则处理，不把“棋盘没有变化”直接当作非法重复；认输也有自己的轮转和结算逻辑。
+
+例如两份存档的棋盘与当前玩家完全相同，但其中一份历史已包含“落在 P 后的结果”，另一份没有，P 就可能只在后一份合法。因此搜索快照、悔棋、复盘分支与恢复都必须保留各自那条路径的历史；网络特征或棋盘截图不能代替它。
+
+精确时序补充：playMove 在 _addNode 成功后，用 _getNextPlayer(currentPlayer) 计算键；historyHashes.add 之后才 _switchPlayer 和 _checkAndAutoSkip。它不是把自动跳过后的 currentPlayer 原样序列化。
+
+```text
+01 savedGrid, savedEdges <- copy current containers
+02 IF _addNode(v) fails: return INVALID_MOVE
+03 key <- _computeStateHash(nextNonResignedActor)
+04 IF historyHashes contains key:
+05   restore savedGrid and savedEdges; return SUPERKO_VIOLATION
+06 END IF
+07 add key; increment turn/revision; reset consecutiveSkips
+08 switch actor; normalize automatic skips; settle if required
+```
+
+```javascript
+    this.historyHashes.add(stateHash);
+    this.turnCount += 1;
+    this.positionRevision += 1;
+    this._territoryStateRevision += 1;
+    this.consecutiveSkips = 0;
+    this._switchPlayer();
+    this._checkAndAutoSkip();
+```
+
+键生成包括排序/序列化成本；Set 查找通常按哈希表分析，但整体流程并不因此是 O(1)。源码缓存固定格点排序和单点序列化片段，仍然逐次读取占用与全部边，再对完整历史判重。
+
+源码定位：web/web前端/GameEngine.js → _computeStateHash, _getStateHashOrder, playMove。
+
+### 2.5 兼容轮廓与闭环判定
+
+兼容轮廓先收集己方节点与线点，并把其他各方的节点和线点作为敌方元素。_getOuterContourFromPoints 按固定顺时针邻接顺序，用右手摸墙式遍历取得外轮廓。轮廓是一条格点闭合游走，可以沿枝条走出去再折返，因此同一个格点可能在游走序列中出现多次；这个单 polygon 只保留给几何诊断与旧规则兼容，不再定义 territory-v3 的正式计分或填色。
+
+闭合游走不一定围出真正的区域。A—B—C—B—A 只是来回走了一条线。_hasBoundaryCycle 用于轮廓候选与显示诊断，但正式计分不依赖它。territory-v3 将全部己方节点和线点作为墙，按边界洪水找出所有空腔；无闭环时仍计己方占点，多个空腔和甜甜圈内孔也会独立判断。
+
+territory-v3 不再用这个单轮廓填充画面。正式洪水计算同时产生计分集合 R=F∪B；renderPoints 是 R 的稳定格点枚举，渲染器逐格着色，所以开链、多个独立空腔和甜甜圈内孔都会与分数同步显示。polygon 与 displayArea 仍可供诊断和旧版本兼容，但都不决定 v3 的填色或胜负。
+
+```text
+01 Walk the outer boundary using the fixed clockwise neighbor order
+02 Convert consecutive walk vertices into distinct undirected unit edges
+03 Reject an invalid point or a non-unit step
+04 Let n = distinct vertices, e = distinct edges
+05 Accept the cycle gate iff n >= 3 and e >= n
+```
+
+源码摘录及依据：一个有效闭合游走形成的去重边图连通；连通无向图有环当且仅当 e≥n。因此这里可用边点计数，而不能对任意不连通图不加条件照搬同一判据。游走沿枝条折返不额外增加去重边数。
+
+```javascript
+    return vertices.size >= 3 && edges.size >= vertices.size;
+```
+
+源码定位：web/web前端/GameEngine.js → _getOuterContourFromPoints, _hasBoundaryCycle。
+
+### 2.6 领土收紧
+
+_computeRawTerritory 对当前轮廓反复寻找捷径。选取轮廓上的两个位置作为端点，避开敌方格点，在棋盘六邻接图上做 BFS，取得最短距离及全部最短路的前驱关系，再枚举相关最短路径。将路径与旧轮廓的两侧分别拼接，产生可能保留的候选闭合游走。
+
+候选必须保住全部己方节点、不能覆盖任何敌方节点或线点，并且满足有效闭环。比较采用字典序：先让轮廓步数更少；步数相同时，让覆盖格点数更少。每轮接受找到的最好候选，继续收紧，直到找不到改善。这里的周长按离散轮廓游走步数衡量；枝条的往返会体现在游走长度中。
+
+覆盖格点由下一节的洪水法计算。为了避免重复工作，实现会复用同一源点的 BFS、相同边界的覆盖检查，并用周长下界和可覆盖性条件排除不可能改善的路径。它不会简单地只保留某个随意固定数量的最短路径来冒充精确检查。
+
+这是一套确定性贪心收紧程序。它在自己的候选与接受规则下停止，不能据此宣称已经找到所有可能多边形中的全局最短周长或全局最小覆盖面积。收紧也可能使用原本为空的网格点，因此所得 polygon 只是几何诊断/兼容结果；territory-v3 的正式集合与逐格填色不由它决定。
+
+```text
+01 rho <- initial valid contour
+02 REPEAT:
+03   best <- rho; compute current coverage
+04   FOR endpoint pairs (u,v) on rho:
+05     BFS avoiding enemies -> shortest-distance predecessor DAG
+06     Enumerate relevant shortest paths; join each to either old side
+07     Reject non-cycle, missing-friendly or enemy-covering candidates
+08     If (length, coverageCount) is lexicographically better: keep it
+09   END FOR
+10   IF best equals rho: STOP
+11   rho <- best
+12 END REPEAT
+13 Return closed rho, unique covered-point count and shoelace measure
+```
+
+复杂度记账：给定墙的洪水是 O(M)，一次源点 BFS 是 O(M)，但一个前驱 DAG 可能代表组合数量的最短路。用 J 表示实际枚举的路径前缀/候选工作量，端点对数与 J 必须单独计入。当前 _rawTerritoryUncached 使用周长下界、路径包络、已验证墙集合和标量覆盖查询削减重复工作；_computeRawTerritory 再加依赖缓存。不能给整个算法承诺 O(M)。
+
+源码定位：web/web前端/GameEngine.js → _computeRawTerritory, _rawTerritoryUncached, _bfsFromSource, _iterateTerritoryPaths, _iterateCoveredTerritoryPaths。
+
+### 2.7 洪水与计分
+
+_computeOwnedWallTerritory 把己方节点与线点标成墙，并调用 _getCoveredPoints 从棋盘边界注水。再对未被水访问的非墙点做分量 BFS；分量含敌方点时整块不计，否则把分量加入正式集合。最后按棋盘稳定次序枚举该集合，一次返回 area 与 renderPoints；_computeOwnedWallArea 只是读取同一结果的 area。单线没有空腔但占点照常计分。
+
+令 V 为全棋盘格点，F 为己方节点与线点，删除 F 后从棋盘边界洪水可达的点为 X；Qₖ 是 V\(F∪X) 的各连通分量，B 为不含敌方节点或线点的 Qₖ 之并。territory-v3 的 area=|F|+|B|。这一定义无需有效闭环，因此开链和单线照常计占点；多个空腔及甜甜圈内孔分别计入，敌方所在空腔整块排除。同一点只算一次。这里数格点，不数最小三角形。
+
+旧 territory-v2 六人截图曾得到格点分数 25、10、11、13、8、8，以及几何诊断 6、2、2、4、2、2；这些不是新规则的复核分数。新规则中青方即使只有未闭合的三个己方格点，也应得 3。
+
+引擎另用鞋带公式计算 displayArea，单位对应最小三角形面积。它与 polygon 都是几何诊断/旧版兼容字段；比分读取 area，territory-v3 着色读取同源的 renderPoints，并保持 area=renderPoints.length。洪水法只是给定墙后区分内外，计分单位由被遍历的对象决定：在格点图上注水与在小三角面之间注水，并不是同一个计数问题。
+
+```text
+01 wall <- distinct valid friendly NODE and LINE points
+02 included <- copy(wall); outside <- empty; Q <- empty
+03 For every board boundary point b not in wall: mark/enqueue b
+04 WHILE Q is nonempty:
+05   u <- pop Q
+06   For each lattice neighbor v not in wall and not yet outside:
+07     mark outside[v]; enqueue v
+08 END WHILE
+09 enclosed <- all board points minus outside minus wall
+10 For each connected component q of enclosed points:
+11   If q contains no enemy NODE or LINE: included <- included union q
+12 renderPoints <- board points filtered by included, in stable board order
+13 area <- renderPoints.length
+14 Return {area, renderPoints}; no cycle or single-polygon requirement
+15 Validate v3 result: all points valid and unique; length equals area
+16 Renderer: trace one compact cell tile per renderPoint
+17 Legacy v1/v2 only: polygon fill remains the fallback
+```
+
+实现将己方全部节点和线点作为墙，从棋盘边界注水，再逐个遍历未连到外界的空腔。含敌方节点或线点的整块空腔排除；其余空腔加入 included，最后一次性导出 area 与 renderPoints。因而开链、单线、多个空腔和甜甜圈内孔都由同一个集合决定分数与着色。Web 以格点为中心描出紧凑六边形 tile；Python 底层同样逐格绘制。单 polygon 不再承担 v3 填色，鞋带式 displayArea 只作诊断。
+
+领土 Worker、运行时缓存和引擎/搜索快照传播完整 renderPoints，并在接收端校验坐标有效、无重复及长度等于 area。渲染路径缓存把模式、缩放、点半径、偏移和点集都放入键；局面 revision 或请求身份不匹配时丢弃结果。版本化 Replay 可不保存这个可重算派生集合，但加载后必须由规则引擎重建。这样“分数正确、颜色仍旧”不能由部分更新悄悄发生。
+
+源码定位：web/web前端/GameEngine.js → _computeOwnedWallTerritory, _computeOwnedWallArea, _computeTerritory。
+
+源码定位：web/web前端/Renderer.js → _drawTerritories, _traceTerritoryCells。
+
+### 2.8 规范方向与缓存
+
+固定方向的轮廓遍历可能偏向某席位。territory-v3 沿用 v2 的规范朝向生成诊断/兼容 polygon，并从全部己方点线直接计算正式集合 R、area 与 renderPoints。三角棋盘使用重心坐标置换；六边形使用 D6 旋转与反射。规范候选轮廓的选择不决定正式 area，也不决定 v3 的逐格填色。
+
+正式集合的边界洪水是 O(M)；兼容 polygon 的轮廓、最短路径与收紧可能更昂贵。整数格点下标、预计算邻接表、可复用 TypedArray 队列与 epoch 标记减少字符串、集合与数组分配。它们改变计算成本，不改变 area 的单位或 renderPoints 的成员。
+
+显示层可以缓存领土或交给 Worker 计算，但结果必须带着正确的局面修订号回来。v3 结果还必须满足 renderPoints 全部有效、互异且长度等于 area；复制运行时引擎/搜索快照和 Worker 回传时要深复制这组坐标。Replay 文档可按版本省略这种可重算派生集合，但加载后必须由规则引擎重算。旧局面的结果不能覆盖新棋盘；fastTerritoryBFS 等 AI 估计不能填进正式领土缓存。
+
+```text
+01 transforms <- seat-specific canonical transforms
+02 FOR g in transforms:
+03   transform own NODEs/LINEs and all enemy occupancy
+04   run raw tightening with a required real cycle
+05   save diagnostic/compatibility polygon and canonical polygon key; inverse-transform output
+06 END FOR
+07 Choose diagnostic polygon by closed-contour coverage, then canonical key
+08 {area, renderPoints} <- OwnedWallTerritory(all friendly walls, all enemies)
+09 Return {polygon, displayArea, area, renderPoints}
+10 V3 renderer uses renderPoints; polygon is diagnostic/legacy only
+```
+
+几何缓存键包括形状/尺寸、规则和规范方向依赖、己方节点/线点、敌方障碍并集及显式初始轮廓的相关次序。搜索缓存还需完整历史和轮转信息。缓存返回 polygon 与 renderPoints 时都需逐点复制；v3 接收端强制 area=renderPoints.length。对覆盖了核心方法的诊断/子类对象，源码保留未优化路径，避免把原生方法的剪枝证明误用于不同语义。
+
+源码定位：web/web前端/GameEngine.js → _getCanonicalTerritoryTransforms, _computeCanonicalTerritoryCandidate, _computeTerritory, dependencyMemo。
+
+### 2.9 跳过与终局
+
+当前版本允许主动跳过。没有合法落点时，引擎还会自动跳过该玩家；轮转时排除已经认输的玩家。因此搜索树里“下一层轮到谁”必须读引擎状态，不能一律按照递归深度的奇偶来猜。
+
+所有仍在场的玩家连续各跳过一次后，正常终局按各自精确 area 比较；最高分并列就是平局。中途有人成功落子，连续跳过计数重置。认输者退出轮转与胜者比较；若只剩一位未认输玩家，该玩家立即获胜。
+
+对固定有限棋盘，记录历史的合法落子不能无限重复同一状态键；连续跳过又有结算规则。这个终止机制并不意味着 AI 已经求解游戏，也不能把旧文中“玩家无法跳过，因此必然被迫落子”的论证沿用到当前规则。
+
+```text
+01 PASS: increment consecutiveSkips
+02 If skips >= remaining-player count: set gameOver
+03 Otherwise advance to the next non-resigned player
+04 While the current player has no legal placement: auto-skip
+05 A successful placement or resignation resets the pass count
+06 If only one player remains: that player wins
+07 Otherwise at settlement: recompute exact area and compare survivors
+```
+
+性能优化可以延后非终局着色，但终局读取比分前必须完成精确更新。神经 PUCT 在模拟终局显式调用规范更新；旧版 Minimax 的 F 分支不具备这个精确胜负语义，不能把二者的输出统一标成“胜率”。
+
+源码定位：web/web前端/GameEngine.js → skipTurn, resignPlayer, _checkAndAutoSkip, getWinner。
+
+### 2.10 源码与验证路径
+
+引擎主路径在 web/web前端/GameEngine.js；搜索与快照在 AIEngine.js；跨 Worker 状态协议在 AIStateProtocol.js；棋谱恢复在 ReplayCodec.js 与 LocalGameSession.js。微信阅读/任务调度分别在 wechat/minigame/src/guide-content.js、help-ui.js 和 Worker 会话模块。后续多人开发路径见第三章，不把 Web 候选存在等同于手机已装入。
+
+建议验证顺序：固定动作重放 → 比较 grid/edges/history/turn → 对开链、甜甜圈、多空腔和敌方空腔逐项比较 area 与 renderPoints → 检查逐格画面 → 原状态恢复 → Worker 迟到结果拒绝 → 实际界面目录/公式/代码阅读。普通文档修改只运行相关检查；冻结实验与已有发布收据不改写。本报告源码摘录通过与当前文件逐字匹配检查。
+
+```text
+node web/tools/sync-implementation-guides.mjs --check
+node web/web前端/tests/verify-guide-content.mjs
+node --test --test-timeout=180000 wechat/minigame/tests/guide-cabin.test.mjs
+```
+
+## 第三章 AI
+
+先看候选如何生成，再看估值、搜索、神经前向与返回动作。下列预算和适配行为是源码事实；训练目标与推理入口分开描述，候选模型的标签不代表棋力排序。
+
+### 3.1 贪心与估值
+
+贪心 AI 先枚举真实合法落点，按“切敌方线、邻近己方线、其余落点”的顺序排序，最多保留 20 个候选。对每个候选试走一手，计算评价，再恢复状态，选择评价最高的点。它看的是一步之后的估计好坏，不保证正式领土增量最大。
+
+当前 AIEngine 的评价为 F=15Δ节点+8Δ覆盖+20Δ可达+12可攻击线点+10起点连通质量。覆盖是节点数加线点数；双人时差值针对对手，多人通用贪心会把部分对手计数求和，而可达差选择节点最多的主要对手。可攻击线点必须经真实合法性检查，包括 Superko。连通质量逐个检查己方节点是否能沿逻辑边回到起点。
+
+fastTerritoryBFS 从己方全部节点和线点向外扩张，敌方元素作为障碍，统计能到达的格点。这是一项活动空间特征，即使没有闭环也可能很大；它不等于“从棋盘边缘往内注水”得到的正式领土。AI 评价必须与正式集合分开解释；territory-v3 的逐格色块则直接可视化正式 renderPoints，终局 area 是同一集合的基数。polygon/displayArea 仍是另一套诊断几何量。
+
+```text
+01 legal <- engine.getLegalMoves(actor)
+02 ranked <- cuts first, own-line adjacency next, other placements last
+03 candidates <- first 20 ranked placements
+04 For each candidate: save -> play -> evaluate F -> restore
+05 Sort by descending F; return top requested candidates
+```
+
+源码定位：web/web前端/AIEngine.js → evaluate, fastTerritoryBFS, orderMoves, GreedyAI.getTopMoves。
+
+### 3.2 Minimax 控制流
+
+Minimax 把“我选择最好的一步，对手选择对我最不利的一步”递归展开。以根玩家为评价视角：叶子返回 F(s)；当前行动方是根玩家时取所有被搜索后继的最大值，轮到对手时取最小值。界面中的深度 2、3、4 指搜索的行动层数，不是每一方各走那么多轮。
+
+α 保存 MAX 已有的下界，β 保存 MIN 已有的上界；当 β≤α，继续展开这条分支已不可能改变祖先的选择，可以剪掉。α–β 在相同候选树和评价下保留 Minimax 的决策，但每层最多 20 个排序候选本身是另一种截断，会漏掉排序之外的合法招法。
+
+每个分支先保存 grid、edges、historyHashes、行动方、认输、跳过、终局、修订号和领土缓存，再通过 GameEngine.playMove 或 skipTurn 推进，随后恢复。自动跳过可能让同一玩家连续获得行动，MAX/MIN 因而由 currentPlayer 决定。深度耗尽的非终局分支使用启发式 F；真实终局通过规则引擎刷新精确 area 并按胜、平、负返回。有限深度搜索的非终局结果仍不是精确胜负证明。
+
+当前双人 Minimax 把 PASS 与合法落点一起作为根层和递归层候选，并通过 GameEngine.skipTurn 推进；因此即使有合法落点也可主动跳过。PASS 是否入选仍取决于同一启发式和有限深度搜索，不等于已经求解终局。多人困难搜索另有完整下一位对手 MOVE+PASS 回复包与时间门，两套实现的证据范围需要分别说明。
+
+为减少等待，推演不生成界面快照、不反复计算只用于显示的领土；只到启发式叶子时还可省去不影响 F 的下一玩家自动跳过扫描。非叶子仍保持真实轮转，避免提速改变树的含义。
+
+```text
+01 SEARCH(S,d,alpha,beta,root):
+02   If d=0 OR gameOver: return F(S,root)
+03   Get real legal placements; handle no-placement pass
+04   Retain ordered candidates (at most 20)
+05   maximizing <- (S.currentPlayer == root)
+06   value <- -infinity if maximizing, otherwise +infinity
+07   For each candidate:
+08     saved <- saveState; apply the actual move
+09     child <- SEARCH(successor,d-1,alpha,beta,root)
+10     restoreState(saved)
+11     Update value and alpha (MAX) or beta (MIN)
+12     If beta <= alpha: break
+13   Return value
+```
+
+```javascript
+    const maximizingPlayer = engine.currentPlayer === aiPlayer;
+```
+
+伪代码省略非法候选返回分支与缓存字段，不是新求解器。正常分支恢复与 finally 的实际覆盖范围应按源码阅读；不能仅凭伪代码推断任意中途异常都有完整事务回滚。全候选枚举成本仍会发生在取前 20 个之前，故“只搜 20 个”不等于“只试走 20 个”。
+
+源码定位：web/web前端/AIEngine.js → MinimaxAI.minimax, MinimaxAI.getTopMoves, applyMoveForAI。
+
+### 3.3 普通 MCTS
+
+仓库中的普通 MCTSAI 实现“选择—扩展—随机模拟—回传”：在树中用平均回报加探索项选择分支，展开尚未访问的动作，再随机推演到终局或深度上限，把结果累计到沿途节点。UCT 探索项与 sqrt(log(父访问数)/子访问数) 成正比，让冷门分支也有被尝试的机会。
+
+该普通实现默认 64 次模拟、随机推演深度 40、探索系数 sqrt(2)，用带种子的伪随机数复现实验；未到终局的模拟以 tanh(F/100) 估值。它是代码里保留的算法实现，不代表当前小程序菜单另有一个独立“普通 MCTS”选项。
+
+CNN、Grid GNN、Topology GNN 使用的则是 NeuralPUCTAI：网络给出动作先验和局面价值，PUCT 根据先验分配搜索次数。两者都有树搜索与回传，但 PUCT 不是把神经网络当随机落子的别名，也不能把 16 次神经模拟与 64 次随机模拟直接当作相同算力或棋力。
+
+```text
+01 Repeat simulation budget times:
+02   restore root state
+03   Select children by mean return + UCT exploration bonus
+04   Expand one unvisited action
+05   Roll out random actions until terminal or depth cap
+06   Evaluate rollout return; add it to every visited tree node
+07 Rank root actions using accumulated search statistics
+```
+
+当前普通实现的 rollout 最终使用 tanh(F/100)，并不因为撞到终局就自动改成精确 area 的 ±1。要区分这一实现与后文 NeuralPUCTAI 的终局价值规则。带种子随机数有助复现动作序列，但同一初态重复同一种子不产生新的独立统计样本。
+
+源码定位：web/web前端/AIEngine.js → MCTSAI, rollout, evaluate。
+
+### 3.4 神经网络前向
+
+研究模型每个格点使用 11 个特征：空点、己方节点、己方线点、敌方节点、敌方线点、归一化 x、归一化 y、边界标记、己方起点、敌方起点、连续跳过计数。视角始终相对于当前行动方。真实引擎另外生成合法动作掩码；历史全集并没有塞进这 11 个通道。
+
+CNN 将三角棋盘放进带无效区域的方形张量，经过输入投影和 3×3 卷积残差块，读取有效格点的隐藏表示。Grid GNN 在六邻接网格图上传消息，对邻居表示取均值并线性变换，再与自身投影、残差和归一化组合。
+
+Topology GNN 使用三类关系：格点邻接、己方逻辑连接、敌方逻辑连接。它让长边关系直接参与消息传播，而不必全部依赖很多层局部卷积去间接传递。三种架构最后都有逐点策略头、全局池化后的 PASS 头与价值头；价值头用 tanh，策略 logits 经合法掩码和稳定 softmax 变成先验。
+
+相同棋盘特征可以对应不同历史，因此“网络输入”不等于完整的马尔可夫规则状态。合法掩码与推演仍依赖带完整历史的引擎。S01–S03 是不同训练种子的模型，D14 是较早的模型版本；模型名称、种子编号和参数数量都不自动证明棋力高低，跨尺寸与规则兼容也要看对应验证范围。
+
+```text
+01 encodeResearchPosition -> point features, actual actor, legal indices
+02 Input projection -> hidden vectors
+03 CNN: residual 3x3 convolutions on a padded square
+04 Grid GNN: mean messages over lattice neighbors
+05 Topology GNN: also mean over own/opponent logical-link neighbors
+06 Per-point head -> placement logits
+07 Global pooled heads -> PASS logit and tanh value
+08 Apply the real legal mask; stable softmax -> action priors
+```
+
+源码摘录：关系聚合不是把边画出来给网络看，而是直接使用关系邻接表。下面是已有隐藏向量的均值累加。
+
+```javascript
+          const neighbors = relations[relation][node];
+          if (neighbors.length) {
+            for (const neighbor of neighbors) for (let channel = 0; channel < channels; channel += 1) aggregate[channel] += hidden[neighbor * channels + channel] / neighbors.length;
+          }
+```
+
+若隐藏宽度为 c、关系边总数为 eᵣ、关系数为 R，每层均值聚合约 O(eᵣc)，逐点关系与自身线性投影约 O((R+1)Mc²)。CNN 每次 3×3 卷积约 O(9N²c²)，应另乘实际块内卷积次数。以上只计前向算术，真实合法掩码成本要单列。
+
+源码定位：web/web前端/ResearchAI.js → encodeResearchPosition, researchRelations, forwardGnn, forwardCnn, applyHeads。
+
+### 3.5 PUCT 选步
+
+一次 PUCT 分析先展开根节点，得到每个合法动作的网络先验 P。选择子节点时计算 sign·Q+c·P·sqrt(max(1,N))/(1+n)：Q 是该子节点累计回报的平均值，N 是父访问次数，n 是子访问次数；sign 根据真实行动方把根玩家视角切换为对手视角。
+
+每次模拟都从完整根快照恢复，再沿树执行真实落子或跳过。首次到达未展开的非终局节点时运行网络，把当前玩家价值换成根玩家视角，回传到整条路径。若到达真正终局，强制调用规则引擎的精确领土更新，以胜、平、负的 +1、0、−1 回传。
+
+小程序当前的神经模型使用 16 次模拟、cPuct=1.5。搜索结束后主要按子节点访问次数选步，再以平均价值破同分。网络先验决定先查什么，访问数表示本次搜索把预算花在哪里；二者都不等同于经过统计校准的胜率。
+
+模型动作契约决定正常有落点时是否提供 PASS；没有落点时也需要正确处理跳过。所有输出最终仍要属于当前局面并通过执行时的合法性检查。PUCT 预算有限，不能当作穷举求解器。
+
+```text
+01 Save full root state; expand root with network priors
+02 For each simulation:
+03   Restore root; path <- [root]
+04   Select by sign*Q + c*P*sqrt(max(1,N))/(1+n)
+05   Play the real action or PASS; append child to path
+06   Expand a new nonterminal child and convert value to root perspective
+07   If terminal: force exact territory and compute win/draw/loss
+08   Add the root-perspective value to all nodes on path
+09 Rank root children by visits, then mean value; restore source state
+```
+
+```javascript
+          GameEngine.prototype._updateTerritories.call(engine);
+          const winner = engine.getWinner();
+          value = winner === "DRAW" ? 0 : winner === aiPlayer ? 1 : -1;
+```
+
+源码定位：web/web前端/ResearchAI.js → NeuralPUCTAI.expand, select, getTopMoves。
+
+### 3.6 五类策略的推理
+
+这五类模型在手机上共享一条轻量推理路径。三角棋盘最多 120 个格点，每点 7 个特征：空、己方节点、己方线、敌方节点、敌方线、x、y。小棋盘填充到 120 点，再加入棋盘尺寸和连续跳过计数，共 842 维。网络是 842→512→512→121，隐藏层使用 ReLU；121 个输出为预留的动作空间。
+
+DQN 导出的动作头输出 Q 值；PPO、SAC、GAIL、GAN 导出策略 logits。当前推理器用真实引擎的合法点索引过滤，再做稳定 softmax 并排序，不在每次落子时执行反向传播。DQN 的 softmax(Q) 只是排序用的先验，不能解释为 Q 值天然就是概率。PPO、GAIL、GAN 资产还可带价值头，但这条直接选步路径没有用它做树搜索。
+
+实际动作适配还有一个细节：ModelFreeAI 的 softmax 分母包含该局面的 PASS 槽，但返回的候选列表只保留落子点。因此当前只要存在落点，它就不会因为 PASS 概率最高而主动跳过；返回各落子 prior 的和也可能小于 1。没有落点时由外层处理跳过。这里如实记录现有实现，不把理论算法的一般能力写成菜单里的实际行为。
+
+```text
+01 Encode <=120 triangular points into 7 features each; pad missing points
+02 Append size and pass count -> 842-dimensional vector
+03 ReLU(W1*x+b1) -> ReLU(W2*h+b2) -> 121 action outputs
+04 DQN reads Q-head weights; other families read policy-head weights
+05 Softmax over legal indices including the PASS slot
+06 Filter returned candidates to placements; sort by prior
+07 If there is no placement, outer control handles passing
+```
+
+源码摘录：过滤发生在 softmax 分母计算之后，所以当前返回的落子 prior 不一定和为 1。这是动作适配行为，不是数学 softmax 失效。
+
+```javascript
+    return { priors: legal.map((index, order) => index < engine.validPositions.length
+      ? { type: "move", point: [...engine.validPositions[index]], actionIndex: index, prior: exp[order] / total }
+      : { type: "pass", point: null, actionIndex: engine.validPositions.length, prior: exp[order] / total }) };
+```
+
+源码定位：web/web前端/ModelFreeAI.js → encode, forwardBody, logits, evaluate, ModelFreeAI.getTopMoves。
+
+### 3.7 训练源码与损失
+
+研究训练入口与 Web 推理入口分开。以下是当前可阅读的训练源码，不单凭文件同名推断现行二进制权重由这份源码生成；资产来源仍需 manifest/训练收据。研究环境与 Web 的规则和自动跳过语义也须另行比对。
+
+DQNTrainer.update：从 replay 抽批量，在线 Q 在合法掩码内取 argmax，目标网络读取该动作 Q；使用 smooth-L1、梯度裁剪 5。下列原文固定采用负续局值，对应对手视角假设；自动跳过后是否仍换人应由训练状态约定验证。
+
+```python
+            next_online = self._masked_argmax(self.online(next_states), next_masks)
+            next_values = self.target(next_states).gather(1, next_online.unsqueeze(1)).squeeze(1)
+            target = rewards - self.config.gamma * (1.0 - done) * next_values
+```
+
+PPOTrainer.run_episode：保存动作、旧 log-prob 和价值；逆序计算带负续值/负续优势的 GAE，标准化优势，再多轮优化 clipped ratio。value_loss 先含 0.5，随后总损失又乘 0.5，故其均方误差总系数为 0.25；熵系数为 0.01。不要把默认 PPO 公式中的系数直接写成这个实现。
+
+```python
+            value_loss = 0.5 * (values_now - returns).square().mean()
+            entropy = dist.entropy().mean()
+            loss = policy_loss + value_loss * 0.5 - entropy * 0.01
+```
+
+SACTrainer.update：双 Q 与双目标 Q，按合法离散动作精确求和计算 soft value；目标同样采用负续值。Q 用平方误差，策略最小化 Σπ(α logπ−min(Q₁,Q₂))；目标参数用 τ 做软更新。推理只需要策略头，因此不能从运行时缺少 Q 网络推断训练没有双 Q。
+
+源码定位：research/iclr2027/lifeline_rl/model_free/sac.py → SACTrainer.update。
+
+GAIL/GAN：train_imitation_adversarial.py 从 greedy expert 收集数据；两种标签调用同一循环，主要改变种子偏移与元数据。D 输入“状态+动作 one-hot”，专家标签=1、生成动作=0。为避免离散采样的不可导步骤，生成器枚举全部动作，以概率加权计算下列期望，而不是对抽样动作直接求导。
+
+```python
+            rewards = torch.sigmoid(-discriminator(repeated_states, action_grid)).reshape(batch_states.shape[0], ACTION_COUNT)
+            g_loss = -(probs * torch.log(rewards.clamp_min(1e-6))).sum(dim=1).mean()
+```
+
+这里的负号很关键：固定 D 时，最小化 −log σ(−D) 偏向较小 D，而专家正标签训练偏向较大 D。因此当前循环不能直接享有标准 GAIL 的模仿保证；两个名称也不等于两种独立算法。脚本在固定专家状态批次上更新，并非完整在线占用分布匹配；训练采样未在该循环应用合法掩码，Web 推理另做真实合法过滤。上述是源码行为说明，本次没有修订训练、重训或替换模型。
+
+### 3.8 多人线性策略
+
+三人 V1、V2 与六边形 V1 首先对每个真实合法候选试走一手，比较动作前后的棋盘，再提取 16 维特征。特征是己方节点、覆盖、可达空间；这三项相对最强对手的领先量；清除的敌方节点与覆盖；自身节点与覆盖增量；切线标记；落在己方线上的标记；离起点距离；中心程度；己方前沿空点数；相对对手的前沿领先量。
+
+数量按棋盘总点数归一化，距离与中心性使用相应棋盘几何。模型用 score=(w·features)/temperature 排序，再以 softmax 得到 prior。同分时用固定坐标顺序保证可复现。这里既有训练得到的权重，又有人工定义的特征；它不是 CNN，也不是把双人模型随便换个颜色就变成六人模型。
+
+三人及更多人的对局不能直接套用“双人零和”的结论。多人特征把自己与最强对手比较，也统计所有对手损失；某次切断可能帮到第三方。因此选择不同的对手模型或后续推演方法，会改变推荐行动。小程序按人数、形状、边长筛选策略，V2 和六边形搜索 V5 保留实验标记。
+
+```text
+01 Save S and before-move metrics for all players
+02 For each real legal placement a:
+03   play a; measure nodes, coverage, reach, capture and frontier changes
+04   normalize the 16-feature vector; score = dot(w,features)/temperature
+05   restore S
+06 Stable rank by score and coordinate; softmax -> prior
+```
+
+源码定位：web/web前端/ThreePlayerAI.js / HexPlayerAI.js → feature extraction, candidate scoring, getTopMoves。
+
+### 3.9 三人 V4
+
+three-player-search-v4-round12 在三角三人局中先用线性策略选出前三个根候选，再分别假设其他玩家遵循 V1 或 V2 策略。根玩家后续按自己的基准策略行动；每条分支在根动作之后继续最多 12 个行动层，或提前到达终局。候选不足三个就只检查实际数量，只有一个时直接返回。
+
+每个叶子都计算精确离散领土。非终局强度为 area+0.3×coverage+0.05×reach，经温度为 0.12×棋盘点数的 softmax 得到相对偏好；终局则按最高领土给领先者分配 1/并列人数，其余为 0。另记录与最强对手的领土差。两种对手假设下的分数求平均，再按领土差、基准分和坐标破同分。
+
+如果搜索首选比原基准首选的平均分提高不到 0.02，就保留原首选，避免微小波动改变决策。当前小程序 V4 入口支持边长 5、7、9；其他尺寸使用兼容列表中的策略。这里的平均是对所选两种对手策略的平均，不是对全部可能对手的保证，也不是一次完整的三人均衡求解。
+
+```text
+01 roots <- base policy's top 3 placements
+02 For each root a and response policy in {V1,V2}:
+03   restore full root state; play a
+04   simulate at most 12 further plies using actual turn order
+05   compute exact area and leaf preference / terminal winner share
+06 Average the two response-policy scores
+07 Rank by mean score, territory margin, base score and coordinate
+08 If improvement over original first choice <0.02: retain that choice
+```
+
+源码定位：web/web前端/ThreePlayerSearchAI.js → positionUtilityV4, ThreePlayerSearchAI.getTopMoves。
+
+### 3.10 六边形 V5
+
+hex-player-search-v5 是可选实验搜索，面向六边形 4–6 人、边长 5 或 7。它先用 V1 权重排序，只在与首选分差不超过 0.4 的候选中保留至多两个。合法点不超过 6，或候选涉及吃子、切线、覆盖增长至少 3 点等战术条件时，才启动复核；安静局面或首选明显时沿用基础策略。
+
+每个根候选试走后，让后续对手按 V1 依次应对，最多 5 个行动层；轮回根玩家、终局或同一对手再次出现时停止。行动顺序读取真实引擎，不能假定六个人始终都还有合法点或都没有认输。
+
+非终局叶子用 0.7×reach+0.3×coverage 衡量强度；因为 reach 包含已占格点，它也等于 coverage+0.7×可达空点。再以 0.15×棋盘点数为温度做 softmax。这是快速偏好，不是正式领土或校准胜率。终局叶子才强制计算精确 area。
+
+候选比较先区分已确认的模拟胜局、未终局分支、已确认的模拟败局，再比较各自值；普通改选还需要至少 0.03 的改善。这样不会把启发式 0.9 误当成比真实终局胜利更可靠。但“确认”只针对该条 V1 应对分支，不代表已经防住所有其他走法。
+
+```text
+01 Rank by V1; retain <=2 roots within base-score gap 0.4
+02 If quiet and legal count >6: return base ranking
+03 For each retained root: restore isolated state and play it
+04 Simulate <=5 V1 replies, stopping at terminal or return/repeated actor
+05 Terminal -> exact area; otherwise -> 0.7*reach+0.3*coverage
+06 Compare terminal tiers, then values; ordinary switch needs >=0.03
+07 Restore the source engine and its territory cache
+```
+
+源码定位：web/web前端/HexFastSearchAI.js → evaluateHexFastLeafV5, chooseHexFastSearchLeafV5, getTopMoves。
+
+### 3.11 后续多人搜索
+
+后续 Web 开发实现又加入简单、中等、困难和终极候选四类入口。简单使用训练过的 16 特征线性策略；中等复用三人 V4 或六边形 V1，并加速等价的候选与特征计算；原生形状的困难使用对手各自按自身策略行动的 rollout。这些新路径与小程序当前的 V1、V2、V4、V5 菜单要分开看，写进本文不代表已全部装入你手机里的版本。
+
+这条后续 rollout 的叶子重新调用正式领土计算，结合覆盖、可达空间形成非终局偏好。对手按自己的策略选择动作，不假定所有人合谋压低根玩家的分数。非默认形状另有 MultiplayerMinimaxAI：使用保守的 paranoid 假设，把所有其他行动方视为 MIN，带 α–β、主动 PASS、迭代加深和完整阶段回退；其非终局评价是相对节点、覆盖与可达优势，终局使用精确领土。两种对手假设各有局限。
+
+截至 2026-10-23 所查 Web 源码，困难的原生形状路径以 650 ms 为目标预算，按 12、24 层比较全部合法根落点及主动 PASS；只有阶段内所有根完成同一组应对/层数比较，才发布该完整阶段。超时退回上一完整阶段或基准策略；单次同步规则操作可能越过目标时限。
+
+终极候选先用迁移 GNN 给合法落点先验，推理时间计入预算；后续检查 12、24、36 层，设置 publishCompletedComparisons=true。它可以在整轮尚未结束时，发布与固定阶段基准在相同深度/完整应对前缀上已经完成的改进；不能写成“每次都完成全根扫描”。不足预算时回退到 GNN 合法落点 argmax，仅无落点才 PASS，不用未经训练的 PASS/value 头作回退。
+
+```text
+01 Compute base / GNN fallback and remaining budget
+02 For each configured horizon and response prefix:
+03   Evaluate a common incumbent anchor
+04   Evaluate competing roots under the same comparison conditions
+05   Hard: publish only a complete root sweep
+06   Ultimate candidate: may publish a completed improving comparison
+07 On deadline: discard unfinished leaf/response work; keep valid incumbent
+08 Report whether decision came from fallback, full phase or comparison
+```
+
+非默认形状的 MultiplayerMinimaxAI 使用 paranoid α–β、主动 PASS、迭代加深与完整迭代回退。多人 GNN 把敌方节点/线/起点与关系合并编码，并不显式表示各敌方身份。LocalAIModes.js 的 MULTIPLAYER_ULTIMATE_AVAILABLE 当前为 false，运行器为 application-candidate；文档纳入实现不等于推广或手机发布。
+
+源码定位：web/web前端/MultiplayerRuntime.js / MultiplayerRollout.js / MultiplayerSearch.js / MultiplayerModel.js → loadMultiplayerRuntime, getTopMoves, canonical leaf evaluation, publication policy。
+
+### 3.12 调度与可复现性
+
+小程序把 AI、提示、领土与复盘任务放进同一个 Worker 调度队列。请求按优先级和请求编号串行处理，避免同时创建多个普通 Worker。返回值必须匹配请求编号和完整上下文；新局、悔棋、切换复盘或取消任务后，旧 Worker 的迟到结果会被丢弃。
+
+当前调度器默认 15 秒超时。超时、Worker 异常或进程被系统结束时，解绑并终止该 Worker，向会话报告失败，保留可恢复棋局并允许重试。后台搜索不能堵住 Canvas 的触摸与绘制，也不能把失败偷偷改成另一个 AI 的成功。
+
+Worker 内恢复局面时可缓存同一配置、同一动作前缀的引擎，只补放新增动作；任一前缀或配置不匹配就重新恢复。缓存必须保留完整历史，异步模型加载期间的引擎也不能被后来的请求修改。AI 选步、提示和复盘分析复用同一种算法；普通选步返回首选，分析可返回前三个候选及其评分含义。
+
+执行前再次核对局面身份与行动方，并让真实引擎验证落点。Web 有独立 AI／提示／领土 Worker 的组织方式，小程序采用单队列适配；两端共享规则，不意味着线程数量和调度代码必须相同。
+
+模型加载先检查清单中的 ID、规则、人数、棋盘范围、张量名称、维度、偏移和权重长度，再检查数值有限性与资产完整性。小程序分包提供双人二进制模型，小型多人 JSON 策略嵌入 Worker；它们都要绑定到明确的模型身份，不能因为文件名类似就混用权重。
+
+普通对局只做推理，不在手机上训练网络。允许“帮 AI 学下棋”收集完整对局，也不意味着本局落子会立刻修改当前模型。离线训练、候选评估、实际选用和发布是不同步骤；研究训练环境、Web 和小程序也必须分别核对规则版本，不能只看名字都叫 LIFELINE。
+
+存档与棋谱保存配置和动作；恢复时通过同一规则引擎重放，重建节点、边、历史和轮转。导入先在隔离局面中校验，成功后才替换正在看的棋局。悔棋、复盘试走和 AI 搜索同样需要完整恢复，不能只把棋子颜色画回去。
+
+要复现一次 AI 决策，至少记录规则版本、棋盘配置、完整动作或规则状态与历史、行动方、模型 ID／资产哈希、搜索参数和随机种子（若使用随机算法）。截图可用于解释面积，却不足以复现所有合法性和选步；固定时间预算的搜索还可能随设备速度停在不同的完整阶段。
+
+```text
+01 Request <- {id, revision, rules, actor, config, full state/actions, model}
+02 Queue in the single Mini Game Worker; reject cancelled/stale tasks
+03 Restore engine (reuse only an identical config and action prefix)
+04 Validate model identity, dimensions, lengths and asset integrity
+05 Run the selected strategy; report candidates and metric meaning
+06 Receiver checks request/context again and validates the chosen action
+07 On timeout/error: preserve recoverable match and expose retry
+```
+
+把“模型名称、训练循环、导出文件、运行时策略、证据等级”分别记录，是排查结果差异的最短路径。完整状态与完整比较条件是算法合同；目录、分页、公式的显示则属于阅读合同。两篇文章可独立维护叙述，但关键公式、预算和源代码引用必须随版本重新核对。
+
+源码定位：web/web前端/AIStateProtocol.js / ReplayCodec.js → state identity, full restoration and isolated replay validation。
+
+## 第四章 拓扑棋盘的工程实现
+
+本章对应数学版第四章。所有算法以规范点、边等价类、面发生关系和版本化完整状态为输入；图册与渲染细分只作为派生视图。代码示意明确标为伪代码，精确实现以列出的模块为准。
+
+### 4.1 编译与同调诊断
+
+流水线：输入定义 → 校验三角面与有向配对 → union-find 合并规范点／边发生项 → 保留多重边的 edgeClasses → 计算顶点 link、方向传播、真实边界 → TopologyAlgebra 的 F₂ 链矩阵。不能从 sampleAdjacency 重建一维胞腔，因为它会合并平行边。诊断按不可变 compiledBoard 缓存，不进入每手正式计分。
+
+```text
+// Pseudocode; see TopologyAlgebra.js
+for each edge class e: d1[e] = XOR(bits of canonical endpoints)
+for each face f: d2[f] = XOR(bits of its edge occurrences' classes)
+assert d1 * d2 == 0
+r1, r2 = exact_GF2_column_rank(d1), exact_GF2_column_rank(d2)
+betti = [V-r1, E-r1-r2, F-r2]
+assert betti[0]-betti[1]+betti[2] == V-E+F
+classify genus only if connected && all vertex links are circles/intervals
+```
+
+analyzeBoardAlgebra(board,{relativeBoundary}) 返回 field、cellCounts、boundaryRanks、betti、chainCondition、Euler 与曲面诊断。相对版本删除边界胞腔的基向量，不能只删显示轮廓。analyzeEdgeCycle 对输入边 ID 按奇偶消去，先验是否为周期，再判断是否属于 im∂₂；separating 仅在闭合连通曲面的单嵌入圈上解释。当前不计算整数 Smith 标准形，因此不输出扭结群。位消元是多项式诊断，不应把它描述成线性时间。
+
+### 4.2 稳固核心与战术层
+
+RootStability.computeRootStability 只读现有节点与真实逻辑路径；普通棋盘适配显式端点边及内部格点，拓扑棋盘直接读 topologyPaths，不能只调用 getLinePoints(a,b) 猜多重绕行。使用依赖计数：每条有向认证规则依赖一个起点和所有内部节点，依赖全认证时把另一端入队。各点仅入队一次，各依赖仅释放一次。
+
+```text
+// Pseudocode; sufficient certificate, never a capture oracle
+P = friendly roots; queue = roots
+for (path a -> b):
+  if every interior sample is a friendly NODE:
+    register dependency {a} union interior(path) => b
+while queue not empty:
+  for rule waiting on queue.pop():
+    if --rule.remaining == 0 and rule.target not in P:
+      P.add(rule.target); queue.push(rule.target)
+return {version:'root-stability-v1', kind:'sufficient-only', nodeKeys:[...P]}
+```
+
+策略接入与模型身份分离：稳固核心用于非终局特征，最终胜负仍用正式分数。围困来自真实邻接分量，不把其中的敌方计为领土。合法回复、Superko 与行动方均交给真实引擎；预算内只完成部分反击时，不发布“已证明安全”。约三秒统一截止要涵盖候选枚举、原策略和战术复核，Worker 超时及过期响应检查与之配套；生成 Worker bundle 后也须验证实际入口。
+
+### 4.3 分类别随机与完整棋盘保存
+
+RandomBoard 的旧生成器 v1–v3 保留；v4 先求当前尺寸／人数已验证支持的类别，再按数学版概率条件化抽样，在固定类别中有界重试。输出保存 category、展示分支、requested/effective distribution、excludedCategories、版本、种子、完整 definition 与 hash。闭曲面起点按规范邻接距离选取，并用真实引擎逐席检查至少有合法开局，不能从不存在的真实边界采样。
+
+验收不是“编译成功”四个字：核对连通性、每个 link、边界圈、可定向性、Euler 与 Betti。N=5 的六人小图可能只支持部分构造，这必须如实记录为生成器支持范围。保存／房间／复盘冻结生成结果，其他客户端不能各自重抽。修改概率或生成序列要升生成器版本，不修改历史种子的含义。
+
+### 4.4 同一规则网格的二维与三维
+
+正反展开片共享 canonical ID；渲染过滤、屏幕投影与 hit-test 使用相同的当前片选择，跨缝副本仍同步。3D 接口必须带原 faceId 与重心坐标，不能仅传一个平面坐标猜它来自哪片。双倍平面孔洞构造的每原三角分成六个渲染三角，内部边中点和面中心有正高度，边界高度零；背面高度取负。
+
+面片颜色、线段与节点使用同一嵌入，粘边对应点必须三维重合。曲面遮挡用 WebGL 深度缓冲，不能靠平均深度排序冒充凹曲面的正确遮挡。渲染细分不写回规则样本，不改变合法行动或离散分数。上下文不可用时显示可理解的二维回退状态；不能显示一个假的立体成功状态。
+
+### 4.5 版本、回放与验证
+
+源码与内容同源生成：GuideTopologyChapters → GuideMathChapters／GuideTechnicalChapters → GuideImplementation → 四篇双语 Markdown。旧 topologyGuide 入口转到 rules-math 的 rulesMath-topology 锚点，不维护两份正文。UI 的着法列表与分析默认收起，播放和拖动进度共用隔离恢复逻辑，清掉旧候选与异步请求。拓扑候选使用 canonical vertexId，全部展开副本同步高亮。
+
+```text
+node web/tools/sync-implementation-guides.mjs --check
+node web/web前端/tests/verify-guide-content.mjs
+node web/web前端/tests/verify-topology-algebra.mjs
+node web/web前端/tests/verify-root-stability.mjs
+```
+
+其他验证覆盖随机生成的旧种子与 v4 可复现性、N=5/9/15 与 2–6 人、双孔面／边映射、完整棋局保存恢复、三秒预算及取消、真实浏览器的设置／复盘／旋转。Node 回归、浏览器截图、发布、远程排名与正式棋力评测分别报告；本次源码更新本身不表示已经跨端发布或训练新模型。

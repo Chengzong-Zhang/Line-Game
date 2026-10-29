@@ -1,7 +1,7 @@
-import GameEngine from "./GameEngine.js?v=20261027-topology-multistart-release1";
-import { Player, PLAYER_ORDER, StartProtectionRule, resolveBoardShape } from "./GameEngine.js?v=20261027-topology-multistart-release1";
-import { startingPointSettings } from "./StartingPoints.js?v=20261027-topology-multistart-release1";
-import { decodeTopologyState } from "./TopologyStateCodec.js?v=20261027-topology-multistart-release1";
+import GameEngine from "./GameEngine.js?v=20261029-unified-r1";
+import { Player, PLAYER_ORDER, StartProtectionRule, resolveBoardShape } from "./GameEngine.js?v=20261029-unified-r1";
+import { startingPointSettings } from "./StartingPoints.js?v=20261029-unified-r1";
+import { decodeTopologyState } from "./TopologyStateCodec.js?v=20261029-unified-r1";
 
 export const REPLAY_FORMAT = "lifeline-replay";
 export const REPLAY_SCHEMA_VERSION = 1;
@@ -258,13 +258,18 @@ function toControllerAction(action) {
 
 function buildTerminalSummary(engine, finalStateHash, eventCount) {
   const snapshot = engine.getSnapshot();
+  // Display-only geometry is not part of the frozen replay terminal schema.
+  const scores = Object.fromEntries(Object.entries(snapshot.territories ?? {}).map(([player, territory]) => [player, {
+    area: territory.area, displayArea: territory.displayArea,
+    polygon: territory.polygon ? territory.polygon.map(clonePoint) : null,
+  }]));
   return snapshot.gameOver
     ? {
         status: "completed",
         reason: snapshot.resignedPlayers?.length ? "resignation" : "all_remaining_players_skipped",
         lastEventSeq: eventCount,
         winner: snapshot.winner ?? null,
-        scores: cloneJson(snapshot.territories ?? {}),
+        scores,
         resignedPlayers: [...(snapshot.resignedPlayers ?? [])],
         finalStateHash,
         turnCount: engine.turnCount,
@@ -483,7 +488,7 @@ async function ensureTopologyGameEngineRuntime() {
   // Keep normal replay loading compatible with the repository's data-URL
   // isolation harness; a topology replay is the first operation that needs
   // the sibling runtime.
-  await import("./TopologyGameEngine.js?v=20261027-topology-multistart-release1");
+  await import("./TopologyGameEngine.js?v=20261029-unified-r1");
 }
 
 /**

@@ -1,4 +1,4 @@
-import { createResearchModel, researchRelations } from "./ResearchAI.js?v=20261026-allplatform1";
+import { createResearchModel, researchRelations } from "./ResearchAI.js?v=20261029-unified-r1";
 
 const FEATURE_COUNT = 11;
 const EPSILON = 1e-5;

@@ -1,11 +1,12 @@
-import GameEngine, { Player, TerritoryRulesVersion, PLAYER_ORDER, getBoardPositions, resolveBoardShape } from "./GameEngine.js?v=20261025-territory-render1";
-import Renderer from "./Renderer.js?v=20261025-territory-render1";
-import { ServerEvent } from "./NetworkManager.js?v=20261020-three1";
-import { serializeEngineState } from "./AIStateProtocol.js?v=20261021-boardshapes1";
+import GameEngine, { Player, StartProtectionRule, TerritoryRulesVersion, PLAYER_ORDER, getBoardPositions, resolveBoardShape } from "./GameEngine.js?v=20261029-unified-r1";
+import Renderer from "./Renderer.js?v=20261029-unified-r1";
+import { ServerEvent } from "./NetworkManager.js?v=20261029-unified-r1";
+import { serializeEngineState } from "./AIStateProtocol.js?v=20261029-unified-r1";
 import {
   applyTerritoryWorkerResult,
-} from "./TerritoryWorkerSession.js?v=20261020-three1";
-import TerritoryWorkerPool from "./TerritoryWorkerPool.js?v=20261025-territory-render1";
+} from "./TerritoryWorkerSession.js?v=20261029-unified-r1";
+import TerritoryWorkerPool from "./TerritoryWorkerPool.js?v=20261029-unified-r1";
+import { decodeTopologyState } from "./TopologyStateCodec.js?v=20261029-unified-r1";
 
 // GameController 鏄墠绔殑鈥滆兌姘村眰鈥濓細
 // 瀹冩妸 Model(GameEngine)銆乂iew(Renderer) 鍜岃仈鏈哄眰(NetworkManager) 涓茶捣鏉ワ紝
@@ -18,7 +19,11 @@ const DEFAULT_ENGINE_OPTIONS = Object.freeze({
 const ASYNC_TERRITORY_MIN_GRID_SIZE = 15;
 
 function clonePoint(point) {
-  return [point[0], point[1]];
+  // Topology boards expose canonical vertex IDs rather than a fabricated
+  // rectangular coordinate. Keep that identity intact through controller
+  // metadata, replay and network handoff; legacy boards retain copied tuples.
+  if (typeof point === "string") return point;
+  return Array.isArray(point) ? [point[0], point[1]] : null;
 }
 
 function distanceBetween(a, b) {
@@ -36,6 +41,14 @@ function isGridPoint(point) {
     && point.length === 2
     && Number.isInteger(point[0])
     && Number.isInteger(point[1]);
+}
+
+function isTopologyVertexId(point) {
+  return typeof point === "string" && point.length > 0;
+}
+
+function isMovePosition(point) {
+  return isGridPoint(point) || isTopologyVertexId(point);
 }
 
 // Display metadata follows confirmed actions, including rule-driven automatic PASS.
@@ -71,7 +84,7 @@ export class GameController {
       ? options.createTerritoryWorker
       : (typeof globalThis.Worker === "function"
         ? () => new globalThis.Worker(
-            new URL("./TerritoryWorker.js?v=20261025-territory-render1", import.meta.url),
+            new URL("./TerritoryWorker.js?v=20261029-unified-r1", import.meta.url),
             { type: "module" },
           )
         : null);
@@ -118,8 +131,14 @@ export class GameController {
 
   _updateLargeBoardClass() {
     const gridSize = this.options.engine?.gridSize ?? 9;
+    const isTopologyBoard = Boolean(
+      this.engine?.isTopologyBoard
+      || this.options.engine?.boardDefinition
+      || this.options.engine?.compiledBoard,
+    );
     if (typeof document !== "undefined" && document.body) {
-      if (gridSize >= 15 || (resolveBoardShape(this.options.engine?.playerCount, this.options.engine?.boardShape) === "hexagon" && gridSize >= 9)) {
+      if (!isTopologyBoard && (gridSize >= 15
+        || (resolveBoardShape(this.options.engine?.playerCount, this.options.engine?.boardShape) === "hexagon" && gridSize >= 9))) {
         document.body.classList.add("large-board");
       } else {
         document.body.classList.remove("large-board");
@@ -132,8 +151,32 @@ export class GameController {
       ...DEFAULT_ENGINE_OPTIONS,
       ...(engineOptions ?? {}),
     };
+    const isTopologyBoard = Boolean(
+      normalizedOptions.boardDefinition
+      || normalizedOptions.compiledBoard
+      || (normalizedOptions.boardShape === "custom"
+        && normalizedOptions.rulesVersion === "surface-v1"),
+    );
+    if (isTopologyBoard) {
+      if (!Object.hasOwn(engineOptions, "rulesVersion")) normalizedOptions.rulesVersion = "surface-v1";
+      // A materialized topology definition contains the complete root layout.
+      // Settings may also carry legacy first-root fields for presentation; they
+      // must never truncate a multi-root definition when starting/restoring it.
+      const definition = normalizedOptions.compiledBoard?.definition ?? normalizedOptions.boardDefinition;
+      if (Object.keys(definition?.startingVertices ?? {}).length) delete normalizedOptions.initialPositions;
+    }
+    if (!isTopologyBoard) {
+      normalizedOptions.protectionRule ??= normalizedOptions.playerCount === 2
+        && resolveBoardShape(normalizedOptions.playerCount, normalizedOptions.boardShape) === "triangle"
+        ? StartProtectionRule.DUEL_FIRST_UNPROTECTED
+        : StartProtectionRule.SYMMETRIC;
+    }
     const deferTerritoryUpdates = normalizedOptions.deferTerritoryUpdates
-      ?? (normalizedOptions.gridSize >= ASYNC_TERRITORY_MIN_GRID_SIZE || normalizedOptions.playerCount >= 3 || resolveBoardShape(normalizedOptions.playerCount, normalizedOptions.boardShape) === "hexagon");
+      ?? (isTopologyBoard
+        ? false
+        : (normalizedOptions.gridSize >= ASYNC_TERRITORY_MIN_GRID_SIZE
+          || normalizedOptions.playerCount >= 3
+          || resolveBoardShape(normalizedOptions.playerCount, normalizedOptions.boardShape) === "hexagon"));
     return new GameEngine({
       ...normalizedOptions,
       deferTerritoryUpdates,
@@ -175,6 +218,22 @@ export class GameController {
 
   _scheduleTerritoryRefresh() {
     const engine = this.engine;
+    // Surface territory is exact and already operates on canonical samples.
+    // Legacy TerritoryWorker serializes rectangular matrices, so never send a
+    // quotient board through that protocol.
+    if (engine?.isTopologyBoard) {
+      this._territoryPreview = null;
+      if (this._territoryWorkerSession?.cancelPending) this._territoryWorkerSession.cancelPending();
+      else this._cancelTerritoryRefresh();
+      if (engine.hasPendingTerritoryUpdate?.()) {
+        engine._updateTerritories();
+        this._syncSnapshot(engine.getSnapshot(), {
+          forceRender: true,
+          scheduleTerritory: false,
+        });
+      }
+      return;
+    }
     if (
       !engine?.deferTerritoryUpdates
       || !engine.hasPendingTerritoryUpdate?.()
@@ -241,9 +300,14 @@ export class GameController {
   }
 
   _replaceEngine(engineOptions = this.options.engine ?? {}) {
+    // A rejected next-match definition must leave the playable engine and its
+    // pending territory work intact.
+    const nextEngine = this._createEngine(engineOptions);
+    const nextValidPoints = nextEngine.getValidPositions();
+    this.renderer.invalidate();
     this._cancelTerritoryRefresh();
-    this.engine = this._createEngine(engineOptions);
-    this._validGridPoints = this.engine.getValidPositions();
+    this.engine = nextEngine;
+    this._validGridPoints = nextValidPoints;
     this._engineEpoch += 1;
     this._lastServerActionIndex = 0;
     this.renderer.invalidate();
@@ -310,10 +374,10 @@ export class GameController {
     } else {
       this.inspectionOverlay = {
         tutorial: Boolean(overlay.tutorial),
-        blockedPoint: isGridPoint(overlay.blockedPoint) ? clonePoint(overlay.blockedPoint) : null,
-        selectedPoint: isGridPoint(overlay.selectedPoint) ? clonePoint(overlay.selectedPoint) : null,
+        blockedPoint: isMovePosition(overlay.blockedPoint) ? clonePoint(overlay.blockedPoint) : null,
+        selectedPoint: isMovePosition(overlay.selectedPoint) ? clonePoint(overlay.selectedPoint) : null,
         capturedPoints: Array.isArray(overlay.capturedPoints)
-          ? overlay.capturedPoints.filter(isGridPoint).map(clonePoint)
+          ? overlay.capturedPoints.filter(isMovePosition).map(clonePoint)
           : [],
         addedEdges: Array.isArray(overlay.addedEdges)
           ? overlay.addedEdges
@@ -335,24 +399,52 @@ export class GameController {
   }
 
   setGameConfig(engineOptions = {}, reset = true) {
+    const incomingOptions = engineOptions ?? {};
     const previousOptions = { ...this.options.engine };
     delete previousOptions.initialPositions;
     delete previousOptions.initialRoots;
     delete previousOptions.startingPointMode;
     delete previousOptions.rootMode;
     delete previousOptions.rootRulesVersion;
-    if (engineOptions.playerCount != null && !Object.hasOwn(engineOptions, "boardShape")) delete previousOptions.boardShape;
-    this.options.engine = {
+    // A new configuration selects its own protection scope. Inheriting a
+    // previous duel's explicit modern rule into a multiplayer/hex game makes
+    // the live rule differ from its normalized saved settings. Explicitly
+    // supplied historical rules remain authoritative on the new config.
+    if (!Object.hasOwn(incomingOptions, "protectionRule")) delete previousOptions.protectionRule;
+    const suppliesDefinition = ["boardDefinition", "compiledBoard"]
+      .some((key) => Object.hasOwn(incomingOptions, key));
+    const keepsCurrentSurface = incomingOptions.boardShape === "custom"
+      && !suppliesDefinition && Boolean(previousOptions.boardDefinition || previousOptions.compiledBoard);
+    const selectsBoard = suppliesDefinition
+      || (Object.hasOwn(incomingOptions, "boardShape") && !keepsCurrentSurface);
+    if (selectsBoard) {
+      // Explicit board selection replaces the previous board identity. A
+      // triangle/hexagon must not inherit an old surface definition, and a new
+      // definition must not be shadowed by an old compiled board.
+      for (const key of ["boardShape", "boardDefinition", "compiledBoard", "boardHash", "topologyProtocolVersion"]) {
+        delete previousOptions[key];
+      }
+      if (previousOptions.rulesVersion === "surface-v1") delete previousOptions.rulesVersion;
+    } else if (incomingOptions.playerCount != null && !Object.hasOwn(incomingOptions, "boardShape")) {
+      delete previousOptions.boardShape;
+    }
+    const nextEngineOptions = {
       ...DEFAULT_ENGINE_OPTIONS,
       ...previousOptions,
-      ...(engineOptions ?? {}),
+      ...incomingOptions,
     };
+    if (!Object.hasOwn(incomingOptions, "rulesVersion")
+      && (incomingOptions.boardDefinition || incomingOptions.compiledBoard || incomingOptions.boardShape === "custom")) {
+      nextEngineOptions.rulesVersion = "surface-v1";
+    }
 
     if (!reset) {
+      this.options.engine = nextEngineOptions;
       return this.options.engine;
     }
 
-    this._replaceEngine(this.options.engine);
+    this._replaceEngine(nextEngineOptions);
+    this.options.engine = nextEngineOptions;
     this._setLastAction(null);
     this._updateLargeBoardClass();
     const snapshot = this.engine.getSnapshot();
@@ -377,7 +469,14 @@ export class GameController {
     this._networkUnsubscribers.push(
       this.networkManager.on(ServerEvent.OPPONENT_MOVE, (payload) => {
         if (!this._acceptServerAction(payload)) return;
-        if (isGridPoint(payload.point)) {
+        if (this.engine?.isTopologyBoard) {
+          if (isTopologyVertexId(payload?.vertexId)
+            && payload.boardHash === this.engine.boardHash) {
+            this.applyRemoteMove(payload.vertexId);
+          } else {
+            this._reportNetworkError(new Error("Received invalid topology OPPONENT_MOVE payload."));
+          }
+        } else if (isGridPoint(payload?.point)) {
           this.applyRemoteMove(payload.point);
         } else {
           this._reportNetworkError(new Error("Received invalid OPPONENT_MOVE payload."));
@@ -487,13 +586,13 @@ export class GameController {
 
     return {
       ...this.lastAction,
-      point: Array.isArray(this.lastAction.point) ? [...this.lastAction.point] : null,
+      point: clonePoint(this.lastAction.point),
     };
   }
 
   _cloneLastMoves() {
     return Object.fromEntries(Object.entries(this.lastMoves ?? {}).map(([player, point]) => [
-      player, Array.isArray(point) ? clonePoint(point) : null,
+      player, clonePoint(point),
     ]));
   }
 
@@ -509,7 +608,7 @@ export class GameController {
     this.lastAction = {
       type: action.type ?? null,
       player: action.player ?? null,
-      point: Array.isArray(action.point) ? [...action.point] : null,
+      point: clonePoint(action.point),
     };
   }
 
@@ -522,6 +621,7 @@ export class GameController {
 
     return {
       rulesVersion: snapshot.rulesVersion,
+      protectionRule: snapshot.protectionRule,
       positionRevision: snapshot.positionRevision,
       currentPlayer: snapshot.currentPlayer,
       gameOver: snapshot.gameOver,
@@ -549,6 +649,9 @@ export class GameController {
         : PLAYER_ORDER.slice(0, snapshot.playerCount ?? this.options.engine.playerCount),
       playerCount: snapshot.playerCount ?? this.options.engine.playerCount,
       boardShape: snapshot.boardShape ?? ((snapshot.playerCount ?? 2) >= 4 ? "hexagon" : "triangle"),
+      isTopologyBoard: Boolean(snapshot.isTopologyBoard),
+      boardHash: snapshot.boardHash ?? null,
+      boardDefinition: snapshot.boardDefinition ?? null,
       multiplayerEnabled: this.multiplayerEnabled,
       localPlayer: this.localPlayer,
       roomReady: this.roomReady,
@@ -573,6 +676,9 @@ export class GameController {
   }
 
   _findNearestGridPoint(pixelX, pixelY) {
+    if (this.engine?.isTopologyBoard) {
+      return this.renderer.getTopologyHitVertexId(pixelX, pixelY);
+    }
     const validPoints = this._validGridPoints?.length
       ? this._validGridPoints
       : this._deriveValidPoints(this.engine.gridSize ?? this.options.engine.gridSize, this.engine.playerCount, this.engine.boardShape);
@@ -637,6 +743,9 @@ export class GameController {
     if (typeof this.networkManager.isConnected === "function" && !this.networkManager.isConnected()) {
       return "NETWORK_UNAVAILABLE";
     }
+    if (this.networkManager.serverAuthoritative && typeof this.networkManager.canAct === "function" && !this.networkManager.canAct()) {
+      return "ACTION_PENDING";
+    }
 
     if (snapshot.currentPlayer !== this.localPlayer) {
       return "NOT_YOUR_TURN";
@@ -686,6 +795,8 @@ export class GameController {
       return "NETWORK_UNAVAILABLE";
     }
 
+    if (!snapshot.gameOver && this.networkManager.serverAuthoritative
+      && typeof this.networkManager.canAct === "function" && !this.networkManager.canAct()) return "NOT_YOUR_TURN";
     return null;
   }
 
@@ -721,6 +832,15 @@ export class GameController {
   }
 
   _applyMove(point, actingPlayer = this.engine.getCurrentPlayer()) {
+    if (!isMovePosition(point)) {
+      const snapshot = this.engine.getSnapshot();
+      return {
+        success: false,
+        reason: "INVALID_MOVE",
+        point: null,
+        state: this._buildGameState(snapshot),
+      };
+    }
     const normalizedPoint = clonePoint(point);
     const result = this.engine.playMove(normalizedPoint);
 
@@ -773,7 +893,7 @@ export class GameController {
     if (this.actionFeedbackListener) {
       this.actionFeedbackListener({
         ...feedback,
-        point: Array.isArray(feedback?.point) ? [...feedback.point] : null,
+        point: clonePoint(feedback?.point),
       });
     }
   }
@@ -784,7 +904,10 @@ export class GameController {
     }
 
     try {
-      await this.networkManager.sendMove(point);
+      const move = this.engine?.isTopologyBoard
+        ? { vertexId: point, boardHash: this.engine.boardHash }
+        : clonePoint(point);
+      await this.networkManager.sendMove(move);
     } catch (error) {
       this._reportNetworkError(error);
     }
@@ -813,6 +936,16 @@ export class GameController {
       };
     }
 
+    if (this.multiplayerEnabled && this.networkManager?.serverAuthoritative) {
+      // The shared service is the sole authority. A lost response must not
+      // leave an optimistic move on the local board.
+      if (!this.engine._evaluateMove(point, snapshot.currentPlayer).legal) {
+        this._emitActionFeedback({ type: "move", success: false, reason: "INVALID_MOVE", point });
+        return { success: false, reason: "INVALID_MOVE", state: this.getGameState() };
+      }
+      void this._syncLocalMove(point);
+      return { success: true, pending: true, reason: null, state: this.getGameState() };
+    }
     const result = this._applyMove(point, snapshot.currentPlayer);
     if (result.success) {
       void this._syncLocalMove(point);
@@ -840,7 +973,7 @@ export class GameController {
       return recoveryLock;
     }
 
-    if (!isGridPoint(point)) {
+    if (!(this.engine?.isTopologyBoard ? isTopologyVertexId(point) : isGridPoint(point))) {
       return {
         success: false,
         reason: "INVALID_REMOTE_MOVE",
@@ -928,19 +1061,35 @@ export class GameController {
     // 联机重连后，在临时引擎上批量回放；只有完整成功才替换当前棋盘。
     const actions = Array.isArray(matchState?.actions) ? matchState.actions : [];
     const incomingSettings = matchState?.settings;
+    const normalizedIncomingSettings = incomingSettings && typeof incomingSettings === "object"
+      ? {
+          ...incomingSettings,
+          protectionRule: Object.hasOwn(incomingSettings, "protectionRule")
+            ? incomingSettings.protectionRule : StartProtectionRule.SYMMETRIC,
+        }
+      : null;
     const previousOptions = { ...(this.options.engine ?? {}) };
     if (incomingSettings && typeof incomingSettings === "object") {
+      // A settings-bearing restore is authoritative about board identity.  In
+      // particular, a legacy tutorial/replay must not inherit a previously
+      // selected topology definition merely because the controller was using
+      // one before the restore began.  The incoming settings can still supply
+      // their own topology payload below.
       delete previousOptions.initialPositions;
       delete previousOptions.initialRoots;
       delete previousOptions.startingPointMode;
       delete previousOptions.rootMode;
       delete previousOptions.rootRulesVersion;
       delete previousOptions.boardShape;
+      delete previousOptions.boardDefinition;
+      delete previousOptions.compiledBoard;
+      delete previousOptions.boardHash;
+      delete previousOptions.topologyProtocolVersion;
     }
     const nextEngineOptions = {
       ...DEFAULT_ENGINE_OPTIONS,
       ...previousOptions,
-      ...(incomingSettings && typeof incomingSettings === "object" ? incomingSettings : {}),
+      ...(normalizedIncomingSettings ?? {}),
     };
 
     const preserveCurrentEngine = (reason, preservedSnapshot = null) => {
@@ -978,14 +1127,18 @@ export class GameController {
           }
 
           if (action.type === "player_move") {
-            if (!isGridPoint(action.point)) {
+            const point = engine.isTopologyBoard ? action.vertexId : action.point;
+            const validMove = engine.isTopologyBoard
+              ? isTopologyVertexId(point) && action.boardHash === engine.boardHash
+              : isGridPoint(point);
+            if (!validMove) {
               return {
                 success: false,
                 reason: `Replay move ${index + 1} has an invalid point.`,
               };
             }
             const actingPlayer = engine.getCurrentPlayer();
-            const result = engine.playMove(clonePoint(action.point));
+            const result = engine.playMove(clonePoint(point));
             if (!result.success) {
               return {
                 success: false,
@@ -995,7 +1148,7 @@ export class GameController {
             lastAction = {
               type: "move",
               player: actingPlayer,
-              point: clonePoint(action.point),
+              point: clonePoint(point),
             };
             updateLastMoves(lastMoves, lastAction, engine);
             continue;
@@ -1129,6 +1282,115 @@ export class GameController {
       success: true,
       reason: null,
       state: this._buildGameState(replayResult.snapshot),
+    };
+  }
+
+  /**
+   * Restore a complete, isolated topology-state document.
+   *
+   * Topology saves retain more than a replay prefix: Superko history, logical
+   * paths and an in-progress current player are all part of the rules state.
+   * Replaying the visible moves alone is therefore not a safe substitute (in
+   * particular for an older save whose original start player was not stored in
+   * a legacy local-session envelope).  Decode and build a candidate first;
+   * only replace the live engine after its complete state has been accepted.
+   */
+  restoreTopologyState(topologyState, { startPlayer = null, lastAction = null } = {}) {
+    const previousControllerState = {
+      engine: this.engine,
+      engineOptions: this.options.engine,
+      validGridPoints: this._validGridPoints,
+      engineEpoch: this._engineEpoch,
+      lastAction: this._cloneLastAction(),
+      lastMoves: this._cloneLastMoves(),
+    };
+    const preserveCurrentEngine = (reason, preservedSnapshot = null) => {
+      const error = reason instanceof Error ? reason : new Error(String(reason));
+      this._reportNetworkError(error);
+      if (this.multiplayerEnabled) this.setAuthoritativeSnapshotValid(false);
+      const snapshot = preservedSnapshot ?? this.engine.getSnapshot();
+      const state = this._buildGameState(snapshot);
+      this._syncCanvasInteractivity(snapshot, state);
+      return { success: false, reason: error.message, state };
+    };
+
+    let decoded;
+    let candidateEngine;
+    let snapshot;
+    try {
+      decoded = decodeTopologyState(topologyState);
+      const activePlayers = PLAYER_ORDER.slice(0, Object.keys(decoded.ruleState.startingVertices).length);
+      if (activePlayers.length < 2) throw new Error("Topology state has too few active players.");
+      const normalizedStartPlayer = activePlayers.includes(startPlayer)
+        ? startPlayer
+        : activePlayers[0];
+      const previousOptions = { ...(this.options.engine ?? {}) };
+      delete previousOptions.initialPositions;
+      delete previousOptions.startingPointMode;
+      delete previousOptions.boardShape;
+      const nextEngineOptions = {
+        ...DEFAULT_ENGINE_OPTIONS,
+        ...previousOptions,
+        playerCount: activePlayers.length,
+        boardShape: "custom",
+        boardDefinition: decoded.board.definition,
+        rulesVersion: decoded.ruleState.rulesVersion,
+        initialPositions: decoded.ruleState.startingVertices,
+        startPlayer: normalizedStartPlayer,
+        deferTerritoryUpdates: false,
+      };
+      candidateEngine = this._createEngine(nextEngineOptions);
+      if (!candidateEngine?.isTopologyBoard) {
+        throw new Error("Decoded topology state did not create a topology engine.");
+      }
+      candidateEngine.restoreTopologyState(topologyState);
+      snapshot = candidateEngine.getSnapshot();
+
+      this._cancelTerritoryRefresh();
+      this.options.engine = nextEngineOptions;
+      this.engine = candidateEngine;
+      this._validGridPoints = candidateEngine.getValidPositions();
+      this._engineEpoch += 1;
+      this.setAuthoritativeSnapshotValid(true);
+      this.renderer.invalidate();
+      this.lastAction = lastAction && typeof lastAction === "object"
+        ? {
+          type: lastAction.type,
+          player: lastAction.player ?? null,
+          point: clonePoint(lastAction.point ?? lastAction.vertexId),
+        }
+        : null;
+      this.lastMoves = {};
+      this._updateLargeBoardClass();
+      this._syncSnapshot(snapshot, { forceRender: true, scheduleTerritory: false });
+    } catch (error) {
+      this.options.engine = previousControllerState.engineOptions;
+      this.engine = previousControllerState.engine;
+      this._validGridPoints = previousControllerState.validGridPoints;
+      this._engineEpoch = previousControllerState.engineEpoch;
+      this.lastAction = previousControllerState.lastAction;
+      this.lastMoves = previousControllerState.lastMoves;
+      this._updateLargeBoardClass();
+      const previousSnapshot = this.engine.getSnapshot();
+      try {
+        this.renderer.invalidate();
+        this.renderer.render({
+          ...previousSnapshot,
+          renderEpoch: this._engineEpoch,
+          lastAction: this._cloneLastAction(),
+          lastMoves: this._cloneLastMoves(),
+          inspectionOverlay: this.inspectionOverlay,
+        });
+      } catch {
+        // Preserve the prior engine even if repaint recovery is unavailable.
+      }
+      return preserveCurrentEngine(error, previousSnapshot);
+    }
+
+    return {
+      success: true,
+      reason: null,
+      state: this._buildGameState(snapshot),
     };
   }
 

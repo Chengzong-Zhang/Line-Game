@@ -21,14 +21,11 @@ const isUltimate = profile => profile?.choice === "ai-ultimate"
 const validContext = c => Number.isInteger(c?.playerCount) && c.playerCount >= 3 && c.playerCount <= 6
   && Number.isInteger(c.gridSize) && c.gridSize >= 5 && c.gridSize <= 15
   && ["territory-v2", "territory-v3"].includes(c.rulesVersion) && c.boardShape === (c.playerCount === 3 ? "triangle" : "hexagon");
-const copyReleaseRegistry = value => typeof structuredClone === "function"
-  ? structuredClone(value)
-  : JSON.parse(JSON.stringify(value));
 
 export function createUltimateAdmissionGuard(trustedReleases = ACCEPTED_ULTIMATE_RELEASES) {
   if (!Array.isArray(trustedReleases)) throw new TypeError("Expected reviewed Ultimate releases");
   // Copy now: later mutation of an input registry must not silently grant access.
-  const releases = copyReleaseRegistry(trustedReleases);
+  const releases = structuredClone(trustedReleases);
   const accepted = release => PUBLIC_ID.test(release?.modelId)
     && release.strengthStatus === "PASS" && release.promotionStatus === "PASS"
     && [release.assetSha256, release.trainingIdentity, release.strengthReceiptSha256,

@@ -1,0 +1,38 @@
+import assert from 'node:assert/strict';
+import { compileBoard } from '../BoardCompiler.js';
+import { createSurfacePreset } from '../BoardPresets.js';
+import { createTopologyStartingDefinition } from '../TopologyStartingPoints.js';
+import Setup from '../TopologyStartingPointSetup.js';
+
+const events = [];
+globalThis.Vue = { ref: value => ({ value }), computed: read => ({ get value() { return read(); } }), watch: () => {} };
+const preset = compileBoard(createSurfacePreset('tetrahedron', { gridSize: 9 })).value;
+// The legacy count option remains supported for persisted or programmatic uses.
+const twoEach = createTopologyStartingDefinition(preset, { playerCount: 2, mode: 'random', countPerPlayer: 2, random: () => .43 });
+const props = { definition: twoEach, playerCount: 2, language: 'en', locked: false };
+const setup = Setup.setup(props, { emit: (...args) => events.push(args) });
+assert.deepEqual(setup.currentCounts.value.map(x => x.count), [2, 2]);
+assert.equal(setup.active.value, null, 'adding requires an explicitly selected side');
+assert.deepEqual(events, [], 'mount must not rerandomize');
+assert.doesNotMatch(Setup.template, /随机生成每方点数|Random starts per player/);
+assert.doesNotMatch(Setup.template, /mode: 'default'/);
+assert.match(Setup.template, /countPerPlayer: 1/);
+assert.match(Setup.template, /append-random/);
+assert.match(Setup.template, /先选择玩家/);
+let board = compileBoard(twoEach).value;
+const before = structuredClone(board.definition);
+const appended = compileBoard(createTopologyStartingDefinition(board, { playerCount: 2, mode: 'append-random', player: 'BLACK', random: () => .43 })).value;
+assert.equal(appended.startingRoots.BLACK.length, 3);
+assert.deepEqual(appended.startingRoots.WHITE, board.startingRoots.WHITE);
+assert.ok(board.startingRoots.BLACK.every(id => appended.startingRoots.BLACK.includes(id)));
+assert.equal(new Set(Object.values(appended.startingRoots).flat()).size, 5);
+assert.deepEqual(board.definition, before, 'append does not mutate the old board');
+assert.throws(() => createTopologyStartingDefinition(board, { playerCount: 2, mode: 'append-random' }), { code: 'INVALID_START_PLAYER' });
+const full = compileBoard(createTopologyStartingDefinition(board, { playerCount: 2, mode: 'random', countPerPlayer: 6, random: () => .43 })).value;
+assert.throws(() => createTopologyStartingDefinition(full, { playerCount: 2, mode: 'append-random', player: 'BLACK' }), { code: 'START_ROOTS_FULL' });
+const noFree = { ...board, sampleIds: Object.values(board.startingRoots).flat() };
+assert.throws(() => createTopologyStartingDefinition(noFree, { playerCount: 2, mode: 'append-random', player: 'BLACK' }), { code: 'INSUFFICIENT_START_VERTICES' });
+const replacement = compileBoard(createTopologyStartingDefinition(appended, { playerCount: 2, mode: 'random', countPerPlayer: 1, random: () => .43 })).value;
+assert.deepEqual(Object.values(replacement.startingRoots).map(roots => roots.length), [1, 1]);
+assert.equal(new Set(Object.values(replacement.startingRoots).flat()).size, 2);
+console.log('verify-topology-round2-start-count: PASS (single replacement, explicit side append, legacy counts, full/no-space safety)');

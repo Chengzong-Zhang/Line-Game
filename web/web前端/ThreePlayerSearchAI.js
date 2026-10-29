@@ -1,8 +1,7 @@
 // Local v4 candidate. No runtime registration: promotion is a separate gate.
-import { fastTerritoryBFS, restoreState, saveState } from "./AIEngine.js?v=20261026-allplatform1";
-import { ThreePlayerAI, THREE_PLAYER_FEATURES } from "./ThreePlayerAI.js?v=20261026-allplatform1";
-import { GameEngine } from "./GameEngine.js?v=20261026-allplatform1";
-import { portableClone } from "./PortableClone.js";
+import { fastTerritoryBFS, restoreState, saveState } from "./AIEngine.js?v=20261029-unified-r1";
+import { ThreePlayerAI, THREE_PLAYER_FEATURES } from "./ThreePlayerAI.js?v=20261029-unified-r1";
+import { GameEngine } from "./GameEngine.js?v=20261029-unified-r1";
 
 const pointOrder = (a, b) => a.point[1] - b.point[1] || a.point[0] - b.point[0];
 const linear = (spec) => ({ score: (values) => values.reduce((sum, value, i) => sum + value * spec.weights[i], 0) / spec.temperature });
@@ -46,13 +45,13 @@ export class ThreePlayerSearchAI {
       || ![s.coverageWeight, s.reachWeight, s.valueTemperature, s.minimumImprovement].every(Number.isFinite)
       || s.coverageWeight < 0 || s.reachWeight < 0 || s.valueTemperature <= 0
       || s.minimumImprovement < 0 || s.minimumImprovement > 1) throw new Error("INVALID v4 search policy");
-    this.spec = portableClone(payload);
+    this.spec = structuredClone(payload);
     this.base = new ThreePlayerAI(linear(payload));
     this.responses = s.opponents.map((opponent) => new ThreePlayerAI(linear(opponent)));
     this.lastSearch = null;
   }
 
-  getTopMoves(engine, player = engine.currentPlayer, topN = 5) {
+  getTopMoves(engine, player = engine.currentPlayer, topN = 5, options = {}) {
     this.lastSearch = { simulations: 0, simulatedActions: 0, terminalLeaves: 0, elapsedMs: 0, evaluated: [] };
     if (engine.playerCount !== 3 || !["territory-v2", "territory-v3"].includes(engine.rulesVersion) || engine.currentPlayer !== player
       || engine.gridSize < 5 || engine.gridSize > 15) throw new Error("INVALID v4 game contract");
@@ -60,21 +59,29 @@ export class ThreePlayerSearchAI {
     const snapshot = saveState(engine), flag = engine._isReplayingBatch;
     engine._isReplayingBatch = true;
     const started = Date.now(), stats = { simulations: 0, simulatedActions: 0, terminalLeaves: 0 };
+    const timeout = Symbol("three-player-deadline");
+    const check = () => { if (Number.isFinite(options.deadline) && performance.now() >= options.deadline) throw timeout; };
+    let ranked = [];
     try {
-      const ranked = this.base.getTopMoves(engine, player, this.spec.search.rootWidth);
+      ranked = this.base.getTopMoves(engine, player, this.spec.search.rootWidth);
       if (!ranked.length) return [];
+      if (typeof options.onProgress === "function") options.onProgress(ranked[0]);
+      check();
       if (ranked.length === 1) {
         this.lastSearch = { ...stats, elapsedMs: Date.now() - started, evaluated: [], forcedMove: true };
         return ranked.slice(0, Math.max(0, Math.floor(topN)));
       }
       const evaluated = [];
       for (const move of ranked) {
+        check();
         const leaves = [];
         for (const opponent of this.responses) {
+          check();
           restoreState(engine, snapshot);
           if (!engine.playMove(move.point).success) throw new Error("INVALID v4 root action");
           stats.simulatedActions++;
           for (let ply = 0; ply < this.spec.search.rolloutPlies && !engine.gameOver; ply++) {
+            check();
             const policy = engine.currentPlayer === player ? this.base : opponent;
             const reply = policy.getTopMoves(engine, engine.currentPlayer, 1)[0]?.point ?? null;
             const result = reply ? engine.playMove(reply) : engine.skipTurn();
@@ -82,6 +89,7 @@ export class ThreePlayerSearchAI {
             stats.simulatedActions++;
           }
           const leaf = positionUtilityV4(engine, player, this.spec.search);
+          check();
           leaves.push(leaf); stats.simulations++; stats.terminalLeaves += Number(leaf.terminal);
         }
         evaluated.push({ point: [...move.point], baseScore: move.score,
@@ -96,8 +104,13 @@ export class ThreePlayerSearchAI {
       }
       const values = evaluated.map((move) => Math.exp(4 * move.score));
       const total = values.reduce((a, b) => a + b, 0);
-      this.lastSearch = { ...stats, elapsedMs: Date.now() - started, evaluated: portableClone(evaluated) };
+      this.lastSearch = { ...stats, elapsedMs: Date.now() - started, evaluated: structuredClone(evaluated) };
       return evaluated.map((move, i) => ({ ...move, prior: values[i] / total })).slice(0, Math.max(0, Math.floor(topN)));
+    } catch (error) {
+      if (error !== timeout) throw error;
+      this.lastSearch = { ...stats, elapsedMs: Date.now() - started, partial: true,
+        decisionSource: "base-policy-before-incomplete-rollout" };
+      return ranked.slice(0, Math.max(0, Math.floor(topN)));
     } finally { restoreState(engine, snapshot); engine._isReplayingBatch = flag; }
   }
 }

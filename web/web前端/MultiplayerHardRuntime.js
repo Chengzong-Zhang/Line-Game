@@ -1,11 +1,11 @@
 // Hard V2 application factory. Registration and qualification remain external.
-import { MultiplayerRolloutAI as Candidate } from "./MultiplayerHardRollout.js?v=20261026-allplatform1";
-import { HardDeadlineFallbackV2 } from "./MultiplayerHardFallback.js?v=20261026-allplatform1";
-import { isolatedSearchEngine, potentialMoves, probeMultiplayerReplyResilience } from "./MultiplayerSearch.js?v=20261026-allplatform1";
-import { compareCompletedReplyResilience } from "./MultiplayerHardValue.js?v=20261026-allplatform1";
-import { saveState, restoreState } from "./AIEngine.js?v=20261026-allplatform1";
-import { multiplayerClock as performance } from "./MultiplayerClock.js";
-import { portableClone } from "./PortableClone.js";
+import { MultiplayerRolloutAI as Candidate } from "./MultiplayerHardRollout.js?v=20261029-unified-r1";
+import { HardDeadlineFallbackV2 } from "./MultiplayerHardFallback.js?v=20261029-unified-r1";
+import { isolatedSearchEngine, potentialMoves, probeMultiplayerReplyResilience } from "./MultiplayerSearch.js?v=20261029-unified-r1";
+import { compareCompletedReplyResilience } from "./MultiplayerHardValue.js?v=20261029-unified-r1";
+import { saveState, restoreState } from "./AIEngine.js?v=20261029-unified-r1";
+import { multiplayerClock as performance } from "./MultiplayerClock.js?v=20261029-unified-r1";
+import { portableClone } from "./PortableClone.js?v=20261029-unified-r1";
 
 export const HARD_EXPERIMENT_OPTIONS = Object.freeze({ timeMs: 650, rolloutPlies: Object.freeze([12,24]),
   minimumImprovement: .02, candidateCap: null, allowPass: true, rootPriors: null });
@@ -305,14 +305,16 @@ export function createHardRuntimeV2(engine, medium) {
   });
   const ai = {
     ...HARD_EXPERIMENT_OPTIONS, lastSearch: null, fallbackPolicy: fallback,
-    getTopMoves(source, player = source.currentPlayer, topN = 5) {
-      const started = performance.now(), deadline = started + this.timeMs;
+    getTopMoves(source, player = source.currentPlayer, topN = 5, options = {}) {
+      const started = performance.now(), deadline = Math.min(started + this.timeMs,
+        Number.isFinite(options.deadline) ? options.deadline : Infinity);
       this.lastSearch = { algorithm: "hard-complete-next-opponent-resilience-v1", elapsedMs: 0,
         absoluteDeadline: deadline, fallbackChanged: false, partial: false, baselineComplete: false };
       if (source.gameOver || topN <= 0) return [];
       let search = null, tactical = null;
       try {
         const moves = fallback.getTopMoves(source, player, Math.max(1, topN), { deadline });
+        if (moves.length && typeof options.onProgress === "function") options.onProgress(moves[0]);
         const fallbackMs = performance.now() - started;
         if (performance.now() >= deadline) {
           this.lastSearch = { ...this.lastSearch, fallbackMs, usedFallback: true, timedOut: true,

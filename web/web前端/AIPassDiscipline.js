@@ -1,9 +1,9 @@
 // Product decision guard. A complete opponent-round witness is deliberately
 // not a deep Minimax label or a guarantee against later opponent rounds.
-import { GameEngine } from "./GameEngine.js?v=20261026-allplatform1";
-import { saveState, restoreState } from "./AIEngine.js?v=20261026-allplatform1";
-import { isolatedSearchEngine } from "./MultiplayerSearch.js?v=20261026-allplatform1";
-import { multiplayerClock } from "./MultiplayerClock.js?v=20261026-allplatform1";
+import { GameEngine } from "./GameEngine.js?v=20261029-unified-r1";
+import { saveState, restoreState } from "./AIEngine.js?v=20261029-unified-r1";
+import { isolatedSearchEngine } from "./MultiplayerSearch.js?v=20261029-unified-r1";
+import { multiplayerClock } from "./MultiplayerClock.js?v=20261029-unified-r1";
 
 export const PASS_DISCIPLINE_CONTRACT = Object.freeze({
   schema: "lifeline-ai-pass-discipline-v1",

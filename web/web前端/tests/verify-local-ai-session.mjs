@@ -51,13 +51,15 @@ const controller = Object.assign(Object.create(GameController.prototype), {
   stateChangeListener: app.handleStateChange,
 });
 const ruleState = () => JSON.stringify(serializeRuleState(controller.engine));
-function changeMode(mode) {
-  const previous = app.selectedAiMode.value;
-  app.selectedAiMode.value = mode;
-  for (const { source, callback } of watchers) {
-    if (Array.isArray(source) && source.includes(app.selectedAiMode)) callback(source.map((ref) => ref.value));
-    else if (source === app.selectedAiMode) callback(mode, previous);
-  }
+async function configure(blue, red, startPlayer = "BLACK") {
+  app.selectedPlayerCount.value = 2;
+  const isLab = choice => ["padded-cnn", "grid-gnn", "topology-gnn", "dqn", "ppo", "sac", "gail", "gan"].includes(choice?.choice);
+  app.updateLocalPlayer({ color: "BLACK", patch: blue, fromLab: isLab(blue) });
+  app.updateLocalPlayer({ color: "WHITE", patch: red, fromLab: isLab(red) });
+  app.selectedGridSize.value = 5;
+  app.selectedPlayerCount.value = 2;
+  app.selectedStartPlayer.value = startPlayer;
+  assert.equal(await app.startLocalMatch(), true);
 }
 function nextRequest() {
   const scheduled = [...timers].find(([, timer]) => timer.delay <= 400);
@@ -66,12 +68,20 @@ function nextRequest() {
   const worker = workers.at(-1);
   return { worker, message: worker.messages.at(-1) };
 }
-function reply({ worker, message }, point = controller.engine.getLegalMoves(message.aiPlayer)[0]?.point) {
+function reply({ worker, message }, point = controller.engine.getLegalMoves(message.aiPlayer)[0]?.point, modelId = message.modelId) {
+  if (message.strategy === "multiplayer") worker.onmessage({ data: {
+    type: "READY", requestId: message.requestId, strategy: message.strategy,
+    positionRevision: message.serializedState.positionRevision, rulesVersion: message.serializedState.rulesVersion,
+    protectionRule: message.serializedState.protectionRule, currentPlayer: message.serializedState.currentPlayer,
+    modelInfo: { id: message.modelId },
+  } });
   worker.onmessage({ data: {
-    type: "RESULT", requestId: message.requestId,
+    type: "RESULT", requestId: message.requestId, strategy: message.strategy,
     positionRevision: message.serializedState.positionRevision,
     rulesVersion: message.serializedState.rulesVersion,
+    protectionRule: message.serializedState.protectionRule,
     currentPlayer: message.serializedState.currentPlayer,
+    modelInfo: modelId ? { id: modelId } : null,
     moves: point ? [{ point }] : [{ type: "pass", point: null }],
   } });
 }
@@ -79,18 +89,72 @@ try {
   app.handleControllerReady(controller);
   assert.equal(await app.skipTutorial(), true);
   app.selectedHintEnabled.value = false;
-  changeMode("ai_duel");
+  assert.equal(app.localMatchStarted.value, false);
+  assert.equal(app.skipDisabled.value, true, "new games wait for Start");
+  const initial = ruleState();
+  app.updateLocalPlayer({ color: "BLACK", patch: { choice: "minimax", depth: 2 } });
+  app.updateLocalPlayer({ color: "WHITE", patch: { choice: "topology-gnn", version: "2026092203" } });
+  assert.equal(ruleState(), initial, "choosing players must preserve the board");
+  assert.equal([...timers.values()].some((timer) => timer.delay <= 400), false, "choosing AI must not start it");
+  await configure({ choice: "minimax", depth: 2 }, { choice: "topology-gnn", version: "2026092203" }, "WHITE");
   assert.equal(app.isLocalAiTurn(), true);
   assert.equal(app.skipDisabled.value, true);
+
+  const openingWhite = nextRequest();
+  assert.equal(openingWhite.message.aiPlayer, "WHITE");
+  assert.equal(openingWhite.message.modelId, "topology-gnn-transfer-v1-seed2026092203");
+  assert.equal(openingWhite.message.seed, 2026092203);
+  reply(openingWhite);
+
+  // A real Minimax RESULT with a deliberate PASS must reach GameController's
+  // canonical skip path even though legal placements remain.
+  const minimaxPass = nextRequest();
+  assert.equal(minimaxPass.message.aiPlayer, "BLACK");
+  assert.equal(minimaxPass.message.strategy, "minimax");
+  assert.ok([...timers.values()].some((timer) => timer.delay === 15000),
+    "two-player Worker requests must have a total timeout");
+  assert.ok(controller.engine.getLegalMoves("BLACK").length > 0,
+    "the local-session PASS witness must retain legal placements");
+  const passGridBefore = [...controller.engine.grid];
+  const passHistoryBefore = new Set(controller.engine.historyHashes);
+  const passTurnCountBefore = controller.engine.turnCount;
+  const passRevisionBefore = controller.engine.positionRevision;
+  reply(minimaxPass, null);
+  assert.deepEqual([...controller.engine.grid], passGridBefore,
+    "AI PASS must not place or remove a board point");
+  assert.deepEqual(controller.engine.historyHashes, passHistoryBefore,
+    "AI PASS must not fabricate a Superko placement hash");
+  assert.equal(controller.engine.turnCount, passTurnCountBefore,
+    "AI PASS must not increment placement turnCount");
+  assert.equal(controller.engine.positionRevision, passRevisionBefore + 1);
+  assert.equal(controller.engine.consecutiveSkips, 1);
+  assert.equal(controller.engine.currentPlayer, "WHITE");
+  assert.deepEqual(controller.lastAction, { type: "skip", player: "BLACK", point: null });
+  assert.deepEqual(app.localGameActions.value.at(-1), { type: "player_skip" },
+    "OnlineApp must persist the AI PASS as a real skip action");
+
   const players = new Set();
   for (let turn = 0; turn < 3; turn++) {
-    const request = nextRequest(); players.add(request.message.aiPlayer); reply(request);
+    const request = nextRequest(); players.add(request.message.aiPlayer);
+    if (request.message.aiPlayer === "WHITE") {
+      assert.equal(request.message.modelId, "topology-gnn-transfer-v1-seed2026092203");
+      assert.equal(request.message.seed, 2026092203);
+    } else {
+      assert.equal(request.message.strategy, "minimax");
+      assert.equal(request.message.depth, 2);
+    }
+    reply(request);
   }
   assert.equal(players.size, 2, "both sides must receive AI requests");
 
   const beforePause = ruleState();
   const pending = nextRequest();
   app.toggleAiDuel();
+  const restoredApp = App.setup();
+  assert.equal(restoredApp.aiDuelPaused.value, true, "refresh preserves pause");
+  assert.equal(restoredApp.localMatchStarted.value, true);
+  assert.equal(restoredApp.activeLocalPlayers.value.BLACK.depth, 2);
+  assert.equal(restoredApp.activeLocalPlayers.value.WHITE.version, "2026092203");
   reply(pending, [1, 0]);
   assert.equal(ruleState(), beforePause, "late results after pause must be rejected");
   assert.equal(app.skipDisabled.value, true, "paused AI matches do not accept human skip actions");
@@ -118,27 +182,222 @@ try {
   await app.handleReset();
   const resetState = ruleState();
   reply(beforeReset, [1, 0]);
+  beforeReset.worker.onerror({ message: "late error from replaced worker" });
   assert.equal(ruleState(), resetState, "reset must reject results from the old engine");
   const beforeSwitch = nextRequest();
-  changeMode("none");
+  app.updateLocalPlayer({ color: "BLACK", patch: { choice: "human" } });
+  app.updateLocalPlayer({ color: "WHITE", patch: { choice: "human" } });
   reply(beforeSwitch, [1, 0]);
   assert.equal(ruleState(), resetState, "switching to humans cancels outstanding AI results");
+  assert.equal(app.localSetupPending.value, false, "the active match remains playable while editing the next match");
+  assert.equal(app.localSettingsChanged.value, true, "the next-match draft remains visibly pending");
+  assert.equal(app.isLocalAiTurn(), true, "the current match keeps its active AI players until Start");
+  await app.startLocalMatch();
   assert.equal(app.isLocalAiTurn(), false);
+  assert.equal(app.skipDisabled.value, false);
 
-  changeMode("ai_duel");
-  for (let turn = 0; turn < 200 && !controller.engine.gameOver; turn++) reply(nextRequest());
+  await configure({ choice: "minimax", depth: 2 }, { choice: "minimax", depth: 4 });
+  let sameModelRequest = nextRequest();
+  assert.equal(sameModelRequest.message.depth, 2);
+  reply(sameModelRequest);
+  sameModelRequest = nextRequest();
+  assert.equal(sameModelRequest.message.depth, 4, "the same AI can have different difficulties");
+  const beforeSwap = ruleState();
+  app.swapLocalPlayers();
+  reply(sameModelRequest);
+  assert.equal(ruleState(), beforeSwap, "swap cancels pending results and preserves board");
+  assert.equal(app.selectedLocalPlayers.value.BLACK.depth, 4);
+  assert.equal(app.selectedLocalPlayers.value.WHITE.depth, 2);
+  assert.equal(app.selectedStartPlayer.value, "BLACK", "swap keeps the selected starting color");
+
+  await configure({ choice: "human" }, { choice: "minimax", depth: 2 }, "WHITE");
+  let singleAI = nextRequest();
+  assert.equal(singleAI.message.aiPlayer, "WHITE", "AI can move first as red");
+  reply(singleAI);
+  assert.equal(app.isLocalAiTurn(), false);
+  assert.equal(app.skipDisabled.value, false);
+  await configure({ choice: "minimax", depth: 2 }, { choice: "human" });
+  singleAI = nextRequest();
+  assert.equal(singleAI.message.aiPlayer, "BLACK", "AI can move first as blue");
+  reply(singleAI);
+  assert.equal(app.isLocalAiTurn(), false);
+  await configure({ choice: "human" }, { choice: "minimax", depth: 2 });
+  assert.equal([...timers.values()].some((timer) => timer.delay <= 400), false, "human first must wait for human input");
+  await app.handleSkip();
+  singleAI = nextRequest();
+  assert.equal(singleAI.message.aiPlayer, "WHITE", "human action schedules the AI opponent");
+
+  await configure({ choice: "dqn" }, { choice: "ppo" }, "WHITE");
+  const failed = nextRequest();
+  const beforeFailure = ruleState();
+  const originalConsoleError = console.error;
+  console.error = () => {};
+  try {
+    failed.worker.onmessage({ data: { type: "ERROR", requestId: failed.message.requestId,
+      positionRevision: failed.message.serializedState.positionRevision, rulesVersion: failed.message.serializedState.rulesVersion,
+      protectionRule: failed.message.serializedState.protectionRule,
+      currentPlayer: failed.message.aiPlayer, message: "synthetic unavailable model" } });
+  } finally { console.error = originalConsoleError; }
+  assert.equal(ruleState(), beforeFailure, "model loading failure preserves the position");
+  assert.equal(app.activeLocalPlayers.value.BLACK.choice, "dqn", "fallback must affect only the failed side");
+  assert.equal(app.activeLocalPlayers.value.WHITE.choice, "minimax");
+  assert.equal(nextRequest().message.strategy, "minimax");
+
+  await configure({ choice: "minimax", depth: 2 }, { choice: "human" });
+  const illegal = nextRequest();
+  const beforeIllegal = ruleState();
+  console.error = () => {};
+  try { reply(illegal, [99, 99]); } finally { console.error = originalConsoleError; }
+  assert.equal(ruleState(), beforeIllegal, "illegal AI results must not change the board");
+  assert.equal(app.aiDuelPaused.value, true, "invalid results stop automatic retries");
+  assert.equal([...timers.values()].some((timer) => timer.delay <= 400), false);
+
+  await configure({ choice: "minimax", depth: 2 }, { choice: "human" });
+  const rejectedPass = nextRequest();
+  const beforeRejectedPass = ruleState();
+  const originalSkipTurn = controller.skipTurn;
+  controller.skipTurn = () => ({ success: false, reason: "INJECTED_PASS_REJECTION",
+    state: controller.getGameState() });
+  console.error = () => {};
+  try { reply(rejectedPass, null); }
+  finally {
+    console.error = originalConsoleError;
+    controller.skipTurn = originalSkipTurn;
+  }
+  assert.equal(ruleState(), beforeRejectedPass, "a rejected AI PASS must preserve the position");
+  assert.equal(app.aiDuelPaused.value, true, "a rejected AI PASS must stop automatic retries");
+  assert.equal([...timers.values()].some((timer) => timer.delay <= 400), false);
+
+  app.selectedPlayerCount.value = 3;
+  app.updateLocalPlayer({ color: "BLACK", patch: { choice: "human" } });
+  app.updateLocalPlayer({ color: "WHITE", patch: { choice: "ai-medium" } });
+  app.updateLocalPlayer({ color: "PURPLE", patch: { choice: "ai-medium" } });
+  app.selectedStartPlayer.value = "WHITE";
+  await app.startLocalMatch();
+  assert.equal(app.selectedAiMode.value, "mixed");
+  const firstThree = nextRequest();
+  assert.equal(firstThree.message.strategy, "multiplayer");
+  assert.equal(firstThree.message.modelId, "multiplayer-medium-v1");
+  assert.equal(firstThree.message.aiPlayer, "WHITE");
+  reply(firstThree);
+  const secondThree = nextRequest();
+  assert.equal(secondThree.message.aiPlayer, "PURPLE", "a second AI must act without human intervention");
+  reply(secondThree);
+  assert.equal(controller.engine.currentPlayer, "BLACK");
+  assert.equal(app.isLocalAiTurn(), false);
+  assert.equal(app.skipDisabled.value, false);
+  app.toggleAiDuel();
+  const restoredThree = App.setup();
+  assert.equal(restoredThree.activeLocalPlayers.value.PURPLE.choice, "ai-medium");
+  assert.equal(restoredThree.aiDuelPaused.value, true);
+  app.toggleAiDuel();
+  await app.handleSkip();
+  const wrongThree = nextRequest();
+  const beforeWrongModel = ruleState();
+  console.error = () => {};
+  try { reply(wrongThree, undefined, "unexpected-three-player-model"); }
+  finally { console.error = originalConsoleError; }
+  assert.equal(ruleState(), beforeWrongModel, "a different three-player model cannot silently supply a move");
+  assert.equal(app.aiDuelPaused.value, true, "model identity mismatch pauses the match");
+  assert.equal(app.activeLocalPlayers.value.WHITE.choice, "ai-medium", "identity failure preserves the selected strategy");
+  app.toggleAiDuel();
+  const timedOut = nextRequest();
+  const deadline = [...timers].find(([, timer]) => timer.delay === 15000);
+  assert.ok(deadline, "three-player inference must have a bounded timeout");
+  timers.delete(deadline[0]); deadline[1].callback();
+  const beforeTimeoutReply = ruleState();
+  reply(timedOut);
+  assert.equal(ruleState(), beforeTimeoutReply, "late result after timeout is ignored");
+  assert.equal(app.aiDuelPaused.value, true);
+  app.toggleAiDuel();
+  assert.equal(nextRequest().message.strategy, "multiplayer", "retry preserves the selected medium tier");
+  for (const color of ["BLACK", "WHITE", "PURPLE"]) app.updateLocalPlayer({ color, patch: { choice: "human" } });
+  await app.startLocalMatch();
+  assert.equal(app.selectedAiMode.value, "none");
+  assert.equal(app.skipDisabled.value, false, "three-player human matches remain playable");
+
+  await configure({ choice: "dqn" }, { choice: "ppo" }, "WHITE");
+  for (let turn = 0; turn < 200 && !controller.engine.gameOver; turn++) {
+    const request = nextRequest();
+    assert.equal(request.message.modelId, request.message.aiPlayer === "BLACK" ? "dqn-all-sizes-e2000" : "ppo-all-sizes-e2000");
+    reply(request);
+  }
   assert.equal(controller.engine.gameOver, true);
-  const uploadDeadline = performance.now() + 5000;
-  while (uploads.length === 0 && performance.now() < uploadDeadline) await new Promise((done) => setImmediate(done));
-  assert.equal(uploads.length, 1, `one complete AI match must reach the contribution queue: ${JSON.stringify(app.contributionState.value)}`);
-  assert.ok(uploads[0].replay.terminal);
-  assert.deepEqual(uploads[0].context.actors, {
-    BLACK: { kind: "ai", strategy: "minimax", depth: 3 },
-    WHITE: { kind: "ai", strategy: "minimax", depth: 3 },
-  });
-  assert.equal(uploads[0].context.mixedProfiles, false);
-  assert.equal(uploads[0].context.hintsEnabled, false);
-  console.log("verify-local-ai-session: PASS (both turns, pause/resume, late results, replay restoration, reset/mode cancellation, complete-game upload and AI labels)");
+  assert.equal(controller.engine.protectionRule, "duel-first-unprotected-v1");
+  await new Promise((done) => setImmediate(done));
+  assert.equal(uploads.length, 0, "new-rule games are excluded from the legacy training inbox");
+  // Live budget protocol: READY arms the decision clock and a placement is
+  // reusable only while the exact request, engine, history and actor remain.
+  const progressMessage = ({ message }, type, point) => ({ type, requestId: message.requestId,
+    strategy: message.strategy, positionRevision: message.serializedState.positionRevision,
+    rulesVersion: message.serializedState.rulesVersion, protectionRule: message.serializedState.protectionRule,
+    currentPlayer: message.aiPlayer, modelInfo: message.modelId ? { id: message.modelId } : null,
+    ...(type === "PROGRESS" ? { moves: [{ type: "move", point }],
+      searchInfo: { fallbackReason: "first-legal-action-not-policy", complete: false } } : {}) });
+  const beginProgress = (request) => {
+    assert.equal(request.message.enableProgress, true);
+    request.worker.onmessage({ data: progressMessage(request, "READY") });
+    const point = controller.engine.getLegalMoves(request.message.aiPlayer)[0].point;
+    request.worker.onmessage({ data: progressMessage(request, "PROGRESS", point) });
+    const timeout = [...timers].find(([, timer]) => timer.delay === 3300);
+    assert.ok(timeout, "READY starts the bounded decision clock");
+    return { point, timeout };
+  };
+  await configure({ choice: "minimax", depth: 4 }, { choice: "human" });
+  let budgetRequest = nextRequest();
+  let progress = beginProgress(budgetRequest), beforeBudgetRevision = controller.engine.positionRevision;
+  timers.delete(progress.timeout[0]); progress.timeout[1].callback();
+  assert.equal(controller.engine.positionRevision, beforeBudgetRevision + 1, "timeout applies a verified legal fallback");
+  assert.deepEqual(controller.lastAction.point, progress.point);
+  assert.match(app.localGameResumeNotice.value, /预算|budget/i, "fallback is disclosed as incomplete");
+  assert.equal(budgetRequest.worker.terminated, true);
+  const afterBudget = ruleState(); reply(budgetRequest, progress.point);
+  assert.equal(ruleState(), afterBudget, "a late result cannot apply after fallback");
+
+  await configure({ choice: "minimax", depth: 4 }, { choice: "human" });
+  budgetRequest = nextRequest(); progress = beginProgress(budgetRequest);
+  controller.engine.historyHashes.add("injected-different-history");
+  const changedHistory = ruleState();
+  timers.delete(progress.timeout[0]); progress.timeout[1].callback();
+  assert.equal(ruleState(), changedHistory, "history mismatch rejects an otherwise current progress result");
+  assert.equal(app.aiDuelPaused.value, true);
+
+  await configure({ choice: "minimax", depth: 4 }, { choice: "human" });
+  budgetRequest = nextRequest(); progress = beginProgress(budgetRequest);
+  await app.handleReset();
+  const resetAfterProgress = ruleState();
+  budgetRequest.worker.onmessage({ data: progressMessage(budgetRequest, "PROGRESS", progress.point) });
+  progress.timeout[1].callback();
+  assert.equal(ruleState(), resetAfterProgress, "reset cancels the old progress and deadline");
+  app.selectedUndoEnabled.value = true;
+  await configure({ choice: "human" }, { choice: "minimax", depth: 4 });
+  assert.equal(controller._applyMove(controller.engine.getLegalMoves()[0].point).success, true);
+  budgetRequest = nextRequest(); progress = beginProgress(budgetRequest);
+  assert.equal(app.requestUndo(), true, "a human move may be undone while AI thinks");
+  const undoneAfterProgress = ruleState();
+  budgetRequest.worker.onmessage({ data: progressMessage(budgetRequest, "PROGRESS", progress.point) });
+  progress.timeout[1].callback();
+  assert.equal(ruleState(), undoneAfterProgress, "undo cancels old progress and deadline");
+  await configure({ choice: "minimax", depth: 4 }, { choice: "minimax", depth: 2 });
+  const beforeReplayMove = nextRequest(); reply(beforeReplayMove);
+  budgetRequest = nextRequest(); progress = beginProgress(budgetRequest);
+  await app.handleStartReplay();
+  assert.equal(app.replayMode.value, true);
+  const replayAfterProgress = ruleState();
+  budgetRequest.worker.onmessage({ data: progressMessage(budgetRequest, "PROGRESS", progress.point) });
+  progress.timeout[1].callback();
+  assert.equal(ruleState(), replayAfterProgress, "entering replay cancels old progress");
+  app.handleExitReplay();
+  await configure({ choice: "minimax", depth: 4 }, { choice: "human" });
+  budgetRequest = nextRequest(); progress = beginProgress(budgetRequest);
+  app.roomStatus.value = "waiting";
+  const joinedAfterProgress = ruleState();
+  budgetRequest.worker.onmessage({ data: progressMessage(budgetRequest, "PROGRESS", progress.point) });
+  progress.timeout[1].callback();
+  assert.equal(ruleState(), joinedAfterProgress, "leaving solo play rejects old progress");
+  app.roomStatus.value = "solo";
+  console.log("PASS live AI budget fallback, history mismatch, reset, undo, replay, room transition and late result");
+  console.log("verify-local-ai-session: PASS (explicit start, AI PASS application, red first, independent models/depths/seeds, saved roles/pause, swap cancellation, replay restoration, reset, new-rule contribution exclusion)");
 } finally {
   for (const unmount of unmounts) unmount();
 }

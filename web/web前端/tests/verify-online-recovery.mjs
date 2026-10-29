@@ -49,11 +49,16 @@ const territoryWorkerSessionStubUrl = asDataUrl(`
   }
   export function applyTerritoryWorkerResult() { return false; }
 `);
+const topologyStateCodecStubUrl = asDataUrl(`
+  export function decodeTopologyState() {
+    throw new Error("Topology state decoding is outside this legacy controller harness");
+  }
+`);
 const controllerSource = await readFrontendSource("GameController.js");
 const rewrittenControllerSource = controllerSource
   .replace(
-    /^import GameEngine, \{ Player, TerritoryRulesVersion \} from "\.\/GameEngine\.js\?v=[^"]+";/m,
-    `import GameEngine, { Player, TerritoryRulesVersion } from "${engineUrl}";`,
+    /^import (GameEngine, \{[^}]+\}) from "\.\/GameEngine\.js\?v=[^"]+";/m,
+    `import $1 from "${engineUrl}";`,
   )
   .replace(
     /^import Renderer from "\.\/Renderer\.js\?v=[^"]+";/m,
@@ -68,8 +73,16 @@ const rewrittenControllerSource = controllerSource
     `import { serializeEngineState } from "${aiStateProtocolStubUrl}";`,
   )
   .replace(
-    /^import \{\r?\n  OneShotTerritoryWorker,\r?\n  applyTerritoryWorkerResult,\r?\n\} from "\.\/TerritoryWorkerSession\.js\?v=[^"]+";/m,
+    /^import\s+\{\s*(?:OneShotTerritoryWorker,\s*)?applyTerritoryWorkerResult,?\s*\}\s+from "\.\/TerritoryWorkerSession\.js\?v=[^"]+";/m,
     `import { OneShotTerritoryWorker, applyTerritoryWorkerResult } from "${territoryWorkerSessionStubUrl}";`,
+  )
+  .replace(
+    /^import TerritoryWorkerPool from "\.\/TerritoryWorkerPool\.js\?v=[^"]+";/m,
+    `import TerritoryWorkerPool from "${new URL("TerritoryWorkerPool.js", frontendRoot).href}";`,
+  )
+  .replace(
+    /^import \{ decodeTopologyState \} from "\.\/TopologyStateCodec\.js\?v=[^"]+";/m,
+    `import { decodeTopologyState } from "${topologyStateCodecStubUrl}";`,
   );
 assert.notEqual(rewrittenControllerSource, controllerSource, "controller imports must be rewritten");
 const { GameController } = await import(asDataUrl(rewrittenControllerSource));
@@ -125,7 +138,7 @@ function createControllerProbe(engineOptions) {
 }
 
 function snapshotWithoutRenderFields(snapshot) {
-  const { renderEpoch, lastAction, inspectionOverlay, ...rest } = snapshot;
+  const { renderEpoch, lastAction, lastMoves, inspectionOverlay, renderTerritories, ...rest } = snapshot;
   return rest;
 }
 
@@ -341,9 +354,10 @@ assert.equal(successProbe.metrics.renders, 1);
 assert.equal(successProbe.metrics.stateChanges, 1);
 assert.equal(successProbe.metrics.errors.length, 0);
 assert.equal(successProbe.controller._engineEpoch, 5);
-assert.deepEqual(successProbe.controller.options.engine, restoredOptions);
+assert.deepEqual(successProbe.controller.options.engine, { ...restoredOptions, protectionRule: 'symmetric-v1' });
 assert.deepEqual(successProbe.controller.lastAction, referenceLastAction);
 assert.deepEqual(successResult.state.snapshot, referenceSnapshot);
+assert.equal(successProbe.metrics.lastRenderedSnapshot.renderTerritories, null, "settled recovery cannot carry a partial territory preview");
 assert.deepEqual(
   snapshotWithoutRenderFields(successProbe.metrics.lastRenderedSnapshot),
   referenceSnapshot,

@@ -1,8 +1,4 @@
-// Source: frozen deployed r4 ThreePlayerAI.js, SHA-256 edfa92c657fa28a617f18586191a09686336af15843a8423a07b863743e0381b.
-// Cache/URL, portable clone and territory-v3 compatibility deltas are declared by the Worker provenance test.
-// Candidate features, policy scoring, ordering and model validation remain unchanged.
-import { fastTerritoryBFS, restoreState, saveState } from "./AIEngine.js?v=20261026-allplatform1";
-import { portableClone } from "./PortableClone.js";
+import { fastTerritoryBFS, restoreState, saveState } from "./AIEngine.js?v=20261029-unified-r1";
 
 export const THREE_PLAYER_MODEL_ID = "three-player-policy-v1";
 export const THREE_PLAYER_FEATURES = Object.freeze([
@@ -11,14 +7,8 @@ export const THREE_PLAYER_FEATURES = Object.freeze([
   "own_coverage_gain", "attack", "own_line", "distance_from_home", "centrality",
   "own_frontier", "opponent_frontier_lead",
 ]);
+const MODEL_URL = new URL("./assets/research-ai/three-player-policy-v1.json?v=20261020-three1", import.meta.url);
 let modelPromise = null;
-
-function modelUrl() {
-  if (typeof URL !== "function" || typeof import.meta.url !== "string") {
-    throw new Error("三人 AI 资源仅可在支持模块 URL 的 Web 环境中加载。");
-  }
-  return new URL("./assets/research-ai/three-player-policy-v1.json?v=20261025-room1", import.meta.url);
-}
 
 function counts(engine, player) {
   const states = engine._getPlayerStates(player);
@@ -101,7 +91,7 @@ export function createThreePlayerModel(payload) {
       || !Number.isInteger(payload.training?.two_player_samples) || payload.training.two_player_samples < 1) {
     throw new Error("三人 AI 模型格式或训练来源无效。");
   }
-  const spec = portableClone(payload);
+  const spec = structuredClone(payload);
   return {
     spec,
     score(features) {
@@ -113,7 +103,7 @@ export function createThreePlayerModel(payload) {
 export async function loadThreePlayerModel(id = THREE_PLAYER_MODEL_ID) {
   if (id !== THREE_PLAYER_MODEL_ID) throw new Error(`未找到三人 AI 模型：${id}`);
   if (!modelPromise) modelPromise = (async () => {
-    const response = await fetch(modelUrl());
+    const response = await fetch(MODEL_URL);
     if (!response.ok) throw new Error(`无法加载三人 AI 模型（HTTP ${response.status}）。`);
     return createThreePlayerModel(await response.json());
   })().catch((error) => { modelPromise = null; throw error; });

@@ -1,0 +1,33 @@
+import assert from 'node:assert/strict';
+import { Renderer } from '../Renderer.js';
+import { PointState, isBoardPoint } from '../GameEngine.js';
+const calls=[];
+const ctx=new Proxy({}, {get:(o,k)=>o[k] ?? ((...args)=>calls.push([k,...args])),set:(o,k,v)=>(o[k]=v,true)});
+const renderer=Object.assign(Object.create(Renderer.prototype),{ctx,_getPlayerStyle:(p,k)=>`${p}-${k}`,_gridToPixel:(x,y)=>[x*10,y*10],theme:{legalMoveFill:'green',legalMoveStroke:'darkgreen'}});
+for (const shape of ['triangle','hexagon']) {
+  const layout={gridSize:7,playerCount:2,boardShape:shape,scale:10,pointRadius:5,guideLineWidth:1,lineWidth:3,legalMoveRadius:3};
+  const root=shape==='triangle'?[0,0]:[6,0];
+  assert.ok(isBoardPoint(root,7,2,shape));
+  calls.length=0;
+  renderer._drawProtectionZones({initialPositions:{BLACK:root}},layout);
+  const valid=[[1,0],[-1,0],[0,1],[0,-1],[1,-1],[-1,1]].map(([x,y])=>[root[0]+x,root[1]+y]).filter(p=>isBoardPoint(p,7,2,shape));
+  assert.equal(calls.filter(c=>c[0]==='arc').length,valid.length,`${shape} draws each valid protection point`);
+  assert.ok(calls.some(c=>c[0]==='setLineDash' && c[1].join(',')==='3,3'));
+  calls.length=0;
+  renderer._drawLegalMoves({legalMoves:[valid[0]]},layout);
+  assert.equal(calls.filter(c=>c[0]==='lineTo').length,3,`${shape} legal move remains a diamond`);
+  calls.length=0;
+  renderer._drawLastAction({boardMatrix:[[PointState.BLACK_NODE, PointState.EMPTY]],lastMoves:{BLACK:[0,0],WHITE:[1,0]}},layout);
+  assert.equal(calls.filter(c=>c[0]==='arc').length,3,'surviving latest node gets glow, ring and white center; captured node gets none');
+  calls.length=0;
+  renderer._drawLastAction({boardMatrix:[[PointState.BLACK_NODE]],lastMoves:{}},layout);
+  assert.equal(calls.filter(c=>c[0]==='arc').length,0,'starting node is not automatically highlighted');
+}
+const projected={byCanonicalVertex:new Map([['v',[{x:0,y:0}]]])};
+const layout={pointRadius:5,lineWidth:3};
+calls.length=0;
+renderer._drawTopologyLastAction({boardStates:{v:PointState.EMPTY},lastMoves:{BLACK:'v'}},projected,layout);
+assert.equal(calls.filter(c=>c[0]==='arc').length,0,'captured topology node gets no latest marker');
+renderer._drawTopologyLastAction({boardStates:{v:PointState.BLACK_NODE},lastMoves:{BLACK:'v'}},projected,layout);
+assert.equal(calls.filter(c=>c[0]==='arc').length,3);
+console.log('PASS: ordinary protection rings, legal diamonds and surviving latest markers');

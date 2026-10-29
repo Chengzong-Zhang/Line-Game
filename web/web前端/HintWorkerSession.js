@@ -1,7 +1,7 @@
 import {
   captureWorkerRequest,
   isWorkerResultForRequest,
-} from "./AIStateProtocol.js?v=20261020-three1";
+} from "./AIStateProtocol.js?v=20261029-unified-r1";
 
 function noop() {}
 
@@ -22,8 +22,21 @@ function isGridPoint(point) {
     && Number.isInteger(point[1]);
 }
 
+function isMovePosition(point) {
+  return isGridPoint(point) || (typeof point === "string" && point.length > 0);
+}
+
 function samePoint(left, right) {
+  if (!isMovePosition(left) || !isMovePosition(right)) return false;
+  if (typeof left === "string" || typeof right === "string") return left === right;
   return left[0] === right[0] && left[1] === right[1];
+}
+
+function movePosition(move) {
+  if (typeof move === "string") return move;
+  if (!move || typeof move !== "object") return null;
+  const candidate = move.vertexId ?? move.point;
+  return isMovePosition(candidate) ? candidate : null;
 }
 
 export function applyHintWorkerResult({
@@ -32,16 +45,13 @@ export function applyHintWorkerResult({
   remainingCount,
   renderHint,
 }) {
-  const point = moves?.[0]?.point;
-  if (!isGridPoint(point)) {
+  const point = movePosition(moves?.[0]);
+  if (!isMovePosition(point)) {
     return { applied: false, reason: "NO_MOVE", nextRemainingCount: remainingCount };
   }
 
   const legal = Array.isArray(legalMoves)
-    && legalMoves.some((move) => {
-      const legalPoint = Array.isArray(move) ? move : move?.point;
-      return isGridPoint(legalPoint) && samePoint(legalPoint, point);
-    });
+    && legalMoves.some((move) => samePoint(movePosition(move), point));
   if (!legal) {
     return { applied: false, reason: "ILLEGAL_MOVE", nextRemainingCount: remainingCount };
   }
@@ -52,7 +62,7 @@ export function applyHintWorkerResult({
     throw new TypeError("renderHint must be a function.");
   }
 
-  const renderedPoint = [...point];
+  const renderedPoint = typeof point === "string" ? point : [...point];
   renderHint(renderedPoint);
   return {
     applied: true,

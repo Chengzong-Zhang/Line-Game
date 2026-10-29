@@ -1,12 +1,13 @@
-import { compileBoard } from "./BoardCompiler.js?v=20261027-topology-multistart-release1";
-import { compareStableIdentifiers, stableStringify } from "./BoardDefinition.js?v=20261027-topology-multistart-release1";
-import { enumerateConnections } from "./BoardPaths.js?v=20261027-topology-multistart-release1";
-import { computeTerritory } from "./SurfaceTerritory.js?v=20261027-topology-multistart-release1";
+import { compileBoard } from "./BoardCompiler.js?v=20261029-unified-r1";
+import { compareStableIdentifiers, stableStringify } from "./BoardDefinition.js?v=20261029-unified-r1";
+import { enumerateConnections, physicalPathKey } from "./BoardPaths.js?v=20261029-unified-r1";
+import { computeTerritory } from "./SurfaceTerritory.js?v=20261029-unified-r1";
+import { topologyStartingRoots, topologyStartingState } from "./TopologyStartingPoints.js?v=20261029-unified-r1";
 import {
   decodeTopologyState,
   encodeTopologyState,
   TOPOLOGY_RULE_STATE_VERSION,
-} from "./TopologyStateCodec.js?v=20261027-topology-multistart-release1";
+} from "./TopologyStateCodec.js?v=20261029-unified-r1";
 
 /*
  * The legacy GameEngine is deliberately coordinate-first: its triangle and
@@ -43,6 +44,19 @@ function sameSeamCrossings(left, right) {
     && left.every((crossing, index) => JSON.stringify(crossing) === JSON.stringify(right[index]));
 }
 
+function samePhysicalPath(left, right) {
+  const forward = sameStringArray(left.vertices, right.vertices);
+  const reverse = sameStringArray(left.vertices, [...right.vertices].reverse());
+  if (!forward && !reverse) return false;
+  if (!sameStringArray(sorted(left.edgeOccurrences), sorted(right.edgeOccurrences))) return false;
+  const seamKey = (crossing) => [
+    [crossing.fromEdgeOccurrenceId, crossing.sourceVertexId].join("@"),
+    [crossing.toEdgeOccurrenceId, crossing.targetVertexId].join("@"),
+  ].sort().join("|");
+  return sameStringArray(sorted((left.seamCrossings ?? []).map(seamKey)),
+    sorted((right.seamCrossings ?? []).map(seamKey)));
+}
+
 function isExactCompiledConnection(left, right) {
   return left.pathId === right.pathId
     && left.startVertexId === right.startVertexId
@@ -61,7 +75,7 @@ function assertExactCompiledConnection(board, path) {
     // nodes and paths must not change the geometric identity of that ray.
     candidates = enumerateConnections(board, {
       coverageByPlayer: { [path.owner]: [path.endVertexId] },
-    }, path.startVertexId, path.owner);
+    }, path.startVertexId, path.owner, { geometryOnly: true });
   } catch (error) {
     throw topologyError("INVALID_LOGIC_PATH", path.pathId + ": " + (error?.code ?? error?.message ?? "cannot trace"));
   }
@@ -75,18 +89,6 @@ const topologyError = (code, detail = "") => {
   error.code = code;
   return error;
 };
-
-function assertClassicTopologyRoots(options = {}) {
-  const rootMode = options.rootMode ?? "classic";
-  const rootRulesVersion = options.rootRulesVersion ?? "root-v1";
-  const hasInitialRoots = Object.hasOwn(options, "initialRoots");
-  if (rootMode !== "classic" || rootRulesVersion !== "root-v1" || hasInitialRoots) {
-    throw topologyError(
-      "TOPOLOGY_ROOT_MODE_UNSUPPORTED",
-      "Topology boards support only classic root-v1 mode without initialRoots.",
-    );
-  }
-}
 
 const sorted = (values) => [...values].sort((left, right) =>
   compareStableIdentifiers(String(left), String(right)));
@@ -142,13 +144,17 @@ function selectInitialPositions(board, players, requested, aliases) {
   };
 
   for (const player of players) {
-    const value = requested?.[player] ?? board.startingVertices?.[player];
+    const value = requested?.[player] ?? board.startingRoots?.[player] ?? board.startingVertices?.[player];
     if (value == null) continue;
-    const canonicalVertexId = resolve(value);
-    if (!canonicalVertexId) throw topologyError("UNKNOWN_START_VERTEX", player);
-    if (claimed.has(canonicalVertexId)) throw topologyError("DUPLICATE_START_VERTEX", player);
-    starts[player] = canonicalVertexId;
-    claimed.add(canonicalVertexId);
+    const values = Array.isArray(value) && !(value.length === 2 && value.every(Number.isInteger)) ? value : [value];
+    if (!values.length || values.length > 6) throw topologyError("INVALID_START_ROOT_COUNT", player);
+    starts[player] = values.map((root) => {
+      const canonicalVertexId = resolve(root);
+      if (!canonicalVertexId) throw topologyError("UNKNOWN_START_VERTEX", player);
+      if (claimed.has(canonicalVertexId)) throw topologyError("DUPLICATE_START_VERTEX", player);
+      claimed.add(canonicalVertexId);
+      return canonicalVertexId;
+    }).sort(compareStableIdentifiers);
   }
 
   const candidates = sorted(board.sampleIds);
@@ -157,7 +163,7 @@ function selectInitialPositions(board, players, requested, aliases) {
     const available = candidates.filter((id) => !claimed.has(id));
     if (!available.length) throw topologyError("INSUFFICIENT_START_VERTICES");
     if (!claimed.size) {
-      starts[player] = available[0];
+      starts[player] = [available[0]];
       claimed.add(available[0]);
       continue;
     }
@@ -172,7 +178,7 @@ function selectInitialPositions(board, players, requested, aliases) {
         bestDistance = minimumDistance;
       }
     }
-    starts[player] = best;
+    starts[player] = [best];
     claimed.add(best);
   }
   return starts;
@@ -191,17 +197,20 @@ function coordinateAliasesFor(board) {
 }
 
 function compiledBoardWithStarts(board, starts) {
-  const current = board.startingVertices ?? {};
+  const current = topologyStartingRoots(board);
   const same = Object.keys(current).length === Object.keys(starts).length
-    && Object.entries(starts).every(([player, vertexId]) => current[player] === vertexId);
+    && Object.entries(starts).every(([player, roots]) => stableStringify(current[player]) === stableStringify(roots));
   if (same) return board;
   const sourceByCanonical = new Map(board.canonicalVertices.map((vertex) =>
     [vertex.id, vertex.sourceVertexIds[0]]));
   const definition = cloneJson(board.definition);
-  definition.startingVertices = Object.fromEntries(Object.entries(starts).map(([player, canonicalVertexId]) => {
-    const source = sourceByCanonical.get(canonicalVertexId);
-    if (!source) throw topologyError("UNKNOWN_START_VERTEX", canonicalVertexId);
-    return [player, source];
+  definition.startingVertices = Object.fromEntries(Object.entries(starts).map(([player, roots]) => {
+    const sources = roots.map((canonicalVertexId) => {
+      const source = sourceByCanonical.get(canonicalVertexId);
+      if (!source) throw topologyError("UNKNOWN_START_VERTEX", canonicalVertexId);
+      return source;
+    });
+    return [player, sources.length === 1 ? sources[0] : sources];
   }));
   const compiled = compileBoard(definition);
   if (!compiled.ok) {
@@ -268,6 +277,11 @@ function buildTopologyViewBoard(board) {
     pointCopies,
     realBoundarySegments,
     seamPairs,
+    faces: board.definition.faces.map((face) => ({
+      id: face.id,
+      copyIds: face.vertices.map(copyIdFor),
+      canonicalVertexIds: face.vertices.map((id) => board.rawVertexToCanonical[id]),
+    })),
     // Every occurrence is local to one chart and is safe to use as a guide
     // edge.  Paired occurrences remain visually separated at seams.
     displayEdges: board.edgeOccurrences.map((occurrence) => ({
@@ -286,7 +300,6 @@ function attachGameEnginePrototype(instance, basePrototype) {
 
 export class TopologyGameEngine {
   constructor(options, runtime) {
-    assertClassicTopologyRoots(options);
     attachGameEnginePrototype(this, runtime.basePrototype);
     this._runtime = runtime;
     this.compiledBoard = normalizeCompiledBoard(options);
@@ -326,12 +339,13 @@ export class TopologyGameEngine {
     this._coordinateAliases = coordinateAliasesFor(this.compiledBoard);
     this.hasCustomInitialPositions = options.initialPositions != null;
     this.initialPositions = { ...this.compiledBoard.startingVertices };
+    this.initialRoots = topologyStartingRoots(this.compiledBoard);
 
     this.grid = new Map(this.validPositions.map((id) => [id, runtime.pointState.EMPTY]));
     this.edges = Object.fromEntries(this.activePlayers.map((player) => [player, new Set()]));
     this.topologyPaths = Object.fromEntries(this.activePlayers.map((player) => [player, new Map()]));
     for (const player of this.activePlayers) {
-      this._setState(this.initialPositions[player], this._getPlayerStates(player).node);
+      for (const root of this.initialRoots[player]) this._setState(root, this._getPlayerStates(player).node);
     }
 
     this.historyHashes = new Set();
@@ -373,6 +387,10 @@ export class TopologyGameEngine {
 
   _getInitialPosition(player) {
     return this.initialPositions[player];
+  }
+
+  _getInitialPositions(player) {
+    return [...this.initialRoots[player]];
   }
 
   _getState(point) {
@@ -422,10 +440,7 @@ export class TopologyGameEngine {
     const start = this._canonicalId(pointA);
     const end = this._canonicalId(pointB);
     if (!start || !end || start === end) return false;
-    const coverageByPlayer = this._coverageByPlayer(start);
-    coverageByPlayer.BLACK ??= [];
-    if (!coverageByPlayer.BLACK.includes(end)) coverageByPlayer.BLACK.push(end);
-    return enumerateConnections(this.compiledBoard, { coverageByPlayer }, start, "BLACK")
+    return enumerateConnections(this.compiledBoard, { coverageByPlayer: { BLACK: [end] } }, start, "BLACK")
       .some((connection) => connection.endVertexId === end);
   }
 
@@ -452,9 +467,12 @@ export class TopologyGameEngine {
     const end = this._canonicalId(pointB);
     if (!start || !end || start === end) return false;
     const coverageByPlayer = this._coverageByPlayer(start);
+    for (const owner of this.activePlayers) {
+      coverageByPlayer[owner] = coverageByPlayer[owner].filter((id) => id !== end);
+    }
     coverageByPlayer[player] ??= [];
     if (!coverageByPlayer[player].includes(end)) coverageByPlayer[player].push(end);
-    return enumerateConnections(this.compiledBoard, { coverageByPlayer }, start, player)
+    return enumerateConnections(this.compiledBoard, { coverageByPlayer, nodesByPlayer: { [player]: [end] } }, start, player)
       .some((connection) => connection.endVertexId === end);
   }
 
@@ -493,7 +511,7 @@ export class TopologyGameEngine {
 
   _isInProtectionZone(vertexId, player) {
     return this._getOpponents(player).some((opponent) =>
-      this.getAdjacentPositions(this.initialPositions[opponent]).includes(vertexId));
+      this.initialRoots[opponent].some((root) => this.getAdjacentPositions(root).includes(vertexId)));
   }
 
   _isEnemyState(state, player) {
@@ -551,9 +569,9 @@ export class TopologyGameEngine {
     let removed = false;
     for (const player of this.activePlayers) {
       const states = this._getPlayerStates(player);
-      const root = this.initialPositions[player];
-      const reachable = new Set([root]);
-      const queue = [root];
+      const roots = this.initialRoots[player];
+      const reachable = new Set(roots);
+      const queue = [...roots];
       const adjacency = new Map();
       for (const connection of this.topologyPaths[player].values()) {
         if (!adjacency.has(connection.startVertexId)) adjacency.set(connection.startVertexId, []);
@@ -592,8 +610,32 @@ export class TopologyGameEngine {
         this._isOwnLineState(originalState, player) || this._isEnemyLineState(originalState, player)
           ? vertexId : null,
       ),
+      nodesByPlayer: Object.fromEntries(this.activePlayers.map((owner) =>
+        [owner, this._getPlayerNodes(owner)])),
     };
     return enumerateConnections(this.compiledBoard, position, vertexId, player);
+  }
+
+  _crawlTopology(player) {
+    const nodes = this._getPlayerNodes(player);
+    const nodeSet = new Set(nodes);
+    for (const source of nodes) {
+      const coverageByPlayer = this._coverageByPlayer(source);
+      const candidates = enumerateConnections(this.compiledBoard, {
+        coverageByPlayer,
+        nodesByPlayer: { [player]: nodes.filter((id) => id !== source) },
+      }, source, player);
+      for (const path of candidates) {
+        // The legacy crawl connects the first node in each direction.
+        if (path.vertices.slice(1, -1).some((id) => nodeSet.has(id))) continue;
+        if ([...this.topologyPaths[player].values()].some((existing) =>
+          this.boardDefinition.topology.movementStrategy === "simple-rays-v3"
+            ? physicalPathKey(this.compiledBoard, existing) === physicalPathKey(this.compiledBoard, path)
+            : samePhysicalPath(existing, path))) continue;
+        this.topologyPaths[player].set(path.pathId, cloneConnection(path));
+      }
+      this._rebuildTopology();
+    }
   }
 
   _addNode(point, player = this.currentPlayer) {
@@ -605,15 +647,22 @@ export class TopologyGameEngine {
     const enemyLine = this._isEnemyLineState(originalState, player);
     if (!empty && !ownLine && !enemyLine) return false;
     if (this._isInProtectionZone(vertexId, player)) return false;
-    if (!enemyLine && !ownLine && !this._checkThreePointLimitation(vertexId, player)) return false;
+    const cutsEnemyPath = enemyLine && this._getOpponents(player).some((opponent) =>
+      [...this.topologyPaths[opponent].values()].some((path) =>
+        path.vertices.slice(1, -1).includes(vertexId) && this._pathsIntactFor(opponent, path)));
+    if (!cutsEnemyPath && !this._checkThreePointLimitation(vertexId, player)) return false;
 
     const connections = this._connectionsForPlacement(vertexId, player, originalState);
-    if (!connections.length && !ownLine) return false;
+    if (!connections.length) return false;
     this.grid.set(vertexId, this._getPlayerStates(player).node);
     for (const connection of connections) {
       this.topologyPaths[player].set(connection.pathId, cloneConnection(connection));
     }
     this._rebuildTopology();
+    if (cutsEnemyPath) {
+      this._crawlTopology(player);
+      for (const opponent of this._getOpponents(player)) this._crawlTopology(opponent);
+    }
     return this.grid.get(vertexId) === this._getPlayerStates(player).node;
   }
 
@@ -821,11 +870,18 @@ export class TopologyGameEngine {
       if (!territory || !Number.isFinite(territory.area) || territory.area < 0
         || !Array.isArray(territory.renderPoints)
         || territory.renderPoints.some((id) => !this.positionKeys.has(id))) return false;
+      if (territory.components != null && (!Array.isArray(territory.components)
+        || territory.components.some((component) => !Array.isArray(component.sampleIds)
+          || component.sampleIds.some((id) => !this.positionKeys.has(id))
+          || typeof component.counted !== "boolean"))) return false;
+      const components = territory.components
+        ?? computeTerritory(this.compiledBoard, this._topologyPositionForTerritory(), player).components;
       next[player] = {
         polygon: null,
         area: territory.area,
         displayArea: Number.isFinite(territory.displayArea) ? territory.displayArea : territory.area,
         renderPoints: [...new Set(territory.renderPoints)],
+        components: components.map((component) => ({ ...component, sampleIds: [...component.sampleIds] })),
       };
     }
     this.cachedTerritories = next;
@@ -883,10 +939,17 @@ export class TopologyGameEngine {
         canonicalAdjacency: cloneJson(this.compiledBoard.canonicalAdjacency),
         realBoundarySampleIds: [...this.compiledBoard.realBoundarySampleIds],
         pointCopies: this.compiledBoard.atlas.pointCopies.map((copy) => ({ ...copy, coordinate: [...copy.coordinate] })),
+        startingRoots: cloneJson(this.initialRoots),
+        protectionZones: this.validPositions.map((canonicalVertexId) => ({
+          canonicalVertexId,
+          owners: this.activePlayers.filter((owner) =>
+            this.initialRoots[owner].some((root) => this.getAdjacentPositions(root).includes(canonicalVertexId))),
+        })).filter((entry) => entry.owners.length),
         viewBoard: cloneJson(this._viewBoard),
       },
       boardVertices: this.boardVertices.map((coordinate) => [...coordinate]),
       initialPositions: { ...this.initialPositions },
+      initialRoots: cloneJson(this.initialRoots),
       rulesVersion: this.rulesVersion,
       positionRevision: this.positionRevision,
       players: [...this.activePlayers],
@@ -986,7 +1049,7 @@ export class TopologyGameEngine {
       stateVersion: TOPOLOGY_RULE_STATE_VERSION,
       rulesVersion: this.rulesVersion,
       currentPlayer: this.currentPlayer,
-      startingVertices: { ...this.compiledBoard.startingVertices },
+      startingVertices: topologyStartingState(this.compiledBoard),
       vertexStateById,
       logicPaths,
       historyHashes: sorted(this.historyHashes),
@@ -1015,7 +1078,7 @@ export class TopologyGameEngine {
     if (!ruleState || ruleState.rulesVersion !== this.rulesVersion) {
       throw topologyError("RULES_VERSION_MISMATCH");
     }
-    if (stableStringify(ruleState.startingVertices) !== stableStringify(this.compiledBoard.startingVertices)) {
+    if (stableStringify(ruleState.startingVertices) !== stableStringify(topologyStartingState(this.compiledBoard))) {
       throw topologyError("STARTING_VERTICES_MISMATCH");
     }
     if (ruleState.currentPlayer !== null && !this.activePlayers.includes(ruleState.currentPlayer)) {
@@ -1031,7 +1094,7 @@ export class TopologyGameEngine {
       candidateGrid.set(vertexId, state.node ? playerStates.node : playerStates.line);
     }
     for (const player of this.activePlayers) {
-      if (candidateGrid.get(this.initialPositions[player]) !== this._getPlayerStates(player).node) {
+      if (this.initialRoots[player].some((root) => candidateGrid.get(root) !== this._getPlayerStates(player).node)) {
         throw topologyError("MISSING_START_NODE", player);
       }
     }
@@ -1045,6 +1108,15 @@ export class TopologyGameEngine {
       // vertices from the compiled geometry before it can affect ownership,
       // scoring or Superko.
       assertExactCompiledConnection(this.compiledBoard, path);
+      if (["simple-rays-v2", "simple-rays-v3"].includes(this.compiledBoard.definition.topology.movementStrategy)) {
+        if (new Set(path.vertices).size !== path.vertices.length) throw topologyError("INVALID_LOGIC_PATH", "Self-crossing path");
+        const inner = new Set(path.vertices.slice(1, -1));
+        for (const other of candidatePaths[path.owner].values()) {
+          if (other.vertices.slice(1, -1).some(id => inner.has(id))) {
+            throw topologyError("INVALID_LOGIC_PATH", "Crossing path interiors");
+          }
+        }
+      }
       candidatePaths[path.owner].set(path.pathId, cloneConnection(path));
     }
     const before = this._captureTopologyState();
@@ -1092,7 +1164,7 @@ export class TopologyGameEngine {
       compiledBoard: this.compiledBoard,
       playerCount: this.playerCount,
       startPlayer: this.startPlayer,
-      initialPositions: this.initialPositions,
+      initialPositions: this.initialRoots,
       rulesVersion: this.rulesVersion,
       deferTerritoryUpdates: this.deferTerritoryUpdates,
     }, this._runtime);

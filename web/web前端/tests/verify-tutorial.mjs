@@ -63,7 +63,9 @@ for (const level of TUTORIAL_LEVELS) {
   if (level.id === "L1-connect") {
     assert.equal(level.prefix.length, 2, "both colors move before the player's extension");
     assert.deepEqual(new Set(overlay.addedEdges.map(({ edge }) => edge)), new Set(["0,0|3,0", "1,0|3,0"]));
-    assert.equal(after.territories.BLACK.area, 0);
+    assert.equal(after.territories.BLACK.area, 4);
+    assert.equal(after.territories.BLACK.renderPoints.length, 4,
+      "the open Blue lifeline is scored and shaded point by point");
   }
   if (level.id === "L2-close-territory") {
     assert.equal(overlay.addedEdges.length, 2);
@@ -89,7 +91,10 @@ for (const level of TUTORIAL_LEVELS) {
     assert.equal(after.gameOver, true);
     assert.equal(after.winner, "BLACK");
     assert.equal(after.territories.BLACK.area, 7);
-    assert.equal(after.territories.WHITE.area, 0);
+    assert.equal(after.territories.WHITE.area, 2);
+    for (const player of after.players) {
+      assert.equal(after.territories[player].renderPoints.length, after.territories[player].area);
+    }
   }
   assert.doesNotMatch(level.instructionZh + level.successZh, /黑方|白方|白色/);
   assert.doesNotMatch(level.instructionEn + level.successEn, /\bBlack\b|\bWhite\b/);

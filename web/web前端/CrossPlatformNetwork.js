@@ -1,5 +1,5 @@
-import NetworkManager, { ClientEvent, ServerEvent } from "./NetworkManager.js?v=20261024-online-settings2";
-import { SharedRoomClient, sharedApiOrigin } from "./SharedRoomClient.js";
+import NetworkManager, { ClientEvent, ServerEvent } from "./NetworkManager.js?v=20261029-unified-r1";
+import { SharedRoomClient, sharedApiOrigin } from "./SharedRoomClient.js?v=20261029-unified-r1";
 
 // Preserve existing four-digit Web rooms; eight-character rooms share the
 // authoritative Mini Game service. Callers still use the Web UI/controller API.
@@ -10,15 +10,12 @@ export default class CrossPlatformNetwork extends NetworkManager {
     this.shared = new SharedRoomClient({ ...options,
       onRoom: (payload, room) => {
         if (!this.sharedActive) return;
-        const prior = this.sharedSnapshot;
-        const undoApplied = prior?.code === room.code && prior.matchId === room.matchId && room.seq < prior.seq;
-        this.sharedSnapshot = { code: room.code, matchId: room.matchId, seq: room.seq };
         this.roomId = room.code; this.playerId = payload.playerId; this.color = room.player;
-        this._emit(undoApplied ? ServerEvent.ROOM_UNDO : payload.type,
-          undoApplied ? { ...payload, type: ServerEvent.ROOM_UNDO } : payload);
+        this._emit(payload.type, payload);
         if (room.status === "closed") this._emit(ServerEvent.PLAYER_LEFT, payload);
         if (room.status === "finished" && Object.values(room.rematchVotes).some(Boolean)) {
-          this._emit(ServerEvent.RESET_STATUS, { confirmedVotes: Object.values(room.rematchVotes).filter(Boolean).length, requiredVotes: 2 });
+          this._emit(ServerEvent.RESET_STATUS, { confirmedVotes: Object.values(room.rematchVotes).filter(Boolean).length,
+            requiredVotes: Object.keys(room.members).filter(color => room.members[color] && !room.bots?.includes(color)).length });
         }
       },
       onConnection: (connected, event) => {
@@ -61,10 +58,14 @@ export default class CrossPlatformNetwork extends NetworkManager {
   }
   async activateShared() {
     if (this.roomId && !this.sharedActive) throw new Error("LEAVE_ROOM_FIRST");
+    // A cancelled password check must not close a working legacy connection.
     await this.shared.open(sharedApiOrigin(this.url), this.authToken);
     if (!this.sharedActive) {
-      this._closeCurrentConnection(1000, "switch_to_shared",
-        new Error("WebSocket connection was replaced."), false);
+      const previousSocket = this.socket;
+      super.disconnect(1000, "switch_to_shared");
+      if (this.socket === previousSocket) this.socket = null;
+      this._connectPromise = null;
+      this._rejectPendingRequests(new Error("WebSocket connection was replaced."));
       this.sharedActive = true;
     }
   }
@@ -75,23 +76,11 @@ export default class CrossPlatformNetwork extends NetworkManager {
   }
   async createSharedRoom(settings = {}) {
     await this.activateShared();
-    return this.shared.enter("create", this.sharedSettings(settings));
-  }
-  sharedSettings(settings = {}) {
-    const mode = settings.playerCount && settings.playerCount !== 2 ? "default"
-      : settings.startingPointMode || (settings.initialPositions ? "custom" : "default");
-    return { gridSize: settings.gridSize || 7, boardShape: settings.boardShape || "triangle",
-      rulesVersion: settings.rulesVersion || "territory-v3", startingPointMode: mode,
-      ...(mode === "default" ? {} : { initialPositions: settings.initialPositions }),
-      undoEnabled: settings.undoEnabled === true, undoMaxCount: settings.undoMaxCount || 3 };
+    const topology = settings.rulesVersion === "surface-v1" || settings.boardShape === "custom";
+    return this.shared.enter("create", topology ? { ...settings, rootProtocolVersion: 2, topologyCapabilities: ["board-topology-v1"] } : { ...settings, rootProtocolVersion: 2, rulesVersion: "territory-v3" });
   }
   async createRoom(settings) {
-    if (this.sharedActive) {
-      if (this.roomId) throw new Error("LEAVE_ROOM_FIRST");
-      this.shared.stop(); this.sharedActive = false;
-      await super.connect(this.url, this.authToken);
-    }
-    return super.createRoom(settings);
+    return this.createSharedRoom(settings);
   }
   async joinRoom(code, playerId) {
     const normalized = String(code).trim().toUpperCase();
@@ -106,7 +95,19 @@ export default class CrossPlatformNetwork extends NetworkManager {
     }
     return super.joinRoom(code, playerId);
   }
-  async sendMove(point) { return this.sharedActive ? this.shared.act({ type: "move", point }) : super.sendMove(point); }
+  async sendMove(point) {
+    if (!this.sharedActive) return super.sendMove(point);
+    if (point && !Array.isArray(point) && typeof point.vertexId === "string") {
+      if (point.boardHash !== this.shared.room?.settings?.boardHash) throw new Error("BOARD_HASH_MISMATCH");
+      return this.shared.act({ type: "move", vertexId: point.vertexId });
+    }
+    return this.shared.act({ type: "move", point });
+  }
+  async sendRootAction(type, point) {
+    if (!this.sharedActive) return super.sendRootAction(type, point);
+    if (!["relocate", "add"].includes(type)) throw new Error("INVALID_ROOT_ACTION");
+    return this.shared.act({ type: `root_${type}`, point });
+  }
   async sendSkip() { return this.sharedActive ? this.shared.act({ type: "skip" }) : super.sendSkip(); }
   async sendResign() { return this.sharedActive ? this.shared.act({ type: "resign" }) : super.sendResign(); }
   async sendReady(ready) {
@@ -119,24 +120,18 @@ export default class CrossPlatformNetwork extends NetworkManager {
     return this.shared.command("rematch");
   }
   async updateRoomSettings(settings) {
-    if (!this.sharedActive) return super.updateRoomSettings(settings);
-    const room = this.shared.room;
-    if (!room) throw new Error("ROOM_NOT_FOUND");
-    const updated = await this.shared.request(`rooms/${room.code}/settings`,
-      { matchId: room.matchId, settings: this.sharedSettings(settings) });
-    await this.shared.receive(updated);
-    return updated;
+    return this.sharedActive ? this.shared.updateSettings(settings) : super.updateRoomSettings(settings);
   }
-  async sendUndo(accept = true) {
-    if (!this.sharedActive) return super.sendUndo(accept);
-    const room = this.shared.room;
-    if (!room) throw new Error("ROOM_NOT_FOUND");
-    const updated = await this.shared.request(`rooms/${room.code}/undo`,
-      { matchId: room.matchId, expectedSeq: room.seq, beforeHash: room.stateHash, accept: Boolean(accept) });
-    await this.shared.receive(updated);
-    return updated;
+  async updateStartPlayer(player) {
+    return this.sharedActive ? this.shared.updateSettings({ ...(this.shared.room.pendingSettings ?? this.shared.room.settings), startPlayer: player }) : super.updateStartPlayer(player);
   }
-  async updateStartPlayer(player) { if (!this.sharedActive) return super.updateStartPlayer(player); }
+  async sendUndo(accept = true) { return this.sharedActive ? this.shared.undo(accept) : super.sendUndo(accept); }
+  async retryBots() {
+    if (!this.sharedActive) return super.retryBots();
+    const room = await this.shared.request(`rooms/${this.shared.room.code}`);
+    await this.shared.receive(room);
+    return room;
+  }
   async sendChatEmoji(...args) {
     if (this.sharedActive) return this.shared.sendEmote(args[0]);
     return super.sendChatEmoji(...args);
@@ -144,6 +139,7 @@ export default class CrossPlatformNetwork extends NetworkManager {
   async leaveRoom({ bestEffort = false } = {}) {
     if (!this.sharedActive) return super.leaveRoom();
     if (this.shared.room && this.shared.room.status !== "closed") {
+      // Logging out must never demand a fresh password to end an old session.
       if (bestEffort) {
         if (this.shared.token) await this.shared.json(`rooms/${this.shared.room.code}/leave`, { matchId: this.shared.room.matchId });
       } else await this.shared.command("leave");

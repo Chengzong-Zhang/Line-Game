@@ -57,7 +57,7 @@ From a combinatorial-game perspective, the fundamental object on a fixed board i
 
 From a reinforcement-learning perspective, the faithful environment is a deterministic Markov game whose internal state is the complete \(q=(\sigma,\mathbf E,\tau,R,c,H,z)\). The same-kernel/different-history counterexample proves rigorously that a feed-forward observation containing only the current grid and edges is not Markov: even the legal-action mask is not uniquely determined. This document consequently specifies action, Normalize, and reward contracts; history-aware state keys; backup rules that follow the actual controller; relational GNN and line-hypernode representations; potential-based reward shaping; the applicability boundaries of AlphaZero, PPO, and PSRO; and a falsifiable benchmark suite built from the existing reachable counterexamples. No formal reinforcement-learning run has yet been performed; these are research designs constrained by the implementation and the proved results.
 
-The current territory algorithm is not fair under color-exchanging reflection either. A reachable ten-placement state ends in DRAW after two Passes, while its reflected, color-exchanged state ends in a BLACK win. The cause is dependence of greedy tightening on a closed contour's array start, orientation, and equal-objective enumeration order. This document gives three scoring definitions with provable equivariance: player-base canonical coordinates, bidirectional minimum, and orbit sum.
+The historical `territory-v2` contour score is not fair under color-exchanging reflection. A reachable ten-placement state ends in DRAW after two Passes, while its reflected, color-exchanged state ends in a BLACK win. The cause is dependence of greedy tightening on a closed contour's array start, orientation, and equal-objective enumeration order. The current `territory-v3` official score is instead defined directly by the discrete union of owned walls and safe pockets. The v2 counterexample and three candidate repairs remain below as historical algorithm analysis; they are not claims about the current v3 winner.
 
 ## 1. Status of Claims
 
@@ -196,7 +196,7 @@ turnCount does not affect legality, transitions, or the result. In states normal
 
 because the initial history already contains one element, a successful placement increments both the history and the turn count, a resignation increments only the turn count, and a skip increments neither.
 
-cachedTerritories, polygon, and displayArea can all be recomputed from the current physical board and therefore are not part of the minimal rule state. They may be added to an engineering state that reproduces every field of a UI snapshot, but doing so must not change the counting convention for mathematical game states.
+The v3 `area`/`renderPoints` in `cachedTerritories` and the diagnostic `polygon`/`displayArea` can all be recomputed from the current physical board and therefore are not part of the minimal rule state. At runtime, `area` and `renderPoints` must be rebuilt and deep-copied as one derived result. They may be added to an engineering state that reproduces every field of a UI snapshot, but doing so must not change the counting convention for mathematical game states.
 
 ### 2.4 Opponents, protected zones, and remnants of resigned players
 
@@ -506,7 +506,7 @@ At a terminal state, discrete territory area is compared only among players who 
 
 ## 5. Algorithmic Semantics of Territory and Scoring
 
-Territory is not simply geometric polygon area. It is a deterministic “physical contour—local greedy tightening—boundary flood fill” algorithm.
+Official `territory-v3` territory is not geometric polygon area. It treats every owned node and line point as a wall, floods from the board boundary, and adds every enemy-free bounded component. The implementation still runs a “physical contour—local greedy tightening—boundary flood fill” pipeline to produce diagnostic `polygon`/`displayArea`, but that contour pipeline no longer defines the v3 winning score or shading set.
 
 ### 5.1 Outer contour
 
@@ -516,7 +516,7 @@ For player \(a\), take the physical friendly set
 F_a=\{v:\sigma(v)\in\{a_N,a_L\}\}.
 \]
 
-The explicit-edge set does not participate directly in contour tracing. Starting from the friendly point with minimum \(x\), breaking ties by minimum \(y\), the engine follows a fixed clockwise direction order and a right-hand wall-following rule on the six-neighbor graph of \(F_a\) for at most \(6|F_a|+10\) steps. Denote the resulting grid-point sequence by \(P_0\). If its length is less than 3, the territory is 0.
+The explicit-edge set does not participate directly in contour tracing. Starting from the friendly point with minimum \(x\), breaking ties by minimum \(y\), the engine follows a fixed clockwise direction order and a right-hand wall-following rule on the six-neighbor graph of \(F_a\) for at most \(6|F_a|+10\) steps. Denote the resulting grid-point sequence by \(P_0\). If its length is less than 3, only the diagnostic `polygon` is null; the official set still contains at least \(F_a\), so a point, line, or open chain scores and is shaded cell by cell through `renderPoints`.
 
 This sequence is a contour as defined by the implementation; without a proof, it should not be called a simple polygon in the general geometric sense.
 
@@ -552,7 +552,7 @@ The discrete area is
 A(P)=|\operatorname{Cov}(P)|.
 \]
 
-Wall points themselves are not flooded and therefore also count toward area.
+Wall points themselves are not flooded and therefore count toward \(A(P)\). Here \(A(P)\) is a diagnostic coverage objective used by contour tightening and v1/v2 compatibility, not the official v3 \(\operatorname{area}_a\).
 
 ### 5.3 Greedy tightening
 
@@ -585,15 +585,28 @@ The code's “inward scheme A,” however, uses an algebraic-area formula, expli
 
 Because \((|P|,A(P))\) is an \(O(N)\times O(N)\) pair of nonnegative integers and strictly decreases, the tightening process must terminate. It terminates at a local greedy optimum within the enumerated neighborhood, with no guarantee of global optimality.
 
-### 5.4 Winning area and displayed area
+### 5.4 The v3 official set, cell shading, and diagnostic area
 
-The final area used to decide the winner is
+Let \(E_a\) contain all enemy node and line points. Flood from the board boundary through \(\mathcal V_n\setminus F_a\) to obtain the exterior-reachable set \(X_a\), and let \(Q_{a,1},\ldots,Q_{a,k}\) be the remaining non-wall connected components. Define
 
 \[
-\operatorname{area}_a=A(P^\star).
+B_a=\bigcup_{j:Q_{a,j}\cap E_a=\emptyset}Q_{a,j},
+\qquad
+R_a=F_a\cup B_a.
 \]
 
-A separate display quantity is
+The `territory-v3` winning score and rendering contract are
+
+\[
+\operatorname{area}_a=|R_a|
+=|F_a|+|B_a|,
+\qquad
+|\operatorname{renderPoints}_a|=\operatorname{area}_a.
+\]
+
+`renderPoints` enumerates \(R_a\) in stable board order and is shaded cell by cell; set union ensures that each point counts once. If an open chain creates no safe pocket, then \(R_a=F_a\). Multiple pockets and donut holes are added component by component, while any component containing an enemy element is excluded in full.
+
+The contour pipeline separately returns a `polygon` for diagnostics and legacy-rule compatibility. Its shoelace quantity is
 
 \[
 \operatorname{displayArea}_a
@@ -603,7 +616,7 @@ A separate display quantity is
 \right|.
 \]
 
-It is the absolute shoelace sum without division by 2. The UI may display it, but it is not used in the winner comparison.
+`displayArea` is the absolute shoelace sum without division by 2. Neither it nor `polygon` participates in v3 winner selection or cell shading, and neither may replace `renderPoints`.
 
 ## 6. Position in Combinatorial Game Theory
 
@@ -938,7 +951,9 @@ V_a(T(q,\operatorname{Place}(v))).
 
 \(Z_a(q)>0\) says that Pass is strictly better than every placement, not that the rules force a placement. Pass increments the consecutive-skip counter and may terminate immediately, so it is not a cost-free null move.
 
-### 7.5 Theorem: the current engine has maximum-strength strict pass-pressure
+### 7.5 Historical v2 witness: maximum-strength strict pass-pressure
+
+The areas and action values in this section come from the frozen `territory-v2` rules. The witness remains useful evidence that Pass must enter search, but its concrete scores and optimal-action set are not current v3 claims until the same replay is solved again under v3.
 
 For \(n=5\), play from the standard initial state:
 
@@ -990,7 +1005,7 @@ After excluding the territory cache and final winner, the current rules kernel s
 
 Indeed, \(\theta\) preserves unit adjacency, all three collinearity families, and discrete line segments. It exchanges the bases and protected zones and preserves the three-point restriction. Blocking, explicit-edge integrity, root-reachability BFS, deletion, old-edge restoration, and first-node ray reconnection depend only on these preserved relations. Transforming every key in \(H\) preserves Superko membership. Pass, Resign, and Normalize depend only on turn order, \(R\), \(c\), and existence of a legal placement, so they occur synchronously.
 
-Territory computation is deliberately excluded: its fixed contour start, direction order, and enumeration order are not geometric invariants and do break terminal symmetry below.
+Historical v2 contour scoring is deliberately excluded: its fixed contour start, direction order, and enumeration order are not geometric invariants and produce the terminal counterexample below. The v3 official set is equivariant under this reflection: \(\theta\) preserves the board boundary and adjacency, so it maps the exterior-reachable set, every remaining connected component, and the enemy-membership test to their reflected counterparts. Therefore \(\theta(R_a)=R_{\bar a}\) and \(|R_a|=|R_{\bar a}|\). Diagnostic `polygon`/`displayArea` does not receive that guarantee, but it no longer decides a v3 winner.
 
 ### 7.7 Weak Pass strategy-stealing theorem
 
@@ -1025,9 +1040,9 @@ H_A\triangle\Theta H_C=\{h_B^0,h_W^0\}.
 
 Every successful Place computes its candidate key before Normalize, while the just-placed non-base friendly node is present. A node cannot be overwritten, and the current attack deletes only the opponent's structure. No later candidate key can therefore equal the bare two-base initial position. Replacing \(h_W^0\) by \(h_B^0\) yields a behaviorally equivalent state: all later Superko legality decisions agree, and terminal utility does not read \(H\). The counterfactual simulation is consequently exact.
 
-### 7.8 Theorem: the current winner is not fully reflection-equivariant
+### 7.8 Historical theorem: the territory-v2 winner is not fully reflection-equivariant
 
-The current engine has an \(n=7\) reachable counterexample with only ten placements and no intermediate Pass:
+The frozen territory-v2 engine has an \(n=7\) reachable counterexample with only ten placements and no intermediate Pass:
 
 \[
 \begin{aligned}
@@ -1054,11 +1069,11 @@ A draw must remain a draw under any color-exchanging symmetry. The example there
 
 The cause is now localized to **representation dependence** in greedy tightening. The paired outer contours are the same closed contour up to cyclic shift and reversal, both initially at \((|P|,A)=(15,9)\). The implementation nevertheless treats a closed contour as an array with a start and orientation, enumerating by \(i,j\), BFS predecessor order, and path order; equal-objective candidates retain the first encountered polygon. Both sides first reach \((14,10)\) but enter different polygons: one stops, while the other continues to \((13,11)\). Across all fifteen cyclic starts and both orientations of this one contour, nineteen representations end at \((13,11)\) and eleven at \((14,10)\). Flood fill itself is reflection-equivariant; the failure is the combination of linear representation, first-encounter tie breaking, and distinct local basins.
 
-This DRAW\(\to\)BLACK counterexample does not yet refute the weaker one-sided implication in Section 7.7. A targeted check of 37 legal replacements around the example plus 1000 deterministic random legal trajectories found no state in which White wins the original while Black still loses the mirror. That is test coverage, not a proof. Whether the first player is at least nonlosing from the standard initial state remains open.
+This DRAW\(\to\)BLACK counterexample belongs only to territory-v2 and does not refute the weaker one-sided implication in Section 7.7. A targeted check of 37 legal replacements around the old example plus 1000 deterministic random legal trajectories found no state in which White wins the original while Black still loses the mirror. That is v2 test coverage, not a v3 proof.
 
-### 7.9 Three scoring definitions with provable fairness
+### 7.9 Three equivariant repair candidates for territory-v2
 
-Let \(\operatorname{Raw}_c(q)\) be the current implementation's raw area for player \(c\).
+Let \(\operatorname{Raw}_c(q)\) be the historical territory-v2 contour area for player \(c\). The three schemes below were candidate repairs for v2 representation dependence. Current v3 instead uses the set score in Section 5.4; its equivariance follows because graph isomorphisms preserve boundary flooding and component membership, so it needs no patch to contour start or orientation.
 
 **A. Player-base canonical coordinates.** Let \(T_B=\mathrm{id}\) and \(T_W=\Theta\), renaming the scored player to Black in \(T_cq\):
 
@@ -1585,7 +1600,7 @@ The exponents here are polynomial in \(L\). EXPSPACE is the more informative spa
 
 Given an explicit \(H\), deciding the legality of a candidate placement does not require territory computation: connections, edge severing, BFS, reconnection, and Superko lookup can all be performed in time polynomial in the input representation.
 
-The current territory implementation, however, materializes all shortest paths between a pair of vertices at once. The number of shortest paths in a six-neighbor graph can grow exponentially. Let \(N=N(n)\). A safe coarse bound is
+The v3 official set needs only two bounded BFS passes: first obtain the exterior-reachable set from the boundary, then traverse each remaining component and test enemy membership. Because the six-neighbor graph has \(O(N)\) edges, official `area`/`renderPoints` takes \(O(N)\) time and working space. The current end-to-end implementation still materializes all shortest paths between a pair of vertices to produce the diagnostic `polygon`, and that number can grow exponentially. Separating official scoring from this diagnostic path removes the exponential term from scoring itself. For the current combined pipeline, let \(N=N(n)\); a safe coarse bound is
 
 \[
 T_{\mathrm{territory}}(n)
@@ -1781,7 +1796,7 @@ Go-search literature calls the phenomenon in which the current board is the same
 
 Go ko threats provide the appropriate analogy as well. Simple ko forbids an immediate recapture, so a player can first create a distant threat that must be answered and then recapture. Although PSK and SSK inspect the entire history, the distant exchange changes the complete board key, so a local recapture may still be legal until the complete key truly repeats. LIFELINE's 13-move witness likewise has the form “direct restoration of the old kernel is forbidden, so the winning player must first play elsewhere.” Its three-point restriction, long-range edges, and root-connected deletion are not Go liberties, captures, or ko, however. It is only a history-detour analogy, not a Go gadget.
 
-Finally, the set-theoretic Tromp–Taylor area score is inherently reflection-equivariant. A fixed komi awarded to White intentionally breaks color-exchange utility symmetry, while Japanese territory scoring must also account for prisoners, dead-stone agreement, and resumption conventions. LIFELINE's DRAW\(\to\)BLACK counterexample in Section 7.8 comes from representation order inside the same raw algorithm and is therefore a different kind of implementation-level nonequivariance. It cannot be excused by saying that “Go also has komi.”
+Finally, the set-theoretic Tromp–Taylor area score is inherently reflection-equivariant. A fixed komi awarded to White intentionally breaks color-exchange utility symmetry, while Japanese territory scoring must also account for prisoners, dead-stone agreement, and resumption conventions. LIFELINE's DRAW\(\to\)BLACK counterexample in Section 7.8 comes from representation order in the historical territory-v2 raw algorithm; the v3 official set no longer uses that contour result to decide the winner.
 
 ## 11. The Current AI and a Reinforcement-Learning Perspective
 
@@ -1991,7 +2006,7 @@ and two message-passing steps allow points on the same axis to exchange informat
 
 The historical JSON hashes themselves are semantically opaque strings and are poor direct neural inputs. More reasonable approximations encode the sequence or set of past position tensors, or reconstruct history through recurrent state. Whatever summary is used for value estimation, the environment must still retain the exact set for Superko adjudication.
 
-Symmetry augmentation also requires care. The non-scoring transition kernel in Section 7.6 supports the color-exchanging reflection \(\Theta\), but the current winner has a `DRAW → BLACK` counterexample. Before scoring is repaired, \(\Theta\) may be used to test policy and transition consistency, but reflected terminals must not be labeled unconditionally with color-exchanged equal values. Doing so would inject contradictory targets into the value network.
+Symmetry augmentation must remain rule-versioned. The `DRAW → BLACK` example in Section 7.8 is a historical territory-v2 counterexample, so old v2 data cannot be mirrored unconditionally. For v3, color-exchanged labels may use the official-set equivariance of Section 7.6 only when the transform is a true automorphism of the board graph and boundary and also transforms players, bases, history keys, and the complete state. Visual similarity alone is insufficient.
 
 ### 11.9 Reward shaping and reward hacking
 
@@ -2006,7 +2021,7 @@ r_p(q,a,q')
 
 The total return of a game differs from the original return only by the fixed constant \(-\Phi_p(q_0)\), so policy rankings from a fixed initial state are unchanged. Two-player zero-sum training should additionally impose \(\Phi_W=-\Phi_B\). Node count, the base-connected component, attack opportunities, and a symmetrized territory proxy may all enter \(\Phi\), but only through this difference form and with zero potential at terminal states.
 
-The current AI's `fastTerritoryBFS`, node increments, and per-step raw-area increments do not automatically satisfy this condition. Rewarding them directly at each step can encourage reversible score farming, delayed termination, or sacrificing the true outcome for a proxy. In particular, the current greedy territory algorithm is not reflection-equivariant. If the objective is to defeat the current implementation faithfully, exploiting that bias is legitimate optimal behavior. If the objective is to study an ideal fair game, one should first select an equivariant scoring rule from Section 7.9 and then generate training labels. A strong agent exposing a scoring defect reveals an environment-specification problem, not an RL failure.
+The current AI's `fastTerritoryBFS`, node increments, and per-step raw-area increments do not automatically satisfy this condition. Rewarding them directly at each step can encourage reversible score farming, delayed termination, or sacrificing the true outcome for a proxy. They are proxy features and cannot replace the v3 official \(R_a\), `area`, or `renderPoints`. When studying historical v2, exploiting contour representation bias faithfully solves that old environment; when studying current v3, training labels must be recomputed by the v3 rules engine.
 
 ### 11.10 Algorithm selection
 
@@ -2038,9 +2053,9 @@ The existing counterexamples directly form a unit benchmark that average win rat
 |---|---|
 | `HISTORY-MASK` | Produce different Place masks for the same-kernel/different-history states and identify the Superko divergence at \(W(1,1)\) |
 | `CYCLE-CUT` | Reject \(W(0,3)\), which would close the eight-step cycle in the 13-move state |
-| `PASS-PRESSURE` | Choose the uniquely winning Pass rather than the unique Place in the state from Section 7.5 |
+| `PASS-PRESSURE-v2` | Choose the uniquely winning Pass in the frozen v2 state from Section 7.5; re-solve it before promoting it to a v3 benchmark |
 | `CONTROL-SKIP` | Preserve the same controller after the opponent is automatically skipped; do not negate the backed-up value incorrectly |
-| `SYMMETRY-DEFECT` | Under the current rules, reproduce DRAW in the original and BLACK in the reflection; after scoring is repaired, the discrepancy should vanish |
+| `SYMMETRY-VERSION` | Reproduce original DRAW versus reflected BLACK in the v2 fixture; under v3 verify that official `area`/`renderPoints` follow the complete-state player permutation |
 | `EXACT-ENDGAME` | Match both the root value and the complete optimal-action set on fully solved subtrees, rather than only one preferred move |
 
 Final reports should include at least win/draw/loss rates with confidence intervals, paired color-swapped results, performance against the current AI and a historical policy pool, small-endgame exploitability or optimal-action recall, value calibration, Pass accuracy, probability mass assigned to illegal actions before masking, mean game length, and search nodes or time. Elo and self-play win rate measure relative strength only; they do not replace small-board optimality evidence.
@@ -2063,8 +2078,8 @@ The most valuable next questions are not larger upper bounds, but tighter descri
 2. **Hardness reduction.** Along the Triangular-Grid-Col route, close action isolation, long-range-edge isolation, reachable guards, arbitrarily composable scoring tempo, and terminal correspondence. Until then, the abstract PSPACE-complete core is not a lower bound for the current rules.
 3. **Pressure classification.** A real reachable state with \(Z=2\) is now known. Classify the structures that create pressure, determine the minimum history length, and study systematic zugzwang constructions in the no-Pass variant.
 4. **History-value reversal.** Two real histories now reach the same rules kernel while making \(W(1,1)\) legal on only one side, and an exact loop witness reduces the winning-action set from three moves to two. To upgrade “the copied reply fails” to “the strategy value fails,” one must still find \(V(X,H^-)\ne V(X,H^+)\), or prove that the forbidden action is the unique nonlosing or winning reply.
-5. **Symmetry.** Exact area and full winner equivariance are both refuted by Section 7.8. Prove or refute the weaker implication “White win \(\Rightarrow\) Black at least nonlosing after reflection,” and choose and implement a strictly equivariant score.
-6. **Territory correctness.** Prove the “current coverage contains no enemy element” invariant relied upon by inward scheme A, or add the check explicitly to the implementation.
+5. **Symmetry.** Section 7.8 refutes only the historical v2 contour score. The v3 set definition is equivariant under board automorphisms that preserve the boundary and transform players. Extend this result into versioned fixtures covering every board shape, multiplayer seat map, and custom start.
+6. **Territory correctness.** V3 explicitly checks enemy membership in each official component. The old invariant used by inward scheme A now affects only diagnostic polygon generation; if that diagnostic remains supported, prove the invariant or add the explicit check without mixing it into the official score.
 7. **Tight complexity.** EXPSPACE is only a membership upper bound. A tight class requires a lower-bound reduction, perhaps first establishing PSPACE-hardness or EXPTIME-hardness for a restricted variant.
 8. **Empirical search space.** Use reachable-state enumeration, transposition-table statistics, and real play records to measure average branching factor, attack rate, automatic-skip rate, and edge density. Worst-case upper bounds must not be presented as typical values.
 9. **Conditional decomposition.** For a nontrivial reachable region, prove that action locality, the root-connectivity interface, score additivity, and a Superko-sufficient history signature remain closed under every successor. Until then, neither nimber XOR nor an ordinary disjunctive sum is justified.
@@ -2072,7 +2087,7 @@ The most valuable next questions are not larger upper bounds, but tighter descri
 11. **A sufficient statistic for history.** Determine whether an exact summary smaller than the complete \(H\) can make both current legality and future value Markov. The current action mask alone has no sufficiency proof.
 12. **Reinforcement-learning oracle.** Establish a fixed set of reachable endgames, complete optimal-action sets, and exploitability evaluations before comparing history-blind, recurrent-history, and explicit-history networks. No formal training result currently exists.
 13. **Three-player equilibrium.** Fix cardinal utilities, coalitions, and tie-breaking before comparing Max-N, vector MCTS, MAPPO, and PSRO. The different models must not be collapsed into one “AI win rate.”
-14. **Divergent rule objectives.** State whether training aims to defeat the current implementation with its scoring nonequivariance or to study the repaired fair rules. The optimal strategies and symmetry-augmentation labels may differ.
+14. **Versioned rule objectives.** State whether training reproduces experimental territory-v2 or targets territory-v3 for research/product use. Their optimal strategies, terminal labels, and symmetry-augmentation data must not be mixed.
 
 ## 13. Conclusion
 
@@ -2086,7 +2101,7 @@ Once a winner utility is specified, the two-player version is a finite zero-sum 
 
 The explicit-position/history forced-win problem can currently be placed in EXPSPACE, with a naive double-exponential time upper bound. No hardness or completeness claim for the complete current rules is yet justified. What is now complete is a Pass-elimination lemma, a PSPACE-complete abstract Col core, and a current-engine two-ply tempo/same-color-exclusion witness; composability and action isolation remain missing.
 
-On strategy stealing, the three-point rule rigorously refutes action monotonicity of an extra friendly piece. More strongly, the current engine has a reachable \(Z=2\) pass-pressure state: Pass wins while the only placement loses under optimal reply. This proves the maximum Place-vs-Pass action-value reversal, but it does not prove that an extra friendly node lowers the value of an otherwise comparable state; voluntary Pass also keeps “forced to place” false. The weak Pass theorem needs only a one-sided terminal implication. Full winner equivariance is refuted by the ten-placement DRAW\(\to\)BLACK example; the weaker implication and first-player nonloss from the standard start remain open.
+On strategy stealing, the three-point rule rigorously refutes action monotonicity of an extra friendly piece. Frozen v2 also has a reachable \(Z=2\) pass-pressure state in which Pass wins while the only placement loses under optimal reply; it must be solved again before becoming a v3 claim. The ten-placement DRAW\(\to\)BLACK example likewise refutes only v2 contour scoring. The v3 official set is equivariant under the board reflection specified in Section 7.6.
 
 The history results are stronger but have a precise boundary. Two histories reachable from the standard initial position arrive at the same rules kernel yet make the same attack Superko-forbidden on only one side; a separate reachable eight-step cycle is cut in the augmented graph by Superko. These witnesses strictly refute treating history-blind move-by-move copying as a universally legal principle. Exact Minimax limits their strength to “the winning-action set shrinks from three moves to two, forcing a detour,” rather than a root-value reversal. The standard first-Pass coupling differs only by bare initial keys that can never be hit, so these witnesses do not break it.
 
@@ -2096,7 +2111,7 @@ The new combinatorial-game perspective adds that the complete \(q\) is a short g
 
 The reinforcement-learning perspective interprets the same history divergence as strict state aliasing: a feed-forward `X-only` observation is not an MDP. A faithful agent must let the engine retain the exact \(H\), place automatic skipping inside Normalize, back up values according to the actual `currentPlayer`, and use terminal outcomes with \(\gamma=1\) as the baseline. A relational GNN or line-hypernode representation combined with AlphaZero-style search is the preferred engineering route for the two-player version, but it is not a convergence theorem; three-player play requires utility vectors and an explicit equilibrium concept. Formal training and experimental comparisons remain future work, and this document does not present design recommendations as achieved performance results.
 
-The genuine theoretical difficulty is not merely a large number of states, but the simultaneous coupling of four structures: cubic-scale explicit long-range edges, root-connectivity cascade deletion, implementation-defined Superko history, and discrete greedy territory scoring. All subsequent proofs and AI systems must operate on this complete state.
+The genuine theoretical difficulty is not merely a large number of states, but the simultaneous coupling of four structures: cubic-scale explicit long-range edges, root-connectivity cascade deletion, implementation-defined Superko history, and v3 discrete component territory scoring. The diagnostic polygon still retains the old greedy contour pipeline, but it cannot replace the official set. All subsequent proofs and AI systems must operate on this complete, versioned state.
 
 ## References
 

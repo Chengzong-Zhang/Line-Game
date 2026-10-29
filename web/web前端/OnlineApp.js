@@ -1,19 +1,22 @@
-import { MultiplayerWarmupSession } from "./MultiplayerAIWarmup.js?v=20261024-ai-cut-pass3";
-import { createLocalAIWorker } from "./LocalAIWorkerFactory.js?v=20261025-territory-render1";
-import GameController from "./GameController.js?v=20261025-territory-render1";
-import { Player } from "./GameEngine.js?v=20261025-territory-render1";
-import { captureWorkerRequest, isWorkerResultForRequest, serializeEngineState } from "./AIStateProtocol.js?v=20261021-boardshapes1";
-import { RESEARCH_FAMILIES, TRANSFER_SEEDS, researchProfile } from "./ResearchAIOptions.js?v=20261020-three1";
+import { MultiplayerWarmupSession } from "./MultiplayerAIWarmup.js?v=20261029-unified-r1";
+import { createLocalAIWorker } from "./LocalAIWorkerFactory.js?v=20261029-unified-r1";
+import GameController from "./GameController.js?v=20261029-unified-r1";
+import Renderer from "./Renderer.js?v=20261029-unified-r1";
+import GameEngine, { Player, PointState } from "./GameEngine.js?v=20261029-unified-r1";
+import { captureWorkerRequest, isWorkerResultForRequest, serializeEngineState } from "./AIStateProtocol.js?v=20261029-unified-r1";
+import { RESEARCH_FAMILIES, TRANSFER_SEEDS, researchProfile } from "./ResearchAIOptions.js?v=20261029-unified-r1";
 import {
   OneShotHintWorker,
   applyHintWorkerResult,
-} from "./HintWorkerSession.js?v=20261020-three1";
-import NetworkManager, { ClientEvent, ServerEvent, resolveWebSocketUrl } from "./NetworkManager.js?v=20261024-online-settings1";
+} from "./HintWorkerSession.js?v=20261029-unified-r1";
+import { ClientEvent, ServerEvent, TOPOLOGY_ROOM_CAPABILITY, resolveWebSocketUrl } from "./NetworkManager.js?v=20261029-unified-r1";
+import NetworkManager from "./CrossPlatformNetwork.js?v=20261029-unified-r1";
 import {
   applyRoomSnapshotWithPostCommit,
   coordinateControllerRoomSnapshot,
   registerRoomSnapshotResponseListeners,
-} from "./OnlineRoomSync.js?v=20261020-three1";
+  validateTopologyRoomSnapshot,
+} from "./OnlineRoomSync.js?v=20261029-unified-r1";
 import {
   createEmptyAuth as createAppEmptyAuth,
   GRID_SIZE_OPTIONS as APP_GRID_SIZE_OPTIONS,
@@ -28,10 +31,11 @@ import {
   loadStoredAuth as loadAppStoredAuth,
   loadStoredSession as loadAppStoredSession,
   getPrimaryScores as getDisplayScores,
+  isTopologyGameSettings,
   normalizeGameSettings as normalizeAppGameSettings,
   persistAuth as persistAppAuth,
   persistSession as persistAppSession,
-} from "./OnlineAppState.js?v=20261021-undo1";
+} from "./OnlineAppState.js?v=20261029-unified-r1";
 import {
   formatArea as formatAppArea,
   formatConnectionState as formatAppConnectionState,
@@ -45,8 +49,8 @@ import {
   UI_STYLE_STORAGE_KEY,
   UI_STYLE_ACADEMIC,
   localizeErrorMessage as localizeAppErrorMessage,
-} from "./OnlineAppI18n.js?v=20261024-online-settings2";
-import { ensureGuideRuleImages, getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20261025-territory-render1";
+} from "./OnlineAppI18n.js?v=20261029-unified-r1";
+import { ensureGuideRuleImages, getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20261029-unified-r1";
 import {
   TUTORIAL_LEVELS,
   getTutorialEngineSettings,
@@ -54,26 +58,56 @@ import {
   getTutorialLevel,
   isTutorialTarget,
   isTutorialRestrictionAttempt,
-} from "./TutorialRunner.js?v=20261025-territory-render1";
+} from "./TutorialRunner.js?v=20261029-unified-r1";
 import {
   appendLocalGameAction,
+  appendTopologyLocalGameAction,
   clearLocalGameSession,
+  clearTopologyLocalGameSession,
   createLocalGameSession,
+  createTopologyLocalGameSession,
   loadLocalGameSession,
+  loadTopologyLocalGameSession,
   persistLocalGameSession,
-} from "./LocalGameSession.js?v=20261022-multiplayer1";
+  persistTopologyLocalGameSession,
+} from "./LocalGameSession.js?v=20261029-unified-r1";
 import {
   createReplayDocument,
+  createTopologyReplayDocument,
   downloadReplayDocument,
   parseAndValidateReplay,
-} from "./ReplayCodec.js?v=20261025-territory-render1";
-import { TrainingContribution, ContributionPanel, supportsContributionActors } from "./TrainingContribution.js?v=20261022-multiplayer1";
-import { localAIPlayer, localMatchActors, localMatchMode, localPlayerProfile, normalizeLocalPlayers, loadLocalMatchPreferences, persistLocalMatchPreferences, supportsRootModeAI } from "./LocalAIModes.js?v=20261022-multiplayer1";
-import LocalPlayerSetup from "./LocalPlayerSetup.js?v=20261022-multiplayer1";
-import StartingPointSetup from "./StartingPointSetup.js?v=20261024-online-settings1";
-import { randomInitialPositions, randomInitialRoots, startingPointSettings } from "./StartingPoints.js?v=20261021-boardshapes1";
-import { resolveInitialPositions, resolveBoardShape, RootMode } from "./GameEngine.js?v=20261025-territory-render1";
-import { normalizeUndoUsage, recordUndoAction, createLocalUndoTimeline, planLocalUndo, consumeLocalUndo } from "./LocalUndo.js?v=20261025-territory-render1";
+  TOPOLOGY_REPLAY_FORMAT,
+  validateTopologyReplayDocument,
+} from "./ReplayCodec.js?v=20261029-unified-r1";
+import { TrainingContribution, ContributionPanel, supportsContributionActors } from "./TrainingContribution.js?v=20261029-unified-r1";
+import { localAIPlayer, localMatchActors, localMatchMode, localPlayerProfile, normalizeLocalPlayers, normalizeLocalPlayerDraft, prepareLocalPlayersForNewMatch, supportsRootModeAI, loadLocalMatchPreferences, persistLocalMatchPreferences } from "./LocalAIModes.js?v=20261029-unified-r1";
+import { roomSettingsFromBoard, normalizeRoomPlayerSetup } from "./OnlineRoomSettings.js?v=20261029-unified-r1";
+import LocalPlayerSetup from "./LocalPlayerSetup.js?v=20261029-unified-r1";
+import StartingPointSetup from "./StartingPointSetup.js?v=20261029-unified-r1";
+import TopologyStartingPointSetup, { topologyDefaultDefinition } from "./TopologyStartingPointSetup.js?v=20261029-unified-r1";
+import { createTopologyStartingDefinition, prepareTopologyNewMatchSettings } from "./TopologyStartingPoints.js?v=20261029-unified-r1";
+import { randomInitialPositions, randomInitialRoots, requiresExplicitStartingPoints, startingPointSettings } from "./StartingPoints.js?v=20261029-unified-r1";
+import { resolveInitialPositions, resolveBoardShape, RootMode } from "./GameEngine.js?v=20261029-unified-r1";
+import { normalizeUndoUsage, recordUndoAction, createLocalUndoTimeline, planLocalUndo, consumeLocalUndo } from "./LocalUndo.js?v=20261029-unified-r1";
+import { compileBoard } from "./BoardCompiler.js?v=20261029-unified-r1";
+import { createSurfacePreset } from "./BoardPresets.js?v=20261029-unified-r1";
+import { generateBoard, randomBoardGeometrySignature } from "./RandomBoard.js?v=20261029-unified-r1";
+import { TOPOLOGY_AI_ROUTE } from "./TopologyAIAdapter.js?v=20261029-unified-r1";
+import { TopologyGraphicEditor } from "./TopologyGraphicEditor.js?v=20261029-unified-r1";
+import { SharedLadderPanel } from "./SharedLadder.js?v=20261029-unified-r1";
+import { mountTopologySurface3D } from "./TopologySurface3D.js?v=20261029-unified-r1";
+import { TOPOLOGY_TUTORIAL_STEPS, topologyTutorialText } from "./TopologyTutorial.js?v=20261029-unified-r1";
+import {
+  addBoundaryVertex,
+  addSeamPair,
+  cancelBoardDraft,
+  closeBoundaryDraft,
+  createBoardDraft,
+  startBoundaryRing,
+  deleteBoundaryRing,
+  undoBoundaryVertex,
+} from "./BoardEditor.js?v=20261029-unified-r1";
+import { decodeTopologyState } from "./TopologyStateCodec.js?v=20261029-unified-r1";
 
 const {
   computed,
@@ -222,6 +256,7 @@ async function postAuthJson(serverUrl, path, payload) {
   return {
     ...data,
     apiBaseUrl: activeApiBaseUrl,
+    authOrigin: new URL(response.url || activeApiBaseUrl).origin,
   };
 }
 
@@ -641,12 +676,15 @@ const SetupPanel = {
     "update:undo-enabled",
     "update:undo-max-count",
     "update-local-player",
+    "select-lab-model",
+    "save-room-settings",
     "update:start-player",
     "swap-local-players",
     "start-local-match",
     "toggle-contributions",
     "retry-contributions",
     "update-starting-points",
+    "open-topology-guide",
   ],
   props: {
     language: {
@@ -689,6 +727,7 @@ const SetupPanel = {
     localPending: { type: Boolean, default: true },
     localStarted: { type: Boolean, default: false },
     startingPoints: { type: Object, default: () => ({}) },
+    roomSetupOpen: { type: Boolean, default: false },
     contributionState: { type: Object, required: true },
     aiAvailable: {
       type: Boolean,
@@ -709,7 +748,10 @@ const SetupPanel = {
 
     return {
       texts,
-      contributionSupported: computed(() => supportsContributionActors(localMatchActors(props.localPlayers, props.playerCount, props.gridSize, props.boardShape))),
+      contributionSupported: computed(() => supportsContributionActors(localMatchActors(props.localPlayers, props.playerCount, props.gridSize, props.boardShape), {
+        rulesVersion: "territory-v3", playerCount: props.playerCount, gridSize: props.gridSize, boardShape: props.boardShape,
+        hintEnabled: props.hintEnabled, undoEnabled: props.undoEnabled, undoMaxCount: props.undoMaxCount,
+      })),
       PLAYER_COUNT_OPTIONS: APP_PLAYER_COUNT_OPTIONS,
       GRID_SIZE_OPTIONS: APP_GRID_SIZE_OPTIONS,
       TURN_TIMER_MAX_SECONDS: APP_TURN_TIMER_MAX_SECONDS,
@@ -792,32 +834,20 @@ const SetupPanel = {
               </button>
             </div>
           </div>
-          <div v-if="aiAvailable || onlineAvailable" class="settings-grid-item-wide">
-            <label id="board-shape-label" class="field-label">{{ texts.boardShapeLabel }}</label>
-            <div id="board-shape" class="language-switcher language-switcher-inline" role="radiogroup" aria-labelledby="board-shape-label">
-              <button v-for="shape in ['triangle', 'hexagon']" :key="shape" type="button" class="language-button"
-                :class="{ 'is-active': boardShape === shape }" role="radio" :aria-checked="boardShape === shape"
-                :data-board-shape="shape" :disabled="busy || settingsLocked" @click="$emit('update:board-shape', shape)">
-                {{ shape === 'triangle' ? texts.triangleBoard : texts.hexagonBoard }}
-              </button>
-            </div>
-          </div>
-          <p class="help-copy settings-grid-item-wide board-geometry-summary">{{ texts.boardGeometry(playerCount, boardShape) }}</p>
-          <div class="settings-grid-item-wide" v-if="aiAvailable">
-            <LocalPlayerSetup :texts="texts" :players="localPlayers" :player-count="playerCount" :board-shape="boardShape"
-              :root-mode="startingPoints.rootMode ?? 'classic'"
+          <div class="settings-grid-item-wide" v-if="aiAvailable || roomSetupOpen">
+            <LocalPlayerSetup :texts="texts" :language="language" :players="localPlayers" :player-count="playerCount" :board-shape="boardShape"
+              :root-mode="startingPoints.rootMode ?? 'classic'" :grid-size="gridSize"
+              :online="roomSetupOpen"
               :initial-positions="startingPoints.initialPositions"
               :start-player="startPlayer" :pending="localPending" :started="localStarted" :locked="busy || settingsLocked"
-              @update-player="$emit('update-local-player', $event)" @update:start-player="$emit('update:start-player', $event)"
-              @swap="$emit('swap-local-players')" @start="$emit('start-local-match')">
+              @update-player="$emit('update-local-player', $event)" @select-lab-model="$emit('select-lab-model', $event)" @update:start-player="$emit('update:start-player', $event)"
+              @swap="$emit('swap-local-players')" @start="$emit('start-local-match')" @open-topology-guide="$emit('open-topology-guide')">
               <template #contribution>
-                <ContributionPanel v-if="playerCount <= 3 && boardShape === 'triangle' && !startingPoints.initialPositions" :language="language" :state="contributionState" :supported="contributionSupported" @toggle="$emit('toggle-contributions', $event)" @retry="$emit('retry-contributions')" />
+                <ContributionPanel v-if="!roomSetupOpen && boardShape !== 'custom'" :language="language" :state="contributionState" :supported="contributionSupported" @toggle="$emit('toggle-contributions', $event)" @retry="$emit('retry-contributions')" />
               </template>
             </LocalPlayerSetup>
           </div>
-          <div v-else-if="playerCount <= 3 && boardShape === 'triangle'" class="settings-grid-item-wide">
-            <ContributionPanel :language="language" :state="contributionState" @toggle="$emit('toggle-contributions', $event)" @retry="$emit('retry-contributions')" />
-          </div>
+          <button v-if="roomSetupOpen" type="button" class="action-button action-button-primary" :disabled="busy || settingsLocked" @click="$emit('save-room-settings')">{{ language === 'zh' ? '保存房间设置' : 'Save room settings' }}</button>
           <div class="settings-grid-item-wide">
             <label id="grid-size-label" class="field-label">{{ texts.gridSizeLabel }}</label>
             <div
@@ -841,7 +871,21 @@ const SetupPanel = {
               </button>
             </div>
           </div>
-          <StartingPointSetup v-if="aiAvailable || onlineAvailable" class="settings-grid-item-wide" :texts="texts" :language="language" :online="onlineAvailable"
+          <div v-if="aiAvailable || onlineAvailable" class="settings-grid-item-wide">
+            <label id="board-shape-label" class="field-label">{{ texts.boardShapeLabel }}</label>
+            <div id="board-shape" class="language-switcher language-switcher-inline" role="radiogroup" aria-labelledby="board-shape-label">
+              <button v-for="shape in ['triangle', 'diamond', 'hexagon', 'custom']" :key="shape" type="button" class="language-button"
+                :class="{ 'is-active': boardShape === shape }" role="radio" :aria-checked="boardShape === shape"
+                :data-board-shape="shape" :disabled="busy || settingsLocked" @click="$emit('update:board-shape', shape)">
+                {{ shape === 'triangle' ? texts.triangleBoard : shape === 'diamond' ? (texts.diamondBoard ?? (language === 'zh' ? '菱形' : 'Diamond')) : shape === 'hexagon' ? texts.hexagonBoard : (language === 'zh' ? '拓扑棋盘' : 'Topology board') }}
+              </button>
+            </div>
+          </div>
+          <div v-if="boardShape === 'custom'" class="settings-grid-item-wide"><slot name="topology-feedback"></slot></div>
+          <div v-if="boardShape === 'custom'" class="settings-grid-item-wide topology-setup-slot">
+            <slot name="topology"></slot>
+          </div>
+          <StartingPointSetup v-if="(aiAvailable || onlineAvailable) && boardShape !== 'custom'" class="settings-grid-item-wide" :texts="texts" :language="language" :online="onlineAvailable"
             :player-count="playerCount" :board-shape="boardShape" :grid-size="gridSize" :selection="startingPoints" :locked="busy || settingsLocked"
             @update="$emit('update-starting-points', $event)" @start="$emit('start-local-match')" />
           <div class="settings-grid-item-wide settings-timing-row">
@@ -872,7 +916,7 @@ const SetupPanel = {
               @change="$emit('update:turn-time-limit-seconds', Number($event.target.value))"
             />
           </div>
-          <div v-if="playerCount <= 3 && boardShape === 'triangle'">
+          <div v-if="(playerCount <= 3 && boardShape === 'triangle') || boardShape === 'custom'">
             <label class="field-label" for="hint-enabled">{{ texts.hintSwitchLabel }}</label>
             <label class="toggle-field" for="hint-enabled">
               <input
@@ -885,7 +929,7 @@ const SetupPanel = {
               <span>{{ hintEnabled ? texts.toggleOn : texts.toggleOff }}</span>
             </label>
           </div>
-          <div v-if="playerCount <= 3 && boardShape === 'triangle'">
+          <div v-if="(playerCount <= 3 && boardShape === 'triangle') || boardShape === 'custom'">
             <label class="field-label" for="hint-max-count">{{ texts.hintMaxCountLabel }}</label>
             <input
               id="hint-max-count"
@@ -917,6 +961,151 @@ const SetupPanel = {
           </div>
         </div>
       </div>
+    </section>
+  `,
+};
+
+// Surface boards deliberately have a small, separate setup surface.  The
+// legacy board-shape control only represents the fixed triangle/hexagon
+// families; exposing a custom definition there would invite the old matrix
+// normaliser to reinterpret it.  This panel produces a draft only.  The App
+// compiles and freezes the definition (including all active starting seats)
+// before it may be used for a local match or room.
+const TopologySetupPanel = {
+  name: "TopologySetupPanel",
+  components: { TopologyGraphicEditor, TopologyStartingPointSetup },
+  emits: [
+    "select-preset",
+    "generate-random",
+    "update:seed",
+    "update:draft-x",
+    "update:draft-y",
+    "update:definition-text",
+    "draft-add",
+    "draft-undo",
+    "draft-close",
+    "draft-reset",
+    "draft-add-seam",
+    "draft-new-ring",
+    "draft-delete-ring",
+    "update-starts",
+    "definition-load",
+  ],
+  props: {
+    language: { type: String, required: true },
+    gridSize: { type: Number, required: true },
+    playerCount: { type: Number, required: true },
+    definition: { type: Object, default: null },
+    boardHash: { type: String, default: "" },
+    source: { type: String, default: "" },
+    message: { type: String, default: "" },
+    seed: { type: String, default: "surface-1" },
+    draft: { type: Object, required: true },
+    draftX: { type: Number, default: 0 },
+    draftY: { type: Number, default: 0 },
+    definitionText: { type: String, default: "" },
+    locked: { type: Boolean, default: false },
+    busy: { type: Boolean, default: false },
+  },
+  setup(props) {
+    const tutorialStep = ref(-1);
+    const seamA = ref("");
+    const seamB = ref("");
+    const seamDirection = ref("same");
+    const zh = computed(() => props.language === "zh");
+    const boundaryOccurrences = computed(() => props.draft?.boundaryOccurrenceIds ?? []);
+    const canAddSeam = computed(() => Boolean(
+      props.draft?.closed && seamA.value && seamB.value && seamA.value !== seamB.value,
+    ));
+    const formattedPath = computed(() => (props.draft?.path ?? [])
+      .map((coordinate) => `(${coordinate[0]}, ${coordinate[1]})`).join(" → "));
+    const addSeam = () => {
+      if (!canAddSeam.value) return;
+      props.draft && globalThis.Vue.nextTick(() => {
+        // The parent allocates the stable seam ID after checking the current
+        // compiled definition, so duplicate clicks cannot reuse stale input.
+      });
+    };
+    return {
+      zh,
+      tutorialStep,
+      seamA,
+      seamB,
+      seamDirection,
+      boundaryOccurrences,
+      canAddSeam,
+      formattedPath,
+      addSeam,
+      presetNames: ["cylinder", "mobius", "torus", "klein-bottle", "tetrahedron", "cone", "sphere"],
+      topologyTutorialSteps: TOPOLOGY_TUTORIAL_STEPS,
+      topologyTutorialText: (step) => topologyTutorialText(step, props.language),
+      presetLabel: (name) => (zh.value ? {
+        cylinder: "圆柱", mobius: "莫比乌斯带", torus: "环面",
+        "klein-bottle": "克莱因瓶", tetrahedron: "三角锥", cone: "圆锥", sphere: "球面",
+      } : {
+        cylinder: "Cylinder", mobius: "Möbius strip", torus: "Torus",
+        "klein-bottle": "Klein bottle", tetrahedron: "Tetrahedron", cone: "Cone", sphere: "Sphere",
+      })[name] ?? name,
+      sourceLabel: (source) => ({
+        "随机棋盘": zh.value ? "随机棋盘" : "random board", "random board": zh.value ? "随机棋盘" : "random board",
+        "自定义起点": zh.value ? "自定义起点" : "custom starts", "custom starts": zh.value ? "自定义起点" : "custom starts",
+        "绘制边界": zh.value ? "手绘轮廓" : "drawn contour", "drawn boundary": zh.value ? "手绘轮廓" : "drawn contour",
+        "绘制边界粘合": zh.value ? "手绘轮廓粘合" : "drawn contour seams", "drawn boundary seams": zh.value ? "手绘轮廓粘合" : "drawn contour seams",
+        "导入 JSON": zh.value ? "导入 JSON" : "imported JSON", "imported JSON": zh.value ? "导入 JSON" : "imported JSON",
+      })[source] ?? ((zh.value ? {cylinder:"圆柱",mobius:"莫比乌斯带",torus:"环面","klein-bottle":"克莱因瓶",tetrahedron:"三角锥",cone:"圆锥",sphere:"球面"} : {cylinder:"Cylinder",mobius:"Möbius strip",torus:"Torus","klein-bottle":"Klein bottle",tetrahedron:"Tetrahedron",cone:"Cone",sphere:"Sphere"})[source] ?? (zh.value ? "自定义棋盘" : "custom board")),
+    };
+  },
+  template: `
+    <section class="topology-setup" :aria-label="zh ? '拓扑棋盘设置' : 'Topology board setup'">
+      <div class="panel-head panel-head-inline">
+        <h2>{{ zh ? '拓扑棋盘' : 'Topology board' }}</h2>
+      </div>
+      <div class="topology-tutorial">
+        <button type="button" class="action-button action-button-secondary" :disabled="locked || busy" @click="tutorialStep = 0; $emit('select-preset', 'cylinder')">{{ zh ? '开始拓扑新手引导' : 'Start topology tutorial' }}</button>
+        <div v-if="tutorialStep >= 0" role="status">
+          <strong>{{ topologyTutorialText(topologyTutorialSteps[tutorialStep]).title }}</strong>
+          <p>{{ topologyTutorialText(topologyTutorialSteps[tutorialStep]).instruction }}</p>
+          <button type="button" class="language-button" @click="tutorialStep = -1">{{ zh ? '退出引导' : 'Exit tutorial' }}</button>
+          <button v-if="tutorialStep < topologyTutorialSteps.length - 1" type="button" class="language-button" :disabled="locked || busy" @click="tutorialStep++; if (topologyTutorialSteps[tutorialStep].action.type === 'select-preset') $emit('select-preset', topologyTutorialSteps[tutorialStep].action.preset)">{{ zh ? '下一步' : 'Next' }}</button>
+        </div>
+      </div>
+
+      <div class="settings-cluster settings-cluster-standalone">
+        <label class="field-label">{{ zh ? '曲面预设' : 'Surface presets' }}</label>
+        <div class="board-choice-grid board-choice-grid-3col" role="group" :aria-label="zh ? '曲面预设' : 'Surface presets'">
+          <button v-for="name in presetNames" :key="name" type="button" class="board-choice-option board-choice-size"
+            :disabled="locked || busy" @click="$emit('select-preset', name)">{{ presetLabel(name) }}</button>
+        </div>
+        <p v-if="gridSize % 2 === 0 && ['tetrahedron', 'cone', 'sphere'].includes(definition?.topology?.preset)" class="help-copy topology-preset-effective-size" role="status">
+          {{ zh ? '实际细分点数：' + (gridSize - 1) : 'Actual subdivision points: ' + (gridSize - 1) }}
+        </p>
+
+        <div class="actions">
+          <button type="button" class="action-button action-button-secondary" :disabled="locked || busy"
+            @click="$emit('generate-random')">{{ zh ? '生成随机棋盘' : 'Generate random board' }}</button>
+        </div>
+
+        <details class="local-player-advanced">
+          <summary>{{ zh ? '自定义地图' : 'Custom map' }}</summary>
+          <TopologyGraphicEditor :draft="draft" :language="language" :grid-size="gridSize" :message="message" :disabled="locked || busy"
+            @vertex="$emit('draft-add', $event)" @close="$emit('draft-close')"
+            @undo="$emit('draft-undo')" @reset="$emit('draft-reset')" @seam="$emit('draft-add-seam', $event)"
+            @new-ring="$emit('draft-new-ring')" @delete-ring="$emit('draft-delete-ring', $event)" />
+        </details>
+
+        <details class="local-player-advanced">
+          <summary>{{ zh ? '导入完整棋盘 JSON' : 'Load complete board JSON' }}</summary>
+          <p class="help-copy">{{ zh ? '高级入口：可表达任意合法的单位边粘合。错误定义不会替换当前棋盘。' : 'Advanced path: express any valid unit-edge pairing. An invalid definition never replaces the current board.' }}</p>
+          <textarea class="input-field" :aria-label="zh ? '完整棋盘 JSON' : 'Complete board JSON'" rows="10" :value="definitionText" :disabled="locked || busy"
+            @input="$emit('update:definition-text', $event.target.value)"></textarea>
+          <div class="actions"><button type="button" class="action-button action-button-secondary" :disabled="locked || busy || !definitionText.trim()"
+            @click="$emit('definition-load')">{{ zh ? '验证并使用 JSON' : 'Validate and use JSON' }}</button></div>
+        </details>
+      </div>
+      <TopologyStartingPointSetup v-if="definition" :definition="definition" :player-count="playerCount" :language="language" :locked="locked || busy" @change="$emit('update-starts', $event)" />
+      <p v-if="definition" class="success-copy">{{ zh ? '已选择：' : 'Selected: ' }}{{ sourceLabel(source) }}</p>
+      <p v-if="message" :class="message.startsWith('ERROR:') ? 'error-copy' : 'help-copy'">{{ message.replace(/^ERROR:\s*/, '') }}</p>
+
     </section>
   `,
 };
@@ -1211,7 +1400,7 @@ const RoomPanel = {
       <input
         id="room-id"
         class="input-field"
-        maxlength="4"
+        maxlength="8"
         :placeholder="texts.roomPlaceholder"
         :value="roomId"
         :disabled="busy"
@@ -1219,13 +1408,6 @@ const RoomPanel = {
       />
 
       <div class="actions actions-stack">
-        <div v-if="playerCount >= 3 && !session.roomId">
-          <label class="field-label" for="room-bot-count">{{ texts.roomBotCount }}</label>
-          <select id="room-bot-count" class="input-field" :value="botCount" :disabled="busy" @change="$emit('update:bot-count', Number($event.target.value))">
-            <option v-for="count in playerCount" :key="count - 1" :value="count - 1">{{ texts.roomBotOption(playerCount, count - 1) }}</option>
-          </select>
-          <p class="help-copy">{{ texts.roomBotHint }}</p>
-        </div>
         <button class="action-button action-button-primary" :disabled="busy || !authenticated" @click="$emit('connect')">
           {{ texts.connectServer }}
         </button>
@@ -1602,7 +1784,6 @@ const ReplayPanel = {
       <div class="replay-panel-head">
         <div>
           <p class="panel-kicker">{{ copy.title }}</p>
-          <p class="replay-panel-description">{{ copy.description }}</p>
         </div>
         <span class="status-pill" v-if="replayMode">{{ copy.active }}</span>
       </div>
@@ -1625,6 +1806,55 @@ const ReplayPanel = {
   `,
 };
 
+function formatReplayMovePosition(event) {
+  const position = event?.vertexId ?? event?.point;
+  if (Array.isArray(position) && position.length === 2) return `(${position.join(", ")})`;
+  if (typeof position === "string" && position) return `(${position})`;
+  return "";
+}
+
+const REPLAY_NODE_STATES = new Set([
+  PointState.BLACK_NODE, PointState.WHITE_NODE, PointState.PURPLE_NODE,
+  PointState.GREEN_NODE, PointState.ORANGE_NODE, PointState.CYAN_NODE,
+]);
+
+// Topology replay events deliberately contain only committed actions and
+// hashes. Derive presentation-only effects in an isolated engine, leaving the
+// signed document and the live/review controller untouched.
+export function topologyReplayInspectionEffects(document, cursor) {
+  if (!document?.initialState?.topologyState || !Number.isInteger(cursor) || cursor < 1 || cursor > document.actions?.length) return null;
+  const decoded = decodeTopologyState(document.initialState.topologyState);
+  const engine = new GameEngine({
+    compiledBoard: decoded.board,
+    playerCount: Object.keys(decoded.ruleState.startingVertices).length,
+    startPlayer: decoded.ruleState.currentPlayer,
+    rulesVersion: decoded.ruleState.rulesVersion,
+    deferTerritoryUpdates: false,
+  });
+  engine.restoreTopologyState(document.initialState.topologyState);
+  let before, after;
+  for (let i = 0; i < cursor; i += 1) {
+    const event = document.actions[i];
+    if (i === cursor - 1) before = engine.getSnapshot();
+    const result = event.type === "move" ? engine.playMove(event.vertexId)
+      : event.type === "skip" ? engine.skipTurn()
+        : event.type === "resign" ? engine.resignPlayer(event.actor) : null;
+    if (!result?.success) throw new Error("Topology replay inspection could not reproduce an action.");
+    if (i === cursor - 1) after = engine.getSnapshot();
+  }
+  const capturedPoints = Object.entries(before.boardStates ?? {})
+    .filter(([id, state]) => REPLAY_NODE_STATES.has(state) && after.boardStates?.[id] !== state)
+    .map(([id]) => id);
+  const addedEdgesByPlayer = Object.fromEntries((before.players ?? []).map((player) => {
+    const previous = new Set(before.edges?.[player] ?? []);
+    return [player, (after.edges?.[player] ?? []).filter(edge => !previous.has(edge))];
+  }));
+  const territoryDelta = Object.fromEntries((before.players ?? []).map((player) => [
+    player, Number(after.territories?.[player]?.area ?? 0) - Number(before.territories?.[player]?.area ?? 0),
+  ]));
+  return { capturedPoints, addedEdgesByPlayer, territoryDelta, gameEnded: Boolean(after.gameOver && !before.gameOver) };
+}
+
 const ReplayControls = {
   name: "ReplayControls",
   emits: ["seek", "toggle-play", "toggle-inspector", "exit-review"],
@@ -1646,25 +1876,20 @@ const ReplayControls = {
       const event = props.event;
       if (!event) return copy.value.start;
       const player = formatAppPlayerName(event.actor, props.language, props.uiStyle);
-      const action = event.type === "move" ? `${copy.value.move} (${event.point?.join(", ")})`
-        : event.type === "skip" ? copy.value.skip
-          : event.type === "root_relocate" ? `${copy.value.rootRelocate} (${event.point?.join(", ")})`
-            : event.type === "root_add" ? `${copy.value.rootAdd} (${event.point?.join(", ")})`
-              : copy.value.resign;
+      const position = formatReplayMovePosition(event);
+      const action = event.type === "move" ? `${copy.value.move}${position ? ` ${position}` : ""}` : event.type === "skip" ? copy.value.skip : event.type === "root_relocate" ? `${copy.value.rootRelocate}${position ? ` ${position}` : ""}` : event.type === "root_add" ? `${copy.value.rootAdd}${position ? ` ${position}` : ""}` : copy.value.resign;
       return `${player} · ${action}`;
     });
     return { copy, summary };
   },
   template: `
-    <section class="panel replay-controls" aria-label="Replay controls">
+    <section class="panel replay-controls" :aria-label="language === 'zh' ? '复盘控制' : 'Replay controls'">
       <div class="replay-controls-head">
         <div class="replay-controls-copy">
           <strong>{{ copy.mode }} · {{ cursor }} / {{ replayDocument.actions.length }}</strong>
-          <span>{{ summary }}</span>
         </div>
         <div class="replay-controls-actions">
           <button type="button" class="action-button action-button-secondary" @click="$emit('exit-review')">{{ copy.exit }}</button>
-          <button type="button" class="action-button action-button-ghost" :aria-expanded="inspectorOpen" @click="$emit('toggle-inspector')">{{ inspectorOpen ? copy.hideDetails : copy.details }}</button>
         </div>
       </div>
       <div class="replay-transport">
@@ -1690,6 +1915,7 @@ const ReplayInspectorPanel = {
     gameState: { type: Object, required: true },
     event: { type: Object, default: null },
     cursor: { type: Number, default: 0 },
+    selectedPoint: { type: [Array, String], default: null },
     aiComparison: { type: Object, default: null },
     aiComparisonBusy: { type: Boolean, default: false },
     aiComparisonError: { type: String, default: "" },
@@ -1709,7 +1935,7 @@ const ReplayInspectorPanel = {
           changed: "规则效果",
           captured: "清除节点",
           edges: "新增连线",
-          territory: "领土变化",
+          territoryDelta: "领土变化",
           capturedDetail: "清除",
           edgeDetail: "连线",
           currentPlayer: "当前行动方",
@@ -1740,6 +1966,7 @@ const ReplayInspectorPanel = {
           aiPlayer: "分析方",
           aiNoMoves: "该局面没有可比较的候选点。",
           none: "本步没有检测到清除或领土变化。",
+          effectsUnavailable: "本步变化信息暂不可用。",
           ended: "本步触发了终局结算。",
         }
       : {
@@ -1755,7 +1982,7 @@ const ReplayInspectorPanel = {
           changed: "Rule effects",
           captured: "nodes cleared",
           edges: "new edges",
-          territory: "territory delta",
+          territoryDelta: "territory delta",
           capturedDetail: "Cleared",
           edgeDetail: "Edge",
           currentPlayer: "Current player",
@@ -1786,24 +2013,27 @@ const ReplayInspectorPanel = {
           aiPlayer: "Analyzed player",
           aiNoMoves: "This position has no candidates to compare.",
           none: "No clearing or territory change was detected for this step.",
+          effectsUnavailable: "Changes for this step are unavailable.",
           ended: "This step triggered terminal settlement.",
         });
     const playerName = (player) => APP_ALL_PLAYERS.includes(player) ? formatAppPlayerName(player, props.language, props.uiStyle) : player ?? "—";
-    const occupiedCount = computed(() => (
-      props.gameState.snapshot?.boardMatrix?.flat?.().filter((state) => Number(state) > 0).length ?? 0
-    ));
-    const selectedCandidate = ref(null);
+    const occupiedCount = computed(() => {
+      const snapshot = props.gameState.snapshot;
+      const states = snapshot?.isTopologyBoard
+        ? Object.values(snapshot.boardStates ?? {})
+        : (snapshot?.boardMatrix?.flat?.() ?? []);
+      return states.filter(state => REPLAY_NODE_STATES.has(state)).length;
+    });
     const candidatePoints = computed(() => (props.gameState.legalMoves ?? [])
-      .map((move) => (Array.isArray(move) ? move : move?.point))
-      .filter((point) => Array.isArray(point) && point.length === 2)
-      .slice(0, 12));
+      .map((move) => (Array.isArray(move) || typeof move === "string" ? move : (move?.vertexId ?? move?.point)))
+      .filter((point) => typeof point === "string" || (Array.isArray(point) && point.length === 2)));
     const structureStats = computed(() => (props.gameState.players ?? []).map((player) => ({
       player,
       edges: props.gameState.snapshot?.edges?.[player]?.length ?? 0,
       territory: props.gameState.snapshot?.territories?.[player]?.area ?? 0,
     })));
-    const selectedCandidateLabel = computed(() => selectedCandidate.value
-      ? `${copy.value.selected}：(${selectedCandidate.value[0]}, ${selectedCandidate.value[1]})`
+    const selectedCandidateLabel = computed(() => props.selectedPoint
+      ? `${copy.value.selected}：${pointLabel(props.selectedPoint)}`
       : "");
     const aiRunLabel = (run) => run.label ?? (run.strategy === "greedy"
       ? copy.value.aiGreedy
@@ -1830,24 +2060,21 @@ const ReplayInspectorPanel = {
         }
       }
       for (const [player, delta] of Object.entries(effects.territoryDelta ?? {})) {
-        if (delta) details.push(`${copy.value.territory} ${playerName(player)} ${delta > 0 ? "+" : ""}${delta}`);
+        if (delta) details.push(`${copy.value.territoryDelta} ${playerName(player)} ${delta > 0 ? "+" : ""}${delta}`);
       }
       return details;
     });
     const selectCandidate = (point) => {
-      selectedCandidate.value = [...point];
-      emit("inspect-point", [...point]);
+      emit("inspect-point", Array.isArray(point) ? [...point] : point);
     };
     const eventSummary = computed(() => {
       if (!props.event) return copy.value.start;
-      const effects = props.event.effects ?? {};
-      const actionLabel = props.event.type === "move" ? copy.value.move
-        : props.event.type === "skip" ? copy.value.skip
-          : props.event.type === "root_relocate" ? copy.value.rootRelocate
-            : props.event.type === "root_add" ? copy.value.rootAdd
-              : copy.value.resign;
+      const actionLabel = props.event.type === "move" ? copy.value.move : props.event.type === "skip" ? copy.value.skip : props.event.type === "root_relocate" ? copy.value.rootRelocate : props.event.type === "root_add" ? copy.value.rootAdd : copy.value.resign;
       const actor = playerName(props.event.actor);
-      const point = props.event.point ? ` (${props.event.point[0]}, ${props.event.point[1]})` : "";
+      const position = props.event.type === "move" ? formatReplayMovePosition(props.event) : "";
+      const point = position ? ` ${position}` : "";
+      if (!props.event.effects) return `${actionLabel} · ${actor}${point}。${copy.value.effectsUnavailable}`;
+      const effects = props.event.effects;
       const capturedCount = effects.capturedPoints?.length ?? 0;
       const edgeCount = Object.values(effects.addedEdgesByPlayer ?? {}).flat().length;
       const territoryText = Object.entries(effects.territoryDelta ?? {})
@@ -1857,7 +2084,7 @@ const ReplayInspectorPanel = {
       const details = [];
       if (capturedCount) details.push(`${capturedCount} ${copy.value.captured}`);
       if (edgeCount) details.push(`${edgeCount} ${copy.value.edges}`);
-      if (territoryText) details.push(`${copy.value.territory}：${territoryText}`);
+      if (territoryText) details.push(`${copy.value.territoryDelta}：${territoryText}`);
       if (!details.length) details.push(copy.value.none);
       if (effects.gameEnded) details.push(copy.value.ended);
       return `${actionLabel} · ${actor}${point}。${copy.value.changed}：${details.join("；")}`;
@@ -1888,8 +2115,8 @@ const ReplayInspectorPanel = {
       <p class="replay-event-summary">{{ eventSummary }}</p>
       <div class="replay-overlay-legend" :aria-label="copy.title">
         <span><i class="replay-legend-mark is-selected"></i>{{ copy.overlaySelected }}</span>
-        <span><i class="replay-legend-mark is-captured"></i>{{ copy.overlayCaptured }}</span>
-        <span><i class="replay-legend-mark is-edge"></i>{{ copy.overlayEdges }}</span>
+        <span v-if="!gameState.isTopologyBoard"><i class="replay-legend-mark is-captured"></i>{{ copy.overlayCaptured }}</span>
+        <span v-if="!gameState.isTopologyBoard"><i class="replay-legend-mark is-edge"></i>{{ copy.overlayEdges }}</span>
       </div>
       <ul v-if="effectDetails.length" class="replay-effect-details">
         <li v-for="detail in effectDetails" :key="detail">{{ detail }}</li>
@@ -1912,8 +2139,8 @@ const ReplayInspectorPanel = {
         <p class="replay-inspector-label">{{ copy.candidates }}</p>
         <p class="replay-panel-description">{{ copy.candidateHint }}</p>
         <div class="replay-candidate-list">
-          <button v-for="point in candidatePoints" :key="point.join(',')" type="button" class="replay-candidate-button" @click="selectCandidate(point)">
-            ({{ point[0] }}, {{ point[1] }})
+          <button v-for="point in candidatePoints" :key="pointLabel(point)" type="button" class="replay-candidate-button" @click="selectCandidate(point)">
+            {{ pointLabel(point) }}
           </button>
           <span v-if="!candidatePoints.length" class="help-copy">—</span>
         </div>
@@ -1923,9 +2150,9 @@ const ReplayInspectorPanel = {
         <div class="replay-ai-head">
           <div>
             <p class="replay-inspector-label">{{ copy.aiTitle }}</p>
-            <p class="replay-panel-description">{{ gameState.playerCount >= 4 ? (language === "zh" ? "多人棋盘支持逐步复盘与规则检查；暂不提供 AI 对比。" : "Multiplayer boards support step-by-step replay and rule inspection. AI comparison is not available yet.") : copy.aiDescription }}</p>
+            <p class="replay-panel-description">{{ gameState.isTopologyBoard ? (language === "zh" ? "比较拓扑通用 AI 在不同搜索深度下的候选；预算可能使搜索不完整。" : "Compare topology AI candidates at different depths; the search budget may leave results incomplete.") : gameState.playerCount >= 4 ? (language === "zh" ? "多人棋盘支持逐步复盘与规则检查；暂不提供 AI 对比。" : "Multiplayer boards support step-by-step replay and rule inspection. AI comparison is not available yet.") : copy.aiDescription }}</p>
           </div>
-          <button type="button" class="action-button action-button-secondary" :disabled="aiComparisonBusy || gameState.playerCount >= 4 || !gameState.legalMoves?.length" @click="$emit('compare-ai')">
+          <button type="button" class="action-button action-button-secondary" :disabled="aiComparisonBusy || (!gameState.isTopologyBoard && gameState.playerCount >= 4) || !gameState.legalMoves?.length" @click="$emit('compare-ai')">
             {{ aiComparisonBusy ? copy.aiRunning : copy.aiRun }}
           </button>
         </div>
@@ -1937,14 +2164,16 @@ const ReplayInspectorPanel = {
               <strong>{{ aiRunLabel(run) }}</strong>
               <span>{{ run.elapsedMs }} ms</span>
             </div>
+            <p v-if="run.searchInfo && (run.searchInfo.budgetExceeded || run.searchInfo.selective || !run.searchInfo.legalEnumerationComplete || run.searchInfo.partialIterationDiscarded)" class="help-copy">{{ language === 'zh' ? '搜索未完整覆盖请求深度或全部候选；结果仅供参考。' : 'Search did not fully cover the requested depth or all candidates; results are indicative.' }}</p>
             <ol v-if="run.moves.length" class="replay-ai-moves">
-              <li v-for="(move, index) in run.moves" :key="run.id + '-' + (move.point ? move.point.join(',') : 'PASS')">
+              <li v-for="(move, index) in run.moves" :key="run.id + '-' + (move.point ? pointLabel(move.point) : 'PASS')">
                 <span>#{{ index + 1 }} {{ move.type === 'pass' ? 'PASS' : pointLabel(move.point) }}</span>
                 <strong v-if="run.strategy === 'mcts' || run.strategy === 'neural-puct'">{{ copy.aiVisits }} {{ move.visits }} · {{ copy.aiValue }} {{ move.meanValue }}<template v-if="move.prior !== null"> · {{ copy.aiPrior }} {{ move.prior }}</template></strong>
                 <strong v-else>{{ copy.aiScore }} {{ move.score }}</strong>
               </li>
             </ol>
             <p v-else-if="run.unavailableMessage" class="help-copy">{{ run.unavailableMessage }}</p>
+            <p v-else-if="run.searchInfo?.fallbackReason === 'no-action-before-budget'" class="help-copy">{{ language === 'zh' ? '预算内未能完成任何合法动作的检查，请重试。' : 'No legal action could be checked within the budget; please retry.' }}</p>
             <p v-else class="help-copy">{{ copy.aiNoMoves }}</p>
           </div>
         </div>
@@ -2031,8 +2260,49 @@ const TutorialCard = {
   `,
 };
 
+const TopologySurfacePreview = {
+  props: { snapshot: { type: Object, required: true }, language: String },
+  setup(props) {
+    const host = ref(null);
+    let surface = null;
+    onMounted(() => { surface = mountTopologySurface3D(host.value, props.snapshot, { language: props.language }); });
+    watch(() => [props.snapshot, props.language], ([snapshot, language]) => surface?.update(snapshot, { language }));
+    onBeforeUnmount(() => { surface?.destroy(); surface = null; });
+    return { host };
+  },
+  template: `<div ref="host" class="topology-surface-preview"></div>`,
+};
+
+const TopologySurfaceExpandable = {
+  components: { TopologySurfacePreview },
+  props: { snapshot: { type: Object, required: true }, language: String },
+  setup() { return { opened: ref(false) }; },
+  template: `<details class="topology-live-preview" @toggle="opened = $event.target.open">
+    <summary>{{ language === 'zh' ? '查看曲面与领地' : 'View surface and territory' }}</summary>
+    <TopologySurfacePreview v-if="opened" :snapshot="snapshot" :language="language" />
+  </details>`,
+};
+
+const SettlementBoardPreview = {
+  name: "SettlementBoardPreview",
+  props: { snapshot: { type: Object, required: true }, language: { type: String, required: true } },
+  setup(props) {
+    const canvas = ref(null);
+    let renderer = null;
+    onMounted(() => {
+      renderer = new Renderer(canvas.value, { minCssWidth: 1, minCssHeight: 1 });
+      renderer.render(props.snapshot);
+    });
+    watch(() => props.snapshot, (snapshot) => { if (renderer && snapshot?.boardMatrix) renderer.render(snapshot); });
+    onBeforeUnmount(() => { renderer?.destroy(); renderer = null; });
+    return { canvas };
+  },
+  template: `<div><div class="settlement-board-preview"><canvas ref="canvas" :aria-label="language === 'zh' ? '终局领土预览' : 'Final territory preview'"></canvas></div><p class="help-copy">{{ language === 'zh' ? '填色帮助理解领土，比分以离散计分为准。' : 'Fill illustrates territory; the displayed score uses the discrete rule.' }}</p></div>`,
+};
+
 const ResultModal = {
   name: "ResultModal",
+  components: { TopologySurfacePreview, SettlementBoardPreview },
   emits: ["action", "close", "leave"],
   props: {
     gameState: {
@@ -2212,6 +2482,8 @@ const ResultModal = {
             </template>
           </p>
           <p v-else class="result-summary">{{ summary }}</p>
+          <TopologySurfacePreview v-if="gameState.isTopologyBoard" :snapshot="gameState.snapshot" :language="language" />
+          <SettlementBoardPreview v-else-if="gameState.gameOver && gameState.snapshot?.boardMatrix" :snapshot="gameState.snapshot" :language="language" />
           <button
             class="action-button action-button-primary"
             :disabled="overlayResult ? false : !allowReset"
@@ -2370,6 +2642,10 @@ const GuidePanel = {
       type: Object,
       default: null,
     },
+    topologyEntry: {
+      type: Object,
+      default: null,
+    },
     whyEntry: {
       type: Object,
       default: null,
@@ -2481,6 +2757,7 @@ const GuideReaderModal = {
       type: String,
       required: true,
     },
+    initialKey: { type: String, default: "" },
   },
   setup(props) {
     const activeSubKey = ref("");
@@ -2505,9 +2782,11 @@ const GuideReaderModal = {
       });
     };
 
-    watch(() => props.entry?.key, () => {
-      activeSubKey.value = props.entry?.subEntries?.[0]?.key ?? "";
+    watch(() => [props.entry?.key, props.initialKey], () => {
+      const requested = props.initialKey === "rules-math-topology" ? "rules-math" : props.initialKey;
+      activeSubKey.value = props.entry?.subEntries?.some(item => item.key === requested) ? requested : (props.entry?.subEntries?.[0]?.key ?? "");
       typesetGuideMath();
+      if (props.initialKey === "rules-math-topology") nextTick?.(() => document.getElementById("rulesMath-topology")?.scrollIntoView?.({ block: "start" }));
     }, { immediate: true });
 
     watch(activeSubKey, () => {
@@ -2819,6 +3098,15 @@ function createGuideEntries(language = "zh", uiStyle = "casual", guideMarkdownOv
       blocks: ruleSubEntries[0]?.blocks ?? [],
     },
     {
+      key: "topology",
+      group: "topology",
+      eyebrow: texts.guideTopologyTitle,
+      title: texts.guideTopologyTitle,
+      subtitle: texts.guideTopologySubtitle,
+      showIllustration: false,
+      blocks: parseGuideMarkdown(resolveGuideMarkdown("topologyGuide", language, guideMarkdownOverrides)),
+    },
+    {
       key: "why-this",
       group: "why",
       eyebrow: texts.guideWhyTitle,
@@ -2944,6 +3232,36 @@ const BoardCanvas = {
   `,
 };
 
+// A received room is historical authority; absence of a rule field means legacy.
+const normalizeReceivedGameSettings = (settings = {}) => normalizeAppGameSettings({
+  ...settings, protectionRule: settings?.protectionRule ?? "symmetric-v1",
+});
+
+// Identify a saved preset using its geometry and seams, never by trusting the
+// label alone. This inspects candidates only; the saved board is never rebuilt.
+const topologyGeometrySignature = (definition) => JSON.stringify({
+  faces: randomBoardGeometrySignature(definition),
+  seams: (definition?.seamPairs ?? []).map(pair => {
+    const edges = [pair.edgeOccurrenceA, pair.edgeOccurrenceB].sort();
+    return [edges, pair.endpointMap];
+  }).sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b))),
+});
+function inferSavedTopologyPreset(definition) {
+  const preset = definition?.topology?.preset;
+  if (!["cylinder", "mobius", "torus", "klein-bottle", "tetrahedron", "cone", "sphere"].includes(preset)) return null;
+  const presetGeometry = value => JSON.stringify({
+    geometry: topologyGeometrySignature(value),
+    vertices: (value?.vertices ?? []).map(({ id, coordinate }) => [id, coordinate])
+      .sort((a, b) => a[0].localeCompare(b[0])),
+  });
+  const signature = presetGeometry(definition);
+  const sizes = APP_GRID_SIZE_OPTIONS.filter(size => {
+    try { return presetGeometry(createSurfacePreset(preset, { gridSize: size })) === signature; }
+    catch (_) { return false; }
+  });
+  return sizes.length ? { preset, sizes } : null;
+}
+
 const App = {
   name: "TriangularGameOnlineApp",
   components: {
@@ -2955,18 +3273,32 @@ const App = {
     UtilityModal,
     GuideReaderModal,
     ResultModal,
+    TopologySurfacePreview,
+    TopologySurfaceExpandable,
     ReplayPanel,
     ReplayControls,
     ReplayInspectorPanel,
     RoomPanel,
     ScorePanel,
     SetupPanel,
+    TopologySetupPanel,
+    SharedLadderPanel,
     TutorialCard,
   },
   setup() {
     const storedAuth = loadAppStoredAuth();
     const storedSession = loadAppStoredSession();
     const storedLocalGame = loadLocalGameSession();
+    const storedTopologyGame = loadTopologyLocalGameSession();
+    let storedTopologyDecoded = null;
+    try {
+      if (storedTopologyGame) storedTopologyDecoded = decodeTopologyState(storedTopologyGame.topologyState);
+    } catch (_) {
+      // The topology-session reader already validates its envelope.  Keep the
+      // legacy local match available if a browser extension/storage race makes
+      // an additional decode fail here.
+      storedTopologyDecoded = null;
+    }
     const storedMatchPreferences = loadLocalMatchPreferences();
     const firstTutorialLevel = getTutorialLevel(0);
     const standaloneTutorial = new URLSearchParams(globalThis.location?.search ?? "").get("tutorial") === "1";
@@ -2976,16 +3308,76 @@ const App = {
       settings: storedSession.settings,
       url: initialServerUrl,
     };
-    const normalGameSettings = normalizeAppGameSettings(storedLocalGame?.settings ?? storedMatchPreferences?.settings ?? normalizedStoredSession.settings);
+    const topologySettingsFromState = (decoded, topologySession = null) => normalizeAppGameSettings({
+      playerCount: Object.keys(decoded.ruleState.startingVertices ?? {}).length,
+      boardShape: "custom",
+      rulesVersion: "surface-v1",
+      topologyProtocolVersion: "board-topology-v1",
+      // Board identity comes only from the validated topology state.  The
+      // envelope may retain local UI controls (undo/hint/timer) but cannot
+      // override its definition, hash, starts or rules.
+      ...(topologySession?.settings ?? {}),
+      // Old v1 saves omitted the setup size. Infer only a unique exact preset
+      // geometry; ambiguous old sizes fall back to the normal UI default.
+      gridSize: (() => {
+        const saved = topologySession?.settings?.gridSize;
+        const sizes = inferSavedTopologyPreset(decoded.board.definition)?.sizes;
+        if (saved !== undefined && (!sizes || sizes.includes(saved))) return saved;
+        return sizes?.length === 1 ? sizes[0] : undefined;
+      })(),
+      boardDefinition: decoded.board.definition,
+      boardHash: decoded.boardHash,
+      // The saved current player is a position property, not the opening
+      // player.  The topology-session envelope retains the latter; starts are
+      // canonical IDs and must not pass through legacy coordinate helpers.
+      startPlayer: topologySession?.startPlayer ?? "BLACK",
+      initialPositions: { ...decoded.ruleState.startingVertices },
+    });
+    const storedTopologySettings = storedTopologyDecoded
+      ? topologySettingsFromState(storedTopologyDecoded, storedTopologyGame) : null;
+    const normalGameSettings = normalizeAppGameSettings(storedTopologySettings ?? storedLocalGame?.settings ?? storedMatchPreferences?.settings ?? normalizedStoredSession.settings);
     const initialSettings = normalizeAppGameSettings(getTutorialEngineSettings(firstTutorialLevel));
-    let tutorialReturnSession = storedLocalGame ?? createLocalGameSession(normalGameSettings);
+    // A saved *draft* topology definition is neither a legacy coordinate
+    // session nor a full topology session yet.  In particular, never send it
+    // through createLocalGameSession(), which deliberately rejects custom
+    // board settings.  It is restored as an unstarted topology board when the
+    // tutorial closes below.
+    let tutorialReturnSession = storedLocalGame ?? (storedTopologyDecoded || isTopologyGameSettings(normalGameSettings)
+      ? null
+      : createLocalGameSession(normalGameSettings));
+    let tutorialReturnTopologySession = storedTopologyDecoded ? storedTopologyGame : null;
+    const storedLocalMatch = storedTopologyDecoded ? storedTopologyGame?.match : storedLocalGame?.match;
     let tutorialReturnHintCount = normalGameSettings.hintEnabled ? normalGameSettings.hintMaxCount : 0;
     let pendingRoomReconnect = !standaloneTutorial && Boolean(
       storedAuth.token && normalizedStoredSession.roomId && normalizedStoredSession.playerId && normalizedStoredSession.url,
     );
     const controller = shallowRef(null);
     const gameState = ref(createAppDefaultGameState());
+    const defaultTopologyChart = () => globalThis.matchMedia?.("(max-width: 700px)")?.matches ? "front" : "both";
+    const topologyChart = ref(defaultTopologyChart());
+    const hasDoubleTopologyChart = computed(() => ["double-torus", "double-sphere"].includes(gameState.value.snapshot?.boardDefinition?.topology?.preset));
+    const topologyChartLatest = computed(() => {
+      const snapshot = gameState.value.snapshot;
+      const moves = Object.values(gameState.value.lastMoves ?? {}).filter(point => typeof point === "string");
+      if (!moves.length && typeof gameState.value.lastAction?.point === "string") moves.push(gameState.value.lastAction.point);
+      const latest = new Set(moves);
+      const result = { front: false, back: false };
+      for (const copy of snapshot?.topology?.viewBoard?.pointCopies ?? []) {
+        if (latest.has(copy.canonicalVertexId)) result[String(copy.sourceVertexId ?? "").startsWith("back:") ? "back" : "front"] = true;
+      }
+      return result;
+    });
+    const setTopologyChart = (chart) => {
+      if (!["both", "front", "back"].includes(chart)) return;
+      topologyChart.value = chart;
+      controller.value?.renderer?.setTopologyChart?.(chart);
+    };
+    watch(() => gameState.value.snapshot?.boardHash, () => setTopologyChart(defaultTopologyChart()));
     const tutorialActive = ref(true);
+    // Existing games restore through the same isolated tutorial-exit path,
+    // but do not expose the first-run lesson while restoration is pending.
+    const tutorialAutoRestoring = ref(!standaloneTutorial && Boolean(storedTopologyDecoded || storedLocalGame));
+    let startupRestorePromise = null;
     const tutorialSuccess = ref(false);
     const tutorialAttempts = ref(0);
     const tutorialLevelIndex = ref(0);
@@ -2993,14 +3385,15 @@ const App = {
     const tutorialResultSnapshot = shallowRef(null);
     const tutorialRestrictionObserved = ref(false);
     const localGameActions = ref([]);
+    let topologyLocalSession = storedTopologyDecoded ? storedTopologyGame : null;
     const contributionState = ref({ enabled: false, pending: 0, status: "off", receipt: null });
     const contribution = new TrainingContribution({ onChange: (state) => { contributionState.value = state; } });
     contributionState.value = contribution.snapshot();
     let contributionContext = null;
-    let contributionAssisted = false;
     let contributionProfileSignature = null;
+    const invalidateContributionTicket = () => { contributionContext = null; contributionProfileSignature = null; };
     const retryContributions = () => { void contribution.flush(); };
-    const toggleContributions = (enabled) => { contribution.setEnabled(enabled); contributionContext = null; retryContributions(); };
+    const toggleContributions = (enabled) => { contribution.setEnabled(enabled); invalidateContributionTicket(); retryContributions(); };
     const localGamePositionRevision = ref(-1);
     const localGameRestoring = ref(false);
     const localGameResumeNotice = ref("");
@@ -3018,11 +3411,22 @@ const App = {
     const aiComparison = ref(null);
     const aiComparisonBusy = ref(false);
     const aiComparisonError = ref("");
-    const currentReplayEvent = computed(() => (
-      replayCursor.value > 0
-        ? replayDocument.value?.actions?.[replayCursor.value - 1] ?? null
-        : null
-    ));
+    const topologyInspectionCache = new WeakMap();
+    const currentReplayEvent = computed(() => {
+      const document = replayDocument.value;
+      const cursor = replayCursor.value;
+      const event = cursor > 0 ? document?.actions?.[cursor - 1] ?? null : null;
+      if (!event || document.format !== TOPOLOGY_REPLAY_FORMAT) return event;
+      let cache = topologyInspectionCache.get(document);
+      if (!cache) { cache = new Map(); topologyInspectionCache.set(document, cache); }
+      if (!cache.has(cursor)) {
+        try {
+          const effects = topologyReplayInspectionEffects(document, cursor);
+          if (effects) cache.set(cursor, effects);
+        } catch (error) { console.warn("Topology replay inspection failed:", error); }
+      }
+      return { ...event, effects: cache.get(cursor) ?? null };
+    });
     const replayInspectionOverlay = computed(() => {
       if (!replayMode.value) {
         return null;
@@ -3043,7 +3447,7 @@ const App = {
     const hintRemainingCount = ref(0);
     const selectedUndoEnabled = ref(initialSettings.undoEnabled);
     const selectedUndoMaxCount = ref(initialSettings.undoMaxCount);
-    const undoUsage = ref(normalizeUndoUsage(storedLocalGame?.match?.undo));
+    const undoUsage = ref(normalizeUndoUsage(storedLocalMatch?.undo));
     const hintThinking = ref(false);
     const hintFeedback = ref("");
     const actionFeedback = ref("");
@@ -3051,7 +3455,12 @@ const App = {
     const language = ref(getAppInitialLanguage());
     const uiStyle = ref(getAppInitialUiStyle());
     const guideMarkdownOverrides = ref({});
-    const networkManager = new NetworkManager();
+    // Declare this explicitly instead of relying on NetworkManager's default:
+    // reconnects must negotiate the same topology capability as new rooms.
+    const networkManager = new NetworkManager({
+      topologyCapabilities: [TOPOLOGY_ROOM_CAPABILITY],
+      requestPasswordSession: ({ login, signal }) => requestSharedPasswordSession(login, signal),
+    });
     networkManager.setAuthToken(storedAuth.token);
     networkManager.hydrateSession(normalizedStoredSession);
     const serverUrl = ref(initialServerUrl);
@@ -3068,20 +3477,42 @@ const App = {
     const selectedGridSize = ref(initialSettings.gridSize);
     const selectedStartPlayer = ref(initialSettings.startPlayer);
     const selectedStartingPoints = ref(startingPointSettings(initialSettings));
+    const selectedTopologyDefinition = shallowRef(null);
+    const topologyDefaultSelection = shallowRef(null);
+    const selectedTopologyHash = ref("");
+    const selectedTopologyGridSize = ref(initialSettings.gridSize);
+    const selectedTopologySource = ref("");
+    const topologySetupMessage = ref("");
+    const topologyRandomSeed = ref("surface-1");
+    const topologyDraft = shallowRef(createBoardDraft());
+    const topologyDraftsBySize = new Map();
+    const topologyDraftX = ref(0);
+    const topologyDraftY = ref(0);
+    const topologyDefinitionText = ref("");
     let startingPointPreviewFresh = false;
     const selectedRulesVersion = ref(initialSettings.rulesVersion ?? APP_DEFAULT_RULES_VERSION);
     const selectedTurnTimerEnabled = ref(initialSettings.turnTimerEnabled);
     const selectedTurnTimeLimitSeconds = ref(initialSettings.turnTimeLimitSeconds);
-    const selectedLocalPlayers = ref(normalizeLocalPlayers(storedLocalGame?.match?.players ?? storedMatchPreferences?.players, initialSettings.playerCount, initialSettings.boardShape));
-    const activeLocalPlayers = ref(normalizeLocalPlayers(storedLocalGame?.match?.players, normalGameSettings.playerCount, normalGameSettings.boardShape));
+    const selectedLocalPlayers = ref(normalizeLocalPlayers(storedLocalMatch?.players ?? storedMatchPreferences?.players, initialSettings.playerCount, initialSettings.boardShape));
+    const explicitLabColors = new Set();
+    const activeLocalPlayers = ref(normalizeLocalPlayers(storedLocalMatch?.players, normalGameSettings.playerCount, normalGameSettings.boardShape));
     const selectedRoomBotCount = ref(0);
+    const roomSetupOpen = ref(false);
     const activeLocalSettings = ref(normalGameSettings);
-    const localMatchStarted = ref(storedLocalGame?.match?.started ?? Boolean(storedLocalGame?.actions.length));
-    const localSetupPending = computed(() => !localMatchStarted.value
-      || JSON.stringify(selectedLocalPlayers.value) !== JSON.stringify(activeLocalPlayers.value)
-      || JSON.stringify(normalizeAppGameSettings(draftGameSettings())) !== JSON.stringify(activeLocalSettings.value));
+    const localMatchStarted = ref(storedLocalMatch?.started ?? Boolean(storedTopologyDecoded ? storedTopologyGame?.actions.length : storedLocalGame?.actions.length));
+    const localSetupSettingsSignature = (settings) => {
+      const normalized = normalizeAppGameSettings(settings);
+      // Protection belongs to a match version, not to editable setup fields.
+      delete normalized.protectionRule;
+      return JSON.stringify(normalized);
+    };
+    // A changed draft is reviewable in the setup panel, while the active game
+    // stays playable until Start explicitly commits the new settings.
+    const localSettingsChanged = computed(() => JSON.stringify(selectedLocalPlayers.value) !== JSON.stringify(activeLocalPlayers.value)
+      || localSetupSettingsSignature(draftGameSettings()) !== localSetupSettingsSignature(activeLocalSettings.value));
+    const localSetupPending = computed(() => !localMatchStarted.value);
     const selectedAiMode = computed(() => localMatchMode(activeLocalPlayers.value, activeLocalSettings.value.playerCount, activeLocalSettings.value.boardShape));
-    const aiDuelPaused = ref(storedLocalGame?.match?.paused ?? false);
+    const aiDuelPaused = ref(storedLocalMatch?.paused ?? false);
     const aiThinking = ref(false);
     const aiLoading = ref(false);
     const session = ref(networkManager.getSession());
@@ -3100,6 +3531,61 @@ const App = {
     let lastServerTimestamp = 0;
     const overlayResult = ref(null);
     const activeUtilityDeck = ref("");
+    const accountLinkCode = ref(""), accountLinkError = ref(""), accountLinkBusy = ref(false);
+    let accountLinkGeneration = 0, accountLinkExpiry = null;
+    const sharedPasswordOpen = ref(false), sharedPasswordUsername = ref(""), sharedPassword = ref("");
+    const sharedPasswordBusy = ref(false), sharedPasswordError = ref("");
+    let sharedPasswordRequest = null;
+    const cancelSharedPassword = (cancelAuthentication = true) => {
+      const pending = sharedPasswordRequest;
+      sharedPasswordRequest = null;
+      sharedPassword.value = ""; sharedPasswordUsername.value = "";
+      sharedPasswordOpen.value = false; sharedPasswordBusy.value = false; sharedPasswordError.value = "";
+      pending?.dispose();
+      pending?.reject(new Error("CANCELLED"));
+      if (cancelAuthentication) networkManager.shared.cancelAuthentication();
+    };
+    function requestSharedPasswordSession(login, signal) {
+      cancelSharedPassword(false);
+      if (signal.aborted || !auth.value.token || !auth.value.username) return Promise.reject(new Error("CANCELLED"));
+      activeUtilityDeck.value = "network";
+      sharedPasswordUsername.value = auth.value.username;
+      sharedPasswordOpen.value = true;
+      return new Promise((resolve, reject) => {
+        const cancel = () => cancelSharedPassword(false);
+        sharedPasswordRequest = { login, resolve, reject, token: auth.value.token, server: serverUrl.value,
+          dispose: () => signal.removeEventListener("abort", cancel) };
+        signal.addEventListener("abort", cancel, { once: true });
+        const pending = sharedPasswordRequest;
+        void nextTick(() => {
+          if (sharedPasswordRequest !== pending || !sharedPasswordOpen.value) return;
+          globalThis.document?.getElementById("shared-password-input")?.focus({ preventScroll: true });
+        });
+      });
+    }
+    const handleSharedPasswordSubmit = async () => {
+      const pending = sharedPasswordRequest;
+      if (!pending || sharedPasswordBusy.value) return;
+      if (!sharedPassword.value) { sharedPasswordError.value = language.value === "zh" ? "请输入当前网页账号的密码。" : "Enter your current Web account password."; return; }
+      const password = sharedPassword.value;
+      sharedPassword.value = ""; sharedPasswordError.value = ""; sharedPasswordBusy.value = true;
+      try {
+        const result = await pending.login({ username: sharedPasswordUsername.value, password });
+        if (sharedPasswordRequest !== pending || pending.token !== auth.value.token || pending.server !== serverUrl.value) return;
+        sharedPasswordRequest = null; pending.dispose(); sharedPasswordOpen.value = false; sharedPasswordUsername.value = "";
+        pending.resolve(result);
+      } catch (error) {
+        if (sharedPasswordRequest === pending) sharedPasswordError.value = error.message === "CANCELLED"
+          ? (language.value === "zh" ? "验证已取消。" : "Verification cancelled.")
+          : (language.value === "zh" ? "验证失败，请检查账号密码后重试。" : "Verification failed. Check your account and password.");
+      } finally { if (sharedPasswordRequest === pending || !sharedPasswordRequest) sharedPasswordBusy.value = false; }
+    };
+    watch(activeUtilityDeck, deck => { if (deck !== "network" && sharedPasswordRequest) cancelSharedPassword(); }, { flush: "sync" });
+    watch(serverUrl, () => {
+      cancelSharedPassword();
+      accountLinkGeneration += 1; accountLinkCode.value = ""; accountLinkError.value = "";
+      clearTimeout(accountLinkExpiry);
+    }, { flush: "sync" });
     const activeGuideKey = ref("");
     const resultModalDismissed = ref(false);
     const turnCountdown = ref(ROOM_START_COUNTDOWN_FALLBACK_SECONDS);
@@ -3127,10 +3613,10 @@ const App = {
     let activeAiRequestId = null;
     let activeAiRequest = null;
     const hintWorkerSession = new OneShotHintWorker(
-      () => new Worker(new URL("./AIWorker.js?v=20261025-territory-render1", import.meta.url), { type: "module" }),
+      () => new Worker(new URL("./AIWorker.js?v=20261029-unified-r1", import.meta.url), { type: "module" }),
     );
     const aiComparisonWorkerSession = new OneShotHintWorker(
-      () => new Worker(new URL("./AIWorker.js?v=20261025-territory-render1", import.meta.url), { type: "module" }),
+      () => new Worker(new URL("./AIWorker.js?v=20261029-unified-r1", import.meta.url), { type: "module" }),
     );
     const chatEmojiTimeoutIds = new Set();
 
@@ -3179,6 +3665,24 @@ const App = {
       if (aiTimeoutId !== null) globalThis.clearTimeout(aiTimeoutId);
       aiTimeoutId = globalThis.setTimeout(() => {
         if (activeAiRequestId !== requestId) return;
+        const request = activeAiRequest, progress = request?.progress, worker = aiWorker;
+        const engine = controller.value?.engine;
+        if (!loading && worker && request?.ready && progress
+            && isWorkerResultForRequest(engine, request, progress)
+            && request.profileSignature === JSON.stringify(selectedAiProfile())
+            && canRunLocalAI() && getAiPlayer() === progress.currentPlayer) {
+          const previousRevision = engine.positionRevision;
+          // Reuse the ordinary RESULT path, including the final legality and
+          // identity checks. Terminate the still-computing Worker afterwards.
+          worker.onmessage({ data: { ...progress, type: "RESULT" } });
+          if (aiWorker === worker) { worker.terminate(); aiWorker = null; }
+          if (engine.positionRevision !== previousRevision) {
+            showLocalGameNotice(language.value === "zh"
+              ? "AI 思考预算已到，采用已验证的合法候选；原策略搜索未完成。"
+              : "AI time budget reached; a verified legal fallback was played before the strategy finished.");
+          }
+          return;
+        }
         terminateAiWorker();
         aiDuelPaused.value = true;
         saveLocalMatch();
@@ -3203,15 +3707,26 @@ const App = {
           }
           if (event.data?.type === "READY") {
             const request = activeAiRequest;
-            if (aiWorker !== worker || request?.strategy !== "multiplayer" || request.ready
-                || event.data.requestId !== activeAiRequestId || event.data.strategy !== "multiplayer"
-                || event.data.modelInfo?.id !== request.modelId
+            if (aiWorker !== worker || !request || request.ready
+                || event.data.requestId !== activeAiRequestId || event.data.strategy !== request.strategy
+                || (request.strategy === "multiplayer" && event.data.modelInfo?.id !== request.modelId)
                 || !isWorkerResultForRequest(controller.value?.engine, request, event.data)
                 || request.profileSignature !== JSON.stringify(selectedAiProfile())
                 || !canRunLocalAI() || getAiPlayer() !== event.data.currentPlayer) return;
             request.ready = true;
             aiLoading.value = false;
-            armAiTimeout(request.requestId, false, 2000);
+            armAiTimeout(request.requestId, false, 3300);
+            return;
+          }
+          if (event.data?.type === "PROGRESS") {
+            const request = activeAiRequest, engine = controller.value?.engine, move = event.data.moves?.[0];
+            if (!request?.ready || event.data.strategy !== request.strategy
+                || !isWorkerResultForRequest(engine, request, event.data)
+                || request.profileSignature !== JSON.stringify(selectedAiProfile())
+                || !canRunLocalAI() || getAiPlayer() !== event.data.currentPlayer
+                || !Array.isArray(move?.point) || move.point.length !== 2
+                || !move.point.every(Number.isInteger) || !engine._evaluateMove(move.point, event.data.currentPlayer).legal) return;
+            request.progress = structuredClone(event.data);
             return;
           }
           if (event.data?.type !== "RESULT" && event.data?.type !== "ERROR") {
@@ -3264,6 +3779,12 @@ const App = {
                 && (event.data.strategy !== appliedProfile.strategy || event.data.modelInfo?.id !== appliedProfile.modelId)) {
               throw new Error("AI 返回的模型身份与当前选择不一致。");
             }
+            if (appliedProfile?.strategy === "topology-generic"
+                && (event.data.strategy !== "topology-generic"
+                  || event.data.modelInfo?.route !== TOPOLOGY_AI_ROUTE
+                  || event.data.boardHash !== controller.value.engine.boardHash)) {
+              throw new Error("拓扑 AI 返回的棋盘身份或路由不一致。");
+            }
             const applyAiPass = () => {
               const passResult = controller.value.skipTurn();
               if (!passResult?.success) {
@@ -3273,6 +3794,16 @@ const App = {
             if (event.data.moves?.length) {
               const move = event.data.moves[0];
               if (move.type === "pass" && move.point === null) applyAiPass();
+              else if (controller.value.engine.isTopologyBoard) {
+                const vertexId = move.vertexId ?? move.point;
+                if (typeof vertexId !== "string"
+                  || event.data.boardHash !== controller.value.engine.boardHash
+                  || !controller.value.engine._evaluateMove(vertexId, aiPlayer).legal) {
+                  throw new Error("AI 返回非法拓扑动作。");
+                }
+                const moveResult = controller.value._applyMove(vertexId);
+                if (!moveResult?.success) throw new Error(`拓扑 AI 落子未能应用：${moveResult?.reason ?? "UNKNOWN"}`);
+              }
               else if (["root_relocate", "root_add"].includes(move.type)
                 && Array.isArray(move.point) && move.point.length === 2 && move.point.every(Number.isInteger)
                 && controller.value.engine._validateRootAction(move.type.replace(/^root_/, ""), move.point, aiPlayer) == null) {
@@ -3280,12 +3811,21 @@ const App = {
                 if (!result.success) throw new Error(`AI 起点操作未能应用：${result.reason ?? "UNKNOWN"}`);
               }
               else if (Array.isArray(move.point) && move.point.length === 2 && move.point.every(Number.isInteger)
-                && controller.value.engine._evaluateMove(move.point, aiPlayer).legal) controller.value._applyMove(move.point);
+                && controller.value.engine._evaluateMove(move.point, aiPlayer).legal) {
+                const moveResult = controller.value._applyMove(move.point);
+                if (!moveResult?.success) throw new Error(`AI 落子未能应用：${moveResult?.reason ?? "UNKNOWN"}`);
+              }
               else throw new Error("AI 返回非法动作。");
-            } else if (appliedProfile?.strategy === "multiplayer") {
-              throw new Error("多人 AI 未返回有效动作。");
+            } else if (["multiplayer", "topology-generic"].includes(appliedProfile?.strategy)) {
+              throw new Error("AI 未返回有效动作。");
             } else {
               applyAiPass();
+            }
+            if (event.data.searchStats?.partial || event.data.searchInfo?.fallbackReason === "partial-policy-candidate"
+                || event.data.searchInfo?.fallbackReason === "first-legal-action-not-policy") {
+              showLocalGameNotice(language.value === "zh"
+                ? "AI 思考预算已到，本次使用未完成搜索的候选。"
+                : "AI time budget reached; this move came from an incomplete search.");
             }
           } catch (error) {
             console.error("AI result could not be applied.", error);
@@ -3378,6 +3918,7 @@ const App = {
             serializedState: serializeEngineState(controller.value.engine),
             aiPlayer: nextAiPlayer,
             ...profile,
+            enableProgress: profile.strategy !== "topology-generic",
             topN: 5,
           });
         } catch (error) {
@@ -3476,36 +4017,63 @@ const App = {
         return;
       }
 
-      try {
+      const wantsTopology = boardShape === "custom" || rulesVersion === "surface-v1";
+      let settingsInput;
+      if (wantsTopology) {
+        if (!selectedTopologyDefinition.value) {
+          // Keep an incomplete custom selection visibly incomplete.  It must
+          // fail at the match boundary rather than being normalized into a
+          // playable triangle by the legacy settings path.
+          settingsInput = {
+            playerCount, boardShape: "custom", gridSize, startPlayer,
+            rulesVersion: "surface-v1", topologyProtocolVersion: "board-topology-v1",
+            turnTimerEnabled, turnTimeLimitSeconds, hintEnabled, hintMaxCount,
+            undoEnabled, undoMaxCount, botCount: 0,
+          };
+        } else {
+          try {
+            const materialized = materializeTopologyDefinition(selectedTopologyDefinition.value, playerCount, startPlayer);
+            selectedTopologyDefinition.value = materialized.definition;
+            selectedTopologyHash.value = materialized.boardHash;
+            selectedStartingPoints.value = { startingPointMode: "topology" };
+            settingsInput = {
+              playerCount, boardShape: "custom", gridSize, startPlayer,
+              rulesVersion: "surface-v1", topologyProtocolVersion: "board-topology-v1",
+              boardDefinition: materialized.definition, boardHash: materialized.boardHash,
+              initialPositions: materialized.initialPositions,
+              turnTimerEnabled, turnTimeLimitSeconds, hintEnabled, hintMaxCount,
+              undoEnabled, undoMaxCount, botCount: 0,
+            };
+          } catch (error) {
+            setTopologySetupMessage(error?.message ?? String(error), true);
+            return;
+          }
+        }
+      } else {
+        try {
           if (boardShape !== previousBoardShape && previousBoardShape) throw new Error("Board changed");
           startingPointSettings({ ...selectedStartingPoints.value, playerCount, gridSize, boardShape });
-      }
-      catch (_) {
-        const mode = selectedStartingPoints.value.startingPointMode ?? "default";
-        const selectedRootMode = selectedStartingPoints.value.rootMode ?? RootMode.CLASSIC;
-        selectedStartingPoints.value = mode === "default" && selectedRootMode === RootMode.CLASSIC ? {} : {
-          ...(selectedRootMode === RootMode.CLASSIC ? {} : { rootMode: selectedRootMode }),
-          startingPointMode: mode,
-          ...(selectedRootMode === RootMode.CLASSIC
-            ? { initialPositions: mode === "random" ? randomInitialPositions(gridSize, playerCount, Math.random, boardShape) : resolveInitialPositions(gridSize, playerCount, null, boardShape) }
-            : { initialRoots: randomInitialRoots(gridSize, playerCount, selectedRootMode, Math.random, boardShape) }),
+        } catch (_) {
+          const selectedRootMode = selectedStartingPoints.value.rootMode ?? RootMode.CLASSIC;
+          const requiresExplicit = requiresExplicitStartingPoints(playerCount, boardShape);
+          const requestedMode = selectedStartingPoints.value.startingPointMode ?? "default";
+          const mode = requiresExplicit && requestedMode === "default" ? "random" : requestedMode;
+          selectedStartingPoints.value = mode === "default" && selectedRootMode === RootMode.CLASSIC ? {} : {
+            ...(selectedRootMode === RootMode.CLASSIC ? {} : { rootMode: selectedRootMode }), startingPointMode: mode,
+            ...(selectedRootMode === RootMode.CLASSIC
+              ? { initialPositions: mode === "random" ? randomInitialPositions(gridSize, playerCount, Math.random, boardShape) : resolveInitialPositions(gridSize, playerCount, null, boardShape) }
+              : { initialRoots: randomInitialRoots(gridSize, playerCount, selectedRootMode, Math.random, boardShape) }),
+          };
+        }
+        settingsInput = {
+          playerCount, boardShape, gridSize, startPlayer, rulesVersion,
+          ...(roomStatus.value !== "solo" ? { protectionRule: roomInfo.value.settings?.protectionRule ?? "symmetric-v1" } : {}),
+          turnTimerEnabled, turnTimeLimitSeconds, hintEnabled, hintMaxCount,
+          undoEnabled, undoMaxCount, ...selectedStartingPoints.value,
         };
       }
 
-      const normalized = normalizeAppGameSettings({
-        playerCount,
-        boardShape,
-        gridSize,
-        startPlayer,
-        rulesVersion,
-        turnTimerEnabled,
-        turnTimeLimitSeconds,
-        hintEnabled,
-        hintMaxCount,
-        undoEnabled,
-        undoMaxCount,
-        ...selectedStartingPoints.value,
-      });
+      const normalized = normalizeAppGameSettings(settingsInput);
       selectedPlayerCount.value = normalized.playerCount;
       selectedBoardShape.value = normalized.boardShape;
       selectedRoomBotCount.value = normalizeAppGameSettings({ ...normalized, botCount: selectedRoomBotCount.value }).botCount;
@@ -3541,6 +4109,7 @@ const App = {
           cancelHintRequest();
           terminateAiWorker();
           persistLocalMatchPreferences(selectedLocalPlayers.value, normalized);
+          if (localMatchStarted.value) scheduleAiMove(gameState.value);
         }
         return;
       }
@@ -3582,11 +4151,32 @@ const App = {
       terminateAiWorker();
       if (!pending) scheduleAiMove(gameState.value);
     });
-    const updateLocalPlayer = ({ color, patch }) => {
-      if (settingsLocked.value || roomStatus.value !== "solo" || !APP_ALL_PLAYERS.slice(0, selectedPlayerCount.value).includes(color)) return;
+    const handleBoardShapeChange = (shape) => {
+      if (!['triangle', 'hexagon', 'custom'].includes(shape) || settingsLocked.value) return;
+      if (shape === "custom") {
+        if (!selectedTopologyDefinition.value || selectedTopologyGridSize.value !== selectedGridSize.value) selectTopologyPreset("cylinder");
+        else selectTopologyDefinition(selectedTopologyDefinition.value, selectedTopologySource.value || "custom");
+        return;
+      }
+      // Leaving a surface draft must also leave its version marker; otherwise
+      // normalizeGameSettings correctly (but unexpectedly for this click)
+      // continues to treat a legacy button press as an incomplete topology
+      // request.
+      selectedBoardShape.value = shape;
+      selectedRulesVersion.value = APP_DEFAULT_RULES_VERSION;
+      selectedStartingPoints.value = {};
+      setTopologySetupMessage("");
+    };
+    const updateLocalPlayer = ({ color, patch, fromLab = false }) => {
+      if (settingsLocked.value || (roomStatus.value !== "solo" && !roomSetupOpen.value) || !APP_ALL_PLAYERS.slice(0, selectedPlayerCount.value).includes(color)) return;
+      if (fromLab) {
+        if (selectedPlayerCount.value !== 2 || selectedBoardShape.value !== "triangle") return;
+        explicitLabColors.add(color);
+      } else explicitLabColors.delete(color);
       terminateAiWorker();
-      selectedLocalPlayers.value = normalizeLocalPlayers({ ...selectedLocalPlayers.value,
-        [color]: { ...selectedLocalPlayers.value[color], ...patch } }, selectedPlayerCount.value, selectedBoardShape.value);
+      const players = { ...selectedLocalPlayers.value, [color]: { ...selectedLocalPlayers.value[color], ...patch } };
+      selectedLocalPlayers.value = roomSetupOpen.value ? normalizeRoomPlayerSetup(draftGameSettings(), players)
+        : normalizeLocalPlayers(players, selectedPlayerCount.value, selectedBoardShape.value);
       persistLocalMatchPreferences(selectedLocalPlayers.value, draftGameSettings());
     };
     const swapLocalPlayers = () => {
@@ -3597,6 +4187,7 @@ const App = {
     };
     const updateStartingPoints = (selection) => {
       if (settingsLocked.value || tutorialActive.value || replayMode.value) return;
+      if (selectedBoardShape.value === "custom" || selectedRulesVersion.value === "surface-v1") return;
       selectedStartingPoints.value = startingPointSettings({ ...selection, gridSize: selectedGridSize.value, playerCount: selectedPlayerCount.value, boardShape: selectedBoardShape.value });
       startingPointPreviewFresh = true;
       cancelHintRequest();
@@ -3642,21 +4233,19 @@ const App = {
     const syncSession = () => {
       // Lesson settings must not replace the saved match or online room settings.
       if (tutorialActive.value) return;
+      const sourceSettings = roomStatus.value === "solo"
+        ? currentGameSettings()
+        : roomInfo.value.settings;
+      const normalizedSettings = normalizeAppGameSettings(sourceSettings);
+      const boardDefinition = normalizedSettings.boardDefinition;
+      const boardHash = normalizedSettings.boardHash;
       session.value = {
         ...createAppEmptySession(),
         ...networkManager.getSession(),
         settings: {
-          playerCount: selectedPlayerCount.value,
-          boardShape: selectedBoardShape.value,
-          gridSize: selectedGridSize.value,
-          startPlayer: selectedStartPlayer.value,
-          rulesVersion: selectedRulesVersion.value,
-          turnTimerEnabled: selectedTurnTimerEnabled.value,
-          turnTimeLimitSeconds: selectedTurnTimeLimitSeconds.value,
-          hintEnabled: selectedHintEnabled.value,
-          hintMaxCount: selectedHintMaxCount.value,
-          undoEnabled: selectedUndoEnabled.value,
-          undoMaxCount: selectedUndoMaxCount.value,
+          ...normalizedSettings,
+          ...(boardDefinition ? { boardDefinition } : {}),
+          ...(boardHash ? { boardHash } : {}),
         },
       };
       if (!standaloneTutorial) persistAppSession(session.value);
@@ -3707,10 +4296,11 @@ const App = {
     const guideDockBadge = computed(() => getAppTexts(language.value, uiStyle.value).guideDockBadge);
     const guideEntries = computed(() => createGuideEntries(language.value, uiStyle.value, guideMarkdownOverrides.value));
     const ruleGuideEntry = computed(() => guideEntries.value.find((entry) => entry.key === "rules") ?? null);
+    const topologyGuideEntry = computed(() => guideEntries.value.find((entry) => entry.key === "topology") ?? null);
     const whyGuideEntry = computed(() => guideEntries.value.find((entry) => entry.group === "why") ?? null);
     const thanksGuideEntry = computed(() => guideEntries.value.find((entry) => entry.group === "thanks") ?? null);
     const activeGuideEntry = computed(() => (
-      guideEntries.value.find((entry) => entry.key === activeGuideKey.value) ?? null
+      guideEntries.value.find((entry) => entry.key === activeGuideKey.value || entry.subEntries?.some((sub) => sub.key === activeGuideKey.value || (activeGuideKey.value === "rules-math-topology" && sub.key === "rules-math"))) ?? null
     ));
     const localReady = computed(() => {
       return Boolean(
@@ -3728,67 +4318,503 @@ const App = {
       }));
     });
 
-    function draftGameSettings() {
+    const cloneTopologyJson = (value) => {
+      if (typeof structuredClone === "function") return structuredClone(value);
+      return JSON.parse(JSON.stringify(value));
+    };
+
+    const topologyCompileError = (errors = []) => errors
+      .map((error) => `${error.code ?? "INVALID"}${error.location ? ` @ ${error.location}` : ""}`)
+      .join("; ") || (language.value === "zh" ? "棋盘定义无效。" : "Invalid board definition.");
+
+    // The board definition must name every active seat before it becomes a
+    // room identity.  TopologyGameEngine contains the deterministic graph
+    // distance selector used by normal local creation, so use an isolated
+    // instance to materialize those starts rather than inventing a second
+    // (and potentially server-incompatible) selection rule in the UI.
+    const materializeTopologyDefinition = (definition, playerCount = selectedPlayerCount.value,
+      startPlayer = selectedStartPlayer.value) => {
+      const compiled = compileBoard(definition);
+      if (!compiled.ok) throw new Error(topologyCompileError(compiled.errors));
+      const engine = new GameEngine({
+        compiledBoard: compiled.value,
+        playerCount,
+        startPlayer,
+        rulesVersion: "surface-v1",
+        deferTerritoryUpdates: false,
+      });
+      if (!engine.isTopologyBoard || !engine.boardHash || !engine.boardDefinition) {
+        throw new Error("Topology board runtime did not produce a canonical board identity.");
+      }
+      const finalCheck = compileBoard(engine.boardDefinition);
+      if (!finalCheck.ok || finalCheck.value.boardHash !== engine.boardHash) {
+        throw new Error("Topology board starts did not reproduce a canonical board hash.");
+      }
       return {
-      playerCount: selectedPlayerCount.value,
-      boardShape: selectedBoardShape.value,
-      gridSize: selectedGridSize.value,
-      startPlayer: selectedStartPlayer.value,
-      rulesVersion: selectedRulesVersion.value,
-      turnTimerEnabled: selectedTurnTimerEnabled.value,
-      turnTimeLimitSeconds: selectedTurnTimeLimitSeconds.value,
-      hintEnabled: selectedHintEnabled.value,
-      hintMaxCount: selectedHintMaxCount.value,
-      undoEnabled: selectedUndoEnabled.value,
-      undoMaxCount: selectedUndoMaxCount.value,
-      ...selectedStartingPoints.value,
+        definition: cloneTopologyJson(engine.boardDefinition),
+        boardHash: engine.boardHash,
+        initialPositions: { ...engine.initialPositions },
+      };
+    };
+
+    const selectedTopologySettings = () => {
+      if (!selectedTopologyDefinition.value) {
+        throw new Error("Select, draw, generate, or import a topology board before starting.");
+      }
+      const materialized = materializeTopologyDefinition(selectedTopologyDefinition.value);
+      return {
+        playerCount: selectedPlayerCount.value,
+        boardShape: "custom",
+        botCount: 0,
+        gridSize: selectedGridSize.value,
+        startPlayer: selectedStartPlayer.value,
+        rulesVersion: "surface-v1",
+        topologyProtocolVersion: "board-topology-v1",
+        boardDefinition: materialized.definition,
+        boardHash: materialized.boardHash,
+        // The definition itself carries the fixed raw starts; this duplicate
+        // is canonical IDs for the runtime only and never goes through the
+        // coordinate-only legacy starting-point helper.
+        initialPositions: materialized.initialPositions,
+        turnTimerEnabled: selectedTurnTimerEnabled.value,
+        turnTimeLimitSeconds: selectedTurnTimeLimitSeconds.value,
+        hintEnabled: selectedHintEnabled.value,
+        hintMaxCount: selectedHintMaxCount.value,
+        undoEnabled: selectedUndoEnabled.value,
+        undoMaxCount: selectedUndoMaxCount.value,
+      };
+    };
+
+    function draftGameSettings() {
+      if (selectedBoardShape.value === "custom" || selectedRulesVersion.value === "surface-v1") {
+        // Preserve the topology identity even while an incomplete selection is
+        // being edited.  Callers that would construct a match catch the
+        // explicit missing-definition error above; nothing falls back to a
+        // legacy triangle.
+        if (selectedTopologyDefinition.value) return selectedTopologySettings();
+        return {
+          playerCount: selectedPlayerCount.value,
+          boardShape: "custom",
+          botCount: 0,
+          gridSize: selectedGridSize.value,
+          startPlayer: selectedStartPlayer.value,
+          rulesVersion: "surface-v1",
+          topologyProtocolVersion: "board-topology-v1",
+          turnTimerEnabled: selectedTurnTimerEnabled.value,
+          turnTimeLimitSeconds: selectedTurnTimeLimitSeconds.value,
+          hintEnabled: selectedHintEnabled.value,
+          hintMaxCount: selectedHintMaxCount.value,
+          undoEnabled: selectedUndoEnabled.value,
+          undoMaxCount: selectedUndoMaxCount.value,
+        };
+      }
+      return {
+        playerCount: selectedPlayerCount.value,
+        boardShape: selectedBoardShape.value,
+        gridSize: selectedGridSize.value,
+        startPlayer: selectedStartPlayer.value,
+        rulesVersion: selectedRulesVersion.value,
+        ...(roomStatus.value !== "solo"
+          ? { protectionRule: roomInfo.value.settings?.protectionRule ?? "symmetric-v1" } : {}),
+        turnTimerEnabled: selectedTurnTimerEnabled.value,
+        turnTimeLimitSeconds: selectedTurnTimeLimitSeconds.value,
+        hintEnabled: selectedHintEnabled.value,
+        hintMaxCount: selectedHintMaxCount.value,
+        undoEnabled: selectedUndoEnabled.value,
+        undoMaxCount: selectedUndoMaxCount.value,
+        ...selectedStartingPoints.value,
       };
     }
+
+    const setTopologySetupMessage = (message, error = false) => {
+      topologySetupMessage.value = error ? `ERROR: ${message}` : message;
+    };
+    // Transient feedback is produced in the active language; clear it on a
+    // language switch so an old error cannot linger in the other language.
+    watch(language, () => { topologySetupMessage.value = ""; });
+    const removedSeamMessage = (ids) => ids?.length
+      ? (language.value === "zh" ? `轮廓改变使 ${ids.length} 对粘边失效，已移除：${ids.join("、")}。` : `Contour change invalidated ${ids.length} seam pair(s), removed: ${ids.join(", ")}.`)
+      : "";
+
+    const selectTopologyDefinition = (definition, source = "custom") => {
+      try {
+        const priorShape = selectedBoardShape.value;
+        const materialized = materializeTopologyDefinition(definition);
+        syncingRemoteSettings = true;
+        try {
+          selectedTopologyDefinition.value = materialized.definition;
+          selectedTopologyGridSize.value = selectedGridSize.value;
+          if (source !== "自定义起点" && source !== "custom starts") topologyDefaultSelection.value = cloneTopologyJson(materialized.definition);
+          selectedTopologyHash.value = materialized.boardHash;
+          selectedTopologySource.value = source;
+          topologyDefinitionText.value = JSON.stringify(materialized.definition, null, 2);
+          selectedBoardShape.value = "custom";
+          selectedRulesVersion.value = "surface-v1";
+          // Starts are fixed inside the definition.  Keeping canonical IDs out
+          // of the legacy setup component prevents coordinate coercion.
+          selectedStartingPoints.value = { startingPointMode: "topology", initialPositions: materialized.initialPositions };
+          selectedRoomBotCount.value = 0;
+          selectedLocalPlayers.value = normalizeLocalPlayers(
+            selectedLocalPlayers.value,
+            selectedPlayerCount.value,
+            "custom",
+          );
+        } finally {
+          syncingRemoteSettings = false;
+        }
+        if (priorShape === "custom" && isHost.value && roomStatus.value !== "solo"
+          && roomStatus.value !== "inProgress" && roomStatus.value !== "countdown") {
+          void networkManager.updateRoomSettings(normalizeAppGameSettings({ ...draftGameSettings(), botCount: 0 })).catch(handleNetworkError);
+        }
+        setTopologySetupMessage(language.value === "zh" ? "棋盘已验证。" : "Board validated.");
+        return materialized;
+      } catch (error) {
+        setTopologySetupMessage(language.value === "zh" ? `棋盘验证失败，请检查轮廓、粘边和起点。${topologyCompileError(error?.errors ?? [])}` : (error?.message ?? String(error)), true);
+        return null;
+      }
+    };
+
+    const selectTopologyPreset = (name) => {
+      try {
+        const definition = createSurfacePreset(name, { gridSize: selectedGridSize.value });
+        return selectTopologyDefinition(definition, name);
+      } catch (error) {
+        setTopologySetupMessage(language.value === "zh" ? "无法生成这个曲面预设，请检查尺寸后重试。" : (error?.message ?? String(error)), true);
+        return null;
+      }
+    };
+
+    let topologyRandomCounter = 0;
+    const generateTopologyBoard = () => {
+      const entropy = new Uint32Array(2);
+      if (globalThis.crypto?.getRandomValues) globalThis.crypto.getRandomValues(entropy);
+      else { entropy[0] = Math.floor(Math.random() * 0x100000000); entropy[1] = Date.now() >>> 0; }
+      topologyRandomSeed.value = `${Date.now()}-${++topologyRandomCounter}-${entropy[0]}-${entropy[1]}`;
+      const generated = generateBoard({
+        gridSize: selectedGridSize.value,
+        playerCount: selectedPlayerCount.value,
+        roughness: 0.45,
+        minimumChannelWidth: 2,
+        minStartDistance: 2,
+        maxAttempts: 24,
+      }, topologyRandomSeed.value, "random-board-v4");
+      if (!generated.ok) {
+        setTopologySetupMessage(topologyCompileError(generated.errors), true);
+        return null;
+      }
+      if (selectedTopologyDefinition.value && topologyGeometrySignature(generated.definition) === topologyGeometrySignature(selectedTopologyDefinition.value)) {
+        setTopologySetupMessage(language.value === "zh" ? "生成结果与当前棋盘相同，请重试。" : "The generated board matches the current board; please retry.", true);
+        return null;
+      }
+      const selected = selectTopologyDefinition(generated.definition, language.value === "zh" ? "随机棋盘" : "random board");
+      if (selected) {
+        setTopologySetupMessage(language.value === "zh" ? "随机棋盘已生成。" : "Random board generated.");
+      }
+      return selected;
+    };
+
+    const handleGridSizeChange = (size) => {
+      if (settingsLocked.value || !APP_GRID_SIZE_OPTIONS.includes(size) || size === selectedGridSize.value) return;
+      const previousSize = selectedGridSize.value;
+      const previousDraft = topologyDraft.value;
+      topologyDraftsBySize.set(previousSize, previousDraft);
+      topologyDraft.value = topologyDraftsBySize.get(size) ?? createBoardDraft();
+      selectedGridSize.value = size;
+      if (selectedBoardShape.value === "custom") {
+        // Rebuild a selected preset at the new size. Random maps remain
+        // random; hand-drawn drafts stay cached separately for each size.
+        const oldDefinition = selectedTopologyDefinition.value;
+        const oldPreset = oldDefinition?.topology?.preset;
+        const supportedPreset = ["cylinder", "mobius", "torus", "klein-bottle", "tetrahedron", "cone", "sphere"].includes(oldPreset);
+        const wasRandom = Boolean(oldDefinition?.generator);
+        const selected = supportedPreset ? selectTopologyPreset(oldPreset)
+          : wasRandom ? generateTopologyBoard() : selectTopologyPreset("cylinder");
+        if (!selected) {
+          selectedGridSize.value = previousSize;
+          topologyDraft.value = previousDraft;
+          return;
+        }
+        setTopologySetupMessage(language.value === "zh"
+          ? (supportedPreset ? "尺寸已更改，保留所选曲面并恢复其默认起点；手绘草稿按尺寸保留。"
+            : wasRandom ? "尺寸已更改，已生成新的随机地图及默认起点；手绘草稿按尺寸保留。"
+            : "尺寸已更改，已选圆柱；手绘草稿按尺寸保留，可切回原尺寸继续编辑。")
+          : (supportedPreset ? "Size changed; the selected surface is retained with its default starts. Drawn drafts are kept per size."
+            : wasRandom ? "Size changed; a new random map and its starts were generated. Drawn drafts are kept per size."
+            : "Size changed; a cylinder was selected. Drawn drafts are kept per size and can be resumed at the original size."));
+      }
+    };
+    const updateTopologyStarts = (options) => {
+      if (settingsLocked.value || !selectedTopologyDefinition.value) return;
+      try {
+        const compiled = compileBoard(options.mode === "default"
+          ? (topologyDefaultSelection.value ?? topologyDefaultDefinition(selectedTopologyDefinition.value, selectedGridSize.value)) : selectedTopologyDefinition.value);
+        if (!compiled.ok) throw new Error(topologyCompileError(compiled.errors));
+        const definition = createTopologyStartingDefinition(compiled.value, { ...options, playerCount: selectedPlayerCount.value });
+        selectTopologyDefinition(definition, language.value === "zh" ? "自定义起点" : "custom starts");
+      } catch (error) {
+        const messages = { START_ROOTS_FULL: ["该方已有 6 个起点。", "This player already has 6 starts."], INSUFFICIENT_START_VERTICES: ["没有可用棋位，起点未更改。", "No unclaimed point is available; starts were not changed."], INVALID_START_PLAYER: ["请先选择一方。", "Select a player first."] };
+        const message = messages[error?.code];
+        setTopologySetupMessage(message ? message[language.value === "zh" ? 0 : 1] : (language.value === "zh" ? "起点无效，请检查各方起点数量及位置。" : (error?.message ?? String(error))), true);
+      }
+    };
+    const addTopologyDraftVertex = (coordinate = [topologyDraftX.value, topologyDraftY.value]) => {
+      const result = addBoundaryVertex(topologyDraft.value, coordinate);
+      if (!result.ok) {
+        const messages = { NON_LATTICE_EDGE: "请沿相邻的点画边。", SELF_TOUCH: "边界不能重复经过同一个点。", SELF_INTERSECTION: "边界不能与已有线段相交。" };
+        setTopologySetupMessage(language.value === "zh" ? (messages[result.code] ?? `无法修改轮廓。（${result.code}）`) : (result.detail ?? result.code), true);
+        return false;
+      }
+      topologyDraft.value = result.draft;
+      setTopologySetupMessage("");
+      return true;
+    };
+
+    const undoTopologyDraftVertex = () => {
+      const result = undoBoundaryVertex(topologyDraft.value);
+      if (!result.ok) {
+        setTopologySetupMessage(language.value === "zh" ? `无法撤销当前操作。（${result.code}）` : (result.detail ?? result.code), true);
+        return false;
+      }
+      if (result.definition && !selectTopologyDefinition(result.definition, language.value === "zh" ? "绘制边界粘合" : "drawn boundary seams")) return false;
+      topologyDraft.value = result.draft;
+      setTopologySetupMessage("");
+      return true;
+    };
+
+    const resetTopologyDraft = () => {
+      const result = cancelBoardDraft(topologyDraft.value);
+      topologyDraft.value = result.draft;
+      setTopologySetupMessage("");
+      return true;
+    };
+
+    const newTopologyDraftRing = () => {
+      const result = startBoundaryRing(topologyDraft.value);
+      if (!result.ok) { setTopologySetupMessage(language.value === "zh" ? `请先闭合当前轮廓。（${result.code}）` : (result.detail ?? result.code), true); return false; }
+      topologyDraft.value = result.draft;
+      setTopologySetupMessage(language.value === "zh" ? "新轮廓闭合前保留当前已选地图。" : "The selected board remains in place until the new contour is closed.");
+      return true;
+    };
+    const deleteTopologyDraftRing = (index) => {
+      const result = deleteBoundaryRing(topologyDraft.value, index);
+      if (!result.ok) { setTopologySetupMessage(language.value === "zh" ? `无法删除轮廓。（${result.code}）` : (result.detail ?? result.code), true); return false; }
+      if (result.definition) {
+        const compiled = compileBoard(result.definition);
+        if (!compiled.ok) { setTopologySetupMessage(topologyCompileError(compiled.errors), true); return false; }
+        if (!selectTopologyDefinition(result.definition, language.value === "zh" ? "绘制边界" : "drawn boundary")) return false;
+      }
+      topologyDraft.value = result.draft;
+      if (result.removedSeams?.length) setTopologySetupMessage(removedSeamMessage(result.removedSeams));
+      else if (!result.definition) setTopologySetupMessage(language.value === "zh" ? "轮廓草稿已更新；当前已选地图保留到新轮廓闭合。" : "Draft updated; the selected board remains until a new contour is closed.");
+      return true;
+    };
+    const closeTopologyDraft = () => {
+      const result = closeBoundaryDraft(topologyDraft.value);
+      if (!result.ok) {
+        const messages = { DEGENERATE_BOUNDARY: "边界至少需要三个不共线的点。", OPEN_BOUNDARY: "请先画到起点旁的相邻点，再点击起点闭合。", SELF_INTERSECTION: "闭合线不能与已有边界相交。", EMPTY_INTERIOR: "边界内需要包含可用的三角格。" };
+        setTopologySetupMessage(language.value === "zh" ? (messages[result.code] ?? `无法闭合轮廓。（${result.code}）`) : (result.detail ?? result.code), true);
+        return false;
+      }
+      const compiled = compileBoard(result.definition);
+      if (!compiled.ok) {
+        setTopologySetupMessage(topologyCompileError(compiled.errors), true);
+        return false;
+      }
+      const selected = selectTopologyDefinition(result.definition, language.value === "zh" ? "绘制边界" : "drawn boundary");
+      if (!selected) return false;
+      topologyDraft.value = result.draft;
+      if (result.removedSeams?.length) setTopologySetupMessage(removedSeamMessage(result.removedSeams));
+      return true;
+    };
+
+    const addTopologyDraftSeam = ({ edgeOccurrenceA, edgeOccurrenceB, endpointMap } = {}) => {
+      const usedIds = new Set((topologyDraft.value.seamPairs ?? []).map(pair => pair.id));
+      let seamNumber = 1;
+      while (usedIds.has(`seam:${seamNumber}`)) seamNumber += 1;
+      const nextSeamId = `seam:${seamNumber}`;
+      const result = addSeamPair(topologyDraft.value, {
+        id: nextSeamId,
+        edgeOccurrenceA,
+        edgeOccurrenceB,
+        endpointMap,
+      });
+      if (!result.ok) {
+        setTopologySetupMessage(language.value === "zh" ? `无法粘合：请检查边是否已使用，并尝试更换边或箭头方向。（${result.code}）` : (result.detail ?? result.code), true);
+        return false;
+      }
+      // Compile before committing either the visible draft or the active
+      // selection, so an illegal surface never replaces an already playable
+      // board merely because it was clicked in the editor.
+      const selected = selectTopologyDefinition(result.definition,
+        language.value === "zh" ? "绘制边界粘合" : "drawn boundary seams");
+      if (!selected) {
+        if (language.value === "zh") topologySetupMessage.value = `ERROR: 无法按此方向粘合，请重新选择边或反转箭头。${topologySetupMessage.value.replace(/^ERROR:\s*/, "")}`;
+        return false;
+      }
+      topologyDraft.value = result.draft;
+      return true;
+    };
+
+    const loadTopologyDefinitionText = () => {
+      try {
+        const definition = JSON.parse(topologyDefinitionText.value);
+        return Boolean(selectTopologyDefinition(definition,
+          language.value === "zh" ? "导入 JSON" : "imported JSON"));
+      } catch (error) {
+        setTopologySetupMessage(language.value === "zh" ? "无法读取棋盘 JSON，请检查格式。" : (error?.message ?? String(error)), true);
+        return false;
+      }
+    };
+
     const currentGameSettings = () => roomStatus.value === "solo" && !tutorialActive.value
       ? { ...activeLocalSettings.value } : draftGameSettings();
     const currentLocalMatch = () => ({ players: activeLocalPlayers.value, started: localMatchStarted.value, paused: aiDuelPaused.value, undo: undoUsage.value });
+    const topologySessionMetadata = () => ({
+      startPlayer: activeLocalSettings.value?.startPlayer,
+      settings: {
+        gridSize: activeLocalSettings.value?.gridSize,
+        turnTimerEnabled: activeLocalSettings.value?.turnTimerEnabled,
+        turnTimeLimitSeconds: activeLocalSettings.value?.turnTimeLimitSeconds,
+        hintEnabled: activeLocalSettings.value?.hintEnabled,
+        hintMaxCount: activeLocalSettings.value?.hintMaxCount,
+        undoEnabled: activeLocalSettings.value?.undoEnabled,
+        undoMaxCount: activeLocalSettings.value?.undoMaxCount,
+      },
+      match: currentLocalMatch(),
+    });
+    const isTopologyLocalMatch = () => Boolean(controller.value?.engine?.isTopologyBoard
+      || isTopologyGameSettings(currentGameSettings()));
+    const topologyActionFromControllerAction = (action, boardHash = controller.value?.engine?.boardHash) => {
+      if (!action?.type) return null;
+      if (action.type === "move" || action.type === "player_move") {
+        const vertexId = action.vertexId ?? action.point;
+        return typeof vertexId === "string" && typeof boardHash === "string"
+          ? { type: "player_move", vertexId, boardHash }
+          : null;
+      }
+      if (action.type === "skip" || action.type === "player_skip") return { type: "player_skip" };
+      if (action.type === "resign" || action.type === "player_resign") {
+        const color = action.color ?? action.player;
+        return typeof color === "string" ? { type: "player_resign", color } : null;
+      }
+      return null;
+    };
+    const topologyActionsForController = (actions, boardHash) => actions.map((action) => {
+      const normalized = topologyActionFromControllerAction(action, boardHash);
+      if (!normalized) throw new Error("Topology action history is malformed.");
+      return normalized;
+    });
+    const persistTopologyMatch = () => {
+      const engine = controller.value?.engine;
+      if (!engine?.isTopologyBoard) return false;
+      try {
+        const session = createTopologyLocalGameSession(
+          engine.encodeTopologyState(),
+          topologyActionsForController(localGameActions.value, engine.boardHash),
+          topologySessionMetadata(),
+        );
+        topologyLocalSession = session;
+        return persistTopologyLocalGameSession(session);
+      } catch (error) {
+        console.warn("Could not persist topology local match.", error);
+        return false;
+      }
+    };
     const saveLocalMatch = () => {
       if (roomStatus.value !== "solo" || tutorialActive.value || localGameRestoring.value || replayMode.value) return;
+      if (isTopologyLocalMatch()) {
+        persistTopologyMatch();
+        return;
+      }
       persistLocalGameSession(createLocalGameSession(currentGameSettings(), localGameActions.value, currentLocalMatch()));
+    };
+    const armContributionForFreshLocalMatch = () => {
+      invalidateContributionTicket();
+      if (!contribution.enabled || roomStatus.value !== "solo" || tutorialActive.value || replayMode.value
+        || localGameActions.value.length !== 0) return false;
+      const settings = currentGameSettings();
+      const actors = localMatchActors(activeLocalPlayers.value, settings.playerCount, settings.gridSize, settings.boardShape);
+      if (!supportsContributionActors(actors, settings)) return false;
+      contributionContext = { source: "local", actors, mixedProfiles: false, hintsEnabled: settings.hintEnabled === true,
+        undo: { enabled: settings.undoEnabled === true, maxCount: settings.undoMaxCount ?? 3, usedCount: 0 } };
+      contributionProfileSignature = JSON.stringify(actors);
+      return true;
     };
     const startLocalMatch = async () => {
       if (!controller.value || settingsLocked.value || roomStatus.value !== "solo" || localGameRestoring.value) return false;
-      terminateAiWorker();
-      cancelHintRequest();
       clearLocalGameNotice();
       setActionFeedback("", "neutral");
       localGameRestoring.value = true;
+      let stoppedSearch = false;
       try {
         // A new random match gets a fresh opening. A pending preview is used
         // exactly as displayed, and saved matches never reroll on restoration.
-        if (!localSetupPending.value && !startingPointPreviewFresh && selectedStartingPoints.value.startingPointMode === "random") {
+        if (selectedBoardShape.value !== "custom" && localMatchStarted.value && !localSettingsChanged.value
+          && !startingPointPreviewFresh && selectedStartingPoints.value.startingPointMode === "random") {
           const selectedRootMode = selectedStartingPoints.value.rootMode ?? RootMode.CLASSIC;
           selectedStartingPoints.value = selectedRootMode === RootMode.CLASSIC
             ? { startingPointMode: "random", initialPositions: randomInitialPositions(selectedGridSize.value, selectedPlayerCount.value, Math.random, selectedBoardShape.value) }
             : { rootMode: selectedRootMode, startingPointMode: "random", initialRoots: randomInitialRoots(selectedGridSize.value, selectedPlayerCount.value, selectedRootMode, Math.random, selectedBoardShape.value) };
         }
-        const nextSettings = normalizeAppGameSettings(draftGameSettings());
-        const nextPlayers = normalizeLocalPlayers(selectedLocalPlayers.value, nextSettings.playerCount, nextSettings.boardShape);
+        const pendingSettings = draftGameSettings();
+        if (isTopologyGameSettings(pendingSettings) && !pendingSettings.boardDefinition) {
+          throw new Error(language.value === "zh"
+            ? "请先选择、绘制、生成或导入一个有效的拓扑棋盘。"
+            : "Select, draw, generate, or import a valid topology board first.");
+        }
+        const nextSettings = prepareTopologyNewMatchSettings(normalizeAppGameSettings(pendingSettings));
+        const nextPlayers = prepareLocalPlayersForNewMatch(selectedLocalPlayers.value, nextSettings.playerCount, nextSettings.boardShape, explicitLabColors);
         const unsupportedPlayer = APP_ALL_PLAYERS.slice(0, nextSettings.playerCount).find((player) =>
           !supportsRootModeAI(localPlayerProfile(nextPlayers[player], nextSettings.playerCount, nextSettings.gridSize, nextSettings.boardShape), nextSettings.rootMode));
-        if (unsupportedPlayer) {
-          setActionFeedback(language.value === "zh"
-            ? "新起点玩法暂不支持所选旧模型，请改用 Minimax 或人类玩家。"
-            : "The selected legacy model is not supported in this root mode. Choose Minimax or a human player.", "error");
-          return false;
+        if (unsupportedPlayer) throw new Error(language.value === "zh" ? "当前起点玩法不支持所选 AI。" : "The selected AI does not support this root mode.");
+        if (isTopologyGameSettings(nextSettings)) {
+          // Check every seat on an isolated initial position. Use precisely the
+          // definition that will be committed, including all user-chosen roots.
+          // The controller also removes the legacy first-root fields when the
+          // definition carries its complete roots.
+          const candidateOptions = { ...nextSettings, deferTerritoryUpdates: false };
+          if (Object.keys(candidateOptions.boardDefinition?.startingVertices ?? {}).length) delete candidateOptions.initialPositions;
+          const candidate = new GameEngine(candidateOptions);
+          const blockedPlayers = candidate.activePlayers.filter((player) => candidate.getLegalMoves(player).length === 0);
+          if (blockedPlayers.length) {
+            const names = blockedPlayers.map((player) => formatAppPlayerName(player, language.value, uiStyle.value)).join(language.value === "zh" ? "、" : ", ");
+            const message = language.value === "zh"
+              ? `该尺寸和起点布局使部分玩家开局无路可走（${names}），请增大棋盘、减少人数或调整起点。`
+              : `Some players have no legal opening move at this size and starting layout (${names}). Choose a larger board, fewer players, or different starts.`;
+            setTopologySetupMessage(message, true);
+            throw new Error(message);
+          }
+          if (topologySetupMessage.value.startsWith("ERROR:")) setTopologySetupMessage("");
+        }
+        terminateAiWorker();
+        cancelHintRequest();
+        stoppedSearch = true;
+        // Construct the candidate first. A rejected configuration must not
+        // erase the saved match or replace its active player/settings metadata.
+        const nextState = controller.value.setGameConfig(nextSettings, true);
+        if (isTopologyGameSettings(nextSettings)) {
+          selectedTopologyDefinition.value = cloneTopologyJson(nextSettings.boardDefinition);
+          selectedTopologyHash.value = nextSettings.boardHash;
         }
         activeLocalSettings.value = nextSettings;
         activeLocalPlayers.value = nextPlayers;
+        explicitLabColors.clear();
         localMatchStarted.value = true;
         aiDuelPaused.value = false;
         clearSavedLocalGame();
-        gameState.value = controller.value.setGameConfig(activeLocalSettings.value, true);
+        armContributionForFreshLocalMatch();
+        gameState.value = nextState;
         startingPointPreviewFresh = false;
         localGamePositionRevision.value = gameState.value.positionRevision;
         overlayResult.value = null;
         resultModalDismissed.value = false;
         resetHintUsage();
         await nextTick();
+      } catch (error) {
+        setActionFeedback(error?.message ?? String(error), "error");
+        localGameRestoring.value = false;
+        if (stoppedSearch) scheduleAiMove(gameState.value);
+        return false;
       } finally { localGameRestoring.value = false; }
       persistLocalMatchPreferences(selectedLocalPlayers.value, draftGameSettings());
       saveLocalMatch();
@@ -3821,20 +4847,20 @@ const App = {
     const clearSavedLocalGame = () => {
       localGameActions.value = [];
       undoUsage.value = normalizeUndoUsage();
-      contributionContext = null;
-      contributionAssisted = false;
-      contributionProfileSignature = null;
+      invalidateContributionTicket();
       localGamePositionRevision.value = -1;
+      topologyLocalSession = null;
       clearLocalGameSession();
+      clearTopologyLocalGameSession();
     };
 
     const persistCurrentLocalGame = (nextState) => {
+      if (replayRestoring.value || replayMode.value || tutorialActive.value || roomStatus.value !== "solo") {
+        invalidateContributionTicket();
+        return;
+      }
       if (
         localGameRestoring.value
-        || replayRestoring.value
-        || replayMode.value
-        || tutorialActive.value
-        || roomStatus.value !== "solo"
         || !nextState
         || nextState.positionRevision === localGamePositionRevision.value
       ) {
@@ -3844,6 +4870,43 @@ const App = {
       const action = nextState.lastAction;
       if (!action?.type) {
         localGamePositionRevision.value = nextState.positionRevision ?? localGamePositionRevision.value;
+        return;
+      }
+
+      if (controller.value?.engine?.isTopologyBoard) {
+        const engine = controller.value.engine;
+        const topologyAction = topologyActionFromControllerAction(action, engine.boardHash);
+        if (!topologyAction) {
+          console.warn("Topology controller emitted an invalid local action.", action);
+          return;
+        }
+        let nextSession;
+        try {
+          const encodedState = engine.encodeTopologyState();
+          const baseSession = topologyLocalSession ?? createTopologyLocalGameSession(
+            encodedState,
+            topologyActionsForController(localGameActions.value, engine.boardHash),
+            topologySessionMetadata(),
+          );
+          // appendTopologyLocalGameAction validates the action family and the
+          // canonical board identity while the state is still isolated.
+          nextSession = appendTopologyLocalGameAction(
+            baseSession,
+            topologyAction,
+            encodedState,
+            topologySessionMetadata(),
+          );
+        } catch (error) {
+          console.warn("Could not append topology local action.", error);
+          return;
+        }
+        if (!nextSession) return;
+        const nextUndoUsage = recordUndoAction(undoUsage.value, action.player);
+        persistTopologyLocalGameSession(nextSession);
+        topologyLocalSession = nextSession;
+        undoUsage.value = nextUndoUsage;
+        localGameActions.value = [...localGameActions.value, topologyAction];
+        localGamePositionRevision.value = nextState.positionRevision;
         return;
       }
 
@@ -3865,15 +4928,22 @@ const App = {
       localGameActions.value = nextSession.actions;
       localGamePositionRevision.value = nextState.positionRevision;
       if (contribution.enabled) {
+        const settings = currentGameSettings();
         const actors = localMatchActors(activeLocalPlayers.value, activeLocalSettings.value.playerCount, activeLocalSettings.value.gridSize, activeLocalSettings.value.boardShape);
         const signature = JSON.stringify(actors);
-        if (!contributionContext) {
-          contributionContext = { source: "local", actors, mixedProfiles: nextSession.actions.length > 1, hintsEnabled: selectedHintEnabled.value || contributionAssisted };
+        if (contributionContext && !supportsContributionActors(actors, settings)) {
+          invalidateContributionTicket();
+        } else if (contributionContext && signature !== contributionProfileSignature) {
+          contributionContext.actors = actors;
+          contributionContext.mixedProfiles = true;
           contributionProfileSignature = signature;
-        } else if (signature !== contributionProfileSignature) contributionContext.mixedProfiles = true;
-        contributionContext.hintsEnabled ||= selectedHintEnabled.value || contributionAssisted;
-        if (nextState.gameOver) {
-          void contribution.enqueue(currentGameSettings(), nextSession.actions, contributionContext)
+        }
+        if (contributionContext) {
+          contributionContext.hintsEnabled = settings.hintEnabled === true;
+          contributionContext.undo = { enabled: settings.undoEnabled === true, maxCount: settings.undoMaxCount ?? 3, usedCount: undoUsage.value.usedCount };
+        }
+        if (nextState.gameOver && contributionContext) {
+          void contribution.enqueue(settings, nextSession.actions, contributionContext)
             .then(retryContributions).catch(() => { contribution.status = "retry"; contribution.save(); });
         }
       }
@@ -3884,6 +4954,13 @@ const App = {
       actionFeedbackTone.value = tone;
     };
 
+    // Transient feedback is already formatted in the language active when it
+    // was produced. Clear it on a language change without touching the match.
+    watch(language, () => {
+      clearLocalGameNotice();
+      setActionFeedback("");
+    });
+
     const stopReplayPlayback = () => {
       if (replayPlaybackId !== null) {
         globalThis.clearInterval(replayPlaybackId);
@@ -3892,23 +4969,52 @@ const App = {
       replayPlaying.value = false;
     };
 
-    const toControllerReplayActions = (document) => document.actions.map((action) => ({
-      type: action.type === "move" ? "player_move" : action.type === "skip" ? "player_skip"
-        : action.type === "root_relocate" ? "player_root_relocate" : action.type === "root_add" ? "player_root_add" : "player_resign",
-      ...(["move", "root_relocate", "root_add"].includes(action.type) ? { point: [...action.point] } : {}),
-      ...(action.type === "resign" ? { color: action.actor } : {}),
-    }));
+    const isTopologyReplayDocument = (document) => document?.format === TOPOLOGY_REPLAY_FORMAT;
+    const topologyReplaySettings = (document) => {
+      const decoded = decodeTopologyState(document?.initialState?.topologyState);
+      return normalizeAppGameSettings({
+        playerCount: Object.keys(decoded.ruleState.startingVertices ?? {}).length,
+        boardShape: "custom",
+        rulesVersion: "surface-v1",
+        topologyProtocolVersion: "board-topology-v1",
+        boardDefinition: decoded.board.definition,
+        boardHash: decoded.boardHash,
+        startPlayer: decoded.ruleState.currentPlayer ?? "BLACK",
+        initialPositions: decoded.ruleState.startingVertices,
+      });
+    };
+    const toControllerReplayActions = (document) => {
+      if (isTopologyReplayDocument(document)) {
+        return document.actions.map((action) => ({
+          type: action.type === "move" ? "player_move" : action.type === "skip" ? "player_skip" : "player_resign",
+          ...(action.type === "move" ? { vertexId: action.vertexId, boardHash: document.boardHash } : {}),
+          ...(action.type === "resign" ? { color: action.actor } : {}),
+        }));
+      }
+      return document.actions.map((action) => ({
+        type: action.type === "move" ? "player_move" : action.type === "skip" ? "player_skip" : action.type === "root_relocate" ? "player_root_relocate" : action.type === "root_add" ? "player_root_add" : "player_resign",
+        ...(["move", "root_relocate", "root_add"].includes(action.type) ? { point: [...action.point] } : {}),
+        ...(action.type === "resign" ? { color: action.actor } : {}),
+      }));
+    };
 
     const restoreReplayPrefix = (cursor = replayCursor.value) => {
       if (!controller.value || !replayDocument.value) {
         return false;
       }
+      cancelAiComparison();
+      aiComparison.value = null;
+      aiComparisonError.value = "";
+      replayInspectionPoint.value = null;
       const boundedCursor = Math.max(0, Math.min(Number(cursor) || 0, replayActions.value.length));
       replayRestoring.value = true;
       terminateAiWorker();
       try {
+        const settings = isTopologyReplayDocument(replayDocument.value)
+          ? topologyReplaySettings(replayDocument.value)
+          : replayDocument.value.config;
         const restored = controller.value.restoreMatchState({
-          settings: replayDocument.value.config,
+          settings,
           actions: replayActions.value.slice(0, boundedCursor),
         });
         if (!restored.success) {
@@ -3934,9 +5040,14 @@ const App = {
       replayError.value = "";
       try {
         const settings = currentGameSettings();
-        const actors = localMatchActors(activeLocalPlayers.value, settings.playerCount, settings.gridSize, settings.boardShape);
-        const document = await createReplayDocument(settings, localGameActions.value, { actors });
-        downloadReplayDocument(document);
+        const document = isTopologyGameSettings(settings)
+          ? await createTopologyReplayDocument(settings,
+            topologyActionsForController(localGameActions.value, settings.boardHash))
+          : await createReplayDocument(settings, localGameActions.value, {
+            actors: localMatchActors(activeLocalPlayers.value, settings.playerCount, settings.gridSize, settings.boardShape),
+          });
+        downloadReplayDocument(document, isTopologyGameSettings(settings)
+          ? "lifeline-topology-replay.json" : "lifeline-replay.json");
         setActionFeedback(language.value === "zh" ? "棋谱已导出。" : "Replay exported.", "success");
       } catch (error) {
         replayError.value = error?.message ?? String(error);
@@ -3950,7 +5061,15 @@ const App = {
       replayBusy.value = true;
       replayError.value = "";
       try {
-        const result = await parseAndValidateReplay(text);
+        let parsed;
+        try {
+          parsed = JSON.parse(String(text));
+        } catch {
+          parsed = null;
+        }
+        const result = parsed?.format === TOPOLOGY_REPLAY_FORMAT
+          ? await validateTopologyReplayDocument(parsed)
+          : await parseAndValidateReplay(text);
         if (!result.success) {
           replayError.value = language.value === "zh"
             ? (result.eventSeq ? `棋谱校验失败（第 ${result.eventSeq} 步）：${result.reason}` : `棋谱校验失败：${result.reason}`)
@@ -3960,13 +5079,19 @@ const App = {
         if (replayMode.value || roomStatus.value !== "solo" || tutorialActive.value) return;
         replayDocument.value = result.document;
         replaySource.value = "imported";
-        replayActions.value = result.actions;
+        replayActions.value = isTopologyReplayDocument(result.document)
+          ? result.actions.map((action) => ({
+            ...action,
+            ...(action.type === "player_move" ? { boardHash: result.boardHash } : {}),
+          }))
+          : result.actions;
         replayCursor.value = 0;
         cancelAiComparison();
         aiComparison.value = null;
         aiComparisonError.value = "";
         replayInspectionPoint.value = null;
-        setActionFeedback(language.value === "zh" ? `棋谱已验证，共 ${result.eventCount} 步。点击“复盘导入棋谱”查看。` : `Replay verified: ${result.eventCount} steps. Choose “Review imported replay” to inspect it.`, "success");
+        const eventCount = result.eventCount ?? result.actions?.length ?? 0;
+        setActionFeedback(language.value === "zh" ? `棋谱已验证，共 ${eventCount} 步。点击“复盘导入棋谱”查看。` : `Replay verified: ${eventCount} steps. Choose “Review imported replay” to inspect it.`, "success");
       } catch (error) {
         replayError.value = error?.message ?? String(error);
       } finally {
@@ -3990,8 +5115,12 @@ const App = {
           const sourceRevision = gameState.value.positionRevision;
           const sourceSettings = currentGameSettings();
           const sourceActions = JSON.parse(JSON.stringify(localGameActions.value));
-          const actors = localMatchActors(activeLocalPlayers.value, sourceSettings.playerCount, sourceSettings.gridSize, sourceSettings.boardShape);
-          const document = await createReplayDocument(sourceSettings, sourceActions, { actors });
+          const document = isTopologyGameSettings(sourceSettings)
+            ? await createTopologyReplayDocument(sourceSettings,
+              topologyActionsForController(sourceActions, sourceSettings.boardHash))
+            : await createReplayDocument(sourceSettings, sourceActions, {
+              actors: localMatchActors(activeLocalPlayers.value, sourceSettings.playerCount, sourceSettings.gridSize, sourceSettings.boardShape),
+            });
           if (roomStatus.value !== "solo" || networkBusy.value || tutorialActive.value
             || sourceController !== controller.value || sourceEngine !== controller.value?.engine
             || sourceRevision !== gameState.value.positionRevision
@@ -4007,6 +5136,13 @@ const App = {
         liveReplayRestore = {
           settings: currentGameSettings(),
           actions: [...localGameActions.value],
+          // A topology match needs its complete rule state, including roots,
+          // Superko history and current player; local actions are not a
+          // legacy coordinate replay and must not be coerced into one.
+          ...(controller.value.engine?.isTopologyBoard ? {
+            topologyState: controller.value.engine.encodeTopologyState(),
+            lastAction: controller.value.lastAction ? cloneTopologyJson(controller.value.lastAction) : null,
+          } : {}),
           hintRemainingCount: hintRemainingCount.value,
         };
         stopReplayPlayback();
@@ -4045,7 +5181,12 @@ const App = {
       replayInspectionPoint.value = null;
       replayRestoring.value = true;
       try {
-        const restored = controller.value.restoreMatchState(liveReplayRestore);
+        const restored = liveReplayRestore.topologyState
+          ? controller.value.restoreTopologyState(liveReplayRestore.topologyState, {
+            startPlayer: liveReplayRestore.settings?.startPlayer,
+            lastAction: liveReplayRestore.lastAction,
+          })
+          : controller.value.restoreMatchState(liveReplayRestore);
         if (!restored.success) {
           replayError.value = language.value === "zh"
             ? `退出复盘时无法恢复当前对局：${restored.reason}`
@@ -4127,7 +5268,8 @@ const App = {
     });
 
     const runAiComparison = async () => {
-      if (aiComparisonBusy.value || !replayMode.value || !controller.value?.engine || controller.value.engine.playerCount >= 4) {
+      if (aiComparisonBusy.value || !replayMode.value || !controller.value?.engine
+        || (!controller.value.engine.isTopologyBoard && controller.value.engine.playerCount >= 4)) {
         return;
       }
 
@@ -4141,7 +5283,10 @@ const App = {
       const runs = [];
 
       try {
-        const configurations = [
+        const configurations = sourceEngine.isTopologyBoard ? [
+          { id: "topology-2", strategy: "topology-generic", label: language.value === "zh" ? "拓扑搜索 · 深度 2" : "Topology search · depth 2", depth: 2, timeLimitMs: 3000 },
+          { id: "topology-3", strategy: "topology-generic", label: language.value === "zh" ? "拓扑搜索 · 深度 3" : "Topology search · depth 3", depth: 3, timeLimitMs: 3000 },
+        ] : [
           { id: "greedy", strategy: "greedy", depth: 1 },
           { id: "mcts-64", strategy: "mcts", depth: 0, simulations: 64, rolloutDepth: 40 },
           { id: "minimax-2", strategy: "minimax", depth: 2 },
@@ -4151,7 +5296,7 @@ const App = {
         const neuralUnsupported = sourceEngine.playerCount !== 2 || sourceEngine.boardShape !== "triangle" || sourceEngine.gridSize < 5 || sourceEngine.gridSize > 15
           ? "研究神经模型仅支持双人 5–15 边长三角形棋盘。"
           : "";
-        configurations.push(...[
+        if (!sourceEngine.isTopologyBoard) configurations.push(...[
           ...RESEARCH_FAMILIES.flatMap((family) => ["legacy", ...TRANSFER_SEEDS.map(String)].map((version) => {
             const profile = researchProfile(family, version);
             return { ...profile, id: profile.modelId, unavailableMessage: neuralUnsupported };
@@ -4212,13 +5357,14 @@ const App = {
             rolloutDepth: configuration.rolloutDepth ?? null,
             elapsedMs: Math.max(0, Math.round(finishedAt - startedAt)),
             moves: (result.message.moves ?? []).map((move) => ({
-              point: Array.isArray(move.point) ? [...move.point] : null,
+              point: typeof move.vertexId === "string" ? move.vertexId : typeof move.point === "string" ? move.point : Array.isArray(move.point) ? [...move.point] : null,
               type: move.type ?? "move",
               score: Number.isFinite(move.score) ? move.score : null,
               visits: Number.isInteger(move.visits) ? move.visits : null,
               meanValue: Number.isFinite(move.meanValue) ? move.meanValue : null,
               prior: Number.isFinite(move.prior) ? move.prior : null,
-            })).filter((move) => Array.isArray(move.point) || move.type === "pass"),
+            })).filter((move) => typeof move.point === "string" || Array.isArray(move.point) || move.type === "pass"),
+            searchInfo: result.message.searchInfo ?? null,
           });
           aiComparison.value = {
             player: aiPlayer,
@@ -4318,17 +5464,92 @@ const App = {
     const leaveTutorial = async (completed) => {
       if (!tutorialActive.value || !controller.value || localGameRestoring.value) return false;
       let restore = tutorialReturnSession;
+      let restoredSettings = null;
+      let restoredMatch = null;
+      let restoredActions = [];
       let savedMatchUnavailable = false;
       localGameRestoring.value = true;
       try {
         controller.value.setReadOnlyMode(false);
-        let restored = controller.value.restoreMatchState(restore);
-        if (!restored.success) {
-          savedMatchUnavailable = true;
-          restore = createLocalGameSession(normalGameSettings);
+        let restored;
+        if (tutorialReturnTopologySession) {
+          // A topology session is a full rules state, not a coordinate replay
+          // prefix.  Do not send it through restoreMatchState: that legacy
+          // route can discard Superko/history and may recreate a triangle
+          // using a current player as an opening player.
+          let decoded;
+          try {
+            decoded = decodeTopologyState(tutorialReturnTopologySession.topologyState);
+            restoredSettings = topologySettingsFromState(decoded, tutorialReturnTopologySession);
+          } catch (error) {
+            savedMatchUnavailable = true;
+            setActionFeedback(
+              language.value === "zh"
+                ? "原拓扑对局无法读取，存档已保留，请刷新后重试。"
+                : "The previous topology match could not be read. Its save is intact; reload to retry.",
+              "error",
+            );
+            return false;
+          }
+          restored = controller.value.restoreTopologyState(tutorialReturnTopologySession.topologyState, {
+            startPlayer: tutorialReturnTopologySession.startPlayer,
+          });
+          restoredMatch = tutorialReturnTopologySession.match;
+          restoredActions = [...tutorialReturnTopologySession.actions];
+          if (restored.success) {
+            // Update setup controls without resetting the just-restored engine.
+            applySettingsToController(restoredSettings, false, false);
+            selectedTopologySource.value = inferSavedTopologyPreset(restoredSettings.boardDefinition)?.preset
+              ?? (language.value === "zh" ? "已恢复的本地对局" : "restored local match");
+            topologyDefinitionText.value = JSON.stringify(restoredSettings.boardDefinition, null, 2);
+            topologyLocalSession = tutorialReturnTopologySession;
+          }
+        } else if (isTopologyGameSettings(normalGameSettings)) {
+          if (!normalGameSettings.boardDefinition) {
+            savedMatchUnavailable = true;
+            setActionFeedback(
+              language.value === "zh"
+                ? "保存的拓扑棋盘草稿不完整，未替换当前教学棋局。"
+                : "The saved topology-board draft is incomplete; the tutorial board was left unchanged.",
+              "error",
+            );
+            return false;
+          }
+          // Preferences can retain a fully compiled topology draft before the
+          // user has begun a match.  It must become a pending custom board,
+          // rather than a fabricated legacy replay/session on tutorial exit.
+          restoredSettings = normalGameSettings;
+          restored = {
+            success: true,
+            state: controller.value.setGameConfig(restoredSettings, true),
+          };
+          selectedTopologySource.value = language.value === "zh" ? "已恢复的棋盘草稿" : "restored board draft";
+          topologyDefinitionText.value = JSON.stringify(restoredSettings.boardDefinition, null, 2);
+        } else {
           restored = controller.value.restoreMatchState(restore);
+          if (!restored.success) {
+            savedMatchUnavailable = true;
+            restore = createLocalGameSession(normalGameSettings);
+            restored = controller.value.restoreMatchState(restore);
+          }
+          restoredSettings = restore.settings;
+          restoredMatch = restore.match;
+          restoredActions = [...restore.actions];
         }
         if (!restored.success) {
+          // A corrupted topology save must never be silently downgraded to a
+          // fresh legacy board.  The candidate restore left the live tutorial
+          // engine intact, and the persisted topology session remains intact.
+          if (tutorialReturnTopologySession) {
+            savedMatchUnavailable = true;
+            setActionFeedback(
+              language.value === "zh"
+                ? "原拓扑对局无法恢复，存档已保留，请刷新后重试。"
+                : "The previous topology match could not be restored. Its save is intact; reload to retry.",
+              "error",
+            );
+            return false;
+          }
           setActionFeedback(
             language.value === "zh"
               ? "原对局暂时无法恢复，存档已保留，请刷新后重试。"
@@ -4337,16 +5558,16 @@ const App = {
           );
           return false;
         }
-        applySettingsToController(restore.settings, false, false);
-        activeLocalSettings.value = normalizeAppGameSettings(restore.settings);
-        activeLocalPlayers.value = normalizeLocalPlayers(restore.match?.players, restore.settings.playerCount, restore.settings.boardShape);
-        selectedLocalPlayers.value = normalizeLocalPlayers(restore.match?.players ?? selectedLocalPlayers.value, restore.settings.playerCount, restore.settings.boardShape);
-        localMatchStarted.value = restore.match?.started ?? Boolean(restore.actions.length);
-        aiDuelPaused.value = restore.match?.paused ?? false;
-        undoUsage.value = normalizeUndoUsage(restore.match?.undo);
-        contributionAssisted = undoUsage.value.usedCount > 0;
+        if (!tutorialReturnTopologySession) applySettingsToController(restoredSettings, false, false);
+        activeLocalSettings.value = normalizeAppGameSettings(restoredSettings);
+        activeLocalPlayers.value = normalizeLocalPlayers(restoredMatch?.players, restoredSettings.playerCount, restoredSettings.boardShape);
+        selectedLocalPlayers.value = normalizeLocalPlayers(restoredMatch?.players ?? selectedLocalPlayers.value, restoredSettings.playerCount, restoredSettings.boardShape);
+        localMatchStarted.value = restoredMatch?.started ?? Boolean(restoredActions.length);
+        aiDuelPaused.value = restoredMatch?.paused ?? false;
+        undoUsage.value = normalizeUndoUsage(restoredMatch?.undo);
+        invalidateContributionTicket();
         gameState.value = restored.state;
-        localGameActions.value = [...restore.actions];
+        localGameActions.value = restoredActions;
         localGamePositionRevision.value = restored.state.positionRevision;
         // Flush lesson-setting watchers before allowing normal match changes again.
         await nextTick();
@@ -4362,7 +5583,7 @@ const App = {
       setActionFeedback(
         savedMatchUnavailable
           ? (language.value === "zh" ? "原对局无法恢复，存档已保留；已打开新棋局。" : "The previous match could not be restored. Its save was kept and a fresh board is ready.")
-          : restore.actions.length > 0
+          : restoredActions.length > 0
             ? (language.value === "zh" ? "已回到原来的对局，可以继续下棋。" : "Your previous match is restored. Continue playing.")
             : completed
               ? (language.value === "zh" ? "教学完成，开始你的第一局。" : "Tutorial complete. Start your first match.")
@@ -4380,7 +5601,7 @@ const App = {
     };
 
     const finishTutorial = () => leaveTutorial(true);
-    const skipTutorial = () => leaveTutorial(false);
+    const skipTutorial = () => startupRestorePromise ?? leaveTutorial(false);
 
     const effectiveGameSettings = computed(() => (
       roomStatus.value === "solo"
@@ -4389,7 +5610,12 @@ const App = {
     ));
     const turnTimerEnabled = computed(() => effectiveGameSettings.value.turnTimerEnabled);
     const turnTimeLimitSeconds = computed(() => effectiveGameSettings.value.turnTimeLimitSeconds);
-    const hintEnabled = computed(() => effectiveGameSettings.value.playerCount <= 3 && effectiveGameSettings.value.boardShape === "triangle" && effectiveGameSettings.value.hintEnabled);
+    const hintEnabled = computed(() => Boolean(
+      effectiveGameSettings.value.hintEnabled
+      && (isTopologyGameSettings(effectiveGameSettings.value)
+        || (effectiveGameSettings.value.playerCount <= 3
+          && effectiveGameSettings.value.boardShape === "triangle")),
+    ));
     const hintMaxCount = computed(() => effectiveGameSettings.value.hintMaxCount);
     const undoEnabled = computed(() => !tutorialActive.value && effectiveGameSettings.value.undoEnabled);
     const undoRemainingCount = computed(() => Math.max(0, effectiveGameSettings.value.undoMaxCount - (roomStatus.value === "solo" ? undoUsage.value.usedCount : roomInfo.value.undo?.usedCount ?? 0)));
@@ -4435,8 +5661,6 @@ const App = {
         localGameActions.value = actions;
         gameState.value = restored.state;
         localGamePositionRevision.value = restored.state.positionRevision;
-        contributionAssisted = true;
-        if (contributionContext) contributionContext.hintsEnabled = true;
         overlayResult.value = null;
         resultModalDismissed.value = false;
         setActionFeedback(getAppTexts(language.value, uiStyle.value).undoSuccess, "success");
@@ -4455,7 +5679,7 @@ const App = {
       catch (error) { handleNetworkError(error); }
     };
 
-    const applySettingsToController = (settings, reset = true, commitToController = true) => {
+    const applySettingsToController = (settings, reset = true, commitToController = true, syncNetworkSession = true) => {
       cancelHintRequest();
       const normalized = normalizeAppGameSettings(settings);
       syncingRemoteSettings = true;
@@ -4464,7 +5688,20 @@ const App = {
         selectedBoardShape.value = normalized.boardShape;
         selectedGridSize.value = normalized.gridSize;
         selectedStartPlayer.value = normalized.startPlayer;
-        selectedStartingPoints.value = startingPointSettings(normalized);
+        // A surface board owns canonical string IDs after its quotient has
+        // been compiled.  The legacy starting-point helper only understands
+        // triangle/hex coordinate pairs and would either throw on `cv:*` or,
+        // worse, replace a negotiated map with a legacy opening.
+        if (isTopologyGameSettings(normalized)) {
+          selectedTopologyDefinition.value = normalized.boardDefinition ?? selectedTopologyDefinition.value;
+          selectedTopologyGridSize.value = normalized.gridSize;
+          selectedTopologyHash.value = normalized.boardHash ?? selectedTopologyHash.value;
+          selectedStartingPoints.value = normalized.initialPositions
+            ? { startingPointMode: "topology", initialPositions: { ...normalized.initialPositions } }
+            : { startingPointMode: "topology" };
+        } else {
+          selectedStartingPoints.value = startingPointSettings(normalized);
+        }
         startingPointPreviewFresh = false;
         selectedRulesVersion.value = normalized.rulesVersion;
         selectedTurnTimerEnabled.value = normalized.turnTimerEnabled;
@@ -4477,7 +5714,7 @@ const App = {
         if (settings && Object.prototype.hasOwnProperty.call(settings, "hintMaxCount")) {
           selectedHintMaxCount.value = normalized.hintMaxCount;
         }
-        syncSession();
+        if (syncNetworkSession) syncSession();
 
         if (!controller.value || !commitToController) {
           return normalized;
@@ -4549,9 +5786,29 @@ const App = {
       }
       if (!tutorialActive.value) {
         tutorialReturnHintCount = hintRemainingCount.value;
-        tutorialReturnSession = replayMode.value && liveReplayRestore
-          ? createLocalGameSession(liveReplayRestore.settings, liveReplayRestore.actions, currentLocalMatch())
-          : createLocalGameSession(currentGameSettings(), localGameActions.value, currentLocalMatch());
+        if (controller.value.engine?.isTopologyBoard) {
+          try {
+            tutorialReturnTopologySession = createTopologyLocalGameSession(
+              controller.value.engine.encodeTopologyState(),
+              topologyActionsForController(localGameActions.value, controller.value.engine.boardHash),
+              topologySessionMetadata(),
+            );
+            tutorialReturnSession = null;
+          } catch (error) {
+            setActionFeedback(
+              language.value === "zh"
+                ? `无法安全保存当前拓扑对局：${error?.message ?? String(error)}`
+                : `Could not safely save the current topology match: ${error?.message ?? String(error)}`,
+              "error",
+            );
+            return;
+          }
+        } else {
+          tutorialReturnTopologySession = null;
+          tutorialReturnSession = replayMode.value && liveReplayRestore
+            ? createLocalGameSession(liveReplayRestore.settings, liveReplayRestore.actions, currentLocalMatch())
+            : createLocalGameSession(currentGameSettings(), localGameActions.value, currentLocalMatch());
+        }
       }
       stopReplayPlayback();
       tutorialActive.value = true;
@@ -4789,7 +6046,17 @@ const App = {
     );
 
     const handleNetworkError = (error) => {
-      networkError.value = localizeAppErrorMessage(error?.message ?? String(error), language.value, uiStyle.value);
+      const code = error?.message ?? String(error);
+      const sharedErrors = {
+        ONLINE_NOT_CONFIGURED: ["服务器尚未启用微信互通。", "Shared play is not enabled on this server."],
+        WEB_AUTH_NOT_CONFIGURED: ["服务器尚未启用网页账号互通。", "Web account integration is not configured."],
+        WEB_PASSWORD_REQUIRED: ["请先验证网页账号密码。", "Verify your Web account password first."],
+        EMOTE_RATE_LIMIT: ["发送表情太快，请稍后再试。", "Emotes are being sent too quickly. Try again shortly."],
+        EMOTES_UNAVAILABLE: ["当前连接暂不能发送表情。", "Emotes are unavailable on this connection."],
+        LEAVE_ROOM_FIRST: ["请先退出当前房间。", "Leave the current room first."],
+      };
+      networkError.value = sharedErrors[code]?.[language.value === "zh" ? 0 : 1]
+        ?? localizeAppErrorMessage(code, language.value, uiStyle.value);
     };
 
     const applyRoomPayload = (payload) => {
@@ -4806,7 +6073,7 @@ const App = {
           status: nextStatusReset || roomInfo.value.status,
           hostPlayerId: payload?.hostPlayerId ?? roomInfo.value.hostPlayerId,
           players: Array.isArray(payload?.players) ? payload.players : roomInfo.value.players,
-          settings: normalizeAppGameSettings(payload?.settings ?? roomInfo.value.settings),
+          settings: normalizeReceivedGameSettings(payload?.settings ?? roomInfo.value.settings),
           countdownEndsAt: payload?.countdownEndsAt ?? null,
           matchPhase: normalizeMatchPhase(
             readPayloadMatchPhase(payload, roomInfo.value.matchPhase),
@@ -4844,7 +6111,7 @@ const App = {
         status: nextStatus || roomInfo.value.status,
         hostPlayerId: payload?.hostPlayerId ?? roomInfo.value.hostPlayerId,
         players: Array.isArray(payload?.players) ? payload.players : roomInfo.value.players,
-        settings: normalizeAppGameSettings(payload?.settings ?? roomInfo.value.settings),
+        settings: normalizeReceivedGameSettings(payload?.settings ?? roomInfo.value.settings),
         countdownEndsAt: payload?.countdownEndsAt ?? null,
         matchPhase: nextPhase,
         undo: payload?.undo ?? roomInfo.value.undo,
@@ -4880,7 +6147,7 @@ const App = {
         return;
       }
 
-      const normalizedSettings = normalizeAppGameSettings(payload?.settings ?? roomInfo.value.settings);
+      const normalizedSettings = normalizeReceivedGameSettings(payload?.settings ?? roomInfo.value.settings);
       const players = Array.isArray(payload?.players) ? payload.players : roomInfo.value.players;
       const normalizedStatus = normalizeRoomStatus(payload?.status ?? roomStatus.value);
       const normalizedPhase = normalizeMatchPhase(readPayloadMatchPhase(payload, roomInfo.value.matchPhase), normalizedStatus);
@@ -4900,13 +6167,34 @@ const App = {
     };
 
     const applyRoomSnapshot = (payload, resetController = true) => {
+      // Validate raw authority before committing it to roomInfo.  Normalizing
+      // first would turn a malformed surface board into a legacy triangle and
+      // make that downgrade look authoritative to reconnecting clients.
+      const rawIncomingSettings = payload?.settings
+        ?? payload?.matchState?.settings
+        ?? currentGameSettings();
+      const topologyPreflight = validateTopologyRoomSnapshot(
+        payload,
+        rawIncomingSettings,
+        networkManager.topologyCapabilities,
+      );
+      if (!topologyPreflight.ok) {
+        controller.value?.setAuthoritativeSnapshotValid?.(false);
+        controller.value?.setMultiplayerState?.({
+          roomReady: false,
+          opponentConnected: false,
+        }, false);
+        roomSnapshotRecoveryFailed = true;
+        networkError.value = topologyPreflight.code;
+        return false;
+      }
       if (!applyRoomPayload(payload)) {
         return false;
       }
       cancelHintRequest();
       roomIdInput.value = payload?.roomId ?? roomIdInput.value;
       syncSession();
-      const incomingSettings = normalizeAppGameSettings(
+      const incomingSettings = normalizeReceivedGameSettings(
         payload?.settings ?? payload?.matchState?.settings ?? currentGameSettings(),
       );
       const controllerResult = coordinateControllerRoomSnapshot({
@@ -4916,6 +6204,7 @@ const App = {
         resetController,
         syncOnlineController,
         applySettingsToController,
+        topologyCapabilities: networkManager.topologyCapabilities,
       });
       if (controllerResult.state) {
         gameState.value = controllerResult.state;
@@ -5029,13 +6318,20 @@ const App = {
     };
 
     const handleLogout = async () => {
+      cancelSharedPassword();
+      accountLinkGeneration += 1; accountLinkCode.value = ""; clearTimeout(accountLinkExpiry);
       authBusy.value = true;
+      // Clear the local identity immediately, including its persisted copy.
+      // A failed or delayed room leave must not keep an account logged in.
+      clearAuthState();
+      persistAppAuth(auth.value);
+      networkManager.clearAuthToken();
 
       try {
         clearReconnectTimer();
         resetRoomContext();
         connectionState.value = "idle";
-        await networkManager.leaveRoom();
+        try { await networkManager.leaveRoom(); } catch (_error) { /* Local logout still completes. */ }
         networkManager.disconnect(1000, "logout");
         networkManager.clearAuthToken();
         networkManager.url = null;
@@ -5052,7 +6348,6 @@ const App = {
         }
         persistAppSession(createAppEmptySession());
         syncSession();
-        clearAuthState();
       } finally {
         authBusy.value = false;
       }
@@ -5093,11 +6388,27 @@ const App = {
 
     const handleControllerReady = (instance) => {
       controller.value = instance;
+      controller.value.renderer?.setTopologyChart?.(topologyChart.value);
       controller.value.setNetworkErrorListener(handleNetworkError);
       controller.value.setActionFeedbackListener(handleActionFeedback);
       gameState.value = instance.setGameConfig(currentGameSettings(), true);
       localGamePositionRevision.value = gameState.value.positionRevision ?? 0;
 
+      if (tutorialAutoRestoring.value) {
+        startupRestorePromise = leaveTutorial(false).then((restored) => {
+          if (!restored) {
+            const restoreError = actionFeedback.value;
+            loadTutorialLevel(0);
+            resetHintUsage();
+            setActionFeedback(restoreError, "error");
+          }
+          return restored;
+        }).finally(() => {
+          tutorialAutoRestoring.value = false;
+          startupRestorePromise = null;
+        });
+        return startupRestorePromise;
+      }
       loadTutorialLevel(0);
       resetHintUsage();
     };
@@ -5139,9 +6450,6 @@ const App = {
       if (!controller.value || hintDisabled.value) {
         return;
       }
-      contributionAssisted = true;
-      if (contributionContext) contributionContext.hintsEnabled = true;
-
       cancelHintRequest();
       hintThinking.value = true;
       clearActiveHint();
@@ -5156,6 +6464,7 @@ const App = {
             type: "COMPUTE",
             serializedState: serializeEngineState(sourceEngine),
             aiPlayer: currentPlayer,
+            ...(sourceEngine.isTopologyBoard ? { strategy: "topology-generic" } : {}),
             depth: 2,
             topN: 1,
           },
@@ -5234,6 +6543,7 @@ const App = {
         setAuthState({
           token: payload.token ?? null,
           username: payload.username ?? username,
+          authOrigin: payload.authOrigin,
         });
         authUsername.value = payload.username ?? username;
         authPassword.value = "";
@@ -5252,6 +6562,7 @@ const App = {
     };
 
     const handleConnect = async () => {
+      if (!session.value.roomId && /^[A-Z2-9]{8}$/i.test(roomIdInput.value.trim())) return handleJoinRoom();
       networkBusy.value = true;
       networkError.value = "";
       overlayResult.value = null;
@@ -5259,6 +6570,9 @@ const App = {
 
       try {
         await ensureConnected();
+        if (networkManager.serverAuthoritative && session.value.roomId && !networkManager.isConnected()) {
+          await networkManager.joinRoom(session.value.roomId, session.value.playerId);
+        }
         reconnectAttempt = 0;
       } catch (error) {
         connectionState.value = "disconnected";
@@ -5276,8 +6590,14 @@ const App = {
       clearReconnectTimer();
 
       try {
-        await ensureConnected();
-        await networkManager.createRoom(normalizeAppGameSettings({ ...draftGameSettings(), botCount: selectedRoomBotCount.value }));
+        networkManager.url = serverUrl.value.trim();
+        networkManager.setAuthToken(auth.value.token);
+        const settings = normalizeAppGameSettings(draftGameSettings());
+        const requested = settings.boardShape === "custom" ? { ...settings, botCount: 0 }
+          : roomSettingsFromBoard(settings, selectedLocalPlayers.value);
+        await networkManager.createSharedRoom(requested);
+        roomSetupOpen.value = false;
+        activeUtilityDeck.value = "network";
       } catch (error) {
         handleNetworkError(error);
       } finally {
@@ -5285,6 +6605,46 @@ const App = {
       }
     };
 
+    const openRoomSetup = () => {
+      if (networkBusy.value || (session.value.roomId && !isHost.value)) return;
+      const source = session.value.roomId ? roomInfo.value.pendingSettings ?? roomInfo.value.settings : draftGameSettings();
+      const draft = source.boardShape === "custom" ? source : roomSettingsFromBoard(source, session.value.roomId ? source.playerSetup : selectedLocalPlayers.value);
+      applySettingsToController(draft, false, false, false);
+      if (draft.boardShape !== "custom") selectedLocalPlayers.value = normalizeRoomPlayerSetup(draft);
+      roomSetupOpen.value = true;
+      activeUtilityDeck.value = "board";
+    };
+    const handleLinkWechat = async () => {
+      accountLinkBusy.value = true; accountLinkError.value = ""; accountLinkCode.value = "";
+      const token = auth.value.token, server = serverUrl.value, generation = ++accountLinkGeneration;
+      const current = () => generation === accountLinkGeneration && token === auth.value.token && server === serverUrl.value;
+      try {
+        if (session.value.roomId) throw new Error("LEAVE_ROOM_FIRST");
+        networkManager.url = serverUrl.value.trim();
+        const result = await networkManager.issueLinkCode();
+        if (!current()) return;
+        accountLinkCode.value = result.code;
+        clearTimeout(accountLinkExpiry);
+        accountLinkExpiry = setTimeout(() => { accountLinkCode.value = ""; }, result.expiresIn * 1000);
+      } catch (error) { if (current()) accountLinkError.value = localizeAppErrorMessage(error.message, language.value, uiStyle.value); }
+      finally { accountLinkBusy.value = false; }
+    };
+    const handleCopyLinkCode = async () => {
+      try { await navigator.clipboard.writeText(accountLinkCode.value); }
+      catch (_) { accountLinkError.value = language.value === "zh" ? "请选中绑定码并复制。" : "Select and copy the code."; }
+    };
+    const saveRoomSettings = async () => {
+      if (!session.value.roomId) return handleCreateRoom();
+      if (!isHost.value || !session.value.shared || networkBusy.value) return;
+      networkBusy.value = true;
+      try {
+        const draft = draftGameSettings();
+        await networkManager.updateRoomSettings(draft.boardShape === "custom" ? { ...draft, botCount: 0 } : roomSettingsFromBoard(draft, selectedLocalPlayers.value));
+        roomSetupOpen.value = false;
+        activeUtilityDeck.value = "network";
+      } catch (error) { handleNetworkError(error); }
+      finally { networkBusy.value = false; }
+    };
     const handleJoinRoom = async () => {
       const normalizedRoomId = roomIdInput.value.trim();
       if (!normalizedRoomId) {
@@ -5298,7 +6658,13 @@ const App = {
       clearReconnectTimer();
 
       try {
-        await ensureConnected();
+        if (/^[A-Z2-9]{8}$/i.test(normalizedRoomId)) {
+          networkManager.url = serverUrl.value.trim();
+          networkManager.setAuthToken(auth.value.token);
+        } else {
+          networkManager.selectLegacy();
+          await ensureConnected();
+        }
         await networkManager.joinRoom(normalizedRoomId);
       } catch (error) {
         handleNetworkError(error);
@@ -5434,10 +6800,12 @@ const App = {
         readyPending.value = false;
       } finally {
         networkBusy.value = false;
+        if (session.value.shared && session.value.roomId) syncControllerState({});
       }
     };
 
-    const chatEmojiDisabled = computed(() => false);
+    const chatEmojiDisabled = computed(() => session.value.shared && session.value.roomId
+      ? connectionState.value !== "connected" || !session.value.connected || !networkManager.canEmote() : false);
 
     const resolveChatEmojiColor = (sender, payloadColor = null) => {
       if (APP_ALL_PLAYERS.includes(payloadColor)) {
@@ -5546,6 +6914,11 @@ const App = {
       }
 
       networkError.value = "";
+      if (session.value.shared && session.value.roomId) {
+        try { await networkManager.sendChatEmoji(emoji?.content); }
+        catch (error) { handleNetworkError(error); }
+        return;
+      }
       const seed = `${session.value.playerId ?? "local"}-${Date.now()}-${Math.round(Math.random() * 1000000)}`;
       const burst = pushChatEmojiBurst({
         sender: session.value.playerId ?? "local",
@@ -5767,7 +7140,6 @@ const App = {
       if (roomStatus.value === "solo") {
         return false;
       }
-
       if (roomStatus.value === "inProgress" || roomInfo.value.matchPhase === "PLAYING") {
         return false;
       }
@@ -5805,6 +7177,7 @@ const App = {
       if (networkBusy.value || tutorialActive.value || replayMode.value) {
         return true;
       }
+      if (roomSetupOpen.value && session.value.shared && isHost.value) return false;
       if (roomStatus.value === "solo") {
         return false;
       }
@@ -5853,12 +7226,15 @@ const App = {
     };
 
     const handleCloseUtilityDeck = () => {
+      cancelSharedPassword();
+      accountLinkGeneration += 1; accountLinkCode.value = ""; accountLinkError.value = "";
+      clearTimeout(accountLinkExpiry);
       activeUtilityDeck.value = "";
       activeGuideKey.value = "";
     };
 
     const handleOpenGuideEntry = (entryKey) => {
-      activeGuideKey.value = entryKey;
+      activeGuideKey.value = entryKey === "topology" ? "rules-math-topology" : entryKey;
     };
 
     const handleCloseGuideEntry = () => {
@@ -5900,6 +7276,7 @@ const App = {
         connectionState.value = "connected";
         clearReconnectTimer();
         syncSession();
+        if (session.value.shared && session.value.roomId) syncControllerState({});
       }),
     );
 
@@ -6084,6 +7461,8 @@ const App = {
     );
 
     onBeforeUnmount(() => {
+      cancelSharedPassword();
+      accountLinkGeneration += 1; clearTimeout(accountLinkExpiry);
       contribution.dispose();
       globalThis.removeEventListener("online", retryContributions);
       terminateAiWorker();
@@ -6125,6 +7504,10 @@ const App = {
       boardDockBadge,
       controller,
       gameState,
+      topologyChart,
+      hasDoubleTopologyChart,
+      topologyChartLatest,
+      setTopologyChart,
       hintRemainingCount,
       undoEnabled,
       undoRemainingCount,
@@ -6158,9 +7541,12 @@ const App = {
       hintDisabled,
       getTexts: getAppTexts,
       activeUtilityDeck,
+      sharedPasswordOpen, sharedPasswordUsername, sharedPassword, sharedPasswordBusy, sharedPasswordError,
+      handleSharedPasswordSubmit, cancelSharedPassword,
       guideDockBadge,
       activeGuideEntry,
       ruleGuideEntry,
+      topologyGuideEntry,
       whyGuideEntry,
       thanksGuideEntry,
       isAuthenticated,
@@ -6171,7 +7557,34 @@ const App = {
       roomIdInput,
       selectedPlayerCount,
       selectedBoardShape,
+      handleBoardShapeChange,
+      selectedTopologyDefinition,
+      selectedTopologyHash,
+      selectedTopologySource,
+      topologySetupMessage,
+      topologyRandomSeed,
+      topologyDraft,
+      topologyDraftX,
+      topologyDraftY,
+      topologyDefinitionText,
+      selectTopologyPreset,
+      generateTopologyBoard,
+      handleGridSizeChange,
+      updateTopologyStarts,
+      newTopologyDraftRing,
+      deleteTopologyDraftRing,
+      addTopologyDraftVertex,
+      undoTopologyDraftVertex,
+      closeTopologyDraft,
+      resetTopologyDraft,
+      addTopologyDraftSeam,
+      loadTopologyDefinitionText,
       selectedRoomBotCount,
+      roomSetupOpen,
+      openRoomSetup,
+      saveRoomSettings,
+      handleCreateSharedRoom: handleCreateRoom,
+      accountLinkCode, accountLinkError, accountLinkBusy, handleLinkWechat, handleCopyLinkCode,
       retryRoomBots: () => networkManager.retryBots().catch(handleNetworkError),
       selectedGridSize,
       selectedStartPlayer,
@@ -6186,6 +7599,7 @@ const App = {
       activeLocalPlayers,
       localMatchStarted,
       localSetupPending,
+      localSettingsChanged,
       updateLocalPlayer,
       swapLocalPlayers,
       startLocalMatch,
@@ -6225,6 +7639,7 @@ const App = {
       hintEnabled,
       hintMaxCount,
       tutorialActive,
+      tutorialAutoRestoring,
       tutorialSuccess,
       tutorialAttempts,
       tutorialRestrictionObserved,
@@ -6276,7 +7691,7 @@ const App = {
           </header>
 
           <TutorialCard
-            v-if="tutorialActive"
+            v-if="tutorialActive && !tutorialAutoRestoring"
             :language="language"
             :level="currentTutorialLevel"
             :success="tutorialSuccess"
@@ -6306,7 +7721,6 @@ const App = {
                   variant="board"
                   :title="getTexts(language, uiStyle).boardDockTitle"
                   :compact-title="language === 'zh' ? '棋盘舱' : 'Board'"
-                  :copy="getTexts(language, uiStyle).boardDockCopy"
                   :badge="boardDockBadge"
                   @open="handleOpenUtilityDeck('board')"
                 />
@@ -6337,6 +7751,14 @@ const App = {
               </aside>
             </template>
           </BoardCanvas>
+
+          <div v-if="hasDoubleTopologyChart" class="topology-chart-switch" role="group" :aria-label="language === 'zh' ? '展开图显示' : 'Atlas view'">
+            <button v-for="chart in ['front', 'back', 'both']" :key="chart" type="button" class="language-button" :class="{ 'is-active': topologyChart === chart }" :aria-pressed="topologyChart === chart" @click="setTopologyChart(chart)">
+              {{ chart === 'front' ? (language === 'zh' ? '正面' : 'Front') : chart === 'back' ? (language === 'zh' ? '反面' : 'Back') : (language === 'zh' ? '双面' : 'Both') }}<span v-if="chart !== 'both' && topologyChartLatest[chart]" :aria-label="language === 'zh' ? '包含最近落点' : 'Contains a recent move'"> ●</span>
+            </button>
+          </div>
+
+          <TopologySurfaceExpandable v-if="gameState.isTopologyBoard" :snapshot="gameState.snapshot" :language="language" />
 
           <section v-if="!replayMode && gameState.legalRootActions?.length" class="panel panel-subtle root-action-panel" aria-live="polite">
             <strong>{{ language === 'zh' ? (gameState.rootMode === 'relocate' ? '迁移起点（占一回合）' : '增设起点（占一回合）') : (gameState.rootMode === 'relocate' ? 'Relocate root (uses the turn)' : 'Add root (uses the turn)') }}</strong>
@@ -6412,19 +7834,22 @@ const App = {
           />
         </section>
 
-        <aside v-if="replayMode && replayInspectorOpen" class="replay-detail">
+
+        <details v-if="replayMode" class="replay-detail replay-details-fold" @toggle="replayInspectorOpen = $event.target.open">
+          <summary>{{ language === 'zh' ? '着法与分析' : 'Moves and analysis' }}</summary>
           <ReplayInspectorPanel
             :language="language"
             :game-state="gameState"
             :event="currentReplayEvent"
             :cursor="replayCursor"
+            :selected-point="replayInspectionPoint"
             :ai-comparison="aiComparison"
             :ai-comparison-busy="aiComparisonBusy"
             :ai-comparison-error="aiComparisonError"
             @inspect-point="replayInspectionPoint = $event"
             @compare-ai="runAiComparison"
           />
-        </aside>
+        </details>
       </section>
 
       <UtilityModal
@@ -6432,7 +7857,6 @@ const App = {
         :visible="activeUtilityDeck === 'board'"
         :eyebrow="getTexts(language, uiStyle).stageFocusEyebrow"
         :title="getTexts(language, uiStyle).boardDockTitle"
-        :description="getTexts(language, uiStyle).boardDockCopy"
         :close-label="getTexts(language, uiStyle).closePanel"
         @close="handleCloseUtilityDeck"
       >
@@ -6451,10 +7875,11 @@ const App = {
             :undo-max-count="selectedUndoMaxCount"
             :local-players="selectedLocalPlayers"
             :start-player="selectedStartPlayer"
-            :local-pending="localSetupPending"
+            :local-pending="localSetupPending || localSettingsChanged"
             :local-started="localMatchStarted"
             :starting-points="selectedStartingPoints"
             :contribution-state="contributionState"
+            :room-setup-open="roomSetupOpen"
             :ai-available="roomStatus === 'solo' && !tutorialActive"
             :online-available="roomStatus !== 'solo' && !tutorialActive"
             :settings-locked="settingsLocked"
@@ -6462,8 +7887,8 @@ const App = {
             @update:language="language = $event"
             @update:ui-style="uiStyle = $event"
             @update:player-count="selectedPlayerCount = $event"
-            @update:board-shape="selectedBoardShape = $event"
-            @update:grid-size="selectedGridSize = $event"
+            @update:board-shape="handleBoardShapeChange"
+            @update:grid-size="handleGridSizeChange"
             @update:turn-timer-enabled="selectedTurnTimerEnabled = $event"
             @update:turn-time-limit-seconds="selectedTurnTimeLimitSeconds = $event"
             @update:hint-enabled="selectedHintEnabled = $event"
@@ -6471,13 +7896,53 @@ const App = {
             @update:undo-enabled="selectedUndoEnabled = $event"
             @update:undo-max-count="selectedUndoMaxCount = $event"
             @update-local-player="updateLocalPlayer"
+            @select-lab-model="updateLocalPlayer({ ...$event, fromLab: true })"
+            @save-room-settings="saveRoomSettings"
             @update:start-player="selectedStartPlayer = $event"
             @swap-local-players="swapLocalPlayers"
             @start-local-match="startLocalMatch"
             @update-starting-points="updateStartingPoints"
+            @open-topology-guide="handleOpenGuideEntry('topology')"
             @toggle-contributions="toggleContributions"
             @retry-contributions="retryContributions"
+          >
+            <template #topology-feedback>
+              <p v-if="topologySetupMessage.startsWith('ERROR:')" class="error-copy" role="alert">{{ topologySetupMessage.slice(6).trimStart() }}</p>
+            </template>
+            <template #topology>
+          <TopologySetupPanel v-if="selectedBoardShape === 'custom'"
+            :language="language"
+            :grid-size="selectedGridSize"
+            :player-count="selectedPlayerCount"
+            :definition="selectedTopologyDefinition"
+            :board-hash="selectedTopologyHash"
+            :source="selectedTopologySource"
+            :message="topologySetupMessage"
+            :seed="topologyRandomSeed"
+            :draft="topologyDraft"
+            :draft-x="topologyDraftX"
+            :draft-y="topologyDraftY"
+            :definition-text="topologyDefinitionText"
+            :locked="settingsLocked"
+            :busy="networkBusy"
+            @select-preset="selectTopologyPreset"
+            @generate-random="generateTopologyBoard"
+            @update:seed="topologyRandomSeed = $event"
+            @update:draft-x="topologyDraftX = $event"
+            @update:draft-y="topologyDraftY = $event"
+            @update:definition-text="topologyDefinitionText = $event"
+            @draft-add="addTopologyDraftVertex"
+            @draft-undo="undoTopologyDraftVertex"
+            @draft-close="closeTopologyDraft"
+            @draft-reset="resetTopologyDraft"
+            @draft-add-seam="addTopologyDraftSeam"
+            @draft-new-ring="newTopologyDraftRing"
+            @draft-delete-ring="deleteTopologyDraftRing"
+            @update-starts="updateTopologyStarts"
+            @definition-load="loadTopologyDefinitionText"
           />
+            </template>
+          </SetupPanel>
 
           <div class="board-status-stack">
           <ScorePanel
@@ -6535,6 +8000,36 @@ const App = {
             @logout="handleLogout"
           />
 
+          <SharedLadderPanel :language="language" :auth="auth" />
+
+          <section v-if="isAuthenticated" class="panel modal-panel">
+            <h3>{{ language === 'zh' ? '关联微信账号' : 'Link WeChat account' }}</h3>
+            <p>{{ language === 'zh' ? '可选：把网页账号与微信身份关联；同房对战不要求绑定。' : 'Optional: link your Web and WeChat identities. Linking is not required to play in the same room.' }}</p>
+            <button class="action-button action-button-secondary" :disabled="accountLinkBusy || sharedPasswordOpen || networkBusy || !!session.roomId" @click="handleLinkWechat">{{ language === 'zh' ? '生成一次性绑定码' : 'Generate one-time code' }}</button>
+            <template v-if="accountLinkCode">
+              <p>{{ language === 'zh' ? '5 分钟有效，仅在自己的小游戏账号页面使用。' : 'Expires in 5 minutes. Use it only in your own Mini Game account panel.' }}</p>
+              <input class="input-field" readonly :value="accountLinkCode" aria-label="Account link code" />
+              <button class="action-button action-button-ghost" @click="handleCopyLinkCode">{{ language === 'zh' ? '复制绑定码' : 'Copy code' }}</button>
+            </template>
+            <p v-if="accountLinkError" class="error-copy" role="alert">{{ accountLinkError }}</p>
+          </section>
+
+          <section v-if="sharedPasswordOpen" class="panel modal-panel" aria-live="polite">
+            <h3>{{ language === 'zh' ? '确认原网页账号' : 'Verify your Web account' }}</h3>
+            <p>{{ language === 'zh' ? '进入互通对战前，请验证网页账号密码；密码不会保存。' : 'Verify your Web account before shared play. Your password is not stored.' }}</p>
+            <form @submit.prevent="handleSharedPasswordSubmit">
+              <label class="field-label" for="shared-password-username">{{ language === 'zh' ? '当前账号' : 'Current account' }}</label>
+              <input id="shared-password-username" class="input-field" readonly :value="sharedPasswordUsername" autocomplete="off" />
+              <label class="field-label" for="shared-password-input">{{ language === 'zh' ? '网页账号密码' : 'Web account password' }}</label>
+              <input id="shared-password-input" class="input-field" type="password" autocomplete="off" v-model="sharedPassword" :disabled="sharedPasswordBusy" />
+              <p v-if="sharedPasswordError" class="error-copy" role="alert">{{ sharedPasswordError }}</p>
+              <div class="button-row">
+                <button class="action-button action-button-primary" type="submit" :disabled="sharedPasswordBusy">{{ language === 'zh' ? '验证并继续' : 'Verify and continue' }}</button>
+                <button class="action-button action-button-ghost" type="button" @click="cancelSharedPassword">{{ language === 'zh' ? '取消' : 'Cancel' }}</button>
+              </div>
+            </form>
+          </section>
+
           <RoomPanel
             :player-count="selectedPlayerCount"
             :board-shape="selectedBoardShape"
@@ -6547,7 +8042,7 @@ const App = {
             :session="session"
             :network-error="networkError"
             :authenticated="isAuthenticated"
-            :busy="networkBusy"
+            :busy="networkBusy || sharedPasswordOpen"
             :room-info="roomInfo"
             :is-host="isHost"
             :local-ready="localReady"
@@ -6560,7 +8055,7 @@ const App = {
             @update:bot-count="selectedRoomBotCount = $event"
             @retry-bots="retryRoomBots"
             @connect="handleConnect"
-            @create-room="handleCreateRoom"
+            @create-room="openRoomSetup"
             @join-room="handleJoinRoom"
             @leave-room="handleLeaveRoom"
             @toggle-ready="handleToggleReady"
@@ -6584,6 +8079,7 @@ const App = {
           :language="language"
           :ui-style="uiStyle"
           :rule-entry="ruleGuideEntry"
+          :topology-entry="topologyGuideEntry"
           :why-entry="whyGuideEntry"
           :thanks-entry="thanksGuideEntry"
           @open-entry="handleOpenGuideEntry"
@@ -6592,6 +8088,7 @@ const App = {
 
       <GuideReaderModal
         :entry="activeGuideEntry"
+        :initial-key="activeGuideKey"
         :language="language"
         :ui-style="uiStyle"
         @close="handleCloseGuideEntry"

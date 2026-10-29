@@ -1,11 +1,14 @@
-import GameEngine from "./GameEngine.js?v=20261013-full-features1";
-import { canonicalize, serializeRuleState } from "./ReplayCodec.js?v=20261013-full-features1";
+import GameEngine, { StartProtectionRule, resolveBoardShape } from "./GameEngine.js?v=20261029-unified-r1";
+import { canonicalize, serializeRuleState } from "./ReplayCodec.js?v=20261029-unified-r1";
+import { ROOM_PLAYER_COLORS, roomBotColors } from "./OnlineRoomSettings.js?v=20261029-unified-r1";
+import "./TopologyGameEngine.js?v=20261029-unified-r1";
 
 const CODE = /^[A-Z2-9]{8}$/;
 const PENDING = "lifeline-shared-command-v1";
-const COLORS = ["BLACK", "WHITE"];
+const COLORS = ROOM_PLAYER_COLORS;
 export const SHARED_EMOTES = Object.freeze(["👏", "😭", "😎", "🤝", "❓", "🤔", "💀", "👎", "😓", "😤"]);
 const EMOTE_CAPABILITY = "emote-v1";
+const TOPOLOGY_CAPABILITY = "board-topology-v1";
 
 export function sharedApiOrigin(socketUrl) {
   const url = new URL(socketUrl, globalThis.location?.href);
@@ -14,23 +17,62 @@ export function sharedApiOrigin(socketUrl) {
   if (url.protocol !== "https:" && !["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)) throw new Error("HTTPS_REQUIRED");
   return url.origin;
 }
+
+export function sharedRoomCreateSettings(settings = {}) {
+  if (settings?.rulesVersion === "surface-v1" || settings?.boardShape === "custom") {
+    return { ...settings, rootProtocolVersion: 2, topologyCapabilities: [TOPOLOGY_CAPABILITY] };
+  }
+  const normalized = {
+    ...(typeof settings === "object" && settings ? settings : { gridSize: settings || 7 }),
+    rulesVersion: "territory-v3",
+    rootProtocolVersion: 2,
+  };
+  const playerCount = Number.isInteger(normalized.playerCount) ? normalized.playerCount : 2;
+  const applies = playerCount === 2
+    && resolveBoardShape(playerCount, normalized.boardShape) === "triangle";
+  if (applies && !Object.hasOwn(normalized, "protectionRule")) {
+    normalized.protectionRule = StartProtectionRule.DUEL_FIRST_UNPROTECTED;
+  } else if (!applies && normalized.protectionRule === StartProtectionRule.DUEL_FIRST_UNPROTECTED) {
+    delete normalized.protectionRule;
+  }
+  return normalized;
+}
+
 export async function verifySharedRoom(room) {
+  const count = room?.settings?.playerCount;
+  const colors = COLORS.slice(0, count);
+  const topology = room?.settings?.rulesVersion === "surface-v1";
+  const protectionRule = room?.settings?.protectionRule ?? StartProtectionRule.SYMMETRIC;
   if (!room || room.protocol !== 1 || !CODE.test(room.code) || !/^[0-9a-f]{32}$/.test(room.matchId)
     || !Number.isSafeInteger(room.revision) || room.revision < 1 || !Number.isSafeInteger(room.seq) || room.seq < 0 || room.seq > 3000
     || !Array.isArray(room.actions) || room.actions.length !== room.seq
     || !Array.isArray(room.actionIds) || room.actionIds.length !== room.seq || new Set(room.actionIds).size !== room.seq
-    || !COLORS.includes(room.player) || !COLORS.includes(room.currentPlayer)
+    || !colors.includes(room.player) || !colors.includes(room.currentPlayer)
     || !["waiting", "playing", "finished", "closed"].includes(room.status)
     || !room.ready || !room.members || !room.rematchVotes
-    || !["territory-v2", "territory-v3"].includes(room.settings?.rulesVersion) || room.settings.playerCount !== 2
-    || room.settings.startPlayer !== "BLACK" || !Number.isInteger(room.settings.gridSize)
-    || room.settings.gridSize < 5 || room.settings.gridSize > 15) throw new Error("INVALID_ROOM");
+    || !(topology || ["territory-v2", "territory-v3"].includes(room.settings?.rulesVersion)) || (!Number.isInteger(count) || count < 2 || count > (topology ? 6 : 15))
+    || !Object.values(StartProtectionRule).includes(protectionRule)
+    || !colors.includes(room.settings.startPlayer) || !Number.isInteger(room.settings.botCount ?? 0)
+    || (room.settings.botCount ?? 0) < 0 || (room.settings.botCount ?? 0) >= count
+    || !Number.isInteger(room.settings.gridSize)
+    || room.settings.gridSize < 5 || room.settings.gridSize > 15
+    || colors.some(color => typeof room.members[color] !== "boolean" || typeof room.ready[color] !== "boolean")
+    || (room.hostPlayer !== undefined && !colors.includes(room.hostPlayer))) throw new Error("INVALID_ROOM");
+  if (topology && (room.settings.boardShape !== "custom" || room.settings.topologyProtocolVersion !== TOPOLOGY_CAPABILITY
+    || !/^[0-9a-f]{64}$/.test(room.settings.boardHash || "") || !room.settings.boardDefinition
+    || (room.settings.botCount ?? 0) !== 0 || (room.settings.rootMode ?? "classic") !== "classic"
+    || (room.settings.rootRulesVersion ?? "root-v1") !== "root-v1")) throw new Error("INVALID_ROOM");
+  room.settings = { ...room.settings, protectionRule };
+  if (room.settings.playerSetup && JSON.stringify(roomBotColors(room.settings)) !== JSON.stringify(room.bots ?? [])) throw new Error("INVALID_ROOM");
   const engine = new GameEngine({ ...room.settings, deferTerritoryUpdates: false });
+  if (topology && engine.boardHash !== room.settings.boardHash) throw new Error("STATE_MISMATCH");
   engine.replayBatch(game => {
     for (const action of room.actions) {
-      if (!COLORS.includes(action.player) || (action.type !== "resign" && action.player !== game.currentPlayer)) throw new Error("INVALID_ROOM_ACTION");
+      if (!colors.includes(action.player) || (action.type !== "resign" && action.player !== game.currentPlayer)) throw new Error("INVALID_ROOM_ACTION");
       let result;
-      if (action.type === "move" && Array.isArray(action.point) && action.point.length === 2 && action.point.every(Number.isInteger)) result = game.playMove(action.point);
+      if (action.type === "move" && topology && typeof action.vertexId === "string") result = game.playMove(action.vertexId);
+      else if (action.type === "move" && !topology && Array.isArray(action.point) && action.point.length === 2 && action.point.every(Number.isInteger)) result = game.playMove(action.point);
+      else if (!topology && ["root_relocate", "root_add"].includes(action.type) && Array.isArray(action.point) && action.point.length === 2 && action.point.every(Number.isInteger)) result = game.playRootAction(action.type, action.point);
       else if (action.type === "skip") result = game.skipTurn();
       else if (action.type === "resign") result = game.resignPlayer(action.player);
       if (!result?.success) throw new Error("INVALID_ROOM_ACTION");
@@ -38,11 +80,11 @@ export async function verifySharedRoom(room) {
     return { success: true };
   });
   if (!globalThis.crypto?.subtle) throw new Error("HTTPS_REQUIRED");
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(canonicalize(serializeRuleState(engine))));
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(canonicalize(topology ? engine.encodeTopologyState() : serializeRuleState(engine))));
   const hash = `sha256:${Array.from(new Uint8Array(digest), v => v.toString(16).padStart(2, "0")).join("")}`;
   const snapshot = engine.getSnapshot();
   if (hash !== room.stateHash || snapshot.currentPlayer !== room.currentPlayer || snapshot.gameOver !== room.gameOver
-    || snapshot.winner !== room.winner || COLORS.some(p => snapshot.territories[p].area !== room.scores?.[p])) throw new Error("STATE_MISMATCH");
+    || snapshot.winner !== room.winner || colors.some(p => snapshot.territories[p].area !== room.scores?.[p])) throw new Error("STATE_MISMATCH");
   if ((room.status === "finished" && !snapshot.gameOver) || (room.status === "playing" && snapshot.gameOver)) throw new Error("INVALID_ROOM");
   return engine;
 }
@@ -51,21 +93,27 @@ export async function verifySharedRoom(room) {
 // Room state, turns, pass/resign and rematches are always decided by the same
 // service as the Mini Game. No opponent action is applied optimistically.
 export function sharedRoomPayload(room, type = "ROOM_STATE") {
+  const colors = COLORS.slice(0, room.settings.playerCount);
   const playing = room.status === "playing" || room.status === "finished";
-  const full = COLORS.every(p => room.members[p]);
+  const full = colors.every(p => room.members[p]);
   const playerId = `${room.code}:${room.player}`;
   return {
-    type, shared: true, roomId: room.code, playerId, yourPlayerId: playerId,
-    color: room.player, yourColor: room.player, hostPlayerId: `${room.code}:BLACK`,
+    type, shared: true, roomId: room.code, matchId: room.matchId, playerId, yourPlayerId: playerId,
+    color: room.player, yourColor: room.player, hostPlayerId: `${room.code}:${room.hostPlayer ?? "BLACK"}`,
     status: playing ? "IN_PROGRESS" : full ? "LOBBY" : "WAITING",
     matchPhase: playing ? "PLAYING" : full ? "LOBBY" : "WAITING_FOR_PLAYERS",
-    settings: room.settings, undo: { ...room.undo, requiredVotes: 2 }, countdownEndsAt: null, serverTimestamp: room.revision,
-    players: COLORS.filter(p => room.members[p]).map(p => ({
-      playerId: `${room.code}:${p}`, color: p, connected: room.status !== "closed",
-      ready: room.ready[p], isHost: p === "BLACK", username: room.profiles?.[p]?.displayName,
+    settings: room.settings, pendingSettings: room.pendingSettings ?? null, lastBotResult: room.lastBotResult ?? null,
+    turnDeadline: room.turnDeadline ?? null, countdownEndsAt: null, serverTimestamp: room.revision,
+    undo: room.undo ? { ...room.undo, requiredVotes: colors.filter(p => room.members[p] && !room.bots?.includes(p)).length,
+      votes: (room.undo.votes ?? []).map(color => `${room.code}:${color}`) } : undefined,
+    players: colors.map(p => ({
+      playerId: `${room.code}:${p}`, color: p, connected: Boolean(room.members[p]) && room.status !== "closed",
+      empty: !room.members[p], ready: room.ready[p], isHost: p === (room.hostPlayer ?? "BLACK"), isBot: room.bots?.includes(p) ?? false,
+      username: room.playerProfiles?.[p]?.displayName,
     })),
     matchState: { settings: room.settings, actions: room.actions.map(action => ({
-      type: { move: "player_move", skip: "player_skip", resign: "player_resign" }[action.type],
+      type: { move: "player_move", skip: "player_skip", resign: "player_resign", root_relocate: "player_root_relocate", root_add: "player_root_add" }[action.type],
+      ...(action.vertexId ? { vertexId: action.vertexId, boardHash: room.settings.boardHash } : {}),
       ...(action.point ? { point: [...action.point] } : {}), color: action.player,
     })) },
   };
@@ -184,8 +232,8 @@ export class SharedRoomClient {
   }
   async enter(kind, value) {
     this.stop(); const generation = this.generation; this.room = null; this.pending = null;
-    const room = kind === "create" ? await this.request("rooms", typeof value === "object" ? value : { gridSize: value || 7 })
-      : kind === "resume" ? await this.request(`rooms/${value}`) : await this.request("rooms/join", { code: value });
+    const room = kind === "create" ? await this.request("rooms", sharedRoomCreateSettings(value))
+      : kind === "resume" ? await this.request(`rooms/${value}`) : await this.request("rooms/join", { code: value, rootProtocolVersion: 2, topologyCapabilities: [TOPOLOGY_CAPABILITY] });
     if (generation !== this.generation) throw new Error("CANCELLED");
     try {
       const raw = this.storage?.getItem(PENDING);
@@ -255,7 +303,7 @@ export class SharedRoomClient {
     });
   }
   canAct() {
-    return Boolean(this.connected && !this.busy && !this.pending && this.room?.status === "playing" && this.room.player === this.room.currentPlayer);
+    return Boolean(this.connected && !this.busy && !this.pending && !this.room?.undo?.pending && this.room?.status === "playing" && this.room.player === this.room.currentPlayer);
   }
   canEmote() {
     return Boolean(this.connected && this.emotesSupported && this.socket?.readyState === 1
@@ -263,7 +311,7 @@ export class SharedRoomClient {
   }
   receiveEmote(emote) {
     if (!this.emotesSupported || !emote || !/^[0-9a-f]{16}$/.test(emote.id)
-      || !SHARED_EMOTES.includes(emote.emoji) || !COLORS.includes(emote.player)
+      || !SHARED_EMOTES.includes(emote.emoji) || !COLORS.slice(0, this.room?.settings?.playerCount ?? 2).includes(emote.player)
       || emote.matchId !== this.room?.matchId || emote.id === this.lastEmote?.id) return false;
     this.lastEmote = { id: emote.id, emoji: emote.emoji, player: emote.player, matchId: emote.matchId };
     this.emoteError = null; this.onEmote(this.lastEmote); return true;
@@ -311,11 +359,19 @@ export class SharedRoomClient {
       }
     }
   }
-  async command(operation) {
+  async updateSettings(settings) {
+    return this.command("settings", { settings });
+  }
+  async undo(accept = true) {
+    const room = this.room;
+    if (!room) throw new Error("ROOM_NOT_FOUND");
+    return this.command("undo", { expectedSeq: room.seq, beforeHash: room.stateHash, accept });
+  }
+  async command(operation, body = {}) {
     if (!this.room || this.busy) throw new Error("ROOM_BUSY");
     const generation = this.generation, room = this.room; this.busy = true;
     try {
-      const result = await this.request(`rooms/${room.code}/${operation}`, { matchId: room.matchId });
+      const result = await this.request(`rooms/${room.code}/${operation}`, { ...body, matchId: room.matchId });
       if (generation === this.generation) await this.receive(result);
       return result;
     } finally {
@@ -339,4 +395,3 @@ export class SharedRoomClient {
   }
   stop() { this.generation++; this.cancelAuthentication(); this.busy = false; this.closeSocket(); }
 }
-

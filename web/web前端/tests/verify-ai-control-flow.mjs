@@ -6,7 +6,6 @@ import {
 } from "../GameEngine.js?v=20260910d";
 import {
   MinimaxAI,
-  evaluate,
   restoreState,
   saveState,
 } from "../AIEngine.js?v=20260910d";
@@ -20,10 +19,10 @@ const CONTROL_SKIP_PREFIX = Object.freeze([
 ]);
 
 const CONTROL_SKIP_EXPECTED_SCORES = Object.freeze([
-  Object.freeze(["0,2", 376]),
-  Object.freeze(["2,0", 376]),
-  Object.freeze(["3,0", 303]),
-  Object.freeze(["3,1", 376]),
+  Object.freeze(["0,2", 1_000_000]),
+  Object.freeze(["2,0", 1_000_000]),
+  Object.freeze(["3,0", 1_000_000]),
+  Object.freeze(["3,1", 1_000_000]),
 ]);
 
 const MIN_CONTROL_SKIP_PREFIX = Object.freeze([
@@ -33,13 +32,13 @@ const MIN_CONTROL_SKIP_PREFIX = Object.freeze([
 ]);
 
 const MIN_CONTROL_SKIP_EXPECTED_SCORES = Object.freeze([
-  Object.freeze(["0,4", -289]),
-  Object.freeze(["1,3", -289]),
-  Object.freeze(["2,2", -4]),
+  Object.freeze(["0,4", -216]),
+  Object.freeze(["1,3", -211.5]),
+  Object.freeze(["2,2", -12]),
 ]);
 
 function pointKey(point) {
-  return `${point[0]},${point[1]}`;
+  return point === null ? "PASS" : `${point[0]},${point[1]}`;
 }
 
 function captureEngineState(engine) {
@@ -80,35 +79,23 @@ function createEngineFromPrefix(prefix, label) {
 
 function referenceMinimax(ai, engine, depth, alpha, beta, aiPlayer) {
   if (engine.gameOver || depth === 0) {
-    return evaluate(engine, aiPlayer);
+    return ai.evaluate(engine, aiPlayer);
   }
 
   const legalMoves = ai.getLegalMoves(engine, engine.currentPlayer);
-  if (legalMoves.length === 0) {
-    const snapshot = saveState(engine);
-    try {
-      engine.consecutiveSkips += 1;
-      if (engine.consecutiveSkips >= engine.activePlayers.length) {
-        engine.gameOver = true;
-      } else {
-        engine._switchPlayer();
-      }
-      return referenceMinimax(ai, engine, depth - 1, alpha, beta, aiPlayer);
-    } finally {
-      restoreState(engine, snapshot);
-    }
-  }
-
   const maximizingPlayer = engine.currentPlayer === aiPlayer;
   const orderedMoves = ai.orderMoves(engine, legalMoves, engine.currentPlayer);
+  const actions = [...orderedMoves, null];
   let bestValue = maximizingPlayer
     ? Number.NEGATIVE_INFINITY
     : Number.POSITIVE_INFINITY;
 
-  for (const point of orderedMoves) {
+  for (const point of actions) {
     const snapshot = saveState(engine);
     try {
-      applyMoveOrThrow(engine, point, "reference search");
+      const result = point === null ? engine.skipTurn() : engine.playMove(point);
+      assert.equal(result.success, true,
+        `reference search: ${pointKey(point)} failed with ${result.reason}`);
       const value = referenceMinimax(ai, engine, depth - 1, alpha, beta, aiPlayer);
       if (maximizingPlayer) {
         bestValue = Math.max(bestValue, value);
@@ -129,17 +116,67 @@ function referenceMinimax(ai, engine, depth, alpha, beta, aiPlayer) {
   return bestValue;
 }
 
+function referenceMaterial(engine, player) {
+  const nodes = engine._getPlayerNodes(player).length;
+  return { nodes, coverage: nodes + engine._getPlayerLines(player).length };
+}
+
+function referenceOpponentMaterial(engine, aiPlayer) {
+  return engine.activePlayers.filter((player) => player !== aiPlayer)
+    .reduce((total, player) => {
+      const { nodes, coverage } = referenceMaterial(engine, player);
+      return total + 24 * nodes + 3 * coverage;
+    }, 0);
+}
+
+function referenceRootPenalty(engine, aiPlayer, depth, opponentMaterialBefore) {
+  if (depth <= 1 || engine.gameOver || engine.currentPlayer === aiPlayer) return 0;
+
+  // Independent oracle: inspect complete legal replies on isolated engines
+  // through playMove, including its attack cleanup, Superko and turn rules.
+  // Do not use the production cut estimator or its exported weight object.
+  const before = referenceMaterial(engine, aiPlayer);
+  const state = engine._captureReplayState();
+  let worstLoss = 0;
+  for (const { point } of engine.getLegalMoves()) {
+    const reply = new GameEngine({
+      gridSize: engine.gridSize,
+      playerCount: engine.playerCount,
+      boardShape: engine.boardShape,
+      startPlayer: engine.startPlayer,
+      initialPositions: engine.hasCustomInitialPositions ? engine.initialPositions : undefined,
+      rulesVersion: engine.rulesVersion,
+      deferTerritoryUpdates: true,
+    });
+    reply._restoreReplayState(state);
+    reply._isReplayingBatch = true;
+    applyMoveOrThrow(reply, point, "reference immediate reply");
+    const remaining = referenceMaterial(reply, aiPlayer);
+    worstLoss = Math.max(worstLoss,
+      24 * Math.max(0, before.nodes - remaining.nodes)
+      + 3 * Math.max(0, before.coverage - remaining.coverage));
+  }
+  const capturedMaterial = Math.max(0,
+    opponentMaterialBefore - referenceOpponentMaterial(engine, aiPlayer));
+  return 1.5 * Math.max(0, worstLoss - capturedMaterial);
+}
+
 function referenceTopMoves(ai, engine, aiPlayer) {
   const legalMoves = ai.getLegalMoves(engine, aiPlayer);
   const orderedMoves = ai.orderMoves(engine, legalMoves, aiPlayer);
+  const opponentMaterialBefore = referenceOpponentMaterial(engine, aiPlayer);
   const scoredMoves = [];
 
-  for (const point of orderedMoves) {
+  for (const point of [...orderedMoves, null]) {
     const snapshot = saveState(engine);
     try {
-      applyMoveOrThrow(engine, point, "reference root");
+      const result = point === null ? engine.skipTurn() : engine.playMove(point);
+      assert.equal(result.success, true,
+        `reference root: ${pointKey(point)} failed with ${result.reason}`);
+      const rootPenalty = referenceRootPenalty(engine, aiPlayer, ai.depth, opponentMaterialBefore);
       scoredMoves.push({
-        point: [...point],
+        point: point === null ? null : [...point],
+        ...(point === null ? { type: "pass" } : {}),
         score: referenceMinimax(
           ai,
           engine,
@@ -147,7 +184,7 @@ function referenceTopMoves(ai, engine, aiPlayer) {
           Number.NEGATIVE_INFINITY,
           Number.POSITIVE_INFINITY,
           aiPlayer,
-        ),
+        ) - rootPenalty,
       });
     } finally {
       restoreState(engine, snapshot);
@@ -155,7 +192,9 @@ function referenceTopMoves(ai, engine, aiPlayer) {
   }
 
   scoredMoves.sort((left, right) => right.score - left.score);
-  return scoredMoves;
+  const selectedPass = scoredMoves[0]?.point === null ? scoredMoves[0] : null;
+  const placements = scoredMoves.filter(({ point }) => point !== null);
+  return selectedPass ? [selectedPass, ...placements] : placements;
 }
 
 function sortedScoreEntries(moves) {
@@ -199,12 +238,6 @@ assertEngineStateUnchanged(engine, baseline, "CONTROL-SKIP transition probe");
 const productionMoves = ai.getTopMoves(engine, rootPlayer, 20);
 assertEngineStateUnchanged(engine, baseline, "production Minimax");
 
-assert.deepEqual(
-  sortedScoreEntries(productionMoves),
-  CONTROL_SKIP_EXPECTED_SCORES,
-  "CONTROL-SKIP frozen witness scores drifted",
-);
-
 const referenceMoves = referenceTopMoves(ai, engine, rootPlayer);
 assertEngineStateUnchanged(engine, baseline, "reference Minimax");
 
@@ -212,6 +245,11 @@ assert.deepEqual(
   sortedScoreEntries(productionMoves),
   sortedScoreEntries(referenceMoves),
   "Minimax must derive MAX/MIN from the actual currentPlayer after automatic skip normalization",
+);
+assert.deepEqual(
+  sortedScoreEntries(productionMoves),
+  CONTROL_SKIP_EXPECTED_SCORES,
+  "CONTROL-SKIP frozen witness scores drifted after reference agreement",
 );
 
 const minControlEngine = createEngineFromPrefix(
@@ -280,12 +318,6 @@ assertEngineStateUnchanged(
   minControlBaseline,
   "CONTROL-SKIP MIN production Minimax",
 );
-assert.deepEqual(
-  sortedScoreEntries(minControlProductionMoves),
-  MIN_CONTROL_SKIP_EXPECTED_SCORES,
-  "CONTROL-SKIP MIN frozen root scores drifted",
-);
-
 const minControlReferenceMoves = referenceTopMoves(
   minControlAI,
   minControlEngine,
@@ -300,6 +332,11 @@ assert.deepEqual(
   sortedScoreEntries(minControlProductionMoves),
   sortedScoreEntries(minControlReferenceMoves),
   "the opponent must keep minimizing when automatic skip leaves it in control",
+);
+assert.deepEqual(
+  sortedScoreEntries(minControlProductionMoves),
+  MIN_CONTROL_SKIP_EXPECTED_SCORES,
+  "CONTROL-SKIP MIN frozen root scores drifted after reference agreement",
 );
 
 console.log(JSON.stringify({

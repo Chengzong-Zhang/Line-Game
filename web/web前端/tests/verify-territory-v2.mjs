@@ -21,11 +21,19 @@ const {
   TerritoryRulesVersion,
 } = await import(engineUrl);
 
-async function moduleUrlWithEngine(name) {
+async function moduleUrlWithEngine(name, startingPointsUrl = null) {
   const source = await readFrontendSource(name);
-  const rewritten = source.replace(
+  let rewritten = source.replace(
     /^import\s+([^;]+)\s+from\s+"\.\/GameEngine\.js(?:\?v=[^"]+)?";/m,
     `import $1 from "${engineUrl}";`,
+  );
+  if (startingPointsUrl) rewritten = rewritten.replace(
+    /^import\s+([^;]+)\s+from\s+"\.\/StartingPoints\.js(?:\?v=[^"]+)?";/m,
+    `import $1 from "${startingPointsUrl}";`,
+  );
+  if (name === "OnlineAppState.js") rewritten = rewritten.replace(
+    /^import\s+([^;]+)\s+from\s+"\.\/LocalUndo\.js(?:\?v=[^"]+)?";/m,
+    `import $1 from "${await moduleUrlWithEngine("LocalUndo.js")}";`,
   );
   assert.notEqual(rewritten, source, `${name}: GameEngine import was not rewritten`);
   return asDataUrl(rewritten);
@@ -33,7 +41,8 @@ async function moduleUrlWithEngine(name) {
 
 const aiEngineUrl = await moduleUrlWithEngine("AIEngine.js");
 const rendererUrl = await moduleUrlWithEngine("Renderer.js");
-const onlineAppStateUrl = await moduleUrlWithEngine("OnlineAppState.js");
+const startingPointsUrl = await moduleUrlWithEngine("StartingPoints.js");
+const onlineAppStateUrl = await moduleUrlWithEngine("OnlineAppState.js", startingPointsUrl);
 const { saveState, restoreState } = await import(aiEngineUrl);
 const { Renderer } = await import(rendererUrl);
 const aiStateProtocolUrl = asDataUrl(await readFrontendSource("AIStateProtocol.js"));
@@ -58,12 +67,17 @@ const territoryWorkerSessionStubUrl = asDataUrl(`
   }
   export function applyTerritoryWorkerResult() { return false; }
 `);
+const topologyStateCodecStubUrl = asDataUrl(`
+  export function decodeTopologyState() {
+    throw new Error("Topology state decoding is outside this legacy controller harness");
+  }
+`);
 const controllerSource = await readFrontendSource("GameController.js");
 const controllerUrl = asDataUrl(
   controllerSource
     .replace(
-      /^import GameEngine, \{ Player, TerritoryRulesVersion \} from "\.\/GameEngine\.js\?v=[^"]+";/m,
-      `import GameEngine, { Player, TerritoryRulesVersion } from "${engineUrl}";`,
+      /^import (GameEngine, \{[^}]+\}) from "\.\/GameEngine\.js(?:\?v=[^"]+)?";/m,
+      `import $1 from "${engineUrl}";`,
     )
     .replace(
       /^import Renderer from "\.\/Renderer\.js\?v=[^"]+";/m,
@@ -78,8 +92,16 @@ const controllerUrl = asDataUrl(
       `import { serializeEngineState } from "${aiStateProtocolUrl}";`,
     )
     .replace(
-      /^import \{\r?\n  OneShotTerritoryWorker,\r?\n  applyTerritoryWorkerResult,\r?\n\} from "\.\/TerritoryWorkerSession\.js\?v=[^"]+";/m,
+      /^import\s+\{\s*(?:OneShotTerritoryWorker,\s*)?applyTerritoryWorkerResult,?\s*\}\s+from "\.\/TerritoryWorkerSession\.js\?v=[^"]+";/m,
       `import { OneShotTerritoryWorker, applyTerritoryWorkerResult } from "${territoryWorkerSessionStubUrl}";`,
+    )
+    .replace(
+      /^import TerritoryWorkerPool from "\.\/TerritoryWorkerPool\.js\?v=[^"]+";/m,
+      `import TerritoryWorkerPool from "${new URL("TerritoryWorkerPool.js", frontendRoot).href}";`,
+    )
+    .replace(
+      /^import \{ decodeTopologyState \} from "\.\/TopologyStateCodec\.js\?v=[^"]+";/m,
+      `import { decodeTopologyState } from "${topologyStateCodecStubUrl}";`,
     ),
 );
 const { GameController } = await import(controllerUrl);
@@ -460,15 +482,47 @@ const workerModelFreeAiUrl = asDataUrl(`
   export async function loadModelFreeModel() { throw new Error("not used by this Worker probe"); }
   export class ModelFreeAI {}
 `);
-const workerUrl = asDataUrl(
-  workerSource
+const workerThreePlayerAiUrl = asDataUrl(`
+  export async function loadThreePlayerModel() { throw new Error("not used by this Worker probe"); }
+  export async function loadThreePlayerRuntime() { throw new Error("not used by this Worker probe"); }
+  export class ThreePlayerAI {}
+`);
+const workerHexPlayerAiUrl = asDataUrl(`
+  export async function loadHexPlayerModel() { throw new Error("not used by this Worker probe"); }
+  export async function loadHexPlayerRuntime() { throw new Error("not used by this Worker probe"); }
+  export class HexPlayerAI {}
+`);
+const workerMultiplayerAiUrl = asDataUrl(`
+  export async function loadMultiplayerRuntime() { throw new Error("not used by this Worker probe"); }
+`);
+function rewriteWorkerSupportImports(source) {
+  return source
     .replace(
-      /^import \{ GameEngine \} from "\.\/GameEngine\.js\?v=[^"]+";/m,
+      /^import (\{[^}]+\}) from "\.\/AIStateProtocol\.js\?v=[^"]+";/m,
+      `import $1 from "${aiStateProtocolUrl}";`,
+    )
+    .replace(
+      /^import (\{[^}]+\}) from "\.\/ThreePlayer(?:AI|Models|Runtime)\.js\?v=[^"]+";/m,
+      `import $1 from "${workerThreePlayerAiUrl}";`,
+    )
+    .replace(
+      /^import (\{[^}]+\}) from "\.\/HexPlayer(?:AI|Runtime)\.js\?v=[^"]+";/m,
+      `import $1 from "${workerHexPlayerAiUrl}";`,
+    )
+    .replace(
+      /^import (\{[^}]+\}) from "\.\/MultiplayerRuntime\.js\?v=[^"]+";/m,
+      `import $1 from "${workerMultiplayerAiUrl}";`,
+    );
+}
+const workerUrl = asDataUrl(
+  rewriteWorkerSupportImports(workerSource)
+    .replace(
+      /^import \{ GameEngine \} from "\.\/GameEngine\.js(?:\?v=[^"]+)?";/m,
       `import { GameEngine } from "${engineUrl}";`,
     )
     .replace(
-      /^import \{ GreedyAI, MCTSAI, MinimaxAI, restoreState \} from "\.\/AIEngine\.js\?v=[^"]+";/m,
-      `import { GreedyAI, MCTSAI, MinimaxAI, restoreState } from "${aiEngineUrl}";`,
+      /^import \{ GreedyAI, MCTSAI, MinimaxAI, restoreState, saveState \} from "\.\/AIEngine\.js(?:\?v=[^"]+)?";/m,
+      `import { GreedyAI, MCTSAI, MinimaxAI, restoreState, saveState } from "${aiEngineUrl}";`,
     )
     .replace(
       /^import \{ loadResearchModel, NeuralPUCTAI \} from "\.\/ResearchAI\.js\?v=[^"]+";/m,
@@ -500,8 +554,8 @@ assert.equal(workerMessages.at(-1).rulesVersion, TerritoryRulesVersion.V2);
 assert.equal(workerMessages.at(-1).currentPlayer, B);
 
 const workerStateProbeAiUrl = asDataUrl(`
-  import { restoreState as realRestoreState } from "${aiEngineUrl}";
-  export { realRestoreState as restoreState };
+  import { restoreState as realRestoreState, saveState } from "${aiEngineUrl}";
+  export { realRestoreState as restoreState, saveState };
   export class MinimaxAI {
     getTopMoves(engine, aiPlayer, topN) {
       return [{
@@ -517,14 +571,14 @@ const workerStateProbeAiUrl = asDataUrl(`
   export { MinimaxAI as GreedyAI, MinimaxAI as MCTSAI };
 `);
 const workerStateProbeUrl = asDataUrl(
-  workerSource
+  rewriteWorkerSupportImports(workerSource)
     .replace(
-      /^import \{ GameEngine \} from "\.\/GameEngine\.js\?v=[^"]+";/m,
+      /^import \{ GameEngine \} from "\.\/GameEngine\.js(?:\?v=[^"]+)?";/m,
       `import { GameEngine } from "${engineUrl}";`,
     )
     .replace(
-      /^import \{ GreedyAI, MCTSAI, MinimaxAI, restoreState \} from "\.\/AIEngine\.js\?v=[^"]+";/m,
-      `import { GreedyAI, MCTSAI, MinimaxAI, restoreState } from "${workerStateProbeAiUrl}";`,
+      /^import \{ GreedyAI, MCTSAI, MinimaxAI, restoreState, saveState \} from "\.\/AIEngine\.js(?:\?v=[^"]+)?";/m,
+      `import { GreedyAI, MCTSAI, MinimaxAI, restoreState, saveState } from "${workerStateProbeAiUrl}";`,
     )
     .replace(
       /^import \{ loadResearchModel, NeuralPUCTAI \} from "\.\/ResearchAI\.js\?v=[^"]+";/m,
@@ -579,8 +633,8 @@ assert.equal(workerMessages.at(-1).requestId, "worker-invalid-rule");
 assert.equal(workerMessages.at(-1).currentPlayer, invalidWorkerState.currentPlayer);
 globalThis.self = previousSelf;
 
-assert.equal(DEFAULT_RULES_VERSION, TerritoryRulesVersion.V2);
-assert.equal(normalizeGameSettings({}).rulesVersion, TerritoryRulesVersion.V2);
+assert.equal(DEFAULT_RULES_VERSION, TerritoryRulesVersion.V3);
+assert.equal(normalizeGameSettings({}).rulesVersion, TerritoryRulesVersion.V3);
 assert.equal(
   normalizeGameSettings({ rulesVersion: TerritoryRulesVersion.V1 }).rulesVersion,
   TerritoryRulesVersion.V1,
@@ -594,7 +648,7 @@ const previousLocalStorage = globalThis.localStorage;
 globalThis.localStorage = {
   getItem: () => JSON.stringify({ roomId: "1234", settings: { gridSize: 7 } }),
 };
-assert.equal(loadStoredSession().settings.rulesVersion, TerritoryRulesVersion.V2);
+assert.equal(loadStoredSession().settings.rulesVersion, TerritoryRulesVersion.V3);
 globalThis.localStorage = previousLocalStorage;
 
 const fingerprint = Renderer.prototype._getBoardFingerprint;

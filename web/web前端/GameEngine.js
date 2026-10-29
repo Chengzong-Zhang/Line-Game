@@ -2829,8 +2829,10 @@ export class GameEngine {
         this.activePlayers.map((player) => [player, new Set(this._getEdges(player))]),
       ),
       historyHashes: new Set(this.historyHashes),
-      roots: Object.fromEntries(this.activePlayers.map((player) => [player, this.getRoots(player)])),
-      rootActionsRemaining: cloneRootActions(this.rootActionsRemaining),
+      ...(!this.isTopologyBoard ? {
+        roots: Object.fromEntries(this.activePlayers.map((player) => [player, this.getRoots(player)])),
+        rootActionsRemaining: cloneRootActions(this.rootActionsRemaining),
+      } : {}),
       currentPlayer: this.currentPlayer,
       gameOver: this.gameOver,
       consecutiveSkips: this.consecutiveSkips,
@@ -2859,12 +2861,14 @@ export class GameEngine {
       this.activePlayers.map((player) => [player, new Set(state.edges[player])]),
     );
     this.historyHashes = new Set(state.historyHashes);
-    this.roots = Object.fromEntries(this.activePlayers.map((player) => [
-      player, (state.roots?.[player] ?? this.initialRoots[player]).map(clonePoint),
-    ]));
-    this.rootActionsRemaining = cloneRootActions(state.rootActionsRemaining ?? Object.fromEntries(
-      this.activePlayers.map((player) => [player, { relocate: 0, add: 0 }]),
-    ));
+    if (!this.isTopologyBoard) {
+      this.roots = Object.fromEntries(this.activePlayers.map((player) => [
+        player, (state.roots?.[player] ?? this.initialRoots[player]).map(clonePoint),
+      ]));
+      this.rootActionsRemaining = cloneRootActions(state.rootActionsRemaining ?? Object.fromEntries(
+        this.activePlayers.map((player) => [player, { relocate: 0, add: 0 }]),
+      ));
+    }
     this.currentPlayer = state.currentPlayer;
     this.gameOver = state.gameOver;
     this.consecutiveSkips = state.consecutiveSkips;
