@@ -57,17 +57,20 @@ class ContributionV3Tests(unittest.TestCase):
         response = self.client.get("/api/training/contributions/status")
         self.assertEqual(response.status_code, 200)
         data = response.json()
-        self.assertEqual(data["supported_versions"], [1, 2, 3])
+        self.assertEqual(data["supported_versions"], [1, 2, 3, 4])
         self.assertEqual(data["consent_policy"], "anonymous-replay-training-v1")
         self.assertEqual(data["consent_policies"], {
             "1": "anonymous-replay-training-v1",
             "2": "anonymous-replay-training-v2",
             "3": "anonymous-replay-training-v3",
+            "4": "anonymous-replay-training-v4",
         })
         self.assertEqual(data["supported_rules_versions"], {
-            "2": ["territory-v2"], "3": ["territory-v3"],
+            "2": ["territory-v2"], "3": ["territory-v3"], "4": ["territory-v3", "surface-v1"],
         })
-        self.assertEqual(data["max_actions"], {"1": 512, "2": 3000, "3": 3000})
+        self.assertEqual(data["max_actions"], {"1": 512, "2": 3000, "3": 3000, "4": 3000})
+        self.assertEqual(data["max_request_bytes"], 512000)
+        self.assertEqual(data["max_request_bytes_by_version"]["4"], 2 * 1024 * 1024)
         self.assertEqual(data["destination"], "awaiting_review")
 
     def test_v1_v2_v3_tables_and_exports_remain_isolated(self):

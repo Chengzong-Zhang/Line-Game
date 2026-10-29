@@ -4,6 +4,8 @@ export const CONTRIBUTION_V2_POLICY = 'anonymous-replay-training-v2';
 export const CONTRIBUTION_V2_MAX_ACTIONS = 3000;
 export const CONTRIBUTION_V3_POLICY = 'anonymous-replay-training-v3';
 export const CONTRIBUTION_V3_MAX_ACTIONS = 3000;
+export const CONTRIBUTION_V4_POLICY = 'anonymous-replay-training-v4';
+export const CONTRIBUTION_V4_MAX_ACTIONS = 3000;
 const COLORS = ['BLACK', 'WHITE', 'PURPLE', 'GREEN', 'ORANGE', 'CYAN'];
 const V3_COLORS = [...COLORS, 'PINK', 'BROWN', 'LIME', 'NAVY', 'GOLD', 'TEAL', 'MAGENTA', 'SLATE', 'CORAL'];
 const ALL_SIZES = Array.from({ length: 11 }, (_, index) => index + 5);
@@ -110,5 +112,42 @@ export function normalizeV3Context(context, config) {
     || !Number.isInteger(undo.usedCount) || undo.usedCount < 0 || undo.usedCount > undo.maxCount
     || (!undo.enabled && undo.usedCount !== 0)) throw new Error('Invalid v3 undo declaration');
   return { source: 'local', actors, mixedProfiles: context.mixedProfiles, hintsEnabled: context.hintsEnabled,
+    undo: { enabled: undo.enabled, maxCount: undo.maxCount, usedCount: undo.usedCount } };
+}
+
+// V4 is separate from the frozen v3 selection and includes product graph,
+// diamond and root-v2 profiles. A name alone is never a personal identifier.
+export function contributionV4ProfileChoices(config) {
+  const { playerCount, gridSize, rulesVersion } = config ?? {};
+  if (!Number.isInteger(playerCount) || playerCount < 2 || playerCount > 15
+    || !Number.isInteger(gridSize) || gridSize < 5 || gridSize > 15) return [];
+  const shape = config.boardShape ?? (playerCount >= 4 ? 'hexagon' : 'triangle');
+  if (rulesVersion === 'surface-v1') return playerCount <= 6 && shape === 'custom' ? ['human', 'topology-generic'] : [];
+  if (rulesVersion !== 'territory-v3' || !['triangle', 'diamond', 'hexagon'].includes(shape)) return [];
+  if ((config.rootMode ?? 'classic') !== 'classic') return playerCount === 2 ? ['human', 'greedy', 'minimax-2', 'minimax-3', 'minimax-4'] : [];
+  if (shape === 'diamond') return playerCount === 2 ? ['human', 'minimax-2', 'minimax-3', 'minimax-4']
+    : ['human', 'greedy', 'multiplayer-hard-v1'];
+  if (playerCount > 6) return ['human', 'greedy', 'multiplayer-hard-v1'];
+  return contributionV3ProfileChoices({ ...config, boardShape: shape });
+}
+
+export function normalizeV4Context(context, config) {
+  if (!exactKeys(context, ['source', 'actors', 'mixedProfiles', 'hintsEnabled', 'undo'])
+    || context.source !== 'local' || context.mixedProfiles !== false
+    || typeof context.hintsEnabled !== 'boolean' || context.hintsEnabled !== config?.hintEnabled) throw new Error('Invalid v4 anonymous context');
+  const choices = contributionV4ProfileChoices(config), colors = V3_COLORS.slice(0, config?.playerCount);
+  if (!choices.length || !exactKeys(context.actors, colors)) throw new Error('Invalid v4 actor seats');
+  const actors = Object.fromEntries(colors.map(color => {
+    const actor = context.actors[color];
+    if (exactKeys(actor, ['kind']) && actor.kind === 'human') return [color, { kind: 'human' }];
+    if (exactKeys(actor, ['kind', 'profile']) && actor.kind === 'ai' && actor.profile !== 'human' && choices.includes(actor.profile)) return [color, { kind: 'ai', profile: actor.profile }];
+    throw new Error('Invalid v4 actor profile');
+  }));
+  const undo = context.undo;
+  if (!exactKeys(undo, ['enabled', 'maxCount', 'usedCount']) || typeof undo.enabled !== 'boolean'
+    || !Number.isInteger(undo.maxCount) || undo.maxCount < 1 || undo.maxCount > 100
+    || !Number.isInteger(undo.usedCount) || undo.usedCount < 0 || undo.usedCount > undo.maxCount
+    || (!undo.enabled && undo.usedCount !== 0)) throw new Error('Invalid v4 undo declaration');
+  return { source: 'local', actors, mixedProfiles: false, hintsEnabled: context.hintsEnabled,
     undo: { enabled: undo.enabled, maxCount: undo.maxCount, usedCount: undo.usedCount } };
 }

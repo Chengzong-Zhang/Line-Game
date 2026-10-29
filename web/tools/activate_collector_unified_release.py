@@ -139,7 +139,7 @@ class Adapter:
         probe = self.bundle / "collector-probe.py"
         require(base.sha(probe.read_bytes()) == self.doc["probeSha256"], "PROBE_DRIFT")
         for name, digest in self.doc["fixtureHashes"].items():
-            require(re.fullmatch(r"v[123]\.json", name) and base.sha((self.bundle / "fixtures" / name).read_bytes()) == digest, "FIXTURE_DRIFT")
+            require(re.fullmatch(r"v[1234]\.json", name) and base.sha((self.bundle / "fixtures" / name).read_bytes()) == digest, "FIXTURE_DRIFT")
         temp = self.run_dir / "probe-data"
         temp.mkdir(); os.chown(temp, 1000, 1000); os.chmod(temp, 0o700)
         copy = temp / "migration.sqlite3"

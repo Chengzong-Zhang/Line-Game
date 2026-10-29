@@ -49,7 +49,7 @@ class ContributionV2CompatibilityTests(unittest.TestCase):
 
     def test_frozen_v2_capability_remains_advertised(self):
         data = self.client.get("/api/training/contributions/status").json()
-        self.assertEqual(data["supported_versions"], [1, 2, 3])
+        self.assertEqual(data["supported_versions"], [1, 2, 3, 4])
         self.assertEqual(data["consent_policy"], "anonymous-replay-training-v1")
         self.assertEqual(data["consent_policies"]["2"], "anonymous-replay-training-v2")
         self.assertEqual(data["supported_rules_versions"]["2"], ["territory-v2"])
@@ -130,7 +130,7 @@ class ContributionV2CompatibilityTests(unittest.TestCase):
         self.assertNotIn("protocol_version", json.loads(next(default.glob("*.json")).read_text(encoding="utf-8")))
         self.assertEqual(json.loads(next(newer.glob("*.json")).read_text(encoding="utf-8"))["protocol_version"], 2)
         with self.assertRaises(ValueError):
-            self.store.export(Path(self.temporary.name) / "invalid-export", version=4)
+            self.store.export(Path(self.temporary.name) / "invalid-export", version=5)
 
     def test_frozen_v2_privacy_profiles_and_forgery_rejections(self):
         payload = self.payloads[0]

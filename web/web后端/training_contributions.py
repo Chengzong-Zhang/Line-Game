@@ -14,20 +14,22 @@ import time
 from fastapi import APIRouter, HTTPException, Request
 
 POLICY = "anonymous-replay-training-v1"
-POLICIES = {1: POLICY, 2: "anonymous-replay-training-v2", 3: "anonymous-replay-training-v3"}
-SUPPORTED_RULES_VERSIONS = {2: ["territory-v2"], 3: ["territory-v3"]}
+POLICIES = {1: POLICY, 2: "anonymous-replay-training-v2", 3: "anonymous-replay-training-v3", 4: "anonymous-replay-training-v4"}
+SUPPORTED_RULES_VERSIONS = {2: ["territory-v2"], 3: ["territory-v3"], 4: ["territory-v3", "surface-v1"]}
 COLORS = ("BLACK", "WHITE", "PURPLE", "GREEN", "ORANGE", "CYAN")
 V3_COLORS = COLORS + ("PINK", "BROWN", "LIME", "NAVY", "GOLD", "TEAL", "MAGENTA", "SLATE", "CORAL")
 THREE_PLAYER_MODEL_ID = "three-player-policy-v1"
 THREE_PLAYER_MODEL_IDS = frozenset({THREE_PLAYER_MODEL_ID, "three-player-policy-v2", "three-player-search-v4-round12"})
 MAX_REQUEST_BYTES = 512000
+V4_MAX_REQUEST_BYTES = 2 * 1024 * 1024
 VALIDATOR = Path(__file__).resolve().parents[1] / "tools/validate_contribution.mjs"
 
 def normalize_context(context, version=1):
-    if version == 3:
+    if version in (3, 4):
         if not isinstance(context, dict) or set(context) != {"source", "actors", "mixedProfiles", "hintsEnabled", "undo"}:
             raise ValueError("Unexpected v3 context fields")
-        if context["source"] != "local" or type(context["mixedProfiles"]) is not bool or type(context["hintsEnabled"]) is not bool:
+        if context["source"] != "local" or type(context["mixedProfiles"]) is not bool or type(context["hintsEnabled"]) is not bool \
+            or (version == 4 and context["mixedProfiles"] is not False):
             raise ValueError("Invalid v3 context")
         actors = context["actors"]
         if not isinstance(actors, dict) or len(actors) not in range(2, 16) or set(actors) != set(V3_COLORS[:len(actors)]):
@@ -108,6 +110,7 @@ class ContributionStore:
             # Modern protocols stay out of the legacy default curation/export path.
             db.execute("CREATE TABLE IF NOT EXISTS inbox_v2 (game_id TEXT PRIMARY KEY, document TEXT NOT NULL, received_at INTEGER NOT NULL)")
             db.execute("CREATE TABLE IF NOT EXISTS inbox_v3 (game_id TEXT PRIMARY KEY, document TEXT NOT NULL, received_at INTEGER NOT NULL)")
+            db.execute("CREATE TABLE IF NOT EXISTS inbox_v4 (game_id TEXT PRIMARY KEY, document TEXT NOT NULL, received_at INTEGER NOT NULL)")
     @contextmanager
     def connect(self):
         connection = sqlite3.connect(self.database, timeout=10)
@@ -122,39 +125,45 @@ class ContributionStore:
             or payload["consent"] is not True or payload["consent_policy"] != POLICIES[version]:
             raise ValueError("Contribution consent/schema required")
         context = normalize_context(payload["context"], version)
-        raw = json.dumps(payload, ensure_ascii=False, allow_nan=False).encode()
-        if len(raw) > MAX_REQUEST_BYTES: raise ValueError("Payload too large")
+        try:
+            raw = json.dumps(payload, ensure_ascii=False, allow_nan=False,
+                             **({"separators": (",", ":")} if version == 4 else {})).encode()
+        except UnicodeEncodeError as error:
+            raise ValueError("Invalid Unicode") from error
+        if len(raw) > (V4_MAX_REQUEST_BYTES if version == 4 else MAX_REQUEST_BYTES): raise ValueError("Payload too large")
         process = subprocess.run([self.node, str(VALIDATOR)], input=raw, capture_output=True, timeout=20, check=False)
         if process.returncode: raise ValueError("Replay validation failed")
         verified = json.loads(process.stdout)
         game_id = verified["game_id"]
-        colors = V3_COLORS if version == 3 else COLORS
-        expected_colors = set(colors[:verified["replay"]["config"]["playerCount"]])
+        colors = V3_COLORS if version in (3, 4) else COLORS
+        count = verified.get("player_count") if version == 4 else verified["replay"]["config"]["playerCount"]
+        if type(count) is not int or not 2 <= count <= len(colors): raise ValueError("Invalid validated player count")
+        expected_colors = set(colors[:count])
         if set(context["actors"]) != expected_colors: raise ValueError("Actor/config mismatch")
         if version == 1 and any(actor.get("strategy") == "three-player" for actor in context["actors"].values()):
             if verified["replay"]["config"]["playerCount"] != 3 or verified["replay"]["rulesVersion"] != "territory-v2":
                 raise ValueError("Three-player AI requires a territory-v2 three-player replay")
-        if version in (2, 3) and (verified.get("protocol_version") != version or verified.get("context") != context):
+        if version in (2, 3, 4) and (verified.get("protocol_version") != version or verified.get("context") != context):
             raise ValueError(f"V{version} context verification mismatch")
         document = json.dumps({**verified, "context": context, "consent_policy": POLICIES[version], "status": "awaiting_review"}, ensure_ascii=False, allow_nan=False)
-        table = {1: "inbox", 2: "inbox_v2", 3: "inbox_v3"}[version]
+        table = {1: "inbox", 2: "inbox_v2", 3: "inbox_v3", 4: "inbox_v4"}[version]
         with self.connect() as db:
             db.execute("BEGIN IMMEDIATE")
             existing = db.execute(f"SELECT document FROM {table} WHERE game_id=?", (game_id,)).fetchone()
             if existing:
                 # Actor/undo declarations are outside the gameplay ID but remain
                 # material provenance; never mask a conflict as a duplicate.
-                if version in (2, 3) and json.loads(existing[0])["context"] != context:
+                if version in (2, 3, 4) and json.loads(existing[0])["context"] != context:
                     raise ValueError("Conflicting gameplay metadata")
                 return {"game_id": game_id, "status": "duplicate"}
             size = sum(db.execute(f"SELECT COALESCE(SUM(length(CAST(document AS BLOB))),0) FROM {name}").fetchone()[0]
-                       for name in ("inbox", "inbox_v2", "inbox_v3"))
+                       for name in ("inbox", "inbox_v2", "inbox_v3", "inbox_v4"))
             if size + len(document.encode()) > self.maximum_bytes: raise OverflowError("Inbox full")
             db.execute(f"INSERT INTO {table} VALUES (?,?,?)", (game_id, document, int(time.time())))
         return {"game_id": game_id, "status": "awaiting_review"}
     def export(self, output, *, version=1):
         if type(version) is not int or version not in POLICIES: raise ValueError("Invalid export version")
-        table = {1: "inbox", 2: "inbox_v2", 3: "inbox_v3"}[version]
+        table = {1: "inbox", 2: "inbox_v2", 3: "inbox_v3", 4: "inbox_v4"}[version]
         target = Path(output); target.mkdir(parents=True, exist_ok=False)
         with self.connect() as db:
             rows = db.execute(f"SELECT game_id,document FROM {table} ORDER BY game_id").fetchall()
@@ -175,9 +184,11 @@ def create_router(store=None):
         return store
     @router.get("/contributions/status")
     async def status(): return {"enabled": store is not None or bool(os.environ.get("LIFELINE_CONTRIBUTIONS_DIR")),
-        "consent_policy": POLICY, "supported_versions": [1, 2, 3], "consent_policies": POLICIES,
+        "consent_policy": POLICY, "supported_versions": [1, 2, 3, 4], "consent_policies": POLICIES,
         "supported_rules_versions": SUPPORTED_RULES_VERSIONS,
-        "max_request_bytes": MAX_REQUEST_BYTES, "max_actions": {1: 512, 2: 3000, 3: 3000},
+        "max_request_bytes": MAX_REQUEST_BYTES,
+        "max_request_bytes_by_version": {1: MAX_REQUEST_BYTES, 2: MAX_REQUEST_BYTES, 3: MAX_REQUEST_BYTES, 4: V4_MAX_REQUEST_BYTES},
+        "max_actions": {1: 512, 2: 3000, 3: 3000, 4: 3000},
         "destination": "awaiting_review"}
     @router.post("/contributions")
     async def contribute(request: Request):
@@ -189,14 +200,20 @@ def create_router(store=None):
         chunks = bytearray()
         async for part in request.stream():
             chunks.extend(part)
+            if len(chunks) > V4_MAX_REQUEST_BYTES: raise HTTPException(413, "Payload too large")
+        try:
+            payload = json.loads(chunks)
+        except (ValueError, TypeError, json.JSONDecodeError):
             if len(chunks) > MAX_REQUEST_BYTES: raise HTTPException(413, "Payload too large")
+            raise HTTPException(422, "Invalid replay contribution")
+        if len(chunks) > MAX_REQUEST_BYTES and (not isinstance(payload, dict) or type(payload.get("version")) is not int or payload["version"] != 4):
+            raise HTTPException(413, "Payload too large")
         with rate_lock:
             now = time.monotonic(); arrivals[:] = [t for t in arrivals if now - t < 60]
             if len(arrivals) >= 12: raise HTTPException(429, "Contribution rate limit reached", headers={"Retry-After": "60"})
             arrivals.append(now)
         if gate.locked(): raise HTTPException(429, "Contribution validator busy", headers={"Retry-After": "10"})
         try:
-            payload = json.loads(chunks)
             async with gate:
                 return await asyncio.to_thread(inbox.accept, payload)
         except (ValueError, KeyError, TypeError, json.JSONDecodeError): raise HTTPException(422, "Invalid replay contribution")
@@ -205,5 +222,5 @@ def create_router(store=None):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(); parser.add_argument("--inbox", required=True); parser.add_argument("--export", required=True)
-    parser.add_argument("--version", type=int, choices=(1, 2, 3), default=1)
+    parser.add_argument("--version", type=int, choices=(1, 2, 3, 4), default=1)
     args = parser.parse_args(); print(json.dumps({"exported_games": ContributionStore(args.inbox).export(args.export, version=args.version)}))

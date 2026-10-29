@@ -43,7 +43,7 @@ def prepare(baseline_path, output):
 
     for name in ("contribution_asgi.py", "training_contributions.py"):
         copy(ROOT / "web/web后端" / name, "web/backend/" + name)
-    for name in ("validate_contribution.mjs", "training_contribution_schema.mjs"):
+    for name in ("validate_contribution.mjs", "validate_contribution_v4.mjs", "training_contribution_schema.mjs"):
         copy(ROOT / "web/tools" / name, "web/tools/" + name)
     copy(ROOT / "web/package.json", "web/package.json")
     frontend = ROOT / "web/web前端"
@@ -51,7 +51,8 @@ def prepare(baseline_path, output):
         relative = file.relative_to(frontend)
         if file.is_file() and relative.parts[0] != "tests" and file.suffix in (".js", ".mjs", ".json", ".f32"):
             copy(file, "web/web前端/" + relative.as_posix())
-    probe = ROOT / "working/docs/verification/unified-release-20261029/collector-probe.py"
+    probe = ROOT / "web/tools/collector_v4_probe.py"
+    source_hashes[probe.relative_to(ROOT).as_posix()] = digest(probe.read_bytes())
     shutil.copyfile(probe, output / "collector-probe.py")
     fixtures = output / "fixtures"
     fixtures.mkdir()
@@ -68,12 +69,19 @@ def prepare(baseline_path, output):
         value = json.loads(content)
         assert value["version"] == i
         (fixtures / f"v{i}.json").write_bytes(content)
+    fixture_script = ROOT / "web/tools/create-contribution-v4-fixture.mjs"
+    source_hashes[fixture_script.relative_to(ROOT).as_posix()] = digest(fixture_script.read_bytes())
+    content = subprocess.check_output(["node", str(fixture_script)], cwd=ROOT, timeout=60)
+    assert json.loads(content)["version"] == 4
+    (fixtures / "v4.json").write_bytes(content)
     for name, expected in source_hashes.items():
         assert digest((ROOT / name).read_bytes()) == expected, "Concurrent source change: " + name
     assert inventory(prior) == baseline["files"]
+    previous_versions = baseline.get("supportedVersions")
+    assert previous_versions == [1, 2, 3], "Expected verified 1/2/3 collector baseline"
     manifest = {"kind": "collector-unified-release-v1", "site": baseline["site"],
                 "baseline": baseline["files"], "candidate": inventory(service),
-                "baselineSupportedVersions": [1, 2], "supportedVersions": [1, 2, 3],
+                "baselineSupportedVersions": previous_versions, "supportedVersions": [1, 2, 3, 4],
                 "probeSha256": digest((output / "collector-probe.py").read_bytes()),
                 "fixtureHashes": inventory(fixtures), "sourceHashes": source_hashes}
     (output / "manifest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -83,7 +91,7 @@ def prepare(baseline_path, output):
     shutil.copytree(fixtures, rollback / "fixtures")
     shutil.copyfile(probe, rollback / "collector-probe.py")
     reverse = {**manifest, "baseline": manifest["candidate"], "candidate": manifest["baseline"],
-               "baselineSupportedVersions": [1, 2, 3], "supportedVersions": [1, 2]}
+               "baselineSupportedVersions": [1, 2, 3, 4], "supportedVersions": previous_versions}
     (rollback / "manifest.json").write_text(json.dumps(reverse, indent=2, ensure_ascii=False), encoding="utf-8")
     result = {"status": "FROZEN_NOT_DEPLOYED", "runtimeFiles": len(manifest["candidate"]),
               "manifestSha256": digest((output / "manifest.json").read_bytes()),

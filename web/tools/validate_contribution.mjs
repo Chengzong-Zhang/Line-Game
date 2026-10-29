@@ -7,26 +7,31 @@ import {
   CONTRIBUTION_V2_MAX_ACTIONS,
   CONTRIBUTION_V3_POLICY,
   CONTRIBUTION_V3_MAX_ACTIONS,
+  CONTRIBUTION_V4_POLICY,
   normalizeV2Context,
   normalizeV3Context,
 } from "./training_contribution_schema.mjs";
+import { validateV4Replay } from './validate_contribution_v4.mjs';
 
 const V2_PLAYERS = ["BLACK", "WHITE", "PURPLE", "GREEN", "ORANGE", "CYAN"];
 const V3_PLAYERS = [...V2_PLAYERS, "PINK", "BROWN", "LIME", "NAVY", "GOLD", "TEAL", "MAGENTA", "SLATE", "CORAL"];
 
 export async function engineSources(version = 1) {
   const sources = ["GameEngine.js", "ReplayCodec.js", "ResearchAI.js"].map(file => [file, `../web前端/${file}`]);
-  if (version === 2 || version === 3) sources.push(["StartingPoints.js", "../web前端/StartingPoints.js"],
+  if (version === 2 || version === 3 || version === 4) sources.push(["StartingPoints.js", "../web前端/StartingPoints.js"],
     ["training_contribution_schema.mjs", "./training_contribution_schema.mjs"], ["validate_contribution.mjs", "./validate_contribution.mjs"]);
+  if (version === 4) sources.push(["validate_contribution_v4.mjs", "./validate_contribution_v4.mjs"],
+    ...['BoardDefinition.js', 'BoardCompiler.js', 'TopologyGameEngine.js', 'TopologyStateCodec.js', 'BoardView.js', 'SurfaceTerritory.js'].map(file => [file, `../web前端/${file}`]));
   return Object.fromEntries(await Promise.all(sources.map(async ([file, path]) => [file, createHash("sha256").update(await readFile(new URL(path, import.meta.url))).digest("hex")])));
 }
 export async function validateContribution(payload) {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)
     || canonicalize(Object.keys(payload).sort()) !== canonicalize(["format", "version", "consent", "consent_policy", "replay", "context"].sort())
-    || payload.format !== "lifeline-training-contribution" || ![1, 2, 3].includes(payload.version) || payload.consent !== true
-    || payload.consent_policy !== (payload.version === 3 ? CONTRIBUTION_V3_POLICY
+    || payload.format !== "lifeline-training-contribution" || ![1, 2, 3, 4].includes(payload.version) || payload.consent !== true
+    || payload.consent_policy !== (payload.version === 4 ? CONTRIBUTION_V4_POLICY : payload.version === 3 ? CONTRIBUTION_V3_POLICY
       : payload.version === 2 ? CONTRIBUTION_V2_POLICY : "anonymous-replay-training-v1")) throw new Error("Contribution consent/schema required");
   const version = payload.version;
+  if (version === 4) return { ...await validateV4Replay(payload.replay, payload.context), protocol_version: 4, engine_sources: await engineSources(4) };
   const doc = payload.replay;
   const counts = version === 3 ? Array.from({ length: 14 }, (_, index) => index + 2)
     : version === 2 ? [2, 3, 4, 5, 6] : [2, 3];
@@ -59,7 +64,9 @@ export async function validateContribution(payload) {
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
-    let input = ""; for await (const chunk of process.stdin) { input += chunk; if (Buffer.byteLength(input) > 512000) throw new Error("Payload too large"); }
-    process.stdout.write(JSON.stringify(await validateContribution(JSON.parse(input))));
+    let input = ""; for await (const chunk of process.stdin) { input += chunk; if (Buffer.byteLength(input) > 2 * 1024 * 1024) throw new Error("Payload too large"); }
+    const payload = JSON.parse(input);
+    if (payload.version !== 4 && Buffer.byteLength(input) > 512000) throw new Error("Payload too large");
+    process.stdout.write(JSON.stringify(await validateContribution(payload)));
   } catch (error) { process.stderr.write(String(error.message)); process.exitCode = 1; }
 }
