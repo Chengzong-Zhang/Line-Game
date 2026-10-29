@@ -5,15 +5,19 @@ import hashlib
 import json
 from pathlib import Path
 import subprocess
+import shutil
 import time
 from urllib.parse import quote
 
 
 def verify(bundle, base_url="https://lifelinegame.cn/"):
     manifest = json.loads((bundle / "release-manifest.json").read_text(encoding="utf-8"))
+    curl = shutil.which('curl.exe') or shutil.which('curl')
+    if not curl:
+        raise RuntimeError('Certificate-checking curl is required')
 
     def fetch(path):
-        result = subprocess.run(["curl.exe", "--noproxy", "*", "--fail", "--silent", "--show-error",
+        result = subprocess.run([curl, "--noproxy", "*", "--fail", "--silent", "--show-error",
             "--max-time", "30", "--header", "Cache-Control: no-cache", base_url + path], capture_output=True)
         if result.returncode:
             raise RuntimeError(result.stderr.decode("utf-8", errors="replace"))
