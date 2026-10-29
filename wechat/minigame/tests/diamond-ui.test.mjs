@@ -157,7 +157,7 @@ test('diamond custom roots survive moves, undo, save, restore and replay', async
   } finally { game.hide(); scheduler.cancel(); }
 });
 
-test('board cabin selects diamond, normalizes 3-player roots once, and keeps contribution disabled', async () => {
+test('board cabin selects diamond, normalizes 3-player roots once, and allows v4 contribution', async () => {
   const h = uiHarness({ config: { apiBase: 'https://example.invalid', onlineEnabled: false },
     platformOverrides: { contributionRequest: async () => ({}) } });
   try {
@@ -175,7 +175,7 @@ test('board cabin selects diamond, normalizes 3-player roots once, and keeps con
     await h.scrollTo('starts-default'); await h.render();
     assert.equal(h.app.getButtons().find(button => button.id === 'starts-default').disabled, true);
     await h.scrollTo('training-contribution'); await h.render();
-    assert.equal(h.app.getButtons().find(button => button.id === 'training-contribution').disabled, true);
+    assert.equal(h.app.getButtons().find(button => button.id === 'training-contribution').disabled, false);
     assert.ok(h.texts.some(value => /菱形棋盘 3–15 人仅支持随机或自定义起点/.test(value)));
     await h.tap('cabin-close'); await h.tap('new-game');
     await until(() => h.app.session.settings.boardShape === 'diamond' && h.app.session.settings.playerCount === 3
