@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "observedLocalDate": "2026-10-30",
+  "timeZone": "Asia/Shanghai",
+  "observer": "root through Chrome extension UI",
+  "platform": "wechat-minigame",
+  "accountDisplayName": "生命线策略棋",
+  "version": "0.13.0",
+  "status": "EXPERIENCE_VERSION_CONFIRMED_REVIEW_BLOCKED_REQUIRED_APPLE_ID",
+  "officialUploadReceipt": "minigame-upload-receipt.json",
+  "versionManagement": {
+    "developmentVersion": "0.13.0",
+    "developmentUploadTimeDisplayed": "2026-10-29 23:27:14",
+    "developmentLabels": ["体验版", "扫描访问体验版"],
+    "developmentDescription": "生命线策略棋：同步拓扑棋盘、多根、菱形棋盘、联机恢复与指南。",
+    "experienceVersionConfirmed": true,
+    "reviewVersion": "0.12.11",
+    "reviewStatusDisplayed": "审核通过待发布",
+    "publicVersionDisplayed": "尚未提交线上版本"
+  },
+  "newReviewAttempt": {
+    "version": "0.13.0",
+    "formOpened": true,
+    "engine": "自研 JavaScript Canvas",
+    "networkType": "联网",
+    "privacyGuideStatusDisplayed": "已完善",
+    "ageGuidanceStatusDisplayed": "已设置",
+    "updateDescriptionFilled": true,
+    "submitClicked": true,
+    "validationMessage": "请输入AppleID",
+    "submissionAccepted": false,
+    "published": false,
+    "userActionRequested": "Fill the Apple ID email in the retained official review form; no password requested.",
+    "screenshot": "working/local_artifacts/unified-release-20261029/wechat-review-appleid-required.jpg",
+    "screenshotSha256": "40b4bba5053488cdff513a3be82732eebeafca7d784e3ba03a3533384d1dccc2"
+  },
+  "limits": [
+    "The upload receipt describes the upload-time state; this later UI observation separately confirms experience version 0.13.0.",
+    "The old version 0.12.11 review approval is not approval of 0.13.0.",
+    "No real-device, tester-permission or authenticated public cross-client match acceptance is claimed.",
+    "No Apple ID, password, browser token or identity document is recorded here.",
+    "The platform may show additional requirements after the current required field is completed."
+  ]
+}

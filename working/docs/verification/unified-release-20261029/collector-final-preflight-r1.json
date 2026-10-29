@@ -1,0 +1,19 @@
+{
+  "status": "PASS_COLLECTOR_PREFLIGHT_NO_LIVE_CHANGE",
+  "manifestSha256": "ce38db5634faee889632c29f6a9ff45fb5cc089709e19cde904fc94463ac0cc6",
+  "archiveSha256": "a84bda4e693237ef789fd5fded61ffd07e5367613b3c4c64180024623927791b",
+  "remoteStage": "/home/ubuntu/line-game/.deploy-artifacts/unified-collector-final-20261029-r1",
+  "preflightRun": "/home/ubuntu/line-game/.deploy-artifacts/unified-collector-final-20261029-r1/check-r1",
+  "databaseRestored": false,
+  "actualPreflight": {
+    "status": "PASS_COLLECTOR_PREFLIGHT_NO_LIVE_CHANGE",
+    "databaseRestored": false,
+    "manifestSha256": "ce38db5634faee889632c29f6a9ff45fb5cc089709e19cde904fc94463ac0cc6",
+    "previousRuntime": "/home/ubuntu/line-game/.deploy-artifacts/unified-collector-final-20261029-r1/check-r1/staged-runtime",
+    "supportedVersions": [
+      1,
+      2,
+      3
+    ]
+  }
+}

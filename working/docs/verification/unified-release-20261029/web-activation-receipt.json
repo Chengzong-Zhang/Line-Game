@@ -1,0 +1,16 @@
+{
+  "status": "WEB_ACTIVATED_PUBLIC_FILES_VERIFIED",
+  "releaseId": "web-unified-web-mini-20261029-r1",
+  "sourceCommit": "2b4445435cb0cab1385944f1dc8cb99a5a035878",
+  "archiveSha256": "3f577a45e548198a743ee013daab41b606b7e65f3dec7d5c20798bb34fe10cf0",
+  "files": 166,
+  "allPublicHashesMatch": true,
+  "activeTreeSha256": "3774e36b308059ea980c026610c54716a86851d3ca12e87fbf3f8ef9ad838e83",
+  "rollbackTreeSha256": "cff789b3050686a2b9f2198f150f1f81b2a58f5fcee3729b794e9024b8508925",
+  "rollbackPath": "/home/ubuntu/line-game/.deploy-artifacts/web-unified-web-mini-20261029-r1.rollback-web前端",
+  "activationReceiptSha256": "2985d068ef180c93fedf5f181f5a3f53353eb43f01cf87f600d001de2f826342",
+  "publicVerificationReceiptSha256": "52ecc35f1d5192c86ae4f061587d75d32b76d54ba2145b114ab1705a6bd4a0e9",
+  "limits": [
+    "Resource hashes and health are separate from real-device and authenticated multiplayer acceptance."
+  ]
+}

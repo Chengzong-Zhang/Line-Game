@@ -1,0 +1,20 @@
+{
+  "observed_at_utc": "2026-10-29T15:48:11.719090+00:00",
+  "target": "wss://lifelinegame.cn/ws",
+  "client": "Python websockets 15.0.1, proxy disabled, open timeout 15 seconds",
+  "authentication": "no token supplied",
+  "handshake": {"status": "REJECTED", "http_status": 403},
+  "health": {"url": "https://lifelinegame.cn/api/health", "method": "GET", "http_status": 200, "client": "curl with proxy disabled"},
+  "source_review": {
+    "result": "No supported anonymous legacy WebSocket token issuance found in the reviewed backend and frontend.",
+    "evidence": ["web/web后端/server.py:2729", "web/web后端/server.py:2754", "web/web前端/NetworkManager.js:129", "web/web前端/OnlineApp.js:6521"]
+  },
+  "room_create": "NOT_RUN",
+  "second_client_join": "NOT_RUN",
+  "game_start": "NOT_RUN",
+  "move_or_pass": "NOT_RUN",
+  "state_sync": "NOT_RUN",
+  "disconnect_reconnect": "NOT_RUN",
+  "room_exit": "NOT_RUN",
+  "conclusion": "Anonymous public multiplayer acceptance is incomplete; the observed unauthenticated handshake was rejected."
+}

@@ -1,0 +1,22 @@
+{
+  "status": "PASS_LEGACY_RELEASE_PREFLIGHT",
+  "manifestSha256": "3a4bf9d497d47f7cc410a5247b3ded149f59a0182a6f8a1624bd07f2a8ec91a4",
+  "archiveSha256": "1005e7dae4bec787871e985f62e4b8465e8783037950ecd3e37c7a102312cec0",
+  "remoteStage": "/home/ubuntu/line-game/.deploy-artifacts/unified-legacy-final-20261029-r1",
+  "preflightRun": "/home/ubuntu/line-game/.deploy-artifacts/unified-legacy-final-20261029-r1/check-r1",
+  "databaseRestored": false,
+  "actualPreflight": {
+    "status": "PASS_LEGACY_RELEASE_PREFLIGHT",
+    "liveChanged": false,
+    "databaseRestored": false,
+    "changedFiles": [
+      "web/web\u540e\u7aef/server.py",
+      "web/tools/online_bot_bridge.mjs",
+      "web/web\u540e\u7aef/board_validation.py",
+      "web/tools/online_bot_runtime.mjs"
+    ],
+    "manifestSha256": "3a4bf9d497d47f7cc410a5247b3ded149f59a0182a6f8a1624bd07f2a8ec91a4",
+    "rollbackManifestSha256": "a2b434cdc372c3878728aa9dde04b0f19460489f18efc3a6b0a4587de5e426c9",
+    "rollbackPayload": "/home/ubuntu/line-game/.deploy-artifacts/unified-legacy-final-20261029-r1/check-r1/rollback-payload"
+  }
+}

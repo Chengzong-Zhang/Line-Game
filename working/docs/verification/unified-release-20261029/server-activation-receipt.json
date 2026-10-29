@@ -1,0 +1,193 @@
+{
+  "schema": "lifeline-unified-server-activation-receipt-v1",
+  "status": "PASS_SERVER_ACTIVATION_HASH_AND_PUBLIC_HEALTH",
+  "observedAtUtc": "2026-10-29T15:36:21.643936+00:00",
+  "publicHealthCheckedAtUtc": "2026-10-29T15:37:50.676249+00:00",
+  "activationReceipts": {
+    "legacy": {
+      "status": "ACTIVATED_LEGACY_UNIFIED_RELEASE",
+      "databaseRestored": false,
+      "manifestSha256": "3a4bf9d497d47f7cc410a5247b3ded149f59a0182a6f8a1624bd07f2a8ec91a4",
+      "releaseId": null,
+      "runtimeFiles": null,
+      "rollbackManifestSha256": "a2b434cdc372c3878728aa9dde04b0f19460489f18efc3a6b0a4587de5e426c9",
+      "supportedVersions": null
+    },
+    "collector": {
+      "status": "ACTIVATED_COLLECTOR_UNIFIED_RELEASE",
+      "databaseRestored": false,
+      "manifestSha256": "ce38db5634faee889632c29f6a9ff45fb5cc089709e19cde904fc94463ac0cc6",
+      "releaseId": null,
+      "runtimeFiles": null,
+      "rollbackManifestSha256": null,
+      "supportedVersions": [
+        1,
+        2,
+        3
+      ]
+    },
+    "wechat": {
+      "status": "ACTIVATED_SERVICE_RELEASE",
+      "databaseRestored": false,
+      "manifestSha256": null,
+      "releaseId": "wechat-service-all-20261029-r6",
+      "runtimeFiles": 266,
+      "rollbackManifestSha256": null,
+      "supportedVersions": null
+    }
+  },
+  "activationReceiptPaths": {
+    "legacy": "/home/ubuntu/line-game/.deploy-artifacts/unified-legacy-final-20261029-r1/activate-r1/activation.json",
+    "collector": "/home/ubuntu/line-game/.deploy-artifacts/unified-collector-final-20261029-r1/activate-r1/activation.json",
+    "wechat": "/home/ubuntu/line-game/.deploy-artifacts/wechat-service-all-20261029-r6-activate/activation.json"
+  },
+  "wechatManifestSha256": "be66a221143f501ecb6b20869c333558d0c6279b96c89ba36a9ccdc9060d03d7",
+  "runtimeHashes": {
+    "wechat": {
+      "match": true,
+      "expectedCount": 266,
+      "actualCount": 266,
+      "missing": [],
+      "unexpected": [],
+      "changed": []
+    },
+    "collector": {
+      "match": true,
+      "expectedCount": 144,
+      "actualCount": 144,
+      "missing": [],
+      "unexpected": [],
+      "changed": []
+    },
+    "legacy": {
+      "web/web后端/server.py": {
+        "match": true,
+        "sha256": "781d729d8e53a1b5b9f7d73561451bb4c9aac4c1278926a914738eed37684542"
+      },
+      "web/tools/online_bot_bridge.mjs": {
+        "match": true,
+        "sha256": "07a3a1857bb02d6f1417df552e9dca1c95991a6cc93cb092ddfe57194fafdeea"
+      },
+      "web/web后端/board_validation.py": {
+        "match": true,
+        "sha256": "61e1a10401b44a941f482183771f6baf7814febdce01be86098f503acf7b13e4"
+      },
+      "web/tools/online_bot_runtime.mjs": {
+        "match": true,
+        "sha256": "12ce9cab9149cdaa9b78a00b5d210be85868ff3a1660bf3e6a6ba9592edf389e"
+      }
+    }
+  },
+  "databaseIdentity": {
+    "wechat": {
+      "sameFile": true
+    },
+    "legacy": {
+      "sameFile": true
+    },
+    "collector": {
+      "sameFile": true
+    }
+  },
+  "services": {
+    "legacy": {
+      "active": true,
+      "workingDirectoryMatches": true
+    },
+    "wechat": {
+      "active": true,
+      "workingDirectoryMatches": true
+    },
+    "collector": {
+      "active": true,
+      "workingDirectoryMatches": true
+    }
+  },
+  "publicHealth": {
+    "web": {
+      "httpStatus": 200,
+      "status": "ok",
+      "filterReady": true
+    },
+    "wechat": {
+      "httpStatus": 200,
+      "enabled": true,
+      "rulesVersion": "territory-v3",
+      "supportedRulesVersions": [
+        "territory-v2",
+        "territory-v3",
+        "surface-v1"
+      ],
+      "topologyProtocols": [
+        "board-topology-v1"
+      ],
+      "boardHashSchema": "board-hash-v1",
+      "rootRulesVersions": [
+        "root-v1",
+        "root-v2"
+      ],
+      "roomSettings": true,
+      "undoVoting": true,
+      "ladder": "ladder-v3-conservative",
+      "playerCounts": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ]
+    },
+    "collector": {
+      "httpStatus": 200,
+      "enabled": true,
+      "supportedVersions": [
+        1,
+        2,
+        3
+      ],
+      "consentPolicies": {
+        "1": "anonymous-replay-training-v1",
+        "2": "anonymous-replay-training-v2",
+        "3": "anonymous-replay-training-v3"
+      },
+      "destination": "awaiting_review"
+    }
+  },
+  "expectedWorkingDirectoriesMatch": {
+    "legacy": true,
+    "wechat": true,
+    "collector": true
+  },
+  "retainedRollbackTrees": {
+    "legacy": {
+      "match": true,
+      "expectedCount": 4,
+      "actualCount": 4
+    },
+    "collector": {
+      "match": true,
+      "expectedCount": 9,
+      "actualCount": 9
+    },
+    "wechat": {
+      "match": true,
+      "expectedCount": 98,
+      "actualCount": 98
+    }
+  },
+  "scope": [
+    "Read-only service activation receipts, runtime file hashes, database device/inode identity, public capability/health endpoints, and retained rollback code inventories.",
+    "No user room, personal record, database row or credential content was read for this verification.",
+    "HTTP capability/health and file hashes do not prove browser interaction, actual multiplayer, device acceptance, Mini upload or public review status.",
+    "The Web frontend atomic exchange is a separate release stage and is not asserted by this receipt."
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "observedLocalDate": "2026-10-30",
+  "timeZone": "Asia/Shanghai",
+  "platform": "wechat-minigame",
+  "version": "0.13.0",
+  "status": "SUBMITTED_FOR_REVIEW_PENDING_PLATFORM_REVIEW",
+  "previousObservation": "wechat-console-observation-20261030.json",
+  "previousBlockerResolvedByUser": true,
+  "userReply": "已填好",
+  "formResultDisplayed": "提交成功",
+  "submissionAccepted": true,
+  "reviewVersionDisplayed": "0.13.0",
+  "reviewStatusDisplayed": "审核中",
+  "submittedAtDisplayed": "2026-10-30 00:21:56",
+  "experienceVersionDisplayed": "0.13.0",
+  "publicVersionDisplayed": "尚未提交线上版本",
+  "reviewApproved": false,
+  "published": false,
+  "screenshots": [
+    {
+      "path": "working/local_artifacts/unified-release-20261029/wechat-review-submitted-20261030.jpg",
+      "sha256": "145479fde36398837741afdcbb725512eb625dfbe80f3b128947a8b5a8a06e33"
+    },
+    {
+      "path": "working/local_artifacts/unified-release-20261029/wechat-0130-under-review-20261030.jpg",
+      "sha256": "6e29f133af76dcf868d27226a613589e5b374fb5c2c08a3f8c71afbd6c5b9b8b"
+    }
+  ],
+  "nextAction": "After platform review approval, publish the authorized 0.13.0 version and verify the public-version field.",
+  "scheduledMonitoringConfigured": false,
+  "limits": [
+    "Submission success and under-review status do not prove review approval or public release.",
+    "The user's Apple ID email and password were neither inspected nor recorded.",
+    "Real-device and authenticated public cross-client gameplay remain unverified."
+  ]
+}

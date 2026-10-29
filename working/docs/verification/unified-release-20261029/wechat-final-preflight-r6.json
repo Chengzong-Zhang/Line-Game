@@ -1,0 +1,14 @@
+{
+  "status": "PREFLIGHT_PASSED_NO_LIVE_CHANGE",
+  "releaseId": "wechat-service-all-20261029-r6",
+  "archiveSha256": "cba972a49f70bfd410fd7297164fb0e34d276f0f93bf2ffc611e69777c6f90db",
+  "manifestSha256": "be66a221143f501ecb6b20869c333558d0c6279b96c89ba36a9ccdc9060d03d7",
+  "remoteBundle": "/home/ubuntu/line-game/.deploy-artifacts/wechat-service-all-20261029-r6-preflight-transport/bundle",
+  "remoteOps": "/home/ubuntu/line-game/.deploy-artifacts/wechat-service-all-20261029-r6-preflight-transport/ops",
+  "preflightRun": "/home/ubuntu/line-game/.deploy-artifacts/wechat-service-all-20261029-r6-check",
+  "runtimeFiles": 266,
+  "operatorHashes": {
+    "activate_profile_service_live.py": "0af020007957f534846068c97fb4c58e7a557752777c5cde63540e9584034878",
+    "activate_service_schema6_release.py": "6289fc8fd57d50e85455eb87d464c50df0e5b14d1cc5cf4f21a1e4c8eb2eb662"
+  }
+}

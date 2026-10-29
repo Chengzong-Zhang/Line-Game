@@ -1,0 +1,15 @@
+{
+  "status": "FROZEN_ARCHIVE_VERIFIED",
+  "releaseId": "web-unified-web-mini-20261029-r1",
+  "commit": "2b4445435cb0cab1385944f1dc8cb99a5a035878",
+  "workspaceDirty": false,
+  "runtimeFiles": 166,
+  "archiveSha256": "3f577a45e548198a743ee013daab41b606b7e65f3dec7d5c20798bb34fe10cf0",
+  "archiveBytes": 18887509,
+  "completeRuntimeInventoryMatches": true,
+  "archiveSourceHashesMatch": true,
+  "localModuleClosureMatches": true,
+  "workerManifestAnd36SourcesMatch": true,
+  "supersedesLocalPackage": "web-final-r1 (never deployed; stamp changed generated asset-base URLs)",
+  "productionActivated": false
+}
