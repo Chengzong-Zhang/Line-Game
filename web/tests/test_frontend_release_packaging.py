@@ -68,6 +68,37 @@ const other = new URL("./ThreePlayerModels.js?old", self.location.href).href;'''
             with self.assertRaisesRegex(RuntimeError, 'input drift'):
                 release.validate_hard_worker(root, {})
 
+    def test_immutable_worker_requires_unchanged_transitive_public_dependencies(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            bundle = root / 'MultiplayerHardAIWorker.bundle.mjs'
+            module = root / 'AIEngine.js'
+            dependency = root / 'Shared.js'
+            bundle.write_text('import "./AIEngine.js?v=old";', encoding='utf8')
+            module.write_text('import "./Shared.js?v=old";', encoding='utf8')
+            dependency.write_text('export const value = 1;', encoding='utf8')
+            manifest = {'sourceHashes': {module.name: release.sha(module.read_bytes())}}
+            (root / 'MultiplayerHardAIWorker.bundle.manifest.json').write_text(json.dumps(manifest), encoding='utf8')
+            predecessor = {'asset_version': 'old-v1', 'files': {p.name: release.sha(p.read_bytes()) for p in [bundle, module, dependency]}}
+            closure = release.immutable_worker_closure(root, predecessor)
+            self.assertEqual(set(closure), {bundle.name, module.name, dependency.name})
+            dependency.write_text('export const value = 2;', encoding='utf8')
+            with self.assertRaisesRegex(RuntimeError, 'dependency changed: Shared.js'):
+                release.immutable_worker_closure(root, predecessor)
+
+    def test_incoming_import_uses_the_pinned_immutable_module_identity(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            parent, target = root / 'NewUI.js', root / 'AIEngine.js'
+            target.write_text('export {};', encoding='utf8')
+            versions = {target: 'old-v1'}
+            text = 'import "./AIEngine.js?v=new-ui";'
+            stamped = release.stamp_module_urls(text, 'new-ui', source_path=parent, immutable_versions=versions)
+            self.assertEqual(stamped, 'import "./AIEngine.js?v=old-v1";')
+            release.validate_module_closure(root, [parent, target], {parent: stamped}, 'new-ui', versions)
+            with self.assertRaisesRegex(RuntimeError, 'stale module token'):
+                release.validate_module_closure(root, [parent, target], {parent: text}, 'new-ui', versions)
+
 
 if __name__ == '__main__':
     unittest.main()

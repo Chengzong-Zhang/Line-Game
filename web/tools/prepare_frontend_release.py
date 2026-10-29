@@ -48,16 +48,17 @@ def is_worker_asset_base(text, match):
             and re.match(r"\s*,\s*self\.location\.href\s*\)\s*\.href\b", text[match.end():]) is not None)
 
 
-def stamp_module_urls(text, asset_version):
+def stamp_module_urls(text, asset_version, *, source_path=None, immutable_versions=None):
     def replace(match):
         if is_worker_asset_base(text, match):
             return match.group(0)
-        return f"{match['quote']}{match['path']}?v={asset_version}{match['quote']}"
+        version = (immutable_versions or {}).get((source_path.parent / match['path']).resolve(), asset_version) if source_path else asset_version
+        return f"{match['quote']}{match['path']}?v={version}{match['quote']}"
 
     return MODULE_URL.sub(replace, text)
 
 
-def validate_module_closure(frontend, paths, text_by_path, asset_version):
+def validate_module_closure(frontend, paths, text_by_path, asset_version, immutable_versions=None):
     """Reject release graphs that can load a stale or absent local module.
 
     The same literal URL pattern is used for module imports, dynamic imports,
@@ -66,7 +67,6 @@ def validate_module_closure(frontend, paths, text_by_path, asset_version):
     """
     root = frontend.resolve()
     manifest_names = {path.relative_to(frontend).as_posix() for path in paths}
-    expected_query = f"?v={asset_version}"
     problems = []
     for path, text in text_by_path.items():
         for match in MODULE_URL.finditer(text):
@@ -81,10 +81,41 @@ def validate_module_closure(frontend, paths, text_by_path, asset_version):
                 problems.append(f"{path.relative_to(frontend)} references missing module {relative}")
             elif name not in manifest_names:
                 problems.append(f"{path.relative_to(frontend)} references excluded module {name}")
+            expected_query = f"?v={(immutable_versions or {}).get(target, asset_version)}"
             if not is_worker_asset_base(text, match) and match["query"] != expected_query:
                 problems.append(f"{path.relative_to(frontend)} has stale module token {relative}{match['query'] or ''}")
     if problems:
         raise RuntimeError("Frontend module closure failed:\n- " + "\n- ".join(problems))
+
+
+def immutable_worker_closure(frontend, predecessor):
+    """Retain a previously published Worker and its *entire* unchanged graph.
+
+    No stale-token exemption is granted to a changed file. Every transitive
+    module is checked against the predecessor's public runtime SHA-256, while
+    the usual bundle/source manifest checks continue to pin the Worker itself.
+    """
+    if not isinstance(predecessor.get('asset_version'), str) or not re.fullmatch(r'[A-Za-z0-9._-]{4,100}', predecessor['asset_version']):
+        raise RuntimeError('Invalid predecessor asset version')
+    manifest = json.loads((frontend / 'MultiplayerHardAIWorker.bundle.manifest.json').read_text(encoding='utf-8'))
+    todo = ['MultiplayerHardAIWorker.bundle.mjs', *manifest['sourceHashes']]
+    immutable = {}
+    while todo:
+        name = todo.pop()
+        if name in immutable:
+            continue
+        path = (frontend / name).resolve()
+        if path.relative_to(frontend.resolve()).as_posix() != name:
+            raise RuntimeError('Invalid immutable module path')
+        expected = predecessor['files'].get(name)
+        if not expected or not path.is_file() or sha(path.read_bytes()) != expected:
+            raise RuntimeError('Immutable Worker dependency changed: ' + name)
+        immutable[name] = expected
+        text = path.read_text(encoding='utf-8')
+        for match in MODULE_URL.finditer(text):
+            target = (path.parent / match['path']).resolve()
+            todo.append(target.relative_to(frontend.resolve()).as_posix())
+    return immutable
 
 
 def validate_hard_worker(frontend, proposed_texts):
@@ -119,6 +150,8 @@ def main():
     parser.add_argument("--stamp-only", action="store_true")
     parser.add_argument("--release-id", required=True)
     parser.add_argument("--asset-version", required=True)
+    parser.add_argument("--predecessor-manifest", type=Path)
+    parser.add_argument("--predecessor-sha256")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
     frontend = root / "web/web前端"
@@ -126,8 +159,21 @@ def main():
     # silently losing a feature while the new application entry point loads.
     # Do this recursively, including generated .mjs Worker bundles.
     paths = runtime_paths(frontend)
+    immutable, immutable_versions, predecessor_hash = {}, {}, None
+    if args.predecessor_manifest is not None:
+        raw = args.predecessor_manifest.read_bytes()
+        if not args.predecessor_sha256 or sha(raw) != args.predecessor_sha256:
+            raise RuntimeError('Predecessor manifest SHA-256 mismatch')
+        predecessor_hash = sha(raw)
+        predecessor = json.loads(raw.decode('utf-8-sig'))
+        validate_hard_worker(frontend, {})
+        immutable = immutable_worker_closure(frontend, predecessor)
+        immutable_versions = {(frontend / name).resolve(): predecessor['asset_version'] for name in immutable}
+    elif args.predecessor_sha256:
+        parser.error('--predecessor-sha256 requires --predecessor-manifest')
     source_texts = {
-        path: stamp_module_urls(path.read_bytes().decode("utf-8"), args.asset_version)
+        path: path.read_bytes().decode('utf-8') if path.resolve() in immutable_versions else
+            stamp_module_urls(path.read_bytes().decode("utf-8"), args.asset_version, source_path=path, immutable_versions=immutable_versions)
         for path in paths
         if path.suffix.lower() in {".js", ".mjs"}
     }
@@ -137,7 +183,7 @@ def main():
         f'const APP_ASSET_VERSION = "{args.asset_version}";',
         source_texts[main_source],
     )
-    validate_module_closure(frontend, paths, source_texts, args.asset_version)
+    validate_module_closure(frontend, paths, source_texts, args.asset_version, immutable_versions)
     if not args.stamp_only:
         if args.output is None:
             parser.error("--output is required when building a bundle")
@@ -174,6 +220,8 @@ def main():
         "source_bytes": sum((frontend / name).stat().st_size for name in files),
         "deleted_files": [],
         "preserved_server_files": ["all files outside this overlay"],
+        "immutable_worker_dependencies": immutable,
+        "predecessor_manifest_sha256": predecessor_hash,
     }
     raw_manifest = json.dumps(manifest, ensure_ascii=False, indent=2).encode()
     (output / "release-manifest.json").write_bytes(raw_manifest)
