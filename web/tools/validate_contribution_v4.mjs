@@ -52,20 +52,37 @@ function verifyNativeTopology(doc) {
   validateGenerator(c.boardDefinition?.generator);
   const compiled = compileBoard(c.boardDefinition);
   assert(compiled.ok && same(compiled.value.definition, c.boardDefinition) && compiled.value.boardHash === c.boardHash, 'Invalid board identity');
-  const engine = new GameEngine({ ...c, compiledBoard: compiled.value, deferTerritoryUpdates: false });
+  const engine = new GameEngine({ ...c, compiledBoard: compiled.value, deferTerritoryUpdates: true });
   assert(engine.isTopologyBoard && engine.boardHash === c.boardHash, 'Topology runtime unavailable');
   const players = PLAYER_ORDER.slice(0, c.playerCount), samples = new Set(compiled.value.sampleIds);
-  for (const action of doc.actions) {
-    assert(!engine.gameOver && players.includes(action?.player), 'Invalid topology actor');
-    assert(action.type === 'move' ? keysAre(action, ['type', 'player', 'vertexId']) && samples.has(action.vertexId)
-      : ['skip', 'resign'].includes(action?.type) && keysAre(action, ['type', 'player']), 'Invalid topology action');
-    assert(action.type === 'resign' ? engine.activePlayers.includes(action.player) : action.player === engine.currentPlayer, 'Topology actor out of turn');
-    const result = action.type === 'move' ? engine.playMove(action.vertexId)
-      : action.type === 'skip' ? engine.skipTurn() : engine.resignPlayer(action.player);
-    assert(result.success, 'Illegal topology action');
-  }
+  // Validate every action in the engine's existing atomic replay transaction.
+  // Per-action UI snapshots enumerate every possible next move on the surface;
+  // none of those presentation snapshots is used by the collector. replayBatch
+  // retains legality/Superko and computes authoritative territory at completion.
+  const replayed = engine.replayBatch(transaction => {
+    // replayBatch also returns a UI snapshot. Its legal-move list is unused:
+    // the final encoded rule state below is the authoritative comparison.
+    transaction._getSnapshotLegalMoves = () => [];
+    // Automatic PASS asks whether any legal move exists. The product helper
+    // builds the complete UI move list; stop at the first exact engine witness
+    // instead. _evaluateMove restores its full rule state in a finally block.
+    transaction._hasValidMoves = function (player) {
+      return this.validPositions.some(vertexId => this._evaluateMove(vertexId, player).legal);
+    };
+    for (const action of doc.actions) {
+      assert(!transaction.gameOver && players.includes(action?.player), 'Invalid topology actor');
+      assert(action.type === 'move' ? keysAre(action, ['type', 'player', 'vertexId']) && samples.has(action.vertexId)
+        : ['skip', 'resign'].includes(action?.type) && keysAre(action, ['type', 'player']), 'Invalid topology action');
+      assert(action.type === 'resign' ? transaction.activePlayers.includes(action.player) : action.player === transaction.currentPlayer, 'Topology actor out of turn');
+      const result = action.type === 'move' ? transaction.playMove(action.vertexId)
+        : action.type === 'skip' ? transaction.skipTurn() : transaction.resignPlayer(action.player);
+      assert(result.success, 'Illegal topology action');
+    }
+    return { success: true };
+  });
+  assert(replayed.success, 'Illegal topology action');
   const state = engine.encodeTopologyState();
-  assert(engine.getSnapshot().gameOver && keysAre(doc.finalState, ['boardHash', 'stateHash', 'topologyState'])
+  assert(engine.gameOver && keysAre(doc.finalState, ['boardHash', 'stateHash', 'topologyState'])
     && doc.finalState.boardHash === engine.boardHash && doc.finalState.stateHash === hash(state)
     && same(doc.finalState.topologyState, state), 'Incomplete or mismatched topology replay');
   return c;

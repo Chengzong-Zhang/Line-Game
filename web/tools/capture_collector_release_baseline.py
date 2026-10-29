@@ -37,7 +37,9 @@ def capture(previous_manifest, output, helper):
     assert base.tree(live) == files, 'Live source changed during capture'
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
     status = json.load(opener.open('http://127.0.0.1:8005/api/training/contributions/status', timeout=15))
-    assert status['enabled'] is True and status['supported_versions'] == [1, 2, 3]
+    expected_versions = previous.get('supportedVersions', [1, 2, 3])
+    assert expected_versions in ([1, 2, 3], [1, 2, 3, 4])
+    assert status['enabled'] is True and status['supported_versions'] == expected_versions
     result = {'site': site, 'files': files, 'contents': contents, 'supportedVersions': status['supported_versions']}
     with output.open('x', encoding='utf-8') as handle:
         json.dump(result, handle, ensure_ascii=False)

@@ -78,7 +78,7 @@ def prepare(baseline_path, output):
         assert digest((ROOT / name).read_bytes()) == expected, "Concurrent source change: " + name
     assert inventory(prior) == baseline["files"]
     previous_versions = baseline.get("supportedVersions")
-    assert previous_versions == [1, 2, 3], "Expected verified 1/2/3 collector baseline"
+    assert previous_versions in ([1, 2, 3], [1, 2, 3, 4]), "Expected verified shipped collector baseline"
     manifest = {"kind": "collector-unified-release-v1", "site": baseline["site"],
                 "baseline": baseline["files"], "candidate": inventory(service),
                 "baselineSupportedVersions": previous_versions, "supportedVersions": [1, 2, 3, 4],
