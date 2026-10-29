@@ -97,7 +97,10 @@ function enclosedFaceRegions(snapshot, view, player, { countedOnly = false } = {
     visitedEdges.add(edgeId);
     const wall=group.some(x=>played.has(x.id));
     if (wall) for (const x of group) wallFaces.add(x.face.id);
-    if (group.length === 1) { boundary.add(item.face.id); continue; }
+    // An exposed edge is an escape only when it is not part of this player's
+    // wall. A played edge along a real boundary closes the face component;
+    // treating it as open loses enclosed triangles attached to that boundary.
+    if (group.length === 1) { if (!wall) boundary.add(item.face.id); continue; }
     if (!wall) for (const x of group) for (const y of group) if (x.face.id !== y.face.id) adjacency.get(x.face.id).push(y.face.id);
   }
   const faceById=new Map(faces.map(face=>[face.id,face]));
