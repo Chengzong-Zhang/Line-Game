@@ -1,0 +1,12 @@
+{
+  "status": "ACTIVATED_COLLECTOR_UNIFIED_RELEASE",
+  "databaseRestored": false,
+  "manifestSha256": "1178fb406fe784bf399e25a20d935922e6daa809478b1dca66eb116bbe5cc797",
+  "previousRuntime": "/home/ubuntu/line-game/.deploy-artifacts/collector-v4-final-20261030/activation-r1/staged-runtime",
+  "supportedVersions": [
+    1,
+    2,
+    3,
+    4
+  ]
+}

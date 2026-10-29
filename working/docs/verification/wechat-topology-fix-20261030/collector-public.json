@@ -1,0 +1,61 @@
+{
+  "status": "PASS_PUBLIC_V4_CAPABILITY_AND_PROXY_LIMIT",
+  "origin": "https://lifelinegame.cn",
+  "capability": {
+    "enabled": true,
+    "consent_policy": "anonymous-replay-training-v1",
+    "supported_versions": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "consent_policies": {
+      "1": "anonymous-replay-training-v1",
+      "2": "anonymous-replay-training-v2",
+      "3": "anonymous-replay-training-v3",
+      "4": "anonymous-replay-training-v4"
+    },
+    "supported_rules_versions": {
+      "2": [
+        "territory-v2"
+      ],
+      "3": [
+        "territory-v3"
+      ],
+      "4": [
+        "territory-v3",
+        "surface-v1"
+      ]
+    },
+    "max_request_bytes": 512000,
+    "max_request_bytes_by_version": {
+      "1": 512000,
+      "2": 512000,
+      "3": 512000,
+      "4": 2097152
+    },
+    "max_actions": {
+      "1": 512,
+      "2": 3000,
+      "3": 3000,
+      "4": 3000
+    },
+    "destination": "awaiting_review"
+  },
+  "rejectionProbes": [
+    {
+      "bytes": 614400,
+      "contentType": "text/plain",
+      "status": 415
+    },
+    {
+      "bytes": 2097153,
+      "contentType": "text/plain",
+      "status": 413
+    }
+  ],
+  "replaysSubmitted": 0,
+  "scope": "HTTPS API capability and invalid-content rejection; no device verification",
+  "verifierSha256": "196caa5bafe2fda841d094438315296419aee13353826a01be4b1e844252d49f"
+}

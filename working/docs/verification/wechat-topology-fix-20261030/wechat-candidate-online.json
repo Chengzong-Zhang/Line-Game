@@ -1,0 +1,493 @@
+{
+  "schemaVersion": 4,
+  "profile": "online",
+  "status": "PREPARED_LOCAL_NOT_UPLOADED",
+  "createdAt": "2026-10-29T18:14:52.220Z",
+  "candidateId": "0.13.1-6f457529e661-6ELmE9",
+  "version": "0.13.1",
+  "rulesVersion": "surface-v1",
+  "supportedRulesVersions": [
+    "territory-v2",
+    "territory-v3",
+    "surface-v1"
+  ],
+  "baseLibrary": "3.17.4",
+  "config": {
+    "apiBase": "https://lifelinegame.cn",
+    "onlineEnabled": true,
+    "workerTimeoutMs": 15000
+  },
+  "runtimeBytes": 20484748,
+  "packageBytes": 20523422,
+  "mainPackageBytes": 2369606,
+  "subpackages": [
+    {
+      "name": "ai-research",
+      "root": "models/research",
+      "bytes": 3020420
+    },
+    {
+      "name": "ai-dqn",
+      "root": "models/dqn",
+      "bytes": 3025448
+    },
+    {
+      "name": "ai-ppo",
+      "root": "models/ppo",
+      "bytes": 3027500
+    },
+    {
+      "name": "ai-sac",
+      "root": "models/sac",
+      "bytes": 3025448
+    },
+    {
+      "name": "ai-gail",
+      "root": "models/gail",
+      "bytes": 3027500
+    },
+    {
+      "name": "ai-gan",
+      "root": "models/gan",
+      "bytes": 3027500
+    }
+  ],
+  "importDirectory": "project",
+  "files": [
+    {
+      "path": "dist/build-manifest.json",
+      "bytes": 38674,
+      "sha256": "6f457529e661b35cd8a00560e4958da3979b35921962711a03030e4506f4dd3b"
+    },
+    {
+      "path": "dist/game.js",
+      "bytes": 926104,
+      "sha256": "d9fcf942a6f7c368038c0cfa6a85cc9043e17a0635c28953e3c68d269fd242f1"
+    },
+    {
+      "path": "dist/game.json",
+      "bytes": 474,
+      "sha256": "02b60661390a75feb4b027d8ad349988564fc9d4c760338b7e66670bd31ae810"
+    },
+    {
+      "path": "dist/guide/cut-after.png",
+      "bytes": 180003,
+      "sha256": "9bc0d8f3c1b4acca5ac36a13f1d696a9c08971f0d308f2525ef35053bd08bbb9"
+    },
+    {
+      "path": "dist/guide/cut-before.png",
+      "bytes": 181936,
+      "sha256": "a02817f967e9b2dc2103c04fbc0fb1cbbd4630d574bdd3b61a8e6aba24cf2d1f"
+    },
+    {
+      "path": "dist/guide/opening.png",
+      "bytes": 129899,
+      "sha256": "243f8eb898e011d08eadd9fa13d2f5f922c385d04e82a569a0ec36c787144a24"
+    },
+    {
+      "path": "dist/guide/playable.png",
+      "bytes": 153674,
+      "sha256": "5085eeede1c51b2c79fd062d306f854b96259190e53d1850b89c9ebe2eab3b35"
+    },
+    {
+      "path": "dist/guide/three-balance.jpg",
+      "bytes": 75654,
+      "sha256": "f764ae3428ce942964729b2fd30850b46a96df2b70282af8652fd52c977a863e"
+    },
+    {
+      "path": "dist/guide/triangle.png",
+      "bytes": 141728,
+      "sha256": "481e28f13a32dac2ab8b91d320cf20ade246eb513d8f09c5eb047536bb7e0d13"
+    },
+    {
+      "path": "dist/models/dqn/dqn-all-sizes-e2000.bin",
+      "bytes": 3025380,
+      "sha256": "16f50c330ad7cc239cfb0b2334538817c7c0d6cf4c01f6048b05c9ee4a9466eb"
+    },
+    {
+      "path": "dist/models/dqn/game.js",
+      "bytes": 68,
+      "sha256": "609947afe43f7d9666352a482d5a31675728b1c863f1c5786424b2d1bfeb058a"
+    },
+    {
+      "path": "dist/models/gail/gail-all-sizes.bin",
+      "bytes": 3027432,
+      "sha256": "5951e4e3f057893275df6f44543f3747cd4275a616d52a5b8355e51760faea71"
+    },
+    {
+      "path": "dist/models/gail/game.js",
+      "bytes": 68,
+      "sha256": "609947afe43f7d9666352a482d5a31675728b1c863f1c5786424b2d1bfeb058a"
+    },
+    {
+      "path": "dist/models/gan/game.js",
+      "bytes": 68,
+      "sha256": "609947afe43f7d9666352a482d5a31675728b1c863f1c5786424b2d1bfeb058a"
+    },
+    {
+      "path": "dist/models/gan/gan-all-sizes.bin",
+      "bytes": 3027432,
+      "sha256": "63629d0027afb8ff2fdbc3e773be420c062361b315741d8371e47818c4ec30e5"
+    },
+    {
+      "path": "dist/models/ppo/game.js",
+      "bytes": 68,
+      "sha256": "609947afe43f7d9666352a482d5a31675728b1c863f1c5786424b2d1bfeb058a"
+    },
+    {
+      "path": "dist/models/ppo/ppo-all-sizes-e2000.bin",
+      "bytes": 3027432,
+      "sha256": "af41359ca0ee00b3be86a2f5b9363a513af942f6cfa0c50f31cb0f252c86de85"
+    },
+    {
+      "path": "dist/models/research/game.js",
+      "bytes": 68,
+      "sha256": "609947afe43f7d9666352a482d5a31675728b1c863f1c5786424b2d1bfeb058a"
+    },
+    {
+      "path": "dist/models/research/grid-gnn-d14-s20260825-g200.bin",
+      "bytes": 250932,
+      "sha256": "92cc45bb2a3a6a56c896098c1e843a136587a9aaf07381fbf1d00ebb4fd02dfa"
+    },
+    {
+      "path": "dist/models/research/grid-gnn-transfer-v1-seed2026092201.bin",
+      "bytes": 250932,
+      "sha256": "e0b82a1736521fb967afb7861ba1fcc697b505990d5b6391abb8318dbef42a0b"
+    },
+    {
+      "path": "dist/models/research/grid-gnn-transfer-v1-seed2026092202.bin",
+      "bytes": 250932,
+      "sha256": "5db4b00462d8e30d2d293adf554da3e0e6b4cde6d40d3f82b590b23fa267000b"
+    },
+    {
+      "path": "dist/models/research/grid-gnn-transfer-v1-seed2026092203.bin",
+      "bytes": 250932,
+      "sha256": "67079d1d6108732cddfeecf74840ae63505488af052e068ab1a83bf96c56bf87"
+    },
+    {
+      "path": "dist/models/research/padded-cnn-d14-s20260825-g200.bin",
+      "bytes": 251472,
+      "sha256": "cea913f58d1694926fb6710ca355bf6d41e5a6c49b991af87b836ae26d43bf1f"
+    },
+    {
+      "path": "dist/models/research/padded-cnn-transfer-v1-seed2026092201.bin",
+      "bytes": 251472,
+      "sha256": "416ee1a88f092ab514dd40c8a22604a761a20b223409eaaef64f61c691108242"
+    },
+    {
+      "path": "dist/models/research/padded-cnn-transfer-v1-seed2026092202.bin",
+      "bytes": 251472,
+      "sha256": "cd36fdd3a96e78066475fb67056fa179bf7765028fbf9e4db7a172857b134af3"
+    },
+    {
+      "path": "dist/models/research/padded-cnn-transfer-v1-seed2026092203.bin",
+      "bytes": 251472,
+      "sha256": "ee60f6d279941c78af999c6d051d514bf90f09b9478272d8557d482bb24dd07c"
+    },
+    {
+      "path": "dist/models/research/topology-gnn-d14-s20260825-g200.bin",
+      "bytes": 252684,
+      "sha256": "de7f1a4c9c204d0f88598f5d7d92e180e291060b11cc711c8f9e786207cf34d0"
+    },
+    {
+      "path": "dist/models/research/topology-gnn-transfer-v1-seed2026092201.bin",
+      "bytes": 252684,
+      "sha256": "0235947ee5a3eb6aa36627da06270e0854f3ece5c2b509d6a4f85d830a54f5ba"
+    },
+    {
+      "path": "dist/models/research/topology-gnn-transfer-v1-seed2026092202.bin",
+      "bytes": 252684,
+      "sha256": "4c424c0f0ac19724d7fa51741d199bd780781d7063b325671fe9197f6b6abc9b"
+    },
+    {
+      "path": "dist/models/research/topology-gnn-transfer-v1-seed2026092203.bin",
+      "bytes": 252684,
+      "sha256": "5a8f6f4ed6954c5dda131c16403f2f2c680edefffc050d19f2cab25850dcc84b"
+    },
+    {
+      "path": "dist/models/sac/game.js",
+      "bytes": 68,
+      "sha256": "609947afe43f7d9666352a482d5a31675728b1c863f1c5786424b2d1bfeb058a"
+    },
+    {
+      "path": "dist/models/sac/sac-all-sizes-e2000.bin",
+      "bytes": 3025380,
+      "sha256": "63a1b80b456427a2545a31ff9af209fdde1f9cf8d41ae6984f36c09c116932bd"
+    },
+    {
+      "path": "dist/THIRD_PARTY_NOTICES.txt",
+      "bytes": 1396,
+      "sha256": "aa050304323db5d85b2d446d19a38688d4e853a5f76841f0298bcf83b098829e"
+    },
+    {
+      "path": "dist/workers/index.js",
+      "bytes": 540064,
+      "sha256": "4d2160e91df8f7ebbd7f43f6efac6906835f6e351636842ce890ce28788b0b2f"
+    },
+    {
+      "path": "project.config.json",
+      "bytes": 437,
+      "sha256": "17ac124ba947bd79ccfadaa755494d793cee9ad365f59a12a0fe228845c9093c"
+    }
+  ],
+  "sourceHashes": {
+    "web/tools/training_contribution_schema.mjs": "f3eed8e85086ed0c765cada9e4a5cde6da5380dbe76bce9232ec5afaf6f5ee9d",
+    "web/web前端/AIEngine.js": "f8ae8a952b8c2a6cb3178cb4bd7e6112cc4786fc1687a7f7ca20c198c4e96615",
+    "web/web前端/AIPassDiscipline.js": "8b47e07ffd435bcc2967e226fb2021f359f96cd93ddf35634f8e0dc83b210d46",
+    "web/web前端/AIPassDisciplineV2.js": "37cdba921d3113713b28b142dfb9ccd58842335f9f54c4aa4870b7e0c30b3be5",
+    "web/web前端/AIPassDisciplineV3.js": "2bc7dba6a9b0ba5d86687f441dfaf893adff6b19e5d2e7948e9bfe0fd2dac31c",
+    "web/web前端/AIPassDisciplineV4.js": "9e9e33bc0ceead8648da2a53dac37293aebc228b5cf5c35598e4a9855d7d29a4",
+    "web/web前端/BoardCompiler.js": "80cbbb446c8e92385f9317d1f3679578909a8f66fc9e1c684c58a2e269e7facd",
+    "web/web前端/BoardDefinition.js": "c2fd427642ee56cb80d3267fd6ba0235917bbedfa34b0b31790886b35613d9d1",
+    "web/web前端/BoardPaths.js": "ad868d746c835a34c43084111e6736f48ddfd1b8318bca6f0ffd39bccd93aa7b",
+    "web/web前端/BoardTopology.js": "d47c0b6cae86b060866ae47aa780836cfa0c2031d817d47bc80dc43de320ab29",
+    "web/web前端/BudgetedMinimaxAI.js": "29385b958c422ae26516c5d2a8f011d1467bcffcbb8905773cabb6bc05a32ed1",
+    "web/web前端/GameEngine.js": "83663d85e2f5373d6818c467b82e2fc3c502cecb7a9c6136cf025a5927da9f0a",
+    "web/web前端/GuideArticleFormat.js": "e5dedf72e0ff7c574cc406fefc41734242474fff9826a38e0d3c34f6c9f22c42",
+    "web/web前端/GuideContent.js": "76f79680a89ceb0153183deab5bd8dcd4bfd1355b63db4edbae36a371c0e88f3",
+    "web/web前端/GuideImplementation.js": "d525ee227aa86f6955740ef0ca4059ce8e49c50ab4e6550e260d1d33b224d765",
+    "web/web前端/GuideImplementationNotes.js": "5a7b4d4e55c8cb59ea0662b06511e7fe9f515d5dfbd4122aa4c20da2b472db02",
+    "web/web前端/GuideMathChapters.js": "624cc084b12fa8fb24aa390d138f47493f65c2db05d961d46f72d3289cbd52e7",
+    "web/web前端/GuideTechnicalChapters.js": "0d65512cf481848d78f73b705c7dab9db3fcfbf7c167efb94c65cdbbd1f5d568",
+    "web/web前端/GuideTopologyChapters.js": "75e4856b8f0e6f1a3d2638f9a2553eece2a8d42ef9bef7ba113ba616eb724964",
+    "web/web前端/HexFastSearchAI.js": "34f314cf463cabc0d4e1789ba633af5e9241ea0e7b1cf5a97b1f7fd2c8df6480",
+    "web/web前端/HexPlayerAI.js": "fd86ad0216dd547aaaf18ea8806e678e6a4483c1581b007e1e4fb79dce6b3e90",
+    "web/web前端/HexSearchOptions.js": "d82c0402a70156f38ce9504301bb01919c400a594aecaec831a1bb7cfb771f2d",
+    "web/web前端/LearnedPassPolicy.js": "080a4e3b2813fde4bfcd61a0d1bfac66e630015237c907dc0dc85c2c51345eca",
+    "web/web前端/LocalAIModes.js": "ed858d1c0efa38dfba45a5302902adb25214f113434becc905c8fd2bd87af564",
+    "web/web前端/LocalGameSession.js": "525f8bb84df14cbb8153635776327b5befdc0d57549ad31093dd60c51d9a5ceb",
+    "web/web前端/LocalUndo.js": "3eca38057650673fcdf4e688a60950eb4137478d82dc7b8ffaae688175769dad",
+    "web/web前端/ModelFreeAI.js": "ce35499d10afe9e9c582b9970930e70eb093786b4d1c302b40077f6e390ecf5d",
+    "web/web前端/MultiplayerClock.js": "9cc62a1da3400222c41b07d128fba047f2a57688f13bf42ef3620d66e8d9df80",
+    "web/web前端/MultiplayerHardFallback.js": "ae52648389e104504e43bf8867230e361ed0ed61a00d2667da8f82ff7c67e1ee",
+    "web/web前端/MultiplayerHardResources.js": "b3d33b750f6b8ee9582bb5a70a11e277f867486a40fb85d4fd9e7726f734972d",
+    "web/web前端/MultiplayerHardRollout.js": "ba4933d6e0e83a84dd22a03f452749cfe7f612b4a59a68c1168cd921f0e4489d",
+    "web/web前端/MultiplayerHardRuntime.js": "83e91a816f80e9bacb8f91103bfd8a7d25e8a77e819d5110c6c6d500b153764e",
+    "web/web前端/MultiplayerHardValue.js": "914f5ead2349aae7d3af3893af76dc3451a508bdfe58527181efbf19f291a874",
+    "web/web前端/MultiplayerModel.js": "11c6d2ce65b35e13a3270870fd5d749ffd44c95c68f1dd7554fcec0514eaa2fa",
+    "web/web前端/MultiplayerNativeGeometry.js": "d44282472047387b682e5cb51ff19b0744f2cf3b2aabc3d4ea5079ad7b5d6c66",
+    "web/web前端/MultiplayerRollout.js": "03b20326fd36b9d5e5cc9a2c4a754aab62aaf73b9b860066b7b013610bab3c67",
+    "web/web前端/MultiplayerRuntime.js": "9f3e4c4079a1ba690f2542cdda7ecef7f9363b48dfa0d5f123a3a74ce5a23258",
+    "web/web前端/MultiplayerSearch.js": "67dd92fd1551d1fee4456daaaed3b3f6f1bcd89e4bbe38e28eb7a8e7bb9d6503",
+    "web/web前端/MultiplayerStandardDefense.js": "432bc42f2ca8015be00ab11fcada36b895314e6575794a9bfbfc2f0999d0b663",
+    "web/web前端/MultiplayerUltimateAdmission.js": "cc182005d5b74ca9fc0e4cecbe33222d65a547dbbf438318de93a30eeb0bb6a8",
+    "web/web前端/OnlineRoomSettings.js": "16b53c20f867abd2aeaac97865a07becf4eea338a100754565d531fb492fc8aa",
+    "web/web前端/PassTrainedPolicies.js": "7cffa86a9a85eb7723e8512280a02bd413e36488bca96d851ee10d6aa1d2e5e9",
+    "web/web前端/PassTrainedPolicyData.js": "422bdec5bf500d54036a4afb9b16e5501c20f4f2880cc20f87706ccf5023a1db",
+    "web/web前端/PortableClone.js": "310b384f34795b3d0626a7019fbc83ff2557e4deb0c5e52ae414625e3d68e3c7",
+    "web/web前端/ReplayCodec.js": "144a93d35269a50271233df1f8c5e401431a6564b7a142fac9da6aecd21ae848",
+    "web/web前端/ResearchAI.js": "bb805b7cf7baa0fced539e77e5482554217984a9cbf881b18adc7fe6cb0bffd8",
+    "web/web前端/ResearchAIOptions.js": "0cc5e27993622422a9a5b77bf95750992d26e1fe1a7a26782d53606f3709fa1e",
+    "web/web前端/RootModeSearch.js": "df89d89667f9f9b4f1180178c127c168d0b0434148d68d7a4852d651300b1671",
+    "web/web前端/StartingPoints.js": "8c27d17871f383ceacd6d7ee885ceded9a8e5170a924d76f7d81b938a0971f35",
+    "web/web前端/SurfaceTerritory.js": "7ee91ee7e06142f1caab3b7c4188af96b84059170cb3ab5c7e7d2620b61b5f3d",
+    "web/web前端/ThreePlayerAI.js": "276d57f2e0ff1da3e76c53c86430e53c4b1edcf116accd04c08d2871f4b2540c",
+    "web/web前端/ThreePlayerModels.js": "a7a89a48fdbe73567bc5f7fd2b8bfefa409791855b01bfb27b01f6470e7c0301",
+    "web/web前端/ThreePlayerRuntime.js": "c718c914c7e7cb13da9996ff311c0d29a44f8717e1619a225ee87a3fe6c9845d",
+    "web/web前端/ThreePlayerSearchAI.js": "2765648725ffff6961083491af3a2f8297f6d819dea36c7a458557a6cf4f8f3f",
+    "web/web前端/ThreePlayerSearchOptions.js": "299e238d74acdcf6f86e5b4f7108a16393b8709439b7b8c3292197d512d39c87",
+    "web/web前端/TopologyGameEngine.js": "f8612cd6082bb385a5114b0057aa82e0238e2fbe5b5f55246daed783da65e673",
+    "web/web前端/TopologyStartingPoints.js": "d6bdd3b0f55a41ea75b1ebb6cd861b09421334cc17191f4b64f213addc09b380",
+    "web/web前端/TopologyStateCodec.js": "8a656a5cc4949bd442d710bc943c0c49e630388d1dad7b5e0cdbd7da09ee5fd2",
+    "web/web前端/TutorialRunner.js": "868d2bf4f002438428554836ce78eb1553bb59979bbb6185b9671a1c7674bf68",
+    "web/web前端/assets/research-ai/hex-player-policy-v1.json": "74aa7f945c3ea7ff5ca3edc9e7bdc431dc0ec5ad56d2563ce6d6d24c0494162b",
+    "web/web前端/assets/research-ai/hex-player-search-v5.json": "e19d45b26e5fb7e2783e392993622bede692838043a9cb4d5af91d170f8448b5",
+    "web/web前端/assets/research-ai/manifest.json": "a6148b97ffe2175d1f42fbff3f273f29899e4f7587840ff7734a2d04f0af2dfa",
+    "web/web前端/assets/research-ai/model-free-manifest.json": "4a2dc25e4d2c1a70823c5f6280355c5af5a0e751ebba96845530cb84d316be6c",
+    "web/web前端/assets/research-ai/multiplayer-v1/easy.json": "575f5cf1cf8c29210e4eb1e16845f09279ba8076d6a18474732b4659dd2b4e69",
+    "web/web前端/assets/research-ai/three-player-policy-v1.json": "8cd1a2f36267f96b1e32b7749a9cdc785f489ea7ec12e31aee0beb0a72901794",
+    "web/web前端/assets/research-ai/three-player-policy-v2.json": "00fc241c500dfd01ff85b5e2a4f1907cc5a9d8307d68bb78be64b0aad129f56e",
+    "web/web前端/assets/research-ai/three-player-search-v4-round12.json": "9b85f5fff27001d68407c30d6f707b461b1b468d657c8292339e97d23868c230",
+    "web/web前端/assets/research-ai/transfer-v1/manifest.json": "8c46031730fa746e2b1b5f091d5e140384619070fb36013bb650b8d026291e22",
+    "web/web前端/guide/Thanks.en.md": "50b18b925325236c289fde88b5b665d99751e4367931d3b6e935263e2464013a",
+    "web/web前端/guide/Thanks.md": "5e08ebdba3db8280cf941d66ac49db1c7b1aff0a1a8a8d6621f901d52c89fdc1",
+    "web/web前端/guide/guide-images/三人制衡.jpg": "f764ae3428ce942964729b2fd30850b46a96df2b70282af8652fd52c977a863e",
+    "web/web前端/guide/guide-images/三点限制.png": "481e28f13a32dac2ab8b91d320cf20ade246eb513d8f09c5eb047536bb7e0d13",
+    "web/web前端/guide/guide-images/切断1.png": "a02817f967e9b2dc2103c04fbc0fb1cbbd4630d574bdd3b61a8e6aba24cf2d1f",
+    "web/web前端/guide/guide-images/切断2.png": "9bc0d8f3c1b4acca5ac36a13f1d696a9c08971f0d308f2525ef35053bd08bbb9",
+    "web/web前端/guide/guide-images/可以走的区域png.png": "5085eeede1c51b2c79fd062d306f854b96259190e53d1850b89c9ebe2eab3b35",
+    "web/web前端/guide/guide-images/起点限制.png": "243f8eb898e011d08eadd9fa13d2f5f922c385d04e82a569a0ec36c787144a24",
+    "web/web前端/guide/rule/essential rule.md": "37c1dbd00c943e3a4a098ab29dbf5b9e807eb58f66fbe214e2e990926ebc30bc",
+    "web/web前端/guide/rule/war rule.md": "ed25734b0cdf899015b684aaafd874a46714d3cce6919630002cdbe95c0d711c",
+    "wechat/minigame/THIRD_PARTY_NOTICES.txt": "aa050304323db5d85b2d446d19a38688d4e853a5f76841f0298bcf83b098829e",
+    "wechat/minigame/compat/web/AIEngine.js": "a045f97283cf8fde30e99e8ac9511f6717d17123b86719e75daaa28b1daa668a",
+    "wechat/minigame/compat/web/GameEngine.js": "0b3e3f3d0a6253b625917f586330a1e30da366f27f119aacbaf1b499464b4ff5",
+    "wechat/minigame/compat/web/GuideTechnicalChapters.js": "a7392b2a4a547d1854445259a9a9dc74c46abb9bf993f4a2176d1adb51e2eecd",
+    "wechat/minigame/compat/web/HexFastSearchAI.js": "976a793d9d8e9dba557fdbe09f0deaee97a440d7922fd9014a4b2d45d81a39a6",
+    "wechat/minigame/compat/web/HexPlayerAI.js": "8063dcea72684d6cc009ce3a1158eba5d4d25c623ecfacd31fb7496542064448",
+    "wechat/minigame/compat/web/LocalAIModes.js": "c52c4d74a9cbc31a5df5496340b05085ec940636644d5adec3005e88fd3a0ebb",
+    "wechat/minigame/compat/web/LocalGameSession.js": "525f8bb84df14cbb8153635776327b5befdc0d57549ad31093dd60c51d9a5ceb",
+    "wechat/minigame/compat/web/ModelFreeAI.js": "5c3bc333358ea459edfbf8168e2772cfe39259d6e0545d3be497992ecee5cccd",
+    "wechat/minigame/compat/web/MultiplayerHardFallback.js": "7bf1b440cb22ebbdef15dc1e802464cad5cafb52eefa7707ca4d7be5fe0f213f",
+    "wechat/minigame/compat/web/MultiplayerHardResources.js": "5f045a8c12ab39c3e3c946899c384e4427f55571b8ded76151d09de5cb508f64",
+    "wechat/minigame/compat/web/MultiplayerHardRollout.js": "8b2be676e355d111ff17dc4bf6ebcc9da00deb9986e70cb38337985840de1cb1",
+    "wechat/minigame/compat/web/MultiplayerHardRuntime.js": "37b812a56d30a1b055835531294da0b8b5f69a277b7d4d223ff852ccc4508614",
+    "wechat/minigame/compat/web/MultiplayerModel.js": "6a100ff7db28c6a534b136de2b522fc999c4577262542075b9ba3f93dfe7e275",
+    "wechat/minigame/compat/web/MultiplayerNativeGeometry.js": "fc0a65a9c935d6922731e5f5ca983520cf8290de0d9b831b9ca05cffa65b13fe",
+    "wechat/minigame/compat/web/MultiplayerRollout.js": "ec3cbbad593cb816c2d39e54c110355c1ceee9da44f054392eef6281d6c2bdd7",
+    "wechat/minigame/compat/web/MultiplayerRuntime.js": "0764074869e12c140c2bfda0613704c532590271f81a5fbf0bac524558d9e967",
+    "wechat/minigame/compat/web/MultiplayerSearch.js": "b4ea1bf3b4c738b9ba9a914b00ca4e75a897cb566a0e940c90f525d1671e6056",
+    "wechat/minigame/compat/web/MultiplayerStandardDefense.js": "9ccad0c3e3ebf3f04c860def8dc5e2d450437335849ea2028d0b0f8f76345686",
+    "wechat/minigame/compat/web/MultiplayerUltimateAdmission.js": "e0f88b3a9aee9acdad500392aa3af8e8ce72861fa0183ef70ee3adb3aab5d7cd",
+    "wechat/minigame/compat/web/ReplayCodec.js": "e4f62e4061b5f42f3c22d75df139c93ca2d3b49a5598f6038d7928343362ce6d",
+    "wechat/minigame/compat/web/ResearchAI.js": "eb9d030c2b4138df5e39a88c4f8854140288262d8b0c864eab5ff3dc363b81b3",
+    "wechat/minigame/compat/web/StartingPoints.js": "084b7e4605b7d2352471b411764e8d437a9ea0b9743b9c7408fa0de1a80cca9e",
+    "wechat/minigame/compat/web/ThreePlayerAI.js": "bd6728a64b50759b7414d0e71c3b18f3af169c1d42f3770166a660659d588ab7",
+    "wechat/minigame/compat/web/ThreePlayerModels.js": "6de615e8a7de637b72a9cfedee1cbc57acb17b55507134b8985cfe34d47ea193",
+    "wechat/minigame/compat/web/ThreePlayerRuntime.js": "d75acd13fc1265ecdbe7ee029b5200e913e0f4ca0d7928aec21cbb342b801baa",
+    "wechat/minigame/compat/web/ThreePlayerSearchAI.js": "78f15a72a3b97590d551c56fe832e33dbfe10a059f29b834708515c099bd888d",
+    "wechat/minigame/compat/web/TutorialRunner.js": "868d2bf4f002438428554836ce78eb1553bb59979bbb6185b9671a1c7674bf68",
+    "wechat/minigame/compat/web/manifest.json": "f817648ec6cc8b20b89af6af4c9aac286499f2b377b9efcda4e231be5a51af8e",
+    "wechat/minigame/model-assets/dqn-all-sizes-e2000.bin": "16f50c330ad7cc239cfb0b2334538817c7c0d6cf4c01f6048b05c9ee4a9466eb",
+    "wechat/minigame/model-assets/gail-all-sizes.bin": "5951e4e3f057893275df6f44543f3747cd4275a616d52a5b8355e51760faea71",
+    "wechat/minigame/model-assets/gan-all-sizes.bin": "63629d0027afb8ff2fdbc3e773be420c062361b315741d8371e47818c4ec30e5",
+    "wechat/minigame/model-assets/grid-gnn-d14-s20260825-g200.bin": "92cc45bb2a3a6a56c896098c1e843a136587a9aaf07381fbf1d00ebb4fd02dfa",
+    "wechat/minigame/model-assets/grid-gnn-transfer-v1-seed2026092201.bin": "e0b82a1736521fb967afb7861ba1fcc697b505990d5b6391abb8318dbef42a0b",
+    "wechat/minigame/model-assets/grid-gnn-transfer-v1-seed2026092202.bin": "5db4b00462d8e30d2d293adf554da3e0e6b4cde6d40d3f82b590b23fa267000b",
+    "wechat/minigame/model-assets/grid-gnn-transfer-v1-seed2026092203.bin": "67079d1d6108732cddfeecf74840ae63505488af052e068ab1a83bf96c56bf87",
+    "wechat/minigame/model-assets/padded-cnn-d14-s20260825-g200.bin": "cea913f58d1694926fb6710ca355bf6d41e5a6c49b991af87b836ae26d43bf1f",
+    "wechat/minigame/model-assets/padded-cnn-transfer-v1-seed2026092201.bin": "416ee1a88f092ab514dd40c8a22604a761a20b223409eaaef64f61c691108242",
+    "wechat/minigame/model-assets/padded-cnn-transfer-v1-seed2026092202.bin": "cd36fdd3a96e78066475fb67056fa179bf7765028fbf9e4db7a172857b134af3",
+    "wechat/minigame/model-assets/padded-cnn-transfer-v1-seed2026092203.bin": "ee60f6d279941c78af999c6d051d514bf90f09b9478272d8557d482bb24dd07c",
+    "wechat/minigame/model-assets/ppo-all-sizes-e2000.bin": "af41359ca0ee00b3be86a2f5b9363a513af942f6cfa0c50f31cb0f252c86de85",
+    "wechat/minigame/model-assets/sac-all-sizes-e2000.bin": "63a1b80b456427a2545a31ff9af209fdde1f9cf8d41ae6984f36c09c116932bd",
+    "wechat/minigame/model-assets/topology-gnn-d14-s20260825-g200.bin": "de7f1a4c9c204d0f88598f5d7d92e180e291060b11cc711c8f9e786207cf34d0",
+    "wechat/minigame/model-assets/topology-gnn-transfer-v1-seed2026092201.bin": "0235947ee5a3eb6aa36627da06270e0854f3ece5c2b509d6a4f85d830a54f5ba",
+    "wechat/minigame/model-assets/topology-gnn-transfer-v1-seed2026092202.bin": "4c424c0f0ac19724d7fa51741d199bd780781d7063b325671fe9197f6b6abc9b",
+    "wechat/minigame/model-assets/topology-gnn-transfer-v1-seed2026092203.bin": "5a8f6f4ed6954c5dda131c16403f2f2c680edefffc050d19f2cab25850dcc84b",
+    "wechat/minigame/node_modules/@noble/hashes/_md.js": "60cf3010fda89e3e4d3f0e7ff1ce249e9c467f34b4fd41b6fd6101d9f69be763",
+    "wechat/minigame/node_modules/@noble/hashes/_u64.js": "b09da8c07fe8187c07649494cdb7cd0bcf13df90b506a9473d19e4d5f8c2e102",
+    "wechat/minigame/node_modules/@noble/hashes/sha2.js": "471746bba6ec4c6238ca41358d1d3b40b6ff31cf3363f0b4d550c649c1a8e83b",
+    "wechat/minigame/node_modules/@noble/hashes/utils.js": "037ad49adb78168b6b699598fd33f85f7877456b1d28b4d032e2a1a16807947c",
+    "wechat/minigame/src/account-ui.js": "affa89181416e3c84ff68f2091910c11130af9659fd9a44b10203b1b09ffa24e",
+    "wechat/minigame/src/analysis-options.js": "e48e209e7b98a132f3703bd7ce095615229090271b78364d21fea82262af5f04",
+    "wechat/minigame/src/app.js": "bd1ac6f3994ca468f93beaa77afeadd16744a66fd1449e883c44c0b810c031e2",
+    "wechat/minigame/src/avatar-platform.js": "e269984019a89273f17b4e05fb1f0717d80929be362f037c50b6623c753443b2",
+    "wechat/minigame/src/board.js": "6a678e7b2ef8b3b4c8382710d2daeb9a45108c9737ae214725ccb325a6185e9b",
+    "wechat/minigame/src/cabins-ui.js": "e2cedd2573c4bf5de58e660723afeaea1e84c62bf2429da7c84138f64f6038c5",
+    "wechat/minigame/src/contribution-transport.js": "0e5a7c8a4ad12579eff478b952858b50bf4455786fa29d39b34e63fe667355f5",
+    "wechat/minigame/src/controllers.js": "86d44992e2f6eaa3beeb4677891f5e2ae97c67ea166a5834d99ec4010fc01b3e",
+    "wechat/minigame/src/core.js": "edda22ec518d4ac08033d0e358e331e5db73e0b10d8f50f0a2a705dfa292a50a",
+    "wechat/minigame/src/display.js": "8fda724ab7499024cdc2874cb1d73b78a6af99cfb964810f69c08cfd2a55ead6",
+    "wechat/minigame/src/game.js": "1f8c10fcc04dde03e54f5ea01af89360116ab7b60ef69726953278297a71bf91",
+    "wechat/minigame/src/guide-assets.js": "830f3ddf2f92d5eb3f98dcb57cddc753d86dca7694d15ec965edb4197acff8d7",
+    "wechat/minigame/src/guide-content.js": "01d426c056d38098d206515a51dc60d6c234ddb6ab2d00212f953c37e77a8401",
+    "wechat/minigame/src/help-content.js": "2870ab9e2e863f0e47ab4a12039e63cd46e385dd9c5babba6df596bda4135ea5",
+    "wechat/minigame/src/help-ui.js": "2ce1358907039bae15c66ab1271b133f8069c2e4fa4f446878c8fe7af3cb410d",
+    "wechat/minigame/src/hex-player-ai.js": "5cf2b485c703b3a30b2e50aa25b205084868ed7391410cdfb5db307f57829766",
+    "wechat/minigame/src/i18n.js": "1b77e95da6aa5a72a84a624697983465c97734cc70b20b9f4cc146ba7ad45781",
+    "wechat/minigame/src/input.js": "8a475a9e422dab84c2c69b03c6bfc77c84af4de939527cb8f804b279009b8419",
+    "wechat/minigame/src/integrity.js": "d7d3677f64bf46796612b7f73174b45edb9a13d78a917e868dc613b5e1f98869",
+    "wechat/minigame/src/ladder.js": "b47913d22075c0cc9d8fc964759700aa3ceece01e81d2563cd9bc5f82b41eb3c",
+    "wechat/minigame/src/latest-moves.js": "f452d6f0354ca4d29e3c402b79109accfc5dd8eb07daab72e9ebb9194365a1c3",
+    "wechat/minigame/src/library.js": "8d709920004f773677f04c99a1a0cff463240d76be40ce48d6b215dd2dde07c4",
+    "wechat/minigame/src/model-assets.js": "ccfbcde022a928e50ebe986cbb0f407c131afe68927849f4aa3c721ef796086a",
+    "wechat/minigame/src/model-catalog.js": "e0a93c82c04637853b3c0110ab2c483741b6420d229b9ce8d2012e8855e0d91d",
+    "wechat/minigame/src/multiplayer-ai.js": "ee5772cbb78116dc62cb08c6281eee38898709131e63f4b13cec18a6226c348f",
+    "wechat/minigame/src/online-consent.js": "1e98481c00d51ef35a24222b62a45513ae845fec93f05b6c0741b4e5e26446d8",
+    "wechat/minigame/src/online.js": "3ed83da5981aa9b41192dad534f2a486ee1d7beb36d874eadb377244028bdfc0",
+    "wechat/minigame/src/platform.js": "42cb1d0f87361476306e3493b196c3ee9c65951df12df9f714a786f42c953891",
+    "wechat/minigame/src/play-options.js": "954fb3b30ca7794e9f99c54780c2453a8f7444a15330184549c887309ead9763",
+    "wechat/minigame/src/preferences.js": "df43dc889788cf75060e1b1665835d83fd622668f6c1e5569404ceed350bf59f",
+    "wechat/minigame/src/profile-cache.js": "845caba81a6884b5bc82365e6c841e5b4cc78471ce45c73c8ac6ec01bcf616b0",
+    "wechat/minigame/src/ranked-setup.js": "c4e5304ea9fcd554997faa802805df6e27669809a06158e0c20c0462c55118cf",
+    "wechat/minigame/src/reader-cache.js": "039b2e5f3b1d99cf709230e926567f57cc3d476b72e8a1b9daf06d4363c8abdc",
+    "wechat/minigame/src/replay-ui.js": "f6e6afc3608d66e354ae507b02c3a7e1e10cbb4c3021ae6d10cbeb1acda4b948",
+    "wechat/minigame/src/scheduler.js": "d09dfc804579c660fbd3f4803b10277faa7b4eb6c10c72acf63cd3b715f1e5b8",
+    "wechat/minigame/src/screens.js": "291bf588b9ef288049075440254164b30a8eeac5c51f6940f6e91f246338ce64",
+    "wechat/minigame/src/session.js": "3beb01149e337140265a4d335a531afff3a19dcd2f13720fb20fe4727540502a",
+    "wechat/minigame/src/state.js": "2ea1aaf1a93dd8dd907406b4c84856cad59179a51a538bc3c3409096bf468936",
+    "wechat/minigame/src/storage.js": "e5b83e3fe690f2ad73275385a48afbca9d88c1b5d68c1d14d543c91d02208fb7",
+    "wechat/minigame/src/three-player-ai.js": "6a72b4f0becacc6502c72feb4f17ff0574a26059b3014c96d224950e5c388a37",
+    "wechat/minigame/src/topology-board.js": "48a509329e8aadd02d19d9b6fdc9952ac56c35541c8cb670731f3bd12a1e0614",
+    "wechat/minigame/src/topology-setup.js": "98cc125258262d3f1e70eb9f595733250a108c856b115682c0a6996e28e98d57",
+    "wechat/minigame/src/topology-software-surface.js": "c27405a6c008967bf5087c878c6d4c07fc6dc6322e298fcdb229d8596a3c7a23",
+    "wechat/minigame/src/topology/BoardCompiler.js": "bd4c6caf171bb8b29138753f3d3347c88d82d54b9b3522f1439996134a47d6ec",
+    "wechat/minigame/src/topology/BoardDefinition.js": "eafc6c104897a85fb16ad8db0453895478e02fa55d4d0956f6403349439784ab",
+    "wechat/minigame/src/topology/BoardEditor.js": "949a233d6fea3642c3eacef16a194e3e639e15ae227f7feb0e2a8075216a10ef",
+    "wechat/minigame/src/topology/BoardPathProjection.js": "df421046829e47b7e12a762f25f1489cecb84e1005c960412dc857c2ebd8b075",
+    "wechat/minigame/src/topology/BoardPaths.js": "db42c799448ec2b08b7307084762d2c99195927a9c2c1affbb6e8ba38d268729",
+    "wechat/minigame/src/topology/BoardPresets.js": "b8703a164b77e0c5d5ff8e9597c2bccd456b2aa2e2ad6650eead121f214c0cd6",
+    "wechat/minigame/src/topology/BoardTopology.js": "5a2daa0052cfdf9bfaf0584b08fdb7639b76b3f41d1f7f97ce980b76408b42ad",
+    "wechat/minigame/src/topology/BoardView.js": "2e4b2bde6bf34334538d1282e599bfe194d19f6da679a9f6321cfbdeb54c9de4",
+    "wechat/minigame/src/topology/EncirclementFeatures.js": "dc2d49def6970a39fd0adb6a9b84602639b5dd1bb004b510889e4f87c5432b30",
+    "wechat/minigame/src/topology/GameEngine.js": "e708ca8bc9d7cd2bac3b926819598cc38ab9b922acb97742fd8d25e346270c08",
+    "wechat/minigame/src/topology/PortableClone.js": "310b384f34795b3d0626a7019fbc83ff2557e4deb0c5e52ae414625e3d68e3c7",
+    "wechat/minigame/src/topology/PortableUtf8.js": "ff4b816b9557d5fc5e0da4f8b4bb06da9e2686a1daf7247f9c2deb7011a563a1",
+    "wechat/minigame/src/topology/RandomBoard.js": "3e27d4f0ed9710bfc107db196fafbb6fe9ccb426bf0ce17e1edf523eb792170d",
+    "wechat/minigame/src/topology/RandomSurfaceBoard.js": "fd22306f67ccddaf9c6e85560f4deaeb182a494926b880858bfea98e0247b313",
+    "wechat/minigame/src/topology/RootStability.js": "6e392298fb64d63ed2ecd5863009a282787a5af0a8977bb226264dec38f7fc8d",
+    "wechat/minigame/src/topology/SurfaceTerritory.js": "7ee91ee7e06142f1caab3b7c4188af96b84059170cb3ab5c7e7d2620b61b5f3d",
+    "wechat/minigame/src/topology/TerritoryDisplay.js": "b57f5826cecdfba18db103d3b9002a1c2f6b95ddab104253999142b6297680d3",
+    "wechat/minigame/src/topology/TopologyAIAdapter.js": "658067745d437533c5554dea96ad3bcc9d614a1f2723a297848679d4a68df646",
+    "wechat/minigame/src/topology/TopologyAlgebra.js": "1bea8d2c0b3e11cd601ce4cb90bd14543e5d42f672e7acda642750ab38046634",
+    "wechat/minigame/src/topology/TopologyGameEngine.js": "62c45c11a63d6ee8002f33e261009dd9bc3ac969da3c651ceebe3b4eb9bd5a5d",
+    "wechat/minigame/src/topology/TopologySearchAI.js": "d753083734391472f3f9dc279ca00923a426e10d3c49db7004e7ac87eb7e0c79",
+    "wechat/minigame/src/topology/TopologyStartingPoints.js": "ff8e335748f15d7fa4ec481f63dd6acac86e66b94f0e89b326f446e0dabfbe85",
+    "wechat/minigame/src/topology/TopologyStateCodec.js": "675a17ec18c339fc05463b41340c2f64f0e9615c514a1703be3852059b68fb5a",
+    "wechat/minigame/src/topology/TopologySurface3D.js": "8a577db62792723fd6cee7816cc69f090447a9fb98a1fee84a11961aab77bf8b",
+    "wechat/minigame/src/topology/TopologyTutorial.js": "8547fe12700b275b698dad7c224d0c6e01bef04ab2d550d347383bac5bcc04a5",
+    "wechat/minigame/src/training-contribution.js": "cb3764c74f6b120b8e68a90055252b2c9f7fccabf8f7a8c7d2fd8de06e78228f",
+    "wechat/minigame/src/turn-clock.js": "4a13ef25050357aac5b3700150893a858227c29572872f95dd0aed53b235e4ce",
+    "wechat/minigame/src/user-info-platform.js": "dce904f96f62394c1d049c01518c2ead24df73e6e901bdbba02e0d8a911044ae",
+    "wechat/minigame/src/worker-pass.js": "7e8520affa1e07f2baa5f23f5c00f4d23c72b8b3dc42083c8d941cff0d2a7e0f",
+    "wechat/minigame/src/worker-runtime.js": "c79871a8b9a90d523cbbedf1b4d5a193a5035d78471a34ceacc53dcb78efa2b7",
+    "wechat/minigame/src/workers/index.js": "24e8740dffae5f8defd537c5ec36e65f2ed88ce438e92cf4d00f98bb064a8b2b",
+    "wechat/minigame/tools/web-compat.mjs": "24eba2d8ee12f8592519114ad694db4c08ab7513095f213f59df5a9e46806125",
+    "wechat/minigame/game.json": "02b60661390a75feb4b027d8ad349988564fc9d4c760338b7e66670bd31ae810",
+    "wechat/minigame/project.config.json": "72ca753fedb4381a38d428d09edba12eb80105fd9c38f010382b1691177b4357",
+    "wechat/minigame/config.example.json": "a87b0f2cb654d7bb64d495d70909421fcf50a1060086938b93f655bdedc0dc57",
+    "wechat/minigame/package.json": "72d5c57e9c878905965100b170801a981f331d626087a21690f1aca3ab1d563b",
+    "wechat/minigame/package-lock.json": "c3da647c08ad2e11aec3210e4b696d4b7c561759e1e597ed22d75a98f64915c0",
+    "wechat/minigame/tools/build.mjs": "94078ae2b643ba0d8b8e1278d7647ec1124985d539e2ebb4a06f8891f1f8c138",
+    "wechat/minigame/tools/client-config.mjs": "5d8d8ecc31cefc35c4f96f8c7166110732542ecf32883168224f1b8f4a229f8f",
+    "wechat/minigame/tools/prepare-candidate.mjs": "646e7c747fc04864a32e45a03634109c74e83b46737090da1ea1f8ebb7f3409b",
+    "wechat/minigame/tools/model-packaging.mjs": "83eed9da5764f9e892c7729e9b426fe8730aac198de648abbcd8bc001425d1d6",
+    "wechat/minigame/tools/stage-models.mjs": "e736dd577ad604e6362b326b80fdbac4c15a9c5ba77f86b5f51b8b3b9264680b"
+  },
+  "reproducibility": "Fresh isolated rebuild matches every existing dist file, including 17 verified model assets, byte for byte; test evidence is bound separately",
+  "runtime": {
+    "node": "v22.22.3",
+    "platform": "win32",
+    "arch": "x64"
+  },
+  "terminalAdmission": {
+    "schema": "lifeline-terminal-release-admission-v4",
+    "status": "PASS_TERMINAL_RELEASE_ADMISSION_V4",
+    "verifier_sha256": "41fd154c0e901b2bb522b3cd6b8fcf73f2bc3e9154596cba3d955a6b21bb1363",
+    "policy_data_sha256": "422bdec5bf500d54036a4afb9b16e5501c20f4f2880cc20f87706ccf5023a1db",
+    "admission_report_sha256": "c49570f4a3d0a6c35d02049f0aeec74f1b43aa240e983c06983f4d424c8f0f11",
+    "candidate_hashes": {
+      "easy": "698429df7e40b7550afca3fec044b6c31eff4059dcfe438bfbc6abbf674c3b3a",
+      "three-v4": "c5795f61b1127475b34f04f9288723ec4de7a4a704241a1515437fac7287829a",
+      "three-v1": "aafb3d36704093d1ea2c98a2944e49b7d96792697f40d1a5ea88ef3136846a68",
+      "hex-v1": "a536966b8927a3c3badd5df5e63801b27329cb683a238af8b926661b5ccc8ce7"
+    },
+    "runtime_parameters_sha256": {
+      "easy": "5d0952b2662d8c3c402ad40496df1ac593356f9cf9c5d1bdb50a02f0ee6264f6",
+      "three-v4": "854f13ea07af31857e45f7f9a4f2a40ceb964f840385318d409eac48797d12fb",
+      "three-v1": "ab1d7589d1a4eb4d44e66ab5d92367086c68290d6f9faf2d8427a2da86db9ad6",
+      "hex-v1": "b3decf1cae60ce6259ae9d7fe6a503a8a45617298d0d1381ff8892d6bf3fd890"
+    },
+    "training_identity": "3ff84e2e1458681404064611007901864b22423e09dc16d44aa6c4528adeeb59",
+    "training_completion_sha256": "ce5896dea2421c9b1ec190866233c6d7a344fcd0358479ea53efd53389fdb552",
+    "fresh_natural_games": 34,
+    "independent_layout_blocks": 8,
+    "scenario_cases": 135,
+    "strength_verified": false,
+    "global_runtime_admission": false,
+    "scope": "Four terminal-trained native linear parents in the stated four complete-game cells; shared PASS scenarios across explicit strategies/2–15 players. Size 9 is snapshot-only. Existing neural weights unchanged.",
+    "summary_sha256": "88d629a47520d77ec28ea0408fd0802d6beb3971616cf65a1e48bc8701006016"
+  },
+  "uploadDescription": "生命线策略棋：修复拓扑棋盘与3D、随机/多起点、领土显示、头像滚动，并扩展棋谱上传。",
+  "acceptance": {
+    "nativeCandidateImport": "NOT_RUN",
+    "physicalDevice": "NOT_RUN",
+    "accountPermissions": "NOT_VERIFIED",
+    "serviceConnectivity": "NOT_VERIFIED",
+    "actualWechatLogin": "NOT_RUN",
+    "crossPlatformDeviceMatch": "NOT_RUN",
+    "upload": "NOT_RUN",
+    "publication": "NOT_RUN"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "status": "ATOMIC_SWITCH_OK",
+  "release_id": "web-topology-fix-20261030-r2",
+  "commit": "b00c48364779cd738bd67e5391e9bbd43d58e262",
+  "overlay_files": 167,
+  "archive_sha256": "5937a97332d4f4e84b1c3239ade4d7ddcd15ff9c6934c955592a48f70464d8af",
+  "live_tree_sha256": "3774e36b308059ea980c026610c54716a86851d3ca12e87fbf3f8ef9ad838e83",
+  "candidate_tree_sha256": "4b701762e6bea83ffb2733f117552c39dfac2072502bdd343902874af22c7277",
+  "time_utc_epoch": 1793296150.5643735,
+  "rollback": "/home/ubuntu/line-game/.deploy-artifacts/web-topology-fix-20261030-r2.rollback-web前端",
+  "active_tree_sha256": "4b701762e6bea83ffb2733f117552c39dfac2072502bdd343902874af22c7277",
+  "rollback_tree_sha256": "3774e36b308059ea980c026610c54716a86851d3ca12e87fbf3f8ef9ad838e83"
+}

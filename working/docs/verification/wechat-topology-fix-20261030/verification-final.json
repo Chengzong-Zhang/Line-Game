@@ -1,0 +1,95 @@
+{
+  "status": "PASS_FINAL_SOURCE_AND_PACKAGE_CHECKS",
+  "runtimeSourceCommit": "ea651f7f2d4bf4995541662fd0465da67da77a6d",
+  "node": "v22.22.3",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "testRuns": [
+    {
+      "command": "node --test --test-timeout=180000 wechat/minigame/tests/*.test.mjs",
+      "status": "PARALLEL_FAILURES_PRESERVED",
+      "logSha256": "b41b394206a8903ed79557c7ab5aa4fb163c49f339f2d66ab1a944a9f56bd68b",
+      "tests": 672,
+      "pass": 669,
+      "fail": 3,
+      "skipped": 0
+    },
+    {
+      "command": "node --test --test-concurrency=1 --test-timeout=180000 wechat/minigame/tests/*.test.mjs",
+      "status": "PASS",
+      "logSha256": "a553c5d4bb49c543a031042e8db6e3e49ebaab6abddd6213f3ed1e7d14b36830",
+      "tests": 672,
+      "pass": 672,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "command": "node --test wechat/minigame/tests/pass-discipline-v3.test.mjs",
+      "status": "PASS",
+      "logSha256": "55cdb5f15528dcd559c2e2981eaa2a820c08a31bb6e8074df8b8106ac9adf094",
+      "tests": 10,
+      "pass": 10,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "command": "node --test web/web前端/tests/verify-topology-branch-triangle.mjs web/web前端/tests/verify-product-surface-presets.mjs web/web前端/tests/verify-topology-round3-territory.mjs web/web前端/tests/verify-topology-round4-territory.mjs web/web前端/tests/verify-topology-surface-visual-v1.mjs",
+      "status": "PASS",
+      "logSha256": "4be6c431b5637c44a30de55e40679e0b700c3e9d2e8594148130ca9c7c14e73c",
+      "tests": 5,
+      "pass": 5,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "command": "node --test wechat/ci/tests/*.test.mjs",
+      "status": "PASS",
+      "logSha256": "e710c4d603d5507f750ebb3fef80764a4f0315935e36cd4795a2855286fe15d7",
+      "tests": 10,
+      "pass": 10,
+      "fail": 0,
+      "skipped": 0
+    }
+  ],
+  "pythonTests": {
+    "command": "C:/Users/zcz/anaconda3/python.exe -m pytest web/tests/test_training_contributions.py web/tests/test_training_contributions_v2.py web/tests/test_training_contributions_v3.py web/tests/test_training_contributions_v4_store.py web/tests/test_unified_release_transactions.py web/tests/test_frontend_release_packaging.py -q",
+    "passed": 36,
+    "failed": 0,
+    "exitCode": 0,
+    "warnings": 1
+  },
+  "candidates": [
+    {
+      "candidateId": "0.13.1-6f457529e661-6ELmE9",
+      "profile": "online",
+      "receiptSha256": "45ed7f0e4ed30e0ffa8ab2f013e825e0f813081772912295ed6bc081706b1bc4",
+      "version": "0.13.1",
+      "packageBytes": 20523422,
+      "mainPackageBytes": 2369606,
+      "files": 35,
+      "sourceFiles": 213,
+      "sourceHashesVerified": true,
+      "externalSourcePaths": 0
+    },
+    {
+      "candidateId": "0.13.1-4c8fcda07012-Ce0syE",
+      "profile": "offline",
+      "receiptSha256": "13af3c74407765f1859cf79ad56bd74b0e086c29b58c6bf733cf37244f818d79",
+      "version": "0.13.1",
+      "packageBytes": 20523377,
+      "mainPackageBytes": 2369561,
+      "files": 35,
+      "sourceFiles": 213,
+      "sourceHashesVerified": true,
+      "externalSourcePaths": 0
+    }
+  ],
+  "httpSourceHashesStillMatch": true,
+  "parallelFailureDispositions": [
+    "Diamond contribution assertion updated for the user-requested v4 support; full UI and HTTP behavior verified.",
+    "Missing published ultimate model restored byte-for-byte against its existing manifest; no model training or promotion.",
+    "Unchanged 8ms product PASS precheck failed under parallel test load; isolated 10/10 and all-suite serial 672/672 passed. Parallel failure remains recorded."
+  ],
+  "deviceVerified": false,
+  "browserAcceptanceVerified": false,
+  "githubPushed": false
+}

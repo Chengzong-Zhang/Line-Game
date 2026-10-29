@@ -1,0 +1,8 @@
+{
+  "status": "COLLECTOR_LIMIT_UPDATED_AND_NGINX_RELOADED",
+  "beforeSha256": "1dc16ab841b9c51ea8432c5fcc4aeb7b0fc7542dad06eecaf2eb072367339286",
+  "afterSha256": "c24743e9efdf0f0f1437ab3a9d414d6c39d8f7fb88d1743816acd360f4d50406",
+  "route": "/api/training/",
+  "previousLimitBytes": 524288,
+  "limitBytes": 2097152
+}
