@@ -1,3 +1,8 @@
+import { canonicalTerminalWinningPass } from './worker-pass.js';
+import { applyPassDiscipline } from '../../../web/web前端/AIPassDisciplineV4.js';
+import { BudgetedMinimaxAI } from '../../../web/web前端/BudgetedMinimaxAI.js';
+import { multiplayerClock } from '../../../web/web前端/MultiplayerClock.js';
+import { searchTopologyMoves } from './topology/TopologySearchAI.js';
 import { GreedyAI, MinimaxAI, createReplayDocument, validateReplayDocument, buildEventEffects,
   TOPOLOGY_AI_ROUTE, TOPOLOGY_AI_ADAPTER_VERSION, buildTopologyAIState,
   rankTopologyCandidates, validateTopologyAIRequest } from './core.js';
@@ -28,16 +33,23 @@ function assertLiveTopologyContext(message, engine) {
   }
 }
 
-function neutralTopologyEffects(snapshot) {
+function topologyReplayEffects(before, after) {
+  const players = before.players || [];
   return {
-    addedEdgesByPlayer: Object.fromEntries((snapshot.players || []).map(player => [player, []])),
-    capturedPoints: [],
-    territoryDelta: Object.fromEntries((snapshot.players || []).map(player => [player, 0])),
-    gameEnded: Boolean(snapshot.gameOver),
+    addedEdgesByPlayer: Object.fromEntries(players.map(player => {
+      const previous = new Set(before.edges?.[player] || []);
+      return [player, (after.edges?.[player] || []).filter(edge => !previous.has(edge))];
+    })),
+    capturedPoints: Object.entries(before.boardStates || {})
+      .filter(([id, state]) => Number.isInteger(state) && state > 0 && state <= 11 && state % 2 === 1 && after.boardStates?.[id] !== state)
+      .map(([id]) => id),
+    territoryDelta: Object.fromEntries(players.map(player => [player,
+      Number(after.territories?.[player]?.area || 0) - Number(before.territories?.[player]?.area || 0)])),
+    gameEnded: Boolean(after.gameOver && !before.gameOver),
   };
 }
 
-function topologyAI(engine, message, payload, kind, before) {
+function topologyAI(engine, message, payload, kind, before, requestStarted) {
   const profile = payload.profile ?? TOPOLOGY_GENERIC_PROFILE;
   if (profile !== TOPOLOGY_GENERIC_PROFILE) throw new Error('TOPOLOGY_FIXED_SHAPE_PROFILE_UNSUPPORTED');
   if (payload.model != null) throw new Error('TOPOLOGY_MODEL_UNSUPPORTED');
@@ -74,13 +86,15 @@ function topologyAI(engine, message, payload, kind, before) {
     currentPlayer: engine.currentPlayer,
   });
   if (!validation.ok) throw new Error(`INVALID_TOPOLOGY_AI_REQUEST:${validation.errors.map(error => error.code).join(',')}`);
-  const anchors = engine._getPlayerNodes(engine.currentPlayer);
-  const candidates = rankTopologyCandidates(engine.compiledBoard,
-    legalMoveIds.length ? legalMoveIds : [TOPOLOGY_AI_PASS], { anchorVertexIds: anchors });
-  const count = kind === 'ANALYZE' ? 3 : 1;
-  const moves = candidates.slice(0, count).map((candidate, index) => candidate.vertexId === TOPOLOGY_AI_PASS
-    ? { type: 'skip', score: -index }
-    : { type: 'move', vertexId: candidate.vertexId, score: -index });
+  const timeLimitMs = Math.max(25, Math.min(5000, Number(payload.timeLimitMs) || 3000));
+  const { moves: searchedMoves, searchInfo } = searchTopologyMoves(engine, {
+    aiPlayer: engine.currentPlayer, topN: kind === 'ANALYZE' ? 3 : 1,
+    maxDepth: payload.depth ?? Math.max(3, 2 * engine._getRemainingPlayers().length),
+    timeLimitMs, deadline: requestStarted + timeLimitMs,
+  });
+  const moves = searchedMoves.map(move => move.type === 'pass'
+    ? { type: 'skip', score: move.score }
+    : { type: 'move', vertexId: move.vertexId, score: move.score });
   if (ruleView(engine).stateHash !== before.stateHash) throw new Error('SEARCH_MUTATED_STATE');
   return {
     moves,
@@ -91,12 +105,15 @@ function topologyAI(engine, message, payload, kind, before) {
     boardHash: engine.boardHash,
     positionRevision: engine.positionRevision,
     topologyProtocolVersion: TOPOLOGY_PROTOCOL_VERSION,
+    searchInfo,
     modelInfo: { id: TOPOLOGY_AI_ROUTE, route: TOPOLOGY_AI_ROUTE, strengthVerified: false },
   };
 }
 
 function runTask(message, restore = restoreGame, recordAction = () => {}) {
   const { kind, payload } = message;
+  const requestStarted = ['AI', 'HINT', 'ANALYZE'].includes(kind) && payload.settings?.rulesVersion === 'surface-v1'
+    ? (globalThis.performance?.now?.() ?? Date.now()) : null;
   if (kind === 'REPLAY_STEP') {
     const { settings, actions, cursor } = payload;
     if (!Array.isArray(actions) || actions.length > MAX_ACTIONS || !Number.isInteger(cursor)
@@ -113,7 +130,7 @@ function runTask(message, restore = restoreGame, recordAction = () => {}) {
     return { cursor, actor, action, stateHash: after.stateHash, snapshot: after.snapshot,
       ...(after.topologyState ? { topologyState: after.topologyState, boardHash: after.boardHash,
         topologyProtocolVersion: after.topologyProtocolVersion } : {}),
-      effects: engine.isTopologyBoard ? neutralTopologyEffects(after.snapshot)
+      effects: engine.isTopologyBoard ? topologyReplayEffects(before.snapshot, after.snapshot)
         : buildEventEffects(before.ruleState, before.snapshot, after.ruleState, after.snapshot) };
   }
   if (kind === 'IMPORT_REPLAY') {
@@ -129,6 +146,10 @@ function runTask(message, restore = restoreGame, recordAction = () => {}) {
       return { settings: result.settings, actions: result.actions, ...ruleView(engine) };
     });
   }
+  const hardStartedAt = ['AI', 'HINT', 'ANALYZE'].includes(kind) && payload.profile === 'minimax-4'
+    && payload.settings?.boardShape !== 'diamond'
+    ? multiplayerClock.now() : null;
+  const hardDeadline = hardStartedAt === null ? null : hardStartedAt + 3000;
   const engine = restore(payload.settings, payload.actions);
   if (kind === 'EXPORT_REPLAY') return engine.isTopologyBoard
     ? createTopologyReplayDocument(payload.settings, payload.actions)
@@ -150,9 +171,10 @@ function runTask(message, restore = restoreGame, recordAction = () => {}) {
     const before = ruleView(engine);
     if (engine.isTopologyBoard) {
       assertLiveTopologyContext(message, engine);
-      return topologyAI(engine, message, payload, kind, before);
+      return topologyAI(engine, message, payload, kind, before, requestStarted);
     }
-    const profile = payload.profile || (payload.difficulty === 'easy' ? 'greedy' : 'minimax-2');
+    const profile = payload.profile || ({ easy: 'greedy', normal: 'minimax-2', simple: 'minimax-2',
+      medium: 'minimax-3', hard: 'minimax-4' })[payload.difficulty] || 'minimax-2';
     if (!controllerChoices(engine).includes(profile) || profile === 'human') throw new Error('INVALID_CONTROLLERS');
     const tier = isMultiplayerTierProfile(profile);
     const embedded = multiplayerModelForProfile(profile), threePlayer = embedded?.playerCounts.includes(3), hexPlayer = embedded?.playerCounts.includes(4);
@@ -162,12 +184,31 @@ function runTask(message, restore = restoreGame, recordAction = () => {}) {
     const entry = modelForProfile(profile);
     if (!entry && payload.model != null) throw new Error('MODEL_INTEGRITY');
     const rank = (algorithm, modelInfo = null) => {
-      const moves = algorithm.getTopMoves(engine, engine.currentPlayer, kind === 'ANALYZE' ? 3 : 1);
+      // Preserve the released v2 terminal-win contract; v3 uses its scoped
+      // safe-growth discipline below. Model validation has already completed.
+      const legacyPass = engine.rulesVersion === 'territory-v2' ? canonicalTerminalWinningPass(engine, engine.currentPlayer) : null;
+      if (legacyPass) return { moves: [legacyPass], stateHash: before.stateHash, player: engine.currentPlayer,
+        ...(kind === 'ANALYZE' ? { profile, metric: 'heuristic' } : {}) };
+      const requested = kind === 'ANALYZE' ? 3 : 1;
+      const ranked = algorithm.getTopMoves(engine, engine.currentPlayer, Math.max(5, requested),
+        hardStartedAt !== null ? { startedAt: hardStartedAt, deadline: hardDeadline }
+          : tier ? { passDisciplinePrechecked: true } : undefined);
+      if (ruleView(engine).stateHash !== before.stateHash) throw new Error('SEARCH_MUTATED_STATE');
+      const disciplined = applyPassDiscipline(engine, ranked, { player: engine.currentPlayer, topN: requested,
+        ...(hardStartedAt === null ? {} : { timeMs: Math.max(0, hardDeadline - multiplayerClock.now()), now: multiplayerClock.now }) });
+      const moves = disciplined.moves;
       if (ruleView(engine).stateHash !== before.stateHash) throw new Error('SEARCH_MUTATED_STATE');
       const metric = tier && algorithm.lastSearch?.algorithm === 'trained-linear-policy' ? 'policy-score'
         : embedded ? embedded.metric : entry ? entry.research ? 'puct' : 'prior' : 'heuristic';
+      const hardElapsedMs = hardStartedAt === null ? null : multiplayerClock.now() - hardStartedAt;
       return { moves, stateHash: before.stateHash, player: engine.currentPlayer,
-        ...(tier ? { profile, modelInfo, search: algorithm.lastSearch } : {}),
+        passDiscipline: disciplined.receipt,
+        ...(modelInfo ? { modelInfo } : {}),
+        ...(tier || profile.startsWith('minimax-')
+          ? { profile, ...(tier ? { modelInfo } : {}),
+            search: { ...(algorithm.lastSearch || {}), passDiscipline: disciplined.receipt,
+              ...(hardElapsedMs === null ? {} : { totalElapsedMs: hardElapsedMs,
+                totalOverrunMs: Math.max(0, hardElapsedMs - 3000), trainingLabel: false }) } } : {}),
         ...(kind === 'ANALYZE' ? { profile, metric } : {}) };
     };
     // The new tiers include several player counts, so route them before the
@@ -175,10 +216,10 @@ function runTask(message, restore = restoreGame, recordAction = () => {}) {
     if (tier) return createEmbeddedMultiplayerRuntime(profile, engine).then(runtime => rank(runtime.ai, runtime.modelInfo));
     // Hex model validation is asynchronous, including on the Web. Existing 2/3
     // player tasks retain their synchronous response path and ranking semantics.
-    if (hexPlayer) return createEmbeddedHexPlayerAI(profile).then(rank);
+    if (hexPlayer) return createEmbeddedHexPlayerAI(profile, engine.rulesVersion).then(rank);
     let algorithm;
     if (threePlayer) {
-      algorithm = createEmbeddedThreePlayerAI(profile);
+      algorithm = createEmbeddedThreePlayerAI(profile, engine.rulesVersion);
     } else if (entry) {
       if (payload.model?.id !== entry.id) throw new Error('MODEL_INTEGRITY');
       const bytes = checkedModelBytes(entry, payload.model.raw);
@@ -186,8 +227,12 @@ function runTask(message, restore = restoreGame, recordAction = () => {}) {
       const raw = new Uint8Array(bytes).buffer;
       algorithm = entry.research ? new NeuralPUCTAI(createResearchModel(entry.spec, raw), { simulations: 16, cPuct: 1.5 })
         : new ModelFreeAI(createModelFreeModel(entry.spec, raw));
-    } else algorithm = profile === 'greedy' ? new GreedyAI() : new MinimaxAI(Number(profile.slice(-1)));
-    return rank(algorithm);
+    } else algorithm = profile === 'greedy' ? new GreedyAI()
+      : profile === 'minimax-4' && engine.boardShape !== 'diamond'
+        ? new BudgetedMinimaxAI({ timeMs: 3000, reserveMs: 200, maxDepth: 8, now: multiplayerClock.now })
+        : new MinimaxAI(Number(profile.slice(-1)), { iterativeDeepening: profile === 'minimax-4' });
+    return rank(algorithm, profile === 'greedy'
+      ? { strategy: 'greedy', runtime_policy: 'generic-rule-greedy', trained_model: false } : null);
   }
   throw new Error('UNKNOWN_TASK');
 }

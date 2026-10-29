@@ -23,11 +23,11 @@ test('native paged AI picker selects the last new tier, then starts a real AI tu
     const h = uiHarness({ language, platformOverrides: { choose } });
     try {
       await until(() => h.app.session.canPlay());
-      await h.tap('cabin-board'); await h.slide('player-count', 3, 2, 6);
+      await h.tap('cabin-board'); await h.slide('player-count', 3, 2, 15);
       await h.slide('board-size', 5, 5, 15); await h.scrollTo('controller-BLACK');
       await h.tap('controller-BLACK');
       await until(() => sut.readPreferences(h.p.storage).controllers?.BLACK === 'multiplayer-hard-v1');
-      assert.equal(sheets.length, 2);
+      assert.equal(sheets.length, 1);
       await h.tap('cabin-close'); await h.tap('new-game');
       await until(() => h.app.session.actions.length === 1 && !h.app.session.busy, 15000);
       assert.equal(h.app.session.controllers.BLACK, 'multiplayer-hard-v1');
@@ -44,7 +44,7 @@ test('backgrounding during a native AI picker cannot open its next page or chang
   const h = uiHarness({ platformOverrides: { choose: nativeChoices(options => { pending = options; sheets++; }) } });
   try {
     await until(() => h.app.session.canPlay());
-    await h.tap('cabin-board'); await h.slide('player-count', 3, 2, 6); await h.scrollTo('controller-BLACK');
+    await h.tap('cabin-board'); await h.slide('player-count', 3, 2, 15); await h.scrollTo('controller-BLACK');
     const before = plain(sut.readPreferences(h.p.storage));
     await h.tap('controller-BLACK'); assert.ok(pending);
     h.p.callbacks.hide();
@@ -66,8 +66,20 @@ test('three different new AI seats play in order and retain exact identities thr
     assert.deepEqual(session.actions.map(action => action.player), ['BLACK', 'WHITE', 'PURPLE']);
     const hash = session.stateHash, actions = plain(session.actions);
     assert.deepEqual(store.read().payload.controllers, controllers);
-    // The contribution-v2 dataset must not silently absorb v3 games.
-    assert.equal(contributionContext(session), null);
+    // The independent v3 contract preserves each actual controller without
+    // silently placing this territory-v3 game in the frozen v2 dataset.
+    assert.deepEqual(contributionContext(session), {
+      source: 'local',
+      actors: {
+        BLACK: { kind: 'ai', profile: 'multiplayer-easy-v1' },
+        WHITE: { kind: 'ai', profile: 'multiplayer-medium-v1' },
+        PURPLE: { kind: 'ai', profile: 'multiplayer-hard-v1' },
+        GREEN: { kind: 'human' },
+      },
+      mixedProfiles: false,
+      hintsEnabled: true,
+      undo: { enabled: false, maxCount: 3, usedCount: 0 },
+    });
     await session.replay(1); await session.exitReplay();
     assert.equal(session.stateHash, hash); assert.deepEqual(session.actions, actions);
     assert.deepEqual(session.controllers, controllers);

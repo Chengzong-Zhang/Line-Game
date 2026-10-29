@@ -57,41 +57,37 @@ const hole = [3, 2];
 const engine = new sut.GameEngine(sut.settingsFor(7));
 const ring = engine.getAdjacentPositions(hole);
 
-test('territory-v3 donut paints every scored hexagon, including its safe center', () => {
-  const points = [...ring, hole];
-  const snapshot = fixture(points);
+test('territory-v3 draws and clips the supplied nonzero contour without changing scoring', () => {
+  const points = [...ring, hole], polygon = [[1, 0], [4, 0], [1, 3]];
+  const snapshot = fixture(points, { polygon });
   const before = JSON.stringify(snapshot), calls = render(snapshot, layout);
   const paths = territorySubpaths(calls, sut.COLORS.BLACK);
-  assert.equal(paths.length, points.length);
-  assert.ok(paths.every(path => path.length === 6), 'each scored point is one six-sided cell');
-  assert.ok(includesPoint(centers(paths), sut.toScreen(hole, layout)), 'the donut center is visibly filled');
+  assert.equal(paths.length, 1);
+  assert.deepEqual(paths[0], polygon.map(point => sut.toScreen(point, layout)));
+  assert.ok(calls.some(call => call.name === 'clip'), 'territory is clipped to the actual board');
   assert.equal(JSON.stringify(snapshot), before, 'drawing does not mutate the snapshot');
 });
 
-test('separate safe cavities are both painted from one renderPoints set', () => {
-  const holes = [[1, 1], [4, 1]];
-  const points = [...new Map(holes.flatMap(center => [...engine.getAdjacentPositions(center), center])
-    .map(point => [point.join(','), point])).values()];
-  const paths = territorySubpaths(render(fixture(points), layout), sut.COLORS.BLACK);
-  const painted = centers(paths);
-  assert.equal(paths.length, points.length);
-  for (const center of holes) assert.ok(includesPoint(painted, sut.toScreen(center, layout)));
+test('discrete score points do not change the display contour', () => {
+  const polygon = [[1, 0], [4, 0], [1, 3]];
+  const first = territorySubpaths(render(fixture([...ring, hole], { polygon }), layout), sut.COLORS.BLACK);
+  const second = territorySubpaths(render(fixture([[0, 0]], { polygon }), layout), sut.COLORS.BLACK);
+  assert.deepEqual(first, second);
 });
 
-test('an enemy-occupied donut hole is omitted from the rendered territory', () => {
+test('discrete scored points alone do not invent a contour around an enemy', () => {
   const snapshot = fixture(ring, { enemyAt: hole });
-  const paths = territorySubpaths(render(snapshot, layout), sut.COLORS.BLACK);
-  assert.equal(paths.length, ring.length);
-  assert.equal(includesPoint(centers(paths), sut.toScreen(hole, layout)), false);
+  const calls = render(snapshot, layout);
+  assert.equal(calls.some(call => call.name === 'fill' && call.styles.fillStyle === `${sut.COLORS.BLACK}25`), false);
+  assert.equal(snapshot.territories.BLACK.area, ring.length);
 });
 
-test('an open chain paints its counted points without inventing an enclosure', () => {
+test('an open chain and a zero-area contour have no territory fill', () => {
   const chain = [[0, 0], [1, 0], [2, 0]];
-  const paths = territorySubpaths(render(fixture(chain), layout), sut.COLORS.BLACK);
-  const painted = centers(paths);
-  assert.equal(paths.length, chain.length);
-  for (const point of chain) assert.ok(includesPoint(painted, sut.toScreen(point, layout)));
-  assert.equal(includesPoint(painted, sut.toScreen([1, 1], layout)), false);
+  for (const polygon of [null, chain]) {
+    const calls = render(fixture(chain, { polygon }), layout);
+    assert.equal(calls.some(call => call.name === 'fill' && call.styles.fillStyle === `${sut.COLORS.BLACK}25`), false);
+  }
 });
 
 test('legacy polygon snapshots keep the original single-path fallback', () => {

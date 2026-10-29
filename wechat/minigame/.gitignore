@@ -1,0 +1,7 @@
+node_modules/
+dist/
+preview/generated/
+project.private.config.json
+config.local.json
+model-assets/
+*.log

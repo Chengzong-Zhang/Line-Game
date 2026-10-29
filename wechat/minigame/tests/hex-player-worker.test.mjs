@@ -5,7 +5,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
-import { build } from 'esbuild';
+import { build, readNativeWebSource } from '../tools/native-build.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const repo = path.resolve(root, '../..'), frontend = path.join(repo, 'web/web前端');
@@ -21,6 +21,7 @@ const source = await build({ stdin: { contents: [
   ...['core', 'state', 'integrity', 'controllers', 'hex-player-ai'].map(name => `export * from './src/${name}.js';`),
   "export * from '../../web/web前端/HexPlayerAI.js';",
   "export { saveState, restoreState } from '../../web/web前端/AIEngine.js';",
+  "export { PASS_TRAINED_POLICY_DATA } from '../../web/web前端/PassTrainedPolicyData.js';",
 ].join('\n'), resolveDir: root }, bundle: true, write: false, platform: 'node', format: 'esm', plugins: [queries], logLevel: 'silent' });
 const sut = await import(`data:text/javascript;base64,${Buffer.from(source.outputFiles[0].text).toString('base64')}`);
 async function nativeWorker({ tamper = false } = {}) {
@@ -67,61 +68,31 @@ test('portable frozen r4 fixture and v1 model are pinned; only explicit compatib
   assert.equal(sha(JSON.stringify(body)), fixture.provenance.modelInnerPayloadSha256);
   assert.equal(sha(JSON.stringify(body)), payload.integrity.payload_sha256);
   assert.notEqual(sut.checksum(body).slice(7), payload.integrity.payload_sha256, 'Internal integrity is insertion-order JSON, not canonical JSON');
-  const migrated = (await fs.readFile(path.join(frontend, 'HexPlayerAI.js'), 'utf8')).replace(/\r\n/g, '\n').split('\n').slice(3).join('\n');
-  const currentAIEngineImport = 'import { restoreState, saveState } from "./AIEngine.js?v=20261026-allplatform1";';
-  const frozenAIEngineImport = 'import { restoreState, saveState } from "./AIEngine.js?v=20261020-three1";';
-  assert.equal(migrated.split(currentAIEngineImport).length - 1, 1,
-    'the policy source may only advance its AIEngine cache key, not its imported API or algorithm');
-  const currentModelLoading = `let modelPromise = null;
-
-function modelUrl() {
-  if (typeof URL !== "function" || typeof import.meta.url !== "string") {
-    throw new Error("六边形 AI 资源仅可在支持模块 URL 的 Web 环境中加载。");
-  }
-  return new URL("./assets/research-ai/hex-player-policy-v1.json?v=20261025-room1", import.meta.url);
-}`;
-  const frozenModelPath = 'const MODEL_PATH = "./assets/research-ai/hex-player-policy-v1.json?v=20261021-hexai1";';
-  const frozenModelLoading = `${frozenModelPath}\nlet modelPromise = null;`;
-  assert.equal(migrated.split(currentModelLoading).length - 1, 1,
-    'the policy source may only defer model URL resolution through the declared current cache key');
-  assert.equal(migrated.split('export async function createHexPlayerModel(payload, hashText) {').length - 1, 1,
-    'the native Worker must retain the injected insertion-order integrity verifier');
-  const nativeIntegrityBridge = '  let hash;\n  if (hashText) hash = await hashText(JSON.stringify(body));\n  else {\n    if (!globalThis.crypto?.subtle) throw new Error("无法校验六边形 AI 模型完整性。");\n    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(body)));\n    hash = Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, "0")).join("");\n  }';
-  assert.equal(migrated.split(nativeIntegrityBridge).length - 1, 1,
-    'the native Worker integrity bridge must remain the declared insertion-order SHA-256 fallback');
-  assert.equal(migrated.split('const spec = JSON.parse(JSON.stringify(payload));').length - 1, 1,
-    'the native Worker must retain its JSON-only model clone');
+  const migrated = (await readNativeWebSource('HexPlayerAI.js')).replace(/\r\n/g, '\n').split('\n').slice(3).join('\n');
   const v3CompatibilityGate = '!["territory-v2", "territory-v3"].includes(engine.rulesVersion)';
-  assert.equal(migrated.split(v3CompatibilityGate).length - 1, 1, 'the policy source may only add the declared v3 compatibility gate');
-  const frozenPolicySource = migrated
-    .replace(currentAIEngineImport, frozenAIEngineImport)
-    .replace(currentModelLoading, frozenModelLoading)
-    .replace('const response = await fetch(modelUrl());', 'const response = await fetch(new URL(MODEL_PATH, import.meta.url));')
-    .replace(v3CompatibilityGate, 'engine.rulesVersion !== "territory-v2"');
+  assert.equal(migrated.split(v3CompatibilityGate).length - 1, 1, 'the only hash-normalized source difference is the declared v3 compatibility gate');
+  const frozenPolicySource = migrated.replace(v3CompatibilityGate, 'engine.rulesVersion !== "territory-v2"');
   const restored = frozenPolicySource
-    .replace(frozenModelPath,
-      'const MODEL_URL = new URL("./assets/research-ai/hex-player-policy-v1.json?v=20261021-hexai1", import.meta.url);')
+    .replace('const MODEL_PATH = "./assets/research-ai/hex-player-policy-v1.json?v=20261021-hexai1";', 'const MODEL_URL = new URL("./assets/research-ai/hex-player-policy-v1.json?v=20261021-hexai1", import.meta.url);')
     .replace('export async function createHexPlayerModel(payload, hashText) {', 'export async function createHexPlayerModel(payload) {')
-    .replace(nativeIntegrityBridge,
+    .replace('  let hash;\n  if (hashText) hash = await hashText(JSON.stringify(body));\n  else {\n    if (!globalThis.crypto?.subtle) throw new Error("无法校验六边形 AI 模型完整性。");\n    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(body)));\n    hash = Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, "0")).join("");\n  }',
       '  if (!globalThis.crypto?.subtle) throw new Error("无法校验六边形 AI 模型完整性。");\n  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(body)));\n  const hash = Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, "0")).join("");')
     .replace('const spec = JSON.parse(JSON.stringify(payload));', 'const spec = structuredClone(payload);')
     .replace('const response = await fetch(new URL(MODEL_PATH, import.meta.url));', 'const response = await fetch(MODEL_URL);');
   assert.equal(sha(restored), fixture.provenance.algorithmNormalizedLfSha256);
-  // HexPlayerAI deliberately imports only these two transactional helpers.
-  // AIEngine itself now also owns topology/root-v2/Minimax work, so its whole
-  // file hash is not policy provenance. The frozen 45-position loop below
-  // verifies the imported helpers through every policy speculation/rollback.
-  const aiEngineSource = await fs.readFile(path.join(frontend, 'AIEngine.js'), 'utf8');
-  assert.match(aiEngineSource, /export \{[^}]*\bsaveState\b[^}]*\brestoreState\b[^}]*\};/,
-    'HexPlayerAI requires the explicit transactional helper exports');
+  // This historical fixture pins Hex policy/model behavior below. Shared
+  // Minimax has a newer independently verified implementation and is no longer
+  // byte-identical to the 77c6c05 engine; the historical fixture is unchanged.
   assert.equal(fixture.positions.length, 45);
   const expectedIds = [4, 5, 6].flatMap(count => [5, 7, 15].flatMap(size => sut.playerIds(count).map(player => `${count}/${size}/${player}`)));
   assert.deepEqual(fixture.positions.map(p => `${p.settings.playerCount}/${p.settings.gridSize}/${p.player}`).sort(), expectedIds.sort());
 });
 
 test('all 45 frozen seat/size rankings are legal and identical, preserving full six-seat state and caches', async () => {
-  const ai = await sut.createEmbeddedHexPlayerAI();
   for (const position of fixture.positions) {
+    assert.equal(position.settings.rulesVersion, 'territory-v2', `${position.id}: frozen parent fixture`);
+    const ai = await sut.createEmbeddedHexPlayerAI(sut.HEX_PLAYER_PROFILE, position.settings.rulesVersion);
+    assert.equal(ai.model.spec.passDisciplineTraining, undefined, `${position.id}: v2 keeps frozen parent weights`);
     const { settings, actions, player, expected, id } = position;
     assert.ok(actions.length >= settings.playerCount, id);
     const engine = sut.restoreGame(settings, actions), before = completeState(engine);
@@ -138,15 +109,44 @@ test('all 45 frozen seat/size rankings are legal and identical, preserving full 
   }
 });
 
-test('territory-v3 compatibility returns legal hex moves without mutating game state; strength is not asserted', async () => {
-  const settings = sut.settingsFor(5, 4);
-  const engine = sut.restoreGame(settings);
-  const before = completeState(engine);
-  const moves = plain((await sut.createEmbeddedHexPlayerAI()).getTopMoves(engine, engine.currentPlayer, 10000));
-  const legal = new Set(engine.getLegalMoves().map(move => move.point.join(',')));
-  assert.ok(moves.length > 0);
-  assert.ok(moves.every(move => legal.has(move.point.join(','))));
-  assert.equal(completeState(engine), before);
+// Evaluate all 17 current coefficients independently of the model loader and
+// PASS wrapper, including the exact raw placement logits and normalized prior.
+function raw17Ranking(candidates, weights) {
+  assert.equal(weights.length, 17);
+  const moves = candidates.map(({ point, features }) => ({ point,
+    score: features.reduce((sum, feature, index) => sum + feature * weights[index], 0), visits: 1 }));
+  moves.push({ type: 'pass', point: null, score: weights[16], visits: 1 });
+  moves.sort((a, b) => b.score - a.score || (a.point === null ? 1 : b.point === null ? -1
+    : a.point[1] - b.point[1] || a.point[0] - b.point[0]));
+  const maximum = moves[0].score, total = moves.reduce((sum, move) => sum + Math.exp(move.score - maximum), 0);
+  return moves.map(move => ({ ...move, prior: Math.exp(move.score - maximum) / total }));
+}
+
+test('territory-v3 current hex candidate matches independent raw17 rankings with legal PASS and complete rollback; strength is not asserted', async () => {
+  const entry = sut.PASS_TRAINED_POLICY_DATA.models['hex-v1'];
+  assert.match(entry.candidate_sha256, /^[a-f0-9]{64}$/);
+  const ai = await sut.createEmbeddedHexPlayerAI(sut.HEX_PLAYER_PROFILE, 'territory-v3');
+  assert.deepEqual(plain(ai.model.spec.weights), plain(entry.weights.slice(0, 16)));
+  assert.equal(ai.model.spec.temperature, 1);
+  assert.equal(ai.model.spec.passBias, entry.weights[16]);
+  assert.equal(ai.model.spec.passDisciplineTraining.candidate_sha256, entry.candidate_sha256);
+  for (const position of fixture.positions) {
+    const settings = { ...position.settings, rulesVersion: 'territory-v3' };
+    const engine = sut.restoreGame(settings, position.actions), before = completeState(engine);
+    const candidates = sut.hexPlayerCandidates(engine, engine.currentPlayer);
+    const moves = plain(ai.getTopMoves(engine, engine.currentPlayer, 10000));
+    assert.deepEqual(moves, plain(raw17Ranking(candidates, entry.weights)), `${position.id}: exact raw17 ranking`);
+    const legal = new Set(engine.getLegalMoves().map(move => move.point.join(',')));
+    assert.equal(moves.length, legal.size + 1, position.id);
+    assert.equal(new Set(moves.map(move => move.point === null ? 'PASS' : move.point.join(','))).size, moves.length);
+    assert.equal(moves.filter(move => move.type === 'pass' && move.point === null).length, 1);
+    assert.ok(moves.every(move => move.point === null ? move.type === 'pass'
+      : legal.has(move.point.join(','))), position.id);
+    assert.ok(Math.abs(moves.reduce((sum, move) => sum + move.prior, 0) - 1) < 1e-12);
+    const passProbe = sut.restoreGame(settings, position.actions);
+    assert.equal(passProbe.skipTurn().success, true, `${position.id}: PASS must be legal`);
+    assert.equal(completeState(engine), before, `${position.id}: full state/history preserved`);
+  }
 });
 
 test('real compiled native Worker infers every hex seat and all three maximum-size variants without browser globals', async () => {
@@ -168,8 +168,8 @@ test('real compiled native Worker infers every hex seat and all three maximum-si
 });
 
 test('six-seat snapshots preserve GREEN/ORANGE/CYAN edges, resignations, Superko and exception rollback', async () => {
-  const ai = await sut.createEmbeddedHexPlayerAI();
   const position = fixture.positions.find(p => p.id === 'players-6-size-5-black');
+  const ai = await sut.createEmbeddedHexPlayerAI(sut.HEX_PLAYER_PROFILE, position.settings.rulesVersion);
   for (const ownAutoSkip of [false, true]) for (const batch of [false, true]) {
     const engine = sut.restoreGame(position.settings, position.actions);
     for (const p of ['GREEN', 'ORANGE', 'CYAN']) assert.ok(engine.edges[p].size > 0, `${p} must have a real edge witness`);

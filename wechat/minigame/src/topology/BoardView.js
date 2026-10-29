@@ -1,4 +1,6 @@
-import { compareStableIdentifiers } from "./BoardDefinition.js";
+import { compareStableIdentifiers } from "./BoardDefinition.js?v=20261029-topology-round5";
+import { buildTopologyTerritoryDisplay } from "./TerritoryDisplay.js?v=20261029-topology-round5";
+import { expandPathEdgeOccurrences } from "./BoardPathProjection.js?v=20261029-topology-round5";
 
 export const BOARD_VIEW_CONTRACT_VERSION = "board-topology-v1";
 
@@ -157,6 +159,21 @@ export function projectPath(board, connection, viewOptions = {}) {
   const index = indexCopies(projected.pointCopies);
   const vertices = connection?.vertices ?? connection?.vertexIds ?? [];
   if (!Array.isArray(vertices) || vertices.length < 2) return [];
+  // Actual traced paths retain the atlas edge occurrences traversed. Drawing
+  // those concrete local edges avoids choosing the wrong canonical copy near
+  // a seam; a seam crossing itself is an identification, never a long chord.
+  if (Array.isArray(connection.edgeOccurrences) && connection.edgeOccurrences.length) {
+    const edges = new Map((board.displayEdges ?? []).map((edge) => [edge.id, edge]));
+    return expandPathEdgeOccurrences(board, connection.edgeOccurrences).map((id) => {
+      const edge = edges.get("guide:" + id) ?? edges.get(id);
+      const copyIds = edge?.copyIds ?? [edge?.fromCopyId, edge?.toCopyId];
+      if (!edge || copyIds.length !== 2 || copyIds.some((copyId) => !index.byId.has(copyId))) {
+        throw new TypeError("A path edge occurrence is missing from the atlas.");
+      }
+      const copies = copyIds.map((copyId) => index.byId.get(copyId));
+      return { pathId: connection.pathId ?? null, sourceVertexIds: copies.map((copy) => copy.canonicalVertexId), copyIds, points: copies.map((copy) => [copy.x, copy.y]), seamAfter: null };
+    });
+  }
   const crossingsByIndex = new Map();
   let nextSearchIndex = 0;
   for (const crossing of connection?.seamCrossings ?? []) {
@@ -229,7 +246,7 @@ export function projectPath(board, connection, viewOptions = {}) {
 // rendering path available without changing legacy module resolution.
 const TOPOLOGY_BOARD_VIEW_RUNTIME = Symbol.for("lifeline.topology-board-view-runtime.v1");
 Object.defineProperty(globalThis, TOPOLOGY_BOARD_VIEW_RUNTIME, {
-  value: Object.freeze({ projectBoard, projectPath, hitTestBoard }),
+  value: Object.freeze({ projectBoard, projectPath, hitTestBoard, buildTopologyTerritoryDisplay }),
   configurable: true,
   writable: true,
 });

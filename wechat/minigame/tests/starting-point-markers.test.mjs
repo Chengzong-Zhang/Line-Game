@@ -1,6 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { sut } from './helpers.mjs';
+import { randomInitialPositions as webRandomInitialPositions } from '../../../web/web前端/StartingPoints.js';
+
+test('native and Web random openings use the same spread sampling', () => {
+  for (const shape of ['triangle', 'hexagon']) for (const count of [2, 3, 4, 5, 6]) {
+    const samples = [.16, .52, .81, .29, .67, .44];
+    const random = () => { let index = 0; return () => samples[index++]; };
+    const native = sut.randomInitialPositions(9, count, random(), shape);
+    const web = webRandomInitialPositions(9, count, random(), shape);
+    assert.deepEqual(native, web);
+    const points = Object.values(native);
+    assert.equal(new Set(points.map(point => point.join(','))).size, count);
+  }
+});
 
 function drawing(snapshot, layout, options = {}) {
   const calls = [], styles = {};

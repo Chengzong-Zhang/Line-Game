@@ -1,3 +1,5 @@
+import { fileURLToPath as admissionFilePath } from "node:url";
+const terminalAdmission = admissionFilePath(new URL("../../../working/docs/verification/pass-discipline-20261025/combined-admission-v5-r2.json", import.meta.url));
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
@@ -120,8 +122,8 @@ test('local online configuration and manifest paths outside the repository are r
 test('a fresh candidate reproduces tested bytes, stays isolated and detects later edits', async t => {
   const outputBase = await temporaryDirectory(t);
   const before = await inspectProject();
-  const first = await prepareCandidate({ outputBase });
-  const second = await prepareCandidate({ outputBase });
+  const first = await prepareCandidate({ terminalAdmission, outputBase });
+  const second = await prepareCandidate({ terminalAdmission, outputBase });
   assert.notEqual(first.directory, second.directory);
   assert.deepEqual(first.receipt.files, second.receipt.files);
   assert.deepEqual(await inspectProject(), before, 'preparation must not modify the original project or dist');

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { build } from 'esbuild';
+import { build } from '../tools/native-build.mjs';
 import path from 'node:path';
 import { root, until, sut } from './helpers.mjs';
 import { device } from './transport-device.mjs';

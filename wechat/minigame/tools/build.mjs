@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { readClientConfig, validateClientConfig } from './client-config.mjs';
+import { nativeWebCompatibility } from './web-compat.mjs';
 import { MODEL_CATALOG, MODEL_PACKAGES, GUIDE_ASSETS, RUNTIME_FILES, SUBPACKAGE_ENTRY,
   MAIN_BUDGET, SUBPACKAGE_BUDGET, TOTAL_BUDGET } from './model-packaging.mjs';
 
@@ -18,15 +19,16 @@ const repo = path.resolve(root, '../..');
 export async function buildGame(output = path.join(root, 'dist'), { config: override } = {}) {
   const config = override === undefined ? (await readClientConfig(root)).config : validateClientConfig(override);
   await fs.mkdir(output, { recursive: true });
+  const sources = new Set();
+  const compatibility = await nativeWebCompatibility(repo, sources);
   const plugin = { name: 'web-cache-imports', setup(ctx) {
     ctx.onResolve({ filter: /\?v=/ }, (args) => ({ path: path.resolve(args.resolveDir, args.path.split('?')[0]) }));
   }};
   const common = { bundle: true, platform: 'browser', target: 'es2018', format: 'iife', charset: 'utf8',
-    minify: true, plugins: [plugin], loader: { '.md': 'text' }, metafile: true, logLevel: 'warning', legalComments: 'eof',
+    minify: true, plugins: [plugin, compatibility.plugin], loader: { '.md': 'text' }, metafile: true, logLevel: 'warning', legalComments: 'eof',
     // Only pure inference exports are used. Browser fetch loaders are removed
     // by tree shaking; the native IIFE has no import.meta/module URL.
     define: { __APP_CONFIG__: JSON.stringify(config), 'import.meta.url': 'undefined' } };
-  const sources = new Set();
   for (const [entry, dest] of [['src/game.js', 'game.js'], ['src/workers/index.js', 'workers/index.js']]) {
     const result = await build({ ...common, absWorkingDir: root, entryPoints: [entry], outfile: path.join(output, dest) });
     for (const input of Object.keys(result.metafile.inputs)) {
@@ -64,7 +66,7 @@ export async function buildGame(output = path.join(root, 'dist'), { config: over
     return { path: name, bytes: data.length, sha256: createHash('sha256').update(data).digest('hex') };
   }));
   const manifest = { schemaVersion: 3, rulesVersion: PRIMARY_RULES_VERSION,
-    supportedRulesVersions: [...SUPPORTED_RULES_VERSIONS], config, outputs, sourceHashes: {} };
+    supportedRulesVersions: [...SUPPORTED_RULES_VERSIONS], config, outputs, sourceHashes: {}, nativeCompatibility: Object.fromEntries(Object.entries(compatibility.records).sort(([left], [right]) => left.localeCompare(right))) };
   for (const source of [...sources].sort()) {
     const relative = path.relative(repo, source).split(path.sep).join('/');
     manifest.sourceHashes[relative] = createHash('sha256').update(await fs.readFile(source)).digest('hex');

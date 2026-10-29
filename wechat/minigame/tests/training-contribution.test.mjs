@@ -29,12 +29,14 @@ const finish = (client, ticket, extra = {}) => client.completeMatch(ticket, { se
 test('v1 training contribution never mislabels alternate boards, custom/random roots or undo-enabled games', () => {
   const h = harness(); h.client.setEnabled(true);
   for (const patch of [{ boardShape: 'hexagon' }, { startingPointMode: 'random', initialPositions: { BLACK: [0, 1], WHITE: [1, 1] } },
-    { startingPointMode: 'custom', initialPositions: { BLACK: [0, 0], WHITE: [4, 0] } }, { undoEnabled: true }]) {
+    { startingPointMode: 'custom', initialPositions: { BLACK: [0, 0], WHITE: [4, 0] } }, { undoEnabled: true },
+    { protectionRule: 'duel-first-unprotected-v1' }]) {
     const config = { ...settings, ...patch };
     assert.equal(contributionContext({ settings: config, controllerFor: () => 'human' }), null);
     assert.equal(begin(h.client, { settings: config }), null);
   }
   assert.equal(contributionContext({ settings, undoUsage: { usedCount: 1 }, controllerFor: () => 'human' }), null);
+  assert.ok(contributionContext({ settings: { ...settings, protectionRule: 'symmetric-v1' }, controllerFor: () => 'human' }));
   assert.equal(h.calls.length, 0);
 });
 

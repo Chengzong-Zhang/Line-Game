@@ -1,7 +1,5 @@
-import { createLocalGameSession, TUTORIAL_LEVELS, randomInitialPositions, randomInitialRoots, startingPointSettings,
-  createLocalUndoTimeline, planLocalUndo, consumeLocalUndo, recordUndoAction } from './core.js';
-import { settingsFor, MODES, SURFACE_RULES, isTopologySettings, normalizeGameSettings,
-  topologySettingsFor, createTopologyLocalGameSession } from './state.js';
+import { createLocalGameSession, TUTORIAL_LEVELS, randomInitialPositions, randomInitialRoots, requiresExplicitStartingPoints, startingPointSettings, createLocalUndoTimeline, planLocalUndo, consumeLocalUndo, recordUndoAction } from './core.js';
+import { settingsFor, withNewGameProtectionRule, withoutInactiveProtectionRule, MODES, LEGACY_PROTECTION_RULE, SURFACE_RULES, isTopologySettings, normalizeGameSettings, topologySettingsFor, createTopologyLocalGameSession } from './state.js';
 import { presetControllers, validateControllers, controllersMode, defaultAIProfile, playerIds } from './controllers.js';
 import { normalizePlayOptions, validatePlayProgress, validateUndoUsage } from './play-options.js';
 import { TurnClock } from './turn-clock.js';
@@ -33,7 +31,7 @@ function validateSessionControllers(value, settings) {
 export class GameSession {
   constructor(scheduler, store, onChange = () => {}, { clock, timedTurns = true, allowUndo = true, models } = {}) {
     this.scheduler = scheduler; this.store = store; this.onChange = onChange;
-    this.settings = settingsFor(); this.actions = []; this.mode = 'ai-white'; this.difficulty = 'normal';
+    this.settings = settingsFor(); this.actions = []; this.mode = 'ai-white'; this.difficulty = 'simple';
     this.snapshot = null; this.stateHash = null; this.topologyState = null; this.busy = false; this.epoch = 0;
     this.hidden = false; this.paused = false; this.error = null; this.saveError = false;
     this.replayIndex = null; this.tutorial = null; this.savedGame = null; this.hintPoint = null;
@@ -108,6 +106,7 @@ export class GameSession {
     return { epoch: this.epoch,
       revision: topology ? snapshot?.positionRevision ?? 0 : this.actions.length,
       rulesVersion: settings.rulesVersion,
+      protectionRule: settings.protectionRule ?? LEGACY_PROTECTION_RULE,
       player: snapshot?.currentPlayer || settings.startPlayer,
       ...(topology ? { boardHash: snapshot?.boardHash || settings.boardHash,
         topologyProtocolVersion: settings.topologyProtocolVersion } : {}) };
@@ -132,7 +131,7 @@ export class GameSession {
       const topology = isTopologySettings(settings);
       const session = topology ? createTopologyLocalGameSession(settings, actions, options.topologyState, options.expectedHash) : null;
       if (session) { settings = session.settings; actions = session.actions; }
-      else settings = { ...settings, ...normalizePlayOptions(settings) };
+      else settings = withoutInactiveProtectionRule({ ...settings, ...normalizePlayOptions(settings) });
       const controllers = validateSessionControllers(options.controllers, settings);
       const progress = validatePlayProgress(options.progress, settings);
       const undoUsage = validateUndoUsage(options.undoUsage, settings);
@@ -145,7 +144,8 @@ export class GameSession {
       this.mode = settings.playerCount > 2 ? 'human' : MODES.includes(options.mode) ? options.mode : this.mode;
       this.controllers = controllers;
       if (controllers) this.mode = controllersMode(controllers);
-      this.difficulty = options.difficulty === 'easy' ? 'easy' : 'normal';
+      this.difficulty = ['easy', 'normal', 'simple', 'medium', 'hard'].includes(options.difficulty)
+        ? options.difficulty : 'normal';
       this.hintsUsed = progress.hintsUsed; this.clock.reset(progress.remainingMs);
       this.undoUsage = undoUsage; this.undoPending = false;
       this.snapshot = result.snapshot; this.stateHash = result.stateHash; this.topologyState = result.topologyState ?? null;
@@ -176,7 +176,7 @@ export class GameSession {
     if (stored.records.length || stored.damaged.length) this.error = 'SAVE_INVALID';
     this.notify(); return false;
   }
-  async newGame(size, mode = 'ai-white', difficulty = 'normal', playerCount = 2, options = {}) {
+  async newGame(size, mode = 'ai-white', difficulty = 'simple', playerCount = 2, options = {}) {
     if (this.replayIndex !== null) this.exitReplay();
     if (this.tutorial) this.restoreOriginal();
     this.tutorial = null; this.replayIndex = null; this.savedGame = null;
@@ -187,9 +187,9 @@ export class GameSession {
       });
       return this.load(initial, [], { mode, difficulty, controllers: options.controllers });
     }
-    const initial = { ...settingsFor(size, playerCount, options.startPlayer || 'BLACK'), ...normalizePlayOptions(options.playOptions),
-      ...(options.boardShape ? { boardShape: options.boardShape } : {}), ...(options.rootMode ? { rootMode: options.rootMode } : {}) };
-    const modeOfStarts = options.startingPointMode || 'default';
+    const initial = withNewGameProtectionRule({ ...settingsFor(size, playerCount, options.startPlayer || 'BLACK'), ...normalizePlayOptions(options.playOptions),
+      ...(options.boardShape ? { boardShape: options.boardShape } : {}), ...(options.rootMode ? { rootMode: options.rootMode } : {}) });
+    const modeOfStarts = options.startingPointMode || (options.initialPositions ? 'custom' : requiresExplicitStartingPoints(playerCount, initial.boardShape) ? 'random' : 'default');
     const rootMode = initial.rootMode || 'classic';
     const starts = modeOfStarts === 'random' && rootMode === 'classic'
       ? randomInitialPositions(size, playerCount, Math.random, initial.boardShape) : options.initialPositions;
@@ -277,13 +277,14 @@ export class GameSession {
       if (result.stateHash !== positionHash || result.player !== this.snapshot.currentPlayer) throw new Error('STALE_AI');
       this.busy = false;
       const chosen = result.moves[0];
+      if (!chosen) throw new Error('NO_LEGAL_AI_CANDIDATE');
       // Neural/PUCT protocol uses "pass" while local state actions use
       // "skip". Normalize at the Worker boundary so a null-coordinate pass
       // cannot be interpreted as an invalid move.
       const chosenType = chosen?.type === 'pass' ? 'skip' : chosen?.type;
       const action = chosen ? { type: chosenType || (chosen.vertexId || chosen.point ? 'move' : 'skip'),
         ...(chosen.vertexId ? { vertexId: chosen.vertexId } : {}),
-        ...(!chosen.vertexId && chosen.point ? { point: chosen.point } : {}) } : { type: 'skip' };
+        ...(!chosen.vertexId && chosen.point ? { point: chosen.point } : {}) } : null;
       await this.act(action, true);
     } catch (error) { this.failed(epoch, error); }
   }

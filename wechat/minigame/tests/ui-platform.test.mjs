@@ -1,3 +1,4 @@
+import { uiHarness } from './ui-harness.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
@@ -112,7 +113,7 @@ test('a failed first STATE offers a working new-game recovery in both languages'
   }
 });
 
-test('last-action annotation follows the replay prefix and clears the old move marker after pass/resign', async () => {
+test('last-action annotation follows the replay prefix while PASS clears only its own seat marker', async () => {
   for (const language of ['zh', 'en']) {
     const p = platform(320, 568, 64, language), texts = [], markers = [];
     const ctx = context();
@@ -129,9 +130,9 @@ test('last-action annotation follows the replay prefix and clears the old move m
       await app.session.act({ type: 'move', point: [1, 0] });
       await render(); assert.ok(last()[0]?.includes(language === 'zh' ? '落子' : 'Move')); assert.equal(markers.length, 1);
       await app.session.act({ type: 'skip' });
-      await render(); assert.ok(last()[0]?.includes(language === 'zh' ? '跳过' : 'Pass')); assert.equal(markers.length, 0);
+      await render(); assert.ok(last()[0]?.includes(language === 'zh' ? '跳过' : 'Pass')); assert.equal(markers.length, 1, 'White PASS preserves Black latest move');
       await app.session.restore(); // Saved logs use player_move/player_skip without a stored actor.
-      await render(); assert.ok(last()[0]?.includes(language === 'zh' ? '跳过' : 'Pass')); assert.equal(markers.length, 0);
+      await render(); assert.ok(last()[0]?.includes(language === 'zh' ? '跳过' : 'Pass')); assert.equal(markers.length, 1, 'restoring the actorless log preserves Black latest move');
       await app.session.replay(0);
       await render(); assert.equal(last().length, 0); assert.equal(markers.length, 0);
       await app.session.replay(1);
@@ -151,36 +152,25 @@ test('account deletion asks before login, prevents a new room while pending and 
   p.login = async () => { calls.push('login'); return 'test-only-code'; };
   p.request = async options => {
     calls.push(new URL(options.url).pathname);
-    if (options.url.endsWith('/login')) return { token: 'fixture-token', expiresIn: 7200, protocol: 1 };
+    if (options.url.endsWith('/login')) return { token: 'fixture-token', expiresIn: 7200, protocol: 1, account: { uid: 'fixture-account', displayName: 'Fixture', provider: 'wechat' } };
     assert.ok(options.url.endsWith('/account/delete'));
     await new Promise(resolve => { release = resolve; });
     return { deleted: true, protocol: 1 };
   };
-  const app = sut.createApp(p, { onlineEnabled: true, apiBase: 'https://test.invalid' });
-  const tap = id => {
-    const button = app.getButtons().find(b => b.id === id);
-    assert.ok(button && !button.disabled); app.tap(button.x + 1, button.y + 1);
-  };
+  const h = uiHarness({width:320,height:568,top:64,storage:p.storage,
+    config:{onlineEnabled:true,apiBase:'https://test.invalid'},
+    platformOverrides:{confirm:p.confirm,message:p.message,login:p.login,request:p.request}});
+  const app=h.app;
+  const tap=async id=>{await h.scrollTo(id);await h.tap(id);};
   try {
     await until(() => app.getButtons().length > 0);
     await app.session.newGame(7, 'human'); await app.session.act({ type: 'move', point: [1, 0] });
     const hash = app.session.stateHash;
-    tap('cabin-battle');
-    await until(() => app.getButtons().some(b => b.id === 'cabin-close'));
-    const scrollUp = () => {
-      p.callbacks.start({ touches: [{ clientX: 160, clientY: 500 }] });
-      p.callbacks.move({ touches: [{ clientX: 160, clientY: 180 }] });
-      p.callbacks.end({
-        touches: [],
-        changedTouches: [{ clientX: 160, clientY: 180 }],
-      });
-    };
-    scrollUp(); scrollUp(); scrollUp();
-    await until(() => app.getButtons().some(b => b.id === 'account-privacy'));
-    tap('account-privacy'); await until(() => app.getButtons().some(b => b.id === 'delete-account'));
-    tap('delete-account'); await until(() => confirmations === 1);
+    await tap('cabin-battle'); await tap('account-privacy');
+    await tap('delete-account'); await until(() => confirmations === 1);
+    await until(()=>!app.online.deleting);
     assert.equal(calls.length, 0, 'cancel must not create or log into an account');
-    confirmed = true; tap('delete-account'); await until(() => release);
+    confirmed = true; await tap('delete-account'); await until(() => release);
     assert.equal(app.online.deleting, true);
     await assert.rejects(app.online.enter('create', 7), /ACCOUNT_DELETION_PENDING/);
     await until(() => app.getButtons().find(b => b.id === 'delete-account')?.disabled);

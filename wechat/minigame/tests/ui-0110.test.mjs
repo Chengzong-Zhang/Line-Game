@@ -55,7 +55,7 @@ test('board cabin supports explicit shapes, custom starting-node selection, save
   const storage = memoryStorage(), h = uiHarness({ storage, width: 320, height: 568, top: 64 });
   try {
     await ready(h); const before = h.app.session.stateHash;
-    await h.tap('cabin-board'); await h.slide('player-count', 4, 2, 6);
+    await h.tap('cabin-board'); await h.slide('player-count', 4, 2, 15);
     await h.scrollTo('shape-triangle'); await h.tap('shape-triangle');
     await h.scrollTo('starts-custom'); await h.tap('starts-custom'); assert.equal(h.app.getScene(), 'starts'); allVisible(h);
     assert.equal(h.app.getLayout().boardShape, 'triangle');

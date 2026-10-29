@@ -6,8 +6,8 @@ import {
   makeBoardError,
   sha256Hex,
   validateBoardDefinition,
-} from "./BoardDefinition.js";
-import { analyzeBoardTopology } from "./BoardTopology.js";
+} from "./BoardDefinition.js?v=20261029-topology-round5";
+import { analyzeBoardTopology } from "./BoardTopology.js?v=20261029-topology-round5";
 
 function deepFreeze(value, seen = new Set()) {
   if (value == null || typeof value !== "object" || seen.has(value)) return value;
@@ -26,19 +26,20 @@ function canonicalStartingVertices(definition, rawToCanonical) {
   const errors = [];
   const result = {};
   const occupied = new Set();
-  for (const [player, rawVertexId] of Object.entries(definition.startingVertices ?? {})) {
-    const canonicalVertexId = rawToCanonical.get(rawVertexId);
-    if (!canonicalVertexId) {
-      errors.push(makeBoardError("UNKNOWN_START_VERTEX", "startingVertices." + player, rawVertexId));
-      continue;
+  for (const [player, rawValue] of Object.entries(definition.startingVertices ?? {})) {
+    const roots = [];
+    for (const rawVertexId of Array.isArray(rawValue) ? rawValue : [rawValue]) {
+      const canonicalVertexId = rawToCanonical.get(rawVertexId);
+      if (!canonicalVertexId) {
+        errors.push(makeBoardError("UNKNOWN_START_VERTEX", "startingVertices." + player, rawVertexId));
+      } else if (occupied.has(canonicalVertexId)) {
+        errors.push(makeBoardError("DUPLICATE_START_VERTEX", "startingVertices." + player, canonicalVertexId));
+      } else {
+        occupied.add(canonicalVertexId);
+        roots.push(canonicalVertexId);
+      }
     }
-    if (occupied.has(canonicalVertexId)) {
-      errors.push(makeBoardError("DUPLICATE_START_VERTEX", "startingVertices." + player,
-        canonicalVertexId));
-      continue;
-    }
-    occupied.add(canonicalVertexId);
-    result[player] = canonicalVertexId;
+    result[player] = roots;
   }
   return { errors, value: result };
 }
@@ -101,7 +102,8 @@ function buildCompiledBoard(definition, boardHash, topology) {
     sampleWeights: weights.value,
     sampleAdjacency,
     realBoundarySampleIds: [...topology.realBoundaryVertexIds],
-    startingVertices: starts.value,
+    startingVertices: Object.fromEntries(Object.entries(starts.value).map(([player, roots]) => [player, roots[0]])),
+    startingRoots: starts.value,
     edgeOccurrences: topology.edgeOccurrences,
     edgeClasses: topology.edgeClasses.map((edgeClass) => ({
       id: edgeClass.id,

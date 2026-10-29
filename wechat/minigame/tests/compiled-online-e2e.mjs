@@ -5,7 +5,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { parseArgs } from 'node:util';
-import { build } from 'esbuild';
+import { build } from '../tools/native-build.mjs';
 import { createCompiledOnlineHarness } from './compiled-online-harness.mjs';
 
 const { values: args } = parseArgs({ options: Object.fromEntries(

@@ -5,7 +5,7 @@ import { uiHarness } from './ui-harness.mjs';
 
 const contributionKey = 'lifeline-wx-training-contribution-v1';
 
-for (const language of ['zh', 'en']) test(`${language}: V3 exclusion is clear and online consent remains separate`, async () => {
+for (const language of ['zh', 'en']) test(`${language}: V3 contribution disclosure is explicit and online consent remains separate`, async () => {
   const storage = memoryStorage(), prompts = [];
   storage.set('lifeline-wx-preferences-v1', JSON.stringify({ size: 5, mode: 'human', difficulty: 'normal' }));
   let logins = 0, contributions = 0;
@@ -29,12 +29,16 @@ for (const language of ['zh', 'en']) test(`${language}: V3 exclusion is clear an
     assert.match(prompts[0], language === 'en' ? /separate, optional opt-in/ : /需要另外主动开启/);
     await h.tap('cabin-board'); await h.scrollTo('training-contribution');
     const toggle = h.app.getButtons().find(button => button.id === 'training-contribution');
-    assert.equal(toggle.disabled, true, 'the default V3 game cannot start a V2-only contribution opt-in');
-    assert.equal(prompts.length, 1, 'no misleading contribution consent prompt is shown');
-    assert.equal(enabled(), false);
+    assert.equal(toggle.disabled, false, 'the default V3 game offers a separate contribution opt-in');
+    await h.tap('training-contribution');
+    assert.equal(prompts.length, 2);
+    assert.match(prompts[1], language === 'en' ? /territory-v3/ : /territory-v3/);
+    assert.match(prompts[1], language === 'en' ? /complete territory-v3 local games newly started after/ : /随后新开始并完整结束的 territory-v3 本地对局/);
+    assert.equal(enabled(), true);
     const privacy = help.helpDocument('privacy', language, true).flatMap(section => section.paragraphs).join(' ');
-    assert.match(privacy, language === 'en' ? /territory-v2 games only/ : /仅接受 territory-v2 对局/);
-    assert.match(privacy, language === 'en' ? /territory-v3 games are not uploaded/ : /territory-v3 新局不会上传/);
+    assert.match(privacy, language === 'en' ? /territory-v3 local games/ : /territory-v3 本地对局/);
+    assert.match(privacy, language === 'en' ? /off by default/ : /默认关闭/);
+    assert.match(privacy, language === 'en' ? /online games.*excluded/i : /联机.*不参与/);
     assert.equal(logins, 1); assert.equal(contributions, 0);
     if (language === 'en') assert.doesNotMatch(privacy, /[\u3400-\u9fff]/);
   } finally { h.app.dispose(); }

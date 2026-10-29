@@ -1,5 +1,6 @@
 import { hitTestBoard, projectBoard, projectPath } from './core.js';
 import { PLAYER_COLORS, PLAYER_CONTRAST_COLORS } from './display.js';
+import { buildTopologyTerritoryDisplay } from './topology/TerritoryDisplay.js';
 
 // This adapter deliberately consumes the immutable topology view model rather
 // than reconstructing topology from Canvas pixels.  A point copy is only a
@@ -108,18 +109,20 @@ function projectedSegments(viewBoard, projected, listName) {
   }).filter(({ points }) => points.length >= 2);
 }
 
-function drawTopologyTerritory(ctx, snapshot, canonicalCopies, colors, scale) {
-  for (const player of snapshot.players ?? []) {
-    const territory = snapshot.territories?.[player];
-    if (!Array.isArray(territory?.renderPoints)) continue;
-    for (const vertexId of territory.renderPoints) {
-      for (const copy of canonicalCopies.get(vertexId) ?? []) {
-        if (typeof ctx.save === 'function') ctx.save();
-        if ('globalAlpha' in ctx) ctx.globalAlpha = 0.16;
-        drawDisc(ctx, [copy.x, copy.y], Math.max(3, scale * 0.3), colors[player] ?? '#627661');
-        if (typeof ctx.restore === 'function') ctx.restore();
-      }
-    }
+function drawTopologyTerritory(ctx, snapshot, colors, layout) {
+  if (snapshot.territoryPending) return;
+  for (const region of buildTopologyTerritoryDisplay(snapshot)) {
+    if (!Array.isArray(region.polygon) || region.polygon.length < 3) continue;
+    const points = region.polygon.map(coordinate => {
+      const [x, y] = axialPoint(coordinate);
+      return [x * layout.scale + layout.viewOptions.offset[0], y * layout.scale + layout.viewOptions.offset[1]];
+    });
+    if (typeof ctx.save === 'function') ctx.save();
+    if ('globalAlpha' in ctx) ctx.globalAlpha = 0.2;
+    ctx.fillStyle = colors[region.player] ?? '#627661'; ctx.beginPath();
+    points.forEach((point, i) => i ? ctx.lineTo(point[0], point[1]) : ctx.moveTo(point[0], point[1]));
+    ctx.closePath(); ctx.fill();
+    if (typeof ctx.restore === 'function') ctx.restore();
   }
 }
 
@@ -191,6 +194,7 @@ export function drawTopologyBoard(ctx, snapshot, layout, {
   hint = null,
   target = null,
   lastMove = null,
+  effects = null,
   display = {},
 } = {}) {
   if (!ctx || typeof ctx.beginPath !== 'function' || !layout?.projected) {
@@ -210,16 +214,36 @@ export function drawTopologyBoard(ctx, snapshot, layout, {
     drawPolyline(ctx, points, '#d8cfbd', Math.max(0.7, scale * 0.028));
   }
   // 2. Discrete territory comes from the canonical score output.
-  if (display.territories !== false) drawTopologyTerritory(ctx, snapshot, canonicalCopies, colors, scale);
+  if (display.territories !== false) drawTopologyTerritory(ctx, snapshot, colors, layout);
   // 3. Logical paths split at seams through BoardView.projectPath.
   drawTopologyPaths(ctx, snapshot, viewBoard, layout.viewOptions, colors, scale);
+  if (effects) {
+    for (const [player, paths] of Object.entries(snapshot.topologyPaths ?? {})) {
+      const added = new Set(effects.addedEdgesByPlayer?.[player] ?? []);
+      for (const path of paths) if (added.has(path.pathId)) {
+        for (const segment of projectPath(viewBoard, path, layout.viewOptions))
+          drawPolyline(ctx, segment.points, colors[player] ?? '#244d3d', Math.max(2, scale * 0.11), [5, 3]);
+      }
+    }
+    for (const id of effects.capturedPoints ?? []) for (const copy of canonicalCopies.get(id) ?? [])
+      drawRing(ctx, [copy.x, copy.y], Math.max(5, scale * 0.18), '#ca6a36');
+  }
   // 4. Real boundaries are the unglued edges, not the screen cut.
   for (const segment of projected.boundarySegments) {
     drawPolyline(ctx, [segment.from, segment.to], '#9f6946', Math.max(1.2, scale * 0.055));
   }
   // 5. Seam arrows make endpoint pairings visible without changing movement.
-  for (const marker of projected.seamMarkers) {
+  for (const [seamIndex, marker] of projected.seamMarkers.entries()) {
     const endpointMap = marker.endpointMap ?? [0, 1];
+    for (const offset of [0, 2]) {
+      const a = marker.anchors[offset]?.point, b = marker.anchors[offset + 1]?.point;
+      if (!a || !b) continue;
+      drawPolyline(ctx, [a, b], '#8a5a9b', Math.max(1.2, scale * 0.05), [4, 3]);
+      if (typeof ctx.fillText === 'function') {
+        ctx.fillStyle = '#6d397b'; ctx.font = `${Math.max(10, Math.min(15, scale * 0.25))}px sans-serif`;
+        ctx.fillText(String(seamIndex + 1), (a[0] + b[0]) / 2 + 3, (a[1] + b[1]) / 2 - 3);
+      }
+    }
     for (let index = 0; index < 2; index += 1) {
       const from = marker.anchors[index]?.point;
       const to = marker.anchors[2 + endpointMap[index]]?.point;

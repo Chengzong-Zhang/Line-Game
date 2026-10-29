@@ -3,11 +3,9 @@ export function fixtureAdapter(player, params, dialog) {
   if (!['blue', 'red'].includes(player)) throw new Error('Choose a fixture player: blue or red');
   function route(value, protocol) {
     const url = new URL(value);
-    const ladderPage = /^\/api\/wechat\/ladder\/(ai|human)$/.test(url.pathname)
-      && /^\?offset=\d{1,5}$/.test(url.search) && Number(url.searchParams.get('offset')) <= 10000;
-    if (url.origin !== `${protocol}//preview.invalid` || !url.pathname.startsWith('/api/wechat/') || (url.search && !ladderPage) || url.hash)
+    if (url.origin !== `${protocol}//preview.invalid` || !url.pathname.startsWith('/api/wechat/') || url.search || url.hash)
       throw new Error('Fixture accepts only local WeChat test routes');
-    return url.pathname + url.search;
+    return url.pathname;
   }
   return {
     storage: { get: key => localStorage.getItem(`fixture:${player}:${key}`),

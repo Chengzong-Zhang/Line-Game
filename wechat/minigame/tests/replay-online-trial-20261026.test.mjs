@@ -36,6 +36,7 @@ test('room broadcasts preserve a frozen replay and apply the latest verified roo
     assert.equal(online.game.stateHash, next.stateHash);
   } finally { online.detach(); q.cancel(); }
 });
+
 for (const previousState of ['ordinary', 'hint', 'tutorial']) test(`online replay trial preserves both originals with previous local state = ${previousState}, without room commands`, async () => {
   const h = uiHarness({ config }), { app, tap, scrollTo, render } = h;
   let commands = 0;
@@ -50,7 +51,7 @@ for (const previousState of ['ordinary', 'hint', 'tutorial']) test(`online repla
     await app.session.load(settings, actions.slice(0, 1), { mode: 'human', paused: false });
     if (previousState === 'hint') { await app.session.hint(); assert.ok(app.session.hintPoint); }
     if (previousState === 'tutorial') { await app.session.tutorialLevel(0); assert.ok(app.session.tutorial); }
-    await tap('cabin-battle'); await scrollTo('friends'); await tap('friends');
+    await tap('cabin-battle'); await scrollTo('friends'); await tap('friends'); await scrollTo('room-submit'); await tap('room-submit');
     await until(() => app.online.room);
     const roomBefore = plain(app.online.room), source = app.session;
     await tap('cabin-board'); await scrollTo('replay-mode'); await tap('replay-mode');
@@ -106,7 +107,7 @@ test('returning to the online board during branch verification cancels its local
   try {
     await until(() => app.session.snapshot && !app.session.busy);
     await app.session.load(settings, actions, { mode: 'human', paused: true });
-    await tap('cabin-battle'); await scrollTo('friends'); await tap('friends');
+    await tap('cabin-battle'); await scrollTo('friends'); await tap('friends'); await scrollTo('room-submit'); await tap('room-submit');
     await tap('cabin-board'); await scrollTo('replay-mode'); await tap('replay-mode'); await tap('replay-current');
     await until(() => !app.session.busy); await app.session.replay(1); await render(); await tap('replay-branchReplay');
     const source = app.session, saveBefore = plain(new sut.SaveStore(p.storage).read().payload), roomBefore = plain(app.online.room);

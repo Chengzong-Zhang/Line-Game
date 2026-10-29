@@ -127,7 +127,7 @@ test('invalid timer/progress data cannot replace a live match, and torn options 
     await session.newGame(5, 'human', 'easy', 2, { playOptions: timed }); session.hide();
     const latest = store.read().records[0]; storage.set(`lifeline-wechat-session-v1-${latest.slot}`, '{torn');
     assert.ok(store.read().payload); assert.equal(store.read().damaged.length, 1);
-    assert.deepEqual(sut.readPreferences(memoryStorage()), { size: 7, mode: 'ai-white', difficulty: 'normal' });
+    assert.deepEqual(sut.readPreferences(memoryStorage()), { size: 7, mode: 'ai-white', difficulty: 'simple' });
   } finally { h.stop(); }
 });
 

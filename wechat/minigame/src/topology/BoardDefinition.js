@@ -196,7 +196,8 @@ function cloneAndSortDefinition(definition) {
   };
   if (isPlainObject(definition.startingVertices)) {
     clone.startingVertices = Object.fromEntries(Object.entries(definition.startingVertices)
-      .sort(([left], [right]) => compareStableIdentifiers(left, right)));
+      .sort(([left], [right]) => compareStableIdentifiers(left, right))
+      .map(([player, value]) => [player, Array.isArray(value) ? [...value].sort(compareStableIdentifiers) : value]));
   }
   if (isPlainObject(definition.generator)) {
     clone.generator = JSON.parse(stableStringify(definition.generator));
@@ -324,6 +325,10 @@ export function validateBoardDefinition(raw, limits = {}) {
   }
   if (!isPlainObject(raw.topology) || !VALID_TOPOLOGY_FAMILIES.has(raw.topology.family)) {
     addError(errors, "INVALID_TOPOLOGY", "topology.family", "Expected planar or surface.");
+  }
+  if (isPlainObject(raw.topology) && raw.topology.movementStrategy != null
+    && !["simple-rays-v1", "simple-rays-v2", "simple-rays-v3"].includes(raw.topology.movementStrategy)) {
+    addError(errors, "UNSUPPORTED_MOVEMENT_STRATEGY", "topology.movementStrategy", "Expected simple-rays-v1, simple-rays-v2 or simple-rays-v3.");
   }
   if (!Array.isArray(raw.vertices) || raw.vertices.length === 0) {
     addError(errors, "INVALID_VERTICES", "vertices", "At least one vertex is required.");
@@ -502,22 +507,25 @@ export function validateBoardDefinition(raw, limits = {}) {
       }
       const starts = new Set();
       startingVertices = {};
-      for (const [player, vertexId] of entries) {
+      for (const [player, rawValue] of entries) {
         if (!isProtocolIdentifier(player)) {
-          addError(errors, "INVALID_STARTING_PLAYER_ID", "startingVertices." + player,
-            "Player id must use the board-topology ASCII identifier grammar.");
+          addError(errors, "INVALID_STARTING_PLAYER_ID", "startingVertices." + player, "Invalid player id.");
           continue;
         }
-        if (typeof vertexId !== "string" || !verticesById.has(vertexId)) {
-          addError(errors, "UNKNOWN_START_VERTEX", "startingVertices." + player, String(vertexId));
+        const values = Array.isArray(rawValue) ? rawValue : [rawValue];
+        if (!values.length || values.length > resolvedLimits.maxStarts) {
+          addError(errors, "INVALID_STARTING_VERTICES", "startingVertices." + player, "Expected one to six vertices.");
           continue;
         }
-        if (starts.has(vertexId)) {
-          addError(errors, "DUPLICATE_START_VERTEX", "startingVertices." + player, vertexId);
-          continue;
+        let valid = true;
+        for (const vertexId of values) {
+          if (typeof vertexId !== "string" || !verticesById.has(vertexId)) {
+            addError(errors, "UNKNOWN_START_VERTEX", "startingVertices." + player, String(vertexId)); valid = false;
+          } else if (starts.has(vertexId)) {
+            addError(errors, "DUPLICATE_START_VERTEX", "startingVertices." + player, vertexId); valid = false;
+          } else starts.add(vertexId);
         }
-        starts.add(vertexId);
-        startingVertices[player] = vertexId;
+        if (valid) startingVertices[player] = Array.isArray(rawValue) ? [...values] : values[0];
       }
     }
   }
@@ -551,12 +559,6 @@ export function validateBoardDefinition(raw, limits = {}) {
       "Generator object keys must use the board-topology ASCII identifier grammar.");
   }
 
-  if (verticesById.size === raw.vertices?.length && occurrences.length) {
-    const disconnected = findDisconnectedVertexIds([...verticesById.keys()], occurrences);
-    if (disconnected.length) {
-      addError(errors, "DISCONNECTED_BOARD", "vertices", disconnected.join(","));
-    }
-  }
 
   const value = {
     schemaVersion: BOARD_DEFINITION_SCHEMA_VERSION,

@@ -12,7 +12,13 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../.
 const slash = value => value.split(path.sep).join('/');
 const hash = data => createHash('sha256').update(data).digest('hex');
 const entry = 'wechat/minigame/tools/validate-action.mjs';
-const fixed = ['web/package.json', 'web/web后端/wechat_online.py', 'web/web后端/requirements.txt',
+const bridgeEntries = ['web/tools/online_bot_bridge.mjs', 'web/tools/generate_online_roots.mjs'];
+// Runtime-loaded assets are not visible to esbuild's import graph. Model
+// manifests below enumerate and hash-check their own weight files.
+const manifestNames = ['manifest.json', 'transfer-v1/manifest.json', 'model-free-manifest.json', 'multiplayer-v1/manifest.json'];
+const fixedModelNames = ['three-player-policy-v1.json', 'three-player-policy-v2.json', 'three-player-search-v4-round12.json',
+  'hex-player-policy-v1.json', 'hex-player-search-v5.json', 'multiplayer-v1/easy.json'];
+const fixed = ['web/package.json', 'web/web后端/wechat_online.py', 'web/web后端/board_validation.py', 'web/web后端/requirements.txt',
   'web/web后端/wechat_ladder.py', 'wechat/minigame/tools/ranked-ai.mjs',
   'web/web后端/wechat_ladder_v1.py', 'web/web后端/wechat_glicko2.py',
   'wechat/tools/wechat_service_asgi_draft.py', 'wechat/tools/check_service_config.py',
@@ -20,7 +26,8 @@ const fixed = ['web/package.json', 'web/web后端/wechat_online.py', 'web/web后
   'wechat/minigame/THIRD_PARTY_NOTICES.txt', 'wechat/minigame/node_modules/@noble/hashes/package.json',
   'wechat/minigame/node_modules/@noble/hashes/LICENSE',
   ...MODEL_CATALOG.map(model => 'wechat/minigame/' + model.sourcePath)];
-const allowed = name => name.startsWith('web/web前端/') && /\.(js|json)$/.test(name)
+const allowed = name => name.startsWith('web/web前端/') && /\.(js|json|f32)$/.test(name)
+  || ['web/tools/online_bot_bridge.mjs', 'web/tools/online_bot_runtime.mjs', 'web/tools/generate_online_roots.mjs'].includes(name)
   || name.startsWith('wechat/minigame/src/') && /\.js$/.test(name)
   || name.startsWith('wechat/minigame/node_modules/@noble/hashes/') && /\.(js|json)$/.test(name)
   || name === entry || fixed.includes(name);
@@ -50,7 +57,7 @@ async function safeRead(base, name) {
 async function graph(base = root) {
   await ordinaryDirectory(base);
   const inputs = new Map();
-  const built = await build({ absWorkingDir: base, entryPoints: [entry], bundle: true,
+  const built = await build({ absWorkingDir: base, entryPoints: [entry, ...bridgeEntries], outdir: '__service_graph_only__', bundle: true,
     format: 'esm', platform: 'node', target: 'node22', write: false, metafile: true,
     plugins: [{ name: 'capture-service-dependencies', setup(b) {
       b.onResolve({ filter: /\?v=/ }, item => ({ path: path.resolve(item.resolveDir, item.path.split('?')[0]) }));
@@ -68,6 +75,24 @@ async function graph(base = root) {
   // The graph is used only to find imports. Ship original source bytes, not the
   // discovery bundle, so ordinary Node import attributes/query strings remain.
   for (const name of fixed) inputs.set(name, await safeRead(base, name));
+  const assetRoot = 'web/web前端/assets/research-ai/';
+  for (const name of fixedModelNames) inputs.set(assetRoot + name, await safeRead(base, assetRoot + name));
+  for (const name of manifestNames) {
+    const manifestPath = assetRoot + name, bytes = await safeRead(base, manifestPath);
+    inputs.set(manifestPath, bytes);
+    const manifest = JSON.parse(bytes.toString('utf8'));
+    assert.ok(Array.isArray(manifest.models), `Invalid model manifest: ${name}`);
+    for (const model of manifest.models) {
+      if (model.asset == null) continue;
+      assert.match(model.asset, /^[A-Za-z0-9_./-]+\.f32$/);
+      const prefix = name.startsWith('multiplayer-v1/') ? 'multiplayer-v1/' : '';
+      const asset = assetRoot + prefix + model.asset;
+      const data = await safeRead(base, asset);
+      assert.match(model.asset_sha256 || '', /^[a-f0-9]{64}$/);
+      assert.equal(hash(data), model.asset_sha256, `Model asset mismatch: ${asset}`);
+      inputs.set(asset, data);
+    }
+  }
   for (const [name, data] of inputs) assert.equal(hash(await safeRead(base, name)), hash(data), `Input changed: ${name}`);
   return inputs;
 }
@@ -105,9 +130,9 @@ export async function verifyService(directory, { checkSources = false } = {}) {
 }
 
 export async function prepareService(directory) {
-  const local = path.join(root, 'local_artifacts');
+  const local = path.join(root, 'working', 'tmp');
   const relative = path.relative(local, directory);
-  assert.ok(relative && !relative.startsWith('..') && !path.isAbsolute(relative), 'Output must be a new local_artifacts directory');
+  assert.ok(relative && !relative.startsWith('..') && !path.isAbsolute(relative), 'Output must be a new working/tmp directory');
   await ordinaryDirectory(local);
   await ordinaryDirectory(path.dirname(directory));
   // A fresh output is mandatory; no historical candidate can be replaced.
@@ -124,14 +149,17 @@ export async function prepareService(directory) {
   const manifest = { schemaVersion: 1, kind: 'standalone-wechat-service', version: '0.13.0-ladder.3',
     status: 'PREPARED_LOCAL_NOT_DEPLOYED', createdAt: new Date().toISOString(),
     node: process.version, nodeRequirement: '>=22', files, totalBytes: files.reduce((n, f) => n + f.bytes, 0),
-    rulesVersion: 'territory-v3', onlinePlayerCount: 2, rankedAIPlayerCounts: [2,3,4,5,6], databaseSchema: 6, ladderVersion: 'ladder-v3-conservative',
+    rulesVersion: 'territory-v3', supportedRulesVersions: ['territory-v2', 'territory-v3', 'surface-v1'],
+    onlinePlayerCounts: Array.from({ length: 14 }, (_, i) => i + 2), topologyPlayerCounts: [2,3,4,5,6],
+    topologyBotsSupported: false, rootRulesVersions: ['root-v1', 'root-v2'],
+    rankedAIPlayerCounts: [2,3,4,5,6], databaseSchema: 6, ladderVersion: 'ladder-v3-conservative',
     entry: 'wechat/tools/wechat_service_asgi_draft.py', validator: entry,
     requirements: 'web/web后端/requirements.txt',
     sourceLayout: 'Preserved original paths and bytes; one Node rule-validator subprocess per command',
     boundaries: ['No remote connection, environment file, credential or database read',
       'Package creation is not runtime, deployment or rollback acceptance',
       'Use one ASGI worker, existing separately configured secrets and dedicated database',
-      'Previous service code rejects schema6; preserve skill estimates and context evidence with a schema6-compatible rollback before activation'] };
+      'Preserve skill estimates and context evidence; use a verified schema6-compatible rollback without replacing the live database'] };
   await fs.writeFile(path.join(directory, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n', { flag: 'wx' });
   await verifyService(directory, { checkSources: true });
   return manifest;

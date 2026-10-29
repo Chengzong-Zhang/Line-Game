@@ -1,4 +1,4 @@
-import { build } from 'esbuild';
+import { build } from '../tools/native-build.mjs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import fs from 'node:fs/promises';

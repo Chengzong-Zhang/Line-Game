@@ -20,7 +20,48 @@ function task(kind, settings, actions, extra = {}) {
 
 test('compiled Worker runs without DOM, wx, TextEncoder, crypto or require', () => {
   for (const key of ['window', 'document', 'wx', 'TextEncoder', 'crypto', 'require']) assert.equal(vm.runInContext(`typeof ${key}`, sandbox), 'undefined');
-  assert.equal(task('STATE', sut.settingsFor(7), []).snapshot.rulesVersion, 'territory-v3');
+  const snapshot = task('STATE', sut.settingsFor(7), []).snapshot;
+  assert.equal(snapshot.rulesVersion, 'territory-v3');
+  assert.equal(snapshot.protectionRule, 'duel-first-unprotected-v1');
+});
+
+test('two-player triangle protects only the second player start while legacy, hex and multiplayer stay symmetric', () => {
+  const hasMove = (snapshot, point) => snapshot.legalMoves.some(move => String(move.point) === String(point));
+  const blackFirst = sut.settingsFor(5, 2, 'BLACK');
+  assert.equal(blackFirst.protectionRule, 'duel-first-unprotected-v1');
+  assert.equal(hasMove(task('STATE', blackFirst, []).snapshot, [3, 0]), false,
+    'the first player still cannot enter the second player protected zone');
+  assert.equal(hasMove(task('STATE', blackFirst, [{ type: 'skip', player: 'BLACK' }]).snapshot, [1, 0]), true,
+    'the second player may enter the first player now-unprotected start');
+
+  const whiteFirst = { ...blackFirst, startPlayer: 'WHITE' };
+  assert.equal(hasMove(task('STATE', whiteFirst, []).snapshot, [1, 0]), false,
+    'protection follows the actual second player rather than a fixed color');
+  assert.equal(hasMove(task('STATE', whiteFirst, [{ type: 'skip', player: 'WHITE' }]).snapshot, [3, 0]), true,
+    'the actual second player may enter the actual first player start zone');
+
+  const legacy = { ...blackFirst }; delete legacy.protectionRule;
+  const legacyEngine = sut.restoreGame(legacy);
+  assert.equal(legacyEngine.protectionRule, 'symmetric-v1');
+  assert.equal(hasMove(task('STATE', legacy, [{ type: 'skip', player: 'BLACK' }]).snapshot, [1, 0]), false,
+    'a missing field retains the historical symmetric rule');
+
+  const hexSettings = sut.settingsFor(5, 2, 'BLACK', 'hexagon');
+  assert.equal(hexSettings.protectionRule, undefined, 'unaffected new games keep the legacy default implicit');
+  const hex = new web.GameEngine(hexSettings);
+  for (const owner of hex.activePlayers) {
+    const actor = hex.activePlayers.find(player => player !== owner);
+    const neighbor = hex.getAdjacentPositions(hex.initialPositions[owner])[0];
+    assert.equal(hex._isInProtectionZone(neighbor, actor), true, `hex start remains protected: ${owner}`);
+  }
+  const threeSettings = sut.settingsFor(5, 3, 'BLACK');
+  assert.equal(threeSettings.protectionRule, undefined, 'multiplayer settings do not opt into the duel-only rule');
+  const three = new web.GameEngine(threeSettings);
+  for (const owner of three.activePlayers) {
+    const actor = three.activePlayers.find(player => player !== owner);
+    const neighbor = three.getAdjacentPositions(three.initialPositions[owner])[0];
+    assert.equal(three._isInProtectionZone(neighbor, actor), true, `multiplayer start remains protected: ${owner}`);
+  }
 });
 
 test('all sizes: bundled replay agrees with live Web after every move, pass and resignation', () => {
@@ -81,6 +122,7 @@ test('hashes agree with Node SHA-256 including Unicode', () => {
 
 test('invalid settings, unknown action and wrong actor cannot change a live engine', () => {
   assert.throws(() => sut.restoreGame({ ...sut.settingsFor(), rulesVersion: 'territory-v1' }), /INVALID_SETTINGS/);
+  assert.throws(() => sut.restoreGame({ ...sut.settingsFor(), protectionRule: 'future-rule' }), /INVALID_SETTINGS/);
   assert.throws(() => sut.restoreGame(sut.settingsFor(), [{ type: 'move', point: [99, 99] }]), /INVALID_POINT/);
   const engine = sut.restoreGame(sut.settingsFor()), before = sut.ruleView(engine).stateHash;
   assert.throws(() => sut.applyAction(engine, { type: 'move', player: 'WHITE', point: [1, 0] }), /WRONG_PLAYER/);

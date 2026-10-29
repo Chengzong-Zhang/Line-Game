@@ -17,7 +17,7 @@ export {
   TerritoryRulesVersion,
   TopologyRulesVersion,
   TOPOLOGY_ROOT_MODE_UNSUPPORTED,
-} from './topology/GameEngine.js';
+} from '../../../web/web前端/GameEngine.js';
 export {
   BOARD_TOPOLOGY_CONTRACT_VERSION,
   BOARD_DEFINITION_SCHEMA_VERSION,
@@ -77,7 +77,7 @@ export { GreedyAI, MinimaxAI } from '../../../web/web前端/AIEngine.js';
 export { serializeRuleState, canonicalize, createReplayDocument, validateReplayDocument, buildEventEffects } from '../../../web/web前端/ReplayCodec.js';
 export { createLocalGameSession } from '../../../web/web前端/LocalGameSession.js';
 export { TUTORIAL_LEVELS, isTutorialRestrictionAttempt } from '../../../web/web前端/TutorialRunner.js';
-export { randomInitialPositions, randomInitialRoots, startingPointSettings } from '../../../web/web前端/StartingPoints.js';
+export { randomInitialPositions, randomInitialRoots, requiresExplicitStartingPoints, startingPointSettings } from '../../../web/web前端/StartingPoints.js';
 export {
   normalizeUndoUsage,
   recordUndoAction,

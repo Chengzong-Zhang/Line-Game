@@ -64,7 +64,7 @@ for (const language of ['zh', 'en']) {
     });
     const tap = ({ x, y }) => {
       callbacks.start({ touches: [{ clientX: x, clientY: y }] });
-      callbacks.end({ changedTouches: [{ clientX: x, clientY: y }] });
+      callbacks.end({ changedTouches: [{ clientX: x, clientY: y }], touches: [] });
     };
     const renderedLabel = label => {
       const single = texts.findLast(item => item.text === label);
@@ -78,11 +78,12 @@ for (const language of ['zh', 'en']) {
       }
       return null;
     };
-    const tapLabel = label => {
+    const tapLabel = async label => {
       // The status line can repeat a button caption (for example Continue).
       // Actions are painted after status text; tap the frontmost matching label.
       const item = renderedLabel(label);
       assert.ok(item, `Visible action: ${label}`); tap(item);
+      await new Promise(resolve => setTimeout(resolve, 16));
     };
     const scrollLabel = async label => {
       for (let attempt = 0; attempt < 10; attempt++) {
@@ -96,10 +97,10 @@ for (const language of ['zh', 'en']) {
       assert.fail(`Reachable scroll action: ${label}`);
     };
     const openReplayHub = async () => {
-      tapLabel(TEXT[language]['cabin-board']);
+      await tapLabel(TEXT[language]['cabin-board']);
       await until(() => texts.some(item => item.text.includes(language === 'zh' ? '语言 ·' : 'Language ·')));
       await scrollLabel(language === 'zh' ? '复盘模式' : 'Replay mode');
-      await until(() => texts.some(item => item.text === TEXT[language].library));
+      await until(() => texts.some(item => item.text === TEXT[language].library) && texts.some(item => item.text === TEXT[language].replay));
     };
     const saves = () => [...storage.entries()].filter(([key]) => key.startsWith('lifeline-wechat-session-v1-'))
       .map(([, value]) => JSON.parse(value)).sort((a, b) => b.sequence - a.sequence);
@@ -107,26 +108,25 @@ for (const language of ['zh', 'en']) {
       vm.runInContext(mainSource, mainContext, { timeout: 2000 });
       // Version 0.8 opens the live board immediately. Follow the real dock
       // instead of waiting for the retired start-menu screen.
-      await until(() => texts.some(item => item.text === TEXT[language].confirm))
-        .catch(error => { throw new Error(`${error.message}: ${texts.map(item => item.text).join('|')}`); });
-      tapLabel(TEXT[language]['cabin-guide']);
+      await until(() => texts.some(item => item.text === TEXT[language].confirm));
+      await tapLabel(TEXT[language]['cabin-guide']);
       await until(() => texts.some(item => item.text === (language === 'zh' ? '规则' : 'Rules')));
-      tapLabel(language === 'zh' ? '简明规则' : 'Essentials');
+      await tapLabel(language === 'zh' ? '简明规则' : 'Essentials');
       await until(() => texts.some(item => item.text === TEXT[language].backToGuide));
-      tapLabel(TEXT[language].nextPage);
+      await tapLabel(TEXT[language].nextPage);
       await until(() => texts.some(item => /^2 \/ /.test(item.text)));
-      tapLabel(TEXT[language].backToGuide);
+      await tapLabel(TEXT[language].backToGuide);
       await scrollLabel(language === 'zh' ? '制作与致谢' : 'People behind the game');
       await until(() => texts.some(item => item.text.includes(language === 'zh' ? '创始人' : 'Founder')));
-      tapLabel(TEXT[language].backToBoard);
+      await tapLabel(TEXT[language].backToBoard);
       await until(() => texts.some(item => item.text === TEXT[language].resume));
-      tapLabel(TEXT[language].resume);
+      await tapLabel(TEXT[language].resume);
       await until(() => arcs.some(item => item.radius === 2.4) && texts.some(item => item.text === TEXT[language].confirm))
         .catch(error => { throw new Error(`${error.message}: visible labels=${texts.map(item => item.text).join('|')}; worker=${kinds.join(',')}`); });
       assert.equal(saves()[0].payload.session.actions.length, 0);
       tap(arcs.find(item => item.radius === 2.4));
       await until(() => texts.some(item => item.text === TEXT[language].selected));
-      tapLabel(TEXT[language].confirm);
+      await tapLabel(TEXT[language].confirm);
       await until(() => saves()[0]?.payload.session.actions.length === 2);
       await until(() => texts.some(item => item.text.includes(`${TEXT[language].turn} 3`)));
       assert.deepEqual(kinds, ['STATE', 'APPLY', 'AI', 'APPLY']);
@@ -134,41 +134,44 @@ for (const language of ['zh', 'en']) {
       assert.equal(texts.some(item => /正在核对最新进度|Checking the latest/.test(item.text)), false);
       const originalActions = saves()[0].payload.session.actions;
       await openReplayHub();
-      tapLabel(TEXT[language].replay);
+      await tapLabel(TEXT[language].replay);
       await until(() => texts.some(item => item.text === `${TEXT[language].replay} · 0 / 2`));
       await until(() => renderedLabel(TEXT[language].branchReplay));
-      tapLabel(TEXT[language].branchReplay);
+      await tapLabel(TEXT[language].branchReplay);
       await until(() => texts.some(item => item.text === TEXT[language].branchStart));
-      tapLabel(TEXT[language].branchStart);
-      await until(() => saves()[0].payload.session.actions.length === 0 && texts.some(item => item.text === TEXT[language].confirm));
+      await tapLabel(TEXT[language].branchStart);
+      await until(() => saves()[0].payload.session.actions.length === 0 && arcs.some(item => item.radius === 2.4));
       const archived = new sut.ReplayLibrary({ get: key => storage.get(key) }).read();
       assert.deepEqual(archived.entries[0].payload.session.actions, originalActions);
       assert.equal(saves()[0].payload.mode, 'human');
-      tapLabel(TEXT[language]['cabin-board']);
-      await until(() => texts.some(item => item.text === TEXT[language].displayOptions));
-      tapLabel(TEXT[language].displayOptions);
+      await tapLabel(TEXT[language]['cabin-board']);
+      await scrollLabel(TEXT[language].displayOptions);
       await until(() => texts.some(item => item.text === TEXT[language]['display-coordinates']));
-      tapLabel(TEXT[language]['display-coordinates']);
+      await tapLabel(TEXT[language]['display-coordinates']);
       await until(() => JSON.parse(storage.get('lifeline-wx-display-v1') || '{}').coordinates === true);
       tap(texts.filter(item => item.text === TEXT[language].back).at(-1));
-      await until(() => texts.some(item => item.text.includes(language === 'zh' ? '语言 ·' : 'Language ·')));
-      tapLabel(TEXT[language].backToBoard);
-      await until(() => !texts.some(item => item.text === TEXT[language].displayOptions));
-      await until(() => texts.some(item => item.text === TEXT[language].confirm || item.text === TEXT[language].resume));
-      if (texts.some(item => item.text === TEXT[language].resume)) tapLabel(TEXT[language].resume);
-      await until(() => texts.some(item => item.text === TEXT[language].confirm));
+      await new Promise(resolve => setTimeout(resolve,16));
+      await until(() => texts.some(item => item.text === TEXT[language].displayOptions));
+      await tapLabel(TEXT[language].backToBoard);
+      await until(() => !texts.some(item => item.text === TEXT[language].displayOptions))
+        .catch(error => {throw new Error(`${error.message}: panel-exit=${texts.map(item=>`${item.text}@${item.y}`).join('|')}`);});
+      await until(() => texts.length > 0);
+      if (renderedLabel(TEXT[language].resume)) await tapLabel(TEXT[language].resume);
+      await until(() => arcs.some(item => item.radius === 2.4) && texts.some(item => item.text === TEXT[language].confirm))
+        .catch(error => { throw new Error(`${error.message}: after-display=${texts.map(item => item.text).join('|')}; radii=${arcs.map(item => item.radius)}; worker=${kinds}`); });
       tap(arcs.find(item => item.radius === 2.4));
-      await until(() => texts.some(item => item.text === TEXT[language].selected)); tapLabel(TEXT[language].confirm);
+      await until(() => texts.some(item => item.text === TEXT[language].selected)); await tapLabel(TEXT[language].confirm);
       await until(() => saves()[0].payload.session.actions.length === 1);
       await until(() => texts.some(item => item.text.includes(`${TEXT[language].turn} 2`)));
-      tapLabel(TEXT[language].resign);
+      await tapLabel(TEXT[language].resign);
       await until(() => texts.some(item => item.text === TEXT[language].resultDetails));
-      tapLabel(TEXT[language].resultDetails);
+      await tapLabel(TEXT[language].resultDetails);
       await until(() => texts.some(item => item.text === TEXT[language].resultResigned));
       assert.ok(texts.some(item => item.text === `${TEXT[language].black} ${TEXT[language].wins}`));
-      tapLabel(TEXT[language].saveResult);
+      await tapLabel(TEXT[language].saveResult);
       await until(() => new sut.ReplayLibrary({ get: key => storage.get(key) }).read().entries.length === 2);
-      tapLabel(TEXT[language].replay);
+      await until(() => renderedLabel(TEXT[language].replay));
+      await tapLabel(TEXT[language].replay);
       await until(() => texts.some(item => item.text === `${TEXT[language].replay} · 0 / 2`));
       assert.deepEqual(calls, { login: 0, request: 0 });
     } finally {

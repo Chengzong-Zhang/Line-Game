@@ -1,3 +1,4 @@
+import { portableClone as structuredClone } from './PortableClone.js';
 export const BOARD_EDITOR_CONTRACT_VERSION = "board-topology-v1";
 
 export const BoardEditorError = Object.freeze({
@@ -45,6 +46,7 @@ function cloneDraft(draft, changes = {}) {
     topology: { ...draft.topology },
     scoring: { ...draft.scoring },
     path: draft.path.map(cloneCoordinate),
+    rings: (draft.rings ?? (draft.closed ? [draft.path] : [])).map(ring => ring.map(cloneCoordinate)),
     closed: draft.closed,
     seamPairs: draft.seamPairs.map(cloneSeamPair),
     boundaryOccurrenceIds: [...draft.boundaryOccurrenceIds],
@@ -79,57 +81,6 @@ function axialToPlane(coordinate) {
   return [coordinate[0] + coordinate[1] * 0.5, coordinate[1] * Math.sqrt(3) / 2];
 }
 
-function signedArea(path) {
-  let twiceArea = 0;
-  for (let index = 0; index < path.length; index += 1) {
-    const [x1, y1] = axialToPlane(path[index]);
-    const [x2, y2] = axialToPlane(path[(index + 1) % path.length]);
-    twiceArea += x1 * y2 - x2 * y1;
-  }
-  return twiceArea / 2;
-}
-
-function orientation(a, b, c) {
-  return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
-}
-
-function pointOnSegment(point, start, end) {
-  const epsilon = 1e-9;
-  return Math.abs(orientation(start, end, point)) <= epsilon
-    && point[0] <= Math.max(start[0], end[0]) + epsilon
-    && point[0] + epsilon >= Math.min(start[0], end[0])
-    && point[1] <= Math.max(start[1], end[1]) + epsilon
-    && point[1] + epsilon >= Math.min(start[1], end[1]);
-}
-
-function segmentsIntersect(firstStart, firstEnd, secondStart, secondEnd) {
-  const a = axialToPlane(firstStart);
-  const b = axialToPlane(firstEnd);
-  const c = axialToPlane(secondStart);
-  const d = axialToPlane(secondEnd);
-  const first = orientation(a, b, c);
-  const second = orientation(a, b, d);
-  const third = orientation(c, d, a);
-  const fourth = orientation(c, d, b);
-  const epsilon = 1e-9;
-  if (((first > epsilon && second < -epsilon) || (first < -epsilon && second > epsilon))
-    && ((third > epsilon && fourth < -epsilon) || (third < -epsilon && fourth > epsilon))) {
-    return true;
-  }
-  return (Math.abs(first) <= epsilon && pointOnSegment(c, a, b))
-    || (Math.abs(second) <= epsilon && pointOnSegment(d, a, b))
-    || (Math.abs(third) <= epsilon && pointOnSegment(a, c, d))
-    || (Math.abs(fourth) <= epsilon && pointOnSegment(b, c, d));
-}
-
-function wouldCrossExistingPath(path, start, end, ignoredSegmentIndexes = new Set()) {
-  for (let index = 0; index + 1 < path.length; index += 1) {
-    if (ignoredSegmentIndexes.has(index)) continue;
-    if (segmentsIntersect(start, end, path[index], path[index + 1])) return true;
-  }
-  return false;
-}
-
 function pointInPolygon(point, boundary) {
   let inside = false;
   const [x, y] = point;
@@ -157,7 +108,8 @@ function makeVertexId(x, y) {
 }
 
 function buildCandidateDefinition(draft) {
-  const boundary = draft.path;
+  const rings = draft.rings;
+  const boundary = rings.flat();
   const minX = Math.min(...boundary.map(([x]) => x));
   const maxX = Math.max(...boundary.map(([x]) => x));
   const minY = Math.min(...boundary.map(([, y]) => y));
@@ -165,7 +117,9 @@ function buildCandidateDefinition(draft) {
   const faces = [];
   const usedCoordinates = new Map();
   const addFace = (id, coordinates) => {
-    if (!pointInPolygon(faceCenter(coordinates), boundary)) return;
+    // Unit edges never cross a triangle interior. Parity at the barycenter
+    // therefore selects exact atomic faces, including holes and self-touching loops.
+    if (rings.reduce((parity, ring) => parity ^ Number(pointInPolygon(faceCenter(coordinates), ring)), 0) === 0) return;
     for (const coordinate of coordinates) usedCoordinates.set(coordinateKey(coordinate), cloneCoordinate(coordinate));
     faces.push({ id, vertices: coordinates.map(([x, y]) => makeVertexId(x, y)) });
   };
@@ -186,8 +140,53 @@ function buildCandidateDefinition(draft) {
     faces,
     seamPairs: draft.seamPairs.map(cloneSeamPair),
     scoring: { ...draft.scoring },
-    editorBoundary: boundary.map(cloneCoordinate),
+    editorBoundaries: rings.map(ring => ring.map(cloneCoordinate)),
   };
+}
+
+function boundaryOccurrenceIds(definition) {
+  const edges = new Map();
+  for (const face of definition.faces) for (let side = 0; side < 3; side += 1) {
+    const endpoints = [face.vertices[side], face.vertices[(side + 1) % 3]].sort();
+    const key = endpoints.join("|");
+    const group = edges.get(key) ?? [];
+    group.push(`${face.id}:${side}`); edges.set(key, group);
+  }
+  return [...edges.values()].filter(group => group.length === 1).map(group => group[0]).sort();
+}
+
+// A contour edit may turn a former boundary into an interior edge (or remove
+// it). Keep every unaffected pair and report exactly which pairs were lost.
+function reconcileSeams(draft, definition) {
+  const allowed = new Set(boundaryOccurrenceIds(definition));
+  const occurrence = (board, id) => {
+    const split = id.lastIndexOf(':');
+    const face = board?.faces?.find(item => item.id === id.slice(0, split));
+    const side = Number(id.slice(split + 1));
+    return face && Number.isInteger(side) && side >= 0 && side < 3
+      ? [face.vertices[side], face.vertices[(side + 1) % 3]] : null;
+  };
+  const newEdges = new Map([...allowed].map(id => {
+    const ends = occurrence(definition, id);
+    return [ends.slice().sort().join('|'), { id, ends }];
+  }));
+  const mapEdge = id => {
+    const old = occurrence(draft.candidateDefinition, id);
+    if (!old) return null;
+    const next = newEdges.get(old.slice().sort().join('|'));
+    return next ? { id: next.id, flip: next.ends[0] !== old[0] } : null;
+  };
+  const kept = [], removedSeams = [];
+  for (const pair of draft.seamPairs) {
+    const a = mapEdge(pair.edgeOccurrenceA), b = mapEdge(pair.edgeOccurrenceB);
+    if (!a || !b) { removedSeams.push(pair.id); continue; }
+    const endpointMap = [0, 1].map(i => pair.endpointMap[a.flip ? 1 - i : i] ^ Number(b.flip));
+    kept.push({ ...pair, edgeOccurrenceA: a.id, edgeOccurrenceB: b.id, endpointMap });
+  }
+  draft.seamPairs = kept;
+  definition.seamPairs = draft.seamPairs.map(cloneSeamPair);
+  draft.boundaryOccurrenceIds = [...allowed].sort();
+  return removedSeams;
 }
 
 function endpointMapIsValid(endpointMap) {
@@ -200,7 +199,7 @@ function endpointMapIsValid(endpointMap) {
 export function createBoardDraft(options = {}) {
   const topology = {
     family: options.topology?.family ?? "planar",
-    movementStrategy: options.topology?.movementStrategy ?? "simple-rays-v1",
+    movementStrategy: options.topology?.movementStrategy ?? "simple-rays-v3",
     territoryStrategy: options.topology?.territoryStrategy ?? "surface-discrete-v1",
     specialVertexPolicy: options.topology?.specialVertexPolicy ?? "stop",
   };
@@ -211,6 +210,7 @@ export function createBoardDraft(options = {}) {
     topology,
     scoring,
     path: [],
+    rings: [],
     closed: false,
     seamPairs: [],
     boundaryOccurrenceIds,
@@ -233,18 +233,22 @@ export function addBoundaryVertex(draft, coordinate) {
   if (!areLatticeNeighbors(previous, candidate)) {
     return failure(BoardEditorError.NON_LATTICE_EDGE, "Boundary steps must follow one unit triangular-lattice edge.", draft);
   }
-  if (next.path.some((point) => sameCoordinate(point, candidate))) {
-    return failure(BoardEditorError.SELF_TOUCH, "A simple boundary cannot revisit a lattice vertex.", draft);
-  }
-  if (wouldCrossExistingPath(next.path, previous, candidate, new Set([next.path.length - 2]))) {
-    return failure(BoardEditorError.SELF_INTERSECTION, "The new boundary edge intersects an earlier edge.", draft);
-  }
   next.path.push(candidate);
   return success(next);
 }
 
 export function undoBoundaryVertex(draft) {
-  if (draft.closed) return failure(BoardEditorError.BOARD_CLOSED, "A closed draft cannot be undone without creating a new draft.", draft);
+  if (draft.closed) {
+    if (draft.seamPairs.length) {
+      const next = cloneDraft(draft);
+      next.seamPairs.pop();
+      next.candidateDefinition.seamPairs = next.seamPairs.map(cloneSeamPair);
+      return success(next, { definition: structuredClone(next.candidateDefinition) });
+    }
+    const rings = (draft.rings ?? [draft.path]).map(ring => ring.map(cloneCoordinate));
+    const path = rings.pop() ?? [];
+    return success(cloneDraft(draft, { path, rings, closed: false, candidateDefinition: null, boundaryOccurrenceIds: [] }));
+  }
   const next = cloneDraft(draft);
   next.path.pop();
   return success(next);
@@ -260,7 +264,7 @@ export function cancelBoardDraft(draft) {
 
 export function closeBoundaryDraft(draft) {
   if (draft.closed) return failure(BoardEditorError.BOARD_CLOSED, "The boundary is already closed.", draft);
-  if (draft.path.length < 3 || Math.abs(signedArea(draft.path)) < 1e-9) {
+  if (draft.path.length < 3) {
     return failure(BoardEditorError.DEGENERATE_BOUNDARY, "A board boundary needs at least three non-collinear vertices.", draft);
   }
   const first = draft.path[0];
@@ -268,17 +272,33 @@ export function closeBoundaryDraft(draft) {
   if (!areLatticeNeighbors(last, first)) {
     return failure(BoardEditorError.OPEN_BOUNDARY, "The final lattice vertex must be adjacent to the first one.", draft);
   }
-  const ignored = new Set([0, draft.path.length - 2]);
-  if (wouldCrossExistingPath(draft.path, last, first, ignored)) {
-    return failure(BoardEditorError.SELF_INTERSECTION, "Closing the boundary would intersect an earlier edge.", draft);
-  }
-  const next = cloneDraft(draft, { closed: true });
+  const next = cloneDraft(draft, { closed: true, rings: [...(draft.rings ?? []), draft.path.map(cloneCoordinate)] });
   const candidateDefinition = buildCandidateDefinition(next);
   if (!candidateDefinition.faces.length) {
     return failure(BoardEditorError.EMPTY_INTERIOR, "The closed lattice loop does not contain a playable triangular face.", draft);
   }
+  const removedSeams = reconcileSeams(next, candidateDefinition);
   next.candidateDefinition = candidateDefinition;
-  return success(next, { definition: structuredClone(candidateDefinition) });
+  return success(next, { definition: structuredClone(candidateDefinition), removedSeams });
+}
+
+export function startBoundaryRing(draft) {
+  if (!draft.closed) return failure(BoardEditorError.BOARD_NOT_CLOSED, "Close the current contour first.", draft);
+  return success(cloneDraft(draft, { path: [], closed: false, boundaryOccurrenceIds: [] }));
+}
+
+export function deleteBoundaryRing(draft, index) {
+  const rings = (draft.rings ?? []).map(ring => ring.map(cloneCoordinate));
+  if (!Number.isInteger(index) || index < 0 || index >= rings.length) return failure("INVALID_RING", "Contour does not exist.", draft);
+  rings.splice(index, 1);
+  if (!draft.closed) return success(cloneDraft(draft, { rings }));
+  if (!rings.length) return success(cloneDraft(draft, { rings, path: [], closed: false, seamPairs: [], candidateDefinition: null, boundaryOccurrenceIds: [] }), { removedSeams: draft.seamPairs.map(pair => pair.id) });
+  const next = cloneDraft(draft, { rings, path: rings[rings.length - 1].map(cloneCoordinate), boundaryOccurrenceIds: [] });
+  const candidateDefinition = buildCandidateDefinition(next);
+  if (!candidateDefinition.faces.length) return failure(BoardEditorError.EMPTY_INTERIOR, "Deleting this contour leaves no faces.", draft);
+  const removedSeams = reconcileSeams(next, candidateDefinition);
+  next.candidateDefinition = candidateDefinition;
+  return success(next, { definition: structuredClone(candidateDefinition), removedSeams });
 }
 
 export function addSeamPair(draft, seamPair) {

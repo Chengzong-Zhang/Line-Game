@@ -1,4 +1,4 @@
-import { compareStableIdentifiers } from "./BoardDefinition.js";
+import { compareStableIdentifiers } from "./BoardDefinition.js?v=20261029-topology-round5";
 
 /**
  * Pure topology-board adapter for AI callers.

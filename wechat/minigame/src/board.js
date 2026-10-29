@@ -2,7 +2,7 @@ import { DEFAULT_DISPLAY, PLAYER_COLORS, PLAYER_CONTRAST_COLORS } from './displa
 import { getBoardPositions, getBoardVertices, isBoardPoint, resolveBoardShape, resolveInitialPositions, PLAYER_ORDER } from './core.js';
 export const COLORS = PLAYER_COLORS;
 const CONTRAST_COLORS = PLAYER_CONTRAST_COLORS, SQRT3_OVER_2 = Math.sqrt(3) / 2;
-const NODE_PLAYERS = { 1: 'BLACK', 3: 'WHITE', 5: 'PURPLE', 7: 'GREEN', 9: 'ORANGE', 11: 'CYAN' };
+const NODE_PLAYERS = Object.fromEntries(PLAYER_ORDER.map((player, index) => [2 * index + 1, player]));
 const normalized = ([x, y]) => [x + y / 2, y * SQRT3_OVER_2];
 function boardBounds(size, playerCount, boardShape) {
   const vertices = getBoardVertices(size, playerCount, boardShape).map(normalized);
@@ -17,7 +17,9 @@ export function boardLayout(size, rect, playerCount = 2, boardShape) {
   const width = spacing * (bounds.maxX - bounds.minX), height = spacing * (bounds.maxY - bounds.minY);
   return { size, playerCount, boardShape, verticalSign, spacing, width, height,
     left: rect.x + (rect.width - width) / 2 - bounds.minX * spacing,
-    bottom: boardShape === 'hexagon' ? rect.y + (rect.height - height) / 2 - bounds.minY * spacing : rect.y + height };
+    bottom: boardShape === 'hexagon' ? rect.y + (rect.height - height) / 2 - bounds.minY * spacing
+      : boardShape === 'diamond' ? rect.y + (rect.height + height) / 2 + bounds.minY * spacing
+        : rect.y + height };
 }
 export function toScreen([x, y], layout) {
   return [layout.left + (x + y / 2) * layout.spacing, layout.bottom + (layout.verticalSign || -1) * y * layout.spacing * SQRT3_OVER_2];
@@ -27,12 +29,14 @@ export function pointAtScreen(x, y, layout) {
   return [(x - layout.left) / layout.spacing - py / 2, py];
 }
 function clampFocus([x, y], size, playerCount = 2, boardShape) {
-  if (resolveBoardShape(playerCount, boardShape) === 'triangle') {
+  const shape = resolveBoardShape(playerCount, boardShape);
+  if (shape === 'triangle') {
     x = Math.max(0, x); y = Math.max(0, y);
     const scale = x + y > size - 1 ? (size - 1) / (x + y) : 1;
     return [x * scale, y * scale];
   }
   const r = size - 1;
+  if (shape === 'diamond') return [Math.max(0, Math.min(r, x)), Math.max(0, Math.min(r, y))];
   if (x >= 0 && y >= 0 && x <= 2 * r && y <= 2 * r && x + y >= r && x + y <= 3 * r) return [x, y];
   // Project onto the nearest physical hexagon edge, including fractional drag positions.
   const p = normalized([x, y]), vertices = getBoardVertices(size, playerCount, boardShape).map(normalized);
@@ -116,39 +120,6 @@ function circle(ctx, point, radius, color, outline = null) {
   if (outline) { ctx.strokeStyle = outline; ctx.lineWidth = 2; ctx.stroke(); }
 }
 
-function traceTerritoryCell(ctx, [cx, cy], spacing) {
-  const radius = spacing / Math.sqrt(3);
-  for (let index = 0; index < 6; index++) {
-    const angle = Math.PI / 6 + index * Math.PI / 3;
-    const x = cx + Math.cos(angle) * radius, y = cy + Math.sin(angle) * radius;
-    if (index) ctx.lineTo(x, y); else ctx.moveTo(x, y);
-  }
-  ctx.closePath();
-}
-
-function drawTerritory(ctx, snapshot, territory, layout, point, color, corners) {
-  if (snapshot.rulesVersion === 'territory-v3' && Array.isArray(territory?.renderPoints)) {
-    if (!territory.renderPoints.length) return;
-    // A v3 score is a set of discrete lattice points. Draw the matching
-    // Voronoi hexagon for every point, including open walls and inner pockets.
-    ctx.save();
-    ctx.beginPath(); corners.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
-    ctx.closePath(); ctx.clip();
-    ctx.beginPath();
-    for (const gridPoint of territory.renderPoints) traceTerritoryCell(ctx, point(gridPoint), layout.spacing);
-    ctx.fillStyle = `${color}25`; ctx.fill();
-    ctx.restore();
-    return;
-  }
-
-  // Old snapshots and territory-v2 retain their original polygon rendering.
-  const polygon = territory?.polygon;
-  if (polygon?.length > 2) {
-    ctx.beginPath(); polygon.map(point).forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
-    ctx.closePath(); ctx.fillStyle = `${color}25`; ctx.fill();
-  }
-}
-
 function drawStartingPoints(ctx, snapshot, layout) {
   // Roots are part of the saved position, not the current pieces. Reading them
   // on every draw keeps random/custom games, replay and setup previews aligned.
@@ -176,7 +147,7 @@ function drawStartingPoints(ctx, snapshot, layout) {
   ctx.restore();
 }
 
-export function drawBoard(ctx, snapshot, layout, { selected, hint, target, blocked, lastMove, effects, display = DEFAULT_DISPLAY } = {}) {
+export function drawBoard(ctx, snapshot, layout, { selected, hint, target, blocked, lastMove, lastMoves, effects, display = DEFAULT_DISPLAY } = {}) {
   const colors = display.highContrast ? CONTRAST_COLORS : COLORS;
   const geometry = screenGeometry(layout), corners = geometry.vertices;
   const point = p => toScreen(p, layout);
@@ -186,7 +157,16 @@ export function drawBoard(ctx, snapshot, layout, { selected, hint, target, block
   for (const [a, b] of geometry.edges) { ctx.moveTo(...a); ctx.lineTo(...b); }
   ctx.stroke();
   for (const player of snapshot.players) {
-    if (display.territories) drawTerritory(ctx, snapshot, snapshot.territories[player], layout, point, colors[player], corners);
+    const polygon = snapshot.territories[player]?.polygon;
+    const twiceArea = Array.isArray(polygon) && polygon.length > 2
+      ? polygon.reduce((sum, p, i) => { const q = polygon[(i + 1) % polygon.length]; return sum + p[0] * q[1] - q[0] * p[1]; }, 0) : 0;
+    if (display.territories && Math.abs(twiceArea) > 1e-9) {
+      ctx.save(); ctx.beginPath(); corners.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+      ctx.closePath(); ctx.clip();
+      ctx.beginPath(); polygon.map(point).forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+      ctx.closePath(); ctx.fillStyle = `${colors[player]}25`; ctx.fill();
+      ctx.restore();
+    }
     for (const edge of snapshot.edges[player] || []) {
       stroke(ctx, projectedEdge(edge, geometry, layout), colors[player], Math.max(display.highContrast ? 3 : 2, layout.spacing * 0.06));
     }
@@ -231,8 +211,11 @@ export function drawBoard(ctx, snapshot, layout, { selected, hint, target, block
     }
     ctx.restore();
   }
-  if (display.lastMove && lastMove) {
-    const [x, y] = point(lastMove), r = Math.max(2, Math.min(4, layout.spacing * 0.1));
+  const markedPoints = lastMoves ? Object.entries(lastMoves).filter(([player, [x, y]]) => snapshot.players.includes(player)
+    && !(snapshot.resignedPlayers || []).includes(player) && snapshot.boardMatrix[y]?.[x] === PLAYER_ORDER.indexOf(player) * 2 + 1)
+    .map(([, marked]) => marked) : lastMove ? [lastMove] : [];
+  if (display.lastMove) for (const marked of markedPoints) {
+    const [x, y] = point(marked), r = Math.max(2, Math.min(4, layout.spacing * 0.1));
     ctx.fillStyle = '#fffef9'; ctx.fillRect(x - r, y - r, r * 2, r * 2);
     ctx.strokeStyle = '#244d3d'; ctx.lineWidth = 1; ctx.strokeRect(x - r, y - r, r * 2, r * 2);
   }

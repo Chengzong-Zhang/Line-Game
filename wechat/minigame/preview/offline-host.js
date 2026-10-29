@@ -73,31 +73,36 @@ const coordinate = event => {
   const bounds = canvas.getBoundingClientRect();
   return { clientX: (event.clientX - bounds.left) * width / bounds.width, clientY: (event.clientY - bounds.top) * height / bounds.height };
 };
+// Native wx mouse/wheel events use x/y; only Touch objects use clientX/Y.
+const mouseCoordinate = event => {
+  const point = coordinate(event);
+  return { x: point.clientX, y: point.clientY };
+};
 canvas.addEventListener('pointerdown', event => {
   if (event.pointerType === 'mouse' && event.button !== 0) return;
   touches.set(event.pointerId, coordinate(event)); canvas.setPointerCapture(event.pointerId);
-  if (event.pointerType === 'mouse') { events.mouseDown?.({ ...coordinate(event), button: event.button }); return; }
+  if (event.pointerType === 'mouse') { events.mouseDown?.({ ...mouseCoordinate(event), button: event.button }); return; }
   events.touchStart?.({ touches: [...touches.values()] });
 });
 canvas.addEventListener('pointermove', event => {
   if (!touches.has(event.pointerId)) return;
-  if (event.pointerType === 'mouse') { events.mouseMove?.({ ...coordinate(event), buttons: event.buttons }); return; }
+  if (event.pointerType === 'mouse') { events.mouseMove?.({ ...mouseCoordinate(event), buttons: event.buttons }); return; }
   touches.set(event.pointerId, coordinate(event)); events.touchMove?.({ touches: [...touches.values()] });
 });
 canvas.addEventListener('pointerup', event => {
   if (!touches.delete(event.pointerId)) return;
-  if (event.pointerType === 'mouse') { events.mouseUp?.({ ...coordinate(event), button: event.button }); return; }
+  if (event.pointerType === 'mouse') { events.mouseUp?.({ ...mouseCoordinate(event), button: event.button }); return; }
   events.touchEnd?.({ touches: [...touches.values()], changedTouches: [coordinate(event)] });
 });
 for (const name of ['pointercancel', 'lostpointercapture']) canvas.addEventListener(name, event => {
   if (touches.delete(event.pointerId)) {
-    if (event.pointerType === 'mouse') events.mouseMove?.({ ...coordinate(event), buttons: 0 });
+    if (event.pointerType === 'mouse') events.mouseMove?.({ ...mouseCoordinate(event), buttons: 0 });
     else events.touchCancel?.({});
   }
 });
 canvas.addEventListener('wheel', event => {
   event.preventDefault();
-  events.mouseWheel?.({ ...coordinate(event), deltaY: event.deltaY, deltaMode: event.deltaMode });
+  events.mouseWheel?.({ ...mouseCoordinate(event), deltaY: event.deltaY, deltaMode: event.deltaMode });
 }, { passive: false });
 function lifecycle(hidden) {
   touches.clear();

@@ -22,6 +22,19 @@ function view(prepared, actions = [], extra = {}) {
     ready: {}, rematchVotes: {}, ...extra };
 }
 
+test('diamond ranked setups keep server-drawn starts and use only supported AI', async () => {
+  const duel = await prepareRankedMatch(setup(2, 'diamond', 'BLACK', 'minimax-2'));
+  const reply = await rankedReply(duel.settings, [{ type: 'skip', player: 'BLACK' }], 'minimax-2', duel.context.runtime);
+  assert.equal(reply.aiAction.player, 'WHITE');
+  const multi = setup(3, 'diamond', 'BLACK', 'greedy');
+  await assert.rejects(prepareRankedMatch(multi), /INVALID_SETTINGS/);
+  multi.settings.startingPointMode = 'random';
+  const prepared = await prepareRankedMatch(multi);
+  assert.equal(prepared.settings.boardShape, 'diamond');
+  assert.equal(Object.keys(prepared.settings.initialPositions).length, 3);
+  assert.equal(prepared.controllers.WHITE, 'greedy');
+});
+
 // Every selectable profile is exercised through the actual server AI entry,
 // including binary-model loading and its existing checksum checks.
 const cases = new Map();
@@ -102,14 +115,15 @@ test('multiplayer forfeit UI shows settlement, hides live controls and preserves
     ladderResult: { version: 'ladder-v3-conservative', board: 'ai', rated: true,
       players: { PURPLE: { points: 757, delta: -43, provisional: true } } } });
   assert.equal(room.gameOver, false);
-  const h = uiHarness({ config: { onlineEnabled: true, apiBase: 'https://fixture.invalid' } });
+  const h = uiHarness({ config: { onlineEnabled: true, apiBase: 'https://fixture.invalid' },
+    platformOverrides: { input: async () => 'ABCDEFGH' } });
   h.app.online.enter = async () => {
     h.app.online.active = true; h.app.online.connected = true;
     return h.app.online.receive(room);
   };
   try {
     await until(() => h.app.session.snapshot && !h.app.session.busy);
-    await h.tap('friends'); await until(() => h.app.online.room); await h.render();
+    await h.tap('cabin-battle'); await h.scrollTo('join-room'); await h.tap('join-room'); await until(() => h.app.online.room); await h.render();
     assert.ok(h.texts.includes('AI 挑战已认输结算'));
     const buttons = h.app.getButtons();
     assert.ok(buttons.some(b => b.id === 'room-rematch'));

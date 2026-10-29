@@ -49,3 +49,19 @@ test('topology setup starts a canonical local match and UI submits vertexId acti
     h.app.dispose();
   }
 });
+
+test('missing native WebGL is disclosed without changing the topology match', async () => {
+  const h = uiHarness();
+  try {
+    await ready(h); await h.tap('cabin-board'); await h.scrollTo('topology-setup'); await h.tap('topology-setup');
+    await h.tap('topology-torus'); await h.scrollTo('topology-start'); await h.tap('topology-start');
+    await until(() => h.app.session.snapshot?.rulesVersion === 'surface-v1' && !h.app.session.busy);
+    const before = h.app.session.stateHash;
+    await h.render(); await h.tap('topology-3d');
+    assert.equal(h.app.getScene(), 'topology-3d');
+    assert.ok(h.app.getButtons().some(button => button.id === 'surface-back'));
+    await h.tap('surface-back');
+    assert.equal(h.app.getScene(), 'game');
+    assert.equal(h.app.session.stateHash, before);
+  } finally { h.app.dispose(); }
+});

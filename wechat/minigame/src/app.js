@@ -1,16 +1,18 @@
 import { ComputeScheduler } from './scheduler.js';
 import { SaveStore } from './storage.js';
 import { GameSession } from './session.js';
-import { TUTORIAL_LEVELS, TopologyRulesVersion, createLocalGameSession, resolveInitialPositions, randomInitialPositions, randomInitialRoots } from './core.js';
+import { TUTORIAL_LEVELS, TopologyRulesVersion, createLocalGameSession, resolveInitialPositions, randomInitialPositions, randomInitialRoots, requiresExplicitStartingPoints } from './core.js';
 import { TEXT, errorText } from './i18n.js';
 import { boardLayout, drawBoard, hitPoint, pointAtScreen, focusBoardLayout, panBoardFocus } from './board.js';
+import { createLatestMoveTracker } from './latest-moves.js';
 import { OnlineClient, ONLINE_EMOTES } from './online.js';
 import { ReplayLibrary } from './library.js';
 import { readPreferences, savePreferences } from './preferences.js';
-import { BASIC_CONTROLLERS, playerIds, controllerChoices, defaultAIProfile, presetControllers, controllersMode } from './controllers.js';
+import { BASIC_CONTROLLERS, playerIds, controllerChoices, normalControllerChoices, experimentControllerChoices, defaultAIProfile, presetControllers, controllersMode } from './controllers.js';
 import { drawSetup, drawPlayers, drawPlayOptions, drawLessons, drawLibrary, libraryPageSize, drawModels, drawAnalysis } from './screens.js';
 import { normalizePlayOptions } from './play-options.js';
-import { MODEL_CATALOG, controllerLabel } from './model-catalog.js';
+import { withNewGameProtectionRule, withoutInactiveProtectionRule } from './state.js';
+import { MODEL_CATALOG, MULTIPLAYER_AI_CATALOG, controllerLabel } from './model-catalog.js';
 import { ModelAssets } from './model-assets.js';
 import { readDisplay, saveDisplay, PLAYER_COLORS, PLAYER_LABEL_KEYS } from './display.js';
 import { drawReplayPrimary, drawReplayTools, drawReplayTransport, drawBranch, drawDisplayOptions } from './replay-ui.js';
@@ -23,10 +25,14 @@ import { ACCOUNT_COPY, ACCOUNT_ERRORS } from './account-ui.js';
 import { TrainingContribution, contributionContext, CONTRIBUTION_NOTICE, CONTRIBUTION_NOTICE_EN,
   CLEAR_PENDING_NOTICE, CLEAR_PENDING_NOTICE_EN } from './training-contribution.js';
 import { ensureOnlineConsent } from './online-consent.js';
+import { roomSettingsFromBoard, roomPlayerFromController, roomControllerFromPlayer,
+  normalizeRoomPlayerSetup } from '../../../web/web前端/OnlineRoomSettings.js';
 import { LadderClient, ladderResultText } from './ladder.js';
 import { rankedSetupInput } from './ranked-setup.js';
 import { layoutTopologyBoard, hitTopologyVertex, drawTopologyBoard, layoutTopologyDraft, hitTopologyDraftPoint, drawTopologyDraft } from './topology-board.js';
-import { createTopologySetup, addTopologyBoundaryVertex, undoTopologyBoundary, closeTopologyBoundary,
+import { buildSurfaceCells, createDepthRenderer, initialSurfacePitch } from './topology/TopologySurface3D.js';
+import { topologyStartingRoots } from './topology/TopologyStartingPoints.js';
+import { createTopologySetup, addTopologyBoundaryVertex, undoTopologyBoundary, closeTopologyBoundary, changeTopologyStarts,
   selectTopologyBoundaryOccurrence, toggleTopologySeamDirection, addSelectedTopologySeam,
   useTopologyPreset, generateTopologyBoard, topologySetupResult } from './topology-setup.js';
 
@@ -34,6 +40,7 @@ const THEME = { background: '#f4ede1', ink: '#2a2118', muted: '#695749', border:
 
 export function createApp(platform, config = {}) {
   const canvas = platform.canvas, ctx = canvas.getContext('2d');
+  const latestMoveTracker = createLatestMoveTracker();
   let language = 'zh';
   try { if (platform.storage.get('lifeline-wx-language') === 'en') language = 'en'; } catch (_) { /* First run. */ }
   const preferences = readPreferences(platform.storage);
@@ -42,37 +49,57 @@ export function createApp(platform, config = {}) {
   let playerCount = preferences.playerCount ?? (mode === 'three-human' ? 3 : 2), playersPage = 0;
   let boardShape = preferences.boardShape || (playerCount >= 4 ? 'hexagon' : 'triangle');
   let rootMode = playerCount === 2 ? preferences.rootMode || 'classic' : 'classic';
-  let startingPointMode = preferences.startingPointMode || 'default', initialPositions = preferences.initialPositions || null;
-  let startDraft = null, startSeat = 'BLACK', startPoint = null;
-  let topologySetup = null, topologyDraftLayout = null, topologyDraftSelectedIndex = null;
+  let startingPointMode = preferences.startingPointMode || (requiresExplicitStartingPoints(playerCount, boardShape) ? 'random' : 'default'), initialPositions = preferences.initialPositions || null;
+  let startDraft = null, startSeat = 'BLACK', startPoint = null, startSeatPage = 0;
+  let scorePage = 0, scorePosition = null, resultPage = 0;
+  let roomDraft = null;
+  let topologySetup = null, topologyDraftLayout = null, topologyDraftSelectedIndex = null, topologyControllers = {};
+  let surface3dCanvas = null, surface3dRenderer = null, surface3dData = null, surface3dRect = null, surface3dYaw = 0.45, surface3dPitch = -0.3, surface3dZoom = 1;
   const draftSettings = () => ({ gridSize: size, playerCount, boardShape, rootMode, rulesVersion: 'territory-v3' });
   const playerDrafts = preferences.playerDrafts || {};
   const draftPlayerCount = () => playerCount;
   const draftControllers = () => controllers || presetControllers(mode, difficulty, draftPlayerCount(), draftSettings());
   const controllerMenuChoices = (count, settings = draftSettings()) => {
-    const compatible = controllerChoices(count, settings);
-    return [...compatible.filter(profile => !profile.startsWith('model:')), ...(compatible.some(profile => profile.startsWith('model:')) ? ['models'] : [])];
+    const ordinary = normalControllerChoices(count, settings);
+    return experimentControllerChoices(count, settings).length ? [...ordinary, 'models'] : ordinary;
   };
   function rememberPlayerDraft() {
     playerDrafts[draftPlayerCount()] = { mode, startPlayer, controllers: controllers ? { ...controllers } : null,
       boardShape, rootMode, startingPointMode, initialPositions };
   }
   function changePlayerCount(count) {
-    if (!Number.isInteger(count) || count < 2 || count > 6 || count === draftPlayerCount()) return;
+    if (!Number.isInteger(count) || count < 2 || count > 15 || count === draftPlayerCount()) return;
     rememberPlayerDraft(); cabinGeneration++;
     const saved = playerDrafts[count];
     playerCount = count; playersPage = 0;
     mode = saved?.mode || (count === 3 ? 'three-human' : count >= 4 ? 'human' : 'ai-white');
     startPlayer = saved?.startPlayer || 'BLACK'; controllers = saved?.controllers ? { ...saved.controllers } : null;
+    if (count === 2 && controllers) {
+      const ai = Object.values(controllers).filter(profile => profile !== 'human');
+      if (ai.length && ai.every(profile => profile === ai[0]))
+        difficulty = ({ greedy: 'simple', 'minimax-2': 'simple', 'minimax-3': 'medium', 'minimax-4': 'hard' })[ai[0]] || difficulty;
+    }
     boardShape = saved?.boardShape || (count >= 4 ? 'hexagon' : 'triangle');
     rootMode = count === 2 ? saved?.rootMode || 'classic' : 'classic';
-    startingPointMode = saved?.startingPointMode || 'default'; initialPositions = saved?.initialPositions || null;
+    if (count === 2 && boardShape === 'hexagon') difficulty = 'simple';
+    startingPointMode = saved?.startingPointMode
+      || (requiresExplicitStartingPoints(count, boardShape) ? 'random' : 'default');
+    if (requiresExplicitStartingPoints(count, boardShape) && startingPointMode === 'default') startingPointMode = 'random';
+    initialPositions = saved?.initialPositions || null;
+    if (initialPositions) try { initialPositions = resolveInitialPositions(size, count, initialPositions, boardShape); }
+    catch (_) {
+      initialPositions = null;
+      if (startingPointMode === 'custom') startingPointMode
+        = requiresExplicitStartingPoints(count, boardShape) ? 'random' : 'default';
+    }
     persistPreferences();
   }
   function selectController(player, profile) {
     const count = draftPlayerCount();
     if (!playerIds(count).includes(player) || !controllerChoices(count, draftSettings()).includes(profile)) return;
     controllers = { ...draftControllers(), [player]: profile };
+    if (count === 2 && (profile === 'greedy' || /^minimax-[234]$/.test(profile)))
+      difficulty = ({ greedy: 'simple', 'minimax-2': 'simple', 'minimax-3': 'medium', 'minimax-4': 'hard' })[profile];
     mode = count === 3 ? 'three-human' : controllersMode(controllers); persistPreferences();
   }
   let playOptions = normalizePlayOptions(preferences.playOptions), optionsConfigured = Boolean(preferences.playOptions);
@@ -87,6 +114,7 @@ export function createApp(platform, config = {}) {
   const readerCache = createReaderCache(helpDocument);
   let friendsGeneration = 0, visibilityGeneration = 0, appVisible = true;
   let roomRetryCode = null, roomFeedbackPending = false;
+  let roomClockTimer = null;
   let terminology = preferences.terminology || 'math', cabinScroll = 0, scrollArea = null, scrollMax = 0, clipArea = null, sliders = [];
   let accountBusy = false, accountMessage = '', emotePage = 0, displayedEmote = null, emoteMessage = '', emoteTimer = null, observedEmoteError = null, contributionTicket = null, pendingContribution = null, contributionEpoch = null;
   let nameDraft = '', avatarEntry = null;
@@ -109,10 +137,15 @@ export function createApp(platform, config = {}) {
     }
     checkContribution(); contribution.wake?.(); redraw();
   }, { models });
-  const online = new OnlineClient(platform, config, scheduler, () => { syncEmoteError(); redraw(); });
+  const online = new OnlineClient(platform, config, scheduler, () => { syncRoomClock(); syncEmoteError(); redraw(); });
   const ladder = new LadderClient(online, redraw);
   online.game.models = models;
   let session = localSession;
+  function syncRoomClock() {
+    clearTimeout(roomClockTimer); roomClockTimer = null;
+    if (appVisible && session === online.game && online.room?.status === 'playing' && online.room.turnDeadline)
+      roomClockTimer = setTimeout(() => { roomClockTimer = null; redraw(); syncRoomClock(); }, 500);
+  }
   online.onEmote = event => { if (appVisible && isOnline()) showEmote(event); };
   const contribution = new TrainingContribution({ storage: platform.storage, request: platform.contributionRequest, origin: config.apiBase,
     createReplay: (settings, actions) => scheduler.request('EXPORT_REPLAY', { settings, actions }, localSession.context(), 2),
@@ -139,37 +172,78 @@ export function createApp(platform, config = {}) {
   const label = (key) => key.startsWith('controller-') ? controllerLabel(key.slice(11), t()) : terminology === 'war' && warTerms[language][key] || t()[key];
   const playerLabel = player => label(PLAYER_LABEL_KEYS[player] || 'draw');
   const isOnline = () => session === online.game;
-  const onlineSettings = (overrides = {}, base = online.room?.settings) => {
-    const current = base || { gridSize: size, boardShape, rulesVersion: 'territory-v3',
-      rootMode: playerCount === 2 ? rootMode : 'classic', startingPointMode: playerCount === 2 ? startingPointMode : 'default',
-      initialPositions: playerCount === 2 ? initialPositions : null,
-      undoEnabled: playOptions.undoEnabled, undoMaxCount: playOptions.undoMaxCount };
-    const next = { gridSize: current.gridSize, boardShape: current.boardShape || 'triangle',
-      rulesVersion: current.rulesVersion || 'territory-v3',
-      rootMode: current.rootMode || 'classic',
-      startingPointMode: current.startingPointMode || (current.initialPositions ? 'custom' : 'default'),
-      initialPositions: current.initialPositions, undoEnabled: current.undoEnabled === true,
-      undoMaxCount: current.undoMaxCount || 3, ...overrides };
-    delete next.initialRoots;
-    if (next.startingPointMode === 'default') delete next.initialPositions;
-    else if (next.startingPointMode === 'random' && next.rootMode !== 'classic') {
-      delete next.initialPositions; next.initialRoots = randomInitialRoots(next.gridSize, 2, next.rootMode, Math.random, next.boardShape);
-    } else if (next.startingPointMode === 'random' && (overrides.startingPointMode === 'random' || !next.initialPositions))
-      next.initialPositions = randomInitialPositions(next.gridSize, 2, Math.random, next.boardShape);
-    else next.initialPositions = resolveInitialPositions(next.gridSize, 2, next.initialPositions, next.boardShape);
-    if (next.rootMode === 'classic') { delete next.rootMode; delete next.rootRulesVersion; delete next.initialRoots; }
-    else next.rootRulesVersion = 'root-v2';
-    return next;
-  };
-  const editOnlineSettings = overrides => { if (online.canEditSettings()) void online.updateSettings(onlineSettings(overrides)); };
+  const roomControllers = settings => Object.fromEntries(playerIds(settings.playerCount).map(player =>
+    [player, roomControllerFromPlayer(normalizeRoomPlayerSetup(settings)[player], settings)]));
+  const settingsWithControllers = (settings, seats) => roomSettingsFromBoard(settings, Object.fromEntries(
+    playerIds(settings.playerCount).map(player => [player, roomPlayerFromController(seats[player] || 'human', settings)])));
+  function openRoomSetup(kind = 'settings') {
+    if (session.hidden || kind === 'settings' && !online.room) return;
+    const settings = kind === 'create' ? withNewGameProtectionRule({ ...playOptions, rulesVersion: 'territory-v3', gridSize: size,
+      playerCount, startPlayer, boardShape, startingPointMode, ...(initialPositions ? { initialPositions } : {}),
+      ...(rootMode !== 'classic' ? { rootMode, rootRulesVersion: 'root-v2' } : {}) })
+      : JSON.parse(JSON.stringify(online.room.pendingSettings || online.room.settings));
+    const seats = kind === 'create' ? { ...draftControllers() } : roomControllers(settings);
+    const hostSeatAdded = kind === 'create' && Object.values(seats).every(profile => profile !== 'human');
+    if (hostSeatAdded) seats.BLACK = 'human';
+    roomDraft = { kind, settings, controllers: seats, hostSeatAdded };
+    pauseForPanel(); friendsGeneration++; cabinGeneration++; cabinScroll = 0; cabin = null; scene = 'home'; redraw();
+  }
+  function editRoomDraft(overrides) {
+    if (!roomDraft || isOnline() && !online.canEditSettings()) return;
+    const previous = roomDraft.settings; let settings = { ...previous, ...overrides };
+    if (settings.playerCount !== previous.playerCount) {
+      settings.boardShape = settings.playerCount >= 4 ? 'hexagon' : 'triangle';
+      settings.startingPointMode = requiresExplicitStartingPoints(settings.playerCount, settings.boardShape) ? 'random' : 'default';
+      delete settings.initialPositions; delete settings.initialRoots;
+      if (settings.playerCount !== 2) { delete settings.rootMode; delete settings.rootRulesVersion; }
+    }
+    if (settings.gridSize !== previous.gridSize || settings.boardShape !== previous.boardShape) {
+      delete settings.initialPositions; delete settings.initialRoots;
+      if (settings.startingPointMode === 'custom') settings.startingPointMode
+        = requiresExplicitStartingPoints(settings.playerCount, settings.boardShape) ? 'random' : 'default';
+    }
+    if (requiresExplicitStartingPoints(settings.playerCount, settings.boardShape)
+      && (!settings.startingPointMode || settings.startingPointMode === 'default')) {
+      settings.startingPointMode = 'random'; delete settings.initialPositions;
+    }
+    if (!playerIds(settings.playerCount).includes(settings.startPlayer)) settings.startPlayer = 'BLACK';
+    settings = roomDraft.kind === 'create' ? withNewGameProtectionRule(settings) : withoutInactiveProtectionRule(settings);
+    roomDraft.settings = settings;
+    roomDraft.controllers = Object.fromEntries(playerIds(settings.playerCount).map(player => {
+      const profile = roomDraft.controllers[player] || 'human';
+      return [player, profile];
+    }));
+    cabinGeneration++; redraw();
+  }
+  async function submitRoomDraft() {
+    if (!roomDraft || session.hidden || online.sending) return;
+    const draft = roomDraft, compatible = controllerChoices(draft.settings);
+    if (Object.values(draft.controllers).some(profile => !compatible.includes(profile))) return platform.message(label('incompatiblePlayers'));
+    if (Object.values(draft.controllers).every(profile => profile !== 'human'))
+      return platform.message(language === 'en' ? 'Keep at least one human seat for the host.' : '请至少保留一个真人席位给房主。');
+    let settings;
+    try {
+      settings = settingsWithControllers(draft.settings, draft.controllers);
+      settings = draft.kind === 'create' ? withNewGameProtectionRule(settings) : withoutInactiveProtectionRule(settings);
+      if (requiresExplicitStartingPoints(settings.playerCount, settings.boardShape)
+        && (!settings.startingPointMode || settings.startingPointMode === 'default')) settings.startingPointMode = 'random';
+      if (settings.startingPointMode === 'random' && settings.rootMode && settings.rootMode !== 'classic') {
+        delete settings.initialPositions;
+        if (!settings.initialRoots) settings.initialRoots = randomInitialRoots(settings.gridSize, settings.playerCount, settings.rootMode, Math.random, settings.boardShape);
+      } else if (settings.startingPointMode === 'random' && !settings.initialPositions) {
+        settings.initialPositions = randomInitialPositions(settings.gridSize, settings.playerCount, Math.random, settings.boardShape);
+      }
+      if (settings.startingPointMode === 'default') { delete settings.initialPositions; delete settings.initialRoots; }
+    } catch (error) { return platform.message(errorText(error.message, t())); }
+    if (draft.kind === 'create') return friendsMenu(null, 'create', settings);
+    if (await online.updateSettings(settings) && roomDraft === draft) { roomDraft = null; closeCabin(false); }
+  }
   const canPlay = () => isOnline() ? online.canPlay() : session.canPlay();
-  const play = async (action) => {
-    const played = await (isOnline() ? online.act(action) : session.act(action));
-    if (played) actionMode = 'move';
-    return played;
-  };
-  const isTopologySnapshot = snapshot => snapshot?.rulesVersion === TopologyRulesVersion.SURFACE_V1
-    && Boolean(snapshot?.topology?.viewBoard);
+  const failedRoomBot = () => isOnline() && online.room?.lastBotResult?.success === false
+    && online.room.lastBotResult.matchId === online.room.matchId && online.room.lastBotResult.seq === online.room.seq
+    && online.room.bots?.includes(online.room.currentPlayer);
+  const play = async action => { const played = await (isOnline() ? online.act(action) : session.act(action)); if (played) actionMode = 'move'; return played; };
+  const isTopologySnapshot = snapshot => snapshot?.rulesVersion === TopologyRulesVersion.SURFACE_V1 && Boolean(snapshot?.topology?.viewBoard);
   const currentView = () => view?.session === session && view.epoch === session.epoch && view.snapshot === session.snapshot && view.scene === scene;
   const inBoard = (x, y) => boardRect && x >= boardRect.x && y >= boardRect.y
     && x <= boardRect.x + boardRect.width && y <= boardRect.y + boardRect.height;
@@ -189,8 +263,9 @@ export function createApp(platform, config = {}) {
   }
   function openTopologySetup(definition = undefined) {
     if (isOnline() || session.hidden) return;
-    pauseForPanel(); cabin = null; cabinGeneration++; clearBoardView();
+    pauseForPanel(); cabin = null; cabinGeneration++; cabinScroll = 0; clearBoardView();
     topologySetup = createTopologySetup(definition === undefined ? {} : { definition }); topologyDraftLayout = null; topologyDraftSelectedIndex = null;
+    topologyControllers = Object.fromEntries(playerIds(playerCount).map(player => [player, 'human']));
     scene = 'topology-setup'; redraw();
   }
   async function addTopologyCoordinate() {
@@ -212,7 +287,41 @@ export function createApp(platform, config = {}) {
   async function generateTopologyRandomBoard() {
     const seed = await platform.input(language === 'en' ? 'Random board seed' : '随机棋盘种子', 'topology-random');
     if (scene !== 'topology-setup' || seed == null) return;
-    adoptTopologySetup(generateTopologyBoard(topologySetup, {}, String(seed).trim() || 'topology-random'));
+    adoptTopologySetup(generateTopologyBoard(topologySetup, { gridSize: size, playerCount }, String(seed).trim() || 'topology-random'));
+  }
+  async function changeTopologyRootLayout(mode) {
+    if (!topologySetup?.compiled) return;
+    let player;
+    if (mode === 'append-random') {
+      const seats = playerIds(playerCount);
+      const index = await platform.choose(seats.map(playerLabel));
+      if (scene !== 'topology-setup' || !Number.isInteger(index) || !seats[index]) return;
+      player = seats[index];
+    }
+    adoptTopologySetup(changeTopologyStarts(topologySetup, { mode, playerCount, ...(player ? { player } : {}) }));
+  }
+  async function configureTopologyController() {
+    const seats = playerIds(playerCount);
+    const index = await platform.choose(seats.map(player => `${playerLabel(player)} · ${topologyControllers[player] === 'topology-generic' ? (language === 'en' ? 'Practice AI' : '练习 AI') : (language === 'en' ? 'Human' : '真人')}`));
+    if (scene !== 'topology-setup' || !Number.isInteger(index) || !seats[index]) return;
+    const choice = await platform.choose(language === 'en' ? ['Human', 'Practice AI (unrated)'] : ['真人', '练习 AI（未评级）']);
+    if (scene !== 'topology-setup' || ![0, 1].includes(choice)) return;
+    topologyControllers[seats[index]] = choice === 0 ? 'human' : 'topology-generic';
+    redraw();
+  }
+  async function editTopologyRoots() {
+    const setup = topologySetup, seats = playerIds(playerCount);
+    if (!setup?.compiled) return;
+    const seatIndex = await platform.choose(seats.map(playerLabel));
+    if (scene !== 'topology-setup' || topologySetup !== setup || !seats[seatIndex]) return;
+    const method = await platform.choose(language === 'en' ? ['Replace roots', 'Add root'] : ['替换起点', '添加起点']);
+    if (scene !== 'topology-setup' || topologySetup !== setup || ![0, 1].includes(method)) return;
+    const ids = setup.compiled.sampleIds;
+    const vertexIndex = await platform.choose(ids, { previousLabel: language === 'en' ? 'Previous' : '上一页', nextLabel: language === 'en' ? 'Next' : '下一页' });
+    if (scene !== 'topology-setup' || topologySetup !== setup || !ids[vertexIndex]) return;
+    const roots = topologyStartingRoots(setup.compiled), player = seats[seatIndex];
+    roots[player] = method === 0 ? [ids[vertexIndex]] : [...(roots[player] || []), ids[vertexIndex]];
+    adoptTopologySetup(changeTopologyStarts(setup, { mode: 'custom', playerCount, roots }));
   }
   async function chooseTopologyBoundaryOccurrence() {
     const ids = topologySetup?.draft?.boundaryOccurrenceIds ?? [];
@@ -233,16 +342,42 @@ export function createApp(platform, config = {}) {
       if (current.snapshot && current.actions.length && !current.tutorial) archiveCurrent({ bestEffort: true });
       clearEmote(); invalidateContribution(); cabin = null; cabinGeneration++; selected = null; scene = 'game';
       const topologySettings = {
-        gridSize: prepared.compiled.sampleIds.length,
+        gridSize: size,
         playerCount, startPlayer, rulesVersion: TopologyRulesVersion.SURFACE_V1, boardShape: 'custom',
         boardDefinition: prepared.definition, boardHash: prepared.boardHash,
         topologyProtocolVersion: 'board-topology-v1', rootMode: 'classic', rootRulesVersion: 'root-v1', ...playOptions,
       };
-      const started = await current.newTopologyGame(topologySettings, playerCount > 2 ? 'human' : mode, difficulty);
+      const seats = Object.fromEntries(playerIds(playerCount).map(player => [player, topologyControllers[player] || 'human']));
+      const started = await current.newTopologyGame(topologySettings, 'human', difficulty, { controllers: seats });
       if (started) beginContribution();
       else scene = 'topology-setup';
       redraw();
     } finally { releaseClock(); }
+  }
+
+  async function createTopologyRoom() {
+    const prepared = topologySetupResult(topologySetup);
+    if (!prepared.ok) return platform.message(topologyErrorText(prepared));
+    return friendsMenu(null, 'create', {
+      gridSize: size, playerCount, startPlayer, rulesVersion: TopologyRulesVersion.SURFACE_V1,
+      boardShape: 'custom', boardDefinition: prepared.definition, boardHash: prepared.boardHash,
+      topologyProtocolVersion: 'board-topology-v1', rootMode: 'classic', rootRulesVersion: 'root-v1',
+      undoEnabled: playOptions.undoEnabled, undoMaxCount: playOptions.undoMaxCount,
+      turnTimerEnabled: playOptions.turnTimerEnabled, turnTimeLimitSeconds: playOptions.turnTimeLimitSeconds,
+    });
+  }
+
+  function openSurface3D() {
+    const snapshot = session.snapshot;
+    if (!isTopologySnapshot(snapshot)) return;
+    pauseForPanel();
+    try {
+      surface3dCanvas = platform.createWebGLCanvas?.(512, 512) || null;
+      surface3dRenderer = surface3dCanvas && createDepthRenderer(surface3dCanvas);
+      surface3dData = buildSurfaceCells(snapshot);
+      surface3dPitch = initialSurfacePitch(snapshot.boardDefinition);
+    } catch (_) { surface3dRenderer = null; surface3dData = null; }
+    scene = 'topology-3d'; redraw();
   }
 
   function clearUserInfoControl() {
@@ -396,23 +531,59 @@ export function createApp(platform, config = {}) {
     buttons = []; sliders = []; scrollArea = null; clipArea = null; layout = null; boardRect = null; baseLayout = null; const navTop = header(), top = navTop + ((scene === 'game' || scene === 'home') ? 52 : 0);
     const ui = { metrics, top, text, rect, wrap, button, slider, seekBar, label, ctx, language, guideImages };
     const cabinUi = { ...ui, top: navTop };
+    if (scene === 'topology-3d') {
+      text(surface3dData?.surface?.kind === 'atlas' ? (language === 'en' ? 'Unfolded atlas' : '展开面片图') : (language === 'en' ? '3D surface' : '三维曲面'), 24, top, 21, THEME.ink, 'left', 'bold');
+      const side = Math.max(100, Math.min(w - 48, h - metrics.bottom - top - 225));
+      surface3dRect = { x: 24, y: top + 25, width: side, height: side };
+      if (surface3dRenderer && surface3dData) {
+        try {
+          const rotate = ([x, y, z]) => {
+            const a = x * Math.cos(surface3dYaw) - z * Math.sin(surface3dYaw), b = x * Math.sin(surface3dYaw) + z * Math.cos(surface3dYaw);
+            return [a, y * Math.cos(surface3dPitch) - b * Math.sin(surface3dPitch), y * Math.sin(surface3dPitch) + b * Math.cos(surface3dPitch)];
+          };
+          surface3dRenderer.draw(surface3dData, 512, 512, rotate, surface3dZoom, {}, 1);
+          ctx.drawImage(surface3dCanvas, 24, top + 25, side, side);
+        } catch (_) { surface3dRenderer = null; }
+      }
+      if (!surface3dRenderer) wrap(language === 'en' ? '3D preview is unavailable on this device. The atlas board remains playable.' : '此设备暂时无法显示三维预览，仍可使用展开棋盘继续对局。', 24, top + 45, w - 48, 14, THEME.muted, 4);
+      const rowY = top + side + 38, half = (w - 56) / 2;
+      button('surface-left', language === 'en' ? 'Rotate left' : '向左旋转', 24, rowY, half, () => { surface3dYaw -= 0.3; redraw(); }, { height: 40 });
+      button('surface-right', language === 'en' ? 'Rotate right' : '向右旋转', 32 + half, rowY, half, () => { surface3dYaw += 0.3; redraw(); }, { height: 40 });
+      button('surface-up', language === 'en' ? 'Tilt up' : '向上旋转', 24, rowY + 48, half, () => { surface3dPitch -= 0.3; redraw(); }, { height: 40 });
+      button('surface-down', language === 'en' ? 'Tilt down' : '向下旋转', 32 + half, rowY + 48, half, () => { surface3dPitch += 0.3; redraw(); }, { height: 40 });
+      button('surface-minus', '−', 24, rowY + 96, half, () => { surface3dZoom = Math.max(0.4, surface3dZoom / 1.2); redraw(); }, { height: 40 });
+      button('surface-plus', '+', 32 + half, rowY + 96, half, () => { surface3dZoom = Math.min(2.5, surface3dZoom * 1.2); redraw(); }, { height: 40 });
+      button('surface-back', language === 'en' ? 'Back to board' : '返回棋盘', 24, rowY + 144, w - 48, () => { surface3dRenderer?.destroy(); surface3dRenderer = null; surface3dCanvas = null; surface3dData = null; scene = 'game'; redraw(); }, { height: 40 });
+      return;
+    }
     if (scene === 'starts') {
+      const setup = roomDraft?.settings || { gridSize: size, playerCount, boardShape };
+      const startSize = setup.gridSize, startCount = setup.playerCount, startShape = setup.boardShape;
       text(label('customStarts'), 24, top, 20, THEME.ink, 'left', 'bold');
       wrap(label('customStartsHelp'), 24, top + 32, w - 48, 13, THEME.muted, 2);
-      const seats = playerIds(playerCount), columns = 3, cell = (w - 64) / columns;
-      seats.forEach((player, index) => button(`start-seat-${player}`, `${playerLabel(player)} (${startDraft[player].join(',')})`,
+      const seats = playerIds(startCount), columns = 3, cell = (w - 64) / columns;
+      const seatsPerPage = startCount > 6 && h - metrics.bottom - 108 - top < 293 ? 3 : 6;
+      const seatPages = Math.ceil(seats.length / seatsPerPage); startSeatPage = Math.max(0, Math.min(seatPages - 1, startSeatPage));
+      const visibleSeats = seats.slice(startSeatPage * seatsPerPage, (startSeatPage + 1) * seatsPerPage);
+      visibleSeats.forEach((player, index) => button(`start-seat-${player}`, `${playerLabel(player)} (${startDraft[player].join(',')})`,
         24 + index % columns * (cell + 8), top + 70 + Math.floor(index / columns) * 45, cell,
         () => { startSeat = player; startPoint = null; redraw(); }, { height: 39, font: 12, primary: startSeat === player }));
-      const footer = h - metrics.bottom - 108;
-      boardRect = { x: 30, y: top + 76 + Math.ceil(seats.length / columns) * 45,
-        width: w - 60, height: Math.max(65, footer - top - 94 - Math.ceil(seats.length / columns) * 45) };
-      baseLayout = boardLayout(size, boardRect, playerCount, boardShape);
-      layout = zoomFocus ? focusBoardLayout(size, boardRect, zoomFocus, 44, playerCount, boardShape) : baseLayout;
-      const extent = boardShape === 'hexagon' ? 2 * size - 1 : size;
+      const footer = h - metrics.bottom - 108, seatRows = Math.ceil(visibleSeats.length / columns), pageSpace = seatPages > 1 ? 44 : 0;
+      if (seatPages > 1) {
+        const pageY = top + 73 + seatRows * 45;
+        button('start-seats-prev', label('previousPage'), 24, pageY, 84, () => { startSeatPage--; redraw(); }, { height: 36, font: 12, disabled: startSeatPage <= 0 });
+        text(`${startSeatPage + 1} / ${seatPages}`, w / 2, pageY + 18, 13, THEME.muted, 'center');
+        button('start-seats-next', label('nextPage'), w - 108, pageY, 84, () => { startSeatPage++; redraw(); }, { height: 36, font: 12, disabled: startSeatPage >= seatPages - 1 });
+      }
+      boardRect = { x: 30, y: top + 76 + seatRows * 45 + pageSpace,
+        width: w - 60, height: Math.max(65, footer - top - 94 - seatRows * 45 - pageSpace) };
+      baseLayout = boardLayout(startSize, boardRect, startCount, startShape);
+      layout = zoomFocus ? focusBoardLayout(startSize, boardRect, zoomFocus, 44, startCount, startShape) : baseLayout;
+      const extent = startShape === 'hexagon' ? 2 * startSize - 1 : startSize;
       const matrix = Array.from({ length: extent }, () => Array(extent).fill(0));
       seats.forEach((player, index) => { const [x, y] = startDraft[player]; matrix[y][x] = 2 * index + 1; });
       if (zoomFocus) { ctx.save(); ctx.beginPath(); ctx.rect(boardRect.x, boardRect.y, boardRect.width, boardRect.height); ctx.clip(); }
-      drawBoard(ctx, { gridSize: size, boardShape, players: seats, initialPositions: startDraft, boardMatrix: matrix,
+      drawBoard(ctx, { gridSize: startSize, boardShape: startShape, players: seats, initialPositions: startDraft, boardMatrix: matrix,
         territories: {}, edges: {}, legalMoves: [], gameOver: false }, layout,
         { selected: startPoint, target: startDraft[startSeat], display: { ...display, coordinates: true } });
       if (zoomFocus) ctx.restore();
@@ -420,23 +591,24 @@ export function createApp(platform, config = {}) {
       if (duplicate) text(label('startPointOccupied'), w / 2, footer - 12, 13, '#a43730', 'center');
       button('start-point-confirm', `${label('confirmStart')} · ${playerLabel(startSeat)}`, 24, footer, w - 48,
         () => { if (!startPoint || duplicate) return; startDraft = { ...startDraft, [startSeat]: [...startPoint] }; startPoint = null;
-          startSeat = seats[(seats.indexOf(startSeat) + 1) % seats.length]; redraw(); }, { height: 44, primary: true, disabled: !startPoint || duplicate });
+          startSeat = seats[(seats.indexOf(startSeat) + 1) % seats.length]; startSeatPage = Math.floor(seats.indexOf(startSeat) / seatsPerPage); redraw(); }, { height: 44, primary: true, disabled: !startPoint || duplicate });
       button('starts-save', label('saveStarts'), 24, footer + 54, (w - 60) / 2, async () => {
-        initialPositions = resolveInitialPositions(size, playerCount, startDraft, boardShape); startingPointMode = 'custom';
-        if (isOnline()) {
-          if (!await online.updateSettings(onlineSettings({ startingPointMode: 'custom', initialPositions }))) return;
-          redraw();
-        } else persistPreferences();
+        const positions = resolveInitialPositions(startSize, startCount, startDraft, startShape);
+        if (roomDraft) editRoomDraft({ startingPointMode: 'custom', initialPositions: positions });
+        else { initialPositions = positions; startingPointMode = 'custom'; persistPreferences(); }
         openCabin('board'); }, { height: 44, disabled: Boolean(startPoint) });
       button('starts-cancel', label('cancelStarts'), 36 + (w - 60) / 2, footer + 54, (w - 60) / 2, () => openCabin('board'), { height: 44 });
       if (baseLayout.spacing < 44) button('start-zoom', label(zoomFocus ? 'overviewShort' : 'zoomShort'), w - 81, boardRect.y - 12, 57,
-        () => { zoomFocus = zoomFocus ? null : startPoint || startDraft[startSeat]; startPoint = null; redraw(); }, { height: 32, font: 12 });
+        () => { zoomFocus = zoomFocus ? null : startPoint || startDraft[startSeat]; startPoint = null; redraw(); }, { height: 36, font: 12 });
       return;
     }
     if (scene === 'topology-setup') {
       if (!topologySetup) topologySetup = createTopologySetup();
       const setup = topologySetup, half = (w - 56) / 2;
-      let y = top;
+      scrollArea = { x: 0, y: top - 8, width: w, height: Math.max(60, h - metrics.bottom - top - 54) };
+      clipArea = scrollArea;
+      ctx.save(); ctx.beginPath(); ctx.rect(scrollArea.x, scrollArea.y, scrollArea.width, scrollArea.height); ctx.clip();
+      let y = top - cabinScroll;
       const pair = (idA, labelA, actionA, disabledA, idB, labelB, actionB, disabledB) => {
         button(idA, labelA, 24, y, half, actionA, { height: 42, font: 13, disabled: Boolean(disabledA), primary: false });
         if (idB) button(idB, labelB, 32 + half, y, half, actionB, { height: 42, font: 13, disabled: Boolean(disabledB), primary: false });
@@ -446,16 +618,18 @@ export function createApp(platform, config = {}) {
       y += wrap(language === 'en'
         ? 'Choose a surface, generate a reproducible board, or enter an axial-grid boundary. Seam choices always use compiler-issued boundary occurrence IDs.'
         : '选择曲面、生成可复现棋盘，或输入轴向格线边界。接缝只会使用编译器给出的真实边界小边 ID。', 24, y, w - 48, 13, THEME.muted, 3) + 14;
-      pair('topology-cylinder', language === 'en' ? 'Cylinder' : '圆柱', () => adoptTopologySetup(useTopologyPreset(setup, 'cylinder')),
-        false, 'topology-mobius', language === 'en' ? 'Mobius' : '莫比乌斯', () => adoptTopologySetup(useTopologyPreset(setup, 'mobius')), false);
-      pair('topology-torus', language === 'en' ? 'Torus' : '环面', () => adoptTopologySetup(useTopologyPreset(setup, 'torus')),
-        false, 'topology-klein', language === 'en' ? 'Klein bottle' : '克莱因瓶', () => adoptTopologySetup(useTopologyPreset(setup, 'klein-bottle')), false);
+      pair('topology-cylinder', language === 'en' ? 'Cylinder' : '圆柱', () => adoptTopologySetup(useTopologyPreset(setup, 'cylinder', { gridSize: size, playerCount })),
+        false, 'topology-mobius', language === 'en' ? 'Mobius' : '莫比乌斯', () => adoptTopologySetup(useTopologyPreset(setup, 'mobius', { gridSize: size, playerCount })), false);
+      pair('topology-torus', language === 'en' ? 'Torus' : '环面', () => adoptTopologySetup(useTopologyPreset(setup, 'torus', { gridSize: size, playerCount })),
+        false, 'topology-klein', language === 'en' ? 'Klein bottle' : '克莱因瓶', () => adoptTopologySetup(useTopologyPreset(setup, 'klein-bottle', { gridSize: size, playerCount })), false);
+      pair('topology-sphere', language === 'en' ? 'Sphere' : '球面', () => adoptTopologySetup(useTopologyPreset(setup, 'double-sphere', { gridSize: size, playerCount })), false,
+        'topology-double-torus', language === 'en' ? 'Double torus' : '双把手', () => adoptTopologySetup(useTopologyPreset(setup, 'double-torus', { gridSize: size, playerCount })), false);
       pair('topology-random', language === 'en' ? 'Seeded random' : '种子随机', generateTopologyRandomBoard,
         false, 'topology-custom', language === 'en' ? 'Custom boundary' : '自定义边界', () => {
           topologySetup = createTopologySetup(); topologyDraftLayout = null; topologyDraftSelectedIndex = null; redraw();
         }, false);
       if (setup.draft) {
-        const draftRect = { x: 30, y: y + 4, width: w - 60, height: Math.max(84, Math.min(148, h - metrics.bottom - y - 182)) };
+        const draftRect = { x: 30, y: y + 4, width: w - 60, height: 120 };
         try {
           topologyDraftLayout = layoutTopologyDraft(setup.draft, draftRect);
           drawTopologyDraft(ctx, setup.draft, topologyDraftLayout, { selectedIndex: topologyDraftSelectedIndex });
@@ -464,7 +638,11 @@ export function createApp(platform, config = {}) {
         pair('topology-add-boundary', language === 'en' ? 'Add x,y' : '添加 x,y', addTopologyCoordinate,
           false, 'topology-l-shape', language === 'en' ? 'Load L sample' : '载入 L 形示例', loadTopologyLShape, false);
         pair('topology-undo-boundary', language === 'en' ? 'Undo vertex' : '撤销顶点', () => adoptTopologySetup(undoTopologyBoundary(setup)),
-          !setup.draft.path?.length, 'topology-close-boundary', language === 'en' ? 'Close boundary' : '闭合边界', () => adoptTopologySetup(closeTopologyBoundary(setup)),
+          !setup.draft.path?.length, 'topology-close-boundary', language === 'en' ? 'Close boundary' : '闭合边界', () => {
+            const closed = closeTopologyBoundary(setup);
+            if (!closed.ok) return adoptTopologySetup(closed);
+            return adoptTopologySetup(changeTopologyStarts(closed.setup, { mode: 'default', playerCount }));
+          },
           setup.draft.closed || (setup.draft.path?.length ?? 0) < 3);
       } else topologyDraftLayout = null;
       if (setup.compiled && setup.definition) {
@@ -478,23 +656,48 @@ export function createApp(platform, config = {}) {
           button('topology-add-seam', language === 'en' ? 'Add selected seam' : '添加所选接缝', 24, y, w - 48,
             () => adoptTopologySetup(addSelectedTopologySeam(setup)), { height: 42, font: 13, primary: true, disabled: selectedOccurrences.length !== 2 }); y += 50;
         }
+        pair('topology-random-roots', language === 'en' ? 'Random roots' : '随机起点', () => changeTopologyRootLayout('random'), false,
+          'topology-append-root', language === 'en' ? 'Add random root' : '添加随机起点', () => changeTopologyRootLayout('append-random'), false);
+        button('topology-custom-roots', language === 'en' ? 'Edit starting roots' : '手动编辑起点', 24, y, w - 48, editTopologyRoots,
+          { height: 42 }); y += 50;
+        button('topology-controllers', language === 'en' ? 'Players / practice AI' : '玩家 / 练习 AI', 24, y, w - 48, configureTopologyController,
+          { height: 42 }); y += 50;
         button('topology-start', language === 'en' ? 'Start topology match' : '开始拓扑对局', 24, y, w - 48, startTopologyGame,
           { height: 44, primary: true }); y += 54;
+        button('topology-room', language === 'en' ? 'Create friends room' : '创建好友房间', 24, y, w - 48, createTopologyRoom,
+          { height: 42, disabled: !online.enabled }); y += 50;
       }
       const error = setup.errors?.[0];
       if (error) y += wrap(`${error.code || 'TOPOLOGY_SETUP_FAILED'}${error.detail ? ` · ${error.detail}` : ''}`, 24, y + 3, w - 48, 12, '#a43730', 2) + 10;
-      button('topology-back', language === 'en' ? 'Back to board' : '返回棋盘', 24, Math.min(y, h - metrics.bottom - 46), w - 48,
+      scrollMax = Math.max(0, y + cabinScroll - (scrollArea.y + scrollArea.height) + 12);
+      ctx.restore(); clipArea = null;
+      button('topology-back', language === 'en' ? 'Back to board' : '返回棋盘', 24, h - metrics.bottom - 46, w - 48,
         () => { topologySetup = null; topologyDraftLayout = null; scene = 'home'; redraw(); }, { height: 42, font: 14 });
       return;
     }
     if (scene === 'setup') {
-      drawSetup(ui, { size, mode, difficulty, controllers, playerCount }, { start: startNew, players: () => { playersPage = 0; scene = 'players'; redraw(); }, change: (key, value) => {
-        if (key === 'size') size = Math.max(5, Math.min(15, value));
-        if (key === 'mode') { rememberPlayerDraft(); playerCount = value === 'three-human' ? 3 : 2; mode = value; controllers = null; startPlayer = 'BLACK'; }
+      drawSetup(ui, { size, mode, difficulty, controllers, playerCount, boardShape }, { start: startNew, players: () => { playersPage = 0; scene = 'players'; redraw(); }, change: (key, value) => {
+        if (key === 'size') {
+          const nextSize = Math.max(5, Math.min(15, value));
+          if (nextSize !== size) {
+            size = nextSize; initialPositions = null;
+            if (startingPointMode === 'custom') startingPointMode
+              = requiresExplicitStartingPoints(playerCount, boardShape) ? 'random' : 'default';
+          }
+        }
+        if (key === 'mode') {
+          rememberPlayerDraft(); const nextCount = value === 'three-human' ? 3 : 2;
+          if (nextCount !== playerCount) {
+            playerCount = nextCount; initialPositions = null;
+            startingPointMode = requiresExplicitStartingPoints(playerCount, boardShape) ? 'random' : 'default';
+          }
+          mode = value; controllers = null; startPlayer = 'BLACK';
+        }
         if (key === 'difficulty') {
           difficulty = value;
           if (controllers && draftPlayerCount() === 2) controllers = Object.fromEntries(Object.entries(controllers).map(([player, profile]) =>
-            [player, profile === 'human' ? profile : difficulty === 'easy' ? 'greedy' : 'minimax-2']));
+            [player, profile === 'greedy' || /^minimax-[234]$/.test(profile)
+              ? boardShape === 'hexagon' ? 'greedy' : ({ simple: 'minimax-2', medium: 'minimax-3', hard: 'minimax-4' })[difficulty] : profile]));
         }
         persistPreferences();
       } }); return;
@@ -538,7 +741,8 @@ export function createApp(platform, config = {}) {
         rows: session.snapshot.players.map(player => ({ player, area: session.snapshot.territories[player].area,
           resigned: player === online.room.player, winner: false })) } : summarizeResult(session.snapshot);
       if (!result) { scene = 'game'; redraw(); return; }
-      drawResult(ui, { result, playerLabel, online: isOnline(), ladderText: isOnline() ? ladderResultText(online.room?.ladderResult, online.room?.player, language) : '' }, {
+      drawResult(ui, { result, playerLabel, online: isOnline(), page: resultPage, ladderText: isOnline() ? ladderResultText(online.room?.ladderResult, online.room?.player, language) : "" }, {
+        page: value => { resultPage = value; redraw(); },
         back: () => { scene = 'game'; redraw(); },
         replay: () => { scene = 'game'; selected = null; void session.replay(0); redraw(); },
         save: async () => { if (!isOnline() && !session.hidden) { archiveCurrent(); await platform.message(label('replaySaved')); } },
@@ -567,22 +771,28 @@ export function createApp(platform, config = {}) {
       }); return;
     }
     if (scene === 'models') {
-      const modelSettings = modelTarget?.kind === 'analysis' ? session.settings : draftSettings();
+      const modelSettings = modelTarget?.kind === 'analysis' ? session.settings : roomDraft?.settings || draftSettings();
       const compatible = controllerChoices(modelSettings.playerCount, modelSettings);
-      drawModels(ui, { models: MODEL_CATALOG.filter(model => compatible.includes(model.profile) && model.research === (modelGroup === 'research')),
+      const multiplayer = modelSettings.playerCount > 2;
+      const models = multiplayer
+        ? MULTIPLAYER_AI_CATALOG.filter(model => !model.profile.startsWith('multiplayer-') && compatible.includes(model.profile))
+          .map(model => ({ ...model, id: model.profile }))
+        : MODEL_CATALOG.filter(model => compatible.includes(model.profile) && model.research === (modelGroup === 'research'));
+      drawModels(ui, { models, multiplayer,
         page: modelPage, group: modelGroup, target: modelTarget?.kind === 'analysis' ? label('analyzeReplay') : playerLabel(modelTarget?.player) }, {
         select: profile => {
           if (session.hidden) return;
           if (modelTarget?.kind === 'analysis') { scene = 'analysis'; void runAnalysis(profile); }
-          else if (modelTarget?.player && controllerChoices(playerCount, draftSettings()).includes(profile)) {
-            controllers = { ...(controllers || presetControllers(mode, difficulty)), [modelTarget.player]: profile };
-            mode = controllersMode(controllers); scene = modelTarget.returnCabin ? 'home' : 'players'; persistPreferences();
+          else if (modelTarget?.player && controllerChoices(modelSettings).includes(profile)) {
+            if (roomDraft) roomDraft.controllers = { ...roomDraft.controllers, [modelTarget.player]: profile };
+            else { controllers = { ...(controllers || presetControllers(mode, difficulty)), [modelTarget.player]: profile }; mode = controllersMode(controllers); persistPreferences(); }
+            scene = modelTarget.returnCabin ? 'home' : 'players';
           }
           redraw();
         },
         page: delta => { modelPage += delta; redraw(); },
         group: value => { modelGroup = value; modelPage = 0; redraw(); },
-        info: () => platform.message(label('modelInfo')),
+        info: () => platform.message(label(multiplayer ? 'modelInfoMulti' : 'modelInfo')),
         back: () => { scene = modelTarget?.kind === 'analysis' ? 'analysis' : modelTarget?.returnCabin ? 'home' : 'players'; redraw(); },
       }); return;
     }
@@ -623,7 +833,12 @@ export function createApp(platform, config = {}) {
     }
     const boxW = (w - 60) / 2;
     const compact = h - metrics.top - metrics.bottom < 620;
-    const multiScore = snapshot.players.length >= 4, scoreExtra = multiScore ? 48 : 0;
+    const multiScore = snapshot.players.length >= 4, scoresPerPage = snapshot.players.length > 6 && compact ? 3 : 6;
+    const scorePages = Math.ceil(snapshot.players.length / scoresPerPage), scoreRows = Math.ceil(Math.min(scoresPerPage, snapshot.players.length) / 3);
+    const positionKey = `${session.epoch}:${session.replayIndex}:${snapshot.currentPlayer}:${snapshot.gameOver}`;
+    if (scorePosition !== positionKey) { scorePage = Math.floor(snapshot.players.indexOf(snapshot.currentPlayer) / scoresPerPage); scorePosition = positionKey; }
+    scorePage = Math.max(0, Math.min(scorePages - 1, scorePage));
+    const scoreExtra = (multiScore ? (scoreRows - 1) * 48 : 0) + (scorePages > 1 ? 42 : 0);
     const replaying = session.replayIndex !== null;
     const compactReplayTools = replaying && compact && multiScore;
     const undoVoting = isOnline() && !session.tutorial && !replaying && Boolean(online.room?.undo?.pending);
@@ -645,7 +860,7 @@ export function createApp(platform, config = {}) {
     const ownSide = isOnline() ? online.room?.player : null;
     const roundWidth = 64, scoreGap = 6;
     const scoreWidth = multiScore ? (w - 44) / 3 : (w - 32 - roundWidth - snapshot.players.length * scoreGap) / snapshot.players.length;
-    const scoreOrder = snapshot.players.length === 2 ? [snapshot.players[0], null, snapshot.players[1]] : multiScore ? snapshot.players : [...snapshot.players, null];
+    const scoreOrder = snapshot.players.length === 2 ? [snapshot.players[0], null, snapshot.players[1]] : multiScore ? snapshot.players.slice(scorePage * scoresPerPage, (scorePage + 1) * scoresPerPage) : [...snapshot.players, null];
     const rankedForfeit = isOnline() && online.room?.rankedForfeit && session.replayIndex === null;
     const roundNumber = Math.max(1, (session.replayIndex ?? session.actions.length) + (snapshot.gameOver || rankedForfeit ? 0 : 1));
     let scoreX = 16;
@@ -669,6 +884,11 @@ export function createApp(platform, config = {}) {
       if (activeTurn) rect(scoreX + 12, scoreY + 38, scoreWidth - 24, 3, 1, color);
       scoreX += scoreWidth + scoreGap;
     }
+    if (scorePages > 1) {
+      button('score-prev', label('previousPage'), 24, top + scoreRows * 48, 84, () => { scorePage--; redraw(); }, { height: 36, font: 12, disabled: scorePage <= 0 });
+      text(`${scorePage + 1} / ${scorePages}`, w / 2, top + scoreRows * 48 + 18, 13, THEME.muted, 'center');
+      button('score-next', label('nextPage'), w - 108, top + scoreRows * 48, 84, () => { scorePage++; redraw(); }, { height: 36, font: 12, disabled: scorePage >= scorePages - 1 });
+    }
     let instruction = session.busy ? label('thinking') : snapshot.gameOver
       ? `${label('result')} · ${snapshot.winner === 'DRAW' ? label('draw') : `${playerLabel(snapshot.winner)} ${label('wins')}`}`
       : session.paused ? label('resume') : language === 'en' ? 'Your move' : '轮到你落子';
@@ -683,7 +903,7 @@ export function createApp(platform, config = {}) {
       if (lesson.restriction && !session.tutorial.restrictionObserved) target = blocked = lesson.restriction.point;
     }
     if (session.replayIndex !== null) instruction = `${label('replay')} · ${session.replayIndex} / ${session.actions.length}`;
-    if (isOnline() && session.replayIndex === null) instruction = `${online.room?.code || ''} · ${label(online.room?.status === 'waiting' ? 'roomWaiting' : online.room?.status === 'closed' ? 'roomClosed' : snapshot.gameOver ? 'result' : snapshot.currentPlayer === 'BLACK' ? 'black' : 'white')}`;
+    if (isOnline() && session.replayIndex === null) instruction = `${online.room?.code || ''} · ${online.room?.status === 'waiting' ? label('roomWaiting') : online.room?.status === 'closed' ? label('roomClosed') : snapshot.gameOver ? label('result') : playerLabel(snapshot.currentPlayer)}`;
     if (isOnline() && online.room?.rankedAI && session.replayIndex === null)
       instruction = rankedForfeit ? (language === 'en' ? 'AI challenge forfeited' : 'AI 挑战已认输结算')
         : `${language === 'en' ? 'Ranked AI' : 'AI 排位'} · ${snapshot.players.length} ${language === 'en' ? 'seats' : '人'} · ${playerLabel(snapshot.currentPlayer)}`;
@@ -696,16 +916,18 @@ export function createApp(platform, config = {}) {
     if (replaying && !compactReplayTools) drawReplayPrimary(ui, { busy: session.busy,
       canBranch: !snapshot.gameOver, canAnalyze: !snapshot.gameOver }, { select: replayAction }, statusTop + 84);
     if (hasResult) button('result-detail', label('resultDetails'), w - 106, statusTop + (compact ? 44 : 47), 82,
-      () => { if (!session.hidden) { session.pause(); scene = 'result'; redraw(); } }, { height: 36, disabled: session.busy });
+      () => { if (!session.hidden) { session.pause(); resultPage = 0; scene = 'result'; redraw(); } }, { height: 36, disabled: session.busy });
     if (lesson) wrap(session.tutorial.done ? (language === 'zh' ? lesson.successZh : lesson.successEn)
       : session.tutorial.restrictionObserved && lesson.allowedInstructionZh
         ? (language === 'zh' ? lesson.allowedInstructionZh : lesson.allowedInstructionEn)
         : (language === 'zh' ? lesson.instructionZh : lesson.instructionEn), 24, top + 103, w - 48, 13, THEME.muted, 3);
     else {
       const error = isOnline() ? online.error || session.error : session.error;
-      const clockVisible = !isOnline() && session.settings.turnTimerEnabled && session.replayIndex === null && !snapshot.gameOver;
-      const clockLabel = clockVisible ? session.clock.running
-        ? `${label('clockRemaining')} ${Math.ceil(session.clock.remaining() / 1000)}s` : label('clockPaused') : '';
+      const clockVisible = session.settings.turnTimerEnabled && session.replayIndex === null && !snapshot.gameOver
+        && (!isOnline() || online.room?.status === 'playing');
+      const clockLabel = clockVisible ? isOnline()
+        ? online.room?.turnDeadline ? `${label('clockRemaining')} ${Math.max(0, Math.ceil(online.room.turnDeadline - Date.now() / 1000))}s` : label('clockPaused')
+        : session.clock.running ? `${label('clockRemaining')} ${Math.ceil(session.clock.remaining() / 1000)}s` : label('clockPaused') : '';
       const help = session.replayIndex !== null ? label(visibleInspection() ? 'inspectionMarks' : 'replayHelp')
         : isOnline() && online.room?.status === 'waiting' ? label('roomHelp')
         : isOnline() && online.room?.status === 'closed' ? label('roomClosed')
@@ -717,8 +939,11 @@ export function createApp(platform, config = {}) {
         : !isOnline() && session.paused ? label('pausedHelp')
         : selected ? label('selected') : isOnline() && online.room?.player !== snapshot.currentPlayer ? label('pending')
         : zoomFocus ? label('zoomedHelp') : !topologyBoard && baseLayout.spacing < 28 ? label('zoomHelp') : label('choose');
-      const replayActionLabel = replaying && lastAction && !visibleInspection() && { move: 'played', skip: 'passed', resign: 'resigned' }[lastType];
-      if (!compactReplayTools) wrap(error ? errorText(error, t()) : emoteMessage || archiveNotice || (replayActionLabel ? `${label('lastAction')} · ${label(replayActionLabel)}` : help), 24, statusTop + (replaying ? 146 : 96), w - 48, compact ? 13 : 14,
+      const replayActionLabel = replaying && lastAction && !visibleInspection() && { move: 'played', skip: 'passed', resign: 'resigned', root_relocate: 'rootMoved', root_add: 'rootAdded' }[lastType];
+      const botResult = isOnline() && online.room?.lastBotResult?.matchId === online.room?.matchId ? online.room.lastBotResult : null;
+      const botNotice = failedRoomBot() ? (language === 'en' ? 'AI could not move. Reconnect to retry.' : 'AI 暂未完成行动，请重新连接重试。')
+        : botResult?.fallback ? (language === 'en' ? 'AI used a fallback legal action this turn.' : 'AI 本回合使用了备用合法行动。') : '';
+      if (!compactReplayTools) wrap(error ? errorText(error, t()) : emoteMessage || botNotice || archiveNotice || (replayActionLabel ? `${label('lastAction')} · ${label(replayActionLabel)}` : help), 24, statusTop + (replaying ? 146 : 96), w - 48, compact ? 13 : 14,
         error ? '#ac554c' : THEME.muted, visibleInspection() ? 2 : 1);
       if ((lastAction || clockVisible) && !error && !visibleInspection() && !replaying) {
         const actionLabel = { move: 'played', skip: 'passed', resign: 'resigned' }[lastType];
@@ -728,7 +953,7 @@ export function createApp(platform, config = {}) {
     }
     if (!lesson && session.replayIndex === null && !snapshot.gameOver && !rankedForfeit) {
       button('skip', label('skip'), 24, statusTop + 48, 58, () => quickAction('skip'), { height: 36, font: 14, disabled: !canPlay() });
-      button('hint', label('hint'), w - 82, statusTop + 48, 58, () => quickAction('hint'), { height: 36, font: 14, disabled: isOnline() || !canPlay() || !session.hintsRemaining });
+      button('hint', label('hint'), w - 82, statusTop + 48, 58, () => quickAction('hint'), { height: 36, font: 14, disabled: !canPlay() || !session.hintsRemaining });
       const dynamicRootType = snapshot.rootMode === 'relocate' ? 'relocate' : snapshot.rootMode === 'add' ? 'add' : null;
       const rootAvailable = dynamicRootType && (snapshot.rootActionsRemaining?.[snapshot.currentPlayer]?.[dynamicRootType] || 0) > 0;
       if (dynamicRootType) button('root-action', `${actionMode === 'root' ? '✓ ' : ''}${language === 'en' ? (dynamicRootType === 'relocate' ? 'Relocate' : 'Add root') : (dynamicRootType === 'relocate' ? '迁移' : '增设')}`,
@@ -748,11 +973,13 @@ export function createApp(platform, config = {}) {
     if (topologyBoard) {
       drawTopologyBoard(ctx, snapshot, layout, { selected, hint: session.hintPoint, target: session.tutorial?.done ? null : target,
         lastMove: lastType === 'move' ? lastAction?.vertexId : null,
+        effects: visibleInspection()?.effects,
         display: lesson ? { ...display, legalMoves: true, territories: true } : display });
+      button('topology-3d', '3D', boardRect.x + boardRect.width - 50, boardRect.y + 5, 44, openSurface3D, { height: 34, font: 12 });
     } else {
       if (zoomFocus) { ctx.save(); ctx.beginPath(); ctx.rect(boardRect.x, boardRect.y, boardRect.width, boardRect.height); ctx.clip(); }
       drawBoard(ctx, snapshot, layout, { selected, hint: session.hintPoint, target: session.tutorial?.done ? null : target, blocked,
-        lastMove: lastType === 'move' ? lastAction.point : null, effects: visibleInspection()?.effects,
+        lastMoves: lesson ? {} : latestMoveTracker(session.settings, session.actions, snapshot, session.replayIndex ?? session.actions.length), effects: visibleInspection()?.effects,
         display: lesson ? { ...display, legalMoves: true, territories: true } : display });
       if (zoomFocus) { ctx.restore(); ctx.strokeStyle = THEME.border; ctx.lineWidth = 1; ctx.strokeRect(boardRect.x, boardRect.y, boardRect.width, boardRect.height); }
     }
@@ -770,7 +997,7 @@ export function createApp(platform, config = {}) {
       button('exit-replay', label('backGame'), session.saveError ? 36 + boxW : secondaryX, footer + 106, session.saveError ? boxW : secondaryW, () => { selected = null; void session.exitReplay(); }, { primary: true });
     } else if (isOnline() && online.room?.status === 'closed') {
       button('room-closed', label('backHome'), 24, footer, w - 48, goHome, { primary: true });
-    } else if (isOnline() && (!online.connected || online.error || online.pending)) {
+    } else if (isOnline() && (!online.connected || online.error || online.pending || failedRoomBot())) {
       button('room-retry', label(online.sending ? 'thinking' : 'reconnect'), 24, footer, w - 48,
         async () => { await online.refresh(); if (online.pending) await online.retryPending(); await online.connect(); }, { primary: true, disabled: online.sending || session.busy });
     } else if (isOnline() && online.room?.status === 'waiting') {
@@ -778,7 +1005,7 @@ export function createApp(platform, config = {}) {
         () => online.command('ready'), { primary: true, disabled: online.sending || online.room.ready[online.room.player] });
     } else if (isOnline() && online.room?.undo?.pending) {
       const voted = online.room.undo.votes.includes(online.room.player);
-      button('undo-accept', voted ? (language === 'en' ? 'Waiting for vote' : '等待对方确认') : (language === 'en' ? 'Accept undo' : '同意悔棋'),
+      button('undo-accept', voted ? (language === 'en' ? 'Waiting for votes' : '等待真人确认') : (language === 'en' ? 'Accept undo' : '同意悔棋'),
         24, footer - 54, boxW, () => online.voteUndo(true), { primary: true, disabled: voted || online.sending });
       button('undo-reject', language === 'en' ? 'Reject undo' : '拒绝悔棋', 36 + boxW, footer - 54, boxW,
         () => online.voteUndo(false), { disabled: online.sending });
@@ -850,8 +1077,9 @@ export function createApp(platform, config = {}) {
           || !online.room.actions.some(action => action.type === 'move' && action.player === online.room.player) });
     if (zoomAvailable) button('board-zoom', label(zoomFocus ? 'overviewShort' : 'zoomShort'), w - 81, boardRect.y - 4, 57,
       () => {
+        const radius = snapshot.gridSize - 1;
         zoomFocus = zoomFocus ? null : selected || session.hintPoint || target || (snapshot.boardShape === 'hexagon'
-          ? [snapshot.gridSize - 1, snapshot.gridSize - 1] : [(snapshot.gridSize - 1) / 3, (snapshot.gridSize - 1) / 3]);
+          ? [radius, radius] : snapshot.boardShape === 'diamond' ? [radius / 2, radius / 2] : [radius / 3, radius / 3]);
         selected = null; startTouch = null; redraw();
       }, { height: 36, font: 13, disabled: session.busy });
     drawCabinDock(cabinUi, scene === 'home' ? 'board' : cabin, { open: openCabin });
@@ -862,41 +1090,60 @@ export function createApp(platform, config = {}) {
       layout = null; boardRect = null; scrollArea = area; clipArea = area;
       ctx.save(); ctx.beginPath(); ctx.rect(area.x, area.y, area.width, area.height); ctx.clip();
       const content = { ...area, y: area.y - cabinScroll }; let contentHeight = area.height;
+      const boardDraft = roomDraft?.settings;
       if (active === 'board') contentHeight = drawBoardCabin(ui, content, { language, terminology,
-        size: isOnline() ? online.room?.settings?.gridSize || size : size, online: isOnline(),
+        size: boardDraft?.gridSize ?? size, online: isOnline(), roomSetup: roomDraft?.kind,
+        roomBusy: online.sending, nextGame: isOnline() && ['playing', 'finished'].includes(online.room?.status),
+        hostSeatAdded: roomDraft?.hostSeatAdded,
         canEditOnline: isOnline() && online.canEditSettings(),
-        playerCount: isOnline() ? online.room?.settings?.playerCount || 2 : draftPlayerCount(),
-        boardShape: isOnline() ? online.room?.settings?.boardShape || 'triangle' : boardShape,
-        rootMode: isOnline() ? online.room?.settings?.rootMode || 'classic' : rootMode,
-        startingPointMode: isOnline() ? online.room?.settings?.startingPointMode || 'default' : startingPointMode,
-        startPlayer: isOnline() ? online.room?.settings?.startPlayer : startPlayer,
-        controllers: isOnline() && online.room?.aiControllers || draftControllers(),
-        playOptions: isOnline() ? normalizePlayOptions(online.room?.settings || {}) : playOptions,
-        compatibleProfiles: controllerChoices(playerCount, draftSettings()),
+        playerCount: boardDraft?.playerCount ?? draftPlayerCount(),
+        boardShape: boardDraft?.boardShape || boardShape,
+        rootMode: boardDraft?.rootMode || rootMode,
+        startingPointMode: boardDraft?.startingPointMode || startingPointMode,
+        startPlayer: boardDraft?.startPlayer || startPlayer, controllers: roomDraft?.controllers || online.room?.aiControllers || draftControllers(),
+        playOptions: boardDraft ? normalizePlayOptions(boardDraft) : playOptions,
+        compatibleProfiles: controllerChoices(boardDraft || draftSettings()),
         hasActions: Boolean(session.actions.length), rulesVersion: session.settings?.rulesVersion || 'territory-v3',
         contribution: contribution.enabled, contributionStatus: contribution.snapshot(),
         contributionAvailable: Boolean(contribution.origin && platform.contributionRequest) }, {
         language: toggleLanguage, terminology: () => { terminology = terminology === 'math' ? 'war' : 'math'; persistPreferences(); },
-        playerLabel, players: changePlayerCount,
-        controller: async player => { const generation = cabinGeneration, count = draftPlayerCount(); const choices = controllerMenuChoices(count);
-          const valid = () => generation === cabinGeneration && count === draftPlayerCount() && scene === 'home' && !isOnline() && !session.hidden;
+        playerLabel, submitRoom: submitRoomDraft, players: count => roomDraft ? editRoomDraft({ playerCount: count }) : changePlayerCount(count),
+        controller: async player => { const generation = cabinGeneration, draft = roomDraft, settings = draft?.settings || draftSettings();
+          const count = settings.playerCount, choices = controllerMenuChoices(count, settings);
+          const valid = () => generation === cabinGeneration && roomDraft === draft && count === (roomDraft?.settings.playerCount || draftPlayerCount())
+            && scene === 'home' && (!isOnline() || online.canEditSettings()) && !session.hidden;
           const profile = choices[await platform.choose(choices.map(item => item === 'models' ? label('moreModels') : label(`controller-${item}`)),
             { previousLabel: label('previousPage'), nextLabel: label('nextPage'), isCurrent: valid })];
           if (!profile || !valid()) return;
-          if (profile === 'models') { modelTarget = { kind: 'controller', player, returnCabin: true }; modelPage = 0; scene = 'models'; redraw(); return; }
-          selectController(player, profile); },
-        starter: player => { startPlayer = player; persistPreferences(); },
-        shape: value => { if (isOnline()) return editOnlineSettings({ boardShape: value, startingPointMode: 'default', initialPositions: undefined });
+          if (profile === 'models') { modelTarget = { kind: 'controller', player, returnCabin: true }; modelPage = 0; modelGroup = count > 2 ? 'native' : 'research'; scene = 'models'; redraw(); return; }
+          if (roomDraft) { roomDraft.controllers = { ...roomDraft.controllers, [player]: profile }; redraw(); }
+          else selectController(player, profile); },
+        starter: player => { if (roomDraft) return editRoomDraft({ startPlayer: player }); startPlayer = player; persistPreferences(); },
+        shape: value => { if (roomDraft) return editRoomDraft({ boardShape: value });
           if (boardShape === value) return; boardShape = value; initialPositions = null;
-          if (startingPointMode === 'custom') startingPointMode = 'default'; cabinGeneration++; persistPreferences(); },
-        rootMode: value => { if (!['classic', 'fixed-double', 'relocate', 'add'].includes(value) || playerCount !== 2) return;
-          if (isOnline()) return editOnlineSettings({ rootMode: value, startingPointMode: 'default', initialPositions: undefined, initialRoots: undefined });
-          rootMode = value; startingPointMode = 'default'; initialPositions = null; controllers = null; cabinGeneration++; persistPreferences(); },
-        startingPoints: value => { if (value === 'custom') openStartingPoints(); else if (isOnline()) editOnlineSettings({ startingPointMode: value, initialPositions: undefined });
+          if (draftPlayerCount() === 2 && controllers) {
+            controllers = Object.fromEntries(Object.entries(controllers).map(([player, profile]) =>
+              [player, profile === 'greedy' || /^minimax-[234]$/.test(profile)
+                ? value === 'hexagon' ? 'greedy' : ({ simple: 'minimax-2', medium: 'minimax-3', hard: 'minimax-4' })[difficulty]
+                : profile]));
+          }
+          if (draftPlayerCount() === 2 && value === 'hexagon') difficulty = 'simple';
+          const explicitStartsRequired = requiresExplicitStartingPoints(draftPlayerCount(), value);
+          if (startingPointMode === 'custom' || startingPointMode === 'default' && explicitStartsRequired)
+            startingPointMode = explicitStartsRequired ? 'random' : 'default';
+          cabinGeneration++; persistPreferences(); },
+        rootMode: value => { if (!['classic','fixed-double','relocate','add'].includes(value) || playerCount !== 2) return; if (roomDraft) return editRoomDraft({rootMode:value, rootRulesVersion: value === 'classic' ? 'root-v1' : 'root-v2', initialRoots: undefined, initialPositions: undefined}); rootMode=value; startingPointMode='default'; initialPositions=null; controllers=null; cabinGeneration++; persistPreferences(); },
+        startingPoints: value => {
+          const settings = roomDraft?.settings || { playerCount, boardShape };
+          if (value === 'default' && requiresExplicitStartingPoints(settings.playerCount, settings.boardShape)) return;
+          if (value === 'custom') openStartingPoints(); else if (roomDraft) editRoomDraft({ startingPointMode: value, initialPositions: undefined });
           else { startingPointMode = value; initialPositions = null; persistPreferences(); } },
-        size: value => { if (isOnline()) return editOnlineSettings({ gridSize: value, startingPointMode: 'default', initialPositions: undefined });
-          if (size !== value) { initialPositions = null; if (startingPointMode === 'custom') startingPointMode = 'default'; } size = value; persistPreferences(); }, option: (key, value) => {
-          if (isOnline()) return editOnlineSettings({ [key]: value });
+        size: value => { if (roomDraft) return editRoomDraft({ gridSize: value });
+          if (size !== value) { initialPositions = null; if (startingPointMode === 'custom') startingPointMode
+            = requiresExplicitStartingPoints(playerCount, boardShape) ? 'random' : 'default'; }
+          size = value; persistPreferences(); }, option: (key, value) => {
+          if (roomDraft) return editRoomDraft({ ...(key === 'hintEnabled' && value
+            ? { hintMaxCount: Math.max(1, roomDraft.settings.hintMaxCount ?? 3) } : {}), [key]: value });
           playOptions = normalizePlayOptions({ ...playOptions, ...(key === 'hintEnabled' && value ? { hintMaxCount: Math.max(1, playOptions.hintMaxCount) } : {}), [key]: value });
           optionsConfigured = true; persistPreferences(); },
         contribution: toggleContribution,
@@ -907,8 +1154,11 @@ export function createApp(platform, config = {}) {
       if (active === 'battle') contentHeight = drawBattleCabin(ui, content, { online: isOnline(), code: online.room?.code, enabled: online.enabled,
         ladder: { ...ladder.view(), result: isOnline() ? online.room?.ladderResult : null, player: online.room?.player }, rankedAI: online.room?.rankedAI,
         roomProfiles: online.room?.playerProfiles, ownPlayer: online.room?.player,
+        playerCount: online.room?.settings?.playerCount, bots: online.room?.bots, ready: online.room?.ready,
+        controllers: online.room ? roomControllers(online.room.settings) : null,
         account: online.account, savedCode: online.savedCode, retryCode: roomRetryCode, busy: online.deleting || accountBusy, message: accountMessage }, {
-        create: () => friendsMenu(null, 'create'), join: () => friendsMenu(null, 'join'), resume: () => friendsMenu(null, 'resume'),
+        create: () => openRoomSetup('create'), settings: () => openRoomSetup('settings'),
+        join: () => friendsMenu(null, 'join'), resume: () => friendsMenu(null, 'resume'),
         retry: () => roomRetryCode && friendsMenu(roomRetryCode),
         account: () => accountAction('load'), link: () => accountAction('link'), delete: () => accountAction('delete'),
         editName: () => accountAction('name'), editAvatar: () => accountAction('avatar'), avatar: drawAvatar,
@@ -971,7 +1221,7 @@ export function createApp(platform, config = {}) {
         && generation === cabinGeneration && scene === 'home' && appVisible) contribution.setEnabled(false);
       return;
     }
-    if (!available || localSession.settings?.rulesVersion !== 'territory-v2' && !pending) return;
+    if (!available || localSession.settings?.rulesVersion !== 'territory-v3' && !pending) return;
     if (await platform.confirm(language === 'en' ? CONTRIBUTION_NOTICE_EN : CONTRIBUTION_NOTICE) && generation === cabinGeneration && scene === 'home' && appVisible) contribution.setEnabled(true);
   }
   function toggleLanguage() {
@@ -981,6 +1231,8 @@ export function createApp(platform, config = {}) {
   }
   function openCabin(key) {
     if (session.hidden) return;
+    if (key === 'board' && isOnline() && !roomDraft) { openRoomSetup('settings'); return; }
+    if (key !== 'board') roomDraft = null;
     helpGeneration++; friendsGeneration++; cabinGeneration++;
     pauseForPanel(); selected = null; cabinScroll = 0; accountMessage = '';
     scene = key === 'board' ? 'home' : 'game'; cabin = key === 'board' ? null : key; redraw();
@@ -988,6 +1240,7 @@ export function createApp(platform, config = {}) {
       void ladder.load(ladder.kind, ladder.data?.offset || 0);
   }
   function closeCabin(resume = true) {
+    roomDraft = null;
     cabinGeneration++; cabin = null; scene = 'game'; selected = null;
     if (resume && !isOnline() && session.snapshot && session.replayIndex === null) session.resume();
     redraw();
@@ -1096,19 +1349,21 @@ export function createApp(platform, config = {}) {
       if (action === 'resign' && !await platform.confirm(resignationPrompt())) return;
       if (!valid() || !canPlay()) return;
       selected = null;
-      if (action === 'hint') await session.hint();
+      if (action === 'hint') await (isOnline() ? online.hint() : session.hint());
       else await play({ type: action });
     } finally { release(); redraw(); }
   }
   function returnToBoard() {
     if (!appVisible || session.hidden) return;
     helpGeneration++; friendsGeneration++;
+    surface3dRenderer?.destroy(); surface3dRenderer = null; surface3dCanvas = null; surface3dData = null; surface3dRect = null;
     cancelFileTask();
     // Returning closes the panel, not the match, replay or lesson. The online
     // pause policy preserves in-flight verification; local play stays paused.
     pauseForPanel(); clearBoardView(); closeCabin(false);
   }
   async function goHome() {
+    roomDraft = null;
     cabin = null; cabinGeneration++;
     helpGeneration++; friendsGeneration++;
     cancelFileTask();
@@ -1146,14 +1401,12 @@ export function createApp(platform, config = {}) {
   }
   function openStartingPoints() {
     if (session.hidden || (isOnline() && !online.canEditSettings())) return;
-    if (isOnline()) {
-      const settings = online.room.settings;
-      size = settings.gridSize; playerCount = 2; boardShape = settings.boardShape || 'triangle';
-      startingPointMode = settings.startingPointMode || 'default'; initialPositions = settings.initialPositions || null;
-    }
-    pauseForPanel(); cabin = null; cabinGeneration++; startSeat = playerIds(playerCount)[0]; startPoint = null;
-    try { startDraft = resolveInitialPositions(size, playerCount, initialPositions, boardShape); }
-    catch (_) { startDraft = resolveInitialPositions(size, playerCount, null, boardShape); }
+    const setup = roomDraft?.settings || { gridSize: size, playerCount, boardShape, initialPositions };
+    pauseForPanel(); cabin = null; cabinGeneration++; startSeat = playerIds(setup.playerCount)[0]; startPoint = null; startSeatPage = 0;
+    try { startDraft = resolveInitialPositions(setup.gridSize, setup.playerCount, setup.initialPositions, setup.boardShape); }
+    catch (_) { startDraft = requiresExplicitStartingPoints(setup.playerCount, setup.boardShape)
+      ? randomInitialPositions(setup.gridSize, setup.playerCount, Math.random, setup.boardShape)
+      : resolveInitialPositions(setup.gridSize, setup.playerCount, null, setup.boardShape); }
     scene = 'starts'; clearBoardView(); redraw();
   }
   async function configureDuration() {
@@ -1173,7 +1426,7 @@ export function createApp(platform, config = {}) {
     const choice = choices[await platform.choose(choices.map(profile => profile === 'models' ? label('moreModels') : label(`controller-${profile}`)),
       { previousLabel: label('previousPage'), nextLabel: label('nextPage'), isCurrent: valid })];
     if (!choice || !valid()) return;
-    if (choice === 'models') { modelTarget = { kind: 'controller', player }; modelPage = 0; scene = 'models'; redraw(); return; }
+    if (choice === 'models') { modelTarget = { kind: 'controller', player }; modelPage = 0; modelGroup = count > 2 ? 'native' : 'research'; scene = 'models'; redraw(); return; }
     selectController(player, choice);
   }
   function pauseForPanel() {
@@ -1255,7 +1508,7 @@ export function createApp(platform, config = {}) {
       if (!result || session !== current || scene !== 'game' || session.hidden || session.epoch !== inspectEpoch) return;
       const type = { player_move: 'move', player_skip: 'skip', player_resign: 'resign' }[result.action?.type] || result.action?.type;
       const lines = [label('inspectReadOnly'), result.action
-        ? `${result.cursor} · ${playerLabel(result.actor)} · ${label({ move: 'played', skip: 'passed', resign: 'resigned' }[type])}${type === 'move' ? ` (${result.action.point.join(', ')})` : ''}`
+        ? `${result.cursor} · ${playerLabel(result.actor)} · ${label({ move: 'played', skip: 'passed', resign: 'resigned', root_relocate: 'rootMoved', root_add: 'rootAdded' }[type])}${result.action.vertexId ? ` (${result.action.vertexId})` : Array.isArray(result.action.point) ? ` (${result.action.point.join(', ')})` : ''}`
         : label('initialPosition')];
       const effects = result.effects;
       inspection = { session, snapshot: session.snapshot, cursor: session.replayIndex, hash: result.stateHash, effects };
@@ -1289,7 +1542,7 @@ export function createApp(platform, config = {}) {
     session.pause(); const current = session, epoch = session.epoch;
     const choices = replayAnalysisChoices(session.settings);
     const valid = () => scene === 'analysis' && session === current && session.epoch === epoch && !session.hidden;
-    const choice = choices[await platform.choose(choices.map(({ profile, supported }) => `${label(`controller-${profile}`)}${supported ? '' : language === 'en' ? ' · unavailable on this board' : ' · 当前棋盘不适用'}`),
+    const choice = choices[await platform.choose(choices.map(({ profile, supported }) => `${label(`controller-${profile}`)}${profile === "greedy" ? " · Greedy" : ""}${supported ? '' : language === 'en' ? ' · unavailable on this board' : ' · 当前棋盘不适用'}`),
       { previousLabel: label('previousPage'), nextLabel: label('nextPage'), isCurrent: valid })];
     if (!choice || !valid()) return;
     if (!choice.supported) return platform.message(language === 'en'
@@ -1385,7 +1638,7 @@ export function createApp(platform, config = {}) {
       redraw();
     });
   }
-  async function friendsMenu(invitation = null, directKind = null) {
+  async function friendsMenu(invitation = null, directKind = null, preparedSettings = null) {
     if (!appVisible) return;
     if (!online.enabled) return platform.message(label('onlineOff'));
     const generation = ++friendsGeneration, current = session, epoch = current.epoch, previousScene = scene, cabinEpoch = cabinGeneration;
@@ -1403,30 +1656,37 @@ export function createApp(platform, config = {}) {
         catch (_) { await platform.message(language === 'en' ? 'In Board cabin, keep one human seat and choose compatible AI for every other seat.' : '请在棋盘舱保留一个真人席位，其余席位选择当前棋盘兼容的 AI。'); return; }
         const summary = Object.entries(value.controllers).map(([p, profile]) => `${playerLabel(p)} · ${label(`controller-${profile}`)}`).join('\n');
         if (!await platform.confirm((language === 'en' ? 'Use the Board cabin setup for ranked AI?\n' : '按棋盘舱配置开始 AI 排位？\n')
-          + `${playerCount} ${language === 'en' ? 'seats' : '人'} · ${size} ${language === 'en' ? 'size' : '路'} · ${boardShape === 'hexagon' ? label('hexBoard') : label('triangleBoard')}\n`
+          + `${playerCount} ${language === 'en' ? 'seats' : '人'} · ${size} ${language === 'en' ? 'size' : '路'} · ${label(boardShape === 'hexagon' ? 'hexBoard' : boardShape === 'diamond' ? 'diamondBoard' : 'triangleBoard')}\n`
           + `${startingPointMode === 'random' ? (language === 'en' ? 'Server-drawn random starts' : '服务器随机起点') : startingPointMode === 'custom' ? (language === 'en' ? 'Custom starts' : '自定义起点') : (language === 'en' ? 'Default starts' : '默认起点')}\n`
           + summary + (language === 'en' ? '\nHints and undo are disabled.' : '\n排位关闭提示和悔棋。')) || !valid()) return;
-      } else value = kind === 'resume' ? online.savedCode : kind === 'create' ? onlineSettings() : (await platform.input(label('roomCode')))?.trim().toUpperCase();
+      } else value = kind === 'resume' ? online.savedCode : kind === 'create' ? null : (await platform.input(label('roomCode')))?.trim().toUpperCase();
     }
     if (!kind) {
       const choices = online.savedCode ? ['resumeRoom', 'createRoom', 'joinRoom'] : ['createRoom', 'joinRoom'];
       const i = await platform.choose(choices.map(label));
       if (!valid() || !choices[i]) return;
       kind = choices[i] === 'resumeRoom' ? 'resume' : choices[i] === 'createRoom' ? 'create' : 'join';
-      value = kind === 'resume' ? online.savedCode : kind === 'create' ? onlineSettings() : (await platform.input(label('roomCode')))?.trim().toUpperCase();
+      value = kind === 'resume' ? online.savedCode : kind === 'create' ? null : (await platform.input(label('roomCode')))?.trim().toUpperCase();
     }
     if (!valid()) return;
+    if (kind === 'create') {
+      if (!preparedSettings) { openRoomSetup('create'); return; }
+      value = preparedSettings;
+    }
     if (kind === 'ai' && !value) return;
     if (kind === 'join' && value == null) return;
     if (!['create', 'ai'].includes(kind) && !/^[A-Z2-9]{8}$/.test(value || '')) {
       roomRetryCode = null; showRoomError(label('invalidRoomCode')); return;
     }
     accountMessage = ''; roomRetryCode = ['create', 'ai'].includes(kind) ? null : value;
-    invalidateContribution(); localSession.pause(); session = online.game; cabin = null; cabinGeneration++; scene = 'game'; selected = null; redraw();
-    try { await online.enter(kind, value); if (generation === friendsGeneration) roomRetryCode = null; }
+    invalidateContribution(); localSession.pause(); session = online.game; cabin = null; roomDraft = null; cabinGeneration++; scene = 'game'; selected = null; redraw();
+    try { await online.enter(kind, value, { confirmDeparture: room => platform.confirm(language === 'en'
+      ? `You are still in room ${room.code}. Leave it before continuing? Leaving a playing game counts as resignation; a ranked AI challenge counts as a loss.`
+      : `你仍在房间 ${room.code}。退出旧房间后继续？正在进行的对局会按认输处理；AI 排位会按失败结算。`) }); if (generation === friendsGeneration) roomRetryCode = null; }
     catch (error) {
       if (generation === friendsGeneration && appVisible && isOnline() && scene === 'game') {
         online.detach(); session = localSession;
+        if (error.message === 'CANCELLED') { scene = 'game'; cabin = 'battle'; cabinGeneration++; redraw(); return; }
         showRoomError(error.message === 'NETWORK_ERROR' ? language === 'en'
           ? 'Cannot reach the server. Retry joining, or enter another room code.'
           : '暂时连不上服务器。请重试加入，或重新输入房间码。' : errorText(error.message, t()));
@@ -1524,6 +1784,8 @@ export function createApp(platform, config = {}) {
       scroll: scrollArea && p.clientX >= scrollArea.x && p.clientX <= scrollArea.x + scrollArea.width
         && p.clientY >= scrollArea.y && p.clientY <= scrollArea.y + scrollArea.height ? cabinScroll : null,
       slider: sliders.find(item => !item.disabled && p.clientX >= item.x && p.clientX <= item.x + item.width && p.clientY >= item.y && p.clientY <= item.y + item.height),
+      surface: scene === 'topology-3d' && surface3dRect && p.clientX >= surface3dRect.x && p.clientX <= surface3dRect.x + surface3dRect.width
+        && p.clientY >= surface3dRect.y && p.clientY <= surface3dRect.y + surface3dRect.height ? { yaw: surface3dYaw, pitch: surface3dPitch } : null,
       cabinEpoch: cabinGeneration, cabin, axis: null, focus: zoomFocus && inBoard(p.clientX, p.clientY) ? [...zoomFocus] : null, layout } : null;
   });
   platform.touchMove((event) => {
@@ -1532,6 +1794,7 @@ export function createApp(platform, config = {}) {
     const dx = p.clientX - touch.x, dy = p.clientY - touch.y;
     if (Math.hypot(dx, dy) >= 14) touch.moved = true;
     if (touch.cabinEpoch !== cabinGeneration) { startTouch = null; return; }
+    if (touch.moved && touch.surface) { surface3dYaw = touch.surface.yaw + dx * 0.01; surface3dPitch = touch.surface.pitch + dy * 0.01; redraw(); return; }
     if (!touch.axis && Math.hypot(dx, dy) >= 8) touch.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
     if (touch.slider && touch.axis === 'x') {
       touch.slider.set(p.clientX); touch.moved = true;
@@ -1614,6 +1877,6 @@ export function createApp(platform, config = {}) {
   });
   // Returned only to the caller; preview tests can inspect the same UI geometry.
   return { get session() { return session; }, online, getButtons: () => buttons.map(({ action, ...rest }) => rest), getLayout: () => layout,
-    getScene: () => scene, getCabin: () => scene === 'home' ? 'board' : cabin, tap, redraw, dispose: () => { platform.disposeInput?.(); clearEmote(); clearUserInfoControl(); if (typeof privacyAuthorization === 'function') privacyAuthorization(); else privacyAuthorization?.dispose?.(); disposed = true; stopNetworkListener?.(); guideImages.dispose(); appVisible = false; friendsGeneration++; helpGeneration++;
+    getScene: () => scene, getCabin: () => scene === 'home' ? 'board' : cabin, tap, redraw, dispose: () => { platform.disposeInput?.(); clearTimeout(roomClockTimer); clearEmote(); clearUserInfoControl(); if (typeof privacyAuthorization === 'function') privacyAuthorization(); else privacyAuthorization?.dispose?.(); disposed = true; stopNetworkListener?.(); guideImages.dispose(); appVisible = false; friendsGeneration++; helpGeneration++;
       readerCache.clear(); cancelFileTask(); contribution.dispose?.(); localSession.hide(); online.detach(); scheduler.cancel(); models.clear(); } };
 }

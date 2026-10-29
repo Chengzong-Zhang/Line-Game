@@ -5,6 +5,9 @@ import { checksum } from './integrity.js';
 import { normalizePlayOptions } from './play-options.js';
 
 export const RULES = 'territory-v3';
+export const LEGACY_PROTECTION_RULE = 'symmetric-v1';
+export const DEFAULT_PROTECTION_RULE = 'duel-first-unprotected-v1';
+export const PROTECTION_RULES = Object.freeze([LEGACY_PROTECTION_RULE, DEFAULT_PROTECTION_RULE]);
 export const SURFACE_RULES = TopologyRulesVersion.SURFACE_V1;
 // This is the gameplay protocol carried with every surface-v1 settings
 // envelope. It is distinct from the state codec's own schema version, but
@@ -86,9 +89,29 @@ function checkTopologyState(settings, actions, suppliedState, suppliedHash) {
   return { engine, view };
 }
 
-export function settingsFor(size = 7, playerCount = 2, startPlayer = 'BLACK') {
-  return { gridSize: size, playerCount, startPlayer, rulesVersion: RULES,
-    turnTimerEnabled: false, turnTimeLimitSeconds: 60, hintEnabled: true, hintMaxCount: 3 };
+const asymmetricProtectionApplies = settings => Boolean(settings) && (settings.playerCount ?? 2) === 2
+  && (settings.boardShape ?? 'triangle') === 'triangle';
+const cloneSettings = settings => Object.defineProperties({}, Object.getOwnPropertyDescriptors(settings));
+
+export function withoutInactiveProtectionRule(settings) {
+  if (!settings || typeof settings !== 'object' || Array.isArray(settings)) return settings;
+  const normalized = cloneSettings(settings);
+  if (!asymmetricProtectionApplies(normalized) && normalized.protectionRule === DEFAULT_PROTECTION_RULE) {
+    delete normalized.protectionRule;
+  }
+  return normalized;
+}
+
+export function withNewGameProtectionRule(settings) {
+  const normalized = withoutInactiveProtectionRule(settings);
+  if (asymmetricProtectionApplies(normalized)) normalized.protectionRule ??= DEFAULT_PROTECTION_RULE;
+  return normalized;
+}
+
+export function settingsFor(size = 7, playerCount = 2, startPlayer = 'BLACK', boardShape) {
+  return withNewGameProtectionRule({ gridSize: size, playerCount, startPlayer, rulesVersion: RULES,
+    ...(boardShape ? { boardShape } : {}), turnTimerEnabled: false, turnTimeLimitSeconds: 60,
+    hintEnabled: true, hintMaxCount: 3 });
 }
 
 export function isTopologySettings(settings) {
@@ -142,11 +165,12 @@ export function normalizeGameSettings(settings) {
 function validateLegacySettings(settings) {
   if (!settings || typeof settings !== 'object' || Array.isArray(settings)
     || !['territory-v2', RULES].includes(settings.rulesVersion)
-    || !Number.isInteger(settings.playerCount) || settings.playerCount < 2 || settings.playerCount > 6
+    || settings.protectionRule !== undefined && !PROTECTION_RULES.includes(settings.protectionRule)
+    || !Number.isInteger(settings.playerCount) || settings.playerCount < 2 || settings.playerCount > PLAYER_ORDER.length
     || !Number.isInteger(settings.gridSize) || settings.gridSize < 5 || settings.gridSize > 15
     || !PLAYER_ORDER.slice(0, settings.playerCount).includes(settings.startPlayer)) throw new Error('INVALID_SETTINGS');
   normalizePlayOptions(settings);
-  if (settings.boardShape !== undefined && !['triangle', 'hexagon'].includes(settings.boardShape)) throw new Error('INVALID_BOARD_SHAPE');
+  if (settings.boardShape !== undefined && !['triangle', 'diamond', 'hexagon'].includes(settings.boardShape)) throw new Error('INVALID_BOARD_SHAPE');
   const shape = resolveBoardShape(settings.playerCount, settings.boardShape);
   startingPointSettings(settings);
   if (settings.initialPositions !== undefined) resolveInitialPositions(settings.gridSize, settings.playerCount, settings.initialPositions, shape);
@@ -212,7 +236,7 @@ export function applyAction(engine, action) {
 }
 
 export function restoreGame(settings, actions = []) {
-  const normalized = validateSettings(settings);
+  const normalized = validateSettings(withoutInactiveProtectionRule(settings));
   if (!Array.isArray(actions) || actions.length > MAX_ACTIONS) throw new Error('INVALID_ACTIONS');
   const engine = new GameEngine({ ...normalized, deferTerritoryUpdates: false });
   if (actions.length) {

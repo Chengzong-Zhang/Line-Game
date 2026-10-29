@@ -1,4 +1,9 @@
-const GENERATOR_VERSION = "random-board-v1";
+import { generateRandomSurfaceBoard } from "./RandomSurfaceBoard.js?v=20261029-topology-round5";
+
+const GENERATOR_VERSION = "random-board-v4";
+const V3_GENERATOR_VERSION = "random-board-v3";
+const LEGACY_GENERATOR_VERSION = "random-board-v1";
+const PREVIOUS_GENERATOR_VERSION = "random-board-v2";
 const PLAYER_ORDER = Object.freeze(["BLACK", "WHITE", "PURPLE", "GREEN", "ORANGE", "CYAN"]);
 
 const error = (code, location, detail) => ({ code, location, detail });
@@ -36,8 +41,8 @@ function normalizeOptions(options = {}) {
   if (!source) {
     return { errors: [error("INVALID_OPTIONS", "options", "options must be an object")] };
   }
-  const width = source.width ?? 7;
-  const height = source.height ?? 6;
+  const width = source.width ?? (source.gridSize == null ? 7 : source.gridSize - 1);
+  const height = source.height ?? (source.gridSize == null ? 6 : source.gridSize - 1);
   const playerCount = source.playerCount ?? 2;
   const roughness = source.roughness ?? 0.45;
   const minimumChannelWidth = source.minimumChannelWidth ?? 2;
@@ -46,6 +51,9 @@ function normalizeOptions(options = {}) {
   const symmetry = source.symmetry ?? "none";
   const errors = [];
 
+  if (source.gridSize != null && !isIntegerInRange(source.gridSize, 5, 15)) {
+    errors.push(error("INVALID_GRID_SIZE", "options.gridSize", "gridSize must be an integer from 5 through 15"));
+  }
   if (!isIntegerInRange(width, 2, 48)) {
     errors.push(error("INVALID_WIDTH", "options.width", "width must be an integer from 2 through 48"));
   }
@@ -215,7 +223,8 @@ function buildDefinition(profile, options, seed, generatorVersion, attempt) {
       coordinateSystem: "triangular-axial-v1",
       topology: {
         family: "planar",
-        movementStrategy: "simple-rays-v1",
+        movementStrategy: generatorVersion === LEGACY_GENERATOR_VERSION ? "simple-rays-v1"
+          : generatorVersion === PREVIOUS_GENERATOR_VERSION ? "simple-rays-v2" : "simple-rays-v3",
         territoryStrategy: "surface-discrete-v1",
         specialVertexPolicy: "stop",
       },
@@ -252,11 +261,11 @@ function buildDefinition(profile, options, seed, generatorVersion, attempt) {
  * caller's responsibility.
  */
 export function generateBoard(options = {}, seed = "default", generatorVersion = GENERATOR_VERSION) {
-  if (generatorVersion !== GENERATOR_VERSION) {
+  if (![LEGACY_GENERATOR_VERSION, PREVIOUS_GENERATOR_VERSION, V3_GENERATOR_VERSION, GENERATOR_VERSION].includes(generatorVersion)) {
     return {
       ok: false,
       stats: { attempts: 0 },
-      errors: [error("UNSUPPORTED_GENERATOR_VERSION", "generatorVersion", "expected " + GENERATOR_VERSION)],
+      errors: [error("UNSUPPORTED_GENERATOR_VERSION", "generatorVersion", "expected random-board-v1 through random-board-v4")],
     };
   }
   if (!(typeof seed === "string" && seed.length > 0) && !(typeof seed === "number" && Number.isSafeInteger(seed))) {
@@ -266,6 +275,7 @@ export function generateBoard(options = {}, seed = "default", generatorVersion =
       errors: [error("INVALID_SEED", "seed", "seed must be a non-empty string or a safe integer")],
     };
   }
+  if (generatorVersion === GENERATOR_VERSION) return generateRandomSurfaceBoard(options, seed, createPrng);
   const normalized = normalizeOptions(options);
   if (normalized.errors) {
     return { ok: false, stats: { attempts: 0 }, errors: normalized.errors };
@@ -294,3 +304,8 @@ export function generateBoard(options = {}, seed = "default", generatorVersion =
 }
 
 export const RandomBoardGeneratorVersion = GENERATOR_VERSION;
+
+// Compare shapes independently of face order, winding and generator metadata.
+export function randomBoardGeometrySignature(definition) {
+  return JSON.stringify((definition?.faces ?? []).map(face => [...face.vertices].sort().join("|")).sort());
+}

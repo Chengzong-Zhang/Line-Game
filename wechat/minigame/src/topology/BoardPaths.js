@@ -4,7 +4,7 @@ import {
   TRIANGULAR_UNIT_DIRECTIONS,
   triangularDirectionIndex,
   undirectedKey,
-} from "./BoardDefinition.js";
+} from "./BoardDefinition.js?v=20261029-topology-round5";
 
 export const PATH_RULE_VERSION = "simple-rays-v1";
 export const RayStopReason = Object.freeze({
@@ -32,6 +32,26 @@ function coordinateKey(coordinate) {
 
 function rawEdgeKey(left, right) {
   return undirectedKey(left, right);
+}
+
+// Isometrically unfold the glued triangles. Map the source edge tangent to
+// its endpoint-mapped target tangent; map the source exterior to the target
+// interior. Direction indices increase cyclically by 60 degrees.
+function unfoldedDirection(index, transition, directionIndex) {
+  const source = transition.sourceFaceSide;
+  const target = transition.targetFaceSide;
+  const coordinate = id => index.rawCoordinates.get(id);
+  const s0 = coordinate(source.orientedVertices[0]);
+  const s1 = coordinate(source.orientedVertices[1]);
+  const t0 = coordinate(target.orientedVertices[transition.endpointMap[0]]);
+  const t1 = coordinate(target.orientedVertices[transition.endpointMap[1]]);
+  const si = coordinate(source.interiorVertexId);
+  const ti = coordinate(target.interiorVertexId);
+  const tangent = (a, b) => triangularDirectionIndex(a, b);
+  const side = (a, b, p) => Math.sign((b[0]-a[0])*(p[1]-a[1])-(b[1]-a[1])*(p[0]-a[0]));
+  const s = tangent(s0, s1), t = tangent(t0, t1);
+  const orientation = side(s0, s1, si) === side(t0, t1, ti) ? -1 : 1;
+  return ((t + orientation * (directionIndex - s)) % 6 + 6) % 6;
 }
 
 function deepCloneCoverage(position) {
@@ -105,11 +125,15 @@ function normalizeDirectionState(directionState) {
   };
 }
 
+const traversalIndexCache = new WeakMap();
+
 function buildTraversalIndex(board) {
   if (!board?.definition || !Array.isArray(board.definition.vertices)
     || !Array.isArray(board.definition.faces) || !board.rawVertexToCanonical) {
     throw pathError("INVALID_COMPILED_BOARD", "A compiled board-definition-v1 board is required.");
   }
+  const cached = traversalIndexCache.get(board);
+  if (cached) return cached;
   const rawCoordinates = new Map();
   const rawVertexByCoordinate = new Map();
   for (const vertex of board.definition.vertices) {
@@ -152,7 +176,7 @@ function buildTraversalIndex(board) {
       seamExits.set(key, values);
     }
   }
-  return {
+  const index = {
     rawCoordinates,
     rawVertexByCoordinate,
     rawAdjacency,
@@ -161,7 +185,18 @@ function buildTraversalIndex(board) {
     seamExits,
     realBoundary: new Set(board.realBoundarySampleIds ?? []),
     specialVertices: new Set((board.specialVertices ?? []).map((vertex) => vertex.id)),
+    stopOnEntry: new Set((board.specialVertices ?? []).filter(v => !v.manifold || (v.kind === "cycle" && v.incidentEdgeClassCount !== 6)).map(v => v.id)),
   };
+  // Compiled boards are immutable. Do not cache caller-created mutable boards.
+  if (Object.isFrozen(board)) traversalIndexCache.set(board, index);
+  return index;
+}
+
+export function transportDirectionAcrossSeam(board, transition, directionIndex) {
+  if (!Number.isInteger(directionIndex) || directionIndex < 0 || directionIndex >= 6) {
+    throw pathError("INVALID_DIRECTION_STATE", "directionIndex must be 0..5.");
+  }
+  return unfoldedDirection(buildTraversalIndex(board), transition, directionIndex);
 }
 
 function regularStep(index, rawVertexId, directionIndex) {
@@ -282,6 +317,10 @@ export function traceRay(board, position, fromVertexId, directionState) {
           stopReason: RayStopReason.BLOCKED, steps,
           blockedVertexId: canonicalVertexId, blockedByPlayerId: owner });
       }
+      if (index.stopOnEntry.has(canonicalVertexId)) {
+        return stopResult({ vertices, edgeOccurrences, seamCrossings,
+          stopReason: RayStopReason.SPECIAL_VERTEX, steps });
+      }
       continue;
     }
     if (continuation.kind === "seam") {
@@ -299,7 +338,9 @@ export function traceRay(board, position, fromVertexId, directionState) {
       });
       rawVertexId = targetRawVertexId;
       canonicalVertexId = board.rawVertexToCanonical[rawVertexId];
-      currentDirection = rule.targetEntryDirectionIndex;
+      currentDirection = board.definition.topology.movementStrategy === "simple-rays-v3"
+        ? unfoldedDirection(index, transition, currentDirection) : rule.targetEntryDirectionIndex;
+      seamCrossings[seamCrossings.length - 1].targetDirectionState = currentDirection;
       continue;
     }
     if (continuation.kind === "ambiguous-seam") {
@@ -342,6 +383,32 @@ function pathFingerprint(connection) {
   return forward < reverse ? forward : reverse;
 }
 
+// Atlas occurrences on a paired seam (and the two face occurrences of an
+// interior edge) represent the same physical edge. Keep the full edge-class
+// sequence and canonical vertices: endpoints alone would collapse genuinely
+// different routes around a cylinder. Seam transport before the first edge is
+// merely a choice of atlas copy, not a second physical path.
+const edgeClassIndexCache = new WeakMap();
+export function physicalPathKey(board, connection) {
+  let classByOccurrence = edgeClassIndexCache.get(board);
+  if (!classByOccurrence) {
+    classByOccurrence = new Map();
+    for (const edgeClass of board.edgeClasses ?? []) {
+      for (const occurrence of edgeClass.occurrences ?? []) classByOccurrence.set(occurrence.id, edgeClass.id);
+    }
+    if (Object.isFrozen(board)) edgeClassIndexCache.set(board, classByOccurrence);
+  }
+  const classes = [];
+  for (const occurrenceId of connection.edgeOccurrences ?? []) {
+    const id = classByOccurrence.get(occurrenceId) ?? occurrenceId;
+    if (classes[classes.length - 1] !== id) classes.push(id);
+  }
+  const vertices = connection.vertices ?? [];
+  const forward = JSON.stringify([vertices, classes]);
+  const reverse = JSON.stringify([[...vertices].reverse(), [...classes].reverse()]);
+  return forward < reverse ? forward : reverse;
+}
+
 function pendingPlacementPosition(position, playerId, newVertexId) {
   const coverageByPlayer = deepCloneCoverage(position);
   const coverage = coverageByPlayer[playerId] ?? [];
@@ -355,7 +422,7 @@ function pendingPlacementPosition(position, playerId, newVertexId) {
  * already-covered own vertex. Different seam routes remain distinct pathIds;
  * exact reverse duplicates collapse to one connection.
  */
-export function enumerateConnections(board, position, newVertexId, playerId) {
+export function enumerateConnections(board, position, newVertexId, playerId, options = {}) {
   if (typeof playerId !== "string" || !playerId) {
     throw pathError("INVALID_PLAYER", "playerId must be a non-empty string.");
   }
@@ -364,35 +431,71 @@ export function enumerateConnections(board, position, newVertexId, playerId) {
     throw pathError("UNKNOWN_START_VERTEX", "Unknown canonical start: " + newVertexId);
   }
   if (normalizedPosition.ownerByVertexId.has(newVertexId)) return [];
-  const pending = pendingPlacementPosition(normalizedPosition.position, playerId, newVertexId);
   const connections = [];
   const fingerprints = new Set();
-  for (let directionIndex = 0; directionIndex < TRIANGULAR_UNIT_DIRECTIONS.length; directionIndex += 1) {
-    let trace;
-    try {
-      trace = traceRay(board, pending, newVertexId, { directionIndex });
-    } catch (error) {
-      if (error?.code === "AMBIGUOUS_ATLAS_COPY") continue;
-      throw error;
+  // Only nodes are logical endpoints. Friendly lines and intermediate nodes do
+  // not block a connection; every enemy element does. Keep the legacy API's
+  // coverage-only meaning for callers which do not provide node identities.
+  const ownTargets = position.nodesByPlayer?.[playerId]
+    ?? normalizedPosition.position.coverageByPlayer[playerId] ?? [];
+  const copies = board.canonicalVertices.find((vertex) => vertex.id === newVertexId)?.sourceVertexIds ?? [];
+  for (const target of ownTargets) {
+    if (target === newVertexId) continue;
+    if (!normalizedPosition.position.coverageByPlayer[playerId]?.includes(target)) {
+      throw pathError("INVALID_POSITION", "A node must be covered by its owner: " + target);
     }
-    if (trace.stopReason !== RayStopReason.BLOCKED
-      || trace.blockedByPlayerId !== playerId
-      || trace.blockedVertexId === newVertexId) continue;
-    const connection = {
-      startVertexId: newVertexId,
-      endVertexId: trace.blockedVertexId,
-      vertices: [...trace.vertices],
-      edgeOccurrences: [...trace.edgeOccurrences],
-      seamCrossings: trace.seamCrossings.map((crossing) => ({ ...crossing })),
-      directionState: directionIndex,
-    };
-    const fingerprint = pathFingerprint(connection);
-    if (fingerprints.has(fingerprint)) continue;
-    fingerprints.add(fingerprint);
-    connection.pathId = "path:v1:" + sha256Hex(fingerprint).slice(0, 24);
-    connections.push(connection);
+    const coverageByPlayer = Object.fromEntries(Object.entries(normalizedPosition.position.coverageByPlayer)
+      .map(([owner, coverage]) => [owner, owner === playerId ? [target] : [...coverage]]));
+    const pending = pendingPlacementPosition({ coverageByPlayer }, playerId, newVertexId);
+    for (const atlasVertexId of copies) {
+      for (let directionIndex = 0; directionIndex < TRIANGULAR_UNIT_DIRECTIONS.length; directionIndex += 1) {
+        const trace = traceRay(board, pending, newVertexId, { directionIndex, atlasVertexId });
+        if (trace.stopReason !== RayStopReason.BLOCKED
+          || trace.blockedByPlayerId !== playerId
+          || trace.blockedVertexId !== target) continue;
+        const connection = {
+          startVertexId: newVertexId,
+          endVertexId: trace.blockedVertexId,
+          vertices: [...trace.vertices],
+          edgeOccurrences: [...trace.edgeOccurrences],
+          seamCrossings: trace.seamCrossings.map((crossing) => ({ ...crossing })),
+          directionState: directionIndex,
+        };
+        const fingerprint = pathFingerprint(connection);
+        if (fingerprints.has(fingerprint)) continue;
+        fingerprints.add(fingerprint);
+        connection.pathId = "path:v1:" + sha256Hex(fingerprint).slice(0, 24);
+        connections.push(connection);
+      }
+    }
   }
-  return connections.sort((left, right) => compareStableIdentifiers(left.pathId, right.pathId));
+  connections.sort((left, right) => compareStableIdentifiers(left.pathId, right.pathId));
+  const strategy = board.definition.topology.movementStrategy;
+  if ((strategy !== "simple-rays-v2" && strategy !== "simple-rays-v3") || options.geometryOnly) return connections;
+  // Version 2 prevents a new line from crossing an existing friendly line or
+  // passing through another friendly node. The placement itself may be on a
+  // line, including an enemy line being cut; only the interior is restricted.
+  const covered = new Set(normalizedPosition.position.coverageByPlayer[playerId] ?? []);
+  const selected = [];
+  const occupied = new Set();
+  const interiors = new Set();
+  const physicalPaths = new Set();
+  for (const connection of connections) {
+    const tail = connection.vertices.slice(1);
+    const inner = connection.vertices.slice(1, -1);
+    if (new Set(connection.vertices).size !== connection.vertices.length) continue;
+    if (inner.some(id => covered.has(id))) continue;
+    // Multiple rays from the same placement can wrap and meet again on a
+    // quotient. Resolve them deterministically without creating a crossing.
+    if (inner.some(id => occupied.has(id)) || interiors.has(connection.endVertexId)) continue;
+    const physicalKey = strategy === "simple-rays-v3" ? physicalPathKey(board, connection) : null;
+    if (physicalKey != null && physicalPaths.has(physicalKey)) continue;
+    selected.push(connection);
+    if (physicalKey != null) physicalPaths.add(physicalKey);
+    for (const id of tail) occupied.add(id);
+    for (const id of inner) interiors.add(id);
+  }
+  return selected;
 }
 
 export function indexConnectionCoverage(connections) {

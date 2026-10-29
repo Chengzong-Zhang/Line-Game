@@ -61,8 +61,11 @@ export function paginateHelp(ctx, sections, width, height, font = 16, lineHeight
 
 export function readerLayout(ui, sections) {
   const footer = ui.metrics.height - ui.metrics.bottom - 160;
-  const y = ui.top + 88, font = ui.language === 'en' ? 16 : 17, lineHeight = font + 9;
-  return { y, footer, font, lineHeight,
+  // Reserve enough space for the full heading, including long translated chapter names.
+  const titleLines = Math.max(1, ...sections.map(section => readingLines(ui.ctx, section.title, ui.metrics.width - 48, 19).length));
+  const metadataY = ui.top + Math.max(57, (titleLines - 1) * 24 + 28);
+  const y = metadataY + 31, font = ui.language === 'en' ? 16 : 17, lineHeight = font + 9;
+  return { y, footer, font, lineHeight, metadataY,
     pages: paginateHelp(ui.ctx, sections, ui.metrics.width - 64, footer - y - 16, font, lineHeight) };
 }
 
@@ -120,15 +123,15 @@ export function drawGuideCabin(ui, state, actions, area) {
 
 export function drawReader(ui, state, actions) {
   const { metrics: { width: w }, top, text, rect, button, label } = ui;
-  const { pages, footer: textFooter, y, font, lineHeight } = state.layout || readerLayout(ui, state.sections), page = Math.max(0, Math.min(pages.length - 1, state.page));
+  const { pages, footer: textFooter, y, font, lineHeight, metadataY } = state.layout || readerLayout(ui, state.sections), page = Math.max(0, Math.min(pages.length - 1, state.page));
   const current = pages[page];
   if (!current) return;
   // The caption page already has a practice link. Give its diagram that row's space.
   const footer = current.image ? textFooter + 51 : textFooter;
   readingLines(ui.ctx, current.title, w - 48, 19).forEach((line, i) =>
     text(line, 24, top + i * 24, 19, '#244d3d', 'left', 'bold'));
-  text(`${page + 1} / ${pages.length}`, w - 24, top + 57, 13, '#738476', 'right');
-  text(guideLabel(state.kind, ui.language, label(`help-${state.kind}`)), 24, top + 57, 13, '#738476');
+  text(`${page + 1} / ${pages.length}`, w - 24, metadataY, 13, '#738476', 'right');
+  text(guideLabel(state.kind, ui.language, label(`help-${state.kind}`)), 24, metadataY, 13, '#738476');
   rect(20, y - 16, w - 40, footer - y + 2, 14);
   if (current.entries) {
     let entryY = y - 8;
@@ -178,7 +181,10 @@ export function drawResult(ui, state, actions) {
   text(label('resultScoreUnits'), 24, top + 34, 12, '#738476');
   const columns = result.rows.length >= 4 ? 2 : 1;
   const step = compact ? 50 : 68, cardHeight = compact ? 44 : 58, cardWidth = (w - 48 - (columns - 1) * 8) / columns;
-  result.rows.forEach((row, index) => {
+  const pageSize = result.rows.length > 6 ? compact ? 4 : 6 : result.rows.length;
+  const pages = Math.ceil(result.rows.length / pageSize), page = Math.max(0, Math.min(pages - 1, state.page || 0));
+  const visibleRows = result.rows.slice(page * pageSize, (page + 1) * pageSize);
+  visibleRows.forEach((row, index) => {
     const x = 24 + (index % columns) * (cardWidth + 8), y = top + 61 + Math.floor(index / columns) * step;
     rect(x, y, cardWidth, cardHeight, 13, row.winner ? '#e2ecdd' : '#fffef9');
     const color = PLAYER_COLORS[row.player];
@@ -186,8 +192,13 @@ export function drawResult(ui, state, actions) {
     text(label(row.resigned ? columns > 1 ? 'resignedShort' : 'resultResigned' : row.winner ? 'wins' : 'resultCounted'), x + 12, y + (compact ? 32 : 42), 11, '#738476');
     text(row.area, x + cardWidth - 12, y + cardHeight / 2, columns > 1 ? 21 : 24, row.resigned ? '#738476' : '#244d3d', 'right', 'bold');
   });
-  wrap(result.forfeited ? (ui.language === 'en' ? 'Recorded as a loss against every AI. The challenge ends here; remaining AI are not assigned a winner.' : '本次挑战按负于所有 AI 结算，到此结束；其余 AI 不判定相互名次。') : label(`result-${result.reason}`), 24, top + 76 + Math.ceil(result.rows.length / columns) * step, w - 48, 12, '#738476', compact ? 4 : 5);
+  wrap(result.forfeited ? (ui.language === 'en' ? 'Recorded as a loss against every AI. Remaining AI are not assigned a winner.' : '本次挑战按负于所有 AI 结算；其余 AI 不判定相互名次。') : label(`result-${result.reason}`), 24, top + 76 + Math.ceil(visibleRows.length / columns) * step, w - 48, 12, '#738476', compact ? 4 : 5);
   const half = (w - 60) / 2, footer = h - bottom - 108;
+  if (pages > 1) {
+    button('result-page-prev', label('previousPage'), 24, footer - 44, 84, () => actions.page(page - 1), { height: 36, font: 12, disabled: page <= 0 });
+    text(`${page + 1} / ${pages}`, w / 2, footer - 26, 13, '#738476', 'center');
+    button('result-page-next', label('nextPage'), w - 108, footer - 44, 84, () => actions.page(page + 1), { height: 36, font: 12, disabled: page >= pages - 1 });
+  }
   if (state.ladderText) wrap(state.ladderText, 24, footer - 42, w - 48, 13, '#8b6427', 2);
   button('result-replay', label('replay'), 24, footer, half, actions.replay, { primary: true });
   button('result-save', label('saveResult'), 36 + half, footer, half, actions.save, { disabled: state.online });

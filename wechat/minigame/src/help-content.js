@@ -7,7 +7,7 @@ import { guideDocument, multiplayerGuideSections } from './guide-content.js';
 const RULES = {
   zh: [
     ['territory', '围出领土，赢下对局', [
-      '玩家轮流在三角或六边形棋盘的格点落子。己方节点与连线经过的格点始终计分，不要求闭合。己方点线隔开、与棋盘外界不连通的空腔逐个判断；没有敌方元素的空腔计分，包括甜甜圈形状的内孔。',
+      '玩家轮流在三角、菱形或六边形棋盘的格点落子。菱形由两个正三角形底对底拼接而成。己方节点与连线经过的格点始终计分，不要求闭合。己方点线隔开、与棋盘外界不连通的空腔逐个判断；没有敌方元素的空腔计分，包括甜甜圈形状的内孔。',
       '同一格点只计一次，棋盘上方的“领土”显示最终格点数，不比较色块看起来有多大。正常结算时，未认输玩家中领土最多者获胜；最高分相同则平局。',
     ], 1],
     ['connect', '连回你的起点', [
@@ -19,7 +19,7 @@ const RULES = {
       '切断一条线不一定清除整片结构：如果还有其他路径连回起点，它们就仍然存活。',
     ], 2],
     ['protection', '起步保护', [
-      '每一方初始点旁的有效相邻位置受到保护：三角形角点旁为两个，六边形角点旁为三个。其他玩家不能在那里落子，直接切线也不例外。',
+      '双人三角棋盘采用非对称起步保护：先手的初始点不设禁区，后手初始点旁的有效相邻位置仍受保护，先手不能在那里落子。双人菱形默认使用两枚 60 度锐角顶点；三人及以上菱形没有默认起点，只能随机或自定义。菱形、六边形或三人及以上棋盘保护每一方实际初始点旁的所有有效相邻位置。随机和自定义起点按实际邻点判断；直接切线也不例外。',
     ]],
     ['triangle', '三点限制', [
       '不能主动摆出三个节点两两紧挨的最小三角形。',
@@ -37,7 +37,7 @@ const RULES = {
   ],
   en: [
     ['territory', 'Enclose territory', [
-      'Players take turns placing nodes on a triangular or hexagonal board. Your nodes and link points always score, even without a loop. Each pocket cut off from the board exterior by your points is checked separately; an enemy-free pocket counts, including a donut-shaped inner hole.',
+      'Players take turns placing nodes on a triangular, diamond or hexagonal board. A diamond joins two equilateral triangles base-to-base. Your nodes and link points always score, even without a loop. Each pocket cut off from the board exterior by your points is checked separately; an enemy-free pocket counts, including a donut-shaped inner hole.',
       'Each grid point counts once. Use the territory score above the board, not the visual size of a colored region. At normal settlement, the highest score among players who have not resigned wins. Equal highest scores are a draw.',
     ], 1],
     ['connect', 'Stay connected', [
@@ -49,7 +49,7 @@ const RULES = {
       'One cut does not always clear the whole structure: another route back to the starting node can keep it alive.',
     ], 2],
     ['protection', 'Protected openings', [
-      'All valid neighbors of each starting node are protected: two at triangular corners and three at hexagonal corners. Opponents cannot play there, even to cut a link.',
+      "Two-player triangular games use asymmetric opening protection: the first player's starting node has no protected zone, while every valid neighbor of the second player's start remains protected from the first player. A two-player diamond defaults to the two 60-degree acute vertices. Diamonds with three or more players have no default starts and require random or custom ones. Diamond, hexagonal and games with three or more players protect every side's actual starting-node neighbors. Random and custom starts use their actual neighbors, and a direct cut does not bypass protection.",
     ]],
     ['triangle', 'Three-point limit', [
       'You cannot voluntarily form the smallest triangle of three mutually adjacent nodes.',
@@ -98,14 +98,14 @@ export function helpDocument(kind, language, onlineEnabled = false) {
   });
   if (kind === 'privacy') return [{ id: 'privacy', title: lang === 'zh' ? '数据与隐私' : 'Data & privacy', paragraphs: lang === 'zh' ? [
     '天梯保留新联机对局的胜负、计分和对手身份用于结算与防止重复计分。入榜后向已登录玩家显示昵称、实力分、局数和胜率；榜单不公开账号标识或棋谱。删除账号会删除本人天梯记录，并从其他玩家记录中移除你的身份；固定 AI 的匿名汇总评级保留。AI 排位由服务器执行，本地人机不计分。关联两个已有战绩的账号时，剔除两账号之间的对局，再按保留的对局与对手赛前评级重新估计本人实力分，不相加或按场次平均；其他玩家的历史评级不追溯重算。',
-    '本地对局、棋谱、教程进度和偏好保存在本机。AI 训练贡献默认关闭；当前贡献协议仅接受 territory-v2 对局，默认 territory-v3 新局不会上传或混入旧数据集。主动同意后，仅符合协议的后续完整本地对局才会提交，供研究筛选。关闭可清除待传记录，已收到的记录不会自动撤回。游戏昵称和头像由你主动编辑、选择，或授权从微信导入；仅处理所选图片，不读取通讯录。只有主动导入或复制棋谱时才读写剪贴板。',
-    '实验 AI 在本机计算，首次使用会通过微信下载模型分包。普通电脑与基础玩法无需加载这些模型。符合 territory-v2 协议的贡献记录可包含 2–6 人、三角或六边形棋盘及不同起点，并标注 AI、提示、计时与悔棋使用情况。当前默认 territory-v3 新局不符合此协议，不会上传。好友联机目前只支持双人，不参与本地训练贡献。',
+    '本地对局、棋谱、教程进度和偏好保存在本机。AI 训练贡献默认关闭，每次重新启动小游戏都需再次主动同意。开启后，仅提交随后新开始并完整结束的 territory-v3 本地对局，供研究筛选；当前局、恢复中的对局、复盘、教学和联机均不参与。关闭可清除待传记录，已收到的记录不会自动撤回。游戏昵称和头像由你主动编辑、选择，或授权从微信导入；仅处理所选图片，不读取通讯录。只有主动导入或复制棋谱时才读写剪贴板。',
+    '实验 AI 在本机计算，首次使用会通过微信下载模型分包。普通电脑与基础玩法无需加载这些模型。符合 territory-v3 独立贡献协议的记录仅可包含 2–6 人三角形或六边形棋盘及不同起点，并标注 AI、提示、计时与悔棋使用情况；菱形、拓扑与多根对局目前不参与训练贡献。旧版 territory-v2 待传记录仍按其冻结协议单独校验和重试，不会被改写为 v3。好友联机不参与本地训练贡献。',
     onlineEnabled ? '进入微信账号或好友对战时会先提示联机说明，确认后使用微信登录标识建立游戏账号，服务器保存房间与动作以便重连。本机会记录你确认的服务地址、说明版本和本机时间；服务地址或说明更新后，再次进入时会重新提示。可选择通过一次性绑定码关联已有网页版账号。首次导入微信昵称和头像需点击微信授权按钮；已授权后可再次读取。自选昵称和头像先在本机按账号保存，再尝试同步服务器；同步失败会标为待同步。头像会裁切、缩小，不上传原始照片；同步后的资料会在联机中展示。解除关联保留原网页版账号。删除微信联机账号会另行确认并核验微信身份，清除该账号的本机资料及服务器相关房间，本地单机存档和原网页版账号保留。不读取好友列表。'
       : '此版本尚未开放好友联机，不会为离线游戏发起微信账号登录。没有接入广告、支付或自由聊天。',
   ] : [
     'Ladders retain new online results, ratings and opponent identity for settlement and deduplication. Qualified players show their nickname, skill rating, game count and win rate to signed-in players; no account identifiers or replays appear in standings. Account deletion removes your ladder record and your identity from opponents’ records; anonymous aggregate AI ratings remain. Ranked AI runs on the server; local AI is practice. Linking excludes games between the accounts and re-estimates your skill from retained results and pre-game opponent ratings, without adding or averaging ratings by game count. Other players’ historical ratings are not recalculated.',
-    'Local games, replays, lesson progress and preferences stay on this device. AI training contribution is off by default. The current protocol accepts territory-v2 games only; new default territory-v3 games are not uploaded or mixed into that older dataset. With explicit consent, only eligible complete local games started afterward are submitted for research review. Turning it off clears pending uploads; received records are not automatically withdrawn. You edit or choose your game name and avatar, or authorize importing them from WeChat. Only the selected image is processed. Contacts are never read. Clipboard access occurs only when you choose import or copy.',
-    'Experimental AI runs on the device. First use downloads model packages through WeChat. Standard AI and basic play do not need these packages. Eligible territory-v2 records may cover 2–6 players, either board shape, different starting points and AI types, with hint, timer and undo use marked. The current default territory-v3 games are not eligible and will not upload. Friend rooms currently have two players and are excluded from local training contribution.',
+    'Local games, replays, lesson progress and preferences stay on this device. AI training contribution is off by default and requires explicit consent again after every Mini Game restart. Once enabled, only complete territory-v3 local games newly started afterward are submitted for research review. The current match, restored matches, replay, tutorial and online games are excluded. Turning it off clears pending uploads; received records are not automatically withdrawn. You edit or choose your game name and avatar, or authorize importing them from WeChat. Only the selected image is processed. Contacts are never read. Clipboard access occurs only when you choose import or copy.',
+    'Experimental AI runs on the device. First use downloads model packages through WeChat. Standard AI and basic play do not need these packages. Records under the independent territory-v3 contribution protocol may cover 2–6 players on triangular or hexagonal boards with different starting points and AI types, with hint, timer and undo use marked. Diamond, topology and multiple-root games are not currently eligible for training contribution. Older pending territory-v2 records remain separately validated and retried under their frozen policy; they are never relabelled as v3. Online rooms are excluded from local training contribution.',
     onlineEnabled ? 'Opening WeChat accounts or friend play and consenting uses your WeChat login identifier. Rooms and actions are stored for reconnection. This device records the service address, notice version and local confirmation time; a different service or notice prompts again on entry. You may link an existing Web account using a one-time code. Importing your WeChat name and avatar first requires tapping the WeChat authorization button; authorized information can be read again later. Your chosen profile is saved on this device per account before a server sync is attempted; failures remain pending. Avatars are cropped and resized; the original photograph is not uploaded. Synced profiles are displayed in online play. Unlinking preserves the original Web account. Deleting the WeChat identity requires fresh confirmation and removes its local profile and server rooms, while local games and the original Web account remain. Friend lists are never read.'
       : 'Friend play is not enabled in this version. Offline play does not request a WeChat account login. Ads, payments and free-form chat are not included.',
   ] }];

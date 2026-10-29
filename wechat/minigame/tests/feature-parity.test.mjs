@@ -46,7 +46,7 @@ test('actual production Worker exports/imports without crypto, TextEncoder or DO
   assert.equal(messages[1].result.stateHash, doc.integrity.finalStateHash);
 });
 
-test('three-player sessions retain Purple, replay, restore and terminal outcomes; rooms stay two-player', async () => {
+test('three-player sessions retain Purple, replay, restore and terminal outcomes, including room validation', async () => {
   const scheduler = localScheduler(), store = new sut.SaveStore(memoryStorage()), session = new sut.GameSession(scheduler, store);
   try {
     assert.equal(await session.newGame(5, 'ai-duel', 'easy', 3), true);
@@ -65,7 +65,8 @@ test('three-player sessions retain Purple, replay, restore and terminal outcomes
     const room = { protocol: 1, code: 'ABCDEFGH', matchId: 'a'.repeat(32), revision: 1, seq: 0,
       status: 'playing', player: 'BLACK', currentPlayer: 'BLACK', actions: [], actionIds: [],
       stateHash: `sha256:${'a'.repeat(64)}`, ready: {}, members: {}, rematchVotes: {}, settings: sut.settingsFor(5, 3) };
-    assert.throws(() => sut.validateRoom(room), /INVALID_ROOM/);
+    assert.equal(sut.validateRoom({ ...room, player: 'PURPLE', currentPlayer: 'PURPLE' }).player, 'PURPLE');
+    assert.throws(() => sut.validateRoom({ ...room, player: 'GREEN' }), /INVALID_ROOM/);
   } finally { session.hide(); scheduler.cancel(); }
 });
 
@@ -113,9 +114,9 @@ test('new scenes fit safe areas, persist settings, select all lessons and expose
     };
     try {
       await render(); check(); assert.deepEqual(p.calls, { read: 0, write: 0 });
-      await tap('cabin-board'); check(); await h.slide('player-count', 3, 2, 6); await h.slide('board-size', 8, 5, 15);
+      await tap('cabin-board'); check(); await h.slide('player-count', 3, 2, 15); await h.slide('board-size', 8, 5, 15);
       const preferences = sut.readPreferences(p.storage);
-      assert.equal(preferences.size, 8); assert.equal(preferences.mode, 'three-human'); assert.equal(preferences.difficulty, 'normal');
+      assert.equal(preferences.size, 8); assert.equal(preferences.mode, 'three-human'); assert.equal(preferences.difficulty, 'simple');
       assert.equal(preferences.playerDrafts[2].mode, 'ai-white'); assert.equal(preferences.playerDrafts[3].mode, 'three-human');
       await tap('cabin-close'); await tap('new-game'); await until(() => app.session.snapshot && !app.session.busy); await render(); check();
       assert.equal(app.session.settings.playerCount, 3); assert.ok(h.texts.some(text => text.startsWith(TEXT[language].purple)));

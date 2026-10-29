@@ -10,7 +10,9 @@ import { prepareService, verifyService } from '../tools/prepare-service.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const hash = data => createHash('sha256').update(data).digest('hex');
 test('isolated service has complete validator dependencies and rejects reuse, tampering, extra files and source drift', async () => {
-  const artifact = await fs.mkdtemp(path.join(root, 'local_artifacts/wechat-service-package-test-'));
+  const scratch = path.join(root, 'working', 'tmp');
+  await fs.mkdir(scratch, { recursive: true });
+  const artifact = await fs.mkdtemp(path.join(scratch, 'wechat-service-package-test-'));
   const candidate = path.join(artifact, 'candidate');
   const manifest = await prepareService(candidate);
   assert.equal(manifest.databaseSchema, 6);
@@ -18,6 +20,12 @@ test('isolated service has complete validator dependencies and rejects reuse, ta
   assert.ok(manifest.files.some(f => f.path.endsWith('/StartingPoints.js')));
   assert.ok(manifest.files.some(f => f.path.endsWith('/LocalUndo.js')));
   assert.ok(manifest.files.some(f => f.path.endsWith('/@noble/hashes/LICENSE')));
+  for (const name of ['web/web后端/board_validation.py', 'web/tools/online_bot_bridge.mjs',
+    'web/tools/online_bot_runtime.mjs', 'web/tools/generate_online_roots.mjs',
+    'web/web前端/assets/research-ai/manifest.json', 'web/web前端/assets/research-ai/model-free-manifest.json']) {
+    assert.ok(manifest.files.some(file => file.path === name), `Missing runtime dependency: ${name}`);
+  }
+  assert.ok(manifest.files.some(file => file.path.endsWith('.f32')), 'Missing manifest-bound model bytes');
   assert.ok(manifest.files.every(f => !/\.(key|sqlite3|db|env)$/.test(f.path)));
   const env = Object.fromEntries(Object.entries(process.env).filter(([k]) =>
     ['PATH', 'PATHEXT', 'SYSTEMROOT', 'WINDIR', 'COMSPEC', 'SYSTEMDRIVE', 'TEMP', 'TMP'].includes(k.toUpperCase())));
@@ -28,6 +36,19 @@ test('isolated service has complete validator dependencies and rejects reuse, ta
   });
   assert.equal(result.status, 0, result.stderr);
   assert.match(JSON.parse(result.stdout).stateHash, /^sha256:[0-9a-f]{64}$/);
+  const roots = spawnSync(process.execPath, [path.join(candidate, 'service', 'web/tools/generate_online_roots.mjs')], {
+    cwd: candidate, env, input: JSON.stringify({ gridSize: 7, playerCount: 2, rootMode: 'add', boardShape: 'triangle' }),
+    timeout: 15000, encoding: 'utf8', windowsHide: true,
+  });
+  assert.equal(roots.status, 0, roots.stderr);
+  assert.deepEqual(Object.keys(JSON.parse(roots.stdout)).sort(), ['BLACK', 'WHITE']);
+  const bridge = spawnSync(process.execPath, [path.join(candidate, 'service', 'web/tools/online_bot_bridge.mjs')], {
+    cwd: candidate, env, input: JSON.stringify({ settings: { gridSize: 5, playerCount: 2,
+      rulesVersion: 'territory-v3', boardShape: 'triangle', startPlayer: 'BLACK', botCount: 0 }, actions: [], botColors: [] }),
+    timeout: 15000, encoding: 'utf8', windowsHide: true,
+  });
+  assert.equal(bridge.status, 0, bridge.stderr);
+  assert.equal(JSON.parse(bridge.stdout).success, true);
   const originalManifest = await fs.readFile(path.join(candidate, 'manifest.json'));
   await assert.rejects(prepareService(candidate), /EEXIST/);
   assert.equal(hash(await fs.readFile(path.join(candidate, 'manifest.json'))), hash(originalManifest));

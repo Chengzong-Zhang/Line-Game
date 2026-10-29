@@ -41,7 +41,7 @@ test('mixed player roles and chosen starter drive the correct AI, with compatibl
 test('legacy preferences retain defaults; malformed player configuration cannot replace a live game or save', async () => {
   const storage = memoryStorage();
   storage.set('lifeline-wx-preferences-v1', JSON.stringify({ size: 9, mode: 'ai-black', difficulty: 'easy' }));
-  assert.deepEqual(sut.readPreferences(storage), { size: 9, mode: 'ai-black', difficulty: 'easy' });
+  assert.deepEqual(sut.readPreferences(storage), { size: 9, mode: 'ai-black', difficulty: 'simple' });
   const q = localScheduler(), session = new sut.GameSession(q, new sut.SaveStore(storage));
   try {
     await session.newGame(5, 'human'); const hash = session.stateHash;
@@ -163,7 +163,7 @@ test('player and replay UI works in both languages on three sizes; jump/inspect 
       p.choose = async () => 1; await tap('controller-BLACK'); p.choose = async () => 0; await tap('controller-WHITE');
       await tap('starter-WHITE'); await tap('cabin-close'); await tap('new-game'); await until(() => app.session.canPlay()); await render(); geometry();
       assert.equal(app.session.snapshot.currentPlayer, 'WHITE'); assert.equal(app.session.settings.startPlayer, 'WHITE');
-      assert.deepEqual(app.session.controllers, { BLACK: 'greedy', WHITE: 'human' });
+      assert.deepEqual(app.session.controllers, { BLACK: 'minimax-2', WHITE: 'human' });
       const prefs = sut.readPreferences(p.storage); assert.equal(prefs.startPlayer, 'WHITE'); assert.deepEqual(prefs.controllers, app.session.controllers);
       await app.session.load(setup(5, 3), actions, { mode: 'human', paused: true }); await app.session.replay(0); await render(); geometry();
       p.input = async () => '2'; await tap('replay-options'); await tap('tool-jumpReplay'); await until(() => app.session.replayIndex === 2 && !app.session.busy);

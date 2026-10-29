@@ -16,7 +16,7 @@ const context = (config, profile = 'human', usedCount = 0) => contributionContex
 const replay = (config, actions) => createReplayDocument(config, actions, checksum);
 function harness(overrides = {}) {
   const values = new Map(), calls = [], timers = new Map(); let clock = 1000, nextTimer = 0, busy = false;
-  const options = { storage: { get: key => values.get(key), set: (key, value) => values.set(key, value), remove: key => values.delete(key) },
+  const options = { version: 2, storage: { get: key => values.get(key), set: (key, value) => values.set(key, value), remove: key => values.delete(key) },
     createReplay: replay, origin: 'https://fixture.invalid', now: () => clock, canRun: () => !busy,
     setTimer: (callback, delay) => { const id = ++nextTimer; timers.set(id, { callback, at: clock + delay }); return id; },
     clearTimer: id => timers.delete(id), request: request => { calls.push(request);
@@ -68,6 +68,17 @@ test('v2 collector accepts all board/count/root combinations and every selectabl
   for (const profile of ['multiplayer-easy-v1', 'multiplayer-medium-v1', 'multiplayer-hard-v1'])
     assert.ok(profiles.has(profile), `new multiplayer tier was collected and validated: ${profile}`);
   h.client.dispose();
+});
+
+test('v2 collector accepts only missing or explicit symmetric start protection', () => {
+  const h = harness(); h.client.setEnabled(true);
+  const legacyContext = context(settings);
+  const symmetric = { ...settings, protectionRule: 'symmetric-v1' };
+  assert.ok(h.client.beginMatch({ settings: symmetric, context: legacyContext, source: 'local', actionCount: 0 }));
+  const asymmetric = { ...settings, protectionRule: 'duel-first-unprotected-v1' };
+  assert.equal(context(asymmetric), null);
+  assert.equal(h.client.beginMatch({ settings: asymmetric, context: legacyContext, source: 'local', actionCount: 0 }), null);
+  assert.equal(h.client.queue.length, 0); assert.equal(h.calls.length, 0); h.client.dispose();
 });
 
 test('a terminal snapshot is persisted synchronously and survives immediately starting another game', async () => {

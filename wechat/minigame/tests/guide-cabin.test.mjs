@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { build } from 'esbuild';
+import { build } from '../tools/native-build.mjs';
 import { createHash } from 'node:crypto';
 import { GUIDE_ASSETS, GUIDE_EDITIONS } from '../src/guide-assets.js';
 import { readingLines, readerLayout, drawReader, drawGuideCabin, createGuideImages } from '../src/help-ui.js';
@@ -46,9 +46,8 @@ function assertSafeButtons(buttons, width, height, safeTop) {
 
 test('three guide editions keep Web essentials and original diagrams while clarifying current pass/score/history rules', async () => {
   const source = await fs.readFile(path.join(repo, 'web/web前端/guide/rule/essential rule.md'), 'utf8');
-  const expected = source.replace(/【[^】]+】/g, '')
-    .replace('双方轮流在三角网格落子', '玩家轮流在三角或六边形棋盘的格点落子')
-    .replace('靠近初始点的两个相邻位置', '靠近初始点的所有有效相邻位置（三角形角点旁两个、六边形角点旁三个；随机或自定义起点按实际位置确定）');
+  // Figure pixels and captions are verified separately below, not flattened into prose.
+  const expected = source.replace(/【[^】]+】/g, '').replace(/!\[[^\]]*\]\([^)]*\)/g, '');
   assert.equal(noSpace(helpDocument('rules-essential', 'zh').filter(s => s.id.startsWith('essential-') && s.id !== 'essential-finish')
     .flatMap(s => s.paragraphs).join('')), noSpace(expected));
   for (const language of ['zh', 'en']) {
@@ -66,7 +65,21 @@ test('three guide editions keep Web essentials and original diagrams while clari
     assert.match(math, language === 'zh' ? /完整状态/ : /complete state/);
     assert.match(math, language === 'zh' ? /三人及更多人/ : /three or more players/);
     assert.match(math, /631/);
-    assert.ok(helpDocument('rules-essential', language).some(section => section.id === 'multiplayer-board'));
+    const essentials = helpDocument('rules-essential', language);
+    assert.ok(essentials.some(section => section.id === 'multiplayer-board'));
+    const boardGuide = essentials.find(section => section.id === 'multiplayer-board').paragraphs.join(' ');
+    assert.match(boardGuide, language === 'zh' ? /菱形由两个正三角形底对底拼接而成/ : /diamond joins two equilateral triangles base-to-base/i);
+    assert.match(boardGuide, language === 'zh' ? /双人菱形默认占据两枚 60 度锐角顶点/ : /two-player diamond defaults to its two 60-degree acute vertices/i);
+    assert.match(boardGuide, language === 'zh' ? /三人及以上菱形没有默认起点/ : /diamond with three or more players has no default layout/i);
+    const aiGuide = essentials.find(section => section.id === 'multiplayer-ai').paragraphs.join(' ');
+    assert.match(aiGuide, language === 'zh' ? /双人菱形提供通用 Minimax 深度 2、3、4/ : /two-player diamond offers generic Minimax at depths 2, 3 and 4/i);
+    assert.match(aiGuide, language === 'zh' ? /“简单”是不加载训练权重.*通用贪心/ : /Easy is the untrained, shape-aware Greedy rule baseline/i);
+    assert.match(aiGuide, language === 'zh' ? /“困难”是通用 Multiplayer Minimax 搜索/ : /Hard is generic Multiplayer Minimax search/i);
+    assert.match(aiGuide, /multiplayer-easy-v1/);
+    assert.match(aiGuide, language === 'zh' ? /菱形、拓扑、多根、联机、教学、复盘和恢复局均不参与/ : /Diamond, topology, multiple-root, online, tutorial, replay and restored games are excluded/);
+    const privacy = helpDocument('privacy', language).flatMap(section => section.paragraphs).join(' ');
+    assert.match(privacy, language === 'zh' ? /菱形、拓扑与多根对局目前不参与训练贡献/ : /Diamond, topology and multiple-root games are not currently eligible for training contribution/);
+    assert.doesNotMatch(privacy, /either board shape/);
     const war = helpDocument('rules-war', language).flatMap(s => s.paragraphs).join(' ');
     assert.doesNotMatch(war, /最精简的防线|tightens your border|双方都无兵可派|neither side has any move/);
     assert.match(war, language === 'zh' ? /格点/ : /grid points?/);
@@ -88,7 +101,9 @@ test('every guide paragraph survives mobile pagination at readable type sizes an
           assert.ok(ui.ctx.measureText(line).width <= width - 64 + .01, line);
           assert.ok(layout.y + i * layout.lineHeight + layout.font / 2 < layout.footer);
         });
-        assert.ok(readingLines(ui.ctx, page.title, width - 48, 19).length <= 2, page.title);
+        const headingLines = readingLines(ui.ctx, page.title, width - 48, 19);
+        assert.ok(top + (headingLines.length - 1) * 24 + 19 / 2 < layout.metadataY - 13 / 2, page.title);
+        assert.ok(layout.metadataY + 13 / 2 < layout.y - layout.font / 2, page.title);
       }
     }
   }
@@ -102,7 +117,8 @@ test('all guide pages and embedded cabin keep 44px actions inside phone safe are
       const sections = helpDocument(edition.kind, language), layout = readerLayout(hub.ui, sections);
       for (let page = 0; page < layout.pages.length; page++) {
         const h = uiFor(language, width, height, top);
-        drawReader(h.ui, { sections, kind: edition.kind, page, canPractice: true }, actions);
+        // Production readerCache reuses the measured layout across page turns.
+        drawReader(h.ui, { sections, layout, kind: edition.kind, page, canPractice: true }, actions);
         assertSafeButtons(h.buttons, width, height, top);
         assert.ok(h.texts.every(item => typeof item.value === 'string'),
           `${language}/${edition.kind}/${page}: reader labels must be defined`);
@@ -129,7 +145,8 @@ test('bilingual long-article contents jump to every chapter and return from the 
   for (const language of ['zh', 'en']) for (const [width, height, top] of [[320, 568, 136], [390, 844, 160], [430, 932, 160]]) {
     for (const kind of ['rules-math', 'why-code']) {
       const sections = helpDocument(kind, language), h = uiFor(language, width, height, top);
-      assert.equal(sections.filter(section => section.level === 2).length, 3, 'three major chapters');
+      assert.equal(sections.filter(section => section.level === 2).length, 4, 'four major chapters including topology');
+      assert.equal(sections.filter(section => section.id === `${kind === 'why-code' ? 'whyCode' : 'rulesMath'}-topology`).length, 1);
       assert.ok(!sections.some(section => section.paragraphs.some(text => text.includes('\\begin{') || text.includes('$$'))),
         'native reader must receive readable equations rather than TeX source');
       const layout = readerLayout(h.ui, sections), contents = layout.pages.findIndex(p => p.entries);
@@ -140,7 +157,7 @@ test('bilingual long-article contents jump to every chapter and return from the 
       for (let page = 0; page < layout.pages.length; page++) {
         if (!layout.pages[page].entries) continue;
         const current = uiFor(language, width, height, top);
-        drawReader(current.ui, { sections, kind, page, canPractice: true }, actions);
+        drawReader(current.ui, { sections, layout, kind, page, canPractice: true }, actions);
         assertSafeButtons(current.buttons, width, height, top);
         for (const button of current.buttons.filter(b => b.id.startsWith('reader-section-'))) {
           button.action();
@@ -154,7 +171,7 @@ test('bilingual long-article contents jump to every chapter and return from the 
       assert.deepEqual([...targets], sections.filter(s => !s.entries).slice(1).map(s => s.id));
       const body = layout.pages.findIndex(p => !p.entries && !p.image && !Number.isInteger(p.lesson) && p.id !== sections[0].id);
       const current = uiFor(language, width, height, top);
-      drawReader(current.ui, { sections, kind, page: body, canPractice: true }, actions);
+      drawReader(current.ui, { sections, layout, kind, page: body, canPractice: true }, actions);
       current.buttons.find(b => b.id === 'reader-contents').action();
       assert.equal(selected, contents);
     }

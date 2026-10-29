@@ -1,3 +1,5 @@
+import { fileURLToPath as admissionFilePath } from "node:url";
+const terminalAdmission = admissionFilePath(new URL("../../../working/docs/verification/pass-discipline-20261025/combined-admission-v5-r2.json", import.meta.url));
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
@@ -38,8 +40,8 @@ test('service origin validation normalizes HTTPS and rejects unusable or sensiti
 });
 
 test('online preparation requires an explicit origin and opt-in before writing a build', async () => {
-  await assert.rejects(prepareCandidate({ apiBase: 'https://play.example.com' }), /explicit online/);
-  await assert.rejects(prepareCandidate({ online: true }), /Invalid client config/);
+  await assert.rejects(prepareCandidate({ terminalAdmission, apiBase: 'https://play.example.com' }), /explicit online/);
+  await assert.rejects(prepareCandidate({ terminalAdmission, online: true }), /Invalid client config/);
 });
 
 test('online recipe is isolated, config-bound and transfer opt-in does not imply deployment', async t => {
@@ -54,7 +56,7 @@ test('online recipe is isolated, config-bound and transfer opt-in does not imply
   const originalManifest = await fs.readFile(path.join(root, 'dist/build-manifest.json'));
   const originalLocal = await maybeRead(path.join(root, 'config.local.json'));
   // Documentation-only origin. Building and planning never contact it.
-  const prepared = await prepareCandidate({
+  const prepared = await prepareCandidate({ terminalAdmission,
     outputBase: temporary, online: true, apiBase: 'https://play.example.com:443/',
   });
   const receiptFile = path.join(prepared.directory, 'candidate.json');

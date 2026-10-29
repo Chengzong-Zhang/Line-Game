@@ -1,4 +1,4 @@
-import { edgeOccurrenceId, undirectedKey } from "./BoardDefinition.js";
+import { createLegacyBoardDefinition, edgeOccurrenceId, undirectedKey } from "./BoardDefinition.js?v=20261029-topology-round5";
 
 const vertexId = (x, y) => "v:" + x + "," + y;
 
@@ -35,7 +35,7 @@ function makeRectangularTriangularPatch(width, height, preset) {
     topology: {
       family: "surface",
       preset,
-      movementStrategy: "simple-rays-v1",
+      movementStrategy: "simple-rays-v3",
       territoryStrategy: "surface-discrete-v1",
       specialVertexPolicy: "stop",
     },
@@ -125,24 +125,24 @@ function addTopBottomPairs(definition, width, height, reversed) {
 }
 
 export function createCylinderBoardDefinition(options = {}) {
-  const width = options.width ?? 4;
-  const height = options.height ?? 4;
+  const width = options.width ?? (options.gridSize == null ? 4 : options.gridSize - 1);
+  const height = options.height ?? (options.gridSize == null ? 4 : options.gridSize - 1);
   const definition = makeRectangularTriangularPatch(width, height, "cylinder");
   addLeftRightPairs(definition, width, height, false);
   return definition;
 }
 
 export function createMobiusBoardDefinition(options = {}) {
-  const width = options.width ?? 4;
-  const height = options.height ?? 4;
+  const width = options.width ?? (options.gridSize == null ? 4 : options.gridSize - 1);
+  const height = options.height ?? (options.gridSize == null ? 4 : options.gridSize - 1);
   const definition = makeRectangularTriangularPatch(width, height, "mobius");
   addLeftRightPairs(definition, width, height, true);
   return definition;
 }
 
 export function createTorusBoardDefinition(options = {}) {
-  const width = options.width ?? 4;
-  const height = options.height ?? 4;
+  const width = options.width ?? (options.gridSize == null ? 4 : options.gridSize - 1);
+  const height = options.height ?? (options.gridSize == null ? 4 : options.gridSize - 1);
   if (width < 4 || height < 4) {
     throw new Error("Torus presets require width and height of at least 4 for a nondegenerate opening.");
   }
@@ -153,8 +153,8 @@ export function createTorusBoardDefinition(options = {}) {
 }
 
 export function createKleinBottleBoardDefinition(options = {}) {
-  const width = options.width ?? 4;
-  const height = options.height ?? 4;
+  const width = options.width ?? (options.gridSize == null ? 4 : options.gridSize - 1);
+  const height = options.height ?? (options.gridSize == null ? 4 : options.gridSize - 1);
   if (width < 4 || height < 4) {
     throw new Error("Klein bottle presets require width and height of at least 4 for a nondegenerate opening.");
   }
@@ -164,8 +164,72 @@ export function createKleinBottleBoardDefinition(options = {}) {
   return definition;
 }
 
+// A tetrahedral net: four equal triangular patches inside one larger triangle.
+// The three outer corners glue together; each of the other corners is a pole.
+export function createTetrahedronBoardDefinition(options = {}) {
+  const gridSize = options.gridSize ?? 5;
+  if (!Number.isInteger(gridSize) || gridSize < 5 || gridSize > 15) throw new Error("gridSize must be 5 through 15.");
+  const m = Math.floor((gridSize - 1) / 2), extent = 2 * m;
+  const definition = createLegacyBoardDefinition({ gridSize: extent + 1, boardShape: "triangle" });
+  definition.topology = { ...definition.topology, family: "surface", preset: "tetrahedron", movementStrategy: "simple-rays-v3" };
+  definition.startingVertices = { BLACK: vertexId(0, 0), WHITE: vertexId(m, m) };
+  for (let i = 0; i < m; i += 1) {
+    addPair(definition, "tetra:top:" + i, [[i, 0], [i + 1, 0]], [[extent - i, 0], [extent - i - 1, 0]], ([x]) => [extent - x, 0]);
+    addPair(definition, "tetra:left:" + i, [[0, i], [0, i + 1]], [[0, extent - i], [0, extent - i - 1]], ([, y]) => [0, extent - y]);
+    addPair(definition, "tetra:diagonal:" + i, [[extent - i, i], [extent - i - 1, i + 1]], [[i, extent - i], [i + 1, extent - i - 1]], ([x, y]) => [y, x]);
+  }
+  return definition;
+}
+
+// Three triangular sectors joined along their two radial sides. Their common
+// centre is a degree-three pole; the outer three sides remain a real boundary.
+export function createConeBoardDefinition(options = {}) {
+  const gridSize = options.gridSize ?? 5;
+  if (!Number.isInteger(gridSize) || gridSize < 5 || gridSize > 15) throw new Error("gridSize must be 5 through 15.");
+  const r = Math.floor((gridSize - 1) / 2);
+  const vertices = [], faces = [];
+  const contains = (x, y) => y >= 0 && y <= r && x >= 0 && x + y <= 2 * r;
+  for (let y = 0; y <= r; y += 1) for (let x = 0; x <= 2 * r; x += 1) {
+    if (contains(x, y)) vertices.push({ id: vertexId(x, y), coordinate: [x, y] });
+  }
+  const addFace = (id, points) => {
+    if (points.every(([x, y]) => contains(x, y))) faces.push({ id, vertices: points.map(([x, y]) => vertexId(x, y)) });
+  };
+  for (let y = 0; y < r; y += 1) for (let x = 0; x < 2 * r; x += 1) {
+    addFace("u:" + x + "," + y, [[x,y],[x+1,y],[x,y+1]]);
+    addFace("d:" + x + "," + y, [[x+1,y],[x+1,y+1],[x,y+1]]);
+  }
+  const definition = {
+    schemaVersion: 1, coordinateSystem: "triangular-axial-v1",
+    topology: { family: "surface", preset: "cone", movementStrategy: "simple-rays-v3", territoryStrategy: "surface-discrete-v1", specialVertexPolicy: "stop" },
+    vertices, faces, seamPairs: [],
+    startingVertices: { BLACK: vertexId(r, 0), WHITE: vertexId(r, r) },
+    scoring: { strategy: "canonical-vertices-v1" },
+  };
+  for (let i = 0; i < r; i += 1) {
+    addPair(definition, "cone:radial:" + i,
+      [[r-i,0],[r-i-1,0]], [[r+i,0],[r+i+1,0]], ([x]) => [2*r-x,0]);
+  }
+  return definition;
+}
+
+// The tetrahedral triangulation is radially projected to a sphere by the 3D
+// viewer. Its combinatorics are a closed sphere, not a collapsed pole grid.
+export function createSphereBoardDefinition(options = {}) {
+  const definition = createTetrahedronBoardDefinition(options);
+  definition.topology.preset = "sphere";
+  return definition;
+}
+
 export function createSurfacePreset(name, options = {}) {
+  if (options.gridSize != null && (!Number.isInteger(options.gridSize) || options.gridSize < 5 || options.gridSize > 15)) throw new Error("gridSize must be 5 through 15.");
   switch (name) {
+    case "cone":
+      return createConeBoardDefinition(options);
+    case "sphere":
+      return createSphereBoardDefinition(options);
+    case "tetrahedron":
+      return createTetrahedronBoardDefinition(options);
     case "cylinder":
       return createCylinderBoardDefinition(options);
     case "mobius":
@@ -181,6 +245,9 @@ export function createSurfacePreset(name, options = {}) {
 }
 
 export const SURFACE_PRESET_NAMES = Object.freeze([
+  "cone",
+  "sphere",
+  "tetrahedron",
   "cylinder",
   "mobius",
   "torus",

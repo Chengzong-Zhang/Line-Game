@@ -1,3 +1,5 @@
+import { fileURLToPath as admissionFilePath } from "node:url";
+const terminalAdmission = admissionFilePath(new URL("../../../working/docs/verification/pass-discipline-20261025/combined-admission-v5-r2.json", import.meta.url));
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
@@ -19,7 +21,7 @@ async function fixture(t) {
     assert.ok(path.basename(directory).startsWith('lifeline-candidate-boundaries-'));
     await fs.rm(directory, { recursive: true, force: true });
   });
-  const prepared = await prepareCandidate({
+  const prepared = await prepareCandidate({ terminalAdmission,
     outputBase: directory, online: true, apiBase: 'https://play.example.com',
   });
   return { directory, ...prepared };

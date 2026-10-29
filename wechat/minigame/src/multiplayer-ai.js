@@ -1,8 +1,13 @@
+import { MultiplayerMinimaxAI } from '../../../web/web前端/MultiplayerSearch.js';
+import { threePlayerModelIdForBoard } from '../../../web/web前端/ThreePlayerSearchOptions.js';
+import { createHardRuntimeV2 } from '../../../web/web前端/MultiplayerHardRuntime.js';
 import { loadMultiplayerRuntime } from '../../../web/web前端/MultiplayerRuntime.js';
 import easyManifest from '../../../web/web前端/assets/research-ai/multiplayer-v1/easy.json' with { type: 'json' };
 import { createEmbeddedThreePlayerAI } from './three-player-ai.js';
 import { createEmbeddedHexPlayerAI } from './hex-player-ai.js';
 import { checksum } from './integrity.js';
+import { trainedPolicyInfo } from '../../../web/web前端/PassTrainedPolicies.js';
+import { withPassDiscipline } from '../../../web/web前端/AIPassDisciplineV4.js';
 
 export const MULTIPLAYER_TIER_PROFILES = Object.freeze([
   'multiplayer-easy-v1', 'multiplayer-medium-v1', 'multiplayer-hard-v1',
@@ -14,15 +19,31 @@ export function isMultiplayerTierProfile(profile) {
 }
 
 function validateConfiguration(profile, engine) {
-  if (!isMultiplayerTierProfile(profile) || ![3, 4, 5, 6].includes(engine?.playerCount)
+  if (!isMultiplayerTierProfile(profile) || !Number.isInteger(engine?.playerCount) || engine.playerCount < 3 || engine.playerCount > 15
     || !['territory-v2', 'territory-v3'].includes(engine.rulesVersion) || !Number.isInteger(engine.gridSize)
-    || engine.gridSize < 5 || engine.gridSize > 15 || !['triangle', 'hexagon'].includes(engine.boardShape)
+    || engine.gridSize < 5 || engine.gridSize > 15 || !['triangle', 'diamond', 'hexagon'].includes(engine.boardShape)
+    || engine.playerCount > 6 && profile !== 'multiplayer-hard-v1'
+    || engine.boardShape === 'diamond' && profile === 'multiplayer-easy-v1'
     || profile === 'multiplayer-medium-v1' && engine.boardShape !== (engine.playerCount === 3 ? 'triangle' : 'hexagon')) {
     throw new Error('INVALID_CONTROLLERS');
   }
 }
 
+export async function createEmbeddedHardRuntime(engine) {
+    const runtime = engine.playerCount === 3
+      ? { ai: createEmbeddedThreePlayerAI(threePlayerModelIdForBoard(engine.gridSize), engine.rulesVersion) }
+      : { ai: await createEmbeddedHexPlayerAI('hex-player-policy-v1', engine.rulesVersion) };
+    const policySpec = runtime.ai.base ? runtime.ai.spec : runtime.ai.model.spec;
+    const id = runtime.ai.base ? runtime.ai.spec.id : runtime.ai.model.spec.id;
+    const hard = createHardRuntimeV2(engine, { policySpec, modelInfo: { id } });
+    return { ai: hard.ai, modelInfo: { ...hard.modelInfo, ...trainedPolicyInfo(policySpec), id: 'multiplayer-hard-v1',
+      runtime_uses_learned_pass: false, runtime_uses_trained_placement: Boolean(policySpec.passDisciplineTraining),
+      runtime_policy: 'original-native-hard-search-with-trained-placement-base-and-shared-PASS-guard',
+      compatibility: `${engine.rulesVersion} native 3–6 players; size 5–15` } };
+}
+
 const resources = {
+  loadNativeHardRuntime: createEmbeddedHardRuntime,
   async loadAssetModel(id) {
     const spec = easyManifest.models?.[0];
     if (id !== 'multiplayer-easy-v1' || easyManifest.models.length !== 1
@@ -34,30 +55,37 @@ const resources = {
       || checksum(easyManifest) !== MULTIPLAYER_EASY_CHECKSUM) throw new Error('MODEL_INTEGRITY');
     return { spec: JSON.parse(JSON.stringify(spec)) };
   },
-  async loadThreePlayerRuntime(id) {
+  async loadThreePlayerRuntime(id, engine) {
     // The existing factories pin the complete payload and preserve the native
     // JSON-clone / SHA adapters. No network model loaders are called here.
-    const ai = createEmbeddedThreePlayerAI(id);
-    return { ai, modelInfo: { id } };
+    const ai = createEmbeddedThreePlayerAI(id, engine.rulesVersion);
+    const spec = ai.base ? ai.spec : ai.model.spec;
+    return { ai, modelInfo: { id, ...trainedPolicyInfo(spec), runtime_uses_learned_pass: !ai.base && Number.isFinite(spec.passBias),
+      runtime_uses_trained_placement: Boolean(spec.passDisciplineTraining) } };
   },
-  async loadHexPlayerModel() {
-    return (await createEmbeddedHexPlayerAI('hex-player-policy-v1')).model;
+  async loadHexPlayerModel(_id, engine) {
+    return (await createEmbeddedHexPlayerAI('hex-player-policy-v1', engine.rulesVersion)).model;
   },
 };
 
 export async function createEmbeddedMultiplayerRuntime(profile, engine) {
   validateConfiguration(profile, engine);
-  const runtime = await loadMultiplayerRuntime(profile, engine, resources);
+  const runtime = engine.playerCount > 6
+    ? { ai: new MultiplayerMinimaxAI({ depth: Math.min(engine.playerCount + 1, 6), timeMs: 650 }),
+      modelInfo: { id: profile, algorithm: 'paranoid-minimax', training: null, evidenceTier: 'rule-search',
+        runtime_policy: 'generic-multiplayer-minimax', runtime_uses_trained_placement: false, trained_model: false,
+        compatibility: `${engine.rulesVersion} generic 7–15 players; ${engine.boardShape} generic search without trained model; size 5–15` } }
+    : await loadMultiplayerRuntime(profile, engine, resources);
   if (runtime.modelInfo.id !== profile) throw new Error('MODEL_INTEGRITY');
-  const algorithm = runtime.ai;
+  const algorithm = withPassDiscipline(runtime.ai);
   return {
     modelInfo: runtime.modelInfo,
     ai: {
       lastSearch: null,
-      getTopMoves(source, player = source.currentPlayer, topN = 5) {
+      getTopMoves(source, player = source.currentPlayer, topN = 5, options = {}) {
         validateConfiguration(profile, source);
         if (source.currentPlayer !== player || !source.activePlayers.includes(player)) throw new Error('WRONG_PLAYER');
-        const moves = algorithm.getTopMoves(source, player, topN);
+        const moves = algorithm.getTopMoves(source, player, topN, options);
         this.lastSearch = algorithm.lastSearch;
         return moves;
       },

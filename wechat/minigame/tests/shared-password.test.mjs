@@ -123,7 +123,7 @@ test('real create handler allows failed-password retry then resumes shared play 
     assert.equal(app.sharedPasswordUsername.value, 'fixture-user');
     app.sharedPassword.value = 'wrong'; await app.handleSharedPasswordSubmit();
     assert.equal(app.sharedPassword.value, ''); assert.equal(app.sharedPasswordOpen.value, true);
-    assert.match(app.sharedPasswordError.value, /密码不正确|Incorrect/);
+    assert.match(app.sharedPasswordError.value, /验证失败|Verification failed/);
     assert.equal(requests.some(item => item.path.endsWith('/rooms')), false);
     app.sharedPassword.value = 'fixture-password'; await app.handleSharedPasswordSubmit(); await entering;
     assert.equal(app.sharedPasswordOpen.value, false); assert.equal(app.session.value.roomId, room.code);

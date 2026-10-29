@@ -23,12 +23,14 @@ const allSizes = Object.freeze(Array.from({ length: 11 }, (_, index) => index + 
 // These Web runtime profiles reuse existing policies/search; no ultimate
 // candidate or additional model package is exposed by the mobile selector.
 export const MULTIPLAYER_LEVEL_CATALOG = Object.freeze([
-  { profile: 'multiplayer-easy-v1', title: '多人 · 简单', shortLabel: 'Multiplayer · Easy', metric: 'policy-score' },
-  { profile: 'multiplayer-medium-v1', title: '多人 · 中等', shortLabel: 'Multiplayer · Medium', metric: 'search-score', nativeShapeOnly: true },
-  { profile: 'multiplayer-hard-v1', title: '多人 · 困难', shortLabel: 'Multiplayer · Hard', metric: 'search-score' },
+  { profile: 'multiplayer-easy-v1', title: '多人 · 简单', shortLabel: 'Multiplayer · Easy', metric: 'policy-score',
+    boardShapes: Object.freeze(['triangle', 'hexagon']) },
+  { profile: 'multiplayer-medium-v1', title: '多人 · 中等', shortLabel: 'Multiplayer · Medium', metric: 'search-score',
+    nativeShapeOnly: true, boardShapes: Object.freeze(['triangle', 'hexagon']) },
+  { profile: 'multiplayer-hard-v1', title: '多人 · 困难', shortLabel: 'Multiplayer · Hard', metric: 'search-score',
+    boardShapes: Object.freeze(['triangle', 'diamond', 'hexagon']) },
 ].map(item => Object.freeze({ playerCounts: Object.freeze([3, 4, 5, 6]),
-  boardShapes: Object.freeze(['triangle', 'hexagon']), sizes: allSizes, experimental: false,
-  nativeShapeOnly: false, ...item })));
+  sizes: allSizes, experimental: false, nativeShapeOnly: false, ...item })));
 // These small frozen JSON policies are embedded in the single Worker. They are
 // selectable independently; choosing a failed/unpromoted candidate never changes
 // defaults or silently substitutes the v1 policy.

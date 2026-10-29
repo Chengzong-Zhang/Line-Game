@@ -67,7 +67,7 @@ test('both mobile languages expose and save every new level through the existing
       await ready(h); const activeHash = h.app.session.stateHash;
       await h.tap('cabin-board');
       for (const count of [3, 6]) {
-        await h.slide('player-count', count, 2, 6);
+        await h.slide('player-count', count, 2, 15);
         for (const profile of levels) {
           let offered;
           h.p.choose = async labels => { offered = labels; return labels.indexOf(TEXT[language][`controller-${profile}`]); };
@@ -87,7 +87,7 @@ test('shape changes retain Medium, reject a new incompatible game, and require a
   const storage = memoryStorage(), h = uiHarness({ storage });
   try {
     await ready(h); const activeHash = h.app.session.stateHash;
-    await h.tap('cabin-board'); await h.slide('player-count', 3, 2, 6);
+    await h.tap('cabin-board'); await h.slide('player-count', 3, 2, 15);
     h.p.choose = async labels => labels.indexOf(TEXT.zh['controller-multiplayer-medium-v1']);
     await h.scrollTo('controller-WHITE'); await h.tap('controller-WHITE');
     await h.scrollTo('shape-hexagon'); await h.tap('shape-hexagon');

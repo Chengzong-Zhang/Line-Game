@@ -6,7 +6,7 @@ import {
   TRIANGULAR_UNIT_DIRECTIONS,
   triangularDirectionIndex,
   undirectedKey,
-} from "./BoardDefinition.js";
+} from "./BoardDefinition.js?v=20261029-topology-round5";
 
 export class UnionFind {
   constructor(ids = []) {
@@ -247,9 +247,9 @@ function analyzeVertexLinks(canonicalVertices, faces, edgeClassByOccurrence, raw
     const degrees = nodes.map((node) => (graph.get(node) ?? []).length);
     const oneDegreeCount = degrees.filter((degree) => degree === 1).length;
     const legalDegrees = degrees.every((degree) => degree === 1 || degree === 2);
-    const kind = components.length === 1 && legalDegrees
-      ? (oneDegreeCount === 0 ? "cycle" : oneDegreeCount === 2 ? "path" : "branched")
-      : "disconnected";
+    const kind = components.length !== 1 ? "disconnected"
+      : !legalDegrees ? "branched"
+      : oneDegreeCount === 0 ? "cycle" : oneDegreeCount === 2 ? "path" : "branched";
     results.push({
       id: vertex.id,
       manifold: kind === "cycle" || kind === "path",
@@ -340,15 +340,10 @@ export function analyzeBoardTopology(definition) {
   }
   const boundaryComponents = connectedComponents([...realBoundaryVertexIds], boundaryAdjacency);
   const vertexLinks = analyzeVertexLinks(canonicalVertices, definition.faces, edgeClassByOccurrence, rawToCanonical);
-  for (const link of vertexLinks) {
-    if (!link.manifold) {
-      errors.push(makeBoardError("NON_MANIFOLD_VERTEX_LINK", "canonicalVertices." + link.id,
-        "Vertex link is " + link.kind + "."));
-    }
-  }
-
+  // Non-circular links describe valid two-dimensional complexes. Rays stop at
+  // those vertices; they are not evidence that the combinatorial input is invalid.
   const specialVertices = vertexLinks
-    .filter((link) => link.manifold && (link.kind !== "cycle" || link.incidentEdgeClassCount !== 6))
+    .filter((link) => !link.manifold || link.kind !== "cycle" || link.incidentEdgeClassCount !== 6)
     .map((link) => ({ ...link, stopOnAmbiguousContinuation: true }));
   const directionTransitions = [];
   const seenTransitions = new Set();

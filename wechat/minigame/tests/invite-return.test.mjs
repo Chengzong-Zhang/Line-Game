@@ -45,7 +45,7 @@ for (const outcome of ['declined', 'invalid']) {
     };
     try {
       await until(() => app.session.snapshot && !app.session.busy);
-      await h.tap('friends'); await until(() => app.online.room);
+      await h.tap('friends'); await h.tap('room-submit'); await until(() => app.online.room);
       const room = app.online.room, hash = app.session.stateHash;
       app.online.refresh = async () => { refreshes++; return true; };
       app.online.connect = async () => { connects++; app.online.connected = true; };

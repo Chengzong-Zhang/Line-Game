@@ -17,7 +17,7 @@ function validateTopologyControllers(value, settings) {
 
 export function validateSave(payload) {
   const session = payload?.session;
-  if (!MODES.includes(payload?.mode) || !['easy', 'normal'].includes(payload.difficulty)
+  if (!MODES.includes(payload?.mode) || !['easy', 'normal', 'simple', 'medium', 'hard'].includes(payload.difficulty)
     || !Array.isArray(session?.actions) || session.actions.length > MAX_ACTIONS) throw new Error('INVALID_SAVE');
   if (session.format === TOPOLOGY_LOCAL_SESSION_FORMAT) {
     const topology = validateTopologyLocalGameSession(session);

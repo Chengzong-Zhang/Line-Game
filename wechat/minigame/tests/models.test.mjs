@@ -6,6 +6,7 @@ import { once } from 'node:events';
 import { sut, memoryStorage, localScheduler, fakeWorker, until, plain } from './helpers.mjs';
 import { MODEL_CATALOG } from '../src/model-catalog.js';
 import { uiHarness } from './ui-harness.mjs';
+import { TEXT } from '../src/i18n.js';
 
 const rawFor = async entry => { const data = await fs.readFile(new URL(`../${entry.sourcePath}`, import.meta.url)); return data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength); };
 const entry = MODEL_CATALOG.find(model => model.id === 'dqn-all-sizes-e2000');
@@ -145,7 +146,7 @@ test('leaving replay terminates a running production model Worker and discards t
 });
 
 for (const [language, width, height, top] of [['zh', 390, 844, 88], ['en', 320, 568, 64], ['zh', 430, 932, 88]]) {
-  test(`model selection, read-only analysis and comparison fit and work: ${language} ${width}`, async () => {
+  test(`ordinary model choices stay hidden while lab analysis and comparison work: ${language} ${width}`, async () => {
     const h = uiHarness({ language, width, height, top }), { app, p, tap, render } = h;
     Object.assign(p, filePlatform());
     const geometry = () => {
@@ -158,9 +159,10 @@ for (const [language, width, height, top] of [['zh', 390, 844, 88], ['en', 320, 
       assert.equal(h.texts.includes('undefined'), false);
     };
     try {
-      await render(); await tap('cabin-board'); await h.scrollTo('controller-WHITE'); p.choose = async () => 5; await tap('controller-WHITE');
-      assert.equal(app.getScene(), 'models'); await render(); geometry(); await tap('models-policy');
-      await tap(`model-${entry.id}`); assert.equal(app.getScene(), 'home'); await render(); geometry();
+      await render(); await tap('cabin-board'); await h.scrollTo('controller-WHITE');
+      let ordinary; p.choose = async labels => { ordinary = labels; return -1; }; await tap('controller-WHITE');
+      assert.equal(ordinary.filter(item => item === TEXT[language].moreModels).length, 1);
+      assert.equal(ordinary.includes('DQN'), false);
       await tap('cabin-close'); await tap('new-game'); await until(() => app.session.canPlay());
       await app.session.act({ type: 'move', point: [1, 0] }); await until(() => !app.session.busy);
       assert.equal(app.session.actions.length, 2);

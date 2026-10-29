@@ -30,7 +30,7 @@ test('local undo repeatedly returns the acting human to before their preceding m
         if (used === 1) {
           const saved = plain(store.read().payload);
           assert.equal(await game.load(saved.session.settings, saved.session.actions, { ...saved, autoplay: false }), true);
-          assert.equal(game.undoAvailable, true, 'restoring cannot block the next older own move');
+          assert.equal(game.undoAvailable, actors.slice(0, remaining).includes(requester), 'restoring preserves availability of the next older own move');
         }
       }
       assert.ok(used >= 2, 'the fixture exercises consecutive undos');
@@ -78,7 +78,7 @@ test('online undo mirrors zoom without covering the room number; vote row stays 
     };
     h.app.online.voteUndo = async accept => { votes.push(accept); return true; };
     try {
-      await ready(h); await h.tap('friends'); await until(() => h.app.session === h.app.online.game); await h.render();
+      await ready(h); await h.tap('friends'); await h.scrollTo('room-submit'); await h.tap('room-submit'); await until(() => h.app.session === h.app.online.game); await h.render();
       const undo = h.app.getButtons().find(b => b.id === 'undo'), zoom = h.app.getButtons().find(b => b.id === 'board-zoom');
       assert.ok(undo); assert.ok(zoom); assert.equal(undo.y, zoom.y); assert.ok(undo.x + undo.width < zoom.x);
       const room = drawnText.findLast(item => item.text.includes('ABCDEFGH'));

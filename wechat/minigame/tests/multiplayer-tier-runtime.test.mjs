@@ -5,7 +5,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { build } from 'esbuild';
+import { build, readNativeWebSource } from '../tools/native-build.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const web = path.resolve(root, '../../web/web前端');
@@ -20,6 +20,7 @@ const sources = `
 export * from './src/core.js';
 export * from './src/state.js';
 export * from './src/multiplayer-ai.js';
+export * from './src/worker-pass.js';
 export * from './src/three-player-ai.js';
 export * from './src/hex-player-ai.js';
 export { loadMultiplayerRuntime as resourceRuntime } from '../../web/web前端/MultiplayerRuntime.js';
@@ -79,46 +80,55 @@ function assertUnchanged(engine, before) {
   assert.deepEqual(after.view, before.view); assert.deepEqual(after.history, before.history);
   for (const key of ['revision', 'territoryRevision', 'grid', 'edges', 'territories']) assert.equal(after[key], before[key], key);
 }
-function assertDeadlineDiagnostics(search) {
-  if (!Object.hasOwn(search, 'absoluteDeadline')) return;
-  assert.ok(Number.isFinite(search.absoluteDeadline));
-  if (search.fallbackSearch) {
-    assert.ok(Number.isFinite(search.fallbackSearch.absoluteDeadline));
-    assert.equal(search.fallbackSearch.absoluteDeadline, search.absoluteDeadline);
-  }
-}
-function comparableSearchStats(search) {
-  const result = plain(search);
-  // This is an absolute timestamp from a locally-owned clock. The injected
-  // runtime and the compiled native Worker start at different clock ticks;
-  // compare the decision diagnostics, while checking timestamp coherence
-  // independently above.
-  delete result.elapsedMs; delete result.absoluteDeadline;
-  if (result.fallbackSearch) delete result.fallbackSearch.absoluteDeadline;
-  return result;
-}
 
-test('shared search and rollout pin the admitted Web sources after native Worker compatibility imports', async () => {
+test('shared search and rollout retain the frozen Web source apart from reviewed platform and diamond adapters', async () => {
   for (const [name, expected] of [
-    ['MultiplayerSearch.js', 'd7b5d616f59b2e8ced5f76e7a3d06f79f0a3a5bf8356fec3a2d4bfb4da48c3ec'],
-    ['MultiplayerRollout.js', 'ebd1f3be7ef8b3bf3de080c61d411d74d743078053319c26e4fbf2646f16d9c5'],
+    ['MultiplayerSearch.js', '4d282be9ea2b825dc5efc025cfb5d5c7955788c6880509e821088e33b05605ef'],
+    ['MultiplayerRollout.js', '58b6040c7c3592ea3c701b22fb6a6054468b2acf3c6d4ab77f791321a14e6117'],
   ]) {
-    const content = (await fs.readFile(path.join(web, name), 'utf8')).replace(/\r\n/g, '\n');
+    const content = (await readNativeWebSource(name)).replace(/\r\n/g, '\n');
     const boundary = content.indexOf('\n') + 1;
     assert.equal(content.slice(0, boundary),
       'import { multiplayerClock as performance } from "./MultiplayerClock.js";\n');
     const frozenSource = content.slice(boundary);
     const v3Admission = '!["territory-v2", "territory-v3"].includes(source.rulesVersion)';
     assert.equal(frozenSource.split(v3Admission).length - 1, 1);
-    const normalized = frozenSource.replace(v3Admission, 'source.rulesVersion !== "territory-v2"');
-    assert.equal(sha(normalized), expected);
+    const protectionFilter = `  return [...indices].sort((a, b) => a - b).filter(i => {
+    if (engine._isInProtectionZone(engine.validPositions[i], player)) return false;
+`;
+    const legacyFilter = `  const protectedPoints = new Set(engine._getOpponents(player).flatMap(p =>
+    engine._adjIdxList[engine._keyToIdx.get(key(engine.initialPositions[p]))]));
+  return [...indices].sort((a, b) => a - b).filter(i => {
+    if (protectedPoints.has(i)) return false;
+`;
+    const protectionClone = `    startPlayer: source.startPlayer, rulesVersion: source.rulesVersion,
+    protectionRule: source.protectionRule, deferTerritoryUpdates: true });`;
+    const legacyClone = '    startPlayer: source.startPlayer, rulesVersion: source.rulesVersion, deferTerritoryUpdates: true });';
+    const diamondFeatureShape = '  const hex = engine.boardShape === "hexagon", diamond = engine.boardShape === "diamond";';
+    const legacyFeatureShape = '  const hex = engine.boardShape === "hexagon";';
+    const diamondFeatureValues = `    distance(point[0]-home[0],point[1]-home[1])/(r*(hex||diamond?2:1)),
+    hex ? 1-distance(point[0]-r,point[1]-r)/r
+      : diamond ? 2*Math.min(point[0],point[1],r-point[0],r-point[1])/r
+        : 3*Math.min(point[0],point[1],r-point[0]-point[1])/r,`;
+    const legacyFeatureValues = `    distance(point[0]-home[0],point[1]-home[1])/(r*(hex?2:1)),
+    hex ? 1-distance(point[0]-r,point[1]-r)/r : 3*Math.min(point[0],point[1],r-point[0]-point[1])/r,`;
     if (name === 'MultiplayerSearch.js') {
-      assert.match(frozenSource, /import \{ installNativeEdgeGeometry \} from "\.\/MultiplayerNativeGeometry\.js\?v=20261027-topology-multistart-release1";/);
-      assert.match(frozenSource, /engine\._isInProtectionZone\(engine\.validPositions\[i\], player\)/);
-      assert.match(frozenSource, /installNativeEdgeGeometry\(engine\);/);
-    } else {
-      assert.match(frozenSource, /visitPolicyCandidates\(engine, actor, candidate =>/);
+      assert.equal(frozenSource.split(protectionFilter).length - 1, 1);
+      assert.equal(frozenSource.split(protectionClone).length - 1, 1);
     }
+    const deadline = name === 'MultiplayerSearch.js'
+      ? 'const started = performance.now(), deadline = Math.min(started + this.timeMs,\n      Number.isFinite(options.deadline) ? options.deadline : Infinity);'
+      : 'const started = performance.now(), deadline = Math.min(started + this.timeMs,\n      Number.isFinite(options.deadline) ? options.deadline : Infinity,\n      Number.isFinite(this.absoluteDeadline) ? this.absoluteDeadline : Infinity);';
+    assert.equal(frozenSource.split(deadline).length - 1, 1, 'the explicit deadline must remain in the native source');
+    const rootGuard = '  if (source.rootRulesVersion === "root-v2") throw new Error("Optimized multiplayer search does not support multi-root state.");\n';
+    if (name === 'MultiplayerSearch.js') assert.equal(frozenSource.split(rootGuard).length - 1, 1);
+    const normalized = frozenSource.replace(v3Admission, 'source.rulesVersion !== "territory-v2"')
+      .replace(protectionFilter, legacyFilter).replace(protectionClone, legacyClone)
+      .replace(diamondFeatureShape, legacyFeatureShape).replace(diamondFeatureValues, legacyFeatureValues)
+      .replace(rootGuard, '')
+      .replace('getTopMoves(source, player = source.currentPlayer, topN = 5, options = {})', 'getTopMoves(source, player = source.currentPlayer, topN = 5)')
+      .replace(deadline, 'const started = performance.now(), deadline = started + this.timeMs;');
+    assert.equal(sha(normalized), expected);
   }
   assert.equal(sut.easyManifest.sourceManifestSha256, 'd7560db53483ab9ee2a7c423509142924545f1679ec35201b369e3b91fe161a0');
   assert.deepEqual(plain(sut.easyManifest.models.map(item => item.id)), ['multiplayer-easy-v1']);
@@ -166,7 +176,7 @@ test('easy and medium include size 15, while medium keeps the exact original v4/
   }
 });
 
-test('native and alternate shapes run easy/hard; medium and ultimate reject unsupported configuration', async () => {
+test('native and legacy alternate shapes run trained easy/hard while diamonds use only generic Greedy/Hard', async () => {
   for (const count of [3, 4, 5, 6]) {
     const config = settings(count, 5, count === 3 ? 'hexagon' : 'triangle');
     const engine = sut.restoreGame(config);
@@ -177,6 +187,24 @@ test('native and alternate shapes run easy/hard; medium and ultimate reject unsu
     }
     assert.equal((await native.send('AI', config, 'multiplayer-medium-v1')).error, 'INVALID_CONTROLLERS');
     await assert.rejects(sut.createEmbeddedMultiplayerRuntime('multiplayer-medium-v1', engine), /INVALID_CONTROLLERS/);
+  }
+  for (const count of [3, 4, 5, 6]) {
+    const config = settings(count, 5, 'diamond');
+    config.startingPointMode = 'random';
+    config.initialPositions = sut.randomInitialPositions(5, count, () => 0.25, 'diamond');
+    const engine = sut.restoreGame(config);
+    const easy = await native.send('ANALYZE', config, 'greedy');
+    assert.equal(easy.ok, true, `${count}/greedy: ${easy.error}`); assertLegal(engine, easy.result.moves);
+    assert.deepEqual(easy.result.modelInfo,
+      { strategy: 'greedy', runtime_policy: 'generic-rule-greedy', trained_model: false });
+    assert.equal((await native.send('AI', config, 'multiplayer-easy-v1')).error, 'INVALID_CONTROLLERS');
+    await assert.rejects(sut.createEmbeddedMultiplayerRuntime('multiplayer-easy-v1', engine), /INVALID_CONTROLLERS/);
+    const hard = await native.send('ANALYZE', config, 'multiplayer-hard-v1');
+    assert.equal(hard.ok, true, `${count}/hard: ${hard.error}`); assertLegal(engine, hard.result.moves);
+    assert.equal(hard.result.modelInfo.runtime_policy, 'generic-multiplayer-minimax');
+    assert.equal(hard.result.modelInfo.trained_model, false);
+    assert.equal(hard.result.modelInfo.evidenceTier, 'rule-search');
+    assert.equal((await native.send('AI', config, 'multiplayer-medium-v1')).error, 'INVALID_CONTROLLERS');
   }
   for (const profile of [...profiles, 'multiplayer-ultimate-v1']) {
     assert.equal((await native.send('AI', settings(2, 5, 'triangle'), profile)).error, 'INVALID_CONTROLLERS');
@@ -208,33 +236,31 @@ test('resource injection and native adapter return identical rankings with deter
   const clock = { value: 0, now() { this.value += 50; return this.value; }, reset() { this.value = 0; } };
   const { sut: timed } = api(clock), workerClock = { ...clock }, timedWorker = await worker({ clock: workerClock });
   const loaders = {
+    loadNativeHardRuntime: timed.createEmbeddedHardRuntime,
     loadAssetModel: async () => ({ spec: plain(timed.easyManifest.models[0]) }),
-    loadThreePlayerRuntime: async id => ({ ai: timed.createEmbeddedThreePlayerAI(id), modelInfo: { id } }),
-    loadHexPlayerModel: async () => (await timed.createEmbeddedHexPlayerAI()).model,
+    loadThreePlayerRuntime: async (id, source) => ({ ai: timed.createEmbeddedThreePlayerAI(id, source.rulesVersion), modelInfo: { id } }),
+    loadHexPlayerModel: async (_id, source) => (await timed.createEmbeddedHexPlayerAI(undefined, source.rulesVersion)).model,
   };
   for (const config of [settings(3, 5), settings(4, 5), settings(3, 5, 'hexagon')]) for (const profile of profiles) {
     if (profile === profiles[1] && config.boardShape === 'hexagon' && config.playerCount === 3) continue;
     const engine = timed.restoreGame(config), runtime = await timed.resourceRuntime(profile, engine, loaders);
-    clock.reset(); const expected = plain(runtime.ai.getTopMoves(engine, engine.currentPlayer, 3));
+    clock.reset();
+    const expected = plain(runtime.ai.getTopMoves(engine, engine.currentPlayer, 3));
     const expectedStats = plain(runtime.ai.lastSearch);
     workerClock.reset(); const reply = await timedWorker.send('ANALYZE', config, profile);
     assert.equal(reply.ok, true, reply.error); assert.deepEqual(reply.result.moves, expected);
     // The unchanged v4 implementation reports Date.now() timing only; it does
     // not use that elapsed field to choose moves or decide its fixed rollout.
-    assertDeadlineDiagnostics(reply.result.search); assertDeadlineDiagnostics(expectedStats);
-    assert.deepEqual(comparableSearchStats(reply.result.search), comparableSearchStats(expectedStats));
-    if (profile === profiles[2]) {
+    const actualStats = { ...reply.result.search };
+    delete actualStats.elapsedMs; delete expectedStats.elapsedMs;
+    assert.deepEqual(actualStats, expectedStats);
+    if (profile === profiles[2] && config.boardShape !== (config.playerCount === 3 ? 'triangle' : 'hexagon')) {
       assert.equal(reply.result.search.timedOut, true);
       if (config.playerCount === 4 || config.boardShape === 'triangle') {
-        // The native hard adapter now exposes its interruptible fallback receipt
-        // directly. A clock-expired fallback never claims a rollout phase.
+        assert.equal(reply.result.search.publicationMode, 'complete-phase');
+        assert.deepEqual(reply.result.search.completedPhases, []);
         assert.equal(reply.result.search.usedFallback, true);
-        assert.equal(reply.result.search.selectedEvaluation, 'fallback-only');
-        assert.equal(reply.result.search.decisionSource, 'partial-linear');
-        assert.equal(reply.result.search.fallbackSearch.baselineComplete, false);
-        assert.equal(reply.result.search.fallbackSearch.partial, true);
-        assert.equal(reply.result.search.fallbackSearch.timedOut, true);
-        assert.equal(reply.result.search.fallbackSearch.decisionSource, 'partial-linear');
+        assert.equal(reply.result.search.partialPhasePublished, false);
       }
     }
   }

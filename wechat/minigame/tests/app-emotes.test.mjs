@@ -38,6 +38,7 @@ function harness({ language = 'zh', capable = true, status = 'playing' } = {}) {
       wire.requests.push(plain(options));
       if (options.url === `${origin}/api/wechat/login`) return { protocol: 1, token: 'synthetic-token', expiresIn: 3600,
         account: { uid: 'synthetic-user', linked: false } };
+      if (options.url === `${origin}/api/wechat/rooms/current`) return { room: null };
       if ([`${origin}/api/wechat/rooms`, `${origin}/api/wechat/rooms/ABCDEFGH`].includes(options.url)) return plain(wire.room);
       throw new Error('Unexpected fixture HTTP request');
     },
@@ -54,7 +55,7 @@ async function enter(h) {
     status: h.wire.status, player: 'BLACK', currentPlayer: 'BLACK', actions: [], actionIds: [],
     stateHash: local.stateHash, settings: plain(local.settings),
     ready: { BLACK: false, WHITE: true }, members: { BLACK: true, WHITE: true }, rematchVotes: { BLACK: false, WHITE: false } };
-  await h.tap('cabin-battle'); await h.scrollTo('friends'); await h.tap('friends');
+  await h.tap('cabin-battle'); await h.scrollTo('friends'); await h.tap('friends'); await h.tap('room-submit');
   await until(() => h.app.session === h.app.online.game && h.app.online.connected && !h.app.session.busy);
   await h.render();
   assert.deepEqual(h.wire.sockets.at(-1).sent[0].capabilities, ['emote-v1']);

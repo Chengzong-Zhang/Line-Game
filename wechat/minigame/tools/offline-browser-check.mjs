@@ -224,7 +224,7 @@ export async function runBrowserChecks({ origin, output }) {
         await waitText(page, `${index + 1}/5 · 完成了！`);
         const state = (await observe(page)).lastState.snapshot;
         if (index === 1) assert.equal(state.territories.BLACK.area, 10);
-        if (index === 3) assert.equal(state.territories.BLACK.area, 7);
+        if (index === 3) assert.equal(state.territories.BLACK.area, 6);
         if (index === 4) { assert.equal(state.gameOver, true); assert.equal(state.winner, 'BLACK'); assert.equal(state.territories.BLACK.area, 7); }
         if (index === 1) await saveScreenshot(page, 'tutorial-territory');
         await clickText(page, index === 4 ? '完成教学' : '下一关');

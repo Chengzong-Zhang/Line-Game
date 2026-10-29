@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "scope": "New natural custom-start tactical prefixes. Native rules only; no AI ranking, win-rate, universal forced-chain or latency claim.",
+  "rulesVersion": "territory-v3",
+  "playerCounts": [3, 4, 5, 6],
+  "player": "BLACK",
+  "opponent": "WHITE",
+  "prefixFormat": "Each pair is a BLACK action followed by a WHITE action; null means a real skipTurn. After WHITE, every extra seat skips in actual turn order. Never assign currentPlayer or board state.",
+  "coordinateVariants": {
+    "triangle": {
+      "playerCounts": [3],
+      "gridSize": 15,
+      "offset": [0, 0],
+      "initialPositions": {"BLACK": [0, 4], "WHITE": [6, 0], "PURPLE": [0, 0]}
+    },
+    "hexagon": {
+      "playerCounts": [4, 5, 6],
+      "gridSize": 9,
+      "offset": [4, 4],
+      "initialPositions": {"BLACK": [4, 8], "WHITE": [10, 4], "PURPLE": [8, 0], "GREEN": [16, 0], "ORANGE": [0, 16], "CYAN": [16, 8]}
+    }
+  },
+  "replyDomain": {
+    "defenseAndCountercut": "Every legal direct cut on BLACK line points, plus PASS, for every intervening actual actor until BLACK next moves. Branches recompute legality and retain full Superko history.",
+    "chainFirstRound": "Every WHITE legal placement plus PASS; every later intervening actor's legal direct cut on BLACK lines plus PASS, until BLACK next moves.",
+    "chainSecondRound": "After a damaging second cut on WHITE, every intervening actor's legal direct cut on BLACK lines plus PASS.",
+    "limitation": "Extra players' arbitrary non-cut placements are outside this finite reply domain. This is not an unrestricted multiplayer forced-win proof. C has a safe immediate two-node capture, so never assert its two-step attack is uniquely best."
+  },
+  "fixtures": [
+    {
+      "id": "equal-capture-repair-before-second-cut",
+      "kind": "defense",
+      "prefix": [[4, 4], [6, 6], [0, 8], [2, 6], [4, 6], [2, 4]],
+      "candidate": [4, 2],
+      "alternative": [6, 4],
+      "expected": {"immediateEnemyNodeCapture": 1, "candidateMaxNodeLoss": 0, "candidateMaxCoverageLoss": 0, "alternativeMaxNodeLoss": 4, "alternativeMaxCoverageLoss": 13},
+      "reason": "The prefix already contains the first WHITE supply cut. Both alternatives capture one WHITE node; only the repair cuts the first cutter off and restores BLACK supply before the next cut."
+    },
+    {
+      "id": "one-node-capture-loses-two-to-countercut",
+      "kind": "countercut",
+      "prefix": [[4, 4], [6, 6], null, [2, 6]],
+      "candidate": [2, 4],
+      "alternative": [4, 6],
+      "expected": {"candidateMaxNodeLoss": 0, "candidateMaxCoverageLoss": 0, "alternativeImmediateEnemyNodeCapture": 1, "alternativeMaxNodeLoss": 2, "alternativeMaxCoverageLoss": 6},
+      "reason": "The thin attacking branch captures one WHITE node but exposes two BLACK nodes to a legal supply cut. This is an exposure witness, not proof that every capture-sacrifice is bad."
+    },
+    {
+      "id": "reinforced-loop-retains-a-second-cut",
+      "kind": "chain",
+      "prefix": [[4, 4], [6, 6], [0, 8], [2, 6], [4, 8], null, [6, 8], null, [7, 7], null, [7, 5], null, [9, 5], null],
+      "candidate": [4, 6],
+      "alternative": [6, 4],
+      "expected": {"candidateImmediateEnemyNodeCapture": 1, "candidateMaxNodeLoss": 0, "candidateMaxCoverageLoss": 3, "alternativeImmediateEnemyNodeCapture": 2, "alternativeMaxCoverageLoss": 3, "minimumSecondCutNodeCapture": 1, "secondCutMaxNodeLoss": 0},
+      "reason": "The supply point and independent loop preserve nodes under countercuts. Every admitted reply branch must leave a damaging second cut with a safe direct-cut reply round. The immediate two-node alternative forbids a unique-best-action assertion for the chain move."
+    }
+  ]
+}

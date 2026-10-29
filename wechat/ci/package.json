@@ -1,0 +1,19 @@
+{
+  "name": "lifeline-wechat-delivery",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "plan": "node transfer.mjs plan",
+    "preview": "node transfer.mjs preview",
+    "upload": "node transfer.mjs upload",
+    "pretest": "npm --prefix ../minigame run build",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "miniprogram-ci": "2.1.31"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

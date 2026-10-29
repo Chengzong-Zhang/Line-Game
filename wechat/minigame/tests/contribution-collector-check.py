@@ -57,6 +57,7 @@ while (!engine.gameOver) {
 }
 const saved = new Map(); let payload;
 const client = new TrainingContribution({
+  version: 2,
   storage: { get: key => saved.get(key), set: (key, value) => saved.set(key, value) },
   origin: 'https://synthetic.invalid', createReplay: (config, list) => createReplayDocument(config, list, checksum),
   request: ({ url, data, method }) => {

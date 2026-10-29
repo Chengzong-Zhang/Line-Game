@@ -8,6 +8,8 @@ import {
   closeBoundaryDraft,
   undoBoundaryVertex,
 } from './core.js';
+import { createTopologyStartingDefinition } from './topology/TopologyStartingPoints.js';
+import { createDoubleTorusBoardDefinition, createDoubleSphereBoardDefinition } from './topology/RandomSurfaceBoard.js';
 
 export const TOPOLOGY_SETUP_CONTRACT_VERSION = 'board-topology-v1';
 
@@ -153,7 +155,20 @@ export function addSelectedTopologySeam(setup) {
 
 export function useTopologyPreset(setup, name, options = {}) {
   let definition;
-  try { definition = createSurfacePreset(name, options); }
+  try {
+    definition = name === 'double-torus' ? createDoubleTorusBoardDefinition(options)
+      : name === 'double-sphere' ? createDoubleSphereBoardDefinition(options) : createSurfacePreset(name, options);
+    if (name === 'double-torus' || name === 'double-sphere') {
+      const gridSize = options.gridSize ?? 9;
+      definition.generator = { generatorVersion: 'surface-preset-v1', options: { gridSize },
+        ...(name === 'double-torus' ? { holeFaces: options.holeFaces ?? ['u:1,1', `u:${gridSize - 3},${gridSize - 3}`], trimFaces: options.trimFaces ?? [] } : {}) };
+    }
+    if (options.playerCount) {
+      const compiled = compileBoard(definition);
+      if (!compiled.ok) return failure(setup ?? freshSetup(), 'INVALID_SURFACE_PRESET', 'Could not compile the board.');
+      definition = createTopologyStartingDefinition(compiled.value, { playerCount: options.playerCount, mode: 'default' });
+    }
+  }
   catch (error) { return failure(setup ?? freshSetup(), 'INVALID_SURFACE_PRESET', error.message); }
   const base = { ...(setup ?? freshSetup()), mode: 'preset', draft: null, selectedBoundaryOccurrenceIds: [], random: null };
   return compileDefinition(base, definition, { mode: 'preset' });
@@ -168,6 +183,16 @@ export function generateTopologyBoard(setup, options = {}, seed = 'topology-rand
     mode: 'random', random: { seed, generatorVersion: generated.definition.generator?.generatorVersion, stats: copyJson(generated.stats) },
   });
   return { ...compiled, stats: copyJson(generated.stats) };
+}
+
+export function changeTopologyStarts(setup, options) {
+  if (!setup?.compiled) return failure(setup ?? freshSetup(), 'BOARD_NOT_READY', 'Create a board first.');
+  try {
+    const definition = createTopologyStartingDefinition(setup.compiled, options);
+    return compileDefinition(setup, definition);
+  } catch (error) {
+    return failure(setup, error.code || 'INVALID_STARTING_LAYOUT', error.message);
+  }
 }
 
 /** Return a plain complete definition plus its compiled board identity for game creation. */

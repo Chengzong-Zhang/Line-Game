@@ -48,6 +48,7 @@ async function onlineHarness(actions = []) {
         if (options.url.endsWith('/login')) return {
           protocol: 1, token: 'fixture-token', expiresIn: 3600, account: { uid: 'fixture-account' },
         };
+        if (options.url.endsWith('/rooms/current')) return { room: null };
         if (options.url.endsWith('/rooms')) return plain(room);
         throw new Error(`Unexpected fixture request: ${options.url}`);
       },
@@ -87,7 +88,7 @@ async function onlineHarness(actions = []) {
   });
   await ready(h);
   const local = h.app.session;
-  await h.tap('cabin-battle'); await h.tap('friends');
+  await h.tap('cabin-battle'); await h.tap('friends'); await h.tap('room-submit');
   await until(() => h.app.online.connected && !h.app.online.receiving && !h.app.session.busy);
   await h.render();
   return { h, local, gate, wire };

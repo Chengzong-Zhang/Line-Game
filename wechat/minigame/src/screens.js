@@ -43,9 +43,17 @@ export function drawSetup(ui, state, actions) {
   text(`${state.size} × ${state.size}`, w / 2, top + 220, 22, '#244d3d', 'center', 'bold');
   button('size-plus', '+', w - 72, top + 199, 48, () => actions.change('size', state.size + 1), { disabled: state.size >= 15, height: 42 });
   text(label('difficulty'), 24, top + 261, 14, '#738476');
-  for (const [i, difficulty] of ['easy', 'normal'].entries()) button(`difficulty-${difficulty}`, label(difficulty),
-    i ? 36 + half : 24, top + 279, half, () => actions.change('difficulty', difficulty),
-    { primary: state.difficulty === difficulty, disabled: state.playerCount > 2 || ['human', 'three-human'].includes(state.mode), height: 42 });
+  const levelWidth = (w - 64) / 3;
+  const hexOnly = state.playerCount === 2 && state.boardShape === 'hexagon';
+  const experimentalSeat = state.controllers && Object.values(state.controllers).some(profile =>
+    profile !== 'human' && profile !== 'greedy' && !/^minimax-[234]$/.test(profile));
+  const levels = hexOnly ? ['simple'] : ['simple', 'medium', 'hard'];
+  const buttonWidth = hexOnly ? w - 48 : levelWidth;
+  for (const [i, difficulty] of levels.entries()) button(`difficulty-${difficulty}`,
+    hexOnly ? label(difficulty) : `${label(difficulty)} · ${i + 2}${ui.language === 'zh' ? '层' : ' ply'}`,
+    hexOnly ? 24 : 24 + i * (levelWidth + 8), top + 279, buttonWidth, () => actions.change('difficulty', difficulty),
+    { primary: !experimentalSeat && (hexOnly || state.difficulty === difficulty),
+      disabled: experimentalSeat || state.playerCount > 2 || ['human', 'three-human'].includes(state.mode), height: 42 });
   button('setup-start', label('start'), 24, Math.max(top + 334, h - bottom - 58), w - 48, actions.start, { primary: true });
 }
 
@@ -54,8 +62,10 @@ export function drawPlayers(ui, state, actions) {
   text(label('playerSetup'), 24, top, 19, '#244d3d', 'left', 'bold');
   button('swap-players', label('swapPlayers'), w - 128, top - 18, 104, actions.swap, { height: 36, disabled: state.playerCount !== 2 });
   button('players-minus', '−', 24, top + 28, 44, () => actions.players(state.playerCount - 1), { height: 40, disabled: state.playerCount <= 2 });
-  text(`${state.playerCount} ${label('players')} · ${label(state.boardShape === 'hexagon' ? 'hexBoard' : 'triangleBoard')}`, w / 2, top + 48, 14, '#244d3d', 'center');
-  button('players-plus', '+', w - 68, top + 28, 44, () => actions.players(state.playerCount + 1), { height: 40, disabled: state.playerCount >= 6 });
+  const shapeLabel = state.boardShape === 'hexagon' ? 'hexBoard'
+    : state.boardShape === 'diamond' ? 'diamondBoard' : 'triangleBoard';
+  text(`${state.playerCount} ${label('players')} · ${label(shapeLabel)}`, w / 2, top + 48, 14, '#244d3d', 'center');
+  button('players-plus', '+', w - 68, top + 28, 44, () => actions.players(state.playerCount + 1), { height: 40, disabled: state.playerCount >= 15 });
   const colors = playerIds(state.playerCount), footer = h - bottom - 112;
   const count = Math.max(1, Math.min(3, Math.floor((footer - top - 120) / 66)));
   const pages = Math.ceil(colors.length / count), page = Math.max(0, Math.min(pages - 1, state.page || 0));
@@ -82,16 +92,18 @@ export function drawModels(ui, state, actions) {
   const { metrics, top, text, wrap, button, label } = ui, { width: w, height: h, bottom } = metrics;
   text(`${state.target} · AI`, 24, top, 18, '#244d3d', 'left', 'bold');
   button('models-info', label('aboutModels'), w - 106, top - 17, 82, actions.info, { height: 36 });
-  const half = (w - 60) / 2;
-  for (const [i, group] of ['research', 'policy'].entries()) button(`models-${group}`, group === 'research' ? 'PUCT · CNN/GNN' : 'DQN / PPO / …',
-    i ? 36 + half : 24, top + 31, half, () => actions.group(group), { primary: state.group === group, height: 42 });
+  const groups = state.multiplayer ? ['native'] : ['research', 'policy'];
+  const groupWidth = (w - 48 - 8 * (groups.length - 1)) / groups.length;
+  for (const [i, group] of groups.entries()) button(`models-${group}`,
+    group === 'native' ? label('nativeModels') : group === 'research' ? 'PUCT · CNN/GNN' : 'DQN / PPO / …',
+    24 + i * (groupWidth + 8), top + 31, groupWidth, () => actions.group(group), { primary: state.group === group, height: 42 });
   const count = modelPageSize(metrics, top), pages = Math.max(1, Math.ceil(state.models.length / count));
   const page = Math.max(0, Math.min(pages - 1, state.page));
   state.models.slice(page * count, (page + 1) * count).forEach((model, i) => {
     const y = top + 87 + i * 55;
     button(`model-${model.id}`, '', 24, y, w - 48, () => actions.select(model.profile), { height: 48 });
     text(model.title, 38, y + 16, 15, '#244d3d');
-    text(`${model.research ? 'PUCT 16' : '5–15'}${model.experimental ? ` · ${label('experimental')}` : ''}`, 38, y + 36, 11, '#738476');
+    text(`${model.research ? 'PUCT 16' : model.sizes?.length > 4 ? '5–15' : model.sizes?.join('/') || '5–15'}${model.experimental ? ` · ${label('experimental')}` : ''}`, 38, y + 36, 11, '#738476');
     text('›', w - 42, y + 24, 23, '#738476');
   });
   if (!state.models.length) wrap(ui.language === 'en' ? 'No compatible models in this group for the current board.' : '当前棋盘没有此分类下可用的模型。', 24, top + 112, w - 48, 15, '#738476', 3);

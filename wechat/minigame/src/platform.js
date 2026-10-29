@@ -12,6 +12,8 @@ export function createWxPlatform(api) {
     ...userInfoPlatform(api),
     ...createWxInput(api),
     canvas: api.createCanvas(),
+    createWebGLCanvas: (width, height) => typeof api.createOffscreenCanvas === 'function'
+      ? api.createOffscreenCanvas({ type: 'webgl', width, height }) : null,
     createImage: () => api.createImage(),
     metrics: () => {
       const info = api.getWindowInfo ? api.getWindowInfo() : api.getSystemInfoSync();
