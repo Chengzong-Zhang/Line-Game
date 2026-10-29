@@ -1,0 +1,11 @@
+{
+  "fixtureSha256": "39389519de7c5984ed1bde57ddad32a221e37201aa6cfd990b33b8d93f719c5c",
+  "bytes": 425690,
+  "actions": 52,
+  "rulesVersion": "surface-v1",
+  "validatorSha256": "e8dcfcb4cc61266cf54ee398082271e160762628f36088da19c24bf8c0e6e9e4",
+  "timeoutSeconds": 20,
+  "productionInboxWritten": false,
+  "status": "VALIDATION_TIMEOUT",
+  "elapsedSeconds": 20.032
+}

@@ -1,0 +1,22 @@
+{
+  "board": "double-torus",
+  "gridSize": 15,
+  "players": 2,
+  "actions": 52,
+  "moves": 50,
+  "logicPaths": 55,
+  "bytes": 425690,
+  "seconds": 45.035,
+  "ok": false,
+  "exit": null,
+  "signal": "SIGTERM",
+  "error": "spawnSync C:\\Program Files\\nodejs\\node.exe ETIMEDOUT",
+  "stderr": "",
+  "hashes": {
+    "web/tools/validate_contribution.mjs": "e8dcfcb4cc61266cf54ee398082271e160762628f36088da19c24bf8c0e6e9e4",
+    "web/tools/validate_contribution_v4.mjs": "26e289ee2de886c1db01daaadc601c9d8b6301b1b480ba9048e4492d1c234220",
+    "web/tools/training_contribution_schema.mjs": "f3eed8e85086ed0c765cada9e4a5cde6da5380dbe76bce9232ec5afaf6f5ee9d",
+    "web/web前端/TopologyGameEngine.js": "f8612cd6082bb385a5114b0057aa82e0238e2fbe5b5f55246daed783da65e673",
+    "web/web前端/GameEngine.js": "83663d85e2f5373d6818c467b82e2fc3c502cecb7a9c6136cf025a5927da9f0a"
+  }
+}

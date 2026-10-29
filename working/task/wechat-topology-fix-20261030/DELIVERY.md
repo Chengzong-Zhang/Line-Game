@@ -4,7 +4,7 @@
 
 完整任务、问题拆解和可复用的执行提示词见 [REPAIR-PROMPT.md](REPAIR-PROMPT.md)。本报告中的验证范围优先于提示词里的目标和预期。
 
-实现源码冻结提交 `ea651f7f2d4bf4995541662fd0465da67da77a6d`；最终验收工具/旧断言更新提交 `8c7e18437833fbc76216fab9818f6526ec233ac1`。源码、测试、配置、详细提示词和紧凑收据均在本地 Git；本轮没有推送 GitHub。
+小游戏实现源码冻结提交 `ea651f7f2d4bf4995541662fd0465da67da77a6d`；验收工具/旧断言更新提交 `8c7e18437833fbc76216fab9818f6526ec233ac1`。后续服务端等效校验优化为 `7d98a5d5831bfe28596348c0f6c30dd395ece585`，独立语义回归为 `80b305e7`，不改变已上传的小游戏。源码、测试、配置、详细提示词和紧凑收据均在本地 Git；本轮没有推送 GitHub。
 
 按用户要求，已使用 Terra Ultra 分别处理拓扑/v4 上传和 3D/几何，Terra xhigh 处理起点与独立集成审查，Luna high 处理四按钮与头像。独立审查未发现新的可复现阻断问题；同时明确保留真机等未验边界。
 
@@ -41,10 +41,10 @@
 
 网页 `web-topology-fix-20261030-r2` 已实际激活，源码 `b00c48364779cd738bd67e5391e9bbd43d58e262`。167/167 公网文件 hash 和健康检查通过。只在发布 stage 更新缓存标记，并按 predecessor manifest 保留已发布 Hard Worker 的完整 54 模块不可变依赖图，没有训练或晋级模型。
 
-上传服务 v4 已以冻结候选 `1178fb406fe784bf399e25a20d935922e6daa809478b1dca66eb116bbe5cc797` 激活，146 个运行文件。先在 SQLite 副本预检，再受保护切换代码。原数据库 device/inode 保持 `64514/1179987`；代码回滚不还原旧数据库。公网声明 v1–v4，v4 单条 2 MiB；代理只把 `/api/training/` 从 512 KiB 改为 2 MiB。600 KiB text/plain 返回 415、超过 2 MiB 返回 413；没有向生产收件箱提交合成棋谱。
+首轮上传服务 v4 以冻结候选 `1178fb406fe784bf399e25a20d935922e6daa809478b1dca66eb116bbe5cc797` 激活。补充长局测试后，最终已激活性能修复候选 **`79d9b649811c738a1b7324f4048e7fc09efb21421817c5d41db9717ef55eeaf7`**，仍为 146 个运行文件。两次都先在 SQLite 副本预检，再受保护切换代码。原数据库 device/inode 保持 `64514/1179987`；代码回滚不还原旧数据库。公网声明 v1–v4，v4 单条 2 MiB；代理只把 `/api/training/` 从 512 KiB 改为 2 MiB。最终再次确认 600 KiB text/plain 返回 415、超过 2 MiB 返回 413；没有向生产收件箱提交合成棋谱。
 
 网页回滚目录：`/home/ubuntu/line-game/.deploy-artifacts/web-topology-fix-20261030-r2.rollback-web前端`。
-Collector 旧代码：`/home/ubuntu/line-game/.deploy-artifacts/collector-v4-final-20261030/activation-r1/staged-runtime`。
+Collector 上一个版本代码：`/home/ubuntu/line-game/.deploy-artifacts/collector-v4-batch-20261030-r2/activation-r1/staged-runtime`；v4 之前的原版本另保留在 `/home/ubuntu/line-game/.deploy-artifacts/collector-v4-final-20261030/activation-r1/staged-runtime`。
 代理原配置备份：`/home/ubuntu/line-game/.deploy-artifacts/collector-v4-nginx-20261030/nginx-before.conf`（服务器私有，不入 Git）。
 
 微信 **0.13.1 已经通过官方 miniprogram-ci 上传成功**。在线候选 `0.13.1-6f457529e661-6ELmE9`，冻结收据 SHA256 `45ed7f0e4ed30e0ffa8ab2f013e825e0f813081772912295ed6bc081706b1bc4`，支持 territory-v2/territory-v3/surface-v1，17 个既有模型全部原 hash 复用。35 个候选文件经过同源重建、逐字节核对与上传前复验；所有 sourceHashes 都位于本工作树内。官方返回主包 1,828,988 字节、全包 19,982,882 字节；上传收据为 `CODE_UPLOADED_EXPERIENCE_NOT_CONFIGURED`，明确没有配置体验版、提审或公开发布。
@@ -61,10 +61,14 @@ Collector 旧代码：`/home/ubuntu/line-game/.deploy-artifacts/collector-v4-fin
 | Web 代表回归 | 5 个入口全部通过 | 蓝三角、产品预设、round3/4 领土和 3D 面片/生命周期；脚本内部还有独立断言，不累计为另一套测试数 |
 | 实际 Mini UI→Worker→真实 loopback HTTP→真实 Node→SQLite | 4/4 | 菱形、实际增根、双把手含路径、手绘含路径；仅隔离测试库，旧表计数仍为 0 |
 | 服务器较长增根棋谱权威校验 | 102/126 动作均通过 | 分别 6.636/7.839 秒，20 秒上限内；126 动作为无可行走子后跳过的自然终局；未提交生产收件箱 |
+| 15×15 双把手较长拓扑权威校验 | 52 动作、55 条路径、425,690 字节完整通过 | 首版 45 秒仍未完成；最终本机 3.602 秒、服务器 3.197 秒，未提高服务 20 秒上限 |
+| 长局优化后的专项回归 | 贡献领域 18/18、独立语义 3/3、Python 36/36，四类 HTTP 重新 4/4 | 完整终局 state/hash、自动跳过、认输、Superko、非法动作与篡改拒绝；不以旧通过记录替代本次服务端变更检查 |
 | 公网 Web 与 Collector | 通过 | 167 个文件 hash；v1–v4 能力、2 MiB 边界、同一数据库 inode |
 | 候选与官方上传 | 通过 | 离线/在线独立候选，在线包实际上传 0.13.1；设备、体验、审核与公开状态另列 |
 
 首轮在手动工作树使用链接依赖时，candidate fixture 因仓库外真实路径失败；没有绕过验包规则，改在托管树使用实体依赖并重新构建。第一次完整并行回归为 669/672：一项旧测试仍预期“菱形禁止上传”，已按用户要求更新且验证真实 HTTP；一项缺失已发布模型，按原 manifest 验 hash 原样补齐；一项真实 8 ms AI 保护预算在并行负载下未完成。后者单独 10/10、整套串行 672/672 通过，没有修改 AI、预算、冻结研究或跳过测试。保留原失败事实及日志 hash，不能把并行首轮说成通过。
+
+长拓扑测试额外暴露了“终局已生成，但上传校验超过 20 秒而反复重试”的真实问题。原验证器每步生成含全盘合法落点的 UI snapshot，自动跳过又全盘枚举。最终仅在隔离校验事务中使用既有 replayBatch、延迟中间领土刷新、取消未使用的 snapshot 落点列表，并把“是否存在合法落点”改为遇到第一个**同一引擎评价函数证明合法**的点即返回。没有跳过任何实际动作、Superko 或最终比分/路径/历史/hash。独立逐动作非延迟引擎与优化校验器比较完整终局，既有失败和中间仍超时的尝试全部保留为紧凑收据。仍不构成所有任意地图、3,000 动作及并发负载下的最坏耗时保证。
 
 ## 使用新版自动上传
 

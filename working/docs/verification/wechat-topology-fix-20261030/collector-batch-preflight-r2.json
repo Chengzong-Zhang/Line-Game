@@ -1,0 +1,14 @@
+{
+  "status": "PASS_COLLECTOR_MIGRATION_AND_FIXTURES",
+  "versions": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "existingSchemaAndCountsPreserved": true,
+  "realRowsCompared": false,
+  "sqliteIntegrity": true,
+  "productionDatabaseWritten": false,
+  "scope": "copied SQLite and isolated synthetic submissions; no public submissions"
+}

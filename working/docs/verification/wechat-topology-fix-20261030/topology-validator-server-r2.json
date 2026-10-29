@@ -1,0 +1,28 @@
+{
+  "fixtureSha256": "39389519de7c5984ed1bde57ddad32a221e37201aa6cfd990b33b8d93f719c5c",
+  "bytes": 425690,
+  "actions": 52,
+  "rulesVersion": "surface-v1",
+  "validatorSha256": "e8dcfcb4cc61266cf54ee398082271e160762628f36088da19c24bf8c0e6e9e4",
+  "timeoutSeconds": 20,
+  "productionInboxWritten": false,
+  "status": "PASS_VALIDATION_WITHIN_TIMEOUT",
+  "exitCode": 0,
+  "protocolVersion": 4,
+  "engineSources": {
+    "GameEngine.js": "83663d85e2f5373d6818c467b82e2fc3c502cecb7a9c6136cf025a5927da9f0a",
+    "ReplayCodec.js": "144a93d35269a50271233df1f8c5e401431a6564b7a142fac9da6aecd21ae848",
+    "ResearchAI.js": "bb805b7cf7baa0fced539e77e5482554217984a9cbf881b18adc7fe6cb0bffd8",
+    "StartingPoints.js": "8c27d17871f383ceacd6d7ee885ceded9a8e5170a924d76f7d81b938a0971f35",
+    "training_contribution_schema.mjs": "f3eed8e85086ed0c765cada9e4a5cde6da5380dbe76bce9232ec5afaf6f5ee9d",
+    "validate_contribution.mjs": "e8dcfcb4cc61266cf54ee398082271e160762628f36088da19c24bf8c0e6e9e4",
+    "validate_contribution_v4.mjs": "107e66fbd6d5b3a2864b33c0fcf4afb166f445b1117c3f5af169be51edd901dd",
+    "BoardDefinition.js": "c2fd427642ee56cb80d3267fd6ba0235917bbedfa34b0b31790886b35613d9d1",
+    "BoardCompiler.js": "80cbbb446c8e92385f9317d1f3679578909a8f66fc9e1c684c58a2e269e7facd",
+    "TopologyGameEngine.js": "f8612cd6082bb385a5114b0057aa82e0238e2fbe5b5f55246daed783da65e673",
+    "TopologyStateCodec.js": "8a656a5cc4949bd442d710bc943c0c49e630388d1dad7b5e0cdbd7da09ee5fd2",
+    "BoardView.js": "4c817883f8d5ff296e80f2ac9b202affb2435a5498e1e5fbbb695a260b144bd8",
+    "SurfaceTerritory.js": "7ee91ee7e06142f1caab3b7c4188af96b84059170cb3ab5c7e7d2620b61b5f3d"
+  },
+  "elapsedSeconds": 3.197
+}

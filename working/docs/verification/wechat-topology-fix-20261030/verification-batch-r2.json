@@ -1,0 +1,43 @@
+{
+  "status": "PASS_TOPOLOGY_VALIDATOR_BATCH_ADDENDUM",
+  "sourceCommit": "80b305e79353496f75e64f1356032ab6b0d859ab",
+  "runtimeChangeCommit": "7d98a5d5831bfe28596348c0f6c30dd395ece585",
+  "testRuns": [
+    {
+      "command": "node --test wechat/minigame/tests/training-contribution-v4.test.mjs wechat/minigame/tests/contribution-app.test.mjs wechat/minigame/tests/contribution-v3-lifecycle.test.mjs wechat/minigame/tests/contribution-undo-app.test.mjs",
+      "status": "PASS",
+      "tests": 18,
+      "pass": 18,
+      "fail": 0,
+      "skipped": 0,
+      "logSha256": "720e6eb6b461876156127736358dba1a73ac00ee7fb27bc5df48ca09ce78a100"
+    },
+    {
+      "command": "node --test web/tests/verify-contribution-v4-topology-batch.mjs",
+      "status": "PASS",
+      "tests": 3,
+      "pass": 3,
+      "fail": 0,
+      "skipped": 0,
+      "logSha256": "eb0a4fcc660eebfbb37b60856b672b456df6a391cc6774fbe8b6c9ceb1cfc006"
+    }
+  ],
+  "pythonPassed": 36,
+  "pythonLogSha256": "f2d747fc038fe3fa936018160d89997a6107c473c32d428ff829457ea97be97b",
+  "httpGames": 4,
+  "httpReceipt": "contribution-http-batch-r2.json",
+  "sourceHashes": {
+    "wechat/minigame/src/app.js": "bd1ac6f3994ca468f93beaa77afeadd16744a66fd1449e883c44c0b810c031e2",
+    "wechat/minigame/src/training-contribution.js": "cb3764c74f6b120b8e68a90055252b2c9f7fccabf8f7a8c7d2fd8de06e78228f",
+    "wechat/minigame/src/contribution-transport.js": "0e5a7c8a4ad12579eff478b952858b50bf4455786fa29d39b34e63fe667355f5",
+    "wechat/minigame/src/worker-runtime.js": "c79871a8b9a90d523cbbedf1b4d5a193a5035d78471a34ceacc53dcb78efa2b7",
+    "web/tools/training_contribution_schema.mjs": "f3eed8e85086ed0c765cada9e4a5cde6da5380dbe76bce9232ec5afaf6f5ee9d",
+    "web/tools/validate_contribution.mjs": "e8dcfcb4cc61266cf54ee398082271e160762628f36088da19c24bf8c0e6e9e4",
+    "web/tools/validate_contribution_v4.mjs": "107e66fbd6d5b3a2864b33c0fcf4afb166f445b1117c3f5af169be51edd901dd",
+    "web/web后端/training_contributions.py": "0b721905758558d5080e7134c86b787795ab8fc43b78d525d06adf85642c5072"
+  },
+  "miniCandidateUnaffected": true,
+  "miniUploadVersion": "0.13.1",
+  "collectorTimeoutSeconds": 20,
+  "limitations": "No worst-case timing guarantee for every legal surface, load or 3000-action replay."
+}
