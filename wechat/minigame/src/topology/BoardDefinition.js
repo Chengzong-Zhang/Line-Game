@@ -1,3 +1,5 @@
+import { utf8Bytes } from './PortableUtf8.js';
+
 export const BOARD_TOPOLOGY_CONTRACT_VERSION = "board-topology-v1";
 
 // Board identifiers travel through browser, Worker, Python-room and replay
@@ -99,7 +101,7 @@ function mergeLimits(limits = {}) {
 
 function getJsonByteLength(value) {
   try {
-    return new TextEncoder().encode(JSON.stringify(value)).length;
+    return utf8Bytes(JSON.stringify(value)).length;
   } catch {
     return Number.POSITIVE_INFINITY;
   }
@@ -220,7 +222,7 @@ function rightRotate(value, bits) {
 // Browser-compatible synchronous SHA-256. Hashing is intentionally local so
 // a board definition has the same identity in Node, browser Workers and mini-app bundles.
 export function sha256Hex(message) {
-  const bytes = new TextEncoder().encode(String(message));
+  const bytes = utf8Bytes(String(message));
   const bitLength = bytes.length * 8;
   const paddedLength = (((bytes.length + 9 + 63) >> 6) << 6);
   const data = new Uint8Array(paddedLength);

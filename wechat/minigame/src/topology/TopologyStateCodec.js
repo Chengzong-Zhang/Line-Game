@@ -1,5 +1,6 @@
 import { BOARD_TOPOLOGY_CONTRACT_VERSION, compareStableIdentifiers, stableStringify } from "./BoardDefinition.js?v=20261029-topology-round5";
 import { compileBoard } from "./BoardCompiler.js?v=20261029-topology-round5";
+import { utf8Bytes } from './PortableUtf8.js';
 
 export const TOPOLOGY_STATE_FORMAT = "lifeline-topology-state";
 export const TOPOLOGY_STATE_SCHEMA_VERSION = 1;
@@ -135,7 +136,7 @@ function cloneJson(value, label) {
 }
 
 function stateByteLength(value) {
-  return new TextEncoder().encode(JSON.stringify(value)).length;
+  return utf8Bytes(JSON.stringify(value)).length;
 }
 
 function mergeLimits(limits = {}) {
