@@ -35,6 +35,7 @@ const networkStubUrl = asDataUrl(`
   export const ServerEvent = Object.freeze({
     OPPONENT_MOVE: "OPPONENT_MOVE",
     TURN_SKIPPED: "TURN_SKIPPED",
+    ROOT_ACTION_APPLIED: "ROOT_ACTION_APPLIED",
     PLAYER_RESIGNED: "PLAYER_RESIGNED",
   });
 `);
@@ -603,6 +604,7 @@ listenerProbe.controller.setNetworkManager({
 assert.deepEqual(subscribedEvents, [
   "OPPONENT_MOVE",
   "TURN_SKIPPED",
+  "ROOT_ACTION_APPLIED",
   "PLAYER_RESIGNED",
 ]);
 let silentMetadataSnapshotReads = 0;
