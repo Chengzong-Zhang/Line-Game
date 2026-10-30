@@ -1828,7 +1828,8 @@ export function topologyReplayInspectionEffects(document, cursor) {
   const engine = new GameEngine({
     compiledBoard: decoded.board,
     playerCount: Object.keys(decoded.ruleState.startingVertices).length,
-    startPlayer: decoded.ruleState.currentPlayer,
+    startPlayer: decoded.ruleState.turnOrder?.[0] ?? decoded.ruleState.currentPlayer,
+    ...(decoded.ruleState.turnOrder !== undefined ? { turnOrder: decoded.ruleState.turnOrder } : {}),
     rulesVersion: decoded.ruleState.rulesVersion,
     deferTerritoryUpdates: false,
   });

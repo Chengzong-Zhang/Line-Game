@@ -1,3 +1,4 @@
+import { typeNumber } from './number-keyboard-fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { sut, memoryStorage, localScheduler, until, plain } from './helpers.mjs';
@@ -154,7 +155,7 @@ test('clock settings fit both languages on three screen sizes and persist withou
         assert.ok(a.y >= (a.id === 'account-avatar' ? top - 40 : top) && a.x >= 0 && a.x + a.width <= width && a.y + a.height <= height - 24, a.id);
         for (const b of buttons) if (a !== b) assert.equal(a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y, false, `${a.id}/${b.id}`);
       }
-      await tap('clock-enabled'); await h.slide('clock-duration', 15, 15, 200); await h.slide('hint-count', 1, 1, 10);
+      await tap('clock-enabled'); await typeNumber(h, 'clock-duration', 15); await typeNumber(h, 'hint-count', 1);
       const options = sut.readPreferences(p.storage).playOptions; assert.deepEqual(options, { ...timed, undoEnabled: false, undoMaxCount: 3 });
       assert.equal(app.session.stateHash, original); assert.equal(app.session.settings.turnTimerEnabled, false);
       await tap('cabin-close'); await tap('new-game'); await until(() => app.session.canPlay()); await render();
@@ -177,7 +178,7 @@ test('native confirmations hold the clock and stale resignation/reset replies do
     await tap('new-game'); await until(() => app.session.clockHolds === 1); p.callbacks.hide(); p.callbacks.show(); reply(true);
     await new Promise(r => setTimeout(r, 20)); assert.equal(app.session.actions.length, 1); assert.equal(app.session.clockHolds, 0);
     await tap('cabin-board'); await h.scrollTo('clock-enabled'); await tap('clock-enabled');
-    const before = app.session.stateHash; await h.slide('clock-duration', 200, 15, 200);
+    const before = app.session.stateHash; await typeNumber(h, 'clock-duration', 200);
     assert.equal(sut.readPreferences(p.storage).playOptions.turnTimeLimitSeconds, 200);
     assert.equal(app.session.settings.turnTimeLimitSeconds, 15, 'draft slider never mutates the current clock');
     assert.equal(app.session.stateHash, before);

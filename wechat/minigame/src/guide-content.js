@@ -8,28 +8,28 @@ export function multiplayerGuideSections(language) {
   return language === 'en' ? [
     { id: 'multiplayer-board', title: 'Players, shape and starting points', paragraphs: [
       'Choose 2–15 players and a triangular, diamond or hexagonal board in the Board cabin. A diamond joins two equilateral triangles base-to-base. The default shape is a triangle for two or three players and a hexagon for four to fifteen. Games with 7–15 players, and diamond games with three or more players, require random or custom starting nodes. Side length means grid points along each outer side, from 5 to 15.',
-      'Starting points can be Default, Random or Custom when that layout exists. A two-player diamond defaults to its two 60-degree acute vertices; a diamond with three or more players has no default layout. Random points are drawn once when a new game starts and kept in saves and replays. For Custom, choose a distinct valid point for each side. Any participating side may start.',
+      'Starting points can be Default, Random or Custom when that layout exists. A two-player diamond defaults to its two 60-degree acute vertices; a diamond with three or more players has no default layout. Random points are drawn once when a new game starts and kept in saves and replays. Custom board opens one graphical editor for outlines, multiple boundaries, seam pairs and starting nodes. Select a side to edit its roots. Topology presets expand inside the Board cabin; Random map and Custom board are available there too. Selections are saved and take effect through Reset.',
       'With default hexagonal starting points, number corners clockwise from the upper left, 1–6. Four players occupy 1, 2, 4 and 5 in Blue, Red, Purple, Green order. Five occupy 1–5; Orange is fifth. Six occupy all corners; Cyan is sixth.',
       "In a two-player triangular game, the first player's starting node has no protected zone; the second player's start keeps all of its protected neighbors, so the first player still cannot enter them. Diamond, hexagonal and games with three or more players retain symmetric protection for every side. Random and custom starts use their actual neighbors. Direct cuts do not bypass protection.",
     ] },
     { id: 'multiplayer-ai', title: 'Local players, AI and shared rules', paragraphs: [
       'Each side can be human or an AI compatible with the current player count, shape and side length. Three-player trained AI is limited to triangular three-player games, and Hex trained AI to hexagonal 4–6-player games. A two-player diamond offers generic Minimax at depths 2, 3 and 4. Hard retains the deepest fully completed search iteration. The interactive Worker normally uses an explicit budget of about 3 seconds; direct large-board calls without an explicit budget may use the established 11-second limit. On multiplayer diamonds, Easy is the untrained, shape-aware Greedy rule baseline and Hard is generic Multiplayer Minimax search. The native-shape-only Medium tier is unavailable, and the triangle/hexagon multiplayer-easy-v1 weights are never loaded for a diamond.',
       'One, several or every seat may be AI. The list shows only compatible choices. If changing the board makes a selected AI incompatible, choose again before restarting; it is not silently replaced. Hints and replay analysis use a compatible strategy; policy scores are not probabilities.',
-      'Each of the 2–15 player setups keep their own seats and first player. Editing settings preserves the running position; restart to apply them. Hints share a saved budget among humans. Replays can keep all players when branching.',
+      'Each of the 2–15 player setups keeps its own seats. Turn order defaults to the displayed player order; tap a colored tile, then drag it to set the full cycle. Colors and roots keep their owners. Editing settings preserves the running position; reset to apply them. Undo, clock and hints each have a switch and an inline number field. Hints share a saved budget among humans. Replays can keep all players when branching.',
       'Resigned players leave the turn order. Play continues while at least two remain; a sole remaining player wins immediately. All remaining players passing consecutively settles territory. Shared online rooms also accept these player settings. Anonymous contribution is off by default. After explicit opt-in, newly started complete local games support 2–15 players on triangle, hexagon and diamond boards, including multiple-root play, and 2–6 players on topology boards. Online, tutorial, replay and restored games remain excluded; received records await review and never automatically train or replace an AI.',
       'The original Web stories and illustrations below use triangular examples. Their local connection and cut mechanics also apply to diamond and hexagonal boards; use the shape and opening rules described above.',
     ] },
   ] : [
     { id: 'multiplayer-board', title: '人数、棋盘与初始点', paragraphs: [
       '在棋盘舱选择 2–15 人，每种人数都可选三角形、菱形或六边形棋盘。菱形由两个正三角形底对底拼接而成。默认双人、三人为三角形，四至十五人为六边形；7–15 人，以及三人及以上菱形局，仅支持随机或自定义起点。边长指每条外边上的格点数，可选 5–15。',
-      '存在预设布局时，起点可选默认、随机或自定义。双人菱形默认占据两枚 60 度锐角顶点；三人及以上菱形没有默认起点。随机起点在重开时生成一次，实际位置随存档和复盘保留；自定义时，为每一方选择互不重合的有效格点。任意参与方都可先手。',
+      '存在预设布局时，起点可选默认、随机或自定义。双人菱形默认占据两枚 60 度锐角顶点；三人及以上菱形没有默认起点。随机起点在重开时生成一次，实际位置随存档和复盘保留。“自定义棋盘”统一打开图形编辑器，可编辑轮廓、多条边界、粘边和各方起点。拓扑预设在棋盘舱内展开，同面板可选随机地图和自定义棋盘。选图会保存，点击重置后生效。',
       '使用六边形默认起点时，从左上角顺时针编号 1–6。四人按蓝、红、紫、绿占据 1、2、4、5 号角；五人占据 1–5 号角，第五方为橙方；六人占满六角，第六方为青方。',
       '双人三角棋盘中，先手起点不设禁区；后手起点保留全部保护邻点，先手仍不能进入。菱形、六边形或三人及以上棋盘继续对每一方起点对称保护。随机与自定义起点按实际邻点判断；直接切线也不能越过保护。',
     ] },
     { id: 'multiplayer-ai', title: '同机玩家、AI 与共同规则', paragraphs: [
       '各席可分别选择真人，或与当前人数、形状、边长兼容的 AI。三人训练 AI 仅用于三角形三人局，六边形训练 AI 仅用于六边形 4–6 人局。双人菱形提供通用 Minimax 深度 2、3、4；困难档保留已完整完成的最深搜索层；交互 Worker 通常使用约 3 秒的显式预算，未指定预算的大棋盘直接调用仍可使用原有 11 秒上限。多人菱形的“简单”是不加载训练权重、按棋盘规则运行的通用贪心，“困难”是通用 Multiplayer Minimax 搜索。不开放仅限原生形状的中等档，也绝不会为菱形加载三角形/六边形的 multiplayer-easy-v1 权重。',
       '一席、多席或全部 AI 都可开局，列表只显示兼容选项。更改棋盘后，若已选 AI 不兼容，需重选后再开局，不会自动换成另一种。提示与复盘分析使用兼容策略；策略评分不是概率。',
-      '2–15 人各自保留席位和先手设置，切换时不会互相覆盖。修改设置会保留当前棋局，重开后才生效。所有真人共用本局提示次数，续局保留；复盘分支可沿用全部玩家配置。',
+      '2–15 人各自保留席位设置。行动顺序默认按显示的玩家序号排列；点选颜色块后拖动，可设置完整轮转顺序，颜色和起点归属不交换。修改设置会保留当前棋局，重置后才生效。悔棋、计时、提示各占一行，左侧开关，右侧直接输入数值。所有真人共用本局提示次数，续局保留；复盘分支可沿用全部玩家配置。',
       '认输后退出轮转，至少还有两方就继续；只剩一方时立即获胜。所有未认输玩家连续各跳过一次后，按领土结算。好友联机也支持这些人数与起点设置。匿名棋谱贡献默认关闭；主动同意后，支持随后新开始并完整结束的 2–15 人三角形、六边形、菱形及多起点本地对局，以及 2–6 人拓扑对局。联机、教学、复盘和恢复局仍不参与；收到的棋谱仅待审核，不会自动训练或替换 AI。',
       '下方网页版故事与原图沿用三角棋盘示例。连接和切断等局部机制同样适用于菱形和六边形，棋盘形状与起步保护以上文为准。',
     ] },

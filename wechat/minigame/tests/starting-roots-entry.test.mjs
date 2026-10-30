@@ -5,13 +5,14 @@ import { uiHarness } from './ui-harness.mjs';
 
 const ready = async h => { await until(() => h.app.session.snapshot && !h.app.session.busy); await h.render(); };
 
-test('board cabin starts fixed double with Web roots and restores the exact random opening', async () => {
+test('legacy fixed-double preferences retain Web roots and restore the exact random opening', async () => {
   const storage = memoryStorage();
+  sut.savePreferences(storage, { size: 7, mode: 'human', difficulty: 'simple', playerCount: 2, rootMode: 'fixed-double' });
   let h = uiHarness({ storage });
   try {
     await ready(h);
     await h.tap('cabin-board');
-    await h.scrollTo('root-fixed-double'); await h.tap('root-fixed-double');
+    assert.equal(h.app.getButtons().some(button => button.id === 'root-fixed-double'), false);
     await h.scrollTo('starts-random'); await h.tap('starts-random'); await h.tap('starts-save');
     assert.equal(sut.readPreferences(storage).rootMode, 'fixed-double');
     await h.tap('cabin-close'); await h.tap('new-game');

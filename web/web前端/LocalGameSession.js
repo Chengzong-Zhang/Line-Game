@@ -17,6 +17,7 @@ const GAME_SETTING_KEYS = Object.freeze([
   "boardShape",
   "gridSize",
   "startPlayer",
+  "turnOrder",
   "rulesVersion",
   "rootMode",
   "rootRulesVersion",
@@ -73,6 +74,12 @@ function normalizeSettings(settings) {
   if (!Object.values(StartProtectionRule).includes(protectionRule)) return null;
   normalized.protectionRule = protectionRule;
   if (!PLAYER_COLORS.slice(0, normalized.playerCount).includes(normalized.startPlayer)) return null;
+  if (normalized.turnOrder !== undefined) {
+    const players = PLAYER_COLORS.slice(0, normalized.playerCount), order = normalized.turnOrder;
+    if (!Array.isArray(order) || order.length !== players.length || new Set(order).size !== players.length
+      || !order.every(player => players.includes(player)) || order[0] !== normalized.startPlayer) return null;
+    normalized.turnOrder = [...order];
+  }
   try {
     normalized.boardShape = resolveBoardShape(normalized.playerCount, settings.boardShape);
     Object.assign(normalized, startingPointSettings({ ...settings, ...normalized }));
@@ -197,7 +204,9 @@ export function sessionMatchesSettings(session, settings) {
     return false;
   }
 
-  return GAME_SETTING_KEYS.every((key) => normalizedSession.settings[key] === normalizedSettings[key])
+  return GAME_SETTING_KEYS.every((key) => key === "turnOrder"
+    ? JSON.stringify(normalizedSession.settings[key]) === JSON.stringify(normalizedSettings[key])
+    : normalizedSession.settings[key] === normalizedSettings[key])
     && JSON.stringify(startingPointSettings(normalizedSession.settings)) === JSON.stringify(startingPointSettings(normalizedSettings));
 }
 

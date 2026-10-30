@@ -575,17 +575,78 @@ async def exchange_wechat(code, app_id, secret):
     return data["openid"]  # Intentionally discard session_key/unionid.
 
 
+# This optional predecessor is an immutable, separately packaged runtime.  The
+# fingerprint identifies only r6; neither a request nor an environment value
+# can choose a filesystem path. Missing installation keeps the existing guard.
+RANKED_PREDECESSOR_R6_MANIFEST_SHA256 = "be66a221143f501ecb6b20869c333558d0c6279b96c89ba36a9ccdc9060d03d7"
+RANKED_PREDECESSOR_R6_FINGERPRINT = "4d36330909bacc0f2e69657da168b01194a617536d8589048b45c26de013ab6a"
+RANKED_PREDECESSOR_R6_FILES = 266
+
+
+def ranked_predecessor_validator(expected_runtime):
+    if expected_runtime != RANKED_PREDECESSOR_R6_FINGERPRINT:
+        return None
+    base = ROOT / "ranked-predecessor-r6"
+    if not base.exists() and not base.is_symlink():
+        return None
+    try:
+        if base.is_symlink() or not base.is_dir():
+            raise ValueError("BAD_PREDECESSOR")
+        manifest_path, tree = base / "release-manifest.json", base / "service"
+        if manifest_path.is_symlink() or not manifest_path.is_file() or tree.is_symlink() or not tree.is_dir():
+            raise ValueError("BAD_PREDECESSOR")
+        raw = manifest_path.read_bytes()
+        if hashlib.sha256(raw).hexdigest() != RANKED_PREDECESSOR_R6_MANIFEST_SHA256:
+            raise ValueError("BAD_PREDECESSOR")
+        manifest = json.loads(raw)
+        if manifest.get("releaseId") != "wechat-service-all-20261029-r6" or manifest.get("kind") != "wechat-complete-runtime-release":
+            raise ValueError("BAD_PREDECESSOR")
+        expected = manifest.get("candidate")
+        if not isinstance(expected, dict) or len(expected) != RANKED_PREDECESSOR_R6_FILES:
+            raise ValueError("BAD_PREDECESSOR")
+        actual = {}
+        for directory, dirs, files in os.walk(tree, followlinks=False):
+            for name in dirs:
+                if (Path(directory) / name).is_symlink():
+                    raise ValueError("BAD_PREDECESSOR")
+            for name in files:
+                path = Path(directory) / name
+                if path.is_symlink() or not path.is_file() or path.stat().st_nlink != 1:
+                    raise ValueError("BAD_PREDECESSOR")
+                relative = path.relative_to(tree).as_posix()
+                if relative not in expected:
+                    raise ValueError("BAD_PREDECESSOR")
+                digest = hashlib.sha256()
+                with path.open("rb") as source:
+                    for block in iter(lambda: source.read(1024 * 1024), b""):
+                        digest.update(block)
+                actual[relative] = digest.hexdigest()
+        if actual != expected:
+            raise ValueError("BAD_PREDECESSOR")
+        validator = tree / "wechat/minigame/tools/validate-action.mjs"
+        if validator.relative_to(tree).as_posix() not in expected:
+            raise ValueError("BAD_PREDECESSOR")
+        return validator
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        # Do not run a partial predecessor or silently relax the fingerprint.
+        fail("AI_VERSION_CHANGED", 409)
+
+
 def verify_rules(settings, actions, action=None, *, ai_profile=None, ai_runtime=None, ranked_setup=None):
     payload = {"settings": settings, "actions": actions}
     if action is not None:
         payload["action"] = action
     if ai_profile is not None:
         payload["aiProfile"] = ai_profile
+    if ai_runtime is not None:
         payload["aiRuntime"] = ai_runtime
     if ranked_setup is not None:
         payload["rankedSetup"] = ranked_setup
+    validator = VALIDATOR
+    if ai_runtime is not None and ranked_setup is None:
+        validator = ranked_predecessor_validator(ai_runtime) or VALIDATOR
     try:
-        process = subprocess.run([os.getenv("LIFELINE_NODE", "node"), str(VALIDATOR)],
+        process = subprocess.run([os.getenv("LIFELINE_NODE", "node"), str(validator)],
                                  input=canonical(payload).encode(), capture_output=True, timeout=15, check=False,
                                  creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     except (OSError, subprocess.TimeoutExpired):
@@ -637,6 +698,13 @@ class WechatService:
         return {color: ("@AI:" + color if setup["choice"] != "human" else
                         previous.get(color) if not is_bot(previous.get(color)) else None)
                 for color, setup in player_setup(settings).items()}
+
+    @staticmethod
+    def room_runtime_options(room):
+        # Existing ranked rooms commit the runtime with their scoring context.
+        # Ordinary and legacy unversioned rooms retain their old call contract.
+        context = room.get("rankedContext")
+        return {"ai_runtime": context["runtime"]} if context is not None else {}
 
     @staticmethod
     def check_occupied_seats(room, settings):
@@ -696,7 +764,7 @@ class WechatService:
                     return
                 revision = room["revision"]
                 action = {"type": "skip", "player": room["state"]["currentPlayer"]}
-                state = await asyncio.to_thread(self.verifier, room["settings"], room["actions"], action)
+                state = await asyncio.to_thread(self.verifier, room["settings"], room["actions"], action, **self.room_runtime_options(room))
                 room["actions"].append(action)
                 room["actionIds"].append("timeout-" + secrets.token_hex(16))
                 room["seq"] += 1
@@ -968,7 +1036,7 @@ class WechatService:
                       protection_default=PROTECTION_RULE_SYMMETRIC):
         if topology_settings_requested(body):
             allowed = {"gridSize", "playerCount", "startPlayer", "rulesVersion", "boardShape", "boardDefinition",
-                       "boardHash", "topologyProtocolVersion", "rootMode", "rootRulesVersion", "botCount",
+                       "boardHash", "topologyProtocolVersion", "rootMode", "rootRulesVersion", "botCount", "turnOrder",
                        "undoEnabled", "undoMaxCount", "turnTimerEnabled", "turnTimeLimitSeconds"}
             if not isinstance(body, dict) or set(body) - allowed:
                 fail("INVALID_SETTINGS", 422)
@@ -982,13 +1050,18 @@ class WechatService:
                     or type(timer) is not bool or type(seconds) is not int or not 15 <= seconds <= 200
                     or body.get("topologyProtocolVersion") != TOPOLOGY_ROOM_PROTOCOL_VERSION):
                 fail("INVALID_SETTINGS", 422)
+            order = body.get("turnOrder")
+            if "turnOrder" in body and (not isinstance(order, list) or len(order) != count
+                    or any(not isinstance(player, str) for player in order) or set(order) != set(PLAYER_COLORS[:count]) or order[0] != first):
+                fail("INVALID_SETTINGS", 422)
             canonical = canonicalize_topology_room_settings(body, PLAYER_COLORS[:count])
             if not canonical["ok"]:
                 fail("INVALID_SETTINGS", 422)
             return {**canonical["settings"], "gridSize": size, "playerCount": count, "startPlayer": first,
+                    **({"turnOrder": list(order)} if "turnOrder" in body else {}),
                     "botCount": 0, "undoEnabled": undo, "undoMaxCount": maximum,
                     "turnTimerEnabled": timer, "turnTimeLimitSeconds": seconds}
-        if not isinstance(body, dict) or set(body) - {"gridSize", "boardShape", "startingPointMode", "initialPositions", "initialRoots", "rootMode", "rootRulesVersion", "undoEnabled", "undoMaxCount", "rulesVersion", "protectionRule", "playerCount", "startPlayer", "botCount", "playerSetup", "turnTimerEnabled", "turnTimeLimitSeconds", "hintEnabled", "hintMaxCount"}:
+        if not isinstance(body, dict) or set(body) - {"gridSize", "boardShape", "startingPointMode", "initialPositions", "initialRoots", "rootMode", "rootRulesVersion", "undoEnabled", "undoMaxCount", "rulesVersion", "protectionRule", "playerCount", "startPlayer", "turnOrder", "botCount", "playerSetup", "turnTimerEnabled", "turnTimeLimitSeconds", "hintEnabled", "hintMaxCount"}:
             fail("INVALID_SETTINGS", 422)
         size = body.get("gridSize", 7)
         players = body.get("playerCount", 2)
@@ -1019,6 +1092,10 @@ class WechatService:
                 or type(body.get("turnTimerEnabled", False)) is not bool
                 or type(seconds) is not int or not 15 <= seconds <= 200
                 or type(hint) is not bool or type(hints) is not int or not (1 if hint else 0) <= hints <= 10):
+            fail("INVALID_SETTINGS", 422)
+        order = body.get("turnOrder")
+        if "turnOrder" in body and (not isinstance(order, list) or len(order) != players
+                or any(not isinstance(player, str) for player in order) or set(order) != set(PLAYER_COLORS[:players]) or order[0] != first):
             fail("INVALID_SETTINGS", 422)
         root_mode = body.get("rootMode", "classic")
         root_version = body.get("rootRulesVersion", "root-v1" if root_mode == "classic" else "root-v2")
@@ -1086,6 +1163,8 @@ class WechatService:
                     "turnTimerEnabled": body.get("turnTimerEnabled", False), "turnTimeLimitSeconds": seconds, "hintEnabled": hint, "hintMaxCount": hints,
                     "boardShape": shape, "undoEnabled": enabled, "undoMaxCount": count,
                     "botCount": body.get("botCount", 0)}
+        if "turnOrder" in body:
+            settings["turnOrder"] = list(order)
         if setup is not None:
             settings["playerSetup"] = setup
             settings["botCount"] = sum(value["choice"] != "human" for value in setup.values())
@@ -1330,7 +1409,7 @@ class WechatService:
                 room["rematchVotes"][player] = True
                 if all(room["rematchVotes"].get(color) for color in self.human_colors(room)):
                     if room.get("rankedContext"):
-                        keys = ("gridSize", "playerCount", "boardShape", "startPlayer", "startingPointMode", "rulesVersion", "protectionRule", "initialPositions")
+                        keys = ("gridSize", "playerCount", "boardShape", "startPlayer", "turnOrder", "startingPointMode", "rulesVersion", "protectionRule", "initialPositions")
                         prepared = await asyncio.to_thread(verify_rules, {}, [], ranked_setup={
                             "settings": {k: v for k, v in room["settings"].items() if k in keys}, "controllers": room["aiControllers"]})
                         room["settings"] = prepared["settings"]
@@ -1411,7 +1490,7 @@ class WechatService:
                         if target < room.get("undoFloorSeq", 0):
                             fail("UNDO_UNAVAILABLE", 409)
                         remaining = room["actions"][:target]
-                        state = await asyncio.to_thread(self.verifier, room["settings"], remaining)
+                        state = await asyncio.to_thread(self.verifier, room["settings"], remaining, **self.room_runtime_options(room))
                         room["actions"] = remaining
                         room["actionIds"] = room["actionIds"][:target]
                         room["seq"] = len(remaining)
@@ -1426,7 +1505,7 @@ class WechatService:
                 if room.get("rankedAI"):
                     if room.get("ladderVersion") and room["status"] == "playing":
                         normalized = {"type": "resign", "player": player}
-                        room["state"] = await asyncio.to_thread(self.verifier, room["settings"], room["actions"], normalized)
+                        room["state"] = await asyncio.to_thread(self.verifier, room["settings"], room["actions"], normalized, **self.room_runtime_options(room))
                         room["actions"].append(normalized)
                         room["actionIds"].append("server_" + secrets.token_hex(16))
                         room["seq"] += 1
@@ -1440,7 +1519,7 @@ class WechatService:
                     else:
                         if room["status"] == "playing" and player not in room["state"].get("resignedPlayers", []):
                             action = {"type": "resign", "player": player}
-                            room["state"] = await asyncio.to_thread(self.verifier, room["settings"], room["actions"], action)
+                            room["state"] = await asyncio.to_thread(self.verifier, room["settings"], room["actions"], action, **self.room_runtime_options(room))
                             room["actions"].append(action)
                             room["actionIds"].append("leave-" + secrets.token_hex(16))
                             room["seq"] += 1
@@ -1506,7 +1585,7 @@ class WechatService:
                 if len(room["actions"]) >= MAX_ACTIONS - (room["settings"]["playerCount"] if room.get("rankedAI") else 0):
                     fail("MATCH_LIMIT", 409)
                 normalized = {**action, "player": player}
-                state = await asyncio.to_thread(self.verifier, room["settings"], room["actions"], normalized)
+                state = await asyncio.to_thread(self.verifier, room["settings"], room["actions"], normalized, **self.room_runtime_options(room))
                 room["actions"].append(normalized)
                 room["actionIds"].append(command_id)
                 room["seq"] += 1

@@ -94,6 +94,7 @@ export function serializeRuleState(engine) {
     playerCount: engine.playerCount,
     ...(engine.boardShape !== resolveBoardShape(engine.playerCount) ? { boardShape: engine.boardShape } : {}),
     startPlayer: engine.startPlayer,
+    ...(engine.explicitTurnOrder ? { turnOrder: [...engine.turnOrder] } : {}),
     ...(engine.hasCustomInitialPositions ? { initialPositions: cloneJson(engine.initialPositions) } : {}),
     ...(engine.rootRulesVersion === "root-v2" ? {
       rootRulesVersion: engine.rootRulesVersion,
@@ -133,6 +134,7 @@ function normalizeSettings(settings = {}) {
     gridSize: Number(settings.gridSize ?? 9),
     players,
     startPlayer: settings.startPlayer ?? players[0],
+    ...(settings.turnOrder !== undefined ? { turnOrder: settings.turnOrder } : {}),
     rulesVersion: settings.rulesVersion ?? "territory-v3",
     ...(protectionRule !== StartProtectionRule.SYMMETRIC ? { protectionRule } : {}),
     superko: "enforce",
@@ -150,6 +152,7 @@ function engineOptionsFromSettings(settings) {
     playerCount: settings.playerCount,
     boardShape: settings.boardShape,
     startPlayer: settings.startPlayer,
+    ...(settings.turnOrder !== undefined ? { turnOrder: settings.turnOrder } : {}),
     initialPositions: settings.initialPositions,
     initialRoots: settings.initialRoots,
     rootMode: settings.rootMode,
@@ -166,7 +169,10 @@ function isValidSettings(settings) {
     && SUPPORTED_RULES.has(settings.rulesVersion)
     && SUPPORTED_PROTECTION_RULES.has(settings.protectionRule ?? StartProtectionRule.SYMMETRIC)
     && canonicalize(settings.players) === canonicalize(PLAYERS.slice(0, settings.playerCount))
-    && settings.players.includes(settings.startPlayer);
+    && settings.players.includes(settings.startPlayer)
+    && (settings.turnOrder === undefined || Array.isArray(settings.turnOrder) && settings.turnOrder.length === settings.players.length
+      && new Set(settings.turnOrder).size === settings.players.length && settings.turnOrder.every((player) => settings.players.includes(player))
+      && settings.turnOrder[0] === settings.startPlayer);
 }
 
 function normalizeActors(actors, settings) {
@@ -505,6 +511,7 @@ export async function createTopologyReplayDocument(options = {}, actions = []) {
     compiledBoard: options.compiledBoard,
     playerCount: options.playerCount,
     startPlayer: options.startPlayer,
+    ...(options.turnOrder !== undefined ? { turnOrder: options.turnOrder } : {}),
     initialPositions: options.initialPositions,
     rulesVersion: options.rulesVersion ?? "surface-v1",
     deferTerritoryUpdates: false,
@@ -592,7 +599,8 @@ export async function validateTopologyReplayDocument(document) {
   const engine = new GameEngine({
     compiledBoard: decoded.board,
     playerCount: Object.keys(decoded.ruleState.startingVertices).length,
-    startPlayer: decoded.ruleState.currentPlayer ?? undefined,
+    startPlayer: decoded.ruleState.turnOrder?.[0] ?? decoded.ruleState.currentPlayer ?? undefined,
+    ...(decoded.ruleState.turnOrder !== undefined ? { turnOrder: decoded.ruleState.turnOrder } : {}),
     rulesVersion: decoded.ruleState.rulesVersion,
     deferTerritoryUpdates: false,
   });

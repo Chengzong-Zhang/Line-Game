@@ -8,6 +8,37 @@ canvas.style.width = `min(${width}px, 100vw, calc(100vh * ${width / height}))`;
 canvas.style.height = 'auto'; canvas.style.aspectRatio = `${width} / ${height}`;
 const coordinates = (event) => { const r = canvas.getBoundingClientRect(); return { clientX: (event.clientX - r.left) * width / r.width, clientY: (event.clientY - r.top) * height / r.height }; };
 const activeTouches = new Map(), touchCallbacks = {};
+let numberInput = null, numberKeyboardGeneration = 0;
+function closeNumberInput(generation, notify = true) {
+  if (!numberInput || generation !== numberKeyboardGeneration) return;
+  const input = numberInput; numberInput = null;
+  const value = input.value;
+  input.oninput = input.onkeydown = input.onblur = null;
+  input.remove();
+  if (notify) input.__onBlur?.(value);
+}
+function beginNumberInput({ value, onInput, onConfirm, onBlur }) {
+  closeNumberInput(numberKeyboardGeneration, true);
+  const generation = ++numberKeyboardGeneration, input = document.createElement('input');
+  input.className = 'preview-inline-number-input'; input.type = 'text'; input.inputMode = 'numeric';
+  input.autocomplete = 'off'; input.maxLength = 3; input.value = String(value ?? '');
+  input.setAttribute('aria-label', '数字设置 / Number setting'); input.__onBlur = onBlur;
+  Object.assign(input.style, { position: 'fixed', zIndex: '10000', left: '50%', bottom: '12px', transform: 'translateX(-50%)',
+    width: 'min(260px, calc(100vw - 32px))', height: '48px', padding: '8px 14px', borderRadius: '12px',
+    border: '1px solid #c9d4c1', background: '#fffef9', color: '#244d3d', font: '18px system-ui', boxShadow: '0 8px 32px #244d3d44' });
+  numberInput = input;
+  input.oninput = () => { if (generation === numberKeyboardGeneration) onInput?.(input.value); };
+  input.onkeydown = event => {
+    if (event.key !== 'Enter' || generation !== numberKeyboardGeneration) return;
+    event.preventDefault(); onConfirm?.(input.value); closeNumberInput(generation, true);
+  };
+  input.onblur = () => closeNumberInput(generation, true);
+  document.body.append(input); input.focus(); input.select();
+  return { close: () => closeNumberInput(generation, true), update: next => {
+    if (generation !== numberKeyboardGeneration || !numberInput) return false;
+    input.value = String(next?.value ?? next ?? ''); return true;
+  } };
+}
 canvas.addEventListener('pointerdown', event => {
   if (event.pointerType === 'mouse' && event.button !== 0) return;
   activeTouches.set(event.pointerId, coordinates(event)); canvas.setPointerCapture(event.pointerId);
@@ -72,6 +103,7 @@ const platform = {
     if (!response.ok) throw new Error('MODEL_READ_FAILED'); return response.arrayBuffer();
   },
   frame: (fn) => requestAnimationFrame(fn),
+  numberKeyboard: { begin: beginNumberInput, close: () => closeNumberInput(numberKeyboardGeneration, true) },
   touchStart: fn => { touchCallbacks.start = fn; }, touchEnd: fn => { touchCallbacks.end = fn; },
   touchMove: fn => { touchCallbacks.move = fn; }, touchCancel: fn => { touchCallbacks.cancel = fn; },
   wheel: fn => { touchCallbacks.wheel = fn; },

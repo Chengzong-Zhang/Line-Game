@@ -6,6 +6,19 @@ import { TEXT } from '../src/i18n.js';
 import { drawPlayers } from '../src/screens.js';
 import { drawResult, readerLayout } from '../src/help-ui.js';
 import { help } from './helpers.mjs';
+// Use the actual Canvas drag path and its exposed hit regions.
+async function dragOrder(h, player, target) {
+  await h.scrollTo(`order-${player}`); await h.render();
+  const from = h.app.getButtons().find(button => button.id === `order-${player}`);
+  const to = h.app.getButtons().find(button => button.id === `order-${target}`);
+  assert.ok(from && to && !from.disabled && !to.disabled, `visible order tiles ${player}/${target}`);
+  const pt = box => ({ clientX: box.x + box.width / 2, clientY: box.y + box.height / 2 });
+  h.p.callbacks.start({ touches: [pt(from)] });
+  h.p.callbacks.move({ touches: [pt(to)] });
+  h.p.callbacks.end({ touches: [], changedTouches: [pt(to)] });
+  await h.render();
+}
+
 const profile = 'hex-player-policy-v1';
 const selected = 'multiplayer-medium-v1';
 const ready = async h => { await until(() => h.app.session.snapshot && !h.app.session.busy); await h.render(); };
@@ -47,21 +60,29 @@ test('2–6 player drafts keep separate seats and starters across switching, res
     await ready(h); const hash = h.app.session.stateHash; await h.tap('cabin-board');
     for (const count of [2, 3, 4, 5, 6]) {
       await h.slide('player-count', count, 2, 15); const last = sut.playerIds(count).at(-1);
-      await choose(h, last, 1); await h.tap(`starter-${last}`);
+      await choose(h, last, 1); const first = sut.readPreferences(storage).turnOrder?.[0] ?? 'BLACK';
+      if (last !== first) await dragOrder(h, last, first);
+      assert.equal(sut.readPreferences(storage).turnOrder[0], last);
     }
     for (const count of [6, 4, 2, 5, 3, 6]) {
+      const previous = sut.readPreferences(storage).turnOrder;
       await h.slide('player-count', count, 2, 15); const preferences = sut.readPreferences(storage), last = sut.playerIds(count).at(-1);
-      assert.equal(preferences.playerCount, count); assert.equal(preferences.startPlayer, last);
+      const expected = [...previous.filter(player => sut.playerIds(count).includes(player)), ...sut.playerIds(count).filter(player => !previous.includes(player))];
+      assert.equal(preferences.playerCount, count); assert.deepEqual(preferences.turnOrder, expected); assert.equal(preferences.startPlayer, expected[0]);
       assert.equal(preferences.controllers[last], count >= 3 ? selected : 'minimax-2');
       assert.equal(preferences.mode, count === 3 ? 'three-human' : count === 2 ? 'ai-white' : 'human');
     }
     assert.equal(h.app.session.stateHash, hash);
     h.app.dispose(); second = uiHarness({ storage }); await ready(second); await second.tap('cabin-board');
-    for (const count of [2, 3, 4, 5, 6]) { await second.slide('player-count', count, 2, 15); assert.equal(sut.readPreferences(storage).startPlayer, sut.playerIds(count).at(-1)); }
+    for (const count of [2, 3, 4, 5, 6]) { const previous = sut.readPreferences(storage).turnOrder; await second.slide('player-count', count, 2, 15);
+      const expected = [...previous.filter(player => sut.playerIds(count).includes(player)), ...sut.playerIds(count).filter(player => !previous.includes(player))];
+      assert.deepEqual(sut.readPreferences(storage).turnOrder, expected); }
+    await dragOrder(second, 'CYAN', sut.readPreferences(storage).turnOrder[0]);
+    const chosenOrder = sut.readPreferences(storage).turnOrder;
     await second.slide('board-size', 5, 5, 15); await second.tap('cabin-close'); await second.tap('new-game');
     await until(() => second.app.session.settings.playerCount === 6 && second.app.session.actions.length === 1 && !second.app.session.busy);
     assert.equal(second.app.session.settings.startPlayer, 'CYAN'); assert.equal(second.app.session.actions[0].player, 'CYAN');
-    assert.equal(second.app.session.snapshot.currentPlayer, 'BLACK'); assert.equal(second.app.session.error, null);
+    assert.deepEqual(second.app.session.settings.turnOrder, chosenOrder); assert.equal(second.app.session.snapshot.currentPlayer, chosenOrder[1]); assert.equal(second.app.session.error, null);
   } finally { h.app.dispose(); second?.app.dispose(); }
 });
 

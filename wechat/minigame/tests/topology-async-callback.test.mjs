@@ -3,24 +3,21 @@ import assert from 'node:assert/strict';
 import { uiHarness } from './ui-harness.mjs';
 import { until } from './helpers.mjs';
 
-test('an old topology player sheet cannot change a subsequently opened surface', async () => {
-  let release, choices = 0;
-  const h = uiHarness({ platformOverrides: { choose: () => {
-    choices++;
-    return choices === 1 ? new Promise(resolve => { release = resolve; }) : Promise.resolve(1);
-  } } });
+test('a touch started in a cancelled editor cannot affect a subsequently selected surface', async () => {
+  const h = uiHarness();
   try {
     await until(() => h.app.session.snapshot && !h.app.session.busy);
-    await h.tap('cabin-board'); await h.scrollTo('topology-setup'); await h.tap('topology-setup');
-    await h.tap('topology-torus'); await h.scrollTo('topology-controllers'); await h.tap('topology-controllers');
-    assert.equal(choices, 1);
-    await h.tap('topology-back'); await h.scrollTo('topology-setup'); await h.tap('topology-setup');
-    await h.tap('topology-cylinder');
-    release(0); await new Promise(resolve => setTimeout(resolve, 10)); await h.render();
-    assert.equal(choices, 1, 'a stale first sheet must not open a second sheet on the new surface');
-    await h.scrollTo('topology-start'); await h.tap('topology-start');
+    await h.tap('cabin-board'); await h.scrollTo('topology-custom'); await h.tap('topology-custom');
+    await h.tap('editor-tool-contour'); await h.tap('editor-clear');
+    const point = h.app.getEditorLayout().gridPoints.find(p => p.coordinate.join(',') === '1,1');
+    h.p.callbacks.start({ touches: [{ clientX: point.x, clientY: point.y }] });
+    await h.tap('editor-cancel');
+    await h.scrollTo('topology-setup'); await h.tap('topology-setup');
+    await h.scrollTo('topology-cylinder'); await h.tap('topology-cylinder');
+    h.p.callbacks.end({ touches: [], changedTouches: [{ clientX: point.x, clientY: point.y }] });
+    await h.render(); await h.scrollTo('new-game'); await h.tap('new-game');
     await until(() => h.app.session.snapshot?.rulesVersion === 'surface-v1' && !h.app.session.busy);
-    assert.equal(h.app.session.controllerFor('BLACK'), 'human');
     assert.equal(h.app.session.settings.boardDefinition.topology.preset, 'cylinder');
-  } finally { release?.(-1); h.app.dispose(); }
+    assert.equal(h.app.session.controllerFor('BLACK'), 'human');
+  } finally { h.app.dispose(); }
 });

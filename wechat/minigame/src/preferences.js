@@ -1,10 +1,16 @@
 import { CONTROLLER_CHOICES, THREE_PLAYER_CONTROLLERS, HEX_PLAYER_CONTROLLERS, normalControllerChoices, playerIds } from './controllers.js';
 import { normalizePlayOptions } from './play-options.js';
+import { validateTurnOrder } from './state.js';
 import { requiresExplicitStartingPoints, resolveInitialPositions, resolveInitialRoots } from './core.js';
 
 export const PLAY_MODES = ['ai-white', 'ai-black', 'human', 'three-human', 'ai-duel'];
 const KEY = 'lifeline-wx-preferences-v1';
 const defaults = () => ({ size: 7, mode: 'ai-white', difficulty: 'simple' });
+function readTurnOrder(value, count, startPlayer) {
+  if (value === undefined) return {};
+  try { return { turnOrder: validateTurnOrder(value, count, startPlayer) }; }
+  catch (_) { return { turnOrder: value, invalidTurnOrder: true }; }
+}
 function readDraftControllers(value, count) {
   if (value == null) return null;
   const known = new Set(count > 6 ? ['human', 'greedy', 'multiplayer-hard-v1'] : count === 2 ? CONTROLLER_CHOICES : ['greedy', ...(count === 3 ? THREE_PLAYER_CONTROLLERS : HEX_PLAYER_CONTROLLERS)]);
@@ -69,7 +75,8 @@ function readPlayerDrafts(value, size, migrateLegacy = false) {
       const parsed = enforceControllerEvidenceBoundary(readDraftControllers(draft.controllers, count), count, board.boardShape);
       const controllers = migrateLegacy ? migrateOldControllers(parsed, count, size, board.boardShape) : parsed;
       if (!playerIds(count).includes(draft.startPlayer)) continue;
-      drafts[count] = { mode: draft.mode, startPlayer: draft.startPlayer, controllers, ...board };
+      const order = readTurnOrder(draft.turnOrder, count, draft.startPlayer);
+      drafts[count] = { mode: draft.mode, startPlayer: draft.startPlayer, controllers, ...board, ...order };
     } catch (_) { /* A damaged inactive draft must not discard the active preferences. */ }
   }
   return drafts;
@@ -96,7 +103,7 @@ export function readPreferences(storage) {
       const difficulty = selectedDepth || ({ easy: 'simple', normal: 'simple' })[value.difficulty] || value.difficulty;
       return { size: value.size, mode: value.mode, difficulty, ...board,
         ...(value.playerCount != null ? { playerCount: players } : {}),
-        ...(startPlayer !== 'BLACK' ? { startPlayer } : {}), ...(controllers ? { controllers } : {}),
+        ...(startPlayer !== 'BLACK' ? { startPlayer } : {}), ...readTurnOrder(value.turnOrder, players, startPlayer), ...(controllers ? { controllers } : {}),
         ...(Object.keys(playerDrafts).length ? { playerDrafts } : {}),
         ...(value.terminology === 'war' ? { terminology: 'war' } : {}),
         ...(value.playOptions ? { playOptions: normalizePlayOptions(value.playOptions) } : {}) };

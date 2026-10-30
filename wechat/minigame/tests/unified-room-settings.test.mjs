@@ -3,6 +3,18 @@ import assert from 'node:assert/strict';
 import { sut, until, memoryStorage, plain, localScheduler } from './helpers.mjs';
 import { uiHarness } from './ui-harness.mjs';
 
+async function dragOrder(h, player, target) {
+  await h.scrollTo(`order-${player}`); await h.render();
+  const from = h.app.getButtons().find(button => button.id === `order-${player}`);
+  const to = h.app.getButtons().find(button => button.id === `order-${target}`);
+  assert.ok(from && to && !from.disabled && !to.disabled);
+  const pt = box => ({ clientX: box.x + box.width / 2, clientY: box.y + box.height / 2 });
+  h.p.callbacks.start({ touches: [pt(from)] }); h.p.callbacks.end({ touches: [], changedTouches: [pt(from)] });
+  await h.render();
+  h.p.callbacks.start({ touches: [pt(from)] }); h.p.callbacks.move({ touches: [pt(to)] });
+  h.p.callbacks.end({ touches: [], changedTouches: [pt(to)] }); await h.render();
+}
+
 const config = { onlineEnabled: true, apiBase: 'https://rooms.invalid' };
 const setup = { size: 8, playerCount: 6, boardShape: 'hexagon', mode: 'human', difficulty: 'normal', startPlayer: 'PURPLE',
   startingPointMode: 'random', controllers: { BLACK: 'multiplayer-easy-v1', WHITE: 'human', PURPLE: 'multiplayer-hard-v1',
@@ -20,13 +32,16 @@ test('single creation window reuses all board settings with interleaved humans a
     assert.equal(h.app.getButtons().some(button => button.id === 'create-ai-room'), false);
     await h.tap('friends'); assert.equal(h.app.getCabin(), 'board');
     assert.equal(created.length, 0);
-    for (const id of ['player-count', 'controller-WHITE', 'controller-CYAN', 'shape-triangle', 'starts-custom', 'clock-enabled', 'hint-count', 'undo-count']) {
+    await dragOrder(h, 'BLACK', 'GREEN');
+    const expectedOrder = ['PURPLE', 'BLACK', 'GREEN', 'ORANGE', 'CYAN', 'WHITE'];
+    for (const id of ['player-count', 'controller-WHITE', 'controller-CYAN', 'shape-triangle', 'topology-custom', 'clock-enabled', 'hint-count', 'undo-count']) {
       await h.scrollTo(id); assert.ok(h.app.getButtons().some(button => button.id === id && !button.disabled), id);
     }
     assert.equal(local.stateHash, hash, 'configuring the room retains the local match');
     await h.scrollTo('room-submit'); await h.tap('room-submit'); await until(() => created.length);
     const [kind, settings] = created[0];
     assert.equal(kind, 'create'); assert.equal(settings.playerCount, 6); assert.equal(settings.startPlayer, 'PURPLE');
+    assert.deepEqual(settings.turnOrder, expectedOrder);
     assert.equal(settings.gridSize, 8); assert.equal(settings.boardShape, 'hexagon'); assert.equal(settings.botCount, 4);
     assert.deepEqual(Object.keys(settings.playerSetup), sut.playerIds(6));
     assert.equal(settings.playerSetup.BLACK.choice, 'ai-easy'); assert.equal(settings.playerSetup.WHITE.choice, 'human');
@@ -92,19 +107,23 @@ test('custom room roots use every configured seat and remain isolated from the l
   h.app.online.enter = async (kind, value) => { settings = value; return true; };
   try {
     await ready(h); const local = h.app.session, hash = local.stateHash;
-    await h.tap('friends'); await h.scrollTo('starts-custom'); await h.tap('starts-custom');
-    assert.equal(h.app.getScene(), 'starts');
-    assert.ok(h.app.getButtons().some(button => button.id === 'start-seat-CYAN'));
-    const point = [7, 7]; h.app.tap(...sut.toScreen(point, h.app.getLayout())); await h.render();
-    if (h.app.getButtons().find(button => button.id === 'start-point-confirm')?.disabled) {
-      h.app.tap(...sut.toScreen(point, h.app.getLayout())); await h.render();
-    }
-    await h.tap('start-point-confirm'); await h.tap('starts-save');
+    await h.tap('friends'); await h.scrollTo('topology-custom'); await h.tap('topology-custom');
+    assert.equal(h.app.getScene(), 'board-editor');
+    assert.ok(h.app.getButtons().some(button => button.id === 'editor-player-CYAN'));
+    const layout = h.app.getEditorLayout();
+    assert.ok(layout);
+    const original = Object.fromEntries(sut.playerIds(6).map(player => [player, layout.points.find(point => point.owner === player)?.coordinate]));
+    assert.ok(Object.values(original).every(point => Array.isArray(point)), 'each color retains an identifiable root');
+    const black = layout.points.find(point => point.owner === 'BLACK');
+    const point = layout.points.find(candidate => !candidate.owner && !Object.values(original).some(root => root.join(',') === candidate.coordinate.join(',')));
+    assert.ok(black && point); h.app.tap(black.x, black.y); await h.render(); h.app.tap(point.x, point.y); await h.render();
+    await h.tap('editor-save');
     assert.equal(h.app.getCabin(), 'board');
     assert.equal(local.stateHash, hash);
     await h.scrollTo('room-submit'); await h.tap('room-submit'); await until(() => settings);
     assert.equal(settings.playerCount, 6); assert.equal(settings.startingPointMode, 'custom');
-    assert.deepEqual(settings.initialPositions.BLACK, point);
+    assert.deepEqual(settings.initialPositions.BLACK, point.coordinate);
+    for (const player of sut.playerIds(6).slice(1)) assert.deepEqual(settings.initialPositions[player], original[player]);
     assert.equal(Object.keys(settings.initialPositions).length, 6);
     assert.equal(sut.readPreferences(storage).startingPointMode, 'random', 'room draft does not replace local preferences');
   } finally { h.app.dispose(); }
@@ -159,7 +178,8 @@ test('enabling hints in an existing zero-budget room repairs the draft before re
   try {
     await ready(h); await h.tap('friends'); await h.tap('room-submit'); await until(() => h.app.online.room);
     await h.tap('cabin-board'); await h.scrollTo('hint-enabled'); await h.tap('hint-enabled'); await h.render();
-    assert.ok(h.texts.some(text => text.includes('落子提示') && text.includes('开')));
+    assert.equal(h.app.getButtons().find(button => button.id === 'hint-enabled').disabled, false);
+    assert.ok(h.app.getButtons().some(button => button.id === 'hint-count'));
     await h.scrollTo('room-submit'); await h.tap('room-submit');
     assert.equal(saved.length, 1); assert.equal(saved[0].hintEnabled, true); assert.equal(saved[0].hintMaxCount, 1);
     assert.equal(h.app.online.room.settings.hintEnabled, false, 'the room remains authoritative until its acknowledgement');
@@ -187,5 +207,28 @@ test('room AI failures and fallback actions are visible and retry preserves the 
     h.app.online.room.lastBotResult = { success: true, fallback: true, matchId: 'a'.repeat(32), seq: 0 };
     await h.render(); assert.ok(h.texts.some(text => text.includes('备用合法行动')));
     assert.equal(h.app.getButtons().some(button => button.id === 'room-retry'), false);
+  } finally { h.app.dispose(); }
+});
+
+test('legacy room without an order shows its own original cycle, not the local next-game order', async () => {
+  const storage = memoryStorage();
+  sut.savePreferences(storage, { size: 7, playerCount: 4, boardShape: 'hexagon', mode: 'human', difficulty: 'simple',
+    startPlayer: 'PURPLE', turnOrder: ['PURPLE', 'BLACK', 'GREEN', 'WHITE'] });
+  const h = uiHarness({ config, storage });
+  const settings = { ...sut.settingsFor(7, 4, 'WHITE'), boardShape: 'hexagon', botCount: 0,
+    playerSetup: Object.fromEntries(sut.playerIds(4).map(player => [player, { choice: 'human' }])) };
+  h.app.online.enter = async () => {
+    const client = h.app.online; await client.game.load(settings, [], { mode: 'human', paused: true, save: false });
+    Object.assign(client, { active: true, connected: true, room: { code: 'ABCDEFGH', matchId: 'a'.repeat(32), seq: 0,
+      stateHash: client.game.stateHash, actions: [], player: 'BLACK', hostPlayer: 'BLACK', status: 'waiting',
+      currentPlayer: 'WHITE', settings: plain(settings), pendingSettings: null, bots: [], ready: {}, rematchVotes: {} } });
+    client.notify(); return true;
+  };
+  try {
+    await ready(h); await h.tap('friends'); await h.tap('room-submit'); await until(() => h.app.online.room);
+    await h.tap('cabin-board'); await h.scrollTo('order-WHITE');
+    const strip = h.app.getButtons().find(button => button.id === 'order-WHITE');
+    assert.deepEqual(strip.order, ['WHITE', 'PURPLE', 'GREEN', 'BLACK']);
+    assert.deepEqual(sut.readPreferences(storage).turnOrder, ['PURPLE', 'BLACK', 'GREEN', 'WHITE']);
   } finally { h.app.dispose(); }
 });

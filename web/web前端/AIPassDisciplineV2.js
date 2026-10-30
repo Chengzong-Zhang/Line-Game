@@ -69,7 +69,7 @@ export function passDisciplineAsciiSha256(text) {
 }
 export function passDisciplineRuleState(source) {
   return { gridSize: source.gridSize, playerCount: source.playerCount, boardShape: source.boardShape,
-    startPlayer: source.startPlayer, rulesVersion: source.rulesVersion,
+    startPlayer: source.startPlayer, ...(source.explicitTurnOrder ? { turnOrder: [...source.turnOrder] } : {}), rulesVersion: source.rulesVersion,
     ...(source.protectionRule !== "symmetric-v1" ? { protectionRule: source.protectionRule } : {}),
     initialPositions: Object.fromEntries(source.activePlayers.map(player => [player, [...source.initialPositions[player]]])),
     activePlayers: [...source.activePlayers], gridEntries: [...source.grid].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0),

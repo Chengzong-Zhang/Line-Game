@@ -11,18 +11,18 @@ test('native-style touch draws a grid boundary, starts it and restores it withou
     globalThis.TextEncoder = undefined;
     h = uiHarness({ storage });
     await until(() => h.app.session.snapshot && !h.app.session.busy);
-    await h.tap('cabin-board'); await h.scrollTo('topology-setup'); await h.tap('topology-setup');
-    await h.tap('topology-custom'); await h.scrollTo('topology-add-boundary');
+    await h.tap('cabin-board'); await h.scrollTo('topology-custom'); await h.tap('topology-custom');
+    await h.tap('editor-tool-contour'); await h.tap('editor-clear');
     const touch = async coordinate => {
-      const point = h.app.getTopologyLayout().gridPoints.find(p => p.coordinate.join(',') === coordinate.join(','));
+      const point = h.app.getEditorLayout().gridPoints.find(p => p.coordinate.join(',') === coordinate.join(','));
       assert.ok(point && point.y > 150 && point.y < 760, 'the selected grid point is visibly inside the editor');
       h.p.callbacks.start({ touches: [{ clientX: point.x, clientY: point.y }] });
       h.p.callbacks.end({ touches: [], changedTouches: [{ clientX: point.x, clientY: point.y }] });
       await h.render();
     };
     for (const coordinate of [[1, 1], [4, 1], [4, 4], [1, 4], [1, 1]]) await touch(coordinate);
-    assert.equal(h.app.getTopologyLayout().closed, true);
-    await h.scrollTo('topology-start'); await h.tap('topology-start');
+    assert.equal(h.app.getEditorLayout().contourPoints.length, 1);
+    await h.tap('editor-save'); await h.scrollTo('new-game'); await h.tap('new-game');
     await until(() => h.app.session.snapshot?.rulesVersion === 'surface-v1' && !h.app.session.busy);
     const hash = h.app.session.snapshot.boardHash;
     assert.ok(h.app.session.snapshot.legalMoves.length > 0);
@@ -38,12 +38,12 @@ test('one-tap random surfaces use different seeds for successive new games', asy
   const h = uiHarness();
   try {
     await until(() => h.app.session.snapshot && !h.app.session.busy);
-    await h.tap('cabin-board'); await h.scrollTo('topology-setup'); await h.tap('topology-setup');
-    await h.tap('topology-random'); await h.scrollTo('topology-start'); await h.tap('topology-start');
+    await h.tap('cabin-board'); await h.scrollTo('topology-random'); await h.tap('topology-random');
+    await h.scrollTo('new-game'); await h.tap('new-game');
     await until(() => h.app.session.snapshot?.rulesVersion === 'surface-v1' && !h.app.session.busy);
     const seed = h.app.session.settings.boardDefinition.generator.seed;
-    await h.tap('cabin-board'); await h.scrollTo('topology-setup'); await h.tap('topology-setup');
-    await h.tap('topology-random'); await h.scrollTo('topology-start'); await h.tap('topology-start');
+    await h.tap('cabin-board'); await h.scrollTo('topology-random'); await h.tap('topology-random');
+    await h.scrollTo('new-game'); await h.tap('new-game');
     await until(() => h.app.session.settings.boardDefinition?.generator?.seed !== seed && !h.app.session.busy);
     assert.notEqual(h.app.session.settings.boardDefinition.generator.seed, seed);
   } finally { h.app.dispose(); }

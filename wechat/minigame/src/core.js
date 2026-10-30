@@ -37,6 +37,8 @@ export {
   addSeamPair,
   getBoundaryPath,
   BoardEditorError,
+  startBoundaryRing,
+  deleteBoundaryRing,
 } from './topology/BoardEditor.js';
 export {
   createSurfacePreset,

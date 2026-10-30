@@ -48,7 +48,7 @@ test('3D UI falls back to an actual 2D canvas and supports pause, drag, pinch, w
   try {
     await until(() => h.app.session.snapshot && !h.app.session.busy);
     await h.tap('cabin-board'); await h.scrollTo('topology-setup'); await h.tap('topology-setup');
-    await h.tap('topology-torus'); await h.scrollTo('topology-start'); await h.tap('topology-start');
+    await h.scrollTo('topology-torus'); await h.tap('topology-torus'); await h.scrollTo('new-game'); await h.tap('new-game');
     await until(() => h.app.session.snapshot?.rulesVersion === 'surface-v1' && !h.app.session.busy);
     const before = h.app.session.stateHash;
     await h.render(); await h.tap('topology-3d');

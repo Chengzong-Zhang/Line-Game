@@ -10,7 +10,9 @@ const width = dimension('width', 390, 320, 768), height = dimension('height', 84
 const top = 88, bottom = 24, storagePrefix = 'lifeline-offline-host-v1:';
 canvas.style.width = `min(${width}px, 100vw, calc(92vh * ${width / height}))`;
 canvas.style.height = 'auto'; canvas.style.aspectRatio = `${width} / ${height}`;
-const events = {}, touches = new Map(), workers = new Set();
+const events = {}, touches = new Map(), workers = new Set(), keyboardListeners = {
+  input: new Set(), confirm: new Set(), complete: new Set(),
+};
 const networkListeners = new Set();
 for (const name of ['online', 'offline']) addEventListener(name, () => {
   for (const listener of networkListeners) listener({ isConnected: name === 'online' });
@@ -138,6 +140,32 @@ function showDialog(options, sheet = false) {
   document.body.append(box); box.showModal(); input?.focus();
 }
 
+let inlineNumberInput = null, keyboardValue = '';
+function emitKeyboard(kind, event) { for (const listener of keyboardListeners[kind]) listener(event); }
+function hideInlineNumberKeyboard(notify = true) {
+  if (!inlineNumberInput) return;
+  const input = inlineNumberInput; inlineNumberInput = null; keyboardValue = input.value;
+  input.oninput = input.onkeydown = input.onblur = null; input.remove();
+  if (notify) emitKeyboard('complete', { value: keyboardValue });
+}
+function showInlineNumberKeyboard(options = {}) {
+  hideInlineNumberKeyboard(true);
+  const input = document.createElement('input'); input.type = 'text'; input.inputMode = 'numeric';
+  input.autocomplete = 'off'; input.maxLength = Math.max(1, options.maxLength || 3); input.value = String(options.defaultValue ?? '');
+  input.setAttribute('aria-label', '数字设置 / Number setting');
+  Object.assign(input.style, { position: 'fixed', zIndex: '10000', left: '50%', bottom: '12px', transform: 'translateX(-50%)',
+    width: 'min(260px, calc(100vw - 32px))', height: '48px', padding: '8px 14px', borderRadius: '12px',
+    border: '1px solid #c9d4c1', background: '#fffef9', color: '#244d3d', font: '18px system-ui', boxShadow: '0 8px 32px #244d3d44' });
+  inlineNumberInput = input; keyboardValue = input.value;
+  input.oninput = () => { keyboardValue = input.value; emitKeyboard('input', { value: keyboardValue }); };
+  input.onkeydown = event => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault(); keyboardValue = input.value; emitKeyboard('confirm', { value: keyboardValue }); hideInlineNumberKeyboard(true);
+  };
+  input.onblur = () => hideInlineNumberKeyboard(true);
+  document.body.append(input); input.focus(); input.select();
+}
+
 let screenCanvasCreated = false;
 globalThis.wx = {
   createCanvas: () => {
@@ -161,6 +189,10 @@ globalThis.wx = {
   onHide: fn => { events.hide = fn; }, onShow: fn => { events.show = fn; }, onWindowResize: fn => { events.resize = fn; },
   onNetworkStatusChange: fn => networkListeners.add(fn), offNetworkStatusChange: fn => networkListeners.delete(fn),
   showModal: options => showDialog(options), showActionSheet: options => showDialog(options, true),
+  showKeyboard: showInlineNumberKeyboard, hideKeyboard: () => hideInlineNumberKeyboard(true),
+  onKeyboardInput: fn => keyboardListeners.input.add(fn), offKeyboardInput: fn => keyboardListeners.input.delete(fn),
+  onKeyboardConfirm: fn => keyboardListeners.confirm.add(fn), offKeyboardConfirm: fn => keyboardListeners.confirm.delete(fn),
+  onKeyboardComplete: fn => keyboardListeners.complete.add(fn), offKeyboardComplete: fn => keyboardListeners.complete.delete(fn),
   showShareMenu() {}, onShareAppMessage() {}, getLaunchOptionsSync: () => ({}),
   shareAppMessage: () => showDialog({ content: '分享需要微信客户端。免登录测试不会发送邀请。', showCancel: false }),
   login: options => { blockedCall('loginCalls'); options.fail?.({ errMsg: 'Offline host blocks login' }); },

@@ -5,6 +5,23 @@ import { uiHarness } from './ui-harness.mjs';
 import { TEXT } from '../src/i18n.js';
 import { drawResult } from '../src/help-ui.js';
 
+// Use the actual Canvas drag path and its exposed hit regions.
+async function dragOrder(h, player, target) {
+  await h.scrollTo(`order-${player}`); await h.render();
+  const from = h.app.getButtons().find(button => button.id === `order-${player}`);
+  const to = h.app.getButtons().find(button => button.id === `order-${target}`);
+  assert.ok(from && to && !from.disabled && !to.disabled, `visible order tiles ${player}/${target}`);
+  const pt = box => ({ clientX: box.x + box.width / 2, clientY: box.y + box.height / 2 });
+  // Tap the color first so a cross-row vertical gesture is distinguished from scrolling.
+  h.p.callbacks.start({ touches: [pt(from)] });
+  h.p.callbacks.end({ touches: [], changedTouches: [pt(from)] });
+  await h.render();
+  h.p.callbacks.start({ touches: [pt(from)] });
+  h.p.callbacks.move({ touches: [pt(to)] });
+  h.p.callbacks.end({ touches: [], changedTouches: [pt(to)] });
+  await h.render();
+}
+
 const ready = async h => { await until(() => h.app.session.snapshot && !h.app.session.busy); await h.render(); };
 
 test('7–15 native seats have colors, labels and generic AI only; default roots are rejected', () => {
@@ -79,24 +96,27 @@ test('compact native setup supports fifteen seats, disallows default starts and 
       await h.tap('cabin-board'); await h.slide('player-count', 15, 2, 15);
       assert.equal(sut.readPreferences(h.p.storage).playerCount, 15);
       assert.equal(sut.readPreferences(h.p.storage).startingPointMode, 'random');
-      await h.scrollTo('starter-CORAL'); await h.tap('starter-CORAL');
+      await dragOrder(h, 'CORAL', 'BLACK');
+      assert.deepEqual(sut.readPreferences(h.p.storage).turnOrder, ['CORAL', ...sut.playerIds(15).slice(0, -1)]);
       await h.scrollTo('starts-default');
       assert.equal(h.app.getButtons().find(b => b.id === 'starts-default').disabled, true);
-      await h.scrollTo('starts-custom'); await h.tap('starts-custom');
-      for (const player of ['BLACK', 'WHITE', 'PURPLE']) assert.ok(h.app.getButtons().some(b => b.id === `start-seat-${player}`));
-      while (!h.app.getButtons().find(b => b.id === 'start-seats-next').disabled) await h.tap('start-seats-next');
-      await h.tap('start-seat-CORAL');
-      assert.equal(h.app.getButtons().find(b => b.id === 'start-seats-next').disabled, true);
+      await h.scrollTo('topology-custom'); await h.tap('topology-custom');
+      assert.equal(h.app.getScene(), 'board-editor');
+      for (const player of ['BLACK', 'WHITE', 'PURPLE']) assert.ok(h.app.getButtons().some(b => b.id === `editor-player-${player}`));
+      while (!h.app.getButtons().find(b => b.id === 'editor-players-next').disabled) await h.tap('editor-players-next');
+      await h.tap('editor-player-CORAL');
+      assert.equal(h.app.getButtons().find(b => b.id === 'editor-players-next').disabled, true);
       for (const b of h.app.getButtons()) {
         assert.ok(b.y + b.height <= 544, `${b.id} safe-area footer`);
-        assert.ok(b.height >= 36, `${b.id} touch height`);
+        assert.ok(b.height >= (b.id.startsWith('editor-players-') ? 30 : 36), `${b.id} touch height`);
       }
-      await h.tap('starts-save');
+      await h.tap('editor-save');
       assert.equal(sut.readPreferences(h.p.storage).startingPointMode, 'custom');
       assert.equal(Object.keys(sut.readPreferences(h.p.storage).initialPositions).length, 15);
       assert.equal(h.app.session.stateHash, hash, 'editing does not replace the match');
       await h.tap('cabin-close'); await h.tap('new-game'); await until(() => h.app.session.settings.playerCount === 15 && !h.app.session.busy);
       assert.equal(h.app.session.snapshot.currentPlayer, 'CORAL');
+      assert.deepEqual(h.app.session.settings.turnOrder, ['CORAL', ...sut.playerIds(15).slice(0, -1)]);
       assert.equal(h.app.session.error, null);
       await h.render();
       assert.ok(h.app.getButtons().some(b => b.id === 'score-prev'));

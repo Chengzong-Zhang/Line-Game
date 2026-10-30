@@ -15,11 +15,12 @@ test('topology setup starts a canonical local match and UI submits vertexId acti
     await h.tap('cabin-board');
     await h.scrollTo('topology-setup');
     await h.tap('topology-setup');
-    assert.equal(h.app.getScene(), 'topology-setup');
+    assert.equal(h.app.getScene(), 'home');
 
+    await h.scrollTo('topology-torus');
     await h.tap('topology-torus');
-    await h.scrollTo('topology-start');
-    await h.tap('topology-start');
+    await h.scrollTo('new-game');
+    await h.tap('new-game');
     await until(() => h.app.session.snapshot?.rulesVersion === 'surface-v1' && !h.app.session.busy);
     await h.render();
 
@@ -55,7 +56,7 @@ test('missing native WebGL is disclosed without changing the topology match', as
   const h = uiHarness();
   try {
     await ready(h); await h.tap('cabin-board'); await h.scrollTo('topology-setup'); await h.tap('topology-setup');
-    await h.tap('topology-torus'); await h.scrollTo('topology-start'); await h.tap('topology-start');
+    await h.scrollTo('topology-torus'); await h.tap('topology-torus'); await h.scrollTo('new-game'); await h.tap('new-game');
     await until(() => h.app.session.snapshot?.rulesVersion === 'surface-v1' && !h.app.session.busy);
     const before = h.app.session.stateHash;
     await h.render(); await h.tap('topology-3d');

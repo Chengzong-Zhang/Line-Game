@@ -11,12 +11,12 @@ const seeded = () => {
 
 for (const mode of ['classic', 'fixed-double', 'relocate', 'add']) test(`${mode}: random preview and shuffle match the next game exactly, then redraw`, async () => {
   const storage = memoryStorage(), rng = seeded();
-  sut.savePreferences(storage, { size: 7, mode: 'human', difficulty: 'simple', playerCount: 2 });
+  sut.savePreferences(storage, { size: 7, mode: 'human', difficulty: 'simple', playerCount: 2, rootMode: mode });
   let h = uiHarness({ storage, config: { startRandom: rng.random } });
   try {
     await ready(h); const oldHash = h.app.session.stateHash;
     await h.tap('cabin-board');
-    if (mode !== 'classic') { await h.scrollTo(`root-${mode}`); await h.tap(`root-${mode}`); }
+    assert.equal(h.app.getButtons().some(button => ['root-classic', 'root-fixed-double', 'root-relocate'].includes(button.id)), false);
     await h.scrollTo('starts-random'); await h.tap('starts-random');
     assert.equal(h.app.getScene(), 'starts');
     const first = h.app.getStartPreview();
@@ -54,13 +54,15 @@ test('changing shape invalidates an accepted random preview', async () => {
   } finally { h.app.dispose(); }
 });
 
-test('room setup submits exactly the fixed-double roots shown in its preview', async () => {
-  const rng = seeded(), h = uiHarness({ config: { onlineEnabled: true, apiBase: 'https://test.invalid', startRandom: rng.random } });
+test('legacy room setup submits exactly the fixed-double roots shown in its preview', async () => {
+  const rng = seeded(), storage = memoryStorage();
+  sut.savePreferences(storage, { size: 7, mode: 'human', difficulty: 'simple', playerCount: 2, rootMode: 'fixed-double' });
+  const h = uiHarness({ storage, config: { onlineEnabled: true, apiBase: 'https://test.invalid', startRandom: rng.random } });
   let submitted;
   h.app.online.enter = async (kind, settings) => { submitted = settings; return true; };
   try {
     await ready(h); await h.tap('cabin-battle'); await h.scrollTo('friends'); await h.tap('friends');
-    await h.scrollTo('root-fixed-double'); await h.tap('root-fixed-double');
+    // Legacy fixed-double settings remain readable without exposing the removed mode button.
     await h.scrollTo('starts-random'); await h.tap('starts-random'); await h.tap('starts-shuffle');
     const preview = h.app.getStartPreview(); await h.tap('starts-save');
     const before = rng.count(); await h.scrollTo('room-submit'); await h.tap('room-submit');

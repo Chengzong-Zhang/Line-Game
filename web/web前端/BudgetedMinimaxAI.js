@@ -21,7 +21,7 @@ function copy(value) {
 function isolatedEngine(source) {
   const engine = new GameEngine({ gridSize: source.gridSize, playerCount: source.playerCount,
     boardShape: source.boardShape, initialPositions: source.initialPositions,
-    startPlayer: source.startPlayer, rulesVersion: source.rulesVersion, protectionRule: source.protectionRule,
+    startPlayer: source.startPlayer, ...(source.explicitTurnOrder ? { turnOrder: [...source.turnOrder] } : {}), rulesVersion: source.rulesVersion, protectionRule: source.protectionRule,
     deferTerritoryUpdates: source.deferTerritoryUpdates });
   // Passing the actual roots preserves their positions; preserve the separate
   // flag too, because a default-root game must remain a default-root game.

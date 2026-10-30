@@ -19,6 +19,7 @@ function canonicalTerminalWinningPass(engine, player, now = () => performance.no
       playerCount: engine.playerCount,
       boardShape: engine.boardShape,
       startPlayer: engine.startPlayer,
+      ...(engine.explicitTurnOrder ? { turnOrder: [...engine.turnOrder] } : {}),
       initialPositions: engine.initialPositions,
       initialRoots: engine.initialRoots,
       rootMode: engine.rootMode,
@@ -108,7 +109,8 @@ self.onmessage = async (event) => {
       const engine = new GameEngine({
         compiledBoard: decoded.board,
         playerCount: Object.keys(decoded.ruleState.startingVertices).length,
-        startPlayer: decoded.ruleState.currentPlayer ?? undefined,
+        startPlayer: decoded.ruleState.turnOrder?.[0] ?? decoded.ruleState.currentPlayer ?? undefined,
+        ...(decoded.ruleState.turnOrder !== undefined ? { turnOrder: decoded.ruleState.turnOrder } : {}),
         rulesVersion: decoded.ruleState.rulesVersion,
         deferTerritoryUpdates: false,
       });
@@ -177,6 +179,7 @@ self.onmessage = async (event) => {
       playerCount: serializedState.playerCount,
       boardShape: serializedState.boardShape,
       startPlayer: serializedState.startPlayer,
+      ...(serializedState.turnOrder !== undefined ? { turnOrder: serializedState.turnOrder } : {}),
       initialPositions: serializedState.initialPositions,
       initialRoots: serializedState.initialRoots,
       rootMode: serializedState.rootMode,
@@ -254,7 +257,9 @@ self.onmessage = async (event) => {
       const model = await loadModelFreeModel(event.data?.modelId);
       ai = new ModelFreeAI(model);
     } else if (strategy === "multiplayer") {
-      const { loadMultiplayerRuntime } = await import("./MultiplayerRuntime.js?v=20261029-unified-r1");
+      const { loadMultiplayerRuntime } = serializedState.turnOrder !== undefined && event.data?.modelId === "multiplayer-hard-v1"
+        ? await import("./MultiplayerHardWorkerRuntime.js?v=20261030-turn-order-r1")
+        : await import("./MultiplayerRuntime.js?v=20261029-unified-r1");
       const runtime = await loadMultiplayerRuntime(event.data?.modelId, engine);
       ai = runtime.ai;
       modelInfo = runtime.modelInfo;

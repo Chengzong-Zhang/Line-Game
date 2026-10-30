@@ -562,6 +562,13 @@ export class GameEngine {
       add: this.rootMode === RootMode.ADD ? 1 : 0,
     }]));
     this.startPlayer = this.activePlayers.includes(options.startPlayer) ? options.startPlayer : this.activePlayers[0];
+    if (options.turnOrder !== undefined && (!Array.isArray(options.turnOrder)
+      || options.turnOrder.length !== this.activePlayers.length || new Set(options.turnOrder).size !== this.activePlayers.length
+      || !options.turnOrder.every((player) => this.activePlayers.includes(player)) || options.turnOrder[0] !== this.startPlayer)) {
+      throw new Error("INVALID_TURN_ORDER");
+    }
+    this.explicitTurnOrder = options.turnOrder !== undefined;
+    this.turnOrder = Object.freeze(this.explicitTurnOrder ? [...options.turnOrder] : [...this.activePlayers]);
 
     this.validPositions = [];
     this.positionKeys = new Set();
@@ -844,6 +851,7 @@ export class GameEngine {
       positionRevision: this.positionRevision,
       players: [...this.activePlayers],
       startPlayer: this.startPlayer,
+      ...(this.explicitTurnOrder ? { turnOrder: [...this.turnOrder] } : {}),
       currentPlayer: this.currentPlayer,
       gameOver: this.gameOver,
       territoryPending,
@@ -2529,14 +2537,15 @@ export class GameEngine {
     // Exactly the original JSON bytes, with cached cell serialization. Each
     // probe still checks the full board/edge/player hash against full history.
     const classicHash = `[${JSON.stringify(nextPlayer)},${JSON.stringify(resignedPlayers)},[${gridEntries.join(",")}],${JSON.stringify(edgeLists)}]`;
-    if (this.rootRulesVersion === RootRulesVersion.V1) return classicHash;
+    const orderHash = this.explicitTurnOrder ? `|turn-order:${JSON.stringify(this.turnOrder)}` : "";
+    if (this.rootRulesVersion === RootRulesVersion.V1) return classicHash + orderHash;
     const rootIdentity = this.activePlayers.map((player) => ({
       player,
       roots: this._getRoots(player).map(pointKey).sort(),
       relocate: this.rootActionsRemaining[player]?.relocate ?? 0,
       add: this.rootActionsRemaining[player]?.add ?? 0,
     }));
-    return `${classicHash}|${this.rootRulesVersion}|${this.rootMode}|${JSON.stringify(rootIdentity)}`;
+    return `${classicHash}|${this.rootRulesVersion}|${this.rootMode}|${JSON.stringify(rootIdentity)}${orderHash}`;
   }
 
   _updateTerritories() {
@@ -2548,9 +2557,9 @@ export class GameEngine {
   }
 
   _switchPlayer() {
-    const currentIndex = this.activePlayers.indexOf(this.currentPlayer);
-    for (let offset = 1; offset <= this.activePlayers.length; offset += 1) {
-      const nextPlayer = this.activePlayers[(currentIndex + offset) % this.activePlayers.length];
+    const currentIndex = this.turnOrder.indexOf(this.currentPlayer);
+    for (let offset = 1; offset <= this.turnOrder.length; offset += 1) {
+      const nextPlayer = this.turnOrder[(currentIndex + offset) % this.turnOrder.length];
       if (!this.resignedPlayers.has(nextPlayer)) {
         this.currentPlayer = nextPlayer;
         return;
@@ -2559,9 +2568,9 @@ export class GameEngine {
   }
 
   _getNextPlayer(player = this.currentPlayer) {
-    const currentIndex = this.activePlayers.indexOf(player);
-    for (let offset = 1; offset <= this.activePlayers.length; offset += 1) {
-      const nextPlayer = this.activePlayers[(currentIndex + offset) % this.activePlayers.length];
+    const currentIndex = this.turnOrder.indexOf(player);
+    for (let offset = 1; offset <= this.turnOrder.length; offset += 1) {
+      const nextPlayer = this.turnOrder[(currentIndex + offset) % this.turnOrder.length];
       if (!this.resignedPlayers.has(nextPlayer)) {
         return nextPlayer;
       }
@@ -2909,6 +2918,7 @@ export class GameEngine {
       playerCount: this.playerCount,
       boardShape: this.boardShape,
       startPlayer: this.startPlayer,
+      ...(this.explicitTurnOrder ? { turnOrder: [...this.turnOrder] } : {}),
       initialPositions: this.hasCustomInitialPositions ? this.initialPositions : undefined,
       initialRoots: this.initialRoots,
       rootMode: this.rootMode,

@@ -4,6 +4,19 @@ import { sut, until, memoryStorage } from './helpers.mjs';
 import { uiHarness } from './ui-harness.mjs';
 import { TEXT } from '../src/i18n.js';
 
+// Use the actual Canvas drag path and its exposed hit regions.
+async function dragOrder(h, player, target) {
+  await h.scrollTo(`order-${player}`); await h.render();
+  const from = h.app.getButtons().find(button => button.id === `order-${player}`);
+  const to = h.app.getButtons().find(button => button.id === `order-${target}`);
+  assert.ok(from && to && !from.disabled && !to.disabled, `visible order tiles ${player}/${target}`);
+  const pt = box => ({ clientX: box.x + box.width / 2, clientY: box.y + box.height / 2 });
+  h.p.callbacks.start({ touches: [pt(from)] });
+  h.p.callbacks.move({ touches: [pt(to)] });
+  h.p.callbacks.end({ touches: [], changedTouches: [pt(to)] });
+  await h.render();
+}
+
 const ready = async h => { await until(() => h.app.session.snapshot && !h.app.session.busy); await h.render(); };
 const profile = 'multiplayer-medium-v1';
 const stableCapture = session => {
@@ -19,32 +32,37 @@ test('two- and three-player controller drafts stay separate, persist across rest
   const storage = memoryStorage(), h = uiHarness({ storage }); let second;
   try {
     await ready(h); const hash = h.app.session.stateHash;
-    await h.tap('cabin-board'); await choose(h, 'BLACK', 1); await choose(h, 'WHITE', 0); await h.tap('starter-WHITE');
+    await h.tap('cabin-board'); await choose(h, 'BLACK', 1); await choose(h, 'WHITE', 0); await dragOrder(h, 'WHITE', 'BLACK');
     const two = { BLACK: 'minimax-2', WHITE: 'human' };
-    await h.slide('player-count', 3, 2, 15); await choose(h, 'BLACK', 1); await choose(h, 'PURPLE', 1); await h.tap('starter-PURPLE');
+    await h.slide('player-count', 3, 2, 15); await choose(h, 'BLACK', 1); await choose(h, 'PURPLE', 1); await dragOrder(h, 'BLACK', 'WHITE'); await dragOrder(h, 'PURPLE', 'BLACK');
     const three = { BLACK: profile, WHITE: 'human', PURPLE: profile };
     assert.deepEqual(sut.readPreferences(storage).controllers, three);
     assert.equal(sut.readPreferences(storage).mode, 'three-human');
     await h.slide('player-count', 2, 2, 15);
-    assert.deepEqual(sut.readPreferences(storage).controllers, two); assert.equal(sut.readPreferences(storage).startPlayer, 'WHITE');
+    assert.deepEqual(sut.readPreferences(storage).controllers, two); assert.deepEqual(sut.readPreferences(storage).turnOrder, ['BLACK', 'WHITE']);
     await h.slide('player-count', 3, 2, 15);
-    assert.deepEqual(sut.readPreferences(storage).controllers, three); assert.equal(sut.readPreferences(storage).startPlayer, 'PURPLE');
+    assert.deepEqual(sut.readPreferences(storage).controllers, three); assert.deepEqual(sut.readPreferences(storage).turnOrder, ['BLACK', 'WHITE', 'PURPLE']);
     assert.equal(h.app.session.stateHash, hash, 'editing drafts never replaces the running game');
     h.app.dispose(); second = uiHarness({ storage }); await ready(second);
     await second.tap('cabin-board');
     await second.slide('player-count', 2, 2, 15); assert.deepEqual(sut.readPreferences(storage).controllers, two);
     await second.slide('player-count', 3, 2, 15); assert.deepEqual(sut.readPreferences(storage).controllers, three);
+    await dragOrder(second, 'PURPLE', 'BLACK');
     await second.tap('cabin-close'); await second.tap('new-game');
     await until(() => second.app.session.settings.playerCount === 3 && second.app.session.actions.length >= 2 && !second.app.session.busy);
     assert.deepEqual(second.app.session.controllers, three); assert.equal(second.app.session.settings.startPlayer, 'PURPLE');
+    assert.deepEqual(second.app.session.settings.turnOrder, ['PURPLE', 'BLACK', 'WHITE']);
     assert.deepEqual(second.app.session.actions.map(action => action.player), ['PURPLE', 'BLACK']);
     assert.equal(second.app.session.snapshot.currentPlayer, 'WHITE'); assert.equal(second.app.session.canPlay(), true);
     await second.app.session.replay(1); const branchHash = second.app.session.replayStateHash;
     await second.render(); await second.tap('replay-branchReplay');
     await second.tap('branch-keep'); await second.tap('branch-start');
     await until(() => second.app.getScene() === 'game' && second.app.session.replayIndex === null);
-    assert.deepEqual(second.app.session.controllers, three); assert.equal(second.app.session.stateHash, branchHash);
-    assert.equal(second.app.session.actions.length, 1); assert.equal(second.app.session.paused, false);
+    assert.deepEqual(second.app.session.controllers, three); assert.deepEqual(second.app.session.settings.turnOrder, ['PURPLE', 'BLACK', 'WHITE']);
+    assert.equal(sut.ruleView(sut.restoreGame(second.app.session.settings, second.app.session.actions.slice(0, 1))).stateHash, branchHash);
+    assert.equal(second.app.session.actions[0].player, 'PURPLE');
+    if (second.app.session.actions.length > 1) assert.equal(second.app.session.actions[1].player, 'BLACK');
+    assert.equal(second.app.session.paused, false);
   } finally { h.app.dispose(); second?.app.dispose(); }
 });
 

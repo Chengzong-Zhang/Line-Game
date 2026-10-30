@@ -2329,7 +2329,14 @@ class ConnectionManager:
             start_player = settings.get("startPlayer", PLAYER_BLACK)
             allowed_players = PLAYER_COLORS[:player_count]
             if start_player not in allowed_players:
+                if "turnOrder" in settings:
+                    raise RoomSettingsError("INVALID_TURN_ORDER", "startPlayer must match the first player in turnOrder.")
                 start_player = allowed_players[0]
+            turn_order = settings.get("turnOrder")
+            if "turnOrder" in settings and (not isinstance(turn_order, list) or len(turn_order) != player_count
+                    or any(not isinstance(player, str) for player in turn_order)
+                    or set(turn_order) != set(allowed_players) or turn_order[0] != start_player):
+                raise RoomSettingsError("INVALID_TURN_ORDER", "Turn order must be a complete player permutation beginning with startPlayer.")
             grid_size = settings.get("gridSize", 9)
             if type(grid_size) is not int or grid_size < MIN_GRID_SIZE or grid_size > MAX_GRID_SIZE:
                 grid_size = 9
@@ -2350,6 +2357,7 @@ class ConnectionManager:
                 "playerCount": player_count,
                 "gridSize": grid_size,
                 "startPlayer": start_player,
+                **({"turnOrder": list(turn_order)} if "turnOrder" in settings else {}),
                 "turnTimerEnabled": bool(settings.get("turnTimerEnabled", False)),
                 "turnTimeLimitSeconds": turn_time_limit_seconds,
                 "botCount": 0,
@@ -2390,7 +2398,14 @@ class ConnectionManager:
         )
         allowed_players = PLAYER_COLORS[:player_count]
         if start_player not in allowed_players:
+            if "turnOrder" in settings:
+                raise RoomSettingsError("INVALID_TURN_ORDER", "startPlayer must match the first player in turnOrder.")
             start_player = allowed_players[0]
+        turn_order = settings.get("turnOrder")
+        if "turnOrder" in settings and (not isinstance(turn_order, list) or len(turn_order) != player_count
+                or any(not isinstance(player, str) for player in turn_order)
+                or set(turn_order) != set(allowed_players) or turn_order[0] != start_player):
+            raise RoomSettingsError("INVALID_TURN_ORDER", "Turn order must be a complete player permutation beginning with startPlayer.")
         if not isinstance(rules_version, str) or rules_version not in ALLOWED_RULES_VERSIONS:
             rules_version = DEFAULT_RULES_VERSION
         if not isinstance(protection_rule, str) or protection_rule not in ALLOWED_PROTECTION_RULES:
@@ -2487,6 +2502,7 @@ class ConnectionManager:
             "boardShape": board_shape,
             "gridSize": grid_size,
             "startPlayer": start_player,
+            **({"turnOrder": list(turn_order)} if "turnOrder" in settings else {}),
             "rulesVersion": rules_version,
             "protectionRule": protection_rule,
             "turnTimerEnabled": turn_timer_enabled,

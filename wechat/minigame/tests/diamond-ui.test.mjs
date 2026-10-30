@@ -163,6 +163,7 @@ test('board cabin selects diamond, normalizes 3-player roots once, and allows v4
   try {
     await until(() => h.app.session.snapshot && !h.app.session.busy); await h.render();
     await h.tap('cabin-board');
+    await h.scrollTo('shape-diamond');
     for (const id of ['shape-triangle', 'shape-diamond', 'shape-hexagon'])
       assert.ok(h.app.getButtons().some(button => button.id === id));
     await h.scrollTo('shape-diamond'); await h.tap('shape-diamond');

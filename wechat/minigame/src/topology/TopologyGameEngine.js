@@ -318,6 +318,13 @@ export class TopologyGameEngine {
     this.activePlayers = runtime.playerOrder.slice(0, this.playerCount);
     this.startPlayer = this.activePlayers.includes(options.startPlayer)
       ? options.startPlayer : this.activePlayers[0];
+    if (options.turnOrder !== undefined && (!Array.isArray(options.turnOrder)
+      || options.turnOrder.length !== this.activePlayers.length || new Set(options.turnOrder).size !== this.activePlayers.length
+      || !options.turnOrder.every((player) => this.activePlayers.includes(player)) || options.turnOrder[0] !== this.startPlayer)) {
+      throw topologyError("INVALID_TURN_ORDER");
+    }
+    this.explicitTurnOrder = options.turnOrder !== undefined;
+    this.turnOrder = Object.freeze(this.explicitTurnOrder ? [...options.turnOrder] : [...this.activePlayers]);
     this.currentPlayer = this.startPlayer;
     const provisionalAliases = coordinateAliasesFor(this.compiledBoard);
     const selectedStarts = selectInitialPositions(
@@ -682,6 +689,7 @@ export class TopologyGameEngine {
       "topology-state-v1", this.boardHash, nextPlayer,
       this.activePlayers.filter((player) => this.resignedPlayers.has(player)),
       occupied, paths,
+      ...(this.explicitTurnOrder ? [this.turnOrder] : []),
     ]);
   }
 
@@ -782,9 +790,9 @@ export class TopologyGameEngine {
   }
 
   _switchPlayer() {
-    const currentIndex = this.activePlayers.indexOf(this.currentPlayer);
-    for (let offset = 1; offset <= this.activePlayers.length; offset += 1) {
-      const next = this.activePlayers[(currentIndex + offset) % this.activePlayers.length];
+    const currentIndex = this.turnOrder.indexOf(this.currentPlayer);
+    for (let offset = 1; offset <= this.turnOrder.length; offset += 1) {
+      const next = this.turnOrder[(currentIndex + offset) % this.turnOrder.length];
       if (!this.resignedPlayers.has(next)) {
         this.currentPlayer = next;
         return;
@@ -793,9 +801,9 @@ export class TopologyGameEngine {
   }
 
   _getNextPlayer(player = this.currentPlayer) {
-    const currentIndex = this.activePlayers.indexOf(player);
-    for (let offset = 1; offset <= this.activePlayers.length; offset += 1) {
-      const next = this.activePlayers[(currentIndex + offset) % this.activePlayers.length];
+    const currentIndex = this.turnOrder.indexOf(player);
+    for (let offset = 1; offset <= this.turnOrder.length; offset += 1) {
+      const next = this.turnOrder[(currentIndex + offset) % this.turnOrder.length];
       if (!this.resignedPlayers.has(next)) return next;
     }
     return player;
@@ -954,6 +962,7 @@ export class TopologyGameEngine {
       positionRevision: this.positionRevision,
       players: [...this.activePlayers],
       startPlayer: this.startPlayer,
+      ...(this.explicitTurnOrder ? { turnOrder: [...this.turnOrder] } : {}),
       currentPlayer: this.currentPlayer,
       gameOver: this.gameOver,
       territoryPending: this.hasPendingTerritoryUpdate(),
@@ -1049,6 +1058,7 @@ export class TopologyGameEngine {
       stateVersion: TOPOLOGY_RULE_STATE_VERSION,
       rulesVersion: this.rulesVersion,
       currentPlayer: this.currentPlayer,
+      ...(this.explicitTurnOrder ? { turnOrder: [...this.turnOrder] } : {}),
       startingVertices: topologyStartingState(this.compiledBoard),
       vertexStateById,
       logicPaths,
@@ -1081,6 +1091,7 @@ export class TopologyGameEngine {
     if (stableStringify(ruleState.startingVertices) !== stableStringify(topologyStartingState(this.compiledBoard))) {
       throw topologyError("STARTING_VERTICES_MISMATCH");
     }
+    if (JSON.stringify(ruleState.turnOrder ?? null) !== JSON.stringify(this.explicitTurnOrder ? this.turnOrder : null)) throw topologyError("TURN_ORDER_MISMATCH");
     if (ruleState.currentPlayer !== null && !this.activePlayers.includes(ruleState.currentPlayer)) {
       throw topologyError("UNKNOWN_CURRENT_PLAYER");
     }
@@ -1164,6 +1175,7 @@ export class TopologyGameEngine {
       compiledBoard: this.compiledBoard,
       playerCount: this.playerCount,
       startPlayer: this.startPlayer,
+      ...(this.explicitTurnOrder ? { turnOrder: [...this.turnOrder] } : {}),
       initialPositions: this.initialRoots,
       rulesVersion: this.rulesVersion,
       deferTerritoryUpdates: this.deferTerritoryUpdates,

@@ -6,6 +6,19 @@ import { sut, localScheduler, memoryStorage, until, plain } from './helpers.mjs'
 import { uiHarness } from './ui-harness.mjs';
 import { TEXT } from '../src/i18n.js';
 
+// Use the actual Canvas drag path and its exposed hit regions.
+async function dragOrder(h, player, target) {
+  await h.scrollTo(`order-${player}`); await h.render();
+  const from = h.app.getButtons().find(button => button.id === `order-${player}`);
+  const to = h.app.getButtons().find(button => button.id === `order-${target}`);
+  assert.ok(from && to && !from.disabled && !to.disabled, `visible order tiles ${player}/${target}`);
+  const pt = box => ({ clientX: box.x + box.width / 2, clientY: box.y + box.height / 2 });
+  h.p.callbacks.start({ touches: [pt(from)] });
+  h.p.callbacks.move({ touches: [pt(to)] });
+  h.p.callbacks.end({ touches: [], changedTouches: [pt(to)] });
+  await h.render();
+}
+
 const setup = (size = 5, players = 2) => sut.settingsFor(size, players);
 const actions = [{ type: 'move', point: [1, 0] }, { type: 'move', point: [0, 2] }, { type: 'move', point: [3, 1] }];
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -161,7 +174,7 @@ test('player and replay UI works in both languages on three sizes; jump/inspect 
     try {
       await render(); await tap('cabin-board'); geometry(); await h.scrollTo('controller-WHITE'); geometry();
       p.choose = async () => 1; await tap('controller-BLACK'); p.choose = async () => 0; await tap('controller-WHITE');
-      await tap('starter-WHITE'); await tap('cabin-close'); await tap('new-game'); await until(() => app.session.canPlay()); await render(); geometry();
+      await dragOrder(h, 'WHITE', 'BLACK'); await tap('cabin-close'); await tap('new-game'); await until(() => app.session.canPlay()); await render(); geometry();
       assert.equal(app.session.snapshot.currentPlayer, 'WHITE'); assert.equal(app.session.settings.startPlayer, 'WHITE');
       assert.deepEqual(app.session.controllers, { BLACK: 'minimax-2', WHITE: 'human' });
       const prefs = sut.readPreferences(p.storage); assert.equal(prefs.startPlayer, 'WHITE'); assert.deepEqual(prefs.controllers, app.session.controllers);

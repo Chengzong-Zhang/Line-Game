@@ -57,14 +57,15 @@ for (const kind of ['diamond', 'root-add', 'double-torus', 'custom']) {
       if (kind === 'double-torus') {
         await h.scrollTo('topology-double-torus'); await h.tap('topology-double-torus');
       } else {
-        await h.scrollTo('topology-custom'); await h.tap('topology-custom'); await h.scrollTo('topology-add-boundary');
+        await h.scrollTo('topology-custom'); await h.tap('topology-custom');
+        await h.tap('editor-tool-contour'); await h.tap('editor-clear');
         for (const coordinate of [[1, 1], [3, 1], [3, 3], [1, 3], [1, 1]]) {
-          const point = h.app.getTopologyLayout().gridPoints.find(p => p.coordinate.join(',') === coordinate.join(','));
+          const point = h.app.getEditorLayout().gridPoints.find(p => p.coordinate.join(',') === coordinate.join(','));
           assert.ok(point); h.app.tap(point.x, point.y); await h.render();
         }
-        assert.equal(h.app.getTopologyLayout().closed, true);
+        assert.equal(h.app.getEditorLayout().contourPoints.length, 1); await h.tap('editor-save');
       }
-      await h.scrollTo('topology-start'); await h.tap('topology-start');
+      await h.scrollTo('new-game'); await h.tap('new-game');
       await until(() => h.app.session.snapshot?.rulesVersion === 'surface-v1' && !h.app.session.busy);
       await h.render();
       const vertexId = h.app.session.snapshot.legalMoves[0].vertexId;

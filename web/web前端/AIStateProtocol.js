@@ -20,6 +20,7 @@ export function serializeEngineState(engine) {
     playerCount: engine.playerCount,
     boardShape: engine.boardShape,
     startPlayer: engine.startPlayer,
+    ...(engine.explicitTurnOrder ? { turnOrder: [...engine.turnOrder] } : {}),
     ...(engine.hasCustomInitialPositions ? { initialPositions: cloneValue(engine.initialPositions) } : {}),
     initialRoots: cloneValue(engine.initialRoots),
     roots: Object.fromEntries(engine.activePlayers.map((player) => [player, engine.getRoots(player)])),

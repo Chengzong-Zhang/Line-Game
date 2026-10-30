@@ -53,9 +53,9 @@
       "reason": "Native compatibility rebased on unified source, preserving rule and model logic."
     },
     "web/web前端/MultiplayerSearch.js": {
-      "canonicalSha256": "67dd92fd1551d1fee4456daaaed3b3f6f1bcd89e4bbe38e28eb7a8e7bb9d6503",
+      "canonicalSha256": "d44182690dfeea10a5d16bc6041408b3e356611b15e1b76eb72ab4fb1111efd3",
       "override": "wechat/minigame/compat/web/MultiplayerSearch.js",
-      "overrideSha256": "b4ea1bf3b4c738b9ba9a914b00ca4e75a897cb566a0e940c90f525d1671e6056",
+      "overrideSha256": "4e0de23d8fd7f006c021542ff677e8fba04c0fa23f180fe5084a2928bccf4190",
       "reason": "Native compatibility rebased on unified source, preserving rule and model logic."
     },
     "web/web前端/MultiplayerStandardDefense.js": {
@@ -119,9 +119,9 @@
       "reason": "Native inference avoids browser URL at startup while keeping manifest loading lazy."
     },
     "web/web前端/ReplayCodec.js": {
-      "canonicalSha256": "144a93d35269a50271233df1f8c5e401431a6564b7a142fac9da6aecd21ae848",
+      "canonicalSha256": "4350feb52195f3c0fc14a1af37ec0804f04b39809134954159754af282ffd2ee",
       "override": "wechat/minigame/compat/web/ReplayCodec.js",
-      "overrideSha256": "e4f62e4061b5f42f3c22d75df139c93ca2d3b49a5598f6038d7928343362ce6d",
+      "overrideSha256": "21c255ae9a75e1d593907264fca43b9d016d9066d750c239d37bb642c089451a",
       "reason": "Native compatibility rebased on unified source, preserving rule and model logic."
     },
     "web/web前端/LocalAIModes.js": {
@@ -131,9 +131,9 @@
       "reason": "Native compatibility rebased on unified source, preserving rule and model logic."
     },
     "web/web前端/LocalGameSession.js": {
-      "canonicalSha256": "525f8bb84df14cbb8153635776327b5befdc0d57549ad31093dd60c51d9a5ceb",
+      "canonicalSha256": "00bb0720648e3d90464baf27a783984294965f9517309996e9a0f3f832115ecd",
       "override": "wechat/minigame/compat/web/LocalGameSession.js",
-      "overrideSha256": "525f8bb84df14cbb8153635776327b5befdc0d57549ad31093dd60c51d9a5ceb",
+      "overrideSha256": "00bb0720648e3d90464baf27a783984294965f9517309996e9a0f3f832115ecd",
       "reason": "Unified local-session schema is shared; native bundler handles import cache suffixes."
     },
     "web/web前端/MultiplayerModel.js": {
@@ -161,9 +161,9 @@
       "reason": "Native compatibility rebased on unified source, preserving rule and model logic."
     },
     "web/web前端/GameEngine.js": {
-      "canonicalSha256": "83663d85e2f5373d6818c467b82e2fc3c502cecb7a9c6136cf025a5927da9f0a",
+      "canonicalSha256": "f12ea23ec3efb6084d17f511567bf64c2501352193f37b2977a27d2044ecb46f",
       "override": "wechat/minigame/compat/web/GameEngine.js",
-      "overrideSha256": "0b3e3f3d0a6253b625917f586330a1e30da366f27f119aacbaf1b499464b4ff5",
+      "overrideSha256": "5c9339bf4d0853b05e502d6a26dd664c69af741de200d680585781a094e371a3",
       "reason": "Use the same rule engine and legacy-compatible own-property check in native Mini Game."
     }
   }

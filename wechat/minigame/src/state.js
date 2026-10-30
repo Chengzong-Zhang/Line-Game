@@ -25,6 +25,12 @@ const record = value => value !== null && typeof value === 'object' && !Array.is
 const clone = value => JSON.parse(JSON.stringify(value));
 
 function invalid(code) { throw new Error(code); }
+export function validateTurnOrder(order, playerCount, startPlayer) {
+  const players = PLAYER_ORDER.slice(0, playerCount);
+  if (!Array.isArray(order) || order.length !== players.length || new Set(order).size !== players.length
+    || !order.every(player => players.includes(player)) || order[0] !== startPlayer) invalid('INVALID_TURN_ORDER');
+  return [...order];
+}
 
 function compileTopologyBoard(settings) {
   const hasDefinition = own(settings, 'boardDefinition');
@@ -128,6 +134,7 @@ export function isTopologySettings(settings) {
  */
 export function normalizeGameSettings(settings) {
   if (!record(settings)) invalid('INVALID_SETTINGS');
+  if (settings.turnOrder !== undefined) validateTurnOrder(settings.turnOrder, settings.playerCount, settings.startPlayer);
   if (isTopologySettings(settings)) {
     if (settings.rulesVersion !== SURFACE_RULES) invalid('INVALID_TOPOLOGY_RULES');
     const topologyProtocolVersion = settings.topologyProtocolVersion ?? TOPOLOGY_PROTOCOL_VERSION;
@@ -149,6 +156,7 @@ export function normalizeGameSettings(settings) {
       gridSize,
       playerCount: settings.playerCount,
       startPlayer: settings.startPlayer,
+      ...(settings.turnOrder !== undefined ? { turnOrder: [...settings.turnOrder] } : {}),
       rulesVersion: SURFACE_RULES,
       topologyProtocolVersion,
       boardShape: 'custom',
@@ -194,6 +202,7 @@ export function topologySettingsFor(boardDefinition, options = {}) {
     gridSize: options.gridSize,
     playerCount: options.playerCount ?? 2,
     startPlayer: options.startPlayer ?? 'BLACK',
+    ...(options.turnOrder !== undefined ? { turnOrder: options.turnOrder } : {}),
     rulesVersion: SURFACE_RULES,
     boardShape: 'custom',
     ...(options.topologyProtocolVersion !== undefined ? { topologyProtocolVersion: options.topologyProtocolVersion } : {}),

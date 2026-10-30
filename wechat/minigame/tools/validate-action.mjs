@@ -1,7 +1,7 @@
 // Backend-only entry. Uses exactly the same rules/state hash as the Mini Game.
 import { executeTask } from '../src/worker-runtime.js';
 import { restoreGame, TOPOLOGY_PROTOCOL_VERSION } from '../src/state.js';
-import { rankedReply, prepareRankedMatch } from './ranked-ai.mjs';
+import { rankedReply, prepareRankedMatch, runtimeFingerprint } from './ranked-ai.mjs';
 let raw = '';
 for await (const chunk of process.stdin) {
   raw += chunk;
@@ -9,6 +9,8 @@ for await (const chunk of process.stdin) {
 }
 try {
   const payload = JSON.parse(raw);
+  if (payload.aiRuntime != null && !payload.aiProfile && !payload.rankedSetup
+    && payload.aiRuntime !== await runtimeFingerprint()) throw new Error('AI_VERSION_CHANGED');
   // Worker context is derived from a fresh authoritative replay, never from
   // untrusted request data. It is only required for surface APPLY tasks.
   const engine = payload.action && !payload.rankedSetup && !payload.aiProfile

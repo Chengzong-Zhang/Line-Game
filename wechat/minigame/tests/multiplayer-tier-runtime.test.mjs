@@ -81,7 +81,7 @@ function assertUnchanged(engine, before) {
   for (const key of ['revision', 'territoryRevision', 'grid', 'edges', 'territories']) assert.equal(after[key], before[key], key);
 }
 
-test('shared search and rollout retain the frozen Web source apart from reviewed platform and diamond adapters', async () => {
+test('shared search and rollout retain frozen algorithms apart from reviewed platform, diamond and turn-order state adapters', async () => {
   for (const [name, expected] of [
     ['MultiplayerSearch.js', '4d282be9ea2b825dc5efc025cfb5d5c7955788c6880509e821088e33b05605ef'],
     ['MultiplayerRollout.js', '58b6040c7c3592ea3c701b22fb6a6054468b2acf3c6d4ab77f791321a14e6117'],
@@ -90,7 +90,13 @@ test('shared search and rollout retain the frozen Web source apart from reviewed
     const boundary = content.indexOf('\n') + 1;
     assert.equal(content.slice(0, boundary),
       'import { multiplayerClock as performance } from "./MultiplayerClock.js";\n');
-    const frozenSource = content.slice(boundary);
+    const currentSource = content.slice(boundary);
+    const orderedClone = '    startPlayer: source.startPlayer, ...(source.explicitTurnOrder ? { turnOrder: [...source.turnOrder] } : {}), rulesVersion: source.rulesVersion,';
+    if (name === 'MultiplayerSearch.js') assert.equal(currentSource.split(orderedClone).length - 1, 1);
+    // The isolated search must copy the new rule input. The separate real
+    // non-rotational Worker tests verify that behavior; no search policy,
+    // budget or coefficient is exempted from this frozen-algorithm comparison.
+    const frozenSource = currentSource.replace(orderedClone, '    startPlayer: source.startPlayer, rulesVersion: source.rulesVersion,');
     const v3Admission = '!["territory-v2", "territory-v3"].includes(source.rulesVersion)';
     assert.equal(frozenSource.split(v3Admission).length - 1, 1);
     const protectionFilter = `  return [...indices].sort((a, b) => a - b).filter(i => {

@@ -45,7 +45,7 @@ function verifyNativeTopology(doc) {
   assert(keysAre(doc, ['format', 'schemaVersion', 'engineFamily', 'rulesVersion', 'topologyProtocolVersion', 'config', 'actions', 'finalState'])
     && doc.schemaVersion === 1 && doc.rulesVersion === 'surface-v1' && doc.topologyProtocolVersion === 'board-topology-v1', 'Invalid native topology replay');
   const c = doc.config;
-  assert(keysAre(c, ['gridSize', 'playerCount', 'startPlayer', 'rulesVersion', 'topologyProtocolVersion', 'boardShape', 'boardDefinition', 'boardHash',
+  assert(keysAre(c, ['gridSize', 'playerCount', 'startPlayer', ...(c?.turnOrder !== undefined ? ['turnOrder'] : []), 'rulesVersion', 'topologyProtocolVersion', 'boardShape', 'boardDefinition', 'boardHash',
     'rootMode', 'rootRulesVersion', 'turnTimerEnabled', 'turnTimeLimitSeconds', 'hintEnabled', 'hintMaxCount', 'undoEnabled', 'undoMaxCount'])
     && c.rulesVersion === 'surface-v1' && c.boardShape === 'custom' && c.topologyProtocolVersion === 'board-topology-v1'
     && c.rootMode === 'classic' && c.rootRulesVersion === 'root-v1', 'Invalid topology config');
@@ -101,7 +101,8 @@ export async function validateV4Replay(doc, context) {
     const verified = await validateTopologyReplayDocument(doc);
     assert(verified.success, 'Invalid web topology replay');
     const rebuilt = await createTopologyReplayDocument({ boardDefinition: decoded.board.definition,
-      playerCount: count, startPlayer: decoded.ruleState.currentPlayer, rulesVersion: 'surface-v1' }, doc.actions);
+      playerCount: count, startPlayer: decoded.ruleState.turnOrder?.[0] ?? decoded.ruleState.currentPlayer,
+      ...(decoded.ruleState.turnOrder !== undefined ? { turnOrder: decoded.ruleState.turnOrder } : {}), rulesVersion: 'surface-v1' }, doc.actions);
     assert(rebuilt.terminal && same(doc, rebuilt), 'Incomplete or mismatched web topology replay');
     // The Web topology codec does not encode display size or hint settings.
     // They are not rule inputs for a surface; derive only a validation context.

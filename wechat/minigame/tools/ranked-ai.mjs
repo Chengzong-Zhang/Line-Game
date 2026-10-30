@@ -39,7 +39,7 @@ export async function prepareRankedMatch(request) {
     input = rankedSetupInput({ gridSize: 7, playerCount: 2, boardShape: 'triangle' }, { BLACK: 'human', WHITE: request.profile });
   } else {
     if (Object.keys(request).sort().join(',') !== 'controllers,settings' || !request.settings) throw Error('INVALID_SETTINGS');
-    const allowed = ['gridSize', 'playerCount', 'boardShape', 'startPlayer', 'startingPointMode', 'rulesVersion', 'protectionRule', 'initialPositions'];
+    const allowed = ['gridSize', 'playerCount', 'boardShape', 'startPlayer', 'startingPointMode', 'rulesVersion', 'protectionRule', 'initialPositions', 'turnOrder'];
     if (Object.keys(request.settings).some(key => !allowed.includes(key)) || request.settings.rulesVersion !== 'territory-v3') throw Error('INVALID_SETTINGS');
     input = rankedSetupInput(request.settings, request.controllers);
   }
@@ -54,6 +54,7 @@ export async function prepareRankedMatch(request) {
   const context = { version: 'ranked-context-v1', runtime: await runtimeFingerprint(),
     gridSize: settings.gridSize, playerCount: settings.playerCount, boardShape: settings.boardShape,
     startPlayer: settings.startPlayer, startingPointMode: settings.startingPointMode,
+    ...(settings.turnOrder !== undefined ? { turnOrder: [...settings.turnOrder] } : {}),
     rulesVersion: settings.rulesVersion, protectionRule: settings.protectionRule, humanPlayer, controllers,
     ...(settings.startingPointMode === 'custom' ? { initialPositions: settings.initialPositions } : {}) };
   const state = executeTask({ kind: 'STATE', payload: { settings, actions: [] } });

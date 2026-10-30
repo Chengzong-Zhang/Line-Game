@@ -32,11 +32,16 @@ import { rankedSetupInput } from './ranked-setup.js';
 import { layoutTopologyBoard, hitTopologyVertex, drawTopologyBoard, layoutTopologyDraft, hitTopologyDraftPoint, drawTopologyDraft } from './topology-board.js';
 import { buildSurfaceCells, createDepthRenderer, initialSurfacePitch } from './topology/TopologySurface3D.js';
 import { createSoftwareSurfaceRenderer } from './topology-software-surface.js';
+import { readBoardSelection, saveBoardSelection } from './board-selection.js';
+import { renderBoardEditor, hitTestBoardEditor } from './board-editor-ui.js';
+import { drawTurnOrderStrip } from './turn-order-ui.js';
 import { topologyStartingRoots } from './topology/TopologyStartingPoints.js';
 import { GameEngine } from './core.js';
 import { createTopologySetup, addTopologyBoundaryVertex, extendTopologyBoundary, undoTopologyBoundary, closeTopologyBoundary, changeTopologyStarts,
   selectTopologyBoundaryOccurrence, toggleTopologySeamDirection, addSelectedTopologySeam,
   useTopologyPreset, generateTopologyBoard, reconcileTopologySetupPlayers, topologySetupResult } from './topology-setup.js';
+import { createTopologyEditorLegacyDefinition, startTopologyBoundaryRing, deleteTopologyBoundaryRing,
+  removeTopologySeam, setTopologyRootAtVertex, topologyEditorRootsByCoordinate } from './topology-setup.js';
 
 const THEME = { background: '#f4ede1', ink: '#2a2118', muted: '#695749', border: '#dfd1bb', white: '#fff9ee' };
 
@@ -46,8 +51,10 @@ export function createApp(platform, config = {}) {
   let language = 'zh';
   try { if (platform.storage.get('lifeline-wx-language') === 'en') language = 'en'; } catch (_) { /* First run. */ }
   const preferences = readPreferences(platform.storage);
+  const savedBoardSelection = readBoardSelection(platform.storage);
   let scene = 'game', cabin = null, cabinGeneration = 0, disposed = false, selected = null, actionMode = 'move', size = preferences.size, mode = preferences.mode, difficulty = preferences.difficulty;
   let startPlayer = preferences.startPlayer || 'BLACK', controllers = preferences.controllers || null;
+  let turnOrder = preferences.turnOrder || null, invalidTurnOrder = Boolean(preferences.invalidTurnOrder);
   let playerCount = preferences.playerCount ?? (mode === 'three-human' ? 3 : 2), playersPage = 0;
   let boardShape = preferences.boardShape || (playerCount >= 4 ? 'hexagon' : 'triangle');
   let rootMode = playerCount === 2 ? preferences.rootMode || 'classic' : 'classic';
@@ -57,37 +64,53 @@ export function createApp(platform, config = {}) {
   let startSeat = 'BLACK', startPoint = null, startSeatPage = 0;
   let scorePage = 0, scorePosition = null, resultPage = 0;
   let roomDraft = null;
-  let topologySetup = null, topologyDraftLayout = null, topologyDraftSelectedIndex = null, topologyControllers = {};
+  let topologySetup = savedBoardSelection?.kind === 'topology' ? createTopologySetup({ definition: savedBoardSelection.definition }) : null;
+  let topologyDraftLayout = null, topologyDraftSelectedIndex = null, topologyControllers = savedBoardSelection?.controllers || {};
+  let topologyExpanded = Boolean(savedBoardSelection?.expanded), topologyPreset = savedBoardSelection?.kind === 'topology' ? savedBoardSelection.preset : null;
+  let editorSetup = null, editorSource = null, editorTool = 'root', editorPlayer = 'BLACK', editorRing = null;
+  let editorLayout = null, editorMessage = '', editorPage = 0, editorMoveFrom = null, editorZoom = 1, editorPan = { x: 0, y: 0 };
+  let numberEditing = null, numberHandle = null, numberToken = 0, orderDrag = null, orderArmed = null, orderRegions = [];
   // null means the player explicitly selected a normal board for the next game;
   // undefined follows the current saved game, including restored topology games.
-  let nextTopologyChoice;
+  let nextTopologyChoice = savedBoardSelection?.kind === 'ordinary' ? null : savedBoardSelection?.kind === 'topology' ? 'selected' : undefined;
   const topologyPreviewCache = new WeakMap();
   let topologyPreviewLayout = null, topologyRandomCounter = 0;
   let surface3dCanvas = null, surface3dRenderer = null, surface3dData = null, surface3dRect = null, surface3dYaw = 0.45, surface3dPitch = -0.3, surface3dZoom = 1;
-  let surface3dPaused = false, surface3dTimer = null, surface3dSoftware = false;
-  const draftSettings = () => ({ gridSize: size, playerCount, boardShape, rootMode, rulesVersion: 'territory-v3' });
+  let surface3dPaused = false, surface3dTimer = null, surface3dSoftware = false, surface3dDrawKey = null;
+  const draftSettings = () => selectedTopologyDefinition()
+    ? { gridSize: size, playerCount, turnOrder: currentTurnOrder(null), startPlayer, boardShape: 'custom', rootMode: 'classic', rulesVersion: 'surface-v1',
+      boardDefinition: selectedTopologyDefinition(), boardHash: topologySetup?.boardHash || session.settings?.boardHash,
+      topologyProtocolVersion: 'board-topology-v1' }
+    : { gridSize: size, playerCount, turnOrder: currentTurnOrder(null), startPlayer, boardShape, rootMode, rulesVersion: 'territory-v3' };
   const startLayoutKey = settings => JSON.stringify([settings.gridSize, settings.playerCount, settings.boardShape,
     settings.rootMode || 'classic', settings.startPlayer || 'BLACK']);
   const startRandom = config.startRandom || Math.random;
   const playerDrafts = preferences.playerDrafts || {};
   const draftPlayerCount = () => playerCount;
-  const draftControllers = () => controllers || presetControllers(mode, difficulty, draftPlayerCount(), draftSettings());
+  const draftControllers = () => draftSettings().rulesVersion === 'surface-v1'
+    ? Object.fromEntries(playerIds(playerCount).map(player => [player, topologyControllers[player] || 'human']))
+    : controllers || presetControllers(mode, difficulty, draftPlayerCount(), draftSettings());
   const controllerMenuChoices = (count, settings = draftSettings()) => {
+    if (settings.rulesVersion === 'surface-v1') return ['human', 'topology-generic'];
     const ordinary = normalControllerChoices(count, settings);
     return experimentControllerChoices(count, settings).length ? [...ordinary, 'models'] : ordinary;
   };
   function rememberPlayerDraft() {
-    playerDrafts[draftPlayerCount()] = { mode, startPlayer, controllers: controllers ? { ...controllers } : null,
+    playerDrafts[draftPlayerCount()] = { mode, startPlayer, ...(invalidTurnOrder || turnOrder != null ? { turnOrder: Array.isArray(turnOrder) ? [...turnOrder] : turnOrder } : {}),
+      ...(invalidTurnOrder ? { invalidTurnOrder: true } : {}), controllers: controllers ? { ...controllers } : null,
       boardShape, rootMode, startingPointMode, initialPositions, initialRoots };
   }
   function changePlayerCount(count) {
     if (!Number.isInteger(count) || count < 2 || count > 15 || count === draftPlayerCount()) return;
     preparedStarts = null;
     rememberPlayerDraft(); cabinGeneration++;
+    const oldOrder = currentTurnOrder();
     const saved = playerDrafts[count];
     playerCount = count; playersPage = 0;
     mode = saved?.mode || (count === 3 ? 'three-human' : count >= 4 ? 'human' : 'ai-white');
     startPlayer = saved?.startPlayer || 'BLACK'; controllers = saved?.controllers ? { ...saved.controllers } : null;
+    turnOrder = [...oldOrder.filter(player => playerIds(count).includes(player)), ...playerIds(count).filter(player => !oldOrder.includes(player))];
+    startPlayer = turnOrder[0]; invalidTurnOrder = invalidTurnOrder || Boolean(saved?.invalidTurnOrder);
     if (count === 2 && controllers) {
       const ai = Object.values(controllers).filter(profile => profile !== 'human');
       if (ai.length && ai.every(profile => profile === ai[0]))
@@ -109,6 +132,11 @@ export function createApp(platform, config = {}) {
     }
     if (initialRoots) try { initialRoots = resolveInitialRoots(size, count, initialRoots, boardShape, rootMode, initialPositions); }
     catch (_) { initialRoots = null; }
+    if (nextTopologyChoice === 'selected' && count > 6) { nextTopologyChoice = null; topologyPreset = null; saveOrdinaryChoice(); }
+    if (nextTopologyChoice === 'selected' && topologySetup?.compiled) {
+      const result = reconcileTopologySetupPlayers(topologySetup, count);
+      if (result.ok) { topologySetup = result.setup; persistTopologyChoice(); }
+    }
     persistPreferences();
   }
   function selectController(player, profile) {
@@ -195,10 +223,14 @@ export function createApp(platform, config = {}) {
     playerIds(settings.playerCount).map(player => [player, roomPlayerFromController(seats[player] || 'human', settings)])));
   function openRoomSetup(kind = 'settings') {
     if (session.hidden || kind === 'settings' && !online.room) return;
-    const settings = kind === 'create' ? withNewGameProtectionRule({ ...playOptions, rulesVersion: 'territory-v3', gridSize: size,
-      playerCount, startPlayer, boardShape, startingPointMode, ...(initialPositions && startingPointMode !== 'random' ? { initialPositions } : {}),
-      ...(initialRoots && startingPointMode !== 'random' ? { initialRoots } : {}),
-      ...(rootMode !== 'classic' ? { rootMode, rootRulesVersion: 'root-v2' } : {}) })
+    if (kind === 'create' && invalidTurnOrder) { openCabin('board'); return; }
+    const base = draftSettings(), order = currentTurnOrder(null);
+    const settings = kind === 'create' ? withNewGameProtectionRule({ ...playOptions, ...base,
+      startPlayer: order[0], turnOrder: order,
+      ...(base.rulesVersion === 'surface-v1' ? { rootMode: 'classic', rootRulesVersion: 'root-v1' }
+        : { startingPointMode, ...(initialPositions && startingPointMode !== 'random' ? { initialPositions } : {}),
+          ...(initialRoots && startingPointMode !== 'random' ? { initialRoots } : {}),
+          ...(rootMode !== 'classic' ? { rootMode, rootRulesVersion: 'root-v2' } : {}) }) })
       : JSON.parse(JSON.stringify(online.room.pendingSettings || online.room.settings));
     const seats = kind === 'create' ? { ...draftControllers() } : roomControllers(settings);
     const hostSeatAdded = kind === 'create' && Object.values(seats).every(profile => profile !== 'human');
@@ -208,12 +240,16 @@ export function createApp(platform, config = {}) {
   }
   function editRoomDraft(overrides) {
     if (!roomDraft || isOnline() && !online.canEditSettings()) return;
+    closeNumberInput();
     const previous = roomDraft.settings; let settings = { ...previous, ...overrides };
     if (startLayoutKey(settings) !== startLayoutKey(previous)) preparedStarts = null;
     if (settings.startPlayer !== previous.startPlayer && settings.startingPointMode === 'random') {
       delete settings.initialPositions; delete settings.initialRoots;
     }
     if (settings.playerCount !== previous.playerCount) {
+      const oldOrder = currentTurnOrder(previous), players = playerIds(settings.playerCount);
+      settings.turnOrder = [...oldOrder.filter(p => players.includes(p)), ...players.filter(p => !oldOrder.includes(p))];
+      settings.startPlayer = settings.turnOrder[0];
       settings.boardShape = settings.playerCount >= 4 ? 'hexagon' : 'triangle';
       settings.startingPointMode = requiresExplicitStartingPoints(settings.playerCount, settings.boardShape) ? 'random' : 'default';
       delete settings.initialPositions; delete settings.initialRoots;
@@ -238,8 +274,8 @@ export function createApp(platform, config = {}) {
     cabinGeneration++; redraw();
   }
   async function submitRoomDraft() {
-    if (!roomDraft || session.hidden || online.sending) return;
-    const draft = roomDraft, compatible = controllerChoices(draft.settings);
+    if (!roomDraft || session.hidden || online.sending || roomDraft.settings.invalidTurnOrder) return;
+    const draft = roomDraft, compatible = draft.settings.rulesVersion === 'surface-v1' ? ['human'] : controllerChoices(draft.settings);
     if (Object.values(draft.controllers).some(profile => !compatible.includes(profile))) return platform.message(label('incompatiblePlayers'));
     if (Object.values(draft.controllers).every(profile => profile !== 'human'))
       return platform.message(language === 'en' ? 'Keep at least one human seat for the host.' : '请至少保留一个真人席位给房主。');
@@ -266,8 +302,11 @@ export function createApp(platform, config = {}) {
     && online.room.bots?.includes(online.room.currentPlayer);
   const play = async action => { const played = await (isOnline() ? online.act(action) : session.act(action)); if (played) actionMode = 'move'; return played; };
   const isTopologySnapshot = snapshot => snapshot?.rulesVersion === TopologyRulesVersion.SURFACE_V1 && Boolean(snapshot?.topology?.viewBoard);
-  const selectedTopologyDefinition = () => nextTopologyChoice !== null && isTopologySnapshot(session.snapshot)
-    ? session.settings?.boardDefinition : null;
+  function selectedTopologyDefinition() {
+    if (nextTopologyChoice === null) return null;
+    if (nextTopologyChoice === 'selected' && topologySetup?.definition) return topologySetup.definition;
+    return isTopologySnapshot(session.snapshot) ? session.settings?.boardDefinition : null;
+  }
   const currentView = () => view?.session === session && view.epoch === session.epoch && view.snapshot === session.snapshot && view.scene === scene;
   const inBoard = (x, y) => boardRect && x >= boardRect.x && y >= boardRect.y
     && x <= boardRect.x + boardRect.width && y <= boardRect.y + boardRect.height;
@@ -300,128 +339,172 @@ export function createApp(platform, config = {}) {
     redraw();
     return result?.ok !== false;
   }
-  function openTopologySetup(definition = undefined) {
-    if (isOnline() || session.hidden) return;
-    pauseForPanel(); cabin = null; cabinGeneration++; cabinScroll = 0; clearBoardView();
-    if (playerCount > 6) changePlayerCount(6);
-    topologySetup = createTopologySetup(definition === undefined ? {} : { definition });
-    if (definition !== undefined && topologySetup.compiled) {
-      const reconciled = reconcileTopologySetupPlayers(topologySetup, playerCount);
-      topologySetup = reconciled.ok ? reconciled.setup : { ...reconciled.setup, compiled: null };
-    }
-    topologyDraftLayout = null; topologyDraftSelectedIndex = null;
-    topologyControllers = Object.fromEntries(playerIds(playerCount).map(player => [player, 'human']));
-    scene = 'topology-setup'; redraw();
+  function currentTurnOrder(settings = roomDraft?.settings) {
+    const count = settings?.playerCount ?? playerCount, players = playerIds(count);
+    const requested = settings ? settings.turnOrder : turnOrder;
+    if (Array.isArray(requested) && requested.length === players.length && new Set(requested).size === players.length
+      && requested.every(player => players.includes(player))) return [...requested];
+    const first = settings ? settings.startPlayer || 'BLACK' : startPlayer, index = Math.max(0, players.indexOf(first));
+    return [...players.slice(index), ...players.slice(0, index)];
   }
-  async function addTopologyCoordinate() {
-    const setup = topologySetup;
-    const value = await platform.input(language === 'en' ? 'Boundary vertex x,y' : '输入边界格点 x,y', '0,0');
-    if (scene !== 'topology-setup' || topologySetup !== setup || value == null) return;
-    const match = /^\s*(-?\d+)\s*,\s*(-?\d+)\s*$/.exec(String(value));
-    if (!match) { await platform.message(language === 'en' ? 'Use integer x,y.' : '请输入整数 x,y。'); return; }
-    adoptTopologySetup(extendTopologyBoundary(topologySetup, [Number(match[1]), Number(match[2])]));
-  }
-  function loadTopologyLShape() {
-    let next = createTopologySetup();
-    for (const coordinate of [[0, 0], [1, 0], [2, 0], [2, 1], [1, 1], [1, 2], [0, 2], [0, 1]]) {
-      const added = addTopologyBoundaryVertex(next, coordinate);
-      if (!added.ok) { adoptTopologySetup(added); return; }
-      next = added.setup;
-    }
-    const closed = closeTopologyBoundary(next);
-    adoptTopologySetup(closed.ok ? changeTopologyStarts(closed.setup, { mode: 'default', playerCount }) : closed);
-  }
-  async function generateTopologyRandomBoard() {
-    const seed = `${Date.now()}-${++topologyRandomCounter}-${Math.floor(Math.random() * 0x100000000)}`;
-    adoptTopologySetup(generateTopologyBoard(topologySetup, { gridSize: size, playerCount }, seed));
-  }
-  async function generateSeededTopologyBoard() {
-    const setup = topologySetup;
-    const seed = await platform.input(language === 'en' ? 'Random board seed' : '随机棋盘种子', 'topology-random');
-    if (scene !== 'topology-setup' || topologySetup !== setup || seed == null) return;
-    adoptTopologySetup(generateTopologyBoard(setup, { gridSize: size, playerCount }, String(seed).trim() || 'topology-random'));
-  }
-  async function changeTopologyRootLayout(mode) {
-    const setup = topologySetup;
-    if (!setup?.compiled) return;
-    let player;
-    if (mode === 'append-random') {
-      const seats = playerIds(playerCount);
-      const index = await platform.choose(seats.map(playerLabel));
-      if (scene !== 'topology-setup' || topologySetup !== setup || !Number.isInteger(index) || !seats[index]) return;
-      player = seats[index];
-    }
-    adoptTopologySetup(changeTopologyStarts(setup, { mode, playerCount, ...(player ? { player } : {}) }));
-  }
-  async function configureTopologyController() {
-    const setup = topologySetup, seats = playerIds(playerCount), current = session, epoch = session.epoch;
-    const visibility = visibilityGeneration, generation = cabinGeneration;
-    const valid = () => scene === 'topology-setup' && topologySetup === setup && appVisible && !disposed
-      && session === current && session.epoch === epoch && visibilityGeneration === visibility && cabinGeneration === generation
-      && playerCount === seats.length;
-    const index = await platform.choose(seats.map(player => `${playerLabel(player)} · ${topologyControllers[player] === 'topology-generic' ? (language === 'en' ? 'Practice AI' : '练习 AI') : (language === 'en' ? 'Human' : '真人')}`), { isCurrent: valid });
-    if (!valid() || !Number.isInteger(index) || !seats[index]) return;
-    const choice = await platform.choose(language === 'en' ? ['Human', 'Practice AI (unrated)'] : ['真人', '练习 AI（未评级）'], { isCurrent: valid });
-    if (!valid() || ![0, 1].includes(choice)) return;
-    topologyControllers[seats[index]] = choice === 0 ? 'human' : 'topology-generic';
+  function setTurnOrder(order) {
+    const count = roomDraft?.settings.playerCount ?? playerCount, players = playerIds(count);
+    if (!Array.isArray(order) || order.length !== players.length || new Set(order).size !== players.length
+      || order.some(player => !players.includes(player))) return;
+    if (roomDraft) { editRoomDraft({ turnOrder: [...order], startPlayer: order[0] }); delete roomDraft.settings.invalidTurnOrder; }
+    else { turnOrder = [...order]; startPlayer = order[0]; invalidTurnOrder = false; preparedStarts = null; persistPreferences(); }
     redraw();
   }
-  async function editTopologyRoots() {
-    const setup = topologySetup, seats = playerIds(playerCount);
-    if (!setup?.compiled) return;
-    const seatIndex = await platform.choose(seats.map(playerLabel));
-    if (scene !== 'topology-setup' || topologySetup !== setup || !seats[seatIndex]) return;
-    const method = await platform.choose(language === 'en' ? ['Replace roots', 'Add root'] : ['替换起点', '添加起点']);
-    if (scene !== 'topology-setup' || topologySetup !== setup || ![0, 1].includes(method)) return;
-    const ids = setup.compiled.sampleIds;
-    const vertexIndex = await platform.choose(ids, { previousLabel: language === 'en' ? 'Previous' : '上一页', nextLabel: language === 'en' ? 'Next' : '下一页' });
-    if (scene !== 'topology-setup' || topologySetup !== setup || !ids[vertexIndex]) return;
-    const roots = topologyStartingRoots(setup.compiled), player = seats[seatIndex];
-    roots[player] = method === 0 ? [ids[vertexIndex]] : [...(roots[player] || []), ids[vertexIndex]];
-    adoptTopologySetup(changeTopologyStarts(setup, { mode: 'custom', playerCount, roots }));
+  function saveOrdinaryChoice() {
+    try { saveBoardSelection(platform.storage, { schemaVersion: 1, kind: 'ordinary', shape: boardShape, expanded: topologyExpanded }); }
+    catch (_) { void platform.message(label('saveError')); return false; }
+    return true;
   }
-  async function chooseTopologyBoundaryOccurrence() {
-    const setup = topologySetup, ids = setup?.draft?.boundaryOccurrenceIds ?? [];
-    if (!ids.length) return;
-    const index = await platform.choose(ids, { previousLabel: language === 'en' ? 'Previous' : '上一页', nextLabel: language === 'en' ? 'Next' : '下一页' });
-    if (scene !== 'topology-setup' || topologySetup !== setup || !Number.isInteger(index) || !ids[index]) return;
-    adoptTopologySetup(selectTopologyBoundaryOccurrence(setup, ids[index]));
+  function persistTopologyChoice() {
+    if (!topologySetup?.compiled) return false;
+    try { saveBoardSelection(platform.storage, { schemaVersion: 1, kind: 'topology', size, playerCount,
+      preset: topologyPreset || 'custom', expanded: topologyExpanded, controllers: topologyControllers,
+      definition: topologySetup.definition, boardHash: topologySetup.boardHash }); }
+    catch (_) { void platform.message(label('saveError')); return false; }
+    return true;
   }
-  async function startTopologyGame() {
-    if (isOnline() || !topologySetup || scene !== 'topology-setup') return;
-    const prepared = topologySetupResult(topologySetup);
-    if (!prepared.ok) { await platform.message(topologyErrorText(prepared)); return; }
-    const current = localSession, epoch = current.epoch;
-    const releaseClock = current.holdClock();
+  function toggleTopologyMenu() {
+    closeNumberInput(); topologyExpanded = !topologyExpanded;
+    if (!roomDraft) { if (nextTopologyChoice === 'selected') persistTopologyChoice(); else saveOrdinaryChoice(); }
+    redraw();
+  }
+  function selectTopologyBoard(result, preset = 'custom') {
+    if (!result?.ok || !result.setup?.compiled) { editorMessage = topologyErrorText(result); redraw(); return false; }
+    const next = result.setup;
+    if (roomDraft) {
+      const order = currentTurnOrder(roomDraft.settings);
+      roomDraft.settings = { ...roomDraft.settings, startPlayer: order[0], turnOrder: order,
+        rulesVersion: 'surface-v1', boardShape: 'custom', rootMode: 'classic', rootRulesVersion: 'root-v1',
+        boardDefinition: next.definition, boardHash: next.boardHash, topologyProtocolVersion: 'board-topology-v1' };
+      delete roomDraft.settings.initialPositions; delete roomDraft.settings.initialRoots;
+      roomDraft.controllers = Object.fromEntries(playerIds(roomDraft.settings.playerCount).map(player =>
+        [player, roomDraft.controllers[player] === 'topology-generic' ? 'topology-generic' : 'human']));
+      roomDraft.topologyPreset = preset; editorMessage = ''; redraw(); return true;
+    }
+    try { saveBoardSelection(platform.storage, { schemaVersion: 1, kind: 'topology', size, playerCount,
+      preset, expanded: topologyExpanded, controllers: topologyControllers, definition: next.definition, boardHash: next.boardHash }); }
+    catch (_) { editorMessage = label('saveError'); redraw(); return false; }
+    topologySetup = next; topologyPreset = preset; nextTopologyChoice = 'selected'; preparedStarts = null;
+    editorMessage = ''; persistPreferences(); return true;
+  }
+  function selectTopologyPreset(name) {
+    if (isOnline() && !online.canEditSettings()) return;
+    closeNumberInput();
+    if (roomDraft) { if (roomDraft.settings.playerCount > 6) editRoomDraft({ playerCount: 6 }); }
+    else if (playerCount > 6) changePlayerCount(6);
+    const count = roomDraft?.settings.playerCount ?? playerCount, gridSize = roomDraft?.settings.gridSize ?? size;
+    selectTopologyBoard(useTopologyPreset(createTopologySetup(), name, { gridSize, playerCount: count }), name);
+  }
+  function generateTopologyRandomBoard() {
+    if (isOnline() && !online.canEditSettings()) return;
+    closeNumberInput();
+    if (roomDraft) { if (roomDraft.settings.playerCount > 6) editRoomDraft({ playerCount: 6 }); }
+    else if (playerCount > 6) changePlayerCount(6);
+    const count = roomDraft?.settings.playerCount ?? playerCount, gridSize = roomDraft?.settings.gridSize ?? size;
+    const seed = `${Date.now()}-${++topologyRandomCounter}-${Math.floor(Math.random() * 0x100000000)}`;
+    selectTopologyBoard(generateTopologyBoard(createTopologySetup(), { gridSize, playerCount: count }, seed), 'random');
+  }
+  function openBoardEditor({ blank = false } = {}) {
+    if (session.hidden || (isOnline() && !online.canEditSettings())) return;
+    closeNumberInput();
+    const settings = roomDraft?.settings || { ...draftSettings(), initialPositions, initialRoots, startingPointMode, rootMode };
+    const definition = !blank && (settings.boardDefinition || selectedTopologyDefinition());
+    editorSource = { settings: JSON.parse(JSON.stringify(settings)), ordinary: !definition, room: roomDraft, generation: cabinGeneration };
+    editorPlayer = playerIds(settings.playerCount)[0]; editorTool = definition ? 'root' : blank ? 'contour' : 'root';
+    editorRing = null; editorPage = 0; editorMoveFrom = null; editorMessage = ''; editorZoom = 1; editorPan = { x: 0, y: 0 };
+    if (definition) editorSetup = createTopologySetup({ definition });
+    else if (settings.playerCount <= 6 && !blank) {
+      try {
+        let roots = settings.initialRoots;
+        if (!roots) {
+          let positions = settings.initialPositions;
+          if (!positions) positions = requiresExplicitStartingPoints(settings.playerCount, settings.boardShape)
+            ? randomInitialPositions(settings.gridSize, settings.playerCount, startRandom, settings.boardShape)
+            : resolveInitialPositions(settings.gridSize, settings.playerCount, null, settings.boardShape);
+          roots = Object.fromEntries(Object.entries(positions).map(([player, point]) => [player, [point]]));
+        }
+        editorSetup = createTopologySetup({ definition: createTopologyEditorLegacyDefinition({ ...settings, initialRoots: roots }) });
+      } catch (error) { editorSetup = createTopologySetup(); editorMessage = errorText(error.message, t()); }
+    } else editorSetup = createTopologySetup();
+    if (settings.playerCount > 6) {
+      const positions = settings.initialPositions || randomInitialPositions(settings.gridSize, settings.playerCount, startRandom, settings.boardShape);
+      editorSource.ordinaryRoots = Object.fromEntries(Object.entries(positions).map(([player, point]) => [player, [point]]));
+    }
+    pauseForPanel(); cabin = null; cabinGeneration++; clearBoardView(); scene = 'board-editor'; redraw();
+  }
+  function adoptEditor(result) {
+    if (result?.setup) editorSetup = result.setup;
+    editorMessage = result?.ok === false ? topologyErrorText(result) : '';
+    redraw();
+  }
+  function closeEditorContour() {
+    const result = closeTopologyBoundary(editorSetup);
+    if (result.ok && !Object.keys(result.setup.definition?.startingVertices || {}).length) {
+      return adoptEditor(changeTopologyStarts(result.setup, { mode: 'default', playerCount: Math.min(6, editorSource.settings.playerCount) }));
+    }
+    adoptEditor(result);
+  }
+  function saveBoardEditor() {
+    const source = editorSource;
+    if (!source || source.room !== roomDraft) return;
     try {
-      if (current.snapshot && !current.snapshot.gameOver && current.actions.length && !await platform.confirm(label('confirmNew'))) return;
-      if (current !== localSession || current.epoch !== epoch || scene !== 'topology-setup' || current.hidden) return;
-      if (current.snapshot && current.actions.length && !current.tutorial) archiveCurrent({ bestEffort: true });
-      clearEmote(); invalidateContribution(); cabin = null; cabinGeneration++; selected = null; scene = 'game';
-      const topologySettings = {
-        gridSize: size,
-        playerCount, startPlayer, rulesVersion: TopologyRulesVersion.SURFACE_V1, boardShape: 'custom',
-        boardDefinition: prepared.definition, boardHash: prepared.boardHash,
-        topologyProtocolVersion: 'board-topology-v1', rootMode: 'classic', rootRulesVersion: 'root-v1', ...playOptions,
-      };
-      const seats = Object.fromEntries(playerIds(playerCount).map(player => [player, topologyControllers[player] || 'human']));
-      const started = await current.newTopologyGame(topologySettings, 'human', difficulty, { controllers: seats });
-      if (started) { nextTopologyChoice = undefined; beginContribution(); }
-      else scene = 'topology-setup';
-      redraw();
-    } finally { releaseClock(); }
+      if (source.ordinary && !editorSetup.geometryChanged) {
+        const roots = source.ordinaryRoots || topologyEditorRootsByCoordinate(editorSetup);
+        const positions = Object.fromEntries(Object.entries(roots).map(([player, values]) => [player, values[0]]));
+        const normalized = resolveInitialRoots(source.settings.gridSize, source.settings.playerCount, roots,
+          source.settings.boardShape, source.settings.rootMode || 'classic', positions);
+        if (roomDraft) editRoomDraft({ ...(source.settings.rootMode && source.settings.rootMode !== 'classic' ? { initialRoots: normalized } : { initialRoots: undefined }), initialPositions: positions, startingPointMode: 'custom' });
+        else { initialRoots = normalized; initialPositions = positions; startingPointMode = 'custom'; preparedStarts = null; persistPreferences(); saveOrdinaryChoice(); }
+      } else {
+        if (source.settings.playerCount > 6) throw new Error('TOPOLOGY_PLAYER_LIMIT');
+        const prepared = topologySetupResult(editorSetup);
+        if (!prepared.ok) { editorMessage = topologyErrorText(prepared); redraw(); return; }
+        if (!selectTopologyBoard({ ok: true, setup: editorSetup }, 'custom')) return;
+      }
+      editorSetup = editorSource = null; editorLayout = null; openCabin('board');
+    } catch (error) {
+      editorMessage = language === 'en' ? 'Keep a valid starting layout for every player before saving.' : '请为每方保留符合当前规则的起点，再保存配置。'; redraw();
+    }
   }
-
-  async function createTopologyRoom() {
-    const prepared = topologySetupResult(topologySetup);
-    if (!prepared.ok) return platform.message(topologyErrorText(prepared));
-    return friendsMenu(null, 'create', {
-      gridSize: size, playerCount, startPlayer, rulesVersion: TopologyRulesVersion.SURFACE_V1,
-      boardShape: 'custom', boardDefinition: prepared.definition, boardHash: prepared.boardHash,
-      topologyProtocolVersion: 'board-topology-v1', rootMode: 'classic', rootRulesVersion: 'root-v1',
-      undoEnabled: playOptions.undoEnabled, undoMaxCount: playOptions.undoMaxCount,
-      turnTimerEnabled: playOptions.turnTimerEnabled, turnTimeLimitSeconds: playOptions.turnTimeLimitSeconds,
-    });
+  function closeNumberInput(commitCurrent = false) {
+    if (commitCurrent && numberEditing?.commit) { numberEditing.commit(numberEditing.text); return; }
+    numberToken++; numberHandle?.close(); numberHandle = null; numberEditing = null; platform.numberKeyboard?.close?.();
+  }
+  function editNumber(key) {
+    closeNumberInput();
+    const rules = { undoMaxCount: ['undo-count', 1, 100], turnTimeLimitSeconds: ['clock-duration', 15, 200], hintMaxCount: ['hint-count', 1, 10] };
+    if (!rules[key] || !(scene === 'home' || cabin === 'board') || isOnline() && !online.canEditSettings()) return;
+    const [id, min, max] = rules[key], token = ++numberToken, draft = roomDraft, generation = cabinGeneration;
+    const settings = roomDraft?.settings || playOptions, original = settings[key];
+    numberEditing = { id, text: String(original), error: '', key };
+    const valid = () => numberToken === token && appVisible && !disposed && roomDraft === draft && cabinGeneration === generation
+      && (scene === 'home' || scene === 'game' && cabin === 'board');
+    const update = raw => {
+      if (!valid()) return;
+      const text = String(raw).slice(0, 4); numberEditing.text = text;
+      numberEditing.error = /^\d+$/.test(text) && Number(text) >= min && Number(text) <= max ? ''
+        : language === 'en' ? `${min}–${max}` : `请输入 ${min}–${max}`;
+      redraw();
+    };
+    const commit = raw => {
+      if (!valid()) return;
+      update(raw);
+      if (!numberEditing.error) {
+        const value = Number(numberEditing.text);
+        if (roomDraft) { roomDraft.settings = { ...roomDraft.settings, [key]: value }; redraw(); }
+        else { playOptions = normalizePlayOptions({ ...playOptions, [key]: value }); optionsConfigured = true; persistPreferences(); }
+      }
+      closeNumberInput(); redraw();
+    };
+    numberEditing.commit = commit;
+    if (!platform.numberKeyboard?.begin) { numberEditing.error = language === 'en' ? 'Keyboard unavailable' : '当前环境未提供数字键盘'; redraw(); return; }
+    numberHandle = platform.numberKeyboard.begin({ value: String(original), onInput: update, onConfirm: commit,
+      onBlur: () => { if (valid()) commit(numberEditing.text); } }); redraw();
   }
 
   function openSurface3D() {
@@ -489,7 +572,7 @@ export function createApp(platform, config = {}) {
   function resize() {
     const next = platform.metrics();
     if (['width', 'height', 'dpr', 'top', 'bottom'].some(key => next[key] !== metrics[key])) clearBoardView();
-    startTouch = null; platform.resetInput?.(); metrics = next;
+    closeNumberInput(); orderDrag = null; orderArmed = null; startTouch = null; platform.resetInput?.(); metrics = next;
     canvas.width = Math.round(metrics.width * metrics.dpr); canvas.height = Math.round(metrics.height * metrics.dpr);
     redraw();
   }
@@ -560,6 +643,23 @@ export function createApp(platform, config = {}) {
       action: () => {}, set: point => change(Math.max(min, Math.min(max, Math.round(min + (point - trackX - 12) / (trackWidth - 24) * (max - min))))) };
     if (!clipArea || item.y >= clipArea.y && item.y + item.height <= clipArea.y + clipArea.height) { buttons.push(item); sliders.push(item); }
   }
+  function numberField(field) {
+    const { id, x, y, width, enabled, disabled, onToggle, onFocus } = field;
+    const left = Math.round(width * 0.65), active = numberEditing?.id === id;
+    const toggleId = { 'undo-count': 'undo-enabled', 'clock-duration': 'clock-enabled', 'hint-count': 'hint-enabled' }[id];
+    button(toggleId, `${enabled ? '●' : '○'}  ${field.label}`, x, y, left - 8, onToggle,
+      { height: 44, font: 12, primary: enabled, disabled });
+    button(id, active ? `${numberEditing.text || ' '}│` : String(field.value), x + left, y, width - left,
+      onFocus, { height: 44, font: 18, disabled });
+    if (active && numberEditing.error) text(numberEditing.error, x + width, y + 47, 10, '#a43730', 'right');
+  }
+  function orderStrip(options) {
+    const result = drawTurnOrderStrip({ text, rect }, options);
+    orderRegions = result.regions.filter(item => !clipArea || item.y >= clipArea.y && item.y + item.height <= clipArea.y + clipArea.height)
+      .map(item => ({ ...item, disabled: options.disabled, order: [...options.order] }));
+    for (const item of orderRegions) buttons.push({ id: `order-${item.player}`, ...item, action: () => { orderArmed = item.player; redraw(); }, disabled: options.disabled });
+    return result;
+  }
   function seekBar(id, value, max, x, y, width, change, disabled) {
     const shown = replaySeekDraft ?? value, trackWidth = Math.max(1, width - 24);
     text(`${shown} / ${max}`, x + width / 2, y + 10, 11, THEME.muted, 'center');
@@ -605,8 +705,8 @@ export function createApp(platform, config = {}) {
     }
     const { width: w, height: h, dpr } = metrics;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = THEME.background; ctx.fillRect(0, 0, w, h);
-    buttons = []; sliders = []; scrollArea = null; clipArea = null; layout = null; boardRect = null; baseLayout = null; const navTop = header(), top = navTop + ((scene === 'game' || scene === 'home') ? 52 : 0);
-    const ui = { metrics, top, text, rect, wrap, button, slider, seekBar, label, ctx, language, guideImages };
+    buttons = []; sliders = []; orderRegions = []; scrollArea = null; clipArea = null; layout = null; boardRect = null; baseLayout = null; const navTop = header(), top = navTop + ((scene === 'game' || scene === 'home') ? 52 : 0);
+    const ui = { metrics, top, text, rect, wrap, button, slider, numberField, orderStrip, seekBar, label, ctx, language, guideImages };
     const cabinUi = { ...ui, top: navTop };
     if (scene === 'topology-3d') {
       text(surface3dData?.surface?.kind === 'atlas' ? (language === 'en' ? 'Unfolded atlas' : '展开面片图') : (language === 'en' ? '3D surface' : '三维曲面'), 24, top, 21, THEME.ink, 'left', 'bold');
@@ -619,7 +719,11 @@ export function createApp(platform, config = {}) {
             return [a, y * Math.cos(surface3dPitch) - b * Math.sin(surface3dPitch), y * Math.sin(surface3dPitch) + b * Math.cos(surface3dPitch)];
           };
           const renderSize = surface3dSoftware ? 320 : 512;
-          surface3dRenderer.draw(surface3dData, renderSize, renderSize, rotate, surface3dZoom, {}, 1);
+          const key = [surface3dYaw, surface3dPitch, surface3dZoom, renderSize, 1].join(':');
+          if (surface3dDrawKey?.data !== surface3dData || surface3dDrawKey?.renderer !== surface3dRenderer || surface3dDrawKey?.key !== key) {
+            surface3dRenderer.draw(surface3dData, renderSize, renderSize, rotate, surface3dZoom, {}, 1);
+            surface3dDrawKey = { data: surface3dData, renderer: surface3dRenderer, key };
+          }
           ctx.drawImage(surface3dCanvas, 24, top + 25, side, side);
         } catch (_) {
           if (!surface3dSoftware) { useSoftwareSurface(); redraw(); }
@@ -698,97 +802,79 @@ export function createApp(platform, config = {}) {
         () => { zoomFocus = zoomFocus ? null : startPoint || startDraft[startSeat]; startPoint = null; redraw(); }, { height: 36, font: 12 });
       return;
     }
-    if (scene === 'topology-setup') {
-      if (!topologySetup) topologySetup = createTopologySetup();
-      const setup = topologySetup, half = (w - 56) / 2;
-      scrollArea = { x: 0, y: top - 8, width: w, height: Math.max(60, h - metrics.bottom - top - 54) };
-      clipArea = scrollArea;
-      ctx.save(); ctx.beginPath(); ctx.rect(scrollArea.x, scrollArea.y, scrollArea.width, scrollArea.height); ctx.clip();
-      let y = top - cabinScroll;
-      const pair = (idA, labelA, actionA, disabledA, idB, labelB, actionB, disabledB) => {
-        button(idA, labelA, 24, y, half, actionA, { height: 42, font: 13, disabled: Boolean(disabledA), primary: false });
-        if (idB) button(idB, labelB, 32 + half, y, half, actionB, { height: 42, font: 13, disabled: Boolean(disabledB), primary: false });
-        y += 50;
-      };
-      text(language === 'en' ? 'Topology board' : '拓扑棋盘', 24, y, 21, THEME.ink, 'left', 'bold'); y += 28;
-      y += wrap(language === 'en'
-        ? 'Choose a surface, create a random board, or tap the grid to draw your boundary.'
-        : '选择曲面、一键随机生成，或点按格纸绘制自己的棋盘边界。', 24, y, w - 48, 13, THEME.muted, 3) + 14;
-      pair('topology-cylinder', language === 'en' ? 'Cylinder' : '圆柱', () => adoptTopologySetup(useTopologyPreset(setup, 'cylinder', { gridSize: size, playerCount })),
-        false, 'topology-mobius', language === 'en' ? 'Mobius' : '莫比乌斯', () => adoptTopologySetup(useTopologyPreset(setup, 'mobius', { gridSize: size, playerCount })), false);
-      pair('topology-torus', language === 'en' ? 'Torus' : '环面', () => adoptTopologySetup(useTopologyPreset(setup, 'torus', { gridSize: size, playerCount })),
-        false, 'topology-klein', language === 'en' ? 'Klein bottle' : '克莱因瓶', () => adoptTopologySetup(useTopologyPreset(setup, 'klein-bottle', { gridSize: size, playerCount })), false);
-      pair('topology-tetrahedron', language === 'en' ? 'Tetrahedron' : '三角锥', () => adoptTopologySetup(useTopologyPreset(setup, 'tetrahedron', { gridSize: size, playerCount })), false,
-        'topology-cone', language === 'en' ? 'Cone' : '圆锥', () => adoptTopologySetup(useTopologyPreset(setup, 'cone', { gridSize: size, playerCount })), false);
-      pair('topology-legacy-sphere', language === 'en' ? 'Sphere' : '球面', () => adoptTopologySetup(useTopologyPreset(setup, 'sphere', { gridSize: size, playerCount })), false,
-        'topology-sphere', language === 'en' ? 'Two-chart sphere' : '双片球面', () => adoptTopologySetup(useTopologyPreset(setup, 'double-sphere', { gridSize: size, playerCount })), false);
-      pair('topology-double-torus', language === 'en' ? 'Double torus' : '双把手', () => adoptTopologySetup(useTopologyPreset(setup, 'double-torus', { gridSize: size, playerCount })), false);
-      pair('topology-random', language === 'en' ? 'Random surface' : '随机曲面', generateTopologyRandomBoard,
-        false, 'topology-custom', language === 'en' ? 'Custom boundary' : '自定义边界', () => {
-          topologySetup = createTopologySetup(); topologyDraftLayout = null; topologyDraftSelectedIndex = null; redraw();
-        }, false);
-      pair('topology-seeded', language === 'en' ? 'Use a seed' : '指定随机种子', generateSeededTopologyBoard, false,
-        'topology-default-roots', language === 'en' ? 'Reset roots' : '重置起点', () => adoptTopologySetup(changeTopologyStarts(setup, { mode: 'default', playerCount })), !setup.compiled);
-      if (setup.draft) {
-        const draftRect = { x: 30, y: y + 4, width: w - 60, height: Math.min(260, w - 60) };
-        try {
-          topologyDraftLayout = layoutTopologyDraft(setup.draft, draftRect, { gridSize: size });
-          drawTopologyDraft(ctx, setup.draft, topologyDraftLayout, { selectedIndex: topologyDraftSelectedIndex });
-        } catch (error) { topologyDraftLayout = null; wrap(error.message, 24, y + 8, w - 48, 12, '#a43730', 2); }
-        y = draftRect.y + draftRect.height + 10;
-        pair('topology-add-boundary', language === 'en' ? 'Add x,y' : '添加 x,y', addTopologyCoordinate,
-          false, 'topology-l-shape', language === 'en' ? 'Load L sample' : '载入 L 形示例', loadTopologyLShape, false);
-        pair('topology-undo-boundary', language === 'en' ? 'Undo vertex' : '撤销顶点', () => adoptTopologySetup(undoTopologyBoundary(setup)),
-          !setup.draft.path?.length, 'topology-close-boundary', language === 'en' ? 'Close boundary' : '闭合边界', () => {
-            const closed = closeTopologyBoundary(setup);
-            if (!closed.ok) return adoptTopologySetup(closed);
-            return adoptTopologySetup(changeTopologyStarts(closed.setup, { mode: 'default', playerCount }));
-          },
-          setup.draft.closed || (setup.draft.path?.length ?? 0) < 3);
-      } else topologyDraftLayout = null;
-      if (setup.compiled && setup.definition) {
-        try {
-          let preview = topologyPreviewCache.get(setup);
-          if (!preview) {
-            preview = new GameEngine({ compiledBoard: setup.compiled, rulesVersion: TopologyRulesVersion.SURFACE_V1,
-              playerCount, gridSize: size }).getSnapshot();
-            topologyPreviewCache.set(setup, preview);
-          }
-          const previewRect = { x: 30, y: y + 4, width: w - 60, height: Math.min(220, w - 60) };
-          topologyPreviewLayout = layoutTopologyBoard(preview, previewRect);
-          drawTopologyBoard(ctx, preview, topologyPreviewLayout, { display });
-          y += previewRect.height + 14;
-        } catch (error) {
-          topologyPreviewLayout = null;
-          y += wrap(language === 'en' ? 'Board preview could not be drawn.' : '棋盘预览暂时无法绘制。', 24, y, w - 48, 12, '#a43730', 2) + 10;
+    if (scene === 'board-editor') {
+      const source = editorSource?.settings, setup = editorSetup;
+      if (!source || !setup) { openCabin('board'); return; }
+      const en = language === 'en', seats = playerIds(source.playerCount), third = (w - 64) / 3;
+      text(en ? 'Custom board & starting nodes' : '自定义棋盘与起点', 24, top, 20, THEME.ink, 'left', 'bold');
+      const hint = editorMessage || setup.errors?.[0] && topologyErrorText({ errors: setup.errors })
+        || (setup.warnings?.length ? (en ? 'Some seams or roots were removed. Check the highlighted layout before saving.' : '轮廓变化移除了部分接缝或起点，请检查并补齐。')
+          : editorTool === 'root' ? (en ? 'Choose a colour, then tap a point. Your saved board changes only after Save.' : '选择颜色后点图放置起点；保存后仅更新下局配置。')
+            : editorTool === 'seam' ? (en ? 'Tap two boundary edges to pair them; tap a paired edge to remove its seam.' : '点选两条边后添加接缝；点已有接缝可移除。')
+              : (en ? 'Tap corners along grid lines; tap the first point to close a contour.' : '沿格线点选轮廓转角，点回起点闭合，可添加多个边界。'));
+      wrap(hint, 24, top + 31, w - 48, 12, editorMessage || setup.errors?.length ? '#a43730' : THEME.muted, 2);
+      ['contour', 'seam', 'root'].forEach((tool, i) => button(`editor-tool-${tool}`, en ? ['Contours', 'Seams', 'Starts'][i] : ['轮廓', '粘边', '起点'][i],
+        24 + i * (third + 8), top + 66, third, () => { editorTool = tool; editorMoveFrom = null; editorMessage = ''; redraw(); },
+        { height: 38, font: 13, primary: editorTool === tool, disabled: source.playerCount > 6 && tool !== 'root' }));
+      let editorTop = top + 112;
+      if (editorTool === 'root') {
+        const visible = seats.slice(editorPage * 6, editorPage * 6 + 6), columns = Math.min(6, visible.length), tile = (w - 48 - (columns - 1) * 6) / columns;
+        visible.forEach((player, i) => {
+          const bx = 24 + i * (tile + 6);
+          button(`editor-player-${player}`, `${playerLabel(player)}${editorPlayer === player ? ' ✓' : ''}`, bx, editorTop, tile,
+            () => { editorPlayer = player; editorMoveFrom = null; redraw(); }, { height: 38, font: 11, primary: editorPlayer === player });
+          rect(bx + 5, editorTop + 32, tile - 10, 3, 1, PLAYER_COLORS[player]);
+        });
+        editorTop += 46;
+        if (seats.length > 6) {
+          button('editor-players-prev', '‹', 24, editorTop, 54, () => { editorPage--; redraw(); }, { height: 36, disabled: editorPage === 0 });
+          text(`${editorPage + 1}/${Math.ceil(seats.length / 6)}`, w / 2, editorTop + 15, 12, THEME.muted, 'center');
+          button('editor-players-next', '›', w - 78, editorTop, 54, () => { editorPage++; redraw(); }, { height: 36, disabled: (editorPage + 1) * 6 >= seats.length });
+          editorTop += 42;
         }
-        const seams = setup.definition.seamPairs?.length || 0;
-        y += wrap(`${language === 'en' ? 'Starting nodes' : '起点'} · ${Object.values(topologyStartingRoots(setup.compiled)).map(roots => roots.length).join(' / ')}  · ${language === 'en' ? 'Seams' : '接缝'} · ${seams}`, 24, y + 2, w - 48, 12, THEME.muted, 2) + 10;
-        if (setup.mode === 'custom') {
-          const selectedOccurrences = setup.selectedBoundaryOccurrenceIds || [];
-          pair('topology-select-seam', language === 'en' ? `Choose seam edge · ${selectedOccurrences.length}/2` : `选择接缝边 · ${selectedOccurrences.length}/2`, chooseTopologyBoundaryOccurrence,
-            !(setup.draft?.boundaryOccurrenceIds?.length), 'topology-flip-seam', language === 'en' ? `Direction · ${setup.seamReverse ? 'reverse' : 'forward'}` : `方向 · ${setup.seamReverse ? '反向' : '正向'}`,
-            () => { topologySetup = toggleTopologySeamDirection(setup); redraw(); }, false);
-          button('topology-add-seam', language === 'en' ? 'Add selected seam' : '添加所选接缝', 24, y, w - 48,
-            () => adoptTopologySetup(addSelectedTopologySeam(setup)), { height: 42, font: 13, primary: true, disabled: selectedOccurrences.length !== 2 }); y += 50;
-        }
-        pair('topology-random-roots', language === 'en' ? 'Random roots' : '随机起点', () => changeTopologyRootLayout('random'), false,
-          'topology-append-root', language === 'en' ? 'Add random root' : '添加随机起点', () => changeTopologyRootLayout('append-random'), false);
-        button('topology-custom-roots', language === 'en' ? 'Edit starting roots' : '手动编辑起点', 24, y, w - 48, editTopologyRoots,
-          { height: 42 }); y += 50;
-        button('topology-controllers', language === 'en' ? 'Players / practice AI' : '玩家 / 练习 AI', 24, y, w - 48, configureTopologyController,
-          { height: 42 }); y += 50;
-        button('topology-start', language === 'en' ? 'Start topology match' : '开始拓扑对局', 24, y, w - 48, startTopologyGame,
-          { height: 44, primary: true }); y += 54;
-        button('topology-room', language === 'en' ? 'Create friends room' : '创建好友房间', 24, y, w - 48, createTopologyRoom,
-          { height: 42, disabled: !online.enabled }); y += 50;
       }
-      const error = setup.errors?.[0];
-      if (error) y += wrap(topologyErrorText({ errors: [error] }), 24, y + 3, w - 48, 12, '#a43730', 3) + 10;
-      scrollMax = Math.max(0, y + cabinScroll - (scrollArea.y + scrollArea.height) + 12);
-      ctx.restore(); clipArea = null;
-      button('topology-back', language === 'en' ? 'Back to board' : '返回棋盘', 24, h - metrics.bottom - 46, w - 48,
-        () => { topologySetup = null; topologyDraftLayout = null; scene = 'home'; redraw(); }, { height: 42, font: 14 });
+      const footer = h - metrics.bottom - 50, toolbarY = footer - 97;
+      boardRect = { x: 24, y: editorTop, width: w - 48, height: Math.max(48, toolbarY - editorTop - 9) };
+      if (source.ordinaryRoots) {
+        const roots = source.ordinaryRoots, ids = seats, extent = source.boardShape === 'hexagon' ? 2 * source.gridSize - 1 : source.gridSize;
+        const matrix = Array.from({ length: extent }, () => Array(extent).fill(0));
+        ids.forEach((player, i) => roots[player].forEach(([x, y]) => { matrix[y][x] = i * 2 + 1; }));
+        layout = boardLayout(source.gridSize, boardRect, source.playerCount, source.boardShape);
+        drawBoard(ctx, { gridSize: source.gridSize, boardShape: source.boardShape, players: ids, boardMatrix: matrix,
+          initialPositions: Object.fromEntries(ids.map(player => [player, roots[player][0]])), roots,
+          territories: {}, edges: {}, legalMoves: [], gameOver: false }, layout, { display: { ...display, coordinates: true } });
+        editorLayout = null;
+      } else {
+        editorLayout = renderBoardEditor(ctx, boardRect, setup, { gridSize: source.gridSize, selectedRing: editorRing, zoom: editorZoom, pan: editorPan });
+        button('editor-zoom', editorZoom === 1 ? (en ? 'Zoom' : '放大') : (en ? 'Overview' : '总览'),
+          boardRect.x + boardRect.width - 62, boardRect.y + 2, 60,
+          () => { editorZoom = editorZoom === 1 ? 4 : 1; editorPan = { x: 0, y: 0 }; redraw(); }, { height: 36, font: 12 });
+      }
+      if (editorTool === 'contour' || editorTool === 'select-ring') {
+        const actionRow = (index, id, title, action, disabled = false) => button(id, title, 24 + index % 3 * (third + 8), toolbarY + Math.floor(index / 3) * 44,
+          third, action, { height: 37, font: 12, disabled });
+        actionRow(0, 'editor-new-boundary', en ? 'Add contour' : '新增边界', () => { adoptEditor(startTopologyBoundaryRing(setup)); editorTool = 'contour'; editorRing = null; }, !setup.draft?.closed);
+        actionRow(1, 'editor-close-boundary', en ? 'Close contour' : '闭合边界', closeEditorContour, Boolean(setup.draft?.closed));
+        actionRow(2, 'editor-undo', en ? 'Undo' : '撤销', () => adoptEditor(undoTopologyBoundary(setup)));
+        actionRow(3, 'editor-select-boundary', en ? 'Select contour' : '选择轮廓', () => { editorTool = 'select-ring'; redraw(); });
+        actionRow(4, 'editor-delete-boundary', en ? 'Delete contour' : '删除所选边界', () => { adoptEditor(deleteTopologyBoundaryRing(setup, editorRing)); editorRing = null; }, editorRing === null || !setup.draft?.closed);
+        actionRow(5, 'editor-clear', en ? 'New drawing' : '重新绘制', () => { editorSetup = createTopologySetup(); editorTool = 'contour'; editorSource.ordinary = false; editorRing = null; redraw(); });
+      } else if (editorTool === 'seam') {
+        button('editor-seam-direction', en ? `Direction · ${setup.seamReverse ? 'reverse' : 'forward'}` : `方向 · ${setup.seamReverse ? '反向' : '正向'}`,
+          24, toolbarY, (w - 56) / 2, () => { editorSetup = toggleTopologySeamDirection(setup); redraw(); }, { height: 38, font: 13 });
+        button('editor-add-seam', en ? 'Pair selected edges' : '粘合所选两边', 32 + (w - 56) / 2, toolbarY, (w - 56) / 2,
+          () => adoptEditor(addSelectedTopologySeam(setup)), { height: 38, font: 13, disabled: setup.selectedBoundaryOccurrenceIds?.length !== 2 });
+      } else {
+        const countText = source.ordinaryRoots ? seats.map(p => source.ordinaryRoots[p].length).join(' / ')
+          : seats.map(p => topologyStartingRoots(setup.compiled || {})[p]?.length || 0).join(' / ');
+        wrap(`${en ? 'Roots by colour' : '各方起点数'} · ${countText}`, 24, toolbarY + 14, w - 48, 13, THEME.muted, 2);
+        if (source.ordinary) wrap(en ? 'Tap an existing root to select it, then tap its new position.' : '点击已有起点选中，再点新位置移动；普通棋盘保留原规则。', 24, toolbarY + 54, w - 48, 12, THEME.muted, 2);
+        else button('editor-random-roots', en ? 'Random roots' : '随机起点', 24, toolbarY + 44, w - 48,
+          () => adoptEditor(changeTopologyStarts(setup, { mode: 'random', playerCount: source.playerCount })), { height: 37, font: 13, disabled: !setup.compiled });
+      }
+      button('editor-save', en ? 'Save board settings' : '保存棋盘配置', 24, footer, (w - 56) / 2, saveBoardEditor, { height: 42, font: 13, primary: true });
+      button('editor-cancel', en ? 'Cancel' : '取消', 32 + (w - 56) / 2, footer, (w - 56) / 2,
+        () => { editorSetup = editorSource = null; editorLayout = null; openCabin('board'); }, { height: 42, font: 13 });
       return;
     }
     if (scene === 'setup') {
@@ -1161,7 +1247,7 @@ export function createApp(platform, config = {}) {
       } else {
         const quarter = (w - 64) / 4;
         // Special connection/replay/AI states retain their complete main controls.
-        if (!snapshot.gameOver && !rankedForfeit && online.room?.status !== 'closed') {
+        if (!snapshot.gameOver && !rankedForfeit && (!isOnline() || online.room?.status !== 'closed')) {
           for (const item of buttons) if (item.y === footer && item.width === w - 48) {
             item.x = 32 + quarter; item.width = quarter * 2;
             // Redraw the action within the central columns after changing its hit area.
@@ -1217,9 +1303,11 @@ export function createApp(platform, config = {}) {
         boardShape: boardDraft?.boardShape || (selectedTopologyDefinition() ? 'custom' : boardShape),
         rootMode: boardDraft?.rootMode || rootMode,
         startingPointMode: boardDraft?.startingPointMode || startingPointMode,
+        turnOrder: orderDrag?.preview || currentTurnOrder(), invalidTurnOrder: boardDraft ? Boolean(boardDraft.invalidTurnOrder) : invalidTurnOrder,
+        topologyExpanded, topologyPreset: roomDraft ? roomDraft.topologyPreset || null : topologyPreset, topologySelected: Boolean(boardDraft?.boardDefinition || selectedTopologyDefinition()),
         startPlayer: boardDraft?.startPlayer || startPlayer, controllers: roomDraft?.controllers || online.room?.aiControllers || draftControllers(),
         playOptions: boardDraft ? normalizePlayOptions(boardDraft) : playOptions,
-        compatibleProfiles: controllerChoices(boardDraft || draftSettings()),
+        compatibleProfiles: (boardDraft || draftSettings()).rulesVersion === 'surface-v1' ? ['human', 'topology-generic'] : controllerChoices(boardDraft || draftSettings()),
         hasActions: Boolean(session.actions.length), rulesVersion: session.settings?.rulesVersion || 'territory-v3',
         contribution: contribution.enabled, contributionStatus: contribution.snapshot(),
         contributionAvailable: Boolean(contribution.origin && platform.contributionRequest) }, {
@@ -1234,11 +1322,13 @@ export function createApp(platform, config = {}) {
           if (!profile || !valid()) return;
           if (profile === 'models') { modelTarget = { kind: 'controller', player, returnCabin: true }; modelPage = 0; modelGroup = count > 2 ? 'native' : 'research'; scene = 'models'; redraw(); return; }
           if (roomDraft) { roomDraft.controllers = { ...roomDraft.controllers, [player]: profile }; redraw(); }
-          else selectController(player, profile); },
-        starter: player => { if (roomDraft) return editRoomDraft({ startPlayer: player }); if (startPlayer !== player) preparedStarts = null; startPlayer = player; persistPreferences(); },
-        shape: value => { if (roomDraft) return editRoomDraft({ boardShape: value });
-          const wasTopology = Boolean(selectedTopologyDefinition()); nextTopologyChoice = null;
-          if (boardShape === value) { if (wasTopology) { cabinGeneration++; redraw(); } return; }
+          else if (selectedTopologyDefinition()) { topologyControllers[player] = profile; persistTopologyChoice(); redraw(); } else selectController(player, profile); },
+        turnOrder: setTurnOrder, resetTurnOrder: () => setTurnOrder(playerIds(roomDraft?.settings.playerCount ?? playerCount)),
+        changeNumber: (key, raw) => { if (raw && typeof raw === 'object' && raw.focus) editNumber(key); },
+        shape: value => { if (roomDraft) { roomDraft.topologyPreset = null; return editRoomDraft({ boardShape: value, rulesVersion: 'territory-v3',
+          boardDefinition: undefined, boardHash: undefined, topologyProtocolVersion: undefined, rootMode: 'classic', rootRulesVersion: 'root-v1' }); }
+          const wasTopology = Boolean(selectedTopologyDefinition()); nextTopologyChoice = null; topologyPreset = null;
+          if (boardShape === value) { saveOrdinaryChoice(); if (wasTopology) { cabinGeneration++; redraw(); } return; }
           boardShape = value; initialPositions = null; initialRoots = null; preparedStarts = null;
           if (draftPlayerCount() === 2 && controllers) {
             controllers = Object.fromEntries(Object.entries(controllers).map(([player, profile]) =>
@@ -1250,24 +1340,38 @@ export function createApp(platform, config = {}) {
           const explicitStartsRequired = requiresExplicitStartingPoints(draftPlayerCount(), value);
           if (startingPointMode === 'custom' || startingPointMode === 'default' && explicitStartsRequired)
             startingPointMode = explicitStartsRequired ? 'random' : 'default';
-          cabinGeneration++; persistPreferences(); },
+          topologyPreset = null; saveOrdinaryChoice(); cabinGeneration++; persistPreferences(); },
         rootMode: value => { const count = roomDraft?.settings.playerCount ?? playerCount; if (!['classic','fixed-double','relocate','add'].includes(value) || count !== 2) return; preparedStarts = null; if (roomDraft) return editRoomDraft({rootMode:value, rootRulesVersion: value === 'classic' ? 'root-v1' : 'root-v2', startingPointMode: 'default', initialRoots: undefined, initialPositions: undefined}); rootMode=value; startingPointMode='default'; initialPositions=null; initialRoots=null; controllers=null; cabinGeneration++; persistPreferences(); },
         startingPoints: value => {
           const settings = roomDraft?.settings || { playerCount, boardShape };
           if (value === 'default' && requiresExplicitStartingPoints(settings.playerCount, settings.boardShape)) return;
+          const activeDefinition = roomDraft ? roomDraft.settings.boardDefinition : selectedTopologyDefinition();
+          if (activeDefinition) {
+            const setup = roomDraft ? createTopologySetup({ definition: activeDefinition }) : topologySetup || createTopologySetup({ definition: activeDefinition });
+            const result = changeTopologyStarts(setup, { mode: value, playerCount: settings.playerCount });
+            selectTopologyBoard(result, topologyPreset || 'custom'); return;
+          }
           if (value === 'random') return openRandomStartingPoints();
-          if (value === 'custom') { if ((settings.rootMode || rootMode) !== 'classic') return; openStartingPoints(); } else if (roomDraft) { preparedStarts = null; editRoomDraft({ startingPointMode: value, initialPositions: undefined, initialRoots: undefined }); }
+          if (value === 'custom') { openBoardEditor(); } else if (roomDraft) { preparedStarts = null; editRoomDraft({ startingPointMode: value, initialPositions: undefined, initialRoots: undefined }); }
           else { preparedStarts = null; startingPointMode = value; initialPositions = null; initialRoots = null; persistPreferences(); } },
-        size: value => { if (roomDraft) return editRoomDraft({ gridSize: value });
-          if (size !== value) { initialPositions = null; initialRoots = null; preparedStarts = null; if (startingPointMode === 'custom') startingPointMode
+        size: value => {
+          const previousSize = size;
+          const preset = roomDraft?.topologyPreset || topologyPreset, selected = roomDraft ? roomDraft.settings.boardDefinition : selectedTopologyDefinition();
+          if (roomDraft) editRoomDraft({ gridSize: value });
+          else { size = value; }
+          if (selected && preset && !['custom', 'random'].includes(preset)) { selectTopologyPreset(preset); return; }
+          if (selected && preset === 'random') { generateTopologyRandomBoard(); return; }
+          if (roomDraft) return;
+          if (previousSize !== value) { initialPositions = null; initialRoots = null; preparedStarts = null; if (startingPointMode === 'custom') startingPointMode
             = requiresExplicitStartingPoints(playerCount, boardShape) ? 'random' : 'default'; }
-          size = value; persistPreferences(); }, option: (key, value) => {
+          size = value; persistPreferences(); }, option: (key, value) => { closeNumberInput();
           if (roomDraft) return editRoomDraft({ ...(key === 'hintEnabled' && value
             ? { hintMaxCount: Math.max(1, roomDraft.settings.hintMaxCount ?? 3) } : {}), [key]: value });
           playOptions = normalizePlayOptions({ ...playOptions, ...(key === 'hintEnabled' && value ? { hintMaxCount: Math.max(1, playOptions.hintMaxCount) } : {}), [key]: value });
           optionsConfigured = true; persistPreferences(); },
         contribution: toggleContribution,
-        topology: () => openTopologySetup(selectedTopologyDefinition() || undefined),
+        topology: toggleTopologyMenu, preset: selectTopologyPreset, randomTopology: generateTopologyRandomBoard,
+        customBoard: () => openBoardEditor(), reset: startNew,
         replay: () => { invalidateContribution(); closeCabin(false); scene = 'replay-hub'; redraw(); },
         library: () => { closeCabin(false); void openLibrary(); }, display: () => { closeCabin(false); openDisplay('board'); },
       });
@@ -1350,6 +1454,7 @@ export function createApp(platform, config = {}) {
     redraw();
   }
   function openCabin(key) {
+    closeNumberInput(); orderDrag = null; orderArmed = null;
     if (session.hidden) return;
     if (key === 'board' && isOnline() && !roomDraft) { openRoomSetup('settings'); return; }
     if (key !== 'board') roomDraft = null;
@@ -1360,6 +1465,7 @@ export function createApp(platform, config = {}) {
       void ladder.load(ladder.kind, ladder.data?.offset || 0);
   }
   function closeCabin(resume = true) {
+    closeNumberInput(); orderDrag = null; orderArmed = null;
     roomDraft = null;
     cabinGeneration++; cabin = null; scene = 'game'; selected = null;
     if (resume && !isOnline() && session.snapshot && session.replayIndex === null) session.resume();
@@ -1496,30 +1602,49 @@ export function createApp(platform, config = {}) {
   }
   async function startNew() {
     if (isOnline()) return;
-    const topologyDefinition = selectedTopologyDefinition();
-    if (topologyDefinition) { openTopologySetup(topologyDefinition); return; }
-    const compatible = controllerChoices(playerCount, draftSettings());
+    closeNumberInput();
+    if (invalidTurnOrder) { openCabin('board'); return; }
+    let definition = selectedTopologyDefinition(), preparedTopology;
+    if (definition) {
+      const setup = topologySetup?.definition === definition ? topologySetup : createTopologySetup({ definition });
+      const reconciled = reconcileTopologySetupPlayers(setup, Math.min(6, playerCount));
+      preparedTopology = topologySetupResult(reconciled.setup);
+      if (!reconciled.ok || !preparedTopology.ok) { editorMessage = topologyErrorText(reconciled.ok ? preparedTopology : reconciled); openCabin('board'); return; }
+      topologySetup = reconciled.setup; definition = preparedTopology.definition;
+    }
+    const compatible = definition ? ['human', 'topology-generic'] : controllerChoices(playerCount, draftSettings());
     if (Object.values(draftControllers()).some(profile => !compatible.includes(profile))) {
       await platform.message(label('incompatiblePlayers')); openCabin('board'); return;
     }
-    const current = session, epoch = session.epoch, previousScene = scene, generation = cabinGeneration, releaseClock = current.holdClock();
+    const current = session, epoch = current.epoch, previousScene = scene, generation = cabinGeneration, releaseClock = current.holdClock();
     try {
-      if (session.snapshot && !session.snapshot.gameOver && session.actions.length && !await platform.confirm(label('confirmNew'))) return;
-      if (session !== current || session.epoch !== epoch || scene !== previousScene || generation !== cabinGeneration || session.hidden) return;
-      if (session === localSession && session.snapshot && session.actions.length && !session.tutorial) archiveCurrent({ bestEffort: true });
+      if (current.snapshot && !current.snapshot.gameOver && current.actions.length && !await platform.confirm(label('confirmNew'))) return;
+      if (session !== current || current.epoch !== epoch || scene !== previousScene || generation !== cabinGeneration || current.hidden) return;
+      if (current === localSession && current.snapshot && current.actions.length && !current.tutorial) archiveCurrent({ bestEffort: true });
       clearEmote(); invalidateContribution(); cabin = null; cabinGeneration++; selected = null; scene = 'game';
-      const prepared = startingPointMode === 'random' && preparedStarts?.key === startLayoutKey({ ...draftSettings(), startPlayer })
-        ? preparedStarts.layout : undefined;
-      const started = await session.newGame(size, playerCount > 2 ? 'human' : mode, difficulty, playerCount,
-        { startPlayer, controllers, playOptions, boardShape, rootMode, startingPointMode, initialPositions,
-          startRandom, ...(prepared ? { preparedStarts: prepared } : {}),
-          ...(startingPointMode !== 'random' && initialRoots ? { initialRoots } : {}) });
-      if (started) { nextTopologyChoice = undefined; preparedStarts = null; beginContribution(); } redraw();
+      const order = currentTurnOrder(null); startPlayer = order[0];
+      let started;
+      if (definition) {
+        started = await current.newTopologyGame({ gridSize: size, playerCount, startPlayer, turnOrder: order,
+          rulesVersion: 'surface-v1', boardShape: 'custom', boardDefinition: definition, boardHash: preparedTopology.boardHash,
+          topologyProtocolVersion: 'board-topology-v1', rootMode: 'classic', rootRulesVersion: 'root-v1', ...playOptions },
+        'human', difficulty, { controllers: draftControllers() });
+      } else {
+        const prepared = startingPointMode === 'random' && preparedStarts?.key === startLayoutKey({ ...draftSettings(), startPlayer })
+          ? preparedStarts.layout : undefined;
+        started = await current.newGame(size, playerCount > 2 ? 'human' : mode, difficulty, playerCount,
+          { startPlayer, turnOrder: order, controllers, playOptions, boardShape, rootMode, startingPointMode, initialPositions,
+            startRandom, ...(prepared ? { preparedStarts: prepared } : {}),
+            ...(startingPointMode !== 'random' && initialRoots ? { initialRoots } : {}) });
+      }
+      if (started) { nextTopologyChoice = definition ? 'selected' : null; preparedStarts = null; beginContribution(); }
+      redraw();
     } finally { releaseClock(); }
   }
   function persistPreferences() {
     rememberPlayerDraft();
     try { savePreferences(platform.storage, { size, mode, difficulty, terminology, playerCount, boardShape, rootMode, startingPointMode, initialPositions, initialRoots,
+      ...(invalidTurnOrder || turnOrder != null ? { turnOrder } : {}), ...(invalidTurnOrder ? { invalidTurnOrder: true } : {}),
       ...(startPlayer !== 'BLACK' ? { startPlayer } : {}), ...(controllers ? { controllers } : {}),
       ...(Object.keys(playerDrafts).length > 1 ? { playerDrafts } : {}),
       ...(optionsConfigured ? { playOptions } : {}) }); }
@@ -1802,6 +1927,7 @@ export function createApp(platform, config = {}) {
     let kind = invitation ? 'join' : directKind, value = invitation;
     if (directKind && !invitation) {
       if (kind === 'ai') {
+        if (invalidTurnOrder) { openCabin('board'); return; }
         try { value = rankedSetupInput({ ...draftSettings(), startPlayer, startingPointMode, initialPositions }, draftControllers()); }
         catch (_) { await platform.message(language === 'en' ? 'In Board cabin, keep one human seat and choose compatible AI for every other seat.' : '请在棋盘舱保留一个真人席位，其余席位选择当前棋盘兼容的 AI。'); return; }
         const summary = Object.entries(value.controllers).map(([p, profile]) => `${playerLabel(p)} · ${label(`controller-${profile}`)}`).join('\n');
@@ -1906,22 +2032,42 @@ export function createApp(platform, config = {}) {
   }
   function tap(x, y) {
     const hit = [...buttons].reverse().find((b) => x >= b.x && y >= b.y && x <= b.x + b.width && y <= b.y + b.height);
+    if (numberEditing && hit?.id !== numberEditing.id) closeNumberInput(true);
     if (hit) {
       if (hit.set) { if (!hit.disabled) { hit.set(x); hit.commit?.(); } return; }
       if (!hit.disabled) Promise.resolve().then(hit.action).catch(error => platform.message(errorText(error.message, t())));
       return;
     }
     if (!currentView()) { redraw(); return; }
-    if (scene === 'topology-setup' && topologyDraftLayout) {
-      const draftHit = hitTopologyDraftPoint(x, y, topologyDraftLayout);
-      if (!draftHit) return;
-      if (!topologySetup?.draft?.closed) {
-        const path = topologySetup?.draft?.path ?? [];
-        if (path.length >= 3 && path[0].every((value, i) => value === draftHit.coordinate[i])) {
-          const closed = extendTopologyBoundary(topologySetup, draftHit.coordinate, { close: true });
-          adoptTopologySetup(closed.ok ? changeTopologyStarts(closed.setup, { mode: 'default', playerCount }) : closed);
-        } else adoptTopologySetup(extendTopologyBoundary(topologySetup, draftHit.coordinate));
-      } else { topologyDraftSelectedIndex = draftHit.index ?? null; redraw(); }
+    if (scene === 'board-editor' && editorSetup && editorSource && inBoard(x, y)) {
+      if (editorSource.ordinaryRoots) {
+        const point = hitPoint(x, y, layout); if (!point) return;
+        const occupied = Object.entries(editorSource.ordinaryRoots).some(([player, roots]) => player !== editorPlayer
+          && roots.some(root => root.every((value, i) => value === point[i])));
+        if (occupied) { editorMessage = label('startPointOccupied'); redraw(); return; }
+        editorSource.ordinaryRoots[editorPlayer] = [[...point]]; editorMessage = ''; redraw(); return;
+      }
+      const hit = hitTestBoardEditor(editorLayout, x, y, editorTool);
+      if (!hit) return;
+      if (hit.type === 'coordinate') {
+        const path = editorSetup.draft?.path || [];
+        const closing = path.length >= 3 && path[0].every((v, i) => v === hit.coordinate[i]);
+        const result = extendTopologyBoundary(editorSetup, hit.coordinate, { close: closing });
+        if (result.ok && closing && !Object.keys(result.setup.definition?.startingVertices || {}).length)
+          adoptEditor(changeTopologyStarts(result.setup, { mode: 'default', playerCount: editorSource.settings.playerCount }));
+        else adoptEditor(result);
+      } else if (hit.type === 'ring') { editorRing = hit.index; redraw(); }
+      else if (hit.type === 'edge') adoptEditor(selectTopologyBoundaryOccurrence(editorSetup, hit.occurrenceId));
+      else if (hit.type === 'seam') adoptEditor(removeTopologySeam(editorSetup, hit.seamId));
+      else if (hit.type === 'vertex') {
+        const roots = topologyStartingRoots(editorSetup.compiled);
+        if (editorSource.ordinary) {
+          if (hit.owner === editorPlayer) { editorMoveFrom = hit.vertexId; editorMessage = ''; redraw(); return; }
+          const result = setTopologyRootAtVertex(editorSetup, editorPlayer, hit.vertexId,
+            { moveFrom: editorMoveFrom || roots[editorPlayer]?.[0] });
+          adoptEditor(result); if (result.ok) editorMoveFrom = null;
+        } else adoptEditor(setTopologyRootAtVertex(editorSetup, editorPlayer, hit.vertexId));
+      }
       return;
     }
     if (scene === 'starts' && layout && inBoard(x, y)) {
@@ -1948,13 +2094,25 @@ export function createApp(platform, config = {}) {
       return;
     }
     const p = event.touches?.length === 1 && event.touches[0];
+    const orderHit = p && orderRegions.find(item => !item.disabled && p.clientX >= item.x && p.clientX <= item.x + item.width
+      && p.clientY >= item.y && p.clientY <= item.y + item.height);
+    if (orderHit && currentView()) {
+      closeNumberInput();
+      orderDrag = { player: orderHit.player, preview: [...orderHit.order], generation: cabinGeneration, draft: roomDraft, view,
+        armed: orderArmed === orderHit.player, time: Date.now() };
+      startTouch = { x: p.clientX, y: p.clientY, moved: false, view, cabinEpoch: cabinGeneration,
+        scroll: cabinScroll, order: true };
+      return;
+    }
     startTouch = p && currentView() ? { x: p.clientX, y: p.clientY, moved: false, view,
       scroll: scrollArea && p.clientX >= scrollArea.x && p.clientX <= scrollArea.x + scrollArea.width
         && p.clientY >= scrollArea.y && p.clientY <= scrollArea.y + scrollArea.height ? cabinScroll : null,
       slider: sliders.find(item => !item.disabled && p.clientX >= item.x && p.clientX <= item.x + item.width && p.clientY >= item.y && p.clientY <= item.y + item.height),
       surface: scene === 'topology-3d' && surface3dRect && p.clientX >= surface3dRect.x && p.clientX <= surface3dRect.x + surface3dRect.width
         && p.clientY >= surface3dRect.y && p.clientY <= surface3dRect.y + surface3dRect.height ? { yaw: surface3dYaw, pitch: surface3dPitch } : null,
-      cabinEpoch: cabinGeneration, cabin, axis: null, focus: zoomFocus && inBoard(p.clientX, p.clientY) ? [...zoomFocus] : null, layout } : null;
+      cabinEpoch: cabinGeneration, cabin, axis: null,
+      editorPan: scene === 'board-editor' && editorZoom > 1 && inBoard(p.clientX, p.clientY) ? { ...editorPan } : null,
+      focus: zoomFocus && inBoard(p.clientX, p.clientY) ? [...zoomFocus] : null, layout } : null;
     if (startTouch?.cabin === 'battle' && startTouch.scroll !== null) userInfoControl?.hide();
   });
   platform.touchMove((event) => {
@@ -1969,9 +2127,30 @@ export function createApp(platform, config = {}) {
     }
     const p = event.touches?.length === 1 && event.touches[0];
     if (!p || !touch || !currentView() || touch.view !== view) { startTouch = null; return; }
+    if (touch.order) {
+      if (!orderDrag || orderDrag.generation !== cabinGeneration || orderDrag.draft !== roomDraft) { orderDrag = null; startTouch = null; return; }
+      const dx = p.clientX - touch.x, dy = p.clientY - touch.y;
+      if (!orderDrag.armed && Date.now() - orderDrag.time < 200 && Math.abs(dy) >= 8 && Math.abs(dy) > Math.abs(dx)) {
+        orderDrag = null; orderArmed = null; touch.order = false; touch.axis = 'y'; touch.moved = true;
+      } else {
+      touch.moved = true;
+      const target = orderRegions.find(item => p.clientX >= item.x && p.clientX <= item.x + item.width
+        && p.clientY >= item.y && p.clientY <= item.y + item.height);
+      if (target && target.player !== orderDrag.player) {
+        const next = [...orderDrag.preview], from = next.indexOf(orderDrag.player), to = next.indexOf(target.player);
+        next.splice(from, 1); next.splice(to, 0, orderDrag.player); orderDrag.preview = next; redraw();
+      }
+      return;
+      }
+    }
     const dx = p.clientX - touch.x, dy = p.clientY - touch.y;
     if (Math.hypot(dx, dy) >= 14) touch.moved = true;
     if (touch.cabinEpoch !== cabinGeneration) { startTouch = null; return; }
+    if (touch.moved && touch.editorPan) {
+      const limit = Math.max(boardRect.width, boardRect.height) * editorZoom;
+      editorPan = { x: Math.max(-limit, Math.min(limit, touch.editorPan.x + dx)),
+        y: Math.max(-limit, Math.min(limit, touch.editorPan.y + dy)) }; redraw(); return;
+    }
     if (touch.moved && touch.surface) { surface3dPaused = true; surface3dYaw = touch.surface.yaw + dx * 0.01; surface3dPitch = Math.max(-1.5, Math.min(1.5, touch.surface.pitch + dy * 0.01)); redraw(); return; }
     if (!touch.axis && Math.hypot(dx, dy) >= 8) touch.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
     if (touch.slider && touch.axis === 'x') {
@@ -1981,12 +2160,20 @@ export function createApp(platform, config = {}) {
       if (touch.cabin === cabin && touch.view === view && currentView()) touch.cabinEpoch = cabinGeneration;
       return;
     }
-    if (touch.moved && touch.scroll !== null) { cabinScroll = Math.max(0, Math.min(scrollMax, touch.scroll - dy)); redraw(); return; }
+    if (touch.moved && touch.scroll !== null) { closeNumberInput(); cabinScroll = Math.max(0, Math.min(scrollMax, touch.scroll - dy)); redraw(); return; }
     if (touch.moved && touch.focus) { zoomFocus = panBoardFocus(touch.focus, dx, dy, touch.layout); selected = null; redraw(); }
   });
   platform.touchEnd((event) => {
     const p = event.changedTouches?.[0], touch = startTouch;
     startTouch = null;
+    if (touch?.order) {
+      const drag = orderDrag; orderDrag = null;
+      if (drag && drag.generation === cabinGeneration && drag.draft === roomDraft && currentView() && touch.view === view) {
+        orderArmed = drag.player;
+        if (touch.moved && drag.preview.some((player, i) => player !== currentTurnOrder()[i])) setTurnOrder(drag.preview);
+      }
+      redraw(); return;
+    }
     if (touch?.cabin === 'battle' && touch.scroll !== null) redraw();
     if (p && touch?.slider?.commit && !event.touches?.length && currentView() && touch.view === view) {
       touch.slider.set(p.clientX); touch.slider.commit(); return;
@@ -1994,7 +2181,7 @@ export function createApp(platform, config = {}) {
     if (p && touch && !event.touches?.length && !touch.moved && currentView() && touch.view === view
       && Math.hypot(p.clientX - touch.x, p.clientY - touch.y) < 14) tap(p.clientX, p.clientY);
   });
-  platform.touchCancel(() => { startTouch = null; replaySeekDraft = null; redraw(); });
+  platform.touchCancel(() => { orderArmed = null; orderDrag = null; startTouch = null; replaySeekDraft = null; redraw(); });
   platform.wheel?.((event) => {
     if (!disposed && appVisible && currentView() && scene === 'topology-3d' && surface3dRect && Number.isFinite(event.deltaY)
       && Number.isFinite(event.clientX) && Number.isFinite(event.clientY)
@@ -2008,10 +2195,10 @@ export function createApp(platform, config = {}) {
     if (Number.isFinite(event.clientY) && (event.clientY < scrollArea.y || event.clientY > scrollArea.y + scrollArea.height)) return;
     const scale = event.deltaMode === 1 ? 20 : event.deltaMode === 2 ? scrollArea.height : 1;
     const next = Math.max(0, Math.min(scrollMax, cabinScroll + event.deltaY * scale));
-    startTouch = null;
+    closeNumberInput(); orderDrag = null; orderArmed = null; startTouch = null;
     if (next !== cabinScroll) { cabinScroll = next; redraw(); }
   });
-  platform.onHide(() => { platform.resetInput?.(); clearEmote(); clearUserInfoControl(); appVisible = false; contribution.setForeground(false); visibilityGeneration++; profileHideCount++; friendsGeneration++; helpGeneration++; cabinGeneration++; cancelFileTask(); clearBoardView(); isOnline() ? online.background() : session.hide(); });
+  platform.onHide(() => { closeNumberInput(); orderDrag = null; orderArmed = null; platform.resetInput?.(); clearEmote(); clearUserInfoControl(); appVisible = false; contribution.setForeground(false); visibilityGeneration++; profileHideCount++; friendsGeneration++; helpGeneration++; cabinGeneration++; cancelFileTask(); clearBoardView(); isOnline() ? online.background() : session.hide(); });
   platform.onShow((options = {}) => {
     if (disposed) return;
     appVisible = true;
@@ -2051,9 +2238,11 @@ export function createApp(platform, config = {}) {
   void localSession.restore().then(async restored => {
     if (disposed || !appVisible || session !== localSession || scene !== 'game' || cabin) return;
     // A damaged save remains untouched; retry is an explicit player action.
+    if (!restored && invalidTurnOrder) { openCabin('board'); return; }
+    if (!restored && !localSession.error && !localSession.snapshot && selectedTopologyDefinition()) await startNew();
     if (!restored && !localSession.error && !localSession.snapshot) await localSession.newGame(size,
       playerCount > 2 ? 'human' : mode, difficulty, playerCount,
-      { startPlayer, controllers, playOptions, boardShape, rootMode, startingPointMode, initialPositions,
+      { startPlayer: currentTurnOrder(null)[0], turnOrder: currentTurnOrder(null), controllers, playOptions, boardShape, rootMode, startingPointMode, initialPositions,
         ...(startingPointMode !== 'random' && initialRoots ? { initialRoots } : {}) });
     if (!restored && localSession.snapshot && !localSession.actions.length) beginContribution();
     if (disposed || !appVisible || session !== localSession || scene !== 'game' || cabin) return;
@@ -2065,7 +2254,7 @@ export function createApp(platform, config = {}) {
   // Returned only to the caller; preview tests can inspect the same UI geometry.
   return { get session() { return session; }, online, getButtons: () => buttons.map(({ action, ...rest }) => rest), getLayout: () => layout,
     getStartPreview: () => scene === 'starts' && startPreviewRandom ? JSON.parse(JSON.stringify(startDraftRoots)) : null,
-    getTopologyLayout: () => topologyDraftLayout ?? topologyPreviewLayout,
-    getScene: () => scene, getCabin: () => scene === 'home' ? 'board' : cabin, tap, redraw, dispose: () => { clearTimeout(surface3dTimer); surface3dRenderer?.destroy(); surface3dRenderer = null; platform.disposeInput?.(); clearTimeout(roomClockTimer); clearEmote(); clearUserInfoControl(); if (typeof privacyAuthorization === 'function') privacyAuthorization(); else privacyAuthorization?.dispose?.(); disposed = true; stopNetworkListener?.(); guideImages.dispose(); appVisible = false; friendsGeneration++; helpGeneration++;
+    getTopologyLayout: () => topologyDraftLayout ?? topologyPreviewLayout, getEditorLayout: () => editorLayout,
+    getScene: () => scene, getCabin: () => scene === 'home' ? 'board' : cabin, tap, redraw, dispose: () => { closeNumberInput(); platform.numberKeyboard?.destroy?.(); orderDrag = null; clearTimeout(surface3dTimer); surface3dRenderer?.destroy(); surface3dRenderer = null; platform.disposeInput?.(); clearTimeout(roomClockTimer); clearEmote(); clearUserInfoControl(); if (typeof privacyAuthorization === 'function') privacyAuthorization(); else privacyAuthorization?.dispose?.(); disposed = true; stopNetworkListener?.(); guideImages.dispose(); appVisible = false; friendsGeneration++; helpGeneration++;
       readerCache.clear(); cancelFileTask(); contribution.dispose?.(); localSession.hide(); online.detach(); scheduler.cancel(); models.clear(); } };
 }

@@ -136,7 +136,7 @@ test('friend-game cabins preserve the authoritative room and reject stale direct
     await until(() => h.app.online.room); await h.render();
     const hash = h.app.session.stateHash;
     await h.tap('cabin-board'); await h.render();
-    for (const id of ['player-count', 'controller-BLACK', 'controller-WHITE', 'starter-BLACK']) {
+    for (const id of ['player-count', 'controller-BLACK', 'controller-WHITE', 'order-BLACK']) {
       await h.scrollTo(id);
       assert.equal(h.app.getButtons().find(b => b.id === id)?.disabled, false, id);
     }
@@ -194,10 +194,11 @@ test('terminology switch changes on-board copy without changing the underlying r
 
 test('three-player hint settings remain usable and switching player count preserves the configured hint budget', async () => {
   for (const language of ['zh', 'en']) {
-    const h = uiHarness({ language, width: 320, height: 568, top: 64 });
+    let numberEntry;
+    const h = uiHarness({ language, width: 320, height: 568, top: 64, platformOverrides: { numberKeyboard: { begin: entry => { numberEntry = entry; return { close() {} }; }, close() {} } } });
     try {
       await ready(h); const hash = h.app.session.stateHash;
-      await h.tap('cabin-board'); await h.slide('hint-count', 7, 1, 10);
+      await h.tap('cabin-board'); await h.scrollTo('hint-count'); await h.tap('hint-count'); numberEntry.onInput('7'); numberEntry.onConfirm('7'); await h.render();
       const before = sut.readPreferences(h.p.storage).playOptions;
       assert.equal(before.hintEnabled, true); assert.equal(before.hintMaxCount, 7);
       await h.slide('player-count', 3, 2, 15); await h.scrollTo('hint-enabled');

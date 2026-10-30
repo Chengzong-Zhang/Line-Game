@@ -53,6 +53,7 @@ self.onmessage = (event) => {
       playerCount: serializedState.playerCount,
       boardShape: serializedState.boardShape,
       startPlayer: serializedState.startPlayer,
+      ...(serializedState.turnOrder !== undefined ? { turnOrder: serializedState.turnOrder } : {}),
       initialPositions: serializedState.initialPositions,
       rulesVersion: serializedState.rulesVersion,
       protectionRule: serializedState.protectionRule,

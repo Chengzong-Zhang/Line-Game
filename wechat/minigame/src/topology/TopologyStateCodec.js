@@ -40,6 +40,7 @@ const RULE_STATE_KEYS = new Set([
   "stateVersion",
   "rulesVersion",
   "currentPlayer",
+  "turnOrder",
   "startingVertices",
   "vertexStateById",
   "logicPaths",
@@ -335,7 +336,7 @@ function normalizePassHistory(value, limits) {
 function normalizeRuleState(value, compiledBoard, limits) {
   assertPlainObject(value, "ruleState");
   assertOnlyKeys(value, RULE_STATE_KEYS, "ruleState");
-  assertRequiredKeys(value, RULE_STATE_KEYS, "ruleState");
+  assertRequiredKeys(value, new Set([...RULE_STATE_KEYS].filter((key) => key !== "turnOrder")), "ruleState");
   if (value.stateVersion !== TOPOLOGY_RULE_STATE_VERSION) {
     fail("UNSUPPORTED_RULE_STATE", "ruleState.stateVersion is unsupported.");
   }
@@ -346,6 +347,11 @@ function normalizeRuleState(value, compiledBoard, limits) {
   if (value.currentPlayer !== null) assertIdentifier(value.currentPlayer, "ruleState.currentPlayer");
   const sampleIds = new Set(compiledBoard.sampleIds);
   const starts = canonicalStarts(value.startingVertices, sampleIds, limits.maxPlayers, "ruleState.startingVertices");
+  if (value.turnOrder !== undefined && (!Array.isArray(value.turnOrder)
+    || value.turnOrder.length !== Object.keys(starts).length || new Set(value.turnOrder).size !== Object.keys(starts).length
+    || !value.turnOrder.every((player) => Object.prototype.hasOwnProperty.call(starts, player)))) {
+    fail("INVALID_TURN_ORDER", "ruleState.turnOrder must be a permutation of players.");
+  }
   const expectedStarts = Object.fromEntries(Object.entries(compiledBoard.startingRoots ?? compiledBoard.startingVertices)
     .map(([player, value]) => {
       const roots = Array.isArray(value) ? value : [value];
@@ -396,6 +402,7 @@ function normalizeRuleState(value, compiledBoard, limits) {
     stateVersion: TOPOLOGY_RULE_STATE_VERSION,
     rulesVersion: value.rulesVersion,
     currentPlayer: value.currentPlayer,
+    ...(value.turnOrder !== undefined ? { turnOrder: [...value.turnOrder] } : {}),
     startingVertices: starts,
     vertexStateById,
     logicPaths,

@@ -1,3 +1,4 @@
+import { typeNumber } from './number-keyboard-fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { sut, localScheduler, memoryStorage, plain, until } from './helpers.mjs';
@@ -48,7 +49,7 @@ test('board cabin exposes and persists the 100-undo setting', async () => {
   const h = uiHarness();
   try {
     await ready(h); await h.tap('cabin-board'); await h.scrollTo('undo-enabled'); await h.tap('undo-enabled');
-    await h.slide('undo-count', 100, 1, 100);
+    await typeNumber(h, 'undo-count', 100);
     const options = sut.readPreferences(h.p.storage).playOptions;
     assert.equal(options.undoEnabled, true); assert.equal(options.undoMaxCount, 100);
   } finally { h.app.dispose(); }

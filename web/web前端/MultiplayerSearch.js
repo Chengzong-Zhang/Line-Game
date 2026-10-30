@@ -48,7 +48,7 @@ export function isolatedSearchEngine(source) {
   if (source.rootRulesVersion === "root-v2") throw new Error("Optimized multiplayer search does not support multi-root state.");
   const engine = new GameEngine({ gridSize: source.gridSize, playerCount: source.playerCount,
     boardShape: source.boardShape, initialPositions: source.initialPositions,
-    startPlayer: source.startPlayer, rulesVersion: source.rulesVersion,
+    startPlayer: source.startPlayer, ...(source.explicitTurnOrder ? { turnOrder: [...source.turnOrder] } : {}), rulesVersion: source.rulesVersion,
     protectionRule: source.protectionRule, deferTerritoryUpdates: true });
   restoreState(engine, saveState(source));
   engine._isReplayingBatch = true;

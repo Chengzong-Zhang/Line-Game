@@ -18,6 +18,7 @@ export function canonicalTerminalWinningPass(engine, player, now = () => perform
       playerCount: engine.playerCount,
       boardShape: engine.boardShape,
       startPlayer: engine.startPlayer,
+      ...(engine.explicitTurnOrder ? { turnOrder: [...engine.turnOrder] } : {}),
       initialPositions: engine.initialPositions,
       rulesVersion: engine.rulesVersion,
       protectionRule: engine.protectionRule,

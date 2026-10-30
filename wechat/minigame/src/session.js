@@ -188,6 +188,7 @@ export class GameSession {
       return this.load(initial, [], { mode, difficulty, controllers: options.controllers });
     }
     const initial = withNewGameProtectionRule({ ...settingsFor(size, playerCount, options.startPlayer || 'BLACK'), ...normalizePlayOptions(options.playOptions),
+      ...(options.turnOrder !== undefined ? { turnOrder: options.turnOrder } : {}),
       ...(options.boardShape ? { boardShape: options.boardShape } : {}), ...(options.rootMode ? { rootMode: options.rootMode } : {}) });
     const modeOfStarts = options.startingPointMode || (options.initialPositions ? 'custom' : requiresExplicitStartingPoints(playerCount, initial.boardShape) ? 'random' : 'default');
     const rootMode = initial.rootMode || 'classic';

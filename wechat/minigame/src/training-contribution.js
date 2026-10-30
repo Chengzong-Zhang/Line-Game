@@ -206,8 +206,8 @@ function sanitizeV4(settings, actions, context) {
     || !playerIds(settings.playerCount).length || !playerIds(settings.playerCount).includes(settings.startPlayer)) throw new Error('UNSUPPORTED');
   const surface = settings.rulesVersion === 'surface-v1', options = normalizePlayOptions(settings);
   const keys = surface
-    ? ['gridSize', 'playerCount', 'startPlayer', 'rulesVersion', 'boardShape', 'boardDefinition', 'boardHash', 'topologyProtocolVersion', 'rootMode', 'rootRulesVersion']
-    : ['gridSize', 'playerCount', 'startPlayer', 'rulesVersion', 'boardShape', 'startingPointMode', 'initialPositions', 'rootMode', 'rootRulesVersion', 'initialRoots', 'protectionRule'];
+    ? ['gridSize', 'playerCount', 'startPlayer', 'turnOrder', 'rulesVersion', 'boardShape', 'boardDefinition', 'boardHash', 'topologyProtocolVersion', 'rootMode', 'rootRulesVersion']
+    : ['gridSize', 'playerCount', 'startPlayer', 'turnOrder', 'rulesVersion', 'boardShape', 'startingPointMode', 'initialPositions', 'rootMode', 'rootRulesVersion', 'initialRoots', 'protectionRule'];
   const cleanSettings = Object.fromEntries(keys.filter(key => settings[key] !== undefined).map(key => [key, clone(settings[key])]));
   Object.assign(cleanSettings, options);
   const normalized = normalizeGameSettings(cleanSettings);

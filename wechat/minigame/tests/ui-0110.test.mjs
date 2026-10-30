@@ -51,23 +51,20 @@ test('replay suggestions, inspection and branch are visible without a secondary 
   }
 });
 
-test('board cabin supports explicit shapes, custom starting-node selection, saved settings and a new playable game', async () => {
+test('board cabin supports explicit shapes, merged board/root editing, saved settings and a new playable game', async () => {
   const storage = memoryStorage(), h = uiHarness({ storage, width: 320, height: 568, top: 64 });
   try {
     await ready(h); const before = h.app.session.stateHash;
     await h.tap('cabin-board'); await h.slide('player-count', 4, 2, 15);
     await h.scrollTo('shape-triangle'); await h.tap('shape-triangle');
-    await h.scrollTo('starts-custom'); await h.tap('starts-custom'); assert.equal(h.app.getScene(), 'starts'); allVisible(h);
-    assert.equal(h.app.getLayout().boardShape, 'triangle');
-    await h.tap('start-zoom'); await h.render();
-    h.app.tap(...sut.toScreen([1, 0], h.app.getLayout())); await h.render();
-    await h.tap('start-point-confirm'); await h.tap('starts-save');
+    await h.scrollTo('topology-custom'); await h.tap('topology-custom'); assert.equal(h.app.getScene(), 'board-editor'); allVisible(h);
+    await h.tap('editor-save');
     assert.equal(h.app.getCabin(), 'board'); assert.equal(h.app.session.stateHash, before);
     const saved = sut.readPreferences(storage); assert.equal(saved.boardShape, 'triangle'); assert.equal(saved.startingPointMode, 'custom');
-    assert.deepEqual(plain(saved.initialPositions.BLACK), [1, 0]);
+    assert.ok(saved.initialPositions.BLACK, 'the unified editor persists a complete starting layout');
     await h.tap('cabin-close'); await h.tap('new-game'); await until(() => !h.app.session.busy); await h.render();
     assert.equal(h.app.session.settings.playerCount, 4); assert.equal(h.app.session.settings.boardShape, 'triangle');
-    assert.deepEqual(plain(h.app.session.settings.initialPositions.BLACK), [1, 0]); assert.equal(h.app.session.canPlay(), true);
+    assert.deepEqual(plain(h.app.session.settings.initialPositions.BLACK), plain(saved.initialPositions.BLACK)); assert.equal(h.app.session.canPlay(), true);
   } finally { h.app.dispose(); }
 });
 
@@ -75,6 +72,7 @@ test('board cabin presents four equal shape choices in two rows and routes topol
   const h = uiHarness({ width: 390, height: 844, top: 88 });
   try {
     await ready(h); await h.tap('cabin-board'); await h.scrollTo('shape-triangle');
+    await h.scrollTo('topology-setup');
     let buttons = h.app.getButtons();
     const byId = id => buttons.find(item => item.id === id);
     const triangle = byId('shape-triangle'), hexagon = byId('shape-hexagon');
@@ -88,7 +86,7 @@ test('board cabin presents four equal shape choices in two rows and routes topol
     assert.ok(diamond.y > triangle.y);
     await h.tap('shape-hexagon');
     assert.equal(sut.readPreferences(h.p.storage).boardShape, 'hexagon', 'tapping a shape selects it for the next match');
-    await h.tap('topology-setup'); assert.equal(h.app.getScene(), 'topology-setup');
+    await h.tap('topology-setup'); assert.equal(h.app.getScene(), 'home');
   } finally { h.app.dispose(); }
 });
 

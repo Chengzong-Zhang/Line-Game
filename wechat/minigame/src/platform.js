@@ -3,6 +3,7 @@ import { createAnonymousContributionRequest } from './contribution-transport.js'
 import { avatarPlatform } from './avatar-platform.js';
 import { userInfoPlatform } from './user-info-platform.js';
 import { createWxInput } from './input.js';
+import { createNumberKeyboard } from './inline-number-input.js';
 
 export function createWxPlatform(api) {
   const modal = (options) => new Promise((resolve) => api.showModal({ ...options,
@@ -11,6 +12,7 @@ export function createWxPlatform(api) {
     ...avatarPlatform(api),
     ...userInfoPlatform(api),
     ...createWxInput(api),
+    numberKeyboard: createNumberKeyboard(api),
     canvas: api.createCanvas(),
     createWebGLCanvas: (width, height) => typeof api.createOffscreenCanvas === 'function'
       ? api.createOffscreenCanvas({ type: 'webgl', width, height }) : null,

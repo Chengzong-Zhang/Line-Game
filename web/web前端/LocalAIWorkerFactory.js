@@ -1,7 +1,8 @@
 // Select once from the active match, not the current seat or unsaved setup.
 // All mixed seats keep one compatible Worker until the session cancels it.
 const ordinaryUrl = new URL("./AIWorker.js?v=20261029-unified-r1", import.meta.url);
-const hardUrl = new URL("./MultiplayerHardAIWorker.bundle.mjs?v=20261029-unified-r1", import.meta.url);
+const orderedHardUrl = new URL("./MultiplayerHardWorkerEntry.js?v=20261030-turn-order-r1", import.meta.url);
+const hardUrl = new URL("./frozen-workers/web-topology-fix-20261030-r2/MultiplayerHardAIWorker.bundle.mjs?v=20261029-unified-r1", import.meta.url);
 
 export function localAIWorkerRoute(context, profiles = []) {
   const native = context && [3, 4, 5, 6].includes(context.playerCount)
@@ -12,8 +13,11 @@ export function localAIWorkerRoute(context, profiles = []) {
   // The rebuilt bundle supports both territory-v2 and territory-v3.
   const hard = native && activeProfiles.some(profile => profile?.strategy === "multiplayer"
     && profile.modelId === "multiplayer-hard-v1");
-  return { kind: hard ? "native-hard-bundle" : "ordinary", url: new URL(hard ? hardUrl : ordinaryUrl),
-    identity: JSON.stringify([context?.playerCount, context?.gridSize, context?.boardShape, context?.rulesVersion, activeProfiles]) };
+  const orderedHard = hard && context.explicitTurnOrder === true;
+  return { kind: orderedHard ? "native-hard-source-turn-order" : hard ? "native-hard-bundle" : "ordinary",
+    url: new URL(orderedHard ? orderedHardUrl : hard ? hardUrl : ordinaryUrl),
+    identity: JSON.stringify([context?.playerCount, context?.gridSize, context?.boardShape, context?.rulesVersion,
+      context?.explicitTurnOrder ? context.turnOrder : null, activeProfiles]) };
 }
 
 export function createLocalAIWorker(context, profiles, WorkerType = globalThis.Worker) {

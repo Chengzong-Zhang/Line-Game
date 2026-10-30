@@ -1321,13 +1321,14 @@ export class GameController {
       decoded = decodeTopologyState(topologyState);
       const activePlayers = PLAYER_ORDER.slice(0, Object.keys(decoded.ruleState.startingVertices).length);
       if (activePlayers.length < 2) throw new Error("Topology state has too few active players.");
-      const normalizedStartPlayer = activePlayers.includes(startPlayer)
+      const normalizedStartPlayer = decoded.ruleState.turnOrder?.[0] ?? (activePlayers.includes(startPlayer)
         ? startPlayer
-        : activePlayers[0];
+        : activePlayers[0]);
       const previousOptions = { ...(this.options.engine ?? {}) };
       delete previousOptions.initialPositions;
       delete previousOptions.startingPointMode;
       delete previousOptions.boardShape;
+      delete previousOptions.turnOrder;
       const nextEngineOptions = {
         ...DEFAULT_ENGINE_OPTIONS,
         ...previousOptions,
@@ -1337,6 +1338,7 @@ export class GameController {
         rulesVersion: decoded.ruleState.rulesVersion,
         initialPositions: decoded.ruleState.startingVertices,
         startPlayer: normalizedStartPlayer,
+        ...(decoded.ruleState.turnOrder !== undefined ? { turnOrder: decoded.ruleState.turnOrder } : {}),
         deferTerritoryUpdates: false,
       };
       candidateEngine = this._createEngine(nextEngineOptions);

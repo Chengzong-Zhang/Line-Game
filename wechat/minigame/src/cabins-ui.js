@@ -2,6 +2,7 @@ import { playerIds } from './controllers.js';
 import { requiresExplicitStartingPoints } from './core.js';
 import { PLAYER_LABEL_KEYS } from './display.js';
 import { drawLadder } from './ladder.js';
+import { drawTurnOrderStrip } from './turn-order-ui.js';
 export const CABIN_COLORS = { ink: '#2a2118', muted: '#695749', panel: '#fff9ee', gold: '#c69a4b' };
 export function cabinGeometry(metrics, top) {
   const dock = { x: 16, y: top, width: metrics.width - 32, height: 42 };
@@ -47,11 +48,25 @@ export function drawBoardCabin(ui, area, state, actions) {
   pair(['display-open', label('displayOptions'), actions.display]);
   group(en ? 'Players' : '参与者');
   slider('player-count', en ? 'Players' : '玩家人数', state.playerCount, 2, 15, x, y, area.width, actions.players, onlineLocked); y += 72;
-  for (const player of playerIds(state.playerCount)) {
+  const players = playerIds(state.playerCount);
+  for (const player of players) {
     const name = actions.playerLabel(player), profile = state.controllers[player] || 'human';
     const incompatible = state.compatibleProfiles && !state.compatibleProfiles.includes(profile);
-    pair([`controller-${player}`, `${name} · ${label(`controller-${profile}`)}${incompatible ? (en ? ' · choose again' : ' · 请重选') : ''}`, () => actions.controller(player), onlineLocked],
-      [`starter-${player}`, `${state.startPlayer === player ? '✓ ' : ''}${name}${en ? ' starts' : '先手'}`, () => actions.starter(player), onlineLocked, state.startPlayer === player]);
+    button(`controller-${player}`, `${name} · ${label(`controller-${profile}`)}${incompatible ? (en ? ' · choose again' : ' · 请重选') : ''}`,
+      x, y, area.width, () => actions.controller(player), { height: 44, font: 14, disabled: onlineLocked }); y += 50;
+  }
+  group(en ? 'Turn order' : '行动顺序');
+  const order = Array.isArray(state.turnOrder) ? state.turnOrder : players;
+  const orderOptions = { players, order, labels: Object.fromEntries(players.map(player => [player, actions.playerLabel(player)])),
+    onReorder: actions.turnOrder, x, y, width: area.width, disabled: onlineLocked };
+  const orderStrip = typeof ui.orderStrip === 'function' ? ui.orderStrip(orderOptions) : drawTurnOrderStrip(ui, orderOptions);
+  y += (typeof orderStrip === 'number' ? orderStrip : orderStrip?.height || 0) + 10;
+  y += ui.wrap(en ? 'Tap a colour, then drag to reorder. Swipe up or down to scroll.' : '点选颜色后拖动排序；直接上下滑动可滚动面板。', x, y + 3, area.width, 12, CABIN_COLORS.muted, 2) + 10;
+  if (state.invalidTurnOrder) {
+    y += ui.wrap(en ? 'The turn order is invalid. Restore the default order to continue.' : '行动顺序无效，请恢复默认顺序后继续。',
+      x, y, area.width, 13, '#a43730', 2) + 8;
+    button('turn-order-reset', en ? 'Restore default order' : '恢复默认顺序', x, y, area.width, actions.resetTurnOrder,
+      { height: 38, font: 13, disabled: typeof actions.resetTurnOrder !== 'function' }); y += 46;
   }
   if (state.playerCount > 2) y += ui.wrap(label('compatibleAIHelp'), x, y + 8, area.width, 14, CABIN_COLORS.muted, 3) + 18;
   const contributionShape = state.boardShape || (state.playerCount >= 4 ? 'hexagon' : 'triangle');
@@ -94,33 +109,69 @@ export function drawBoardCabin(ui, area, state, actions) {
   pair(['shape-triangle', en ? 'Triangle' : '三角形', () => actions.shape('triangle'), onlineLocked, state.boardShape === 'triangle'],
     ['shape-hexagon', en ? 'Hexagon' : '六边形', () => actions.shape('hexagon'), onlineLocked, state.boardShape === 'hexagon']);
   pair(['shape-diamond', en ? 'Diamond' : '菱形', () => actions.shape('diamond'), onlineLocked, state.boardShape === 'diamond'],
-    ['topology-setup', en ? 'Topology board' : '拓扑棋盘', actions.topology,
+    ['topology-setup', en ? `Topology boards${state.topologyExpanded ? ' ▴' : ' ▾'}` : `拓扑棋盘${state.topologyExpanded ? ' ▴' : ' ▾'}`, actions.topology,
       onlineLocked || typeof actions.topology !== 'function', state.boardShape === 'custom']);
+  pair(['topology-random', en ? 'Random map' : '随机地图', actions.randomTopology || actions.randomMap,
+    onlineLocked || typeof (actions.randomTopology || actions.randomMap) !== 'function', state.topologyPreset === 'random'],
+  ['topology-custom', en ? 'Custom board' : '自定义棋盘', actions.customBoard || actions.topologyCustom || (() => actions.startingPoints('custom')),
+    onlineLocked, state.boardShape === 'custom' && !state.topologyPreset || state.startingPointMode === 'custom']);
+  if (state.topologyExpanded) {
+    const presets = [
+      ['cylinder', en ? 'Cylinder' : '圆柱'], ['mobius', en ? 'Möbius strip' : '莫比乌斯带'],
+      ['torus', en ? 'Torus' : '环面'], ['klein-bottle', en ? 'Klein bottle' : '克莱因瓶'],
+      ['tetrahedron', en ? 'Tetrahedron' : '三角锥'], ['cone', en ? 'Cone' : '圆锥'],
+      ['sphere', en ? 'Sphere' : '球面'], ['double-sphere', en ? 'Two-chart sphere' : '双片球面'],
+      ['double-torus', en ? 'Double torus' : '双把手'],
+    ];
+    for (let i = 0; i < presets.length; i += 2) {
+      const [nameA, labelA] = presets[i], [nameB, labelB] = presets[i + 1] || [];
+      const selectedA = state.topologyPreset === nameA || state.topologySelected === nameA;
+      const selectedB = nameB && (state.topologyPreset === nameB || state.topologySelected === nameB);
+      pair([`topology-${nameA}`, labelA, () => actions.preset(nameA), onlineLocked || typeof actions.preset !== 'function', selectedA],
+        nameB ? [`topology-${nameB}`, labelB, () => actions.preset(nameB), onlineLocked || typeof actions.preset !== 'function', selectedB] : null);
+    }
+  }
   slider('board-size', en ? 'Points per side' : '棋盘边长', state.size, 5, 15, x, y, area.width, actions.size, onlineLocked); y += 72;
-  pair(['root-classic', en ? 'Classic' : '经典模式', () => actions.rootMode('classic'), onlineLocked, state.rootMode === 'classic'], ['root-fixed-double', en ? 'Two fixed roots' : '固定双起点', () => actions.rootMode('fixed-double'), onlineLocked || state.playerCount !== 2, state.rootMode === 'fixed-double']);
-  pair(['root-relocate', en ? 'Relocate root' : '迁移起点', () => actions.rootMode('relocate'), onlineLocked || state.playerCount !== 2, state.rootMode === 'relocate'], ['root-add', en ? 'Add a root' : '增设起点', () => actions.rootMode('add'), onlineLocked || state.playerCount !== 2, state.rootMode === 'add']);
   const explicitStartsRequired = requiresExplicitStartingPoints(state.playerCount, state.boardShape);
   pair(['starts-default', en ? 'Default roots' : '默认起点', () => actions.startingPoints('default'), onlineLocked || explicitStartsRequired, state.startingPointMode === 'default'],
     ['starts-random', en ? 'Random roots' : '随机起点', () => actions.startingPoints('random'), onlineLocked, state.startingPointMode === 'random']);
-  pair(['starts-custom', en ? 'Place starting nodes' : '自定义起点', () => actions.startingPoints('custom'), onlineLocked || state.rootMode !== 'classic', state.startingPointMode === 'custom'],
-    ['undo-enabled', `${en ? 'Undo' : '悔棋'} · ${state.playOptions.undoEnabled ? (en ? 'On' : '开') : (en ? 'Off' : '关')}`,
-      () => actions.option('undoEnabled', !state.playOptions.undoEnabled), onlineLocked, state.playOptions.undoEnabled]);
-  slider('undo-count', en ? 'Undos per match' : '每局悔棋次数', state.playOptions.undoMaxCount ?? 3, 1, 100, x, y, area.width,
-    value => actions.option('undoMaxCount', value), onlineLocked || !state.playOptions.undoEnabled); y += 72;
+  button('root-add', state.rootMode === 'add' ? (en ? '✓ Add extra starting point' : '✓ 增设起点') : (en ? 'Add extra starting point' : '增设起点'),
+    x, y, area.width, () => actions.rootMode(state.rootMode === 'add' ? 'classic' : 'add'),
+    { height: 42, font: 13, disabled: onlineLocked || state.playerCount !== 2 || Boolean(state.topologySelected) || state.boardShape === 'custom',
+      primary: state.rootMode === 'add' }); y += 50;
+  const numberField = (id, title, value, min, max, enabledKey, valueKey) => {
+    const onToggle = () => actions.option(enabledKey, !state.playOptions[enabledKey]);
+    const onChange = raw => actions.changeNumber?.(valueKey, raw);
+    const field = { id, label: title, value, min, max, enabled: Boolean(state.playOptions[enabledKey]), disabled: onlineLocked,
+      x, y, width: area.width,
+      onToggle, onChange, onFocus: () => actions.changeNumber?.(valueKey, { focus: true }) };
+    if (typeof ui.numberField === 'function') ui.numberField(field);
+    else {
+      const half = (area.width - 8) / 2;
+      button(`${id}-enabled`, `${title} · ${field.enabled ? (en ? 'On' : '开') : (en ? 'Off' : '关')}`,
+        x, y, half, onToggle, { height: 44, font: 13, disabled: onlineLocked, primary: field.enabled });
+      button(id, `${value}`, x + half + 8, y, half, field.onFocus, { height: 44, font: 15, disabled: onlineLocked });
+    }
+    y += 52;
+  };
+  numberField('undo-count', en ? 'Undo · per match' : '悔棋 · 每局次数', state.playOptions.undoMaxCount ?? 3, 1, 100,
+    'undoEnabled', 'undoMaxCount');
   if (explicitStartsRequired) y += ui.wrap(state.boardShape === 'diamond' && state.playerCount >= 3
     ? (en ? 'Diamond boards with 3–15 players use random or custom starting nodes.' : '菱形棋盘 3–15 人仅支持随机或自定义起点。')
     : (en ? '7–15 players use random or custom starting nodes.' : '7–15 人仅支持随机或自定义起点。'),
   x, y + 8, area.width, 13, CABIN_COLORS.muted, 2) + 18;
   if (state.startingPointMode === 'random') y += ui.wrap(en ? 'Tap Random roots to preview or shuffle the next opening. Later new games draw again; saves and replays keep their roots.' : '点击随机起点可预览或重新抽取下一局；之后重开会重新抽取，存档和复盘保留原起点。', x, y + 8, area.width, 13, CABIN_COLORS.muted, 3) + 18;
-  pair(['clock-enabled', `${en ? 'Clock' : '回合计时'} · ${state.playOptions.turnTimerEnabled ? (en ? 'On' : '开') : (en ? 'Off' : '关')}`, () => actions.option('turnTimerEnabled', !state.playOptions.turnTimerEnabled), onlineLocked],
-    ['hint-enabled', `${en ? 'Hints' : '落子提示'} · ${state.playOptions.hintEnabled ? (en ? 'On' : '开') : (en ? 'Off' : '关')}`,
-    () => actions.option('hintEnabled', !state.playOptions.hintEnabled), onlineLocked]);
-  slider('clock-duration', en ? 'Seconds per turn' : '每回合秒数', state.playOptions.turnTimeLimitSeconds, 15, 200, x, y, area.width,
-    value => actions.option('turnTimeLimitSeconds', value), onlineLocked || !state.playOptions.turnTimerEnabled); y += 72;
-  slider('hint-count', en ? 'Hints per match' : '每局提示次数', Math.max(1, state.playOptions.hintMaxCount), 1, 10, x, y, area.width,
-    value => actions.option('hintMaxCount', value), onlineLocked || !state.playOptions.hintEnabled); y += 72;
+  numberField('clock-duration', en ? 'Clock · seconds per turn' : '计时 · 每回合秒数', state.playOptions.turnTimeLimitSeconds, 15, 200,
+    'turnTimerEnabled', 'turnTimeLimitSeconds');
+  numberField('hint-count', en ? 'Hints · per match' : '提示 · 每局次数', Math.max(1, state.playOptions.hintMaxCount), 1, 10,
+    'hintEnabled', 'hintMaxCount');
   ui.wrap(state.online ? (en ? 'The host can edit all seats and board settings. Every human must approve an undo.' : '房主可调整席位和棋盘设置；每次联机悔棋需要所有真人同意。')
     : (en ? 'Match settings take effect when you restart. The current position is preserved.' : '对局设置在重开后生效，当前棋局会保留。'), x, y + 10, area.width, 13, CABIN_COLORS.muted, 3); y += 54;
+  if (!state.roomSetup && !state.online) {
+    button('new-game', en ? 'Reset with these settings' : '按当前配置重置', x, y, area.width, actions.reset,
+      { height: 44, font: 15, primary: true, disabled: state.invalidTurnOrder || typeof actions.reset !== 'function' });
+    y += 54;
+  }
   return y - area.y;
 }
 export function drawBattleCabin(ui, area, state, actions) {
