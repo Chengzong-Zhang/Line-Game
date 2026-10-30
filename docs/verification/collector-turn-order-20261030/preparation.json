@@ -1,0 +1,13 @@
+{
+  "status": "FROZEN_NOT_DEPLOYED",
+  "runtimeFiles": 231,
+  "manifestSha256": "8afb8f4a89073002b69c65e2844232f3c1a7d70f9dea1b3e94e983ba7f222d4f",
+  "baselineCaptureSha256": "9aa0c4ad6c7cc51ccec91b9b0836662fafc2f0c18543b7b7c48ec58152dc676d",
+  "previousReleaseManifestSha256": "79d9b649811c738a1b7324f4048e7fc09efb21421817c5d41db9717ef55eeaf7",
+  "orderedFixtureHashes": {
+    "ordered_grid.json": "f15d829bedc4b250fcfc89026e70c2b964c2266808f76e332a89d580802ffd6f",
+    "ordered_topology.json": "64f29c3741ce4b42855a7c38f9cb8870bec3f8e026eb4c263620ef51c57b59c4"
+  },
+  "containsProductionData": false,
+  "productionDatabaseCopied": false
+}

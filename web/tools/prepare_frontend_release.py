@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 import re
 import subprocess
+import shutil
+import tempfile
 import zipfile
 
 
@@ -40,6 +42,9 @@ def runtime_paths(frontend):
 WORKER_ASSET_BASES = frozenset({
     "./ThreePlayerAI.js", "./ThreePlayerModels.js", "./ThreePlayerRuntime.js", "./HexPlayerAI.js",
 })
+FROZEN_PREDECESSOR_SHA256 = '376e599578f59e2dc96b625749f694173a596e2621969a03076f5425ed5579f5'
+FROZEN_RELEASE_ID = 'web-topology-fix-20261030-r2'
+FROZEN_MODULE_VERSION = '20261029-unified-r1'
 
 
 def is_worker_asset_base(text, match):
@@ -144,6 +149,41 @@ def validate_hard_worker(frontend, proposed_texts):
             raise RuntimeError(f"Stamp would change frozen Hard Worker input: {path.name}")
 
 
+def stage_frozen_worker(frontend, snapshot, predecessor, predecessor_hash):
+    if predecessor_hash != FROZEN_PREDECESSOR_SHA256 or predecessor.get('release_id') != FROZEN_RELEASE_ID:
+        raise RuntimeError('Unexpected frozen Worker predecessor')
+    if sha((snapshot / 'predecessor-release-manifest.json').read_bytes()) != predecessor_hash:
+        raise RuntimeError('Frozen snapshot predecessor differs from supplied predecessor')
+    worker_manifest = 'MultiplayerHardAIWorker.bundle.manifest.json'
+    if sha((snapshot / worker_manifest).read_bytes()) != predecessor['files'][worker_manifest]:
+        raise RuntimeError('Frozen Worker manifest drift')
+    if sha((frontend / worker_manifest).read_bytes()) != predecessor['files'][worker_manifest]:
+        raise RuntimeError('Legacy root Worker manifest drift')
+    validate_hard_worker(snapshot, {})
+    immutable = immutable_worker_closure(snapshot, predecessor)
+    if immutable != predecessor['immutable_worker_dependencies']:
+        raise RuntimeError('Frozen Worker transitive closure differs from predecessor')
+    target = frontend / 'frozen-workers' / FROZEN_RELEASE_ID
+    shutil.copytree(snapshot, target, dirs_exist_ok=True)
+    for name, expected in predecessor['files'].items():
+        if not name.startswith('assets/research-ai/'):
+            continue
+        source = frontend / name
+        if not source.is_file() or sha(source.read_bytes()) != expected:
+            raise RuntimeError('Frozen Worker asset drift: ' + name)
+        destination = target / name
+        if destination.exists() and (not destination.is_file() or sha(destination.read_bytes()) != expected):
+            raise RuntimeError('Frozen snapshot asset drift: ' + name)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, destination)
+    versions = {(target / name).resolve(): FROZEN_MODULE_VERSION for name in immutable}
+    legacy_bundle = frontend / 'MultiplayerHardAIWorker.bundle.mjs'
+    if sha(legacy_bundle.read_bytes()) != predecessor['files']['MultiplayerHardAIWorker.bundle.mjs']:
+        raise RuntimeError('Legacy root Worker bundle drift')
+    versions[legacy_bundle.resolve()] = FROZEN_MODULE_VERSION
+    return immutable, versions
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path)
@@ -152,9 +192,22 @@ def main():
     parser.add_argument("--asset-version", required=True)
     parser.add_argument("--predecessor-manifest", type=Path)
     parser.add_argument("--predecessor-sha256")
+    parser.add_argument("--frozen-worker-snapshot", type=Path)
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
     frontend = root / "web/web前端"
+    snapshot_mode = args.frozen_worker_snapshot is not None
+    if (frontend / 'frozen-workers' / FROZEN_RELEASE_ID).is_dir() and not snapshot_mode:
+        raise RuntimeError('Frozen Worker snapshot requires --frozen-worker-snapshot and predecessor validation')
+    temporary = None
+    if snapshot_mode:
+        if args.stamp_only or args.predecessor_manifest is None:
+            parser.error('--frozen-worker-snapshot requires a predecessor and a packaged output')
+        # Build in isolation: concurrent application changes must never be stamped in place.
+        temporary = tempfile.TemporaryDirectory(prefix='lifeline-web-release-')
+        staged = Path(temporary.name) / 'frontend'
+        shutil.copytree(frontend, staged, ignore=shutil.ignore_patterns('tests', '__pycache__'))
+        frontend = staged
     # One version per module graph prevents a cached earlier dependency from
     # silently losing a feature while the new application entry point loads.
     # Do this recursively, including generated .mjs Worker bundles.
@@ -166,9 +219,16 @@ def main():
             raise RuntimeError('Predecessor manifest SHA-256 mismatch')
         predecessor_hash = sha(raw)
         predecessor = json.loads(raw.decode('utf-8-sig'))
-        validate_hard_worker(frontend, {})
-        immutable = immutable_worker_closure(frontend, predecessor)
-        immutable_versions = {(frontend / name).resolve(): predecessor['asset_version'] for name in immutable}
+        if snapshot_mode:
+            snapshot = args.frozen_worker_snapshot.resolve(strict=True)
+            # These are the actual tokens in the immutable published graph,
+            # which predate the predecessor release's application token.
+            immutable, immutable_versions = stage_frozen_worker(frontend, snapshot, predecessor, predecessor_hash)
+            paths = runtime_paths(frontend)
+        else:
+            validate_hard_worker(frontend, {})
+            immutable = immutable_worker_closure(frontend, predecessor)
+            immutable_versions = {(frontend / name).resolve(): predecessor['asset_version'] for name in immutable}
     elif args.predecessor_sha256:
         parser.error('--predecessor-sha256 requires --predecessor-manifest')
     source_texts = {
@@ -183,13 +243,19 @@ def main():
         f'const APP_ASSET_VERSION = "{args.asset_version}";',
         source_texts[main_source],
     )
-    validate_module_closure(frontend, paths, source_texts, args.asset_version, immutable_versions)
+    # Root legacy bundle remains byte-identical for old URLs, but its dynamic
+    # imports resolve to the mutable root graph. New clients use the isolated
+    # snapshot; no claim of cache isolation is made for old loaded pages.
+    checked_texts = {p: text for p, text in source_texts.items()
+                     if not (snapshot_mode and p == frontend / 'MultiplayerHardAIWorker.bundle.mjs')}
+    validate_module_closure(frontend, paths, checked_texts, args.asset_version, immutable_versions)
     if not args.stamp_only:
         if args.output is None:
             parser.error("--output is required when building a bundle")
         if args.output.resolve().exists():
             raise FileExistsError("Release output must not already exist")
-        validate_hard_worker(frontend, source_texts)
+        if not snapshot_mode:
+            validate_hard_worker(frontend, source_texts)
     index = frontend / "index.html"
     text = index.read_bytes().decode("utf-8")
     text = re.sub(r'(styles\.css|main\.js)\?v=[^"\s]+', lambda match: f"{match[1]}?v={args.asset_version}", text)
@@ -222,6 +288,8 @@ def main():
         "preserved_server_files": ["all files outside this overlay"],
         "immutable_worker_dependencies": immutable,
         "predecessor_manifest_sha256": predecessor_hash,
+        "frozen_worker_snapshot": predecessor['release_id'] if snapshot_mode else None,
+        "legacy_root_worker_graph_isolated": False if snapshot_mode else None,
     }
     raw_manifest = json.dumps(manifest, ensure_ascii=False, indent=2).encode()
     (output / "release-manifest.json").write_bytes(raw_manifest)

@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+import shutil
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / 'tools' / 'prepare_frontend_release.py'
 spec = importlib.util.spec_from_file_location('frontend_release', MODULE_PATH)
@@ -98,6 +99,41 @@ const other = new URL("./ThreePlayerModels.js?old", self.location.href).href;'''
             release.validate_module_closure(root, [parent, target], {parent: stamped}, 'new-ui', versions)
             with self.assertRaisesRegex(RuntimeError, 'stale module token'):
                 release.validate_module_closure(root, [parent, target], {parent: text}, 'new-ui', versions)
+
+    def test_real_frozen_snapshot_preserves_transitive_graph_and_assets(self):
+        repo = MODULE_PATH.parents[2]
+        snapshot = repo / 'web/web前端/frozen-workers' / release.FROZEN_RELEASE_ID
+        raw = (snapshot / 'predecessor-release-manifest.json').read_bytes()
+        self.assertEqual(release.sha(raw), release.FROZEN_PREDECESSOR_SHA256)
+        predecessor = json.loads(raw)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            frontend = repo / 'web/web前端'
+            bundle = 'MultiplayerHardAIWorker.bundle.mjs'
+            shutil.copyfile(frontend / bundle, root / bundle)
+            worker_manifest = 'MultiplayerHardAIWorker.bundle.manifest.json'
+            shutil.copyfile(frontend / worker_manifest, root / worker_manifest)
+            for name in predecessor['files']:
+                if name.startswith('assets/research-ai/'):
+                    destination = root / name
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copyfile(frontend / name, destination)
+            closure, versions = release.stage_frozen_worker(root, snapshot, predecessor, release.sha(raw))
+            self.assertEqual(len(closure), 54)
+            self.assertEqual(set(closure), set(predecessor['immutable_worker_dependencies']))
+            target = root / 'frozen-workers' / release.FROZEN_RELEASE_ID
+            for name, digest in predecessor['files'].items():
+                if name.startswith('assets/research-ai/'):
+                    self.assertEqual(release.sha((target / name).read_bytes()), digest)
+            release.validate_module_closure(root, release.runtime_paths(root), {
+                target / name: (target / name).read_text(encoding='utf8') for name in closure
+            }, 'current', versions)
+            (root / 'assets/research-ai/hex-player-policy-v1.json').write_text('tampered')
+            shutil.rmtree(target)
+            with self.assertRaisesRegex(RuntimeError, 'asset drift'):
+                release.stage_frozen_worker(root, snapshot, predecessor, release.sha(raw))
+            with self.assertRaisesRegex(RuntimeError, 'Unexpected frozen Worker predecessor'):
+                release.stage_frozen_worker(root, snapshot, predecessor, '0' * 64)
 
 
 if __name__ == '__main__':
