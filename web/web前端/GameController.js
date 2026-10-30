@@ -1085,6 +1085,7 @@ export class GameController {
       delete previousOptions.compiledBoard;
       delete previousOptions.boardHash;
       delete previousOptions.topologyProtocolVersion;
+      delete previousOptions.turnOrder;
     }
     const nextEngineOptions = {
       ...DEFAULT_ENGINE_OPTIONS,

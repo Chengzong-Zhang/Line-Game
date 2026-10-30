@@ -50,6 +50,16 @@ export function normalizeGameSettings(settings = {}) {
   const nextPlayerCount = PLAYER_COUNT_OPTIONS.includes(playerCount) ? playerCount : 2;
   const allowedPlayers = ALL_PLAYERS.slice(0, nextPlayerCount);
   const startPlayer = allowedPlayers.includes(settings?.startPlayer) ? settings.startPlayer : allowedPlayers[0];
+  let turnOrder;
+  if (Object.hasOwn(settings, "turnOrder")) {
+    const order = settings.turnOrder;
+    if (!Number.isInteger(playerCount) || playerCount !== nextPlayerCount || settings.startPlayer !== startPlayer
+      || !Array.isArray(order) || order.length !== allowedPlayers.length || new Set(order).size !== allowedPlayers.length
+      || !order.every(player => allowedPlayers.includes(player)) || order[0] !== startPlayer) {
+      throw new Error("INVALID_TURN_ORDER");
+    }
+    turnOrder = [...order];
+  }
   const normalizedTurnTimeLimitSeconds = Number.isFinite(turnTimeLimitSeconds)
     ? Math.max(TURN_TIMER_MIN_SECONDS, Math.min(TURN_TIMER_MAX_SECONDS, Math.round(turnTimeLimitSeconds)))
     : DEFAULT_TURN_TIMER_SECONDS;
@@ -68,6 +78,7 @@ export function normalizeGameSettings(settings = {}) {
       botCount: 0,
       gridSize: nextGridSize,
       startPlayer,
+      ...(turnOrder !== undefined ? { turnOrder } : {}),
       rulesVersion: TOPOLOGY_RULES_VERSION,
       topologyProtocolVersion: typeof settings?.topologyProtocolVersion === "string"
         ? settings.topologyProtocolVersion
@@ -113,6 +124,7 @@ export function normalizeGameSettings(settings = {}) {
     botCount: nextPlayerCount >= 3 ? Math.max(0, Math.min(nextPlayerCount - 1, Math.trunc(Number(settings?.botCount) || 0))) : 0,
     gridSize: GRID_SIZE_OPTIONS.includes(gridSize) ? gridSize : 9,
     startPlayer,
+    ...(turnOrder !== undefined ? { turnOrder } : {}),
     rulesVersion: normalizedRulesVersion,
     ...(protectionRule !== StartProtectionRule.SYMMETRIC || hasProtectionRule ? { protectionRule } : {}),
     turnTimerEnabled: Boolean(settings?.turnTimerEnabled),

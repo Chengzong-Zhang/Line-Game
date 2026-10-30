@@ -3332,7 +3332,8 @@ const App = {
       // The saved current player is a position property, not the opening
       // player.  The topology-session envelope retains the latter; starts are
       // canonical IDs and must not pass through legacy coordinate helpers.
-      startPlayer: topologySession?.startPlayer ?? "BLACK",
+      startPlayer: decoded.ruleState.turnOrder?.[0] ?? topologySession?.startPlayer ?? "BLACK",
+      ...(decoded.ruleState.turnOrder !== undefined ? { turnOrder: decoded.ruleState.turnOrder } : {}),
       initialPositions: { ...decoded.ruleState.startingVertices },
     });
     const storedTopologySettings = storedTopologyDecoded

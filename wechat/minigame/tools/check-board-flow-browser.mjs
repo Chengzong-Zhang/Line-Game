@@ -16,7 +16,7 @@ const pause = () => page.waitForTimeout(150);
 async function clickText(pattern, { scroll = true } = {}) {
   for (let step = 0; step < 22; step++) {
     const state = await trace(), box = await page.locator('#game').boundingBox();
-    const low = state.clip ? state.clip.y + 23 : 95, high = state.clip ? state.clip.y + state.clip.height - 23 : 790;
+    const low = scroll && state.clip ? state.clip.y + 23 : 95, high = scroll && state.clip ? state.clip.y + state.clip.height - 23 : 790;
     const row = state.texts.find(row => pattern.test(row.text) && row.y > low && row.y < high);
     if (row) {
       await page.mouse.click(box.x + row.x * box.width / 390, box.y + row.y * box.height / 844);
