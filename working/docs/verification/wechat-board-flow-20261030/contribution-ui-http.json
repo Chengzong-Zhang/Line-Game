@@ -1,0 +1,59 @@
+{
+  "status": "PASS_MINI_UI_WORKER_REAL_LOOPBACK_HTTP",
+  "scope": "Synthetic games, UI/Worker harness and real HTTP collector; not a WeChat device",
+  "authenticatedRequests": 0,
+  "productionRequests": 0,
+  "results": [
+    {
+      "kind": "diamond",
+      "version": 4,
+      "httpStatus": 200,
+      "receiptStatus": "awaiting_review",
+      "gameId": "8e0c41e54231c2ce5eca60c4a436b056b28d923a737fd9150ec7e011ef3c21cc",
+      "requestBytes": 2557
+    },
+    {
+      "kind": "root-add",
+      "version": 4,
+      "httpStatus": 200,
+      "receiptStatus": "awaiting_review",
+      "gameId": "203066820adfdaebb6e0b322ec044be642d2c60b77b5e0019ef589194783e6c7",
+      "requestBytes": 8103
+    },
+    {
+      "kind": "double-torus",
+      "version": 4,
+      "httpStatus": 200,
+      "receiptStatus": "awaiting_review",
+      "gameId": "cf95a6ddee8ab18d875cb39d6c0389a556783bfaadbf829efdfe8dfb81248122",
+      "requestBytes": 19227
+    },
+    {
+      "kind": "custom",
+      "version": 4,
+      "httpStatus": 200,
+      "receiptStatus": "awaiting_review",
+      "gameId": "24356abe8e5bf0ad8f4c93189cb1f12aeb4e2ce8e3823a0efec4542d85396cd7",
+      "requestBytes": 4883
+    }
+  ],
+  "sourceHashes": {
+    "wechat/minigame/src/app.js": "606959662dd3d52f7c2bd1b0c13f82cf2bb4234c579c6a60fb5113e9f48f3833",
+    "wechat/minigame/src/training-contribution.js": "5371107d4ab84a19dd737d0f6402d9758cf297a7416c126063b3fb443f532422",
+    "wechat/minigame/src/contribution-transport.js": "0e5a7c8a4ad12579eff478b952858b50bf4455786fa29d39b34e63fe667355f5",
+    "wechat/minigame/src/worker-runtime.js": "c79871a8b9a90d523cbbedf1b4d5a193a5035d78471a34ceacc53dcb78efa2b7",
+    "web/tools/training_contribution_schema.mjs": "f3eed8e85086ed0c765cada9e4a5cde6da5380dbe76bce9232ec5afaf6f5ee9d",
+    "web/tools/validate_contribution.mjs": "e8dcfcb4cc61266cf54ee398082271e160762628f36088da19c24bf8c0e6e9e4",
+    "web/tools/validate_contribution_v4.mjs": "b963d745f4b3c4ad5dcee8eefb2bf4372264d70fcb6ee87b40e8616dad395cfe",
+    "web/web后端/training_contributions.py": "0b721905758558d5080e7134c86b787795ab8fc43b78d525d06adf85642c5072"
+  },
+  "isolatedTableCounts": {
+    "inbox": 0,
+    "inbox_v2": 0,
+    "inbox_v3": 0,
+    "inbox_v4": 4
+  },
+  "realNodeValidator": true,
+  "productionDataRead": false,
+  "deviceVerified": false
+}

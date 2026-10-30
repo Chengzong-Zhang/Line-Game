@@ -1,0 +1,13 @@
+{
+  "status": "ACTIVATED_COLLECTOR_UNIFIED_RELEASE",
+  "databaseRestored": false,
+  "productionDatabaseCopied": false,
+  "manifestSha256": "8afb8f4a89073002b69c65e2844232f3c1a7d70f9dea1b3e94e983ba7f222d4f",
+  "previousRuntime": "/home/ubuntu/line-game/.deploy-artifacts/collector-turn-order-plan-20261030-a/activation-r3/staged-runtime",
+  "supportedVersions": [
+    1,
+    2,
+    3,
+    4
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "status": "ATOMIC_SWITCH_OK",
+  "release_id": "web-board-flow-20261030-r2",
+  "commit": "c12af8ed7da967b91be7c40df2e6ade40a20a064",
+  "overlay_files": 252,
+  "archive_sha256": "30a6e5f19e7a43c6354870f2c06debdc486663c94feb9c12ab09e130c693dfa8",
+  "live_tree_sha256": "4b701762e6bea83ffb2733f117552c39dfac2072502bdd343902874af22c7277",
+  "candidate_tree_sha256": "eb75936a25a06643ea055fa1865c71575dd12a844584a5a7feb56ad014901707",
+  "time_utc_epoch": 1793334561.2102613,
+  "rollback": "/home/ubuntu/line-game/.deploy-artifacts/web-board-flow-20261030-r2.rollback-web前端",
+  "active_tree_sha256": "eb75936a25a06643ea055fa1865c71575dd12a844584a5a7feb56ad014901707",
+  "rollback_tree_sha256": "4b701762e6bea83ffb2733f117552c39dfac2072502bdd343902874af22c7277"
+}

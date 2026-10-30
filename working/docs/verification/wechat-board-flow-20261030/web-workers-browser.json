@@ -1,0 +1,31 @@
+{
+  "status": "PASS_REAL_BROWSER_RELEASE_WORKERS",
+  "releaseId": "web-board-flow-20261030-r2",
+  "browser": "156.0.8078.79",
+  "scope": "frozen release served on loopback; actual module Workers and model HTTP fetches",
+  "deviceVerified": false,
+  "strengthAdmission": false,
+  "rows": [
+    {
+      "ordered": false,
+      "kind": "native-hard-bundle",
+      "entry": "/frozen-workers/web-topology-fix-20261030-r2/MultiplayerHardAIWorker.bundle.mjs",
+      "ready": true,
+      "progress": true,
+      "accepted": true,
+      "legal": true,
+      "implementationId": "multiplayer-hard-cut-resilience-v1"
+    },
+    {
+      "ordered": true,
+      "kind": "native-hard-source-turn-order",
+      "entry": "/MultiplayerHardWorkerEntry.js",
+      "ready": true,
+      "progress": true,
+      "accepted": true,
+      "legal": true,
+      "implementationId": "multiplayer-hard-cut-resilience-v1"
+    }
+  ],
+  "errors": []
+}

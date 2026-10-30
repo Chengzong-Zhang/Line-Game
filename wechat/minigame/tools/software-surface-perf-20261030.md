@@ -22,3 +22,5 @@ node --test tests/topology-software-surface-cache.test.mjs
 ```
 
 The isolated Canvas regression also checks content, palette, view, zoom, and size changes against fresh-renderer output, and checks buffer release. Existing end-to-end 3D UI tests require rebuilding the current shared native compatibility sources; during concurrent work their pinned source check reported `WEB_COMPAT_SOURCE_DRIFT` for `GameEngine.js` and `ReplayCodec.js`, so UI and real-device acceptance remain separate follow-up checks.
+
+Final integration recheck: compatibility sources were rebuilt and the complete Mini suite passed 706/706, including the 3D UI and buffer/cache regressions. The offline native host also passed the real-browser board flow. These later checks resolve the intermediate source-drift failure; native WeChat device timing and interaction remain unverified.

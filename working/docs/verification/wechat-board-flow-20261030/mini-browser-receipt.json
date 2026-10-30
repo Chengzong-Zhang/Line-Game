@@ -1,0 +1,23 @@
+{
+  "status": "PASS_OFFLINE_NATIVE_HOST_BOARD_FLOW",
+  "browser": "156.0.8078.79",
+  "sameDistAsMiniBuild": true,
+  "pageErrors": [],
+  "nativeWxCallsMocked": true,
+  "deviceVerified": false,
+  "checks": [
+    "native createWxPlatform and real Worker",
+    "inline topology selection",
+    "selection preserves active game",
+    "shared reset starts saved surface",
+    "resign and reset are drawn",
+    "no account/network calls"
+  ],
+  "screenshots": [
+    "board-panel.png",
+    "topology-inline.png",
+    "topology-game.png"
+  ],
+  "scope": "offline native host with actual compiled runtime and Worker; same 207 runtime-source hashes as online candidate, API/network configuration differs",
+  "exactOnlineCandidateBytes": false
+}

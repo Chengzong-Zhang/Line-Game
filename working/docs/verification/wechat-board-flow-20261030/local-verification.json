@@ -1,0 +1,64 @@
+{
+  "status": "PASS_LOCAL_FUNCTIONAL_CHECKS_NOT_WECHAT_DEVICE",
+  "createdAt": "2026-10-30T04:22:01.905854+00:00",
+  "runtimeCommit": "f975bfc1a14e9355c808abfff1ef25edc3381edd",
+  "miniSuite": {
+    "command": "node --test --test-concurrency=1 --test-timeout=180000 tests/*.test.mjs",
+    "pass": 706,
+    "fail": 0,
+    "rawLogSha256": "672b85660b75f5e6cf8ac1add1ac11b2804068c1edc51407e9af573ad028e81a",
+    "firstRun": {
+      "pass": 703,
+      "fail": 3,
+      "resolution": "two old first-screen layout assumptions and explicit-turn-order compatibility normalization; fixed and retested"
+    }
+  },
+  "guideAfterWordingUpdate": {
+    "command": "node --test --test-concurrency=1 tests/guide-cabin.test.mjs",
+    "pass": 7,
+    "fail": 0
+  },
+  "wechatCi": {
+    "command": "node --test tests/*.test.mjs (wechat/ci)",
+    "pass": 10,
+    "fail": 0,
+    "firstAttempt": "8 stale-build-source failures; rebuilt dist and reran successfully"
+  },
+  "webPackagingAndRouteUnitTests": {
+    "command": "python -m pytest -q web/tests/test_frontend_release_packaging.py web/tests/test_legacy_worker_routing.py",
+    "pass": 11,
+    "fail": 0
+  },
+  "miniBrowser": "mini-browser-receipt.json",
+  "contributionHttp": "contribution-ui-http.json",
+  "realWechatDevice": "NOT_VERIFIED",
+  "screenshots": {
+    "board-panel.png": "2d0a90bb471cb63a1df71282bfadf0c21ce3298501c04bc66f719afc1461abd2",
+    "topology-inline.png": "a8b2645d9d20fa247548c256bd2ef60cfad4db01ec35ec49f40d5ef972e4ba52",
+    "topology-game.png": "69c2196dac5627c7a05bb17df3912eaabdaac29f3a625bd9b6fd2dbea904ed55"
+  },
+  "webIntegrationCommit": "c12af8ed7da967b91be7c40df2e6ade40a20a064",
+  "sharedHttpToWeb": {
+    "command": "python -m pytest -q web/tests/test_shared_turn_order_http.py",
+    "pass": 1,
+    "fail": 0,
+    "scope": "isolated HTTP rooms, real Node rules, SharedRoomClient enter and GameController restore; grid and topology"
+  },
+  "serviceActivationGates": {
+    "command": "python -B -m pytest -q web/tests/test_wechat_schema6_r6_release.py web/tests/test_wechat_schema6_release_activation.py",
+    "pass": 37,
+    "skip": 1,
+    "linuxSupplement": "file and directory symlinks rejected using synthetic temporary files"
+  },
+  "collectorNoCopyTests": {
+    "command": "python -m pytest -q web/tests/test_collector_no_copy_release.py",
+    "pass": 3,
+    "fail": 0
+  },
+  "initialWebRecoveryTest": "old stub omitted existing ROOT_ACTION_APPLIED; constant and expected event list corrected, rerun passed",
+  "networkChecks": {
+    "externalFullHashAttempts": "30-second download timeout on model data from both laptop and server public DNS",
+    "fullHashResolution": "server loopback through active TLS Nginx; 252/252 hashes; certificate hostname checking retained",
+    "publicBrowser": "rendered initial UI verified; default-proxy connection closed, direct networkidle timed out, direct DOM/render wait passed"
+  }
+}

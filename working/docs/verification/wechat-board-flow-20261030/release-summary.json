@@ -1,0 +1,34 @@
+{
+  "status": "WEB_SERVICES_ACTIVE_MINI_OFFICIALLY_UPLOADED_AND_PREVIEW_READY",
+  "updatedAt": "2026-10-30T04:41:31.449261+00:00",
+  "version": "0.14.0",
+  "candidateId": "0.14.0-081960be7c4e-JmKswO",
+  "candidateReceiptSha256": "95213ed1a39cc82693303cdf93f9cf2bc2690dbf4be13165274b94f17f567e7c",
+  "sameCandidateUploadAndPreview": true,
+  "webRelease": "web-board-flow-20261030-r2",
+  "webManifestSha256": "b02767bdd3986f44d8c4408c675b9d9f5239769118a71335453760854273c690",
+  "sharedServiceRelease": "wechat-service-all-20261030-r4",
+  "sharedManifestSha256": "d756e423ec1ada529b36bd146213f6d6d84253d99b1669e3a2ab210e63abdfaa",
+  "collectorManifestSha256": "8afb8f4a89073002b69c65e2844232f3c1a7d70f9dea1b3e94e983ba7f222d4f",
+  "miniFunctionalTests": {
+    "pass": 706,
+    "fail": 0
+  },
+  "previewQr": {
+    "file": "preview-qr.jpg",
+    "bytes": 47440,
+    "sha256": "a0e578ff9382e5b12d6bcb95c4555075e69c1c2f68484c0a08902869c1bbe6b1"
+  },
+  "deviceVerified": false,
+  "experienceVersionConfigured": false,
+  "submittedForReview": false,
+  "published": false,
+  "githubPushed": false,
+  "productionDatabaseCopied": false,
+  "productionReplaysSubmitted": 0,
+  "firstUploadFailure": {
+    "errorCode": 20003,
+    "reason": "upload IP not allowlisted",
+    "resolution": "user confirmed adding whitelist before one subsequent successful upload"
+  }
+}

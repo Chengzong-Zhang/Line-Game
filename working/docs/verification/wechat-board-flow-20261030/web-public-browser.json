@@ -1,0 +1,13 @@
+{
+  "status": "PASS_PUBLIC_WEB_INITIAL_RENDER",
+  "authenticated": false,
+  "attempts": [
+    "default system proxy: ERR_CONNECTION_CLOSED",
+    "direct networkidle: timed out; final check waits for rendered app"
+  ],
+  "scope": "anonymous public initial render only",
+  "errors": [],
+  "url": "https://lifelinegame.cn/",
+  "browser": "156.0.8078.79",
+  "renderedText": "第一次玩 · 蓝方 VS 红方\n\n第一关：连成第一条生命线\n\n先看蓝方 [1,0]、红方 [4,0] 各走一步。现在点 [3,0]，继续延长蓝方生命线。\n\n跳过教学\n模型面板\n同步面板\n指南舱\n新手引导\n节点 Alpha迭代\n跳过迭代\n开始对局\n👏\n😭\n😎\n🤝\n❓\n🤔\n💀\n👎\n😓\n😤\n京公网安备11011402056155号"
+}
