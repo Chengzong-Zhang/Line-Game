@@ -16,6 +16,7 @@ export default {
     boardShape: { type: String, required: true },
     gridSize: { type: Number, default: 7 },
     startPlayer: { type: String, required: true },
+    showStarter: { type: Boolean, default: true },
     initialPositions: { type: Object, default: null },
     locked: { type: Boolean, default: false },
     pending: { type: Boolean, default: true },
@@ -139,7 +140,7 @@ export default {
       <p v-else-if="!online && playerCount === 3" class="help-copy">{{ texts.localThreeHuman }}</p>
       <p v-else-if="!online && playerCount >= 4 && playerCount <= 6" class="help-copy">{{ texts.localHexHuman }}</p>
       <div class="local-match-toolbar">
-        <div class="local-starter-field">
+        <div v-if="showStarter" class="local-starter-field">
           <label for="local-start-player" class="field-label">{{ texts.starterLabel }}</label>
           <select id="local-start-player" class="input-field" :value="startPlayer" :disabled="locked" @change="$emit('update:start-player', $event.target.value)">
             <option v-for="side in sides" :key="side.color" :value="side.color">{{ side.name }}</option>

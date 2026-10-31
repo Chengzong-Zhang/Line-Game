@@ -83,7 +83,8 @@ import {
 import { TrainingContribution, ContributionPanel, supportsContributionActors } from "./TrainingContribution.js?v=20261029-unified-r1";
 import { localAIPlayer, localMatchActors, localMatchMode, localPlayerProfile, normalizeLocalPlayers, normalizeLocalPlayerDraft, prepareLocalPlayersForNewMatch, supportsRootModeAI, loadLocalMatchPreferences, persistLocalMatchPreferences } from "./LocalAIModes.js?v=20261029-unified-r1";
 import { roomSettingsFromBoard, normalizeRoomPlayerSetup } from "./OnlineRoomSettings.js?v=20261029-unified-r1";
-import LocalPlayerSetup from "./LocalPlayerSetup.js?v=20261029-unified-r1";
+import LocalPlayerSetup from "./LocalPlayerSetup.js?v=20261031-turn-order";
+import TurnOrderSetup, { resizeTurnOrder } from "./TurnOrderSetup.js?v=20261031-turn-order";
 import StartingPointSetup from "./StartingPointSetup.js?v=20261029-unified-r1";
 import TopologyStartingPointSetup, { topologyDefaultDefinition } from "./TopologyStartingPointSetup.js?v=20261029-unified-r1";
 import { createTopologyStartingDefinition, prepareTopologyNewMatchSettings } from "./TopologyStartingPoints.js?v=20261029-unified-r1";
@@ -663,7 +664,7 @@ const ScorePanel = {
 
 const SetupPanel = {
   name: "SetupPanel",
-  components: { ContributionPanel, LocalPlayerSetup, StartingPointSetup },
+  components: { ContributionPanel, LocalPlayerSetup, StartingPointSetup, TurnOrderSetup },
   emits: [
     "update:player-count",
     "update:board-shape",
@@ -680,6 +681,7 @@ const SetupPanel = {
     "select-lab-model",
     "save-room-settings",
     "update:start-player",
+    "update:turn-order",
     "swap-local-players",
     "start-local-match",
     "toggle-contributions",
@@ -725,6 +727,7 @@ const SetupPanel = {
     undoMaxCount: { type: Number, default: 3 },
     localPlayers: { type: Object, required: true },
     startPlayer: { type: String, required: true },
+    turnOrder: { type: Array, required: true },
     localPending: { type: Boolean, default: true },
     localStarted: { type: Boolean, default: false },
     startingPoints: { type: Object, default: () => ({}) },
@@ -828,7 +831,7 @@ const SetupPanel = {
                 :class="{ 'is-active': playerCount === count }"
                 role="radio"
                 :aria-checked="playerCount === count"
-                :disabled="busy || settingsLocked"
+                :disabled="busy || settingsLocked || (boardShape === 'custom' && count > 6)"
                 @click="$emit('update:player-count', count)"
               >
                 {{ count }}
@@ -840,7 +843,7 @@ const SetupPanel = {
               :root-mode="startingPoints.rootMode ?? 'classic'" :grid-size="gridSize"
               :online="roomSetupOpen"
               :initial-positions="startingPoints.initialPositions"
-              :start-player="startPlayer" :pending="localPending" :started="localStarted" :locked="busy || settingsLocked"
+              :start-player="startPlayer" :show-starter="false" :pending="localPending" :started="localStarted" :locked="busy || settingsLocked"
               @update-player="$emit('update-local-player', $event)" @select-lab-model="$emit('select-lab-model', $event)" @update:start-player="$emit('update:start-player', $event)"
               @swap="$emit('swap-local-players')" @start="$emit('start-local-match')" @open-topology-guide="$emit('open-topology-guide')">
               <template #contribution>
@@ -848,6 +851,7 @@ const SetupPanel = {
               </template>
             </LocalPlayerSetup>
           </div>
+          <div v-if="aiAvailable || roomSetupOpen" class="settings-grid-item-wide"><TurnOrderSetup :order="turnOrder" :language="language" :ui-style="uiStyle" :locked="busy || settingsLocked" @change="$emit('update:turn-order', $event)" /></div>
           <button v-if="roomSetupOpen" type="button" class="action-button action-button-primary" :disabled="busy || settingsLocked" @click="$emit('save-room-settings')">{{ language === 'zh' ? '保存房间设置' : 'Save room settings' }}</button>
           <div class="settings-grid-item-wide">
             <label id="grid-size-label" class="field-label">{{ texts.gridSizeLabel }}</label>
@@ -1470,7 +1474,10 @@ const RoomPanel = {
           </article>
         </div>
 
-        <div v-if="isHost" class="host-controls">
+        <div v-if="isHost && session.shared" class="host-controls">
+          <button type="button" class="action-button action-button-secondary" :disabled="busy" @click="$emit('create-room')">{{ language === 'zh' ? '房间设置与行动顺序' : 'Room settings and turn order' }}</button>
+        </div>
+        <div v-if="isHost && !session.shared" class="host-controls">
           <div class="panel-subhead">
             <h3>{{ texts.starterLabel }}</h3>
           </div>
@@ -3490,6 +3497,7 @@ const App = {
     const selectedBoardShape = ref(initialSettings.boardShape);
     const selectedGridSize = ref(initialSettings.gridSize);
     const selectedStartPlayer = ref(initialSettings.startPlayer);
+    const selectedTurnOrder = ref(resizeTurnOrder(initialSettings.turnOrder, initialSettings.playerCount, initialSettings.startPlayer));
     const selectedStartingPoints = ref(startingPointSettings(initialSettings));
     const selectedTopologyDefinition = shallowRef(null);
     const topologyDefaultSelection = shallowRef(null);
@@ -3518,6 +3526,7 @@ const App = {
       const normalized = normalizeAppGameSettings(settings);
       // Protection belongs to a match version, not to editable setup fields.
       delete normalized.protectionRule;
+      normalized.turnOrder = resizeTurnOrder(normalized.turnOrder, normalized.playerCount, normalized.startPlayer);
       return JSON.stringify(normalized);
     };
     // A changed draft is reviewable in the setup panel, while the active game
@@ -4002,7 +4011,7 @@ const App = {
       authFeedbackTone.value = "error";
     });
 
-    watch([selectedPlayerCount, selectedBoardShape, selectedGridSize, selectedStartPlayer, selectedRulesVersion, selectedTurnTimerEnabled, selectedTurnTimeLimitSeconds, selectedHintEnabled, selectedHintMaxCount, selectedUndoEnabled, selectedUndoMaxCount], ([
+    watch([selectedPlayerCount, selectedBoardShape, selectedGridSize, selectedStartPlayer, selectedRulesVersion, selectedTurnTimerEnabled, selectedTurnTimeLimitSeconds, selectedHintEnabled, selectedHintMaxCount, selectedUndoEnabled, selectedUndoMaxCount, selectedTurnOrder], ([
       playerCount,
       boardShape,
       gridSize,
@@ -4014,6 +4023,7 @@ const App = {
       hintMaxCount,
       undoEnabled,
       undoMaxCount,
+      turnOrder,
     ], [
       previousPlayerCount,
       previousBoardShape,
@@ -4026,11 +4036,16 @@ const App = {
       previousHintMaxCount,
       previousUndoEnabled,
       previousUndoMaxCount,
+      previousTurnOrder,
     ] = []) => {
       if (syncingRemoteSettings || tutorialActive.value) {
         return;
       }
 
+      const validCount = APP_PLAYER_COUNT_OPTIONS.includes(playerCount) ? playerCount : 2;
+      const starter = APP_ALL_PLAYERS.slice(0, validCount).includes(startPlayer) ? startPlayer : APP_ALL_PLAYERS[0];
+      const effectiveOrder = resizeTurnOrder(turnOrder, validCount, starter);
+      if (JSON.stringify(effectiveOrder) !== JSON.stringify(selectedTurnOrder.value)) selectedTurnOrder.value = effectiveOrder;
       const wantsTopology = boardShape === "custom" || rulesVersion === "surface-v1";
       let settingsInput;
       if (wantsTopology) {
@@ -4039,19 +4054,19 @@ const App = {
           // fail at the match boundary rather than being normalized into a
           // playable triangle by the legacy settings path.
           settingsInput = {
-            playerCount, boardShape: "custom", gridSize, startPlayer,
+            playerCount, boardShape: "custom", gridSize, startPlayer: starter, turnOrder: effectiveOrder,
             rulesVersion: "surface-v1", topologyProtocolVersion: "board-topology-v1",
             turnTimerEnabled, turnTimeLimitSeconds, hintEnabled, hintMaxCount,
             undoEnabled, undoMaxCount, botCount: 0,
           };
         } else {
           try {
-            const materialized = materializeTopologyDefinition(selectedTopologyDefinition.value, playerCount, startPlayer);
+            const materialized = materializeTopologyDefinition(selectedTopologyDefinition.value, playerCount, starter);
             selectedTopologyDefinition.value = materialized.definition;
             selectedTopologyHash.value = materialized.boardHash;
             selectedStartingPoints.value = { startingPointMode: "topology" };
             settingsInput = {
-              playerCount, boardShape: "custom", gridSize, startPlayer,
+              playerCount, boardShape: "custom", gridSize, startPlayer: starter, turnOrder: effectiveOrder,
               rulesVersion: "surface-v1", topologyProtocolVersion: "board-topology-v1",
               boardDefinition: materialized.definition, boardHash: materialized.boardHash,
               initialPositions: materialized.initialPositions,
@@ -4080,7 +4095,7 @@ const App = {
           };
         }
         settingsInput = {
-          playerCount, boardShape, gridSize, startPlayer, rulesVersion,
+          playerCount, boardShape, gridSize, startPlayer: starter, turnOrder: effectiveOrder, rulesVersion,
           ...(roomStatus.value !== "solo" ? { protectionRule: roomInfo.value.settings?.protectionRule ?? "symmetric-v1" } : {}),
           turnTimerEnabled, turnTimeLimitSeconds, hintEnabled, hintMaxCount,
           undoEnabled, undoMaxCount, ...selectedStartingPoints.value,
@@ -4109,6 +4124,7 @@ const App = {
         || normalized.boardShape !== previousBoardShape
         || normalized.gridSize !== previousGridSize
         || normalized.startPlayer !== previousStartPlayer
+        || JSON.stringify(normalized.turnOrder) !== JSON.stringify(previousTurnOrder)
         || normalized.rulesVersion !== previousRulesVersion
         || normalized.turnTimerEnabled !== previousTurnTimerEnabled
         || normalized.turnTimeLimitSeconds !== previousTurnTimeLimitSeconds;
@@ -4128,6 +4144,7 @@ const App = {
         return;
       }
 
+      if (roomSetupOpen.value) return;
       if (isHost.value && roomStatus.value !== "solo" && roomStatus.value !== "inProgress" && roomStatus.value !== "countdown") {
         const settingsChanged = normalized.playerCount !== previousPlayerCount
           || normalized.boardShape !== previousBoardShape
@@ -4136,7 +4153,8 @@ const App = {
           || normalized.turnTimerEnabled !== previousTurnTimerEnabled
           || normalized.turnTimeLimitSeconds !== previousTurnTimeLimitSeconds
           || normalized.undoEnabled !== previousUndoEnabled
-          || normalized.undoMaxCount !== previousUndoMaxCount;
+          || normalized.undoMaxCount !== previousUndoMaxCount
+          || (session.value.shared && JSON.stringify(normalized.turnOrder) !== JSON.stringify(previousTurnOrder));
         const starterChanged = normalized.startPlayer !== previousStartPlayer;
 
         if (settingsChanged) {
@@ -4168,6 +4186,11 @@ const App = {
     const handleBoardShapeChange = (shape) => {
       if (!['triangle', 'hexagon', 'custom'].includes(shape) || settingsLocked.value) return;
       if (shape === "custom") {
+        if (selectedPlayerCount.value > 6) {
+          selectedPlayerCount.value = 6;
+          if (!APP_ALL_PLAYERS.slice(0, 6).includes(selectedStartPlayer.value)) selectedStartPlayer.value = APP_ALL_PLAYERS[0];
+          selectedTurnOrder.value = resizeTurnOrder(selectedTurnOrder.value, 6, selectedStartPlayer.value);
+        }
         if (!selectedTopologyDefinition.value || selectedTopologyGridSize.value !== selectedGridSize.value) selectTopologyPreset("cylinder");
         else selectTopologyDefinition(selectedTopologyDefinition.value, selectedTopologySource.value || "custom");
         return;
@@ -4371,17 +4394,28 @@ const App = {
       };
     };
 
+    // Draft fields can be read before Vue flushes the count/starter watcher.
+    // Reconcile only the local draft; authoritative room inputs stay strict.
+    const draftTurnState = () => {
+      const count = APP_PLAYER_COUNT_OPTIONS.includes(selectedPlayerCount.value) ? selectedPlayerCount.value : 2;
+      const starter = APP_ALL_PLAYERS.slice(0, count).includes(selectedStartPlayer.value)
+        ? selectedStartPlayer.value : APP_ALL_PLAYERS[0];
+      return { starter, order: resizeTurnOrder(selectedTurnOrder.value, count, starter) };
+    };
+
     const selectedTopologySettings = () => {
       if (!selectedTopologyDefinition.value) {
         throw new Error("Select, draw, generate, or import a topology board before starting.");
       }
-      const materialized = materializeTopologyDefinition(selectedTopologyDefinition.value);
+      const { starter, order } = draftTurnState();
+      const materialized = materializeTopologyDefinition(selectedTopologyDefinition.value, selectedPlayerCount.value, starter);
       return {
         playerCount: selectedPlayerCount.value,
         boardShape: "custom",
         botCount: 0,
         gridSize: selectedGridSize.value,
-        startPlayer: selectedStartPlayer.value,
+        startPlayer: starter,
+        turnOrder: order,
         rulesVersion: "surface-v1",
         topologyProtocolVersion: "board-topology-v1",
         boardDefinition: materialized.definition,
@@ -4400,6 +4434,7 @@ const App = {
     };
 
     function draftGameSettings() {
+      const { starter, order } = draftTurnState();
       if (selectedBoardShape.value === "custom" || selectedRulesVersion.value === "surface-v1") {
         // Preserve the topology identity even while an incomplete selection is
         // being edited.  Callers that would construct a match catch the
@@ -4411,7 +4446,8 @@ const App = {
           boardShape: "custom",
           botCount: 0,
           gridSize: selectedGridSize.value,
-          startPlayer: selectedStartPlayer.value,
+          startPlayer: starter,
+          turnOrder: order,
           rulesVersion: "surface-v1",
           topologyProtocolVersion: "board-topology-v1",
           turnTimerEnabled: selectedTurnTimerEnabled.value,
@@ -4426,7 +4462,8 @@ const App = {
         playerCount: selectedPlayerCount.value,
         boardShape: selectedBoardShape.value,
         gridSize: selectedGridSize.value,
-        startPlayer: selectedStartPlayer.value,
+        startPlayer: starter,
+        turnOrder: order,
         rulesVersion: selectedRulesVersion.value,
         ...(roomStatus.value !== "solo"
           ? { protectionRule: roomInfo.value.settings?.protectionRule ?? "symmetric-v1" } : {}),
@@ -4476,7 +4513,7 @@ const App = {
         } finally {
           syncingRemoteSettings = false;
         }
-        if (priorShape === "custom" && isHost.value && roomStatus.value !== "solo"
+        if (priorShape === "custom" && !roomSetupOpen.value && isHost.value && roomStatus.value !== "solo"
           && roomStatus.value !== "inProgress" && roomStatus.value !== "countdown") {
           void networkManager.updateRoomSettings(normalizeAppGameSettings({ ...draftGameSettings(), botCount: 0 })).catch(handleNetworkError);
         }
@@ -5702,6 +5739,7 @@ const App = {
         selectedBoardShape.value = normalized.boardShape;
         selectedGridSize.value = normalized.gridSize;
         selectedStartPlayer.value = normalized.startPlayer;
+        selectedTurnOrder.value = resizeTurnOrder(normalized.turnOrder, normalized.playerCount, normalized.startPlayer);
         // A surface board owns canonical string IDs after its quotient has
         // been compiled.  The legacy starting-point helper only understands
         // triangle/hex coordinate pairs and would either throw on `cv:*` or,
@@ -5737,7 +5775,9 @@ const App = {
         controller.value.setGameConfig(normalized, reset);
         return normalized;
       } finally {
-        syncingRemoteSettings = false;
+        // Vue batches the settings watcher; keep remote/restore changes guarded
+        // until that batch has observed the complete authoritative snapshot.
+        nextTick(() => { syncingRemoteSettings = false; });
       }
     };
 
@@ -6971,7 +7011,16 @@ const App = {
     };
 
     const handleStartPlayerChange = (value) => {
+      if (settingsLocked.value) return;
+      selectedTurnOrder.value = resizeTurnOrder(selectedTurnOrder.value, selectedPlayerCount.value, value);
       selectedStartPlayer.value = value;
+    };
+    const handleTurnOrderChange = (order) => {
+      if (settingsLocked.value || (roomStatus.value !== "solo" && !(roomSetupOpen.value && session.value.shared && isHost.value))) return;
+      if (!Array.isArray(order) || order.length !== selectedPlayerCount.value || new Set(order).size !== order.length
+        || !order.every(player => APP_ALL_PLAYERS.slice(0, selectedPlayerCount.value).includes(player))) return;
+      selectedTurnOrder.value = [...order];
+      selectedStartPlayer.value = order[0];
     };
 
     const handleClosePrompt = () => {
@@ -7602,6 +7651,8 @@ const App = {
       retryRoomBots: () => networkManager.retryBots().catch(handleNetworkError),
       selectedGridSize,
       selectedStartPlayer,
+      selectedTurnOrder,
+      handleTurnOrderChange,
       selectedStartingPoints,
       updateStartingPoints,
       selectedTurnTimerEnabled,
@@ -7889,6 +7940,7 @@ const App = {
             :undo-max-count="selectedUndoMaxCount"
             :local-players="selectedLocalPlayers"
             :start-player="selectedStartPlayer"
+            :turn-order="selectedTurnOrder"
             :local-pending="localSetupPending || localSettingsChanged"
             :local-started="localMatchStarted"
             :starting-points="selectedStartingPoints"
@@ -7912,7 +7964,8 @@ const App = {
             @update-local-player="updateLocalPlayer"
             @select-lab-model="updateLocalPlayer({ ...$event, fromLab: true })"
             @save-room-settings="saveRoomSettings"
-            @update:start-player="selectedStartPlayer = $event"
+            @update:start-player="handleStartPlayerChange"
+            @update:turn-order="handleTurnOrderChange"
             @swap-local-players="swapLocalPlayers"
             @start-local-match="startLocalMatch"
             @update-starting-points="updateStartingPoints"

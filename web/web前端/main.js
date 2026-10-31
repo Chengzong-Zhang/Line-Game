@@ -3,7 +3,7 @@ const VUE_CDN_URLS = [
   "https://unpkg.com/vue@3/dist/vue.global.prod.js",
   "https://fastly.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js",
 ];
-const APP_ASSET_VERSION = "20261029-unified-r1";
+const APP_ASSET_VERSION = "20261031-turn-order";
 
 // main.js 只做两件事：
 // 1. 确保浏览器拿到 Vue 运行时
@@ -87,10 +87,10 @@ async function ensureVueRuntime() {
 
 async function importAppModule() {
   const candidates = [
-    new URL(`./OnlineApp.js?v=20261029-unified-r1`, import.meta.url).href,
-    new URL("./OnlineApp.js?v=20261029-unified-r1", import.meta.url).href,
-    `./OnlineApp.js?v=20261029-unified-r1`,
-    "./OnlineApp.js?v=20261029-unified-r1",
+    new URL(`./OnlineApp.js?v=20261031-turn-order`, import.meta.url).href,
+    new URL("./OnlineApp.js?v=20261031-turn-order", import.meta.url).href,
+    `./OnlineApp.js?v=20261031-turn-order`,
+    "./OnlineApp.js?v=20261031-turn-order",
   ];
   let lastError = null;
 
@@ -111,8 +111,8 @@ async function installTopologyRuntime() {
   // Renderer obtains atlas projection through the matching BoardView registry.
   // Keep both bootstrap-only imports outside legacy data-URL rule modules.
   await Promise.all([
-    import(new URL(`./TopologyGameEngine.js?v=20261029-unified-r1`, import.meta.url).href),
-    import(new URL(`./BoardView.js?v=20261029-unified-r1`, import.meta.url).href),
+    import(new URL(`./TopologyGameEngine.js?v=20261031-turn-order`, import.meta.url).href),
+    import(new URL(`./BoardView.js?v=20261031-turn-order`, import.meta.url).href),
   ]);
 }
 
