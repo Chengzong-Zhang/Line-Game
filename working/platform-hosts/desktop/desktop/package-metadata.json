@@ -1,0 +1,11 @@
+{
+  "name": "lifeline-desktop-runtime",
+  "version": "0.4.0",
+  "baselineHead": "0c1b5fda188e038b34b2c192e2f03932fb1169d0",
+  "baselineKind": "dirty-working-tree-snapshot",
+  "webSync": {
+    "date": "2026-10-23",
+    "sourceHead": "19221448d92798d88877b3b9a9c955c2da2a22bd",
+    "snapshotSha256": "255b567693daea75f8c785268b291f04ceaecfdc0ba5ce26def0a8b24465b11c"
+  }
+}

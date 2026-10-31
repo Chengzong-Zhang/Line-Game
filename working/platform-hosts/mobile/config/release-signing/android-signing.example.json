@@ -1,0 +1,6 @@
+{
+  "storeFile": "C:/private/path/to/your-release-keystore.jks",
+  "storePassword": "REPLACE_LOCALLY",
+  "keyAlias": "REPLACE_LOCALLY",
+  "keyPassword": "REPLACE_LOCALLY"
+}

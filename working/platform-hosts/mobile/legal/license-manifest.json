@@ -1,0 +1,89 @@
+{
+  "schema": "lifeline-mobile-third-party-licenses-v1",
+  "reviewed_at": "2026-10-14",
+  "coverage": "direct-web-and-capacitor-packages",
+  "native_transitive_status": "PENDING_TOOLCHAIN_AND_CHANNEL_CONFIGURATION",
+  "packages": [
+    {
+      "name": "vue",
+      "version": "3.5.44",
+      "license": "MIT",
+      "path": "licenses/vue.txt",
+      "bytes": 1091,
+      "sha256": "1bb85cc9b13b81ef41c81c51866172fc345e0503c86726a6755b796590b70175",
+      "source_license": "node_modules/vue/LICENSE"
+    },
+    {
+      "name": "mathjax",
+      "version": "3.2.2",
+      "license": "Apache-2.0",
+      "path": "licenses/mathjax.txt",
+      "bytes": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "source_license": "node_modules/mathjax/LICENSE"
+    },
+    {
+      "name": "@fontsource/manrope",
+      "version": "5.3.0",
+      "license": "OFL-1.1",
+      "path": "licenses/fontsource-manrope.txt",
+      "bytes": 4383,
+      "sha256": "d826ab6583b12c26807d8716a545bdbbb672df04f48608a364ba9efdbe501c30",
+      "source_license": "node_modules/@fontsource/manrope/LICENSE"
+    },
+    {
+      "name": "@fontsource/cormorant-garamond",
+      "version": "5.3.0",
+      "license": "OFL-1.1",
+      "path": "licenses/fontsource-cormorant-garamond.txt",
+      "bytes": 4504,
+      "sha256": "732f37009943e7f4378cf37113c9bcc4716af002a8583511aa91ed5d37683e73",
+      "source_license": "node_modules/@fontsource/cormorant-garamond/LICENSE"
+    },
+    {
+      "name": "@capacitor/core",
+      "version": "8.5.3",
+      "license": "MIT",
+      "path": "licenses/capacitor-core.txt",
+      "bytes": 1075,
+      "sha256": "9c6ebf3e5ab832ba4d5af38f340978e1fedbfee6e3d23662dfdb8917a9d864dd",
+      "source_license": "node_modules/@capacitor/core/LICENSE"
+    },
+    {
+      "name": "@capacitor/android",
+      "version": "8.5.3",
+      "license": "MIT",
+      "path": "licenses/capacitor-android.txt",
+      "bytes": 1075,
+      "sha256": "9c6ebf3e5ab832ba4d5af38f340978e1fedbfee6e3d23662dfdb8917a9d864dd",
+      "source_license": "node_modules/@capacitor/android/LICENSE"
+    },
+    {
+      "name": "@capacitor/app",
+      "version": "8.1.2",
+      "license": "MIT",
+      "path": "licenses/capacitor-app.txt",
+      "bytes": 1083,
+      "sha256": "e8f989836e88732576472006444b65fd3d7d3c2455becdaaa4d82cd0dd43110f",
+      "source_license": "node_modules/@capacitor/app/LICENSE"
+    },
+    {
+      "name": "@capacitor/filesystem",
+      "version": "8.1.4",
+      "license": "MIT",
+      "path": "licenses/capacitor-filesystem.txt",
+      "bytes": 1062,
+      "sha256": "de884404585ed20280150b0768082b6004d3548aaa0d6e596d6bfa0538ab331d",
+      "source_license": "node_modules/@capacitor/filesystem/LICENSE"
+    },
+    {
+      "name": "@capacitor/share",
+      "version": "8.0.3",
+      "license": "MIT",
+      "path": "licenses/capacitor-share.txt",
+      "bytes": 1082,
+      "sha256": "eb99a0d61b507ad0182e18e9d2a91537c1d9025c94e098e4e7603a53b4b5218a",
+      "source_license": "node_modules/@capacitor/share/LICENSE"
+    }
+  ]
+}

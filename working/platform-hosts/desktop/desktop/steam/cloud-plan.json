@@ -1,0 +1,18 @@
+{
+  "format": "lifeline-cloud-design-worksheet",
+  "schemaVersion": 1,
+  "enabled": false,
+  "status": "ACCOUNT_ISOLATION_AND_STEAM_TESTS_NOT_IMPLEMENTED",
+  "currentLocation": "Electron userData; shared within one Windows user",
+  "proposedRoot": "WinAppDataRoaming",
+  "proposedSubdirectory": "<verified-application-folder>/steam/{64BitSteamID}",
+  "proposedFiles": ["profile/progress/profile.json", "saves/current.json"],
+  "exclude": ["profile/settings/**", "achievements/**", "*.bak", "*.corrupt-*", "*.tmp", "logs/**", "Cache/**"],
+  "requirements": [
+    "Implement and test verified Steam account-specific local storage",
+    "Choose and document explicit local-profile import behavior",
+    "Validate schemas and checksums before importing or merging",
+    "Preserve both current matches on offline fork; never merge rule states",
+    "Test actual owned AppID on two computers and at least two accounts"
+  ]
+}

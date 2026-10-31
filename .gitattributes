@@ -32,3 +32,9 @@ web/web前端/guide/interesting/why-theory.20260826.*.md -text whitespace=cr-at-
 
 # Canonical migrated historical evidence retains original blob bytes.
 working/docs/** -text whitespace=cr-at-eol
+working/tools/*20261031* -text whitespace=cr-at-eol
+working/tools/guide_alignment_overlay.py -text whitespace=cr-at-eol
+working/tools/platform_host_snapshot.py -text whitespace=cr-at-eol
+working/tools/verify-aligned-itch.mjs -text whitespace=cr-at-eol
+working/tools/desktop-alignment/** -text whitespace=cr-at-eol
+working/skills/lifeline-dev/** -text whitespace=cr-at-eol

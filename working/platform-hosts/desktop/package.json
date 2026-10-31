@@ -1,0 +1,81 @@
+{
+  "name": "lifeline-desktop-prototype",
+  "version": "0.4.0",
+  "private": true,
+  "type": "module",
+  "description": "Offline Windows desktop shell for LIFELINE",
+  "main": "desktop/main.cjs",
+  "scripts": {
+    "desktop:prepare": "node desktop/scripts/prepare-renderer-assets.mjs && node desktop/scripts/prepare-legal.mjs",
+    "desktop:branding": "electron desktop/scripts/prepare-branding.cjs",
+    "desktop:preflight": "node desktop/scripts/release-candidate.mjs preflight",
+    "desktop:candidate": "node desktop/scripts/release-candidate.mjs",
+    "desktop:test:release": "node --test desktop/tests/release-tools.test.mjs",
+    "desktop:test:achievements": "node --test desktop/tests/achievement-store.test.cjs",
+    "desktop:test:progress": "node --test desktop/tests/progress-backup.test.cjs desktop/tests/profile-store.test.cjs",
+    "desktop:test:standalone": "node --test desktop/tests/standalone-check.test.mjs",
+    "desktop:validation-kit": "node desktop/scripts/prepare-validation-kit.mjs",
+    "desktop:start": "npm run desktop:prepare && electron .",
+    "desktop:pack:dir": "npm run desktop:prepare && electron-builder --win dir",
+    "desktop:pack:portable": "npm run desktop:prepare && electron-builder --win portable",
+    "desktop:test:save-store": "node --test desktop/tests/save-store.test.cjs",
+    "desktop:test:assets": "node --test desktop/tests/prepare-renderer-assets.test.mjs",
+    "desktop:test:offline": "node desktop/tests/packaged-offline-smoke.mjs",
+    "desktop:test:local-save-retry": "node web/web前端/tests/verify-local-save-retry.mjs",
+    "desktop:test:local-match": "node desktop/tests/packaged-local-match.mjs"
+  },
+  "dependencies": {
+    "mathjax-full": "3.2.2",
+    "vue": "3.5.44"
+  },
+  "devDependencies": {
+    "electron": "44.7.0",
+    "electron-builder": "26.15.3",
+    "playwright-core": "1.56.1"
+  },
+  "overrides": {
+    "@xmldom/xmldom": "0.9.12"
+  },
+  "build": {
+    "appId": "cn.lifelinegame.desktop",
+    "productName": "LIFELINE",
+    "asar": true,
+    "extraResources": [{
+      "from": "desktop/legal",
+      "to": "legal",
+      "filter": ["THIRD_PARTY_NOTICES.md", "DEPENDENCY_LICENSES.txt"]
+    }],
+    "directories": {
+      "output": "desktop/release"
+    },
+    "files": [
+      "desktop/main.cjs",
+      "desktop/preload.cjs",
+      "desktop/src/**/*",
+      "desktop/package-metadata.json",
+      "desktop/renderer/*.js",
+      "desktop/renderer/index.html",
+      "desktop/renderer/styles.css",
+      "desktop/renderer/guide/rule/**/*",
+      "desktop/renderer/guide/guide-images/**/*",
+      "desktop/renderer/guide/Thanks*.md",
+      "desktop/renderer/guide/interesting/why-talk.*.md",
+      "desktop/renderer/guide/interesting/why-code.*.md",
+      "desktop/renderer/guide/interesting/why-theory.*.md",
+      "desktop/renderer/assets/research-ai/**/*",
+      "node_modules/vue/**/*",
+      "node_modules/vue/LICENSE",
+      "node_modules/mathjax-full/es5/**/*",
+      "node_modules/mathjax-full/LICENSE",
+      "package.json"
+    ],
+    "win": {
+      "icon": "desktop/assets/lifeline.ico",
+      "target": ["dir", "portable"],
+      "artifactName": "LIFELINE-${version}-${arch}.${ext}"
+    },
+    "portable": {
+      "artifactName": "LIFELINE-${version}-${arch}-portable.${ext}"
+    }
+  }
+}

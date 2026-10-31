@@ -1,0 +1,9 @@
+{
+  "storeFile": "C:/private/path/to/your-release-store.p12",
+  "storePassword": "REPLACE_LOCALLY",
+  "keyAlias": "REPLACE_LOCALLY",
+  "keyPassword": "REPLACE_LOCALLY",
+  "signAlg": "SHA256withECDSA",
+  "profile": "C:/private/path/to/your-release-profile.p7b",
+  "certpath": "C:/private/path/to/your-release-certificate.cer"
+}

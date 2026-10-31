@@ -1,0 +1,16 @@
+{
+  "string": [
+    {
+      "name": "app_name",
+      "value": "LIFELINE"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "LIFELINE"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "Play LIFELINE on a local board."
+    }
+  ]
+}

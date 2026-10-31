@@ -1,0 +1,154 @@
+{
+  "schema": "lifeline-mobile-harmony-session-presence-l35-b-v1",
+  "date": "2026-10-24",
+  "status": "PASS_SCOPED_R16_HARMONY_SESSION_PRESENCE_PACKAGES",
+  "scope": "Harmony Preferences key-presence semantics, stale-page rollback to an absent key, and receipt-bound local Android and Harmony package verification",
+  "source": {
+    "mobileWorktree": "C:/Users/zcz/.codex/worktrees/lifeline-mobile/line game",
+    "branch": "codex/android-harmonyos-mobile",
+    "head": "85118585549167f38668f7321885441c1f579251",
+    "workspaceDirty": true,
+    "webSourceEditedByL35B": false,
+    "postR16WebDelta": "NO_POST_R16_WEB_DELTA",
+    "syncReleaseId": "web-current-sync-20261024-r16",
+    "syncAssetVersion": "20261024-current16",
+    "runtimeAssetVersion": "20261024-l34a1",
+    "sourceManifestFiles": 116,
+    "mobileAdaptations": 34,
+    "sourceEvidenceFiles": 253,
+    "packagedResources": 274,
+    "packagedResourceBytes": 46412539
+  },
+  "implementation": {
+    "sourcePath": "mobile/harmony/entry/src/main/ets/bridge/LifelineNativeProxy.ets",
+    "sourceSha256": "233f83fcc04d84c76597fcf3cc3d94c0ef9040d3831a00f11dc0325325ed5bb5",
+    "testPath": "mobile/tests/verify-harmony-native-bridge.mjs",
+    "testSha256": "9bb2dc980230b09636603fba4e5d4d6e8198b0a6ca622464c48c922bae17016f",
+    "properties": [
+      "Use Preferences.has to distinguish an absent session key from an existing value before every load or mutation snapshot.",
+      "Use a unique get sentinel and reject present/get-sentinel disagreement, null, and non-string session values.",
+      "Retain an exists/value snapshot before save or clear; stale mutations restore an existing value or delete and flush an originally absent key.",
+      "Verify both the restored presence bit and value; poison further session access when rollback cannot be verified.",
+      "Preserve tombstones, JSON validation, cross-page generation isolation, and the process-wide serialized session queue."
+    ]
+  },
+  "verification": {
+    "commands": [
+      {
+        "command": "node tests/verify-harmony-native-bridge.mjs",
+        "exitCode": 0,
+        "status": "PASS"
+      },
+      {
+        "command": "node tests/verify-harmony-credential-store.mjs",
+        "exitCode": 0,
+        "status": "PASS_14_OF_14"
+      },
+      {
+        "command": "npm run build",
+        "exitCode": 0,
+        "status": "PASS-CURRENT"
+      },
+      {
+        "command": "npm run verify",
+        "exitCode": 0,
+        "status": "PASS"
+      },
+      {
+        "command": "npm run cap:sync",
+        "exitCode": 0,
+        "status": "PASS"
+      }
+    ],
+    "limits": [
+      "The ArkTS bridge regression uses an API-shaped host persistence model and is not device durability evidence.",
+      "No physical-device, crash, power-loss, LMK/OOM, storage-eviction, signing, upgrade, or store validation was run."
+    ]
+  },
+  "webBuildReceipt": {
+    "path": "mobile/local_artifacts/mobile-web-build-receipt.json",
+    "status": "PASS-CURRENT",
+    "sha256": "a5898a0bcaeffa1d98d56034dcc8907aeb4df44cd7b923150f36142bb60399ba",
+    "bytes": 131623,
+    "distManifestSha256": "81ff48f1f910e503cde0a9a77ca3e2f6b125e290e1e078839f4d485fcc046b88",
+    "resourceCount": 274,
+    "resourceBytes": 46412539,
+    "sourceEvidenceFiles": 253,
+    "harmonyNativeProxySha256": "233f83fcc04d84c76597fcf3cc3d94c0ef9040d3831a00f11dc0325325ed5bb5"
+  },
+  "android": {
+    "artifactDirectory": "mobile/local_artifacts/android-presence-aware-r16-20261024-01",
+    "build": {
+      "status": "PASS_LOCAL_DEBUG_APK_BUILD",
+      "command": "gradlew.bat --no-daemon --rerun-tasks :app:assembleDebug --console=plain",
+      "exitCode": 0,
+      "actionableTasks": 129,
+      "executedTasks": 129,
+      "logPath": "mobile/local_artifacts/android-presence-aware-r16-20261024-01/android-assemble-debug.log",
+      "logSha256": "d0dbbee1d0f3678359d3b568ace609986b2489735ebce6f67ce2ce3902bbb6c7"
+    },
+    "package": {
+      "path": "mobile/local_artifacts/android-presence-aware-r16-20261024-01/app-debug.apk",
+      "bytes": 30772869,
+      "sha256": "15f06a53aacaa241342a0e14e2cc195b2ae512a59be7d31e2b7e76e48d7b2ba1",
+      "applicationId": "cn.lifelinegame.mobile",
+      "versionCode": 2,
+      "versionName": "1.0.1",
+      "minSdk": 24,
+      "targetSdk": 36,
+      "debuggable": true,
+      "signing": "Android Debug development certificate"
+    },
+    "staticVerification": {
+      "status": "PASS_ANDROID_DEBUG_APK_L26",
+      "receiptPath": "mobile/local_artifacts/android-presence-aware-r16-20261024-01/l26-verification/android-apk-verification.json",
+      "receiptSha256": "4eaf78b63b5efa095627ee05e03dcc4f8af8a898bb90aaeac3c8b3d90fe9bf13",
+      "webBuildReceiptSha256": "a5898a0bcaeffa1d98d56034dcc8907aeb4df44cd7b923150f36142bb60399ba"
+    },
+    "deviceAcceptance": false,
+    "storeAcceptance": false
+  },
+  "harmony": {
+    "artifactDirectory": "local_artifacts/harmony-native-presence-aware-20261024-02",
+    "build": {
+      "status": "PASS_LOCAL_UNSIGNED_HAP_BUILD",
+      "command": "node <tools>/hvigor/hvigor/bin/hvigor.js assembleHap --mode module -p module=entry@default --no-daemon --no-incremental",
+      "exitCode": 0,
+      "receiptPath": "local_artifacts/harmony-native-presence-aware-20261024-02/harmony-build-receipt.json",
+      "receiptSha256": "d96b1a82ce5c347c75a58d04f8347279d89938f21d65f65146c69887820c07c9",
+      "logPath": "local_artifacts/harmony-native-presence-aware-20261024-02/harmony-assemble.log",
+      "logSha256": "9c874e4b5c98d2bd5ec084a3ede6f5fbf4eb2d4e3933a5f2e1e440a5422e26b4",
+      "freshness": "REBUILT_DURING_BUILD"
+    },
+    "package": {
+      "path": "local_artifacts/harmony-native-presence-aware-20261024-02/entry-default-unsigned.hap",
+      "bytes": 46790011,
+      "sha256": "bdb50addf86b3e46270bdf9cd8c00c233361a61e3b0d048db2190c2db2304707",
+      "bundleName": "cn.lifelinegame.mobile.harmony",
+      "versionCode": 2,
+      "versionName": "1.0.1",
+      "compatibleApi": 12,
+      "targetApi": 12,
+      "signed": false
+    },
+    "staticVerification": {
+      "status": "PASS_HARMONY_UNSIGNED_HAP_L26",
+      "receiptPath": "local_artifacts/harmony-native-presence-aware-20261024-02/verify-harmony-l26/harmony-hap-verification.json",
+      "receiptSha256": "dbb6cd5bad71d36897f848ad02bbead24525836ca09b6e915671e0de5d07f692",
+      "webBuildReceiptSha256": "a5898a0bcaeffa1d98d56034dcc8907aeb4df44cd7b923150f36142bb60399ba",
+      "arktsBytecodeSha256": "3a6826fdd4916ef15058c2cfd28ac1116dafefb5948b1198fe98720ca33d72c6"
+    },
+    "deviceAcceptance": false,
+    "releaseSigning": false,
+    "storeAcceptance": false
+  },
+  "release": {
+    "physicalDeviceTesting": false,
+    "formalSigning": false,
+    "upgradeTesting": false,
+    "upload": false,
+    "submission": false,
+    "review": false,
+    "publicAvailability": false
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "app": {
+    "bundleName": "cn.lifelinegame.mobile.harmony",
+    "vendor": "LIFELINE",
+    "icon": "$media:app_icon",
+    "versionCode": 2,
+    "versionName": "1.0.1",
+    "label": "$string:app_name"
+  }
+}

@@ -1,0 +1,358 @@
+{
+  "schema": "lifeline-mobile-runtime-source-manifest-v1",
+  "runtime_asset_version": "20261024-l34a1",
+  "files": [
+    "OnlineRoomSync.js",
+    "OnlineActionSync.js",
+    "OnlineActionSyncCoordinator.js",
+    "AIWorker.js",
+    "LocalAIWorkerFactory.js",
+    "MultiplayerHardAIWorker.bundle.mjs",
+    "MultiplayerHardAIWorker.bundle.manifest.json",
+    "LocalAIModes.js",
+    "LocalGameSession.js",
+    "StartingPointSetup.js",
+    "StartingPoints.js",
+    "LocalPlayerSetup.js",
+    "ThreePlayerAI.js",
+    "ThreePlayerModels.js",
+    "ThreePlayerRuntime.js",
+    "ThreePlayerSearchAI.js",
+    "ThreePlayerSearchOptions.js",
+    "HexPlayerAI.js",
+    "HexPlayerRuntime.js",
+    "HexSearchOptions.js",
+    "HexFastSearchAI.js",
+    "assets/research-ai/three-player-policy-v1.json",
+    "assets/research-ai/three-player-policy-v2.json",
+    "assets/research-ai/three-player-policy-v3.json",
+    "assets/research-ai/three-player-search-v4-round12.json",
+    "assets/research-ai/hex-player-policy-v1.json",
+    "assets/research-ai/hex-player-search-v5.json",
+    "GuideArticleFormat.js",
+    "GuideImplementation.js",
+    "GuideImplementationNotes.js",
+    "GuideMathChapters.js",
+    "GuideTechnicalChapters.js",
+    "HexSearchAI.js",
+    "LocalUndo.js",
+    "MultiplayerModel.js",
+    "MultiplayerRollout.js",
+    "MultiplayerUltimateAdmission.js",
+    "MultiplayerRuntime.js",
+    "MultiplayerSearch.js",
+    "MultiplayerNativeGeometry.js",
+    "TerritoryWorkerPool.js",
+    "assets/research-ai/multiplayer-v1/manifest.json",
+    "assets/research-ai/multiplayer-v1/multiplayer-ultimate-v1.f32",
+    "guide/rule/math rule.en.md",
+    "MultiplayerAIWarmup.js",
+    "platform/TutorialHost.js"
+  ],
+  "excluded_predecessor_files": [
+    {
+      "path": "CrossPlatformNetwork.js",
+      "reason": "Predecessor-only artifact absent from the current R2 source tree; no current runtime import references it."
+    },
+    {
+      "path": "SharedRoomClient.js",
+      "reason": "Predecessor-only artifact absent from the current R2 source tree; no current runtime import references it."
+    }
+  ],
+  "mobile_adaptations": [
+    {
+      "path": "AIEngine.js",
+      "source_sha256": "e4305b1fa918482863995cd7c235daf610faa25dfc23e073746ffb27fc508380",
+      "mobile_sha256": "a1e532d317dcafd208704d004a5622dcf9a33042328c7b7f75224acafc85124c",
+      "reason": "Retains the reviewed mobile-compatible local AI strategy and worker execution path while game logic continues to sync through shared modules.",
+      "source_snapshot": "post-snapshot live source supplement; frozen adaptation baseline entry retained"
+    },
+    {
+      "path": "AIWorker.js",
+      "source_sha256": "b6e8aea8a805fa01d793f545cccb62c6e4ccdb52982fa60702f0c5dc5e267f26",
+      "mobile_sha256": "45246106525a649b138abbde086eb7d6b7e16a9662bcba4dc01493253b3688e2",
+      "reason": "Accepts best-effort multiplayer resource warmup and preserves the established COMPUTE protocol and failure recovery.",
+      "source_snapshot": "post-snapshot live source supplement; frozen adaptation baseline entry retained"
+    },
+    {
+      "path": "assets/research-ai/manifest.json",
+      "reason": "Clarifies that territory-v3 inference is a compatibility trial with unvalidated playing strength while retaining the reviewed model assets.",
+      "source_sha256": "e8908ce0d22b54fb31d3bdac5c97eb88b3aa6e3068a7599a7c8be517f3b42250",
+      "source_snapshot": "snapshot supplement; file absent from frozen source table",
+      "mobile_sha256": "4b1f6923323f1c2c45cbe9a4c8a081ee6ae0b777ec39ec7d2152b77c9af78a0f"
+    },
+    {
+      "path": "GameController.js",
+      "source_sha256": "914a0898c7f5b590407e09d395f25b1999c36fd6a2c5edbaab879ac6742a22e5",
+      "mobile_sha256": "3fc4636cb584574bc92f9ac670283e2dd91e46a105bfb1944d0f87e87ca9bce0",
+      "reason": "Keeps mobile match lifecycle, worker cancellation, touch-safe controller behavior, and synchronized 2–6 player rules.",
+      "source_snapshot": "post-snapshot live source supplement; frozen adaptation baseline entry retained"
+    },
+    {
+      "path": "HexFastSearchAI.js",
+      "reason": "Keeps the runtime validation message aligned with the implemented territory-v2/v3 compatibility guard.",
+      "source_sha256": "273e0dc306a9da281a72c096f6a9cc1026f5c2e2578363c89b17c5bf91e9ad0f",
+      "source_snapshot": "snapshot supplement; file absent from frozen source table",
+      "mobile_sha256": "258b1a684a86c0d232413ccd659375e6e6af702cd07f1429fcf74054cd01e9eb"
+    },
+    {
+      "path": "HexPlayerAI.js",
+      "source_sha256": "aba9a85be49a897841340b8df3d0e5d8edb70abd551ed0f1fee66c93214b8269",
+      "mobile_sha256": "545bbc79da97a4b9391f124aaf944ff7b5e0f1504d0a8924e2b9f50e943ff37a",
+      "reason": "Retains the mobile packaged-model loader and bounded worker interface for hex-board AI.",
+      "source_snapshot": "post-snapshot live source supplement; frozen adaptation baseline entry retained"
+    },
+    {
+      "path": "HexPlayerRuntime.js",
+      "reason": "Reports territory-v2/v3 compatibility and the unvalidated v3 strength boundary for packaged hex AI runtimes.",
+      "source_sha256": "84a9a3e895351bc6e51ca4b8ec3b7cea1ff566768c79b85604e9b57f4402064f",
+      "source_snapshot": "snapshot supplement; file absent from frozen source table",
+      "mobile_sha256": "a8ff65160b153b18aea599464be3dd4b7351437526cdf4aa5d83d12d22166a36"
+    },
+    {
+      "path": "HintWorkerSession.js",
+      "source_sha256": "42d380e7e748006bb401b82088b649d43c32af611174292b22e81eec34c30515",
+      "mobile_sha256": "19cd62f09471db5a6d4ab0b4663e5b88deebd53d8701dd079bf2f6074573a965",
+      "reason": "Keeps hint Worker ownership and cancellation aligned with mobile app lifecycle transitions."
+    },
+    {
+      "path": "LocalAIModes.js",
+      "source_sha256": "52ecf53c4aa958eb5e9188faedb35728947fb18a8f2431d81869ff2edd0c2bd8",
+      "mobile_sha256": "9ee544dff3a6344c0339a90db2887ae99cc8f9ad2b1cd308ffd984adf80c87e9",
+      "reason": "Carries mobile local match profiles, multi-seat AI selections, and player-choice normalization."
+    },
+    {
+      "path": "LocalAIWorkerFactory.js",
+      "source_sha256": "98c457341db112223bf6262748cf2070163dc69c0ed3b157fe3ff82200c935e2",
+      "mobile_sha256": "e66f604855d5550571699e6fe6355167cb2a171216a309b3d4ab9f6eebcb4da1",
+      "reason": "Uses the current mobile runtime cache tag for the ordinary Worker while preserving the reviewed Hard bundle build identity.",
+      "source_snapshot": "snapshot supplement; file absent from frozen source table"
+    },
+    {
+      "path": "LocalGameSession.js",
+      "source_sha256": "4968d215771a3cfe71cfd230e0dc3108faf40c56d2705231c0501440f55a12f0",
+      "mobile_sha256": "5133e7fecd6114ed90bd057676abe4cda499de6a742c68d2b63c23adf9f73824",
+      "reason": "Persists complete local match state through the mobile durable writer and validates mixed 2–6 player sessions.",
+      "source_snapshot": "post-snapshot live source supplement; frozen adaptation baseline entry retained"
+    },
+    {
+      "path": "LocalPlayerSetup.js",
+      "source_sha256": "4d59e4fb0e646c359689a85ac528288eba747dcde8c505990c9564dfc5e252a6",
+      "mobile_sha256": "5b8408ace0f2af9e4ad8bfa15318ff0614369469429284e242287e50d3b76b05",
+      "reason": "Provides the mobile local player and AI profile setup surface used by 2–6 player matches."
+    },
+    {
+      "path": "LocalUndo.js",
+      "source_sha256": "8844fce34d440128e0e57982b0903cfe85ddacce62fd4a353aae3f39be7528c7",
+      "mobile_sha256": "066ec1d1049af09219bbc556ce6428eb9536c479428af75e335d1930fce9220e",
+      "reason": "Stores and restores mobile undo quota and turn-window state with full match snapshots."
+    },
+    {
+      "path": "main.js",
+      "source_sha256": "3a727fd05628da452d7fc4251c328d6dea754a279296e1058f7a167754621f98",
+      "mobile_sha256": "49c146de6cbffb6ad47a9b7f258cfb3a693aa59ac87d0d66895937ae6a182f05",
+      "reason": "Bootstraps native platform selection, lifecycle, and mobile input haptics before mounting the shared app.",
+      "source_snapshot": "post-snapshot live source supplement; frozen adaptation baseline entry retained"
+    },
+    {
+      "path": "ModelFreeAI.js",
+      "source_sha256": "f17771f1af1b94ad637b61407e81af485f0c53b0137551a1eaf8a57d0eca01be",
+      "mobile_sha256": "4dd7da9800a716b72b4bd7d73f64e6921c8408679a41af515112bb075643a534",
+      "reason": "Fails closed when crypto.subtle is unavailable and requires SHA-256 verification for model integrity."
+    },
+    {
+      "path": "MultiplayerAIWarmup.js",
+      "source_sha256": "c329a6b5193be79945d058ec4a359439d78df60cd6c46a14c347ee960a89adca",
+      "mobile_sha256": "e2348c35941b423d2bdc9e5fc63cf500cc79c693981d1e6a81dd71887da59fba",
+      "source_snapshot": "snapshot supplement; file absent from frozen source table",
+      "reason": "Provides best-effort model resource prewarming in the mobile worker; formal COMPUTE still creates a fresh instance and validates model identity."
+    },
+    {
+      "path": "MultiplayerRuntime.js",
+      "source_sha256": "2553f623db9937e56daab95c18be1d24e3784c5a775c5543d41fe0c0a4eb9b40",
+      "mobile_sha256": "90bd2c865fcf735fc76a984d9aa870b1ee19e53726d06736e24f567b98690486",
+      "reason": "Uses the mobile runtime asset version cache-buster for the Ultimate admission module import.",
+      "source_snapshot": "snapshot supplement; file absent from frozen source table"
+    },
+    {
+      "path": "NetworkManager.js",
+      "source_sha256": "41e83397247d144b00822318d879701b5c609984d5742f25cb8498df3dec198b",
+      "mobile_sha256": "053dd8af42d05a23403ef152eb04b4224f69b56a05886a35a02a4188656e0cf0",
+      "reason": "Redacts endpoint credentials, query data, WebSocket errors, and server-controlled close/error text before persistence or UI events."
+    },
+    {
+      "path": "OnlineApp.js",
+      "source_sha256": "89e0f72212d3fe3c451e04995b59206e3d09c42dc4a9a9a1733f4c1ee61110ca",
+      "mobile_sha256": "4bada57f74bdc18fd4688afc94523bf0687a015229988125735617e2de914aec",
+      "reason": "Connects shared gameplay to native auth, durable session recovery, app lifecycle, native network recovery, replay sharing ownership, localized online AI labels, 4–6 player entry, and host bot retry.",
+      "source_snapshot": "post-snapshot live source supplement; frozen adaptation baseline entry retained"
+    },
+    {
+      "path": "OnlineAppI18n.js",
+      "source_sha256": "92f775c0e128d9131e92827a26735ec9db945cc63783c734bca860883d3d92ef",
+      "mobile_sha256": "83d62d6a9cfbda652dee0b58c951d80521971eda9b4153df0a750670cc8dd071",
+      "reason": "Includes localized mobile auth, lifecycle, persistence, and local multiplayer status text.",
+      "source_snapshot": "post-snapshot live source supplement; frozen adaptation baseline entry retained"
+    },
+    {
+      "path": "OnlineAppState.js",
+      "source_sha256": "2a39c642d89c0a07ee762c7e4bf6cdeacdc89c02532edf687ad21107d2a99c63",
+      "mobile_sha256": "3822ad5379d992784311381e499aae82a75e014f336f1b06143e9f91e6c31811",
+      "reason": "Keeps mobile auth out of WebView storage and filters unsafe session URLs on load and persistence.",
+      "source_snapshot": "post-snapshot live source supplement; frozen adaptation baseline entry retained"
+    },
+    {
+      "path": "OnlineRoomSync.js",
+      "source_sha256": "9164783f2626e9be9cecb115cae3828e7d0a2652849cf256342a0af6d169ae8c",
+      "mobile_sha256": "c91dfb7ed07a3e23135f35ddfb1db0d15538628b0da80e5342b6a20bf063d64e",
+      "reason": "Maintains mobile room synchronization and retry handling with the current shared multiplayer protocol."
+    },
+    {
+      "path": "Renderer.js",
+      "source_sha256": "c318d960b5562840c16da0bdcadbd854a5f8b80860c93e2f2e89ca313f176048",
+      "mobile_sha256": "299c510e3f84c87d2544c1d633c839e2fef15c0224a665b990552ad2253983e7",
+      "reason": "Preserves mobile layered canvas and touch rendering behavior used by the shared game controller."
+    },
+    {
+      "path": "ReplayCodec.js",
+      "source_sha256": "b294ddb3b4826ebdee044490ae9e9c1e8ce1d7e8411e8072df0c93c070f2aa00",
+      "mobile_sha256": "cfae9a18d8f43eeed63dac157f269a249ab346fe00850b827f89b72eb30d6942",
+      "reason": "Includes mobile-safe replay validation and actor metadata for persisted multiplayer sessions.",
+      "source_snapshot": "post-snapshot live source supplement; frozen adaptation baseline entry retained"
+    },
+    {
+      "path": "ResearchAI.js",
+      "source_sha256": "d7af7db4d05ea55f3385b2509225e0b8955a0aef87a2405687f03193a916d6bc",
+      "mobile_sha256": "f64764fbf030905a9a23b8e2191e22c5e0a288441cc50c57207b7185640cff72",
+      "reason": "Retains the mobile packaged research-model resolution and bounded inference interface.",
+      "source_snapshot": "post-snapshot live source supplement; frozen adaptation baseline entry retained"
+    },
+    {
+      "path": "StartingPoints.js",
+      "source_sha256": "7b09547988a75cbccda06fbd554af8aaa18957f9b3029d772106894e4921894d",
+      "mobile_sha256": "1a271e8f34fd8c42826e8741c56eecaa42476253cba1ad5440eeb71460dda406",
+      "reason": "Carries mobile local-match opening-point settings and validation for supported board shapes."
+    },
+    {
+      "path": "StartingPointSetup.js",
+      "source_sha256": "36f8fa51286e2dd865862d7751f2d338d1b0cccc4a2aac9d10adfca428e2b1a6",
+      "mobile_sha256": "5a23b5c42b1913be48eda8809d6f7ed6e7a78eaf428a52ad861e1269bb29065e",
+      "reason": "Provides the mobile opening-point setup controls and session persistence hooks."
+    },
+    {
+      "path": "TerritoryWorker.js",
+      "source_sha256": "aa41002ca435f0e8e6bf0467f1562402ccd9bc10f967d551f2d66b1c2f81f2ff",
+      "mobile_sha256": "ad8895d452e4fc977589dbf792414960e8f6aa2cb98723f1627094d2696c8663",
+      "reason": "Keeps mobile territory computation compatible with the packaged runtime Worker protocol."
+    },
+    {
+      "path": "TerritoryWorkerPool.js",
+      "source_sha256": "cd845530d2e44715089dff43c94b01895a7f699ed91e4f15ce16ff1dafc81be2",
+      "mobile_sha256": "5597a22467d18bb69ef0d5508848fd14a1c8e5e331fce9014213665a087fa480",
+      "reason": "Adds mobile-compatible shared Worker ownership and lifecycle-safe territory task reuse."
+    },
+    {
+      "path": "TerritoryWorkerSession.js",
+      "source_sha256": "b1df4de597ee0f4d99ea08a961a0d70f6d1a34028c4aeeaf15493c73376f4cf8",
+      "mobile_sha256": "b71504089d92f8db6d9c36b4b380a370bf4e428998c41a42ebca99627a57a4ac",
+      "reason": "Keeps territory Worker cancellation and result ownership scoped to the active mobile match."
+    },
+    {
+      "path": "ThreePlayerAI.js",
+      "source_sha256": "200c456a8e94198ce09dfa165af0f747960852ab7861a6e70ef8e01d77503a39",
+      "mobile_sha256": "ec448c429f54171d5defa1a88b1d7c78412abd136830fe588f9ae7c4a38cb232",
+      "reason": "Retains mobile three-player AI runtime and worker message compatibility.",
+      "source_snapshot": "post-snapshot live source supplement; frozen adaptation baseline entry retained"
+    },
+    {
+      "path": "ThreePlayerModels.js",
+      "source_sha256": "a8550793e8be9e58831f79f22af718c933ea99e1f7420b18053fe4d3a66ac3ca",
+      "mobile_sha256": "4a346d2922c5fda67bba8e26cd5a941bb52bc842dbf0537567d2feac58fd8404",
+      "reason": "Uses the mobile packaged model set and runtime-config-aware model availability for three-player AI."
+    },
+    {
+      "path": "ThreePlayerRuntime.js",
+      "source_sha256": "9308d4cd4c0cbef3f656b36cf4af9df54961b74cd6166a53d3b59fdde85f49d8",
+      "mobile_sha256": "fc603d56928a7a83cd0cd6cab8dc2b01de853b779a96fc2f70120a69ea725382",
+      "reason": "Retains mobile three-player model loading and bounded runtime initialization.",
+      "source_snapshot": "post-snapshot live source supplement; frozen adaptation baseline entry retained"
+    },
+    {
+      "path": "TrainingContribution.js",
+      "source_sha256": "dfe81a35cc3db3610712ef6c9faf8940477f3adc30727f33f6c3ec3f2b4c7c74",
+      "mobile_sha256": "42f0be55cb30c40f51dd8878bf31197c532ad5c308b3aaf516a000389502a86c",
+      "reason": "Keeps mobile consent and contribution gating separate from local game and session persistence."
+    }
+  ],
+  "excluded_live_unwired_experiments": [],
+  "packaged_additional_files": [
+    "platform/runtime.js"
+  ],
+  "required_runtime_closure": [
+    "main.js",
+    "OnlineApp.js",
+    "AIWorker.js",
+    "MultiplayerRuntime.js",
+    "LocalAIWorkerFactory.js",
+    "MultiplayerHardAIWorker.bundle.mjs"
+  ],
+  "excluded_live_wired_unqualified_experiments": [],
+  "bundle_internal_sources": [
+    {
+      "path": "MultiplayerHardFallback.js",
+      "source_sha256": "0df510a7455f94c64d1d77db61b0acc31e14fefea661e83b2eb1c3e47e46a753",
+      "classification": "bundle_internal_source",
+      "bundle": "MultiplayerHardAIWorker.bundle.mjs",
+      "packaged": false,
+      "reason": "Compiled into the admitted Hard Worker bundle; the standalone source is hash-bound but excluded from mobile packages."
+    },
+    {
+      "path": "MultiplayerHardResources.js",
+      "source_sha256": "474c61781743a91b78a3edde8f03d7cd23d8dff635fbabd27197a0b4bf2502f5",
+      "classification": "bundle_internal_source",
+      "bundle": "MultiplayerHardAIWorker.bundle.mjs",
+      "packaged": false,
+      "reason": "Compiled into the admitted Hard Worker bundle; the standalone source is hash-bound but excluded from mobile packages."
+    },
+    {
+      "path": "MultiplayerHardRollout.js",
+      "source_sha256": "436096c1aa2147f589808330bd992e91c5d5eb9815b1c96e70a792fee539853a",
+      "classification": "bundle_internal_source",
+      "bundle": "MultiplayerHardAIWorker.bundle.mjs",
+      "packaged": false,
+      "reason": "Compiled into the admitted Hard Worker bundle; the standalone source is hash-bound but excluded from mobile packages."
+    },
+    {
+      "path": "MultiplayerHardRuntime.js",
+      "source_sha256": "252452374945f9dcbb963a8201b83b163dbb8f8218542704aa20541c93f03c43",
+      "classification": "bundle_internal_source",
+      "bundle": "MultiplayerHardAIWorker.bundle.mjs",
+      "packaged": false,
+      "reason": "Compiled into the admitted Hard Worker bundle; the standalone source is hash-bound but excluded from mobile packages."
+    },
+    {
+      "path": "MultiplayerHardValue.js",
+      "source_sha256": "53f1f6f6d515538d73e31393e814b7b2e02c0fde8093d30142c1aaa1222247fb",
+      "classification": "bundle_internal_source",
+      "bundle": "MultiplayerHardAIWorker.bundle.mjs",
+      "packaged": false,
+      "reason": "Compiled into the admitted Hard Worker bundle; the standalone source is hash-bound but excluded from mobile packages."
+    },
+    {
+      "path": "MultiplayerHardWorkerEntry.js",
+      "source_sha256": "18bc32c996ed1933e6aad2889dfee6b0cef46d9c32eb6c1f83f411457dca7688",
+      "classification": "bundle_internal_source",
+      "bundle": "MultiplayerHardAIWorker.bundle.mjs",
+      "packaged": false,
+      "reason": "Compiled into the admitted Hard Worker bundle; the standalone source is hash-bound but excluded from mobile packages."
+    },
+    {
+      "path": "MultiplayerHardWorkerRuntime.js",
+      "source_sha256": "60281b21de9a6c85b9a271b0893b81ad60d5971ccb94585f7005424bba204302",
+      "classification": "bundle_internal_source",
+      "bundle": "MultiplayerHardAIWorker.bundle.mjs",
+      "packaged": false,
+      "reason": "Compiled into the admitted Hard Worker bundle; the standalone source is hash-bound but excluded from mobile packages."
+    }
+  ]
+}

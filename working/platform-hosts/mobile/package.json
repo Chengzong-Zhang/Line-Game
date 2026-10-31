@@ -1,0 +1,49 @@
+{
+  "name": "lifeline-mobile",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "sync:release-identity": "node tools/release-identity.mjs",
+    "verify:release-identity": "node tools/release-identity.mjs --check",
+    "verify:release-readiness": "node tests/verify-release-readiness.mjs",
+    "prepare:harmony-release-signing": "node tools/prepare-harmony-release-signing.mjs",
+    "release:preflight": "node tools/mobile-release-preflight.mjs",
+    "build:web": "node tools/build-web.mjs",
+    "sync:web-manifests": "node tools/update-current-web-sync-manifests.mjs --runtime-version 20261024-l34a1 --sync-release-id web-current-sync-20261024-r16 --sync-asset-version 20261024-current16",
+    "build:bridge": "vite build --config vite.config.mjs",
+    "build": "node tools/build-mobile.mjs",
+    "verify:android-host": "node tools/verify-android-host.mjs",
+    "verify:android-replay-import": "node tools/verify-android-replay-import.mjs",
+    "verify:harmony-tutorial-native": "node tests/verify-harmony-tutorial-native.mjs",
+    "verify:live-web-runtime-delta-r16": "node tests/verify-live-web-runtime-delta-r16.mjs",
+    "verify": "node tools/release-identity.mjs --check && node tests/verify-release-readiness.mjs && node tests/verify-harmony-release-build-entry.mjs && node tests/verify-runtime-config.mjs && node tests/verify-current-web-sync-closure.mjs && npm run verify:live-web-runtime-delta-r16 && node tests/verify-local-ai-worker-route.mjs && node tests/verify-multiplayer-native-geometry.mjs && node tests/verify-tutorial-host.mjs && npm run verify:harmony-tutorial-native && node tests/verify-mobile-build.mjs && node tests/verify-l27f-ultimate-admission.mjs && node tests/verify-toolchain-dependencies.mjs && node tests/verify-capability-contract.mjs && node tests/verify-replay-import-client.mjs && npm run verify:android-host && node --experimental-vm-modules tests/verify-credential-authority.mjs && node --experimental-vm-modules tests/verify-mobile-credential-app.mjs && node tests/verify-harmony-credential-store.mjs && node tests/verify-move-haptics.mjs && node tests/verify-network-status.mjs && node tests/verify-harmony-network-monitor.mjs && node tests/verify-native-platform-flush.mjs && node tests/verify-harmony-native-bridge.mjs && node tests/verify-harmony-host-lifecycle.mjs && node tests/verify-harmony-host-recovery.mjs && node tests/verify-harmony-external-navigation.mjs && node --experimental-vm-modules tests/verify-mobile-back-integration.mjs && node --experimental-vm-modules tests/verify-mobile-entry-routing.mjs && node --experimental-vm-modules tests/verify-session-integration.mjs && node tests/verify-contribution-consent.mjs && node ../web/web前端/tests/verify-guide-content.mjs && node ../web/web前端/tests/verify-online-bot-ui.mjs && node ../web/web前端/tests/verify-board-input.mjs && node ../web/web前端/tests/verify-model-free-ai-integrity.mjs && node ../web/web前端/tests/verify-territory-v3.mjs && node ../web/web前端/tests/verify-territory-pool.mjs && node ../web/web前端/tests/verify-local-runtime-loaders.mjs && node ../web/web前端/tests/verify-replay-codec.mjs && node ../web/web前端/tests/verify-ai-control-flow.mjs && node ../web/web前端/tests/verify-ai-search-15.mjs && node ../web/web前端/tests/verify-minimax-defense.mjs && node ../web/web前端/tests/verify-minimax-defense-invariants.mjs",
+    "cap:sync": "cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/filesystem": "8.1.4",
+    "@capacitor/share": "8.0.3",
+    "@fontsource/cormorant-garamond": "5.3.0",
+    "@fontsource/manrope": "5.3.0",
+    "mathjax": "3.2.2",
+    "vue": "3.5.44"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.3",
+    "typescript": "5.8.3",
+    "vite": "8.3.4"
+  },
+  "overrides": {
+    "@capacitor/cli@8.5.3": {
+      "xcode@3.0.1": {
+        "uuid": "11.1.1"
+      }
+    }
+  }
+}

@@ -1,0 +1,142 @@
+{
+  "schema": "lifeline-platform-host-snapshot-v1",
+  "origin_commit": "ce3c79ab4faf31f159fa8f66903638484b2f9ed6",
+  "origin_worktree_status": "direct git status was denied; file-level object comparison below",
+  "excluded": [
+    "node_modules",
+    "dist",
+    "renderer",
+    "release",
+    "local artifacts",
+    "keys",
+    "models"
+  ],
+  "files": [
+    {
+      "path": "itch/config/release.json",
+      "bytes": 647,
+      "sha256": "0c19fc49969761c37175367f55ca5867dee77bccfd442008bb2dd998c774d96e",
+      "git_status": "exact",
+      "origin_blob": "8fb2b85814da257cfa6216cc527af2295f30d932"
+    },
+    {
+      "path": "itch/package-lock.json",
+      "bytes": 12547,
+      "sha256": "55fbb9fe7cee8de2736088879a4de51848cf6df43ceddcf0f2034deeb166773b",
+      "git_status": "exact",
+      "origin_blob": "e2704f38412ec404884486b6b4027228620f972e"
+    },
+    {
+      "path": "itch/package.json",
+      "bytes": 1056,
+      "sha256": "f15bb00f6d11182ec0bce32b588f78917dfcfb4739c8b07740400f5bd8f8ba69",
+      "git_status": "exact",
+      "origin_blob": "a57a27b058bbbc772ba7aef04c582872762e6dcd"
+    },
+    {
+      "path": "itch/README.md",
+      "bytes": 3492,
+      "sha256": "d4b2325d0526878e9bdeb85446d9d97603c45aa13ff593809dc7e4e927fe4a4b",
+      "git_status": "exact",
+      "origin_blob": "9116399695840e27fa3ed82a5e347cd37585a58c"
+    },
+    {
+      "path": "itch/tests/iframe-harness.html",
+      "bytes": 607,
+      "sha256": "b59cfd66c9bd541eec74faaa8435472342b8b7e459ec70984ec4a4e999772bd5",
+      "git_status": "exact",
+      "origin_blob": "3f8646bc9f8e3a1ec8132d0f450dac1f02884d8b"
+    },
+    {
+      "path": "itch/tests/storage-denied-harness.html",
+      "bytes": 595,
+      "sha256": "d3179b723a320f3a4df43724775abe9a037e7ab565af0fce2061ea909cf8624d",
+      "git_status": "exact",
+      "origin_blob": "1b3c318b0b92dafc7f7fa800bdaaff11c8f80930"
+    },
+    {
+      "path": "itch/tests/verify-browser.mjs",
+      "bytes": 22469,
+      "sha256": "8454534a0741ea9385390ebe233860dae3c27dad414359f78c32e7fb6a97c594",
+      "git_status": "exact",
+      "origin_blob": "2392bbe6185ef03470bf247b12da57f64a90631d"
+    },
+    {
+      "path": "itch/tests/verify-deterministic-build.mjs",
+      "bytes": 1360,
+      "sha256": "a3faacbf9d47e9b327d386f2e4529d6d51286f0506c70dee0a15924bd2c06e94",
+      "git_status": "exact",
+      "origin_blob": "c2b6c6b0d70e942a0a557989f732cdd6ca52feb0"
+    },
+    {
+      "path": "itch/tests/verify-html5-build.mjs",
+      "bytes": 6079,
+      "sha256": "966124b408565fa3d3bb80a55e5b60be4283f36693ef1fe46530ac012c86a71d",
+      "git_status": "exact",
+      "origin_blob": "3f9356f093bf4dc084b54366f2169da78917780b"
+    },
+    {
+      "path": "itch/tests/verify-model-assets.mjs",
+      "bytes": 3749,
+      "sha256": "6068820867af431fe7013b1ea4e752fd144c099e54f9dc9fb95fb2ca421d00c8",
+      "git_status": "exact",
+      "origin_blob": "ac715ef09a0a94720d3464d9e062d510a8e032dc"
+    },
+    {
+      "path": "itch/tests/verify-multiplayer-browser.mjs",
+      "bytes": 4106,
+      "sha256": "fa6d315ebefeac7a0c4478c508da039850c9c9093a0f6bcff20863262edb3a1b",
+      "git_status": "exact",
+      "origin_blob": "548a7252d31fbc281c2ab98241cda6f29ea74de0"
+    },
+    {
+      "path": "itch/tools/build-html5.mjs",
+      "bytes": 12166,
+      "sha256": "e85c5ed8173cf116967135345a7caf894b8209d4e6446be0bacb4d3d63a18da3",
+      "git_status": "exact",
+      "origin_blob": "ec36e84f6c6e399fb726d1af96afb7046cb3a163"
+    },
+    {
+      "path": "itch/tools/model-assets.mjs",
+      "bytes": 11488,
+      "sha256": "5666383a0e2fcdc3aca4afff0e92ed6fbdb42ff1080fbb73d4b53670cad09512",
+      "git_status": "exact",
+      "origin_blob": "8d26593abf08e89b8057803c2f7c0bab4d829bf6"
+    },
+    {
+      "path": "itch/tools/multiplayer-browser-fixtures.mjs",
+      "bytes": 1317,
+      "sha256": "25577a2f5f3fa8476cfde3b24f27709a6318ff035e1bb306eb33d23f9b6e8b92",
+      "git_status": "exact",
+      "origin_blob": "1de157d8ec56d6ad08776763a1ed00b5b50b3e8a"
+    },
+    {
+      "path": "itch/tools/push-butler.mjs",
+      "bytes": 1442,
+      "sha256": "753e8612bfb72869147d3706d284d2a49e2446f1fb1a08fb2357606f388e7edb",
+      "git_status": "exact",
+      "origin_blob": "579f14d523f47a16714c87b43369ce020193ad9d"
+    },
+    {
+      "path": "itch/tools/release-source.mjs",
+      "bytes": 2712,
+      "sha256": "f28f938318d3f2c9cefd68e779727e9795d8b508e761f60acaaf62ea5d6bf9cf",
+      "git_status": "exact",
+      "origin_blob": "e010a4296ee5c6be154193ff89723f8a6bc38eb6"
+    },
+    {
+      "path": "itch/tools/serve-runtime-validation.mjs",
+      "bytes": 3382,
+      "sha256": "d9e9405590dcfe7e7a37a043b299b27b0ccc8a7d0f1c74bffbab1822b4a98d8b",
+      "git_status": "exact",
+      "origin_blob": "86e669b72a9146987230a6849f60873b00105a27"
+    },
+    {
+      "path": "itch/tools/serve-validation.mjs",
+      "bytes": 2819,
+      "sha256": "246b4c9330065f90ad5f67f448dc37f107f70d4ec05ebf2f697da21e61c20408",
+      "git_status": "exact",
+      "origin_blob": "3bd1fbedddf34e61292ecc68d7f21151329ae914"
+    }
+  ]
+}

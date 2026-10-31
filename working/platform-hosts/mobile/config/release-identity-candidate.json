@@ -1,0 +1,22 @@
+{
+  "schema": "lifeline-mobile-release-identity-candidate-v1",
+  "status": "DEVELOPMENT_CANDIDATE_NOT_FROZEN",
+  "displayName": "生命线",
+  "android": {
+    "applicationId": "cn.lifelinegame.mobile",
+    "namespace": "cn.lifelinegame.mobile",
+    "capacitorAppId": "cn.lifelinegame.mobile",
+    "urlScheme": "cn.lifelinegame.mobile",
+    "versionCode": 2,
+    "versionName": "1.0.1"
+  },
+  "harmony": {
+    "bundleName": "cn.lifelinegame.mobile.harmony",
+    "versionCode": 2,
+    "versionName": "1.0.1"
+  },
+  "releaseCertificateFingerprints": {
+    "androidSha256": null,
+    "harmonyCertChainSha256": null
+  }
+}

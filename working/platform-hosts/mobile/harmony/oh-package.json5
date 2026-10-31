@@ -1,0 +1,9 @@
+{
+  "modelVersion": "5.0.0",
+  "description": "Native HarmonyOS host for LIFELINE",
+  "dependencies": {},
+  "devDependencies": {
+    "@ohos/hvigor": "5.8.9",
+    "@ohos/hvigor-ohos-plugin": "5.8.9"
+  }
+}

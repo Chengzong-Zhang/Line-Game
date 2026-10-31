@@ -1,0 +1,379 @@
+{
+  "schema": "lifeline-mobile-live-runtime-delta-baseline-v1",
+  "reviewed_at": "2026-10-23T18:35:49.612Z",
+  "accepted_checkpoint": "L30-A/R13",
+  "sync_release_id": "web-current-sync-20261024-r13",
+  "runtime_asset_version": "20261024-l30a1",
+  "sync_manifest_sha256": "d74a988b0b6775529ccb5c9fd41e7fa2ae2fd0943ee859e4151d7c305f35b019",
+  "runtime_manifest_sha256": "11ff2003fdb57d8680919ee08964e9095f0e592a395be0400c076333cc187207",
+  "source_snapshot": {
+    "branch": "codex/ai-improvement-recovery-20261021",
+    "head": "f1c2c9572a73937c5075befa3225f77947cdbcde",
+    "workspace_dirty": true,
+    "file_count": 433,
+    "byte_count": 24965279,
+    "inventory_sha256": "c746d2173a92c5729490d779f4d09c9794c32c860567cbae33e8ebb7f9e24996"
+  },
+  "mobile_snapshot": {
+    "branch": "codex/android-harmonyos-mobile",
+    "head": "85118585549167f38668f7321885441c1f579251",
+    "workspace_dirty": true,
+    "file_count": 185,
+    "byte_count": 21978657,
+    "inventory_sha256": "8e937f0f8d6765e2f34a8d3f10888ab29c67d0294b60aa7652258102f6b45706"
+  },
+  "post_r13_audit": {
+    "path": "docs/verification/mobile-current-web-post-r13-delta-audit-20261024.json",
+    "sha256": "5aeb6a372499fb0df3098e63e572d336a1f99ec359e9a0de8f5227c6df87729f"
+  },
+  "reviewed_runtime_differences": [
+    {
+      "path": "AIEngine.js",
+      "source_sha256": "e4305b1fa918482863995cd7c235daf610faa25dfc23e073746ffb27fc508380",
+      "mobile_sha256": "49435dc28a1bcc78d25d1387d0abffbcd558093c3830f2f9dd934965fada81c5",
+      "classification": "cache_query_only"
+    },
+    {
+      "path": "AIWorker.js",
+      "source_sha256": "b6e8aea8a805fa01d793f545cccb62c6e4ccdb52982fa60702f0c5dc5e267f26",
+      "mobile_sha256": "408efd98c9e19750422a0f85579cf4a64fe1f0c2f69b16a7e9f69e2043c15ab9",
+      "classification": "reviewed_semantic_adaptation"
+    },
+    {
+      "path": "assets/research-ai/manifest.json",
+      "source_sha256": "e8908ce0d22b54fb31d3bdac5c97eb88b3aa6e3068a7599a7c8be517f3b42250",
+      "mobile_sha256": "4b1f6923323f1c2c45cbe9a4c8a081ee6ae0b777ec39ec7d2152b77c9af78a0f",
+      "classification": "reviewed_semantic_adaptation"
+    },
+    {
+      "path": "GameController.js",
+      "source_sha256": "914a0898c7f5b590407e09d395f25b1999c36fd6a2c5edbaab879ac6742a22e5",
+      "mobile_sha256": "caf6a4b6ad9e414515ec3f3eb9a04b91c087e92531ef4314c2e1f825fd86a3ab",
+      "classification": "reviewed_semantic_adaptation"
+    },
+    {
+      "path": "HexFastSearchAI.js",
+      "source_sha256": "273e0dc306a9da281a72c096f6a9cc1026f5c2e2578363c89b17c5bf91e9ad0f",
+      "mobile_sha256": "258b1a684a86c0d232413ccd659375e6e6af702cd07f1429fcf74054cd01e9eb",
+      "classification": "reviewed_semantic_adaptation"
+    },
+    {
+      "path": "HexPlayerAI.js",
+      "source_sha256": "aba9a85be49a897841340b8df3d0e5d8edb70abd551ed0f1fee66c93214b8269",
+      "mobile_sha256": "b260b98ee2e399837ab85644be6eccddf86f7b023a0b31efb692ce0401b4a983",
+      "classification": "reviewed_semantic_adaptation"
+    },
+    {
+      "path": "HexPlayerRuntime.js",
+      "source_sha256": "84a9a3e895351bc6e51ca4b8ec3b7cea1ff566768c79b85604e9b57f4402064f",
+      "mobile_sha256": "a8ff65160b153b18aea599464be3dd4b7351437526cdf4aa5d83d12d22166a36",
+      "classification": "reviewed_semantic_adaptation"
+    },
+    {
+      "path": "HintWorkerSession.js",
+      "source_sha256": "42d380e7e748006bb401b82088b649d43c32af611174292b22e81eec34c30515",
+      "mobile_sha256": "7131f0c05fe267ab4d4645c807948891574c7468869c6212f6c3d853390ab83d",
+      "classification": "cache_query_only"
+    },
+    {
+      "path": "LocalAIModes.js",
+      "source_sha256": "52ecf53c4aa958eb5e9188faedb35728947fb18a8f2431d81869ff2edd0c2bd8",
+      "mobile_sha256": "3d54650eb70d97faebd78f5b5e0962009aaa1ff6aae6c77f3705767c6ef72b25",
+      "classification": "cache_query_only"
+    },
+    {
+      "path": "LocalGameSession.js",
+      "source_sha256": "4968d215771a3cfe71cfd230e0dc3108faf40c56d2705231c0501440f55a12f0",
+      "mobile_sha256": "414ba0842e28fe0b9912b9a783717c49086b1c366d553367ca3feb58dc1900a9",
+      "classification": "reviewed_semantic_adaptation"
+    },
+    {
+      "path": "LocalPlayerSetup.js",
+      "source_sha256": "4d59e4fb0e646c359689a85ac528288eba747dcde8c505990c9564dfc5e252a6",
+      "mobile_sha256": "063b5effec2191f75f07490b3096f5b81a42dd3a2e7e72fff0fc0bf3aa4ab762",
+      "classification": "cache_query_only"
+    },
+    {
+      "path": "LocalUndo.js",
+      "source_sha256": "8844fce34d440128e0e57982b0903cfe85ddacce62fd4a353aae3f39be7528c7",
+      "mobile_sha256": "a138a1736086d8aa0da9efa545be73e247dce973d3dcdbbe5c12adebb2347074",
+      "classification": "cache_query_only"
+    },
+    {
+      "path": "main.js",
+      "source_sha256": "3a727fd05628da452d7fc4251c328d6dea754a279296e1058f7a167754621f98",
+      "mobile_sha256": "07805b8f8dcb2440be87b0b6ee496d7aee3ec79ce81b71961393aa8430fbcfea",
+      "classification": "reviewed_semantic_adaptation"
+    },
+    {
+      "path": "ModelFreeAI.js",
+      "source_sha256": "f17771f1af1b94ad637b61407e81af485f0c53b0137551a1eaf8a57d0eca01be",
+      "mobile_sha256": "4dd7da9800a716b72b4bd7d73f64e6921c8408679a41af515112bb075643a534",
+      "classification": "reviewed_semantic_adaptation"
+    },
+    {
+      "path": "MultiplayerAIWarmup.js",
+      "source_sha256": "c329a6b5193be79945d058ec4a359439d78df60cd6c46a14c347ee960a89adca",
+      "mobile_sha256": "b8269985ef646741ed236bfb22f8011518eac6919281c372353b3e75a98752fe",
+      "classification": "reviewed_semantic_adaptation"
+    },
+    {
+      "path": "MultiplayerRuntime.js",
+      "source_sha256": "2553f623db9937e56daab95c18be1d24e3784c5a775c5543d41fe0c0a4eb9b40",
+      "mobile_sha256": "3a88be02d39d2187279ba8e235e41073dd770f2ceb992886553670a312059e9d",
+      "classification": "reviewed_semantic_adaptation"
+    },
+    {
+      "path": "NetworkManager.js",
+      "source_sha256": "41e83397247d144b00822318d879701b5c609984d5742f25cb8498df3dec198b",
+      "mobile_sha256": "be6b05880a1006a3862d9197706164012a6f470b1e20f18fa89c13bb86b4f27e",
+      "classification": "reviewed_semantic_adaptation"
+    },
+    {
+      "path": "OnlineApp.js",
+      "source_sha256": "89e0f72212d3fe3c451e04995b59206e3d09c42dc4a9a9a1733f4c1ee61110ca",
+      "mobile_sha256": "9ed62460410d0f5ebd739b40be035813fbbc293312563e06052abc49d9502500",
+      "classification": "reviewed_semantic_adaptation"
+    },
+    {
+      "path": "OnlineAppI18n.js",
+      "source_sha256": "92f775c0e128d9131e92827a26735ec9db945cc63783c734bca860883d3d92ef",
+      "mobile_sha256": "b9bb06466da53758809822ac2d70f6c981e228767bb1671413ead5d03de4335e",
+      "classification": "reviewed_semantic_adaptation"
+    },
+    {
+      "path": "OnlineAppState.js",
+      "source_sha256": "2a39c642d89c0a07ee762c7e4bf6cdeacdc89c02532edf687ad21107d2a99c63",
+      "mobile_sha256": "46f6d38f8ce09d08e4d173da56ca9bc161273eb943a006ba8184867359cb5461",
+      "classification": "reviewed_semantic_adaptation"
+    },
+    {
+      "path": "OnlineRoomSync.js",
+      "source_sha256": "9164783f2626e9be9cecb115cae3828e7d0a2652849cf256342a0af6d169ae8c",
+      "mobile_sha256": "c91dfb7ed07a3e23135f35ddfb1db0d15538628b0da80e5342b6a20bf063d64e",
+      "classification": "reviewed_semantic_adaptation"
+    },
+    {
+      "path": "Renderer.js",
+      "source_sha256": "c318d960b5562840c16da0bdcadbd854a5f8b80860c93e2f2e89ca313f176048",
+      "mobile_sha256": "92f63c34d367aec9ae726d054c3b5b26e6e1d144ce354d062ebbb6a7e72271ef",
+      "classification": "cache_query_only"
+    },
+    {
+      "path": "ReplayCodec.js",
+      "source_sha256": "b294ddb3b4826ebdee044490ae9e9c1e8ce1d7e8411e8072df0c93c070f2aa00",
+      "mobile_sha256": "14be4868a9590ab75326e29060389caac261f96165bf6722e2f93ba09d21d483",
+      "classification": "reviewed_semantic_adaptation"
+    },
+    {
+      "path": "ResearchAI.js",
+      "source_sha256": "d7af7db4d05ea55f3385b2509225e0b8955a0aef87a2405687f03193a916d6bc",
+      "mobile_sha256": "685c62ec2b9e859d2a6db4ec396eb912e89d8f4238b8ea7ef1f70e3ad81da8ad",
+      "classification": "reviewed_semantic_adaptation"
+    },
+    {
+      "path": "StartingPoints.js",
+      "source_sha256": "7b09547988a75cbccda06fbd554af8aaa18957f9b3029d772106894e4921894d",
+      "mobile_sha256": "f4aecb197e632be9251a41263ebd9ad5bce8b3693b6292b93a0e3b8844ddb678",
+      "classification": "cache_query_only"
+    },
+    {
+      "path": "StartingPointSetup.js",
+      "source_sha256": "36f8fa51286e2dd865862d7751f2d338d1b0cccc4a2aac9d10adfca428e2b1a6",
+      "mobile_sha256": "0f87a4968ac466ef41237ef0598ceb53e34506f0e01c89d2c8d30e975f93720a",
+      "classification": "cache_query_only"
+    },
+    {
+      "path": "TerritoryWorker.js",
+      "source_sha256": "aa41002ca435f0e8e6bf0467f1562402ccd9bc10f967d551f2d66b1c2f81f2ff",
+      "mobile_sha256": "60db3b5c7de8c5f00681322b4febe57564a73ad37ab95440b6a56cb116ef782b",
+      "classification": "cache_query_only"
+    },
+    {
+      "path": "TerritoryWorkerPool.js",
+      "source_sha256": "cd845530d2e44715089dff43c94b01895a7f699ed91e4f15ce16ff1dafc81be2",
+      "mobile_sha256": "51257525de0ff913f6b7db724f184b4be84413bdba41c25cafcb62a9c72871c9",
+      "classification": "cache_query_only"
+    },
+    {
+      "path": "TerritoryWorkerSession.js",
+      "source_sha256": "b1df4de597ee0f4d99ea08a961a0d70f6d1a34028c4aeeaf15493c73376f4cf8",
+      "mobile_sha256": "b01685a5489485b814fd87c3a8d08493cc5cbfa696123a266b0b47c6ec9232a6",
+      "classification": "cache_query_only"
+    },
+    {
+      "path": "ThreePlayerAI.js",
+      "source_sha256": "200c456a8e94198ce09dfa165af0f747960852ab7861a6e70ef8e01d77503a39",
+      "mobile_sha256": "48fdafad1d78bcc943a98b61335ae474c4c4491005b85f39f700e8ea82d6bf31",
+      "classification": "reviewed_semantic_adaptation"
+    },
+    {
+      "path": "ThreePlayerModels.js",
+      "source_sha256": "a8550793e8be9e58831f79f22af718c933ea99e1f7420b18053fe4d3a66ac3ca",
+      "mobile_sha256": "55e9285e775c1b3b1fdd0c34b1519e6deaae0a4676e741ed77833d1d1403005f",
+      "classification": "reviewed_semantic_adaptation"
+    },
+    {
+      "path": "ThreePlayerRuntime.js",
+      "source_sha256": "9308d4cd4c0cbef3f656b36cf4af9df54961b74cd6166a53d3b59fdde85f49d8",
+      "mobile_sha256": "90f041a90e023ee8c1f4b5f725ca0f515f548e2aa6f66811ec85a8eaba70914a",
+      "classification": "reviewed_semantic_adaptation"
+    },
+    {
+      "path": "TrainingContribution.js",
+      "source_sha256": "dfe81a35cc3db3610712ef6c9faf8940477f3adc30727f33f6c3ec3f2b4c7c74",
+      "mobile_sha256": "c5fd155035944847f1658664d3d949e7558306526d9085076bb874160648b249",
+      "classification": "reviewed_semantic_adaptation"
+    }
+  ],
+  "mobile_only_runtime": [
+    {
+      "path": "OnlineActionSync.js",
+      "sha256": "b5e03109d38019a8be29a834ce562007ea6d42280005962c295564f9f12b2dcb",
+      "reason": "Mobile-only authoritative action synchronization."
+    },
+    {
+      "path": "OnlineActionSyncCoordinator.js",
+      "sha256": "1bb62ffed43c28ddaecb984db6a90ba4f08b3aed255952cee41df5a91851c346",
+      "reason": "Mobile-only action ordering and recovery coordinator."
+    },
+    {
+      "path": "platform/runtime.js",
+      "sha256": "cc8592897ce576ee3cf3ecb72e081d9dbb8fd54214596d4abbe72e20c8865edb",
+      "reason": "Generated mobile runtime configuration access."
+    },
+    {
+      "path": "platform/TutorialHost.js",
+      "sha256": "e66cd1bd948324752f78782155a2e69098d50a8f1c88fdde8afa502bdd86afa7",
+      "reason": "Mobile-only native tutorial host integration."
+    }
+  ],
+  "excluded_hard": [
+    {
+      "path": "LocalAIWorkerFactory.js",
+      "sha256": "98c457341db112223bf6262748cf2070163dc69c0ed3b157fe3ff82200c935e2",
+      "product_admitted": false,
+      "reason": "Unqualified Hard runtime remains outside the accepted mobile product."
+    },
+    {
+      "path": "MultiplayerHardAIWorker.bundle.manifest.json",
+      "sha256": "65451533e0bedd23f5f1df5fc67fff4a5f99f0b116635befec9c2c4ce6895589",
+      "product_admitted": false,
+      "reason": "Unqualified Hard runtime remains outside the accepted mobile product."
+    },
+    {
+      "path": "MultiplayerHardAIWorker.bundle.mjs",
+      "sha256": "bea2a7c9587a8697e71a981a4e5f3cb92ff7bd92d8ad107b845ba6ba004e6911",
+      "product_admitted": false,
+      "reason": "Unqualified Hard runtime remains outside the accepted mobile product."
+    },
+    {
+      "path": "MultiplayerHardFallback.js",
+      "sha256": "0df510a7455f94c64d1d77db61b0acc31e14fefea661e83b2eb1c3e47e46a753",
+      "product_admitted": false,
+      "reason": "Unqualified Hard runtime remains outside the accepted mobile product."
+    },
+    {
+      "path": "MultiplayerHardResources.js",
+      "sha256": "474c61781743a91b78a3edde8f03d7cd23d8dff635fbabd27197a0b4bf2502f5",
+      "product_admitted": false,
+      "reason": "Unqualified Hard runtime remains outside the accepted mobile product."
+    },
+    {
+      "path": "MultiplayerHardRollout.js",
+      "sha256": "436096c1aa2147f589808330bd992e91c5d5eb9815b1c96e70a792fee539853a",
+      "product_admitted": false,
+      "reason": "Unqualified Hard runtime remains outside the accepted mobile product."
+    },
+    {
+      "path": "MultiplayerHardRuntime.js",
+      "sha256": "252452374945f9dcbb963a8201b83b163dbb8f8218542704aa20541c93f03c43",
+      "product_admitted": false,
+      "reason": "Unqualified Hard runtime remains outside the accepted mobile product."
+    },
+    {
+      "path": "MultiplayerHardValue.js",
+      "sha256": "53f1f6f6d515538d73e31393e814b7b2e02c0fde8093d30142c1aaa1222247fb",
+      "product_admitted": false,
+      "reason": "Unqualified Hard runtime remains outside the accepted mobile product."
+    },
+    {
+      "path": "MultiplayerHardWorkerEntry.js",
+      "sha256": "18bc32c996ed1933e6aad2889dfee6b0cef46d9c32eb6c1f83f411457dca7688",
+      "product_admitted": false,
+      "reason": "Unqualified Hard runtime remains outside the accepted mobile product."
+    },
+    {
+      "path": "MultiplayerHardWorkerRuntime.js",
+      "sha256": "60281b21de9a6c85b9a271b0893b81ad60d5971ccb94585f7005424bba204302",
+      "product_admitted": false,
+      "reason": "Unqualified Hard runtime remains outside the accepted mobile product."
+    }
+  ],
+  "reviewed_mobile_only_tests": [
+    {
+      "path": "tests/verify-local-runtime-loaders.mjs",
+      "sha256": "1046540104eaefc4ef77c8023d7bd5e03af97d45ddab569efdfaeae71af4cad2",
+      "reason": "Focused mobile-side verification of accepted runtime loaders."
+    },
+    {
+      "path": "tests/verify-model-free-ai-integrity.mjs",
+      "sha256": "94ad2f4e1c4aad152bfd8a8f8341e79198d659796c80aa8764d4fd2680134fc3",
+      "reason": "Focused mobile-side verification of accepted model-free AI assets."
+    },
+    {
+      "path": "tests/verify-network-action-protocol.mjs",
+      "sha256": "07cfdae28e21b846418d140f11aab84cc9dfdf591b118f9d19305a86425b16e8",
+      "reason": "Focused mobile-side verification of the accepted network action protocol."
+    },
+    {
+      "path": "tests/verify-network-connect-lifecycle.mjs",
+      "sha256": "84b6d7bbca8b7f8bc834eb9f18f3c4617d5a6601fd4f063bfc095fe203cab59c",
+      "reason": "Focused mobile-side verification of network connection lifecycle behavior."
+    },
+    {
+      "path": "tests/verify-online-action-coordinator.mjs",
+      "sha256": "1e91dbf9e8b1ba2f17b2df986a5f8bc8e6783889aa7e832b07134f758017a4d1",
+      "reason": "Focused mobile-side verification of action coordination."
+    },
+    {
+      "path": "tests/verify-online-action-sync.mjs",
+      "sha256": "5e92529d6adef51162ce9eef9eb327b8f45bb3f4de496baf837ce015a84a8937",
+      "reason": "Focused mobile-side verification of authoritative action synchronization."
+    },
+    {
+      "path": "tests/verify-online-bot-ui.mjs",
+      "sha256": "55963e30b0c0b82f28989ce0b3fda1df883cd81dc563b74049292110fb0783cf",
+      "reason": "Focused mobile-side verification of the online bot user interface."
+    },
+    {
+      "path": "tests/verify-room-reconnect-startup.mjs",
+      "sha256": "3f808dc60353d1c407f90a9c6a3be81b67c4a8cced1b4567cac33c23068e4c4b",
+      "reason": "Focused mobile-side verification of room reconnect startup."
+    },
+    {
+      "path": "tests/verify-training-contribution-v3-boundary.mjs",
+      "sha256": "72fa1252514d462a49ffa350523931c215466cf0413f9f76098f944fdcaae45f",
+      "reason": "Focused mobile-side verification of the training contribution boundary."
+    },
+    {
+      "path": "tests/verify-web-training-candidate.mjs",
+      "sha256": "f46e593bec2a4e2b8ff30b0a8fe79baf82bd22537979acaa5d2df17d91d58150",
+      "reason": "Focused mobile-side verification of Web training candidate policy."
+    }
+  ],
+  "classification_rules": {
+    "temporary_prefixes": [
+      "tests/.test-tmp/"
+    ],
+    "test_prefixes": [
+      "tests/"
+    ],
+    "exact_test_paths": [
+      "smoke-test.html"
+    ],
+    "research_receipt_suffixes": [
+      ".training-receipt.json"
+    ]
+  }
+}

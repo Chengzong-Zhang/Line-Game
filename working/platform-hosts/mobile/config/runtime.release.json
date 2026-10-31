@@ -1,0 +1,6 @@
+{
+  "environment": "release",
+  "apiBaseUrl": "https://lifelinegame.cn",
+  "websocketUrl": "wss://lifelinegame.cn/ws",
+  "trainingContributionUrl": "https://lifelinegame.cn/api/training/contributions"
+}

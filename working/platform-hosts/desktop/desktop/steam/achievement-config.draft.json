@@ -1,0 +1,67 @@
+{
+  "format": "lifeline-steam-achievement-draft",
+  "schemaVersion": 1,
+  "status": "NOT_CONFIGURED_IN_STEAMWORKS",
+  "achievements": [
+    {
+      "apiName": "tutorial-complete",
+      "hidden": false,
+      "displayName": {
+        "schinese": "初识生命线",
+        "english": "First Steps"
+      },
+      "description": {
+        "schinese": "完成新手教学。",
+        "english": "Complete the tutorial."
+      }
+    },
+    {
+      "apiName": "challenge-first",
+      "hidden": false,
+      "displayName": {
+        "schinese": "初试身手",
+        "english": "First Challenge"
+      },
+      "description": {
+        "schinese": "完成 1 个挑战。",
+        "english": "Complete 1 challenge."
+      }
+    },
+    {
+      "apiName": "challenge-6",
+      "hidden": false,
+      "displayName": {
+        "schinese": "战术入门",
+        "english": "Tactical Learner"
+      },
+      "description": {
+        "schinese": "完成 6 个不同挑战。",
+        "english": "Complete 6 distinct challenges."
+      }
+    },
+    {
+      "apiName": "challenge-12",
+      "hidden": false,
+      "displayName": {
+        "schinese": "战术熟手",
+        "english": "Tactical Regular"
+      },
+      "description": {
+        "schinese": "完成 12 个不同挑战。",
+        "english": "Complete 12 distinct challenges."
+      }
+    },
+    {
+      "apiName": "challenge-24",
+      "hidden": false,
+      "displayName": {
+        "schinese": "生命线大师",
+        "english": "Lifeline Master"
+      },
+      "description": {
+        "schinese": "完成全部 24 个不同挑战。",
+        "english": "Complete all 24 distinct challenges."
+      }
+    }
+  ]
+}

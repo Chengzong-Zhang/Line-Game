@@ -1,0 +1,42 @@
+{
+  "schema": "lifeline-text-line-ending-equivalence-v1",
+  "normalization": "UTF-8 decode, convert CRLF and lone CR to LF, then UTF-8 encode",
+  "files": {
+    "web/web前端/assets/research-ai/manifest.json": {
+      "raw_sha256": "e8908ce0d22b54fb31d3bdac5c97eb88b3aa6e3068a7599a7c8be517f3b42250",
+      "normalized_sha256": "a6148b97ffe2175d1f42fbff3f273f29899e4f7587840ff7734a2d04f0af2dfa"
+    },
+    "web/web前端/assets/research-ai/model-free-manifest.json": {
+      "raw_sha256": "0762301fad905a62d1381777f2dd58bfe883d3320faeba94faa09fd19880e83d",
+      "normalized_sha256": "4a2dc25e4d2c1a70823c5f6280355c5af5a0e751ebba96845530cb84d316be6c"
+    },
+    "web/web前端/assets/research-ai/transfer-v1/export-receipt.json": {
+      "raw_sha256": "ed91ae7bbdffb8ec5e3824e5c4865f665d4961168f14e505cc44fdfe5646cd55",
+      "normalized_sha256": "22192615d1d9e07873f0712bd932ddae58bd562400c5cb7aa960007b5f93ca69"
+    },
+    "web/web前端/assets/research-ai/transfer-v1/manifest.json": {
+      "raw_sha256": "847fd30c08a145e202fafe58bcfc5a70ddaf5bf422c74d9efbb2ec35b46ef1c4",
+      "normalized_sha256": "8c46031730fa746e2b1b5f091d5e140384619070fb36013bb650b8d026291e22"
+    },
+    "web/web前端/guide/interesting/Theory-M.tex": {
+      "raw_sha256": "6193dc6bd9a3b61975c05f1e1fcd2f25859876d5c0f3fb8591da5b06a902e7c5",
+      "normalized_sha256": "9703204c5252d3cb7f62ecb7cd89fec034b84c1d542f442f4c451ba19a485565"
+    },
+    "web/web前端/guide/interesting/why this.md": {
+      "raw_sha256": "a2ee3d4660a82e7d06264dc93b93a0bac8970a4a8efcc79d9a163db535c9b29b",
+      "normalized_sha256": "db4310ce3dc1e73baca1d0c73c3689ddd6736e866c4f794ddfa01a70acaa6adc"
+    },
+    "web/web前端/guide/rule/essential rule.md": {
+      "raw_sha256": "781c4486306ca9368cc84a3baedf41a0e40d490d496941762cc6fb4994657a3c",
+      "normalized_sha256": "c7834ace0989c332658b847cdb630899b8114c543effc263396286642dfb3875"
+    },
+    "web/web前端/guide/rule/math rule.md": {
+      "raw_sha256": "72126a2fbf56145ac19c181e0addad6696b445c84a8ee38fa6cfb1a98082e4ea",
+      "normalized_sha256": "82762d97ad367368be52c3a4ae786b213cb4b4252166a887da32c29611c93ddc"
+    },
+    "web/web前端/guide/rule/war rule.md": {
+      "raw_sha256": "b252c467e24d7e703816bf3046ebae946d7ab9be564fdb2afcf2cc014e832c8c",
+      "normalized_sha256": "864dc2e2367a02c1bdb7dc801699e7bc9020df8e1395cd941d012c2099ea8730"
+    }
+  }
+}

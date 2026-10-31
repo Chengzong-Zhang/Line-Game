@@ -1,0 +1,464 @@
+{
+  "schema": "lifeline-platform-host-snapshot-v1",
+  "origin_commit": "a90b23d045b345057809a7417340cdc5d1dfcad5",
+  "origin_worktree_status": "direct git status was denied; file-level object comparison below",
+  "excluded": [
+    "node_modules",
+    "dist",
+    "renderer",
+    "release",
+    "local artifacts",
+    "keys",
+    "models"
+  ],
+  "files": [
+    {
+      "path": "desktop/assets/lifeline.ico",
+      "bytes": 28804,
+      "sha256": "6e0283000811d5b1d3fdf30dbab6218f7c20562a67777c049b03b0190142ba89",
+      "git_status": "exact",
+      "origin_blob": "2365eb926f3852b802588e160e3b347d69d2226d"
+    },
+    {
+      "path": "desktop/assets/lifeline.svg",
+      "bytes": 972,
+      "sha256": "cb5c6ab9def1af45dde91c8a05a96d8aad0779fbfde3fe4e2b0b22e10942f046",
+      "git_status": "exact",
+      "origin_blob": "b4d1f6f13be084cf64f384d12b90478f94aebd93"
+    },
+    {
+      "path": "desktop/legal/dependency-notice-index.json",
+      "bytes": 9974,
+      "sha256": "6d24e2322244d331840e755690b09ded9548f074f457a72ca003d4f2f00f6007",
+      "git_status": "exact",
+      "origin_blob": "bacf60b131cfb65a398b6f1464dacdc384ec3380"
+    },
+    {
+      "path": "desktop/legal/DEPENDENCY_LICENSES.txt",
+      "bytes": 77608,
+      "sha256": "da885cf845202b0355db44eb0d0417ed2c2917acec565a5a71e224b4518fe0a1",
+      "git_status": "exact",
+      "origin_blob": "e734d2f2bce5552ef36a8385899dd118a4b0f439"
+    },
+    {
+      "path": "desktop/legal/THIRD_PARTY_NOTICES.md",
+      "bytes": 1402,
+      "sha256": "515c10cd0a29c960fceaab2c4894e30ae3a6434ad33f38547dd1765c3dc5e3f0",
+      "git_status": "exact",
+      "origin_blob": "56c331b862940562e2baaa9d1bf746ebd1566f05"
+    },
+    {
+      "path": "desktop/legal/upstream/mj-context-menu-LICENSE.txt",
+      "bytes": 11357,
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "git_status": "exact",
+      "origin_blob": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64"
+    },
+    {
+      "path": "desktop/legal/upstream/PROVENANCE.md",
+      "bytes": 892,
+      "sha256": "b5bd135109101593b89c262a45b1ff725725f64d84f159677fc3e42953ca2a37",
+      "git_status": "exact",
+      "origin_blob": "7c377eb707052273fb721f2278d1cd66a891b832"
+    },
+    {
+      "path": "desktop/main.cjs",
+      "bytes": 8042,
+      "sha256": "4dc83aa4ca7d213e2c8b59b022d4d2a8120008222c89a9086e98a1b73e11b6f6",
+      "git_status": "exact",
+      "origin_blob": "a46f9f2daa4cca3fdb1c3829cb5f9f638c15f0d2"
+    },
+    {
+      "path": "desktop/package-metadata.json",
+      "bytes": 371,
+      "sha256": "2a31e52ea3868b1e9ed44ee17f075bf857ec7175d61518c1ea9df89c23f08b21",
+      "git_status": "exact",
+      "origin_blob": "52181232ad34c3d114f8b7e718b1145c8f3b5b09"
+    },
+    {
+      "path": "desktop/preload.cjs",
+      "bytes": 1244,
+      "sha256": "5c92203e32f5821703c842727ccf64f8665c33140fbd23181da92d84daea4b2c",
+      "git_status": "exact",
+      "origin_blob": "6993015e648e6caac858fd9488b1db23842eb7b6"
+    },
+    {
+      "path": "desktop/scripts/assemble-gameplay-trailer.mjs",
+      "bytes": 24789,
+      "sha256": "e15acfe37f4ffcf34ebc79604a9a33fef96e01a93be6fc391c64cbc41ea4379c",
+      "git_status": "exact",
+      "origin_blob": "ca75e623c3d130dc96594bb5469f502502187b0d"
+    },
+    {
+      "path": "desktop/scripts/assemble-release-kit.mjs",
+      "bytes": 7188,
+      "sha256": "64b309d2cb1afcc1efd452c9dfdd5d5f1cf11093a6ec04534131ade20c2d314c",
+      "git_status": "exact",
+      "origin_blob": "a4172e8398b4392182577b5d7e64e2eef9bb116e"
+    },
+    {
+      "path": "desktop/scripts/capture-gameplay.mjs",
+      "bytes": 17069,
+      "sha256": "621e735cbabe7cb757ac91982f6d044c75863b58b27e6c656f0224bff9d2c1b6",
+      "git_status": "exact",
+      "origin_blob": "0d7aa87c4e3fafecd62b96fdd34f6f7b6cc30e52"
+    },
+    {
+      "path": "desktop/scripts/prepare-branding.cjs",
+      "bytes": 6342,
+      "sha256": "744796cad1c264b8441a7ce68d39105c76dec98f16dcd58629ef9a7a8fa5c570",
+      "git_status": "exact",
+      "origin_blob": "dcc4c09d27c04b025b5bdfe2448f97a32e2973ba"
+    },
+    {
+      "path": "desktop/scripts/prepare-legal.mjs",
+      "bytes": 2800,
+      "sha256": "868d4716c768a6591222cb12ddfd4c297f82841243ff5ec492baffc50961cbaa",
+      "git_status": "exact",
+      "origin_blob": "d724e821c32f746030fd805dcc4b36fdeef77007"
+    },
+    {
+      "path": "desktop/scripts/prepare-provenance-review.mjs",
+      "bytes": 4199,
+      "sha256": "141f7ea0f79424f4d35a5536d8db1a09419bffb67ac59e4aabd594f673dccd5e",
+      "git_status": "exact",
+      "origin_blob": "b39fabfe6a9eef4f574ac35db306f0846710759c"
+    },
+    {
+      "path": "desktop/scripts/prepare-release-inventory.mjs",
+      "bytes": 3229,
+      "sha256": "887dff76d2782b20018dccaae825a0cd8b1ee7aba4fc576396ba9ff53a957a6d",
+      "git_status": "exact",
+      "origin_blob": "789949c506ccd42b2bb74caf1bef562ca8210c3b"
+    },
+    {
+      "path": "desktop/scripts/prepare-renderer-assets.mjs",
+      "bytes": 5732,
+      "sha256": "9aa6b0faddd597c07a78b8292750173f0527c5590d2b4eba60e4f4a0a9b4b0e3",
+      "git_status": "exact",
+      "origin_blob": "29797f982a6d081c881374298e31f1e6a5f7e665"
+    },
+    {
+      "path": "desktop/scripts/prepare-validation-kit.mjs",
+      "bytes": 5750,
+      "sha256": "df96287afcc33eaab21c365d22a07d2711a70a1a900f64cb4706763a8c145436",
+      "git_status": "exact",
+      "origin_blob": "f486ccbebdc40ebacc282a94b4d2b7f6aa3509df"
+    },
+    {
+      "path": "desktop/scripts/release-candidate.mjs",
+      "bytes": 4345,
+      "sha256": "1a1954c042324e49c0db81d05f817602c800e38a1a8c693d080be435f13ffaf9",
+      "git_status": "exact",
+      "origin_blob": "d2753e9bc9ff87f12c006a02002d40b5d1350d9a"
+    },
+    {
+      "path": "desktop/scripts/release-lib.mjs",
+      "bytes": 12997,
+      "sha256": "b769f2f8f2ad11ed464bd6558dc5c9fcb6e11c5fc550135ef0faa320e8334c76",
+      "git_status": "exact",
+      "origin_blob": "14357999b61345e4e58f719ad00c552d17285f73"
+    },
+    {
+      "path": "desktop/scripts/snapshot-web-source.mjs",
+      "bytes": 3366,
+      "sha256": "009ee5026e604c39871a3043dcad0e87913878b3d5a9635ded8bfd95863090df",
+      "git_status": "exact",
+      "origin_blob": "7ab671cb5f2d5305459a12043e89423a16df5fb4"
+    },
+    {
+      "path": "desktop/scripts/Test-LifelineCandidate.ps1",
+      "bytes": 16055,
+      "sha256": "4668ff37a00e32a54007f7a07e5fe236a0ca834df3de258a8d8a6f773b7ba4fa",
+      "git_status": "exact",
+      "origin_blob": "9b9d2e1bdd20826afb76bdce5b399ff0db6d3915"
+    },
+    {
+      "path": "desktop/src/achievement-store.cjs",
+      "bytes": 10735,
+      "sha256": "7023656ac2d4f5c460602cc78b9f2427aeff292e6cf88f80be05af3998fea6c4",
+      "git_status": "exact",
+      "origin_blob": "cbd2b81ccfaec4d4a01c6d2df121db078b43b3db"
+    },
+    {
+      "path": "desktop/src/profile-store.cjs",
+      "bytes": 12315,
+      "sha256": "fb7ca7898e9261b2b9f5d0a018861c864f87873a1efc399fde9c9848238775f3",
+      "git_status": "exact",
+      "origin_blob": "930c11e088c2c8a189236cb1b215f03b35b4668d"
+    },
+    {
+      "path": "desktop/src/progress-backup.cjs",
+      "bytes": 8938,
+      "sha256": "012883478fef4d67d0e45b3b3c4a767c88251172f77642c1a771b001846d1c12",
+      "git_status": "exact",
+      "origin_blob": "025853c45f1f9d7c0d92086c8a68c251f7027c01"
+    },
+    {
+      "path": "desktop/src/save-store.cjs",
+      "bytes": 7880,
+      "sha256": "4e4a6e8ceb5ebd9ba8dffd0dfccbf5805d65d45d95cc37d7b430dc1e5729746b",
+      "git_status": "exact",
+      "origin_blob": "998056776f03797c97388ab17409ee62ff14ab68"
+    },
+    {
+      "path": "desktop/src/steam-adapter.cjs",
+      "bytes": 541,
+      "sha256": "cd791006711f838360299fcbbbf1e11536085f1e9427b778a87fb780f49927c0",
+      "git_status": "exact",
+      "origin_blob": "54aead6e1b65e22fca9c785be3396f6012ea5ecb"
+    },
+    {
+      "path": "desktop/steam/achievement-config.draft.json",
+      "bytes": 1680,
+      "sha256": "cb64eb54928c74b1b122ed1b4ccf05a334258ddf7312534a3121a1e3a86d83dd",
+      "git_status": "exact",
+      "origin_blob": "0baf4cf27669336f8aff0255a177002d5d22b331"
+    },
+    {
+      "path": "desktop/steam/cloud-plan.json",
+      "bytes": 919,
+      "sha256": "8e3b2509a4f4668521820ee652acb98221343742660aa242b0cfc1b51a8f6b04",
+      "git_status": "exact",
+      "origin_blob": "336635dfd6fdef002cf14209d7704775e5bfd083"
+    },
+    {
+      "path": "desktop/steam/config.example.json",
+      "bytes": 105,
+      "sha256": "5d4e2e0e2d3903595cd5b4744ae11a26ab23573c60439d977b005a52929eaa16",
+      "git_status": "exact",
+      "origin_blob": "bc0d446ca7a67783b7d71003280abd9077639982"
+    },
+    {
+      "path": "desktop/steam/README.md",
+      "bytes": 7273,
+      "sha256": "54fdd2bbb2e11849f9097b4348c0345baa822cc4f246aca149aa5d4d430448a8",
+      "git_status": "exact",
+      "origin_blob": "9bd4e28b0e6e3f4a883b4370c17f5080979cf937"
+    },
+    {
+      "path": "desktop/tests/achievement-store.test.cjs",
+      "bytes": 9541,
+      "sha256": "ed39f55c2445931b63b117bcac3e1b19b1e863cc43e310777a3cc2e1253bf227",
+      "git_status": "exact",
+      "origin_blob": "64b45e6043f3d7a5ef6044b06992761247f0e998"
+    },
+    {
+      "path": "desktop/tests/assemble-gameplay-trailer.test.mjs",
+      "bytes": 4127,
+      "sha256": "ada73130002816feec4efe5a9cf1d2d53e43f0b1758d51b03ca7dd83118edc81",
+      "git_status": "exact",
+      "origin_blob": "d514240e50962ea24bd52ba5f81262c9942adbe3"
+    },
+    {
+      "path": "desktop/tests/packaged-local-match.mjs",
+      "bytes": 21770,
+      "sha256": "ce5ecb80738a675d9f62d0e9be03a8263f05caf741edaaf30e6aa57459a083ed",
+      "git_status": "exact",
+      "origin_blob": "8114f3769a166eaf8a92756c76b9bf533e93607b"
+    },
+    {
+      "path": "desktop/tests/packaged-offline-smoke.mjs",
+      "bytes": 7008,
+      "sha256": "230e37dbfa2ee6e0c740898dfac4124229b78b79b1cd58aba4f524f6cf6c0d1c",
+      "git_status": "exact",
+      "origin_blob": "f40464a6f373c080d9f054fd6d5fc99189265250"
+    },
+    {
+      "path": "desktop/tests/parent-achievements-ui.mjs",
+      "bytes": 12506,
+      "sha256": "5b5201059629225beb2e5083d81140b70b71e41c88b4944c65e38e9e214a415e",
+      "git_status": "exact",
+      "origin_blob": "be97ac843fe9c7bb8db5949044d4544a8389710c"
+    },
+    {
+      "path": "desktop/tests/parent-ai-budget-ui.mjs",
+      "bytes": 9412,
+      "sha256": "d50f7bc88fd012fa86c00596b974e6f0e409f22ab76dfa64d7762cfc2f61d595",
+      "git_status": "exact",
+      "origin_blob": "69a12b098ba034ec6b0add3b7d5209fa7e452af6"
+    },
+    {
+      "path": "desktop/tests/parent-campaign-content.mjs",
+      "bytes": 7213,
+      "sha256": "6487e286bfc1ec67bdd9c30ad1add2e96a91e72aeacee42e06451bd1424a52f2",
+      "git_status": "exact",
+      "origin_blob": "239fc9667571f9ca287964f34be2a4eb44b256f7"
+    },
+    {
+      "path": "desktop/tests/parent-challenge-ui.mjs",
+      "bytes": 18304,
+      "sha256": "12d92c0b8e0860673e900a28ef9ab72d88d051fe777ab418f05ad9a288f9f868",
+      "git_status": "exact",
+      "origin_blob": "5426496add728493f43fafd3420c78bf0d5750ac"
+    },
+    {
+      "path": "desktop/tests/parent-desktop-ux.mjs",
+      "bytes": 16941,
+      "sha256": "0e1ebedb1f226209898f7a97f54991e7f9d3c609dc45cccf4627f0e6b4210a64",
+      "git_status": "exact",
+      "origin_blob": "f1b3debc5a668e1b96498af127be906631866598"
+    },
+    {
+      "path": "desktop/tests/parent-final-suite.mjs",
+      "bytes": 2855,
+      "sha256": "3408f0a02a389e296574719144e8091941c50d609ca73bab7d80bf37825cd8cf",
+      "git_status": "exact",
+      "origin_blob": "bc7e54284a70394160153aca1026a6dd6a8b7212"
+    },
+    {
+      "path": "desktop/tests/parent-game-feedback.mjs",
+      "bytes": 9384,
+      "sha256": "c85698e18c07880fef2af77ce50f185607ba8693c6b46bee00b7fdcad0325a1d",
+      "git_status": "exact",
+      "origin_blob": "b4bc73428f1552cfaa01568325132bb4a669fbcb"
+    },
+    {
+      "path": "desktop/tests/parent-gameplay-media.mjs",
+      "bytes": 8040,
+      "sha256": "b52126d24fd103146a0e4cef2d6eab6da08ab570d00111d4df08a5439c27ece7",
+      "git_status": "exact",
+      "origin_blob": "b8995440df34e641ef0350b14d9abc44b8e5587e"
+    },
+    {
+      "path": "desktop/tests/parent-guide-ui.mjs",
+      "bytes": 4561,
+      "sha256": "28cedae17dc74834e6f94667ac902b191329eff4376e649707200b29220507c8",
+      "git_status": "exact",
+      "origin_blob": "cef9b2d8cc2198337138f4025f73f2f5895ebdd5"
+    },
+    {
+      "path": "desktop/tests/parent-multiplayer-policy-sync.mjs",
+      "bytes": 8079,
+      "sha256": "77f22e059ba25c3dcdc3581502523ccbd55898b7e85855ef733327cf993a31a5",
+      "git_status": "exact",
+      "origin_blob": "2259b930bb29020e9577ca4cf5273eb3f15553f7"
+    },
+    {
+      "path": "desktop/tests/parent-profile-boundaries.mjs",
+      "bytes": 13128,
+      "sha256": "34e9273c33e556ecd0475a10e66bc9c9094c4a339401903bce1b963427eaa8c3",
+      "git_status": "exact",
+      "origin_blob": "58818cd5611ccd47d05d737e5f384e1603cdcdb5"
+    },
+    {
+      "path": "desktop/tests/parent-progress-transfer.mjs",
+      "bytes": 14002,
+      "sha256": "94aebeed5fa472f19ca4173cfc5a387fc64f8dd38700de20334a018bac63408b",
+      "git_status": "exact",
+      "origin_blob": "6be2315784799c0c4ecd05b7127921bd02f7d746"
+    },
+    {
+      "path": "desktop/tests/parent-save-boundaries.mjs",
+      "bytes": 12386,
+      "sha256": "16c218c6fad489dfec41882957961ffce2efc129868214b0aa43c349597319d1",
+      "git_status": "exact",
+      "origin_blob": "bc0e01bc762f1ec97d4f255c35371e8f867ae7af"
+    },
+    {
+      "path": "desktop/tests/parent-tutorial-ui.mjs",
+      "bytes": 6533,
+      "sha256": "b3fc199b12d14c8b43b51311dee0eac7bdde8356190cd13ac39843b51fb877cd",
+      "git_status": "exact",
+      "origin_blob": "0bffd7b8435bb8cd92151bc786de614468728216"
+    },
+    {
+      "path": "desktop/tests/parent-web-sync.mjs",
+      "bytes": 28375,
+      "sha256": "ed66ca7b630f630f08f477ff6920db1447af933116545ac16f46036e085713a6",
+      "git_status": "exact",
+      "origin_blob": "27feb850afe1540d7b4813f7d95e0d9b85669cc0"
+    },
+    {
+      "path": "desktop/tests/prepare-renderer-assets.test.mjs",
+      "bytes": 3740,
+      "sha256": "7598ddf741287aa2997e795e04eb9e51edc12b98128d3068e1fa01f78651eccd",
+      "git_status": "exact",
+      "origin_blob": "3fd9b1e2603a81667d63d206431bc0a6a632093a"
+    },
+    {
+      "path": "desktop/tests/profile-read-notice.test.mjs",
+      "bytes": 3642,
+      "sha256": "d65b5c50048818f4c8ec53e943305b2cc0a3e1dfa21f801b07336f91e8f1bbdd",
+      "git_status": "exact",
+      "origin_blob": "5744d8eb8909b0cedd412945c1df1a179bcb96c6"
+    },
+    {
+      "path": "desktop/tests/profile-store.test.cjs",
+      "bytes": 8566,
+      "sha256": "1086dd661b664417808acbf8a40fe2463bebec0ffba5f29f42a80174e0527994",
+      "git_status": "exact",
+      "origin_blob": "8297b104789bdc09f9be5e18a75b496099bca831"
+    },
+    {
+      "path": "desktop/tests/progress-backup.test.cjs",
+      "bytes": 14340,
+      "sha256": "9a122d7ed0ee07448375d82116bbd505cce6bc53b11a24b2a1734df5800c6190",
+      "git_status": "exact",
+      "origin_blob": "63383e14c21d6848b523db9b4380d341df1de3fc"
+    },
+    {
+      "path": "desktop/tests/release-tools.test.mjs",
+      "bytes": 3695,
+      "sha256": "b509eef0016943da0f074f79c8296e7b70c057ba7872d18743354b11216ed35a",
+      "git_status": "exact",
+      "origin_blob": "633564ad9f93032fe397197be7e1c1459e5dfeb3"
+    },
+    {
+      "path": "desktop/tests/save-store.test.cjs",
+      "bytes": 6258,
+      "sha256": "03e8a1b1c7a74d01c83abf3844fc6d5a2c645ab45cc455024f3e5c1430d99076",
+      "git_status": "exact",
+      "origin_blob": "8590cf16e0edaa97b95545990c2dc1def93de0fe"
+    },
+    {
+      "path": "desktop/tests/standalone-check.test.mjs",
+      "bytes": 3235,
+      "sha256": "33d03e20222fa9694862f745b0d3cf6111337fa20ee64f10ba80c224fc3a33b4",
+      "git_status": "exact",
+      "origin_blob": "cb19de7e884f171796adcd88a446d2bcbf59f957"
+    },
+    {
+      "path": "desktop/tests/verify-web-sync-source.mjs",
+      "bytes": 3436,
+      "sha256": "08aa3fefe832cc114feef9874928bf66fc9bee397481dbed11b84b7d1dbb911a",
+      "git_status": "exact",
+      "origin_blob": "5fd2f52455bf85e7148be55316d5e2000c176cb6"
+    },
+    {
+      "path": "package-lock.json",
+      "bytes": 138041,
+      "sha256": "6d396ee855f0b69148da07632540c7cc37a6068abf2d1eb214fb104109d92ee3",
+      "git_status": "exact",
+      "origin_blob": "8c0043595bc71c472c9ed05a8f601693d1775a20"
+    },
+    {
+      "path": "package.json",
+      "bytes": 3272,
+      "sha256": "36b2f451ff826c127ec006bcc00656cd97fb5fbae535268b1da56aa23b959b24",
+      "git_status": "exact",
+      "origin_blob": "b4fff0968b088580d480d8bdf1686d0b4557d73b"
+    },
+    {
+      "path": "web/web前端/ChallengeCampaign.js",
+      "bytes": 29378,
+      "sha256": "db434435f1f9b03a06e665dcebd635fdd483980dafed6d521ea460581a453c2b",
+      "git_status": "exact",
+      "origin_blob": "1088a8aa3ecfa1c6fbf5b7311bea88af0007fdca"
+    },
+    {
+      "path": "web/web前端/GameFeedback.js",
+      "bytes": 4256,
+      "sha256": "1da25d629e56a116e74f98ddce03f067b72e66bf330a23519252db58e89d54e7",
+      "git_status": "exact",
+      "origin_blob": "fae5f8abb9ff2ea689add390d349ad2fc76401c9"
+    },
+    {
+      "path": "web/web前端/LocalProfile.js",
+      "bytes": 5031,
+      "sha256": "c743cf3b04dd52041ecece75b82de3e78e33f5f15b7de069953528e5eb4fdcd5",
+      "git_status": "exact",
+      "origin_blob": "04810a912c91388b35f145ad2fd60efc60f6ce96"
+    }
+  ]
+}

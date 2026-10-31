@@ -1,0 +1,197 @@
+{
+  "schema": "lifeline-hard-rules-browser-static-audit-v1",
+  "status": "PASS_SAVED_BROWSER_CONTRACT_AUDIT",
+  "preparationIdentity": "9fff83a328b77c8e8e34bfdd7351edb08fdb0c54c25234a76768a4b8585f7f64",
+  "bundleSha256": "bea2a7c9587a8697e71a981a4e5f3cb92ff7bd92d8ad107b845ba6ba004e6911",
+  "browserReportedStatus": "PASS_HARD_DUAL_RULES_BROWSER_SMOKE",
+  "sourceChecks": {
+    "frozenSources": 68,
+    "allFrozenHashesMatch": true,
+    "allCurrentOriginalHashesMatch": true,
+    "buildDependenciesMatch": true,
+    "hostSha256": "f7c221c64d06c92dbc54cd220e1585b8f9900751d2fd2ff71c911657430d2f09",
+    "factoryCacheTag": "20261024-v3-pocket1",
+    "bundleAndNodeVerificationShareBuild": true
+  },
+  "rows": [
+    {
+      "requestId": 1,
+      "playerCount": 3,
+      "gridSize": 5,
+      "rulesVersion": "territory-v3",
+      "stateSha256": "8c11ff6d90fdb141961806428759e4285e84a97a5c34135d4b2741f2e32e0540",
+      "point": [
+        0,
+        2
+      ],
+      "messageTypes": [
+        "READY",
+        "RESULT"
+      ],
+      "reportedNativeLegal": true,
+      "modelId": "multiplayer-hard-v1",
+      "terminalEvaluation": "native-territory-v3",
+      "completedRootComparisons": 8,
+      "observedMsCopiedFromBrowser": 153.80000001192093,
+      "timingClaim": false
+    },
+    {
+      "requestId": 2,
+      "playerCount": 4,
+      "gridSize": 5,
+      "rulesVersion": "territory-v3",
+      "stateSha256": "208a37d6d269bb61d8f0093ea64e2b181e84504bf4aec27319fa8aa0d4dfc4e8",
+      "point": [
+        4,
+        2
+      ],
+      "messageTypes": [
+        "READY",
+        "RESULT"
+      ],
+      "reportedNativeLegal": true,
+      "modelId": "multiplayer-hard-v1",
+      "terminalEvaluation": "native-territory-v3",
+      "completedRootComparisons": 24,
+      "observedMsCopiedFromBrowser": 580.3999999761581,
+      "timingClaim": false
+    },
+    {
+      "requestId": 3,
+      "playerCount": 5,
+      "gridSize": 5,
+      "rulesVersion": "territory-v3",
+      "stateSha256": "c14ac77df05ad7716b03e3d45b3afec67450e9cc70913309c6a04d30fc0c30a6",
+      "point": [
+        4,
+        3
+      ],
+      "messageTypes": [
+        "READY",
+        "RESULT"
+      ],
+      "reportedNativeLegal": true,
+      "modelId": "multiplayer-hard-v1",
+      "terminalEvaluation": "native-territory-v3",
+      "completedRootComparisons": 24,
+      "observedMsCopiedFromBrowser": 475.30000001192093,
+      "timingClaim": false
+    },
+    {
+      "requestId": 4,
+      "playerCount": 6,
+      "gridSize": 5,
+      "rulesVersion": "territory-v3",
+      "stateSha256": "027b5cf28946779e891dfcf29cace96b8b07195e4c581d93a550b287a5b275f8",
+      "point": [
+        3,
+        1
+      ],
+      "messageTypes": [
+        "READY",
+        "RESULT"
+      ],
+      "reportedNativeLegal": true,
+      "modelId": "multiplayer-hard-v1",
+      "terminalEvaluation": "native-territory-v3",
+      "completedRootComparisons": 20,
+      "observedMsCopiedFromBrowser": 390.5,
+      "timingClaim": false
+    },
+    {
+      "requestId": 5,
+      "playerCount": 6,
+      "gridSize": 5,
+      "rulesVersion": "territory-v2",
+      "stateSha256": "fb2d010f72d1ff0e087b04c1ecf381e8ce2d5687d9ec5cfd3c9a10f9e1d0cdd7",
+      "point": [
+        3,
+        1
+      ],
+      "messageTypes": [
+        "READY",
+        "RESULT"
+      ],
+      "reportedNativeLegal": true,
+      "modelId": "multiplayer-hard-v1",
+      "terminalEvaluation": "native-territory-v2",
+      "completedRootComparisons": 20,
+      "observedMsCopiedFromBrowser": 441.80000001192093,
+      "timingClaim": false
+    }
+  ],
+  "lifetime": {
+    "originalStartedEpochMs": 1792791486180,
+    "originalDeadlineEpochMs": 1792791666180,
+    "maximumLifetimeMs": 180000,
+    "stoppedEpochMs": 1792791518717,
+    "reason": "STOP",
+    "pid": 13552,
+    "unchangedDeadlineAcrossMarkers": true,
+    "stoppedBeforeDeadline": true,
+    "exitCode": null,
+    "exitCodeEvidence": "The saved server-stopped marker has no exit-code field; parent execution reported exit 0 separately."
+  },
+  "visibility": [
+    {
+      "state": "visible",
+      "at": 400.19999998807907
+    }
+  ],
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+  "timingClaim": false,
+  "evidence": [
+    {
+      "path": "C:\\coding\\py\\line game\\local_artifacts\\multiplayer-20261024\\hard-rules-browser-v1-r6-current\\preparation.json",
+      "sha256": "d010b35ff36354e02a59c4e5da9704acc4c3d804874d273b1250112057aa0903"
+    },
+    {
+      "path": "C:\\coding\\py\\line game\\local_artifacts\\multiplayer-20261024\\hard-rules-browser-v1-r6-current\\browser-report.json",
+      "sha256": "c9857fe19252c2835ac99475a2828a7288deb5f966a8f438acdf8a3b3f064f14"
+    },
+    {
+      "path": "C:\\coding\\py\\line game\\local_artifacts\\multiplayer-20261024\\hard-rules-browser-v1-r6-current\\server-lock.json",
+      "sha256": "3bcacb7358dfbbbdc43a4c7223a3739efc2d72fc8bac0e3e489cdf9791b18071"
+    },
+    {
+      "path": "C:\\coding\\py\\line game\\local_artifacts\\multiplayer-20261024\\hard-rules-browser-v1-r6-current\\server-ready.json",
+      "sha256": "34d60c29f599edb2c3ce79545c9505b74e1ec2e984b8569fa18d8610fdf18884"
+    },
+    {
+      "path": "C:\\coding\\py\\line game\\local_artifacts\\multiplayer-20261024\\hard-rules-browser-v1-r6-current\\server-stopped.json",
+      "sha256": "080c06ad63659f1af4c96e099ddfad0e04a9267b8634e72c1ffddb6a16ba76a0"
+    },
+    {
+      "path": "C:\\coding\\py\\line game\\local_artifacts\\multiplayer-20261024\\hard-rules-browser-v1-r6-current\\STOP",
+      "sha256": "314e24bd4c5f310545033fe8ef26e5dc6d318d8aab83ef60824960ca7fa3d6f3"
+    },
+    {
+      "path": "C:\\coding\\py\\line game\\local_artifacts\\territory-v3-hard-worker-build-20261024-r1\\hard-bundle-contract.json",
+      "sha256": "18c4f110928e9709ab67c51ed92f8747ac02716e6d2558b402dd6c4151f87b8a"
+    },
+    {
+      "path": "C:\\coding\\py\\line game\\web\\tools\\hard-rules-browser-host-v1.mjs",
+      "sha256": "f7c221c64d06c92dbc54cd220e1585b8f9900751d2fd2ff71c911657430d2f09"
+    }
+  ],
+  "buildReceipt": {
+    "path": "C:\\coding\\py\\line game\\local_artifacts\\territory-v3-hard-worker-build-20261024-r1\\build-receipt.json",
+    "sha256": "8a847a5df1626fdde4f99d142ba52b0d6f29610657eff74e8fd8f261dca4c751"
+  },
+  "verifier": {
+    "path": "C:\\coding\\py\\line game\\web\\tools\\audit-hard-rules-browser-v1.mjs",
+    "sha256": "c46edab120dc3ae346563594274f8c4b46b2d1facc4100e1eb4741dc9989a749"
+  },
+  "command": [
+    "C:\\Program Files\\nodejs\\node.exe",
+    "C:\\coding\\py\\line game\\web\\tools\\audit-hard-rules-browser-v1.mjs",
+    "local_artifacts\\multiplayer-20261024\\hard-rules-browser-v1-r6-current",
+    "local_artifacts\\territory-v3-hard-worker-build-20261024-r1\\hard-bundle-contract.json",
+    "docs\\verification\\multiplayer-20261022\\hard-dual-rules-browser-r6.json"
+  ],
+  "limits": [
+    "Read-only evidence audit: no engine/model imports, no replay, no browser rerun and no latency recomputation.",
+    "Native legality was executed by the frozen browser harness. This audit binds its validation code and five saved true results; it is not an independent native replay.",
+    "Five opening states cannot establish large-board strength or universal subsecond behavior."
+  ]
+}

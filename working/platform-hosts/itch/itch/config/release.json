@@ -1,0 +1,24 @@
+{
+  "schema": "lifeline-itch-release-config-v1",
+  "candidate_id": "lifeline-html5-20261022-rc1",
+  "version": "0.4.0-itch.1",
+  "channel": "itch-html5",
+  "rules_version": "territory-v2",
+  "asset_version": "20261022-multiplayer1",
+  "runtime": {
+    "channel": "itch-html5",
+    "offlineAssetsOnly": true,
+    "networkEnabled": false,
+    "trainingContributionEnabled": false,
+    "apiBaseUrl": null,
+    "websocketUrl": null,
+    "trainingContributionUrl": null,
+    "showFilingFooter": false
+  },
+  "itch_limits": {
+    "max_files": 1000,
+    "max_total_bytes": 524288000,
+    "max_file_bytes": 209715200,
+    "max_path_characters": 240
+  }
+}
