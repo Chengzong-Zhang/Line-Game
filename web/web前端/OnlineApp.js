@@ -1,6 +1,6 @@
 import { MultiplayerWarmupSession } from "./MultiplayerAIWarmup.js?v=20261029-unified-r1";
 import { createLocalAIWorker } from "./LocalAIWorkerFactory.js?v=20261029-unified-r1";
-import GameController from "./GameController.js?v=20261029-unified-r1";
+import GameController from "./GameController.js?v=20261101-topology-markers";
 import Renderer from "./Renderer.js?v=20261029-unified-r1";
 import GameEngine, { Player, PointState } from "./GameEngine.js?v=20261029-unified-r1";
 import { captureWorkerRequest, isWorkerResultForRequest, serializeEngineState } from "./AIStateProtocol.js?v=20261029-unified-r1";
@@ -50,7 +50,7 @@ import {
   UI_STYLE_ACADEMIC,
   localizeErrorMessage as localizeAppErrorMessage,
 } from "./OnlineAppI18n.js?v=20261029-unified-r1";
-import { ensureGuideRuleImages, getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20261029-unified-r1";
+import { ensureGuideRuleImages, getGuideMarkdown, loadGuideMarkdownAssets, parseGuideMarkdown } from "./GuideContent.js?v=20261101-guide-alignment";
 import { getGuideChapterLinks } from "./GuideArticleFormat.js?v=20261031-guide-reading";
 import {
   TUTORIAL_LEVELS,
@@ -3969,31 +3969,7 @@ const App = {
 
     watch(language, async (value) => {
       const loadId = ++guideMarkdownLoadId;
-      const keys = [
-        "rulesEssential",
-        "rulesWar",
-        "rulesMath",
-        "whyTalk",
-        "whyCode",
-        "whyTheory",
-        "thanks",
-      ];
-      const nextOverrides = {};
-
-      await Promise.all(keys.map(async (key) => {
-        const asset = getGuideMarkdownAsset(key, value);
-        if (!asset) {
-          return;
-        }
-        try {
-          const response = await fetch(`${asset}?v=20261020-three1`, { cache: "no-cache" });
-          if (response.ok) {
-            nextOverrides[key] = await response.text();
-          }
-        } catch (error) {
-          console.warn(`Guide markdown asset failed: ${key}`, error);
-        }
-      }));
+      const nextOverrides = await loadGuideMarkdownAssets(value);
 
       if (loadId === guideMarkdownLoadId) {
         guideMarkdownOverrides.value = nextOverrides;
@@ -4751,6 +4727,7 @@ const App = {
       return null;
     };
     const topologyActionsForController = (actions, boardHash) => actions.map((action) => {
+      if (action?.boardHash != null && action.boardHash !== boardHash) throw new Error("Topology action board identity mismatch.");
       const normalized = topologyActionFromControllerAction(action, boardHash);
       if (!normalized) throw new Error("Topology action history is malformed.");
       return normalized;
@@ -5236,6 +5213,7 @@ const App = {
           ? controller.value.restoreTopologyState(liveReplayRestore.topologyState, {
             startPlayer: liveReplayRestore.settings?.startPlayer,
             lastAction: liveReplayRestore.lastAction,
+            actions: liveReplayRestore.actions,
           })
           : controller.value.restoreMatchState(liveReplayRestore);
         if (!restored.success) {
@@ -5544,6 +5522,7 @@ const App = {
           }
           restored = controller.value.restoreTopologyState(tutorialReturnTopologySession.topologyState, {
             startPlayer: tutorialReturnTopologySession.startPlayer,
+            actions: tutorialReturnTopologySession.actions,
           });
           restoredMatch = tutorialReturnTopologySession.match;
           restoredActions = [...tutorialReturnTopologySession.actions];
@@ -5702,8 +5681,18 @@ const App = {
       localGameRestoring.value = true;
       let success = false;
       try {
+        // Older topology-session actions omit the per-action hash. Rebind them
+        // to the already validated live board before isolated replay.
+        let replayActions;
+        try {
+          replayActions = controller.value.engine?.isTopologyBoard
+            ? topologyActionsForController(actions, controller.value.engine.boardHash) : actions;
+        } catch (_) {
+          setActionFeedback(getAppTexts(language.value, uiStyle.value).undoFailed, "error");
+          return false;
+        }
         // Restore validates on an isolated engine before replacing the live board.
-        const restored = controller.value.restoreMatchState({ settings: currentGameSettings(), actions });
+        const restored = controller.value.restoreMatchState({ settings: currentGameSettings(), actions: replayActions });
         if (!restored.success) {
           setActionFeedback(getAppTexts(language.value, uiStyle.value).undoFailed, "error");
           return false;

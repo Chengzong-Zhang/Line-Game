@@ -29,70 +29,46 @@ const WHY_TALK_ZH = `# Talk：扩张、防守与破绽
 
 const WHY_CODE_ZH = implementationMarkdown("whyCode", "zh");
 
-const WHY_THEORY_ZH = `# Theory：算力深渊与上帝的简洁逻辑
+const WHY_THEORY_ZH = String.raw`# Theory：结构、历史与搜索
 
-这个游戏相对国际象棋、围棋、跳棋等经典棋类的优越性，不是简单宣称“局面数最大”，而是用很少的几何格点制造出更高密度的长程结构。作为参照，跳棋常见状态空间约 $5\times 10^{20}$、博弈树约 $10^{31}$；国际象棋状态空间常估为 $10^{43}$ 到 $10^{50}$、博弈树约 $10^{120}$；19 路围棋合法局面数为 $2.08\times 10^{170}$、博弈树常估约 $10^{360}$。本游戏在边长 $n=15$ 时只有 $V=120$ 个物理格点，却已有 $E=1680$ 条潜在长程可见性边，显式表示上界约为 $6.49\times 10^{885}$。
+这篇概览区分棋盘结构、完整规则状态与 AI 搜索。常规棋盘支持 2–15 人，拓扑棋盘支持 2–6 人；各规则版本、起点和棋盘定义仍以当前对局设置为准。
 
-这个游戏的理论核心不是“状态数比谁大”，而是一个更干净的错位：
+## 一、长程连接从哪里来
 
-$$
-V(n)=\frac{n(n+1)}{2}=\Theta(n^2)
-$$
-
-但潜在长程可见性边为
+对边长为 $n$ 的普通三角棋盘，格点数为
 
 $$
-E(n)=3\sum_{k=1}^{n}\binom{k}{2}
-=\frac{n^3-n}{2}
-=\Theta(n^3).
+V(n)=\frac{n(n+1)}{2}.
 $$
 
-棋盘是二次规模，战术关系是三次规模。复杂度不是靠巨大棋盘堆出来的，而是从视线边自然长出来的：二次规模棋盘生成三次规模战术关系，再由切断、连通性删除和 Superko 把这些关系转化为搜索深度。
-
-## 状态空间
-
-语义位置只统计真正不同的棋盘局面：
+沿三组网格轴，所有共轴端点对的数量为
 
 $$
-S_{\mathrm{pos}}(n)\le 2\cdot 5^{V(n)}
-=2^{\Theta(n^2)}.
+Q(n)=3\sum_{k=1}^{n}\binom{k}{2}=\frac{n^3-n}{2}.
 $$
 
-如果把显式边缓存也算进表示对象，则有
+例如 $n=15$ 时有 120 个格点、1680 对潜在端点。这是候选关系的计数；阻挡、禁交叉、起点与当前占点会限制实际存在的逻辑边。它没有证明可达局面数、博弈树大小或某个复杂度类别，也不用于给不同棋类排难度。
 
-$$
-S_{\mathrm{repr}}(n)
-\le 2\cdot 5^{V(n)}3^{E(n)}
-=2^{\Theta(n^3)}.
-$$
+## 二、为什么只看占点不够
 
-这两个量不能混淆。前者是游戏局面，后者是实现表示。真正困难的地方不是吹大状态数，而是二次格点承载了三次长程边。
+完整状态还包含实际逻辑边、当前行动方、规则版本、行动顺序、起点/永久根集、认输、连续 PASS、终局与同形禁手历史。拓扑局还需要规范棋盘定义、接缝与定义哈希。同一占点图可能因历史或逻辑边不同而允许不同动作；恢复、悔棋和搜索必须保留这些信息。
 
-## Superko
+对固定有限棋盘，给每个格点、候选边和有限控制字段分别编码，可以得到表示数量的上界。任意组合未必可达，表示数量也不是完整带历史状态数量；上界不能写成紧确增长率或棋力证据。
 
-Superko 不是让普通位置图自动无环。更准确地说，规则把状态提升为
+## 三、Superko 与 PASS
 
-$$
-(s,H),
-$$
+设 $H$ 为已登记的规则位置哈希集合。被接受的落子必须通过当前版本的同形禁手检查；登记新的位置时 $H$ 扩展。PASS 不按落子增加 $H$，认输也需要独立处理，所以不能说每一步都使 $|H|$ 严格增加。
 
-其中 $H$ 是历史位置集合。合法转移满足
+终止说明还要结合轮转、仍在场人数、连续 PASS 和认输规则：仍在场各方连续跳过一轮时结算，只剩一方时结束。禁止重复落子的约束与这些终局条件共同限制对局；仅凭历史集合单调不能证明全部转移图无环。
 
-$$
-(s,H)\to(s',H\cup\{s'\}),\qquad s'\notin H.
-$$
+## 四、计分、拓扑与 AI
 
-秩函数
+普通 v3 正式分数按离散格点计算：己方点线格点，加上不接触真实边界且不含敌方元素的安全空腔；显示轮廓不决定赢家。闭曲面没有真实外边界，拓扑计分、跨缝路径与多起点连通性应结合数学文章第四章及 Code 第四章阅读，不能直接套用平面外部的直觉。
 
-$$
-\rho(s,H)=|H|
-$$
+AI 在有限预算内使用搜索、启发式或已接入模型。桥、割点和起点连通性是有用的结构信息；采用图模型可能是研究方向，但当前没有据此证明模型优越性、最优策略或经校准的胜率。候选训练与正式产品准入分开。
 
-在每一步严格增加，所以增广状态转移图是 DAG。
-
-## AI 含义
-
-CNN 擅长局部纹理，但这里的价值来自基点连通性、桥、割点和极大连通分量。两个局部图案相同的盘面，只要一方少一条备用路径，价值就可能完全相反。因此更自然的模型是 GNN：把格点、可见性边、基点、桥与割点作为图对象输入，让消息沿逻辑边传播。`;
+2026-08-26 的长篇形式化保留为历史规则快照，仅讨论当时的 2/3 人实现，不覆盖此后的拓扑、多起点或人数扩展；文件见 guide/interesting/why-theory.20260826.zh.md。当前规则定义请阅读数学文章与实现说明。
+`;
 
 const WHY_TALK_EN = `# Talk: Expansion, Defense, and Exposure
 
@@ -124,70 +100,46 @@ const WHY_CODE_EN = implementationMarkdown("whyCode", "en");
 
 // Legacy key remains an alias; the only topology article lives in rulesMath.
 
-const WHY_THEORY_EN = `# Theory: A Simple Law, a Deep Search Space
+const WHY_THEORY_EN = String.raw`# Theory: Structure, History, and Search
 
-The advantage over classical games such as chess, Go, and checkers is not the crude claim that the intrinsic position count is always larger. The advantage is structural density: a small geometric board produces a much richer long-range relation graph. For reference, checkers is commonly placed around $5\times 10^{20}$ states and roughly $10^{31}$ game-tree complexity; chess is often estimated around $10^{43}$ to $10^{50}$ states and $10^{120}$ game-tree complexity; 19x19 Go has $2.08\times 10^{170}$ legal positions and is often estimated near $10^{360}$ game-tree complexity. At side length $n=15$, this game has only $V=120$ physical lattice points, but already has $E=1680$ potential long-range visibility edges, giving an explicit representation upper bound of about $6.49\times 10^{885}$.
+This overview separates board structure, complete rule state, and AI search. Ordinary boards support 2–15 players and topology boards support 2–6; the active match still determines the rule version, starting roots, and board definition.
 
-The point is not to inflate state counts. The clean fact is the mismatch:
+## 1. Where long-range connections come from
 
-$$
-V(n)=\frac{n(n+1)}{2}=\Theta(n^2)
-$$
-
-but the potential long-range visibility edges satisfy
+An ordinary triangular board of side length $n$ has
 
 $$
-E(n)=3\sum_{k=1}^{n}\binom{k}{2}
-=\frac{n^3-n}{2}
-=\Theta(n^3).
+V(n)=\frac{n(n+1)}{2}
 $$
 
-The board is quadratic. The tactical relation graph is cubic. In short, the game does not buy complexity by making the board enormous; it turns a quadratic board into cubic tactical relations, then turns those relations into search depth through cuts, connectivity deletion, and Superko.
-
-## State Space
-
-Semantic positions satisfy
+lattice points. Across the three grid axes, the number of all collinear endpoint pairs is
 
 $$
-S_{\mathrm{pos}}(n)\le 2\cdot 5^{V(n)}
-=2^{\Theta(n^2)}.
+Q(n)=3\sum_{k=1}^{n}\binom{k}{2}=\frac{n^3-n}{2}.
 $$
 
-Explicit representation space, if edge caches are counted, satisfies
+For $n=15$, these counts are 120 points and 1680 potential pairs. This counts candidate relations. Blocking, crossings, roots, and occupancy constrain the actual logical edges. It proves neither a reachable-position count nor a game-tree size or complexity classification, and does not rank the difficulty of different games.
 
-$$
-S_{\mathrm{repr}}(n)
-\le 2\cdot 5^{V(n)}3^{E(n)}
-=2^{\Theta(n^3)}.
-$$
+## 2. Why occupancy alone is insufficient
 
-These are not the same object. One counts game positions; the other counts implementation encodings.
+Complete state also records actual logical edges, the actor, rule version, turn order, starting/permanent roots, resignations, consecutive PASS actions, termination, and Superko history. Topology games additionally need the canonical board definition, seams, and definition hash. Identical occupancy can admit different actions when edges or history differ. Restoration, undo, and search must retain that information.
 
-## Superko
+For a fixed finite board, encoding each point, candidate edge, and finite control field gives an upper bound on representation count. Arbitrary encodings need not be reachable, and representation count does not count complete history-bearing states. An upper bound is not a tight growth rate or evidence of playing strength.
 
-Superko lifts the state to
+## 3. Superko and PASS
 
-$$
-(s,H),
-$$
+Let $H$ be the registered set of rule-position hashes. Accepted placements must pass the active version's Superko check; registering a new position extends $H$. PASS does not add to $H$ as a placement does, and resignation needs separate treatment. It is therefore incorrect to claim that every action strictly increases $|H|$.
 
-where $H$ is the set of previous positions. Legal transitions satisfy
+A termination argument must also account for rotation, surviving players, consecutive PASS actions, and resignations: a full consecutive round of PASS among the surviving players ends in scoring, and one surviving player ends the game. Repetition restrictions and these termination rules work together; monotonic history alone does not prove that every state transition forms a DAG.
 
-$$
-(s,H)\to(s',H\cup\{s'\}),\qquad s'\notin H.
-$$
+## 4. Scoring, topology, and AI
 
-The rank
+Ordinary v3 scores discrete grid points: owned node/line points plus safe pockets that touch no real boundary and contain no enemy element. Display outlines do not decide the winner. Closed surfaces have no real outside boundary. Read chapter four of the mathematical article and chapter four of the Code article for topology scoring, seam paths, and multiple-root connectivity.
 
-$$
-\rho(s,H)=|H|
-$$
+AI uses search, heuristics, or admitted models under finite budgets. Bridges, articulation points, and root connectivity are useful structural information. Graph models may be a research direction, but this does not prove model superiority, optimal play, or calibrated win probabilities. Candidate training and product admission remain separate.
 
-strictly increases, so the augmented transition graph is a DAG.
-
-## AI Consequence
-
-CNNs see local texture. This game is valued by base connectivity, bridges, articulation points, and maximal connected components. A GNN is the more natural architecture because messages can flow along the same visibility graph that defines the rules.`;
+The long formalization dated 2026-08-26 is preserved as a historical rule snapshot of the then-current two/three-player implementation. It does not cover later topology, multiple roots, or expanded player counts; see guide/interesting/why-theory.20260826.en.md. Use the mathematical and implementation articles for current rule definitions.
+`;
 
 const GUIDE_MARKDOWN = Object.freeze({
   zh: Object.freeze({
@@ -602,6 +554,26 @@ export function getGuideMarkdownAsset(key, language = "zh") {
     },
   };
   return assets[normalizedLanguage]?.[key] ?? "";
+}
+
+// The embedded article remains the fallback for missing or unreadable assets.
+// OnlineApp guards the returned map by its language-load generation.
+export async function loadGuideMarkdownAssets(language = "zh", fetchAsset = globalThis.fetch) {
+  const overrides = {};
+  const keys = ["rulesEssential", "rulesWar", "rulesMath", "whyTalk", "whyCode", "whyTheory", "thanks"];
+  await Promise.all(keys.map(async (key) => {
+    const asset = getGuideMarkdownAsset(key, language);
+    if (!asset) return;
+    try {
+      const response = await fetchAsset(`${asset}?v=20261101-guide-alignment`, { cache: "no-cache" });
+      if (!response.ok) return;
+      const markdown = await response.text();
+      if (markdown.trim()) overrides[key] = markdown;
+    } catch (error) {
+      console.warn(`Guide markdown asset failed: ${key}`, error);
+    }
+  }));
+  return overrides;
 }
 
 export function parseGuideMarkdown(raw) {

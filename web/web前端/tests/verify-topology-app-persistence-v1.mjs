@@ -7,6 +7,7 @@ await import("../TopologyGameEngine.js");
 
 const values = new Map();
 const noop = () => {};
+const unmountCallbacks = [];
 globalThis.localStorage = {
   getItem: (key) => values.get(key) ?? null,
   setItem: (key, value) => values.set(key, String(value)),
@@ -23,7 +24,7 @@ globalThis.Vue = {
   watch: noop,
   nextTick: async () => {},
   onMounted: noop,
-  onBeforeUnmount: noop,
+  onBeforeUnmount: (callback) => unmountCallbacks.push(callback),
 };
 globalThis.Worker = class {
   postMessage() {}
@@ -160,6 +161,7 @@ controller.restoreTopologyState = (...args) => {
 };
 
 assert.equal(await app.handleControllerReady(controller), true, "a valid topology save restores on startup");
+assert.deepEqual(controller.lastMoves, { WHITE: savedSession.actions[0].vertexId, BLACK: savedSession.actions[1].vertexId }, "startup reconstructs all player markers from validated actions");
 assert.equal(app.tutorialActive.value, false);
 assert.equal(app.tutorialAutoRestoring.value, false);
 assert.equal(directTopologyRestore, 1, "startup must directly restore the encoded topology state");
@@ -174,6 +176,14 @@ assert.equal(app.selectedUndoMaxCount.value, 3, "topology session restores its u
 assert.equal(app.undoRemainingCount.value, 2, "topology session restores undo usage without refilling quota");
 assert.equal(values.get(TOPOLOGY_LOCAL_GAME_SESSION_STORAGE_KEY), rawBeforeRestore,
   "returning from a tutorial must not overwrite the original topology save");
+
+// A separate restored session exercises the actual UI undo handler without
+// disturbing the main fixture. The action prefix determines the markers.
+const undoApp = App.setup(); const { controller: undoController } = makeController();
+assert.equal(await undoApp.handleControllerReady(undoController), true);
+assert.equal(undoApp.requestUndo(), true, "restored topology undo accepts a valid prior human move");
+assert.deepEqual(undoController.lastMoves, { WHITE: savedSession.actions[0].vertexId }, "actual undo rebuilds markers for the retained prefix");
+values.set(TOPOLOGY_LOCAL_GAME_SESSION_STORAGE_KEY, rawBeforeRestore);
 
 // Starting a tutorial from a live topology board uses the same isolated state
 // channel and must round-trip its canonical state without a legacy detour.
@@ -311,6 +321,7 @@ app.handleStateChange(played.state);
 const liveEncodedBeforeReview = controller.engine.encodeTopologyState();
 const liveActionsBeforeReview = structuredClone(app.localGameActions.value);
 const liveLastAction = structuredClone(controller.lastAction);
+const liveLastMoves = structuredClone(controller.lastMoves);
 await app.handleStartReplay();
 assert.equal(app.replayMode.value, true);
 app.handleSeekReplay(0);
@@ -320,6 +331,7 @@ assert.equal(app.replayMode.value, false, "exit review restores the active topol
 assert.deepEqual(controller.engine.encodeTopologyState(), liveEncodedBeforeReview, "roots, current player, paths, hash and full history survive review");
 assert.deepEqual(app.localGameActions.value, liveActionsBeforeReview);
 assert.deepEqual(controller.lastAction, liveLastAction);
+assert.deepEqual(controller.lastMoves, liveLastMoves, "leaving review restores player markers");
 for (let i = 0; i < 2; i++) {
   const passed = controller.skipTurn();
   assert.equal(passed.success, true);
@@ -451,6 +463,8 @@ await reloadPreset();
 legacyPreset.settings.gridSize = 9; // inconsistent metadata cannot override known geometry
 values.set(TOPOLOGY_LOCAL_GAME_SESSION_STORAGE_KEY, JSON.stringify(legacyPreset));
 await reloadPreset();
+
+for (const unmount of unmountCallbacks.reverse()) unmount();
 
 console.log(JSON.stringify({
   status: "PASS",

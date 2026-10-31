@@ -55,6 +55,22 @@ function isMovePosition(point) {
 // It never enters the rule state, search state or persisted replay format.
 function updateLastMoves(lastMoves, action, engine, previousSkips = 0) {
   if (!action || !isKnownPlayer(action.player)) return;
+  if (engine.isTopologyBoard) {
+    if (action.type === "move") lastMoves[action.player] = clonePoint(action.point);
+    else delete lastMoves[action.player];
+    const explicitSkips = action.type === "skip" ? previousSkips + 1 : 0;
+    const automaticSkips = Math.max(0, engine.consecutiveSkips - explicitSkips);
+    let skippedPlayer = action.player;
+    for (let index = 0; index < automaticSkips; index += 1) {
+      skippedPlayer = engine._getNextPlayer(skippedPlayer);
+      delete lastMoves[skippedPlayer];
+    }
+    // Once captured, a marker cannot revive when the coordinate is reused.
+    for (const [owner, point] of Object.entries(lastMoves)) {
+      if (engine.resignedPlayers.has(owner) || engine.getStateAt(point) !== engine._getPlayerStates(owner).node) delete lastMoves[owner];
+    }
+    return;
+  }
   lastMoves[action.player] = action.type === "move" ? clonePoint(action.point) : null;
   const explicitSkips = action.type === "skip" ? previousSkips + 1 : 0;
   const automaticSkips = Math.max(0, engine.consecutiveSkips - explicitSkips);
@@ -63,6 +79,39 @@ function updateLastMoves(lastMoves, action, engine, previousSkips = 0) {
     player = engine._getNextPlayer(player);
     lastMoves[player] = null;
   }
+}
+
+// A topology snapshot is authoritative. Only derive display metadata from an
+// action log if replay reproduces its complete rule state, including history.
+function canonicalDisplayState(value) {
+  if (Array.isArray(value)) return value.map(canonicalDisplayState);
+  if (value && typeof value === "object") return Object.fromEntries(Object.keys(value).sort().map(key => [key, canonicalDisplayState(value[key])]));
+  return value;
+}
+function replayTopologyLastMoves(engine, actions, expectedRuleState) {
+  if (!Array.isArray(actions)) return null;
+  const lastMoves = {}; let lastAction = null;
+  try {
+    for (const action of actions) {
+      if (!action || typeof action.type !== "string") return null;
+      const previousSkips = engine.consecutiveSkips;
+      const player = action.type === "player_resign" ? action.color : engine.getCurrentPlayer();
+      let result;
+      if (action.type === "player_move" && typeof action.vertexId === "string"
+        && (action.boardHash == null || action.boardHash === engine.boardHash)) {
+        result = engine.playMove(action.vertexId);
+        lastAction = { type: "move", player, point: action.vertexId };
+      } else if (action.type === "player_skip") {
+        result = engine.skipTurn(); lastAction = { type: "skip", player, point: null };
+      } else if (action.type === "player_resign" && isKnownPlayer(player)) {
+        result = engine.resignPlayer(player); lastAction = { type: "resign", player, point: null };
+      } else return null;
+      if (!result?.success) return null;
+      updateLastMoves(lastMoves, lastAction, engine, previousSkips);
+    }
+    if (JSON.stringify(canonicalDisplayState(engine.getTopologyRuleState())) !== JSON.stringify(canonicalDisplayState(expectedRuleState))) return null;
+    return { lastMoves, lastAction };
+  } catch (_) { return null; }
 }
 
 export class GameController {
@@ -1296,7 +1345,7 @@ export class GameController {
    * a legacy local-session envelope).  Decode and build a candidate first;
    * only replace the live engine after its complete state has been accepted.
    */
-  restoreTopologyState(topologyState, { startPlayer = null, lastAction = null } = {}) {
+  restoreTopologyState(topologyState, { startPlayer = null, lastAction = null, actions = null } = {}) {
     const previousControllerState = {
       engine: this.engine,
       engineOptions: this.options.engine,
@@ -1343,6 +1392,8 @@ export class GameController {
         deferTerritoryUpdates: false,
       };
       candidateEngine = this._createEngine(nextEngineOptions);
+      const displayHistory = Array.isArray(actions)
+        ? replayTopologyLastMoves(this._createEngine(nextEngineOptions), actions, decoded.ruleState) : null;
       if (!candidateEngine?.isTopologyBoard) {
         throw new Error("Decoded topology state did not create a topology engine.");
       }
@@ -1356,14 +1407,17 @@ export class GameController {
       this._engineEpoch += 1;
       this.setAuthoritativeSnapshotValid(true);
       this.renderer.invalidate();
-      this.lastAction = lastAction && typeof lastAction === "object"
-        ? {
-          type: lastAction.type,
-          player: lastAction.player ?? null,
-          point: clonePoint(lastAction.point ?? lastAction.vertexId),
-        }
-        : null;
-      this.lastMoves = {};
+      this.lastAction = displayHistory ? displayHistory.lastAction : (lastAction && typeof lastAction === "object"
+        ? { type: lastAction.type, player: lastAction.player ?? null, point: clonePoint(lastAction.point ?? lastAction.vertexId) }
+        : null);
+      this.lastMoves = displayHistory?.lastMoves ?? {};
+      // Legacy snapshots may carry only the last action. Show that one marker
+      // only if the canonical vertex is still occupied by that same player.
+      if (!displayHistory && this.lastAction?.type === "move" && isKnownPlayer(this.lastAction.player)
+        && typeof this.lastAction.point === "string"
+        && candidateEngine.getStateAt(this.lastAction.point) === candidateEngine._getPlayerStates(this.lastAction.player).node) {
+        this.lastMoves[this.lastAction.player] = this.lastAction.point;
+      }
       this._updateLargeBoardClass();
       this._syncSnapshot(snapshot, { forceRender: true, scheduleTerritory: false });
     } catch (error) {
