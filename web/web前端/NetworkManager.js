@@ -1,7 +1,9 @@
 ﻿const DEFAULT_REQUEST_TIMEOUT = 10000;
+const DEFAULT_CONNECT_TIMEOUT = 10000;
 const DEFAULT_HEARTBEAT_INTERVAL = 4000;
 const DEFAULT_HEARTBEAT_TIMEOUT = 12000;
 export const TOPOLOGY_ROOM_CAPABILITY = "board-topology-v1";
+const DEFAULT_PROTOCOL_TIMEOUT = 3000;
 
 // NetworkManager 璐熻矗鎶娾€滆姹?鍝嶅簲鈥濆拰鈥滃箍鎾簨浠垛€濇贩鍚堝湪鍚屼竴鏉?WebSocket 涓婄鐞嗚捣鏉ャ€?// 涓婂眰鍙渶瑕佽闃呬簨浠舵垨璋冪敤 sendXxx锛屾棤闇€鐩存帴鎿嶄綔 socket銆?
 const ServerEvent = Object.freeze({
@@ -32,6 +34,17 @@ const ClientEvent = Object.freeze({
 
 function clonePoint(point) {
   return [point[0], point[1]];
+}
+
+function sanitizeSessionUrl(value) {
+  if (typeof value !== "string" || !value) return null;
+  try {
+    const parsed = new URL(value, globalThis.location?.href ?? "http://localhost:8000/");
+    if (parsed.username || parsed.password || parsed.search || parsed.hash) return null;
+    return parsed.toString();
+  } catch (_error) {
+    return null;
+  }
 }
 
 function isValidPoint(point) {
@@ -105,9 +118,17 @@ export class NetworkManager {
     this._listeners = new Map();
     this._pendingRequests = [];
     this._connectPromise = null;
+    this._connectReject = null;
+    this._connectTimeoutId = null;
     this._heartbeatTimerId = null;
     this._heartbeatWatchdogId = null;
     this._lastPongAt = 0;
+    this._connectionGeneration = 0;
+    this._actionProtocol = "unknown";
+    this._actionProtocolInfo = { status: "unknown", version: null, serverInstanceId: null };
+    this._protocolNegotiation = null;
+    this._syncRequests = new Map();
+    this._nextSyncRequestId = 0;
 
     if (options.handlers && typeof options.handlers === "object") {
       for (const [eventName, handler] of Object.entries(options.handlers)) {
@@ -150,56 +171,97 @@ export class NetworkManager {
     }
 
     this.url = url;
+    this._settleProtocolNegotiation({ status: "unknown", reason: "connection_replaced" }, this._connectionGeneration);
+    const generation = ++this._connectionGeneration;
+    this._actionProtocol = "unknown";
+    this._actionProtocolInfo = { status: "unknown", version: null, serverInstanceId: null };
+    this._protocolNegotiation = null;
+    this._rejectSyncRequests(new Error("WebSocket connection replaced."));
     const socketUrl = appendTokenToWebSocketUrl(url, this.authToken);
+    // Let constructor failures reject this call without leaving a cached rejected promise.
+    let socket;
+    try {
+      socket = new WebSocket(socketUrl);
+    } catch (_error) {
+      throw new Error("Failed to connect to WebSocket endpoint.");
+    }
     this._connectPromise = new Promise((resolve, reject) => {
       // 同一时刻只允许存在一个激活连接，避免旧 socket 残留事件污染当前房间状态。
-      const socket = new WebSocket(socketUrl);
       this.socket = socket;
+      this._connectReject = reject;
+      this._connectTimeoutId = globalThis.setTimeout(() => {
+        if (this.socket !== socket) return;
+        this._connectTimeoutId = null;
+        this._connectPromise = null;
+        this._connectReject = null;
+        this.socket = null;
+        socket.close(1000, "connect_timeout");
+        reject(new Error(`WebSocket connection timed out after ${this.options.connectTimeout ?? DEFAULT_CONNECT_TIMEOUT}ms`));
+      }, this.options.connectTimeout ?? DEFAULT_CONNECT_TIMEOUT);
 
       socket.addEventListener("open", () => {
+        if (this.socket !== socket) {
+          socket.close(1000, "stale_connection");
+          return;
+        }
         this._connectPromise = null;
+        this._connectReject = null;
+        if (this._connectTimeoutId !== null) globalThis.clearTimeout(this._connectTimeoutId);
+        this._connectTimeoutId = null;
         this._lastPongAt = Date.now();
         this._startHeartbeat();
         this._emit(ClientEvent.OPEN, {
           type: ClientEvent.OPEN,
-          url: this.url,
         });
         resolve(this);
       }, { once: true });
 
       socket.addEventListener("message", (event) => {
+        if (this.socket !== socket) return;
         this._handleMessage(event);
       });
 
       socket.addEventListener("error", (event) => {
+        if (this.socket !== socket) return;
         this._emit(ClientEvent.CONNECTION_ERROR, {
           type: ClientEvent.CONNECTION_ERROR,
-          event,
         });
       });
 
       socket.addEventListener("close", (event) => {
         const wasCurrentSocket = this.socket === socket;
-        this._connectPromise = null;
-        this._stopHeartbeat();
 
         if (wasCurrentSocket) {
+          const rejectConnect = this._connectReject;
+          this._connectPromise = null;
+          this._connectReject = null;
+          if (this._connectTimeoutId !== null) globalThis.clearTimeout(this._connectTimeoutId);
+          this._connectTimeoutId = null;
+          this._stopHeartbeat();
           this.socket = null;
-          this._rejectPendingRequests(new Error(`WebSocket closed: ${event.code} ${event.reason}`));
+          rejectConnect?.(new Error(`WebSocket closed: ${event.code}`));
+          this._rejectPendingRequests(new Error(`WebSocket closed: ${event.code}`));
+          this._rejectSyncRequests(new Error(`WebSocket closed: ${event.code}`));
+          this._settleProtocolNegotiation({ status: "unknown", reason: "disconnected" }, generation);
+          this._actionProtocol = "unknown";
+          this._actionProtocolInfo = { status: "unknown", version: null, serverInstanceId: null };
           this._emit(ClientEvent.CLOSE, {
             type: ClientEvent.CLOSE,
             code: event.code,
-            reason: event.reason,
             wasClean: event.wasClean,
           });
         }
       }, { once: true });
 
       socket.addEventListener("error", () => {
-        if (socket.readyState === WebSocket.CONNECTING) {
-          this._connectPromise = null;
-          reject(new Error(`Failed to connect to ${url}`));
-        }
+        if (this.socket !== socket || socket.readyState !== WebSocket.CONNECTING) return;
+        this._connectPromise = null;
+        this._connectReject = null;
+        if (this._connectTimeoutId !== null) globalThis.clearTimeout(this._connectTimeoutId);
+        this._connectTimeoutId = null;
+        this.socket = null;
+        socket.close(1000, "connect_error");
+        reject(new Error("Failed to connect to WebSocket endpoint."));
       }, { once: true });
     });
 
@@ -213,13 +275,29 @@ export class NetworkManager {
     }
 
     const socket = this.socket;
+    this._settleProtocolNegotiation({ status: "unknown", reason: "disconnected" }, this._connectionGeneration);
+    this._connectionGeneration += 1;
+    this._actionProtocol = "unknown";
+    this._actionProtocolInfo = { status: "unknown", version: null, serverInstanceId: null };
+    this._rejectSyncRequests(new Error("WebSocket connection canceled."));
+    const rejectConnect = this._connectReject;
+    this.socket = null;
+    this._connectPromise = null;
+    this._connectReject = null;
+    if (this._connectTimeoutId !== null) globalThis.clearTimeout(this._connectTimeoutId);
+    this._connectTimeoutId = null;
+    const disconnectError = new Error("WebSocket connection canceled.");
+    rejectConnect?.(disconnectError);
+    this._rejectPendingRequests(disconnectError);
     if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
       socket.close(code, reason);
-      return;
     }
-
-    if (this.socket === socket) {
-      this.socket = null;
+    if (reason === "heartbeat_timeout") {
+      this._emit(ClientEvent.CLOSE, {
+        type: ClientEvent.CLOSE,
+        code,
+        wasClean: false,
+      });
     }
   }
 
@@ -295,6 +373,83 @@ export class NetworkManager {
       playerId: this.playerId,
       point: legacyPoint,
     };
+  }
+
+  async negotiateActionProtocol() {
+    const { socket, generation } = this._captureConnection();
+    if (this._actionProtocol !== "unknown") return { ...this._actionProtocolInfo };
+    if (this._actionProtocolInfo.reason === "timeout" || this._actionProtocolInfo.reason === "protocol_error"
+      || this._actionProtocolInfo.reason === "invalid_response" || this._actionProtocolInfo.reason === "send_failed") {
+      return { ...this._actionProtocolInfo };
+    }
+    if (this._protocolNegotiation?.generation === generation) return this._protocolNegotiation.promise;
+    let pending;
+    const promise = new Promise((resolve) => {
+      const timeoutId = globalThis.setTimeout(() => {
+        this._settleProtocolNegotiation({ status: "unknown", reason: "timeout" }, generation);
+      }, this.options.protocolTimeout ?? DEFAULT_PROTOCOL_TIMEOUT);
+      pending = { generation, resolve, timeoutId, promise: null };
+    });
+    pending.promise = promise;
+    this._protocolNegotiation = pending;
+    try {
+      this._sendOn(socket, { type: "action_protocol_hello", supportedVersions: [1] });
+    } catch (error) {
+      this._settleProtocolNegotiation({ status: "unknown", reason: "send_failed", error }, generation);
+    }
+    return promise;
+  }
+
+  async sendVersionedAction(action = {}) {
+    const { socket, generation } = this._captureConnection();
+    if (this._actionProtocol !== "selected") throw new Error("Action protocol v1 has not been negotiated.");
+    const { roomInstanceId, matchEpoch, clientActionId, baseActionSeq, type } = action;
+    if (typeof roomInstanceId !== "string" || !roomInstanceId || typeof matchEpoch !== "string" || !matchEpoch
+      || typeof clientActionId !== "string" || !clientActionId || !Number.isInteger(baseActionSeq) || baseActionSeq < 0
+      || !["player_move", "player_skip", "player_resign"].includes(type)) {
+      throw new Error("sendVersionedAction requires roomInstanceId, matchEpoch, clientActionId, baseActionSeq, and a supported action type.");
+    }
+    if (type === "player_move" && !isValidPoint(action.point)) throw new Error("player_move requires [x, y] integer coordinates.");
+    if (!this._isCurrentConnection(socket, generation)) throw new Error("Connection changed before action could be sent.");
+    const payload = { type, roomInstanceId, matchEpoch, clientActionId, baseActionSeq, ...(type === "player_move" ? { point: clonePoint(action.point) } : {}) };
+    this._sendOn(socket, payload);
+    return { sent: true, payload };
+  }
+
+  async requestActionSync(options = {}) {
+    const { socket, generation } = this._captureConnection();
+    if (this._actionProtocol !== "selected") throw new Error("Action protocol v1 has not been negotiated.");
+    if (typeof options.roomInstanceId !== "string" || !options.roomInstanceId
+      || typeof options.matchEpoch !== "string" || !options.matchEpoch
+      || !Array.isArray(options.pendingActionIds)
+      || options.pendingActionIds.some(id => typeof id !== "string" || !id)) {
+      throw new Error("requestActionSync requires roomInstanceId, matchEpoch, and string pendingActionIds.");
+    }
+    const syncRequestId = String(++this._nextSyncRequestId);
+    const request = new Promise((resolve, reject) => {
+      const timeoutId = globalThis.setTimeout(() => {
+        this._syncRequests.delete(syncRequestId);
+        reject(new Error("Timed out waiting for action sync state."));
+      }, options.timeout ?? this.options.requestTimeout ?? DEFAULT_REQUEST_TIMEOUT);
+      this._syncRequests.set(syncRequestId, { socket, generation, resolve, reject, timeoutId, scope: { ...options }, roomId: this.roomId });
+    });
+    try {
+      this._sendOn(socket, {
+        type: "sync_state",
+        roomInstanceId: options.roomInstanceId,
+        matchEpoch: options.matchEpoch,
+        pendingActionIds: [...options.pendingActionIds],
+        syncRequestId,
+      });
+    } catch (error) {
+      const record = this._syncRequests.get(syncRequestId);
+      if (record) {
+        globalThis.clearTimeout(record.timeoutId);
+        this._syncRequests.delete(syncRequestId);
+        record.reject(error);
+      }
+    }
+    return request;
   }
 
   async sendSkip() {
@@ -453,7 +608,7 @@ export class NetworkManager {
 
   getSession() {
     return {
-      url: this.url,
+      url: sanitizeSessionUrl(this.url),
       roomId: this.roomId,
       playerId: this.playerId,
       color: this.color,
@@ -462,7 +617,7 @@ export class NetworkManager {
   }
 
   hydrateSession(sessionLike = {}) {
-    this.url = sessionLike.url ?? this.url;
+    this.url = sanitizeSessionUrl(sessionLike.url) ?? this.url;
     this.roomId = sessionLike.roomId ?? this.roomId;
     this.playerId = sessionLike.playerId ?? this.playerId;
     this.color = sessionLike.color ?? this.color;
@@ -477,7 +632,6 @@ export class NetworkManager {
         type: ServerEvent.ERROR,
         code: "INVALID_JSON",
         message: "Received invalid JSON from server.",
-        raw: event.data,
       });
       return;
     }
@@ -487,16 +641,76 @@ export class NetworkManager {
         type: ServerEvent.ERROR,
         code: "INVALID_PAYLOAD",
         message: "Received an unsupported payload from server.",
-        raw: payload,
       });
       return;
     }
 
+    const isLegacyProtocolUnsupported = payload.type === ServerEvent.ERROR
+      && payload.code === "UNKNOWN_MESSAGE_TYPE"
+      && payload.message === "Unsupported message type: 'action_protocol_hello'";
+    if (payload.type === ServerEvent.ERROR) {
+      // Server-controlled text may echo a room id, endpoint, or credential.
+      // Keep stable codes for localization, but never expose the raw message.
+      payload = { ...payload, message: "The server could not complete the request." };
+    }
+
+    if (payload.type === "ACTION_PROTOCOL_SELECTED") {
+      const pending = this._protocolNegotiation;
+      if (!pending) return;
+      if (payload.version === 1 && typeof payload.serverInstanceId === "string" && payload.serverInstanceId.length > 0) {
+        this._settleProtocolNegotiation({ status: "selected", version: 1, serverInstanceId: payload.serverInstanceId }, pending.generation);
+        this._emit(payload.type, payload);
+      } else {
+        this._settleProtocolNegotiation({ status: "unknown", reason: "invalid_response" }, pending.generation);
+      }
+      return;
+    }
+    if (payload.type === "SYNC_STATE") {
+      const record = this._syncRequests.get(String(payload.syncRequestId ?? ""));
+      if (record && this._isCurrentConnection(record.socket, record.generation)) {
+        if (record.roomId !== this.roomId) {
+          globalThis.clearTimeout(record.timeoutId);
+          this._syncRequests.delete(String(payload.syncRequestId));
+          record.reject(new Error("Room changed while action sync was pending."));
+          return;
+        }
+        if (record.scope.roomInstanceId && payload.roomInstanceId !== record.scope.roomInstanceId) {
+          globalThis.clearTimeout(record.timeoutId); this._syncRequests.delete(String(payload.syncRequestId));
+          record.reject(new Error("Action sync response belongs to a different room instance."));
+          return;
+        }
+        globalThis.clearTimeout(record.timeoutId); this._syncRequests.delete(String(payload.syncRequestId)); record.resolve(payload);
+        this._emit(payload.type, payload);
+      }
+      return;
+    }
+    if (payload.type === "sync_state") {
+      return;
+    }
+    if (payload.type === ServerEvent.ERROR && payload.syncRequestId != null) {
+      const key = String(payload.syncRequestId);
+      const record = this._syncRequests.get(key);
+      if (record && this._isCurrentConnection(record.socket, record.generation)) {
+        globalThis.clearTimeout(record.timeoutId);
+        this._syncRequests.delete(key);
+        const error = new Error("Action sync failed.");
+        if (payload.code) error.code = payload.code;
+        record.reject(error);
+      }
+      return;
+    }
+    if (isLegacyProtocolUnsupported && this._protocolNegotiation) {
+      this._settleProtocolNegotiation({ status: "legacy" }, this._protocolNegotiation.generation);
+      return;
+    }
+
     if (payload.type === ServerEvent.ROOM_CREATED) {
+      this._rejectSyncRequests(new Error("Room changed while action sync was pending."));
       this.roomId = payload.roomId ?? this.roomId;
       this.playerId = payload.playerId ?? this.playerId;
       this.color = payload.color ?? this.color;
     } else if (payload.type === ServerEvent.ROOM_JOINED) {
+      this._rejectSyncRequests(new Error("Room changed while action sync was pending."));
       this.roomId = payload.roomId ?? this.roomId;
       this.playerId = payload.playerId ?? this.playerId;
       this.color = payload.color ?? this.color;
@@ -554,6 +768,48 @@ export class NetworkManager {
     return `${this.playerId ?? "anonymous"}:${Date.now().toString(36)}:${this._actionSequence.toString(36)}`;
   }
 
+  _captureConnection() {
+    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) throw new Error("WebSocket is not connected.");
+    return { socket: this.socket, generation: this._connectionGeneration };
+  }
+
+  _isCurrentConnection(socket, generation) {
+    return this.socket === socket
+      && this._connectionGeneration === generation
+      && socket.readyState === WebSocket.OPEN;
+  }
+
+  _sendOn(socket, payload) {
+    if (!this._isCurrentConnection(socket, this._connectionGeneration)) {
+      throw new Error("Connection changed before send.");
+    }
+    socket.send(JSON.stringify(payload));
+  }
+
+  _settleProtocolNegotiation(result, generation = this._connectionGeneration) {
+    const pending = this._protocolNegotiation;
+    if (!pending || pending.generation !== generation) {
+      return;
+    }
+    globalThis.clearTimeout(pending.timeoutId);
+    this._protocolNegotiation = null;
+    this._actionProtocol = result.status === "selected" ? "selected" : result.status === "legacy" ? "legacy" : "unknown";
+    this._actionProtocolInfo = { ...result };
+    pending.resolve(result);
+  }
+
+  _rejectSyncRequests(error) {
+    for (const [id, record] of this._syncRequests) {
+      globalThis.clearTimeout(record.timeoutId);
+      this._syncRequests.delete(id);
+      record.reject(error);
+    }
+  }
+
+  getActionProtocol() {
+    return { ...this._actionProtocolInfo };
+  }
+
   _sendRequest(payload, expectedTypes) {
     // Wait for a specific server event after sending a request.
     return new Promise((resolve, reject) => {
@@ -598,8 +854,9 @@ export class NetworkManager {
     this._pendingRequests = this._pendingRequests.filter((candidate) => candidate !== request);
 
     if (payload.type === ServerEvent.ERROR) {
-      const message = payload.message ?? payload.code ?? "Unknown server error";
-      request.reject(new Error(message));
+      const error = new Error("Server request failed.");
+      if (payload.code) error.code = payload.code;
+      request.reject(error);
       return;
     }
 
@@ -615,6 +872,7 @@ export class NetworkManager {
   }
 
   _clearSession() {
+    this._rejectSyncRequests(new Error("Room session ended while action sync was pending."));
     this.roomId = null;
     this.playerId = null;
     this.color = null;

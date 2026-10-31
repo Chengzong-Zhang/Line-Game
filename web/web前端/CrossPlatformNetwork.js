@@ -1,4 +1,4 @@
-import NetworkManager, { ClientEvent, ServerEvent } from "./NetworkManager.js?v=20261029-unified-r1";
+import NetworkManager, { ClientEvent, ServerEvent } from "./NetworkManager.js?v=20261101-platform-alignment-r1";
 import { SharedRoomClient, sharedApiOrigin } from "./SharedRoomClient.js?v=20261029-unified-r1";
 
 // Preserve existing four-digit Web rooms; eight-character rooms share the

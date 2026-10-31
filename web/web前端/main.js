@@ -3,7 +3,7 @@ const VUE_CDN_URLS = [
   "https://unpkg.com/vue@3/dist/vue.global.prod.js",
   "https://fastly.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js",
 ];
-const APP_ASSET_VERSION = "20261101-guide-alignment";
+const APP_ASSET_VERSION = "20261101-platform-alignment-r1";
 
 // main.js 只做两件事：
 // 1. 确保浏览器拿到 Vue 运行时
@@ -87,10 +87,10 @@ async function ensureVueRuntime() {
 
 async function importAppModule() {
   const candidates = [
-    new URL(`./OnlineApp.js?v=20261101-guide-alignment`, import.meta.url).href,
-    new URL("./OnlineApp.js?v=20261101-guide-alignment", import.meta.url).href,
-    `./OnlineApp.js?v=20261101-guide-alignment`,
-    "./OnlineApp.js?v=20261101-guide-alignment",
+    new URL(`./OnlineApp.js?v=20261101-platform-alignment-r1`, import.meta.url).href,
+    new URL("./OnlineApp.js?v=20261101-platform-alignment-r1", import.meta.url).href,
+    `./OnlineApp.js?v=20261101-platform-alignment-r1`,
+    "./OnlineApp.js?v=20261101-platform-alignment-r1",
   ];
   let lastError = null;
 
@@ -111,8 +111,8 @@ async function installTopologyRuntime() {
   // Renderer obtains atlas projection through the matching BoardView registry.
   // Keep both bootstrap-only imports outside legacy data-URL rule modules.
   await Promise.all([
-    import(new URL(`./TopologyGameEngine.js?v=20261101-guide-alignment`, import.meta.url).href),
-    import(new URL(`./BoardView.js?v=20261101-guide-alignment`, import.meta.url).href),
+    import(new URL(`./TopologyGameEngine.js?v=20261101-platform-alignment-r1`, import.meta.url).href),
+    import(new URL(`./BoardView.js?v=20261101-platform-alignment-r1`, import.meta.url).href),
   ]);
 }
 

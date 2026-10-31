@@ -1,6 +1,6 @@
 import GameEngine, { Player, StartProtectionRule, TerritoryRulesVersion, PLAYER_ORDER, getBoardPositions, resolveBoardShape } from "./GameEngine.js?v=20261029-unified-r1";
 import Renderer from "./Renderer.js?v=20261029-unified-r1";
-import { ServerEvent } from "./NetworkManager.js?v=20261029-unified-r1";
+import { ServerEvent } from "./NetworkManager.js?v=20261101-platform-alignment-r1";
 import { serializeEngineState } from "./AIStateProtocol.js?v=20261029-unified-r1";
 import {
   applyTerritoryWorkerResult,
@@ -17,6 +17,9 @@ const DEFAULT_ENGINE_OPTIONS = Object.freeze({
   rulesVersion: TerritoryRulesVersion.V3,
 });
 const ASYNC_TERRITORY_MIN_GRID_SIZE = 15;
+const TOUCH_MOVE_THRESHOLD_CSS_PX = 8;
+const TOUCH_CLICK_SUPPRESSION_MS = 800;
+const TOUCH_CLICK_SUPPRESSION_RADIUS_CSS_PX = 28;
 
 function clonePoint(point) {
   // Topology boards expose canonical vertex IDs rather than a fabricated
@@ -150,6 +153,7 @@ export class GameController {
     this.stateChangeListener = typeof options.onStateChange === "function" ? options.onStateChange : null;
     this.networkErrorListener = typeof options.onNetworkError === "function" ? options.onNetworkError : null;
     this.actionFeedbackListener = typeof options.onActionFeedback === "function" ? options.onActionFeedback : null;
+    this.successfulLocalPointerMoveListener = typeof options.onSuccessfulLocalPointerMove === "function" ? options.onSuccessfulLocalPointerMove : null;
 
     this.multiplayerEnabled = false;
     this.localPlayer = null;
@@ -163,10 +167,36 @@ export class GameController {
     this._networkUnsubscribers = [];
     this._lastServerActionIndex = 0;
     this._authoritativeSnapshotValid = true;
+    this._pendingRoomOperation = null;
+    this._onlineActionSync = null;
+    this._onlineActionPlayerId = null;
+    this._onlineActionRecoveryListener = null;
+    this._onlineActionSendingListener = null;
+    this._preparedMatchStates = new Map();
+    this._preparedOnlineActions = new Map();
+    this._preparedTransactionSequence = 0;
+    this._lastVersionedRestore = null;
+    this._onlineActionBindingRevision = 0;
+    this._touchInputOwnershipEpoch = 0;
 
     this._isInitialized = false;
     this._boundHandleClick = this._handleClick.bind(this);
     this._boundHandleTouchStart = this._handleTouchStart.bind(this);
+    this._boundHandleTouchMove = this._handleTouchMove.bind(this);
+    this._boundHandleTouchEnd = this._handleTouchEnd.bind(this);
+    this._boundHandleTouchCancel = this._handleTouchCancel.bind(this);
+    this._boundHandleAnyTouchStart = this._handleAnyTouchStart.bind(this);
+    this._boundHandlePointerDown = this._handlePointerDown.bind(this);
+    this._boundSuspendTouchForLifecycle = this._suspendTouchForLifecycle.bind(this);
+    this._boundResumeTouchForLifecycle = this._resumeTouchForLifecycle.bind(this);
+    this._boundHandleTouchVisibility = this._handleTouchVisibility.bind(this);
+    this._pendingTouchGesture = null;
+    this._touchLifecycleEpoch = 0;
+    this._touchLifecycleStartedAt = 0;
+    this._touchHostActive = globalThis.__LIFELINE_APP_ACTIVE__ !== false;
+    this._touchWindowFocused = true;
+    this._touchDocumentVisible = typeof document === "undefined" || document.visibilityState !== "hidden";
+    this._touchClickSuppression = null;
 
     if (options.networkManager || options.multiplayer) {
       this.enableMultiplayer({
@@ -365,8 +395,28 @@ export class GameController {
 
   init() {
     if (!this._isInitialized) {
+      this._touchLifecycleEpoch += 1;
+      this._touchLifecycleStartedAt = globalThis.performance?.now?.() ?? 0;
+      this._pendingTouchGesture = null;
       this.canvas.addEventListener("click", this._boundHandleClick);
       this.canvas.addEventListener("touchstart", this._boundHandleTouchStart, { passive: false });
+      this.canvas.addEventListener("touchmove", this._boundHandleTouchMove, { passive: false });
+      this.canvas.addEventListener("touchend", this._boundHandleTouchEnd, { passive: false });
+      this.canvas.addEventListener("touchcancel", this._boundHandleTouchCancel, { passive: false });
+      this.canvas.addEventListener("pointerdown", this._boundHandlePointerDown);
+      if (typeof globalThis.addEventListener === "function") {
+        this._touchHostActive = globalThis.__LIFELINE_APP_ACTIVE__ !== false;
+        globalThis.addEventListener("lifeline:background", this._boundSuspendTouchForLifecycle);
+        globalThis.addEventListener("lifeline:foreground", this._boundResumeTouchForLifecycle);
+        globalThis.addEventListener("blur", this._boundSuspendTouchForLifecycle);
+        globalThis.addEventListener("focus", this._boundResumeTouchForLifecycle);
+      }
+      if (typeof document !== "undefined" && typeof document.addEventListener === "function") {
+        this._touchDocumentVisible = document.visibilityState !== "hidden";
+        document.addEventListener("touchstart", this._boundHandleAnyTouchStart, { capture: true, passive: false });
+        document.addEventListener("visibilitychange", this._boundHandleTouchVisibility);
+      }
+      this._touchWindowFocused = typeof document === "undefined" || typeof document.hasFocus !== "function" || document.hasFocus();
       this._isInitialized = true;
     }
 
@@ -387,8 +437,24 @@ export class GameController {
 
   destroy() {
     if (this._isInitialized) {
+      this._cancelPendingTouchGesture({ suppressClick: true });
+      this._touchLifecycleEpoch += 1;
       this.canvas.removeEventListener("click", this._boundHandleClick);
       this.canvas.removeEventListener("touchstart", this._boundHandleTouchStart);
+      this.canvas.removeEventListener("touchmove", this._boundHandleTouchMove);
+      this.canvas.removeEventListener("touchend", this._boundHandleTouchEnd);
+      this.canvas.removeEventListener("touchcancel", this._boundHandleTouchCancel);
+      this.canvas.removeEventListener("pointerdown", this._boundHandlePointerDown);
+      if (typeof globalThis.removeEventListener === "function") {
+        globalThis.removeEventListener("lifeline:background", this._boundSuspendTouchForLifecycle);
+        globalThis.removeEventListener("lifeline:foreground", this._boundResumeTouchForLifecycle);
+        globalThis.removeEventListener("blur", this._boundSuspendTouchForLifecycle);
+        globalThis.removeEventListener("focus", this._boundResumeTouchForLifecycle);
+      }
+      if (typeof document !== "undefined" && typeof document.removeEventListener === "function") {
+        document.removeEventListener("touchstart", this._boundHandleAnyTouchStart, { capture: true });
+        document.removeEventListener("visibilitychange", this._boundHandleTouchVisibility);
+      }
       this._isInitialized = false;
     }
 
@@ -410,6 +476,7 @@ export class GameController {
   }
 
   setReadOnlyMode(enabled = false) {
+    this._touchInputOwnershipEpoch += 1;
     this.readOnlyMode = Boolean(enabled);
     const snapshot = this.engine.getSnapshot();
     const state = this._buildGameState(snapshot);
@@ -506,6 +573,12 @@ export class GameController {
       return;
     }
 
+    if (this.networkManager && this._onlineActionSync && this._hasVersionedActionState()) {
+      this._onlineActionSync.markConnectionLost?.();
+      this.refreshOnlineActionSyncState();
+    }
+    this._invalidatePendingRoomOperation();
+    this._touchInputOwnershipEpoch += 1;
     this._removeNetworkListeners();
     this.networkManager = networkManager ?? null;
 
@@ -517,7 +590,7 @@ export class GameController {
     // only applies incremental gameplay events so one server frame has one owner.
     this._networkUnsubscribers.push(
       this.networkManager.on(ServerEvent.OPPONENT_MOVE, (payload) => {
-        if (!this._acceptServerAction(payload)) return;
+        if (!this._shouldConsumeLegacyActionEvents() || !this._acceptServerAction(payload)) return;
         if (this.engine?.isTopologyBoard) {
           if (isTopologyVertexId(payload?.vertexId)
             && payload.boardHash === this.engine.boardHash) {
@@ -535,14 +608,14 @@ export class GameController {
 
     this._networkUnsubscribers.push(
       this.networkManager.on(ServerEvent.TURN_SKIPPED, (payload) => {
-        if (!this._acceptServerAction(payload)) return;
+        if (!this._shouldConsumeLegacyActionEvents() || !this._acceptServerAction(payload)) return;
         this.applyRemoteSkip();
       }),
     );
 
     this._networkUnsubscribers.push(
       this.networkManager.on(ServerEvent.ROOT_ACTION_APPLIED, (payload) => {
-        if (!this._acceptServerAction(payload)) return;
+        if (!this._shouldConsumeLegacyActionEvents() || !this._acceptServerAction(payload)) return;
         const type = payload?.actionType === "player_root_relocate" ? "relocate"
           : payload?.actionType === "player_root_add" ? "add" : null;
         if (type && isGridPoint(payload.point)) this.applyRemoteRootAction(type, payload.point);
@@ -552,10 +625,324 @@ export class GameController {
 
     this._networkUnsubscribers.push(
       this.networkManager.on(ServerEvent.PLAYER_RESIGNED, (payload) => {
+        if (!this._shouldConsumeLegacyActionEvents()) return;
         this.applyRemoteResign(payload?.color);
       }),
     );
 
+    this._networkUnsubscribers.push(
+      this.networkManager.on("CLOSE", () => {
+        this._invalidatePendingRoomOperation();
+        if (this._onlineActionSync && this._hasVersionedActionState()) {
+          this._onlineActionSync.markConnectionLost?.();
+          this.refreshOnlineActionSyncState();
+        }
+      }),
+    );
+
+  }
+
+  bindOnlineActionSync({ sync = null, playerId = null, onRecoveryRequired = null, onActionSending = null } = {}) {
+    const pending = this._onlineActionSync?.getState?.().pending ?? [];
+    const ownershipChanged = this._onlineActionSync !== (sync ?? null) || this._onlineActionPlayerId !== (playerId ?? null);
+    if (pending.length && ownershipChanged) return { status: "blocked", reason: "unresolved_versioned_action" };
+    this._onlineActionSync = sync ?? null;
+    this._onlineActionPlayerId = playerId ?? null;
+    this._onlineActionRecoveryListener = typeof onRecoveryRequired === "function" ? onRecoveryRequired : null;
+    this._onlineActionSendingListener = typeof onActionSending === "function" ? onActionSending : null;
+    if (ownershipChanged) this._onlineActionBindingRevision += 1;
+    return { status: "bound", unchanged: !ownershipChanged, state: this.refreshOnlineActionSyncState() };
+  }
+
+  refreshOnlineActionSyncState() {
+    if (!this.engine || !this.renderer) return this.getGameState();
+    const snapshot = this.engine.getSnapshot();
+    this._syncSnapshot(snapshot, { scheduleTerritory: false });
+    return this._buildGameState(snapshot);
+  }
+
+  _onlineActionLedgerState() {
+    return this._onlineActionSync?.getState?.() ?? null;
+  }
+
+  _hasVersionedActionState() {
+    const state = this._onlineActionLedgerState();
+    return Boolean(state && (state.protocol?.status === "selected" || state.pending?.length));
+  }
+
+  _getOnlineActionLockReason() {
+    if (!this._onlineActionSync) return null;
+    const state = this._onlineActionLedgerState();
+    if (state?.pending?.some((item) => item.status === "uncertain") || state?.recoveryRequired) return "ACTION_OUTCOME_UNKNOWN";
+    if (state?.capacityBlocked) return "ACTION_OUTCOME_CAPACITY";
+    if (state?.pending?.length || state?.locked) return "ACTION_PENDING";
+    if (!this.multiplayerEnabled) return null;
+    if (!state || state.protocol?.status === "unknown") return "ACTION_PROTOCOL_UNKNOWN";
+    // The v1 legacy ledger encodes ordinary coordinate moves only. Never
+    // optimistically mutate a topology board under an incompatible ledger.
+    if (state.protocol.status === "selected" && this.engine?.isTopologyBoard) return "ACTION_PROTOCOL_UNSUPPORTED";
+    if (state.protocol.status === "selected" && !state.scope) return "ACTION_SCOPE_UNKNOWN";
+    if (state.protocol.status === "selected" && (typeof this._onlineActionPlayerId !== "string" || !this._onlineActionPlayerId)) {
+      return "ACTION_LOCAL_PLAYER_UNKNOWN";
+    }
+    if (state.protocol.status !== "selected" && state.protocol.status !== "legacy") return "ACTION_PROTOCOL_UNKNOWN";
+    return null;
+  }
+
+  _shouldConsumeLegacyActionEvents() {
+    if (!this._onlineActionSync) return true;
+    const state = this._onlineActionLedgerState();
+    return state?.protocol?.status === "legacy" && !state.pending?.length;
+  }
+
+  _reserveOnlineAction(type, point = null) {
+    if (!this._onlineActionSync) return { mode: "legacy" };
+    const state = this._onlineActionLedgerState();
+    if (state?.protocol?.status === "legacy" && !state.pending?.length && !state.locked) return { mode: "legacy" };
+    const lockReason = this._getOnlineActionLockReason();
+    if (lockReason) return { mode: "blocked", reason: lockReason };
+    const reservation = this._onlineActionSync.beginAction({
+      type,
+      playerId: this._onlineActionPlayerId,
+      actorColor: type === "player_resign" ? this.localPlayer : this.engine.getCurrentPlayer(),
+      ...(type === "player_move" ? { point: clonePoint(point) } : {}),
+    });
+    if (reservation.status !== "reserved") {
+      return { mode: "blocked", reason: reservation.reason ?? reservation.status };
+    }
+    const reserved = {
+      mode: "versioned",
+      sync: this._onlineActionSync,
+      bindingRevision: this._onlineActionBindingRevision,
+      manager: this.networkManager,
+      socket: this.networkManager?.socket ?? null,
+      engine: this.engine,
+      engineEpoch: this._engineEpoch,
+      clientActionId: reservation.clientActionId,
+      actorColor: type === "player_resign" ? this.localPlayer : this.engine.getCurrentPlayer(),
+      action: reservation.action,
+      recoveryListener: this._onlineActionRecoveryListener,
+    };
+    // Publish only after the ledger owns the slot, so re-entrant listeners see the lock.
+    try {
+      this.refreshOnlineActionSyncState();
+    } catch (error) {
+      this._markOnlineActionUncertain(reserved, "reservation_publish_failed", error);
+      return { mode: "blocked", reason: "ACTION_OUTCOME_UNKNOWN", state: this.getGameState() };
+    }
+    return reserved;
+  }
+
+  _isCurrentOnlineActionReservation(reservation) {
+    const pending = reservation?.sync?.getState?.().pending ?? [];
+    return Boolean(reservation && reservation.sync === this._onlineActionSync
+      && reservation.bindingRevision === this._onlineActionBindingRevision
+      && reservation.manager === this.networkManager
+      && reservation.socket === (this.networkManager?.socket ?? null)
+      && reservation.engine === this.engine && reservation.engineEpoch === this._engineEpoch
+      && pending.some((item) => item.clientActionId === reservation.clientActionId));
+  }
+
+  _markOnlineActionUncertain(reservation, reason, error = null) {
+    try {
+      reservation.sync.markUncertain(reservation.clientActionId);
+    } catch (ledgerError) {
+      try { this._reportNetworkError(ledgerError); } catch (_reportError) {}
+    }
+
+    const state = this.getGameState();
+    try {
+      reservation.recoveryListener?.({ reason, clientActionId: reservation.clientActionId, error, state });
+    } catch (callbackError) {
+      try { this._reportNetworkError(callbackError); } catch (_reportError) {}
+    }
+
+    if (reservation.sync === this._onlineActionSync) {
+      try {
+        this.refreshOnlineActionSyncState();
+      } catch (refreshError) {
+        try { this._reportNetworkError(refreshError); } catch (_reportError) {}
+      }
+    }
+    return state;
+  }
+
+  async _sendReservedOnlineAction(reservation) {
+    if (!this._isCurrentOnlineActionReservation(reservation)) {
+      return { success: false, reason: "STALE_ACTION_OWNER", state: this.getGameState() };
+    }
+    try {
+      if (typeof reservation.manager?.sendVersionedAction !== "function") {
+        throw new Error("Versioned action transport is unavailable.");
+      }
+      this._onlineActionSendingListener?.({
+        clientActionId: reservation.clientActionId,
+        action: { ...reservation.action, ...(Array.isArray(reservation.action?.point) ? { point: clonePoint(reservation.action.point) } : {}) },
+        manager: reservation.manager,
+        socket: reservation.socket,
+        sync: reservation.sync,
+      });
+      if (!this._isCurrentOnlineActionReservation(reservation)) {
+        return { success: false, reason: "STALE_ACTION_OWNER", state: this.getGameState() };
+      }
+      await reservation.manager.sendVersionedAction(reservation.action);
+      if (!this._isCurrentOnlineActionReservation(reservation)) {
+        return { success: false, reason: "STALE_ACTION_OWNER", state: this.getGameState() };
+      }
+      reservation.sync.markSent(reservation.clientActionId);
+      return { success: true, reason: null, state: this.refreshOnlineActionSyncState() };
+    } catch (error) {
+      if (!this._isCurrentOnlineActionReservation(reservation)) {
+        return { success: false, reason: "STALE_ACTION_OWNER", state: this.getGameState() };
+      }
+      const message = typeof error?.message === "string" ? error.message : String(error);
+      const normalizedError = new Error(message, { cause: error });
+      normalizedError.name = error?.name || "Error";
+      normalizedError.code = "ACTION_OUTCOME_UNKNOWN";
+      try { this._reportNetworkError(normalizedError); } catch (_reportError) {}
+      const state = this._markOnlineActionUncertain(reservation, "action_send_failed", normalizedError);
+      return { success: false, reason: "ACTION_OUTCOME_UNKNOWN", state };
+    }
+  }
+
+  _performVersionedMove(point, actingPlayer) {
+    const reservation = this._reserveOnlineAction("player_move", point);
+    if (reservation.mode === "blocked") {
+      const state = this.getGameState();
+      this._emitActionFeedback({ type: "move", success: false, reason: reservation.reason, point });
+      return { success: false, reason: reservation.reason, point: clonePoint(point), state };
+    }
+    if (reservation.mode !== "versioned") return null;
+    return this._applyReservedVersionedMove(reservation, point, actingPlayer);
+  }
+
+  async retryPendingOnlineAction(clientActionId) {
+    const state = this._onlineActionSync?.getState?.();
+    const record = state?.pending?.find((item) => item.clientActionId === clientActionId);
+    const baseline = this._lastVersionedRestore;
+    const restored = Boolean(record?.status === "retryable" && record.retryBaseline
+      && baseline && baseline.engine === this.engine && baseline.engineEpoch === this._engineEpoch
+      && baseline.positionRevision === this.engine.getSnapshot().positionRevision
+      && baseline.scope?.matchEpoch === record.retryBaseline.scope?.matchEpoch
+      && baseline.scope?.actionSeq === record.retryBaseline.actionSeq
+      && record.retryBaseline.actionSeq === record.wireAction.baseActionSeq
+      && baseline.scope?.serverInstanceId === record.retryBaseline.scope?.serverInstanceId
+      && baseline.scope?.roomInstanceId === record.retryBaseline.scope?.roomInstanceId
+      && baseline.scope?.matchGeneration === record.retryBaseline.scope?.matchGeneration);
+    if (!restored || record.optimisticApplied) {
+      if (record) {
+        const reservation = this._reservationFromPending(record);
+        this._markOnlineActionUncertain(reservation, "retry_baseline_not_restored");
+      }
+      return { success: false, reason: "RETRY_BASELINE_NOT_RESTORED", state: this.getGameState() };
+    }
+    const retry = this._onlineActionSync.prepareRetry(clientActionId);
+    if (retry.status !== "retry") return { success: false, reason: retry.reason ?? retry.status, state: this.getGameState() };
+    const reservation = this._reservationFromPending({ ...record, action: retry.action, status: "reserved" });
+    if (!this._isCurrentOnlineActionReservation(reservation)) {
+      this._markOnlineActionUncertain(reservation, "retry_action_owner_changed");
+      return { success: false, reason: "STALE_ACTION_OWNER", state: this.getGameState() };
+    }
+    if (retry.action.type === "player_move") {
+      const result = this._applyReservedVersionedMove(reservation, retry.action.point, this.engine.getCurrentPlayer(), { retry: true });
+      if (result.retrySendPromise) await result.retrySendPromise;
+      return { ...result, state: this.getGameState() };
+    }
+    const sent = await this._sendReservedOnlineAction(reservation);
+    return { ...sent, state: sent.state ?? this.getGameState() };
+  }
+
+  _reservationFromPending(record) {
+    return {
+      mode: "versioned",
+      sync: this._onlineActionSync,
+      bindingRevision: this._onlineActionBindingRevision,
+      manager: this.networkManager,
+      socket: this.networkManager?.socket ?? null,
+      engine: this.engine,
+      engineEpoch: this._engineEpoch,
+      clientActionId: record.clientActionId,
+      actorColor: record.actorColor,
+      action: record.action ?? record.wireAction,
+      recoveryListener: this._onlineActionRecoveryListener,
+    };
+  }
+
+  _applyReservedVersionedMove(reservation, point, actingPlayer, { retry = false } = {}) {
+    if (!this._isCurrentOnlineActionReservation(reservation)) {
+      if (!retry) reservation.sync.cancelReservation(reservation.clientActionId);
+      else this._markOnlineActionUncertain(reservation, "retry_action_owner_changed_before_apply");
+      if (reservation.sync === this._onlineActionSync && !retry) this.refreshOnlineActionSyncState();
+      return { success: false, reason: "STALE_ACTION_OWNER", point: clonePoint(point), state: this.getGameState() };
+    }
+    if (reservation.actorColor && reservation.engine.getCurrentPlayer() !== reservation.actorColor) {
+      this._markOnlineActionUncertain(reservation, "retry_actor_changed_before_apply");
+      return { success: false, reason: "ACTION_ACTOR_MISMATCH", point: clonePoint(point), state: this.getGameState() };
+    }
+
+    let result;
+    const beforePositionRevision = reservation.engine.getSnapshot()?.positionRevision;
+    try {
+      result = this._applyMove(point, actingPlayer);
+    } catch (error) {
+      let definitelyUnchanged = false;
+      try {
+        definitelyUnchanged = this.engine === reservation.engine
+          && reservation.engine.getSnapshot()?.positionRevision === beforePositionRevision;
+      } catch (_snapshotError) {
+        // Unknown engine state is treated as possibly changed.
+      }
+      if (definitelyUnchanged && !retry) reservation.sync.cancelReservation(reservation.clientActionId);
+      else {
+        reservation.sync.markOptimisticApplied(reservation.clientActionId);
+        this._markOnlineActionUncertain(reservation, "move_callback_failed_after_engine_change", error);
+      }
+      if (definitelyUnchanged && reservation.sync === this._onlineActionSync) {
+        try { this.refreshOnlineActionSyncState(); } catch (refreshError) {
+          try { this._reportNetworkError(refreshError); } catch (_reportError) {}
+        }
+      }
+      throw error;
+    }
+    if (!result.success) {
+      if (!retry) {
+        const reservationOwnerIsCurrent = this._isCurrentOnlineActionReservation(reservation);
+        const cancelled = reservation.sync.cancelReservation(reservation.clientActionId);
+        if (cancelled && reservationOwnerIsCurrent) {
+          try {
+            this.refreshOnlineActionSyncState();
+          } catch (refreshError) {
+            try { this._reportNetworkError(refreshError); } catch (_reportError) {}
+          }
+        }
+      } else {
+        this._markOnlineActionUncertain(reservation, "retry_move_rejected", new Error(result.reason ?? "Move rejected"));
+      }
+      return { ...result, state: this.getGameState() };
+    }
+    if (!reservation.sync.markOptimisticApplied(reservation.clientActionId)) {
+      const state = this._markOnlineActionUncertain(reservation, "optimistic_action_commit_failed");
+      return { ...result, success: false, reason: "ACTION_OUTCOME_UNKNOWN", state };
+    }
+    if (!this._isCurrentOnlineActionReservation(reservation)) {
+      const state = this._markOnlineActionUncertain(reservation, "action_owner_changed_after_optimistic_apply");
+      result.state = state;
+      result.reason = "ACTION_OUTCOME_UNKNOWN";
+      return result;
+    }
+    try {
+      result.state = this.refreshOnlineActionSyncState();
+    } catch (error) {
+      const state = this._markOnlineActionUncertain(reservation, "move_refresh_failed_before_send", error);
+      return { ...result, success: false, reason: "ACTION_OUTCOME_UNKNOWN", state };
+    }
+    if (!this._isCurrentOnlineActionReservation(reservation)) {
+      const state = this._markOnlineActionUncertain(reservation, "action_owner_changed_before_send");
+      return { ...result, success: false, reason: "ACTION_OUTCOME_UNKNOWN", state };
+    }
+    reservation.sendPromise = this._sendReservedOnlineAction(reservation);
+    if (retry) return { ...result, retrySendPromise: reservation.sendPromise };
+    return result;
   }
 
   enableMultiplayer(options = {}, syncState = true) {
@@ -566,6 +953,7 @@ export class GameController {
   }
 
   disableMultiplayer() {
+    this._invalidatePendingRoomOperation();
     this._removeNetworkListeners();
     this.networkManager = null;
     this._authoritativeSnapshotValid = true;
@@ -578,6 +966,7 @@ export class GameController {
   }
 
   setMultiplayerState(partial = {}, syncState = true) {
+    this._touchInputOwnershipEpoch += 1;
     if (Object.prototype.hasOwnProperty.call(partial, "networkManager")) {
       this.setNetworkManager(partial.networkManager);
     }
@@ -621,6 +1010,7 @@ export class GameController {
   }
 
   setAuthoritativeSnapshotValid(isValid) {
+    this._touchInputOwnershipEpoch += 1;
     this._authoritativeSnapshotValid = Boolean(isValid);
     if (!this._authoritativeSnapshotValid && this.multiplayerEnabled) {
       this.roomReady = false;
@@ -702,6 +1092,12 @@ export class GameController {
       boardHash: snapshot.boardHash ?? null,
       boardDefinition: snapshot.boardDefinition ?? null,
       multiplayerEnabled: this.multiplayerEnabled,
+      roomOperationPending: this.hasPendingRoomOperation(),
+      roomOperationUnconfirmed: this._pendingRoomOperation?.phase === "uncertain"
+        || this._onlineActionLedgerState()?.pending?.some((item) => item.status === "uncertain") === true
+        || this._onlineActionLedgerState()?.recoveryRequired === true,
+      onlineActionPending: Boolean(this._onlineActionLedgerState()?.pending?.length),
+      onlineActionProtocolStatus: this._onlineActionLedgerState()?.protocol?.status ?? null,
       localPlayer: this.localPlayer,
       roomReady: this.roomReady,
       opponentConnected: this.opponentConnected,
@@ -765,12 +1161,21 @@ export class GameController {
       return "GAME_OVER";
     }
 
+    const onlineActionLockReason = this._getOnlineActionLockReason();
+    if (onlineActionLockReason) return onlineActionLockReason;
+
     if (!this.multiplayerEnabled) {
       return null;
     }
 
     if (this._authoritativeSnapshotValid === false) {
       return "AUTHORITATIVE_SNAPSHOT_INVALID";
+    }
+
+    if (this._pendingRoomOperation) {
+      return this._pendingRoomOperation.phase === "uncertain"
+        ? "ROOM_ACTION_UNCONFIRMED"
+        : "ROOM_ACTION_PENDING";
     }
 
     if (!this.roomReady) {
@@ -808,6 +1213,9 @@ export class GameController {
       return "GAME_OVER";
     }
 
+    const onlineActionLockReason = this._getOnlineActionLockReason();
+    if (onlineActionLockReason) return onlineActionLockReason;
+
     if (!this.multiplayerEnabled) {
       return null;
     }
@@ -816,12 +1224,21 @@ export class GameController {
   }
 
   _getResetLockReason(snapshot = this.engine.getSnapshot()) {
+    const onlineActionLockReason = this._getOnlineActionLockReason();
+    if (onlineActionLockReason) return onlineActionLockReason;
+
     if (!this.multiplayerEnabled) {
       return null;
     }
 
     if (this._authoritativeSnapshotValid === false) {
       return "AUTHORITATIVE_SNAPSHOT_INVALID";
+    }
+
+    if (this._pendingRoomOperation) {
+      return this._pendingRoomOperation.phase === "uncertain"
+        ? "ROOM_ACTION_UNCONFIRMED"
+        : "ROOM_ACTION_PENDING";
     }
 
     if (!this.roomReady) {
@@ -995,25 +1412,235 @@ export class GameController {
       void this._syncLocalMove(point);
       return { success: true, pending: true, reason: null, state: this.getGameState() };
     }
-    const result = this._applyMove(point, snapshot.currentPlayer);
-    if (result.success) {
-      void this._syncLocalMove(point);
+    const sourceEngine = this.engine;
+    const sourceEngineEpoch = this._engineEpoch;
+    const versionedResult = this.multiplayerEnabled && this._onlineActionSync?.getState?.().protocol?.status === "selected"
+      ? this._performVersionedMove(point, snapshot.currentPlayer) : null;
+    const result = versionedResult ?? this._applyMove(point, snapshot.currentPlayer);
+    if (result.success && !versionedResult) void this._syncLocalMove(point);
+    if (result.success && !versionedResult && !this.multiplayerEnabled
+      && this.engine === sourceEngine && this._engineEpoch === sourceEngineEpoch) {
+      // Local persistence listeners are installed by the host only when needed.
+      try { this.successfulLocalPointerMoveListener?.(this); } catch (_error) {}
     }
 
     return result;
   }
 
   _handleClick(event) {
+    const suppression = this._touchClickSuppression;
+    if (suppression) {
+      const explicitMouse = event.pointerType === "mouse"
+        || event.sourceCapabilities?.firesTouchEvents === false;
+      const isRecentTouchClick = Date.now() <= suppression.expiresAt
+        && Math.hypot(event.clientX - suppression.x, event.clientY - suppression.y)
+          <= TOUCH_CLICK_SUPPRESSION_RADIUS_CSS_PX;
+      if (explicitMouse) {
+        this._touchClickSuppression = null;
+      } else if (isRecentTouchClick) {
+        this._touchClickSuppression = null;
+        return;
+      } else if (Date.now() > suppression.expiresAt) {
+        this._touchClickSuppression = null;
+      }
+    }
     this._processPointer(event.clientX, event.clientY);
   }
 
   _handleTouchStart(event) {
-    event.preventDefault();
-    const touch = event.touches[0];
-    if (!touch) {
+    if (event.cancelable !== false) event.preventDefault();
+    if (!this._isInitialized || !this._isTouchSurfaceInteractive()) return;
+
+    const touches = Array.from(event.touches ?? []);
+    if (touches.length !== 1) {
+      if (this._pendingTouchGesture) this._pendingTouchGesture.cancelled = true;
       return;
     }
-    this._processPointer(touch.clientX, touch.clientY);
+
+    const touch = touches[0];
+    if (!Number.isFinite(event.timeStamp) || event.timeStamp < this._touchLifecycleStartedAt) return;
+    if (this._pendingTouchGesture) {
+      this._pendingTouchGesture.cancelled = true;
+      return;
+    }
+
+    const snapshot = this.engine.getSnapshot();
+    if (this._getInteractionLockReason(snapshot)) return;
+    this._pendingTouchGesture = {
+      identifier: touch.identifier,
+      startX: touch.clientX,
+      startY: touch.clientY,
+      cancelled: false,
+      engine: this.engine,
+      engineEpoch: this._engineEpoch,
+      positionRevision: snapshot.positionRevision,
+      inputOwner: this._captureTouchInputOwner(),
+      mapping: this._captureTouchMapping(),
+      lifecycleEpoch: this._touchLifecycleEpoch,
+      startTimeStamp: event.timeStamp,
+    };
+  }
+
+  _handlePointerDown(event) {
+    if (event.pointerType === "mouse") {
+      this._touchClickSuppression = null;
+    }
+  }
+
+  _captureTouchInputOwner() {
+    return {
+      readOnlyMode: this.readOnlyMode,
+      multiplayerEnabled: this.multiplayerEnabled,
+      localPlayer: this.localPlayer,
+      roomReady: this.roomReady,
+      opponentConnected: this.opponentConnected,
+      networkManager: this.networkManager,
+      authoritativeSnapshotValid: this._authoritativeSnapshotValid,
+      ownershipEpoch: this._touchInputOwnershipEpoch,
+    };
+  }
+
+  _touchInputOwnerMatches(owner) {
+    const current = this._captureTouchInputOwner();
+    return Object.keys(owner).every((key) => owner[key] === current[key]);
+  }
+
+  _touchGestureIsCurrent(gesture) {
+    const snapshot = this.engine.getSnapshot();
+    return this._isInitialized
+      && gesture.lifecycleEpoch === this._touchLifecycleEpoch
+      && gesture.engine === this.engine
+      && gesture.engineEpoch === this._engineEpoch
+      && gesture.positionRevision === snapshot.positionRevision
+      && this._touchMappingMatches(gesture.mapping)
+      && this._touchInputOwnerMatches(gesture.inputOwner)
+      && !this._getInteractionLockReason(snapshot);
+  }
+
+  _captureTouchMapping() {
+    const rect = this.canvas.getBoundingClientRect();
+    const layout = this.renderer.layout ?? {};
+    return {
+      rect: [rect.left, rect.top, rect.width, rect.height],
+      layout: [layout.cssWidth, layout.cssHeight, layout.scale, layout.offsetX, layout.offsetY],
+    };
+  }
+
+  _touchMappingMatches(mapping) {
+    const current = this._captureTouchMapping();
+    return mapping.rect.every((value, index) => value === current.rect[index])
+      && mapping.layout.every((value, index) => value === current.layout[index]);
+  }
+
+  _rememberTouchClickSuppression(x, y) {
+    this._touchClickSuppression = {
+      x,
+      y,
+      expiresAt: Date.now() + TOUCH_CLICK_SUPPRESSION_MS,
+    };
+  }
+
+  _cancelPendingTouchGesture({ suppressClick = false } = {}) {
+    const gesture = this._pendingTouchGesture;
+    if (!gesture) return;
+    if (suppressClick) {
+      this._rememberTouchClickSuppression(gesture.startX, gesture.startY);
+    }
+    this._pendingTouchGesture = null;
+    this._touchLifecycleEpoch += 1;
+  }
+
+  _suspendTouchForLifecycle(event) {
+    if (event.type === "lifeline:background") this._touchHostActive = false;
+    if (event.type === "blur") this._touchWindowFocused = false;
+    this._cancelPendingTouchGesture({ suppressClick: true });
+  }
+
+  _resumeTouchForLifecycle(event) {
+    if (event.type === "lifeline:foreground") {
+      this._touchHostActive = globalThis.__LIFELINE_APP_ACTIVE__ !== false;
+    }
+    if (event.type === "focus") this._touchWindowFocused = true;
+    this._touchDocumentVisible = typeof document === "undefined" || document.visibilityState !== "hidden";
+  }
+
+  _handleTouchVisibility() {
+    this._touchDocumentVisible = typeof document === "undefined" || document.visibilityState !== "hidden";
+    if (!this._touchDocumentVisible) {
+      this._cancelPendingTouchGesture({ suppressClick: true });
+    }
+  }
+
+  _isTouchSurfaceInteractive() {
+    return this._touchHostActive !== false
+      && this._touchWindowFocused !== false
+      && this._touchDocumentVisible !== false
+      && globalThis.__LIFELINE_APP_ACTIVE__ !== false
+      && (typeof document === "undefined" || document.visibilityState !== "hidden");
+  }
+
+  _handleAnyTouchStart(event) {
+    const gesture = this._pendingTouchGesture;
+    if (gesture && Array.from(event.touches ?? []).length > 1) {
+      if (event.cancelable !== false) event.preventDefault();
+      gesture.cancelled = true;
+    }
+  }
+
+  _handleTouchMove(event) {
+    const gesture = this._pendingTouchGesture;
+    if (!gesture) return;
+    if (event.cancelable !== false) event.preventDefault();
+    const touches = Array.from(event.touches ?? []);
+    if (touches.length !== 1) {
+      gesture.cancelled = true;
+      return;
+    }
+    const touch = touches.find((item) => item.identifier === gesture.identifier);
+    if (!touch) {
+      gesture.cancelled = true;
+      return;
+    }
+    if (Math.hypot(touch.clientX - gesture.startX, touch.clientY - gesture.startY) > TOUCH_MOVE_THRESHOLD_CSS_PX) {
+      gesture.cancelled = true;
+    }
+  }
+
+  _handleTouchEnd(event) {
+    if (event.cancelable !== false) event.preventDefault();
+    const changedTouches = Array.from(event.changedTouches ?? []);
+
+    const gesture = this._pendingTouchGesture;
+    if (!gesture) return;
+    const touch = changedTouches.find((item) => item.identifier === gesture.identifier);
+    if (!touch) {
+      const activeTouchStillDown = Array.from(event.touches ?? [])
+        .some((item) => item.identifier === gesture.identifier);
+      if (!activeTouchStillDown) this._cancelPendingTouchGesture({ suppressClick: true });
+      else if (Array.from(event.touches ?? []).length > 1) gesture.cancelled = true;
+      return;
+    }
+
+    const endAfterStart = Number.isFinite(event.timeStamp) && event.timeStamp >= gesture.startTimeStamp;
+    if (!endAfterStart) return;
+    const noOtherTouches = Array.from(event.touches ?? []).length === 0;
+    const finalDistance = Math.hypot(touch.clientX - gesture.startX, touch.clientY - gesture.startY);
+    if (finalDistance > TOUCH_MOVE_THRESHOLD_CSS_PX) gesture.cancelled = true;
+    const shouldCommit = !gesture.cancelled && noOtherTouches && endAfterStart && this._touchGestureIsCurrent(gesture);
+    this._rememberTouchClickSuppression(touch.clientX, touch.clientY);
+    this._pendingTouchGesture = null;
+    this._touchLifecycleEpoch += 1;
+    if (shouldCommit) this._processPointer(touch.clientX, touch.clientY);
+  }
+
+  _handleTouchCancel(event) {
+    if (event.cancelable !== false) event.preventDefault();
+    const changedTouches = Array.from(event.changedTouches ?? []);
+    const gesture = this._pendingTouchGesture;
+    if (!gesture || (changedTouches.length && !changedTouches.some((touch) => touch.identifier === gesture.identifier))) return;
+    this._rememberTouchClickSuppression(gesture.startX, gesture.startY);
+    this._pendingTouchGesture = null;
+    this._touchLifecycleEpoch += 1;
   }
 
   applyRemoteMove(point) {
@@ -1106,7 +1733,185 @@ export class GameController {
     };
   }
 
-  restoreMatchState(matchState = null) {
+  prepareVersionedActionApplication(action, { optimisticLocal = false, expectedActorColor = null, resolvePlayerColor = null } = {}) {
+    if (this._preparedOnlineActions.size >= 8) return { success: false, reason: "PREPARED_ACTION_LIMIT" };
+    if (!action || !["player_move", "player_skip", "player_resign"].includes(action.type)
+      || !isKnownPlayer(action.color) || typeof action.playerId !== "string" || !action.playerId) {
+      return { success: false, reason: "INVALID_VERSIONED_ACTION" };
+    }
+    const mappedColor = typeof resolvePlayerColor === "function" ? resolvePlayerColor(action.playerId) : null;
+    if (mappedColor !== action.color) return { success: false, reason: "ACTION_PLAYER_IDENTITY_MISMATCH" };
+    if (optimisticLocal && expectedActorColor !== action.color) return { success: false, reason: "LOCAL_ACTION_COLOR_MISMATCH" };
+    if (!optimisticLocal && action.type !== "player_resign" && this.engine.getCurrentPlayer() !== action.color) {
+      return { success: false, reason: "ACTION_ACTOR_MISMATCH" };
+    }
+
+    let candidateEngine = null;
+    let lastAction = this._cloneLastAction();
+    if (!optimisticLocal) {
+      candidateEngine = this._createEngine(this.options.engine);
+      candidateEngine._restoreReplayState(this.engine._captureReplayState());
+      let result;
+      if (action.type === "player_move") {
+        if (!isGridPoint(action.point)) return { success: false, reason: "INVALID_REMOTE_MOVE" };
+        result = candidateEngine.playMove(clonePoint(action.point));
+        lastAction = { type: "move", player: action.color, point: clonePoint(action.point) };
+      } else if (action.type === "player_skip") {
+        result = candidateEngine.skipTurn();
+        lastAction = { type: "skip", player: action.color, point: null };
+      } else {
+        result = candidateEngine.resignPlayer(action.color);
+        lastAction = { type: "resign", player: action.color, point: null };
+      }
+      if (!result.success && !(action.type === "player_resign" && result.reason === "PLAYER_ALREADY_RESIGNED")) {
+        return { success: false, reason: result.reason ?? "ACTION_APPLICATION_FAILED" };
+      }
+    }
+
+    const token = `prepared-action-${++this._preparedTransactionSequence}`;
+    this._preparedOnlineActions.set(token, {
+      candidateEngine, lastAction, baseEngine: this.engine, baseEngineEpoch: this._engineEpoch,
+      basePositionRevision: this.engine.getSnapshot().positionRevision,
+    });
+    return { success: true, token, applied: !optimisticLocal };
+  }
+
+  abortVersionedActionApplication(token) {
+    return this._preparedOnlineActions.delete(token);
+  }
+
+  commitVersionedActionApplication(token) {
+    const installed = this.installVersionedActionApplication(token);
+    if (!installed.success) return installed;
+    return this.publishVersionedActionApplication(token);
+  }
+
+  installVersionedActionApplication(token) {
+    const prepared = this._preparedOnlineActions.get(token);
+    if (!prepared) return { success: false, reason: "PREPARED_ACTION_STALE", state: this.getGameState() };
+    if (prepared.installed) return { success: true, installed: true };
+    if (this.engine !== prepared.baseEngine || this._engineEpoch !== prepared.baseEngineEpoch
+      || this.engine.getSnapshot().positionRevision !== prepared.basePositionRevision) {
+      return { success: false, reason: "PREPARED_ACTION_OWNER_CHANGED", state: this.getGameState() };
+    }
+    if (prepared.candidateEngine) {
+      prepared.previous = { engine: this.engine, validGridPoints: this._validGridPoints, engineEpoch: this._engineEpoch,
+        lastAction: this._cloneLastAction() };
+      try {
+        this.engine = prepared.candidateEngine;
+        this._validGridPoints = this.engine.getValidPositions();
+        this._engineEpoch += 1;
+        this.lastAction = { ...prepared.lastAction, point: Array.isArray(prepared.lastAction.point) ? [...prepared.lastAction.point] : null };
+        if (this.engine !== prepared.candidateEngine || this._engineEpoch !== prepared.previous.engineEpoch + 1) {
+          throw new Error("Prepared action owner changed during installation.");
+        }
+      } catch (error) {
+        this.rollbackVersionedActionApplication(token);
+        return { success: false, reason: "PREPARED_ACTION_INSTALL_FAILED", error, state: this.getGameState() };
+      }
+    }
+    prepared.installed = true;
+    return { success: true, installed: true };
+  }
+
+  rollbackVersionedActionApplication(token) {
+    const prepared = this._preparedOnlineActions.get(token);
+    if (!prepared || (!prepared.installed && !prepared.previous)) return false;
+    if (prepared.previous) {
+      this.engine = prepared.previous.engine; this._validGridPoints = prepared.previous.validGridPoints;
+      this._engineEpoch = prepared.previous.engineEpoch; this.lastAction = prepared.previous.lastAction;
+    }
+    prepared.installed = false; prepared.previous = null;
+    return true;
+  }
+
+  publishVersionedActionApplication(token) {
+    const prepared = this._preparedOnlineActions.get(token);
+    if (!prepared?.installed) return { success: false, reason: "PREPARED_ACTION_NOT_INSTALLED", state: this.getGameState() };
+    this._preparedOnlineActions.delete(token);
+    try {
+      if (prepared.candidateEngine) this._cancelTerritoryRefresh();
+      this._syncSnapshot(this.engine.getSnapshot());
+    } catch (error) {
+      try { this._reportNetworkError(error); } catch (_reportError) {}
+    }
+    return { success: true, state: this.getGameState() };
+  }
+
+  prepareMatchState(matchState = null, options = {}) {
+    if (this._preparedMatchStates.size >= 4) return { success: false, reason: "PREPARED_MATCH_STATE_LIMIT" };
+    return this.restoreMatchState(matchState, { ...options, deferCommit: true });
+  }
+
+  abortPreparedMatchState(token) {
+    return this._preparedMatchStates.delete(token);
+  }
+
+  commitPreparedMatchState(token) {
+    const installed = this.installPreparedMatchState(token);
+    if (!installed.success) return installed;
+    return this.publishPreparedMatchState(token);
+  }
+
+  installPreparedMatchState(token) {
+    const prepared = this._preparedMatchStates.get(token);
+    if (!prepared) return { success: false, reason: "PREPARED_MATCH_STATE_STALE", state: this.getGameState() };
+    if (prepared.installed) return { success: true, installed: true };
+    const baseSnapshot = prepared.baseEngine.getSnapshot();
+    if (this.engine !== prepared.baseEngine || this._engineEpoch !== prepared.baseEngineEpoch
+      || baseSnapshot.positionRevision !== prepared.basePositionRevision) {
+      return { success: false, reason: "PREPARED_MATCH_STATE_OWNER_CHANGED", state: this.getGameState() };
+    }
+
+    prepared.previous = { engine: this.engine, engineOptions: this.options.engine, validGridPoints: this._validGridPoints,
+      engineEpoch: this._engineEpoch, lastAction: this._cloneLastAction(), lastVersionedRestore: this._lastVersionedRestore,
+      authoritativeSnapshotValid: this._authoritativeSnapshotValid };
+    try {
+      this.options.engine = prepared.nextEngineOptions;
+      this.engine = prepared.candidateEngine;
+      this._validGridPoints = this.engine.getValidPositions();
+      this._engineEpoch += 1;
+      this._lastVersionedRestore = prepared.versionedScope ? {
+        scope: { ...prepared.versionedScope }, engine: this.engine, engineEpoch: this._engineEpoch,
+        positionRevision: this.engine.getSnapshot().positionRevision,
+      } : null;
+      this._authoritativeSnapshotValid = true;
+      const lastAction = prepared.replayResult.lastAction;
+      this.lastAction = lastAction ? { ...lastAction, point: Array.isArray(lastAction.point) ? [...lastAction.point] : null } : null;
+      if (this.engine !== prepared.candidateEngine || this._engineEpoch !== prepared.previous.engineEpoch + 1) {
+        throw new Error("Prepared match state owner changed during installation.");
+      }
+      prepared.installed = true;
+    } catch (error) {
+      this.rollbackPreparedMatchState(token);
+      return { success: false, reason: "PREPARED_MATCH_STATE_INSTALL_FAILED", error, state: this.getGameState() };
+    }
+    return { success: true, installed: true };
+  }
+
+  rollbackPreparedMatchState(token) {
+    const prepared = this._preparedMatchStates.get(token);
+    if (!prepared?.previous) return false;
+    this.engine = prepared.previous.engine; this.options.engine = prepared.previous.engineOptions;
+    this._validGridPoints = prepared.previous.validGridPoints; this._engineEpoch = prepared.previous.engineEpoch;
+    this.lastAction = prepared.previous.lastAction; this._lastVersionedRestore = prepared.previous.lastVersionedRestore;
+    this._authoritativeSnapshotValid = prepared.previous.authoritativeSnapshotValid;
+    prepared.installed = false; prepared.previous = null;
+    return true;
+  }
+
+  publishPreparedMatchState(token) {
+    const prepared = this._preparedMatchStates.get(token);
+    if (!prepared?.installed) return { success: false, reason: "PREPARED_MATCH_STATE_NOT_INSTALLED", state: this.getGameState() };
+    this._preparedMatchStates.delete(token);
+    try {
+      this._invalidatePendingRoomOperation(); this._cancelTerritoryRefresh();
+      this.renderer.invalidate(); this._updateLargeBoardClass(); this._syncSnapshot(prepared.replayResult.snapshot);
+    } catch (error) { try { this._reportNetworkError(error); } catch (_reportError) {} }
+    return { success: true, reason: null, state: this.getGameState() };
+  }
+
+  restoreMatchState(matchState = null, restoreOptions = {}) {
     // 联机重连后，在临时引擎上批量回放；只有完整成功才替换当前棋盘。
     const actions = Array.isArray(matchState?.actions) ? matchState.actions : [];
     const incomingSettings = matchState?.settings;
@@ -1176,6 +1981,14 @@ export class GameController {
             };
           }
 
+          if (restoreOptions.strictVersionedActions && (action.type === "player_move" || action.type === "player_skip")) {
+            const mappedColor = typeof restoreOptions.resolvePlayerColor === "function"
+              ? restoreOptions.resolvePlayerColor(action.playerId) : null;
+            if (!isKnownPlayer(action.color) || mappedColor !== action.color || engine.getCurrentPlayer() !== action.color) {
+              return { success: false, reason: `Replay action ${index + 1} has a conflicting actor color.` };
+            }
+          }
+
           if (action.type === "player_move") {
             const point = engine.isTopologyBoard ? action.vertexId : action.point;
             const validMove = engine.isTopologyBoard
@@ -1241,6 +2054,13 @@ export class GameController {
                 reason: `Replay resignation ${index + 1} has an invalid player.`,
               };
             }
+            if (restoreOptions.strictVersionedActions) {
+              const mappedColor = typeof restoreOptions.resolvePlayerColor === "function"
+                ? restoreOptions.resolvePlayerColor(action.playerId) : null;
+              if (mappedColor !== action.color) {
+                return { success: false, reason: `Replay resignation ${index + 1} has a conflicting player identity.` };
+              }
+            }
             const result = engine.resignPlayer(action.color);
             if (!result.success && result.reason !== "PLAYER_ALREADY_RESIGNED") {
               return {
@@ -1278,6 +2098,22 @@ export class GameController {
     if (!replayResult.success) {
       return preserveCurrentEngine(replayResult.reason);
     }
+
+    if (restoreOptions.deferCommit === true) {
+      if (this._preparedMatchStates.size >= 4) return { success: false, reason: "PREPARED_MATCH_STATE_LIMIT" };
+      const token = `prepared-match-${++this._preparedTransactionSequence}`;
+      this._preparedMatchStates.set(token, {
+        candidateEngine,
+        nextEngineOptions,
+        replayResult,
+        baseEngine: this.engine,
+        baseEngineEpoch: this._engineEpoch,
+        basePositionRevision: this.engine.getSnapshot().positionRevision,
+        versionedScope: restoreOptions.versionedScope ?? null,
+      });
+      return { success: true, prepared: true, token, reason: null, snapshot: replayResult.snapshot };
+    }
+    this._invalidatePendingRoomOperation();
 
     const previousControllerState = {
       engine: this.engine,
@@ -1499,6 +2335,9 @@ export class GameController {
   }
 
   async requestRootAction(type, point) {
+    if (this._onlineActionSync?.getState?.().protocol?.status === "selected") {
+      return { success: false, reason: "ACTION_PROTOCOL_UNSUPPORTED", state: this.getGameState() };
+    }
     const lockReason = this._getInteractionLockReason();
     const normalizedType = String(type ?? "").replace(/^root_/, "");
     if (lockReason) return { success: false, reason: lockReason, state: this.getGameState() };
@@ -1518,6 +2357,10 @@ export class GameController {
   }
 
   async requestSkipTurn() {
+    if (!this.multiplayerEnabled) {
+      return { success: false, reason: "MULTIPLAYER_SKIP_REQUIRED", state: this.getGameState() };
+    }
+
     const lockReason = this._getSkipLockReason();
     if (lockReason) {
       return {
@@ -1527,24 +2370,43 @@ export class GameController {
       };
     }
 
+    const reservation = this._reserveOnlineAction("player_skip");
+    if (reservation.mode === "blocked") {
+      return { success: false, reason: reservation.reason, state: this.getGameState() };
+    }
+    if (reservation.mode === "versioned") {
+      const sent = await this._sendReservedOnlineAction(reservation);
+      return { ...sent, state: sent.state ?? this.getGameState() };
+    }
+
+    const operation = this._beginRoomOperation("skip");
+    if (!operation) {
+      return { success: false, reason: "ROOM_ACTION_PENDING", state: this.getGameState() };
+    }
+
+    let success = false;
+    let reason = null;
     try {
       await this.networkManager.sendSkip();
-      return {
-        success: true,
-        reason: null,
-        state: this.getGameState(),
-      };
+      if (this._pendingRoomOperation !== operation) {
+        return { success: false, reason: "STALE_ROOM_OPERATION", state: this.getGameState() };
+      }
+      success = true;
     } catch (error) {
-      this._reportNetworkError(error);
-      return {
-        success: false,
-        reason: "NETWORK_ERROR",
-        state: this.getGameState(),
-      };
+      this._handleRoomOperationFailure(operation, error);
+      success = false;
+      reason = "NETWORK_ERROR";
+    } finally {
+      this._finishRoomOperation(operation);
     }
+    return { success, reason, state: this.getGameState() };
   }
 
   async requestResign() {
+    if (!this.multiplayerEnabled) {
+      return { success: false, reason: "MULTIPLAYER_RESIGN_REQUIRED", state: this.getGameState() };
+    }
+
     const lockReason = this._getResetLockReason();
     if (lockReason) {
       return {
@@ -1554,42 +2416,69 @@ export class GameController {
       };
     }
 
+    const reservation = this._reserveOnlineAction("player_resign");
+    if (reservation.mode === "blocked") {
+      return { success: false, reason: reservation.reason, state: this.getGameState() };
+    }
+    if (reservation.mode === "versioned") {
+      const sent = await this._sendReservedOnlineAction(reservation);
+      return { ...sent, state: sent.state ?? this.getGameState() };
+    }
+
+    const operation = this._beginRoomOperation("resign");
+    if (!operation) {
+      return { success: false, reason: "ROOM_ACTION_PENDING", state: this.getGameState() };
+    }
+
+    let success = false;
+    let reason = null;
     try {
       await this.networkManager.sendResign();
-      return {
-        success: true,
-        reason: null,
-        state: this.getGameState(),
-      };
+      if (this._pendingRoomOperation !== operation) {
+        return { success: false, reason: "STALE_ROOM_OPERATION", state: this.getGameState() };
+      }
+      success = true;
     } catch (error) {
-      this._reportNetworkError(error);
-      return {
-        success: false,
-        reason: "NETWORK_ERROR",
-        state: this.getGameState(),
-      };
+      this._handleRoomOperationFailure(operation, error);
+      success = false;
+      reason = "NETWORK_ERROR";
+    } finally {
+      this._finishRoomOperation(operation);
     }
+    return { success, reason, state: this.getGameState() };
   }
 
   async requestResetMatch(options = {}) {
+    if (!this.multiplayerEnabled) {
+      return { ...this.getGameState(), success: false, reason: "MULTIPLAYER_RESET_REQUIRED" };
+    }
+
     const lockReason = this._getResetLockReason();
     if (lockReason) {
       return this.getGameState();
     }
 
+    const operation = this._beginRoomOperation("reset");
+    if (!operation) {
+      return this.getGameState();
+    }
     const reason = options.reason === "normal_restart" ? "normal_restart" : "resign_restart";
 
     try {
       // 三人模式下这里会先收到 RESET_STATUS，等全员确认后才会真正收到 MATCH_RESET。
       await this.networkManager.sendReset(reason);
+      if (this._pendingRoomOperation !== operation) return this.getGameState();
     } catch (error) {
-      this._reportNetworkError(error);
+      this._handleRoomOperationFailure(operation, error);
+    } finally {
+      this._finishRoomOperation(operation);
     }
 
     return this.getGameState();
   }
 
   resetGame(options = {}) {
+    if (this._getOnlineActionLockReason() || this._onlineActionLedgerState()?.pending?.length) return this.getGameState();
     if (this.multiplayerEnabled && options.force !== true) {
       return this.getGameState();
     }
@@ -1636,6 +2525,70 @@ export class GameController {
 
   getGameState() {
     return this._buildGameState(this.engine.getSnapshot());
+  }
+
+  _beginRoomOperation(type) {
+    if (this._pendingRoomOperation) return null;
+    const operation = {
+      type,
+      phase: "pending",
+      manager: this.networkManager,
+      socket: this.networkManager?.socket ?? null,
+      engine: this.engine,
+      engineEpoch: this._engineEpoch,
+    };
+    this._pendingRoomOperation = operation;
+    const snapshot = this.engine.getSnapshot();
+    this._syncSnapshot(snapshot, { scheduleTerritory: false });
+    return operation;
+  }
+
+  _finishRoomOperation(operation) {
+    if (this._pendingRoomOperation !== operation || operation.phase === "uncertain") return false;
+    if (operation.manager !== this.networkManager || operation.engine !== this.engine
+        || operation.socket !== (this.networkManager?.socket ?? null)
+        || operation.engineEpoch !== this._engineEpoch) {
+      this._invalidatePendingRoomOperation();
+      return false;
+    }
+    this._pendingRoomOperation = null;
+    this._syncSnapshot(this.engine.getSnapshot(), { scheduleTerritory: false });
+    return true;
+  }
+
+  _handleRoomOperationFailure(operation, error) {
+    if (this._pendingRoomOperation !== operation) return;
+    if (typeof error?.code === "string" && error.code) {
+      this._reportNetworkError(error);
+      return;
+    }
+
+    // A transport failure or timeout can happen after the server committed the
+    // action. Keep input locked until an authoritative snapshot or new room
+    // lifecycle invalidates this operation; never describe it as rejected.
+    operation.phase = "uncertain";
+    operation.error = error;
+    this._syncSnapshot(this.engine.getSnapshot(), { scheduleTerritory: false });
+    if (error && typeof error === "object") error.code = error.code ?? "ACTION_OUTCOME_UNKNOWN";
+    this._reportNetworkError(error);
+  }
+
+  _invalidatePendingRoomOperation() {
+    if (!this._pendingRoomOperation) return false;
+    this._pendingRoomOperation = null;
+    if (this.engine && this.renderer) {
+      this._syncSnapshot(this.engine.getSnapshot(), { scheduleTerritory: false });
+    }
+    return true;
+  }
+
+  hasPendingRoomOperation() {
+    const ledgerState = this._onlineActionLedgerState();
+    const protocolBlocked = Boolean(this._onlineActionSync
+      && (ledgerState?.protocol?.status === "unknown"
+        || (ledgerState?.protocol?.status === "selected" && !ledgerState.scope)
+        || ledgerState?.locked));
+    return Boolean(this._pendingRoomOperation || ledgerState?.pending?.length || protocolBlocked);
   }
 
   _removeNetworkListeners() {

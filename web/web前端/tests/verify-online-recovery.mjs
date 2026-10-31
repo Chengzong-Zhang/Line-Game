@@ -606,6 +606,7 @@ assert.deepEqual(subscribedEvents, [
   "TURN_SKIPPED",
   "ROOT_ACTION_APPLIED",
   "PLAYER_RESIGNED",
+  "CLOSE", // The action ledger marks pending operations uncertain on disconnect.
 ]);
 let silentMetadataSnapshotReads = 0;
 const listenerProbeGetSnapshot = listenerProbe.controller.engine.getSnapshot.bind(listenerProbe.controller.engine);
@@ -643,9 +644,17 @@ const applySnapshotSection = sourceSection(
   "const applyRoomSnapshot = (payload, resetController = true) =>",
   "const refreshRoomSnapshot = async () =>",
 );
-assert.match(applySnapshotSection, /coordinateControllerRoomSnapshot\s*\(/);
+const applyDirectSnapshotSection = sourceSection(
+  onlineAppSource,
+  "const applyDirectRoomSnapshot = (payload, resetController = true) =>",
+  "const ensureLegacyActionSync = async () =>",
+);
+assert.match(applyDirectSnapshotSection, /coordinateControllerRoomSnapshot\s*\(/);
+assert.match(applySnapshotSection, /networkManager\.serverAuthoritative\) return applyDirectRoomSnapshot/);
+assert.match(applySnapshotSection, /protocol === "legacy"\) return applyDirectRoomSnapshot/);
+assert.match(applySnapshotSection, /coordinator\.acceptRoomSnapshot\s*\(/);
 assert.doesNotMatch(
-  applySnapshotSection,
+  applyDirectSnapshotSection + applySnapshotSection,
   /restoreMatchState|setGameConfig|_replaceEngine|resetGame/,
   "OnlineApp must delegate controller recovery to the tested coordinator",
 );

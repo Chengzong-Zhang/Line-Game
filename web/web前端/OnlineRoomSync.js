@@ -178,14 +178,21 @@ export function registerRoomSnapshotResponseListeners({
   roomCreatedEvent,
   roomJoinedEvent,
   applyRoomSnapshot,
+  getSnapshotOptions,
   onApplied,
 }) {
-  const applyResponse = (payload) => applyRoomSnapshotWithPostCommit({
-    payload,
-    resetController: true,
-    applyRoomSnapshot,
-    onApplied,
-  });
+  const applyResponse = (payload) => {
+    const options = getSnapshotOptions?.(payload) ?? {};
+    if (options.acceptResponse === false) return false;
+    const result = applyRoomSnapshotWithPostCommit({
+      payload,
+      resetController: true,
+      applyRoomSnapshot: (snapshot, resetController) => applyRoomSnapshot(snapshot, resetController, options),
+      onApplied,
+    });
+    options.onRouteResult?.(result);
+    return result;
+  };
 
   return [
     networkManager.on(roomCreatedEvent, applyResponse),
@@ -199,9 +206,15 @@ export function applyRoomSnapshotWithPostCommit({
   applyRoomSnapshot,
   onApplied,
 }) {
-  if (!applyRoomSnapshot(payload, resetController)) {
-    return false;
+  const applied = applyRoomSnapshot(payload, resetController);
+  if (applied && typeof applied.then === "function") {
+    return Promise.resolve(applied).then((result) => {
+      if (!result) return false;
+      onApplied?.(payload);
+      return true;
+    });
   }
+  if (!applied) return false;
   onApplied?.(payload);
   return true;
 }
