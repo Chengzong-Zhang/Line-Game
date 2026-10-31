@@ -1,0 +1,589 @@
+--- a/web/web前端/OnlineApp.js
++++ b/web/web前端/OnlineApp.js
+@@ -110,6 +110,8 @@
+   undoBoundaryVertex,
+ } from "./BoardEditor.js?v=20261029-unified-r1";
+ import { decodeTopologyState } from "./TopologyStateCodec.js?v=20261029-unified-r1";
++import { OnlineActionSync } from "./OnlineActionSync.js?v=20261031-alignment-diagnostic";
++import { OnlineActionSyncCoordinator } from "./OnlineActionSyncCoordinator.js?v=20261031-alignment-diagnostic";
+ 
+ const {
+   computed,
+@@ -3569,6 +3571,8 @@
+     const hintFeedback = ref("");
+     const actionFeedback = ref("");
+     const actionFeedbackTone = ref("neutral");
++    const actionFeedbackOwner = ref(null);
++    const actionFeedbackScope = ref(null);
+     const language = ref(getAppInitialLanguage());
+     const uiStyle = ref(getAppInitialUiStyle());
+     const guideMarkdownOverrides = ref({});
+@@ -3578,6 +3582,13 @@
+       topologyCapabilities: [TOPOLOGY_ROOM_CAPABILITY],
+       requestPasswordSession: ({ login, signal }) => requestSharedPasswordSession(login, signal),
+     });
++    let onlineActionSync = new OnlineActionSync();
++    let onlineActionCoordinator = null;
++    let confirmedVersionedRoomActions = [];
++    let roomActionUiGeneration = 0;
++    let networkErrorOwner = null;
++    let legacyJoinGeneration = 0;
++    let pendingLegacyJoin = null;
+     networkManager.setAuthToken(storedAuth.token);
+     networkManager.hydrateSession(normalizedStoredSession);
+     const serverUrl = ref(initialServerUrl);
+@@ -5073,17 +5084,44 @@
+       }
+     };
+ 
+-    const setActionFeedback = (message, tone = "neutral") => {
++    const setActionFeedback = (message, tone = "neutral", owner = null, scope = null) => {
+       actionFeedbackRevision += 1;
+       actionFeedback.value = message;
+       actionFeedbackTone.value = tone;
++      actionFeedbackOwner.value = owner;
++      actionFeedbackScope.value = scope;
++    };
++    const clearStaleLegacyFeedback = () => {
++      if (actionFeedbackOwner.value !== "rate-limited") return;
++      const state = onlineActionSync.getState(), scope = state.scope, owner = actionFeedbackScope.value;
++      if (!scope || !owner || scope.serverInstanceId !== owner.serverInstanceId
++        || scope.roomInstanceId !== owner.roomInstanceId || scope.matchGeneration !== owner.matchGeneration
++        || scope.matchEpoch !== owner.matchEpoch || scope.actionSeq !== owner.actionSeq
++        || scope.localPlayerId !== session.value.playerId || session.value.playerId !== networkManager.playerId
++        || session.value.roomId !== networkManager.roomId || state.pending.length || state.recoveryRequired) setActionFeedback("");
++    };
++    const showLegacyRejectedAction = outcome => {
++      const state = onlineActionSync.getState(), scope = state.scope, committed = outcome?.committedScope;
++      if (replayAppDisposed || networkManager.serverAuthoritative || outcome?.status !== "rejected"
++        || outcome.code !== "RATE_LIMITED" || !scope || !committed
++        || scope.serverInstanceId !== committed.serverInstanceId || scope.roomInstanceId !== committed.roomInstanceId
++        || scope.matchGeneration !== committed.matchGeneration || scope.matchEpoch !== committed.matchEpoch
++        || scope.actionSeq !== outcome.committedActionSeq || committed.actionSeq !== outcome.committedActionSeq
++        || scope.localPlayerId !== outcome.playerId || outcome.playerId !== session.value.playerId
++        || outcome.playerId !== networkManager.playerId || session.value.roomId !== networkManager.roomId
++        || !session.value.roomId || state.pending.length || state.recoveryRequired) return false;
++      setActionFeedback(language.value === "zh" ? "操作过快，本次操作未被记录。棋局已同步，请稍后重新操作。" : "Too many actions. This action was not recorded. The game is synced; please wait briefly before trying again.", "error", "rate-limited", { ...scope });
++      return true;
+     };
+ 
+     // Transient feedback is already formatted in the language active when it
+     // was produced. Clear it on a language change without touching the match.
+     watch(language, () => {
+       clearLocalGameNotice();
+-      setActionFeedback("");
++      const owner = actionFeedbackOwner.value;
++      const reason = owner === "pending" ? "ACTION_PENDING" : owner === "unknown" ? "ACTION_OUTCOME_UNKNOWN" : null;
++      if (reason) actionFeedback.value = formatActionFeedback({ reason });
++      else if (owner === "rate-limited") actionFeedback.value = language.value === "zh" ? "操作过快，本次操作未被记录。棋局已同步，请稍后重新操作。" : "Too many actions. This action was not recorded. The game is synced; please wait briefly before trying again.";
+     });
+ 
+     const stopReplayPlayback = () => {
+@@ -5632,7 +5670,10 @@
+             INVALID_MOVE: "这里不能落子，请换一个合法节点。",
+             SUPERKO_VIOLATION: "这个动作会重复历史局面，不能落子。",
+             GAME_OVER: "本局已经结束，请重新开始。",
++            ACTION_PROTOCOL_UNSUPPORTED: "当前房间不支持这种棋盘或操作，请使用新的共享房间。",
+             NOT_YOUR_TURN: "现在还没轮到你。",
++            ROOM_ACTION_PENDING: "等待服务器确认上一动作。", ACTION_PENDING: "等待服务器确认上一动作。",
++            ROOM_ACTION_UNCONFIRMED: "无法确认上一动作是否已生效，请重新连接查询。", ACTION_OUTCOME_UNKNOWN: "无法确认上一动作是否已生效，请重新连接查询。",
+             NETWORK_UNAVAILABLE: "当前连接不可用，请稍后重试。",
+             READ_ONLY_REPLAY: "当前正在复盘，棋盘为只读状态。",
+           }
+@@ -5641,7 +5682,10 @@
+             INVALID_MOVE: "That point is not a legal move.",
+             SUPERKO_VIOLATION: "That move repeats a previous position.",
+             GAME_OVER: "This match is over. Start a new one to continue.",
++            ACTION_PROTOCOL_UNSUPPORTED: "This room does not support this board or action. Please use a new shared room.",
+             NOT_YOUR_TURN: "It is not your turn yet.",
++            ROOM_ACTION_PENDING: "Waiting for server confirmation.", ACTION_PENDING: "Waiting for server confirmation.",
++            ROOM_ACTION_UNCONFIRMED: "The previous action could not be confirmed. Reconnect to check.", ACTION_OUTCOME_UNKNOWN: "The previous action could not be confirmed. Reconnect to check.",
+             NETWORK_UNAVAILABLE: "The connection is unavailable. Try again.",
+             READ_ONLY_REPLAY: "Replay mode is read-only. Exit review to play.",
+           };
+@@ -5693,7 +5737,9 @@
+         return;
+       }
+ 
+-      setActionFeedback(formatActionFeedback(feedback), feedback.success ? "success" : "error");
++      const owner = ["ROOM_ACTION_PENDING", "ACTION_PENDING"].includes(feedback.reason) ? "pending"
++        : ["ROOM_ACTION_UNCONFIRMED", "ACTION_OUTCOME_UNKNOWN"].includes(feedback.reason) ? "unknown" : null;
++      setActionFeedback(formatActionFeedback(feedback), feedback.success ? "success" : "error", owner);
+     };
+ 
+     const leaveTutorial = async (completed) => {
+@@ -6295,6 +6341,7 @@
+     );
+ 
+     const handleNetworkError = (error) => {
++      networkErrorOwner = null;
+       const code = error?.message ?? String(error);
+       const sharedErrors = {
+         ONLINE_NOT_CONFIGURED: ["服务器尚未启用微信互通。", "Shared play is not enabled on this server."],
+@@ -6302,13 +6349,14 @@
+         WEB_PASSWORD_REQUIRED: ["请先验证网页账号密码。", "Verify your Web account password first."],
+         EMOTE_RATE_LIMIT: ["发送表情太快，请稍后再试。", "Emotes are being sent too quickly. Try again shortly."],
+         EMOTES_UNAVAILABLE: ["当前连接暂不能发送表情。", "Emotes are unavailable on this connection."],
++        LEGACY_ACTION_UNSUPPORTED: ["当前房间不支持这种棋盘或操作，请使用新的共享房间。", "This room does not support this board or action. Please use a new shared room."],
+         LEAVE_ROOM_FIRST: ["请先退出当前房间。", "Leave the current room first."],
+       };
+       networkError.value = sharedErrors[code]?.[language.value === "zh" ? 0 : 1]
+         ?? localizeAppErrorMessage(code, language.value, uiStyle.value);
+     };
+ 
+-    const applyRoomPayload = (payload) => {
++    const applyRoomPayload = (payload, { versioned = false } = {}) => {
+       const isMatchReset = payload?.type === ServerEvent.MATCH_RESET
+         || payload?.reason === "resign_restart"
+         || payload?.reason === "normal_restart";
+@@ -6345,7 +6393,7 @@
+         : 0;
+       const shouldAcceptRoomReadyRollback = isRoomReadyTransition && timestampRollbackMs > 0;
+ 
+-      if (timestampRollbackMs > 0 && !shouldAcceptRoomReadyRollback) {
++      if (!versioned && timestampRollbackMs > 0 && !shouldAcceptRoomReadyRollback) {
+         return false;
+       }
+       if (incomingTs > 0) {
+@@ -6415,7 +6463,19 @@
+       }
+     };
+ 
+-    const applyRoomSnapshot = (payload, resetController = true) => {
++    const isCompleteConnectedRoomSnapshot = payload => {
++      const players = payload?.players, n = payload?.settings?.playerCount;
++      if (!Array.isArray(players) || !Number.isInteger(n) || n < 2 || players.length !== n) return false;
++      const ids = players.map(player => player?.playerId);
++      return players.every((player, index) => typeof ids[index] === "string" && ids[index].trim() && player.connected === true)
++        && new Set(ids).size === n && ids.includes(session.value.playerId);
++    };
++    const clearOwnedOpponentNoticeAfterRecovery = payload => {
++      if (networkErrorOwner?.kind === "opponent-left" && networkErrorOwner.roomId === payload?.roomId
++        && payload.roomId === session.value.roomId && payload.roomId === networkManager.roomId
++        && isCompleteConnectedRoomSnapshot(payload)) { networkErrorOwner = null; networkError.value = ""; }
++    };
++    const applyDirectRoomSnapshot = (payload, resetController = true) => {
+       // Validate raw authority before committing it to roomInfo.  Normalizing
+       // first would turn a malformed surface board into a legacy triangle and
+       // make that downgrade look authoritative to reconnecting clients.
+@@ -6442,7 +6502,7 @@
+       }
+       cancelHintRequest();
+       roomIdInput.value = payload?.roomId ?? roomIdInput.value;
+-      syncSession();
++      if (!pendingLegacyJoin) syncSession();
+       const incomingSettings = normalizeReceivedGameSettings(
+         payload?.settings ?? payload?.matchState?.settings ?? currentGameSettings(),
+       );
+@@ -6463,15 +6523,120 @@
+         return false;
+       }
+       if (controllerResult.authoritativeSnapshotAccepted) {
++        clearOwnedOpponentNoticeAfterRecovery(payload);
+         if (roomSnapshotRecoveryFailed) {
+           networkError.value = "";
+         }
+         roomSnapshotRecoveryFailed = false;
+       }
+-      syncSession();
++      if (!pendingLegacyJoin) syncSession();
+ 
+       reconnectAttempt = 0;
+       return true;
++    };
++
++    const ensureLegacyActionSync = async () => {
++      if (networkManager.serverAuthoritative) return { status: "shared" };
++      if (!controller.value) return { status: "unknown" };
++      if (!onlineActionCoordinator) {
++        const instance = controller.value;
++        let coordinator;
++        coordinator = new OnlineActionSyncCoordinator({
++          sync: onlineActionSync,
++          controller: instance,
++          getNetworkManager: () => networkManager,
++          playerId: session.value.playerId || null,
++          resolvePlayerColor: id => roomInfo.value.players?.find(player => player.playerId === id)?.color ?? null,
++          isCurrentOwner: () => !replayAppDisposed && controller.value === instance
++            && onlineActionCoordinator === coordinator && !networkManager.serverAuthoritative,
++          onActionRejected: outcome => showLegacyRejectedAction(outcome),
++          onCommittedRoomState: payload => {
++            if (replayAppDisposed || onlineActionCoordinator !== coordinator || networkManager.serverAuthoritative
++              || !applyRoomPayload(payload, { versioned: true })) return false;
++            cancelHintRequest();
++            roomIdInput.value = payload.roomId ?? roomIdInput.value;
++            applySettingsToController(normalizeReceivedGameSettings(payload.settings ?? payload.matchState?.settings ?? currentGameSettings()), false, false);
++            syncOnlineController(payload, true);
++            clearOwnedOpponentNoticeAfterRecovery(payload);
++            confirmedVersionedRoomActions = Array.isArray(payload.matchState?.actions)
++              ? payload.matchState.actions.map(action => ({ ...action, ...(Array.isArray(action?.point) ? { point: [...action.point] } : {}) })) : [];
++            if (!pendingLegacyJoin) syncSession();
++            roomSnapshotRecoveryFailed = false;
++            clearReconnectTimer();
++            reconnectAttempt = 0;
++            return true;
++          },
++        });
++        onlineActionCoordinator = coordinator;
++      }
++      return onlineActionCoordinator.start(networkManager);
++    };
++
++    const hasCurrentCapacityRecoveryReady = () => {
++      const state = onlineActionSync.getState(), ready = state.capacityRecoveryReadyScope, scope = state.scope;
++      return !networkManager.serverAuthoritative && state.capacityRecoveryReady === true && !!ready && !!scope
++        && roomStatus.value !== "solo" && !!session.value.roomId && !!session.value.playerId
++        && networkManager.roomId === session.value.roomId && networkManager.playerId === session.value.playerId
++        && scope.localPlayerId === session.value.playerId && onlineActionCoordinator?.sync === onlineActionSync
++        && onlineActionCoordinator?.controller === controller.value && onlineActionCoordinator?.playerId === session.value.playerId
++        && ready.serverInstanceId === scope.serverInstanceId && ready.roomInstanceId === scope.roomInstanceId
++        && ready.matchGeneration === scope.matchGeneration && ready.matchEpoch === scope.matchEpoch;
++    };
++    const persistConfirmedVersionedRoomGame = () => {
++      let saved;
++      try {
++        const settings = normalizeReceivedGameSettings(roomInfo.value.settings);
++        const players = normalizeLocalPlayers({}, settings.playerCount, settings.boardShape);
++        saved = createLocalGameSession(settings, confirmedVersionedRoomActions,
++          { players, started: true, paused: false, undo: normalizeUndoUsage() });
++      } catch (_) { return null; }
++      return saved && persistLocalGameSession(saved) ? saved : null;
++    };
++    const releaseLegacyActionSync = ({ capacityValidated = false } = {}) => {
++      if (!onlineActionCoordinator) return true;
++      if (onlineActionSync.isLocked() && !capacityValidated) return false;
++      onlineActionCoordinator.dispose({ leftRoom: true });
++      onlineActionCoordinator = null;
++      onlineActionSync = new OnlineActionSync();
++      return true;
++    };
++
++    const applyRoomSnapshot = (payload, resetController = true) => {
++      const allowNewScope = ["ROOM_CREATED", "ROOM_JOINED"].includes(payload?.type);
++      if (!allowNewScope && (!payload?.roomId || payload.roomId !== session.value.roomId || payload.roomId !== networkManager.roomId)) return false;
++      if (networkManager.serverAuthoritative) return applyDirectRoomSnapshot(payload, resetController);
++      const protocol = onlineActionSync.getState().protocol.status;
++      if (protocol === "legacy") return applyDirectRoomSnapshot(payload, resetController);
++      const preflight = validateTopologyRoomSnapshot(payload, payload?.settings ?? payload?.matchState?.settings ?? currentGameSettings(), networkManager.topologyCapabilities);
++      if (!preflight.ok) { controller.value?.setAuthoritativeSnapshotValid?.(false); roomSnapshotRecoveryFailed = true; networkError.value = preflight.code; return false; }
++      if (protocol !== "selected" || !onlineActionCoordinator || !controller.value
++        || payload?.actionProtocolVersion !== 1 || !payload?.matchState) return false;
++      if (!onlineActionSync.getState().scope) {
++        if (!allowNewScope) return false;
++        const playerId = payload.yourPlayerId ?? payload.playerId ?? networkManager.playerId;
++        if (onlineActionCoordinator.adoptPlayerIdentity(playerId).status !== "bound") return false;
++        controller.value.setAuthoritativeSnapshotValid?.(false);
++        syncOnlineController({ ...payload, status: "waiting", matchPhase: "WAITING" }, false);
++      } else if (!allowNewScope && payload.roomId !== session.value.roomId) return false;
++      const coordinator = onlineActionCoordinator;
++      return coordinator.acceptRoomSnapshot(payload, { allowNewScope, generation: coordinator.generation, manager: networkManager })
++        .then(result => coordinator === onlineActionCoordinator && result.status === "committed");
++    };
++
++    const joinLegacyRoom = async (roomId, playerId = null) => {
++      const op = { roomId: String(roomId), generation: ++legacyJoinGeneration, consumed: false, commit: null };
++      if (pendingLegacyJoin) networkManager.disconnect(1000, "replace_pending_join");
++      pendingLegacyJoin = op;
++      try {
++        await networkManager.joinRoom(op.roomId, playerId);
++        if (pendingLegacyJoin !== op || op.generation !== legacyJoinGeneration || replayAppDisposed) return false;
++        if (!op.commit || !(await op.commit)) throw new Error("Room snapshot was not confirmed.");
++        if (pendingLegacyJoin !== op || op.generation !== legacyJoinGeneration || replayAppDisposed) return false;
++        syncSession();
++        return true;
++      } finally {
++        if (pendingLegacyJoin === op) pendingLegacyJoin = null;
++      }
+     };
+ 
+     const refreshRoomSnapshot = async () => {
+@@ -6481,7 +6646,8 @@
+ 
+       try {
+         // ROOM_JOINED is applied by the event listener below; this await is acknowledgement only.
+-        await networkManager.joinRoom(session.value.roomId, session.value.playerId);
++        if (networkManager.serverAuthoritative) await networkManager.joinRoom(session.value.roomId, session.value.playerId);
++        else await joinLegacyRoom(session.value.roomId, session.value.playerId);
+       } catch (error) {
+         handleNetworkError(error);
+       }
+@@ -6504,7 +6670,8 @@
+           return;
+         }
+ 
+-        await networkManager.joinRoom(session.value.roomId, session.value.playerId);
++        if (networkManager.serverAuthoritative) await networkManager.joinRoom(session.value.roomId, session.value.playerId);
++        else await joinLegacyRoom(session.value.roomId, session.value.playerId);
+       } catch (error) {
+         handleNetworkError(error);
+         reconnectAttempt += 1;
+@@ -6528,6 +6695,10 @@
+ 
+     const ensureConnected = async () => {
+       if (networkManager.isConnected()) {
++        if (!networkManager.serverAuthoritative) {
++          const protocol = await ensureLegacyActionSync();
++          if (!["selected", "legacy"].includes(protocol.status)) throw new Error("Legacy room protocol is not confirmed.");
++        }
+         connectionState.value = "connected";
+         return;
+       }
+@@ -6562,11 +6733,28 @@
+           throw lastError;
+         }
+       }
++      if (!networkManager.serverAuthoritative) {
++        const protocol = await ensureLegacyActionSync();
++        if (!["selected", "legacy"].includes(protocol.status)) throw new Error("Legacy room protocol is not confirmed.");
++      }
+       connectionState.value = "connected";
+       syncSession();
+     };
+ 
+     const handleLogout = async () => {
++      const preserveCapacityGame = hasCurrentCapacityRecoveryReady();
++      if (preserveCapacityGame) {
++        await handleLeaveRoom();
++        if (session.value.roomId || roomStatus.value !== "solo") return;
++      }
++      if (!networkManager.serverAuthoritative && onlineActionSync.isLocked() && !preserveCapacityGame) {
++        handleNetworkError(new Error("The last room action is not yet confirmed."));
++        return;
++      }
++      roomActionUiGeneration += 1;
++      legacyJoinGeneration += 1;
++      if (pendingLegacyJoin) networkManager.disconnect(1000, "logout_pending_join");
++      pendingLegacyJoin = null;
+       cancelSharedPassword();
+       accountLinkGeneration += 1; accountLinkCode.value = ""; clearTimeout(accountLinkExpiry);
+       authBusy.value = true;
+@@ -6581,6 +6769,7 @@
+         resetRoomContext();
+         connectionState.value = "idle";
+         try { await networkManager.leaveRoom(); } catch (_error) { /* Local logout still completes. */ }
++        releaseLegacyActionSync({ capacityValidated: preserveCapacityGame });
+         networkManager.disconnect(1000, "logout");
+         networkManager.clearAuthToken();
+         networkManager.url = null;
+@@ -6589,10 +6778,9 @@
+         networkManager.color = null;
+         if (controller.value) {
+           terminateAiWorker();
+-          controller.value.disableMultiplayer();
+-          clearSavedLocalGame();
+-          gameState.value = controller.value.resetGame({ force: true });
+-          resetHintUsage();
++          const localState = controller.value.disableMultiplayer();
++          if (preserveCapacityGame) gameState.value = localState;
++          else { clearSavedLocalGame(); gameState.value = controller.value.resetGame({ force: true }); resetHintUsage(); }
+           scheduleAiMove(gameState.value);
+         }
+         persistAppSession(createAppEmptySession());
+@@ -6666,6 +6854,10 @@
+       cancelHintRequest();
+       clearActiveHint();
+       gameState.value = nextState;
++      clearStaleLegacyFeedback();
++      const reason = nextState?.interactionLockReason;
++      if ((actionFeedbackOwner.value === "pending" && !["ROOM_ACTION_PENDING", "ACTION_PENDING"].includes(reason))
++        || (actionFeedbackOwner.value === "unknown" && !["ROOM_ACTION_UNCONFIRMED", "ACTION_OUTCOME_UNKNOWN"].includes(reason))) setActionFeedback("");
+       persistCurrentLocalGame(nextState);
+       if (localGameRestoring.value || replayRestoring.value || replayMode.value) {
+         return;
+@@ -6839,6 +7031,7 @@
+       clearReconnectTimer();
+ 
+       try {
++        if (session.value.roomId || !releaseLegacyActionSync()) throw new Error("Leave or recover the current room first.");
+         networkManager.url = serverUrl.value.trim();
+         networkManager.setAuthToken(auth.value.token);
+         const settings = normalizeAppGameSettings(draftGameSettings());
+@@ -6895,6 +7088,8 @@
+       finally { networkBusy.value = false; }
+     };
+     const handleJoinRoom = async () => {
++      const operationGeneration = ++roomActionUiGeneration;
++      const isCurrent = () => !replayAppDisposed && operationGeneration === roomActionUiGeneration;
+       const normalizedRoomId = roomIdInput.value.trim();
+       if (!normalizedRoomId) {
+         handleNetworkError(new Error("Please enter a room ID before joining."));
+@@ -6908,21 +7103,39 @@
+ 
+       try {
+         if (/^[A-Z2-9]{8}$/i.test(normalizedRoomId)) {
++          if (session.value.roomId || !releaseLegacyActionSync()) throw new Error("Leave or recover the current room first.");
+           networkManager.url = serverUrl.value.trim();
+           networkManager.setAuthToken(auth.value.token);
++          await networkManager.joinRoom(normalizedRoomId);
+         } else {
++          if (session.value.roomId) throw new Error("LEAVE_ROOM_FIRST");
+           networkManager.selectLegacy();
+           await ensureConnected();
++          if (!isCurrent()) return;
++          await joinLegacyRoom(normalizedRoomId);
+         }
+-        await networkManager.joinRoom(normalizedRoomId);
+       } catch (error) {
+-        handleNetworkError(error);
++        if (isCurrent()) handleNetworkError(error);
+       } finally {
+-        networkBusy.value = false;
++        if (isCurrent()) networkBusy.value = false;
+       }
+     };
+ 
+     const handleLeaveRoom = async () => {
++      const preserveCapacityGame = hasCurrentCapacityRecoveryReady();
++      if (onlineActionCoordinator && onlineActionSync.isLocked() && !preserveCapacityGame) {
++        handleNetworkError(new Error("The last room action is not yet confirmed."));
++        return;
++      }
++      const savedCapacityGame = preserveCapacityGame ? persistConfirmedVersionedRoomGame() : null;
++      if (preserveCapacityGame && !savedCapacityGame) {
++        handleNetworkError(new Error("Could not save the confirmed room game. Please retry."));
++        return;
++      }
++      roomActionUiGeneration += 1;
++      legacyJoinGeneration += 1;
++      if (pendingLegacyJoin) networkManager.disconnect(1000, "cancel_pending_join");
++      pendingLegacyJoin = null;
+       networkBusy.value = true;
+       networkError.value = "";
+       overlayResult.value = null;
+@@ -6931,14 +7144,28 @@
+ 
+       try {
+         await networkManager.leaveRoom();
++        if (!networkManager.serverAuthoritative && !releaseLegacyActionSync({ capacityValidated: preserveCapacityGame })) {
++          throw new Error("The last room action is not yet confirmed.");
++        }
+         resetRoomContext();
++        if (["pending", "unknown", "rate-limited"].includes(actionFeedbackOwner.value)) setActionFeedback("");
+         syncSession();
+         if (controller.value) {
+           terminateAiWorker();
+-          controller.value.disableMultiplayer();
+-          clearSavedLocalGame();
+-          gameState.value = controller.value.resetGame({ force: true });
+-          resetHintUsage();
++          const localState = controller.value.disableMultiplayer();
++          if (preserveCapacityGame) {
++            activeLocalSettings.value = normalizeAppGameSettings(savedCapacityGame.settings);
++            activeLocalPlayers.value = normalizeLocalPlayers(savedCapacityGame.match.players, savedCapacityGame.settings.playerCount, savedCapacityGame.settings.boardShape);
++            selectedLocalPlayers.value = normalizeLocalPlayers(activeLocalPlayers.value, savedCapacityGame.settings.playerCount, savedCapacityGame.settings.boardShape);
++            localMatchStarted.value = true; aiDuelPaused.value = false; undoUsage.value = normalizeUndoUsage();
++            localGameActions.value = [...savedCapacityGame.actions];
++            localGamePositionRevision.value = localState?.positionRevision ?? localGamePositionRevision.value;
++            gameState.value = localState;
++          } else {
++            clearSavedLocalGame();
++            gameState.value = controller.value.resetGame({ force: true });
++            resetHintUsage();
++          }
+           scheduleAiMove(gameState.value);
+         }
+         persistAppSession(createAppEmptySession());
+@@ -6954,7 +7181,7 @@
+         return;
+       }
+ 
+-      if (roomStatus.value !== "solo" && (roomSnapshotRecoveryFailed || gameState.value.skipLocked)) {
++      if (roomStatus.value !== "solo" && (networkBusy.value || controller.value.hasPendingRoomOperation?.() || roomSnapshotRecoveryFailed || gameState.value.skipLocked)) {
+         return;
+       }
+ 
+@@ -6968,11 +7195,12 @@
+ 
+       networkBusy.value = true;
+       networkError.value = "";
++      const generation = ++roomActionUiGeneration;
+       try {
+         const result = await controller.value.requestSkipTurn();
+-        gameState.value = result.state;
++        if (!replayAppDisposed && generation === roomActionUiGeneration) gameState.value = result.state;
+       } finally {
+-        networkBusy.value = false;
++        if (!replayAppDisposed && generation === roomActionUiGeneration) networkBusy.value = false;
+       }
+     };
+ 
+@@ -6988,7 +7216,10 @@
+       }
+       setActionFeedback(language.value === "zh" ? "联机起点操作正在提交…" : "Submitting online root action…", "neutral");
+       const result = await controller.value.requestRootAction?.(type, action.point);
+-      if (result) gameState.value = result.state;
++      if (result) {
++        gameState.value = result.state;
++        if (!result.success && result.reason === "ACTION_PROTOCOL_UNSUPPORTED") setActionFeedback(formatActionFeedback(result), "error");
++      }
+     };
+ 
+     const handleReset = async () => {
+@@ -7317,6 +7548,14 @@
+         return texts.roomNeedReady;
+       }
+ 
++      if (gameState.value.interactionLockReason === "ACTION_PROTOCOL_UNSUPPORTED")
++        return language.value === "zh" ? "当前房间不支持这种棋盘或操作，请使用新的共享房间。" : "This room does not support this board or action. Please use a new shared room.";
++      if (["ROOM_ACTION_PENDING", "ACTION_PENDING"].includes(gameState.value.interactionLockReason))
++        return language.value === "zh" ? "等待服务器确认上一动作。" : "Waiting for server confirmation.";
++      if (["ROOM_ACTION_UNCONFIRMED", "ACTION_OUTCOME_UNKNOWN"].includes(gameState.value.interactionLockReason))
++        return language.value === "zh" ? "无法确认上一动作是否已生效，请重新连接查询。" : "The previous action could not be confirmed. Reconnect to check.";
++      if (gameState.value.interactionLockReason === "ACTION_OUTCOME_CAPACITY")
++        return language.value === "zh" ? "已恢复到确认的棋局；保存后可离开房间。" : "The confirmed board has been restored; you can save it and leave the room.";
+       if (gameState.value.interactionLockReason === "NOT_YOUR_TURN") {
+         return texts.notYourTurnHint;
+       }
+@@ -7572,6 +7811,14 @@
+       roomCreatedEvent: ServerEvent.ROOM_CREATED,
+       roomJoinedEvent: ServerEvent.ROOM_JOINED,
+       applyRoomSnapshot,
++      getSnapshotOptions: payload => {
++        if (networkManager.serverAuthoritative) return {};
++        const op = pendingLegacyJoin;
++        if (!op || op.generation !== legacyJoinGeneration || op.consumed
++          || payload?.type !== "ROOM_JOINED" || payload?.roomId !== op.roomId) return { acceptResponse: false };
++        op.consumed = true;
++        return { onRouteResult: result => { op.commit = Promise.resolve(result); } };
++      },
+       onApplied: () => {
+         networkError.value = "";
+       },
+@@ -7603,14 +7850,16 @@
+           payload,
+           applyRoomSnapshot,
+           onApplied: () => {
+-            networkError.value = "";
++            if (!networkErrorOwner) networkError.value = "";
+           },
+         });
+       }),
+     );
+ 
+     unsubscribers.push(
+-      networkManager.on(ServerEvent.PLAYER_LEFT, () => {
++      networkManager.on(ServerEvent.PLAYER_LEFT, (payload) => {
++        if (!payload?.roomId || payload.roomId !== session.value.roomId || payload.roomId !== networkManager.roomId) return;
++        networkErrorOwner = { kind: "opponent-left", roomId: payload.roomId };
+         roomStatus.value = "waiting";
+         if (!roomSnapshotRecoveryFailed) {
+           networkError.value = getAppTexts(language.value, uiStyle.value).opponentLeft;
+@@ -7694,6 +7943,7 @@
+ 
+     unsubscribers.push(
+       networkManager.on(ServerEvent.ERROR, (payload) => {
++        networkErrorOwner = null;
+         readyPending.value = false;
+         if (payload?.code === "MATCH_IN_PROGRESS") {
+           roomStatus.value = "inProgress";
+@@ -7722,6 +7972,10 @@
+       replayAppDisposed = true;
+       replayOperationGeneration += 1;
+       invalidateReplayImport();
++      replayBusy.value = false;
++      legacyJoinGeneration += 1;
++      roomActionUiGeneration += 1;
++      onlineActionCoordinator?.dispose();
+       cancelSharedPassword();
+       accountLinkGeneration += 1; clearTimeout(accountLinkExpiry);
+       contribution.dispose();

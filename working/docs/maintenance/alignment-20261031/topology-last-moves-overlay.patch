@@ -1,0 +1,267 @@
+diff --git a/web/web前端/GameController.js b/web/web前端/GameController.js
+--- a/web/web前端/GameController.js
++++ b/web/web前端/GameController.js
+@@ -55,6 +55,22 @@
+ // It never enters the rule state, search state or persisted replay format.
+ function updateLastMoves(lastMoves, action, engine, previousSkips = 0) {
+   if (!action || !isKnownPlayer(action.player)) return;
++  if (engine.isTopologyBoard) {
++    if (action.type === "move") lastMoves[action.player] = clonePoint(action.point);
++    else delete lastMoves[action.player];
++    const explicitSkips = action.type === "skip" ? previousSkips + 1 : 0;
++    const automaticSkips = Math.max(0, engine.consecutiveSkips - explicitSkips);
++    let skippedPlayer = action.player;
++    for (let index = 0; index < automaticSkips; index += 1) {
++      skippedPlayer = engine._getNextPlayer(skippedPlayer);
++      delete lastMoves[skippedPlayer];
++    }
++    // Once captured, a marker cannot revive when the coordinate is reused.
++    for (const [owner, point] of Object.entries(lastMoves)) {
++      if (engine.resignedPlayers.has(owner) || engine.getStateAt(point) !== engine._getPlayerStates(owner).node) delete lastMoves[owner];
++    }
++    return;
++  }
+   lastMoves[action.player] = action.type === "move" ? clonePoint(action.point) : null;
+   const explicitSkips = action.type === "skip" ? previousSkips + 1 : 0;
+   const automaticSkips = Math.max(0, engine.consecutiveSkips - explicitSkips);
+@@ -63,6 +79,39 @@
+     player = engine._getNextPlayer(player);
+     lastMoves[player] = null;
+   }
++}
++
++// A topology snapshot is authoritative. Only derive display metadata from an
++// action log if replay reproduces its complete rule state, including history.
++function canonicalDisplayState(value) {
++  if (Array.isArray(value)) return value.map(canonicalDisplayState);
++  if (value && typeof value === "object") return Object.fromEntries(Object.keys(value).sort().map(key => [key, canonicalDisplayState(value[key])]));
++  return value;
++}
++function replayTopologyLastMoves(engine, actions, expectedRuleState) {
++  if (!Array.isArray(actions)) return null;
++  const lastMoves = {}; let lastAction = null;
++  try {
++    for (const action of actions) {
++      if (!action || typeof action.type !== "string") return null;
++      const previousSkips = engine.consecutiveSkips;
++      const player = action.type === "player_resign" ? action.color : engine.getCurrentPlayer();
++      let result;
++      if (action.type === "player_move" && typeof action.vertexId === "string"
++        && (action.boardHash == null || action.boardHash === engine.boardHash)) {
++        result = engine.playMove(action.vertexId);
++        lastAction = { type: "move", player, point: action.vertexId };
++      } else if (action.type === "player_skip") {
++        result = engine.skipTurn(); lastAction = { type: "skip", player, point: null };
++      } else if (action.type === "player_resign" && isKnownPlayer(player)) {
++        result = engine.resignPlayer(player); lastAction = { type: "resign", player, point: null };
++      } else return null;
++      if (!result?.success) return null;
++      updateLastMoves(lastMoves, lastAction, engine, previousSkips);
++    }
++    if (JSON.stringify(canonicalDisplayState(engine.getTopologyRuleState())) !== JSON.stringify(canonicalDisplayState(expectedRuleState))) return null;
++    return { lastMoves, lastAction };
++  } catch (_) { return null; }
+ }
+ 
+ export class GameController {
+@@ -1296,7 +1345,7 @@
+    * a legacy local-session envelope).  Decode and build a candidate first;
+    * only replace the live engine after its complete state has been accepted.
+    */
+-  restoreTopologyState(topologyState, { startPlayer = null, lastAction = null } = {}) {
++  restoreTopologyState(topologyState, { startPlayer = null, lastAction = null, actions = null } = {}) {
+     const previousControllerState = {
+       engine: this.engine,
+       engineOptions: this.options.engine,
+@@ -1343,6 +1392,8 @@
+         deferTerritoryUpdates: false,
+       };
+       candidateEngine = this._createEngine(nextEngineOptions);
++      const displayHistory = Array.isArray(actions)
++        ? replayTopologyLastMoves(this._createEngine(nextEngineOptions), actions, decoded.ruleState) : null;
+       if (!candidateEngine?.isTopologyBoard) {
+         throw new Error("Decoded topology state did not create a topology engine.");
+       }
+@@ -1356,14 +1407,17 @@
+       this._engineEpoch += 1;
+       this.setAuthoritativeSnapshotValid(true);
+       this.renderer.invalidate();
+-      this.lastAction = lastAction && typeof lastAction === "object"
+-        ? {
+-          type: lastAction.type,
+-          player: lastAction.player ?? null,
+-          point: clonePoint(lastAction.point ?? lastAction.vertexId),
+-        }
+-        : null;
+-      this.lastMoves = {};
++      this.lastAction = displayHistory ? displayHistory.lastAction : (lastAction && typeof lastAction === "object"
++        ? { type: lastAction.type, player: lastAction.player ?? null, point: clonePoint(lastAction.point ?? lastAction.vertexId) }
++        : null);
++      this.lastMoves = displayHistory?.lastMoves ?? {};
++      // Legacy snapshots may carry only the last action. Show that one marker
++      // only if the canonical vertex is still occupied by that same player.
++      if (!displayHistory && this.lastAction?.type === "move" && isKnownPlayer(this.lastAction.player)
++        && typeof this.lastAction.point === "string"
++        && candidateEngine.getStateAt(this.lastAction.point) === candidateEngine._getPlayerStates(this.lastAction.player).node) {
++        this.lastMoves[this.lastAction.player] = this.lastAction.point;
++      }
+       this._updateLargeBoardClass();
+       this._syncSnapshot(snapshot, { forceRender: true, scheduleTerritory: false });
+     } catch (error) {
+diff --git a/web/web前端/OnlineApp.js b/web/web前端/OnlineApp.js
+--- a/web/web前端/OnlineApp.js
++++ b/web/web前端/OnlineApp.js
+@@ -1,6 +1,6 @@
+ import { MultiplayerWarmupSession } from "./MultiplayerAIWarmup.js?v=20261029-unified-r1";
+ import { createLocalAIWorker } from "./LocalAIWorkerFactory.js?v=20261029-unified-r1";
+-import GameController from "./GameController.js?v=20261029-unified-r1";
++import GameController from "./GameController.js?v=20261101-topology-markers";
+ import Renderer from "./Renderer.js?v=20261029-unified-r1";
+ import GameEngine, { Player, PointState } from "./GameEngine.js?v=20261029-unified-r1";
+ import { captureWorkerRequest, isWorkerResultForRequest, serializeEngineState } from "./AIStateProtocol.js?v=20261029-unified-r1";
+@@ -4751,6 +4751,7 @@
+       return null;
+     };
+     const topologyActionsForController = (actions, boardHash) => actions.map((action) => {
++      if (action?.boardHash != null && action.boardHash !== boardHash) throw new Error("Topology action board identity mismatch.");
+       const normalized = topologyActionFromControllerAction(action, boardHash);
+       if (!normalized) throw new Error("Topology action history is malformed.");
+       return normalized;
+@@ -5236,6 +5237,7 @@
+           ? controller.value.restoreTopologyState(liveReplayRestore.topologyState, {
+             startPlayer: liveReplayRestore.settings?.startPlayer,
+             lastAction: liveReplayRestore.lastAction,
++            actions: liveReplayRestore.actions,
+           })
+           : controller.value.restoreMatchState(liveReplayRestore);
+         if (!restored.success) {
+@@ -5544,6 +5546,7 @@
+           }
+           restored = controller.value.restoreTopologyState(tutorialReturnTopologySession.topologyState, {
+             startPlayer: tutorialReturnTopologySession.startPlayer,
++            actions: tutorialReturnTopologySession.actions,
+           });
+           restoredMatch = tutorialReturnTopologySession.match;
+           restoredActions = [...tutorialReturnTopologySession.actions];
+@@ -5702,8 +5705,18 @@
+       localGameRestoring.value = true;
+       let success = false;
+       try {
++        // Older topology-session actions omit the per-action hash. Rebind them
++        // to the already validated live board before isolated replay.
++        let replayActions;
++        try {
++          replayActions = controller.value.engine?.isTopologyBoard
++            ? topologyActionsForController(actions, controller.value.engine.boardHash) : actions;
++        } catch (_) {
++          setActionFeedback(getAppTexts(language.value, uiStyle.value).undoFailed, "error");
++          return false;
++        }
+         // Restore validates on an isolated engine before replacing the live board.
+-        const restored = controller.value.restoreMatchState({ settings: currentGameSettings(), actions });
++        const restored = controller.value.restoreMatchState({ settings: currentGameSettings(), actions: replayActions });
+         if (!restored.success) {
+           setActionFeedback(getAppTexts(language.value, uiStyle.value).undoFailed, "error");
+           return false;
+diff --git a/web/web前端/tests/verify-topology-app-persistence-v1.mjs b/web/web前端/tests/verify-topology-app-persistence-v1.mjs
+--- a/web/web前端/tests/verify-topology-app-persistence-v1.mjs
++++ b/web/web前端/tests/verify-topology-app-persistence-v1.mjs
+@@ -160,6 +160,7 @@
+ };
+ 
+ assert.equal(await app.handleControllerReady(controller), true, "a valid topology save restores on startup");
++assert.deepEqual(controller.lastMoves, { WHITE: savedSession.actions[0].vertexId, BLACK: savedSession.actions[1].vertexId }, "startup reconstructs all player markers from validated actions");
+ assert.equal(app.tutorialActive.value, false);
+ assert.equal(app.tutorialAutoRestoring.value, false);
+ assert.equal(directTopologyRestore, 1, "startup must directly restore the encoded topology state");
+@@ -174,6 +175,14 @@
+ assert.equal(app.undoRemainingCount.value, 2, "topology session restores undo usage without refilling quota");
+ assert.equal(values.get(TOPOLOGY_LOCAL_GAME_SESSION_STORAGE_KEY), rawBeforeRestore,
+   "returning from a tutorial must not overwrite the original topology save");
++
++// A separate restored session exercises the actual UI undo handler without
++// disturbing the main fixture. The action prefix determines the markers.
++const undoApp = App.setup(); const { controller: undoController } = makeController();
++assert.equal(await undoApp.handleControllerReady(undoController), true);
++assert.equal(undoApp.requestUndo(), true, "restored topology undo accepts a valid prior human move");
++assert.deepEqual(undoController.lastMoves, { WHITE: savedSession.actions[0].vertexId }, "actual undo rebuilds markers for the retained prefix");
++values.set(TOPOLOGY_LOCAL_GAME_SESSION_STORAGE_KEY, rawBeforeRestore);
+ 
+ // Starting a tutorial from a live topology board uses the same isolated state
+ // channel and must round-trip its canonical state without a legacy detour.
+@@ -311,6 +320,7 @@
+ const liveEncodedBeforeReview = controller.engine.encodeTopologyState();
+ const liveActionsBeforeReview = structuredClone(app.localGameActions.value);
+ const liveLastAction = structuredClone(controller.lastAction);
++const liveLastMoves = structuredClone(controller.lastMoves);
+ await app.handleStartReplay();
+ assert.equal(app.replayMode.value, true);
+ app.handleSeekReplay(0);
+@@ -320,6 +330,7 @@
+ assert.deepEqual(controller.engine.encodeTopologyState(), liveEncodedBeforeReview, "roots, current player, paths, hash and full history survive review");
+ assert.deepEqual(app.localGameActions.value, liveActionsBeforeReview);
+ assert.deepEqual(controller.lastAction, liveLastAction);
++assert.deepEqual(controller.lastMoves, liveLastMoves, "leaving review restores player markers");
+ for (let i = 0; i < 2; i++) {
+   const passed = controller.skipTurn();
+   assert.equal(passed.success, true);
+diff --git a/web/web前端/tests/verify-topology-last-moves.mjs b/web/web前端/tests/verify-topology-last-moves.mjs
+new file mode 100644
+--- /dev/null
++++ b/web/web前端/tests/verify-topology-last-moves.mjs
+@@ -0,0 +1,55 @@
++import assert from 'node:assert/strict';
++import '../TopologyGameEngine.js';
++import GameEngine from '../GameEngine.js';
++import GameController from '../GameController.js';
++import { createSurfacePreset } from '../BoardPresets.js';
++const noop=()=>{};
++const definition=createSurfacePreset('cylinder',{gridSize:5});
++const settings={boardDefinition:definition,playerCount:2,startPlayer:'BLACK',rulesVersion:'surface-v1',gridSize:5};
++const engine=new GameEngine(settings), hash=engine.boardHash;
++const actions=[{type:'player_move',vertexId:'cv:4',boardHash:hash},{type:'player_move',vertexId:'cv:3',boardHash:hash},{type:'player_skip'},{type:'player_move',vertexId:'cv:8',boardHash:hash}];
++const controller=()=>{const c=Object.assign(Object.create(GameController.prototype),{
++ canvas:{style:{},setAttribute:noop},options:{engine:settings},engine:new GameEngine(settings),_validGridPoints:[],_engineEpoch:1,_authoritativeSnapshotValid:true,
++ multiplayerEnabled:false,localPlayer:null,roomReady:false,opponentConnected:false,readOnlyMode:false,lastAction:null,lastMoves:{},inspectionOverlay:null,_networkUnsubscribers:[],
++ _cancelTerritoryRefresh:noop,_scheduleTerritoryRefresh:noop,_updateLargeBoardClass:noop,_syncCanvasInteractivity:noop,_syncSnapshot:noop,_reportNetworkError:noop,
++ renderer:{invalidate:noop,render:noop,clearHintPoint:noop}});return c;};
++const live=controller();
++assert.equal(live._applyMove('cv:4').success,true);assert.equal(live._applyMove('cv:3').success,true);
++assert.equal(live.skipTurn().success,true);assert.deepEqual(live.lastMoves,{WHITE:'cv:3'},'PASS clears only the acting player');
++assert.equal(live._applyMove('cv:8').success,true);assert.deepEqual(live.lastMoves,{WHITE:'cv:8'},'live cut removes captured marker');
++live.resetGame({force:true});assert.deepEqual(live.lastMoves,{},'reset clears markers');
++// A direct cut of the opponent's most recent node must discard its marker,
++// even before the opponent acts or passes again.
++const mobiusSettings={...settings,boardDefinition:createSurfacePreset('mobius',{gridSize:5})};
++const mobius=new GameEngine(mobiusSettings), mobiusHash=mobius.boardHash;
++const cutActions=[{type:'player_move',vertexId:'cv:3',boardHash:mobiusHash},{type:'player_move',vertexId:'cv:2',boardHash:mobiusHash}];
++const directCut=controller();assert.equal(directCut.restoreMatchState({settings:mobiusSettings,actions:cutActions}).success,true);
++assert.deepEqual(directCut.lastMoves,{WHITE:'cv:2'},'cut removes a captured opponent latest node immediately');
++const directState=directCut.engine.encodeTopologyState();const cutRecovered=controller();
++assert.equal(cutRecovered.restoreTopologyState(directState,{startPlayer:'BLACK',actions:cutActions}).success,true);
++assert.deepEqual(cutRecovered.lastMoves,{WHITE:'cv:2'},'cut marker remains absent after full-state restore');
++const replay=controller();
++assert.equal(replay.restoreMatchState({settings,actions:actions.slice(0,2)}).success,true);
++assert.deepEqual(replay.lastMoves,{BLACK:'cv:4',WHITE:'cv:3'});
++assert.equal(replay.restoreMatchState({settings,actions:actions.slice(0,3)}).success,true);
++assert.deepEqual(replay.lastMoves,{WHITE:'cv:3'},'PASS clears only the acting player');
++const stateAfterPass=replay.engine.encodeTopologyState();
++const restored=controller();assert.equal(restored.restoreTopologyState(stateAfterPass,{startPlayer:'BLACK',actions:actions.slice(0,3)}).success,true);
++assert.deepEqual(restored.lastMoves,{WHITE:'cv:3'},'full history restores markers after PASS');
++assert.deepEqual(restored.engine.encodeTopologyState(),stateAfterPass,'marker recovery does not change rule state/history');
++assert.equal(replay.restoreMatchState({settings,actions}).success,true);
++assert.deepEqual(replay.lastMoves,{WHITE:'cv:8'},'cut removes captured black latest marker');
++const cutState=replay.engine.encodeTopologyState();const cutRestore=controller();
++assert.equal(cutRestore.restoreTopologyState(cutState,{startPlayer:'BLACK',actions}).success,true);assert.deepEqual(cutRestore.lastMoves,{WHITE:'cv:8'});
++assert.equal(cutRestore.restoreMatchState({settings,actions:actions.slice(0,2)}).success,true);
++assert.deepEqual(cutRestore.lastMoves,{BLACK:'cv:4',WHITE:'cv:3'},'undo/replay prefix returns matching markers');
++const beforeState=cutRestore.engine.encodeTopologyState(), beforeMarkers=structuredClone(cutRestore.lastMoves);
++assert.equal(cutRestore.restoreMatchState({settings,actions:[...actions,{type:'player_move',vertexId:'bad',boardHash:hash}]}).success,false);
++assert.deepEqual(cutRestore.engine.encodeTopologyState(),beforeState);assert.deepEqual(cutRestore.lastMoves,beforeMarkers);
++const invalid=structuredClone(beforeState);invalid.boardHash='bad';assert.equal(cutRestore.restoreTopologyState(invalid,{actions}).success,false);
++assert.deepEqual(cutRestore.engine.encodeTopologyState(),beforeState);assert.deepEqual(cutRestore.lastMoves,beforeMarkers);
++const legacy=controller();assert.equal(legacy.restoreTopologyState(stateAfterPass,{startPlayer:'BLACK',lastAction:{type:'move',player:'WHITE',point:'cv:3'}}).success,true);
++assert.deepEqual(legacy.lastMoves,{WHITE:'cv:3'},'legacy snapshot only claims its verified last action');
++const incomplete=controller();assert.equal(incomplete.restoreTopologyState(stateAfterPass,{startPlayer:'BLACK',actions:actions.slice(0,1)}).success,true);
++assert.deepEqual(incomplete.lastMoves,{},'incomplete log never invents complete history');
++console.log('verify-topology-last-moves: PASS');

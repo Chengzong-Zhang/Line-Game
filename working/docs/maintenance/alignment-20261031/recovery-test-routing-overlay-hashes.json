@@ -1,0 +1,6 @@
+{
+  "web/web前端/tests/verify-online-recovery.mjs": {
+    "before_sha256": "9a12fa486c3dbe9dabefe3b21f5324db54f55da58c95889e0ddb44d3fafac890",
+    "after_sha256": "771952877c061efb9437f1dc50452aaaf1aa623dc68f5005d3c7e9fcb986f5d3"
+  }
+}

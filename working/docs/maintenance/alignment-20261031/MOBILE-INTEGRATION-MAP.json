@@ -1,0 +1,710 @@
+{
+  "schema": "lifeline-mobile-session-regression-map-v1",
+  "scope": "110-case actual App VM regression using real Vue with controlled doubles; Android and Harmony JS bridges, not native-device acceptance",
+  "total": 116,
+  "failed": 0,
+  "categories": {
+    "pass_current_fixture": 116
+  },
+  "current_shared_room_replacement": "Shared-room create/handshake and action/rollback/reconnect are exercised separately; these are synthetic tests, not device or service acceptance.",
+  "checks": [
+    {
+      "platform": "android",
+      "name": "RATE_LIMITED feedback follows successful live-rejection rollback and stays owned",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "RATE_LIMITED feedback follows successful lost-ack rollback and stays owned",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "RATE_LIMITED feedback follows successful replaced-controller rollback and stays owned",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "unknown and pending action notices follow current App state, language, and room leave",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "no-pending capacity recovery preserves the confirmed board and save across successful leave",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "pending capacity recovery waits for the action send task before reconciling and leaving",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "failed capacity leave retains the active room and confirmed board",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "capacity-ready logout saves the complete confirmed room history",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "capacity exit protects native mirror: delayed-native",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "capacity exit protects native mirror: failed-native",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "capacity exit protects native mirror: changed-envelope",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "actual versioned room recovery clears the owned opponent-left notice",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "actual legacy room recovery clears the owned opponent-left notice only after a complete connected snapshot",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "incomplete legacy recovery preserves the owned opponent-left notice",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "stale legacy room metadata preserves the owned opponent-left notice",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "legacy metadata for another room preserves the owned opponent-left notice",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "failed legacy authoritative restore preserves the owned opponent-left notice",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "legacy room recovery does not clear an unrelated ERROR with identical notice text",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "language changes do not change opponent-left notice ownership",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "a fully connected replacement opponent clears the current room notice",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "incomplete disconnected opponent metadata preserves the owned notice",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "incomplete missing opponent metadata preserves the owned notice",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "incomplete missing connected field metadata preserves the owned notice",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "incomplete duplicate player identity metadata preserves the owned notice",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "a different server error with identical text replaces notice ownership",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "late PLAYER_LEFT from another room cannot create the current notice",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "failed authoritative restore cannot clear the owned notice",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "native network recovery retries pending contributions and replaces only recovered-room timers",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "a replaced native platform revokes its old network listener without recovery side effects",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "native network recovery subscribes only for a native mobile shell",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "background state delivered before App.setup prevents the first local AI computation",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "legacy AI play context migrates to per-seat players and keeps the match active",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "a late error from a terminated Worker cannot terminate the foreground replacement",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "background terminates territory Workers and foreground recomputes only the current position",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "background cancellation preserves the user pause state of an AI duel",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "ordinary foreground restores an enabled turn timer once and background state blocks restarts",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "early foreground during exit acknowledgement resumes one AI computation and timer state",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "native acknowledgement alone does not resume play before foreground",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "confirmed local save precedes mobile background and unmount invalidates a pending exit",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "background terminates hint and comparison Workers and stops replay playback",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "real App exports a verified replay through controlled platform-share outcomes without mutating saves",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "pending replay export has one owner and late completion after unmount is inert",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "real ReplayPanel bounds, timeout, cancellation, retry and stale reads preserve the verified replay",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "real App import generation protects result, error and busy state across overlapping ReplayCodec validation",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "explicit clear preserves evidence on local failure and removes legacy marker before restart",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "actual external game module uses the initialized authority",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "actual App.setup exposes the mobile-shell footer branch in both modes",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "actual App.setup loads installed metadata, reports failure and isolates a closed request after reopening",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "newer native save wins and next game save advances revision",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "equal durable copies load locally without taking the native restore route",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "newer native clear does not resurrect a stale local save",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "same revision disagreement preserves both originals and blocks autosave",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "failed local write retains acknowledged copies and is not sent to native",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "failed native write preserves last native acknowledgement and rejects flush",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "both real legacy tombstones remain distinguishable from missing",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "late acknowledgement for an older save cannot erase a newer local write failure",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "real app retains failed-save move and later persists full game history",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "android",
+      "name": "actual App.setup prevents skip reentry and stale completion cannot release newer action",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "RATE_LIMITED feedback follows successful live-rejection rollback and stays owned",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "RATE_LIMITED feedback follows successful lost-ack rollback and stays owned",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "RATE_LIMITED feedback follows successful replaced-controller rollback and stays owned",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "unknown and pending action notices follow current App state, language, and room leave",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "no-pending capacity recovery preserves the confirmed board and save across successful leave",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "pending capacity recovery waits for the action send task before reconciling and leaving",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "failed capacity leave retains the active room and confirmed board",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "capacity-ready logout saves the complete confirmed room history",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "capacity exit protects native mirror: delayed-native",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "capacity exit protects native mirror: failed-native",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "capacity exit protects native mirror: changed-envelope",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "actual versioned room recovery clears the owned opponent-left notice",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "actual legacy room recovery clears the owned opponent-left notice only after a complete connected snapshot",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "incomplete legacy recovery preserves the owned opponent-left notice",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "stale legacy room metadata preserves the owned opponent-left notice",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "legacy metadata for another room preserves the owned opponent-left notice",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "failed legacy authoritative restore preserves the owned opponent-left notice",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "legacy room recovery does not clear an unrelated ERROR with identical notice text",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "language changes do not change opponent-left notice ownership",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "a fully connected replacement opponent clears the current room notice",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "incomplete disconnected opponent metadata preserves the owned notice",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "incomplete missing opponent metadata preserves the owned notice",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "incomplete missing connected field metadata preserves the owned notice",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "incomplete duplicate player identity metadata preserves the owned notice",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "a different server error with identical text replaces notice ownership",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "late PLAYER_LEFT from another room cannot create the current notice",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "failed authoritative restore cannot clear the owned notice",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "native network recovery retries pending contributions and replaces only recovered-room timers",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "a replaced native platform revokes its old network listener without recovery side effects",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "native network recovery subscribes only for a native mobile shell",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "background state delivered before App.setup prevents the first local AI computation",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "legacy AI play context migrates to per-seat players and keeps the match active",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "a late error from a terminated Worker cannot terminate the foreground replacement",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "background terminates territory Workers and foreground recomputes only the current position",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "background cancellation preserves the user pause state of an AI duel",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "ordinary foreground restores an enabled turn timer once and background state blocks restarts",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "early foreground during exit acknowledgement resumes one AI computation and timer state",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "native acknowledgement alone does not resume play before foreground",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "confirmed local save precedes mobile background and unmount invalidates a pending exit",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "background terminates hint and comparison Workers and stops replay playback",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "real App exports a verified replay through controlled platform-share outcomes without mutating saves",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "pending replay export has one owner and late completion after unmount is inert",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "real ReplayPanel bounds, timeout, cancellation, retry and stale reads preserve the verified replay",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "real App import generation protects result, error and busy state across overlapping ReplayCodec validation",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "explicit clear preserves evidence on local failure and removes legacy marker before restart",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "actual external game module uses the initialized authority",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "actual App.setup exposes the mobile-shell footer branch in both modes",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "actual App.setup loads installed metadata, reports failure and isolates a closed request after reopening",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "newer native save wins and next game save advances revision",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "equal durable copies load locally without taking the native restore route",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "newer native clear does not resurrect a stale local save",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "same revision disagreement preserves both originals and blocks autosave",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "failed local write retains acknowledged copies and is not sent to native",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "failed native write preserves last native acknowledgement and rejects flush",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "both real legacy tombstones remain distinguishable from missing",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "late acknowledgement for an older save cannot erase a newer local write failure",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "real app retains failed-save move and later persists full game history",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    },
+    {
+      "platform": "harmony",
+      "name": "actual App.setup prevents skip reentry and stale completion cannot release newer action",
+      "status": "PASS",
+      "classification": "pass_current_fixture"
+    }
+  ],
+  "source_hashes_stable": true,
+  "online_app_sha256": "64d393e97830d270336d048a74c1c4979181934f82383e41349558df7d6e1ece"
+}

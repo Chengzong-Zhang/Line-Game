@@ -1,0 +1,1910 @@
+diff --git a/web/web前端/GuideArticleFormat.js b/web/web前端/GuideArticleFormat.js
+--- a/web/web前端/GuideArticleFormat.js
++++ b/web/web前端/GuideArticleFormat.js
+@@ -4,6 +4,19 @@
+ export const c = (code, language = 'text', source = null) => ({ kind: 'code', code, language, source });
+ export const s = (id, zh, en, blocks) => ({ id, title: { zh, en }, blocks });
+ export const ch = (id, zh, en, overview, sections) => ({ id, title: { zh, en }, overview, sections });
++export function getGuideChapterLinks(blocks = []) {
++  // A paper has one heading1 title; its chapter navigation starts at heading2.
++  for (const type of ['heading1', 'heading2', 'heading3']) {
++    const seen = new Set();
++    const links = blocks.filter(block => {
++      if (block?.type !== type || !block.id || seen.has(block.id)) return false;
++      seen.add(block.id);
++      return true;
++    });
++    if (links.length > 1) return links;
++  }
++  return [];
++}
+ let letterOrNumber;
+ try {
+   // Construct at runtime so older WeChat engines can load this module.
+diff --git a/web/web前端/GuideContent.js b/web/web前端/GuideContent.js
+--- a/web/web前端/GuideContent.js
++++ b/web/web前端/GuideContent.js
+@@ -192,7 +192,7 @@
+ const GUIDE_MARKDOWN = Object.freeze({
+   zh: Object.freeze({
+     rulesEssential: `【胜利条件】
+-玩家轮流在三角网格落子。己方节点和连线经过的格点直接计入领土；由己方点线隔开、不接触真实边界且不含敌方元素的每个空腔也计入，包括甜甜圈形状的内孔；含敌方元素的空腔不计。无需形成单一闭环；开链和单线仍按己方点数计分。同一格点只算一次。着色保留凸包与收紧轮廓，最后裁剪到棋盘范围，排除棋盘外部和挖掉的孔洞；单根连线不铺领土色。显示轮廓（displayArea）仅用于展示，不决定正式分数；最终格点数多者获胜。
++玩家轮流在三角网格落子。己方节点和连线经过的格点直接计入领土；由己方点线隔开、不接触真实边界且不含敌方元素的每个空腔也计入，包括甜甜圈形状的内孔；含敌方元素的空腔不计。无需形成单一闭环；开链和单线仍按己方点数计分。同一格点只算一次。显示轮廓（displayArea）仅用于展示，不决定正式分数；最终格点数多者获胜。
+ ![可落子区域示意](./guide-images/可以走的区域png.png)
+ 
+ 【核心机制】
+@@ -252,7 +252,7 @@
+   }),
+   en: Object.freeze({
+     rulesEssential: `【Victory Condition】
+-Players take turns placing nodes on a triangular grid. Your nodes and link points always count. Every enemy-free pocket separated by friendly points and not touching a true boundary also counts, including the inner hole of a donut-shaped structure; pockets containing an enemy are excluded. No single closed loop is required; an open chain or single line still scores its owned points. Each point counts once. Shading keeps the hull and tightened outlines, then clips them to the actual board, excluding its exterior and removed holes; a single link does not receive a territory fill. The displayed outline (displayArea) is for presentation and does not determine the official score. The higher total wins.
++Players take turns placing nodes on a triangular grid. Your nodes and link points always count. Every enemy-free pocket separated by friendly points and not touching a true boundary also counts, including the inner hole of a donut-shaped structure; pockets containing an enemy are excluded. No single closed loop is required; an open chain or single line still scores its owned points. Each point counts once. The displayed outline (displayArea) is for presentation and does not determine the official score. The higher total wins.
+ ![Playable area example](./guide-images/可以走的区域png.png)
+ 
+ 【Core Mechanic】
+diff --git a/web/web前端/GuideTopologyChapters.js b/web/web前端/GuideTopologyChapters.js
+--- a/web/web前端/GuideTopologyChapters.js
++++ b/web/web前端/GuideTopologyChapters.js
+@@ -63,6 +63,8 @@
+   s('territory', '4.7 离散领土、连续面积与围困', '4.7 Discrete territory, display area and confinement', [
+     p('令 G 为规范格点邻接图，Wᵢ 为己方节点和线点，Oᵢ 为敌方占点，B 为真实边界点。令 Q 遍历 G−Wᵢ 的连通分量。当前正式规则如下；三角／六边棋盘是有外边界的特例。闭曲面 B=∅，仍须逐分量排除敌方。含敌人的封闭小块是围困目标，不是已获得的安全领土。',
+       'Let G be canonical sample adjacency, Wi friendly node/line samples, Oi enemy samples, and B the real boundary samples. Iterate components Q of G−Wi. The official rule below includes triangular and hexagonal boards as bounded cases. On closed surfaces B is empty, but enemy components still must be excluded. An enclosed enemy pocket is a confinement target, not already owned safe territory.'),
++    p('闭曲面没有真实边界：如果某个剩余连通分量不含敌方元素，它就按这条离散约定计分，即使屏幕上看不出被围住；若分量含敌方元素，整块不计分。这是游戏规则，不是由曲面的几何面积自动推导出的结论。',
++      'A closed surface has no real boundary. Under this discrete convention, any remaining component without enemy elements scores even when it does not look enclosed on screen; a component containing an enemy is excluded in full. This is a game rule, not a consequence of geometric surface area.'),
+     m(String.raw`R_i=W_i\cup\!\bigcup_{\substack{Q\in\pi_0(G-W_i)\\Q\cap B=\varnothing,\ Q\cap O_i=\varnothing}}Q,\qquad a_i=\sum_{v\in R_i}w_v.`,
+       'Ri = Wi ∪ components Q of G−Wi with Q∩B=∅ and Q∩Oi=∅; ai=Σv∈Ri wv (unit weights by default).'),
+     p('命题 T5：多源 BFS 与逐分量敌方检查恰好得到 Rᵢ，复杂度为 O(|V|+|E_G|)。证明由 BFS 的可达性不变量：入队点都有源路径，每个可达点沿最短源路径逐层入队。对每个剩余分量扫描敌方标记即可。这是图的零维连通性／H₀计算；未经额外细分与对应证明，它不等于连续曲面补空间 K−Wᵢ 的拓扑，也不等于二维面积。',
+diff --git a/web/web前端/LocalGameSession.js b/web/web前端/LocalGameSession.js
+--- a/web/web前端/LocalGameSession.js
++++ b/web/web前端/LocalGameSession.js
+@@ -1,10 +1,12 @@
+ import { ALL_LOCAL_PLAYER_CHOICES, MULTIPLAYER_AI_CHOICES, normalizeLocalPlayers, usesGenericBoardAI } from "./LocalAIModes.js?v=20261029-unified-r1";
+ import { startingPointSettings } from "./StartingPoints.js?v=20261029-unified-r1";
+-import { PLAYER_ORDER, StartProtectionRule, resolveBoardShape } from "./GameEngine.js?v=20261029-unified-r1";
++import GameEngine, { PLAYER_ORDER, StartProtectionRule, resolveBoardShape } from "./GameEngine.js?v=20261029-unified-r1";
+ import { normalizeUndoUsage } from "./LocalUndo.js?v=20261029-unified-r1";
+ import { decodeTopologyState } from "./TopologyStateCodec.js?v=20261029-unified-r1";
+ 
+ const LOCAL_GAME_SESSION_FORMAT = "lifeline-local-session";
++const SESSION_ENVELOPE_FORMAT = "lifeline-local-session-envelope";
++const MOBILE_SESSION_WRITER_SLOT = "__LIFELINE_MOBILE_SESSION_WRITER__";
+ const PLAYER_COLORS = PLAYER_ORDER;
+ export const LOCAL_GAME_SESSION_SCHEMA_VERSION = 2;
+ export const LOCAL_GAME_SESSION_STORAGE_KEY = "lifeline-local-game-session-v1";
+@@ -140,7 +142,29 @@
+     return null;
+   }
+ 
+-  const match = value.match;
++  // Schema-1 mobile saves can predate per-seat match profiles. Validate their
++  // full context before migrating; do not silently turn an AI seat human.
++  const context = value.playContext;
++  if (context != null && (!context || typeof context !== "object"
++    || !["none", "ai_black", "ai_white", "ai_duel", "mixed"].includes(context.aiMode)
++    || ![2, 3, 4].includes(context.aiDepth)
++    || !["minimax", "padded-cnn", "grid-gnn", "topology-gnn", "dqn", "ppo", "sac", "gail", "gan"].includes(context.aiStrategy)
++    || !["legacy", "2026092201", "2026092202", "2026092203"].includes(context.aiModelVersion)
++    || !(context.aiSeed == null || [20260825, 2026092201, 2026092202, 2026092203].includes(context.aiSeed))
++    || typeof context.aiDuelPaused !== "boolean" || typeof context.tutorialDismissed !== "boolean")) return null;
++  let match = value.match;
++  if (!match && context) {
++    if (context.aiMode === "mixed") return null;
++    const profile = { choice: context.aiStrategy, depth: context.aiDepth, version: context.aiModelVersion };
++    match = {
++      players: normalizeLocalPlayers({
++        BLACK: ["ai_black", "ai_duel"].includes(context.aiMode) ? profile : { choice: "human" },
++        WHITE: ["ai_white", "ai_duel"].includes(context.aiMode) ? profile : { choice: "human" },
++      }, settings.playerCount, settings.boardShape),
++      started: context.aiMode !== "none" || actions.length > 0,
++      paused: context.aiDuelPaused,
++    };
++  }
+   if (match !== undefined && (!match || typeof match.started !== "boolean" || typeof match.paused !== "boolean"
+     || ["BLACK", "WHITE"].some((color) => !ALL_LOCAL_PLAYER_CHOICES.includes(match.players?.[color]?.choice))
+     || PLAYER_COLORS.slice(2).some((color) => match.players?.[color] && !ALL_LOCAL_PLAYER_CHOICES.includes(match.players[color].choice))
+@@ -158,10 +182,55 @@
+     savedAt: Number.isFinite(Number(value.savedAt)) ? Number(value.savedAt) : 0,
+     settings,
+     actions,
++    ...(context ? { playContext: cloneJson(context) } : {}),
+     ...(match ? { match: { players: normalizeLocalPlayers(match.players, settings.playerCount, settings.boardShape), started: match.started, paused: match.paused,
+       ...(match.undo ? { undo: normalizeUndoUsage(match.undo) } : {}),
+     } } : {}),
+   };
++}
++
++// The native authority reconciles revisioned copies only after validating the
++// complete action history against the current rules engine.
++export function parseLocalGameSessionRecord(raw) {
++  try {
++    let value = JSON.parse(String(raw));
++    if (value?.format === SESSION_ENVELOPE_FORMAT) {
++      if (value.version !== 1 || !Number.isSafeInteger(value.revision) || value.revision < 1
++        || value.state !== "saved" || typeof value.payload !== "string") return null;
++      value = JSON.parse(value.payload);
++    }
++    const session = normalizeSession(value);
++    if (!session) return null;
++    const engine = new GameEngine({ ...session.settings });
++    for (const action of session.actions) {
++      let result;
++      if (action.type === "player_move") result = engine.playMove(action.point);
++      else if (action.type === "player_skip") result = engine.skipTurn();
++      else if (action.type === "player_resign") result = engine.resignPlayer(action.color);
++      else if (action.type === "player_root_relocate") result = engine.playRootAction("relocate", action.point);
++      else if (action.type === "player_root_add") result = engine.playRootAction("add", action.point);
++      else return null;
++      if (!result?.success && result?.reason !== "PLAYER_ALREADY_RESIGNED") return null;
++    }
++    return session;
++  } catch (_error) { return null; }
++}
++
++export function isLocalGameSessionRecordCorrupt(raw) {
++  if (raw == null || raw === "") return false;
++  try {
++    const value = JSON.parse(String(raw));
++    if (value?.format === SESSION_ENVELOPE_FORMAT) {
++      if (value.version !== 1 || !Number.isSafeInteger(value.revision) || value.revision < 1) return true;
++      if (value.state === "cleared") return Object.hasOwn(value, "payload");
++      if (value.state !== "saved" || typeof value.payload !== "string") return true;
++    }
++  } catch (_error) { return true; }
++  return parseLocalGameSessionRecord(raw) === null;
++}
++
++export function configureMobileLocalGameSessionWriter(writer) {
++  globalThis[MOBILE_SESSION_WRITER_SLOT] = writer ?? null;
+ }
+ 
+ export function createLocalGameSession(settings, actions = [], match) {
+@@ -216,7 +285,7 @@
+     if (!raw) {
+       return null;
+     }
+-    return normalizeSession(JSON.parse(raw));
++    return parseLocalGameSessionRecord(raw);
+   } catch (_error) {
+     return null;
+   }
+@@ -229,7 +298,14 @@
+   }
+ 
+   try {
+-    storage.setItem(LOCAL_GAME_SESSION_STORAGE_KEY, JSON.stringify(normalized));
++    const serialized = JSON.stringify(normalized);
++    const writer = globalThis.__LIFELINE_MOBILE_APP__ && globalThis[MOBILE_SESSION_WRITER_SLOT];
++    const persisted = writer ? writer.writeSaved(serialized)
++      : (storage.setItem(LOCAL_GAME_SESSION_STORAGE_KEY, serialized), serialized);
++    if (!persisted) return false;
++    if (globalThis.__LIFELINE_MOBILE_APP__) globalThis.dispatchEvent(new CustomEvent("lifeline:session-saved", {
++      detail: { key: LOCAL_GAME_SESSION_STORAGE_KEY, value: persisted },
++    }));
+     return true;
+   } catch (_error) {
+     return false;
+@@ -238,7 +314,13 @@
+ 
+ export function clearLocalGameSession(storage = globalThis.localStorage) {
+   try {
+-    storage?.removeItem?.(LOCAL_GAME_SESSION_STORAGE_KEY);
++    const writer = globalThis.__LIFELINE_MOBILE_APP__ && globalThis[MOBILE_SESSION_WRITER_SLOT];
++    const cleared = writer?.writeCleared?.();
++    if (writer && !cleared) return false;
++    if (!writer) storage?.removeItem?.(LOCAL_GAME_SESSION_STORAGE_KEY);
++    if (globalThis.__LIFELINE_MOBILE_APP__) globalThis.dispatchEvent(new CustomEvent("lifeline:session-cleared", {
++      detail: { key: LOCAL_GAME_SESSION_STORAGE_KEY, value: cleared },
++    }));
+     return true;
+   } catch (_error) {
+     return false;
+@@ -384,10 +466,26 @@
+   return createTopologyLocalGameSession(topologyState, [...current.actions, nextAction], metadata);
+ }
+ 
++export function parseTopologyLocalGameSessionRecord(raw) {
++  try {
++    let value = JSON.parse(String(raw));
++    if (value?.format === SESSION_ENVELOPE_FORMAT) {
++      if (value.version !== 1 || !Number.isSafeInteger(value.revision) || value.revision < 1
++        || value.state !== "saved" || typeof value.payload !== "string") return null;
++      value = JSON.parse(value.payload);
++    }
++    return normalizeTopologySession(value);
++  } catch (_) { return null; }
++}
++
++export function configureMobileTopologyGameSessionWriter(writer) {
++  globalThis.__LIFELINE_MOBILE_TOPOLOGY_SESSION_WRITER__ = writer ?? null;
++}
++
+ export function loadTopologyLocalGameSession(storage = globalThis.localStorage) {
+   try {
+     const raw = storage?.getItem?.(TOPOLOGY_LOCAL_GAME_SESSION_STORAGE_KEY);
+-    return raw ? normalizeTopologySession(JSON.parse(raw)) : null;
++    return raw ? parseTopologyLocalGameSessionRecord(raw) : null;
+   } catch (_) {
+     return null;
+   }
+@@ -397,8 +495,10 @@
+   const normalized = normalizeTopologySession(session);
+   if (!normalized || !storage?.setItem) return false;
+   try {
+-    storage.setItem(TOPOLOGY_LOCAL_GAME_SESSION_STORAGE_KEY, JSON.stringify(normalized));
+-    return true;
++    const serialized = JSON.stringify(normalized);
++    const writer = globalThis.__LIFELINE_MOBILE_APP__ && globalThis.__LIFELINE_MOBILE_TOPOLOGY_SESSION_WRITER__;
++    return Boolean(writer ? writer.writeSaved(serialized)
++      : (storage.setItem(TOPOLOGY_LOCAL_GAME_SESSION_STORAGE_KEY, serialized), serialized));
+   } catch (_) {
+     return false;
+   }
+@@ -406,6 +506,8 @@
+ 
+ export function clearTopologyLocalGameSession(storage = globalThis.localStorage) {
+   try {
++    const writer = globalThis.__LIFELINE_MOBILE_APP__ && globalThis.__LIFELINE_MOBILE_TOPOLOGY_SESSION_WRITER__;
++    if (writer) return Boolean(writer.writeCleared());
+     storage?.removeItem?.(TOPOLOGY_LOCAL_GAME_SESSION_STORAGE_KEY);
+     return true;
+   } catch (_) {
+diff --git a/web/web前端/LocalPlayerSetup.js b/web/web前端/LocalPlayerSetup.js
+--- a/web/web前端/LocalPlayerSetup.js
++++ b/web/web前端/LocalPlayerSetup.js
+@@ -16,6 +16,7 @@
+     boardShape: { type: String, required: true },
+     gridSize: { type: Number, default: 7 },
+     startPlayer: { type: String, required: true },
++    showStarter: { type: Boolean, default: true },
+     initialPositions: { type: Object, default: null },
+     locked: { type: Boolean, default: false },
+     pending: { type: Boolean, default: true },
+@@ -139,7 +140,7 @@
+       <p v-else-if="!online && playerCount === 3" class="help-copy">{{ texts.localThreeHuman }}</p>
+       <p v-else-if="!online && playerCount >= 4 && playerCount <= 6" class="help-copy">{{ texts.localHexHuman }}</p>
+       <div class="local-match-toolbar">
+-        <div class="local-starter-field">
++        <div v-if="showStarter" class="local-starter-field">
+           <label for="local-start-player" class="field-label">{{ texts.starterLabel }}</label>
+           <select id="local-start-player" class="input-field" :value="startPlayer" :disabled="locked" @change="$emit('update:start-player', $event.target.value)">
+             <option v-for="side in sides" :key="side.color" :value="side.color">{{ side.name }}</option>
+diff --git a/web/web前端/ModelFreeAI.js b/web/web前端/ModelFreeAI.js
+--- a/web/web前端/ModelFreeAI.js
++++ b/web/web前端/ModelFreeAI.js
+@@ -8,7 +8,7 @@
+ function keyFor(point) { return `${point[0]},${point[1]}`; }
+ 
+ async function digestHex(buffer) {
+-  if (!globalThis.crypto?.subtle) return null;
++  if (!globalThis.crypto?.subtle) throw new Error("模型 SHA-256 校验不可用；为避免载入未经验证的权重，已停止加载。请使用安全浏览器上下文（HTTPS 或 localhost）。");
+   const digest = await globalThis.crypto.subtle.digest("SHA-256", buffer);
+   return [...new Uint8Array(digest)].map((part) => part.toString(16).padStart(2, "0")).join("");
+ }
+@@ -82,7 +82,7 @@
+ export async function loadModelFreeModel(id) {
+   if (!modelPromises.has(id)) modelPromises.set(id, (async () => {
+     const manifest = await loadManifest(); const spec = manifest.models.find((item) => item.id === id); if (!spec) throw new Error(`未找到 model-free 模型：${id}`);
+-    const response = await fetch(new URL(`./assets/research-ai/${spec.asset}`, import.meta.url)); if (!response.ok) throw new Error(`无法加载 ${spec.label} 权重。`); const raw = await response.arrayBuffer(); const actual = await digestHex(raw); if (actual && actual !== spec.asset_sha256) throw new Error(`${spec.label} 权重哈希不匹配。`); return new ModelFreeModel(spec, tensorMap(spec, raw));
++    const response = await fetch(new URL(`./assets/research-ai/${spec.asset}`, import.meta.url)); if (!response.ok) throw new Error(`无法加载 ${spec.label} 权重。`); const raw = await response.arrayBuffer(); const actual = await digestHex(raw); if (actual !== spec.asset_sha256) throw new Error(`${spec.label} 权重哈希不匹配。`); return new ModelFreeModel(spec, tensorMap(spec, raw));
+   })());
+   return modelPromises.get(id);
+ }
+diff --git a/web/web前端/NetworkManager.js b/web/web前端/NetworkManager.js
+--- a/web/web前端/NetworkManager.js
++++ b/web/web前端/NetworkManager.js
+@@ -1,6 +1,7 @@
+ ﻿const DEFAULT_REQUEST_TIMEOUT = 10000;
+ const DEFAULT_HEARTBEAT_INTERVAL = 4000;
+ const DEFAULT_HEARTBEAT_TIMEOUT = 12000;
++import { configuredEndpoint } from "./platform/runtime.js?v=20261031-alignment-diagnostic";
+ export const TOPOLOGY_ROOM_CAPABILITY = "board-topology-v1";
+ 
+ // NetworkManager 璐熻矗鎶娾€滆姹?鍝嶅簲鈥濆拰鈥滃箍鎾簨浠垛€濇贩鍚堝湪鍚屼竴鏉?WebSocket 涓婄鐞嗚捣鏉ャ€?// 涓婂眰鍙渶瑕佽闃呬簨浠舵垨璋冪敤 sendXxx锛屾棤闇€鐩存帴鎿嶄綔 socket銆?
+@@ -54,6 +55,8 @@
+ }
+ 
+ function resolveWebSocketUrl(locationLike = globalThis.location) {
++  const configured = configuredEndpoint("websocketUrl", ["wss:", "ws:"]);
++  if (configured) return configured;
+   if (!locationLike || typeof locationLike !== "object") {
+     return "ws://localhost:8000/ws";
+   }
+diff --git a/web/web前端/OnlineApp.js b/web/web前端/OnlineApp.js
+--- a/web/web前端/OnlineApp.js
++++ b/web/web前端/OnlineApp.js
+@@ -51,6 +51,7 @@
+   localizeErrorMessage as localizeAppErrorMessage,
+ } from "./OnlineAppI18n.js?v=20261029-unified-r1";
+ import { ensureGuideRuleImages, getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20261029-unified-r1";
++import { getGuideChapterLinks } from "./GuideArticleFormat.js?v=20261031-guide-reading";
+ import {
+   TUTORIAL_LEVELS,
+   getTutorialEngineSettings,
+@@ -82,7 +83,8 @@
+ import { TrainingContribution, ContributionPanel, supportsContributionActors } from "./TrainingContribution.js?v=20261029-unified-r1";
+ import { localAIPlayer, localMatchActors, localMatchMode, localPlayerProfile, normalizeLocalPlayers, normalizeLocalPlayerDraft, prepareLocalPlayersForNewMatch, supportsRootModeAI, loadLocalMatchPreferences, persistLocalMatchPreferences } from "./LocalAIModes.js?v=20261029-unified-r1";
+ import { roomSettingsFromBoard, normalizeRoomPlayerSetup } from "./OnlineRoomSettings.js?v=20261029-unified-r1";
+-import LocalPlayerSetup from "./LocalPlayerSetup.js?v=20261029-unified-r1";
++import LocalPlayerSetup from "./LocalPlayerSetup.js?v=20261031-turn-order";
++import TurnOrderSetup, { resizeTurnOrder } from "./TurnOrderSetup.js?v=20261031-turn-order";
+ import StartingPointSetup from "./StartingPointSetup.js?v=20261029-unified-r1";
+ import TopologyStartingPointSetup, { topologyDefaultDefinition } from "./TopologyStartingPointSetup.js?v=20261029-unified-r1";
+ import { createTopologyStartingDefinition, prepareTopologyNewMatchSettings } from "./TopologyStartingPoints.js?v=20261029-unified-r1";
+@@ -108,6 +110,7 @@
+   undoBoundaryVertex,
+ } from "./BoardEditor.js?v=20261029-unified-r1";
+ import { decodeTopologyState } from "./TopologyStateCodec.js?v=20261029-unified-r1";
++import { configuredEndpoint } from "./platform/runtime.js?v=20261031-alignment-diagnostic";
+ 
+ const {
+   computed,
+@@ -125,6 +128,8 @@
+ 
+ // OnlineApp 鏄仈鏈虹増椤甸潰鍏ュ彛銆?// 缁勪欢瀹氫箟鍜屼笟鍔℃祦绋嬮兘鏀惧湪杩欓噷锛屼絾閫氱敤鐘舵€佸伐鍏蜂笌鏂囨宸茬粡鎷嗗埌鐙珛妯″潡銆?
+ function resolveApiBaseUrl(serverUrl, locationLike = globalThis.location) {
++  const configured = configuredEndpoint("apiBaseUrl", ["https:", "http:"]);
++  if (configured) return configured.replace(/\/$/, "");
+   const fallbackOrigin = locationLike?.origin ?? "http://localhost:8000";
+   const rawUrl = String(serverUrl ?? "").trim();
+ 
+@@ -662,7 +667,7 @@
+ 
+ const SetupPanel = {
+   name: "SetupPanel",
+-  components: { ContributionPanel, LocalPlayerSetup, StartingPointSetup },
++  components: { ContributionPanel, LocalPlayerSetup, StartingPointSetup, TurnOrderSetup },
+   emits: [
+     "update:player-count",
+     "update:board-shape",
+@@ -679,6 +684,7 @@
+     "select-lab-model",
+     "save-room-settings",
+     "update:start-player",
++    "update:turn-order",
+     "swap-local-players",
+     "start-local-match",
+     "toggle-contributions",
+@@ -724,6 +730,7 @@
+     undoMaxCount: { type: Number, default: 3 },
+     localPlayers: { type: Object, required: true },
+     startPlayer: { type: String, required: true },
++    turnOrder: { type: Array, required: true },
+     localPending: { type: Boolean, default: true },
+     localStarted: { type: Boolean, default: false },
+     startingPoints: { type: Object, default: () => ({}) },
+@@ -827,7 +834,7 @@
+                 :class="{ 'is-active': playerCount === count }"
+                 role="radio"
+                 :aria-checked="playerCount === count"
+-                :disabled="busy || settingsLocked"
++                :disabled="busy || settingsLocked || (boardShape === 'custom' && count > 6)"
+                 @click="$emit('update:player-count', count)"
+               >
+                 {{ count }}
+@@ -839,7 +846,7 @@
+               :root-mode="startingPoints.rootMode ?? 'classic'" :grid-size="gridSize"
+               :online="roomSetupOpen"
+               :initial-positions="startingPoints.initialPositions"
+-              :start-player="startPlayer" :pending="localPending" :started="localStarted" :locked="busy || settingsLocked"
++              :start-player="startPlayer" :show-starter="false" :pending="localPending" :started="localStarted" :locked="busy || settingsLocked"
+               @update-player="$emit('update-local-player', $event)" @select-lab-model="$emit('select-lab-model', $event)" @update:start-player="$emit('update:start-player', $event)"
+               @swap="$emit('swap-local-players')" @start="$emit('start-local-match')" @open-topology-guide="$emit('open-topology-guide')">
+               <template #contribution>
+@@ -847,6 +854,7 @@
+               </template>
+             </LocalPlayerSetup>
+           </div>
++          <div v-if="aiAvailable || roomSetupOpen" class="settings-grid-item-wide"><TurnOrderSetup :order="turnOrder" :language="language" :ui-style="uiStyle" :locked="busy || settingsLocked" @change="$emit('update:turn-order', $event)" /></div>
+           <button v-if="roomSetupOpen" type="button" class="action-button action-button-primary" :disabled="busy || settingsLocked" @click="$emit('save-room-settings')">{{ language === 'zh' ? '保存房间设置' : 'Save room settings' }}</button>
+           <div class="settings-grid-item-wide">
+             <label id="grid-size-label" class="field-label">{{ texts.gridSizeLabel }}</label>
+@@ -1469,7 +1477,10 @@
+           </article>
+         </div>
+ 
+-        <div v-if="isHost" class="host-controls">
++        <div v-if="isHost && session.shared" class="host-controls">
++          <button type="button" class="action-button action-button-secondary" :disabled="busy" @click="$emit('create-room')">{{ language === 'zh' ? '房间设置与行动顺序' : 'Room settings and turn order' }}</button>
++        </div>
++        <div v-if="isHost && !session.shared" class="host-controls">
+           <div class="panel-subhead">
+             <h3>{{ texts.starterLabel }}</h3>
+           </div>
+@@ -2771,6 +2782,8 @@
+       return subEntries.find((item) => item.key === activeSubKey.value) ?? subEntries[0];
+     });
+     const displayBlocks = computed(() => buildGuideDisplayBlocks(activeReadableEntry.value?.blocks ?? []));
++    const chapterLinks = computed(() => getGuideChapterLinks(displayBlocks.value));
++    const goToChapter = (id) => document.getElementById(id)?.scrollIntoView({ block: "start", behavior: "auto" });
+ 
+     const typesetGuideMath = () => {
+       nextTick?.(() => {
+@@ -2803,6 +2816,8 @@
+       activeReadableEntry,
+       activeSubKey,
+       displayBlocks,
++      chapterLinks,
++      goToChapter,
+       formatGuideDisplayMath,
+       highlightGuideCode,
+       texts: computed(() => getAppTexts(props.language, props.uiStyle)),
+@@ -2840,6 +2855,12 @@
+                 <span>{{ subEntry.subtitle }}</span>
+               </button>
+             </div>
++            <details v-if="chapterLinks.length > 1" :key="activeReadableEntry?.key" class="guide-chapter-contents">
++              <summary>{{ language === 'zh' ? '文章目录' : 'Contents' }} · {{ chapterLinks.length }}</summary>
++              <nav class="guide-chapter-nav" :aria-label="language === 'zh' ? '文章目录' : 'Article contents'">
++                <button v-for="chapter in chapterLinks" :key="chapter.id" type="button" @click="goToChapter(chapter.id)"><GuideInlineText :tokens="chapter.tokens" /></button>
++              </nav>
++            </details>
+             <div class="guide-reader-body">
+               <template v-for="(block, index) in displayBlocks" :key="(activeReadableEntry?.key || entry.key) + '-' + index">
+                 <h3 v-if="block.type === 'heading1'" :id="block.id" class="guide-block-heading-xl"><GuideInlineText :tokens="block.tokens" /></h3>
+@@ -3388,6 +3409,16 @@
+     const tutorialResultSnapshot = shallowRef(null);
+     const tutorialRestrictionObserved = ref(false);
+     const localGameActions = ref([]);
++    const mobileExitPromptOpen = ref(false);
++    const mobileExitPending = ref(false);
++    const mobileExitError = ref("");
++    let mobileAppActive = !globalThis.__LIFELINE_MOBILE_APP__ || globalThis.__LIFELINE_APP_ACTIVE__ !== false;
++    let mobileDisposed = false;
++    let mobileExitGeneration = 0;
++    let authAttemptGeneration = 0;
++    let mobileExitAwaitingForeground = false;
++    let mobileExitController = null;
++    let mobileExitPriorReadOnly = false;
+     let topologyLocalSession = storedTopologyDecoded ? storedTopologyGame : null;
+     const contributionState = ref({ enabled: false, pending: 0, status: "off", receipt: null });
+     const contribution = new TrainingContribution({ onChange: (state) => { contributionState.value = state; } });
+@@ -3408,6 +3439,7 @@
+     const replayPlaying = ref(false);
+     const replayInspectorOpen = ref(false);
+     const replayBusy = ref(false);
++    let replayOperationGeneration = 0;
+     const replayError = ref("");
+     const replayRestoring = ref(false);
+     const replayInspectionPoint = ref(null);
+@@ -3479,6 +3511,7 @@
+     const selectedBoardShape = ref(initialSettings.boardShape);
+     const selectedGridSize = ref(initialSettings.gridSize);
+     const selectedStartPlayer = ref(initialSettings.startPlayer);
++    const selectedTurnOrder = ref(resizeTurnOrder(initialSettings.turnOrder, initialSettings.playerCount, initialSettings.startPlayer));
+     const selectedStartingPoints = ref(startingPointSettings(initialSettings));
+     const selectedTopologyDefinition = shallowRef(null);
+     const topologyDefaultSelection = shallowRef(null);
+@@ -3507,6 +3540,7 @@
+       const normalized = normalizeAppGameSettings(settings);
+       // Protection belongs to a match version, not to editable setup fields.
+       delete normalized.protectionRule;
++      normalized.turnOrder = resizeTurnOrder(normalized.turnOrder, normalized.playerCount, normalized.startPlayer);
+       return JSON.stringify(normalized);
+     };
+     // A changed draft is reviewable in the setup panel, while the active game
+@@ -3650,7 +3684,7 @@
+     };
+ 
+     const canRunLocalAI = (state = gameState.value) => (
+-      !tutorialActive.value
++      mobileAppActive && !mobileExitPending.value && !tutorialActive.value
+       && !replayMode.value
+       && !replayBusy.value
+       && !localGameRestoring.value
+@@ -3991,7 +4025,7 @@
+       authFeedbackTone.value = "error";
+     });
+ 
+-    watch([selectedPlayerCount, selectedBoardShape, selectedGridSize, selectedStartPlayer, selectedRulesVersion, selectedTurnTimerEnabled, selectedTurnTimeLimitSeconds, selectedHintEnabled, selectedHintMaxCount, selectedUndoEnabled, selectedUndoMaxCount], ([
++    watch([selectedPlayerCount, selectedBoardShape, selectedGridSize, selectedStartPlayer, selectedRulesVersion, selectedTurnTimerEnabled, selectedTurnTimeLimitSeconds, selectedHintEnabled, selectedHintMaxCount, selectedUndoEnabled, selectedUndoMaxCount, selectedTurnOrder], ([
+       playerCount,
+       boardShape,
+       gridSize,
+@@ -4003,6 +4037,7 @@
+       hintMaxCount,
+       undoEnabled,
+       undoMaxCount,
++      turnOrder,
+     ], [
+       previousPlayerCount,
+       previousBoardShape,
+@@ -4015,11 +4050,16 @@
+       previousHintMaxCount,
+       previousUndoEnabled,
+       previousUndoMaxCount,
++      previousTurnOrder,
+     ] = []) => {
+       if (syncingRemoteSettings || tutorialActive.value) {
+         return;
+       }
+ 
++      const validCount = APP_PLAYER_COUNT_OPTIONS.includes(playerCount) ? playerCount : 2;
++      const starter = APP_ALL_PLAYERS.slice(0, validCount).includes(startPlayer) ? startPlayer : APP_ALL_PLAYERS[0];
++      const effectiveOrder = resizeTurnOrder(turnOrder, validCount, starter);
++      if (JSON.stringify(effectiveOrder) !== JSON.stringify(selectedTurnOrder.value)) selectedTurnOrder.value = effectiveOrder;
+       const wantsTopology = boardShape === "custom" || rulesVersion === "surface-v1";
+       let settingsInput;
+       if (wantsTopology) {
+@@ -4028,19 +4068,19 @@
+           // fail at the match boundary rather than being normalized into a
+           // playable triangle by the legacy settings path.
+           settingsInput = {
+-            playerCount, boardShape: "custom", gridSize, startPlayer,
++            playerCount, boardShape: "custom", gridSize, startPlayer: starter, turnOrder: effectiveOrder,
+             rulesVersion: "surface-v1", topologyProtocolVersion: "board-topology-v1",
+             turnTimerEnabled, turnTimeLimitSeconds, hintEnabled, hintMaxCount,
+             undoEnabled, undoMaxCount, botCount: 0,
+           };
+         } else {
+           try {
+-            const materialized = materializeTopologyDefinition(selectedTopologyDefinition.value, playerCount, startPlayer);
++            const materialized = materializeTopologyDefinition(selectedTopologyDefinition.value, playerCount, starter);
+             selectedTopologyDefinition.value = materialized.definition;
+             selectedTopologyHash.value = materialized.boardHash;
+             selectedStartingPoints.value = { startingPointMode: "topology" };
+             settingsInput = {
+-              playerCount, boardShape: "custom", gridSize, startPlayer,
++              playerCount, boardShape: "custom", gridSize, startPlayer: starter, turnOrder: effectiveOrder,
+               rulesVersion: "surface-v1", topologyProtocolVersion: "board-topology-v1",
+               boardDefinition: materialized.definition, boardHash: materialized.boardHash,
+               initialPositions: materialized.initialPositions,
+@@ -4069,7 +4109,7 @@
+           };
+         }
+         settingsInput = {
+-          playerCount, boardShape, gridSize, startPlayer, rulesVersion,
++          playerCount, boardShape, gridSize, startPlayer: starter, turnOrder: effectiveOrder, rulesVersion,
+           ...(roomStatus.value !== "solo" ? { protectionRule: roomInfo.value.settings?.protectionRule ?? "symmetric-v1" } : {}),
+           turnTimerEnabled, turnTimeLimitSeconds, hintEnabled, hintMaxCount,
+           undoEnabled, undoMaxCount, ...selectedStartingPoints.value,
+@@ -4098,6 +4138,7 @@
+         || normalized.boardShape !== previousBoardShape
+         || normalized.gridSize !== previousGridSize
+         || normalized.startPlayer !== previousStartPlayer
++        || JSON.stringify(normalized.turnOrder) !== JSON.stringify(previousTurnOrder)
+         || normalized.rulesVersion !== previousRulesVersion
+         || normalized.turnTimerEnabled !== previousTurnTimerEnabled
+         || normalized.turnTimeLimitSeconds !== previousTurnTimeLimitSeconds;
+@@ -4117,6 +4158,7 @@
+         return;
+       }
+ 
++      if (roomSetupOpen.value) return;
+       if (isHost.value && roomStatus.value !== "solo" && roomStatus.value !== "inProgress" && roomStatus.value !== "countdown") {
+         const settingsChanged = normalized.playerCount !== previousPlayerCount
+           || normalized.boardShape !== previousBoardShape
+@@ -4125,7 +4167,8 @@
+           || normalized.turnTimerEnabled !== previousTurnTimerEnabled
+           || normalized.turnTimeLimitSeconds !== previousTurnTimeLimitSeconds
+           || normalized.undoEnabled !== previousUndoEnabled
+-          || normalized.undoMaxCount !== previousUndoMaxCount;
++          || normalized.undoMaxCount !== previousUndoMaxCount
++          || (session.value.shared && JSON.stringify(normalized.turnOrder) !== JSON.stringify(previousTurnOrder));
+         const starterChanged = normalized.startPlayer !== previousStartPlayer;
+ 
+         if (settingsChanged) {
+@@ -4157,6 +4200,11 @@
+     const handleBoardShapeChange = (shape) => {
+       if (!['triangle', 'hexagon', 'custom'].includes(shape) || settingsLocked.value) return;
+       if (shape === "custom") {
++        if (selectedPlayerCount.value > 6) {
++          selectedPlayerCount.value = 6;
++          if (!APP_ALL_PLAYERS.slice(0, 6).includes(selectedStartPlayer.value)) selectedStartPlayer.value = APP_ALL_PLAYERS[0];
++          selectedTurnOrder.value = resizeTurnOrder(selectedTurnOrder.value, 6, selectedStartPlayer.value);
++        }
+         if (!selectedTopologyDefinition.value || selectedTopologyGridSize.value !== selectedGridSize.value) selectTopologyPreset("cylinder");
+         else selectTopologyDefinition(selectedTopologyDefinition.value, selectedTopologySource.value || "custom");
+         return;
+@@ -4360,17 +4408,28 @@
+       };
+     };
+ 
++    // Draft fields can be read before Vue flushes the count/starter watcher.
++    // Reconcile only the local draft; authoritative room inputs stay strict.
++    const draftTurnState = () => {
++      const count = APP_PLAYER_COUNT_OPTIONS.includes(selectedPlayerCount.value) ? selectedPlayerCount.value : 2;
++      const starter = APP_ALL_PLAYERS.slice(0, count).includes(selectedStartPlayer.value)
++        ? selectedStartPlayer.value : APP_ALL_PLAYERS[0];
++      return { starter, order: resizeTurnOrder(selectedTurnOrder.value, count, starter) };
++    };
++
+     const selectedTopologySettings = () => {
+       if (!selectedTopologyDefinition.value) {
+         throw new Error("Select, draw, generate, or import a topology board before starting.");
+       }
+-      const materialized = materializeTopologyDefinition(selectedTopologyDefinition.value);
++      const { starter, order } = draftTurnState();
++      const materialized = materializeTopologyDefinition(selectedTopologyDefinition.value, selectedPlayerCount.value, starter);
+       return {
+         playerCount: selectedPlayerCount.value,
+         boardShape: "custom",
+         botCount: 0,
+         gridSize: selectedGridSize.value,
+-        startPlayer: selectedStartPlayer.value,
++        startPlayer: starter,
++        turnOrder: order,
+         rulesVersion: "surface-v1",
+         topologyProtocolVersion: "board-topology-v1",
+         boardDefinition: materialized.definition,
+@@ -4389,6 +4448,7 @@
+     };
+ 
+     function draftGameSettings() {
++      const { starter, order } = draftTurnState();
+       if (selectedBoardShape.value === "custom" || selectedRulesVersion.value === "surface-v1") {
+         // Preserve the topology identity even while an incomplete selection is
+         // being edited.  Callers that would construct a match catch the
+@@ -4400,7 +4460,8 @@
+           boardShape: "custom",
+           botCount: 0,
+           gridSize: selectedGridSize.value,
+-          startPlayer: selectedStartPlayer.value,
++          startPlayer: starter,
++          turnOrder: order,
+           rulesVersion: "surface-v1",
+           topologyProtocolVersion: "board-topology-v1",
+           turnTimerEnabled: selectedTurnTimerEnabled.value,
+@@ -4415,7 +4476,8 @@
+         playerCount: selectedPlayerCount.value,
+         boardShape: selectedBoardShape.value,
+         gridSize: selectedGridSize.value,
+-        startPlayer: selectedStartPlayer.value,
++        startPlayer: starter,
++        turnOrder: order,
+         rulesVersion: selectedRulesVersion.value,
+         ...(roomStatus.value !== "solo"
+           ? { protectionRule: roomInfo.value.settings?.protectionRule ?? "symmetric-v1" } : {}),
+@@ -4465,7 +4527,7 @@
+         } finally {
+           syncingRemoteSettings = false;
+         }
+-        if (priorShape === "custom" && isHost.value && roomStatus.value !== "solo"
++        if (priorShape === "custom" && !roomSetupOpen.value && isHost.value && roomStatus.value !== "solo"
+           && roomStatus.value !== "inProgress" && roomStatus.value !== "countdown") {
+           void networkManager.updateRoomSettings(normalizeAppGameSettings({ ...draftGameSettings(), botCount: 0 })).catch(handleNetworkError);
+         }
+@@ -4724,12 +4786,11 @@
+       }
+     };
+     const saveLocalMatch = () => {
+-      if (roomStatus.value !== "solo" || tutorialActive.value || localGameRestoring.value || replayMode.value) return;
++      if (roomStatus.value !== "solo" || tutorialActive.value || localGameRestoring.value || replayMode.value) return false;
+       if (isTopologyLocalMatch()) {
+-        persistTopologyMatch();
+-        return;
+-      }
+-      persistLocalGameSession(createLocalGameSession(currentGameSettings(), localGameActions.value, currentLocalMatch()));
++        return persistTopologyMatch();
++      }
++      return persistLocalGameSession(createLocalGameSession(currentGameSettings(), localGameActions.value, currentLocalMatch()));
+     };
+     const armContributionForFreshLocalMatch = () => {
+       invalidateContributionTicket();
+@@ -4905,7 +4966,11 @@
+         }
+         if (!nextSession) return;
+         const nextUndoUsage = recordUndoAction(undoUsage.value, action.player);
+-        persistTopologyLocalGameSession(nextSession);
++        if (!persistTopologyLocalGameSession(nextSession) && globalThis.__LIFELINE_MOBILE_APP__) {
++          actionFeedback.value = language.value === "zh" ? "当前对局尚未确认保存，请保持页面打开并重试。" : "The match save is not confirmed. Keep this page open and retry.";
++          actionFeedbackTone.value = "error";
++          showLocalGameNotice(language.value === "zh" ? "存档写入失败，当前对局仍保留，请重试。" : "Save failed. The current match remains open; retry.");
++        }
+         topologyLocalSession = nextSession;
+         undoUsage.value = nextUndoUsage;
+         localGameActions.value = [...localGameActions.value, topologyAction];
+@@ -4926,7 +4991,11 @@
+       }
+ 
+       // Keep the in-memory history usable even if browser storage is full.
+-      persistLocalGameSession(nextSession);
++      if (!persistLocalGameSession(nextSession) && globalThis.__LIFELINE_MOBILE_APP__) {
++        actionFeedback.value = language.value === "zh" ? "当前对局尚未确认保存，请保持页面打开并重试。" : "The match save is not confirmed. Keep this page open and retry.";
++        actionFeedbackTone.value = "error";
++        showLocalGameNotice(language.value === "zh" ? "存档写入失败，当前对局仍保留，请重试。" : "Save failed. The current match remains open; retry.");
++      }
+       undoUsage.value = nextUndoUsage;
+       localGameActions.value = nextSession.actions;
+       localGamePositionRevision.value = nextState.positionRevision;
+@@ -5035,11 +5104,13 @@
+     };
+ 
+     const handleExportReplay = async () => {
++      if (replayBusy.value) return false;
+       if (roomStatus.value !== "solo" || tutorialActive.value || replayMode.value || localGameActions.value.length === 0) {
+         replayError.value = language.value === "zh" ? "只有完成至少一步的本地对局可以导出棋谱。" : "Export is available after at least one local move.";
+         return;
+       }
+       replayBusy.value = true;
++      const generation = ++replayOperationGeneration;
+       replayError.value = "";
+       try {
+         const settings = currentGameSettings();
+@@ -5049,19 +5120,31 @@
+           : await createReplayDocument(settings, localGameActions.value, {
+             actors: localMatchActors(activeLocalPlayers.value, settings.playerCount, settings.gridSize, settings.boardShape),
+           });
+-        downloadReplayDocument(document, isTopologyGameSettings(settings)
++        if (mobileDisposed || generation !== replayOperationGeneration) return false;
++        const outcome = await downloadReplayDocument(document, isTopologyGameSettings(settings)
+           ? "lifeline-topology-replay.json" : "lifeline-replay.json");
+-        setActionFeedback(language.value === "zh" ? "棋谱已导出。" : "Replay exported.", "success");
++        if (mobileDisposed || generation !== replayOperationGeneration) return false;
++        const message = outcome === "cancelled"
++          ? (language.value === "zh" ? "已取消分享。" : "Sharing was cancelled.")
++          : outcome === "share-selected"
++            ? (language.value === "zh" ? "已选择接收应用；无法确认对方是否收到棋谱。" : "A receiving app was selected; delivery is not confirmed.")
++            : outcome === "share-returned"
++              ? (language.value === "zh" ? "分享流程已返回；系统未提供接收方信息。" : "The share flow returned without identifying a receiving app.")
++              : outcome === "shared"
++                ? (language.value === "zh" ? "棋谱分享流程已结束。" : "Replay sharing has finished.")
++              : (language.value === "zh" ? "棋谱导出流程已完成。" : "Replay export finished.");
++        setActionFeedback(message, outcome === "cancelled" ? "neutral" : "success");
+       } catch (error) {
+-        replayError.value = error?.message ?? String(error);
++        if (!mobileDisposed && generation === replayOperationGeneration) replayError.value = error?.message ?? String(error);
+       } finally {
+-        replayBusy.value = false;
++        if (generation === replayOperationGeneration) replayBusy.value = false;
+       }
+     };
+ 
+     const handleImportReplay = async (text) => {
+-      if (replayMode.value || roomStatus.value !== "solo" || tutorialActive.value) return;
++      if (replayBusy.value || replayMode.value || roomStatus.value !== "solo" || tutorialActive.value) return;
+       replayBusy.value = true;
++      const generation = ++replayOperationGeneration;
+       replayError.value = "";
+       try {
+         let parsed;
+@@ -5073,6 +5156,7 @@
+         const result = parsed?.format === TOPOLOGY_REPLAY_FORMAT
+           ? await validateTopologyReplayDocument(parsed)
+           : await parseAndValidateReplay(text);
++        if (mobileDisposed || generation !== replayOperationGeneration) return;
+         if (!result.success) {
+           replayError.value = language.value === "zh"
+             ? (result.eventSeq ? `棋谱校验失败（第 ${result.eventSeq} 步）：${result.reason}` : `棋谱校验失败：${result.reason}`)
+@@ -5096,9 +5180,9 @@
+         const eventCount = result.eventCount ?? result.actions?.length ?? 0;
+         setActionFeedback(language.value === "zh" ? `棋谱已验证，共 ${eventCount} 步。点击“复盘导入棋谱”查看。` : `Replay verified: ${eventCount} steps. Choose “Review imported replay” to inspect it.`, "success");
+       } catch (error) {
+-        replayError.value = error?.message ?? String(error);
++        if (!mobileDisposed && generation === replayOperationGeneration) replayError.value = error?.message ?? String(error);
+       } finally {
+-        replayBusy.value = false;
++        if (generation === replayOperationGeneration) replayBusy.value = false;
+       }
+     };
+ 
+@@ -5691,6 +5775,7 @@
+         selectedBoardShape.value = normalized.boardShape;
+         selectedGridSize.value = normalized.gridSize;
+         selectedStartPlayer.value = normalized.startPlayer;
++        selectedTurnOrder.value = resizeTurnOrder(normalized.turnOrder, normalized.playerCount, normalized.startPlayer);
+         // A surface board owns canonical string IDs after its quotient has
+         // been compiled.  The legacy starting-point helper only understands
+         // triangle/hex coordinate pairs and would either throw on `cv:*` or,
+@@ -5726,7 +5811,9 @@
+         controller.value.setGameConfig(normalized, reset);
+         return normalized;
+       } finally {
+-        syncingRemoteSettings = false;
++        // Vue batches the settings watcher; keep remote/restore changes guarded
++        // until that batch has observed the complete authoritative snapshot.
++        nextTick(() => { syncingRemoteSettings = false; });
+       }
+     };
+ 
+@@ -5932,7 +6019,7 @@
+     );
+ 
+     const shouldRunTurnTimer = () => {
+-      if (tutorialActive.value || replayMode.value || replayRestoring.value || !turnTimerEnabled.value || !controller.value) {
++      if (!mobileAppActive || mobileExitPending.value || tutorialActive.value || replayMode.value || replayRestoring.value || !turnTimerEnabled.value || !controller.value) {
+         return false;
+       }
+ 
+@@ -6321,6 +6408,9 @@
+     };
+ 
+     const handleLogout = async () => {
++      const logoutGeneration = ++authAttemptGeneration;
++      const logoutCurrent = () => !mobileDisposed && logoutGeneration === authAttemptGeneration;
++      const hadOnlineRoom = roomStatus.value !== "solo" || Boolean(session.value.roomId);
+       cancelSharedPassword();
+       accountLinkGeneration += 1; accountLinkCode.value = ""; clearTimeout(accountLinkExpiry);
+       authBusy.value = true;
+@@ -6331,20 +6421,32 @@
+       networkManager.clearAuthToken();
+ 
+       try {
++        if (globalThis.__LIFELINE_MOBILE_APP__ && typeof globalThis.LifelinePlatform?.clearCredential === "function") {
++          const cleared = await globalThis.LifelinePlatform.clearCredential();
++          if (!logoutCurrent()) return;
++          if (!cleared) authError.value = language.value === "zh" ? "无法确认安全登录信息已清除，请重试。" : "Could not confirm secure credential removal; retry.";
++        }
++        if (!logoutCurrent()) return;
+         clearReconnectTimer();
+-        resetRoomContext();
+-        connectionState.value = "idle";
+-        try { await networkManager.leaveRoom(); } catch (_error) { /* Local logout still completes. */ }
++        if (hadOnlineRoom) {
++          resetRoomContext();
++          connectionState.value = "idle";
++          try { await networkManager.leaveRoom(); }
++          catch (_error) {
++            if (logoutCurrent()) networkError.value = language.value === "zh"
++              ? "未能确认退出房间，账号已在本机退出。" : "Room leave was not confirmed; this device is signed out.";
++          }
++        }
++        if (!logoutCurrent()) return;
+         networkManager.disconnect(1000, "logout");
+         networkManager.clearAuthToken();
+         networkManager.url = null;
+         networkManager.roomId = null;
+         networkManager.playerId = null;
+         networkManager.color = null;
+-        if (controller.value) {
++        if (hadOnlineRoom && controller.value) {
+           terminateAiWorker();
+           controller.value.disableMultiplayer();
+-          clearSavedLocalGame();
+           gameState.value = controller.value.resetGame({ force: true });
+           resetHintUsage();
+           scheduleAiMove(gameState.value);
+@@ -6352,7 +6454,7 @@
+         persistAppSession(createAppEmptySession());
+         syncSession();
+       } finally {
+-        authBusy.value = false;
++        if (logoutCurrent()) authBusy.value = false;
+       }
+     };
+ 
+@@ -6509,6 +6611,10 @@
+     };
+ 
+     const handleAuthSubmit = async () => {
++      if (authBusy.value) return;
++      const attemptId = ++authAttemptGeneration;
++      const isCurrent = () => !mobileDisposed && attemptId === authAttemptGeneration;
++      let credentialAttempt = null;
+       const username = authUsername.value.trim();
+       const password = authPassword.value;
+ 
+@@ -6526,6 +6632,7 @@
+             username,
+             password,
+           });
++          if (!isCurrent()) return;
+           if (payload.apiBaseUrl) {
+             serverUrl.value = payload.apiBaseUrl.replace(/^http:/, "ws:").replace(/^https:/, "wss:") + "/ws";
+           }
+@@ -6536,10 +6643,28 @@
+           return;
+         }
+ 
++        if (globalThis.__LIFELINE_MOBILE_APP__) {
++          if (globalThis.LifelinePlatform?.getCredentialStorageState?.() !== "ready") {
++            const recovered = await globalThis.LifelinePlatform?.retryCredentialStorage?.();
++            if (!isCurrent()) return;
++            if (recovered?.state !== "ready") throw new Error("Secure login storage is unavailable.");
++          }
++          credentialAttempt = globalThis.LifelinePlatform?.beginCredentialAttempt?.();
++          if (!credentialAttempt || !globalThis.LifelinePlatform?.isCredentialAttemptCurrent?.(credentialAttempt)) {
++            throw new Error("Secure login storage is unavailable.");
++          }
++        }
+         const payload = await postAuthJson(serverUrl.value, "/api/login", {
+           username,
+           password,
+         });
++        if (!isCurrent()) return;
++        if (globalThis.__LIFELINE_MOBILE_APP__) {
++          if (!globalThis.LifelinePlatform?.isCredentialAttemptCurrent?.(credentialAttempt)) throw new Error("Login attempt expired.");
++          const saved = await globalThis.LifelinePlatform.saveCredential({ token: payload.token ?? null, username: payload.username ?? username });
++          if (!isCurrent()) return;
++          if (!saved || !globalThis.LifelinePlatform.isCredentialAttemptCurrent(credentialAttempt)) throw new Error("Secure login storage could not be confirmed.");
++        }
+         if (payload.apiBaseUrl) {
+           serverUrl.value = payload.apiBaseUrl.replace(/^http:/, "ws:").replace(/^https:/, "wss:") + "/ws";
+         }
+@@ -6558,9 +6683,9 @@
+           void attemptReconnect();
+         }
+       } catch (error) {
+-        handleAuthError(error);
++        if (isCurrent()) handleAuthError(error);
+       } finally {
+-        authBusy.value = false;
++        if (isCurrent()) authBusy.value = false;
+       }
+     };
+ 
+@@ -6960,7 +7085,16 @@
+     };
+ 
+     const handleStartPlayerChange = (value) => {
++      if (settingsLocked.value) return;
++      selectedTurnOrder.value = resizeTurnOrder(selectedTurnOrder.value, selectedPlayerCount.value, value);
+       selectedStartPlayer.value = value;
++    };
++    const handleTurnOrderChange = (order) => {
++      if (settingsLocked.value || (roomStatus.value !== "solo" && !(roomSetupOpen.value && session.value.shared && isHost.value))) return;
++      if (!Array.isArray(order) || order.length !== selectedPlayerCount.value || new Set(order).size !== order.length
++        || !order.every(player => APP_ALL_PLAYERS.slice(0, selectedPlayerCount.value).includes(player))) return;
++      selectedTurnOrder.value = [...order];
++      selectedStartPlayer.value = order[0];
+     };
+ 
+     const handleClosePrompt = () => {
+@@ -7192,7 +7326,7 @@
+     });
+     const hasUtilityModalOpen = computed(() => Boolean(activeUtilityDeck.value));
+     const hasGuideModalOpen = computed(() => Boolean(activeGuideEntry.value));
+-    const hasAnyModalOpen = computed(() => showClosePrompt.value || hasUtilityModalOpen.value || hasGuideModalOpen.value);
++    const hasAnyModalOpen = computed(() => mobileExitPromptOpen.value || showClosePrompt.value || hasUtilityModalOpen.value || hasGuideModalOpen.value);
+ 
+     watch(hasAnyModalOpen, (promptVisible) => {
+       document.body.classList.toggle("modal-open", Boolean(promptVisible));
+@@ -7216,6 +7350,96 @@
+       if (hasUtilityModalOpen.value) {
+         activeUtilityDeck.value = "";
+         return;
++      }
++    };
++
++    const handleMobileBackground = () => {
++      if (!globalThis.__LIFELINE_MOBILE_APP__ || mobileDisposed) return;
++      mobileAppActive = false;
++      terminateAiWorker();
++      cancelHintRequest();
++      cancelAiComparison();
++      controller.value?._cancelTerritoryRefresh?.();
++      stopReplayPlayback();
++      clearTurnTimer();
++    };
++    const handleMobileForeground = () => {
++      if (!globalThis.__LIFELINE_MOBILE_APP__ || mobileDisposed) return;
++      const wasActive = mobileAppActive;
++      mobileAppActive = true;
++      const resumeExit = mobileExitAwaitingForeground;
++      if (resumeExit) {
++        mobileExitAwaitingForeground = false;
++        if (mobileExitController === controller.value) mobileExitController?.setReadOnlyMode(mobileExitPriorReadOnly);
++        mobileExitController = null;
++      }
++      if (mobileExitPending.value || (wasActive && !resumeExit)) return;
++      controller.value?._scheduleTerritoryRefresh?.();
++      restartTurnTimer();
++      if (canRunLocalAI(gameState.value)) scheduleAiMove(gameState.value);
++    };
++    const cancelMobileExit = () => {
++      if (mobileExitPending.value) return;
++      mobileExitGeneration += 1;
++      mobileExitPromptOpen.value = false;
++      mobileExitError.value = "";
++    };
++    const handleMobileBack = (event) => {
++      if (!globalThis.__LIFELINE_MOBILE_APP__ || mobileDisposed) return false;
++      event?.preventDefault?.();
++      if (mobileExitPending.value) return true;
++      if (mobileExitPromptOpen.value) { cancelMobileExit(); return true; }
++      if (showClosePrompt.value) { overlayResult.value = null; resultModalDismissed.value = true; return true; }
++      if (hasGuideModalOpen.value) { activeGuideKey.value = ""; return true; }
++      if (replayInspectorOpen.value) { replayInspectorOpen.value = false; return true; }
++      if (hasUtilityModalOpen.value) { activeUtilityDeck.value = ""; return true; }
++      if (replayMode.value) { handleExitReplay(); return true; }
++      mobileExitPromptOpen.value = true;
++      return true;
++    };
++    const confirmMobileExit = async () => {
++      if (!mobileExitPromptOpen.value || mobileExitPending.value || mobileDisposed) return false;
++      const generation = ++mobileExitGeneration;
++      const instance = controller.value;
++      const platform = globalThis.LifelinePlatform;
++      const roomAtStart = roomStatus.value;
++      const replayAtStart = replayMode.value;
++      const tutorialAtStart = tutorialActive.value;
++      const oldReadOnly = Boolean(instance?.readOnlyMode);
++      mobileExitController = instance;
++      mobileExitPriorReadOnly = oldReadOnly;
++      mobileExitPending.value = true;
++      mobileExitError.value = "";
++      terminateAiWorker(); cancelHintRequest(); cancelAiComparison(); stopReplayPlayback(); clearTurnTimer();
++      instance?.setReadOnlyMode(true);
++      try {
++        if (roomStatus.value === "solo" && !tutorialActive.value && !replayMode.value && localGameActions.value.length) {
++          if (!saveLocalMatch()) throw new Error("save was not confirmed");
++          if (typeof platform?.flushSessionMirror === "function") await platform.flushSessionMirror();
++        }
++        if (mobileDisposed || generation !== mobileExitGeneration || instance !== controller.value
++          || platform !== globalThis.LifelinePlatform || roomStatus.value !== roomAtStart
++          || replayMode.value !== replayAtStart || tutorialActive.value !== tutorialAtStart) throw new Error("page state changed");
++        if (typeof platform?.moveToBackground !== "function") throw new Error("background action unavailable");
++        mobileExitAwaitingForeground = true;
++        await platform.moveToBackground();
++        if (mobileDisposed || generation !== mobileExitGeneration) return false;
++        mobileExitPending.value = false;
++        mobileExitPromptOpen.value = false;
++        if (!mobileExitAwaitingForeground && mobileAppActive) {
++          restartTurnTimer();
++          if (canRunLocalAI(gameState.value)) scheduleAiMove(gameState.value);
++        }
++        return true;
++      } catch (_error) {
++        if (mobileDisposed || generation !== mobileExitGeneration) return false;
++        mobileExitPending.value = false;
++        mobileExitAwaitingForeground = false;
++        mobileExitController = null;
++        mobileExitError.value = language.value === "zh" ? "未能安全返回，当前对局仍保留，请重试。" : "Could not leave safely. Your match remains open; retry.";
++        if (instance === controller.value) instance?.setReadOnlyMode(oldReadOnly);
++        if (mobileAppActive) { restartTurnTimer(); if (canRunLocalAI(gameState.value)) scheduleAiMove(gameState.value); }
++        return false;
+       }
+     };
+ 
+@@ -7464,6 +7688,13 @@
+     );
+ 
+     onBeforeUnmount(() => {
++      mobileDisposed = true;
++      authAttemptGeneration += 1;
++      replayOperationGeneration += 1;
++      mobileExitGeneration += 1;
++      globalThis.removeEventListener("lifeline:background", handleMobileBackground);
++      globalThis.removeEventListener("lifeline:foreground", handleMobileForeground);
++      globalThis.removeEventListener("lifeline:back", handleMobileBack);
+       cancelSharedPassword();
+       accountLinkGeneration += 1; clearTimeout(accountLinkExpiry);
+       contribution.dispose();
+@@ -7491,12 +7722,19 @@
+     });
+ 
+     onMounted(() => {
++      if (globalThis.__LIFELINE_MOBILE_APP__) {
++        globalThis.addEventListener("lifeline:background", handleMobileBackground);
++        globalThis.addEventListener("lifeline:foreground", handleMobileForeground);
++        globalThis.addEventListener("lifeline:back", handleMobileBack);
++      }
+       globalThis.addEventListener("keydown", handleEscapeKeydown);
+       globalThis.addEventListener("online", retryContributions);
+       retryContributions();
+     });
+ 
+     return {
++      mobileExitPromptOpen, mobileExitPending, mobileExitError,
++      handleMobileBack, cancelMobileExit, confirmMobileExit,
+       auth,
+       authBusy,
+       authError,
+@@ -7591,6 +7829,8 @@
+       retryRoomBots: () => networkManager.retryBots().catch(handleNetworkError),
+       selectedGridSize,
+       selectedStartPlayer,
++      selectedTurnOrder,
++      handleTurnOrderChange,
+       selectedStartingPoints,
+       updateStartingPoints,
+       selectedTurnTimerEnabled,
+@@ -7878,6 +8118,7 @@
+             :undo-max-count="selectedUndoMaxCount"
+             :local-players="selectedLocalPlayers"
+             :start-player="selectedStartPlayer"
++            :turn-order="selectedTurnOrder"
+             :local-pending="localSetupPending || localSettingsChanged"
+             :local-started="localMatchStarted"
+             :starting-points="selectedStartingPoints"
+@@ -7901,7 +8142,8 @@
+             @update-local-player="updateLocalPlayer"
+             @select-lab-model="updateLocalPlayer({ ...$event, fromLab: true })"
+             @save-room-settings="saveRoomSettings"
+-            @update:start-player="selectedStartPlayer = $event"
++            @update:start-player="handleStartPlayerChange"
++            @update:turn-order="handleTurnOrderChange"
+             @swap-local-players="swapLocalPlayers"
+             @start-local-match="startLocalMatch"
+             @update-starting-points="updateStartingPoints"
+@@ -8112,6 +8354,15 @@
+         @leave="handleResultLeaveRoom"
+         @close="handleClosePrompt"
+       />
++      <div v-if="mobileExitPromptOpen" class="modal-overlay" role="presentation">
++        <section class="panel modal-panel" role="dialog" aria-modal="true" :aria-label="language === 'zh' ? '返回桌面' : 'Leave game'">
++          <h2>{{ language === 'zh' ? '返回桌面？' : 'Return to home screen?' }}</h2>
++          <p>{{ language === 'zh' ? '当前对局会先尝试保存。' : 'The current match will be saved first.' }}</p>
++          <p v-if="mobileExitError" class="error-copy" role="alert">{{ mobileExitError }}</p>
++          <button type="button" :disabled="mobileExitPending" @click="cancelMobileExit">{{ language === 'zh' ? '继续对局' : 'Continue playing' }}</button>
++          <button type="button" :disabled="mobileExitPending" @click="confirmMobileExit">{{ language === 'zh' ? '返回桌面' : 'Return home' }}</button>
++        </section>
++      </div>
+       <footer class="site-footer">
+         <a href="https://beian.mps.gov.cn/#/query/webSearch?code=11011402056155" rel="noreferrer" target="_blank" class="footer-beian-link footer-gongan">
+           <img src="./assets/beian.png" alt="公安备案图标" class="footer-gongan-icon" />
+diff --git a/web/web前端/OnlineAppState.js b/web/web前端/OnlineAppState.js
+--- a/web/web前端/OnlineAppState.js
++++ b/web/web前端/OnlineAppState.js
+@@ -239,6 +239,12 @@
+ }
+ 
+ export function loadStoredAuth() {
++  if (globalThis.__LIFELINE_MOBILE_APP__ === true) {
++    const restored = globalThis.__LIFELINE_AUTH_BOOTSTRAP__;
++    return restored && typeof restored === "object"
++      ? { ...createEmptyAuth(), token: restored.token ?? null, username: restored.username ?? null }
++      : createEmptyAuth();
++  }
+   try {
+     const raw = globalThis.localStorage?.getItem(AUTH_STORAGE_KEY);
+     if (!raw) {
+@@ -256,6 +262,8 @@
+ }
+ 
+ export function persistAuth(auth) {
++  // Native credential authority owns durable storage and ordering.
++  if (globalThis.__LIFELINE_MOBILE_APP__ === true) return;
+   const normalized = {
+     token: auth?.token ?? null,
+     username: auth?.username ?? null,
+diff --git a/web/web前端/OnlineRoomSync.js b/web/web前端/OnlineRoomSync.js
+--- a/web/web前端/OnlineRoomSync.js
++++ b/web/web前端/OnlineRoomSync.js
+@@ -178,14 +178,21 @@
+   roomCreatedEvent,
+   roomJoinedEvent,
+   applyRoomSnapshot,
++  getSnapshotOptions,
+   onApplied,
+ }) {
+-  const applyResponse = (payload) => applyRoomSnapshotWithPostCommit({
+-    payload,
+-    resetController: true,
+-    applyRoomSnapshot,
+-    onApplied,
+-  });
++  const applyResponse = (payload) => {
++    const options = getSnapshotOptions?.(payload) ?? {};
++    if (options.acceptResponse === false) return false;
++    const result = applyRoomSnapshotWithPostCommit({
++      payload,
++      resetController: true,
++      applyRoomSnapshot: (snapshot, resetController) => applyRoomSnapshot(snapshot, resetController, options),
++      onApplied,
++    });
++    options.onRouteResult?.(result);
++    return result;
++  };
+ 
+   return [
+     networkManager.on(roomCreatedEvent, applyResponse),
+@@ -199,9 +206,15 @@
+   applyRoomSnapshot,
+   onApplied,
+ }) {
+-  if (!applyRoomSnapshot(payload, resetController)) {
+-    return false;
+-  }
++  const applied = applyRoomSnapshot(payload, resetController);
++  if (applied && typeof applied.then === "function") {
++    return Promise.resolve(applied).then((result) => {
++      if (!result) return false;
++      onApplied?.(payload);
++      return true;
++    });
++  }
++  if (!applied) return false;
+   onApplied?.(payload);
+   return true;
+ }
+diff --git a/web/web前端/ReplayCodec.js b/web/web前端/ReplayCodec.js
+--- a/web/web前端/ReplayCodec.js
++++ b/web/web前端/ReplayCodec.js
+@@ -443,7 +443,14 @@
+   return validateReplayDocument(document, hashValue);
+ }
+ 
+-export function downloadReplayDocument(replayDocument, filename = "lifeline-replay.json") {
++export async function downloadReplayDocument(replayDocument, filename = "lifeline-replay.json") {
++  if (typeof globalThis.LifelinePlatform?.shareReplay === "function") {
++    const result = await globalThis.LifelinePlatform.shareReplay(replayDocument);
++    if (result?.status === "cancelled") return "cancelled";
++    if (result?.status === "selected") return "share-selected";
++    if (result?.status === "returned") return "share-returned";
++    return "shared";
++  }
+   const blob = new Blob([JSON.stringify(replayDocument, null, 2)], { type: "application/json" });
+   const url = URL.createObjectURL(blob);
+   const anchor = globalThis.document.createElement("a");
+@@ -451,6 +458,7 @@
+   anchor.download = filename;
+   anchor.click();
+   globalThis.setTimeout(() => URL.revokeObjectURL(url), 0);
++  return "downloaded";
+ }
+ 
+ function normalizeTopologyAction(action, sampleIds) {
+diff --git a/web/web前端/TrainingContribution.js b/web/web前端/TrainingContribution.js
+--- a/web/web前端/TrainingContribution.js
++++ b/web/web前端/TrainingContribution.js
+@@ -1,4 +1,5 @@
+ import { createReplayDocument } from "./ReplayCodec.js?v=20261029-unified-r1";
++import { configuredEndpoint } from "./platform/runtime.js?v=20261031-alignment-diagnostic";
+ 
+ export const LEGACY_CONTRIBUTION_POLICY = "anonymous-replay-training-v1";
+ export const CONTRIBUTION_POLICY = "anonymous-replay-training-v3";
+@@ -159,7 +160,11 @@
+         const timer = setTimeout(() => this.controller?.abort(), 15000);
+         let response;
+         try {
+-          response = await this.fetcher("/api/training/contributions", { method: "POST", credentials: "omit", headers: { "Content-Type": "application/json" }, body: JSON.stringify(item.payload), signal: this.controller.signal });
++          const endpoint = globalThis.__LIFELINE_MOBILE_APP__
++            ? configuredEndpoint("trainingContributionUrl", ["https:", "http:"])
++            : "/api/training/contributions";
++          if (!endpoint) throw new Error("Training contribution endpoint is unavailable.");
++          response = await this.fetcher(endpoint, { method: "POST", credentials: "omit", headers: { "Content-Type": "application/json" }, body: JSON.stringify(item.payload), signal: this.controller.signal });
+         } finally { clearTimeout(timer); }
+         if (!this.enabled || generation !== this.generation) break;
+         if (!response.ok) { this.status = response.status === 503 ? "unavailable" : "retry"; break; }
+diff --git a/web/web前端/TurnOrderSetup.js b/web/web前端/TurnOrderSetup.js
+new file mode 100644
+--- /dev/null
++++ b/web/web前端/TurnOrderSetup.js
+@@ -0,0 +1,41 @@
++import { PLAYER_ORDER } from './GameEngine.js?v=20261029-unified-r1';
++import { formatPlayerName } from './OnlineAppI18n.js?v=20261029-unified-r1';
++
++// Missing legacy order follows the engine's canonical cyclic seat order.
++export function resizeTurnOrder(order, count, starter) {
++  const seats = PLAYER_ORDER.slice(0, count);
++  if (seats.length !== count || count < 2 || !seats.includes(starter)) throw new Error('INVALID_TURN_ORDER');
++  if (order != null && (!Array.isArray(order) || new Set(order).size !== order.length || order.some(p => !PLAYER_ORDER.includes(p)))) throw new Error('INVALID_TURN_ORDER');
++  const remaining = (order ?? seats).filter(p => seats.includes(p));
++  for (const seat of seats) if (!remaining.includes(seat)) remaining.push(seat);
++  const index = remaining.indexOf(starter);
++  return [...remaining.slice(index), ...remaining.slice(0, index)];
++}
++export function moveTurnOrder(order, from, to) {
++  if (!Array.isArray(order) || new Set(order).size !== order.length || !Number.isInteger(from) || !Number.isInteger(to)
++    || from < 0 || to < 0 || from >= order.length || to >= order.length) throw new Error('INVALID_TURN_ORDER');
++  const result = [...order]; const [item] = result.splice(from, 1); result.splice(to, 0, item); return result;
++}
++const COLORS = ['#2476ac','#c45548','#8a56a1','#3a885e','#ce7a32','#24919a','#c25f8d','#805d48','#729532','#354d8a','#a67a16','#238378','#a34a91','#6b7583','#cc745a'];
++export default {
++  name: 'TurnOrderSetup',
++  props: { order: { type:Array, required:true }, language: { type:String, required:true }, uiStyle: { type:String, required:true }, locked: Boolean },
++  emits: ['change'],
++  data() { return { dragging: null }; },
++  methods: {
++    playerName(player) { return formatPlayerName(player, this.language, this.uiStyle); },
++    color(player) { return COLORS[PLAYER_ORDER.indexOf(player)] ?? '#555'; },
++    move(from,to) { if (!this.locked && to >= 0 && to < this.order.length && from !== to) this.$emit('change', moveTurnOrder(this.order,from,to)); },
++    drop(index) { if (this.dragging !== null) this.move(this.dragging,index); this.dragging = null; },
++  },
++  template: `<section class="turn-order-setup" :aria-label="language === 'zh' ? '行动顺序' : 'Turn order'">
++    <strong class="field-label">{{ language === 'zh' ? '行动顺序' : 'Turn order' }}</strong>
++    <p class="help-copy">{{ language === 'zh' ? '拖动排序，或使用上下按钮；第一位先手。' : 'Drag to reorder, or use the move buttons. The first player starts.' }}</p>
++    <ol class="turn-order-list">
++      <li v-for="(player,index) in order" :key="player" class="turn-order-item" :draggable="!locked" @dragstart="dragging = index" @dragend="dragging = null" @dragover.prevent @drop.prevent="drop(index)">
++        <span class="turn-order-name"><span class="turn-order-number">{{ index + 1 }}</span><span class="turn-order-stone" :style="{ backgroundColor: color(player) }" aria-hidden="true"></span>{{ playerName(player) }}</span>
++        <span class="turn-order-actions"><button type="button" :disabled="locked || index === 0" :aria-label="(language === 'zh' ? '上移 ' : 'Move up ') + playerName(player)" @click="move(index,index-1)">↑</button><button type="button" :disabled="locked || index === order.length-1" :aria-label="(language === 'zh' ? '下移 ' : 'Move down ') + playerName(player)" @click="move(index,index+1)">↓</button></span>
++      </li>
++    </ol>
++  </section>`
++};
+diff --git a/web/web前端/guide/rule/essential rule.md b/web/web前端/guide/rule/essential rule.md
+--- a/web/web前端/guide/rule/essential rule.md
++++ b/web/web前端/guide/rule/essential rule.md
+@@ -1,5 +1,5 @@
+ 【胜利条件】
+-玩家轮流在三角网格落子。己方节点和连线经过的格点直接计入领土；由己方点线隔开、不接触真实边界且不含敌方元素的每个空腔也计入，包括甜甜圈形状的内孔；含敌方元素的空腔不计。无需形成单一闭环；开链和单线仍按己方点数计分。同一格点只算一次。着色保留凸包与收紧轮廓，最后裁剪到棋盘范围，排除棋盘外部和挖掉的孔洞；单根连线不铺领土色。显示轮廓（displayArea）仅用于展示，不决定正式分数；最终格点数多者获胜。
++玩家轮流在三角网格落子。己方节点和连线经过的格点直接计入领土；由己方点线隔开、不接触真实边界且不含敌方元素的每个空腔也计入，包括甜甜圈形状的内孔；含敌方元素的空腔不计。无需形成单一闭环；开链和单线仍按己方点数计分。同一格点只算一次。显示轮廓（displayArea）仅用于展示，不决定正式分数；最终格点数多者获胜。
+ ![可落子区域示意](./guide-images/可以走的区域png.png)
+ 
+ 【核心机制】
+diff --git a/web/web前端/guide/rule/math rule.en.md b/web/web前端/guide/rule/math rule.en.md
+--- a/web/web前端/guide/rule/math rule.en.md
++++ b/web/web前端/guide/rule/math rule.en.md
+@@ -386,6 +386,8 @@
+ 
+ Let G be canonical sample adjacency, Wi friendly node/line samples, Oi enemy samples, and B the real boundary samples. Iterate components Q of G−Wi. The official rule below includes triangular and hexagonal boards as bounded cases. On closed surfaces B is empty, but enemy components still must be excluded. An enclosed enemy pocket is a confinement target, not already owned safe territory.
+ 
++A closed surface has no real boundary. Under this discrete convention, any remaining component without enemy elements scores even when it does not look enclosed on screen; a component containing an enemy is excluded in full. This is a game rule, not a consequence of geometric surface area.
++
+ $$
+ R_i=W_i\cup\!\bigcup_{\substack{Q\in\pi_0(G-W_i)\\Q\cap B=\varnothing,\ Q\cap O_i=\varnothing}}Q,\qquad a_i=\sum_{v\in R_i}w_v.
+ $$
+diff --git a/web/web前端/guide/rule/math rule.md b/web/web前端/guide/rule/math rule.md
+--- a/web/web前端/guide/rule/math rule.md
++++ b/web/web前端/guide/rule/math rule.md
+@@ -386,6 +386,8 @@
+ 
+ 令 G 为规范格点邻接图，Wᵢ 为己方节点和线点，Oᵢ 为敌方占点，B 为真实边界点。令 Q 遍历 G−Wᵢ 的连通分量。当前正式规则如下；三角／六边棋盘是有外边界的特例。闭曲面 B=∅，仍须逐分量排除敌方。含敌人的封闭小块是围困目标，不是已获得的安全领土。
+ 
++闭曲面没有真实边界：如果某个剩余连通分量不含敌方元素，它就按这条离散约定计分，即使屏幕上看不出被围住；若分量含敌方元素，整块不计分。这是游戏规则，不是由曲面的几何面积自动推导出的结论。
++
+ $$
+ R_i=W_i\cup\!\bigcup_{\substack{Q\in\pi_0(G-W_i)\\Q\cap B=\varnothing,\ Q\cap O_i=\varnothing}}Q,\qquad a_i=\sum_{v\in R_i}w_v.
+ $$
+diff --git a/web/web前端/index.html b/web/web前端/index.html
+--- a/web/web前端/index.html
++++ b/web/web前端/index.html
+@@ -4,7 +4,7 @@
+     <meta charset="UTF-8" />
+     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
+     <title>生命线策略棋</title>
+-    <link rel="stylesheet" href="./styles.css?v=20261029-unified-r1" />
++    <link rel="stylesheet" href="./styles.css?v=20261031-turn-order" />
+     <script>
+       window.MathJax = {
+         tex: {
+@@ -23,6 +23,6 @@
+   <body>
+     <div id="app"></div>
+     <noscript>需要启用 JavaScript 才能运行这个游戏。JavaScript must be enabled to run this game.</noscript>
+-    <script type="module" src="./main.js?v=20261029-unified-r1"></script>
++    <script type="module" src="./main.js?v=20261031-turn-order"></script>
+   </body>
+ </html>
+diff --git a/web/web前端/main.js b/web/web前端/main.js
+--- a/web/web前端/main.js
++++ b/web/web前端/main.js
+@@ -3,7 +3,7 @@
+   "https://unpkg.com/vue@3/dist/vue.global.prod.js",
+   "https://fastly.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js",
+ ];
+-const APP_ASSET_VERSION = "20261029-unified-r1";
++const APP_ASSET_VERSION = "20261031-turn-order";
+ 
+ // main.js 只做两件事：
+ // 1. 确保浏览器拿到 Vue 运行时
+@@ -18,7 +18,7 @@
+   return globalThis.navigator?.language?.toLowerCase().startsWith("zh") ? "zh" : "en";
+ }
+ 
+-function showBootError(message) {
++function showBootError(message, code) {
+   const mountPoint = document.querySelector("#app");
+   if (!mountPoint) {
+     return;
+@@ -27,19 +27,20 @@
+   const language = resolvePreferredLanguage();
+   const normalizedMessage = String(message ?? "");
+   const mentionsVue = /vue/i.test(normalizedMessage);
++  const mobileRuntimeFailure = globalThis.__LIFELINE_MOBILE_APP__ && code === "MOBILE_RUNTIME_UNAVAILABLE";
+   const copy = language === "zh"
+     ? {
+       eyebrow: "TriAxis",
+-      title: "页面启动失败",
++      title: mobileRuntimeFailure ? "应用启动失败" : "页面启动失败",
+       body: mentionsVue
+-        ? "前端运行时没有成功加载，通常是浏览器没有拿到 Vue 运行库。"
++        ? (mobileRuntimeFailure ? "应用启动所需的本地资源未能加载。请关闭并重新打开应用后重试。" : "前端运行时没有成功加载，通常是浏览器没有拿到 Vue 运行库。")
+         : "前端入口模块没有成功加载，通常是静态资源没有更新、路径失效，或服务器没有返回最新文件。",
+     }
+     : {
+       eyebrow: "TriAxis",
+-      title: "Page Failed To Start",
++      title: mobileRuntimeFailure ? "App Failed To Start" : "Page Failed To Start",
+       body: mentionsVue
+-        ? "The frontend runtime did not load successfully. Usually the browser failed to fetch the Vue runtime."
++        ? (mobileRuntimeFailure ? "The local resources required to start the app could not be loaded. Close and reopen the app, then try again." : "The frontend runtime did not load successfully. Usually the browser failed to fetch the Vue runtime.")
+         : "The frontend entry module did not load successfully. Usually the static asset path is stale, the file was not deployed, or the server did not return the latest file.",
+     };
+ 
+@@ -48,7 +49,7 @@
+       <p style="margin:0 0 8px;font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:#8d7557;">${copy.eyebrow}</p>
+       <h1 style="margin:0 0 12px;font-size:32px;">${copy.title}</h1>
+       <p style="margin:0 0 10px;">${copy.body}</p>
+-      <p style="margin:0;">${message}</p>
++      ${mobileRuntimeFailure ? "" : `<p style="margin:0;">${message}</p>`}
+     </section>
+   `;
+ }
+@@ -66,8 +67,14 @@
+ 
+ async function ensureVueRuntime() {
+   // 运行时优先复用 window.Vue，失败时再按 CDN 列表兜底。
+-  if (globalThis.Vue?.createApp) {
++  if (typeof globalThis.Vue?.createApp === "function") {
+     return globalThis.Vue;
++  }
++
++  if (globalThis.__LIFELINE_MOBILE_APP__) {
++    const error = new Error("Mobile app runtime is unavailable: the bundled Vue runtime did not load correctly.");
++    error.code = "MOBILE_RUNTIME_UNAVAILABLE";
++    throw error;
+   }
+ 
+   let lastError = null;
+@@ -87,10 +94,10 @@
+ 
+ async function importAppModule() {
+   const candidates = [
+-    new URL(`./OnlineApp.js?v=20261029-unified-r1`, import.meta.url).href,
+-    new URL("./OnlineApp.js?v=20261029-unified-r1", import.meta.url).href,
+-    `./OnlineApp.js?v=20261029-unified-r1`,
+-    "./OnlineApp.js?v=20261029-unified-r1",
++    new URL(`./OnlineApp.js?v=20261031-turn-order`, import.meta.url).href,
++    new URL("./OnlineApp.js?v=20261031-turn-order", import.meta.url).href,
++    `./OnlineApp.js?v=20261031-turn-order`,
++    "./OnlineApp.js?v=20261031-turn-order",
+   ];
+   let lastError = null;
+ 
+@@ -111,8 +118,8 @@
+   // Renderer obtains atlas projection through the matching BoardView registry.
+   // Keep both bootstrap-only imports outside legacy data-URL rule modules.
+   await Promise.all([
+-    import(new URL(`./TopologyGameEngine.js?v=20261029-unified-r1`, import.meta.url).href),
+-    import(new URL(`./BoardView.js?v=20261029-unified-r1`, import.meta.url).href),
++    import(new URL(`./TopologyGameEngine.js?v=20261031-turn-order`, import.meta.url).href),
++    import(new URL(`./BoardView.js?v=20261031-turn-order`, import.meta.url).href),
+   ]);
+ }
+ 
+@@ -127,7 +134,7 @@
+     const fallbackMessage = resolvePreferredLanguage() === "zh"
+       ? "未知启动错误。"
+       : "Unknown bootstrap error.";
+-    showBootError(error?.message ?? fallbackMessage);
++    showBootError(error?.message ?? fallbackMessage, error?.code);
+   }
+ }
+ 
+diff --git a/web/web前端/platform/TutorialHost.js b/web/web前端/platform/TutorialHost.js
+new file mode 100644
+--- /dev/null
++++ b/web/web前端/platform/TutorialHost.js
+@@ -0,0 +1,27 @@
++export function createTutorialTarget(currentHref) {
++  const current = new URL(currentHref);
++  if (!['http:', 'https:'].includes(current.protocol) || current.username || current.password) {
++    throw new Error('invalid-tutorial-url');
++  }
++  const target = new URL(current.pathname === '/index.html' ? '/index.html' : '/', current.origin);
++  target.searchParams.set('tutorial', '1');
++  return target.href;
++}
++
++export async function openTutorialTarget({ platform, currentHref, open = globalThis.open }) {
++  const target = createTutorialTarget(currentHref);
++  if (platform?.isNative) {
++    if (typeof platform.openTutorial !== 'function') throw new Error('tutorial-host-unavailable');
++    const requested = new URL(target);
++    const source = new URL(currentHref);
++    if (requested.origin !== source.origin || requested.searchParams.get('tutorial') !== '1') {
++      throw new Error('invalid-tutorial-url');
++    }
++    const result = await platform.openTutorial(target);
++    if (result?.status !== 'opened') throw new Error('tutorial-host-failed');
++    return { status: 'opened', target };
++  }
++  if (typeof open !== 'function') throw new Error('tutorial-host-unavailable');
++  open(target, '_blank', 'noopener');
++  return { status: 'opened', target };
++}
+diff --git a/web/web前端/platform/runtime.js b/web/web前端/platform/runtime.js
+new file mode 100644
+--- /dev/null
++++ b/web/web前端/platform/runtime.js
+@@ -0,0 +1,9 @@
++export function configuredEndpoint(name, allowedProtocols) {
++  const configured = globalThis.__LIFELINE_RUNTIME_CONFIG__?.[name];
++  if (typeof configured !== "string" || !configured.trim()) return null;
++  const url = new URL(configured);
++  if (!allowedProtocols.includes(url.protocol) || url.username || url.password) throw new Error(`Invalid configured endpoint: ${name}`);
++  return url.toString();
++}
++
++export const isMobileShell = () => globalThis.__LIFELINE_MOBILE_APP__ === true;
+diff --git a/web/web前端/styles.css b/web/web前端/styles.css
+--- a/web/web前端/styles.css
++++ b/web/web前端/styles.css
+@@ -4419,3 +4419,49 @@
+ 
+ .topology-chart-switch { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; }
+ .topology-chart-switch .language-button { min-width: 72px; min-height: 44px; }
++
++/* Guide reading: keep long prose and wide technical material usable at every width. */
++.guide-reader { display: flex; flex-direction: column; max-height: min(90dvh, 920px); }
++.guide-reader-top { flex: 0 0 auto; }
++.guide-reader-layout { flex: 1 1 auto; max-height: none; }
++.guide-reader-body, .guide-chapter-contents { width: min(100%, 76ch); margin-inline: auto; min-width: 0; }
++.guide-reader-body > * { min-width: 0; }
++.guide-block-heading-xl, .guide-block-heading, .guide-block-subheading { scroll-margin-top: 1rem; overflow-wrap: anywhere; }
++.guide-block-heading-xl { padding-top: 0.75rem; border-top: 1px solid rgba(88, 61, 31, 0.14); }
++.guide-block-paragraph, .guide-block-bullet p, .guide-block-ordered p { overflow-wrap: anywhere; }
++.guide-chapter-contents { margin-bottom: 1.5rem; border: 1px solid rgba(88, 61, 31, 0.16); border-radius: 0.8rem; padding: 0.25rem 0.9rem; }
++.guide-chapter-contents summary { cursor: pointer; min-height: 44px; display: list-item; align-content: center; font-weight: 700; color: var(--ink); }
++.guide-chapter-contents summary:focus-visible { outline: 3px solid #765021; outline-offset: 2px; }
++.guide-chapter-nav { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; padding-bottom: 0.75rem; }
++.guide-chapter-nav button { min-height: 44px; padding: 0.5rem 0.75rem; border: 1px solid rgba(88, 61, 31, 0.22); border-radius: 0.6rem; background: #fffaf0; color: var(--ink); text-align: left; cursor: pointer; }
++.guide-chapter-nav button:hover { background: #f4e7d1; }
++.guide-chapter-nav button:focus-visible, .guide-sub-tab:focus-visible { outline: 3px solid #765021; outline-offset: 2px; }
++.guide-block-math, .guide-code-block, .guide-table-wrap { max-width: 100%; }
++.guide-block-math mjx-container[display="true"] { min-width: max-content; }
++@media (max-width: 600px) {
++  .guide-overlay { padding: 8px; }
++  .guide-reader { width: 100%; max-height: 94dvh; border-radius: 18px; }
++  .guide-reader-top { gap: 10px; padding: 16px; }
++  .guide-reader-top h2 { font-size: 1.35rem; }
++  .guide-reader-subtitle { margin-top: 6px; line-height: 1.45; }
++  .guide-reader-layout { padding: 16px 16px 40px; }
++  .guide-sub-tabs { gap: 8px; margin-bottom: 16px; }
++  .guide-sub-tab { min-height: 44px; padding: 10px 12px; }
++  .guide-chapter-nav button { flex: 1 1 100%; }
++  .guide-reader-body { gap: 16px; }
++  .guide-code-block, .guide-block-math { padding: 12px; }
++}
++
++/* Turn-order controls work with drag, keyboard and touch buttons. */
++.turn-order-setup { padding: 12px; border: 1px solid rgba(88, 61, 31, .16); border-radius: 14px; background: rgba(255,255,255,.64); }
++.turn-order-setup .help-copy { margin: 4px 0 10px; }
++.turn-order-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 8px; list-style: none; margin: 0; padding: 0; }
++.turn-order-item { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 6px 4px 10px; border: 1px solid rgba(88, 61, 31, .16); border-radius: 10px; background: #fffaf0; }
++.turn-order-item[draggable="true"] { cursor: grab; }
++.turn-order-name { display: inline-flex; align-items: center; gap: 7px; min-width: 0; overflow-wrap: anywhere; }
++.turn-order-number { font-weight: 700; min-width: 1.3em; }
++.turn-order-stone { flex: 0 0 14px; width: 14px; height: 14px; border: 1px solid rgba(0,0,0,.28); border-radius: 50%; }
++.turn-order-actions { display: flex; flex: 0 0 auto; }
++.turn-order-actions button { min-width: 44px; min-height: 44px; border: 1px solid rgba(88,61,31,.2); background: white; color: var(--ink); border-radius: 8px; font-size: 1.05rem; cursor: pointer; }
++.turn-order-actions button:disabled { opacity: .38; cursor: default; }
++.turn-order-actions button:focus-visible { outline: 3px solid #765021; outline-offset: 2px; }
+diff --git a/web/web前端/tests/fixtures/minimax-defense.json b/web/web前端/tests/fixtures/minimax-defense.json
+new file mode 100644
+--- /dev/null
++++ b/web/web前端/tests/fixtures/minimax-defense.json
+@@ -0,0 +1,96 @@
++{
++  "schemaVersion": 1,
++  "scope": "Six reproducible tactical positions covering uncompensated exposure and profitable exchanges; not a win-rate benchmark.",
++  "baseline": {
++    "strategy": "MinimaxAI",
++    "depths": [1, 2],
++    "aiSourceSha256": "6738fe3a98a616dfd6c060636f5d2684fd49ebc561c95a96247db28c7170ccc3",
++    "discoveryRulesVersion": "territory-v2"
++  },
++  "fixtures": [
++    {
++      "id": "reinforce-before-second-node-loss",
++      "regression": "risk-diagnostic",
++      "depth": 2,
++      "gridSize": 9,
++      "player": "WHITE",
++      "moves": [[0,3],[4,0],[0,7],[7,0],[5,3],[5,0],[2,6],[1,3],[6,1],[1,2],[3,0]],
++      "legacyMove": [0,5],
++      "legacyWorstNodeLoss": 2,
++      "legacyWorstCoverageLoss": 4,
++      "defensiveWitness": [5,2],
++      "witnessWorstNodeLoss": 0,
++      "witnessWorstCoverageLoss": 1
++    },
++    {
++      "id": "several-small-cuts-beat-one-supply-collapse",
++      "regression": "trade-preservation",
++      "depth": 2,
++      "gridSize": 9,
++      "player": "BLACK",
++      "moves": [[0,3],[4,0],[0,7],[7,0],[5,3],[5,0],[2,6],[1,3],[6,1],[1,2],[3,0],[4,2],[0,8],[1,7],[5,1],[6,2],[2,0],[5,2],[0,2],[1,6],[2,2],[3,5],[0,5],[3,4],[2,4],[0,4]],
++      "legacyMove": [1,4],
++      "legacyWorstNodeLoss": 2,
++      "legacyWorstCoverageLoss": 3,
++      "defensiveWitness": [3,3],
++      "witnessWorstNodeLoss": 0,
++      "witnessWorstCoverageLoss": 2
++    },
++    {
++      "id": "occupy-vulnerable-supply-point",
++      "regression": "trade-preservation",
++      "depth": 2,
++      "gridSize": 9,
++      "player": "WHITE",
++      "moves": [[0,8],[3,5],[1,7],[7,1],[1,4],[4,1],[4,0],[1,1],[0,4]],
++      "legacyMove": [0,2],
++      "legacyWorstNodeLoss": 2,
++      "legacyWorstCoverageLoss": 4,
++      "defensiveWitness": [3,1],
++      "witnessWorstNodeLoss": 0,
++      "witnessWorstCoverageLoss": 3
++    },
++    {
++      "id": "close-two-node-exposure-without-forgoing-a-capture",
++      "regression": "uncompensated-defense",
++      "depth": 1,
++      "gridSize": 9,
++      "player": "WHITE",
++      "moves": [[0,4],[4,0],[1,0],[2,6],[0,5],[2,5],[3,2],[4,4],[4,2],[6,2],[3,4],[6,0],[6,1],[5,2],[3,5]],
++      "legacyMove": [1,3],
++      "legacyWorstNodeLoss": 2,
++      "legacyWorstCoverageLoss": 5,
++      "defensiveWitness": [4,1],
++      "witnessWorstNodeLoss": 0,
++      "witnessWorstCoverageLoss": 0
++    },
++    {
++      "id": "avoid-uncompensated-one-node-branch",
++      "regression": "uncompensated-defense",
++      "depth": 1,
++      "gridSize": 9,
++      "player": "BLACK",
++      "moves": [[4,0],[6,2],[0,3],[1,7],[3,0],[1,3],[3,5],[6,0],[3,4],[4,4],[1,5],[5,0],[1,2],[4,3]],
++      "legacyMove": [5,1],
++      "legacyWorstNodeLoss": 1,
++      "legacyWorstCoverageLoss": 6,
++      "defensiveWitness": [0,8],
++      "witnessWorstNodeLoss": 0,
++      "witnessWorstCoverageLoss": 3
++    },
++    {
++      "id": "avoid-uncompensated-three-node-supply-cut",
++      "regression": "uncompensated-defense",
++      "depth": 1,
++      "gridSize": 9,
++      "player": "BLACK",
++      "moves": [[4,0],[6,2],[0,3],[1,7],[3,0],[1,3],[3,5],[6,0],[3,4],[4,4],[1,5],[5,0],[1,2],[4,3],[3,2],[3,3]],
++      "legacyMove": [4,2],
++      "legacyWorstNodeLoss": 3,
++      "legacyWorstCoverageLoss": 6,
++      "defensiveWitness": [0,8],
++      "witnessWorstNodeLoss": 0,
++      "witnessWorstCoverageLoss": 2
++    }
++  ]
++}
+diff --git a/web/web前端/tests/verify-guide-content.mjs b/web/web前端/tests/verify-guide-content.mjs
+--- a/web/web前端/tests/verify-guide-content.mjs
++++ b/web/web前端/tests/verify-guide-content.mjs
+@@ -2,6 +2,7 @@
+ import fs from "node:fs";
+ import { parseGuideMarkdown, getGuideMarkdown, getGuideMarkdownAsset, ensureGuideRuleImages } from "../GuideContent.js";
+ import { guideChapters, implementationSections } from "../GuideImplementation.js";
++import { getGuideChapterLinks } from "../GuideArticleFormat.js";
+ 
+ const sourceUrl = "https://github.com/Chengzong-Zhang/Line-Game/blob/main/README.md";
+ const source = parseGuideMarkdown(`[源码](${sourceUrl})`);
+@@ -35,6 +36,11 @@
+       assert.equal(illustrated.filter(block => block.type === 'image').length, 5);
+     }
+     assert.equal(headings.length, 4, 'four main chapters including topology');
++    const navigation = getGuideChapterLinks(blocks);
++    assert.deepEqual(navigation.map(block => block.text), headings,
++      'the reader navigation must expose all four actual chapters, not just the article title');
++    assert.ok(navigation.every(link => blocks.some(block => block.id === link.id)),
++      'every chapter navigation target exists in the rendered article');
+     assert.deepEqual(headings, guideChapters(kind).map(chapter => chapter.title[language]));
+     assert.deepEqual(blocks.filter(block => block.type === 'heading3').map(block => block.text),
+       implementationSections(kind, language).filter(section => section.level === 3).map(section => section.title));
+diff --git a/web/web前端/tests/verify-local-runtime-loaders.mjs b/web/web前端/tests/verify-local-runtime-loaders.mjs
+new file mode 100644
+--- /dev/null
++++ b/web/web前端/tests/verify-local-runtime-loaders.mjs
+@@ -0,0 +1,94 @@
++import assert from "node:assert/strict";
++import { readFile } from "node:fs/promises";
++import { webcrypto } from "node:crypto";
++import GameEngine from "../GameEngine.js?v=20261024-l34a1";
++import { serializeEngineState } from "../AIStateProtocol.js?v=20261024-l34a1";
++import { createSupportedThreePlayerModel } from "../ThreePlayerModels.js?v=20261024-l34a1";
++
++if (!globalThis.crypto?.subtle) globalThis.crypto = webcrypto;
++const modelDir = new URL("../assets/research-ai/", import.meta.url);
++for (const id of ["three-player-policy-v2", "three-player-policy-v3"]) {
++  const payload = JSON.parse(await readFile(new URL(`${id}.json`, modelDir), "utf8"));
++  assert.equal(createSupportedThreePlayerModel(payload).spec.id, id, `${id} frozen provenance is accepted`);
++  if (id === "three-player-policy-v2") {
++    const missingValidation = structuredClone(payload);
++    delete missingValidation.training.validation_samples;
++    assert.throws(() => createSupportedThreePlayerModel(missingValidation), /格式或后训练来源无效/,
++      "v2 requires its declared validation sample count");
++  } else {
++    for (const field of ["parent_posttraining_samples", "completed_generation_episodes", "completed_development_games"]) {
++      const missing = structuredClone(payload);
++      delete missing.training[field];
++      assert.throws(() => createSupportedThreePlayerModel(missing), /格式或后训练来源无效/,
++        `v3 requires its declared ${field}`);
++    }
++    const badParent = structuredClone(payload);
++    badParent.training.parent_model_sha256 = "0".repeat(64);
++    assert.throws(() => createSupportedThreePlayerModel(badParent), /格式或后训练来源无效/,
++      "v3 parent provenance tampering is rejected");
++    const missingProtocol = structuredClone(payload);
++    delete missingProtocol.training.protocol_sha256;
++    assert.throws(() => createSupportedThreePlayerModel(missingProtocol), /格式或后训练来源无效/,
++      "v3 missing protocol provenance is rejected");
++    const malformedSource = structuredClone(payload);
++    malformedSource.training.source_hashes["web/tools/finetune-three-player-v3.mjs"] = "not-a-hash";
++    assert.throws(() => createSupportedThreePlayerModel(malformedSource), /格式或后训练来源无效/,
++      "v3 malformed source provenance is rejected");
++  }
++}
++const originalFetch = globalThis.fetch;
++const originalSelf = globalThis.self;
++const messages = [];
++globalThis.fetch = async (value) => {
++  const url = new URL(String(value));
++  url.search = "";
++  return new Response(await readFile(url));
++};
++globalThis.self = { postMessage: (message) => messages.push(message) };
++try {
++  await import("../AIWorker.js?v=20261024-l34a1");
++  let requestId = 0;
++  const run = async ({ playerCount, boardShape, strategy, modelId, rulesVersion = "territory-v2", fixtureMoves = [] }) => {
++    const engine = new GameEngine({ gridSize: 5, playerCount, boardShape, rulesVersion });
++    for (const point of fixtureMoves) {
++      const result = engine.playMove(point);
++      assert.equal(result.success, true, `${rulesVersion} shared fixture move ${point}`);
++    }
++    const serializedState = serializeEngineState(engine);
++    await self.onmessage({ data: { type: "COMPUTE", serializedState, aiPlayer: engine.currentPlayer, strategy, modelId, topN: 2, requestId: ++requestId } });
++    const response = messages.pop();
++    assert.equal(response.type, "RESULT", `${strategy}/${modelId}: ${response.message}`);
++    assert.equal(response.requestId, requestId, `${strategy}/${modelId}: request identity is preserved`);
++    assert.equal(response.rulesVersion, rulesVersion, `${strategy}/${modelId}: rules version is preserved`);
++    assert.equal(response.positionRevision, serializedState.positionRevision ?? 0,
++      `${strategy}/${modelId}: position revision is preserved`);
++    assert.equal(response.currentPlayer, serializedState.currentPlayer,
++      `${strategy}/${modelId}: acting player is preserved`);
++    assert.equal(response.modelInfo?.id ?? strategy, modelId ?? strategy);
++    assert.ok(response.moves.length > 0);
++    for (const move of response.moves) assert.ok(move.type === "pass"
++      || engine.getLegalMoves(engine.currentPlayer).some((legal) => legal.point.join(",") === move.point?.join(",")));
++  };
++  const sharedTerritoryFixture = [[1, 0], [0, 2], [3, 1], [1, 2]];
++  for (const rulesVersion of ["territory-v2", "territory-v3"]) {
++    for (const modelId of ["three-player-policy-v1", "three-player-policy-v2", "three-player-policy-v3", "three-player-search-v4-round12"]) {
++      await run({ playerCount: 3, boardShape: "triangle", strategy: "three-player", modelId,
++        rulesVersion, fixtureMoves: sharedTerritoryFixture });
++    }
++    for (const playerCount of [4, 5, 6]) {
++      await run({ playerCount, boardShape: "hexagon", strategy: "hex-player", modelId: "hex-player-policy-v1",
++        rulesVersion });
++    }
++    await run({ playerCount: 4, boardShape: "hexagon", strategy: "hex-player", modelId: "hex-player-search-v5",
++      rulesVersion });
++    await run({ playerCount: 3, boardShape: "triangle", strategy: "greedy", rulesVersion,
++      fixtureMoves: sharedTerritoryFixture });
++    await run({ playerCount: 3, boardShape: "hexagon", strategy: "greedy", rulesVersion });
++    await run({ playerCount: 4, boardShape: "triangle", strategy: "greedy", rulesVersion });
++  }
++} finally {
++  globalThis.fetch = originalFetch;
++  if (originalSelf === undefined) delete globalThis.self;
++  else globalThis.self = originalSelf;
++}
++console.log("verify-local-runtime-loaders: PASS (model loaders, shared v2/v3 fixture, legal Worker moves)");
+diff --git a/web/web前端/tests/verify-online-bot-ui.mjs b/web/web前端/tests/verify-online-bot-ui.mjs
+new file mode 100644
+--- /dev/null
++++ b/web/web前端/tests/verify-online-bot-ui.mjs
+@@ -0,0 +1,59 @@
++import assert from "node:assert/strict";
++import { readFile } from "node:fs/promises";
++import { PLAYER_COUNT_OPTIONS } from "../OnlineAppState.js";
++import { formatPlayerName, getTexts } from "../OnlineAppI18n.js";
++import { Player, PLAYER_ORDER, resolveInitialPositions } from "../GameEngine.js";
++
++const onlineApp = await readFile(new URL("../OnlineApp.js", import.meta.url), "utf8");
++const styles = await readFile(new URL("../styles.css", import.meta.url), "utf8");
++
++assert.deepEqual(PLAYER_COUNT_OPTIONS, [2, 3, 4, 5, 6]);
++assert.match(onlineApp, /class="language-switcher language-switcher-inline player-count-choices"[\s\S]*?v-for="count in PLAYER_COUNT_OPTIONS"/);
++assert.match(onlineApp, /v-if="playerCount >= 3 && !session\.roomId"[\s\S]*?v-for="count in playerCount"/,
++  "3–6 seat room setup exposes bot counts while preserving at least one human seat");
++assert.match(onlineApp, /texts\.value\.roomBotPlayerName\(formatAppPlayerName\(player\.color/,
++  "room bot labels use localized player-color names and localized wrapper text");
++assert.match(onlineApp, /class="action-button action-button-ghost"[^>]*@click="\$emit\('retry-bots'\)"[^>]*>\s*\{\{ texts\.roomRetryBots \}\}/,
++  "host bot-error retry action is connected to the room component event");
++assert.match(onlineApp, /v-if="isHost && roomInfo\?\.settings\?\.botCount && roomPlaying && roomInfo\?\.botError"[^>]*@click="\$emit\('retry-bots'\)"/,
++  "only the playing host sees retry while a bot room reports an error");
++assert.match(onlineApp, /const retryRoomBots = \(\) => networkManager\.retryBots\(\)\.catch\(handleNetworkError\)/,
++  "the room retry event reaches the network manager");
++assert.match(onlineApp, /@retry-bots="retryRoomBots"/,
++  "the playing host retry button is wired through the room panel");
++assert.match(styles, /\.player-count-choices\s*\{\s*display:\s*grid;\s*grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\);\s*\}/,
++  "the player count row uses five equal narrow-safe columns");
++assert.match(styles, /\.player-count-choices \.language-button\s*\{\s*min-width:\s*0;\s*padding-inline:\s*8px;\s*\}/,
++  "player count buttons can shrink at narrow mobile widths");
++for (const colorClass of ["is-green", "is-orange", "is-cyan"]) {
++  assert.ok(onlineApp.includes(`"${colorClass}": option.value`), `starter color styling includes ${colorClass}`);
++}
++assert.match(onlineApp, /if \(APP_ALL_PLAYERS\.includes\(payloadColor\)\)/,
++  "chat emoji payloads preserve every supported player color");
++assert.match(onlineApp, /settings\.initialPositions \?\? resolveInitialPositions\(settings\.gridSize, settings\.playerCount, null, settings\.boardShape\)/,
++  "chat emoji anchors use the current match's actual opening positions");
++assert.match(onlineApp, /getPlayerAccentClass\(color\)\.replace\("player-accent-", ""\)/,
++  "chat emoji colors use the shared six-color player accent mapping");
++for (const count of [4, 5, 6]) {
++  const positions = resolveInitialPositions(5, count, null, "hexagon");
++  const anchors = PLAYER_ORDER.slice(0, count).map((color) => {
++    const point = positions[color];
++    const r = 4;
++    const nx = point[0] + point[1] / 2;
++    return [
++      14 + 72 * (nx - r / 2) / (2 * r),
++      14 + 72 * point[1] / (2 * r),
++    ];
++  });
++  assert.equal(new Set(anchors.map(([x, y]) => `${x.toFixed(3)},${y.toFixed(3)}`)).size, count,
++    `${count}-player hex emoji anchors stay distinct`);
++}
++
++const green = formatPlayerName(Player.GREEN, "en");
++const greenZh = formatPlayerName(Player.GREEN, "zh");
++assert.equal(getTexts("en").roomBotPlayerName(green), "AI (Green)");
++assert.equal(getTexts("zh").roomBotPlayerName(greenZh), "AI（绿方）");
++assert.equal(getTexts("en").roomRetryBots, "Retry AI turn");
++assert.equal(getTexts("zh").roomRetryBots, "重试 AI 回合");
++
++console.log("Online bot UI regression passed: 4–6 seat entry, localized bot labels, and six starter colors.");
+diff --git a/web/web前端/tests/verify-turn-order-setup.mjs b/web/web前端/tests/verify-turn-order-setup.mjs
+new file mode 100644
+--- /dev/null
++++ b/web/web前端/tests/verify-turn-order-setup.mjs
+@@ -0,0 +1,65 @@
++import assert from 'node:assert/strict';
++import { createRequire } from 'node:module';
++import { pathToFileURL } from 'node:url';
++const require = createRequire(process.env.LIFELINE_TEST_VUE_PACKAGE ? pathToFileURL(process.env.LIFELINE_TEST_VUE_PACKAGE) : import.meta.url);
++globalThis.Vue = require('vue');
++globalThis.localStorage = {getItem(){return null},setItem(){},removeItem(){}};
++globalThis.location = new URL('http://localhost/');
++globalThis.document = { documentElement:{dataset:{}}, body: {classList:{toggle(){},add(){},remove(){}}}, addEventListener(){},removeEventListener(){} };
++globalThis.addEventListener=()=>{};globalThis.removeEventListener=()=>{};
++globalThis.fetch=async()=>({ok:false});
++const nativeTimeout = globalThis.setTimeout; globalThis.setTimeout = (...args) => { const timer = nativeTimeout(...args); timer.unref?.(); return timer; };
++const nativeInterval = globalThis.setInterval; globalThis.setInterval = (...args) => { const timer = nativeInterval(...args); timer.unref?.(); return timer; };
++await import('../TopologyGameEngine.js');
++const [{default:App},{default:GameEngine,PLAYER_ORDER},{normalizeGameSettings},{default:Order,resizeTurnOrder,moveTurnOrder},{createLocalGameSession,persistLocalGameSession,loadLocalGameSession}] = await Promise.all([
++ import('../OnlineApp.js'),import('../GameEngine.js'),import('../OnlineAppState.js'),import('../TurnOrderSetup.js'),import('../LocalGameSession.js')]);
++for(const count of [3,6,15]) {
++ const base=resizeTurnOrder(null,count,'WHITE'); assert.equal(base[0],'WHITE');
++ const order=moveTurnOrder(base,count-1,1); const settings=normalizeGameSettings({playerCount:count,gridSize:9,startPlayer:order[0],turnOrder:order,rulesVersion:'territory-v3'});
++ const engine=new GameEngine(settings); assert.deepEqual([...engine.turnOrder],order);
++ for(let i=0;i<count;i++)assert.equal(engine._getNextPlayer(order[i]),order[(i+1)%count]);
++ const saved=createLocalGameSession(settings,[]); let raw; const storage={setItem(_k,v){raw=v},getItem(){return raw}}; assert.equal(persistLocalGameSession(saved,storage),true); assert.deepEqual(loadLocalGameSession(storage).settings.turnOrder,order);
++ assert.throws(()=>normalizeGameSettings({...settings,turnOrder:order.map((p,i)=>i===1?order[0]:p)}),/INVALID_TURN_ORDER/);
++}
++const { createProductSurfacePreset } = await import('../ProductSurfacePresets.js');
++const surfaceOrder = ['PURPLE','BLACK','CYAN','WHITE','ORANGE','GREEN'];
++const surface = new GameEngine({ boardDefinition: createProductSurfacePreset('cylinder',{gridSize:9}), playerCount:6,
++  startPlayer:surfaceOrder[0], turnOrder:surfaceOrder, rulesVersion:'surface-v1' });
++assert.deepEqual([...surface.turnOrder],surfaceOrder);
++const surfaceState=surface.encodeTopologyState(); assert.deepEqual(surfaceState.ruleState.turnOrder,surfaceOrder);
++assert.deepEqual(resizeTurnOrder(['PURPLE','WHITE','BLACK'],4,'PURPLE'),['PURPLE','WHITE','BLACK','GREEN']);
++assert.deepEqual(resizeTurnOrder(['PURPLE','WHITE','BLACK','GREEN'],2,'WHITE'),['WHITE','BLACK']);
++assert.deepEqual(resizeTurnOrder(null,3,'WHITE'),['WHITE','PURPLE','BLACK']);
++assert.throws(()=>resizeTurnOrder(['BLACK','BLACK'],2,'BLACK'),/INVALID_TURN_ORDER/);
++let events=[];const vm={order:['BLACK','WHITE','PURPLE'],locked:false,$emit:(name,value)=>events.push([name,value])};
++Order.methods.move.call(vm,2,0);assert.deepEqual(events,[['change',['PURPLE','BLACK','WHITE']]]);vm.locked=true;Order.methods.move.call(vm,0,1);assert.equal(events.length,1);
++const previousWarn=console.warn;console.warn=()=>{};const app=App.setup();console.warn=previousWarn;
++app.tutorialActive.value=false;await Vue.nextTick();
++app.handleTurnOrderChange(['WHITE','BLACK']);await Vue.nextTick();
++assert.deepEqual(app.selectedTurnOrder.value,['WHITE','BLACK']);assert.equal(app.selectedStartPlayer.value,'WHITE');
++const liveBefore=new GameEngine({playerCount:2,gridSize:9,startPlayer:'BLACK',rulesVersion:'territory-v3'});
++app.controller.value={engine:liveBefore, setGameConfig(settings){this.engine=new GameEngine(settings); return this.engine.getSnapshot();}};
++assert.equal(app.controller.value.engine,liveBefore,'editing a draft keeps the live engine');
++assert.equal(await app.startLocalMatch(),true,'start commits the draft');assert.deepEqual([...app.controller.value.engine.turnOrder],['WHITE','BLACK']);assert.equal(app.controller.value.engine.currentPlayer,'WHITE');
++
++app.selectedPlayerCount.value=3;await Vue.nextTick();assert.deepEqual(app.selectedTurnOrder.value,['WHITE','BLACK','PURPLE']);
++app.handleTurnOrderChange(['WHITE','WHITE','PURPLE']);await Vue.nextTick();assert.deepEqual(app.selectedTurnOrder.value,['WHITE','BLACK','PURPLE']);
++app.roomStatus.value='waiting';app.roomSetupOpen.value=true;app.session.value={...app.session.value,shared:true,playerId:'guest'};app.roomInfo.value={...app.roomInfo.value,hostPlayerId:'host'};await Vue.nextTick();
++const guestBefore=app.selectedTurnOrder.value.slice();app.handleTurnOrderChange(['PURPLE','BLACK','WHITE']);await Vue.nextTick();assert.deepEqual(app.selectedTurnOrder.value,guestBefore,'guest cannot change room draft');
++app.session.value={...app.session.value,playerId:'host'};await Vue.nextTick();app.handleTurnOrderChange(['PURPLE','BLACK','WHITE']);await Vue.nextTick();assert.deepEqual(app.selectedTurnOrder.value,['PURPLE','BLACK','WHITE']);assert.equal(app.selectedStartPlayer.value,'PURPLE');
++app.roomSetupOpen.value=false;app.roomStatus.value='inProgress';await Vue.nextTick();const before=app.selectedTurnOrder.value.slice();app.handleTurnOrderChange(['WHITE','BLACK','PURPLE']);await Vue.nextTick();assert.deepEqual(app.selectedTurnOrder.value,before,'active room cannot be changed through this control');
++// Synchronous room creation can read a just-edited count before Vue's watcher
++// has expanded the stored two-seat draft. The actual Mini shared-room suite
++// exercises both create entry points with the same transition.
++console.warn=()=>{};const immediate=App.setup();console.warn=previousWarn;
++immediate.tutorialActive.value=false;await Vue.nextTick();
++immediate.selectedPlayerCount.value=6; immediate.selectedGridSize.value=13;
++immediate.selectedBoardShape.value='hexagon';immediate.selectedStartPlayer.value='GREEN';
++immediate.openRoomSetup();assert.equal(immediate.roomSetupOpen.value,true);
++assert.deepEqual(immediate.selectedTurnOrder.value,['GREEN','ORANGE','CYAN','BLACK','WHITE','PURPLE']);
++// Do not apply the local draft repair to an authoritative malformed room.
++await Vue.nextTick();immediate.roomStatus.value='waiting';immediate.session.value={...immediate.session.value,shared:true,roomId:'ABCDEFGH',playerId:'host'};
++const validInfo=immediate.roomInfo.value;immediate.roomInfo.value={...immediate.roomInfo.value,hostPlayerId:'host',settings:{playerCount:3,gridSize:9,boardShape:'triangle',startPlayer:'BLACK',rulesVersion:'territory-v3',turnOrder:['BLACK','BLACK','PURPLE']}};
++assert.throws(()=>immediate.openRoomSetup(),/INVALID_TURN_ORDER/);
++immediate.roomInfo.value=validInfo;await Vue.nextTick();
++console.log('verify-turn-order-setup: PASS');

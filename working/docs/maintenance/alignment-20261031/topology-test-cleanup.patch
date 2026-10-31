@@ -1,0 +1,28 @@
+--- a/web/web前端/tests/verify-topology-app-persistence-v1.mjs
++++ b/web/web前端/tests/verify-topology-app-persistence-v1.mjs
+@@ -7,6 +7,7 @@
+ 
+ const values = new Map();
+ const noop = () => {};
++const unmountCallbacks = [];
+ globalThis.localStorage = {
+   getItem: (key) => values.get(key) ?? null,
+   setItem: (key, value) => values.set(key, String(value)),
+@@ -23,7 +24,7 @@
+   watch: noop,
+   nextTick: async () => {},
+   onMounted: noop,
+-  onBeforeUnmount: noop,
++  onBeforeUnmount: (callback) => unmountCallbacks.push(callback),
+ };
+ globalThis.Worker = class {
+   postMessage() {}
+@@ -463,6 +464,8 @@
+ values.set(TOPOLOGY_LOCAL_GAME_SESSION_STORAGE_KEY, JSON.stringify(legacyPreset));
+ await reloadPreset();
+ 
++for (const unmount of unmountCallbacks.reverse()) unmount();
++
+ console.log(JSON.stringify({
+   status: "PASS",
+   coverage: [

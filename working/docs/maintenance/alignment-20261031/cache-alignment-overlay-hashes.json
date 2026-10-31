@@ -1,0 +1,22 @@
+{
+  "web/web前端/OnlineApp.js": {
+    "before_sha256": "72262d7b73c29e331597ad33c48d270783ffb99015ab081ab4997f97fe8076c6",
+    "after_sha256": "85a3e129e964ba2615dac5c390ee97545e716d7f54798514c45a8cf3a33604e8"
+  },
+  "web/web前端/GameController.js": {
+    "before_sha256": "31dc5670d8cb11791ac264bafabfa7840bff8d8c6327f95397fce616fbe0e606",
+    "after_sha256": "7c18a7f6c644a0cad953dae67881bd89986d486711d5f4f5608e16dea563d2ad"
+  },
+  "web/web前端/CrossPlatformNetwork.js": {
+    "before_sha256": "a1aabd2fce0c5cf7c07fdf10417e315be0a47ca4892725bb1f7440079c762eb4",
+    "after_sha256": "6b533dcdbde3c78ede387cec5dfb6c33ed18fb88a8fe04fac78b40352d40d97e"
+  },
+  "web/web前端/main.js": {
+    "before_sha256": "89dd8371455a9e6550abb1fe79e823e181f708cc520a32793fa88204499f817e",
+    "after_sha256": "2c8a2b0005c273e0d74afce0a2d6dab9dde8c11ac5df57d98cf202eaa0aee3f8"
+  },
+  "web/web前端/index.html": {
+    "before_sha256": "756720e9c660859cb542fecda596dcd4c0f29f45444c316a0208bd84e410f73e",
+    "after_sha256": "175e039ae13b4384c0f161264933289cc6e4f3543522bbe4eaa6eb9f70187e57"
+  }
+}

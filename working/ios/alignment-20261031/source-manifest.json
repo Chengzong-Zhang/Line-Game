@@ -1,0 +1,88 @@
+{
+  "status": "IOS_SOURCE_TEMPLATE_NATIVE_GATED",
+  "files": [
+    {
+      "path": ".gitignore",
+      "sha256": "895dda87ebb2b1c973631cc8af0f74764f00931db8db8ebd0bafa9e6ae9759c3"
+    },
+    {
+      "path": "App/App/AppDelegate.swift",
+      "sha256": "481e2ad8672b14acbd3e3df65acdc6d046526ae542b7bec903cf842fc68d9e49"
+    },
+    {
+      "path": "App/App/Assets.xcassets/AppIcon.appiconset/Contents.json",
+      "sha256": "5c09bec6eede599b14fa9e4c44b03e7febebc930615a0cd70f02981c09dfe48a"
+    },
+    {
+      "path": "App/App/Assets.xcassets/Contents.json",
+      "sha256": "972ec1fd42325872438eb085ac29e94f51c10788ec18ec5549439950866c541d"
+    },
+    {
+      "path": "App/App/Assets.xcassets/Splash.imageset/Contents.json",
+      "sha256": "041481917eb249533ac6dd63d283bc6190b2d0642a93deda11b2ed0f6f7b605a"
+    },
+    {
+      "path": "App/App/Base.lproj/LaunchScreen.storyboard",
+      "sha256": "87a42e842164d75f39cca56a2cf743652f4d8e858f2eba12ae21a8ddcd9a21c6"
+    },
+    {
+      "path": "App/App/Base.lproj/Main.storyboard",
+      "sha256": "7b7dc7acc67134bfaa80e5ce9c9068ba53db5369b9b70248aa7439fc2b09daae"
+    },
+    {
+      "path": "App/App/capacitor.config.json",
+      "sha256": "b0bff979ecb4c7567f04b21b42734b2b647508e2e01340e15422ae28f1dfe9fd"
+    },
+    {
+      "path": "App/App/config.xml",
+      "sha256": "c5a53a3c535a9b5b188ebc274e52dabf52838f4d20d323b6ec6217044411c49a"
+    },
+    {
+      "path": "App/App/Info.plist",
+      "sha256": "20f8b3c941313c2f9cf93695af43d16dfd58eb46d3db6abcdd03a4772814d9f7"
+    },
+    {
+      "path": "App/App/SceneDelegate.swift",
+      "sha256": "738b9b96bb71d34d80cd8c1183cf7f8f6f2e789c64e46fb5fe6777a35ae12dfd"
+    },
+    {
+      "path": "App/App.xcodeproj/project.pbxproj",
+      "sha256": "b3e16d75a211fe75f271788c2b088c22cf253bc723fe6373ea5dc238e81d623d"
+    },
+    {
+      "path": "App/App.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist",
+      "sha256": "dfa0f9bb85b95ccba9c6811adadf8cb407fb5d52088e89db83ebc308ec448542"
+    },
+    {
+      "path": "App/CapApp-SPM/.gitignore",
+      "sha256": "4b958e2b4dd57319aadef2551153c74b9cb5ffe9f89d6e3e491122a94913f016"
+    },
+    {
+      "path": "App/CapApp-SPM/Package.swift",
+      "sha256": "4dd62aeb951f9e7645377f0d4b0c1a1c3bf3270617258338a941d88e851bed55"
+    },
+    {
+      "path": "App/CapApp-SPM/README.md",
+      "sha256": "42c535861f4a866e35f85764ed6af1ea046d6a409bf9852ecb00e5d292a1626e"
+    },
+    {
+      "path": "App/CapApp-SPM/Sources/CapApp-SPM/CapApp-SPM.swift",
+      "sha256": "70bf9dafddc35e3877dfb133a996f5be7ccd1e132897a98fdbf4869ff605ece9"
+    },
+    {
+      "path": "debug.xcconfig",
+      "sha256": "4838938a72b913b99cfda54a43bbe73f05893071dc6e3702b0adc44794b64272"
+    }
+  ],
+  "generated_exclusions": [
+    "App/App/public/**",
+    "*.png",
+    "ios-preparation-receipt.json"
+  ],
+  "rebuild": "working/tools/ios-prepare-alignment-20261031.py",
+  "note": "The source snapshot .gitignore retains native config files for review; generated iOS project uses the upstream template ignore rules.",
+  "dist_manifest_sha256": "442108b90b86b9db5f680b301640f01eae276496f7147f77052138a7a1c5b52b",
+  "source_file_count": 415,
+  "public_file_count": 416,
+  "project_file_count": 436
+}

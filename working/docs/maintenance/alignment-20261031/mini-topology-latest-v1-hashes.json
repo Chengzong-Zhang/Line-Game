@@ -1,0 +1,26 @@
+{
+  "wechat/minigame/src/latest-moves.js": {
+    "before_sha256": "f452d6f0354ca4d29e3c402b79109accfc5dd8eb07daab72e9ebb9194365a1c3",
+    "after_sha256": "fa59ce73e2ac9fd6676b6ecbef40845172593a637c1ae3cc86940586ccff7e27"
+  },
+  "wechat/minigame/src/app.js": {
+    "before_sha256": "68a67fcbe9508d575dfa3ececa79dcf5ea1e3a10523fc4eabbb19f59d5b62b19",
+    "after_sha256": "0113d405766728822d1c4be7e2d17e3e20cbca868cefd2e1eb2ce5057cb9906e"
+  },
+  "wechat/minigame/src/topology-board.js": {
+    "before_sha256": "48a509329e8aadd02d19d9b6fdc9952ac56c35541c8cb670731f3bd12a1e0614",
+    "after_sha256": "b4bef41e7e46e0f24cd35d140e3203e3c1373b3da7798f2be220107b1f6c9c39"
+  },
+  "wechat/minigame/src/topology/TopologySurface3D.js": {
+    "before_sha256": "8a577db62792723fd6cee7816cc69f090447a9fb98a1fee84a11961aab77bf8b",
+    "after_sha256": "4b6f6e0bfb35eaca1f71bf4b9fee6aac122a9839eb3308e9c27b85d96496eb2b"
+  },
+  "wechat/minigame/src/topology-software-surface.js": {
+    "before_sha256": "9ad027359b67ca7151a5dda7b847e6addb586c449ff063479c73a9ddedcf6438",
+    "after_sha256": "5e4a7a25cb165a7325796ed19807e23d8284c6221c68d633b1de90d09bb9addd"
+  },
+  "wechat/minigame/tests/topology-latest-moves.test.mjs": {
+    "before_sha256": null,
+    "after_sha256": "356c5424f9869eb40dac4b460ed061a56a37fc58292bab3b236205c738ff8e45"
+  }
+}

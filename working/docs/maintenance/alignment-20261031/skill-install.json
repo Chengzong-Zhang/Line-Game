@@ -4,7 +4,7 @@
   "destination": "C:\\Users\\zcz\\.codex\\skills\\lifeline-dev",
   "fileCount": 9,
   "changed": [
-    "references\\user-intent.md"
+    "references\\repository-maintenance.md"
   ],
   "files": [
     {
@@ -21,9 +21,9 @@
     },
     {
       "path": "references/platform-sync.md",
-      "before": "6edd7636b55b2d265bceb3346b1e9164d51d4f3435fcdf5145d62ab7e91692ae",
-      "source": "6edd7636b55b2d265bceb3346b1e9164d51d4f3435fcdf5145d62ab7e91692ae",
-      "installed": "6edd7636b55b2d265bceb3346b1e9164d51d4f3435fcdf5145d62ab7e91692ae"
+      "before": "c02f6aaae143a77776054f70e713cf7012b079563cf1e2405c33282ac746dbc6",
+      "source": "c02f6aaae143a77776054f70e713cf7012b079563cf1e2405c33282ac746dbc6",
+      "installed": "c02f6aaae143a77776054f70e713cf7012b079563cf1e2405c33282ac746dbc6"
     },
     {
       "path": "references/project-map.md",
@@ -33,9 +33,9 @@
     },
     {
       "path": "references/repository-maintenance.md",
-      "before": "29d5d518842529c48f2f21b76ffe1a6da2c21a4e9afbec262469db8087e76817",
-      "source": "29d5d518842529c48f2f21b76ffe1a6da2c21a4e9afbec262469db8087e76817",
-      "installed": "29d5d518842529c48f2f21b76ffe1a6da2c21a4e9afbec262469db8087e76817"
+      "before": "ca9c1e8e01814f43d8b144557e5aee371ac17929c5c50e678a90fc26fd7a53c8",
+      "source": "9946d2319a83ea23a32504a88a91e54d16773ef61c1bc1cc57379112fc323e4e",
+      "installed": "9946d2319a83ea23a32504a88a91e54d16773ef61c1bc1cc57379112fc323e4e"
     },
     {
       "path": "references/research-workflow.md",
@@ -51,7 +51,7 @@
     },
     {
       "path": "references/user-intent.md",
-      "before": "921ee3f6b70e24dd352fae8d9881cc25dcd91f2ced142ccdf51bf4608208fa01",
+      "before": "e9a744cabf25c28e938450e5c195dee8181b5f1fbe2195debf992ce2712e0fda",
       "source": "e9a744cabf25c28e938450e5c195dee8181b5f1fbe2195debf992ce2712e0fda",
       "installed": "e9a744cabf25c28e938450e5c195dee8181b5f1fbe2195debf992ce2712e0fda"
     },

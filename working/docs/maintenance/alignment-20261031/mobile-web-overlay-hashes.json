@@ -1,0 +1,106 @@
+{
+  "web/web前端/GuideArticleFormat.js": {
+    "base_sha256": "e5dedf72e0ff7c574cc406fefc41734242474fff9826a38e0d3c34f6c9f22c42",
+    "candidate_sha256": "840bdd31c9f5c35211bb528098b684a69d2c35f7be824696f6b3bfcbeee51946"
+  },
+  "web/web前端/GuideContent.js": {
+    "base_sha256": "76f79680a89ceb0153183deab5bd8dcd4bfd1355b63db4edbae36a371c0e88f3",
+    "candidate_sha256": "5d6adf7ef0b4987aa8b4f8e7a1e5831b00f01ed1b6cad89b5bce7fa0c32b2de3"
+  },
+  "web/web前端/GuideTopologyChapters.js": {
+    "base_sha256": "75e4856b8f0e6f1a3d2638f9a2553eece2a8d42ef9bef7ba113ba616eb724964",
+    "candidate_sha256": "b7f586cb81ec272e2c545a22d7b483ffb8de341da4e77659bba998805f7020b7"
+  },
+  "web/web前端/LocalGameSession.js": {
+    "base_sha256": "00bb0720648e3d90464baf27a783984294965f9517309996e9a0f3f832115ecd",
+    "candidate_sha256": "43b37b8e74e575d99e84dc21ca8aaec6c91daaf6b0a937bcca195d6f20110ac6"
+  },
+  "web/web前端/LocalPlayerSetup.js": {
+    "base_sha256": "ef2dabf5bb574d350a35042fa0e4bdc80444bddaac660cb0de3042c2dd16f5d1",
+    "candidate_sha256": "0336ee5fad49f6740286cdbb9c09f899f0a694035342f0e51e0727f15540a9b1"
+  },
+  "web/web前端/ModelFreeAI.js": {
+    "base_sha256": "ce35499d10afe9e9c582b9970930e70eb093786b4d1c302b40077f6e390ecf5d",
+    "candidate_sha256": "20ec8d64d2c2ccfb6e884f5fca8ad660d44e410191a0371503c1d800d77354ed"
+  },
+  "web/web前端/NetworkManager.js": {
+    "base_sha256": "beb35c2b0198194471bdfce8cb63a483dd77cbf7d1c2c2a581af2629fd5e8c02",
+    "candidate_sha256": "83ca485c879ae842a572d58efdd666d99d4bd3050576f55f4c0ae9e46a429d2d"
+  },
+  "web/web前端/OnlineApp.js": {
+    "base_sha256": "85ff5e9d297ee5d9d397bbd99a0b5b985cd06d9ca8d595cf83f57c37693a078b",
+    "candidate_sha256": "593513469eff6dd7bc7b95a3dbb8d0f43c4028a4390547337ea06b44c87b090f"
+  },
+  "web/web前端/OnlineAppState.js": {
+    "base_sha256": "70f9599890c0ec9bc033b91bbe685b9a5928af7defffa0fe32f8e81b962fd313",
+    "candidate_sha256": "e60375630da0dbde0251b3a87ab94213f7d11f293c00483b703a6358648946ef"
+  },
+  "web/web前端/OnlineRoomSync.js": {
+    "base_sha256": "558b0d5c8e6df64925ab1e642df6d6bcda5d21c5b7f2fd965ab1f7aaa418e4b0",
+    "candidate_sha256": "10bd41fd53d1e66a48a1762c5353c5c5d6f4098bc01b1d78728a3034dbe508e1"
+  },
+  "web/web前端/ReplayCodec.js": {
+    "base_sha256": "4350feb52195f3c0fc14a1af37ec0804f04b39809134954159754af282ffd2ee",
+    "candidate_sha256": "0d327e9a434424eaaf086e8dc4a698b95cb7e4e3968b1a37fdf93bc0c0da597e"
+  },
+  "web/web前端/TrainingContribution.js": {
+    "base_sha256": "5b8745181cec5cb5a4b02dcd76537ac4487a846614049a4e2f3b6aef656bea09",
+    "candidate_sha256": "7f7427f852d0407599f3d480940788b9affe4f773020bc527db3d337467449e6"
+  },
+  "web/web前端/TurnOrderSetup.js": {
+    "base_sha256": null,
+    "candidate_sha256": "907bbbf0fbe8aa43fc0ba04000464791001fc8698280927fb010def612dc1454"
+  },
+  "web/web前端/guide/rule/essential rule.md": {
+    "base_sha256": "37c1dbd00c943e3a4a098ab29dbf5b9e807eb58f66fbe214e2e990926ebc30bc",
+    "candidate_sha256": "40c59f7bb52abf8b4fb7b70acb4978035714221c1f0ae8412a301e36f2fbb8de"
+  },
+  "web/web前端/guide/rule/math rule.en.md": {
+    "base_sha256": "c8b2107144b8fe5e5649ff123932c81710049601a9d16a03ade01dcc8e7a2480",
+    "candidate_sha256": "9c0b30a57b0f54162bf0aa6bddab50cbfe4b205f3b26888adf6b3bab8067e03c"
+  },
+  "web/web前端/guide/rule/math rule.md": {
+    "base_sha256": "3ca15f027b2dc25f727ae23d075163bdea1ddf1600884dbb3b08e342c85408ce",
+    "candidate_sha256": "03e3e2c8ef7dff68db0c26004437e9c6660ce032c21b0b1bd1e360a2b5389be9"
+  },
+  "web/web前端/index.html": {
+    "base_sha256": "70a7f7d8477928741e8c656e2bdddcf355deec0510932aa92b61382440a38f59",
+    "candidate_sha256": "d564de9bea8c78d5d21c809e25e65b8c1770209ae9e8870ac983bbe0c36d5070"
+  },
+  "web/web前端/main.js": {
+    "base_sha256": "35724e85555de6a315877e2b6c1ca02c09d49fab7f17b7aa1f2b30e60f2841ee",
+    "candidate_sha256": "8e12b4dfc96d63ff5e3608b4ee2d423c7d62241d682fecd53d87f143cc9c5091"
+  },
+  "web/web前端/platform/TutorialHost.js": {
+    "base_sha256": null,
+    "candidate_sha256": "e66cd1bd948324752f78782155a2e69098d50a8f1c88fdde8afa502bdd86afa7"
+  },
+  "web/web前端/platform/runtime.js": {
+    "base_sha256": null,
+    "candidate_sha256": "cc8592897ce576ee3cf3ecb72e081d9dbb8fd54214596d4abbe72e20c8865edb"
+  },
+  "web/web前端/styles.css": {
+    "base_sha256": "8b705a83987e38ac1b66cd7c68e6631bc7ff80de342904947a37cc45485cdca2",
+    "candidate_sha256": "9df931243ae91c4d363927ea4c95b13dc65d849225e136b46dc660ffc60dd449"
+  },
+  "web/web前端/tests/fixtures/minimax-defense.json": {
+    "base_sha256": null,
+    "candidate_sha256": "0f4a8301e0b4fa90fdb5750a8bcc8056ab6fdf56d47747bfc4b255f5564c3d42"
+  },
+  "web/web前端/tests/verify-guide-content.mjs": {
+    "base_sha256": "e689293e7fed12dec1acc2a5e6a6383a0ef9e11efcdde720b67d81de10e507fd",
+    "candidate_sha256": "be10cdc34caa144968aa60d6c5d0d27165cf54bc8812f29a509fbc784103e648"
+  },
+  "web/web前端/tests/verify-local-runtime-loaders.mjs": {
+    "base_sha256": null,
+    "candidate_sha256": "67955d3b83ed25098a961ad6c1075f49bf25a54dda17803f49385a2617c31f45"
+  },
+  "web/web前端/tests/verify-online-bot-ui.mjs": {
+    "base_sha256": null,
+    "candidate_sha256": "55963e30b0c0b82f28989ce0b3fda1df883cd81dc563b74049292110fb0783cf"
+  },
+  "web/web前端/tests/verify-turn-order-setup.mjs": {
+    "base_sha256": null,
+    "candidate_sha256": "e5da6070153620b52b42d0c9f69db56b98d6ac30a86dcb2bb5d72ad2949fba7e"
+  }
+}

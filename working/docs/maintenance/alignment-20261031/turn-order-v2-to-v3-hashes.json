@@ -1,0 +1,10 @@
+{
+  "web/web前端/OnlineApp.js": {
+    "v2_sha256": "d417776c9d3e26ebc6656c26e2c78b491a62af56c6919c2b4c8af0d82b37ad0d",
+    "v3_sha256": "4fb86029dcd3f070fdfa2b0790e0336b3032913ce6e4c0540b0569f1126fdd20"
+  },
+  "web/web前端/tests/verify-turn-order-setup.mjs": {
+    "v2_sha256": "0c90075f8cdcf66616a4136ee48ae8f09e102c8e252972e585a0f86c8ce6a1fe",
+    "v3_sha256": "e5da6070153620b52b42d0c9f69db56b98d6ac30a86dcb2bb5d72ad2949fba7e"
+  }
+}

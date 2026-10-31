@@ -46,36 +46,35 @@
     {
       "feature": "current guide UI fixes",
       "reference": "current session guide patch",
-      "all_candidates": "itch-guide-01 and desktop-guide-02 contain verified nine-file overlay; mobile candidate pending"
+      "all_candidates": "4d3d3c common frontend verified; web, Mini, itch and desktop have local v3 candidates; mobile pending"
     },
     {
       "feature": "player turn-order configuration",
       "reference": "GameEngine and OnlineAppState validate/preserve turnOrder; 51e Mini has turn-order-ui and drag/set flow",
-      "web": "current Web UI exposes start-player selection; no arbitrary full-order editing entry found in OnlineApp or LocalPlayerSetup",
+      "web": "v3 arbitrary full-order editing and Web room regression verified locally",
       "wechat": "Mini offers ordering setup, including explicit full-order setting",
-      "impact": "shared state can represent turnOrder; authorship/entry differs and still needs Web UI implementation and cross-client acceptance"
+      "impact": "shared state and editing entry locally verified; real cross-client device match pending"
     }
   ],
   "platforms": {
     "web": {
-      "state": "historical receipt: web-board-flow-20261030-r2 activated; no new deployment checked",
+      "state": "v3 local static archive: 253/253 files verified; no deployment",
       "pending": "current guide overlay and current-session verification"
     },
     "wechat": {
-      "state": "historical receipt: 0.14.0 officially uploaded and previewed; experience configuration, review, publication and device tests false",
+      "state": "0.14.1 local online candidate, 706/706 tests and candidate file verification pass; not uploaded",
       "pending": "current guide overlay and device/cross-client verification"
     },
     "itch": {
-      "state": "itch-guide-01 built and static package/model verification passed",
+      "state": "v3 source-snapshot candidate, static package and iframe smoke pass",
       "network": "offline guards present; enabled mode requires explicit secure endpoint and separate real cross-client check; contribution unsupported",
       "browser": "iframe smoke passed including old session, old consent queue, Chinese image and Worker; IAB completed a game and checked guide navigation at mobile width"
     },
     "windows_steam": {
-      "state": "desktop-guide-02 built; packaged offline startup and 24-level engine replay passed; first-level UI and old-session/queue test in progress",
+      "state": "v3 local directory and portable candidates: offline smoke, 24-level replay, packaged challenge/backup/preferences/timer regression pass",
       "gaps": [
-        "backup import/export and error-recovery UI need direct validation",
-        "Steam channel release integration",
-        "guide overlay final build and real UI check"
+        "actual Steam distribution and device acceptance not run",
+        "tutorial-completion and audible feedback device checks pending"
       ]
     },
     "android_harmony": {
@@ -93,7 +92,9 @@
     },
     "macos": {
       "state": "no native build on Windows",
-      "pending": "Mac tooling, signing and device verification"
+      "pending": "Mac tooling, signing and device verification; see MACOS-BUILD-HANDOFF.md"
     }
-  }
+  },
+  "status": "INTERMEDIATE_NOT_FINAL",
+  "status_note": "本矩阵反映早期候选；最终平台交付应参考另行生成的 FINAL-PLATFORM-RECEIPTS.json 和 PLATFORM-DELIVERY.md。"
 }

@@ -1,0 +1,23 @@
+diff --git a/web/web前端/tests/verify-online-recovery.mjs b/web/web前端/tests/verify-online-recovery.mjs
+--- a/web/web前端/tests/verify-online-recovery.mjs
++++ b/web/web前端/tests/verify-online-recovery.mjs
+@@ -644,9 +644,17 @@
+   "const applyRoomSnapshot = (payload, resetController = true) =>",
+   "const refreshRoomSnapshot = async () =>",
+ );
+-assert.match(applySnapshotSection, /coordinateControllerRoomSnapshot\s*\(/);
++const applyDirectSnapshotSection = sourceSection(
++  onlineAppSource,
++  "const applyDirectRoomSnapshot = (payload, resetController = true) =>",
++  "const ensureLegacyActionSync = async () =>",
++);
++assert.match(applyDirectSnapshotSection, /coordinateControllerRoomSnapshot\s*\(/);
++assert.match(applySnapshotSection, /networkManager\.serverAuthoritative\) return applyDirectRoomSnapshot/);
++assert.match(applySnapshotSection, /protocol === "legacy"\) return applyDirectRoomSnapshot/);
++assert.match(applySnapshotSection, /coordinator\.acceptRoomSnapshot\s*\(/);
+ assert.doesNotMatch(
+-  applySnapshotSection,
++  applyDirectSnapshotSection + applySnapshotSection,
+   /restoreMatchState|setGameConfig|_replaceEngine|resetGame/,
+   "OnlineApp must delegate controller recovery to the tested coordinator",
+ );

@@ -1,0 +1,757 @@
+{
+  "schema": "lifeline-common-web-vm-input-verification-v1",
+  "source": "C:/Users/zcz/.codex/worktrees/lifeline-alignment-20261031/line game/web/web前端",
+  "host": "C:\\coding\\py\\line game\\working\\tmp\\alignment-20261031\\common-legacy-integration\\dist",
+  "common_top_level_count": 115,
+  "common_top_level_matched": 115,
+  "common_top_level": [
+    {
+      "file": "AIEngine.js",
+      "source_sha256": "f8ae8a952b8c2a6cb3178cb4bd7e6112cc4786fc1687a7f7ca20c198c4e96615",
+      "host_sha256": "f8ae8a952b8c2a6cb3178cb4bd7e6112cc4786fc1687a7f7ca20c198c4e96615",
+      "match": true
+    },
+    {
+      "file": "AIPassDiscipline.js",
+      "source_sha256": "8b47e07ffd435bcc2967e226fb2021f359f96cd93ddf35634f8e0dc83b210d46",
+      "host_sha256": "8b47e07ffd435bcc2967e226fb2021f359f96cd93ddf35634f8e0dc83b210d46",
+      "match": true
+    },
+    {
+      "file": "AIPassDisciplineV2.js",
+      "source_sha256": "207355a15fd17d06d05f42acde2160bd8a7fb99bc2426a2b42860d62a76a4850",
+      "host_sha256": "207355a15fd17d06d05f42acde2160bd8a7fb99bc2426a2b42860d62a76a4850",
+      "match": true
+    },
+    {
+      "file": "AIPassDisciplineV3.js",
+      "source_sha256": "2bc7dba6a9b0ba5d86687f441dfaf893adff6b19e5d2e7948e9bfe0fd2dac31c",
+      "host_sha256": "2bc7dba6a9b0ba5d86687f441dfaf893adff6b19e5d2e7948e9bfe0fd2dac31c",
+      "match": true
+    },
+    {
+      "file": "AIPassDisciplineV4.js",
+      "source_sha256": "9e9e33bc0ceead8648da2a53dac37293aebc228b5cf5c35598e4a9855d7d29a4",
+      "host_sha256": "9e9e33bc0ceead8648da2a53dac37293aebc228b5cf5c35598e4a9855d7d29a4",
+      "match": true
+    },
+    {
+      "file": "AIStateProtocol.js",
+      "source_sha256": "d97e0a65adb28649e0bffd8765d18ea00605a24707f3b1c44cfd24178e3a8efe",
+      "host_sha256": "d97e0a65adb28649e0bffd8765d18ea00605a24707f3b1c44cfd24178e3a8efe",
+      "match": true
+    },
+    {
+      "file": "AIWorker.js",
+      "source_sha256": "d25e3caa04e40bc1cb0d040b489ce0db9ef0c9a027e8b7f3a4fa7d531cd98d17",
+      "host_sha256": "d25e3caa04e40bc1cb0d040b489ce0db9ef0c9a027e8b7f3a4fa7d531cd98d17",
+      "match": true
+    },
+    {
+      "file": "app.js",
+      "source_sha256": "b13bf07df4d8f8bd5377aa0b3b235a3fa679a83077926b22408442c1c0951ee2",
+      "host_sha256": "b13bf07df4d8f8bd5377aa0b3b235a3fa679a83077926b22408442c1c0951ee2",
+      "match": true
+    },
+    {
+      "file": "BoardCompiler.js",
+      "source_sha256": "80cbbb446c8e92385f9317d1f3679578909a8f66fc9e1c684c58a2e269e7facd",
+      "host_sha256": "80cbbb446c8e92385f9317d1f3679578909a8f66fc9e1c684c58a2e269e7facd",
+      "match": true
+    },
+    {
+      "file": "BoardDefinition.js",
+      "source_sha256": "c2fd427642ee56cb80d3267fd6ba0235917bbedfa34b0b31790886b35613d9d1",
+      "host_sha256": "c2fd427642ee56cb80d3267fd6ba0235917bbedfa34b0b31790886b35613d9d1",
+      "match": true
+    },
+    {
+      "file": "BoardEditor.js",
+      "source_sha256": "902f2789bace3375ba7ad6028b4f019ed8b811710b91d1400b139cb42ac3d799",
+      "host_sha256": "902f2789bace3375ba7ad6028b4f019ed8b811710b91d1400b139cb42ac3d799",
+      "match": true
+    },
+    {
+      "file": "BoardPathProjection.js",
+      "source_sha256": "df421046829e47b7e12a762f25f1489cecb84e1005c960412dc857c2ebd8b075",
+      "host_sha256": "df421046829e47b7e12a762f25f1489cecb84e1005c960412dc857c2ebd8b075",
+      "match": true
+    },
+    {
+      "file": "BoardPaths.js",
+      "source_sha256": "ad868d746c835a34c43084111e6736f48ddfd1b8318bca6f0ffd39bccd93aa7b",
+      "host_sha256": "ad868d746c835a34c43084111e6736f48ddfd1b8318bca6f0ffd39bccd93aa7b",
+      "match": true
+    },
+    {
+      "file": "BoardPresets.js",
+      "source_sha256": "6cfa8b293e2b2839b70686986abd31a647524a0a0898d1606485d06f62792bca",
+      "host_sha256": "6cfa8b293e2b2839b70686986abd31a647524a0a0898d1606485d06f62792bca",
+      "match": true
+    },
+    {
+      "file": "BoardTopology.js",
+      "source_sha256": "d47c0b6cae86b060866ae47aa780836cfa0c2031d817d47bc80dc43de320ab29",
+      "host_sha256": "d47c0b6cae86b060866ae47aa780836cfa0c2031d817d47bc80dc43de320ab29",
+      "match": true
+    },
+    {
+      "file": "BoardView.js",
+      "source_sha256": "4c817883f8d5ff296e80f2ac9b202affb2435a5498e1e5fbbb695a260b144bd8",
+      "host_sha256": "4c817883f8d5ff296e80f2ac9b202affb2435a5498e1e5fbbb695a260b144bd8",
+      "match": true
+    },
+    {
+      "file": "BudgetedMinimaxAI.js",
+      "source_sha256": "a11d2fbe896dfdf3ff9e924359539bd1c3649ad0cedc2dbb1998c1200ea0e7ab",
+      "host_sha256": "a11d2fbe896dfdf3ff9e924359539bd1c3649ad0cedc2dbb1998c1200ea0e7ab",
+      "match": true
+    },
+    {
+      "file": "CrossPlatformNetwork.js",
+      "source_sha256": "6b533dcdbde3c78ede387cec5dfb6c33ed18fb88a8fe04fac78b40352d40d97e",
+      "host_sha256": "6b533dcdbde3c78ede387cec5dfb6c33ed18fb88a8fe04fac78b40352d40d97e",
+      "match": true
+    },
+    {
+      "file": "DefensiveTrainingTeacher.js",
+      "source_sha256": "83b3194ccfa2452257db26106198a0bcfc2513942e6ee90fe03e6acfabcfabfe",
+      "host_sha256": "83b3194ccfa2452257db26106198a0bcfc2513942e6ee90fe03e6acfabcfabfe",
+      "match": true
+    },
+    {
+      "file": "EncirclementFeatures.js",
+      "source_sha256": "0ace3dce6716b94902b9a76c1c5c2739f74461692c3761e91716de6183ba4f0a",
+      "host_sha256": "0ace3dce6716b94902b9a76c1c5c2739f74461692c3761e91716de6183ba4f0a",
+      "match": true
+    },
+    {
+      "file": "GameController.js",
+      "source_sha256": "7c18a7f6c644a0cad953dae67881bd89986d486711d5f4f5608e16dea563d2ad",
+      "host_sha256": "7c18a7f6c644a0cad953dae67881bd89986d486711d5f4f5608e16dea563d2ad",
+      "match": true
+    },
+    {
+      "file": "GameEngine.js",
+      "source_sha256": "f12ea23ec3efb6084d17f511567bf64c2501352193f37b2977a27d2044ecb46f",
+      "host_sha256": "f12ea23ec3efb6084d17f511567bf64c2501352193f37b2977a27d2044ecb46f",
+      "match": true
+    },
+    {
+      "file": "GuideArticleFormat.js",
+      "source_sha256": "840bdd31c9f5c35211bb528098b684a69d2c35f7be824696f6b3bfcbeee51946",
+      "host_sha256": "840bdd31c9f5c35211bb528098b684a69d2c35f7be824696f6b3bfcbeee51946",
+      "match": true
+    },
+    {
+      "file": "GuideContent.js",
+      "source_sha256": "ed76f53cc226ff47478244329dd7688f212f7b6e61d6ed1d000b13beef3b69eb",
+      "host_sha256": "ed76f53cc226ff47478244329dd7688f212f7b6e61d6ed1d000b13beef3b69eb",
+      "match": true
+    },
+    {
+      "file": "GuideImplementation.js",
+      "source_sha256": "d525ee227aa86f6955740ef0ca4059ce8e49c50ab4e6550e260d1d33b224d765",
+      "host_sha256": "d525ee227aa86f6955740ef0ca4059ce8e49c50ab4e6550e260d1d33b224d765",
+      "match": true
+    },
+    {
+      "file": "GuideImplementationNotes.js",
+      "source_sha256": "5a7b4d4e55c8cb59ea0662b06511e7fe9f515d5dfbd4122aa4c20da2b472db02",
+      "host_sha256": "5a7b4d4e55c8cb59ea0662b06511e7fe9f515d5dfbd4122aa4c20da2b472db02",
+      "match": true
+    },
+    {
+      "file": "GuideMathChapters.js",
+      "source_sha256": "624cc084b12fa8fb24aa390d138f47493f65c2db05d961d46f72d3289cbd52e7",
+      "host_sha256": "624cc084b12fa8fb24aa390d138f47493f65c2db05d961d46f72d3289cbd52e7",
+      "match": true
+    },
+    {
+      "file": "GuideTechnicalChapters.js",
+      "source_sha256": "0d65512cf481848d78f73b705c7dab9db3fcfbf7c167efb94c65cdbbd1f5d568",
+      "host_sha256": "0d65512cf481848d78f73b705c7dab9db3fcfbf7c167efb94c65cdbbd1f5d568",
+      "match": true
+    },
+    {
+      "file": "GuideTopologyChapters.js",
+      "source_sha256": "b7f586cb81ec272e2c545a22d7b483ffb8de341da4e77659bba998805f7020b7",
+      "host_sha256": "b7f586cb81ec272e2c545a22d7b483ffb8de341da4e77659bba998805f7020b7",
+      "match": true
+    },
+    {
+      "file": "HexFastSearchAI.js",
+      "source_sha256": "34f314cf463cabc0d4e1789ba633af5e9241ea0e7b1cf5a97b1f7fd2c8df6480",
+      "host_sha256": "34f314cf463cabc0d4e1789ba633af5e9241ea0e7b1cf5a97b1f7fd2c8df6480",
+      "match": true
+    },
+    {
+      "file": "HexPlayerAI.js",
+      "source_sha256": "fd86ad0216dd547aaaf18ea8806e678e6a4483c1581b007e1e4fb79dce6b3e90",
+      "host_sha256": "fd86ad0216dd547aaaf18ea8806e678e6a4483c1581b007e1e4fb79dce6b3e90",
+      "match": true
+    },
+    {
+      "file": "HexPlayerRuntime.js",
+      "source_sha256": "a9eb1756099688f27bbd978382bb7d43097b56051de817c489b57aed19e1aaf4",
+      "host_sha256": "a9eb1756099688f27bbd978382bb7d43097b56051de817c489b57aed19e1aaf4",
+      "match": true
+    },
+    {
+      "file": "HexSearchAI.js",
+      "source_sha256": "35d79c994c489d56740019f639e944dd104347765fd8092b521ebbb5b79c917c",
+      "host_sha256": "35d79c994c489d56740019f639e944dd104347765fd8092b521ebbb5b79c917c",
+      "match": true
+    },
+    {
+      "file": "HexSearchOptions.js",
+      "source_sha256": "d82c0402a70156f38ce9504301bb01919c400a594aecaec831a1bb7cfb771f2d",
+      "host_sha256": "d82c0402a70156f38ce9504301bb01919c400a594aecaec831a1bb7cfb771f2d",
+      "match": true
+    },
+    {
+      "file": "HintWorkerSession.js",
+      "source_sha256": "ebaa03c06a45a19975ea07fd9409217e25afb85d00faefa8274d61b80f014166",
+      "host_sha256": "ebaa03c06a45a19975ea07fd9409217e25afb85d00faefa8274d61b80f014166",
+      "match": true
+    },
+    {
+      "file": "index.html",
+      "source_sha256": "175e039ae13b4384c0f161264933289cc6e4f3543522bbe4eaa6eb9f70187e57",
+      "host_sha256": "175e039ae13b4384c0f161264933289cc6e4f3543522bbe4eaa6eb9f70187e57",
+      "match": true
+    },
+    {
+      "file": "LearnedPassPolicy.js",
+      "source_sha256": "080a4e3b2813fde4bfcd61a0d1bfac66e630015237c907dc0dc85c2c51345eca",
+      "host_sha256": "080a4e3b2813fde4bfcd61a0d1bfac66e630015237c907dc0dc85c2c51345eca",
+      "match": true
+    },
+    {
+      "file": "LocalAIModes.js",
+      "source_sha256": "ed858d1c0efa38dfba45a5302902adb25214f113434becc905c8fd2bd87af564",
+      "host_sha256": "ed858d1c0efa38dfba45a5302902adb25214f113434becc905c8fd2bd87af564",
+      "match": true
+    },
+    {
+      "file": "LocalAIWorkerFactory.js",
+      "source_sha256": "9146929fd41c9a806505ae9106e3aa15894e42066c1170e48b79c6a68be04227",
+      "host_sha256": "9146929fd41c9a806505ae9106e3aa15894e42066c1170e48b79c6a68be04227",
+      "match": true
+    },
+    {
+      "file": "LocalGameSession.js",
+      "source_sha256": "00bb0720648e3d90464baf27a783984294965f9517309996e9a0f3f832115ecd",
+      "host_sha256": "00bb0720648e3d90464baf27a783984294965f9517309996e9a0f3f832115ecd",
+      "match": true
+    },
+    {
+      "file": "LocalPlayerSetup.js",
+      "source_sha256": "0336ee5fad49f6740286cdbb9c09f899f0a694035342f0e51e0727f15540a9b1",
+      "host_sha256": "0336ee5fad49f6740286cdbb9c09f899f0a694035342f0e51e0727f15540a9b1",
+      "match": true
+    },
+    {
+      "file": "LocalUndo.js",
+      "source_sha256": "3eca38057650673fcdf4e688a60950eb4137478d82dc7b8ffaae688175769dad",
+      "host_sha256": "3eca38057650673fcdf4e688a60950eb4137478d82dc7b8ffaae688175769dad",
+      "match": true
+    },
+    {
+      "file": "main.js",
+      "source_sha256": "2c8a2b0005c273e0d74afce0a2d6dab9dde8c11ac5df57d98cf202eaa0aee3f8",
+      "host_sha256": "2c8a2b0005c273e0d74afce0a2d6dab9dde8c11ac5df57d98cf202eaa0aee3f8",
+      "match": true
+    },
+    {
+      "file": "ModelFreeAI.js",
+      "source_sha256": "ce35499d10afe9e9c582b9970930e70eb093786b4d1c302b40077f6e390ecf5d",
+      "host_sha256": "ce35499d10afe9e9c582b9970930e70eb093786b4d1c302b40077f6e390ecf5d",
+      "match": true
+    },
+    {
+      "file": "MultiplayerAIWarmup.js",
+      "source_sha256": "4a9f5955841e03a41e5bbecc594ae67e4b60663a90180265d96d89547a12e494",
+      "host_sha256": "4a9f5955841e03a41e5bbecc594ae67e4b60663a90180265d96d89547a12e494",
+      "match": true
+    },
+    {
+      "file": "MultiplayerClock.js",
+      "source_sha256": "9cc62a1da3400222c41b07d128fba047f2a57688f13bf42ef3620d66e8d9df80",
+      "host_sha256": "9cc62a1da3400222c41b07d128fba047f2a57688f13bf42ef3620d66e8d9df80",
+      "match": true
+    },
+    {
+      "file": "MultiplayerHardAIWorker.bundle.manifest.json",
+      "source_sha256": "4486151acaffbd983d19b24ea8afd2befd7207b4a0f6eedb9edf432cba7f20ea",
+      "host_sha256": "4486151acaffbd983d19b24ea8afd2befd7207b4a0f6eedb9edf432cba7f20ea",
+      "match": true
+    },
+    {
+      "file": "MultiplayerHardAIWorker.bundle.mjs",
+      "source_sha256": "50c99eee18447cc0cf0f39ce848c651bed0ff3adb4078c817fc0f31db3b2b445",
+      "host_sha256": "50c99eee18447cc0cf0f39ce848c651bed0ff3adb4078c817fc0f31db3b2b445",
+      "match": true
+    },
+    {
+      "file": "MultiplayerHardFallback.js",
+      "source_sha256": "ae52648389e104504e43bf8867230e361ed0ed61a00d2667da8f82ff7c67e1ee",
+      "host_sha256": "ae52648389e104504e43bf8867230e361ed0ed61a00d2667da8f82ff7c67e1ee",
+      "match": true
+    },
+    {
+      "file": "MultiplayerHardResources.js",
+      "source_sha256": "b3d33b750f6b8ee9582bb5a70a11e277f867486a40fb85d4fd9e7726f734972d",
+      "host_sha256": "b3d33b750f6b8ee9582bb5a70a11e277f867486a40fb85d4fd9e7726f734972d",
+      "match": true
+    },
+    {
+      "file": "MultiplayerHardRollout.js",
+      "source_sha256": "ba4933d6e0e83a84dd22a03f452749cfe7f612b4a59a68c1168cd921f0e4489d",
+      "host_sha256": "ba4933d6e0e83a84dd22a03f452749cfe7f612b4a59a68c1168cd921f0e4489d",
+      "match": true
+    },
+    {
+      "file": "MultiplayerHardRuntime.js",
+      "source_sha256": "83e91a816f80e9bacb8f91103bfd8a7d25e8a77e819d5110c6c6d500b153764e",
+      "host_sha256": "83e91a816f80e9bacb8f91103bfd8a7d25e8a77e819d5110c6c6d500b153764e",
+      "match": true
+    },
+    {
+      "file": "MultiplayerHardValue.js",
+      "source_sha256": "914f5ead2349aae7d3af3893af76dc3451a508bdfe58527181efbf19f291a874",
+      "host_sha256": "914f5ead2349aae7d3af3893af76dc3451a508bdfe58527181efbf19f291a874",
+      "match": true
+    },
+    {
+      "file": "MultiplayerHardWorkerEntry.js",
+      "source_sha256": "a7a91c17a4ce109a5dc0bd9c85c399ebcd82ac7394d6b1c0049029d6e3f28e8d",
+      "host_sha256": "a7a91c17a4ce109a5dc0bd9c85c399ebcd82ac7394d6b1c0049029d6e3f28e8d",
+      "match": true
+    },
+    {
+      "file": "MultiplayerHardWorkerRuntime.js",
+      "source_sha256": "e042a6f3ddfcf511f089e89148e72bd4aa9ab8d3d75010edfbd799c2501b614a",
+      "host_sha256": "e042a6f3ddfcf511f089e89148e72bd4aa9ab8d3d75010edfbd799c2501b614a",
+      "match": true
+    },
+    {
+      "file": "MultiplayerModel.js",
+      "source_sha256": "11c6d2ce65b35e13a3270870fd5d749ffd44c95c68f1dd7554fcec0514eaa2fa",
+      "host_sha256": "11c6d2ce65b35e13a3270870fd5d749ffd44c95c68f1dd7554fcec0514eaa2fa",
+      "match": true
+    },
+    {
+      "file": "MultiplayerNativeGeometry.js",
+      "source_sha256": "d44282472047387b682e5cb51ff19b0744f2cf3b2aabc3d4ea5079ad7b5d6c66",
+      "host_sha256": "d44282472047387b682e5cb51ff19b0744f2cf3b2aabc3d4ea5079ad7b5d6c66",
+      "match": true
+    },
+    {
+      "file": "MultiplayerRollout.js",
+      "source_sha256": "03b20326fd36b9d5e5cc9a2c4a754aab62aaf73b9b860066b7b013610bab3c67",
+      "host_sha256": "03b20326fd36b9d5e5cc9a2c4a754aab62aaf73b9b860066b7b013610bab3c67",
+      "match": true
+    },
+    {
+      "file": "MultiplayerRuntime.js",
+      "source_sha256": "9f3e4c4079a1ba690f2542cdda7ecef7f9363b48dfa0d5f123a3a74ce5a23258",
+      "host_sha256": "9f3e4c4079a1ba690f2542cdda7ecef7f9363b48dfa0d5f123a3a74ce5a23258",
+      "match": true
+    },
+    {
+      "file": "MultiplayerSearch.js",
+      "source_sha256": "d44182690dfeea10a5d16bc6041408b3e356611b15e1b76eb72ab4fb1111efd3",
+      "host_sha256": "d44182690dfeea10a5d16bc6041408b3e356611b15e1b76eb72ab4fb1111efd3",
+      "match": true
+    },
+    {
+      "file": "MultiplayerStandardDefense.js",
+      "source_sha256": "432bc42f2ca8015be00ab11fcada36b895314e6575794a9bfbfc2f0999d0b663",
+      "host_sha256": "432bc42f2ca8015be00ab11fcada36b895314e6575794a9bfbfc2f0999d0b663",
+      "match": true
+    },
+    {
+      "file": "MultiplayerUltimateAdmission.js",
+      "source_sha256": "cc182005d5b74ca9fc0e4cecbe33222d65a547dbbf438318de93a30eeb0bb6a8",
+      "host_sha256": "cc182005d5b74ca9fc0e4cecbe33222d65a547dbbf438318de93a30eeb0bb6a8",
+      "match": true
+    },
+    {
+      "file": "NetworkManager.js",
+      "source_sha256": "c6f4af3b627974f2279659775e7e3408bdc6afd18d6be593ab27a368bc9f3701",
+      "host_sha256": "c6f4af3b627974f2279659775e7e3408bdc6afd18d6be593ab27a368bc9f3701",
+      "match": true
+    },
+    {
+      "file": "OnlineActionSync.js",
+      "source_sha256": "61ddb0125c47b15795e7172794ca01ce8722a54e6b7662f6e0a82bfdd5bfcf0f",
+      "host_sha256": "61ddb0125c47b15795e7172794ca01ce8722a54e6b7662f6e0a82bfdd5bfcf0f",
+      "match": true
+    },
+    {
+      "file": "OnlineActionSyncCoordinator.js",
+      "source_sha256": "1bb62ffed43c28ddaecb984db6a90ba4f08b3aed255952cee41df5a91851c346",
+      "host_sha256": "1bb62ffed43c28ddaecb984db6a90ba4f08b3aed255952cee41df5a91851c346",
+      "match": true
+    },
+    {
+      "file": "OnlineApp.js",
+      "source_sha256": "85a3e129e964ba2615dac5c390ee97545e716d7f54798514c45a8cf3a33604e8",
+      "host_sha256": "85a3e129e964ba2615dac5c390ee97545e716d7f54798514c45a8cf3a33604e8",
+      "match": true
+    },
+    {
+      "file": "OnlineAppI18n.js",
+      "source_sha256": "87fdbf4dc03bb4b418bd39ecbe01d885caa63f6efee60472d94432916f543cac",
+      "host_sha256": "87fdbf4dc03bb4b418bd39ecbe01d885caa63f6efee60472d94432916f543cac",
+      "match": true
+    },
+    {
+      "file": "OnlineAppState.js",
+      "source_sha256": "70f9599890c0ec9bc033b91bbe685b9a5928af7defffa0fe32f8e81b962fd313",
+      "host_sha256": "70f9599890c0ec9bc033b91bbe685b9a5928af7defffa0fe32f8e81b962fd313",
+      "match": true
+    },
+    {
+      "file": "OnlineRoomSettings.js",
+      "source_sha256": "16b53c20f867abd2aeaac97865a07becf4eea338a100754565d531fb492fc8aa",
+      "host_sha256": "16b53c20f867abd2aeaac97865a07becf4eea338a100754565d531fb492fc8aa",
+      "match": true
+    },
+    {
+      "file": "OnlineRoomSync.js",
+      "source_sha256": "10bd41fd53d1e66a48a1762c5353c5c5d6f4098bc01b1d78728a3034dbe508e1",
+      "host_sha256": "10bd41fd53d1e66a48a1762c5353c5c5d6f4098bc01b1d78728a3034dbe508e1",
+      "match": true
+    },
+    {
+      "file": "PassOpportunityTrainingTeacher.js",
+      "source_sha256": "9410ec9634079d68f96a2640df9661eea0e5063448a578f529a58490e7793445",
+      "host_sha256": "9410ec9634079d68f96a2640df9661eea0e5063448a578f529a58490e7793445",
+      "match": true
+    },
+    {
+      "file": "PassTrainedPolicies.js",
+      "source_sha256": "7cffa86a9a85eb7723e8512280a02bd413e36488bca96d851ee10d6aa1d2e5e9",
+      "host_sha256": "7cffa86a9a85eb7723e8512280a02bd413e36488bca96d851ee10d6aa1d2e5e9",
+      "match": true
+    },
+    {
+      "file": "PassTrainedPolicyData.js",
+      "source_sha256": "422bdec5bf500d54036a4afb9b16e5501c20f4f2880cc20f87706ccf5023a1db",
+      "host_sha256": "422bdec5bf500d54036a4afb9b16e5501c20f4f2880cc20f87706ccf5023a1db",
+      "match": true
+    },
+    {
+      "file": "PlayerPalette.js",
+      "source_sha256": "926803b0e17379ff2d92c042a37e1cd96a88697cb3f043a9053343a8611e1666",
+      "host_sha256": "926803b0e17379ff2d92c042a37e1cd96a88697cb3f043a9053343a8611e1666",
+      "match": true
+    },
+    {
+      "file": "PortableClone.js",
+      "source_sha256": "310b384f34795b3d0626a7019fbc83ff2557e4deb0c5e52ae414625e3d68e3c7",
+      "host_sha256": "310b384f34795b3d0626a7019fbc83ff2557e4deb0c5e52ae414625e3d68e3c7",
+      "match": true
+    },
+    {
+      "file": "ProductSurfacePresets.js",
+      "source_sha256": "440232ed2c47e9c73eb5308cdcd46e1263a5aff08d8e9f0269e74f6fd199a3aa",
+      "host_sha256": "440232ed2c47e9c73eb5308cdcd46e1263a5aff08d8e9f0269e74f6fd199a3aa",
+      "match": true
+    },
+    {
+      "file": "RandomBoard.js",
+      "source_sha256": "1b620c702546f0d43be7e6bb022d5f5f8cf9c2f00a3a803413045025f8691f34",
+      "host_sha256": "1b620c702546f0d43be7e6bb022d5f5f8cf9c2f00a3a803413045025f8691f34",
+      "match": true
+    },
+    {
+      "file": "RandomSurfaceBoard.js",
+      "source_sha256": "81f335a19cfa75402da4c847e0f7e24a8dcda22ff4852939a139720b59ed9eb8",
+      "host_sha256": "81f335a19cfa75402da4c847e0f7e24a8dcda22ff4852939a139720b59ed9eb8",
+      "match": true
+    },
+    {
+      "file": "Renderer.js",
+      "source_sha256": "e03701a7b9944df0c57ca6577bd66ae0dcbb8cb50e5a68b6e387e262343beef4",
+      "host_sha256": "e03701a7b9944df0c57ca6577bd66ae0dcbb8cb50e5a68b6e387e262343beef4",
+      "match": true
+    },
+    {
+      "file": "ReplayCodec.js",
+      "source_sha256": "4350feb52195f3c0fc14a1af37ec0804f04b39809134954159754af282ffd2ee",
+      "host_sha256": "4350feb52195f3c0fc14a1af37ec0804f04b39809134954159754af282ffd2ee",
+      "match": true
+    },
+    {
+      "file": "ResearchAI.js",
+      "source_sha256": "bb805b7cf7baa0fced539e77e5482554217984a9cbf881b18adc7fe6cb0bffd8",
+      "host_sha256": "bb805b7cf7baa0fced539e77e5482554217984a9cbf881b18adc7fe6cb0bffd8",
+      "match": true
+    },
+    {
+      "file": "ResearchAIOptions.js",
+      "source_sha256": "0cc5e27993622422a9a5b77bf95750992d26e1fe1a7a26782d53606f3709fa1e",
+      "host_sha256": "0cc5e27993622422a9a5b77bf95750992d26e1fe1a7a26782d53606f3709fa1e",
+      "match": true
+    },
+    {
+      "file": "RootModeSearch.js",
+      "source_sha256": "df89d89667f9f9b4f1180178c127c168d0b0434148d68d7a4852d651300b1671",
+      "host_sha256": "df89d89667f9f9b4f1180178c127c168d0b0434148d68d7a4852d651300b1671",
+      "match": true
+    },
+    {
+      "file": "RootStability.js",
+      "source_sha256": "d67771e865d1921acbf4b03f3ae9562b98aa4a4f63de1c2449bb62a2139d547c",
+      "host_sha256": "d67771e865d1921acbf4b03f3ae9562b98aa4a4f63de1c2449bb62a2139d547c",
+      "match": true
+    },
+    {
+      "file": "RootTacticalOverlay.js",
+      "source_sha256": "291499bab12f616fe96c01d35588cbebae66c15888bbe3e184d4c2fab2f4e574",
+      "host_sha256": "291499bab12f616fe96c01d35588cbebae66c15888bbe3e184d4c2fab2f4e574",
+      "match": true
+    },
+    {
+      "file": "SharedLadder.js",
+      "source_sha256": "49a9f86103a973e974e668b26fd2dc80367e75a67d97f33f64ca5af02434ebb7",
+      "host_sha256": "49a9f86103a973e974e668b26fd2dc80367e75a67d97f33f64ca5af02434ebb7",
+      "match": true
+    },
+    {
+      "file": "SharedLadderSession.js",
+      "source_sha256": "8616bd09207a1ce53510333ade6338a1c8f9ebfb234588881f10456a1c463011",
+      "host_sha256": "8616bd09207a1ce53510333ade6338a1c8f9ebfb234588881f10456a1c463011",
+      "match": true
+    },
+    {
+      "file": "SharedRoomClient.js",
+      "source_sha256": "eedae8b1720edfd726bbbb1b63af0df22aba5600874c7b459daaa77d1e17fb30",
+      "host_sha256": "eedae8b1720edfd726bbbb1b63af0df22aba5600874c7b459daaa77d1e17fb30",
+      "match": true
+    },
+    {
+      "file": "smoke-test.html",
+      "source_sha256": "fd921bca332493f62a0f9ebaf680f04fd555b0a14173b142d3d8d67eb9398c95",
+      "host_sha256": "fd921bca332493f62a0f9ebaf680f04fd555b0a14173b142d3d8d67eb9398c95",
+      "match": true
+    },
+    {
+      "file": "StartingPoints.js",
+      "source_sha256": "8c27d17871f383ceacd6d7ee885ceded9a8e5170a924d76f7d81b938a0971f35",
+      "host_sha256": "8c27d17871f383ceacd6d7ee885ceded9a8e5170a924d76f7d81b938a0971f35",
+      "match": true
+    },
+    {
+      "file": "StartingPointSetup.js",
+      "source_sha256": "4951fb02a60c085468df1b78c4b43591b3bbd44f4c2fa4a3f93e241a0143ee94",
+      "host_sha256": "4951fb02a60c085468df1b78c4b43591b3bbd44f4c2fa4a3f93e241a0143ee94",
+      "match": true
+    },
+    {
+      "file": "styles.css",
+      "source_sha256": "ccc895a939f7e93a04b3009d15a61027b5178ca3a16f4c587178a22879098cd8",
+      "host_sha256": "ccc895a939f7e93a04b3009d15a61027b5178ca3a16f4c587178a22879098cd8",
+      "match": true
+    },
+    {
+      "file": "SurfaceTerritory.js",
+      "source_sha256": "7ee91ee7e06142f1caab3b7c4188af96b84059170cb3ab5c7e7d2620b61b5f3d",
+      "host_sha256": "7ee91ee7e06142f1caab3b7c4188af96b84059170cb3ab5c7e7d2620b61b5f3d",
+      "match": true
+    },
+    {
+      "file": "TerritoryDisplay.js",
+      "source_sha256": "b825fa60b5c054f0158521a8ce6e31aa430527d2af310234b9d61a3aba89d810",
+      "host_sha256": "b825fa60b5c054f0158521a8ce6e31aa430527d2af310234b9d61a3aba89d810",
+      "match": true
+    },
+    {
+      "file": "TerritoryWorker.js",
+      "source_sha256": "83be0cc4ee5cf337e481ef865e3938e30b1b7249106dcd173bf5abeb0bde2b69",
+      "host_sha256": "83be0cc4ee5cf337e481ef865e3938e30b1b7249106dcd173bf5abeb0bde2b69",
+      "match": true
+    },
+    {
+      "file": "TerritoryWorkerPool.js",
+      "source_sha256": "9b75e7a10e7149b06fa93e1c5a2963b581a1b72a745f61093376ea2add0ef1c7",
+      "host_sha256": "9b75e7a10e7149b06fa93e1c5a2963b581a1b72a745f61093376ea2add0ef1c7",
+      "match": true
+    },
+    {
+      "file": "TerritoryWorkerSession.js",
+      "source_sha256": "5693f482dc02d5378a45f56ca78aa85dfc6ab8de38f37b94ca1bdea869f9ba11",
+      "host_sha256": "5693f482dc02d5378a45f56ca78aa85dfc6ab8de38f37b94ca1bdea869f9ba11",
+      "match": true
+    },
+    {
+      "file": "ThreePlayerAI.js",
+      "source_sha256": "276d57f2e0ff1da3e76c53c86430e53c4b1edcf116accd04c08d2871f4b2540c",
+      "host_sha256": "276d57f2e0ff1da3e76c53c86430e53c4b1edcf116accd04c08d2871f4b2540c",
+      "match": true
+    },
+    {
+      "file": "ThreePlayerModels.js",
+      "source_sha256": "a7a89a48fdbe73567bc5f7fd2b8bfefa409791855b01bfb27b01f6470e7c0301",
+      "host_sha256": "a7a89a48fdbe73567bc5f7fd2b8bfefa409791855b01bfb27b01f6470e7c0301",
+      "match": true
+    },
+    {
+      "file": "ThreePlayerRuntime.js",
+      "source_sha256": "c718c914c7e7cb13da9996ff311c0d29a44f8717e1619a225ee87a3fe6c9845d",
+      "host_sha256": "c718c914c7e7cb13da9996ff311c0d29a44f8717e1619a225ee87a3fe6c9845d",
+      "match": true
+    },
+    {
+      "file": "ThreePlayerSearchAI.js",
+      "source_sha256": "2765648725ffff6961083491af3a2f8297f6d819dea36c7a458557a6cf4f8f3f",
+      "host_sha256": "2765648725ffff6961083491af3a2f8297f6d819dea36c7a458557a6cf4f8f3f",
+      "match": true
+    },
+    {
+      "file": "ThreePlayerSearchOptions.js",
+      "source_sha256": "299e238d74acdcf6f86e5b4f7108a16393b8709439b7b8c3292197d512d39c87",
+      "host_sha256": "299e238d74acdcf6f86e5b4f7108a16393b8709439b7b8c3292197d512d39c87",
+      "match": true
+    },
+    {
+      "file": "TopologyAIAdapter.js",
+      "source_sha256": "9cabbe9513b0b65d02cc070587a6ff9ce7989122d45edb511b380522a1a41a1e",
+      "host_sha256": "9cabbe9513b0b65d02cc070587a6ff9ce7989122d45edb511b380522a1a41a1e",
+      "match": true
+    },
+    {
+      "file": "TopologyAlgebra.js",
+      "source_sha256": "e25df5fca2a9ebdb6de8b590b9423a9415d406e97819d13a319705026508c770",
+      "host_sha256": "e25df5fca2a9ebdb6de8b590b9423a9415d406e97819d13a319705026508c770",
+      "match": true
+    },
+    {
+      "file": "TopologyGameEngine.js",
+      "source_sha256": "e004891bf6f5e1fb7358eced400e92641fc7a8c9125d3694252dcdcb59a942f3",
+      "host_sha256": "e004891bf6f5e1fb7358eced400e92641fc7a8c9125d3694252dcdcb59a942f3",
+      "match": true
+    },
+    {
+      "file": "TopologyGraphicEditor.js",
+      "source_sha256": "53cd938e8450a59856eb77674593df53893230f2fd1d13824b2fc3411164e14b",
+      "host_sha256": "53cd938e8450a59856eb77674593df53893230f2fd1d13824b2fc3411164e14b",
+      "match": true
+    },
+    {
+      "file": "TopologySearchAI.js",
+      "source_sha256": "51939508209e633d1cdd48236a2651e1d86b75db1bdc55a7f52ff496c413afa9",
+      "host_sha256": "51939508209e633d1cdd48236a2651e1d86b75db1bdc55a7f52ff496c413afa9",
+      "match": true
+    },
+    {
+      "file": "TopologyStartingPoints.js",
+      "source_sha256": "d6bdd3b0f55a41ea75b1ebb6cd861b09421334cc17191f4b64f213addc09b380",
+      "host_sha256": "d6bdd3b0f55a41ea75b1ebb6cd861b09421334cc17191f4b64f213addc09b380",
+      "match": true
+    },
+    {
+      "file": "TopologyStartingPointSetup.js",
+      "source_sha256": "6a974ee5f805e26959afefe9c96ae3ae875aa80eac404b992c57fc3b3b202dcf",
+      "host_sha256": "6a974ee5f805e26959afefe9c96ae3ae875aa80eac404b992c57fc3b3b202dcf",
+      "match": true
+    },
+    {
+      "file": "TopologyStateCodec.js",
+      "source_sha256": "46d1fb42ef8d52c06b1c3c92f06a27155402ef489cad95975621e770d8dfaa59",
+      "host_sha256": "46d1fb42ef8d52c06b1c3c92f06a27155402ef489cad95975621e770d8dfaa59",
+      "match": true
+    },
+    {
+      "file": "TopologySurface3D.js",
+      "source_sha256": "e22bc8ec8d73f70215659fd03659991feff8e2430546461221b3fe2e201b39ab",
+      "host_sha256": "e22bc8ec8d73f70215659fd03659991feff8e2430546461221b3fe2e201b39ab",
+      "match": true
+    },
+    {
+      "file": "TopologyTutorial.js",
+      "source_sha256": "8547fe12700b275b698dad7c224d0c6e01bef04ab2d550d347383bac5bcc04a5",
+      "host_sha256": "8547fe12700b275b698dad7c224d0c6e01bef04ab2d550d347383bac5bcc04a5",
+      "match": true
+    },
+    {
+      "file": "TrainingContribution.js",
+      "source_sha256": "5b8745181cec5cb5a4b02dcd76537ac4487a846614049a4e2f3b6aef656bea09",
+      "host_sha256": "5b8745181cec5cb5a4b02dcd76537ac4487a846614049a4e2f3b6aef656bea09",
+      "match": true
+    },
+    {
+      "file": "TurnOrderSetup.js",
+      "source_sha256": "a993887da51a158d3ed5c058eeddd32455485f32f4c977810ee15bb02ab63066",
+      "host_sha256": "a993887da51a158d3ed5c058eeddd32455485f32f4c977810ee15bb02ab63066",
+      "match": true
+    },
+    {
+      "file": "TutorialRunner.js",
+      "source_sha256": "868d2bf4f002438428554836ce78eb1553bb59979bbb6185b9671a1c7674bf68",
+      "host_sha256": "868d2bf4f002438428554836ce78eb1553bb59979bbb6185b9671a1c7674bf68",
+      "match": true
+    }
+  ],
+  "fixture_source": "C:/coding/py/line game/working/local_artifacts/alignment-20261031/mobile/mobile/dist",
+  "fixture_files": [
+    {
+      "file": "mobile-entry.js",
+      "host_sha256": "aefde9eb8e27dc124f17bf68de6693ea5309a2d5195f963ce14a0853b39bcec4",
+      "fixture_source_sha256": "aefde9eb8e27dc124f17bf68de6693ea5309a2d5195f963ce14a0853b39bcec4",
+      "match": true
+    },
+    {
+      "file": "platform/mobile-bridge.js",
+      "host_sha256": "f617e29a29226223d24907f9414c90afd96b542b3869d0a9d5e2ca44e52b56d0",
+      "fixture_source_sha256": "f617e29a29226223d24907f9414c90afd96b542b3869d0a9d5e2ca44e52b56d0",
+      "match": true
+    },
+    {
+      "file": "platform/harmony-bridge.js",
+      "host_sha256": "d5c822bc19935b315acf401ed378bbd275936d4d63066e9149cd8bc0f8a33604",
+      "fixture_source_sha256": "d5c822bc19935b315acf401ed378bbd275936d4d63066e9149cd8bc0f8a33604",
+      "match": true
+    },
+    {
+      "file": "platform/harmony-native-bridge.js",
+      "host_sha256": "882198bc2c9483c570063fa88370caedd519c9bf40f883abb1673a0b159396bd",
+      "fixture_source_sha256": "882198bc2c9483c570063fa88370caedd519c9bf40f883abb1673a0b159396bd",
+      "match": true
+    },
+    {
+      "file": "platform/platform-selection.js",
+      "host_sha256": "78d8ccf6cde0af3a5ac6c09d83c55037b520203d4ee23decbbaf530a6f2c57e9",
+      "fixture_source_sha256": "78d8ccf6cde0af3a5ac6c09d83c55037b520203d4ee23decbbaf530a6f2c57e9",
+      "match": true
+    },
+    {
+      "file": "platform/session-authority.js",
+      "host_sha256": "3800d59105607e47d7e9acd9b5597986ebfbe1cabfab3bf0bc2f6fb1c45ca88b",
+      "fixture_source_sha256": "3800d59105607e47d7e9acd9b5597986ebfbe1cabfab3bf0bc2f6fb1c45ca88b",
+      "match": true
+    },
+    {
+      "file": "platform/session-envelope.js",
+      "host_sha256": "180b5069f0bc2acbc16aca182d3f91bce602861fee75dbe4e88dc57337ea965f",
+      "fixture_source_sha256": "180b5069f0bc2acbc16aca182d3f91bce602861fee75dbe4e88dc57337ea965f",
+      "match": true
+    },
+    {
+      "file": "platform/session-mirror.js",
+      "host_sha256": "a9bf1df92844e4c75c0f05bd5ea7539ad25268f1a8aa274b5f35f4fb3068f2d1",
+      "fixture_source_sha256": "a9bf1df92844e4c75c0f05bd5ea7539ad25268f1a8aa274b5f35f4fb3068f2d1",
+      "match": true
+    }
+  ],
+  "vue_runtime": "C:/coding/py/line game/working/local_artifacts/alignment-20261031/mobile/mobile/node_modules/vue/index.mjs",
+  "vue_runtime_sha256": "be2f35590bee45e69850d0d8d48f0b8c8f5c0ef0ecf8a7265ab12fb7add6584d",
+  "test_sha256": {
+    "common-legacy-app-session-test.mjs": "e91e11b179527c80331b0de5d2cbe6b321d84c8c03e04150d4b70d8c2eeabfed",
+    "common-shared-app-session-test.mjs": "904ed53d8420448123fd4b7e64810134f7ae068b838039a273b9e83c5db4146e"
+  },
+  "limits": "Browser VM fixture; synthetic HTTP/WebSocket/storage/timers; App.setup and handlers exercised; main.js stubbed and index.html not executed; no actual browser/device/network."
+}

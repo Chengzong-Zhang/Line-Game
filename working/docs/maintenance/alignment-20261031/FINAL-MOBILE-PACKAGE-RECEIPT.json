@@ -1,0 +1,38 @@
+{
+  "status": "PASS_LOCAL_PACKAGE_ASSET_MATCH",
+  "shared_commit": "a7a541826d025213f17dca09689bed5ce72ed4c6",
+  "dist_manifest_sha256": "442108b90b86b9db5f680b301640f01eae276496f7147f77052138a7a1c5b52b",
+  "android_debug_sha256": "26f3d57eb6c67e086887e0a7bc52d22f0c9bf430fc9acadbab683f39a762b124",
+  "harmony_unsigned_sha256": "59109aacc7794cc17f1f86502d9f3d4b99f3c432116aba195b13e699ce139633",
+  "checked_assets": {
+    "android": {
+      "GameEngine.js": true,
+      "TopologyGameEngine.js": true,
+      "frozen-workers/web-topology-fix-20261030-r2/AIEngine.js": true,
+      "GuideArticleFormat.js": true,
+      "GuideImplementation.js": true,
+      "OnlineApp.js": true,
+      "OnlineAppI18n.js": true,
+      "platform/TutorialHost.js": true,
+      "platform/haptics-controller.js": true,
+      "TurnOrderSetup.js": true,
+      "LocalPlayerSetup.js": true,
+      "styles.css": true
+    },
+    "harmony": {
+      "GameEngine.js": true,
+      "TopologyGameEngine.js": true,
+      "frozen-workers/web-topology-fix-20261030-r2/AIEngine.js": true,
+      "GuideArticleFormat.js": true,
+      "GuideImplementation.js": true,
+      "OnlineApp.js": true,
+      "OnlineAppI18n.js": true,
+      "platform/TutorialHost.js": true,
+      "platform/haptics-controller.js": true,
+      "TurnOrderSetup.js": true,
+      "LocalPlayerSetup.js": true,
+      "styles.css": true
+    }
+  },
+  "device_and_release_admission": "NOT_RUN"
+}

@@ -1,0 +1,16 @@
+{
+  "schema": "lifeline-common-frontend-verification-v1",
+  "commit": "4d3d3c009d7747ce2d5e79713e69aa3e2c321ac8",
+  "reference": "51e5782d3117871167783dc53413f0e6e7578bdf",
+  "guide_patch_sha256": "7150c401a4bc5146e9b0fe1a2a8a0f16e2dd535e37fff27f701f6076e2f90cb0",
+  "turn_order_patch_sha256": "2b3816ad25b7a164fecddcde7970ea9226ee07415f8b7cf1599c0803bb3c28ca",
+  "tracked_files": {
+    "matched_bytes": 352,
+    "matched_lf_normalized": 5,
+    "different": 0,
+    "missing": 0
+  },
+  "extra_file_count": 42,
+  "extra_inventory_sha256": "b08c7beade4e7dd8b6521904abc29487235d891137a9f66456aab0f7c0d3389f",
+  "note": "Extra files are model assets outside Git; full paths and hashes retained in local audit and input provenance. Equivalent LF/CRLF files are not byte-identical. This verifies the common frontend before platform-specific adaptation."
+}

@@ -17,4 +17,4 @@ Pop-Location
 
 构建器校验快照文件的完整集合与摘要，不会把当前主仓 HEAD 伪装成原宿主 HEAD。候选应在干净的本轮 `working/local_artifacts/alignment-20261031/` 新目录生成，验证真实设备、账号、商店与上传状态仍是独立步骤。
 
-`mobile/` 是235项受控Android/Harmony宿主源及对应清单，保留普通/拓扑原生存档、凭据、回放、触觉、教程、前后台与返回逻辑。共同前端和17项移动差量由仓库工具重建，模型等42项外部资源须另行显式提供；SDK和签名不在此快照。当前默认 `npm run verify` 执行 `verify:alignment`，原冻结链保留为 `verify:legacy-r16`。具体命令和调试/未签名包范围见 [移动构建说明](../docs/maintenance/alignment-20261031/MOBILE-BUILD.md)。iOS受控工程另在 `working/ios/alignment-20261031/`，Mac接续及能力门禁见 [iOS记录](../docs/maintenance/alignment-20261031/IOS-PREPARATION.md)。
+`mobile/` 是235项受控Android/Harmony宿主源及对应清单，保留普通/拓扑原生存档、凭据、回放、触觉、教程、前后台与返回逻辑。它是构建输入，需先用仓库工具结合共同前端和17项移动差量重建为完整工程；模型等42项外部资源须显式提供，SDK和签名不在此快照。在重建后的移动工程中，默认 `npm run verify` 执行 `verify:alignment`，原冻结链保留为 `verify:legacy-r16`。具体命令和调试/未签名包范围见 [移动构建说明](../docs/maintenance/alignment-20261031/MOBILE-BUILD.md)。iOS受控工程另在 `working/ios/alignment-20261031/`，Mac接续及能力门禁见 [iOS记录](../docs/maintenance/alignment-20261031/IOS-PREPARATION.md)。

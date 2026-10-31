@@ -1,0 +1,42 @@
+{
+  "web/web前端/GameController.js": {
+    "before_sha256": "6d30ddeed84c2053e09df3163b3dc9e13e335ce6e856cd083bc437804b30d8c1",
+    "after_sha256": "31dc5670d8cb11791ac264bafabfa7840bff8d8c6327f95397fce616fbe0e606"
+  },
+  "web/web前端/NetworkManager.js": {
+    "before_sha256": "beb35c2b0198194471bdfce8cb63a483dd77cbf7d1c2c2a581af2629fd5e8c02",
+    "after_sha256": "c6f4af3b627974f2279659775e7e3408bdc6afd18d6be593ab27a368bc9f3701"
+  },
+  "web/web前端/OnlineRoomSync.js": {
+    "before_sha256": "558b0d5c8e6df64925ab1e642df6d6bcda5d21c5b7f2fd965ab1f7aaa418e4b0",
+    "after_sha256": "10bd41fd53d1e66a48a1762c5353c5c5d6f4098bc01b1d78728a3034dbe508e1"
+  },
+  "web/web前端/OnlineActionSync.js": {
+    "before_sha256": null,
+    "after_sha256": "61ddb0125c47b15795e7172794ca01ce8722a54e6b7662f6e0a82bfdd5bfcf0f"
+  },
+  "web/web前端/OnlineActionSyncCoordinator.js": {
+    "before_sha256": null,
+    "after_sha256": "1bb62ffed43c28ddaecb984db6a90ba4f08b3aed255952cee41df5a91851c346"
+  },
+  "web/web前端/tests/verify-network-action-protocol.mjs": {
+    "before_sha256": null,
+    "after_sha256": "07cfdae28e21b846418d140f11aab84cc9dfdf591b118f9d19305a86425b16e8"
+  },
+  "web/web前端/tests/verify-network-connect-lifecycle.mjs": {
+    "before_sha256": null,
+    "after_sha256": "dc49c81383add1efc0b0b8a51db05eb38e82c19430653508898f71ad8293b79f"
+  },
+  "web/web前端/tests/verify-online-action-sync.mjs": {
+    "before_sha256": null,
+    "after_sha256": "a1bfeaebdfc6ac008999db1d264a7e89bf793b7ba1cecbc541e4840bae01a981"
+  },
+  "web/web前端/tests/verify-online-action-coordinator.mjs": {
+    "before_sha256": null,
+    "after_sha256": "8cab203af522ab44867e020ae2423a7b4a8660f8039ce5d82f058dff3a77db5a"
+  },
+  "web/web前端/tests/verify-online-recovery.mjs": {
+    "before_sha256": "9f182d5afc68280231073837ebd6cfb82d7c6f29e78873fc7613a6ba82658eb9",
+    "after_sha256": "9a12fa486c3dbe9dabefe3b21f5324db54f55da58c95889e0ddb44d3fafac890"
+  }
+}

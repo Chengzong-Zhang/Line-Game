@@ -1,0 +1,118 @@
+{
+  "source": "6da96325b9c49a84ac4f83547ca5a295585631ad",
+  "files": {
+    "web/tools/defensive-training-data-v1.mjs": {
+      "before_sha256": null,
+      "after_sha256": "ee3e8389bd06b21ad9ffc2020edc9896b0c8b394d2f428bd7b805922ee34eef8"
+    },
+    "web/tools/train-defensive-policy-v1.mjs": {
+      "before_sha256": null,
+      "after_sha256": "2c9a643a859bf14e6d18d7c1735583e751291aba6992eaa3c994cf9a6009a561"
+    },
+    "web/tools/training-policy-v1.mjs": {
+      "before_sha256": null,
+      "after_sha256": "1200571b911371992366ec21a3a5216811964a6a7204e5a8a8baf192bbfb460d"
+    },
+    "web/tools/neural-posttraining-data-v2.mjs": {
+      "before_sha256": null,
+      "after_sha256": "8550db664fc57ce0e3a84b8123801c0657f1238aef4202d329546eebeb016827"
+    },
+    "web/tools/neural-posttraining-data.mjs": {
+      "before_sha256": null,
+      "after_sha256": "e9a83c811d52b9a963faa9601a93f950f14671950c5fdb00df058ae55ee0f69e"
+    },
+    "web/tools/neural-terminal-rollout-data-r3.mjs": {
+      "before_sha256": null,
+      "after_sha256": "78737e30dab566bfd55c24606303f7662fd8bfc7aec1af268bd1b0e2c8b87fa0"
+    },
+    "web/tools/posttrain-neural-models.py": {
+      "before_sha256": null,
+      "after_sha256": "c92a44076dc342936eeeb11d95efc5603c0a515acc5c81ff3abd307da43094dc"
+    },
+    "web/tools/run-hex-distillation-v3.mjs": {
+      "before_sha256": null,
+      "after_sha256": "7798a2a6d3cdb026e0798b232a235239c585c01a98f5489f5b1d2a85da2eab97"
+    },
+    "web/tools/run-hex-posttraining.mjs": {
+      "before_sha256": null,
+      "after_sha256": "9aa6fcae887d89fba79cfc74d9cbb5ddb67e4de7cbea36154c24b8a282b7bf4c"
+    },
+    "web/tools/train_neural_terminal_head_r3.py": {
+      "before_sha256": null,
+      "after_sha256": "a17a07a8de0727e02a40b82852b99d090ae91d10d9fad9c8f27d89db8b53e965"
+    },
+    "web/tools/train-hex-player-ai.mjs": {
+      "before_sha256": null,
+      "after_sha256": "0563fa48c9859d6e131f62a2d337f18d855f08dc12b89abb4679461f82a339ac"
+    },
+    "web/tools/train-three-player-ai.mjs": {
+      "before_sha256": null,
+      "after_sha256": "35ab6efed63478e2866e9a7400f91fb340fc519b3836a6ddd4e0b6c4d77c4962"
+    },
+    "web/web前端/tests/verify-defensive-training-v1.mjs": {
+      "before_sha256": null,
+      "after_sha256": "5081e2f7983ff0784823d18e4268e12094f116418f8c158981b400c7a3f54c90"
+    },
+    "core algorithm/triangular_game.py": {
+      "before_sha256": "08c198a426fb193141210cf421ce580ec5c7c886c316961dd63d1dd59ac89198",
+      "after_sha256": "054aafb46dbb3b8102c1425989acb26fc56e8edcef6dc85ea1610985c0173524"
+    },
+    "core algorithm/test_latest_move_highlight.py": {
+      "source": "preserved original workspace headless regression",
+      "sha256": "eb3d3fd41963c7046369d99335e66e4a4c613455394e59c7c130fe4167ff6a00"
+    },
+    "web/tools/three-player-arena-lib.mjs": {
+      "before_sha256": null,
+      "after_sha256": "4cc3c30f82d4881c7c72e1e29a342bd62d938abde0e80292ab3b38401173a56b",
+      "reason": "static dependency of web/tools/run-hex-posttraining.mjs"
+    },
+    "web/tools/hex-posttrain-core.mjs": {
+      "before_sha256": null,
+      "after_sha256": "853dac68a3b9c404e2bca9827fe1fa20b51d599263d88e8885d2e1f9b7db1ad3",
+      "reason": "static dependency of web/tools/run-hex-posttraining.mjs"
+    },
+    "web/tools/linear-three-v3-core.mjs": {
+      "before_sha256": null,
+      "after_sha256": "dfdafce7647e85e60619f3b66d461705cc4bf4c0da60ccf1e44af7a50a8f5bfc",
+      "reason": "static dependency of web/tools/run-hex-posttraining.mjs"
+    },
+    "web/tools/hex-posttrain-protocol.mjs": {
+      "before_sha256": null,
+      "after_sha256": "2d5751dd2bc586d836791af54d026400abc5ec88d60ebe80113dc44e090fd7d0",
+      "reason": "static dependency of web/tools/run-hex-posttraining.mjs"
+    },
+    "web/tools/hex-distill-v3-core.mjs": {
+      "before_sha256": null,
+      "after_sha256": "4204590d3413f12f0da4ab30d1976c6c3dcaca4d87664d829f332a273863ed3e",
+      "reason": "static dependency of web/tools/run-hex-distillation-v3.mjs"
+    },
+    "core algorithm/test_territory_render.py": {
+      "source": "original workspace fixed v3 scoring/rendering regression",
+      "sha256": "7a47b4b189b5756c6eef8b9190e9c9f635d356c75844d3eeb7ddb35c96b674dd"
+    }
+  },
+  "python_display_merge": {
+    "source": "preserved dirty primary workspace",
+    "source_file_sha256": "f07ac5fb7e907e2357648f43c9b19b79273a573fd7a059ba235a05dbde14e07d",
+    "reviewed_methods": {
+      "_compute_owned_wall_points": "08ca6ff5f38ea60da14639c23df2a72dc9fd771b895e37cd8d45bac87bf4f628",
+      "_compute_owned_wall_area": "2e15bcf0b81c026cea4120e073bacfb745cef483cb8301eb38cb690e97bd4d56",
+      "_update_hulls": "d7e07e71789816bb71db6c00840b05ada8ada8446048fe7f0d14ac384b639744",
+      "_get_territory_tile": "b632760f03576604316efbf2ad16dabca90a22e40e7e53a30e183074dc1cce40",
+      "_draw_territory_hulls": "2b1668e290fd67845e5c39ec060d90833e82884ff71cf213a4fb66341fd40a22"
+    },
+    "scope": "five exact scoring/render methods only; no topology/starting-point import or frozen-research changes",
+    "result_sha256": "eb710387e0ff431aa66273407b49673c68d476a61ab7bd7214058738947a7c62",
+    "integration_adjustments": [
+      "initialize exact score/render cache after setup",
+      "empty score uses integer zero",
+      "preserve score-label spacing"
+    ]
+  },
+  "verification": {
+    "teacher": "PASS_BOUNDED_TEACHER_AND_RECOVERY_ONLY",
+    "python_latest_moves": "PASS",
+    "python_territory_render": "PASS",
+    "trained_production_models": 0
+  }
+}

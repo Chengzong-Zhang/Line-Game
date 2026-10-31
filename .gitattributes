@@ -38,3 +38,5 @@ working/tools/platform_host_snapshot.py -text whitespace=cr-at-eol
 working/tools/verify-aligned-itch.mjs -text whitespace=cr-at-eol
 working/tools/desktop-alignment/** -text whitespace=cr-at-eol
 working/skills/lifeline-dev/** -text whitespace=cr-at-eol
+working/ios/alignment-20261031/** -text whitespace=cr-at-eol
+working/tools/sync-lifeline-skill.py -text whitespace=cr-at-eol

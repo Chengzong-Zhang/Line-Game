@@ -1,0 +1,42 @@
+{
+  "schema": "lifeline-mobile-shared-action-test-v1",
+  "status": "PASS",
+  "platforms": [
+    "web-vm"
+  ],
+  "scope": "actual common Web App, controller and shared client; synthetic HTTP/WebSocket service and browser VM; no device or real network",
+  "coverage": [
+    "authentication exchange and room creation",
+    "pending action does not change the confirmed board",
+    "repeat input does not duplicate a command",
+    "verified opponent snapshot",
+    "definite rejection preserves board and clears pending",
+    "lost acknowledgement retains command identity",
+    "reconnect recognizes confirmed action without duplicate transmission"
+  ],
+  "source_hashes": {
+    "mobile-entry.js": "aefde9eb8e27dc124f17bf68de6693ea5309a2d5195f963ce14a0853b39bcec4",
+    "platform/mobile-bridge.js": "f617e29a29226223d24907f9414c90afd96b542b3869d0a9d5e2ca44e52b56d0",
+    "platform/harmony-bridge.js": "d5c822bc19935b315acf401ed378bbd275936d4d63066e9149cd8bc0f8a33604",
+    "platform/harmony-native-bridge.js": "882198bc2c9483c570063fa88370caedd519c9bf40f883abb1673a0b159396bd",
+    "platform/platform-selection.js": "78d8ccf6cde0af3a5ac6c09d83c55037b520203d4ee23decbbaf530a6f2c57e9",
+    "platform/session-authority.js": "3800d59105607e47d7e9acd9b5597986ebfbe1cabfab3bf0bc2f6fb1c45ca88b",
+    "platform/session-envelope.js": "180b5069f0bc2acbc16aca182d3f91bce602861fee75dbe4e88dc57337ea965f",
+    "platform/session-mirror.js": "a9bf1df92844e4c75c0f05bd5ea7539ad25268f1a8aa274b5f35f4fb3068f2d1",
+    "main.js": "2c8a2b0005c273e0d74afce0a2d6dab9dde8c11ac5df57d98cf202eaa0aee3f8",
+    "index.html": "175e039ae13b4384c0f161264933289cc6e4f3543522bbe4eaa6eb9f70187e57",
+    "OnlineApp.js": "85a3e129e964ba2615dac5c390ee97545e716d7f54798514c45a8cf3a33604e8",
+    "OnlineAppState.js": "70f9599890c0ec9bc033b91bbe685b9a5928af7defffa0fe32f8e81b962fd313",
+    "ReplayCodec.js": "4350feb52195f3c0fc14a1af37ec0804f04b39809134954159754af282ffd2ee",
+    "LocalGameSession.js": "00bb0720648e3d90464baf27a783984294965f9517309996e9a0f3f832115ecd",
+    "GameController.js": "7c18a7f6c644a0cad953dae67881bd89986d486711d5f4f5608e16dea563d2ad",
+    "GameEngine.js": "f12ea23ec3efb6084d17f511567bf64c2501352193f37b2977a27d2044ecb46f",
+    "NetworkManager.js": "c6f4af3b627974f2279659775e7e3408bdc6afd18d6be593ab27a368bc9f3701",
+    "CrossPlatformNetwork.js": "6b533dcdbde3c78ede387cec5dfb6c33ed18fb88a8fe04fac78b40352d40d97e",
+    "SharedRoomClient.js": "eedae8b1720edfd726bbbb1b63af0df22aba5600874c7b459daaa77d1e17fb30",
+    "OnlineActionSync.js": "61ddb0125c47b15795e7172794ca01ce8722a54e6b7662f6e0a82bfdd5bfcf0f",
+    "OnlineActionSyncCoordinator.js": "1bb62ffed43c28ddaecb984db6a90ba4f08b3aed255952cee41df5a91851c346",
+    "OnlineRoomSync.js": "10bd41fd53d1e66a48a1762c5353c5c5d6f4098bc01b1d78728a3034dbe508e1"
+  },
+  "source_hashes_stable": true
+}

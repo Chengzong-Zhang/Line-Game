@@ -1,0 +1,132 @@
+{
+  "schema": "lifeline-mobile-session-review-v1",
+  "status": "PASS_SCOPED_NOT_DEVICE_ACCEPTED",
+  "scope": "Actual generated entry and both platform JS bundles; game LocalGameSession under its exact browser URL; real OnlineApp/controller failure path. Lifecycle cases mount the actual Vue runtime with controlled timers and Worker doubles; native runtimes NOT-RUN.",
+  "command": "node --experimental-vm-modules tests/verify-session-integration.mjs dist <receipt.json>",
+  "tests": 116,
+  "passed": 116,
+  "failed": 0,
+  "source_hashes_stable": true,
+  "source_hashes": {
+    "mobile-entry.js": "aefde9eb8e27dc124f17bf68de6693ea5309a2d5195f963ce14a0853b39bcec4",
+    "platform/mobile-bridge.js": "f617e29a29226223d24907f9414c90afd96b542b3869d0a9d5e2ca44e52b56d0",
+    "platform/harmony-bridge.js": "d5c822bc19935b315acf401ed378bbd275936d4d63066e9149cd8bc0f8a33604",
+    "platform/harmony-native-bridge.js": "882198bc2c9483c570063fa88370caedd519c9bf40f883abb1673a0b159396bd",
+    "platform/platform-selection.js": "78d8ccf6cde0af3a5ac6c09d83c55037b520203d4ee23decbbaf530a6f2c57e9",
+    "platform/session-authority.js": "3800d59105607e47d7e9acd9b5597986ebfbe1cabfab3bf0bc2f6fb1c45ca88b",
+    "platform/session-envelope.js": "180b5069f0bc2acbc16aca182d3f91bce602861fee75dbe4e88dc57337ea965f",
+    "platform/session-mirror.js": "a9bf1df92844e4c75c0f05bd5ea7539ad25268f1a8aa274b5f35f4fb3068f2d1",
+    "OnlineApp.js": "64d393e97830d270336d048a74c1c4979181934f82383e41349558df7d6e1ece",
+    "LocalGameSession.js": "43b37b8e74e575d99e84dc21ca8aaec6c91daaf6b0a937bcca195d6f20110ac6",
+    "GameController.js": "7c18a7f6c644a0cad953dae67881bd89986d486711d5f4f5608e16dea563d2ad",
+    "GameEngine.js": "f12ea23ec3efb6084d17f511567bf64c2501352193f37b2977a27d2044ecb46f",
+    "NetworkManager.js": "7245b73ee76ba393fc4831744e8797f9f0f6831829ad820076926cdc1bcdf9a9",
+    "CrossPlatformNetwork.js": "6b533dcdbde3c78ede387cec5dfb6c33ed18fb88a8fe04fac78b40352d40d97e",
+    "SharedRoomClient.js": "eedae8b1720edfd726bbbb1b63af0df22aba5600874c7b459daaa77d1e17fb30",
+    "OnlineActionSync.js": "b5e03109d38019a8be29a834ce562007ea6d42280005962c295564f9f12b2dcb",
+    "OnlineActionSyncCoordinator.js": "1bb62ffed43c28ddaecb984db6a90ba4f08b3aed255952cee41df5a91851c346",
+    "OnlineRoomSync.js": "10bd41fd53d1e66a48a1762c5353c5c5d6f4098bc01b1d78728a3034dbe508e1"
+  },
+  "failures": [],
+  "shared_action": {
+    "status": "PASS",
+    "scope": "actual bundled App, controller and shared client; synthetic native bridge and HTTP/WebSocket service; no device or real network",
+    "coverage": [
+      "authentication exchange and room creation",
+      "pending action does not change the confirmed board",
+      "repeat input does not duplicate a command",
+      "verified opponent snapshot",
+      "definite rejection preserves board and clears pending",
+      "lost acknowledgement retains command identity",
+      "reconnect recognizes confirmed action without duplicate transmission"
+    ],
+    "source_hashes": {
+      "mobile-entry.js": "aefde9eb8e27dc124f17bf68de6693ea5309a2d5195f963ce14a0853b39bcec4",
+      "platform/mobile-bridge.js": "f617e29a29226223d24907f9414c90afd96b542b3869d0a9d5e2ca44e52b56d0",
+      "platform/harmony-bridge.js": "d5c822bc19935b315acf401ed378bbd275936d4d63066e9149cd8bc0f8a33604",
+      "platform/harmony-native-bridge.js": "882198bc2c9483c570063fa88370caedd519c9bf40f883abb1673a0b159396bd",
+      "platform/platform-selection.js": "78d8ccf6cde0af3a5ac6c09d83c55037b520203d4ee23decbbaf530a6f2c57e9",
+      "platform/session-authority.js": "3800d59105607e47d7e9acd9b5597986ebfbe1cabfab3bf0bc2f6fb1c45ca88b",
+      "platform/session-envelope.js": "180b5069f0bc2acbc16aca182d3f91bce602861fee75dbe4e88dc57337ea965f",
+      "platform/session-mirror.js": "a9bf1df92844e4c75c0f05bd5ea7539ad25268f1a8aa274b5f35f4fb3068f2d1",
+      "OnlineApp.js": "64d393e97830d270336d048a74c1c4979181934f82383e41349558df7d6e1ece",
+      "LocalGameSession.js": "43b37b8e74e575d99e84dc21ca8aaec6c91daaf6b0a937bcca195d6f20110ac6",
+      "GameController.js": "7c18a7f6c644a0cad953dae67881bd89986d486711d5f4f5608e16dea563d2ad",
+      "GameEngine.js": "f12ea23ec3efb6084d17f511567bf64c2501352193f37b2977a27d2044ecb46f",
+      "NetworkManager.js": "7245b73ee76ba393fc4831744e8797f9f0f6831829ad820076926cdc1bcdf9a9",
+      "CrossPlatformNetwork.js": "6b533dcdbde3c78ede387cec5dfb6c33ed18fb88a8fe04fac78b40352d40d97e",
+      "SharedRoomClient.js": "eedae8b1720edfd726bbbb1b63af0df22aba5600874c7b459daaa77d1e17fb30",
+      "OnlineActionSync.js": "b5e03109d38019a8be29a834ce562007ea6d42280005962c295564f9f12b2dcb",
+      "OnlineActionSyncCoordinator.js": "1bb62ffed43c28ddaecb984db6a90ba4f08b3aed255952cee41df5a91851c346",
+      "OnlineRoomSync.js": "10bd41fd53d1e66a48a1762c5353c5c5d6f4098bc01b1d78728a3034dbe508e1"
+    }
+  },
+  "haptics": {
+    "status": "PASS",
+    "scope": "actual App and GameController with synthetic native haptic bridge; not a device vibration test",
+    "coverage": [
+      "default off",
+      "one successful local pointer request",
+      "rejected pointer and non-pointer AI moves",
+      "replay/tutorial/online/background/stale controller guards",
+      "disable is immediate"
+    ],
+    "source_hashes": {
+      "mobile-entry.js": "aefde9eb8e27dc124f17bf68de6693ea5309a2d5195f963ce14a0853b39bcec4",
+      "platform/mobile-bridge.js": "f617e29a29226223d24907f9414c90afd96b542b3869d0a9d5e2ca44e52b56d0",
+      "platform/harmony-bridge.js": "d5c822bc19935b315acf401ed378bbd275936d4d63066e9149cd8bc0f8a33604",
+      "platform/harmony-native-bridge.js": "882198bc2c9483c570063fa88370caedd519c9bf40f883abb1673a0b159396bd",
+      "platform/platform-selection.js": "78d8ccf6cde0af3a5ac6c09d83c55037b520203d4ee23decbbaf530a6f2c57e9",
+      "platform/session-authority.js": "3800d59105607e47d7e9acd9b5597986ebfbe1cabfab3bf0bc2f6fb1c45ca88b",
+      "platform/session-envelope.js": "180b5069f0bc2acbc16aca182d3f91bce602861fee75dbe4e88dc57337ea965f",
+      "platform/session-mirror.js": "a9bf1df92844e4c75c0f05bd5ea7539ad25268f1a8aa274b5f35f4fb3068f2d1",
+      "platform/haptics-controller.js": "0529ac71f4a7de814a069f849d30737bf0a01ad1e1afab5ec7b5c4e363d2f97e",
+      "OnlineApp.js": "64d393e97830d270336d048a74c1c4979181934f82383e41349558df7d6e1ece",
+      "LocalGameSession.js": "43b37b8e74e575d99e84dc21ca8aaec6c91daaf6b0a937bcca195d6f20110ac6",
+      "GameController.js": "7c18a7f6c644a0cad953dae67881bd89986d486711d5f4f5608e16dea563d2ad",
+      "GameEngine.js": "f12ea23ec3efb6084d17f511567bf64c2501352193f37b2977a27d2044ecb46f"
+    },
+    "wiring_note": "App and GameController run with a synthetic native bridge; the component event-to-listener connection is simulated and statically checked separately."
+  },
+  "tutorial_host": {
+    "status": "PASS",
+    "scope": "actual mounted App with synthetic native tutorial host and shared service; no real device or network",
+    "coverage": [
+      "online tutorial opens separate same-origin target",
+      "success and failure preserve room/socket, game and saved bytes",
+      "failure shows readable feedback",
+      "late failure cannot overwrite newer action feedback"
+    ],
+    "source_hashes": {
+      "mobile-entry.js": "aefde9eb8e27dc124f17bf68de6693ea5309a2d5195f963ce14a0853b39bcec4",
+      "platform/mobile-bridge.js": "f617e29a29226223d24907f9414c90afd96b542b3869d0a9d5e2ca44e52b56d0",
+      "platform/harmony-bridge.js": "d5c822bc19935b315acf401ed378bbd275936d4d63066e9149cd8bc0f8a33604",
+      "platform/harmony-native-bridge.js": "882198bc2c9483c570063fa88370caedd519c9bf40f883abb1673a0b159396bd",
+      "platform/platform-selection.js": "78d8ccf6cde0af3a5ac6c09d83c55037b520203d4ee23decbbaf530a6f2c57e9",
+      "platform/session-authority.js": "3800d59105607e47d7e9acd9b5597986ebfbe1cabfab3bf0bc2f6fb1c45ca88b",
+      "platform/session-envelope.js": "180b5069f0bc2acbc16aca182d3f91bce602861fee75dbe4e88dc57337ea965f",
+      "platform/session-mirror.js": "a9bf1df92844e4c75c0f05bd5ea7539ad25268f1a8aa274b5f35f4fb3068f2d1",
+      "platform/TutorialHost.js": "e66cd1bd948324752f78782155a2e69098d50a8f1c88fdde8afa502bdd86afa7",
+      "OnlineApp.js": "64d393e97830d270336d048a74c1c4979181934f82383e41349558df7d6e1ece",
+      "LocalGameSession.js": "43b37b8e74e575d99e84dc21ca8aaec6c91daaf6b0a937bcca195d6f20110ac6",
+      "GameController.js": "7c18a7f6c644a0cad953dae67881bd89986d486711d5f4f5608e16dea563d2ad",
+      "GameEngine.js": "f12ea23ec3efb6084d17f511567bf64c2501352193f37b2977a27d2044ecb46f",
+      "NetworkManager.js": "7245b73ee76ba393fc4831744e8797f9f0f6831829ad820076926cdc1bcdf9a9",
+      "CrossPlatformNetwork.js": "6b533dcdbde3c78ede387cec5dfb6c33ed18fb88a8fe04fac78b40352d40d97e",
+      "SharedRoomClient.js": "eedae8b1720edfd726bbbb1b63af0df22aba5600874c7b459daaa77d1e17fb30",
+      "OnlineActionSync.js": "b5e03109d38019a8be29a834ce562007ea6d42280005962c295564f9f12b2dcb",
+      "OnlineActionSyncCoordinator.js": "1bb62ffed43c28ddaecb984db6a90ba4f08b3aed255952cee41df5a91851c346",
+      "OnlineRoomSync.js": "10bd41fd53d1e66a48a1762c5353c5c5d6f4098bc01b1d78728a3034dbe508e1"
+    }
+  },
+  "test_fixture_decisions": [
+    "Legacy WS cases enter an existing legacy room through the real App, dismissing the tutorial first; original 110-case assertions retained.",
+    "Network retry uses explicit v3 consent and a real completed integrity-bound replay; test URL is synthetic.",
+    "Lifecycle timer and hint fixtures explicitly start a local match.",
+    "Six native mirror tests pass: delayed write, write failure and an intervening local write on both synthetic platforms."
+  ],
+  "limits": [
+    "Android/Harmony are synthetic JavaScript bridges, not device tests.",
+    "The evidence reflects this source hash only; a later rebuild requires re-running."
+  ]
+}

@@ -1,0 +1,1810 @@
+diff --git a/web/web前端/LocalGameSession.js b/web/web前端/LocalGameSession.js
+--- a/web/web前端/LocalGameSession.js
++++ b/web/web前端/LocalGameSession.js
+@@ -1,10 +1,12 @@
+ import { ALL_LOCAL_PLAYER_CHOICES, MULTIPLAYER_AI_CHOICES, normalizeLocalPlayers, usesGenericBoardAI } from "./LocalAIModes.js?v=20261029-unified-r1";
+ import { startingPointSettings } from "./StartingPoints.js?v=20261029-unified-r1";
+-import { PLAYER_ORDER, StartProtectionRule, resolveBoardShape } from "./GameEngine.js?v=20261029-unified-r1";
++import GameEngine, { PLAYER_ORDER, StartProtectionRule, resolveBoardShape } from "./GameEngine.js?v=20261029-unified-r1";
+ import { normalizeUndoUsage } from "./LocalUndo.js?v=20261029-unified-r1";
+ import { decodeTopologyState } from "./TopologyStateCodec.js?v=20261029-unified-r1";
+ 
+ const LOCAL_GAME_SESSION_FORMAT = "lifeline-local-session";
++const SESSION_ENVELOPE_FORMAT = "lifeline-local-session-envelope";
++const MOBILE_SESSION_WRITER_SLOT = "__LIFELINE_MOBILE_SESSION_WRITER__";
+ const PLAYER_COLORS = PLAYER_ORDER;
+ export const LOCAL_GAME_SESSION_SCHEMA_VERSION = 2;
+ export const LOCAL_GAME_SESSION_STORAGE_KEY = "lifeline-local-game-session-v1";
+@@ -140,7 +142,29 @@
+     return null;
+   }
+ 
+-  const match = value.match;
++  // Schema-1 mobile saves can predate per-seat match profiles. Validate their
++  // full context before migrating; do not silently turn an AI seat human.
++  const context = value.playContext;
++  if (context != null && (!context || typeof context !== "object"
++    || !["none", "ai_black", "ai_white", "ai_duel", "mixed"].includes(context.aiMode)
++    || ![2, 3, 4].includes(context.aiDepth)
++    || !["minimax", "padded-cnn", "grid-gnn", "topology-gnn", "dqn", "ppo", "sac", "gail", "gan"].includes(context.aiStrategy)
++    || !["legacy", "2026092201", "2026092202", "2026092203"].includes(context.aiModelVersion)
++    || !(context.aiSeed == null || [20260825, 2026092201, 2026092202, 2026092203].includes(context.aiSeed))
++    || typeof context.aiDuelPaused !== "boolean" || typeof context.tutorialDismissed !== "boolean")) return null;
++  let match = value.match;
++  if (!match && context) {
++    if (context.aiMode === "mixed") return null;
++    const profile = { choice: context.aiStrategy, depth: context.aiDepth, version: context.aiModelVersion };
++    match = {
++      players: normalizeLocalPlayers({
++        BLACK: ["ai_black", "ai_duel"].includes(context.aiMode) ? profile : { choice: "human" },
++        WHITE: ["ai_white", "ai_duel"].includes(context.aiMode) ? profile : { choice: "human" },
++      }, settings.playerCount, settings.boardShape),
++      started: context.aiMode !== "none" || actions.length > 0,
++      paused: context.aiDuelPaused,
++    };
++  }
+   if (match !== undefined && (!match || typeof match.started !== "boolean" || typeof match.paused !== "boolean"
+     || ["BLACK", "WHITE"].some((color) => !ALL_LOCAL_PLAYER_CHOICES.includes(match.players?.[color]?.choice))
+     || PLAYER_COLORS.slice(2).some((color) => match.players?.[color] && !ALL_LOCAL_PLAYER_CHOICES.includes(match.players[color].choice))
+@@ -158,10 +182,55 @@
+     savedAt: Number.isFinite(Number(value.savedAt)) ? Number(value.savedAt) : 0,
+     settings,
+     actions,
++    ...(context ? { playContext: cloneJson(context) } : {}),
+     ...(match ? { match: { players: normalizeLocalPlayers(match.players, settings.playerCount, settings.boardShape), started: match.started, paused: match.paused,
+       ...(match.undo ? { undo: normalizeUndoUsage(match.undo) } : {}),
+     } } : {}),
+   };
++}
++
++// The native authority reconciles revisioned copies only after validating the
++// complete action history against the current rules engine.
++export function parseLocalGameSessionRecord(raw) {
++  try {
++    let value = JSON.parse(String(raw));
++    if (value?.format === SESSION_ENVELOPE_FORMAT) {
++      if (value.version !== 1 || !Number.isSafeInteger(value.revision) || value.revision < 1
++        || value.state !== "saved" || typeof value.payload !== "string") return null;
++      value = JSON.parse(value.payload);
++    }
++    const session = normalizeSession(value);
++    if (!session) return null;
++    const engine = new GameEngine({ ...session.settings });
++    for (const action of session.actions) {
++      let result;
++      if (action.type === "player_move") result = engine.playMove(action.point);
++      else if (action.type === "player_skip") result = engine.skipTurn();
++      else if (action.type === "player_resign") result = engine.resignPlayer(action.color);
++      else if (action.type === "player_root_relocate") result = engine.playRootAction("relocate", action.point);
++      else if (action.type === "player_root_add") result = engine.playRootAction("add", action.point);
++      else return null;
++      if (!result?.success && result?.reason !== "PLAYER_ALREADY_RESIGNED") return null;
++    }
++    return session;
++  } catch (_error) { return null; }
++}
++
++export function isLocalGameSessionRecordCorrupt(raw) {
++  if (raw == null || raw === "") return false;
++  try {
++    const value = JSON.parse(String(raw));
++    if (value?.format === SESSION_ENVELOPE_FORMAT) {
++      if (value.version !== 1 || !Number.isSafeInteger(value.revision) || value.revision < 1) return true;
++      if (value.state === "cleared") return Object.hasOwn(value, "payload");
++      if (value.state !== "saved" || typeof value.payload !== "string") return true;
++    }
++  } catch (_error) { return true; }
++  return parseLocalGameSessionRecord(raw) === null;
++}
++
++export function configureMobileLocalGameSessionWriter(writer) {
++  globalThis[MOBILE_SESSION_WRITER_SLOT] = writer ?? null;
+ }
+ 
+ export function createLocalGameSession(settings, actions = [], match) {
+@@ -216,7 +285,7 @@
+     if (!raw) {
+       return null;
+     }
+-    return normalizeSession(JSON.parse(raw));
++    return parseLocalGameSessionRecord(raw);
+   } catch (_error) {
+     return null;
+   }
+@@ -229,7 +298,14 @@
+   }
+ 
+   try {
+-    storage.setItem(LOCAL_GAME_SESSION_STORAGE_KEY, JSON.stringify(normalized));
++    const serialized = JSON.stringify(normalized);
++    const writer = globalThis.__LIFELINE_MOBILE_APP__ && globalThis[MOBILE_SESSION_WRITER_SLOT];
++    const persisted = writer ? writer.writeSaved(serialized)
++      : (storage.setItem(LOCAL_GAME_SESSION_STORAGE_KEY, serialized), serialized);
++    if (!persisted) return false;
++    if (globalThis.__LIFELINE_MOBILE_APP__) globalThis.dispatchEvent(new CustomEvent("lifeline:session-saved", {
++      detail: { key: LOCAL_GAME_SESSION_STORAGE_KEY, value: persisted },
++    }));
+     return true;
+   } catch (_error) {
+     return false;
+@@ -238,7 +314,13 @@
+ 
+ export function clearLocalGameSession(storage = globalThis.localStorage) {
+   try {
+-    storage?.removeItem?.(LOCAL_GAME_SESSION_STORAGE_KEY);
++    const writer = globalThis.__LIFELINE_MOBILE_APP__ && globalThis[MOBILE_SESSION_WRITER_SLOT];
++    const cleared = writer?.writeCleared?.();
++    if (writer && !cleared) return false;
++    if (!writer) storage?.removeItem?.(LOCAL_GAME_SESSION_STORAGE_KEY);
++    if (globalThis.__LIFELINE_MOBILE_APP__) globalThis.dispatchEvent(new CustomEvent("lifeline:session-cleared", {
++      detail: { key: LOCAL_GAME_SESSION_STORAGE_KEY, value: cleared },
++    }));
+     return true;
+   } catch (_error) {
+     return false;
+@@ -384,10 +466,26 @@
+   return createTopologyLocalGameSession(topologyState, [...current.actions, nextAction], metadata);
+ }
+ 
++export function parseTopologyLocalGameSessionRecord(raw) {
++  try {
++    let value = JSON.parse(String(raw));
++    if (value?.format === SESSION_ENVELOPE_FORMAT) {
++      if (value.version !== 1 || !Number.isSafeInteger(value.revision) || value.revision < 1
++        || value.state !== "saved" || typeof value.payload !== "string") return null;
++      value = JSON.parse(value.payload);
++    }
++    return normalizeTopologySession(value);
++  } catch (_) { return null; }
++}
++
++export function configureMobileTopologyGameSessionWriter(writer) {
++  globalThis.__LIFELINE_MOBILE_TOPOLOGY_SESSION_WRITER__ = writer ?? null;
++}
++
+ export function loadTopologyLocalGameSession(storage = globalThis.localStorage) {
+   try {
+     const raw = storage?.getItem?.(TOPOLOGY_LOCAL_GAME_SESSION_STORAGE_KEY);
+-    return raw ? normalizeTopologySession(JSON.parse(raw)) : null;
++    return raw ? parseTopologyLocalGameSessionRecord(raw) : null;
+   } catch (_) {
+     return null;
+   }
+@@ -397,8 +495,10 @@
+   const normalized = normalizeTopologySession(session);
+   if (!normalized || !storage?.setItem) return false;
+   try {
+-    storage.setItem(TOPOLOGY_LOCAL_GAME_SESSION_STORAGE_KEY, JSON.stringify(normalized));
+-    return true;
++    const serialized = JSON.stringify(normalized);
++    const writer = globalThis.__LIFELINE_MOBILE_APP__ && globalThis.__LIFELINE_MOBILE_TOPOLOGY_SESSION_WRITER__;
++    return Boolean(writer ? writer.writeSaved(serialized)
++      : (storage.setItem(TOPOLOGY_LOCAL_GAME_SESSION_STORAGE_KEY, serialized), serialized));
+   } catch (_) {
+     return false;
+   }
+@@ -406,6 +506,8 @@
+ 
+ export function clearTopologyLocalGameSession(storage = globalThis.localStorage) {
+   try {
++    const writer = globalThis.__LIFELINE_MOBILE_APP__ && globalThis.__LIFELINE_MOBILE_TOPOLOGY_SESSION_WRITER__;
++    if (writer) return Boolean(writer.writeCleared());
+     storage?.removeItem?.(TOPOLOGY_LOCAL_GAME_SESSION_STORAGE_KEY);
+     return true;
+   } catch (_) {
+diff --git a/web/web前端/ModelFreeAI.js b/web/web前端/ModelFreeAI.js
+--- a/web/web前端/ModelFreeAI.js
++++ b/web/web前端/ModelFreeAI.js
+@@ -8,7 +8,7 @@
+ function keyFor(point) { return `${point[0]},${point[1]}`; }
+ 
+ async function digestHex(buffer) {
+-  if (!globalThis.crypto?.subtle) return null;
++  if (!globalThis.crypto?.subtle) throw new Error("模型 SHA-256 校验不可用；为避免载入未经验证的权重，已停止加载。请使用安全浏览器上下文（HTTPS 或 localhost）。");
+   const digest = await globalThis.crypto.subtle.digest("SHA-256", buffer);
+   return [...new Uint8Array(digest)].map((part) => part.toString(16).padStart(2, "0")).join("");
+ }
+@@ -82,7 +82,7 @@
+ export async function loadModelFreeModel(id) {
+   if (!modelPromises.has(id)) modelPromises.set(id, (async () => {
+     const manifest = await loadManifest(); const spec = manifest.models.find((item) => item.id === id); if (!spec) throw new Error(`未找到 model-free 模型：${id}`);
+-    const response = await fetch(new URL(`./assets/research-ai/${spec.asset}`, import.meta.url)); if (!response.ok) throw new Error(`无法加载 ${spec.label} 权重。`); const raw = await response.arrayBuffer(); const actual = await digestHex(raw); if (actual && actual !== spec.asset_sha256) throw new Error(`${spec.label} 权重哈希不匹配。`); return new ModelFreeModel(spec, tensorMap(spec, raw));
++    const response = await fetch(new URL(`./assets/research-ai/${spec.asset}`, import.meta.url)); if (!response.ok) throw new Error(`无法加载 ${spec.label} 权重。`); const raw = await response.arrayBuffer(); const actual = await digestHex(raw); if (actual !== spec.asset_sha256) throw new Error(`${spec.label} 权重哈希不匹配。`); return new ModelFreeModel(spec, tensorMap(spec, raw));
+   })());
+   return modelPromises.get(id);
+ }
+diff --git a/web/web前端/NetworkManager.js b/web/web前端/NetworkManager.js
+--- a/web/web前端/NetworkManager.js
++++ b/web/web前端/NetworkManager.js
+@@ -1,7 +1,8 @@
+-﻿const DEFAULT_REQUEST_TIMEOUT = 10000;
++const DEFAULT_REQUEST_TIMEOUT = 10000;
+ const DEFAULT_CONNECT_TIMEOUT = 10000;
+ const DEFAULT_HEARTBEAT_INTERVAL = 4000;
+ const DEFAULT_HEARTBEAT_TIMEOUT = 12000;
++import { configuredEndpoint } from "./platform/runtime.js?v=20261031-alignment-diagnostic";
+ export const TOPOLOGY_ROOM_CAPABILITY = "board-topology-v1";
+ const DEFAULT_PROTOCOL_TIMEOUT = 3000;
+ 
+@@ -67,6 +68,8 @@
+ }
+ 
+ function resolveWebSocketUrl(locationLike = globalThis.location) {
++  const configured = configuredEndpoint("websocketUrl", ["wss:", "ws:"]);
++  if (configured) return configured;
+   if (!locationLike || typeof locationLike !== "object") {
+     return "ws://localhost:8000/ws";
+   }
+diff --git a/web/web前端/OnlineApp.js b/web/web前端/OnlineApp.js
+--- a/web/web前端/OnlineApp.js
++++ b/web/web前端/OnlineApp.js
+@@ -10,7 +10,7 @@
+   applyHintWorkerResult,
+ } from "./HintWorkerSession.js?v=20261029-unified-r1";
+ import { ClientEvent, ServerEvent, TOPOLOGY_ROOM_CAPABILITY, resolveWebSocketUrl } from "./NetworkManager.js?v=20261101-platform-alignment-r1";
+-import NetworkManager from "./CrossPlatformNetwork.js?v=20261101-platform-alignment-r1";
++import NetworkManager from "./CrossPlatformNetwork.js?v=20261029-unified-r1";
+ import {
+   applyRoomSnapshotWithPostCommit,
+   coordinateControllerRoomSnapshot,
+@@ -110,6 +110,8 @@
+   undoBoundaryVertex,
+ } from "./BoardEditor.js?v=20261029-unified-r1";
+ import { decodeTopologyState } from "./TopologyStateCodec.js?v=20261029-unified-r1";
++import { configuredEndpoint } from "./platform/runtime.js?v=20261031-alignment-diagnostic";
++import { openTutorialTarget } from "./platform/TutorialHost.js?v=20261101-mobile-host";
+ import { OnlineActionSync } from "./OnlineActionSync.js?v=20261101-platform-alignment-r1";
+ import { OnlineActionSyncCoordinator } from "./OnlineActionSyncCoordinator.js?v=20261101-platform-alignment-r1";
+ 
+@@ -129,6 +131,8 @@
+ 
+ // OnlineApp 鏄仈鏈虹増椤甸潰鍏ュ彛銆?// 缁勪欢瀹氫箟鍜屼笟鍔℃祦绋嬮兘鏀惧湪杩欓噷锛屼絾閫氱敤鐘舵€佸伐鍏蜂笌鏂囨宸茬粡鎷嗗埌鐙珛妯″潡銆?
+ function resolveApiBaseUrl(serverUrl, locationLike = globalThis.location) {
++  const configured = configuredEndpoint("apiBaseUrl", ["https:", "http:"]);
++  if (configured) return configured.replace(/\/$/, "");
+   const fallbackOrigin = locationLike?.origin ?? "http://localhost:8000";
+   const rawUrl = String(serverUrl ?? "").trim();
+ 
+@@ -3271,7 +3275,7 @@
+     playerCount: { type: Number, default: 2 },
+     boardShape: { type: String, default: "triangle" },
+   },
+-  emits: ["state-change", "controller-ready"],
++  emits: ["state-change", "controller-ready", "player-move-success"],
+   setup(props, { emit }) {
+     const canvasRef = ref(null);
+     let controller = null;
+@@ -3284,6 +3288,7 @@
+       controller = new GameController(canvasRef.value, {
+         renderer: { topInset: 52 },
+         onStateChange: handleStateChange,
++        onSuccessfulLocalPointerMove: (instance) => emit("player-move-success", instance),
+       });
+       emit("controller-ready", controller);
+       controller.init();
+@@ -3498,6 +3503,35 @@
+     const tutorialResultSnapshot = shallowRef(null);
+     const tutorialRestrictionObserved = ref(false);
+     const localGameActions = ref([]);
++    const mobileExitPromptOpen = ref(false);
++    const mobileExitPending = ref(false);
++    const mobileExitError = ref("");
++    const mobileShell = Boolean(globalThis.__LIFELINE_MOBILE_APP__);
++    let mobileAppActive = !globalThis.__LIFELINE_MOBILE_APP__ || globalThis.__LIFELINE_APP_ACTIVE__ !== false;
++    let mobileDisposed = false;
++    let moveHapticsStorage = null;
++    try { if (mobileShell) moveHapticsStorage = globalThis.localStorage; } catch (_error) {}
++    const moveHapticsController = mobileShell && typeof globalThis.__LIFELINE_CREATE_MOVE_HAPTICS_CONTROLLER__ === "function"
++      ? globalThis.__LIFELINE_CREATE_MOVE_HAPTICS_CONTROLLER__({
++        storage: moveHapticsStorage,
++        requestMoveHaptic: () => globalThis.LifelinePlatform?.requestMoveHaptic?.(),
++        isActive: () => !mobileDisposed && mobileAppActive && globalThis.__LIFELINE_APP_ACTIVE__ !== false
++          && globalThis.document?.visibilityState !== "hidden",
++      })
++      : null;
++    const moveHapticsEnabled = ref(moveHapticsController?.enabled === true);
++    const moveHapticsNotice = ref(moveHapticsController?.preferenceState === "read-error"
++      ? "read-error" : moveHapticsController?.preferenceState === "corrupt" ? "corrupt" : "");
++
++    let mobileExitGeneration = 0;
++    let authAttemptGeneration = 0;
++    let mobileExitAwaitingForeground = false;
++    let mobileExitController = null;
++    let mobileExitPriorReadOnly = false;
++    let nativeNetworkUnsubscribe = null;
++    let nativeNetworkOwner = null;
++    let nativeNetworkGeneration = 0;
++    let lastNativeAvailability = null;
+     let topologyLocalSession = storedTopologyDecoded ? storedTopologyGame : null;
+     const contributionState = ref({ enabled: false, pending: 0, status: "off", receipt: null });
+     const contribution = new TrainingContribution({ onChange: (state) => { contributionState.value = state; } });
+@@ -3519,11 +3553,11 @@
+     const replayInspectorOpen = ref(false);
+     const replayBusy = ref(false);
+     let replayOperationGeneration = 0;
++    let replayExportOwnsBusy = false;
+     let replayImportGeneration = 0;
+     let replayImportOwnsBusy = false;
+     let activeReplayPanelImportId = null;
+     let actionFeedbackRevision = 0;
+-    let replayAppDisposed = false;
+     const replayError = ref("");
+     const replayRestoring = ref(false);
+     const replayInspectionPoint = ref(null);
+@@ -3586,6 +3620,7 @@
+     let onlineActionCoordinator = null;
+     let confirmedVersionedRoomActions = [];
+     let roomActionUiGeneration = 0;
++    let capacityLeavePending = false;
+     let networkErrorOwner = null;
+     let legacyJoinGeneration = 0;
+     let pendingLegacyJoin = null;
+@@ -3661,6 +3696,16 @@
+     let lastServerTimestamp = 0;
+     const overlayResult = ref(null);
+     const activeUtilityDeck = ref("");
++    const aboutAppInfo = ref(null);
++    const aboutAppInfoState = ref("idle");
++    let aboutRequestGeneration = 0;
++    let aboutRequestTimer = null;
++    const invalidateAboutRequest = () => {
++      aboutRequestGeneration += 1;
++      if (aboutRequestTimer !== null) globalThis.clearTimeout(aboutRequestTimer);
++      aboutRequestTimer = null;
++    };
++    watch(activeUtilityDeck, deck => { if (deck !== "about") invalidateAboutRequest(); }, { flush: "sync" });
+     const accountLinkCode = ref(""), accountLinkError = ref(""), accountLinkBusy = ref(false);
+     let accountLinkGeneration = 0, accountLinkExpiry = null;
+     const sharedPasswordOpen = ref(false), sharedPasswordUsername = ref(""), sharedPassword = ref("");
+@@ -3777,7 +3822,7 @@
+     };
+ 
+     const canRunLocalAI = (state = gameState.value) => (
+-      !tutorialActive.value
++      mobileAppActive && !mobileExitPending.value && !tutorialActive.value
+       && !replayMode.value
+       && !replayBusy.value
+       && !localGameRestoring.value
+@@ -4856,12 +4901,11 @@
+       }
+     };
+     const saveLocalMatch = () => {
+-      if (roomStatus.value !== "solo" || tutorialActive.value || localGameRestoring.value || replayMode.value) return;
++      if (roomStatus.value !== "solo" || tutorialActive.value || localGameRestoring.value || replayMode.value) return false;
+       if (isTopologyLocalMatch()) {
+-        persistTopologyMatch();
+-        return;
+-      }
+-      persistLocalGameSession(createLocalGameSession(currentGameSettings(), localGameActions.value, currentLocalMatch()));
++        return persistTopologyMatch();
++      }
++      return persistLocalGameSession(createLocalGameSession(currentGameSettings(), localGameActions.value, currentLocalMatch()));
+     };
+     const armContributionForFreshLocalMatch = () => {
+       invalidateContributionTicket();
+@@ -5037,7 +5081,12 @@
+         }
+         if (!nextSession) return;
+         const nextUndoUsage = recordUndoAction(undoUsage.value, action.player);
+-        persistTopologyLocalGameSession(nextSession);
++        if (!persistTopologyLocalGameSession(nextSession) && globalThis.__LIFELINE_MOBILE_APP__) {
++          actionFeedbackRevision += 1;
++          actionFeedback.value = language.value === "zh" ? "当前对局尚未确认保存，请保持页面打开并重试。" : "The match save is not confirmed. Keep this page open and retry.";
++          actionFeedbackTone.value = "error";
++          showLocalGameNotice(language.value === "zh" ? "存档写入失败，当前对局仍保留，请重试。" : "Save failed. The current match remains open; retry.");
++        }
+         topologyLocalSession = nextSession;
+         undoUsage.value = nextUndoUsage;
+         localGameActions.value = [...localGameActions.value, topologyAction];
+@@ -5058,7 +5107,12 @@
+       }
+ 
+       // Keep the in-memory history usable even if browser storage is full.
+-      persistLocalGameSession(nextSession);
++      if (!persistLocalGameSession(nextSession) && globalThis.__LIFELINE_MOBILE_APP__) {
++        actionFeedbackRevision += 1;
++        actionFeedback.value = language.value === "zh" ? "当前对局尚未确认保存，请保持页面打开并重试。" : "The match save is not confirmed. Keep this page open and retry.";
++        actionFeedbackTone.value = "error";
++        showLocalGameNotice(language.value === "zh" ? "存档写入失败，当前对局仍保留，请重试。" : "Save failed. The current match remains open; retry.");
++      }
+       undoUsage.value = nextUndoUsage;
+       localGameActions.value = nextSession.actions;
+       localGamePositionRevision.value = nextState.positionRevision;
+@@ -5102,7 +5156,7 @@
+     };
+     const showLegacyRejectedAction = outcome => {
+       const state = onlineActionSync.getState(), scope = state.scope, committed = outcome?.committedScope;
+-      if (replayAppDisposed || networkManager.serverAuthoritative || outcome?.status !== "rejected"
++      if (mobileDisposed || networkManager.serverAuthoritative || outcome?.status !== "rejected"
+         || outcome.code !== "RATE_LIMITED" || !scope || !committed
+         || scope.serverInstanceId !== committed.serverInstanceId || scope.roomInstanceId !== committed.roomInstanceId
+         || scope.matchGeneration !== committed.matchGeneration || scope.matchEpoch !== committed.matchEpoch
+@@ -5194,7 +5248,7 @@
+       }
+     };
+ 
+-    const isReplayImportAllowed = () => !replayAppDisposed && roomStatus.value === "solo"
++    const isReplayImportAllowed = () => !mobileDisposed && roomStatus.value === "solo"
+       && !tutorialActive.value && !replayMode.value && !networkBusy.value;
+     const invalidateReplayImport = () => {
+       replayImportGeneration += 1;
+@@ -5213,6 +5267,7 @@
+         return;
+       }
+       replayBusy.value = true;
++      replayExportOwnsBusy = true;
+       const generation = ++replayOperationGeneration;
+       const feedbackRevisionAtStart = actionFeedbackRevision;
+       replayError.value = "";
+@@ -5224,10 +5279,10 @@
+           : await createReplayDocument(settings, localGameActions.value, {
+             actors: localMatchActors(activeLocalPlayers.value, settings.playerCount, settings.gridSize, settings.boardShape),
+           });
+-        if (replayAppDisposed || generation !== replayOperationGeneration) return false;
++        if (mobileDisposed || generation !== replayOperationGeneration) return false;
+         const outcome = await downloadReplayDocument(document, isTopologyGameSettings(settings)
+           ? "lifeline-topology-replay.json" : "lifeline-replay.json");
+-        if (replayAppDisposed || generation !== replayOperationGeneration) return false;
++        if (mobileDisposed || generation !== replayOperationGeneration) return false;
+         const message = outcome === "cancelled"
+           ? (language.value === "zh" ? "已取消分享。" : "Sharing was cancelled.")
+           : outcome === "share-selected"
+@@ -5239,9 +5294,12 @@
+               : (language.value === "zh" ? "棋谱导出流程已完成。" : "Replay export finished.");
+         if (feedbackRevisionAtStart === actionFeedbackRevision) setActionFeedback(message, outcome === "cancelled" ? "neutral" : "success");
+       } catch (error) {
+-        if (!replayAppDisposed && generation === replayOperationGeneration) replayError.value = error?.message ?? String(error);
++        if (!mobileDisposed && generation === replayOperationGeneration) replayError.value = error?.message ?? String(error);
+       } finally {
+-        if (generation === replayOperationGeneration) replayBusy.value = false;
++        if (generation === replayOperationGeneration && replayExportOwnsBusy) {
++          replayExportOwnsBusy = false;
++          replayBusy.value = false;
++        }
+       }
+     };
+ 
+@@ -6074,9 +6132,22 @@
+       if (!controller.value || localGameRestoring.value) return;
+       if (roomStatus.value !== "solo" || networkBusy.value || gameState.value.multiplayerEnabled) {
+         // Keep a live online match connected while teaching in a separate tab.
+-        const tutorialUrl = new URL(globalThis.location.href);
+-        tutorialUrl.searchParams.set("tutorial", "1");
+-        globalThis.open(tutorialUrl.href, "_blank", "noopener");
++        if (globalThis.LifelinePlatform?.isNative === true) {
++          const platform = globalThis.LifelinePlatform;
++          const feedbackRevision = actionFeedbackRevision;
++          const roomId = session.value.roomId;
++          void openTutorialTarget({ platform, currentHref: globalThis.location.href }).catch(() => {
++            if (mobileDisposed || platform !== globalThis.LifelinePlatform || roomId !== session.value.roomId
++              || feedbackRevision !== actionFeedbackRevision) return;
++            setActionFeedback(language.value === "zh"
++              ? "无法打开独立教学页；当前联机对局仍保持连接，请重试。"
++              : "Could not open the separate tutorial. The online match remains connected; please retry.", "error");
++          });
++        } else {
++          const tutorialUrl = new URL(globalThis.location.href);
++          tutorialUrl.searchParams.set("tutorial", "1");
++          globalThis.open(tutorialUrl.href, "_blank", "noopener");
++        }
+         return;
+       }
+       if (!tutorialActive.value) {
+@@ -6224,7 +6295,7 @@
+     );
+ 
+     const shouldRunTurnTimer = () => {
+-      if (tutorialActive.value || replayMode.value || replayRestoring.value || !turnTimerEnabled.value || !controller.value) {
++      if (!mobileAppActive || mobileExitPending.value || tutorialActive.value || replayMode.value || replayRestoring.value || !turnTimerEnabled.value || !controller.value) {
+         return false;
+       }
+ 
+@@ -6349,14 +6420,13 @@
+         WEB_PASSWORD_REQUIRED: ["请先验证网页账号密码。", "Verify your Web account password first."],
+         EMOTE_RATE_LIMIT: ["发送表情太快，请稍后再试。", "Emotes are being sent too quickly. Try again shortly."],
+         EMOTES_UNAVAILABLE: ["当前连接暂不能发送表情。", "Emotes are unavailable on this connection."],
+-        LEGACY_ACTION_UNSUPPORTED: ["当前房间不支持这种棋盘或操作，请使用新的共享房间。", "This room does not support this board or action. Please use a new shared room."],
+         LEAVE_ROOM_FIRST: ["请先退出当前房间。", "Leave the current room first."],
+       };
+       networkError.value = sharedErrors[code]?.[language.value === "zh" ? 0 : 1]
+         ?? localizeAppErrorMessage(code, language.value, uiStyle.value);
+     };
+ 
+-    const applyRoomPayload = (payload, { versioned = false } = {}) => {
++    const applyRoomPayload = (payload) => {
+       const isMatchReset = payload?.type === ServerEvent.MATCH_RESET
+         || payload?.reason === "resign_restart"
+         || payload?.reason === "normal_restart";
+@@ -6393,7 +6463,7 @@
+         : 0;
+       const shouldAcceptRoomReadyRollback = isRoomReadyTransition && timestampRollbackMs > 0;
+ 
+-      if (!versioned && timestampRollbackMs > 0 && !shouldAcceptRoomReadyRollback) {
++      if (timestampRollbackMs > 0 && !shouldAcceptRoomReadyRollback) {
+         return false;
+       }
+       if (incomingTs > 0) {
+@@ -6547,11 +6617,11 @@
+           getNetworkManager: () => networkManager,
+           playerId: session.value.playerId || null,
+           resolvePlayerColor: id => roomInfo.value.players?.find(player => player.playerId === id)?.color ?? null,
+-          isCurrentOwner: () => !replayAppDisposed && controller.value === instance
++          isCurrentOwner: () => !mobileDisposed && controller.value === instance
+             && onlineActionCoordinator === coordinator && !networkManager.serverAuthoritative,
+           onActionRejected: outcome => showLegacyRejectedAction(outcome),
+           onCommittedRoomState: payload => {
+-            if (replayAppDisposed || onlineActionCoordinator !== coordinator || networkManager.serverAuthoritative
++            if (mobileDisposed || onlineActionCoordinator !== coordinator || networkManager.serverAuthoritative
+               || !applyRoomPayload(payload, { versioned: true })) return false;
+             cancelHintRequest();
+             roomIdInput.value = payload.roomId ?? roomIdInput.value;
+@@ -6629,9 +6699,9 @@
+       pendingLegacyJoin = op;
+       try {
+         await networkManager.joinRoom(op.roomId, playerId);
+-        if (pendingLegacyJoin !== op || op.generation !== legacyJoinGeneration || replayAppDisposed) return false;
++        if (pendingLegacyJoin !== op || op.generation !== legacyJoinGeneration || mobileDisposed) return false;
+         if (!op.commit || !(await op.commit)) throw new Error("Room snapshot was not confirmed.");
+-        if (pendingLegacyJoin !== op || op.generation !== legacyJoinGeneration || replayAppDisposed) return false;
++        if (pendingLegacyJoin !== op || op.generation !== legacyJoinGeneration || mobileDisposed) return false;
+         syncSession();
+         return true;
+       } finally {
+@@ -6742,16 +6812,17 @@
+     };
+ 
+     const handleLogout = async () => {
+-      const preserveCapacityGame = hasCurrentCapacityRecoveryReady();
+-      if (preserveCapacityGame) {
++      if (hasCurrentCapacityRecoveryReady()) {
+         await handleLeaveRoom();
+         if (session.value.roomId || roomStatus.value !== "solo") return;
+-      }
+-      if (!networkManager.serverAuthoritative && onlineActionSync.isLocked() && !preserveCapacityGame) {
++      } else if (!networkManager.serverAuthoritative && onlineActionSync.isLocked()) {
+         handleNetworkError(new Error("The last room action is not yet confirmed."));
+         return;
+       }
+-      roomActionUiGeneration += 1;
++      const logoutGeneration = ++authAttemptGeneration;
++      const logoutCurrent = () => !mobileDisposed && logoutGeneration === authAttemptGeneration;
++      const hadOnlineRoom = roomStatus.value !== "solo" || Boolean(session.value.roomId);
++      const preserveUnconfirmedLegacy = Boolean(onlineActionCoordinator && onlineActionSync.isLocked());
+       legacyJoinGeneration += 1;
+       if (pendingLegacyJoin) networkManager.disconnect(1000, "logout_pending_join");
+       pendingLegacyJoin = null;
+@@ -6765,28 +6836,43 @@
+       networkManager.clearAuthToken();
+ 
+       try {
++        if (globalThis.__LIFELINE_MOBILE_APP__ && typeof globalThis.LifelinePlatform?.clearCredential === "function") {
++          const cleared = await globalThis.LifelinePlatform.clearCredential();
++          if (!logoutCurrent()) return;
++          if (!cleared) authError.value = language.value === "zh" ? "无法确认安全登录信息已清除，请重试。" : "Could not confirm secure credential removal; retry.";
++        }
++        if (!logoutCurrent()) return;
+         clearReconnectTimer();
+-        resetRoomContext();
+-        connectionState.value = "idle";
+-        try { await networkManager.leaveRoom(); } catch (_error) { /* Local logout still completes. */ }
+-        releaseLegacyActionSync({ capacityValidated: preserveCapacityGame });
++        if (hadOnlineRoom) {
++          resetRoomContext();
++          connectionState.value = "idle";
++          try { await networkManager.leaveRoom(); }
++          catch (_error) {
++            if (logoutCurrent()) networkError.value = language.value === "zh"
++              ? "未能确认退出房间，账号已在本机退出。" : "Room leave was not confirmed; this device is signed out.";
++          }
++        }
++        if (!logoutCurrent()) return;
+         networkManager.disconnect(1000, "logout");
+         networkManager.clearAuthToken();
+         networkManager.url = null;
+         networkManager.roomId = null;
+         networkManager.playerId = null;
+         networkManager.color = null;
+-        if (controller.value) {
++        if (hadOnlineRoom && controller.value && !preserveUnconfirmedLegacy) {
+           terminateAiWorker();
+-          const localState = controller.value.disableMultiplayer();
+-          if (preserveCapacityGame) gameState.value = localState;
+-          else { clearSavedLocalGame(); gameState.value = controller.value.resetGame({ force: true }); resetHintUsage(); }
++          controller.value.disableMultiplayer();
++          gameState.value = controller.value.resetGame({ force: true });
++          resetHintUsage();
+           scheduleAiMove(gameState.value);
++        } else if (preserveUnconfirmedLegacy && controller.value) {
++          controller.value.setReadOnlyMode(true);
++          networkError.value = language.value === "zh" ? "上一步尚未确认，局面已保留，请重新连接后恢复。" : "The last action is unconfirmed. The position is preserved for recovery.";
+         }
+         persistAppSession(createAppEmptySession());
+         syncSession();
+       } finally {
+-        authBusy.value = false;
++        if (logoutCurrent()) authBusy.value = false;
+       }
+     };
+ 
+@@ -6823,8 +6909,16 @@
+       hintThinking.value = false;
+     };
+ 
++    const handlePlayerMoveSuccess = (instance) => {
++      if (!mobileShell || !moveHapticsController || !moveHapticsEnabled.value || mobileDisposed
++        || !mobileAppActive || instance !== controller.value || instance.multiplayerEnabled
++        || roomStatus.value !== "solo" || replayMode.value || tutorialActive.value) return;
++      void moveHapticsController.request();
++    };
++
+     const handleControllerReady = (instance) => {
+       controller.value = instance;
++      moveHapticsController?.setHost(instance);
+       controller.value.renderer?.setTopologyChart?.(topologyChart.value);
+       controller.value.setNetworkErrorListener(handleNetworkError);
+       controller.value.setActionFeedbackListener(handleActionFeedback);
+@@ -6947,6 +7041,10 @@
+     };
+ 
+     const handleAuthSubmit = async () => {
++      if (authBusy.value) return;
++      const attemptId = ++authAttemptGeneration;
++      const isCurrent = () => !mobileDisposed && attemptId === authAttemptGeneration;
++      let credentialAttempt = null;
+       const username = authUsername.value.trim();
+       const password = authPassword.value;
+ 
+@@ -6964,6 +7062,7 @@
+             username,
+             password,
+           });
++          if (!isCurrent()) return;
+           if (payload.apiBaseUrl) {
+             serverUrl.value = payload.apiBaseUrl.replace(/^http:/, "ws:").replace(/^https:/, "wss:") + "/ws";
+           }
+@@ -6974,10 +7073,28 @@
+           return;
+         }
+ 
++        if (globalThis.__LIFELINE_MOBILE_APP__) {
++          if (globalThis.LifelinePlatform?.getCredentialStorageState?.() !== "ready") {
++            const recovered = await globalThis.LifelinePlatform?.retryCredentialStorage?.();
++            if (!isCurrent()) return;
++            if (recovered?.state !== "ready") throw new Error("Secure login storage is unavailable.");
++          }
++          credentialAttempt = globalThis.LifelinePlatform?.beginCredentialAttempt?.();
++          if (!credentialAttempt || !globalThis.LifelinePlatform?.isCredentialAttemptCurrent?.(credentialAttempt)) {
++            throw new Error("Secure login storage is unavailable.");
++          }
++        }
+         const payload = await postAuthJson(serverUrl.value, "/api/login", {
+           username,
+           password,
+         });
++        if (!isCurrent()) return;
++        if (globalThis.__LIFELINE_MOBILE_APP__) {
++          if (!globalThis.LifelinePlatform?.isCredentialAttemptCurrent?.(credentialAttempt)) throw new Error("Login attempt expired.");
++          const saved = await globalThis.LifelinePlatform.saveCredential({ token: payload.token ?? null, username: payload.username ?? username });
++          if (!isCurrent()) return;
++          if (!saved || !globalThis.LifelinePlatform.isCredentialAttemptCurrent(credentialAttempt)) throw new Error("Secure login storage could not be confirmed.");
++        }
+         if (payload.apiBaseUrl) {
+           serverUrl.value = payload.apiBaseUrl.replace(/^http:/, "ws:").replace(/^https:/, "wss:") + "/ws";
+         }
+@@ -6996,9 +7113,9 @@
+           void attemptReconnect();
+         }
+       } catch (error) {
+-        handleAuthError(error);
++        if (isCurrent()) handleAuthError(error);
+       } finally {
+-        authBusy.value = false;
++        if (isCurrent()) authBusy.value = false;
+       }
+     };
+ 
+@@ -7088,8 +7205,6 @@
+       finally { networkBusy.value = false; }
+     };
+     const handleJoinRoom = async () => {
+-      const operationGeneration = ++roomActionUiGeneration;
+-      const isCurrent = () => !replayAppDisposed && operationGeneration === roomActionUiGeneration;
+       const normalizedRoomId = roomIdInput.value.trim();
+       if (!normalizedRoomId) {
+         handleNetworkError(new Error("Please enter a room ID before joining."));
+@@ -7108,20 +7223,19 @@
+           networkManager.setAuthToken(auth.value.token);
+           await networkManager.joinRoom(normalizedRoomId);
+         } else {
+-          if (session.value.roomId) throw new Error("LEAVE_ROOM_FIRST");
+           networkManager.selectLegacy();
+           await ensureConnected();
+-          if (!isCurrent()) return;
+           await joinLegacyRoom(normalizedRoomId);
+         }
+       } catch (error) {
+-        if (isCurrent()) handleNetworkError(error);
++        handleNetworkError(error);
+       } finally {
+-        if (isCurrent()) networkBusy.value = false;
++        networkBusy.value = false;
+       }
+     };
+ 
+     const handleLeaveRoom = async () => {
++      if (capacityLeavePending) return;
+       const preserveCapacityGame = hasCurrentCapacityRecoveryReady();
+       if (onlineActionCoordinator && onlineActionSync.isLocked() && !preserveCapacityGame) {
+         handleNetworkError(new Error("The last room action is not yet confirmed."));
+@@ -7131,6 +7245,29 @@
+       if (preserveCapacityGame && !savedCapacityGame) {
+         handleNetworkError(new Error("Could not save the confirmed room game. Please retry."));
+         return;
++      }
++      if (preserveCapacityGame && globalThis.__LIFELINE_MOBILE_APP__) {
++        const platform = globalThis.LifelinePlatform;
++        const instance = controller.value, coordinator = onlineActionCoordinator;
++        const scope = JSON.stringify(onlineActionSync.getState().scope);
++        const roomId = session.value.roomId, playerId = session.value.playerId;
++        let record;
++        try {
++          record = globalThis.localStorage.getItem("lifeline-local-game-session-v1");
++          if (!record || (platform?.isNative === true && typeof platform.flushSessionMirror !== "function")) throw new Error("Backup unavailable.");
++          capacityLeavePending = true;
++          networkBusy.value = true;
++          if (typeof platform?.flushSessionMirror === "function") await platform.flushSessionMirror();
++          if (mobileDisposed || instance !== controller.value || coordinator !== onlineActionCoordinator
++            || platform !== globalThis.LifelinePlatform || roomId !== session.value.roomId || playerId !== session.value.playerId
++            || scope !== JSON.stringify(onlineActionSync.getState().scope) || !hasCurrentCapacityRecoveryReady()
++            || record !== globalThis.localStorage.getItem("lifeline-local-game-session-v1")) throw new Error("Room or saved game changed while waiting for backup.");
++        } catch (error) {
++          handleNetworkError(error);
++          capacityLeavePending = false;
++          networkBusy.value = false;
++          return;
++        }
+       }
+       roomActionUiGeneration += 1;
+       legacyJoinGeneration += 1;
+@@ -7162,7 +7299,6 @@
+             localGamePositionRevision.value = localState?.positionRevision ?? localGamePositionRevision.value;
+             gameState.value = localState;
+           } else {
+-            clearSavedLocalGame();
+             gameState.value = controller.value.resetGame({ force: true });
+             resetHintUsage();
+           }
+@@ -7172,6 +7308,7 @@
+       } catch (error) {
+         handleNetworkError(error);
+       } finally {
++        capacityLeavePending = false;
+         networkBusy.value = false;
+       }
+     };
+@@ -7198,9 +7335,9 @@
+       const generation = ++roomActionUiGeneration;
+       try {
+         const result = await controller.value.requestSkipTurn();
+-        if (!replayAppDisposed && generation === roomActionUiGeneration) gameState.value = result.state;
++        if (!mobileDisposed && generation === roomActionUiGeneration) gameState.value = result.state;
+       } finally {
+-        if (!replayAppDisposed && generation === roomActionUiGeneration) networkBusy.value = false;
++        if (!mobileDisposed && generation === roomActionUiGeneration) networkBusy.value = false;
+       }
+     };
+ 
+@@ -7216,10 +7353,7 @@
+       }
+       setActionFeedback(language.value === "zh" ? "联机起点操作正在提交…" : "Submitting online root action…", "neutral");
+       const result = await controller.value.requestRootAction?.(type, action.point);
+-      if (result) {
+-        gameState.value = result.state;
+-        if (!result.success && result.reason === "ACTION_PROTOCOL_UNSUPPORTED") setActionFeedback(formatActionFeedback(result), "error");
+-      }
++      if (result) gameState.value = result.state;
+     };
+ 
+     const handleReset = async () => {
+@@ -7548,8 +7682,6 @@
+         return texts.roomNeedReady;
+       }
+ 
+-      if (gameState.value.interactionLockReason === "ACTION_PROTOCOL_UNSUPPORTED")
+-        return language.value === "zh" ? "当前房间不支持这种棋盘或操作，请使用新的共享房间。" : "This room does not support this board or action. Please use a new shared room.";
+       if (["ROOM_ACTION_PENDING", "ACTION_PENDING"].includes(gameState.value.interactionLockReason))
+         return language.value === "zh" ? "等待服务器确认上一动作。" : "Waiting for server confirmation.";
+       if (["ROOM_ACTION_UNCONFIRMED", "ACTION_OUTCOME_UNKNOWN"].includes(gameState.value.interactionLockReason))
+@@ -7686,7 +7818,7 @@
+     });
+     const hasUtilityModalOpen = computed(() => Boolean(activeUtilityDeck.value));
+     const hasGuideModalOpen = computed(() => Boolean(activeGuideEntry.value));
+-    const hasAnyModalOpen = computed(() => showClosePrompt.value || hasUtilityModalOpen.value || hasGuideModalOpen.value);
++    const hasAnyModalOpen = computed(() => mobileExitPromptOpen.value || showClosePrompt.value || hasUtilityModalOpen.value || hasGuideModalOpen.value);
+ 
+     watch(hasAnyModalOpen, (promptVisible) => {
+       document.body.classList.toggle("modal-open", Boolean(promptVisible));
+@@ -7711,6 +7843,171 @@
+         activeUtilityDeck.value = "";
+         return;
+       }
++    };
++
++    const handleMobileBackground = () => {
++      if (!globalThis.__LIFELINE_MOBILE_APP__ || mobileDisposed) return;
++      mobileAppActive = false;
++      moveHapticsController?.setActive(false);
++      lastNativeAvailability = null;
++      terminateAiWorker();
++      cancelHintRequest();
++      cancelAiComparison();
++      controller.value?._cancelTerritoryRefresh?.();
++      stopReplayPlayback();
++      clearTurnTimer();
++    };
++    const handleMobileForeground = () => {
++      if (!globalThis.__LIFELINE_MOBILE_APP__ || mobileDisposed) return;
++      const wasActive = mobileAppActive;
++      mobileAppActive = true;
++      moveHapticsController?.setActive(true);
++      const resumeExit = mobileExitAwaitingForeground;
++      if (resumeExit) {
++        mobileExitAwaitingForeground = false;
++        if (mobileExitController === controller.value) mobileExitController?.setReadOnlyMode(mobileExitPriorReadOnly);
++        mobileExitController = null;
++      }
++      if (mobileExitPending.value || (wasActive && !resumeExit)) return;
++      controller.value?._scheduleTerritoryRefresh?.();
++      restartTurnTimer();
++      if (canRunLocalAI(gameState.value)) scheduleAiMove(gameState.value);
++    };
++    const stopNativeNetworkRecovery = () => {
++      nativeNetworkGeneration += 1;
++      const unsubscribe = nativeNetworkUnsubscribe;
++      nativeNetworkUnsubscribe = null;
++      nativeNetworkOwner = null;
++      lastNativeAvailability = null;
++      try { unsubscribe?.(); } catch (_error) { /* Native cleanup is best effort. */ }
++    };
++    const startNativeNetworkRecovery = () => {
++      const platform = globalThis.LifelinePlatform;
++      if (!globalThis.__LIFELINE_MOBILE_APP__ || mobileDisposed || platform?.isNative !== true
++        || typeof platform.subscribeNetworkStatus !== "function") return;
++      stopNativeNetworkRecovery();
++      const generation = ++nativeNetworkGeneration;
++      nativeNetworkOwner = platform;
++      const unsubscribe = platform.subscribeNetworkStatus((status) => {
++        if (mobileDisposed || generation !== nativeNetworkGeneration
++          || nativeNetworkOwner !== platform || globalThis.LifelinePlatform !== platform) {
++          if (generation === nativeNetworkGeneration) stopNativeNetworkRecovery();
++          return;
++        }
++        if (!mobileAppActive || globalThis.__LIFELINE_APP_ACTIVE__ === false) return;
++        const available = status?.availability;
++        if (!["available", "unavailable"].includes(available) || available === lastNativeAvailability) return;
++        lastNativeAvailability = available;
++        if (available === "available") {
++          retryContributions();
++          if (roomStatus.value === "offline") scheduleReconnect();
++        }
++      });
++      if (generation === nativeNetworkGeneration) nativeNetworkUnsubscribe = unsubscribe;
++      else { try { unsubscribe?.(); } catch (_error) {} }
++    };
++    const cancelMobileExit = () => {
++      if (mobileExitPending.value) return;
++      mobileExitGeneration += 1;
++      mobileExitPromptOpen.value = false;
++      mobileExitError.value = "";
++    };
++    const handleMobileBack = (event) => {
++      if (!globalThis.__LIFELINE_MOBILE_APP__ || mobileDisposed) return false;
++      event?.preventDefault?.();
++      if (mobileExitPending.value) return true;
++      if (mobileExitPromptOpen.value) { cancelMobileExit(); return true; }
++      if (showClosePrompt.value) { overlayResult.value = null; resultModalDismissed.value = true; return true; }
++      if (hasGuideModalOpen.value) { activeGuideKey.value = ""; return true; }
++      if (replayInspectorOpen.value) { replayInspectorOpen.value = false; return true; }
++      if (hasUtilityModalOpen.value) { activeUtilityDeck.value = ""; return true; }
++      if (replayMode.value) { handleExitReplay(); return true; }
++      mobileExitPromptOpen.value = true;
++      return true;
++    };
++    const confirmMobileExit = async () => {
++      if (!mobileExitPromptOpen.value || mobileExitPending.value || mobileDisposed) return false;
++      const generation = ++mobileExitGeneration;
++      const instance = controller.value;
++      const platform = globalThis.LifelinePlatform;
++      const roomAtStart = roomStatus.value;
++      const replayAtStart = replayMode.value;
++      const tutorialAtStart = tutorialActive.value;
++      const oldReadOnly = Boolean(instance?.readOnlyMode);
++      mobileExitController = instance;
++      mobileExitPriorReadOnly = oldReadOnly;
++      mobileExitPending.value = true;
++      mobileExitError.value = "";
++      terminateAiWorker(); cancelHintRequest(); cancelAiComparison(); stopReplayPlayback(); clearTurnTimer();
++      instance?.setReadOnlyMode(true);
++      try {
++        if (roomStatus.value === "solo" && !tutorialActive.value && !replayMode.value && localGameActions.value.length) {
++          if (!saveLocalMatch()) throw new Error("save was not confirmed");
++          if (typeof platform?.flushSessionMirror === "function") await platform.flushSessionMirror();
++        }
++        if (mobileDisposed || generation !== mobileExitGeneration || instance !== controller.value
++          || platform !== globalThis.LifelinePlatform || roomStatus.value !== roomAtStart
++          || replayMode.value !== replayAtStart || tutorialActive.value !== tutorialAtStart) throw new Error("page state changed");
++        if (typeof platform?.moveToBackground !== "function") throw new Error("background action unavailable");
++        mobileExitAwaitingForeground = true;
++        await platform.moveToBackground();
++        if (mobileDisposed || generation !== mobileExitGeneration) return false;
++        mobileExitPending.value = false;
++        mobileExitPromptOpen.value = false;
++        if (!mobileExitAwaitingForeground && mobileAppActive) {
++          restartTurnTimer();
++          if (canRunLocalAI(gameState.value)) scheduleAiMove(gameState.value);
++        }
++        return true;
++      } catch (_error) {
++        if (mobileDisposed || generation !== mobileExitGeneration) return false;
++        mobileExitPending.value = false;
++        mobileExitAwaitingForeground = false;
++        mobileExitController = null;
++        mobileExitError.value = language.value === "zh" ? "未能安全返回，当前对局仍保留，请重试。" : "Could not leave safely. Your match remains open; retry.";
++        if (instance === controller.value) instance?.setReadOnlyMode(oldReadOnly);
++        if (mobileAppActive) { restartTurnTimer(); if (canRunLocalAI(gameState.value)) scheduleAiMove(gameState.value); }
++        return false;
++      }
++    };
++
++    const handleOpenAbout = () => {
++      if (aboutRequestTimer !== null) globalThis.clearTimeout(aboutRequestTimer);
++      const generation = ++aboutRequestGeneration;
++      activeUtilityDeck.value = "about";
++      aboutAppInfo.value = null;
++      aboutAppInfoState.value = "loading";
++      aboutRequestTimer = globalThis.setTimeout(() => {
++        if (generation !== aboutRequestGeneration || activeUtilityDeck.value !== "about" || mobileDisposed) return;
++        aboutRequestTimer = null;
++        aboutRequestGeneration += 1;
++        aboutAppInfoState.value = "error";
++      }, 30_000);
++      Promise.resolve().then(() => globalThis.LifelinePlatform?.getAppInfo?.()).then((info) => {
++        if (generation !== aboutRequestGeneration || activeUtilityDeck.value !== "about" || mobileDisposed) return;
++        if (aboutRequestTimer !== null) globalThis.clearTimeout(aboutRequestTimer);
++        aboutRequestTimer = null;
++        const platform = String(info?.platform ?? "").trim();
++        const version = String(info?.version ?? "").trim();
++        const build = String(info?.build ?? "").trim();
++        aboutAppInfo.value = { platform, version, build };
++        aboutAppInfoState.value = "ready";
++      }).catch(() => {
++        if (generation !== aboutRequestGeneration || activeUtilityDeck.value !== "about" || mobileDisposed) return;
++        if (aboutRequestTimer !== null) globalThis.clearTimeout(aboutRequestTimer);
++        aboutRequestTimer = null;
++        aboutAppInfoState.value = "error";
++      });
++    };
++
++    const toggleMoveHaptics = () => {
++      if (!mobileShell || !moveHapticsController) return;
++      const attemptingEnable = !moveHapticsEnabled.value;
++      const result = moveHapticsController.setEnabled(attemptingEnable);
++      moveHapticsEnabled.value = moveHapticsController.enabled;
++      moveHapticsNotice.value = result.persisted
++        ? ""
++        : (attemptingEnable ? "enable-save-error" : "disable-save-error");
+     };
+ 
+     const handleOpenUtilityDeck = async (deckKey) => {
+@@ -7820,7 +8117,7 @@
+         return { onRouteResult: result => { op.commit = Promise.resolve(result); } };
+       },
+       onApplied: () => {
+-        networkError.value = "";
++        if (!networkErrorOwner) networkError.value = "";
+       },
+     }));
+ 
+@@ -7943,7 +8240,6 @@
+ 
+     unsubscribers.push(
+       networkManager.on(ServerEvent.ERROR, (payload) => {
+-        networkErrorOwner = null;
+         readyPending.value = false;
+         if (payload?.code === "MATCH_IN_PROGRESS") {
+           roomStatus.value = "inProgress";
+@@ -7968,14 +8264,108 @@
+       }),
+     );
+ 
++    const handleNativeStorageStatus = (event) => {
++      if (!mobileShell || mobileDisposed) return;
++      const state = event.detail?.state;
++      const nativeAvailable = event.detail?.nativeAvailable;
++      const source = event.detail?.source;
++      const operation = event.detail?.operation;
++      const copy = language.value === "zh" ? {
++        "corrupt-local-and-no-valid-backup": nativeAvailable === true ? "本机存档损坏，未找到可恢复的设备备份。" : nativeAvailable === false ? "本机存档损坏，未找到其他可恢复备份。" : "本机存档损坏，备份状态无法确认。",
++        conflict: nativeAvailable === true ? "本机与设备备份中的对局不一致，自动保存已暂停；清除存档或手动恢复后继续。" : nativeAvailable === false ? "本机对局存档存在冲突，自动保存已暂停；清除存档或手动恢复后继续。" : "存档状态存在冲突，自动保存已暂停；清除存档或手动恢复后继续。",
++        corrupt: "存档损坏，自动保存已暂停；清除存档或手动恢复后继续。",
++        "corrupt-peer": nativeAvailable === true ? "设备上的一个对局存档损坏，自动覆盖已暂停；清除存档或手动恢复后继续。" : nativeAvailable === false ? "本机对局存档损坏，自动保存已暂停；清除存档或手动恢复后继续。" : "一个存档来源损坏，自动覆盖已暂停；清除存档或手动恢复后继续。",
++      } : {
++        "corrupt-local-and-no-valid-backup": nativeAvailable === true ? "The local save is corrupt and no recoverable device backup was found." : nativeAvailable === false ? "The local save is corrupt and no other recoverable backup was found." : "The local save is corrupt and backup status is unknown.",
++        conflict: nativeAvailable === true ? "The match in local storage conflicts with the device backup. Automatic saves are paused; clear the save or recover it manually before continuing." : nativeAvailable === false ? "The local match save has a conflict. Automatic saves are paused; clear the save or recover it manually before continuing." : "The save state has a conflict. Automatic saves are paused; clear the save or recover it manually before continuing.",
++        corrupt: "Saved data is corrupt. Automatic saves are paused; clear the save or recover it manually before continuing.",
++        "corrupt-peer": nativeAvailable === true ? "One match save on this device is corrupt. Automatic overwrite is paused; clear the save or recover it manually before continuing." : nativeAvailable === false ? "The local match save is corrupt. Automatic saves are paused; clear the save or recover it manually before continuing." : "One save source is corrupt. Automatic overwrite is paused; clear the save or recover it manually before continuing.",
++      };
++      let message = copy[state];
++      if (state === "pending") {
++        message = operation === "cleared"
++          ? (language.value === "zh" ? "存档已从本机清除，正在同步到设备备份。" : "The save was cleared locally; syncing the clear state to the device backup.")
++          : (language.value === "zh" ? "对局已保存到本机，正在同步到设备备份。" : "The match was saved locally; syncing it to the device backup.");
++      } else if (state === "confirmed") {
++        message = operation === "load"
++          ? (language.value === "zh" ? "已加载本机保存的对局。" : "The locally saved match was loaded.")
++          : (language.value === "zh" ? "对局已保存。" : "The match was saved.");
++      } else if (state === "restored") {
++        message = language.value === "zh"
++          ? "已恢复保存的对局。"
++          : "The saved match was restored.";
++      } else if (state === "cleared") {
++        message = language.value === "zh" ? "存档已清除。" : "The save was cleared.";
++      } else if (state === "error") {
++        if (source === "native" && operation === "saved") {
++          message = language.value === "zh"
++            ? "对局已保存在本机，但设备备份同步尚未确认；请保持应用打开并重试。"
++            : "The match was saved locally, but device-backup sync is not confirmed. Keep the app open and retry.";
++        } else if (source === "native" && operation === "cleared") {
++          message = language.value === "zh"
++            ? "存档已从本机清除，但设备备份同步尚未确认；请保持应用打开并重试。"
++            : "The save was cleared locally, but device-backup sync is not confirmed. Keep the app open and retry.";
++        } else if (source === "native" && operation === "restore") {
++          message = language.value === "zh"
++            ? "已恢复保存的对局，但设备备份同步尚未确认；请保持应用打开并重试。"
++            : "The saved match was restored, but device-backup sync is not confirmed. Keep the app open and retry.";
++        } else if (source === "native") {
++          message = language.value === "zh"
++            ? "设备存档读取或同步失败，存档状态尚未确认；请保持应用打开并重试。"
++            : "The device save could not be read or synced. Its status is unconfirmed; keep the app open and retry.";
++        } else if (source === "local" && operation === "saved") {
++          message = language.value === "zh"
++            ? "这次操作未保存到本机存档。请保持对局页面打开并重试。"
++            : "This operation was not saved locally. Keep the match page open and retry.";
++        } else if (source === "local" && operation === "cleared") {
++          message = language.value === "zh"
++            ? "这次清除操作未保存，之前的对局存档可能仍可恢复。"
++            : "This clear operation was not saved; the previous match may still be recoverable.";
++        } else if (source === "local" && operation === "restore") {
++          message = language.value === "zh"
++            ? "恢复保存的对局失败；请保持页面打开并重试。"
++            : "The saved match could not be restored. Keep the page open and retry.";
++        } else if (source === "local" && operation === "read") {
++          message = language.value === "zh"
++            ? "读取本机存档失败，当前存档状态尚未确认；请勿清除并重试。"
++            : "The local save could not be read, so its status is unconfirmed. Do not clear it; retry.";
++        } else if (source === "recovery") {
++          message = language.value === "zh"
++            ? "自动存档已暂停，请先恢复存档状态后再继续。"
++            : "Automatic saving is paused. Recover the save state before continuing.";
++        } else {
++          message = language.value === "zh"
++            ? "这次操作未能确认完成，可能没有保存；请保持页面打开并重试。"
++            : "This operation was not confirmed and may not have been saved. Keep the page open and retry.";
++        }
++      }
++      if (message) setActionFeedback(message, state === "error" || state === "corrupt-local-and-no-valid-backup" ? "error" : "neutral");
++    };
++    const handleHapticsPageHide = () => moveHapticsController?.setActive(false);
++    if (mobileShell) globalThis.addEventListener("pagehide", handleHapticsPageHide);
++    globalThis.addEventListener("lifeline:storage-status", handleNativeStorageStatus);
++    if (mobileShell && globalThis.__LIFELINE_STORAGE_STATUS__) {
++      handleNativeStorageStatus({ detail: globalThis.__LIFELINE_STORAGE_STATUS__ });
++    }
++
+     onBeforeUnmount(() => {
+-      replayAppDisposed = true;
++      mobileDisposed = true;
++      moveHapticsController?.dispose();
++      globalThis.removeEventListener("pagehide", handleHapticsPageHide);
++      roomActionUiGeneration += 1;
++      globalThis.removeEventListener("lifeline:storage-status", handleNativeStorageStatus);
++      invalidateAboutRequest();
++      authAttemptGeneration += 1;
+       replayOperationGeneration += 1;
++      if (replayExportOwnsBusy) { replayExportOwnsBusy = false; replayBusy.value = false; }
+       invalidateReplayImport();
+-      replayBusy.value = false;
+       legacyJoinGeneration += 1;
+-      roomActionUiGeneration += 1;
++      stopNativeNetworkRecovery();
+       onlineActionCoordinator?.dispose();
++      mobileExitGeneration += 1;
++      globalThis.removeEventListener("lifeline:background", handleMobileBackground);
++      globalThis.removeEventListener("lifeline:foreground", handleMobileForeground);
++      globalThis.removeEventListener("lifeline:back", handleMobileBack);
+       cancelSharedPassword();
+       accountLinkGeneration += 1; clearTimeout(accountLinkExpiry);
+       contribution.dispose();
+@@ -8003,12 +8393,20 @@
+     });
+ 
+     onMounted(() => {
++      if (globalThis.__LIFELINE_MOBILE_APP__) {
++        globalThis.addEventListener("lifeline:background", handleMobileBackground);
++        globalThis.addEventListener("lifeline:foreground", handleMobileForeground);
++        globalThis.addEventListener("lifeline:back", handleMobileBack);
++        startNativeNetworkRecovery();
++      }
+       globalThis.addEventListener("keydown", handleEscapeKeydown);
+       globalThis.addEventListener("online", retryContributions);
+       retryContributions();
+     });
+ 
+     return {
++      mobileExitPromptOpen, mobileExitPending, mobileExitError,
++      handleMobileBack, cancelMobileExit, confirmMobileExit,
+       auth,
+       authBusy,
+       authError,
+@@ -8056,6 +8454,7 @@
+       hintDisabled,
+       getTexts: getAppTexts,
+       activeUtilityDeck,
++      mobileShell,
+       sharedPasswordOpen, sharedPasswordUsername, sharedPassword, sharedPasswordBusy, sharedPasswordError,
+       handleSharedPasswordSubmit, cancelSharedPassword,
+       guideDockBadge,
+@@ -8166,10 +8565,18 @@
+       handleResultAction,
+       handleResultLeaveRoom,
+       handleOpenUtilityDeck,
++      handleOpenAbout,
++      aboutAppInfo,
++      aboutAppInfoState,
+       handleCloseUtilityDeck,
+       handleOpenGuideEntry,
+       handleCloseGuideEntry,
+       handleControllerReady,
++      handlePlayerMoveSuccess,
++      moveHapticsController,
++      moveHapticsEnabled,
++      moveHapticsNotice,
++      toggleMoveHaptics,
+       handleAuthSubmit,
+       handleLogout,
+       handleStateChange,
+@@ -8235,6 +8642,7 @@
+             :inspection-overlay="boardInspectionOverlay"
+             :input-locked="!tutorialActive && !replayMode && roomStatus === 'solo' && (localSetupPending || isLocalAiTurn())"
+             @controller-ready="handleControllerReady"
++            @player-move-success="handlePlayerMoveSuccess"
+             @state-change="handleStateChange"
+           >
+             <template #tools>
+@@ -8637,7 +9045,33 @@
+         @leave="handleResultLeaveRoom"
+         @close="handleClosePrompt"
+       />
++      <div v-if="mobileExitPromptOpen" class="modal-overlay" role="presentation">
++        <section class="panel modal-panel" role="dialog" aria-modal="true" :aria-label="language === 'zh' ? '返回桌面' : 'Leave game'">
++          <h2>{{ language === 'zh' ? '返回桌面？' : 'Return to home screen?' }}</h2>
++          <p>{{ language === 'zh' ? '当前对局会先尝试保存。' : 'The current match will be saved first.' }}</p>
++          <p v-if="mobileExitError" class="error-copy" role="alert">{{ mobileExitError }}</p>
++          <button type="button" :disabled="mobileExitPending" @click="cancelMobileExit">{{ language === 'zh' ? '继续对局' : 'Continue playing' }}</button>
++          <button type="button" :disabled="mobileExitPending" @click="confirmMobileExit">{{ language === 'zh' ? '返回桌面' : 'Return home' }}</button>
++        </section>
++      </div>
++      <UtilityModal variant="about" :visible="activeUtilityDeck === 'about'"
++        :title="language === 'zh' ? '关于' : 'About'" :close-label="getTexts(language, uiStyle).closePanel" @close="handleCloseUtilityDeck">
++        <div v-if="mobileShell && moveHapticsController" class="move-haptics-setting">
++          <div><strong>{{ getTexts(language, uiStyle).moveHapticsTitle }}</strong><small>{{ getTexts(language, uiStyle).moveHapticsDescription }}</small></div>
++          <button type="button" class="move-haptics-toggle" role="switch" :aria-label="getTexts(language, uiStyle).moveHapticsTitle" :aria-checked="moveHapticsEnabled" @click="toggleMoveHaptics">{{ moveHapticsEnabled ? getTexts(language, uiStyle).moveHapticsOn : getTexts(language, uiStyle).moveHapticsOff }}</button>
++          <p v-if="moveHapticsNotice" class="move-haptics-notice" role="status">{{ getTexts(language, uiStyle)['moveHapticsNotice_' + moveHapticsNotice] }}</p>
++        </div>
++        <p v-if="aboutAppInfoState === 'loading'">{{ language === 'zh' ? '正在读取版本信息…' : 'Loading version information…' }}</p>
++        <p v-else-if="aboutAppInfoState === 'error'" role="status">{{ language === 'zh' ? '无法读取版本信息。' : 'Could not read version information.' }}</p>
++        <dl v-else-if="aboutAppInfo" class="about-app-info">
++          <div><dt>App</dt><dd>LIFELINE</dd></div>
++          <div><dt>{{ language === 'zh' ? '平台' : 'Platform' }}</dt><dd>{{ aboutAppInfo.platform || '—' }}</dd></div>
++          <div><dt>{{ language === 'zh' ? '版本' : 'Version' }}</dt><dd>{{ aboutAppInfo.version || '—' }}</dd></div>
++          <div><dt>{{ language === 'zh' ? '构建' : 'Build' }}</dt><dd>{{ aboutAppInfo.build || '—' }}</dd></div>
++        </dl>
++      </UtilityModal>
+       <footer class="site-footer">
++        <button v-if="mobileShell" type="button" class="site-footer-about" @click="handleOpenAbout">{{ language === 'zh' ? '关于' : 'About' }}</button>
+         <a href="https://beian.mps.gov.cn/#/query/webSearch?code=11011402056155" rel="noreferrer" target="_blank" class="footer-beian-link footer-gongan">
+           <img src="./assets/beian.png" alt="公安备案图标" class="footer-gongan-icon" />
+           京公网安备11011402056155号
+diff --git a/web/web前端/OnlineAppI18n.js b/web/web前端/OnlineAppI18n.js
+--- a/web/web前端/OnlineAppI18n.js
++++ b/web/web前端/OnlineAppI18n.js
+@@ -211,6 +211,13 @@
+   hostOnlyAction: "Only the host can change this room option.",
+   roomCapacityConflict: "The new player count is smaller than the number of players already in the room.",
+   unknownServer: "The server returned an unknown error.",
++  moveHapticsTitle: "Move vibration",
++  moveHapticsDescription: "A brief vibration confirms a move on supported devices.",
++  moveHapticsOn: "On", moveHapticsOff: "Off",
++  "moveHapticsNotice_read-error": "The vibration preference could not be read. It remains off for this session.",
++  "moveHapticsNotice_corrupt": "The saved vibration preference is invalid. It remains off for this session.",
++  "moveHapticsNotice_enable-save-error": "Could not save the preference; vibration remains off.",
++  "moveHapticsNotice_disable-save-error": "Vibration is off for this session, but the preference could not be saved.",
+   continueMatch: "Continue Match",
+   leaveRoomAfterMatch: "Leave Room",
+   matchInProgress: "Match is already in progress.",
+@@ -543,6 +550,13 @@
+   hostOnlyAction: "只有房主可以修改这个房间选项。",
+   roomCapacityConflict: "新的人数设置小于当前房间人数，无法应用。",
+   unknownServer: "服务器返回了未知错误。",
++  moveHapticsTitle: "落子震动",
++  moveHapticsDescription: "在支持的设备上，落子后会短暂震动作为确认。",
++  moveHapticsOn: "开启", moveHapticsOff: "关闭",
++  "moveHapticsNotice_read-error": "无法读取震动偏好设置，本次会话中保持关闭。",
++  "moveHapticsNotice_corrupt": "保存的震动偏好设置无效，本次会话中保持关闭。",
++  "moveHapticsNotice_enable-save-error": "无法保存设置，震动保持关闭。",
++  "moveHapticsNotice_disable-save-error": "本次会话中震动已关闭，但设置未能保存。",
+   continueMatch: "继续",
+   leaveRoomAfterMatch: "离开房间",
+   matchInProgress: "对局已经开始，不能再次准备。",
+diff --git a/web/web前端/OnlineAppState.js b/web/web前端/OnlineAppState.js
+--- a/web/web前端/OnlineAppState.js
++++ b/web/web前端/OnlineAppState.js
+@@ -239,6 +239,12 @@
+ }
+ 
+ export function loadStoredAuth() {
++  if (globalThis.__LIFELINE_MOBILE_APP__ === true) {
++    const restored = globalThis.__LIFELINE_AUTH_BOOTSTRAP__;
++    return restored && typeof restored === "object"
++      ? { ...createEmptyAuth(), token: restored.token ?? null, username: restored.username ?? null }
++      : createEmptyAuth();
++  }
+   try {
+     const raw = globalThis.localStorage?.getItem(AUTH_STORAGE_KEY);
+     if (!raw) {
+@@ -256,6 +262,8 @@
+ }
+ 
+ export function persistAuth(auth) {
++  // Native credential authority owns durable storage and ordering.
++  if (globalThis.__LIFELINE_MOBILE_APP__ === true) return;
+   const normalized = {
+     token: auth?.token ?? null,
+     username: auth?.username ?? null,
+diff --git a/web/web前端/ReplayCodec.js b/web/web前端/ReplayCodec.js
+--- a/web/web前端/ReplayCodec.js
++++ b/web/web前端/ReplayCodec.js
+@@ -443,7 +443,14 @@
+   return validateReplayDocument(document, hashValue);
+ }
+ 
+-export function downloadReplayDocument(replayDocument, filename = "lifeline-replay.json") {
++export async function downloadReplayDocument(replayDocument, filename = "lifeline-replay.json") {
++  if (typeof globalThis.LifelinePlatform?.shareReplay === "function") {
++    const result = await globalThis.LifelinePlatform.shareReplay(replayDocument);
++    if (result?.status === "cancelled") return "cancelled";
++    if (result?.status === "selected") return "share-selected";
++    if (result?.status === "returned") return "share-returned";
++    return "shared";
++  }
+   const blob = new Blob([JSON.stringify(replayDocument, null, 2)], { type: "application/json" });
+   const url = URL.createObjectURL(blob);
+   const anchor = globalThis.document.createElement("a");
+@@ -451,6 +458,7 @@
+   anchor.download = filename;
+   anchor.click();
+   globalThis.setTimeout(() => URL.revokeObjectURL(url), 0);
++  return "downloaded";
+ }
+ 
+ function normalizeTopologyAction(action, sampleIds) {
+diff --git a/web/web前端/TrainingContribution.js b/web/web前端/TrainingContribution.js
+--- a/web/web前端/TrainingContribution.js
++++ b/web/web前端/TrainingContribution.js
+@@ -1,4 +1,5 @@
+ import { createReplayDocument } from "./ReplayCodec.js?v=20261029-unified-r1";
++import { configuredEndpoint } from "./platform/runtime.js?v=20261031-alignment-diagnostic";
+ 
+ export const LEGACY_CONTRIBUTION_POLICY = "anonymous-replay-training-v1";
+ export const CONTRIBUTION_POLICY = "anonymous-replay-training-v3";
+@@ -159,7 +160,11 @@
+         const timer = setTimeout(() => this.controller?.abort(), 15000);
+         let response;
+         try {
+-          response = await this.fetcher("/api/training/contributions", { method: "POST", credentials: "omit", headers: { "Content-Type": "application/json" }, body: JSON.stringify(item.payload), signal: this.controller.signal });
++          const endpoint = globalThis.__LIFELINE_MOBILE_APP__
++            ? configuredEndpoint("trainingContributionUrl", ["https:", "http:"])
++            : "/api/training/contributions";
++          if (!endpoint) throw new Error("Training contribution endpoint is unavailable.");
++          response = await this.fetcher(endpoint, { method: "POST", credentials: "omit", headers: { "Content-Type": "application/json" }, body: JSON.stringify(item.payload), signal: this.controller.signal });
+         } finally { clearTimeout(timer); }
+         if (!this.enabled || generation !== this.generation) break;
+         if (!response.ok) { this.status = response.status === 503 ? "unavailable" : "retry"; break; }
+diff --git a/web/web前端/index.html b/web/web前端/index.html
+--- a/web/web前端/index.html
++++ b/web/web前端/index.html
+@@ -4,7 +4,7 @@
+     <meta charset="UTF-8" />
+     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
+     <title>生命线策略棋</title>
+-    <link rel="stylesheet" href="./styles.css?v=20261101-platform-alignment-r1" />
++    <link rel="stylesheet" href="./styles.css?v=20261101-guide-alignment" />
+     <script>
+       window.MathJax = {
+         tex: {
+@@ -23,6 +23,6 @@
+   <body>
+     <div id="app"></div>
+     <noscript>需要启用 JavaScript 才能运行这个游戏。JavaScript must be enabled to run this game.</noscript>
+-    <script type="module" src="./main.js?v=20261101-platform-alignment-r1"></script>
++    <script type="module" src="./main.js?v=20261101-guide-alignment"></script>
+   </body>
+ </html>
+diff --git a/web/web前端/main.js b/web/web前端/main.js
+--- a/web/web前端/main.js
++++ b/web/web前端/main.js
+@@ -3,7 +3,7 @@
+   "https://unpkg.com/vue@3/dist/vue.global.prod.js",
+   "https://fastly.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js",
+ ];
+-const APP_ASSET_VERSION = "20261101-platform-alignment-r1";
++const APP_ASSET_VERSION = "20261101-guide-alignment";
+ 
+ // main.js 只做两件事：
+ // 1. 确保浏览器拿到 Vue 运行时
+@@ -18,7 +18,7 @@
+   return globalThis.navigator?.language?.toLowerCase().startsWith("zh") ? "zh" : "en";
+ }
+ 
+-function showBootError(message) {
++function showBootError(message, code) {
+   const mountPoint = document.querySelector("#app");
+   if (!mountPoint) {
+     return;
+@@ -27,19 +27,20 @@
+   const language = resolvePreferredLanguage();
+   const normalizedMessage = String(message ?? "");
+   const mentionsVue = /vue/i.test(normalizedMessage);
++  const mobileRuntimeFailure = globalThis.__LIFELINE_MOBILE_APP__ && code === "MOBILE_RUNTIME_UNAVAILABLE";
+   const copy = language === "zh"
+     ? {
+       eyebrow: "TriAxis",
+-      title: "页面启动失败",
++      title: mobileRuntimeFailure ? "应用启动失败" : "页面启动失败",
+       body: mentionsVue
+-        ? "前端运行时没有成功加载，通常是浏览器没有拿到 Vue 运行库。"
++        ? (mobileRuntimeFailure ? "应用启动所需的本地资源未能加载。请关闭并重新打开应用后重试。" : "前端运行时没有成功加载，通常是浏览器没有拿到 Vue 运行库。")
+         : "前端入口模块没有成功加载，通常是静态资源没有更新、路径失效，或服务器没有返回最新文件。",
+     }
+     : {
+       eyebrow: "TriAxis",
+-      title: "Page Failed To Start",
++      title: mobileRuntimeFailure ? "App Failed To Start" : "Page Failed To Start",
+       body: mentionsVue
+-        ? "The frontend runtime did not load successfully. Usually the browser failed to fetch the Vue runtime."
++        ? (mobileRuntimeFailure ? "The local resources required to start the app could not be loaded. Close and reopen the app, then try again." : "The frontend runtime did not load successfully. Usually the browser failed to fetch the Vue runtime.")
+         : "The frontend entry module did not load successfully. Usually the static asset path is stale, the file was not deployed, or the server did not return the latest file.",
+     };
+ 
+@@ -48,7 +49,7 @@
+       <p style="margin:0 0 8px;font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:#8d7557;">${copy.eyebrow}</p>
+       <h1 style="margin:0 0 12px;font-size:32px;">${copy.title}</h1>
+       <p style="margin:0 0 10px;">${copy.body}</p>
+-      <p style="margin:0;">${message}</p>
++      ${mobileRuntimeFailure ? "" : `<p style="margin:0;">${message}</p>`}
+     </section>
+   `;
+ }
+@@ -66,8 +67,14 @@
+ 
+ async function ensureVueRuntime() {
+   // 运行时优先复用 window.Vue，失败时再按 CDN 列表兜底。
+-  if (globalThis.Vue?.createApp) {
++  if (typeof globalThis.Vue?.createApp === "function") {
+     return globalThis.Vue;
++  }
++
++  if (globalThis.__LIFELINE_MOBILE_APP__) {
++    const error = new Error("Mobile app runtime is unavailable: the bundled Vue runtime did not load correctly.");
++    error.code = "MOBILE_RUNTIME_UNAVAILABLE";
++    throw error;
+   }
+ 
+   let lastError = null;
+@@ -87,10 +94,10 @@
+ 
+ async function importAppModule() {
+   const candidates = [
+-    new URL(`./OnlineApp.js?v=20261101-platform-alignment-r1`, import.meta.url).href,
+-    new URL("./OnlineApp.js?v=20261101-platform-alignment-r1", import.meta.url).href,
+-    `./OnlineApp.js?v=20261101-platform-alignment-r1`,
+-    "./OnlineApp.js?v=20261101-platform-alignment-r1",
++    new URL(`./OnlineApp.js?v=20261101-guide-alignment`, import.meta.url).href,
++    new URL("./OnlineApp.js?v=20261101-guide-alignment", import.meta.url).href,
++    `./OnlineApp.js?v=20261101-guide-alignment`,
++    "./OnlineApp.js?v=20261101-guide-alignment",
+   ];
+   let lastError = null;
+ 
+@@ -111,8 +118,8 @@
+   // Renderer obtains atlas projection through the matching BoardView registry.
+   // Keep both bootstrap-only imports outside legacy data-URL rule modules.
+   await Promise.all([
+-    import(new URL(`./TopologyGameEngine.js?v=20261101-platform-alignment-r1`, import.meta.url).href),
+-    import(new URL(`./BoardView.js?v=20261101-platform-alignment-r1`, import.meta.url).href),
++    import(new URL(`./TopologyGameEngine.js?v=20261101-guide-alignment`, import.meta.url).href),
++    import(new URL(`./BoardView.js?v=20261101-guide-alignment`, import.meta.url).href),
+   ]);
+ }
+ 
+@@ -127,7 +134,7 @@
+     const fallbackMessage = resolvePreferredLanguage() === "zh"
+       ? "未知启动错误。"
+       : "Unknown bootstrap error.";
+-    showBootError(error?.message ?? fallbackMessage);
++    showBootError(error?.message ?? fallbackMessage, error?.code);
+   }
+ }
+ 
+diff --git a/web/web前端/platform/TutorialHost.js b/web/web前端/platform/TutorialHost.js
+new file mode 100644
+--- /dev/null
++++ b/web/web前端/platform/TutorialHost.js
+@@ -0,0 +1,27 @@
++export function createTutorialTarget(currentHref) {
++  const current = new URL(currentHref);
++  if (!['http:', 'https:'].includes(current.protocol) || current.username || current.password) {
++    throw new Error('invalid-tutorial-url');
++  }
++  const target = new URL(current.pathname === '/index.html' ? '/index.html' : '/', current.origin);
++  target.searchParams.set('tutorial', '1');
++  return target.href;
++}
++
++export async function openTutorialTarget({ platform, currentHref, open = globalThis.open }) {
++  const target = createTutorialTarget(currentHref);
++  if (platform?.isNative) {
++    if (typeof platform.openTutorial !== 'function') throw new Error('tutorial-host-unavailable');
++    const requested = new URL(target);
++    const source = new URL(currentHref);
++    if (requested.origin !== source.origin || requested.searchParams.get('tutorial') !== '1') {
++      throw new Error('invalid-tutorial-url');
++    }
++    const result = await platform.openTutorial(target);
++    if (result?.status !== 'opened') throw new Error('tutorial-host-failed');
++    return { status: 'opened', target };
++  }
++  if (typeof open !== 'function') throw new Error('tutorial-host-unavailable');
++  open(target, '_blank', 'noopener');
++  return { status: 'opened', target };
++}
+diff --git a/web/web前端/platform/runtime.js b/web/web前端/platform/runtime.js
+new file mode 100644
+--- /dev/null
++++ b/web/web前端/platform/runtime.js
+@@ -0,0 +1,9 @@
++export function configuredEndpoint(name, allowedProtocols) {
++  const configured = globalThis.__LIFELINE_RUNTIME_CONFIG__?.[name];
++  if (typeof configured !== "string" || !configured.trim()) return null;
++  const url = new URL(configured);
++  if (!allowedProtocols.includes(url.protocol) || url.username || url.password) throw new Error(`Invalid configured endpoint: ${name}`);
++  return url.toString();
++}
++
++export const isMobileShell = () => globalThis.__LIFELINE_MOBILE_APP__ === true;
+diff --git a/web/web前端/tests/fixtures/minimax-defense.json b/web/web前端/tests/fixtures/minimax-defense.json
+new file mode 100644
+--- /dev/null
++++ b/web/web前端/tests/fixtures/minimax-defense.json
+@@ -0,0 +1,96 @@
++{
++  "schemaVersion": 1,
++  "scope": "Six reproducible tactical positions covering uncompensated exposure and profitable exchanges; not a win-rate benchmark.",
++  "baseline": {
++    "strategy": "MinimaxAI",
++    "depths": [1, 2],
++    "aiSourceSha256": "6738fe3a98a616dfd6c060636f5d2684fd49ebc561c95a96247db28c7170ccc3",
++    "discoveryRulesVersion": "territory-v2"
++  },
++  "fixtures": [
++    {
++      "id": "reinforce-before-second-node-loss",
++      "regression": "risk-diagnostic",
++      "depth": 2,
++      "gridSize": 9,
++      "player": "WHITE",
++      "moves": [[0,3],[4,0],[0,7],[7,0],[5,3],[5,0],[2,6],[1,3],[6,1],[1,2],[3,0]],
++      "legacyMove": [0,5],
++      "legacyWorstNodeLoss": 2,
++      "legacyWorstCoverageLoss": 4,
++      "defensiveWitness": [5,2],
++      "witnessWorstNodeLoss": 0,
++      "witnessWorstCoverageLoss": 1
++    },
++    {
++      "id": "several-small-cuts-beat-one-supply-collapse",
++      "regression": "trade-preservation",
++      "depth": 2,
++      "gridSize": 9,
++      "player": "BLACK",
++      "moves": [[0,3],[4,0],[0,7],[7,0],[5,3],[5,0],[2,6],[1,3],[6,1],[1,2],[3,0],[4,2],[0,8],[1,7],[5,1],[6,2],[2,0],[5,2],[0,2],[1,6],[2,2],[3,5],[0,5],[3,4],[2,4],[0,4]],
++      "legacyMove": [1,4],
++      "legacyWorstNodeLoss": 2,
++      "legacyWorstCoverageLoss": 3,
++      "defensiveWitness": [3,3],
++      "witnessWorstNodeLoss": 0,
++      "witnessWorstCoverageLoss": 2
++    },
++    {
++      "id": "occupy-vulnerable-supply-point",
++      "regression": "trade-preservation",
++      "depth": 2,
++      "gridSize": 9,
++      "player": "WHITE",
++      "moves": [[0,8],[3,5],[1,7],[7,1],[1,4],[4,1],[4,0],[1,1],[0,4]],
++      "legacyMove": [0,2],
++      "legacyWorstNodeLoss": 2,
++      "legacyWorstCoverageLoss": 4,
++      "defensiveWitness": [3,1],
++      "witnessWorstNodeLoss": 0,
++      "witnessWorstCoverageLoss": 3
++    },
++    {
++      "id": "close-two-node-exposure-without-forgoing-a-capture",
++      "regression": "uncompensated-defense",
++      "depth": 1,
++      "gridSize": 9,
++      "player": "WHITE",
++      "moves": [[0,4],[4,0],[1,0],[2,6],[0,5],[2,5],[3,2],[4,4],[4,2],[6,2],[3,4],[6,0],[6,1],[5,2],[3,5]],
++      "legacyMove": [1,3],
++      "legacyWorstNodeLoss": 2,
++      "legacyWorstCoverageLoss": 5,
++      "defensiveWitness": [4,1],
++      "witnessWorstNodeLoss": 0,
++      "witnessWorstCoverageLoss": 0
++    },
++    {
++      "id": "avoid-uncompensated-one-node-branch",
++      "regression": "uncompensated-defense",
++      "depth": 1,
++      "gridSize": 9,
++      "player": "BLACK",
++      "moves": [[4,0],[6,2],[0,3],[1,7],[3,0],[1,3],[3,5],[6,0],[3,4],[4,4],[1,5],[5,0],[1,2],[4,3]],
++      "legacyMove": [5,1],
++      "legacyWorstNodeLoss": 1,
++      "legacyWorstCoverageLoss": 6,
++      "defensiveWitness": [0,8],
++      "witnessWorstNodeLoss": 0,
++      "witnessWorstCoverageLoss": 3
++    },
++    {
++      "id": "avoid-uncompensated-three-node-supply-cut",
++      "regression": "uncompensated-defense",
++      "depth": 1,
++      "gridSize": 9,
++      "player": "BLACK",
++      "moves": [[4,0],[6,2],[0,3],[1,7],[3,0],[1,3],[3,5],[6,0],[3,4],[4,4],[1,5],[5,0],[1,2],[4,3],[3,2],[3,3]],
++      "legacyMove": [4,2],
++      "legacyWorstNodeLoss": 3,
++      "legacyWorstCoverageLoss": 6,
++      "defensiveWitness": [0,8],
++      "witnessWorstNodeLoss": 0,
++      "witnessWorstCoverageLoss": 2
++    }
++  ]
++}
+diff --git a/web/web前端/tests/verify-local-runtime-loaders.mjs b/web/web前端/tests/verify-local-runtime-loaders.mjs
+new file mode 100644
+--- /dev/null
++++ b/web/web前端/tests/verify-local-runtime-loaders.mjs
+@@ -0,0 +1,94 @@
++import assert from "node:assert/strict";
++import { readFile } from "node:fs/promises";
++import { webcrypto } from "node:crypto";
++import GameEngine from "../GameEngine.js?v=20261024-l34a1";
++import { serializeEngineState } from "../AIStateProtocol.js?v=20261024-l34a1";
++import { createSupportedThreePlayerModel } from "../ThreePlayerModels.js?v=20261024-l34a1";
++
++if (!globalThis.crypto?.subtle) globalThis.crypto = webcrypto;
++const modelDir = new URL("../assets/research-ai/", import.meta.url);
++for (const id of ["three-player-policy-v2", "three-player-policy-v3"]) {
++  const payload = JSON.parse(await readFile(new URL(`${id}.json`, modelDir), "utf8"));
++  assert.equal(createSupportedThreePlayerModel(payload).spec.id, id, `${id} frozen provenance is accepted`);
++  if (id === "three-player-policy-v2") {
++    const missingValidation = structuredClone(payload);
++    delete missingValidation.training.validation_samples;
++    assert.throws(() => createSupportedThreePlayerModel(missingValidation), /格式或后训练来源无效/,
++      "v2 requires its declared validation sample count");
++  } else {
++    for (const field of ["parent_posttraining_samples", "completed_generation_episodes", "completed_development_games"]) {
++      const missing = structuredClone(payload);
++      delete missing.training[field];
++      assert.throws(() => createSupportedThreePlayerModel(missing), /格式或后训练来源无效/,
++        `v3 requires its declared ${field}`);
++    }
++    const badParent = structuredClone(payload);
++    badParent.training.parent_model_sha256 = "0".repeat(64);
++    assert.throws(() => createSupportedThreePlayerModel(badParent), /格式或后训练来源无效/,
++      "v3 parent provenance tampering is rejected");
++    const missingProtocol = structuredClone(payload);
++    delete missingProtocol.training.protocol_sha256;
++    assert.throws(() => createSupportedThreePlayerModel(missingProtocol), /格式或后训练来源无效/,
++      "v3 missing protocol provenance is rejected");
++    const malformedSource = structuredClone(payload);
++    malformedSource.training.source_hashes["web/tools/finetune-three-player-v3.mjs"] = "not-a-hash";
++    assert.throws(() => createSupportedThreePlayerModel(malformedSource), /格式或后训练来源无效/,
++      "v3 malformed source provenance is rejected");
++  }
++}
++const originalFetch = globalThis.fetch;
++const originalSelf = globalThis.self;
++const messages = [];
++globalThis.fetch = async (value) => {
++  const url = new URL(String(value));
++  url.search = "";
++  return new Response(await readFile(url));
++};
++globalThis.self = { postMessage: (message) => messages.push(message) };
++try {
++  await import("../AIWorker.js?v=20261024-l34a1");
++  let requestId = 0;
++  const run = async ({ playerCount, boardShape, strategy, modelId, rulesVersion = "territory-v2", fixtureMoves = [] }) => {
++    const engine = new GameEngine({ gridSize: 5, playerCount, boardShape, rulesVersion });
++    for (const point of fixtureMoves) {
++      const result = engine.playMove(point);
++      assert.equal(result.success, true, `${rulesVersion} shared fixture move ${point}`);
++    }
++    const serializedState = serializeEngineState(engine);
++    await self.onmessage({ data: { type: "COMPUTE", serializedState, aiPlayer: engine.currentPlayer, strategy, modelId, topN: 2, requestId: ++requestId } });
++    const response = messages.pop();
++    assert.equal(response.type, "RESULT", `${strategy}/${modelId}: ${response.message}`);
++    assert.equal(response.requestId, requestId, `${strategy}/${modelId}: request identity is preserved`);
++    assert.equal(response.rulesVersion, rulesVersion, `${strategy}/${modelId}: rules version is preserved`);
++    assert.equal(response.positionRevision, serializedState.positionRevision ?? 0,
++      `${strategy}/${modelId}: position revision is preserved`);
++    assert.equal(response.currentPlayer, serializedState.currentPlayer,
++      `${strategy}/${modelId}: acting player is preserved`);
++    assert.equal(response.modelInfo?.id ?? strategy, modelId ?? strategy);
++    assert.ok(response.moves.length > 0);
++    for (const move of response.moves) assert.ok(move.type === "pass"
++      || engine.getLegalMoves(engine.currentPlayer).some((legal) => legal.point.join(",") === move.point?.join(",")));
++  };
++  const sharedTerritoryFixture = [[1, 0], [0, 2], [3, 1], [1, 2]];
++  for (const rulesVersion of ["territory-v2", "territory-v3"]) {
++    for (const modelId of ["three-player-policy-v1", "three-player-policy-v2", "three-player-policy-v3", "three-player-search-v4-round12"]) {
++      await run({ playerCount: 3, boardShape: "triangle", strategy: "three-player", modelId,
++        rulesVersion, fixtureMoves: sharedTerritoryFixture });
++    }
++    for (const playerCount of [4, 5, 6]) {
++      await run({ playerCount, boardShape: "hexagon", strategy: "hex-player", modelId: "hex-player-policy-v1",
++        rulesVersion });
++    }
++    await run({ playerCount: 4, boardShape: "hexagon", strategy: "hex-player", modelId: "hex-player-search-v5",
++      rulesVersion });
++    await run({ playerCount: 3, boardShape: "triangle", strategy: "greedy", rulesVersion,
++      fixtureMoves: sharedTerritoryFixture });
++    await run({ playerCount: 3, boardShape: "hexagon", strategy: "greedy", rulesVersion });
++    await run({ playerCount: 4, boardShape: "triangle", strategy: "greedy", rulesVersion });
++  }
++} finally {
++  globalThis.fetch = originalFetch;
++  if (originalSelf === undefined) delete globalThis.self;
++  else globalThis.self = originalSelf;
++}
++console.log("verify-local-runtime-loaders: PASS (model loaders, shared v2/v3 fixture, legal Worker moves)");
+diff --git a/web/web前端/tests/verify-online-bot-ui.mjs b/web/web前端/tests/verify-online-bot-ui.mjs
+new file mode 100644
+--- /dev/null
++++ b/web/web前端/tests/verify-online-bot-ui.mjs
+@@ -0,0 +1,59 @@
++import assert from "node:assert/strict";
++import { readFile } from "node:fs/promises";
++import { PLAYER_COUNT_OPTIONS } from "../OnlineAppState.js";
++import { formatPlayerName, getTexts } from "../OnlineAppI18n.js";
++import { Player, PLAYER_ORDER, resolveInitialPositions } from "../GameEngine.js";
++
++const onlineApp = await readFile(new URL("../OnlineApp.js", import.meta.url), "utf8");
++const styles = await readFile(new URL("../styles.css", import.meta.url), "utf8");
++
++assert.deepEqual(PLAYER_COUNT_OPTIONS, [2, 3, 4, 5, 6]);
++assert.match(onlineApp, /class="language-switcher language-switcher-inline player-count-choices"[\s\S]*?v-for="count in PLAYER_COUNT_OPTIONS"/);
++assert.match(onlineApp, /v-if="playerCount >= 3 && !session\.roomId"[\s\S]*?v-for="count in playerCount"/,
++  "3–6 seat room setup exposes bot counts while preserving at least one human seat");
++assert.match(onlineApp, /texts\.value\.roomBotPlayerName\(formatAppPlayerName\(player\.color/,
++  "room bot labels use localized player-color names and localized wrapper text");
++assert.match(onlineApp, /class="action-button action-button-ghost"[^>]*@click="\$emit\('retry-bots'\)"[^>]*>\s*\{\{ texts\.roomRetryBots \}\}/,
++  "host bot-error retry action is connected to the room component event");
++assert.match(onlineApp, /v-if="isHost && roomInfo\?\.settings\?\.botCount && roomPlaying && roomInfo\?\.botError"[^>]*@click="\$emit\('retry-bots'\)"/,
++  "only the playing host sees retry while a bot room reports an error");
++assert.match(onlineApp, /const retryRoomBots = \(\) => networkManager\.retryBots\(\)\.catch\(handleNetworkError\)/,
++  "the room retry event reaches the network manager");
++assert.match(onlineApp, /@retry-bots="retryRoomBots"/,
++  "the playing host retry button is wired through the room panel");
++assert.match(styles, /\.player-count-choices\s*\{\s*display:\s*grid;\s*grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\);\s*\}/,
++  "the player count row uses five equal narrow-safe columns");
++assert.match(styles, /\.player-count-choices \.language-button\s*\{\s*min-width:\s*0;\s*padding-inline:\s*8px;\s*\}/,
++  "player count buttons can shrink at narrow mobile widths");
++for (const colorClass of ["is-green", "is-orange", "is-cyan"]) {
++  assert.ok(onlineApp.includes(`"${colorClass}": option.value`), `starter color styling includes ${colorClass}`);
++}
++assert.match(onlineApp, /if \(APP_ALL_PLAYERS\.includes\(payloadColor\)\)/,
++  "chat emoji payloads preserve every supported player color");
++assert.match(onlineApp, /settings\.initialPositions \?\? resolveInitialPositions\(settings\.gridSize, settings\.playerCount, null, settings\.boardShape\)/,
++  "chat emoji anchors use the current match's actual opening positions");
++assert.match(onlineApp, /getPlayerAccentClass\(color\)\.replace\("player-accent-", ""\)/,
++  "chat emoji colors use the shared six-color player accent mapping");
++for (const count of [4, 5, 6]) {
++  const positions = resolveInitialPositions(5, count, null, "hexagon");
++  const anchors = PLAYER_ORDER.slice(0, count).map((color) => {
++    const point = positions[color];
++    const r = 4;
++    const nx = point[0] + point[1] / 2;
++    return [
++      14 + 72 * (nx - r / 2) / (2 * r),
++      14 + 72 * point[1] / (2 * r),
++    ];
++  });
++  assert.equal(new Set(anchors.map(([x, y]) => `${x.toFixed(3)},${y.toFixed(3)}`)).size, count,
++    `${count}-player hex emoji anchors stay distinct`);
++}
++
++const green = formatPlayerName(Player.GREEN, "en");
++const greenZh = formatPlayerName(Player.GREEN, "zh");
++assert.equal(getTexts("en").roomBotPlayerName(green), "AI (Green)");
++assert.equal(getTexts("zh").roomBotPlayerName(greenZh), "AI（绿方）");
++assert.equal(getTexts("en").roomRetryBots, "Retry AI turn");
++assert.equal(getTexts("zh").roomRetryBots, "重试 AI 回合");
++
++console.log("Online bot UI regression passed: 4–6 seat entry, localized bot labels, and six starter colors.");
+diff --git a/web/web前端/tests/verify-online-recovery.mjs b/web/web前端/tests/verify-online-recovery.mjs
+--- a/web/web前端/tests/verify-online-recovery.mjs
++++ b/web/web前端/tests/verify-online-recovery.mjs
+@@ -644,17 +644,9 @@
+   "const applyRoomSnapshot = (payload, resetController = true) =>",
+   "const refreshRoomSnapshot = async () =>",
+ );
+-const applyDirectSnapshotSection = sourceSection(
+-  onlineAppSource,
+-  "const applyDirectRoomSnapshot = (payload, resetController = true) =>",
+-  "const ensureLegacyActionSync = async () =>",
+-);
+-assert.match(applyDirectSnapshotSection, /coordinateControllerRoomSnapshot\s*\(/);
+-assert.match(applySnapshotSection, /networkManager\.serverAuthoritative\) return applyDirectRoomSnapshot/);
+-assert.match(applySnapshotSection, /protocol === "legacy"\) return applyDirectRoomSnapshot/);
+-assert.match(applySnapshotSection, /coordinator\.acceptRoomSnapshot\s*\(/);
++assert.match(applySnapshotSection, /coordinateControllerRoomSnapshot\s*\(/);
+ assert.doesNotMatch(
+-  applyDirectSnapshotSection + applySnapshotSection,
++  applySnapshotSection,
+   /restoreMatchState|setGameConfig|_replaceEngine|resetGame/,
+   "OnlineApp must delegate controller recovery to the tested coordinator",
+ );
+diff --git a/web/web前端/tests/verify-topology-app-persistence-v1.mjs b/web/web前端/tests/verify-topology-app-persistence-v1.mjs
+--- a/web/web前端/tests/verify-topology-app-persistence-v1.mjs
++++ b/web/web前端/tests/verify-topology-app-persistence-v1.mjs
+@@ -7,7 +7,6 @@
+ 
+ const values = new Map();
+ const noop = () => {};
+-const unmountCallbacks = [];
+ globalThis.localStorage = {
+   getItem: (key) => values.get(key) ?? null,
+   setItem: (key, value) => values.set(key, String(value)),
+@@ -24,7 +23,7 @@
+   watch: noop,
+   nextTick: async () => {},
+   onMounted: noop,
+-  onBeforeUnmount: (callback) => unmountCallbacks.push(callback),
++  onBeforeUnmount: noop,
+ };
+ globalThis.Worker = class {
+   postMessage() {}
+@@ -464,8 +463,6 @@
+ values.set(TOPOLOGY_LOCAL_GAME_SESSION_STORAGE_KEY, JSON.stringify(legacyPreset));
+ await reloadPreset();
+ 
+-for (const unmount of unmountCallbacks.reverse()) unmount();
+-
+ console.log(JSON.stringify({
+   status: "PASS",
+   coverage: [

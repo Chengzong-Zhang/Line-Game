@@ -27,6 +27,8 @@
 - [releases/](releases/)：界面、教学、模型接入和网页发布记录，保留日期与验证范围。
 - [verification/](verification/)：对应版本的清单、哈希与紧凑收据；历史通过不能替代当前验证。
 - [maintenance/](maintenance/)：仓库清理记录。
+- [本轮整合交付](../task/alignment-20261031/DELIVERY.md)：最终候选、源码来源、验证与渠道状态；旧审计和中间包不代替最终收据。
+- [平台构建说明](maintenance/alignment-20261031/PLATFORM-DELIVERY.md)：按平台重建、安装与接续。
 - [2026-10-31 仓库入口审计](maintenance/alignment-20261031/REPOSITORY-AUDIT.md)：本次 README、目录和兼容链接的检查范围及待办。
 - [archive/](archive/)：早期课程文档、提示词与工程说明。
 - [assets/](assets/)：文档示例图片。

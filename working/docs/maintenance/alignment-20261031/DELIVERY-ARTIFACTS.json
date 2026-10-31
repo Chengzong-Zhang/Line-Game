@@ -1,0 +1,80 @@
+{
+  "schema": "lifeline-local-delivery-v1",
+  "common_source": "a7a541826d025213f17dca09689bed5ce72ed4c6",
+  "artifacts": [
+    {
+      "name": "LIFELINE-Windows-portable.exe",
+      "platform": "Windows",
+      "state": "本机独立启动验证；未声称正式签名或Steam发布",
+      "source": "local_artifacts/alignment-20261031/desktop-final-source-20261101/desktop/portable-final-20261101/LIFELINE-0.14.0-local.1-x64-portable.exe",
+      "sha256": "7afb231b19538d6f87d88b3312cfa3c88600dd7e1bd85b9d272296c4fbc068bf",
+      "bytes": 122246626,
+      "source_files": 1
+    },
+    {
+      "name": "LIFELINE-Android-debug.apk",
+      "platform": "Android",
+      "state": "调试签名；真机与覆盖升级未验",
+      "source": "local_artifacts/alignment-20261031/mobile/mobile/local_artifacts/FINAL-v2-android-a7a54182/lifeline-debug-a7a54182.apk",
+      "sha256": "26f3d57eb6c67e086887e0a7bc52d22f0c9bf430fc9acadbab683f39a762b124",
+      "bytes": 49037203,
+      "source_files": 1
+    },
+    {
+      "name": "LIFELINE-Harmony-unsigned.hap",
+      "platform": "HarmonyOS",
+      "state": "未签名；需签名接续后再安装验证",
+      "source": "local_artifacts/alignment-20261031/mobile/mobile/local_artifacts/FINAL-v2-harmony-a7a54182/entry-default-unsigned.hap",
+      "sha256": "59109aacc7794cc17f1f86502d9f3d4b99f3c432116aba195b13e699ce139633",
+      "bytes": 68243192,
+      "source_files": 1
+    },
+    {
+      "name": "LIFELINE-Web-candidate.zip",
+      "platform": "Web",
+      "state": "静态候选；未部署服务",
+      "source": "local_artifacts/alignment-20261031/wechat-final-source-20261101-r2/web-release/frontend-overlay.zip",
+      "sha256": "36bf12e741ff5b14e839a61e48003b1cc6142e37275b248ba29bc69a55e4e51d",
+      "bytes": 36371987,
+      "source_files": 1
+    },
+    {
+      "name": "LIFELINE-itch-HTML5.zip",
+      "platform": "itch.io",
+      "state": "离线HTML5；本机iframe验证，未上传",
+      "source": "local_artifacts/alignment-20261031/itch-final-source-20261101/local_artifacts/itch-html5/lifeline-html5-20261031-local-alignment-preliminary.zip",
+      "sha256": "0ee261bc0d56244f7fa05fdc359ab9ce9dc2d6e8feff1e3ac01e238ac1461406",
+      "bytes": 43261721,
+      "source_files": 1
+    },
+    {
+      "name": "LIFELINE-WeChat-0.14.1-project.zip",
+      "platform": "WeChat",
+      "state": "0.14.1本地工程；713项通过，未上传或真机验收",
+      "source": "local_artifacts/alignment-20261031/wechat-final-source-20261101-r2/local_artifacts/wechat-candidates/0.14.1-12465505d4a7-iwZmMx/project",
+      "sha256": "d10e62248346e0f85664e7d93c419d4a68d12a9e33cdd4a0a9a8b0fe12553a50",
+      "bytes": 18119171,
+      "source_files": 35
+    },
+    {
+      "name": "LIFELINE-macOS-source.zip",
+      "platform": "macOS",
+      "state": "887文件源码与资源；无Mac原生构建",
+      "source": "local_artifacts/alignment-20261031/macos-handoff-source-20261101.zip",
+      "sha256": "949ffa0417d09c3ddd70209af2fb5b3838fb3738fc805c21e569ffb3946d0ef3",
+      "bytes": 73843038,
+      "source_files": 1
+    },
+    {
+      "name": "LIFELINE-iOS-engineering.zip",
+      "platform": "iOS",
+      "state": "415项最后资源；带能力门禁的工程，未Xcode编译或生成IPA",
+      "source": "local_artifacts/alignment-20261031/mobile/mobile/ios-final-442108",
+      "sha256": "8820ecbda8d2e8fa269998fc5a96e10a346ea80d548116780b9116c0eb8b2b0b",
+      "bytes": 43270885,
+      "source_files": 439
+    }
+  ],
+  "scope": "共同a7运行源码及明确宿主适配的本地候选；iOS/Mac交源码资源接续。无真机/真实跨端联机、正式签名、服务激活或渠道发布的统一承诺。",
+  "assembler_sha256": "f8d2299e267fec9c3cae03376ac49d8b74939d0085e639ff7eab80b8237a9f13"
+}

@@ -1,0 +1,118 @@
+diff --git a/web/web前端/OnlineApp.js b/web/web前端/OnlineApp.js
+--- a/web/web前端/OnlineApp.js
++++ b/web/web前端/OnlineApp.js
+@@ -1,6 +1,6 @@
+ import { MultiplayerWarmupSession } from "./MultiplayerAIWarmup.js?v=20261029-unified-r1";
+ import { createLocalAIWorker } from "./LocalAIWorkerFactory.js?v=20261029-unified-r1";
+-import GameController from "./GameController.js?v=20261101-topology-markers";
++import GameController from "./GameController.js?v=20261101-platform-alignment-r1";
+ import Renderer from "./Renderer.js?v=20261029-unified-r1";
+ import GameEngine, { Player, PointState } from "./GameEngine.js?v=20261029-unified-r1";
+ import { captureWorkerRequest, isWorkerResultForRequest, serializeEngineState } from "./AIStateProtocol.js?v=20261029-unified-r1";
+@@ -9,14 +9,14 @@
+   OneShotHintWorker,
+   applyHintWorkerResult,
+ } from "./HintWorkerSession.js?v=20261029-unified-r1";
+-import { ClientEvent, ServerEvent, TOPOLOGY_ROOM_CAPABILITY, resolveWebSocketUrl } from "./NetworkManager.js?v=20261029-unified-r1";
+-import NetworkManager from "./CrossPlatformNetwork.js?v=20261029-unified-r1";
++import { ClientEvent, ServerEvent, TOPOLOGY_ROOM_CAPABILITY, resolveWebSocketUrl } from "./NetworkManager.js?v=20261101-platform-alignment-r1";
++import NetworkManager from "./CrossPlatformNetwork.js?v=20261101-platform-alignment-r1";
+ import {
+   applyRoomSnapshotWithPostCommit,
+   coordinateControllerRoomSnapshot,
+   registerRoomSnapshotResponseListeners,
+   validateTopologyRoomSnapshot,
+-} from "./OnlineRoomSync.js?v=20261029-unified-r1";
++} from "./OnlineRoomSync.js?v=20261101-platform-alignment-r1";
+ import {
+   createEmptyAuth as createAppEmptyAuth,
+   GRID_SIZE_OPTIONS as APP_GRID_SIZE_OPTIONS,
+@@ -110,8 +110,8 @@
+   undoBoundaryVertex,
+ } from "./BoardEditor.js?v=20261029-unified-r1";
+ import { decodeTopologyState } from "./TopologyStateCodec.js?v=20261029-unified-r1";
+-import { OnlineActionSync } from "./OnlineActionSync.js?v=20261031-alignment-diagnostic";
+-import { OnlineActionSyncCoordinator } from "./OnlineActionSyncCoordinator.js?v=20261031-alignment-diagnostic";
++import { OnlineActionSync } from "./OnlineActionSync.js?v=20261101-platform-alignment-r1";
++import { OnlineActionSyncCoordinator } from "./OnlineActionSyncCoordinator.js?v=20261101-platform-alignment-r1";
+ 
+ const {
+   computed,
+diff --git a/web/web前端/GameController.js b/web/web前端/GameController.js
+--- a/web/web前端/GameController.js
++++ b/web/web前端/GameController.js
+@@ -1,6 +1,6 @@
+ import GameEngine, { Player, StartProtectionRule, TerritoryRulesVersion, PLAYER_ORDER, getBoardPositions, resolveBoardShape } from "./GameEngine.js?v=20261029-unified-r1";
+ import Renderer from "./Renderer.js?v=20261029-unified-r1";
+-import { ServerEvent } from "./NetworkManager.js?v=20261029-unified-r1";
++import { ServerEvent } from "./NetworkManager.js?v=20261101-platform-alignment-r1";
+ import { serializeEngineState } from "./AIStateProtocol.js?v=20261029-unified-r1";
+ import {
+   applyTerritoryWorkerResult,
+diff --git a/web/web前端/CrossPlatformNetwork.js b/web/web前端/CrossPlatformNetwork.js
+--- a/web/web前端/CrossPlatformNetwork.js
++++ b/web/web前端/CrossPlatformNetwork.js
+@@ -1,4 +1,4 @@
+-import NetworkManager, { ClientEvent, ServerEvent } from "./NetworkManager.js?v=20261029-unified-r1";
++import NetworkManager, { ClientEvent, ServerEvent } from "./NetworkManager.js?v=20261101-platform-alignment-r1";
+ import { SharedRoomClient, sharedApiOrigin } from "./SharedRoomClient.js?v=20261029-unified-r1";
+ 
+ // Preserve existing four-digit Web rooms; eight-character rooms share the
+diff --git a/web/web前端/main.js b/web/web前端/main.js
+--- a/web/web前端/main.js
++++ b/web/web前端/main.js
+@@ -3,7 +3,7 @@
+   "https://unpkg.com/vue@3/dist/vue.global.prod.js",
+   "https://fastly.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js",
+ ];
+-const APP_ASSET_VERSION = "20261101-guide-alignment";
++const APP_ASSET_VERSION = "20261101-platform-alignment-r1";
+ 
+ // main.js 只做两件事：
+ // 1. 确保浏览器拿到 Vue 运行时
+@@ -87,10 +87,10 @@
+ 
+ async function importAppModule() {
+   const candidates = [
+-    new URL(`./OnlineApp.js?v=20261101-guide-alignment`, import.meta.url).href,
+-    new URL("./OnlineApp.js?v=20261101-guide-alignment", import.meta.url).href,
+-    `./OnlineApp.js?v=20261101-guide-alignment`,
+-    "./OnlineApp.js?v=20261101-guide-alignment",
++    new URL(`./OnlineApp.js?v=20261101-platform-alignment-r1`, import.meta.url).href,
++    new URL("./OnlineApp.js?v=20261101-platform-alignment-r1", import.meta.url).href,
++    `./OnlineApp.js?v=20261101-platform-alignment-r1`,
++    "./OnlineApp.js?v=20261101-platform-alignment-r1",
+   ];
+   let lastError = null;
+ 
+@@ -111,8 +111,8 @@
+   // Renderer obtains atlas projection through the matching BoardView registry.
+   // Keep both bootstrap-only imports outside legacy data-URL rule modules.
+   await Promise.all([
+-    import(new URL(`./TopologyGameEngine.js?v=20261101-guide-alignment`, import.meta.url).href),
+-    import(new URL(`./BoardView.js?v=20261101-guide-alignment`, import.meta.url).href),
++    import(new URL(`./TopologyGameEngine.js?v=20261101-platform-alignment-r1`, import.meta.url).href),
++    import(new URL(`./BoardView.js?v=20261101-platform-alignment-r1`, import.meta.url).href),
+   ]);
+ }
+ 
+diff --git a/web/web前端/index.html b/web/web前端/index.html
+--- a/web/web前端/index.html
++++ b/web/web前端/index.html
+@@ -4,7 +4,7 @@
+     <meta charset="UTF-8" />
+     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
+     <title>生命线策略棋</title>
+-    <link rel="stylesheet" href="./styles.css?v=20261101-guide-alignment" />
++    <link rel="stylesheet" href="./styles.css?v=20261101-platform-alignment-r1" />
+     <script>
+       window.MathJax = {
+         tex: {
+@@ -23,6 +23,6 @@
+   <body>
+     <div id="app"></div>
+     <noscript>需要启用 JavaScript 才能运行这个游戏。JavaScript must be enabled to run this game.</noscript>
+-    <script type="module" src="./main.js?v=20261101-guide-alignment"></script>
++    <script type="module" src="./main.js?v=20261101-platform-alignment-r1"></script>
+   </body>
+ </html>

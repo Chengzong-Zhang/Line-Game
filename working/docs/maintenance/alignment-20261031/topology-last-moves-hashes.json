@@ -1,0 +1,18 @@
+{
+  "web/web前端/GameController.js": {
+    "before_sha256": "57f25001350f02467d07fcfa14919c2523e6d956cd0865a74a4961f5b79e58d6",
+    "after_sha256": "6d30ddeed84c2053e09df3163b3dc9e13e335ce6e856cd083bc437804b30d8c1"
+  },
+  "web/web前端/OnlineApp.js": {
+    "before_sha256": "4fb86029dcd3f070fdfa2b0790e0336b3032913ce6e4c0540b0569f1126fdd20",
+    "after_sha256": "c66b098c88d85b8a62069bac3b8ca36762c23178d846eb8c53eab61157563c26"
+  },
+  "web/web前端/tests/verify-topology-app-persistence-v1.mjs": {
+    "before_sha256": "7df49d7245b28ccc01b10f8a36c53e3bc813fc2a88bf1cdeba4d81226984f7e9",
+    "after_sha256": "ec135b7fb1e82a2fb2b74cfc82adde6c5d83b070fcb5e42952bc3c7b799bc5a3"
+  },
+  "web/web前端/tests/verify-topology-last-moves.mjs": {
+    "before_sha256": null,
+    "after_sha256": "e85415b509d22af28a48eff8fa3372d7490458ef25c7752891edd4fa83fff5e8"
+  }
+}

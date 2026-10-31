@@ -1,0 +1,7 @@
+{
+  "reference": "51e5782d + guide-overlay-v1",
+  "previousPatchSha256": "568379c5f99e3176c66e0a30b2205beea1cf4bd856e05c946d92433b6429cf24",
+  "patchSha256": "6d3419470e8baef5dab8d1a88aa27cfaff3cd43eca1fe9fdacf44e8f7f3499d8",
+  "changes": "CRLF to LF and trailing EOF blank lines only; token sequences unchanged",
+  "fileCount": 7
+}

@@ -1,0 +1,87 @@
+diff --git a/web/web前端/OnlineApp.js b/web/web前端/OnlineApp.js
+--- a/web/web前端/OnlineApp.js
++++ b/web/web前端/OnlineApp.js
+@@ -4394,18 +4394,28 @@
+       };
+     };
+ 
++    // Draft fields can be read before Vue flushes the count/starter watcher.
++    // Reconcile only the local draft; authoritative room inputs stay strict.
++    const draftTurnState = () => {
++      const count = APP_PLAYER_COUNT_OPTIONS.includes(selectedPlayerCount.value) ? selectedPlayerCount.value : 2;
++      const starter = APP_ALL_PLAYERS.slice(0, count).includes(selectedStartPlayer.value)
++        ? selectedStartPlayer.value : APP_ALL_PLAYERS[0];
++      return { starter, order: resizeTurnOrder(selectedTurnOrder.value, count, starter) };
++    };
++
+     const selectedTopologySettings = () => {
+       if (!selectedTopologyDefinition.value) {
+         throw new Error("Select, draw, generate, or import a topology board before starting.");
+       }
+-      const materialized = materializeTopologyDefinition(selectedTopologyDefinition.value);
++      const { starter, order } = draftTurnState();
++      const materialized = materializeTopologyDefinition(selectedTopologyDefinition.value, selectedPlayerCount.value, starter);
+       return {
+         playerCount: selectedPlayerCount.value,
+         boardShape: "custom",
+         botCount: 0,
+         gridSize: selectedGridSize.value,
+-        startPlayer: selectedStartPlayer.value,
+-        turnOrder: [...selectedTurnOrder.value],
++        startPlayer: starter,
++        turnOrder: order,
+         rulesVersion: "surface-v1",
+         topologyProtocolVersion: "board-topology-v1",
+         boardDefinition: materialized.definition,
+@@ -4424,6 +4434,7 @@
+     };
+ 
+     function draftGameSettings() {
++      const { starter, order } = draftTurnState();
+       if (selectedBoardShape.value === "custom" || selectedRulesVersion.value === "surface-v1") {
+         // Preserve the topology identity even while an incomplete selection is
+         // being edited.  Callers that would construct a match catch the
+@@ -4435,8 +4446,8 @@
+           boardShape: "custom",
+           botCount: 0,
+           gridSize: selectedGridSize.value,
+-          startPlayer: selectedStartPlayer.value,
+-          turnOrder: [...selectedTurnOrder.value],
++          startPlayer: starter,
++          turnOrder: order,
+           rulesVersion: "surface-v1",
+           topologyProtocolVersion: "board-topology-v1",
+           turnTimerEnabled: selectedTurnTimerEnabled.value,
+@@ -4451,8 +4462,8 @@
+         playerCount: selectedPlayerCount.value,
+         boardShape: selectedBoardShape.value,
+         gridSize: selectedGridSize.value,
+-        startPlayer: selectedStartPlayer.value,
+-        turnOrder: [...selectedTurnOrder.value],
++        startPlayer: starter,
++        turnOrder: order,
+         rulesVersion: selectedRulesVersion.value,
+         ...(roomStatus.value !== "solo"
+           ? { protectionRule: roomInfo.value.settings?.protectionRule ?? "symmetric-v1" } : {}),
+diff --git a/web/web前端/tests/verify-turn-order-setup.mjs b/web/web前端/tests/verify-turn-order-setup.mjs
+--- a/web/web前端/tests/verify-turn-order-setup.mjs
++++ b/web/web前端/tests/verify-turn-order-setup.mjs
+@@ -48,4 +48,18 @@
+ const guestBefore=app.selectedTurnOrder.value.slice();app.handleTurnOrderChange(['PURPLE','BLACK','WHITE']);await Vue.nextTick();assert.deepEqual(app.selectedTurnOrder.value,guestBefore,'guest cannot change room draft');
+ app.session.value={...app.session.value,playerId:'host'};await Vue.nextTick();app.handleTurnOrderChange(['PURPLE','BLACK','WHITE']);await Vue.nextTick();assert.deepEqual(app.selectedTurnOrder.value,['PURPLE','BLACK','WHITE']);assert.equal(app.selectedStartPlayer.value,'PURPLE');
+ app.roomSetupOpen.value=false;app.roomStatus.value='inProgress';await Vue.nextTick();const before=app.selectedTurnOrder.value.slice();app.handleTurnOrderChange(['WHITE','BLACK','PURPLE']);await Vue.nextTick();assert.deepEqual(app.selectedTurnOrder.value,before,'active room cannot be changed through this control');
++// Synchronous room creation can read a just-edited count before Vue's watcher
++// has expanded the stored two-seat draft. The actual Mini shared-room suite
++// exercises both create entry points with the same transition.
++console.warn=()=>{};const immediate=App.setup();console.warn=previousWarn;
++immediate.tutorialActive.value=false;await Vue.nextTick();
++immediate.selectedPlayerCount.value=6; immediate.selectedGridSize.value=13;
++immediate.selectedBoardShape.value='hexagon';immediate.selectedStartPlayer.value='GREEN';
++immediate.openRoomSetup();assert.equal(immediate.roomSetupOpen.value,true);
++assert.deepEqual(immediate.selectedTurnOrder.value,['GREEN','ORANGE','CYAN','BLACK','WHITE','PURPLE']);
++// Do not apply the local draft repair to an authoritative malformed room.
++await Vue.nextTick();immediate.roomStatus.value='waiting';immediate.session.value={...immediate.session.value,shared:true,roomId:'ABCDEFGH',playerId:'host'};
++const validInfo=immediate.roomInfo.value;immediate.roomInfo.value={...immediate.roomInfo.value,hostPlayerId:'host',settings:{playerCount:3,gridSize:9,boardShape:'triangle',startPlayer:'BLACK',rulesVersion:'territory-v3',turnOrder:['BLACK','BLACK','PURPLE']}};
++assert.throws(()=>immediate.openRoomSetup(),/INVALID_TURN_ORDER/);
++immediate.roomInfo.value=validInfo;await Vue.nextTick();
+ console.log('verify-turn-order-setup: PASS');

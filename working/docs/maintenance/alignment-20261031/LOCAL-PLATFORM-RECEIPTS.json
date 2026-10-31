@@ -1,0 +1,61 @@
+{
+  "schema": "lifeline-platform-local-receipts-v1",
+  "common_commit": "4d3d3c009d7747ce2d5e79713e69aa3e2c321ac8",
+  "reference_commit": "51e5782d3117871167783dc53413f0e6e7578bdf",
+  "guide_patch_sha256": "7150c401a4bc5146e9b0fe1a2a8a0f16e2dd535e37fff27f701f6076e2f90cb0",
+  "turn_order_patch_sha256": "2b3816ad25b7a164fecddcde7970ea9226ee07415f8b7cf1599c0803bb3c28ca",
+  "web": {
+    "archive_sha256": "cc9d8926cdd754479d32692f303746a0285b1b919efe084c902aec2d77f6e5f5",
+    "file_count": 253,
+    "local_archive_verification": "PASS",
+    "deployment": "NOT_RUN"
+  },
+  "wechat": {
+    "candidate_id": "0.14.1-a0ef77a2562c-n5BGSb",
+    "version": "0.14.1",
+    "profile": "online",
+    "receipt_sha256": "3aa5927928a297d5a0fda9f6acc5b1c3cbc485edf8411c4be5718a34d98e0d06",
+    "test_log_sha256": "46ce0333b638802c5e61e57fecaf7c79100683ecca9830a1aad5176e1688e5bf",
+    "tests_pass": 706,
+    "tests_fail": 0,
+    "candidate_file_verification": "PASS",
+    "package_bytes": 20556961,
+    "acceptance": {
+      "nativeCandidateImport": "NOT_RUN",
+      "physicalDevice": "NOT_RUN",
+      "accountPermissions": "NOT_VERIFIED",
+      "serviceConnectivity": "NOT_VERIFIED",
+      "actualWechatLogin": "NOT_RUN",
+      "crossPlatformDeviceMatch": "NOT_RUN",
+      "upload": "NOT_RUN",
+      "publication": "NOT_RUN"
+    }
+  },
+  "itch": {
+    "zip_sha256": "a2f2ae26d899a9fd0fb407f639171dfe4c8a8e023dc20d3743e47d331fc41a2a",
+    "host_snapshot_sha256": "03f86a0823a9e40a21e7c547026b40e5bef50758f8ba299e27998406cadcb9b9",
+    "iframe_smoke": "PASS",
+    "turn_order_test": "PASS",
+    "runtime_mode": "offline",
+    "actual_itch_cdn": "NOT_RUN"
+  },
+  "windows": {
+    "asar_sha256": "a548fd01b65664d08e976c9009a1ab279d64745e06cb99972c198e5b57981088",
+    "exe_sha256": "0426cf04e47fc02eb78e2c3be63b1f0abef20f7d33b58b4fe7d60f50457db26b",
+    "host_snapshot_sha256": "0e6d8fd6c1d14e75d90618ec81f05a88c80c85a17d36b119e6e5bc5376d082c7",
+    "offline_smoke": "PASS",
+    "campaign_24_replay": "PASS",
+    "packaged_campaign_and_backup": "PASS",
+    "turn_order_test": "PASS",
+    "portable": {
+      "sha256": "cbb0184fde12375bfedd30e96ba86361dde9be632409c362dfaae75b6058a6ab",
+      "embedded_asar_sha256": "a548fd01b65664d08e976c9009a1ab279d64745e06cb99972c198e5b57981088",
+      "own_offline_smoke": "PASS",
+      "signed_release": "NOT_CLAIMED"
+    },
+    "steam_upload": "NOT_RUN"
+  },
+  "scope": "Local tests and package creation only; separate real devices, cross-client authenticated play, store upload and public release are not verified.",
+  "status": "INTERMEDIATE_NOT_FINAL",
+  "status_note": "v3 中间候选，早于拓扑标记、共同房间恢复与缓存补丁；最终候选请以 FINAL-PLATFORM-RECEIPTS.json 为准。"
+}

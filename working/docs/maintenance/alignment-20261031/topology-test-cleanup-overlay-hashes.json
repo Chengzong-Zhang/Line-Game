@@ -1,0 +1,6 @@
+{
+  "web/web前端/tests/verify-topology-app-persistence-v1.mjs": {
+    "before_sha256": "ec135b7fb1e82a2fb2b74cfc82adde6c5d83b070fcb5e42952bc3c7b799bc5a3",
+    "after_sha256": "3bc3bfdefd0d4f84bacc136e1e5e1fc46c0211fd0a89df5deaac250bbb58db9e"
+  }
+}

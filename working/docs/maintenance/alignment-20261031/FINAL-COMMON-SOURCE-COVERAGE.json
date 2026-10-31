@@ -1,0 +1,354 @@
+{
+  "schema": "lifeline-final-common-source-audit-v1",
+  "reference_commit": "a7a541826d025213f17dca09689bed5ce72ed4c6",
+  "scope": "isolated shared Web source before channel adaptations; not a statement that full Git trees are identical",
+  "counts": {
+    "matched_bytes": 362,
+    "matched_lf_normalized": 4,
+    "different": 1,
+    "missing": 66
+  },
+  "differences": [
+    {
+      "path": "assets/research-ai/hex-player-policy-v1.training-receipt.json",
+      "status": "missing",
+      "git_blob": "dbf0fae10c3c452724575568130989ca6a7ed175"
+    },
+    {
+      "path": "assets/research-ai/three-player-policy-v1.training-receipt.json",
+      "status": "missing",
+      "git_blob": "31b8a4b5ad1ae2701897c464761c6b9ac3f83061"
+    },
+    {
+      "path": "assets/research-ai/three-player-policy-v2.training-receipt.json",
+      "status": "missing",
+      "git_blob": "30268623667cfddb25a44c59f280f3a44f9c6c2f"
+    },
+    {
+      "path": "assets/research-ai/three-player-policy-v3.json",
+      "status": "missing",
+      "git_blob": "3e1634158ed824e562d3b62ef20869262f8e637f"
+    },
+    {
+      "path": "assets/research-ai/three-player-policy-v3.training-receipt.json",
+      "status": "missing",
+      "git_blob": "48388db3d044f1030cd8ac2cdb847ee6fdc7534a"
+    },
+    {
+      "path": "tests/fixtures/multiplayer-cut-chain-defense-v1.json",
+      "status": "missing",
+      "git_blob": "5169fa3365acac0750ff83a9c149c514b51a9b45"
+    },
+    {
+      "path": "tests/fixtures/neural-posttraining-fixture.mjs",
+      "status": "missing",
+      "git_blob": "25afd3ba08943456e0ba510f4f43c559c97d57f4"
+    },
+    {
+      "path": "tests/fixtures/supervised-job-worker.mjs",
+      "status": "missing",
+      "git_blob": "05a18138f9eb60a7ddcc1130da60a388a7a01787"
+    },
+    {
+      "path": "tests/fixtures/three-player-v4-browser-candidate.json",
+      "status": "missing",
+      "git_blob": "46b2b86573f91a76c407ac98afc4b964b52159ef"
+    },
+    {
+      "path": "tests/fixtures/three-player-v4-browser-positions.json",
+      "status": "missing",
+      "git_blob": "aa40846108c6c53a106b332de118bd86ac3c4311"
+    },
+    {
+      "path": "tests/latest-moves-browser.html",
+      "status": "missing",
+      "git_blob": "38d2b922a219a774a7232ac5b9fea4163c5aad29"
+    },
+    {
+      "path": "tests/three-player-v4-browser-benchmark-worker.js",
+      "status": "missing",
+      "git_blob": "2de14260dfef6311d14d60e7d2e443aa299f1ff6"
+    },
+    {
+      "path": "tests/three-player-v4-browser-benchmark.html",
+      "status": "missing",
+      "git_blob": "63e80100ee8bd9e5ec43a69c0982f32dadd795a6"
+    },
+    {
+      "path": "tests/verify-defensive-training-v1.mjs",
+      "status": "missing",
+      "git_blob": "c2a79519b4d9ea27ed9aa869560d77c0172b9516"
+    },
+    {
+      "path": "tests/verify-hex-ai-persistence.mjs",
+      "status": "missing",
+      "git_blob": "04284d60cec4017dd797743ada0cca5680386ac7"
+    },
+    {
+      "path": "tests/verify-hex-ai-session.mjs",
+      "status": "missing",
+      "git_blob": "d6fb8b7e17d29dbfd486bf023ccb0505d6109c3a"
+    },
+    {
+      "path": "tests/verify-hex-distillation-v3-recovery.mjs",
+      "status": "missing",
+      "git_blob": "3e87698177c9efb2d424bcde983e7668ee6e7aee"
+    },
+    {
+      "path": "tests/verify-hex-online-bot-bridge.mjs",
+      "status": "missing",
+      "git_blob": "fe813038e74ee7cd33553aad35524abf6b0b7c76"
+    },
+    {
+      "path": "tests/verify-hex-player-ai.mjs",
+      "status": "missing",
+      "git_blob": "3fc68ea825c9d059ae11ed199184c6b180edb70b"
+    },
+    {
+      "path": "tests/verify-hex-player-setup.mjs",
+      "status": "missing",
+      "git_blob": "40041ec950d937ff59b262c6d7de183501c7db6b"
+    },
+    {
+      "path": "tests/verify-hex-player-training-recovery.mjs",
+      "status": "missing",
+      "git_blob": "68a16802a8640c6def8f7e34a96f370afc2bfe0d"
+    },
+    {
+      "path": "tests/verify-hex-posttraining-compatibility.mjs",
+      "status": "missing",
+      "git_blob": "fd180bba291f658b8cc25947ec35dd84811b0e53"
+    },
+    {
+      "path": "tests/verify-hex-posttraining-partial-audit.mjs",
+      "status": "missing",
+      "git_blob": "d169ab7fb720c51c430772e6ff538755414645ad"
+    },
+    {
+      "path": "tests/verify-hex-posttraining-recovery.mjs",
+      "status": "missing",
+      "git_blob": "00fcbc1b8690c0ed308e142120fbbb12563e6bc1"
+    },
+    {
+      "path": "tests/verify-hex-render-worker.mjs",
+      "status": "missing",
+      "git_blob": "8efbe3001b26e47732bb3ab9b16c8acecde50bf4"
+    },
+    {
+      "path": "tests/verify-hex-replay-session.mjs",
+      "status": "missing",
+      "git_blob": "93a6f4bf0fb3b966243989200e7d55891dbae9f1"
+    },
+    {
+      "path": "tests/verify-hexagon-engine.mjs",
+      "status": "missing",
+      "git_blob": "6a4a6db63db82cf7cc90719c03c2af113dd1f03d"
+    },
+    {
+      "path": "tests/verify-latest-moves-automatic.mjs",
+      "status": "missing",
+      "git_blob": "7176cdf3968b58b87cee764e55bcc8df0fc53a6d"
+    },
+    {
+      "path": "tests/verify-latest-moves.mjs",
+      "status": "missing",
+      "git_blob": "7c0dae490c62ac42aed7a8c94a65b9ac7d199176"
+    },
+    {
+      "path": "tests/verify-local-server-origin.mjs",
+      "status": "missing",
+      "git_blob": "3ff7a708f98f83952f1667aaad36bcf8a0333d9d"
+    },
+    {
+      "path": "tests/verify-minimax-offensive-cut-chain.mjs",
+      "status": "missing",
+      "git_blob": "2a3e34747d3d30d1d25b4e00a02a583d94abd96b"
+    },
+    {
+      "path": "tests/verify-minimax-voluntary-pass.mjs",
+      "status": "missing",
+      "git_blob": "18f21dac2723430a4ae1c6c77652a33ddd5e0c1a"
+    },
+    {
+      "path": "tests/verify-model-free-voluntary-pass.mjs",
+      "status": "missing",
+      "git_blob": "e8afbec4a642ec90c64262e9d51d58263b44a27a"
+    },
+    {
+      "path": "tests/verify-model-free-worker-pass.mjs",
+      "status": "missing",
+      "git_blob": "b2ff4b2a3ef3c1649367432fe5b6cddc435724fe"
+    },
+    {
+      "path": "tests/verify-multiplayer-hard-reply-resilience.mjs",
+      "status": "missing",
+      "git_blob": "d9f08af977ee1bc44759d27a0d5f46df783a3252"
+    },
+    {
+      "path": "tests/verify-multiplayer-safe-pass.mjs",
+      "status": "missing",
+      "git_blob": "a24d72b5dc38c611d0b3da6ca77aeca35285883c"
+    },
+    {
+      "path": "tests/verify-multiplayer-standard-defense.mjs",
+      "status": "missing",
+      "git_blob": "5a0f49dea9e3cde45d037b1088b2f7cac922b2ad"
+    },
+    {
+      "path": "tests/verify-neural-arena-verification-adapter.mjs",
+      "status": "missing",
+      "git_blob": "1f717c69b0ffa183c11be9502fd0f8c2ab618932"
+    },
+    {
+      "path": "tests/verify-neural-confirmation-assessment-v2.mjs",
+      "status": "missing",
+      "git_blob": "aa9ec76e1e9d85a56d85f765301ac3e3719516b4"
+    },
+    {
+      "path": "tests/verify-neural-confirmation-assessment.mjs",
+      "status": "missing",
+      "git_blob": "7e666d1fbf6884ef92167e253154bd863946c3ae"
+    },
+    {
+      "path": "tests/verify-neural-headonly-selection.mjs",
+      "status": "missing",
+      "git_blob": "beb023116feb5389206e19f51ee02d32cc847bd2"
+    },
+    {
+      "path": "tests/verify-neural-posttraining-arena-v2.mjs",
+      "status": "missing",
+      "git_blob": "5d29e5f0c69bb43be7480d9f37463fb840231a9c"
+    },
+    {
+      "path": "tests/verify-neural-posttraining-arena.mjs",
+      "status": "missing",
+      "git_blob": "c491bfa7f35ac53d2561aa92e18900106504ba19"
+    },
+    {
+      "path": "tests/verify-neural-posttraining-data-v2.mjs",
+      "status": "missing",
+      "git_blob": "1392af023ad9930a236d2a6dc7a275a58bf639b7"
+    },
+    {
+      "path": "tests/verify-neural-posttraining-data.mjs",
+      "status": "missing",
+      "git_blob": "27b62d75b555c0c1fae1b1fc919b7a48f254fbee"
+    },
+    {
+      "path": "tests/verify-neural-terminal-data-r3-recovery.mjs",
+      "status": "missing",
+      "git_blob": "2f301e05196a574812fec59c98679c7b999949e8"
+    },
+    {
+      "path": "tests/verify-neural-terminal-data-r3-verifier-recovery.mjs",
+      "status": "missing",
+      "git_blob": "a3b926c373c060517c9fd462bc105e6f81fa76e5"
+    },
+    {
+      "path": "tests/verify-neural-voluntary-pass.mjs",
+      "status": "missing",
+      "git_blob": "3c1fdb79c7ce5eeed20527a78dbe1815c23c95ad"
+    },
+    {
+      "path": "tests/verify-online-bot-bridge.mjs",
+      "status": "missing",
+      "git_blob": "28f811744da1322cbc98a6d2026c399902de3fdf"
+    },
+    {
+      "path": "tests/verify-online-bot-node-crypto.mjs",
+      "status": "missing",
+      "git_blob": "a8f244d114cffcee3c0a828c1d489d1816d40558"
+    },
+    {
+      "path": "tests/verify-online-recovery.mjs",
+      "status": "different",
+      "git_blob": "760979b58e9d255cde3801f26e2533b260c0190e",
+      "sha256": "9a12fa486c3dbe9dabefe3b21f5324db54f55da58c95889e0ddb44d3fafac890"
+    },
+    {
+      "path": "tests/verify-online-room-settings.mjs",
+      "status": "missing",
+      "git_blob": "fc685ae13a7594790dcbec22a6cb7971a076d605"
+    },
+    {
+      "path": "tests/verify-online-start-undo.mjs",
+      "status": "missing",
+      "git_blob": "fe1450a71eb065cbe667c9ad0fbf85fe2c6acc29"
+    },
+    {
+      "path": "tests/verify-supervised-three-player-job.mjs",
+      "status": "missing",
+      "git_blob": "f6faf3f27a25b6ce852d01e226945731b4968378"
+    },
+    {
+      "path": "tests/verify-territory-v3-hard-worker.mjs",
+      "status": "missing",
+      "git_blob": "7ff0e467f6fe35daf0a56358c5aa54a2beffa19d"
+    },
+    {
+      "path": "tests/verify-three-player-ai.mjs",
+      "status": "missing",
+      "git_blob": "844c9582442c36011301f7b94174ab2722a1051e"
+    },
+    {
+      "path": "tests/verify-three-player-arena-recovery.mjs",
+      "status": "missing",
+      "git_blob": "b72a1e298c7ea71327cfc3abd89d0eacf598f906"
+    },
+    {
+      "path": "tests/verify-three-player-posttraining-output.mjs",
+      "status": "missing",
+      "git_blob": "1ec8bb79b6bf752335b2e792f597e827925cfbfb"
+    },
+    {
+      "path": "tests/verify-three-player-posttraining.mjs",
+      "status": "missing",
+      "git_blob": "d4f868d4bb7dffcbdbea8a48c5d828245675917c"
+    },
+    {
+      "path": "tests/verify-three-player-training-recovery.mjs",
+      "status": "missing",
+      "git_blob": "34b33de49e055da40758f9ecce7668c6421b4f83"
+    },
+    {
+      "path": "tests/verify-three-player-v2-runtime.mjs",
+      "status": "missing",
+      "git_blob": "290a736cb5e0d4642e466fe75c366ef4c1eded02"
+    },
+    {
+      "path": "tests/verify-three-player-v3-training.mjs",
+      "status": "missing",
+      "git_blob": "c7323edc8223199fe40b3202b7fa2ae88bef8037"
+    },
+    {
+      "path": "tests/verify-three-player-v4-incremental-verifier.mjs",
+      "status": "missing",
+      "git_blob": "75170c036513afd91a2a1539bbab5c1037f12455"
+    },
+    {
+      "path": "tests/verify-three-player-v4-recovery.mjs",
+      "status": "missing",
+      "git_blob": "a47e8609c30d2755d8749c365f5b9dbd8c4a56be"
+    },
+    {
+      "path": "tests/verify-three-player-v4-runtime.mjs",
+      "status": "missing",
+      "git_blob": "1999e0c8c1f813ba9203832b9067e60dcdea7848"
+    },
+    {
+      "path": "tests/verify-three-player-v4-verification-adapter.mjs",
+      "status": "missing",
+      "git_blob": "4bc7e1f546ade822826bc36dd664d8c7577b0851"
+    },
+    {
+      "path": "tests/verify-worker-terminal-winning-pass.mjs",
+      "status": "missing",
+      "git_blob": "ae478fd72b5a729e810bd06ccc7c21c57bb31de7"
+    }
+  ],
+  "missing_breakdown": {
+    "historical_test_files": 61,
+    "historical_asset_files": 5
+  },
+  "note": "The different file is a test whose later routing assertion correction does not change runtime. The five omitted historical assets are four training receipts and one old policy JSON; a text search of candidate sources found no references to their names. Their omission is not evidence about other untested dynamic loading."
+}

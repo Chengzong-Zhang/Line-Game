@@ -1,0 +1,491 @@
+diff --git a/web/web前端/OnlineApp.js b/web/web前端/OnlineApp.js
+--- a/web/web前端/OnlineApp.js
++++ b/web/web前端/OnlineApp.js
+@@ -83,7 +83,8 @@
+ import { TrainingContribution, ContributionPanel, supportsContributionActors } from "./TrainingContribution.js?v=20261029-unified-r1";
+ import { localAIPlayer, localMatchActors, localMatchMode, localPlayerProfile, normalizeLocalPlayers, normalizeLocalPlayerDraft, prepareLocalPlayersForNewMatch, supportsRootModeAI, loadLocalMatchPreferences, persistLocalMatchPreferences } from "./LocalAIModes.js?v=20261029-unified-r1";
+ import { roomSettingsFromBoard, normalizeRoomPlayerSetup } from "./OnlineRoomSettings.js?v=20261029-unified-r1";
+-import LocalPlayerSetup from "./LocalPlayerSetup.js?v=20261029-unified-r1";
++import LocalPlayerSetup from "./LocalPlayerSetup.js?v=20261031-turn-order";
++import TurnOrderSetup, { resizeTurnOrder } from "./TurnOrderSetup.js?v=20261031-turn-order";
+ import StartingPointSetup from "./StartingPointSetup.js?v=20261029-unified-r1";
+ import TopologyStartingPointSetup, { topologyDefaultDefinition } from "./TopologyStartingPointSetup.js?v=20261029-unified-r1";
+ import { createTopologyStartingDefinition, prepareTopologyNewMatchSettings } from "./TopologyStartingPoints.js?v=20261029-unified-r1";
+@@ -663,7 +664,7 @@
+ 
+ const SetupPanel = {
+   name: "SetupPanel",
+-  components: { ContributionPanel, LocalPlayerSetup, StartingPointSetup },
++  components: { ContributionPanel, LocalPlayerSetup, StartingPointSetup, TurnOrderSetup },
+   emits: [
+     "update:player-count",
+     "update:board-shape",
+@@ -680,6 +681,7 @@
+     "select-lab-model",
+     "save-room-settings",
+     "update:start-player",
++    "update:turn-order",
+     "swap-local-players",
+     "start-local-match",
+     "toggle-contributions",
+@@ -725,6 +727,7 @@
+     undoMaxCount: { type: Number, default: 3 },
+     localPlayers: { type: Object, required: true },
+     startPlayer: { type: String, required: true },
++    turnOrder: { type: Array, required: true },
+     localPending: { type: Boolean, default: true },
+     localStarted: { type: Boolean, default: false },
+     startingPoints: { type: Object, default: () => ({}) },
+@@ -828,7 +831,7 @@
+                 :class="{ 'is-active': playerCount === count }"
+                 role="radio"
+                 :aria-checked="playerCount === count"
+-                :disabled="busy || settingsLocked"
++                :disabled="busy || settingsLocked || (boardShape === 'custom' && count > 6)"
+                 @click="$emit('update:player-count', count)"
+               >
+                 {{ count }}
+@@ -840,7 +843,7 @@
+               :root-mode="startingPoints.rootMode ?? 'classic'" :grid-size="gridSize"
+               :online="roomSetupOpen"
+               :initial-positions="startingPoints.initialPositions"
+-              :start-player="startPlayer" :pending="localPending" :started="localStarted" :locked="busy || settingsLocked"
++              :start-player="startPlayer" :show-starter="false" :pending="localPending" :started="localStarted" :locked="busy || settingsLocked"
+               @update-player="$emit('update-local-player', $event)" @select-lab-model="$emit('select-lab-model', $event)" @update:start-player="$emit('update:start-player', $event)"
+               @swap="$emit('swap-local-players')" @start="$emit('start-local-match')" @open-topology-guide="$emit('open-topology-guide')">
+               <template #contribution>
+@@ -848,6 +851,7 @@
+               </template>
+             </LocalPlayerSetup>
+           </div>
++          <div v-if="aiAvailable || roomSetupOpen" class="settings-grid-item-wide"><TurnOrderSetup :order="turnOrder" :language="language" :ui-style="uiStyle" :locked="busy || settingsLocked" @change="$emit('update:turn-order', $event)" /></div>
+           <button v-if="roomSetupOpen" type="button" class="action-button action-button-primary" :disabled="busy || settingsLocked" @click="$emit('save-room-settings')">{{ language === 'zh' ? '保存房间设置' : 'Save room settings' }}</button>
+           <div class="settings-grid-item-wide">
+             <label id="grid-size-label" class="field-label">{{ texts.gridSizeLabel }}</label>
+@@ -1470,7 +1474,10 @@
+           </article>
+         </div>
+ 
+-        <div v-if="isHost" class="host-controls">
++        <div v-if="isHost && session.shared" class="host-controls">
++          <button type="button" class="action-button action-button-secondary" :disabled="busy" @click="$emit('create-room')">{{ language === 'zh' ? '房间设置与行动顺序' : 'Room settings and turn order' }}</button>
++        </div>
++        <div v-if="isHost && !session.shared" class="host-controls">
+           <div class="panel-subhead">
+             <h3>{{ texts.starterLabel }}</h3>
+           </div>
+@@ -3490,6 +3497,7 @@
+     const selectedBoardShape = ref(initialSettings.boardShape);
+     const selectedGridSize = ref(initialSettings.gridSize);
+     const selectedStartPlayer = ref(initialSettings.startPlayer);
++    const selectedTurnOrder = ref(resizeTurnOrder(initialSettings.turnOrder, initialSettings.playerCount, initialSettings.startPlayer));
+     const selectedStartingPoints = ref(startingPointSettings(initialSettings));
+     const selectedTopologyDefinition = shallowRef(null);
+     const topologyDefaultSelection = shallowRef(null);
+@@ -3518,6 +3526,7 @@
+       const normalized = normalizeAppGameSettings(settings);
+       // Protection belongs to a match version, not to editable setup fields.
+       delete normalized.protectionRule;
++      normalized.turnOrder = resizeTurnOrder(normalized.turnOrder, normalized.playerCount, normalized.startPlayer);
+       return JSON.stringify(normalized);
+     };
+     // A changed draft is reviewable in the setup panel, while the active game
+@@ -4002,7 +4011,7 @@
+       authFeedbackTone.value = "error";
+     });
+ 
+-    watch([selectedPlayerCount, selectedBoardShape, selectedGridSize, selectedStartPlayer, selectedRulesVersion, selectedTurnTimerEnabled, selectedTurnTimeLimitSeconds, selectedHintEnabled, selectedHintMaxCount, selectedUndoEnabled, selectedUndoMaxCount], ([
++    watch([selectedPlayerCount, selectedBoardShape, selectedGridSize, selectedStartPlayer, selectedRulesVersion, selectedTurnTimerEnabled, selectedTurnTimeLimitSeconds, selectedHintEnabled, selectedHintMaxCount, selectedUndoEnabled, selectedUndoMaxCount, selectedTurnOrder], ([
+       playerCount,
+       boardShape,
+       gridSize,
+@@ -4014,6 +4023,7 @@
+       hintMaxCount,
+       undoEnabled,
+       undoMaxCount,
++      turnOrder,
+     ], [
+       previousPlayerCount,
+       previousBoardShape,
+@@ -4026,11 +4036,16 @@
+       previousHintMaxCount,
+       previousUndoEnabled,
+       previousUndoMaxCount,
++      previousTurnOrder,
+     ] = []) => {
+       if (syncingRemoteSettings || tutorialActive.value) {
+         return;
+       }
+ 
++      const validCount = APP_PLAYER_COUNT_OPTIONS.includes(playerCount) ? playerCount : 2;
++      const starter = APP_ALL_PLAYERS.slice(0, validCount).includes(startPlayer) ? startPlayer : APP_ALL_PLAYERS[0];
++      const effectiveOrder = resizeTurnOrder(turnOrder, validCount, starter);
++      if (JSON.stringify(effectiveOrder) !== JSON.stringify(selectedTurnOrder.value)) selectedTurnOrder.value = effectiveOrder;
+       const wantsTopology = boardShape === "custom" || rulesVersion === "surface-v1";
+       let settingsInput;
+       if (wantsTopology) {
+@@ -4039,19 +4054,19 @@
+           // fail at the match boundary rather than being normalized into a
+           // playable triangle by the legacy settings path.
+           settingsInput = {
+-            playerCount, boardShape: "custom", gridSize, startPlayer,
++            playerCount, boardShape: "custom", gridSize, startPlayer: starter, turnOrder: effectiveOrder,
+             rulesVersion: "surface-v1", topologyProtocolVersion: "board-topology-v1",
+             turnTimerEnabled, turnTimeLimitSeconds, hintEnabled, hintMaxCount,
+             undoEnabled, undoMaxCount, botCount: 0,
+           };
+         } else {
+           try {
+-            const materialized = materializeTopologyDefinition(selectedTopologyDefinition.value, playerCount, startPlayer);
++            const materialized = materializeTopologyDefinition(selectedTopologyDefinition.value, playerCount, starter);
+             selectedTopologyDefinition.value = materialized.definition;
+             selectedTopologyHash.value = materialized.boardHash;
+             selectedStartingPoints.value = { startingPointMode: "topology" };
+             settingsInput = {
+-              playerCount, boardShape: "custom", gridSize, startPlayer,
++              playerCount, boardShape: "custom", gridSize, startPlayer: starter, turnOrder: effectiveOrder,
+               rulesVersion: "surface-v1", topologyProtocolVersion: "board-topology-v1",
+               boardDefinition: materialized.definition, boardHash: materialized.boardHash,
+               initialPositions: materialized.initialPositions,
+@@ -4080,7 +4095,7 @@
+           };
+         }
+         settingsInput = {
+-          playerCount, boardShape, gridSize, startPlayer, rulesVersion,
++          playerCount, boardShape, gridSize, startPlayer: starter, turnOrder: effectiveOrder, rulesVersion,
+           ...(roomStatus.value !== "solo" ? { protectionRule: roomInfo.value.settings?.protectionRule ?? "symmetric-v1" } : {}),
+           turnTimerEnabled, turnTimeLimitSeconds, hintEnabled, hintMaxCount,
+           undoEnabled, undoMaxCount, ...selectedStartingPoints.value,
+@@ -4109,6 +4124,7 @@
+         || normalized.boardShape !== previousBoardShape
+         || normalized.gridSize !== previousGridSize
+         || normalized.startPlayer !== previousStartPlayer
++        || JSON.stringify(normalized.turnOrder) !== JSON.stringify(previousTurnOrder)
+         || normalized.rulesVersion !== previousRulesVersion
+         || normalized.turnTimerEnabled !== previousTurnTimerEnabled
+         || normalized.turnTimeLimitSeconds !== previousTurnTimeLimitSeconds;
+@@ -4128,6 +4144,7 @@
+         return;
+       }
+ 
++      if (roomSetupOpen.value) return;
+       if (isHost.value && roomStatus.value !== "solo" && roomStatus.value !== "inProgress" && roomStatus.value !== "countdown") {
+         const settingsChanged = normalized.playerCount !== previousPlayerCount
+           || normalized.boardShape !== previousBoardShape
+@@ -4136,7 +4153,8 @@
+           || normalized.turnTimerEnabled !== previousTurnTimerEnabled
+           || normalized.turnTimeLimitSeconds !== previousTurnTimeLimitSeconds
+           || normalized.undoEnabled !== previousUndoEnabled
+-          || normalized.undoMaxCount !== previousUndoMaxCount;
++          || normalized.undoMaxCount !== previousUndoMaxCount
++          || (session.value.shared && JSON.stringify(normalized.turnOrder) !== JSON.stringify(previousTurnOrder));
+         const starterChanged = normalized.startPlayer !== previousStartPlayer;
+ 
+         if (settingsChanged) {
+@@ -4168,6 +4186,11 @@
+     const handleBoardShapeChange = (shape) => {
+       if (!['triangle', 'hexagon', 'custom'].includes(shape) || settingsLocked.value) return;
+       if (shape === "custom") {
++        if (selectedPlayerCount.value > 6) {
++          selectedPlayerCount.value = 6;
++          if (!APP_ALL_PLAYERS.slice(0, 6).includes(selectedStartPlayer.value)) selectedStartPlayer.value = APP_ALL_PLAYERS[0];
++          selectedTurnOrder.value = resizeTurnOrder(selectedTurnOrder.value, 6, selectedStartPlayer.value);
++        }
+         if (!selectedTopologyDefinition.value || selectedTopologyGridSize.value !== selectedGridSize.value) selectTopologyPreset("cylinder");
+         else selectTopologyDefinition(selectedTopologyDefinition.value, selectedTopologySource.value || "custom");
+         return;
+@@ -4382,6 +4405,7 @@
+         botCount: 0,
+         gridSize: selectedGridSize.value,
+         startPlayer: selectedStartPlayer.value,
++        turnOrder: [...selectedTurnOrder.value],
+         rulesVersion: "surface-v1",
+         topologyProtocolVersion: "board-topology-v1",
+         boardDefinition: materialized.definition,
+@@ -4412,6 +4436,7 @@
+           botCount: 0,
+           gridSize: selectedGridSize.value,
+           startPlayer: selectedStartPlayer.value,
++          turnOrder: [...selectedTurnOrder.value],
+           rulesVersion: "surface-v1",
+           topologyProtocolVersion: "board-topology-v1",
+           turnTimerEnabled: selectedTurnTimerEnabled.value,
+@@ -4427,6 +4452,7 @@
+         boardShape: selectedBoardShape.value,
+         gridSize: selectedGridSize.value,
+         startPlayer: selectedStartPlayer.value,
++        turnOrder: [...selectedTurnOrder.value],
+         rulesVersion: selectedRulesVersion.value,
+         ...(roomStatus.value !== "solo"
+           ? { protectionRule: roomInfo.value.settings?.protectionRule ?? "symmetric-v1" } : {}),
+@@ -4476,7 +4502,7 @@
+         } finally {
+           syncingRemoteSettings = false;
+         }
+-        if (priorShape === "custom" && isHost.value && roomStatus.value !== "solo"
++        if (priorShape === "custom" && !roomSetupOpen.value && isHost.value && roomStatus.value !== "solo"
+           && roomStatus.value !== "inProgress" && roomStatus.value !== "countdown") {
+           void networkManager.updateRoomSettings(normalizeAppGameSettings({ ...draftGameSettings(), botCount: 0 })).catch(handleNetworkError);
+         }
+@@ -5702,6 +5728,7 @@
+         selectedBoardShape.value = normalized.boardShape;
+         selectedGridSize.value = normalized.gridSize;
+         selectedStartPlayer.value = normalized.startPlayer;
++        selectedTurnOrder.value = resizeTurnOrder(normalized.turnOrder, normalized.playerCount, normalized.startPlayer);
+         // A surface board owns canonical string IDs after its quotient has
+         // been compiled.  The legacy starting-point helper only understands
+         // triangle/hex coordinate pairs and would either throw on `cv:*` or,
+@@ -5737,7 +5764,9 @@
+         controller.value.setGameConfig(normalized, reset);
+         return normalized;
+       } finally {
+-        syncingRemoteSettings = false;
++        // Vue batches the settings watcher; keep remote/restore changes guarded
++        // until that batch has observed the complete authoritative snapshot.
++        nextTick(() => { syncingRemoteSettings = false; });
+       }
+     };
+ 
+@@ -6971,7 +7000,16 @@
+     };
+ 
+     const handleStartPlayerChange = (value) => {
++      if (settingsLocked.value) return;
++      selectedTurnOrder.value = resizeTurnOrder(selectedTurnOrder.value, selectedPlayerCount.value, value);
+       selectedStartPlayer.value = value;
++    };
++    const handleTurnOrderChange = (order) => {
++      if (settingsLocked.value || (roomStatus.value !== "solo" && !(roomSetupOpen.value && session.value.shared && isHost.value))) return;
++      if (!Array.isArray(order) || order.length !== selectedPlayerCount.value || new Set(order).size !== order.length
++        || !order.every(player => APP_ALL_PLAYERS.slice(0, selectedPlayerCount.value).includes(player))) return;
++      selectedTurnOrder.value = [...order];
++      selectedStartPlayer.value = order[0];
+     };
+ 
+     const handleClosePrompt = () => {
+@@ -7602,6 +7640,8 @@
+       retryRoomBots: () => networkManager.retryBots().catch(handleNetworkError),
+       selectedGridSize,
+       selectedStartPlayer,
++      selectedTurnOrder,
++      handleTurnOrderChange,
+       selectedStartingPoints,
+       updateStartingPoints,
+       selectedTurnTimerEnabled,
+@@ -7889,6 +7929,7 @@
+             :undo-max-count="selectedUndoMaxCount"
+             :local-players="selectedLocalPlayers"
+             :start-player="selectedStartPlayer"
++            :turn-order="selectedTurnOrder"
+             :local-pending="localSetupPending || localSettingsChanged"
+             :local-started="localMatchStarted"
+             :starting-points="selectedStartingPoints"
+@@ -7912,7 +7953,8 @@
+             @update-local-player="updateLocalPlayer"
+             @select-lab-model="updateLocalPlayer({ ...$event, fromLab: true })"
+             @save-room-settings="saveRoomSettings"
+-            @update:start-player="selectedStartPlayer = $event"
++            @update:start-player="handleStartPlayerChange"
++            @update:turn-order="handleTurnOrderChange"
+             @swap-local-players="swapLocalPlayers"
+             @start-local-match="startLocalMatch"
+             @update-starting-points="updateStartingPoints"
+diff --git a/web/web前端/LocalPlayerSetup.js b/web/web前端/LocalPlayerSetup.js
+--- a/web/web前端/LocalPlayerSetup.js
++++ b/web/web前端/LocalPlayerSetup.js
+@@ -16,6 +16,7 @@
+     boardShape: { type: String, required: true },
+     gridSize: { type: Number, default: 7 },
+     startPlayer: { type: String, required: true },
++    showStarter: { type: Boolean, default: true },
+     initialPositions: { type: Object, default: null },
+     locked: { type: Boolean, default: false },
+     pending: { type: Boolean, default: true },
+@@ -139,7 +140,7 @@
+       <p v-else-if="!online && playerCount === 3" class="help-copy">{{ texts.localThreeHuman }}</p>
+       <p v-else-if="!online && playerCount >= 4 && playerCount <= 6" class="help-copy">{{ texts.localHexHuman }}</p>
+       <div class="local-match-toolbar">
+-        <div class="local-starter-field">
++        <div v-if="showStarter" class="local-starter-field">
+           <label for="local-start-player" class="field-label">{{ texts.starterLabel }}</label>
+           <select id="local-start-player" class="input-field" :value="startPlayer" :disabled="locked" @change="$emit('update:start-player', $event.target.value)">
+             <option v-for="side in sides" :key="side.color" :value="side.color">{{ side.name }}</option>
+diff --git a/web/web前端/styles.css b/web/web前端/styles.css
+--- a/web/web前端/styles.css
++++ b/web/web前端/styles.css
+@@ -4451,3 +4451,17 @@
+   .guide-reader-body { gap: 16px; }
+   .guide-code-block, .guide-block-math { padding: 12px; }
+ }
++
++/* Turn-order controls work with drag, keyboard and touch buttons. */
++.turn-order-setup { padding: 12px; border: 1px solid rgba(88, 61, 31, .16); border-radius: 14px; background: rgba(255,255,255,.64); }
++.turn-order-setup .help-copy { margin: 4px 0 10px; }
++.turn-order-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 8px; list-style: none; margin: 0; padding: 0; }
++.turn-order-item { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 6px 4px 10px; border: 1px solid rgba(88, 61, 31, .16); border-radius: 10px; background: #fffaf0; }
++.turn-order-item[draggable="true"] { cursor: grab; }
++.turn-order-name { display: inline-flex; align-items: center; gap: 7px; min-width: 0; overflow-wrap: anywhere; }
++.turn-order-number { font-weight: 700; min-width: 1.3em; }
++.turn-order-stone { flex: 0 0 14px; width: 14px; height: 14px; border: 1px solid rgba(0,0,0,.28); border-radius: 50%; }
++.turn-order-actions { display: flex; flex: 0 0 auto; }
++.turn-order-actions button { min-width: 44px; min-height: 44px; border: 1px solid rgba(88,61,31,.2); background: white; color: var(--ink); border-radius: 8px; font-size: 1.05rem; cursor: pointer; }
++.turn-order-actions button:disabled { opacity: .38; cursor: default; }
++.turn-order-actions button:focus-visible { outline: 3px solid #765021; outline-offset: 2px; }
+diff --git a/web/web前端/main.js b/web/web前端/main.js
+--- a/web/web前端/main.js
++++ b/web/web前端/main.js
+@@ -3,7 +3,7 @@
+   "https://unpkg.com/vue@3/dist/vue.global.prod.js",
+   "https://fastly.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js",
+ ];
+-const APP_ASSET_VERSION = "20261029-unified-r1";
++const APP_ASSET_VERSION = "20261031-turn-order";
+ 
+ // main.js 只做两件事：
+ // 1. 确保浏览器拿到 Vue 运行时
+@@ -87,10 +87,10 @@
+ 
+ async function importAppModule() {
+   const candidates = [
+-    new URL(`./OnlineApp.js?v=20261029-unified-r1`, import.meta.url).href,
+-    new URL("./OnlineApp.js?v=20261029-unified-r1", import.meta.url).href,
+-    `./OnlineApp.js?v=20261029-unified-r1`,
+-    "./OnlineApp.js?v=20261029-unified-r1",
++    new URL(`./OnlineApp.js?v=20261031-turn-order`, import.meta.url).href,
++    new URL("./OnlineApp.js?v=20261031-turn-order", import.meta.url).href,
++    `./OnlineApp.js?v=20261031-turn-order`,
++    "./OnlineApp.js?v=20261031-turn-order",
+   ];
+   let lastError = null;
+ 
+@@ -111,8 +111,8 @@
+   // Renderer obtains atlas projection through the matching BoardView registry.
+   // Keep both bootstrap-only imports outside legacy data-URL rule modules.
+   await Promise.all([
+-    import(new URL(`./TopologyGameEngine.js?v=20261029-unified-r1`, import.meta.url).href),
+-    import(new URL(`./BoardView.js?v=20261029-unified-r1`, import.meta.url).href),
++    import(new URL(`./TopologyGameEngine.js?v=20261031-turn-order`, import.meta.url).href),
++    import(new URL(`./BoardView.js?v=20261031-turn-order`, import.meta.url).href),
+   ]);
+ }
+ 
+diff --git a/web/web前端/index.html b/web/web前端/index.html
+--- a/web/web前端/index.html
++++ b/web/web前端/index.html
+@@ -4,7 +4,7 @@
+     <meta charset="UTF-8" />
+     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
+     <title>生命线策略棋</title>
+-    <link rel="stylesheet" href="./styles.css?v=20261029-unified-r1" />
++    <link rel="stylesheet" href="./styles.css?v=20261031-turn-order" />
+     <script>
+       window.MathJax = {
+         tex: {
+@@ -23,6 +23,6 @@
+   <body>
+     <div id="app"></div>
+     <noscript>需要启用 JavaScript 才能运行这个游戏。JavaScript must be enabled to run this game.</noscript>
+-    <script type="module" src="./main.js?v=20261029-unified-r1"></script>
++    <script type="module" src="./main.js?v=20261031-turn-order"></script>
+   </body>
+ </html>
+diff --git a/web/web前端/TurnOrderSetup.js b/web/web前端/TurnOrderSetup.js
+--- /dev/null
++++ b/web/web前端/TurnOrderSetup.js
+@@ -0,0 +1,41 @@
++import { PLAYER_ORDER } from './GameEngine.js?v=20261029-unified-r1';
++import { formatPlayerName } from './OnlineAppI18n.js?v=20261029-unified-r1';
++
++// Missing legacy order follows the engine's canonical cyclic seat order.
++export function resizeTurnOrder(order, count, starter) {
++  const seats = PLAYER_ORDER.slice(0, count);
++  if (seats.length !== count || count < 2 || !seats.includes(starter)) throw new Error('INVALID_TURN_ORDER');
++  if (order != null && (!Array.isArray(order) || new Set(order).size !== order.length || order.some(p => !PLAYER_ORDER.includes(p)))) throw new Error('INVALID_TURN_ORDER');
++  const remaining = (order ?? seats).filter(p => seats.includes(p));
++  for (const seat of seats) if (!remaining.includes(seat)) remaining.push(seat);
++  const index = remaining.indexOf(starter);
++  return [...remaining.slice(index), ...remaining.slice(0, index)];
++}
++export function moveTurnOrder(order, from, to) {
++  if (!Array.isArray(order) || new Set(order).size !== order.length || !Number.isInteger(from) || !Number.isInteger(to)
++    || from < 0 || to < 0 || from >= order.length || to >= order.length) throw new Error('INVALID_TURN_ORDER');
++  const result = [...order]; const [item] = result.splice(from, 1); result.splice(to, 0, item); return result;
++}
++const COLORS = ['#2476ac','#c45548','#8a56a1','#3a885e','#ce7a32','#24919a','#c25f8d','#805d48','#729532','#354d8a','#a67a16','#238378','#a34a91','#6b7583','#cc745a'];
++export default {
++  name: 'TurnOrderSetup',
++  props: { order: { type:Array, required:true }, language: { type:String, required:true }, uiStyle: { type:String, required:true }, locked: Boolean },
++  emits: ['change'],
++  data() { return { dragging: null }; },
++  methods: {
++    playerName(player) { return formatPlayerName(player, this.language, this.uiStyle); },
++    color(player) { return COLORS[PLAYER_ORDER.indexOf(player)] ?? '#555'; },
++    move(from,to) { if (!this.locked && to >= 0 && to < this.order.length && from !== to) this.$emit('change', moveTurnOrder(this.order,from,to)); },
++    drop(index) { if (this.dragging !== null) this.move(this.dragging,index); this.dragging = null; },
++  },
++  template: `<section class="turn-order-setup" :aria-label="language === 'zh' ? '行动顺序' : 'Turn order'">
++    <strong class="field-label">{{ language === 'zh' ? '行动顺序' : 'Turn order' }}</strong>
++    <p class="help-copy">{{ language === 'zh' ? '拖动排序，或使用上下按钮；第一位先手。' : 'Drag to reorder, or use the move buttons. The first player starts.' }}</p>
++    <ol class="turn-order-list">
++      <li v-for="(player,index) in order" :key="player" class="turn-order-item" :draggable="!locked" @dragstart="dragging = index" @dragend="dragging = null" @dragover.prevent @drop.prevent="drop(index)">
++        <span class="turn-order-name"><span class="turn-order-number">{{ index + 1 }}</span><span class="turn-order-stone" :style="{ backgroundColor: color(player) }" aria-hidden="true"></span>{{ playerName(player) }}</span>
++        <span class="turn-order-actions"><button type="button" :disabled="locked || index === 0" :aria-label="(language === 'zh' ? '上移 ' : 'Move up ') + playerName(player)" @click="move(index,index-1)">↑</button><button type="button" :disabled="locked || index === order.length-1" :aria-label="(language === 'zh' ? '下移 ' : 'Move down ') + playerName(player)" @click="move(index,index+1)">↓</button></span>
++      </li>
++    </ol>
++  </section>`
++};
+diff --git a/web/web前端/tests/verify-turn-order-setup.mjs b/web/web前端/tests/verify-turn-order-setup.mjs
+--- /dev/null
++++ b/web/web前端/tests/verify-turn-order-setup.mjs
+@@ -0,0 +1,51 @@
++import assert from 'node:assert/strict';
++import { createRequire } from 'node:module';
++import { pathToFileURL } from 'node:url';
++const require = createRequire(process.env.LIFELINE_TEST_VUE_PACKAGE ? pathToFileURL(process.env.LIFELINE_TEST_VUE_PACKAGE) : import.meta.url);
++globalThis.Vue = require('vue');
++globalThis.localStorage = {getItem(){return null},setItem(){},removeItem(){}};
++globalThis.location = new URL('http://localhost/');
++globalThis.document = { documentElement:{dataset:{}}, body: {classList:{toggle(){},add(){},remove(){}}}, addEventListener(){},removeEventListener(){} };
++globalThis.addEventListener=()=>{};globalThis.removeEventListener=()=>{};
++globalThis.fetch=async()=>({ok:false});
++const nativeTimeout = globalThis.setTimeout; globalThis.setTimeout = (...args) => { const timer = nativeTimeout(...args); timer.unref?.(); return timer; };
++const nativeInterval = globalThis.setInterval; globalThis.setInterval = (...args) => { const timer = nativeInterval(...args); timer.unref?.(); return timer; };
++await import('../TopologyGameEngine.js');
++const [{default:App},{default:GameEngine,PLAYER_ORDER},{normalizeGameSettings},{default:Order,resizeTurnOrder,moveTurnOrder},{createLocalGameSession,persistLocalGameSession,loadLocalGameSession}] = await Promise.all([
++ import('../OnlineApp.js'),import('../GameEngine.js'),import('../OnlineAppState.js'),import('../TurnOrderSetup.js'),import('../LocalGameSession.js')]);
++for(const count of [3,6,15]) {
++ const base=resizeTurnOrder(null,count,'WHITE'); assert.equal(base[0],'WHITE');
++ const order=moveTurnOrder(base,count-1,1); const settings=normalizeGameSettings({playerCount:count,gridSize:9,startPlayer:order[0],turnOrder:order,rulesVersion:'territory-v3'});
++ const engine=new GameEngine(settings); assert.deepEqual([...engine.turnOrder],order);
++ for(let i=0;i<count;i++)assert.equal(engine._getNextPlayer(order[i]),order[(i+1)%count]);
++ const saved=createLocalGameSession(settings,[]); let raw; const storage={setItem(_k,v){raw=v},getItem(){return raw}}; assert.equal(persistLocalGameSession(saved,storage),true); assert.deepEqual(loadLocalGameSession(storage).settings.turnOrder,order);
++ assert.throws(()=>normalizeGameSettings({...settings,turnOrder:order.map((p,i)=>i===1?order[0]:p)}),/INVALID_TURN_ORDER/);
++}
++const { createProductSurfacePreset } = await import('../ProductSurfacePresets.js');
++const surfaceOrder = ['PURPLE','BLACK','CYAN','WHITE','ORANGE','GREEN'];
++const surface = new GameEngine({ boardDefinition: createProductSurfacePreset('cylinder',{gridSize:9}), playerCount:6,
++  startPlayer:surfaceOrder[0], turnOrder:surfaceOrder, rulesVersion:'surface-v1' });
++assert.deepEqual([...surface.turnOrder],surfaceOrder);
++const surfaceState=surface.encodeTopologyState(); assert.deepEqual(surfaceState.ruleState.turnOrder,surfaceOrder);
++assert.deepEqual(resizeTurnOrder(['PURPLE','WHITE','BLACK'],4,'PURPLE'),['PURPLE','WHITE','BLACK','GREEN']);
++assert.deepEqual(resizeTurnOrder(['PURPLE','WHITE','BLACK','GREEN'],2,'WHITE'),['WHITE','BLACK']);
++assert.deepEqual(resizeTurnOrder(null,3,'WHITE'),['WHITE','PURPLE','BLACK']);
++assert.throws(()=>resizeTurnOrder(['BLACK','BLACK'],2,'BLACK'),/INVALID_TURN_ORDER/);
++let events=[];const vm={order:['BLACK','WHITE','PURPLE'],locked:false,$emit:(name,value)=>events.push([name,value])};
++Order.methods.move.call(vm,2,0);assert.deepEqual(events,[['change',['PURPLE','BLACK','WHITE']]]);vm.locked=true;Order.methods.move.call(vm,0,1);assert.equal(events.length,1);
++const previousWarn=console.warn;console.warn=()=>{};const app=App.setup();console.warn=previousWarn;
++app.tutorialActive.value=false;await Vue.nextTick();
++app.handleTurnOrderChange(['WHITE','BLACK']);await Vue.nextTick();
++assert.deepEqual(app.selectedTurnOrder.value,['WHITE','BLACK']);assert.equal(app.selectedStartPlayer.value,'WHITE');
++const liveBefore=new GameEngine({playerCount:2,gridSize:9,startPlayer:'BLACK',rulesVersion:'territory-v3'});
++app.controller.value={engine:liveBefore, setGameConfig(settings){this.engine=new GameEngine(settings); return this.engine.getSnapshot();}};
++assert.equal(app.controller.value.engine,liveBefore,'editing a draft keeps the live engine');
++assert.equal(await app.startLocalMatch(),true,'start commits the draft');assert.deepEqual([...app.controller.value.engine.turnOrder],['WHITE','BLACK']);assert.equal(app.controller.value.engine.currentPlayer,'WHITE');
++
++app.selectedPlayerCount.value=3;await Vue.nextTick();assert.deepEqual(app.selectedTurnOrder.value,['WHITE','BLACK','PURPLE']);
++app.handleTurnOrderChange(['WHITE','WHITE','PURPLE']);await Vue.nextTick();assert.deepEqual(app.selectedTurnOrder.value,['WHITE','BLACK','PURPLE']);
++app.roomStatus.value='waiting';app.roomSetupOpen.value=true;app.session.value={...app.session.value,shared:true,playerId:'guest'};app.roomInfo.value={...app.roomInfo.value,hostPlayerId:'host'};await Vue.nextTick();
++const guestBefore=app.selectedTurnOrder.value.slice();app.handleTurnOrderChange(['PURPLE','BLACK','WHITE']);await Vue.nextTick();assert.deepEqual(app.selectedTurnOrder.value,guestBefore,'guest cannot change room draft');
++app.session.value={...app.session.value,playerId:'host'};await Vue.nextTick();app.handleTurnOrderChange(['PURPLE','BLACK','WHITE']);await Vue.nextTick();assert.deepEqual(app.selectedTurnOrder.value,['PURPLE','BLACK','WHITE']);assert.equal(app.selectedStartPlayer.value,'PURPLE');
++app.roomSetupOpen.value=false;app.roomStatus.value='inProgress';await Vue.nextTick();const before=app.selectedTurnOrder.value.slice();app.handleTurnOrderChange(['WHITE','BLACK','PURPLE']);await Vue.nextTick();assert.deepEqual(app.selectedTurnOrder.value,before,'active room cannot be changed through this control');
++console.log('verify-turn-order-setup: PASS');

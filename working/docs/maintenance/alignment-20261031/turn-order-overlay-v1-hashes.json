@@ -1,0 +1,30 @@
+{
+  "web/web前端/OnlineApp.js": {
+    "before_sha256": "141a96908ef37d8567ff995ab99ff6008dee74d1050e39039616e02ffe1b864f",
+    "after_sha256": "d417776c9d3e26ebc6656c26e2c78b491a62af56c6919c2b4c8af0d82b37ad0d"
+  },
+  "web/web前端/LocalPlayerSetup.js": {
+    "before_sha256": "ef2dabf5bb574d350a35042fa0e4bdc80444bddaac660cb0de3042c2dd16f5d1",
+    "after_sha256": "0336ee5fad49f6740286cdbb9c09f899f0a694035342f0e51e0727f15540a9b1"
+  },
+  "web/web前端/styles.css": {
+    "before_sha256": "3063551a1361868058e8a095ebaf3ab5e6129b0b9db2602ea0d341e23f02599f",
+    "after_sha256": "9df931243ae91c4d363927ea4c95b13dc65d849225e136b46dc660ffc60dd449"
+  },
+  "web/web前端/main.js": {
+    "before_sha256": "35724e85555de6a315877e2b6c1ca02c09d49fab7f17b7aa1f2b30e60f2841ee",
+    "after_sha256": "2e5fec66a4590d8a26874f682fad2c5d3fd46dd470c41cbae2a0080f1516a555"
+  },
+  "web/web前端/index.html": {
+    "before_sha256": "70a7f7d8477928741e8c656e2bdddcf355deec0510932aa92b61382440a38f59",
+    "after_sha256": "d564de9bea8c78d5d21c809e25e65b8c1770209ae9e8870ac983bbe0c36d5070"
+  },
+  "web/web前端/TurnOrderSetup.js": {
+    "before_sha256": null,
+    "after_sha256": "907bbbf0fbe8aa43fc0ba04000464791001fc8698280927fb010def612dc1454"
+  },
+  "web/web前端/tests/verify-turn-order-setup.mjs": {
+    "before_sha256": null,
+    "after_sha256": "31b02ccdaab02471f41d3405d9dee901f790d2edc105868ca2e8b8ff381918b5"
+  }
+}

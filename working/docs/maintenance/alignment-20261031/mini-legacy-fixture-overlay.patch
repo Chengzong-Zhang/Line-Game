@@ -1,0 +1,20 @@
+diff --git a/wechat/minigame/tests/shared-web-ui.test.mjs b/wechat/minigame/tests/shared-web-ui.test.mjs
+--- a/wechat/minigame/tests/shared-web-ui.test.mjs
++++ b/wechat/minigame/tests/shared-web-ui.test.mjs
+@@ -56,6 +56,7 @@
+     let response;
+     if (payload.protocol === 1) response = { type: 'room', room, ...(emoteCapability ? { capabilities: ['emote-v1'] } : {}) };
+     else if (payload.type === 'ping') response = this.url.includes('/api/wechat/') ? { type: 'pong' } : { type: 'PONG' };
++    else if (payload.type === 'action_protocol_hello') response = { type: 'ERROR', code: 'UNKNOWN_MESSAGE_TYPE', message: "Unsupported message type: 'action_protocol_hello'" };
+     else if (payload.type === 'create_room' || payload.type === 'join_room') response = {
+       type: payload.type === 'create_room' ? 'ROOM_CREATED' : 'ROOM_JOINED',
+       roomId: payload.roomId || '2345', playerId: 'legacy-player', color: 'BLACK', yourColor: 'BLACK',
+@@ -112,6 +113,8 @@
+ test('failed unified room authentication rolls back transport mode and legacy room codes can still join', async () => {
+   fetchMode = 'disabled'; const app = mount();
+   try {
++    // A real game mounts its controller before the legacy room can be joined.
++    await attachController(app);
+     await app.handleCreateSharedRoom();
+     assert.match(app.networkError.value, /尚未启用|not enabled/);
+     assert.equal(app.session.value.shared, false);
