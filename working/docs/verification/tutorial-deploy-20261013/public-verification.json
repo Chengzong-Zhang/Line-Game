@@ -1,0 +1,53 @@
+{
+  "release_id": "web-tutorial-five-lessons-20261013",
+  "asset_version": "20261013f",
+  "status": "PUBLIC_HASH_AND_HEALTH_OK",
+  "verified_epoch": 1791869443.0222964,
+  "files": [
+    {
+      "file": "index.html",
+      "sha256": "d3d72671e1baecbbe24fba5be25d99ac98bd556aa381022f659826f27f856483",
+      "status": "PUBLIC_HASH_OK"
+    },
+    {
+      "file": "main.js",
+      "sha256": "45e4765ad533a6cd2271580216d485ee89400ff067ecbaf52d20a7698ad98de6",
+      "status": "PUBLIC_HASH_OK"
+    },
+    {
+      "file": "OnlineApp.js",
+      "sha256": "48fc6afbe5eff205ce10639667e07f89f696d85ca92881e4aa2807b69592f9f8",
+      "status": "PUBLIC_HASH_OK"
+    },
+    {
+      "file": "styles.css",
+      "sha256": "9b543edf92fbedcc8b72544c808b86b102dcfe5b154ccb0140d036d49d890589",
+      "status": "PUBLIC_HASH_OK"
+    },
+    {
+      "file": "TutorialRunner.js",
+      "sha256": "1ad3cd525b054d6d2ae1a1d43350af986253498a942b9600a89130ea34463f27",
+      "status": "PUBLIC_HASH_OK"
+    },
+    {
+      "file": "GameController.js",
+      "sha256": "215ccec7e01a15825bdd24d48d9137159dad4bb5bf02529b26a35a371e643e49",
+      "status": "PUBLIC_HASH_OK"
+    },
+    {
+      "file": "Renderer.js",
+      "sha256": "6e0ad51da8083c472b4e4b0ee42a6d00402e116b90dbcab4d40b16c4795a3e24",
+      "status": "PUBLIC_HASH_OK"
+    },
+    {
+      "file": "TrainingContribution.js",
+      "sha256": "f1fe6fe2357a46d1cad9421845aa89edd9047f482e84210347cfbf77133733c3",
+      "status": "PUBLIC_HASH_OK"
+    }
+  ],
+  "game_api": "ok",
+  "contribution_policy": {
+    "enabled": true,
+    "consent_policy": "anonymous-replay-training-v1"
+  }
+}

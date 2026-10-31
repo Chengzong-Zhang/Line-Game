@@ -1,0 +1,692 @@
+[
+  {
+    "canvas": {
+      "bottom": 621,
+      "height": 608,
+      "left": 17,
+      "right": 1263,
+      "top": 13,
+      "width": 1246,
+      "x": 17,
+      "y": 13
+    },
+    "launchers": [
+      {
+        "bottom": 83,
+        "glyph": {
+          "bottom": 68,
+          "height": 28,
+          "left": 48,
+          "right": 76,
+          "top": 40,
+          "width": 28,
+          "x": 48,
+          "y": 40
+        },
+        "height": 58,
+        "icon": {
+          "bottom": 74,
+          "height": 40,
+          "left": 42,
+          "right": 82,
+          "top": 34,
+          "width": 40,
+          "x": 42,
+          "y": 34
+        },
+        "label": "棋盘舱",
+        "left": 29,
+        "right": 142.9375,
+        "top": 25,
+        "width": 113.9375,
+        "x": 29,
+        "y": 25
+      },
+      {
+        "bottom": 83,
+        "glyph": {
+          "bottom": 68,
+          "height": 28,
+          "left": 1156.0625,
+          "right": 1184.0625,
+          "top": 40,
+          "width": 28,
+          "x": 1156.0625,
+          "y": 40
+        },
+        "height": 58,
+        "icon": {
+          "bottom": 74,
+          "height": 40,
+          "left": 1150.0625,
+          "right": 1190.0625,
+          "top": 34,
+          "width": 40,
+          "x": 1150.0625,
+          "y": 34
+        },
+        "label": "联机舱",
+        "left": 1137.0625,
+        "right": 1251,
+        "top": 25,
+        "width": 113.9375,
+        "x": 1137.0625,
+        "y": 25
+      },
+      {
+        "bottom": 609,
+        "glyph": {
+          "bottom": 594,
+          "height": 28,
+          "left": 1156.0625,
+          "right": 1184.0625,
+          "top": 566,
+          "width": 28,
+          "x": 1156.0625,
+          "y": 566
+        },
+        "height": 58,
+        "icon": {
+          "bottom": 600,
+          "height": 40,
+          "left": 1150.0625,
+          "right": 1190.0625,
+          "top": 560,
+          "width": 40,
+          "x": 1150.0625,
+          "y": 560
+        },
+        "label": "指南舱",
+        "left": 1137.0625,
+        "right": 1251,
+        "top": 551,
+        "width": 113.9375,
+        "x": 1137.0625,
+        "y": 551
+      }
+    ],
+    "page": [
+      1280,
+      720
+    ],
+    "viewport": [
+      1280,
+      720
+    ]
+  },
+  {
+    "canvas": {
+      "bottom": 571,
+      "height": 558,
+      "left": 17,
+      "right": 964,
+      "top": 13,
+      "width": 947,
+      "x": 17,
+      "y": 13
+    },
+    "launchers": [
+      {
+        "bottom": 83,
+        "glyph": {
+          "bottom": 68,
+          "height": 28,
+          "left": 48,
+          "right": 76,
+          "top": 40,
+          "width": 28,
+          "x": 48,
+          "y": 40
+        },
+        "height": 58,
+        "icon": {
+          "bottom": 74,
+          "height": 40,
+          "left": 42,
+          "right": 82,
+          "top": 34,
+          "width": 40,
+          "x": 42,
+          "y": 34
+        },
+        "label": "棋盘舱",
+        "left": 29,
+        "right": 142.9375,
+        "top": 25,
+        "width": 113.9375,
+        "x": 29,
+        "y": 25
+      },
+      {
+        "bottom": 83,
+        "glyph": {
+          "bottom": 68,
+          "height": 28,
+          "left": 857.0625,
+          "right": 885.0625,
+          "top": 40,
+          "width": 28,
+          "x": 857.0625,
+          "y": 40
+        },
+        "height": 58,
+        "icon": {
+          "bottom": 74,
+          "height": 40,
+          "left": 851.0625,
+          "right": 891.0625,
+          "top": 34,
+          "width": 40,
+          "x": 851.0625,
+          "y": 34
+        },
+        "label": "联机舱",
+        "left": 838.0625,
+        "right": 952,
+        "top": 25,
+        "width": 113.9375,
+        "x": 838.0625,
+        "y": 25
+      },
+      {
+        "bottom": 559,
+        "glyph": {
+          "bottom": 544,
+          "height": 28,
+          "left": 857.0625,
+          "right": 885.0625,
+          "top": 516,
+          "width": 28,
+          "x": 857.0625,
+          "y": 516
+        },
+        "height": 58,
+        "icon": {
+          "bottom": 550,
+          "height": 40,
+          "left": 851.0625,
+          "right": 891.0625,
+          "top": 510,
+          "width": 40,
+          "x": 851.0625,
+          "y": 510
+        },
+        "label": "指南舱",
+        "left": 838.0625,
+        "right": 952,
+        "top": 501,
+        "width": 113.9375,
+        "x": 838.0625,
+        "y": 501
+      }
+    ],
+    "page": [
+      981,
+      720
+    ],
+    "viewport": [
+      981,
+      720
+    ]
+  },
+  {
+    "canvas": {
+      "bottom": 663,
+      "height": 654,
+      "left": 7,
+      "right": 383,
+      "top": 9,
+      "width": 376,
+      "x": 7,
+      "y": 9
+    },
+    "launchers": [
+      {
+        "bottom": 65,
+        "glyph": {
+          "bottom": 54,
+          "height": 26,
+          "left": 27,
+          "right": 53,
+          "top": 28,
+          "width": 26,
+          "x": 27,
+          "y": 28
+        },
+        "height": 48,
+        "icon": {
+          "bottom": 57,
+          "height": 32,
+          "left": 24,
+          "right": 56,
+          "top": 25,
+          "width": 32,
+          "x": 24,
+          "y": 25
+        },
+        "label": "棋盘舱",
+        "left": 15,
+        "right": 107.9453125,
+        "top": 17,
+        "width": 92.9453125,
+        "x": 15,
+        "y": 17
+      },
+      {
+        "bottom": 65,
+        "glyph": {
+          "bottom": 54,
+          "height": 26,
+          "left": 294.0546875,
+          "right": 320.0546875,
+          "top": 28,
+          "width": 26,
+          "x": 294.0546875,
+          "y": 28
+        },
+        "height": 48,
+        "icon": {
+          "bottom": 57,
+          "height": 32,
+          "left": 291.0546875,
+          "right": 323.0546875,
+          "top": 25,
+          "width": 32,
+          "x": 291.0546875,
+          "y": 25
+        },
+        "label": "联机舱",
+        "left": 282.0546875,
+        "right": 375,
+        "top": 17,
+        "width": 92.9453125,
+        "x": 282.0546875,
+        "y": 17
+      },
+      {
+        "bottom": 655,
+        "glyph": {
+          "bottom": 644,
+          "height": 26,
+          "left": 294.0546875,
+          "right": 320.0546875,
+          "top": 618,
+          "width": 26,
+          "x": 294.0546875,
+          "y": 618
+        },
+        "height": 48,
+        "icon": {
+          "bottom": 647,
+          "height": 32,
+          "left": 291.0546875,
+          "right": 323.0546875,
+          "top": 615,
+          "width": 32,
+          "x": 291.0546875,
+          "y": 615
+        },
+        "label": "指南舱",
+        "left": 282.0546875,
+        "right": 375,
+        "top": 607,
+        "width": 92.9453125,
+        "x": 282.0546875,
+        "y": 607
+      }
+    ],
+    "page": [
+      390,
+      844
+    ],
+    "viewport": [
+      390,
+      844
+    ]
+  },
+  {
+    "canvas": {
+      "bottom": 387,
+      "height": 378,
+      "left": 7,
+      "right": 313,
+      "top": 9,
+      "width": 306,
+      "x": 7,
+      "y": 9
+    },
+    "launchers": [
+      {
+        "bottom": 65,
+        "glyph": {
+          "bottom": 54,
+          "height": 26,
+          "left": 27,
+          "right": 53,
+          "top": 28,
+          "width": 26,
+          "x": 27,
+          "y": 28
+        },
+        "height": 48,
+        "icon": {
+          "bottom": 57,
+          "height": 32,
+          "left": 24,
+          "right": 56,
+          "top": 25,
+          "width": 32,
+          "x": 24,
+          "y": 25
+        },
+        "label": "棋盘舱",
+        "left": 15,
+        "right": 107.9453125,
+        "top": 17,
+        "width": 92.9453125,
+        "x": 15,
+        "y": 17
+      },
+      {
+        "bottom": 65,
+        "glyph": {
+          "bottom": 54,
+          "height": 26,
+          "left": 224.0546875,
+          "right": 250.0546875,
+          "top": 28,
+          "width": 26,
+          "x": 224.0546875,
+          "y": 28
+        },
+        "height": 48,
+        "icon": {
+          "bottom": 57,
+          "height": 32,
+          "left": 221.0546875,
+          "right": 253.0546875,
+          "top": 25,
+          "width": 32,
+          "x": 221.0546875,
+          "y": 25
+        },
+        "label": "联机舱",
+        "left": 212.0546875,
+        "right": 305,
+        "top": 17,
+        "width": 92.9453125,
+        "x": 212.0546875,
+        "y": 17
+      },
+      {
+        "bottom": 379,
+        "glyph": {
+          "bottom": 368,
+          "height": 26,
+          "left": 224.0546875,
+          "right": 250.0546875,
+          "top": 342,
+          "width": 26,
+          "x": 224.0546875,
+          "y": 342
+        },
+        "height": 48,
+        "icon": {
+          "bottom": 371,
+          "height": 32,
+          "left": 221.0546875,
+          "right": 253.0546875,
+          "top": 339,
+          "width": 32,
+          "x": 221.0546875,
+          "y": 339
+        },
+        "label": "指南舱",
+        "left": 212.0546875,
+        "right": 305,
+        "top": 331,
+        "width": 92.9453125,
+        "x": 212.0546875,
+        "y": 331
+      }
+    ],
+    "page": [
+      320,
+      568
+    ],
+    "viewport": [
+      320,
+      568
+    ]
+  },
+  {
+    "canvas": {
+      "bottom": 365,
+      "height": 356,
+      "left": 7,
+      "right": 623,
+      "top": 9,
+      "width": 616,
+      "x": 7,
+      "y": 9
+    },
+    "launchers": [
+      {
+        "bottom": 65,
+        "glyph": {
+          "bottom": 54,
+          "height": 26,
+          "left": 27,
+          "right": 53,
+          "top": 28,
+          "width": 26,
+          "x": 27,
+          "y": 28
+        },
+        "height": 48,
+        "icon": {
+          "bottom": 57,
+          "height": 32,
+          "left": 24,
+          "right": 56,
+          "top": 25,
+          "width": 32,
+          "x": 24,
+          "y": 25
+        },
+        "label": "棋盘舱",
+        "left": 15,
+        "right": 107.9453125,
+        "top": 17,
+        "width": 92.9453125,
+        "x": 15,
+        "y": 17
+      },
+      {
+        "bottom": 65,
+        "glyph": {
+          "bottom": 54,
+          "height": 26,
+          "left": 534.0546875,
+          "right": 560.0546875,
+          "top": 28,
+          "width": 26,
+          "x": 534.0546875,
+          "y": 28
+        },
+        "height": 48,
+        "icon": {
+          "bottom": 57,
+          "height": 32,
+          "left": 531.0546875,
+          "right": 563.0546875,
+          "top": 25,
+          "width": 32,
+          "x": 531.0546875,
+          "y": 25
+        },
+        "label": "联机舱",
+        "left": 522.0546875,
+        "right": 615,
+        "top": 17,
+        "width": 92.9453125,
+        "x": 522.0546875,
+        "y": 17
+      },
+      {
+        "bottom": 357,
+        "glyph": {
+          "bottom": 346,
+          "height": 26,
+          "left": 534.0546875,
+          "right": 560.0546875,
+          "top": 320,
+          "width": 26,
+          "x": 534.0546875,
+          "y": 320
+        },
+        "height": 48,
+        "icon": {
+          "bottom": 349,
+          "height": 32,
+          "left": 531.0546875,
+          "right": 563.0546875,
+          "top": 317,
+          "width": 32,
+          "x": 531.0546875,
+          "y": 317
+        },
+        "label": "指南舱",
+        "left": 522.0546875,
+        "right": 615,
+        "top": 309,
+        "width": 92.9453125,
+        "x": 522.0546875,
+        "y": 309
+      }
+    ],
+    "page": [
+      844,
+      390
+    ],
+    "viewport": [
+      844,
+      390
+    ]
+  },
+  {
+    "canvas": {
+      "bottom": 295,
+      "height": 286,
+      "left": 7,
+      "right": 347,
+      "top": 9,
+      "width": 340,
+      "x": 7,
+      "y": 9
+    },
+    "launchers": [
+      {
+        "bottom": 65,
+        "glyph": {
+          "bottom": 54,
+          "height": 26,
+          "left": 27,
+          "right": 53,
+          "top": 28,
+          "width": 26,
+          "x": 27,
+          "y": 28
+        },
+        "height": 48,
+        "icon": {
+          "bottom": 57,
+          "height": 32,
+          "left": 24,
+          "right": 56,
+          "top": 25,
+          "width": 32,
+          "x": 24,
+          "y": 25
+        },
+        "label": "棋盘舱",
+        "left": 15,
+        "right": 107.9453125,
+        "top": 17,
+        "width": 92.9453125,
+        "x": 15,
+        "y": 17
+      },
+      {
+        "bottom": 65,
+        "glyph": {
+          "bottom": 54,
+          "height": 26,
+          "left": 258.0546875,
+          "right": 284.0546875,
+          "top": 28,
+          "width": 26,
+          "x": 258.0546875,
+          "y": 28
+        },
+        "height": 48,
+        "icon": {
+          "bottom": 57,
+          "height": 32,
+          "left": 255.0546875,
+          "right": 287.0546875,
+          "top": 25,
+          "width": 32,
+          "x": 255.0546875,
+          "y": 25
+        },
+        "label": "联机舱",
+        "left": 246.0546875,
+        "right": 339,
+        "top": 17,
+        "width": 92.9453125,
+        "x": 246.0546875,
+        "y": 17
+      },
+      {
+        "bottom": 287,
+        "glyph": {
+          "bottom": 276,
+          "height": 26,
+          "left": 258.0546875,
+          "right": 284.0546875,
+          "top": 250,
+          "width": 26,
+          "x": 258.0546875,
+          "y": 250
+        },
+        "height": 48,
+        "icon": {
+          "bottom": 279,
+          "height": 32,
+          "left": 255.0546875,
+          "right": 287.0546875,
+          "top": 247,
+          "width": 32,
+          "x": 255.0546875,
+          "y": 247
+        },
+        "label": "指南舱",
+        "left": 246.0546875,
+        "right": 339,
+        "top": 239,
+        "width": 92.9453125,
+        "x": 246.0546875,
+        "y": 239
+      }
+    ],
+    "page": [
+      568,
+      320
+    ],
+    "viewport": [
+      568,
+      320
+    ]
+  }
+]

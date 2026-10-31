@@ -1,0 +1,19 @@
+{
+  "status": "PASS",
+  "packager_tests": 7,
+  "public_verifier_tests": 9,
+  "deployment_fault_tests": 11,
+  "commands": [
+    "python -B -m pytest web/tests/test_prepare_multiplayer_release.py web/tests/test_verify_multiplayer_release.py -q --disable-warnings -p no:cacheprovider",
+    "python -B -m pytest web/tests/test_deploy_multiplayer_release.py -q --disable-warnings -p no:cacheprovider"
+  ],
+  "exit_codes": [
+    0,
+    0
+  ],
+  "scripts_sha256": {
+    "web/tools/deploy_multiplayer_release.py": "d9806e15c35777fa870e7c31d579a7ca4dae60378380874b0d6a5bc77fca96d8",
+    "web/tools/prepare_multiplayer_release.py": "de22e14cee399d64d960c8860772c8f8a593ee5fb1e134557c8c59215e0276f1",
+    "web/tools/verify_multiplayer_release.py": "5c9c3963d1112092a516fe121fabd6a711787dcd4e119789ceb0b46f299b095c"
+  }
+}

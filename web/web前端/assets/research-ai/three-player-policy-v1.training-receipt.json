@@ -1,0 +1,55 @@
+{
+  "status": "TRAINING-COMPLETE",
+  "model": "three-player-policy-v1",
+  "model_sha256": "8cd1a2f36267f96b1e32b7749a9cdc785f489ea7ec12e31aee0beb0a72901794",
+  "protocol": {
+    "version": 1,
+    "seed": 20261020,
+    "rulesVersion": "territory-v2",
+    "sizes": [
+      5,
+      7,
+      9
+    ],
+    "dualGames": 12,
+    "tripleGames": 24,
+    "maxPlies": 18,
+    "dualTeacher": "existing MinimaxAI depth=2 (maximum 20 candidates)",
+    "tripleTeacher": "MaxN depth=2; each player maximizes own utility; top 8 heuristic candidates",
+    "teacherTemperature": 30,
+    "pretrainEpochs": 100,
+    "finetuneEpochs": 180,
+    "learningRate": 0.15,
+    "evidenceTier": "application-bootstrap; not a strength benchmark or formal research result"
+  },
+  "training": {
+    "two_player_samples": 135,
+    "three_player_samples": 244,
+    "heldout_three_player_samples": 67,
+    "completed_generation_episodes": 36,
+    "generated_samples": 479,
+    "terminal_episodes": 13,
+    "truncated_episodes": 23,
+    "pretraining_teacher": "existing MinimaxAI depth=2 (maximum 20 candidates)",
+    "finetuning_teacher": "MaxN depth=2; each player maximizes own utility; top 8 heuristic candidates",
+    "trained_board_sizes": [
+      5,
+      7,
+      9
+    ],
+    "source_hashes": {
+      "web/tools/train-three-player-ai.mjs": "10452b3b8cea88344a7c3124ec3058a0a65cd48a10c91cd53177d54099ae4dcb",
+      "web/web前端/ThreePlayerAI.js": "edfa92c657fa28a617f18586191a09686336af15843a8423a07b863743e0381b",
+      "web/web前端/AIEngine.js": "6738fe3a98a616dfd6c060636f5d2684fd49ebc561c95a96247db28c7170ccc3",
+      "web/web前端/GameEngine.js": "625e8d8a92801647702f963f56148040248cf471228a6ce5c719e20e4414a555"
+    },
+    "protocol_sha256": "6a5d18a1e162056070591877c89edf1a3159887655d18578b00f054366d533ae",
+    "initial_heldout_cross_entropy": 1.8965364481719391,
+    "final_heldout_cross_entropy": 1.5375684235502434,
+    "final_training_cross_entropy": 1.3332485513825847,
+    "evidence_tier": "application-bootstrap; not a strength benchmark or formal research result"
+  },
+  "elapsed_seconds_this_invocation": 46.093,
+  "resume": "Rerun identical command with same --run-root; source/config drift is rejected.",
+  "limitation": "Lightweight imitation bootstrap; held-out imitation loss is not game strength. Sizes 10–15 are feature-based inference compatibility, not trained-size strength evidence."
+}

@@ -1,0 +1,162 @@
+{
+  "canvas": {
+    "bottom": 621,
+    "height": 608,
+    "left": 17,
+    "right": 1263,
+    "top": 13,
+    "width": 1246,
+    "x": 17,
+    "y": 13
+  },
+  "emojis": [
+    {
+      "bottom": 683,
+      "height": 44,
+      "left": 775,
+      "right": 819,
+      "text": "👏",
+      "top": 639,
+      "width": 44,
+      "x": 775,
+      "y": 639
+    },
+    {
+      "bottom": 683,
+      "height": 44,
+      "left": 823,
+      "right": 867,
+      "text": "😭",
+      "top": 639,
+      "width": 44,
+      "x": 823,
+      "y": 639
+    },
+    {
+      "bottom": 683,
+      "height": 44,
+      "left": 871,
+      "right": 915,
+      "text": "😎",
+      "top": 639,
+      "width": 44,
+      "x": 871,
+      "y": 639
+    },
+    {
+      "bottom": 683,
+      "height": 44,
+      "left": 919,
+      "right": 963,
+      "text": "🤝",
+      "top": 639,
+      "width": 44,
+      "x": 919,
+      "y": 639
+    },
+    {
+      "bottom": 683,
+      "height": 44,
+      "left": 967,
+      "right": 1011,
+      "text": "❓",
+      "top": 639,
+      "width": 44,
+      "x": 967,
+      "y": 639
+    },
+    {
+      "bottom": 683,
+      "height": 44,
+      "left": 1015,
+      "right": 1059,
+      "text": "🤔",
+      "top": 639,
+      "width": 44,
+      "x": 1015,
+      "y": 639
+    },
+    {
+      "bottom": 683,
+      "height": 44,
+      "left": 1063,
+      "right": 1107,
+      "text": "💀",
+      "top": 639,
+      "width": 44,
+      "x": 1063,
+      "y": 639
+    },
+    {
+      "bottom": 683,
+      "height": 44,
+      "left": 1111,
+      "right": 1155,
+      "text": "👎",
+      "top": 639,
+      "width": 44,
+      "x": 1111,
+      "y": 639
+    },
+    {
+      "bottom": 683,
+      "height": 44,
+      "left": 1159,
+      "right": 1203,
+      "text": "😓",
+      "top": 639,
+      "width": 44,
+      "x": 1159,
+      "y": 639
+    },
+    {
+      "bottom": 683,
+      "height": 44,
+      "left": 1207,
+      "right": 1251,
+      "text": "😤",
+      "top": 639,
+      "width": 44,
+      "x": 1207,
+      "y": 639
+    }
+  ],
+  "frame": {
+    "bottom": 621,
+    "height": 608,
+    "left": 17,
+    "right": 1263,
+    "top": 13,
+    "width": 1246,
+    "x": 17,
+    "y": 13
+  },
+  "page": [
+    1280,
+    720
+  ],
+  "scripts": [
+    "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js",
+    "https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js",
+    "https://lifelinegame.cn/main.js?v=20261013f"
+  ],
+  "styles": [
+    "https://lifelinegame.cn/styles.css?v=20261013f"
+  ],
+  "turn": {
+    "bottom": 683,
+    "height": 44,
+    "left": 29,
+    "right": 209,
+    "top": 639,
+    "width": 180,
+    "x": 29,
+    "y": 639
+  },
+  "tutorialVisible": false,
+  "url": "https://lifelinegame.cn/",
+  "viewport": [
+    1280,
+    720
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "status": "PASS-CURRENT",
+  "evidence_tier": "APPLICATION-EVALUATION",
+  "client_date": "2026-10-21",
+  "evaluation_status": "COMPLETE",
+  "promotionPass": false,
+  "independent_verifier_command": "node --unhandled-rejections=strict web/tools/verify-three-player-arena.mjs --run-root local_artifacts/three-player-ai-v2-arena/final-20261021",
+  "independent_verifier_exit_code": 0,
+  "run_identity": "92be2bb97b8d249f4c8424aa70a185d4b8e22f00bdb39e851903c11d1449bfba",
+  "candidate_sha256": "00fc241c500dfd01ff85b5e2a4f1907cc5a9d8307d68bb78be64b0aad129f56e",
+  "baseline_sha256": "8cd1a2f36267f96b1e32b7749a9cdc785f489ea7ec12e31aee0beb0a72901794",
+  "completed_games": 126,
+  "terminal_games": 126,
+  "truncated_games": 0,
+  "independent_prefix_clusters": 18,
+  "verified_actions": 4973,
+  "verified_policy_decisions": 4595,
+  "worker_activity_ms": 188507,
+  "supervisor": {
+    "status": "COMPLETE",
+    "attempts": 2,
+    "abnormal_exits": 0,
+    "no_progress_exits": 0
+  },
+  "compact_evidence_sha256": {
+    "arena-final-summary.json": "0a6d76d601e0bc3401ed0dcb1b4e8e992ffd49d3800831d87dd5a5083756f21c",
+    "arena-final-verification.json": "5d08e74b08b43cbfeef757f322858876488902b94a76b10ae04ddc49b542259c",
+    "arena-final-identity.json": "bdd542b32ac142d32ceb07077124c72d966c10c34dfbae323c05edead58d136a"
+  },
+  "decision": "Retain the v1 default. Candidate v2 failed the preregistered promotion gate.",
+  "limitations": [
+    "One frozen candidate and one final holdout; no retuning or repeat of this holdout.",
+    "18 random-prefix clusters are the uncertainty units, not 108 independent mixed games.",
+    "Confidence interval crosses zero; this does not establish significant inferiority or equivalence.",
+    "Application result limited to frozen territory-v2 three-player models, sizes 5/7/9 and this seed protocol."
+  ],
+  "raw_evidence_location": "local_artifacts/three-player-ai-v2-arena/final-20261021"
+}

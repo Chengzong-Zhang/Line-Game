@@ -1,0 +1,131 @@
+{
+  "status": "PASS_FROZEN_SOURCES_AND_SUBSET_LOAD",
+  "source_hashes": {
+    "web/tools/neural-posttraining-arena-v2.mjs": "12c4b0633131ae3b0f87343430604caac7eaf68f1cb9f66a14d8f93ecdda2256",
+    "web/tools/verify-neural-posttraining-v2.mjs": "8eb8635f3271915b3507615bc02716a941bf672cf641f872601459b99915b119",
+    "web/tools/neural-posttraining-data.mjs": "8d4f027ea0b60336763cda432977fd896517c683aca245269dac03c01e418655",
+    "web/tools/supervise-three-player-job.mjs": "a4f05cb802ad9479faae0e7121bce0ad66bc81f56fe5bbdeaa4d33e0bb63fe8c",
+    "web/tools/run-neural-arena-verification.mjs": "345370c78a448a5c09708a4b7e604f938827272842b36f7492f49527bc555bc6"
+  },
+  "candidate_manifest_sha256": "38778255bb79ef0ac3a74b071089b9516814ce448c97e5e9f5dbcb068cfc5fa0",
+  "models": 7,
+  "legal_probes": [
+    {
+      "id": "padded-cnn-transfer-v1-seed2026092203-distill-v1",
+      "point": [
+        2,
+        0
+      ],
+      "elapsedMs": 161.8718
+    },
+    {
+      "id": "padded-cnn-transfer-v1-seed2026092203",
+      "point": [
+        0,
+        1
+      ],
+      "elapsedMs": 143.95790000000005
+    },
+    {
+      "id": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "point": [
+        2,
+        0
+      ],
+      "elapsedMs": 55.08389999999997
+    },
+    {
+      "id": "grid-gnn-transfer-v1-seed2026092201",
+      "point": [
+        2,
+        0
+      ],
+      "elapsedMs": 50.1961
+    },
+    {
+      "id": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "point": [
+        2,
+        0
+      ],
+      "elapsedMs": 37.343599999999924
+    },
+    {
+      "id": "grid-gnn-transfer-v1-seed2026092202",
+      "point": [
+        0,
+        4
+      ],
+      "elapsedMs": 35.08389999999997
+    },
+    {
+      "id": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "point": [
+        0,
+        4
+      ],
+      "elapsedMs": 40.349000000000046
+    },
+    {
+      "id": "grid-gnn-transfer-v1-seed2026092203",
+      "point": [
+        0,
+        3
+      ],
+      "elapsedMs": 38.33120000000008
+    },
+    {
+      "id": "dqn-all-sizes-e2000-distill-v1",
+      "point": [
+        2,
+        0
+      ],
+      "elapsedMs": 6.014600000000087
+    },
+    {
+      "id": "dqn-all-sizes-e2000",
+      "point": [
+        2,
+        0
+      ],
+      "elapsedMs": 1.7980999999999767
+    },
+    {
+      "id": "sac-all-sizes-e2000-distill-v1",
+      "point": [
+        2,
+        0
+      ],
+      "elapsedMs": 1.6091000000000122
+    },
+    {
+      "id": "sac-all-sizes-e2000",
+      "point": [
+        2,
+        0
+      ],
+      "elapsedMs": 1.419300000000021
+    },
+    {
+      "id": "gail-all-sizes-distill-v1",
+      "point": [
+        0,
+        4
+      ],
+      "elapsedMs": 1.4886999999999944
+    },
+    {
+      "id": "gail-all-sizes",
+      "point": [
+        0,
+        3
+      ],
+      "elapsedMs": 1.660600000000045
+    }
+  ],
+  "prior_recovery_evidence": [
+    "docs/verification/all-ai-posttraining-20261021/neural-arena-v2-recovery.json",
+    "docs/verification/all-ai-posttraining-20261021/neural-arena-verification-adapter-recovery.json"
+  ],
+  "preflight_correction": "Initial ad hoc probe passed a numeric GameEngine argument; corrected to frozen replay helper with territory-v2. No arena started or source modified."
+}

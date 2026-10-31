@@ -1,0 +1,32 @@
+{
+  "status": "PASS_CURRENT_CANDIDATE_AUTOMATED",
+  "release_id": "web-replay-ai-contribution-20261013",
+  "asset_version": "20261013-full-features1",
+  "runtime_commit": "09b64f1",
+  "node_syntax_modules": 25,
+  "frontend_checks": 18,
+  "backend_tests": 5,
+  "tests": [
+    "verify-board-input.mjs",
+    "verify-tutorial.mjs",
+    "verify-tutorial-session.mjs",
+    "verify-territory-v2.mjs",
+    "verify-territory-worker.mjs",
+    "verify-online-recovery.mjs",
+    "verify-ai-duel.mjs",
+    "verify-local-ai-session.mjs",
+    "verify-ai-control-flow.mjs",
+    "verify-ai-search-15.mjs",
+    "verify-hint-worker.mjs",
+    "verify-ai-comparison.mjs",
+    "verify-replay-codec.mjs",
+    "verify-local-game-session.mjs",
+    "verify-training-contribution.mjs",
+    "verify-size-transfer-ai.mjs",
+    "verify-research-ai.mjs",
+    "verify-research-worker.mjs"
+  ],
+  "independent_strength_evaluation": false,
+  "raw_training_started": false,
+  "validated_at": "2026-10-13T19:52:12.9800707+08:00"
+}

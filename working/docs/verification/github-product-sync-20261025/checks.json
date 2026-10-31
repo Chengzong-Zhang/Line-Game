@@ -1,0 +1,33 @@
+{
+  "status": "PASS_PRODUCT_SOURCE_CHECKS",
+  "mini": {
+    "passed": 466,
+    "failed": 0
+  },
+  "webSelected": {
+    "passed": 14,
+    "failed": 0
+  },
+  "deploymentWriterMetadata": {
+    "passed": 41,
+    "subtestsPassed": 18,
+    "command": "python -m pytest -q web/tests/test_wechat_writer_scan.py web/tests/test_wechat_service_release_activation.py web/tests/test_legacy_release_activation.py web/tests/test_all_features_release_identity.py web/tests/test_frozen_release_queue.py"
+  },
+  "emptyRoomRealSqliteNode": {
+    "passed": 12,
+    "failed": 0
+  },
+  "ciTransfer": {
+    "passed": 10,
+    "failed": 0
+  },
+  "pythonFormalScore": {
+    "passed": 5,
+    "failed": 0
+  },
+  "boundaries": [
+    "No new phone test",
+    "No AI strength claim",
+    "Developer upload is not Mini public release"
+  ]
+}

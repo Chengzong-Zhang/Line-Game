@@ -1,0 +1,30 @@
+{
+  "release_id": "web-board-icons-feedback-20261013",
+  "asset_version": "20261013g",
+  "commit": "0c1b5fda188e038b34b2c192e2f03932fb1169d0",
+  "workspace_dirty": true,
+  "base_release_id": "web-tutorial-five-lessons-20261013",
+  "base_tree_sha256": "9c483294abcd922778369bef64aea04d87e70cf288ae2852e23113f9993bb80d",
+  "files": {
+    "index.html": "2ac72774f46304743d4967e54aaa2e4ba0310146d145993e0a3b0e702d27d2fd",
+    "main.js": "d84842587e5f703d79f2b450876de0055a6ac5d9d386deba7f01b44f523ff21b",
+    "OnlineApp.js": "7c7f048d3f50d4ffbfe92452ccbe92aa2c0c504018d8c6bbe0e0d5e31432d5ed",
+    "styles.css": "64b85ad8b5006ba7c86818e0e7fdc8a0599c3bda176b3d0bf0411cf349945daf"
+  },
+  "preserved_dependency": {
+    "TutorialRunner.js": "1ad3cd525b054d6d2ae1a1d43350af986253498a942b9600a89130ea34463f27",
+    "GameController.js": "215ccec7e01a15825bdd24d48d9137159dad4bb5bf02529b26a35a371e643e49",
+    "Renderer.js": "6e0ad51da8083c472b4e4b0ee42a6d00402e116b90dbcab4d40b16c4795a3e24",
+    "TrainingContribution.js": "f1fe6fe2357a46d1cad9421845aa89edd9047f482e84210347cfbf77133733c3"
+  },
+  "predecessor_files": {
+    "index.html": "d3d72671e1baecbbe24fba5be25d99ac98bd556aa381022f659826f27f856483",
+    "main.js": "45e4765ad533a6cd2271580216d485ee89400ff067ecbaf52d20a7698ad98de6",
+    "OnlineApp.js": "48fc6afbe5eff205ce10639667e07f89f696d85ca92881e4aa2807b69592f9f8",
+    "styles.css": "9b543edf92fbedcc8b72544c808b86b102dcfe5b154ccb0140d036d49d890589",
+    "TutorialRunner.js": "1ad3cd525b054d6d2ae1a1d43350af986253498a942b9600a89130ea34463f27",
+    "GameController.js": "215ccec7e01a15825bdd24d48d9137159dad4bb5bf02529b26a35a371e643e49",
+    "Renderer.js": "6e0ad51da8083c472b4e4b0ee42a6d00402e116b90dbcab4d40b16c4795a3e24",
+    "TrainingContribution.js": "f1fe6fe2357a46d1cad9421845aa89edd9047f482e84210347cfbf77133733c3"
+  }
+}

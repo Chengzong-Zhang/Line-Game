@@ -1,0 +1,28 @@
+{
+  "schema": "lifeline-hex-v3-campaign-v1",
+  "startedEpochMs": 1792552941492,
+  "deadlineEpochMs": 1792556541492,
+  "hardBudgetSeconds": 3600,
+  "sources": {
+    "C:\\coding\\py\\line game\\web\\tools\\run-hex-distillation-v3.mjs": "30f976339bfe653bbae823ed1a1e3773d4bd675e90c840a6b6d1f29dbfe89ac3",
+    "C:\\coding\\py\\line game\\web\\tools\\hex-distill-v3-core.mjs": "4204590d3413f12f0da4ab30d1976c6c3dcaca4d87664d829f332a273863ed3e",
+    "C:\\coding\\py\\line game\\web\\tools\\hex-posttrain-core.mjs": "853dac68a3b9c404e2bca9827fe1fa20b51d599263d88e8885d2e1f9b7db1ad3",
+    "C:\\coding\\py\\line game\\web\\tools\\hex-posttrain-protocol.mjs": "2d5751dd2bc586d836791af54d026400abc5ec88d60ebe80113dc44e090fd7d0",
+    "C:\\coding\\py\\line game\\web\\tools\\linear-three-v3-core.mjs": "dfdafce7647e85e60619f3b66d461705cc4bf4c0da60ccf1e44af7a50a8f5bfc",
+    "C:\\coding\\py\\line game\\web\\tools\\three-player-arena-lib.mjs": "4cc3c30f82d4881c7c72e1e29a342bd62d938abde0e80292ab3b38401173a56b",
+    "C:\\coding\\py\\line game\\web\\web前端\\GameEngine.js": "625e8d8a92801647702f963f56148040248cf471228a6ce5c719e20e4414a555",
+    "C:\\coding\\py\\line game\\web\\web前端\\AIEngine.js": "6738fe3a98a616dfd6c060636f5d2684fd49ebc561c95a96247db28c7170ccc3",
+    "C:\\coding\\py\\line game\\web\\web前端\\HexPlayerAI.js": "62340c349b53a13e20d47171187228a2359c5d8dcbf12344a4bf6a0017b9f673",
+    "C:\\coding\\py\\line game\\web\\tools\\run-hex-distillation-v3-final.mjs": "4e76776d372ab8353f77684b60cec456a6e55655943664fb912755b77620faaf",
+    "C:\\coding\\py\\line game\\web\\tools\\hex-distill-v3-final-protocol.mjs": "28ee8886eda5a78cc8504d75539cb5163dc3d8064503bf2cf86270c22b78a400",
+    "C:\\coding\\py\\line game\\web\\tools\\verify-hex-distillation-v3.mjs": "22727a9f71ede7cdc1f122e4612792b79c6d1f54d2ce803100a3be9d74785194",
+    "C:\\coding\\py\\line game\\web\\tools\\verify-hex-distillation-v3-final.mjs": "9eff759ea18a87e2bf7c15a66f573013156fe37ea156d49ffd558dcba8cf054c",
+    "C:\\coding\\py\\line game\\web\\tools\\launch-hex-distillation-v3.mjs": "e70a78a561f7c64eca4cf6e51e9496fde8ae9ca2b3e7de1ef4454ac5827e7caf",
+    "C:\\coding\\py\\line game\\web\\tools\\supervise-three-player-job.mjs": "a4f05cb802ad9479faae0e7121bce0ad66bc81f56fe5bbdeaa4d33e0bb63fe8c",
+    "C:\\coding\\py\\line game\\web\\tools\\configs\\hex-player-policy-v3-train.json": "be4c47193e6688e0fe0ac66c6e00af3fb4fc96fdbd892e509493268248215867",
+    "C:\\coding\\py\\line game\\web\\tools\\configs\\hex-player-policy-v3-final.json": "9643b7aaf76be7b83a7ac9f331c1c43a8f55594aa41ba760fd6f67ffebb1d95f",
+    "C:\\coding\\py\\line game\\web\\web前端\\tests\\verify-hex-distillation-v3-recovery.mjs": "6c9ab06a78d895f7b1a13aefad28708b54481815e027099e12a5491db6b2cef3",
+    "C:\\coding\\py\\line game\\docs\\verification\\hex-ai-distill-v3\\PROTOCOL.md": "8017abdccb6f2b46a5a8093e1948e1f35241417e31b881e7b3380792a1d69ff1"
+  },
+  "authorization": "Continue improving AI; local 3600 second v3 campaign; no deployment"
+}

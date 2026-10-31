@@ -1,0 +1,41 @@
+{
+  "status": "ACTIVATED_BOTH_FRONTENDS_PUBLIC_HASHES_VERIFIED",
+  "releaseId": "web-latest-moves-20261025-r1",
+  "candidateTree": "9531e5250d8029df4e73447649750fefadc92d79491ccdda3bab905b85e5fef9",
+  "backendChanged": false,
+  "databasesChanged": false,
+  "serviceRestarts": 0,
+  "startedAtUtcEpoch": 1792937866.6626613,
+  "swapped": [
+    "site",
+    "wechat"
+  ],
+  "health": {
+    "game": "ok",
+    "wechatEnabled": true,
+    "playerCounts": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15
+    ]
+  },
+  "public": {
+    "status": "PASS_ALL_PUBLIC_RESOURCE_HASHES",
+    "files": 133,
+    "bytes": 21594259,
+    "manifestSha256": "f8939421cf891af29e60a97f2135f7342c6d53e07b2f6c5dad591905c7ecc29e",
+    "certificateValidation": true
+  },
+  "completedAtUtcEpoch": 1792937911.2200215
+}

@@ -1,0 +1,140 @@
+{
+  "schema": "lifeline-three-player-posttraining-local-delivery-v1",
+  "date": "2026-10-21",
+  "status": "COMPLETE_LOCAL_CANDIDATE_NOT_PROMOTED",
+  "default_model": "three-player-policy-v1",
+  "candidate_model": "three-player-policy-v2",
+  "candidate_sha256": "00fc241c500dfd01ff85b5e2a4f1907cc5a9d8307d68bb78be64b0aad129f56e",
+  "promotionPass": false,
+  "training": {
+    "status": "TRAINING_AND_DEVELOPMENT_COMPLETE",
+    "independent_verification": "PASS_INDEPENDENT_POSTTRAINING_REPLAY_AND_OPTIMIZER",
+    "independent_verifier_command": "node --unhandled-rejections=strict web/tools/verify-three-player-posttraining.mjs",
+    "independent_verifier_exit_code": 0,
+    "train_episodes": 54,
+    "validation_episodes": 18,
+    "train_samples": 1324,
+    "validation_samples": 446,
+    "terminal_generation_episodes": 54,
+    "truncated_generation_episodes": 18,
+    "optimizer_epochs": 900,
+    "selected_epoch": 900,
+    "validation_cross_entropy": {
+      "before": 1.5987505593931233,
+      "after": 1.5248056135881953
+    },
+    "development_games": 171,
+    "receipt": "web/web前端/assets/research-ai/three-player-policy-v2.training-receipt.json",
+    "verification": "docs/verification/three-player-ai-v2/training-independent-verification.json"
+  },
+  "final_evaluation": {
+    "status": "PASS_APPLICATION_EVALUATION",
+    "promotionPass": false,
+    "independent_verifier_command": "node --unhandled-rejections=strict web/tools/verify-three-player-arena.mjs --run-root local_artifacts/three-player-ai-v2-arena/final-20261021",
+    "independent_verifier_exit_code": 0,
+    "terminal_games": 126,
+    "truncated_games": 0,
+    "independent_prefix_clusters": 18,
+    "mean_win_share_delta": -0.032407407407407406,
+    "cluster_bootstrap_95_interval": [
+      -0.08564814814814815,
+      0.02314814814814815
+    ],
+    "report": "docs/verification/three-player-ai-v2/ARENA_RESULTS.md",
+    "receipt": "docs/verification/three-player-ai-v2/arena-final-receipt.json"
+  },
+  "recovery_evidence": [
+    "docs/verification/three-player-ai-posttrain-20261021/training-preflight.json",
+    "docs/verification/three-player-ai-v2/supervisor-recovery-receipt.json",
+    "docs/verification/three-player-ai-v2/arena-recovery-receipt.json",
+    "docs/verification/three-player-ai-v2/output-verifier-recovery-receipt.json"
+  ],
+  "regression_checks": [
+    {
+      "name": "v1-compatibility",
+      "command": "node --unhandled-rejections=strict 'web/web前端/tests/verify-three-player-ai.mjs'",
+      "exit_code": 0,
+      "status": "PASS"
+    },
+    {
+      "name": "local-ai-session",
+      "command": "node --unhandled-rejections=strict 'web/web前端/tests/verify-local-ai-session.mjs'",
+      "exit_code": 0,
+      "status": "PASS"
+    },
+    {
+      "name": "local-player-setup",
+      "command": "node --unhandled-rejections=strict 'web/web前端/tests/verify-local-player-setup.mjs'",
+      "exit_code": 0,
+      "status": "PASS"
+    },
+    {
+      "name": "local-game-session",
+      "command": "node --unhandled-rejections=strict 'web/web前端/tests/verify-local-game-session.mjs'",
+      "exit_code": 0,
+      "status": "PASS"
+    },
+    {
+      "name": "online-bot-bridge",
+      "command": "node --unhandled-rejections=strict 'web/web前端/tests/verify-online-bot-bridge.mjs'",
+      "exit_code": 0,
+      "status": "PASS"
+    },
+    {
+      "name": "hex-setup-compatibility",
+      "command": "node --unhandled-rejections=strict 'web/web前端/tests/verify-hex-player-setup.mjs'",
+      "exit_code": 0,
+      "status": "PASS"
+    },
+    {
+      "name": "backend",
+      "command": "python -m unittest discover -s web/tests -v",
+      "exit_code": 0,
+      "status": "PASS",
+      "tests": 31,
+      "duration_seconds": 28.644
+    },
+    {
+      "name": "diff-check",
+      "command": "git diff --check",
+      "exit_code": 0,
+      "status": "PASS"
+    }
+  ],
+  "candidate_runtime_check": {
+    "command": "node --unhandled-rejections=strict web/web前端/tests/verify-three-player-v2-runtime.mjs",
+    "status": "PASS",
+    "scope": "Sizes 5/9/15 and three seats; legal actions, normalization, state restoration, model identity/hash rejection and retry, AIWorker protocol. Runtime compatibility is not strength evidence."
+  },
+  "frozen_input_hashes_rechecked": {
+    "web/tools/finetune-three-player-ai.mjs": "d490b4b4ada24c0e28ee83680abadb652b5d800509bcba7bc865afc185c20457",
+    "web/tools/three-player-posttraining-core.mjs": "664525517f2cb2d46ba33ab7cc8d19b196b6f8bae4bba6f170b32aa7dfc79d80",
+    "web/web前端/GameEngine.js": "625e8d8a92801647702f963f56148040248cf471228a6ce5c719e20e4414a555",
+    "web/web前端/AIEngine.js": "6738fe3a98a616dfd6c060636f5d2684fd49ebc561c95a96247db28c7170ccc3",
+    "web/web前端/ThreePlayerAI.js": "edfa92c657fa28a617f18586191a09686336af15843a8423a07b863743e0381b",
+    "web/tools/configs/three-player-policy-v2.json": "c6534a65ca3c246ec470222d578a504eb65eca5619fec716157bc3b77c432a8f",
+    "web/web前端/assets/research-ai/three-player-policy-v1.json": "8cd1a2f36267f96b1e32b7749a9cdc785f489ea7ec12e31aee0beb0a72901794",
+    "web/web前端/assets/research-ai/three-player-policy-v2.json": "00fc241c500dfd01ff85b5e2a4f1907cc5a9d8307d68bb78be64b0aad129f56e",
+    "web/tools/train-three-player-ai.mjs": "10452b3b8cea88344a7c3124ec3058a0a65cd48a10c91cd53177d54099ae4dcb"
+  },
+  "local_http": {
+    "url": "http://127.0.0.1:8012/",
+    "index_status": 200,
+    "candidate_served_hash_matches": true
+  },
+  "raw_local_evidence": [
+    "local_artifacts/three-player-ai-posttrain-v2-20261021",
+    "local_artifacts/three-player-ai-v2-arena/final-20261021"
+  ],
+  "boundaries": {
+    "server_deployed": false,
+    "mini_program_synced": false,
+    "final_arena_runs": 1,
+    "holdout_used_for_retuning": false,
+    "strength_claim": "Candidate failed the preregistered promotion gate. The interval crosses zero; no statistically significant inferiority or equivalence is claimed.",
+    "teacher_verification": "Nine stratified teacher labels regenerated; other labels checked structurally. All episodes, feature vectors, optimizer epochs and development games verified.",
+    "inference_sizes_10_to_15": "Runtime supported; no strength improvement evaluated.",
+    "frozen_metadata": "Training-time pending/NOT-RUN values remain unchanged in frozen artifacts; this receipt and the final arena report record the later completion.",
+    "browser_scope": "Local HTTP and automated runtime/session checks; no new manual UI acceptance claimed for posttraining."
+  }
+}

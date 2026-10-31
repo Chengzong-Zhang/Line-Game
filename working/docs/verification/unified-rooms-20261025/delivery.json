@@ -1,0 +1,66 @@
+{
+  "status": "WEB_ACTIVATED_GITHUB_PUSHED_MINI_CODE_UPLOADED",
+  "recordedAtUtc": "2026-10-25T06:55:56.670522+00:00",
+  "productCommit": "21cb3231595d93b13511c7aeb1b4e3a406f1b7eb",
+  "github": {
+    "repository": "https://github.com/Chengzong-Zhang/Line-Game",
+    "branch": "codex/unified-room-seats-20261025",
+    "verifiedRemoteProductHead": "21cb3231595d93b13511c7aeb1b4e3a406f1b7eb",
+    "mainChanged": false,
+    "sharedHistoryRewritten": false
+  },
+  "server": {
+    "origin": "https://lifelinegame.cn/",
+    "releaseId": "web-unified-rooms-20261025-r1",
+    "status": "ACTIVATED_ALL_COMPONENTS_VERIFIED",
+    "publicStatus": "PASS_INSTALLED_AND_PUBLIC_RESOURCES",
+    "runtimeFilesVerified": 131,
+    "productionDatabaseReplaced": false,
+    "receipt": "server-activation.json",
+    "publicReceipt": "public-verification.json"
+  },
+  "miniGame": {
+    "version": "0.12.11",
+    "candidateId": "0.12.11-94d209574766-RQM8cw",
+    "candidateReceiptSha256": "17cd92f823b3c9c49c89ac7ccf3eab0f963550769823d4c7de9f15dc69e8f15b",
+    "status": "CODE_UPLOADED_EXPERIENCE_NOT_CONFIGURED",
+    "robot": 2,
+    "sdkVersion": "2.1.31",
+    "completedAt": "2026-10-25T06:53:30.769Z",
+    "receipt": "mini-official-upload.json",
+    "experienceConfigured": false,
+    "deviceAcceptance": "NOT_RUN",
+    "submittedForReview": false,
+    "publiclyPublished": false
+  },
+  "verification": {
+    "miniFullSuiteBeforeCacheRefresh": {
+      "passed": 474,
+      "failed": 0
+    },
+    "miniFinalTargeted": {
+      "passed": 48,
+      "failed": 0
+    },
+    "sharedPython": {
+      "passed": 14,
+      "failed": 0
+    },
+    "serviceCompatibility": {
+      "passed": 19,
+      "failed": 0
+    },
+    "deploymentBuilder": {
+      "passed": 3,
+      "failed": 0
+    },
+    "actualVueWatchers": "PASS",
+    "localBrowserMixedSixSeatsAndPendingEdits": "PASS",
+    "independentSourceReview": "PASS_AFTER_ZERO_HINT_BUDGET_FIX"
+  },
+  "limits": [
+    "Physical WeChat device and cross-device acceptance were not run.",
+    "Local browser could not open the public origin (ERR_CONNECTION_CLOSED); HTTPS resource verification ran from the server host.",
+    "Developer upload does not configure the experience version or publish the Mini Game."
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "schema": "lifeline-three-player-arena",
+  "version": 1,
+  "stage": "CALIBRATION",
+  "sizes": [5, 7, 9],
+  "starters": ["BLACK"],
+  "prefixesPerCell": 1,
+  "prefixMoves": 3,
+  "seedNamespace": "lifeline-three-player-v2/throughput-only/20261021/protocol1",
+  "lineups": "control",
+  "maxActions": 400,
+  "maxGameSeconds": 60,
+  "totalBudgetSeconds": 180
+}

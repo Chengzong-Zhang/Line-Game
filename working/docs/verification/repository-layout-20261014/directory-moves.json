@@ -1,0 +1,167 @@
+{
+  "date": "2026-10-14",
+  "moves": [
+    {
+      "source": "docs/BOARD_ICONS_FEEDBACK_VERIFICATION_20261013.md",
+      "destination": "docs/releases/BOARD_ICONS_FEEDBACK_VERIFICATION_20261013.md",
+      "sha256_before_move": "8fb2452caaaa8fd5caf1df5d41af9bec4992bea96fb967abbe3054d411d56817"
+    },
+    {
+      "source": "docs/BOARD_LAYOUT_PRODUCTION_VERIFICATION_20261013.md",
+      "destination": "docs/releases/BOARD_LAYOUT_PRODUCTION_VERIFICATION_20261013.md",
+      "sha256_before_move": "904aa08a94e615cadb260bacef13e6196902149e32e1c71c7f2d9afe0041ecfc"
+    },
+    {
+      "source": "docs/BOARD_LAYOUT_VERIFICATION_20261013.md",
+      "destination": "docs/releases/BOARD_LAYOUT_VERIFICATION_20261013.md",
+      "sha256_before_move": "ffaa23c0600dc1e9f61091bc7ada102f55a93aebd61d5bfd1f72db94f208834e"
+    },
+    {
+      "source": "docs/BOARD_TOOLBAR_VERIFICATION_20261013.md",
+      "destination": "docs/releases/BOARD_TOOLBAR_VERIFICATION_20261013.md",
+      "sha256_before_move": "f23f4b681ec03ebc4aeb6a0ba12acaeb2e15b1a55df514a14c2e196d57cd3efe"
+    },
+    {
+      "source": "docs/LIFELINE_AI_COMPATIBILITY.md",
+      "destination": "docs/product/LIFELINE_AI_COMPATIBILITY.md",
+      "sha256_before_move": "e5bce300782c76db47e3fd2cbba7b0ce5b176965df9d99c8eff0fd30d7bebbd3"
+    },
+    {
+      "source": "docs/LIFELINE_ANDROID_HARMONYOS_PLAN_20261013.md",
+      "destination": "docs/platforms/LIFELINE_ANDROID_HARMONYOS_PLAN_20261013.md",
+      "sha256_before_move": "7446a1410d0f03793996471410f66729f5f7e2a2883ac633d3a2f1ce485bf3d2"
+    },
+    {
+      "source": "docs/LIFELINE_IOS_APP_STORE_PLAN_20261013.md",
+      "destination": "docs/platforms/LIFELINE_IOS_APP_STORE_PLAN_20261013.md",
+      "sha256_before_move": "2cfe4a0bcc0e5c9c036e81227aec697ae15050604e425821140cd64f597ea359"
+    },
+    {
+      "source": "docs/LIFELINE_LAB_PLAN.md",
+      "destination": "docs/product/LIFELINE_LAB_PLAN.md",
+      "sha256_before_move": "a5b79c5b2eff8d5fdd58943b6f104750e05fe8990ccba9bb008920527be00737"
+    },
+    {
+      "source": "docs/LIFELINE_M0_AUDIT.md",
+      "destination": "docs/product/LIFELINE_M0_AUDIT.md",
+      "sha256_before_move": "843bb078ff141d1aab1d2a822938f646f7255797e3c13c154945393939397197"
+    },
+    {
+      "source": "docs/LIFELINE_RELEASE_GATE.md",
+      "destination": "docs/product/LIFELINE_RELEASE_GATE.md",
+      "sha256_before_move": "15403f310047cd97800d6355d4f61229f30289ab013ba1008548c081a01b2dad"
+    },
+    {
+      "source": "docs/LIFELINE_REPLAY_SPEC.md",
+      "destination": "docs/product/LIFELINE_REPLAY_SPEC.md",
+      "sha256_before_move": "23678c65cf0f0ee76218306b808d0132049bda857468fd65321c20db4390f408"
+    },
+    {
+      "source": "docs/LIFELINE_RESEARCH_EXHIBITS.md",
+      "destination": "docs/product/LIFELINE_RESEARCH_EXHIBITS.md",
+      "sha256_before_move": "a576cad0c181bb549e20d37397a38adaf970e76fad635a38b89ff0abbdbc5cda"
+    },
+    {
+      "source": "docs/LIFELINE_STEAM_PLAN_20261013.md",
+      "destination": "docs/platforms/LIFELINE_STEAM_PLAN_20261013.md",
+      "sha256_before_move": "1a3f9346a8226b9a8cd16dc3cf7f130999f984ea97553da7586cb0ada973b250"
+    },
+    {
+      "source": "docs/LIFELINE_TASK_LEDGER.md",
+      "destination": "docs/product/LIFELINE_TASK_LEDGER.md",
+      "sha256_before_move": "c67378dfc6288eea82a40113e1b9d30947a1d4bdb5d33ee2d4efb5d743994190"
+    },
+    {
+      "source": "docs/LIFELINE_TUTORIAL_SPEC.md",
+      "destination": "docs/product/LIFELINE_TUTORIAL_SPEC.md",
+      "sha256_before_move": "a539bd8475bedaa36e7271ed8beae2f4c12f93c7e1c656d694c99c93c3dfc99f"
+    },
+    {
+      "source": "docs/LOCAL_PLAYER_SETUP_20261013.md",
+      "destination": "docs/releases/LOCAL_PLAYER_SETUP_20261013.md",
+      "sha256_before_move": "7c91097f8b90c6e0b27a72aa16516b4fdaf4d66e8bcf2a12d3ea7dd003b843df"
+    },
+    {
+      "source": "docs/REPLAY_AI_CONTRIBUTION_INTEGRATION_20261013.md",
+      "destination": "docs/releases/REPLAY_AI_CONTRIBUTION_INTEGRATION_20261013.md",
+      "sha256_before_move": "20c4807979a597381710cab3cd8a79da17c096904d899ea89f17e1976ba3b27e"
+    },
+    {
+      "source": "docs/REPOSITORY_CLEANUP_20261014.md",
+      "destination": "docs/maintenance/REPOSITORY_CLEANUP_20261014.md",
+      "sha256_before_move": "99dc2bb6c5d33cbe83cb336b2db345f4ec16215cae93d00ce4cb951e815451a3"
+    },
+    {
+      "source": "docs/TUTORIAL_THREE_POINT_VERIFICATION_20261013.md",
+      "destination": "docs/releases/TUTORIAL_THREE_POINT_VERIFICATION_20261013.md",
+      "sha256_before_move": "ea8af8376d0c8e8e6e5fa8e959d241cb10280049286f0c9ba91e961681cfdcda"
+    },
+    {
+      "source": "docs/TUTORIAL_VERIFICATION_20261013.md",
+      "destination": "docs/releases/TUTORIAL_VERIFICATION_20261013.md",
+      "sha256_before_move": "5dfdae46218ad39323ab8f4010cbe5b23c980df29072ce06755fdd9f2d6da2ae"
+    },
+    {
+      "source": "docs/WEB_CURRENT_SYNC_20261013.md",
+      "destination": "docs/releases/WEB_CURRENT_SYNC_20261013.md",
+      "sha256_before_move": "5e6bfd01a8df0e277a331c03986608ce3792f92d743773c404866f1ce10bd00c"
+    },
+    {
+      "source": "docs/WEB_FULL_FEATURES_RELEASE_20261013.md",
+      "destination": "docs/releases/WEB_FULL_FEATURES_RELEASE_20261013.md",
+      "sha256_before_move": "237631d599716d51e688158f374ee40c542d9ee83dc9bf82187d4d414815fc21"
+    },
+    {
+      "source": "docs/WEB_SIZE_TRANSFER_V1_20261012.md",
+      "destination": "docs/releases/WEB_SIZE_TRANSFER_V1_20261012.md",
+      "sha256_before_move": "98e33841405b26ba74f63d0ea4453d893f64dc98baa0310eaf85ed5552e40147"
+    },
+    {
+      "source": "docs/WECHAT_MINIGAME_MIGRATION_PLAN_20261013.md",
+      "destination": "docs/platforms/WECHAT_MINIGAME_MIGRATION_PLAN_20261013.md",
+      "sha256_before_move": "6d07ca5e821c554ef54def39967d6bbb10bfcbe5ec72ae3f2f5b13712ff7ce35"
+    },
+    {
+      "source": "web/README-WEB.md",
+      "destination": "web/README.md",
+      "sha256_before_move": "568f7b5c00866978d86e09497817a47e0069743d0ae32509dfdfef772b74a590"
+    },
+    {
+      "source": "web/WEB前后端需求与架构说明.md",
+      "destination": "docs/web/architecture.md",
+      "sha256_before_move": "dfe76ae6921351df1d01934b5fe3a3f7d24a0edce050240df04b0fdc8dd9f660"
+    },
+    {
+      "source": "web/新的需求.md",
+      "destination": "docs/archive/web/新的需求.md",
+      "sha256_before_move": "89524c1360214ee7e46fba00c8fd2c5ec80b27a7acfec854d05a932671b89cb0"
+    },
+    {
+      "source": "web/AI功能实现提示词.md",
+      "destination": "docs/archive/web/AI功能实现提示词.md",
+      "sha256_before_move": "34f5688aebb2af614d23b7a0bb4dc09ad76a5d61fd61063ac6795264eeed0497"
+    },
+    {
+      "source": "core algorithm/AI/docx_content.txt",
+      "destination": "docs/archive/course-demo/docx_content.txt",
+      "sha256_before_move": "c7bcf8039c4e176ab39dcbb23112ff2994d7952d9597ad046a95f9998a67569d"
+    },
+    {
+      "source": "core algorithm/AI/录屏讲稿.md",
+      "destination": "docs/archive/course-demo/录屏讲稿.md",
+      "sha256_before_move": "eabe72d0ae66faf066472c5e00382e8ac1797d78c271f79b716ddcb104847a42"
+    },
+    {
+      "source": "core algorithm/AI/游戏人工智能课程大作业_v3.docx",
+      "destination": "docs/archive/course-demo/游戏人工智能课程大作业_v3.docx",
+      "sha256_before_move": "e65a06f445fe1612c6e228b402540d27e7c6c6e5bca9ad10ad43cea41f0d4a10"
+    },
+    {
+      "source": "examples/image.png",
+      "destination": "docs/assets/image.png",
+      "sha256_before_move": "05f4174e6894008c8abe1482ef3793104253a2e5e2d05ec20734aefcc2a09916"
+    }
+  ],
+  "local_config_removed_from_version_control": true,
+  "frozen_research_paths_changed": false
+}

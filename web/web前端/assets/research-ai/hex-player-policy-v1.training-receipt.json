@@ -1,0 +1,99 @@
+{
+  "status": "TRAINING-COMPLETE",
+  "model": "hex-player-policy-v1",
+  "model_sha256": "74aa7f945c3ea7ff5ca3edc9e7bdc431dc0ec5ad56d2563ce6d6d24c0494162b",
+  "identity": "0d4c09dee04bb870339a7c9f4d57f23a567a2d3e35f5872d006f6e9e6ec49410",
+  "protocol": {
+    "version": 1,
+    "profile": "release",
+    "seed": 20261021,
+    "rulesVersion": "territory-v2",
+    "sizes": [
+      5,
+      7,
+      9
+    ],
+    "dualEpisodes": 6,
+    "trainEpisodesPerCount": 6,
+    "heldoutEpisodesPerCount": 2,
+    "maxPlies": 8,
+    "pretrainEpochs": 80,
+    "finetuneEpochs": 140,
+    "learningRate": 0.25,
+    "l2": 0.0001,
+    "teacherTemperature": 24,
+    "dualTeacher": "existing MinimaxAI depth=1, up to20 candidates",
+    "hexTeacher": "own-relative one-step coverage/reach utility with next-seat greedy reply; top4 candidates",
+    "candidateDistribution": "all legal moves; teacher top4 (dual top20) soft targets, all unselected legal moves receive zero target; training and heldout normalize over the full legal action set",
+    "splitUnit": "whole generation episode, disjoint deterministic seed IDs",
+    "evidenceTier": "application-pilot; imitation evaluation, not a win-rate or strength claim"
+  },
+  "training": {
+    "two_player_samples": 45,
+    "hex_samples_by_count": {
+      "4": 48,
+      "5": 48,
+      "6": 48
+    },
+    "heldout_samples_by_count": {
+      "4": 16,
+      "5": 16,
+      "6": 16
+    },
+    "trained_board_sizes": [
+      5,
+      7,
+      9
+    ],
+    "completed_generation_episodes": 30,
+    "terminal_episodes": 0,
+    "truncated_episodes": 30,
+    "source_hashes": {
+      "web/tools/train-hex-player-ai.mjs": "f2bb4e7cd64c2aca42647cb60a74865785534ea6786bfd4088e794e67cdaa73f",
+      "web/web前端/HexPlayerAI.js": "62340c349b53a13e20d47171187228a2359c5d8dcbf12344a4bf6a0017b9f673",
+      "web/web前端/GameEngine.js": "625e8d8a92801647702f963f56148040248cf471228a6ce5c719e20e4414a555",
+      "web/web前端/AIEngine.js": "6738fe3a98a616dfd6c060636f5d2684fd49ebc561c95a96247db28c7170ccc3"
+    },
+    "protocol_sha256": "2261fb1e45a1ca02f657ec7d58017c1e41487d54ca5176b15b6174b72e26b552",
+    "initial_heldout": {
+      "samples": 48,
+      "cross_entropy": 2.4801897715939707,
+      "teacher_top_choice_agreement": 0.2916666666666667
+    },
+    "final_heldout": {
+      "samples": 48,
+      "cross_entropy": 1.2537704976957476,
+      "teacher_top_choice_agreement": 0.75
+    },
+    "heldout_by_player_count": {
+      "4": {
+        "samples": 16,
+        "cross_entropy": 1.5328733650308142,
+        "teacher_top_choice_agreement": 0.5625
+      },
+      "5": {
+        "samples": 16,
+        "cross_entropy": 1.3137041166355465,
+        "teacher_top_choice_agreement": 0.8125
+      },
+      "6": {
+        "samples": 16,
+        "cross_entropy": 0.9147340114208826,
+        "teacher_top_choice_agreement": 0.875
+      }
+    },
+    "final_training": {
+      "samples": 144,
+      "cross_entropy": 1.6160095626141118,
+      "teacher_top_choice_agreement": 0.6388888888888888
+    },
+    "evidence_tier": "application-pilot; imitation evaluation, not a win-rate or strength claim",
+    "evaluation_action_set": "full legal action set; same normalization as deployed policy",
+    "target_distribution": "soft distribution on teacher-selected top4 actions (dual pretrain top20), zero elsewhere"
+  },
+  "elapsed_seconds_this_invocation": 101.144,
+  "resume": "Repeat same command/run-root. Source/config drift and corrupt checkpoints fail closed.",
+  "stop": "Create STOP or PAUSE in run-root; observed at each episode/epoch boundary. Remove explicitly before resuming.",
+  "limitation": "Short truncated trajectory imitation pilot, no game-strength claim. Sizes10–15 are inference compatibility, not trained-size evidence.",
+  "checkpoint_sha256": "73b7efb9ab678941a04b1c43c44a7cff8d2c18d3ddb458ea73d61e278511bc2d"
+}

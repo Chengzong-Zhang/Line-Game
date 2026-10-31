@@ -1,0 +1,13 @@
+{
+  "status": "ATOMIC_SWITCH_OK",
+  "release_id": "web-tutorial-five-lessons-20261013",
+  "commit": "0c1b5fda188e038b34b2c192e2f03932fb1169d0",
+  "overlay_files": 7,
+  "archive_sha256": "74ac3569bf4471c4d1b6211addee6dea20d6f19c2a864d9719a0d09338b45478",
+  "live_tree_sha256": "a864fa48fda61e2240b82817f4ce6430df2c3bea4938b37444118a1002e16626",
+  "candidate_tree_sha256": "9c483294abcd922778369bef64aea04d87e70cf288ae2852e23113f9993bb80d",
+  "time_utc_epoch": 1791869298.5718904,
+  "rollback": "/home/ubuntu/line-game/.deploy-artifacts/web-tutorial-five-lessons-20261013.rollback-web前端",
+  "active_tree_sha256": "9c483294abcd922778369bef64aea04d87e70cf288ae2852e23113f9993bb80d",
+  "rollback_tree_sha256": "a864fa48fda61e2240b82817f4ce6430df2c3bea4938b37444118a1002e16626"
+}

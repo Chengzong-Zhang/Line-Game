@@ -1,0 +1,870 @@
+{
+  "schema": "lifeline-three-player-v4-browser-positions-v1",
+  "sourceTier": "calibration-only",
+  "positions": [
+    {
+      "id": "n5-black-p0-single-black-ply4",
+      "size": 5,
+      "startPlayer": "BLACK",
+      "sourceGameSha256": "b87985e1a1b3cb18d73021be5f643cfba562e1d1150106b08755113bcd281ee2",
+      "actions": [
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            1,
+            0
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "type": "move",
+          "point": [
+            0,
+            2
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "type": "move",
+          "point": [
+            2,
+            2
+          ]
+        },
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            1,
+            2
+          ]
+        }
+      ]
+    },
+    {
+      "id": "n5-black-p0-single-black-ply6",
+      "size": 5,
+      "startPlayer": "BLACK",
+      "sourceGameSha256": "b87985e1a1b3cb18d73021be5f643cfba562e1d1150106b08755113bcd281ee2",
+      "actions": [
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            1,
+            0
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "type": "move",
+          "point": [
+            0,
+            2
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "type": "move",
+          "point": [
+            2,
+            2
+          ]
+        },
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            1,
+            2
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "type": "move",
+          "point": [
+            1,
+            1
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "type": "move",
+          "point": [
+            2,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "id": "n7-black-p0-single-black-ply4",
+      "size": 7,
+      "startPlayer": "BLACK",
+      "sourceGameSha256": "c0620ad2c8371696a0073dfcc2e2506d466d845d14920091f3e05b163187f0c9",
+      "actions": [
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            0,
+            1
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "type": "move",
+          "point": [
+            1,
+            5
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "type": "move",
+          "point": [
+            4,
+            0
+          ]
+        },
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            3,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "n7-black-p0-single-black-ply12",
+      "size": 7,
+      "startPlayer": "BLACK",
+      "sourceGameSha256": "c0620ad2c8371696a0073dfcc2e2506d466d845d14920091f3e05b163187f0c9",
+      "actions": [
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            0,
+            1
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "type": "move",
+          "point": [
+            1,
+            5
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "type": "move",
+          "point": [
+            4,
+            0
+          ]
+        },
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            3,
+            1
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "type": "move",
+          "point": [
+            1,
+            1
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "type": "move",
+          "point": [
+            1,
+            3
+          ]
+        },
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            3,
+            0
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "type": "move",
+          "point": [
+            0,
+            2
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "type": "move",
+          "point": [
+            0,
+            4
+          ]
+        },
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            1,
+            2
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "type": "move",
+          "point": [
+            4,
+            2
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "type": "move",
+          "point": [
+            2,
+            4
+          ]
+        }
+      ]
+    },
+    {
+      "id": "n7-black-p0-single-black-ply18",
+      "size": 7,
+      "startPlayer": "BLACK",
+      "sourceGameSha256": "c0620ad2c8371696a0073dfcc2e2506d466d845d14920091f3e05b163187f0c9",
+      "actions": [
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            0,
+            1
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "type": "move",
+          "point": [
+            1,
+            5
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "type": "move",
+          "point": [
+            4,
+            0
+          ]
+        },
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            3,
+            1
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "type": "move",
+          "point": [
+            1,
+            1
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "type": "move",
+          "point": [
+            1,
+            3
+          ]
+        },
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            3,
+            0
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "type": "move",
+          "point": [
+            0,
+            2
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "type": "move",
+          "point": [
+            0,
+            4
+          ]
+        },
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            1,
+            2
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "type": "move",
+          "point": [
+            4,
+            2
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "type": "move",
+          "point": [
+            2,
+            4
+          ]
+        },
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            0,
+            3
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "type": "move",
+          "point": [
+            1,
+            4
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "type": "move",
+          "point": [
+            2,
+            1
+          ]
+        },
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            3,
+            1
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "type": "move",
+          "point": [
+            2,
+            3
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "type": "move",
+          "point": [
+            3,
+            3
+          ]
+        }
+      ]
+    },
+    {
+      "id": "n9-black-p0-single-black-ply4",
+      "size": 9,
+      "startPlayer": "BLACK",
+      "sourceGameSha256": "8dac81aaf9906f048a79257cc4d2f94070d8638cbe4dd026b5519e33e83072f4",
+      "actions": [
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            3,
+            0
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "type": "move",
+          "point": [
+            0,
+            7
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "type": "move",
+          "point": [
+            6,
+            0
+          ]
+        },
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            0,
+            5
+          ]
+        }
+      ]
+    },
+    {
+      "id": "n9-black-p0-single-black-ply21",
+      "size": 9,
+      "startPlayer": "BLACK",
+      "sourceGameSha256": "8dac81aaf9906f048a79257cc4d2f94070d8638cbe4dd026b5519e33e83072f4",
+      "actions": [
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            3,
+            0
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "type": "move",
+          "point": [
+            0,
+            7
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "type": "move",
+          "point": [
+            6,
+            0
+          ]
+        },
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            0,
+            5
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "type": "move",
+          "point": [
+            6,
+            1
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "type": "move",
+          "point": [
+            0,
+            6
+          ]
+        },
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            5,
+            0
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "type": "move",
+          "point": [
+            5,
+            1
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "type": "move",
+          "point": [
+            2,
+            6
+          ]
+        },
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            3,
+            4
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "type": "move",
+          "point": [
+            2,
+            5
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "type": "move",
+          "point": [
+            1,
+            6
+          ]
+        },
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            3,
+            5
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "type": "move",
+          "point": [
+            2,
+            5
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "type": "move",
+          "point": [
+            3,
+            3
+          ]
+        },
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            5,
+            1
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "type": "move",
+          "point": [
+            2,
+            3
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "type": "move",
+          "point": [
+            2,
+            6
+          ]
+        },
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            2,
+            4
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "type": "move",
+          "point": [
+            3,
+            5
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "type": "move",
+          "point": [
+            4,
+            4
+          ]
+        }
+      ]
+    },
+    {
+      "id": "n9-black-p0-single-black-ply31",
+      "size": 9,
+      "startPlayer": "BLACK",
+      "sourceGameSha256": "8dac81aaf9906f048a79257cc4d2f94070d8638cbe4dd026b5519e33e83072f4",
+      "actions": [
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            3,
+            0
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "type": "move",
+          "point": [
+            0,
+            7
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "type": "move",
+          "point": [
+            6,
+            0
+          ]
+        },
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            0,
+            5
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "type": "move",
+          "point": [
+            6,
+            1
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "type": "move",
+          "point": [
+            0,
+            6
+          ]
+        },
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            5,
+            0
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "type": "move",
+          "point": [
+            5,
+            1
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "type": "move",
+          "point": [
+            2,
+            6
+          ]
+        },
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            3,
+            4
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "type": "move",
+          "point": [
+            2,
+            5
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "type": "move",
+          "point": [
+            1,
+            6
+          ]
+        },
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            3,
+            5
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "type": "move",
+          "point": [
+            2,
+            5
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "type": "move",
+          "point": [
+            3,
+            3
+          ]
+        },
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            5,
+            1
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "type": "move",
+          "point": [
+            2,
+            3
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "type": "move",
+          "point": [
+            2,
+            6
+          ]
+        },
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            2,
+            4
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "type": "move",
+          "point": [
+            3,
+            5
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "type": "move",
+          "point": [
+            4,
+            4
+          ]
+        },
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            5,
+            3
+          ]
+        },
+        {
+          "actor": "WHITE",
+          "type": "move",
+          "point": [
+            5,
+            2
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "type": "move",
+          "point": [
+            4,
+            4
+          ]
+        },
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            3,
+            4
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "type": "move",
+          "point": [
+            4,
+            2
+          ]
+        },
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            4,
+            3
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "type": "move",
+          "point": [
+            5,
+            3
+          ]
+        },
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            0,
+            3
+          ]
+        },
+        {
+          "actor": "PURPLE",
+          "type": "move",
+          "point": [
+            7,
+            1
+          ]
+        },
+        {
+          "actor": "BLACK",
+          "type": "move",
+          "point": [
+            2,
+            1
+          ]
+        }
+      ]
+    }
+  ]
+}

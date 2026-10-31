@@ -1,0 +1,100 @@
+{
+  "schema": "lifeline-defensive-training-verification-v1",
+  "date": "2026-10-25",
+  "status": "PASS_BOUNDED_TEACHER_AND_RECOVERY_ONLY",
+  "command": "node web/web前端/tests/verify-defensive-training-v1.mjs",
+  "exitCode": 0,
+  "finalExecution": "root re-ran successfully after the Web cache stamp",
+  "nodeVersion": "v22.22.3",
+  "mandatoryCompletedDepthFloor": 3,
+  "actualHorizon": "max(3, 2 * surviving seats) full plies; actual canonical turn order",
+  "fixedTacticalCases": [
+    {
+      "rulesVersion": "territory-v2",
+      "completedDepth": 4,
+      "rootActions": 4,
+      "nodes": 106,
+      "selectedPoint": [
+        2,
+        1
+      ],
+      "fullRootAlphaBetaParity": true
+    },
+    {
+      "rulesVersion": "territory-v3",
+      "completedDepth": 4,
+      "rootActions": 4,
+      "nodes": 106,
+      "selectedPoint": [
+        2,
+        1
+      ],
+      "fullRootAlphaBetaParity": true
+    }
+  ],
+  "checks": [
+    "completed-depth-floor",
+    "actual-second-reply-horizon",
+    "full-root-PASS",
+    "exact-alpha-beta-parity",
+    "source-unchanged",
+    "incomplete-no-label",
+    "root-edge-continuity",
+    "defense-first",
+    "retired-entry-gates",
+    "best-vector-target-mass",
+    "incremental-sample-adoption",
+    "resume-clean-parity",
+    "pause",
+    "duplicate-worker",
+    "corruption-rejected",
+    "legacy-dataset-rejected"
+  ],
+  "independentReview": {
+    "targetMassCorruptionFoundAndFixed": true,
+    "regression": "A resealed sample and updated manifest hash cannot move target mass to a worse action."
+  },
+  "localMainCompatibility": {
+    "existingScriptsGuarded": 16,
+    "refusalPoints": 22,
+    "jsSyntaxChecks": 8,
+    "pythonAstChecks": 8,
+    "otherExistingBytesPreserved": true,
+    "backupReceipt": "C:/coding/py/line game/local_artifacts/defense15-source-sync/20261025T093431892037Z-training-policy-gates/receipt.json",
+    "jobsStartedOrStopped": 0
+  },
+  "productionTrainingRuns": 0,
+  "trainingFixtureOptimizerUpdatesPerRun": 3,
+  "trainedProductionModels": 0,
+  "strengthVerified": false,
+  "runtimeAdmitted": false,
+  "limitations": [
+    "No general strength improvement claim",
+    "No production model replaced",
+    "No fifteen-seat full-label throughput claim",
+    "No unattended campaign launched"
+  ],
+  "sourceHashes": {
+    "AGENTS.md": "6f5a51cb27e16d86254cb21022477ac6971eecbb30f85fb70a1ef9d4c058cf98",
+    "web/web前端/DefensiveTrainingTeacher.js": "7166ac4fc50f24dceaeb87723d102dff58f792f939e219094d2a4f2b1d8ee366",
+    "web/tools/defensive-training-data-v1.mjs": "ee3e8389bd06b21ad9ffc2020edc9896b0c8b394d2f428bd7b805922ee34eef8",
+    "web/tools/train-defensive-policy-v1.mjs": "2c9a643a859bf14e6d18d7c1735583e751291aba6992eaa3c994cf9a6009a561",
+    "web/tools/training-policy-v1.mjs": "1200571b911371992366ec21a3a5216811964a6a7204e5a8a8baf192bbfb460d",
+    "web/web前端/tests/verify-defensive-training-v1.mjs": "5081e2f7983ff0784823d18e4268e12094f116418f8c158981b400c7a3f54c90",
+    "web/tools/neural-posttraining-data.mjs": "e9a83c811d52b9a963faa9601a93f950f14671950c5fdb00df058ae55ee0f69e",
+    "web/tools/neural-posttraining-data-v2.mjs": "8550db664fc57ce0e3a84b8123801c0657f1238aef4202d329546eebeb016827",
+    "web/tools/neural-terminal-rollout-data-r3.mjs": "78737e30dab566bfd55c24606303f7662fd8bfc7aec1af268bd1b0e2c8b87fa0",
+    "web/tools/train-three-player-ai.mjs": "35ab6efed63478e2866e9a7400f91fb340fc519b3836a6ddd4e0b6c4d77c4962",
+    "web/tools/train-hex-player-ai.mjs": "0563fa48c9859d6e131f62a2d337f18d855f08dc12b89abb4679461f82a339ac",
+    "web/tools/posttrain-neural-models.py": "c92a44076dc342936eeeb11d95efc5603c0a515acc5c81ff3abd307da43094dc",
+    "web/tools/train_neural_terminal_head_r3.py": "a17a07a8de0727e02a40b82852b99d090ae91d10d9fad9c8f27d89db8b53e965",
+    "web/tools/run-hex-distillation-v3.mjs": "7798a2a6d3cdb026e0798b232a235239c585c01a98f5489f5b1d2a85da2eab97",
+    "web/tools/run-hex-posttraining.mjs": "9aa6fcae887d89fba79cfc74d9cbb5ddb67e4de7cbea36154c24b8a282b7bf4c",
+    "web/web前端/GameEngine.js": "1aec9d73d06c7243ac71d1eb27c8f9692dc5f33576d298d2ecd2d2d55464acfb",
+    "web/web前端/MultiplayerSearch.js": "08fc01e65bb19b8c6d062f956d53ffc90797f6426f0789a2320526277c9990a1",
+    "web/web前端/AIEngine.js": "2d3e2de8cf0d39b8bb5302b7998a8f8008e4ffd4e38a8327ec2dc628debba7da",
+    "web/web前端/AIStateProtocol.js": "bd82e144304f429b354d7d7a722f1a691b7902a6e6e418f3739342191b5291a2",
+    "web/web前端/MultiplayerNativeGeometry.js": "bd8ef6f5cbfeb049779a842738b86940d4d17a4a79f78335c778c37b286ad35e",
+    "web/web前端/MultiplayerHardValue.js": "6bb9dc21c72773b6dbca6a268173f5e93daebe83a7a4bb1ab21687269a7ea25e"
+  }
+}

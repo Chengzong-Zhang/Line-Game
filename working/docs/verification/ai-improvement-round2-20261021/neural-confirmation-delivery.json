@@ -1,0 +1,24 @@
+{
+  "schema": "lifeline-neural-confirmation-round2-delivery-v1",
+  "status": "COMPLETE_VERIFIED_NOT_PROMOTED",
+  "arenaIdentity": "3ce692ecfaad45553c3b19e949e1e7d4679b2e181bf953305b8161b8dbb0932a",
+  "games": 420,
+  "eligibleModelIds": [],
+  "assessmentCorrection": {
+    "original_sha256": "72c0e61249e80788dbe216ff299ad5dda48a279291d1f76ef2d173e4ef8621a0",
+    "original_status": "FAILED_ON_INVALID_FORCED_PASS_ASSERTION",
+    "corrected_sha256": "3fbef52d5b855e2046dfd11721c820c7693a9ecbd0b1babf613be18c8469e28c",
+    "numeric_gate_changed": false,
+    "models_or_games_changed": false
+  },
+  "rawEvidenceRoot": "C:\\coding\\py\\line game\\local_artifacts\\ai-improvement-round2-20261021\\neural-confirmation",
+  "files": {
+    "neural-confirmation-identity.json": "b92b081459165581a563ba7ef1429de9e2391e87605bf6e2c33c96663a869ee4",
+    "neural-confirmation-summary.json": "9dde2967a9cc4988ab87ec3c585dce54082cf70f94e7092c35e7815b15dd40ff",
+    "neural-confirmation-replay.json": "bf5d9cb9b5c38bc699899b0bdc477978abc9d0a7e9910a1d9d72e9347e55037a",
+    "neural-confirmation-assessment-v2.json": "dc0127fb158a40a354427938c1d16b303cbf1736821e56fbb6a7d95f6215b6e7",
+    "neural-voluntary-pass-regression.json": "3616101934a181523046b6e1ef0e92dc58dffad99554e4a92b6dc1f577fcd924",
+    "neural-confirmation-supervisor.json": "45fe87d1dbb399f2b65de3edb4014dcc393c078f2437f53d3ecb50683d3e6212",
+    "neural-confirmation-job.json": "3a8f5aa7bf14e35d2d1f7a2aad30d6f7eba88c8958f18126b6f7ac681036e620"
+  }
+}

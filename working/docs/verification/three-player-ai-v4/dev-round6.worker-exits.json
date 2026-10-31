@@ -1,0 +1,39 @@
+{
+  "arena": [
+    {
+      "attempt": 1,
+      "host_pid": 40860,
+      "worker_pid": 66028,
+      "started_epoch_ms": 1792552398606,
+      "identity": "dd8b6c95705468f22be468ceacf7af3068b520e5cebf51d028865a0b2afe6952",
+      "exit_code": 75,
+      "signal": null,
+      "cancelled": null,
+      "finished_epoch_ms": 1792552699567
+    },
+    {
+      "attempt": 2,
+      "host_pid": 59696,
+      "worker_pid": 60472,
+      "started_epoch_ms": 1792552700080,
+      "identity": "dd8b6c95705468f22be468ceacf7af3068b520e5cebf51d028865a0b2afe6952",
+      "exit_code": 0,
+      "signal": null,
+      "cancelled": null,
+      "finished_epoch_ms": 1792552734765
+    }
+  ],
+  "verification": [
+    {
+      "attempt": 1,
+      "host_pid": 58284,
+      "worker_pid": 60144,
+      "started_epoch_ms": 1792554062211,
+      "identity": "26a724d6c474e945e7113a2e4b3bb35d3d28f5db0ffe412a7c037b7f143315ef",
+      "exit_code": 0,
+      "signal": null,
+      "cancelled": null,
+      "finished_epoch_ms": 1792554306715
+    }
+  ]
+}

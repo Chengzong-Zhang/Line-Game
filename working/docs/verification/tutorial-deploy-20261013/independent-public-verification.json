@@ -1,0 +1,73 @@
+{
+  "release_id": "web-tutorial-five-lessons-20261013",
+  "asset_version": "20261013f",
+  "time_utc_epoch": 1791869356.4288614,
+  "files": [
+    {
+      "file": "index.html",
+      "status": 200,
+      "bytes": 965,
+      "sha256": "d3d72671e1baecbbe24fba5be25d99ac98bd556aa381022f659826f27f856483",
+      "expected_sha256": "d3d72671e1baecbbe24fba5be25d99ac98bd556aa381022f659826f27f856483",
+      "pass": true
+    },
+    {
+      "file": "main.js",
+      "status": 200,
+      "bytes": 4134,
+      "sha256": "45e4765ad533a6cd2271580216d485ee89400ff067ecbaf52d20a7698ad98de6",
+      "expected_sha256": "45e4765ad533a6cd2271580216d485ee89400ff067ecbaf52d20a7698ad98de6",
+      "pass": true
+    },
+    {
+      "file": "OnlineApp.js",
+      "status": 200,
+      "bytes": 215577,
+      "sha256": "48fc6afbe5eff205ce10639667e07f89f696d85ca92881e4aa2807b69592f9f8",
+      "expected_sha256": "48fc6afbe5eff205ce10639667e07f89f696d85ca92881e4aa2807b69592f9f8",
+      "pass": true
+    },
+    {
+      "file": "styles.css",
+      "status": 200,
+      "bytes": 68480,
+      "sha256": "9b543edf92fbedcc8b72544c808b86b102dcfe5b154ccb0140d036d49d890589",
+      "expected_sha256": "9b543edf92fbedcc8b72544c808b86b102dcfe5b154ccb0140d036d49d890589",
+      "pass": true
+    },
+    {
+      "file": "TutorialRunner.js",
+      "status": 200,
+      "bytes": 9260,
+      "sha256": "1ad3cd525b054d6d2ae1a1d43350af986253498a942b9600a89130ea34463f27",
+      "expected_sha256": "1ad3cd525b054d6d2ae1a1d43350af986253498a942b9600a89130ea34463f27",
+      "pass": true
+    },
+    {
+      "file": "GameController.js",
+      "status": 200,
+      "bytes": 35579,
+      "sha256": "215ccec7e01a15825bdd24d48d9137159dad4bb5bf02529b26a35a371e643e49",
+      "expected_sha256": "215ccec7e01a15825bdd24d48d9137159dad4bb5bf02529b26a35a371e643e49",
+      "pass": true
+    },
+    {
+      "file": "Renderer.js",
+      "status": 200,
+      "bytes": 35690,
+      "sha256": "6e0ad51da8083c472b4e4b0ee42a6d00402e116b90dbcab4d40b16c4795a3e24",
+      "expected_sha256": "6e0ad51da8083c472b4e4b0ee42a6d00402e116b90dbcab4d40b16c4795a3e24",
+      "pass": true
+    },
+    {
+      "file": "TrainingContribution.js",
+      "status": 200,
+      "bytes": 6988,
+      "sha256": "f1fe6fe2357a46d1cad9421845aa89edd9047f482e84210347cfbf77133733c3",
+      "expected_sha256": "f1fe6fe2357a46d1cad9421845aa89edd9047f482e84210347cfbf77133733c3",
+      "pass": true
+    }
+  ],
+  "health_ok": true,
+  "pass": true
+}

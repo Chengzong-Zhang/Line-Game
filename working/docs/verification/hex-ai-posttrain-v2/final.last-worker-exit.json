@@ -1,0 +1,11 @@
+{
+  "attempt": 15,
+  "host_pid": 56496,
+  "worker_pid": 65608,
+  "started_epoch_ms": 1792519973735,
+  "identity": "640c38c629360d7d382cd6bca88603254731ccc04bd49977ae51775dd5a26d80",
+  "exit_code": null,
+  "signal": "SIGKILL",
+  "cancelled": "BUDGET_EXHAUSTED",
+  "finished_epoch_ms": 1792520079728
+}

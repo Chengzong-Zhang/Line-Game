@@ -1,0 +1,39 @@
+{
+  "identity": "cef118b61bf0540c1e9306ad87380950e9515dfb5f295ff72f9f161066a36246",
+  "candidateSha256": "8cce4228dd835112e62db8fc397f86284380880fd21c62305f8f4aaa523bd910",
+  "parentSha256": "74aa7f945c3ea7ff5ca3edc9e7bdc431dc0ec5ad56d2563ce6d6d24c0494162b",
+  "status": "COMPLETE",
+  "games": 90,
+  "terminal": 90,
+  "truncated": 0,
+  "clusters": 30,
+  "meanDelta": -0.036388888888888894,
+  "bootstrap95": [
+    -0.08583333333333334,
+    0.010000000000000002
+  ],
+  "bySize": {
+    "5": -0.02,
+    "7": -0.052777777777777785
+  },
+  "byCount": {
+    "4": -0.10416666666666667,
+    "5": -0.0125,
+    "6": -0.011111111111111108
+  },
+  "byLineup": {
+    "single": -0.075,
+    "multi": 0.00222222222222222
+  },
+  "checks": {
+    "meanDelta": false,
+    "positiveLower95": false,
+    "sizeNoRegression": false,
+    "countNoRegression": false,
+    "eachLineupNonnegative": false,
+    "allTerminal": true
+  },
+  "promote": false,
+  "statisticalUnit": "paired random-prefix cluster; single/multi share the control",
+  "integrity": "725e7d5bb83c9b11a3826fae722a9b98208d1534521725c45eae5a26a9389403"
+}

@@ -1,0 +1,1477 @@
+--- a/web/web前端/index.html
++++ b/web/web前端/index.html
+@@ -4,7 +4,7 @@
+     <meta charset="UTF-8" />
+     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+     <title>生命线 | LIFELINE</title>
+-    <link rel="stylesheet" href="./styles.css?v=20261013c" />
++    <link rel="stylesheet" href="./styles.css?v=20261013f" />
+     <script>
+       window.MathJax = {
+         tex: {
+@@ -23,6 +23,6 @@
+   <body>
+     <div id="app"></div>
+     <noscript>需要启用 JavaScript 才能运行这个游戏。JavaScript must be enabled to run this game.</noscript>
+-    <script type="module" src="./main.js?v=20261013c"></script>
++    <script type="module" src="./main.js?v=20261013f"></script>
+   </body>
+ </html>
+--- a/web/web前端/main.js
++++ b/web/web前端/main.js
+@@ -3,7 +3,7 @@
+   "https://unpkg.com/vue@3/dist/vue.global.prod.js",
+   "https://fastly.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js",
+ ];
+-const APP_ASSET_VERSION = "20261013c";
++const APP_ASSET_VERSION = "20261013f";
+ 
+ // main.js 只做两件事：
+ // 1. 确保浏览器拿到 Vue 运行时
+--- a/web/web前端/OnlineApp.js
++++ b/web/web前端/OnlineApp.js
+@@ -1,4 +1,4 @@
+-import GameController from "./GameController.js?v=20261013b";
++import GameController from "./GameController.js?v=20261013e";
+ import { Player } from "./GameEngine.js?v=20260910c";
+ import { isWorkerResultCurrent, serializeEngineState } from "./AIStateProtocol.js?v=20260830a";
+ import { RESEARCH_FAMILIES, TRANSFER_SEEDS, researchProfile, loadResearchSelection, persistResearchSelection } from "./ResearchAIOptions.js?v=20261013a";
+@@ -47,9 +47,11 @@
+ import {
+   TUTORIAL_LEVELS,
+   getTutorialEngineSettings,
++  getTutorialInspectionOverlay,
+   getTutorialLevel,
+   isTutorialTarget,
+-} from "./TutorialRunner.js?v=20260921b";
++  isTutorialRestrictionAttempt,
++} from "./TutorialRunner.js?v=20261013e";
+ import {
+   appendLocalGameAction,
+   clearLocalGameSession,
+@@ -1382,6 +1384,10 @@
+       type: Boolean,
+       default: false,
+     },
++    tutorialSkipTarget: {
++      type: Boolean,
++      default: false,
++    },
+     resetDisabled: {
+       type: Boolean,
+       default: false,
+@@ -1536,7 +1542,7 @@
+           >
+             {{ hintLabel }}
+           </button>
+-          <button class="action-button action-button-primary" :disabled="skipDisabled" @click="$emit('skip')">
++          <button class="action-button action-button-primary" :class="{ 'tutorial-action-target': tutorialSkipTarget }" :disabled="skipDisabled" @click="$emit('skip')">
+             {{ texts.skipTurnAction }}
+           </button>
+           <button class="action-button action-button-secondary" :disabled="resetDisabled" @click="$emit('reset')">
+@@ -1908,7 +1914,7 @@
+ 
+ const TutorialCard = {
+   name: "TutorialCard",
+-  emits: ["continue", "skip"],
++  emits: ["continue", "skip", "guide"],
+   props: {
+     language: {
+       type: String,
+@@ -1919,6 +1925,10 @@
+       required: true,
+     },
+     success: {
++      type: Boolean,
++      default: false,
++    },
++    restrictionObserved: {
+       type: Boolean,
+       default: false,
+     },
+@@ -1931,37 +1941,50 @@
+     const copy = computed(() => {
+       const zh = props.language === "zh";
+       return {
+-        eyebrow: zh ? "第一次玩" : "FIRST PLAY",
++        eyebrow: zh ? "第一次玩 · 蓝方 vs 红方" : "FIRST PLAY · Blue vs Red",
+         title: zh ? props.level.titleZh : props.level.titleEn,
+-        instruction: zh ? props.level.instructionZh : props.level.instructionEn,
++        instruction: props.level.restriction && props.restrictionObserved
++          ? (zh ? props.level.allowedInstructionZh : props.level.allowedInstructionEn)
++          : (zh ? props.level.instructionZh : props.level.instructionEn),
+         success: zh ? props.level.successZh : props.level.successEn,
+         target: props.level.objective?.type === "skip"
+           ? (zh ? "目标：点击“跳过回合”" : "Goal: click “Skip Turn”")
+-          : (zh ? "目标：点击高亮节点" : "Goal: click the highlighted node"),
++          : (zh ? `目标：点击高亮节点 [${props.level.objective.point}]` : `Goal: click the highlighted node [${props.level.objective.point}]`),
+         attempts: zh ? `尝试次数：${props.attempts}` : `Attempts: ${props.attempts}`,
+-        continue: props.level.id === "L4-settle-score"
++        continue: props.level.id === "L5-settle-score"
+           ? (zh ? "进入实战" : "Continue to a real match")
+           : (zh ? "下一关" : "Next lesson"),
+         skip: zh ? "跳过教学" : "Skip tutorial",
++        guide: zh ? "查看指南舱" : "Open Guide cabin",
++        final: props.level.id === "L5-settle-score",
+       };
+     });
+-    return { copy };
++    const parts = computed(() => (props.success ? copy.value.success : copy.value.instruction)
++      .split(/(蓝方|红方|Blue|Red|高亮节点|闭合领土|三点限制|连续紧邻|拉开间距|红叉|切断|断联|跳过回合|指南舱|highlighted node|three-point limit|adjacent chain|red cross|territory|Skip Turn|Guide cabin|\[\d,\d\])/g)
++      .map((text, index) => ({
++        text,
++        emphasized: index % 2 === 1,
++        color: /^(蓝方|Blue)$/.test(text) ? "blue" : /^(红方|Red)$/.test(text) ? "red" : "key",
++      })));
++    return { copy, parts };
+   },
+   template: `
+     <section class="tutorial-card" role="region" aria-live="polite" aria-label="LIFELINE tutorial">
+       <div class="tutorial-card-copy">
+         <p class="tutorial-eyebrow">{{ copy.eyebrow }}</p>
+         <h2>{{ copy.title }}</h2>
+-        <p v-if="!success" class="tutorial-instruction">{{ copy.instruction }}</p>
+-        <p v-else class="tutorial-success">{{ copy.success }}</p>
+-        <p class="tutorial-target">{{ success ? copy.success : copy.target }}</p>
+-        <small>{{ copy.attempts }}</small>
++        <p :class="success ? 'tutorial-success' : 'tutorial-instruction'">
++          <template v-for="(part, index) in parts" :key="index">
++            <strong v-if="part.emphasized" :class="'tutorial-highlight-' + part.color">{{ part.text }}</strong><span v-else>{{ part.text }}</span>
++          </template>
++        </p>
+       </div>
+       <div class="tutorial-card-actions">
+         <button v-if="success" type="button" class="action-button action-button-primary" @click="$emit('continue')">
+           {{ copy.continue }}
+         </button>
+-        <button type="button" class="text-button" @click="$emit('skip')">{{ copy.skip }}</button>
++        <button v-if="success && copy.final" type="button" class="action-button action-button-secondary tutorial-guide-button" @click="$emit('guide')">{{ copy.guide }}</button>
++        <button v-else type="button" class="text-button" @click="$emit('skip')">{{ copy.skip }}</button>
+       </div>
+     </section>
+   `,
+@@ -2573,6 +2596,10 @@
+       type: String,
+       default: "",
+     },
++    compactTitle: {
++      type: String,
++      default: "",
++    },
+     badge: {
+       type: String,
+       default: "",
+@@ -2583,7 +2610,7 @@
+     },
+   },
+   template: `
+-    <button type="button" class="dock-launcher" :class="'dock-launcher-' + variant" @click="$emit('open')">
++    <button type="button" class="dock-launcher" :class="'dock-launcher-' + variant" :aria-label="title" :title="title" @click="$emit('open')">
+       <span class="dock-folder-head">
+         <span class="dock-folder-icon" :class="'dock-folder-icon-' + variant" aria-hidden="true">
+           <span v-if="variant === 'board'" class="triangle-glyph"></span>
+@@ -2596,7 +2623,7 @@
+           </svg>
+         </span>
+         <span class="dock-launcher-copy">
+-          <strong class="dock-folder-title">{{ title }}</strong>
++          <strong class="dock-folder-title"><span class="dock-title-full">{{ title }}</span><span class="dock-title-compact">{{ compactTitle || title }}</span></strong>
+           <small v-if="copy">{{ copy }}</small>
+         </span>
+       </span>
+@@ -2806,6 +2833,7 @@
+ 
+     onMounted(() => {
+       controller = new GameController(canvasRef.value, {
++        renderer: { topInset: 52 },
+         onStateChange: handleStateChange,
+       });
+       emit("controller-ready", controller);
+@@ -2833,13 +2861,16 @@
+   template: `
+     <section class="board-shell panel panel-board-focus">
+       <div class="canvas-frame">
+-        <canvas
+-          ref="canvasRef"
+-          class="game-canvas"
+-          :class="{ 'game-canvas-ai-thinking': aiThinking }"
+-          :aria-label="texts.boardAriaLabel"
+-          :aria-busy="aiThinking ? 'true' : 'false'"
+-        ></canvas>
++        <div class="board-canvas-surface">
++          <canvas
++            ref="canvasRef"
++            class="game-canvas"
++            :class="{ 'game-canvas-ai-thinking': aiThinking }"
++            :aria-label="texts.boardAriaLabel"
++            :aria-busy="aiThinking ? 'true' : 'false'"
++          ></canvas>
++          <slot name="tools"></slot>
++        </div>
+       </div>
+       <div class="chat-emoji-layer" aria-live="polite" aria-atomic="false">
+         <div
+@@ -2906,6 +2937,9 @@
+     const tutorialSuccess = ref(false);
+     const tutorialAttempts = ref(0);
+     const tutorialLevelIndex = ref(0);
++    const tutorialStartSnapshot = shallowRef(null);
++    const tutorialResultSnapshot = shallowRef(null);
++    const tutorialRestrictionObserved = ref(false);
+     const localGameActions = ref(storedLocalGame?.actions ?? []);
+     const contributionState = ref({ enabled: false, pending: 0, status: "off", receipt: null });
+     const contribution = new TrainingContribution({ onChange: (state) => { contributionState.value = state; } });
+@@ -3475,6 +3509,9 @@
+       hintMaxCount: selectedHintMaxCount.value,
+     });
+     const currentTutorialLevel = computed(() => getTutorialLevel(tutorialLevelIndex.value));
++    const boardInspectionOverlay = computed(() => tutorialActive.value
++      ? getTutorialInspectionOverlay(currentTutorialLevel.value, tutorialStartSnapshot.value, tutorialResultSnapshot.value ?? tutorialStartSnapshot.value, tutorialSuccess.value, tutorialRestrictionObserved.value)
++      : replayInspectionOverlay.value);
+ 
+     const clearLocalGameNotice = () => {
+       localGameResumeNotice.value = "";
+@@ -3875,8 +3912,15 @@
+       if (tutorialActive.value && ["move", "skip"].includes(feedback.type)) {
+         tutorialAttempts.value += 1;
+         const level = currentTutorialLevel.value;
+-        if (feedback.success && isTutorialTarget(level, feedback)) {
++        if (isTutorialRestrictionAttempt(level, feedback)) {
++          tutorialRestrictionObserved.value = true;
++          setActionFeedback("", "neutral");
++          return;
++        }
++        if (feedback.success && isTutorialTarget(level, feedback) && (!level.restriction || tutorialRestrictionObserved.value)) {
++          tutorialResultSnapshot.value = controller.value.engine.getSnapshot();
+           tutorialSuccess.value = true;
++          controller.value.setReadOnlyMode(true);
+           setActionFeedback(formatActionFeedback(feedback), "success");
+           return;
+         }
+@@ -3884,7 +3928,9 @@
+         if (feedback.success) {
+           loadTutorialLevel(tutorialLevelIndex.value);
+           setActionFeedback(
+-            language.value === "zh"
++            level.restriction
++              ? (language.value === "zh" ? "先点红叉 [0,1] 体验三点限制，再尝试合法落点。" : "Try the red cross [0,1] to experience the three-point limit before the legal move.")
++              : language.value === "zh"
+               ? "动作有效，但没有完成本关目标。请按高亮提示再试一次。"
+               : "That action was legal, but it did not complete this lesson. Follow the highlighted prompt and try again.",
+             "error",
+@@ -3915,6 +3961,7 @@
+         "success",
+       );
+       if (controller.value) {
++        controller.value.setReadOnlyMode(false);
+         applySettingsToController(normalGameSettings, false, false);
+         gameState.value = controller.value.setGameConfig(normalGameSettings, true);
+         resetHintUsage();
+@@ -3934,6 +3981,7 @@
+         "neutral",
+       );
+       if (controller.value) {
++        controller.value.setReadOnlyMode(false);
+         applySettingsToController(normalGameSettings, false, false);
+         gameState.value = controller.value.setGameConfig(normalGameSettings, true);
+         resetHintUsage();
+@@ -3994,6 +4042,10 @@
+       tutorialLevelIndex.value = index;
+       tutorialSuccess.value = false;
+       tutorialAttempts.value = 0;
++      tutorialStartSnapshot.value = null;
++      tutorialResultSnapshot.value = null;
++      tutorialRestrictionObserved.value = false;
++      setActionFeedback("", "neutral");
+       clearSavedLocalGame();
+       applySettingsToController(settings, false, false);
+ 
+@@ -4001,6 +4053,7 @@
+         return false;
+       }
+ 
++      controller.value.setReadOnlyMode(false);
+       localGameRestoring.value = true;
+       const restored = controller.value.restoreMatchState({ settings, actions });
+       localGameRestoring.value = false;
+@@ -4016,6 +4069,7 @@
+       }
+ 
+       gameState.value = restored.state;
++      tutorialStartSnapshot.value = controller.value.engine.getSnapshot();
+       localGamePositionRevision.value = restored.state.positionRevision;
+       return true;
+     };
+@@ -5319,6 +5373,11 @@
+ 
+     const handleOpenUtilityDeck = (deckKey) => {
+       activeUtilityDeck.value = deckKey;
++    };
++
++    const finishTutorialToGuide = () => {
++      finishTutorial();
++      handleOpenUtilityDeck("guide");
+     };
+ 
+     const handleCloseUtilityDeck = () => {
+@@ -5657,6 +5716,8 @@
+       tutorialActive,
+       tutorialSuccess,
+       tutorialAttempts,
++      tutorialRestrictionObserved,
++      boardInspectionOverlay,
+       currentTutorialLevel,
+       resultResetAllowed,
+       handleResultAction,
+@@ -5689,12 +5750,13 @@
+       finishTutorial,
+       advanceTutorial,
+       skipTutorial,
++      finishTutorialToGuide,
+     };
+   },
+   template: `
+     <main class="app-shell app-shell-focus">
+       <section class="stage-layout">
+-        <section class="board-column">
++        <section class="board-column" :class="{ 'has-tutorial': tutorialActive }">
+           <header class="stage-heading">
+             <h1 class="stage-title">{{ getTexts(language, uiStyle).heroTitle }}</h1>
+           </header>
+@@ -5704,9 +5766,11 @@
+             :language="language"
+             :level="currentTutorialLevel"
+             :success="tutorialSuccess"
++            :restriction-observed="tutorialRestrictionObserved"
+             :attempts="tutorialAttempts"
+             @continue="advanceTutorial"
+             @skip="skipTutorial"
++            @guide="finishTutorialToGuide"
+           />
+ 
+           <BoardCanvas
+@@ -5715,16 +5779,46 @@
+             :hint-text="boardHint"
+             :emoji-bursts="chatEmojiBursts"
+             :ai-thinking="aiThinking"
+-            :inspection-overlay="replayInspectionOverlay"
++            :inspection-overlay="boardInspectionOverlay"
+             @controller-ready="handleControllerReady"
+             @state-change="handleStateChange"
+-          />
++          >
++            <template #tools>
++              <aside class="dock-column board-tools">
++                <DockLauncher
++                  variant="board"
++                  :title="getTexts(language, uiStyle).boardDockTitle"
++                  :compact-title="language === 'zh' ? '棋盘舱' : 'Board'"
++                  :copy="getTexts(language, uiStyle).boardDockCopy"
++                  :badge="boardDockBadge"
++                  @open="handleOpenUtilityDeck('board')"
++                />
++                <DockLauncher
++                  variant="network"
++                  :title="getTexts(language, uiStyle).networkDockTitle"
++                  :compact-title="language === 'zh' ? '联机舱' : 'Lobby'"
++                  :copy="getTexts(language, uiStyle).networkDockCopy"
++                  :badge="networkDockBadge"
++                  @open="handleOpenUtilityDeck('network')"
++                />
++                <DockLauncher
++                  variant="guide"
++                  :title="getTexts(language, uiStyle).guideDockTitle"
++                  :compact-title="language === 'zh' ? '指南舱' : 'Guide'"
++                  :copy="getTexts(language, uiStyle).guideDockCopy"
++                  :badge="guideDockBadge"
++                  @open="handleOpenUtilityDeck('guide')"
++                />
++              </aside>
++            </template>
++          </BoardCanvas>
+ 
+           <ControlPanel
+             :game-state="gameState"
+             :language="language"
+             :ui-style="uiStyle"
+             :skip-disabled="skipDisabled"
++            :tutorial-skip-target="tutorialActive && !tutorialSuccess && currentTutorialLevel.objective.type === 'skip'"
+             :reset-disabled="resetDisabled"
+             :reset-label="resetLabel"
+             :session="session"
+@@ -5752,31 +5846,6 @@
+           />
+         </section>
+ 
+-        <aside class="dock-column">
+-          <DockLauncher
+-            variant="board"
+-            :title="getTexts(language, uiStyle).boardDockTitle"
+-            :copy="getTexts(language, uiStyle).boardDockCopy"
+-            :badge="boardDockBadge"
+-            @open="handleOpenUtilityDeck('board')"
+-          />
+-
+-          <DockLauncher
+-            variant="network"
+-            :title="getTexts(language, uiStyle).networkDockTitle"
+-            :copy="getTexts(language, uiStyle).networkDockCopy"
+-            :badge="networkDockBadge"
+-            @open="handleOpenUtilityDeck('network')"
+-          />
+-
+-          <DockLauncher
+-            variant="guide"
+-            :title="getTexts(language, uiStyle).guideDockTitle"
+-            :copy="getTexts(language, uiStyle).guideDockCopy"
+-            :badge="guideDockBadge"
+-            @open="handleOpenUtilityDeck('guide')"
+-          />
+-        </aside>
+       </section>
+ 
+       <UtilityModal
+--- a/web/web前端/styles.css
++++ b/web/web前端/styles.css
+@@ -75,7 +75,7 @@
+ 
+ .stage-layout {
+   display: grid;
+-  grid-template-columns: minmax(0, 1fr) 228px;
++  grid-template-columns: minmax(0, 1fr);
+   gap: 18px;
+   align-items: start;
+   max-width: none;
+@@ -235,6 +235,7 @@
+ 
+ .language-button {
+   appearance: none;
++  min-height: 44px;
+   border: 0;
+   border-radius: 999px;
+   padding: 8px 14px;
+@@ -403,18 +404,20 @@
+ 
+ .duel-strip {
+   display: grid;
++  grid-template-columns: minmax(0, 1fr);
+   gap: 12px;
+ }
+ 
+ .duel-top-row {
+   display: flex;
++  flex-wrap: wrap;
+   align-items: center;
+   justify-content: space-between;
+   gap: 18px;
+ }
+ 
+ .duel-copy {
+-  flex: 1 1 auto;
++  flex: 1 1 180px;
+   min-width: 0;
+ }
+ 
+@@ -438,6 +441,9 @@
+ 
+ .duel-actions {
+   justify-content: flex-end;
++  flex: 1 1 440px;
++  min-width: 0;
++  max-width: 100%;
+ }
+ 
+ .duel-actions .action-button {
+@@ -655,6 +661,55 @@
+   height: 100%;
+   background: transparent;
+   touch-action: manipulation;
++}
++
++.board-canvas-surface {
++  position: absolute;
++  inset: 0;
++  min-width: 0;
++  min-height: 0;
++}
++
++.dock-column.board-tools {
++  position: static;
++  display: grid;
++  grid-template-columns: repeat(3, minmax(0, 1fr));
++  gap: 6px;
++  max-height: none;
++  margin-top: 8px;
++  padding: 0;
++  overflow: visible;
++}
++
++.board-tools .dock-launcher {
++  min-height: 48px;
++  padding: 8px;
++  border-radius: 14px;
++  gap: 0;
++  box-shadow: 0 4px 12px rgba(64, 42, 18, 0.08);
++}
++
++.board-tools .dock-folder-head {
++  gap: 7px;
++}
++
++.board-tools .dock-folder-icon {
++  width: 28px;
++  height: 28px;
++  flex-shrink: 0;
++}
++
++.board-tools .dock-folder-title {
++  font-size: 0.82rem;
++}
++
++.board-tools .dock-launcher-copy small,
++.board-tools .dock-launcher-foot {
++  display: none;
++}
++
++.dock-title-compact {
++  display: none;
+ }
+ 
+ .game-canvas-ai-thinking {
+@@ -1221,6 +1276,7 @@
+   grid-template-rows: auto minmax(0, 1fr);
+   gap: 16px;
+   max-height: calc(100vh - 48px);
++  max-height: calc(100dvh - 48px);
+   padding: 24px;
+   border: 1px solid rgba(88, 61, 31, 0.08);
+   border-radius: 34px;
+@@ -1252,8 +1308,8 @@
+ .utility-close {
+   appearance: none;
+   border: 0;
+-  width: 42px;
+-  height: 42px;
++  width: 44px;
++  height: 44px;
+   border-radius: 50%;
+   background: rgba(255, 255, 255, 0.82);
+   box-shadow: inset 0 0 0 1px rgba(90, 72, 52, 0.12);
+@@ -1279,7 +1335,7 @@
+ }
+ 
+ .utility-grid-board {
+-  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
++  grid-template-columns: minmax(0, 2.2fr) minmax(240px, 1fr);
+ }
+ 
+ .utility-stack {
+@@ -1849,7 +1905,7 @@
+ 
+ @media (max-width: 1180px) {
+   .stage-layout {
+-    grid-template-columns: 1fr 214px;
++    grid-template-columns: minmax(0, 1fr);
+   }
+ 
+   .main-stage {
+@@ -2027,6 +2083,8 @@
+   }
+ 
+   .duel-top-row {
++    display: grid;
++    grid-template-columns: minmax(0, 1fr);
+     gap: 8px;
+   }
+ 
+@@ -2047,17 +2105,18 @@
+   }
+ 
+   .duel-actions {
+-    flex: 0 0 auto;
+-    flex-direction: row;
++    display: grid;
++    grid-template-columns: repeat(2, minmax(0, 1fr));
++    width: 100%;
+     gap: 8px;
+   }
+ 
+   .duel-actions .action-button {
+-    width: auto;
+-    min-width: 88px;
++    width: 100%;
++    min-width: 0;
+     padding: 10px 11px;
+     font-size: 0.8rem;
+-    white-space: nowrap;
++    white-space: normal;
+   }
+ 
+   .chat-emoji-toolbar {
+@@ -2259,7 +2318,7 @@
+ }
+ 
+ .board-choice-grid-size {
+-  grid-template-columns: repeat(5, minmax(0, 1fr));
++  grid-template-columns: repeat(auto-fit, minmax(44px, 1fr));
+ }
+ 
+ .board-choice-grid-model {
+@@ -2998,6 +3057,31 @@
+   min-width: 0;
+ }
+ 
++.tutorial-highlight-blue {
++  color: #1f4fba;
++}
++
++.tutorial-highlight-red {
++  color: #a83434;
++}
++
++.tutorial-highlight-key {
++  color: #61440d;
++  background: rgba(255, 199, 53, 0.22);
++  border-radius: 3px;
++  padding: 0 2px;
++}
++
++.tutorial-action-target {
++  outline: 3px solid #e2a41b;
++  outline-offset: 3px;
++  box-shadow: 0 0 0 6px rgba(255, 199, 53, 0.2);
++}
++
++.tutorial-card-actions button {
++  min-height: 44px;
++}
++
+ .tutorial-eyebrow {
+   margin: 0 0 4px;
+   color: var(--blue-deep);
+@@ -3124,5 +3208,544 @@
+   vertical-align: middle;
+   flex-shrink: 0;
+ }
++
++/* Play stays in one viewport; utility panels scroll independently. */
++@media (min-width: 981px) {
++  .app-shell-focus {
++    width: 100%;
++    height: 100vh;
++    height: 100dvh;
++    min-height: 0;
++    padding: 12px 16px 8px;
++    display: grid;
++    grid-template-rows: minmax(0, 1fr) auto;
++    gap: 6px;
++  }
++
++  .stage-layout,
++  .board-column {
++    width: 100%;
++    height: 100%;
++    min-height: 0;
++  }
++
++  .board-column {
++    grid-template-rows: minmax(0, 1fr) auto;
++    gap: 8px;
++  }
++
++  .board-column > .stage-heading {
++    position: absolute;
++    z-index: 4;
++    top: 14px;
++    left: 50%;
++    transform: translateX(-50%);
++    padding: 0;
++    pointer-events: none;
++  }
++
++  .stage-title {
++    font-size: 32px;
++  }
++
++  .board-column.has-tutorial {
++    grid-template-rows: auto minmax(0, 1fr) auto;
++  }
++
++  .has-tutorial > .stage-heading {
++    display: none;
++  }
++
++  .tutorial-card {
++    margin: 0;
++    padding: 10px 16px;
++  }
++
++  .panel.board-shell {
++    height: 100%;
++    min-height: 0;
++    padding: 0;
++  }
++
++  .panel-board-focus .canvas-frame {
++    height: 100%;
++    aspect-ratio: auto;
++    border: 0;
++  }
++
++  .board-canvas-surface {
++    inset: 0;
++  }
++
++  .dock-column.board-tools {
++    position: absolute;
++    inset: 12px;
++    z-index: 4;
++    display: block;
++    margin: 0;
++    pointer-events: none;
++  }
++
++  .board-tools .dock-launcher {
++    position: absolute;
++    width: auto;
++    min-width: 112px;
++    min-height: 44px;
++    padding: 8px 12px;
++    pointer-events: auto;
++  }
++
++  .board-tools .dock-launcher-board {
++    top: 0;
++    left: 0;
++  }
++
++  .board-tools .dock-launcher-network {
++    top: 0;
++    right: 0;
++  }
++
++  .board-tools .dock-launcher-guide {
++    bottom: 0;
++    right: 0;
++  }
++
++  .panel-controls.duel-strip {
++    grid-template-columns: minmax(0, 1fr) auto;
++    align-items: center;
++    gap: 6px 12px;
++    padding: 8px 12px;
++    border-radius: 20px;
++  }
++
++  .panel-controls .duel-top-row {
++    grid-column: 1;
++    grid-row: 1;
++    flex-wrap: nowrap;
++    justify-content: flex-start;
++    gap: 12px;
++  }
++
++  .panel-controls .duel-label {
++    display: none;
++  }
++
++  .panel-controls .duel-copy {
++    flex: 0 1 180px;
++    min-width: 128px;
++    max-width: 200px;
++  }
++
++  .panel-controls .duel-turn-banner {
++    min-height: 44px;
++    margin: 0;
++    padding: 8px 12px;
++  }
++
++  .panel-controls .duel-timer-copy {
++    overflow: hidden;
++    text-overflow: ellipsis;
++    font-size: 0.76rem;
++  }
++
++  .panel-controls .duel-actions {
++    flex: 0 0 auto;
++    flex-wrap: nowrap;
++    gap: 6px;
++  }
++
++  .panel-controls .duel-actions .action-button {
++    min-width: 0;
++    padding: 8px 12px;
++    font-size: 0.85rem;
++    white-space: nowrap;
++  }
++
++  .panel-controls .chat-emoji-toolbar {
++    grid-column: 2;
++    grid-row: 1;
++    grid-template-columns: repeat(10, 44px);
++    gap: 4px;
++  }
++
++  .panel-controls .chat-emoji-button {
++    width: 44px;
++    height: 44px;
++  }
++
++  .panel-controls .action-feedback {
++    grid-column: 1;
++    margin: 0;
++    font-size: 0.8rem;
++  }
++
++  .site-footer {
++    padding: 0;
++    font-size: 0.65rem;
++    line-height: 14px;
++  }
++
++  .utility-grid-board .panel-score {
++    padding: 14px;
++  }
++
++  .panel-score .panel-head {
++    margin-bottom: 10px;
++  }
++
++  .panel-score .panel-head h2 {
++    font-size: 1.5rem;
++  }
++
++  .panel-score .panel-status-copy {
++    margin-bottom: 10px;
++    font-size: 0.82rem;
++  }
++
++  .panel-score .turn-banner {
++    gap: 8px;
++    margin-bottom: 10px;
++    padding: 8px 10px;
++  }
++
++  .panel-score .turn-banner strong {
++    font-size: 0.88rem;
++  }
++
++  .panel-score .score-grid {
++    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
++    gap: 8px;
++  }
++
++  .panel-score .score-card {
++    padding: 10px;
++    font-size: 0.75rem;
++  }
++
++  .panel-score .score-card strong {
++    margin: 6px 0 2px;
++    font-size: 1.4rem;
++  }
++
++  .panel-score .meta-list {
++    gap: 6px;
++    margin-top: 10px;
++    font-size: 0.78rem;
++  }
++
++  .panel-score .meta-list div {
++    gap: 8px;
++    padding-top: 6px;
++  }
++}
++
++@media (min-width: 981px) and (max-width: 1119px) {
++  .panel-controls.duel-strip {
++    grid-template-columns: minmax(0, 1fr);
++  }
++
++  .panel-controls .chat-emoji-toolbar {
++    grid-column: 1;
++    grid-row: auto;
++    justify-content: center;
++  }
++}
++
++@media (max-width: 980px) {
++  .app-shell-focus {
++    width: 100%;
++    height: 100vh;
++    height: 100dvh;
++    min-height: 0;
++    padding: 8px 6px 6px;
++    padding-bottom: max(6px, env(safe-area-inset-bottom));
++    display: grid;
++    grid-template-rows: minmax(0, 1fr) auto;
++    gap: 4px;
++  }
++
++  .stage-layout,
++  .board-column {
++    width: 100%;
++    min-width: 0;
++    height: 100%;
++    min-height: 0;
++  }
++
++  .board-column {
++    grid-template-rows: minmax(0, 1fr) auto;
++    gap: 6px;
++  }
++
++  .board-column > .stage-heading {
++    position: absolute;
++    z-index: 4;
++    top: 16px;
++    left: 50%;
++    transform: translateX(-50%);
++    padding: 0;
++    pointer-events: none;
++  }
++
++  .stage-title {
++    font-size: clamp(20px, 5.5vw, 26px);
++  }
++
++  .board-column.has-tutorial {
++    grid-template-rows: auto minmax(0, 1fr) auto;
++  }
++
++  .has-tutorial > .stage-heading {
++    display: none;
++  }
++
++  .tutorial-card {
++    gap: 8px;
++    margin: 0;
++    padding: 8px 12px;
++    font-size: 0.8rem;
++  }
++
++  .tutorial-card h2 {
++    margin: 0 0 4px;
++    font-size: 0.95rem;
++  }
++
++  .tutorial-instruction,
++  .tutorial-success {
++    margin: 0;
++    line-height: 1.35;
++  }
++
++  .tutorial-eyebrow,
++  .tutorial-target,
++  .tutorial-card-copy > small {
++    display: none;
++  }
++
++  .tutorial-card-actions {
++    display: flex;
++    gap: 6px;
++  }
++
++  .tutorial-card-actions button {
++    min-height: 44px;
++    padding: 6px 8px;
++  }
++
++  .panel.board-shell {
++    height: 100%;
++    min-height: 0;
++    padding: 0;
++    border-radius: 18px;
++  }
++
++  .panel-board-focus .canvas-frame {
++    height: 100%;
++    aspect-ratio: auto;
++    border: 0;
++  }
++
++  .board-canvas-surface {
++    inset: 0;
++  }
++
++  .dock-column.board-tools {
++    position: absolute;
++    inset: 8px;
++    z-index: 4;
++    display: block;
++    margin: 0;
++    pointer-events: none;
++  }
++
++  .board-tools .dock-launcher {
++    position: absolute;
++    width: auto;
++    min-width: 76px;
++    min-height: 44px;
++    padding: 7px 8px;
++    pointer-events: auto;
++  }
++
++  .board-tools .dock-folder-icon {
++    width: 20px;
++    height: 20px;
++  }
++
++  .board-tools .dock-folder-title {
++    font-size: 0.72rem;
++  }
++
++  .board-tools .dock-title-full {
++    display: none;
++  }
++
++  .board-tools .dock-title-compact {
++    display: inline;
++  }
++
++  .board-tools .dock-launcher-board {
++    top: 0;
++    left: 0;
++  }
++
++  .board-tools .dock-launcher-network {
++    top: 0;
++    right: 0;
++  }
++
++  .board-tools .dock-launcher-guide {
++    bottom: 0;
++    right: 0;
++  }
++
++  .panel-controls.duel-strip {
++    padding: 8px;
++    gap: 6px;
++    border-radius: 16px;
++  }
++
++  .panel-controls .duel-top-row {
++    display: grid;
++    grid-template-columns: minmax(0, 1fr);
++    gap: 6px;
++  }
++
++  .panel-controls .duel-label {
++    display: none;
++  }
++
++  .panel-controls .duel-turn-banner {
++    min-height: 32px;
++    margin: 0;
++    padding: 6px 8px;
++    gap: 6px;
++  }
++
++  .panel-controls .duel-turn-banner strong {
++    flex-shrink: 0;
++    font-size: 0.85rem;
++  }
++
++  .panel-controls .duel-timer-copy {
++    min-width: 0;
++    overflow: hidden;
++    text-overflow: ellipsis;
++    font-size: 0.7rem;
++  }
++
++  .panel-controls .duel-actions {
++    display: grid;
++    width: 100%;
++    grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
++    gap: 6px;
++  }
++
++  .panel-controls .duel-actions .action-button {
++    width: 100%;
++    min-width: 0;
++    padding: 6px 4px;
++    font-size: 0.72rem;
++    white-space: normal;
++  }
++
++  .panel-controls .chat-emoji-toolbar {
++    display: flex;
++    gap: 6px;
++    overflow-x: auto;
++    scrollbar-width: none;
++  }
++
++  .panel-controls .chat-emoji-button {
++    flex: 0 0 44px;
++    width: 44px;
++    height: 44px;
++  }
++
++  .panel-controls .action-feedback {
++    margin: 0;
++    font-size: 0.75rem;
++    line-height: 1.3;
++  }
++
++  .site-footer {
++    padding: 0;
++    font-size: 0.6rem;
++    line-height: 14px;
++  }
++}
++
++/* A landscape phone spends its short height on the board. */
++@media (max-width: 980px) and (orientation: landscape) {
++  .board-column:not(.has-tutorial) {
++    grid-template-columns: minmax(0, 1fr) 208px;
++    grid-template-rows: minmax(0, 1fr);
++  }
++
++  .board-column:not(.has-tutorial) > .stage-heading {
++    left: calc((100% - 214px) / 2);
++  }
++
++  .board-column:not(.has-tutorial) .panel-controls {
++    align-content: center;
++  }
++
++  .board-column:not(.has-tutorial) .duel-actions {
++    grid-template-columns: repeat(2, minmax(0, 1fr));
++  }
++
++  .board-column.has-tutorial {
++    grid-template-columns: minmax(0, 1fr) 300px;
++    grid-template-rows: auto minmax(0, 1fr);
++  }
++
++  .has-tutorial .board-shell {
++    grid-column: 1;
++    grid-row: 1 / span 2;
++  }
++
++  .has-tutorial .tutorial-card {
++    grid-column: 2;
++    grid-row: 1;
++    display: block;
++    padding: 8px;
++    font-size: 0.75rem;
++    line-height: 1.25;
++  }
++
++  .has-tutorial .tutorial-card h2 {
++    margin: 0 0 4px;
++    font-size: 0.9rem;
++  }
++
++  .has-tutorial .tutorial-instruction,
++  .has-tutorial .tutorial-success {
++    margin: 0 0 4px;
++  }
++
++  .has-tutorial .tutorial-eyebrow,
++  .has-tutorial .tutorial-target,
++  .has-tutorial .tutorial-card-copy > small {
++    display: none;
++  }
++
++  .has-tutorial .tutorial-card-actions {
++    display: flex;
++    gap: 6px;
++  }
++
++  .has-tutorial .tutorial-card-actions button {
++    min-height: 44px;
++    padding: 6px 8px;
++  }
++
++  .has-tutorial .panel-controls {
++    grid-column: 2;
++    grid-row: 2;
++    align-content: center;
++  }
++}
++
+  .training-contribution-toggle { display: flex; align-items: center; gap: .65rem; min-height: 44px; cursor: pointer; }
+  .training-contribution-toggle input { width: 20px; height: 20px; flex: none; }
+--- a/web/web前端/TutorialRunner.js
++++ b/web/web前端/TutorialRunner.js
+@@ -7,10 +7,11 @@
+     rulesVersion: "territory-v2",
+     prefix: Object.freeze([]),
+     objective: Object.freeze({ type: "move", player: "BLACK", point: Object.freeze([1, 0]) }),
++    focusEdges: Object.freeze([Object.freeze({ player: "BLACK", edge: "0,0|1,0" })]),
+     titleZh: "第一关：连成第一条生命线",
+     titleEn: "Lesson 1: Build your first lifeline",
+-    instructionZh: "蓝方先手。点击高亮的节点，把生命线向外扩张一步。",
+-    instructionEn: "Blue moves first. Click the highlighted node to extend your first lifeline.",
++    instructionZh: "你是蓝方，对手是红方。蓝方先手，点击金色高亮节点 [1,0]，向外连接一步。",
++    instructionEn: "You are Blue; your opponent is Red. Blue moves first. Click the gold-highlighted node [1,0] to extend your lifeline.",
+     successZh: "连接建立了！同色节点会自动形成生命线。",
+     successEn: "Connection established! Same-color nodes automatically form a lifeline.",
+   }),
+@@ -25,10 +26,15 @@
+       Object.freeze({ type: "skip", player: "WHITE" }),
+     ]),
+     objective: Object.freeze({ type: "move", player: "BLACK", point: Object.freeze([0, 3]) }),
++    focusEdges: Object.freeze([
++      Object.freeze({ player: "BLACK", edge: "0,0|3,0" }),
++      Object.freeze({ player: "BLACK", edge: "0,0|0,3" }),
++      Object.freeze({ player: "BLACK", edge: "0,3|3,0" }),
++    ]),
+     titleZh: "第二关：围出第一块领土",
+     titleEn: "Lesson 2: Close your first territory",
+-    instructionZh: "黑方已有两条边。点击高亮节点，闭合第三条边，让引擎计算领土。",
+-    instructionEn: "Black already has two sides. Click the highlighted node to close the triangle and claim territory.",
++    instructionZh: "蓝方已有一条边。点击高亮节点 [0,3]，新增两条连接，围出闭合领土。",
++    instructionEn: "Blue has one edge. Click the highlighted node [0,3] to add two connections and close a territory.",
+     successZh: "边界闭合了！只有闭合区域才会产生领土分数。",
+     successEn: "The boundary is closed! Only closed regions produce territory score.",
+   }),
+@@ -43,15 +49,46 @@
+       Object.freeze({ type: "move", player: "WHITE", point: Object.freeze([2, 3]) }),
+     ]),
+     objective: Object.freeze({ type: "move", player: "BLACK", point: Object.freeze([3, 2]) }),
++    focusEdges: Object.freeze([Object.freeze({ player: "WHITE", edge: "5,0|2,3" })]),
+     titleZh: "第三关：切断补给线",
+     titleEn: "Lesson 3: Cut the supply line",
+-    instructionZh: "点击白色线段上的高亮节点。切断后，失去起点连通性的白方部分会一起清除。",
+-    instructionEn: "Click the highlighted point on the white line. Disconnected white parts will be cleared together.",
++    instructionZh: "点击红方线段上的高亮节点 [3,2]。切断后，与红方起点断联的节点和线会一起清除。",
++    instructionEn: "Click the highlighted node [3,2] on Red’s line. Red’s nodes and lines disconnected from its starting point will be cleared together.",
+     successZh: "切断完成！切断不是吃掉一个点，而是清除整段断联结构。",
+     successEn: "Cut complete! A cut removes the disconnected structure, not just one point.",
+   }),
+   Object.freeze({
+-    id: "L4-settle-score",
++    id: "L4-three-point-limit",
++    gridSize: 6,
++    playerCount: 2,
++    startPlayer: "BLACK",
++    rulesVersion: "territory-v2",
++    prefix: Object.freeze([
++      Object.freeze({ type: "move", player: "BLACK", point: Object.freeze([1, 0]) }),
++      Object.freeze({ type: "skip", player: "WHITE" }),
++    ]),
++    restriction: Object.freeze({ point: Object.freeze([0, 1]) }),
++    objective: Object.freeze({ type: "move", player: "BLACK", point: Object.freeze([0, 2]) }),
++    focusEdges: Object.freeze([
++      Object.freeze({ player: "BLACK", edge: "0,0|1,0" }),
++      Object.freeze({ player: "BLACK", edge: "0,0|0,1" }),
++      Object.freeze({ player: "BLACK", edge: "0,1|1,0" }),
++    ]),
++    allowedFocusEdges: Object.freeze([
++      Object.freeze({ player: "BLACK", edge: "0,0|1,0" }),
++      Object.freeze({ player: "BLACK", edge: "0,0|0,2" }),
++    ]),
++    titleZh: "第四关：认识三点限制",
++    titleEn: "Lesson 4: Learn the three-point limit",
++    instructionZh: "普通扩张不能让三个同色节点连续紧邻，直线也不行。先点红叉 [0,1]，试试三点限制。",
++    instructionEn: "Ordinary expansion cannot put three same-color nodes in an adjacent chain, even in a straight line. Try the red cross [0,1].",
++    allowedInstructionZh: "三点限制已阻止落子，棋局没有改变。改点金色高亮节点 [0,2]，拉开间距。直接切断敌线时例外。",
++    allowedInstructionEn: "The three-point limit blocked the move; the board is unchanged. Click the gold-highlighted node [0,2] to leave a gap. Direct cuts on an enemy line are exempt.",
++    successZh: "这次连接成功！普通扩张要避免三个同色节点连续紧邻；直接切断敌线时可例外。",
++    successEn: "Connected! Keep three same-color nodes out of an adjacent chain when expanding. Direct cuts on an enemy line are exempt.",
++  }),
++  Object.freeze({
++    id: "L5-settle-score",
+     gridSize: 6,
+     playerCount: 2,
+     startPlayer: "BLACK",
+@@ -63,12 +100,17 @@
+       Object.freeze({ type: "skip", player: "WHITE" }),
+     ]),
+     objective: Object.freeze({ type: "skip", player: "BLACK" }),
+-    titleZh: "第四关：让引擎结算",
+-    titleEn: "Lesson 4: Let the engine settle",
+-    instructionZh: "现在练习结算。点击“跳过回合”，让连续跳过触发终局。",
+-    instructionEn: "Now practice settlement. Click “Skip Turn” to trigger the end of the match.",
+-    successZh: "本关结束！赢家和分数都由规则引擎结算。",
+-    successEn: "The lesson is over! The rules engine determines the winner and score.",
++    focusEdges: Object.freeze([
++      Object.freeze({ player: "BLACK", edge: "0,0|3,0" }),
++      Object.freeze({ player: "BLACK", edge: "0,0|0,3" }),
++      Object.freeze({ player: "BLACK", edge: "0,3|3,0" }),
++    ]),
++    titleZh: "第五关：让引擎结算",
++    titleEn: "Lesson 5: Let the engine settle",
++    instructionZh: "红方已跳过。点击金色高亮的“跳过回合”，连续跳过后按领土分数结算。",
++    instructionEn: "Red has passed. Click the gold-highlighted “Skip Turn” button to end the match and settle territory scores.",
++    successZh: "教学完成！连续跳过结束对局，按领土分数决定胜负。更多规则与玩法，请看指南舱。",
++    successEn: "Tutorial complete! Consecutive passes end the match; territory scores decide the winner. For more rules and ways to play, visit the Guide cabin.",
+   }),
+ ]);
+ 
+@@ -88,6 +130,15 @@
+     && action.point[1] === level.objective.point[1];
+ }
+ 
++export function isTutorialRestrictionAttempt(level, action = null) {
++  return Boolean(level?.restriction && action?.type === "move"
++    && action.success === false && action.reason === "INVALID_MOVE"
++    && action.player === level.objective.player
++    && Array.isArray(action.point)
++    && action.point[0] === level.restriction.point[0]
++    && action.point[1] === level.restriction.point[1]);
++}
++
+ export function getTutorialEngineSettings(level = getTutorialLevel()) {
+   return {
+     playerCount: level.playerCount,
+@@ -100,3 +151,38 @@
+     hintMaxCount: 0,
+   };
+ }
++
++// The result overlay comes from the real before/after snapshots, including
++// removed edges and cleared points. It never changes the teaching position.
++export function getTutorialInspectionOverlay(level, before, after = before, success = false, restrictionObserved = false) {
++  if (!level || !before || !after) return null;
++  const addedEdges = [];
++  const removedEdges = [];
++  const capturedPoints = [];
++  if (success) {
++    for (const [player, edges] of Object.entries(after.edges ?? {})) {
++      const previous = new Set(before.edges?.[player] ?? []);
++      const current = new Set(edges);
++      addedEdges.push(...edges.filter((edge) => !previous.has(edge)).map((edge) => ({ player, edge })));
++      removedEdges.push(...[...previous].filter((edge) => !current.has(edge)).map((edge) => ({ player, edge })));
++    }
++    for (let y = 0; y < before.boardMatrix.length; y += 1) {
++      for (let x = 0; x < before.boardMatrix[y].length; x += 1) {
++        if (before.boardMatrix[y][x] > 0 && after.boardMatrix[y]?.[x] === 0) {
++          capturedPoints.push([x, y]);
++        }
++      }
++    }
++  }
++  return {
++    tutorial: true,
++    selectedPoint: level.objective.type === "move"
++      ? [...(level.restriction && !restrictionObserved ? level.restriction.point : level.objective.point)]
++      : null,
++    blockedPoint: level.restriction && !success ? [...level.restriction.point] : null,
++    addedEdges: success && level.objective.type === "move" ? addedEdges
++      : (restrictionObserved && level.allowedFocusEdges ? level.allowedFocusEdges : level.focusEdges),
++    removedEdges,
++    capturedPoints,
++  };
++}
+--- a/web/web前端/GameController.js
++++ b/web/web前端/GameController.js
+@@ -1,5 +1,5 @@
+ import GameEngine, { Player, TerritoryRulesVersion } from "./GameEngine.js?v=20260910c";
+-import Renderer from "./Renderer.js?v=20261013b";
++import Renderer from "./Renderer.js?v=20261013e";
+ import { ServerEvent } from "./NetworkManager.js?v=20260430d";
+ import { serializeEngineState } from "./AIStateProtocol.js?v=20260910c";
+ import {
+@@ -274,12 +274,19 @@
+       this.inspectionOverlay = null;
+     } else {
+       this.inspectionOverlay = {
++        tutorial: Boolean(overlay.tutorial),
++        blockedPoint: isGridPoint(overlay.blockedPoint) ? clonePoint(overlay.blockedPoint) : null,
+         selectedPoint: isGridPoint(overlay.selectedPoint) ? clonePoint(overlay.selectedPoint) : null,
+         capturedPoints: Array.isArray(overlay.capturedPoints)
+           ? overlay.capturedPoints.filter(isGridPoint).map(clonePoint)
+           : [],
+         addedEdges: Array.isArray(overlay.addedEdges)
+           ? overlay.addedEdges
++            .filter((item) => item && typeof item.edge === "string")
++            .map((item) => ({ player: item.player, edge: item.edge }))
++          : [],
++        removedEdges: Array.isArray(overlay.removedEdges)
++          ? overlay.removedEdges
+             .filter((item) => item && typeof item.edge === "string")
+             .map((item) => ({ player: item.player, edge: item.edge }))
+           : [],
+--- a/web/web前端/Renderer.js
++++ b/web/web前端/Renderer.js
+@@ -80,6 +80,7 @@
+     this.defaultCssWidth = options.defaultCssWidth ?? 960;
+     this.defaultCssHeight = options.defaultCssHeight ?? 720;
+     this.paddingRatio = options.paddingRatio ?? 0.025;
++    this.topInset = options.topInset ?? 0;
+     this.lastSnapshot = null;
+     this.layout = null;
+     this._resizeFrame = null;
+@@ -256,11 +257,11 @@
+     // so a narrower viewport does not keep using the previous canvas size.
+     const frame = this.canvas.parentElement;
+     const cssWidth = Math.max(
+-      this.minCssWidth,
++      frame?.clientWidth ? 1 : this.minCssWidth,
+       Math.round(frame?.clientWidth || rect.width || this.canvas.clientWidth || this.canvas.width || this.defaultCssWidth),
+     );
+     const cssHeight = Math.max(
+-      this.minCssHeight,
++      frame?.clientHeight ? 1 : this.minCssHeight,
+       Math.round(frame?.clientHeight || rect.height || this.canvas.clientHeight || this.canvas.height || this.defaultCssHeight),
+     );
+     const prefersLowerDpr = globalThis.matchMedia?.("(pointer: coarse)")?.matches || window.innerWidth <= 768;
+@@ -283,6 +284,8 @@
+     // 浼樺厛澶嶇敤 resize() 宸叉祴閲忓苟缂撳瓨鐨勫€硷紝閬垮厤閲嶅瑙﹀彂 getBoundingClientRect layout reflow
+     const cssWidth = this._lastMeasuredWidth > 0 ? this._lastMeasuredWidth : this._measureCanvas().cssWidth;
+     const cssHeight = this._lastMeasuredHeight > 0 ? this._lastMeasuredHeight : this._measureCanvas().cssHeight;
++    const topInset = clamp(this.topInset ?? 0, 0, Math.max(0, cssHeight - 1));
++    const boardHeight = Math.max(1, cssHeight - topInset);
+     const gridSize = snapshot?.gridSize ?? 9;
+     const validPoints = this._getValidPoints(gridSize);
+     const normalizedPoints = validPoints.map(([gx, gy]) => [gx + gy * 0.5, gy * SQRT3_OVER_2]);
+@@ -299,9 +302,9 @@
+       maxNY = Math.max(maxNY, ny);
+     }
+ 
+-    const outerPadding = Math.max(12, Math.min(cssWidth, cssHeight) * this.paddingRatio);
++    const outerPadding = Math.max(12, Math.min(cssWidth, boardHeight) * this.paddingRatio);
+     const usableWidth = Math.max(1, cssWidth - outerPadding * 2);
+-    const usableHeight = Math.max(1, cssHeight - outerPadding * 2);
++    const usableHeight = Math.max(1, boardHeight - outerPadding * 2);
+     const logicalWidth = Math.max(1, maxNX - minNX);
+     const logicalHeight = Math.max(1, maxNY - minNY);
+     // Reserve room for the expanded triangular border and corner stones,
+@@ -309,11 +312,12 @@
+     const scale = Math.min(usableWidth / (logicalWidth + 0.9), usableHeight / (logicalHeight + 0.9));
+     const padding = outerPadding + scale * 0.45;
+     const offsetX = (cssWidth - logicalWidth * scale) * 0.5 - minNX * scale;
+-    const offsetY = (cssHeight - logicalHeight * scale) * 0.5 - minNY * scale;
++    const offsetY = topInset + (boardHeight - logicalHeight * scale) * 0.5 - minNY * scale;
+ 
+     return {
+       cssWidth,
+       cssHeight,
++      topInset,
+       gridSize,
+       scale,
+       offsetX,
+@@ -888,7 +892,7 @@
+       [Player.PURPLE]: this.theme.purpleLine,
+     };
+ 
+-    for (const item of overlay.addedEdges ?? []) {
++    for (const item of [...(overlay.addedEdges ?? []), ...(overlay.removedEdges ?? []).map((edge) => ({ ...edge, removed: true }))]) {
+       const [fromKey, toKey] = String(item.edge ?? "").split("|");
+       if (!fromKey || !toKey) {
+         continue;
+@@ -901,6 +905,11 @@
+       ctx.beginPath();
+       ctx.moveTo(fromX, fromY);
+       ctx.lineTo(toX, toY);
++      if (overlay.tutorial) {
++        ctx.strokeStyle = item.removed ? "rgba(228, 75, 75, 0.25)" : "rgba(255, 199, 53, 0.6)";
++        ctx.lineWidth = Math.max(8, layout.lineWidth * 2);
++        ctx.stroke();
++      }
+       ctx.strokeStyle = playerColors[item.player] ?? this.theme.outline;
+       ctx.lineWidth = Math.max(3, layout.lineWidth * 0.85);
+       ctx.globalAlpha = 0.82;
+@@ -909,7 +918,7 @@
+       ctx.restore();
+     }
+ 
+-    for (const point of overlay.capturedPoints ?? []) {
++    for (const point of [...(overlay.capturedPoints ?? []), ...(overlay.blockedPoint ? [overlay.blockedPoint] : [])]) {
+       if (!Array.isArray(point) || point.length !== 2) {
+         continue;
+       }

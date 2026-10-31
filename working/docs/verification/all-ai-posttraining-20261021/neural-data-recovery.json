@@ -1,0 +1,1 @@
+{"status":"PASS","realWorkerKill":true,"supervisorUnexpectedExitRecovery":true,"duplicateExcluded":true,"recoveredEpisodesByteIdentical":true,"allFixtureTeacherLabelsRecomputed":true,"incompleteTailPreserved":true,"pauseRespected":true,"corruptionRejected":true,"command":"node --unhandled-rejections=strict web/web前端/tests/verify-neural-posttraining-data.mjs"}

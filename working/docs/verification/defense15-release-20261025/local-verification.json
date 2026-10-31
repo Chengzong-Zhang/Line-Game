@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "web-defense15-20261025-r1",
+  "baseCommit": "f172750",
+  "recordedAtUtc": "2026-10-25T09:38:33.893233+00:00",
+  "status": "LOCAL_VERIFIED_PENDING_DELIVERY",
+  "miniVersion": "0.12.12",
+  "assetVersion": "20261025-defense15",
+  "verification": {
+    "miniFullSuite": {
+      "passed": 481,
+      "failed": 0,
+      "seconds": 103.7194575
+    },
+    "fifteenPlayerConfigurations": 28,
+    "pythonFifteenRooms": 3,
+    "pythonPriorMixedRoomsAndHex": 16,
+    "pythonReleaseBuilder": 3,
+    "teacherRegressionChecks": 16,
+    "teacherProductionModelsTrained": 0,
+    "webOnlineRoomSettings": "PASS_INCLUDING_RESEARCH_AND_MODEL_FREE",
+    "onlineRecovery": "PASS",
+    "browser": "15 custom start; 15th seat edit; pass terminal; refresh then leave tutorial restores full game",
+    "localServerProbes": [
+      2,
+      6,
+      7,
+      15
+    ]
+  },
+  "inheritedRegression": {
+    "command": "node web/web前端/tests/verify-ai-control-flow.mjs",
+    "status": "FAIL_UNCHANGED_FROM_F172750",
+    "detail": "Frozen historical heuristic score expects 376/303 while current terminal-PASS evaluation returns 1000000; the unchanged prior release fails identically. Fixture and expected values preserved."
+  },
+  "limits": [
+    "No production retraining or new model strength admission",
+    "No WeChat device or cloud acceptance",
+    "Upload, experience selection, publication and Web activation require separate receipts"
+  ],
+  "review": "Independent training and deployment source reviews; distribution tampering caught and fixed; deployment has not been activated by this local receipt"
+}

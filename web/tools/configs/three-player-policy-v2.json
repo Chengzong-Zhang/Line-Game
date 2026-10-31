@@ -1,0 +1,22 @@
+{
+  "schema": "lifeline-three-player-posttraining-v1",
+  "modelId": "three-player-policy-v2",
+  "rulesVersion": "territory-v2",
+  "sizes": [5, 7, 9],
+  "starts": ["BLACK", "WHITE", "PURPLE"],
+  "trainingReplicates": 6,
+  "validationReplicates": 2,
+  "maximumEpisodePlies": 48,
+  "seedNamespace": "three-player-v2/train/",
+  "teacher": {"depth": 3, "replyWidth": 4, "temperature": 30},
+  "behavior": {"parentProbability": 0.45, "teacherProbability": 0.35, "randomProbability": 0.2},
+  "optimizer": {"epochs": 900, "learningRate": 0.03, "beta1": 0.9, "beta2": 0.999, "epsilon": 1e-8, "anchorPenalty": 0.0005},
+  "candidateEpochs": [200, 500, 900],
+  "development": {
+    "seedNamespace": "three-player-v2/development/",
+    "prefixPlies": 4,
+    "maximumGamePlies": 360,
+    "selection": "maximum paired mean win-share delta over both 1-AI and 2-AI lineups; validation cross-entropy then earliest epoch break ties",
+    "finalArenaAccess": false
+  }
+}

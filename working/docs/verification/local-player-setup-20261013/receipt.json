@@ -1,0 +1,193 @@
+{
+  "date": "2026-10-13",
+  "status": "PASS-CURRENT-LOCAL",
+  "branch": "codex/territory-v2-page-correctness",
+  "source_sha256": {
+    "web/web前端/LocalAIModes.js": "5ecaf3d8c98cb7243518ff22cc2e4cd33049f7dd752fc1ac142cdff6558370d5",
+    "web/web前端/LocalPlayerSetup.js": "b77c0bd84ccff5e16e5b988b994f5800be6672b3bcc089ad42e73d124b6adc50",
+    "web/web前端/LocalGameSession.js": "a5ba3a7bdbeca896d80d2ef2af95763bf7e57c77791bde1bf709248c649a1e58",
+    "web/web前端/OnlineApp.js": "8b2b196f25f81f76743b65b508f107a2443742e3de816dc200f8960a96fd85cf",
+    "web/web前端/OnlineAppI18n.js": "0c569a5a37afae7cd9a3cb30b0b75db17e7f814ad02fce6e4aa01b8d85cad3df",
+    "web/web前端/styles.css": "1e3f2bd142cbe4708717f17c4467e1f7d741f37e6720c8bb1eec7f468b7e20eb",
+    "web/web前端/index.html": "8d0f7bb37de9950452376cc51b609f451d45785869d624e671405b3ce869ffc1",
+    "web/web前端/main.js": "29db68a79fb8c2b479c380baac87c187464f54ecf6a4d589b0c21a41b5df880f",
+    "web/web前端/tests/verify-local-player-setup.mjs": "f45d0f0ba93e3dd20ee1dd88c5d5efd0fbc632198334aa49347585730d489ea1",
+    "web/web前端/tests/verify-local-ai-session.mjs": "f50187aeea002a30bf47d92e26c575a3d4b0b6e6687bd0ebc5138862cb045ad8",
+    "docs/LOCAL_PLAYER_SETUP_20261013.md": "7c91097f8b90c6e0b27a72aa16516b4fdaf4d66e8bcf2a12d3ea7dd003b843df"
+  },
+  "checks": [
+    {
+      "command": "node --unhandled-rejections=strict 'web/web前端/tests/verify-local-player-setup.mjs'",
+      "exit_code": 0
+    },
+    {
+      "command": "node --unhandled-rejections=strict 'web/web前端/tests/verify-local-ai-session.mjs'",
+      "exit_code": 0
+    },
+    {
+      "command": "node --unhandled-rejections=strict 'web/web前端/tests/verify-local-game-session.mjs'",
+      "exit_code": 0
+    },
+    {
+      "command": "node --unhandled-rejections=strict 'web/web前端/tests/verify-ai-duel.mjs'",
+      "exit_code": 0
+    },
+    {
+      "command": "node --unhandled-rejections=strict 'web/web前端/tests/verify-ai-control-flow.mjs'",
+      "exit_code": 0
+    },
+    {
+      "command": "node --unhandled-rejections=strict 'web/web前端/tests/verify-tutorial-session.mjs'",
+      "exit_code": 0
+    },
+    {
+      "command": "node --unhandled-rejections=strict 'web/web前端/tests/verify-replay-codec.mjs'",
+      "exit_code": 0
+    },
+    {
+      "command": "node --unhandled-rejections=strict 'web/web前端/tests/verify-training-contribution.mjs'",
+      "exit_code": 0
+    },
+    {
+      "command": "node --unhandled-rejections=strict 'web/web前端/tests/verify-online-recovery.mjs'",
+      "exit_code": 0
+    }
+  ],
+  "syntax_modules": [
+    "web/web前端/LocalAIModes.js",
+    "web/web前端/LocalPlayerSetup.js",
+    "web/web前端/LocalGameSession.js",
+    "web/web前端/OnlineApp.js",
+    "web/web前端/OnlineAppI18n.js",
+    "web/web前端/main.js"
+  ],
+  "syntax_status": "PASS",
+  "whitespace_status": "PASS",
+  "browser": {
+    "url": "http://127.0.0.1:8880/",
+    "actual_workers": true,
+    "duel": {
+      "blue": "dqn",
+      "red": "minimax",
+      "red_depth": 2,
+      "grid_size": 5,
+      "start_player": "WHITE",
+      "actions": 7,
+      "scores": {
+        "BLACK": 4,
+        "WHITE": 9
+      }
+    },
+    "restored_pause": true,
+    "replay_exit_preserved_terminal": true,
+    "human_first_waits": true,
+    "human_action_schedules_ai": true,
+    "languages": [
+      "zh",
+      "en"
+    ],
+    "choice_counts": [
+      10,
+      10
+    ],
+    "keyboard_tab_between_players": true,
+    "layout_checks": [
+      {
+        "cardColumns": "180px",
+        "cards": [
+          {
+            "left": 65,
+            "right": 245,
+            "width": 180
+          },
+          {
+            "left": 65,
+            "right": 245,
+            "width": 180
+          }
+        ],
+        "minControlHeight": 44,
+        "pageWidth": 320,
+        "width": 320
+      },
+      {
+        "cardColumns": "241px",
+        "cards": [
+          {
+            "left": 65,
+            "right": 306,
+            "width": 241
+          },
+          {
+            "left": 65,
+            "right": 306,
+            "width": 241
+          }
+        ],
+        "minControlHeight": 44,
+        "pageWidth": 390,
+        "width": 390
+      },
+      {
+        "cardColumns": "291.492px 291.5px",
+        "cards": [
+          {
+            "left": 89,
+            "right": 380.4921875,
+            "width": 291.4921875
+          },
+          {
+            "left": 392.4921875,
+            "right": 683.9921875,
+            "width": 291.5
+          }
+        ],
+        "minControlHeight": 44,
+        "pageWidth": 768,
+        "width": 768
+      },
+      {
+        "cardColumns": "259.594px 259.594px",
+        "cards": [
+          {
+            "left": 89,
+            "right": 348.59375,
+            "width": 259.59375
+          },
+          {
+            "left": 360.59375,
+            "right": 620.1875,
+            "width": 259.59375
+          }
+        ],
+        "minControlHeight": 44,
+        "pageWidth": 1024,
+        "width": 1024
+      },
+      {
+        "cardColumns": "302.219px 302.219px",
+        "cards": [
+          {
+            "left": 235,
+            "right": 537.21875,
+            "width": 302.21875
+          },
+          {
+            "left": 549.21875,
+            "right": 851.4375,
+            "width": 302.21875
+          }
+        ],
+        "minControlHeight": 44,
+        "pageWidth": 1440,
+        "width": 1440
+      }
+    ],
+    "new_console_errors_or_warnings": 0,
+    "production_contribution_uploads": 0
+  },
+  "review": "SELF_REVIEW_COMPLETED",
+  "mobile_device": "NOT-RUN",
+  "production_deployment": "NOT-RUN",
+  "commit": "NOT-COMMITTED"
+}

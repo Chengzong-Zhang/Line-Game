@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "frozenCandidate": "ab0b6d4c9490ff7a0cef2e9e0228a6772a1b976ff05f3ff796495b93949a544c",
+  "actions": 7,
+  "trueProcessExit": 91,
+  "continuedExit": 75,
+  "sameScientificState": true,
+  "elapsedTimeExcluded": true
+}

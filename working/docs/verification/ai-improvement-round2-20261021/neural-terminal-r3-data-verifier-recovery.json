@@ -1,0 +1,12 @@
+{
+  "status": "PASS_TERMINAL_DATA_VERIFIER_R3_RECOVERY",
+  "base": "C:\\coding\\py\\line game\\local_artifacts\\terminal-data-r3-verifier-recovery-1792555281618",
+  "cases": [
+    "real-kill-after-durable-proof",
+    "resume-preserves-proof-bytes-mtime",
+    "duplicate-worker",
+    "all-label-counts-match-clean",
+    "corrupt-proof-rejected"
+  ],
+  "verifier_sha256": "6482d6bc6d15ed54576e65179ebcbac8b534fa354a28b01255989f968aec9eec"
+}

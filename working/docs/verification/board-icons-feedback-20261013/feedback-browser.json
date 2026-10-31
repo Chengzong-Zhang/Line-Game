@@ -1,0 +1,11 @@
+{
+  "moveFeedbackCheck": {
+    "acceptedTextVisible": false,
+    "feedback": "",
+    "turn": "红方回合"
+  },
+  "errorFeedbackCheck": {
+    "feedback": "请点击棋盘上的节点。",
+    "tone": "action-feedback is-error"
+  }
+}

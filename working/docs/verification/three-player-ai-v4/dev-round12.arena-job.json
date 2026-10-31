@@ -1,0 +1,37 @@
+{
+  "schema": "lifeline-supervised-job-v1",
+  "run_root": "C:\\coding\\py\\line game\\local_artifacts\\three-player-v4-20261021\\dev-round12",
+  "cwd": "C:\\coding\\py\\line game",
+  "command": [
+    "C:\\Program Files\\nodejs\\node.exe",
+    "--unhandled-rejections=strict",
+    "C:\\coding\\py\\line game\\web\\tools\\evaluate-three-player-v4.mjs",
+    "--candidate",
+    "C:\\coding\\py\\line game\\web\\tools\\configs\\three-player-search-v4-round12.json",
+    "--config",
+    "C:\\coding\\py\\line game\\docs\\verification\\three-player-ai-v4\\development.config.json",
+    "--baseline",
+    "C:\\coding\\py\\line game\\web\\web前端\\assets\\research-ai\\three-player-policy-v1.json",
+    "--run-root",
+    "C:\\coding\\py\\line game\\local_artifacts\\three-player-v4-20261021\\dev-round12",
+    "--max-seconds",
+    "300"
+  ],
+  "identity_files": [
+    "C:\\coding\\py\\line game\\web\\tools\\evaluate-three-player-v4.mjs",
+    "web/tools/three-player-v4-arena-lib.mjs",
+    "web/tools/three-player-arena-lib.mjs",
+    "web/tools/verify-three-player-v4-arena.mjs",
+    "web/web前端/GameEngine.js",
+    "web/web前端/AIEngine.js",
+    "web/web前端/ThreePlayerAI.js",
+    "web/web前端/ThreePlayerSearchAI.js",
+    "C:\\coding\\py\\line game\\web\\tools\\configs\\three-player-search-v4-round12.json",
+    "C:\\coding\\py\\line game\\docs\\verification\\three-player-ai-v4\\development.config.json",
+    "C:\\coding\\py\\line game\\web\\web前端\\assets\\research-ai\\three-player-policy-v1.json"
+  ],
+  "max_wall_seconds": 1800,
+  "worker_wall_seconds": 330,
+  "max_restarts": 3,
+  "max_no_progress_exits": 3
+}

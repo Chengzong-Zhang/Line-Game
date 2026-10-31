@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "status": "PUSHED_BRANCH_REMOTE_HEAD_VERIFIED",
+  "repository": "https://github.com/Chengzong-Zhang/Line-Game",
+  "branch": "codex/release-all-web-wechat-20261025",
+  "productHead": "70b6b669a98ff3d71e4478258ff814f2679ec67b",
+  "base": "a1c95d56cf8fb5877ea98f21fb9d3abbcea64fb2",
+  "productCommits": [
+    "68708f78c31586e53335ce5516ef5b951b7d6104",
+    "09bcb1702568961c7a4ed9eba27fc25fd72cd35f",
+    "70b6b669a98ff3d71e4478258ff814f2679ec67b"
+  ],
+  "verifiedAtUtc": "2026-10-25T04:06:57.930715+00:00",
+  "verification": "git ls-remote origin refs/heads/codex/release-all-web-wechat-20261025",
+  "sourceFilesChanged": 408,
+  "prePushReview": {
+    "privateCredentialsFound": 0,
+    "forbiddenArtifactsFound": 0,
+    "newBlobsOver1MiB": 0,
+    "diffCheck": "PASS"
+  },
+  "otherWorktreesPreserved": true,
+  "sharedHistoryRewritten": false,
+  "mainBranchChanged": false,
+  "releaseEvidence": {
+    "server": "../release-all-20261025-server/activation.json",
+    "publicHttps": "../release-all-20261025-public-web-r4/web-public-https-receipt.json",
+    "miniOfficial": "../release-all-20261025-mini/official-delivery.json"
+  },
+  "wechatExperienceConfiguredHere": false,
+  "wechatPublicReleasePerformedHere": false
+}

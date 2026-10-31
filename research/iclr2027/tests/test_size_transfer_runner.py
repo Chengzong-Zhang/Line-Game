@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 from pathlib import Path
 import shutil
 import tempfile
@@ -282,6 +283,13 @@ class SizeTransferRunnerTests(unittest.TestCase):
         transaction.write_text(transaction.read_text(encoding="utf-8") + "\n{}\n", encoding="utf-8")
         with self.assertRaises(self.runner.RunnerIntegrityError):
             self.runner.RecoverableRunner(run)
+
+    @unittest.skipUnless(os.name == "nt", "Windows PID probe regression")
+    def test_windows_pid_probe_does_not_send_a_console_signal(self):
+        with patch.object(self.runner.os, "kill", side_effect=AssertionError("signal probe is unsafe on Windows")):
+            self.assertTrue(self.runner._pid_is_alive(os.getpid()))
+            self.assertFalse(self.runner._pid_is_alive(0))
+            self.assertFalse(self.runner._pid_is_alive(0xFFFFFFFE))
 
     def test_pause_stop_and_evaluation_append_are_explicit(self):
         run = self._make_run("controls")

@@ -1,0 +1,165 @@
+{
+  "date": "2026-10-21",
+  "scope": "local-only",
+  "candidate_count": 19,
+  "models": [
+    {
+      "id": "padded-cnn-d14-s20260825-g200",
+      "family": "padded_cnn",
+      "asset": "web/web前端/assets/research-ai/padded-cnn-d14-s20260825-g200.f32",
+      "sha256": "cea913f58d1694926fb6710ca355bf6d41e5a6c49b991af87b836ae26d43bf1f",
+      "method": "Web-compatible supervised policy distillation",
+      "candidate_id": "padded-cnn-d14-s20260825-g200-distill-v1"
+    },
+    {
+      "id": "grid-gnn-d14-s20260825-g200",
+      "family": "grid_gnn",
+      "asset": "web/web前端/assets/research-ai/grid-gnn-d14-s20260825-g200.f32",
+      "sha256": "92cc45bb2a3a6a56c896098c1e843a136587a9aaf07381fbf1d00ebb4fd02dfa",
+      "method": "Web-compatible supervised policy distillation",
+      "candidate_id": "grid-gnn-d14-s20260825-g200-distill-v1"
+    },
+    {
+      "id": "topology-gnn-d14-s20260825-g200",
+      "family": "topology_gnn",
+      "asset": "web/web前端/assets/research-ai/topology-gnn-d14-s20260825-g200.f32",
+      "sha256": "de7f1a4c9c204d0f88598f5d7d92e180e291060b11cc711c8f9e786207cf34d0",
+      "method": "Web-compatible supervised policy distillation",
+      "candidate_id": "topology-gnn-d14-s20260825-g200-distill-v1"
+    },
+    {
+      "id": "padded-cnn-transfer-v1-seed2026092201",
+      "family": "padded_cnn",
+      "asset": "web/web前端/assets/research-ai/transfer-v1/padded-cnn-transfer-v1-seed2026092201.f32",
+      "sha256": "416ee1a88f092ab514dd40c8a22604a761a20b223409eaaef64f61c691108242",
+      "method": "Web-compatible supervised policy distillation",
+      "candidate_id": "padded-cnn-transfer-v1-seed2026092201-distill-v1"
+    },
+    {
+      "id": "padded-cnn-transfer-v1-seed2026092202",
+      "family": "padded_cnn",
+      "asset": "web/web前端/assets/research-ai/transfer-v1/padded-cnn-transfer-v1-seed2026092202.f32",
+      "sha256": "cd36fdd3a96e78066475fb67056fa179bf7765028fbf9e4db7a172857b134af3",
+      "method": "Web-compatible supervised policy distillation",
+      "candidate_id": "padded-cnn-transfer-v1-seed2026092202-distill-v1"
+    },
+    {
+      "id": "padded-cnn-transfer-v1-seed2026092203",
+      "family": "padded_cnn",
+      "asset": "web/web前端/assets/research-ai/transfer-v1/padded-cnn-transfer-v1-seed2026092203.f32",
+      "sha256": "ee60f6d279941c78af999c6d051d514bf90f09b9478272d8557d482bb24dd07c",
+      "method": "Web-compatible supervised policy distillation",
+      "candidate_id": "padded-cnn-transfer-v1-seed2026092203-distill-v1"
+    },
+    {
+      "id": "grid-gnn-transfer-v1-seed2026092201",
+      "family": "grid_gnn",
+      "asset": "web/web前端/assets/research-ai/transfer-v1/grid-gnn-transfer-v1-seed2026092201.f32",
+      "sha256": "e0b82a1736521fb967afb7861ba1fcc697b505990d5b6391abb8318dbef42a0b",
+      "method": "Web-compatible supervised policy distillation",
+      "candidate_id": "grid-gnn-transfer-v1-seed2026092201-distill-v1"
+    },
+    {
+      "id": "grid-gnn-transfer-v1-seed2026092202",
+      "family": "grid_gnn",
+      "asset": "web/web前端/assets/research-ai/transfer-v1/grid-gnn-transfer-v1-seed2026092202.f32",
+      "sha256": "5db4b00462d8e30d2d293adf554da3e0e6b4cde6d40d3f82b590b23fa267000b",
+      "method": "Web-compatible supervised policy distillation",
+      "candidate_id": "grid-gnn-transfer-v1-seed2026092202-distill-v1"
+    },
+    {
+      "id": "grid-gnn-transfer-v1-seed2026092203",
+      "family": "grid_gnn",
+      "asset": "web/web前端/assets/research-ai/transfer-v1/grid-gnn-transfer-v1-seed2026092203.f32",
+      "sha256": "67079d1d6108732cddfeecf74840ae63505488af052e068ab1a83bf96c56bf87",
+      "method": "Web-compatible supervised policy distillation",
+      "candidate_id": "grid-gnn-transfer-v1-seed2026092203-distill-v1"
+    },
+    {
+      "id": "topology-gnn-transfer-v1-seed2026092201",
+      "family": "topology_gnn",
+      "asset": "web/web前端/assets/research-ai/transfer-v1/topology-gnn-transfer-v1-seed2026092201.f32",
+      "sha256": "0235947ee5a3eb6aa36627da06270e0854f3ece5c2b509d6a4f85d830a54f5ba",
+      "method": "Web-compatible supervised policy distillation",
+      "candidate_id": "topology-gnn-transfer-v1-seed2026092201-distill-v1"
+    },
+    {
+      "id": "topology-gnn-transfer-v1-seed2026092202",
+      "family": "topology_gnn",
+      "asset": "web/web前端/assets/research-ai/transfer-v1/topology-gnn-transfer-v1-seed2026092202.f32",
+      "sha256": "4c424c0f0ac19724d7fa51741d199bd780781d7063b325671fe9197f6b6abc9b",
+      "method": "Web-compatible supervised policy distillation",
+      "candidate_id": "topology-gnn-transfer-v1-seed2026092202-distill-v1"
+    },
+    {
+      "id": "topology-gnn-transfer-v1-seed2026092203",
+      "family": "topology_gnn",
+      "asset": "web/web前端/assets/research-ai/transfer-v1/topology-gnn-transfer-v1-seed2026092203.f32",
+      "sha256": "5a8f6f4ed6954c5dda131c16403f2f2c680edefffc050d19f2cab25850dcc84b",
+      "method": "Web-compatible supervised policy distillation",
+      "candidate_id": "topology-gnn-transfer-v1-seed2026092203-distill-v1"
+    },
+    {
+      "id": "dqn-all-sizes-e2000",
+      "family": "dqn",
+      "asset": "web/web前端/assets/research-ai/dqn-all-sizes-e2000.f32",
+      "sha256": "16f50c330ad7cc239cfb0b2334538817c7c0d6cf4c01f6048b05c9ee4a9466eb",
+      "method": "Web-compatible supervised policy distillation",
+      "candidate_id": "dqn-all-sizes-e2000-distill-v1"
+    },
+    {
+      "id": "ppo-all-sizes-e2000",
+      "family": "ppo",
+      "asset": "web/web前端/assets/research-ai/ppo-all-sizes-e2000.f32",
+      "sha256": "af41359ca0ee00b3be86a2f5b9363a513af942f6cfa0c50f31cb0f252c86de85",
+      "method": "Web-compatible supervised policy distillation",
+      "candidate_id": "ppo-all-sizes-e2000-distill-v1"
+    },
+    {
+      "id": "sac-all-sizes-e2000",
+      "family": "sac",
+      "asset": "web/web前端/assets/research-ai/sac-all-sizes-e2000.f32",
+      "sha256": "63a1b80b456427a2545a31ff9af209fdde1f9cf8d41ae6984f36c09c116932bd",
+      "method": "Web-compatible supervised policy distillation",
+      "candidate_id": "sac-all-sizes-e2000-distill-v1"
+    },
+    {
+      "id": "gail-all-sizes",
+      "family": "gail",
+      "asset": "web/web前端/assets/research-ai/gail-all-sizes.f32",
+      "sha256": "5951e4e3f057893275df6f44543f3747cd4275a616d52a5b8355e51760faea71",
+      "method": "Web-compatible supervised policy distillation",
+      "candidate_id": "gail-all-sizes-distill-v1"
+    },
+    {
+      "id": "gan-all-sizes",
+      "family": "gan",
+      "asset": "web/web前端/assets/research-ai/gan-all-sizes.f32",
+      "sha256": "63629d0027afb8ff2fdbc3e773be420c062361b315741d8371e47818c4ec30e5",
+      "method": "Web-compatible supervised policy distillation",
+      "candidate_id": "gan-all-sizes-distill-v1"
+    },
+    {
+      "id": "three-player-policy-v2",
+      "family": "three-player",
+      "asset": "web/web前端/assets/research-ai/three-player-policy-v2.json",
+      "sha256": "00fc241c500dfd01ff85b5e2a4f1907cc5a9d8307d68bb78be64b0aad129f56e",
+      "method": "terminal-return conservative PPO",
+      "candidate_id": "three-player-policy-v3"
+    },
+    {
+      "id": "hex-player-policy-v1",
+      "family": "hex-player",
+      "asset": "web/web前端/assets/research-ai/hex-player-policy-v1.json",
+      "sha256": "74aa7f945c3ea7ff5ca3edc9e7bdc431dc0ec5ad56d2563ce6d6d24c0494162b",
+      "method": "terminal-return conservative PPO",
+      "candidate_id": "hex-player-policy-v2"
+    }
+  ],
+  "parameter_free_algorithms_excluded": [
+    "Minimax",
+    "Greedy",
+    "MCTS"
+  ],
+  "historical_models_preserved": true
+}

@@ -1,0 +1,19 @@
+{
+  "schema": "lifeline-three-player-arena",
+  "version": 1,
+  "stage": "FINAL",
+  "sizes": [5, 7, 9],
+  "starters": ["BLACK", "WHITE", "PURPLE"],
+  "prefixesPerCell": 2,
+  "prefixMoves": 4,
+  "maxActions": 360,
+  "maxGameSeconds": 45,
+  "totalBudgetSeconds": 1800,
+  "lineups": "paired",
+  "seedNamespace": "three-player-v3/final-vs-production-v1-20261021-fresh-a",
+  "promotion": {
+    "minimumMeanDelta": 0.04,
+    "minimumSizeDelta": -0.05,
+    "bootstrapReplicates": 10000
+  }
+}

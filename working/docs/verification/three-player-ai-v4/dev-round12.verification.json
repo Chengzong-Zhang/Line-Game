@@ -1,0 +1,21 @@
+{
+  "status": "PASS_APPLICATION_EVALUATION",
+  "identity": "53751e758183a3e9b84c5d79ee8ff96bb51aed2ccc4a51eefe9ef941c3f8bc72",
+  "verificationIdentity": "06d9d007d3aa8b1c68d885064d569ed8861d755f417ae7fee662403f8a1b765f",
+  "verifiedGames": 63,
+  "plannedGames": 63,
+  "verifiedActions": 2162,
+  "verifiedDecisions": 1910,
+  "verifiedSearchActions": 44160,
+  "terminalGames": 63,
+  "truncatedGames": 0,
+  "promotionPass": false,
+  "summaryFieldsVerified": "all",
+  "gameHashesSha256": "56356903bf65003b90ef3393bbc7222864a80170b2764c112e476631fefed1d9",
+  "proofHashesSha256": "7d7fda4b69f9391140b4810da0d53515da72893dc684eba6cb5878c9dbe51f2d",
+  "verifierSha256": "5eed127324e4e14a0e618926f241bb60a0ed39af9ef157616386fd2628d34fb7",
+  "restoredGames": 53,
+  "freshGames": 10,
+  "sourceScope": "All actions, policy decisions, terminal areas, work counts and summary fields; valid per-game proofs resume without repeated policy evaluation.",
+  "integrity": "fd81f6a43c7aa8db49e79901ec8d4f22f2e22027ac8bb2425ec34ca9abbbaa73"
+}

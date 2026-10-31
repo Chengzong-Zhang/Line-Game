@@ -1,0 +1,14 @@
+{
+  "status": "AUTHORIZED_ONCE",
+  "reason": "Actual development games exceed the initial phase allocation; reallocate within unchanged global budget",
+  "authorization": "Parent task explicitly approved one resume within the existing 3600-second absolute deadline",
+  "campaignDeadlineEpochMs": 1792556541492,
+  "resumedAtEpochMs": 1792553629179,
+  "newPhaseMaximumSeconds": 650,
+  "completedGamesPreserved": 78,
+  "currentActionsPreserved": 79,
+  "scientificIdentity": "630b43ddb9303fa41921bf72e22c3fee4464b8a7ebdbb38708d2e05ffe5507fb",
+  "scientificInputsChanged": false,
+  "originalSupervisorSha256": "5afc1ab3f1ac6dad4e77905482bf8547fbd824d0a492ca1ec655187e3bc75e3c",
+  "command": "node web/tools/resume-hex-v3-development.mjs"
+}

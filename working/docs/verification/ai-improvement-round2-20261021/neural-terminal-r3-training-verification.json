@@ -1,0 +1,63 @@
+{
+  "status": "PASS_TERMINAL_HEAD_R3_INDEPENDENT_REPLAY",
+  "identity": "04377920c49a40240f30739da29051d059735bef81f225d50f4ee0f30fa4ad40",
+  "replayed_updates": 240,
+  "stages": [
+    {
+      "id": "padded-cnn-transfer-v1-seed2026092203-terminal-head-r3-s040",
+      "updates": 40,
+      "frozen_tensor_count": 22,
+      "value_checks": 48,
+      "validation_ce": 1.5653986930847168,
+      "optimizer_rng_replay": "exact"
+    },
+    {
+      "id": "padded-cnn-transfer-v1-seed2026092203-terminal-head-r3-s080",
+      "updates": 80,
+      "frozen_tensor_count": 22,
+      "value_checks": 48,
+      "validation_ce": 1.5651665727297466,
+      "optimizer_rng_replay": "exact"
+    },
+    {
+      "id": "padded-cnn-transfer-v1-seed2026092203-terminal-head-r3-s120",
+      "updates": 120,
+      "frozen_tensor_count": 22,
+      "value_checks": 48,
+      "validation_ce": 1.5650252103805542,
+      "optimizer_rng_replay": "exact"
+    },
+    {
+      "id": "grid-gnn-transfer-v1-seed2026092202-terminal-head-r3-s040",
+      "updates": 40,
+      "frozen_tensor_count": 25,
+      "value_checks": 48,
+      "validation_ce": 1.6775616804758708,
+      "optimizer_rng_replay": "exact"
+    },
+    {
+      "id": "grid-gnn-transfer-v1-seed2026092202-terminal-head-r3-s080",
+      "updates": 80,
+      "frozen_tensor_count": 25,
+      "value_checks": 48,
+      "validation_ce": 1.660785714785258,
+      "optimizer_rng_replay": "exact"
+    },
+    {
+      "id": "grid-gnn-transfer-v1-seed2026092202-terminal-head-r3-s120",
+      "updates": 120,
+      "frozen_tensor_count": 25,
+      "value_checks": 48,
+      "validation_ce": 1.6544883847236633,
+      "optimizer_rng_replay": "exact"
+    }
+  ],
+  "parity": {
+    "status": "PASS_PYTHON_WEB_F32_PARITY",
+    "probes": 18,
+    "max_probability_error": 1.1008082845265221e-07
+  },
+  "verifier_sha256": "29d418c51417709ee8ac20fd889b7531055dedfe06e01f851fce5691aa84871a",
+  "manifest_sha256": "ec4d30147863869c50c2ca9a0f2a935e314f3179305229f964f3f5e894232836",
+  "scope": "Independent all-update model/Adam/RNG replay, frozen tensors and value/PASS predictions, F32 exactness, validation CE and actual Web probabilities; no playing-strength claim."
+}

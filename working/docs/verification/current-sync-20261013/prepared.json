@@ -1,0 +1,13 @@
+{
+  "status": "GITHUB_SYNCED_SERVER_WAITING_FOR_SSH_LOGIN",
+  "runtime_commit": "ece3ebb747012aa11cbd85bb0011212181a1a35b",
+  "branch": "codex/territory-v2-page-correctness",
+  "release_id": "web-current-sync-20261013",
+  "asset_version": "20261013-sync1",
+  "runtime_files": 75,
+  "archive_sha256": "8629fff9fcea8cf397fb9b905e90ab4fe001c7b0cd488b972b6059ad1d5d9664",
+  "archive_bytes": 18013722,
+  "source_bytes": 20351870,
+  "ssh_authentication": "Existing password entered locally by the owner; no keys created and no passwords recorded",
+  "activation_receipt_present": false
+}

@@ -1,0 +1,3560 @@
+{
+  "status": "PASS_REAL_VOLUNTARY_PASS_REGRESSION",
+  "arenaIdentity": "3ce692ecfaad45553c3b19e949e1e7d4679b2e181bf953305b8161b8dbb0932a",
+  "voluntaryPassDecisionsRecomputed": 591,
+  "checked": [
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n5-p0-WHITE",
+      "ply": 9,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203",
+      "legalPlacements": 1
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n5-p1-WHITE",
+      "ply": 8,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203",
+      "legalPlacements": 1
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n5-p2-BLACK",
+      "ply": 13,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203",
+      "legalPlacements": 1
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n5-p2-WHITE",
+      "ply": 12,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203",
+      "legalPlacements": 2
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n5-p2-WHITE",
+      "ply": 15,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n5-p3-BLACK",
+      "ply": 9,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 2
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n5-p3-WHITE",
+      "ply": 10,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203",
+      "legalPlacements": 1
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n5-p4-WHITE",
+      "ply": 9,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 2
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n5-p4-WHITE",
+      "ply": 12,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203",
+      "legalPlacements": 1
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n5-p6-WHITE",
+      "ply": 7,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n5-p8-BLACK",
+      "ply": 6,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203",
+      "legalPlacements": 1
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n5-p9-BLACK",
+      "ply": 7,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n5-p9-WHITE",
+      "ply": 7,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203",
+      "legalPlacements": 1
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n7-p0-BLACK",
+      "ply": 19,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 8
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n7-p0-WHITE",
+      "ply": 17,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203",
+      "legalPlacements": 1
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n7-p1-BLACK",
+      "ply": 20,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 7
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n7-p1-WHITE",
+      "ply": 8,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 7
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n7-p2-BLACK",
+      "ply": 14,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203",
+      "legalPlacements": 8
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n7-p2-WHITE",
+      "ply": 28,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 3
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n7-p3-BLACK",
+      "ply": 20,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 7
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n7-p3-WHITE",
+      "ply": 8,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 7
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n7-p4-BLACK",
+      "ply": 16,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n7-p4-BLACK",
+      "ply": 20,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203",
+      "legalPlacements": 1
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n7-p4-WHITE",
+      "ply": 17,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 5
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n7-p5-BLACK",
+      "ply": 21,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203",
+      "legalPlacements": 1
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n7-p5-WHITE",
+      "ply": 20,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n7-p5-WHITE",
+      "ply": 27,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203",
+      "legalPlacements": 1
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n7-p6-BLACK",
+      "ply": 19,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 5
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n7-p6-WHITE",
+      "ply": 20,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203",
+      "legalPlacements": 1
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n7-p6-WHITE",
+      "ply": 27,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n7-p7-BLACK",
+      "ply": 9,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 8
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n7-p7-WHITE",
+      "ply": 15,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203",
+      "legalPlacements": 5
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n7-p8-BLACK",
+      "ply": 9,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 10
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n7-p8-WHITE",
+      "ply": 23,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203",
+      "legalPlacements": 1
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n7-p9-BLACK",
+      "ply": 16,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n7-p9-WHITE",
+      "ply": 25,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n9-p0-BLACK",
+      "ply": 47,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203",
+      "legalPlacements": 2
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n9-p0-WHITE",
+      "ply": 33,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203",
+      "legalPlacements": 11
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n9-p1-BLACK",
+      "ply": 15,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203",
+      "legalPlacements": 14
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n9-p1-WHITE",
+      "ply": 42,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203",
+      "legalPlacements": 6
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n9-p2-BLACK",
+      "ply": 13,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 20
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n9-p2-WHITE",
+      "ply": 23,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 12
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n9-p3-BLACK",
+      "ply": 14,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 20
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n9-p3-WHITE",
+      "ply": 39,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203",
+      "legalPlacements": 6
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n9-p4-BLACK",
+      "ply": 17,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203",
+      "legalPlacements": 9
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n9-p4-WHITE",
+      "ply": 48,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203",
+      "legalPlacements": 1
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n9-p4-WHITE",
+      "ply": 50,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203",
+      "legalPlacements": 1
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n9-p4-WHITE",
+      "ply": 56,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 6
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n9-p5-BLACK",
+      "ply": 20,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 15
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n9-p6-BLACK",
+      "ply": 13,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 17
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n9-p6-WHITE",
+      "ply": 15,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 15
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n9-p7-BLACK",
+      "ply": 17,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203",
+      "legalPlacements": 11
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n9-p7-WHITE",
+      "ply": 13,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 23
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n9-p8-BLACK",
+      "ply": 30,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 13
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n9-p8-WHITE",
+      "ply": 14,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 21
+    },
+    {
+      "game": "padded-cnn-transfer-v1-seed2026092203-distill-v1-n9-p9-WHITE",
+      "ply": 28,
+      "modelId": "padded-cnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n5-p0-BLACK",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 2
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n5-p0-BLACK",
+      "ply": 11,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n5-p0-WHITE",
+      "ply": 11,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n5-p1-BLACK",
+      "ply": 4,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 3
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n5-p1-BLACK",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n5-p1-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n5-p2-BLACK",
+      "ply": 12,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n5-p2-WHITE",
+      "ply": 12,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n5-p3-BLACK",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n5-p3-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n5-p4-BLACK",
+      "ply": 7,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 3
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n5-p4-BLACK",
+      "ply": 12,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n5-p4-WHITE",
+      "ply": 6,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 2
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n5-p5-BLACK",
+      "ply": 6,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 4
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n5-p5-BLACK",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 2
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n5-p5-BLACK",
+      "ply": 11,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n5-p6-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n5-p7-BLACK",
+      "ply": 11,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n5-p7-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 2
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n5-p8-BLACK",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 2
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n5-p8-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 2
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n5-p9-BLACK",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n5-p9-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p0-BLACK",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p0-BLACK",
+      "ply": 18,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 5
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p0-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p0-WHITE",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 10
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p0-WHITE",
+      "ply": 23,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 3
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p0-WHITE",
+      "ply": 27,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 6
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p1-BLACK",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p1-BLACK",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 7
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p1-BLACK",
+      "ply": 20,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 4
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p1-BLACK",
+      "ply": 22,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 4
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p1-BLACK",
+      "ply": 28,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 3
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p1-BLACK",
+      "ply": 30,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 2
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p1-BLACK",
+      "ply": 36,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p1-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p1-WHITE",
+      "ply": 12,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 8
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p1-WHITE",
+      "ply": 17,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 7
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p2-BLACK",
+      "ply": 14,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 9
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p2-WHITE",
+      "ply": 15,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 9
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p2-WHITE",
+      "ply": 18,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 8
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p3-BLACK",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p3-BLACK",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 7
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p3-BLACK",
+      "ply": 20,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 4
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p3-BLACK",
+      "ply": 22,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 4
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p3-BLACK",
+      "ply": 28,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 3
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p3-BLACK",
+      "ply": 30,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 2
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p3-BLACK",
+      "ply": 36,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p3-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p3-WHITE",
+      "ply": 12,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 8
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p3-WHITE",
+      "ply": 17,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 7
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p4-BLACK",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 12
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p4-BLACK",
+      "ply": 11,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p4-BLACK",
+      "ply": 19,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 3
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p4-BLACK",
+      "ply": 20,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 4
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p4-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 12
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p4-WHITE",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 12
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p4-WHITE",
+      "ply": 25,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 8
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p5-BLACK",
+      "ply": 9,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 14
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p5-WHITE",
+      "ply": 9,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 14
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p6-BLACK",
+      "ply": 6,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 12
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p6-BLACK",
+      "ply": 19,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 3
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p6-BLACK",
+      "ply": 24,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p6-WHITE",
+      "ply": 6,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 12
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p6-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p6-WHITE",
+      "ply": 22,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 6
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p7-BLACK",
+      "ply": 17,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 2
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p7-BLACK",
+      "ply": 19,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 3
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p7-WHITE",
+      "ply": 14,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 7
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p8-BLACK",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p8-BLACK",
+      "ply": 12,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 2
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p8-WHITE",
+      "ply": 9,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 10
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p9-BLACK",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p9-BLACK",
+      "ply": 12,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p9-BLACK",
+      "ply": 20,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 4
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p9-BLACK",
+      "ply": 21,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p9-WHITE",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 12
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p9-WHITE",
+      "ply": 16,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 4
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p9-WHITE",
+      "ply": 18,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 3
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n7-p9-WHITE",
+      "ply": 21,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 3
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p0-BLACK",
+      "ply": 5,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 27
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p0-BLACK",
+      "ply": 7,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 18
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p0-BLACK",
+      "ply": 11,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 18
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p0-BLACK",
+      "ply": 18,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 28
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p0-WHITE",
+      "ply": 5,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 27
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p0-WHITE",
+      "ply": 18,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 20
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p1-BLACK",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 24
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p1-BLACK",
+      "ply": 12,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 24
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p1-BLACK",
+      "ply": 16,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 18
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p1-BLACK",
+      "ply": 18,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 18
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p1-BLACK",
+      "ply": 30,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 5
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p1-BLACK",
+      "ply": 33,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 5
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p1-WHITE",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 24
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p1-WHITE",
+      "ply": 12,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 24
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p1-WHITE",
+      "ply": 16,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 21
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p1-WHITE",
+      "ply": 27,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 14
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p2-BLACK",
+      "ply": 6,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 26
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p2-BLACK",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 21
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p2-BLACK",
+      "ply": 17,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 15
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p2-BLACK",
+      "ply": 18,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p2-WHITE",
+      "ply": 4,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 27
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p2-WHITE",
+      "ply": 6,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 18
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p2-WHITE",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 18
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p2-WHITE",
+      "ply": 19,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 16
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p2-WHITE",
+      "ply": 23,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 14
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p2-WHITE",
+      "ply": 25,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 4
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p2-WHITE",
+      "ply": 29,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 7
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p2-WHITE",
+      "ply": 31,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 6
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p2-WHITE",
+      "ply": 35,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 5
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p2-WHITE",
+      "ply": 47,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 7
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p3-BLACK",
+      "ply": 4,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 23
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p3-BLACK",
+      "ply": 9,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 23
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p3-BLACK",
+      "ply": 13,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 22
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p3-BLACK",
+      "ply": 15,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 22
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p3-BLACK",
+      "ply": 22,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 21
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p3-BLACK",
+      "ply": 24,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 17
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p3-BLACK",
+      "ply": 28,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 14
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p3-BLACK",
+      "ply": 30,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 13
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p3-BLACK",
+      "ply": 42,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 10
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p3-BLACK",
+      "ply": 46,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p3-BLACK",
+      "ply": 48,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 10
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p3-BLACK",
+      "ply": 52,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 6
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p3-BLACK",
+      "ply": 54,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 6
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p3-BLACK",
+      "ply": 58,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 3
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p3-BLACK",
+      "ply": 59,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 3
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p3-WHITE",
+      "ply": 4,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 23
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p3-WHITE",
+      "ply": 11,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 17
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p3-WHITE",
+      "ply": 13,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 16
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p3-WHITE",
+      "ply": 15,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 15
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p3-WHITE",
+      "ply": 20,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 21
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p3-WHITE",
+      "ply": 22,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 20
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p3-WHITE",
+      "ply": 24,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 19
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p3-WHITE",
+      "ply": 30,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 15
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p3-WHITE",
+      "ply": 32,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 14
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p3-WHITE",
+      "ply": 37,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 14
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p4-BLACK",
+      "ply": 11,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 25
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p4-BLACK",
+      "ply": 16,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 26
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p4-WHITE",
+      "ply": 11,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 26
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p4-WHITE",
+      "ply": 20,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 25
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p5-BLACK",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 25
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p5-BLACK",
+      "ply": 12,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 20
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p5-BLACK",
+      "ply": 22,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 13
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p5-BLACK",
+      "ply": 24,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p5-BLACK",
+      "ply": 30,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 3
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p5-BLACK",
+      "ply": 31,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 8
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p5-WHITE",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 25
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p5-WHITE",
+      "ply": 14,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 17
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p5-WHITE",
+      "ply": 23,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 16
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p5-WHITE",
+      "ply": 31,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 15
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p6-BLACK",
+      "ply": 6,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 24
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p6-BLACK",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 25
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p6-BLACK",
+      "ply": 15,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 27
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p6-WHITE",
+      "ply": 6,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 24
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p6-WHITE",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 25
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p6-WHITE",
+      "ply": 15,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 27
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p7-BLACK",
+      "ply": 6,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 22
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p7-BLACK",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 21
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p7-BLACK",
+      "ply": 12,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 21
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p7-BLACK",
+      "ply": 23,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 26
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p7-WHITE",
+      "ply": 6,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 22
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p7-WHITE",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 21
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p7-WHITE",
+      "ply": 25,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 16
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p7-WHITE",
+      "ply": 33,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 16
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p8-BLACK",
+      "ply": 14,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 18
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p8-BLACK",
+      "ply": 16,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 15
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p8-BLACK",
+      "ply": 18,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 15
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p8-BLACK",
+      "ply": 31,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 10
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p8-BLACK",
+      "ply": 36,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 12
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p8-WHITE",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 24
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p8-WHITE",
+      "ply": 18,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 13
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p8-WHITE",
+      "ply": 20,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 12
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p8-WHITE",
+      "ply": 30,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 14
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p9-BLACK",
+      "ply": 6,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 28
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p9-BLACK",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 25
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p9-BLACK",
+      "ply": 13,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 28
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p9-BLACK",
+      "ply": 17,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 24
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p9-BLACK",
+      "ply": 30,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 10
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p9-BLACK",
+      "ply": 31,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 10
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p9-WHITE",
+      "ply": 12,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201-distill-v1",
+      "legalPlacements": 27
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p9-WHITE",
+      "ply": 31,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 15
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p9-WHITE",
+      "ply": 33,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 15
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p9-WHITE",
+      "ply": 35,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 13
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p9-WHITE",
+      "ply": 41,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p9-WHITE",
+      "ply": 43,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 9
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p9-WHITE",
+      "ply": 47,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 9
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p9-WHITE",
+      "ply": 49,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 8
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092201-distill-v1-n9-p9-WHITE",
+      "ply": 54,
+      "modelId": "grid-gnn-transfer-v1-seed2026092201",
+      "legalPlacements": 10
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n5-p0-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n5-p1-BLACK",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n5-p1-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n5-p2-BLACK",
+      "ply": 12,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n5-p2-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n5-p2-WHITE",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n5-p2-WHITE",
+      "ply": 14,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n5-p3-BLACK",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n5-p3-WHITE",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n5-p4-BLACK",
+      "ply": 9,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n5-p4-BLACK",
+      "ply": 11,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n5-p4-WHITE",
+      "ply": 6,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 2
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n5-p5-BLACK",
+      "ply": 6,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 2
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n5-p5-BLACK",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 2
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n5-p5-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n5-p5-WHITE",
+      "ply": 11,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n5-p6-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n5-p6-WHITE",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n5-p7-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 2
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n5-p8-BLACK",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 2
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n5-p8-BLACK",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 2
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n5-p8-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 2
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p0-BLACK",
+      "ply": 11,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p0-BLACK",
+      "ply": 18,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 8
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p0-WHITE",
+      "ply": 9,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 14
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p0-WHITE",
+      "ply": 16,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 8
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p0-WHITE",
+      "ply": 18,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 7
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p0-WHITE",
+      "ply": 20,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 6
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p0-WHITE",
+      "ply": 24,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 4
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p1-BLACK",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p1-BLACK",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 7
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p1-BLACK",
+      "ply": 22,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 4
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p1-BLACK",
+      "ply": 32,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p1-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p1-WHITE",
+      "ply": 12,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 8
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p1-WHITE",
+      "ply": 21,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 7
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p2-BLACK",
+      "ply": 18,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 4
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p2-WHITE",
+      "ply": 12,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 8
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p3-BLACK",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p3-BLACK",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 7
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p3-BLACK",
+      "ply": 22,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 4
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p3-BLACK",
+      "ply": 32,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p3-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p3-WHITE",
+      "ply": 12,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 8
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p3-WHITE",
+      "ply": 21,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 7
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p4-BLACK",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 12
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p4-BLACK",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 12
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p4-BLACK",
+      "ply": 13,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p4-BLACK",
+      "ply": 28,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 3
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p4-BLACK",
+      "ply": 33,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p4-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 12
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p4-WHITE",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 12
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p4-WHITE",
+      "ply": 19,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p4-WHITE",
+      "ply": 21,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 10
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p4-WHITE",
+      "ply": 28,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 9
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p5-BLACK",
+      "ply": 9,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 14
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p5-WHITE",
+      "ply": 9,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 14
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p6-BLACK",
+      "ply": 6,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 12
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p6-BLACK",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p6-BLACK",
+      "ply": 23,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 3
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p6-WHITE",
+      "ply": 6,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 12
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p6-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p6-WHITE",
+      "ply": 22,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 7
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p6-WHITE",
+      "ply": 27,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 2
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p6-WHITE",
+      "ply": 28,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p7-BLACK",
+      "ply": 11,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 8
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p7-WHITE",
+      "ply": 14,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 3
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p7-WHITE",
+      "ply": 18,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 6
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p8-BLACK",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 9
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p8-WHITE",
+      "ply": 20,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p8-WHITE",
+      "ply": 23,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 4
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p9-BLACK",
+      "ply": 6,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p9-BLACK",
+      "ply": 12,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 10
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p9-BLACK",
+      "ply": 17,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 7
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p9-BLACK",
+      "ply": 19,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 7
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p9-BLACK",
+      "ply": 21,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 7
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p9-BLACK",
+      "ply": 25,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 6
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p9-BLACK",
+      "ply": 27,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 6
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p9-BLACK",
+      "ply": 33,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n7-p9-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 13
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p0-BLACK",
+      "ply": 5,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 27
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p0-BLACK",
+      "ply": 7,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 18
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p0-BLACK",
+      "ply": 11,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 18
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p0-BLACK",
+      "ply": 13,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 15
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p0-BLACK",
+      "ply": 18,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 26
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p0-BLACK",
+      "ply": 20,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 24
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p0-BLACK",
+      "ply": 22,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 18
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p0-BLACK",
+      "ply": 29,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 13
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p0-BLACK",
+      "ply": 36,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 13
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p0-WHITE",
+      "ply": 5,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 27
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p0-WHITE",
+      "ply": 12,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p0-WHITE",
+      "ply": 14,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 29
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p1-BLACK",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 24
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p1-BLACK",
+      "ply": 12,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 24
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p1-BLACK",
+      "ply": 14,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 24
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p1-BLACK",
+      "ply": 16,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 23
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p1-BLACK",
+      "ply": 24,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 12
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p1-BLACK",
+      "ply": 37,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 13
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p1-WHITE",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 24
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p1-WHITE",
+      "ply": 12,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 24
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p1-WHITE",
+      "ply": 14,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 24
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p1-WHITE",
+      "ply": 18,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 18
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p1-WHITE",
+      "ply": 29,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 14
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p2-BLACK",
+      "ply": 6,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 26
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p2-BLACK",
+      "ply": 19,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 23
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p2-BLACK",
+      "ply": 23,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 22
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p2-BLACK",
+      "ply": 27,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 18
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p2-BLACK",
+      "ply": 34,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 17
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p2-BLACK",
+      "ply": 41,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 15
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p2-WHITE",
+      "ply": 4,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 27
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p2-WHITE",
+      "ply": 6,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 18
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p2-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 18
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p2-WHITE",
+      "ply": 15,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 24
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p2-WHITE",
+      "ply": 17,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 22
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p2-WHITE",
+      "ply": 25,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 17
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p3-BLACK",
+      "ply": 4,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 23
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p3-BLACK",
+      "ply": 15,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 24
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p3-BLACK",
+      "ply": 17,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 24
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p3-BLACK",
+      "ply": 27,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 17
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p3-WHITE",
+      "ply": 9,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 17
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p3-WHITE",
+      "ply": 11,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 16
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p3-WHITE",
+      "ply": 31,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 16
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p3-WHITE",
+      "ply": 46,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 9
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p4-BLACK",
+      "ply": 7,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 22
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p4-BLACK",
+      "ply": 9,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 18
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p4-BLACK",
+      "ply": 14,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 25
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p4-BLACK",
+      "ply": 18,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 18
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p4-BLACK",
+      "ply": 20,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 16
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p4-BLACK",
+      "ply": 38,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 12
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p4-WHITE",
+      "ply": 9,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 29
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p4-WHITE",
+      "ply": 13,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 26
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p4-WHITE",
+      "ply": 18,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 21
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p5-BLACK",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 25
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p5-BLACK",
+      "ply": 12,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 20
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p5-BLACK",
+      "ply": 28,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 10
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p5-BLACK",
+      "ply": 36,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 12
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p5-WHITE",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 25
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p5-WHITE",
+      "ply": 28,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 12
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p6-BLACK",
+      "ply": 7,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 30
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p6-WHITE",
+      "ply": 4,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 20
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p6-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 24
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p6-WHITE",
+      "ply": 12,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 25
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p6-WHITE",
+      "ply": 17,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 27
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p7-BLACK",
+      "ply": 6,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 22
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p7-BLACK",
+      "ply": 12,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 19
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p7-BLACK",
+      "ply": 26,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 15
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p7-WHITE",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 19
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p7-WHITE",
+      "ply": 27,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 16
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p7-WHITE",
+      "ply": 29,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 16
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p7-WHITE",
+      "ply": 31,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 15
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p7-WHITE",
+      "ply": 33,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 14
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p7-WHITE",
+      "ply": 35,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 14
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p7-WHITE",
+      "ply": 37,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 12
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p7-WHITE",
+      "ply": 48,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 9
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p8-BLACK",
+      "ply": 6,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 26
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p8-BLACK",
+      "ply": 24,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 15
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p8-BLACK",
+      "ply": 32,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 2
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p8-BLACK",
+      "ply": 35,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 21
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p8-WHITE",
+      "ply": 6,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 26
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p8-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 17
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p8-WHITE",
+      "ply": 15,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 26
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p8-WHITE",
+      "ply": 17,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 21
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p8-WHITE",
+      "ply": 19,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 21
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p8-WHITE",
+      "ply": 30,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 17
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p9-BLACK",
+      "ply": 6,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 29
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p9-BLACK",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 22
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p9-BLACK",
+      "ply": 16,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 26
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p9-BLACK",
+      "ply": 18,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 26
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p9-BLACK",
+      "ply": 22,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 22
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p9-BLACK",
+      "ply": 24,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 21
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p9-BLACK",
+      "ply": 31,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 22
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p9-BLACK",
+      "ply": 37,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 17
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p9-BLACK",
+      "ply": 39,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 17
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p9-BLACK",
+      "ply": 41,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 15
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p9-BLACK",
+      "ply": 49,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 12
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p9-BLACK",
+      "ply": 51,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 12
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p9-BLACK",
+      "ply": 61,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 5
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p9-BLACK",
+      "ply": 63,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 4
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p9-BLACK",
+      "ply": 68,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 2
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p9-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 28
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p9-WHITE",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 27
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p9-WHITE",
+      "ply": 12,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 26
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p9-WHITE",
+      "ply": 17,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 16
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p9-WHITE",
+      "ply": 25,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202",
+      "legalPlacements": 15
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092202-distill-v1-n9-p9-WHITE",
+      "ply": 43,
+      "modelId": "grid-gnn-transfer-v1-seed2026092202-distill-v1",
+      "legalPlacements": 9
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n5-p0-BLACK",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n5-p0-WHITE",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 2
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n5-p1-BLACK",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n5-p1-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n5-p2-BLACK",
+      "ply": 12,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n5-p2-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n5-p2-WHITE",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n5-p2-WHITE",
+      "ply": 14,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n5-p3-BLACK",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n5-p3-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n5-p4-BLACK",
+      "ply": 9,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n5-p4-BLACK",
+      "ply": 11,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n5-p4-WHITE",
+      "ply": 9,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n5-p4-WHITE",
+      "ply": 11,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n5-p5-BLACK",
+      "ply": 6,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 2
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n5-p5-BLACK",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 2
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n5-p5-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n5-p5-WHITE",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n5-p6-BLACK",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n5-p6-BLACK",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n5-p6-BLACK",
+      "ply": 12,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n5-p6-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n5-p6-WHITE",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n5-p6-WHITE",
+      "ply": 12,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n5-p7-BLACK",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 2
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n5-p7-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 2
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n5-p8-BLACK",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 2
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n5-p8-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 2
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p0-BLACK",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p0-BLACK",
+      "ply": 21,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 2
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p0-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p0-WHITE",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 10
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p0-WHITE",
+      "ply": 27,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 5
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p1-BLACK",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p1-BLACK",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 7
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p1-BLACK",
+      "ply": 18,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 6
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p1-WHITE",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 9
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p1-WHITE",
+      "ply": 20,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 8
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p2-BLACK",
+      "ply": 14,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 9
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p2-WHITE",
+      "ply": 6,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p2-WHITE",
+      "ply": 11,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p2-WHITE",
+      "ply": 16,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 9
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p3-BLACK",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p3-BLACK",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 7
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p3-BLACK",
+      "ply": 18,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 6
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p3-WHITE",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 9
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p3-WHITE",
+      "ply": 20,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 8
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p4-BLACK",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 12
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p4-BLACK",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 12
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p4-BLACK",
+      "ply": 21,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 10
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p4-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 12
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p4-WHITE",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 12
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p4-WHITE",
+      "ply": 21,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 10
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p4-WHITE",
+      "ply": 26,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 9
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p5-BLACK",
+      "ply": 9,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 14
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p5-WHITE",
+      "ply": 9,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 14
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p6-BLACK",
+      "ply": 6,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 12
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p6-BLACK",
+      "ply": 13,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 3
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p6-BLACK",
+      "ply": 14,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 5
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p6-WHITE",
+      "ply": 6,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 12
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p6-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p6-WHITE",
+      "ply": 22,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 7
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p6-WHITE",
+      "ply": 24,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 6
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p6-WHITE",
+      "ply": 26,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 5
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p6-WHITE",
+      "ply": 28,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 4
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p6-WHITE",
+      "ply": 30,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 3
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p7-BLACK",
+      "ply": 13,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 7
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p7-BLACK",
+      "ply": 20,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 2
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p7-WHITE",
+      "ply": 11,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 10
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p8-BLACK",
+      "ply": 18,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 7
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p8-BLACK",
+      "ply": 20,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 7
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p8-BLACK",
+      "ply": 22,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 7
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p8-WHITE",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p9-BLACK",
+      "ply": 6,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 13
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p9-BLACK",
+      "ply": 12,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 12
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p9-WHITE",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 9
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p9-WHITE",
+      "ply": 14,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 2
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n7-p9-WHITE",
+      "ply": 15,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 4
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p0-BLACK",
+      "ply": 5,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 27
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p0-BLACK",
+      "ply": 7,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 18
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p0-BLACK",
+      "ply": 16,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 27
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p0-WHITE",
+      "ply": 7,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 26
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p0-WHITE",
+      "ply": 16,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 15
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p0-WHITE",
+      "ply": 32,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 19
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p0-WHITE",
+      "ply": 37,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 16
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p1-BLACK",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 24
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p1-BLACK",
+      "ply": 12,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 24
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p1-BLACK",
+      "ply": 14,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 21
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p1-BLACK",
+      "ply": 16,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 21
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p1-BLACK",
+      "ply": 18,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 20
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p1-BLACK",
+      "ply": 29,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 17
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p1-BLACK",
+      "ply": 42,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p1-WHITE",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 24
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p1-WHITE",
+      "ply": 12,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 24
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p1-WHITE",
+      "ply": 14,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 24
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p1-WHITE",
+      "ply": 22,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 18
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p1-WHITE",
+      "ply": 26,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 15
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p1-WHITE",
+      "ply": 46,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 6
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p2-BLACK",
+      "ply": 6,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 26
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p2-BLACK",
+      "ply": 21,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 12
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p2-BLACK",
+      "ply": 45,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 5
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p2-BLACK",
+      "ply": 51,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 6
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p2-BLACK",
+      "ply": 53,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 6
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p2-BLACK",
+      "ply": 55,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 7
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p2-WHITE",
+      "ply": 4,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 27
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p2-WHITE",
+      "ply": 6,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 18
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p2-WHITE",
+      "ply": 15,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 27
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p3-BLACK",
+      "ply": 4,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 23
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p3-BLACK",
+      "ply": 11,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 24
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p3-BLACK",
+      "ply": 22,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 16
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p3-BLACK",
+      "ply": 38,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 15
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p3-BLACK",
+      "ply": 41,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 15
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p3-WHITE",
+      "ply": 16,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 29
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p3-WHITE",
+      "ply": 18,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 21
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p3-WHITE",
+      "ply": 30,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 17
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p3-WHITE",
+      "ply": 49,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p3-WHITE",
+      "ply": 50,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 14
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p4-BLACK",
+      "ply": 9,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 27
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p4-BLACK",
+      "ply": 11,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 27
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p4-BLACK",
+      "ply": 17,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 20
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p4-BLACK",
+      "ply": 22,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 23
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p4-BLACK",
+      "ply": 24,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 23
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p4-BLACK",
+      "ply": 26,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 22
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p4-BLACK",
+      "ply": 28,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 21
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p4-BLACK",
+      "ply": 41,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 11
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p4-WHITE",
+      "ply": 9,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 29
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p4-WHITE",
+      "ply": 16,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 24
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p5-BLACK",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 25
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p5-BLACK",
+      "ply": 12,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 25
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p5-BLACK",
+      "ply": 14,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 20
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p5-BLACK",
+      "ply": 36,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 12
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p5-WHITE",
+      "ply": 14,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 19
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p5-WHITE",
+      "ply": 16,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 19
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p5-WHITE",
+      "ply": 18,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 19
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p5-WHITE",
+      "ply": 26,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 13
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p5-WHITE",
+      "ply": 32,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 1
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p5-WHITE",
+      "ply": 33,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 14
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p6-BLACK",
+      "ply": 6,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 24
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p6-BLACK",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 25
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p6-BLACK",
+      "ply": 15,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 27
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p6-WHITE",
+      "ply": 6,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 24
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p6-WHITE",
+      "ply": 10,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 25
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p6-WHITE",
+      "ply": 15,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 27
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p7-BLACK",
+      "ply": 6,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 22
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p7-BLACK",
+      "ply": 8,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 18
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p7-BLACK",
+      "ply": 15,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 31
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p7-WHITE",
+      "ply": 11,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 29
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p8-BLACK",
+      "ply": 13,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 25
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p8-BLACK",
+      "ply": 15,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 20
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p8-BLACK",
+      "ply": 19,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 14
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p8-BLACK",
+      "ply": 34,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 2
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p8-BLACK",
+      "ply": 38,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 14
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p8-WHITE",
+      "ply": 6,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 23
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p8-WHITE",
+      "ply": 15,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 17
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p8-WHITE",
+      "ply": 19,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 13
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p8-WHITE",
+      "ply": 24,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 16
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p9-BLACK",
+      "ply": 6,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203",
+      "legalPlacements": 29
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p9-BLACK",
+      "ply": 13,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 26
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p9-BLACK",
+      "ply": 17,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 26
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p9-BLACK",
+      "ply": 22,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 25
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p9-WHITE",
+      "ply": 34,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 13
+    },
+    {
+      "game": "grid-gnn-transfer-v1-seed2026092203-distill-v1-n9-p9-WHITE",
+      "ply": 39,
+      "modelId": "grid-gnn-transfer-v1-seed2026092203-distill-v1",
+      "legalPlacements": 10
+    }
+  ],
+  "test_sha256": "f84ac14b2cf880830964f6b8db4f6fb8770f7c1dbb79f32840f61d5e54ccdc3b",
+  "command": [
+    "node",
+    "web/web前端/tests/verify-neural-voluntary-pass.mjs",
+    "C:\\coding\\py\\line game\\local_artifacts\\ai-improvement-round2-20261021\\neural-confirmation"
+  ],
+  "conclusion": "The frozen Research PUCT policy legally chooses PASS with placements available. Removing the extra forced-pass assertion corrects a verifier implementation error; it changes no game, model, threshold or statistical result."
+}

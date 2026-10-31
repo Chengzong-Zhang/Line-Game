@@ -1,0 +1,24 @@
+{
+  "status": "PASS_VERIFIER_ADAPTER_RECOVERY",
+  "fixture": "C:\\coding\\py\\line game\\local_artifacts\\three-v4-verifier-adapter-recovery-1792551421135",
+  "arena": "C:\\coding\\py\\line game\\local_artifacts\\three-player-v4-recovery-1792551305201\\clean",
+  "adapter_sha256": "92123de93630c32ff09940b66f3c458438d9b14a47a5708cdb9622acd4706991",
+  "verifier_sha256": "def97df9edd5da2aa3c0424e86db90ce950e5f51ee7fe91e67d981ad21781aab",
+  "command": [
+    "C:\\Program Files\\nodejs\\node.exe",
+    "C:\\coding\\py\\line game\\web\\web前端\\tests\\verify-three-player-v4-verification-adapter.mjs",
+    "--arena-root",
+    "local_artifacts/three-player-v4-recovery-1792551305201/clean"
+  ],
+  "initialSupervisorExit": 0,
+  "recoverySupervisorExit": 0,
+  "verifierExit": 0,
+  "abnormalExits": 1,
+  "attempts": 3,
+  "progressUnits": 1,
+  "realWorkerKillRecovery": true,
+  "conflictingIdentityPreserved": true,
+  "directoryAliasRejected": true,
+  "windowsCaseAliasRejected": true,
+  "arenaProofFilesPreserved": true
+}

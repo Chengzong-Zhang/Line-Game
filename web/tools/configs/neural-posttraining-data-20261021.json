@@ -1,0 +1,13 @@
+{
+  "schema": "lifeline-web-distillation-data-config-v1",
+  "rulesVersion": "territory-v2",
+  "sizes": [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+  "trainReplicates": 4,
+  "validationReplicates": 2,
+  "maximumPlies": 32,
+  "teacherDepth": 2,
+  "teacherTemperature": 30,
+  "uniformTargetMix": 0.05,
+  "teacherBehaviorProbability": 0.65,
+  "seedNamespace": "all-ai-web-posttraining-20261021-neural-newdata-v1"
+}

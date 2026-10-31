@@ -1,0 +1,36 @@
+{
+  "status": "PASS_LOCAL_NOT_DEPLOYED",
+  "verified_at": "2026-10-13T16:34:34.9424568+08:00",
+  "app_asset_version": "20261013-replay6",
+  "source_sha256": {
+    "web/web前端/OnlineApp.js": "137e18dbb326a15f51db040ebd4f6a76ac95fa6adceb409e27616884da6d075c",
+    "web/web前端/OnlineAppI18n.js": "c0fcf99a8054a586b2c2eadffb3b8e9aea06528276ecef44f13f6fa591dd760c",
+    "web/web前端/LocalAIModes.js": "10af8dd97a25780e5d55f5cb5590702c6a1000ff4d5d2135069e1b2ef03e6781",
+    "web/web前端/TrainingContribution.js": "1595e0077660a5f3bc053b9862024092c67f6c8d22966c299bc68850e310085f",
+    "web/web前端/tests/verify-local-ai-session.mjs": "a5b9cf4144ed098075f0ee2981a069be7a7ddb8f8f8429fb04747dd80e6efd15",
+    "web/web后端/server.py": "3ee32a7d5f2165aa678b01c24df01ed29b1ba75ba2f7c90a3a6d0ba2d2f13090",
+    "web/web后端/training_contributions.py": "69c4b05f7e950938790280c579a752a95f08bd8fd8e3856094c944302fb9b761",
+    "web/tools/validate_contribution.mjs": "f7f26b5f9c1a86e5aee6ea21252d56ced865cdcaeb2aae7777e6ba293233fc08"
+  },
+  "frontend_checks": 8,
+  "backend_tests": 5,
+  "browser": {
+    "local_only": true,
+    "real_worker": true,
+    "ai_match_actions": 10,
+    "received_games": 1,
+    "both_actors": "ai",
+    "reception_status": "awaiting_review",
+    "desktop_viewport": [
+      1280,
+      720
+    ],
+    "mobile_viewport": [
+      390,
+      844
+    ],
+    "horizontal_overflow": false
+  },
+  "production_deployed": false,
+  "training_started": false
+}

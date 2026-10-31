@@ -1,0 +1,1 @@
+{"status":"PASS","realWorkerKill":true,"resumedHistoryIdentical":true,"boundedYield":true,"completedGamesPreserved":true,"semanticTamperRejected":true,"models":2,"inference":"Shipped PUCT-16 and ModelFreeAI","command":"node --unhandled-rejections=strict web/web前端/tests/verify-neural-posttraining-arena.mjs"}

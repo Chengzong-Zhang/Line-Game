@@ -1,0 +1,27 @@
+{
+  "schema": "lifeline-territory-v3-hard-worker-verification-v1",
+  "status": "PASS_V3_HARD_WORKER_SOURCE_AND_ROUTE",
+  "bundleSha256": "e408e7318653345f6a53c31a3e7c36d7c7ffe68896a9e5e803e5d6ce4be03862",
+  "currentGameEngineSha256": "3b70b69c4c480117a4952b06c279054ec535268b4293b04b4d63f960ac4b0fca",
+  "route": {
+    "kind": "native-hard-bundle",
+    "url": "file:///C:/Users/zcz/.codex/worktrees/release-all-github-20261025/line%20game/web/web%E5%89%8D%E7%AB%AF/MultiplayerHardAIWorker.bundle.mjs?v=20261025-room1"
+  },
+  "request": {
+    "rulesVersion": "territory-v3",
+    "playerCount": 4,
+    "gridSize": 5,
+    "replyType": "RESULT",
+    "returnedMoves": 1,
+    "terminalEvaluation": "native-territory-v3"
+  },
+  "checks": [
+    "manifest GameEngine hash equals current source",
+    "captured production route targets emitted bundle",
+    "actual emitted Worker listener returns a V3 Hard result"
+  ],
+  "limits": [
+    "Controlled Node Worker shim with file-backed assets; no browser timing or playing-strength claim.",
+    "Current-score parity is established by the separate main-thread scoring fixture; this worker request verifies source identity and V3 route execution."
+  ]
+}

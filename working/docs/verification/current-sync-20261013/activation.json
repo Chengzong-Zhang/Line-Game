@@ -1,0 +1,13 @@
+{
+  "status": "ATOMIC_SWITCH_OK",
+  "release_id": "web-current-sync-20261013",
+  "commit": "ece3ebb747012aa11cbd85bb0011212181a1a35b",
+  "overlay_files": 75,
+  "archive_sha256": "8629fff9fcea8cf397fb9b905e90ab4fe001c7b0cd488b972b6059ad1d5d9664",
+  "live_tree_sha256": "3dc1fd2e91cb49d27aa431cd832b6a702c934a31781714d1da792c95331b0e41",
+  "candidate_tree_sha256": "71444f69c5138466efd805c239481b2a39019784531292b073e48af2f7585a1b",
+  "time_utc_epoch": 1791945574.649081,
+  "rollback": "/home/ubuntu/line-game/.deploy-artifacts/web-current-sync-20261013.rollback-web前端",
+  "active_tree_sha256": "71444f69c5138466efd805c239481b2a39019784531292b073e48af2f7585a1b",
+  "rollback_tree_sha256": "3dc1fd2e91cb49d27aa431cd832b6a702c934a31781714d1da792c95331b0e41"
+}

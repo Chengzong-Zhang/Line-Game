@@ -1,0 +1,100 @@
+{
+  "identity": "6fcafb30abd9e502c087d6fc9894b427032c33e43af2fe8620c0177b653813fa",
+  "evidenceTier": "application-evaluation; bounded to frozen models, seeds and sizes",
+  "stage": "CALIBRATION",
+  "plannedGames": 21,
+  "completedGames": 21,
+  "terminalGames": 21,
+  "truncatedGames": 0,
+  "clusters": 3,
+  "clusterResults": [
+    {
+      "cluster": "n5-black-p0",
+      "size": 5,
+      "meanDelta": 0,
+      "games": 6
+    },
+    {
+      "cluster": "n7-black-p0",
+      "size": 7,
+      "meanDelta": 0.4166666666666667,
+      "games": 6
+    },
+    {
+      "cluster": "n9-black-p0",
+      "size": 9,
+      "meanDelta": 0.3333333333333333,
+      "games": 6
+    }
+  ],
+  "meanDelta": 0.25,
+  "clusterBootstrap95": [
+    0.25,
+    0.25
+  ],
+  "bySize": {
+    "5": {
+      "games": 6,
+      "meanDelta": 0,
+      "sharedWin": 0.3333333333333333,
+      "pairwiseDelta": 0
+    },
+    "7": {
+      "games": 6,
+      "meanDelta": 0.4166666666666667,
+      "sharedWin": 0.75,
+      "pairwiseDelta": 0.2916666666666667
+    },
+    "9": {
+      "games": 6,
+      "meanDelta": 0.3333333333333333,
+      "sharedWin": 0.6666666666666666,
+      "pairwiseDelta": 0.2916666666666667
+    }
+  },
+  "byLineup": {
+    "double": {
+      "games": 9,
+      "meanDelta": 0.05555555555555555,
+      "sharedWin": 0.3888888888888889,
+      "pairwiseDelta": 0.05555555555555555
+    },
+    "single": {
+      "games": 9,
+      "meanDelta": 0.4444444444444444,
+      "sharedWin": 0.7777777777777778,
+      "pairwiseDelta": 0.3333333333333333
+    }
+  },
+  "byFocalSeat": {
+    "BLACK": {
+      "games": 6,
+      "meanDelta": 0.25,
+      "sharedWin": 0.5833333333333334,
+      "pairwiseDelta": 0.20833333333333334
+    },
+    "PURPLE": {
+      "games": 6,
+      "meanDelta": 0.16666666666666666,
+      "sharedWin": 0.5416666666666666,
+      "pairwiseDelta": 0.08333333333333333
+    },
+    "WHITE": {
+      "games": 6,
+      "meanDelta": 0.3333333333333333,
+      "sharedWin": 0.625,
+      "pairwiseDelta": 0.2916666666666667
+    }
+  },
+  "byStartPlayer": {
+    "BLACK": {
+      "games": 18,
+      "meanDelta": 0.25,
+      "sharedWin": 0.5833333333333334,
+      "pairwiseDelta": 0.19444444444444445
+    }
+  },
+  "promotionPass": false,
+  "complete": true,
+  "integrity": "b651aac6f7db97fee940f4f2627d26ecf7509aa2b18ba39551dce271a632e774"
+}

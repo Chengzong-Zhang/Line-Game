@@ -1,0 +1,23 @@
+{
+  "status": "PASS_ACTUAL_0128_COMPILED_WORKER_OFFENSIVE_CUT",
+  "cases": [
+    {
+      "rulesVersion": "territory-v2",
+      "profile": "minimax-2",
+      "selected": [
+        2,
+        1
+      ],
+      "statePreserved": true
+    },
+    {
+      "rulesVersion": "territory-v3",
+      "profile": "minimax-2",
+      "selected": [
+        2,
+        1
+      ],
+      "statePreserved": true
+    }
+  ]
+}

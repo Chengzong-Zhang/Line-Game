@@ -1,0 +1,60 @@
+{
+  "status": "PASS_INSTALLED_AND_PUBLIC_RESOURCES",
+  "releaseId": "web-unified-rooms-20261025-r1",
+  "commit": "21cb3231595d93b13511c7aeb1b4e3a406f1b7eb",
+  "checkedAtUtcEpoch": 1792911280.5298114,
+  "receipts": {
+    "deployment": "ACTIVATED_ALL_COMPONENTS_VERIFIED",
+    "atomic": "ATOMIC_SWITCH_OK"
+  },
+  "installedTargets": 8,
+  "targetHashFailures": [],
+  "frontendTreesMatch": true,
+  "frontendTreeSha256": "7a2b214ba9e1656d92e5e52538f1ec655600dc708796ce0a76eec43275845e65",
+  "public": {
+    "origin": "https://lifelinegame.cn/",
+    "runtimeFiles": 131,
+    "verifiedFiles": 131,
+    "verifiedBytes": 21567192,
+    "manifestMatches": true,
+    "rootMatchesIndex": true,
+    "failures": []
+  },
+  "health": {
+    "game": "ok",
+    "wechatEnabled": true,
+    "mixedPlayerRooms": true,
+    "playerCounts": [
+      2,
+      3,
+      4,
+      5,
+      6
+    ]
+  },
+  "installedLegacyBotProbes": [
+    {
+      "players": 2,
+      "botProfile": {
+        "strategy": "minimax",
+        "depth": 2
+      },
+      "modelId": null,
+      "rulesVersion": "territory-v3",
+      "success": true
+    },
+    {
+      "players": 6,
+      "botProfile": {
+        "strategy": "multiplayer",
+        "modelId": "multiplayer-easy-v1"
+      },
+      "modelId": "multiplayer-easy-v1",
+      "rulesVersion": "territory-v3",
+      "success": true
+    }
+  ],
+  "limits": [
+    "Resource hashes, health and pure Node probes; no browser, device or public Mini Game release claim."
+  ]
+}

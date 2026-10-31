@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "status": "TRANSFER_FAILED_OR_REMOTE_OUTCOME_UNCONFIRMED",
+  "action": "upload",
+  "startedAt": "2026-10-25T14:25:23.491Z",
+  "finishedAt": "2026-10-25T14:25:34.415Z",
+  "candidateId": "0.12.13-97815db19370-8sbNcd",
+  "candidateReceiptSha256": "30dd621dfc2f0970eff9626fbf3edef2be1ff667072192a37c0b84529f3f0cdb",
+  "version": "0.12.13",
+  "type": "miniGame",
+  "robot": 2,
+  "profile": "online",
+  "apiBase": "https://lifelinegame.cn",
+  "sdkVersion": "2.1.31",
+  "errorCode": 20003,
+  "retryPolicy": "No automatic retry; inspect the result and remote version state first",
+  "experienceVersionConfigured": false,
+  "testersAdded": false,
+  "submittedForReview": false,
+  "published": false,
+  "safeDiagnostic": {
+    "rejectedIps": [],
+    "remoteErrorCodes": [
+      -1,
+      41001
+    ],
+    "categories": []
+  },
+  "transport": "new process; explicit direct route; HTTP(S)/ALL proxy cleared; NO_PROXY=*"
+}

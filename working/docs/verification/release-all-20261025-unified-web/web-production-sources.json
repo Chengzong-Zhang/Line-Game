@@ -1,0 +1,330 @@
+{
+  "recipe": "hash-bound main baseline; normalize cache tags to VERSION; apply web-production-merge.patch; stamp all relative JS/MJS graph URLs with 20261025-unified1; regenerate four guide markdown articles; rebuild Hard Worker with pinned esbuild 0.25.12",
+  "sourceRows": [
+    {
+      "file": "AIEngine.js",
+      "source_sha256": "fd43cd3053a0b92569a4d26524a036f45a2920271cc06a49ef0200aec07ffabf",
+      "candidate_sha256": "df5a2a04087ad9fb61ca3269706918183ac98a54acce849b94b06bee7b1737cd"
+    },
+    {
+      "file": "AIStateProtocol.js",
+      "source_sha256": "bd82e144304f429b354d7d7a722f1a691b7902a6e6e418f3739342191b5291a2",
+      "candidate_sha256": "bd82e144304f429b354d7d7a722f1a691b7902a6e6e418f3739342191b5291a2"
+    },
+    {
+      "file": "AIWorker.js",
+      "source_sha256": "4ce952a544111fdfba3e786992023e48665973257ae1669a4ff8c378584ae8b6",
+      "candidate_sha256": "2404a32594ea20f017a9a7ba6a7ec3540e6a5e35972c53aff59ddae1f0f9ee7f"
+    },
+    {
+      "file": "CrossPlatformNetwork.js",
+      "source_sha256": null,
+      "candidate_sha256": "2ae7c2777f07a8e78b02082f4cd2b9fcdefda594d53ed197d18595fe31e0df5b"
+    },
+    {
+      "file": "GameController.js",
+      "source_sha256": "914a0898c7f5b590407e09d395f25b1999c36fd6a2c5edbaab879ac6742a22e5",
+      "candidate_sha256": "de0a21bab7c6268fc1fcbae9ddb37b572d703f59be0bce2435f2966bd1577e4a"
+    },
+    {
+      "file": "GameEngine.js",
+      "source_sha256": "3b70b69c4c480117a4952b06c279054ec535268b4293b04b4d63f960ac4b0fca",
+      "candidate_sha256": "3b70b69c4c480117a4952b06c279054ec535268b4293b04b4d63f960ac4b0fca"
+    },
+    {
+      "file": "GuideArticleFormat.js",
+      "source_sha256": "46a88f8001ad4d4519c55653323e719d195cb1f788e2a9d22de39ad76c30b1ec",
+      "candidate_sha256": "151f1b08779da81cbdc86dd1129816b8d53c6912b4f56d1635b20f909dea84f3"
+    },
+    {
+      "file": "GuideContent.js",
+      "source_sha256": "00c405bc4916071a1f9731fdffc2d025079f66b4247d5f42ed48556b3b2d46d4",
+      "candidate_sha256": "986a420f27add29697d433709a90623d0f787dd0708c8a2871ff4240bc229ca6"
+    },
+    {
+      "file": "GuideImplementation.js",
+      "source_sha256": "37e17c7656a164ba2d66dbe8185ac1167594ea4d0b728887af04118245743995",
+      "candidate_sha256": "4b5e76e7076107d0c993e063d7c906ed3eb6a43dbd648fdb727783500b5a04b3"
+    },
+    {
+      "file": "GuideImplementationNotes.js",
+      "source_sha256": "9691c8f501f504d58de3ee8b933d68cb97a3e936e9229ddca2d5ab4a226481fc",
+      "candidate_sha256": "bc86a00196e914a40224569952c0e0725faa376f7b5d9b0cd58a58eb8247a4b1"
+    },
+    {
+      "file": "GuideMathChapters.js",
+      "source_sha256": "0384abe62369a8ea4ccecced756eba8e5145542bf65e838af62fe9c4bb9abde0",
+      "candidate_sha256": "ced87f6095984407b38ff19a36f0468f34ef17d0874cdd0c8f00eaf46934f82a"
+    },
+    {
+      "file": "GuideTechnicalChapters.js",
+      "source_sha256": "e9e093ac92ca1ebe49efe401004d8093ee06fa4e742c260e53300053bc1291bf",
+      "candidate_sha256": "ff78892a48865b0439dd519ba09e0aed4c02c3e27d97f5aae5a61038f7914893"
+    },
+    {
+      "file": "HexFastSearchAI.js",
+      "source_sha256": "273e0dc306a9da281a72c096f6a9cc1026f5c2e2578363c89b17c5bf91e9ad0f",
+      "candidate_sha256": "824ac6b26efa6c9950cb50e3808c9e6a022c93c86cad36a3b7307a5782902b6c"
+    },
+    {
+      "file": "HexPlayerAI.js",
+      "source_sha256": "aba9a85be49a897841340b8df3d0e5d8edb70abd551ed0f1fee66c93214b8269",
+      "candidate_sha256": "336ae5e5ba3fc1fb2ca4ac3e1a0ca0066dee5c347eebba67ef95c5e0bba5bb4d"
+    },
+    {
+      "file": "HexPlayerRuntime.js",
+      "source_sha256": "84a9a3e895351bc6e51ca4b8ec3b7cea1ff566768c79b85604e9b57f4402064f",
+      "candidate_sha256": "b8c93661da06caa1b58d08a07db618782349c8a4746cce0d9d8551613ffc4ba5"
+    },
+    {
+      "file": "HexSearchAI.js",
+      "source_sha256": "e287df656135b638007888ae236ca8154d954510295d4a50e874a5fb8d1bf46a",
+      "candidate_sha256": "fea0c4a0c96e0ecd676709659f763ff9b93dfd8cd0d4e34c6619eca35178f24d"
+    },
+    {
+      "file": "HexSearchOptions.js",
+      "source_sha256": "d82c0402a70156f38ce9504301bb01919c400a594aecaec831a1bb7cfb771f2d",
+      "candidate_sha256": "d82c0402a70156f38ce9504301bb01919c400a594aecaec831a1bb7cfb771f2d"
+    },
+    {
+      "file": "HintWorkerSession.js",
+      "source_sha256": "42d380e7e748006bb401b82088b649d43c32af611174292b22e81eec34c30515",
+      "candidate_sha256": "f4f58b9f97d754ae73fff9fd214b1942f67c702c46bb7601779a379f61cac818"
+    },
+    {
+      "file": "LocalAIModes.js",
+      "source_sha256": "52ecf53c4aa958eb5e9188faedb35728947fb18a8f2431d81869ff2edd0c2bd8",
+      "candidate_sha256": "3f3d060a8f7b4201f15643dcf13ad7c4c4b5b82369858e7fdac1c67e8c3a9c94"
+    },
+    {
+      "file": "LocalAIWorkerFactory.js",
+      "source_sha256": "4a4888e033938f8f0bdc4b2d9405acde982ee875b7d434dc3d3ab1186289853e",
+      "candidate_sha256": "647c5bd9191aac4f410ca1fc355ddc7a98fc5249698f85365c5958663844c66d"
+    },
+    {
+      "file": "LocalGameSession.js",
+      "source_sha256": "4968d215771a3cfe71cfd230e0dc3108faf40c56d2705231c0501440f55a12f0",
+      "candidate_sha256": "0fcbfc8daaaa345d77439d432ce6b5d31f33e963f88cdb82c630955d0f49a96a"
+    },
+    {
+      "file": "LocalPlayerSetup.js",
+      "source_sha256": "4d59e4fb0e646c359689a85ac528288eba747dcde8c505990c9564dfc5e252a6",
+      "candidate_sha256": "ba6f7898b4f3b21899d27da067c10acb2a19d6ed623256c4e75f1bf35c2cf582"
+    },
+    {
+      "file": "LocalUndo.js",
+      "source_sha256": "8844fce34d440128e0e57982b0903cfe85ddacce62fd4a353aae3f39be7528c7",
+      "candidate_sha256": "058c7746465ef22b117c6e0bf536f61d42c015c2877eaa7d0c7085fddcce3672"
+    },
+    {
+      "file": "ModelFreeAI.js",
+      "source_sha256": "0c3aaebd0ede1b7b6c00c7757301c12ed5bfd16bcfee3fc3b8dbe7e20b430627",
+      "candidate_sha256": "baeccb4aba92d79dda581f64f145675d6558892aeb4cb3f7df0b05507e24ffa6"
+    },
+    {
+      "file": "MultiplayerAIWarmup.js",
+      "source_sha256": "4b493c144018be01a3155e06ee16f4d7ed60e2ff1f6b0ebc80833cf334ce3804",
+      "candidate_sha256": "58f841eaf4c5938c29deddc050561808f0f0d3ad6aa576ccf95bb5c8fc807ef6"
+    },
+    {
+      "file": "MultiplayerHardFallback.js",
+      "source_sha256": "0df510a7455f94c64d1d77db61b0acc31e14fefea661e83b2eb1c3e47e46a753",
+      "candidate_sha256": "84423212442f31f8796d4eff857af598347bba87578308e05d5f8cefaa8b2d14"
+    },
+    {
+      "file": "MultiplayerHardResources.js",
+      "source_sha256": "6bf1f1e1e0e03d698dcf213cf4c8a2fe33220fcc2d6aa36da4134d6fa12be51a",
+      "candidate_sha256": "f9bae7b79b82fe6482fb29371535c0f4d43577519268a319edce0bcb378ab49b"
+    },
+    {
+      "file": "MultiplayerHardRollout.js",
+      "source_sha256": "532faccaa495c2fac3acb02c9787d2784ca3e6aa516e4b2f08479ed3ee2ffd4a",
+      "candidate_sha256": "402b2bad36770ef09941ecc48f9f6459ceda0cd2b108fa190d249c053c1fc120"
+    },
+    {
+      "file": "MultiplayerHardRuntime.js",
+      "source_sha256": "779d0d48704307dec4c1c517510632adcaabdbd35bf5f3353730da0c063dedb9",
+      "candidate_sha256": "d1596da4e41974d33f56754e35b636f2d6f1f5e1f63206b8e946717f5392365d"
+    },
+    {
+      "file": "MultiplayerHardValue.js",
+      "source_sha256": "6bb9dc21c72773b6dbca6a268173f5e93daebe83a7a4bb1ab21687269a7ea25e",
+      "candidate_sha256": "6bb9dc21c72773b6dbca6a268173f5e93daebe83a7a4bb1ab21687269a7ea25e"
+    },
+    {
+      "file": "MultiplayerHardWorkerEntry.js",
+      "source_sha256": "e972add942af0fe5ec0d93e70b0df97676254868b2749f78a02133f071d3b14f",
+      "candidate_sha256": "06adb258ab3552670ee1ae61226a62a8aea5ce47f05457b2293e1f10d6522d27"
+    },
+    {
+      "file": "MultiplayerHardWorkerRuntime.js",
+      "source_sha256": "b7fdce4ab22c3d618d26ccdf283f02d310f385fd2b1b4f52434563a05cb33bc8",
+      "candidate_sha256": "c0205f2457b6a14049cb09cefaa41128003d52e4efafd5726c802d92b61edc1a"
+    },
+    {
+      "file": "MultiplayerModel.js",
+      "source_sha256": "ceacba09821f421f2e7c5ff4a7a67443242ce09c7b5ad4d29c7ab745c3f95c67",
+      "candidate_sha256": "1cc72dfa738dec87feb341a86595abb1bd2aea26e915c8679c74734f2d46ec57"
+    },
+    {
+      "file": "MultiplayerNativeGeometry.js",
+      "source_sha256": "fc0a65a9c935d6922731e5f5ca983520cf8290de0d9b831b9ca05cffa65b13fe",
+      "candidate_sha256": "22b347a0ee6e92594596f78abfae882b26cdc8761ef5010eec79cca8c375ed25"
+    },
+    {
+      "file": "MultiplayerRollout.js",
+      "source_sha256": "65c70fbb42c5ecfd0a2e97194b0a9803ebcc744dcb26b713e1baaabfd7155451",
+      "candidate_sha256": "bcf26f1613b556617d0910763eeea95f38d3695e16c017d5320d93ce4411e79d"
+    },
+    {
+      "file": "MultiplayerRuntime.js",
+      "source_sha256": "1893d77350363b9c31d2a29a21adb3cbee87122160ba40ab24d68495221f22d9",
+      "candidate_sha256": "d242e7fb8071a80592a5065ba99cfb79674c6de5c4ec86aaa76ab9aa88b68885"
+    },
+    {
+      "file": "MultiplayerSearch.js",
+      "source_sha256": "0deab47c0f8e1ad7cac630b31ce99b31b3765e6c3c99a6ebb303c661f970fa4e",
+      "candidate_sha256": "04546a7f92aaf41d6d3643fba048f7052cf95a7b184303dec9d9a5eca4fcc6aa"
+    },
+    {
+      "file": "MultiplayerStandardDefense.js",
+      "source_sha256": "7e488f0c4cac8f1f57298f8a2518adb8aed235472f1f4e2e886c8f7c12292239",
+      "candidate_sha256": "dd82b70f3e6737b48aaf8fbb0f5f4a4ef18f00df4a8fd3a5835b3ff1ff029996"
+    },
+    {
+      "file": "MultiplayerUltimateAdmission.js",
+      "source_sha256": "c3eb5e023741f1a0869ec6680be959f8228eb60b2a33decef10e648a0c622a34",
+      "candidate_sha256": "cc182005d5b74ca9fc0e4cecbe33222d65a547dbbf438318de93a30eeb0bb6a8"
+    },
+    {
+      "file": "NetworkManager.js",
+      "source_sha256": "88da2af86383de0c5d83c58b52311d377d8eee30b8ef6ff91a8e6a131e696323",
+      "candidate_sha256": "bffe4eb870fe86993453be3349b346c586a113a7f4fd47b94b15a5e44a64c1af"
+    },
+    {
+      "file": "OnlineApp.js",
+      "source_sha256": "b341f99dab286c1f164965d5442447d2d4eba6cfda5e918dcf27a6673cabc67d",
+      "candidate_sha256": "729c2a8fedae827bdcd5354a985015e3410d54a2ec787b6f83950aa1f0a4e20d"
+    },
+    {
+      "file": "OnlineAppI18n.js",
+      "source_sha256": "21974d86ea7a5f4a542ed1bbb937405d906ea0600432e3c960e2b0e05ab4aeba",
+      "candidate_sha256": "4d09f1126d99ba307a58bda868caa93162c9fc2091f6af399711495321da9d52"
+    },
+    {
+      "file": "OnlineAppState.js",
+      "source_sha256": "2a39c642d89c0a07ee762c7e4bf6cdeacdc89c02532edf687ad21107d2a99c63",
+      "candidate_sha256": "8cfd557084d6ed727f1f16e3b4c6b1fa7fe6c268de558ce1b9d8c540aea98cbe"
+    },
+    {
+      "file": "OnlineRoomSync.js",
+      "source_sha256": "9164783f2626e9be9cecb115cae3828e7d0a2652849cf256342a0af6d169ae8c",
+      "candidate_sha256": "9164783f2626e9be9cecb115cae3828e7d0a2652849cf256342a0af6d169ae8c"
+    },
+    {
+      "file": "Renderer.js",
+      "source_sha256": "c318d960b5562840c16da0bdcadbd854a5f8b80860c93e2f2e89ca313f176048",
+      "candidate_sha256": "0f990b5e819c7cd4f2ae475096ed92a7ea4f37ad0312f6333cc733a21502a5d5"
+    },
+    {
+      "file": "ReplayCodec.js",
+      "source_sha256": "b294ddb3b4826ebdee044490ae9e9c1e8ce1d7e8411e8072df0c93c070f2aa00",
+      "candidate_sha256": "7ab133d10373963668cf22df267e8e19b7157af0c2fa744418093d882ff6e4f9"
+    },
+    {
+      "file": "ResearchAI.js",
+      "source_sha256": "d7af7db4d05ea55f3385b2509225e0b8955a0aef87a2405687f03193a916d6bc",
+      "candidate_sha256": "3ccf1413267049db36b3ae2e6fdc945ffc661a2b38bc211e119c0e7087c5ab2b"
+    },
+    {
+      "file": "ResearchAIOptions.js",
+      "source_sha256": "0cc5e27993622422a9a5b77bf95750992d26e1fe1a7a26782d53606f3709fa1e",
+      "candidate_sha256": "0cc5e27993622422a9a5b77bf95750992d26e1fe1a7a26782d53606f3709fa1e"
+    },
+    {
+      "file": "SharedRoomClient.js",
+      "source_sha256": null,
+      "candidate_sha256": "e962dd0e647ef8606b61f1fd3ea00d0a6771b19f95f5b27c629248ee6e02f728"
+    },
+    {
+      "file": "StartingPointSetup.js",
+      "source_sha256": "b856abe39e56892ec6657a8f6b60bddb2074dfcc0e38a7897655d7399dac463e",
+      "candidate_sha256": "d275421d3ec8c2ab5d57ca6fa87d5bbb52810136283b153ea33dab85a448571d"
+    },
+    {
+      "file": "StartingPoints.js",
+      "source_sha256": "7b09547988a75cbccda06fbd554af8aaa18957f9b3029d772106894e4921894d",
+      "candidate_sha256": "78499ca10a3360c2b03c52fafa1d4932c8f89079e69b2698f82eb32bd515dd11"
+    },
+    {
+      "file": "TerritoryWorker.js",
+      "source_sha256": "aa41002ca435f0e8e6bf0467f1562402ccd9bc10f967d551f2d66b1c2f81f2ff",
+      "candidate_sha256": "fd469b7edc6e091237b5c1f481f649bf236806813ada69b6a108840f8e4627b8"
+    },
+    {
+      "file": "TerritoryWorkerPool.js",
+      "source_sha256": "cd845530d2e44715089dff43c94b01895a7f699ed91e4f15ce16ff1dafc81be2",
+      "candidate_sha256": "e93a6b9fdb57b4f574b3edd71fcdfc45a70a129982dc6af21fde99f7f6b89597"
+    },
+    {
+      "file": "TerritoryWorkerSession.js",
+      "source_sha256": "b1df4de597ee0f4d99ea08a961a0d70f6d1a34028c4aeeaf15493c73376f4cf8",
+      "candidate_sha256": "f42b4cb01b33bc846c36fcc606f0abdc913eccac32f32f25f54095e64025ef88"
+    },
+    {
+      "file": "ThreePlayerAI.js",
+      "source_sha256": "200c456a8e94198ce09dfa165af0f747960852ab7861a6e70ef8e01d77503a39",
+      "candidate_sha256": "a62c6454913dce9792d91bf16208bf5481693263cc16e84b87d2fecbd59bcf81"
+    },
+    {
+      "file": "ThreePlayerModels.js",
+      "source_sha256": "a8550793e8be9e58831f79f22af718c933ea99e1f7420b18053fe4d3a66ac3ca",
+      "candidate_sha256": "533850a26d280874c9220535afdcba2146fbb19fce12f41db9b37f10fad51aa1"
+    },
+    {
+      "file": "ThreePlayerRuntime.js",
+      "source_sha256": "9308d4cd4c0cbef3f656b36cf4af9df54961b74cd6166a53d3b59fdde85f49d8",
+      "candidate_sha256": "b23caf643c97fe7887a757b5c8f63dad6760aa6c21334379b90dcb4d321fd58c"
+    },
+    {
+      "file": "ThreePlayerSearchAI.js",
+      "source_sha256": "fbef96e73a25ef7378fbc0f5e73cb1eb9f4773813bf366eec8e3caa8a974ec34",
+      "candidate_sha256": "921a5de4fab786a3a8f931dadcd8fedc74736f3a5194ebc35ea8797c3ac34cf1"
+    },
+    {
+      "file": "ThreePlayerSearchOptions.js",
+      "source_sha256": "299e238d74acdcf6f86e5b4f7108a16393b8709439b7b8c3292197d512d39c87",
+      "candidate_sha256": "299e238d74acdcf6f86e5b4f7108a16393b8709439b7b8c3292197d512d39c87"
+    },
+    {
+      "file": "TrainingContribution.js",
+      "source_sha256": "dfe81a35cc3db3610712ef6c9faf8940477f3adc30727f33f6c3ec3f2b4c7c74",
+      "candidate_sha256": "006dbd141818107bc5237a8a10021f05829c0a0ef721a2c18971eea2278ccfca"
+    },
+    {
+      "file": "TutorialRunner.js",
+      "source_sha256": "d88560aaa59257756b4541d951e23410d8491df9127a4ed8431fb3287041aa80",
+      "candidate_sha256": "feb02d1d3c742b3973273c175abc0ed1fd1929408791f563e727b0f9b29d8ddf"
+    },
+    {
+      "file": "app.js",
+      "source_sha256": "b13bf07df4d8f8bd5377aa0b3b235a3fa679a83077926b22408442c1c0951ee2",
+      "candidate_sha256": "b13bf07df4d8f8bd5377aa0b3b235a3fa679a83077926b22408442c1c0951ee2"
+    },
+    {
+      "file": "guide/interesting/verify-superko-history-divergence.mjs",
+      "source_sha256": "a9356765aa5f9938aed14ef9b7409c2e2e501e2f69f4d6d855f13c481e2b7fb2",
+      "candidate_sha256": "1968953f3008b62641396a5d360f04711685d29860939795f2b1f11edbf4f434"
+    },
+    {
+      "file": "guide/interesting/verify-theory-counterexamples.mjs",
+      "source_sha256": "23cbab5acaede48d9bf594711e1b94be4a14fa0d760603957367bfedaa3ea768",
+      "candidate_sha256": "423b73fc1556ebf05c216fbe678ccce8930dd67f2132e0af684126d84780bddc"
+    },
+    {
+      "file": "main.js",
+      "source_sha256": "44e6243f163dc3e1235ba7b3656c8486c7259aab336ed7407c76d4a7c401cf37",
+      "candidate_sha256": "11246da207f19527063ee396923090de6ab6bbd0784a885db8f4508322581eb3"
+    }
+  ]
+}

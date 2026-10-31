@@ -1,0 +1,11 @@
+{
+  "schema": "lifeline-web-neural-distillation-config-v1",
+  "updates_per_model": 100,
+  "batch_size": 16,
+  "learning_rate": 0.0001,
+  "parent_kl": 0.1,
+  "gradient_clip": 1,
+  "seed": 20261021,
+  "threads": 1,
+  "device": "cpu"
+}

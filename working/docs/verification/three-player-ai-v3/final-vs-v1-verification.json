@@ -1,0 +1,14 @@
+{
+  "status": "PASS_APPLICATION_EVALUATION",
+  "identity": "bfd96c7529f3b2f304a2da0d031989dade9fca9c97c6623a1f0b08df0b2c9bf7",
+  "verifiedGames": 126,
+  "plannedGames": 126,
+  "verifiedActions": 4354,
+  "verifiedDecisions": 3850,
+  "terminalGames": 126,
+  "truncatedGames": 0,
+  "promotionPass": false,
+  "gameHashesSha256": "c35ffca35a8d90995c83a4be817740c9597f9f97bab8a1926e61f7f1abfab8f0",
+  "sourceScope": "frozen rule sources; identical legal candidates, feature scoring and tie-break budgets",
+  "integrity": "66055b37254cecbb8b4871b779d7a77a2894a4e66db62217ae9301a8455009ad"
+}

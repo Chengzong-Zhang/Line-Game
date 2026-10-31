@@ -1,0 +1,24 @@
+{
+  "status": "PREPARED_BRANCH_WAITING_FOR_FINAL_PRODUCT_SOURCES",
+  "branch": "codex/release-all-web-wechat-20261025",
+  "base": "a1c95d56cf8fb5877ea98f21fb9d3abbcea64fb2",
+  "remote": "https://github.com/Chengzong-Zhang/Line-Game.git",
+  "mainSourceReference": "77c6c05ad9cc4eafa7bf1bd6de043644c72d568d",
+  "sourceWorkingTree": "C:/coding/py/line game",
+  "sourceWorkingTreeDirtyEntriesAtRead": 1271,
+  "unpublishedMixedHistoryReview": {
+    "range": "origin/main..77c6c05",
+    "commits": 46,
+    "newBlobObjects": 637,
+    "blobObjectsOver1MiB": 0,
+    "sensitiveFilenameCandidates": 0,
+    "highConfidenceSecretPatternCandidates": 0,
+    "willBePushedAsHistory": false
+  },
+  "boundaries": [
+    "No shared index or dirty working tree was modified",
+    "No push has been performed",
+    "Only final product runtime source/config/license/required tests and compact evidence will be copied",
+    "No generated models, raw research outputs, private keys, databases, environment files, caches, node_modules or archives"
+  ]
+}

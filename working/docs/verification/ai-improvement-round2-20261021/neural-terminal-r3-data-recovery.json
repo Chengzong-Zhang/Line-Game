@@ -1,0 +1,17 @@
+{
+  "status": "PASS_TERMINAL_DATA_R3_RECOVERY",
+  "cases": [
+    "actual-kill-rollout-resume",
+    "orphan-position-adoption",
+    "completed-bytes-mtime-preserved",
+    "pause-stop",
+    "partial-isolation",
+    "corrupt-position-rejected",
+    "full-independent-label-replay"
+  ],
+  "base": "C:\\coding\\py\\line game\\local_artifacts\\terminal-r3-data-recovery-1792554941793",
+  "source_hashes": {
+    "C:\\coding\\py\\line game\\web\\tools\\neural-terminal-rollout-data-r3.mjs": "d28d8ddbff52bb2de5d68f1302b7a2fcc7fd56980f931d6d1893a1147aa65cfb",
+    "C:\\coding\\py\\line game\\web\\tools\\verify-neural-terminal-data-r3.mjs": "42d021e310b75fb088f13db083334b19b9afe2f4b987036e9e70a84823251b82"
+  }
+}

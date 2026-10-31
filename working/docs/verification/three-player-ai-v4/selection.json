@@ -1,0 +1,69 @@
+{
+  "schema": "lifeline-three-player-v4-development-selection-v1",
+  "selectedAt": "2026-10-21T03:48:29.056Z",
+  "status": "SELECTED_FOR_INDEPENDENT_FINAL",
+  "rule": "All three development arenas complete and independently verified; maximum meanDelta, ties choose fewer rollout plies.",
+  "candidates": [
+    {
+      "depth": 3,
+      "id": "three-player-search-v4-round3",
+      "specification": "C:\\coding\\py\\line game\\web\\tools\\configs\\three-player-search-v4-round3.json",
+      "candidateSha256": "f1f8c37d4221ae15d57249f1e52e7a67ecbf7f0b5ef4128500649750ebd35ac4",
+      "arenaIdentity": "3fe2f29ef8cc76784a35e8fb64e9793de7a3424fa36e90858a3da3ba61006d8f",
+      "meanDelta": -0.013888888888888888,
+      "summarySha256": "528c6cf902b7eeec865fa01b671520101357fabe45db64f79be0133f8f514620",
+      "verificationSha256": "5079105f1a18dd7db980ab54ffaf69bd70bf05a3096cf42dd1b89a00cd19fbd8",
+      "verificationIdentity": "fa9439b2e09a01f4e071609b2bf1d92e2e2b2ebc96b30ccb272df838b11d2ace",
+      "arenaSupervisorExit": 0,
+      "verificationSupervisorExit": 0
+    },
+    {
+      "depth": 6,
+      "id": "three-player-search-v4-round6",
+      "specification": "C:\\coding\\py\\line game\\web\\tools\\configs\\three-player-search-v4-round6.json",
+      "candidateSha256": "51eeb776ea8a1d34ea3f83e806593c3ab9da0915335b6a3483cf79036b0e7fa9",
+      "arenaIdentity": "ff070cfb1451a81cf8ac72588a27efc28869bf4417581348a994c92e7a9010d2",
+      "meanDelta": 0.0046296296296296285,
+      "summarySha256": "8c9d18ecf89c2d3703e4583f6111f5366f409a9cd596d2f71feec9c70f639993",
+      "verificationSha256": "9648c8fa0fef8e39e08a494c06fb927ae6c613a280951dcaae0d257b4f79a34b",
+      "verificationIdentity": "d480933b8a5ae7f7897e3312d17c46c01fe4ec7b7a9c2131af9a408e6f9e3a42",
+      "arenaSupervisorExit": 0,
+      "verificationSupervisorExit": 0
+    },
+    {
+      "depth": 12,
+      "id": "three-player-search-v4-round12",
+      "specification": "C:\\coding\\py\\line game\\web\\tools\\configs\\three-player-search-v4-round12.json",
+      "candidateSha256": "9b85f5fff27001d68407c30d6f707b461b1b468d657c8292339e97d23868c230",
+      "arenaIdentity": "53751e758183a3e9b84c5d79ee8ff96bb51aed2ccc4a51eefe9ef941c3f8bc72",
+      "meanDelta": 0.1898148148148148,
+      "summarySha256": "3081aab182de293b13e07afb0aceb210f7b73ca2ff2d3ff23d06df00147b363e",
+      "verificationSha256": "5da8f842a11e20e33a08bffb5c79be8b68ad2a6355a298d678e257fb5c8a4213",
+      "verificationIdentity": "06d9d007d3aa8b1c68d885064d569ed8861d755f417ae7fee662403f8a1b765f",
+      "arenaSupervisorExit": 0,
+      "verificationSupervisorExit": 0
+    }
+  ],
+  "chosen": {
+    "depth": 12,
+    "id": "three-player-search-v4-round12",
+    "specification": "C:\\coding\\py\\line game\\web\\tools\\configs\\three-player-search-v4-round12.json",
+    "candidateSha256": "9b85f5fff27001d68407c30d6f707b461b1b468d657c8292339e97d23868c230",
+    "arenaIdentity": "53751e758183a3e9b84c5d79ee8ff96bb51aed2ccc4a51eefe9ef941c3f8bc72",
+    "meanDelta": 0.1898148148148148,
+    "summarySha256": "3081aab182de293b13e07afb0aceb210f7b73ca2ff2d3ff23d06df00147b363e",
+    "verificationSha256": "5da8f842a11e20e33a08bffb5c79be8b68ad2a6355a298d678e257fb5c8a4213",
+    "verificationIdentity": "06d9d007d3aa8b1c68d885064d569ed8861d755f417ae7fee662403f8a1b765f",
+    "arenaSupervisorExit": 0,
+    "verificationSupervisorExit": 0
+  },
+  "finalConfigs": {
+    "final-vs-v1.config.json": "ce8755f78c850b9db4b10a15954d594460d47df83b988403f188e44bf8eebc6e",
+    "final-vs-v2.config.json": "a13cdbedcebb413ee013028a79a3e4d0ac1c030b8f282a2e217dbe1e518aaab2"
+  },
+  "newGradientUpdates": 0,
+  "selectionToolSha256": "83f6855d6e1e6f606f848bfcb21f5d9612fbc369506c40a2c40527124864e3fe",
+  "verifierSha256": "5eed127324e4e14a0e618926f241bb60a0ed39af9ef157616386fd2628d34fb7",
+  "productionPromotion": "Not decided by development data; requires frozen independent FINAL vs v1 and separate application verification.",
+  "integrity": "955d85631beca2b1a257801e2584034642d0d1dbc164fc49d1d69aae60fe44da"
+}

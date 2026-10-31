@@ -1,0 +1,78 @@
+--- a/index.html
++++ b/index.html
+@@ -4,7 +4,7 @@
+     <meta charset="UTF-8" />
+     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+     <title>生命线 | LIFELINE</title>
+-    <link rel="stylesheet" href="./styles.css?v=20261013f" />
++    <link rel="stylesheet" href="./styles.css?v=20261013g" />
+     <script>
+       window.MathJax = {
+         tex: {
+@@ -23,6 +23,6 @@
+   <body>
+     <div id="app"></div>
+     <noscript>需要启用 JavaScript 才能运行这个游戏。JavaScript must be enabled to run this game.</noscript>
+-    <script type="module" src="./main.js?v=20261013f"></script>
++    <script type="module" src="./main.js?v=20261013g"></script>
+   </body>
+ </html>
+--- a/main.js
++++ b/main.js
+@@ -3,7 +3,7 @@
+   "https://unpkg.com/vue@3/dist/vue.global.prod.js",
+   "https://fastly.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js",
+ ];
+-const APP_ASSET_VERSION = "20261013f";
++const APP_ASSET_VERSION = "20261013g";
+ 
+ // main.js 只做两件事：
+ // 1. 确保浏览器拿到 Vue 运行时
+--- a/OnlineApp.js
++++ b/OnlineApp.js
+@@ -3878,8 +3878,7 @@
+         if (feedback.type === "resign") {
+           return zh ? "已认输，本局结束。" : "You resigned. The match is over.";
+         }
+-        const point = Array.isArray(feedback.point) ? `（${feedback.point[0]}, ${feedback.point[1]}）` : "";
+-        return zh ? `落子已接受${point}。` : `Move accepted${point}.`;
++        return "";
+       }
+ 
+       const messages = zh
+--- a/styles.css
++++ b/styles.css
+@@ -694,9 +694,15 @@
+ }
+ 
+ .board-tools .dock-folder-icon {
++  width: 40px;
++  height: 40px;
++  flex-shrink: 0;
++}
++
++.board-tools .dock-folder-icon svg,
++.board-tools .triangle-glyph {
+   width: 28px;
+   height: 28px;
+-  flex-shrink: 0;
+ }
+ 
+ .board-tools .dock-folder-title {
+@@ -3569,8 +3575,14 @@
+   }
+ 
+   .board-tools .dock-folder-icon {
+-    width: 20px;
+-    height: 20px;
++    width: 32px;
++    height: 32px;
++  }
++
++  .board-tools .dock-folder-icon svg,
++  .board-tools .triangle-glyph {
++    width: 26px;
++    height: 26px;
+   }
+ 
+   .board-tools .dock-folder-title {

@@ -1,0 +1,69 @@
+{
+  "base_commit": "2cfb460606fa49d46bc75432aef3e94eb2fd2bd8",
+  "moved_files": 33,
+  "checked_documents": 34,
+  "valid_local_links": 103,
+  "broken_local_links": [],
+  "checks": [
+    {
+      "command": [
+        "node",
+        "--unhandled-rejections=strict",
+        "web/web前端/tests/verify-guide-content.mjs"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "node",
+        "--unhandled-rejections=strict",
+        "web/web前端/tests/verify-local-player-setup.mjs"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "node",
+        "--unhandled-rejections=strict",
+        "web/web前端/tests/verify-replay-codec.mjs"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "node",
+        "--unhandled-rejections=strict",
+        "web/web前端/tests/verify-online-recovery.mjs"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "frozen_research_tree_changed": false,
+  "test_source_preserved": true,
+  "asset_version": "20261014-code1",
+  "status": "PASS_LOCAL_DOCUMENTATION_AND_REGRESSIONS",
+  "browser": {
+    "zh": {
+      "heading": "Code：一盘棋如何变成可靠的程序",
+      "sections": 8,
+      "links": 10
+    },
+    "en": {
+      "heading": "Code: Turning a Position into a Reliable Program",
+      "linkCount": 10,
+      "sectionCount": 8
+    },
+    "status": "PASS_REAL_BROWSER",
+    "source_links_rendered_as_anchors": true,
+    "chinese_preferences_restored": true,
+    "screenshot_sha256": "fbb5f5f3271578689ccb0bef960bd6cc7dcc5d02173dab28b9693c7d7d64fc4b"
+  },
+  "rule_check": {
+    "command": [
+      "node",
+      "--unhandled-rejections=strict",
+      "web/web前端/tests/verify-territory-v2.mjs"
+    ],
+    "exit_code": 0
+  }
+}

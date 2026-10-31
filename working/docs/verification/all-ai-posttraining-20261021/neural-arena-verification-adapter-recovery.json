@@ -1,0 +1,26 @@
+{
+  "status": "PASS_VERIFIER_ADAPTER_RECOVERY",
+  "fixture": "C:\\coding\\py\\line game\\local_artifacts\\neural-verifier-adapter-recovery-1792518776021",
+  "arena": "C:\\coding\\py\\line game\\local_artifacts\\neural-arena-v2-recovery-1792517887310\\clean",
+  "adapter_sha256": "345370c78a448a5c09708a4b7e604f938827272842b36f7492f49527bc555bc6",
+  "verifier_sha256": "8eb8635f3271915b3507615bc02716a941bf672cf641f872601459b99915b119",
+  "command": [
+    "C:\\Program Files\\nodejs\\node.exe",
+    "C:\\coding\\py\\line game\\web\\web前端\\tests\\verify-neural-arena-verification-adapter.mjs",
+    "--arena-root",
+    "local_artifacts/neural-arena-v2-recovery-1792517887310/clean",
+    "--candidates",
+    "local_artifacts/neural-arena-v2-recovery-1792517887310/candidate-manifest.json"
+  ],
+  "initialSupervisorExit": 0,
+  "recoverySupervisorExit": 0,
+  "verifierExit": 0,
+  "abnormalExits": 1,
+  "attempts": 3,
+  "progressUnits": 1,
+  "realWorkerKillRecovery": true,
+  "conflictingIdentityPreserved": true,
+  "directoryAliasRejected": true,
+  "windowsCaseAliasRejected": true,
+  "arenaProofFilesPreserved": true
+}

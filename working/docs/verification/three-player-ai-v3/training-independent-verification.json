@@ -1,0 +1,161 @@
+{
+  "status": "PASS-CURRENT",
+  "scope": "independent PPO/Adam reconstruction; all training and development policy actions and canonical terminal areas; selection; provenance",
+  "identity": "9e35ea1025504101ddda6ccdf9cbbc06945c6b099a968487eb7ebb2df7c98369",
+  "model_sha256": "1335fdaaedc227a8176696b720b2e93827fef4baed79790630c59fbe5a3e08b9",
+  "parent_sha256": "00fc241c500dfd01ff85b5e2a4f1907cc5a9d8307d68bb78be64b0aad129f56e",
+  "production_sha256": "8cd1a2f36267f96b1e32b7749a9cdc785f489ea7ec12e31aee0beb0a72901794",
+  "config_sha256": "81a9302b0c10ab53f8796c03f7de2d9994d39e4ac264e64497678d39a33b689d",
+  "source_hashes": {
+    "web/tools/finetune-three-player-v3.mjs": "c4439d3a9f8890aff7006e41f277c2bdbc7b85dfc570e8440b6927e1771e209c",
+    "web/tools/linear-three-v3-core.mjs": "dfdafce7647e85e60619f3b66d461705cc4bf4c0da60ccf1e44af7a50a8f5bfc",
+    "web/tools/three-player-posttraining-core.mjs": "664525517f2cb2d46ba33ab7cc8d19b196b6f8bae4bba6f170b32aa7dfc79d80",
+    "web/web前端/GameEngine.js": "625e8d8a92801647702f963f56148040248cf471228a6ce5c719e20e4414a555",
+    "web/web前端/AIEngine.js": "6738fe3a98a616dfd6c060636f5d2684fd49ebc561c95a96247db28c7170ccc3",
+    "web/web前端/ThreePlayerAI.js": "edfa92c657fa28a617f18586191a09686336af15843a8423a07b863743e0381b"
+  },
+  "verifier_sha256": "d8ba55abce70c965e8a77ff3bf36eafb6de0203689f1df77cbfe0730563b595e",
+  "command": [
+    "C:\\Program Files\\nodejs\\node.exe",
+    "C:\\coding\\py\\line game\\web\\tools\\verify-three-player-v3-output.mjs"
+  ],
+  "exit_code": 0,
+  "episodes": 216,
+  "training_actions": 7051,
+  "samples": 3418,
+  "feature_rows": 18263,
+  "optimizer_updates": 36,
+  "development_games": 342,
+  "development_actions": 10851,
+  "selected_stage": 1,
+  "stage_reports": [
+    {
+      "stage": 1,
+      "samples": 1133,
+      "objective": {
+        "loss": 0.010674812352159337,
+        "gradient": [
+          1.7739972861508561e-19,
+          1.3910812516218734e-7,
+          -0.00013769011975800895,
+          0.00003631673881578161,
+          0.00007915832485622972,
+          0.0003151641404420135,
+          0.00002127198896746559,
+          -0.000048726888311206264,
+          5.85611479922513e-20,
+          1.3910812516207891e-7,
+          -0.00021046262557160932,
+          -0.0004918835176077094,
+          0.00033035551710082137,
+          0.0011126268663471002,
+          -0.000920385960775708,
+          -0.00024313080977022406
+        ],
+        "surrogate": -0.010573431833625219,
+        "anchorKl": 0.005069025926705046,
+        "clippedFraction": 0.021259445189111967
+      }
+    },
+    {
+      "stage": 2,
+      "samples": 1144,
+      "objective": {
+        "loss": 0.06141092032259008,
+        "gradient": [
+          3.8278766387971034e-19,
+          -0.0004481391704553869,
+          0.0004671220441953822,
+          0.00013489921473469282,
+          -0.00014989653252308049,
+          0.00043234150350429255,
+          0.0001577490927396564,
+          0.0004105039386032683,
+          2.685006295442264e-19,
+          -0.00044813917045538794,
+          0.0014398977825095195,
+          0.001128544410911133,
+          -0.00019200510720871508,
+          0.0011954801310415063,
+          0.000044940742212726256,
+          0.0002942931385593774
+        ],
+        "surrogate": -0.06115275795438597,
+        "anchorKl": 0.012908118410201801,
+        "clippedFraction": 0.024855199691291914
+      }
+    },
+    {
+      "stage": 3,
+      "samples": 1141,
+      "objective": {
+        "loss": 0.003925356601984114,
+        "gradient": [
+          2.5515892510717734e-19,
+          -0.00020039197723506545,
+          0.0007821631430582163,
+          0.000023648886108469194,
+          0.0003076998318252422,
+          0.0007747608370533097,
+          0.00007320418103542847,
+          0.0005402726920791667,
+          2.6765134167284234e-20,
+          -0.00020039197723506654,
+          0.004814586138129048,
+          -0.0018737728913098158,
+          -7.488739178728637e-7,
+          0.0006179332583650217,
+          -0.0002897341026785183,
+          0.000012621812101500647
+        ],
+        "surrogate": -0.0034092808680040694,
+        "anchorKl": 0.025803786699001723,
+        "clippedFraction": 0.04137248390608267
+      }
+    }
+  ],
+  "development_summaries": [
+    {
+      "stage": 1,
+      "games": 108,
+      "meanWinShareDelta": 0.04938271604938272,
+      "singleAiDelta": 0.04012345679012346,
+      "dualAiDelta": 0.05864197530864198,
+      "anchorKl": 0.005069025926705046,
+      "perSize": {
+        "5": 0.023148148148148157,
+        "7": 0.08333333333333333,
+        "9": 0.041666666666666664
+      }
+    },
+    {
+      "stage": 2,
+      "games": 108,
+      "meanWinShareDelta": 0.026234567901234573,
+      "singleAiDelta": 0.030864197530864203,
+      "dualAiDelta": 0.02160493827160494,
+      "anchorKl": 0.012908118410201801,
+      "perSize": {
+        "5": 0.023148148148148157,
+        "7": 0,
+        "9": 0.05555555555555555
+      }
+    },
+    {
+      "stage": 3,
+      "games": 108,
+      "meanWinShareDelta": 0.01929012345679013,
+      "singleAiDelta": 0.05864197530864198,
+      "dualAiDelta": -0.020061728395061727,
+      "anchorKl": 0.025803786699001723,
+      "perSize": {
+        "5": 0.023148148148148157,
+        "7": 0.020833333333333332,
+        "9": 0.013888888888888888
+      }
+    }
+  ],
+  "episode_manifest_sha256": "545bc35ea467c5932f67a9af6cf1f6b908bd03a79f6857787d258aa50bca9b68",
+  "elapsed_ms": 155999,
+  "limitations": "Shares canonical rule/feature source after hash checks; no claim of independent implementation of the game. Development selection is not final strength evidence."
+}

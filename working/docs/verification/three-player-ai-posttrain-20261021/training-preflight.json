@@ -1,0 +1,58 @@
+{
+  "date": "2026-10-21",
+  "status": "WORKER-RECOVERY-PASS-SUPERVISOR-GATE-SEPARATE",
+  "training_status": "NOT-RUN",
+  "scope": "v2 posttraining worker implementation and bounded calibration/recovery; not a trained-v2 strength claim",
+  "parent_model": "three-player-policy-v1",
+  "parent_sha256": "8cd1a2f36267f96b1e32b7749a9cdc785f489ea7ec12e31aee0beb0a72901794",
+  "protocol": {
+    "sizes": [5, 7, 9],
+    "start_seats": ["BLACK", "WHITE", "PURPLE"],
+    "training_episodes": 54,
+    "validation_episodes": 18,
+    "maximum_episode_plies": 48,
+    "teacher": "MaxN depth 3, every legal root action, heuristic reply beam width 4, canonical terminal discrete area",
+    "optimizer": "Full-batch Adam, warm start from v1 weights, independent optimizer state, weak L2 anchor to v1",
+    "epochs": 900,
+    "candidate_epochs": [200, 500, 900],
+    "development_games": 171,
+    "selection": "Paired development mean win-share delta, then validation cross-entropy, then earlier epoch",
+    "final_arena": "Independent; neither its seeds nor results are used by this worker"
+  },
+  "calibration": {
+    "command": "node --unhandled-rejections=strict web/tools/calibrate-three-player-posttraining.mjs",
+    "exit_code": 0,
+    "real_positions": 9,
+    "size_5_teacher_milliseconds": [87.663, 9.2585, 22.6887],
+    "size_7_teacher_milliseconds": [176.8071, 119.3272, 139.38],
+    "size_9_teacher_milliseconds": [377.7315, 219.6927, 329.5919],
+    "boundary": "Local CPU calibration at plies 0,4,8, not extrapolated from only the smallest board."
+  },
+  "worker_recovery": {
+    "command": "node --unhandled-rejections=strict web/web前端/tests/verify-three-player-posttraining.mjs",
+    "exit_code": 0,
+    "repeat_exit_code": 0,
+    "checks": [
+      "Forced exit inside an in-flight generation episode, optimization and an in-flight development game",
+      "Resumed checkpoint, action history, RNG, samples, Adam state, candidates and development outcomes exactly match clean execution",
+      "Completed episode files retain their modification times on a completed-run resume",
+      "Incomplete checkpoint temporary file quarantined",
+      "PAUSE, STOP and budget yield return 75 with distinct statuses",
+      "Duplicate lease contention returns 78 without overwriting owner's progress",
+      "Config drift and completed-checkpoint corruption return 78",
+      "MaxN scores all legal root moves and preserves state even on injected exception",
+      "Terminal win shares derive from canonical discrete territory area"
+    ],
+    "fixture_episodes": 2,
+    "fixture_epochs": 3,
+    "fixture_development_games": 13
+  },
+  "prepared_job": "local_artifacts/three-player-ai-posttrain-v2-20261021/job.json",
+  "job_limits": {
+    "supervisor_wall_seconds": 1800,
+    "worker_wall_seconds": 660,
+    "worker_budget_seconds": 600,
+    "unexpected_restarts": 3
+  },
+  "deployment_status": "NOT-RUN"
+}

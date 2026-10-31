@@ -1,0 +1,21 @@
+{
+  "status": "PASS_PUBLIC_PAGE_RENDER",
+  "source": "Firecrawl live scrape",
+  "url": "https://lifelinegame.cn/",
+  "max_age": 0,
+  "tls_verification": true,
+  "status_code": 200,
+  "scrape_id": "01a1356f-d5ef-778d-a514-016e17d5e10a",
+  "asset_version": "20261013-full-features1",
+  "asset_version_present": true,
+  "vue_app_mounted": true,
+  "game_canvas_present": true,
+  "tutorial_rendered": true,
+  "screenshot_returned": true,
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "scope": "Public first-load render only; interactive flows validated locally against the frozen release candidate.",
+  "builtin_browser_result": "net::ERR_CONNECTION_CLOSED"
+}

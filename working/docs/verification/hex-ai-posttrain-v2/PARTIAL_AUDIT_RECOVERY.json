@@ -1,0 +1,19 @@
+{
+  "status": "PASS_CURRENT_RECOVERY",
+  "command": "node web/web前端/tests/verify-hex-posttraining-partial-audit.mjs",
+  "exit_code": 0,
+  "evidenceRoot": "local_artifacts/hex-partial-audit-fixture-1792518833420",
+  "checks": [
+    "halted-prefix-replay",
+    "in-flight-full-history-check",
+    "no-partial-strength-statistics",
+    "incremental-resume",
+    "PAUSE",
+    "active-source-refusal"
+  ],
+  "source_sha256": {
+    "web/tools/verify-hex-posttraining-partial.mjs": "d1be2853a63ca720d9599158f8db7ca0f5429f6a2d569150a27a11b46d80b69c",
+    "web/web前端/tests/verify-hex-posttraining-partial-audit.mjs": "154536eb36ce7b62c5b3186139ed3f29ede548e50bfd3eb3605e547bbe161f98"
+  },
+  "scope": "isolated halted-run fixture only; does not alter FINAL protocol or active job"
+}

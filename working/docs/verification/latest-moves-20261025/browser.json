@@ -1,0 +1,46 @@
+{
+  "status": "PASS",
+  "environment": "headless Microsoft Edge; real Canvas, mouse and Worker",
+  "results": [
+    {
+      "width": 1024,
+      "height": 800,
+      "players": 3,
+      "checks": [
+        "real Canvas clicks",
+        "two white centers",
+        "undo",
+        "PASS preserves others",
+        "PASS clears own previous node",
+        "restart"
+      ]
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "players": 3,
+      "checks": [
+        "real Canvas clicks",
+        "two white centers",
+        "undo",
+        "PASS preserves others",
+        "PASS clears own previous node",
+        "restart"
+      ]
+    },
+    {
+      "width": 1024,
+      "height": 800,
+      "players": 15,
+      "checks": [
+        "real Canvas clicks",
+        "two white centers",
+        "undo",
+        "PASS preserves others",
+        "PASS clears own previous node",
+        "restart"
+      ]
+    }
+  ],
+  "pageErrors": []
+}

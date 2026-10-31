@@ -1,0 +1,13 @@
+{
+  "status": "ATOMIC_SWITCH_OK",
+  "release_id": "web-board-icons-feedback-20261013",
+  "commit": "0c1b5fda188e038b34b2c192e2f03932fb1169d0",
+  "overlay_files": 4,
+  "archive_sha256": "b89862c4a3a2c112a54582744c6350901c3d4dcb39e166051e1bf3e4daa1675a",
+  "live_tree_sha256": "9c483294abcd922778369bef64aea04d87e70cf288ae2852e23113f9993bb80d",
+  "candidate_tree_sha256": "e62b6bbe500f7379746e922b6f7bbee600b55c8d01ec2bb26da300825c76dd99",
+  "time_utc_epoch": 1791871110.7951345,
+  "rollback": "/home/ubuntu/line-game/.deploy-artifacts/web-board-icons-feedback-20261013.rollback-web前端",
+  "active_tree_sha256": "e62b6bbe500f7379746e922b6f7bbee600b55c8d01ec2bb26da300825c76dd99",
+  "rollback_tree_sha256": "9c483294abcd922778369bef64aea04d87e70cf288ae2852e23113f9993bb80d"
+}

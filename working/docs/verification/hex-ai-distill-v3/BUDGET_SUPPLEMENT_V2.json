@@ -1,0 +1,17 @@
+{
+  "schema": "lifeline-hex-v3-budget-supplement-v2",
+  "authorizedAt": "2026-10-21T03:38:16.724Z",
+  "authorization": "Parent task authorized a pre-FINAL 900-second local CPU extension based on measured cost",
+  "rationale": "Previous FINAL cost approximately 2388 seconds, verification 796 seconds; new training/development adds approximately 900 seconds",
+  "originalCampaignSha256": "e4a006a5484c1ab60775a12fe9b12af3ca60a4f2e4eb16309422b56a277c9c47",
+  "startedEpochMs": 1792552941492,
+  "originalDeadlineEpochMs": 1792556541492,
+  "deadlineEpochMs": 1792557441492,
+  "originalHardBudgetSeconds": 3600,
+  "hardBudgetSeconds": 4500,
+  "addedSeconds": 900,
+  "finalOpened": false,
+  "scientificInputsChanged": false,
+  "candidateSelectionChanged": false,
+  "thresholdsChanged": false
+}

@@ -1,0 +1,26 @@
+{
+  "status": "PASS_NEURAL_DISTILLATION_RECOVERY_AND_PARITY",
+  "cases": [
+    "actual-kill-step-checkpoint-full-17-model-exact-resume",
+    "completed-models-not-rerun",
+    "pause-stop-bounded-yield",
+    "duplicate-OS-lease-rejected-without-overwriting-progress",
+    "completed-corruption-and-config-drift-rejected",
+    "all-17-parents-and-17-exports-Web-PyTorch-parity"
+  ],
+  "fixture_models": 17,
+  "fixture_updates_per_model": 3,
+  "parity": {
+    "status": "PASS_PYTHON_WEB_F32_PARITY",
+    "probes": 34,
+    "max_probability_error": 1.0245230236405334e-07
+  },
+  "source_hashes": {
+    "web/tools/posttrain-neural-models.py": "2ee814b346d678ae24d16eef1a385f72eefb287c9a83ad835b05858fd426cdcc",
+    "web/tools/neural_posttraining_core.py": "a6cbe99ac715ffc042b0e9e8772b4d5ea53e8530549a0632185d8cba60129dca",
+    "web/tools/test_neural_posttraining.py": "333d9f5e521adaba2b7917b86ac5aef540f44ef9986ca01ff41cc9ede08962b5",
+    "web/web\u524d\u7aef/tests/fixtures/neural-posttraining-fixture.mjs": "d306a861e02b64da411d489c69356dca0f67799a20de67fe52edd619b260936f"
+  },
+  "artifact_directory": "C:\\coding\\py\\line game\\local_artifacts\\neural-posttraining-recovery-1792516505733502700",
+  "full_training_started": false
+}

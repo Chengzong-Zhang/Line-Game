@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "status": "PASS_SAME_69_RUNTIME_WITH_DESCRIPTOR_ACCESS_FIX",
+  "releaseId": "wechat-service-all-20261025-r3",
+  "runtimeFiles": 69,
+  "runtimeUnchangedFrom": "wechat-service-all-20261025-r2",
+  "manifestSha256": "23cec10b931ac039bf47188644736fa7e8b6ab8a2ef51230fae6168dd4ecca9b",
+  "helpers": {
+    "activate_service_release.py": "b7482f27480e93846aa807479c6139f7db8ef89bc9354f559b1f5f79c4809152",
+    "activate_profile_service_live.py": "0af020007957f534846068c97fb4c58e7a557752777c5cde63540e9584034878"
+  },
+  "tests": {
+    "command": ".venv/Scripts/python.exe -m pytest -q web/tests/test_wechat_writer_scan.py web/tests/test_wechat_live_activation.py web/tests/test_wechat_service_release_activation.py -k \"not test_frozen_bundle_is_accepted_and_extra_file_rejected\"",
+    "passed": 46,
+    "skipped": 1,
+    "deselected": 1,
+    "subtestsPassed": 4,
+    "exclusionReason": "Old profile frozen-bundle fixture has existing BUNDLE_TREE_DRIFT; unrelated to current 69-file complete-runtime release."
+  },
+  "change": "Exclude only inode-and-target-stable fdinfo-confirmed Linux O_RDONLY database descriptors; configured writers, service cgroup/cwd, WRONLY/RDWR and uncertain descriptor access remain blocking. No database restoration or security process changes."
+}

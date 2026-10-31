@@ -29,3 +29,6 @@ working/platform-hosts/** -text whitespace=cr-at-eol
 working/docs/maintenance/alignment-20261031/*.patch -text whitespace=cr-at-eol
 working/docs/maintenance/alignment-20261031/*.json -text whitespace=cr-at-eol
 web/web前端/guide/interesting/why-theory.20260826.*.md -text whitespace=cr-at-eol
+
+# Canonical migrated historical evidence retains original blob bytes.
+working/docs/** -text whitespace=cr-at-eol

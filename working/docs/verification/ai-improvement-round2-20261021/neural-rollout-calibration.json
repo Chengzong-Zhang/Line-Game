@@ -1,0 +1,145 @@
+{
+  "status": "BOUNDED_ROLLOUT_TIMING_ONLY",
+  "budgetMs": 20000,
+  "elapsedMs": 1868.9868,
+  "policy": "50% Greedy / 50% uniform after six random-prefix plies",
+  "rows": [
+    {
+      "size": 5,
+      "repeat": 0,
+      "terminal": true,
+      "steps": 9,
+      "elapsedMs": 32.163000000000004,
+      "area": {
+        "BLACK": 0,
+        "WHITE": 9
+      }
+    },
+    {
+      "size": 5,
+      "repeat": 1,
+      "terminal": true,
+      "steps": 10,
+      "elapsedMs": 17.0805,
+      "area": {
+        "BLACK": 10,
+        "WHITE": 0
+      }
+    },
+    {
+      "size": 5,
+      "repeat": 2,
+      "terminal": true,
+      "steps": 12,
+      "elapsedMs": 14.995800000000003,
+      "area": {
+        "BLACK": 6,
+        "WHITE": 5
+      }
+    },
+    {
+      "size": 5,
+      "repeat": 3,
+      "terminal": true,
+      "steps": 11,
+      "elapsedMs": 18.279900000000012,
+      "area": {
+        "BLACK": 0,
+        "WHITE": 10
+      }
+    },
+    {
+      "size": 7,
+      "repeat": 0,
+      "terminal": true,
+      "steps": 31,
+      "elapsedMs": 227.68059999999997,
+      "area": {
+        "BLACK": 23,
+        "WHITE": 0
+      }
+    },
+    {
+      "size": 7,
+      "repeat": 1,
+      "terminal": true,
+      "steps": 14,
+      "elapsedMs": 34.51189999999997,
+      "area": {
+        "BLACK": 4,
+        "WHITE": 22
+      }
+    },
+    {
+      "size": 7,
+      "repeat": 2,
+      "terminal": true,
+      "steps": 17,
+      "elapsedMs": 65.31060000000002,
+      "area": {
+        "BLACK": 23,
+        "WHITE": 4
+      }
+    },
+    {
+      "size": 7,
+      "repeat": 3,
+      "terminal": true,
+      "steps": 17,
+      "elapsedMs": 61.53400000000005,
+      "area": {
+        "BLACK": 24,
+        "WHITE": 4
+      }
+    },
+    {
+      "size": 9,
+      "repeat": 0,
+      "terminal": true,
+      "steps": 43,
+      "elapsedMs": 238.9932,
+      "area": {
+        "BLACK": 6,
+        "WHITE": 39
+      }
+    },
+    {
+      "size": 9,
+      "repeat": 1,
+      "terminal": true,
+      "steps": 50,
+      "elapsedMs": 387.46529999999996,
+      "area": {
+        "BLACK": 29,
+        "WHITE": 16
+      }
+    },
+    {
+      "size": 9,
+      "repeat": 2,
+      "terminal": true,
+      "steps": 46,
+      "elapsedMs": 382.6871000000001,
+      "area": {
+        "BLACK": 13,
+        "WHITE": 28
+      }
+    },
+    {
+      "size": 9,
+      "repeat": 3,
+      "terminal": true,
+      "steps": 46,
+      "elapsedMs": 382.4502,
+      "area": {
+        "BLACK": 40,
+        "WHITE": 5
+      }
+    }
+  ],
+  "sourceHashes": {
+    "web/web前端/GameEngine.js": "625e8d8a92801647702f963f56148040248cf471228a6ce5c719e20e4414a555",
+    "web/web前端/AIEngine.js": "6738fe3a98a616dfd6c060636f5d2684fd49ebc561c95a96247db28c7170ccc3"
+  },
+  "limitations": "Timing calibration only; these are not training labels or strength evidence. No model updated."
+}

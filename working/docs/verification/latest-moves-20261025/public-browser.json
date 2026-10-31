@@ -1,0 +1,29 @@
+{
+  "status": "PASS_PUBLIC_APPLICATION_UI",
+  "url": "https://lifelinegame.cn/",
+  "checks": [
+    "skip tutorial",
+    "actual local match start",
+    "two Canvas mouse moves",
+    "both player markers retained",
+    "actual PASS button clears acting player only"
+  ],
+  "before": {
+    "BLACK": [
+      1,
+      0
+    ],
+    "WHITE": [
+      2,
+      0
+    ]
+  },
+  "after": {
+    "BLACK": null,
+    "WHITE": [
+      2,
+      0
+    ]
+  },
+  "pageErrors": []
+}
