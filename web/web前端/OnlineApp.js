@@ -51,6 +51,7 @@ import {
   localizeErrorMessage as localizeAppErrorMessage,
 } from "./OnlineAppI18n.js?v=20261029-unified-r1";
 import { ensureGuideRuleImages, getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20261029-unified-r1";
+import { getGuideChapterLinks } from "./GuideArticleFormat.js?v=20261031-guide-reading";
 import {
   TUTORIAL_LEVELS,
   getTutorialEngineSettings,
@@ -2771,6 +2772,8 @@ const GuideReaderModal = {
       return subEntries.find((item) => item.key === activeSubKey.value) ?? subEntries[0];
     });
     const displayBlocks = computed(() => buildGuideDisplayBlocks(activeReadableEntry.value?.blocks ?? []));
+    const chapterLinks = computed(() => getGuideChapterLinks(displayBlocks.value));
+    const goToChapter = (id) => document.getElementById(id)?.scrollIntoView({ block: "start", behavior: "auto" });
 
     const typesetGuideMath = () => {
       nextTick?.(() => {
@@ -2803,6 +2806,8 @@ const GuideReaderModal = {
       activeReadableEntry,
       activeSubKey,
       displayBlocks,
+      chapterLinks,
+      goToChapter,
       formatGuideDisplayMath,
       highlightGuideCode,
       texts: computed(() => getAppTexts(props.language, props.uiStyle)),
@@ -2840,6 +2845,12 @@ const GuideReaderModal = {
                 <span>{{ subEntry.subtitle }}</span>
               </button>
             </div>
+            <details v-if="chapterLinks.length > 1" :key="activeReadableEntry?.key" class="guide-chapter-contents">
+              <summary>{{ language === 'zh' ? '文章目录' : 'Contents' }} · {{ chapterLinks.length }}</summary>
+              <nav class="guide-chapter-nav" :aria-label="language === 'zh' ? '文章目录' : 'Article contents'">
+                <button v-for="chapter in chapterLinks" :key="chapter.id" type="button" @click="goToChapter(chapter.id)"><GuideInlineText :tokens="chapter.tokens" /></button>
+              </nav>
+            </details>
             <div class="guide-reader-body">
               <template v-for="(block, index) in displayBlocks" :key="(activeReadableEntry?.key || entry.key) + '-' + index">
                 <h3 v-if="block.type === 'heading1'" :id="block.id" class="guide-block-heading-xl"><GuideInlineText :tokens="block.tokens" /></h3>

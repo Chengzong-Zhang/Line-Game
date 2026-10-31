@@ -192,7 +192,7 @@ CNNs see local texture. This game is valued by base connectivity, bridges, artic
 const GUIDE_MARKDOWN = Object.freeze({
   zh: Object.freeze({
     rulesEssential: `【胜利条件】
-玩家轮流在三角网格落子。己方节点和连线经过的格点直接计入领土；由己方点线隔开、不接触真实边界且不含敌方元素的每个空腔也计入，包括甜甜圈形状的内孔；含敌方元素的空腔不计。无需形成单一闭环；开链和单线仍按己方点数计分。同一格点只算一次。着色保留凸包与收紧轮廓，最后裁剪到棋盘范围，排除棋盘外部和挖掉的孔洞；单根连线不铺领土色。显示轮廓（displayArea）仅用于展示，不决定正式分数；最终格点数多者获胜。
+玩家轮流在三角网格落子。己方节点和连线经过的格点直接计入领土；由己方点线隔开、不接触真实边界且不含敌方元素的每个空腔也计入，包括甜甜圈形状的内孔；含敌方元素的空腔不计。无需形成单一闭环；开链和单线仍按己方点数计分。同一格点只算一次。显示轮廓（displayArea）仅用于展示，不决定正式分数；最终格点数多者获胜。
 ![可落子区域示意](./guide-images/可以走的区域png.png)
 
 【核心机制】
@@ -252,7 +252,7 @@ UE设计师：zcz, LeoYan, Codex(GPT5.4), Pigeon
   }),
   en: Object.freeze({
     rulesEssential: `【Victory Condition】
-Players take turns placing nodes on a triangular grid. Your nodes and link points always count. Every enemy-free pocket separated by friendly points and not touching a true boundary also counts, including the inner hole of a donut-shaped structure; pockets containing an enemy are excluded. No single closed loop is required; an open chain or single line still scores its owned points. Each point counts once. Shading keeps the hull and tightened outlines, then clips them to the actual board, excluding its exterior and removed holes; a single link does not receive a territory fill. The displayed outline (displayArea) is for presentation and does not determine the official score. The higher total wins.
+Players take turns placing nodes on a triangular grid. Your nodes and link points always count. Every enemy-free pocket separated by friendly points and not touching a true boundary also counts, including the inner hole of a donut-shaped structure; pockets containing an enemy are excluded. No single closed loop is required; an open chain or single line still scores its owned points. Each point counts once. The displayed outline (displayArea) is for presentation and does not determine the official score. The higher total wins.
 ![Playable area example](./guide-images/可以走的区域png.png)
 
 【Core Mechanic】

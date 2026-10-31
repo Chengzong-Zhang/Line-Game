@@ -4419,3 +4419,35 @@ body.large-board .result-overlay {
 
 .topology-chart-switch { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; }
 .topology-chart-switch .language-button { min-width: 72px; min-height: 44px; }
+
+/* Guide reading: keep long prose and wide technical material usable at every width. */
+.guide-reader { display: flex; flex-direction: column; max-height: min(90dvh, 920px); }
+.guide-reader-top { flex: 0 0 auto; }
+.guide-reader-layout { flex: 1 1 auto; max-height: none; }
+.guide-reader-body, .guide-chapter-contents { width: min(100%, 76ch); margin-inline: auto; min-width: 0; }
+.guide-reader-body > * { min-width: 0; }
+.guide-block-heading-xl, .guide-block-heading, .guide-block-subheading { scroll-margin-top: 1rem; overflow-wrap: anywhere; }
+.guide-block-heading-xl { padding-top: 0.75rem; border-top: 1px solid rgba(88, 61, 31, 0.14); }
+.guide-block-paragraph, .guide-block-bullet p, .guide-block-ordered p { overflow-wrap: anywhere; }
+.guide-chapter-contents { margin-bottom: 1.5rem; border: 1px solid rgba(88, 61, 31, 0.16); border-radius: 0.8rem; padding: 0.25rem 0.9rem; }
+.guide-chapter-contents summary { cursor: pointer; min-height: 44px; display: list-item; align-content: center; font-weight: 700; color: var(--ink); }
+.guide-chapter-contents summary:focus-visible { outline: 3px solid #765021; outline-offset: 2px; }
+.guide-chapter-nav { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; padding-bottom: 0.75rem; }
+.guide-chapter-nav button { min-height: 44px; padding: 0.5rem 0.75rem; border: 1px solid rgba(88, 61, 31, 0.22); border-radius: 0.6rem; background: #fffaf0; color: var(--ink); text-align: left; cursor: pointer; }
+.guide-chapter-nav button:hover { background: #f4e7d1; }
+.guide-chapter-nav button:focus-visible, .guide-sub-tab:focus-visible { outline: 3px solid #765021; outline-offset: 2px; }
+.guide-block-math, .guide-code-block, .guide-table-wrap { max-width: 100%; }
+.guide-block-math mjx-container[display="true"] { min-width: max-content; }
+@media (max-width: 600px) {
+  .guide-overlay { padding: 8px; }
+  .guide-reader { width: 100%; max-height: 94dvh; border-radius: 18px; }
+  .guide-reader-top { gap: 10px; padding: 16px; }
+  .guide-reader-top h2 { font-size: 1.35rem; }
+  .guide-reader-subtitle { margin-top: 6px; line-height: 1.45; }
+  .guide-reader-layout { padding: 16px 16px 40px; }
+  .guide-sub-tabs { gap: 8px; margin-bottom: 16px; }
+  .guide-sub-tab { min-height: 44px; padding: 10px 12px; }
+  .guide-chapter-nav button { flex: 1 1 100%; }
+  .guide-reader-body { gap: 16px; }
+  .guide-code-block, .guide-block-math { padding: 12px; }
+}

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { parseGuideMarkdown, getGuideMarkdown, getGuideMarkdownAsset, ensureGuideRuleImages } from "../GuideContent.js";
 import { guideChapters, implementationSections } from "../GuideImplementation.js";
+import { getGuideChapterLinks } from "../GuideArticleFormat.js";
 
 const sourceUrl = "https://github.com/Chengzong-Zhang/Line-Game/blob/main/README.md";
 const source = parseGuideMarkdown(`[源码](${sourceUrl})`);
@@ -35,6 +36,11 @@ for (const language of ["zh", "en"]) {
       assert.equal(illustrated.filter(block => block.type === 'image').length, 5);
     }
     assert.equal(headings.length, 4, 'four main chapters including topology');
+    const navigation = getGuideChapterLinks(blocks);
+    assert.deepEqual(navigation.map(block => block.text), headings,
+      'the reader navigation must expose all four actual chapters, not just the article title');
+    assert.ok(navigation.every(link => blocks.some(block => block.id === link.id)),
+      'every chapter navigation target exists in the rendered article');
     assert.deepEqual(headings, guideChapters(kind).map(chapter => chapter.title[language]));
     assert.deepEqual(blocks.filter(block => block.type === 'heading3').map(block => block.text),
       implementationSections(kind, language).filter(section => section.level === 3).map(section => section.title));

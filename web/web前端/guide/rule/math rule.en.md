@@ -386,6 +386,8 @@ A torus meridian is closed but nonseparating. The waist separating two handles i
 
 Let G be canonical sample adjacency, Wi friendly node/line samples, Oi enemy samples, and B the real boundary samples. Iterate components Q of G−Wi. The official rule below includes triangular and hexagonal boards as bounded cases. On closed surfaces B is empty, but enemy components still must be excluded. An enclosed enemy pocket is a confinement target, not already owned safe territory.
 
+A closed surface has no real boundary. Under this discrete convention, any remaining component without enemy elements scores even when it does not look enclosed on screen; a component containing an enemy is excluded in full. This is a game rule, not a consequence of geometric surface area.
+
 $$
 R_i=W_i\cup\!\bigcup_{\substack{Q\in\pi_0(G-W_i)\\Q\cap B=\varnothing,\ Q\cap O_i=\varnothing}}Q,\qquad a_i=\sum_{v\in R_i}w_v.
 $$

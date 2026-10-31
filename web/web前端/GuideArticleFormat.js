@@ -4,6 +4,19 @@ export const m = (tex, plain) => ({ kind: 'math', tex, plain });
 export const c = (code, language = 'text', source = null) => ({ kind: 'code', code, language, source });
 export const s = (id, zh, en, blocks) => ({ id, title: { zh, en }, blocks });
 export const ch = (id, zh, en, overview, sections) => ({ id, title: { zh, en }, overview, sections });
+export function getGuideChapterLinks(blocks = []) {
+  // A paper has one heading1 title; its chapter navigation starts at heading2.
+  for (const type of ['heading1', 'heading2', 'heading3']) {
+    const seen = new Set();
+    const links = blocks.filter(block => {
+      if (block?.type !== type || !block.id || seen.has(block.id)) return false;
+      seen.add(block.id);
+      return true;
+    });
+    if (links.length > 1) return links;
+  }
+  return [];
+}
 let letterOrNumber;
 try {
   // Construct at runtime so older WeChat engines can load this module.

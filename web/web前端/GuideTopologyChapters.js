@@ -63,6 +63,8 @@ export const TOPOLOGY_MATH_CHAPTER = ch('topology',
   s('territory', '4.7 离散领土、连续面积与围困', '4.7 Discrete territory, display area and confinement', [
     p('令 G 为规范格点邻接图，Wᵢ 为己方节点和线点，Oᵢ 为敌方占点，B 为真实边界点。令 Q 遍历 G−Wᵢ 的连通分量。当前正式规则如下；三角／六边棋盘是有外边界的特例。闭曲面 B=∅，仍须逐分量排除敌方。含敌人的封闭小块是围困目标，不是已获得的安全领土。',
       'Let G be canonical sample adjacency, Wi friendly node/line samples, Oi enemy samples, and B the real boundary samples. Iterate components Q of G−Wi. The official rule below includes triangular and hexagonal boards as bounded cases. On closed surfaces B is empty, but enemy components still must be excluded. An enclosed enemy pocket is a confinement target, not already owned safe territory.'),
+    p('闭曲面没有真实边界：如果某个剩余连通分量不含敌方元素，它就按这条离散约定计分，即使屏幕上看不出被围住；若分量含敌方元素，整块不计分。这是游戏规则，不是由曲面的几何面积自动推导出的结论。',
+      'A closed surface has no real boundary. Under this discrete convention, any remaining component without enemy elements scores even when it does not look enclosed on screen; a component containing an enemy is excluded in full. This is a game rule, not a consequence of geometric surface area.'),
     m(String.raw`R_i=W_i\cup\!\bigcup_{\substack{Q\in\pi_0(G-W_i)\\Q\cap B=\varnothing,\ Q\cap O_i=\varnothing}}Q,\qquad a_i=\sum_{v\in R_i}w_v.`,
       'Ri = Wi ∪ components Q of G−Wi with Q∩B=∅ and Q∩Oi=∅; ai=Σv∈Ri wv (unit weights by default).'),
     p('命题 T5：多源 BFS 与逐分量敌方检查恰好得到 Rᵢ，复杂度为 O(|V|+|E_G|)。证明由 BFS 的可达性不变量：入队点都有源路径，每个可达点沿最短源路径逐层入队。对每个剩余分量扫描敌方标记即可。这是图的零维连通性／H₀计算；未经额外细分与对应证明，它不等于连续曲面补空间 K−Wᵢ 的拓扑，也不等于二维面积。',
