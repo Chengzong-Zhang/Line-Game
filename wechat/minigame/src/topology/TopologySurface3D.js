@@ -171,7 +171,7 @@ export function surfacePosition(surface, coordinate, bounds, faceId = null) {
 
 // The same display polygons as the atlas are sampled on a tessellated surface.
 // Tessellation is a preview approximation; discrete scores remain untouched.
-export function buildSurfaceCells(snapshot, subdivisions = 3) {
+export function buildSurfaceCells(snapshot, subdivisions = 3, lastMoves = {}) {
   const view = snapshot?.topology?.viewBoard;
   const copies = new Map((view?.pointCopies ?? []).map((copy) => [copy.id, copy]));
   const surface = identifySurface(snapshot?.boardDefinition);
@@ -216,7 +216,13 @@ export function buildSurfaceCells(snapshot, subdivisions = 3) {
   const nodes = [...copies.values()].filter((copy) => {
     const state = snapshot.boardStates?.[copy.canonicalVertexId];
     return Number.isInteger(state) && state >= 1 && state <= 11 && state % 2 === 1;
-  }).map((copy) => ({ point: surfacePosition(surface, copy.coordinate, bounds, copyFace.get(copy.id)), player: players[(snapshot.boardStates[copy.canonicalVertexId] - 1) / 2], start: starts.has(copy.canonicalVertexId) }));
+  }).map((copy) => {
+    const player = players[(snapshot.boardStates[copy.canonicalVertexId] - 1) / 2];
+    return { point: surfacePosition(surface, copy.coordinate, bounds, copyFace.get(copy.id)), player,
+      canonicalVertexId: copy.canonicalVertexId, start: starts.has(copy.canonicalVertexId),
+      latest: snapshot.players?.includes(player) && !(snapshot.resignedPlayers ?? []).includes(player)
+        && lastMoves[player] === copy.canonicalVertexId };
+  });
   // Subdivide only for curved geometry. Grid lines are the original face
   // edges, not the internal quad boundaries used for ownership coloring.
   const lines = [];
@@ -300,6 +306,8 @@ export function createDepthRenderer(canvas) {
           append(lineGroups, key, line.points.map(p => transform(p, line.player ? 0.004 : 0.002)));
         }
         for (const [key, points] of lineGroups) { const [fill, owned] = JSON.parse(key); gl.lineWidth(owned ? Math.max(2, 2 * dpr) : 1); draw(points, gl.LINES, fill); }
+        for (const node of data.nodes) if (node.point && node.latest)
+          draw([transform(node.point, 0.006)], gl.POINTS, '#fffdf7', (node.start ? 17 : 13) * dpr);
         for (const node of data.nodes) if (node.point) {
           const key = JSON.stringify([palette[node.player]?.node ?? DEFAULT_SURFACE_PALETTE[node.player]?.node ?? '#3a3125', Boolean(node.start)]);
           append(pointGroups, key, [transform(node.point, 0.006)]);

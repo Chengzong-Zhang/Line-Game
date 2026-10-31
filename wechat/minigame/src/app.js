@@ -507,6 +507,8 @@ export function createApp(platform, config = {}) {
       onBlur: () => { if (valid()) commit(numberEditing.text); } }); redraw();
   }
 
+  const surfaceLatestMoves = snapshot => display.lastMove && !session.tutorial
+    ? latestMoveTracker(session.settings, session.actions, snapshot, session.replayIndex ?? session.actions.length) : {};
   function openSurface3D() {
     const snapshot = session.snapshot;
     if (!isTopologySnapshot(snapshot)) return;
@@ -515,7 +517,7 @@ export function createApp(platform, config = {}) {
     try {
       surface3dCanvas = platform.createWebGLCanvas?.(512, 512) || null;
       surface3dRenderer = surface3dCanvas && createDepthRenderer(surface3dCanvas);
-      surface3dData = buildSurfaceCells(snapshot);
+      surface3dData = buildSurfaceCells(snapshot, 3, surfaceLatestMoves(snapshot));
       surface3dPitch = initialSurfacePitch(snapshot.boardDefinition);
     } catch (_) { surface3dRenderer = null; }
     if (!surface3dRenderer) useSoftwareSurface();
@@ -526,7 +528,7 @@ export function createApp(platform, config = {}) {
     try {
       surface3dCanvas = platform.createSurfaceCanvas?.(320, 320) || null;
       surface3dRenderer = surface3dCanvas && createSoftwareSurfaceRenderer(surface3dCanvas);
-      if (!surface3dData) surface3dData = buildSurfaceCells(session.snapshot);
+      if (!surface3dData) surface3dData = buildSurfaceCells(session.snapshot, 3, surfaceLatestMoves(session.snapshot));
     } catch (_) { surface3dRenderer = null; }
   }
 
@@ -1175,7 +1177,7 @@ export function createApp(platform, config = {}) {
     }
     if (topologyBoard) {
       drawTopologyBoard(ctx, snapshot, layout, { selected, hint: session.hintPoint, target: session.tutorial?.done ? null : target,
-        lastMove: lastType === 'move' ? lastAction?.vertexId : null,
+        lastMoves: lesson ? {} : latestMoveTracker(session.settings, session.actions, snapshot, session.replayIndex ?? session.actions.length),
         effects: visibleInspection()?.effects,
         display: lesson ? { ...display, legalMoves: true, territories: true } : display });
       button('topology-3d', '3D', boardRect.x + boardRect.width - 50, boardRect.y + 5, 44, openSurface3D, { height: 34, font: 12 });

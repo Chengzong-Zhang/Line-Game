@@ -83,8 +83,10 @@ export function createSoftwareSurfaceRenderer(canvas) {
             points[0][2] + (points[1][2] - points[0][2]) * t], line.player ? Math.max(1, dpr) : Math.max(0.6, dpr * 0.5), color);
         }
       }
+      for (const node of data.nodes) if (node.point && node.latest)
+        disc(project(node.point, 0.006), (node.start ? 8.5 : 6.5) * dpr, colorFor('#fffdf7'));
       for (const node of data.nodes) if (node.point) {
-        disc(project(node.point, 0.006), (node.start ? 6 : 4) * dpr,
+        disc(project(node.point, 0.0061), (node.start ? 6 : 4) * dpr,
           colorFor(palette[node.player]?.node ?? DEFAULT_SURFACE_PALETTE[node.player]?.node ?? '#3a3125'));
       }
       ctx.putImageData(image, 0, 0);

@@ -194,6 +194,7 @@ export function drawTopologyBoard(ctx, snapshot, layout, {
   hint = null,
   target = null,
   lastMove = null,
+  lastMoves = null,
   effects = null,
   display = {},
 } = {}) {
@@ -266,7 +267,12 @@ export function drawTopologyBoard(ctx, snapshot, layout, {
     }
   }
   // 8. Rings are visual affordances over all chart copies of the same point.
-  for (const [value, color] of [[lastMove, '#fffdf7'], [hint, '#6f974b'], [target, '#cda04d'], [selected, '#244d3d']]) {
+  const marked = lastMoves ? Object.entries(lastMoves).filter(([player, id]) => snapshot.players?.includes(player)
+    && !(snapshot.resignedPlayers ?? []).includes(player)
+    && snapshot.boardStates?.[id] === PLAYER_ORDER.indexOf(player) * 2 + 1).map(([, id]) => id) : [lastMove];
+  const rings = [...(display.lastMove === false ? [] : marked.map(id => [id, '#fffdf7'])),
+    [hint, '#6f974b'], [target, '#cda04d'], [selected, '#244d3d']];
+  for (const [value, color] of rings) {
     const vertexId = identifier(value);
     if (!vertexId) continue;
     for (const copy of canonicalCopies.get(vertexId) ?? []) {
