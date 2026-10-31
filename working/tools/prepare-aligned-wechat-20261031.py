@@ -3,6 +3,7 @@
 Usage: python working/tools/prepare-aligned-wechat-20261031.py FRONTEND MINI_NODE_MODULES NEW_OUTPUT GUIDE_PATCH TURN_ORDER_PATCH MINI_PATCH [EXTRA_WEB_PATCH ...]
 Inputs are read-only. The output must be new inside alignment-20261031. The
 online candidate is local only; this script never uploads or changes services.
+Optionally set LIFELINE_MINI_FIXTURE_PATCH to a separately verified Mini test-only patch.
 Run with permission for loopback-only synthetic tests when the environment
 requires it. A model manifest and all referenced weights are required.
 """
@@ -72,6 +73,9 @@ inputs['verified_guide_overlay'] = apply_overlay(root, output, guide, commit)
 inputs['verified_turn_order_overlay'] = apply_turn_order_overlay(root, output, order)
 inputs['verified_additional_web_overlays'] = [apply_turn_order_overlay(root, output, patch) for patch in extra_web_patches]
 inputs['verified_mini_overlay'] = apply_mini_overlay(root, output, mini_patch)
+fixture_patch = os.environ.get('LIFELINE_MINI_FIXTURE_PATCH')
+if fixture_patch:
+    inputs['verified_mini_fixture_overlay'] = apply_mini_overlay(root, output, Path(fixture_patch).resolve())
 mini = output / 'wechat/minigame'
 shutil.copytree(dependencies, mini / 'node_modules')
 for name in ('package.json', 'package-lock.json'):

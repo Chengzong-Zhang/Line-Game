@@ -4,7 +4,7 @@
   "asset_version": "20261031-alignment-diagnostic",
   "source_declared_commit": "51e5782d3117871167783dc53413f0e6e7578bdf",
   "source_checkout_commit": "51e5782d3117871167783dc53413f0e6e7578bdf",
-  "release_manifest_sha256": "7f4ba7913aa990e8ba16826c13cc44f3ae75ed1a2d4bf8eb02560d8f35e9f4e5",
+  "release_manifest_sha256": "47eb0e5e5ad0f7c13a175068c2689d8cc07d9da4e364818251b5638d50766e8a",
   "workspace_dirty": true,
   "source_files": {
     "AIEngine.js": "f8ae8a952b8c2a6cb3178cb4bd7e6112cc4786fc1687a7f7ca20c198c4e96615",
@@ -67,8 +67,8 @@
     "MultiplayerStandardDefense.js": "432bc42f2ca8015be00ab11fcada36b895314e6575794a9bfbfc2f0999d0b663",
     "MultiplayerUltimateAdmission.js": "cc182005d5b74ca9fc0e4cecbe33222d65a547dbbf438318de93a30eeb0bb6a8",
     "NetworkManager.js": "7245b73ee76ba393fc4831744e8797f9f0f6831829ad820076926cdc1bcdf9a9",
-    "OnlineApp.js": "f05af43a9a0dccc7edd9d10d9678b8c262364ab99a8afcc3eb34d922115e32f5",
-    "OnlineAppI18n.js": "87fdbf4dc03bb4b418bd39ecbe01d885caa63f6efee60472d94432916f543cac",
+    "OnlineApp.js": "64d393e97830d270336d048a74c1c4979181934f82383e41349558df7d6e1ece",
+    "OnlineAppI18n.js": "26d0e58fb22ae36404b85089fe2ef34fb896d9fc7e713f231ab459e67c689b70",
     "OnlineAppState.js": "e60375630da0dbde0251b3a87ab94213f7d11f293c00483b703a6358648946ef",
     "OnlineRoomSettings.js": "16b53c20f867abd2aeaac97865a07becf4eea338a100754565d531fb492fc8aa",
     "OnlineRoomSync.js": "10bd41fd53d1e66a48a1762c5353c5c5d6f4098bc01b1d78728a3034dbe508e1",
@@ -346,8 +346,8 @@
     },
     {
       "path": "OnlineApp.js",
-      "source_sha256": "f05af43a9a0dccc7edd9d10d9678b8c262364ab99a8afcc3eb34d922115e32f5",
-      "mobile_sha256": "f05af43a9a0dccc7edd9d10d9678b8c262364ab99a8afcc3eb34d922115e32f5",
+      "source_sha256": "64d393e97830d270336d048a74c1c4979181934f82383e41349558df7d6e1ece",
+      "mobile_sha256": "64d393e97830d270336d048a74c1c4979181934f82383e41349558df7d6e1ece",
       "reason": "Current common overlays and mobile protocol/host integration; admission pending."
     },
     {
@@ -403,6 +403,12 @@
       "source_sha256": "645c3e1a43d538e81b98780da2142b6cac3414a78088ff204dfe072b4d56537f",
       "mobile_sha256": "e1d769eab980717d1f2084fba86d71c44b80f8f02ea4fddd83b5db126ddc8633",
       "reason": "Current common overlays and mobile protocol/host integration; admission pending."
+    },
+    {
+      "path": "OnlineAppI18n.js",
+      "reason": "Mobile-only haptic preference labels on aligned shared source.",
+      "source_sha256": "26d0e58fb22ae36404b85089fe2ef34fb896d9fc7e713f231ab459e67c689b70",
+      "mobile_sha256": "26d0e58fb22ae36404b85089fe2ef34fb896d9fc7e713f231ab459e67c689b70"
     }
   ],
   "excluded_live_unwired_experiments": [],

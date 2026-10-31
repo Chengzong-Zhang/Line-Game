@@ -156,7 +156,7 @@ async function appFixture({auth=null,save=async()=>true,clear=async()=>true,logi
     return{ok:true,status:200,text:async()=>''};
   };
   // CrossPlatformNetwork imports this exact versioned module URL.
-  const NM=(await page.evaluate(page.uri('NetworkManager.js')+'?v=20261029-unified-r1')).namespace.NetworkManager;
+  const NM=(await page.evaluate(page.uri('NetworkManager.js')+'?v=20261101-platform-alignment-r1')).namespace.NetworkManager;
   const set=NM.prototype.setAuthToken;NM.prototype.setAuthToken=function(value){manager=this;return set.call(this,value);};
   if(leaveFails)NM.prototype.leaveRoom=async function(){throw Error('Synthetic leave failure');};
   const mounted=await page.mountApp(!browser);await drain();

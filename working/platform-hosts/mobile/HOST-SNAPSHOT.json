@@ -290,16 +290,16 @@
       "bytes": 922
     },
     "config/aligned-release-baseline.json": {
-      "sha256": "7f4ba7913aa990e8ba16826c13cc44f3ae75ed1a2d4bf8eb02560d8f35e9f4e5",
+      "sha256": "47eb0e5e5ad0f7c13a175068c2689d8cc07d9da4e364818251b5638d50766e8a",
       "bytes": 8524
     },
     "config/aligned-runtime-manifest.json": {
-      "sha256": "ac05114d2276051990c21d90af95fb4f5f081a108d6d1249ffb89dc6a0d03b92",
-      "bytes": 17971
+      "sha256": "d21b3f1efd3ba01c49e60258da311578140aa64b1cf96e3f80a6cd4c9e6717a2",
+      "bytes": 18287
     },
     "config/aligned-sync-manifest.json": {
-      "sha256": "e9f996e974071a9d80ea3ffc036c6592619d8bd231d40cd1a0d2b5ea3bc2af00",
-      "bytes": 39281
+      "sha256": "ffc136b15a5bf220090bf0ceb10d7ed458ee3006de1335bf4c18853a6b106d1c",
+      "bytes": 39597
     },
     "config/current-web-sync-source-manifest.json": {
       "sha256": "8d005c74b91438b025bf1d3ba25df444f4bda33b474a8edec20fe127f4d1ac6f",
@@ -498,8 +498,8 @@
       "bytes": 79009
     },
     "package.json": {
-      "sha256": "294979f3449142d6a14eb0c6e478c7ee8e6d302c738f845740e120b817e1ef3e",
-      "bytes": 4084
+      "sha256": "9d899e599c2839045f81131d0434a69e4bdcb27608a566978a029d02ae7cbc91",
+      "bytes": 4198
     },
     "src/capability-contract.js": {
       "sha256": "0dd24fdaf0b75f48beb634accd27ec8f8ff8b8ccbabdd53a38b91ed6e0534d41",
@@ -682,8 +682,8 @@
       "bytes": 67532
     },
     "tests/verify-mobile-credential-app.mjs": {
-      "sha256": "591e89acd3efc14db308b993c0e4f5a5c636686e00f99ccbc7db5a22e0b1c682",
-      "bytes": 21295
+      "sha256": "dc041633d9fa6881bdd553c6e556e6ada2b856b018ebbdfb74351cc24c4c00b0",
+      "bytes": 21306
     },
     "tests/verify-mobile-entry-routing.mjs": {
       "sha256": "f2a8e7969345bdf0dcf3c62214e7f867027733cdb4948927ebac8541118015eb",
@@ -932,6 +932,18 @@
     "tests/verify-mobile-shared-action-migration.mjs": {
       "sha256": "2ce254be3e177d7d45d327a8d109b5a43c353ade9c020c67661ed768b6b01b97",
       "bytes": 25478
+    },
+    "tests/verify-mobile-app-haptics-integration.mjs": {
+      "sha256": "a7cdfdf9c87bfe76c88c4b8cd742ec03c820df1f95a7d872dabd9eb168649807",
+      "bytes": 20142
+    },
+    "tools/verify-alignment.mjs": {
+      "sha256": "5e05d890dd441930026a172528ea4cbd14df9dbd1e2cedf0c6e4628a89f3efc0",
+      "bytes": 1860
+    },
+    "tests/verify-mobile-tutorial-app-integration.mjs": {
+      "sha256": "f19fe032b82ab2b0f2459973e6a6c0a4904edd0b4578fec5aeb265f37993c4cf",
+      "bytes": 24707
     }
   }
 }

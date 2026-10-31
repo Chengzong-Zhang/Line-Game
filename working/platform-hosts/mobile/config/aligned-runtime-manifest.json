@@ -257,8 +257,8 @@
     },
     {
       "path": "OnlineApp.js",
-      "source_sha256": "f05af43a9a0dccc7edd9d10d9678b8c262364ab99a8afcc3eb34d922115e32f5",
-      "mobile_sha256": "f05af43a9a0dccc7edd9d10d9678b8c262364ab99a8afcc3eb34d922115e32f5",
+      "source_sha256": "64d393e97830d270336d048a74c1c4979181934f82383e41349558df7d6e1ece",
+      "mobile_sha256": "64d393e97830d270336d048a74c1c4979181934f82383e41349558df7d6e1ece",
       "reason": "Current common overlays and mobile protocol/host integration; admission pending."
     },
     {
@@ -314,6 +314,12 @@
       "source_sha256": "645c3e1a43d538e81b98780da2142b6cac3414a78088ff204dfe072b4d56537f",
       "mobile_sha256": "e1d769eab980717d1f2084fba86d71c44b80f8f02ea4fddd83b5db126ddc8633",
       "reason": "Current common overlays and mobile protocol/host integration; admission pending."
+    },
+    {
+      "path": "OnlineAppI18n.js",
+      "reason": "Mobile-only haptic preference labels on aligned shared source.",
+      "source_sha256": "26d0e58fb22ae36404b85089fe2ef34fb896d9fc7e713f231ab459e67c689b70",
+      "mobile_sha256": "26d0e58fb22ae36404b85089fe2ef34fb896d9fc7e713f231ab459e67c689b70"
     }
   ],
   "excluded_live_unwired_experiments": [],
