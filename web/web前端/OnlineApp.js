@@ -1737,7 +1737,7 @@ const ControlPanel = {
 
 const ReplayPanel = {
   name: "ReplayPanel",
-  emits: ["export", "import-file", "review-current", "review-imported", "exit-review"],
+  emits: ["export", "import-start", "import-cancel", "import-error", "import-file", "import-native", "review-current", "review-imported", "exit-review"],
   props: {
     language: { type: String, required: true },
     actionCount: { type: Number, default: 0 },
@@ -1750,6 +1750,10 @@ const ReplayPanel = {
   },
   setup(props, { emit }) {
     const fileInput = ref(null);
+    const maxReplayFileBytes = 4_000_000;
+    const replayFileReadTimeoutMs = 30_000;
+    let latestImportRequestId = 0;
+    let disposed = false;
     const copy = computed(() => props.language === "zh"
       ? {
           title: "复盘模式",
@@ -1779,13 +1783,99 @@ const ReplayPanel = {
           step: "steps",
           busy: "Verifying…",
         });
-    const openFilePicker = () => fileInput.value?.click();
-    const handleFileChange = (event) => {
-      const file = event.target.files?.[0] ?? null;
-      event.target.value = "";
-      if (file) return file.text().then((text) => emit("import-file", text));
+    const openFilePicker = () => {
+      if (typeof globalThis.LifelinePlatform?.importReplay === "function") {
+        const previousRequestId = latestImportRequestId;
+        const requestId = ++latestImportRequestId;
+        emit("import-start", requestId);
+        emit("import-native", { requestId, previousRequestId });
+        return;
+      }
+      fileInput.value?.click();
+    };
+    const handleFileChange = async (event) => {
+      const previousRequestId = latestImportRequestId;
+      const requestId = ++latestImportRequestId;
+      const input = event?.target;
+      let file = null;
+      try {
+        file = input?.files?.[0] ?? null;
+        if (input) input.value = "";
+      } catch (_error) {
+        emit("import-start", requestId);
+        emit("import-error", {
+          requestId,
+          message: props.language === "zh" ? "无法读取所选文件，请重试。" : "Could not access the selected file. Please try again.",
+        });
+        return null;
+      }
+      if (!file) {
+        emit("import-cancel", { requestId, previousRequestId });
+        return null;
+      }
+
+      emit("import-start", requestId);
+      if (!Number.isFinite(file.size)) {
+        emit("import-error", {
+          requestId,
+          message: props.language === "zh" ? "无法确认文件大小，未读取。" : "Could not verify the file size; the file was not read.",
+        });
+        return null;
+      }
+      if (file.size > maxReplayFileBytes) {
+        emit("import-error", {
+          requestId,
+          message: props.language === "zh"
+            ? "文件超过 4,000,000 字节上限，未读取。"
+            : "File exceeds the 4,000,000-byte limit and was not read.",
+        });
+        return null;
+      }
+
+      let timeoutId = null;
+      try {
+        const buffer = await Promise.race([
+          Promise.resolve().then(() => file.arrayBuffer()),
+          new Promise((_, reject) => {
+            timeoutId = globalThis.setTimeout(() => reject(new Error("Replay file read timed out.")), replayFileReadTimeoutMs);
+          }),
+        ]);
+        const bytes = new Uint8Array(buffer);
+        if (bytes.byteLength > maxReplayFileBytes) {
+          if (!disposed && requestId === latestImportRequestId) emit("import-error", {
+            requestId,
+            message: props.language === "zh"
+              ? "文件超过 4,000,000 字节上限，未读取。"
+              : "File exceeds the 4,000,000-byte limit and was not read.",
+          });
+          return null;
+        }
+        const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+        if (!disposed && requestId === latestImportRequestId) {
+          emit("import-file", { requestId, text });
+        }
+      } catch (_error) {
+        if (!disposed && requestId === latestImportRequestId) {
+          emit("import-error", {
+            requestId,
+            message: props.language === "zh"
+              ? "读取棋谱失败或超时，请重新选择文件后重试。"
+              : "Could not read the replay file, or reading timed out. Select it again to retry.",
+          });
+        }
+      } finally {
+        if (timeoutId !== null) globalThis.clearTimeout(timeoutId);
+      }
       return null;
     };
+
+    onBeforeUnmount(() => {
+      disposed = true;
+      const previousRequestId = latestImportRequestId;
+      const requestId = ++latestImportRequestId;
+      if (previousRequestId > 0) emit("import-cancel", { requestId, previousRequestId });
+    });
+
     return { copy, fileInput, handleFileChange, openFilePicker };
   },
   template: `
@@ -3426,6 +3516,12 @@ const App = {
     const replayPlaying = ref(false);
     const replayInspectorOpen = ref(false);
     const replayBusy = ref(false);
+    let replayOperationGeneration = 0;
+    let replayImportGeneration = 0;
+    let replayImportOwnsBusy = false;
+    let activeReplayPanelImportId = null;
+    let actionFeedbackRevision = 0;
+    let replayAppDisposed = false;
     const replayError = ref("");
     const replayRestoring = ref(false);
     const replayInspectionPoint = ref(null);
@@ -4978,6 +5074,7 @@ const App = {
     };
 
     const setActionFeedback = (message, tone = "neutral") => {
+      actionFeedbackRevision += 1;
       actionFeedback.value = message;
       actionFeedbackTone.value = tone;
     };
@@ -5059,12 +5156,27 @@ const App = {
       }
     };
 
+    const isReplayImportAllowed = () => !replayAppDisposed && roomStatus.value === "solo"
+      && !tutorialActive.value && !replayMode.value && !networkBusy.value;
+    const invalidateReplayImport = () => {
+      replayImportGeneration += 1;
+      activeReplayPanelImportId = null;
+      if (replayImportOwnsBusy) replayBusy.value = false;
+      replayImportOwnsBusy = false;
+    };
+    watch([roomStatus, tutorialActive, replayMode, networkBusy], ([status, tutorial, reviewing, busy]) => {
+      if (status !== "solo" || tutorial || reviewing || busy) invalidateReplayImport();
+    });
+
     const handleExportReplay = async () => {
+      if (replayBusy.value) return false;
       if (roomStatus.value !== "solo" || tutorialActive.value || replayMode.value || localGameActions.value.length === 0) {
         replayError.value = language.value === "zh" ? "只有完成至少一步的本地对局可以导出棋谱。" : "Export is available after at least one local move.";
         return;
       }
       replayBusy.value = true;
+      const generation = ++replayOperationGeneration;
+      const feedbackRevisionAtStart = actionFeedbackRevision;
       replayError.value = "";
       try {
         const settings = currentGameSettings();
@@ -5074,57 +5186,151 @@ const App = {
           : await createReplayDocument(settings, localGameActions.value, {
             actors: localMatchActors(activeLocalPlayers.value, settings.playerCount, settings.gridSize, settings.boardShape),
           });
-        downloadReplayDocument(document, isTopologyGameSettings(settings)
+        if (replayAppDisposed || generation !== replayOperationGeneration) return false;
+        const outcome = await downloadReplayDocument(document, isTopologyGameSettings(settings)
           ? "lifeline-topology-replay.json" : "lifeline-replay.json");
-        setActionFeedback(language.value === "zh" ? "棋谱已导出。" : "Replay exported.", "success");
+        if (replayAppDisposed || generation !== replayOperationGeneration) return false;
+        const message = outcome === "cancelled"
+          ? (language.value === "zh" ? "已取消分享。" : "Sharing was cancelled.")
+          : outcome === "share-selected"
+            ? (language.value === "zh" ? "已选择接收应用；无法确认对方是否收到棋谱。" : "A receiving app was selected; delivery is not confirmed.")
+            : outcome === "share-returned"
+              ? (language.value === "zh" ? "分享流程已返回；系统未提供接收方信息。" : "The share flow returned without identifying a receiving app.")
+              : outcome === "shared"
+                ? (language.value === "zh" ? "棋谱分享流程已结束。" : "Replay sharing has finished.")
+              : (language.value === "zh" ? "棋谱导出流程已完成。" : "Replay export finished.");
+        if (feedbackRevisionAtStart === actionFeedbackRevision) setActionFeedback(message, outcome === "cancelled" ? "neutral" : "success");
       } catch (error) {
-        replayError.value = error?.message ?? String(error);
+        if (!replayAppDisposed && generation === replayOperationGeneration) replayError.value = error?.message ?? String(error);
       } finally {
-        replayBusy.value = false;
+        if (generation === replayOperationGeneration) replayBusy.value = false;
       }
     };
 
-    const handleImportReplay = async (text) => {
-      if (replayMode.value || roomStatus.value !== "solo" || tutorialActive.value) return;
+    const finishReplayImportBusy = (requestGeneration) => {
+      if (requestGeneration !== replayImportGeneration) return;
+      replayImportOwnsBusy = false;
+      activeReplayPanelImportId = null;
+      replayBusy.value = false;
+    };
+
+    const handleReplayPanelImportStart = (requestId) => {
+      const busyOwnedElsewhere = replayBusy.value && !replayImportOwnsBusy;
+      replayImportGeneration += 1;
+      activeReplayPanelImportId = requestId;
+      if (busyOwnedElsewhere || !isReplayImportAllowed()) {
+        activeReplayPanelImportId = null;
+        replayImportOwnsBusy = false;
+        if (!busyOwnedElsewhere) replayBusy.value = false;
+        return;
+      }
+      replayImportOwnsBusy = true;
       replayBusy.value = true;
       replayError.value = "";
+    };
+
+    const handleReplayPanelImportCancel = ({ previousRequestId }) => {
+      if (activeReplayPanelImportId === previousRequestId) invalidateReplayImport();
+    };
+
+    const handleReplayPanelImportError = ({ requestId, message }) => {
+      if (activeReplayPanelImportId !== requestId) return;
+      if (!isReplayImportAllowed()) {
+        invalidateReplayImport();
+        return;
+      }
+      replayError.value = message;
+      finishReplayImportBusy(replayImportGeneration);
+    };
+
+    const processReplayImport = async (text, requestGeneration) => {
+      if (requestGeneration !== replayImportGeneration) return;
+      if (!isReplayImportAllowed()) {
+        invalidateReplayImport();
+        return;
+      }
       try {
-        let parsed;
-        try {
-          parsed = JSON.parse(String(text));
-        } catch {
-          parsed = null;
+        if (new TextEncoder().encode(String(text)).byteLength > 4_000_000) {
+          throw new Error(language.value === "zh"
+            ? "文件超过 4,000,000 字节上限，未导入。"
+            : "File exceeds the 4,000,000-byte limit and was not imported.");
         }
+        let parsed;
+        try { parsed = JSON.parse(String(text)); } catch { parsed = null; }
         const result = parsed?.format === TOPOLOGY_REPLAY_FORMAT
           ? await validateTopologyReplayDocument(parsed)
           : await parseAndValidateReplay(text);
+        if (requestGeneration !== replayImportGeneration) return;
+        if (!isReplayImportAllowed()) {
+          invalidateReplayImport();
+          return;
+        }
         if (!result.success) {
           replayError.value = language.value === "zh"
             ? (result.eventSeq ? `棋谱校验失败（第 ${result.eventSeq} 步）：${result.reason}` : `棋谱校验失败：${result.reason}`)
             : (result.eventSeq ? `Replay verification failed at step ${result.eventSeq}: ${result.reason}` : `Replay verification failed: ${result.reason}`);
           return;
         }
-        if (replayMode.value || roomStatus.value !== "solo" || tutorialActive.value) return;
         replayDocument.value = result.document;
         replaySource.value = "imported";
         replayActions.value = isTopologyReplayDocument(result.document)
-          ? result.actions.map((action) => ({
-            ...action,
+          ? result.actions.map((action) => ({ ...action,
             ...(action.type === "player_move" ? { boardHash: result.boardHash } : {}),
-          }))
-          : result.actions;
+          })) : result.actions;
         replayCursor.value = 0;
+        replayError.value = "";
         cancelAiComparison();
         aiComparison.value = null;
         aiComparisonError.value = "";
         replayInspectionPoint.value = null;
-        const eventCount = result.eventCount ?? result.actions?.length ?? 0;
-        setActionFeedback(language.value === "zh" ? `棋谱已验证，共 ${eventCount} 步。点击“复盘导入棋谱”查看。` : `Replay verified: ${eventCount} steps. Choose “Review imported replay” to inspect it.`, "success");
+        setActionFeedback(language.value === "zh" ? `棋谱已验证，共 ${result.eventCount ?? result.actions?.length ?? 0} 步。点击“复盘导入棋谱”查看。` : `Replay verified: ${result.eventCount ?? result.actions?.length ?? 0} steps. Choose “Review imported replay” to inspect it.`, "success");
       } catch (error) {
-        replayError.value = error?.message ?? String(error);
+        if (requestGeneration === replayImportGeneration && isReplayImportAllowed()) {
+          replayError.value = error?.message ?? String(error);
+        }
       } finally {
-        replayBusy.value = false;
+        finishReplayImportBusy(requestGeneration);
       }
+    };
+
+    const handleReplayPanelImportFile = ({ requestId, text }) => {
+      if (activeReplayPanelImportId !== requestId || !replayImportOwnsBusy) return;
+      return processReplayImport(text, replayImportGeneration);
+    };
+
+    const handleReplayPanelImportNative = async ({ requestId }) => {
+      if (activeReplayPanelImportId !== requestId || !replayImportOwnsBusy) return;
+      const requestGeneration = replayImportGeneration;
+      try {
+        const result = await globalThis.LifelinePlatform.importReplay();
+        if (requestGeneration !== replayImportGeneration || activeReplayPanelImportId !== requestId) return;
+        if (result?.status === "cancelled") {
+          handleReplayPanelImportCancel({ previousRequestId: requestId });
+          return;
+        }
+        if (result?.status !== "selected" || typeof result.text !== "string") {
+          throw new Error(language.value === "zh" ? "无法读取所选棋谱，请重试。" : "Could not read the selected replay file. Please try again.");
+        }
+        return processReplayImport(result.text, requestGeneration);
+      } catch (error) {
+        if (requestGeneration !== replayImportGeneration || activeReplayPanelImportId !== requestId) return;
+        const message = error?.code === "too-large"
+          ? (language.value === "zh" ? "文件超过 4,000,000 字节上限，未读取。" : "File exceeds the 4,000,000-byte limit and was not read.")
+          : error?.code === "busy"
+            ? (language.value === "zh" ? "已有文件选择正在进行，请先完成或关闭它。" : "A file selection is already in progress. Finish or close it first.")
+            : (language.value === "zh" ? "读取棋谱失败，请重新选择文件后重试。" : "Could not read the replay file. Select it again to retry.");
+        handleReplayPanelImportError({ requestId, message });
+      }
+    };
+
+    const handleImportReplay = (text) => {
+      if ((replayBusy.value && !replayImportOwnsBusy) || !isReplayImportAllowed()) return Promise.resolve(false);
+      replayImportGeneration += 1;
+      activeReplayPanelImportId = null;
+      replayImportOwnsBusy = true;
+      replayBusy.value = true;
+      replayError.value = "";
+      return processReplayImport(text, replayImportGeneration);
     };
 
     const handleStartReplay = async (source = "current") => {
@@ -7513,6 +7719,9 @@ const App = {
     );
 
     onBeforeUnmount(() => {
+      replayAppDisposed = true;
+      replayOperationGeneration += 1;
+      invalidateReplayImport();
       cancelSharedPassword();
       accountLinkGeneration += 1; clearTimeout(accountLinkExpiry);
       contribution.dispose();
@@ -7723,6 +7932,11 @@ const App = {
       handleChatEmoji,
       handleExportReplay,
       handleImportReplay,
+      handleReplayPanelImportStart,
+      handleReplayPanelImportCancel,
+      handleReplayPanelImportError,
+      handleReplayPanelImportFile,
+      handleReplayPanelImportNative,
       handleStartReplay,
       handleExitReplay,
       handleSeekReplay,
@@ -8020,7 +8234,11 @@ const App = {
             :busy="replayBusy"
             :error="replayError"
             @export="handleExportReplay"
-            @import-file="handleImportReplay"
+            @import-start="handleReplayPanelImportStart"
+            @import-cancel="handleReplayPanelImportCancel"
+            @import-error="handleReplayPanelImportError"
+            @import-file="handleReplayPanelImportFile"
+            @import-native="handleReplayPanelImportNative"
             @review-current="handleStartReplay('current')"
             @review-imported="handleStartReplay('imported')"
             @exit-review="handleExitReplay"
