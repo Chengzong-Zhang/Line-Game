@@ -1,0 +1,99 @@
+{
+  "schema": "lifeline-platform-alignment-audit-v1",
+  "date": "2026-10-31",
+  "reference": {
+    "commit": "51e5782d3117871167783dc53413f0e6e7578bdf",
+    "predecessor": "73ca7be22774663c8872ae956d39c61e85744f69",
+    "relationship": "predecessor is merge-base",
+    "snapshot_git_files": 355,
+    "snapshot_exact": 350,
+    "snapshot_lf_equivalent": 5,
+    "snapshot_different": 0,
+    "snapshot_missing": 0,
+    "untracked_assets": "actual bytes are inventoried separately in package receipt; Git identity alone does not cover them"
+  },
+  "features": [
+    {
+      "feature": "rules, scoring, topology, full history and turn order",
+      "reference": "51e5782d",
+      "web_mini": "reference implementation; current device and cross-client acceptance pending",
+      "itch": "packaged preliminary, runtime acceptance pending",
+      "desktop": "packaged diagnostic, host adaptation incomplete",
+      "mobile": "old closure rejects new dependencies"
+    },
+    {
+      "feature": "hard AI Worker and frozen runtime",
+      "reference": "LocalAIWorkerFactory.js and frozen-workers/web-topology-fix-20261030-r2",
+      "web_mini": "reference implementation",
+      "itch": "Worker files included; runtime Worker check pending",
+      "desktop": "included in diagnostic asar, runtime not tested",
+      "mobile": "not yet reconciled"
+    },
+    {
+      "feature": "save, restore, replay and platform bridges",
+      "reference": "51e5782d plus each host implementation",
+      "itch": "not end-to-end verified",
+      "desktop": "isolated challenge/profile adapter: 24-level engine replay and first-level packaged save/return pass; backup UI and recovery need separate validation",
+      "mobile": "native adaptations must be semantically merged"
+    },
+    {
+      "feature": "shared online rooms",
+      "reference": "51e5782d",
+      "itch": "offline guards implemented; explicit wss online mode and actual cross-client validation pending",
+      "desktop": "old shell designed for offline operation",
+      "mobile": "pending host integration and real cross-client validation"
+    },
+    {
+      "feature": "current guide UI fixes",
+      "reference": "current session guide patch",
+      "all_candidates": "itch-guide-01 and desktop-guide-02 contain verified nine-file overlay; mobile candidate pending"
+    },
+    {
+      "feature": "player turn-order configuration",
+      "reference": "GameEngine and OnlineAppState validate/preserve turnOrder; 51e Mini has turn-order-ui and drag/set flow",
+      "web": "current Web UI exposes start-player selection; no arbitrary full-order editing entry found in OnlineApp or LocalPlayerSetup",
+      "wechat": "Mini offers ordering setup, including explicit full-order setting",
+      "impact": "shared state can represent turnOrder; authorship/entry differs and still needs Web UI implementation and cross-client acceptance"
+    }
+  ],
+  "platforms": {
+    "web": {
+      "state": "historical receipt: web-board-flow-20261030-r2 activated; no new deployment checked",
+      "pending": "current guide overlay and current-session verification"
+    },
+    "wechat": {
+      "state": "historical receipt: 0.14.0 officially uploaded and previewed; experience configuration, review, publication and device tests false",
+      "pending": "current guide overlay and device/cross-client verification"
+    },
+    "itch": {
+      "state": "itch-guide-01 built and static package/model verification passed",
+      "network": "offline guards present; enabled mode requires explicit secure endpoint and separate real cross-client check; contribution unsupported",
+      "browser": "iframe smoke passed including old session, old consent queue, Chinese image and Worker; IAB completed a game and checked guide navigation at mobile width"
+    },
+    "windows_steam": {
+      "state": "desktop-guide-02 built; packaged offline startup and 24-level engine replay passed; first-level UI and old-session/queue test in progress",
+      "gaps": [
+        "backup import/export and error-recovery UI need direct validation",
+        "Steam channel release integration",
+        "guide overlay final build and real UI check"
+      ]
+    },
+    "android_harmony": {
+      "state": "mobile closure audit blocks old manifests against new source",
+      "owner": "parallel isolated mobile candidate",
+      "pending": "semantic host adaptation, native build, installation and recovery checks"
+    },
+    "taptap": {
+      "state": "separate older mobile host, no new package",
+      "pending": "shared host integration, channel-specific verification"
+    },
+    "ios": {
+      "state": "navigation junction target absent on this machine; Windows cannot build Xcode archive",
+      "pending": "recover actual iOS host, reproducible assets, Mac/Xcode/signing/device"
+    },
+    "macos": {
+      "state": "no native build on Windows",
+      "pending": "Mac tooling, signing and device verification"
+    }
+  }
+}

@@ -1,0 +1,194 @@
+diff --git a/web/web前端/OnlineApp.js b/web/web前端/OnlineApp.js
+--- a/web/web前端/OnlineApp.js
++++ b/web/web前端/OnlineApp.js
+@@ -51,6 +51,7 @@
+   localizeErrorMessage as localizeAppErrorMessage,
+ } from "./OnlineAppI18n.js?v=20261029-unified-r1";
+ import { ensureGuideRuleImages, getGuideMarkdown, getGuideMarkdownAsset, parseGuideMarkdown } from "./GuideContent.js?v=20261029-unified-r1";
++import { getGuideChapterLinks } from "./GuideArticleFormat.js?v=20261031-guide-reading";
+ import {
+   TUTORIAL_LEVELS,
+   getTutorialEngineSettings,
+@@ -2771,6 +2772,8 @@
+       return subEntries.find((item) => item.key === activeSubKey.value) ?? subEntries[0];
+     });
+     const displayBlocks = computed(() => buildGuideDisplayBlocks(activeReadableEntry.value?.blocks ?? []));
++    const chapterLinks = computed(() => getGuideChapterLinks(displayBlocks.value));
++    const goToChapter = (id) => document.getElementById(id)?.scrollIntoView({ block: "start", behavior: "auto" });
+ 
+     const typesetGuideMath = () => {
+       nextTick?.(() => {
+@@ -2803,6 +2806,8 @@
+       activeReadableEntry,
+       activeSubKey,
+       displayBlocks,
++      chapterLinks,
++      goToChapter,
+       formatGuideDisplayMath,
+       highlightGuideCode,
+       texts: computed(() => getAppTexts(props.language, props.uiStyle)),
+@@ -2840,6 +2845,12 @@
+                 <span>{{ subEntry.subtitle }}</span>
+               </button>
+             </div>
++            <details v-if="chapterLinks.length > 1" :key="activeReadableEntry?.key" class="guide-chapter-contents">
++              <summary>{{ language === 'zh' ? '文章目录' : 'Contents' }} · {{ chapterLinks.length }}</summary>
++              <nav class="guide-chapter-nav" :aria-label="language === 'zh' ? '文章目录' : 'Article contents'">
++                <button v-for="chapter in chapterLinks" :key="chapter.id" type="button" @click="goToChapter(chapter.id)"><GuideInlineText :tokens="chapter.tokens" /></button>
++              </nav>
++            </details>
+             <div class="guide-reader-body">
+               <template v-for="(block, index) in displayBlocks" :key="(activeReadableEntry?.key || entry.key) + '-' + index">
+                 <h3 v-if="block.type === 'heading1'" :id="block.id" class="guide-block-heading-xl"><GuideInlineText :tokens="block.tokens" /></h3>
+diff --git a/web/web前端/GuideArticleFormat.js b/web/web前端/GuideArticleFormat.js
+--- a/web/web前端/GuideArticleFormat.js
++++ b/web/web前端/GuideArticleFormat.js
+@@ -4,6 +4,19 @@
+ export const c = (code, language = 'text', source = null) => ({ kind: 'code', code, language, source });
+ export const s = (id, zh, en, blocks) => ({ id, title: { zh, en }, blocks });
+ export const ch = (id, zh, en, overview, sections) => ({ id, title: { zh, en }, overview, sections });
++export function getGuideChapterLinks(blocks = []) {
++  // A paper has one heading1 title; its chapter navigation starts at heading2.
++  for (const type of ['heading1', 'heading2', 'heading3']) {
++    const seen = new Set();
++    const links = blocks.filter(block => {
++      if (block?.type !== type || !block.id || seen.has(block.id)) return false;
++      seen.add(block.id);
++      return true;
++    });
++    if (links.length > 1) return links;
++  }
++  return [];
++}
+ let letterOrNumber;
+ try {
+   // Construct at runtime so older WeChat engines can load this module.
+diff --git a/web/web前端/GuideTopologyChapters.js b/web/web前端/GuideTopologyChapters.js
+--- a/web/web前端/GuideTopologyChapters.js
++++ b/web/web前端/GuideTopologyChapters.js
+@@ -63,6 +63,8 @@
+   s('territory', '4.7 离散领土、连续面积与围困', '4.7 Discrete territory, display area and confinement', [
+     p('令 G 为规范格点邻接图，Wᵢ 为己方节点和线点，Oᵢ 为敌方占点，B 为真实边界点。令 Q 遍历 G−Wᵢ 的连通分量。当前正式规则如下；三角／六边棋盘是有外边界的特例。闭曲面 B=∅，仍须逐分量排除敌方。含敌人的封闭小块是围困目标，不是已获得的安全领土。',
+       'Let G be canonical sample adjacency, Wi friendly node/line samples, Oi enemy samples, and B the real boundary samples. Iterate components Q of G−Wi. The official rule below includes triangular and hexagonal boards as bounded cases. On closed surfaces B is empty, but enemy components still must be excluded. An enclosed enemy pocket is a confinement target, not already owned safe territory.'),
++    p('闭曲面没有真实边界：如果某个剩余连通分量不含敌方元素，它就按这条离散约定计分，即使屏幕上看不出被围住；若分量含敌方元素，整块不计分。这是游戏规则，不是由曲面的几何面积自动推导出的结论。',
++      'A closed surface has no real boundary. Under this discrete convention, any remaining component without enemy elements scores even when it does not look enclosed on screen; a component containing an enemy is excluded in full. This is a game rule, not a consequence of geometric surface area.'),
+     m(String.raw`R_i=W_i\cup\!\bigcup_{\substack{Q\in\pi_0(G-W_i)\\Q\cap B=\varnothing,\ Q\cap O_i=\varnothing}}Q,\qquad a_i=\sum_{v\in R_i}w_v.`,
+       'Ri = Wi ∪ components Q of G−Wi with Q∩B=∅ and Q∩Oi=∅; ai=Σv∈Ri wv (unit weights by default).'),
+     p('命题 T5：多源 BFS 与逐分量敌方检查恰好得到 Rᵢ，复杂度为 O(|V|+|E_G|)。证明由 BFS 的可达性不变量：入队点都有源路径，每个可达点沿最短源路径逐层入队。对每个剩余分量扫描敌方标记即可。这是图的零维连通性／H₀计算；未经额外细分与对应证明，它不等于连续曲面补空间 K−Wᵢ 的拓扑，也不等于二维面积。',
+diff --git a/web/web前端/GuideContent.js b/web/web前端/GuideContent.js
+--- a/web/web前端/GuideContent.js
++++ b/web/web前端/GuideContent.js
+@@ -192,7 +192,7 @@
+ const GUIDE_MARKDOWN = Object.freeze({
+   zh: Object.freeze({
+     rulesEssential: `【胜利条件】
+-玩家轮流在三角网格落子。己方节点和连线经过的格点直接计入领土；由己方点线隔开、不接触真实边界且不含敌方元素的每个空腔也计入，包括甜甜圈形状的内孔；含敌方元素的空腔不计。无需形成单一闭环；开链和单线仍按己方点数计分。同一格点只算一次。着色保留凸包与收紧轮廓，最后裁剪到棋盘范围，排除棋盘外部和挖掉的孔洞；单根连线不铺领土色。显示轮廓（displayArea）仅用于展示，不决定正式分数；最终格点数多者获胜。
++玩家轮流在三角网格落子。己方节点和连线经过的格点直接计入领土；由己方点线隔开、不接触真实边界且不含敌方元素的每个空腔也计入，包括甜甜圈形状的内孔；含敌方元素的空腔不计。无需形成单一闭环；开链和单线仍按己方点数计分。同一格点只算一次。显示轮廓（displayArea）仅用于展示，不决定正式分数；最终格点数多者获胜。
+ ![可落子区域示意](./guide-images/可以走的区域png.png)
+ 
+ 【核心机制】
+@@ -252,7 +252,7 @@
+   }),
+   en: Object.freeze({
+     rulesEssential: `【Victory Condition】
+-Players take turns placing nodes on a triangular grid. Your nodes and link points always count. Every enemy-free pocket separated by friendly points and not touching a true boundary also counts, including the inner hole of a donut-shaped structure; pockets containing an enemy are excluded. No single closed loop is required; an open chain or single line still scores its owned points. Each point counts once. Shading keeps the hull and tightened outlines, then clips them to the actual board, excluding its exterior and removed holes; a single link does not receive a territory fill. The displayed outline (displayArea) is for presentation and does not determine the official score. The higher total wins.
++Players take turns placing nodes on a triangular grid. Your nodes and link points always count. Every enemy-free pocket separated by friendly points and not touching a true boundary also counts, including the inner hole of a donut-shaped structure; pockets containing an enemy are excluded. No single closed loop is required; an open chain or single line still scores its owned points. Each point counts once. The displayed outline (displayArea) is for presentation and does not determine the official score. The higher total wins.
+ ![Playable area example](./guide-images/可以走的区域png.png)
+ 
+ 【Core Mechanic】
+diff --git a/web/web前端/styles.css b/web/web前端/styles.css
+--- a/web/web前端/styles.css
++++ b/web/web前端/styles.css
+@@ -4419,3 +4419,35 @@
+ 
+ .topology-chart-switch { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; }
+ .topology-chart-switch .language-button { min-width: 72px; min-height: 44px; }
++
++/* Guide reading: keep long prose and wide technical material usable at every width. */
++.guide-reader { display: flex; flex-direction: column; max-height: min(90dvh, 920px); }
++.guide-reader-top { flex: 0 0 auto; }
++.guide-reader-layout { flex: 1 1 auto; max-height: none; }
++.guide-reader-body, .guide-chapter-contents { width: min(100%, 76ch); margin-inline: auto; min-width: 0; }
++.guide-reader-body > * { min-width: 0; }
++.guide-block-heading-xl, .guide-block-heading, .guide-block-subheading { scroll-margin-top: 1rem; overflow-wrap: anywhere; }
++.guide-block-heading-xl { padding-top: 0.75rem; border-top: 1px solid rgba(88, 61, 31, 0.14); }
++.guide-block-paragraph, .guide-block-bullet p, .guide-block-ordered p { overflow-wrap: anywhere; }
++.guide-chapter-contents { margin-bottom: 1.5rem; border: 1px solid rgba(88, 61, 31, 0.16); border-radius: 0.8rem; padding: 0.25rem 0.9rem; }
++.guide-chapter-contents summary { cursor: pointer; min-height: 44px; display: list-item; align-content: center; font-weight: 700; color: var(--ink); }
++.guide-chapter-contents summary:focus-visible { outline: 3px solid #765021; outline-offset: 2px; }
++.guide-chapter-nav { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; padding-bottom: 0.75rem; }
++.guide-chapter-nav button { min-height: 44px; padding: 0.5rem 0.75rem; border: 1px solid rgba(88, 61, 31, 0.22); border-radius: 0.6rem; background: #fffaf0; color: var(--ink); text-align: left; cursor: pointer; }
++.guide-chapter-nav button:hover { background: #f4e7d1; }
++.guide-chapter-nav button:focus-visible, .guide-sub-tab:focus-visible { outline: 3px solid #765021; outline-offset: 2px; }
++.guide-block-math, .guide-code-block, .guide-table-wrap { max-width: 100%; }
++.guide-block-math mjx-container[display="true"] { min-width: max-content; }
++@media (max-width: 600px) {
++  .guide-overlay { padding: 8px; }
++  .guide-reader { width: 100%; max-height: 94dvh; border-radius: 18px; }
++  .guide-reader-top { gap: 10px; padding: 16px; }
++  .guide-reader-top h2 { font-size: 1.35rem; }
++  .guide-reader-subtitle { margin-top: 6px; line-height: 1.45; }
++  .guide-reader-layout { padding: 16px 16px 40px; }
++  .guide-sub-tabs { gap: 8px; margin-bottom: 16px; }
++  .guide-sub-tab { min-height: 44px; padding: 10px 12px; }
++  .guide-chapter-nav button { flex: 1 1 100%; }
++  .guide-reader-body { gap: 16px; }
++  .guide-code-block, .guide-block-math { padding: 12px; }
++}
+diff --git a/web/web前端/guide/rule/essential rule.md b/web/web前端/guide/rule/essential rule.md
+--- a/web/web前端/guide/rule/essential rule.md
++++ b/web/web前端/guide/rule/essential rule.md
+@@ -1,5 +1,5 @@
+ 【胜利条件】
+-玩家轮流在三角网格落子。己方节点和连线经过的格点直接计入领土；由己方点线隔开、不接触真实边界且不含敌方元素的每个空腔也计入，包括甜甜圈形状的内孔；含敌方元素的空腔不计。无需形成单一闭环；开链和单线仍按己方点数计分。同一格点只算一次。着色保留凸包与收紧轮廓，最后裁剪到棋盘范围，排除棋盘外部和挖掉的孔洞；单根连线不铺领土色。显示轮廓（displayArea）仅用于展示，不决定正式分数；最终格点数多者获胜。
++玩家轮流在三角网格落子。己方节点和连线经过的格点直接计入领土；由己方点线隔开、不接触真实边界且不含敌方元素的每个空腔也计入，包括甜甜圈形状的内孔；含敌方元素的空腔不计。无需形成单一闭环；开链和单线仍按己方点数计分。同一格点只算一次。显示轮廓（displayArea）仅用于展示，不决定正式分数；最终格点数多者获胜。
+ ![可落子区域示意](./guide-images/可以走的区域png.png)
+ 
+ 【核心机制】
+diff --git a/web/web前端/guide/rule/math rule.md b/web/web前端/guide/rule/math rule.md
+--- a/web/web前端/guide/rule/math rule.md
++++ b/web/web前端/guide/rule/math rule.md
+@@ -386,6 +386,8 @@
+ 
+ 令 G 为规范格点邻接图，Wᵢ 为己方节点和线点，Oᵢ 为敌方占点，B 为真实边界点。令 Q 遍历 G−Wᵢ 的连通分量。当前正式规则如下；三角／六边棋盘是有外边界的特例。闭曲面 B=∅，仍须逐分量排除敌方。含敌人的封闭小块是围困目标，不是已获得的安全领土。
+ 
++闭曲面没有真实边界：如果某个剩余连通分量不含敌方元素，它就按这条离散约定计分，即使屏幕上看不出被围住；若分量含敌方元素，整块不计分。这是游戏规则，不是由曲面的几何面积自动推导出的结论。
++
+ $$
+ R_i=W_i\cup\!\bigcup_{\substack{Q\in\pi_0(G-W_i)\\Q\cap B=\varnothing,\ Q\cap O_i=\varnothing}}Q,\qquad a_i=\sum_{v\in R_i}w_v.
+ $$
+diff --git a/web/web前端/guide/rule/math rule.en.md b/web/web前端/guide/rule/math rule.en.md
+--- a/web/web前端/guide/rule/math rule.en.md
++++ b/web/web前端/guide/rule/math rule.en.md
+@@ -386,6 +386,8 @@
+ 
+ Let G be canonical sample adjacency, Wi friendly node/line samples, Oi enemy samples, and B the real boundary samples. Iterate components Q of G−Wi. The official rule below includes triangular and hexagonal boards as bounded cases. On closed surfaces B is empty, but enemy components still must be excluded. An enclosed enemy pocket is a confinement target, not already owned safe territory.
+ 
++A closed surface has no real boundary. Under this discrete convention, any remaining component without enemy elements scores even when it does not look enclosed on screen; a component containing an enemy is excluded in full. This is a game rule, not a consequence of geometric surface area.
++
+ $$
+ R_i=W_i\cup\!\bigcup_{\substack{Q\in\pi_0(G-W_i)\\Q\cap B=\varnothing,\ Q\cap O_i=\varnothing}}Q,\qquad a_i=\sum_{v\in R_i}w_v.
+ $$
+diff --git a/web/web前端/tests/verify-guide-content.mjs b/web/web前端/tests/verify-guide-content.mjs
+--- a/web/web前端/tests/verify-guide-content.mjs
++++ b/web/web前端/tests/verify-guide-content.mjs
+@@ -2,6 +2,7 @@
+ import fs from "node:fs";
+ import { parseGuideMarkdown, getGuideMarkdown, getGuideMarkdownAsset, ensureGuideRuleImages } from "../GuideContent.js";
+ import { guideChapters, implementationSections } from "../GuideImplementation.js";
++import { getGuideChapterLinks } from "../GuideArticleFormat.js";
+ 
+ const sourceUrl = "https://github.com/Chengzong-Zhang/Line-Game/blob/main/README.md";
+ const source = parseGuideMarkdown(`[源码](${sourceUrl})`);
+@@ -35,6 +36,11 @@
+       assert.equal(illustrated.filter(block => block.type === 'image').length, 5);
+     }
+     assert.equal(headings.length, 4, 'four main chapters including topology');
++    const navigation = getGuideChapterLinks(blocks);
++    assert.deepEqual(navigation.map(block => block.text), headings,
++      'the reader navigation must expose all four actual chapters, not just the article title');
++    assert.ok(navigation.every(link => blocks.some(block => block.id === link.id)),
++      'every chapter navigation target exists in the rendered article');
+     assert.deepEqual(headings, guideChapters(kind).map(chapter => chapter.title[language]));
+     assert.deepEqual(blocks.filter(block => block.type === 'heading3').map(block => block.text),
+       implementationSections(kind, language).filter(section => section.level === 3).map(section => section.title));

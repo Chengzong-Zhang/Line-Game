@@ -1,0 +1,65 @@
+{
+  "mode": "installed",
+  "source": "C:\\coding\\py\\line game\\working\\skills\\lifeline-dev",
+  "destination": "C:\\Users\\zcz\\.codex\\skills\\lifeline-dev",
+  "fileCount": 9,
+  "changed": [
+    "references\\user-intent.md"
+  ],
+  "files": [
+    {
+      "path": "agents/openai.yaml",
+      "before": "4644bb798bca6db97f303df3e6ac3eb036e7369e1d0aed0176295b679021a0ac",
+      "source": "4644bb798bca6db97f303df3e6ac3eb036e7369e1d0aed0176295b679021a0ac",
+      "installed": "4644bb798bca6db97f303df3e6ac3eb036e7369e1d0aed0176295b679021a0ac"
+    },
+    {
+      "path": "references/ai-performance.md",
+      "before": "506c03672ce43347e2e5c2436392c37916604b2bf22d740199f0c4b4ecec010b",
+      "source": "506c03672ce43347e2e5c2436392c37916604b2bf22d740199f0c4b4ecec010b",
+      "installed": "506c03672ce43347e2e5c2436392c37916604b2bf22d740199f0c4b4ecec010b"
+    },
+    {
+      "path": "references/platform-sync.md",
+      "before": "6edd7636b55b2d265bceb3346b1e9164d51d4f3435fcdf5145d62ab7e91692ae",
+      "source": "6edd7636b55b2d265bceb3346b1e9164d51d4f3435fcdf5145d62ab7e91692ae",
+      "installed": "6edd7636b55b2d265bceb3346b1e9164d51d4f3435fcdf5145d62ab7e91692ae"
+    },
+    {
+      "path": "references/project-map.md",
+      "before": "e7793370f21c6de7cc733565430d31bdc0be61d1de76d5296529276a9cb2bf61",
+      "source": "e7793370f21c6de7cc733565430d31bdc0be61d1de76d5296529276a9cb2bf61",
+      "installed": "e7793370f21c6de7cc733565430d31bdc0be61d1de76d5296529276a9cb2bf61"
+    },
+    {
+      "path": "references/repository-maintenance.md",
+      "before": "29d5d518842529c48f2f21b76ffe1a6da2c21a4e9afbec262469db8087e76817",
+      "source": "29d5d518842529c48f2f21b76ffe1a6da2c21a4e9afbec262469db8087e76817",
+      "installed": "29d5d518842529c48f2f21b76ffe1a6da2c21a4e9afbec262469db8087e76817"
+    },
+    {
+      "path": "references/research-workflow.md",
+      "before": "81c7cc37a3f27dd8723c3d8a3297e02c89f1ea252b19ddee11790e873d5fef17",
+      "source": "81c7cc37a3f27dd8723c3d8a3297e02c89f1ea252b19ddee11790e873d5fef17",
+      "installed": "81c7cc37a3f27dd8723c3d8a3297e02c89f1ea252b19ddee11790e873d5fef17"
+    },
+    {
+      "path": "references/topology-and-state.md",
+      "before": "67f103d700bd15cb6fbee8229d7e7053d08b223a4d9f2bf3a5f84b8f46c53f28",
+      "source": "67f103d700bd15cb6fbee8229d7e7053d08b223a4d9f2bf3a5f84b8f46c53f28",
+      "installed": "67f103d700bd15cb6fbee8229d7e7053d08b223a4d9f2bf3a5f84b8f46c53f28"
+    },
+    {
+      "path": "references/user-intent.md",
+      "before": "921ee3f6b70e24dd352fae8d9881cc25dcd91f2ced142ccdf51bf4608208fa01",
+      "source": "e9a744cabf25c28e938450e5c195dee8181b5f1fbe2195debf992ce2712e0fda",
+      "installed": "e9a744cabf25c28e938450e5c195dee8181b5f1fbe2195debf992ce2712e0fda"
+    },
+    {
+      "path": "SKILL.md",
+      "before": "e5e47439de1e1cf2e1d4aa96188c8d07d3908a041cbf723518fb483903ed878a",
+      "source": "e5e47439de1e1cf2e1d4aa96188c8d07d3908a041cbf723518fb483903ed878a",
+      "installed": "e5e47439de1e1cf2e1d4aa96188c8d07d3908a041cbf723518fb483903ed878a"
+    }
+  ]
+}

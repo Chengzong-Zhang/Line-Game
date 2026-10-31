@@ -1,0 +1,583 @@
+{
+  "status": "MOVED_WITH_CONTENT_HASHES_VERIFIED",
+  "base": "51e5782d",
+  "moved": [
+    {
+      "from": "docs/REPLAY_AI_CONTRIBUTION_INTEGRATION_20261013.md",
+      "to": "working/docs/REPLAY_AI_CONTRIBUTION_INTEGRATION_20261013.md",
+      "sha256": "20c4807979a597381710cab3cd8a79da17c096904d899ea89f17e1976ba3b27e"
+    },
+    {
+      "from": "docs/WEB_SIZE_TRANSFER_V1_20261012.md",
+      "to": "working/docs/WEB_SIZE_TRANSFER_V1_20261012.md",
+      "sha256": "98e33841405b26ba74f63d0ea4453d893f64dc98baa0310eaf85ed5552e40147"
+    },
+    {
+      "from": "docs/product/WECHAT_LADDER_V1.md",
+      "to": "working/docs/product/WECHAT_LADDER_V1.md",
+      "sha256": "f2bc9de76ce6cb02dfa0d866ce54ffeb3fa3b7f34c519b7d058e64f309190025"
+    },
+    {
+      "from": "docs/product/WECHAT_LADDER_V2.md",
+      "to": "working/docs/product/WECHAT_LADDER_V2.md",
+      "sha256": "68f8bf1c6becd76c27d33494de084ed335e2efb3db33c3c3f47b14e197db0c1d"
+    },
+    {
+      "from": "docs/product/WECHAT_LADDER_V3.md",
+      "to": "working/docs/product/WECHAT_LADDER_V3.md",
+      "sha256": "73c96cc7db80d747042f7d309457b5f1c873ac6f756960db3a59eff518fd56e9"
+    },
+    {
+      "from": "docs/verification/wechat-ladder-20261026.md",
+      "to": "working/docs/verification/wechat-ladder-20261026.md",
+      "sha256": "77638e1e0c7ec60c6e2e1e1d83f5307fc28fa4fd2ec10bdb8f7fcfe9a45ed96f"
+    },
+    {
+      "from": "docs/verification/wechat-ladder-v2-20261026.md",
+      "to": "working/docs/verification/wechat-ladder-v2-20261026.md",
+      "sha256": "a19a0412e3cde1c2ef00a9f4ecb343fde4c5aa0dc6d479259f06696cee63ac28"
+    },
+    {
+      "from": "docs/releases/ai-duel-layout-20261013/deployment.json",
+      "to": "working/docs/releases/ai-duel-layout-20261013/deployment.json",
+      "sha256": "eca3bee283b9ff607ed0317feb7274367f959d3043bba5034590ff929c9afacf"
+    },
+    {
+      "from": "docs/releases/ai-duel-layout-20261013/package.json",
+      "to": "working/docs/releases/ai-duel-layout-20261013/package.json",
+      "sha256": "45ff47095b2c7c5abef1d36a078a2e332f85f24d52844d416c23d1efc67125f4"
+    },
+    {
+      "from": "docs/releases/ai-duel-layout-20261013/README.md",
+      "to": "working/docs/releases/ai-duel-layout-20261013/README.md",
+      "sha256": "1accaeae52b625a2c694a76dda5c090efcc05baaf4a2b7124fcd395a2e76720a"
+    },
+    {
+      "from": "docs/releases/ai-duel-layout-20261013/verification.json",
+      "to": "working/docs/releases/ai-duel-layout-20261013/verification.json",
+      "sha256": "809950c41adbfdb426ca42c9ba75c5a128ae449a8fa5d52ca3c0142b77781f01"
+    },
+    {
+      "from": "docs/releases/web-ai-transfer-v1-20261013/deployment.json",
+      "to": "working/docs/releases/web-ai-transfer-v1-20261013/deployment.json",
+      "sha256": "82049bd62ba0635316ea4d69fd2ea8a89d978009962c53a688ebd389cfffa324"
+    },
+    {
+      "from": "docs/releases/web-ai-transfer-v1-20261013/preflight.json",
+      "to": "working/docs/releases/web-ai-transfer-v1-20261013/preflight.json",
+      "sha256": "36efae32eb56e1eea4bbb5ec47116ee913679f19bd5cbc9af5e326b4f126dfc0"
+    },
+    {
+      "from": "docs/releases/web-ai-transfer-v1-20261013/README.md",
+      "to": "working/docs/releases/web-ai-transfer-v1-20261013/README.md",
+      "sha256": "72536adec06ac2949da6edbc647cfd66d059a6cbf983da6f735f5125f6f590eb"
+    },
+    {
+      "from": "docs/releases/web-ai-transfer-v1-20261013/ui-introductions.json",
+      "to": "working/docs/releases/web-ai-transfer-v1-20261013/ui-introductions.json",
+      "sha256": "873cd5a00e6b8df040e1b124857cb758fd8434a3c50fb0741e7082179fd5e213"
+    },
+    {
+      "from": "docs/verification/collector-turn-order-20261030/archive-receipt.json",
+      "to": "working/docs/verification/collector-turn-order-20261030/archive-receipt.json",
+      "sha256": "bea67adf05bc3e713101bfb5624a7cb0ec6cd3d6d1a4defc789cacaf5b7d47f6"
+    },
+    {
+      "from": "docs/verification/collector-turn-order-20261030/no-copy-preflight.json",
+      "to": "working/docs/verification/collector-turn-order-20261030/no-copy-preflight.json",
+      "sha256": "15e7ab537c364c397f6547c6df553696f39d49f48e0f07a117d0ad5034cf925c"
+    },
+    {
+      "from": "docs/verification/collector-turn-order-20261030/preparation.json",
+      "to": "working/docs/verification/collector-turn-order-20261030/preparation.json",
+      "sha256": "cf77d6644440764c81b427a15c473079375cc235eaafe33d08872786e5514571"
+    },
+    {
+      "from": "docs/verification/release-all-20261024/legacy-probe.py",
+      "to": "working/docs/verification/release-all-20261024/legacy-probe.py",
+      "sha256": "316ec30d86bd59c18be77569c4309bb0e80f9a338c1dfbed425a2ad6e7e3f5ba"
+    },
+    {
+      "from": "docs/verification/release-all-20261024/official-upload-0.12.7.json",
+      "to": "working/docs/verification/release-all-20261024/official-upload-0.12.7.json",
+      "sha256": "c5110e371bec479e68f1d78bd8c768aeed15c7da3527bbc3487c9643f45958f6"
+    },
+    {
+      "from": "docs/verification/release-all-20261024/online-bot-bridge-v3.test.mjs",
+      "to": "working/docs/verification/release-all-20261024/online-bot-bridge-v3.test.mjs",
+      "sha256": "140e03142e6b8b8e091e0510ea7a6aa1900bfc52af4fef590cc31d076968e669"
+    },
+    {
+      "from": "docs/verification/release-all-20261024/prepare-legacy.py",
+      "to": "working/docs/verification/release-all-20261024/prepare-legacy.py",
+      "sha256": "a4f7bec9b4e115d51737dcaa82e6af053e16a77d96fd51ddc4ed2018bd98d646"
+    },
+    {
+      "from": "docs/verification/release-all-20261024/release-state-20261024.json",
+      "to": "working/docs/verification/release-all-20261024/release-state-20261024.json",
+      "sha256": "d04407fb6a0ebf1fda0559778e5c65efc52649c62f2d666933575860dd0754c4"
+    },
+    {
+      "from": "docs/verification/release-all-20261024/RELEASE_STATUS.md",
+      "to": "working/docs/verification/release-all-20261024/RELEASE_STATUS.md",
+      "sha256": "599a627444d2fabab8701de6d373f2db522e49c0a86dbc704d158ed9b0247de5"
+    },
+    {
+      "from": "docs/verification/release-all-20261024/verify-live-scoring.mjs",
+      "to": "working/docs/verification/release-all-20261024/verify-live-scoring.mjs",
+      "sha256": "e044aa564abf799c324ba143ab8d392c9b853813f54137e1ecccf483b227e756"
+    },
+    {
+      "from": "docs/verification/release-all-20261024/web-bundle-receipt.json",
+      "to": "working/docs/verification/release-all-20261024/web-bundle-receipt.json",
+      "sha256": "50696ceea91993c3bae094abe8be3f2c55e9423606fe363146efe7dc25aef051"
+    },
+    {
+      "from": "docs/verification/release-all-20261024/web-local-verification.json",
+      "to": "working/docs/verification/release-all-20261024/web-local-verification.json",
+      "sha256": "4d8df88ce14d376c996d1a31be1bf05f017d69ca05162e6f51cbdf4223a5ea6e"
+    },
+    {
+      "from": "docs/verification/release-all-20261024/web-production-merge.patch",
+      "to": "working/docs/verification/release-all-20261024/web-production-merge.patch",
+      "sha256": "6e573f419c24291a9189a756a9653fafa241d1f0072a1d7953dde254ff5e6adf"
+    },
+    {
+      "from": "docs/verification/release-all-20261024/web-production-sources.json",
+      "to": "working/docs/verification/release-all-20261024/web-production-sources.json",
+      "sha256": "4ba3ec681d0d0bdcee7ebd8542275476bb31a561144f721303bb5217ea962b0b"
+    },
+    {
+      "from": "docs/verification/release-all-20261024/web-real-crossplatform.mjs",
+      "to": "working/docs/verification/release-all-20261024/web-real-crossplatform.mjs",
+      "sha256": "d021fed124634c1a7c509fbc79a58d9ba3c7a0a18f4ad7a99c1ba9a52b9b7c02"
+    },
+    {
+      "from": "docs/verification/release-all-20261024/web-release-manifest.json",
+      "to": "working/docs/verification/release-all-20261024/web-release-manifest.json",
+      "sha256": "9bfaaf64d6299eabc25360be6626c8ad4813942dd7ce2a6d6f2c6ee79b2732c4"
+    },
+    {
+      "from": "docs/verification/release-all-20261024/web-run_real_crossplatform.py",
+      "to": "working/docs/verification/release-all-20261024/web-run_real_crossplatform.py",
+      "sha256": "4ab9fef3c38410b5c887023bd0cfc7b9e0c9d282c33c9384d2e578707b453d13"
+    },
+    {
+      "from": "docs/verification/release-all-20261024/web-shared-password.test.mjs",
+      "to": "working/docs/verification/release-all-20261024/web-shared-password.test.mjs",
+      "sha256": "f44f32c90d3ad6033a41a6fc9b43ce6c660deb9c9a60d0f82344201d0659392d"
+    },
+    {
+      "from": "docs/verification/release-all-20261024/web-shared-release-v3.test.mjs",
+      "to": "working/docs/verification/release-all-20261024/web-shared-release-v3.test.mjs",
+      "sha256": "cb82097f9fca4b68079f427e5e8c7d35fac6b063502d5c3c59f011def1437e52"
+    },
+    {
+      "from": "docs/verification/release-all-20261024/web-shared-web-ui.test.mjs",
+      "to": "working/docs/verification/release-all-20261024/web-shared-web-ui.test.mjs",
+      "sha256": "49b63df2163dd29f4d5ac4e8e173b33e057f7499926bcc1a8c7631998ea9baf5"
+    },
+    {
+      "from": "docs/verification/release-all-20261024/WEB_CANDIDATE.md",
+      "to": "working/docs/verification/release-all-20261024/WEB_CANDIDATE.md",
+      "sha256": "04314c452fd7a455c6330e9f341d6f59ec27b3fac9df896f2e1abdfddcd67c37"
+    },
+    {
+      "from": "docs/verification/release-all-20261024-mini/candidate.json",
+      "to": "working/docs/verification/release-all-20261024-mini/candidate.json",
+      "sha256": "fc65a7387ba9caabd7ba3283e749a49b7ba7d3d9979b8019f4a8a947d3d3c79e"
+    },
+    {
+      "from": "docs/verification/release-all-20261024-mini/crossplatform.json",
+      "to": "working/docs/verification/release-all-20261024-mini/crossplatform.json",
+      "sha256": "b07836dee6f763a5069efacd6ab51c1c360d2191dd5918be986472002b64e924"
+    },
+    {
+      "from": "docs/verification/release-all-20261024-mini/input-hashes.json",
+      "to": "working/docs/verification/release-all-20261024-mini/input-hashes.json",
+      "sha256": "b86e02835df6f4b3a2f81d96ab57cfbf79abc9cad73298b754341e93dccca965"
+    },
+    {
+      "from": "docs/verification/release-all-20261024-mini/mini-integration.patch",
+      "to": "working/docs/verification/release-all-20261024-mini/mini-integration.patch",
+      "sha256": "3243dba2bff9facc29eeb900975eb2a99894d41d2e7a0ab8c4d1dd16c60f3ab7"
+    },
+    {
+      "from": "docs/verification/release-all-20261024-mini/offline-browser.json",
+      "to": "working/docs/verification/release-all-20261024-mini/offline-browser.json",
+      "sha256": "da3a23b6051a6f359838ea8f82b2f394fdcbdcf67a840a93ae2327b9dc9c0a38"
+    },
+    {
+      "from": "docs/verification/release-all-20261024-mini/README.md",
+      "to": "working/docs/verification/release-all-20261024-mini/README.md",
+      "sha256": "f189354308f7fcacfa63ed250e6ea074373b24f9d3e661b8e6edfbfdd4ce79c6"
+    },
+    {
+      "from": "docs/verification/release-all-20261024-mini/source-overlays.json",
+      "to": "working/docs/verification/release-all-20261024-mini/source-overlays.json",
+      "sha256": "b30017d57b29746619700312108616ca658a7eb6075d6c50f7651798f02e3fa1"
+    },
+    {
+      "from": "docs/verification/release-all-20261024-mini/verification.json",
+      "to": "working/docs/verification/release-all-20261024-mini/verification.json",
+      "sha256": "3eff92184f1b3ae0f5d16ffec5942aa8d0c856d1ea2434a934895f17a573efc7"
+    },
+    {
+      "from": "docs/verification/release-all-20261024-mini/web-portability.patch",
+      "to": "working/docs/verification/release-all-20261024-mini/web-portability.patch",
+      "sha256": "50c83fc5bec7639ac23269d872cc7a5127718b1c64bd32a06ac9ac08e4d7d7f8"
+    },
+    {
+      "from": "docs/verification/web-size-transfer-v1-20261012/commands.json",
+      "to": "working/docs/verification/web-size-transfer-v1-20261012/commands.json",
+      "sha256": "3d8e5809e15d97365b0f03465c43f3ef7adeabf4ba85d7c76e2ad3049da68d49"
+    },
+    {
+      "from": "docs/verification/web-size-transfer-v1-20261012/verification.json",
+      "to": "working/docs/verification/web-size-transfer-v1-20261012/verification.json",
+      "sha256": "faeb93de0d562f0ea3914f8b63139927aa9bccd7825c57a46b5c9626d4924a13"
+    },
+    {
+      "from": "docs/verification/web-training-data-v1-20261013/deployment.json",
+      "to": "working/docs/verification/web-training-data-v1-20261013/deployment.json",
+      "sha256": "e882d58a7e4eb35504c2e21b1d7eee0d7adb52c84993668d1f32dee3ef92b395"
+    },
+    {
+      "from": "docs/verification/web-training-data-v1-20261013/README.md",
+      "to": "working/docs/verification/web-training-data-v1-20261013/README.md",
+      "sha256": "63155af80cb3ea124cc228cb1acc192ecfc4e4227847135f0d21f3aeb4ba2066"
+    },
+    {
+      "from": "docs/verification/web-training-data-v1-20261013/verification.json",
+      "to": "working/docs/verification/web-training-data-v1-20261013/verification.json",
+      "sha256": "3d9256f017cd171c2b5b4ea65d56439756e94137c1fc54835ca2ff7482e96573"
+    },
+    {
+      "from": "docs/verification/wechat-ladder-20261026/battle-ai.png",
+      "to": "working/docs/verification/wechat-ladder-20261026/battle-ai.png",
+      "sha256": "5c898a38f2f42351968721f81d96208c5b61ea6ffdefb26de84a8b5e196ff2e3"
+    },
+    {
+      "from": "docs/verification/wechat-ladder-20261026/battle-human.png",
+      "to": "working/docs/verification/wechat-ladder-20261026/battle-human.png",
+      "sha256": "002f985654362b374394975b3964a2914d05f484bd2bd6494eb4bd4ffda4dd70"
+    },
+    {
+      "from": "docs/verification/wechat-ladder-20261026/receipt.json",
+      "to": "working/docs/verification/wechat-ladder-20261026/receipt.json",
+      "sha256": "14efb37fdbb7375251c28cfad9669364f9be27b5e47ebb7d53493936d8b05633"
+    },
+    {
+      "from": "docs/verification/wechat-ladder-v2-20261026/ai-after-result.png",
+      "to": "working/docs/verification/wechat-ladder-v2-20261026/ai-after-result.png",
+      "sha256": "698f913136c5a3b1da3bd707b4b87d07abd261f8c8abfa57107a6a6aca4c8e4c"
+    },
+    {
+      "from": "docs/verification/wechat-ladder-v2-20261026/ai-initial.png",
+      "to": "working/docs/verification/wechat-ladder-v2-20261026/ai-initial.png",
+      "sha256": "bd761bc41582924a4929bf47d7d3d501ade3ef912f93095b547e35ceaa839312"
+    },
+    {
+      "from": "docs/verification/wechat-ladder-v2-20261026/ai-result.png",
+      "to": "working/docs/verification/wechat-ladder-v2-20261026/ai-result.png",
+      "sha256": "15dbf79cac75da7a5555b4ab7ab631aa557401818d2ba708c8635859f615714e"
+    },
+    {
+      "from": "docs/verification/wechat-ladder-v2-20261026/human-initial.png",
+      "to": "working/docs/verification/wechat-ladder-v2-20261026/human-initial.png",
+      "sha256": "7e2248afb2b47665973a49623697b5ce27cfb697917aacee905922b2676a800f"
+    },
+    {
+      "from": "docs/verification/wechat-ladder-v2-20261026/receipt.json",
+      "to": "working/docs/verification/wechat-ladder-v2-20261026/receipt.json",
+      "sha256": "85d4844e34e221a38935f9833a2cbf0d9ab449952636a24418420a554b73fe16"
+    },
+    {
+      "from": "docs/verification/wechat-ladder-v2-20261026/rules.png",
+      "to": "working/docs/verification/wechat-ladder-v2-20261026/rules.png",
+      "sha256": "e5d66a15a0a43a994bcbd427b9627d8657d4aa955361fd7ec6befc06bb09071a"
+    },
+    {
+      "from": "docs/verification/wechat-ladder-v3-20261026/candidate-smoke.json",
+      "to": "working/docs/verification/wechat-ladder-v3-20261026/candidate-smoke.json",
+      "sha256": "ce23d271094c84c38cc6e56df4fac5277a47f052818c4e428759b7a2147626e0"
+    },
+    {
+      "from": "docs/verification/wechat-ladder-v3-20261026/first-match-ladder.png",
+      "to": "working/docs/verification/wechat-ladder-v3-20261026/first-match-ladder.png",
+      "sha256": "3a2b8523aeb6292c62a2c3de20a945b6d2185739466d46776e1b39e05c59e248"
+    },
+    {
+      "from": "docs/verification/wechat-ladder-v3-20261026/multiplayer-forfeit.png",
+      "to": "working/docs/verification/wechat-ladder-v3-20261026/multiplayer-forfeit.png",
+      "sha256": "32ed9c72d2b9dd6f88671d5a96030028291276e472b050531ee399cbca0a1447"
+    },
+    {
+      "from": "docs/verification/wechat-ladder-v3-20261026/random-hex-ai-reply.png",
+      "to": "working/docs/verification/wechat-ladder-v3-20261026/random-hex-ai-reply.png",
+      "sha256": "8aa64d8d3b588c3a83a81c69e6f03fb74d88c54ddcea6dd762ecf0618a3588f6"
+    },
+    {
+      "from": "docs/verification/wechat-ladder-v3-20261026/random-rematch.png",
+      "to": "working/docs/verification/wechat-ladder-v3-20261026/random-rematch.png",
+      "sha256": "d0670ffd25fb2b81aa0c759c38b52bfe5703841ce151e66b7056d8d4e00fdc4a"
+    },
+    {
+      "from": "docs/verification/wechat-ladder-v3-20261026/README.md",
+      "to": "working/docs/verification/wechat-ladder-v3-20261026/README.md",
+      "sha256": "cb96acf3a84c4276d45419558766838383c1872bf11e4d17e7025aa66abff54e"
+    },
+    {
+      "from": "docs/verification/wechat-ladder-v3-20261026/receipt.json",
+      "to": "working/docs/verification/wechat-ladder-v3-20261026/receipt.json",
+      "sha256": "ae1ad6ab8f44debc651fbb9c737417afea043b04c48f1d4e276cdf94359e8518"
+    },
+    {
+      "from": "docs/verification/wechat-ladder-v3-20261026/source-snapshot.json",
+      "to": "working/docs/verification/wechat-ladder-v3-20261026/source-snapshot.json",
+      "sha256": "893472d7fcb1bfddf9f7b27caf4fb055264b4dde3662118c396b88197ff666e8"
+    },
+    {
+      "from": "docs/verification/wechat-ladder-v3-20261026/task-files.json",
+      "to": "working/docs/verification/wechat-ladder-v3-20261026/task-files.json",
+      "sha256": "9cb0ec62e786207b49165a75e8e028bcfed174965c065d9bd90d86e77e16dd6a"
+    },
+    {
+      "from": "docs/verification/wechat-name-20261025/current-source-followup.patch",
+      "to": "working/docs/verification/wechat-name-20261025/current-source-followup.patch",
+      "sha256": "7c4cc01383048e5773bf6bc5601f6f2052ffbcde1d22343973ab6fc3714db863"
+    },
+    {
+      "from": "docs/verification/wechat-name-20261025/README.md",
+      "to": "working/docs/verification/wechat-name-20261025/README.md",
+      "sha256": "ee5756b4f1e461a238b17acca7fb3517877cea7776cb96ca1c73df92332b967b"
+    },
+    {
+      "from": "docs/verification/wechat-name-20261025/receipt.json",
+      "to": "working/docs/verification/wechat-name-20261025/receipt.json",
+      "sha256": "99658622f4816f79f24aadb58cc462b8fc9f424a7d03d46d6f12a07deab76e2e"
+    },
+    {
+      "from": "docs/verification/wechat-name-20261025/rename.patch",
+      "to": "working/docs/verification/wechat-name-20261025/rename.patch",
+      "sha256": "1fe2eb5b3025da6748bb221d51577f253e54ef02e197b9c3e0ce2d0ade44907f"
+    },
+    {
+      "from": "docs/verification/wechat-name-20261025/RESULT.md",
+      "to": "working/docs/verification/wechat-name-20261025/RESULT.md",
+      "sha256": "ebaa1a711408d0f9fcacbb23dbad02b04a436a4875d324c74c156c51e4c7ead1"
+    },
+    {
+      "from": "docs/verification/wechat-service-all-20261024-r2/backend-negotiation-overlay.patch",
+      "to": "working/docs/verification/wechat-service-all-20261024-r2/backend-negotiation-overlay.patch",
+      "sha256": "2143d3c4750d63fe39d3bfc4013c6f48a8c46fc28e9a34003d80757195df2b49"
+    },
+    {
+      "from": "docs/verification/wechat-service-all-20261024-r2/http-route-checks.json",
+      "to": "working/docs/verification/wechat-service-all-20261024-r2/http-route-checks.json",
+      "sha256": "4c85259dcefc51060df60cd9511b68cdec923989dfb148a00b247f0f54516b8c"
+    },
+    {
+      "from": "docs/verification/wechat-service-all-20261024-r2/local-checks.json",
+      "to": "working/docs/verification/wechat-service-all-20261024-r2/local-checks.json",
+      "sha256": "77227dec8efdb6234946dcc6ceb51e07abb957bae5e90c802a3909dac0fc4d35"
+    },
+    {
+      "from": "docs/verification/wechat-service-all-20261024-r2/README.md",
+      "to": "working/docs/verification/wechat-service-all-20261024-r2/README.md",
+      "sha256": "c9c22912c5f233940e7080ae58efee6c925ce0f8a9c969393e73bf8591d4e131"
+    },
+    {
+      "from": "docs/verification/wechat-service-all-20261024-r2/release-manifest.json",
+      "to": "working/docs/verification/wechat-service-all-20261024-r2/release-manifest.json",
+      "sha256": "914fb6d38d4626c0e2bfe4e5ef0894a986c9bcc26de644625b7758fddf05c16c"
+    },
+    {
+      "from": "docs/verification/wechat-name-20261025/0129/candidate.json",
+      "to": "working/docs/verification/wechat-name-20261025/0129/candidate.json",
+      "sha256": "2e71c58a3c4b6d840ab88505af367f310f247e4eb02644c688bc734d9338f12d"
+    },
+    {
+      "from": "docs/verification/wechat-name-20261025/0129/from-verified-0128.patch",
+      "to": "working/docs/verification/wechat-name-20261025/0129/from-verified-0128.patch",
+      "sha256": "ae3a8760fe5d1aeb6378253f9281934b80168e6d350303ebad571e9a66f03a2d"
+    },
+    {
+      "from": "docs/verification/wechat-name-20261025/0129/official-upload.json",
+      "to": "working/docs/verification/wechat-name-20261025/0129/official-upload.json",
+      "sha256": "7c35196ac41d6ab59318b2e51ea97b7a9c014dee9f5f6f73aa89d02cfa1a48d7"
+    },
+    {
+      "from": "docs/verification/wechat-name-20261025/0129/source-hashes.json",
+      "to": "working/docs/verification/wechat-name-20261025/0129/source-hashes.json",
+      "sha256": "b220a3c1f3e91e8d32046bc19339190fccd4a3bcb4f4ca1c0e2bc2b7cad427d1"
+    },
+    {
+      "from": "docs/verification/wechat-name-20261025/0129/verification.json",
+      "to": "working/docs/verification/wechat-name-20261025/0129/verification.json",
+      "sha256": "60175760f6a55951705452c9d1655dc6def9b344df59a0a9376ba898ceba2f79"
+    },
+    {
+      "from": "docs/verification/wechat-name-20261025/server/activation.json",
+      "to": "working/docs/verification/wechat-name-20261025/server/activation.json",
+      "sha256": "fa8b1f2e4a97fceb51ab028a84e70aded385690d93761143b00c02c44202faea"
+    },
+    {
+      "from": "docs/verification/wechat-name-20261025/server/from-deployed-r4.patch",
+      "to": "working/docs/verification/wechat-name-20261025/server/from-deployed-r4.patch",
+      "sha256": "b7372b624386785da334721106f9f9a6946e65a0fc6e0594ec3604f0973d3708"
+    },
+    {
+      "from": "docs/verification/wechat-name-20261025/server/plan.json",
+      "to": "working/docs/verification/wechat-name-20261025/server/plan.json",
+      "sha256": "20a1c9cdceea6f1c07c3333d542d11b617c0dafe3b873cdd23afdac1da425c30"
+    },
+    {
+      "from": "docs/verification/wechat-name-20261025/server/public-verification.json",
+      "to": "working/docs/verification/wechat-name-20261025/server/public-verification.json",
+      "sha256": "45b63c26c81af04d353242230194bf195367f36359b0fd38a4e5417544f1c117"
+    },
+    {
+      "from": "docs/verification/wechat-name-20261025/server/release-manifest.json",
+      "to": "working/docs/verification/wechat-name-20261025/server/release-manifest.json",
+      "sha256": "8bddca8ccc1885545d61c5361b0b49a0b223d36a36309bfc0b351828f2b86e37"
+    }
+  ],
+  "navigationSupplements": [
+    {
+      "path": "working/docs/archive/course-demo/README.md",
+      "sourceCommit": "83b7a608",
+      "blob": "0a50813f229d022945fcdda0b9002e6cb5127776",
+      "sha256": "e9da96be979929cac076d607b010fc335eaa3e4f2f3b4fb6301212c5bb61dd8f"
+    },
+    {
+      "path": "working/docs/archive/course-demo/docx_content.txt",
+      "sourceCommit": "83b7a608",
+      "blob": "bd38d197ba571a3704958e77bcaad8c00d939e1c",
+      "sha256": "30692d020eae364a9fb56d61f17da47fa691ad87afea010852d99603ac713ea9"
+    },
+    {
+      "path": "working/docs/archive/course-demo/录屏讲稿.md",
+      "sourceCommit": "83b7a608",
+      "blob": "a65b2f6e53f48f13ae3bb607b506cacb1ef7f66f",
+      "sha256": "db0d657cc2cf572bbeb2de3fdf9c72498bd75b930ec23880e66f11594caf4630"
+    },
+    {
+      "path": "working/docs/archive/course-demo/游戏人工智能课程大作业_v3.docx",
+      "sourceCommit": "83b7a608",
+      "blob": "a22d2a86635b556f73dc550c80f057fe11fe368b",
+      "sha256": "e65a06f445fe1612c6e228b402540d27e7c6c6e5bca9ad10ad43cea41f0d4a10"
+    },
+    {
+      "path": "working/docs/archive/engineering/legacy-code.md",
+      "sourceCommit": "83b7a608",
+      "blob": "5ba06a58544e39aa7278ee0a639bf25b1351f1a9",
+      "sha256": "90393a84595fa75fefd73827d03b09e5ccb3957f285e41aebbe979cc7e30d2c4"
+    },
+    {
+      "path": "working/docs/archive/web/AI功能实现提示词.md",
+      "sourceCommit": "83b7a608",
+      "blob": "275f149818ce93af2ddaed57bd39e1aa840a45ed",
+      "sha256": "34f5688aebb2af614d23b7a0bb4dc09ad76a5d61fd61063ac6795264eeed0497"
+    },
+    {
+      "path": "working/docs/archive/web/architecture-before-consolidation.md",
+      "sourceCommit": "83b7a608",
+      "blob": "52e913a3639404e8d760115679b1a53ee1517340",
+      "sha256": "d79ff4ed01473f396ac88ecf7ef4b0985776daddd8d11fda191f796985bc10f7"
+    },
+    {
+      "path": "working/docs/archive/web/新的需求.md",
+      "sourceCommit": "83b7a608",
+      "blob": "cb7fa395dcc9a63443888efcaa5194094306a43a",
+      "sha256": "31712b572b559f8c734d33ce9a337dad45cb60a6c1a05743c0e163b19ca965b7"
+    },
+    {
+      "path": "working/docs/assets/image.png",
+      "sourceCommit": "83b7a608",
+      "blob": "8503056935ea9bab790fee5cb5791cec4a7a2e4b",
+      "sha256": "05f4174e6894008c8abe1482ef3793104253a2e5e2d05ec20734aefcc2a09916"
+    },
+    {
+      "path": "working/docs/platforms/LIFELINE_ANDROID_HARMONYOS_PLAN_20261013.md",
+      "sourceCommit": "83b7a608",
+      "blob": "217c49986ee20619a22f1fb4f54a21ed736370ce",
+      "sha256": "7446a1410d0f03793996471410f66729f5f7e2a2883ac633d3a2f1ce485bf3d2"
+    },
+    {
+      "path": "working/docs/platforms/LIFELINE_IOS_APP_STORE_PLAN_20261013.md",
+      "sourceCommit": "83b7a608",
+      "blob": "9027e9cc0af149da3c3f554904b1016ac50cd9aa",
+      "sha256": "b55a4f2c86eba1009cea8c14970605b326d466e224fd30e635d7f59f777ddf6b"
+    },
+    {
+      "path": "working/docs/platforms/LIFELINE_STEAM_PLAN_20261013.md",
+      "sourceCommit": "83b7a608",
+      "blob": "9f39c67d52c354e1d5dc9caccfdd528431a04ebf",
+      "sha256": "586822121674f5c92a5ae94a61ad160744d6bf9c5f1457910e2dd5afe008bdf6"
+    },
+    {
+      "path": "working/docs/platforms/WECHAT_MINIGAME_MIGRATION_PLAN_20261013.md",
+      "sourceCommit": "83b7a608",
+      "blob": "e6c5ce45f8c00452b53ff6b98a9d53d65621d209",
+      "sha256": "8bb880740103501f1f066fa2b82cf593797f554f3c577a660fa782c6eed95f48"
+    },
+    {
+      "path": "working/docs/product/LIFELINE_AI_COMPATIBILITY.md",
+      "sourceCommit": "83b7a608",
+      "blob": "1f8f563022c61974df4406715cd7516c918e9784",
+      "sha256": "21652e45d4ae501029b45103f8cecf5219cb4d4d31a3a7dbef974022bc3edad2"
+    },
+    {
+      "path": "working/docs/product/LIFELINE_LAB_PLAN.md",
+      "sourceCommit": "83b7a608",
+      "blob": "63a2a1437e2de6b853a9d46efe0ff526b33301b4",
+      "sha256": "cc4497060a2fcf7fff85aa8e7d9b28d6e1dcf0401c6e79056c64f23a91a39a34"
+    },
+    {
+      "path": "working/docs/product/LIFELINE_M0_AUDIT.md",
+      "sourceCommit": "83b7a608",
+      "blob": "d93c1c0a4a5aab2c07ee67ba6e2fc4af874a0389",
+      "sha256": "843bb078ff141d1aab1d2a822938f646f7255797e3c13c154945393939397197"
+    },
+    {
+      "path": "working/docs/product/LIFELINE_RELEASE_GATE.md",
+      "sourceCommit": "83b7a608",
+      "blob": "7a4625d24bf14e5fe738ebf2094dcaa7bcd75bb2",
+      "sha256": "15403f310047cd97800d6355d4f61229f30289ab013ba1008548c081a01b2dad"
+    },
+    {
+      "path": "working/docs/product/LIFELINE_REPLAY_SPEC.md",
+      "sourceCommit": "83b7a608",
+      "blob": "e07abeb34c240dfde48c45650f92639d58694e69",
+      "sha256": "23678c65cf0f0ee76218306b808d0132049bda857468fd65321c20db4390f408"
+    },
+    {
+      "path": "working/docs/product/LIFELINE_RESEARCH_EXHIBITS.md",
+      "sourceCommit": "83b7a608",
+      "blob": "c4a89d61b081c253199ec609c2701c11316c0287",
+      "sha256": "a576cad0c181bb549e20d37397a38adaf970e76fad635a38b89ff0abbdbc5cda"
+    },
+    {
+      "path": "working/docs/product/LIFELINE_TASK_LEDGER.md",
+      "sourceCommit": "83b7a608",
+      "blob": "f468e7adaf471c6ba55df1e29d3a769d4a95ca99",
+      "sha256": "c67378dfc6288eea82a40113e1b9d30947a1d4bdb5d33ee2d4efb5d743994190"
+    },
+    {
+      "path": "working/docs/product/LIFELINE_TUTORIAL_SPEC.md",
+      "sourceCommit": "83b7a608",
+      "blob": "68037dc5410d152a82a7da72fdc7829ffdf748f4",
+      "sha256": "a539bd8475bedaa36e7271ed8beae2f4c12f93c7e1c656d694c99c93c3dfc99f"
+    },
+    {
+      "path": "working/docs/web/architecture.md",
+      "sourceCommit": "83b7a608",
+      "blob": "bf5b27d545bae1a2bb1ad732727dd9e60672ee3b",
+      "sha256": "0febda5ba49d7e3a36d0c0e6de022181bfc2dfa93c0af958218f21ac6af357f0"
+    }
+  ],
+  "compatibilityLink": "docs -> working/docs",
+  "workspaceRoot": "C:\\Users\\zcz\\.codex\\worktrees\\lifeline-alignment-20261031\\line game",
+  "originalWorkspacePreserved": "C:\\coding\\py\\line game"
+}

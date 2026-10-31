@@ -115,3 +115,20 @@ Thumbs.db
 web/web前端/assets/research-ai/*.f32
 web/web前端/assets/research-ai/transfer-v1/*.f32
 web/web前端/assets/research-ai/multiplayer-v1/*.f32
+
+# Organized workspace: local directory links and generated material.
+/docs/
+/tasks/
+/output/
+/tmp/
+/softcopyright/
+/working/local_artifacts/
+/working/output/
+/working/tmp/
+/working/softcopyright/
+/working/archives/ai-search-publish/
+/core algorithm/research/
+/wechat/project/
+/mobile/*/project/
+/mobile/local_artifacts/
+/platform/*/project/

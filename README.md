@@ -1,253 +1,69 @@
 # LIFELINE（生命线）
 
-LIFELINE 是一款运行在三角网格上的圈地策略游戏。玩家通过节点与自动生成的连线扩张领土，也可以切断敌方防线，使失去初始节点连接的结构立即消失。
+LIFELINE 是一款在网格上落子、连线和争夺领土的策略游戏。保护与起点相连的结构，也可以切断对手的关键连接，改变整片棋局。
 
-项目包含完整的浏览器版本、Python/Pygame 桌面版本，以及基于 Minimax 与 Alpha-Beta 剪枝的人机对战 AI。
+**[在线试玩](https://lifelinegame.cn/) · [游戏规则](web/web前端/guide/rule/essential%20rule.md) · [Web 开发说明](web/README.md) · [文档导航](working/docs/README.md)**
 
-研究代码与可复核的实验结果独立放在 [`research/`](./research/) 下，避免与可玩应用和部署文件混在一起。
+## 体验游戏
 
-## 项目特点
+Web 工程包含本地与房间对局、人机对战、教学、保存恢复、棋谱导入导出和复盘，以及中英文界面。棋盘、人数、AI 和联机能力取决于实际使用的版本；各平台的工作副本和发布包可能不同步。
 
-- 自定义三角网格圈地规则，节点、连线与领土共同参与博弈。
-- 支持切断攻击、断联结构清除、初始点保护、三点限制和 Superko 全局同形禁手。
-- Web 端支持本地双人、三人、可调棋盘大小、人机对战和 AI 提示。
-- Web 联机支持账号、房间、准备、倒计时、动作同步、重置投票与断线恢复。
-- Pygame 端提供原始双人版本和可视化 AI Demo。
-- Minimax AI 支持搜索深度调节、走法排序、启发式评估和非阻塞计算。
-- 中英文界面、响应式布局和 Canvas 渲染。
+本整合分支的常规棋盘支持 2–15 人，拓扑引擎支持 2–6 人；7–15 人使用随机或自定义起点。支持三角形、六边形等棋盘，包含拓扑棋盘预设、棋盘编辑与随机生成入口。拓扑棋盘使用独立规则；可用 AI 和复盘能力随棋盘及模式变化。多人 AI 提供简单、中等、困难、终极选项，通用棋盘使用简单和困难选项，终极模型的棋力仍在评估。
 
-## 快速开始
+| 来源 | 当前可确认的范围 |
+| --- | --- |
+| 本整合分支 | 基于网页/小游戏共同来源 `51e5782d` 叠加本轮指南改进；常规 2–15 人、拓扑 2–6 人。 |
+| 原主目录的独立工作副本 | 部分旧入口仍为 2–6 人，且有大量先前未提交工作；本轮保留原状，没有覆盖或全部提交。 |
+| 网页与微信渠道 | 有各自的部署或上传记录；真实设备、跨端及渠道接受状态须按候选版本核对，不能从源码或上传记录推断。 |
+| 移动端和桌面端 | 工程分布在独立工作副本；安装包的同步与验收需逐项确认。 |
 
-### Web 版
+本地限次悔棋可在棋盘设置中开启，额度为每局 1–10 次，默认关闭。它撤回自己最近一手及后续回应，不能连续回退到更早的手数；不返还提示次数，回退后重新读秒，已用次数随存档恢复。设置修改在开始新局后生效。
 
-Web 版是当前功能最完整的入口。它需要 Python 后端来托管页面并提供账号与联机服务；本地对局和 AI 规则计算均在浏览器中完成。
+神经模型需另行下载权重；模型适用范围及试用状态见 [AI 兼容说明](working/docs/product/LIFELINE_AI_COMPATIBILITY.md)。模型估值不是实际胜率，权重种子顺序也不代表棋力排名。
 
-环境要求：
+## 本地运行 Web
 
-- Python 3.10 或更高版本
-- 现代浏览器
-- 首次加载页面时可访问互联网，以获取 Vue 与 MathJax CDN 资源
-
-安装依赖：
+需要 Python 3.10+ 和现代浏览器。页面使用 Vue 和 MathJax CDN，首次加载需要联网。
 
 ```powershell
-python -m pip install -r ".\web\web后端\requirements.txt"
+git clone https://github.com/Chengzong-Zhang/Line-Game.git
+cd Line-Game
+python -m pip install -r "web/web后端/requirements.txt"
+python -m uvicorn server:app --app-dir "web/web后端" --host 127.0.0.1 --port 8000
 ```
 
-启动：
+打开 <http://127.0.0.1:8000/>。Windows 也可运行 `powershell -ExecutionPolicy Bypass -File "web/start/start_online_server.ps1"`，脚本会选择可用端口。先选择人类或 Minimax 对局；神经模型的权重下载位置和命令见 [Web 说明](web/README.md)。
 
-```powershell
-powershell -ExecutionPolicy Bypass -File ".\web\start\start_online_server.ps1"
-```
+## 规则与实现
 
-脚本会在 `8000` 至 `8004` 中选择可用端口，后台启动服务并打开浏览器。
+当前工作副本的 Web 常规新局默认使用 `territory-v3`，拓扑棋盘使用自己的规则版本；旧存档与棋谱保留所存版本。v3 中，节点和线点属于己方领土；没有敌方元素的封闭空腔也计入正式离散分数 `area`。连接与断联以显式逻辑边和起点为准。`renderPoints` 枚举计分点，`polygon` / `displayArea` 不替代正式比分。规则介绍见[游戏规则](web/web前端/guide/rule/essential%20rule.md)和[代码与工程设计](web/web前端/guide/interesting/why-code.zh.md)。
 
-进入人机对战：选择本地模式和 `2` 人局，在棋盘设置中选择 AI 先手或后手，再选择简单、普通或困难难度。
+Superko 历史影响合法行动，因此保存、恢复、搜索与复盘需要完整规则状态。Web 前端负责规则与渲染，后端处理账号及房间同步；Python/Pygame 和冻结研究环境有各自版本，不应默认与 Web 逐状态等价。
 
-### Pygame AI 版
+## 项目入口
 
-安装依赖：
+| 目录 | 内容 |
+| --- | --- |
+| [web/](web/) | 浏览器前端、后端、启动脚本和测试 |
+| [wechat/](wechat/) | 微信小游戏入口及平台说明 |
+| [mobile/](mobile/) · [platform/](platform/) | 移动端、桌面端及渠道工程入口 |
+| [core algorithm/](core%20algorithm/) | Python/Pygame 和基础算法 |
+| [research/](research/README.md) | 冻结研究材料与实验入口 |
+| [working/docs/](working/docs/README.md) · [working/task/](working/task/) | 产品规范、验证记录与任务 |
+| [working/](working/README.md) | 本地工作资料和目录兼容说明 |
 
-```powershell
-python -m pip install pygame
-```
+平台 `project/` 在此 Windows 工作区是指向独立工作副本的链接，并非合并后的源码；新克隆不会自动包含这些本机链接。不要递归删除链接或其目标。新克隆可用 `powershell -ExecutionPolicy Bypass -File working/tools/setup-layout.ps1` 建立兼容入口；加 `-Check` 检查，其中 `UNAVAILABLE` 表示对应可选平台目标不存在。详情见 [工作资料](working/README.md)。
 
-将核心规则目录加入 Python 模块搜索路径：
-
-```powershell
-$env:PYTHONPATH = (Resolve-Path ".\core algorithm").Path
-```
-
-启动带 AI 的版本：
-
-```powershell
-python ".\core algorithm\AI\main_ai.py"
-```
-
-启动原始双人版本：
-
-```powershell
-python ".\core algorithm\triangular_game.py"
-```
-
-运行 AI 无头测试：
-
-```powershell
-$env:PYTHONPATH = (Resolve-Path ".\core algorithm").Path
-python ".\core algorithm\AI\test_ai_headless.py"
-```
-
-## 游戏规则
-
-### 扩张
-
-每名玩家从自己的初始节点出发。新落下的节点必须能连接到己方已有节点，并会自动连接同行、同列或 `x + y` 相同斜线方向上所有无遮挡的己方节点。
-
-### 切断与连通
-
-玩家可以把节点落在敌方连线上发动攻击。连线被切断后，无法再通过逻辑边连接到敌方初始节点的节点与连线会被清除。一次攻击可能改变大范围棋盘结构，因此连接安全与扩张收益同样重要。
-
-### 强制限制
-
-- 对方初始节点附近设有保护区。
-- 普通扩张不能主动形成三个两两相邻的己方节点；攻击落子例外。
-- Superko 禁止棋局返回任意历史局面，避免无限循环。
-
-### 领土与终局
-
-由己方节点和连线闭合、且内部没有敌方元素的区域视为领土。玩家无合法走法时会自动跳过；所有仍在场玩家连续跳过后对局结束，领土最多者获胜。
-
-Web 规则显式区分两个版本：
-
-| 范围 | 规则版本与边界 |
-|---|---|
-| Web 页面与新建房间 | 默认 `territory-v2`；拒绝折返线等非真实闭环，并用玩家出生点规范坐标保证双人镜像、三人 D3 对称计分 |
-| 裸 `new GameEngine()` | 默认 `territory-v1`，用于兼容旧调用与冻结回归样例；版本属性创建后不可改写 |
-| Python/Pygame | legacy v1 lineage；存在最短路数量上限和枚举顺序差异，不宣称与 Web v1 逐状态一致，也不支持 v2 |
-| `research/` | 本次页面升级不迁移既有实验；规则与结论仍以各冻结协议、源码哈希和正式收据为准 |
-
-页面比分、终局胜负和认输摘要统一使用泛洪法得到的离散 `area`。几何 `displayArea` 只保留为诊断字段，不参与页面正式计分。
-
-## AI 系统
-
-AI 使用 Minimax 对抗搜索和 Alpha-Beta 剪枝选择行动，搜索前会优先排列攻击走法和贴近己方连线的扩张走法。
-为控制分支规模，每个节点最多继续搜索前 `20` 个候选。
-
-启发式评估综合考虑：
-
-- 节点数量优势
-- 节点与连线覆盖优势
-- BFS 领土近似
-- 可攻击敌方连线的威胁数量
-- 节点与初始节点的连通质量
-
-AI 提供搜索深度 `2`、`3`、`4` 三档难度。精确领土算法只用于真实棋局结算，搜索树使用快速 BFS 近似以保持响应速度。
-
-Web 端通过 Web Worker 执行 AI 搜索；Pygame 端通过后台线程执行搜索。两种方式都避免在 AI 思考时阻塞主界面。
-
-当前 AI 使用范围：
-
-- Web：本地双人局，可选择 AI 先手或后手，并可请求推荐落点。
-- Pygame：双人人机对战，可显示 AI Top-5 候选和推荐理由。
-- 联机局和 Web 三人局当前不启用 AI。
-
-## Web 架构
-
-Web 主线遵循“前端负责规则与渲染，后端负责账号、房间与同步”的边界。
-
-```text
-index.html
-  -> main.js
-  -> OnlineApp.js
-       -> GameController.js
-            -> GameEngine.js
-            -> Renderer.js
-       -> AIEngine.js / AIWorker.js
-       -> NetworkManager.js
-
-server.py
-  -> HTTP 注册、登录与静态资源
-  -> JWT 鉴权
-  -> WebSocket 房间、准备、同步与断线恢复
-```
-
-- `GameEngine.js` 是 Web 规则计算真源。
-- `Renderer.js` 负责 Canvas 绘制。
-- `GameController.js` 连接规则、渲染、输入与网络。
-- `AIEngine.js` 和 `AIWorker.js` 负责浏览器内 AI。
-- `server.py` 转发联机动作，不裁决三角棋盘规则。
-
-## 核心算法
-
-- **物理网格与逻辑边分离**：格点状态用于渲染和占用判断，显式边集合用于连通性判断。
-- **BFS 断联清理**：攻击后保留与初始节点相连的最大连通结构，删除飞地。
-- **领土流水线**：右手摸墙获取外轮廓，动态贪心修剪边界，泛洪法判定真实覆盖格点。
-- **规则版本化**：v1 冻结旧语义；v2 增加真实闭环、完整候选校验和玩家基角规范化。
-- **流式最短路**：候选路径按生成器逐条验证；v2 额外按等价墙集合去重，默认实现不设会改变结果的路径数截断。
-- **Superko 哈希**：将棋盘、逻辑边、认输状态和下一行动方纳入历史状态判断。
-- **搜索状态恢复**：AI 搜索递归中完整保存与恢复棋盘、边、历史哈希、回合和终局状态。
-
-详细规则与实现说明见：
-
-- [核心算法需求文档](./core%20algorithm/algorithm-requirements.md)
-- [Web 前后端需求与架构说明](./web/WEB前后端需求与架构说明.md)
-- [AI Coding 使用总结](./core%20algorithm/AI/AI_CODING_SUMMARY.md)
-
-## 目录结构
-
-```text
-line game/
-├── README.md
-├── AGENTS.md
-├── core algorithm/
-│   ├── triangular_game.py
-│   ├── algorithm-requirements.md
-│   └── AI/
-│       ├── README.md
-│       ├── AI_CODING_SUMMARY.md
-│       ├── ai_engine.py
-│       ├── ai_game.py
-│       ├── main_ai.py
-│       └── test_ai_headless.py
-├── research/
-│   ├── README.md
-│   └── iclr2027/
-│       ├── README.md
-│       ├── lifeline_rl/
-│       ├── configs/
-│       ├── scripts/
-│       ├── tests/
-│       ├── results/
-│       └── paper/
-└── web/
-    ├── README-WEB.md
-    ├── WEB前后端需求与架构说明.md
-    ├── start/
-    ├── web前端/
-    │   ├── index.html
-    │   ├── OnlineApp.js
-    │   ├── GameEngine.js
-    │   ├── Renderer.js
-    │   ├── AIEngine.js
-    │   ├── AIStateProtocol.js
-    │   ├── AIWorker.js
-    │   └── NetworkManager.js
-    └── web后端/
-        ├── server.py
-        ├── database.py
-        ├── models.py
-        └── requirements.txt
-```
+这些目录和历史发布记录只说明代码或当时的工作，不能单独证明当前安装包、线上服务或商店已经同步和发布。按目标版本查阅 [发布记录](working/docs/releases/)与[验证证据](working/docs/verification/)。
 
 ## 开发与验证
 
-修改规则时先按规则版本分别回归；只有存在明确的 golden-state 契约并通过验证时，才宣称 Python 与 Web 跨实现一致。修改 Web 端后，至少验证：
-
-- 本地双人局和三人局可以正常开始、落子、跳过和结算。
-- Web AI 先手、后手和三档难度可以运行。
-- 切断攻击、断联清除、保护区、三点限制和 Superko 行为正确。
-- 边长 `6`、`9`、`15` 下棋盘能够显示和交互。
-- 注册、登录、建房、入房、准备、动作同步、重置和断线恢复可用。
-- 中文与英文界面、桌面端与移动端布局正常。
-
-Web 规则、AI 与联机恢复的可执行验证入口：
+按改动选择对应测试，例如从仓库根目录运行：
 
 ```powershell
-node "web/web前端/tests/verify-territory-v2.mjs"
-node "web/web前端/tests/verify-ai-control-flow.mjs"
-node "web/web前端/tests/verify-hint-worker.mjs"
-node --unhandled-rejections=strict "web/web前端/tests/verify-online-recovery.mjs"
-node "web/web前端/guide/interesting/verify-theory-counterexamples.mjs"
-node "web/web前端/guide/interesting/verify-superko-history-divergence.mjs"
-node "web/web前端/tests/benchmark-territory.mjs"
+node --unhandled-rejections=strict "web/web前端/tests/verify-territory-v3.mjs"
+node --unhandled-rejections=strict "web/web前端/tests/verify-replay-codec.mjs"
+python -m unittest discover -s web/tests -v
 ```
 
-其中 `benchmark-territory.mjs` 只采样构造与固定首步的 smoke 延迟，不代表领土热路径性能结论。
-
-## 版本管理与实验产物
-
-- 源码、测试、配置、协议、聚合结果和验证收据进入 Git。
-- 模型检查点、逐局 JSONL、smoke/pilot、中间任务目录、缓存和日志默认只保留在本机。
-- 推送前检查暂存差异、敏感信息、大文件并运行相关测试。
-- 详细协作与版本管理约定见 [`AGENTS.md`](./AGENTS.md)，研究结果边界见
-  [`research/iclr2027/results/README.md`](./research/iclr2027/results/README.md)。
+Python/Pygame 示例和依赖见[桌面示例说明](core%20algorithm/AI/README.md)；研究环境和协议见[研究入口](research/iclr2027/README.md)。开发、冻结实验、长任务恢复和产物管理约定见 [AGENTS.md](AGENTS.md)。自动化检查不能代替浏览器、真机或跨端联机验收。

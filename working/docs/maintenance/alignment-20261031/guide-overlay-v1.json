@@ -1,0 +1,57 @@
+{
+  "reference": "51e5782d3117871167783dc53413f0e6e7578bdf",
+  "patch": "guide-overlay-v1.patch",
+  "patchSha256": "7150c401a4bc5146e9b0fe1a2a8a0f16e2dd535e37fff27f701f6076e2f90cb0",
+  "files": [
+    {
+      "path": "web/web前端/OnlineApp.js",
+      "beforeSha256": "85ff5e9d297ee5d9d397bbd99a0b5b985cd06d9ca8d595cf83f57c37693a078b",
+      "afterSha256": "141a96908ef37d8567ff995ab99ff6008dee74d1050e39039616e02ffe1b864f"
+    },
+    {
+      "path": "web/web前端/GuideArticleFormat.js",
+      "beforeSha256": "e5dedf72e0ff7c574cc406fefc41734242474fff9826a38e0d3c34f6c9f22c42",
+      "afterSha256": "840bdd31c9f5c35211bb528098b684a69d2c35f7be824696f6b3bfcbeee51946"
+    },
+    {
+      "path": "web/web前端/GuideTopologyChapters.js",
+      "beforeSha256": "75e4856b8f0e6f1a3d2638f9a2553eece2a8d42ef9bef7ba113ba616eb724964",
+      "afterSha256": "b7f586cb81ec272e2c545a22d7b483ffb8de341da4e77659bba998805f7020b7"
+    },
+    {
+      "path": "web/web前端/GuideContent.js",
+      "beforeSha256": "76f79680a89ceb0153183deab5bd8dcd4bfd1355b63db4edbae36a371c0e88f3",
+      "afterSha256": "5d6adf7ef0b4987aa8b4f8e7a1e5831b00f01ed1b6cad89b5bce7fa0c32b2de3"
+    },
+    {
+      "path": "web/web前端/styles.css",
+      "beforeSha256": "8b705a83987e38ac1b66cd7c68e6631bc7ff80de342904947a37cc45485cdca2",
+      "afterSha256": "3063551a1361868058e8a095ebaf3ab5e6129b0b9db2602ea0d341e23f02599f"
+    },
+    {
+      "path": "web/web前端/guide/rule/essential rule.md",
+      "beforeSha256": "37c1dbd00c943e3a4a098ab29dbf5b9e807eb58f66fbe214e2e990926ebc30bc",
+      "afterSha256": "40c59f7bb52abf8b4fb7b70acb4978035714221c1f0ae8412a301e36f2fbb8de"
+    },
+    {
+      "path": "web/web前端/guide/rule/math rule.md",
+      "beforeSha256": "3ca15f027b2dc25f727ae23d075163bdea1ddf1600884dbb3b08e342c85408ce",
+      "afterSha256": "03e3e2c8ef7dff68db0c26004437e9c6660ce032c21b0b1bd1e360a2b5389be9"
+    },
+    {
+      "path": "web/web前端/guide/rule/math rule.en.md",
+      "beforeSha256": "c8b2107144b8fe5e5649ff123932c81710049601a9d16a03ade01dcc8e7a2480",
+      "afterSha256": "9c0b30a57b0f54162bf0aa6bddab50cbfe4b205f3b26888adf6b3bab8067e03c"
+    },
+    {
+      "path": "web/web前端/tests/verify-guide-content.mjs",
+      "beforeSha256": "e689293e7fed12dec1acc2a5e6a6383a0ef9e11efcdde720b67d81de10e507fd",
+      "afterSha256": "be10cdc34caa144968aa60d6c5d0d27165cf54bc8812f29a509fbc784103e648"
+    }
+  ],
+  "retained": [
+    "51e source excerpts",
+    "runtime Unicode-regex fallback and anchor validation",
+    "all non-guide OnlineApp behavior"
+  ]
+}
