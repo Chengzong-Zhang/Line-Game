@@ -1,0 +1,4 @@
+interface:
+  display_name: "生命线游戏开发"
+  short_description: "开发生命线玩法与 AI，同步网页、小游戏和移动桌面端，保留规则、强度与发布证据"
+  default_prompt: "使用 $lifeline-dev，结合当前源码与近期需求完成本次生命线开发，检查受影响平台与联机功能，按已授权范围整合、同步和验证，并逐项报告交付状态。"
