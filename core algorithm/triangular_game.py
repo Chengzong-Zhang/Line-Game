@@ -57,6 +57,10 @@ class TriangularGame:
         self.current_player = Player.BLACK
         self.game_over = False
         self.consecutive_skips = 0  # Counts consecutive skips; game ends when both players skip
+        # Display metadata only: starting nodes and speculative AI moves are not turns.
+        self.last_moves: Dict[Player, Optional[Tuple[int, int]]] = {
+            Player.BLACK: None, Player.WHITE: None,
+        }
 
         # 显式边集合：frozenset({node1, node2})，仅用于连通性判断，渲染仍依赖 self.grid
         self.black_edges: set = set()
@@ -90,6 +94,7 @@ class TriangularGame:
         self._font_md  = pygame.font.Font(None, 32)
         self._font_lg  = pygame.font.Font(None, 36)
         self._font_xl  = pygame.font.Font(None, 72)
+        self._update_hulls()
 
     def _init_grid(self):
         """Initialize the triangular grid with empty points"""
@@ -215,6 +220,22 @@ class TriangularGame:
         """Get all line points belonging to a player"""
         target_state = PointState.BLACK_LINE if player == Player.BLACK else PointState.WHITE_LINE
         return [pos for pos, state in self.grid.items() if state == target_state]
+
+    def _has_boundary_cycle(self, polygon: List[Tuple[int, int]]) -> bool:
+        """A retraced open chain is not an enclosing boundary."""
+        points = polygon[:-1] if polygon and polygon[0] == polygon[-1] else polygon
+        if len(points) < 3:
+            return False
+        vertices, edges = set(), set()
+        for start, end in zip(points, points[1:] + points[:1]):
+            if start == end:
+                continue
+            dx, dy = end[0] - start[0], end[1] - start[1]
+            if start not in self.grid or end not in self.grid or max(abs(dx), abs(dy), abs(dx + dy)) != 1:
+                return False
+            vertices.update((start, end))
+            edges.add(frozenset((start, end)))
+        return len(vertices) >= 3 and len(edges) >= len(vertices)
     
 
     def _get_covered_points(self, polygon: List[Tuple[int, int]]) -> set:
@@ -244,6 +265,54 @@ class TriangularGame:
         # 全图所有点 - 被水淹点 = 领土（含轮廓墙体）
         all_points = {(x, y) for y in range(self.GRID_SIZE) for x in range(self.GRID_SIZE - y)}
         return all_points - water_reached
+
+    def _compute_owned_wall_points(self, friendlies: set, enemies: set) -> set:
+        """Return owned points plus enemy-free pockets bounded by those points.
+
+        Flooding around every friendly node/line naturally handles open chains,
+        multiple cycles and ring-shaped boundaries without requiring one simple
+        polygon. A bounded connected component containing an enemy is excluded.
+        """
+        covered = self._get_covered_points(list(friendlies))
+        visited = set(friendlies)
+        owned = set(friendlies)
+        for start in covered - friendlies:
+            if start in visited:
+                continue
+            queue = deque([start])
+            visited.add(start)
+            component = set()
+            contains_enemy = False
+            while queue:
+                current = queue.popleft()
+                component.add(current)
+                if current in enemies:
+                    contains_enemy = True
+                for neighbor in self._get_adjacent_positions(current):
+                    if neighbor in covered and neighbor not in visited and neighbor not in friendlies:
+                        visited.add(neighbor)
+                        queue.append(neighbor)
+            if not contains_enemy:
+                owned.update(component)
+        return owned
+
+
+    def _get_territory_tile(self, point: Tuple[int, int]) -> List[Tuple[int, int]]:
+        """Return a slightly inset Voronoi hexagon for one scored lattice point."""
+        center_x, center_y = self._get_screen_pos(*point)
+        radius = self.cell_size / math.sqrt(3) * 0.9
+        return [
+            (
+                int(round(center_x + radius * math.cos(math.pi / 6 + index * math.pi / 3))),
+                int(round(center_y + radius * math.sin(math.pi / 6 + index * math.pi / 3))),
+            )
+            for index in range(6)
+        ]
+
+
+    def _compute_owned_wall_area(self, friendlies: set, enemies: set) -> int:
+        """Count the exact discrete territory points used by scoring and rendering."""
+        return len(self._compute_owned_wall_points(friendlies, enemies))
 
     def _get_all_shortest_grid_paths(self, start: Tuple[int, int], end: Tuple[int, int],
                                      enemies: set, max_paths: int = 50) -> List[List[Tuple[int, int]]]:
@@ -346,7 +415,7 @@ class TriangularGame:
         friendly_nodes = set(self._get_player_nodes(player))
 
         if not friendlies:
-            return None, 0.0
+            return None, 0
 
         # 辅助：临时闭合多边形（首尾唯一，计算前补齐）
         def get_closed(poly):
@@ -357,8 +426,8 @@ class TriangularGame:
         # Step 1: 直接调用封装好的右手摸墙法获取外轮廓
         current_poly = self._get_outer_contour(player)
 
-        if len(current_poly) < 3:
-            return None, 0.0
+        if not self._has_boundary_cycle(current_poly):
+            return None, self._compute_owned_wall_area(friendlies, enemies)
 
         # Step 2: 动态贪心修剪（泛洪法校验版，彻底替代射线法）
         while True:
@@ -425,13 +494,13 @@ class TriangularGame:
             else:
                 break
 
-        if len(current_poly) < 3:
-            return None, 0.0
+        if not self._has_boundary_cycle(current_poly):
+            return None, self._compute_owned_wall_area(friendlies, enemies)
 
         final_covered = self._get_covered_points(current_poly)
         final_closed = get_closed(current_poly)
         screen_polygon = [self._get_screen_pos(*p) for p in final_closed]
-        area = len(final_covered)
+        area = self._compute_owned_wall_area(friendlies, enemies)
         return screen_polygon, area
 
     def _compute_inner_hull(self, player: Player):
@@ -442,7 +511,7 @@ class TriangularGame:
         friendly_nodes = set(self._get_player_nodes(player))
 
         if not friendlies:
-            return None, 0.0
+            return None, 0
 
         def get_closed(poly):
             if poly and poly[0] != poly[-1]:
@@ -493,8 +562,8 @@ class TriangularGame:
             return results
 
         current_poly = self._get_outer_contour(player)
-        if len(current_poly) < 3:
-            return None, 0.0
+        if not self._has_boundary_cycle(current_poly):
+            return None, self._compute_owned_wall_area(friendlies, enemies)
 
         cur_area = 0
         while True:
@@ -594,45 +663,51 @@ class TriangularGame:
             else:
                 break
 
-        if len(current_poly) < 3:
-            return None, 0.0
+        if not self._has_boundary_cycle(current_poly):
+            return None, self._compute_owned_wall_area(friendlies, enemies)
 
         final_covered = self._get_covered_points(current_poly)
         final_closed = get_closed(current_poly)
         screen_polygon = [self._get_screen_pos(*p) for p in final_closed]
-        return screen_polygon, len(final_covered)
+        return screen_polygon, self._compute_owned_wall_area(friendlies, enemies)
     
     def _update_hulls(self):
         """Recompute both players' inner hull and cache the results.
         Call once after every state change instead of every frame."""
+        black_friendlies = set(self._get_player_nodes(Player.BLACK) + self._get_player_lines(Player.BLACK))
+        white_friendlies = set(self._get_player_nodes(Player.WHITE) + self._get_player_lines(Player.WHITE))
+        self._territory_black = self._compute_owned_wall_points(black_friendlies, white_friendlies)
+        self._territory_white = self._compute_owned_wall_points(white_friendlies, black_friendlies)
         self._hull_black = self._compute_inner_hull(Player.BLACK)
         self._hull_white = self._compute_inner_hull(Player.WHITE)
 
     def _draw_territory_hulls(self):
-        """Render cached inner-convex-hull territory overlays with 50 % transparency."""
+        """Render every formally scored territory point as a discrete translucent tile."""
         overlay = pygame.Surface((self.SCREEN_WIDTH, self.SCREEN_HEIGHT), pygame.SRCALPHA)
 
         black_coords, black_area = self._hull_black
         white_coords, white_area = self._hull_white
 
-        for coords, fill_col, border_col in [
-            (black_coords, (30,  80, 255, 128), (0,   0, 200, 220)),
-            (white_coords, (255, 50, 50,  128), (200, 0,   0, 220)),
+        for coords, territory, fill_col, tile_border_col, contour_col in [
+            (black_coords, self._territory_black, (30, 80, 255, 88), (0, 0, 200, 120), (0, 0, 200, 220)),
+            (white_coords, self._territory_white, (255, 50, 50, 88), (200, 0, 0, 120), (200, 0, 0, 220)),
         ]:
+            for point in sorted(territory, key=lambda item: (item[1], item[0])):
+                tile = self._get_territory_tile(point)
+                pygame.draw.polygon(overlay, fill_col, tile)
+                pygame.draw.polygon(overlay, tile_border_col, tile, 1)
             if coords and len(coords) >= 3:
-                pygame.draw.polygon(overlay, fill_col, coords)
-                pygame.draw.polygon(overlay, border_col, coords, 2)
+                # The tightened contour is diagnostic only; exact tiles define the fill.
+                pygame.draw.polygon(overlay, contour_col, coords, 2)
 
         self.screen.blit(overlay, (0, 0))
 
         # Area labels: Blue on left, Red on right
-        if black_coords:
-            label = self._font_sm.render(f"Blue territory: {black_area} pts", True, (0, 0, 200))
-            self.screen.blit(label, (10, self.SCREEN_HEIGHT - 30))
-        if white_coords:
-            label = self._font_sm.render(f"Red territory:  {white_area} pts", True, (200, 0, 0))
-            lw = label.get_width()
-            self.screen.blit(label, (self.SCREEN_WIDTH - lw - 10, self.SCREEN_HEIGHT - 30))
+        label = self._font_sm.render(f"Blue territory: {black_area} pts", True, (0, 0, 200))
+        self.screen.blit(label, (10, self.SCREEN_HEIGHT - 30))
+        label = self._font_sm.render(f"Red territory:  {white_area} pts", True, (200, 0, 0))
+        lw = label.get_width()
+        self.screen.blit(label, (self.SCREEN_WIDTH - lw - 10, self.SCREEN_HEIGHT - 30))
 
     def _get_adjacent_positions(self, pos: Tuple[int, int]) -> List[Tuple[int, int]]:
         """Get all adjacent positions to a given position"""
@@ -1156,6 +1231,7 @@ class TriangularGame:
         if self.game_over:
             return
         if not self._has_valid_moves(self.current_player):
+            self.last_moves[self.current_player] = None
             self.consecutive_skips += 1
             if self.consecutive_skips >= 2:
                 self.game_over = True
@@ -1167,6 +1243,7 @@ class TriangularGame:
         """Current player skips their turn. If both players skip consecutively, game ends."""
         if self.game_over:
             return
+        self.last_moves[self.current_player] = None
         self.consecutive_skips += 1
         if self.consecutive_skips >= 2:
             self.game_over = True
@@ -1192,6 +1269,7 @@ class TriangularGame:
             except SuperkoViolationError:
                 success = False  # 全局同形再现禁手：静默拒绝，棋盘状态已由 _add_node 自动回滚
             if success:
+                self.last_moves[self.current_player] = grid_pos
                 self.consecutive_skips = 0  # Reset skip counter on a real move
                 self._switch_player()
                 self._check_and_auto_skip()
@@ -1227,11 +1305,26 @@ class TriangularGame:
                 self.history_hashes.add(state_hash)
 
         if success:
+            self.last_moves[self.current_player] = grid_pos
             self.consecutive_skips = 0
             self._switch_player()
             self._check_and_auto_skip()
             self._update_hulls()
     
+    def _draw_latest_moves(self):
+        """Mark each side's last placed node while that node still belongs to it."""
+        for player, node_state in (
+            (Player.BLACK, PointState.BLACK_NODE),
+            (Player.WHITE, PointState.WHITE_NODE),
+        ):
+            point = self.last_moves.get(player)
+            if point is None or self.grid.get(point) != node_state:
+                continue
+            center = self._get_screen_pos(*point)
+            pygame.draw.circle(self.screen, self.WHITE, center, self.POINT_RADIUS + 5, 3)
+            pygame.draw.circle(self.screen, (255, 193, 7), center, self.POINT_RADIUS + 3, 2)
+            pygame.draw.circle(self.screen, self.WHITE, center, 2)
+
     def draw(self):
         """Draw the game state"""
         self.screen.fill(self.WHITE)
@@ -1285,6 +1378,8 @@ class TriangularGame:
                 pygame.draw.circle(self.screen, self.LIGHT_GRAY, (screen_x, screen_y), self.POINT_RADIUS // 2)
                 pygame.draw.circle(self.screen, self.RED, (screen_x, screen_y), self.POINT_RADIUS // 2, 2)
         
+        self._draw_latest_moves()
+
         # Draw current player indicator
         player_text = "Blue's Turn" if self.current_player == Player.BLACK else "Red's Turn"
         color = self.BLUE if self.current_player == Player.BLACK else self.RED
