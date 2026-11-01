@@ -1,0 +1,8 @@
+{
+  "appId": "cn.lifelinegame.mobile",
+  "appName": "生命线",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}

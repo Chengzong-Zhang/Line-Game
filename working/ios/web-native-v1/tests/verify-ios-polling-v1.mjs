@@ -1,0 +1,24 @@
+import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import { readFile } from 'node:fs/promises';
+const source=await readFile(new URL('../src/ios-polling.js',import.meta.url),'utf8');
+const context=vm.createContext({}); const mod=new vm.SourceTextModule(source,{context}); await mod.link(()=>{}); await mod.evaluate();
+const callbacks=new Map(); let next=0; const timers={setInterval(fn,ms){assert.equal(ms,1000);callbacks.set(++next,fn);return next;},clearInterval(id){callbacks.delete(id);}};
+function target(){const handlers=new Map();return {addEventListener:(n,f)=>handlers.set(n,f),removeEventListener:n=>handlers.delete(n),emit:n=>handlers.get(n)?.(),handlers};}
+const doc=target(),page=target(),events=[];let snapshot={isActive:true,transitionRevision:0,lastInactiveRevision:0};
+const stop=await mod.namespace.startIOSLifecyclePolling({read:async()=>snapshot,publish:state=>events.push(state),eventTarget:doc,pageTarget:page,timers});
+assert.deepEqual(events,[true]);
+snapshot={isActive:true,transitionRevision:2,lastInactiveRevision:1};
+callbacks.values().next().value(); await new Promise(setImmediate);
+assert.deepEqual(events,[true,false,true],'a short inactive interval is delivered after polling');
+page.emit('pagehide'); assert.equal(callbacks.size,0,'hidden page has no lifecycle interval');
+snapshot={isActive:true,transitionRevision:4,lastInactiveRevision:3};
+page.emit('pageshow'); await new Promise(setImmediate);
+assert.deepEqual(events,[true,false,true,false,true]); assert.equal(callbacks.size,1);
+snapshot={isActive:false,transitionRevision:5,lastInactiveRevision:5}; doc.emit('visibilitychange'); await new Promise(setImmediate);
+assert.equal(events.at(-1),false);
+stop(); assert.equal(callbacks.size,0); assert.equal(doc.handlers.size,0); assert.equal(page.handlers.size,0);
+let resolveRead; const seen=[]; const listen=mod.namespace.createIOSNetworkPolling({read:()=>new Promise(resolve=>{resolveRead=resolve;}),timers});
+const handle=await listen(value=>seen.push(value)); callbacks.values().next().value(); await Promise.resolve(); await handle.remove(); resolveRead({revision:1}); await new Promise(setImmediate);
+assert.equal(seen.length,0); assert.equal(callbacks.size,0,'unsubscribed listener has no interval');
+console.log('iOS polling: PASS (1s, short background, pagehide/pageshow, stale response cleanup; native/device unverified)');

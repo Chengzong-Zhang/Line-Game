@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import { readFile } from 'node:fs/promises';
+const source=await readFile(new URL('../src/ios-document-lease.js',import.meta.url),'utf8');
+const context=vm.createContext({}); const mod=new vm.SourceTextModule(source,{context}); await mod.link(()=>{}); await mod.evaluate();
+let epoch=1, nonce='first', challenge='a'.repeat(64), saved='';
+const native={claimDocument:async ({documentChallenge})=>{if(documentChallenge!==challenge) throw Error('stale');return {pageEpoch:epoch,documentNonce:nonce};},saveRecord:async ({value,documentLease})=>{if(documentLease.pageEpoch!==epoch||documentLease.documentNonce!==nonce)throw Error('stale');saved=value;}};
+const old=await mod.namespace.claimIOSDocument(native,challenge);
+epoch++;nonce='second';challenge='b'.repeat(64);
+await assert.rejects(native.saveRecord({value:'old',documentLease:old}));
+assert.equal(saved,'');
+const current=await mod.namespace.claimIOSDocument(native,challenge);
+await native.saveRecord({value:'new',documentLease:current}); assert.equal(saved,'new');
+await assert.rejects(mod.namespace.claimIOSDocument(native,'bad'));
+console.log('iOS document lease: PASS (mock reload and stale-call rejection; native/device unverified)');

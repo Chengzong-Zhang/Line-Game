@@ -40,3 +40,8 @@ working/tools/desktop-alignment/** -text whitespace=cr-at-eol
 working/skills/lifeline-dev/** -text whitespace=cr-at-eol
 working/ios/alignment-20261031/** -text whitespace=cr-at-eol
 working/tools/sync-lifeline-skill.py -text whitespace=cr-at-eol
+
+# Hash-bound iOS engineering inputs retain reviewed bytes across Git transport.
+working/ios/native-v1/** -text whitespace=cr-at-eol
+working/ios/web-native-v1/** -text whitespace=cr-at-eol
+working/tools/ios-*native-v1* -text whitespace=cr-at-eol
