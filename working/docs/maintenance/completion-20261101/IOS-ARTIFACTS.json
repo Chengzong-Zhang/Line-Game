@@ -1,0 +1,39 @@
+{
+  "schema": "lifeline-ios-native-v1-independent-verification",
+  "status": "MAC-VERIFICATION-PENDING",
+  "frozen_mobile_host": {
+    "files": 235,
+    "missing": 0,
+    "extra": 0,
+    "changed": 0,
+    "manifest_sha256": "b9a6687e6750e9bcca4100c0e63caa751586de84484c01ce81128afea8b21107"
+  },
+  "independent_reproduction": {
+    "status": "PASS",
+    "files": 453,
+    "compared_to": "ios-native-v1-gated-r7"
+  },
+  "artifacts": [
+    {
+      "kind": "gated",
+      "path": "working/local_artifacts/completion-20261101/delivery/LIFELINE-iOS-native-v1-gated.zip",
+      "bytes": 43285022,
+      "sha256": "5cd6fa77acfe8356d4b3f08f0fda64470727a28c443ebf5af1e2c063e964629c",
+      "verified_zip_files": 453,
+      "candidate_receipt_sha256": "9c021a8d6f7b0508292fa5fea879a7e615f78008087ef9783cbefa6e97d951de"
+    },
+    {
+      "kind": "trial",
+      "path": "working/local_artifacts/completion-20261101/delivery/LIFELINE-iOS-native-v1-trial.zip",
+      "bytes": 43286121,
+      "sha256": "eac9f8c4397dfbc3fb1989f84b05bced232370f6fb65ed3af1142aed0cb95928",
+      "verified_zip_files": 453,
+      "candidate_receipt_sha256": "b93722a320195c5709ad1b50f1a4d64b7029c33d4bec30dc9d8ad15505d7eb6f"
+    }
+  ],
+  "swift_compilation": "NOT_RUN",
+  "xctest": "NOT_RUN",
+  "ios_device": "NOT_RUN",
+  "signing_upload_publication": "NOT_RUN",
+  "scope": "Local source/resource preparation and file verification only. No Swift, Keychain, WKWebView, device or channel admission."
+}

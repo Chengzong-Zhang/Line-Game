@@ -1,0 +1,64 @@
+{
+  "schema": "lifeline-completion-verification-v1",
+  "date": "2026-11-01",
+  "scope": "JavaScript mocks, static project/resource checks and local browser interactions; native and channel admission remain separate",
+  "js_mock_checks": [
+    {
+      "command": "node --experimental-vm-modules working/ios/web-native-v1/tests/verify-ios-bridge-v1.mjs",
+      "exit_code": 0,
+      "results": [
+        "iOS JS adapter: PASS (mocked plugins; no Swift or device validation)"
+      ]
+    },
+    {
+      "command": "node --experimental-vm-modules working/ios/web-native-v1/tests/verify-ios-document-lease-v1.mjs",
+      "exit_code": 0,
+      "results": [
+        "iOS document lease: PASS (mock reload and stale-call rejection; native/device unverified)"
+      ]
+    },
+    {
+      "command": "node --experimental-vm-modules working/ios/web-native-v1/tests/verify-ios-session-recovery-v1.mjs",
+      "exit_code": 0,
+      "results": [
+        "iOS session recovery: PASS (mock interruptions, per-key isolation, explicit confirmation; native/device unverified)"
+      ]
+    },
+    {
+      "command": "node --experimental-vm-modules working/ios/web-native-v1/tests/verify-ios-credential-recovery-v1.mjs",
+      "exit_code": 0,
+      "results": [
+        "iOS credential recovery: PASS (mock retry, confirmation, failure and success; native/device unverified)",
+        "iOS credential authority pending recovery: PASS (actual shared authority with mocked native provider)"
+      ]
+    },
+    {
+      "command": "node --experimental-vm-modules working/ios/web-native-v1/tests/verify-ios-polling-v1.mjs",
+      "exit_code": 0,
+      "results": [
+        "iOS polling: PASS (1s, short background, pagehide/pageshow, stale response cleanup; native/device unverified)"
+      ]
+    },
+    {
+      "command": "node --experimental-vm-modules working/ios/web-native-v1/tests/verify-ios-tutorial-fallback-v1.mjs",
+      "exit_code": 0,
+      "results": [
+        "iOS isolated tutorial fallback: PASS (mock non-native bridge; WKWebView/device unverified)"
+      ]
+    }
+  ],
+  "ios_static_checks": {
+    "gate_and_trial": "PASS_STATIC_AND_DOM_MOCK",
+    "project_and_16_module_closure": "PASS_STATIC",
+    "privacy_manifest": "PASS_STATIC_DECLARATIONS_ONLY",
+    "independent_reproduction": "IOS-ARTIFACTS.json",
+    "archive_verification": "IOS-ARTIFACTS.json"
+  },
+  "browser_acceptance": "BROWSER-ACCEPTANCE.md",
+  "release_source_audit": "RELEASE-GAPS.md",
+  "swift_compilation": "NOT_RUN",
+  "xctest_execution": "NOT_RUN",
+  "ios_simulator_device": "NOT_RUN",
+  "signing_or_ipa": "NOT_RUN",
+  "uploads_deployment_publication": "NOT_RUN"
+}

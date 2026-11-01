@@ -1,0 +1,9 @@
+{
+  "base": "f748f417b2f7cc79aa84320e5c3a802982ddc764",
+  "head": "a9f368cd318c2052d1a227f57007478cda1dc33f",
+  "scope": "new reachable blobs compared with the existing remote default branch; exact token/private-key and artifact-path checks only, not a security proof",
+  "blobs": 26,
+  "bytes": 129815,
+  "issues": [],
+  "script_sha256": "ab4fd0bd18b201ba1a96b125bf33760eefbdf382fe3e9eafe6aaf2ed2ba5efdc"
+}

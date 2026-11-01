@@ -19,6 +19,8 @@ Web 工程包含本地与房间对局、人机对战、教学、保存恢复、�
 
 本轮的源码来源、安装候选、验证与未验范围见 [交付记录](working/task/alignment-20261031/DELIVERY.md)。完整问题清单和执行要求见 [详细提示词](working/task/alignment-20261031/EXECUTION-PROMPT.md)。
 
+后续补齐见 [2026-11-01 接续交付](working/task/completion-20261101/DELIVERY.md)：新增 iOS 原生桥工程，补齐最终网页的落子、恢复、PASS、棋谱和手机指南浏览器验收；iOS 编译与设备验收仍待 Mac。各平台签名和渠道差距分别记录。
+
 本地限次悔棋可在棋盘设置中开启，额度为每局 1–10 次，默认关闭。它撤回自己最近一手及后续回应，不能连续回退到更早的手数；不返还提示次数，回退后重新读秒，已用次数随存档恢复。设置修改在开始新局后生效。
 
 神经模型需另行下载权重；模型适用范围及试用状态见 [AI 兼容说明](working/docs/product/LIFELINE_AI_COMPATIBILITY.md)。模型估值不是实际胜率，权重种子顺序也不代表棋力排名。
@@ -50,7 +52,7 @@ Superko 历史影响合法行动，因此保存、恢复、搜索与复盘需要
 | [wechat/](wechat/) | 微信小游戏入口及平台说明 |
 | [mobile/](mobile/) · [platform/](platform/) | 移动端、桌面端及渠道工程入口 |
 | [working/platform-hosts/](working/platform-hosts/README.md) | 可审阅、逐文件哈希固定的平台宿主源码与重建说明 |
-| [working/ios/](working/ios/alignment-20261031/) | iOS 工程与 Mac/Xcode 接续材料 |
+| [working/ios/](working/ios/README.md) | iOS 原生桥工程、验证门禁与 Mac/Xcode 接续材料 |
 | [core algorithm/](core%20algorithm/) | Python/Pygame 和基础算法 |
 | [research/](research/README.md) | 冻结研究材料与实验入口 |
 | [working/docs/](working/docs/README.md) · [working/task/](working/task/) | 产品规范、验证记录与任务 |
