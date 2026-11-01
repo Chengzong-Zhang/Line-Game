@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "scope": "isolated temporary directory; no production mutation",
+  "checks": [
+    "prepare leaves live intact",
+    "drift prevents activation",
+    "atomic activation preserves unrelated file",
+    "rollback restores entire original tree"
+  ],
+  "tool_sha256": "49525fe31720e5abcaaa26a4aea2b957cc58ca177dec8c72a8f65cea0fec0fe4"
+}

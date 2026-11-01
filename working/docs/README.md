@@ -29,6 +29,7 @@
 - [maintenance/](maintenance/)：仓库清理记录。
 - [本轮整合交付](../task/alignment-20261031/DELIVERY.md)：最终候选、源码来源、验证与渠道状态；旧审计和中间包不代替最终收据。
 - [2026-11-01 接续交付](../task/completion-20261101/DELIVERY.md)：iOS 原生工程、最终浏览器补验与发布差距；旧冻结收据保留原范围。
+- [2026-11-01 主分支与服务器发布](../task/publication-20261101/DELIVERY.md)：main合入、分支清理、网页激活与回滚；小游戏CI白名单阻塞及备案填写稿。
 - [平台构建说明](maintenance/alignment-20261031/PLATFORM-DELIVERY.md)：按平台重建、安装与接续。
 - [2026-10-31 仓库入口审计](maintenance/alignment-20261031/REPOSITORY-AUDIT.md)：本次 README、目录和兼容链接的检查范围及待办。
 - [archive/](archive/)：早期课程文档、提示词与工程说明。

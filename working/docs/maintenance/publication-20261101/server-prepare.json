@@ -1,0 +1,10 @@
+{
+  "status": "PREPARED_NOT_ACTIVE",
+  "release_id": "web-alignment-20261031-local",
+  "commit": null,
+  "overlay_files": 257,
+  "archive_sha256": "36bf12e741ff5b14e839a61e48003b1cc6142e37275b248ba29bc69a55e4e51d",
+  "live_tree_sha256": "eb75936a25a06643ea055fa1865c71575dd12a844584a5a7feb56ad014901707",
+  "candidate_tree_sha256": "157dd306ffd6ad47824167d463c6c20e039a328f0e1e203862de0f247955864a",
+  "time_utc_epoch": 1793513536.9737163
+}

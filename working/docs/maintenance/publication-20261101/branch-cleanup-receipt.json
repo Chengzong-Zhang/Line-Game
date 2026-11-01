@@ -1,0 +1,37 @@
+{
+  "main": "be527b9600ce0458c9c9170cb50b4e3a13fcc73d",
+  "remote_deleted": [
+    "codex/ai-duel-layout-20261013",
+    "codex/latest-move-highlight-20261025",
+    "codex/lifeline-alignment-20261031",
+    "codex/release-all-web-wechat-20261025",
+    "codex/repository-cleanup-20261014",
+    "codex/repository-layout-docs-20261014",
+    "codex/territory-v2-page-correctness",
+    "codex/unified-room-seats-20261025",
+    "codex/web-ai-data-v1",
+    "codex/web-ai-release-20261013"
+  ],
+  "local_deleted": [
+    "codex/ai-duel-layout-20261013",
+    "codex/d17-d19-p0",
+    "codex/ios-softcopyright-prep",
+    "codex/release-all-web-wechat-20261025",
+    "codex/repository-cleanup-20261014",
+    "codex/repository-layout-docs-20261014",
+    "codex/territory-v2-page-correctness",
+    "codex/web-ai-data-v1",
+    "codex/web-ai-release-20261013",
+    "codex/wechat-topology-release-20261030",
+    "codex/lifeline-alignment-20261031"
+  ],
+  "all_deleted_tips_reachable_from_main": true,
+  "local_worktrees_removed": 0,
+  "unique_remote_branches_retained": 7,
+  "remote_command_exit_code": 0,
+  "remote_postcheck_absent": true,
+  "local_command_exit_code": 0,
+  "local_deleted_count": 11,
+  "remote_deleted_count": 10,
+  "current_worktree_branch": "main"
+}

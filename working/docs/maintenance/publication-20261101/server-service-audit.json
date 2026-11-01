@@ -1,0 +1,70 @@
+{
+  "manifest_sha256": "d756e423ec1ada529b36bd146213f6d6d84253d99b1669e3a2ab210e63abdfaa",
+  "release_id": "wechat-service-all-20261030-r4",
+  "count": 594,
+  "mismatches": [],
+  "shared": {
+    "enabled": true,
+    "accountProfile": true,
+    "webLogin": true,
+    "webAuthMode": "password",
+    "rulesVersion": "territory-v3",
+    "supportedRulesVersions": [
+      "territory-v2",
+      "territory-v3",
+      "surface-v1"
+    ],
+    "topologyProtocols": [
+      "board-topology-v1"
+    ],
+    "boardHashSchema": "board-hash-v1",
+    "rootRulesVersions": [
+      "root-v1",
+      "root-v2"
+    ],
+    "roomSettings": true,
+    "undoVoting": true
+  },
+  "health_status": "ok",
+  "collector_enabled": true,
+  "collector_versions": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "local_differing": [
+    "web/web前端/CrossPlatformNetwork.js",
+    "web/web前端/GameController.js",
+    "web/web前端/GuideArticleFormat.js",
+    "web/web前端/GuideContent.js",
+    "web/web前端/GuideTopologyChapters.js",
+    "web/web前端/LocalPlayerSetup.js",
+    "web/web前端/NetworkManager.js",
+    "web/web前端/OnlineApp.js",
+    "web/web前端/OnlineRoomSync.js",
+    "web/web前端/main.js",
+    "wechat/minigame/package.json",
+    "wechat/minigame/src/app.js",
+    "wechat/minigame/src/cabins-ui.js",
+    "wechat/minigame/src/latest-moves.js",
+    "wechat/minigame/src/topology-board.js",
+    "wechat/minigame/src/topology-software-surface.js",
+    "wechat/minigame/src/topology/TopologySurface3D.js"
+  ],
+  "local_absent_count": 324,
+  "local_absent_sample": [
+    "web/web前端/assets/research-ai/dqn-all-sizes-e2000.f32",
+    "web/web前端/assets/research-ai/gail-all-sizes.f32",
+    "web/web前端/assets/research-ai/gan-all-sizes.f32",
+    "web/web前端/assets/research-ai/grid-gnn-d14-s20260825-g200.f32",
+    "web/web前端/assets/research-ai/multiplayer-v1/multiplayer-ultimate-v1.f32",
+    "web/web前端/assets/research-ai/padded-cnn-d14-s20260825-g200.f32",
+    "web/web前端/assets/research-ai/ppo-all-sizes-e2000.f32",
+    "web/web前端/assets/research-ai/sac-all-sizes-e2000.f32",
+    "web/web前端/assets/research-ai/topology-gnn-d14-s20260825-g200.f32",
+    "web/web前端/assets/research-ai/transfer-v1/grid-gnn-transfer-v1-seed2026092201.f32",
+    "web/web前端/assets/research-ai/transfer-v1/grid-gnn-transfer-v1-seed2026092202.f32",
+    "web/web前端/assets/research-ai/transfer-v1/grid-gnn-transfer-v1-seed2026092203.f32"
+  ]
+}

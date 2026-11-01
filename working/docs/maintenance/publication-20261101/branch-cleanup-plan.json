@@ -1,0 +1,486 @@
+{
+  "base_main": "be527b9600ce0458c9c9170cb50b4e3a13fcc73d",
+  "target": "be527b9600ce0458c9c9170cb50b4e3a13fcc73d",
+  "remote_delete": [
+    {
+      "ref": "origin/codex/ai-duel-layout-20261013",
+      "sha": "81469b4b72c3c2a5f990e0655986352354a5befc",
+      "reason": "fully_in_main_remote_ref_only_local_worktree_preserved"
+    },
+    {
+      "ref": "origin/codex/latest-move-highlight-20261025",
+      "sha": "6da96325b9c49a84ac4f83547ca5a295585631ad",
+      "reason": "fully_in_main_remote_ref_only_local_worktree_preserved"
+    },
+    {
+      "ref": "origin/codex/lifeline-alignment-20261031",
+      "sha": "be527b9600ce0458c9c9170cb50b4e3a13fcc73d",
+      "reason": "fully_in_main_remote_ref_only_local_worktree_preserved"
+    },
+    {
+      "ref": "origin/codex/release-all-web-wechat-20261025",
+      "sha": "953a687691c7eecb55fd1b9de4b40d993adc1628",
+      "reason": "fully_in_main_remote_ref_only_local_worktree_preserved"
+    },
+    {
+      "ref": "origin/codex/repository-cleanup-20261014",
+      "sha": "2cfb460606fa49d46bc75432aef3e94eb2fd2bd8",
+      "reason": "fully_in_main_remote_ref_only_local_worktree_preserved"
+    },
+    {
+      "ref": "origin/codex/repository-layout-docs-20261014",
+      "sha": "413800c9d3ecac7f8b3cfd375141b4443dcfd673",
+      "reason": "fully_in_main_remote_ref_only_local_worktree_preserved"
+    },
+    {
+      "ref": "origin/codex/territory-v2-page-correctness",
+      "sha": "a23ebd763868f9fd63b657d628c8eadacfcf2705",
+      "reason": "fully_in_main_remote_ref_only_local_worktree_preserved"
+    },
+    {
+      "ref": "origin/codex/unified-room-seats-20261025",
+      "sha": "f172750cc7edfce13f2baa3b1c74c0cbd803e9ab",
+      "reason": "fully_in_main_remote_ref_only_local_worktree_preserved"
+    },
+    {
+      "ref": "origin/codex/web-ai-data-v1",
+      "sha": "1095f3849efcd5ca755c6c14fd69e4b178f82e78",
+      "reason": "fully_in_main_remote_ref_only_local_worktree_preserved"
+    },
+    {
+      "ref": "origin/codex/web-ai-release-20261013",
+      "sha": "1f691a2d2afa4f970d3e49ddeecc87eb24a27ffe",
+      "reason": "fully_in_main_remote_ref_only_local_worktree_preserved"
+    }
+  ],
+  "local_delete": [
+    {
+      "ref": "codex/ai-duel-layout-20261013",
+      "sha": "81469b4b72c3c2a5f990e0655986352354a5befc",
+      "reason": "fully_merged_and_no_attached_worktree"
+    },
+    {
+      "ref": "codex/d17-d19-p0",
+      "sha": "bd66575f865d5b4bfbdeffc3ca7eea94b24a4f8c",
+      "reason": "fully_merged_and_no_attached_worktree"
+    },
+    {
+      "ref": "codex/ios-softcopyright-prep",
+      "sha": "09b64f11e08126a4fb523ed4813b6fbde6ef4238",
+      "reason": "fully_merged_and_no_attached_worktree"
+    },
+    {
+      "ref": "codex/release-all-web-wechat-20261025",
+      "sha": "953a687691c7eecb55fd1b9de4b40d993adc1628",
+      "reason": "fully_merged_and_no_attached_worktree"
+    },
+    {
+      "ref": "codex/repository-cleanup-20261014",
+      "sha": "2cfb460606fa49d46bc75432aef3e94eb2fd2bd8",
+      "reason": "fully_merged_and_no_attached_worktree"
+    },
+    {
+      "ref": "codex/repository-layout-docs-20261014",
+      "sha": "413800c9d3ecac7f8b3cfd375141b4443dcfd673",
+      "reason": "fully_merged_and_no_attached_worktree"
+    },
+    {
+      "ref": "codex/territory-v2-page-correctness",
+      "sha": "a23ebd763868f9fd63b657d628c8eadacfcf2705",
+      "reason": "fully_merged_and_no_attached_worktree"
+    },
+    {
+      "ref": "codex/web-ai-data-v1",
+      "sha": "1095f3849efcd5ca755c6c14fd69e4b178f82e78",
+      "reason": "fully_merged_and_no_attached_worktree"
+    },
+    {
+      "ref": "codex/web-ai-release-20261013",
+      "sha": "1f691a2d2afa4f970d3e49ddeecc87eb24a27ffe",
+      "reason": "fully_merged_and_no_attached_worktree"
+    },
+    {
+      "ref": "codex/wechat-topology-release-20261030",
+      "sha": "7dc00a1dc062f736ef683b35646d971388c41ae2",
+      "reason": "fully_merged_and_no_attached_worktree"
+    }
+  ],
+  "keep": [
+    {
+      "ref": "codex/aaai-candidate-arena-sidecar",
+      "sha": "90595d5977c6812d3f39630fe59df0b0ec6f3238",
+      "reason": "unique_unmerged_history"
+    },
+    {
+      "ref": "codex/aaai-candidate-opening-bank",
+      "sha": "b858a30e88357ddc366a021ddeda163aeb3b54c7",
+      "reason": "unique_unmerged_history"
+    },
+    {
+      "ref": "codex/aaai-dytopo-puct-framework",
+      "sha": "a37e7275a6641c255cdf3e8ea4ea2b1057035d67",
+      "reason": "unique_unmerged_history"
+    },
+    {
+      "ref": "codex/aaai-exact-model-eval-v1",
+      "sha": "cbe17305bcab7537dd9ad005cb858ee78d180efe",
+      "reason": "unique_unmerged_history"
+    },
+    {
+      "ref": "codex/aaai-fig1",
+      "sha": "027a6b83ab847757f550ca0b43495ca9884dbe17",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/aaai-g1-v2-exact-exec-base",
+      "sha": "a8611d8a25d1f57b183edb40504b1da63c7aaa54",
+      "reason": "unique_unmerged_history"
+    },
+    {
+      "ref": "codex/aaai-lifeline-paper",
+      "sha": "8aeca9550bbd6681e29fccf38a86e52790d001df",
+      "reason": "unique_unmerged_history"
+    },
+    {
+      "ref": "codex/aaai-paper-skeleton-v1",
+      "sha": "1ce4fa6c8f8eabcd0da3c7f57f4d3f3b6a9e1fa2",
+      "reason": "unique_unmerged_history"
+    },
+    {
+      "ref": "codex/aaai-related-work-citation",
+      "sha": "eb78b3ea2880e83ba122021b22f2e714d5f2b64e",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/aaai2027-candidate-arena",
+      "sha": "3fb44f2953725b9442a641db68684da205c6a138",
+      "reason": "unique_unmerged_history"
+    },
+    {
+      "ref": "codex/ai-improvement-recovery-20261021",
+      "sha": "7d1806b66e1677f0ce66d488015c8bd44597b0a8",
+      "reason": "unique_unmerged_history"
+    },
+    {
+      "ref": "codex/ai-menu-simplify-20261026",
+      "sha": "d2c72685f08d9e13544bfae467e5b40e2f503958",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/ai-search-15-perf",
+      "sha": "37ed9c767458a36c436e7d5ad3bcdc8dbd9b2a18",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/ai-speed-strength-20261026",
+      "sha": "14685b2c883991a2e870ef179941456ff7df6f31",
+      "reason": "unique_unmerged_history"
+    },
+    {
+      "ref": "codex/all-platform-sync-20261026",
+      "sha": "dfa39af12f49619511e121692abd7ec4fff1ef96",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/android-harmonyos-mobile",
+      "sha": "85118585549167f38668f7321885441c1f579251",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/base-search-protocol",
+      "sha": "bd66575f865d5b4bfbdeffc3ca7eea94b24a4f8c",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/d20-evaluation-recovery-20260911",
+      "sha": "db469b380812e5b254c61b55682679700f5fc65d",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/defense-15-players-20261025",
+      "sha": "1cb69250243940084ea3cbe36a6703e75e40347c",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/diamond-board-20261026",
+      "sha": "1bbb4d1e166e486b8e7b8aebb4e8f3950b6a6ba8",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/formal-v2-recovery-gates",
+      "sha": "6b45b6bdc5ade589b9b22db75764b94917ab04ff",
+      "reason": "unique_unmerged_history"
+    },
+    {
+      "ref": "codex/g1-heldout-audit-20260920",
+      "sha": "8223ff86915d7d26b9d37998cc24b6a8fed0b65b",
+      "reason": "unique_unmerged_history"
+    },
+    {
+      "ref": "codex/g1-heldout-manifest-sidecar",
+      "sha": "3a506653084673c3d07702dff70eaf8f0bd749a6",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/hard-budget-20261026",
+      "sha": "23568e2e2b588826dde5c850a4cf225f8749c9af",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/ijcai2027-research-contract-v2",
+      "sha": "6ba6455955855e1b23e9842da1b6991d402d41f6",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/ijcai2027-theory-claims",
+      "sha": "976fee7fa23b714f2257e011c083b292f13b1a27",
+      "reason": "unique_unmerged_history"
+    },
+    {
+      "ref": "codex/l20-k-legacy-notice",
+      "sha": "fb41e8f8e8120a051840113eca03056b6bea0756",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/latest-move-highlight-20261025",
+      "sha": "6da96325b9c49a84ac4f83547ca5a295585631ad",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/lifeline-alignment-20261031",
+      "sha": "be527b9600ce0458c9c9170cb50b4e3a13fcc73d",
+      "reason": "main_or_current_work"
+    },
+    {
+      "ref": "codex/lifeline-itch-release-20261022",
+      "sha": "ce3c79ab4faf31f159fa8f66903638484b2f9ed6",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/lifeline-steam-m1",
+      "sha": "a90b23d045b345057809a7417340cdc5d1dfcad5",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/mechanism-diagnostics-20260910",
+      "sha": "db469b380812e5b254c61b55682679700f5fc65d",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/multi-start-20261026",
+      "sha": "b8d2cb69cea72fddb4ef6dec4acf4e36b3286525",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/multi-start-baseline-20261026",
+      "sha": "6d49806e4b03f4d9d1601a3e731fcebf4e51f0b1",
+      "reason": "unique_unmerged_history"
+    },
+    {
+      "ref": "codex/multi-start-itch-20261027",
+      "sha": "ff06c7ad6a4abf8ed9ca25dc583fce448b0086e1",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/multi-start-mobile-20261027",
+      "sha": "e933e1a924ffc6181b8c8fdbb8310bbc7575781c",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/multi-start-steam-20261027",
+      "sha": "d2ea232f087bfc157b3307519a25b04de0909af9",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/multi-start-wechat-20261027",
+      "sha": "4e63dba76b63e2a8ec6f29aa2945d56d77eff8e3",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/pass-discipline-20261025",
+      "sha": "1647eeac208b260775e5a1ada3abfdab68ba0faf",
+      "reason": "unique_unmerged_history"
+    },
+    {
+      "ref": "codex/pc-mobile-ui-20261026",
+      "sha": "a6184b3088677100ffaf3aa97dc18c01ed859fb2",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/project-alignment-20261031",
+      "sha": "44ee333171a69c22e43b2d02edf0daaab59326bc",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/project-layout-20261026",
+      "sha": "44ee333171a69c22e43b2d02edf0daaab59326bc",
+      "reason": "unique_unmerged_history"
+    },
+    {
+      "ref": "codex/r3-source-closure-adapter",
+      "sha": "347d69522bd816e1ede1c2e6feee3afde3b789c9",
+      "reason": "unique_unmerged_history"
+    },
+    {
+      "ref": "codex/rename-strategy-chess-20261026",
+      "sha": "7aa64102687ffdef9fd7489093ccdb3186123480",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/replay-ai-contribution-release-20261013",
+      "sha": "6d19be614fa897c5a70df292902b85e9abcd4619",
+      "reason": "unique_unmerged_history"
+    },
+    {
+      "ref": "codex/replay-collection-v3",
+      "sha": "996bd346ac4924a98e061d9ce51b9fe39730257e",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/shared-online-ai-random-20261025",
+      "sha": "d028acd9281527fca814567459fc792ce49db397",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/supplement-clean-copy",
+      "sha": "bd66575f865d5b4bfbdeffc3ca7eea94b24a4f8c",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/taptap-android-release",
+      "sha": "98325afa266094a0f22639372c2bab99365e7272",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/targeted-history-witness",
+      "sha": "db469b380812e5b254c61b55682679700f5fc65d",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/territory-v2-ai-hint-worker",
+      "sha": "cb4ee0b4f0b7f928dc12c575d1f16b38183860f1",
+      "reason": "unique_unmerged_history"
+    },
+    {
+      "ref": "codex/topology-web-r3-20261029",
+      "sha": "b3ddf87882cd3c3cc8c5218d978171c98cffeb12",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/topology-web-r3-full-20261029",
+      "sha": "a1dc6d75aaa2a3afceedb60daf4aacdf70c5f8d4",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/topology-wechat-release-20261027",
+      "sha": "b3ddf87882cd3c3cc8c5218d978171c98cffeb12",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/two-player-start-protection-20261026",
+      "sha": "e0940042b1427aa5827cf935382848918a358072",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/ultimate-terminal-v2-20261026",
+      "sha": "351135bd68612522a47dc153450170f2be9a433a",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/unified-room-seats-20261025",
+      "sha": "f172750cc7edfce13f2baa3b1c74c0cbd803e9ab",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/unified-web-mini-20261029",
+      "sha": "73ca7be22774663c8872ae956d39c61e85744f69",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/web-ai-correctness",
+      "sha": "bd66575f865d5b4bfbdeffc3ca7eea94b24a4f8c",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/web-security-hardening",
+      "sha": "bd66575f865d5b4bfbdeffc3ca7eea94b24a4f8c",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/web-topology-puct",
+      "sha": "db469b380812e5b254c61b55682679700f5fc65d",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/web-training-all-actors-v2",
+      "sha": "c65405d8e8ea1fdd09ad1d60369e4fb87f64644d",
+      "reason": "unique_unmerged_history"
+    },
+    {
+      "ref": "codex/wechat-board-flow-20261030",
+      "sha": "51e5782d3117871167783dc53413f0e6e7578bdf",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/wechat-minigame",
+      "sha": "e073a2970fab7692569f1fb6de795d856a95720b",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "codex/wechat-topology-fix-20261030",
+      "sha": "ea651f7f2d4bf4995541662fd0465da67da77a6d",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "main",
+      "sha": "a1c95d56cf8fb5877ea98f21fb9d3abbcea64fb2",
+      "reason": "main_or_current_work"
+    },
+    {
+      "ref": "origin",
+      "sha": "6da96325b9c49a84ac4f83547ca5a295585631ad",
+      "reason": "main_or_current_work"
+    },
+    {
+      "ref": "origin/codex/ai-speed-strength-20261026",
+      "sha": "14685b2c883991a2e870ef179941456ff7df6f31",
+      "reason": "unique_unmerged_history"
+    },
+    {
+      "ref": "origin/codex/defense-15-players-20261025",
+      "sha": "1cb69250243940084ea3cbe36a6703e75e40347c",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "origin/codex/hard-budget-20261026",
+      "sha": "23568e2e2b588826dde5c850a4cf225f8749c9af",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "origin/codex/pass-discipline-20261025",
+      "sha": "1647eeac208b260775e5a1ada3abfdab68ba0faf",
+      "reason": "unique_unmerged_history"
+    },
+    {
+      "ref": "origin/codex/replay-collection-v3",
+      "sha": "996bd346ac4924a98e061d9ce51b9fe39730257e",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "origin/codex/territory-v2-ai-hint-worker",
+      "sha": "cb4ee0b4f0b7f928dc12c575d1f16b38183860f1",
+      "reason": "unique_unmerged_history"
+    },
+    {
+      "ref": "origin/codex/two-player-start-protection-20261026",
+      "sha": "e0940042b1427aa5827cf935382848918a358072",
+      "reason": "attached_worktree"
+    },
+    {
+      "ref": "origin/main",
+      "sha": "6da96325b9c49a84ac4f83547ca5a295585631ad",
+      "reason": "main_or_current_work"
+    }
+  ],
+  "previous_main": "6da96325b9c49a84ac4f83547ca5a295585631ad"
+}

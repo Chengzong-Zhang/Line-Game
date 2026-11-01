@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "checks": 162,
+  "old_tokens": [
+    "20261029-unified-r1",
+    "20261030-topology-fix-r2"
+  ],
+  "old_module_count": 54,
+  "unknown_token_expected_current": true,
+  "certificate_hostname_verified": true,
+  "resolution": "lifelinegame.cn:443:127.0.0.1",
+  "failures": []
+}
